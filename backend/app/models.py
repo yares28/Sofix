@@ -30,6 +30,8 @@ class Team(Base):
     short_name: Mapped[str | None] = mapped_column(String(80))
     code: Mapped[str | None] = mapped_column(String(3), unique=True)
     color: Mapped[str | None] = mapped_column(String(9))
+    # football-data.org crest, only ever a https://crests.football-data.org/ URL (see services/crests.py)
+    crest_url: Mapped[str | None] = mapped_column(String(255))
     stadium_id: Mapped[int | None] = mapped_column(ForeignKey("stadiums.id"))
 
 

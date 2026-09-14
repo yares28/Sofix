@@ -34,7 +34,7 @@ function cell(
 }
 
 function team(code: string, cells: GridCell[][]): GridTeam {
-  return { code, name: `Team ${code}`, color: "#000000", cells };
+  return { code, name: `Team ${code}`, color: "#000000", crest_url: null, cells };
 }
 
 describe("scaleBucket", () => {

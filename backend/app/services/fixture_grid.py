@@ -27,6 +27,7 @@ from app.schemas import (
     Prob,
     Venue,
 )
+from app.services.crests import safe_crest_url
 from app.services.scoring import LABEL_THRESHOLDS, LABELS, label_bucket
 from app.services.team_registry import by_code
 from app.services.timeutil import as_utc
@@ -230,6 +231,7 @@ def build_fixture_grid(db: Session) -> FixtureGrid | None:
                 code=team_code(team),
                 name=info.name if info else team.canonical_name,
                 color=team.color or (info.color if info else "#8e8e93"),
+                crest_url=safe_crest_url(team.crest_url),  # re-checked on the way out, in case of old rows
                 cells=cells[team_id],
             )
         )

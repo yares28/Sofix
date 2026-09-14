@@ -166,8 +166,8 @@ Work order: **0 → 1 → 2 → 3 → 4**, with **5** and **6** interleaved once
 ### 5c. Club crests
 | ID | Task | Done when |
 |---|---|---|
-| 5.7 | ⬜ Store football-data.org `crest` URL (`Team.crest_url`, migration); allowlist `https://crests.football-data.org/` before exposing; add `crest_url` to `GridTeam` | All 20 teams have a URL |
-| 5.8 | ⬜ `Crest` renders `<img>` (28×28, lazy, `alt="{team} crest"`, `referrerPolicy="no-referrer"`) on a white circle with a hairline ring; falls back to the colour badge on error or when `NEXT_PUBLIC_SHOW_CLUB_CRESTS=false`; used in team column, insight cards, tooltip header | Crests render; flag off shows badges |
+| 5.7 | ✅ _(teams.crest_url migration applied to production; 20/20 teams have a URL; host allowlisted in services/crests.py and on the grid payload)_ Store football-data.org `crest` URL (`Team.crest_url`, migration); allowlist `https://crests.football-data.org/` before exposing; add `crest_url` to `GridTeam` | All 20 teams have a URL |
+| 5.8 | ✅ _(Crest component: image on white disc (team column, insights, tooltip), badge fallback on error or NEXT_PUBLIC_SHOW_CLUB_CRESTS=false; decorative alt since the name is always adjacent or in the button label)_ `Crest` renders `<img>` (28×28, lazy, `alt="{team} crest"`, `referrerPolicy="no-referrer"`) on a white circle with a hairline ring; falls back to the colour badge on error or when `NEXT_PUBLIC_SHOW_CLUB_CRESTS=false`; used in team column, insight cards, tooltip header | Crests render; flag off shows badges |
 
 ### 5d. Planning features
 | ID | Task | Done when |

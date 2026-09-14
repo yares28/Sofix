@@ -53,6 +53,7 @@ export interface GridTeam {
   code: string;
   name: string;
   color: string;
+  crest_url: string | null; // https://crests.football-data.org/… or null
   cells: GridCell[][]; // one list per matchday: empty = no game, two = rescheduled double
 }
 

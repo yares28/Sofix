@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from app.db import SessionLocal
 from app.logging_config import configure_logging
 from app.models import Competition, Fixture, SourceEntityMap, Stadium, Team
+from app.services.crests import safe_crest_url
 from app.services.team_registry import TeamInfo, by_code
 from app.services.timeutil import as_utc
 from app.sources.football_data_org import FootballDataOrg, MatchPayload, TeamRef, parse_matches
@@ -111,6 +112,7 @@ def resolve_team(
 
     team.short_name = ref.shortName or display_name
     team.code = code
+    team.crest_url = safe_crest_url(ref.crest) or team.crest_url  # keep a known crest if the payload omits it
     if info:
         team.color = info.color
         team.stadium_id = get_or_create_stadium(db, info).id

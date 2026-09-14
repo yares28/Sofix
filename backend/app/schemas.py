@@ -70,6 +70,7 @@ class GridTeam(BaseModel):
     code: str
     name: str
     color: str
+    crest_url: str | None  # always https://crests.football-data.org/…, or null
     cells: list[list[GridCell]]
 
 

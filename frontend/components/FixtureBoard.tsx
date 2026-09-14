@@ -59,7 +59,7 @@ export default function FixtureBoard({ grid }: { grid: FixtureGrid }) {
   const hoveredKey = useRef<string | null>(null);
   const lastPointer = useRef<string>("mouse");
 
-  const names = useMemo(() => new Map(grid.teams.map((team) => [team.code, team.name])), [grid]);
+  const teamsByCode = useMemo(() => new Map(grid.teams.map((team) => [team.code, team])), [grid]);
   const scales = grid.lens_scales;
   const cellIndex = useMemo(() => {
     const index = new Map<string, { team: GridTeam; cell: GridCell; matchday: number }>();
@@ -187,7 +187,7 @@ export default function FixtureBoard({ grid }: { grid: FixtureGrid }) {
     const entry = key ? cellIndex.get(key) : undefined;
     if (!key || !entry) return;
     hoveredKey.current = key;
-    tooltip.current?.show(<CellTooltip {...entry} names={names} />);
+    tooltip.current?.show(<CellTooltip {...entry} teams={teamsByCode} />);
     tooltip.current?.anchor(tile);
   };
   const tileOf = (target: EventTarget) => (target as HTMLElement).closest<HTMLElement>("[data-key]");
@@ -240,7 +240,7 @@ export default function FixtureBoard({ grid }: { grid: FixtureGrid }) {
     if (key !== hoveredKey.current) {
       hoveredKey.current = key;
       const entry = cellIndex.get(key);
-      if (entry) tooltip.current?.show(<CellTooltip {...entry} names={names} />);
+      if (entry) tooltip.current?.show(<CellTooltip {...entry} teams={teamsByCode} />);
     }
     tooltip.current?.move(event.clientX, event.clientY);
   };
@@ -370,7 +370,7 @@ export default function FixtureBoard({ grid }: { grid: FixtureGrid }) {
                             column={start + i}
                             cellKey={(cell) => `${team.code}-${cell.fixture_id}`}
                             bucketOf={(cell) => cellBucket(cell, lens, scale)}
-                            labelOf={(cell) => cellLabel(cell, team.name, matchday, names.get(cell.opponent_code) ?? cell.opponent_code, lens)}
+                            labelOf={(cell) => cellLabel(cell, team.name, matchday, teamsByCode.get(cell.opponent_code)?.name ?? cell.opponent_code, lens)}
                           />
                         </td>
                       );
@@ -409,16 +409,20 @@ export default function FixtureBoard({ grid }: { grid: FixtureGrid }) {
   );
 }
 
-function CellTooltip({ team, cell, matchday, names }: { team: GridTeam; cell: GridCell; matchday: number; names: Map<string, string> }) {
-  const opponent = names.get(cell.opponent_code) ?? cell.opponent_code;
+function CellTooltip({ team, cell, matchday, teams }: { team: GridTeam; cell: GridCell; matchday: number; teams: Map<string, GridTeam> }) {
+  const opponentTeam = teams.get(cell.opponent_code);
+  const opponent = opponentTeam?.name ?? cell.opponent_code;
   const [home, away] = cell.venue === "H" ? [team.name, opponent] : [opponent, team.name];
+  const [homeTeam, awayTeam] = cell.venue === "H" ? [team, opponentTeam] : [opponentTeam, team];
   const when = cell.date_confirmed ? formatKickoff(cell.kickoff_utc) : `Date TBC · weekend of ${formatDay(cell.kickoff_utc)}`;
   const p = cell.prediction;
   const w = cell.weather;
   return (
     <>
       <div className="tip-title">
+        {homeTeam && <Crest team={homeTeam} size={18} />}
         <b>{home}</b> v <b>{away}</b>
+        {awayTeam && <Crest team={awayTeam} size={18} />}
       </div>
       <div className="muted">
         MD{matchday} · {when}

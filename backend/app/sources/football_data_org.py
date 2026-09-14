@@ -25,6 +25,7 @@ class TeamRef(BaseModel):
     name: str | None = None
     shortName: str | None = None  # camelCase: field names match the API
     tla: str | None = None
+    crest: str | None = None
 
 
 class FullTime(BaseModel):

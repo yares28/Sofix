@@ -88,7 +88,7 @@ npm run lint         # eslint (next + jsx-a11y), zero warnings
 | football-data.co.uk | Free CSVs; results and `fixtures.csv` (Bet365/avg/max odds, no Pinnacle) updated Tue ~13:00 / Fri ~17:00 UK | Disk cache in `backend/data/raw/`; re-download only the current season; a 404 for a brand-new season means "no rows yet" |
 | Open-Meteo | Non-commercial: **600/min, 5,000/hour, 10,000/day, 300,000/month**; **CC BY 4.0 attribution required** | ≤ 1 call per stadium per refresh; keep the footer attribution |
 | Neon Free | **0.5 GB/project, 100 CU-hours/month**, up to 2 CU, scale to zero after 5 min idle, 10 branches, 6 h history, 5 GB egress. **Hitting any limit suspends compute until next month** | Cache the grid and revalidate only after a refresh; never point uptime monitors at DB-backed endpoints (≈182 CU-h/month); keep `/api/health` DB-free |
-| Club crests (planned) | No licence stated; club trademarks | Personal use only, behind `SHOW_CLUB_CRESTS`; allowlist `crests.football-data.org`; no bulk download |
+| Club crests | No licence stated; club trademarks | Personal use only; `NEXT_PUBLIC_SHOW_CLUB_CRESTS=false` (in `frontend/.env.local`) shows colour badges instead; URLs allowlisted to `https://crests.football-data.org/` in `services/crests.py` and again in `Crest.tsx`; hot-linked (`unoptimized`, `no-referrer`), never downloaded or proxied |
 | StatsBomb Open Data | LaLiga only to 2020/21, Barcelona matches only | Research only; not in the pipeline |
 
 Transfermarkt Terms prohibit scraping. No LaLiga logo or wordmark.

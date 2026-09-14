@@ -161,7 +161,7 @@ Work order: **0 → 1 → 2 → 3 → 4**, with **5** and **6** interleaved once
 ### 5b. Mobile
 | ID | Task | Done when |
 |---|---|---|
-| 5.6 | ⬜ ≤ 600 px layout: crest + code team column (~64 px), 52 px tiles, 16 px page padding, full-width search, horizon + lens in one scrolling row (or bottom sheet); sticky table headers (`overflow: clip` on `.board`) | 5 matchdays visible at 390 px; toolbar ≤ 2 rows |
+| 5.6 | ✅ _(crest-only team column, 52 px tiles, 5 matchdays at 390 px, two-row toolbar with scrolling controls, headers pinned inside the grid's own scroll, swipeable insights)_ ≤ 600 px layout: crest + code team column (~64 px), 52 px tiles, 16 px page padding, full-width search, horizon + lens in one scrolling row (or bottom sheet); sticky table headers (`overflow: clip` on `.board`) | 5 matchdays visible at 390 px; toolbar ≤ 2 rows |
 
 ### 5c. Club crests
 | ID | Task | Done when |

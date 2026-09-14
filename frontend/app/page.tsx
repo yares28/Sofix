@@ -51,7 +51,7 @@ export default async function Home() {
         <div className="nav-inner">
           <div className="brand">
             <div className="brand-mark" />
-            FixtureDiff
+            <span className="brand-name">FixtureDiff</span>
           </div>
           <div className="nav-meta">
             <Freshness syncedAt={meta?.last_synced_at ?? null} predictedAt={meta?.last_predicted_at ?? null} />

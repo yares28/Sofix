@@ -269,7 +269,7 @@ export default function FixtureBoard({ grid }: { grid: FixtureGrid }) {
 
       <section className="card board">
         <div className="toolbar">
-          <div className="toolbar-left">
+          <div className="toolbar-nav">
             <div className="stepper">
               <button type="button" aria-label="Previous matchday" disabled={start === 0} onClick={() => setStartColumn(start - 1)}>
                 <Chevron direction="left" />
@@ -281,10 +281,10 @@ export default function FixtureBoard({ grid }: { grid: FixtureGrid }) {
                 <Chevron direction="right" />
               </button>
             </div>
+          </div>
+          <div className="toolbar-controls">
             <SegmentedControl label="Horizon" value={horizon} onChange={setHorizon} options={HORIZONS} />
             <SegmentedControl label="Lens" value={lens} onChange={setLens} options={LENSES} />
-          </div>
-          <div className="toolbar-right">
             {view === "fdr" && (
               <div className="legend">
                 <span className="visually-hidden">Colour key, {LENS_COPY[lens].label} lens:</span>
@@ -296,13 +296,13 @@ export default function FixtureBoard({ grid }: { grid: FixtureGrid }) {
                 {LENS_COPY[lens].hard}
               </div>
             )}
-            <div className="search">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
-                <circle cx="11" cy="11" r="7" />
-                <path d="M20 20l-3.5-3.5" />
-              </svg>
-              <input type="search" aria-label="Search teams" placeholder="Search teams" autoComplete="off" value={query} onChange={(e) => setQuery(e.target.value)} />
-            </div>
+          </div>
+          <div className="search">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-3.5-3.5" />
+            </svg>
+            <input type="search" aria-label="Search teams" placeholder="Search teams" autoComplete="off" value={query} onChange={(e) => setQuery(e.target.value)} />
           </div>
         </div>
 

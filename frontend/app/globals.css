@@ -133,7 +133,10 @@ h1 { margin: 0; font-size: clamp(34px, 5vw, 52px); font-weight: 700; letter-spac
   display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
   padding: 16px 24px 18px; border-bottom: 1px solid var(--line);
 }
-.toolbar-left, .toolbar-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.toolbar-nav { display: flex; align-items: center; }
+.toolbar-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; flex: 1; }
+.toolbar-controls .legend { margin-left: auto; }
+.venue-short { display: none; }
 .search {
   display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; width: 190px;
   background: #f2f2f5; border-radius: 10px; color: var(--ink-2);
@@ -262,7 +265,67 @@ tr.pinned .team-col::before {
 .tip-title { font-size: 13px; margin-bottom: 2px; }
 .tip-row { font-variant-numeric: tabular-nums; }
 
+/* Narrower than one toolbar row: stepper + search on top, all controls on a second row. */
+@media (max-width: 1100px) {
+  .toolbar { display: grid; grid-template-columns: auto 1fr; gap: 12px 16px; }
+  .toolbar-nav { grid-column: 1; }
+  .search { grid-column: 2; justify-self: end; }
+  .toolbar-controls { grid-column: 1 / -1; grid-row: 2; }
+}
+
 @media (max-width: 960px) {
   .insights { grid-template-columns: 1fr; }
   main { padding-top: 36px; }
+}
+
+/* ---------- Phones ---------- */
+@media (max-width: 600px) {
+  main { padding: 24px 16px 64px; }
+  .nav-inner { padding: 0 16px; }
+  .brand-name { display: none; }
+  .hero { margin-bottom: 20px; gap: 16px; }
+  .subtitle { font-size: 16px; }
+  .segmented.lg button { padding: 8px 18px; font-size: 13px; }
+
+  /* Insight cards: one swipeable row instead of three stacked cards above the grid. */
+  .insights {
+    grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 86%;
+    overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: 16px;
+    margin: 0 -16px 16px; padding: 2px 16px 10px;
+    scrollbar-width: none;
+  }
+  .insights::-webkit-scrollbar { display: none; }
+  .insights .insight { scroll-snap-align: start; padding: 18px 20px; }
+  .insight-team strong { font-size: 19px; }
+
+  /* Toolbar: stepper + search, then one scrolling row of controls. */
+  .toolbar { gap: 10px; padding: 12px; }
+  .search { width: auto; justify-self: stretch; }
+  .toolbar-controls {
+    flex-wrap: nowrap; overflow-x: auto; gap: 8px;
+    margin: 0 -12px; padding: 2px 12px; scrollbar-width: none;
+  }
+  .toolbar-controls::-webkit-scrollbar { display: none; }
+  .toolbar-controls .legend { margin-left: 0; white-space: nowrap; }
+  .toolbar-controls .segmented { flex: none; }
+  .stepper .range { min-width: 92px; font-size: 13px; }
+
+  /* Grid: crest-only team column, 52 px tiles, headers that stay visible while scrolling. */
+  .scroll { max-height: calc(100dvh - 140px); overflow: auto; overscroll-behavior: contain; }
+  thead th { position: sticky; top: 0; z-index: 2; padding-top: 10px; }
+  thead th.team-col { z-index: 4; }
+  table { min-width: 0; }
+  th.team-col, td.team-col, tbody th.team-col { width: 60px; min-width: 60px; padding-left: 16px; padding-right: 8px; }
+  thead th.team-col .gw { font-size: 11px; }
+  .team-name { display: none; }
+  tr.pinned .team-col::before { left: 5px; }
+  .cell { min-width: 52px; height: 44px; }
+  .cell .opp { font-size: 12px; }
+  .venue-long { display: none; }
+  .venue-short { display: inline; }
+  th.avg-col, td.avg-col { padding-right: 16px; width: 96px; }
+  .avg .bar { display: none; }
+
+  .tip { white-space: normal; max-width: calc(100vw - 24px); }
+  .footnote { padding: 0 8px; }
 }

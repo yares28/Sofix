@@ -50,14 +50,23 @@ function Tile({ cell, bucket, compact, dataKey, label, row, column }: TileProps)
       </button>
     );
   }
-  const venue = compact ? cell.venue : cell.venue === "H" ? "Home" : "Away";
   return (
     <button {...common} className={`cell ${bucket ? `f${bucket}` : "muted"} ${size}`}>
       {/* The number repeats the colour, for colour-blind readers and greyscale prints. */}
       {bucket && !compact && <span className="bucket-num">{bucket}</span>}
       <span className="opp">{cell.opponent_code}</span>
       <span className="venue">
-        {cell.status === "live" ? "Live" : venue}
+        {cell.status === "live" ? (
+          "Live"
+        ) : compact ? (
+          cell.venue
+        ) : (
+          <>
+            {/* Narrow screens show H / A (CSS picks one). */}
+            <span className="venue-long">{cell.venue === "H" ? "Home" : "Away"}</span>
+            <span className="venue-short">{cell.venue}</span>
+          </>
+        )}
         {!cell.date_confirmed && !compact && <span className="tbc"> · TBC</span>}
       </span>
     </button>

@@ -220,6 +220,7 @@ Winning changes update `artifacts/dixon_coles.json`, bump the model version (3.3
 
 ## Phase 7 — Later / polish
 
+- ⬜ Upgrade vitest 3 → 5 (dev-only advisory GHSA-82fw-gwwq-j7x9 in `@vitest/mocker`; runtime `npm audit --omit=dev` is clean)
 - ⬜ Dark mode (the brief was white-first)
 - ⬜ Spanish translation
 - ⬜ Injuries/suspensions from an authorised source

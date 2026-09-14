@@ -88,7 +88,13 @@ Transfermarkt Terms prohibit scraping. No LaLiga logo or wordmark.
 
 ## Environment and secrets
 
-- Root `.env` (git-ignored): `FOOTBALL_DATA_ORG_TOKEN`, `POSTGRES_URL` (Neon **pooled** host), `POSTGRES_MIGRATION_URL` (Neon **direct** host).
+- Root `.env` (git-ignored): `FOOTBALL_DATA_ORG_TOKEN`, `POSTGRES_URL` (Neon **pooled** host, role **`fdr_app`**),
+  `POSTGRES_MIGRATION_URL` (Neon **direct** host, role `neondb_owner`).
+- `fdr_app` was created with SQL (so it is not in `neon_superuser`): DML on all tables + sequences, default
+  privileges for tables the owner creates later, no DDL. Migrations must keep using the owner URL.
+- Neon TLS: `app/db.py` forces `sslmode=verify-full` with the certifi CA bundle for `*.neon.tech` hosts.
+- Branches: `production` (the app) and `dev` (test migrations here first; roles are per branch, so `dev` has
+  only the owner role).
 - Never print, log or commit secret values. Refer to keys by name only.
 - Neon project **FDR** (AWS Frankfurt, Postgres 18, branch `production`, database `neondb`). Manage it through the
   claude.ai **Neon connector**; the old user-scope `Neon` MCP entry with an API key is stale.

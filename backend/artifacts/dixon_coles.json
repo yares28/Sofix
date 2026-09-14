@@ -1,0 +1,9 @@
+{
+  "model": "dixon-coles",
+  "xi": 0.001,
+  "goals_weight": 0.7,
+  "ridge": 1.0,
+  "promoted_prior": 0.0,
+  "window_days": 730,
+  "max_goals": 10
+}

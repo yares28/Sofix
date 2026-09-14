@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Backend data (downloaded, reproducible), local SQLite, run logs, model pickles
+backend/data/raw/
+backend/fixture.db
+backend/reports/*.log
+*.joblib
+
+# Local tooling
+.claude/
+frontend/tsconfig.tsbuildinfo
+
+# Node
+node_modules/
+.next/
+
+# Env
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db

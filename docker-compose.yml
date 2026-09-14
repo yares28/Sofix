@@ -1,0 +1,29 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: fixture
+      POSTGRES_PASSWORD: fixture
+      POSTGRES_DB: fixture
+    ports: ["5432:5432"]
+    volumes: [fixture_pg:/var/lib/postgresql/data]
+  api:
+    build: ./backend
+    env_file: .env
+    environment:
+      # Inside the compose network the database host is the service name, not localhost.
+      # Both URLs are overridden so nothing from the root .env (which points at Neon) leaks in.
+      POSTGRES_URL: postgresql+psycopg://fixture:fixture@postgres:5432/fixture
+      POSTGRES_MIGRATION_URL: postgresql+psycopg://fixture:fixture@postgres:5432/fixture
+    depends_on: [postgres]
+    ports: ["8000:8000"]
+    volumes: ["./backend:/app"]
+  web:
+    build: ./frontend
+    environment:
+      # page.tsx fetches on the server, so it must reach the api container by service name.
+      API_BASE_URL: http://api:8000
+    depends_on: [api]
+    ports: ["3000:3000"]
+volumes:
+  fixture_pg:

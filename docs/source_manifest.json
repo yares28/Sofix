@@ -1,0 +1,44 @@
+{
+  "football-data.org": {
+    "role": "current fixtures/results/standings",
+    "free": "free API tier + token",
+    "automated": true
+  },
+  "Football-Data.co.uk": {
+    "role": "historical La Liga/results/stats/odds",
+    "free": "free CSV",
+    "automated": true
+  },
+  "StatsBomb Open Data": {
+    "role": "historical events/lineups",
+    "free": "open subset",
+    "automated": true
+  },
+  "Open-Meteo": {
+    "role": "weather",
+    "free": "free under documented limits/terms",
+    "automated": true
+  },
+  "RFEF": {
+    "role": "official suspensions",
+    "free": "public decisions/PDFs",
+    "automated": "human-reviewed"
+  },
+  "Transfermarkt": {
+    "role": "injuries/market values",
+    "free": "public view",
+    "automated": false,
+    "reason": "current Terms prohibit bots/screen scraping"
+  },
+  "Understat": {
+    "role": "optional current xG",
+    "free": "public view",
+    "automated": "authorized/manual import"
+  },
+  "ClubElo": {
+    "role": "rating benchmark",
+    "free": "public view",
+    "automated": false,
+    "reason": "internal Elo is reproducible"
+  }
+}

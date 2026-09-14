@@ -103,7 +103,7 @@ Work order: **0 → 1 → 2 → 3 → 4**, with **5** and **6** interleaved once
 | 2.7 | ✅ **Least-privilege Neon:** role `fdr_app` (DML only) for `POSTGRES_URL`; `neondb_owner` only for migrations; create `dev` branch for local work; `sslmode=verify-full&sslrootcert=system` | Neon, `.env` | App runs as `fdr_app`; DDL as the app role fails |
 | 2.8 | ✅ _(compose config validated and next build standalone verified; images not built locally because Docker Desktop was not running)_ **Docker hardening:** `127.0.0.1:` port binds, non-root users, production builds (Next standalone, no `--reload`), `postgres:18`, `${POSTGRES_PASSWORD:?}` | `Dockerfile`s, compose | `docker compose up` serves prod builds on localhost only |
 | 2.9 | ✅ _(APP_ENV, 503/500 envelopes, typed GridMeta, CSP and security headers)_ **API and web hardening:** docs/OpenAPI disabled outside dev; typed `GridMeta`; exception handler → 503 envelope; Next security headers (CSP allowing `crests.football-data.org`, `nosniff`, `Referrer-Policy`), `poweredByHeader: false`; server-only `API_BASE_URL` | `main.py`, `schemas.py`, `next.config.mjs`, `page.tsx` | Headers present; suspended DB → 503 JSON |
-| 2.10 | ⬜ **Docs refresh:** README/PLAN describe the current system, not the scaffold | `README.md`, `PLAN.md` | No references to removed modules |
+| 2.10 | ✅ _(README, PLAN, architecture, data dictionary and source manifest describe the current system)_ **Docs refresh:** README/PLAN describe the current system, not the scaffold | `README.md`, `PLAN.md` | No references to removed modules |
 
 ---
 

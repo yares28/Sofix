@@ -1,31 +1,25 @@
-# Data/source dictionary
+# Data sources
 
-| Family | Priority | Free source / derivation | Default ingestion |
+## In use
+
+| Data | Source | How | Limits / terms |
 |---|---|---|---|
-| Current fixtures/results/standings | Core | football-data.org | API |
-| Official calendar verification | Core QA | LaLiga official | manual/QA |
-| Historical results | Core | Football-Data.co.uk | CSV |
-| Shots/SOT/corners/cards/referee | Strong | Football-Data.co.uk | CSV |
-| Historical odds | Strong | Football-Data.co.uk | CSV |
-| Elo | Core | internal | derived |
-| Rolling form/home-away | Core | internal | derived |
-| xG/xGA/npxG/xPts | Strong | StatsBomb Open historical; authorized current import | open JSON/manual |
-| Events/lineups/pressures | Advanced | StatsBomb Open historical | open JSON |
-| Suspensions | Strong | RFEF disciplinary decisions | reviewed PDF import |
-| Injuries | Strong | authorized provider/manual point-in-time import | import adapter |
-| Player value/minutes/expected XI | Strong | own history + authorized squad source | derived/import |
-| Market value proxy | Medium | authorized import | import adapter |
-| Transfers/squad continuity | Strong | authorized import + minutes retained | derived/import |
-| Managers | Medium | official/manual structured data | import |
-| Europe/cup congestion | Strong | UEFA/RFEF/fixture feeds | adapter |
-| Travel | Medium | stadium coords + Haversine | derived |
-| Stadium coords | Medium | OSM/Nominatim (cache) | one-time seed |
-| Weather | Optional | Open-Meteo | API |
-| Referee tendencies | Low | Football-Data.co.uk history | derived |
-| H2H | Low | historical match DB | derived |
-| Motivation flags | Optional | standings + rules | derived |
+| Current fixtures, kickoff times, results | football-data.org (`PD`) | API, one call per refresh | Free token: 10 requests/min; LaLiga + Champions League, not Europa/Conference |
+| Historical results, shots on target, odds | Football-Data.co.uk (`SP1`) | CSV download, cached in `backend/data/raw/` | Free; updated Tue/Fri |
+| Kickoff weather (context) | Open-Meteo | API, one call per stadium | Non-commercial free tier (10,000 calls/day); CC BY 4.0 attribution shown in the UI |
+| Team identities, colours, stadiums | `app/services/team_registry.py` | Maintained by hand | Add promoted clubs each June |
 
-Important: Transfermarkt's current Terms prohibit bots/screen-scraping. The app schema supports
-injury and market-value data, but the default repo intentionally does not scrape Transfermarkt.
+## Candidates (not in the pipeline)
 
-Understat is treated as replaceable optional xG enrichment rather than a guaranteed official API.
+| Family | Priority | Possible source | Notes |
+|---|---|---|---|
+| Segunda División history (promoted teams) | High | Football-Data.co.uk `SP2` | Planned (phase 6.4) |
+| Pre-match odds for the next matchday | High | Football-Data.co.uk `fixtures.csv` | Bet365/average/max only; planned (phase 6.5) |
+| Champions League fixtures (rest days) | Medium | football-data.org `CL` | Free tier; planned (phase 6.7) |
+| xG / xGA | Medium | Understat (research only), paid API for production | Understat has no API or clear licence; FBref lost Opta advanced stats in Jan 2026 |
+| Suspensions | Medium | RFEF disciplinary decisions | Human-reviewed; PDFs |
+| Injuries, squads, market values | Medium | Authorised provider only | Transfermarkt Terms prohibit bots/scraping |
+| Europa / Conference / Copa fixtures | Medium | Paid API | Not in football-data.org free tier |
+| Events, lineups, pressures | Low | StatsBomb Open Data | LaLiga only to 2020/21 and Barcelona matches only: research use |
+| Stadium coordinates for travel | Low | Registry already has them | Travel distance not modelled yet |
+| Referee tendencies, head-to-head | Low | Historical CSVs | Low expected value |

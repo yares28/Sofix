@@ -1,44 +1,53 @@
 {
   "football-data.org": {
-    "role": "current fixtures/results/standings",
-    "free": "free API tier + token",
+    "role": "current fixtures, kickoff times and results",
+    "status": "in use",
+    "access": "free API token",
+    "limits": "10 requests/minute; LaLiga + Champions League on the free tier",
     "automated": true
   },
   "Football-Data.co.uk": {
-    "role": "historical La Liga/results/stats/odds",
-    "free": "free CSV",
+    "role": "historical LaLiga results, shots on target and odds",
+    "status": "in use",
+    "access": "free CSV",
+    "limits": "updated Tuesdays and Fridays",
+    "automated": true
+  },
+  "Open-Meteo": {
+    "role": "kickoff weather (tooltip context)",
+    "status": "in use",
+    "access": "free API, non-commercial",
+    "limits": "600/min, 5,000/hour, 10,000/day; CC BY 4.0 attribution required",
     "automated": true
   },
   "StatsBomb Open Data": {
     "role": "historical events/lineups",
-    "free": "open subset",
-    "automated": true
-  },
-  "Open-Meteo": {
-    "role": "weather",
-    "free": "free under documented limits/terms",
-    "automated": true
+    "status": "research only",
+    "reason": "LaLiga coverage ends 2020/21 and includes only Barcelona matches",
+    "automated": false
   },
   "RFEF": {
     "role": "official suspensions",
-    "free": "public decisions/PDFs",
+    "status": "candidate",
+    "access": "public decisions/PDFs",
     "automated": "human-reviewed"
+  },
+  "Understat": {
+    "role": "xG",
+    "status": "candidate (research only)",
+    "reason": "no official API or clear reuse licence",
+    "automated": false
   },
   "Transfermarkt": {
     "role": "injuries/market values",
-    "free": "public view",
-    "automated": false,
-    "reason": "current Terms prohibit bots/screen scraping"
-  },
-  "Understat": {
-    "role": "optional current xG",
-    "free": "public view",
-    "automated": "authorized/manual import"
+    "status": "not used",
+    "reason": "current Terms prohibit bots/screen scraping",
+    "automated": false
   },
   "ClubElo": {
     "role": "rating benchmark",
-    "free": "public view",
-    "automated": false,
-    "reason": "internal Elo is reproducible"
+    "status": "not used",
+    "reason": "the internal model is reproducible and backtested",
+    "automated": false
   }
 }

@@ -52,7 +52,7 @@ Work order: **0 → 1 → 2 → 3 → 4**, with **5** and **6** interleaved once
 
 | ID | Task | Done when |
 |---|---|---|
-| 1.1 | ⬜ Repo-root `CLAUDE.md` with the content below | File exists; reviewed against this plan |
+| 1.1 | ✅ Repo-root `CLAUDE.md` with the content below | File exists; reviewed against this plan |
 
 **Project facts**
 - LaLiga fixture difficulty app; English UI; white Apple-style design; FPL was only the UI reference

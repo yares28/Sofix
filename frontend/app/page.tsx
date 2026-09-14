@@ -24,7 +24,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
       <SiteNav meta={meta} />
       <main>
         {grid ? (
-          <FixtureBoard grid={grid} initialView={initialView} pinsInUrl={params.has("pins")} />
+          <FixtureBoard grid={grid} notes={meta?.model_notes ?? []} initialView={initialView} pinsInUrl={params.has("pins")} />
         ) : (
           <section className="card empty-state" role="status">
             <h1>Fixtures &amp; Difficulty</h1>

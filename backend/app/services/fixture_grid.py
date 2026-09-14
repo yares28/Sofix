@@ -28,6 +28,7 @@ from app.schemas import (
     Venue,
 )
 from app.services.crests import safe_crest_url
+from app.services.model_notes import MODEL_NOTES
 from app.services.scoring import LABEL_THRESHOLDS, LABELS, label_bucket
 from app.services.team_registry import by_code
 from app.services.timeutil import as_utc
@@ -273,4 +274,5 @@ def grid_meta(db: Session) -> GridMeta:
     return GridMeta(
         last_synced_at=last_successful_sync(db),
         last_predicted_at=as_utc(last_prediction) if last_prediction else None,
+        model_notes=list(MODEL_NOTES),
     )

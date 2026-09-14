@@ -205,6 +205,11 @@ export interface components {
             last_synced_at: string | null;
             /** Last Predicted At */
             last_predicted_at: string | null;
+            /**
+             * Model Notes
+             * @default []
+             */
+            model_notes: components["schemas"]["ModelNote"][];
         };
         /** GridTeam */
         GridTeam: {
@@ -245,6 +250,13 @@ export interface components {
             overall: components["schemas"]["LensScale"];
             attack: components["schemas"]["LensScale"];
             defence: components["schemas"]["LensScale"];
+        };
+        /** ModelNote */
+        ModelNote: {
+            /** Lens */
+            lens: ("overall" | "attack" | "defence") | null;
+            /** Text */
+            text: string;
         };
         /** Prob */
         Prob: {

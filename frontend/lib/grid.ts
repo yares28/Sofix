@@ -8,7 +8,14 @@ export interface SortState {
 }
 
 // Saturated variants for thin marks (bars, strips) where the pale tiles would disappear.
-export const BUCKET_STRONG: Record<Bucket, string> = { 1: "#1f7a4f", 2: "#5cc58d", 3: "#c7c7cc", 4: "#ff7b6e", 5: "#c4312a" };
+// Colours live only in globals.css (--fdrN-strong).
+export const BUCKET_STRONG: Record<Bucket, string> = {
+  1: "var(--fdr1-strong)",
+  2: "var(--fdr2-strong)",
+  3: "var(--fdr3-strong)",
+  4: "var(--fdr4-strong)",
+  5: "var(--fdr5-strong)",
+};
 
 interface LensCopy {
   label: string;

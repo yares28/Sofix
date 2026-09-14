@@ -59,6 +59,9 @@ export const FixtureGridSchema = z.object({
 export const GridMetaSchema = z.object({
   last_synced_at: isoDate.nullable(),
   last_predicted_at: isoDate.nullable(),
+  model_notes: z
+    .array(z.object({ lens: z.enum(["overall", "attack", "defence"]).nullable(), text: z.string().max(300) }))
+    .default([]),
 }) satisfies z.ZodType<GridMeta>;
 
 export const GridResponseSchema = z.object({

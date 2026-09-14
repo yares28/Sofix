@@ -7,6 +7,7 @@ type Schemas = components["schemas"];
 
 export type FixtureGrid = Schemas["FixtureGrid"];
 export type GridMeta = Schemas["GridMeta"];
+export type ModelNote = Schemas["ModelNote"];
 export type GridTeam = Schemas["GridTeam"];
 export type GridCell = Schemas["GridCell"];
 export type GridMatchday = Schemas["GridMatchday"];

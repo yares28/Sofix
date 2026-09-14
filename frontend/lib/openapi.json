@@ -575,6 +575,14 @@
               }
             ],
             "title": "Last Predicted At"
+          },
+          "model_notes": {
+            "items": {
+              "$ref": "#/components/schemas/ModelNote"
+            },
+            "type": "array",
+            "title": "Model Notes",
+            "default": []
           }
         },
         "type": "object",
@@ -687,6 +695,36 @@
         ],
         "title": "LensScales",
         "description": "One scale per lens (named fields rather than a dict, so clients get a typed object)."
+      },
+      "ModelNote": {
+        "properties": {
+          "lens": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "overall",
+                  "attack",
+                  "defence"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lens"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lens",
+          "text"
+        ],
+        "title": "ModelNote"
       },
       "Prob": {
         "properties": {

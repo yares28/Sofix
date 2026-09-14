@@ -19,9 +19,15 @@ class Prob(BaseModel):
     loss: float
 
 
+class ModelNote(BaseModel):
+    lens: LensName | None  # None = applies to every lens
+    text: str
+
+
 class GridMeta(BaseModel):
     last_synced_at: datetime | None
     last_predicted_at: datetime | None
+    model_notes: list[ModelNote] = []
 
 
 class ApiResponse(BaseModel, Generic[T]):

@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -7,6 +8,8 @@ REPO_ROOT = BACKEND_DIR.parent
 
 
 class Settings(BaseSettings):
+    # "dev" enables the interactive API docs; anything deployed should run with APP_ENV=prod.
+    app_env: Literal["dev", "prod"] = "dev"
     postgres_url: str = f"sqlite:///{(BACKEND_DIR / 'fixture.db').as_posix()}"
     # Direct (non-pooled) connection for schema migrations; falls back to postgres_url.
     postgres_migration_url: str = ""

@@ -2,7 +2,8 @@ import FixtureBoard from "../components/FixtureBoard";
 import UpdatedAt from "../components/UpdatedAt";
 import type { ApiResponse, FixtureGrid, GridMeta } from "../lib/types";
 
-const API_BASE = process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+// Server-only: this page fetches on the server, so the API address never needs to reach the browser.
+const API_BASE = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
 
 type Loaded = { grid: FixtureGrid; meta: GridMeta | null; error: null } | { grid: null; meta: null; error: string };
 

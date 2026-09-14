@@ -18,11 +18,16 @@ class Prob(BaseModel):
     loss: float
 
 
+class GridMeta(BaseModel):
+    last_synced_at: datetime | None
+    last_predicted_at: datetime | None
+
+
 class ApiResponse(BaseModel, Generic[T]):
     success: bool
     data: T | None = None
     error: str | None = None
-    meta: dict | None = None
+    meta: GridMeta | None = None
 
 
 class CellPrediction(BaseModel):

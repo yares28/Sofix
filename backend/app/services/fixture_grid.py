@@ -19,6 +19,7 @@ from app.schemas import (
     FixtureGrid,
     GridCell,
     GridMatchday,
+    GridMeta,
     GridTeam,
     LensName,
     LensScale,
@@ -246,14 +247,14 @@ def build_fixture_grid(db: Session) -> FixtureGrid | None:
     )
 
 
-def grid_meta(db: Session) -> dict:
+def grid_meta(db: Session) -> GridMeta:
     last_prediction = (
         db.query(Prediction.prediction_ts).order_by(Prediction.prediction_ts.desc().nulls_last()).limit(1).scalar()
     )
     last_sync = (
         db.query(Fixture.source_updated_at).order_by(Fixture.source_updated_at.desc().nulls_last()).limit(1).scalar()
     )
-    return {
-        "last_synced_at": as_utc(last_sync) if last_sync else None,
-        "last_predicted_at": as_utc(last_prediction) if last_prediction else None,
-    }
+    return GridMeta(
+        last_synced_at=as_utc(last_sync) if last_sync else None,
+        last_predicted_at=as_utc(last_prediction) if last_prediction else None,
+    )

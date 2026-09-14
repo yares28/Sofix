@@ -63,6 +63,9 @@ npm run gen:types    # after python -m app.openapi_export
 - Tiles show colour, opponent and venue only (the owner didn't want a bucket number); difficulty stays in the
   tooltip, the spoken label and the ring on buckets 4–5.
 - Top cards = picks by position (forwards: xG, defenders/keepers: expected clean sheets, midfielders: 65/35 blend).
+- Tabs: Fixtures (one GW's fixture list), Difficulty (grid; horizon "Next" = match cards for one GW), Table
+  (current standings with LaLiga tiebreaks, and a predicted table in `lib/table.ts`: expected points plus seeded
+  simulations; keep it seeded so the same data always shows the same percentages).
 - Frontend must not re-derive what the backend decides: tile colour = `prediction.bucket`, lens cut points = `lens_scales`.
 - API types are generated: change `backend/app/schemas.py`, run `python -m app.openapi_export` (backend) and
   `npm run gen:types` (frontend), then update `frontend/lib/schema.ts` (Zod) until `npm run typecheck` passes.

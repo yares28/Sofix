@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  DEFAULT_VIEW, cellBucket, cellLabel, columnTotal, formatDay, formatKickoff, formatLensValue, openingColumn,
+  DEFAULT_VIEW, cellBucket, horizonSize, cellLabel, columnTotal, formatDay, formatKickoff, formatLensValue, openingColumn,
   parseViewState, positionPicks, relativeTime, runStats, scaleBucket, serializeViewState, sortTeams, windowRange,
 } from "./grid";
 import type { Bucket, DifficultyLabel, FixtureGrid, GridCell, GridTeam, LensScale } from "./types";
@@ -187,6 +187,18 @@ describe("planning helpers", () => {
       view: "plain",
       pins: ["FCB"],
     });
+  });
+
+  it("supports the Table tab, the Next horizon and old Next GW links", () => {
+    const known = new Set(["FCB"]);
+    const table = { ...DEFAULT_VIEW, view: "table" as const, table: "predicted" as const };
+    expect(serializeViewState(table)).toBe("view=table&t=predicted");
+    expect({ ...DEFAULT_VIEW, ...parseViewState(new URLSearchParams("view=table&t=predicted"), known) }).toEqual(table);
+    expect(parseViewState(new URLSearchParams("h=next"), known)).toEqual({ horizon: "next" });
+    expect(parseViewState(new URLSearchParams("view=next"), known)).toEqual({ view: "fdr", horizon: "next" });
+    expect(horizonSize("next", 38)).toBe(1);
+    expect(horizonSize("5", 38)).toBe(5);
+    expect(horizonSize("all", 38)).toBe(38);
   });
 });
 

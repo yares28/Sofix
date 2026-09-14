@@ -193,6 +193,9 @@ Work order: **0 → 1 → 2 → 3 → 4**, with **5** and **6** interleaved once
 | 5.19 | ✅ _(tiles without the corner number)_ Remove the 1–5 number from tiles | No number on tiles |
 | 5.20 | ✅ _(GW7 / Gameweek 7 in all visible and spoken copy)_ Fantasy wording: GW instead of MD | No MD/Matchday in the UI |
 | 5.21 | ✅ _(third view: match cards with win/draw/loss bar, xG, clean sheets, expected points, difficulty, weather, one-line takeaway; steps between GWs)_ **Next GW** view with detailed match info | Every match of the gameweek has a forecast card |
+| 5.23 | ✅ _(Next is now the first horizon option inside the Difficulty board; old ?view=next links still work)_ Move Next GW into the horizon control as "Next" | Horizon: Next / Next 3 / Next 5 / Next 8 / All |
+| 5.24 | ✅ _(one gameweek, grouped by day, scores for played games, GW selector across the whole season)_ Fixtures tab shows only the selected gameweek's fixtures | No grid in Fixtures |
+| 5.25 | ✅ _(Current: LaLiga tiebreaks, zones, form; Predicted: points + expected points from remaining fixtures, title/top-4/relegation from 5,000 seeded simulations)_ Table tab with a predicted table | Current and predicted tables, shareable via ?view=table&t=predicted |
 | 5.22 | ✅ _(Forwards by xG, Midfielders by 65/35 xG/clean-sheet blend, Defenders & keepers by expected clean sheets; fixture strip per club; click to pin)_ Top cards: clubs to pick from, by position | Cards answer "whose forwards / midfielders / defenders" |
 
 ---

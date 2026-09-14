@@ -4,11 +4,13 @@ import { useCallback, useDeferredValue, useMemo, useState } from "react";
 import { useTileTooltip } from "../hooks/useTileTooltip";
 import { useViewState } from "../hooks/useViewState";
 import {
-  LENS_COPY, MIDFIELD_ATTACK_WEIGHT, formatDay, openingColumn, positionPicks, runStats, sortTeams, windowRange,
+  LENS_COPY, MIDFIELD_ATTACK_WEIGHT, formatDay, horizonSize, openingColumn, positionPicks, runStats, sortTeams, windowRange,
   withPinsFirst, type SortKey, type SortState, type View, type ViewState,
 } from "../lib/grid";
 import type { FixtureGrid, GridCell, GridTeam, ModelNote } from "../lib/types";
 import BoardToolbar from "./BoardToolbar";
+import FixturesList from "./FixturesList";
+import LeagueTable from "./LeagueTable";
 import NextGameweek from "./NextGameweek";
 import PickCards from "./PickCards";
 import SegmentedControl from "./SegmentedControl";
@@ -63,12 +65,13 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl }: Pr
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query); // typing stays responsive; rows update right after
 
-  const minStart = played ? 0 : opening;
+  // The Fixtures tab browses every gameweek (results included); the Difficulty board hides played ones unless asked.
+  const minStart = played || view === "plain" ? 0 : opening;
   const fromIndex = state.from === null ? -1 : grid.matchdays.findIndex((md) => md.number === state.from);
   const { start, end } = windowRange(
     total,
     Math.max(minStart, fromIndex >= 0 ? fromIndex : opening),
-    horizon === "all" ? total : Number(horizon),
+    view === "plain" ? 1 : horizonSize(horizon, total),
   );
   const columns = grid.matchdays.slice(start, end);
   const scale = grid.lens_scales[lens];
@@ -92,16 +95,13 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl }: Pr
   );
   const { pinned, others } = useMemo(() => withPinsFirst(sorted, pins), [sorted, pins]);
 
-  // Picks by position cover the visible window (just the one gameweek in the Next GW view).
-  const pickEnd = view === "next" ? Math.min(total, start + 1) : end;
+  // Picks by position cover the visible window (one gameweek with the Next horizon).
   const picks = useMemo(() => {
     const over = (lensName: "attack" | "defence") =>
-      new Map(grid.teams.map((team) => [team.code, runStats(team, start, pickEnd, lensName, grid.lens_scales[lensName], finished)]));
+      new Map(grid.teams.map((team) => [team.code, runStats(team, start, end, lensName, grid.lens_scales[lensName], finished)]));
     return positionPicks(grid.teams, over("attack"), over("defence"), 4);
-  }, [grid, start, pickEnd, finished]);
-  const pickWindow = view === "next" || pickEnd - start === 1
-    ? `GW${grid.matchdays[start]?.number ?? ""}`
-    : `next ${pickEnd - start} GWs`;
+  }, [grid, start, end, finished]);
+  const pickWindow = end - start === 1 ? `GW${grid.matchdays[start]?.number ?? ""}` : `next ${end - start} GWs`;
   const { tooltip, tableHandlers } = useTileTooltip(cellIndex, teamsByCode, pinned.length + others.length, start, end);
 
   // Total bars are relative to the spread of this window.
@@ -156,7 +156,7 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl }: Pr
       <section className="hero">
         <div>
           <div className="eyebrow">LaLiga · Season {grid.season}</div>
-          <h1>Fixtures &amp; Difficulty</h1>
+          <h1>{view === "table" ? "Table" : view === "plain" ? "Fixtures" : "Fixtures & Difficulty"}</h1>
         </div>
         <SegmentedControl<View>
           label="View"
@@ -166,121 +166,129 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl }: Pr
           options={[
             { value: "plain", label: "Fixtures" },
             { value: "fdr", label: "Difficulty" },
-            { value: "next", label: "Next GW" },
+            { value: "table", label: "Table" },
           ]}
         />
       </section>
 
-      <PickCards
-        grid={grid}
-        picks={picks}
-        start={start}
-        end={pickEnd}
-        windowLabel={pickWindow}
-        pins={pins}
-        onTogglePin={togglePin}
-      />
-
-      {view === "next" ? (
-        <NextGameweek
+      {view === "plain" && (
+        <FixturesList
           grid={grid}
           column={start}
-          canGoBack={start > minStart}
+          canGoBack={start > 0}
           canGoForward={start < total - 1}
           onBack={() => stepTo(start - 1)}
           onForward={() => stepTo(start + 1)}
         />
-      ) : (
-      <section className="card board">
-        <BoardToolbar
-          view={view}
-          lens={lens}
-          horizon={horizon}
-          played={played}
-          first={columns[0]}
-          last={columns[columns.length - 1]}
-          canGoBack={start > minStart}
-          canGoForward={start < total - 1 && (horizon === "all" || end < total)}
-          showPlayedToggle={opening > 0}
-          query={query}
-          onBack={() => stepTo(start - 1)}
-          onForward={() => stepTo(start + 1)}
-          onTogglePlayed={togglePlayed}
-          onHorizon={(next) => patch({ horizon: next })}
-          onLens={(next) => patch({ lens: next })}
-          onQuery={setQuery}
-        />
-
-        <div className={`scroll ${view === "plain" ? "plain" : ""}`}>
-          {/* Handlers are delegated to the tile buttons inside (see useTileTooltip). */}
-          <table {...tableHandlers}>
-            <caption className="visually-hidden">
-              LaLiga fixtures by team, {columns.length ? `gameweeks ${columns[0]!.number} to ${columns[columns.length - 1]!.number}` : "no gameweeks"}
-              {view === "fdr" ? `, rated with the ${copy.label.toLowerCase()} lens from 1 (${copy.easy.toLowerCase()}) to 5 (${copy.hard.toLowerCase()})` : ""}.
-              {pins.length ? " Pinned teams are listed first." : ""} Use the arrow keys to move between fixtures.
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col" className={`team-col sortable ${sortClass({ kind: "team" })}`} aria-sort={ariaSort({ kind: "team" })}>
-                  <button type="button" className="sort" onClick={() => toggleSort({ kind: "team" })} aria-label="Sort by team name">
-                    <span className="gw">Team<span className="arrow" aria-hidden="true">↓</span></span>
-                  </button>
-                </th>
-                {columns.map((md, i) => {
-                  const column = start + i;
-                  const key: SortKey = { kind: "matchday", column };
-                  return (
-                    <th key={md.number} scope="col" className={`sortable ${md.finished ? "past" : ""} ${sortClass(key)}`} aria-sort={ariaSort(key)}>
-                      <button type="button" className="sort" onClick={() => toggleSort(key)} aria-label={`Sort by gameweek ${md.number}, ${formatDay(md.date_from)}${columnTbc[column] ? ", dates to be confirmed" : ""}`}>
-                        <span className="gw">GW{md.number}<span className="arrow" aria-hidden="true">↓</span></span>
-                        <span className="date">
-                          {formatDay(md.date_from)}
-                          {columnTbc[column] && (
-                            <span className="tbc-mark">
-                              <span className="tbc-dot"> · </span>TBC
-                            </span>
-                          )}
-                        </span>
-                      </button>
-                    </th>
-                  );
-                })}
-                <th scope="col" className={`avg-col sortable ${sortClass({ kind: "total" })}`} aria-sort={ariaSort({ kind: "total" })}>
-                  <button type="button" className="sort" onClick={() => toggleSort({ kind: "total" })} aria-label={`Sort by total ${copy.totalLong}`}>
-                    <span className="gw">Total<span className="arrow" aria-hidden="true">↓</span></span>
-                    <span className="date">{copy.total}</span>
-                  </button>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {pinned.map((team, i) => <TeamRow key={team.code} {...rowProps(team, i)} />)}
-              {pinned.length > 0 && others.length > 0 && (
-                <tr className="pin-divider" aria-hidden="true">
-                  <td colSpan={columns.length + 2} />
-                </tr>
-              )}
-              {others.map((team, i) => <TeamRow key={team.code} {...rowProps(team, pinned.length + i)} />)}
-            </tbody>
-          </table>
-        </div>
-      </section>
       )}
 
-      <p className="footnote">
-        {view === "next"
-          ? "Probabilities and expected goals come from the rating model; clean-sheet chance is the chance of conceding none. Click a team for its season."
-          : `${copy.hint}. Blank weeks count 0 and double weeks count both games. “TBC” on a gameweek means most kickoff times aren’t fixed yet. Click a team for its season, the pin to keep it on top, a gameweek or Total to sort.`}
-      </p>
-      <p className="footnote">
-        Picks: forwards by expected goals, defenders and keepers by expected clean sheets, midfielders by both (goals
-        weighted {Math.round(MIDFIELD_ATTACK_WEIGHT * 100)}%). Click a club to pin it.
-      </p>
-      {(view === "next" ? notes : lensNotes).map((note) => (
-        <p key={note.text} className="footnote note">
-          Model note: {note.text}
+      {view === "table" && <LeagueTable grid={grid} mode={state.table} onMode={(table) => patch({ table })} />}
+
+      {view === "fdr" && (
+        <>
+          <PickCards grid={grid} picks={picks} start={start} end={end} windowLabel={pickWindow} pins={pins} onTogglePin={togglePin} />
+
+          <section className="card board">
+            <BoardToolbar
+              lens={lens}
+              horizon={horizon}
+              played={played}
+              first={columns[0]}
+              last={columns[columns.length - 1]}
+              canGoBack={start > minStart}
+              canGoForward={start < total - 1 && (horizon === "all" || end < total)}
+              showPlayedToggle={opening > 0}
+              query={query}
+              onBack={() => stepTo(start - 1)}
+              onForward={() => stepTo(start + 1)}
+              onTogglePlayed={togglePlayed}
+              onHorizon={(next) => patch({ horizon: next })}
+              onLens={(next) => patch({ lens: next })}
+              onQuery={setQuery}
+            />
+
+            {horizon === "next" ? (
+              <NextGameweek grid={grid} column={start} />
+            ) : (
+              <div className="scroll">
+                {/* Handlers are delegated to the tile buttons inside (see useTileTooltip). */}
+                <table {...tableHandlers}>
+                  <caption className="visually-hidden">
+                    LaLiga fixtures by team, {columns.length ? `gameweeks ${columns[0]!.number} to ${columns[columns.length - 1]!.number}` : "no gameweeks"}
+                    {`, rated with the ${copy.label.toLowerCase()} lens from 1 (${copy.easy.toLowerCase()}) to 5 (${copy.hard.toLowerCase()})`}.
+                    {pins.length ? " Pinned teams are listed first." : ""} Use the arrow keys to move between fixtures.
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col" className={`team-col sortable ${sortClass({ kind: "team" })}`} aria-sort={ariaSort({ kind: "team" })}>
+                        <button type="button" className="sort" onClick={() => toggleSort({ kind: "team" })} aria-label="Sort by team name">
+                          <span className="gw">Team<span className="arrow" aria-hidden="true">↓</span></span>
+                        </button>
+                      </th>
+                      {columns.map((md, i) => {
+                        const column = start + i;
+                        const key: SortKey = { kind: "matchday", column };
+                        return (
+                          <th key={md.number} scope="col" className={`sortable ${md.finished ? "past" : ""} ${sortClass(key)}`} aria-sort={ariaSort(key)}>
+                            <button type="button" className="sort" onClick={() => toggleSort(key)} aria-label={`Sort by gameweek ${md.number}, ${formatDay(md.date_from)}${columnTbc[column] ? ", dates to be confirmed" : ""}`}>
+                              <span className="gw">GW{md.number}<span className="arrow" aria-hidden="true">↓</span></span>
+                              <span className="date">
+                                {formatDay(md.date_from)}
+                                {columnTbc[column] && (
+                                  <span className="tbc-mark">
+                                    <span className="tbc-dot"> · </span>TBC
+                                  </span>
+                                )}
+                              </span>
+                            </button>
+                          </th>
+                        );
+                      })}
+                      <th scope="col" className={`avg-col sortable ${sortClass({ kind: "total" })}`} aria-sort={ariaSort({ kind: "total" })}>
+                        <button type="button" className="sort" onClick={() => toggleSort({ kind: "total" })} aria-label={`Sort by total ${copy.totalLong}`}>
+                          <span className="gw">Total<span className="arrow" aria-hidden="true">↓</span></span>
+                          <span className="date">{copy.total}</span>
+                        </button>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pinned.map((team, i) => <TeamRow key={team.code} {...rowProps(team, i)} />)}
+                    {pinned.length > 0 && others.length > 0 && (
+                      <tr className="pin-divider" aria-hidden="true">
+                        <td colSpan={columns.length + 2} />
+                      </tr>
+                    )}
+                    {others.map((team, i) => <TeamRow key={team.code} {...rowProps(team, pinned.length + i)} />)}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <p className="footnote">
+            {horizon === "next"
+              ? "Probabilities and expected goals come from the rating model; clean-sheet chance is the chance of conceding none. Click a team for its season."
+              : `${copy.hint}. Blank weeks count 0 and double weeks count both games. “TBC” on a gameweek means most kickoff times aren’t fixed yet. Click a team for its season, the pin to keep it on top, a gameweek or Total to sort.`}
+          </p>
+          <p className="footnote">
+            Picks: forwards by expected goals, defenders and keepers by expected clean sheets, midfielders by both (goals
+            weighted {Math.round(MIDFIELD_ATTACK_WEIGHT * 100)}%). Click a club to pin it.
+          </p>
+          {(horizon === "next" ? notes : lensNotes).map((note) => (
+            <p key={note.text} className="footnote note">
+              Model note: {note.text}
+            </p>
+          ))}
+        </>
+      )}
+
+      {view === "table" && state.table === "predicted" && (
+        <p className="footnote">
+          Predictions use the rating model’s win, draw and loss chances for every remaining fixture; postponed games without
+          a new date aren’t included. Title, top-4 and relegation chances come from 5,000 simulated seasons.
         </p>
-      ))}
+      )}
       <p className="footnote attribution">
         Model {grid.model_version ?? "not run yet"}. Fixtures, results and crests: football-data.org. Match history:
         football-data.co.uk.{" "}

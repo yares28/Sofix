@@ -7,16 +7,12 @@ import Crest from "./Crest";
 interface Props {
   grid: FixtureGrid;
   column: number;
-  canGoBack: boolean;
-  canGoForward: boolean;
-  onBack: () => void;
-  onForward: () => void;
 }
 
 const percent = (value: number) => `${Math.round(value * 100)}%`;
 
-/** One gameweek, match by match, with the detail the grid only shows in tooltips. */
-export default function NextGameweek({ grid, column, canGoBack, canGoForward, onBack, onForward }: Props) {
+/** One gameweek, match by match, with the detail the grid only shows in tooltips (the toolbar steps gameweeks). */
+export default function NextGameweek({ grid, column }: Props) {
   const gameweek = grid.matchdays[column];
   if (!gameweek) return null;
   const { matches, notPlaying, doubles } = gameweekMatches(grid, column);
@@ -25,24 +21,13 @@ export default function NextGameweek({ grid, column, canGoBack, canGoForward, on
     : `${formatDay(gameweek.date_from)} – ${formatDay(gameweek.date_to)}`;
 
   return (
-    <section className="card next-gw" aria-labelledby="next-gw-title">
+    <div className="next-gw" aria-labelledby="next-gw-title" role="region">
       <header className="next-gw-head">
-        <div>
-          <h2 id="next-gw-title">Gameweek {gameweek.number}</h2>
-          <div className="insight-meta">
-            {dates} · {matches.length} {matches.length === 1 ? "match" : "matches"}
-            {doubles.length > 0 && ` · plays twice: ${doubles.map((t) => t.name).join(", ")}`}
-            {notPlaying.length > 0 && ` · no game: ${notPlaying.map((t) => t.name).join(", ")}`}
-          </div>
-        </div>
-        <div className="stepper">
-          <button type="button" aria-label="Previous gameweek" disabled={!canGoBack} onClick={onBack}>
-            <Chevron direction="left" />
-          </button>
-          <div className="range">GW{gameweek.number}</div>
-          <button type="button" aria-label="Next gameweek" disabled={!canGoForward} onClick={onForward}>
-            <Chevron direction="right" />
-          </button>
+        <h2 id="next-gw-title">Gameweek {gameweek.number}</h2>
+        <div className="insight-meta">
+          {dates} · {matches.length} {matches.length === 1 ? "match" : "matches"}
+          {doubles.length > 0 && ` · plays twice: ${doubles.map((t) => t.name).join(", ")}`}
+          {notPlaying.length > 0 && ` · no game: ${notPlaying.map((t) => t.name).join(", ")}`}
         </div>
       </header>
 
@@ -53,7 +38,7 @@ export default function NextGameweek({ grid, column, canGoBack, canGoForward, on
           </li>
         ))}
       </ol>
-    </section>
+    </div>
   );
 }
 
@@ -179,12 +164,4 @@ function takeaway({ home, away, homeCell, awayCell }: Match): string {
   const totalGoals = (hp.xg_for ?? 0) + (ap.xg_for ?? 0);
   const tempo = totalGoals >= 3 ? "Open game" : totalGoals <= 2.2 ? "Tight game" : "Average game";
   return `${tempo} (${totalGoals.toFixed(1)} goals expected). Attackers: ${attack.team.name} (${attack.xg?.toFixed(2) ?? "—"} xG). Clean sheet: ${defence.team.name} (${pct(defence.cs) ?? "—"}).`;
-}
-
-function Chevron({ direction }: { direction: "left" | "right" }) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d={direction === "left" ? "M15 18l-6-6 6-6" : "M9 18l6-6-6-6"} />
-    </svg>
-  );
 }

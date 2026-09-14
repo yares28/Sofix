@@ -105,15 +105,17 @@ test("a malformed API payload shows the error state, not a broken board", async 
   await resetBackend(request); // leave a good payload for the next test
 });
 
-test("Next GW lists the gameweek's matches with forecasts and steps between gameweeks", async ({ page }) => {
+test("the Next horizon shows the gameweek's matches with forecasts and steps between gameweeks", async ({ page }) => {
   const column = grid.matchdays.findIndex((md) => md.number === openingMatchday);
   const { matches } = gameweekMatches(grid, column);
   await page.goto("/");
-  await page.getByRole("group", { name: "View" }).getByRole("button", { name: "Next GW" }).click();
-  await expect(page).toHaveURL(/view=next/);
+  await page.getByRole("group", { name: "Horizon" }).getByRole("button", { name: "Next", exact: true }).click();
+  await expect(page).toHaveURL(/h=next/);
+  await expect(page.locator(".stepper .range")).toHaveText(`GW${openingMatchday}`);
+  await expect(page.getByRole("group", { name: "Lens" })).toHaveCount(0);
   await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${openingMatchday}` })).toBeVisible();
   await expect(page.locator(".match")).toHaveCount(matches.length);
-  await expect(page.locator("table.board, .board table")).toHaveCount(0); // the grid is replaced, not stacked
+  await expect(page.locator(".board .scroll")).toHaveCount(0); // the grid is replaced, not stacked
 
   const forecast = matches.find((m) => m.homeCell.prediction)!;
   const card = page.getByRole("article", { name: `${forecast.home.name} v ${forecast.away.name}` });
@@ -124,6 +126,53 @@ test("Next GW lists the gameweek's matches with forecasts and steps between game
   await page.getByRole("button", { name: "Next gameweek" }).click();
   await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${openingMatchday + 1}` })).toBeVisible();
   await expect(page.locator(".pick-measure").first()).toContainText(`GW${openingMatchday + 1}`);
+});
+
+test("old Next GW links open the Next horizon", async ({ page }) => {
+  await page.goto("/?view=next");
+  await expect(page.getByRole("group", { name: "Horizon" }).getByRole("button", { name: "Next", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".match").first()).toBeVisible();
+});
+
+test("the Fixtures tab lists one gameweek at a time, results included", async ({ page }) => {
+  const column = grid.matchdays.findIndex((md) => md.number === openingMatchday);
+  await page.goto("/");
+  await page.getByRole("group", { name: "View" }).getByRole("button", { name: "Fixtures" }).click();
+  await expect(page).toHaveURL(/view=plain/);
+  await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${openingMatchday} fixtures` })).toBeVisible();
+  await expect(page.locator(".fixture-row")).toHaveCount(gameweekMatches(grid, column).matches.length);
+  await expect(page.locator(".pick-card")).toHaveCount(0);
+  await expect(page.locator(".board")).toHaveCount(0);
+
+  // Back into a played gameweek without any toggle: scores instead of kick-off times.
+  await page.getByRole("button", { name: "Previous gameweek" }).click();
+  await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${openingMatchday - 1} fixtures` })).toBeVisible();
+  await expect(page.locator(".fixture-middle.score").first()).toHaveText(/^\d+–\d+$/);
+  await page.getByRole("button", { name: "Next gameweek" }).click();
+  await page.getByRole("button", { name: "Next gameweek" }).click();
+  await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${openingMatchday + 1} fixtures` })).toBeVisible();
+});
+
+test("the Table tab shows the standings and a predicted final table", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("group", { name: "View" }).getByRole("button", { name: "Table" }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "LaLiga table" })).toBeVisible();
+  const rows = page.locator("table.standings tbody tr");
+  await expect(rows).toHaveCount(grid.teams.length);
+  const points = (await page.locator("table.standings tbody td.strong").allTextContents()).map(Number);
+  expect(points).toEqual([...points].sort((a, b) => b - a));
+
+  await page.getByRole("group", { name: "Table" }).getByRole("button", { name: "Predicted" }).click();
+  await expect(page).toHaveURL(/t=predicted/);
+  await expect(page.getByRole("heading", { level: 2, name: "Predicted final table" })).toBeVisible();
+  await expect(page.locator("table.standings.predicted tbody tr")).toHaveCount(grid.teams.length);
+  const projected = (await page.locator("table.standings.predicted tbody td.strong").allTextContents()).map(Number);
+  expect(projected).toEqual([...projected].sort((a, b) => b - a));
+  const now = (await page.locator("table.standings.predicted tbody tr td:nth-child(3)").allTextContents()).map(Number);
+  projected.forEach((value, i) => expect(value).toBeGreaterThanOrEqual(now[i]!));
+
+  await page.reload();
+  await expect(page.getByRole("heading", { level: 2, name: "Predicted final table" })).toBeVisible();
 });
 
 test("pick cards rank clubs for each position and pin a club when clicked", async ({ page }) => {
@@ -170,8 +219,15 @@ test("the board has no automatically detectable accessibility violations", async
   );
   expect(report).toEqual([]);
 
-  await page.goto("/?view=next");
-  await expect(page.locator(".match").first()).toBeVisible();
-  const next = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
-  expect(next.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).slice(0, 4).join("; ")}`)).toEqual([]);
+  for (const [path, ready] of [
+    ["/?h=next", ".match"],
+    ["/?view=plain", ".fixture-row"],
+    ["/?view=table", "table.standings tbody tr"],
+    ["/?view=table&t=predicted", "table.standings.predicted tbody tr"],
+  ] as const) {
+    await page.goto(path);
+    await expect(page.locator(ready).first()).toBeVisible();
+    const scan = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
+    expect(scan.violations.map((v) => `${path} ${v.id}: ${v.nodes.map((n) => n.target.join(" ")).slice(0, 4).join("; ")}`)).toEqual([]);
+  }
 });

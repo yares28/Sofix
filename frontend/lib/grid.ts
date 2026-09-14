@@ -263,28 +263,40 @@ export function positionPicks(
 
 // ---------------------------------------------------------------- view state in the URL
 
-export type View = "fdr" | "plain" | "next";
-export type Horizon = "3" | "5" | "8" | "all";
-export const HORIZON_VALUES: readonly Horizon[] = ["3", "5", "8", "all"];
+export type View = "plain" | "fdr" | "table"; // Fixtures, Difficulty, Table tabs
+export type Horizon = "next" | "3" | "5" | "8" | "all"; // "next" = one gameweek as match cards
+export type TableMode = "current" | "predicted";
+export const HORIZON_VALUES: readonly Horizon[] = ["next", "3", "5", "8", "all"];
 const LENSES: readonly Lens[] = ["overall", "attack", "defence"];
 export const MAX_PINS = 6;
+
+/** How many gameweek columns a horizon covers. */
+export function horizonSize(horizon: Horizon, total: number): number {
+  if (horizon === "all") return total;
+  return horizon === "next" ? 1 : Number(horizon);
+}
 
 export interface ViewState {
   view: View;
   lens: Lens;
   horizon: Horizon;
-  from: number | null; // first matchday number shown; null = the opening matchday
+  from: number | null; // first gameweek number shown; null = the opening gameweek
   pins: string[];
-  played: boolean; // allow stepping back into played matchdays
+  played: boolean; // allow stepping back into played gameweeks
+  table: TableMode;
 }
 
-export const DEFAULT_VIEW: ViewState = { view: "fdr", lens: "overall", horizon: "8", from: null, pins: [], played: false };
+export const DEFAULT_VIEW: ViewState = {
+  view: "fdr", lens: "overall", horizon: "8", from: null, pins: [], played: false, table: "current",
+};
 
-/** Read ?view=&lens=&h=&from=&pins=&played= leniently: anything unknown falls back to the default. */
+/** Read ?view=&lens=&h=&from=&pins=&played=&t= leniently: anything unknown falls back to the default. */
 export function parseViewState(params: URLSearchParams, knownCodes: ReadonlySet<string>): Partial<ViewState> {
   const state: Partial<ViewState> = {};
   const view = params.get("view");
-  if (view === "fdr" || view === "plain" || view === "next") state.view = view;
+  if (view === "fdr" || view === "plain" || view === "table") state.view = view;
+  if (view === "next") Object.assign(state, { view: "fdr", horizon: "next" }); // links from before "Next" moved
+  if (params.get("t") === "predicted") state.table = "predicted";
   const lens = params.get("lens");
   if (lens && (LENSES as readonly string[]).includes(lens)) state.lens = lens as Lens;
   const horizon = params.get("h");
@@ -310,6 +322,7 @@ export function serializeViewState(state: ViewState): string {
   if (state.from !== null) params.set("from", String(state.from));
   if (state.pins.length) params.set("pins", state.pins.join(","));
   if (state.played) params.set("played", "1");
+  if (state.table !== DEFAULT_VIEW.table) params.set("t", state.table);
   return params.toString();
 }
 

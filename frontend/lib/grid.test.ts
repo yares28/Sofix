@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
-  cellBucket, cellLabel, formatDay, formatKickoff, formatLensValue, relativeTime, runStats, scaleBucket, sortTeams, windowRange,
+  DEFAULT_VIEW, bestTargets, cellBucket, cellLabel, columnTotal, formatDay, formatKickoff, formatLensValue, openingColumn,
+  parseViewState, relativeTime, rotationPair, runStats, scaleBucket, serializeViewState, sortTeams, windowRange,
 } from "./grid";
-import type { Bucket, DifficultyLabel, GridCell, GridTeam, LensScale } from "./types";
+import type { Bucket, DifficultyLabel, FixtureGrid, GridCell, GridTeam, LensScale } from "./types";
 
 const OVERALL: LensScale = { cuts: [37.4, 48.6, 61.1, 71.3], higher_is_easier: false };
 const ATTACK: LensScale = { cuts: [2.0, 1.6, 1.2, 0.9], higher_is_easier: true };
@@ -11,9 +12,9 @@ const LABELS: Record<Bucket, DifficultyLabel> = { 1: "Easy", 2: "Easy-ish", 3: "
 let nextId = 1;
 
 function cell(
-  overrides: Partial<GridCell> & { difficulty?: number; xg?: number; cs?: number; bucket?: Bucket } = {},
+  overrides: Partial<GridCell> & { difficulty?: number; xg?: number; cs?: number; ep?: number; bucket?: Bucket } = {},
 ): GridCell {
-  const { difficulty = 50, xg = 1.3, cs = 0.3, bucket, ...rest } = overrides;
+  const { difficulty = 50, xg = 1.3, cs = 0.3, ep = 1.4, bucket, ...rest } = overrides;
   const resolved = bucket ?? scaleBucket(difficulty, OVERALL);
   return {
     fixture_id: nextId++,
@@ -25,7 +26,7 @@ function cell(
     status: "scheduled",
     result: null,
     prediction: {
-      difficulty, label: LABELS[resolved], bucket: resolved, expected_points: 1.4,
+      difficulty, label: LABELS[resolved], bucket: resolved, expected_points: ep,
       probabilities: { win: 0.4, draw: 0.25, loss: 0.35 }, clean_sheet: cs, xg_for: xg, xg_against: 1.1,
     },
     weather: null,
@@ -71,24 +72,44 @@ describe("windowRange", () => {
 });
 
 describe("runStats", () => {
-  it("averages only predicted games in the window and counts home games", () => {
+  it("averages rated games, totals expected points with blanks as 0, and counts blanks and doubles", () => {
     const t = team("AAA", [
-      [cell({ difficulty: 20 })],
-      [cell({ difficulty: 60, venue: "A" })],
+      [cell({ difficulty: 20, ep: 2.2 })],
+      [cell({ difficulty: 60, venue: "A", ep: 1.0 })],
       [cell({ status: "finished", prediction: null })],
       [],
-      [cell({ difficulty: 90 })],
+      [cell({ difficulty: 30, ep: 2.0 }), cell({ difficulty: 50, ep: 1.5 })],
     ]);
-    const stats = runStats(t, 0, 4, "overall", OVERALL);
-    expect(stats).toEqual({ average: 40, fixtures: 2, home: 1, buckets: [1, 3] });
-    expect(runStats(t, 2, 4, "overall", OVERALL).average).toBeNull();
+    const stats = runStats(t, 0, 5, "overall", OVERALL);
+    expect(stats.average).toBeCloseTo(40);
+    expect(stats.total).toBeCloseTo(6.7);
+    expect({ ...stats, average: 0, total: 0 }).toEqual({
+      average: 0, total: 0, fixtures: 4, blanks: 1, doubles: 1, home: 3, buckets: [1, 3, 1, 3],
+    });
+    expect(runStats(t, 2, 3, "overall", OVERALL).total).toBeNull(); // only a played game
+  });
+
+  it("does not count a blank in an already finished matchday", () => {
+    const t = team("AAA", [[], [cell({ ep: 1.5 })]]);
+    expect(runStats(t, 0, 2, "overall", OVERALL, [true, false])).toMatchObject({ blanks: 0, total: 1.5 });
+    expect(runStats(t, 0, 2, "overall", OVERALL, [false, false])).toMatchObject({ blanks: 1, total: 1.5 });
+  });
+});
+
+describe("columnTotal", () => {
+  it("is 0 for an upcoming blank, sums doubles, and is null when nothing can be rated", () => {
+    expect(columnTotal([], "overall")).toBe(0);
+    expect(columnTotal([], "overall", true)).toBeNull();
+    expect(columnTotal([cell({ ep: 1.2 }), cell({ ep: 0.8 })], "overall")).toBeCloseTo(2.0);
+    expect(columnTotal([cell({ cs: 0.4 }), cell({ cs: 0.1 })], "defence")).toBeCloseTo(0.5);
+    expect(columnTotal([cell({ status: "finished", prediction: null })], "overall")).toBeNull();
   });
 });
 
 describe("sortTeams", () => {
-  const easy = team("EAS", [[cell({ difficulty: 20, xg: 2.2 })]]);
-  const hard = team("HAR", [[cell({ difficulty: 80, xg: 0.7 })]]);
-  const none = team("NON", [[]]);
+  const easy = team("EAS", [[cell({ difficulty: 20, xg: 2.2, ep: 2.3 })]]);
+  const hard = team("HAR", [[cell({ difficulty: 80, xg: 0.7, ep: 0.6 })]]);
+  const none = team("NON", [[cell({ status: "finished", prediction: null })]]);
   const teams = [hard, none, easy];
 
   it("puts the easiest first ascending and teams without a value last in both directions", () => {
@@ -99,8 +120,67 @@ describe("sortTeams", () => {
   });
 
   it("treats higher xG as easier on the attack lens, and sorts names alphabetically", () => {
-    expect(sortTeams(teams, { key: { kind: "average" }, dir: "asc" }, 0, 1, "attack").map((t) => t.code)).toEqual(["EAS", "HAR", "NON"]);
+    expect(sortTeams(teams, { key: { kind: "total" }, dir: "asc" }, 0, 1, "attack").map((t) => t.code)).toEqual(["EAS", "HAR", "NON"]);
     expect(sortTeams(teams, { key: { kind: "team" }, dir: "desc" }, 0, 1, "overall").map((t) => t.code)).toEqual(["NON", "HAR", "EAS"]);
+  });
+
+  it("ranks a double week above a single and a blank last, on the column and on the total", () => {
+    const double = team("DBL", [[cell({ ep: 1.2 }), cell({ ep: 1.1 })]]);
+    const single = team("SGL", [[cell({ ep: 2.0 })]]);
+    const blank = team("BLK", [[]]);
+    const order = (kind: "total" | "matchday") =>
+      sortTeams([blank, single, double], { key: kind === "total" ? { kind } : { kind, column: 0 }, dir: "asc" }, 0, 1, "overall").map((t) => t.code);
+    expect(order("matchday")).toEqual(["DBL", "SGL", "BLK"]);
+    expect(order("total")).toEqual(["DBL", "SGL", "BLK"]);
+  });
+});
+
+describe("planning helpers", () => {
+  const md = (number: number) => ({ number, date_from: "2026-09-01T00:00:00Z", date_to: "2026-09-02T00:00:00Z", finished: false });
+  const played = () => cell({ status: "finished", prediction: null, result: { goals_for: 1, goals_against: 0, outcome: "W" } });
+
+  it("opens on the first matchday with fewer than half its games done", () => {
+    const grid: FixtureGrid = {
+      season: "2026/27", current_matchday: 1, model_version: null,
+      lens_scales: { overall: OVERALL, attack: ATTACK, defence: ATTACK },
+      matchdays: [md(1), md(2), md(3)],
+      teams: [
+        team("AAA", [[played()], [played()], [cell()]]),
+        team("BBB", [[played()], [played()], [cell()]]),
+        team("CCC", [[cell({ status: "postponed", prediction: null })], [cell()], [cell()]]),
+        team("DDD", [[played()], [played()], [cell()]]),
+      ],
+    };
+    expect(openingColumn(grid)).toBe(2); // MD1 fully done (one postponed), MD2 3 of 4 played
+    expect(openingColumn({ ...grid, teams: grid.teams.map((t) => ({ ...t, cells: t.cells.map(() => [played()]) })) })).toBe(2);
+  });
+
+  it("finds the best targets and the rotation pair that covers each other's hard weeks", () => {
+    const a = team("AAA", [[cell({ ep: 2.5 })], [cell({ ep: 0.5 })], [cell({ ep: 2.4 })]]);
+    const b = team("BBB", [[cell({ ep: 0.4 })], [cell({ ep: 2.6 })], [cell({ ep: 0.5 })]]);
+    const c = team("CCC", [[cell({ ep: 1.6 })], [cell({ ep: 1.6 })], [cell({ ep: 1.6 })]]);
+    const teams = [a, b, c];
+    const stats = new Map(teams.map((t) => [t.code, runStats(t, 0, 3, "overall", OVERALL)]));
+
+    expect(bestTargets(teams, stats, 2).map((t) => t.team.code)).toEqual(["AAA", "CCC"]); // 5.4, 4.8 (BBB 3.5)
+    const pair = rotationPair(teams, 0, 3, "overall");
+    expect([pair?.first.code, pair?.second.code]).toEqual(["AAA", "BBB"]);
+    expect(pair?.total).toBeCloseTo(7.5);
+    const withPin = rotationPair(teams, 0, 3, "overall", [], ["CCC"]);
+    expect(withPin && [withPin.first.code, withPin.second.code].includes("CCC")).toBe(true);
+  });
+
+  it("round-trips view state through the URL and ignores junk", () => {
+    const known = new Set(["FCB", "RMA", "ATL"]);
+    const state = { ...DEFAULT_VIEW, lens: "attack" as const, horizon: "5" as const, from: 7, pins: ["FCB", "ATL"], played: true };
+    const query = serializeViewState(state);
+    expect(query).toBe("lens=attack&h=5&from=7&pins=FCB%2CATL&played=1");
+    expect({ ...DEFAULT_VIEW, ...parseViewState(new URLSearchParams(query), known) }).toEqual(state);
+    expect(serializeViewState(DEFAULT_VIEW)).toBe("");
+    expect(parseViewState(new URLSearchParams("lens=bogus&h=99&from=-2&pins=fcb,XXX,FCB,<script>&view=plain"), known)).toEqual({
+      view: "plain",
+      pins: ["FCB"],
+    });
   });
 });
 

@@ -172,11 +172,11 @@ Work order: **0 → 1 → 2 → 3 → 4**, with **5** and **6** interleaved once
 ### 5d. Planning features
 | ID | Task | Done when |
 |---|---|---|
-| 5.9 | ⬜ Open on the first mostly unplayed matchday; "Show played" toggle | Board no longer opens on a nearly finished matchday |
-| 5.10 | ⬜ Fantasy-aware run metrics: sum of expected points with blank = 0 and doubles counted; game-count / ×2 badges; column sort sums doubles | Blank weeks no longer look easy |
-| 5.11 | ⬜ Pinned teams float to the top with a divider; state in URL (`?lens=&h=&from=&pins=`) and pins in `localStorage` | Reload keeps the view |
-| 5.12 | ⬜ Team page `/team/[code]`: full-season strip, expected-points trend, home/away split | Linked from the team name |
-| 5.13 | ⬜ Compact hero + insight chips so the grid starts near the top; insights become actionable ("Best targets next N", "Blanks & doubles", "Rotation pair") and respect lens/pins | Grid visible without scrolling on a laptop |
+| 5.9 | ✅ _(openingColumn: first matchday with under half its games done (opened on MD6, not MD5); Show played toggle)_ Open on the first mostly unplayed matchday; "Show played" toggle | Board no longer opens on a nearly finished matchday |
+| 5.10 | ✅ _(run totals (exp. pts / xG / exp. CS) with blanks = 0 and doubles summed; column sort sums doubles; blank/double badges)_ Fantasy-aware run metrics: sum of expected points with blank = 0 and doubles counted; game-count / ×2 badges; column sort sums doubles | Blank weeks no longer look easy |
+| 5.11 | ✅ _(pins float to the top with a divider; view, lens, h, from, pins, played in the URL (server-rendered); pins in localStorage)_ Pinned teams float to the top with a divider; state in URL (`?lens=&h=&from=&pins=`) and pins in `localStorage` | Reload keeps the view |
+| 5.12 | ✅ _(/team/[code]: season strip, points-per-game trend, home/away split; 404 for unknown codes)_ Team page `/team/[code]`: full-season strip, expected-points trend, home/away split | Linked from the team name |
+| 5.13 | ✅ _(compact header; best targets, blanks & doubles, rotation pair (respects lens and pins), click to pin; first grid row visible at 900 px height)_ Compact hero + insight chips so the grid starts near the top; insights become actionable ("Best targets next N", "Blanks & doubles", "Rotation pair") and respect lens/pins | Grid visible without scrolling on a laptop |
 
 ### 5e. Robustness, performance, tests
 | ID | Task | Done when |

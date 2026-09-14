@@ -84,6 +84,11 @@ export default function FixtureCell({ cells, bucketOf, cellKey, labelOf, row, co
   const compact = cells.length > 1;
   return (
     <div className={compact ? "stack" : undefined}>
+      {compact && (
+        <span className="double-badge" aria-hidden="true">
+          ×{cells.length}
+        </span>
+      )}
       {cells.map((cell) => (
         <Tile
           key={cell.fixture_id}

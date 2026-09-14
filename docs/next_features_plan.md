@@ -36,15 +36,15 @@ Work order: **0 → 1 → 2 → 3 → 4**, with **5** and **6** interleaved once
 
 ---
 
-## Phase 0 — Safety fixes 🔴
+## Phase 0 — Safety fixes ✅ (done 2026-09-14, commit bcec78b)
 
 | ID | Task | Files | Done when |
 |---|---|---|---|
-| 0.1 | ⬜ Upgrade Next.js to **15.5.25** (clears CVE-2025-66478, the Windows RCE and the image-optimiser RCE); bind dev/start to **127.0.0.1**; optionally `react`/`react-dom` 19.1.9 | `frontend/package.json` | `npm audit --omit=dev` shows no Next advisories; `netstat` shows `127.0.0.1:3000` only; app works |
-| 0.2 | ⬜ Stop Docker Compose reaching Neon production: override `POSTGRES_MIGRATION_URL` (or a separate `.env.docker`); `migrations/env.py` refuses when migration and app hosts differ | `docker-compose.yml`, `backend/migrations/env.py` | Compose config shows no Neon host; mismatched hosts raise before any DDL |
-| 0.3 | ⬜ **First git commit:** secret scan (e.g. `gitleaks detect --no-git`); extend `.gitignore` (`backend/reports/*.log`, `*.joblib`, `frontend/tsconfig.tsbuildinfo`, `.claude/`); redact the Neon project id from docs | `.gitignore`, `docs/*`, `README.md` | Clean scan; commit on a `main` branch |
-| 0.4 | ⬜ **Colour/label mismatch:** backend sends `bucket` (1–5) next to `label`, and attack/defence cut points in `meta`; frontend renders from them; delete duplicated thresholds | `services/fixture_grid.py`, `schemas.py`, `frontend/lib/grid.ts` | The 5 known mismatches (e.g. 48.6 "Normal") render with matching colour; test added |
-| 0.5 | ⬜ **Open-Meteo attribution** (CC BY 4.0) in the page footer | `frontend/components/FixtureBoard.tsx` | "Weather data by Open-Meteo.com" visible with a link |
+| 0.1 | ✅ Upgrade Next.js to **15.5.25** (clears CVE-2025-66478, the Windows RCE and the image-optimiser RCE); bind dev/start to **127.0.0.1**; optionally `react`/`react-dom` 19.1.9 | `frontend/package.json` | `npm audit --omit=dev` shows no Next advisories; `netstat` shows `127.0.0.1:3000` only; app works |
+| 0.2 | ✅ Stop Docker Compose reaching Neon production: override `POSTGRES_MIGRATION_URL` (or a separate `.env.docker`); `migrations/env.py` refuses when migration and app hosts differ | `docker-compose.yml`, `backend/migrations/env.py` | Compose config shows no Neon host; mismatched hosts raise before any DDL |
+| 0.3 | ✅ **First git commit:** secret scan (e.g. `gitleaks detect --no-git`); extend `.gitignore` (`backend/reports/*.log`, `*.joblib`, `frontend/tsconfig.tsbuildinfo`, `.claude/`); redact the Neon project id from docs | `.gitignore`, `docs/*`, `README.md` | Clean scan; commit on a `main` branch |
+| 0.4 | ✅ **Colour/label mismatch:** backend sends `bucket` (1–5) next to `label`, and attack/defence cut points in `meta`; frontend renders from them; delete duplicated thresholds | `services/fixture_grid.py`, `schemas.py`, `frontend/lib/grid.ts` | The 5 known mismatches (e.g. 48.6 "Normal") render with matching colour; test added |
+| 0.5 | ✅ **Open-Meteo attribution** (CC BY 4.0) in the page footer | `frontend/components/FixtureBoard.tsx` | "Weather data by Open-Meteo.com" visible with a link |
 
 ---
 

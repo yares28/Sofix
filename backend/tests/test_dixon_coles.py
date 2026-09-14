@@ -6,7 +6,13 @@ from scipy.stats import poisson
 
 from app.modeling import dixon_coles as dc
 from app.modeling.dixon_coles import (
-    DixonColesConfig, FitData, blended_targets, fit_dixon_coles, objective, outcome_table, score_matrix,
+    DixonColesConfig,
+    FitData,
+    blended_targets,
+    fit_dixon_coles,
+    objective,
+    outcome_table,
+    score_matrix,
 )
 from tests.conftest import HOME_ADV, TRUE_ATTACK, TRUE_DEFENCE
 
@@ -27,8 +33,8 @@ def test_adjustments_hit_the_right_cells():
     ratio = adjusted / plain
     z = ratio[2, 2]  # untouched cell: only the normalisation applies
     assert ratio[0, 0] / z == pytest.approx(1 - 2.0 * 0.5 * rho)
-    assert ratio[0, 1] / z == pytest.approx(1 + 2.0 * rho)   # home 0, away 1 -> uses lam_home
-    assert ratio[1, 0] / z == pytest.approx(1 + 0.5 * rho)   # home 1, away 0 -> uses lam_away
+    assert ratio[0, 1] / z == pytest.approx(1 + 2.0 * rho)  # home 0, away 1 -> uses lam_home
+    assert ratio[1, 0] / z == pytest.approx(1 + 0.5 * rho)  # home 1, away 0 -> uses lam_away
     assert ratio[1, 1] / z == pytest.approx(1 - rho)
 
 
@@ -36,9 +42,14 @@ def test_gradient_matches_finite_differences():
     rng = np.random.default_rng(3)
     n, m = 6, 80
     data = FitData(
-        n_teams=n, home_idx=rng.integers(0, n, m), away_idx=rng.integers(0, n, m),
-        weights=np.exp(-0.003 * rng.integers(0, 700, m)), home_target=rng.poisson(1.5, m) * 0.6 + 0.4,
-        away_target=rng.poisson(1.1, m) * 0.6 + 0.3, prior=np.array([0, 0, 0, 0, -0.2, -0.2]), ridge=2.0,
+        n_teams=n,
+        home_idx=rng.integers(0, n, m),
+        away_idx=rng.integers(0, n, m),
+        weights=np.exp(-0.003 * rng.integers(0, 700, m)),
+        home_target=rng.poisson(1.5, m) * 0.6 + 0.4,
+        away_target=rng.poisson(1.1, m) * 0.6 + 0.3,
+        prior=np.array([0, 0, 0, 0, -0.2, -0.2]),
+        ridge=2.0,
     )
     theta = rng.normal(0, 0.3, 2 + 2 * n)
     error = check_grad(lambda t: objective(t, data)[0], lambda t: objective(t, data)[1], theta)
@@ -100,7 +111,9 @@ def test_raises_without_history(league):
 
 def test_unseen_team_gets_its_prior(league):
     config = DixonColesConfig(xi=0.0, goals_weight=1.0, ridge=2.0, promoted_prior=-0.3)
-    model = fit_dixon_coles(league, pd.Timestamp("2023-06-01"), teams=["Newcomer"], promoted=["Newcomer"], config=config)
+    model = fit_dixon_coles(
+        league, pd.Timestamp("2023-06-01"), teams=["Newcomer"], promoted=["Newcomer"], config=config
+    )
     ratings = model.ratings().set_index("team")
     assert ratings.loc["Newcomer", "attack"] == pytest.approx(-0.3)
     assert ratings.loc["Newcomer", "defence"] == pytest.approx(-0.3)
@@ -122,7 +135,9 @@ def test_time_decay_tracks_a_change_in_form(league):
     shifted.loc[late & (shifted["away"] == "Weak"), "ag"] += 2
     cutoff = shifted["date"].max() + pd.Timedelta(days=1)
     static = fit_dixon_coles(shifted, cutoff, config=GOALS_ONLY).ratings().set_index("team")
-    decayed = fit_dixon_coles(shifted, cutoff, config=DixonColesConfig(xi=0.01, goals_weight=1.0, ridge=0.5, window_days=5000))
+    decayed = fit_dixon_coles(
+        shifted, cutoff, config=DixonColesConfig(xi=0.01, goals_weight=1.0, ridge=0.5, window_days=5000)
+    )
     assert decayed.ratings().set_index("team").loc["Weak", "attack"] > static.loc["Weak", "attack"]
 
 

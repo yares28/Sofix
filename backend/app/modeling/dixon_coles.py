@@ -10,6 +10,7 @@
 - The fitting target blends real goals with a shots-on-target xG proxy, which is less noisy.
 - A Dixon-Coles correction (rho) adjusts the 0-0 / 0-1 / 1-0 / 1-1 scorelines.
 """
+
 from __future__ import annotations
 
 import warnings
@@ -26,11 +27,11 @@ OUTCOME_COLUMNS = ["lam_h", "lam_a", "p_h", "p_d", "p_a", "cs_h", "cs_a"]
 
 @dataclass(frozen=True)
 class DixonColesConfig:
-    xi: float = 0.002             # time decay per day (0 = every match counts equally)
-    goals_weight: float = 0.7     # 1.0 = goals only, 0.0 = shots-on-target proxy only
-    ridge: float = 2.0            # strength of the pull toward the prior
+    xi: float = 0.002  # time decay per day (0 = every match counts equally)
+    goals_weight: float = 0.7  # 1.0 = goals only, 0.0 = shots-on-target proxy only
+    ridge: float = 2.0  # strength of the pull toward the prior
     promoted_prior: float = -0.2  # prior attack and defence rating for promoted teams
-    window_days: int = 730        # ignore matches older than this
+    window_days: int = 730  # ignore matches older than this
     max_goals: int = 10
 
 
@@ -57,20 +58,24 @@ def score_matrix(lam_h: np.ndarray, lam_a: np.ndarray, rho: float, max_goals: in
     return matrix / matrix.sum(axis=(1, 2), keepdims=True)
 
 
-def outcome_table(lam_h: Sequence[float], lam_a: Sequence[float], rho: float = 0.0, max_goals: int = 10) -> pd.DataFrame:
+def outcome_table(
+    lam_h: Sequence[float], lam_a: Sequence[float], rho: float = 0.0, max_goals: int = 10
+) -> pd.DataFrame:
     """Win/draw/loss and clean-sheet probabilities from expected goals."""
     lam_h = np.asarray(lam_h, dtype=float)
     lam_a = np.asarray(lam_a, dtype=float)
     matrix = score_matrix(lam_h, lam_a, rho, max_goals)
-    return pd.DataFrame({
-        "lam_h": lam_h,
-        "lam_a": lam_a,
-        "p_h": np.tril(matrix, -1).sum(axis=(1, 2)),
-        "p_d": np.trace(matrix, axis1=1, axis2=2),
-        "p_a": np.triu(matrix, 1).sum(axis=(1, 2)),
-        "cs_h": matrix[:, :, 0].sum(axis=1),  # away team scores 0
-        "cs_a": matrix[:, 0, :].sum(axis=1),  # home team scores 0
-    })
+    return pd.DataFrame(
+        {
+            "lam_h": lam_h,
+            "lam_a": lam_a,
+            "p_h": np.tril(matrix, -1).sum(axis=(1, 2)),
+            "p_d": np.trace(matrix, axis1=1, axis2=2),
+            "p_a": np.triu(matrix, 1).sum(axis=(1, 2)),
+            "cs_h": matrix[:, :, 0].sum(axis=1),  # away team scores 0
+            "cs_a": matrix[:, 0, :].sum(axis=1),  # home team scores 0
+        }
+    )
 
 
 @dataclass
@@ -130,6 +135,7 @@ def blended_targets(matches: pd.DataFrame, goals_weight: float) -> tuple[np.ndar
 @dataclass(frozen=True)
 class FitData:
     """Everything the objective needs, in index form."""
+
     n_teams: int
     home_idx: np.ndarray
     away_idx: np.ndarray
@@ -148,7 +154,7 @@ def objective(theta: np.ndarray, data: FitData) -> tuple[float, np.ndarray]:
     """
     n, hi, ai, w = data.n_teams, data.home_idx, data.away_idx, data.weights
     mu, home_adv = theta[0], theta[1]
-    attack, defence = theta[2:2 + n], theta[2 + n:]
+    attack, defence = theta[2 : 2 + n], theta[2 + n :]
     eta_h = mu + home_adv + attack[hi] - defence[ai]
     eta_a = mu + attack[ai] - defence[hi]
     lam_h, lam_a = np.exp(eta_h), np.exp(eta_a)
@@ -159,8 +165,8 @@ def objective(theta: np.ndarray, data: FitData) -> tuple[float, np.ndarray]:
     grad = np.empty_like(theta)
     grad[0] = rh.sum() + ra.sum()
     grad[1] = rh.sum()
-    grad[2:2 + n] = np.bincount(hi, rh, n) + np.bincount(ai, ra, n) + 2 * data.ridge * (attack - data.prior)
-    grad[2 + n:] = -np.bincount(ai, rh, n) - np.bincount(hi, ra, n) + 2 * data.ridge * (defence - data.prior)
+    grad[2 : 2 + n] = np.bincount(hi, rh, n) + np.bincount(ai, ra, n) + 2 * data.ridge * (attack - data.prior)
+    grad[2 + n :] = -np.bincount(ai, rh, n) - np.bincount(hi, ra, n) + 2 * data.ridge * (defence - data.prior)
     return nll + penalty, grad
 
 
@@ -203,12 +209,19 @@ def fit_dixon_coles(
     theta0 = np.concatenate([[np.log(mean_goals), 0.0], data.prior, data.prior])
     result = minimize(objective, theta0, args=(data,), jac=True, method="L-BFGS-B")
     if not result.success:
-        warnings.warn(f"Dixon-Coles fit at {cutoff.date()} did not converge: {result.message}", RuntimeWarning, stacklevel=2)
+        warnings.warn(
+            f"Dixon-Coles fit at {cutoff.date()} did not converge: {result.message}", RuntimeWarning, stacklevel=2
+        )
 
     theta = result.x
     model = DixonColesModel(
-        teams=team_list, mu=float(theta[0]), home_adv=float(theta[1]),
-        attack=theta[2:2 + n].copy(), defence=theta[2 + n:].copy(), rho=0.0, config=config,
+        teams=team_list,
+        mu=float(theta[0]),
+        home_adv=float(theta[1]),
+        attack=theta[2 : 2 + n].copy(),
+        defence=theta[2 + n :].copy(),
+        rho=0.0,
+        config=config,
     )
     model.rho = _fit_rho(model, train, data.weights)
     return model
@@ -223,8 +236,7 @@ def _fit_rho(model: DixonColesModel, train: pd.DataFrame, weights: np.ndarray) -
     def nll(rho: float) -> float:
         factors = dc_adjustments(lam_h, lam_a, rho)
         return -sum(
-            np.sum(weights[mask] * np.log(np.clip(factors[cell][mask], 1e-10, None)))
-            for cell, mask in masks.items()
+            np.sum(weights[mask] * np.log(np.clip(factors[cell][mask], 1e-10, None))) for cell, mask in masks.items()
         )
 
     return float(minimize_scalar(nll, bounds=(-0.25, 0.25), method="bounded").x)

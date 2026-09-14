@@ -1,4 +1,5 @@
 """Rolling-origin backtest: every Monday, forecast the next N weeks using only past data."""
+
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
@@ -42,9 +43,13 @@ def run_walkforward(
             if targets.empty:
                 continue
             history = matches[matches["date"] < cutoff]
-            base = targets[TARGET_COLUMNS].reset_index(drop=True).assign(
-                cutoff=cutoff,
-                horizon=((targets["date"] - cutoff).dt.days // 7 + 1).to_numpy(),
+            base = (
+                targets[TARGET_COLUMNS]
+                .reset_index(drop=True)
+                .assign(
+                    cutoff=cutoff,
+                    horizon=((targets["date"] - cutoff).dt.days // 7 + 1).to_numpy(),
+                )
             )
             for method in methods:
                 forecast = method.predict(history, cutoff, targets, promoted).reset_index(drop=True)
@@ -54,20 +59,42 @@ def run_walkforward(
 
 def team_perspective(predictions: pd.DataFrame) -> pd.DataFrame:
     """Two rows per match, one per team, with expected and actual points."""
-    home = pd.DataFrame({
-        "method": predictions["method"], "cutoff": predictions["cutoff"], "date": predictions["date"],
-        "horizon": predictions["horizon"], "team": predictions["home"], "opponent": predictions["away"], "venue": "H",
-        "p_win": predictions["p_h"], "p_draw": predictions["p_d"], "p_loss": predictions["p_a"],
-        "p_cs": predictions["cs_h"], "xg_for": predictions["lam_h"],
-        "goals_for": predictions["hg"], "goals_against": predictions["ag"],
-    })
-    away = pd.DataFrame({
-        "method": predictions["method"], "cutoff": predictions["cutoff"], "date": predictions["date"],
-        "horizon": predictions["horizon"], "team": predictions["away"], "opponent": predictions["home"], "venue": "A",
-        "p_win": predictions["p_a"], "p_draw": predictions["p_d"], "p_loss": predictions["p_h"],
-        "p_cs": predictions["cs_a"], "xg_for": predictions["lam_a"],
-        "goals_for": predictions["ag"], "goals_against": predictions["hg"],
-    })
+    home = pd.DataFrame(
+        {
+            "method": predictions["method"],
+            "cutoff": predictions["cutoff"],
+            "date": predictions["date"],
+            "horizon": predictions["horizon"],
+            "team": predictions["home"],
+            "opponent": predictions["away"],
+            "venue": "H",
+            "p_win": predictions["p_h"],
+            "p_draw": predictions["p_d"],
+            "p_loss": predictions["p_a"],
+            "p_cs": predictions["cs_h"],
+            "xg_for": predictions["lam_h"],
+            "goals_for": predictions["hg"],
+            "goals_against": predictions["ag"],
+        }
+    )
+    away = pd.DataFrame(
+        {
+            "method": predictions["method"],
+            "cutoff": predictions["cutoff"],
+            "date": predictions["date"],
+            "horizon": predictions["horizon"],
+            "team": predictions["away"],
+            "opponent": predictions["home"],
+            "venue": "A",
+            "p_win": predictions["p_a"],
+            "p_draw": predictions["p_d"],
+            "p_loss": predictions["p_h"],
+            "p_cs": predictions["cs_a"],
+            "xg_for": predictions["lam_a"],
+            "goals_for": predictions["ag"],
+            "goals_against": predictions["hg"],
+        }
+    )
     teams = pd.concat([home, away], ignore_index=True)
     teams["expected_points"] = 3 * teams["p_win"] + teams["p_draw"]
     teams["points"] = np.select(
@@ -97,5 +124,7 @@ def run_ranking(predictions: pd.DataFrame, run_length: int = 5) -> pd.DataFrame:
             return np.nan
         return group["expected"].rank().corr(group["actual"].rank())
 
-    per_cutoff = runs.groupby(["method", "cutoff"]).apply(spearman, include_groups=False).rename("spearman").reset_index()
+    per_cutoff = (
+        runs.groupby(["method", "cutoff"]).apply(spearman, include_groups=False).rename("spearman").reset_index()
+    )
     return per_cutoff.groupby("method")["spearman"].agg(["mean", "count"]).reset_index()

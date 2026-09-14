@@ -43,8 +43,16 @@ def test_upgrade_to_head_builds_the_schema(tmp_path):
     url = f"sqlite:///{(tmp_path / 'migrated.db').as_posix()}"
     upgrade_to_head(url)
     tables = set(inspect(create_engine(url)).get_table_names())
-    assert tables == {"alembic_version", "competitions", "stadiums", "teams", "source_entity_map",
-                      "fixtures", "weather_snapshots", "predictions"}
+    assert tables == {
+        "alembic_version",
+        "competitions",
+        "stadiums",
+        "teams",
+        "source_entity_map",
+        "fixtures",
+        "weather_snapshots",
+        "predictions",
+    }
     upgrade_to_head(url)  # idempotent at head
 
 
@@ -64,10 +72,16 @@ def test_fixture_and_weather_uniqueness_is_enforced(tmp_path):
     upgrade_to_head(url)
     engine = create_engine(url)
     with engine.begin() as connection:
-        connection.execute(text("INSERT INTO competitions (id, source_key, name, country, tier) VALUES (1, 'PD', 'La Liga', 'Spain', 1)"))
+        connection.execute(
+            text(
+                "INSERT INTO competitions (id, source_key, name, country, tier) VALUES (1, 'PD', 'La Liga', 'Spain', 1)"
+            )
+        )
         connection.execute(text("INSERT INTO teams (id, canonical_name) VALUES (1, 'A'), (2, 'B')"))
-        insert = text("INSERT INTO fixtures (source_fixture_id, competition_id, season, kickoff_utc, home_team_id, away_team_id, status, schedule_version) "
-                      "VALUES ('42', 1, '2026/27', '2026-09-20 19:00:00', 1, 2, 'TIMED', 1)")
+        insert = text(
+            "INSERT INTO fixtures (source_fixture_id, competition_id, season, kickoff_utc, home_team_id, away_team_id, status, schedule_version) "
+            "VALUES ('42', 1, '2026/27', '2026-09-20 19:00:00', 1, 2, 'TIMED', 1)"
+        )
         connection.execute(insert)
     with pytest.raises(IntegrityError), engine.begin() as connection:
         connection.execute(insert)

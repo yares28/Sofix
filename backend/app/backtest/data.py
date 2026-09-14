@@ -1,4 +1,5 @@
 """Historical LaLiga matches in one tidy frame for model fitting and backtests."""
+
 from __future__ import annotations
 
 from collections.abc import Iterable
@@ -12,7 +13,12 @@ from app.sources.football_data_co_uk import fetch_season_csv
 MATCH_COLUMNS = ["season_start", "date", "home", "away", "hg", "ag", "hst", "ast", "odds_h", "odds_d", "odds_a"]
 REQUIRED = ["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"]
 # Closing odds: Pinnacle first, market average second. Pre-closing columns are a last resort.
-ODDS_PREFERENCE = [("PSCH", "PSCD", "PSCA"), ("AvgCH", "AvgCD", "AvgCA"), ("PSH", "PSD", "PSA"), ("AvgH", "AvgD", "AvgA")]
+ODDS_PREFERENCE = [
+    ("PSCH", "PSCD", "PSCA"),
+    ("AvgCH", "AvgCD", "AvgCA"),
+    ("PSH", "PSD", "PSA"),
+    ("AvgH", "AvgD", "AvgA"),
+]
 
 
 def _numeric(df: pd.DataFrame, column: str) -> pd.Series:
@@ -26,16 +32,18 @@ def normalize_season(raw: pd.DataFrame, season_start: int) -> pd.DataFrame:
     if missing:
         raise ValueError(f"season {season_start}: missing columns {missing}")
     df = raw.dropna(subset=REQUIRED).copy()
-    out = pd.DataFrame({
-        "season_start": season_start,
-        "date": pd.to_datetime(df["Date"], dayfirst=True, format="mixed"),
-        "home": df["HomeTeam"].astype(str).str.strip(),
-        "away": df["AwayTeam"].astype(str).str.strip(),
-        "hg": pd.to_numeric(df["FTHG"], errors="raise").astype(int),
-        "ag": pd.to_numeric(df["FTAG"], errors="raise").astype(int),
-        "hst": _numeric(df, "HST"),
-        "ast": _numeric(df, "AST"),
-    })
+    out = pd.DataFrame(
+        {
+            "season_start": season_start,
+            "date": pd.to_datetime(df["Date"], dayfirst=True, format="mixed"),
+            "home": df["HomeTeam"].astype(str).str.strip(),
+            "away": df["AwayTeam"].astype(str).str.strip(),
+            "hg": pd.to_numeric(df["FTHG"], errors="raise").astype(int),
+            "ag": pd.to_numeric(df["FTAG"], errors="raise").astype(int),
+            "hst": _numeric(df, "HST"),
+            "ast": _numeric(df, "AST"),
+        }
+    )
     # Take all three prices from the first source that has a complete, valid set for the match,
     # so the margin is removed from one bookmaker's book rather than a mix.
     odds = pd.DataFrame(np.nan, index=df.index, columns=["odds_h", "odds_d", "odds_a"])

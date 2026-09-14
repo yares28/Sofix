@@ -9,6 +9,7 @@ def mock_client(requests: list[str]) -> httpx.Client:
     def handler(request: httpx.Request) -> httpx.Response:
         requests.append(str(request.url))
         return httpx.Response(200, content=CSV)
+
     return httpx.Client(transport=httpx.MockTransport(handler))
 
 
@@ -19,7 +20,7 @@ def test_season_code():
 
 def test_decode_falls_back_to_latin1():
     assert "Alavés" in decode_csv(CSV)
-    assert decode_csv("﻿Date".encode("utf-8")) == "Date"
+    assert decode_csv("﻿Date".encode()) == "Date"
 
 
 def test_fetch_downloads_once_then_uses_cache(tmp_path):

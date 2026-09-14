@@ -8,3 +8,37 @@ requires-python = ">=3.11,<3.12"
 #   uv pip compile requirements.txt --python-version 3.11 -o requirements.lock
 #   uv pip compile requirements-dev.txt --python-version 3.11 -o requirements-dev.lock
 #   uv pip sync --python .venv\Scripts\python.exe requirements-dev.lock
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+extend-exclude = ["migrations/versions"]
+
+[tool.ruff.lint]
+# pyflakes, pycodestyle errors, import sorting, bugbear, pyupgrade, simplify
+select = ["F", "E", "I", "B", "UP", "SIM"]
+ignore = [
+    "E501",   # long lines are left to the formatter
+    "E731",   # small lambdas assigned to names are used deliberately in a few places
+    "B008",   # FastAPI's Depends() in defaults is the documented pattern
+]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+follow_imports = "silent"
+warn_unused_ignores = true
+check_untyped_defs = true
+# Gradual: typed core modules first; pandas-heavy modelling/backtest code joins later.
+files = [
+    "app/api.py",
+    "app/config.py",
+    "app/db.py",
+    "app/migrate.py",
+    "app/schemas.py",
+    "app/services/fixture_grid.py",
+    "app/services/scoring.py",
+    "app/services/team_registry.py",
+    "app/services/timeutil.py",
+    "app/sources/open_meteo.py",
+]

@@ -1,6 +1,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
+
 from app.config import settings
+
 
 def engine_options(url: str) -> dict:
     if url.startswith("sqlite"):
@@ -12,11 +14,14 @@ def engine_options(url: str) -> dict:
         "connect_args": {"prepare_threshold": None},
     }
 
+
 engine = create_engine(settings.postgres_url, pool_pre_ping=True, **engine_options(settings.postgres_url))
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
+
 class Base(DeclarativeBase):
     pass
+
 
 def get_db():
     db = SessionLocal()

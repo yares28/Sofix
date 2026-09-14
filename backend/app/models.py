@@ -1,7 +1,10 @@
 from datetime import datetime
-from sqlalchemy import String, Integer, Float, DateTime, ForeignKey, JSON, UniqueConstraint
+
+from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
+
 from app.db import Base
+
 
 class Competition(Base):
     __tablename__ = "competitions"
@@ -11,12 +14,14 @@ class Competition(Base):
     country: Mapped[str] = mapped_column(String(64), default="Spain")
     tier: Mapped[int] = mapped_column(Integer, default=1)
 
+
 class Stadium(Base):
     __tablename__ = "stadiums"
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(160))
     latitude: Mapped[float | None] = mapped_column(Float)
     longitude: Mapped[float | None] = mapped_column(Float)
+
 
 class Team(Base):
     __tablename__ = "teams"
@@ -27,6 +32,7 @@ class Team(Base):
     color: Mapped[str | None] = mapped_column(String(9))
     stadium_id: Mapped[int | None] = mapped_column(ForeignKey("stadiums.id"))
 
+
 class SourceEntityMap(Base):
     __tablename__ = "source_entity_map"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -36,7 +42,8 @@ class SourceEntityMap(Base):
     source_id: Mapped[str | None] = mapped_column(String(128))
     source_name: Mapped[str] = mapped_column(String(180))
     # Lookups go by source id; names can change (e.g. a club renamed by the provider).
-    __table_args__ = (UniqueConstraint("entity_type","source","source_id",name="uq_source_entity_map_source_id"),)
+    __table_args__ = (UniqueConstraint("entity_type", "source", "source_id", name="uq_source_entity_map_source_id"),)
+
 
 class Fixture(Base):
     __tablename__ = "fixtures"
@@ -54,7 +61,8 @@ class Fixture(Base):
     away_goals: Mapped[int | None] = mapped_column(Integer)
     source_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     schedule_version: Mapped[int] = mapped_column(Integer, default=1)
-    __table_args__ = (UniqueConstraint("source_fixture_id",name="uq_fixtures_source_fixture_id"),)
+    __table_args__ = (UniqueConstraint("source_fixture_id", name="uq_fixtures_source_fixture_id"),)
+
 
 class WeatherSnapshot(Base):
     __tablename__ = "weather_snapshots"
@@ -69,7 +77,8 @@ class WeatherSnapshot(Base):
     precipitation_mm: Mapped[float | None] = mapped_column(Float)
     wind_speed_kmh: Mapped[float | None] = mapped_column(Float)
     # One live forecast per fixture; each weather sync replaces it.
-    __table_args__ = (UniqueConstraint("fixture_id",name="uq_weather_snapshots_fixture_id"),)
+    __table_args__ = (UniqueConstraint("fixture_id", name="uq_weather_snapshots_fixture_id"),)
+
 
 class Prediction(Base):
     __tablename__ = "predictions"
@@ -89,4 +98,4 @@ class Prediction(Base):
     xg_against: Mapped[float | None] = mapped_column(Float)
     explanation: Mapped[dict | None] = mapped_column(JSON)
     # One live prediction per team per fixture per model; each run replaces the previous one.
-    __table_args__ = (UniqueConstraint("fixture_id","perspective_team_id","model_version"),)
+    __table_args__ = (UniqueConstraint("fixture_id", "perspective_team_id", "model_version"),)

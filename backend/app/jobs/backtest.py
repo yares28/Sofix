@@ -7,6 +7,7 @@
 Tuning uses the 2019/20–2022/23 seasons. The report scores 2023/24–2025/26, which the
 tuning never saw.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -14,13 +15,19 @@ import itertools
 import json
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-from app.backtest.calibration import CURRENT_THRESHOLDS, band_table, clean_sheet_calibration, propose_thresholds, with_difficulty
+from app.backtest.calibration import (
+    CURRENT_THRESHOLDS,
+    band_table,
+    clean_sheet_calibration,
+    propose_thresholds,
+    with_difficulty,
+)
 from app.backtest.data import load_history, promoted_teams
 from app.backtest.methods import base_rates, closing_odds, dixon_coles, elo_fallback
 from app.backtest.metrics import summarize
@@ -71,7 +78,9 @@ def evaluate_config(config: DixonColesConfig, seasons: list[int], matches: pd.Da
         return float("nan")
 
 
-def tune(matches: pd.DataFrame, seasons: list[int], grid: list[DixonColesConfig], workers: int) -> tuple[DixonColesConfig, pd.DataFrame]:
+def tune(
+    matches: pd.DataFrame, seasons: list[int], grid: list[DixonColesConfig], workers: int
+) -> tuple[DixonColesConfig, pd.DataFrame]:
     print(f"tuning {len(grid)} configs on seasons {seasons} with {workers} workers")
     if workers <= 1:
         scores = [evaluate_config(config, seasons, matches) for config in grid]
@@ -81,7 +90,9 @@ def tune(matches: pd.DataFrame, seasons: list[int], grid: list[DixonColesConfig]
     if np.all(np.isnan(scores)):
         raise RuntimeError("every tuning config failed")
     best = grid[int(np.nanargmin(scores))]
-    table = pd.DataFrame([{**asdict(c), "rps": s} for c, s in zip(grid, scores)]).sort_values("rps", ignore_index=True)
+    table = pd.DataFrame([{**asdict(c), "rps": s} for c, s in zip(grid, scores, strict=True)]).sort_values(
+        "rps", ignore_index=True
+    )
     return best, table
 
 
@@ -93,6 +104,7 @@ def horizon_bucket(horizon: pd.Series) -> pd.Series:
 
 
 # ---------------------------------------------------------------- report helpers
+
 
 def md_table(df: pd.DataFrame, formats: dict[str, str] | None = None) -> str:
     formats = formats or {}
@@ -116,12 +128,20 @@ def md_table(df: pd.DataFrame, formats: dict[str, str] | None = None) -> str:
 def goal_bias(test: pd.DataFrame) -> pd.DataFrame:
     """Average forecast vs actual goals per match side, for methods that forecast goals."""
     has_goals = test.dropna(subset=["lam_h", "lam_a"])
-    return has_goals.groupby("method").agg(
-        predicted_home=("lam_h", "mean"), actual_home=("hg", "mean"),
-        predicted_away=("lam_a", "mean"), actual_away=("ag", "mean"),
-        predicted_cs_home=("cs_h", "mean"), actual_cs_home=("ag", lambda g: (g == 0).mean()),
-        predicted_cs_away=("cs_a", "mean"), actual_cs_away=("hg", lambda g: (g == 0).mean()),
-    ).reset_index()
+    return (
+        has_goals.groupby("method")
+        .agg(
+            predicted_home=("lam_h", "mean"),
+            actual_home=("hg", "mean"),
+            predicted_away=("lam_a", "mean"),
+            actual_away=("ag", "mean"),
+            predicted_cs_home=("cs_h", "mean"),
+            actual_cs_home=("ag", lambda g: (g == 0).mean()),
+            predicted_cs_away=("cs_a", "mean"),
+            actual_cs_away=("hg", lambda g: (g == 0).mean()),
+        )
+        .reset_index()
+    )
 
 
 def season_labels(seasons: list[int]) -> str:
@@ -129,8 +149,13 @@ def season_labels(seasons: list[int]) -> str:
 
 
 def build_report(
-    matches: pd.DataFrame, best: DixonColesConfig, tuning: pd.DataFrame, test: pd.DataFrame, tune_best: pd.DataFrame,
-    tune_seasons: list[int], test_seasons: list[int],
+    matches: pd.DataFrame,
+    best: DixonColesConfig,
+    tuning: pd.DataFrame,
+    test: pd.DataFrame,
+    tune_best: pd.DataFrame,
+    tune_seasons: list[int],
+    test_seasons: list[int],
 ) -> str:
     metric_formats = {"rps": ".4f", "log_loss": ".4f", "accuracy": ".1%", "clean_sheet_brier": ".4f", "matches": ".0f"}
 
@@ -143,12 +168,22 @@ def build_report(
     per_tuning_season = summarize(tune_best, ["season_start"])[["season_start", "matches", "rps", "accuracy"]]
 
     early = test[test["cutoff"].dt.month.isin([8, 9])]
-    early_vs_rest = pd.concat([
-        summarize(early, ["method"]).assign(period="Aug–Sep cutoffs"),
-        summarize(test[~test.index.isin(early.index)], ["method"]).assign(period="Oct–May cutoffs"),
-    ]).pivot(index="method", columns="period", values="rps").reset_index()
+    early_vs_rest = (
+        pd.concat(
+            [
+                summarize(early, ["method"]).assign(period="Aug–Sep cutoffs"),
+                summarize(test[~test.index.isin(early.index)], ["method"]).assign(period="Oct–May cutoffs"),
+            ]
+        )
+        .pivot(index="method", columns="period", values="rps")
+        .reset_index()
+    )
 
-    ranking = run_ranking(test).rename(columns={"mean": "spearman_next5", "count": "cutoffs"}).sort_values("spearman_next5", ascending=False)
+    ranking = (
+        run_ranking(test)
+        .rename(columns={"mean": "spearman_next5", "count": "cutoffs"})
+        .sort_values("spearman_next5", ascending=False)
+    )
 
     model_name = "Dixon-Coles (tuned)"
     tuned_tune_rows = with_difficulty(team_perspective(tune_best))
@@ -159,8 +194,9 @@ def build_report(
     current_season = int(matches["season_start"].max())
     latest_cutoff = matches["date"].max() + pd.Timedelta(days=1)
     current_teams = matches.loc[matches["season_start"] == current_season, ["home", "away"]].stack().unique()
-    current_model = fit_dixon_coles(matches, latest_cutoff, teams=current_teams,
-                                    promoted=promoted_teams(matches, current_season), config=best)
+    current_model = fit_dixon_coles(
+        matches, latest_cutoff, teams=current_teams, promoted=promoted_teams(matches, current_season), config=best
+    )
     ratings = current_model.ratings()
     ratings = ratings[ratings["team"].isin(current_teams)].reset_index(drop=True)
     ratings.insert(0, "rank", range(1, len(ratings) + 1))
@@ -171,11 +207,11 @@ def build_report(
 
     return f"""# LaLiga difficulty model — backtest report
 
-Generated {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC from football-data.co.uk results ({season_labels([int(matches["season_start"].min())])} → {season_labels([current_season])}).
+Generated {datetime.now(UTC):%Y-%m-%d %H:%M} UTC from football-data.co.uk results ({season_labels([int(matches["season_start"].min())])} → {season_labels([current_season])}).
 
 **Method.** Every Monday of a season, each model is fitted only on matches played before that day and
 forecasts every match in the next 8 weeks. Settings were tuned on {tune_labels}; all numbers below are
-from **{test_labels}**, which tuning never saw. Every method is scored on the same {overall['matches'].iloc[0]:.0f}
+from **{test_labels}**, which tuning never saw. Every method is scored on the same {overall["matches"].iloc[0]:.0f}
 forecasts (matches with closing odds), each match forecast once per horizon.
 
 Metrics: **RPS** (ranked probability score, lower is better; the main score), **log loss** (lower is better),
@@ -233,7 +269,7 @@ Forecast vs actual goals and clean sheets per match (test seasons):
 
 {md_table(goal_bias(test), {c: (".1%" if "cs" in c else ".3f") for c in goal_bias(test).columns if c != "method"})}
 
-## 8. Current ratings ({season_labels([current_season])}, data through {matches['date'].max():%Y-%m-%d})
+## 8. Current ratings ({season_labels([current_season])}, data through {matches["date"].max():%Y-%m-%d})
 
 Log-scale: +0.10 attack ≈ 10% more goals than an average team; +0.10 defence ≈ 10% fewer conceded.
 Home advantage = {current_model.home_adv:+.3f}, rho = {current_model.rho:+.3f}.

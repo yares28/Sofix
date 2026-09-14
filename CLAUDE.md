@@ -37,6 +37,8 @@ Backend (from `backend/`, venv at `backend/.venv`):
 .venv\Scripts\python -m app.migrate           # apply migrations
 .venv\Scripts\alembic revision --autogenerate -m "what changed"
 .venv\Scripts\python -m pytest -q
+.venv\Scripts\ruff check . ; .venv\Scripts\ruff format .
+.venv\Scripts\mypy                            # typed core modules listed in pyproject.toml
 .venv\Scripts\python -m uvicorn app.main:app --reload --port 8000
 ```
 
@@ -46,6 +48,7 @@ Frontend (from `frontend/` only):
 npm run dev          # binds 127.0.0.1:3000
 npm test             # vitest
 npm run typecheck
+npm run lint         # eslint (next + jsx-a11y), zero warnings
 ```
 
 ## Conventions
@@ -55,6 +58,8 @@ npm run typecheck
 - Schema changes: edit `models.py` → autogenerate a migration → review it → apply. Never `create_all` against Neon.
 - Jobs replace rows (predictions per model version, weather per fixture); never append history.
 - Tests: pytest with in-memory SQLite and mocked HTTP; vitest for `lib/`. Keep both green before committing.
+- CI (`.github/workflows/ci.yml`) runs ruff, mypy, pytest (incl. migration drift), pip-audit, eslint, tsc, vitest
+  and `npm audit --omit=dev`. Run the same locally before committing; it only executes once the repo is pushed to GitHub.
 - Commits: `<type>: <description>` (feat, fix, refactor, docs, test, chore, perf, ci).
 - Python 3.11 (`backend/.python-version`). Dependencies: edit direct pins in `requirements*.txt`, then regenerate
   `requirements*.lock` with `uv pip compile ... --python-version 3.11` and `uv pip sync` the venv; run `uvx pip-audit -r requirements.lock`.

@@ -30,11 +30,21 @@ def simulate_league(seasons=(2020, 2021, 2022), repeats=4, seed=7, n_teams=None)
                     lam_h = np.exp(MU + HOME_ADV + attack[home] - defence[away])
                     lam_a = np.exp(MU + attack[away] - defence[home])
                     hg, ag = rng.poisson(lam_h), rng.poisson(lam_a)
-                    rows.append({
-                        "season_start": season, "date": date, "home": home, "away": away, "hg": hg, "ag": ag,
-                        "hst": hg + rng.poisson(2.5), "ast": ag + rng.poisson(2.0),
-                        "odds_h": 2.2, "odds_d": 3.3, "odds_a": 3.4,
-                    })
+                    rows.append(
+                        {
+                            "season_start": season,
+                            "date": date,
+                            "home": home,
+                            "away": away,
+                            "hg": hg,
+                            "ag": ag,
+                            "hst": hg + rng.poisson(2.5),
+                            "ast": ag + rng.poisson(2.0),
+                            "odds_h": 2.2,
+                            "odds_d": 3.3,
+                            "odds_a": 3.4,
+                        }
+                    )
                 date += pd.Timedelta(days=3)
     return pd.DataFrame(rows).sort_values("date", kind="stable", ignore_index=True)
 

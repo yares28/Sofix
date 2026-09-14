@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime
 
 import pandas as pd
 import pytest
@@ -13,19 +13,23 @@ from app.jobs.predict import replace_predictions, upcoming_fixtures
 from app.jobs.seed_and_sync import clean_status, get_or_create_comp, resolve_team, sync, upsert_fixture
 from app.jobs.sync_weather import forecastable
 from app.main import app as fastapi_app
-from app.models import Fixture, Prediction, WeatherSnapshot
 from app.modeling.dixon_coles import DixonColesConfig, fit_dixon_coles
-from app.services.fixture_grid import build_fixture_grid, date_confirmed, matchday_window, normalize_status, quantile_scale
-from app.services.scoring import LABEL_THRESHOLDS, label_bucket
+from app.models import Fixture, Prediction, WeatherSnapshot
+from app.services.fixture_grid import (
+    build_fixture_grid,
+    date_confirmed,
+    matchday_window,
+    normalize_status,
+    quantile_scale,
+)
 from app.services.rating_predictions import load_config, merge_recent_results, predict_both_sides
+from app.services.scoring import LABEL_THRESHOLDS, label_bucket
 from app.services.team_registry import TEAMS, by_code, by_history_name, require_code
 from app.sources.open_meteo import at_kickoff
 from tests.conftest import simulate_league
 
-UTC = timezone.utc
-
-
 # ---------------------------------------------------------------- registry
+
 
 def test_registry_codes_and_history_names_are_unique():
     assert len({t.code for t in TEAMS}) == len(TEAMS)
@@ -38,6 +42,7 @@ def test_registry_codes_and_history_names_are_unique():
 
 # ---------------------------------------------------------------- predictions
 
+
 def test_load_config_falls_back_to_defaults(tmp_path):
     assert load_config(tmp_path / "missing.json") == DixonColesConfig()
     path = tmp_path / "config.json"
@@ -47,14 +52,28 @@ def test_load_config_falls_back_to_defaults(tmp_path):
 
 
 def test_merge_recent_results_adds_only_missing_matches():
-    history = pd.DataFrame({
-        "season_start": [2026], "date": [pd.Timestamp("2026-09-06")], "home": ["Betis"], "away": ["Sevilla"],
-        "hg": [1], "ag": [0], "hst": [5.0], "ast": [2.0],
-    })
-    recent = pd.DataFrame({
-        "season_start": [2026, 2026], "date": [pd.Timestamp("2026-09-07"), pd.Timestamp("2026-09-13")],
-        "home": ["Betis", "Getafe"], "away": ["Sevilla", "Elche"], "hg": [1, 2], "ag": [0, 2],
-    })
+    history = pd.DataFrame(
+        {
+            "season_start": [2026],
+            "date": [pd.Timestamp("2026-09-06")],
+            "home": ["Betis"],
+            "away": ["Sevilla"],
+            "hg": [1],
+            "ag": [0],
+            "hst": [5.0],
+            "ast": [2.0],
+        }
+    )
+    recent = pd.DataFrame(
+        {
+            "season_start": [2026, 2026],
+            "date": [pd.Timestamp("2026-09-07"), pd.Timestamp("2026-09-13")],
+            "home": ["Betis", "Getafe"],
+            "away": ["Sevilla", "Elche"],
+            "hg": [1, 2],
+            "ag": [0, 2],
+        }
+    )
     merged = merge_recent_results(history, recent)
     assert len(merged) == 2  # Betis–Sevilla is the same match a day apart (UTC vs local date)
     assert merged.iloc[-1][["home", "away"]].tolist() == ["Getafe", "Elche"]
@@ -74,12 +93,18 @@ def test_predict_both_sides_mirrors_the_match():
 
 # ---------------------------------------------------------------- weather
 
+
 def test_at_kickoff_picks_nearest_hour_and_handles_naive_datetimes():
-    data = {"hourly": {
-        "time": ["2026-09-16T18:00", "2026-09-16T19:00", "2026-09-16T20:00"],
-        "temperature_2m": [22, 21, 20], "apparent_temperature": [22, 21, 20], "relative_humidity_2m": [50, 55, 60],
-        "precipitation": [0, 0.4, 1.2], "wind_speed_10m": [8, 9, 10],
-    }}
+    data = {
+        "hourly": {
+            "time": ["2026-09-16T18:00", "2026-09-16T19:00", "2026-09-16T20:00"],
+            "temperature_2m": [22, 21, 20],
+            "apparent_temperature": [22, 21, 20],
+            "relative_humidity_2m": [50, 55, 60],
+            "precipitation": [0, 0.4, 1.2],
+            "wind_speed_10m": [8, 9, 10],
+        }
+    }
     now = datetime(2026, 9, 14, tzinfo=UTC)
     row = at_kickoff(data, datetime(2026, 9, 16, 19, 45), now)  # naive, as SQLite returns it
     assert row["temperature_c"] == 20 and row["forecast_lead_hours"] == pytest.approx(67.75)  # 20:00 is nearest
@@ -93,10 +118,20 @@ SOURCE_IDS = {"FCB": 81, "RMA": 86, "SEV": 559, "BET": 90, "ATL": 78, "VAL": 95}
 
 
 def fdo_match(match_id, matchday, kickoff, home, away, status="TIMED", score=(None, None)):
-    team = lambda code: {"id": SOURCE_IDS[code], "tla": code, "name": by_code(code).name, "shortName": by_code(code).name}
+    team = lambda code: {
+        "id": SOURCE_IDS[code],
+        "tla": code,
+        "name": by_code(code).name,
+        "shortName": by_code(code).name,
+    }
     return {
-        "id": match_id, "matchday": matchday, "utcDate": kickoff, "status": status,
-        "homeTeam": team(home), "awayTeam": team(away), "season": {"startDate": "2026-08-16"},
+        "id": match_id,
+        "matchday": matchday,
+        "utcDate": kickoff,
+        "status": status,
+        "homeTeam": team(home),
+        "awayTeam": team(away),
+        "season": {"startDate": "2026-08-16"},
         "score": {"fullTime": {"home": score[0], "away": score[1]}},
     }
 
@@ -124,11 +159,33 @@ def seeded(db):
     db.commit()
     fx = db.query(Fixture).filter_by(source_fixture_id="3").one()
     for team_id, p_win in ((fx.home_team_id, 0.6), (fx.away_team_id, 0.2)):
-        db.add(Prediction(fixture_id=fx.id, perspective_team_id=team_id, prediction_ts=datetime.now(UTC), model_version="dixon-coles-v1",
-                          p_win=p_win, p_draw=0.2, p_loss=0.8 - p_win, expected_points=3 * p_win + 0.2, difficulty_score=40.0,
-                          difficulty_label="Easy-ish", p_clean_sheet=0.3, xg_for=1.7, xg_against=0.9))
-    db.add(WeatherSnapshot(fixture_id=fx.id, snapshot_ts=datetime.now(UTC), available_at=datetime.now(UTC), temperature_c=24.0,
-                           precipitation_mm=0.0, wind_speed_kmh=7.0))
+        db.add(
+            Prediction(
+                fixture_id=fx.id,
+                perspective_team_id=team_id,
+                prediction_ts=datetime.now(UTC),
+                model_version="dixon-coles-v1",
+                p_win=p_win,
+                p_draw=0.2,
+                p_loss=0.8 - p_win,
+                expected_points=3 * p_win + 0.2,
+                difficulty_score=40.0,
+                difficulty_label="Easy-ish",
+                p_clean_sheet=0.3,
+                xg_for=1.7,
+                xg_against=0.9,
+            )
+        )
+    db.add(
+        WeatherSnapshot(
+            fixture_id=fx.id,
+            snapshot_ts=datetime.now(UTC),
+            available_at=datetime.now(UTC),
+            temperature_c=24.0,
+            precipitation_mm=0.0,
+            wind_speed_kmh=7.0,
+        )
+    )
     db.commit()
     return db
 
@@ -206,9 +263,20 @@ def test_postponed_games_lose_their_forecast(seeded):
 
 def test_grid_reads_only_the_latest_model_version(seeded):
     fx = seeded.query(Fixture).filter_by(source_fixture_id="3").one()
-    seeded.add(Prediction(fixture_id=fx.id, perspective_team_id=fx.home_team_id, model_version="old-model",
-                          prediction_ts=datetime(2026, 1, 1, tzinfo=UTC), p_win=0.1, p_draw=0.1, p_loss=0.8,
-                          expected_points=0.4, difficulty_score=90.0, difficulty_label="Hard"))
+    seeded.add(
+        Prediction(
+            fixture_id=fx.id,
+            perspective_team_id=fx.home_team_id,
+            model_version="old-model",
+            prediction_ts=datetime(2026, 1, 1, tzinfo=UTC),
+            p_win=0.1,
+            p_draw=0.1,
+            p_loss=0.8,
+            expected_points=0.4,
+            difficulty_score=90.0,
+            difficulty_label="Hard",
+        )
+    )
     seeded.commit()
     grid = build_fixture_grid(seeded)
     assert grid.model_version == "dixon-coles-v1"
@@ -243,7 +311,7 @@ def test_replace_predictions_does_not_pile_up(seeded):
     model = fit_dixon_coles(league, league["date"].max() + pd.Timedelta(days=1), config=DixonColesConfig(xi=0.0))
     fixtures = seeded.query(Fixture).filter(Fixture.source_fixture_id.in_(["3", "4"])).all()
     teams = {fx.home_team_id for fx in fixtures} | {fx.away_team_id for fx in fixtures}
-    names = dict(zip(sorted(teams), ["Strong", "Good", "Mid A", "Weak"]))
+    names = dict(zip(sorted(teams), ["Strong", "Good", "Mid A", "Weak"], strict=True))
     now = datetime.now(UTC)
     assert replace_predictions(seeded, fixtures, model, names, now) == 4
     assert replace_predictions(seeded, fixtures, model, names, now) == 4
@@ -267,8 +335,14 @@ def test_weather_only_for_confirmed_kickoffs_inside_horizon(seeded):
 
 
 def test_status_helpers_and_matchday_window():
-    assert [normalize_status(s) for s in ("FINISHED", "AWARDED", "IN_PLAY", "POSTPONED", "TIMED", None)] == \
-        ["finished", "finished", "live", "postponed", "scheduled", "scheduled"]
+    assert [normalize_status(s) for s in ("FINISHED", "AWARDED", "IN_PLAY", "POSTPONED", "TIMED", None)] == [
+        "finished",
+        "finished",
+        "live",
+        "postponed",
+        "scheduled",
+        "scheduled",
+    ]
     assert date_confirmed("TIMED") and not date_confirmed("SCHEDULED")
     kickoffs = [datetime(2026, 9, d, 19) for d in (19, 20, 21)] + [datetime(2026, 10, 30, 19)]
     start, end, _ = matchday_window(kickoffs)
@@ -290,6 +364,11 @@ def test_fixture_grid_endpoint_without_data(db):
     fastapi_app.dependency_overrides[get_db] = lambda: db
     try:
         body = TestClient(fastapi_app).get("/api/fixture-grid").json()
-        assert body == {"success": False, "data": None, "error": "No fixtures yet. Run python -m app.jobs.refresh.", "meta": None}
+        assert body == {
+            "success": False,
+            "data": None,
+            "error": "No fixtures yet. Run python -m app.jobs.refresh.",
+            "meta": None,
+        }
     finally:
         fastapi_app.dependency_overrides.clear()

@@ -26,7 +26,9 @@ def database_url() -> str:
 
 def run_migrations_offline() -> None:
     url = database_url()
-    context.configure(url=url, target_metadata=target_metadata, literal_binds=True, render_as_batch=url.startswith("sqlite"))
+    context.configure(
+        url=url, target_metadata=target_metadata, literal_binds=True, render_as_batch=url.startswith("sqlite")
+    )
     with context.begin_transaction():
         context.run_migrations()
 
@@ -36,7 +38,9 @@ def run_migrations_online() -> None:
     connectable = create_engine(url, pool_pre_ping=True, **engine_options(url))
     with connectable.connect() as connection:
         # SQLite can't ALTER most things in place; batch mode rebuilds tables instead.
-        context.configure(connection=connection, target_metadata=target_metadata, render_as_batch=url.startswith("sqlite"))
+        context.configure(
+            connection=connection, target_metadata=target_metadata, render_as_batch=url.startswith("sqlite")
+        )
         with context.begin_transaction():
             context.run_migrations()
     connectable.dispose()

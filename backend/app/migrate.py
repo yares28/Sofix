@@ -1,7 +1,8 @@
 """Apply database migrations from code (used by the refresh job).
 
-    python -m app.migrate
+python -m app.migrate
 """
+
 from alembic import command
 from alembic.config import Config
 from sqlalchemy.engine import make_url
@@ -28,8 +29,11 @@ def ensure_same_database(app_url: str, migration_url: str | None) -> None:
     if not migration_url:
         return
     app, target = make_url(app_url), make_url(migration_url)
-    if app.get_backend_name() != target.get_backend_name() or database_host(app_url) != database_host(migration_url) \
-            or app.database != target.database:
+    if (
+        app.get_backend_name() != target.get_backend_name()
+        or database_host(app_url) != database_host(migration_url)
+        or app.database != target.database
+    ):
         raise MigrationTargetMismatch(
             f"POSTGRES_MIGRATION_URL ({target.get_backend_name()}://{target.host}/{target.database}) does not match "
             f"POSTGRES_URL ({app.get_backend_name()}://{app.host}/{app.database}); refusing to migrate"

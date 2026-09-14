@@ -4,6 +4,7 @@ Every method has the same shape: given the match history before `cutoff`, the up
 matches and the season's promoted teams, return one row per upcoming match with
 p_h, p_d, p_a (and cs_h, cs_a, lam_h, lam_a where the method produces them).
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -26,7 +27,9 @@ class Method:
 
 
 def dixon_coles(name: str, config: DixonColesConfig) -> Method:
-    def predict(history: pd.DataFrame, cutoff: pd.Timestamp, targets: pd.DataFrame, promoted: frozenset[str]) -> pd.DataFrame:
+    def predict(
+        history: pd.DataFrame, cutoff: pd.Timestamp, targets: pd.DataFrame, promoted: frozenset[str]
+    ) -> pd.DataFrame:
         teams = set(targets["home"]) | set(targets["away"])
         model = fit_dixon_coles(history, cutoff, teams=teams, promoted=promoted, config=config)
         return model.predict(targets["home"], targets["away"])
@@ -36,13 +39,20 @@ def dixon_coles(name: str, config: DixonColesConfig) -> Method:
 
 def base_rates(lookback_days: int = 730) -> Method:
     """League-wide home/draw/away frequencies. Knows nothing about the teams."""
-    def predict(history: pd.DataFrame, cutoff: pd.Timestamp, targets: pd.DataFrame, promoted: frozenset[str]) -> pd.DataFrame:
+
+    def predict(
+        history: pd.DataFrame, cutoff: pd.Timestamp, targets: pd.DataFrame, promoted: frozenset[str]
+    ) -> pd.DataFrame:
         recent = history[history["date"] >= cutoff - pd.Timedelta(days=lookback_days)]
         hg, ag = recent["hg"], recent["ag"]
         row = {
-            "p_h": (hg > ag).mean(), "p_d": (hg == ag).mean(), "p_a": (hg < ag).mean(),
-            "cs_h": (ag == 0).mean(), "cs_a": (hg == 0).mean(),
-            "lam_h": hg.mean(), "lam_a": ag.mean(),
+            "p_h": (hg > ag).mean(),
+            "p_d": (hg == ag).mean(),
+            "p_a": (hg < ag).mean(),
+            "cs_h": (ag == 0).mean(),
+            "cs_a": (hg == 0).mean(),
+            "lam_h": hg.mean(),
+            "lam_a": ag.mean(),
         }
         return pd.DataFrame([row] * len(targets))
 
@@ -51,7 +61,10 @@ def base_rates(lookback_days: int = 730) -> Method:
 
 def elo_fallback() -> Method:
     """Baseline from the original scaffold: internal Elo with a hand-tuned linear mapping to W/D/L."""
-    def predict(history: pd.DataFrame, cutoff: pd.Timestamp, targets: pd.DataFrame, promoted: frozenset[str]) -> pd.DataFrame:
+
+    def predict(
+        history: pd.DataFrame, cutoff: pd.Timestamp, targets: pd.DataFrame, promoted: frozenset[str]
+    ) -> pd.DataFrame:
         ratings: dict[str, float] = {}
         for home, away, hg, ag in history[["home", "away", "hg", "ag"]].itertuples(index=False):
             new_home, new_away, _ = update_pair(ratings.get(home, 1500.0), ratings.get(away, 1500.0), hg, ag)
@@ -59,7 +72,7 @@ def elo_fallback() -> Method:
         rows = []
         for home, away in targets[["home", "away"]].itertuples(index=False):
             x = np.clip((ratings.get(home, 1500.0) + 65 - ratings.get(away, 1500.0)) / 400, -2, 2)
-            p_h, p_d, p_a = normalize_probs(.33 + .22 * x, .34 - .05 * abs(x), .33 - .22 * x)
+            p_h, p_d, p_a = normalize_probs(0.33 + 0.22 * x, 0.34 - 0.05 * abs(x), 0.33 - 0.22 * x)
             rows.append({"p_h": p_h, "p_d": p_d, "p_a": p_a})
         return pd.DataFrame(rows).assign(cs_h=np.nan, cs_a=np.nan, lam_h=np.nan, lam_a=np.nan)
 
@@ -68,9 +81,14 @@ def elo_fallback() -> Method:
 
 def closing_odds() -> Method:
     """Bookmaker closing prices, margin removed. A ceiling: only known minutes before kickoff."""
-    def predict(history: pd.DataFrame, cutoff: pd.Timestamp, targets: pd.DataFrame, promoted: frozenset[str]) -> pd.DataFrame:
+
+    def predict(
+        history: pd.DataFrame, cutoff: pd.Timestamp, targets: pd.DataFrame, promoted: frozenset[str]
+    ) -> pd.DataFrame:
         implied = 1 / targets[["odds_h", "odds_d", "odds_a"]].to_numpy(dtype=float)
         probs = implied / implied.sum(axis=1, keepdims=True)
-        return pd.DataFrame(probs, columns=["p_h", "p_d", "p_a"]).assign(cs_h=np.nan, cs_a=np.nan, lam_h=np.nan, lam_a=np.nan)
+        return pd.DataFrame(probs, columns=["p_h", "p_d", "p_a"]).assign(
+            cs_h=np.nan, cs_a=np.nan, lam_h=np.nan, lam_a=np.nan
+        )
 
     return Method("Closing odds (ceiling)", predict)

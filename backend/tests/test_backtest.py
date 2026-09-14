@@ -10,8 +10,8 @@ from app.backtest.walkforward import run_ranking, run_walkforward, season_cutoff
 from app.modeling.dixon_coles import DixonColesConfig
 from tests.conftest import simulate_league
 
-
 # ---------------------------------------------------------------- metrics
+
 
 def test_outcome_index():
     assert outcome_index([2, 1, 0], [0, 1, 3]).tolist() == [0, 1, 2]
@@ -35,10 +35,18 @@ def test_log_loss_accuracy_brier():
 
 
 def test_summarize_groups():
-    df = pd.DataFrame({
-        "method": ["a", "a", "b"], "p_h": [1.0, 0.0, 0.4], "p_d": [0.0, 1.0, 0.3], "p_a": [0.0, 0.0, 0.3],
-        "cs_h": [0.5, 0.5, np.nan], "cs_a": [0.5, 0.5, np.nan], "hg": [1, 0, 1], "ag": [0, 0, 2],
-    })
+    df = pd.DataFrame(
+        {
+            "method": ["a", "a", "b"],
+            "p_h": [1.0, 0.0, 0.4],
+            "p_d": [0.0, 1.0, 0.3],
+            "p_a": [0.0, 0.0, 0.3],
+            "cs_h": [0.5, 0.5, np.nan],
+            "cs_a": [0.5, 0.5, np.nan],
+            "hg": [1, 0, 1],
+            "ag": [0, 0, 2],
+        }
+    )
     table = summarize(df, ["method"]).set_index("method")
     assert table.loc["a", "rps"] == 0 and table.loc["a", "accuracy"] == 1
     assert table.loc["a", "clean_sheet_brier"] == pytest.approx(0.25)
@@ -52,13 +60,23 @@ def test_summarize_empty_keeps_metric_columns():
 
 # ---------------------------------------------------------------- data
 
-RAW = pd.DataFrame({
-    "Date": ["18/08/23", "19/08/2023", None],
-    "HomeTeam": ["Sevilla ", "Betis", "x"], "AwayTeam": ["Valencia", "Sevilla", "y"],
-    "FTHG": [1, 2, None], "FTAG": [2, 2, None], "HST": [5, 4, None], "AST": [3, 6, None],
-    "PSCH": [2.1, np.nan, None], "PSCD": [3.2, np.nan, None], "PSCA": [3.6, np.nan, None],
-    "AvgCH": [2.0, 2.5, None], "AvgCD": [3.1, 3.0, None], "AvgCA": [3.5, 2.9, None],
-})
+RAW = pd.DataFrame(
+    {
+        "Date": ["18/08/23", "19/08/2023", None],
+        "HomeTeam": ["Sevilla ", "Betis", "x"],
+        "AwayTeam": ["Valencia", "Sevilla", "y"],
+        "FTHG": [1, 2, None],
+        "FTAG": [2, 2, None],
+        "HST": [5, 4, None],
+        "AST": [3, 6, None],
+        "PSCH": [2.1, np.nan, None],
+        "PSCD": [3.2, np.nan, None],
+        "PSCA": [3.6, np.nan, None],
+        "AvgCH": [2.0, 2.5, None],
+        "AvgCD": [3.1, 3.0, None],
+        "AvgCA": [3.5, 2.9, None],
+    }
+)
 
 
 def test_normalize_season_parses_dates_and_prefers_pinnacle_odds():
@@ -66,8 +84,8 @@ def test_normalize_season_parses_dates_and_prefers_pinnacle_odds():
     assert len(df) == 2
     assert df["date"].tolist() == [pd.Timestamp("2023-08-18"), pd.Timestamp("2023-08-19")]
     assert df.loc[0, "home"] == "Sevilla"
-    assert df.loc[0, "odds_h"] == 2.1       # Pinnacle closing
-    assert df.loc[1, "odds_h"] == 2.5       # falls back to market-average closing
+    assert df.loc[0, "odds_h"] == 2.1  # Pinnacle closing
+    assert df.loc[1, "odds_h"] == 2.5  # falls back to market-average closing
 
 
 def test_normalize_season_validates():
@@ -98,14 +116,19 @@ def test_missing_optional_columns_become_nan():
 
 
 def test_promoted_teams():
-    matches = pd.DataFrame({
-        "season_start": [2021, 2021, 2022, 2022], "home": ["A", "B", "A", "C"], "away": ["B", "A", "C", "A"],
-    })
+    matches = pd.DataFrame(
+        {
+            "season_start": [2021, 2021, 2022, 2022],
+            "home": ["A", "B", "A", "C"],
+            "away": ["B", "A", "C", "A"],
+        }
+    )
     assert promoted_teams(matches, 2022) == {"C"}
     assert promoted_teams(matches, 2021) == frozenset()
 
 
 # ---------------------------------------------------------------- walk-forward
+
 
 def test_season_cutoffs_start_on_monday_before_first_match():
     season = pd.DataFrame({"date": pd.to_datetime(["2024-08-15", "2024-09-01"])})  # Thursday
@@ -123,8 +146,9 @@ def test_walkforward_never_leaks_future_results():
         assert targets["date"].min() >= cutoff
         assert targets["date"].max() < cutoff + pd.Timedelta(weeks=3)
         calls.append(cutoff)
-        return pd.DataFrame({"p_h": [0.4] * len(targets), "p_d": 0.3, "p_a": 0.3, "cs_h": 0.3, "cs_a": 0.2,
-                             "lam_h": 1.4, "lam_a": 1.1})
+        return pd.DataFrame(
+            {"p_h": [0.4] * len(targets), "p_d": 0.3, "p_a": 0.3, "cs_h": 0.3, "cs_a": 0.2, "lam_h": 1.4, "lam_a": 1.1}
+        )
 
     preds = run_walkforward(league, [2021], [Method("spy", spy)], horizon_weeks=3)
     assert calls and len(preds) > 0
@@ -174,6 +198,7 @@ def test_run_ranking_rewards_a_model_that_knows_the_teams():
 
 # ---------------------------------------------------------------- calibration
 
+
 def test_propose_thresholds_hits_target_shares():
     scores = pd.Series(np.linspace(0, 100, 1001))
     thresholds = propose_thresholds(scores)
@@ -187,11 +212,17 @@ def test_propose_thresholds_hits_target_shares():
 
 
 def test_band_table_and_clean_sheet_calibration():
-    rows = pd.DataFrame({
-        "p_win": [0.8, 0.5, 0.1, 0.3], "p_draw": [0.1, 0.3, 0.2, 0.3], "p_loss": [0.1, 0.2, 0.7, 0.4],
-        "points": [3, 1, 0, 3], "expected_points": [2.5, 1.8, 0.5, 1.2],
-        "p_cs": [0.5, 0.3, 0.1, 0.2], "goals_against": [0, 1, 2, 0],
-    })
+    rows = pd.DataFrame(
+        {
+            "p_win": [0.8, 0.5, 0.1, 0.3],
+            "p_draw": [0.1, 0.3, 0.2, 0.3],
+            "p_loss": [0.1, 0.2, 0.7, 0.4],
+            "points": [3, 1, 0, 3],
+            "expected_points": [2.5, 1.8, 0.5, 1.2],
+            "p_cs": [0.5, 0.3, 0.1, 0.2],
+            "goals_against": [0, 1, 2, 0],
+        }
+    )
     rows = with_difficulty(rows)
     table = band_table(rows, (33.3, 48.3, 61.7, 73.3)).set_index("label")
     assert table["fixtures"].sum() == 4

@@ -11,6 +11,8 @@ anyio==4.15.1
     #   httpx
     #   starlette
     #   watchfiles
+ast-serialize==0.11.2
+    # via mypy
 certifi==2026.7.22
     # via
     #   httpcore
@@ -41,10 +43,16 @@ idna==3.19
     #   httpx
 iniconfig==2.3.0
     # via pytest
+librt==0.15.0
+    # via mypy
 mako==1.4.1
     # via alembic
 markupsafe==3.0.3
     # via mako
+mypy==2.3.1
+    # via -r requirements-dev.txt
+mypy-extensions==1.1.0
+    # via mypy
 numpy==2.3.2
     # via
     #   -r requirements.txt
@@ -54,6 +62,8 @@ packaging==26.3
     # via pytest
 pandas==2.3.2
     # via -r requirements.txt
+pathspec==1.1.1
+    # via mypy
 pluggy==1.6.0
     # via
     #   pytest
@@ -89,6 +99,8 @@ pytz==2026.3.post1
     # via pandas
 pyyaml==6.0.3
     # via uvicorn
+ruff==0.16.7
+    # via -r requirements-dev.txt
 scipy==1.16.1
     # via -r requirements.txt
 six==1.17.0
@@ -108,6 +120,7 @@ typing-extensions==4.16.0
     #   alembic
     #   anyio
     #   fastapi
+    #   mypy
     #   psycopg
     #   pydantic
     #   pydantic-core

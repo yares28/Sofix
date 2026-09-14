@@ -1,4 +1,5 @@
 """Scoring rules for probabilistic match forecasts. Lower is better except accuracy."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -18,7 +19,7 @@ def ranked_probability_score(probs: np.ndarray, outcome: np.ndarray) -> float:
     probs = np.asarray(probs, dtype=float)
     observed = np.eye(3)[np.asarray(outcome)]
     cumulative_gap = np.cumsum(probs, axis=1)[:, :2] - np.cumsum(observed, axis=1)[:, :2]
-    return float(np.mean(np.sum(cumulative_gap ** 2, axis=1) / 2))
+    return float(np.mean(np.sum(cumulative_gap**2, axis=1) / 2))
 
 
 def log_loss(probs: np.ndarray, outcome: np.ndarray) -> float:
@@ -37,19 +38,22 @@ def brier(prob: np.ndarray, happened: np.ndarray) -> float:
 
 def summarize(predictions: pd.DataFrame, by: list[str]) -> pd.DataFrame:
     """Metrics per group. Expects columns p_h, p_d, p_a, cs_h, cs_a, hg, ag."""
+
     def score(group: pd.DataFrame) -> pd.Series:
         probs = group[["p_h", "p_d", "p_a"]].to_numpy()
         outcome = outcome_index(group["hg"], group["ag"])
         has_cs = group["cs_h"].notna() & group["cs_a"].notna()
         cs_pred = np.concatenate([group.loc[has_cs, "cs_h"], group.loc[has_cs, "cs_a"]])
         cs_real = np.concatenate([group.loc[has_cs, "ag"] == 0, group.loc[has_cs, "hg"] == 0])
-        return pd.Series({
-            "matches": len(group),
-            "rps": ranked_probability_score(probs, outcome),
-            "log_loss": log_loss(probs, outcome),
-            "accuracy": accuracy(probs, outcome),
-            "clean_sheet_brier": brier(cs_pred, cs_real) if has_cs.any() else np.nan,
-        })
+        return pd.Series(
+            {
+                "matches": len(group),
+                "rps": ranked_probability_score(probs, outcome),
+                "log_loss": log_loss(probs, outcome),
+                "accuracy": accuracy(probs, outcome),
+                "clean_sheet_brier": brier(cs_pred, cs_real) if has_cs.any() else np.nan,
+            }
+        )
 
     if predictions.empty:
         return pd.DataFrame(columns=[*by, *METRIC_COLUMNS])

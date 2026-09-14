@@ -1,4 +1,5 @@
 """Turn the fitted Dixon-Coles model into per-team fixture predictions."""
+
 from __future__ import annotations
 
 import json
@@ -63,10 +64,15 @@ def predict_both_sides(model: DixonColesModel, home: str, away: str) -> tuple[Te
     def side(p_win, p_draw, p_loss, cs, xg_for, xg_against, opponent, venue) -> TeamPrediction:
         score = difficulty_score(p_win, p_draw, p_loss)
         return TeamPrediction(
-            p_win=float(p_win), p_draw=float(p_draw), p_loss=float(p_loss),
+            p_win=float(p_win),
+            p_draw=float(p_draw),
+            p_loss=float(p_loss),
             expected_points=float(expected_points(p_win, p_draw)),
-            difficulty_score=float(score), difficulty_label=difficulty_label(score),
-            p_clean_sheet=float(cs), xg_for=float(xg_for), xg_against=float(xg_against),
+            difficulty_score=float(score),
+            difficulty_label=difficulty_label(score),
+            p_clean_sheet=float(cs),
+            xg_for=float(xg_for),
+            xg_against=float(xg_against),
             explanation={
                 "opponent_attack": round(float(ratings.loc[opponent, "attack"]), 3),
                 "opponent_defence": round(float(ratings.loc[opponent, "defence"]), 3),

@@ -1,11 +1,17 @@
 import os
 from io import StringIO
 from pathlib import Path
-import httpx, pandas as pd
-BASE="https://www.football-data.co.uk/mmz4281"
-USER_AGENT="FixtureDiff/0.1 (fixture difficulty research)"
 
-def season_code(y): return f"{str(y)[-2:]}{str(y+1)[-2:]}"
+import httpx
+import pandas as pd
+
+BASE = "https://www.football-data.co.uk/mmz4281"
+USER_AGENT = "FixtureDiff/0.1 (fixture difficulty research)"
+
+
+def season_code(y):
+    return f"{str(y)[-2:]}{str(y + 1)[-2:]}"
+
 
 def decode_csv(raw: bytes) -> str:
     """Older files are latin-1; newer ones are UTF-8, sometimes with a BOM."""
@@ -14,8 +20,10 @@ def decode_csv(raw: bytes) -> str:
     except UnicodeDecodeError:
         return raw.decode("latin-1")
 
-def fetch_season_csv(y: int, cache_dir: Path, division: str = "SP1", refresh: bool = False,
-                     client: httpx.Client | None = None) -> pd.DataFrame:
+
+def fetch_season_csv(
+    y: int, cache_dir: Path, division: str = "SP1", refresh: bool = False, client: httpx.Client | None = None
+) -> pd.DataFrame:
     """Download one season CSV once and reuse the cached copy afterwards.
 
     Pass refresh=True for the season in progress, whose file grows every matchday.

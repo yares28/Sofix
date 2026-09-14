@@ -152,11 +152,11 @@ Work order: **0 → 1 → 2 → 3 → 4**, with **5** and **6** interleaved once
 ### 5a. Correctness and accessibility
 | ID | Task | Done when |
 |---|---|---|
-| 5.1 | ⬜ Render buckets from the backend (see 0.4); per-lens legend ("More xG ← → Less xG"); legend hidden in Fixtures view | Colour, label and legend always agree |
-| 5.2 | ⬜ **Non-colour encoding:** bucket number on each tile; heavier border on buckets 4–5 | Readable in a deuteranopia simulation |
-| 5.3 | ⬜ **Keyboard, touch and screen readers:** tiles as `<button>` with `aria-label` ("MD6 v Getafe, home, difficulty 49, Easy-ish"); tooltip on focus/tap, closes on Esc or outside tap; sort buttons inside `<th>` with `aria-sort`; `aria-hidden` arrows; search label + focus ring; table caption; pin buttons labelled | axe/`jsx-a11y` clean; full keyboard flow in Playwright |
-| 5.4 | ⬜ **Contrast:** per-bucket venue colours (no opacity), bucket 1 → `#1f7a4f`, `--ink-3` → `#86868b` (decorative only), dimmed rows ≥ 3:1 | All text ≥ 4.5:1 (≥ 3:1 large) |
-| 5.5 | ⬜ `prefers-reduced-motion`; segmented control selected state styled in CSS before hydration | No pop-in; motion off when requested |
+| 5.1 | ✅ _(tiles use API buckets; legend per lens (Easy/Hard, More xG/Less xG, Clean sheet likely/Unlikely); hidden in Fixtures view)_ Render buckets from the backend (see 0.4); per-lens legend ("More xG ← → Less xG"); legend hidden in Fixtures view | Colour, label and legend always agree |
+| 5.2 | ✅ _(bucket number in each tile corner; rings on buckets 4-5; both hidden in Fixtures view)_ **Non-colour encoding:** bucket number on each tile; heavier border on buckets 4–5 | Readable in a deuteranopia simulation |
+| 5.3 | ✅ _(tiles are buttons with spoken labels incl. team; tooltip on keyboard focus and tap, Esc/outside tap closes; arrow-key navigation; sort buttons in th with aria-sort; row headers, caption, labelled pins; Playwright flow in 5.18)_ **Keyboard, touch and screen readers:** tiles as `<button>` with `aria-label` ("MD6 v Getafe, home, difficulty 49, Easy-ish"); tooltip on focus/tap, closes on Esc or outside tap; sort buttons inside `<th>` with `aria-sort`; `aria-hidden` arrows; search label + focus ring; table caption; pin buttons labelled | axe/`jsx-a11y` clean; full keyboard flow in Playwright |
+| 5.4 | ✅ _(tile sub-text tokens without opacity, bucket 1 #1f7a4f, ink-3 decorative only, dimmed rows 0.55; lib/contrast.test.ts checks tokens from globals.css)_ **Contrast:** per-bucket venue colours (no opacity), bucket 1 → `#1f7a4f`, `--ink-3` → `#86868b` (decorative only), dimmed rows ≥ 3:1 | All text ≥ 4.5:1 (≥ 3:1 large) |
+| 5.5 | ✅ _(global prefers-reduced-motion; segmented selection styled from aria-pressed before hydration)_ `prefers-reduced-motion`; segmented control selected state styled in CSS before hydration | No pop-in; motion off when requested |
 
 ### 5b. Mobile
 | ID | Task | Done when |

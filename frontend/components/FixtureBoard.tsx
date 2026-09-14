@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import {
-  BUCKET_STRONG, LENS_COPY, cellBucket, formatDay, formatKickoff, formatLensValue, runStats, scaleBucket,
+  useEffect, useMemo, useRef, useState,
+  type FocusEvent as ReactFocusEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent,
+} from "react";
+import {
+  BUCKET_STRONG, LENS_COPY, cellBucket, cellLabel, formatDay, formatKickoff, formatLensValue, runStats, scaleBucket,
   sortTeams, windowRange, type SortKey, type SortState,
 } from "../lib/grid";
 import type { FixtureGrid, GridCell, GridTeam, Lens } from "../lib/types";
@@ -26,6 +29,12 @@ const LENSES: { value: Lens; label: string }[] = (Object.keys(LENS_COPY) as Lens
   label: LENS_COPY[lens].label,
 }));
 const percent = (value: number) => `${Math.round(value * 100)}%`;
+const ARROWS: Record<string, [number, number] | undefined> = {
+  ArrowUp: [-1, 0],
+  ArrowDown: [1, 0],
+  ArrowLeft: [0, -1],
+  ArrowRight: [0, 1],
+};
 
 function sameKey(a: SortKey, b: SortKey): boolean {
   if (a.kind !== b.kind) return false;
@@ -48,6 +57,7 @@ export default function FixtureBoard({ grid }: { grid: FixtureGrid }) {
   const [pinned, setPinned] = useState<ReadonlySet<string>>(new Set());
   const tooltip = useRef<TooltipHandle>(null);
   const hoveredKey = useRef<string | null>(null);
+  const lastPointer = useRef<string>("mouse");
 
   const names = useMemo(() => new Map(grid.teams.map((team) => [team.code, team.name])), [grid]);
   const scales = grid.lens_scales;
@@ -88,8 +98,38 @@ export default function FixtureBoard({ grid }: { grid: FixtureGrid }) {
       hoveredKey.current = null;
       tooltip.current?.hide();
     };
-    window.addEventListener("scroll", hide, { passive: true, capture: true });
-    return () => window.removeEventListener("scroll", hide, { capture: true });
+    const focusedTile = () => {
+      const active = document.activeElement;
+      return active instanceof HTMLElement && active.dataset.key && active.dataset.key === hoveredKey.current
+        ? active
+        : null;
+    };
+    // Scrolling moves the tiles: follow a keyboard-focused tile, otherwise hide.
+    const onScroll = () => {
+      const tile = focusedTile();
+      if (tile) tooltip.current?.anchor(tile);
+      else hide();
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") hide();
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      lastPointer.current = event.pointerType;
+      if (!(event.target as HTMLElement | null)?.closest?.("[data-key]")) hide(); // tap outside closes
+    };
+    const onPointerMove = (event: PointerEvent) => {
+      if (event.pointerType === "mouse") lastPointer.current = "mouse";
+    };
+    window.addEventListener("scroll", onScroll, { passive: true, capture: true });
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("pointermove", onPointerMove, { passive: true });
+    return () => {
+      document.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("scroll", onScroll, { capture: true });
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
   }, []);
 
   // Average bars are relative to the spread of this window.
@@ -132,6 +172,8 @@ export default function FixtureBoard({ grid }: { grid: FixtureGrid }) {
       sameKey(current.key, key) ? { key, dir: current.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" },
     );
   const sortClass = (key: SortKey) => (sameKey(activeSort.key, key) ? `sorted ${activeSort.dir}` : "");
+  const ariaSort = (key: SortKey) =>
+    sameKey(activeSort.key, key) ? (activeSort.dir === "asc" ? "ascending" : "descending") : undefined;
   const togglePin = (code: string) =>
     setPinned((current) => {
       const next = new Set(current);
@@ -140,7 +182,54 @@ export default function FixtureBoard({ grid }: { grid: FixtureGrid }) {
       return next;
     });
 
-  const onGridMove = (event: MouseEvent<HTMLTableElement>) => {
+  const showFor = (tile: HTMLElement) => {
+    const key = tile.dataset.key;
+    const entry = key ? cellIndex.get(key) : undefined;
+    if (!key || !entry) return;
+    hoveredKey.current = key;
+    tooltip.current?.show(<CellTooltip {...entry} names={names} />);
+    tooltip.current?.anchor(tile);
+  };
+  const tileOf = (target: EventTarget) => (target as HTMLElement).closest<HTMLElement>("[data-key]");
+
+  // Keyboard focus opens the tooltip; mouse focus doesn't (hover already did).
+  const onGridFocus = (event: ReactFocusEvent<HTMLTableElement>) => {
+    const tile = tileOf(event.target);
+    if (tile?.matches(":focus-visible")) showFor(tile);
+  };
+  const onGridBlur = (event: ReactFocusEvent<HTMLTableElement>) => {
+    if (tileOf(event.target) && !tileOf(event.relatedTarget ?? document.body)) {
+      hoveredKey.current = null;
+      tooltip.current?.hide();
+    }
+  };
+  // Touch has no hover: a tap opens the tooltip next to the tile.
+  const onGridClick = (event: ReactMouseEvent<HTMLTableElement>) => {
+    const tile = tileOf(event.target);
+    if (tile && lastPointer.current === "touch") showFor(tile);
+  };
+  // Arrow keys move between fixtures (skipping blank weeks) instead of tabbing through every tile.
+  const onGridKeyDown = (event: ReactKeyboardEvent<HTMLTableElement>) => {
+    const step = ARROWS[event.key];
+    const tile = tileOf(event.target);
+    if (!step || !tile) return;
+    const [dRow, dCol] = step;
+    let row = Number(tile.dataset.row) + dRow;
+    let col = Number(tile.dataset.col) + dCol;
+    while (row >= 0 && row < rows.length && col >= start && col < end) {
+      const next = event.currentTarget.querySelector<HTMLElement>(`[data-row="${row}"][data-col="${col}"]`);
+      if (next) {
+        event.preventDefault();
+        next.focus();
+        return;
+      }
+      row += dRow;
+      col += dCol;
+    }
+  };
+
+  const onGridMove = (event: ReactMouseEvent<HTMLTableElement>) => {
+    if (lastPointer.current === "touch") return; // emulated mouse events after a tap
     const target = (event.target as HTMLElement).closest<HTMLElement>("[data-key]");
     const key = target?.dataset.key ?? null;
     if (!key) {
@@ -196,13 +285,17 @@ export default function FixtureBoard({ grid }: { grid: FixtureGrid }) {
             <SegmentedControl label="Lens" value={lens} onChange={setLens} options={LENSES} />
           </div>
           <div className="toolbar-right">
-            <div className="legend" aria-label="Difficulty key">
-              Easy
-              {([1, 2, 3, 4, 5] as const).map((bucket) => (
-                <span key={bucket} className={`chip f${bucket}`}>{bucket}</span>
-              ))}
-              Hard
-            </div>
+            {view === "fdr" && (
+              <div className="legend">
+                <span className="visually-hidden">Colour key, {LENS_COPY[lens].label} lens:</span>
+                {LENS_COPY[lens].easy}
+                {([1, 2, 3, 4, 5] as const).map((bucket) => (
+                  <span key={bucket} className={`chip f${bucket}`} aria-hidden="true">{bucket}</span>
+                ))}
+                <span className="visually-hidden">(1 to 5)</span>
+                {LENS_COPY[lens].hard}
+              </div>
+            )}
             <div className="search">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
                 <circle cx="11" cy="11" r="7" />
@@ -214,49 +307,74 @@ export default function FixtureBoard({ grid }: { grid: FixtureGrid }) {
         </div>
 
         <div className={`scroll ${view === "plain" ? "plain" : ""}`}>
-          <table onMouseMove={onGridMove} onMouseLeave={() => { hoveredKey.current = null; tooltip.current?.hide(); }}>
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- delegated handlers for the tile buttons inside */}
+          <table
+            onMouseMove={onGridMove}
+            onMouseLeave={() => { hoveredKey.current = null; tooltip.current?.hide(); }}
+            onFocus={onGridFocus}
+            onBlur={onGridBlur}
+            onClick={onGridClick}
+            onKeyDown={onGridKeyDown}
+          >
+            <caption className="visually-hidden">
+              LaLiga fixtures by team, {firstColumn && lastColumn ? `matchdays ${firstColumn.number} to ${lastColumn.number}` : "no matchdays"}
+              {view === "fdr" ? `, rated with the ${LENS_COPY[lens].label.toLowerCase()} lens from 1 (${LENS_COPY[lens].easy.toLowerCase()}) to 5 (${LENS_COPY[lens].hard.toLowerCase()})` : ""}.
+              Use the arrow keys to move between fixtures.
+            </caption>
             <thead>
               <tr>
-                <th className={`team-col sortable ${sortClass({ kind: "team" })}`} onClick={() => toggleSort({ kind: "team" })}>
-                  <span className="gw">Team<span className="arrow">↓</span></span>
+                <th scope="col" className={`team-col sortable ${sortClass({ kind: "team" })}`} aria-sort={ariaSort({ kind: "team" })}>
+                  <button type="button" className="sort" onClick={() => toggleSort({ kind: "team" })} aria-label="Sort by team name">
+                    <span className="gw">Team<span className="arrow" aria-hidden="true">↓</span></span>
+                  </button>
                 </th>
                 {columns.map((md, i) => {
                   const key: SortKey = { kind: "matchday", column: start + i };
                   return (
-                    <th key={md.number} className={`sortable ${md.finished ? "past" : ""} ${sortClass(key)}`} onClick={() => toggleSort(key)}>
-                      <span className="gw">MD{md.number}<span className="arrow">↓</span></span>
-                      <span className="date">{formatDay(md.date_from)}</span>
+                    <th key={md.number} scope="col" className={`sortable ${md.finished ? "past" : ""} ${sortClass(key)}`} aria-sort={ariaSort(key)}>
+                      <button type="button" className="sort" onClick={() => toggleSort(key)} aria-label={`Sort by matchday ${md.number}, ${formatDay(md.date_from)}`}>
+                        <span className="gw">MD{md.number}<span className="arrow" aria-hidden="true">↓</span></span>
+                        <span className="date">{formatDay(md.date_from)}</span>
+                      </button>
                     </th>
                   );
                 })}
-                <th className={`avg-col sortable ${sortClass({ kind: "average" })}`} onClick={() => toggleSort({ kind: "average" })}>
-                  <span className="gw">Avg<span className="arrow">↓</span></span>
-                  <span className="date">{LENS_COPY[lens].average.replace("Avg ", "")}</span>
+                <th scope="col" className={`avg-col sortable ${sortClass({ kind: "average" })}`} aria-sort={ariaSort({ kind: "average" })}>
+                  <button type="button" className="sort" onClick={() => toggleSort({ kind: "average" })} aria-label={`Sort by ${LENS_COPY[lens].average.replace("Avg", "average")}`}>
+                    <span className="gw">Avg<span className="arrow" aria-hidden="true">↓</span></span>
+                    <span className="date">{LENS_COPY[lens].average.replace("Avg ", "")}</span>
+                  </button>
                 </th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((team) => {
+              {rows.map((team, rowIndex) => {
                 const matches = !q || team.name.toLowerCase().includes(q) || team.code.toLowerCase().includes(q);
                 const dim = !matches || (pinned.size > 0 && !pinned.has(team.code));
                 const average = averageOf(team);
                 return (
                   <tr key={team.code} className={`${dim ? "dim" : ""} ${pinned.has(team.code) ? "pinned" : ""}`}>
-                    <td className="team-col">
-                      <button type="button" className="team" onClick={() => togglePin(team.code)} aria-pressed={pinned.has(team.code)}>
+                    <th scope="row" className="team-col">
+                      <button type="button" className="team" onClick={() => togglePin(team.code)} aria-pressed={pinned.has(team.code)} aria-label={`Pin ${team.name}`}>
                         <Crest team={team} />
                         <span className="team-name">{team.name}</span>
                       </button>
-                    </td>
-                    {team.cells.slice(start, end).map((cells, i) => (
-                      <td key={grid.matchdays[start + i]?.number ?? `col-${start + i}`}>
-                        <FixtureCell
-                          cells={cells}
-                          cellKey={(cell) => `${team.code}-${cell.fixture_id}`}
-                          bucketOf={(cell) => cellBucket(cell, lens, scale)}
-                        />
-                      </td>
-                    ))}
+                    </th>
+                    {team.cells.slice(start, end).map((cells, i) => {
+                      const matchday = grid.matchdays[start + i]?.number ?? start + i + 1;
+                      return (
+                        <td key={matchday}>
+                          <FixtureCell
+                            cells={cells}
+                            row={rowIndex}
+                            column={start + i}
+                            cellKey={(cell) => `${team.code}-${cell.fixture_id}`}
+                            bucketOf={(cell) => cellBucket(cell, lens, scale)}
+                            labelOf={(cell) => cellLabel(cell, team.name, matchday, names.get(cell.opponent_code) ?? cell.opponent_code, lens)}
+                          />
+                        </td>
+                      );
+                    })}
                     <td className="avg-col">
                       {average === null ? (
                         <span className="avg-empty">—</span>
@@ -278,7 +396,7 @@ export default function FixtureBoard({ grid }: { grid: FixtureGrid }) {
       </section>
 
       <p className="footnote">
-        {LENS_COPY[lens].hint}. Click a team to pin it, a matchday or “Avg” to sort.
+        {LENS_COPY[lens].hint}. Click a team to pin it, a matchday or “Avg” to sort. Arrow keys move between fixtures.
         {lens === "defence" && " Clean-sheet chances currently run about 4 points high; ranking is unaffected."}
       </p>
       <p className="footnote attribution">

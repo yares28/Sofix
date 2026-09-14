@@ -35,7 +35,7 @@ export default function SegmentedControl<T extends string>({ options, value, onC
   }, [value]);
 
   return (
-    <div className={`segmented ${size === "lg" ? "lg" : ""}`} role="group" aria-label={label}>
+    <div className={`segmented ${size === "lg" ? "lg" : ""} ${thumb ? "ready" : ""}`} role="group" aria-label={label}>
       {thumb && <div className="thumb" style={{ width: thumb.width, transform: `translateX(${thumb.left - 3}px)` }} />}
       {options.map((option) => (
         <button

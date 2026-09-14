@@ -5,6 +5,8 @@ import { forwardRef, useImperativeHandle, useLayoutEffect, useRef, useState, typ
 export interface TooltipHandle {
   show: (content: ReactNode) => void;
   move: (x: number, y: number) => void;
+  /** Place next to an element (keyboard focus, taps) instead of following the pointer. */
+  anchor: (element: Element) => void;
   hide: () => void;
 }
 
@@ -38,13 +40,19 @@ const Tooltip = forwardRef<TooltipHandle>(function Tooltip(_props, ref) {
       pointer.current = { x, y };
       place();
     },
+    anchor(element) {
+      const rect = element.getBoundingClientRect();
+      pointer.current = { x: rect.left + rect.width / 2 - 14, y: rect.bottom - 10 };
+      place();
+    },
     hide() {
       setVisible(false);
     },
   }), []);
 
   return (
-    <div ref={node} className={`tip ${visible ? "show" : ""}`} role="tooltip">
+    // aria-hidden: each tile's aria-label already says what the tooltip shows.
+    <div ref={node} className={`tip ${visible ? "show" : ""}`} aria-hidden="true">
       {content}
     </div>
   );

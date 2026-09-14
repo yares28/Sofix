@@ -10,10 +10,16 @@ export interface SortState {
 // Saturated variants for thin marks (bars, strips) where the pale tiles would disappear.
 export const BUCKET_STRONG: Record<Bucket, string> = { 1: "#248a5a", 2: "#5cc58d", 3: "#c7c7cc", 4: "#ff7b6e", 5: "#c4312a" };
 
-export const LENS_COPY: Record<Lens, { label: string; average: string; hint: string }> = {
-  overall: { label: "Overall", average: "Avg difficulty", hint: "Result difficulty, 0–100" },
-  attack: { label: "Attack", average: "Avg xG", hint: "Expected goals scored" },
-  defence: { label: "Defence", average: "Avg clean sheet", hint: "Chance of a clean sheet" },
+export const LENS_COPY: Record<Lens, { label: string; average: string; hint: string; easy: string; hard: string }> = {
+  overall: { label: "Overall", average: "Avg difficulty", hint: "Result difficulty, 0–100", easy: "Easy", hard: "Hard" },
+  attack: { label: "Attack", average: "Avg xG", hint: "Expected goals scored", easy: "More xG", hard: "Less xG" },
+  defence: {
+    label: "Defence",
+    average: "Avg clean sheet",
+    hint: "Chance of a clean sheet",
+    easy: "Clean sheet likely",
+    hard: "Unlikely",
+  },
 };
 
 // Placeholder scale for sorting code paths that only need averages, not buckets.
@@ -126,6 +132,30 @@ export function formatDay(iso: string): string {
 export function formatKickoff(iso: string): string {
   const parts = madridParts(iso);
   return `${parts.weekday} ${formatDay(iso)}, ${parts.hour}:${parts.minute}`;
+}
+
+/** Spoken label for a fixture tile: everything the colour and the tooltip convey, in words. */
+export function cellLabel(cell: GridCell, team: string, matchday: number, opponent: string, lens: Lens): string {
+  const head = `Matchday ${matchday}, ${team} ${cell.venue === "H" ? "at home to" : "away to"} ${opponent}`;
+  if (cell.status === "finished" && cell.result) {
+    const { goals_for, goals_against, outcome } = cell.result;
+    const verb = outcome === "W" ? "won" : outcome === "D" ? "drew" : "lost";
+    return `${head}, ${verb} ${goals_for}–${goals_against}`;
+  }
+  if (cell.status === "postponed") return `${head}, postponed`;
+  const when = cell.status === "live"
+    ? "live now"
+    : cell.date_confirmed
+      ? formatKickoff(cell.kickoff_utc)
+      : `date to be confirmed, weekend of ${formatDay(cell.kickoff_utc)}`;
+  const parts = [head, when];
+  const p = cell.prediction;
+  if (p) {
+    parts.push(`difficulty ${Math.round(p.difficulty)} of 100, ${p.label}`);
+    if (lens === "attack" && p.xg_for !== null) parts.push(`expected goals ${p.xg_for.toFixed(2)}`);
+    if (lens === "defence" && p.clean_sheet !== null) parts.push(`clean sheet chance ${Math.round(p.clean_sheet * 100)}%`);
+  }
+  return parts.join(", ");
 }
 
 export function relativeTime(iso: string, now: Date = new Date()): string {

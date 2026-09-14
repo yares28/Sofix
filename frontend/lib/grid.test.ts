@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  cellBucket, formatDay, formatKickoff, formatLensValue, relativeTime, runStats, scaleBucket, sortTeams, windowRange,
+  cellBucket, cellLabel, formatDay, formatKickoff, formatLensValue, relativeTime, runStats, scaleBucket, sortTeams, windowRange,
 } from "./grid";
 import type { Bucket, DifficultyLabel, GridCell, GridTeam, LensScale } from "./types";
 
@@ -115,6 +115,23 @@ describe("formatting", () => {
     expect(formatKickoff("2026-10-24T19:00:00Z")).toBe("Sat 24 Oct, 21:00"); // CEST, UTC+2
     expect(formatKickoff("2026-10-25T19:00:00Z")).toBe("Sun 25 Oct, 20:00"); // CET, UTC+1
     expect(formatDay("2026-09-30T23:30:00Z")).toBe("1 Oct"); // already the next day in Madrid
+  });
+
+  it("labels tiles for screen readers", () => {
+    const upcoming = cell({ difficulty: 48.6, bucket: 3, xg: 1.85, cs: 0.32 });
+    expect(cellLabel(upcoming, "Barcelona", 6, "Getafe", "overall")).toBe(
+      "Matchday 6, Barcelona at home to Getafe, Sun 20 Sep, 21:00, difficulty 49 of 100, Normal",
+    );
+    expect(cellLabel(upcoming, "Barcelona", 6, "Getafe", "attack")).toMatch(/, expected goals 1\.85$/);
+    expect(cellLabel(upcoming, "Barcelona", 6, "Getafe", "defence")).toMatch(/, clean sheet chance 32%$/);
+    expect(cellLabel(cell({ date_confirmed: false, venue: "A" }), "Barcelona", 7, "Elche", "overall")).toMatch(
+      /^Matchday 7, Barcelona away to Elche, date to be confirmed, weekend of 20 Sep, difficulty/,
+    );
+    const played = cell({ status: "finished", prediction: null, result: { goals_for: 1, goals_against: 2, outcome: "L" } });
+    expect(cellLabel(played, "Barcelona", 4, "Sevilla", "overall")).toBe("Matchday 4, Barcelona at home to Sevilla, lost 1–2");
+    expect(cellLabel(cell({ status: "postponed", prediction: null }), "Barcelona", 5, "Betis", "overall")).toBe(
+      "Matchday 5, Barcelona at home to Betis, postponed",
+    );
   });
 
   it("describes relative time", () => {

@@ -1,29 +1,41 @@
+# Self-contained local stack (Postgres + API + web). Never uses Neon.
+#
+#   cp .env.docker.example .env.docker   # fill in POSTGRES_PASSWORD and the football-data.org token
+#   docker compose --env-file .env.docker up --build
+#
+# `--env-file .env.docker` feeds the ${...} values below; the repo-root .env (Neon) is never read.
 services:
   postgres:
-    image: postgres:16
+    image: postgres:18
     environment:
       POSTGRES_USER: fixture
-      POSTGRES_PASSWORD: fixture
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.docker}
       POSTGRES_DB: fixture
-    ports: ["5432:5432"]
-    volumes: [fixture_pg:/var/lib/postgresql/data]
+    # No host port: only the api container needs it (and 5432 on this machine belongs to another Postgres).
+    volumes: [fixture_pg:/var/lib/postgresql]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fixture -d fixture"]
+      interval: 5s
+      retries: 10
+
   api:
     build: ./backend
-    env_file: .env
+    env_file: .env.docker
     environment:
-      # Inside the compose network the database host is the service name, not localhost.
-      # Both URLs are overridden so nothing from the root .env (which points at Neon) leaks in.
-      POSTGRES_URL: postgresql+psycopg://fixture:fixture@postgres:5432/fixture
-      POSTGRES_MIGRATION_URL: postgresql+psycopg://fixture:fixture@postgres:5432/fixture
-    depends_on: [postgres]
-    ports: ["8000:8000"]
-    volumes: ["./backend:/app"]
+      POSTGRES_URL: postgresql+psycopg://fixture:${POSTGRES_PASSWORD}@postgres:5432/fixture
+      POSTGRES_MIGRATION_URL: postgresql+psycopg://fixture:${POSTGRES_PASSWORD}@postgres:5432/fixture
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports: ["127.0.0.1:8000:8000"]
+
   web:
     build: ./frontend
     environment:
       # page.tsx fetches on the server, so it must reach the api container by service name.
       API_BASE_URL: http://api:8000
     depends_on: [api]
-    ports: ["3000:3000"]
+    ports: ["127.0.0.1:3000:3000"]
+
 volumes:
   fixture_pg:

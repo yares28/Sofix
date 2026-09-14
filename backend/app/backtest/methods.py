@@ -50,7 +50,7 @@ def base_rates(lookback_days: int = 730) -> Method:
 
 
 def elo_fallback() -> Method:
-    """The scaffold's current production fallback: internal Elo + the linear mapping in OutcomeModel."""
+    """Baseline from the original scaffold: internal Elo with a hand-tuned linear mapping to W/D/L."""
     def predict(history: pd.DataFrame, cutoff: pd.Timestamp, targets: pd.DataFrame, promoted: frozenset[str]) -> pd.DataFrame:
         ratings: dict[str, float] = {}
         for home, away, hg, ag in history[["home", "away", "hg", "ag"]].itertuples(index=False):

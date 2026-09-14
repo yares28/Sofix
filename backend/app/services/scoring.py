@@ -26,8 +26,3 @@ def difficulty_label(score):
     if score <= normal: return "Normal"
     if score <= hardish: return "Hard-ish"
     return "Hard"
-
-def market_probs(h,d,a):
-    q = [1/h,1/d,1/a]
-    overround = sum(q)
-    return tuple(x/overround for x in q), overround

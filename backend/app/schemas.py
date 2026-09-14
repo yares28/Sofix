@@ -8,22 +8,6 @@ class Prob(BaseModel):
     win: float
     draw: float
     loss: float
-class FixtureDifficultyOut(BaseModel):
-    fixture_id:int
-    kickoff_utc:datetime
-    matchday:int|None
-    team_id:int
-    team_name:str
-    opponent_id:int
-    opponent_name:str
-    venue:str
-    probabilities:Prob
-    expected_points:float
-    difficulty_score:float
-    difficulty_label:str
-    explanation:dict
-
-# ---------------------------------------------------------------- fixture grid
 
 class ApiResponse(BaseModel, Generic[T]):
     success: bool

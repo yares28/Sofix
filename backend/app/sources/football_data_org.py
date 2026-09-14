@@ -13,8 +13,3 @@ class FootballDataOrg:
         async with httpx.AsyncClient(timeout=30) as c:
             r=await c.get(f"{BASE}/competitions/{settings.football_data_org_competition}/matches",headers=self.h,params=params)
             r.raise_for_status(); return r.json()
-
-    async def standings(self):
-        async with httpx.AsyncClient(timeout=30) as c:
-            r=await c.get(f"{BASE}/competitions/{settings.football_data_org_competition}/standings",headers=self.h)
-            r.raise_for_status(); return r.json()

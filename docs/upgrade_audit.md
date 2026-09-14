@@ -6,6 +6,9 @@ Deep dive across security, backend/data/ops, frontend/UX, and the rating model. 
 
 Items already in [next_features_plan.md](next_features_plan.md) are only repeated where the audit changes them.
 
+> **Update 2026-09-14:** the Docker setup (compose file, Dockerfiles) was removed because the app runs locally
+> against Neon. The Docker findings below are resolved by removal.
+
 **Priority key:** 🔴 do now · 🟠 before scheduling or deploying · 🟡 next · ⚪ later
 
 ---

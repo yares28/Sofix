@@ -53,9 +53,6 @@ npm ci
 npm run dev                            # http://127.0.0.1:3000
 ```
 
-A fully local stack without Neon: `cp .env.docker.example .env.docker`, then
-`docker compose --env-file .env.docker up --build`.
-
 ## Everyday commands
 
 | Task | Command (backend from `backend/`, frontend from `frontend/`) |

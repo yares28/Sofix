@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     football_data_org_competition: str = "PD"
     dixon_coles_config_path: str = str(BACKEND_DIR / "artifacts" / "dixon_coles.json")
     history_cache_dir: str = str(BACKEND_DIR / "data" / "raw" / "football-data-co-uk")
-    # Repo-root .env (shared with docker compose) first; backend/.env can override it.
+    # Repo-root .env first; an optional backend/.env can override it.
     model_config = SettingsConfigDict(
         env_file=(REPO_ROOT / ".env", BACKEND_DIR / ".env"), case_sensitive=False, extra="ignore"
     )

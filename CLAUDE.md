@@ -103,7 +103,8 @@ Transfermarkt Terms prohibit scraping. No LaLiga logo or wordmark.
 ## Gotchas
 
 - Dev servers bind to **127.0.0.1** only; never expose 3000/8000 on the network.
-- Docker must never receive Neon URLs (compose overrides both DB URLs; `migrate.ensure_same_database` guards migrations).
+- No Docker: the app runs directly on this machine against Neon. Don't re-add container files unless a deployment
+  target needs them. `migrate.ensure_same_database` refuses to migrate a database other than the app's.
 - SQLite returns naive datetimes stored as UTC: always go through `app/services/timeutil.as_utc`.
 - `uvicorn --reload` on Windows sometimes misses changes: restart the API after schema/model edits.
 - Port 5432 on this machine is another project's Postgres; don't use it.

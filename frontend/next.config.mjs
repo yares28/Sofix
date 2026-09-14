@@ -30,8 +30,6 @@ const securityHeaders = [
 const nextConfig = {
   // A pnpm lockfile higher up the disk confuses Next's workspace-root detection; pin it here.
   outputFileTracingRoot: path.dirname(fileURLToPath(import.meta.url)),
-  // Self-contained server (`node .next/standalone/server.js`) for the production Docker image.
-  output: "standalone",
   poweredByHeader: false,
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];

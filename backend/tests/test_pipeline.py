@@ -371,7 +371,7 @@ def test_fixture_grid_endpoint_without_data(db):
         assert body == {
             "success": False,
             "data": None,
-            "error": "No fixtures yet. Run python -m app.jobs.refresh.",
+            "error": "No fixtures yet.",
             "meta": None,
         }
     finally:

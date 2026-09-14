@@ -181,7 +181,7 @@ Work order: **0 → 1 → 2 → 3 → 4**, with **5** and **6** interleaved once
 ### 5e. Robustness, performance, tests
 | ID | Task | Done when |
 |---|---|---|
-| 5.14 | ⬜ `loading.tsx` skeleton, `error.tsx` with retry; Zod validation of the API payload; server-side error logging; no backend commands shown to users | Malformed payload shows the error state |
+| 5.14 | ✅ _(loading skeleton, error.tsx with retry, not-found; Zod validation tied to types (malformed payload -> error state, tested); server-side console.error logging; no backend commands shown)_ `loading.tsx` skeleton, `error.tsx` with retry; Zod validation of the API payload; server-side error logging; no backend commands shown to users | Malformed payload shows the error state |
 | 5.15 | ⬜ Generate `lib/types.ts` from `/openapi.json` (`openapi-typescript`); CI checks drift | Types regenerate cleanly |
 | 5.16 | ⬜ Performance: slim grid payload (tooltip details on demand), `useDeferredValue` for search, memoised rows, stable bucket lookup, rAF-throttled tooltip | Search typing stays smooth |
 | 5.17 | ⬜ Polish: load Inter via `next/font`, 11–12 px text floor and a type scale, TBC marked once per column, single colour-token source, model notes served from API `meta`, split `FixtureBoard.tsx`, favicon/metadata | Visual review against the "premium" brief |

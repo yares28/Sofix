@@ -1,10 +1,17 @@
 import { unstable_cache } from "next/cache";
 import { GRID_TAG } from "./refresh";
-import type { ApiResponse, FixtureGrid, GridMeta } from "./types";
+import { GridResponseSchema } from "./schema";
+import type { FixtureGrid, GridMeta } from "./types";
 
 // Server-only: pages fetch on the server, so the API address never needs to reach the browser.
 const API_BASE = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
-export const UNAVAILABLE = "Fixture data is temporarily unavailable.";
+
+// What visitors see. Details (status codes, validation issues) go to the server log only.
+export const MESSAGES = {
+  unavailable: "Fixture data is temporarily unavailable. Try again in a minute.",
+  empty: "No fixtures have been loaded yet. They will appear after the next data refresh.",
+  malformed: "The fixture data could not be read. It will be fixed with the next data refresh.",
+} as const;
 
 export type Loaded = { grid: FixtureGrid; meta: GridMeta | null; error: null } | { grid: null; meta: null; error: string };
 
@@ -18,9 +25,21 @@ class GridUnavailable extends Error {}
 const cachedGrid = unstable_cache(
   async (): Promise<{ grid: FixtureGrid; meta: GridMeta | null }> => {
     const response = await fetch(`${API_BASE}/api/fixture-grid`, { cache: "no-store", signal: AbortSignal.timeout(8000) });
-    if (!response.ok) throw new GridUnavailable(UNAVAILABLE);
-    const body = (await response.json()) as ApiResponse<FixtureGrid>;
-    if (!body.success || !body.data) throw new GridUnavailable(body.error ?? "No fixture data yet.");
+    if (!response.ok) {
+      console.error(`[fixture-grid] API answered ${response.status}`);
+      throw new GridUnavailable(MESSAGES.unavailable);
+    }
+    const parsed = GridResponseSchema.safeParse(await response.json());
+    if (!parsed.success) {
+      const issues = parsed.error.issues.slice(0, 5).map((issue) => `${issue.path.join(".")}: ${issue.message}`);
+      console.error(`[fixture-grid] payload failed validation: ${issues.join("; ")}`);
+      throw new GridUnavailable(MESSAGES.malformed);
+    }
+    const body = parsed.data;
+    if (!body.success || !body.data) {
+      console.error(`[fixture-grid] no grid: ${body.error ?? "empty response"}`);
+      throw new GridUnavailable(MESSAGES.empty);
+    }
     return { grid: body.data, meta: body.meta ?? null };
   },
   ["fixture-grid"],
@@ -32,6 +51,9 @@ export async function loadGrid(): Promise<Loaded> {
     const { grid, meta } = await cachedGrid();
     return { grid, meta, error: null };
   } catch (error) {
-    return { grid: null, meta: null, error: error instanceof GridUnavailable ? error.message : UNAVAILABLE };
+    if (!(error instanceof GridUnavailable)) {
+      console.error(`[fixture-grid] request failed: ${error instanceof Error ? error.name : "unknown error"}`);
+    }
+    return { grid: null, meta: null, error: error instanceof GridUnavailable ? error.message : MESSAGES.unavailable };
   }
 }

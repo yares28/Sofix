@@ -26,12 +26,9 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
         {grid ? (
           <FixtureBoard grid={grid} initialView={initialView} pinsInUrl={params.has("pins")} />
         ) : (
-          <section className="card empty-state">
+          <section className="card empty-state" role="status">
             <h1>Fixtures &amp; Difficulty</h1>
             <p>{error}</p>
-            <p className="muted">
-              Start the API, then load data with <code>python -m app.jobs.refresh</code> in <code>backend/</code>.
-            </p>
           </section>
         )}
       </main>

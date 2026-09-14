@@ -18,5 +18,5 @@ def health():
 def fixture_grid(db: Session = Depends(get_db)):
     grid = build_fixture_grid(db)
     if grid is None:
-        return ApiResponse[FixtureGrid](success=False, error="No fixtures yet. Run python -m app.jobs.refresh.")
+        return ApiResponse[FixtureGrid](success=False, error="No fixtures yet.")
     return ApiResponse[FixtureGrid](success=True, data=grid, meta=grid_meta(db))

@@ -1,0 +1,864 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "La Liga Fixture Difficulty API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fixture-grid": {
+      "get": {
+        "summary": "Fixture Grid",
+        "operationId": "fixture_grid_api_fixture_grid_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_FixtureGrid_"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/refresh": {
+      "post": {
+        "summary": "Start Refresh",
+        "operationId": "start_refresh_api_admin_refresh_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_RefreshStatus_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/refresh/latest": {
+      "get": {
+        "summary": "Refresh Latest",
+        "operationId": "refresh_latest_api_admin_refresh_latest_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_RefreshStatus_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiResponse_FixtureGrid_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FixtureGrid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GridMeta"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "success"
+        ],
+        "title": "ApiResponse[FixtureGrid]"
+      },
+      "ApiResponse_RefreshStatus_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RefreshStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GridMeta"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "success"
+        ],
+        "title": "ApiResponse[RefreshStatus]"
+      },
+      "CellPrediction": {
+        "properties": {
+          "difficulty": {
+            "type": "number",
+            "title": "Difficulty"
+          },
+          "label": {
+            "type": "string",
+            "enum": [
+              "Easy",
+              "Easy-ish",
+              "Normal",
+              "Hard-ish",
+              "Hard"
+            ],
+            "title": "Label"
+          },
+          "bucket": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "title": "Bucket"
+          },
+          "expected_points": {
+            "type": "number",
+            "title": "Expected Points"
+          },
+          "probabilities": {
+            "$ref": "#/components/schemas/Prob"
+          },
+          "clean_sheet": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clean Sheet"
+          },
+          "xg_for": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Xg For"
+          },
+          "xg_against": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Xg Against"
+          }
+        },
+        "type": "object",
+        "required": [
+          "difficulty",
+          "label",
+          "bucket",
+          "expected_points",
+          "probabilities",
+          "clean_sheet",
+          "xg_for",
+          "xg_against"
+        ],
+        "title": "CellPrediction"
+      },
+      "CellResult": {
+        "properties": {
+          "goals_for": {
+            "type": "integer",
+            "title": "Goals For"
+          },
+          "goals_against": {
+            "type": "integer",
+            "title": "Goals Against"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "W",
+              "D",
+              "L"
+            ],
+            "title": "Outcome"
+          }
+        },
+        "type": "object",
+        "required": [
+          "goals_for",
+          "goals_against",
+          "outcome"
+        ],
+        "title": "CellResult"
+      },
+      "CellWeather": {
+        "properties": {
+          "temperature_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature C"
+          },
+          "precipitation_mm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Precipitation Mm"
+          },
+          "wind_kmh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wind Kmh"
+          }
+        },
+        "type": "object",
+        "required": [
+          "temperature_c",
+          "precipitation_mm",
+          "wind_kmh"
+        ],
+        "title": "CellWeather"
+      },
+      "FixtureGrid": {
+        "properties": {
+          "season": {
+            "type": "string",
+            "title": "Season"
+          },
+          "current_matchday": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Matchday"
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          },
+          "lens_scales": {
+            "$ref": "#/components/schemas/LensScales"
+          },
+          "matchdays": {
+            "items": {
+              "$ref": "#/components/schemas/GridMatchday"
+            },
+            "type": "array",
+            "title": "Matchdays"
+          },
+          "teams": {
+            "items": {
+              "$ref": "#/components/schemas/GridTeam"
+            },
+            "type": "array",
+            "title": "Teams"
+          }
+        },
+        "type": "object",
+        "required": [
+          "season",
+          "current_matchday",
+          "model_version",
+          "lens_scales",
+          "matchdays",
+          "teams"
+        ],
+        "title": "FixtureGrid"
+      },
+      "GridCell": {
+        "properties": {
+          "fixture_id": {
+            "type": "integer",
+            "title": "Fixture Id"
+          },
+          "opponent_code": {
+            "type": "string",
+            "title": "Opponent Code"
+          },
+          "venue": {
+            "type": "string",
+            "enum": [
+              "H",
+              "A"
+            ],
+            "title": "Venue"
+          },
+          "kickoff_utc": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Kickoff Utc"
+          },
+          "date_confirmed": {
+            "type": "boolean",
+            "title": "Date Confirmed"
+          },
+          "rescheduled": {
+            "type": "boolean",
+            "title": "Rescheduled"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "live",
+              "finished",
+              "postponed"
+            ],
+            "title": "Status"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CellResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "prediction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CellPrediction"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "weather": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CellWeather"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "fixture_id",
+          "opponent_code",
+          "venue",
+          "kickoff_utc",
+          "date_confirmed",
+          "rescheduled",
+          "status",
+          "result",
+          "prediction",
+          "weather"
+        ],
+        "title": "GridCell"
+      },
+      "GridMatchday": {
+        "properties": {
+          "number": {
+            "type": "integer",
+            "title": "Number"
+          },
+          "date_from": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Date From"
+          },
+          "date_to": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Date To"
+          },
+          "finished": {
+            "type": "boolean",
+            "title": "Finished"
+          }
+        },
+        "type": "object",
+        "required": [
+          "number",
+          "date_from",
+          "date_to",
+          "finished"
+        ],
+        "title": "GridMatchday"
+      },
+      "GridMeta": {
+        "properties": {
+          "last_synced_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Synced At"
+          },
+          "last_predicted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Predicted At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "last_synced_at",
+          "last_predicted_at"
+        ],
+        "title": "GridMeta"
+      },
+      "GridTeam": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "color": {
+            "type": "string",
+            "title": "Color"
+          },
+          "crest_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Crest Url"
+          },
+          "cells": {
+            "items": {
+              "items": {
+                "$ref": "#/components/schemas/GridCell"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Cells"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "color",
+          "crest_url",
+          "cells"
+        ],
+        "title": "GridTeam"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LensScale": {
+        "properties": {
+          "cuts": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "maxItems": 4,
+            "minItems": 4,
+            "title": "Cuts"
+          },
+          "higher_is_easier": {
+            "type": "boolean",
+            "title": "Higher Is Easier"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cuts",
+          "higher_is_easier"
+        ],
+        "title": "LensScale",
+        "description": "Four cut points splitting a lens into buckets 1 (easiest) … 5 (hardest).\n\nhigher_is_easier=False (overall difficulty): bucket = 1 + number of cuts the value exceeds.\nhigher_is_easier=True (xG, clean sheet): cuts are descending; bucket = 1 + number of cuts the value is below."
+      },
+      "LensScales": {
+        "properties": {
+          "overall": {
+            "$ref": "#/components/schemas/LensScale"
+          },
+          "attack": {
+            "$ref": "#/components/schemas/LensScale"
+          },
+          "defence": {
+            "$ref": "#/components/schemas/LensScale"
+          }
+        },
+        "type": "object",
+        "required": [
+          "overall",
+          "attack",
+          "defence"
+        ],
+        "title": "LensScales",
+        "description": "One scale per lens (named fields rather than a dict, so clients get a typed object)."
+      },
+      "Prob": {
+        "properties": {
+          "win": {
+            "type": "number",
+            "title": "Win"
+          },
+          "draw": {
+            "type": "number",
+            "title": "Draw"
+          },
+          "loss": {
+            "type": "number",
+            "title": "Loss"
+          }
+        },
+        "type": "object",
+        "required": [
+          "win",
+          "draw",
+          "loss"
+        ],
+        "title": "Prob"
+      },
+      "RefreshRunOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "trigger": {
+            "type": "string",
+            "title": "Trigger"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "running",
+              "succeeded",
+              "failed",
+              "abandoned"
+            ],
+            "title": "Status"
+          },
+          "step": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Step"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "steps": {
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "succeeded",
+                "failed"
+              ]
+            },
+            "type": "object",
+            "title": "Steps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "trigger",
+          "status",
+          "step",
+          "started_at",
+          "finished_at",
+          "error",
+          "steps"
+        ],
+        "title": "RefreshRunOut"
+      },
+      "RefreshStatus": {
+        "properties": {
+          "run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RefreshRunOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "retry_after": {
+            "type": "integer",
+            "title": "Retry After"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run",
+          "retry_after"
+        ],
+        "title": "RefreshStatus"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

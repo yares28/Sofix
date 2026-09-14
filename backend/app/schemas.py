@@ -10,6 +10,7 @@ Outcome = Literal["W", "D", "L"]
 Venue = Literal["H", "A"]
 CellStatus = Literal["scheduled", "live", "finished", "postponed"]
 LensName = Literal["overall", "attack", "defence"]
+Bucket = Literal[1, 2, 3, 4, 5]  # 1 = easiest; a literal so the generated TypeScript type is exact
 
 
 class Prob(BaseModel):
@@ -33,7 +34,7 @@ class ApiResponse(BaseModel, Generic[T]):
 class CellPrediction(BaseModel):
     difficulty: float
     label: DifficultyLabel
-    bucket: int = Field(ge=1, le=5)  # from the label, so colour and label always agree
+    bucket: Bucket  # from the label, so colour and label always agree
     expected_points: float
     probabilities: Prob
     clean_sheet: float | None
@@ -92,6 +93,14 @@ class LensScale(BaseModel):
     higher_is_easier: bool
 
 
+class LensScales(BaseModel):
+    """One scale per lens (named fields rather than a dict, so clients get a typed object)."""
+
+    overall: LensScale
+    attack: LensScale
+    defence: LensScale
+
+
 RunStatus = Literal["running", "succeeded", "failed", "abandoned"]
 StepStatus = Literal["succeeded", "failed"]
 
@@ -116,6 +125,6 @@ class FixtureGrid(BaseModel):
     season: str
     current_matchday: int | None
     model_version: str | None
-    lens_scales: dict[LensName, LensScale]
+    lens_scales: LensScales
     matchdays: list[GridMatchday]
     teams: list[GridTeam]

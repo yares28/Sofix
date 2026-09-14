@@ -58,6 +58,9 @@ npm run lint         # eslint (next + jsx-a11y), zero warnings
 
 - English UI copy ("Matchday", "Date TBC"); kickoff times stored UTC, shown in `Europe/Madrid`.
 - Frontend must not re-derive what the backend decides: tile colour = `prediction.bucket`, lens cut points = `lens_scales`.
+- API types are generated: change `backend/app/schemas.py`, run `python -m app.openapi_export` (backend) and
+  `npm run gen:types` (frontend), then update `frontend/lib/schema.ts` (Zod) until `npm run typecheck` passes.
+  Never hand-edit `lib/openapi.json` or `lib/api.gen.ts`; CI fails when either is stale.
 - Schema changes: edit `models.py` → autogenerate a migration → review it → apply. Never `create_all` against Neon.
 - Jobs replace rows (predictions per model version, weather per fixture); never append history.
 - Refreshes: one at a time (`refresh_runs` partial unique index) and ≥ 10 min apart for the button (`COOLDOWN`).

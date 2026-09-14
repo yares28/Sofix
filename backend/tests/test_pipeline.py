@@ -239,8 +239,8 @@ def test_bucket_always_matches_label_even_on_rounding_boundaries(seeded):
 
 def test_lens_scales_shape(seeded):
     scales = build_fixture_grid(seeded).lens_scales
-    assert scales["overall"].cuts == list(LABEL_THRESHOLDS) and scales["overall"].higher_is_easier is False
-    assert scales["attack"].higher_is_easier and scales["defence"].higher_is_easier
+    assert scales.overall.cuts == list(LABEL_THRESHOLDS) and scales.overall.higher_is_easier is False
+    assert scales.attack.higher_is_easier and scales.defence.higher_is_easier
 
 
 def test_quantile_scale_gives_label_shares():

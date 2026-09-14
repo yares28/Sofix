@@ -21,8 +21,8 @@ from app.schemas import (
     GridMatchday,
     GridMeta,
     GridTeam,
-    LensName,
     LensScale,
+    LensScales,
     Outcome,
     Prob,
     Venue,
@@ -138,13 +138,13 @@ def quantile_scale(values: list[float]) -> LensScale:
     return LensScale(cuts=[round(quantile(p), 4) for p in easiest_first], higher_is_easier=True)
 
 
-def lens_scales(cells: list[GridCell]) -> dict[LensName, LensScale]:
+def lens_scales(cells: list[GridCell]) -> LensScales:
     predictions = [cell.prediction for cell in cells if cell.prediction]
-    return {
-        "overall": LensScale(cuts=list(LABEL_THRESHOLDS), higher_is_easier=False),
-        "attack": quantile_scale([p.xg_for for p in predictions if p.xg_for is not None]),
-        "defence": quantile_scale([p.clean_sheet for p in predictions if p.clean_sheet is not None]),
-    }
+    return LensScales(
+        overall=LensScale(cuts=list(LABEL_THRESHOLDS), higher_is_easier=False),
+        attack=quantile_scale([p.xg_for for p in predictions if p.xg_for is not None]),
+        defence=quantile_scale([p.clean_sheet for p in predictions if p.clean_sheet is not None]),
+    )
 
 
 def build_fixture_grid(db: Session) -> FixtureGrid | None:

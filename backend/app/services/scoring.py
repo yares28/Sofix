@@ -1,3 +1,6 @@
+from typing import Literal, cast
+
+
 def normalize_probs(win: float, draw: float, loss: float) -> tuple[float, float, float]:
     vals = [max(float(win), 0.0), max(float(draw), 0.0), max(float(loss), 0.0)]
     total = sum(vals)
@@ -21,9 +24,9 @@ LABEL_THRESHOLDS = (37.4, 48.6, 61.1, 71.3)
 LABELS = ("Easy", "Easy-ish", "Normal", "Hard-ish", "Hard")
 
 
-def label_bucket(label):
+def label_bucket(label: str) -> Literal[1, 2, 3, 4, 5]:
     """1 (easiest) … 5 (hardest). The tile colour must come from the same label the tooltip shows."""
-    return LABELS.index(label) + 1
+    return cast(Literal[1, 2, 3, 4, 5], LABELS.index(label) + 1)
 
 
 def difficulty_label(score):

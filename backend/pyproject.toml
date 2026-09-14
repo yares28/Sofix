@@ -36,6 +36,7 @@ files = [
     "app/config.py",
     "app/db.py",
     "app/migrate.py",
+    "app/openapi_export.py",
     "app/schemas.py",
     "app/services/crests.py",
     "app/services/fixture_grid.py",

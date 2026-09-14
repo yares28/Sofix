@@ -47,6 +47,9 @@ jobs:
       - name: Pytest (includes models-vs-migrations drift check)
         run: python -m pytest -q
 
+      - name: OpenAPI document matches the committed frontend copy
+        run: python -m app.openapi_export --check
+
       - name: Dependency audit
         run: uvx pip-audit -r requirements.lock
 
@@ -67,6 +70,11 @@ jobs:
 
       - name: Install
         run: npm ci
+
+      - name: Generated API types are up to date
+        run: |
+          npm run gen:types
+          git diff --exit-code -- lib/api.gen.ts
 
       - name: Lint
         run: npm run lint

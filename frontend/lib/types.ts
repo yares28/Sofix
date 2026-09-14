@@ -1,111 +1,31 @@
-// Mirrors backend/app/schemas.py (fixture grid section).
+// API types, generated from the backend's OpenAPI document (lib/openapi.json → lib/api.gen.ts).
+// Don't edit shapes here: change backend/app/schemas.py, then
+//   backend: python -m app.openapi_export     frontend: npm run gen:types
+import type { components } from "./api.gen";
 
-export type Venue = "H" | "A";
-export type FixtureStatus = "scheduled" | "live" | "finished" | "postponed";
-export type DifficultyLabel = "Easy" | "Easy-ish" | "Normal" | "Hard-ish" | "Hard";
-export type Lens = "overall" | "attack" | "defence";
+type Schemas = components["schemas"];
 
-export interface Probabilities {
-  win: number;
-  draw: number;
-  loss: number;
-}
+export type FixtureGrid = Schemas["FixtureGrid"];
+export type GridMeta = Schemas["GridMeta"];
+export type GridTeam = Schemas["GridTeam"];
+export type GridCell = Schemas["GridCell"];
+export type GridMatchday = Schemas["GridMatchday"];
+export type CellPrediction = Schemas["CellPrediction"];
+export type CellResult = Schemas["CellResult"];
+export type CellWeather = Schemas["CellWeather"];
+export type Probabilities = Schemas["Prob"];
+export type LensScale = Schemas["LensScale"];
+export type RefreshRun = Schemas["RefreshRunOut"];
+export type RefreshStatus = Schemas["RefreshStatus"];
 
-export type Bucket = 1 | 2 | 3 | 4 | 5; // 1 = easiest
+export type Venue = GridCell["venue"];
+export type FixtureStatus = GridCell["status"];
+export type DifficultyLabel = CellPrediction["label"];
+export type Bucket = CellPrediction["bucket"]; // 1 = easiest
+export type Lens = keyof Schemas["LensScales"];
+export type RunStatus = RefreshRun["status"];
 
-export interface CellPrediction {
-  difficulty: number;
-  label: DifficultyLabel;
-  bucket: Bucket; // derived from label on the backend, so colour and label always agree
-  expected_points: number;
-  probabilities: Probabilities;
-  clean_sheet: number | null;
-  xg_for: number | null;
-  xg_against: number | null;
-}
-
-export interface CellResult {
-  goals_for: number;
-  goals_against: number;
-  outcome: "W" | "D" | "L";
-}
-
-export interface CellWeather {
-  temperature_c: number | null;
-  precipitation_mm: number | null;
-  wind_kmh: number | null;
-}
-
-export interface GridCell {
-  fixture_id: number;
-  opponent_code: string;
-  venue: Venue;
-  kickoff_utc: string;
-  date_confirmed: boolean;
-  rescheduled: boolean;
-  status: FixtureStatus;
-  result: CellResult | null;
-  prediction: CellPrediction | null;
-  weather: CellWeather | null;
-}
-
-export interface GridTeam {
-  code: string;
-  name: string;
-  color: string;
-  crest_url: string | null; // https://crests.football-data.org/… or null
-  cells: GridCell[][]; // one list per matchday: empty = no game, two = rescheduled double
-}
-
-export interface GridMatchday {
-  number: number;
-  date_from: string;
-  date_to: string;
-  finished: boolean;
-}
-
-/**
- * Four cut points splitting a lens into buckets 1–5.
- * higher_is_easier=false: bucket = 1 + cuts the value exceeds; true: 1 + cuts the value is below.
- */
-export interface LensScale {
-  cuts: number[]; // always 4 values
-  higher_is_easier: boolean;
-}
-
-export interface FixtureGrid {
-  season: string;
-  current_matchday: number | null;
-  model_version: string | null;
-  lens_scales: Record<Lens, LensScale>;
-  matchdays: GridMatchday[];
-  teams: GridTeam[];
-}
-
-export interface GridMeta {
-  last_synced_at: string | null;
-  last_predicted_at: string | null;
-}
-
-// Mirrors backend/app/schemas.py (refresh section).
-export type RunStatus = "running" | "succeeded" | "failed" | "abandoned";
-
-export interface RefreshRun {
-  id: number;
-  trigger: string;
-  status: RunStatus;
-  step: string | null;
-  started_at: string;
-  finished_at: string | null;
-  error: string | null;
-  steps: Record<string, "succeeded" | "failed">;
-}
-
-export interface RefreshStatus {
-  run: RefreshRun | null;
-  retry_after: number; // seconds until a new refresh may start
-}
-
+/** The API's response envelope (generated per payload type as ApiResponse_X_; one generic here). */
 export interface ApiResponse<T> {
   success: boolean;
   data?: T | null;

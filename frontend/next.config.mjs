@@ -28,6 +28,8 @@ const securityHeaders = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // End-to-end tests run a second dev server; give it its own build and data cache.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   // A pnpm lockfile higher up the disk confuses Next's workspace-root detection; pin it here.
   outputFileTracingRoot: path.dirname(fileURLToPath(import.meta.url)),
   poweredByHeader: false,

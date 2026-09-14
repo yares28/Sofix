@@ -211,7 +211,11 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl }: Pr
                         <span className="gw">MD{md.number}<span className="arrow" aria-hidden="true">↓</span></span>
                         <span className="date">
                           {formatDay(md.date_from)}
-                          {columnTbc[column] && <span className="tbc-mark"> · TBC</span>}
+                          {columnTbc[column] && (
+                            <span className="tbc-mark">
+                              <span className="tbc-dot"> · </span>TBC
+                            </span>
+                          )}
                         </span>
                       </button>
                     </th>

@@ -2,18 +2,23 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { contrastRatio } from "../lib/contrast";
 import type { GridTeam } from "../lib/types";
 
 // Personal use only (club trademarks, no licence stated). Set NEXT_PUBLIC_SHOW_CLUB_CRESTS=false to show colour badges.
 const SHOW_CRESTS = process.env.NEXT_PUBLIC_SHOW_CLUB_CRESTS !== "false";
 const CREST_ORIGIN = "https://crests.football-data.org/";
 
-/** Relative luminance check so light club colours get dark text. */
-function isLight(hex: string): boolean {
-  const value = hex.replace("#", "");
-  if (value.length !== 6) return false;
-  const channel = (i: number) => parseInt(value.slice(i, i + 2), 16) / 255;
-  return 0.2126 * channel(0) + 0.7152 * channel(2) + 0.0722 * channel(4) > 0.6;
+/**
+ * Black or white text, whichever contrasts more with the club colour. For pure black and white the better
+ * of the two is always ≥ 4.58:1; a softer near-black can drop below 4.5 on mid reds (e.g. #ee2523).
+ */
+export function badgeText(background: string): string {
+  try {
+    return contrastRatio("#000000", background) >= contrastRatio("#ffffff", background) ? "#000" : "#fff";
+  } catch {
+    return "#fff"; // not a hex colour: the API validates colours, so this is only a safe default
+  }
 }
 
 export function crestSource(url: string | null | undefined): string | null {
@@ -56,7 +61,7 @@ export default function Crest({
   return (
     <span
       className="crest"
-      style={{ ...box, background: team.color, color: isLight(team.color) ? "#1d1d1f" : "#fff" }}
+      style={{ ...box, background: team.color, color: badgeText(team.color) }}
       aria-hidden="true"
     >
       {team.code}

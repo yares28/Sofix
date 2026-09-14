@@ -1,7 +1,11 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { badgeText } from "../components/Crest";
+import recorded from "../e2e/fixtures/grid-response.json";
 import { blend, contrastRatio, rootTokens } from "./contrast";
+
+const recordedTeams = recorded.data.teams;
 
 const css = readFileSync(join(__dirname, "..", "app", "globals.css"), "utf8");
 const t = rootTokens(css);
@@ -40,6 +44,13 @@ describe("colour tokens meet WCAG AA", () => {
   it("result scores", () => {
     expect(contrastRatio(token("win"), token("surface"))).toBeGreaterThanOrEqual(AA_TEXT);
     expect(contrastRatio(token("loss"), token("surface"))).toBeGreaterThanOrEqual(AA_TEXT);
+  });
+
+  it("club badges pick readable text for every club colour in the recorded grid", () => {
+    for (const { color } of recordedTeams) {
+      const text = badgeText(color);
+      expect(contrastRatio(text, color), `${text} on ${color}`).toBeGreaterThanOrEqual(AA_TEXT);
+    }
   });
 
   it("dimmed rows keep their text readable", () => {

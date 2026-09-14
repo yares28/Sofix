@@ -52,6 +52,8 @@ npm run dev          # binds 127.0.0.1:3000
 npm test             # vitest
 npm run typecheck
 npm run lint         # eslint (next + jsx-a11y), zero warnings
+npm run e2e          # Playwright against e2e/mock-api.mjs (ports 3100/8765, installed Chrome locally)
+npm run gen:types    # after python -m app.openapi_export
 ```
 
 ## Conventions

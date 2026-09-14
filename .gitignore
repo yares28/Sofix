@@ -19,6 +19,9 @@ frontend/tsconfig.tsbuildinfo
 # Node
 node_modules/
 .next/
+.next-e2e/
+frontend/test-results/
+frontend/playwright-report/
 
 # Env
 .env

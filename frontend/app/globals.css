@@ -453,6 +453,8 @@ thead th .tbc-mark { font-weight: 600; }
   .cell .opp { font-size: 12px; }
   .venue-long { display: none; }
   .venue-short { display: inline; }
+  thead th .tbc-mark { display: block; margin-top: 1px; } /* own line, so it doesn't widen the column */
+  thead th .tbc-dot { display: none; }
   th.avg-col, td.avg-col { padding-right: 16px; width: 96px; }
   .avg .bar { display: none; }
 

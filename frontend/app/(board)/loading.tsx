@@ -1,4 +1,8 @@
-/** Skeleton while the server loads the grid (only visible on a cold cache or a slow API). */
+/**
+ * Skeleton while the server loads the grid (only visible on a cold cache or a slow API).
+ * Scoped to the (board) route group: a loading boundary above /team/[code] would start streaming a 200
+ * before the page can answer 404 for an unknown team.
+ */
 export default function Loading() {
   return (
     <main aria-busy="true" aria-live="polite">

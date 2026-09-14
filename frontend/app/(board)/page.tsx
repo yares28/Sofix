@@ -1,8 +1,8 @@
 import { connection } from "next/server";
-import FixtureBoard from "../components/FixtureBoard";
-import SiteNav from "../components/SiteNav";
-import { loadGrid } from "../lib/api";
-import { DEFAULT_VIEW, parseViewState } from "../lib/grid";
+import FixtureBoard from "../../components/FixtureBoard";
+import SiteNav from "../../components/SiteNav";
+import { loadGrid } from "../../lib/api";
+import { DEFAULT_VIEW, parseViewState } from "../../lib/grid";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 

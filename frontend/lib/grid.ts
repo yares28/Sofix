@@ -206,64 +206,64 @@ export function openingColumn(grid: FixtureGrid): number {
   return Math.max(0, total - 1);
 }
 
-export interface Target {
+export type Position = "forwards" | "midfielders" | "defenders";
+
+export interface PositionPick {
   team: GridTeam;
-  stats: RunStats;
+  xg: number; // expected goals over the window (blank weeks 0, doubles both)
+  cleanSheets: number; // expected clean sheets over the window
+  fixtures: number;
+  score: number; // what the ranking used; higher = better picks
 }
 
-/** Teams with the most to gain over the window on this lens. */
-export function bestTargets(teams: GridTeam[], stats: Map<string, RunStats>, count = 3): Target[] {
-  return teams
-    .map((team) => ({ team, stats: stats.get(team.code)! }))
-    .filter((entry) => entry.stats && entry.stats.total !== null && entry.stats.fixtures > 0)
-    .sort((a, b) => b.stats.total! - a.stats.total! || a.team.name.localeCompare(b.team.name))
-    .slice(0, count);
-}
+/** Share of a midfielder's value from attacking returns; the rest from clean sheets. */
+export const MIDFIELD_ATTACK_WEIGHT = 0.65;
 
-export interface RotationPair {
-  first: GridTeam;
-  second: GridTeam;
-  total: number; // sum over the window of the better of the two each matchday
-}
+const zScores = (values: number[]) => {
+  const mean = values.reduce((s, v) => s + v, 0) / (values.length || 1);
+  const sd = Math.sqrt(values.reduce((s, v) => s + (v - mean) ** 2, 0) / (values.length || 1)) || 1;
+  return values.map((v) => (v - mean) / sd);
+};
 
 /**
- * The two teams whose fixtures complement each other best: each matchday you'd start whichever has
- * the better game. With pins, the pair must include a pinned team (both, if two or more are pinned).
+ * Which clubs to buy players from over the window, by position:
+ * forwards live on goals (expected goals), defenders and keepers on clean sheets (expected clean sheets),
+ * midfielders on both — mostly attacking returns, so a 65/35 blend of the two, each standardised
+ * across the league so goals and clean sheets count on the same scale.
  */
-export function rotationPair(
+export function positionPicks(
   teams: GridTeam[],
-  start: number,
-  end: number,
-  lens: Lens,
-  finished: readonly boolean[] = [],
-  pins: readonly string[] = [],
-): RotationPair | null {
-  const values = new Map(
-    teams.map((team) => [
-      team.code,
-      Array.from({ length: end - start }, (_, i) => columnTotal(team.cells[start + i], lens, finished[start + i] ?? false) ?? 0),
-    ]),
-  );
-  const pinned = new Set(pins);
-  let best: RotationPair | null = null;
-  for (let i = 0; i < teams.length; i++) {
-    for (let j = i + 1; j < teams.length; j++) {
-      const [a, b] = [teams[i]!, teams[j]!];
-      const pinnedInPair = Number(pinned.has(a.code)) + Number(pinned.has(b.code));
-      if (pinned.size === 1 && pinnedInPair === 0) continue;
-      if (pinned.size >= 2 && pinnedInPair < 2) continue;
-      const va = values.get(a.code)!;
-      const vb = values.get(b.code)!;
-      const total = va.reduce((sum, v, k) => sum + Math.max(v, vb[k] ?? 0), 0);
-      if (total > 0 && (!best || total > best.total + 1e-9)) best = { first: a, second: b, total };
-    }
-  }
-  return best;
+  attack: Map<string, RunStats>,
+  defence: Map<string, RunStats>,
+  count = 4,
+): Record<Position, PositionPick[]> {
+  const rows = teams
+    .map((team) => ({
+      team,
+      xg: attack.get(team.code)?.total ?? null,
+      cleanSheets: defence.get(team.code)?.total ?? null,
+      fixtures: attack.get(team.code)?.fixtures ?? 0,
+    }))
+    .filter((row): row is { team: GridTeam; xg: number; cleanSheets: number; fixtures: number } =>
+      row.xg !== null && row.cleanSheets !== null && row.fixtures > 0,
+    );
+  const zXg = zScores(rows.map((r) => r.xg));
+  const zCs = zScores(rows.map((r) => r.cleanSheets));
+  const rank = (score: (i: number) => number) =>
+    rows
+      .map((row, i) => ({ ...row, score: score(i) }))
+      .sort((a, b) => b.score - a.score || a.team.name.localeCompare(b.team.name))
+      .slice(0, count);
+  return {
+    forwards: rank((i) => rows[i]!.xg),
+    midfielders: rank((i) => MIDFIELD_ATTACK_WEIGHT * zXg[i]! + (1 - MIDFIELD_ATTACK_WEIGHT) * zCs[i]!),
+    defenders: rank((i) => rows[i]!.cleanSheets),
+  };
 }
 
 // ---------------------------------------------------------------- view state in the URL
 
-export type View = "fdr" | "plain";
+export type View = "fdr" | "plain" | "next";
 export type Horizon = "3" | "5" | "8" | "all";
 export const HORIZON_VALUES: readonly Horizon[] = ["3", "5", "8", "all"];
 const LENSES: readonly Lens[] = ["overall", "attack", "defence"];
@@ -284,7 +284,7 @@ export const DEFAULT_VIEW: ViewState = { view: "fdr", lens: "overall", horizon: 
 export function parseViewState(params: URLSearchParams, knownCodes: ReadonlySet<string>): Partial<ViewState> {
   const state: Partial<ViewState> = {};
   const view = params.get("view");
-  if (view === "fdr" || view === "plain") state.view = view;
+  if (view === "fdr" || view === "plain" || view === "next") state.view = view;
   const lens = params.get("lens");
   if (lens && (LENSES as readonly string[]).includes(lens)) state.lens = lens as Lens;
   const horizon = params.get("h");
@@ -336,7 +336,7 @@ export function formatKickoff(iso: string): string {
 
 /** Spoken label for a fixture tile: everything the colour and the tooltip convey, in words. */
 export function cellLabel(cell: GridCell, team: string, matchday: number, opponent: string, lens: Lens): string {
-  const head = `Matchday ${matchday}, ${team} ${cell.venue === "H" ? "at home to" : "away to"} ${opponent}`;
+  const head = `Gameweek ${matchday}, ${team} ${cell.venue === "H" ? "at home to" : "away to"} ${opponent}`;
   if (cell.status === "finished" && cell.result) {
     const { goals_for, goals_against, outcome } = cell.result;
     const verb = outcome === "W" ? "won" : outcome === "D" ? "drew" : "lost";

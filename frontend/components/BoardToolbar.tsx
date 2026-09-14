@@ -41,16 +41,16 @@ export default function BoardToolbar(props: Props) {
     <div className="toolbar">
       <div className="toolbar-nav">
         <div className="stepper">
-          <button type="button" aria-label="Previous matchday" disabled={!props.canGoBack} onClick={props.onBack}>
+          <button type="button" aria-label="Previous gameweek" disabled={!props.canGoBack} onClick={props.onBack}>
             <Chevron direction="left" />
           </button>
-          <div className="range">{first && last ? `MD${first.number} – MD${last.number}` : "—"}</div>
-          <button type="button" aria-label="Next matchday" disabled={!props.canGoForward} onClick={props.onForward}>
+          <div className="range">{first && last ? `GW${first.number} – GW${last.number}` : "—"}</div>
+          <button type="button" aria-label="Next gameweek" disabled={!props.canGoForward} onClick={props.onForward}>
             <Chevron direction="right" />
           </button>
         </div>
         {props.showPlayedToggle && (
-          <button type="button" className="toggle" aria-pressed={played} onClick={props.onTogglePlayed} aria-label="Show played matchdays">
+          <button type="button" className="toggle" aria-pressed={played} onClick={props.onTogglePlayed} aria-label="Show played gameweeks">
             <span className="toggle-long">Show played</span>
             <span className="toggle-short" aria-hidden="true">Played</span>
           </button>

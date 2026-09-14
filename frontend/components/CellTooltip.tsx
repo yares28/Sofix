@@ -27,7 +27,7 @@ export default function CellTooltip({ team, cell, matchday, teams }: Props) {
         {awayTeam && <Crest team={awayTeam} size={18} />}
       </div>
       <div className="muted">
-        MD{matchday} · {when}
+        GW{matchday} · {when}
         {cell.rescheduled && " · moved"}
       </div>
       {cell.result && (

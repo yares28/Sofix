@@ -54,8 +54,6 @@ function Tile({ cell, bucket, compact, dataKey, label, row, column, showTbc }: T
   }
   return (
     <button {...common} className={`cell ${bucket ? `f${bucket}` : "muted"} ${size}`}>
-      {/* The number repeats the colour, for colour-blind readers and greyscale prints. */}
-      {bucket && !compact && <span className="bucket-num">{bucket}</span>}
       <span className="opp">{cell.opponent_code}</span>
       <span className="venue">
         {cell.status === "live" ? (

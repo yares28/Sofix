@@ -4,12 +4,13 @@ import { useCallback, useDeferredValue, useMemo, useState } from "react";
 import { useTileTooltip } from "../hooks/useTileTooltip";
 import { useViewState } from "../hooks/useViewState";
 import {
-  LENS_COPY, formatDay, openingColumn, runStats, sortTeams, windowRange, withPinsFirst,
-  type SortKey, type SortState, type View, type ViewState,
+  LENS_COPY, MIDFIELD_ATTACK_WEIGHT, formatDay, openingColumn, positionPicks, runStats, sortTeams, windowRange,
+  withPinsFirst, type SortKey, type SortState, type View, type ViewState,
 } from "../lib/grid";
 import type { FixtureGrid, GridCell, GridTeam, ModelNote } from "../lib/types";
 import BoardToolbar from "./BoardToolbar";
-import PlanningInsights from "./PlanningInsights";
+import NextGameweek from "./NextGameweek";
+import PickCards from "./PickCards";
 import SegmentedControl from "./SegmentedControl";
 import TeamRow from "./TeamRow";
 import Tooltip from "./Tooltip";
@@ -56,7 +57,7 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl }: Pr
     [grid],
   );
 
-  const { state, setState, patch, togglePin, pinMany } = useViewState(initialView, pinsInUrl, knownCodes);
+  const { state, setState, patch, togglePin } = useViewState(initialView, pinsInUrl, knownCodes);
   const { view, lens, horizon, pins, played } = state;
   const [sort, setSort] = useState<SortState>({ key: { kind: "team" }, dir: "asc" });
   const [query, setQuery] = useState("");
@@ -90,6 +91,17 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl }: Pr
     [grid, activeSort, start, end, lens, stats, finished],
   );
   const { pinned, others } = useMemo(() => withPinsFirst(sorted, pins), [sorted, pins]);
+
+  // Picks by position cover the visible window (just the one gameweek in the Next GW view).
+  const pickEnd = view === "next" ? Math.min(total, start + 1) : end;
+  const picks = useMemo(() => {
+    const over = (lensName: "attack" | "defence") =>
+      new Map(grid.teams.map((team) => [team.code, runStats(team, start, pickEnd, lensName, grid.lens_scales[lensName], finished)]));
+    return positionPicks(grid.teams, over("attack"), over("defence"), 4);
+  }, [grid, start, pickEnd, finished]);
+  const pickWindow = view === "next" || pickEnd - start === 1
+    ? `GW${grid.matchdays[start]?.number ?? ""}`
+    : `next ${pickEnd - start} GWs`;
   const { tooltip, tableHandlers } = useTileTooltip(cellIndex, teamsByCode, pinned.length + others.length, start, end);
 
   // Total bars are relative to the spread of this window.
@@ -151,22 +163,34 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl }: Pr
           size="lg"
           value={view}
           onChange={(next) => patch({ view: next })}
-          options={[{ value: "plain", label: "Fixtures" }, { value: "fdr", label: "Difficulty" }]}
+          options={[
+            { value: "plain", label: "Fixtures" },
+            { value: "fdr", label: "Difficulty" },
+            { value: "next", label: "Next GW" },
+          ]}
         />
       </section>
 
-      <PlanningInsights
-        teams={grid.teams}
-        stats={stats}
-        matchdays={grid.matchdays}
+      <PickCards
+        grid={grid}
+        picks={picks}
         start={start}
-        end={end}
-        lens={lens}
+        end={pickEnd}
+        windowLabel={pickWindow}
         pins={pins}
         onTogglePin={togglePin}
-        onPin={pinMany}
       />
 
+      {view === "next" ? (
+        <NextGameweek
+          grid={grid}
+          column={start}
+          canGoBack={start > minStart}
+          canGoForward={start < total - 1}
+          onBack={() => stepTo(start - 1)}
+          onForward={() => stepTo(start + 1)}
+        />
+      ) : (
       <section className="card board">
         <BoardToolbar
           view={view}
@@ -191,7 +215,7 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl }: Pr
           {/* Handlers are delegated to the tile buttons inside (see useTileTooltip). */}
           <table {...tableHandlers}>
             <caption className="visually-hidden">
-              LaLiga fixtures by team, {columns.length ? `matchdays ${columns[0]!.number} to ${columns[columns.length - 1]!.number}` : "no matchdays"}
+              LaLiga fixtures by team, {columns.length ? `gameweeks ${columns[0]!.number} to ${columns[columns.length - 1]!.number}` : "no gameweeks"}
               {view === "fdr" ? `, rated with the ${copy.label.toLowerCase()} lens from 1 (${copy.easy.toLowerCase()}) to 5 (${copy.hard.toLowerCase()})` : ""}.
               {pins.length ? " Pinned teams are listed first." : ""} Use the arrow keys to move between fixtures.
             </caption>
@@ -207,8 +231,8 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl }: Pr
                   const key: SortKey = { kind: "matchday", column };
                   return (
                     <th key={md.number} scope="col" className={`sortable ${md.finished ? "past" : ""} ${sortClass(key)}`} aria-sort={ariaSort(key)}>
-                      <button type="button" className="sort" onClick={() => toggleSort(key)} aria-label={`Sort by matchday ${md.number}, ${formatDay(md.date_from)}${columnTbc[column] ? ", dates to be confirmed" : ""}`}>
-                        <span className="gw">MD{md.number}<span className="arrow" aria-hidden="true">↓</span></span>
+                      <button type="button" className="sort" onClick={() => toggleSort(key)} aria-label={`Sort by gameweek ${md.number}, ${formatDay(md.date_from)}${columnTbc[column] ? ", dates to be confirmed" : ""}`}>
+                        <span className="gw">GW{md.number}<span className="arrow" aria-hidden="true">↓</span></span>
                         <span className="date">
                           {formatDay(md.date_from)}
                           {columnTbc[column] && (
@@ -241,12 +265,18 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl }: Pr
           </table>
         </div>
       </section>
+      )}
 
       <p className="footnote">
-        {copy.hint}. Blank weeks count 0 and double weeks count both games. “TBC” on a matchday means most kickoff times
-        aren’t fixed yet. Click a team for its season, the pin to keep it on top, a matchday or Total to sort.
+        {view === "next"
+          ? "Probabilities and expected goals come from the rating model; clean-sheet chance is the chance of conceding none. Click a team for its season."
+          : `${copy.hint}. Blank weeks count 0 and double weeks count both games. “TBC” on a gameweek means most kickoff times aren’t fixed yet. Click a team for its season, the pin to keep it on top, a gameweek or Total to sort.`}
       </p>
-      {lensNotes.map((note) => (
+      <p className="footnote">
+        Picks: forwards by expected goals, defenders and keepers by expected clean sheets, midfielders by both (goals
+        weighted {Math.round(MIDFIELD_ATTACK_WEIGHT * 100)}%). Click a club to pin it.
+      </p>
+      {(view === "next" ? notes : lensNotes).map((note) => (
         <p key={note.text} className="footnote note">
           Model note: {note.text}
         </p>

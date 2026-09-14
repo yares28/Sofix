@@ -153,7 +153,7 @@ Work order: **0 → 1 → 2 → 3 → 4**, with **5** and **6** interleaved once
 | ID | Task | Done when |
 |---|---|---|
 | 5.1 | ✅ _(tiles use API buckets; legend per lens (Easy/Hard, More xG/Less xG, Clean sheet likely/Unlikely); hidden in Fixtures view)_ Render buckets from the backend (see 0.4); per-lens legend ("More xG ← → Less xG"); legend hidden in Fixtures view | Colour, label and legend always agree |
-| 5.2 | ✅ _(bucket number in each tile corner; rings on buckets 4-5; both hidden in Fixtures view)_ **Non-colour encoding:** bucket number on each tile; heavier border on buckets 4–5 | Readable in a deuteranopia simulation |
+| 5.2 | ✅ _(rings on buckets 4-5; the corner bucket number was removed on 2026-09-15 at the owner's request, difficulty remains in the tooltip and spoken label)_ **Non-colour encoding:** bucket number on each tile; heavier border on buckets 4–5 | Readable in a deuteranopia simulation |
 | 5.3 | ✅ _(tiles are buttons with spoken labels incl. team; tooltip on keyboard focus and tap, Esc/outside tap closes; arrow-key navigation; sort buttons in th with aria-sort; row headers, caption, labelled pins; Playwright flow in 5.18)_ **Keyboard, touch and screen readers:** tiles as `<button>` with `aria-label` ("MD6 v Getafe, home, difficulty 49, Easy-ish"); tooltip on focus/tap, closes on Esc or outside tap; sort buttons inside `<th>` with `aria-sort`; `aria-hidden` arrows; search label + focus ring; table caption; pin buttons labelled | axe/`jsx-a11y` clean; full keyboard flow in Playwright |
 | 5.4 | ✅ _(tile sub-text tokens without opacity, bucket 1 #1f7a4f, ink-3 decorative only, dimmed rows 0.55; lib/contrast.test.ts checks tokens from globals.css)_ **Contrast:** per-bucket venue colours (no opacity), bucket 1 → `#1f7a4f`, `--ink-3` → `#86868b` (decorative only), dimmed rows ≥ 3:1 | All text ≥ 4.5:1 (≥ 3:1 large) |
 | 5.5 | ✅ _(global prefers-reduced-motion; segmented selection styled from aria-pressed before hydration)_ `prefers-reduced-motion`; segmented control selected state styled in CSS before hydration | No pop-in; motion off when requested |
@@ -186,6 +186,14 @@ Work order: **0 → 1 → 2 → 3 → 4**, with **5** and **6** interleaved once
 | 5.16 | ✅ _(useDeferredValue search, memoised TeamRow, rAF tooltip; keystroke echo <=13 ms and rows <=73 ms in dev; payload slimming skipped on purpose (on-demand details would wake Neon per hover; grid is 24 KB gzipped and cached))_ Performance: slim grid payload (tooltip details on demand), `useDeferredValue` for search, memoised rows, stable bucket lookup, rAF-throttled tooltip | Search typing stays smooth |
 | 5.17 | ✅ _(Inter via next/font, 11 px type floor tokens, single colour source, TBC once per column, model notes from API meta, board split into toolbar/row/hooks, favicon + metadata)_ Polish: load Inter via `next/font`, 11–12 px text floor and a type scale, TBC marked once per column, single colour-token source, model notes served from API `meta`, split `FixtureBoard.tsx`, favicon/metadata | Visual review against the "premium" brief |
 | 5.18 | ✅ _(12 Playwright tests (incl. axe WCAG 2.1 AA and phone layout) against e2e/mock-api.mjs with a recorded grid; local runs use installed Chrome, CI e2e job installs Chromium; found and fixed a 200-for-404, a phone column overflow and badge contrast)_ **Playwright E2E** (your rules): first load, lens/horizon change, window stepping, keyboard sort, pin, refresh button, error state; deterministic test data (no `Math.random`) | Runs in CI |
+
+### 5f. Owner feedback (2026-09-15)
+| ID | Task | Done when |
+|---|---|---|
+| 5.19 | ✅ _(tiles without the corner number)_ Remove the 1–5 number from tiles | No number on tiles |
+| 5.20 | ✅ _(GW7 / Gameweek 7 in all visible and spoken copy)_ Fantasy wording: GW instead of MD | No MD/Matchday in the UI |
+| 5.21 | ✅ _(third view: match cards with win/draw/loss bar, xG, clean sheets, expected points, difficulty, weather, one-line takeaway; steps between GWs)_ **Next GW** view with detailed match info | Every match of the gameweek has a forecast card |
+| 5.22 | ✅ _(Forwards by xG, Midfielders by 65/35 xG/clean-sheet blend, Defenders & keepers by expected clean sheets; fixture strip per club; click to pin)_ Top cards: clubs to pick from, by position | Cards answer "whose forwards / midfielders / defenders" |
 
 ---
 

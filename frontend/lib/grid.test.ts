@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  DEFAULT_VIEW, bestTargets, cellBucket, cellLabel, columnTotal, formatDay, formatKickoff, formatLensValue, openingColumn,
-  parseViewState, relativeTime, rotationPair, runStats, scaleBucket, serializeViewState, sortTeams, windowRange,
+  DEFAULT_VIEW, cellBucket, cellLabel, columnTotal, formatDay, formatKickoff, formatLensValue, openingColumn,
+  parseViewState, positionPicks, relativeTime, runStats, scaleBucket, serializeViewState, sortTeams, windowRange,
 } from "./grid";
 import type { Bucket, DifficultyLabel, FixtureGrid, GridCell, GridTeam, LensScale } from "./types";
 
@@ -155,19 +155,25 @@ describe("planning helpers", () => {
     expect(openingColumn({ ...grid, teams: grid.teams.map((t) => ({ ...t, cells: t.cells.map(() => [played()]) })) })).toBe(2);
   });
 
-  it("finds the best targets and the rotation pair that covers each other's hard weeks", () => {
-    const a = team("AAA", [[cell({ ep: 2.5 })], [cell({ ep: 0.5 })], [cell({ ep: 2.4 })]]);
-    const b = team("BBB", [[cell({ ep: 0.4 })], [cell({ ep: 2.6 })], [cell({ ep: 0.5 })]]);
-    const c = team("CCC", [[cell({ ep: 1.6 })], [cell({ ep: 1.6 })], [cell({ ep: 1.6 })]]);
-    const teams = [a, b, c];
-    const stats = new Map(teams.map((t) => [t.code, runStats(t, 0, 3, "overall", OVERALL)]));
+  it("ranks clubs to pick from by position: goals for forwards, clean sheets for defenders, a blend for midfielders", () => {
+    const three = (xg: number, cs: number) => [0, 1, 2].map(() => [cell({ xg, cs })]);
+    const teams = [
+      team("STR", three(2.5, 0.1)), // scores a lot, concedes a lot
+      team("WAL", three(0.8, 0.6)), // tight defence, blunt attack
+      team("BAL", three(1.9, 0.5)), // good at both
+      team("WEK", three(0.7, 0.1)),
+      team("OFF", [[cell({ status: "finished", prediction: null })], [], []]), // nothing to rate
+    ];
+    const attack = new Map(teams.map((t) => [t.code, runStats(t, 0, 3, "attack", ATTACK, [true, true, true])]));
+    const defence = new Map(teams.map((t) => [t.code, runStats(t, 0, 3, "defence", ATTACK, [true, true, true])]));
+    const picks = positionPicks(teams, attack, defence, 3);
 
-    expect(bestTargets(teams, stats, 2).map((t) => t.team.code)).toEqual(["AAA", "CCC"]); // 5.4, 4.8 (BBB 3.5)
-    const pair = rotationPair(teams, 0, 3, "overall");
-    expect([pair?.first.code, pair?.second.code]).toEqual(["AAA", "BBB"]);
-    expect(pair?.total).toBeCloseTo(7.5);
-    const withPin = rotationPair(teams, 0, 3, "overall", [], ["CCC"]);
-    expect(withPin && [withPin.first.code, withPin.second.code].includes("CCC")).toBe(true);
+    expect(picks.forwards.map((p) => p.team.code)).toEqual(["STR", "BAL", "WAL"]);
+    expect(picks.defenders.map((p) => p.team.code)).toEqual(["WAL", "BAL", "STR"]);
+    expect(picks.midfielders.map((p) => p.team.code)).toEqual(["BAL", "STR", "WAL"]);
+    expect(picks.forwards[0]).toMatchObject({ fixtures: 3 });
+    expect(picks.forwards[0]!.xg).toBeCloseTo(7.5);
+    expect(picks.defenders[0]!.cleanSheets).toBeCloseTo(1.8);
   });
 
   it("round-trips view state through the URL and ignores junk", () => {
@@ -200,17 +206,17 @@ describe("formatting", () => {
   it("labels tiles for screen readers", () => {
     const upcoming = cell({ difficulty: 48.6, bucket: 3, xg: 1.85, cs: 0.32 });
     expect(cellLabel(upcoming, "Barcelona", 6, "Getafe", "overall")).toBe(
-      "Matchday 6, Barcelona at home to Getafe, Sun 20 Sep, 21:00, difficulty 49 of 100, Normal",
+      "Gameweek 6, Barcelona at home to Getafe, Sun 20 Sep, 21:00, difficulty 49 of 100, Normal",
     );
     expect(cellLabel(upcoming, "Barcelona", 6, "Getafe", "attack")).toMatch(/, expected goals 1\.85$/);
     expect(cellLabel(upcoming, "Barcelona", 6, "Getafe", "defence")).toMatch(/, clean sheet chance 32%$/);
     expect(cellLabel(cell({ date_confirmed: false, venue: "A" }), "Barcelona", 7, "Elche", "overall")).toMatch(
-      /^Matchday 7, Barcelona away to Elche, date to be confirmed, weekend of 20 Sep, difficulty/,
+      /^Gameweek 7, Barcelona away to Elche, date to be confirmed, weekend of 20 Sep, difficulty/,
     );
     const played = cell({ status: "finished", prediction: null, result: { goals_for: 1, goals_against: 2, outcome: "L" } });
-    expect(cellLabel(played, "Barcelona", 4, "Sevilla", "overall")).toBe("Matchday 4, Barcelona at home to Sevilla, lost 1–2");
+    expect(cellLabel(played, "Barcelona", 4, "Sevilla", "overall")).toBe("Gameweek 4, Barcelona at home to Sevilla, lost 1–2");
     expect(cellLabel(cell({ status: "postponed", prediction: null }), "Barcelona", 5, "Betis", "overall")).toBe(
-      "Matchday 5, Barcelona at home to Betis, postponed",
+      "Gameweek 5, Barcelona at home to Betis, postponed",
     );
   });
 

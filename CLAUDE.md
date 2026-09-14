@@ -58,7 +58,11 @@ npm run gen:types    # after python -m app.openapi_export
 
 ## Conventions
 
-- English UI copy ("Matchday", "Date TBC"); kickoff times stored UTC, shown in `Europe/Madrid`.
+- English UI copy with fantasy wording: "GW7" / "Gameweek 7" (never "MD"/"Matchday" in the UI; the API field is
+  still `matchday`), "Date TBC"; kickoff times stored UTC, shown in `Europe/Madrid`.
+- Tiles show colour, opponent and venue only (the owner didn't want a bucket number); difficulty stays in the
+  tooltip, the spoken label and the ring on buckets 4–5.
+- Top cards = picks by position (forwards: xG, defenders/keepers: expected clean sheets, midfielders: 65/35 blend).
 - Frontend must not re-derive what the backend decides: tile colour = `prediction.bucket`, lens cut points = `lens_scales`.
 - API types are generated: change `backend/app/schemas.py`, run `python -m app.openapi_export` (backend) and
   `npm run gen:types` (frontend), then update `frontend/lib/schema.ts` (Zod) until `npm run typecheck` passes.

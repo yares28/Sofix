@@ -6,7 +6,7 @@ test.beforeEach(async ({ page, request }) => {
   await offline(page);
 });
 
-test("phone layout shows five matchdays without scrolling the page sideways", async ({ page }) => {
+test("phone layout shows five gameweeks without scrolling the page sideways", async ({ page }) => {
   await page.goto("/");
   const scroll = page.locator(".scroll");
   await expect(scroll).toBeVisible();
@@ -17,7 +17,7 @@ test("phone layout shows five matchdays without scrolling the page sideways", as
       return { text: cell.textContent ?? "", left: rect.left, right: rect.right };
     }),
   );
-  const visibleMatchdays = headers.filter((h) => h.text.startsWith("MD") && h.left >= box.x - 1 && h.right <= box.x + box.width + 1);
+  const visibleMatchdays = headers.filter((h) => h.text.startsWith("GW") && h.left >= box.x - 1 && h.right <= box.x + box.width + 1);
   expect(visibleMatchdays.length).toBeGreaterThanOrEqual(5);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 

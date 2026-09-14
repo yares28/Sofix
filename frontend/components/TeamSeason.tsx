@@ -40,9 +40,9 @@ export default function TeamSeason({ grid, team }: Props) {
             if (!cell) {
               return (
                 <li key={`${matchday.number}-blank-${i}`} className="season-tile blank">
-                  <span className="season-md">MD{matchday.number}</span>
+                  <span className="season-md">GW{matchday.number}</span>
                   <span className="season-opp">—</span>
-                  <span className="visually-hidden">Matchday {matchday.number}: no game</span>
+                  <span className="visually-hidden">Gameweek {matchday.number}: no game</span>
                 </li>
               );
             }
@@ -54,7 +54,7 @@ export default function TeamSeason({ grid, team }: Props) {
                 : "muted";
             return (
               <li key={cell.fixture_id} className={`season-tile ${tone}`} title={label}>
-                <span className="season-md" aria-hidden="true">MD{matchday.number}</span>
+                <span className="season-md" aria-hidden="true">GW{matchday.number}</span>
                 <span className="season-opp" aria-hidden="true">
                   {cell.opponent_code}
                   <small>{cell.venue}</small>
@@ -166,7 +166,7 @@ function TrendChart({ points }: { points: TrendPoint[] }) {
         {points.map((p, i) => (
           <circle key={`${p.matchday}-${i}`} cx={x(i)} cy={y(p.value)} r={p.kind === "actual" ? 4.5 : 3} className={`trend-dot ${p.kind}`}>
             <title>
-              MD{p.matchday} {p.venue === "H" ? "v" : "at"} {p.opponent}: {p.kind === "actual" ? `${p.value} pts won` : `${p.value.toFixed(2)} expected pts`}
+              GW{p.matchday} {p.venue === "H" ? "v" : "at"} {p.opponent}: {p.kind === "actual" ? `${p.value} pts won` : `${p.value.toFixed(2)} expected pts`}
             </title>
           </circle>
         ))}
@@ -181,7 +181,7 @@ function TrendChart({ points }: { points: TrendPoint[] }) {
       <div className="chart-legend" aria-hidden="true">
         <span><i className="trend-dot actual" /> Points won</span>
         <span><i className="trend-line-key" /> Expected points</span>
-        <span className="muted">Matchday along the bottom</span>
+        <span className="muted">Gameweek along the bottom</span>
       </div>
     </div>
   );

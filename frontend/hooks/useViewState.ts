@@ -50,11 +50,5 @@ export function useViewState(initial: ViewState, pinsInUrl: boolean, knownCodes:
       })),
     [],
   );
-  const pinMany = useCallback(
-    (codes: string[]) =>
-      setState((current) => ({ ...current, pins: [...new Set([...current.pins, ...codes])].slice(-MAX_PINS) })),
-    [],
-  );
-
-  return { state, setState, patch, togglePin, pinMany };
+  return { state, setState, patch, togglePin };
 }

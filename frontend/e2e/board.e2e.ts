@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { gameweekMatches } from "../lib/matches";
 import { grid, offline, openingMatchday, resetBackend, teamRows } from "./helpers";
 
 test.beforeEach(async ({ page, request }) => {
@@ -7,12 +8,12 @@ test.beforeEach(async ({ page, request }) => {
   await offline(page);
 });
 
-test("first load opens on the first mostly unplayed matchday", async ({ page }) => {
+test("first load opens on the first mostly unplayed gameweek", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1, name: "Fixtures & Difficulty" })).toBeVisible();
   await expect(teamRows(page)).toHaveCount(grid.teams.length);
-  await expect(page.locator(".stepper .range")).toHaveText(new RegExp(`^MD${openingMatchday} – MD${openingMatchday + 7}$`));
-  await expect(page.getByRole("button", { name: "Previous matchday" })).toBeDisabled();
+  await expect(page.locator(".stepper .range")).toHaveText(new RegExp(`^GW${openingMatchday} – GW${openingMatchday + 7}$`));
+  await expect(page.getByRole("button", { name: "Previous gameweek" })).toBeDisabled();
 });
 
 test("lens and horizon change the board and are kept in the URL", async ({ page }) => {
@@ -20,26 +21,26 @@ test("lens and horizon change the board and are kept in the URL", async ({ page 
   await page.getByRole("group", { name: "Lens" }).getByRole("button", { name: "Attack" }).click();
   await expect(page.locator(".legend")).toContainText("More xG");
   await page.getByRole("group", { name: "Horizon" }).getByRole("button", { name: "Next 3" }).click();
-  await expect(page.getByRole("button", { name: /^Sort by matchday/ })).toHaveCount(3);
+  await expect(page.getByRole("button", { name: /^Sort by gameweek/ })).toHaveCount(3);
   await expect(page).toHaveURL(/lens=attack/);
   await expect(page).toHaveURL(/h=3/);
 
   await page.reload();
   await expect(page.getByRole("group", { name: "Lens" }).getByRole("button", { name: "Attack" })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByRole("button", { name: /^Sort by matchday/ })).toHaveCount(3);
+  await expect(page.getByRole("button", { name: /^Sort by gameweek/ })).toHaveCount(3);
 });
 
 test("the window steps forward, and back into played rounds only when asked", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Next matchday" }).click();
-  await expect(page.locator(".stepper .range")).toHaveText(new RegExp(`^MD${openingMatchday + 1} `));
-  await page.getByRole("button", { name: "Previous matchday" }).click();
-  await expect(page.getByRole("button", { name: "Previous matchday" })).toBeDisabled();
+  await page.getByRole("button", { name: "Next gameweek" }).click();
+  await expect(page.locator(".stepper .range")).toHaveText(new RegExp(`^GW${openingMatchday + 1} `));
+  await page.getByRole("button", { name: "Previous gameweek" }).click();
+  await expect(page.getByRole("button", { name: "Previous gameweek" })).toBeDisabled();
 
-  await page.getByRole("button", { name: "Show played matchdays" }).click();
-  await expect(page.getByRole("button", { name: "Previous matchday" })).toBeEnabled();
-  await page.getByRole("button", { name: "Previous matchday" }).click();
-  await expect(page.locator(".stepper .range")).toHaveText(new RegExp(`^MD${openingMatchday - 1} `));
+  await page.getByRole("button", { name: "Show played gameweeks" }).click();
+  await expect(page.getByRole("button", { name: "Previous gameweek" })).toBeEnabled();
+  await page.getByRole("button", { name: "Previous gameweek" }).click();
+  await expect(page.locator(".stepper .range")).toHaveText(new RegExp(`^GW${openingMatchday - 1} `));
 });
 
 test("columns sort from the keyboard", async ({ page }) => {
@@ -76,7 +77,7 @@ test("fixture tiles work from the keyboard with a tooltip", async ({ page }) => 
   await page.locator('[data-row="0"][data-col]').first().focus();
   await page.keyboard.press("ArrowRight");
   const focused = page.locator(":focus");
-  await expect(focused).toHaveAttribute("aria-label", /^Matchday \d+, /);
+  await expect(focused).toHaveAttribute("aria-label", /^Gameweek \d+, /);
   await expect(tooltip).toHaveClass(/show/);
   await page.keyboard.press("ArrowDown");
   await expect(focused).toHaveAttribute("data-row", "1");
@@ -104,6 +105,45 @@ test("a malformed API payload shows the error state, not a broken board", async 
   await resetBackend(request); // leave a good payload for the next test
 });
 
+test("Next GW lists the gameweek's matches with forecasts and steps between gameweeks", async ({ page }) => {
+  const column = grid.matchdays.findIndex((md) => md.number === openingMatchday);
+  const { matches } = gameweekMatches(grid, column);
+  await page.goto("/");
+  await page.getByRole("group", { name: "View" }).getByRole("button", { name: "Next GW" }).click();
+  await expect(page).toHaveURL(/view=next/);
+  await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${openingMatchday}` })).toBeVisible();
+  await expect(page.locator(".match")).toHaveCount(matches.length);
+  await expect(page.locator("table.board, .board table")).toHaveCount(0); // the grid is replaced, not stacked
+
+  const forecast = matches.find((m) => m.homeCell.prediction)!;
+  const card = page.getByRole("article", { name: `${forecast.home.name} v ${forecast.away.name}` });
+  await expect(card.getByRole("img", { name: new RegExp(`^${forecast.home.name} win \\d+%, draw \\d+%`) })).toBeVisible();
+  await expect(card.getByRole("rowheader", { name: "Expected goals" })).toBeVisible();
+  await expect(card.getByRole("rowheader", { name: "Clean sheet" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Next gameweek" }).click();
+  await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${openingMatchday + 1}` })).toBeVisible();
+  await expect(page.locator(".pick-measure").first()).toContainText(`GW${openingMatchday + 1}`);
+});
+
+test("pick cards rank clubs for each position and pin a club when clicked", async ({ page }) => {
+  await page.goto("/");
+  for (const title of ["Forwards", "Midfielders", "Defenders & keepers"]) {
+    await expect(page.getByRole("heading", { level: 2, name: title })).toBeVisible();
+  }
+  const forwards = page.locator(".pick-card").filter({ has: page.getByRole("heading", { name: "Forwards" }) }).locator(".pick");
+  await expect(forwards).toHaveCount(4);
+  const xg = (await forwards.locator(".pick-value").allTextContents()).map((text) => parseFloat(text));
+  expect(xg).toEqual([...xg].sort((a, b) => b - a));
+
+  const top = forwards.first();
+  const name = (await top.locator(".pick-name").textContent())!;
+  await top.click();
+  await expect(top).toHaveAttribute("aria-pressed", "true");
+  await expect(teamRows(page).first().locator(".team-name")).toHaveText(name);
+  await expect(page.locator(".cell .bucket-num")).toHaveCount(0); // tiles carry no corner number
+});
+
 test("team names open the team page", async ({ page }) => {
   await page.goto("/");
   const team = grid.teams[0]!;
@@ -129,4 +169,9 @@ test("the board has no automatically detectable accessibility violations", async
     (v) => `${v.id}: ${v.help} → ${v.nodes.slice(0, 6).map((n) => `${n.target.join(" ")} (${n.any[0]?.message ?? ""})`).join("; ")}`,
   );
   expect(report).toEqual([]);
+
+  await page.goto("/?view=next");
+  await expect(page.locator(".match").first()).toBeVisible();
+  const next = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
+  expect(next.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).slice(0, 4).join("; ")}`)).toEqual([]);
 });

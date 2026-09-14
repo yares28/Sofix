@@ -43,8 +43,10 @@ def test_registry_codes_and_history_names_are_unique():
 # ---------------------------------------------------------------- predictions
 
 
-def test_load_config_falls_back_to_defaults(tmp_path):
-    assert load_config(tmp_path / "missing.json") == DixonColesConfig()
+def test_load_config_requires_the_tuned_file(tmp_path):
+    with pytest.raises(FileNotFoundError, match="app.jobs.backtest"):
+        load_config(tmp_path / "missing.json")
+    assert load_config(tmp_path / "missing.json", allow_defaults=True) == DixonColesConfig()
     path = tmp_path / "config.json"
     path.write_text('{"model": "dixon-coles", "xi": 0.004, "ridge": 3.0}', encoding="utf-8")
     config = load_config(path)
@@ -313,10 +315,12 @@ def test_replace_predictions_does_not_pile_up(seeded):
     teams = {fx.home_team_id for fx in fixtures} | {fx.away_team_id for fx in fixtures}
     names = dict(zip(sorted(teams), ["Strong", "Good", "Mid A", "Weak"], strict=True))
     now = datetime.now(UTC)
-    assert replace_predictions(seeded, fixtures, model, names, now) == 4
-    assert replace_predictions(seeded, fixtures, model, names, now) == 4
+    assert replace_predictions(seeded, fixtures, model, names, now, "dixon-coles-v1+aaaaaaaa") == 4
+    assert replace_predictions(seeded, fixtures, model, names, now, "dixon-coles-v1+aaaaaaaa") == 4
+    # A retuned model replaces the old version's rows instead of adding a second set.
+    assert replace_predictions(seeded, fixtures, model, names, now, "dixon-coles-v1+bbbbbbbb") == 4
     rows = seeded.query(Prediction).filter(Prediction.fixture_id.in_([fx.id for fx in fixtures])).all()
-    assert len(rows) == 4 and {r.model_version for r in rows} == {"dixon-coles-v1"}
+    assert len(rows) == 4 and {r.model_version for r in rows} == {"dixon-coles-v1+bbbbbbbb"}
 
 
 def test_upcoming_fixtures_compares_in_utc(seeded):

@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import pandas as pd
@@ -11,17 +12,29 @@ import pandas as pd
 from app.modeling.dixon_coles import DixonColesConfig, DixonColesModel
 from app.services.scoring import difficulty_label, difficulty_score, expected_points
 
-MODEL_VERSION = "dixon-coles-v1"
+MODEL_FAMILY = "dixon-coles-v1"
 
 
-def load_config(path: str | Path) -> DixonColesConfig:
-    """Backtest-tuned settings, or defaults when no backtest has been run yet."""
+def load_config(path: str | Path, allow_defaults: bool = False) -> DixonColesConfig:
+    """Backtest-tuned settings from artifacts/dixon_coles.json.
+
+    Missing file is an error: silently predicting with untuned defaults would change every rating.
+    Pass allow_defaults=True only in tests or before the first backtest.
+    """
     path = Path(path)
     if not path.exists():
-        return DixonColesConfig()
+        if allow_defaults:
+            return DixonColesConfig()
+        raise FileNotFoundError(f"tuned model config not found at {path}; run python -m app.jobs.backtest")
     params = json.loads(path.read_text(encoding="utf-8"))
     fields = DixonColesConfig.__dataclass_fields__
     return DixonColesConfig(**{k: v for k, v in params.items() if k in fields})
+
+
+def model_version(config: DixonColesConfig) -> str:
+    """Stable id for predictions made with these settings, e.g. dixon-coles-v1+3f2a9c1d."""
+    digest = hashlib.sha256(json.dumps(asdict(config), sort_keys=True).encode()).hexdigest()[:8]
+    return f"{MODEL_FAMILY}+{digest}"
 
 
 def merge_recent_results(history: pd.DataFrame, recent: pd.DataFrame) -> pd.DataFrame:

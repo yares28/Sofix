@@ -11,6 +11,8 @@
 import asyncio
 import logging
 
+from app.config import settings
+from app.db import database_target
 from app.jobs import predict, seed_and_sync, sync_weather
 from app.logging_config import configure_logging
 from app.migrate import upgrade_to_head
@@ -20,6 +22,9 @@ logger = logging.getLogger(__name__)
 
 def main() -> None:
     configure_logging()
+    logger.info("database: %s", database_target(settings.postgres_url))
+    if settings.app_env == "prod" and settings.postgres_url.startswith("sqlite"):
+        raise SystemExit("APP_ENV=prod but POSTGRES_URL is not set (would write to a throwaway SQLite file)")
     upgrade_to_head()
     logger.info("1/3 syncing fixtures")
     asyncio.run(seed_and_sync.main())

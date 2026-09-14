@@ -21,7 +21,7 @@ from app.db import SessionLocal
 from app.logging_config import configure_logging
 from app.modeling.dixon_coles import DixonColesModel, fit_dixon_coles
 from app.models import Fixture, Prediction, Team
-from app.services.rating_predictions import MODEL_VERSION, load_config, merge_recent_results, predict_both_sides
+from app.services.rating_predictions import load_config, merge_recent_results, model_version, predict_both_sides
 from app.services.team_registry import by_code
 from app.services.timeutil import as_utc
 
@@ -73,22 +73,29 @@ def upcoming_fixtures(db: Session, season: str, now: datetime) -> list[Fixture]:
 
 
 def history_names(teams_by_id: dict[int, Team]) -> dict[int, str]:
+    """The name each club has in the football-data.co.uk history.
+
+    Clubs missing from the registry keep their own name; with no history under it, the model
+    rates them from the prior until they are added to the registry.
+    """
     names = {}
     for team_id, team in teams_by_id.items():
         info = by_code(team.code)
-        if info:
-            names[team_id] = info.history_name
+        names[team_id] = info.history_name if info else (team.short_name or team.canonical_name)
     return names
 
 
 def replace_predictions(
-    db: Session, fixtures: list[Fixture], model: DixonColesModel, names: dict[int, str], now: datetime
+    db: Session,
+    fixtures: list[Fixture],
+    model: DixonColesModel,
+    names: dict[int, str],
+    now: datetime,
+    version: str,
 ) -> int:
-    """Swap this model version's predictions for the given fixtures in one transaction."""
+    """Replace the predictions for these fixtures (any earlier model version) in one transaction."""
     fixture_ids = [fx.id for fx in fixtures]
-    db.query(Prediction).filter(
-        Prediction.fixture_id.in_(fixture_ids or [-1]), Prediction.model_version == MODEL_VERSION
-    ).delete(synchronize_session=False)
+    db.query(Prediction).filter(Prediction.fixture_id.in_(fixture_ids or [-1])).delete(synchronize_session=False)
     written = 0
     for fx in fixtures:
         home_pred, away_pred = predict_both_sides(model, names[fx.home_team_id], names[fx.away_team_id])
@@ -98,7 +105,7 @@ def replace_predictions(
                     fixture_id=fx.id,
                     perspective_team_id=team_id,
                     prediction_ts=now,
-                    model_version=MODEL_VERSION,
+                    model_version=version,
                     p_win=pred.p_win,
                     p_draw=pred.p_draw,
                     p_loss=pred.p_loss,
@@ -151,8 +158,9 @@ def main() -> None:
             config,
         )
 
-        written = replace_predictions(db, upcoming, model, names, now)
-        logger.info("predictions %d for %d upcoming fixtures", written, len(upcoming))
+        version = model_version(config)
+        written = replace_predictions(db, upcoming, model, names, now, version)
+        logger.info("predictions %d for %d upcoming fixtures (model %s)", written, len(upcoming), version)
     finally:
         db.close()
 

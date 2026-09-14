@@ -10,6 +10,14 @@ from app.config import settings
 NEON_HOST_SUFFIX = ".neon.tech"
 
 
+def database_target(url: str) -> str:
+    """Where a URL points, safe to log: backend, user, host and database, never the password."""
+    parsed = make_url(url)
+    if parsed.get_backend_name() == "sqlite":
+        return f"sqlite:{parsed.database or 'memory'}"
+    return f"{parsed.get_backend_name()}://{parsed.username}@{parsed.host}/{parsed.database}"
+
+
 def engine_options(url: str) -> dict[str, Any]:
     if url.startswith("sqlite"):
         return {"connect_args": {"check_same_thread": False}}

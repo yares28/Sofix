@@ -1,17 +1,20 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
+from app.logging_config import configure_logging
 from app.models import Competition, Fixture, SourceEntityMap, Stadium, Team
 from app.services.team_registry import require_code
 from app.services.timeutil import as_utc
 from app.sources.football_data_org import FootballDataOrg
 
 COMP_KEY = "PD"
+logger = logging.getLogger(__name__)
 
 
 def get_or_create_comp(db: Session):
@@ -151,15 +154,16 @@ def sync(payload: dict, session_factory=SessionLocal):
         }
         unknown = sum(1 for m in matches if str(m.get("status", "")).upper() not in KNOWN_STATUSES)
         if unknown:
-            print(f"warning: {unknown} matches had an unrecognised status; stored as TIMED")
+            logger.warning("%d matches had an unrecognised status; stored as TIMED", unknown)
         teams: dict = {}
         for m in matches:
             upsert_fixture(db, comp, m, teams, existing)
         db.commit()
-        print("synced", len(payload.get("matches", [])), "fixtures")
+        logger.info("synced %d fixtures", len(matches))
     finally:
         db.close()
 
 
 if __name__ == "__main__":
+    configure_logging()
     asyncio.run(main())

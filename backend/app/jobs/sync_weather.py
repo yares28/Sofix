@@ -7,16 +7,19 @@ confirmed kickoff time get a forecast, and each run replaces the previous foreca
 """
 
 import asyncio
+import logging
 from datetime import UTC, datetime, timedelta
 
 import httpx
 
 from app.db import SessionLocal
+from app.logging_config import configure_logging
 from app.models import Fixture, Stadium, WeatherSnapshot
 from app.services.timeutil import as_utc
 from app.sources.open_meteo import at_kickoff, hourly_forecast
 
 HORIZON_DAYS = 14
+logger = logging.getLogger(__name__)
 
 
 def forecastable(fixtures: list[Fixture], now: datetime) -> dict[int, list[Fixture]]:
@@ -45,7 +48,7 @@ async def main(session_factory=SessionLocal, client: httpx.AsyncClient | None = 
                 try:
                     data = await hourly_forecast(stadium.latitude, stadium.longitude, http)
                 except httpx.HTTPError as exc:
-                    print("weather failed", stadium.name, repr(exc))
+                    logger.warning("weather failed for %s: %s", stadium.name, type(exc).__name__)
                     continue
                 for fx in stadium_fixtures:
                     row = at_kickoff(data, fx.kickoff_utc, now)
@@ -59,10 +62,11 @@ async def main(session_factory=SessionLocal, client: httpx.AsyncClient | None = 
             if client is None:
                 await http.aclose()
         db.commit()
-        print("weather rows", written, "for", len(by_stadium), "stadiums")
+        logger.info("weather rows %d for %d stadiums", written, len(by_stadium))
     finally:
         db.close()
 
 
 if __name__ == "__main__":
+    configure_logging()
     asyncio.run(main())

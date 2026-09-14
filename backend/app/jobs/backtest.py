@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import itertools
 import json
+import logging
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import asdict
 from datetime import UTC, datetime
@@ -32,7 +33,10 @@ from app.backtest.data import load_history, promoted_teams
 from app.backtest.methods import base_rates, closing_odds, dixon_coles, elo_fallback
 from app.backtest.metrics import summarize
 from app.backtest.walkforward import run_ranking, run_walkforward, team_perspective
+from app.logging_config import configure_logging
 from app.modeling.dixon_coles import DixonColesConfig, fit_dixon_coles
+
+logger = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parents[2]
 CACHE_DIR = ROOT / "data" / "raw" / "football-data-co-uk"
@@ -74,14 +78,14 @@ def evaluate_config(config: DixonColesConfig, seasons: list[int], matches: pd.Da
         predictions = with_known_odds(run_walkforward(matches, seasons, [dixon_coles("candidate", config)]), matches)
         return float(summarize(predictions, ["method"])["rps"].iloc[0])
     except Exception as exc:  # one bad config must not sink the whole grid
-        print(f"config {config} failed: {exc!r}")
+        logger.warning("config %s failed: %r", config, exc)
         return float("nan")
 
 
 def tune(
     matches: pd.DataFrame, seasons: list[int], grid: list[DixonColesConfig], workers: int
 ) -> tuple[DixonColesConfig, pd.DataFrame]:
-    print(f"tuning {len(grid)} configs on seasons {seasons} with {workers} workers")
+    logger.info("tuning %d configs on seasons %s with %d workers", len(grid), seasons, workers)
     if workers <= 1:
         scores = [evaluate_config(config, seasons, matches) for config in grid]
     else:
@@ -288,11 +292,17 @@ def main() -> None:
     tune_seasons = TUNE_SEASONS[-1:] if args.quick else TUNE_SEASONS
     test_seasons = TEST_SEASONS[-1:] if args.quick else TEST_SEASONS
 
+    configure_logging()
     matches = load_history(range(FIRST_SEASON, CURRENT_SEASON + 1), CACHE_DIR, refresh_latest=args.refresh)
-    print(f"loaded {len(matches)} matches, {matches['date'].min():%Y-%m-%d} → {matches['date'].max():%Y-%m-%d}")
+    logger.info(
+        "loaded %d matches, %s → %s",
+        len(matches),
+        f"{matches['date'].min():%Y-%m-%d}",
+        f"{matches['date'].max():%Y-%m-%d}",
+    )
 
     best, tuning = tune(matches, tune_seasons, config_grid(args.quick), args.workers)
-    print("best config:", best)
+    logger.info("best config: %s", best)
 
     tune_best = run_walkforward(matches, tune_seasons, [dixon_coles("Dixon-Coles (tuned)", best)])
     static = DixonColesConfig(xi=0.0, goals_weight=1.0, ridge=best.ridge, promoted_prior=0.0)
@@ -303,7 +313,7 @@ def main() -> None:
         base_rates(),
         closing_odds(),
     ]
-    print(f"backtesting {len(methods)} methods on seasons {test_seasons}")
+    logger.info("backtesting %d methods on seasons %s", len(methods), test_seasons)
     test = with_known_odds(run_walkforward(matches, test_seasons, methods), matches)
 
     report = build_report(matches, best, tuning, test, with_known_odds(tune_best, matches), tune_seasons, test_seasons)
@@ -311,7 +321,7 @@ def main() -> None:
     REPORT_PATH.write_text(report, encoding="utf-8")
     CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     CONFIG_PATH.write_text(json.dumps({"model": "dixon-coles", **asdict(best)}, indent=2), encoding="utf-8")
-    print(f"report → {REPORT_PATH}\nconfig → {CONFIG_PATH}")
+    logger.info("report → %s; config → %s", REPORT_PATH, CONFIG_PATH)
 
 
 if __name__ == "__main__":

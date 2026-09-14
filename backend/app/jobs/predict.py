@@ -9,6 +9,7 @@ team per upcoming fixture) for this model version.
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
 
 import pandas as pd
@@ -17,6 +18,7 @@ from sqlalchemy.orm import Session
 from app.backtest.data import load_history, promoted_teams
 from app.config import settings
 from app.db import SessionLocal
+from app.logging_config import configure_logging
 from app.modeling.dixon_coles import DixonColesModel, fit_dixon_coles
 from app.models import Fixture, Prediction, Team
 from app.services.rating_predictions import MODEL_VERSION, load_config, merge_recent_results, predict_both_sides
@@ -25,6 +27,7 @@ from app.services.timeutil import as_utc
 
 HISTORY_SEASONS = 4  # current season plus three before it; the model only looks back two years
 OPEN_STATUSES = {"SCHEDULED", "TIMED"}
+logger = logging.getLogger(__name__)
 
 
 def season_start_year(season_label: str) -> int:
@@ -140,16 +143,20 @@ def main() -> None:
             promoted=promoted_teams(history, start),
             config=config,
         )
-        print(
-            f"fitted on {len(history)} matches through {history['date'].max():%Y-%m-%d}; "
-            f"home advantage {model.home_adv:+.3f}; config {config}"
+        logger.info(
+            "fitted on %d matches through %s; home advantage %+.3f; config %s",
+            len(history),
+            f"{history['date'].max():%Y-%m-%d}",
+            model.home_adv,
+            config,
         )
 
         written = replace_predictions(db, upcoming, model, names, now)
-        print(f"predictions {written} for {len(upcoming)} upcoming fixtures")
+        logger.info("predictions %d for %d upcoming fixtures", written, len(upcoming))
     finally:
         db.close()
 
 
 if __name__ == "__main__":
+    configure_logging()
     main()

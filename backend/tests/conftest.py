@@ -1,6 +1,14 @@
-import numpy as np
-import pandas as pd
-import pytest
+import os
+
+# Tests must never reach a real database. pytest loads this file before any test module imports `app`,
+# and environment variables take priority over the repo-root .env that points at Neon.
+os.environ["POSTGRES_URL"] = "sqlite://"
+os.environ["POSTGRES_MIGRATION_URL"] = ""
+os.environ["APP_ENV"] = "dev"
+
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+import pytest  # noqa: E402
 
 TRUE_ATTACK = {"Strong": 0.45, "Good": 0.2, "Mid A": 0.0, "Mid B": 0.0, "Weak": -0.25, "Poor": -0.4}
 TRUE_DEFENCE = {"Strong": 0.4, "Good": 0.15, "Mid A": 0.0, "Mid B": 0.0, "Weak": -0.2, "Poor": -0.35}

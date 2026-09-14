@@ -9,18 +9,23 @@
 """
 
 import asyncio
+import logging
 
 from app.jobs import predict, seed_and_sync, sync_weather
+from app.logging_config import configure_logging
 from app.migrate import upgrade_to_head
+
+logger = logging.getLogger(__name__)
 
 
 def main() -> None:
+    configure_logging()
     upgrade_to_head()
-    print("1/3 syncing fixtures")
+    logger.info("1/3 syncing fixtures")
     asyncio.run(seed_and_sync.main())
-    print("2/3 predicting")
+    logger.info("2/3 predicting")
     predict.main()
-    print("3/3 weather")
+    logger.info("3/3 weather")
     asyncio.run(sync_weather.main())
 
 

@@ -1,6 +1,14 @@
 import certifi
 
-from app.db import engine_options
+from app.config import settings
+from app.db import engine, engine_options
+
+
+def test_tests_never_use_a_real_database():
+    """Guard for tests/conftest.py: if this fails, a test run could write to Neon."""
+    assert engine.url.get_backend_name() == "sqlite"
+    assert engine.url.database in (None, "")  # in-memory
+    assert settings.postgres_migration_url == ""
 
 
 def test_sqlite_options():

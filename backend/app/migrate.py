@@ -3,11 +3,16 @@
 python -m app.migrate
 """
 
+import logging
+
 from alembic import command
 from alembic.config import Config
 from sqlalchemy.engine import make_url
 
 from app.config import BACKEND_DIR
+from app.logging_config import configure_logging
+
+logger = logging.getLogger(__name__)
 
 
 class MigrationTargetMismatch(RuntimeError):
@@ -43,6 +48,7 @@ def ensure_same_database(app_url: str, migration_url: str | None) -> None:
 def alembic_config(url: str | None = None) -> Config:
     config = Config(str(BACKEND_DIR / "alembic.ini"))
     config.set_main_option("script_location", str(BACKEND_DIR / "migrations"))
+    config.attributes["configure_logger"] = False  # keep the caller's logging setup
     if url:
         # attributes, not set_main_option: configparser chokes on '%' in URL-encoded passwords
         config.attributes["database_url"] = url
@@ -54,5 +60,6 @@ def upgrade_to_head(url: str | None = None) -> None:
 
 
 if __name__ == "__main__":
+    configure_logging()
     upgrade_to_head()
-    print("database schema is up to date")
+    logger.info("database schema is up to date")

@@ -9,7 +9,9 @@ from app.db import Base, engine_options
 from app.migrate import ensure_same_database
 
 config = context.config
-if config.config_file_name is not None:
+# From the alembic CLI, use alembic.ini's logging. From code (app.migrate), keep the app's logging:
+# fileConfig would reset the root logger to WARNING and hide the job logs that follow.
+if config.config_file_name is not None and config.attributes.get("configure_logger", True):
     fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = Base.metadata

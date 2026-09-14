@@ -55,7 +55,10 @@ export default function FixtureBoard({ grid }: { grid: FixtureGrid }) {
     const index = new Map<string, { team: GridTeam; cell: GridCell; matchday: number }>();
     grid.teams.forEach((team) =>
       team.cells.forEach((cells, column) =>
-        cells.forEach((cell) => index.set(`${team.code}-${cell.fixture_id}`, { team, cell, matchday: grid.matchdays[column].number })),
+        cells.forEach((cell) => {
+          const matchday = grid.matchdays[column];
+          if (matchday) index.set(`${team.code}-${cell.fixture_id}`, { team, cell, matchday: matchday.number });
+        }),
       ),
     );
     return index;
@@ -63,6 +66,8 @@ export default function FixtureBoard({ grid }: { grid: FixtureGrid }) {
 
   const { start, end } = windowRange(total, startColumn, horizon === "all" ? total : Number(horizon));
   const columns = grid.matchdays.slice(start, end);
+  const firstColumn = columns[0];
+  const lastColumn = columns[columns.length - 1];
   const scale = scales[lens];
   // A matchday sort only applies while that column is visible.
   const activeSort = useMemo<SortState>(
@@ -103,14 +108,16 @@ export default function FixtureBoard({ grid }: { grid: FixtureGrid }) {
     const attack = grid.teams
       .map((team) => ({ team, stats: runStats(team, start, end, "attack", scales.attack) }))
       .filter((entry) => entry.stats.average !== null);
-    if (overall.length === 0) return [];
     const byAverage = [...overall].sort((a, b) => a.stats.average! - b.stats.average!);
+    const kindest = byAverage[0];
+    const toughest = byAverage[byAverage.length - 1];
+    if (!kindest || !toughest) return [];
     const bestAttack = [...attack].sort((a, b) => b.stats.average! - a.stats.average!)[0];
     const games = (s: { fixtures: number }) => `${s.fixtures} ${s.fixtures === 1 ? "game" : "games"}`;
     const cards: Insight[] = [
-      { label: "Kindest run", dot: BUCKET_STRONG[1], ...byAverage[0],
+      { label: "Kindest run", dot: BUCKET_STRONG[1], ...kindest,
         describe: (s) => `Avg difficulty ${formatLensValue(s.average!, "overall")} over ${games(s)}` },
-      { label: "Toughest run", dot: BUCKET_STRONG[5], ...byAverage[byAverage.length - 1],
+      { label: "Toughest run", dot: BUCKET_STRONG[5], ...toughest,
         describe: (s) => `Avg difficulty ${formatLensValue(s.average!, "overall")} over ${games(s)}` },
     ];
     if (bestAttack) {
@@ -179,7 +186,7 @@ export default function FixtureBoard({ grid }: { grid: FixtureGrid }) {
                 <Chevron direction="left" />
               </button>
               <div className="range">
-                {columns.length > 0 ? `MD${columns[0].number} – MD${columns[columns.length - 1].number}` : "—"}
+                {firstColumn && lastColumn ? `MD${firstColumn.number} – MD${lastColumn.number}` : "—"}
               </div>
               <button type="button" aria-label="Next matchday" disabled={start >= total - 1 || (horizon !== "all" && end >= total)} onClick={() => setStartColumn(start + 1)}>
                 <Chevron direction="right" />
@@ -196,13 +203,13 @@ export default function FixtureBoard({ grid }: { grid: FixtureGrid }) {
               ))}
               Hard
             </div>
-            <label className="search">
+            <div className="search">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
                 <circle cx="11" cy="11" r="7" />
                 <path d="M20 20l-3.5-3.5" />
               </svg>
-              <input type="search" placeholder="Search teams" autoComplete="off" value={query} onChange={(e) => setQuery(e.target.value)} />
-            </label>
+              <input type="search" aria-label="Search teams" placeholder="Search teams" autoComplete="off" value={query} onChange={(e) => setQuery(e.target.value)} />
+            </div>
           </div>
         </div>
 
@@ -242,7 +249,7 @@ export default function FixtureBoard({ grid }: { grid: FixtureGrid }) {
                       </button>
                     </td>
                     {team.cells.slice(start, end).map((cells, i) => (
-                      <td key={grid.matchdays[start + i].number}>
+                      <td key={grid.matchdays[start + i]?.number ?? `col-${start + i}`}>
                         <FixtureCell
                           cells={cells}
                           cellKey={(cell) => `${team.code}-${cell.fixture_id}`}

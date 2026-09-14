@@ -6,7 +6,7 @@ import type { Bucket, DifficultyLabel, GridCell, GridTeam, LensScale } from "./t
 
 const OVERALL: LensScale = { cuts: [37.4, 48.6, 61.1, 71.3], higher_is_easier: false };
 const ATTACK: LensScale = { cuts: [2.0, 1.6, 1.2, 0.9], higher_is_easier: true };
-const LABELS: DifficultyLabel[] = ["Easy", "Easy-ish", "Normal", "Hard-ish", "Hard"];
+const LABELS: Record<Bucket, DifficultyLabel> = { 1: "Easy", 2: "Easy-ish", 3: "Normal", 4: "Hard-ish", 5: "Hard" };
 
 let nextId = 1;
 
@@ -25,7 +25,7 @@ function cell(
     status: "scheduled",
     result: null,
     prediction: {
-      difficulty, label: LABELS[resolved - 1], bucket: resolved, expected_points: 1.4,
+      difficulty, label: LABELS[resolved], bucket: resolved, expected_points: 1.4,
       probabilities: { win: 0.4, draw: 0.25, loss: 0.35 }, clean_sheet: cs, xg_for: xg, xg_against: 1.1,
     },
     weather: null,

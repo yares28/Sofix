@@ -4,8 +4,8 @@ import type { GridTeam } from "../lib/types";
 function isLight(hex: string): boolean {
   const value = hex.replace("#", "");
   if (value.length !== 6) return false;
-  const [r, g, b] = [0, 2, 4].map((i) => parseInt(value.slice(i, i + 2), 16) / 255);
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.6;
+  const channel = (i: number) => parseInt(value.slice(i, i + 2), 16) / 255;
+  return 0.2126 * channel(0) + 0.7152 * channel(2) + 0.0722 * channel(4) > 0.6;
 }
 
 // Colour badge with the club code. No club crests: team names and colours only.

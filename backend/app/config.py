@@ -10,12 +10,8 @@ class Settings(BaseSettings):
     postgres_migration_url: str = ""
     football_data_org_token: str = ""
     football_data_org_competition: str = "PD"
-    model_path: str = "artifacts/outcome_model.joblib"
     dixon_coles_config_path: str = str(BACKEND_DIR / "artifacts" / "dixon_coles.json")
     history_cache_dir: str = str(BACKEND_DIR / "data" / "raw" / "football-data-co-uk")
-    weight_model: float = 0.55
-    weight_poisson: float = 0.25
-    weight_market: float = 0.20
     # Repo-root .env (shared with docker compose) first; backend/.env can override it.
     model_config = SettingsConfigDict(env_file=(REPO_ROOT / ".env", BACKEND_DIR / ".env"), case_sensitive=False, extra="ignore")
 

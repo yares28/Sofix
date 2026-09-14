@@ -4,8 +4,8 @@
     python -m app.jobs.backtest --quick    # small grid, fewer seasons (smoke test)
     python -m app.jobs.backtest --refresh  # re-download the season in progress
 
-Tuning uses the 2019/20–2022/23 seasons. The report scores 2023/24–2025/26, which the
-tuning never saw.
+Seasons follow the calendar (see season_plan): tuning uses 4 seasons, and the report scores the
+last 3 completed seasons, which the tuning never saw. In 2026/27: tune 2019–2022, test 2023–2025.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ import json
 import logging
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import asdict
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import numpy as np
@@ -29,7 +29,7 @@ from app.backtest.calibration import (
     propose_thresholds,
     with_difficulty,
 )
-from app.backtest.data import load_history, promoted_teams
+from app.backtest.data import current_season_start, load_history, promoted_teams
 from app.backtest.methods import base_rates, closing_odds, dixon_coles, elo_fallback
 from app.backtest.metrics import summarize
 from app.backtest.walkforward import run_ranking, run_walkforward, team_perspective
@@ -43,8 +43,20 @@ CACHE_DIR = ROOT / "data" / "raw" / "football-data-co-uk"
 REPORT_PATH = ROOT / "reports" / "backtest_laliga.md"
 CONFIG_PATH = ROOT / "artifacts" / "dixon_coles.json"
 
-FIRST_SEASON, CURRENT_SEASON = 2016, 2026
-TUNE_SEASONS, TEST_SEASONS = [2019, 2020, 2021, 2022], [2023, 2024, 2025]
+
+def season_plan(current: int) -> tuple[int, list[int], list[int]]:
+    """(first season to load, tuning seasons, test seasons) for the season in progress.
+
+    Test on the last 3 completed seasons, tune on the 4 before them, and load 3 more for history.
+    For 2026/27 that is tune 2019–2022, test 2023–2025, as in the published baseline.
+    """
+    test = list(range(current - 3, current))
+    tune = list(range(current - 7, current - 3))
+    return current - 10, tune, test
+
+
+CURRENT_SEASON = current_season_start(date.today())
+FIRST_SEASON, TUNE_SEASONS, TEST_SEASONS = season_plan(CURRENT_SEASON)
 HORIZON_BUCKETS = [(1, 1, "1 week"), (2, 3, "2–3 weeks"), (4, 5, "4–5 weeks"), (6, 8, "6–8 weeks")]
 
 

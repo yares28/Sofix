@@ -9,7 +9,7 @@ from typing import cast
 
 from sqlalchemy.orm import Session
 
-from app.models import Fixture, Prediction, Team, WeatherSnapshot
+from app.models import Fixture, Prediction, RefreshRun, Team, WeatherSnapshot
 from app.schemas import (
     CellPrediction,
     CellResult,
@@ -247,14 +247,28 @@ def build_fixture_grid(db: Session) -> FixtureGrid | None:
     )
 
 
+def last_successful_sync(db: Session) -> datetime | None:
+    """When the fixtures were last checked against football-data.org.
+
+    Fixtures are only rewritten when they change, so their timestamps can't answer this; the
+    refresh run history can. Falls back to fixture timestamps for data synced before run tracking.
+    """
+    recent = db.query(RefreshRun).order_by(RefreshRun.started_at.desc()).limit(20).all()
+    for run in recent:
+        sync_step = (run.details or {}).get("sync") or {}
+        if sync_step.get("status") == "succeeded" and run.finished_at is not None:
+            return as_utc(run.finished_at)
+    latest_change = (
+        db.query(Fixture.source_updated_at).order_by(Fixture.source_updated_at.desc().nulls_last()).limit(1).scalar()
+    )
+    return as_utc(latest_change) if latest_change else None
+
+
 def grid_meta(db: Session) -> GridMeta:
     last_prediction = (
         db.query(Prediction.prediction_ts).order_by(Prediction.prediction_ts.desc().nulls_last()).limit(1).scalar()
     )
-    last_sync = (
-        db.query(Fixture.source_updated_at).order_by(Fixture.source_updated_at.desc().nulls_last()).limit(1).scalar()
-    )
     return GridMeta(
-        last_synced_at=as_utc(last_sync) if last_sync else None,
+        last_synced_at=last_successful_sync(db),
         last_predicted_at=as_utc(last_prediction) if last_prediction else None,
     )

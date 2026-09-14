@@ -11,6 +11,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 
 import httpx
+from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
 from app.logging_config import configure_logging
@@ -33,11 +34,27 @@ def forecastable(fixtures: list[Fixture], now: datetime) -> dict[int, list[Fixtu
     return by_stadium
 
 
-async def main(session_factory=SessionLocal, client: httpx.AsyncClient | None = None) -> dict:
+def clear_stale_weather(db: Session, keep_fixture_ids: set[int]) -> int:
+    """Delete forecasts for fixtures that are no longer forecastable (played, postponed, date TBC,
+    or outside the horizon), so the tooltip never shows an outdated forecast."""
+    stale = [
+        row.id
+        for row in db.query(WeatherSnapshot.id, WeatherSnapshot.fixture_id).all()
+        if row.fixture_id not in keep_fixture_ids
+    ]
+    if stale:
+        db.query(WeatherSnapshot).filter(WeatherSnapshot.id.in_(stale)).delete(synchronize_session=False)
+    return len(stale)
+
+
+async def main(
+    session_factory=SessionLocal, client: httpx.AsyncClient | None = None, now: datetime | None = None
+) -> dict:
     db = session_factory()
     try:
-        now = datetime.now(UTC)
+        now = now or datetime.now(UTC)
         by_stadium = forecastable(db.query(Fixture).filter(Fixture.status == "TIMED").all(), now)
+        cleared = clear_stale_weather(db, {fx.id for fixtures in by_stadium.values() for fx in fixtures})
         written = 0
         http = client or httpx.AsyncClient(timeout=30)
         try:
@@ -62,8 +79,8 @@ async def main(session_factory=SessionLocal, client: httpx.AsyncClient | None = 
             if client is None:
                 await http.aclose()
         db.commit()
-        logger.info("weather rows %d for %d stadiums", written, len(by_stadium))
-        return {"rows": written, "stadiums": len(by_stadium)}
+        logger.info("weather rows %d for %d stadiums (%d stale removed)", written, len(by_stadium), cleared)
+        return {"rows": written, "stadiums": len(by_stadium), "stale_removed": cleared}
     finally:
         db.close()
 

@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+import logging
+from collections.abc import Callable, Iterable
+from datetime import date
 from pathlib import Path
 
+import httpx
 import numpy as np
 import pandas as pd
 
-from app.sources.football_data_co_uk import fetch_season_csv
+from app.sources.football_data_co_uk import cached_path, fetch_season_csv
+
+logger = logging.getLogger(__name__)
 
 MATCH_COLUMNS = ["season_start", "date", "home", "away", "hg", "ag", "hst", "ast", "odds_h", "odds_d", "odds_a"]
 REQUIRED = ["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"]
@@ -60,13 +65,56 @@ def normalize_season(raw: pd.DataFrame, season_start: int) -> pd.DataFrame:
     return out.sort_values("date", kind="stable", ignore_index=True)[MATCH_COLUMNS]
 
 
-def load_history(season_starts: Iterable[int], cache_dir: Path, refresh_latest: bool = False) -> pd.DataFrame:
+def load_history(
+    season_starts: Iterable[int],
+    cache_dir: Path,
+    refresh_latest: bool = False,
+    fetch: Callable[..., pd.DataFrame] = fetch_season_csv,
+) -> pd.DataFrame:
+    """All requested seasons in one frame.
+
+    Resilient to the calendar and the network: the newest season's CSV only appears around
+    matchday 1 (a 404 before that means "no rows yet"), and a failed re-download falls back to
+    the cached copy when there is one.
+    """
     seasons = sorted(season_starts)
-    frames = [
-        normalize_season(fetch_season_csv(year, cache_dir, refresh=refresh_latest and year == seasons[-1]), year)
-        for year in seasons
-    ]
+    frames = []
+    for year in seasons:
+        newest = year == seasons[-1]
+        try:
+            raw = fetch(year, cache_dir, refresh=refresh_latest and newest)
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 404 and newest:
+                logger.info("no football-data.co.uk CSV for %d/%02d yet; using earlier seasons", year, (year + 1) % 100)
+                continue
+            raw = _cached_or_raise(year, cache_dir, exc, fetch)
+        except httpx.TransportError as exc:
+            raw = _cached_or_raise(year, cache_dir, exc, fetch)
+        frames.append(normalize_season(raw, year))
+    if not frames:
+        raise RuntimeError(f"no match history available for seasons {seasons}")
     return pd.concat(frames, ignore_index=True).sort_values("date", kind="stable", ignore_index=True)
+
+
+def _cached_or_raise(year: int, cache_dir: Path, exc: Exception, fetch: Callable[..., pd.DataFrame]) -> pd.DataFrame:
+    if not cached_path(year, cache_dir).exists():
+        raise exc
+    logger.warning("download for %d failed (%s); using the cached CSV", year, type(exc).__name__)
+    return fetch(year, cache_dir, refresh=False)
+
+
+def promoted_from_fixtures(season_teams: Iterable[str], matches: pd.DataFrame, season_start: int) -> frozenset[str]:
+    """Promoted teams for a season that may have no CSV rows yet: this season's fixture teams
+    that did not play in the previous season (empty if that season isn't loaded)."""
+    previous = matches[matches["season_start"] == season_start - 1]
+    if previous.empty:
+        return frozenset()
+    return frozenset(set(season_teams) - (set(previous["home"]) | set(previous["away"])))
+
+
+def current_season_start(today: date) -> int:
+    """LaLiga seasons start in August; July already belongs to the next season's calendar."""
+    return today.year if today.month >= 7 else today.year - 1
 
 
 def promoted_teams(matches: pd.DataFrame, season_start: int) -> frozenset[str]:

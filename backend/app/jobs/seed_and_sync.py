@@ -41,9 +41,12 @@ KNOWN_STATUSES = {
 @dataclass
 class SyncResult:
     fixtures: int = 0
+    created: int = 0
+    changed: int = 0
     skipped: int = 0
     unknown_statuses: int = 0
     unknown_teams: set[str] = field(default_factory=set)
+    missing_fixtures: list[str] = field(default_factory=list)  # in the DB for this season, gone from the API
 
 
 def get_or_create_comp(db: Session) -> Competition:
@@ -62,6 +65,11 @@ def get_or_create_stadium(db: Session, info: TeamInfo) -> Stadium:
         db.add(stadium)
         db.flush()
     return stadium
+
+
+def season_label(match: MatchPayload) -> str:
+    start = match.season.startDate
+    return f"{start.year}/{str(start.year + 1)[-2:]}" if start else "unknown"
 
 
 def clean_status(raw: str | None) -> str:
@@ -136,8 +144,12 @@ def upsert_fixture(
     teams: dict[str, Team] | None = None,
     existing: dict[str, Fixture] | None = None,
     unknown: set[str] | None = None,
+    result: SyncResult | None = None,
 ) -> Fixture:
-    """Insert or update one match. Pass shared `teams`/`existing` dicts to avoid per-match lookups."""
+    """Insert or update one match; untouched rows are not rewritten.
+
+    Pass shared `teams`/`existing` dicts to avoid per-match lookups.
+    """
     match = payload if isinstance(payload, MatchPayload) else MatchPayload.model_validate(payload)
     home = resolve_team(db, match.homeTeam, teams, unknown)
     away = resolve_team(db, match.awayTeam, teams, unknown)
@@ -148,8 +160,7 @@ def upsert_fixture(
         else db.query(Fixture).filter_by(source_fixture_id=source_id).first()
     )
     kickoff = as_utc(match.utcDate)
-    start = match.season.startDate
-    season = f"{start.year}/{str(start.year + 1)[-2:]}" if start else "unknown"
+    season = season_label(match)
     status = clean_status(match.status)
     goals = match.score.fullTime
     if not fx:
@@ -170,17 +181,28 @@ def upsert_fixture(
         db.add(fx)
         if existing is not None:
             existing[source_id] = fx
-    else:
-        changed = as_utc(fx.kickoff_utc) != kickoff
-        fx.kickoff_utc = kickoff
-        fx.matchday = match.matchday
-        fx.status = status
-        fx.home_goals = goals.home
-        fx.away_goals = goals.away
-        fx.source_updated_at = datetime.now(UTC)
-        fx.stadium_id = home.stadium_id
-        if changed:
+        if result is not None:
+            result.created += 1
+        return fx
+
+    kickoff_moved = as_utc(fx.kickoff_utc) != kickoff
+    updates = {
+        "matchday": match.matchday,
+        "status": status,
+        "home_goals": goals.home,
+        "away_goals": goals.away,
+        "stadium_id": home.stadium_id,
+    }
+    changed_fields = {name: value for name, value in updates.items() if getattr(fx, name) != value}
+    if kickoff_moved or changed_fields:
+        for name, value in changed_fields.items():
+            setattr(fx, name, value)
+        if kickoff_moved:
+            fx.kickoff_utc = kickoff
             fx.schedule_version += 1
+        fx.source_updated_at = datetime.now(UTC)
+        if result is not None:
+            result.changed += 1
     return fx
 
 
@@ -206,10 +228,25 @@ def sync(payload: dict, session_factory=SessionLocal) -> SyncResult:
             logger.warning("%d matches had an unrecognised status; stored as TIMED", result.unknown_statuses)
         teams: dict[str, Team] = {}
         for match in matches:
-            upsert_fixture(db, comp, match, teams, existing, result.unknown_teams)
+            upsert_fixture(db, comp, match, teams, existing, result.unknown_teams, result)
+
+        seasons = {season_label(m) for m in matches}
+        if seasons:
+            gone = (
+                db.query(Fixture.source_fixture_id)
+                .filter(Fixture.season.in_(seasons), Fixture.source_fixture_id.notin_(source_ids))
+                .all()
+            )
+            result.missing_fixtures = sorted(str(row[0]) for row in gone)
+            if result.missing_fixtures:
+                logger.warning(
+                    "%d fixtures in the database are no longer in the API: %s",
+                    len(result.missing_fixtures),
+                    ", ".join(result.missing_fixtures[:10]),
+                )
         db.commit()
         result.fixtures = len(matches)
-        logger.info("synced %d fixtures", result.fixtures)
+        logger.info("synced %d fixtures (%d new, %d changed)", result.fixtures, result.created, result.changed)
         return result
     finally:
         db.close()

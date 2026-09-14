@@ -103,6 +103,9 @@ def test_prod_refuses_to_write_to_sqlite(session_factory, monkeypatch):
 def test_summarize_makes_results_json_ready():
     assert refresh.summarize(SyncResult(fixtures=2, unknown_teams={"b", "a"})) == {
         "fixtures": 2,
+        "created": 0,
+        "changed": 0,
+        "missing_fixtures": [],
         "skipped": 0,
         "unknown_statuses": 0,
         "unknown_teams": ["a", "b"],

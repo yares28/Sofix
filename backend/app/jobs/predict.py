@@ -10,19 +10,20 @@ team per upcoming fixture) for this model version.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import UTC, datetime
 
 import pandas as pd
 from sqlalchemy.orm import Session
 
-from app.backtest.data import load_history, promoted_teams
+from app.backtest.data import load_history, promoted_from_fixtures
 from app.config import settings
 from app.db import SessionLocal
 from app.logging_config import configure_logging
 from app.modeling.dixon_coles import DixonColesModel, fit_dixon_coles
 from app.models import Fixture, Prediction, Team
 from app.services.rating_predictions import load_config, merge_recent_results, model_version, predict_both_sides
-from app.services.team_registry import by_code
+from app.services.team_registry import by_code, by_history_name
 from app.services.timeutil import as_utc
 
 HISTORY_SEASONS = 4  # current season plus three before it; the model only looks back two years
@@ -123,45 +124,75 @@ def replace_predictions(
     return written
 
 
+def name_problems(history: pd.DataFrame, season_start: int, season_teams: list[str], promoted: frozenset[str]) -> dict:
+    """Spot identity mismatches that would silently hurt the ratings.
+
+    - CSV teams in the current season that no registry club maps to (spelling changed, or a club
+      is missing from the registry): their matches count under a name nobody predicts for.
+    - Clubs about to be predicted with no match history at all that aren't known promotions:
+      usually a registry `history_name` that doesn't match the CSV.
+    """
+    current = history[history["season_start"] == season_start]
+    csv_teams = set(current["home"]) | set(current["away"])
+    unresolved = sorted(name for name in csv_teams if by_history_name(name) is None)
+    known = set(history["home"]) | set(history["away"])
+    without_history = sorted(team for team in season_teams if team not in known and team not in promoted)
+    if unresolved:
+        logger.warning("CSV teams not in the team registry: %s", ", ".join(unresolved))
+    if without_history:
+        logger.warning("no match history (rated from the prior): %s", ", ".join(without_history))
+    return {"unresolved_history_names": unresolved, "teams_without_history": without_history}
+
+
+def predict_upcoming(
+    db: Session,
+    now: datetime,
+    load: Callable[..., pd.DataFrame] = load_history,
+    config_path: str = settings.dixon_coles_config_path,
+    cache_dir: str = settings.history_cache_dir,
+) -> dict:
+    season = current_season(db)
+    if season is None:
+        raise RuntimeError("no fixtures in the database; run python -m app.jobs.seed_and_sync first")
+    start = season_start_year(season)
+    teams_by_id = {team.id: team for team in db.query(Team).all()}
+    names = history_names(teams_by_id)
+
+    history = load(range(start - HISTORY_SEASONS + 1, start + 1), cache_dir, refresh_latest=True)
+    history = merge_recent_results(history, recent_results_frame(db, teams_by_id, season))
+
+    upcoming = upcoming_fixtures(db, season, now)
+    season_teams = sorted({names[fx.home_team_id] for fx in upcoming} | {names[fx.away_team_id] for fx in upcoming})
+    # From this season's fixtures, not its CSV: at rollover the new CSV doesn't exist yet.
+    promoted = promoted_from_fixtures(season_teams, history, start)
+    problems = name_problems(history, start, season_teams, promoted)
+
+    config = load_config(config_path)
+    model = fit_dixon_coles(history, pd.Timestamp(now.date()), teams=season_teams, promoted=promoted, config=config)
+    logger.info(
+        "fitted on %d matches through %s; home advantage %+.3f; config %s",
+        len(history),
+        f"{history['date'].max():%Y-%m-%d}",
+        model.home_adv,
+        config,
+    )
+
+    version = model_version(config)
+    written = replace_predictions(db, upcoming, model, names, now, version)
+    logger.info("predictions %d for %d upcoming fixtures (model %s)", written, len(upcoming), version)
+    return {
+        "predictions": written,
+        "fixtures": len(upcoming),
+        "model_version": version,
+        "promoted": sorted(promoted),
+        **problems,
+    }
+
+
 def main() -> dict:
     db = SessionLocal()
-    now = datetime.now(UTC)
     try:
-        season = current_season(db)
-        if season is None:
-            raise SystemExit("no fixtures in the database; run python -m app.jobs.seed_and_sync first")
-        start = season_start_year(season)
-        teams_by_id = {team.id: team for team in db.query(Team).all()}
-        names = history_names(teams_by_id)
-
-        history = load_history(
-            range(start - HISTORY_SEASONS + 1, start + 1), settings.history_cache_dir, refresh_latest=True
-        )
-        history = merge_recent_results(history, recent_results_frame(db, teams_by_id, season))
-
-        upcoming = upcoming_fixtures(db, season, now)
-        season_teams = sorted({names[fx.home_team_id] for fx in upcoming} | {names[fx.away_team_id] for fx in upcoming})
-
-        config = load_config(settings.dixon_coles_config_path)
-        model = fit_dixon_coles(
-            history,
-            pd.Timestamp(now.date()),
-            teams=season_teams,
-            promoted=promoted_teams(history, start),
-            config=config,
-        )
-        logger.info(
-            "fitted on %d matches through %s; home advantage %+.3f; config %s",
-            len(history),
-            f"{history['date'].max():%Y-%m-%d}",
-            model.home_adv,
-            config,
-        )
-
-        version = model_version(config)
-        written = replace_predictions(db, upcoming, model, names, now, version)
-        logger.info("predictions %d for %d upcoming fixtures (model %s)", written, len(upcoming), version)
-        return {"predictions": written, "fixtures": len(upcoming), "model_version": version}
+        return predict_upcoming(db, datetime.now(UTC))
     finally:
         db.close()
 

@@ -52,6 +52,7 @@ def test_upgrade_to_head_builds_the_schema(tmp_path):
         "fixtures",
         "weather_snapshots",
         "predictions",
+        "refresh_runs",
     }
     upgrade_to_head(url)  # idempotent at head
 

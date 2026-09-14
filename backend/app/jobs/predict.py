@@ -123,7 +123,7 @@ def replace_predictions(
     return written
 
 
-def main() -> None:
+def main() -> dict:
     db = SessionLocal()
     now = datetime.now(UTC)
     try:
@@ -161,6 +161,7 @@ def main() -> None:
         version = model_version(config)
         written = replace_predictions(db, upcoming, model, names, now, version)
         logger.info("predictions %d for %d upcoming fixtures (model %s)", written, len(upcoming), version)
+        return {"predictions": written, "fixtures": len(upcoming), "model_version": version}
     finally:
         db.close()
 

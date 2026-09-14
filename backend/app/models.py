@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import JSON, DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -99,3 +99,31 @@ class Prediction(Base):
     explanation: Mapped[dict | None] = mapped_column(JSON)
     # One live prediction per team per fixture per model; each run replaces the previous one.
     __table_args__ = (UniqueConstraint("fixture_id", "perspective_team_id", "model_version"),)
+
+
+RUNNING = "running"
+
+
+class RefreshRun(Base):
+    """One execution of the refresh pipeline: history, per-step results, and the concurrency lock."""
+
+    __tablename__ = "refresh_runs"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    trigger: Mapped[str] = mapped_column(String(16))  # cli | schedule | button
+    status: Mapped[str] = mapped_column(String(16))  # running | succeeded | failed | abandoned
+    step: Mapped[str | None] = mapped_column(String(32))
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    error: Mapped[str | None] = mapped_column(Text)
+    details: Mapped[dict | None] = mapped_column(JSON)
+    # At most one running refresh. A partial unique index works through Neon's pooler,
+    # where session-level advisory locks do not.
+    __table_args__ = (
+        Index(
+            "uq_refresh_runs_one_running",
+            "status",
+            unique=True,
+            postgresql_where=text("status = 'running'"),
+            sqlite_where=text("status = 'running'"),
+        ),
+    )

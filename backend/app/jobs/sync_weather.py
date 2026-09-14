@@ -33,7 +33,7 @@ def forecastable(fixtures: list[Fixture], now: datetime) -> dict[int, list[Fixtu
     return by_stadium
 
 
-async def main(session_factory=SessionLocal, client: httpx.AsyncClient | None = None):
+async def main(session_factory=SessionLocal, client: httpx.AsyncClient | None = None) -> dict:
     db = session_factory()
     try:
         now = datetime.now(UTC)
@@ -63,6 +63,7 @@ async def main(session_factory=SessionLocal, client: httpx.AsyncClient | None = 
                 await http.aclose()
         db.commit()
         logger.info("weather rows %d for %d stadiums", written, len(by_stadium))
+        return {"rows": written, "stadiums": len(by_stadium)}
     finally:
         db.close()
 

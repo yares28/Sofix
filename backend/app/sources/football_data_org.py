@@ -53,6 +53,7 @@ class MatchPayload(BaseModel):
     awayTeam: TeamRef
     score: Score = Score()
     season: Season = Season()
+    lastUpdated: datetime | None = None
 
     @property
     def teams_known(self) -> bool:

@@ -1,0 +1,70 @@
+name: Scheduled refresh
+
+# Keeps fixtures, predictions and weather fresh without the laptop being on.
+# Cron is UTC, so Madrid times shift by an hour between summer (CEST) and winter (CET).
+on:
+  schedule:
+    - cron: "17 7 * * *" #   ~09:15 Madrid (summer) / 08:15 (winter): overnight results
+    - cron: "43 22 * * *" #  ~00:45 Madrid (summer) / 23:45 (winter): after the day's late games
+    - cron: "23 13 * * 2" #  Tuesday after football-data.co.uk's ~13:00 UK update
+    - cron: "23 17 * * 5" #  Friday after football-data.co.uk's ~17:00 UK update
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: Refresh data
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      APP_ENV: prod
+      # App role (DML only). The owner/migration URL is deliberately not a secret here:
+      # migrations are applied by hand with `python -m app.migrate`, never unattended.
+      POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+      FOOTBALL_DATA_ORG_TOKEN: ${{ secrets.FOOTBALL_DATA_ORG_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+          enable-cache: true
+          cache-dependency-glob: backend/requirements.lock
+
+      - name: Install locked dependencies
+        run: uv pip sync --system requirements.lock
+
+      # football-data.co.uk CSVs: past seasons never change, the current one is re-checked with a conditional GET.
+      - name: Restore history cache
+        uses: actions/cache@v4
+        with:
+          path: backend/data/raw
+          key: football-data-co-uk-${{ github.run_id }}
+          restore-keys: football-data-co-uk-
+
+      - name: Check secrets
+        run: |
+          test -n "$POSTGRES_URL" || { echo "::error::POSTGRES_URL secret is missing"; exit 1; }
+          test -n "$FOOTBALL_DATA_ORG_TOKEN" || { echo "::error::FOOTBALL_DATA_ORG_TOKEN secret is missing"; exit 1; }
+
+      # Exit 2 means a refresh (e.g. the button) is already running: not a failure.
+      # Any other non-zero exit fails the job, and GitHub emails the owner.
+      - name: Refresh
+        run: |
+          set +e
+          python -m app.jobs.refresh --trigger schedule --skip-migrations
+          code=$?
+          if [ "$code" -eq 2 ]; then
+            echo "::notice::Another refresh was already running; skipped."
+            exit 0
+          fi
+          exit "$code"

@@ -86,6 +86,25 @@ export interface GridMeta {
   last_predicted_at: string | null;
 }
 
+// Mirrors backend/app/schemas.py (refresh section).
+export type RunStatus = "running" | "succeeded" | "failed" | "abandoned";
+
+export interface RefreshRun {
+  id: number;
+  trigger: string;
+  status: RunStatus;
+  step: string | null;
+  started_at: string;
+  finished_at: string | null;
+  error: string | null;
+  steps: Record<string, "succeeded" | "failed">;
+}
+
+export interface RefreshStatus {
+  run: RefreshRun | null;
+  retry_after: number; // seconds until a new refresh may start
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T | null;

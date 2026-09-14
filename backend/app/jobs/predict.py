@@ -184,6 +184,7 @@ def predict_upcoming(
         "predictions": written,
         "fixtures": len(upcoming),
         "model_version": version,
+        "history_through": f"{history['date'].max():%Y-%m-%d}",  # newest result the model saw
         "promoted": sorted(promoted),
         **problems,
     }

@@ -46,7 +46,28 @@ code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-si
   width: 22px; height: 22px; border-radius: 7px;
   background: conic-gradient(from 200deg, var(--fdr1-bg), var(--fdr2-bg), var(--fdr3-bg), var(--fdr4-bg), var(--fdr5-bg), var(--fdr1-bg));
 }
-.nav-meta { color: var(--ink-2); font-size: 12px; }
+.nav-meta { color: var(--ink-2); font-size: 12px; display: flex; align-items: center; gap: 12px; }
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.stale-pill {
+  padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600;
+  background: #fff4e0; color: #8a5300; box-shadow: inset 0 0 0 1px rgba(138, 83, 0, .14);
+}
+.refresh { display: inline-flex; }
+.refresh-button {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px;
+  border: 0; border-radius: 999px; cursor: pointer; font-size: 12px; font-weight: 500;
+  background: #ececf0; color: var(--ink); transition: background .2s, color .2s; white-space: nowrap;
+}
+.refresh-button:hover:not(:disabled) { background: #e2e2e7; }
+.refresh-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.refresh-button:disabled { cursor: default; color: var(--ink-2); }
+.refresh-button.failed { background: #ffe9e6; color: #b42318; }
+.refresh-button.busy .refresh-icon { animation: refresh-spin 1s linear infinite; }
+@keyframes refresh-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .refresh-button.busy .refresh-icon { animation: none; } }
 
 /* ---------- Layout ---------- */
 main { max-width: 1280px; margin: 0 auto; padding: 56px 28px 96px; }

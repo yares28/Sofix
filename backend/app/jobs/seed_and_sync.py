@@ -47,6 +47,7 @@ class SyncResult:
     unknown_statuses: int = 0
     unknown_teams: set[str] = field(default_factory=set)
     missing_fixtures: list[str] = field(default_factory=list)  # in the DB for this season, gone from the API
+    source_last_updated: str | None = None  # newest football-data.org `lastUpdated` in the payload (ISO, UTC)
 
 
 def get_or_create_comp(db: Session) -> Competition:
@@ -246,6 +247,8 @@ def sync(payload: dict, session_factory=SessionLocal) -> SyncResult:
                 )
         db.commit()
         result.fixtures = len(matches)
+        updated = [as_utc(m.lastUpdated) for m in matches if m.lastUpdated]
+        result.source_last_updated = max(updated).isoformat() if updated else None
         logger.info("synced %d fixtures (%d new, %d changed)", result.fixtures, result.created, result.changed)
         return result
     finally:

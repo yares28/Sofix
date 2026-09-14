@@ -57,7 +57,8 @@ npm run dev                            # http://127.0.0.1:3000
 
 | Task | Command (backend from `backend/`, frontend from `frontend/`) |
 |---|---|
-| Refresh data | `python -m app.jobs.refresh` |
+| Refresh data | `python -m app.jobs.refresh`, or the **Refresh** button in the page header (needs `REFRESH_TOKEN` in `.env` and `frontend/.env.local`; one run per 10 min) |
+| Scheduled refresh | `.github/workflows/refresh.yml`, twice a day plus after football-data.co.uk updates; repo secrets `POSTGRES_URL` (app role) and `FOOTBALL_DATA_ORG_TOKEN` |
 | Backtest / retune the model | `python -m app.jobs.backtest` (writes `reports/` and `artifacts/dixon_coles.json`) |
 | Schema change | edit `app/models.py` → `alembic revision --autogenerate -m "..."` → review → `python -m app.migrate` |
 | Backend checks | `pytest -q`, `ruff check .`, `ruff format --check .`, `mypy` |

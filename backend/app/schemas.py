@@ -91,6 +91,26 @@ class LensScale(BaseModel):
     higher_is_easier: bool
 
 
+RunStatus = Literal["running", "succeeded", "failed", "abandoned"]
+StepStatus = Literal["succeeded", "failed"]
+
+
+class RefreshRunOut(BaseModel):
+    id: int
+    trigger: str
+    status: RunStatus
+    step: str | None
+    started_at: datetime
+    finished_at: datetime | None
+    error: str | None
+    steps: dict[str, StepStatus]
+
+
+class RefreshStatus(BaseModel):
+    run: RefreshRunOut | None
+    retry_after: int  # seconds until a new refresh may start; 0 when one can start now
+
+
 class FixtureGrid(BaseModel):
     season: str
     current_matchday: int | None

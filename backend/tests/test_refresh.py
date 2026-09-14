@@ -106,6 +106,7 @@ def test_summarize_makes_results_json_ready():
         "created": 0,
         "changed": 0,
         "missing_fixtures": [],
+        "source_last_updated": None,
         "skipped": 0,
         "unknown_statuses": 0,
         "unknown_teams": ["a", "b"],

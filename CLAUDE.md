@@ -25,7 +25,9 @@ Open-Meteo ─────────┘   migrate → sync → predict → wea
 | Teams | `backend/app/services/team_registry.py` (football-data.org `tla` ↔ football-data.co.uk name, colour, stadium) |
 | Backtest | `backend/app/backtest/*`, `backend/app/jobs/backtest.py` |
 | DB / migrations | `backend/app/models.py`, `backend/migrations/` (Alembic), `backend/app/migrate.py`, `app/db.py` |
-| Frontend | `frontend/app/page.tsx` (server fetch), `components/FixtureBoard.tsx`, `lib/grid.ts`, `lib/types.ts` |
+| Refresh button | `backend/app/admin.py` (token, cooldown, lock, launches the job), `services/refresh_runs.py`; `frontend/app/api/refresh/route.ts` (same-origin proxy, revalidates the grid), `components/RefreshButton.tsx`, `lib/refresh.ts` |
+| Scheduled refresh | `.github/workflows/refresh.yml` (cron, app role, `--skip-migrations`) |
+| Frontend | `frontend/app/page.tsx` (cached server fetch, tag `fixture-grid`), `components/FixtureBoard.tsx`, `lib/grid.ts`, `lib/types.ts` |
 
 ## Commands
 
@@ -33,6 +35,7 @@ Backend (from `backend/`, venv at `backend/.venv`):
 
 ```bash
 .venv\Scripts\python -m app.jobs.refresh      # migrations, fixtures, predictions, weather
+.venv\Scripts\python -m app.jobs.refresh --skip-migrations   # as schedule/button run it: schema check only
 .venv\Scripts\python -m app.jobs.backtest     # tune + score the model; writes reports/ and artifacts/
 .venv\Scripts\python -m app.migrate           # apply migrations
 .venv\Scripts\alembic revision --autogenerate -m "what changed"
@@ -57,6 +60,10 @@ npm run lint         # eslint (next + jsx-a11y), zero warnings
 - Frontend must not re-derive what the backend decides: tile colour = `prediction.bucket`, lens cut points = `lens_scales`.
 - Schema changes: edit `models.py` → autogenerate a migration → review it → apply. Never `create_all` against Neon.
 - Jobs replace rows (predictions per model version, weather per fixture); never append history.
+- Refreshes: one at a time (`refresh_runs` partial unique index) and ≥ 10 min apart for the button (`COOLDOWN`).
+  Unattended runs (schedule, button) use `--skip-migrations`; after a schema change run `python -m app.migrate` by hand.
+- The grid page is cached (1 h, tag `fixture-grid`) to spare Neon; the refresh route revalidates it when a run ends.
+  Don't switch the page back to `no-store` or add client-side polling of DB-backed endpoints.
 - Tests: pytest with in-memory SQLite and mocked HTTP; vitest for `lib/`. Keep both green before committing.
 - CI (`.github/workflows/ci.yml`) runs ruff, mypy, pytest (incl. migration drift), pip-audit, eslint, tsc, vitest
   and `npm audit --omit=dev`. Run the same locally before committing; it only executes once the repo is pushed to GitHub.
@@ -89,7 +96,10 @@ Transfermarkt Terms prohibit scraping. No LaLiga logo or wordmark.
 ## Environment and secrets
 
 - Root `.env` (git-ignored): `FOOTBALL_DATA_ORG_TOKEN`, `POSTGRES_URL` (Neon **pooled** host, role **`fdr_app`**),
-  `POSTGRES_MIGRATION_URL` (Neon **direct** host, role `neondb_owner`).
+  `POSTGRES_MIGRATION_URL` (Neon **direct** host, role `neondb_owner`), `REFRESH_TOKEN` (≥ 32 bytes).
+- `frontend/.env.local` (git-ignored): the same `REFRESH_TOKEN`, server-only (never `NEXT_PUBLIC_`). Without it the
+  button is hidden; without it in the API the admin endpoints answer 503.
+- GitHub Actions secrets for the scheduled refresh: `POSTGRES_URL` (app role) and `FOOTBALL_DATA_ORG_TOKEN` only.
 - `fdr_app` was created with SQL (so it is not in `neon_superuser`): DML on all tables + sequences, default
   privileges for tables the owner creates later, no DDL. Migrations must keep using the owner URL.
 - Neon TLS: `app/db.py` forces `sslmode=verify-full` with the certifi CA bundle for `*.neon.tech` hosts.

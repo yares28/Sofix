@@ -7,9 +7,13 @@ import logging
 
 from alembic import command
 from alembic.config import Config
+from alembic.runtime.migration import MigrationContext
+from alembic.script import ScriptDirectory
+from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
 
 from app.config import BACKEND_DIR
+from app.db import engine_options
 from app.logging_config import configure_logging
 
 logger = logging.getLogger(__name__)
@@ -57,6 +61,29 @@ def alembic_config(url: str | None = None) -> Config:
 
 def upgrade_to_head(url: str | None = None) -> None:
     command.upgrade(alembic_config(url), "head")
+
+
+class SchemaBehind(RuntimeError):
+    pass
+
+
+def ensure_schema_current(url: str) -> None:
+    """Read-only check that the database is at the latest migration.
+
+    Unattended refreshes (schedule, button) run as the app role, which can't run DDL; they call this
+    instead of migrating, and a pending migration stops them until someone runs `python -m app.migrate`.
+    """
+    heads = set(ScriptDirectory.from_config(alembic_config(url)).get_heads())
+    engine = create_engine(url, **engine_options(url))
+    try:
+        with engine.connect() as connection:
+            current = set(MigrationContext.configure(connection).get_current_heads())
+    finally:
+        engine.dispose()
+    if current != heads:
+        raise SchemaBehind(
+            f"database is at {sorted(current) or 'no revision'}, code expects {sorted(heads)}; run python -m app.migrate"
+        )
 
 
 if __name__ == "__main__":

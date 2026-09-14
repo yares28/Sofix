@@ -129,21 +129,21 @@ Work order: **0 → 1 → 2 → 3 → 4**, with **5** and **6** interleaved once
 ### 4a. Scheduled refresh
 | ID | Task | Done when |
 |---|---|---|
-| 4.1 | ⬜ GitHub Actions cron running `python -m app.jobs.refresh` directly: 09:00 and 23:30 Madrid, plus Tue/Fri evenings after football-data.co.uk updates; secrets in repo settings; cache `backend/data/raw`; migrations run as a separate manual/deploy step, never unattended | Failed run emails the owner; data fresh twice a day |
+| 4.1 | ✅ _(workflow written (4 crons, app role, --skip-migrations, exit 2 tolerated); runs once the repo is on GitHub with POSTGRES_URL and FOOTBALL_DATA_ORG_TOKEN secrets)_ GitHub Actions cron running `python -m app.jobs.refresh` directly: 09:00 and 23:30 Madrid, plus Tue/Fri evenings after football-data.co.uk updates; secrets in repo settings; cache `backend/data/raw`; migrations run as a separate manual/deploy step, never unattended | Failed run emails the owner; data fresh twice a day |
 
 ### 4b. Refresh button (single user)
 | ID | Task | Done when |
 |---|---|---|
-| 4.2 | ⬜ **Backend:** `POST /api/admin/refresh` → 202 + run id; 409 while a run is active; 429 + `retry_after` within the **10-min cooldown**; `GET /api/admin/refresh/latest`; token checked with `hmac.compare_digest`; refuse to start if `REFRESH_TOKEN` < 32 bytes; job started as a **subprocess** (`python -m app.jobs.refresh --trigger button`), not a thread | Tests: token required, cooldown, lock, failed run keeps old predictions |
-| 4.3 | ⬜ **Route handler** `frontend/app/api/refresh/route.ts`: adds the token server-side; rejects unless `Sec-Fetch-Site: same-origin` (or matching `Origin`) and a custom header is present; after success calls `revalidateTag("fixture-grid")` | Cross-site POST rejected; token never in browser bundle |
-| 4.4 | ⬜ **`RefreshButton`** next to "Updated x ago": idle → running (step label) → done (`router.refresh()`) / cooldown ("Available in 7 min") / failed (reason, old data stays); polls every 2 s | Playwright test for the happy path and cooldown |
-| 4.5 | ⬜ `refresh_runs` records trigger, per-step counts, source freshness (latest CSV date, API `lastUpdated`); UI **stale-data pill** when last sync > 36 h | Pill appears with old data |
+| 4.2 | ✅ _(admin endpoints with token, cooldown, lock, subprocess hand-off via --run-id, dead-process detection; 18 tests)_ **Backend:** `POST /api/admin/refresh` → 202 + run id; 409 while a run is active; 429 + `retry_after` within the **10-min cooldown**; `GET /api/admin/refresh/latest`; token checked with `hmac.compare_digest`; refuse to start if `REFRESH_TOKEN` < 32 bytes; job started as a **subprocess** (`python -m app.jobs.refresh --trigger button`), not a thread | Tests: token required, cooldown, lock, failed run keeps old predictions |
+| 4.3 | ✅ _(same-origin + custom header proxy; revalidates the grid tag once per finished run)_ **Route handler** `frontend/app/api/refresh/route.ts`: adds the token server-side; rejects unless `Sec-Fetch-Site: same-origin` (or matching `Origin`) and a custom header is present; after success calls `revalidateTag("fixture-grid")` | Cross-site POST rejected; token never in browser bundle |
+| 4.4 | ✅ _(RefreshButton with step labels, cooldown and failure states; vitest for the state logic, Playwright deferred to the Phase 5 E2E suite)_ **`RefreshButton`** next to "Updated x ago": idle → running (step label) → done (`router.refresh()`) / cooldown ("Available in 7 min") / failed (reason, old data stays); polls every 2 s | Playwright test for the happy path and cooldown |
+| 4.5 | ✅ _(sync records football-data.org lastUpdated, predict records history_through; stale pill after 36 h)_ `refresh_runs` records trigger, per-step counts, source freshness (latest CSV date, API `lastUpdated`); UI **stale-data pill** when last sync > 36 h | Pill appears with old data |
 
 ### 4c. Caching (Neon budget)
 | ID | Task | Done when |
 |---|---|---|
-| 4.6 | ⬜ `page.tsx`: `next: { tags: ["fixture-grid"], revalidate: 3600 }`, revalidated by the refresh flow (not every 5 min) | Browsing for 30 min wakes Neon at most once |
-| 4.7 | ⬜ Optional: precompute the grid JSON at the end of refresh into a one-row table; endpoint reads 1 row | 1 query per uncached view |
+| 4.6 | ✅ _(unstable_cache with tag fixture-grid, 1 h; 3 page loads = 1 API call)_ `page.tsx`: `next: { tags: ["fixture-grid"], revalidate: 3600 }`, revalidated by the refresh flow (not every 5 min) | Browsing for 30 min wakes Neon at most once |
+| 4.7 | ⬜ _(skipped for now: with 4.6 the grid query runs at most once an hour)_ Optional: precompute the grid JSON at the end of refresh into a one-row table; endpoint reads 1 row | 1 query per uncached view |
 
 ---
 

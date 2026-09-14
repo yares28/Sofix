@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     football_data_org_competition: str = "PD"
     dixon_coles_config_path: str = str(BACKEND_DIR / "artifacts" / "dixon_coles.json")
     history_cache_dir: str = str(BACKEND_DIR / "data" / "raw" / "football-data-co-uk")
+    # Shared secret between the Next.js server and POST /api/admin/refresh (≥ 32 bytes, or the endpoint stays off).
+    refresh_token: str = ""
     # Repo-root .env first; an optional backend/.env can override it.
     model_config = SettingsConfigDict(
         env_file=(REPO_ROOT / ".env", BACKEND_DIR / ".env"), case_sensitive=False, extra="ignore"

@@ -31,12 +31,14 @@ warn_unused_ignores = true
 check_untyped_defs = true
 # Gradual: typed core modules first; pandas-heavy modelling/backtest code joins later.
 files = [
+    "app/admin.py",
     "app/api.py",
     "app/config.py",
     "app/db.py",
     "app/migrate.py",
     "app/schemas.py",
     "app/services/fixture_grid.py",
+    "app/services/refresh_runs.py",
     "app/services/scoring.py",
     "app/services/team_registry.py",
     "app/services/timeutil.py",

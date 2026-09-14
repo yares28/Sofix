@@ -56,6 +56,8 @@ npm run typecheck
 - Jobs replace rows (predictions per model version, weather per fixture); never append history.
 - Tests: pytest with in-memory SQLite and mocked HTTP; vitest for `lib/`. Keep both green before committing.
 - Commits: `<type>: <description>` (feat, fix, refactor, docs, test, chore, perf, ci).
+- Python 3.11 (`backend/.python-version`). Dependencies: edit direct pins in `requirements*.txt`, then regenerate
+  `requirements*.lock` with `uv pip compile ... --python-version 3.11` and `uv pip sync` the venv; run `uvx pip-audit -r requirements.lock`.
 
 ## Model rules
 

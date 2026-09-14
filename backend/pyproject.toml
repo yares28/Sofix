@@ -1,0 +1,10 @@
+[project]
+name = "fixturediff-backend"
+version = "0.1.0"
+description = "LaLiga fixture difficulty: data pipeline, rating model and API"
+requires-python = ">=3.11,<3.12"
+
+# Dependencies live in requirements.txt (direct pins) and requirements.lock (full resolution):
+#   uv pip compile requirements.txt --python-version 3.11 -o requirements.lock
+#   uv pip compile requirements-dev.txt --python-version 3.11 -o requirements-dev.lock
+#   uv pip sync --python .venv\Scripts\python.exe requirements-dev.lock

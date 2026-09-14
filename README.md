@@ -30,7 +30,7 @@ cp .env.example .env
 cd backend
 python -m venv .venv
 # Windows: .venv\Scripts\activate
-pip install -r requirements-dev.txt
+pip install -r requirements-dev.lock   # exact versions; or: uv pip sync requirements-dev.lock
 python -m app.jobs.refresh          # fixtures → rating-model predictions → weather
 uvicorn app.main:app --reload       # http://localhost:8000/api/fixture-grid
 

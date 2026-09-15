@@ -11,8 +11,9 @@ Evidence for open issues: [docs/upgrade_audit.md](docs/upgrade_audit.md). Model 
 
 ```
 football-data.org ──┐                        ┌─> /api/fixture-grid ──> Next.js board (frontend/)
-football-data.co.uk ─┼─> app.jobs.refresh ─> Neon Postgres ──┘
-Open-Meteo ─────────┘   migrate → sync → predict → weather
+football-data.co.uk ─┤                        │
+Open-Meteo ──────────┼─> app.jobs.refresh ─> Neon Postgres ──┘
+The Odds API ────────┘   migrate → sync → predict → weather → odds
 ```
 
 | Area | Where |
@@ -22,12 +23,13 @@ Open-Meteo ─────────┘   migrate → sync → predict → wea
 | Rating model | `backend/app/modeling/dixon_coles.py`; tuned settings in `backend/artifacts/dixon_coles.json` |
 | Predictions | `backend/app/jobs/predict.py`, `services/rating_predictions.py` (replace rows per model version) |
 | Sync / weather | `backend/app/jobs/seed_and_sync.py`, `jobs/sync_weather.py`, `sources/*` |
+| Odds | `backend/app/jobs/sync_odds.py` (throttled 6 h), `sources/the_odds_api.py`, `services/market_odds.py` (margin removal, goal rates fitted to the prices → clean sheet / scoring / conceding), `market_odds` table; `GridCell.market` |
 | Teams | `backend/app/services/team_registry.py` (football-data.org `tla` ↔ football-data.co.uk name, colour, stadium) |
 | Backtest | `backend/app/backtest/*`, `backend/app/jobs/backtest.py` |
 | DB / migrations | `backend/app/models.py`, `backend/migrations/` (Alembic), `backend/app/migrate.py`, `app/db.py` |
 | Refresh button | `backend/app/admin.py` (token, cooldown, lock, launches the job), `services/refresh_runs.py`; `frontend/app/api/refresh/route.ts` (same-origin proxy, revalidates the grid), `components/RefreshButton.tsx`, `lib/refresh.ts` |
 | Scheduled refresh | `.github/workflows/refresh.yml` (cron, app role, `--skip-migrations`) |
-| Frontend | `frontend/app/page.tsx` (cached server fetch, tag `fixture-grid`), `components/FixtureBoard.tsx`, `lib/grid.ts`, `lib/types.ts` |
+| Frontend | `frontend/app/(board)/page.tsx` (cached server fetch, tag `fixture-grid`), `components/FixtureBoard.tsx`, `Overview.tsx`, `DifficultyGrid.tsx`, `GameweekSelector.tsx`, `lib/grid.ts`, `lib/types.ts` |
 
 ## Commands
 
@@ -62,8 +64,14 @@ npm run gen:types    # after python -m app.openapi_export
   still `matchday`), "Date TBC"; kickoff times stored UTC, shown in `Europe/Madrid`.
 - Tiles show colour, opponent and venue only (the owner didn't want a bucket number); difficulty stays in the
   tooltip, the spoken label and the ring on buckets 4–5.
-- Top cards = picks by position (forwards: xG, defenders/keepers: expected clean sheets, midfielders: 65/35 blend).
-- Tabs: Fixtures (one GW's fixture list), Difficulty (grid; horizon "Next" = match cards for one GW), Table
+- One app-wide gameweek (`?gw=`, selector in the header; default = opening GW) drives every tab: the overview window,
+  the grid, the fixtures list and the current table (standings after that GW). The predicted table stays the final projection.
+- Difficulty tab: a bento overview (`components/Overview.tsx`, three equal columns): kindest/toughest run (per game),
+  the GW's matches, who to pick (forwards: xG, defenders/keepers: expected clean sheets, midfielders: 65/35 blend),
+  every club ranked over the window (xPts number column, no bars) beside the table with rows aligned (34 px); then the
+  full grid and the GW's fixtures underneath. With Next / Next 3 the ranking shows bookmaker odds per GW: W/D/L
+  (overall), scores / 2+ (attack), clean sheet / concede 2+ (defence). Odds are fair prices (1 / backend probability).
+- Tabs: Fixtures (the selected GW's fixture list), Difficulty (overview + grid; horizon "Next" = match cards for one GW), Table
   (current standings with LaLiga tiebreaks, and a predicted table in `lib/table.ts`: expected points plus seeded
   simulations; keep it seeded so the same data always shows the same percentages).
 - Frontend must not re-derive what the backend decides: tile colour = `prediction.bucket`, lens cut points = `lens_scales`.
@@ -98,6 +106,7 @@ npm run gen:types    # after python -m app.openapi_export
 |---|---|---|
 | football-data.org | **10 requests/min** with token; LaLiga (`PD`) + Champions League only, no Europa/Conference | One matches call per refresh; ≥ 10-min cooldown between refreshes; retry 429 with backoff; never loop per match |
 | football-data.co.uk | Free CSVs; results and `fixtures.csv` (Bet365/avg/max odds, no Pinnacle) updated Tue ~13:00 / Fri ~17:00 UK | Disk cache in `backend/data/raw/`; re-download only the current season; a 404 for a brand-new season means "no rows yet" |
+| The Odds API | Free Starter plan: **500 credits/month**; `h2h,totals` × `eu` = 2 credits per call | One call per sync, skipped when the last fetch is < 6 h old (≤ 4 calls/day ≈ 240 credits/month); never per-event markets; key only in `.env` / Actions secret, sent as a query parameter, so never log request URLs or raw httpx errors |
 | Open-Meteo | Non-commercial: **600/min, 5,000/hour, 10,000/day, 300,000/month**; **CC BY 4.0 attribution required** | ≤ 1 call per stadium per refresh; keep the footer attribution |
 | Neon Free | **0.5 GB/project, 100 CU-hours/month**, up to 2 CU, scale to zero after 5 min idle, 10 branches, 6 h history, 5 GB egress. **Hitting any limit suspends compute until next month** | Cache the grid and revalidate only after a refresh; never point uptime monitors at DB-backed endpoints (≈182 CU-h/month); keep `/api/health` DB-free |
 | Club crests | No licence stated; club trademarks | Personal use only; `NEXT_PUBLIC_SHOW_CLUB_CRESTS=false` (in `frontend/.env.local`) shows colour badges instead; URLs allowlisted to `https://crests.football-data.org/` in `services/crests.py` and again in `Crest.tsx`; hot-linked (`unoptimized`, `no-referrer`), never downloaded or proxied |
@@ -108,10 +117,10 @@ Transfermarkt Terms prohibit scraping. No LaLiga logo or wordmark.
 ## Environment and secrets
 
 - Root `.env` (git-ignored): `FOOTBALL_DATA_ORG_TOKEN`, `POSTGRES_URL` (Neon **pooled** host, role **`fdr_app`**),
-  `POSTGRES_MIGRATION_URL` (Neon **direct** host, role `neondb_owner`), `REFRESH_TOKEN` (≥ 32 bytes).
+  `POSTGRES_MIGRATION_URL` (Neon **direct** host, role `neondb_owner`), `REFRESH_TOKEN` (≥ 32 bytes), optional `ODDS_API_KEY`.
 - `frontend/.env.local` (git-ignored): the same `REFRESH_TOKEN`, server-only (never `NEXT_PUBLIC_`). Without it the
   button is hidden; without it in the API the admin endpoints answer 503.
-- GitHub Actions secrets for the scheduled refresh: `POSTGRES_URL` (app role) and `FOOTBALL_DATA_ORG_TOKEN` only.
+- GitHub Actions secrets for the scheduled refresh: `POSTGRES_URL` (app role), `FOOTBALL_DATA_ORG_TOKEN`, optional `ODDS_API_KEY`.
 - `fdr_app` was created with SQL (so it is not in `neon_superuser`): DML on all tables + sequences, default
   privileges for tables the owner creates later, no DDL. Migrations must keep using the owner URL.
 - Neon TLS: `app/db.py` forces `sslmode=verify-full` with the certifi CA bundle for `*.neon.tech` hosts.
@@ -137,6 +146,7 @@ Transfermarkt Terms prohibit scraping. No LaLiga logo or wordmark.
 
 ## Yearly rollover (June, when next season's fixtures appear)
 
-1. Add promoted clubs to `team_registry.py` (check football-data.org `tla` codes and football-data.co.uk spellings).
+1. Add promoted clubs to `team_registry.py` (check football-data.org `tla` codes, football-data.co.uk spellings, and
+   any The Odds API spelling the odds step logs as unmatched → `odds_names`).
 2. Run refresh; confirm all 20 teams resolve and predictions exist.
 3. After the season ends, re-run the backtest and update the model baseline above.

@@ -3,15 +3,10 @@ import { formatDay } from "../lib/grid";
 import { gameweekMatches, type Match } from "../lib/matches";
 import type { FixtureGrid, GridTeam } from "../lib/types";
 import Crest from "./Crest";
-import GameweekStepper from "./GameweekStepper";
 
 interface Props {
   grid: FixtureGrid;
-  column: number;
-  canGoBack: boolean;
-  canGoForward: boolean;
-  onBack: () => void;
-  onForward: () => void;
+  column: number; // the app-wide gameweek
 }
 
 const MADRID = "Europe/Madrid";
@@ -20,7 +15,7 @@ const dayTitle = new Intl.DateTimeFormat("en-GB", { timeZone: MADRID, weekday: "
 const time = new Intl.DateTimeFormat("en-GB", { timeZone: MADRID, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 
 /** A plain list of one gameweek's fixtures and results, grouped by day (Madrid time). */
-export default function FixturesList({ grid, column, canGoBack, canGoForward, onBack, onForward }: Props) {
+export default function FixturesList({ grid, column }: Props) {
   const gameweek = grid.matchdays[column];
   if (!gameweek) return null;
   const { matches, notPlaying } = gameweekMatches(grid, column);
@@ -47,7 +42,6 @@ export default function FixturesList({ grid, column, canGoBack, canGoForward, on
             {notPlaying.length > 0 && ` · no game: ${notPlaying.map((t) => t.name).join(", ")}`}
           </div>
         </div>
-        <GameweekStepper number={gameweek.number} canGoBack={canGoBack} canGoForward={canGoForward} onBack={onBack} onForward={onForward} />
       </header>
 
       {ordered.map((group) => (

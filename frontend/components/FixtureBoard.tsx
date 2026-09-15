@@ -1,29 +1,17 @@
 "use client";
 
-import { useCallback, useDeferredValue, useMemo, useState } from "react";
-import { useTileTooltip } from "../hooks/useTileTooltip";
+import { useEffect, useMemo } from "react";
 import { useViewState } from "../hooks/useViewState";
 import {
-  LENS_COPY, MIDFIELD_ATTACK_WEIGHT, formatDay, horizonSize, openingColumn, positionPicks, runStats, sortTeams, windowRange,
-  withPinsFirst, type SortKey, type SortState, type View, type ViewState,
+  LENS_COPY, MIDFIELD_ATTACK_WEIGHT, horizonSize, openingColumn, selectedColumn, windowRange, type View, type ViewState,
 } from "../lib/grid";
-import type { FixtureGrid, GridCell, GridTeam, ModelNote } from "../lib/types";
-import BoardToolbar from "./BoardToolbar";
+import type { FixtureGrid, ModelNote } from "../lib/types";
+import DifficultyGrid from "./DifficultyGrid";
 import FixturesList from "./FixturesList";
+import GameweekSelector from "./GameweekSelector";
 import LeagueTable from "./LeagueTable";
-import NextGameweek from "./NextGameweek";
-import PickCards from "./PickCards";
+import Overview from "./Overview";
 import SegmentedControl from "./SegmentedControl";
-import TeamRow from "./TeamRow";
-import Tooltip from "./Tooltip";
-
-// A matchday's dates count as "to be confirmed" when most of its remaining games have no fixed kickoff yet.
-const TBC_SHARE = 0.5;
-
-function sameKey(a: SortKey, b: SortKey): boolean {
-  if (a.kind !== b.kind) return false;
-  return a.kind !== "matchday" || a.column === (b as { column: number }).column;
-}
 
 interface Props {
   grid: FixtureGrid;
@@ -37,118 +25,26 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl }: Pr
   const opening = useMemo(() => openingColumn(grid), [grid]);
   const finished = useMemo(() => grid.matchdays.map((md) => md.finished), [grid]);
   const knownCodes = useMemo(() => new Set(grid.teams.map((team) => team.code)), [grid]);
-  const teamsByCode = useMemo(() => new Map(grid.teams.map((team) => [team.code, team])), [grid]);
-  const cellIndex = useMemo(() => {
-    const index = new Map<string, { team: GridTeam; cell: GridCell; matchday: number }>();
-    grid.teams.forEach((team) =>
-      team.cells.forEach((cells, column) =>
-        cells.forEach((cell) => {
-          const matchday = grid.matchdays[column];
-          if (matchday) index.set(`${team.code}-${cell.fixture_id}`, { team, cell, matchday: matchday.number });
-        }),
-      ),
-    );
-    return index;
-  }, [grid]);
-  const columnTbc = useMemo(
-    () =>
-      grid.matchdays.map((_, column) => {
-        const open = grid.teams.flatMap((team) => team.cells[column] ?? []).filter((cell) => cell.status === "scheduled");
-        return open.length > 0 && open.filter((cell) => !cell.date_confirmed).length / open.length > TBC_SHARE;
-      }),
-    [grid],
-  );
 
-  const { state, setState, patch, togglePin } = useViewState(initialView, pinsInUrl, knownCodes);
-  const { view, lens, horizon, pins, played } = state;
-  const [sort, setSort] = useState<SortState>({ key: { kind: "team" }, dir: "asc" });
-  const [query, setQuery] = useState("");
-  const deferredQuery = useDeferredValue(query); // typing stays responsive; rows update right after
+  const { state, patch, togglePin } = useViewState(initialView, pinsInUrl, knownCodes);
+  const { view, lens, horizon, pins } = state;
 
-  // The Fixtures tab browses every gameweek (results included); the Difficulty board hides played ones unless asked.
-  const minStart = played || view === "plain" ? 0 : opening;
-  const fromIndex = state.from === null ? -1 : grid.matchdays.findIndex((md) => md.number === state.from);
-  const { start, end } = windowRange(
-    total,
-    Math.max(minStart, fromIndex >= 0 ? fromIndex : opening),
-    view === "plain" ? 1 : horizonSize(horizon, total),
-  );
-  const columns = grid.matchdays.slice(start, end);
-  const scale = grid.lens_scales[lens];
+  // One gameweek drives every tab: the overview's window, the grid, the fixtures list and the table.
+  const column = selectedColumn(grid.matchdays, state.gw, opening);
+  const selectGameweek = (next: number) =>
+    patch({ gw: next === opening ? null : (grid.matchdays[next]?.number ?? null) }); // the default keeps a clean URL
+  const { start, end } = windowRange(total, column, horizonSize(horizon, total));
+  // Standings "after" the selected gameweek only for past ones; from the opening GW on, every result so far counts
+  // (including games brought forward from later gameweeks).
+  const tableThrough = column < opening ? column : null;
+  // A link to a gameweek this season doesn't have falls back to the opening one; drop it from the URL too.
+  const unknownGw = state.gw !== null && !grid.matchdays.some((md) => md.number === state.gw);
+  useEffect(() => {
+    if (unknownGw) patch({ gw: null });
+  }, [unknownGw, patch]);
   const copy = LENS_COPY[lens];
 
-  // A matchday sort only applies while that column is visible.
-  const activeSort = useMemo<SortState>(
-    () =>
-      sort.key.kind === "matchday" && (sort.key.column < start || sort.key.column >= end)
-        ? { key: { kind: "team" }, dir: "asc" }
-        : sort,
-    [sort, start, end],
-  );
-  const stats = useMemo(
-    () => new Map(grid.teams.map((team) => [team.code, runStats(team, start, end, lens, scale, finished)])),
-    [grid, start, end, lens, scale, finished],
-  );
-  const sorted = useMemo(
-    () => sortTeams(grid.teams, activeSort, start, end, lens, stats, finished),
-    [grid, activeSort, start, end, lens, stats, finished],
-  );
-  const { pinned, others } = useMemo(() => withPinsFirst(sorted, pins), [sorted, pins]);
-
-  // Picks by position cover the visible window (one gameweek with the Next horizon).
-  const picks = useMemo(() => {
-    const over = (lensName: "attack" | "defence") =>
-      new Map(grid.teams.map((team) => [team.code, runStats(team, start, end, lensName, grid.lens_scales[lensName], finished)]));
-    return positionPicks(grid.teams, over("attack"), over("defence"), 4);
-  }, [grid, start, end, finished]);
-  const pickWindow = end - start === 1 ? `GW${grid.matchdays[start]?.number ?? ""}` : `next ${end - start} GWs`;
-  const { tooltip, tableHandlers } = useTileTooltip(cellIndex, teamsByCode, pinned.length + others.length, start, end);
-
-  // Total bars are relative to the spread of this window.
-  const barPercents = useMemo(() => {
-    const totals = [...stats.values()].map((s) => s.total).filter((v): v is number => v !== null);
-    const [low, high] = [Math.min(...totals), Math.max(...totals)];
-    return new Map(
-      [...stats].map(([code, s]) => [code, s.total === null ? null : Math.round(12 + ((s.total - low) / (high - low || 1)) * 88)]),
-    );
-  }, [stats]);
-
-  const toggleSort = useCallback(
-    (key: SortKey) =>
-      setSort((current) =>
-        sameKey(current.key, key) ? { key, dir: current.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" },
-      ),
-    [],
-  );
-  const sortClass = (key: SortKey) => (sameKey(activeSort.key, key) ? `sorted ${activeSort.dir}` : "");
-  const ariaSort = (key: SortKey) =>
-    sameKey(activeSort.key, key) ? (activeSort.dir === "asc" ? "ascending" : "descending") : undefined;
-  const stepTo = (column: number) => patch({ from: grid.matchdays[column]?.number ?? null });
-  const togglePlayed = () =>
-    setState((current) => ({
-      ...current,
-      played: !current.played,
-      // hiding played rounds again: jump back to the opening matchday if the window is in the past
-      from: current.played && start < opening ? null : current.from,
-    }));
-
-  const q = deferredQuery.trim().toLowerCase();
-  const rowProps = (team: GridTeam, rowIndex: number) => ({
-    team,
-    rowIndex,
-    start,
-    end,
-    lens,
-    scale,
-    stats: stats.get(team.code)!,
-    barPercent: barPercents.get(team.code) ?? null,
-    isPinned: pins.includes(team.code),
-    matchesSearch: !q || team.name.toLowerCase().includes(q) || team.code.toLowerCase().includes(q),
-    matchdays: grid.matchdays,
-    columnTbc,
-    teamsByCode,
-    onTogglePin: togglePin,
-  });
+  const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   const lensNotes = notes.filter((note) => note.lens === null || note.lens === lens);
 
   return (
@@ -158,122 +54,77 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl }: Pr
           <div className="eyebrow">LaLiga · Season {grid.season}</div>
           <h1>{view === "table" ? "Table" : view === "plain" ? "Fixtures" : "Fixtures & Difficulty"}</h1>
         </div>
-        <SegmentedControl<View>
-          label="View"
-          size="lg"
-          value={view}
-          onChange={(next) => patch({ view: next })}
-          options={[
-            { value: "plain", label: "Fixtures" },
-            { value: "fdr", label: "Difficulty" },
-            { value: "table", label: "Table" },
-          ]}
-        />
+        <div className="hero-controls">
+          <GameweekSelector matchdays={grid.matchdays} column={column} opening={opening} onSelect={selectGameweek} />
+          <SegmentedControl<View>
+            label="View"
+            size="lg"
+            value={view}
+            onChange={(next) => patch({ view: next })}
+            options={[
+              { value: "plain", label: "Fixtures" },
+              { value: "fdr", label: "Difficulty" },
+              { value: "table", label: "Table" },
+            ]}
+          />
+        </div>
       </section>
 
-      {view === "plain" && (
-        <FixturesList
-          grid={grid}
-          column={start}
-          canGoBack={start > 0}
-          canGoForward={start < total - 1}
-          onBack={() => stepTo(start - 1)}
-          onForward={() => stepTo(start + 1)}
-        />
-      )}
+      {view === "plain" && <FixturesList grid={grid} column={column} />}
 
-      {view === "table" && <LeagueTable grid={grid} mode={state.table} onMode={(table) => patch({ table })} />}
+      {view === "table" && <LeagueTable grid={grid} through={tableThrough} mode={state.table} onMode={(table) => patch({ table })} />}
 
       {view === "fdr" && (
         <>
-          <PickCards grid={grid} picks={picks} start={start} end={end} windowLabel={pickWindow} pins={pins} onTogglePin={togglePin} />
+          <Overview
+            grid={grid}
+            column={column}
+            tableThrough={tableThrough}
+            finished={finished}
+            lens={lens}
+            horizon={horizon}
+            tableMode={state.table}
+            pins={pins}
+            onHorizon={(next) => patch({ horizon: next })}
+            onLens={(next) => patch({ lens: next })}
+            onTableMode={(table) => patch({ table })}
+            onTogglePin={togglePin}
+            onOpenMatches={() => {
+              patch({ horizon: "next" });
+              scrollTo("grid");
+            }}
+            onOpenTable={() => {
+              patch({ view: "table" });
+              window.scrollTo({ top: 0 });
+            }}
+          />
 
-          <section className="card board">
-            <BoardToolbar
+          <div className="board-stack">
+            <DifficultyGrid
+              grid={grid}
+              start={start}
+              end={end}
               lens={lens}
               horizon={horizon}
-              played={played}
-              first={columns[0]}
-              last={columns[columns.length - 1]}
-              canGoBack={start > minStart}
-              canGoForward={start < total - 1 && (horizon === "all" || end < total)}
-              showPlayedToggle={opening > 0}
-              query={query}
-              onBack={() => stepTo(start - 1)}
-              onForward={() => stepTo(start + 1)}
-              onTogglePlayed={togglePlayed}
+              pins={pins}
               onHorizon={(next) => patch({ horizon: next })}
               onLens={(next) => patch({ lens: next })}
-              onQuery={setQuery}
+              onTogglePin={togglePin}
             />
-
-            {horizon === "next" ? (
-              <NextGameweek grid={grid} column={start} />
-            ) : (
-              <div className="scroll">
-                {/* Handlers are delegated to the tile buttons inside (see useTileTooltip). */}
-                <table {...tableHandlers}>
-                  <caption className="visually-hidden">
-                    LaLiga fixtures by team, {columns.length ? `gameweeks ${columns[0]!.number} to ${columns[columns.length - 1]!.number}` : "no gameweeks"}
-                    {`, rated with the ${copy.label.toLowerCase()} lens from 1 (${copy.easy.toLowerCase()}) to 5 (${copy.hard.toLowerCase()})`}.
-                    {pins.length ? " Pinned teams are listed first." : ""} Use the arrow keys to move between fixtures.
-                  </caption>
-                  <thead>
-                    <tr>
-                      <th scope="col" className={`team-col sortable ${sortClass({ kind: "team" })}`} aria-sort={ariaSort({ kind: "team" })}>
-                        <button type="button" className="sort" onClick={() => toggleSort({ kind: "team" })} aria-label="Sort by team name">
-                          <span className="gw">Team<span className="arrow" aria-hidden="true">↓</span></span>
-                        </button>
-                      </th>
-                      {columns.map((md, i) => {
-                        const column = start + i;
-                        const key: SortKey = { kind: "matchday", column };
-                        return (
-                          <th key={md.number} scope="col" className={`sortable ${md.finished ? "past" : ""} ${sortClass(key)}`} aria-sort={ariaSort(key)}>
-                            <button type="button" className="sort" onClick={() => toggleSort(key)} aria-label={`Sort by gameweek ${md.number}, ${formatDay(md.date_from)}${columnTbc[column] ? ", dates to be confirmed" : ""}`}>
-                              <span className="gw">GW{md.number}<span className="arrow" aria-hidden="true">↓</span></span>
-                              <span className="date">
-                                {formatDay(md.date_from)}
-                                {columnTbc[column] && (
-                                  <span className="tbc-mark">
-                                    <span className="tbc-dot"> · </span>TBC
-                                  </span>
-                                )}
-                              </span>
-                            </button>
-                          </th>
-                        );
-                      })}
-                      <th scope="col" className={`avg-col sortable ${sortClass({ kind: "total" })}`} aria-sort={ariaSort({ kind: "total" })}>
-                        <button type="button" className="sort" onClick={() => toggleSort({ kind: "total" })} aria-label={`Sort by total ${copy.totalLong}`}>
-                          <span className="gw">Total<span className="arrow" aria-hidden="true">↓</span></span>
-                          <span className="date">{copy.total}</span>
-                        </button>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pinned.map((team, i) => <TeamRow key={team.code} {...rowProps(team, i)} />)}
-                    {pinned.length > 0 && others.length > 0 && (
-                      <tr className="pin-divider" aria-hidden="true">
-                        <td colSpan={columns.length + 2} />
-                      </tr>
-                    )}
-                    {others.map((team, i) => <TeamRow key={team.code} {...rowProps(team, pinned.length + i)} />)}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
+            <FixturesList grid={grid} column={column} />
+          </div>
 
           <p className="footnote">
-            {horizon === "next"
-              ? "Probabilities and expected goals come from the rating model; clean-sheet chance is the chance of conceding none. Click a team for its season."
-              : `${copy.hint}. Blank weeks count 0 and double weeks count both games. “TBC” on a gameweek means most kickoff times aren’t fixed yet. Click a team for its season, the pin to keep it on top, a gameweek or Total to sort.`}
+            Every card, the grid and the fixtures start from the selected gameweek. Totals add up game by game: blank weeks
+            count 0 and double weeks count both games. Picks: forwards by expected goals, defenders and keepers by expected
+            clean sheets, midfielders by both (goals weighted {Math.round(MIDFIELD_ATTACK_WEIGHT * 100)}%). Kindest and
+            toughest runs compare expected points per game.
           </p>
           <p className="footnote">
-            Picks: forwards by expected goals, defenders and keepers by expected clean sheets, midfielders by both (goals
-            weighted {Math.round(MIDFIELD_ATTACK_WEIGHT * 100)}%). Click a club to pin it.
+            Odds (Next and Next 3): bookmaker consensus from The Odds API with the margin removed. Win, draw and loss are
+            priced by bookmakers; scoring, clean-sheet and conceding odds are implied by those prices and the over/under 2.5
+            line. {horizon === "next" ? "Match cards use the rating model." : `${copy.hint}.`} Click a club name to open
+            its season, a pick or a pin to keep a club on top of the grid.
           </p>
           {(horizon === "next" ? notes : lensNotes).map((note) => (
             <p key={note.text} className="footnote note">
@@ -291,11 +142,10 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl }: Pr
       )}
       <p className="footnote attribution">
         Model {grid.model_version ?? "not run yet"}. Fixtures, results and crests: football-data.org. Match history:
-        football-data.co.uk.{" "}
+        football-data.co.uk. Odds: The Odds API.{" "}
         <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Weather data by Open-Meteo.com</a>{" "}
         (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>).
       </p>
-      <Tooltip ref={tooltip} />
     </>
   );
 }

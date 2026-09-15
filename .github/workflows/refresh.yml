@@ -31,6 +31,7 @@ jobs:
       # migrations are applied by hand with `python -m app.migrate`, never unattended.
       POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
       FOOTBALL_DATA_ORG_TOKEN: ${{ secrets.FOOTBALL_DATA_ORG_TOKEN }}
+      ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }} # optional; the odds step is skipped without it (and throttled to 6 h)
     steps:
       - uses: actions/checkout@v4
 

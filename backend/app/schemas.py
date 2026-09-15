@@ -60,6 +60,21 @@ class CellWeather(BaseModel):
     wind_kmh: float | None
 
 
+class CellMarket(BaseModel):
+    """Bookmaker consensus for this team's side of the fixture, as fair probabilities (margin removed).
+    Result from win/draw/loss prices; goal markets from the goal rates that reproduce the prices."""
+
+    win: float
+    draw: float
+    loss: float
+    scores: float
+    scores_2plus: float
+    clean_sheet: float
+    concedes_2plus: float
+    bookmakers: int
+    fetched_at: datetime
+
+
 class GridCell(BaseModel):
     fixture_id: int
     opponent_code: str
@@ -71,6 +86,7 @@ class GridCell(BaseModel):
     result: CellResult | None
     prediction: CellPrediction | None
     weather: CellWeather | None
+    market: CellMarket | None = None
 
 
 class GridTeam(BaseModel):

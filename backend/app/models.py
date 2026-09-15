@@ -103,6 +103,25 @@ class Prediction(Base):
     __table_args__ = (UniqueConstraint("fixture_id", "perspective_team_id", "model_version"),)
 
 
+class MarketOdds(Base):
+    """Consensus bookmaker odds for one upcoming fixture, margin removed, plus the goal rates that
+    reproduce them (clean sheet and goal markets are read off those). Each odds sync replaces the row."""
+
+    __tablename__ = "market_odds"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    fixture_id: Mapped[int] = mapped_column(ForeignKey("fixtures.id"))  # covered by the unique key below
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    source: Mapped[str] = mapped_column(String(32))
+    bookmakers: Mapped[int] = mapped_column(Integer)
+    p_home: Mapped[float] = mapped_column(Float)
+    p_draw: Mapped[float] = mapped_column(Float)
+    p_away: Mapped[float] = mapped_column(Float)
+    p_over_2_5: Mapped[float | None] = mapped_column(Float)
+    home_goals: Mapped[float] = mapped_column(Float)
+    away_goals: Mapped[float] = mapped_column(Float)
+    __table_args__ = (UniqueConstraint("fixture_id", name="uq_market_odds_fixture_id"),)
+
+
 RUNNING = "running"
 
 

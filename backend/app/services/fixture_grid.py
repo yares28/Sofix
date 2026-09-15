@@ -9,8 +9,9 @@ from typing import cast
 
 from sqlalchemy.orm import Session
 
-from app.models import Fixture, Prediction, RefreshRun, Team, WeatherSnapshot
+from app.models import Fixture, MarketOdds, Prediction, RefreshRun, Team, WeatherSnapshot
 from app.schemas import (
+    CellMarket,
     CellPrediction,
     CellResult,
     CellStatus,
@@ -28,6 +29,7 @@ from app.schemas import (
     Venue,
 )
 from app.services.crests import safe_crest_url
+from app.services.market_odds import MarketLine, team_market
 from app.services.model_notes import MODEL_NOTES
 from app.services.scoring import LABEL_THRESHOLDS, LABELS, label_bucket
 from app.services.team_registry import by_code
@@ -109,6 +111,32 @@ def latest_weather(db: Session, fixture_ids: list[int]) -> dict[int, WeatherSnap
     return {w.fixture_id: w for w in rows}
 
 
+def latest_odds(db: Session, fixture_ids: list[int]) -> dict[int, MarketOdds]:
+    rows = db.query(MarketOdds).filter(MarketOdds.fixture_id.in_(fixture_ids or [-1]))
+    return {row.fixture_id: row for row in rows}
+
+
+def cell_market(odds: MarketOdds, venue: Venue) -> CellMarket:
+    line = MarketLine(
+        home=odds.p_home, draw=odds.p_draw, away=odds.p_away, over_2_5=odds.p_over_2_5, bookmakers=odds.bookmakers
+    )
+    goals_for, goals_against = (
+        (odds.home_goals, odds.away_goals) if venue == "H" else (odds.away_goals, odds.home_goals)
+    )
+    market = team_market(line, goals_for, goals_against, venue)
+    return CellMarket(
+        win=round(market.win, 4),
+        draw=round(market.draw, 4),
+        loss=round(market.loss, 4),
+        scores=round(market.scores, 4),
+        scores_2plus=round(market.scores_2plus, 4),
+        clean_sheet=round(market.clean_sheet, 4),
+        concedes_2plus=round(market.concedes_2plus, 4),
+        bookmakers=odds.bookmakers,
+        fetched_at=as_utc(odds.fetched_at),
+    )
+
+
 def cell_prediction(pred: Prediction) -> CellPrediction:
     optional = lambda value, digits: None if value is None else round(value, digits)
     if pred.difficulty_label not in LABELS:
@@ -162,6 +190,7 @@ def build_fixture_grid(db: Session) -> FixtureGrid | None:
     teams = {team.id: team for team in db.query(Team).all()}
     predictions = live_predictions(db, fixture_ids)
     weather = latest_weather(db, fixture_ids)
+    odds = latest_odds(db, fixture_ids)
 
     by_matchday: dict[int, list[Fixture]] = defaultdict(list)
     for fx in fixtures:
@@ -219,6 +248,7 @@ def build_fixture_grid(db: Session) -> FixtureGrid | None:
                     # Only games still to be played carry a forecast (postponed ones have no date to rate).
                     prediction=cell_prediction(pred) if pred and status in {"scheduled", "live"} else None,
                     weather=cell_weather if status in {"scheduled", "live"} else None,
+                    market=cell_market(odds[fx.id], venue) if fx.id in odds and status == "scheduled" else None,
                 )
             )
 

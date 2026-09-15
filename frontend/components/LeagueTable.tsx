@@ -3,31 +3,24 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import type { TableMode } from "../lib/grid";
-import { currentTable, predictedTable, type Outcome } from "../lib/table";
+import { currentTable, predictedTable, zone, type Outcome } from "../lib/table";
 import type { FixtureGrid } from "../lib/types";
 import Crest from "./Crest";
 import SegmentedControl from "./SegmentedControl";
 
 interface Props {
   grid: FixtureGrid;
+  through: number | null; // standings after this gameweek column; null = every result so far
   mode: TableMode;
   onMode: (mode: TableMode) => void;
-}
-
-// LaLiga 2026/27 places: 1–4 Champions League, 5 Europa League, 6 Conference League play-off, 18–20 relegation.
-function zone(position: number, size: number): { className: string; label: string } | null {
-  if (position <= 4) return { className: "zone-ucl", label: "Champions League" };
-  if (position === 5) return { className: "zone-uel", label: "Europa League" };
-  if (position === 6) return { className: "zone-uecl", label: "Conference League" };
-  if (position > size - 3) return { className: "zone-rel", label: "Relegation" };
-  return null;
 }
 
 const OUTCOME_WORD: Record<Outcome, string> = { W: "won", D: "drew", L: "lost" };
 const pct = (value: number) => (value >= 0.995 ? ">99%" : value > 0 && value < 0.005 ? "<1%" : `${Math.round(value * 100)}%`);
 
-export default function LeagueTable({ grid, mode, onMode }: Props) {
-  const current = useMemo(() => currentTable(grid), [grid]);
+export default function LeagueTable({ grid, through, mode, onMode }: Props) {
+  const current = useMemo(() => currentTable(grid, through ?? undefined), [grid, through]);
+  const gameweek = through === null ? undefined : grid.matchdays[through];
   // Only simulate when the predicted table is actually shown (5,000 seasons ≈ tens of ms).
   const predicted = useMemo(() => (mode === "predicted" ? predictedTable(grid) : []), [grid, mode]);
   const size = current.length;
@@ -36,10 +29,10 @@ export default function LeagueTable({ grid, mode, onMode }: Props) {
     <section className="card league" aria-labelledby="table-title">
       <header className="section-head">
         <div>
-          <h2 id="table-title">{mode === "current" ? "LaLiga table" : "Predicted final table"}</h2>
+          <h2 id="table-title">{mode === "current" ? tableTitle(gameweek) : "Predicted final table"}</h2>
           <div className="insight-meta">
             {mode === "current"
-              ? "Played games only. Ties: head-to-head once both games are played, then goal difference, then goals."
+              ? `${gameweek ? `Games played up to GW${gameweek.number}` : "Played games only"}. Ties: head-to-head once both games are played, then goal difference, then goals.`
               : "Points so far plus expected points from every remaining fixture. Chances from 5,000 simulated seasons."}
           </div>
         </div>
@@ -162,6 +155,11 @@ export default function LeagueTable({ grid, mode, onMode }: Props) {
       </ul>
     </section>
   );
+}
+
+/** "Table after GW5" for a past gameweek that's done; "LaLiga table" otherwise. */
+export function tableTitle(gameweek: { number: number; finished: boolean } | undefined): string {
+  return gameweek?.finished ? `Table after GW${gameweek.number}` : "LaLiga table";
 }
 
 function ClubLink({ team }: { team: FixtureGrid["teams"][number] }) {

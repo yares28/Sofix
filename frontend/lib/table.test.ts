@@ -86,6 +86,42 @@ describe("currentTable", () => {
   });
 });
 
+describe("currentTable up to a gameweek", () => {
+  it("only counts games in gameweeks up to the selected one", () => {
+    const grid = makeGrid([
+      team("AAA", [played("BBB", "H", 3, 1, 1), played("BBB", "A", 0, 2, 8)]),
+      team("BBB", [played("AAA", "A", 1, 3, 1), played("AAA", "H", 2, 0, 8)]),
+    ]);
+    const afterFirst = currentTable(grid, 0);
+    expect(afterFirst.map((r) => [r.team.code, r.points, r.played])).toEqual([["AAA", 3, 1], ["BBB", 0, 1]]);
+    expect(currentTable(grid).map((r) => r.played)).toEqual([2, 2]);
+  });
+
+  it("keeps waiting for the second meeting before head-to-head decides, even with a cutoff", () => {
+    // After GW1 AAA and BBB are level on 3 points; AAA beat BBB 1–0 but BBB has the better goal difference.
+    const grid = makeGrid([
+      team("AAA", [played("BBB", "H", 1, 0, 1), played("CCC", "A", 0, 3, 8), upcoming("BBB", "A", 0.4, 0.3, 1.3, 900)]),
+      team("BBB", [played("AAA", "A", 0, 1, 1), played("DDD", "H", 5, 0, 8), upcoming("AAA", "H", 0.3, 0.3, 1.2, 900)]),
+      team("CCC", [played("AAA", "H", 3, 0, 8)]),
+      team("DDD", [played("BBB", "A", 0, 5, 8)]),
+    ]);
+    const order = currentTable(grid, 1).map((r) => r.team.code);
+    expect(order.indexOf("BBB")).toBeLessThan(order.indexOf("AAA")); // goal difference, not the single meeting
+  });
+
+  it("keeps waiting for the second meeting before head-to-head decides, even with a cutoff", () => {
+    // After GW1 AAA and BBB are level on 3 points; AAA beat BBB 1–0 but BBB has the better goal difference.
+    const grid = makeGrid([
+      team("AAA", [played("BBB", "H", 1, 0, 1), played("CCC", "A", 0, 3, 8), upcoming("BBB", "A", 0.4, 0.3, 1.3, 900)]),
+      team("BBB", [played("AAA", "A", 0, 1, 1), played("DDD", "H", 5, 0, 8), upcoming("AAA", "H", 0.3, 0.3, 1.2, 900)]),
+      team("CCC", [played("AAA", "H", 3, 0, 8)]),
+      team("DDD", [played("BBB", "A", 0, 5, 8)]),
+    ]);
+    const order = currentTable(grid, 1).map((r) => r.team.code);
+    expect(order.indexOf("BBB")).toBeLessThan(order.indexOf("AAA")); // goal difference, not the single meeting
+  });
+});
+
 describe("predictedTable", () => {
   it("adds expected points from remaining fixtures and simulates finishing chances deterministically", () => {
     const grid = makeGrid([

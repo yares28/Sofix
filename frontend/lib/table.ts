@@ -26,8 +26,9 @@ interface Played {
   kickoff: number;
 }
 
-function playedGames(team: GridTeam): Played[] {
+function playedGames(team: GridTeam, through: number): Played[] {
   return team.cells
+    .slice(0, through + 1)
     .flat()
     .filter((cell): cell is GridCell & { result: NonNullable<GridCell["result"]> } => cell.status === "finished" && cell.result !== null)
     .map((cell) => ({
@@ -41,12 +42,13 @@ function playedGames(team: GridTeam): Played[] {
 }
 
 /**
- * The league table from played games. Ties on points follow LaLiga: head-to-head points, then head-to-head
- * goal difference — but only once every game between the tied clubs has been played; until then (and after
- * that) overall goal difference, then goals scored.
+ * The league table from played games up to and including gameweek column `through` (default: all of them),
+ * so a past gameweek shows the table as it stood then. Ties on points follow LaLiga: head-to-head points, then
+ * head-to-head goal difference — but only once every game between the tied clubs has been played; until then
+ * (and after that) overall goal difference, then goals scored.
  */
-export function currentTable(grid: FixtureGrid): StandingRow[] {
-  const games = new Map(grid.teams.map((team) => [team.code, playedGames(team)]));
+export function currentTable(grid: FixtureGrid, through = Number.POSITIVE_INFINITY): StandingRow[] {
+  const games = new Map(grid.teams.map((team) => [team.code, playedGames(team, through)]));
   const rows = grid.teams.map((team): Omit<StandingRow, "position"> => {
     const played = games.get(team.code)!;
     const sum = (pick: (g: Played) => number) => played.reduce((s, g) => s + pick(g), 0);
@@ -72,7 +74,7 @@ export function currentTable(grid: FixtureGrid): StandingRow[] {
   for (const tied of byPoints.values()) {
     if (tied.length < 2) continue;
     const codes = new Set(tied.map((r) => r.team.code));
-    // every pair meets twice in a double round robin
+    // every pair meets twice in a double round robin: count the whole season, not just up to `through`
     const scheduled = tied.map((r) => r.team.cells.flat().filter((c) => codes.has(c.opponent_code)).length);
     const allPlayed = tied.every((r, i) => games.get(r.team.code)!.filter((g) => codes.has(g.opponent)).length === scheduled[i]);
     for (const row of tied) {
@@ -100,6 +102,15 @@ export function currentTable(grid: FixtureGrid): StandingRow[] {
       return b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor || a.team.name.localeCompare(b.team.name);
     })
     .map((row, i) => ({ ...row, position: i + 1 }));
+}
+
+// LaLiga 2026/27 places: 1–4 Champions League, 5 Europa League, 6 Conference League play-off, 18–20 relegation.
+export function zone(position: number, size: number): { className: string; label: string } | null {
+  if (position <= 4) return { className: "zone-ucl", label: "Champions League" };
+  if (position === 5) return { className: "zone-uel", label: "Europa League" };
+  if (position === 6) return { className: "zone-uecl", label: "Conference League" };
+  if (position > size - 3) return { className: "zone-rel", label: "Relegation" };
+  return null;
 }
 
 export interface PredictedRow {

@@ -14,6 +14,7 @@ export type GridMatchday = Schemas["GridMatchday"];
 export type CellPrediction = Schemas["CellPrediction"];
 export type CellResult = Schemas["CellResult"];
 export type CellWeather = Schemas["CellWeather"];
+export type CellMarket = Schemas["CellMarket"];
 export type Probabilities = Schemas["Prob"];
 export type LensScale = Schemas["LensScale"];
 export type RefreshRun = Schemas["RefreshRunOut"];

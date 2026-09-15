@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     postgres_migration_url: str = ""
     football_data_org_token: str = ""
     football_data_org_competition: str = "PD"
+    # The Odds API (free Starter plan, 500 credits/month). Without it the odds step is skipped.
+    odds_api_key: str = ""
     dixon_coles_config_path: str = str(BACKEND_DIR / "artifacts" / "dixon_coles.json")
     history_cache_dir: str = str(BACKEND_DIR / "data" / "raw" / "football-data-co-uk")
     # Shared secret between the Next.js server and POST /api/admin/refresh (≥ 32 bytes, or the endpoint stays off).

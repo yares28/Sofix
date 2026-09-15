@@ -2,7 +2,6 @@
 
 import { LENS_COPY, type Horizon } from "../lib/grid";
 import type { GridMatchday, Lens } from "../lib/types";
-import { Chevron } from "./GameweekStepper";
 import SegmentedControl from "./SegmentedControl";
 
 const HORIZONS: { value: Horizon; label: string }[] = [
@@ -20,48 +19,29 @@ const LENSES: { value: Lens; label: string }[] = (Object.keys(LENS_COPY) as Lens
 interface Props {
   lens: Lens;
   horizon: Horizon;
-  played: boolean;
   first: GridMatchday | undefined;
   last: GridMatchday | undefined;
-  canGoBack: boolean;
-  canGoForward: boolean;
-  showPlayedToggle: boolean;
   query: string;
-  onBack: () => void;
-  onForward: () => void;
-  onTogglePlayed: () => void;
   onHorizon: (horizon: Horizon) => void;
   onLens: (lens: Lens) => void;
   onQuery: (query: string) => void;
 }
 
+/** The grid's controls. Which gameweek it starts from is the app-wide selector's job. */
 export default function BoardToolbar(props: Props) {
-  const { lens, horizon, played, first, last, query } = props;
+  const { lens, horizon, first, last, query } = props;
   const copy = LENS_COPY[lens];
   const single = horizon === "next"; // match cards: no lens, legend or team search
   const range = !first || !last ? "—" : first.number === last.number ? `GW${first.number}` : `GW${first.number} – GW${last.number}`;
   return (
     <div className={`toolbar ${single ? "single" : ""}`}>
       <div className="toolbar-nav">
-        <div className="stepper">
-          <button type="button" aria-label="Previous gameweek" disabled={!props.canGoBack} onClick={props.onBack}>
-            <Chevron direction="left" />
-          </button>
-          <div className="range">{range}</div>
-          <button type="button" aria-label="Next gameweek" disabled={!props.canGoForward} onClick={props.onForward}>
-            <Chevron direction="right" />
-          </button>
-        </div>
-        {props.showPlayedToggle && (
-          <button type="button" className="toggle" aria-pressed={played} onClick={props.onTogglePlayed} aria-label="Show played gameweeks">
-            <span className="toggle-long">Show played</span>
-            <span className="toggle-short" aria-hidden="true">Played</span>
-          </button>
-        )}
+        <h2 className="toolbar-title">Fixture grid</h2>
+        <div className="range">{range}</div>
       </div>
       <div className="toolbar-controls">
-        <SegmentedControl<Horizon> label="Horizon" value={horizon} onChange={props.onHorizon} options={HORIZONS} />
-        {!single && <SegmentedControl<Lens> label="Lens" value={lens} onChange={props.onLens} options={LENSES} />}
+        <SegmentedControl<Horizon> label="Grid horizon" value={horizon} onChange={props.onHorizon} options={HORIZONS} />
+        {!single && <SegmentedControl<Lens> label="Grid lens" value={lens} onChange={props.onLens} options={LENSES} />}
         {!single && (
           <div className="legend">
             <span className="visually-hidden">Colour key, {copy.label} lens:</span>

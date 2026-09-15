@@ -40,9 +40,12 @@ files = [
     "app/schemas.py",
     "app/services/crests.py",
     "app/services/fixture_grid.py",
+    "app/services/market_odds.py",
     "app/services/refresh_runs.py",
     "app/services/scoring.py",
     "app/services/team_registry.py",
     "app/services/timeutil.py",
     "app/sources/open_meteo.py",
+    "app/sources/the_odds_api.py",
+    "app/jobs/sync_odds.py",
 ]

@@ -4,28 +4,27 @@
  * before the page can answer 404 for an unknown team.
  */
 export default function Loading() {
+  const card = (lines: number, key?: number) => (
+    <div key={key} className="card bento-card skeleton-card">
+      <div className="skeleton skeleton-line short" />
+      {Array.from({ length: lines }, (_, i) => (
+        <div key={i} className="skeleton skeleton-line" />
+      ))}
+    </div>
+  );
   return (
     <main aria-busy="true" aria-live="polite">
       <span className="visually-hidden">Loading fixtures…</span>
       <div className="skeleton skeleton-title" />
-      <div className="insights" aria-hidden="true">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="card insight skeleton-card">
-            <div className="skeleton skeleton-line short" />
-            <div className="skeleton skeleton-line" />
-            <div className="skeleton skeleton-line" />
-          </div>
-        ))}
-      </div>
-      <div className="card board skeleton-board" aria-hidden="true">
-        {Array.from({ length: 8 }, (_, row) => (
-          <div key={row} className="skeleton-row">
-            <div className="skeleton skeleton-team" />
-            {Array.from({ length: 8 }, (_, col) => (
-              <div key={col} className="skeleton skeleton-tile" />
-            ))}
-          </div>
-        ))}
+      <div className="bento" aria-hidden="true">
+        <div className="bento-runs">
+          {card(3, 0)}
+          {card(3, 1)}
+        </div>
+        {card(12)}
+        {card(12)}
+        <div className="ladder-card">{card(16)}</div>
+        {card(16)}
       </div>
     </main>
   );

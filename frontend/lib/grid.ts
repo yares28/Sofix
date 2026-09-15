@@ -1,4 +1,4 @@
-import type { Bucket, FixtureGrid, GridCell, GridTeam, Lens, LensScale } from "./types";
+import type { Bucket, CellMarket, FixtureGrid, GridCell, GridMatchday, GridTeam, Lens, LensScale } from "./types";
 
 export type { Bucket };
 export type SortKey = { kind: "team" } | { kind: "total" } | { kind: "matchday"; column: number };
@@ -261,6 +261,37 @@ export function positionPicks(
   };
 }
 
+/**
+ * The kindest and toughest runs by expected points per game (overall stats), so a club that already played a
+ * game of the window, has a blank or a double isn't picked for its game count. Null when fewer than two clubs
+ * have games to rate.
+ */
+export function kindestAndToughest(teams: GridTeam[], overall: Map<string, RunStats>): { kindest: GridTeam; toughest: GridTeam } | null {
+  const perGame = (team: GridTeam) => {
+    const s = overall.get(team.code);
+    return s && s.fixtures > 0 && s.total !== null ? s.total / s.fixtures : null;
+  };
+  const rated = teams
+    .map((team) => ({ team, value: perGame(team) }))
+    .filter((row): row is { team: GridTeam; value: number } => row.value !== null)
+    .sort((a, b) => b.value - a.value || a.team.name.localeCompare(b.team.name));
+  return rated.length < 2 ? null : { kindest: rated[0]!.team, toughest: rated[rated.length - 1]!.team };
+}
+
+/** The overview's window: from the selected gameweek, with "All" shown as 8 (a season of chips doesn't fit a row). */
+export function overviewWindow(total: number, start: number, horizon: Horizon): { start: number; end: number; horizon: Exclude<Horizon, "all"> } {
+  const shown = horizon === "all" ? "8" : horizon;
+  return { ...windowRange(total, start, horizonSize(shown, total)), horizon: shown };
+}
+
+/** "GW6–GW10", "GW6", or "" when there are no gameweeks. */
+export function windowLabel(matchdays: readonly { number: number }[], start: number, end: number): string {
+  const first = matchdays[start]?.number;
+  const last = matchdays[end - 1]?.number;
+  if (first === undefined || last === undefined) return "";
+  return first === last ? `GW${first}` : `GW${first}–GW${last}`;
+}
+
 // ---------------------------------------------------------------- view state in the URL
 
 export type View = "plain" | "fdr" | "table"; // Fixtures, Difficulty, Table tabs
@@ -280,17 +311,16 @@ export interface ViewState {
   view: View;
   lens: Lens;
   horizon: Horizon;
-  from: number | null; // first gameweek number shown; null = the opening gameweek
+  gw: number | null; // the app-wide gameweek every tab and card starts from; null = the opening gameweek
   pins: string[];
-  played: boolean; // allow stepping back into played gameweeks
   table: TableMode;
 }
 
 export const DEFAULT_VIEW: ViewState = {
-  view: "fdr", lens: "overall", horizon: "8", from: null, pins: [], played: false, table: "current",
+  view: "fdr", lens: "overall", horizon: "5", gw: null, pins: [], table: "current",
 };
 
-/** Read ?view=&lens=&h=&from=&pins=&played=&t= leniently: anything unknown falls back to the default. */
+/** Read ?view=&lens=&h=&gw=&pins=&t= leniently: anything unknown falls back to the default. */
 export function parseViewState(params: URLSearchParams, knownCodes: ReadonlySet<string>): Partial<ViewState> {
   const state: Partial<ViewState> = {};
   const view = params.get("view");
@@ -301,11 +331,45 @@ export function parseViewState(params: URLSearchParams, knownCodes: ReadonlySet<
   if (lens && (LENSES as readonly string[]).includes(lens)) state.lens = lens as Lens;
   const horizon = params.get("h");
   if (horizon && (HORIZON_VALUES as readonly string[]).includes(horizon)) state.horizon = horizon as Horizon;
-  const from = Number(params.get("from"));
-  if (params.has("from") && Number.isInteger(from) && from > 0) state.from = from;
+  const gw = Number(params.get("gw") ?? params.get("from")); // ?from= is the old name
+  if ((params.has("gw") || params.has("from")) && Number.isInteger(gw) && gw > 0) state.gw = gw;
   if (params.has("pins")) state.pins = parsePins(params.get("pins"), knownCodes);
-  if (params.get("played") === "1") state.played = true;
   return state;
+}
+
+/** The column of the selected gameweek; the opening gameweek when none (or an unknown one) is selected. */
+export function selectedColumn(matchdays: readonly Pick<GridMatchday, "number">[], gw: number | null, opening: number): number {
+  const index = gw === null ? -1 : matchdays.findIndex((md) => md.number === gw);
+  return index >= 0 ? index : opening;
+}
+
+// ---------------------------------------------------------------- bookmaker odds
+
+/** Decimal odds for a fair probability ("2.50"); the backend already removed the bookmaker margin. */
+export function decimalOdds(probability: number): string {
+  if (!(probability > 0)) return "—";
+  const price = 1 / probability;
+  return price >= 100 ? "99+" : price.toFixed(2);
+}
+
+export interface OddsLine {
+  label: string;
+  price: string;
+  spoken: string;
+}
+
+/** What the market says for this lens: result odds (overall), scoring (attack), clean sheet and conceding (defence). */
+export function marketLines(market: CellMarket, lens: Lens): OddsLine[] {
+  const line = (label: string, spoken: string, probability: number): OddsLine => ({
+    label,
+    price: decimalOdds(probability),
+    spoken: `${spoken} ${decimalOdds(probability)}`,
+  });
+  if (lens === "attack") return [line("Scores", "to score", market.scores), line("2+", "to score 2 or more", market.scores_2plus)];
+  if (lens === "defence") {
+    return [line("CS", "clean sheet", market.clean_sheet), line("Conc 2+", "to concede 2 or more", market.concedes_2plus)];
+  }
+  return [line("W", "win", market.win), line("D", "draw", market.draw), line("L", "loss", market.loss)];
 }
 
 export function parsePins(raw: string | null, knownCodes: ReadonlySet<string>): string[] {
@@ -319,9 +383,8 @@ export function serializeViewState(state: ViewState): string {
   if (state.view !== DEFAULT_VIEW.view) params.set("view", state.view);
   if (state.lens !== DEFAULT_VIEW.lens) params.set("lens", state.lens);
   if (state.horizon !== DEFAULT_VIEW.horizon) params.set("h", state.horizon);
-  if (state.from !== null) params.set("from", String(state.from));
+  if (state.gw !== null) params.set("gw", String(state.gw));
   if (state.pins.length) params.set("pins", state.pins.join(","));
-  if (state.played) params.set("played", "1");
   if (state.table !== DEFAULT_VIEW.table) params.set("t", state.table);
   return params.toString();
 }
@@ -340,6 +403,12 @@ function madridParts(iso: string): Record<string, string> {
 export function formatDay(iso: string): string {
   const parts = madridParts(iso);
   return `${Number(parts.day)} ${MONTHS[Number(parts.month) - 1]}`;
+}
+
+/** "Sat 21:00" (Madrid): for lists already grouped under one gameweek. */
+export function formatShortKickoff(iso: string): string {
+  const parts = madridParts(iso);
+  return `${parts.weekday} ${parts.hour}:${parts.minute}`;
 }
 
 export function formatKickoff(iso: string): string {

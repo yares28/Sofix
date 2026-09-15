@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  DEFAULT_VIEW, cellBucket, horizonSize, cellLabel, columnTotal, formatDay, formatKickoff, formatLensValue, openingColumn,
-  parseViewState, positionPicks, relativeTime, runStats, scaleBucket, serializeViewState, sortTeams, windowRange,
+  DEFAULT_VIEW, cellBucket, horizonSize, cellLabel, columnTotal, formatDay, formatKickoff, formatLensValue, formatShortKickoff,
+  decimalOdds, kindestAndToughest, marketLines, openingColumn, overviewWindow, parseViewState, positionPicks, selectedColumn, windowLabel, relativeTime, runStats, scaleBucket, serializeViewState, sortTeams, windowRange,
 } from "./grid";
 import type { Bucket, DifficultyLabel, FixtureGrid, GridCell, GridTeam, LensScale } from "./types";
 
@@ -178,12 +178,13 @@ describe("planning helpers", () => {
 
   it("round-trips view state through the URL and ignores junk", () => {
     const known = new Set(["FCB", "RMA", "ATL"]);
-    const state = { ...DEFAULT_VIEW, lens: "attack" as const, horizon: "5" as const, from: 7, pins: ["FCB", "ATL"], played: true };
+    const state = { ...DEFAULT_VIEW, lens: "attack" as const, horizon: "8" as const, gw: 7, pins: ["FCB", "ATL"] };
     const query = serializeViewState(state);
-    expect(query).toBe("lens=attack&h=5&from=7&pins=FCB%2CATL&played=1");
+    expect(query).toBe("lens=attack&h=8&gw=7&pins=FCB%2CATL");
     expect({ ...DEFAULT_VIEW, ...parseViewState(new URLSearchParams(query), known) }).toEqual(state);
     expect(serializeViewState(DEFAULT_VIEW)).toBe("");
-    expect(parseViewState(new URLSearchParams("lens=bogus&h=99&from=-2&pins=fcb,XXX,FCB,<script>&view=plain"), known)).toEqual({
+    expect(parseViewState(new URLSearchParams("from=9&board=grid&played=1"), known)).toEqual({ gw: 9 }); // old links
+    expect(parseViewState(new URLSearchParams("lens=bogus&h=99&gw=-2&pins=fcb,XXX,FCB,<script>&view=plain"), known)).toEqual({
       view: "plain",
       pins: ["FCB"],
     });
@@ -200,6 +201,50 @@ describe("planning helpers", () => {
     expect(horizonSize("5", 38)).toBe(5);
     expect(horizonSize("all", 38)).toBe(38);
   });
+
+  it("picks the kindest and toughest runs per game, so game counts don't decide", () => {
+    const early = cell({ status: "finished", prediction: null, result: { goals_for: 0, goals_against: 0, outcome: "D" } });
+    const teams = [
+      team("DBL", [[cell({ ep: 1.5 }), cell({ ep: 1.5 })], [cell({ ep: 1.5 })]]), // double week: biggest total, average run
+      team("TOP", [[cell({ ep: 2.2 })], [cell({ ep: 2.0 })]]),
+      team("ERL", [[early], [cell({ ep: 1.3 })]]), // already played: smallest total, not the toughest
+      team("LOW", [[cell({ ep: 0.9 })], [cell({ ep: 0.8 })]]),
+      team("OFF", [[], []]),
+    ];
+    const stats = new Map(teams.map((t) => [t.code, runStats(t, 0, 2, "overall", OVERALL, [false, false])]));
+    expect(kindestAndToughest(teams, stats)).toMatchObject({ kindest: { code: "TOP" }, toughest: { code: "LOW" } });
+    expect(kindestAndToughest(teams.slice(3), stats)).toBeNull();
+  });
+
+  it("finds the selected gameweek's column, falling back to the opening one", () => {
+    const mds = [4, 5, 6, 7].map((number) => ({ number }));
+    expect(selectedColumn(mds, 6, 1)).toBe(2);
+    expect(selectedColumn(mds, null, 1)).toBe(1);
+    expect(selectedColumn(mds, 40, 1)).toBe(1);
+  });
+
+  it("turns fair probabilities into decimal odds for each lens", () => {
+    expect(decimalOdds(0.5)).toBe("2.00");
+    expect(decimalOdds(0.004)).toBe("99+");
+    expect(decimalOdds(0)).toBe("—");
+    const market = {
+      win: 0.625, draw: 0.25, loss: 0.125, scores: 0.8, scores_2plus: 0.4, clean_sheet: 0.32, concedes_2plus: 0.2,
+      bookmakers: 9, fetched_at: "2026-09-14T08:00:00Z",
+    };
+    expect(marketLines(market, "overall").map((l) => `${l.label} ${l.price}`)).toEqual(["W 1.60", "D 4.00", "L 8.00"]);
+    expect(marketLines(market, "attack").map((l) => `${l.label} ${l.price}`)).toEqual(["Scores 1.25", "2+ 2.50"]);
+    expect(marketLines(market, "defence").map((l) => l.spoken)).toEqual(["clean sheet 3.13", "to concede 2 or more 5.00"]);
+  });
+
+  it("sizes the overview window from the opening gameweek and labels it", () => {
+    expect(overviewWindow(38, 5, "5")).toEqual({ start: 5, end: 10, horizon: "5" });
+    expect(overviewWindow(38, 5, "all")).toEqual({ start: 5, end: 13, horizon: "8" });
+    expect(overviewWindow(38, 37, "8")).toEqual({ start: 37, end: 38, horizon: "8" }); // last gameweek of the season
+    const mds = [6, 7, 8, 9, 10].map((number) => ({ number }));
+    expect(windowLabel(mds, 0, 5)).toBe("GW6–GW10");
+    expect(windowLabel(mds, 2, 3)).toBe("GW8");
+    expect(windowLabel([], 0, 0)).toBe("");
+  });
 });
 
 describe("formatting", () => {
@@ -212,6 +257,7 @@ describe("formatting", () => {
   it("shows Madrid time across the October DST change", () => {
     expect(formatKickoff("2026-10-24T19:00:00Z")).toBe("Sat 24 Oct, 21:00"); // CEST, UTC+2
     expect(formatKickoff("2026-10-25T19:00:00Z")).toBe("Sun 25 Oct, 20:00"); // CET, UTC+1
+    expect(formatShortKickoff("2026-10-24T19:00:00Z")).toBe("Sat 21:00");
     expect(formatDay("2026-09-30T23:30:00Z")).toBe("1 Oct"); // already the next day in Madrid
   });
 

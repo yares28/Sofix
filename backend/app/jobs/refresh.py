@@ -8,8 +8,9 @@
 1. sync: fixtures + results from football-data.org (needs FOOTBALL_DATA_ORG_TOKEN)
 2. predict: rating model predictions (football-data.co.uk history, no key)
 3. weather: kickoff weather from Open-Meteo (no key)
+4. odds: bookmaker odds from The Odds API (needs ODDS_API_KEY; skipped without it, throttled to 6 h)
 
-Steps 1–3 are isolated: a failure is recorded and the next step still runs (predictions from the
+Steps 1–4 are isolated: a failure is recorded and the next step still runs (predictions from the
 data already in the database are better than none). Each run is stored in `refresh_runs`, which
 also acts as the lock: a second run while one is active exits with code 2. --run-id adopts a run
 row the API already inserted (and so already holds the lock for).
@@ -32,7 +33,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import settings
 from app.db import SessionLocal, database_target
-from app.jobs import predict, seed_and_sync, sync_weather
+from app.jobs import predict, seed_and_sync, sync_odds, sync_weather
 from app.logging_config import configure_logging
 from app.migrate import ensure_schema_current, upgrade_to_head
 from app.models import RUNNING, RefreshRun
@@ -56,6 +57,7 @@ def default_steps() -> list[Step]:
         ("sync", lambda: asyncio.run(seed_and_sync.main())),
         ("predict", predict.main),
         ("weather", lambda: asyncio.run(sync_weather.main())),
+        ("odds", lambda: asyncio.run(sync_odds.main())),
     ]
 
 

@@ -46,6 +46,7 @@ const STEP_COPY: Record<string, string> = {
   sync: "Syncing fixtures…",
   predict: "Updating predictions…",
   weather: "Fetching weather…",
+  odds: "Fetching odds…",
 };
 
 function availableAt(data: RefreshStatus | null | undefined, now: number): number {

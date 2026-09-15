@@ -197,6 +197,10 @@ Work order: **0 → 1 → 2 → 3 → 4**, with **5** and **6** interleaved once
 | 5.24 | ✅ _(one gameweek, grouped by day, scores for played games, GW selector across the whole season)_ Fixtures tab shows only the selected gameweek's fixtures | No grid in Fixtures |
 | 5.25 | ✅ _(Current: LaLiga tiebreaks, zones, form; Predicted: points + expected points from remaining fixtures, title/top-4/relegation from 5,000 seeded simulations)_ Table tab with a predicted table | Current and predicted tables, shareable via ?view=table&t=predicted |
 | 5.22 | ✅ _(Forwards by xG, Midfielders by 65/35 xG/clean-sheet blend, Defenders & keepers by expected clean sheets; fixture strip per club; click to pin)_ Top cards: clubs to pick from, by position | Cards answer "whose forwards / midfielders / defenders" |
+| 5.26 | ✅ _(three equal columns: kindest + toughest run, next gameweek with win/draw/win bars, who to pick; every club ranked by expected points with a number column and fixture chips beside a 20-row table whose rows line up; default horizon Next 5; the grid now sits under the cards)_ Bento overview as the Difficulty tab's main page | Overview shows the relevant info first, grid and fixtures below |
+| 5.27 | ✅ _(The Odds API, free plan, one call throttled to 6 h; fair W/D/L from the median of bookmakers, goal rates fitted to 1X2 + over/under 2.5 give clean sheet, to score, 2+ and concede 2+; market_odds table; shown beside each GW for Next / Next 3 by lens)_ Bookmaker odds in the Expected points card | Next and Next 3 show odds per GW; attack = scoring odds, defence = clean sheet and conceding odds |
+| 5.28 | ✅ _(?gw= in the URL, selector with arrows and a list in the header, "Back to GW n"; old ?from= links still work)_ App-wide gameweek selector | Overview cards, grid, fixtures and the current table (after that GW) all follow it |
+| 5.29 | ✅ _(DifficultyGrid + FixturesList under the bento; ?board=grid dropped)_ Full fixture grid and fixtures on the Difficulty page instead of a link | No separate grid view |
 
 ---
 

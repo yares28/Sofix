@@ -35,6 +35,19 @@ const CellSchema = z.object({
   weather: z
     .object({ temperature_c: z.number().nullable(), precipitation_mm: z.number().nullable(), wind_kmh: z.number().nullable() })
     .nullable(),
+  market: z
+    .object({
+      win: probability,
+      draw: probability,
+      loss: probability,
+      scores: probability,
+      scores_2plus: probability,
+      clean_sheet: probability,
+      concedes_2plus: probability,
+      bookmakers: z.number().int().min(0),
+      fetched_at: isoDate,
+    })
+    .nullish(),
 });
 
 const LensScaleSchema = z.object({ cuts: z.array(z.number()).length(4), higher_is_easier: z.boolean() });

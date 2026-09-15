@@ -222,6 +222,61 @@
         ],
         "title": "ApiResponse[RefreshStatus]"
       },
+      "CellMarket": {
+        "properties": {
+          "win": {
+            "type": "number",
+            "title": "Win"
+          },
+          "draw": {
+            "type": "number",
+            "title": "Draw"
+          },
+          "loss": {
+            "type": "number",
+            "title": "Loss"
+          },
+          "scores": {
+            "type": "number",
+            "title": "Scores"
+          },
+          "scores_2plus": {
+            "type": "number",
+            "title": "Scores 2Plus"
+          },
+          "clean_sheet": {
+            "type": "number",
+            "title": "Clean Sheet"
+          },
+          "concedes_2plus": {
+            "type": "number",
+            "title": "Concedes 2Plus"
+          },
+          "bookmakers": {
+            "type": "integer",
+            "title": "Bookmakers"
+          },
+          "fetched_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Fetched At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "win",
+          "draw",
+          "loss",
+          "scores",
+          "scores_2plus",
+          "clean_sheet",
+          "concedes_2plus",
+          "bookmakers",
+          "fetched_at"
+        ],
+        "title": "CellMarket",
+        "description": "Bookmaker consensus for this team's side of the fixture, as fair probabilities (margin removed).\nResult from win/draw/loss prices; goal markets from the goal rates that reproduce the prices."
+      },
       "CellPrediction": {
         "properties": {
           "difficulty": {
@@ -498,6 +553,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/CellWeather"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "market": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CellMarket"
               },
               {
                 "type": "null"

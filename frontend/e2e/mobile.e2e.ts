@@ -27,8 +27,13 @@ test("phone layout shows five gameweeks without scrolling the page sideways", as
   expect(toolbarRows).toBeLessThanOrEqual(2);
 });
 
-test("Fixtures and Table fit a phone without sideways page scrolling", async ({ page }) => {
-  for (const [path, ready] of [["/?view=plain", ".fixture-row"], ["/?view=table&t=predicted", "table.standings tbody tr"]] as const) {
+test("Overview, Fixtures and Table fit a phone without sideways page scrolling", async ({ page }) => {
+  for (const [path, ready] of [
+    ["/", ".ladder-card .list-rows > li"],
+    ["/?h=8", ".ladder-card .list-rows > li"],
+    ["/?view=plain", ".fixture-row"],
+    ["/?view=table&t=predicted", "table.standings tbody tr"],
+  ] as const) {
     await page.goto(path);
     await expect(page.locator(ready).first()).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), path).toBe(true);

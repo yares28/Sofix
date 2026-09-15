@@ -94,6 +94,34 @@ export interface components {
             error?: string | null;
             meta?: components["schemas"]["GridMeta"] | null;
         };
+        /**
+         * CellMarket
+         * @description Bookmaker consensus for this team's side of the fixture, as fair probabilities (margin removed).
+         *     Result from win/draw/loss prices; goal markets from the goal rates that reproduce the prices.
+         */
+        CellMarket: {
+            /** Win */
+            win: number;
+            /** Draw */
+            draw: number;
+            /** Loss */
+            loss: number;
+            /** Scores */
+            scores: number;
+            /** Scores 2Plus */
+            scores_2plus: number;
+            /** Clean Sheet */
+            clean_sheet: number;
+            /** Concedes 2Plus */
+            concedes_2plus: number;
+            /** Bookmakers */
+            bookmakers: number;
+            /**
+             * Fetched At
+             * Format: date-time
+             */
+            fetched_at: string;
+        };
         /** CellPrediction */
         CellPrediction: {
             /** Difficulty */
@@ -181,6 +209,7 @@ export interface components {
             result: components["schemas"]["CellResult"] | null;
             prediction: components["schemas"]["CellPrediction"] | null;
             weather: components["schemas"]["CellWeather"] | null;
+            market?: components["schemas"]["CellMarket"] | null;
         };
         /** GridMatchday */
         GridMatchday: {

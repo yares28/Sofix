@@ -44,6 +44,7 @@ const CellSchema = z.object({
       scores_2plus: probability,
       clean_sheet: probability,
       concedes_2plus: probability,
+      expected_points: z.number().min(0).max(3),
       bookmakers: z.number().int().min(0),
       fetched_at: isoDate,
     })
@@ -56,7 +57,7 @@ export const FixtureGridSchema = z.object({
   season: z.string(),
   current_matchday: z.number().int().nullable(),
   model_version: z.string().nullable(),
-  lens_scales: z.object({ overall: LensScaleSchema, attack: LensScaleSchema, defence: LensScaleSchema }),
+  lens_scales: z.object({ overall: LensScaleSchema, attack: LensScaleSchema, defence: LensScaleSchema, odds: LensScaleSchema }),
   matchdays: z.array(z.object({ number: z.number().int(), date_from: isoDate, date_to: isoDate, finished: z.boolean() })),
   teams: z.array(
     z.object({

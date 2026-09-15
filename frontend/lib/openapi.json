@@ -252,6 +252,10 @@
             "type": "number",
             "title": "Concedes 2Plus"
           },
+          "expected_points": {
+            "type": "number",
+            "title": "Expected Points"
+          },
           "bookmakers": {
             "type": "integer",
             "title": "Bookmakers"
@@ -271,6 +275,7 @@
           "scores_2plus",
           "clean_sheet",
           "concedes_2plus",
+          "expected_points",
           "bookmakers",
           "fetched_at"
         ],
@@ -738,7 +743,7 @@
           "higher_is_easier"
         ],
         "title": "LensScale",
-        "description": "Four cut points splitting a lens into buckets 1 (easiest) … 5 (hardest).\n\nhigher_is_easier=False (overall difficulty): bucket = 1 + number of cuts the value exceeds.\nhigher_is_easier=True (xG, clean sheet): cuts are descending; bucket = 1 + number of cuts the value is below."
+        "description": "Four cut points splitting a lens into buckets 1 (easiest) … 5 (hardest).\n\nhigher_is_easier=False (overall difficulty): bucket = 1 + number of cuts the value exceeds.\nhigher_is_easier=True (xG, clean sheet, market win chance): cuts are descending; bucket = 1 + number of cuts the value is below."
       },
       "LensScales": {
         "properties": {
@@ -750,13 +755,17 @@
           },
           "defence": {
             "$ref": "#/components/schemas/LensScale"
+          },
+          "odds": {
+            "$ref": "#/components/schemas/LensScale"
           }
         },
         "type": "object",
         "required": [
           "overall",
           "attack",
-          "defence"
+          "defence",
+          "odds"
         ],
         "title": "LensScales",
         "description": "One scale per lens (named fields rather than a dict, so clients get a typed object)."

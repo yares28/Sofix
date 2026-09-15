@@ -241,6 +241,7 @@ def test_lens_scales_shape(seeded):
     scales = build_fixture_grid(seeded).lens_scales
     assert scales.overall.cuts == list(LABEL_THRESHOLDS) and scales.overall.higher_is_easier is False
     assert scales.attack.higher_is_easier and scales.defence.higher_is_easier
+    assert scales.odds.higher_is_easier and scales.odds.cuts == [0.0, 0.0, 0.0, 0.0]  # no markets synced yet
 
 
 def test_quantile_scale_gives_label_shares():

@@ -27,6 +27,7 @@ const grid: FixtureGrid = {
     overall: { cuts: [1, 2, 3, 4], higher_is_easier: false },
     attack: { cuts: [4, 3, 2, 1], higher_is_easier: true },
     defence: { cuts: [4, 3, 2, 1], higher_is_easier: true },
+    odds: { cuts: [0.6, 0.45, 0.3, 0.18], higher_is_easier: true },
   },
   matchdays: [md(1), md(2), md(3), md(4), md(5)],
   teams: [team],

@@ -160,6 +160,8 @@ def test_sync_writes_matched_fixtures_and_the_grid_shows_both_sides(seeded):
     assert madrid.win == pytest.approx(sevilla.loss) and madrid.draw == pytest.approx(sevilla.draw)
     assert madrid.win > 0.5 and madrid.clean_sheet > sevilla.clean_sheet
     assert madrid.concedes_2plus < sevilla.concedes_2plus and madrid.bookmakers == 1
+    assert madrid.expected_points == pytest.approx(3 * madrid.win + madrid.draw, abs=1e-3)
+    assert grid.lens_scales.odds.higher_is_easier and grid.lens_scales.odds.cuts[0] >= grid.lens_scales.odds.cuts[-1]
     assert teams["FCB"].cells[0][0].market is None  # finished games carry no odds
 
 

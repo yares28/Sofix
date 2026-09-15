@@ -132,6 +132,7 @@ def cell_market(odds: MarketOdds, venue: Venue) -> CellMarket:
         scores_2plus=round(market.scores_2plus, 4),
         clean_sheet=round(market.clean_sheet, 4),
         concedes_2plus=round(market.concedes_2plus, 4),
+        expected_points=round(3 * market.win + market.draw, 3),
         bookmakers=odds.bookmakers,
         fetched_at=as_utc(odds.fetched_at),
     )
@@ -173,6 +174,7 @@ def lens_scales(cells: list[GridCell]) -> LensScales:
         overall=LensScale(cuts=list(LABEL_THRESHOLDS), higher_is_easier=False),
         attack=quantile_scale([p.xg_for for p in predictions if p.xg_for is not None]),
         defence=quantile_scale([p.clean_sheet for p in predictions if p.clean_sheet is not None]),
+        odds=quantile_scale([cell.market.win for cell in cells if cell.market]),
     )
 
 

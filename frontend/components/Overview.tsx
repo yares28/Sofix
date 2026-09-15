@@ -40,7 +40,7 @@ export default function Overview(props: Props) {
   const over = useMemo(() => {
     const statsFor = (which: Lens) =>
       new Map(grid.teams.map((team) => [team.code, runStats(team, start, end, which, grid.lens_scales[which], finished)]));
-    const byLens = { overall: statsFor("overall"), attack: statsFor("attack"), defence: statsFor("defence") };
+    const byLens = { overall: statsFor("overall"), attack: statsFor("attack"), defence: statsFor("defence"), odds: statsFor("odds") };
     const rank = (which: Lens) =>
       sortTeams(grid.teams, { key: { kind: "total" }, dir: "asc" }, start, end, which, byLens[which], finished);
     return {

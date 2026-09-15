@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_VIEW, cellBucket, horizonSize, cellLabel, columnTotal, formatDay, formatKickoff, formatLensValue, formatShortKickoff,
-  decimalOdds, kindestAndToughest, marketLines, openingColumn, overviewWindow, parseViewState, positionPicks, selectedColumn, windowLabel, relativeTime, runStats, scaleBucket, serializeViewState, sortTeams, windowRange,
+  PRICE_OPTIONS, decimalOdds, kindestAndToughest, marketLabels, marketLines, openingColumn, overviewWindow, parseViewState, positionPicks, selectedColumn, windowLabel, relativeTime, runStats, scaleBucket, serializeViewState, sortTeams, windowRange,
 } from "./grid";
 import type { Bucket, DifficultyLabel, FixtureGrid, GridCell, GridTeam, LensScale } from "./types";
 
@@ -142,7 +142,7 @@ describe("planning helpers", () => {
   it("opens on the first matchday with fewer than half its games done", () => {
     const grid: FixtureGrid = {
       season: "2026/27", current_matchday: 1, model_version: null,
-      lens_scales: { overall: OVERALL, attack: ATTACK, defence: ATTACK },
+      lens_scales: { overall: OVERALL, attack: ATTACK, defence: ATTACK, odds: ATTACK },
       matchdays: [md(1), md(2), md(3)],
       teams: [
         team("AAA", [[played()], [played()], [cell()]]),
@@ -223,12 +223,38 @@ describe("planning helpers", () => {
     expect(selectedColumn(mds, 40, 1)).toBe(1);
   });
 
+  it("rates the odds lens per priced game, coloured from the odds scale even without a prediction", () => {
+    const market = (win: number, draw: number) => ({
+      win, draw, loss: 1 - win - draw, scores: 0.7, scores_2plus: 0.35, clean_sheet: 0.3, concedes_2plus: 0.25,
+      expected_points: 3 * win + draw, bookmakers: 8, fetched_at: "2026-09-14T08:00:00Z",
+    });
+    const ODDS: LensScale = { cuts: [0.6, 0.45, 0.3, 0.18], higher_is_easier: true };
+    const played = cell({ status: "finished", prediction: null, result: { goals_for: 1, goals_against: 0, outcome: "W" } });
+    const early = team("ERL", [[played], [cell({ market: market(0.5, 0.25) })]]); // played GW1 early: one priced game
+    const full = team("FUL", [[cell({ market: market(0.4, 0.3) })], [cell({ market: market(0.4, 0.3) })]]);
+    const stats = new Map([early, full].map((t) => [t.code, runStats(t, 0, 2, "odds", ODDS)]));
+    expect(stats.get("ERL")!.total).toBeCloseTo(1.75); // per game, not dragged down by the game already played
+    expect(stats.get("FUL")!.total).toBeCloseTo(1.5);
+    expect(sortTeams([full, early], { key: { kind: "total" }, dir: "asc" }, 0, 2, "odds", stats).map((t) => t.code)).toEqual(["ERL", "FUL"]);
+
+    const double = [cell({ market: market(0.6, 0.2) }), cell({ market: market(0.2, 0.3) })];
+    expect(columnTotal(double, "odds")).toBeCloseTo((2.0 + 0.9) / 2);
+    expect(columnTotal([], "odds")).toBeNull(); // a blank week isn't a zero-priced game
+    const noPrediction = cell({ prediction: null, market: market(0.62, 0.2) });
+    expect(cellBucket(noPrediction, "odds", ODDS)).toBe(1);
+    expect(cellBucket(cell(), "odds", ODDS)).toBeNull();
+    expect(cellLabel(cell(), "Team A", 6, "Team B", "odds")).toMatch(/not priced by bookmakers yet$/);
+    expect(PRICE_OPTIONS.odds.map((o) => o.label)).toEqual(["Win", "Draw", "Loss", "Win or draw"]);
+    expect(decimalOdds(PRICE_OPTIONS.overall[3]!.probability(market(0.5, 0.25)))).toBe("1.33"); // double chance
+    expect(marketLabels("defence")).toEqual(["CS", "Conc 2+"]);
+  });
+
   it("turns fair probabilities into decimal odds for each lens", () => {
     expect(decimalOdds(0.5)).toBe("2.00");
     expect(decimalOdds(0.004)).toBe("99+");
     expect(decimalOdds(0)).toBe("—");
     const market = {
-      win: 0.625, draw: 0.25, loss: 0.125, scores: 0.8, scores_2plus: 0.4, clean_sheet: 0.32, concedes_2plus: 0.2,
+      win: 0.625, draw: 0.25, loss: 0.125, scores: 0.8, scores_2plus: 0.4, clean_sheet: 0.32, concedes_2plus: 0.2, expected_points: 2.125,
       bookmakers: 9, fetched_at: "2026-09-14T08:00:00Z",
     };
     expect(marketLines(market, "overall").map((l) => `${l.label} ${l.price}`)).toEqual(["W 1.60", "D 4.00", "L 8.00"]);

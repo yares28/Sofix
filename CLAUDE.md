@@ -69,8 +69,14 @@ npm run gen:types    # after python -m app.openapi_export
 - Difficulty tab: a bento overview (`components/Overview.tsx`, three equal columns): kindest/toughest run (per game),
   the GW's matches, who to pick (forwards: xG, defenders/keepers: expected clean sheets, midfielders: 65/35 blend),
   every club ranked over the window (xPts number column, no bars) beside the table with rows aligned (34 px); then the
-  full grid and the GW's fixtures underneath. With Next / Next 3 the ranking shows bookmaker odds per GW: W/D/L
-  (overall), scores / 2+ (attack), clean sheet / concede 2+ (defence). Odds are fair prices (1 / backend probability).
+  full grid and the GW's fixtures underneath. The ranking card: Next shows the GW's prices in columns (W/D/L, scores/2+,
+  CS/concede 2+) plus the market's chance as a bar; Next 3/5/8 show one tile per GW with the price picked in the
+  Price menu (`PRICE_OPTIONS`). Odds are fair prices (1 / backend probability).
+- Lenses: Overall / Attack / Defence (our model) and Odds (bookmakers: tiles = market win chance cut by
+  `lens_scales.odds`, totals = market points (3×win+draw) per priced game, so clubs that already played or have
+  more games priced aren't favoured). The grid follows the same lens.
+- The page is fluid up to `--page-max` (1600 px) and centred beyond it; below 1200 px the ranking and table cards go
+  full width; card internals size by named container queries (`ladder`, `gwcard`).
 - Tabs: Fixtures (the selected GW's fixture list), Difficulty (overview + grid; horizon "Next" = match cards for one GW), Table
   (current standings with LaLiga tiebreaks, and a predicted table in `lib/table.ts`: expected points plus seeded
   simulations; keep it seeded so the same data always shows the same percentages).

@@ -51,6 +51,14 @@ export const LENS_COPY: Record<Lens, LensCopy> = {
     total: "Exp. CS",
     totalLong: "expected clean sheets",
   },
+  odds: {
+    label: "Odds",
+    hint: "Tiles: the bookmakers' win chance. Total: market points per priced game (3 × win + draw), so clubs aren't ranked by how many of their games are priced yet",
+    easy: "Favourite",
+    hard: "Long shot",
+    total: "Mkt/gm",
+    totalLong: "market points per priced game",
+  },
 };
 
 /** Bucket of a value on a scale sent by the API (single source of truth: backend fixture_grid.lens_scales). */
@@ -63,6 +71,7 @@ export function scaleBucket(value: number, scale: LensScale): Bucket {
 
 /** A tile's bucket. Overall uses the API's label-derived bucket so colour and label always agree. */
 export function cellBucket(cell: GridCell, lens: Lens, scale: LensScale): Bucket | null {
+  if (lens === "odds") return cell.market ? scaleBucket(cell.market.win, scale) : null; // needs a price, not a prediction
   if (!cell.prediction) return null;
   if (lens === "overall") return cell.prediction.bucket;
   const value = lensValue(cell, lens);
@@ -70,6 +79,7 @@ export function cellBucket(cell: GridCell, lens: Lens, scale: LensScale): Bucket
 }
 
 export function lensValue(cell: GridCell, lens: Lens): number | null {
+  if (lens === "odds") return cell.market?.win ?? null;
   const prediction = cell.prediction;
   if (!prediction) return null;
   if (lens === "overall") return prediction.difficulty;
@@ -79,10 +89,11 @@ export function lensValue(cell: GridCell, lens: Lens): number | null {
 
 /**
  * What a game is worth over a run, higher = better for the team: expected points (overall),
- * expected goals (attack) or clean-sheet chance (defence). These add up, so a blank week adds 0
+ * expected goals (attack), clean-sheet chance (defence) or market points from the bookmakers (odds). These add up, so a blank week adds 0
  * and a double week counts both games — which averages hide.
  */
 export function runValue(cell: GridCell, lens: Lens): number | null {
+  if (lens === "odds") return cell.market?.expected_points ?? null;
   const prediction = cell.prediction;
   if (!prediction) return null;
   if (lens === "overall") return prediction.expected_points;
@@ -93,11 +104,15 @@ export function runValue(cell: GridCell, lens: Lens): number | null {
 /**
  * One team's matchday: 0 for a blank week that's still to come, the sum over a double,
  * null when nothing in it can be rated (already played, postponed, or a past blank).
+ * The odds lens is per priced game instead (bookmakers price a round or two ahead, and a club that already played
+ * has no price): a double is averaged and a blank is null.
  */
 export function columnTotal(cells: GridCell[] | undefined, lens: Lens, finished = false): number | null {
-  if (!cells || cells.length === 0) return finished ? null : 0;
+  if (!cells || cells.length === 0) return finished || lens === "odds" ? null : 0;
   const values = cells.map((cell) => runValue(cell, lens)).filter((v): v is number => v !== null);
-  return values.length ? values.reduce((sum, v) => sum + v, 0) : null;
+  if (!values.length) return null;
+  const sum = values.reduce((total, v) => total + v, 0);
+  return lens === "odds" ? sum / values.length : sum;
 }
 
 export function windowRange(total: number, start: number, horizon: number): { start: number; end: number } {
@@ -106,7 +121,7 @@ export function windowRange(total: number, start: number, horizon: number): { st
 }
 
 export interface RunStats {
-  total: number | null; // sum of runValue over the window; blank weeks count 0
+  total: number | null; // sum of runValue over the window, blank weeks 0; odds lens: mean per priced game
   average: number | null; // per game, on the tile scale (difficulty / xG / clean-sheet chance)
   fixtures: number; // rated games
   blanks: number; // upcoming matchdays without a game
@@ -128,8 +143,13 @@ export function runStats(
   const values = rated.map((cell) => lensValue(cell, lens) as number);
   const totals = columns.map((cells, i) => columnTotal(cells, lens, finished[start + i] ?? false));
   const counted = totals.filter((v): v is number => v !== null);
+  const priced = columns.flat().map((cell) => runValue(cell, lens)).filter((v): v is number => v !== null);
+  const total =
+    lens === "odds"
+      ? priced.length ? priced.reduce((sum, v) => sum + v, 0) / priced.length : null
+      : counted.length ? counted.reduce((sum, v) => sum + v, 0) : null;
   return {
-    total: counted.length ? counted.reduce((sum, v) => sum + v, 0) : null,
+    total,
     average: values.length ? values.reduce((sum, v) => sum + v, 0) / values.length : null,
     fixtures: values.length,
     blanks: columns.filter((cells, i) => cells.length === 0 && !finished[start + i]).length,
@@ -179,7 +199,7 @@ const NEUTRAL_SCALE: LensScale = { cuts: [0, 0, 0, 0], higher_is_easier: true };
 export function formatLensValue(value: number, lens: Lens): string {
   if (lens === "overall") return String(Math.round(value));
   if (lens === "attack") return value.toFixed(2);
-  return `${Math.round(value * 100)}%`;
+  return `${Math.round(value * 100)}%`; // defence: clean-sheet chance; odds: win chance
 }
 
 export function formatTotal(value: number): string {
@@ -298,7 +318,7 @@ export type View = "plain" | "fdr" | "table"; // Fixtures, Difficulty, Table tab
 export type Horizon = "next" | "3" | "5" | "8" | "all"; // "next" = one gameweek as match cards
 export type TableMode = "current" | "predicted";
 export const HORIZON_VALUES: readonly Horizon[] = ["next", "3", "5", "8", "all"];
-const LENSES: readonly Lens[] = ["overall", "attack", "defence"];
+const LENSES = Object.keys(LENS_COPY) as Lens[];
 export const MAX_PINS = 6;
 
 /** How many gameweek columns a horizon covers. */
@@ -358,7 +378,7 @@ export interface OddsLine {
   spoken: string;
 }
 
-/** What the market says for this lens: result odds (overall), scoring (attack), clean sheet and conceding (defence). */
+/** What the market says for this lens: result odds (overall, odds), scoring (attack), clean sheet and conceding (defence). */
 export function marketLines(market: CellMarket, lens: Lens): OddsLine[] {
   const line = (label: string, spoken: string, probability: number): OddsLine => ({
     label,
@@ -371,6 +391,41 @@ export function marketLines(market: CellMarket, lens: Lens): OddsLine[] {
   }
   return [line("W", "win", market.win), line("D", "draw", market.draw), line("L", "loss", market.loss)];
 }
+
+/** Column labels for a lens' prices (the same order as marketLines). */
+export function marketLabels(lens: Lens): string[] {
+  if (lens === "attack") return ["Scores", "2+"];
+  if (lens === "defence") return ["CS", "Conc 2+"];
+  return ["W", "D", "L"];
+}
+
+export interface PriceOption {
+  label: string; // in the Price menu
+  short: string; // for screen readers: "win price 1.45"
+  probability: (market: CellMarket) => number;
+}
+
+/** The prices a tile can show, per lens; the first is the default. "Win or draw" is double chance. */
+export const PRICE_OPTIONS: Record<Lens, PriceOption[]> = (() => {
+  const result: PriceOption[] = [
+    { label: "Win", short: "win", probability: (m) => m.win },
+    { label: "Draw", short: "draw", probability: (m) => m.draw },
+    { label: "Loss", short: "loss", probability: (m) => m.loss },
+    { label: "Win or draw", short: "win or draw", probability: (m) => m.win + m.draw },
+  ];
+  return {
+    overall: result,
+    odds: result,
+    attack: [
+      { label: "To score", short: "to score", probability: (m) => m.scores },
+      { label: "2+ goals", short: "to score 2 or more", probability: (m) => m.scores_2plus },
+    ],
+    defence: [
+      { label: "Clean sheet", short: "clean sheet", probability: (m) => m.clean_sheet },
+      { label: "Concede 2+", short: "to concede 2 or more", probability: (m) => m.concedes_2plus },
+    ],
+  };
+})();
 
 export function parsePins(raw: string | null, knownCodes: ReadonlySet<string>): string[] {
   const codes = (raw ?? "").split(",").map((code) => code.trim().toUpperCase());
@@ -436,6 +491,9 @@ export function cellLabel(cell: GridCell, team: string, matchday: number, oppone
     parts.push(`difficulty ${Math.round(p.difficulty)} of 100, ${p.label}`);
     if (lens === "attack" && p.xg_for !== null) parts.push(`expected goals ${p.xg_for.toFixed(2)}`);
     if (lens === "defence" && p.clean_sheet !== null) parts.push(`clean sheet chance ${Math.round(p.clean_sheet * 100)}%`);
+  }
+  if (lens === "odds") {
+    parts.push(cell.market ? `bookmakers' win price ${decimalOdds(cell.market.win)}` : "not priced by bookmakers yet");
   }
   return parts.join(", ");
 }

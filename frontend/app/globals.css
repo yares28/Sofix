@@ -9,6 +9,7 @@
   --hover: #f5f5f7;
   --accent: #0071e3;
   --radius: 22px;
+  --page-max: 1600px; /* the board is fluid up to here; wider screens get side margins */
   --win: #1a7a4e;
   --loss: #c4312a;
 
@@ -53,7 +54,7 @@ code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-si
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 .nav-inner {
-  max-width: 1280px; margin: 0 auto; height: 52px; padding: 0 28px;
+  max-width: var(--page-max); margin: 0 auto; height: 52px; padding: 0 28px;
   display: flex; align-items: center; justify-content: space-between;
 }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 16px; letter-spacing: -0.02em; }
@@ -92,7 +93,7 @@ code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-si
 }
 
 /* ---------- Layout ---------- */
-main { max-width: 1280px; margin: 0 auto; padding: 28px 28px 96px; }
+main { max-width: var(--page-max); margin: 0 auto; padding: 28px 28px 96px; }
 .hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 18px; }
 .hero-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 
@@ -184,9 +185,9 @@ h1 { margin: 0; font-size: clamp(28px, 3.2vw, 38px); font-weight: 700; letter-sp
 .run-tile.blank { box-shadow: inset 0 0 0 1px var(--line); background: repeating-linear-gradient(135deg, transparent 0 6px, #f5f5f7 6px 7px); }
 
 /* Gameweek */
-.gw-card { gap: 8px; container-type: inline-size; }
+.gw-card { gap: 8px; container: gwcard / inline-size; }
 /* A narrow card (small laptops) drops the crests so codes and odds never overlap. */
-@container (max-width: 360px) { .gw-teams .crest { display: none; } }
+@container gwcard (max-width: 360px) { .gw-teams .crest { display: none; } }
 .gw-matches { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; flex: 1; }
 .gw-match {
   display: grid; grid-template-columns: 62px minmax(0, 1fr) 118px; gap: 8px; align-items: center;
@@ -214,6 +215,7 @@ h1 { margin: 0; font-size: clamp(28px, 3.2vw, 38px); font-weight: 700; letter-sp
 .list-head .bento-controls { flex-wrap: nowrap; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .list-head .bento-controls::-webkit-scrollbar { display: none; }
 .list-head .segmented { flex: none; }
+.list-head .segmented button { padding: 7px 11px; } /* four horizons and four lenses fit beside the longest title */
 .list-columns {
   height: 24px; font-size: var(--text-xs); font-weight: 600; color: var(--ink-2); border-bottom: 1px solid var(--line);
 }
@@ -233,18 +235,75 @@ h1 { margin: 0; font-size: clamp(28px, 3.2vw, 38px); font-weight: 700; letter-sp
 .chips { display: flex; gap: 3px; min-width: 0; overflow: hidden; }
 .ladder-games .strip-chip { max-width: 72px; }
 
-/* Odds beside each gameweek's game (Next, Next 3) */
-.ladder-card.with-odds .ladder-row { grid-template-columns: 22px minmax(0, 160px) 48px minmax(0, 1fr); }
-.odds-grid { display: grid; gap: 10px; min-width: 0; }
-.odds-head { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.odds-head small { margin-left: 4px; font-size: var(--text-2xs); font-weight: 500; }
-.odds-cell { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.odds-cell > .strip-chip { flex: none; width: 52px; max-width: none; }
-.odds { display: flex; flex-wrap: wrap; column-gap: 8px; row-gap: 0; min-width: 0; max-height: 28px; overflow: hidden; line-height: 14px; }
-.odds-line { font-size: var(--text-xs); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.odds-label { color: var(--ink-2); font-weight: 500; }
-.odds-none { font-size: var(--text-2xs); color: var(--ink-2); font-weight: 500; }
-.odds-more { flex: none; font-size: var(--text-2xs); font-weight: 700; color: var(--ink-2); }
+/* Expected points card: Next shows the gameweek's prices in columns and the market's chance as a bar;
+   Next 3 / 5 / 8 show one tile per gameweek with the chosen price inside. Sizes follow the card (container queries). */
+.ladder-card { container: ladder / inline-size; }
+.next-game { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.next-game > .strip-chip { flex: 1 1 auto; max-width: none; height: 22px; display: flex; align-items: center; justify-content: center; }
+.next-more { flex: none; font-size: var(--text-2xs); font-weight: 700; color: var(--ink-2); }
+.next-line {
+  display: grid; grid-template-columns: 64px repeat(var(--prices, 3), 50px) minmax(0, 1fr); gap: 10px; align-items: center; min-width: 0;
+}
+.next-line .price { text-align: right; font-size: var(--text-sm); font-weight: 500; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.next-line .price.lead { color: var(--ink); font-weight: 700; }
+.list-columns .next-line .price { font-size: var(--text-xs); font-weight: 600; }
+.mkt-head { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mkt-chance { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.mkt-bar { flex: 1; min-width: 24px; display: flex; gap: 2px; height: 8px; border-radius: 4px; overflow: hidden; background: #efeff2; }
+.mkt-bar .win { background: var(--fdr1-strong); }
+.mkt-bar .draw { background: var(--fdr3-strong); }
+.mkt-bar .loss { background: var(--fdr4-strong); }
+.mkt-bar .rest { background: transparent; }
+.mkt-pct { width: 36px; flex: none; text-align: right; font-size: var(--text-xs); font-weight: 600; font-variant-numeric: tabular-nums; }
+.mkt-note {
+  height: 22px; min-width: 0; display: flex; align-items: center; padding: 0 10px; border-radius: 6px; background: #f7f7f9;
+  color: var(--ink-2); font-size: var(--text-2xs); font-weight: 600; white-space: nowrap; overflow: hidden;
+}
+.mkt-note.outline { background: transparent; box-shadow: inset 0 0 0 1px var(--line); font-weight: 500; }
+
+.tiles { display: flex; gap: 4px; min-width: 0; }
+.tile {
+  flex: 1 1 0; min-width: 0; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between;
+  gap: 4px; padding: 0 8px; white-space: nowrap; overflow: hidden; letter-spacing: 0;
+}
+.tile-opp { font-size: var(--text-xs); font-weight: 600; overflow: hidden; text-overflow: clip; }
+.tile-opp small { margin-left: 3px; font-size: var(--text-2xs); font-weight: 500; }
+.tile-price { font-size: var(--text-xs); font-weight: 700; font-variant-numeric: tabular-nums; }
+.tile.muted { background: #f7f7f9; color: var(--ink-2); }
+.tile.blank { box-shadow: inset 0 0 0 1px var(--line); background: repeating-linear-gradient(135deg, transparent 0 6px, #f5f5f7 6px 7px); }
+.tile.f4 { box-shadow: inset 0 0 0 1.5px var(--fdr4-ring); }
+.tile.f5 { box-shadow: inset 0 0 0 2px var(--fdr5-ring); }
+/* Eight tiles: opponent over price. */
+.tiles[data-count="8"] .tile { flex-direction: column; justify-content: center; gap: 0; padding: 0 2px; line-height: 12px; }
+.tiles[data-count="8"] .tile-opp { font-size: var(--text-2xs); }
+.tiles[data-count="8"] .tile-opp small { margin-left: 2px; }
+.tiles[data-count="8"] .tile-price { font-size: var(--text-2xs); }
+
+.tiles-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.gw-labels { display: flex; gap: 4px; flex: 1; min-width: 0; }
+.gw-labels > span { flex: 1 1 0; min-width: 0; white-space: nowrap; overflow: hidden; color: var(--ink); }
+.gw-labels > span.unpriced { color: var(--ink-2); }
+.unpriced-note { font-weight: 500; }
+.price-menu {
+  flex: none; display: inline-flex; align-items: center; gap: 2px; height: 20px; padding: 0 2px 0 7px; border-radius: 6px;
+  background: #ececf0; color: var(--ink-seg); font-size: var(--text-2xs); font-weight: 500;
+}
+.price-menu select {
+  border: 0; background: transparent; color: var(--ink); font: inherit; font-size: var(--text-2xs); font-weight: 600; padding: 0 2px; cursor: pointer;
+}
+.price-menu select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 4px; }
+
+/* A narrower card (tablets, and the phone layout below): drop what stops fitting, never squeeze text. */
+@container ladder (max-width: 700px) {
+  .tiles[data-count="5"] .tile-price, .tiles[data-count="8"] .tile-price { display: none; }
+  .tiles-head[data-count="5"] .price-menu, .tiles-head[data-count="8"] .price-menu { display: none; } /* nothing to change */
+  .tiles[data-count="5"] .tile { justify-content: center; padding: 0 2px; }
+  .next-line { grid-template-columns: 56px repeat(var(--prices, 3), 42px) minmax(0, 1fr); gap: 8px; }
+}
+@container ladder (max-width: 480px) {
+  .mkt-pct, .unpriced-note { display: none; }
+  .tiles[data-count="8"] .tile-opp small { display: none; }
+}
 
 /* The grid and the fixtures sit under the bento, full width */
 .board-stack { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
@@ -635,8 +694,9 @@ thead th .tbc-mark { font-weight: 600; }
   .match-list { grid-template-columns: 1fr; }
 }
 
-/* Bento on tablets: runs side by side, gameweek and picks, then the ranking and the table full width. */
-@media (max-width: 1080px) {
+/* Bento on tablets and small laptops: runs side by side, gameweek and picks, then the ranking and the table full width
+   (below 1200 px the two-thirds ranking card can't fit its four horizons and four lenses beside the title). */
+@media (max-width: 1200px) {
   .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .bento-runs { grid-column: 1 / -1; flex-direction: row; }
   .ladder-card, .table-card { grid-column: 1 / -1; }
@@ -668,8 +728,9 @@ thead th .tbc-mark { font-weight: 600; }
   .bento-controls .segmented { flex: none; }
   .ladder-row { grid-template-columns: 22px minmax(0, 1fr) 56px; row-gap: 4px; height: auto; padding: 6px 0; }
   .ladder-row .ladder-games { grid-column: 2 / -1; }
-  .list-columns.ladder-row { height: 24px; padding: 0; }
-  .list-columns .ladder-games { display: none; }
+  .list-columns.ladder-row { height: auto; min-height: 24px; padding: 0 0 4px; }
+  .list-columns .gw-labels, .list-columns .mkt-head { display: none; } /* the price column labels stay */
+  .list-columns .tiles-head { justify-content: flex-end; }
   .gw-match { grid-template-columns: 58px minmax(0, 1fr) 104px; }
   .table-row .zone-mark::before { left: -8px; }
 
@@ -685,9 +746,6 @@ thead th .tbc-mark { font-weight: 600; }
   .toolbar-controls .segmented { flex: none; }
   .hero-controls { width: 100%; justify-content: space-between; }
   .gw-today { display: none; }
-  .ladder-card.with-odds .ladder-row { grid-template-columns: 22px minmax(0, 1fr) 48px; }
-  .odds-grid { grid-template-columns: minmax(0, 1fr) !important; }
-  .odds-head { display: none; }
   .toggle { padding: 0 10px; }
   .search { padding: 0 10px; min-width: 0; }
 

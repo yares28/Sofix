@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { scaleBucket } from "../lib/grid";
 import { gameweekMatches } from "../lib/matches";
 import { grid, offline, openingMatchday, resetBackend, teamRows } from "./helpers";
 
@@ -33,7 +34,7 @@ test("the expected points ranking is ordered, follows the horizon and lens, and 
   const ladder = page.locator(".ladder-card");
   const values = (await ladder.locator(".list-rows .list-num").allTextContents()).map((text) => parseFloat(text));
   expect(values).toEqual([...values].sort((a, b) => b - a));
-  await expect(ladder.locator(".odds")).toHaveCount(0); // odds only for Next and Next 3
+  await expect(ladder.locator(".list-rows .tiles[data-count='5']")).toHaveCount(grid.teams.length); // one tile per gameweek
 
   await group(page, "Horizon").getByRole("button", { name: "Next 5" }).click();
   await group(page, "Lens").getByRole("button", { name: "Attack" }).click();
@@ -42,7 +43,7 @@ test("the expected points ranking is ordered, follows the horizon and lens, and 
   await expect(page).toHaveURL(/lens=attack/);
 
   await group(page, "Lens").getByRole("button", { name: "Defence" }).click(); // longest title
-  for (const width of [1280, 1100]) {
+  for (const width of [1440, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     const tops = (selector: string) =>
       page.locator(selector).evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
@@ -50,29 +51,87 @@ test("the expected points ranking is ordered, follows the horizon and lens, and 
   }
 });
 
-test("Next and Next 3 show bookmaker odds beside each gameweek, by lens", async ({ page }) => {
+test("Next shows the gameweek's prices in columns, by lens", async ({ page }) => {
   const opening = column(openingMatchday);
   const priced = grid.teams.find((team) => team.cells[opening]?.[0]?.market)!;
+  const market = priced.cells[opening]![0]!.market!;
   await page.goto("/?h=next");
   const ladder = page.locator(".ladder-card");
   const row = ladder.locator(".list-rows > li").filter({ has: page.getByRole("link", { name: priced.name, exact: true }) });
 
-  await expect(ladder.locator(".odds-head")).toHaveText([`GW${openingMatchday} W · D · L odds`]);
-  await expect(row.locator(".odds-line")).toHaveText([/^W \d+\.\d\d$/, /^D \d+\.\d\d$/, /^L \d+\.\d\d$/]);
-  const win = priced.cells[opening]![0]!.market!.win;
-  await expect(row.locator(".odds-line").first()).toHaveText(`W ${(1 / win).toFixed(2)}`);
+  await expect(ladder.locator(".list-columns .price")).toHaveText(["W", "D", "L"]);
+  await expect(row.locator(".price")).toHaveText([(1 / market.win).toFixed(2), (1 / market.draw).toFixed(2), (1 / market.loss).toFixed(2)]);
+  await expect(row.locator(".mkt-pct")).toHaveText(`${Math.round(market.win * 100)}%`);
   await expect(row).toContainText(`gameweek ${openingMatchday}:`); // spoken summary for screen readers
 
   await group(page, "Lens").getByRole("button", { name: "Attack" }).click();
-  await expect(row.locator(".odds-line")).toHaveText([/^Scores \d/, /^2\+ \d/]);
+  await expect(ladder.locator(".list-columns .price")).toHaveText(["Scores", "2+"]);
   await group(page, "Lens").getByRole("button", { name: "Defence" }).click();
-  await expect(row.locator(".odds-line")).toHaveText([/^CS \d/, /^Conc 2\+ \d/]);
+  await expect(ladder.locator(".list-columns .price")).toHaveText(["CS", "Conc 2+"]);
+  await expect(row.locator(".price").first()).toHaveText((1 / market.clean_sheet).toFixed(2));
+});
 
-  // Three gameweeks: the third isn't priced yet.
-  await group(page, "Horizon").getByRole("button", { name: "Next 3" }).click();
-  await expect(page).toHaveURL(/h=3/);
-  await expect(ladder.locator(".list-columns .odds-head")).toHaveCount(3);
-  await expect(row.locator(".odds-cell").nth(2)).toContainText("No odds yet");
+test("Next 3 puts the chosen price in each gameweek's tile", async ({ page }) => {
+  const opening = column(openingMatchday);
+  const priced = grid.teams.find((team) => team.cells[opening]?.[0]?.market && team.cells[opening + 1]?.[0]?.market)!;
+  await page.goto("/?h=3");
+  const ladder = page.locator(".ladder-card");
+  const row = ladder.locator(".list-rows > li").filter({ has: page.getByRole("link", { name: priced.name, exact: true }) });
+  const tiles = row.locator(".tile");
+
+  await expect(tiles).toHaveCount(3);
+  await expect(tiles.nth(0).locator(".tile-price")).toHaveText((1 / priced.cells[opening]![0]!.market!.win).toFixed(2));
+  await expect(tiles.nth(2).locator(".tile-price")).toHaveCount(0); // the third gameweek isn't priced yet
+  await expect(ladder.locator(".gw-labels .unpriced")).toContainText("not priced");
+
+  await ladder.getByLabel("Price shown in each gameweek's tile").selectOption({ label: "Win or draw" });
+  const m = priced.cells[opening]![0]!.market!;
+  await expect(tiles.nth(0).locator(".tile-price")).toHaveText((1 / (m.win + m.draw)).toFixed(2));
+});
+
+test("the Odds lens ranks clubs by the bookmakers and colours the grid the same way", async ({ page }) => {
+  await page.goto("/?h=3");
+  const ladder = page.locator(".ladder-card");
+  await group(page, "Lens").getByRole("button", { name: "Odds" }).click();
+  await expect(page).toHaveURL(/lens=odds/);
+  await expect(ladder.getByRole("heading", { level: 2, name: "Market odds" })).toBeVisible();
+  await expect(ladder.locator(".list-columns .list-num")).toHaveText("Mkt/gm");
+  const opening = column(openingMatchday);
+  const priced = grid.teams.find((team) => team.cells[opening]?.[0]?.market)!;
+  const bucket = scaleBucket(priced.cells[opening]![0]!.market!.win, grid.lens_scales.odds);
+  const pricedRow = ladder.locator(".list-rows > li").filter({ has: page.getByRole("link", { name: priced.name, exact: true }) });
+  await expect(pricedRow.locator(".tile").first()).toHaveClass(new RegExp(`\\bf${bucket}\\b`));
+  const values = (await ladder.locator(".list-rows .list-num").allTextContents()).map((text) => parseFloat(text)).filter((v) => !Number.isNaN(v));
+  expect(values.length).toBeGreaterThan(10);
+  expect(values).toEqual([...values].sort((a, b) => b - a));
+  await expect(ladder.getByLabel("Price shown in each gameweek's tile")).toHaveValue("0"); // Win
+  await expect(page.locator(".legend")).toContainText("Favourite"); // the grid follows the lens
+});
+
+test("very wide screens keep the layout: no sideways scroll, tiles fit, rows still line up", async ({ page }) => {
+  for (const width of [1920, 2560]) {
+    await page.setViewportSize({ width, height: 1200 });
+    for (const path of ["/?h=next", "/?h=3&lens=defence", "/?h=8"]) {
+      await page.goto(path);
+      await expect(page.locator(".ladder-card .list-rows > li")).toHaveCount(grid.teams.length);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `${width} ${path}`).toBe(true);
+      const main = (await page.locator("main").boundingBox())!;
+      expect(main.width, "the page stops growing at its maximum width").toBeLessThanOrEqual(1600);
+      const clipped = await page.locator(".ladder-card .tile, .ladder-card .price").evaluateAll((els) =>
+        els.filter((el) => el.scrollWidth > el.clientWidth + 1).length,
+      );
+      expect(clipped, `${width} ${path} clipped tiles`).toBe(0);
+      const tops = (selector: string) =>
+        page.locator(selector).evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
+      expect(await tops(".ladder-card .list-rows > li")).toEqual(await tops(".table-card .list-rows > li"));
+    }
+  }
+  for (const width of [1100, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/?lens=defence");
+    const controls = page.locator(".ladder-card .bento-controls");
+    expect(await controls.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), `every lens button visible at ${width}px`).toBe(true);
+  }
 });
 
 test("the table card switches to the predicted table and opens the full table", async ({ page }) => {
@@ -312,7 +371,8 @@ test("an unknown team code is a 404 page", async ({ page }) => {
 test("the board has no automatically detectable accessibility violations", async ({ page }) => {
   for (const [path, ready] of [
     ["/", "tbody tr"],
-    ["/?h=next", ".ladder-card .odds-line"],
+    ["/?h=next", ".ladder-card .next-line .price"],
+    ["/?h=3&lens=odds", ".ladder-card .tile-price"],
     ["/?h=3&lens=defence&t=predicted", ".table-card .move"],
     [`/?gw=${openingMatchday - 2}`, ".gw-score"],
     ["/?view=plain", ".fixture-row"],

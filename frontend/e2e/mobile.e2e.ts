@@ -31,6 +31,8 @@ test("Overview, Fixtures and Table fit a phone without sideways page scrolling",
   for (const [path, ready] of [
     ["/", ".ladder-card .list-rows > li"],
     ["/?h=8", ".ladder-card .list-rows > li"],
+    ["/?h=next&lens=odds", ".ladder-card .list-rows .next-line"],
+    ["/?h=3", ".ladder-card .list-rows .tile"],
     ["/?view=plain", ".fixture-row"],
     ["/?view=table&t=predicted", "table.standings tbody tr"],
   ] as const) {

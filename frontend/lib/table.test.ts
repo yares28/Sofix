@@ -30,7 +30,7 @@ const team = (code: string, cells: GridCell[]): GridTeam => ({
 
 const makeGrid = (teams: GridTeam[]): FixtureGrid => ({
   season: "2026/27", current_matchday: 1, model_version: null,
-  lens_scales: { overall: scale, attack: scale, defence: scale },
+  lens_scales: { overall: scale, attack: scale, defence: scale, odds: scale },
   matchdays: [], teams,
 });
 

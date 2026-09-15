@@ -114,6 +114,8 @@ export interface components {
             clean_sheet: number;
             /** Concedes 2Plus */
             concedes_2plus: number;
+            /** Expected Points */
+            expected_points: number;
             /** Bookmakers */
             bookmakers: number;
             /**
@@ -263,7 +265,7 @@ export interface components {
          * @description Four cut points splitting a lens into buckets 1 (easiest) … 5 (hardest).
          *
          *     higher_is_easier=False (overall difficulty): bucket = 1 + number of cuts the value exceeds.
-         *     higher_is_easier=True (xG, clean sheet): cuts are descending; bucket = 1 + number of cuts the value is below.
+         *     higher_is_easier=True (xG, clean sheet, market win chance): cuts are descending; bucket = 1 + number of cuts the value is below.
          */
         LensScale: {
             /** Cuts */
@@ -279,6 +281,7 @@ export interface components {
             overall: components["schemas"]["LensScale"];
             attack: components["schemas"]["LensScale"];
             defence: components["schemas"]["LensScale"];
+            odds: components["schemas"]["LensScale"];
         };
         /** ModelNote */
         ModelNote: {

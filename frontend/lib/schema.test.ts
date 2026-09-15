@@ -14,6 +14,7 @@ function payload() {
         overall: { cuts: [37.4, 48.6, 61.1, 71.3], higher_is_easier: false },
         attack: { cuts: [2, 1.6, 1.2, 0.9], higher_is_easier: true },
         defence: { cuts: [0.45, 0.35, 0.25, 0.18], higher_is_easier: true },
+        odds: { cuts: [0.55, 0.48, 0.36, 0.21], higher_is_easier: true },
       },
       matchdays: [{ number: 5, date_from: "2026-09-11T19:00:00Z", date_to: "2026-09-14T19:00:00Z", finished: false }],
       teams: [

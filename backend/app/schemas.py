@@ -71,6 +71,7 @@ class CellMarket(BaseModel):
     scores_2plus: float
     clean_sheet: float
     concedes_2plus: float
+    expected_points: float  # 3 × win + draw from the fair prices ("market points")
     bookmakers: int
     fetched_at: datetime
 
@@ -108,7 +109,7 @@ class LensScale(BaseModel):
     """Four cut points splitting a lens into buckets 1 (easiest) … 5 (hardest).
 
     higher_is_easier=False (overall difficulty): bucket = 1 + number of cuts the value exceeds.
-    higher_is_easier=True (xG, clean sheet): cuts are descending; bucket = 1 + number of cuts the value is below.
+    higher_is_easier=True (xG, clean sheet, market win chance): cuts are descending; bucket = 1 + number of cuts the value is below.
     """
 
     cuts: list[float] = Field(min_length=4, max_length=4)
@@ -121,6 +122,7 @@ class LensScales(BaseModel):
     overall: LensScale
     attack: LensScale
     defence: LensScale
+    odds: LensScale  # bookmakers' win chance; only games with a market are rated
 
 
 RunStatus = Literal["running", "succeeded", "failed", "abandoned"]

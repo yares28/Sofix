@@ -104,6 +104,11 @@ function repo(): string {
   return process.env.GITHUB_REPO ?? "yares28/Sofix";
 }
 
+/** GitHub's REST API; end-to-end tests point it at their mock server (never set it in production). */
+function apiBase(): string {
+  return process.env.GITHUB_API_URL ?? "https://api.github.com";
+}
+
 function headers(token: string): HeadersInit {
   return {
     Accept: "application/vnd.github+json",
@@ -113,7 +118,7 @@ function headers(token: string): HeadersInit {
 }
 
 export async function latestWorkflowRun(token: string): Promise<WorkflowRun | null> {
-  const url = `https://api.github.com/repos/${repo()}/actions/workflows/${REFRESH_WORKFLOW}/runs?per_page=1`;
+  const url = `${apiBase()}/repos/${repo()}/actions/workflows/${REFRESH_WORKFLOW}/runs?per_page=1`;
   const response = await fetch(url, { headers: headers(token), cache: "no-store", signal: AbortSignal.timeout(8000) });
   if (!response.ok) throw new Error(`GitHub answered ${response.status}`);
   const body = (await response.json()) as { workflow_runs?: WorkflowRun[] };
@@ -121,7 +126,7 @@ export async function latestWorkflowRun(token: string): Promise<WorkflowRun | nu
 }
 
 export async function dispatchRefresh(token: string): Promise<boolean> {
-  const url = `https://api.github.com/repos/${repo()}/actions/workflows/${REFRESH_WORKFLOW}/dispatches`;
+  const url = `${apiBase()}/repos/${repo()}/actions/workflows/${REFRESH_WORKFLOW}/dispatches`;
   const response = await fetch(url, {
     method: "POST",
     headers: { ...headers(token), "Content-Type": "application/json" },

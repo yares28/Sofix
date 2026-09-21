@@ -1,10 +1,13 @@
 // Deterministic stand-in for the FastAPI backend during end-to-end tests: no database, no network.
-// Serves a recorded grid (e2e/fixtures/grid-response.json) and a scripted refresh run.
+// Serves a recorded grid (e2e/fixtures/grid-response.json), a scripted refresh run, and the two GitHub Actions
+// endpoints the Refresh button uses (the app's GITHUB_API_URL points at /github here).
 import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 
 export const MOCK_PORT = Number(process.env.E2E_MOCK_PORT ?? 8765);
 const TOKEN = process.env.E2E_REFRESH_TOKEN ?? "";
+const GITHUB_TOKEN = process.env.E2E_GITHUB_TOKEN ?? "";
+const GITHUB_POLLS = 3; // status checks before the scripted workflow run completes
 const recorded = JSON.parse(readFileSync(new URL("./fixtures/grid-response.json", import.meta.url), "utf8"));
 const STEPS = ["sync", "predict", "weather"];
 const COOLDOWN_S = 600;
@@ -81,6 +84,33 @@ const server = createServer((req, res) => {
       }
     }
     return send(res, 200, { success: true, data: status(), error: null, meta: null });
+  }
+
+  // GitHub Actions stand-in: start the refresh workflow, and report its latest run.
+  const gh = url.pathname.match(/^\/github\/repos\/[^/]+\/[^/]+\/actions\/workflows\/refresh\.yml\/(runs|dispatches)$/);
+  if (gh) {
+    if (req.headers.authorization !== `Bearer ${GITHUB_TOKEN}`) return send(res, 401, { message: "Bad credentials" });
+    if (gh[1] === "dispatches" && req.method === "POST") {
+      state.run = { id: state.nextId++, trigger: "button", status: "running", step: null, startedAt: Date.now(), finishedAt: null, steps: {} };
+      state.polls = 0;
+      res.writeHead(204);
+      return res.end();
+    }
+    if (gh[1] === "runs" && req.method === "GET") {
+      const run = state.run;
+      if (run?.status === "running") {
+        state.polls += 1;
+        if (state.polls > GITHUB_POLLS) Object.assign(run, { status: "succeeded", finishedAt: Date.now() });
+      }
+      const workflow = run && {
+        id: run.id,
+        status: run.status === "running" ? (state.polls <= 1 ? "queued" : "in_progress") : "completed",
+        conclusion: run.status === "running" ? null : "success",
+        created_at: new Date(run.startedAt).toISOString(),
+        updated_at: new Date(run.finishedAt ?? Date.now()).toISOString(),
+      };
+      return send(res, 200, { total_count: workflow ? 1 : 0, workflow_runs: workflow ? [workflow] : [] });
+    }
   }
 
   // Test controls. Switching the payload also records a finished run, so the app's refresh route

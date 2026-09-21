@@ -267,6 +267,8 @@ test("fixture tiles work from the keyboard with a tooltip", async ({ page }) => 
 test("the refresh button runs a refresh, then waits out the cooldown", async ({ page, request }) => {
   await request.post("http://127.0.0.1:8765/__test/reset"); // reset() records a finished run 10 min ago
   await page.goto("/");
+  await page.locator(".status-pill").click(); // the button lives in the Control Center
+  await expect(page.getByRole("dialog", { name: "Control Center" })).toBeVisible();
   const button = page.locator(".refresh-button");
   await expect(button).toHaveText("Refresh");
   await button.click();

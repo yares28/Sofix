@@ -1,5 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
-import { E2E_PORT, E2E_REFRESH_TOKEN, MOCK_PORT } from "./e2e/constants";
+import { E2E_GITHUB_TOKEN, E2E_PORT, E2E_REFRESH_TOKEN, E2E_REVALIDATE_SECRET, MOCK_PORT } from "./e2e/constants";
 
 // End-to-end tests run the real Next.js app against e2e/mock-api.mjs (recorded grid, scripted refresh):
 // no Neon, no football-data.org, deterministic data.
@@ -26,7 +26,7 @@ export default defineConfig({
     {
       command: "node e2e/mock-api.mjs",
       url: `http://127.0.0.1:${MOCK_PORT}/api/health`,
-      env: { E2E_MOCK_PORT: String(MOCK_PORT), E2E_REFRESH_TOKEN },
+      env: { E2E_MOCK_PORT: String(MOCK_PORT), E2E_REFRESH_TOKEN, E2E_GITHUB_TOKEN },
       reuseExistingServer: false,
     },
     {
@@ -35,6 +35,13 @@ export default defineConfig({
       env: {
         API_BASE_URL: `http://127.0.0.1:${MOCK_PORT}`,
         REFRESH_TOKEN: E2E_REFRESH_TOKEN,
+        // The Refresh button talks to "GitHub" on the mock server; never to the real one.
+        GITHUB_TOKEN: E2E_GITHUB_TOKEN,
+        GITHUB_API_URL: `http://127.0.0.1:${MOCK_PORT}/github`,
+        GITHUB_REPO: "e2e/sofix",
+        REVALIDATE_SECRET: E2E_REVALIDATE_SECRET,
+        // Empty on purpose: overrides any DATABASE_URL in .env.local, so tests never reach Neon.
+        DATABASE_URL: "",
         NEXT_DIST_DIR: ".next-e2e", // separate from the dev server's .next
         NEXT_TELEMETRY_DISABLED: "1",
       },

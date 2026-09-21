@@ -1,4 +1,4 @@
-# FixtureDiff
+# Sofix
 
 Personal, single-user **LaLiga fixture difficulty board**. English UI, premium white "Apple-style" design.
 The FPL "Fixtures & Results / FDR" screen was only the UI reference: this is LaLiga, which has no official

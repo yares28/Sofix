@@ -7,7 +7,7 @@ import httpx
 import pandas as pd
 
 BASE = "https://www.football-data.co.uk/mmz4281"
-USER_AGENT = "FixtureDiff/0.1 (fixture difficulty research)"
+USER_AGENT = "Sofix/0.1 (fixture difficulty research)"
 
 
 def season_code(y):

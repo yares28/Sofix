@@ -1,4 +1,4 @@
-# FixtureDiff — product and model reference
+# Sofix — product and model reference
 
 A premium, Apple-style **fixture difficulty board for LaLiga**, for a single fantasy player (the owner).
 English UI. Personal, non-commercial project.

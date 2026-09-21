@@ -1,4 +1,4 @@
-# FixtureDiff
+# Sofix
 
 Personal **LaLiga fixture difficulty board**: every team's run of games, rated by a backtested rating model and
 shown in a premium white grid. LaLiga has no official FDR, so difficulty comes from our own Dixon-Coles model.

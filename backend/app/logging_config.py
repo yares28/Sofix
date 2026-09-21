@@ -2,7 +2,7 @@
 
 import logging
 
-_MARKER = "_fixturediff_handler"
+_MARKER = "_sofix_handler"
 
 
 def configure_logging(level: int = logging.INFO) -> None:

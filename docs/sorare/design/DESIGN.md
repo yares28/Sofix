@@ -6,7 +6,7 @@ implementation, and every value below comes from it.
 
 ## Principles
 
-1. **Real data, even in previews.** Build previews from live API data and FixtureDiff's own predictions.
+1. **Real data, even in previews.** Build previews from live API data and Sofix's own predictions.
    Never placeholder numbers; if a number doesn't exist yet, the element isn't shown.
 2. **Decision first.** Top to bottom: the one thing to do (hero), a summary strip, every option,
    then secondary things folded away (e.g. "Not playable · 5").

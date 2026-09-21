@@ -39,7 +39,7 @@ from app.services.timeutil import as_utc
 
 MIN_TOKEN_BYTES = 32
 REFRESH_LOG = BACKEND_DIR / "reports" / "refresh-button.log"
-logger = logging.getLogger("fixturediff.admin")
+logger = logging.getLogger("sofix.admin")
 
 
 def require_refresh_token(request: Request, authorization: str | None = Header(default=None)) -> None:

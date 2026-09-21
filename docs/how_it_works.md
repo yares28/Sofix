@@ -1,4 +1,4 @@
-# How FixtureDiff works, number by number
+# How Sofix works, number by number
 
 Every figure the board shows, where it came from, and what happened to it on the way. Written so that a
 number on a tile can be traced back to a row in a CSV, and so that somebody outside this project can read

@@ -1,4 +1,4 @@
-# FixtureDiff — execution plan
+# Sofix — execution plan
 
 One plan for everything that's next:
 - the requested features: club crests, refresh button, Neon, `CLAUDE.md` guardrails, model optimisation
@@ -94,7 +94,7 @@ Work order: **0 → 1 → 2 → 3 → 4**, with **5** and **6** interleaved once
 
 | ID | Task | Files | Done when |
 |---|---|---|---|
-| 2.1 | ✅ **Delete dead scaffold code:** `feature_builder.py`, `features.py`, `feature_schema.py`, `model.py`, `poisson.py`, `entity_resolver.py`, `jobs/train.py`, `enrich_fdata_current.py`, `import_manual_csv.py`, `bootstrap.py`, `sources/rfef.py`, `statsbomb_open.py`, `manual_imports.py`, unused helpers in `football_data_co_uk.py`/`football_data_org.py`, `/api/difficulty` + `FixtureDifficultyOut` | `backend/app/*` | Imports from `main`, `refresh`, `backtest` still resolve; tests pass; `elo.py` kept for the backtest |
+| 2.1 | ✅ **Delete dead scaffold code:** `feature_builder.py`, `features.py`, `feature_schema.py`, `model.py`, `poisson.py`, `entity_resolver.py`, `jobs/train.py`, `enrich_fdata_current.py`, `import_manual_csv.py`, `bootstrap.py`, `sources/rfef.py`, `statsbomb_open.py`, `manual_imports.py`, unused helpers in `football_data_co_uk.py`/`football_data_org.py`, `/api/difficulty` + `SofixicultyOut` | `backend/app/*` | Imports from `main`, `refresh`, `backtest` still resolve; tests pass; `elo.py` kept for the backtest |
 | 2.2 | ✅ **Drop unused tables/columns** in one migration: `players`, `player_match`, `availability_snapshots`, `context_snapshots`, `feature_snapshots`, `odds_snapshots`, `team_match_stats` (and its rebuild in sync), dead columns, duplicate `ix_predictions_fixture_id`; fix `source_entity_map` unique key → `(entity_type, source, source_id)` | `models.py`, new migration, `seed_and_sync.py` | Tested on a Neon `dev` branch first, then applied to `production` |
 | 2.3 | ✅ **Backend dependency upgrades:** `fastapi==0.141.1` (Starlette 1.6), `uvicorn[standard]==0.52.4`, `pydantic==2.13.5`, `pydantic-settings==2.15.0`, `sqlalchemy==2.0.52`, `psycopg[binary]==3.3.5`; remove `scikit-learn`, `joblib`, `pypdf`; drop `MODEL_PATH`/`WEIGHT_*` settings and `.env.example` lines | `requirements*.txt`, `config.py`, `.env.example` | `pip-audit` clean; tests pass |
 | 2.4 | ✅ **Lock files and Python version:** `uv pip compile` lock; `.python-version` + `requires-python`; one version everywhere | `backend/` | Reproducible install; versions match |

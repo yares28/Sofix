@@ -14,7 +14,7 @@ from app.api import router
 from app.config import Settings, settings
 from app.schemas import ApiResponse
 
-logger = logging.getLogger("fixturediff.api")
+logger = logging.getLogger("sofix.api")
 
 
 def error_response(status_code: int, message: str) -> JSONResponse:
@@ -25,7 +25,7 @@ def error_response(status_code: int, message: str) -> JSONResponse:
 def create_app(config: Settings = settings, launcher: Callable[[int], Process | None] = launch_refresh) -> FastAPI:
     docs_enabled = config.app_env == "dev"
     application = FastAPI(
-        title="La Liga Fixture Difficulty API",
+        title="Sofix API",
         version="0.1.0",
         docs_url="/docs" if docs_enabled else None,
         redoc_url="/redoc" if docs_enabled else None,

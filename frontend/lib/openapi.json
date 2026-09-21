@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "La Liga Fixture Difficulty API",
+    "title": "Sofix API",
     "version": "0.1.0"
   },
   "paths": {

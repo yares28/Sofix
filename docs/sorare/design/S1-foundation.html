@@ -179,7 +179,7 @@ h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spa
 .phone .grid5 { position: absolute; left: 12px; right: 12px; top: 34px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 8px; }
 .phone .grid5 i { aspect-ratio: 1; border-radius: 7px; background: rgba(255,255,255,.55); }
 .phone .grid5 i.me { background: var(--brand); box-shadow: 0 4px 10px rgba(0,0,0,.25); animation: drop 3.2s var(--ease) infinite; position: relative; }
-.phone .grid5 i.me::after { content: "FixtureDiff"; position: absolute; top: 105%; left: 50%; transform: translateX(-50%); font-size: 5px; color: #fff; white-space: nowrap; font-weight: 600; }
+.phone .grid5 i.me::after { content: "Sofix"; position: absolute; top: 105%; left: 50%; transform: translateX(-50%); font-size: 5px; color: #fff; white-space: nowrap; font-weight: 600; }
 @keyframes drop { 0% { transform: translateY(-60px) scale(.6); opacity: 0; } 22% { transform: translateY(4px) scale(1.08); opacity: 1; } 30%, 88% { transform: none; opacity: 1; } 100% { opacity: 0; } }
 .phone .notch { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); width: 36px; height: 9px; border-radius: 6px; background: #1d1d1f; }
 .qrrow { margin-top: 16px; display: flex; align-items: center; gap: 14px; }
@@ -292,7 +292,7 @@ h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spa
 <body>
 <nav class="nav" aria-label="Main">
   <div class="nav-in">
-    <div class="brand"><i aria-hidden="true"></i>FixtureDiff</div>
+    <div class="brand"><i aria-hidden="true"></i>Sofix</div>
     <div class="links"><a href="#">Fixtures</a><a href="#">Difficulty</a><a href="#">Table</a><a href="#" aria-current="page">Sorare</a></div>
     <button class="pill" type="button" id="pill"><svg class="beat" viewBox="0 0 22 14" aria-hidden="true"><path d="M1 7h5l2-5 3 10 2-5h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="pillTxt"></span></button>
   </div>
@@ -374,11 +374,11 @@ h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spa
       <p class="eyebrow">Install once per device</p>
       <h2>Your icon.<br>Its own window.</h2>
       <p>Open the link, then “Install” in Chrome or “Add to Home Screen” on the phone.</p>
-      <div class="url"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><rect x="2.5" y="6" width="9" height="6.5" rx="1.5" fill="currentColor"/><path d="M4.5 6V4.5a2.5 2.5 0 0 1 5 0V6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>fixturediff.vercel.app</div>
+      <div class="url"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><rect x="2.5" y="6" width="9" height="6.5" rx="1.5" fill="currentColor"/><path d="M4.5 6V4.5a2.5 2.5 0 0 1 5 0V6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>sofix.vercel.app</div>
       <div class="qrrow"><div class="qr"><svg viewBox="0 0 29 29" id="qr" shape-rendering="crispEdges"></svg></div><span>On your phone, scan this<br>and tap “Add to Home Screen”.</span></div>
     </div>
     <div class="devices" aria-hidden="true">
-      <div class="laptop"><div class="screen"><div class="app"><div class="bar2"><i></i><span>FixtureDiff</span></div><div class="content"><div></div><div></div><div></div><div></div><div></div><div></div></div></div></div><div class="base"></div></div>
+      <div class="laptop"><div class="screen"><div class="app"><div class="bar2"><i></i><span>Sofix</span></div><div class="content"><div></div><div></div><div></div><div></div><div></div><div></div></div></div></div><div class="base"></div></div>
       <div class="phone"><div class="scr"><span class="notch"></span><div class="grid5"><i></i><i></i><i></i><i></i><i></i><i></i><i class="me"></i><i></i><i></i><i></i><i></i><i></i></div></div></div>
     </div>
   </section>
@@ -392,7 +392,7 @@ h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spa
       <ol class="steps" id="steps">
         <li class="st" data-s="0"><span class="n">1</span><div><b>Open chrome://extensions</b><span>paste it in the address bar</span></div><button class="mini" type="button" data-copy="chrome://extensions">Copy</button></li>
         <li class="st" data-s="1"><span class="n">2</span><div><b>Turn on Developer mode</b><span>top-right switch</span></div><span></span></li>
-        <li class="st" data-s="2"><span class="n">3</span><div><b>Load unpacked · pick the folder</b><span>extension\dist in FixtureDiff</span></div><button class="mini" type="button" data-copy="C:\Users\Yaya\Desktop\PROJECTS\FixtureDiff\extension\dist">Copy</button></li>
+        <li class="st" data-s="2"><span class="n">3</span><div><b>Load unpacked · pick the folder</b><span>extension\dist in Sofix</span></div><button class="mini" type="button" data-copy="C:\Users\Yaya\Desktop\PROJECTS\Sofix\extension\dist">Copy</button></li>
       </ol>
     </div>
     <div class="browser" aria-hidden="true">
@@ -400,8 +400,8 @@ h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spa
       <div class="b-body" id="bbody">
         <div class="b-head">Extensions<span class="dev">Developer mode <span class="tg"></span></span></div>
         <div class="devbar"><span>Load unpacked</span><span>Pack extension</span><span>Update</span></div>
-        <div class="picker">Select the extension directory<code>C:\Users\Yaya\Desktop\PROJECTS\FixtureDiff\extension\dist</code></div>
-        <div class="xcard"><i></i><div><b>FixtureDiff</b><span>0.1.0 · connected to the app</span></div><span class="tg"></span></div>
+        <div class="picker">Select the extension directory<code>C:\Users\Yaya\Desktop\PROJECTS\Sofix\extension\dist</code></div>
+        <div class="xcard"><i></i><div><b>Sofix</b><span>0.1.0 · connected to the app</span></div><span class="tg"></span></div>
         <svg class="cursor" id="cursor" viewBox="0 0 18 18"><path d="M2 1l13 7-6 1.5L6.5 16Z" fill="#1d1d1f" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/></svg>
       </div>
     </div>
@@ -496,7 +496,7 @@ h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spa
     const nodes = [
       { ic: I.ball, b: 'sorare.com', s: ok ? 'as Yares' : 'signed in?', on: ok },
       { ic: I.puzzle, b: 'Extension', s: ok ? 'v0.1.0' : 'not added', on: ok },
-      { ic: I.app, b: 'FixtureDiff', s: 'online', on: true },
+      { ic: I.app, b: 'Sofix', s: 'online', on: true },
       { ic: I.clock, b: 'Cloud jobs', s: 'on a clock', on: true, hide: true },
     ];
     const wires = [ok, ok, true];
@@ -522,7 +522,7 @@ h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spa
   function xp(el, signedIn) {
     el.innerHTML = `
       <div class="xp-top ${signedIn ? '' : 'warn'}">
-        <div class="row1"><i></i>FixtureDiff</div>
+        <div class="row1"><i></i>Sofix</div>
         <h5>${signedIn ? 'Linked' : 'Sign in to Sorare'}</h5>
         <p>${signedIn ? 'Lineups can be saved from the app' : 'Open sorare.com and log in as usual'}</p>
         <div class="xp-chain"><span>Sorare</span><i class="${signedIn ? '' : 'cut'}"></i><span>Extension</span><i></i><span>App</span></div>
@@ -531,7 +531,7 @@ h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spa
         <div class="xp-row">Scores on sorare.com<span class="end"><button class="sw" type="button" role="switch" aria-checked="${state.overlay}" aria-label="Scores on sorare.com"></button></span></div>
         <div class="xp-row">Signed in as<span class="end"><b>${signedIn ? 'Yares' : '—'}</b></span></div>
       </div>
-      <div class="xp-foot"><button class="btn primary" type="button">${signedIn ? 'Open FixtureDiff' : 'Open sorare.com'}</button></div>`;
+      <div class="xp-foot"><button class="btn primary" type="button">${signedIn ? 'Open Sofix' : 'Open sorare.com'}</button></div>`;
     el.querySelector('.sw').addEventListener('click', () => { state.overlay = !state.overlay; render(); });
   }
 

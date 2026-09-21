@@ -1,5 +1,5 @@
 [project]
-name = "fixturediff-backend"
+name = "sofix-backend"
 version = "0.1.0"
 description = "LaLiga fixture difficulty: data pipeline, rating model and API"
 requires-python = ">=3.11,<3.12"

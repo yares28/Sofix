@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MAX_PINS, parsePins, serializeViewState, type ViewState } from "../lib/grid";
 
-const PINS_KEY = "fixturediff:pins";
+const PINS_KEY = "sofix:pins";
+const OLD_PINS_KEY = "fixturediff:pins"; // before the Sofix rename; read once so saved pins survive
 
 /**
  * Board settings that belong in a shareable link (view, lens, horizon, window, pins, played).
@@ -16,7 +17,7 @@ export function useViewState(initial: ViewState, pinsInUrl: boolean, knownCodes:
   useEffect(() => {
     if (pinsInUrl) return;
     try {
-      const saved = parsePins(window.localStorage.getItem(PINS_KEY), knownCodes);
+      const saved = parsePins(window.localStorage.getItem(PINS_KEY) ?? window.localStorage.getItem(OLD_PINS_KEY), knownCodes);
       if (saved.length) setState((current) => ({ ...current, pins: saved }));
     } catch {
       // storage unavailable (private mode): pins just don't persist

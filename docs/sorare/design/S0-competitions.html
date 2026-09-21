@@ -332,7 +332,7 @@ button:hover .foil::after, .comp:hover .foil::after, .hero:hover .foil::after { 
 <body>
 <nav class="nav" aria-label="Main">
   <div class="nav-in">
-    <div class="brand"><i aria-hidden="true"></i>FixtureDiff</div>
+    <div class="brand"><i aria-hidden="true"></i>Sofix</div>
     <div class="links"><a href="#">Fixtures</a><a href="#">Difficulty</a><a href="#">Table</a><a href="#" aria-current="page">Sorare</a></div>
     <div class="sync">Synced 2 min ago</div>
   </div>
@@ -709,7 +709,7 @@ button:hover .foil::after, .comp:hover .foil::after, .hero:hover .foil::after { 
         <div class="art"><img src="${esc(p.pic)}" alt="${esc(p.name)} card" loading="lazy" referrerpolicy="no-referrer">${p.captain ? '<span class="cap" aria-label="Captain">C</span>' : ''}
           <span class="rib ${ribClass(shown)}">${shown == null ? '–' : Math.round(shown)}</span></div>
         <div class="who"><b>${esc(p.name)}</b>
-          <span class="fx"><img src="${esc(p.oppCrest)}" alt="" referrerpolicy="no-referrer">${p.venue === 'H' ? 'vs' : '@'} ${p.opp} · ${koFmt.format(new Date(p.kickoff))}${p.bucket ? `<span class="fdr" style="background:${BUCKET[p.bucket]}" title="FixtureDiff difficulty ${p.bucket}/5"></span>` : ''}</span></div>
+          <span class="fx"><img src="${esc(p.oppCrest)}" alt="" referrerpolicy="no-referrer">${p.venue === 'H' ? 'vs' : '@'} ${p.opp} · ${koFmt.format(new Date(p.kickoff))}${p.bucket ? `<span class="fdr" style="background:${BUCKET[p.bucket]}" title="Sofix difficulty ${p.bucket}/5"></span>` : ''}</span></div>
         ${done
           ? `<div class="nums"><span>xS <b>${Math.round(p.x)}</b></span><span>Sorare <b>${p.sorare ?? '–'}</b></span></div>`
           : `<div class="nums"><span>Plays <b>${pct(p.pPlay)}%</b></span><span title="Bad / average / good game">${p.bad} · <b>${p.avg}</b> · ${p.good}</span></div>`}

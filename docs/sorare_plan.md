@@ -1,6 +1,6 @@
-# Sorare inside FixtureDiff — plan and tracker
+# Sorare inside Sofix — plan and tracker
 
-Merge the SorareExt project (`C:\Users\Yaya\Desktop\PROJECTS\ExtentionSorare\SorareExt`) into FixtureDiff:
+Merge the SorareExt project (`C:\Users\Yaya\Desktop\PROJECTS\ExtentionSorare\SorareExt`) into Sofix:
 bento home page, My cards, Player search, Lineups & Optimize, Predicted vs actual, and an overlay on sorare.com
 styled like SorareInside. LaLiga clubs only, plus their European games.
 
@@ -113,7 +113,7 @@ Nothing was written to Sorare.
 `docs/sorare/design/S0-competitions.html` (v2, 2026-09-21): the **Play** page built on real data. Gameweek
 timeline (GW13–15, break, GW21), Limited/Rare switch, "best play" hero with reward chance, xScore range and the score
 needed, a fan of the lineup's real cards, stats strip, every competition auto-optimized, lineup sheet with card art,
-fixtures from FixtureDiff's model, and past gameweeks replayed (scored vs xScore vs Sorare's projection).
+fixtures from Sofix's model, and past gameweeks replayed (scored vs xScore vs Sorare's projection).
 The preview optimizer (`scratchpad/build_preview.py`) is a throwaway prototype of S4/S6, not the shipped model.
 
 ---

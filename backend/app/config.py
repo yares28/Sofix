@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     # The Odds API (free Starter plan, 500 credits/month). Without it the odds step is skipped.
     odds_api_key: str = ""
     dixon_coles_config_path: str = str(BACKEND_DIR / "artifacts" / "dixon_coles.json")
+    clean_sheet_calibration_path: str = str(BACKEND_DIR / "artifacts" / "clean_sheet_calibration.json")
+    market_blend_path: str = str(BACKEND_DIR / "artifacts" / "market_blend.json")
+    opening_projection_path: str = str(BACKEND_DIR / "artifacts" / "opening_projection.json")
     history_cache_dir: str = str(BACKEND_DIR / "data" / "raw" / "football-data-co-uk")
     # Shared secret between the Next.js server and POST /api/admin/refresh (≥ 32 bytes, or the endpoint stays off).
     refresh_token: str = ""

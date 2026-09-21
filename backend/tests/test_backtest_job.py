@@ -4,8 +4,17 @@ import pytest
 
 from app.backtest.methods import base_rates, closing_odds, dixon_coles, elo_fallback
 from app.backtest.walkforward import run_walkforward
-from app.jobs.backtest import build_report, config_grid, horizon_bucket, md_table, tune, with_known_odds
+from app.jobs.backtest import (
+    build_report,
+    config_grid,
+    horizon_bucket,
+    md_table,
+    tune,
+    tune_spread,
+    with_known_odds,
+)
 from app.modeling.dixon_coles import DixonColesConfig
+from app.services.calibration import CleanSheetCalibration
 from tests.conftest import simulate_league
 
 
@@ -45,6 +54,16 @@ def test_tune_picks_the_lowest_rps_and_survives_a_bad_config(big_league):
         tune(big_league, [2021], grid[1:], workers=1)
 
 
+def test_tune_spread_picks_the_lowest_log_loss(big_league, monkeypatch):
+    import app.jobs.backtest as job
+
+    losses = {1.0: 1.00, 1.05: 0.98, 1.10: 0.97, 1.15: 0.985, 1.20: 0.99, 1.25: 1.01}
+    monkeypatch.setattr(job, "score_config", lambda c, s, m=None: {"rps": 0.2, "log_loss": losses[round(c.spread, 2)]})
+    best, table = tune_spread(big_league, [2021], DixonColesConfig(xi=0.001), workers=1)
+    assert best.spread == 1.10 and best.xi == 0.001  # the rest of the config is untouched
+    assert table["spread"].tolist() == list(job.SPREAD_GRID)
+
+
 def test_horizon_bucket_labels_everything():
     labels = horizon_bucket(pd.Series([1, 2, 5, 8, 12]))
     assert labels.tolist() == ["1 week", "2–3 weeks", "4–5 weeks", "6–8 weeks", "later"]
@@ -61,9 +80,15 @@ def test_build_report_end_to_end(big_league):
     test = with_known_odds(run_walkforward(big_league, [2022], methods), big_league)
     tune_best = with_known_odds(run_walkforward(big_league, [2021], [methods[0]]), big_league)
     tuning = pd.DataFrame([{"xi": 0.001, "goals_weight": 0.7, "ridge": 2.0, "promoted_prior": -0.2, "rps": 0.2}])
+    spreads = pd.DataFrame(
+        [{"spread": 1.0, "rps": 0.2, "log_loss": 1.0}, {"spread": 1.1, "rps": 0.2, "log_loss": 0.99}]
+    )
 
-    report = build_report(big_league, best, tuning, test, tune_best, [2021], [2022])
+    clean_sheets = CleanSheetCalibration(a=-0.2, b=1.05, n=4000, fitted_through="2023-05-20")
 
+    report = build_report(big_league, best, tuning, spreads, clean_sheets, test, tune_best, [2021], [2022])
+
+    assert "p' = sigmoid(-0.200 + 1.050 * logit(p))" in report  # the correction is spelled out
     for heading in ["## 1. Chosen settings", "## 2. Overall accuracy", "## 5. Ranking runs", "## 8. Current ratings"]:
         assert heading in report
     assert "tuned on 2021/22" in report and "from **2022/23**" in report

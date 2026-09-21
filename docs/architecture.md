@@ -9,15 +9,15 @@
 | Migrations | `app/migrate.py`, `migrations/` | Run as the Neon owner via `POSTGRES_MIGRATION_URL`; refuses a different database than the app's |
 | Sync | `app/jobs/seed_and_sync.py` | One football-data.org call; teams via `services/team_registry.py`; replaces fixture fields in place |
 | Predict | `app/jobs/predict.py`, `services/rating_predictions.py` | Dixon-Coles fit on football-data.co.uk history + synced results; replaces rows per model version |
-| Weather | `app/jobs/sync_weather.py`, `sources/open_meteo.py` | One call per stadium; confirmed kickoffs within 14 days; one row per fixture |
-| Grid | `services/fixture_grid.py`, `api.py` | Teams × matchdays; buckets derived from labels; lens scales for attack/defence |
+| Grid | `services/fixture_grid.py`, `api.py` | Teams × matchdays; buckets derived from labels; lens scales from the games still to come; a played cell keeps its pre-kickoff forecast plus a `review` (postmortem) |
 | Board | `frontend/` | Renders buckets and scales from the API; no business thresholds in the browser |
 
 From the selected team's perspective:
 
 - `EP = 3·P(win) + P(draw)`
 - `Difficulty = 100·(1 − EP/3)`
-- Labels (backtested, 15/20/30/20/15 % shares): Easy ≤ 37.4 < Easy-ish ≤ 48.6 < Normal ≤ 61.1 < Hard-ish ≤ 71.3 < Hard
+- Labels (backtested, 15/20/30/20/15 % shares, top cut venue-aware since 2026-09-16):
+  Very favourite ≤ 36.0 home / 23.4 away < Favourite ≤ 48.6 < Even ≤ 61.1 < Underdog ≤ 71.3 < Big underdog
 
 Keep the continuous score; change thresholds only after rolling-origin backtests.
 
@@ -29,7 +29,7 @@ low-score correction. Tuned and validated with `app/jobs/backtest.py`.
 
 ## Data model (Neon)
 
-`competitions`, `teams`, `stadiums`, `source_entity_map`, `fixtures`, `predictions`, `weather_snapshots`.
+`competitions`, `teams`, `stadiums`, `source_entity_map`, `fixtures`, `predictions`, `market_odds`, `refresh_runs`.
 The app connects as the least-privilege role `fdr_app`; migrations use the owner role.
 
 ## Future feature families (research, not implemented)

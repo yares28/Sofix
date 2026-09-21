@@ -219,17 +219,51 @@ Work order: **0 → 1 → 2 → 3 → 4**, with **5** and **6** interleaved once
 
 | ID | Experiment | Targets | Data |
 |---|---|---|---|
-| 6.1 | ⬜ Evaluation upgrade: bootstrap CIs, per-season tables, reliability curves (favourite bins, λ bins), warm-start fits | Tells real gains from noise | — |
-| 6.2 | ⬜ **Outcome sharpening:** temperature/power scaling of log-odds; ridge 0.1–1.0; goals weight 0.5–1.0 | Favourite underconfidence, λ compression | — |
-| 6.3 | ⬜ **Clean-sheet recalibration:** logistic on `logit(p_cs)` | Defence lens | — |
+| 6.1 | ✅ _(`reports/experiments/bench.py`: replays one candidate through the blind nine-season harness and prints RPS, per-season and per-horizon tables, decile calibration, clean sheets, within-club ordering, run ranking and tile stability, each with an interval; `--variant spread=1.0` self-test comes out 0.0000)_ Evaluation upgrade | Tells real gains from noise | — |
+| 6.2 | ✅ _(`spread` in DixonColesConfig: ratings stretched around their mean after the fit, mu re-solved to keep league goals; 1.10 chosen on the tuning seasons by log loss. Extreme-decile miss 0.123 → 0.065 pts/game, test-season RPS 0.1953 → 0.1947. Loosening the ridge instead was measurably worse: +0.0005 RPS and −0.007 run correlation)_ Outcome sharpening | Favourite underconfidence, λ compression | — |
+| 6.3 | ✅ _(`app/services/calibration.py`, fitted by the backtest job to `artifacts/clean_sheet_calibration.json`, capped and shrunk toward identity; test seasons 30.8% → 28.8% predicted against 26.1% observed, Brier 0.1818 → 0.1803; W/D/L untouched)_ Clean-sheet recalibration | Defence lens | — |
 | 6.4 | ⬜ **Promoted teams:** Segunda (`SP2`) history with a division offset; stage-dependent promoted prior; faster decay for teams with little top-flight data; shrink λ > 3 against promoted opponents | Later-season promoted gap; 3.9 xG outliers | football-data.co.uk SP2 |
-| 6.5 | ⬜ **Market blend (next matchday):** blend with `fixtures.csv` Bet365/avg odds; weights tuned on historical pre-closing odds (no closing odds, to avoid leakage) | 12.5% big disagreements | football-data.co.uk |
-| 6.6 | ⬜ Finer search: xi, window 1–3 seasons, shrunk team-specific home advantage | Flat surface, safely | — |
+| 6.5 | ✅ _(`app/services/market_blend.py`: log pool of model and fair market W/D/L for fixtures within 7 days with a fresh price from ≥ 3 bookmakers, weight 0.35 in `artifacts/market_blend.json`; research used pre-closing CSV prices only. Next-week RPS −0.0027 (−0.0034 to −0.0021); tiles holding their colour from 4–5 weeks out 88% → 81%, which is the trade-off the weight buys)_ Market blend (next gameweek) | 12.5% big disagreements | football-data.co.uk |
+| 6.6 | ⬜ Finer search: xi, window 1–3 seasons, shrunk team-specific home advantage (ridge and spread are done; `bench.py` takes any config field) | Flat surface, safely | — |
 | 6.7 | ⬜ Congestion: rest days from Champions League fixtures (football-data.org free; within 10 req/min) | Rotation after Europe | football-data.org CL |
 | 6.8 | ⬜ Chance quality: total shots + research-only Understat xG test | Value of real xG | Understat (research) |
 | 6.9 | ⬜ Model family check (negative binomial, bivariate Poisson, DC+Elo ensemble) — only if 6.2–6.8 plateau | — | — |
 
 Winning changes update `artifacts/dixon_coles.json`, bump the model version (3.3), and refresh the baseline numbers in `CLAUDE.md`.
+
+## Phase 6d — Saying it in plain words, and keeping the past on the board (2026-09-20)
+
+| ID | Change | Why |
+|---|---|---|
+| 6d.1 | ✅ _(`grid.recordCopy` / `bandWords`, `CellTooltip`, `LENS_COPY`, ranking titles "Wins vs its rating" / "Wins vs its odds", column "Gap")_ The record lenses say what they mean | "Edge over its price" meant nothing without the jargon |
+| 6d.2 | ✅ _(`RunCard.views` + the arrow; `.run-compact` deleted)_ Four run cards folded into two | Half the space, one layout |
+| 6d.3 | ✅ _(`fixture_grid.historic_predictions` / `cell_review`, `CellReview`, `.cell-mark`, `playedValue`, the "Already played" divider)_ A played game keeps its forecast and says how it did | The board could never be checked against what happened |
+| 6d.4 | ✅ _(`outcome_table` column `p_00`, `explanation["both_score"]`, `market_odds.team_market`, `PRICE_OPTIONS`, BTS column, match cards)_ Both teams to score, ours and the bookmakers' | Asked for; free from the score matrix |
+| 6d.5 | ✅ _(one `<colgroup>` skeleton, `# Club P Pts To play xPts xGD 1st Top 4 Down`, `predictedTable({ through })`, `TableProgression.tsx`)_ The Table tab rebuilt | The layout jumped between modes, `+Exp` was dead weight, and there was no way to walk the season |
+| 6d.6 | ✅ _(`@nivo/line`, `lib/progression.ts`, club chips + presets, focus band from 600 simulated seasons, crests at the line ends)_ The position chart rebuilt | Hand-rolled SVG could not be filtered, and 20 grey lines said nothing |
+| 6d.7 | ✅ _(`services/opening_projection.py`, `jobs/opening_projection.py`, `artifacts/opening_projection.json`, `GridTeam.opening`, the dotted August line and its toggle)_ The pre-season projection, to compare the season against | "Played and projected" could not answer "is this better than we thought in August?" |
+| 6d.8 | ⬜ The played tile's number is only the chance we gave the result; the points swing and the surprise stay in the tooltip | One number fits on a tile |
+
+## Phase 6c — Labels that mean the same thing everywhere (2026-09-16)
+
+| ID | Change | Why |
+|---|---|---|
+| 6c.1 | ✅ _(`scoring.THRESHOLDS`: top cut 36.0 home / 23.4 away; words Very favourite / Favourite / Even / Underdog / Big underdog)_ Venue-aware labels | A top-band tile won 70.4% at home and 59.3% away; now 72.0% / 72.2% |
+| 6c.2 | ✅ _(`services/odds_record.py`, five seasons of closing odds; `GridCell.record` / `record_price`; lenses Record and Vs odds; tooltip line)_ A club's record at its price | Replaces the weather in the tooltip |
+| 6c.3 | ✅ _(sync job, source, `weather_snapshots` table (migration `66529b836e07`), `CellWeather`, match-card line, footer attribution)_ Weather removed | Owner's call |
+| 6c.4 | ⬜ Yearly backtest proposes a home and an away top cut, and the Part 2 label tables are re-run with them | `propose_thresholds` still returns one set |
+
+## Phase 6b — Learning from its own mistakes
+
+Reviewing each finished game, telling an unlucky result from a rating that is actually wrong, and re-fitting as
+games arrive. Proved in `bench.py` under the blind protocol before any of it reaches the board.
+
+| ID | Experiment | Targets | Data |
+|---|---|---|---|
+| 6b.1 | ⬜ **Post-match review:** surprise (the match's RPS and where it sits in the forecast's own distribution), performance gap (goals and shots on target against λ), red cards; each finished game filed as variance, evidence or a data problem, with a one-line explanation | "Easy game lost" answered honestly | football-data.co.uk (HR/AR, HST/AST) |
+| 6b.2 | ⬜ **Drift detection:** CUSUM on each club's weighted goal residuals, attack and defence apart, thresholds set so false alarms stay near one per club-season; an alarm speeds that club's learning for a few matches (`fit_dixon_coles(..., club_weights=)`) | Promoted clubs, mid-season shifts | — |
+| 6b.3 | ⬜ **Recalibration on a schedule:** spread and the clean-sheet correction re-fitted from finished matches each run; label cut points re-estimated and reported, never silently applied | Keeps the corrections honest as seasons pass | — |
+| 6b.4 | ⬜ **Keep what we predicted:** append-only `prediction_history` and `match_reviews` tables, written by the predict job and a review step in the refresh | Production can learn at all | Neon |
 
 ---
 

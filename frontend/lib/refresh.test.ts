@@ -72,9 +72,9 @@ describe("refresh views", () => {
   });
 
   it("maps poll responses", () => {
-    expect(viewAfterPoll(200, body({ run: run({ step: "weather" }), retry_after: 500 }), NOW)).toEqual({
+    expect(viewAfterPoll(200, body({ run: run({ step: "odds" }), retry_after: 500 }), NOW)).toEqual({
       kind: "running",
-      step: "weather",
+      step: "odds",
     });
     expect(viewAfterPoll(200, body({ run: run({ status: "succeeded", step: null }), retry_after: 480 }), NOW)).toEqual({
       kind: "done",

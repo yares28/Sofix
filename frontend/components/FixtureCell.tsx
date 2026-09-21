@@ -1,3 +1,4 @@
+import { SHOCK } from "../lib/grid";
 import type { Bucket } from "../lib/grid";
 import type { GridCell } from "../lib/types";
 
@@ -35,8 +36,15 @@ function Tile({ cell, bucket, compact, dataKey, label, row, column, showTbc }: T
 
   if (cell.status === "finished" && cell.result) {
     const { goals_for, goals_against, outcome } = cell.result;
+    const review = cell.review;
     return (
       <button {...common} className={`cell result ${size}`}>
+        {/* Top right: the chance the board gave this result before kickoff. A low number is a shock. */}
+        {review && !compact && (
+          <span className={`cell-mark${review.surprise < SHOCK ? " shock" : ""}`} aria-hidden="true">
+            {Math.round(review.outcome_chance * 100)}
+          </span>
+        )}
         <span className="opp">{cell.opponent_code}</span>
         <span className={`score ${outcome}`}>
           {goals_for}–{goals_against}

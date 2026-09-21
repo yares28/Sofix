@@ -5,9 +5,9 @@ import type { FixtureGrid, GridCell } from "./types";
 let id = 1;
 const upcoming = (venue: "H" | "A", ep: number, difficulty: number): GridCell => ({
   fixture_id: id++, opponent_code: "OPP", venue, kickoff_utc: "2026-10-01T19:00:00Z", date_confirmed: true,
-  rescheduled: false, status: "scheduled", result: null, weather: null,
+  rescheduled: false, status: "scheduled", result: null,
   prediction: {
-    difficulty, label: "Normal", bucket: 3, expected_points: ep, probabilities: { win: 0.4, draw: 0.3, loss: 0.3 },
+    difficulty, label: "Even", bucket: 3, expected_points: ep, probabilities: { win: 0.4, draw: 0.3, loss: 0.3 },
     clean_sheet: 0.3, xg_for: 1.2, xg_against: 1.1,
   },
 });
@@ -28,6 +28,8 @@ const grid: FixtureGrid = {
     attack: { cuts: [4, 3, 2, 1], higher_is_easier: true },
     defence: { cuts: [4, 3, 2, 1], higher_is_easier: true },
     odds: { cuts: [0.6, 0.45, 0.3, 0.18], higher_is_easier: true },
+    record: { cuts: [0.06, 0.02, -0.02, -0.06], higher_is_easier: true },
+    market_record: { cuts: [0.06, 0.02, -0.02, -0.06], higher_is_easier: true },
   },
   matchdays: [md(1), md(2), md(3), md(4), md(5)],
   teams: [team],

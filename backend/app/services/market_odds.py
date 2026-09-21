@@ -43,6 +43,7 @@ class TeamMarket:
     scores_2plus: float
     clean_sheet: float
     concedes_2plus: float
+    both_score: float  # the same number from either side of the fixture
 
 
 def fair_probabilities(prices: list[float]) -> list[float]:
@@ -149,4 +150,5 @@ def team_market(line: MarketLine, goals_for: float, goals_against: float, venue:
         scores_2plus=1 - none_for * (1 + goals_for),
         clean_sheet=none_against,
         concedes_2plus=1 - none_against * (1 + goals_against),
+        both_score=1 - none_for - none_against + none_for * none_against,
     )

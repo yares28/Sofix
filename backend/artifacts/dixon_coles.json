@@ -5,5 +5,6 @@
   "ridge": 1.0,
   "promoted_prior": 0.0,
   "window_days": 730,
-  "max_goals": 10
+  "max_goals": 10,
+  "spread": 1.1
 }

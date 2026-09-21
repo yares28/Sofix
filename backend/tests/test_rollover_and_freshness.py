@@ -1,6 +1,5 @@
 """Season rollover, history download fallbacks, change-only sync writes, and stale-data cleanup."""
 
-import asyncio
 import json
 import os
 from datetime import UTC, date, datetime, timedelta
@@ -19,8 +18,7 @@ from app.db import Base
 from app.jobs.backtest import season_plan
 from app.jobs.predict import name_problems, predict_upcoming
 from app.jobs.seed_and_sync import sync
-from app.jobs.sync_weather import main as sync_weather_main
-from app.models import Fixture, Prediction, RefreshRun, WeatherSnapshot
+from app.models import Fixture, Prediction, RefreshRun
 from app.services.fixture_grid import grid_meta
 from app.sources.football_data_co_uk import cached_path, fetch_season_csv
 
@@ -235,51 +233,6 @@ def test_resync_writes_only_what_changed_and_reports_missing(session_factory):
     played = [fdo_match(1, fcb, rma, "2027-08-15T19:00:00Z", status="FINISHED", score=(2, 1))]
     later = sync({"matches": played}, session_factory=session_factory)
     assert later.changed == 1 and later.missing_fixtures == ["2"]
-
-
-def test_weather_sync_writes_forecasts_and_clears_stale_rows(session_factory):
-    fcb, rma, atl, bet = (CLUBS[c][0] for c in ("FCB", "RMA", "ATL", "BET"))
-    now = datetime(2027, 8, 10, 12, tzinfo=UTC)
-    sync(
-        {
-            "matches": [
-                fdo_match(1, fcb, rma, "2027-08-15T19:00:00Z"),  # forecastable
-                fdo_match(2, atl, bet, "2027-08-08T19:00:00Z", status="FINISHED", score=(1, 1)),  # already played
-            ]
-        },
-        session_factory=session_factory,
-    )
-    db = session_factory()
-    played = db.query(Fixture).filter_by(source_fixture_id="2").one()
-    db.add(WeatherSnapshot(fixture_id=played.id, snapshot_ts=now, available_at=now, temperature_c=30.0))
-    db.commit()
-    db.close()
-
-    hours = [(now + timedelta(hours=h)).strftime("%Y-%m-%dT%H:00") for h in range(0, 24 * 16)]
-    body = {
-        "hourly": {
-            "time": hours,
-            "temperature_2m": [21.0] * len(hours),
-            "apparent_temperature": [21.0] * len(hours),
-            "relative_humidity_2m": [60] * len(hours),
-            "precipitation": [0.2] * len(hours),
-            "wind_speed_10m": [9.0] * len(hours),
-        }
-    }
-    requests = []
-
-    def handler(request):
-        requests.append(request)
-        return httpx.Response(200, json=body)
-
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    result = asyncio.run(sync_weather_main(session_factory=session_factory, client=client, now=now))
-
-    assert result == {"rows": 1, "stadiums": 1, "stale_removed": 1}
-    assert len(requests) == 1  # one call per stadium
-    db = session_factory()
-    rows = db.query(WeatherSnapshot).all()
-    assert len(rows) == 1 and rows[0].temperature_c == 21.0
 
 
 def test_last_synced_comes_from_the_run_history(session_factory):

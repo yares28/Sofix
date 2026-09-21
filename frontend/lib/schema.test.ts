@@ -15,6 +15,8 @@ function payload() {
         attack: { cuts: [2, 1.6, 1.2, 0.9], higher_is_easier: true },
         defence: { cuts: [0.45, 0.35, 0.25, 0.18], higher_is_easier: true },
         odds: { cuts: [0.55, 0.48, 0.36, 0.21], higher_is_easier: true },
+        record: { cuts: [0.06, 0.02, -0.02, -0.06], higher_is_easier: true },
+        market_record: { cuts: [0.06, 0.02, -0.02, -0.06], higher_is_easier: true },
       },
       matchdays: [{ number: 5, date_from: "2026-09-11T19:00:00Z", date_to: "2026-09-14T19:00:00Z", finished: false }],
       teams: [
@@ -27,9 +29,9 @@ function payload() {
             [
               {
                 fixture_id: 1, opponent_code: "LEV", venue: "H", kickoff_utc: "2026-09-12T19:00:00Z", date_confirmed: true,
-                rescheduled: false, status: "scheduled", result: null, weather: null,
+                rescheduled: false, status: "scheduled", result: null,
                 prediction: {
-                  difficulty: 28.4, label: "Easy", bucket: 1, expected_points: 2.15,
+                  difficulty: 28.4, label: "Very favourite", bucket: 1, expected_points: 2.15,
                   probabilities: { win: 0.68, draw: 0.19, loss: 0.13 }, clean_sheet: 0.41, xg_for: 2.1, xg_against: 0.8,
                 },
               },

@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type CSSProperties } from "react";
+import { Fragment, useState, type CSSProperties } from "react";
 import {
-  LENS_COPY, PRICE_OPTIONS, cellBucket, decimalOdds, formatTotal, marketLabels, marketLines, type Horizon, type PriceOption, type RunStats,
+  LENS_COPY, PRICE_OPTIONS, cellBucket, decimalOdds, formatTotal, marketLabels, marketLines, playedValue, type Horizon, type PriceOption, type RunStats,
 } from "../lib/grid";
 import type { FixtureGrid, GridCell, GridMatchday, GridTeam, Lens } from "../lib/types";
 import Crest from "./Crest";
@@ -34,10 +34,14 @@ const HORIZONS: { value: OverviewHorizon; label: string }[] = [
 const LENSES = (Object.keys(LENS_COPY) as Lens[]).map((value) => ({ value, label: LENS_COPY[value].label }));
 const TITLES: Record<Lens, string> = {
   overall: "Expected points", attack: "Expected goals", defence: "Expected clean sheets", odds: "Market odds",
+  record: "Wins vs its rating", market_record: "Wins vs its odds",
 };
-const COLUMNS: Record<Lens, string> = { overall: "xPts", attack: "xG", defence: "xCS", odds: "Mkt/gm" };
+const COLUMNS: Record<Lens, string> = {
+  overall: "xPts", attack: "xG", defence: "xCS", odds: "Mkt/gm", record: "Gap", market_record: "Gap",
+};
 const CHANCE: Record<Lens, string> = {
   overall: "Win chance · market", odds: "Win chance · market", attack: "Scoring chance · market", defence: "Clean-sheet chance · market",
+  record: "Win chance · market", market_record: "Win chance · market",
 };
 
 /**
@@ -57,6 +61,18 @@ export default function ExpectedPointsCard(props: Props) {
   const option = options[choice.options === options ? choice.index : 0] ?? options[0]!;
   const priced = (column: number) => grid.teams.some((team) => (team.cells[column] ?? []).some((cell) => cell.market));
   const labels = marketLabels(lens);
+
+  // On the Next horizon the clubs that have already played sit under a line, still showing what the board
+  // expected of them, instead of dropping to the bottom with a dash next to every other blank club.
+  const gone = (team: GridTeam) =>
+    single && (team.cells[start] ?? []).some((cell) => cell.status === "finished" || cell.status === "live");
+  const valueOf = (team: GridTeam) => {
+    const cell = shown(team.cells[start] ?? []);
+    return cell ? playedValue(cell, lens) : null;
+  };
+  const toPlay = single ? ranked.filter((team) => !gone(team)) : ranked;
+  const played = single ? ranked.filter(gone).sort((a, b) => (valueOf(b) ?? -1) - (valueOf(a) ?? -1)) : [];
+  const rows = [...toPlay, ...played];
 
   return (
     <section className="card bento-card ladder-card" aria-labelledby="ladder-title">
@@ -107,19 +123,26 @@ export default function ExpectedPointsCard(props: Props) {
       </div>
 
       <ol className="list-rows">
-        {ranked.map((team, i) => {
-          const total = stats.get(team.code)?.total ?? null;
+        {rows.map((team, i) => {
+          const isPlayed = i >= toPlay.length;
           const cells = team.cells.slice(start, end);
+          const total = isPlayed ? valueOf(team) : (stats.get(team.code)?.total ?? null);
           return (
-            <li key={team.code} className={`ladder-row ${pins.includes(team.code) ? "pinned" : ""}`}>
-              <span className="list-rank" aria-hidden="true">{i + 1}</span>
+            <Fragment key={team.code}>
+              {isPlayed && i === toPlay.length && (
+                <li className="list-divider">
+                  <span>Already played</span>
+                </li>
+              )}
+            <li className={`ladder-row ${isPlayed ? "played" : ""} ${pins.includes(team.code) ? "pinned" : ""}`}>
+              <span className="list-rank" aria-hidden="true">{isPlayed ? "" : i + 1}</span>
               <Link href={`/team/${team.code}`} prefetch={false} className="list-club">
                 <Crest team={team} size={22} />
                 <span className="list-name">{team.name}</span>
                 {pins.includes(team.code) && <span className="visually-hidden">, pinned</span>}
               </Link>
               <span className="list-num strong">
-                {total === null ? "—" : formatTotal(total)}
+                {total === null ? "—" : formatTotal(total, lens)}
                 <span className="visually-hidden"> {copy.totalLong}</span>
               </span>
               {single ? (
@@ -131,6 +154,7 @@ export default function ExpectedPointsCard(props: Props) {
                 ; {inWords(cells, gameweeks, names, lens, single ? null : option)}
               </span>
             </li>
+            </Fragment>
           );
         })}
       </ol>

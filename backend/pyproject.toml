@@ -45,7 +45,6 @@ files = [
     "app/services/scoring.py",
     "app/services/team_registry.py",
     "app/services/timeutil.py",
-    "app/sources/open_meteo.py",
     "app/sources/the_odds_api.py",
     "app/jobs/sync_odds.py",
 ]

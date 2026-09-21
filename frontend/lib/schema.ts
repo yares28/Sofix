@@ -11,14 +11,26 @@ const probability = z.number().min(0).max(1);
 
 const PredictionSchema = z.object({
   difficulty: z.number().min(0).max(100),
-  label: z.enum(["Easy", "Easy-ish", "Normal", "Hard-ish", "Hard"]),
+  label: z.enum(["Very favourite", "Favourite", "Even", "Underdog", "Big underdog"]),
   bucket: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
   expected_points: z.number().min(0).max(3),
   probabilities: z.object({ win: probability, draw: probability, loss: probability }),
   clean_sheet: probability.nullable(),
   xg_for: z.number().min(0).nullable(),
   xg_against: z.number().min(0).nullable(),
+  both_score: probability.nullish(),
 });
+
+const RecordSchema = z
+  .object({
+    band: z.string().min(1).max(20),
+    games: z.number().int().min(0),
+    wins: z.number().int().min(0),
+    rate: probability,
+    league: probability,
+    edge: z.number().min(-1).max(1),
+  })
+  .nullish();
 
 const CellSchema = z.object({
   fixture_id: z.number().int(),
@@ -31,10 +43,15 @@ const CellSchema = z.object({
   result: z
     .object({ goals_for: z.number().int().min(0), goals_against: z.number().int().min(0), outcome: z.enum(["W", "D", "L"]) })
     .nullable(),
+  review: z
+    .object({
+      outcome_chance: probability,
+      points: z.number().int().min(0).max(3),
+      expected_points: z.number().min(0).max(3),
+      surprise: probability,
+    })
+    .nullish(),
   prediction: PredictionSchema.nullable(),
-  weather: z
-    .object({ temperature_c: z.number().nullable(), precipitation_mm: z.number().nullable(), wind_kmh: z.number().nullable() })
-    .nullable(),
   market: z
     .object({
       win: probability,
@@ -44,11 +61,14 @@ const CellSchema = z.object({
       scores_2plus: probability,
       clean_sheet: probability,
       concedes_2plus: probability,
+      both_score: probability,
       expected_points: z.number().min(0).max(3),
       bookmakers: z.number().int().min(0),
       fetched_at: isoDate,
     })
     .nullish(),
+  record: RecordSchema,
+  record_price: RecordSchema,
 });
 
 const LensScaleSchema = z.object({ cuts: z.array(z.number()).length(4), higher_is_easier: z.boolean() });
@@ -57,7 +77,14 @@ export const FixtureGridSchema = z.object({
   season: z.string(),
   current_matchday: z.number().int().nullable(),
   model_version: z.string().nullable(),
-  lens_scales: z.object({ overall: LensScaleSchema, attack: LensScaleSchema, defence: LensScaleSchema, odds: LensScaleSchema }),
+  lens_scales: z.object({
+    overall: LensScaleSchema,
+    attack: LensScaleSchema,
+    defence: LensScaleSchema,
+    odds: LensScaleSchema,
+    record: LensScaleSchema,
+    market_record: LensScaleSchema,
+  }),
   matchdays: z.array(z.object({ number: z.number().int(), date_from: isoDate, date_to: isoDate, finished: z.boolean() })),
   teams: z.array(
     z.object({
@@ -66,6 +93,7 @@ export const FixtureGridSchema = z.object({
       color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
       crest_url: z.string().startsWith("https://crests.football-data.org/").nullable(),
       cells: z.array(z.array(CellSchema)),
+      opening: z.array(z.number().int().min(1).max(30)).nullish(), // pre-season projected position per gameweek
     }),
   ),
 }) satisfies z.ZodType<FixtureGrid>;

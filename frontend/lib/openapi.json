@@ -252,6 +252,10 @@
             "type": "number",
             "title": "Concedes 2Plus"
           },
+          "both_score": {
+            "type": "number",
+            "title": "Both Score"
+          },
           "expected_points": {
             "type": "number",
             "title": "Expected Points"
@@ -275,6 +279,7 @@
           "scores_2plus",
           "clean_sheet",
           "concedes_2plus",
+          "both_score",
           "expected_points",
           "bookmakers",
           "fetched_at"
@@ -291,11 +296,11 @@
           "label": {
             "type": "string",
             "enum": [
-              "Easy",
-              "Easy-ish",
-              "Normal",
-              "Hard-ish",
-              "Hard"
+              "Very favourite",
+              "Favourite",
+              "Even",
+              "Underdog",
+              "Big underdog"
             ],
             "title": "Label"
           },
@@ -349,6 +354,17 @@
               }
             ],
             "title": "Xg Against"
+          },
+          "both_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Both Score"
           }
         },
         "type": "object",
@@ -363,6 +379,45 @@
           "xg_against"
         ],
         "title": "CellPrediction"
+      },
+      "CellRecord": {
+        "properties": {
+          "band": {
+            "type": "string",
+            "title": "Band"
+          },
+          "games": {
+            "type": "integer",
+            "title": "Games"
+          },
+          "wins": {
+            "type": "integer",
+            "title": "Wins"
+          },
+          "rate": {
+            "type": "number",
+            "title": "Rate"
+          },
+          "league": {
+            "type": "number",
+            "title": "League"
+          },
+          "edge": {
+            "type": "number",
+            "title": "Edge"
+          }
+        },
+        "type": "object",
+        "required": [
+          "band",
+          "games",
+          "wins",
+          "rate",
+          "league",
+          "edge"
+        ],
+        "title": "CellRecord",
+        "description": "How this club has done before at the price this fixture gives it.\n\nCounted from bookmaker closing odds over the last five seasons, because those are the only record of\nwhat a club *was* priced at. `edge` is the club's rate minus the league's at the same price, shrunk\ntoward 0 by sample size - what it adds to its billing, rather than the billing itself."
       },
       "CellResult": {
         "properties": {
@@ -392,49 +447,34 @@
         ],
         "title": "CellResult"
       },
-      "CellWeather": {
+      "CellReview": {
         "properties": {
-          "temperature_c": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Temperature C"
+          "outcome_chance": {
+            "type": "number",
+            "title": "Outcome Chance"
           },
-          "precipitation_mm": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Precipitation Mm"
+          "points": {
+            "type": "integer",
+            "title": "Points"
           },
-          "wind_kmh": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Wind Kmh"
+          "expected_points": {
+            "type": "number",
+            "title": "Expected Points"
+          },
+          "surprise": {
+            "type": "number",
+            "title": "Surprise"
           }
         },
         "type": "object",
         "required": [
-          "temperature_c",
-          "precipitation_mm",
-          "wind_kmh"
+          "outcome_chance",
+          "points",
+          "expected_points",
+          "surprise"
         ],
-        "title": "CellWeather"
+        "title": "CellReview",
+        "description": "How the forecast did, once the game was played.\n\nThe forecast is the last one made before kickoff, whatever model version wrote it: the point is what the\nboard said at the time. `surprise` comes from services/postmortem.py."
       },
       "FixtureGrid": {
         "properties": {
@@ -544,6 +584,16 @@
               }
             ]
           },
+          "review": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CellReview"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "prediction": {
             "anyOf": [
               {
@@ -554,20 +604,30 @@
               }
             ]
           },
-          "weather": {
+          "market": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/CellWeather"
+                "$ref": "#/components/schemas/CellMarket"
               },
               {
                 "type": "null"
               }
             ]
           },
-          "market": {
+          "record": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/CellMarket"
+                "$ref": "#/components/schemas/CellRecord"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "record_price": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CellRecord"
               },
               {
                 "type": "null"
@@ -585,8 +645,7 @@
           "rescheduled",
           "status",
           "result",
-          "prediction",
-          "weather"
+          "prediction"
         ],
         "title": "GridCell"
       },
@@ -696,6 +755,20 @@
             },
             "type": "array",
             "title": "Cells"
+          },
+          "opening": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opening"
           }
         },
         "type": "object",
@@ -758,6 +831,12 @@
           },
           "odds": {
             "$ref": "#/components/schemas/LensScale"
+          },
+          "record": {
+            "$ref": "#/components/schemas/LensScale"
+          },
+          "market_record": {
+            "$ref": "#/components/schemas/LensScale"
           }
         },
         "type": "object",
@@ -765,7 +844,9 @@
           "overall",
           "attack",
           "defence",
-          "odds"
+          "odds",
+          "record",
+          "market_record"
         ],
         "title": "LensScales",
         "description": "One scale per lens (named fields rather than a dict, so clients get a typed object)."

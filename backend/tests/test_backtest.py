@@ -4,7 +4,7 @@ import pytest
 
 from app.backtest.calibration import band_table, clean_sheet_calibration, label_for, propose_thresholds, with_difficulty
 from app.backtest.data import normalize_season, promoted_teams
-from app.backtest.methods import Method, base_rates, closing_odds, dixon_coles, elo_fallback
+from app.backtest.methods import Method, base_rates, closing_odds, dixon_coles, elo_fallback, market_blend
 from app.backtest.metrics import accuracy, brier, log_loss, outcome_index, ranked_probability_score, summarize
 from app.backtest.walkforward import run_ranking, run_walkforward, season_cutoffs, team_perspective
 from app.modeling.dixon_coles import DixonColesConfig
@@ -69,12 +69,20 @@ RAW = pd.DataFrame(
         "FTAG": [2, 2, None],
         "HST": [5, 4, None],
         "AST": [3, 6, None],
+        "HR": [0, 1, None],
+        "AR": [1, 0, None],
         "PSCH": [2.1, np.nan, None],
         "PSCD": [3.2, np.nan, None],
         "PSCA": [3.6, np.nan, None],
         "AvgCH": [2.0, 2.5, None],
         "AvgCD": [3.1, 3.0, None],
         "AvgCA": [3.5, 2.9, None],
+        "PSH": [2.3, np.nan, None],
+        "PSD": [3.3, np.nan, None],
+        "PSA": [3.4, np.nan, None],
+        "B365H": [2.25, 2.6, None],
+        "B365D": [3.25, 3.1, None],
+        "B365A": [3.3, 2.8, None],
     }
 )
 
@@ -110,9 +118,21 @@ def test_odds_come_from_one_complete_valid_source():
     assert df.loc[1, ["odds_h", "odds_d", "odds_a"]].tolist() == [2.5, 3.0, 2.9]
 
 
+def test_pre_closing_odds_never_take_a_closing_price():
+    df = normalize_season(RAW, 2023)
+    assert df.loc[0, "odds_pre_h"] == 2.3  # Pinnacle, as published before the closing line
+    assert df.loc[1, "odds_pre_h"] == 2.6  # Pinnacle missing -> Bet365; the closing price (2.5) is not used
+    assert df.loc[1, ["odds_pre_d", "odds_pre_a"]].tolist() == [3.1, 2.8]
+
+
 def test_missing_optional_columns_become_nan():
     df = normalize_season(RAW[["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"]], 2023)
-    assert df[["hst", "ast", "odds_h"]].isna().all().all()
+    assert df[["hst", "ast", "hr", "ar", "odds_h", "odds_pre_h"]].isna().all().all()
+
+
+def test_red_cards_come_through():
+    df = normalize_season(RAW, 2023)
+    assert df["hr"].tolist() == [0, 1] and df["ar"].tolist() == [1, 0]
 
 
 def test_promoted_teams():
@@ -163,6 +183,38 @@ def test_all_methods_produce_valid_probabilities():
     assert set(preds["method"]) == {"dc", "Base rates", "Elo (current fallback)", "Closing odds (ceiling)"}
     assert np.allclose(preds[["p_h", "p_d", "p_a"]].sum(axis=1), 1.0)
     assert preds.loc[preds["method"] == "dc", ["cs_h", "cs_a"]].notna().all().all()
+
+
+def test_market_blend_only_touches_priced_matches_inside_the_horizon():
+    league = simulate_league(seasons=(2020, 2021), repeats=2)
+    # A lopsided price on every match: where it applies, the forecast must move toward it.
+    priced = league.assign(odds_pre_h=1.2, odds_pre_d=8.0, odds_pre_a=15.0)
+    priced.loc[priced.index[::2], "odds_pre_h"] = np.nan  # half the matches have no complete price
+    config = DixonColesConfig()
+    methods = [dixon_coles("plain", config), market_blend("blend", config, weight=0.5, horizon_weeks=1)]
+    preds = run_walkforward(priced, [2021], methods, horizon_weeks=4)
+    keys = ["cutoff", "date", "home", "away"]
+    pair = (
+        preds[preds["method"] == "plain"]
+        .merge(preds[preds["method"] == "blend"], on=keys, suffixes=("_plain", "_blend"))
+        .merge(priced[["date", "home", "away", "odds_pre_h"]], on=["date", "home", "away"])
+    )
+    assert np.allclose(pair[["p_h_blend", "p_d_blend", "p_a_blend"]].sum(axis=1), 1.0)
+    blended = pair["odds_pre_h"].notna() & (pair["horizon_plain"] == 1)
+    assert blended.any() and (~blended).any()
+    assert (pair.loc[blended, "p_h_blend"] > pair.loc[blended, "p_h_plain"]).all()
+    assert pair.loc[~blended, "p_h_blend"].to_numpy() == pytest.approx(pair.loc[~blended, "p_h_plain"].to_numpy())
+
+
+def test_market_blend_never_reads_the_closing_price():
+    league = simulate_league(seasons=(2020, 2021), repeats=2).assign(
+        odds_h=1.01, odds_d=100.0, odds_a=100.0, odds_pre_h=np.nan, odds_pre_d=np.nan, odds_pre_a=np.nan
+    )
+    config = DixonColesConfig()
+    methods = [dixon_coles("plain", config), market_blend("blend", config, weight=0.9)]
+    preds = run_walkforward(league, [2021], methods, horizon_weeks=2)
+    plain = preds[preds["method"] == "plain"]["p_h"].to_numpy()
+    assert preds[preds["method"] == "blend"]["p_h"].to_numpy() == pytest.approx(plain)
 
 
 def test_model_beats_base_rates_on_a_league_with_real_differences():
@@ -226,6 +278,6 @@ def test_band_table_and_clean_sheet_calibration():
     rows = with_difficulty(rows)
     table = band_table(rows, (33.3, 48.3, 61.7, 73.3)).set_index("label")
     assert table["fixtures"].sum() == 4
-    assert table.loc["Easy", "actual_ppg"] == 3
+    assert table.loc["Very favourite", "actual_ppg"] == 3
     calibration = clean_sheet_calibration(rows, bins=2)
     assert calibration["fixtures"].sum() == 4

@@ -15,7 +15,10 @@ from app.sources.football_data_co_uk import cached_path, fetch_season_csv
 
 logger = logging.getLogger(__name__)
 
-MATCH_COLUMNS = ["season_start", "date", "home", "away", "hg", "ag", "hst", "ast", "odds_h", "odds_d", "odds_a"]
+MATCH_COLUMNS = [
+    "season_start", "date", "home", "away", "hg", "ag", "hst", "ast", "hr", "ar",
+    "odds_h", "odds_d", "odds_a", "odds_pre_h", "odds_pre_d", "odds_pre_a",
+]  # fmt: skip
 REQUIRED = ["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"]
 # Closing odds: Pinnacle first, market average second. Pre-closing columns are a last resort.
 ODDS_PREFERENCE = [
@@ -24,12 +27,30 @@ ODDS_PREFERENCE = [
     ("PSH", "PSD", "PSA"),
     ("AvgH", "AvgD", "AvgA"),
 ]
+# Prices as published days before kickoff, never the closing line: what a forecast could have used.
+# The closing line is the backtest's ceiling and must stay out of any method that ships.
+PRE_ODDS_PREFERENCE = [
+    ("PSH", "PSD", "PSA"),
+    ("AvgH", "AvgD", "AvgA"),
+    ("B365H", "B365D", "B365A"),
+]
 
 
 def _numeric(df: pd.DataFrame, column: str) -> pd.Series:
     if column not in df.columns:
         return pd.Series(np.nan, index=df.index)
     return pd.to_numeric(df[column], errors="coerce")
+
+
+def _pick_odds(df: pd.DataFrame, preference: list[tuple[str, str, str]], columns: list[str]) -> pd.DataFrame:
+    """All three prices from the first source with a complete, valid set for the match, so the margin
+    is removed from one bookmaker's book rather than a mix."""
+    odds = pd.DataFrame(np.nan, index=df.index, columns=columns)
+    for group in preference:
+        candidate = pd.concat([_numeric(df, c) for c in group], axis=1).set_axis(columns, axis=1)
+        usable = candidate.notna().all(axis=1) & (candidate > 1).all(axis=1) & odds.isna().all(axis=1)
+        odds.loc[usable] = candidate.loc[usable]
+    return odds
 
 
 def normalize_season(raw: pd.DataFrame, season_start: int) -> pd.DataFrame:
@@ -47,16 +68,15 @@ def normalize_season(raw: pd.DataFrame, season_start: int) -> pd.DataFrame:
             "ag": pd.to_numeric(df["FTAG"], errors="raise").astype(int),
             "hst": _numeric(df, "HST"),
             "ast": _numeric(df, "AST"),
+            # Red cards: a match played with ten men isn't the match that was forecast, which the
+            # post-match review needs to know (app/services/postmortem.py).
+            "hr": _numeric(df, "HR"),
+            "ar": _numeric(df, "AR"),
         }
     )
-    # Take all three prices from the first source that has a complete, valid set for the match,
-    # so the margin is removed from one bookmaker's book rather than a mix.
-    odds = pd.DataFrame(np.nan, index=df.index, columns=["odds_h", "odds_d", "odds_a"])
-    for group in ODDS_PREFERENCE:
-        candidate = pd.concat([_numeric(df, c) for c in group], axis=1).set_axis(odds.columns, axis=1)
-        usable = candidate.notna().all(axis=1) & (candidate > 1).all(axis=1) & odds.isna().all(axis=1)
-        odds.loc[usable] = candidate.loc[usable]
-    out[["odds_h", "odds_d", "odds_a"]] = odds
+    out[["odds_h", "odds_d", "odds_a"]] = _pick_odds(df, ODDS_PREFERENCE, ["odds_h", "odds_d", "odds_a"])
+    pre_columns = ["odds_pre_h", "odds_pre_d", "odds_pre_a"]
+    out[pre_columns] = _pick_odds(df, PRE_ODDS_PREFERENCE, pre_columns)
 
     if (out["hg"] < 0).any() or (out["ag"] < 0).any():
         raise ValueError(f"season {season_start}: negative goals")

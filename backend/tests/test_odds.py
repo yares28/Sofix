@@ -20,7 +20,7 @@ from app.services.team_registry import by_odds_name, normalize_name
 from app.sources.the_odds_api import parse_event
 from tests import test_pipeline
 
-# The pipeline tests' database fixtures (a seeded season with fixtures, predictions and weather).
+# The pipeline tests' database fixtures (a seeded season with fixtures and predictions).
 db = test_pipeline.db
 seeded = test_pipeline.seeded
 
@@ -104,6 +104,10 @@ def test_goal_rates_reproduce_the_prices_and_give_team_markets():
     assert away_side.clean_sheet == pytest.approx(2.718281828**-1.8, abs=0.01)
     assert away_side.scores == pytest.approx(1 - 2.718281828**-0.9, abs=0.01)
     assert 0 < away_side.scores_2plus < away_side.scores and 0 < away_side.concedes_2plus < 1
+    # Both teams score reads the same from either side, and needs both of them to score.
+    home_side = team_market(line, home_rate, away_rate, "H")
+    assert away_side.both_score == pytest.approx(home_side.both_score)
+    assert away_side.both_score == pytest.approx(away_side.scores * (1 - away_side.clean_sheet), abs=1e-9)
 
 
 def test_heavy_favourites_fit_too():

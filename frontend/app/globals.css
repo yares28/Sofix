@@ -167,6 +167,11 @@ h1 { margin: 0; font-size: clamp(28px, 3.2vw, 38px); font-weight: 700; letter-sp
 
 /* Runs */
 .run-card { justify-content: space-between; gap: 14px; }
+/* The arrow that swaps a run card between its points view and its schedule-swing view. */
+.run-head-end { display: inline-flex; align-items: center; gap: 6px; }
+.run-switch { width: 26px; height: 26px; border: 0; border-radius: 8px; background: #ececf0; color: var(--ink-2); display: grid; place-items: center; cursor: pointer; }
+.run-switch:hover { background: #e2e2e8; color: var(--ink); }
+.run-switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .run-team { display: flex; align-items: center; gap: 14px; min-width: 0; }
 .run-team > div { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .run-name {
@@ -215,7 +220,7 @@ h1 { margin: 0; font-size: clamp(28px, 3.2vw, 38px); font-weight: 700; letter-sp
 .list-head .bento-controls { flex-wrap: nowrap; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .list-head .bento-controls::-webkit-scrollbar { display: none; }
 .list-head .segmented { flex: none; }
-.list-head .segmented button { padding: 7px 11px; } /* four horizons and four lenses fit beside the longest title */
+.list-head .segmented button { padding: 7px 11px; } /* four horizons and six lenses fit beside the longest title from 1460 px */
 .list-columns {
   height: 24px; font-size: var(--text-xs); font-weight: 600; color: var(--ink-2); border-bottom: 1px solid var(--line);
 }
@@ -225,6 +230,11 @@ h1 { margin: 0; font-size: clamp(28px, 3.2vw, 38px); font-weight: 700; letter-sp
 .table-row { grid-template-columns: 22px minmax(0, 1fr) auto 40px; }
 .list-rows .ladder-row.pinned .list-name { font-weight: 650; }
 .list-rows .ladder-row.pinned .list-rank { color: var(--accent); }
+/* Next horizon: the clubs that have already played, under a line, still showing what was expected of them. */
+.list-divider { display: flex; align-items: center; gap: 8px; height: 26px; font-size: var(--text-2xs); font-weight: 600; color: var(--ink-2); }
+.list-divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.ladder-row.played { color: var(--ink-2); }
+.ladder-row.played .list-num { font-weight: 500; }
 .list-rank { position: relative; font-size: var(--text-xs); font-weight: 600; color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; }
 .list-club { display: flex; align-items: center; gap: 10px; min-width: 0; color: inherit; text-decoration: none; border-radius: 8px; }
 .list-club:hover .list-name { text-decoration: underline; text-underline-offset: 3px; }
@@ -389,11 +399,15 @@ h1 { margin: 0; font-size: clamp(28px, 3.2vw, 38px); font-weight: 700; letter-sp
 .standings abbr { text-decoration: none; }
 .standings .num { text-align: right; width: 44px; }
 .standings .num.wide { width: 64px; }
+/* Shared column skeleton: Current and Predicted must line up, so nothing jumps when the toggle flips. */
+.standings .col-pos { width: 68px; }
+.standings .col-num { width: 48px; }
+.standings .col-last { width: 116px; }
 .standings .strong { font-weight: 700; }
 .standings tbody th.club { text-align: left; font-weight: 500; }
 .standings tbody tr:hover td, .standings tbody tr:hover th { background: #fafafc; }
 .standings .pos { position: relative; padding-left: 14px; font-weight: 600; white-space: nowrap; }
-.standings.predicted .pos { width: 72px; text-align: left; }
+.standings .pos { width: 68px; text-align: left; }
 .standings tr[class*="zone-"] .pos::before {
   content: ""; position: absolute; left: 0; top: 7px; bottom: 7px; width: 4px; border-radius: 2px; background: var(--zone);
 }
@@ -407,6 +421,8 @@ h1 { margin: 0; font-size: clamp(28px, 3.2vw, 38px); font-weight: 700; letter-sp
 .club-name { white-space: nowrap; font-weight: 600; }
 .form { display: inline-flex; gap: 3px; }
 .form-chip { width: 20px; height: 20px; border-radius: 5px; display: grid; place-items: center; font-size: var(--text-2xs); font-weight: 700; color: #fff; }
+/* Same box as a form chip, so a row is the same height in both modes. */
+.standings .chance { height: 20px; line-height: 20px; padding: 0 6px; }
 .form-chip.W { background: var(--win); }
 .form-chip.D { background: #6e6e73; }
 .form-chip.L { background: var(--loss); }
@@ -454,9 +470,9 @@ h1 { margin: 0; font-size: clamp(28px, 3.2vw, 38px); font-weight: 700; letter-sp
 .match-stats .stat-home { text-align: left; }
 .match-stats .stat-away { text-align: right; }
 .match-stats .better { font-weight: 700; }
+.match-stats .stat-single td { text-align: center; color: var(--ink-2); }
 .difficulty-chip { display: inline-block; padding: 1px 7px; border-radius: 6px; font-size: var(--text-2xs); font-weight: 600; white-space: nowrap; }
 .match-take { margin: 10px 0 0; font-size: var(--text-xs); line-height: 1.45; }
-.match-weather { margin-top: 6px; color: var(--ink-2); font-size: var(--text-xs); }
 
 .empty-state { padding: 48px; }
 .empty-state p { font-size: 16px; margin: 16px 0 0; }
@@ -603,7 +619,10 @@ tr.pinned .team-col::before {
 .f3 .venue { color: var(--fdr3-sub); }
 .f4 .venue { color: var(--fdr4-sub); }
 .f5 .venue { color: var(--fdr5-sub); }
-.cell.result { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink); }
+.cell.result { position: relative; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink); }
+/* Top right of a played tile: the chance the board gave the result before kickoff. */
+.cell-mark { position: absolute; top: 3px; right: 5px; font-size: var(--text-2xs); font-weight: 600; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.cell-mark.shock { color: var(--loss); }
 .cell.result .score { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .cell.result .score.W { color: var(--win); }
 .cell.result .score.D { color: var(--ink-2); }
@@ -667,6 +686,91 @@ thead th .tbc-mark { font-weight: 600; }
 .trend-chart .trend-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
 .trend-dot.expected { fill: var(--accent); }
 .trend-dot.actual { fill: var(--ink); }
+/* ---------- Position by gameweek (nivo line chart) ---------- */
+.progression { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 16px; }
+.progression-head { display: flex; align-items: center; justify-content: space-between; gap: 10px 12px; flex-wrap: wrap; }
+.progression-head h3 { margin: 0; font-size: var(--text-md); font-weight: 650; }
+.progression-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.progression-focus { margin: 12px 0 0; font-size: var(--text-sm); color: var(--ink-2); }
+.progression-focus b { color: var(--ink); font-weight: 650; }
+
+/* One fixed frame whatever is being shown, so switching preset or club never moves the page. `overflow-x:
+   auto` alone would make the vertical axis `auto` too and show a scrollbar for the few pixels of margin. */
+.progression-frame { position: relative; margin-top: 8px; }
+.progression .chart-scroll { overflow: auto hidden; }
+.progression-chart { height: 560px; min-width: 620px; }
+.progression-chart svg { display: block; } /* an inline SVG leaves a baseline gap, which the scroller would show */
+
+/* Popovers: the club picker under its button, the chart options above the (i) button. */
+.popover-anchor { position: relative; }
+.popover {
+  position: absolute; z-index: 20; background: var(--surface); border-radius: 14px; padding: 8px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.06), 0 12px 32px rgba(0,0,0,.14);
+}
+.picker-button {
+  display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 0; border-radius: 12px;
+  background: #ececf0; color: var(--ink); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+}
+.picker-button:hover { background: #e2e2e8; }
+.picker-button.active { background: var(--ink); color: #fff; }
+.picker-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.picker-button .caret { display: inline-grid; transform: rotate(90deg); opacity: .7; }
+.club-picker-panel { top: calc(100% + 6px); width: min(260px, calc(100vw - 32px)); }
+.club-picker-panel.left { left: 0; }
+.club-picker-panel.right { right: 0; }
+.club-picker-panel ul { list-style: none; margin: 0; padding: 0; max-height: 360px; overflow-y: auto; }
+.popover-actions { display: flex; gap: 6px; padding: 2px 4px 8px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.popover-actions button {
+  border: 0; background: transparent; color: var(--accent); font: inherit; font-size: var(--text-xs); font-weight: 600;
+  padding: 4px 6px; border-radius: 6px; cursor: pointer;
+}
+.popover-actions button:hover { background: #eef5fe; }
+.picker-row {
+  display: grid; grid-template-columns: 16px 16px minmax(0, 1fr) auto; align-items: center; gap: 8px;
+  padding: 6px 6px; border-radius: 8px; font-size: var(--text-sm); cursor: pointer;
+}
+.picker-row:hover { background: #f5f5f7; }
+.picker-row input { margin: 0; accent-color: var(--ink); }
+.picker-row img { border-radius: 3px; }
+.picker-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker-pos { font-size: var(--text-2xs); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.chip-dot { width: 14px; height: 14px; border-radius: 50%; }
+
+/* The (i) button sits in the chart's empty bottom-right corner, outside the scroller so a phone still sees it. */
+.chart-options { position: absolute; right: 10px; bottom: 6px; }
+.info-button {
+  width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink-2); font: inherit; font-size: 13px; font-weight: 700; font-style: italic; font-family: Georgia, serif;
+  display: grid; place-items: center; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+.info-button:hover, .info-button[aria-expanded="true"] { color: var(--ink); border-color: #cfcfd6; }
+.info-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chart-options-panel { right: 0; bottom: calc(100% + 8px); width: 280px; padding: 10px; }
+.option-row { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 10px; padding: 6px 4px; font-size: var(--text-sm); cursor: pointer; }
+.option-row input { margin: 2px 0 0; accent-color: var(--ink); }
+.option-row small { display: block; font-size: var(--text-2xs); color: var(--ink-2); margin-top: 1px; }
+.option-swatches { display: inline-flex; gap: 3px; margin-left: 6px; vertical-align: middle; }
+.option-swatches i { width: 8px; height: 8px; border-radius: 2px; }
+.option-key {
+  display: grid; gap: 6px; margin-top: 6px; padding: 10px 4px 2px; border-top: 1px solid var(--line);
+  font-size: var(--text-2xs); color: var(--ink-2);
+}
+.option-key span { display: inline-flex; align-items: center; gap: 8px; }
+.key-line { width: 22px; height: 0; border-top: 2px solid var(--ink-2); }
+.key-line.dashed { border-top-style: dashed; }
+.key-line.dotted { border-top-style: dotted; }
+.key-band { width: 22px; height: 8px; border-radius: 2px; background: var(--ink-2); opacity: .2; }
+/* nivo renders its own tooltip wrapper, so this one is positioned by the library, not by .tip. */
+.progression-tip {
+  background: rgba(29,29,31,.94); color: #fff; border-radius: 12px; padding: 9px 11px; font-size: var(--text-2xs);
+  line-height: 1.5; box-shadow: 0 10px 30px rgba(0,0,0,.25); min-width: 190px;
+}
+.progression-tip .tip-title { font-size: var(--text-xs); margin-bottom: 4px; }
+.progression-tip .muted { color: rgba(255,255,255,.62); }
+.progression-row { display: grid; grid-template-columns: 16px 8px minmax(0, 1fr) auto; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+.progression-pos { text-align: right; color: rgba(255,255,255,.62); }
+.progression-dot { width: 8px; height: 8px; border-radius: 50%; }
+.progression-club { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chart-legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; font-size: 12px; color: var(--ink); }
 .chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .chart-legend i.trend-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--ink); }
@@ -689,6 +793,9 @@ thead th .tbc-mark { font-weight: 600; }
 .tip .muted { color: rgba(255,255,255,.62); }
 .tip-title { font-size: 13px; margin-bottom: 4px; }
 .tip-row { font-variant-numeric: tabular-nums; }
+/* The record sentence leads; its counts and band sit under it, smaller. */
+.tip-record { margin-top: 3px; }
+.tip-note { font-size: var(--text-2xs); }
 
 @media (max-width: 760px) {
   .match-list { grid-template-columns: 1fr; }
@@ -701,6 +808,12 @@ thead th .tbc-mark { font-weight: 600; }
   .bento-runs { grid-column: 1 / -1; flex-direction: row; }
   .ladder-card, .table-card { grid-column: 1 / -1; }
   .list-head { height: auto; min-height: 36px; flex-wrap: wrap; }
+}
+
+/* Between 1200 and 1460 px the two-thirds ranking card can't fit six lenses and four horizons beside its title, so the
+   header takes two lines. The table card's header grows with it (same class), which keeps the rows lined up. */
+@media (min-width: 1201px) and (max-width: 1459px) {
+  .list-head { height: 76px; flex-wrap: wrap; align-content: center; row-gap: 4px; }
 }
 
 @media (max-width: 960px) {

@@ -117,7 +117,8 @@ export interface PredictedRow {
   team: GridTeam;
   position: number;
   currentPosition: number;
-  points: number; // now
+  played: number; // games already played at this point
+  points: number; // won so far
   remaining: number; // games still to play that have a forecast
   expectedToCome: number; // expected points from those games
   projectedPoints: number;
@@ -131,6 +132,8 @@ export interface PredictOptions {
   simulations?: number;
   seed?: number;
   relegated?: number;
+  /** Project only as far as this gameweek column; omitted = the whole season. */
+  through?: number;
 }
 
 /** Small, fast, seeded generator: the same data always gives the same percentages. */
@@ -146,13 +149,16 @@ export function mulberry32(seed: number): () => number {
 }
 
 /**
- * The predicted final table: points so far plus expected points from every remaining fixture, and the
- * chances of each finish from simulating the rest of the season with the model's win/draw/loss
- * probabilities (ties in a simulation are split by projected goal difference).
+ * The predicted table: points so far plus expected points from every fixture still to play, and the
+ * chances of each finish from simulating those games with the model's win/draw/loss probabilities
+ * (ties in a simulation are split by projected goal difference).
+ *
+ * With `through` it stops at a gameweek instead of the end of the season, which is how the Table tab
+ * walks the projection forward one gameweek at a time.
  */
 export function predictedTable(grid: FixtureGrid, options: PredictOptions = {}): PredictedRow[] {
-  const { simulations = 5000, seed = 2026, relegated = 3 } = options;
-  const current = currentTable(grid);
+  const { simulations = 5000, seed = 2026, relegated = 3, through } = options;
+  const current = currentTable(grid, through);
   const index = new Map(current.map((row, i) => [row.team.code, i]));
   const expected = current.map(() => 0);
   const remaining = current.map(() => 0);
@@ -161,16 +167,19 @@ export function predictedTable(grid: FixtureGrid, options: PredictOptions = {}):
   // One entry per remaining fixture, from the home side (whose probabilities are the home team's).
   const fixtures: { home: number; away: number; win: number; draw: number }[] = [];
   for (const team of grid.teams) {
-    for (const cell of team.cells.flat()) {
-      const p = cell.prediction;
-      if (cell.status === "finished" || !p) continue;
-      const i = index.get(team.code)!;
-      expected[i]! += p.expected_points;
-      remaining[i]! += 1;
-      goalDiff[i]! += (p.xg_for ?? 0) - (p.xg_against ?? 0);
-      const opponent = index.get(cell.opponent_code);
-      if (cell.venue === "H" && opponent !== undefined) {
-        fixtures.push({ home: i, away: opponent, win: p.probabilities.win, draw: p.probabilities.draw });
+    for (const [gameweek, column] of team.cells.entries()) {
+      if (through !== undefined && gameweek > through) break;
+      for (const cell of column) {
+        const p = cell.prediction;
+        if (cell.status === "finished" || !p) continue;
+        const i = index.get(team.code)!;
+        expected[i]! += p.expected_points;
+        remaining[i]! += 1;
+        goalDiff[i]! += (p.xg_for ?? 0) - (p.xg_against ?? 0);
+        const opponent = index.get(cell.opponent_code);
+        if (cell.venue === "H" && opponent !== undefined) {
+          fixtures.push({ home: i, away: opponent, win: p.probabilities.win, draw: p.probabilities.draw });
+        }
       }
     }
   }
@@ -202,6 +211,7 @@ export function predictedTable(grid: FixtureGrid, options: PredictOptions = {}):
     .map((row, i): Omit<PredictedRow, "position"> => ({
       team: row.team,
       currentPosition: row.position,
+      played: row.played,
       points: row.points,
       remaining: remaining[i]!,
       expectedToCome: expected[i]!,

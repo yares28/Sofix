@@ -261,7 +261,7 @@ def test_failed_predict_keeps_the_previous_predictions(session_factory):
                 p_loss=0.3,
                 expected_points=1.5,
                 difficulty_score=50.0,
-                difficulty_label="Normal",
+                difficulty_label="Even",
             )
         )
     db.commit()

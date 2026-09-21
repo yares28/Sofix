@@ -8,9 +8,12 @@ import numpy as np
 import pandas as pd
 
 from app.services.scoring import LABEL_THRESHOLDS, difficulty_score
+from app.services.scoring import LABELS as PRODUCTION_LABELS
 
-LABELS = ["Easy", "Easy-ish", "Normal", "Hard-ish", "Hard"]
-CURRENT_THRESHOLDS = LABEL_THRESHOLDS  # upper bounds of the first four labels in production
+LABELS = list(PRODUCTION_LABELS)
+# Production splits the top cut by venue; the research tables study one scale at a time, so they take the
+# home one (app/services/scoring.py explains why).
+CURRENT_THRESHOLDS = LABEL_THRESHOLDS
 
 
 def with_difficulty(team_rows: pd.DataFrame) -> pd.DataFrame:

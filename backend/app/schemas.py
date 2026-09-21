@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 T = TypeVar("T")
 
-DifficultyLabel = Literal["Easy", "Easy-ish", "Normal", "Hard-ish", "Hard"]
+DifficultyLabel = Literal["Very favourite", "Favourite", "Even", "Underdog", "Big underdog"]
 Outcome = Literal["W", "D", "L"]
 Venue = Literal["H", "A"]
 CellStatus = Literal["scheduled", "live", "finished", "postponed"]
@@ -46,6 +46,23 @@ class CellPrediction(BaseModel):
     clean_sheet: float | None
     xg_for: float | None
     xg_against: float | None
+    both_score: float | None = None  # both teams score, from the score matrix
+
+
+class CellRecord(BaseModel):
+    """How this club has done before at the price this fixture gives it.
+
+    Counted from bookmaker closing odds over the last five seasons, because those are the only record of
+    what a club *was* priced at. `edge` is the club's rate minus the league's at the same price, shrunk
+    toward 0 by sample size - what it adds to its billing, rather than the billing itself.
+    """
+
+    band: str  # "35-50%"
+    games: int
+    wins: int
+    rate: float  # the club's own win rate in the band
+    league: float  # every club together, at the same price
+    edge: float
 
 
 class CellResult(BaseModel):
@@ -54,10 +71,17 @@ class CellResult(BaseModel):
     outcome: Outcome
 
 
-class CellWeather(BaseModel):
-    temperature_c: float | None
-    precipitation_mm: float | None
-    wind_kmh: float | None
+class CellReview(BaseModel):
+    """How the forecast did, once the game was played.
+
+    The forecast is the last one made before kickoff, whatever model version wrote it: the point is what the
+    board said at the time. `surprise` comes from services/postmortem.py.
+    """
+
+    outcome_chance: float  # the chance the forecast gave the result that happened
+    points: int  # points actually won
+    expected_points: float  # what the forecast expected
+    surprise: float  # 1 = an ordinary result; 0.05 = one the forecast made a one-in-twenty shot
 
 
 class CellMarket(BaseModel):
@@ -71,6 +95,7 @@ class CellMarket(BaseModel):
     scores_2plus: float
     clean_sheet: float
     concedes_2plus: float
+    both_score: float
     expected_points: float  # 3 × win + draw from the fair prices ("market points")
     bookmakers: int
     fetched_at: datetime
@@ -85,9 +110,12 @@ class GridCell(BaseModel):
     rescheduled: bool
     status: CellStatus
     result: CellResult | None
+    review: CellReview | None = None  # played games only: how that forecast did
     prediction: CellPrediction | None
-    weather: CellWeather | None
     market: CellMarket | None = None
+    # Banded by the win chance this board shows; and by the bookmakers' price where there is one.
+    record: CellRecord | None = None
+    record_price: CellRecord | None = None
 
 
 class GridTeam(BaseModel):
@@ -96,6 +124,9 @@ class GridTeam(BaseModel):
     color: str
     crest_url: str | None  # always https://crests.football-data.org/…, or null
     cells: list[list[GridCell]]
+    # Where the pre-season model had this club after each gameweek, one entry per matchday column
+    # (services/opening_projection.py). Null when the committed projection is missing or from another season.
+    opening: list[int] | None = None
 
 
 class GridMatchday(BaseModel):
@@ -123,6 +154,8 @@ class LensScales(BaseModel):
     attack: LensScale
     defence: LensScale
     odds: LensScale  # bookmakers' win chance; only games with a market are rated
+    record: LensScale  # how far the club beats the price we give it; every fixture
+    market_record: LensScale  # the same, banded by the bookmakers' price; priced games only
 
 
 RunStatus = Literal["running", "succeeded", "failed", "abandoned"]

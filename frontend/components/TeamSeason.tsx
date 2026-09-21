@@ -152,7 +152,9 @@ function TrendChart({ points }: { points: TrendPoint[] }) {
   const summary = `${points.filter((p) => p.kind === "actual").length} played games and ${expected.length} expected.`;
 
   return (
-    <div className="chart-scroll">
+    /* A region that scrolls must be reachable by keyboard (axe scrollable-region-focusable). */
+    /* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */
+    <div className="chart-scroll" tabIndex={0} role="group" aria-label="Points chart, scrolls sideways">
       <svg viewBox={`0 0 ${CHART.width} ${CHART.height}`} className="trend-chart" role="img" aria-label={`Points per game this season. ${summary}`}>
         {[0, 1, 2, 3].map((tick) => (
           <g key={tick}>

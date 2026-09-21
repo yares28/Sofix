@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -82,6 +84,13 @@ def test_outcome_table_is_consistent():
     # clean sheet for home = away scores nothing = Poisson(0; 0.5)
     assert table["cs_h"].iloc[0] == pytest.approx(np.exp(-0.5), abs=1e-6)
     assert table["cs_a"].iloc[1] == pytest.approx(np.exp(-0.5), abs=1e-6)
+    # Both teams score = 1 - neither side blanks + the goalless games counted twice.
+    both = 1 - table["cs_h"] - table["cs_a"] + table["p_00"]
+    assert (both > 0).all() and (both < 1).all()
+    independent = (1 - np.exp(-2.5)) * (1 - np.exp(-0.5))
+    assert both.iloc[0] == pytest.approx(
+        independent, abs=1e-4
+    )  # rho = 0: the two sides are independent (bar the 10-goal truncation)
 
 
 def test_recovers_known_ratings(league):
@@ -139,6 +148,29 @@ def test_time_decay_tracks_a_change_in_form(league):
         shifted, cutoff, config=DixonColesConfig(xi=0.01, goals_weight=1.0, ridge=0.5, window_days=5000)
     )
     assert decayed.ratings().set_index("team").loc["Weak", "attack"] > static.loc["Weak", "attack"]
+
+
+def test_spread_widens_ratings_without_changing_expected_goals(league):
+    cutoff = league["date"].max() + pd.Timedelta(days=1)
+    plain = fit_dixon_coles(league, cutoff, config=GOALS_ONLY)
+    wide = fit_dixon_coles(league, cutoff, config=replace(GOALS_ONLY, spread=1.2))
+    gap = lambda model: model.attack.max() - model.attack.min()
+    assert gap(wide) == pytest.approx(1.2 * gap(plain), rel=1e-6)
+    assert wide.ratings()["overall"].tolist() == pytest.approx(
+        sorted(wide.ratings()["overall"], reverse=True)
+    )  # order kept
+    # The league still expects the same number of goals: mu absorbs the stretch.
+    fixtures = league[["home", "away"]].drop_duplicates()
+    goals = lambda model: sum(sum(rates) for rates in [model.expected_goals(fixtures["home"], fixtures["away"])])
+    assert goals(wide).sum() == pytest.approx(goals(plain).sum(), rel=0.02)
+
+
+def test_spread_of_one_changes_nothing(league):
+    cutoff = pd.Timestamp("2022-06-01")
+    plain = fit_dixon_coles(league, cutoff, config=GOALS_ONLY)
+    same = fit_dixon_coles(league, cutoff, config=replace(GOALS_ONLY, spread=1.0))
+    assert np.allclose(plain.attack, same.attack) and np.allclose(plain.defence, same.defence)
+    assert (plain.mu, plain.rho) == pytest.approx((same.mu, same.rho))
 
 
 def test_blended_targets_mix_goals_and_shots():

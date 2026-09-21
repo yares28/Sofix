@@ -114,6 +114,8 @@ export interface components {
             clean_sheet: number;
             /** Concedes 2Plus */
             concedes_2plus: number;
+            /** Both Score */
+            both_score: number;
             /** Expected Points */
             expected_points: number;
             /** Bookmakers */
@@ -132,7 +134,7 @@ export interface components {
              * Label
              * @enum {string}
              */
-            label: "Easy" | "Easy-ish" | "Normal" | "Hard-ish" | "Hard";
+            label: "Very favourite" | "Favourite" | "Even" | "Underdog" | "Big underdog";
             /**
              * Bucket
              * @enum {integer}
@@ -147,6 +149,30 @@ export interface components {
             xg_for: number | null;
             /** Xg Against */
             xg_against: number | null;
+            /** Both Score */
+            both_score?: number | null;
+        };
+        /**
+         * CellRecord
+         * @description How this club has done before at the price this fixture gives it.
+         *
+         *     Counted from bookmaker closing odds over the last five seasons, because those are the only record of
+         *     what a club *was* priced at. `edge` is the club's rate minus the league's at the same price, shrunk
+         *     toward 0 by sample size - what it adds to its billing, rather than the billing itself.
+         */
+        CellRecord: {
+            /** Band */
+            band: string;
+            /** Games */
+            games: number;
+            /** Wins */
+            wins: number;
+            /** Rate */
+            rate: number;
+            /** League */
+            league: number;
+            /** Edge */
+            edge: number;
         };
         /** CellResult */
         CellResult: {
@@ -160,14 +186,22 @@ export interface components {
              */
             outcome: "W" | "D" | "L";
         };
-        /** CellWeather */
-        CellWeather: {
-            /** Temperature C */
-            temperature_c: number | null;
-            /** Precipitation Mm */
-            precipitation_mm: number | null;
-            /** Wind Kmh */
-            wind_kmh: number | null;
+        /**
+         * CellReview
+         * @description How the forecast did, once the game was played.
+         *
+         *     The forecast is the last one made before kickoff, whatever model version wrote it: the point is what the
+         *     board said at the time. `surprise` comes from services/postmortem.py.
+         */
+        CellReview: {
+            /** Outcome Chance */
+            outcome_chance: number;
+            /** Points */
+            points: number;
+            /** Expected Points */
+            expected_points: number;
+            /** Surprise */
+            surprise: number;
         };
         /** FixtureGrid */
         FixtureGrid: {
@@ -209,9 +243,11 @@ export interface components {
              */
             status: "scheduled" | "live" | "finished" | "postponed";
             result: components["schemas"]["CellResult"] | null;
+            review?: components["schemas"]["CellReview"] | null;
             prediction: components["schemas"]["CellPrediction"] | null;
-            weather: components["schemas"]["CellWeather"] | null;
             market?: components["schemas"]["CellMarket"] | null;
+            record?: components["schemas"]["CellRecord"] | null;
+            record_price?: components["schemas"]["CellRecord"] | null;
         };
         /** GridMatchday */
         GridMatchday: {
@@ -254,6 +290,8 @@ export interface components {
             crest_url: string | null;
             /** Cells */
             cells: components["schemas"]["GridCell"][][];
+            /** Opening */
+            opening?: number[] | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -282,6 +320,8 @@ export interface components {
             attack: components["schemas"]["LensScale"];
             defence: components["schemas"]["LensScale"];
             odds: components["schemas"]["LensScale"];
+            record: components["schemas"]["LensScale"];
+            market_record: components["schemas"]["LensScale"];
         };
         /** ModelNote */
         ModelNote: {

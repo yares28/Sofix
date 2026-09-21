@@ -11,10 +11,9 @@ import app.models  # noqa: F401  (register tables)
 from app.db import Base, get_db
 from app.jobs.predict import replace_predictions, upcoming_fixtures
 from app.jobs.seed_and_sync import clean_status, get_or_create_comp, resolve_team, sync, upsert_fixture
-from app.jobs.sync_weather import forecastable
 from app.main import app as fastapi_app
 from app.modeling.dixon_coles import DixonColesConfig, fit_dixon_coles
-from app.models import Fixture, Prediction, WeatherSnapshot
+from app.models import Fixture, Prediction
 from app.services.fixture_grid import (
     build_fixture_grid,
     date_confirmed,
@@ -25,7 +24,6 @@ from app.services.fixture_grid import (
 from app.services.rating_predictions import load_config, merge_recent_results, predict_both_sides
 from app.services.scoring import LABEL_THRESHOLDS, label_bucket
 from app.services.team_registry import TEAMS, by_code, by_history_name, require_code
-from app.sources.open_meteo import at_kickoff
 from tests.conftest import simulate_league
 
 # ---------------------------------------------------------------- registry
@@ -89,29 +87,9 @@ def test_predict_both_sides_mirrors_the_match():
     assert home.p_win == pytest.approx(away.p_loss)
     assert home.xg_for == pytest.approx(away.xg_against)
     assert home.difficulty_score < away.difficulty_score
-    assert home.difficulty_label in {"Easy", "Easy-ish"} and away.difficulty_label in {"Hard-ish", "Hard"}
+    assert home.difficulty_label in {"Very favourite", "Favourite"}
+    assert away.difficulty_label in {"Underdog", "Big underdog"}
     assert home.explanation["venue"] == "H" and "opponent_attack" in away.explanation
-
-
-# ---------------------------------------------------------------- weather
-
-
-def test_at_kickoff_picks_nearest_hour_and_handles_naive_datetimes():
-    data = {
-        "hourly": {
-            "time": ["2026-09-16T18:00", "2026-09-16T19:00", "2026-09-16T20:00"],
-            "temperature_2m": [22, 21, 20],
-            "apparent_temperature": [22, 21, 20],
-            "relative_humidity_2m": [50, 55, 60],
-            "precipitation": [0, 0.4, 1.2],
-            "wind_speed_10m": [8, 9, 10],
-        }
-    }
-    now = datetime(2026, 9, 14, tzinfo=UTC)
-    row = at_kickoff(data, datetime(2026, 9, 16, 19, 45), now)  # naive, as SQLite returns it
-    assert row["temperature_c"] == 20 and row["forecast_lead_hours"] == pytest.approx(67.75)  # 20:00 is nearest
-    assert at_kickoff(data, datetime(2026, 9, 16, 19, 10), now)["temperature_c"] == 21
-    assert at_kickoff(data, datetime(2026, 9, 30, 19, tzinfo=UTC), now) is None
 
 
 # ---------------------------------------------------------------- grid + API
@@ -172,22 +150,33 @@ def seeded(db):
                 p_loss=0.8 - p_win,
                 expected_points=3 * p_win + 0.2,
                 difficulty_score=40.0,
-                difficulty_label="Easy-ish",
+                difficulty_label="Favourite",
                 p_clean_sheet=0.3,
                 xg_for=1.7,
                 xg_against=0.9,
             )
         )
-    db.add(
-        WeatherSnapshot(
-            fixture_id=fx.id,
-            snapshot_ts=datetime.now(UTC),
-            available_at=datetime.now(UTC),
-            temperature_c=24.0,
-            precipitation_mm=0.0,
-            wind_speed_kmh=7.0,
+    # The forecast that was on the board before a game that has since been played, written by an older
+    # model version: it must survive a re-fit, because it is what the board said at the time.
+    played = db.query(Fixture).filter_by(source_fixture_id="1").one()
+    for team_id, p_win in ((played.home_team_id, 0.55), (played.away_team_id, 0.2)):
+        db.add(
+            Prediction(
+                fixture_id=played.id,
+                perspective_team_id=team_id,
+                prediction_ts=datetime(2026, 8, 15, tzinfo=UTC),
+                model_version="dixon-coles-v0",
+                p_win=p_win,
+                p_draw=0.25,
+                p_loss=0.75 - p_win,
+                expected_points=3 * p_win + 0.25,
+                difficulty_score=40.0,
+                difficulty_label="Favourite",
+                p_clean_sheet=0.3,
+                xg_for=1.6,
+                xg_against=1.0,
+            )
         )
-    )
     db.commit()
     return db
 
@@ -209,12 +198,13 @@ def test_grid_shape_results_predictions_and_badges(seeded):
     assert set(teams) == {"FCB", "RMA", "SEV", "BET", "ATL", "VAL"}
 
     barca_md1 = teams["FCB"].cells[0][0]
-    assert barca_md1.status == "finished" and barca_md1.result.outcome == "W" and barca_md1.prediction is None
+    assert barca_md1.status == "finished" and barca_md1.result.outcome == "W"
+    assert barca_md1.prediction.probabilities.win == 0.55  # the forecast it carried before kickoff
     madrid_md1 = teams["RMA"].cells[0][0]
     assert madrid_md1.result.outcome == "L" and madrid_md1.venue == "A"
 
     madrid_md2 = teams["RMA"].cells[1][0]
-    assert madrid_md2.prediction.probabilities.win == 0.6 and madrid_md2.weather.temperature_c == 24.0
+    assert madrid_md2.prediction.probabilities.win == 0.6
     assert madrid_md2.kickoff_utc.tzinfo is not None
     assert teams["FCB"].cells[1][0].date_confirmed is False  # SCHEDULED = kickoff not set yet
     assert teams["ATL"].cells[0][0].rescheduled is True
@@ -222,14 +212,14 @@ def test_grid_shape_results_predictions_and_badges(seeded):
 
 
 def test_bucket_always_matches_label_even_on_rounding_boundaries(seeded):
-    # 48.64 rounds to 48.6 (<= Easy-ish threshold) but its label is "Normal": the bucket must follow the label.
+    # 48.64 rounds to 48.6 (<= the Favourite cut) but its label is "Even": the bucket must follow the label.
     fx = seeded.query(Fixture).filter_by(source_fixture_id="3").one()
     pred = seeded.query(Prediction).filter_by(fixture_id=fx.id, perspective_team_id=fx.home_team_id).one()
-    pred.difficulty_score, pred.difficulty_label = 48.64, "Normal"
+    pred.difficulty_score, pred.difficulty_label = 48.64, "Even"
     seeded.commit()
     grid = build_fixture_grid(seeded)
     cell = next(t for t in grid.teams if t.code == "RMA").cells[1][0]
-    assert cell.prediction.difficulty == 48.6 and cell.prediction.label == "Normal" and cell.prediction.bucket == 3
+    assert cell.prediction.difficulty == 48.6 and cell.prediction.label == "Even" and cell.prediction.bucket == 3
     for team in grid.teams:
         for column in team.cells:
             for c in column:
@@ -261,7 +251,30 @@ def test_postponed_games_lose_their_forecast(seeded):
     seeded.commit()
     madrid = next(t for t in build_fixture_grid(seeded).teams if t.code == "RMA")
     cell = madrid.cells[1][0]
-    assert cell.status == "postponed" and cell.prediction is None and cell.weather is None
+    assert cell.status == "postponed" and cell.prediction is None
+
+
+def test_played_games_keep_the_forecast_made_before_kickoff(seeded):
+    grid = build_fixture_grid(seeded)
+    teams = {team.code: team for team in grid.teams}
+    barca = teams["FCB"].cells[0][0]
+    # Written under "dixon-coles-v0" while the live version is v1: a re-fit must not erase it.
+    assert grid.model_version == "dixon-coles-v1"
+    assert barca.prediction.label == "Favourite" and barca.prediction.xg_for == 1.6
+    assert barca.review.outcome_chance == 0.55 and barca.review.points == 3
+    assert barca.review.expected_points == 1.9
+    assert barca.review.surprise == 1.0  # the most likely result is never a surprise
+    madrid = teams["RMA"].cells[0][0]
+    assert madrid.review.points == 0 and madrid.review.outcome_chance == 0.55  # it was the favoured loss
+    # A game with no forecast row, and an upcoming game, are both unreviewed.
+    assert teams["SEV"].cells[0][0].review is None
+    assert teams["RMA"].cells[1][0].review is None
+
+
+def test_played_games_do_not_move_the_lens_cut_points(seeded):
+    scales = build_fixture_grid(seeded).lens_scales
+    # The played FCB-RMA forecast (xG 1.6) exists, but only upcoming games set the cuts (xG 1.7 / 0.9).
+    assert 1.6 not in scales.attack.cuts
 
 
 def test_grid_reads_only_the_latest_model_version(seeded):
@@ -277,7 +290,7 @@ def test_grid_reads_only_the_latest_model_version(seeded):
             p_loss=0.8,
             expected_points=0.4,
             difficulty_score=90.0,
-            difficulty_label="Hard",
+            difficulty_label="Big underdog",
         )
     )
     seeded.commit()
@@ -330,13 +343,6 @@ def test_upcoming_fixtures_compares_in_utc(seeded):
     seeded.commit()
     upcoming = upcoming_fixtures(_reopen(seeded), "2026/27", now)
     assert [fx.source_fixture_id for fx in upcoming] == ["3", "5"]
-
-
-def test_weather_only_for_confirmed_kickoffs_inside_horizon(seeded):
-    now = datetime(2026, 9, 14, tzinfo=UTC)
-    grouped = forecastable(seeded.query(Fixture).all(), now)
-    ids = sorted(fx.source_fixture_id for fxs in grouped.values() for fx in fxs)
-    assert ids == ["3"]  # 4 is SCHEDULED (time TBC), 5 is beyond 14 days, 1–2 are finished
 
 
 def test_status_helpers_and_matchday_window():

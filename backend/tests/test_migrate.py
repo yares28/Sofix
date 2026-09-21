@@ -50,7 +50,6 @@ def test_upgrade_to_head_builds_the_schema(tmp_path):
         "teams",
         "source_entity_map",
         "fixtures",
-        "weather_snapshots",
         "predictions",
         "refresh_runs",
         "market_odds",
@@ -69,7 +68,7 @@ def test_models_and_migrations_do_not_drift(tmp_path):
     assert diff == []
 
 
-def test_fixture_and_weather_uniqueness_is_enforced(tmp_path):
+def test_fixture_uniqueness_is_enforced(tmp_path):
     url = f"sqlite:///{(tmp_path / 'unique.db').as_posix()}"
     upgrade_to_head(url)
     engine = create_engine(url)

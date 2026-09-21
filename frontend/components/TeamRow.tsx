@@ -73,7 +73,7 @@ function TeamRow({
           <span className="avg-empty">—</span>
         ) : (
           <div className="avg">
-            <span className="avg-num">{formatTotal(stats.total)}</span>
+            <span className="avg-num">{formatTotal(stats.total, lens)}</span>
             <div className="bar">
               <span
                 style={{

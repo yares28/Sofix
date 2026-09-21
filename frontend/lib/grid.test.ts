@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
-  DEFAULT_VIEW, cellBucket, horizonSize, cellLabel, columnTotal, formatDay, formatKickoff, formatLensValue, formatShortKickoff,
-  PRICE_OPTIONS, decimalOdds, kindestAndToughest, marketLabels, marketLines, openingColumn, overviewWindow, parseViewState, positionPicks, selectedColumn, windowLabel, relativeTime, runStats, scaleBucket, serializeViewState, sortTeams, windowRange,
+  DEFAULT_VIEW, cellBucket, horizonSize, cellLabel, columnTotal, formatDay, formatEdge, formatKickoff, formatLensValue, formatShortKickoff,
+  PRICE_OPTIONS, decimalOdds, lensValue, mostPointsComing, playedValue, recordCopy, runValue, scheduleSwing, marketLabels, marketLines, openingColumn, overviewWindow, parseViewState, positionPicks, selectedColumn, windowLabel, relativeTime, runStats, scaleBucket, serializeViewState, sortTeams, windowRange,
 } from "./grid";
-import type { Bucket, DifficultyLabel, FixtureGrid, GridCell, GridTeam, LensScale } from "./types";
+import type { Bucket, CellRecord, DifficultyLabel, FixtureGrid, GridCell, GridTeam, LensScale } from "./types";
 
 const OVERALL: LensScale = { cuts: [37.4, 48.6, 61.1, 71.3], higher_is_easier: false };
 const ATTACK: LensScale = { cuts: [2.0, 1.6, 1.2, 0.9], higher_is_easier: true };
-const LABELS: Record<Bucket, DifficultyLabel> = { 1: "Easy", 2: "Easy-ish", 3: "Normal", 4: "Hard-ish", 5: "Hard" };
+const LABELS: Record<Bucket, DifficultyLabel> = { 1: "Very favourite", 2: "Favourite", 3: "Even", 4: "Underdog", 5: "Big underdog" };
 
 let nextId = 1;
 
@@ -29,7 +29,7 @@ function cell(
       difficulty, label: LABELS[resolved], bucket: resolved, expected_points: ep,
       probabilities: { win: 0.4, draw: 0.25, loss: 0.35 }, clean_sheet: cs, xg_for: xg, xg_against: 1.1,
     },
-    weather: null,
+   
     ...rest,
   };
 }
@@ -50,10 +50,10 @@ describe("scaleBucket", () => {
 
 describe("cellBucket", () => {
   it("uses the API's label bucket on the overall lens, even when the rounded score says otherwise", () => {
-    // 48.6 is inside Easy-ish by threshold, but the backend labelled the unrounded 48.64 as Normal
+    // 48.6 is inside Favourite by threshold, but the backend labelled the unrounded 48.64 as Even
     const boundary = cell({ difficulty: 48.6, bucket: 3 });
     expect(cellBucket(boundary, "overall", OVERALL)).toBe(3);
-    expect(boundary.prediction?.label).toBe("Normal");
+    expect(boundary.prediction?.label).toBe("Even");
   });
 
   it("uses the lens scale for attack and nothing for unpredicted cells", () => {
@@ -142,7 +142,7 @@ describe("planning helpers", () => {
   it("opens on the first matchday with fewer than half its games done", () => {
     const grid: FixtureGrid = {
       season: "2026/27", current_matchday: 1, model_version: null,
-      lens_scales: { overall: OVERALL, attack: ATTACK, defence: ATTACK, odds: ATTACK },
+      lens_scales: { overall: OVERALL, attack: ATTACK, defence: ATTACK, odds: ATTACK, record: ATTACK, market_record: ATTACK },
       matchdays: [md(1), md(2), md(3)],
       teams: [
         team("AAA", [[played()], [played()], [cell()]]),
@@ -202,18 +202,45 @@ describe("planning helpers", () => {
     expect(horizonSize("all", 38)).toBe(38);
   });
 
-  it("picks the kindest and toughest runs per game, so game counts don't decide", () => {
+  it("picks the most and fewest points coming per game, so game counts don't decide", () => {
     const early = cell({ status: "finished", prediction: null, result: { goals_for: 0, goals_against: 0, outcome: "D" } });
     const teams = [
       team("DBL", [[cell({ ep: 1.5 }), cell({ ep: 1.5 })], [cell({ ep: 1.5 })]]), // double week: biggest total, average run
       team("TOP", [[cell({ ep: 2.2 })], [cell({ ep: 2.0 })]]),
-      team("ERL", [[early], [cell({ ep: 1.3 })]]), // already played: smallest total, not the toughest
+      team("ERL", [[early], [cell({ ep: 1.3 })]]), // already played: smallest total, not the fewest
       team("LOW", [[cell({ ep: 0.9 })], [cell({ ep: 0.8 })]]),
       team("OFF", [[], []]),
     ];
     const stats = new Map(teams.map((t) => [t.code, runStats(t, 0, 2, "overall", OVERALL, [false, false])]));
-    expect(kindestAndToughest(teams, stats)).toMatchObject({ kindest: { code: "TOP" }, toughest: { code: "LOW" } });
-    expect(kindestAndToughest(teams.slice(3), stats)).toBeNull();
+    expect(mostPointsComing(teams, stats)).toMatchObject({ best: { code: "TOP" }, worst: { code: "LOW" } });
+    expect(mostPointsComing(teams.slice(3), stats)).toBeNull();
+  });
+
+  it("ranks the schedule swing against each club's own level, not against other clubs", () => {
+    // STRONG is the best club but its two games are exactly its usual level; WEAK is poor with a soft opening.
+    const strong = team("STR", [[cell({ ep: 2.2 })], [cell({ ep: 2.2 })], [cell({ ep: 2.2 })], [cell({ ep: 2.2 })]]);
+    const weak = team("WEA", [[cell({ ep: 1.2 })], [cell({ ep: 1.2 })], [cell({ ep: 0.4 })], [cell({ ep: 0.4 })]]);
+    const grind = team("GRI", [[cell({ ep: 0.8 })], [cell({ ep: 0.8 })], [cell({ ep: 1.6 })], [cell({ ep: 1.6 })]]);
+    const teams = [strong, weak, grind];
+    const finished = [false, false, false, false];
+    const window = new Map(teams.map((t) => [t.code, runStats(t, 0, 2, "overall", OVERALL, finished)]));
+    const rest = new Map(teams.map((t) => [t.code, runStats(t, 0, 4, "overall", OVERALL, finished)]));
+    const swings = scheduleSwing(teams, window, rest)!;
+    expect(swings.best.team.code).toBe("WEA");
+    expect(swings.best.swing).toBeCloseTo(0.4, 5); // 1.2 a game against a 0.8 usual
+    expect(swings.worst.team.code).toBe("GRI");
+    expect(swings.worst.swing).toBeCloseTo(-0.4, 5);
+  });
+
+  it("needs twice the window left before it calls a schedule soft", () => {
+    const teams = [
+      team("AAA", [[cell({ ep: 2.0 })], [cell({ ep: 2.0 })], [cell({ ep: 0.5 })]]),
+      team("BBB", [[cell({ ep: 0.5 })], [cell({ ep: 0.5 })], [cell({ ep: 2.0 })]]),
+    ];
+    const finished = [false, false, false];
+    const window = new Map(teams.map((t) => [t.code, runStats(t, 0, 2, "overall", OVERALL, finished)]));
+    const rest = new Map(teams.map((t) => [t.code, runStats(t, 0, 3, "overall", OVERALL, finished)]));
+    expect(scheduleSwing(teams, window, rest)).toBeNull(); // only 3 games left for a 2-game window
   });
 
   it("finds the selected gameweek's column, falling back to the opening one", () => {
@@ -225,7 +252,7 @@ describe("planning helpers", () => {
 
   it("rates the odds lens per priced game, coloured from the odds scale even without a prediction", () => {
     const market = (win: number, draw: number) => ({
-      win, draw, loss: 1 - win - draw, scores: 0.7, scores_2plus: 0.35, clean_sheet: 0.3, concedes_2plus: 0.25,
+      win, draw, loss: 1 - win - draw, scores: 0.7, scores_2plus: 0.35, clean_sheet: 0.3, concedes_2plus: 0.25, both_score: 0.49,
       expected_points: 3 * win + draw, bookmakers: 8, fetched_at: "2026-09-14T08:00:00Z",
     });
     const ODDS: LensScale = { cuts: [0.6, 0.45, 0.3, 0.18], higher_is_easier: true };
@@ -244,7 +271,7 @@ describe("planning helpers", () => {
     expect(cellBucket(noPrediction, "odds", ODDS)).toBe(1);
     expect(cellBucket(cell(), "odds", ODDS)).toBeNull();
     expect(cellLabel(cell(), "Team A", 6, "Team B", "odds")).toMatch(/not priced by bookmakers yet$/);
-    expect(PRICE_OPTIONS.odds.map((o) => o.label)).toEqual(["Win", "Draw", "Loss", "Win or draw"]);
+    expect(PRICE_OPTIONS.odds.map((o) => o.label)).toEqual(["Win", "Draw", "Loss", "Win or draw", "Both score"]);
     expect(decimalOdds(PRICE_OPTIONS.overall[3]!.probability(market(0.5, 0.25)))).toBe("1.33"); // double chance
     expect(marketLabels("defence")).toEqual(["CS", "Conc 2+"]);
   });
@@ -254,11 +281,11 @@ describe("planning helpers", () => {
     expect(decimalOdds(0.004)).toBe("99+");
     expect(decimalOdds(0)).toBe("—");
     const market = {
-      win: 0.625, draw: 0.25, loss: 0.125, scores: 0.8, scores_2plus: 0.4, clean_sheet: 0.32, concedes_2plus: 0.2, expected_points: 2.125,
+      win: 0.625, draw: 0.25, loss: 0.125, scores: 0.8, scores_2plus: 0.4, clean_sheet: 0.32, concedes_2plus: 0.2, both_score: 0.54, expected_points: 2.125,
       bookmakers: 9, fetched_at: "2026-09-14T08:00:00Z",
     };
     expect(marketLines(market, "overall").map((l) => `${l.label} ${l.price}`)).toEqual(["W 1.60", "D 4.00", "L 8.00"]);
-    expect(marketLines(market, "attack").map((l) => `${l.label} ${l.price}`)).toEqual(["Scores 1.25", "2+ 2.50"]);
+    expect(marketLines(market, "attack").map((l) => `${l.label} ${l.price}`)).toEqual(["Scores 1.25", "2+ 2.50", "BTS 1.85"]);
     expect(marketLines(market, "defence").map((l) => l.spoken)).toEqual(["clean sheet 3.13", "to concede 2 or more 5.00"]);
   });
 
@@ -290,7 +317,7 @@ describe("formatting", () => {
   it("labels tiles for screen readers", () => {
     const upcoming = cell({ difficulty: 48.6, bucket: 3, xg: 1.85, cs: 0.32 });
     expect(cellLabel(upcoming, "Barcelona", 6, "Getafe", "overall")).toBe(
-      "Gameweek 6, Barcelona at home to Getafe, Sun 20 Sep, 21:00, difficulty 49 of 100, Normal",
+      "Gameweek 6, Barcelona at home to Getafe, Sun 20 Sep, 21:00, difficulty 49 of 100, Even",
     );
     expect(cellLabel(upcoming, "Barcelona", 6, "Getafe", "attack")).toMatch(/, expected goals 1\.85$/);
     expect(cellLabel(upcoming, "Barcelona", 6, "Getafe", "defence")).toMatch(/, clean sheet chance 32%$/);
@@ -310,5 +337,86 @@ describe("formatting", () => {
     expect(relativeTime("2026-09-14T11:15:00Z", now)).toBe("45 min ago");
     expect(relativeTime("2026-09-14T06:00:00Z", now)).toBe("6 h ago");
     expect(relativeTime("2026-09-10T12:00:00Z", now)).toBe("4 days ago");
+  });
+});
+
+describe("played games", () => {
+  const forecast = { expected_points: 1.9, probabilities: { win: 0.55, draw: 0.25, loss: 0.2 }, xg_for: 1.6, xg_against: 1.0, clean_sheet: 0.3 };
+  const played = (over: Partial<GridCell> = {}) =>
+    cell({
+      status: "finished",
+      result: { goals_for: 2, goals_against: 1, outcome: "W" },
+      review: { outcome_chance: 0.55, points: 3, expected_points: 1.9, surprise: 1 },
+      prediction: { ...cell().prediction!, ...forecast },
+      ...over,
+    });
+
+  it("keeps the forecast out of every total and scale", () => {
+    // The cell carries a prediction now, so the guard has to be the status, not the missing forecast.
+    expect(lensValue(played(), "overall")).toBeNull();
+    expect(runValue(played(), "overall")).toBeNull();
+    expect(columnTotal([played()], "overall")).toBeNull();
+    const team: GridTeam = { code: "SEV", name: "Sevilla", color: "#000000", crest_url: null, cells: [[played()], [cell()]] };
+    const stats = runStats(team, 0, 2, "overall", OVERALL, [true, false]);
+    expect(stats.fixtures).toBe(1); // only the game still to come is rated
+  });
+
+  it("still says what the forecast was worth, for the Next list", () => {
+    expect(playedValue(played(), "overall")).toBe(1.9);
+    expect(playedValue(played(), "attack")).toBe(1.6);
+    expect(playedValue(played(), "odds")).toBeNull(); // prices go once a game kicks off
+    expect(playedValue(cell(), "overall")).toBeNull(); // not played yet
+  });
+
+  it("says how the forecast did in the spoken label", () => {
+    expect(cellLabel(played(), "Sevilla", 6, "Barcelona", "overall")).toBe(
+      "Gameweek 6, Sevilla at home to Barcelona, won 2–1, the board gave that result 55%",
+    );
+  });
+});
+
+describe("record lenses", () => {
+  const EDGE: LensScale = { cuts: [0.06, 0.02, -0.02, -0.06], higher_is_easier: true };
+  const rec = (edge: number, games = 40): CellRecord => ({ band: "35-50%", games, wins: 18, rate: 0.45, league: 0.44, edge });
+
+  it("colours by the edge, and needs a record rather than a prediction", () => {
+    const beats = cell({ record: rec(0.08) });
+    const short = cell({ record: rec(-0.07) });
+    expect(cellBucket(beats, "record", EDGE)).toBe(1);
+    expect(cellBucket(short, "record", EDGE)).toBe(5);
+    expect(cellBucket(cell({ record: null }), "record", EDGE)).toBeNull();
+    // the price-banded lens reads its own field, so an unpriced fixture has no tile
+    expect(cellBucket(beats, "market_record", EDGE)).toBeNull();
+    expect(cellBucket(cell({ record_price: rec(0.03) }), "market_record", EDGE)).toBe(2);
+  });
+
+  it("averages over a run instead of adding up", () => {
+    expect(columnTotal([cell({ record: rec(0.04) }), cell({ record: rec(0.02) })], "record")).toBeCloseTo(0.03, 6);
+    expect(columnTotal([], "record")).toBeNull(); // a blank week is not an edge of 0
+    const team: GridTeam = { code: "SEV", name: "Sevilla", color: "#000000", crest_url: null,
+      cells: [[cell({ record: rec(0.04) })], [cell({ record: rec(-0.02) })], []] };
+    expect(runStats(team, 0, 3, "record", EDGE, [false, false, false]).total).toBeCloseTo(0.01, 6);
+  });
+
+  it("formats an edge as signed points", () => {
+    expect(formatEdge(0.064)).toBe("+6 pts");
+    expect(formatEdge(-0.041)).toBe("−4 pts");
+    expect(formatEdge(0.002)).toBe("level");
+    expect(formatLensValue(0.05, "record")).toBe("+5 pts");
+  });
+
+  it("says what the record is in the spoken label", () => {
+    const withRecord = cell({ record: rec(0.05, 63) });
+    expect(cellLabel(withRecord, "Sevilla", 6, "Barcelona", "record")).toMatch(/Wins 45% of games rated \d+%, 18 of 63, \+5 pts against the league/);
+    expect(cellLabel(cell({ record: null }), "Sevilla", 6, "Barcelona", "record")).toMatch(/No record at this rating yet/);
+  });
+
+  it("writes the record as a sentence, with the band under it", () => {
+    const priced = recordCopy(rec(0.05, 63), 0.3846, true);
+    expect(priced.headline).toBe("Wins 45% of games at odds 2.60 (38%)");
+    expect(priced.evidence).toBe("18 of 63 priced 35–50% · league 44% · +5 pts");
+    expect(recordCopy(rec(0.05, 63), 0.3, false).headline).toBe("Wins 45% of games rated 30%");
+    expect(recordCopy(null, 0.3, false)).toEqual({ headline: "No record at this rating yet", evidence: null });
+    expect(recordCopy(null, null, true).headline).toBe("No record at these odds yet");
   });
 });

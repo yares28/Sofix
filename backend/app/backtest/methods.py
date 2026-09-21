@@ -15,6 +15,7 @@ import pandas as pd
 
 from app.modeling.dixon_coles import DixonColesConfig, fit_dixon_coles
 from app.services.elo import update_pair
+from app.services.market_blend import log_pool
 from app.services.scoring import normalize_probs
 
 Predict = Callable[[pd.DataFrame, pd.Timestamp, pd.DataFrame, frozenset[str]], pd.DataFrame]
@@ -33,6 +34,57 @@ def dixon_coles(name: str, config: DixonColesConfig) -> Method:
         teams = set(targets["home"]) | set(targets["away"])
         model = fit_dixon_coles(history, cutoff, teams=teams, promoted=promoted, config=config)
         return model.predict(targets["home"], targets["away"])
+
+    return Method(name, predict)
+
+
+PRE_ODDS_COLUMNS = ("odds_pre_h", "odds_pre_d", "odds_pre_a")
+
+
+def blend_with_market(
+    table: pd.DataFrame,
+    targets: pd.DataFrame,
+    cutoff: pd.Timestamp,
+    weight: float,
+    horizon_weeks: int,
+    columns: tuple[str, str, str] = PRE_ODDS_COLUMNS,
+) -> pd.DataFrame:
+    """Move win/draw/loss toward the bookmakers for matches within `horizon_weeks` of the cutoff.
+
+    Prices carry team news the model can't see, but only for games close enough to be priced. Matches
+    further out, or without a complete price, keep the pure model forecast. Only win/draw/loss moves:
+    the difficulty score reads those, while the goal rates and clean sheets stay the model's.
+
+    `columns` must be pre-closing prices. The closing line is the backtest's ceiling: it is set minutes
+    before kickoff, so a method that ships must never see it.
+    """
+    prices = targets.reindex(columns=list(columns)).to_numpy(dtype=float)
+    weeks = (targets["date"] - pd.Timestamp(cutoff)).dt.days.to_numpy() // 7 + 1
+    usable = np.isfinite(prices).all(axis=1) & (prices > 1).all(axis=1) & (weeks <= horizon_weeks)
+    if usable.any():
+        implied = 1 / prices[usable]
+        market = implied / implied.sum(axis=1, keepdims=True)
+        probs = table.loc[usable, ["p_h", "p_d", "p_a"]].to_numpy(dtype=float)
+        table.loc[usable, ["p_h", "p_d", "p_a"]] = log_pool(probs, market, weight)
+    return table
+
+
+def market_blend(
+    name: str,
+    config: DixonColesConfig,
+    weight: float,
+    horizon_weeks: int = 1,
+    columns: tuple[str, str, str] = PRE_ODDS_COLUMNS,
+) -> Method:
+    """Dixon-Coles, blended with bookmaker prices near the cutoff (see `blend_with_market`)."""
+
+    def predict(
+        history: pd.DataFrame, cutoff: pd.Timestamp, targets: pd.DataFrame, promoted: frozenset[str]
+    ) -> pd.DataFrame:
+        teams = set(targets["home"]) | set(targets["away"])
+        model = fit_dixon_coles(history, cutoff, teams=teams, promoted=promoted, config=config)
+        table = model.predict(targets["home"], targets["away"])
+        return blend_with_market(table, targets, cutoff, weight, horizon_weeks, columns)
 
     return Method(name, predict)
 

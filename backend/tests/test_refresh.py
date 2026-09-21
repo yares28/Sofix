@@ -50,15 +50,14 @@ def test_a_failing_step_does_not_stop_the_next_ones(session_factory):
     steps = [
         ("sync", sync_down),
         ("predict", lambda: ran.append("predict") or {"predictions": 660}),
-        ("weather", lambda: ran.append("weather") or {"rows": 20}),
     ]
     code = refresh.main([], session_factory, steps, no_migrations)
 
-    assert code == 1 and ran == ["sync", "predict", "weather"]
+    assert code == 1 and ran == ["sync", "predict"]
     run = session_factory().query(RefreshRun).one()
     assert run.status == "failed" and run.error == "failed steps: sync"
     assert run.details["sync"]["error"].startswith("ConnectionError: football-data.org unreachable")
-    assert run.details["weather"]["status"] == "succeeded"
+    assert run.details["predict"]["status"] == "succeeded"
 
 
 def test_failed_migrations_stop_everything(session_factory):

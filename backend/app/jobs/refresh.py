@@ -6,11 +6,11 @@
    With --skip-migrations (scheduled and button runs, which use the app role and must never run
    DDL unattended) the schema is only checked, and a pending migration stops the run.
 1. sync: fixtures + results from football-data.org (needs FOOTBALL_DATA_ORG_TOKEN)
-2. predict: rating model predictions (football-data.co.uk history, no key)
-3. weather: kickoff weather from Open-Meteo (no key)
-4. odds: bookmaker odds from The Odds API (needs ODDS_API_KEY; skipped without it, throttled to 6 h)
+2. odds: bookmaker odds from The Odds API (needs ODDS_API_KEY; skipped without it, throttled to 6 h)
+3. predict: rating model predictions (football-data.co.uk history, no key; blends the odds above into
+   the next week's fixtures)
 
-Steps 1–4 are isolated: a failure is recorded and the next step still runs (predictions from the
+Steps 1–3 are isolated: a failure is recorded and the next step still runs (predictions from the
 data already in the database are better than none). Each run is stored in `refresh_runs`, which
 also acts as the lock: a second run while one is active exits with code 2. --run-id adopts a run
 row the API already inserted (and so already holds the lock for).
@@ -33,7 +33,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import settings
 from app.db import SessionLocal, database_target
-from app.jobs import predict, seed_and_sync, sync_odds, sync_weather
+from app.jobs import predict, seed_and_sync, sync_odds
 from app.logging_config import configure_logging
 from app.migrate import ensure_schema_current, upgrade_to_head
 from app.models import RUNNING, RefreshRun
@@ -55,9 +55,10 @@ Step = tuple[str, Callable[[], Any]]
 def default_steps() -> list[Step]:
     return [
         ("sync", lambda: asyncio.run(seed_and_sync.main())),
-        ("predict", predict.main),
-        ("weather", lambda: asyncio.run(sync_weather.main())),
+        # Odds before predict: the next gameweek's predictions blend the prices, so they must be the
+        # freshest ones. The odds call is throttled to 6 h either way, so this costs no extra credits.
         ("odds", lambda: asyncio.run(sync_odds.main())),
+        ("predict", predict.main),
     ]
 
 
@@ -121,7 +122,7 @@ def main(
     migrate: Callable[[], None] = upgrade_to_head,
     check_schema: Callable[[], None] | None = None,
 ) -> int:
-    parser = argparse.ArgumentParser(description="Refresh fixtures, predictions and weather.")
+    parser = argparse.ArgumentParser(description="Refresh fixtures, odds and predictions.")
     parser.add_argument("--trigger", choices=TRIGGERS, default="cli")
     parser.add_argument("--skip-migrations", action="store_true", help="only verify the schema is current")
     parser.add_argument("--run-id", type=int, help="adopt a running refresh_runs row created by the API")

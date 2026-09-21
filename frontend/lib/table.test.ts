@@ -8,7 +8,7 @@ const scale = { cuts: [1, 2, 3, 4], higher_is_easier: false };
 function played(opponent: string, venue: "H" | "A", gf: number, ga: number, day: number): GridCell {
   return {
     fixture_id: id++, opponent_code: opponent, venue, kickoff_utc: `2026-09-${String(day).padStart(2, "0")}T19:00:00Z`,
-    date_confirmed: true, rescheduled: false, status: "finished", prediction: null, weather: null,
+    date_confirmed: true, rescheduled: false, status: "finished", prediction: null,
     result: { goals_for: gf, goals_against: ga, outcome: gf > ga ? "W" : gf === ga ? "D" : "L" },
   };
 }
@@ -16,9 +16,9 @@ function played(opponent: string, venue: "H" | "A", gf: number, ga: number, day:
 function upcoming(opponent: string, venue: "H" | "A", win: number, draw: number, ep: number, fixtureId: number): GridCell {
   return {
     fixture_id: fixtureId, opponent_code: opponent, venue, kickoff_utc: "2026-10-20T19:00:00Z", date_confirmed: true,
-    rescheduled: false, status: "scheduled", result: null, weather: null,
+    rescheduled: false, status: "scheduled", result: null,
     prediction: {
-      difficulty: 50, label: "Normal", bucket: 3, expected_points: ep,
+      difficulty: 50, label: "Even", bucket: 3, expected_points: ep,
       probabilities: { win, draw, loss: 1 - win - draw }, clean_sheet: 0.3, xg_for: 1.5, xg_against: 1.0,
     },
   };
@@ -30,7 +30,7 @@ const team = (code: string, cells: GridCell[]): GridTeam => ({
 
 const makeGrid = (teams: GridTeam[]): FixtureGrid => ({
   season: "2026/27", current_matchday: 1, model_version: null,
-  lens_scales: { overall: scale, attack: scale, defence: scale, odds: scale },
+  lens_scales: { overall: scale, attack: scale, defence: scale, odds: scale, record: scale, market_record: scale },
   matchdays: [], teams,
 });
 
@@ -140,6 +140,23 @@ describe("predictedTable", () => {
     expect(table.reduce((s, r) => s + r.relegation, 0)).toBeCloseTo(1);
     expect(table[2]!.relegation).toBeGreaterThan(0.5);
     expect(predictedTable(grid, { simulations: 500 })).toEqual(predictedTable(grid, { simulations: 500 })); // seeded
+  });
+
+  it("stops at a gameweek when asked, so the projection can be walked forward", () => {
+    const grid = makeGrid([
+      team("TOP", [played("LOW", "H", 3, 1, 1), upcoming("LOW", "H", 0.7, 0.2, 2.3, 910), upcoming("LOW", "A", 0.7, 0.2, 2.3, 911)]),
+      team("LOW", [played("TOP", "A", 1, 3, 1), upcoming("TOP", "A", 0.1, 0.2, 0.5, 910), upcoming("TOP", "H", 0.1, 0.2, 0.5, 911)]),
+    ]);
+    const half = predictedTable(grid, { simulations: 0, through: 1 });
+    const whole = predictedTable(grid, { simulations: 0 });
+    const top = (rows: typeof half) => rows.find((row) => row.team.code === "TOP")!;
+    expect(top(half).remaining).toBe(1); // only the gameweek 2 fixture is projected
+    expect(top(whole).remaining).toBe(2);
+    expect(top(half).projectedPoints).toBeCloseTo(3 + 2.3, 6);
+    expect(top(whole).projectedPoints).toBeCloseTo(3 + 4.6, 6);
+    expect(top(half).played).toBe(1);
+    // Through the last gameweek is the same as no cutoff at all.
+    expect(predictedTable(grid, { simulations: 0, through: 2 })).toEqual(whole);
   });
 
   it("has a reproducible random stream", () => {

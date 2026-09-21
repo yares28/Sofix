@@ -5,8 +5,7 @@
 | Data | Source | How | Limits / terms |
 |---|---|---|---|
 | Current fixtures, kickoff times, results | football-data.org (`PD`) | API, one call per refresh | Free token: 10 requests/min; LaLiga + Champions League, not Europa/Conference |
-| Historical results, shots on target, odds | Football-Data.co.uk (`SP1`) | CSV download, cached in `backend/data/raw/` | Free; updated Tue/Fri |
-| Kickoff weather (context) | Open-Meteo | API, one call per stadium | Non-commercial free tier (10,000 calls/day); CC BY 4.0 attribution shown in the UI |
+| Historical results, shots on target, odds | Football-Data.co.uk (`SP1`) | CSV download, cached in `backend/data/raw/`; five seasons feed each club's record at its price | Free; updated Tue/Fri |
 | Team identities, colours, stadiums | `app/services/team_registry.py` | Maintained by hand | Add promoted clubs each June |
 
 ## Candidates (not in the pipeline)

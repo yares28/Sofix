@@ -66,22 +66,6 @@ class Fixture(Base):
     __table_args__ = (UniqueConstraint("source_fixture_id", name="uq_fixtures_source_fixture_id"),)
 
 
-class WeatherSnapshot(Base):
-    __tablename__ = "weather_snapshots"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    fixture_id: Mapped[int] = mapped_column(ForeignKey("fixtures.id"))
-    snapshot_ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
-    available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
-    forecast_lead_hours: Mapped[float | None] = mapped_column(Float)
-    temperature_c: Mapped[float | None] = mapped_column(Float)
-    apparent_temperature_c: Mapped[float | None] = mapped_column(Float)
-    humidity_pct: Mapped[float | None] = mapped_column(Float)
-    precipitation_mm: Mapped[float | None] = mapped_column(Float)
-    wind_speed_kmh: Mapped[float | None] = mapped_column(Float)
-    # One live forecast per fixture; each weather sync replaces it.
-    __table_args__ = (UniqueConstraint("fixture_id", name="uq_weather_snapshots_fixture_id"),)
-
-
 class Prediction(Base):
     __tablename__ = "predictions"
     id: Mapped[int] = mapped_column(primary_key=True)

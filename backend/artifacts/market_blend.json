@@ -1,0 +1,6 @@
+{
+  "weight": 0.35,
+  "horizon_days": 7,
+  "max_age_hours": 48,
+  "min_bookmakers": 3
+}

@@ -15,7 +15,7 @@ import itertools
 import json
 import logging
 from concurrent.futures import ProcessPoolExecutor
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import UTC, date, datetime
 from pathlib import Path
 
@@ -35,6 +35,11 @@ from app.backtest.metrics import summarize
 from app.backtest.walkforward import run_ranking, run_walkforward, team_perspective
 from app.logging_config import configure_logging
 from app.modeling.dixon_coles import DixonColesConfig, fit_dixon_coles
+from app.services.calibration import (
+    CleanSheetCalibration,
+    fit_clean_sheet_calibration,
+    save_clean_sheet_calibration,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +47,7 @@ ROOT = Path(__file__).resolve().parents[2]
 CACHE_DIR = ROOT / "data" / "raw" / "football-data-co-uk"
 REPORT_PATH = ROOT / "reports" / "backtest_laliga.md"
 CONFIG_PATH = ROOT / "artifacts" / "dixon_coles.json"
+CLEAN_SHEET_PATH = ROOT / "artifacts" / "clean_sheet_calibration.json"
 
 
 def season_plan(current: int) -> tuple[int, list[int], list[int]]:
@@ -58,6 +64,7 @@ def season_plan(current: int) -> tuple[int, list[int], list[int]]:
 CURRENT_SEASON = current_season_start(date.today())
 FIRST_SEASON, TUNE_SEASONS, TEST_SEASONS = season_plan(CURRENT_SEASON)
 HORIZON_BUCKETS = [(1, 1, "1 week"), (2, 3, "2–3 weeks"), (4, 5, "4–5 weeks"), (6, 8, "6–8 weeks")]
+SPREAD_GRID = (1.0, 1.05, 1.10, 1.15, 1.20, 1.25)  # 1.0 = leave the fitted ratings alone
 
 
 def config_grid(quick: bool) -> list[DixonColesConfig]:
@@ -83,15 +90,21 @@ def _init_worker(matches: pd.DataFrame) -> None:
     _WORKER_MATCHES = matches
 
 
-def evaluate_config(config: DixonColesConfig, seasons: list[int], matches: pd.DataFrame | None = None) -> float:
-    """Mean RPS of one config over the given seasons (NaN if the run fails)."""
+def score_config(config: DixonColesConfig, seasons: list[int], matches: pd.DataFrame | None = None) -> dict:
+    """RPS and log loss of one config over the given seasons (NaN if the run fails)."""
     matches = _WORKER_MATCHES if matches is None else matches
     try:
         predictions = with_known_odds(run_walkforward(matches, seasons, [dixon_coles("candidate", config)]), matches)
-        return float(summarize(predictions, ["method"])["rps"].iloc[0])
+        row = summarize(predictions, ["method"]).iloc[0]
+        return {"rps": float(row["rps"]), "log_loss": float(row["log_loss"])}
     except Exception as exc:  # one bad config must not sink the whole grid
         logger.warning("config %s failed: %r", config, exc)
-        return float("nan")
+        return {"rps": float("nan"), "log_loss": float("nan")}
+
+
+def evaluate_config(config: DixonColesConfig, seasons: list[int], matches: pd.DataFrame | None = None) -> float:
+    """Mean RPS of one config over the given seasons (NaN if the run fails)."""
+    return score_config(config, seasons, matches)["rps"]
 
 
 def tune(
@@ -110,6 +123,53 @@ def tune(
         "rps", ignore_index=True
     )
     return best, table
+
+
+def tune_spread(
+    matches: pd.DataFrame, seasons: list[int], best: DixonColesConfig, workers: int
+) -> tuple[DixonColesConfig, pd.DataFrame]:
+    """How far to stretch the fitted ratings, picked on the tuning seasons.
+
+    The ridge that keeps a club with few matches stable also leaves the best and worst clubs closer to
+    average than they are, so the most one-sided games come out too cautious. `spread` undoes that after
+    the fit. The choice is made on **log loss**, not RPS: RPS mostly scores which side is favoured and
+    barely moves, while log loss is the score that punishes being over- or under-confident.
+    """
+    logger.info("tuning the rating spread over %s on seasons %s", list(SPREAD_GRID), seasons)
+    candidates = [replace(best, spread=spread) for spread in SPREAD_GRID]
+    if workers <= 1:
+        scores = [score_config(config, seasons, matches) for config in candidates]
+    else:
+        with ProcessPoolExecutor(max_workers=workers, initializer=_init_worker, initargs=(matches,)) as pool:
+            scores = list(pool.map(score_config, candidates, [seasons] * len(candidates)))
+    table = pd.DataFrame([{"spread": s, **score} for s, score in zip(SPREAD_GRID, scores, strict=True)])
+    if table["log_loss"].isna().all():
+        raise RuntimeError("every spread candidate failed")
+    return candidates[int(table["log_loss"].idxmin())], table
+
+
+def fit_clean_sheets(tune_rows: pd.DataFrame, through: pd.Timestamp) -> CleanSheetCalibration:
+    """The clean-sheet correction, fitted on the tuning seasons only (see app/services/calibration.py)."""
+    rows = tune_rows.dropna(subset=["p_cs"])
+    fitted = fit_clean_sheet_calibration(
+        rows["p_cs"].to_numpy(), (rows["goals_against"] == 0).to_numpy(), f"{through:%Y-%m-%d}"
+    )
+    logger.info("clean-sheet correction a=%+.3f b=%.3f on %d forecasts", fitted.a, fitted.b, fitted.n)
+    return fitted
+
+
+def clean_sheet_effect(test_rows: pd.DataFrame, calibration: CleanSheetCalibration) -> pd.DataFrame:
+    """What the correction does on the test seasons: predicted vs observed, before and after."""
+    rows = test_rows.dropna(subset=["p_cs"])
+    kept = (rows["goals_against"] == 0).to_numpy()
+    raw = rows["p_cs"].to_numpy()
+    corrected = calibration.apply_many(raw)
+    return pd.DataFrame(
+        [
+            {"clean sheets": name, "predicted": p.mean(), "observed": kept.mean(), "brier": ((p - kept) ** 2).mean()}
+            for name, p in (("as fitted", raw), ("corrected", corrected))
+        ]
+    )
 
 
 def horizon_bucket(horizon: pd.Series) -> pd.Series:
@@ -168,6 +228,8 @@ def build_report(
     matches: pd.DataFrame,
     best: DixonColesConfig,
     tuning: pd.DataFrame,
+    spreads: pd.DataFrame,
+    clean_sheets: CleanSheetCalibration,
     test: pd.DataFrame,
     tune_best: pd.DataFrame,
     tune_seasons: list[int],
@@ -238,10 +300,16 @@ Metrics: **RPS** (ranked probability score, lower is better; the main score), **
 - Time decay xi = {best.xi} per day (half-life: {half_life})
 - Goals weight = {best.goals_weight} (rest is the shots-on-target proxy)
 - Ridge = {best.ridge}, promoted-team prior = {best.promoted_prior}
+- Rating spread = {best.spread} (1.0 = the fit as it comes; above that the ratings are stretched around
+  their average, which is undone shrinkage, not new information)
 
 Best configurations on the tuning seasons:
 
 {md_table(top_grid, {"rps": ".4f"})}
+
+Rating spread on the tuning seasons, chosen on log loss because RPS barely separates them:
+
+{md_table(spreads, {"spread": ".2f", "rps": ".4f", "log_loss": ".4f"})}
 
 Tuned model per tuning season. 2019/20 (restart without crowds) and 2020/21 (no crowds all season)
 had much weaker home advantage, so settings that suit them may not suit normal seasons:
@@ -281,6 +349,12 @@ Proposed thresholds {proposed} (15 / 20 / 30 / 20 / 15 % of fixtures, fitted on 
 
 {md_table(clean_sheet_calibration(tuned_test_rows), {"predicted": ".1%", "observed": ".1%", "fixtures": ".0f"})}
 
+The model's clean-sheet chances run high, so they are corrected before the board shows them:
+p' = sigmoid({clean_sheets.a:+.3f} + {clean_sheets.b:.3f} * logit(p)), fitted on {clean_sheets.n:,} forecasts from the
+tuning seasons. Win, draw and loss are untouched. On the test seasons:
+
+{md_table(clean_sheet_effect(tuned_test_rows, clean_sheets), {"predicted": ".1%", "observed": ".1%", "brier": ".4f"})}
+
 Forecast vs actual goals and clean sheets per match (test seasons):
 
 {md_table(goal_bias(test), {c: (".1%" if "cs" in c else ".3f") for c in goal_bias(test).columns if c != "method"})}
@@ -315,8 +389,11 @@ def main() -> None:
 
     best, tuning = tune(matches, tune_seasons, config_grid(args.quick), args.workers)
     logger.info("best config: %s", best)
+    best, spreads = tune_spread(matches, tune_seasons, best, args.workers)
+    logger.info("chosen rating spread: %.2f", best.spread)
 
     tune_best = run_walkforward(matches, tune_seasons, [dixon_coles("Dixon-Coles (tuned)", best)])
+    clean_sheets = fit_clean_sheets(team_perspective(with_known_odds(tune_best, matches)), matches["date"].max())
     static = DixonColesConfig(xi=0.0, goals_weight=1.0, ridge=best.ridge, promoted_prior=0.0)
     methods = [
         dixon_coles("Dixon-Coles (tuned)", best),
@@ -328,12 +405,23 @@ def main() -> None:
     logger.info("backtesting %d methods on seasons %s", len(methods), test_seasons)
     test = with_known_odds(run_walkforward(matches, test_seasons, methods), matches)
 
-    report = build_report(matches, best, tuning, test, with_known_odds(tune_best, matches), tune_seasons, test_seasons)
+    report = build_report(
+        matches,
+        best,
+        tuning,
+        spreads,
+        clean_sheets,
+        test,
+        with_known_odds(tune_best, matches),
+        tune_seasons,
+        test_seasons,
+    )
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
     REPORT_PATH.write_text(report, encoding="utf-8")
     CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     CONFIG_PATH.write_text(json.dumps({"model": "dixon-coles", **asdict(best)}, indent=2), encoding="utf-8")
-    logger.info("report → %s; config → %s", REPORT_PATH, CONFIG_PATH)
+    save_clean_sheet_calibration(CLEAN_SHEET_PATH, clean_sheets)
+    logger.info("report → %s; config → %s, %s", REPORT_PATH, CONFIG_PATH, CLEAN_SHEET_PATH)
 
 
 if __name__ == "__main__":

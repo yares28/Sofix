@@ -21,12 +21,22 @@ from app.config import settings
 from app.db import SessionLocal
 from app.logging_config import configure_logging
 from app.modeling.dixon_coles import DixonColesModel, fit_dixon_coles
-from app.models import Fixture, Prediction, Team
-from app.services.rating_predictions import load_config, merge_recent_results, model_version, predict_both_sides
+from app.models import Fixture, MarketOdds, Prediction, Team
+from app.services.calibration import CleanSheetCalibration, load_clean_sheet_calibration
+from app.services.market_blend import MarketBlend, load_market_blend
+from app.services.odds_record import OddsRecord, build_record
+from app.services.rating_predictions import (
+    MarketMix,
+    load_config,
+    merge_recent_results,
+    model_version,
+    predict_both_sides,
+)
 from app.services.team_registry import by_code, by_history_name
 from app.services.timeutil import as_utc
 
-HISTORY_SEASONS = 4  # current season plus three before it; the model only looks back two years
+HISTORY_SEASONS = 5  # current season plus four before it: the model only fits the last two years, but the
+# record at each price (services/odds_record.py) counts five seasons
 OPEN_STATUSES = {"SCHEDULED", "TIMED"}
 logger = logging.getLogger(__name__)
 
@@ -73,6 +83,24 @@ def upcoming_fixtures(db: Session, season: str, now: datetime) -> list[Fixture]:
     return sorted((fx for fx in candidates if as_utc(fx.kickoff_utc) > now), key=lambda fx: as_utc(fx.kickoff_utc))
 
 
+def market_mixes(db: Session, fixtures: list[Fixture], blend: MarketBlend, now: datetime) -> dict[int, MarketMix]:
+    """Bookmaker consensus for the fixtures near enough to use it (see app/services/market_blend.py).
+
+    Prices only exist for the next round or two, and a stale one is worse than none: a price fetched days
+    ago can predate news the model doesn't know about either.
+    """
+    if blend.is_off or not fixtures:
+        return {}
+    by_id = {fx.id: fx for fx in fixtures}
+    rows = db.query(MarketOdds).filter(MarketOdds.fixture_id.in_(list(by_id))).all()
+    mixes = {}
+    for odds in rows:
+        fixture = by_id[odds.fixture_id]
+        if blend.applies(as_utc(fixture.kickoff_utc), now, as_utc(odds.fetched_at), odds.bookmakers):
+            mixes[odds.fixture_id] = MarketMix(fair=(odds.p_home, odds.p_draw, odds.p_away), blend=blend)
+    return mixes
+
+
 def history_names(teams_by_id: dict[int, Team]) -> dict[int, str]:
     """The name each club has in the football-data.co.uk history.
 
@@ -93,13 +121,18 @@ def replace_predictions(
     names: dict[int, str],
     now: datetime,
     version: str,
+    clean_sheets: CleanSheetCalibration | None = None,
+    markets: dict[int, MarketMix] | None = None,
+    record: OddsRecord | None = None,
 ) -> int:
     """Replace the predictions for these fixtures (any earlier model version) in one transaction."""
     fixture_ids = [fx.id for fx in fixtures]
     db.query(Prediction).filter(Prediction.fixture_id.in_(fixture_ids or [-1])).delete(synchronize_session=False)
     written = 0
     for fx in fixtures:
-        home_pred, away_pred = predict_both_sides(model, names[fx.home_team_id], names[fx.away_team_id])
+        home_pred, away_pred = predict_both_sides(
+            model, names[fx.home_team_id], names[fx.away_team_id], clean_sheets, (markets or {}).get(fx.id), record
+        )
         for team_id, pred in ((fx.home_team_id, home_pred), (fx.away_team_id, away_pred)):
             db.add(
                 Prediction(
@@ -150,6 +183,8 @@ def predict_upcoming(
     load: Callable[..., pd.DataFrame] = load_history,
     config_path: str = settings.dixon_coles_config_path,
     cache_dir: str = settings.history_cache_dir,
+    calibration_path: str = settings.clean_sheet_calibration_path,
+    market_blend_path: str = settings.market_blend_path,
 ) -> dict:
     season = current_season(db)
     if season is None:
@@ -168,6 +203,7 @@ def predict_upcoming(
     problems = name_problems(history, start, season_teams, promoted)
 
     config = load_config(config_path)
+    clean_sheets = load_clean_sheet_calibration(calibration_path)
     model = fit_dixon_coles(history, pd.Timestamp(now.date()), teams=season_teams, promoted=promoted, config=config)
     logger.info(
         "fitted on %d matches through %s; home advantage %+.3f; config %s",
@@ -177,14 +213,24 @@ def predict_upcoming(
         config,
     )
 
-    version = model_version(config)
-    written = replace_predictions(db, upcoming, model, names, now, version)
+    blend = load_market_blend(market_blend_path)
+    markets = market_mixes(db, upcoming, blend, now)
+    if markets:
+        logger.info("blending bookmaker prices into %d fixtures at weight %.2f", len(markets), blend.weight)
+    record = build_record(history, start)
+    version = model_version(config, clean_sheets)
+    written = replace_predictions(db, upcoming, model, names, now, version, clean_sheets, markets, record)
     logger.info("predictions %d for %d upcoming fixtures (model %s)", written, len(upcoming), version)
     return {
         "predictions": written,
         "fixtures": len(upcoming),
         "model_version": version,
         "history_through": f"{history['date'].max():%Y-%m-%d}",  # newest result the model saw
+        "clean_sheet_correction": None
+        if clean_sheets.is_identity
+        else [round(clean_sheets.a, 3), round(clean_sheets.b, 3)],
+        "market_blended": len(markets),
+        "record_bands": len(record.league),
         "promoted": sorted(promoted),
         **problems,
     }

@@ -4,16 +4,33 @@ Personal, single-user **LaLiga fixture difficulty board**. English UI, premium w
 The FPL "Fixtures & Results / FDR" screen was only the UI reference: this is LaLiga, which has no official
 FDR, so difficulty comes from our own backtested rating model.
 
+How every number is built, and how to read it from outside: [docs/how_it_works.md](docs/how_it_works.md).
 Plan and status: [docs/next_features_plan.md](docs/next_features_plan.md) (work phase by phase, tick tasks there).
 Evidence for open issues: [docs/upgrade_audit.md](docs/upgrade_audit.md). Model results: [backend/reports/backtest_laliga.md](backend/reports/backtest_laliga.md).
+How difficulty is built, and how it did on nine past seasons: [docs/fixture_difficulty.md](docs/fixture_difficulty.md).
+Sorare merge (phases S0–S9, decisions, findings): [docs/sorare_plan.md](docs/sorare_plan.md). Each phase is
+"A · think & show" (findings + an HTML design preview in `docs/sorare/design/`, owner approves) then "B · build".
+
+## Design language (owner-approved, use it for every new page)
+
+Follow [docs/sorare/design/DESIGN.md](docs/sorare/design/DESIGN.md); the reference implementation is
+`docs/sorare/design/S0-competitions.html`. In short:
+- Build previews on real data.
+- Order the page: decision first (hero with one ≥ 48 px number), then a summary strip, then every option,
+  then secondary things folded away.
+- Few words.
+- Each colour has one job: green = chance/reward, gold/red foil = Limited/Rare instead of labels,
+  FDR colours = difficulty, text always ink.
+- Cash and essence are shown side by side, never converted.
+- Calm motion (count-ups, ring fills, sliding knobs) that switches off under reduced motion.
+- The sorare.com overlay is the one exception: it copies SorareInside's look (S7).
 
 ## Architecture
 
 ```
 football-data.org ──┐                        ┌─> /api/fixture-grid ──> Next.js board (frontend/)
-football-data.co.uk ─┤                        │
-Open-Meteo ──────────┼─> app.jobs.refresh ─> Neon Postgres ──┘
-The Odds API ────────┘   migrate → sync → predict → weather → odds
+football-data.co.uk ─┼─> app.jobs.refresh ─> Neon Postgres ──┘
+The Odds API ────────┘   migrate → sync → odds → predict
 ```
 
 | Area | Where |
@@ -21,24 +38,31 @@ The Odds API ────────┘   migrate → sync → predict → weat
 | API | `backend/app/main.py`, `api.py`, `schemas.py` (FastAPI, `ApiResponse` envelope) |
 | Grid payload | `backend/app/services/fixture_grid.py` (buckets come from labels; lens scales are computed here) |
 | Rating model | `backend/app/modeling/dixon_coles.py`; tuned settings in `backend/artifacts/dixon_coles.json` |
-| Predictions | `backend/app/jobs/predict.py`, `services/rating_predictions.py` (replace rows per model version) |
-| Sync / weather | `backend/app/jobs/seed_and_sync.py`, `jobs/sync_weather.py`, `sources/*` |
+| Predictions | `backend/app/jobs/predict.py`, `services/rating_predictions.py` (replace rows per model version); labels in `services/scoring.py` (venue-aware top cut); the record at each price in `services/odds_record.py` and both-teams-to-score, both stored in `Prediction.explanation`; played games reviewed with `services/postmortem.py` and served as `GridCell.review` |
+| Sync | `backend/app/jobs/seed_and_sync.py`, `sources/*` |
 | Odds | `backend/app/jobs/sync_odds.py` (throttled 6 h), `sources/the_odds_api.py`, `services/market_odds.py` (margin removal, goal rates fitted to the prices → clean sheet / scoring / conceding), `market_odds` table; `GridCell.market` |
 | Teams | `backend/app/services/team_registry.py` (football-data.org `tla` ↔ football-data.co.uk name, colour, stadium) |
 | Backtest | `backend/app/backtest/*`, `backend/app/jobs/backtest.py` |
 | DB / migrations | `backend/app/models.py`, `backend/migrations/` (Alembic), `backend/app/migrate.py`, `app/db.py` |
 | Refresh button | `backend/app/admin.py` (token, cooldown, lock, launches the job), `services/refresh_runs.py`; `frontend/app/api/refresh/route.ts` (same-origin proxy, revalidates the grid), `components/RefreshButton.tsx`, `lib/refresh.ts` |
 | Scheduled refresh | `.github/workflows/refresh.yml` (cron, app role, `--skip-migrations`) |
-| Frontend | `frontend/app/(board)/page.tsx` (cached server fetch, tag `fixture-grid`), `components/FixtureBoard.tsx`, `Overview.tsx`, `DifficultyGrid.tsx`, `GameweekSelector.tsx`, `lib/grid.ts`, `lib/types.ts` |
+| Frontend | `frontend/app/(board)/page.tsx` (cached server fetch, tag `fixture-grid`), `components/FixtureBoard.tsx`, `Overview.tsx`, `DifficultyGrid.tsx`, `GameweekSelector.tsx`, `LeagueTable.tsx` + `TableProgression.tsx` (nivo chart, `lib/progression.ts`), `lib/grid.ts`, `lib/types.ts` |
 
 ## Commands
 
 Backend (from `backend/`, venv at `backend/.venv`):
 
 ```bash
-.venv\Scripts\python -m app.jobs.refresh      # migrations, fixtures, predictions, weather
+.venv\Scripts\python -m app.jobs.refresh      # migrations, fixtures, odds, predictions
 .venv\Scripts\python -m app.jobs.refresh --skip-migrations   # as schedule/button run it: schema check only
 .venv\Scripts\python -m app.jobs.backtest     # tune + score the model; writes reports/ and artifacts/
+.venv\Scripts\python -m app.jobs.opening_projection   # once a season: the pre-season table the chart's August line draws
+# blind 9-season replay behind docs/fixture_difficulty.md (~2 min, cached CSVs only; --cache reuses forecasts)
+.venv\Scripts\python reports\experiments\difficulty_backtest.py --out $env:TEMP\fdr_tables.md --cache $env:TEMP\fdr_state.pkl --workers 10
+# score one candidate change against that replay, with 95% intervals (~20 s once the cache exists)
+.venv\Scripts\python reports\experiments\bench.py --variant spread=1.15 --cache $env:TEMP\fdr_state.pkl --workers 10
+# post-match review: surprise, performance gap and a verdict per finished match (docs/fixture_difficulty.md 3.5)
+.venv\Scripts\python reports\experiments\review.py --cache $env:TEMP\fdr_state.pkl --out $env:TEMP\review.md
 .venv\Scripts\python -m app.migrate           # apply migrations
 .venv\Scripts\alembic revision --autogenerate -m "what changed"
 .venv\Scripts\python -m pytest -q
@@ -64,28 +88,72 @@ npm run gen:types    # after python -m app.openapi_export
   still `matchday`), "Date TBC"; kickoff times stored UTC, shown in `Europe/Madrid`.
 - Tiles show colour, opponent and venue only (the owner didn't want a bucket number); difficulty stays in the
   tooltip, the spoken label and the ring on buckets 4–5.
+- Label words: **Very favourite / Favourite / Even / Underdog / Big underdog** (`scoring.LABELS`). The top cut is
+  venue-aware (36.0 home, 23.4 away) so the top colour wins ~72% of the time at either venue; the other three cuts
+  are shared. Never compare a difficulty to one cut set without the venue.
 - One app-wide gameweek (`?gw=`, selector in the header; default = opening GW) drives every tab: the overview window,
-  the grid, the fixtures list and the current table (standings after that GW). The predicted table stays the final projection.
-- Difficulty tab: a bento overview (`components/Overview.tsx`, three equal columns): kindest/toughest run (per game),
+  the grid, the fixtures list and both tables. Picking a gameweek by hand (`state.gw !== null`) also stops the
+  projection there ("Projected table after GW7"); left alone the table shows every result and the full-season projection.
+- Played games keep the forecast they carried before kickoff (`GridCell.prediction` on a finished cell, from
+  `fixture_grid.historic_predictions`, which ignores the model version on purpose) plus `GridCell.review`: the chance
+  the board gave the result, the points won against the expected points, and `surprise` from `services/postmortem.py`
+  (1 = utterly ordinary; the tile shows `100 - surprise` so a high number means a shock). The tile's top-right number
+  is the chance we gave the result. None of it counts anywhere: `lensValue`/`runValue` return null for a finished
+  cell and `lens_scales` skips them, so totals, rankings and cut points stay about the games still to come.
+- Difficulty tab: a bento overview (`components/Overview.tsx`, three equal columns): most/fewest points coming and
+  softest/hardest schedule (swing against the club's own level),
   the GW's matches, who to pick (forwards: xG, defenders/keepers: expected clean sheets, midfielders: 65/35 blend),
   every club ranked over the window (xPts number column, no bars) beside the table with rows aligned (34 px); then the
-  full grid and the GW's fixtures underneath. The ranking card: Next shows the GW's prices in columns (W/D/L, scores/2+,
-  CS/concede 2+) plus the market's chance as a bar; Next 3/5/8 show one tile per GW with the price picked in the
-  Price menu (`PRICE_OPTIONS`). Odds are fair prices (1 / backend probability).
-- Lenses: Overall / Attack / Defence (our model) and Odds (bookmakers: tiles = market win chance cut by
-  `lens_scales.odds`, totals = market points (3×win+draw) per priced game, so clubs that already played or have
-  more games priced aren't favoured). The grid follows the same lens.
+  full grid and the GW's fixtures underneath. Two run cards, not four: each holds its points view and the matching
+  schedule swing behind an arrow (`RunCard.views`). The ranking card: Next shows the GW's prices in columns (W/D/L,
+  scores/2+/BTS, CS/concede 2+) plus the market's chance as a bar, and the clubs that already played sit under an
+  "Already played" divider still showing the expected points of that game (`playedValue`); Next 3/5/8 show one tile
+  per GW with the price picked in the Price menu (`PRICE_OPTIONS`). Odds are fair prices (1 / backend probability).
+- Lenses: Overall / Attack / Defence (our model), **Record** and **Vs odds**, and Odds (bookmakers: tiles = market
+  win chance cut by `lens_scales.odds`, totals = market points (3×win+draw) per priced game, so clubs that already
+  played or have more games priced aren't favoured). The grid follows the same lens.
+- Record / Vs odds: how often the club has won at this price over five seasons of closing odds, minus what the league
+  gets at the same price (`edge`, shrunk by sample size, null below 5 games). Record bands by the win chance the board
+  shows (every fixture); Vs odds by the bookmakers' current price (priced fixtures only). Both totals are an average
+  edge per game, never a sum, and read as a "Gap" in signed points. The tooltip leads with the sentence
+  ("Wins 38% of games at odds 2.60 (38%)") and puts the counts and the band under it, because the rate covers the
+  whole band, not that exact price (`grid.recordCopy`). Description only: nothing in it moves a probability.
+- Both teams to score: ours from the Dixon-Coles score matrix (`outcome_table` column `p_00`, stored in
+  `Prediction.explanation["both_score"]`, served as `CellPrediction.both_score`), the bookmakers' from the fitted
+  goal rates (`market_odds.team_market`, `CellMarket.both_score`). It shows in the Price menu, the attack lens'
+  columns (BTS), the tooltip and the match cards.
 - The page is fluid up to `--page-max` (1600 px) and centred beyond it; below 1200 px the ranking and table cards go
   full width; card internals size by named container queries (`ladder`, `gwcard`).
 - Tabs: Fixtures (the selected GW's fixture list), Difficulty (overview + grid; horizon "Next" = match cards for one GW), Table
   (current standings with LaLiga tiebreaks, and a predicted table in `lib/table.ts`: expected points plus seeded
-  simulations; keep it seeded so the same data always shows the same percentages).
+  simulations; keep it seeded so the same data always shows the same percentages). Both modes share one 10-column
+  skeleton and a `<colgroup>` so nothing shifts when the toggle flips: Current is `# Club P W D L Goals GD Pts Form`,
+  Predicted is `# Club P Pts To play xPts xGD 1st Top 4 Down`. `predictedTable(grid, { through })` stops the
+  projection at a gameweek, and `components/TableProgression.tsx` charts every club's position (solid while played,
+  dashed while projected).
+- The position chart: `@nivo/line` inside `components/TableProgression.tsx`, loaded with `next/dynamic` and
+  `ssr: false` so only the Table tab pays for the charting library. Numbers come from `lib/progression.ts`
+  (`seasonProgression`): played gameweeks from `currentTable(grid, i)`, future ones from
+  `predictedTable(grid, { through: i })` so a line can never disagree with the table, and a 10th–90th percentile
+  band from 600 simulated seasons. Three presets (Europe / Relegation / All) and a Clubs button holding every
+  club as a checkbox: picking by hand always switches the view to All and reads the picks against the whole
+  league, the rest fading behind them; one club picked is the focus, with its band and a sentence saying where
+  it is heading. The zone shading and the pre-season line are checkboxes behind the (i) button in the chart's
+  bottom-right corner, which also carries the key (the heading has no description line). Crests sit at the end
+  of each line and are pushed apart when they collide. Whole thing ≈100 ms, memoised per grid.
+- The prediction line (dotted, "Prediction" checkbox in the (i) panel): `GridTeam.opening`, the position the **pre-season** model had each
+  club after every gameweek. Built once per season by `python -m app.jobs.opening_projection` — the model
+  fitted only on matches before the season's first kickoff, run over all 380 fixtures — and committed as
+  `backend/artifacts/opening_projection.json`; the API reads the file and serves null when it is missing or
+  from another season. It never changes during a season, so the refresh does not recompute it; re-run it at the
+  yearly rollover (and `--check` tells you when it is stale). Promoted clubs come out level with each other:
+  the model has no Segunda history for them.
 - Frontend must not re-derive what the backend decides: tile colour = `prediction.bucket`, lens cut points = `lens_scales`.
 - API types are generated: change `backend/app/schemas.py`, run `python -m app.openapi_export` (backend) and
   `npm run gen:types` (frontend), then update `frontend/lib/schema.ts` (Zod) until `npm run typecheck` passes.
   Never hand-edit `lib/openapi.json` or `lib/api.gen.ts`; CI fails when either is stale.
 - Schema changes: edit `models.py` → autogenerate a migration → review it → apply. Never `create_all` against Neon.
-- Jobs replace rows (predictions per model version, weather per fixture); never append history.
+- Jobs replace rows (predictions per model version, odds per fixture); never append history.
 - Refreshes: one at a time (`refresh_runs` partial unique index) and ≥ 10 min apart for the button (`COOLDOWN`).
   Unattended runs (schedule, button) use `--skip-migrations`; after a schema change run `python -m app.migrate` by hand.
 - The grid page is cached (1 h, tag `fixture-grid`) to spare Neon; the refresh route revalidates it when a run ends.
@@ -99,21 +167,47 @@ npm run gen:types    # after python -m app.openapi_export
 
 ## Model rules
 
-- Current test baseline (2023/24–2025/26, 8,339 forecasts): **RPS 0.1953** (closing odds 0.1886, Elo 0.2050, base rates 0.2255).
+- Current test baseline (2023/24–2025/26, 8,339 forecasts): **RPS 0.1947** (closing odds 0.1886, Elo 0.2050, base rates 0.2255).
 - Tune only on 2019/20–2022/23; score once on the test seasons. A change ships only if a bootstrap CI
   (by matchday) of the RPS difference excludes 0, or it fixes calibration without making RPS worse.
-- Known weaknesses: favourites under-confident (60–70% predicted → 74% actual), promoted teams learned too slowly
-  after week 8, clean-sheet probabilities ~4 pts high.
-- When the tuned config changes, update `artifacts/dixon_coles.json`, re-run refresh, and update the numbers above.
+- Candidate changes are replayed blind over nine seasons before shipping:
+  `reports\experiments\bench.py --variant <key=value,…>` prints RPS, calibration, within-club ordering, run
+  ranking and tile stability against the blind baseline, each with an interval. `--variant spread=1.0` is its
+  self-test and must come out 0.0000.
+- Blind replay (2017/18–2025/26, each season's settings tuned only on earlier seasons): **RPS 0.1994** vs closing
+  odds 0.1932, Elo 0.2079, venue-only 0.2250 — about 80% of the way from a venue-only forecast to the market.
+  Tuning on later seasons bought nothing measurable, so the settings are not over-fitted.
+- Three corrections sit on top of the fitted model, each with its own artifact:
+  - **Rating spread** (`spread` in `dixon_coles.json`, 1.10): the ridge leaves the best and worst clubs too close
+    to average, so the ratings are stretched around their mean and mu is re-solved to keep league goals. Chosen on
+    the tuning seasons by log loss (RPS barely separates them). Blind replay: the top/bottom decile miss falls from
+    0.123 to 0.065 points per game, better than the market's 0.060.
+  - **Clean-sheet correction** (`clean_sheet_calibration.json`): `p' = sigmoid(a + b·logit(p))` fitted on the tuning
+    seasons, capped and shrunk toward doing nothing. Test seasons: predicted 30.8% → 28.8% against 26.1% observed,
+    Brier 0.1818 → 0.1803. Win/draw/loss are untouched.
+  - **Market blend** (`market_blend.json`, weight 0.35): bookmaker prices are pooled into win/draw/loss for
+    fixtures within 7 days that have a fresh price from ≥ 3 bookmakers. Blind replay, next-week games: RPS
+    −0.0027 (−0.0034 to −0.0021), at the cost of tile colours holding from 4–5 weeks out falling 88% → 81%.
+    The weight is the owner's choice of that trade-off, not a fit; the Odds lens stays pure market.
+- Label cuts: the yearly backtest still proposes one cut set (`jobs/backtest.py:propose_thresholds`); with
+  venue-aware labels, re-check the home and away top cuts by hand (docs/fixture_difficulty.md 1.6) until it proposes both.
+- Known weaknesses: promoted teams learned too slowly after week 8 (+0.0088 RPS behind the market, against +0.0057
+  elsewhere), clean sheets still ~2.7 pts high on the test seasons after the correction, and no team news at all
+  beyond the blended prices.
+- Judging whether a forecast tells a club's easy games from its hard ones: compare only forecasts made on the
+  same date. Demeaning by a club's season average mixes in forecasts made after a game, which already contain
+  its result, and penalises any model that learns from results.
+- When the tuned config changes, re-run `python -m app.jobs.backtest` (it rewrites `artifacts/dixon_coles.json` and
+  `artifacts/clean_sheet_calibration.json`), re-run refresh, and update the numbers above.
+  `artifacts/market_blend.json` is a product setting, not a fit: change it by hand.
 
 ## Free-tier limits (personal, non-commercial use)
 
 | Service | Limit | Rule for the code |
 |---|---|---|
 | football-data.org | **10 requests/min** with token; LaLiga (`PD`) + Champions League only, no Europa/Conference | One matches call per refresh; ≥ 10-min cooldown between refreshes; retry 429 with backoff; never loop per match |
-| football-data.co.uk | Free CSVs; results and `fixtures.csv` (Bet365/avg/max odds, no Pinnacle) updated Tue ~13:00 / Fri ~17:00 UK | Disk cache in `backend/data/raw/`; re-download only the current season; a 404 for a brand-new season means "no rows yet" |
+| football-data.co.uk | Free CSVs; results and `fixtures.csv` (Bet365/avg/max odds, no Pinnacle) updated Tue ~13:00 / Fri ~17:00 UK | Disk cache in `backend/data/raw/`; re-download only the current season; a 404 for a brand-new season means "no rows yet". The predict job reads five seasons (the record at each price counts them; the model fits two years) |
 | The Odds API | Free Starter plan: **500 credits/month**; `h2h,totals` × `eu` = 2 credits per call | One call per sync, skipped when the last fetch is < 6 h old (≤ 4 calls/day ≈ 240 credits/month); never per-event markets; key only in `.env` / Actions secret, sent as a query parameter, so never log request URLs or raw httpx errors |
-| Open-Meteo | Non-commercial: **600/min, 5,000/hour, 10,000/day, 300,000/month**; **CC BY 4.0 attribution required** | ≤ 1 call per stadium per refresh; keep the footer attribution |
 | Neon Free | **0.5 GB/project, 100 CU-hours/month**, up to 2 CU, scale to zero after 5 min idle, 10 branches, 6 h history, 5 GB egress. **Hitting any limit suspends compute until next month** | Cache the grid and revalidate only after a refresh; never point uptime monitors at DB-backed endpoints (≈182 CU-h/month); keep `/api/health` DB-free |
 | Club crests | No licence stated; club trademarks | Personal use only; `NEXT_PUBLIC_SHOW_CLUB_CRESTS=false` (in `frontend/.env.local`) shows colour badges instead; URLs allowlisted to `https://crests.football-data.org/` in `services/crests.py` and again in `Crest.tsx`; hot-linked (`unoptimized`, `no-referrer`), never downloaded or proxied |
 | StatsBomb Open Data | LaLiga only to 2020/21, Barcelona matches only | Research only; not in the pipeline |
@@ -152,6 +246,9 @@ Transfermarkt Terms prohibit scraping. No LaLiga logo or wordmark.
 
 ## Yearly rollover (June, when next season's fixtures appear)
 
+0. After the new season's fixtures are synced and every promoted club resolves, run
+   `python -m app.jobs.opening_projection` and commit `backend/artifacts/opening_projection.json` (the chart's
+   August line). `--check` fails while it is stale.
 1. Add promoted clubs to `team_registry.py` (check football-data.org `tla` codes, football-data.co.uk spellings, and
    any The Odds API spelling the odds step logs as unmatched → `odds_names`).
 2. Run refresh; confirm all 20 teams resolve and predictions exist.

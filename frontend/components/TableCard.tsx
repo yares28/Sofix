@@ -12,7 +12,7 @@ import SegmentedControl from "./SegmentedControl";
 
 interface Props {
   grid: FixtureGrid;
-  through: number | null; // standings after this gameweek column; null = every result so far
+  through: number | null; // a gameweek picked by hand; null = every result, and a full-season projection
   mode: TableMode;
   onMode: (mode: TableMode) => void;
   onOpenTable: () => void;
@@ -44,7 +44,7 @@ export default function TableCard({ grid, through, mode, onMode, onOpenTable }: 
         spoken: `${row.points} points, last ${row.form.length}: ${row.form.map((o) => OUTCOME_WORD[o]).join(", ") || "no games"}`,
       }));
     }
-    return predictedTable(grid, { simulations: 0 }).map((row) => { // projected points only: no chances shown here
+    return predictedTable(grid, { simulations: 0, through: through ?? undefined }).map((row) => { // projected points only: no chances here
       const move = row.currentPosition - row.position;
       return {
         team: row.team,

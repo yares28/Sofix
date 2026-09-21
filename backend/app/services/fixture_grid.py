@@ -9,13 +9,15 @@ from typing import cast
 
 from sqlalchemy.orm import Session
 
-from app.models import Fixture, MarketOdds, Prediction, RefreshRun, Team, WeatherSnapshot
+from app.config import settings
+from app.models import Fixture, MarketOdds, Prediction, RefreshRun, Team
 from app.schemas import (
     CellMarket,
     CellPrediction,
+    CellRecord,
     CellResult,
+    CellReview,
     CellStatus,
-    CellWeather,
     DifficultyLabel,
     FixtureGrid,
     GridCell,
@@ -31,7 +33,9 @@ from app.schemas import (
 from app.services.crests import safe_crest_url
 from app.services.market_odds import MarketLine, team_market
 from app.services.model_notes import MODEL_NOTES
-from app.services.scoring import LABEL_THRESHOLDS, LABELS, label_bucket
+from app.services.opening_projection import load_opening_projection
+from app.services.postmortem import surprise_of
+from app.services.scoring import LABEL_THRESHOLDS, LABELS, difficulty_label, label_bucket
 from app.services.team_registry import by_code
 from app.services.timeutil import as_utc
 
@@ -102,13 +106,17 @@ def live_predictions(db: Session, fixture_ids: list[int]) -> dict[tuple[int, int
     return {(p.fixture_id, p.perspective_team_id): p for p in rows}
 
 
-def latest_weather(db: Session, fixture_ids: list[int]) -> dict[int, WeatherSnapshot]:
+def historic_predictions(db: Session, fixture_ids: list[int]) -> dict[tuple[int, int], Prediction]:
+    """The last forecast made before kickoff for games already played, whatever version wrote it.
+
+    Deliberately not filtered by model version, unlike live_predictions: re-fitting the model must not erase
+    what the board said at the time. The predict job only deletes rows for fixtures it re-predicts, so these
+    rows survive; the newest prediction_ts is the last one written while the game was still upcoming.
+    """
     rows = (
-        db.query(WeatherSnapshot)
-        .filter(WeatherSnapshot.fixture_id.in_(fixture_ids or [-1]))
-        .order_by(WeatherSnapshot.snapshot_ts)
+        db.query(Prediction).filter(Prediction.fixture_id.in_(fixture_ids or [-1])).order_by(Prediction.prediction_ts)
     )
-    return {w.fixture_id: w for w in rows}
+    return {(p.fixture_id, p.perspective_team_id): p for p in rows}  # ordered ascending: the last write wins
 
 
 def latest_odds(db: Session, fixture_ids: list[int]) -> dict[int, MarketOdds]:
@@ -132,17 +140,48 @@ def cell_market(odds: MarketOdds, venue: Venue) -> CellMarket:
         scores_2plus=round(market.scores_2plus, 4),
         clean_sheet=round(market.clean_sheet, 4),
         concedes_2plus=round(market.concedes_2plus, 4),
+        both_score=round(market.both_score, 4),
         expected_points=round(3 * market.win + market.draw, 3),
         bookmakers=odds.bookmakers,
         fetched_at=as_utc(odds.fetched_at),
     )
 
 
-def cell_prediction(pred: Prediction) -> CellPrediction:
+def cell_record(pred: Prediction | None, key: str) -> CellRecord | None:
+    """The stored record, if the predict job found one for this club at this price."""
+    stored = (pred.explanation or {}).get(key) if pred else None
+    return CellRecord(**stored) if isinstance(stored, dict) else None
+
+
+def cell_review(pred: Prediction | None, result: CellResult | None) -> CellReview | None:
+    """How that forecast did: the chance it gave what happened, the points swing, and how odd the result was."""
+    if pred is None or result is None:
+        return None
+    points = {"W": 3, "D": 1, "L": 0}[result.outcome]
+    chance = {"W": pred.p_win, "D": pred.p_draw, "L": pred.p_loss}[result.outcome]
+    return CellReview(
+        outcome_chance=round(chance, 3),
+        points=points,
+        expected_points=round(pred.expected_points, 3),
+        surprise=round(surprise_of(pred.p_win, pred.p_draw, pred.p_loss, points), 3),
+    )
+
+
+def cell_prediction(pred: Prediction, venue: Venue, strict: bool = True) -> CellPrediction:
+    """One forecast as the board shows it.
+
+    A played game's forecast can be old enough to carry label words the board no longer uses. Its numbers
+    are still the forecast, so they are kept and the word is said again in today's vocabulary; on a game
+    still to come an unknown label is a bug and stops the grid.
+    """
     optional = lambda value, digits: None if value is None else round(value, digits)
-    if pred.difficulty_label not in LABELS:
-        raise ValueError(f"unknown difficulty label {pred.difficulty_label!r} on prediction {pred.id}")
-    label = cast(DifficultyLabel, pred.difficulty_label)
+    both_score = (pred.explanation or {}).get("both_score")
+    stored = pred.difficulty_label
+    if stored not in LABELS:
+        if strict:
+            raise ValueError(f"unknown difficulty label {stored!r} on prediction {pred.id}")
+        stored = difficulty_label(pred.difficulty_score, venue)
+    label = cast(DifficultyLabel, stored)
     return CellPrediction(
         difficulty=round(pred.difficulty_score, 1),
         label=label,
@@ -152,6 +191,7 @@ def cell_prediction(pred: Prediction) -> CellPrediction:
         clean_sheet=optional(pred.p_clean_sheet, 3),
         xg_for=optional(pred.xg_for, 2),
         xg_against=optional(pred.xg_against, 2),
+        both_score=optional(both_score, 3) if isinstance(both_score, int | float) else None,
     )
 
 
@@ -169,12 +209,17 @@ def quantile_scale(values: list[float]) -> LensScale:
 
 
 def lens_scales(cells: list[GridCell]) -> LensScales:
+    # Cut points come from the games still to be played. Played games carry their old forecast for the
+    # review, and counting those would shift every colour on the board as the season goes on.
+    cells = [cell for cell in cells if cell.status != "finished"]
     predictions = [cell.prediction for cell in cells if cell.prediction]
     return LensScales(
         overall=LensScale(cuts=list(LABEL_THRESHOLDS), higher_is_easier=False),
         attack=quantile_scale([p.xg_for for p in predictions if p.xg_for is not None]),
         defence=quantile_scale([p.clean_sheet for p in predictions if p.clean_sheet is not None]),
         odds=quantile_scale([cell.market.win for cell in cells if cell.market]),
+        record=quantile_scale([cell.record.edge for cell in cells if cell.record]),
+        market_record=quantile_scale([cell.record_price.edge for cell in cells if cell.record_price]),
     )
 
 
@@ -190,8 +235,9 @@ def build_fixture_grid(db: Session) -> FixtureGrid | None:
     )
     fixture_ids = [fx.id for fx in fixtures]
     teams = {team.id: team for team in db.query(Team).all()}
-    predictions = live_predictions(db, fixture_ids)
-    weather = latest_weather(db, fixture_ids)
+    played_ids = [fx.id for fx in fixtures if normalize_status(fx.status) == "finished"]
+    live = live_predictions(db, fixture_ids)
+    predictions = {**live, **historic_predictions(db, played_ids)}
     odds = latest_odds(db, fixture_ids)
 
     by_matchday: dict[int, list[Fixture]] = defaultdict(list)
@@ -220,12 +266,6 @@ def build_fixture_grid(db: Session) -> FixtureGrid | None:
         if fx.matchday is None:
             continue
         matchday = fx.matchday
-        w = weather.get(fx.id)
-        cell_weather = (
-            CellWeather(temperature_c=w.temperature_c, precipitation_mm=w.precipitation_mm, wind_kmh=w.wind_speed_kmh)
-            if w
-            else None
-        )
         kickoff = as_utc(fx.kickoff_utc)
         status = normalize_status(fx.status)
         sides: tuple[tuple[int, int, Venue], ...] = (
@@ -237,6 +277,8 @@ def build_fixture_grid(db: Session) -> FixtureGrid | None:
                 (fx.home_goals, fx.away_goals) if venue == "H" else (fx.away_goals, fx.home_goals)
             )
             pred = predictions.get((fx.id, team_id))
+            result = result_for(goals_for, goals_against) if status == "finished" else None
+            rated = status in {"scheduled", "live", "finished"}
             cells[team_id][column[matchday]].append(
                 GridCell(
                     fixture_id=fx.id,
@@ -246,14 +288,18 @@ def build_fixture_grid(db: Session) -> FixtureGrid | None:
                     date_confirmed=date_confirmed(fx.status),
                     rescheduled=abs(kickoff - centres[matchday]) > RESCHEDULED_AFTER,
                     status=status,
-                    result=result_for(goals_for, goals_against) if status == "finished" else None,
-                    # Only games still to be played carry a forecast (postponed ones have no date to rate).
-                    prediction=cell_prediction(pred) if pred and status in {"scheduled", "live"} else None,
-                    weather=cell_weather if status in {"scheduled", "live"} else None,
+                    result=result,
+                    review=cell_review(pred, result),
+                    # Everything but a postponed game carries a forecast: a played one keeps the last one
+                    # made before kickoff, so the board can be checked against what happened.
+                    prediction=cell_prediction(pred, venue, strict=status != "finished") if pred and rated else None,
                     market=cell_market(odds[fx.id], venue) if fx.id in odds and status == "scheduled" else None,
+                    record=cell_record(pred, "record") if rated else None,
+                    record_price=cell_record(pred, "record_price") if status == "scheduled" else None,
                 )
             )
 
+    opening = load_opening_projection(settings.opening_projection_path, season)
     grid_teams = []
     for team_id, team in teams.items():
         if not any(cells[team_id]):
@@ -266,11 +312,12 @@ def build_fixture_grid(db: Session) -> FixtureGrid | None:
                 color=team.color or (info.color if info else "#8e8e93"),
                 crest_url=safe_crest_url(team.crest_url),  # re-checked on the way out, in case of old rows
                 cells=cells[team_id],
+                opening=opening.path(team_code(team), numbers) if opening else None,
             )
         )
     grid_teams.sort(key=lambda t: t.name)
 
-    versions = {p.model_version for p in predictions.values()}
+    versions = {p.model_version for p in live.values()}  # what the board forecasts with now, not what it used to
     all_cells = [cell for team in grid_teams for team_column in team.cells for cell in team_column]
     return FixtureGrid(
         season=season,

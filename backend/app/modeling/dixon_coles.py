@@ -22,7 +22,7 @@ import pandas as pd
 from scipy.optimize import minimize, minimize_scalar
 from scipy.stats import poisson
 
-OUTCOME_COLUMNS = ["lam_h", "lam_a", "p_h", "p_d", "p_a", "cs_h", "cs_a"]
+OUTCOME_COLUMNS = ["lam_h", "lam_a", "p_h", "p_d", "p_a", "cs_h", "cs_a", "p_00"]
 
 
 @dataclass(frozen=True)
@@ -33,6 +33,7 @@ class DixonColesConfig:
     promoted_prior: float = -0.2  # prior attack and defence rating for promoted teams
     window_days: int = 730  # ignore matches older than this
     max_goals: int = 10
+    spread: float = 1.0  # widen (>1) or narrow (<1) the fitted rating spread; 1.0 leaves the fit alone
 
 
 def dc_adjustments(lam_h: np.ndarray, lam_a: np.ndarray, rho: float) -> dict[tuple[int, int], np.ndarray]:
@@ -61,7 +62,7 @@ def score_matrix(lam_h: np.ndarray, lam_a: np.ndarray, rho: float, max_goals: in
 def outcome_table(
     lam_h: Sequence[float], lam_a: Sequence[float], rho: float = 0.0, max_goals: int = 10
 ) -> pd.DataFrame:
-    """Win/draw/loss and clean-sheet probabilities from expected goals."""
+    """Win/draw/loss, clean-sheet and goalless probabilities from expected goals."""
     lam_h = np.asarray(lam_h, dtype=float)
     lam_a = np.asarray(lam_a, dtype=float)
     matrix = score_matrix(lam_h, lam_a, rho, max_goals)
@@ -74,6 +75,7 @@ def outcome_table(
             "p_a": np.triu(matrix, 1).sum(axis=(1, 2)),
             "cs_h": matrix[:, :, 0].sum(axis=1),  # away team scores 0
             "cs_a": matrix[:, 0, :].sum(axis=1),  # home team scores 0
+            "p_00": matrix[:, 0, 0],  # goalless; with cs_h and cs_a this gives both teams to score
         }
     )
 
@@ -170,17 +172,46 @@ def objective(theta: np.ndarray, data: FitData) -> tuple[float, np.ndarray]:
     return nll + penalty, grad
 
 
+def apply_spread(theta: np.ndarray, data: FitData, spread: float) -> np.ndarray:
+    """Stretch the fitted ratings around their mean, then re-solve mu so league goals stay the same.
+
+    The ridge penalty pulls every rating toward the prior, which leaves the best and worst clubs closer to
+    average than they really are. `spread` > 1 undoes some of that pull without loosening the penalty that
+    keeps a club with few matches stable. mu is re-solved because stretching the ratings would otherwise
+    raise the total goals the model expects (exp is convex).
+    """
+    if spread == 1.0:
+        return theta
+    n = data.n_teams
+    home_adv = theta[1]
+    attack, defence = theta[2 : 2 + n], theta[2 + n :]
+    attack = attack.mean() + spread * (attack - attack.mean())
+    defence = defence.mean() + spread * (defence - defence.mean())
+    rates = np.exp(home_adv + attack[data.home_idx] - defence[data.away_idx]) + np.exp(
+        attack[data.away_idx] - defence[data.home_idx]
+    )
+    goals = float(np.sum(data.weights * (data.home_target + data.away_target)))
+    total = float(np.sum(data.weights * rates))
+    mu = np.log(goals / total) if goals > 0 and total > 0 else theta[0]
+    return np.concatenate([[mu, home_adv], attack, defence])
+
+
 def fit_dixon_coles(
     matches: pd.DataFrame,
     cutoff: pd.Timestamp,
     teams: Iterable[str] = (),
     promoted: Iterable[str] = (),
     config: DixonColesConfig = DixonColesConfig(),
+    match_weights: np.ndarray | None = None,
 ) -> DixonColesModel:
     """Fit on matches played strictly before `cutoff`.
 
     `teams` lists teams that must be predictable even without recent matches (e.g. promoted
     sides); they fall back to their prior.
+
+    `match_weights` multiplies the time-decay weight of each training match, in the order the matches
+    come in after the window filter. It is how app/services/drift.py makes the fit pay more attention to
+    a club it keeps getting wrong; None leaves every match on the time decay alone.
     """
     cutoff = pd.Timestamp(cutoff)
     window_start = cutoff - pd.Timedelta(days=config.window_days)
@@ -193,11 +224,17 @@ def fit_dixon_coles(
     index = {team: i for i, team in enumerate(team_list)}
     n = len(team_list)
     yh, ya = blended_targets(train, config.goals_weight)
+    decay = np.exp(-config.xi * (cutoff - train["date"]).dt.days.to_numpy(dtype=float))
+    if match_weights is not None:
+        extra = np.asarray(match_weights, dtype=float)
+        if len(extra) != len(train):
+            raise ValueError(f"match_weights has {len(extra)} entries for {len(train)} training matches")
+        decay = decay * extra
     data = FitData(
         n_teams=n,
         home_idx=train["home"].map(index).to_numpy(),
         away_idx=train["away"].map(index).to_numpy(),
-        weights=np.exp(-config.xi * (cutoff - train["date"]).dt.days.to_numpy(dtype=float)),
+        weights=decay,
         home_target=yh,
         away_target=ya,
         prior=np.array([config.promoted_prior if team in promoted else 0.0 for team in team_list]),
@@ -213,7 +250,7 @@ def fit_dixon_coles(
             f"Dixon-Coles fit at {cutoff.date()} did not converge: {result.message}", RuntimeWarning, stacklevel=2
         )
 
-    theta = result.x
+    theta = apply_spread(result.x, data, config.spread)
     model = DixonColesModel(
         teams=team_list,
         mu=float(theta[0]),

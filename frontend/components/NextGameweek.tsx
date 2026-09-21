@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatDay, formatKickoff } from "../lib/grid";
+import { decimalOdds, formatDay, formatKickoff } from "../lib/grid";
 import { gameweekMatches, matchOutlook, type Match } from "../lib/matches";
 import type { CellPrediction, FixtureGrid, GridTeam } from "../lib/types";
 import Crest from "./Crest";
@@ -47,7 +47,6 @@ function MatchCard({ match }: { match: Match }) {
   const hp = homeCell.prediction;
   const ap = awayCell.prediction;
   const outlook = matchOutlook(match);
-  const weather = homeCell.weather;
   const when = homeCell.date_confirmed
     ? formatKickoff(homeCell.kickoff_utc)
     : `Date TBC · weekend of ${formatDay(homeCell.kickoff_utc)}`;
@@ -103,6 +102,14 @@ function MatchCard({ match }: { match: Match }) {
                 <th scope="row">Difficulty</th>
                 <td className="stat-away"><DifficultyChip prediction={ap} /></td>
               </tr>
+              {hp.both_score !== null && hp.both_score !== undefined && (
+                <tr className="stat-single">
+                  <td colSpan={3}>
+                    Both teams to score {percent(hp.both_score)}
+                    {homeCell.market && <span className="muted"> · bookmakers {decimalOdds(homeCell.market.both_score)}</span>}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
 
@@ -110,11 +117,6 @@ function MatchCard({ match }: { match: Match }) {
         </>
       )}
 
-      {weather && weather.temperature_c !== null && (
-        <div className="match-weather">
-          {Math.round(weather.temperature_c)}°C · {(weather.precipitation_mm ?? 0).toFixed(1)} mm rain · {Math.round(weather.wind_kmh ?? 0)} km/h wind
-        </div>
-      )}
     </article>
   );
 }

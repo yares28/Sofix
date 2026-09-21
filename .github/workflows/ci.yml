@@ -26,14 +26,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # setup-uv downloads Python 3.11 into a virtualenv and activates it: the runner has no system 3.11.
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.11"
+          activate-environment: true
           enable-cache: true
           cache-dependency-glob: backend/requirements-dev.lock
 
       - name: Install locked dependencies
-        run: uv pip sync --system requirements-dev.lock
+        run: uv pip sync requirements-dev.lock
 
       - name: Ruff lint
         run: ruff check .

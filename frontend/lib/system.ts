@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { database, readModel } from "./db";
-import type { ExtensionStatus, Limits, RunSummary, SystemStatus } from "./control";
+import { isDatabasePaused, type ExtensionStatus, type Limits, type RunSummary, type SystemStatus } from "./control";
 
 /** Cache tag for the Control Center's data; revalidated with the grid when a refresh ends. */
 export const SYSTEM_TAG = "system";
@@ -69,6 +69,8 @@ export async function loadSystem(): Promise<SystemStatus | null> {
     return await cachedSystem();
   } catch (error) {
     console.error(`[system] could not load: ${error instanceof Error ? error.name : "unknown error"}`);
+    // Failures aren't cached, so while Neon is paused each view tries again; a refused connection costs no compute.
+    if (error instanceof Error && isDatabasePaused(error.message)) return { runs: [], limits: null, extension: null, paused: true };
     return null;
   }
 }

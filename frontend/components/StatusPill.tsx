@@ -1,19 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { pulseOf, type SystemStatus } from "../lib/control";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { PILL_LABEL, pulseOf, type SystemStatus } from "../lib/control";
 import { relativeTime } from "../lib/grid";
-import ControlCenter from "./ControlCenter";
 
-type Props = { syncedAt: string | null; system: SystemStatus | null; refreshEnabled: boolean };
+type Props = { syncedAt: string | null; system: SystemStatus | null; current: boolean };
 
-const LABEL = { good: "All good", stale: "Data is old", failed: "Refresh failed" } as const;
-
-/** The heartbeat in the top bar. Times depend on the viewer's clock, so they appear after hydration. */
-export default function StatusPill({ syncedAt, system, refreshEnabled }: Props) {
+/**
+ * The heartbeat in the top bar; it opens the Control Center page. Times depend on the viewer's clock, so they
+ * appear after hydration.
+ */
+export default function StatusPill({ syncedAt, system, current }: Props) {
   const [now, setNow] = useState<Date | null>(null);
-  const [open, setOpen] = useState(false);
-  const pill = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     setNow(new Date());
@@ -21,31 +20,17 @@ export default function StatusPill({ syncedAt, system, refreshEnabled }: Props) 
     return () => window.clearInterval(timer);
   }, []);
 
-  const close = useCallback(() => {
-    setOpen(false);
-    pill.current?.focus();
-  }, []);
-
   const pulse = now ? pulseOf(system, syncedAt, now) : null;
   const updated = now && syncedAt ? relativeTime(syncedAt, now) : null;
 
   return (
-    <>
-      <button
-        ref={pill}
-        type="button"
-        className={`status-pill ${pulse?.state ?? ""}`}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        onClick={() => setOpen(true)}
-      >
-        <svg className="beat" viewBox="0 0 22 14" aria-hidden="true">
-          <path d="M1 7h5l2-5 3 10 2-5h8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-        <span>{pulse ? LABEL[pulse.state] : "Status"}</span>
-        {updated && <small>· updated {updated}</small>}
-      </button>
-      {open && now && <ControlCenter now={now} syncedAt={syncedAt} system={system} refreshEnabled={refreshEnabled} onClose={close} />}
-    </>
+    <Link href="/control" className={`status-pill ${pulse?.state ?? ""}`} aria-current={current ? "page" : undefined}>
+      <svg className="beat" viewBox="0 0 22 14" aria-hidden="true">
+        <path d="M1 7h5l2-5 3 10 2-5h8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <span className="visually-hidden">Control Center: </span>
+      <span>{pulse ? PILL_LABEL[pulse.state] : "Status"}</span>
+      {updated && <small>· updated {updated}</small>}
+    </Link>
   );
 }

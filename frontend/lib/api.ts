@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { isDatabasePaused } from "./control";
 import { database, readModel } from "./db";
 import { GRID_TAG } from "./refresh";
 import { GridResponseSchema } from "./schema";
@@ -13,6 +14,7 @@ export const MESSAGES = {
   unavailable: "Fixture data is temporarily unavailable. Try again in a minute.",
   empty: "No fixtures have been loaded yet. They will appear after the next data refresh.",
   malformed: "The fixture data could not be read. It will be fixed with the next data refresh.",
+  paused: "The database is paused until the 1st: the free plan's monthly limit ran out. The board comes back by itself.",
 } as const;
 
 export type Loaded = { grid: FixtureGrid; meta: GridMeta | null; error: null } | { grid: null; meta: null; error: string };
@@ -67,6 +69,7 @@ export async function loadGrid(): Promise<Loaded> {
     if (!(error instanceof GridUnavailable)) {
       console.error(`[fixture-grid] request failed: ${error instanceof Error ? error.name : "unknown error"}`);
     }
+    if (error instanceof Error && isDatabasePaused(error.message)) return { grid: null, meta: null, error: MESSAGES.paused };
     return { grid: null, meta: null, error: error instanceof GridUnavailable ? error.message : MESSAGES.unavailable };
   }
 }

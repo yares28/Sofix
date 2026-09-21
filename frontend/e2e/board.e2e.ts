@@ -267,8 +267,9 @@ test("fixture tiles work from the keyboard with a tooltip", async ({ page }) => 
 test("the refresh button runs a refresh, then waits out the cooldown", async ({ page, request }) => {
   await request.post("http://127.0.0.1:8765/__test/reset"); // reset() records a finished run 10 min ago
   await page.goto("/");
-  await page.locator(".status-pill").click(); // the button lives in the Control Center
-  await expect(page.getByRole("dialog", { name: "Control Center" })).toBeVisible();
+  await page.locator(".status-pill").click(); // the button lives in the Control Center page
+  await expect(page).toHaveURL(/\/control$/, { timeout: 30_000 }); // the dev server compiles the page on first visit
+  await expect(page.getByRole("heading", { level: 1, name: "Control Center" })).toBeVisible();
   const button = page.locator(".refresh-button");
   await expect(button).toHaveText("Refresh");
   await button.click();
@@ -484,6 +485,30 @@ test("an unknown team code is a 404 page", async ({ page }) => {
   const response = await page.goto("/team/XXX");
   expect(response?.status()).toBe(404);
   await expect(page.getByRole("heading", { name: "Not found" })).toBeVisible();
+});
+
+test("the status pill opens the Control Center: status, install with a QR code, how it runs", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" }); // the cards fade in; scan the colours they settle on
+  await page.goto("/");
+  await page.locator(".status-pill").click();
+  await expect(page).toHaveURL(/\/control$/, { timeout: 30_000 }); // the dev server compiles the page on first visit
+  await expect(page.locator(".status-pill")).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("heading", { level: 2, name: "All good" })).toBeVisible(); // no database: no setup to nag about
+  await expect(page.getByRole("button", { name: "Refresh" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Get the app" })).toBeVisible();
+  await expect(page.getByRole("img", { name: /^QR code for 127\.0\.0\.1:3100$/ })).toBeVisible();
+  await expect(page.getByRole("img", { name: /^GitHub runs the jobs on a clock/ })).toBeVisible();
+  const scan = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
+  expect(scan.violations.map((v) => `${v.id}: ${v.nodes.slice(0, 4).map((n) => n.target.join(" ")).join("; ")}`)).toEqual([]);
+});
+
+test("the manifest is linked with credentials, so it loads behind Vercel's login", async ({ page, request }) => {
+  await page.goto("/");
+  const link = page.locator('link[rel="manifest"]');
+  await expect(link).toHaveCount(1);
+  await expect(link).toHaveAttribute("crossorigin", "use-credentials");
+  const manifest = await (await request.get("/manifest.webmanifest")).json();
+  expect(manifest).toMatchObject({ name: "Sofix", display: "standalone", start_url: "/" });
 });
 
 test("the board has no automatically detectable accessibility violations", async ({ page }) => {

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import {
   barsOf,
   capsulesOf,
@@ -8,18 +9,30 @@ import {
   dialOf,
   nextRunLabel,
   pulseOf,
+  setupLeft,
+  withLiveExtension,
   type ChainNode,
   type DialMark,
+  type PulseState,
   type SystemStatus,
 } from "../lib/control";
+import { pingExtension, type ExtensionPing } from "../lib/extension";
+import type { QrCode } from "../lib/qr";
+import ExtensionSetup, { type ExtensionStage } from "./control/ExtensionSetup";
+import GetTheApp from "./control/GetTheApp";
+import HowItRuns from "./control/HowItRuns";
+import RefreshSetup from "./control/RefreshSetup";
 import RefreshButton from "./RefreshButton";
 
-type Props = {
-  now: Date;
+export type ControlCenterProps = {
+  /** The server's clock at render, so the first paint matches hydration; the browser's clock takes over after. */
+  serverNow: string;
   syncedAt: string | null;
   system: SystemStatus | null;
   refreshEnabled: boolean;
-  onClose: () => void;
+  app: { host: string; qr: QrCode };
+  extensionDir: string | null;
+  links: { githubToken: string; vercelEnv: string };
 };
 
 const ICONS: Record<ChainNode["id"], React.ReactNode> = {
@@ -58,6 +71,24 @@ const ICONS: Record<ChainNode["id"], React.ReactNode> = {
     </svg>
   ),
 };
+
+const CHECK = (
+  <svg width="26" height="26" viewBox="0 0 26 26">
+    <path d="m7 13.5 4 4L19.5 9" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const BANG = (
+  <svg width="26" height="26" viewBox="0 0 26 26">
+    <path d="M13 7v8" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" />
+    <circle cx="13" cy="19.5" r="1.7" fill="currentColor" />
+  </svg>
+);
+const PAUSE = (
+  <svg width="26" height="26" viewBox="0 0 26 26">
+    <path d="M10 8v10M16 8v10" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" />
+  </svg>
+);
+const ORB: Record<PulseState, React.ReactNode> = { good: CHECK, setup: BANG, stale: BANG, failed: BANG, paused: PAUSE };
 
 function Dial({ marks, nowHour }: { marks: DialMark[]; nowHour: number }) {
   const C = 120;
@@ -105,171 +136,239 @@ function Dial({ marks, nowHour }: { marks: DialMark[]; nowHour: number }) {
   );
 }
 
-export default function ControlCenter({ now, syncedAt, system, refreshEnabled, onClose }: Props) {
-  const closeRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    closeRef.current?.focus();
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = previous;
-    };
-  }, [onClose]);
-
-  const runs = system?.runs ?? [];
-  const pulse = pulseOf(system, syncedAt, now);
-  const { marks, nowHour } = dialOf(runs, now);
-  const bars = barsOf(runs);
-  const max = Math.max(1, ...bars.map((b) => b.seconds ?? 0));
-  const caps = capsulesOf(system?.limits ?? null);
-  const chain = chainOf(system, now);
-  const next = nextRunLabel(now);
-  const scheduled = runs.filter((run) => run.trigger === "schedule").length;
-  const failedRuns = runs.filter((run) => run.status === "failed").length;
-
-  return (
-    <div className="cc-scrim">
-      <button type="button" className="cc-backdrop" aria-label="Close Control Center" tabIndex={-1} onClick={onClose} />
-      <div className="cc-sheet" role="dialog" aria-modal="true" aria-labelledby="cc-title">
-        <header className="cc-head">
-          <h2 id="cc-title">Control Center</h2>
-          <button ref={closeRef} type="button" className="cc-x" onClick={onClose} aria-label="Close">
-            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
-              <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
-          </button>
-        </header>
-
-        <div className="cc-grid">
-          <section className={`cc-w cc-pulse ${pulse.state}`} style={{ "--i": 0 } as React.CSSProperties} aria-labelledby="cc-pulse-title">
-            <div>
-              <span className="cc-orb" aria-hidden="true">
-                {pulse.state === "good" ? (
-                  <svg width="26" height="26" viewBox="0 0 26 26">
-                    <path d="m7 13.5 4 4L19.5 9" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                ) : (
-                  <svg width="26" height="26" viewBox="0 0 26 26">
-                    <path d="M13 7v8" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" />
-                    <circle cx="13" cy="19.5" r="1.7" fill="currentColor" />
-                  </svg>
-                )}
-              </span>
-              <h4 id="cc-pulse-title">{pulse.title}</h4>
-              <p>{pulse.detail}</p>
-              <svg className="cc-ecg" viewBox="0 0 320 56" preserveAspectRatio="none" aria-hidden="true">
-                <path d="M0 30h70l8-16 10 34 9-26 6 8h60l7-12 9 22 8-10h40l6-6 8 12h79" />
-              </svg>
-            </div>
-            {refreshEnabled ? <RefreshButton /> : <span className="cc-note">Refreshes run by themselves on a clock.</span>}
-          </section>
-
-          <section className="cc-w cc-dial" style={{ "--i": 1 } as React.CSSProperties} aria-label="Today's schedule">
-            <Dial marks={marks} nowHour={nowHour} />
-            <div className="cc-dial-cap">
-              <b>{next ? `Next · ${next}` : "No refresh scheduled"}</b>
-              <span>board refresh, Madrid time</span>
-            </div>
-            <div className="cc-legend">
-              <span>
-                <i style={{ background: "var(--good)" }} />
-                done
-              </span>
-              <span>
-                <i style={{ background: "#fff", boxShadow: "inset 0 0 0 2px var(--good)" }} />
-                to come
-              </span>
-              <span>
-                <i style={{ background: "#fff", boxShadow: "inset 0 0 0 2px var(--low)" }} />
-                missed
-              </span>
-            </div>
-          </section>
-
-          <section className="cc-w cc-runs" style={{ "--i": 2 } as React.CSSProperties}>
-            <h3>
-              Last refreshes <span className="end">{failedRuns ? `${failedRuns} failed` : bars.length ? "all ✓" : ""}</span>
-            </h3>
-            <div className="cc-bars">
-              {bars.map((bar, i) => (
-                <div
-                  key={bar.id}
-                  className={`cc-bar${bar.status === "failed" ? " failed" : ""}`}
-                  style={{ "--i": i } as React.CSSProperties}
-                  title={`${bar.trigger === "schedule" ? "On schedule" : bar.trigger === "button" ? "Refresh button" : "By hand"} · ${bar.day} ${bar.time}${bar.seconds != null ? ` · ${bar.seconds} s` : ""}`}
-                >
-                  <em>{bar.seconds != null ? `${bar.seconds}s` : "…"}</em>
-                  <i style={{ height: `${Math.max(6, ((bar.seconds ?? 0) / max) * 100)}%` }} />
-                  <span>{bar.day}</span>
-                </div>
-              ))}
-              {next && (
-                <div className="cc-bar next" style={{ "--i": bars.length } as React.CSSProperties} title={`Next scheduled refresh ${next}`}>
-                  <em>next</em>
-                  <i style={{ height: "45%" }} />
-                  <span>{next.replace("tomorrow ", "")}</span>
-                </div>
-              )}
-            </div>
-            <div className="cap">
-              <b>
-                {scheduled} of {runs.length}
-              </b>{" "}
-              on schedule
-            </div>
-          </section>
-
-          <section className="cc-w cc-chain" style={{ "--i": 3 } as React.CSSProperties}>
-            <h3>
-              Connections <span className="end">{chain.every((n) => n.on) ? "all linked" : `${chain.filter((n) => !n.on).length} to go`}</span>
-            </h3>
-            <div className="cc-links">
-              {chain.map((node, i) => (
-                <FragmentNode key={node.id} node={node} last={i === chain.length - 1} next={chain[i + 1]} index={i} />
-              ))}
-            </div>
-          </section>
-
-          <section className="cc-w cc-limits" style={{ "--i": 4 } as React.CSSProperties}>
-            <h3>
-              Free limits <span className="end">left</span>
-            </h3>
-            <div className="cc-caps">
-              {caps.map((cap) => (
-                <div key={cap.name} className="cc-cap">
-                  <div className="cc-tube" role="img" aria-label={`${cap.name}: ${cap.value} ${cap.sub}`}>
-                    <i style={{ height: `${Math.round(cap.fraction * 100)}%` }} />
-                    <b>{cap.value}</b>
-                  </div>
-                  <strong>{cap.name}</strong>
-                  <span>{cap.sub}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FragmentNode({ node, last, next, index }: { node: ChainNode; last: boolean; next?: ChainNode; index: number }) {
+function ChainLink({ node, next, index }: { node: ChainNode; next?: ChainNode; index: number }) {
   // The last node (cloud jobs) and the wire before it are hidden on phones to keep the chain on one line.
-  const hide = index >= 3 ? " hide-sm" : "";
   return (
     <>
-      <div className={`cc-node${node.on ? "" : " off"}${hide}`}>
+      <div className={`cc-node${node.on ? "" : " off"}${index >= 3 ? " hide-sm" : ""}`}>
         <span className="ic">{ICONS[node.id]}</span>
         <b>{node.label}</b>
         <span>{node.sub}</span>
       </div>
-      {!last && <div className={`cc-wire${node.on && next?.on ? "" : " off"}${index >= 2 ? " hide-sm" : ""}`} />}
+      {next && <div className={`cc-wire${node.on && next.on ? "" : " off"}${index >= 2 ? " hide-sm" : ""}`} />}
+    </>
+  );
+}
+
+/**
+ * The Control Center page: status, today's schedule, the last refreshes, the connection chain and the free limits,
+ * then whatever setup is left, installing the app, and how it all runs. Design: docs/sorare/design/S1-foundation.html.
+ */
+export default function ControlCenter({ serverNow, syncedAt, system: stored, refreshEnabled, app, extensionDir, links }: ControlCenterProps) {
+  const router = useRouter();
+  const [now, setNow] = useState(() => new Date(serverNow));
+  const [live, setLive] = useState<ExtensionPing | null>(null);
+  // Setup still open when the page loaded: linking it now shows the "done" card instead of making it vanish.
+  const [setupAtLoad] = useState(() => setupLeft(stored));
+  const refreshedFor = useRef<string | null>(null);
+
+  useEffect(() => {
+    setNow(new Date());
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  // Ask the extension directly (free, local), and again whenever the tab comes back to the front: that is when the
+  // owner returns from chrome://extensions or sorare.com.
+  useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      const ping = await pingExtension();
+      if (!cancelled && ping) setLive(ping);
+    };
+    void check();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void check();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
+
+  // The extension's check-in revalidates the cached status; reload the server data once so the nav pill agrees.
+  useEffect(() => {
+    if (!live) return;
+    const said = `${live.version}:${live.sorareUser ?? ""}`;
+    const known = stored?.extension ? `${stored.extension.version}:${stored.extension.sorareUser ?? ""}` : null;
+    if (said === known || refreshedFor.current === said) return;
+    refreshedFor.current = said;
+    const timer = window.setTimeout(() => router.refresh(), 1500);
+    return () => window.clearTimeout(timer);
+  }, [live, stored, router]);
+
+  const system = withLiveExtension(stored, live, now);
+  const pulse = pulseOf(system, syncedAt, now);
+  const runs = system?.runs ?? [];
+  const { marks, nowHour } = dialOf(runs, now);
+  const bars = barsOf(runs);
+  const longest = Math.max(1, ...bars.map((bar) => bar.seconds ?? 0));
+  const caps = capsulesOf(system?.limits ?? null);
+  const chain = chainOf(system, now);
+  const next = nextRunLabel(now);
+  const scheduled = bars.filter((bar) => bar.trigger === "schedule").length;
+  const failed = bars.filter((bar) => bar.status === "failed").length;
+  const missing = chain.filter((node) => !node.on).length;
+
+  const extension = system?.extension ?? null;
+  const stage: ExtensionStage = !setupLeft(system) ? "done" : extension ? "sign-in" : "add";
+  const showExtension = stage !== "done" || setupAtLoad;
+  const linked = chain.find((node) => node.id === "sorare")?.on ?? false;
+  const setupNote = showExtension && stage !== "done" ? "1 step left" : refreshEnabled ? "done" : "optional";
+  const bytes = system?.limits?.databaseBytes;
+  const databaseLabel = bytes != null ? `${(bytes / 1_048_576).toFixed(1)} MB` : "your data";
+
+  return (
+    <>
+      <header className="cc-top">
+        <h1>Control Center</h1>
+        <p>Status, schedule and setup</p>
+      </header>
+
+      <div className="cc-grid">
+        <section className={`cc-w cc-pulse ${pulse.state}`} style={{ "--i": 0 } as React.CSSProperties} aria-labelledby="cc-pulse-title">
+          <div>
+            <span className="cc-orb" aria-hidden="true">
+              {ORB[pulse.state]}
+            </span>
+            <h2 id="cc-pulse-title">{pulse.title}</h2>
+            <p>{pulse.detail}</p>
+            <svg className="cc-ecg" viewBox="0 0 320 56" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M0 30h70l8-16 10 34 9-26 6 8h60l7-12 9 22 8-10h40l6-6 8 12h79" />
+            </svg>
+          </div>
+          <div className="cc-go">
+            {refreshEnabled && <RefreshButton />}
+            {pulse.state === "setup" &&
+              (stage === "sign-in" ? (
+                <a className={`cc-btn ${refreshEnabled ? "soft" : "primary"}`} href="https://sorare.com/" target="_blank" rel="noreferrer">
+                  Open sorare.com
+                </a>
+              ) : (
+                <a className={`cc-btn ${refreshEnabled ? "soft" : "primary"}`} href="#extension">
+                  Add extension
+                </a>
+              ))}
+            {!refreshEnabled && pulse.state !== "setup" && (
+              <span className="cc-note">
+                Refreshes run by themselves on a clock · <a href="#refresh-button">add a button</a>
+              </span>
+            )}
+          </div>
+        </section>
+
+        <section className="cc-w cc-dial" style={{ "--i": 1 } as React.CSSProperties} aria-label="Today's schedule">
+          <Dial marks={marks} nowHour={nowHour} />
+          <div className="cc-dial-cap">
+            <b>{next ? `Next · ${next}` : "No refresh scheduled"}</b>
+            <span>board refresh, Madrid time</span>
+          </div>
+          <div className="cc-legend">
+            <span>
+              <i className="done" />
+              done
+            </span>
+            <span>
+              <i className="todo" />
+              to come
+            </span>
+            <span>
+              <i className="missed" />
+              missed
+            </span>
+          </div>
+        </section>
+
+        <section className="cc-w cc-runs" style={{ "--i": 2 } as React.CSSProperties} aria-labelledby="cc-runs-title">
+          <h2 className="cc-label" id="cc-runs-title">
+            Last refreshes <span className="end">{failed ? `${failed} failed` : bars.length ? "all ✓" : ""}</span>
+          </h2>
+          <div className="cc-bars">
+            {bars.map((bar, i) => (
+              <div
+                key={bar.id}
+                className={`cc-bar${bar.status === "failed" ? " failed" : ""}`}
+                style={{ "--i": i } as React.CSSProperties}
+                title={`${bar.trigger === "schedule" ? "On schedule" : bar.trigger === "button" ? "Refresh button" : "By hand"} · ${bar.when}${bar.seconds != null ? ` · ${bar.seconds} s` : ""}`}
+              >
+                <em>{bar.seconds != null ? `${bar.seconds}s` : "…"}</em>
+                <i style={{ height: `${Math.max(6, ((bar.seconds ?? 0) / longest) * 100)}%` }} />
+                <span>{bar.day}</span>
+              </div>
+            ))}
+            {next && (
+              <div className="cc-bar next" style={{ "--i": bars.length } as React.CSSProperties} title={`Next scheduled refresh ${next}`}>
+                <em>next</em>
+                <i style={{ height: "45%" }} />
+                <span>{next.replace("tomorrow ", "")}</span>
+              </div>
+            )}
+          </div>
+          <div className="cap">
+            <b>
+              {scheduled} of {bars.length}
+            </b>{" "}
+            on schedule
+          </div>
+        </section>
+
+        <section className="cc-w cc-chain" style={{ "--i": 3 } as React.CSSProperties} aria-labelledby="cc-chain-title">
+          <h2 className="cc-label" id="cc-chain-title">
+            Connections <span className="end">{missing ? `${missing} to go` : "all linked"}</span>
+          </h2>
+          <div className="cc-links">
+            {chain.map((node, i) => (
+              <ChainLink key={node.id} node={node} next={chain[i + 1]} index={i} />
+            ))}
+          </div>
+        </section>
+
+        <section className="cc-w cc-limits" style={{ "--i": 4 } as React.CSSProperties} aria-labelledby="cc-limits-title">
+          <h2 className="cc-label" id="cc-limits-title">
+            Free limits <span className="end">left</span>
+          </h2>
+          <div className="cc-caps">
+            {caps.map((cap) => (
+              <div key={cap.name} className="cc-cap">
+                <div className="cc-tube" role="img" aria-label={`${cap.name}: ${cap.value} ${cap.sub}`}>
+                  <i style={{ height: `${Math.round(cap.fraction * 100)}%` }} />
+                  <b>{cap.value}</b>
+                </div>
+                <strong>{cap.name}</strong>
+                <span>{cap.sub}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      {(showExtension || !refreshEnabled) && (
+        <>
+          <div className="cc-sec">
+            <h2>Setup</h2>
+            <span>{setupNote}</span>
+          </div>
+          <div className="cc-stack">
+            {showExtension && <ExtensionSetup stage={stage} user={extension?.sorareUser ?? null} version={extension?.version ?? null} extensionDir={extensionDir} />}
+            {!refreshEnabled && <RefreshSetup tokenUrl={links.githubToken} vercelUrl={links.vercelEnv} />}
+          </div>
+        </>
+      )}
+
+      <div className="cc-app-only">
+        <div className="cc-sec">
+          <h2>Get the app</h2>
+          <span>desktop and phone, same login</span>
+        </div>
+        <GetTheApp host={app.host} qr={app.qr} />
+      </div>
+
+      <div className="cc-sec">
+        <h2>How it runs</h2>
+        <span>nothing to start</span>
+      </div>
+      <HowItRuns linked={linked} databaseLabel={databaseLabel} />
     </>
   );
 }

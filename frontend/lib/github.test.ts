@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toRefreshStatus, type DbRun, type WorkflowRun } from "./github";
+import { githubTokenUrl, toRefreshStatus, type DbRun, type WorkflowRun } from "./github";
 
 const NOW = Date.parse("2026-09-21T12:00:00Z");
 
@@ -53,5 +53,14 @@ describe("toRefreshStatus", () => {
   it("ends the cooldown ten minutes after the last start", () => {
     const status = toRefreshStatus(workflow("completed", "success", "2026-09-21T11:40:00Z"), null, NOW);
     expect(status.retry_after).toBe(0);
+  });
+});
+
+describe("githubTokenUrl", () => {
+  it("pre-fills GitHub's key form with the smallest permission the button needs", () => {
+    const url = new URL(githubTokenUrl());
+    expect(url.origin + url.pathname).toBe("https://github.com/settings/personal-access-tokens/new");
+    expect(Object.fromEntries(url.searchParams)).toMatchObject({ target_name: "yares28", actions: "write", expires_in: "none" });
+    expect([...url.searchParams.keys()].sort()).toEqual(["actions", "description", "expires_in", "name", "target_name"]);
   });
 });

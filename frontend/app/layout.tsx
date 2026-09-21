@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import type { ReactNode } from "react";
+import { INSTALL_CAPTURE_SCRIPT } from "../lib/install";
 import "./globals.css";
 import "./control-center.css";
 
@@ -25,6 +26,11 @@ export const viewport: Viewport = {
 export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={inter.variable}>
+      <head>
+        {/* With credentials: the manifest sits behind Vercel's login like every other path (see the route). */}
+        <link rel="manifest" href="/manifest.webmanifest" crossOrigin="use-credentials" />
+        <script dangerouslySetInnerHTML={{ __html: INSTALL_CAPTURE_SCRIPT }} />
+      </head>
       <body>{children}</body>
     </html>
   );

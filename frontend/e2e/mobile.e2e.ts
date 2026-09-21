@@ -27,6 +27,15 @@ test("phone layout shows five gameweeks without scrolling the page sideways", as
   expect(toolbarRows).toBeLessThanOrEqual(2);
 });
 
+test("the Control Center fits a phone, with the map drawn as a column", async ({ page }) => {
+  await page.goto("/control");
+  await expect(page.getByRole("heading", { level: 1, name: "Control Center" })).toBeVisible();
+  await expect(page.getByRole("list", { name: "How it runs" })).toBeVisible();
+  await expect(page.getByRole("img", { name: /^GitHub runs the jobs on a clock/ })).toBeHidden();
+  await expect(page.locator(".cc-qrrow")).toBeHidden(); // a phone can't scan its own screen
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
 test("Overview, Fixtures and Table fit a phone without sideways page scrolling", async ({ page }) => {
   for (const [path, ready] of [
     ["/", ".ladder-card .list-rows > li"],

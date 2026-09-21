@@ -57,7 +57,11 @@ chrome.runtime.onMessage.addListener((message, sender) => {
 chrome.runtime.onMessageExternal.addListener((message, sender, reply) => {
   if (!sender.url || new URL(sender.url).origin !== CONFIG.appUrl) return;
   if (message?.type === "ping") {
-    chrome.storage.local.get(["sorareUser"]).then(({ sorareUser }) => reply({ ok: true, version: VERSION, sorareUser: sorareUser ?? null }));
+    chrome.storage.local
+      .get(["sorareUser", "appReachable"])
+      .then(({ sorareUser, appReachable }) =>
+        reply({ ok: true, version: VERSION, sorareUser: sorareUser ?? null, appReachable: appReachable ?? null }),
+      );
     return true; // reply asynchronously
   }
 });

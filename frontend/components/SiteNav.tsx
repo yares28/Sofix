@@ -3,9 +3,9 @@ import type { SystemStatus } from "../lib/control";
 import type { GridMeta } from "../lib/types";
 import StatusPill from "./StatusPill";
 
-export default function SiteNav({ meta, system }: { meta: GridMeta | null; system: SystemStatus | null }) {
-  // The Refresh button starts the GitHub workflow; without a token it stays hidden (the schedule still runs).
-  const refreshEnabled = Boolean(process.env.GITHUB_TOKEN);
+type Props = { meta: GridMeta | null; system: SystemStatus | null; current?: "control" };
+
+export default function SiteNav({ meta, system, current }: Props) {
   return (
     <nav className="nav">
       <div className="nav-inner">
@@ -14,7 +14,7 @@ export default function SiteNav({ meta, system }: { meta: GridMeta | null; syste
           <span className="brand-name">Sofix</span>
         </Link>
         <div className="nav-meta">
-          <StatusPill syncedAt={meta?.last_synced_at ?? meta?.last_predicted_at ?? null} system={system} refreshEnabled={refreshEnabled} />
+          <StatusPill syncedAt={meta?.last_synced_at ?? meta?.last_predicted_at ?? null} system={system} current={current === "control"} />
         </div>
       </div>
     </nav>

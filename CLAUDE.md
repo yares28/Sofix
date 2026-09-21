@@ -53,8 +53,8 @@ reads it (`lib/db.ts`). FastAPI (`backend/app/main.py`) is only for local develo
 | DB / migrations | `backend/app/models.py`, `backend/migrations/` (Alembic), `backend/app/migrate.py`, `app/db.py` |
 | Refresh button | `frontend/app/api/refresh/route.ts` starts `refresh.yml` through the GitHub API (`lib/github.ts`, `GITHUB_TOKEN`; hidden without it) and reports GitHub's run status plus the step from `refresh_runs`; `components/RefreshButton.tsx`, `lib/refresh.ts`. `backend/app/admin.py` is the old local-only path |
 | Scheduled refresh | `.github/workflows/refresh.yml` (cron, app role, `--skip-migrations`, `trigger` input: `cli`/`button`); `frontend/lib/schedule.ts` mirrors the crons (a test fails if they drift) |
-| Control Center | `components/StatusPill.tsx` (heartbeat in the nav) → `ControlCenter.tsx`: status, 24-hour dial, last runs, connection chain, free-limit gauges; logic in `lib/control.ts`, data in `lib/system.ts` (cached, tag `system`); styles in `app/control-center.css` |
-| Installable app | `app/manifest.ts`, `app/app-icon/[variant]/route.tsx` + `app/apple-icon.tsx` (stripe icons from `lib/appIcon.tsx`) |
+| Control Center | Page `/control` (`app/control/page.tsx`), opened by `components/StatusPill.tsx` (heartbeat link in the nav). `ControlCenter.tsx`: status (good / 1 step left / stale / failed / database paused), 24-hour dial, last runs, connection chain, free-limit gauges, then `components/control/`: `ExtensionSetup` (the Chrome step, acted out; `EXTENSION_DIR` gives the folder to copy), `RefreshSetup` (pre-filled GitHub key link while `GITHUB_TOKEN` is missing), `GetTheApp` (Chrome's install prompt, a QR code from `lib/qr.ts`), `HowItRuns` (map; a column on phones). The page pings the extension (`lib/extension.ts`) so setup updates live. Logic in `lib/control.ts`, data in `lib/system.ts` (cached, tag `system`); styles in `app/control-center.css` |
+| Installable app | `app/manifest.webmanifest/route.ts`, linked in `app/layout.tsx` with `crossorigin="use-credentials"` (Vercel's login guards the manifest too; `app/manifest.ts` would omit the attribute in production); `app/app-icon/[variant]/route.tsx` + `app/apple-icon.tsx` (stripe icons from `lib/appIcon.tsx`); the layout's inline script keeps Chrome's install prompt for the Install button (`lib/install.ts`) |
 | Extension | `extension/` (MV3, plain JS, fixed ID `lfgchmhjigjodjfchagphfpkcicochlk` from the manifest key): `bridge.js` (sorare.com page world; keeps Sorare's GraphQL address/headers in memory only), `content.js`, `background.js` (check-ins when something changes or every 6 h, `ping` for the app), popup; `node extension/scripts/configure.mjs` writes `manifest.json` + `config.js` from `.env` (both git-ignored); app side `app/api/ext/checkin/route.ts` |
 | Frontend | `frontend/app/(board)/page.tsx` (cached server fetch, tag `fixture-grid`), `components/FixtureBoard.tsx`, `Overview.tsx`, `DifficultyGrid.tsx`, `GameweekSelector.tsx`, `LeagueTable.tsx` + `TableProgression.tsx` (nivo chart, `lib/progression.ts`), `lib/grid.ts`, `lib/types.ts` |
 
@@ -240,8 +240,9 @@ Transfermarkt Terms prohibit scraping. No LaLiga logo or wordmark.
   optional `ODDS_API_KEY`, and for the cloud: `APP_URL`, `REVALIDATE_SECRET`, `EXTENSION_TOKEN` (both ≥ 32),
   `VERCEL_BYPASS_SECRET`.
 - `frontend/.env.local` (git-ignored, local dev): `DATABASE_URL` (the app-role URL with a plain `postgresql://`
-  scheme; without it the app asks FastAPI), `REVALIDATE_SECRET`, `EXTENSION_TOKEN`, optional `GITHUB_TOKEN`.
+  scheme; without it the app asks FastAPI), `REVALIDATE_SECRET`, `EXTENSION_TOKEN`, optional `GITHUB_TOKEN`, `EXTENSION_DIR`.
 - Vercel production env (project `sofix`): `DATABASE_URL`, `REVALIDATE_SECRET`, `EXTENSION_TOKEN`, `GITHUB_REPO`,
+  `EXTENSION_DIR` (the local extension folder the Control Center offers to copy; not a secret, kept out of the public repo),
   and `GITHUB_TOKEN` (fine-grained, Sofix only, Actions read/write) for the Refresh button.
 - GitHub Actions secrets: `POSTGRES_URL` (app role), `FOOTBALL_DATA_ORG_TOKEN`, `ODDS_API_KEY`, `APP_URL`,
   `REVALIDATE_SECRET`, `VERCEL_BYPASS_SECRET`, `SORARE_API_KEY` (S3).
@@ -267,6 +268,9 @@ Transfermarkt Terms prohibit scraping. No LaLiga logo or wordmark.
 - PowerShell here-strings don't pipe into `git commit -F -`; write the message to a file. PowerShell runs in
   constrained language mode, so use Python for scripts that need .NET methods.
 - Tests must never reach Neon (in-memory SQLite, `dependency_overrides` for the API).
+- The nav has `backdrop-filter`, which makes it the containing block for `position: fixed` children: an overlay
+  rendered inside it is trapped in the 52 px bar (the first Control Center sheet opened off-screen). Put overlays
+  outside the nav (a portal or their own page).
 - `vercel link` **overwrites `frontend/.env.local`** with a pulled copy; the Vercel link lives at the repo root
   (`.vercel/`, git-ignored) so run Vercel CLI commands from the root.
 - The extension loads unpacked from `extension/` (Chrome blocks store-less installs otherwise). After changing its

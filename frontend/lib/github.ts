@@ -104,6 +104,24 @@ function repo(): string {
   return process.env.GITHUB_REPO ?? "yares28/Sofix";
 }
 
+/**
+ * GitHub's form for a fine-grained key, filled in (name, owner, no expiry, Actions read/write). GitHub can't
+ * preselect a repository, so the owner still picks "Only select repositories → Sofix" there.
+ */
+export function githubTokenUrl(): string {
+  const params = new URLSearchParams({
+    name: "Sofix refresh",
+    description: "Lets the Sofix app start its refresh workflow.",
+    target_name: repo().split("/")[0] ?? "",
+    expires_in: "none",
+    actions: "write",
+  });
+  return `https://github.com/settings/personal-access-tokens/new?${params.toString()}`;
+}
+
+/** Where the key goes: the Vercel project's environment variables (then Redeploy). */
+export const VERCEL_ENV_URL = "https://vercel.com/yares/sofix/settings/environment-variables";
+
 /** GitHub's REST API; end-to-end tests point it at their mock server (never set it in production). */
 function apiBase(): string {
   return process.env.GITHUB_API_URL ?? "https://api.github.com";

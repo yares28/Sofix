@@ -120,7 +120,7 @@ The preview optimizer (`scratchpad/build_preview.py`) is a throwaway prototype o
 
 ## S1 — Foundation: always on, nothing to start
 
-### A · Think & show (v2 cloud, 2026-09-21, waiting for approval)
+### A · Think & show (v2 cloud, approved 2026-09-21)
 
 v1 planned a Windows launcher on this PC. The owner found the design basic and asked whether GitHub + Vercel
 would be simpler. **It is**, so v2 replaces the launcher.
@@ -180,7 +180,26 @@ would be simpler. **It is**, so v2 replaces the launcher.
   `ping` for the app; `node extension/scripts/configure.mjs` generates its config.
 - ✅ Renamed to **Sofix** everywhere (the local folder keeps its old name).
 - ✅ Found and fixed on the way: the published "last synced" time lagged one run behind.
-- ⬜ Owner: load the extension once, install the app on PC and phone, create the GitHub token for the button.
+
+**Second pass (2026-09-21, after the owner found S1 unfinished).** Screenshots of the live app showed:
+1. **The Control Center opened off-screen.** The nav's `backdrop-filter` makes it the containing block for fixed
+   elements, so the sheet was centred on the 52 px bar: cut off on the PC, invisible on the phone. The browser test
+   only checked that the dialog existed. Now it is a page, `/control`, opened by the pill.
+2. **Installing the app could not work.** Vercel's login also guards `/manifest.webmanifest`, and browsers fetch a
+   manifest without cookies unless its link says `crossorigin="use-credentials"`, which Next adds only on preview
+   deployments. The manifest is now a route, linked with credentials by the layout.
+3. **Half the approved design was missing:** the "1 step left" state, the Chrome step, Get the app and How it runs.
+   All are built now:
+   - the Chrome step: acted out, with Copy buttons, and live: the page pings the extension, so it turns to "done"
+     when you come back to the tab;
+   - Get the app: Chrome's own Install button where it exists, the right words elsewhere, and a QR code of the
+     address, checked by decoding it;
+   - How it runs: the map, drawn as a column on phones.
+4. **Also:** the refresh-bar dates overlapped (now "16/9"); "0 of 8 on schedule" counted runs the bars didn't show;
+   the Refresh key has a pre-filled GitHub link; a paused Neon (free limit) now says "Database paused, back on 1 Oct"
+   instead of failing silently.
+- ⬜ Owner: load the extension once, install the app on PC and phone, create the GitHub key for the button
+  (all three are cards in the Control Center).
 
 **Edge cases:**
 - A scheduled GitHub run starts a few minutes late or fails: the app keeps the last good data and the

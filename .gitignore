@@ -33,3 +33,8 @@ frontend/playwright-report/
 # OS
 .DS_Store
 Thumbs.db
+
+# Chrome extension: generated from manifest.template.json and .env by extension/scripts/configure.mjs
+extension/manifest.json
+extension/config.js
+extension/.key.json

@@ -25,7 +25,7 @@ Every phase has two parts:
 | Phase | Theme | A · Think & show | B · Build |
 |---|---|---|---|
 | S0 | What Sorare allows | ✅ | ✅ (discovery only; nothing to build) |
-| S1 | Foundation: always on, nothing to start (cloud) | 🟡 v2 | ⬜ |
+| S1 | Foundation: always on, nothing to start (cloud) | ✅ | ✅ (3 owner steps left) |
 | S2 | Home page (bento) | ⬜ | ⬜ |
 | S3 | Data sync (public + your cards) | ⬜ | ⬜ |
 | S4 | xScore model | ⬜ | ⬜ |
@@ -164,26 +164,23 @@ would be simpler. **It is**, so v2 replaces the launcher.
 - **The one Chrome step**: an animated walkthrough of `chrome://extensions` in sync with the steps.
 - Extension popup in both states.
 
-### B · Build (after approval)
-- ⬜ **GitHub.** Private repo, first push, and secrets: app-role DB URL, football-data token, Odds key,
-  Sorare key, revalidate secret, bypass secret. CI and the refresh schedule start running.
-- ⬜ **Read models.** A `read_models` table (key, JSON payload, updated_at) via Alembic. The refresh job writes
-  the grid payload there, then calls the app's revalidate route.
-- ⬜ **Next.js reads Neon directly.** Serverless driver, cache tags, Zod validation as today.
-- ⬜ **Refresh button.** Starts the GitHub workflow (fine-grained token, server-side only) and shows live
-  progress. Actions `concurrency` keeps one run at a time; the 10-minute cooldown stays.
-- ⬜ **Vercel project.** Root `frontend/`, env vars, Vercel Authentication on *all* deployments, and a bypass
-  secret for the jobs and the extension.
-- ⬜ **Installable app (PWA).** Manifest, icons and install prompt on the PC; "Add to Home Screen" on the phone.
-- ⬜ **Control Center in the app.** Heartbeat pill plus a sheet built on real data: runs, schedule,
-  connections, limits.
-- ⬜ **Extension base (MV3, TypeScript + Vite).**
-  - Fixed ID, the app's URL, its token and the bypass secret.
-  - Popup as designed.
-  - `externally_connectable` for the app.
-  - Session watcher that keeps everything in memory only.
-  - Check-ins only when something changes, at most every 30 min, so Neon isn't woken for nothing.
-- ⬜ CSP adds `assets.sorare.com`. Tests (pytest + vitest), docs, and CLAUDE.md's architecture section rewritten.
+### B · Build ✅ (2026-09-21)
+- ✅ **GitHub**: public repo `yares28/Sofix`, all earlier work committed, Actions secrets set (app-role DB URL,
+  football-data token, Odds key, app address, revalidate secret, Vercel bypass, Sorare key). CI and the
+  refresh schedule now run on GitHub; CI's Python setup fixed (the runner has no system 3.11).
+- ✅ **Read models**: `read_models` table (tested on Neon `dev`, then production); the refresh job's `publish`
+  step writes the board and the status numbers, then pings the app's `/api/revalidate`.
+- ✅ **Next.js reads Neon directly** (`lib/db.ts`); FastAPI only for local dev.
+- ✅ **Refresh button → GitHub workflow** (`lib/github.ts`); needs a fine-grained `GITHUB_TOKEN` on Vercel (owner step).
+- ✅ **Vercel** project `sofix` (root `frontend/`, auto-deploy on push) at https://sofix-yares.vercel.app,
+  locked to the owner's Vercel login (all deployments), bypass secret for the jobs and the extension.
+- ✅ **Installable app**: manifest, stripe icons, iPhone home-screen icon.
+- ✅ **Control Center** in the nav, built from real data (runs, schedule, connections, limits).
+- ✅ **Extension base**: fixed ID, session bridge (memory only), check-ins on change / every 6 h, popup,
+  `ping` for the app; `node extension/scripts/configure.mjs` generates its config.
+- ✅ Renamed to **Sofix** everywhere (the local folder keeps its old name).
+- ✅ Found and fixed on the way: the published "last synced" time lagged one run behind.
+- ⬜ Owner: load the extension once, install the app on PC and phone, create the GitHub token for the button.
 
 **Edge cases:**
 - A scheduled GitHub run starts a few minutes late or fails: the app keeps the last good data and the

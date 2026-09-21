@@ -28,14 +28,21 @@ Follow [docs/sorare/design/DESIGN.md](docs/sorare/design/DESIGN.md); the referen
 ## Architecture
 
 ```
-football-data.org ──┐                        ┌─> /api/fixture-grid ──> Next.js board (frontend/)
-football-data.co.uk ─┼─> app.jobs.refresh ─> Neon Postgres ──┘
-The Odds API ────────┘   migrate → sync → odds → predict
+football-data.org ──┐   GitHub Actions (refresh.yml, cron + Refresh button)
+football-data.co.uk ─┼─> app.jobs.refresh: sync → odds → predict → publish ──> Neon (read_models)
+The Odds API ────────┘                                    │                          │
+                                           POST /api/revalidate          Next.js on Vercel reads Neon
+                                                          └──────────────> (frontend/, locked to the owner)
+Chrome extension (extension/) ── sorare.com session in the page ── check-ins ──> /api/ext/checkin
 ```
+
+Production runs no Python server: the job publishes each page's finished data into `read_models` and the app
+reads it (`lib/db.ts`). FastAPI (`backend/app/main.py`) is only for local development without `DATABASE_URL`.
 
 | Area | Where |
 |---|---|
-| API | `backend/app/main.py`, `api.py`, `schemas.py` (FastAPI, `ApiResponse` envelope) |
+| API (local dev only) | `backend/app/main.py`, `api.py`, `schemas.py` (FastAPI, `ApiResponse` envelope) |
+| Publish | `backend/app/services/publish.py`: the `publish` step writes `read_models` keys `grid` (same envelope as `/api/fixture-grid`) and `system` (Odds credits, database size); after the run the job pings the app's `/api/revalidate` (`APP_URL`, `REVALIDATE_SECRET`, `VERCEL_BYPASS_SECRET`) |
 | Grid payload | `backend/app/services/fixture_grid.py` (buckets come from labels; lens scales are computed here) |
 | Rating model | `backend/app/modeling/dixon_coles.py`; tuned settings in `backend/artifacts/dixon_coles.json` |
 | Predictions | `backend/app/jobs/predict.py`, `services/rating_predictions.py` (replace rows per model version); labels in `services/scoring.py` (venue-aware top cut); the record at each price in `services/odds_record.py` and both-teams-to-score, both stored in `Prediction.explanation`; played games reviewed with `services/postmortem.py` and served as `GridCell.review` |
@@ -44,8 +51,11 @@ The Odds API ────────┘   migrate → sync → odds → predict
 | Teams | `backend/app/services/team_registry.py` (football-data.org `tla` ↔ football-data.co.uk name, colour, stadium) |
 | Backtest | `backend/app/backtest/*`, `backend/app/jobs/backtest.py` |
 | DB / migrations | `backend/app/models.py`, `backend/migrations/` (Alembic), `backend/app/migrate.py`, `app/db.py` |
-| Refresh button | `backend/app/admin.py` (token, cooldown, lock, launches the job), `services/refresh_runs.py`; `frontend/app/api/refresh/route.ts` (same-origin proxy, revalidates the grid), `components/RefreshButton.tsx`, `lib/refresh.ts` |
-| Scheduled refresh | `.github/workflows/refresh.yml` (cron, app role, `--skip-migrations`) |
+| Refresh button | `frontend/app/api/refresh/route.ts` starts `refresh.yml` through the GitHub API (`lib/github.ts`, `GITHUB_TOKEN`; hidden without it) and reports GitHub's run status plus the step from `refresh_runs`; `components/RefreshButton.tsx`, `lib/refresh.ts`. `backend/app/admin.py` is the old local-only path |
+| Scheduled refresh | `.github/workflows/refresh.yml` (cron, app role, `--skip-migrations`, `trigger` input: `cli`/`button`); `frontend/lib/schedule.ts` mirrors the crons (a test fails if they drift) |
+| Control Center | `components/StatusPill.tsx` (heartbeat in the nav) → `ControlCenter.tsx`: status, 24-hour dial, last runs, connection chain, free-limit gauges; logic in `lib/control.ts`, data in `lib/system.ts` (cached, tag `system`); styles in `app/control-center.css` |
+| Installable app | `app/manifest.ts`, `app/app-icon/[variant]/route.tsx` + `app/apple-icon.tsx` (stripe icons from `lib/appIcon.tsx`) |
+| Extension | `extension/` (MV3, plain JS, fixed ID `lfgchmhjigjodjfchagphfpkcicochlk` from the manifest key): `bridge.js` (sorare.com page world; keeps Sorare's GraphQL address/headers in memory only), `content.js`, `background.js` (check-ins when something changes or every 6 h, `ping` for the app), popup; `node extension/scripts/configure.mjs` writes `manifest.json` + `config.js` from `.env` (both git-ignored); app side `app/api/ext/checkin/route.ts` |
 | Frontend | `frontend/app/(board)/page.tsx` (cached server fetch, tag `fixture-grid`), `components/FixtureBoard.tsx`, `Overview.tsx`, `DifficultyGrid.tsx`, `GameweekSelector.tsx`, `LeagueTable.tsx` + `TableProgression.tsx` (nivo chart, `lib/progression.ts`), `lib/grid.ts`, `lib/types.ts` |
 
 ## Commands
@@ -156,11 +166,18 @@ npm run gen:types    # after python -m app.openapi_export
 - Jobs replace rows (predictions per model version, odds per fixture); never append history.
 - Refreshes: one at a time (`refresh_runs` partial unique index) and ≥ 10 min apart for the button (`COOLDOWN`).
   Unattended runs (schedule, button) use `--skip-migrations`; after a schema change run `python -m app.migrate` by hand.
-- The grid page is cached (1 h, tag `fixture-grid`) to spare Neon; the refresh route revalidates it when a run ends.
-  Don't switch the page back to `no-store` or add client-side polling of DB-backed endpoints.
+- The grid page is cached (1 h, tag `fixture-grid`; the Control Center's data under tag `system`) to spare Neon. The
+  refresh job revalidates both through `POST /api/revalidate` when a run ends, and the refresh route does too when
+  it sees a finished GitHub run. Don't switch pages back to `no-store` or add client-side polling of DB-backed
+  endpoints. The extension checks in only on change or every 6 h (`EXTENSION_CHECKIN_MS`) for the same reason.
+- Deploys: every push to `main` builds on Vercel (project `sofix`, root `frontend/`). Deployment Protection
+  (Vercel Authentication, **all deployments**) locks the app to the owner's Vercel login; jobs and the extension
+  get through with the bypass secret (`x-vercel-protection-bypass`). The repo `yares28/Sofix` is **public**:
+  never commit secrets, personal data beyond what Sorare already shows publicly, or `.env*`.
 - Tests: pytest with in-memory SQLite and mocked HTTP; vitest for `lib/`. Keep both green before committing.
 - CI (`.github/workflows/ci.yml`) runs ruff, mypy, pytest (incl. migration drift), pip-audit, eslint, tsc, vitest
-  and `npm audit --omit=dev`. Run the same locally before committing; it only executes once the repo is pushed to GitHub.
+  and `npm audit --omit=dev` on every push to GitHub. Run the same locally before committing. Python in Actions
+  comes from `astral-sh/setup-uv` with `activate-environment: true` (the runner has no system 3.11).
 - Commits: `<type>: <description>` (feat, fix, refactor, docs, test, chore, perf, ci).
 - Python 3.11 (`backend/.python-version`). Dependencies: edit direct pins in `requirements*.txt`, then regenerate
   `requirements*.lock` with `uv pip compile ... --python-version 3.11` and `uv pip sync` the venv; run `uvx pip-audit -r requirements.lock`.
@@ -211,16 +228,23 @@ npm run gen:types    # after python -m app.openapi_export
 | Neon Free | **0.5 GB/project, 100 CU-hours/month**, up to 2 CU, scale to zero after 5 min idle, 10 branches, 6 h history, 5 GB egress. **Hitting any limit suspends compute until next month** | Cache the grid and revalidate only after a refresh; never point uptime monitors at DB-backed endpoints (≈182 CU-h/month); keep `/api/health` DB-free |
 | Club crests | No licence stated; club trademarks | Personal use only; `NEXT_PUBLIC_SHOW_CLUB_CRESTS=false` (in `frontend/.env.local`) shows colour badges instead; URLs allowlisted to `https://crests.football-data.org/` in `services/crests.py` and again in `Crest.tsx`; hot-linked (`unoptimized`, `no-referrer`), never downloaded or proxied |
 | StatsBomb Open Data | LaLiga only to 2020/21, Barcelona matches only | Research only; not in the pipeline |
+| Vercel Hobby | Personal, non-commercial; 100 deployments/day; functions default 10 s | Only reads published data and small writes; heavy work stays in GitHub Actions |
+| GitHub Actions | Free on standard runners for public repos (private: 2,000 min/month); scheduled workflows in public repos are disabled after 60 days without commits | Keep jobs short; one refresh at a time (`concurrency: refresh`) |
 
 Transfermarkt Terms prohibit scraping. No LaLiga logo or wordmark.
 
 ## Environment and secrets
 
 - Root `.env` (git-ignored): `FOOTBALL_DATA_ORG_TOKEN`, `POSTGRES_URL` (Neon **pooled** host, role **`fdr_app`**),
-  `POSTGRES_MIGRATION_URL` (Neon **direct** host, role `neondb_owner`), `REFRESH_TOKEN` (≥ 32 bytes), optional `ODDS_API_KEY`.
-- `frontend/.env.local` (git-ignored): the same `REFRESH_TOKEN`, server-only (never `NEXT_PUBLIC_`). Without it the
-  button is hidden; without it in the API the admin endpoints answer 503.
-- GitHub Actions secrets for the scheduled refresh: `POSTGRES_URL` (app role), `FOOTBALL_DATA_ORG_TOKEN`, optional `ODDS_API_KEY`.
+  `POSTGRES_MIGRATION_URL` (Neon **direct** host, role `neondb_owner`), `REFRESH_TOKEN` (≥ 32 bytes, local admin path),
+  optional `ODDS_API_KEY`, and for the cloud: `APP_URL`, `REVALIDATE_SECRET`, `EXTENSION_TOKEN` (both ≥ 32),
+  `VERCEL_BYPASS_SECRET`.
+- `frontend/.env.local` (git-ignored, local dev): `DATABASE_URL` (the app-role URL with a plain `postgresql://`
+  scheme; without it the app asks FastAPI), `REVALIDATE_SECRET`, `EXTENSION_TOKEN`, optional `GITHUB_TOKEN`.
+- Vercel production env (project `sofix`): `DATABASE_URL`, `REVALIDATE_SECRET`, `EXTENSION_TOKEN`, `GITHUB_REPO`,
+  and `GITHUB_TOKEN` (fine-grained, Sofix only, Actions read/write) for the Refresh button.
+- GitHub Actions secrets: `POSTGRES_URL` (app role), `FOOTBALL_DATA_ORG_TOKEN`, `ODDS_API_KEY`, `APP_URL`,
+  `REVALIDATE_SECRET`, `VERCEL_BYPASS_SECRET`, `SORARE_API_KEY` (S3).
 - `fdr_app` was created with SQL (so it is not in `neon_superuser`): DML on all tables + sequences, default
   privileges for tables the owner creates later, no DDL. Migrations must keep using the owner URL.
 - Neon TLS: `app/db.py` forces `sslmode=verify-full` with the certifi CA bundle for `*.neon.tech` hosts.
@@ -243,6 +267,10 @@ Transfermarkt Terms prohibit scraping. No LaLiga logo or wordmark.
 - PowerShell here-strings don't pipe into `git commit -F -`; write the message to a file. PowerShell runs in
   constrained language mode, so use Python for scripts that need .NET methods.
 - Tests must never reach Neon (in-memory SQLite, `dependency_overrides` for the API).
+- `vercel link` **overwrites `frontend/.env.local`** with a pulled copy; the Vercel link lives at the repo root
+  (`.vercel/`, git-ignored) so run Vercel CLI commands from the root.
+- The extension loads unpacked from `extension/` (Chrome blocks store-less installs otherwise). After changing its
+  code or `.env`, run `node extension/scripts/configure.mjs`, then reload it in `chrome://extensions`.
 
 ## Yearly rollover (June, when next season's fixtures appear)
 

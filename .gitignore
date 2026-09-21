@@ -38,3 +38,6 @@ Thumbs.db
 extension/manifest.json
 extension/config.js
 extension/.key.json
+
+# Vercel CLI link (project id)
+.vercel

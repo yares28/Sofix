@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sofix Home</title>
+<style>
+:root {
+  --bg: #fbfbfd; --surface: #ffffff; --ink: #1d1d1f; --ink-2: #6e6e73; --ink-3: #86868b; --ink-seg: #5e5e63;
+  --line: #e8e8ed; --hover: #f5f5f7; --track: #ececf0; --accent: #0071e3;
+  --good: #1f7a4f; --good-2: #5cc58d; --good-track: #d3f2e1; --low: #aeaeb2; --low-track: #f1f1f4;
+  --amber: #ff9f0a;
+  --f-lim: linear-gradient(145deg, #fff3c4 0%, #f7c948 38%, #d99a0b 62%, #ffe08a 100%);
+  --f-rare: linear-gradient(145deg, #ffd6cf 0%, #f0594c 40%, #b3261e 66%, #ff9e94 100%);
+  /* the board's own difficulty colours (frontend/app/globals.css) */
+  --fdr1: #1f7a4f; --fdr2: #d3f2e1; --fdr3: #f1f1f4; --fdr4: #ffdcd8; --fdr5: #c4312a;
+  --fdr2-edge: #a8dfc0; --fdr3-edge: #e2e2e7; --fdr4-edge: #e8998f;
+  --win: #1a7a4e; --loss: #c4312a;
+  --stripes: linear-gradient(90deg, #1f7a4f 0 20%, #5cc58d 20% 40%, #e3e3e8 40% 60%, #ff7b6e 60% 80%, #c4312a 80%);
+  --shadow-card: 0 0 0 1px rgba(0,0,0,.04), 0 2px 4px rgba(0,0,0,.02), 0 12px 32px rgba(0,0,0,.05);
+  --shadow-lift: 0 0 0 1px rgba(0,0,0,.04), 0 8px 18px rgba(0,0,0,.06), 0 24px 48px rgba(0,0,0,.08);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, "Segoe UI", system-ui, sans-serif;
+  --ease: cubic-bezier(.3,.7,.2,1);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); }
+body { font: 14px/1.4 var(--font); letter-spacing: -0.01em; -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; }
+img { display: block; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+a { color: inherit; }
+
+/* ---------- nav ---------- */
+.nav { position: sticky; top: 0; z-index: 30; background: rgba(251,251,253,.8); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid rgba(0,0,0,.06); }
+.nav-in { max-width: 1240px; margin: 0 auto; height: 52px; padding: 0 20px; display: flex; align-items: center; gap: 30px; }
+.brand { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 16px; letter-spacing: -0.02em; text-decoration: none; }
+.brand i { width: 22px; height: 22px; border-radius: 7px; background: var(--stripes); box-shadow: inset 0 0 0 1px rgba(0,0,0,.05); }
+.links { display: flex; align-items: center; gap: 22px; }
+.links a { color: var(--ink-2); text-decoration: none; font-size: 13px; font-weight: 500; transition: color .2s; }
+.links a:hover { color: var(--ink); }
+.links .sep { width: 1px; height: 14px; background: var(--line); }
+.links .sor { display: inline-flex; align-items: center; gap: 6px; }
+.pill { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px 0 9px; border-radius: 999px; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.06); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.pill small { color: var(--ink-2); font-weight: 500; font-size: 13px; }
+.beat { width: 22px; height: 14px; color: var(--amber); }
+.beat path { stroke-dasharray: 40; animation: beat 1.6s linear infinite; }
+@keyframes beat { from { stroke-dashoffset: 40; } to { stroke-dashoffset: -40; } }
+
+main { max-width: 1240px; margin: 0 auto; padding: 28px 20px 72px; }
+
+/* ---------- page head: the gameweek and the one hero number (time to the lock) ---------- */
+.head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap; }
+h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spacing: -0.035em; }
+.sub { margin: 6px 0 0; color: var(--ink-2); font-size: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sub .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--ink-3); }
+.count { display: flex; align-items: flex-end; gap: 12px; text-align: right; }
+.count .n { display: flex; align-items: baseline; gap: 6px; }
+.count .n b { font-size: 56px; font-weight: 650; letter-spacing: -0.045em; line-height: .9; font-variant-numeric: tabular-nums; }
+.count .n span { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+.count small { display: block; font-size: 12px; color: var(--ink-2); line-height: 1.35; white-space: nowrap; }
+.count .ic { width: 38px; height: 38px; flex: none; border-radius: 12px; display: grid; place-items: center; background: #eef5ff; color: var(--accent); margin-bottom: 2px; }
+.count.played .ic { background: var(--hover); color: var(--ink-2); }
+
+/* ---------- gameweek timeline (S0 component) ---------- */
+.timeline { margin-top: 22px; display: flex; align-items: center; gap: 10px; }
+.tl-arrow { flex: none; width: 36px; height: 36px; border-radius: 50%; border: 0; background: #fff; box-shadow: var(--shadow-card); cursor: pointer; display: grid; place-items: center; color: var(--ink); transition: transform .2s var(--ease); }
+.tl-arrow:hover:not(:disabled) { transform: scale(1.06); }
+.tl-arrow:disabled { opacity: .35; cursor: default; }
+.tl-arrow:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tl-track { position: relative; flex: 1; min-width: 0; display: flex; gap: 4px; padding: 5px; background: var(--track); border-radius: 18px; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x mandatory; }
+.tl-track::-webkit-scrollbar { display: none; }
+.tl-knob { position: absolute; top: 5px; bottom: 5px; left: 0; border-radius: 14px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 6px 16px rgba(0,0,0,.08); transition: transform .45s var(--ease), width .45s var(--ease); }
+.tl-item { position: relative; z-index: 1; flex: 1 0 auto; min-width: 96px; border: 0; background: none; cursor: pointer; border-radius: 14px; padding: 8px 14px; text-align: left; scroll-snap-align: center; display: flex; flex-direction: column; gap: 2px; }
+.tl-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.tl-top { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 650; color: var(--ink-seg); }
+.tl-item[aria-pressed="true"] .tl-top { color: var(--ink); }
+.tl-date { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tl-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.tl-dot.done { background: var(--ink-3); }
+.tl-dot.next { background: var(--accent); }
+.tl-dot.later { background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink-3); }
+.tl-break { flex: 1.3 0 auto; min-width: 150px; border-radius: 14px; padding: 8px 14px; display: flex; flex-direction: column; gap: 2px; color: var(--ink-2); background: repeating-linear-gradient(135deg, transparent 0 6px, rgba(0,0,0,.035) 6px 7px); }
+.tl-break b { font-size: 14px; font-weight: 600; color: var(--ink-3); }
+.tl-break span { font-size: 12px; }
+
+/* ---------- bento ---------- */
+.bento { margin-top: 18px; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; }
+.tile { position: relative; min-width: 0; border-radius: 22px; background: var(--surface); box-shadow: var(--shadow-card); padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 14px; overflow: hidden; isolation: isolate; transition: transform .25s var(--ease), box-shadow .25s var(--ease); animation: rise .5s var(--ease) both; animation-delay: calc(var(--i, 0) * 45ms); }
+.tile:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
+.tile:has(.t-link:focus-visible) { outline: 2px solid var(--accent); outline-offset: 3px; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.t-head { display: flex; align-items: center; gap: 10px; }
+.t-head h2 { margin: 0; font-size: 17px; font-weight: 650; letter-spacing: -0.02em; }
+.t-link { text-decoration: none; outline: none; }
+.t-link::after { content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: 2; } /* the whole tile opens its page */
+.t-meta { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.chev { margin-left: auto; flex: none; color: var(--ink-3); transition: transform .25s var(--ease), color .25s; }
+.tile:hover .chev { transform: translateX(3px); color: var(--ink); }
+.fixtures, .diff, .tbl { grid-column: span 4; min-height: 460px; }
+.play { grid-column: span 6; }
+.cards, .review { grid-column: span 3; }
+.eyebrow { margin: 0; font-size: 11px; font-weight: 600; color: var(--ink-2); letter-spacing: .03em; text-transform: uppercase; }
+.crest { width: 16px; height: 16px; object-fit: contain; flex: none; }
+.crest.lg { width: 36px; height: 36px; }
+
+/* hero rows inside tiles: name on the left, one 34 px number on the right */
+.t-hero { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.t-hero .who { min-width: 0; }
+.t-hero .who b { display: block; font-size: 17px; font-weight: 650; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t-hero .who span { font-size: 12px; color: var(--ink-2); }
+.t-hero .num { margin-left: auto; text-align: right; flex: none; }
+.t-hero .num b { display: block; font-size: 34px; font-weight: 650; letter-spacing: -0.035em; line-height: 1; font-variant-numeric: tabular-nums; }
+.t-hero .num span { font-size: 12px; color: var(--ink-2); }
+
+/* Fixtures */
+.fx-list { display: flex; flex-direction: column; flex: 1; }
+.fx-day { font-size: 11px; font-weight: 600; color: var(--ink-2); letter-spacing: .03em; text-transform: uppercase; padding: 8px 0 3px; }
+.fx-day:first-child { padding-top: 0; }
+.fx { display: grid; grid-template-columns: 40px minmax(0, 1fr) 96px; align-items: center; gap: 8px; height: 31px; box-shadow: inset 0 -1px 0 var(--line); }
+.fx:last-child { box-shadow: none; }
+.fx .t { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.teams { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; min-width: 0; }
+.teams i { font-style: normal; font-weight: 500; color: var(--ink-2); }
+.teams .sc { font-variant-numeric: tabular-nums; font-weight: 700; padding: 1px 6px; border-radius: 6px; background: var(--hover); }
+.teams .lost { color: var(--ink-2); font-weight: 500; }
+.odds { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.bar3 { display: flex; gap: 2px; height: 5px; }
+.bar3 i { border-radius: 3px; transform-origin: left; animation: grow .8s var(--ease) both; animation-delay: calc(var(--r, 0) * 30ms + 150ms); }
+.bar3 .h { background: var(--fdr1); } .bar3 .d { background: #c7c7cc; } .bar3 .a { background: var(--accent); }
+@keyframes grow { from { transform: scaleX(0); } }
+.odds em { font-style: normal; font-size: 11px; color: var(--ink-2); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.odds em b { color: var(--ink); font-weight: 600; }
+.odds .tag { font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--ink); padding: 1px 5px; border-radius: 5px; background: #fff1d6; }
+
+/* Difficulty: every club's next five games as one mosaic, easiest run first */
+.mosaic { display: grid; gap: 3px; flex: 1; align-content: start; }
+.m-row { display: grid; grid-template-columns: 30px repeat(5, minmax(0, 1fr)) 28px; gap: 3px; align-items: center; height: 11px; animation: fade .45s var(--ease) both; animation-delay: calc(var(--r) * 16ms + 180ms); }
+@keyframes fade { from { opacity: 0; transform: translateX(-4px); } }
+.m-row.hd { height: 14px; animation: none; }
+.m-row.hd span { font-size: 10px; color: var(--ink-3); font-weight: 600; text-align: center; }
+.m-row .code { font-size: 9.5px; font-weight: 600; color: var(--ink-2); letter-spacing: .01em; }
+.m-row .xp { font-size: 10px; font-weight: 500; color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; }
+.m-row.top .code, .m-row.top .xp, .m-row.bottom .code, .m-row.bottom .xp { color: var(--ink); font-weight: 700; }
+.m-row i { height: 100%; border-radius: 3px; }
+.m-row i.f1 { background: var(--fdr1); }
+.m-row i.f2 { background: var(--fdr2); box-shadow: inset 0 0 0 1px var(--fdr2-edge); }
+.m-row i.f3 { background: var(--fdr3); box-shadow: inset 0 0 0 1px var(--fdr3-edge); }
+.m-row i.f4 { background: var(--fdr4); box-shadow: inset 0 0 0 1px var(--fdr4-edge); }
+.m-row i.f5 { background: var(--fdr5); }
+.m-row i.pl { background: repeating-linear-gradient(135deg, #fff 0 3px, #ececf0 3px 4px); box-shadow: inset 0 0 0 1px #e2e2e7; }
+.m-row i.none { background: transparent; }
+.t-foot { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); padding-top: 12px; box-shadow: inset 0 1px 0 var(--line); }
+.t-foot b { color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; }
+.t-foot .push { margin-left: auto; }
+
+/* Table */
+.race { display: flex; gap: 2px; height: 8px; border-radius: 4px; overflow: hidden; }
+.race i { transform-origin: left; animation: grow .9s var(--ease) both .2s; }
+.race-key { display: flex; gap: 12px; font-size: 11px; color: var(--ink-2); margin-top: -6px; flex-wrap: wrap; }
+.race-key span { display: inline-flex; align-items: center; gap: 5px; }
+.race-key i { width: 7px; height: 7px; border-radius: 2px; }
+.mini { list-style: none; margin: 0; padding: 0; }
+.mini li { display: grid; grid-template-columns: 18px 16px minmax(0, 1fr) auto 30px; gap: 8px; align-items: center; height: 29px; font-size: 13px; box-shadow: inset 0 -1px 0 var(--line); }
+.mini li:last-child { box-shadow: none; }
+.mini .pos { font-size: 12px; color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; }
+.mini .nm { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini .pts { font-weight: 650; text-align: right; font-variant-numeric: tabular-nums; }
+.form { display: flex; gap: 3px; }
+.form i { width: 7px; height: 7px; border-radius: 50%; }
+.form .W { background: var(--win); } .form .D { background: #aeaeb2; } .form .L { background: var(--loss); }
+.sub-h { display: flex; align-items: center; justify-content: space-between; font-size: 11px; font-weight: 600; color: var(--ink-2); letter-spacing: .03em; text-transform: uppercase; margin-bottom: -6px; }
+.down li { grid-template-columns: 16px minmax(0, 1fr) 70px 36px; }
+.down .m { height: 5px; border-radius: 3px; background: var(--low-track); overflow: hidden; }
+.down .m i { display: block; height: 100%; border-radius: 3px; background: #6e6e73; transform-origin: left; animation: grow .9s var(--ease) both .3s; }
+.down .pc { text-align: right; font-weight: 650; font-variant-numeric: tabular-nums; }
+
+/* ---------- Sorare tiles ---------- */
+.sorare-sec { grid-column: 1 / -1; display: flex; align-items: baseline; justify-content: space-between; margin: 22px 4px -2px; }
+.sorare-sec h2 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: -0.02em; display: flex; align-items: center; gap: 10px; }
+.sorare-sec span { font-size: 13px; color: var(--ink-2); }
+.foil { position: relative; flex: none; width: 16px; height: 22px; border-radius: 4px; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.12); }
+.foil.limited { background: var(--f-lim); } .foil.rare { background: var(--f-rare); }
+.foil::after { content: ""; position: absolute; inset: -40%; background: linear-gradient(115deg, transparent 40%, rgba(255,255,255,.75) 50%, transparent 60%); transform: translateX(-60%); transition: transform .9s var(--ease); }
+.tile:hover .foil::after { transform: translateX(60%); }
+.foil.stack { overflow: visible; } .foil.stack::before { content: ""; position: absolute; left: 4px; top: -3px; width: 100%; height: 100%; border-radius: inherit; background: inherit; opacity: .45; z-index: -1; }
+.play::before { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(520px circle at 100% 0%, rgba(247,201,72,.20), transparent 62%), radial-gradient(380px circle at 0% 100%, rgba(0,113,227,.05), transparent 60%); }
+.lock { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: #eef5ff; color: #0058b0; white-space: nowrap; }
+.lock::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.p-grid { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.15fr); gap: 22px; align-items: center; flex: 1; }
+.ring { position: relative; width: 124px; height: 124px; flex: none; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring .trk { stroke: var(--good-track); }
+.ring .bar { stroke: var(--good); stroke-linecap: round; transition: stroke-dashoffset 1s var(--ease); }
+.ring .val { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.ring .val b { font-size: 40px; font-weight: 650; letter-spacing: -0.04em; line-height: 1; }
+.ring .val b small { font-size: 18px; font-weight: 600; }
+.ring .val .lbl { font-size: 11px; color: var(--ink-2); margin-top: 3px; white-space: nowrap; }
+.p-stats { display: flex; flex-direction: column; gap: 10px; }
+.p-stats .l1 { font-size: 13px; color: var(--ink-2); }
+.p-stats .l1 b { color: var(--ink); font-weight: 650; }
+.rewards { display: flex; flex-wrap: wrap; gap: 8px; }
+.rw { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px 6px 8px; border-radius: 999px; font-size: 13px; font-weight: 600; background: var(--hover); font-variant-numeric: tabular-nums; }
+.rw small { font-weight: 500; color: var(--ink-2); }
+.best { display: flex; flex-direction: column; gap: 10px; }
+.best-top { display: flex; align-items: center; gap: 9px; }
+.best-top .nm { font-size: 14px; font-weight: 650; }
+.best-top .md { font-size: 12px; color: var(--ink-2); }
+.best-top .pc { margin-left: auto; font-size: 22px; font-weight: 650; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.meter { height: 6px; border-radius: 3px; background: var(--good-track); overflow: hidden; }
+.meter i { display: block; height: 100%; border-radius: 3px; background: var(--good); transform-origin: left; animation: grow .9s var(--ease) both .25s; }
+.mfan { position: relative; height: 104px; margin-top: 4px; }
+.mfan .fc { position: absolute; left: 50%; bottom: 0; width: 58px; aspect-ratio: 5 / 8; margin-left: -29px; border-radius: 7px; transform-origin: 50% 120%; transform: translateX(calc(var(--k) * 34px)) rotate(calc(var(--k) * 6deg)) translateY(calc(var(--a) * 3px)); transition: transform .45s var(--ease); box-shadow: 0 8px 18px rgba(0,0,0,.18); background: #e9e9ee; }
+.mfan .fc img { width: 100%; height: 100%; object-fit: cover; border-radius: 7px; }
+.tile:hover .mfan .fc { transform: translateX(calc(var(--k) * 42px)) rotate(calc(var(--k) * 7deg)) translateY(calc(var(--a) * 4px - 6px)); }
+.mfan .fc.cap { box-shadow: 0 0 0 2px #f7c948, 0 8px 18px rgba(0,0,0,.18); }
+
+.c-hero { display: flex; align-items: baseline; gap: 8px; }
+.c-hero b { font-size: 34px; font-weight: 650; letter-spacing: -0.035em; line-height: 1; font-variant-numeric: tabular-nums; }
+.c-hero span { font-size: 13px; color: var(--ink-2); }
+.rar { display: flex; gap: 16px; }
+.rar span { display: inline-flex; align-items: center; gap: 7px; font-size: 15px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.posbars { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; align-items: end; flex: 1 0 96px; }
+.posbars > div { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 5px; height: 100%; }
+.posbars .col { width: 100%; max-width: 30px; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; transform-origin: bottom; animation: up .9s var(--ease) both .2s; }
+@keyframes up { from { transform: scaleY(0); } }
+.posbars .col i { display: block; border-radius: 5px; }
+.posbars .col i.limited { background: var(--f-lim); }
+.posbars .col i.rare { background: var(--f-rare); }
+.posbars em { font-style: normal; font-size: 11px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.posbars span { font-size: 10px; color: var(--ink-2); font-weight: 600; letter-spacing: .03em; }
+
+.rv-rows { display: flex; flex-direction: column; gap: 12px; flex: 1; justify-content: center; }
+.rv { position: relative; height: 16px; }
+.rv .rail { position: absolute; left: 0; right: 0; top: 7px; height: 3px; border-radius: 2px; background: var(--hover); }
+.rv .band { position: absolute; top: 6px; height: 5px; border-radius: 3px; background: linear-gradient(90deg, #cfe9da, #5cc58d); }
+.rv .x { position: absolute; top: 3px; width: 11px; height: 11px; margin-left: -5.5px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 2px var(--ink); }
+.rv .act { position: absolute; top: 2px; width: 13px; height: 13px; margin-left: -6.5px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2.5px #fff, 0 1px 4px rgba(0,0,0,.25); }
+.rv .so { position: absolute; top: 1px; width: 2px; height: 15px; margin-left: -1px; border-radius: 1px; background: #d99a0b; }
+.rv-key { display: flex; gap: 12px; font-size: 11px; color: var(--ink-2); flex-wrap: wrap; }
+.rv-key span { display: inline-flex; align-items: center; gap: 5px; }
+.rv-key i { width: 9px; height: 9px; border-radius: 50%; }
+
+/* waiting: the tile exists, its data arrives with a later phase (never a made-up number) */
+.ghost { flex: 1; display: grid; place-content: center; justify-items: center; gap: 12px; text-align: center; color: var(--ink-2); font-size: 13px; padding: 8px 0; }
+.ghost .shape { width: 72px; height: 72px; border-radius: 50%; border: 2px dashed #d1d1d6; display: grid; place-items: center; color: var(--ink-3); }
+.ghost .shape.card { width: 50px; height: 70px; border-radius: 9px; }
+.ghost b { color: var(--ink); font-weight: 600; font-size: 14px; }
+.ghost p { margin: 0; max-width: 26ch; }
+
+/* phone tab bar */
+.tabbar { display: none; }
+
+/* preview controls */
+.preview-bar { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 45; display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 14px; border-radius: 999px; background: rgba(29,29,31,.9); color: #fff; font-size: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.25); white-space: nowrap; }
+.preview-bar .seg { display: inline-flex; padding: 3px; border-radius: 999px; background: rgba(255,255,255,.12); }
+.preview-bar button { border: 0; background: none; color: rgba(255,255,255,.75); padding: 5px 12px; border-radius: 999px; cursor: pointer; font-size: 12px; font-weight: 600; }
+.preview-bar button[aria-pressed="true"] { background: #fff; color: var(--ink); }
+.note { max-width: 1240px; margin: 0 auto 110px; padding: 0 20px; font-size: 12px; color: var(--ink-3); }
+.note p { margin: 0 0 6px; }
+
+@media (max-width: 1100px) {
+  .fixtures, .diff, .tbl, .play, .cards, .review { grid-column: span 6; }
+  .p-grid { grid-template-columns: auto minmax(0, 1fr); }
+  .p-grid .best { grid-column: 1 / -1; }
+}
+@media (max-width: 700px) {
+  main { padding: 20px 16px 120px; }
+  .links { display: none; }
+  .pill small { display: none; }
+  h1 { font-size: 32px; }
+  .count .n b { font-size: 48px; }
+  .tl-arrow { display: none; }
+  .fixtures, .diff, .tbl, .play, .cards, .review { grid-column: span 12; min-height: 0; }
+  .tabbar {
+    display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; justify-content: space-around;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); background: rgba(251,251,253,.86);
+    backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-top: 1px solid rgba(0,0,0,.06);
+  }
+  .tabbar a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 0; border-radius: 12px; font-size: 10px; font-weight: 600; color: var(--ink-3); text-decoration: none; }
+  .tabbar a[aria-current="page"] { color: var(--ink); }
+  .tabbar a[aria-current="page"] svg { color: var(--accent); }
+  .preview-bar { bottom: 84px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<nav class="nav" aria-label="Main">
+  <div class="nav-in">
+    <a class="brand" href="#"><i aria-hidden="true"></i>Sofix</a>
+    <div class="links">
+      <a href="#">Fixtures</a><a href="#">Difficulty</a><a href="#">Table</a>
+      <span class="sep sorare-only" aria-hidden="true"></span>
+      <a href="#" class="sor sorare-only"><span class="foil limited" aria-hidden="true"></span>Play</a><a href="#" class="sorare-only">Cards</a>
+    </div>
+    <span class="pill"><svg class="beat" viewBox="0 0 22 14" aria-hidden="true"><path d="M1 7h5l2-5 3 10 2-5h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>1 step left <small>· updated 9 h ago</small></span>
+  </div>
+</nav>
+
+<main>
+  <header class="head">
+    <div>
+      <h1 id="title"></h1>
+      <p class="sub" id="sub"></p>
+    </div>
+    <div class="count" id="count"></div>
+  </header>
+
+  <div class="timeline">
+    <button class="tl-arrow" type="button" id="prev" aria-label="Previous gameweek"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M9 2 4 7l5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="tl-track" id="track" role="group" aria-label="Gameweek"><span class="tl-knob" id="knob" aria-hidden="true"></span></div>
+    <button class="tl-arrow" type="button" id="next" aria-label="Next gameweek"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="m5 2 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </div>
+
+  <div class="bento" id="bento"></div>
+</main>
+
+<nav class="tabbar" aria-label="Sections">
+  <a href="#" aria-current="page"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M3.5 10 11 4l7.5 6v7.5a1 1 0 0 1-1 1H14v-5H8v5H4.5a1 1 0 0 1-1-1Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>Home</a>
+  <a href="#"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="3.5" y="4.5" width="15" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 9h15M8 3v3M14 3v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Fixtures</a>
+  <a href="#"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="3.5" y="3.5" width="6" height="6" rx="1.8" fill="currentColor"/><rect x="12.5" y="3.5" width="6" height="6" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="3.5" y="12.5" width="6" height="6" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="12.5" y="12.5" width="6" height="6" rx="1.8" fill="currentColor" opacity=".45"/></svg>Difficulty</a>
+  <a href="#"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M4 6h14M4 11h14M4 16h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Table</a>
+  <a href="#" class="sorare-only"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="6" y="3" width="10" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 15h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Play</a>
+</nav>
+
+<div class="note" id="note"></div>
+
+<div class="preview-bar" role="group" aria-label="Preview state">Preview
+  <div class="seg"><button type="button" data-phase="s2" aria-pressed="true">After S2</button><button type="button" data-phase="all" aria-pressed="false">All phases</button></div>
+</div>
+
+<script>
+const DATA = {"now":"2026-09-22T01:10:00+02:00","timeline":[{"gw":5,"from":"2026-09-11T19:00:00Z","to":"2026-09-14T19:00:00Z","done":true,"tbc":false},{"gw":6,"from":"2026-09-15T17:00:00Z","to":"2026-09-17T19:30:00Z","done":true,"tbc":false},{"gw":7,"from":"2026-09-18T19:00:00Z","to":"2026-09-20T19:00:00Z","done":true,"tbc":false},{"gw":8,"from":"2026-10-09T19:00:00Z","to":"2026-10-12T19:00:00Z","done":false,"tbc":false},{"gw":9,"from":"2026-10-16T19:00:00Z","to":"2026-10-19T19:00:00Z","done":false,"tbc":false},{"gw":10,"from":"2026-10-25T00:00:00Z","to":"2026-10-25T00:00:00Z","done":false,"tbc":true},{"gw":11,"from":"2026-11-01T00:00:00Z","to":"2026-11-01T00:00:00Z","done":false,"tbc":true}],"gws":{"5":{"fixtures":[{"id":42,"home":"SEV","away":"VAL","utc":"2026-09-11T19:00:00Z","day":"Fri","date":"11 Sep","time":"21:00","p":null,"status":"finished","score":[1,0],"chance":null},{"id":43,"home":"SAN","away":"ALA","utc":"2026-09-12T12:00:00Z","day":"Sat","date":"12 Sep","time":"14:00","p":null,"status":"finished","score":[2,1],"chance":null},{"id":44,"home":"OSA","away":"ESP","utc":"2026-09-12T14:15:00Z","day":"Sat","date":"12 Sep","time":"16:15","p":null,"status":"finished","score":[0,2],"chance":null},{"id":45,"home":"ATH","away":"ELC","utc":"2026-09-12T16:30:00Z","day":"Sat","date":"12 Sep","time":"18:30","p":null,"status":"finished","score":[1,1],"chance":null},{"id":46,"home":"RMA","away":"RAY","utc":"2026-09-12T19:00:00Z","day":"Sat","date":"12 Sep","time":"21:00","p":null,"status":"finished","score":[4,1],"chance":null},{"id":47,"home":"CEL","away":"MAL","utc":"2026-09-13T12:00:00Z","day":"Sun","date":"13 Sep","time":"14:00","p":null,"status":"finished","score":[1,1],"chance":null},{"id":48,"home":"LEV","away":"FCB","utc":"2026-09-13T14:15:00Z","day":"Sun","date":"13 Sep","time":"16:15","p":null,"status":"finished","score":[2,4],"chance":null},{"id":49,"home":"GET","away":"DEP","utc":"2026-09-13T16:30:00Z","day":"Sun","date":"13 Sep","time":"18:30","p":null,"status":"finished","score":[1,1],"chance":null},{"id":50,"home":"RSO","away":"ATL","utc":"2026-09-13T19:00:00Z","day":"Sun","date":"13 Sep","time":"21:00","p":null,"status":"finished","score":[0,3],"chance":null},{"id":51,"home":"VIL","away":"BET","utc":"2026-09-14T19:00:00Z","day":"Mon","date":"14 Sep","time":"21:00","p":[0.532,0.218,0.25],"status":"finished","score":[1,2],"chance":0.25}],"ladder":[{"code":"RMA","name":"Real Madrid","xp":4.5,"cells":[{"b":null,"opp":"RAY","v":"H","r":"W","n":1},{"b":2,"opp":"ELC","v":"A","r":"W","n":1},{"b":3,"opp":"ATL","v":"A","r":"L","n":1},{"b":1,"opp":"VIL","v":"H","r":null,"n":1},{"b":1,"opp":"SEV","v":"H","r":null,"n":1}]},{"code":"FCB","name":"Barcelona","xp":4.4,"cells":[{"b":null,"opp":"LEV","v":"A","r":"W","n":1},{"b":1,"opp":"SAN","v":"H","r":"W","n":1},{"b":1,"opp":"SEV","v":"A","r":"W","n":1},{"b":1,"opp":"GET","v":"H","r":null,"n":1},{"b":2,"opp":"BET","v":"A","r":null,"n":1}]},{"code":"ATH","name":"Athletic Club","xp":4.0,"cells":[{"b":null,"opp":"ELC","v":"H","r":"D","n":1},{"b":3,"opp":"LEV","v":"A","r":null,"n":1},{"b":2,"opp":"ALA","v":"H","r":"D","n":1},{"b":3,"opp":"RAY","v":"A","r":null,"n":1},{"b":3,"opp":"VAL","v":"A","r":null,"n":1}]},{"code":"LEV","name":"Levante","xp":3.9,"cells":[{"b":null,"opp":"FCB","v":"H","r":"L","n":1},{"b":3,"opp":"ATH","v":"H","r":null,"n":1},{"b":5,"opp":"VIL","v":"A","r":"L","n":1},{"b":2,"opp":"SEV","v":"H","r":null,"n":1},{"b":4,"opp":"DEP","v":"A","r":null,"n":1}]},{"code":"ATL","name":"Atlético Madrid","xp":3.5,"cells":[{"b":null,"opp":"RSO","v":"A","r":"W","n":1},{"b":1,"opp":"OSA","v":"H","r":"W","n":1},{"b":3,"opp":"RMA","v":"H","r":"W","n":1},{"b":2,"opp":"ALA","v":"A","r":null,"n":1},{"b":2,"opp":"ESP","v":"A","r":null,"n":1}]},{"code":"RSO","name":"Real Sociedad","xp":3.5,"cells":[{"b":null,"opp":"ATL","v":"H","r":"L","n":1},{"b":null,"opp":"CEL","v":"H","r":"D","n":1},{"b":3,"opp":"VAL","v":"A","r":"W","n":1},{"b":2,"opp":"DEP","v":"H","r":null,"n":1},{"b":2,"opp":"MAL","v":"A","r":null,"n":1}]},{"code":"CEL","name":"Celta","xp":3.1,"cells":[{"b":null,"opp":"MAL","v":"H","r":"D","n":1},{"b":null,"opp":"RSO","v":"A","r":"D","n":1},{"b":2,"opp":"SAN","v":"H","r":"W","n":1},{"b":3,"opp":"ELC","v":"A","r":null,"n":1},{"b":2,"opp":"ALA","v":"H","r":null,"n":1}]},{"code":"DEP","name":"Deportivo","xp":2.9,"cells":[{"b":null,"opp":"GET","v":"A","r":"D","n":1},{"b":2,"opp":"SEV","v":"H","r":"L","n":1},{"b":3,"opp":"BET","v":"H","r":"D","n":1},{"b":4,"opp":"RSO","v":"A","r":null,"n":1},{"b":2,"opp":"LEV","v":"H","r":null,"n":1}]},{"code":"OSA","name":"Osasuna","xp":2.9,"cells":[{"b":null,"opp":"ESP","v":"H","r":"L","n":1},{"b":5,"opp":"ATL","v":"A","r":"L","n":1},{"b":3,"opp":"RAY","v":"H","r":"D","n":1},{"b":5,"opp":"BET","v":"A","r":null,"n":1},{"b":1,"opp":"SAN","v":"H","r":null,"n":1}]},{"code":"BET","name":"Real Betis","xp":2.9,"cells":[{"b":4,"opp":"VIL","v":"A","r":"W","n":1},{"b":2,"opp":"GET","v":"H","r":"W","n":1},{"b":3,"opp":"DEP","v":"A","r":"D","n":1},{"b":1,"opp":"OSA","v":"H","r":null,"n":1},{"b":4,"opp":"FCB","v":"H","r":null,"n":1}]},{"code":"VAL","name":"Valencia","xp":2.8,"cells":[{"b":null,"opp":"SEV","v":"A","r":"L","n":1},{"b":4,"opp":"ALA","v":"A","r":"W","n":1},{"b":3,"opp":"RSO","v":"H","r":"L","n":1},{"b":3,"opp":"SAN","v":"A","r":null,"n":1},{"b":3,"opp":"ATH","v":"H","r":null,"n":1}]},{"code":"VIL","name":"Villarreal","xp":2.8,"cells":[{"b":2,"opp":"BET","v":"H","r":"L","n":1},{"b":2,"opp":"MAL","v":"A","r":"W","n":1},{"b":1,"opp":"LEV","v":"H","r":"W","n":1},{"b":5,"opp":"RMA","v":"A","r":null,"n":1},{"b":1,"opp":"ELC","v":"H","r":null,"n":1}]},{"code":"RAY","name":"Rayo Vallecano","xp":2.7,"cells":[{"b":null,"opp":"RMA","v":"A","r":"L","n":1},{"b":2,"opp":"ESP","v":"H","r":"W","n":1},{"b":3,"opp":"OSA","v":"A","r":"D","n":1},{"b":3,"opp":"ATH","v":"H","r":null,"n":1},{"b":3,"opp":"GET","v":"A","r":null,"n":1}]},{"code":"ESP","name":"Espanyol","xp":2.6,"cells":[{"b":null,"opp":"OSA","v":"A","r":"W","n":1},{"b":4,"opp":"RAY","v":"A","r":"L","n":1},{"b":2,"opp":"ELC","v":"H","r":"L","n":1},{"b":2,"opp":"MAL","v":"A","r":null,"n":1},{"b":4,"opp":"ATL","v":"H","r":null,"n":1}]},{"code":"ALA","name":"Alavés","xp":2.1,"cells":[{"b":null,"opp":"SAN","v":"A","r":"L","n":1},{"b":2,"opp":"VAL","v":"H","r":"L","n":1},{"b":4,"opp":"ATH","v":"A","r":"D","n":1},{"b":4,"opp":"ATL","v":"H","r":null,"n":1},{"b":4,"opp":"CEL","v":"A","r":null,"n":1}]},{"code":"ELC","name":"Elche","xp":2.1,"cells":[{"b":null,"opp":"ATH","v":"A","r":"D","n":1},{"b":5,"opp":"RMA","v":"H","r":"L","n":1},{"b":4,"opp":"ESP","v":"A","r":"W","n":1},{"b":3,"opp":"CEL","v":"H","r":null,"n":1},{"b":5,"opp":"VIL","v":"A","r":null,"n":1}]},{"code":"MAL","name":"Málaga","xp":2.0,"cells":[{"b":null,"opp":"CEL","v":"A","r":"D","n":1},{"b":4,"opp":"VIL","v":"H","r":"L","n":1},{"b":4,"opp":"GET","v":"A","r":"L","n":1},{"b":4,"opp":"ESP","v":"H","r":null,"n":1},{"b":4,"opp":"RSO","v":"H","r":null,"n":1}]},{"code":"SAN","name":"Racing Santander","xp":2.0,"cells":[{"b":null,"opp":"ALA","v":"H","r":"W","n":1},{"b":5,"opp":"FCB","v":"A","r":"L","n":1},{"b":4,"opp":"CEL","v":"A","r":"L","n":1},{"b":3,"opp":"VAL","v":"H","r":null,"n":1},{"b":5,"opp":"OSA","v":"A","r":null,"n":1}]},{"code":"GET","name":"Getafe","xp":1.7,"cells":[{"b":null,"opp":"DEP","v":"H","r":"D","n":1},{"b":5,"opp":"BET","v":"A","r":"L","n":1},{"b":2,"opp":"MAL","v":"H","r":"W","n":1},{"b":5,"opp":"FCB","v":"A","r":null,"n":1},{"b":3,"opp":"RAY","v":"H","r":null,"n":1}]},{"code":"SEV","name":"Sevilla","xp":1.6,"cells":[{"b":null,"opp":"VAL","v":"H","r":"W","n":1},{"b":4,"opp":"DEP","v":"A","r":"W","n":1},{"b":5,"opp":"FCB","v":"H","r":"L","n":1},{"b":3,"opp":"LEV","v":"A","r":null,"n":1},{"b":5,"opp":"RMA","v":"A","r":null,"n":1}]}]},"6":{"fixtures":[{"id":31,"home":"RSO","away":"CEL","utc":"2026-09-03T19:00:00Z","day":"Thu","date":"3 Sep","time":"21:00","p":null,"status":"finished","score":[0,0],"chance":null},{"id":52,"home":"RAY","away":"ESP","utc":"2026-09-15T17:00:00Z","day":"Tue","date":"15 Sep","time":"19:00","p":[0.496,0.258,0.247],"status":"finished","score":[2,1],"chance":0.496},{"id":53,"home":"ALA","away":"VAL","utc":"2026-09-15T18:00:00Z","day":"Tue","date":"15 Sep","time":"20:00","p":[0.483,0.267,0.25],"status":"finished","score":[0,1],"chance":0.25},{"id":54,"home":"ELC","away":"RMA","utc":"2026-09-15T19:30:00Z","day":"Tue","date":"15 Sep","time":"21:30","p":[0.2,0.205,0.595],"status":"finished","score":[2,3],"chance":0.595},{"id":56,"home":"ATL","away":"OSA","utc":"2026-09-16T17:00:00Z","day":"Wed","date":"16 Sep","time":"19:00","p":[0.658,0.204,0.138],"status":"finished","score":[4,0],"chance":0.658},{"id":55,"home":"DEP","away":"SEV","utc":"2026-09-16T17:00:00Z","day":"Wed","date":"16 Sep","time":"19:00","p":[0.491,0.255,0.254],"status":"finished","score":[0,1],"chance":0.254},{"id":58,"home":"FCB","away":"SAN","utc":"2026-09-16T19:30:00Z","day":"Wed","date":"16 Sep","time":"21:30","p":[0.905,0.06,0.035],"status":"finished","score":[7,2],"chance":0.905},{"id":59,"home":"BET","away":"GET","utc":"2026-09-17T17:00:00Z","day":"Thu","date":"17 Sep","time":"19:00","p":[0.552,0.265,0.184],"status":"finished","score":[1,0],"chance":0.552},{"id":60,"home":"MAL","away":"VIL","utc":"2026-09-17T19:30:00Z","day":"Thu","date":"17 Sep","time":"21:30","p":[0.211,0.259,0.529],"status":"finished","score":[1,3],"chance":0.529},{"id":57,"home":"LEV","away":"ATH","utc":"2026-10-21T18:00:00Z","day":"Wed","date":"21 Oct","time":"20:00","p":[0.355,0.264,0.38],"status":"scheduled","score":null,"chance":null}],"ladder":[{"code":"FCB","name":"Barcelona","xp":6.3,"cells":[{"b":1,"opp":"SAN","v":"H","r":"W","n":1},{"b":1,"opp":"SEV","v":"A","r":"W","n":1},{"b":1,"opp":"GET","v":"H","r":null,"n":1},{"b":2,"opp":"BET","v":"A","r":null,"n":1},{"b":1,"opp":"RMA","v":"H","r":null,"n":1}]},{"code":"ATH","name":"Athletic Club","xp":5.8,"cells":[{"b":3,"opp":"LEV","v":"A","r":null,"n":1},{"b":2,"opp":"ALA","v":"H","r":"D","n":1},{"b":3,"opp":"RAY","v":"A","r":null,"n":1},{"b":3,"opp":"VAL","v":"A","r":null,"n":1},{"b":2,"opp":"GET","v":"H","r":null,"n":1}]},{"code":"ATL","name":"Atlético Madrid","xp":5.6,"cells":[{"b":1,"opp":"OSA","v":"H","r":"W","n":1},{"b":3,"opp":"RMA","v":"H","r":"W","n":1},{"b":2,"opp":"ALA","v":"A","r":null,"n":1},{"b":2,"opp":"ESP","v":"A","r":null,"n":1},{"b":1,"opp":"DEP","v":"H","r":null,"n":1}]},{"code":"RMA","name":"Real Madrid","xp":5.4,"cells":[{"b":2,"opp":"ELC","v":"A","r":"W","n":1},{"b":3,"opp":"ATL","v":"A","r":"L","n":1},{"b":1,"opp":"VIL","v":"H","r":null,"n":1},{"b":1,"opp":"SEV","v":"H","r":null,"n":1},{"b":4,"opp":"FCB","v":"A","r":null,"n":1}]},{"code":"RSO","name":"Real Sociedad","xp":5.3,"cells":[{"b":null,"opp":"CEL","v":"H","r":"D","n":1},{"b":3,"opp":"VAL","v":"A","r":"W","n":1},{"b":2,"opp":"DEP","v":"H","r":null,"n":1},{"b":2,"opp":"MAL","v":"A","r":null,"n":1},{"b":2,"opp":"LEV","v":"H","r":null,"n":1}]},{"code":"LEV","name":"Levante","xp":4.8,"cells":[{"b":3,"opp":"ATH","v":"H","r":null,"n":1},{"b":5,"opp":"VIL","v":"A","r":"L","n":1},{"b":2,"opp":"SEV","v":"H","r":null,"n":1},{"b":4,"opp":"DEP","v":"A","r":null,"n":1},{"b":4,"opp":"RSO","v":"A","r":null,"n":1}]},{"code":"CEL","name":"Celta","xp":4.6,"cells":[{"b":null,"opp":"RSO","v":"A","r":"D","n":1},{"b":2,"opp":"SAN","v":"H","r":"W","n":1},{"b":3,"opp":"ELC","v":"A","r":null,"n":1},{"b":2,"opp":"ALA","v":"H","r":null,"n":1},{"b":3,"opp":"BET","v":"H","r":null,"n":1}]},{"code":"RAY","name":"Rayo Vallecano","xp":4.5,"cells":[{"b":2,"opp":"ESP","v":"H","r":"W","n":1},{"b":3,"opp":"OSA","v":"A","r":"D","n":1},{"b":3,"opp":"ATH","v":"H","r":null,"n":1},{"b":3,"opp":"GET","v":"A","r":null,"n":1},{"b":2,"opp":"ELC","v":"H","r":null,"n":1}]},{"code":"VIL","name":"Villarreal","xp":4.5,"cells":[{"b":2,"opp":"MAL","v":"A","r":"W","n":1},{"b":1,"opp":"LEV","v":"H","r":"W","n":1},{"b":5,"opp":"RMA","v":"A","r":null,"n":1},{"b":1,"opp":"ELC","v":"H","r":null,"n":1},{"b":2,"opp":"VAL","v":"A","r":null,"n":1}]},{"code":"ALA","name":"Alavés","xp":4.2,"cells":[{"b":2,"opp":"VAL","v":"H","r":"L","n":1},{"b":4,"opp":"ATH","v":"A","r":"D","n":1},{"b":4,"opp":"ATL","v":"H","r":null,"n":1},{"b":4,"opp":"CEL","v":"A","r":null,"n":1},{"b":1,"opp":"MAL","v":"H","r":null,"n":1}]},{"code":"BET","name":"Real Betis","xp":4.1,"cells":[{"b":2,"opp":"GET","v":"H","r":"W","n":1},{"b":3,"opp":"DEP","v":"A","r":"D","n":1},{"b":1,"opp":"OSA","v":"H","r":null,"n":1},{"b":4,"opp":"FCB","v":"H","r":null,"n":1},{"b":3,"opp":"CEL","v":"A","r":null,"n":1}]},{"code":"ESP","name":"Espanyol","xp":4.0,"cells":[{"b":4,"opp":"RAY","v":"A","r":"L","n":1},{"b":2,"opp":"ELC","v":"H","r":"L","n":1},{"b":2,"opp":"MAL","v":"A","r":null,"n":1},{"b":4,"opp":"ATL","v":"H","r":null,"n":1},{"b":3,"opp":"SAN","v":"A","r":null,"n":1}]},{"code":"OSA","name":"Osasuna","xp":4.0,"cells":[{"b":5,"opp":"ATL","v":"A","r":"L","n":1},{"b":3,"opp":"RAY","v":"H","r":"D","n":1},{"b":5,"opp":"BET","v":"A","r":null,"n":1},{"b":1,"opp":"SAN","v":"H","r":null,"n":1},{"b":4,"opp":"SEV","v":"A","r":null,"n":1}]},{"code":"VAL","name":"Valencia","xp":3.9,"cells":[{"b":4,"opp":"ALA","v":"A","r":"W","n":1},{"b":3,"opp":"RSO","v":"H","r":"L","n":1},{"b":3,"opp":"SAN","v":"A","r":null,"n":1},{"b":3,"opp":"ATH","v":"H","r":null,"n":1},{"b":4,"opp":"VIL","v":"H","r":null,"n":1}]},{"code":"DEP","name":"Deportivo","xp":3.5,"cells":[{"b":2,"opp":"SEV","v":"H","r":"L","n":1},{"b":3,"opp":"BET","v":"H","r":"D","n":1},{"b":4,"opp":"RSO","v":"A","r":null,"n":1},{"b":2,"opp":"LEV","v":"H","r":null,"n":1},{"b":5,"opp":"ATL","v":"A","r":null,"n":1}]},{"code":"SAN","name":"Racing Santander","xp":3.4,"cells":[{"b":5,"opp":"FCB","v":"A","r":"L","n":1},{"b":4,"opp":"CEL","v":"A","r":"L","n":1},{"b":3,"opp":"VAL","v":"H","r":null,"n":1},{"b":5,"opp":"OSA","v":"A","r":null,"n":1},{"b":3,"opp":"ESP","v":"H","r":null,"n":1}]},{"code":"SEV","name":"Sevilla","xp":3.3,"cells":[{"b":4,"opp":"DEP","v":"A","r":"W","n":1},{"b":5,"opp":"FCB","v":"H","r":"L","n":1},{"b":3,"opp":"LEV","v":"A","r":null,"n":1},{"b":5,"opp":"RMA","v":"A","r":null,"n":1},{"b":2,"opp":"OSA","v":"H","r":null,"n":1}]},{"code":"ELC","name":"Elche","xp":3.1,"cells":[{"b":5,"opp":"RMA","v":"H","r":"L","n":1},{"b":4,"opp":"ESP","v":"A","r":"W","n":1},{"b":3,"opp":"CEL","v":"H","r":null,"n":1},{"b":5,"opp":"VIL","v":"A","r":null,"n":1},{"b":4,"opp":"RAY","v":"A","r":null,"n":1}]},{"code":"GET","name":"Getafe","xp":2.7,"cells":[{"b":5,"opp":"BET","v":"A","r":"L","n":1},{"b":2,"opp":"MAL","v":"H","r":"W","n":1},{"b":5,"opp":"FCB","v":"A","r":null,"n":1},{"b":3,"opp":"RAY","v":"H","r":null,"n":1},{"b":4,"opp":"ATH","v":"A","r":null,"n":1}]},{"code":"MAL","name":"Málaga","xp":2.7,"cells":[{"b":4,"opp":"VIL","v":"H","r":"L","n":1},{"b":4,"opp":"GET","v":"A","r":"L","n":1},{"b":4,"opp":"ESP","v":"H","r":null,"n":1},{"b":4,"opp":"RSO","v":"H","r":null,"n":1},{"b":5,"opp":"ALA","v":"A","r":null,"n":1}]}]},"7":{"fixtures":[{"id":61,"home":"ESP","away":"ELC","utc":"2026-09-18T19:00:00Z","day":"Fri","date":"18 Sep","time":"21:00","p":[0.47,0.26,0.271],"status":"finished","score":[1,3],"chance":0.271},{"id":62,"home":"OSA","away":"RAY","utc":"2026-09-19T12:00:00Z","day":"Sat","date":"19 Sep","time":"14:00","p":[0.416,0.278,0.306],"status":"finished","score":[1,1],"chance":0.278},{"id":63,"home":"ATH","away":"ALA","utc":"2026-09-19T14:15:00Z","day":"Sat","date":"19 Sep","time":"16:15","p":[0.525,0.261,0.214],"status":"finished","score":[0,0],"chance":0.261},{"id":64,"home":"CEL","away":"SAN","utc":"2026-09-19T16:30:00Z","day":"Sat","date":"19 Sep","time":"18:30","p":[0.568,0.212,0.22],"status":"finished","score":[5,0],"chance":0.568},{"id":65,"home":"SEV","away":"FCB","utc":"2026-09-19T19:00:00Z","day":"Sat","date":"19 Sep","time":"21:00","p":[0.12,0.167,0.713],"status":"finished","score":[1,3],"chance":0.713},{"id":66,"home":"GET","away":"MAL","utc":"2026-09-20T12:00:00Z","day":"Sun","date":"20 Sep","time":"14:00","p":[0.459,0.345,0.196],"status":"finished","score":[1,0],"chance":0.459},{"id":67,"home":"ATL","away":"RMA","utc":"2026-09-20T14:15:00Z","day":"Sun","date":"20 Sep","time":"16:15","p":[0.339,0.247,0.414],"status":"finished","score":[2,1],"chance":0.339},{"id":68,"home":"DEP","away":"BET","utc":"2026-09-20T16:30:00Z","day":"Sun","date":"20 Sep","time":"18:30","p":[0.332,0.251,0.417],"status":"finished","score":[1,1],"chance":0.251},{"id":69,"home":"VIL","away":"LEV","utc":"2026-09-20T16:30:00Z","day":"Sun","date":"20 Sep","time":"18:30","p":[0.656,0.186,0.158],"status":"finished","score":[3,1],"chance":0.656},{"id":70,"home":"VAL","away":"RSO","utc":"2026-09-20T19:00:00Z","day":"Sun","date":"20 Sep","time":"21:00","p":[0.383,0.273,0.344],"status":"finished","score":[2,3],"chance":0.344}],"ladder":[{"code":"FCB","name":"Barcelona","xp":8.9,"cells":[{"b":1,"opp":"SEV","v":"A","r":"W","n":1},{"b":1,"opp":"GET","v":"H","r":null,"n":1},{"b":2,"opp":"BET","v":"A","r":null,"n":1},{"b":1,"opp":"RMA","v":"H","r":null,"n":1},{"b":1,"opp":"ALA","v":"H","r":null,"n":1}]},{"code":"RMA","name":"Real Madrid","xp":7.9,"cells":[{"b":3,"opp":"ATL","v":"A","r":"L","n":1},{"b":1,"opp":"VIL","v":"H","r":null,"n":1},{"b":1,"opp":"SEV","v":"H","r":null,"n":1},{"b":4,"opp":"FCB","v":"A","r":null,"n":1},{"b":1,"opp":"SAN","v":"A","r":null,"n":1}]},{"code":"ATL","name":"Atlético Madrid","xp":7.4,"cells":[{"b":3,"opp":"RMA","v":"H","r":"W","n":1},{"b":2,"opp":"ALA","v":"A","r":null,"n":1},{"b":2,"opp":"ESP","v":"A","r":null,"n":1},{"b":1,"opp":"DEP","v":"H","r":null,"n":1},{"b":2,"opp":"LEV","v":"A","r":null,"n":1}]},{"code":"VIL","name":"Villarreal","xp":6.6,"cells":[{"b":1,"opp":"LEV","v":"H","r":"W","n":1},{"b":5,"opp":"RMA","v":"A","r":null,"n":1},{"b":1,"opp":"ELC","v":"H","r":null,"n":1},{"b":2,"opp":"VAL","v":"A","r":null,"n":1},{"b":1,"opp":"ESP","v":"H","r":null,"n":1}]},{"code":"BET","name":"Real Betis","xp":6.5,"cells":[{"b":3,"opp":"DEP","v":"A","r":"D","n":1},{"b":1,"opp":"OSA","v":"H","r":null,"n":1},{"b":4,"opp":"FCB","v":"H","r":null,"n":1},{"b":3,"opp":"CEL","v":"A","r":null,"n":1},{"b":1,"opp":"MAL","v":"H","r":null,"n":1}]},{"code":"RSO","name":"Real Sociedad","xp":6.3,"cells":[{"b":3,"opp":"VAL","v":"A","r":"W","n":1},{"b":2,"opp":"DEP","v":"H","r":null,"n":1},{"b":2,"opp":"MAL","v":"A","r":null,"n":1},{"b":2,"opp":"LEV","v":"H","r":null,"n":1},{"b":4,"opp":"ATH","v":"A","r":null,"n":1}]},{"code":"ATH","name":"Athletic Club","xp":6.1,"cells":[{"b":2,"opp":"ALA","v":"H","r":"D","n":1},{"b":3,"opp":"RAY","v":"A","r":null,"n":1},{"b":3,"opp":"VAL","v":"A","r":null,"n":1},{"b":2,"opp":"GET","v":"H","r":null,"n":1},{"b":2,"opp":"RSO","v":"H","r":null,"n":1}]},{"code":"RAY","name":"Rayo Vallecano","xp":6.0,"cells":[{"b":3,"opp":"OSA","v":"A","r":"D","n":1},{"b":3,"opp":"ATH","v":"H","r":null,"n":1},{"b":3,"opp":"GET","v":"A","r":null,"n":1},{"b":2,"opp":"ELC","v":"H","r":null,"n":1},{"b":3,"opp":"CEL","v":"H","r":null,"n":1}]},{"code":"CEL","name":"Celta","xp":5.8,"cells":[{"b":2,"opp":"SAN","v":"H","r":"W","n":1},{"b":3,"opp":"ELC","v":"A","r":null,"n":1},{"b":2,"opp":"ALA","v":"H","r":null,"n":1},{"b":3,"opp":"BET","v":"H","r":null,"n":1},{"b":3,"opp":"RAY","v":"A","r":null,"n":1}]},{"code":"DEP","name":"Deportivo","xp":5.2,"cells":[{"b":3,"opp":"BET","v":"H","r":"D","n":1},{"b":4,"opp":"RSO","v":"A","r":null,"n":1},{"b":2,"opp":"LEV","v":"H","r":null,"n":1},{"b":5,"opp":"ATL","v":"A","r":null,"n":1},{"b":2,"opp":"OSA","v":"H","r":null,"n":1}]},{"code":"OSA","name":"Osasuna","xp":5.1,"cells":[{"b":3,"opp":"RAY","v":"H","r":"D","n":1},{"b":5,"opp":"BET","v":"A","r":null,"n":1},{"b":1,"opp":"SAN","v":"H","r":null,"n":1},{"b":4,"opp":"SEV","v":"A","r":null,"n":1},{"b":4,"opp":"DEP","v":"A","r":null,"n":1}]},{"code":"VAL","name":"Valencia","xp":4.9,"cells":[{"b":3,"opp":"RSO","v":"H","r":"L","n":1},{"b":3,"opp":"SAN","v":"A","r":null,"n":1},{"b":3,"opp":"ATH","v":"H","r":null,"n":1},{"b":4,"opp":"VIL","v":"H","r":null,"n":1},{"b":4,"opp":"ELC","v":"A","r":null,"n":1}]},{"code":"ELC","name":"Elche","xp":4.8,"cells":[{"b":4,"opp":"ESP","v":"A","r":"W","n":1},{"b":3,"opp":"CEL","v":"H","r":null,"n":1},{"b":5,"opp":"VIL","v":"A","r":null,"n":1},{"b":4,"opp":"RAY","v":"A","r":null,"n":1},{"b":2,"opp":"VAL","v":"H","r":null,"n":1}]},{"code":"ESP","name":"Espanyol","xp":4.6,"cells":[{"b":2,"opp":"ELC","v":"H","r":"L","n":1},{"b":2,"opp":"MAL","v":"A","r":null,"n":1},{"b":4,"opp":"ATL","v":"H","r":null,"n":1},{"b":3,"opp":"SAN","v":"A","r":null,"n":1},{"b":5,"opp":"VIL","v":"A","r":null,"n":1}]},{"code":"ALA","name":"Alavés","xp":4.5,"cells":[{"b":4,"opp":"ATH","v":"A","r":"D","n":1},{"b":4,"opp":"ATL","v":"H","r":null,"n":1},{"b":4,"opp":"CEL","v":"A","r":null,"n":1},{"b":1,"opp":"MAL","v":"H","r":null,"n":1},{"b":5,"opp":"FCB","v":"A","r":null,"n":1}]},{"code":"SEV","name":"Sevilla","xp":4.5,"cells":[{"b":5,"opp":"FCB","v":"H","r":"L","n":1},{"b":3,"opp":"LEV","v":"A","r":null,"n":1},{"b":5,"opp":"RMA","v":"A","r":null,"n":1},{"b":2,"opp":"OSA","v":"H","r":null,"n":1},{"b":3,"opp":"GET","v":"A","r":null,"n":1}]},{"code":"LEV","name":"Levante","xp":4.4,"cells":[{"b":5,"opp":"VIL","v":"A","r":"L","n":1},{"b":2,"opp":"SEV","v":"H","r":null,"n":1},{"b":4,"opp":"DEP","v":"A","r":null,"n":1},{"b":4,"opp":"RSO","v":"A","r":null,"n":1},{"b":4,"opp":"ATL","v":"H","r":null,"n":1}]},{"code":"GET","name":"Getafe","xp":4.2,"cells":[{"b":2,"opp":"MAL","v":"H","r":"W","n":1},{"b":5,"opp":"FCB","v":"A","r":null,"n":1},{"b":3,"opp":"RAY","v":"H","r":null,"n":1},{"b":4,"opp":"ATH","v":"A","r":null,"n":1},{"b":3,"opp":"SEV","v":"H","r":null,"n":1}]},{"code":"SAN","name":"Racing Santander","xp":3.8,"cells":[{"b":4,"opp":"CEL","v":"A","r":"L","n":1},{"b":3,"opp":"VAL","v":"H","r":null,"n":1},{"b":5,"opp":"OSA","v":"A","r":null,"n":1},{"b":3,"opp":"ESP","v":"H","r":null,"n":1},{"b":5,"opp":"RMA","v":"H","r":null,"n":1}]},{"code":"MAL","name":"Málaga","xp":3.1,"cells":[{"b":4,"opp":"GET","v":"A","r":"L","n":1},{"b":4,"opp":"ESP","v":"H","r":null,"n":1},{"b":4,"opp":"RSO","v":"H","r":null,"n":1},{"b":5,"opp":"ALA","v":"A","r":null,"n":1},{"b":5,"opp":"BET","v":"A","r":null,"n":1}]}]},"8":{"fixtures":[{"id":71,"home":"MAL","away":"ESP","utc":"2026-10-09T19:00:00Z","day":"Fri","date":"9 Oct","time":"21:00","p":[0.254,0.315,0.431],"status":"scheduled","score":null,"chance":null},{"id":72,"home":"RAY","away":"ATH","utc":"2026-10-10T12:00:00Z","day":"Sat","date":"10 Oct","time":"14:00","p":[0.396,0.287,0.317],"status":"scheduled","score":null,"chance":null},{"id":73,"home":"ALA","away":"ATL","utc":"2026-10-10T14:15:00Z","day":"Sat","date":"10 Oct","time":"16:15","p":[0.272,0.265,0.463],"status":"scheduled","score":null,"chance":null},{"id":74,"home":"FCB","away":"GET","utc":"2026-10-10T16:30:00Z","day":"Sat","date":"10 Oct","time":"18:30","p":[0.782,0.151,0.067],"status":"scheduled","score":null,"chance":null},{"id":75,"home":"RMA","away":"VIL","utc":"2026-10-10T19:00:00Z","day":"Sat","date":"10 Oct","time":"21:00","p":[0.645,0.183,0.172],"status":"scheduled","score":null,"chance":null},{"id":76,"home":"ELC","away":"CEL","utc":"2026-10-11T12:00:00Z","day":"Sun","date":"11 Oct","time":"14:00","p":[0.389,0.251,0.36],"status":"scheduled","score":null,"chance":null},{"id":77,"home":"RSO","away":"DEP","utc":"2026-10-11T14:15:00Z","day":"Sun","date":"11 Oct","time":"16:15","p":[0.474,0.246,0.28],"status":"scheduled","score":null,"chance":null},{"id":78,"home":"BET","away":"OSA","utc":"2026-10-11T16:30:00Z","day":"Sun","date":"11 Oct","time":"18:30","p":[0.58,0.224,0.196],"status":"scheduled","score":null,"chance":null},{"id":79,"home":"SAN","away":"VAL","utc":"2026-10-11T19:00:00Z","day":"Sun","date":"11 Oct","time":"21:00","p":[0.371,0.219,0.41],"status":"scheduled","score":null,"chance":null},{"id":80,"home":"LEV","away":"SEV","utc":"2026-10-12T19:00:00Z","day":"Mon","date":"12 Oct","time":"21:00","p":[0.434,0.25,0.316],"status":"scheduled","score":null,"chance":null}],"ladder":[{"code":"FCB","name":"Barcelona","xp":10.5,"cells":[{"b":1,"opp":"GET","v":"H","r":null,"n":1},{"b":2,"opp":"BET","v":"A","r":null,"n":1},{"b":1,"opp":"RMA","v":"H","r":null,"n":1},{"b":1,"opp":"ALA","v":"H","r":null,"n":1},{"b":2,"opp":"ATL","v":"A","r":null,"n":1}]},{"code":"RMA","name":"Real Madrid","xp":10.0,"cells":[{"b":1,"opp":"VIL","v":"H","r":null,"n":1},{"b":1,"opp":"SEV","v":"H","r":null,"n":1},{"b":4,"opp":"FCB","v":"A","r":null,"n":1},{"b":1,"opp":"SAN","v":"A","r":null,"n":1},{"b":2,"opp":"VAL","v":"A","r":null,"n":1}]},{"code":"VIL","name":"Villarreal","xp":8.7,"cells":[{"b":5,"opp":"RMA","v":"A","r":null,"n":1},{"b":1,"opp":"ELC","v":"H","r":null,"n":1},{"b":2,"opp":"VAL","v":"A","r":null,"n":1},{"b":1,"opp":"ESP","v":"H","r":null,"n":1},{"b":1,"opp":"GET","v":"H","r":null,"n":1}]},{"code":"ATL","name":"Atlético Madrid","xp":8.6,"cells":[{"b":2,"opp":"ALA","v":"A","r":null,"n":1},{"b":2,"opp":"ESP","v":"A","r":null,"n":1},{"b":1,"opp":"DEP","v":"H","r":null,"n":1},{"b":2,"opp":"LEV","v":"A","r":null,"n":1},{"b":3,"opp":"FCB","v":"H","r":null,"n":1}]},{"code":"BET","name":"Real Betis","xp":7.9,"cells":[{"b":1,"opp":"OSA","v":"H","r":null,"n":1},{"b":4,"opp":"FCB","v":"H","r":null,"n":1},{"b":3,"opp":"CEL","v":"A","r":null,"n":1},{"b":1,"opp":"MAL","v":"H","r":null,"n":1},{"b":3,"opp":"ELC","v":"A","r":null,"n":1}]},{"code":"RSO","name":"Real Sociedad","xp":7.9,"cells":[{"b":2,"opp":"DEP","v":"H","r":null,"n":1},{"b":2,"opp":"MAL","v":"A","r":null,"n":1},{"b":2,"opp":"LEV","v":"H","r":null,"n":1},{"b":4,"opp":"ATH","v":"A","r":null,"n":1},{"b":2,"opp":"RAY","v":"H","r":null,"n":1}]},{"code":"CEL","name":"Celta","xp":7.8,"cells":[{"b":3,"opp":"ELC","v":"A","r":null,"n":1},{"b":2,"opp":"ALA","v":"H","r":null,"n":1},{"b":3,"opp":"BET","v":"H","r":null,"n":1},{"b":3,"opp":"RAY","v":"A","r":null,"n":1},{"b":1,"opp":"LEV","v":"H","r":null,"n":1}]},{"code":"ATH","name":"Athletic Club","xp":7.5,"cells":[{"b":3,"opp":"RAY","v":"A","r":null,"n":1},{"b":3,"opp":"VAL","v":"A","r":null,"n":1},{"b":2,"opp":"GET","v":"H","r":null,"n":1},{"b":2,"opp":"RSO","v":"H","r":null,"n":1},{"b":3,"opp":"OSA","v":"A","r":null,"n":1}]},{"code":"RAY","name":"Rayo Vallecano","xp":7.1,"cells":[{"b":3,"opp":"ATH","v":"H","r":null,"n":1},{"b":3,"opp":"GET","v":"A","r":null,"n":1},{"b":2,"opp":"ELC","v":"H","r":null,"n":1},{"b":3,"opp":"CEL","v":"H","r":null,"n":1},{"b":4,"opp":"RSO","v":"A","r":null,"n":1}]},{"code":"OSA","name":"Osasuna","xp":6.5,"cells":[{"b":5,"opp":"BET","v":"A","r":null,"n":1},{"b":1,"opp":"SAN","v":"H","r":null,"n":1},{"b":4,"opp":"SEV","v":"A","r":null,"n":1},{"b":4,"opp":"DEP","v":"A","r":null,"n":1},{"b":3,"opp":"ATH","v":"H","r":null,"n":1}]},{"code":"DEP","name":"Deportivo","xp":6.4,"cells":[{"b":4,"opp":"RSO","v":"A","r":null,"n":1},{"b":2,"opp":"LEV","v":"H","r":null,"n":1},{"b":5,"opp":"ATL","v":"A","r":null,"n":1},{"b":2,"opp":"OSA","v":"H","r":null,"n":1},{"b":3,"opp":"ESP","v":"A","r":null,"n":1}]},{"code":"ELC","name":"Elche","xp":6.1,"cells":[{"b":3,"opp":"CEL","v":"H","r":null,"n":1},{"b":5,"opp":"VIL","v":"A","r":null,"n":1},{"b":4,"opp":"RAY","v":"A","r":null,"n":1},{"b":2,"opp":"VAL","v":"H","r":null,"n":1},{"b":3,"opp":"BET","v":"H","r":null,"n":1}]},{"code":"ESP","name":"Espanyol","xp":6.1,"cells":[{"b":2,"opp":"MAL","v":"A","r":null,"n":1},{"b":4,"opp":"ATL","v":"H","r":null,"n":1},{"b":3,"opp":"SAN","v":"A","r":null,"n":1},{"b":5,"opp":"VIL","v":"A","r":null,"n":1},{"b":3,"opp":"DEP","v":"H","r":null,"n":1}]},{"code":"SEV","name":"Sevilla","xp":6.0,"cells":[{"b":3,"opp":"LEV","v":"A","r":null,"n":1},{"b":5,"opp":"RMA","v":"A","r":null,"n":1},{"b":2,"opp":"OSA","v":"H","r":null,"n":1},{"b":3,"opp":"GET","v":"A","r":null,"n":1},{"b":2,"opp":"ALA","v":"H","r":null,"n":1}]},{"code":"VAL","name":"Valencia","xp":5.7,"cells":[{"b":3,"opp":"SAN","v":"A","r":null,"n":1},{"b":3,"opp":"ATH","v":"H","r":null,"n":1},{"b":4,"opp":"VIL","v":"H","r":null,"n":1},{"b":4,"opp":"ELC","v":"A","r":null,"n":1},{"b":5,"opp":"RMA","v":"H","r":null,"n":1}]},{"code":"ALA","name":"Alavés","xp":5.6,"cells":[{"b":4,"opp":"ATL","v":"H","r":null,"n":1},{"b":4,"opp":"CEL","v":"A","r":null,"n":1},{"b":1,"opp":"MAL","v":"H","r":null,"n":1},{"b":5,"opp":"FCB","v":"A","r":null,"n":1},{"b":4,"opp":"SEV","v":"A","r":null,"n":1}]},{"code":"LEV","name":"Levante","xp":5.3,"cells":[{"b":2,"opp":"SEV","v":"H","r":null,"n":1},{"b":4,"opp":"DEP","v":"A","r":null,"n":1},{"b":4,"opp":"RSO","v":"A","r":null,"n":1},{"b":4,"opp":"ATL","v":"H","r":null,"n":1},{"b":5,"opp":"CEL","v":"A","r":null,"n":1}]},{"code":"SAN","name":"Racing Santander","xp":5.2,"cells":[{"b":3,"opp":"VAL","v":"H","r":null,"n":1},{"b":5,"opp":"OSA","v":"A","r":null,"n":1},{"b":3,"opp":"ESP","v":"H","r":null,"n":1},{"b":5,"opp":"RMA","v":"H","r":null,"n":1},{"b":3,"opp":"MAL","v":"A","r":null,"n":1}]},{"code":"GET","name":"Getafe","xp":4.9,"cells":[{"b":5,"opp":"FCB","v":"A","r":null,"n":1},{"b":3,"opp":"RAY","v":"H","r":null,"n":1},{"b":4,"opp":"ATH","v":"A","r":null,"n":1},{"b":3,"opp":"SEV","v":"H","r":null,"n":1},{"b":5,"opp":"VIL","v":"A","r":null,"n":1}]},{"code":"MAL","name":"Málaga","xp":4.4,"cells":[{"b":4,"opp":"ESP","v":"H","r":null,"n":1},{"b":4,"opp":"RSO","v":"H","r":null,"n":1},{"b":5,"opp":"ALA","v":"A","r":null,"n":1},{"b":5,"opp":"BET","v":"A","r":null,"n":1},{"b":3,"opp":"SAN","v":"H","r":null,"n":1}]}]},"9":{"fixtures":[{"id":89,"home":"DEP","away":"LEV","utc":"2026-10-16T19:00:00Z","day":"Fri","date":"16 Oct","time":"21:00","p":[0.511,0.237,0.252],"status":"scheduled","score":null,"chance":null},{"id":83,"home":"ESP","away":"ATL","utc":"2026-10-17T12:00:00Z","day":"Sat","date":"17 Oct","time":"14:00","p":[0.236,0.246,0.518],"status":"scheduled","score":null,"chance":null},{"id":81,"home":"VIL","away":"ELC","utc":"2026-10-17T14:15:00Z","day":"Sat","date":"17 Oct","time":"16:15","p":[0.652,0.183,0.165],"status":"scheduled","score":null,"chance":null},{"id":86,"home":"BET","away":"FCB","utc":"2026-10-17T16:30:00Z","day":"Sat","date":"17 Oct","time":"18:30","p":[0.229,0.201,0.569],"status":"scheduled","score":null,"chance":null},{"id":84,"home":"VAL","away":"ATH","utc":"2026-10-17T19:00:00Z","day":"Sat","date":"17 Oct","time":"21:00","p":[0.344,0.289,0.367],"status":"scheduled","score":null,"chance":null},{"id":88,"home":"OSA","away":"SAN","utc":"2026-10-18T12:00:00Z","day":"Sun","date":"18 Oct","time":"14:00","p":[0.65,0.174,0.176],"status":"scheduled","score":null,"chance":null},{"id":85,"home":"CEL","away":"ALA","utc":"2026-10-18T14:15:00Z","day":"Sun","date":"18 Oct","time":"16:15","p":[0.497,0.264,0.24],"status":"scheduled","score":null,"chance":null},{"id":87,"home":"MAL","away":"RSO","utc":"2026-10-18T16:30:00Z","day":"Sun","date":"18 Oct","time":"18:30","p":[0.216,0.284,0.5],"status":"scheduled","score":null,"chance":null},{"id":82,"home":"RMA","away":"SEV","utc":"2026-10-18T19:00:00Z","day":"Sun","date":"18 Oct","time":"21:00","p":[0.759,0.149,0.093],"status":"scheduled","score":null,"chance":null},{"id":90,"home":"GET","away":"RAY","utc":"2026-10-19T19:00:00Z","day":"Mon","date":"19 Oct","time":"21:00","p":[0.353,0.338,0.309],"status":"scheduled","score":null,"chance":null}],"ladder":[{"code":"FCB","name":"Barcelona","xp":10.3,"cells":[{"b":2,"opp":"BET","v":"A","r":null,"n":1},{"b":1,"opp":"RMA","v":"H","r":null,"n":1},{"b":1,"opp":"ALA","v":"H","r":null,"n":1},{"b":2,"opp":"ATL","v":"A","r":null,"n":1},{"b":1,"opp":"VIL","v":"H","r":null,"n":1}]},{"code":"RMA","name":"Real Madrid","xp":10.1,"cells":[{"b":1,"opp":"SEV","v":"H","r":null,"n":1},{"b":4,"opp":"FCB","v":"A","r":null,"n":1},{"b":1,"opp":"SAN","v":"A","r":null,"n":1},{"b":2,"opp":"VAL","v":"A","r":null,"n":1},{"b":1,"opp":"CEL","v":"H","r":null,"n":1}]},{"code":"ATL","name":"Atlético Madrid","xp":8.6,"cells":[{"b":2,"opp":"ESP","v":"A","r":null,"n":1},{"b":1,"opp":"DEP","v":"H","r":null,"n":1},{"b":2,"opp":"LEV","v":"A","r":null,"n":1},{"b":3,"opp":"FCB","v":"H","r":null,"n":1},{"b":2,"opp":"GET","v":"A","r":null,"n":1}]},{"code":"VIL","name":"Villarreal","xp":8.5,"cells":[{"b":1,"opp":"ELC","v":"H","r":null,"n":1},{"b":2,"opp":"VAL","v":"A","r":null,"n":1},{"b":1,"opp":"ESP","v":"H","r":null,"n":1},{"b":1,"opp":"GET","v":"H","r":null,"n":1},{"b":5,"opp":"FCB","v":"A","r":null,"n":1}]},{"code":"ATH","name":"Athletic Club","xp":8.1,"cells":[{"b":3,"opp":"VAL","v":"A","r":null,"n":1},{"b":2,"opp":"GET","v":"H","r":null,"n":1},{"b":2,"opp":"RSO","v":"H","r":null,"n":1},{"b":3,"opp":"OSA","v":"A","r":null,"n":1},{"b":2,"opp":"ESP","v":"H","r":null,"n":1}]},{"code":"RSO","name":"Real Sociedad","xp":7.9,"cells":[{"b":2,"opp":"MAL","v":"A","r":null,"n":1},{"b":2,"opp":"LEV","v":"H","r":null,"n":1},{"b":4,"opp":"ATH","v":"A","r":null,"n":1},{"b":2,"opp":"RAY","v":"H","r":null,"n":1},{"b":2,"opp":"SAN","v":"A","r":null,"n":1}]},{"code":"OSA","name":"Osasuna","xp":7.8,"cells":[{"b":1,"opp":"SAN","v":"H","r":null,"n":1},{"b":4,"opp":"SEV","v":"A","r":null,"n":1},{"b":4,"opp":"DEP","v":"A","r":null,"n":1},{"b":3,"opp":"ATH","v":"H","r":null,"n":1},{"b":1,"opp":"MAL","v":"H","r":null,"n":1}]},{"code":"RAY","name":"Rayo Vallecano","xp":7.4,"cells":[{"b":3,"opp":"GET","v":"A","r":null,"n":1},{"b":2,"opp":"ELC","v":"H","r":null,"n":1},{"b":3,"opp":"CEL","v":"H","r":null,"n":1},{"b":4,"opp":"RSO","v":"A","r":null,"n":1},{"b":2,"opp":"VAL","v":"H","r":null,"n":1}]},{"code":"BET","name":"Real Betis","xp":7.4,"cells":[{"b":4,"opp":"FCB","v":"H","r":null,"n":1},{"b":3,"opp":"CEL","v":"A","r":null,"n":1},{"b":1,"opp":"MAL","v":"H","r":null,"n":1},{"b":3,"opp":"ELC","v":"A","r":null,"n":1},{"b":3,"opp":"SEV","v":"A","r":null,"n":1}]},{"code":"CEL","name":"Celta","xp":7.0,"cells":[{"b":2,"opp":"ALA","v":"H","r":null,"n":1},{"b":3,"opp":"BET","v":"H","r":null,"n":1},{"b":3,"opp":"RAY","v":"A","r":null,"n":1},{"b":1,"opp":"LEV","v":"H","r":null,"n":1},{"b":5,"opp":"RMA","v":"A","r":null,"n":1}]},{"code":"DEP","name":"Deportivo","xp":6.5,"cells":[{"b":2,"opp":"LEV","v":"H","r":null,"n":1},{"b":5,"opp":"ATL","v":"A","r":null,"n":1},{"b":2,"opp":"OSA","v":"H","r":null,"n":1},{"b":3,"opp":"ESP","v":"A","r":null,"n":1},{"b":4,"opp":"ALA","v":"A","r":null,"n":1}]},{"code":"ALA","name":"Alavés","xp":6.2,"cells":[{"b":4,"opp":"CEL","v":"A","r":null,"n":1},{"b":1,"opp":"MAL","v":"H","r":null,"n":1},{"b":5,"opp":"FCB","v":"A","r":null,"n":1},{"b":4,"opp":"SEV","v":"A","r":null,"n":1},{"b":2,"opp":"DEP","v":"H","r":null,"n":1}]},{"code":"SEV","name":"Sevilla","xp":6.1,"cells":[{"b":5,"opp":"RMA","v":"A","r":null,"n":1},{"b":2,"opp":"OSA","v":"H","r":null,"n":1},{"b":3,"opp":"GET","v":"A","r":null,"n":1},{"b":2,"opp":"ALA","v":"H","r":null,"n":1},{"b":3,"opp":"BET","v":"H","r":null,"n":1}]},{"code":"ELC","name":"Elche","xp":5.9,"cells":[{"b":5,"opp":"VIL","v":"A","r":null,"n":1},{"b":4,"opp":"RAY","v":"A","r":null,"n":1},{"b":2,"opp":"VAL","v":"H","r":null,"n":1},{"b":3,"opp":"BET","v":"H","r":null,"n":1},{"b":3,"opp":"LEV","v":"A","r":null,"n":1}]},{"code":"GET","name":"Getafe","xp":5.5,"cells":[{"b":3,"opp":"RAY","v":"H","r":null,"n":1},{"b":4,"opp":"ATH","v":"A","r":null,"n":1},{"b":3,"opp":"SEV","v":"H","r":null,"n":1},{"b":5,"opp":"VIL","v":"A","r":null,"n":1},{"b":4,"opp":"ATL","v":"H","r":null,"n":1}]},{"code":"ESP","name":"Espanyol","xp":5.4,"cells":[{"b":4,"opp":"ATL","v":"H","r":null,"n":1},{"b":3,"opp":"SAN","v":"A","r":null,"n":1},{"b":5,"opp":"VIL","v":"A","r":null,"n":1},{"b":3,"opp":"DEP","v":"H","r":null,"n":1},{"b":4,"opp":"ATH","v":"A","r":null,"n":1}]},{"code":"LEV","name":"Levante","xp":5.3,"cells":[{"b":4,"opp":"DEP","v":"A","r":null,"n":1},{"b":4,"opp":"RSO","v":"A","r":null,"n":1},{"b":4,"opp":"ATL","v":"H","r":null,"n":1},{"b":5,"opp":"CEL","v":"A","r":null,"n":1},{"b":2,"opp":"ELC","v":"H","r":null,"n":1}]},{"code":"VAL","name":"Valencia","xp":5.2,"cells":[{"b":3,"opp":"ATH","v":"H","r":null,"n":1},{"b":4,"opp":"VIL","v":"H","r":null,"n":1},{"b":4,"opp":"ELC","v":"A","r":null,"n":1},{"b":5,"opp":"RMA","v":"H","r":null,"n":1},{"b":4,"opp":"RAY","v":"A","r":null,"n":1}]},{"code":"SAN","name":"Racing Santander","xp":5.0,"cells":[{"b":5,"opp":"OSA","v":"A","r":null,"n":1},{"b":3,"opp":"ESP","v":"H","r":null,"n":1},{"b":5,"opp":"RMA","v":"H","r":null,"n":1},{"b":3,"opp":"MAL","v":"A","r":null,"n":1},{"b":4,"opp":"RSO","v":"H","r":null,"n":1}]},{"code":"MAL","name":"Málaga","xp":4.0,"cells":[{"b":4,"opp":"RSO","v":"H","r":null,"n":1},{"b":5,"opp":"ALA","v":"A","r":null,"n":1},{"b":5,"opp":"BET","v":"A","r":null,"n":1},{"b":3,"opp":"SAN","v":"H","r":null,"n":1},{"b":5,"opp":"OSA","v":"A","r":null,"n":1}]}]},"10":{"fixtures":[{"id":92,"home":"ALA","away":"MAL","utc":"2026-10-25T00:00:00Z","day":"Sun","date":"25 Oct","time":"TBC","p":[0.608,0.264,0.128],"status":"scheduled","score":null,"chance":null},{"id":93,"home":"ATH","away":"GET","utc":"2026-10-25T00:00:00Z","day":"Sun","date":"25 Oct","time":"TBC","p":[0.476,0.321,0.203],"status":"scheduled","score":null,"chance":null},{"id":97,"home":"ATL","away":"DEP","utc":"2026-10-25T00:00:00Z","day":"Sun","date":"25 Oct","time":"TBC","p":[0.649,0.203,0.148],"status":"scheduled","score":null,"chance":null},{"id":96,"home":"FCB","away":"RMA","utc":"2026-10-25T00:00:00Z","day":"Sun","date":"25 Oct","time":"TBC","p":[0.576,0.196,0.228],"status":"scheduled","score":null,"chance":null},{"id":98,"home":"CEL","away":"BET","utc":"2026-10-25T00:00:00Z","day":"Sun","date":"25 Oct","time":"TBC","p":[0.42,0.252,0.328],"status":"scheduled","score":null,"chance":null},{"id":100,"home":"SAN","away":"ESP","utc":"2026-10-25T00:00:00Z","day":"Sun","date":"25 Oct","time":"TBC","p":[0.378,0.215,0.407],"status":"scheduled","score":null,"chance":null},{"id":91,"home":"RAY","away":"ELC","utc":"2026-10-25T00:00:00Z","day":"Sun","date":"25 Oct","time":"TBC","p":[0.494,0.246,0.26],"status":"scheduled","score":null,"chance":null},{"id":99,"home":"RSO","away":"LEV","utc":"2026-10-25T00:00:00Z","day":"Sun","date":"25 Oct","time":"TBC","p":[0.534,0.223,0.242],"status":"scheduled","score":null,"chance":null},{"id":94,"home":"SEV","away":"OSA","utc":"2026-10-25T00:00:00Z","day":"Sun","date":"25 Oct","time":"TBC","p":[0.453,0.265,0.282],"status":"scheduled","score":null,"chance":null},{"id":95,"home":"VAL","away":"VIL","utc":"2026-10-25T00:00:00Z","day":"Sun","date":"25 Oct","time":"TBC","p":[0.29,0.246,0.463],"status":"scheduled","score":null,"chance":null}],"ladder":[{"code":"FCB","name":"Barcelona","xp":10.6,"cells":[{"b":1,"opp":"RMA","v":"H","r":null,"n":1},{"b":1,"opp":"ALA","v":"H","r":null,"n":1},{"b":2,"opp":"ATL","v":"A","r":null,"n":1},{"b":1,"opp":"VIL","v":"H","r":null,"n":1},{"b":2,"opp":"DEP","v":"A","r":null,"n":1}]},{"code":"RMA","name":"Real Madrid","xp":10.1,"cells":[{"b":4,"opp":"FCB","v":"A","r":null,"n":1},{"b":1,"opp":"SAN","v":"A","r":null,"n":1},{"b":2,"opp":"VAL","v":"A","r":null,"n":1},{"b":1,"opp":"CEL","v":"H","r":null,"n":1},{"b":1,"opp":"ALA","v":"H","r":null,"n":1}]},{"code":"ATL","name":"Atlético Madrid","xp":8.6,"cells":[{"b":1,"opp":"DEP","v":"H","r":null,"n":1},{"b":2,"opp":"LEV","v":"A","r":null,"n":1},{"b":3,"opp":"FCB","v":"H","r":null,"n":1},{"b":2,"opp":"GET","v":"A","r":null,"n":1},{"b":2,"opp":"ELC","v":"A","r":null,"n":1}]},{"code":"ATH","name":"Athletic Club","xp":8.5,"cells":[{"b":2,"opp":"GET","v":"H","r":null,"n":1},{"b":2,"opp":"RSO","v":"H","r":null,"n":1},{"b":3,"opp":"OSA","v":"A","r":null,"n":1},{"b":2,"opp":"ESP","v":"H","r":null,"n":1},{"b":2,"opp":"MAL","v":"A","r":null,"n":1}]},{"code":"BET","name":"Real Betis","xp":8.4,"cells":[{"b":3,"opp":"CEL","v":"A","r":null,"n":1},{"b":1,"opp":"MAL","v":"H","r":null,"n":1},{"b":3,"opp":"ELC","v":"A","r":null,"n":1},{"b":3,"opp":"SEV","v":"A","r":null,"n":1},{"b":2,"opp":"RAY","v":"H","r":null,"n":1}]},{"code":"RSO","name":"Real Sociedad","xp":7.8,"cells":[{"b":2,"opp":"LEV","v":"H","r":null,"n":1},{"b":4,"opp":"ATH","v":"A","r":null,"n":1},{"b":2,"opp":"RAY","v":"H","r":null,"n":1},{"b":2,"opp":"SAN","v":"A","r":null,"n":1},{"b":2,"opp":"SEV","v":"H","r":null,"n":1}]},{"code":"VIL","name":"Villarreal","xp":7.7,"cells":[{"b":2,"opp":"VAL","v":"A","r":null,"n":1},{"b":1,"opp":"ESP","v":"H","r":null,"n":1},{"b":1,"opp":"GET","v":"H","r":null,"n":1},{"b":5,"opp":"FCB","v":"A","r":null,"n":1},{"b":3,"opp":"CEL","v":"A","r":null,"n":1}]},{"code":"RAY","name":"Rayo Vallecano","xp":7.0,"cells":[{"b":2,"opp":"ELC","v":"H","r":null,"n":1},{"b":3,"opp":"CEL","v":"H","r":null,"n":1},{"b":4,"opp":"RSO","v":"A","r":null,"n":1},{"b":2,"opp":"VAL","v":"H","r":null,"n":1},{"b":4,"opp":"BET","v":"A","r":null,"n":1}]},{"code":"OSA","name":"Osasuna","xp":6.8,"cells":[{"b":4,"opp":"SEV","v":"A","r":null,"n":1},{"b":4,"opp":"DEP","v":"A","r":null,"n":1},{"b":3,"opp":"ATH","v":"H","r":null,"n":1},{"b":1,"opp":"MAL","v":"H","r":null,"n":1},{"b":3,"opp":"VAL","v":"A","r":null,"n":1}]},{"code":"SEV","name":"Sevilla","xp":6.7,"cells":[{"b":2,"opp":"OSA","v":"H","r":null,"n":1},{"b":3,"opp":"GET","v":"A","r":null,"n":1},{"b":2,"opp":"ALA","v":"H","r":null,"n":1},{"b":3,"opp":"BET","v":"H","r":null,"n":1},{"b":4,"opp":"RSO","v":"A","r":null,"n":1}]},{"code":"CEL","name":"Celta","xp":6.6,"cells":[{"b":3,"opp":"BET","v":"H","r":null,"n":1},{"b":3,"opp":"RAY","v":"A","r":null,"n":1},{"b":1,"opp":"LEV","v":"H","r":null,"n":1},{"b":5,"opp":"RMA","v":"A","r":null,"n":1},{"b":3,"opp":"VIL","v":"H","r":null,"n":1}]},{"code":"LEV","name":"Levante","xp":6.4,"cells":[{"b":4,"opp":"RSO","v":"A","r":null,"n":1},{"b":4,"opp":"ATL","v":"H","r":null,"n":1},{"b":5,"opp":"CEL","v":"A","r":null,"n":1},{"b":2,"opp":"ELC","v":"H","r":null,"n":1},{"b":1,"opp":"SAN","v":"H","r":null,"n":1}]},{"code":"ELC","name":"Elche","xp":6.2,"cells":[{"b":4,"opp":"RAY","v":"A","r":null,"n":1},{"b":2,"opp":"VAL","v":"H","r":null,"n":1},{"b":3,"opp":"BET","v":"H","r":null,"n":1},{"b":3,"opp":"LEV","v":"A","r":null,"n":1},{"b":4,"opp":"ATL","v":"H","r":null,"n":1}]},{"code":"ESP","name":"Espanyol","xp":5.9,"cells":[{"b":3,"opp":"SAN","v":"A","r":null,"n":1},{"b":5,"opp":"VIL","v":"A","r":null,"n":1},{"b":3,"opp":"DEP","v":"H","r":null,"n":1},{"b":4,"opp":"ATH","v":"A","r":null,"n":1},{"b":3,"opp":"GET","v":"H","r":null,"n":1}]},{"code":"ALA","name":"Alavés","xp":5.6,"cells":[{"b":1,"opp":"MAL","v":"H","r":null,"n":1},{"b":5,"opp":"FCB","v":"A","r":null,"n":1},{"b":4,"opp":"SEV","v":"A","r":null,"n":1},{"b":2,"opp":"DEP","v":"H","r":null,"n":1},{"b":5,"opp":"RMA","v":"A","r":null,"n":1}]},{"code":"DEP","name":"Deportivo","xp":5.4,"cells":[{"b":5,"opp":"ATL","v":"A","r":null,"n":1},{"b":2,"opp":"OSA","v":"H","r":null,"n":1},{"b":3,"opp":"ESP","v":"A","r":null,"n":1},{"b":4,"opp":"ALA","v":"A","r":null,"n":1},{"b":5,"opp":"FCB","v":"H","r":null,"n":1}]},{"code":"VAL","name":"Valencia","xp":5.4,"cells":[{"b":4,"opp":"VIL","v":"H","r":null,"n":1},{"b":4,"opp":"ELC","v":"A","r":null,"n":1},{"b":5,"opp":"RMA","v":"H","r":null,"n":1},{"b":4,"opp":"RAY","v":"A","r":null,"n":1},{"b":3,"opp":"OSA","v":"H","r":null,"n":1}]},{"code":"GET","name":"Getafe","xp":5.3,"cells":[{"b":4,"opp":"ATH","v":"A","r":null,"n":1},{"b":3,"opp":"SEV","v":"H","r":null,"n":1},{"b":5,"opp":"VIL","v":"A","r":null,"n":1},{"b":4,"opp":"ATL","v":"H","r":null,"n":1},{"b":4,"opp":"ESP","v":"A","r":null,"n":1}]},{"code":"SAN","name":"Racing Santander","xp":5.0,"cells":[{"b":3,"opp":"ESP","v":"H","r":null,"n":1},{"b":5,"opp":"RMA","v":"H","r":null,"n":1},{"b":3,"opp":"MAL","v":"A","r":null,"n":1},{"b":4,"opp":"RSO","v":"H","r":null,"n":1},{"b":5,"opp":"LEV","v":"A","r":null,"n":1}]},{"code":"MAL","name":"Málaga","xp":3.9,"cells":[{"b":5,"opp":"ALA","v":"A","r":null,"n":1},{"b":5,"opp":"BET","v":"A","r":null,"n":1},{"b":3,"opp":"SAN","v":"H","r":null,"n":1},{"b":5,"opp":"OSA","v":"A","r":null,"n":1},{"b":4,"opp":"ATH","v":"H","r":null,"n":1}]}]},"11":{"fixtures":[{"id":104,"home":"ATH","away":"RSO","utc":"2026-11-01T00:00:00Z","day":"Sun","date":"1 Nov","time":"TBC","p":[0.498,0.253,0.249],"status":"scheduled","score":null,"chance":null},{"id":107,"home":"FCB","away":"ALA","utc":"2026-11-01T00:00:00Z","day":"Sun","date":"1 Nov","time":"TBC","p":[0.808,0.123,0.069],"status":"scheduled","score":null,"chance":null},{"id":106,"home":"DEP","away":"OSA","utc":"2026-11-01T00:00:00Z","day":"Sun","date":"1 Nov","time":"TBC","p":[0.469,0.261,0.269],"status":"scheduled","score":null,"chance":null},{"id":103,"home":"ELC","away":"VAL","utc":"2026-11-01T00:00:00Z","day":"Sun","date":"1 Nov","time":"TBC","p":[0.484,0.249,0.267],"status":"scheduled","score":null,"chance":null},{"id":108,"home":"GET","away":"SEV","utc":"2026-11-01T00:00:00Z","day":"Sun","date":"1 Nov","time":"TBC","p":[0.382,0.327,0.291],"status":"scheduled","score":null,"chance":null},{"id":105,"home":"LEV","away":"ATL","utc":"2026-11-01T00:00:00Z","day":"Sun","date":"1 Nov","time":"TBC","p":[0.24,0.229,0.531],"status":"scheduled","score":null,"chance":null},{"id":109,"home":"SAN","away":"RMA","utc":"2026-11-01T00:00:00Z","day":"Sun","date":"1 Nov","time":"TBC","p":[0.089,0.108,0.802],"status":"scheduled","score":null,"chance":null},{"id":110,"home":"RAY","away":"CEL","utc":"2026-11-01T00:00:00Z","day":"Sun","date":"1 Nov","time":"TBC","p":[0.408,0.273,0.319],"status":"scheduled","score":null,"chance":null},{"id":101,"home":"BET","away":"MAL","utc":"2026-11-01T00:00:00Z","day":"Sun","date":"1 Nov","time":"TBC","p":[0.729,0.186,0.084],"status":"scheduled","score":null,"chance":null},{"id":102,"home":"VIL","away":"ESP","utc":"2026-11-01T00:00:00Z","day":"Sun","date":"1 Nov","time":"TBC","p":[0.659,0.191,0.15],"status":"scheduled","score":null,"chance":null}],"ladder":[{"code":"FCB","name":"Barcelona","xp":11.1,"cells":[{"b":1,"opp":"ALA","v":"H","r":null,"n":1},{"b":2,"opp":"ATL","v":"A","r":null,"n":1},{"b":1,"opp":"VIL","v":"H","r":null,"n":1},{"b":2,"opp":"DEP","v":"A","r":null,"n":1},{"b":1,"opp":"CEL","v":"H","r":null,"n":1}]},{"code":"RMA","name":"Real Madrid","xp":10.9,"cells":[{"b":1,"opp":"SAN","v":"A","r":null,"n":1},{"b":2,"opp":"VAL","v":"A","r":null,"n":1},{"b":1,"opp":"CEL","v":"H","r":null,"n":1},{"b":1,"opp":"ALA","v":"H","r":null,"n":1},{"b":2,"opp":"ATH","v":"A","r":null,"n":1}]},{"code":"ATL","name":"Atlético Madrid","xp":8.4,"cells":[{"b":2,"opp":"LEV","v":"A","r":null,"n":1},{"b":3,"opp":"FCB","v":"H","r":null,"n":1},{"b":2,"opp":"GET","v":"A","r":null,"n":1},{"b":2,"opp":"ELC","v":"A","r":null,"n":1},{"b":1,"opp":"BET","v":"H","r":null,"n":1}]},{"code":"VIL","name":"Villarreal","xp":8.1,"cells":[{"b":1,"opp":"ESP","v":"H","r":null,"n":1},{"b":1,"opp":"GET","v":"H","r":null,"n":1},{"b":5,"opp":"FCB","v":"A","r":null,"n":1},{"b":3,"opp":"CEL","v":"A","r":null,"n":1},{"b":1,"opp":"RSO","v":"H","r":null,"n":1}]},{"code":"BET","name":"Real Betis","xp":8.0,"cells":[{"b":1,"opp":"MAL","v":"H","r":null,"n":1},{"b":3,"opp":"ELC","v":"A","r":null,"n":1},{"b":3,"opp":"SEV","v":"A","r":null,"n":1},{"b":2,"opp":"RAY","v":"H","r":null,"n":1},{"b":5,"opp":"ATL","v":"A","r":null,"n":1}]},{"code":"ATH","name":"Athletic Club","xp":7.8,"cells":[{"b":2,"opp":"RSO","v":"H","r":null,"n":1},{"b":3,"opp":"OSA","v":"A","r":null,"n":1},{"b":2,"opp":"ESP","v":"H","r":null,"n":1},{"b":2,"opp":"MAL","v":"A","r":null,"n":1},{"b":4,"opp":"RMA","v":"H","r":null,"n":1}]},{"code":"OSA","name":"Osasuna","xp":7.3,"cells":[{"b":4,"opp":"DEP","v":"A","r":null,"n":1},{"b":3,"opp":"ATH","v":"H","r":null,"n":1},{"b":1,"opp":"MAL","v":"H","r":null,"n":1},{"b":3,"opp":"VAL","v":"A","r":null,"n":1},{"b":2,"opp":"ELC","v":"H","r":null,"n":1}]},{"code":"SEV","name":"Sevilla","xp":7.2,"cells":[{"b":3,"opp":"GET","v":"A","r":null,"n":1},{"b":2,"opp":"ALA","v":"H","r":null,"n":1},{"b":3,"opp":"BET","v":"H","r":null,"n":1},{"b":4,"opp":"RSO","v":"A","r":null,"n":1},{"b":1,"opp":"MAL","v":"H","r":null,"n":1}]},{"code":"RAY","name":"Rayo Vallecano","xp":7.1,"cells":[{"b":3,"opp":"CEL","v":"H","r":null,"n":1},{"b":4,"opp":"RSO","v":"A","r":null,"n":1},{"b":2,"opp":"VAL","v":"H","r":null,"n":1},{"b":4,"opp":"BET","v":"A","r":null,"n":1},{"b":2,"opp":"LEV","v":"H","r":null,"n":1}]},{"code":"RSO","name":"Real Sociedad","xp":6.8,"cells":[{"b":4,"opp":"ATH","v":"A","r":null,"n":1},{"b":2,"opp":"RAY","v":"H","r":null,"n":1},{"b":2,"opp":"SAN","v":"A","r":null,"n":1},{"b":2,"opp":"SEV","v":"H","r":null,"n":1},{"b":5,"opp":"VIL","v":"A","r":null,"n":1}]},{"code":"LEV","name":"Levante","xp":6.4,"cells":[{"b":4,"opp":"ATL","v":"H","r":null,"n":1},{"b":5,"opp":"CEL","v":"A","r":null,"n":1},{"b":2,"opp":"ELC","v":"H","r":null,"n":1},{"b":1,"opp":"SAN","v":"H","r":null,"n":1},{"b":4,"opp":"RAY","v":"A","r":null,"n":1}]},{"code":"DEP","name":"Deportivo","xp":6.3,"cells":[{"b":2,"opp":"OSA","v":"H","r":null,"n":1},{"b":3,"opp":"ESP","v":"A","r":null,"n":1},{"b":4,"opp":"ALA","v":"A","r":null,"n":1},{"b":5,"opp":"FCB","v":"H","r":null,"n":1},{"b":2,"opp":"SAN","v":"A","r":null,"n":1}]},{"code":"ELC","name":"Elche","xp":6.3,"cells":[{"b":2,"opp":"VAL","v":"H","r":null,"n":1},{"b":3,"opp":"BET","v":"H","r":null,"n":1},{"b":3,"opp":"LEV","v":"A","r":null,"n":1},{"b":4,"opp":"ATL","v":"H","r":null,"n":1},{"b":4,"opp":"OSA","v":"A","r":null,"n":1}]},{"code":"GET","name":"Getafe","xp":5.9,"cells":[{"b":3,"opp":"SEV","v":"H","r":null,"n":1},{"b":5,"opp":"VIL","v":"A","r":null,"n":1},{"b":4,"opp":"ATL","v":"H","r":null,"n":1},{"b":4,"opp":"ESP","v":"A","r":null,"n":1},{"b":3,"opp":"VAL","v":"H","r":null,"n":1}]},{"code":"CEL","name":"Celta","xp":5.5,"cells":[{"b":3,"opp":"RAY","v":"A","r":null,"n":1},{"b":1,"opp":"LEV","v":"H","r":null,"n":1},{"b":5,"opp":"RMA","v":"A","r":null,"n":1},{"b":3,"opp":"VIL","v":"H","r":null,"n":1},{"b":5,"opp":"FCB","v":"A","r":null,"n":1}]},{"code":"ESP","name":"Espanyol","xp":5.5,"cells":[{"b":5,"opp":"VIL","v":"A","r":null,"n":1},{"b":3,"opp":"DEP","v":"H","r":null,"n":1},{"b":4,"opp":"ATH","v":"A","r":null,"n":1},{"b":3,"opp":"GET","v":"H","r":null,"n":1},{"b":4,"opp":"ALA","v":"A","r":null,"n":1}]},{"code":"VAL","name":"Valencia","xp":5.5,"cells":[{"b":4,"opp":"ELC","v":"A","r":null,"n":1},{"b":5,"opp":"RMA","v":"H","r":null,"n":1},{"b":4,"opp":"RAY","v":"A","r":null,"n":1},{"b":3,"opp":"OSA","v":"H","r":null,"n":1},{"b":4,"opp":"GET","v":"A","r":null,"n":1}]},{"code":"ALA","name":"Alavés","xp":5.3,"cells":[{"b":5,"opp":"FCB","v":"A","r":null,"n":1},{"b":4,"opp":"SEV","v":"A","r":null,"n":1},{"b":2,"opp":"DEP","v":"H","r":null,"n":1},{"b":5,"opp":"RMA","v":"A","r":null,"n":1},{"b":2,"opp":"ESP","v":"H","r":null,"n":1}]},{"code":"SAN","name":"Racing Santander","xp":4.8,"cells":[{"b":5,"opp":"RMA","v":"H","r":null,"n":1},{"b":3,"opp":"MAL","v":"A","r":null,"n":1},{"b":4,"opp":"RSO","v":"H","r":null,"n":1},{"b":5,"opp":"LEV","v":"A","r":null,"n":1},{"b":3,"opp":"DEP","v":"H","r":null,"n":1}]},{"code":"MAL","name":"Málaga","xp":4.0,"cells":[{"b":5,"opp":"BET","v":"A","r":null,"n":1},{"b":3,"opp":"SAN","v":"H","r":null,"n":1},{"b":5,"opp":"OSA","v":"A","r":null,"n":1},{"b":4,"opp":"ATH","v":"H","r":null,"n":1},{"b":5,"opp":"SEV","v":"A","r":null,"n":1}]}]}},"crests":{"ALA":"https://crests.football-data.org/263.png","ATH":"https://crests.football-data.org/77.png","ATL":"https://crests.football-data.org/78.png","FCB":"https://crests.football-data.org/81.png","CEL":"https://crests.football-data.org/558.png","DEP":"https://crests.football-data.org/560.png","ELC":"https://crests.football-data.org/285.png","ESP":"https://crests.football-data.org/80.png","GET":"https://crests.football-data.org/82.png","LEV":"https://crests.football-data.org/88.png","MAL":"https://crests.football-data.org/84.png","OSA":"https://crests.football-data.org/79.png","SAN":"https://crests.football-data.org/5335.png","RAY":"https://crests.football-data.org/87.png","BET":"https://crests.football-data.org/90.png","RMA":"https://crests.football-data.org/86.png","RSO":"https://crests.football-data.org/92.png","SEV":"https://crests.football-data.org/559.png","VAL":"https://crests.football-data.org/95.png","VIL":"https://crests.football-data.org/94.png"},"names":{"ALA":"Alavés","ATH":"Athletic Club","ATL":"Atlético Madrid","FCB":"Barcelona","CEL":"Celta","DEP":"Deportivo","ELC":"Elche","ESP":"Espanyol","GET":"Getafe","LEV":"Levante","MAL":"Málaga","OSA":"Osasuna","SAN":"Racing Santander","RAY":"Rayo Vallecano","BET":"Real Betis","RMA":"Real Madrid","RSO":"Real Sociedad","SEV":"Sevilla","VAL":"Valencia","VIL":"Villarreal"},"standings":[{"pos":1,"code":"FCB","name":"Barcelona","p":7,"gd":"+24","pts":21,"form":"WWWWW"},{"pos":2,"code":"ATL","name":"Atlético Madrid","p":7,"gd":"+9","pts":16,"form":"WLWWW"},{"pos":3,"code":"BET","name":"Real Betis","p":7,"gd":"+2","pts":16,"form":"LWWWD"},{"pos":4,"code":"RMA","name":"Real Madrid","p":7,"gd":"+10","pts":15,"form":"WLWWL"},{"pos":5,"code":"SEV","name":"Sevilla","p":7,"gd":"+1","pts":13,"form":"LDWWL"},{"pos":6,"code":"ALA","name":"Alavés","p":7,"gd":"+5","pts":11,"form":"WWLLD"},{"pos":7,"code":"DEP","name":"Deportivo","p":7,"gd":"+2","pts":10,"form":"WWDLD"},{"pos":8,"code":"RSO","name":"Real Sociedad","p":7,"gd":"-4","pts":10,"form":"WDWLW"},{"pos":9,"code":"VIL","name":"Villarreal","p":7,"gd":"+1","pts":8,"form":"LLLWW"},{"pos":10,"code":"ATH","name":"Athletic Club","p":6,"gd":"+1","pts":8,"form":"LWWDD"},{"pos":11,"code":"GET","name":"Getafe","p":7,"gd":"-3","pts":8,"form":"LDDLW"},{"pos":12,"code":"RAY","name":"Rayo Vallecano","p":7,"gd":"-5","pts":8,"form":"LWLWD"},{"pos":13,"code":"OSA","name":"Osasuna","p":7,"gd":"-7","pts":8,"form":"WLLLD"},{"pos":14,"code":"CEL","name":"Celta","p":7,"gd":"+2","pts":7,"form":"LDDDW"},{"pos":15,"code":"ESP","name":"Espanyol","p":7,"gd":"0","pts":7,"form":"LDWLL"},{"pos":16,"code":"SAN","name":"Racing Santander","p":7,"gd":"-10","pts":7,"form":"WLWLL"},{"pos":17,"code":"LEV","name":"Levante","p":6,"gd":"-4","pts":5,"form":"DWDLL"},{"pos":18,"code":"ELC","name":"Elche","p":7,"gd":"-6","pts":5,"form":"LLDLW"},{"pos":19,"code":"VAL","name":"Valencia","p":7,"gd":"-9","pts":4,"form":"LLLWL"},{"pos":20,"code":"MAL","name":"Málaga","p":7,"gd":"-9","pts":3,"form":"LDDLL"}],"predicted":{"FCB":{"first":"90%","top4":">99%","down":"–","xpts":"92.2"},"RMA":{"first":"9%","top4":"99%","down":"–","xpts":"80.4"},"ATL":{"first":"1%","top4":"92%","down":"–","xpts":"73.3"},"BET":{"first":"–","top4":"61%","down":"–","xpts":"65.7"},"VIL":{"first":"–","top4":"25%","down":"–","xpts":"60.0"},"ATH":{"first":"–","top4":"7%","down":"–","xpts":"54.8"},"SEV":{"first":"–","top4":"3%","down":"1%","xpts":"52.5"},"RSO":{"first":"–","top4":"4%","down":"1%","xpts":"52.4"},"CEL":{"first":"–","top4":"2%","down":"3%","xpts":"50.0"},"ALA":{"first":"–","top4":"2%","down":"3%","xpts":"50.0"},"RAY":{"first":"–","top4":"2%","down":"4%","xpts":"49.8"},"DEP":{"first":"–","top4":"1%","down":"4%","xpts":"49.1"},"OSA":{"first":"–","top4":"1%","down":"10%","xpts":"45.9"},"ELC":{"first":"–","top4":"–","down":"14%","xpts":"44.6"},"LEV":{"first":"–","top4":"–","down":"19%","xpts":"43.3"},"GET":{"first":"–","top4":"–","down":"18%","xpts":"43.1"},"ESP":{"first":"–","top4":"–","down":"20%","xpts":"42.7"},"VAL":{"first":"–","top4":"–","down":"30%","xpts":"40.9"},"SAN":{"first":"–","top4":"–","down":"76%","xpts":"33.5"},"MAL":{"first":"–","top4":"–","down":"97%","xpts":"26.1"}},"sorare":{"gw":21,"lock":"2026-10-09T14:00:00Z","summary":{"lineups":6,"pAny":0.958,"expEssence":1089,"expCash":1.01,"cardsUsed":42},"best":{"mode":"Pro","name":"LaLiga","rarity":"limited","p":0.783,"x":342,"lo":269,"hi":414,"needed":296,"essence":529,"cash":0.99,"cards":[{"name":"Mathew Ryan","pos":"GK","pic":"https://assets.sorare.com/card/6a157c42-aa72-4b95-8dac-312b2c1779e0/picture/tinified-94bdfba4033373203e162cfabf6b35a3.png","captain":false,"x":50.8},{"name":"Aïssa Mandi","pos":"DEF","pic":"https://assets.sorare.com/card/1eb0b44c-a42b-4332-ac60-7a414df8b769/picture/tinified-10d9fca14d28d3abae39e310842bf834.png","captain":false,"x":46.8},{"name":"Arda Güler","pos":"MID","pic":"https://assets.sorare.com/card/ba894418-7621-42bf-b59e-8ef66d16a0af/picture/tinified-5c5924dbc5746c87b5c94b3ab9ade76e.png","captain":false,"x":55.0},{"name":"Iñigo Vicente","pos":"FWD","pic":"https://assets.sorare.com/card/5f62a121-98a4-4823-8803-7a905903e73c/picture/tinified-6bfab4a46d903378e2dadee57667d30b.png","captain":true,"x":60.2},{"name":"Germán Valera","pos":"FWD","pic":"https://assets.sorare.com/card/4edea66b-dc0f-4d5a-9a65-b7fde7c177cb/picture/tinified-ae514a57670d9cfde7b0832c40de4ff9.png","captain":false,"x":48.4}]},"pool":{"size":74,"byRarity":{"limited":59,"rare":15},"byPos":{"limited":{"GK":8,"DEF":22,"MID":18,"FWD":11},"rare":{"GK":0,"DEF":9,"MID":3,"FWD":3}},"excluded":[{"name":"Rodrygo","why":"sealed","rarity":"limited"},{"name":"Rodrygo","why":"sealed","rarity":"limited"}]},"review":{"gw":14,"lineups":4,"rows":[{"x":263,"lo":182,"hi":338,"actual":290.5,"sorare":273},{"x":230,"lo":143,"hi":316,"actual":288.5,"sorare":250},{"x":458,"lo":380,"hi":536,"actual":374.2,"sorare":384},{"x":393,"lo":292,"hi":489,"actual":398.2,"sorare":365}]}}};
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const TZ = 'Europe/Madrid';
+  const NOW = new Date(DATA.now);
+  const f = (iso, o) => new Intl.DateTimeFormat('en-GB', { timeZone: TZ, ...o }).format(new Date(iso));
+  const dayMonth = (iso) => f(iso, { day: 'numeric', month: 'short' });
+  const range = (a, b) => {
+    const [da, ma] = [f(a, { day: 'numeric' }), f(a, { month: 'short' })];
+    const [db, mb] = [f(b, { day: 'numeric' }), f(b, { month: 'short' })];
+    return ma === mb ? `${da}–${db} ${mb}` : `${da} ${ma} – ${db} ${mb}`;
+  };
+  const crest = (code, cls = 'crest') => `<img class="${cls}" src="${DATA.crests[code]}" alt="" referrerpolicy="no-referrer" loading="lazy">`;
+  const pct = (p) => `${Math.round(p * 100)}%`;
+  const CHEV = '<svg class="chev" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="m5 2 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const ESS = (size = 16) => `<svg width="${size}" height="${size}" viewBox="0 0 16 16" aria-hidden="true"><defs><linearGradient id="ess${size}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe38a"/><stop offset=".55" stop-color="#e8a917"/><stop offset="1" stop-color="#a86f00"/></linearGradient></defs><path d="M8 1 14 6 8 15 2 6Z" fill="url(#ess${size})"/><path d="M2 6h12M8 1 5.5 6 8 15l2.5-9L8 1" fill="none" stroke="rgba(255,255,255,.55)" stroke-width=".8"/></svg>`;
+  const CASH = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="#1f7a4f"/><path d="M8 3.8v8.4M10.2 5.6c-.4-.6-1.2-.9-2.2-.9-1.3 0-2.2.6-2.2 1.5 0 2.1 4.6 1 4.6 3.3 0 .9-.9 1.6-2.3 1.6-1.1 0-2-.4-2.4-1.1" fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg>';
+  const state = { gw: 8, phase: 's2' };
+  const selectable = new Set(DATA.timeline.map((t) => t.gw));
+
+  function countUp(el) {
+    const to = parseFloat(el.dataset.to); const dec = (el.dataset.to.split('.')[1] || '').length;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { el.textContent = to.toFixed(dec); return; }
+    const t0 = performance.now();
+    const step = (t) => { const k = Math.min(1, (t - t0) / 700); el.textContent = (to * (1 - Math.pow(1 - k, 3))).toFixed(dec); if (k < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  }
+
+  /* ---------- head ---------- */
+  function head() {
+    const md = DATA.timeline.find((t) => t.gw === state.gw);
+    const g = DATA.gws[state.gw];
+    $('#title').textContent = `Gameweek ${state.gw}`;
+    const first = g.fixtures[0].utc, last = g.fixtures[g.fixtures.length - 1].utc;
+    const played = g.fixtures.every((m) => m.status === 'finished');
+    const parts = [`${f(first, { weekday: 'short' })} ${range(first, last)}`, `${g.fixtures.length} matches`];
+    if (md.tbc) parts.push('kickoff times TBC');
+    $('#sub').innerHTML = parts.map((p, i) => (i ? '<span class="dot"></span>' : '') + `<span>${p}</span>`).join('');
+    const count = $('#count');
+    if (played) {
+      const shocks = g.fixtures.filter((m) => m.chance != null && m.chance < 0.3).length;
+      count.className = 'count played';
+      count.innerHTML = `<span class="ic"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="m4 9.5 3 3 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><div class="n"><b>${shocks}</b><span>shock${shocks === 1 ? '' : 's'}</span></div><small>results we gave<br>under 30%</small></div>`;
+      return;
+    }
+    // Before S3 the lock time isn't known yet: count to the first kickoff instead.
+    const sorare = state.phase === 'all' && state.gw === 8;
+    const target = sorare ? DATA.sorare.lock : first;
+    const days = Math.floor((new Date(target) - NOW) / 86400000);
+    const when = `${f(target, { weekday: 'short' })} ${f(target, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })}`;
+    count.className = 'count';
+    count.innerHTML = `<span class="ic"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="6.8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M9 5.2V9l2.6 1.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><div><div class="n"><b>${days}</b><span>days</span></div><small>${sorare ? 'to the Sorare lock' : 'to kickoff'}<br>${when}</small></div>`;
+  }
+
+  /* ---------- timeline ---------- */
+  function timeline() {
+    const track = $('#track');
+    track.querySelectorAll('.tl-item, .tl-break').forEach((n) => n.remove());
+    DATA.timeline.forEach((t, i) => {
+      const prev = DATA.timeline[i - 1];
+      if (prev && (new Date(t.from) - new Date(prev.to)) / 86400000 > 10) {
+        const br = document.createElement('div');
+        br.className = 'tl-break';
+        const a = new Date(new Date(prev.to).getTime() + 86400000).toISOString(), b = new Date(new Date(t.from).getTime() - 86400000).toISOString();
+        br.innerHTML = `<b>International break</b><span>${range(a, b)}</span>`;
+        track.appendChild(br);
+      }
+      const b = document.createElement('button');
+      const next = !t.done && DATA.timeline.filter((x) => !x.done)[0] === t;
+      b.type = 'button'; b.className = 'tl-item'; b.dataset.gw = t.gw;
+      b.setAttribute('aria-pressed', String(t.gw === state.gw));
+      b.innerHTML = `<span class="tl-top"><span class="tl-dot ${t.done ? 'done' : next ? 'next' : 'later'}"></span>GW${t.gw}</span><span class="tl-date">${t.tbc ? dayMonth(t.from) + ' · TBC' : range(t.from, t.to)}</span>`;
+      b.addEventListener('click', () => select(t.gw));
+      track.appendChild(b);
+    });
+    placeKnob();
+  }
+  function placeKnob() {
+    const item = $(`.tl-item[data-gw="${state.gw}"]`), knob = $('#knob');
+    knob.style.width = `${item.offsetWidth}px`;
+    knob.style.transform = `translateX(${item.offsetLeft - 5}px)`;
+    item.scrollIntoView({ block: 'nearest', inline: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    const gws = DATA.timeline.map((t) => t.gw);
+    $('#prev').disabled = state.gw === gws[0];
+    $('#next').disabled = state.gw === gws[gws.length - 1];
+  }
+  function select(gw) {
+    state.gw = gw;
+    document.querySelectorAll('.tl-item').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.gw === gw)));
+    placeKnob(); head(); bento();
+  }
+  $('#prev').addEventListener('click', () => { const g = DATA.timeline.map((t) => t.gw); const i = g.indexOf(state.gw); if (i > 0) select(g[i - 1]); });
+  $('#next').addEventListener('click', () => { const g = DATA.timeline.map((t) => t.gw); const i = g.indexOf(state.gw); if (i < g.length - 1) select(g[i + 1]); });
+
+  /* ---------- tiles ---------- */
+  const tile = (cls, i, title, meta, body, id, extra = '') => `<section class="tile ${cls}" style="--i:${i}" aria-labelledby="${id}"><header class="t-head"><h2 id="${id}"><a class="t-link" href="#">${title}</a></h2>${meta ? `<span class="t-meta">${meta}</span>` : ''}${extra}${CHEV}</header>${body}</section>`;
+
+  function fixturesTile(g) {
+    let day = null, r = 0, html = '<div class="fx-list">';
+    const played = g.fixtures.every((m) => m.status === 'finished');
+    for (const m of g.fixtures) {
+      const d = f(m.utc, { weekday: 'short', day: 'numeric', month: 'short' });
+      if (d !== day) { html += `<div class="fx-day">${d}</div>`; day = d; }
+      if (m.status === 'finished') {
+        const [h, a] = m.score; const hw = h > a, aw = a > h;
+        const shock = m.chance < 0.3;
+        html += `<div class="fx"><span class="t">FT</span><span class="teams">${crest(m.home)}<span class="${aw ? 'lost' : ''}">${m.home}</span><span class="sc">${h}–${a}</span><span class="${hw ? 'lost' : ''}">${m.away}</span>${crest(m.away)}</span><span class="odds"><em>${shock ? '<span class="tag">shock</span> ' : ''}<b>${pct(m.chance)}</b></em></span></div>`;
+      } else {
+        const [ph, pd, pa] = m.p; const fav = ph >= pa ? [m.home, ph] : [m.away, pa];
+        html += `<div class="fx" style="--r:${r++}"><span class="t">${m.time}</span><span class="teams">${crest(m.home)}${m.home}<i>v</i>${m.away}${crest(m.away)}</span><span class="odds"><span class="bar3" role="img" aria-label="${DATA.names[m.home]} win ${pct(ph)}, draw ${pct(pd)}, ${DATA.names[m.away]} win ${pct(pa)}"><i class="h" style="flex:${ph}"></i><i class="d" style="flex:${pd}"></i><i class="a" style="flex:${pa}"></i></span><em>${fav[0]} <b>${pct(fav[1])}</b></em></span></div>`;
+      }
+    }
+    html += '</div>';
+    return tile('fixtures', 0, 'Fixtures', played ? 'results' : `${g.fixtures.length} matches`, html, 't-fx');
+  }
+
+  function difficultyTile(g) {
+    const rows = g.ladder, top = rows[0], bottom = rows[rows.length - 1];
+    const cols = [0, 1, 2, 3, 4].map((k) => state.gw + k);
+    let m = `<div class="mosaic" role="img" aria-label="Every club's next five games coloured by difficulty, easiest run first: ${top.name} ${top.xp} expected points, ${bottom.name} ${bottom.xp}">`;
+    m += `<div class="m-row hd"><span></span>${cols.map((c) => `<span>${c}</span>`).join('')}<span></span></div>`;
+    rows.forEach((row, i) => {
+      const cls = i === 0 ? ' top' : i === rows.length - 1 ? ' bottom' : '';
+      m += `<div class="m-row${cls}" style="--r:${i}"><span class="code">${row.code}</span>${row.cells.map((c) => !c ? '<i class="none"></i>' : c.r ? `<i class="pl" title="${c.opp} ${c.v} · played (${c.r})"></i>` : `<i class="f${c.b}" title="${c.opp} ${c.v}"></i>`).join('')}<span class="xp">${row.xp.toFixed(1)}</span></div>`;
+    });
+    m += '</div>';
+    const hero = `<div class="t-hero">${crest(top.code, 'crest lg')}<div class="who"><b>${top.name}</b><span>easiest run</span></div><div class="num"><b data-to="${top.xp.toFixed(1)}">${top.xp.toFixed(1)}</b><span>expected points</span></div></div>`;
+    const foot = `<div class="t-foot">Hardest ${crest(bottom.code)} ${bottom.name}<b class="push">${bottom.xp.toFixed(1)}</b></div>`;
+    return tile('diff', 1, 'Difficulty', `GW${cols[0]}–GW${cols[4]}`, hero + m + foot, 't-diff');
+  }
+
+  function tableTile() {
+    const P = DATA.predicted, S = DATA.standings;
+    const title = Object.entries(P).map(([c, v]) => [c, parseFloat(v.first) || 0]).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    const down = Object.entries(P).map(([c, v]) => [c, parseFloat(v.down) || 0]).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    const [lead] = title;
+    const tones = ['var(--good)', 'var(--good-2)', '#cfe9da'];
+    const hero = `<div class="t-hero">${crest(lead[0], 'crest lg')}<div class="who"><b>${DATA.names[lead[0]]}</b><span>to win the league</span></div><div class="num"><b data-to="${lead[1]}">${lead[1]}</b><span>% chance</span></div></div>`;
+    const race = `<div class="race" role="img" aria-label="Chance of winning the league: ${title.map(([c, v]) => `${DATA.names[c]} ${v}%`).join(', ')}">${title.map(([, v], i) => `<i style="flex:${v};background:${tones[i]}"></i>`).join('')}</div><div class="race-key">${title.map(([c, v], i) => `<span><i style="background:${tones[i]}"></i>${c} ${v}%</span>`).join('')}</div>`;
+    const top = `<ol class="mini">${S.slice(0, 4).map((s) => `<li><span class="pos">${s.pos}</span>${crest(s.code)}<span class="nm">${s.name}</span><span class="form" aria-label="Last five: ${s.form}">${[...s.form].map((x) => `<i class="${x}"></i>`).join('')}</span><span class="pts">${s.pts}</span></li>`).join('')}</ol>`;
+    const rel = `<div class="sub-h"><span>Relegation</span><span>chance</span></div><ol class="mini down">${down.map(([c, v]) => `<li>${crest(c)}<span class="nm">${DATA.names[c]}</span><span class="m"><i style="width:${v}%"></i></span><span class="pc">${v}%</span></li>`).join('')}</ol>`;
+    return tile('tbl', 2, 'Table', 'after GW7', hero + race + top + rel, 't-tbl');
+  }
+
+  function ring(p, label) {
+    const C = 2 * Math.PI * 50;
+    return `<div class="ring" role="img" aria-label="${Math.round(p * 100)}% ${label}"><svg viewBox="0 0 116 116"><circle class="trk" cx="58" cy="58" r="50" fill="none" stroke-width="10"/><circle class="bar" cx="58" cy="58" r="50" fill="none" stroke-width="10" stroke-dasharray="${C}" stroke-dashoffset="${C}" data-off="${C * (1 - p)}"/></svg><div class="val"><b><span data-to="${Math.round(p * 100)}">${Math.round(p * 100)}</span><small>%</small></b><span class="lbl">${label}</span></div></div>`;
+  }
+
+  function waiting(cls, i, title, meta, icon, line, id) {
+    return tile(`${cls} wait`, i, title, meta, `<div class="ghost"><span class="shape ${icon}">${icon === 'card' ? '' : '<svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="3 3"/></svg>'}</span><p>${line}</p></div>`, id);
+  }
+
+  function playTile() {
+    const s = DATA.sorare, b = s.best;
+    if (state.phase === 's2') return waiting('play', 3, 'Play', 'Sorare', 'ring', '<b>Best lineups</b><br>Arrive with Optimize: the best competition, your lineups and your chance of a reward.', 't-play');
+    if (state.gw !== 8) {
+      const past = DATA.timeline.find((t) => t.gw === state.gw).done;
+      return waiting('play', 3, 'Play', 'Sorare', 'ring', past ? '<b>Your results</b><br>This gameweek’s lineups and rewards come from the Sorare sync.' : '<b>Not open yet</b><br>Sorare publishes a gameweek’s competitions a few days before it starts.', 't-play');
+    }
+    const fan = b.cards.map((c, i) => `<span class="fc${c.captain ? ' cap' : ''}" style="--k:${i - 2};--a:${Math.abs(i - 2)};z-index:${5 - Math.abs(i - 2)}"><img src="${c.pic}" alt="${c.name}" referrerpolicy="no-referrer" loading="lazy"></span>`).join('');
+    const days = Math.floor((new Date(s.lock) - NOW) / 86400000);
+    const body = `<div class="p-grid">${ring(s.summary.pAny, 'reward chance')}
+      <div class="p-stats"><span class="l1"><b>${s.summary.lineups}</b> lineups · <b>${s.summary.cardsUsed}</b> cards</span>
+        <div class="rewards"><span class="rw">${ESS()}≈${s.summary.expEssence.toLocaleString('en-GB')} <small>essence</small></span><span class="rw">${CASH}≈$${Math.round(s.summary.expCash)}</span></div>
+        <span class="l1">expected this gameweek</span></div>
+      <div class="best"><div class="best-top"><span class="foil limited stack" aria-hidden="true"></span><span><span class="nm">${b.mode} · ${b.name}</span><br><span class="md">best play · ${b.x} xScore</span></span><span class="pc">${pct(b.p)}</span></div>
+        <div class="meter" role="img" aria-label="${pct(b.p)} chance of a reward in ${b.mode} ${b.name}"><i style="width:${Math.round(b.p * 100)}%"></i></div>
+        <div class="mfan" aria-hidden="true">${fan}</div></div></div>`;
+    return tile('play', 3, 'Play', `Sorare GW${s.gw}`, body, 't-play', `<span class="lock">locks in ${days} d</span>`);
+  }
+
+  function cardsTile() {
+    if (state.phase === 's2') return waiting('cards', 4, 'My cards', '', 'card', '<b>Your cards</b><br>Arrive with the Sorare sync.', 't-cards');
+    const p = DATA.sorare.pool, pos = ['GK', 'DEF', 'MID', 'FWD'];
+    const max = Math.max(...pos.map((k) => p.byPos.limited[k] + p.byPos.rare[k]));
+    const bars = pos.map((k) => { const l = p.byPos.limited[k], r = p.byPos.rare[k];
+      return `<div><em>${l + r}</em><span class="col" style="height:${((l + r) / max) * 100}%">${r ? `<i class="rare" style="flex:${r}"></i>` : ''}<i class="limited" style="flex:${l}"></i></span><span>${k}</span></div>`; }).join('');
+    const sealed = p.excluded.filter((x) => x.why === 'sealed').length;
+    const body = `<div class="c-hero"><b data-to="${p.size}">${p.size}</b><span>playable</span></div>
+      <div class="rar"><span><span class="foil limited" aria-hidden="true"></span>${p.byRarity.limited}<span class="sr"> Limited</span></span><span><span class="foil rare" aria-hidden="true"></span>${p.byRarity.rare}<span class="sr"> Rare</span></span></div>
+      <div class="posbars" role="img" aria-label="By position: ${pos.map((k) => `${k} ${p.byPos.limited[k] + p.byPos.rare[k]}`).join(', ')}">${bars}</div>
+      <div class="t-foot">${sealed} sealed · no Rare goalkeeper</div>`;
+    return tile('cards', 4, 'My cards', 'yares', body, 't-cards');
+  }
+
+  function reviewTile() {
+    if (state.phase === 's2') return waiting('review', 5, 'Predicted vs actual', '', 'ring', '<b>How close we were</b><br>Starts after your first gameweek with Sofix lineups.', 't-rev');
+    const R = DATA.sorare.review;
+    const inside = R.rows.filter((r) => r.actual >= r.lo && r.actual <= r.hi).length;
+    const ours = R.rows.reduce((s, r) => s + Math.abs(r.x - r.actual), 0) / R.rows.length;
+    const theirs = R.rows.reduce((s, r) => s + Math.abs(r.sorare - r.actual), 0) / R.rows.length;
+    const rows = R.rows.map((r) => {
+      const lo = Math.min(r.lo, r.actual, r.sorare) - 20, hi = Math.max(r.hi, r.actual, r.sorare) + 20, at = (v) => ((v - lo) / (hi - lo)) * 100;
+      return `<div class="rv" role="img" aria-label="Predicted ${r.x} (range ${r.lo} to ${r.hi}), scored ${Math.round(r.actual)}, Sorare projected ${r.sorare}"><span class="rail"></span><span class="band" style="left:${at(r.lo)}%;width:${at(r.hi) - at(r.lo)}%"></span><span class="so" style="left:${at(r.sorare)}%"></span><span class="x" style="left:${at(r.x)}%"></span><span class="act" style="left:${at(r.actual)}%"></span></div>`;
+    }).join('');
+    const body = `<div class="c-hero"><b>${inside}<span style="font-size:22px;color:var(--ink-2)"> of ${R.rows.length}</span></b><span>inside our range</span></div>
+      <div class="rv-rows">${rows}</div>
+      <div class="rv-key"><span><i style="box-shadow:inset 0 0 0 2px var(--ink)"></i>ours</span><span><i style="background:var(--accent)"></i>scored</span><span><i style="width:2px;border-radius:1px;background:#d99a0b"></i>Sorare</span></div>
+      <div class="t-foot">Average miss<span class="push">ours <b>${Math.round(ours)}</b> · Sorare <b>${Math.round(theirs)}</b></span></div>`;
+    return tile('review', 5, 'Predicted vs actual', `GW${R.gw}`, body, 't-rev');
+  }
+
+  function bento() {
+    const g = DATA.gws[state.gw];
+    $('#bento').innerHTML = fixturesTile(g) + difficultyTile(g) + tableTile() +
+      `<div class="sorare-sec"><h2><span class="foil limited stack" aria-hidden="true"></span>Sorare</h2><span>your lineups, cards and results</span></div>` +
+      playTile() + cardsTile() + reviewTile();
+    requestAnimationFrame(() => {
+      document.querySelectorAll('.ring .bar').forEach((c) => { c.style.strokeDashoffset = c.dataset.off; });
+      document.querySelectorAll('[data-to]').forEach(countUp);
+    });
+    document.querySelectorAll('.sorare-only').forEach((n) => { n.hidden = state.phase === 's2'; });
+  }
+
+  document.querySelectorAll('.preview-bar button').forEach((b) => b.addEventListener('click', () => {
+    state.phase = b.dataset.phase;
+    document.querySelectorAll('.preview-bar button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    head(); bento();
+  }));
+  addEventListener('resize', placeKnob);
+
+  $('#note').innerHTML = `<p>Design preview S2 · Home. Real data: the board as published to Neon on 21 Sep (fixtures, forecasts, difficulty colours, expected points), the standings and the predicted table exactly as the live app shows them, crests from football-data.org, card art from Sorare.</p>
+    <p>“All phases” shows the Sorare tiles filled: My cards from the Sorare API (21 Sep); Play and Predicted vs actual from the S0 prototype (a rough model: its xScore missed by more than Sorare’s own projection, which is why S4 exists). In the build they wait, and say what fills them, until S3, S6 and S8 land.</p>`;
+
+  timeline(); head(); bento();
+})();
+</script>
+</body>
+</html>

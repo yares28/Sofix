@@ -26,7 +26,7 @@ Every phase has two parts:
 |---|---|---|---|
 | S0 | What Sorare allows | ✅ | ✅ (discovery only; nothing to build) |
 | S1 | Foundation: always on, nothing to start (cloud) | ✅ | ✅ (3 owner steps left) |
-| S2 | Home page (bento) | ⬜ | ⬜ |
+| S2 | Home page (bento) | 🟡 waiting for approval | ⬜ |
 | S3 | Data sync (public + your cards) | ⬜ | ⬜ |
 | S4 | xScore model | ⬜ | ⬜ |
 | S5 | My cards and Player search | ⬜ | ⬜ |
@@ -212,7 +212,62 @@ would be simpler. **It is**, so v2 replaces the launcher.
 - Jobs and pages must never mix model versions: a read model is replaced in one transaction.
 
 ## S2 — Home page (bento)
-- ⬜ A: design. ⬜ B: `/` bento; Fixtures, Difficulty, Table move to their own routes; `?gw=` kept.
+
+### A · Think & show (2026-09-22, waiting for approval)
+
+**Done:** read the live app's numbers (standings, predicted table, the ranking, the gameweek's forecasts) and
+Sofix's grid as published to Neon; reused the Sorare data from S0; built the page on them.
+
+**Found**
+1. **The board needs nothing new.** Everything the three big tiles show is already in the cached grid the board
+   reads, so the home costs no extra Neon reads. The ranking behind the Difficulty tile matches the live app
+   exactly (Barcelona 10.5 expected points over GW8–GW12, Málaga 4.4).
+2. **LaLiga stops for an international break, 21 Sep – 8 Oct.** GW8 is on 9–12 Oct. The gameweek timeline shows
+   the gap as a hatched block, like S0's.
+3. **Sorare's gameweek numbers aren't LaLiga's.** LaLiga GW8 is Sorare GW21. The home keeps LaLiga's numbers
+   everywhere; the Play tile names the Sorare gameweek. Sorare's lock time only arrives with S3, so until then
+   the countdown runs to the first kickoff.
+4. **The bottom three isn't the likeliest relegation three.** On points it's Elche, Valencia and Málaga. On chance
+   it's Málaga 97%, Racing Santander 76% and Valencia 30%. The Table tile shows the chances.
+5. **The Sorare tiles have no data before S3, S6 and S8.** They are built now, in a waiting state that says what
+   fills them. No invented numbers.
+6. **S0's rough xScore missed by more than Sorare's own projection** (replaying GW13–14: 44 points a lineup
+   against 25). The Predicted vs actual tile makes that comparison visible, and S4 has to win it.
+7. **Sorare opens competitions only a few days ahead**, so for GW9 and later the Play tile says "Not open yet".
+8. **Five pages need a way around on the phone.** The installed app has no browser bar, so phones get a bottom tab bar.
+
+**Design:** `docs/sorare/design/S2-home.html`. Switch "After S2 / All phases" to see the Sorare tiles waiting or filled.
+- Head: "Gameweek 8", dates and match count. The one hero number is the days to the Sorare lock (to kickoff
+  before S3). On a played gameweek it becomes the number of shocks (results we gave under 30%).
+- The gameweek timeline from S0: every gameweek, played ones grey, the next one blue, the break hatched.
+- **Fixtures**: the gameweek by day, crests, a win/draw/win bar and the favourite's chance. On a played
+  gameweek: scores, the chance we gave each result, "shock" under 30%.
+- **Difficulty**: the easiest run as the tile's number, then every club's next five games as one colour mosaic,
+  easiest first, the hardest named at the bottom.
+- **Table**: the title favourite's chance, the title race as one bar, the top four with form, and the three
+  likeliest to go down.
+- **Sorare** row: Play (reward chance ring, lineups, essence and cash side by side, the best competition with its
+  chance and a fan of the real cards), My cards (playable count, Limited and Rare as foil chips, cards by
+  position, why Rare is locked), Predicted vs actual (inside the range or not, per lineup, against Sorare's projection).
+- Each tile opens its page. The phone stacks the tiles and adds the tab bar.
+
+### B · Build (after approval)
+- ⬜ `/` Home: head with countdown, gameweek timeline (`?gw=`), the three board tiles from the cached grid.
+- ⬜ Sorare row in its waiting state (filled by S3, S6 and S8).
+- ⬜ Board views move to `/fixtures`, `/difficulty` and `/table`, keeping every other URL setting; old
+  `/?view=…` links redirect.
+- ⬜ Nav: links on the PC, tab bar on the phone.
+- ⬜ Tests: unit (shocks, windows, title and relegation picks), e2e (tiles open their pages, old links
+  redirect, phone fits, accessibility), then screenshots of the live app against this design.
+
+**Edge cases:**
+- A played gameweek shows results, not forecasts.
+- Kickoff times TBC.
+- Postponed games: Athletic and Levante have played 6. A club with two games in a gameweek gets both in its cell.
+- A club with no game that gameweek gets an empty cell.
+- The last gameweeks of the season have fewer than five columns.
+- Before any game is played, the Table tile shows the pre-season projection.
+- While a gameweek is live, the head says "Live" instead of the countdown.
 
 ## S3 — Data sync
 - ⬜ A: design of the sync status and data freshness.

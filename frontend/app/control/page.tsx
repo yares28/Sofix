@@ -10,10 +10,11 @@ import { loadSystem } from "../../lib/system";
 
 export const metadata: Metadata = { title: "Control Center · Sofix" };
 
-/** The address to install from: production's own domain on Vercel, otherwise the one this request came to. */
+/**
+ * The address to install from: the one this page was opened on. Not VERCEL_PROJECT_PRODUCTION_URL: that is another
+ * of the project's domains, where the owner isn't signed in and the extension doesn't answer.
+ */
 async function appAddress(): Promise<string> {
-  const production = process.env.VERCEL_PROJECT_PRODUCTION_URL;
-  if (production) return `https://${production}`;
   const head = await headers();
   const host = head.get("x-forwarded-host") ?? head.get("host") ?? "127.0.0.1:3000";
   const local = /^(127\.0\.0\.1|localhost)(:\d+)?$/.test(host);

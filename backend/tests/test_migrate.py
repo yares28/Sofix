@@ -53,6 +53,7 @@ def test_upgrade_to_head_builds_the_schema(tmp_path):
         "predictions",
         "refresh_runs",
         "market_odds",
+        "read_models",
     }
     upgrade_to_head(url)  # idempotent at head
 

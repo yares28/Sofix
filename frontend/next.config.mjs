@@ -9,7 +9,7 @@ const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: https://crests.football-data.org",
+  "img-src 'self' data: https://crests.football-data.org https://assets.sorare.com",
   "font-src 'self'",
   `connect-src 'self'${isDev ? " ws://127.0.0.1:3000 ws://localhost:3000" : ""}`,
   "object-src 'none'",

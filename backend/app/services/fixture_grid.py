@@ -338,8 +338,14 @@ def last_successful_sync(db: Session) -> datetime | None:
     recent = db.query(RefreshRun).order_by(RefreshRun.started_at.desc()).limit(20).all()
     for run in recent:
         sync_step = (run.details or {}).get("sync") or {}
-        if sync_step.get("status") == "succeeded" and run.finished_at is not None:
+        if sync_step.get("status") != "succeeded":
+            continue
+        if run.finished_at is not None:
             return as_utc(run.finished_at)
+        # The run that is publishing the board right now: its sync step is done even though the run isn't.
+        started = as_utc(run.started_at)
+        if started is not None:
+            return started + timedelta(seconds=float(sync_step.get("seconds") or 0))
     latest_change = (
         db.query(Fixture.source_updated_at).order_by(Fixture.source_updated_at.desc().nulls_last()).limit(1).scalar()
     )

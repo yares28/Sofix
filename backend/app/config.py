@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     history_cache_dir: str = str(BACKEND_DIR / "data" / "raw" / "football-data-co-uk")
     # Shared secret between the Next.js server and POST /api/admin/refresh (≥ 32 bytes, or the endpoint stays off).
     refresh_token: str = ""
+    # After a refresh the job asks the web app to reload its cached pages (POST {APP_URL}/api/revalidate).
+    # Without APP_URL or REVALIDATE_SECRET that call is skipped; the app still picks the data up within an hour.
+    app_url: str = ""
+    revalidate_secret: str = ""
+    # Vercel Deployment Protection locks the app to its owner; jobs pass this secret to get through.
+    vercel_bypass_secret: str = ""
     # Repo-root .env first; an optional backend/.env can override it.
     model_config = SettingsConfigDict(
         env_file=(REPO_ROOT / ".env", BACKEND_DIR / ".env"), case_sensitive=False, extra="ignore"

@@ -2,13 +2,14 @@ import { connection } from "next/server";
 import FixtureBoard from "../../components/FixtureBoard";
 import SiteNav from "../../components/SiteNav";
 import { loadGrid } from "../../lib/api";
+import { loadSystem } from "../../lib/system";
 import { DEFAULT_VIEW, parseViewState } from "../../lib/grid";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 export default async function Home({ searchParams }: { searchParams: SearchParams }) {
   await connection(); // render per request (from the cache), never prerender at build time when the API may be down
-  const [{ grid, meta, error }, rawParams] = await Promise.all([loadGrid(), searchParams]);
+  const [{ grid, meta, error }, rawParams, system] = await Promise.all([loadGrid(), searchParams, loadSystem()]);
 
   // View state from the URL is applied on the server, so a shared link renders the right view with no flash.
   const params = new URLSearchParams();
@@ -21,7 +22,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
 
   return (
     <>
-      <SiteNav meta={meta} />
+      <SiteNav meta={meta} system={system} />
       <main>
         {grid ? (
           <FixtureBoard grid={grid} notes={meta?.model_notes ?? []} initialView={initialView} pinsInUrl={params.has("pins")} />

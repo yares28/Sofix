@@ -106,6 +106,19 @@ class MarketOdds(Base):
     __table_args__ = (UniqueConstraint("fixture_id", name="uq_market_odds_fixture_id"),)
 
 
+class ReadModel(Base):
+    """A page's finished data, written by the jobs and read directly by the web app.
+
+    The Next.js app on Vercel reads these rows from Neon instead of calling the FastAPI server, so production
+    runs no Python server. Each key holds one JSON payload and is replaced in a single transaction.
+    """
+
+    __tablename__ = "read_models"
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    payload: Mapped[dict] = mapped_column(JSON)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 RUNNING = "running"
 
 

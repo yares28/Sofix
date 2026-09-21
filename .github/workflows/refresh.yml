@@ -1,6 +1,7 @@
 name: Scheduled refresh
 
-# Keeps fixtures, predictions and weather fresh without the laptop being on.
+# Keeps fixtures, odds and predictions fresh without the PC being on, then publishes the board for the
+# web app (read_models) and asks the app on Vercel to reload it. The app's Refresh button starts it too.
 # Cron is UTC, so Madrid times shift by an hour between summer (CEST) and winter (CET).
 on:
   schedule:
@@ -9,6 +10,12 @@ on:
     - cron: "23 13 * * 2" #  Tuesday after football-data.co.uk's ~13:00 UK update
     - cron: "23 17 * * 5" #  Friday after football-data.co.uk's ~17:00 UK update
   workflow_dispatch:
+    inputs:
+      trigger:
+        description: Who started this run
+        type: choice
+        options: [cli, button]
+        default: cli
 
 permissions:
   contents: read
@@ -32,6 +39,11 @@ jobs:
       POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
       FOOTBALL_DATA_ORG_TOKEN: ${{ secrets.FOOTBALL_DATA_ORG_TOKEN }}
       ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }} # optional; the odds step is skipped without it (and throttled to 6 h)
+      # After publishing, the job pings {APP_URL}/api/revalidate; skipped when these are missing.
+      APP_URL: ${{ secrets.APP_URL }}
+      REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
+      VERCEL_BYPASS_SECRET: ${{ secrets.VERCEL_BYPASS_SECRET }}
+      RUN_TRIGGER: ${{ github.event_name == 'schedule' && 'schedule' || inputs.trigger || 'cli' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -62,7 +74,8 @@ jobs:
       - name: Refresh
         run: |
           set +e
-          python -m app.jobs.refresh --trigger schedule --skip-migrations
+          case "$RUN_TRIGGER" in schedule|button|cli) ;; *) RUN_TRIGGER=cli ;; esac
+          python -m app.jobs.refresh --trigger "$RUN_TRIGGER" --skip-migrations
           code=$?
           if [ "$code" -eq 2 ]; then
             echo "::notice::Another refresh was already running; skipped."

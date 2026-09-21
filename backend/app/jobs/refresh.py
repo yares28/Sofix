@@ -9,6 +9,8 @@
 2. odds: bookmaker odds from The Odds API (needs ODDS_API_KEY; skipped without it, throttled to 6 h)
 3. predict: rating model predictions (football-data.co.uk history, no key; blends the odds above into
    the next week's fixtures)
+4. publish (production runs only): writes the board for the web app into `read_models`; after the run
+   is recorded the job pings the app's revalidate route (skipped without APP_URL / REVALIDATE_SECRET)
 
 Steps 1–3 are isolated: a failure is recorded and the next step still runs (predictions from the
 data already in the database are better than none). Each run is stored in `refresh_runs`, which
@@ -37,6 +39,7 @@ from app.jobs import predict, seed_and_sync, sync_odds
 from app.logging_config import configure_logging
 from app.migrate import ensure_schema_current, upgrade_to_head
 from app.models import RUNNING, RefreshRun
+from app.services import publish
 from app.services.refresh_runs import (
     STALE_AFTER,
     TRIGGERS,
@@ -156,12 +159,20 @@ def main(
                 finish_run(db, run, False, datetime.now(UTC), error=error)
                 return 1
 
+        # Production (no custom steps) also publishes the pages for the web app, even after a failed
+        # step, so the app always shows whatever is in the database; then it asks the app to reload.
+        step_list = (
+            list(steps) if steps is not None else [*default_steps(), ("publish", lambda: publish.publish_all(db))]
+        )
         all_ok = False
         try:
-            all_ok = run_steps(db, run, steps if steps is not None else default_steps())
+            all_ok = run_steps(db, run, step_list)
         finally:
             finish_run(db, run, all_ok, datetime.now(UTC))
         logger.info("refresh %s (run %d)", run.status, run.id)
+        if steps is None:
+            outcome = publish.notify_app(settings.app_url, settings.revalidate_secret, settings.vercel_bypass_secret)
+            logger.info("app revalidate: %s", outcome)
         return 0 if all_ok else 1
     finally:
         db.close()

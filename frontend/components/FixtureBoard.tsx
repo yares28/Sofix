@@ -56,17 +56,19 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl }: Pr
         </div>
         <div className="hero-controls">
           <GameweekSelector matchdays={grid.matchdays} column={column} opening={opening} onSelect={selectGameweek} />
-          <SegmentedControl<View>
-            label="View"
-            size="lg"
-            value={view}
-            onChange={(next) => patch({ view: next })}
-            options={[
-              { value: "plain", label: "Fixtures" },
-              { value: "fdr", label: "Difficulty" },
-              { value: "table", label: "Table" },
-            ]}
-          />
+          <div className="board-tabs">
+            <SegmentedControl<View>
+              label="View"
+              size="lg"
+              value={view}
+              onChange={(next) => patch({ view: next })}
+              options={[
+                { value: "plain", label: "Fixtures" },
+                { value: "fdr", label: "Difficulty" },
+                { value: "table", label: "Table" },
+              ]}
+            />
+          </div>
         </div>
       </section>
 

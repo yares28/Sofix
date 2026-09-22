@@ -7,7 +7,7 @@ test.beforeEach(async ({ page, request }) => {
 });
 
 test("phone layout shows five gameweeks without scrolling the page sideways", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/difficulty");
   const scroll = page.locator(".scroll");
   await expect(scroll).toBeVisible();
   const box = (await scroll.boundingBox())!;
@@ -36,14 +36,26 @@ test("the Control Center fits a phone, with the map drawn as a column", async ({
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
+test("the home fits a phone, and the tab bar moves between pages", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator(".hm-mosaic .m-row").first()).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  const tabs = page.getByRole("navigation", { name: "Sections" });
+  await expect(tabs.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
+  await tabs.getByRole("link", { name: "Table" }).click();
+  await expect(page).toHaveURL(/\/table$/, { timeout: 30_000 });
+  await expect(tabs.getByRole("link", { name: "Table" })).toHaveAttribute("aria-current", "page");
+  await expect(page.locator(".board-tabs")).toBeHidden(); // the tab bar replaces the page's own tabs on phones
+});
+
 test("Overview, Fixtures and Table fit a phone without sideways page scrolling", async ({ page }) => {
   for (const [path, ready] of [
-    ["/", ".ladder-card .list-rows > li"],
-    ["/?h=8", ".ladder-card .list-rows > li"],
-    ["/?h=next&lens=odds", ".ladder-card .list-rows .next-line"],
-    ["/?h=3", ".ladder-card .list-rows .tile"],
-    ["/?view=plain", ".fixture-row"],
-    ["/?view=table&t=predicted", "table.standings tbody tr"],
+    ["/difficulty", ".ladder-card .list-rows > li"],
+    ["/difficulty?h=8", ".ladder-card .list-rows > li"],
+    ["/difficulty?h=next&lens=odds", ".ladder-card .list-rows .next-line"],
+    ["/difficulty?h=3", ".ladder-card .list-rows .tile"],
+    ["/fixtures", ".fixture-row"],
+    ["/table?t=predicted", "table.standings tbody tr"],
   ] as const) {
     await page.goto(path);
     await expect(page.locator(ready).first()).toBeVisible();

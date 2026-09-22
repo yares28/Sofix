@@ -81,6 +81,18 @@ Meter thresholds: ≥ 50% `--good` · 20–49% `--good-2` · < 20% `--low`.
   - fixture line (opponent crest, H/A, Madrid kickoff, FDR dot), number rows, subs, ticked rules and a
     rewards disclosure.
 
+### Added by the home page (S2, `S2-home.html`, built in `frontend/components/home/`)
+
+- **Bento tile:** 22 px radius; a 17 px title that is the link, stretched over the whole tile, a muted meta beside
+  it and a chevron that slides on hover. One 34 px number per tile, name on the left, number on the right.
+- **Waiting tile:** a Sorare tile whose data comes with a later phase. A dashed outline shape and one line
+  saying what fills it. Never a placeholder number.
+- **Mosaic:** every club's next five games as 11 px cells in the board's difficulty colours, easiest run first.
+  Played games are hatched and a double gameweek gets a dot.
+- **Page hero number** (56 px): the time to act (days to kickoff, later the Sorare lock), the games done while a
+  gameweek is on, the shocks once it's played.
+- **Phones:** a bottom tab bar (the installed app has no browser bar), rendered outside the top bar.
+
 ## Layout
 
 - Max width 1240 px, 20 px side padding (16 px on phones).

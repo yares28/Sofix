@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MAX_PINS, parsePins, serializeViewState, type ViewState } from "../lib/grid";
+import { MAX_PINS, VIEW_PATH, parsePins, serializeViewState, type ViewState } from "../lib/grid";
 
 const PINS_KEY = "sofix:pins";
 const OLD_PINS_KEY = "fixturediff:pins"; // before the Sofix rename; read once so saved pins survive
@@ -24,7 +24,8 @@ export function useViewState(initial: ViewState, pinsInUrl: boolean, knownCodes:
     }
   }, [pinsInUrl, knownCodes]);
 
-  // Keep the URL shareable and the pins remembered, without a navigation or a server round trip.
+  // Keep the URL shareable and the pins remembered, without a navigation or a server round trip. A tab switch
+  // rewrites the path too (/fixtures, /difficulty, /table), so the tab stays instant and a reload lands on it.
   const firstSync = useRef(true);
   useEffect(() => {
     if (firstSync.current) {
@@ -32,7 +33,10 @@ export function useViewState(initial: ViewState, pinsInUrl: boolean, knownCodes:
       return;
     }
     const query = serializeViewState(state);
-    window.history.replaceState(window.history.state, "", query ? `?${query}` : window.location.pathname);
+    const path = VIEW_PATH[state.view];
+    // null, not window.history.state: Next.js skips syncing its router for calls that carry its own state, and the
+    // top bar's links (usePathname) must follow the tab.
+    window.history.replaceState(null, "", query ? `${path}?${query}` : path);
     try {
       window.localStorage.setItem(PINS_KEY, state.pins.join(","));
     } catch {

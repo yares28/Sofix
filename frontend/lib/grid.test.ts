@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_VIEW, cellBucket, horizonSize, cellLabel, columnTotal, formatDay, formatEdge, formatKickoff, formatLensValue, formatShortKickoff,
-  PRICE_OPTIONS, decimalOdds, lensValue, mostPointsComing, playedValue, recordCopy, runValue, scheduleSwing, marketLabels, marketLines, openingColumn, overviewWindow, parseViewState, positionPicks, selectedColumn, windowLabel, relativeTime, runStats, scaleBucket, serializeViewState, sortTeams, windowRange,
+  PRICE_OPTIONS, VIEW_PATH, decimalOdds, legacyBoardUrl, lensValue, mostPointsComing, playedValue, recordCopy, runValue, scheduleSwing, marketLabels, marketLines, openingColumn, overviewWindow, parseViewState, positionPicks, selectedColumn, windowLabel, relativeTime, runStats, scaleBucket, serializeViewState, sortTeams, windowRange,
 } from "./grid";
 import type { Bucket, CellRecord, DifficultyLabel, FixtureGrid, GridCell, GridTeam, LensScale } from "./types";
 
@@ -193,13 +193,26 @@ describe("planning helpers", () => {
   it("supports the Table tab, the Next horizon and old Next GW links", () => {
     const known = new Set(["FCB"]);
     const table = { ...DEFAULT_VIEW, view: "table" as const, table: "predicted" as const };
-    expect(serializeViewState(table)).toBe("view=table&t=predicted");
+    expect(serializeViewState(table)).toBe("t=predicted"); // the tab is the path now: /table
+    expect(VIEW_PATH[table.view]).toBe("/table");
     expect({ ...DEFAULT_VIEW, ...parseViewState(new URLSearchParams("view=table&t=predicted"), known) }).toEqual(table);
     expect(parseViewState(new URLSearchParams("h=next"), known)).toEqual({ horizon: "next" });
     expect(parseViewState(new URLSearchParams("view=next"), known)).toEqual({ view: "fdr", horizon: "next" });
     expect(horizonSize("next", 38)).toBe(1);
     expect(horizonSize("5", 38)).toBe(5);
     expect(horizonSize("all", 38)).toBe(38);
+  });
+
+  it("sends links from when the board lived at / to its new pages, and leaves home links alone", () => {
+    const at = (query: string) => legacyBoardUrl(new URLSearchParams(query));
+    expect(at("view=table&t=predicted")).toBe("/table?t=predicted");
+    expect(at("view=plain&gw=7")).toBe("/fixtures?gw=7");
+    expect(at("view=next")).toBe("/difficulty?h=next");
+    expect(at("h=3&lens=odds")).toBe("/difficulty?h=3&lens=odds");
+    expect(at("from=6&board=grid")).toBe("/difficulty?gw=6");
+    expect(at("pins=FCB")).toBe("/difficulty?pins=FCB");
+    expect(at("gw=8")).toBeNull();
+    expect(at("")).toBeNull();
   });
 
   it("picks the most and fewest points coming per game, so game counts don't decide", () => {

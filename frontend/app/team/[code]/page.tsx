@@ -41,7 +41,7 @@ export default async function TeamPage({ params }: { params: Params }) {
     <>
       <SiteNav meta={meta} system={system} />
       <main className="team-page">
-        <Link href="/" className="back-link">
+        <Link href="/difficulty" className="back-link">
           ← All fixtures
         </Link>
         <section className="team-hero">

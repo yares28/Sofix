@@ -446,6 +446,8 @@ export function windowLabel(matchdays: readonly { number: number }[], start: num
 // ---------------------------------------------------------------- view state in the URL
 
 export type View = "plain" | "fdr" | "table"; // Fixtures, Difficulty, Table tabs
+/** Each tab has its own address; the rest of the board's settings stay in the query string. */
+export const VIEW_PATH: Record<View, string> = { plain: "/fixtures", fdr: "/difficulty", table: "/table" };
 export type Horizon = "next" | "3" | "5" | "8" | "all"; // "next" = one gameweek as match cards
 export type TableMode = "current" | "predicted";
 export const HORIZON_VALUES: readonly Horizon[] = ["next", "3", "5", "8", "all"];
@@ -486,6 +488,27 @@ export function parseViewState(params: URLSearchParams, knownCodes: ReadonlySet<
   if ((params.has("gw") || params.has("from")) && Number.isInteger(gw) && gw > 0) state.gw = gw;
   if (params.has("pins")) state.pins = parsePins(params.get("pins"), knownCodes);
   return state;
+}
+
+/** Query keys that only ever meant the board, from when it lived at "/" (the home page reads just ?gw=). */
+const BOARD_KEYS = ["view", "lens", "h", "pins", "t", "board", "from"];
+
+/**
+ * Where an old board link ("/?view=table&t=predicted", "/?h=next", "/?from=6") lives now, or null when the
+ * link is a home page link. Unknown values are left for the board to ignore, as they always were.
+ */
+export function legacyBoardUrl(params: URLSearchParams): string | null {
+  if (!BOARD_KEYS.some((key) => params.has(key))) return null;
+  const view = params.get("view");
+  const path = view === "plain" ? VIEW_PATH.plain : view === "table" ? VIEW_PATH.table : VIEW_PATH.fdr;
+  const next = new URLSearchParams(params);
+  next.delete("view");
+  next.delete("board");
+  if (view === "next" && !next.has("h")) next.set("h", "next");
+  if (next.has("from") && !next.has("gw")) next.set("gw", next.get("from")!);
+  next.delete("from");
+  const query = next.toString();
+  return query ? `${path}?${query}` : path;
 }
 
 /** The column of the selected gameweek; the opening gameweek when none (or an unknown one) is selected. */
@@ -573,10 +596,9 @@ export function parsePins(raw: string | null, knownCodes: ReadonlySet<string>): 
   return [...new Set(codes.filter((code) => knownCodes.has(code)))].slice(0, MAX_PINS);
 }
 
-/** Query string with only the non-default parts, so a plain visit keeps a clean URL. */
+/** Query string with only the non-default parts, so a plain visit keeps a clean URL. The tab is the path (VIEW_PATH). */
 export function serializeViewState(state: ViewState): string {
   const params = new URLSearchParams();
-  if (state.view !== DEFAULT_VIEW.view) params.set("view", state.view);
   if (state.lens !== DEFAULT_VIEW.lens) params.set("lens", state.lens);
   if (state.horizon !== DEFAULT_VIEW.horizon) params.set("h", state.horizon);
   if (state.gw !== null) params.set("gw", String(state.gw));

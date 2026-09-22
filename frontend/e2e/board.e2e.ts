@@ -13,7 +13,7 @@ const group = (page: Page, name: string) => page.getByRole("group", { name, exac
 const column = (number: number) => grid.matchdays.findIndex((md) => md.number === number);
 
 test("first load shows the overview, then the grid and the fixtures, from the opening gameweek", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/difficulty");
   await expect(page.getByRole("heading", { level: 1, name: "Fixtures & Difficulty" })).toBeVisible();
   await expect(page.locator("#gw-select").locator("option:checked")).toHaveText(new RegExp(`^GW${openingMatchday} · .* · next$`));
   await expect(page.getByRole("article", { name: /^Most points coming: / })).toBeVisible();
@@ -31,7 +31,7 @@ test("first load shows the overview, then the grid and the fixtures, from the op
 });
 
 test("each run card's arrow swaps it to the matching schedule swing", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/difficulty");
   const card = page.getByRole("article", { name: /^Most points coming: / });
   await card.getByRole("button", { name: "Show softest schedule" }).click();
   await expect(page.getByRole("article", { name: /^Softest schedule: / })).toBeVisible();
@@ -46,7 +46,7 @@ test("each run card's arrow swaps it to the matching schedule swing", async ({ p
 });
 
 test("the expected points ranking is ordered, follows the horizon and lens, and lines up with the table", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/difficulty");
   const ladder = page.locator(".ladder-card");
   const values = (await ladder.locator(".list-rows .list-num").allTextContents()).map((text) => parseFloat(text));
   expect(values).toEqual([...values].sort((a, b) => b - a));
@@ -71,7 +71,7 @@ test("Next shows the gameweek's prices in columns, by lens", async ({ page }) =>
   const opening = column(openingMatchday);
   const priced = grid.teams.find((team) => team.cells[opening]?.[0]?.market)!;
   const market = priced.cells[opening]![0]!.market!;
-  await page.goto("/?h=next");
+  await page.goto("/difficulty?h=next");
   const ladder = page.locator(".ladder-card");
   const row = ladder.locator(".list-rows > li").filter({ has: page.getByRole("link", { name: priced.name, exact: true }) });
 
@@ -90,7 +90,7 @@ test("Next shows the gameweek's prices in columns, by lens", async ({ page }) =>
 test("Next 3 puts the chosen price in each gameweek's tile", async ({ page }) => {
   const opening = column(openingMatchday);
   const priced = grid.teams.find((team) => team.cells[opening]?.[0]?.market)!;
-  await page.goto("/?h=3");
+  await page.goto("/difficulty?h=3");
   const ladder = page.locator(".ladder-card");
   const row = ladder.locator(".list-rows > li").filter({ has: page.getByRole("link", { name: priced.name, exact: true }) });
   const tiles = row.locator(".tile");
@@ -106,7 +106,7 @@ test("Next 3 puts the chosen price in each gameweek's tile", async ({ page }) =>
 });
 
 test("the Odds lens ranks clubs by the bookmakers and colours the grid the same way", async ({ page }) => {
-  await page.goto("/?h=3");
+  await page.goto("/difficulty?h=3");
   const ladder = page.locator(".ladder-card");
   await group(page, "Lens").getByRole("button", { name: "Odds", exact: true }).click();
   await expect(page).toHaveURL(/lens=odds/);
@@ -125,7 +125,7 @@ test("the Odds lens ranks clubs by the bookmakers and colours the grid the same 
 });
 
 test("the Record lens ranks clubs by how far they beat their price", async ({ page }) => {
-  await page.goto("/?h=5");
+  await page.goto("/difficulty?h=5");
   const ladder = page.locator(".ladder-card");
   await group(page, "Lens").getByRole("button", { name: "Record", exact: true }).click();
   await expect(page).toHaveURL(/lens=record/);
@@ -139,7 +139,7 @@ test("the Record lens ranks clubs by how far they beat their price", async ({ pa
 test("very wide screens keep the layout: no sideways scroll, tiles fit, rows still line up", async ({ page }) => {
   for (const width of [1920, 2560]) {
     await page.setViewportSize({ width, height: 1200 });
-    for (const path of ["/?h=next", "/?h=3&lens=defence", "/?h=8"]) {
+    for (const path of ["/difficulty?h=next", "/difficulty?h=3&lens=defence", "/difficulty?h=8"]) {
       await page.goto(path);
       await expect(page.locator(".ladder-card .list-rows > li")).toHaveCount(grid.teams.length);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `${width} ${path}`).toBe(true);
@@ -156,7 +156,7 @@ test("very wide screens keep the layout: no sideways scroll, tiles fit, rows sti
   }
   for (const width of [1100, 1280, 1440]) {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto("/?lens=defence");
+    await page.goto("/difficulty?lens=defence");
     const controls = page.locator(".ladder-card .bento-controls");
     expect(await controls.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), `every lens button visible at ${width}px`).toBe(true);
     if (width > 1200) {
@@ -169,7 +169,7 @@ test("very wide screens keep the layout: no sideways scroll, tiles fit, rows sti
 });
 
 test("the table card switches to the predicted table and opens the full table", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/difficulty");
   const card = page.locator(".table-card");
   await card.getByRole("group", { name: "Table" }).getByRole("button", { name: "Predicted" }).click();
   await expect(page).toHaveURL(/t=predicted/);
@@ -180,7 +180,7 @@ test("the table card switches to the predicted table and opens the full table", 
 });
 
 test("the grid's lens and horizon are kept in the URL", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/difficulty");
   await group(page, "Grid lens").getByRole("button", { name: "Attack" }).click();
   await expect(page.locator(".legend")).toContainText("More xG");
   await group(page, "Grid horizon").getByRole("button", { name: "Next 3" }).click();
@@ -196,7 +196,7 @@ test("the grid's lens and horizon are kept in the URL", async ({ page }) => {
 test("the gameweek selector moves every card, the grid, the fixtures and the table", async ({ page }) => {
   const next = openingMatchday + 1;
   const past = openingMatchday - 2; // fully played (the gameweek before the opening one still has a live game)
-  await page.goto("/");
+  await page.goto("/difficulty");
   await page.getByRole("button", { name: "Next gameweek" }).click();
   await expect(page).toHaveURL(new RegExp(`gw=${next}`));
   await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${next}`, exact: true })).toBeVisible();
@@ -223,7 +223,7 @@ test("the gameweek selector moves every card, the grid, the fixtures and the tab
 });
 
 test("columns sort from the keyboard", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/difficulty");
   const totalHeader = page.getByRole("columnheader").filter({ has: page.getByRole("button", { name: /^Sort by total/ }) });
   await page.getByRole("button", { name: /^Sort by total/ }).focus();
   await page.keyboard.press("Enter");
@@ -238,7 +238,7 @@ test("columns sort from the keyboard", async ({ page }) => {
 
 test("a pinned team floats to the top and is remembered", async ({ page, context }) => {
   const team = grid.teams[grid.teams.length - 1]!; // alphabetically last, so moving it is visible
-  await page.goto("/");
+  await page.goto("/difficulty");
   await page.getByRole("button", { name: `Pin ${team.name}` }).click();
   await expect(teamRows(page).first().locator(".team-name")).toHaveText(team.name);
   await expect(page.locator("tr.pin-divider")).toHaveCount(1);
@@ -246,12 +246,12 @@ test("a pinned team floats to the top and is remembered", async ({ page, context
 
   const fresh = await context.newPage();
   await offline(fresh);
-  await fresh.goto("/"); // no pins in the URL: restored from this browser's storage
+  await fresh.goto("/difficulty"); // no pins in the URL: restored from this browser's storage
   await expect(teamRows(fresh).first().locator(".team-name")).toHaveText(team.name);
 });
 
 test("fixture tiles work from the keyboard with a tooltip", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/difficulty");
   const tooltip = page.locator(".tip");
   await page.locator('[data-row="0"][data-col]').first().focus();
   await page.keyboard.press("ArrowRight");
@@ -266,7 +266,7 @@ test("fixture tiles work from the keyboard with a tooltip", async ({ page }) => 
 
 test("the refresh button runs a refresh, then waits out the cooldown", async ({ page, request }) => {
   await request.post("http://127.0.0.1:8765/__test/reset"); // reset() records a finished run 10 min ago
-  await page.goto("/");
+  await page.goto("/difficulty");
   await page.locator(".status-pill").click(); // the button lives in the Control Center page
   await expect(page).toHaveURL(/\/control$/, { timeout: 30_000 }); // the dev server compiles the page on first visit
   await expect(page.getByRole("heading", { level: 1, name: "Control Center" })).toBeVisible();
@@ -281,7 +281,7 @@ test("the refresh button runs a refresh, then waits out the cooldown", async ({ 
 
 test("a malformed API payload shows the error state, not a broken board", async ({ page, request }) => {
   await resetBackend(request, "malformed");
-  await page.goto("/");
+  await page.goto("/difficulty");
   await expect(page.locator(".empty-state")).toContainText("The fixture data could not be read");
   await expect(page.locator("table")).toHaveCount(0);
   await resetBackend(request); // leave a good payload for the next test
@@ -289,7 +289,7 @@ test("a malformed API payload shows the error state, not a broken board", async 
 
 test("the gameweek card lists the matches and its details open as match cards in the grid", async ({ page }) => {
   const { matches } = gameweekMatches(grid, column(openingMatchday));
-  await page.goto("/");
+  await page.goto("/difficulty");
   const card = page.locator(".gw-card");
   await expect(card.locator(".gw-match")).toHaveCount(matches.filter((m) => m.homeCell.status !== "finished").length); // GW not finished
   const forecast = matches.find((m) => m.homeCell.prediction && m.homeCell.status !== "finished")!;
@@ -303,7 +303,7 @@ test("the gameweek card lists the matches and its details open as match cards in
 
 test("the Next horizon shows the gameweek's matches with forecasts and follows the selector", async ({ page }) => {
   const { matches } = gameweekMatches(grid, column(openingMatchday));
-  await page.goto("/");
+  await page.goto("/difficulty");
   await group(page, "Grid horizon").getByRole("button", { name: "Next", exact: true }).click();
   await expect(page).toHaveURL(/h=next/);
   await expect(page.locator(".toolbar .range")).toHaveText(`GW${openingMatchday}`);
@@ -321,18 +321,23 @@ test("the Next horizon shows the gameweek's matches with forecasts and follows t
   await expect(page.locator("#grid").getByRole("heading", { level: 2, name: `Gameweek ${openingMatchday + 1}` })).toBeVisible();
 });
 
-test("old links still work: ?view=next, ?from= and ?board=grid", async ({ page }) => {
+test("old links from when the board lived at / open its new pages", async ({ page }) => {
   await page.goto("/?view=next");
+  await expect(page).toHaveURL(/\/difficulty\?h=next$/);
   await expect(group(page, "Grid horizon").getByRole("button", { name: "Next", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator(".match").first()).toBeVisible();
   await page.goto(`/?board=grid&from=${openingMatchday + 2}`);
+  await expect(page).toHaveURL(new RegExp(String.raw`/difficulty\?gw=${openingMatchday + 2}$`));
   await expect(page.locator(".toolbar .range")).toHaveText(`GW${openingMatchday + 2} – GW${openingMatchday + 6}`);
+  await page.goto("/?view=table&t=predicted");
+  await expect(page).toHaveURL(/\/table\?t=predicted$/);
+  await expect(page.getByRole("heading", { level: 2, name: "Predicted final table" })).toBeVisible();
 });
 
 test("the Fixtures tab lists the selected gameweek, results included", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/difficulty");
   await page.getByRole("group", { name: "View" }).getByRole("button", { name: "Fixtures" }).click();
-  await expect(page).toHaveURL(/view=plain/);
+  await expect(page).toHaveURL(/\/fixtures$/); // the tab is the path; switching it doesn't reload
   await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${openingMatchday} fixtures` })).toBeVisible();
   await expect(page.locator(".fixture-row")).toHaveCount(gameweekMatches(grid, column(openingMatchday)).matches.length);
   await expect(page.locator(".bento")).toHaveCount(0);
@@ -345,7 +350,7 @@ test("the Fixtures tab lists the selected gameweek, results included", async ({ 
 });
 
 test("the Table tab shows the standings and a predicted final table", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/difficulty");
   await page.getByRole("group", { name: "View" }).getByRole("button", { name: "Table" }).click();
   await expect(page.getByRole("heading", { level: 2, name: "LaLiga table" })).toBeVisible();
   const rows = page.locator("table.standings tbody tr");
@@ -368,7 +373,7 @@ test("the Table tab shows the standings and a predicted final table", async ({ p
 
 test("the Table tab walks back and forward a gameweek at a time, and charts the season", async ({ page }) => {
   const past = openingMatchday - 2; // fully played
-  await page.goto("/?view=table");
+  await page.goto("/table");
   // Both modes share one skeleton: the same columns, so nothing shifts when the toggle flips.
   const headers = () => page.locator("table.standings thead th");
   const width = async () => (await page.locator("table.standings thead th").first().boundingBox())!.width;
@@ -430,7 +435,7 @@ test("a played game keeps its forecast, with how expected the result was", async
   const played = grid.teams.flatMap((team) =>
     team.cells.flatMap((column, i) => column.filter((cell) => cell.status === "finished" && cell.review).map((cell) => ({ team, cell, i }))),
   )[0]!;
-  await page.goto(`/?gw=${grid.matchdays[played.i]!.number}&h=all`);
+  await page.goto(`/difficulty?gw=${grid.matchdays[played.i]!.number}&h=all`);
   const tile = page.locator(`[data-key="${played.team.code}-${played.cell.fixture_id}"]`);
   await expect(tile.locator(".cell-mark")).toHaveText(String(Math.round(played.cell.review!.outcome_chance * 100)));
   await tile.focus();
@@ -440,7 +445,7 @@ test("a played game keeps its forecast, with how expected the result was", async
   await expect(tip).toContainText("Difficulty"); // the forecast it carried is still there
 
   // The Next list keeps a played club's expected points, under a line rather than in a second table.
-  await page.goto(`/?gw=${grid.matchdays[played.i]!.number}&h=next`);
+  await page.goto(`/difficulty?gw=${grid.matchdays[played.i]!.number}&h=next`);
   const ladder = page.locator(".ladder-card");
   await expect(ladder.locator(".list-divider")).toHaveText("Already played");
   const after = ladder.locator(".list-rows > li.played").first();
@@ -448,7 +453,7 @@ test("a played game keeps its forecast, with how expected the result was", async
 });
 
 test("who to pick ranks clubs for each position and pins a club when clicked", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/difficulty");
   const card = page.locator(".picks-card");
   const picks = card.locator(".pick");
   await expect(picks).toHaveCount(5);
@@ -470,7 +475,7 @@ test("who to pick ranks clubs for each position and pins a club when clicked", a
 });
 
 test("team names open the team page", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/difficulty");
   const team = grid.teams[0]!;
   await page.locator(".ladder-card").getByRole("link", { name: team.name, exact: true }).click();
   // The dev server compiles /team/[code] the first time anyone asks for it, which can take a few seconds.
@@ -489,7 +494,7 @@ test("an unknown team code is a 404 page", async ({ page }) => {
 
 test("the status pill opens the Control Center: status, install with a QR code, how it runs", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" }); // the cards fade in; scan the colours they settle on
-  await page.goto("/");
+  await page.goto("/difficulty");
   await page.locator(".status-pill").click();
   await expect(page).toHaveURL(/\/control$/, { timeout: 30_000 }); // the dev server compiles the page on first visit
   await expect(page.locator(".status-pill")).toHaveAttribute("aria-current", "page");
@@ -502,8 +507,64 @@ test("the status pill opens the Control Center: status, install with a QR code, 
   expect(scan.violations.map((v) => `${v.id}: ${v.nodes.slice(0, 4).map((n) => n.target.join(" ")).join("; ")}`)).toEqual([]);
 });
 
-test("the manifest is linked with credentials, so it loads behind Vercel's login", async ({ page, request }) => {
+test("home: the gameweek, its hero number, the three board tiles and the Sorare row", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" }); // tiles fade in; scan the colours they settle on
   await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1, name: `Gameweek ${openingMatchday}` })).toBeVisible();
+  await expect(page.locator(".hm-count")).toContainText(/to kickoff|games played/);
+  for (const title of ["Fixtures", "Difficulty", "Table", "Sorare", "Play", "My cards", "Predicted vs actual"]) {
+    await expect(page.getByRole("heading", { level: 2, name: title, exact: true })).toBeVisible();
+  }
+  const matches = gameweekMatches(grid, column(openingMatchday)).matches.length;
+  await expect(page.locator(".hm-fixtures .hm-fx")).toHaveCount(matches);
+  await expect(page.locator(".hm-mosaic .m-row:not(.hd)")).toHaveCount(grid.teams.length);
+  await expect(page.locator(".hm-wait")).toHaveCount(3); // the Sorare tiles wait for their data
+  const scan = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
+  expect(scan.violations.map((v) => `${v.id}: ${v.nodes.slice(0, 4).map((n) => n.target.join(" ")).join("; ")}`)).toEqual([]);
+
+  // A tile opens its page for the same gameweek.
+  await page.getByRole("link", { name: "Difficulty", exact: true }).last().click();
+  await expect(page).toHaveURL(/\/difficulty$/, { timeout: 30_000 });
+  await expect(page.getByRole("heading", { level: 1, name: "Fixtures & Difficulty" })).toBeVisible();
+});
+
+test("home: the timeline moves to a played gameweek and every tile follows", async ({ page }) => {
+  const past = openingMatchday - 2; // fully played
+  await page.goto("/");
+  await page.getByRole("navigation", { name: "Gameweeks" }).getByRole("link", { name: new RegExp(`^GW${past}\\b`) }).click();
+  await expect(page).toHaveURL(new RegExp(`/\\?gw=${past}$`));
+  await expect(page.getByRole("heading", { level: 1, name: `Gameweek ${past}` })).toBeVisible();
+  await expect(page.locator(".hm-count")).toContainText(/shocks?/);
+  await expect(page.locator(".hm-fixtures .hm-fx-t").first()).toHaveText("FT");
+  await expect(page.locator(".hm-table .hm-meta")).toHaveText(`after GW${past}`);
+  await expect(page.locator('.tl-item[aria-current="page"]')).toContainText(`GW${past}`);
+
+  await page.getByRole("link", { name: `Next gameweek, GW${past + 1}` }).click();
+  await expect(page).toHaveURL(new RegExp(`/\\?gw=${past + 1}$`));
+  await page.getByRole("link", { name: "Fixtures", exact: true }).last().click();
+  await expect(page).toHaveURL(new RegExp(`/fixtures\\?gw=${past + 1}$`), { timeout: 30_000 });
+  await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${past + 1} fixtures` })).toBeVisible();
+});
+
+test("home: a gameweek the season doesn't have goes back to the home page", async ({ page }) => {
+  await page.goto("/?gw=99");
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("heading", { level: 1, name: `Gameweek ${openingMatchday}` })).toBeVisible();
+});
+
+test("the top bar's links follow the board's own tab switches", async ({ page }) => {
+  await page.goto("/difficulty");
+  const bar = page.locator(".nav-links");
+  await expect(bar.getByRole("link", { name: "Difficulty" })).toHaveAttribute("aria-current", "page");
+  await page.getByRole("group", { name: "View" }).getByRole("button", { name: "Table" }).click();
+  await expect(page).toHaveURL(/\/table$/);
+  await expect(bar.getByRole("link", { name: "Table" })).toHaveAttribute("aria-current", "page");
+  await page.reload(); // the address is real: a reload lands on the same tab
+  await expect(page.getByRole("heading", { level: 2, name: "LaLiga table" })).toBeVisible();
+});
+
+test("the manifest is linked with credentials, so it loads behind Vercel's login", async ({ page, request }) => {
+  await page.goto("/difficulty");
   const link = page.locator('link[rel="manifest"]');
   await expect(link).toHaveCount(1);
   await expect(link).toHaveAttribute("crossorigin", "use-credentials");
@@ -514,14 +575,14 @@ test("the manifest is linked with credentials, so it loads behind Vercel's login
 test("the board has no automatically detectable accessibility violations", async ({ page }) => {
   test.setTimeout(150_000); // eight pages, each compiled on demand by the dev server and then scanned
   for (const [path, ready] of [
-    ["/", "tbody tr"],
-    ["/?h=next", ".ladder-card .next-line .price"],
-    ["/?h=3&lens=odds", ".ladder-card .tile-price"],
-    ["/?h=3&lens=defence&t=predicted", ".table-card .move"],
-    [`/?gw=${openingMatchday - 2}`, ".gw-score"],
-    ["/?view=plain", ".fixture-row"],
-    ["/?view=table", "table.standings tbody tr"],
-    ["/?view=table&t=predicted", "table.standings.predicted tbody tr"],
+    ["/difficulty", "tbody tr"],
+    ["/difficulty?h=next", ".ladder-card .next-line .price"],
+    ["/difficulty?h=3&lens=odds", ".ladder-card .tile-price"],
+    ["/difficulty?h=3&lens=defence&t=predicted", ".table-card .move"],
+    [`/difficulty?gw=${openingMatchday - 2}`, ".gw-score"],
+    ["/fixtures", ".fixture-row"],
+    ["/table", "table.standings tbody tr"],
+    ["/table?t=predicted", "table.standings.predicted tbody tr"],
   ] as const) {
     await page.goto(path);
     await expect(page.locator(ready).first()).toBeVisible();

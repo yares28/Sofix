@@ -26,7 +26,7 @@ Every phase has two parts:
 |---|---|---|---|
 | S0 | What Sorare allows | ✅ | ✅ (discovery only; nothing to build) |
 | S1 | Foundation: always on, nothing to start (cloud) | ✅ | ✅ (3 owner steps left) |
-| S2 | Home page (bento) | 🟡 waiting for approval | ⬜ |
+| S2 | Home page (bento) | ✅ | ✅ |
 | S3 | Data sync (public + your cards) | ⬜ | ⬜ |
 | S4 | xScore model | ⬜ | ⬜ |
 | S5 | My cards and Player search | ⬜ | ⬜ |
@@ -213,7 +213,7 @@ would be simpler. **It is**, so v2 replaces the launcher.
 
 ## S2 — Home page (bento)
 
-### A · Think & show (2026-09-22, waiting for approval)
+### A · Think & show (2026-09-22, approved)
 
 **Done:** read the live app's numbers (standings, predicted table, the ranking, the gameweek's forecasts) and
 Sofix's grid as published to Neon; reused the Sorare data from S0; built the page on them.
@@ -251,14 +251,23 @@ Sofix's grid as published to Neon; reused the Sorare data from S0; built the pag
   position, why Rare is locked), Predicted vs actual (inside the range or not, per lineup, against Sorare's projection).
 - Each tile opens its page. The phone stacks the tiles and adds the tab bar.
 
-### B · Build (after approval)
-- ⬜ `/` Home: head with countdown, gameweek timeline (`?gw=`), the three board tiles from the cached grid.
-- ⬜ Sorare row in its waiting state (filled by S3, S6 and S8).
-- ⬜ Board views move to `/fixtures`, `/difficulty` and `/table`, keeping every other URL setting; old
-  `/?view=…` links redirect.
-- ⬜ Nav: links on the PC, tab bar on the phone.
-- ⬜ Tests: unit (shocks, windows, title and relegation picks), e2e (tiles open their pages, old links
-  redirect, phone fits, accessibility), then screenshots of the live app against this design.
+### B · Build ✅ (2026-09-22)
+- ✅ `/` Home: head with the hero number, gameweek timeline (`?gw=`, every gameweek, breaks hatched), the three
+  board tiles from the cached grid (no extra database reads; the title and relegation chances are cached per grid).
+- ✅ Sorare row in its waiting state (filled by S3, S6 and S8).
+- ✅ Board views moved to `/fixtures`, `/difficulty` and `/table`, keeping every other URL setting; old
+  `/?view=…` links redirect. Switching tabs stays instant: the board rewrites its own address.
+- ✅ Nav: links on the PC, tab bar on the phone.
+- ✅ Tests: unit (head states, timeline, fixtures, mosaic, table, old links), e2e (home, timeline, tiles open
+  their pages, old links redirect, top-bar links follow the tabs, phone tab bar, accessibility).
+
+**Changed from the design while building (from the real data):**
+- A shock is the board's own definition (a surprise under 0.2, the same as the grid's "shock" mark), not "a
+  result we gave under 30%". GW7 had 0 by that rule, where the preview's rule counted 4.
+- "Played" follows the backend's matchday flag, and "under way" starts at the gameweek's first regular kickoff.
+  Otherwise one game moved weeks later (Levante v Athletic, GW6, now 21 Oct) would keep GW6 "live" for a month.
+- Breaks are labelled "Break", not "International break": the data doesn't say why LaLiga pauses. A second one
+  (9–21 Nov) is on the timeline too.
 
 **Edge cases:**
 - A played gameweek shows results, not forecasts.

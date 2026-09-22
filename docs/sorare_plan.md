@@ -26,11 +26,11 @@ Every phase has two parts:
 |---|---|---|---|
 | S0 | What Sorare allows | ✅ | ✅ (discovery only; nothing to build) |
 | S1 | Foundation: always on, nothing to start (cloud) | ✅ | ✅ (3 owner steps left) |
-| S2 | Home page (bento) | ✅ | ✅ |
-| S3 | Data sync (public + your cards) | ⬜ | ⬜ |
+| S2 | Home page (bento) · v2: the whole gameweek | ✅ v1 · 🟡 v2 | ✅ v1 · ⬜ v2 |
+| S3 | Data sync (public + your cards) | ⬜ | ⬜ (public sync moves into S2 v2) |
 | S4 | xScore model | ⬜ | ⬜ |
 | S5 | My cards and Player search | ⬜ | ⬜ |
-| S6 | Competitions and Optimize | ⬜ | ⬜ |
+| S6 | Competitions and Optimize | ⬜ | ⬜ (planner moves into S2 v2; Apply stays here) |
 | S7 | Overlay on sorare.com | ⬜ | ⬜ |
 | S8 | Predicted vs actual | ⬜ | ⬜ |
 | S9 | Hardening and retiring SorareExt | ⬜ | ⬜ |
@@ -277,6 +277,84 @@ Sofix's grid as published to Neon; reused the Sorare data from S0; built the pag
 - The last gameweeks of the season have fewer than five columns.
 - Before any game is played, the Table tile shows the pre-season projection.
 - While a gameweek is live, the head says "Live" instead of the countdown.
+
+### A · Think & show (v2, 2026-09-22) — the whole gameweek, every competition you can play
+
+The owner: *"I didn't mean show me only LaLiga competitions… show me a full gameweek, the best lineups for LaLiga
+and the rest in out-of-season competitions by the chance of a reward, the top 5 full-gameweek lineups. Don't show
+competitions I can't play. Substitutions in Arena have to be in-season cards, and check how they get subbed in.
+The mobile layout feels bare bones."* LaLiga stays the board's subject; the Sorare side plays everything it can.
+
+**Done:** read-only Sorare calls with the existing key (about 350): every competition of GW15–GW21 with its rules
+(sub slots included), rewards and entry fees; the owner's 93 cards with what each can enter; every game score and
+Sorare projection of his players this season; past reward cut-offs; 200 sampled rooms of 10. Then a prototype of the
+planner (`scratchpad/planner_proto.py`, moves to `backend/app/sorare/` in B) built the plans on that data.
+
+**Found**
+1. **Sorare changed the game this season ("Sorare 27").** Three shapes, all read from the API's own rules:
+   - **In-season** (LaLiga, Contender, Premier League…, and the MLS/J1/K-League arenas): 5 cards **+ 2 subs**,
+     at least 4 in-season cards (so at most 1 Classic), up to **4 lineups** each, cash + essence by rank.
+   - **Classic** (All Star, Champion, U23): 7 cards **+ 2 subs**, any season, up to 4 lineups, essence and cards.
+   - **Rooms of 10**: 5 cards, **no subs**, an entry fee in essence (Beginner 100, Cap 220 200, Cap 260 and
+     Uncapped 300, Elite 800), paying the top 3 of the room.
+2. **Subs: how they actually come in.** One goalkeeper sub and one outfield sub. A sub only replaces a starter who
+   **did not play at all** (a late cameo counts as playing): goalkeeper for goalkeeper, outfield for the same
+   position or for anyone in the Extra slot. Checked against Sorare's own rule checker
+   (`lineupLiveFeedbacksRules`): it *accepts* a Classic card as a sub in an in-season lineup, but the "4 in-season"
+   rule is checked on the lineup, so a Classic sub can only come in while 4 in-season cards remain — which is why
+   Sofix only picks **in-season subs** there, exactly as the owner said. When a sub comes in the lineup loses its
+   multi-club (+2%) and average-cap (+4%) bonuses, and a sub never inherits the captain's +50%. All of it is
+   simulated, so the chance of a reward already contains it.
+3. **What the owner can actually play, gameweek by gameweek.** GW15 (the last LaLiga weekend): 9 competitions;
+   GW17 (this international break): 6, all All Star, because only 13 of his 84 cards have a game (10 on Nations
+   League duty, 3 in Segunda); GW21 (LaLiga back, 9–13 Oct): 9 again, every card playing. Hidden with the reason:
+   every Rare competition (no Rare goalkeeper), U23 (no goalkeeper aged 23 or under), Premier League and Bundesliga
+   (no goalkeeper or midfielder there), Contender (no goalkeeper in its leagues).
+4. **Rooms are usually a bad deal for these cards.** All six open in GW15 were playable, and all six lose essence on
+   average (Cap 260 −163, Elite −435, LaLiga Cap 260 −12): the entry fee is higher than what the lineup can expect
+   to win back. They are shown in "Also open, not worth it" with the number, never hidden.
+5. **A full gameweek is a trade-off, not a list.** Each card plays once per gameweek, so a LaLiga in-season lineup
+   and an All Star one fight over the same players. The planner searches lineups per competition under every rule,
+   then builds whole-gameweek plans and keeps the **5 best that differ from each other**. Plan 1 for GW15: three
+   LaLiga lineups plus two All Star, 38 of 84 cards, ≈511 essence and ≈$1.47 expected, 83% chance of at least one
+   reward.
+6. **Cash and essence are never converted.** Plans are ranked on both at once: each plan is scored against the best
+   cash and the best essence any plan reaches that gameweek, equally weighted.
+7. **Timing, and why the home can't show GW17's plan yet.** Sorare publishes its projections about two days before
+   the lock (GW17: Wed 23 Sep, 20:00) and the rewards a few days before that. Reward chances also need the scores
+   that paid in a comparable gameweek — GW16 is the first break week under the new rules, so GW17's chances arrive
+   with GW16's results. The home says so with the countdown instead of inventing numbers.
+8. **The replay is honest about the forecast.** GW15 was planned with only what was known before its lock (each
+   player's last five games), which misses by 17.6 points a player. Four of plan 1's five lineups landed inside the
+   predicted range, but all five fell short of the bar (282 against the 313 that paid), so it would have won
+   nothing; plans 2 and 3 would have won 250 essence. The live app will use Sorare's own projections and starting
+   chances instead, and S4 has to beat them.
+
+**Design:** `docs/sorare/design/S2-home-v2.html` (toggles: Home / Play, Today / Plan ready, PC / Phone).
+- **Home, plans ready:** the gameweek and the time to the lock as the one hero number, then one wide Play tile —
+  ring with the chance of any reward, essence and cash side by side, where the cards go, plans 2–5 as chips, and
+  plan 1's lineups with their xScore and chance.
+- **Home, today:** the same tile in its waiting state — 13 cards play, who they are and against whom, the six
+  competitions with their fees and how many lineups each allows, and when the plans arrive — beside "Last
+  gameweek", the predicted-vs-actual strip for GW15.
+- **Play page:** the Sorare gameweek timeline, a plan switch (five plans, each with its chance and essence), the
+  plan hero, and a card per lineup: xScore with the bad–good range, the score that pays, the chance, the reward
+  chips, the cards with the captain and the in-season marks, the subs. Tapping one opens the lineup sheet: card
+  art, each player's fixture, chance of playing, multiplier, the rules ticked off and the reward ladder with the
+  chance of each step. "After the games" replays the same page with real scores, who came in for whom and what it
+  won. "Also open, not worth it", "Not playable" and "How subs and plans work" are folded underneath.
+- **Phone:** everything reflows — the lineup cards hold the whole lineup as overlapping card art, the plans become
+  a swipe row, LaLiga's three tiles become one card with a Fixtures / Difficulty / Table switch, and the tab bar
+  gains Play.
+
+### B · Build (v2) — planned
+- ⬜ Sorare sync in the refresh job (public API, key only): gameweeks, competitions with rules/rewards/fees, past
+  cut-offs, sampled rooms, the owner's cards, his players' scores, Sorare projections and starting chances →
+  `read_models` (pulled forward from S3).
+- ⬜ Planner in `backend/app/sorare/` (lineup search, substitution rules, reward chances, whole-gameweek plans),
+  with unit tests on a recorded gameweek (pulled forward from S6).
+- ⬜ `/play` page and the home's Play tile; phone polish; tests (unit + browser) and a live check.
+- ⬜ Apply (saving lineups to Sorare) stays in S6/S7 with the extension.
 
 ## S3 — Data sync
 - ⬜ A: design of the sync status and data freshness.

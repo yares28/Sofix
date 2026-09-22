@@ -93,6 +93,25 @@ Meter thresholds: ≥ 50% `--good` · 20–49% `--good-2` · < 20% `--low`.
   gameweek is on, the shocks once it's played.
 - **Phones:** a bottom tab bar (the installed app has no browser bar), rendered outside the top bar.
 
+### Added by the whole gameweek (S2 v2, `S2-home-v2.html`)
+
+- **Plan tile** (home, full width): ring with the chance of any reward, the two currencies side by side, a
+  "where your cards go" bar coloured by competition kind, the other plans as chips, and the plan's lineups as
+  rows (name, kind, xScore, chance meter).
+- **Waiting tile with real content:** when the plans aren't computable yet, the tile still carries the facts —
+  how many cards play, who they are and against whom, what can be entered with its fee and lineup count, and a
+  small ring counting down to the moment the data arrives. Never a placeholder number.
+- **Plan switch:** five options in one track with a sliding knob; each shows its chance and expected essence and a
+  two-tone bar of where its cards go. On phones it becomes a swipe row of cards.
+- **Lineup card:** foil edge, competition name, a kind chip (In-season / Classic / Room), the format in words
+  ("5 + 2 subs · 4 in-season"), the xScore with the bad–good range and a tick for the score that pays, the chance
+  with its meter, the whole lineup as small card art (captain badge, green dot = in-season, subs after a divider),
+  reward chips and who pays. After the games it swaps to the real score, per-card scores, DNP, the sub that came in
+  and what it won.
+- **Competition kinds have one colour each:** in-season blue, Classic gold, rooms violet — used in the bars and chips.
+- **Folded rows:** "Also open, not worth it" (with the essence it would cost), "Not playable" (with the reason),
+  "How subs and plans work" (six rules, open by default).
+
 ## Layout
 
 - Max width 1240 px, 20 px side padding (16 px on phones).

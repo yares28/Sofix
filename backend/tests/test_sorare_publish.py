@@ -306,6 +306,8 @@ def test_the_job_skips_itself_without_a_key(db, monkeypatch):  # noqa: F811
 
 
 def test_the_job_publishes_the_page_and_keeps_the_reference_scores(db, monkeypatch):  # noqa: F811
+    # The job tells a cloud run from a hand run by GITHUB_ACTIONS, and CI itself is GitHub Actions.
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
     monkeypatch.setattr(sorare_job.settings, "sorare_api_key", "test-key")
     monkeypatch.setattr(sorare_job, "SorareClient", lambda *a, **k: _FakeClient())
     monkeypatch.setattr(sorare_job.sorare_sync, "snapshot", lambda *a, **k: snapshot())
@@ -333,6 +335,12 @@ def test_the_job_publishes_the_page_and_keeps_the_reference_scores(db, monkeypat
     # The page also carries how it came to be, and the run wrote the gameweek's projections down.
     status = db.get(ReadModel, sorare_job.SORARE_KEY).payload["status"]
     assert status["where"] == "pc" and status["lastCloudAt"] is None and status["kept"]["rows"] > 0
+
+    # The same run inside GitHub Actions is recorded as the cloud's, which is what the status panel reads.
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    sorare_job.run(db, "yares", runs=1)
+    again = db.get(ReadModel, sorare_job.SORARE_KEY).payload["status"]
+    assert again["where"] == "cloud" and again["lastCloudAt"] == again["builtAt"]
 
 
 class _FakeClient:

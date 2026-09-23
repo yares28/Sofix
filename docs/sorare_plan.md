@@ -27,7 +27,7 @@ Every phase has two parts:
 | S0 | What Sorare allows | ✅ | ✅ (discovery only; nothing to build) |
 | S1 | Foundation: always on, nothing to start (cloud) | ✅ | ✅ (3 owner steps left) |
 | S2 | Home page (bento) · v2: the whole gameweek | ✅ v1 · ✅ v2 | ✅ v1 · ✅ v2 |
-| S3 | Data sync (public + your cards) | ⬜ | ⬜ (public sync moves into S2 v2) |
+| S3 | Data sync (public + your cards) | 🟡 waiting for approval | ⬜ (public sync moved into S2 v2) |
 | S4 | xScore model | ⬜ | ⬜ |
 | S5 | My cards and Player search | ⬜ | ⬜ |
 | S6 | Competitions and Optimize | ⬜ | ⬜ (planner moves into S2 v2; Apply stays here) |
@@ -368,11 +368,56 @@ planner (`scratchpad/planner_proto.py`, moves to `backend/app/sorare/` in B) bui
 already showing (gated by `publish.PAYLOAD_VERSION`, so a change to the payload rebuilds it once).
 
 ## S3 — Data sync
-- ⬜ A: design of the sync status and data freshness.
-- ⬜ B: public sync with the refresh: LaLiga players, Sorare scores + Sorare projections history, injuries,
-  suspensions, gameweeks, competitions, rules, rewards, past rank cut-offs, your cards (by username).
-- ⬜ B: extension sync: your current lineups, Hot Streak progress, Arena rooms.
-- ⬜ B: ClubElo ratings for European opponents (once a day).
+
+### A · Think & show (2026-09-23)
+
+**Done:** took stock of what Sofix already holds after S2 v2, how often each piece really changes, what a run
+costs, and what Sorare will still hand over later — and what it won't.
+
+1. **Most of the public side is already synced**, by the `sorare` step: gameweeks, competitions with their rules,
+   fees and rewards, past rank cut-offs, sampled rooms of 10, the 96 cards of `yares` (87 playable), and each of
+   his players' recent scores, Sorare's projection and its starting chances. The whole Sorare state is **172 KiB**
+   in two `read_models` rows; the database is 9.6 MiB of 512, so 98% of Neon is still free.
+2. **Freshness has five clocks, not one.** Cards change when he buys or sells; competitions once a gameweek;
+   projections and starting chances from about two days before the lock and then right up to it; scores while the
+   games are on; reward cut-offs only when a comparable gameweek finishes. One "last synced at" would be
+   misleading, because the only clock that decides whether a plan is still the best one is the third.
+3. **Sorare's projections can't be recovered later.** The API serves a player's *next* fixture projection only
+   (`nextClassicFixtureProjectedScore`), so once a gameweek is played the numbers it was planned against are gone.
+   That is why the GW15 replay had to fall back to the last five games and missed by 17.6 points a player. Every
+   run that doesn't record them loses them for good, and S4 cannot be proven against them without a record. It
+   costs about **2 MB a season**, so this is the one piece that shouldn't wait.
+4. **The cloud has never run the Sorare step.** It shipped today at 16:29 Madrid; the scheduled runs are 09:17 and
+   00:43 daily (plus Tue 15:23 and Fri 19:23). The first attempt is 00:43 tonight — and if `SORARE_API_KEY` is not
+   in the repository secrets the step logs "skipped" and the page keeps serving the plan this PC wrote, silently.
+   A line saying "updated 2 h ago" cannot tell those two cases apart; the status has to name **who wrote it**.
+5. **Four runs land before GW17 locks** (Thu 00:43, Thu 09:17, Fri 00:43, Fri 09:17), the last one 6 h before it.
+   That is the question worth answering on screen — "will this be rebuilt before I have to act" — not "how old is it".
+6. **The private half can't start yet:** the extension has never checked in (no `extension` row), so the lineups
+   already saved on Sorare, Hot Streak progress and his own Arena rooms are out of reach. Rooms are sampled
+   publicly instead, which is enough for the reward chances but not for "what did I actually enter".
+7. **Injuries and suspensions stay out.** Sorare's starting chances already price them in, and the planner reads
+   those, so a separate feed would add a second opinion without a way to judge it.
+8. **What a run costs:** 140–180 calls in 1–3 minutes warm; about 1,000 calls in 10 minutes cold (first run, or
+   after `publish.PAYLOAD_VERSION` changes and the replay has to be rebuilt).
+
+**Design:** `docs/sorare/design/S3-sync.html` (toggles: Control Center / Play head, PC / Phone, Today / Fresh / Moved).
+- **Control Center** gains one Sorare panel: how long ago the gameweek was built as the hero number, the run line
+  from that moment to the lock, the five clocks each with its own dot and a line saying when it changes next, who
+  wrote it (the cloud or this PC) with the call and byte cost, and "Not synced yet · 5" folded underneath — each
+  entry saying what would unlock it.
+- **Play** gains a freshness chip in its head, in the same three states. In both unhappy ones the plans stay on
+  screen but dimmed behind a banner carrying the one action that fixes it ("Rebuild now", "Show me how").
+- The preview opens on **what is true right now** — never run in the cloud — not on the happy state.
+
+### B · Build — planned
+- ⬜ Record Sorare's projections and starting chances on every run (own table, ~2 MB a season). First, because it
+  cannot be backfilled.
+- ⬜ The Sorare panel in the Control Center and the chip + banner on Play, from one small status read model
+  (who wrote it, when, and the five clocks).
+- ⬜ Players beyond your own cards — with S5, where they are first used.
+- ⬜ Extension sync (your saved lineups, Hot Streak, your rooms) — with Apply in S6/S7, same session.
+- ⬜ ClubElo ratings for European opponents (once a day) — with S4, where they feed the model.
 
 ## S4 — xScore model
 - ⬜ A: design of the xScore display (average + bad / average / good range).

@@ -124,3 +124,20 @@ Meter thresholds: ≥ 50% `--good` · 20–49% `--good-2` · < 20% `--low`.
 - Segmented controls use `aria-pressed`; meters and range bars carry an `aria-label` with the numbers.
 - `:focus-visible` shows a 2 px accent ring. The sheet is `role="dialog"`, closes on Esc and returns focus.
 - Images from Sorare and football-data.org load with `referrerpolicy="no-referrer"`.
+
+## Added by the sync status (S3, `S3-sync.html`)
+
+- **Freshness panel.** One card per source, with its own state chip (green "Fresh", amber "Moved", red "Never run
+  in the cloud"). The hero number is how long ago the page's data was built; beside it a **run line** from that
+  moment to the gameweek's lock, with a dot per scheduled run and an ink tick for the lock, so "will it be rebuilt
+  in time" is read at a glance. On a phone the run line keeps its two end labels only; the dots carry the rest.
+- **Clocks strip.** Five equal tiles divided by 1 px lines, each: a dot (green = moves often, amber = live now,
+  grey = rarely), a 22 px number, and one 11 px line saying when it changes next. The tile that decides the page
+  (projections) is tinted `linear-gradient(180deg,#fffdf6,#fff)`.
+- **Who wrote it.** A small tag in the card's footer: `☁ written by the cloud, 00:43` or, in amber,
+  `⌂ written by this PC, 16:07`. Never only a timestamp: the source is half the answer.
+- **Stale states.** A page whose data is behind keeps its content on screen but dimmed (`opacity: .45;
+  filter: grayscale(1)`) under a banner in `--amber-bg` / `--red-bg` carrying one black action button. Content is
+  never hidden and never shown as if it were current.
+- **"Not synced yet", folded.** One row per missing piece: a 22 px square badge, what it is, one muted line on why
+  it isn't there, and a right-aligned 11 px tag naming what unlocks it (`start now`, `S5`, `extension`, `S4`).

@@ -30,7 +30,7 @@ Every phase has two parts:
 | S3 | Data sync (public + your cards) | 🟡 waiting for approval | ⬜ (public sync moved into S2 v2) |
 | S4 | xScore model | ⬜ | ⬜ |
 | S5 | My cards and Player search | ⬜ | ⬜ |
-| S6 | Competitions and Optimize | ⬜ | ⬜ (planner moves into S2 v2; Apply stays here) |
+| S6 | Apply (save lineups to Sorare) | 🟡 waiting for approval | ⬜ (the optimizer shipped in S2 v2) |
 | S7 | Overlay on sorare.com | ⬜ | ⬜ |
 | S8 | Predicted vs actual | ⬜ | ⬜ |
 | S9 | Hardening and retiring SorareExt | ⬜ | ⬜ |
@@ -446,10 +446,47 @@ costs, and what Sorare will still hand over later — and what it won't.
 ## S5 — My cards and Player search
 - ⬜ A: designs. ⬜ B: pages.
 
-## S6 — Competitions and Optimize
-- ⬜ A: design, including how cash and essence are both shown without converting.
-- ⬜ B: optimizer (rules from Sorare, each card once per gameweek, chance of reaching each reward rank from past cut-offs
-  and simulated scores), Optimize button, Apply through the extension.
+## S6 — Apply (the optimizer shipped in S2 v2)
+
+### A · Think & show (2026-09-23)
+
+**Done:** read Sorare's public schema for what saving a lineup actually takes, and checked what the extension can
+already do. Nothing was written to Sorare.
+
+1. **The extension already has the only thing Apply needs.** `bridge.js` notices the address and headers of
+   sorare.com's own GraphQL calls, keeps them in memory inside its closure, and can ask Sorare a question as the
+   signed-in manager (`SofixWhoAmI`). Saving a lineup is the same path with a mutation instead of a query. It
+   checked in for the first time on 23 Sep at 21:42 (v0.1.0, `Yares`).
+2. **Sorare's own API makes a safe Apply possible, in three steps:**
+   - `previewSo5Lineup(appearances)` returns Sorare's verdict *before* anything is written: `feedbackRules`
+     (rule name, state, message), the bonuses it will really apply, and `rewardMultiplier`.
+   - `createOrUpdateSo5Lineup(input: { so5LeaderboardId, so5Appearances, draft, … })` — **`draft: true` saves the
+     lineup without entering the competition.**
+   - `confirmSo5Lineups(so5LineupIds)` enters the drafts.
+   So the design is: preview, save as a draft, show Sorare's own words, and only enter on a second, explicit
+   click. The first click can be undone; the second is the one that costs a card slot or an entry fee.
+3. **What one lineup needs:** `so5LeaderboardId` — an ID, while the sync keeps the leaderboard *slug*, so one more
+   field on the LEADERBOARD query — and per card `cardSlug`, `captain` and `index` (the slot), plus
+   `composeTeamBenchObjectId` for a substitute. A room also takes `entryItemId`, its essence entry fee.
+4. **Sorare will say when we are wrong, and that is worth showing.** The mutation returns
+   `UserError { code, message, path }`, the preview returns a state per rule, and a leaderboard carries
+   `canCompose: Validity` (missing cards, positions, rarities, and a reason). Our planner's rules and Sorare's
+   have to agree; the preview is the proof, and a disagreement is a bug to show, never to hide.
+5. **Only the browser can do it.** The API key is read-only; entering a lineup needs the sorare.com session, which
+   only exists inside Chrome on the owner's machine. Apply is therefore the one thing in Sofix that cannot happen
+   in the cloud, and the page has to say so when Chrome isn't there.
+6. **A gameweek can't be entered twice by accident.** `createOrUpdateSo5Lineup` takes `so5LineupId` to update one
+   that exists, and each competition has its own `teamsCap`. Apply has to read what is already entered and offer
+   to update it rather than quietly adding another.
+7. **Freshness matters here more than anywhere.** Applying a plan built before Sorare published its projections
+   (S3's `waiting` state) means entering a lineup chosen on last-five-games form. The Apply sheet has to carry
+   that state, not just the Play page's head.
+
+### B · Build — planned
+- ⬜ `so5LeaderboardId` in the sync and the payload.
+- ⬜ Extension: preview → draft → confirm, each an explicit step, with Sorare's own errors surfaced.
+- ⬜ The Apply sheet on Play: what will be entered, Sorare's verdict, what it costs, and what is already entered.
+- ⬜ Never automatic: no lineup is ever saved or entered without a click for that competition.
 
 ## S7 — Overlay on sorare.com
 - ⬜ A: design matching SorareInside (ribbons, drawer). ⬜ B: build.

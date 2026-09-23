@@ -143,3 +143,18 @@ Meter thresholds: ≥ 50% `--good` · 20–49% `--good-2` · < 20% `--low`.
   colour carrying one black button.
 - **No device switch in a preview.** The page is responsive; open it on a phone to see the phone layout.
 
+## Added by Apply (S6, `S6-apply.html`)
+
+- **Steps, not a button.** A three-dot rail across the top of the sheet — Check · Draft · Enter — each dot black
+  while it is the current one and `--good-track` with a tick once it is done. The rail is the promise that nothing
+  irreversible happens on the first click.
+- **The hero is the thing you are about to spend or win.** xScore while it is worth entering, the number of
+  problems when Sorare refuses. One 60 px number, one muted line under it, and the cost as chips on the right
+  ("Free to enter", "9 of your 96 cards", "3 slots left here").
+- **The lineup is one row.** `grid-template-columns: repeat(9, minmax(0, 1fr))` so the whole thing reads at a
+  glance, three per row on a phone; substitutes are hatched (`repeating-linear-gradient`) instead of labelled.
+- **Sorare's verdict, in Sorare's words.** A tinted block listing each rule with a tick or a cross, headed by
+  whether Sorare accepted it. A refusal keeps the passing rules visible underneath, so the one problem stands out
+  rather than replacing everything.
+- **The tone follows the step**: green while it is fine, amber for a draft that is saved but not entered, red for
+  a refusal, grey when Chrome is shut and Sofix cannot reach the session at all.

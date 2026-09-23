@@ -38,6 +38,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sorare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Sorare
+         * @description The Sorare gameweek the job published. Local development only: on Vercel the app reads Neon itself.
+         */
+        get: operations["sorare_api_sorare_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/refresh": {
         parameters: {
             query?: never;
@@ -90,6 +110,18 @@ export interface components {
             /** Success */
             success: boolean;
             data?: components["schemas"]["RefreshStatus"] | null;
+            /** Error */
+            error?: string | null;
+            meta?: components["schemas"]["GridMeta"] | null;
+        };
+        /** ApiResponse[dict[str, Any]] */
+        ApiResponse_dict_str__Any__: {
+            /** Success */
+            success: boolean;
+            /** Data */
+            data?: {
+                [key: string]: unknown;
+            } | null;
             /** Error */
             error?: string | null;
             meta?: components["schemas"]["GridMeta"] | null;
@@ -430,6 +462,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponse_FixtureGrid_"];
+                };
+            };
+        };
+    };
+    sorare_api_sorare_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_dict_str__Any__"];
                 };
             };
         };

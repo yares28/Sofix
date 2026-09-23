@@ -39,6 +39,25 @@
         }
       }
     },
+    "/api/sorare": {
+      "get": {
+        "summary": "Sorare",
+        "description": "The Sorare gameweek the job published. Local development only: on Vercel the app reads Neon itself.",
+        "operationId": "sorare_api_sorare_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_dict_str__Any__"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/refresh": {
       "post": {
         "summary": "Start Refresh",
@@ -221,6 +240,52 @@
           "success"
         ],
         "title": "ApiResponse[RefreshStatus]"
+      },
+      "ApiResponse_dict_str__Any__": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GridMeta"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "success"
+        ],
+        "title": "ApiResponse[dict[str, Any]]"
       },
       "CellMarket": {
         "properties": {

@@ -314,7 +314,13 @@ def test_the_job_publishes_the_page_and_keeps_the_reference_scores(db, monkeypat
         "build_payload",
         lambda snap, **k: {
             "generatedAt": snap["fetchedAt"],
-            "next": {"gameweek": {"number": 21}, "state": "ready", "plans": [], "playing": {"cards": 3}, "playable": []},
+            "next": {
+                "gameweek": {"number": 21},
+                "state": "ready",
+                "plans": [],
+                "playing": {"cards": 3},
+                "playable": [],
+            },
         },
     )
     summary = sorare_job.run(db, "yares", runs=1)

@@ -661,4 +661,12 @@ def today(now: datetime | None = None) -> date:
     return (now or datetime.now(UTC)).date()
 
 
-__all__ = ["build_payload", "with_status", "read_cards", "read_competitions", "why_not", "lineups_possible", "fill_bench"]
+__all__ = [
+    "build_payload",
+    "with_status",
+    "read_cards",
+    "read_competitions",
+    "why_not",
+    "lineups_possible",
+    "fill_bench",
+]

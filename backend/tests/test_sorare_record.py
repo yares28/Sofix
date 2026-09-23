@@ -120,9 +120,10 @@ def test_the_status_says_who_wrote_it_and_remembers_the_cloud(db) -> None:  # no
     )
     assert by_hand["status"]["where"] == "pc"
     assert by_hand["status"]["lastCloudAt"] == "2026-10-08T09:00:00+00:00"
-    assert publish.with_status({"generatedAt": "x"}, where="pc", moved=0, kept={}, previous=None)["status"][
-        "lastCloudAt"
-    ] is None
+    assert (
+        publish.with_status({"generatedAt": "x"}, where="pc", moved=0, kept={}, previous=None)["status"]["lastCloudAt"]
+        is None
+    )
 
 
 def test_the_record_summary_counts_what_is_kept(db) -> None:  # noqa: F811

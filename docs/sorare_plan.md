@@ -367,6 +367,36 @@ planner (`scratchpad/planner_proto.py`, moves to `backend/app/sorare/` in B) bui
 `read_models` key `sorare_references`, and a finished gameweek's replay is kept from the payload the app is
 already showing (gated by `publish.PAYLOAD_VERSION`, so a change to the payload rebuilds it once).
 
+## SW — One week, every page (2026-09-23)
+
+**Why:** the board counts LaLiga matchdays and Sorare counts its own game weeks, and they are not the same
+number — LaLiga's next round is **MD8, 9–12 Oct**, while Sorare's next game week is **GW17, 25–29 Sep**. Two
+selectors, two numbers, and the Sorare side stuck on whichever gameweek the job last planned.
+
+**Found:**
+1. **A week is the axis both sides share.** Each Sorare game week contains at most one LaLiga round: GW13→MD5,
+   GW14→MD6, GW15→MD7, and GW16–GW20 contain none at all (the international break). So the selector picks a week,
+   and each page shows what it holds — including "no LaLiga round this week", which is worth saying out loud.
+2. **Future gameweeks can be planned now.** GW18, 19 and 20 are already `opened` on Sorare with 4–6 leaderboards
+   each, so a lineup can be built for them. What they lack is Sorare's projections (it only publishes for a
+   player's *next* fixture), so a plan that far ahead stands on form and says so — the `waiting` state from S3.
+3. **Looking ahead is cheap.** Counting which cards have a game in the next three gameweeks took **5 calls**:
+   3 cards play in GW18, **14 in GW19**, 3 in GW20. Planning them adds roughly 10–20 calls each.
+
+**Design:** `docs/sorare/design/week-selector.html`.
+- One control in the bar, on every page: a pill with the week's state dot, its number and its dates.
+- It opens a menu of weeks, each row carrying the LaLiga round (or "no LaLiga"), how many of your cards play,
+  and what the week is worth — essence won for a week that is done, the expected essence and plan count for the
+  one being planned, and the number of cards that play for a week still ahead.
+- Picking a week moves every page at once: Fixtures, Difficulty, Table, Play and the last gameweek.
+
+**Build — planned**
+- ⬜ Plan the next three gameweeks, not one: `weeks[]` in the payload (`PAYLOAD_VERSION` 3), each with its own
+  state, and the ones beyond Sorare's projections marked as built from form.
+- ⬜ The week picker in the bar, replacing the `<select>`; `?gw=` becomes the week, and the board resolves the
+  LaLiga round inside it.
+- ⬜ The empty state that matters: a week with no LaLiga round says so instead of showing the last one.
+
 ## S3 — Data sync
 
 ### A · Think & show (2026-09-23)

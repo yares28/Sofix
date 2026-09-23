@@ -1508,3 +1508,62 @@
     transition: none;
   }
 }
+
+/* How current this gameweek is (S3): a chip in the head, and an alert when it is worth saying more. */
+/* `.pl-sub span` is a class *and* an element, so it outranks a lone class: the chip has to say .pl-main too. */
+.pl-main .pl-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+  background: var(--good-track);
+  color: #11633b; /* --good is 4.44:1 on this green: one notch darker clears 4.5 */
+}
+.pl-main .pl-chip i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.pl-main .pl-chip.waiting { background: #fff4e0; color: #8a5300; }
+.pl-main .pl-chip.cloudless { background: #fdeced; color: #8f1526; }
+.pl-main .pl-chip.stale { background: var(--hover); color: var(--ink-2); }
+
+.pl-alert {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 18px;
+  padding: 13px 14px 13px 16px;
+  border-radius: 18px;
+  font-size: 13px;
+  font-weight: 550;
+  background: #fff4e0;
+  color: #8a5300;
+}
+.pl-alert.cloudless { background: #fdeced; color: #8f1526; }
+.pl-alert b { display: block; font-size: 14px; font-weight: 650; }
+.pl-go {
+  margin-left: auto;
+  background: var(--ink);
+  color: #fff;
+  border-radius: 12px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+.pl-go:hover { background: #000; }
+/* What is actually out of date stays readable, but can't be mistaken for current. */
+.pl-lus.behind,
+.pl-main > .behind { opacity: 0.55; filter: grayscale(0.55); }
+
+@media (max-width: 700px) {
+  .pl-alert { flex-wrap: wrap; }
+  .pl-go { margin-left: 0; width: 100%; text-align: center; }
+}

@@ -624,6 +624,33 @@ def build_payload(
     }
 
 
+def with_status(
+    payload: dict[str, Any],
+    *,
+    where: str,
+    moved: int,
+    kept: dict[str, int],
+    previous: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Add how this payload came to be, so the app can say whether it is worth trusting.
+
+    `where` is "cloud" or "pc". A run only knows who wrote *it*, so the last cloud write is carried forward from
+    the payload before it: that is what makes "the scheduled job is not syncing Sorare" visible at all.
+    """
+    before = ((previous or {}).get("status") or {}) if previous else {}
+    last_cloud = payload["generatedAt"] if where == "cloud" else before.get("lastCloudAt")
+    return {
+        **payload,
+        "status": {
+            "builtAt": payload["generatedAt"],
+            "where": where,
+            "lastCloudAt": last_cloud,
+            "moved": moved,
+            "kept": kept,
+        },
+    }
+
+
 def _week_window(days: int = 10):
     from datetime import timedelta
 
@@ -634,4 +661,4 @@ def today(now: datetime | None = None) -> date:
     return (now or datetime.now(UTC)).date()
 
 
-__all__ = ["build_payload", "read_cards", "read_competitions", "why_not", "lineups_possible", "fill_bench"]
+__all__ = ["build_payload", "with_status", "read_cards", "read_competitions", "why_not", "lineups_possible", "fill_bench"]

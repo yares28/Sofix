@@ -1,6 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import type { Sorare } from "../lib/play";
+import SorarePanel from "./control/SorarePanel";
 import { useEffect, useRef, useState } from "react";
 import {
   barsOf,
@@ -29,6 +31,8 @@ export type ControlCenterProps = {
   serverNow: string;
   syncedAt: string | null;
   system: SystemStatus | null;
+  /** The Sorare gameweek, when the job has published one: the panel says whether it is still worth acting on. */
+  sorare: Sorare | null;
   refreshEnabled: boolean;
   app: { host: string; qr: QrCode };
   extensionDir: string | null;
@@ -154,7 +158,7 @@ function ChainLink({ node, next, index }: { node: ChainNode; next?: ChainNode; i
  * The Control Center page: status, today's schedule, the last refreshes, the connection chain and the free limits,
  * then whatever setup is left, installing the app, and how it all runs. Design: docs/sorare/design/S1-foundation.html.
  */
-export default function ControlCenter({ serverNow, syncedAt, system: stored, refreshEnabled, app, extensionDir, links }: ControlCenterProps) {
+export default function ControlCenter({ serverNow, syncedAt, system: stored, sorare, refreshEnabled, app, extensionDir, links }: ControlCenterProps) {
   const router = useRouter();
   const [now, setNow] = useState(() => new Date(serverNow));
   const [live, setLive] = useState<ExtensionPing | null>(null);
@@ -341,6 +345,8 @@ export default function ControlCenter({ serverNow, syncedAt, system: stored, ref
             ))}
           </div>
         </section>
+
+        {sorare ? <SorarePanel data={sorare} now={now} /> : null}
       </div>
 
       {(showExtension || !refreshEnabled) && (

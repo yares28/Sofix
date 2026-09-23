@@ -10,6 +10,7 @@ import {
   timeUntil,
   waitingFor,
 } from "../../lib/play";
+import { syncState } from "../../lib/sorareStatus";
 import { Cash, Chevron, Essence, Foil, GROUP_COLOUR } from "./bits";
 import Lineup from "./Lineup";
 import SorareImage from "./SorareImage";
@@ -52,19 +53,34 @@ export default function PlayView({
     return query ? `/play?${query}` : "/play";
   };
 
+  const sync = after ? null : syncState(data, week, now);
   return (
     <main className="pl-main">
-      <Head data={data} week={week} after={after} href={href} now={now} />
+      <Head data={data} week={week} after={after} href={href} now={now} sync={sync} />
       <GameweekBar data={data} week={week} href={href} />
+      {sync?.alert ? (
+        <div className={`pl-alert ${sync.state}`} role="status">
+          <span aria-hidden="true">{sync.state === "cloudless" ? "!" : "⟳"}</span>
+          <div>
+            <b>{sync.alert.title}</b>
+            {sync.alert.detail}
+          </div>
+          <Link className="pl-go" href={sync.alert.href} prefetch={false}>
+            {sync.alert.action}
+          </Link>
+        </div>
+      ) : null}
       {plan ? (
         <>
           <PlanSwitch week={week} planIndex={planIndex} after={after} href={href} />
-          <PlanHero plan={plan} week={week} after={after} />
+          <div className={sync?.behind ? "behind" : undefined}>
+            <PlanHero plan={plan} week={week} after={after} />
+          </div>
           <div className="pl-sec">
             <h2>Lineups</h2>
             <span>{after ? "what each scored and won" : "open one for the cards, subs and rewards"}</span>
           </div>
-          <div className="pl-lus">
+          <div className={`pl-lus${sync?.behind ? " behind" : ""}`}>
             {plan.lineups.map((lineup, index) => (
               <Lineup key={`${lineup.key}-${index}`} lineup={lineup} after={after} index={index} />
             ))}
@@ -84,12 +100,14 @@ function Head({
   after,
   href,
   now,
+  sync,
 }: {
   data: Sorare;
   week: GameweekPlan;
   after: boolean;
   href: (options: { gw?: string; plan?: number; after?: boolean }) => string;
   now: Date;
+  sync: ReturnType<typeof syncState>;
 }) {
   const { lock, start, end } = week.gameweek;
   const locked = new Date(lock) <= now;
@@ -110,7 +128,12 @@ function Head({
           <span>
             {locked ? "locked" : "locks"} {weekday(lock)} {clock(lock)}
           </span>
-          {data.generatedAt ? (
+          {sync ? (
+            <span className={`pl-chip ${sync.state}`}>
+              <i />
+              {sync.chip}
+            </span>
+          ) : data.generatedAt ? (
             <>
               <span className="dot" />
               <span>updated {weekday(data.generatedAt)} {clock(data.generatedAt)}</span>

@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import SorareForecast
@@ -163,3 +163,16 @@ def save(db: Session, fresh: list[Row], now: datetime | None = None, *, final: b
         written += 1
     db.flush()
     return {"written": written, "frozen": frozen, "scored": scored}
+
+
+def summary(db: Session) -> dict[str, int]:
+    """What the record holds, for the status panel: how much has been kept, and how much of it is scored."""
+    row = db.execute(
+        select(
+            func.count(func.distinct(SorareForecast.gameweek)),
+            func.count(),
+            func.count(SorareForecast.projection),
+            func.count(SorareForecast.actual),
+        )
+    ).one()
+    return {"gameweeks": row[0] or 0, "rows": row[1] or 0, "projections": row[2] or 0, "scored": row[3] or 0}

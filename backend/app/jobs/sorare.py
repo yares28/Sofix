@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 from datetime import UTC, datetime
 from typing import Any
 
@@ -86,6 +87,13 @@ def run(
     summary["moved"] = sorare_record.moved(db, planned)
     summary["kept"] = sorare_record.save(db, planned, now)
     sorare_record.save(db, sorare_record.rows(snapshot, "past"), now, final=True)
+    payload = sorare_publish.with_status(
+        payload,
+        where="cloud" if os.environ.get("GITHUB_ACTIONS") == "true" else "pc",
+        moved=summary["moved"],
+        kept=sorare_record.summary(db),
+        previous=previous,
+    )
     put(db, SORARE_KEY, payload, now)
     put(db, REFERENCES_KEY, snapshot["references"], now)
     if standalone:

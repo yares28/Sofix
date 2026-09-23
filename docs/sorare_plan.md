@@ -419,8 +419,15 @@ costs, and what Sorare will still hand over later — and what it won't.
   kept 83 rows for GW17, 11 of them with a Sorare projection — it is an international break, so most of the squad
   has no game. A gameweek nobody recorded before its lock stays a gap: rebuilding one from form would look like a
   record of what Sorare said, and it isn't.
-- ⬜ The Sorare panel in the Control Center and the chip + banner on Play, from one small status read model
-  (who wrote it, when, and the five clocks).
+- ✅ The Sorare panel in the Control Center and the chip + alert on Play, from a `status` block inside the same
+  `sorare` payload (who built it, when the cloud last managed it, how many players Sorare moved, what the record
+  holds). `lib/sorareStatus.ts` turns that into the state, the hero and the run line — 12 unit tests — and the run
+  line's dots come from `lib/schedule.ts`, which already mirrors the workflow's crons.
+  **One correction to A:** "Sorare has moved its numbers since this plan" cannot be known by the app, because every
+  run rebuilds the plan from the numbers it just fetched. The middle state is therefore the one that *is* knowable —
+  the plan was built **before Sorare published**, on each player's last five games — and `status.moved` is kept as
+  what the last run found had changed, which measures churn rather than warning about anything. A plan the PC built
+  minutes ago is also no longer dimmed: the warning is about tomorrow, not about that plan.
 - ⬜ Players beyond your own cards — with S5, where they are first used.
 - ⬜ Extension sync (your saved lineups, Hot Streak, your rooms) — with Apply in S6/S7, same session.
 - ⬜ ClubElo ratings for European opponents (once a day) — with S4, where they feed the model.

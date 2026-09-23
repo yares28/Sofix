@@ -100,3 +100,33 @@ def test_players_without_a_game_are_left_out(db) -> None:  # noqa: F811
         entry["player"]["plan"] = []
     assert record.rows(idle) == []
     assert record.save(db, record.rows(idle)) == {"written": 0, "frozen": 0, "scored": 0}
+
+
+def test_the_status_says_who_wrote_it_and_remembers_the_cloud(db) -> None:  # noqa: F811
+    from app.sorare import publish
+
+    page = {"generatedAt": "2026-10-08T09:00:00+00:00"}
+    cloud = publish.with_status(page, where="cloud", moved=0, kept={"rows": 3}, previous=None)
+    assert cloud["status"] == {
+        "builtAt": "2026-10-08T09:00:00+00:00",
+        "where": "cloud",
+        "lastCloudAt": "2026-10-08T09:00:00+00:00",
+        "moved": 0,
+        "kept": {"rows": 3},
+    }
+    # A later run on this PC must not erase the fact that the cloud once managed it.
+    by_hand = publish.with_status(
+        {"generatedAt": "2026-10-08T18:00:00+00:00"}, where="pc", moved=4, kept={"rows": 3}, previous=cloud
+    )
+    assert by_hand["status"]["where"] == "pc"
+    assert by_hand["status"]["lastCloudAt"] == "2026-10-08T09:00:00+00:00"
+    assert publish.with_status({"generatedAt": "x"}, where="pc", moved=0, kept={}, previous=None)["status"][
+        "lastCloudAt"
+    ] is None
+
+
+def test_the_record_summary_counts_what_is_kept(db) -> None:  # noqa: F811
+    assert record.summary(db) == {"gameweeks": 0, "rows": 0, "projections": 0, "scored": 0}
+    record.save(db, record.rows(snapshot()), BEFORE)
+    kept = record.summary(db)
+    assert kept["gameweeks"] == 1 and kept["rows"] > 0 and kept["projections"] == kept["rows"] and kept["scored"] == 0

@@ -2584,6 +2584,18 @@
    },
    "inSeason": 21,
    "rareGoalkeepers": 0
+  },
+  "status": {
+   "builtAt": "2026-09-23T06:00:00+00:00",
+   "where": "cloud",
+   "lastCloudAt": "2026-09-23T06:00:00+00:00",
+   "moved": 3,
+   "kept": {
+    "gameweeks": 2,
+    "rows": 41,
+    "projections": 38,
+    "scored": 19
+   }
   }
  },
  "error": null,

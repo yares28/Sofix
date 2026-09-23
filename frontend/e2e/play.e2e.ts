@@ -205,3 +205,22 @@ test("the home's Sorare row carries the plan, the gameweek just played and the c
   await expect(page).toHaveURL(/\/play$/, { timeout: 30_000 });
   await expect(page.getByRole("heading", { level: 1, name: "Gameweek 17" })).toBeVisible();
 });
+
+test("the head says how current the gameweek is, and the Control Center shows the same state", async ({ page }) => {
+  await page.goto("/play");
+  // The recorded gameweek was built in the cloud from Sorare's own projections.
+  await expect(page.locator(".pl-chip")).toHaveClass(/fresh/);
+  await expect(page.locator(".pl-chip")).toContainText("synced");
+  await expect(page.locator(".pl-alert")).toHaveCount(0);
+  await expect(page.locator(".pl-lus.behind")).toHaveCount(0);
+
+  await page.goto("/control");
+  const panel = page.locator(".sr-panel");
+  await expect(panel).toHaveClass(/ok/);
+  await expect(panel.getByText("Fresh", { exact: true })).toBeVisible();
+  await expect(panel.locator(".sr-clock")).toHaveCount(5);
+  await expect(panel.locator(".sr-clock").first()).toContainText(`${sorare.cards.usable}of ${sorare.cards.total}`);
+  await expect(panel.locator(".sr-stats")).toContainText("41");
+  await expect(panel.locator(".sr-stats")).toContainText("3 moved since the run before");
+  await expect(panel.getByRole("img")).toHaveAttribute("aria-label", /scheduled runs before the gameweek locks/);
+});

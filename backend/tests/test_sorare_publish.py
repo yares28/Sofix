@@ -313,7 +313,8 @@ def test_the_job_publishes_the_page_and_keeps_the_reference_scores(db, monkeypat
         sorare_job.sorare_publish,
         "build_payload",
         lambda snap, **k: {
-            "next": {"gameweek": {"number": 21}, "state": "ready", "plans": [], "playing": {"cards": 3}, "playable": []}
+            "generatedAt": snap["fetchedAt"],
+            "next": {"gameweek": {"number": 21}, "state": "ready", "plans": [], "playing": {"cards": 3}, "playable": []},
         },
     )
     summary = sorare_job.run(db, "yares", runs=1)
@@ -323,6 +324,9 @@ def test_the_job_publishes_the_page_and_keeps_the_reference_scores(db, monkeypat
     kept = db.get(ReadModel, sorare_job.REFERENCES_KEY)
     assert kept is not None and "gw-past" in kept.payload
     assert sorare_job.cached_references(db)["gw-past"]
+    # The page also carries how it came to be, and the run wrote the gameweek's projections down.
+    status = db.get(ReadModel, sorare_job.SORARE_KEY).payload["status"]
+    assert status["where"] == "pc" and status["lastCloudAt"] is None and status["kept"]["rows"] > 0
 
 
 class _FakeClient:

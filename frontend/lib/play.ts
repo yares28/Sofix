@@ -152,9 +152,19 @@ export type TimelineWeek = {
   won?: number;
 };
 
+/** How the payload came to be: who built it, when the cloud last managed it, and what the record holds. */
+export type Status = {
+  builtAt: string;
+  where: "cloud" | "pc";
+  lastCloudAt: string | null;
+  moved: number;
+  kept: { gameweeks: number; rows: number; projections: number; scored: number };
+};
+
 export type Sorare = {
   generatedAt: string;
   user: string;
+  status?: Status;
   timeline: TimelineWeek[];
   next: GameweekPlan;
   last: GameweekPlan | null;

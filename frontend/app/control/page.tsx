@@ -5,6 +5,7 @@ import ControlCenter from "../../components/ControlCenter";
 import SiteNav from "../../components/SiteNav";
 import { loadGrid } from "../../lib/api";
 import { githubTokenUrl, VERCEL_ENV_URL } from "../../lib/github";
+import { loadSorare } from "../../lib/playData";
 import { qrCode } from "../../lib/qr";
 import { loadSystem } from "../../lib/system";
 
@@ -23,7 +24,7 @@ async function appAddress(): Promise<string> {
 
 export default async function ControlPage() {
   await connection(); // per request (from the cache): the status reads the clock
-  const [{ meta }, system, address] = await Promise.all([loadGrid(), loadSystem(), appAddress()]);
+  const [{ meta }, system, sorare, address] = await Promise.all([loadGrid(), loadSystem(), loadSorare(), appAddress()]);
   return (
     <>
       <SiteNav meta={meta} system={system} current="control" />
@@ -32,6 +33,7 @@ export default async function ControlPage() {
           serverNow={new Date().toISOString()}
           syncedAt={meta?.last_synced_at ?? meta?.last_predicted_at ?? null}
           system={system}
+          sorare={sorare}
           refreshEnabled={Boolean(process.env.GITHUB_TOKEN)}
           app={{ host: new URL(address).host, qr: qrCode(`${address}/`) }}
           extensionDir={process.env.EXTENSION_DIR || null}

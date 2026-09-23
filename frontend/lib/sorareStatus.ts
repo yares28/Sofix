@@ -15,7 +15,7 @@
 import type { GameweekPlan, Sorare, Status } from "./play";
 import { runsBetween } from "./schedule";
 
-export type Freshness = "fresh" | "waiting" | "cloudless" | "stale";
+export type Freshness = "fresh" | "pending" | "waiting" | "cloudless" | "stale";
 
 export type SyncState = {
   state: Freshness;
@@ -36,7 +36,7 @@ export type SyncState = {
   lock: Date;
 };
 
-const MISSED = 2; // scheduled runs the cloud may miss before it counts as not syncing at all
+const MISSED = 2; // runs a cloud that used to work may miss before it counts as having stopped
 
 const clock = (at: Date) =>
   new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(at);
@@ -59,17 +59,29 @@ export function syncState(data: Sorare, week: GameweekPlan, now: Date): SyncStat
   const missed = runs.filter((run) => run.done).length;
   const base = { builtAt, runs, lastChance, lock };
 
-  // The cloud is the only thing that keeps this current while the PC is off, so its absence outranks everything.
-  if (!status.lastCloudAt || (status.where === "pc" && missed >= MISSED)) {
+  // The cloud is the only thing that keeps this current while the PC is off, so its absence outranks everything —
+  // but only once it has actually had a turn. A scheduled run that hasn't come round yet has skipped nothing.
+  const never = !status.lastCloudAt;
+  if (never && missed === 0) {
+    const next = runs[0]?.at;
+    return {
+      ...base,
+      state: "pending",
+      behind: false,
+      chip: next ? `built on your PC · the cloud runs at ${clock(next)}` : "built on your PC",
+      alert: null,
+    };
+  }
+  if (never || (status.where === "pc" && missed >= MISSED)) {
     return {
       ...base,
       state: "cloudless",
       behind: missed > 0,
-      chip: status.lastCloudAt ? `cloud last synced ${ago(new Date(status.lastCloudAt), now)} ago` : "built on your PC",
+      chip: never ? "the cloud skipped it" : `cloud last synced ${ago(new Date(status.lastCloudAt as string), now)} ago`,
       alert: {
-        title: status.lastCloudAt ? "The scheduled job has stopped syncing Sorare" : "The cloud has never synced Sorare",
-        detail: `This gameweek was built on your PC ${ago(builtAt, now)} ago. Without SORARE_API_KEY in the repository secrets the step logs "skipped" and the plan quietly ages.`,
-        action: "Show me how",
+        title: never ? "A scheduled run came and went without syncing Sorare" : "The scheduled job has stopped syncing Sorare",
+        detail: `This gameweek is still the one your PC built ${ago(builtAt, now)} ago. The step skips itself when SORARE_API_KEY is missing from the repository secrets — the key in your .env only reaches runs started on this machine.`,
+        action: "Check the secret",
         href: "/control",
       },
     };
@@ -104,6 +116,13 @@ export function heroOf(sync: SyncState, now: Date): { value: string; unit: strin
   if (sync.state === "cloudless") {
     const [value, unit] = ago(sync.builtAt, now).split(" ");
     return { value: value ?? "0", unit: unit ?? "min", caption: "since your PC built it — nothing else has" };
+  }
+  if (sync.state === "pending") {
+    return {
+      value: String(left),
+      unit: left === 1 ? "run" : "runs",
+      caption: `before the lock — the first is the cloud's turn at ${clock(sync.runs[0]!.at)}`,
+    };
   }
   if (sync.state === "stale") return { value: "0", unit: "runs", caption: "the gameweek has locked" };
   if (!left) return { value: "0", unit: "runs", caption: "left before the lock: this is the plan" };

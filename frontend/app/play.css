@@ -1530,7 +1530,8 @@
 }
 .pl-main .pl-chip.waiting { background: #fff4e0; color: #8a5300; }
 .pl-main .pl-chip.cloudless { background: #fdeced; color: #8f1526; }
-.pl-main .pl-chip.stale { background: var(--hover); color: var(--ink-2); }
+.pl-main .pl-chip.stale,
+.pl-main .pl-chip.pending { background: var(--hover); color: var(--ink-2); }
 
 .pl-alert {
   display: flex;

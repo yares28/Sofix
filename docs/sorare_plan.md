@@ -428,6 +428,10 @@ costs, and what Sorare will still hand over later — and what it won't.
   the plan was built **before Sorare published**, on each player's last five games — and `status.moved` is kept as
   what the last run found had changed, which measures churn rather than warning about anything. A plan the PC built
   minutes ago is also no longer dimmed: the warning is about tomorrow, not about that plan.
+  **And a second one:** "the cloud has never synced Sorare" is not a fault until the cloud has actually had a turn.
+  Until the first scheduled run after a build, the panel simply says whose turn is next (state `pending`, no alarm);
+  only a run that came and went without writing is worth pointing at the repository secret, which is a different
+  thing from the key in the local `.env` — that one only reaches runs started on this machine.
 - ⬜ Players beyond your own cards — with S5, where they are first used.
 - ⬜ Extension sync (your saved lineups, Hot Streak, your rooms) — with Apply in S6/S7, same session.
 - ⬜ ClubElo ratings for European opponents (once a day) — with S4, where they feed the model.

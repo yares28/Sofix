@@ -8,12 +8,14 @@ const clock = (at: string | Date) => madrid(at, { hour: "2-digit", minute: "2-di
 
 const TONE: Record<SyncState["state"], string> = {
   fresh: "ok",
+  pending: "quiet",
   waiting: "warn",
   cloudless: "bad",
   stale: "quiet",
 };
 const WORD: Record<SyncState["state"], string> = {
   fresh: "Fresh",
+  pending: "Waiting for the cloud's first run",
   waiting: "Waiting on Sorare",
   cloudless: "Never run in the cloud",
   stale: "Locked",

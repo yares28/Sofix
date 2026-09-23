@@ -52,19 +52,21 @@ describe("the state of the sync", () => {
     expect(sync.behind).toBe(true);
   });
 
-  it("puts the cloud first: a plan only your PC has ever built is the thing to fix", () => {
-    const sync = syncState(data({ where: "pc", lastCloudAt: null }), week("form"), now("2026-09-23T14:32:00Z"))!;
-    expect(sync.state).toBe("cloudless");
-    expect(sync.alert?.title).toBe("The cloud has never synced Sorare");
-    expect(sync.alert?.href).toBe("/control");
+  it("says nothing against the cloud before it has had a turn", () => {
+    const sync = syncState(data({ where: "pc", lastCloudAt: null }), week(), now("2026-09-23T14:32:00Z"))!;
+    expect(sync.state).toBe("pending");
+    expect(sync.alert).toBeNull(); // a run that hasn't come round yet has skipped nothing
+    expect(sync.behind).toBe(false);
+    expect(sync.chip).toBe("built on your PC · the cloud runs at 00:43");
   });
 
-  it("warns about the cloud without dimming a plan that was built a minute ago", () => {
-    const justBuilt = syncState(data({ where: "pc", lastCloudAt: null }), week(), now("2026-09-23T14:32:00Z"))!;
-    expect(justBuilt.state).toBe("cloudless");
-    expect(justBuilt.behind).toBe(false); // the warning is about tomorrow, not about this plan
-    const old = syncState(data({ where: "pc", lastCloudAt: null }), week(), now("2026-09-24T08:00:00Z"))!;
-    expect(old.behind).toBe(true); // two runs have come and gone without writing anything
+  it("only blames the secret once a scheduled run has come and gone", () => {
+    const sync = syncState(data({ where: "pc", lastCloudAt: null }), week(), now("2026-09-23T23:00:00Z"))!;
+    expect(sync.state).toBe("cloudless");
+    expect(sync.alert?.title).toContain("came and went");
+    expect(sync.alert?.detail).toContain("your .env only reaches runs started on this machine");
+    expect(sync.behind).toBe(true);
+    expect(sync.alert?.href).toBe("/control");
   });
 
   it("forgives one missed run, not two", () => {
@@ -92,9 +94,14 @@ describe("the hero number", () => {
     });
   });
 
-  it("counts the age instead when nothing but the PC has built it", () => {
-    const sync = syncState(data({ where: "pc", lastCloudAt: null }), week(), now("2026-09-23T22:07:00Z"))!;
-    expect(heroOf(sync, now("2026-09-23T22:07:00Z"))).toMatchObject({ value: "8", unit: "h" });
+  it("counts the age instead when the cloud has been given a turn and skipped it", () => {
+    const sync = syncState(data({ where: "pc", lastCloudAt: null }), week(), now("2026-09-24T08:00:00Z"))!;
+    expect(heroOf(sync, now("2026-09-24T08:00:00Z"))).toMatchObject({ value: "18", unit: "h" });
+  });
+
+  it("points at the cloud's first turn while it is still to come", () => {
+    const sync = syncState(data({ where: "pc", lastCloudAt: null }), week(), now("2026-09-23T14:32:00Z"))!;
+    expect(heroOf(sync, now("2026-09-23T14:32:00Z")).caption).toContain("the cloud's turn at 00:43");
   });
 
   it("says plainly when no run is left", () => {

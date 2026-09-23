@@ -401,14 +401,16 @@ costs, and what Sorare will still hand over later — and what it won't.
 8. **What a run costs:** 140–180 calls in 1–3 minutes warm; about 1,000 calls in 10 minutes cold (first run, or
    after `publish.PAYLOAD_VERSION` changes and the replay has to be rebuilt).
 
-**Design:** `docs/sorare/design/S3-sync.html` (toggles: Control Center / Play head, PC / Phone, Today / Fresh / Moved).
-- **Control Center** gains one Sorare panel: how long ago the gameweek was built as the hero number, the run line
-  from that moment to the lock, the five clocks each with its own dot and a line saying when it changes next, who
-  wrote it (the cloud or this PC) with the call and byte cost, and "Not synced yet · 5" folded underneath — each
-  entry saying what would unlock it.
-- **Play** gains a freshness chip in its head, in the same three states. In both unhappy ones the plans stay on
-  screen but dimmed behind a banner carrying the one action that fixes it ("Rebuild now", "Show me how").
-- The preview opens on **what is true right now** — never run in the cloud — not on the happy state.
+**Design:** `docs/sorare/design/S3-sync.html` — one page, one control (Now / Fresh / Moved), responsive.
+- **The Control Center's Sorare panel** answers one question with one 76 px number: minutes since the gameweek was
+  built, rebuilds left before the lock, or hours until the next one. Under it, who wrote it — the cloud or this PC.
+- **The run line** runs from that moment to the lock, a dot per scheduled run, filled up to the last one that
+  happened, an ink tick for the lock. It is the answer to "will this be rebuilt before I have to act".
+- **Five clocks** underneath, each a label, a number and two or three words on when it changes next. No paragraphs.
+- **Play** carries the same state: a chip in the head and, when the data is behind, an alert with the one action
+  that fixes it. The plans stay on screen but dimmed — readable, impossible to mistake for current.
+- The state sets `--tone` and everything follows it, including a radial glow on the panel. The preview opens on
+  **what is true right now** — never run in the cloud — not on the happy state.
 
 ### B · Build — planned
 - ⬜ Record Sorare's projections and starting chances on every run (own table, ~2 MB a season). First, because it

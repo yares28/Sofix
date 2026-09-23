@@ -127,17 +127,19 @@ Meter thresholds: ≥ 50% `--good` · 20–49% `--good-2` · < 20% `--low`.
 
 ## Added by the sync status (S3, `S3-sync.html`)
 
-- **Freshness panel.** One card per source, with its own state chip (green "Fresh", amber "Moved", red "Never run
-  in the cloud"). The hero number is how long ago the page's data was built; beside it a **run line** from that
-  moment to the gameweek's lock, with a dot per scheduled run and an ink tick for the lock, so "will it be rebuilt
-  in time" is read at a glance. On a phone the run line keeps its two end labels only; the dots carry the rest.
-- **Clocks strip.** Five equal tiles divided by 1 px lines, each: a dot (green = moves often, amber = live now,
-  grey = rarely), a 22 px number, and one 11 px line saying when it changes next. The tile that decides the page
-  (projections) is tinted `linear-gradient(180deg,#fffdf6,#fff)`.
-- **Who wrote it.** A small tag in the card's footer: `☁ written by the cloud, 00:43` or, in amber,
-  `⌂ written by this PC, 16:07`. Never only a timestamp: the source is half the answer.
-- **Stale states.** A page whose data is behind keeps its content on screen but dimmed (`opacity: .45;
-  filter: grayscale(1)`) under a banner in `--amber-bg` / `--red-bg` carrying one black action button. Content is
-  never hidden and never shown as if it were current.
-- **"Not synced yet", folded.** One row per missing piece: a 22 px square badge, what it is, one muted line on why
-  it isn't there, and a right-aligned 11 px tag naming what unlocks it (`start now`, `S5`, `extension`, `S4`).
+- **One hero per state.** The panel answers "is this current?" with a single 76 px number that changes meaning
+  with the state — minutes since it was built, rebuilds left before the lock, hours until the next one — and one
+  muted line under it. Labels, never sentences: the long version lives in a `title`.
+- **State drives colour, not layout.** `--tone` / `--tone-bg` / `--tone-ink` are set once (green, amber, red) and
+  the pill, the chip, the alert, the "who wrote it" tag and a radial glow at the card's top-right all follow. The
+  glow is `color-mix(in srgb, var(--tone) 16%, transparent)` and transitions over 500 ms.
+- **Run line.** A 6 px track from the moment the data was built to the gameweek's lock, a 20 px dot per scheduled
+  run (ringed green once it has happened, grey before), and an ink tick for the lock. The fill grows in 1.1 s and
+  the dots pop in with a 70 ms stagger. On a phone only the two end labels stay; the dots carry the rest.
+- **Clocks strip.** Five equal tiles divided by 1 px lines: an uppercase 11 px label with a dot (grey = rarely,
+  green = moves often, amber = live now), a 27 px number with a small unit, and a 12 px "when it changes next".
+  They rise in with a 45 ms stagger. The tile that decides the page is tinted `linear-gradient(180deg,#fffcf2,#fff)`.
+- **Stale content is dimmed, never hidden.** `opacity: .4; filter: grayscale(.9)` under an alert in the tone
+  colour carrying one black button.
+- **No device switch in a preview.** The page is responsive; open it on a phone to see the phone layout.
+

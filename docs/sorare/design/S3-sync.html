@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sorare sync · what is fresh</title>
+<title>Sorare sync</title>
 <style>
 :root {
   --bg: #fbfbfd; --surface: #ffffff; --ink: #1d1d1f; --ink-2: #6e6e73; --ink-3: #86868b; --ink-seg: #5e5e63;
@@ -17,6 +17,7 @@
   --shadow-lift: 0 0 0 1px rgba(0,0,0,.04), 0 8px 18px rgba(0,0,0,.06), 0 24px 48px rgba(0,0,0,.08);
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, "Segoe UI", system-ui, sans-serif;
   --ease: cubic-bezier(.3,.7,.2,1);
+  --tone: var(--red); --tone-bg: var(--red-bg); --tone-ink: var(--red-ink);
   color-scheme: light;
 }
 * { box-sizing: border-box; }
@@ -24,363 +25,300 @@
 html, body { margin: 0; background: var(--bg); color: var(--ink); }
 body { font: 14px/1.45 var(--font); letter-spacing: -0.01em; -webkit-font-smoothing: antialiased; }
 button { font: inherit; color: inherit; }
-code { font: 12px ui-monospace, "SF Mono", Menlo, Consolas, monospace; background: var(--hover); padding: 1px 5px; border-radius: 5px; }
+code { font: 12px ui-monospace, "SF Mono", Menlo, Consolas, monospace; background: rgba(0,0,0,.05); padding: 1px 5px; border-radius: 5px; }
 
-/* ── preview chrome ─────────────────────────────────────────────────────── */
-.nav { position: sticky; top: 0; z-index: 30; background: rgba(251,251,253,.82); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid rgba(0,0,0,.06); }
-.nav-in { max-width: 1240px; margin: 0 auto; min-height: 52px; padding: 8px 20px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
-.brand { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 16px; letter-spacing: -0.02em; }
-.brand i { width: 22px; height: 22px; border-radius: 7px; background: var(--brand); }
-.seg { display: inline-flex; background: var(--track); border-radius: 11px; padding: 3px; gap: 2px; }
-.seg button { border: 0; background: none; cursor: pointer; padding: 6px 13px; border-radius: 9px; font-size: 13px; font-weight: 500; color: var(--ink-seg); transition: background .2s var(--ease), color .2s var(--ease); }
-.seg button[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 10px rgba(0,0,0,.06); }
-.spacer { margin-left: auto; }
-.note { font-size: 12px; color: var(--ink-3); }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 22px 20px 90px; }
 
-.stage { max-width: 1240px; margin: 0 auto; padding: 26px 20px 80px; }
-.stage.phone { max-width: 420px; }
-.stage.phone .frame { border-radius: 30px; box-shadow: var(--shadow-lift); background: var(--bg); padding: 14px 12px 22px; }
-.stage:not(.phone) .frame { padding: 0; }
+/* state switch — the only control */
+.bar { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+.mark { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 15px; letter-spacing: -0.02em; }
+.mark i { width: 20px; height: 20px; border-radius: 6px; background: var(--brand); }
+.seg { margin-left: auto; display: inline-flex; background: var(--track); border-radius: 12px; padding: 3px; }
+.seg button { border: 0; background: none; cursor: pointer; padding: 7px 15px; border-radius: 10px; font-size: 13px; font-weight: 550; color: var(--ink-seg); transition: background .25s var(--ease), color .25s var(--ease); }
+.seg button[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.07); }
 
-.lede { max-width: 720px; margin: 0 0 22px; color: var(--ink-2); font-size: 14px; }
-.lede b { color: var(--ink); font-weight: 600; }
+/* ── panel ──────────────────────────────────────────────────────────────── */
+.panel { position: relative; background: var(--surface); border-radius: 28px; box-shadow: var(--shadow-card); overflow: hidden; }
+.panel::before {
+  content: ""; position: absolute; inset: 0 0 auto auto; width: 460px; height: 320px; pointer-events: none;
+  background: radial-gradient(60% 60% at 80% 0%, color-mix(in srgb, var(--tone) 16%, transparent), transparent 70%);
+  transition: background .5s var(--ease);
+}
+.top { position: relative; display: flex; align-items: center; gap: 13px; padding: 22px 26px 0; }
+.foil { width: 17px; height: 23px; border-radius: 3px; background: var(--f-lim); box-shadow: inset 0 0 0 1px rgba(255,255,255,.6), 0 1px 3px rgba(0,0,0,.25); flex: none; }
+.top b { font-size: 17px; font-weight: 650; letter-spacing: -0.02em; }
+.top .who { font-size: 13px; color: var(--ink-2); }
+.pill { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px 7px 12px; border-radius: 999px; font-size: 13px; font-weight: 650; background: var(--tone-bg); color: var(--tone-ink); transition: background .4s var(--ease), color .4s var(--ease); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; animation: beat 2.6s var(--ease) infinite; }
+@keyframes beat { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .4; transform: scale(.75); } }
 
-h1 { margin: 0 0 6px; font-size: 40px; font-weight: 700; letter-spacing: -0.03em; }
-.stage.phone h1 { font-size: 30px; }
-h2 { margin: 0; font-size: 17px; font-weight: 650; letter-spacing: -0.02em; }
-.eyebrow { margin: 0 0 8px; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); display: flex; align-items: center; gap: 8px; }
-.foil { width: 16px; height: 22px; border-radius: 3px; background: var(--f-lim); box-shadow: inset 0 0 0 1px rgba(255,255,255,.6), 0 1px 2px rgba(0,0,0,.2); flex: none; }
-.foil.sm { width: 11px; height: 15px; border-radius: 2px; }
+.lead { position: relative; display: grid; grid-template-columns: minmax(230px, 340px) minmax(0, 1fr); gap: 34px; align-items: center; padding: 14px 26px 26px; }
+.num { display: flex; align-items: baseline; gap: 10px; }
+.num b { font-size: 76px; line-height: .92; font-weight: 700; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; }
+.num i { font-style: normal; font-size: 20px; font-weight: 600; color: var(--ink-2); letter-spacing: -0.02em; }
+.cap { margin: 10px 0 0; font-size: 14px; color: var(--ink-2); }
+.src { margin-top: 12px; display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px; background: var(--hover); font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.src.warn { background: var(--tone-bg); color: var(--tone-ink); }
 
-.card { background: var(--surface); border-radius: 22px; box-shadow: var(--shadow-card); padding: 20px 22px; }
-.sec { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 30px 2px 12px; }
+/* run line */
+.run { position: relative; height: 74px; }
+.run .trk { position: absolute; left: 0; right: 0; top: 36px; height: 6px; border-radius: 3px; background: var(--track); }
+.run .fil { position: absolute; left: 0; top: 36px; height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--good-2), var(--good)); width: 0; transition: width 1.1s var(--ease); }
+.run .p { position: absolute; top: 29px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px var(--low), 0 2px 6px rgba(0,0,0,.12); transform: translateX(-50%) scale(0); animation: pop .45s var(--ease) forwards; }
+.run .p.on { box-shadow: 0 0 0 3px var(--good), 0 2px 6px rgba(0,0,0,.12); }
+.run .p.lock { width: 5px; height: 26px; border-radius: 3px; background: var(--ink); box-shadow: none; top: 26px; }
+@keyframes pop { to { transform: translateX(-50%) scale(1); } }
+.run label { position: absolute; transform: translateX(-50%); font-size: 11px; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+.run label.a { top: 8px; color: var(--ink); }
+.run label.b { top: 56px; font-weight: 500; }
+
+/* clocks */
+.clocks { position: relative; display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 1px; background: var(--line); border-top: 1px solid var(--line); }
+.clock { background: var(--surface); padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 6px; opacity: 0; transform: translateY(8px); animation: rise .5s var(--ease) forwards; animation-delay: calc(var(--i) * 45ms + .15s); }
+@keyframes rise { to { opacity: 1; transform: none; } }
+.clock .k { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-3); }
+.clock .k s { width: 7px; height: 7px; border-radius: 50%; background: var(--low); flex: none; }
+.clock .k s.fast { background: var(--good); }
+.clock .k s.live { background: var(--amber); }
+.clock b { font-size: 27px; font-weight: 650; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.clock b em { font-style: normal; font-size: 13px; font-weight: 500; color: var(--ink-2); letter-spacing: -0.01em; margin-left: 4px; }
+.clock span.n { font-size: 12px; color: var(--ink-3); }
+.clock.key { background: linear-gradient(180deg, #fffcf2, #fff); }
+
+.stats { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; padding: 14px 26px 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-3); }
+.stats b { color: var(--ink-2); font-weight: 650; }
+
+/* ── play head ──────────────────────────────────────────────────────────── */
+.sec { display: flex; align-items: baseline; gap: 12px; margin: 34px 4px 14px; }
+.sec h2 { margin: 0; font-size: 13px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-3); }
 .sec span { font-size: 12px; color: var(--ink-3); }
 
-/* ── the Sorare panel ───────────────────────────────────────────────────── */
-.panel { border-radius: 28px; padding: 0; overflow: hidden; }
-.ph { display: flex; align-items: center; gap: 14px; padding: 20px 22px 18px; }
-.ph .who { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.ph .who b { font-size: 22px; font-weight: 650; letter-spacing: -0.02em; }
-.ph .who span { font-size: 12px; color: var(--ink-2); }
-.state { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px 7px 11px; border-radius: 999px; font-size: 13px; font-weight: 600; }
-.state.ok { background: var(--good-track); color: var(--good); }
-.state.warn { background: var(--amber-bg); color: var(--amber-ink); }
-.state.bad { background: var(--red-bg); color: var(--red-ink); }
-.dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
-.state.ok .dot { animation: beat 2.4s var(--ease) infinite; }
-@keyframes beat { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .45; transform: scale(.82); } }
+.play { background: var(--surface); border-radius: 28px; box-shadow: var(--shadow-card); padding: 22px 26px 26px; }
+.alert { display: flex; align-items: center; gap: 13px; padding: 13px 14px 13px 16px; border-radius: 18px; background: var(--tone-bg); color: var(--tone-ink); margin-bottom: 20px; font-size: 13px; font-weight: 550; }
+.alert b { font-size: 14px; font-weight: 650; display: block; }
+.alert .go { margin-left: auto; background: var(--ink); color: #fff; border: 0; border-radius: 12px; padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.18); }
+.eyebrow { margin: 0 0 6px; font-size: 11px; font-weight: 650; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); display: flex; align-items: center; gap: 8px; }
+.eyebrow i { width: 12px; height: 16px; border-radius: 2px; background: var(--f-lim); }
+.play h1 { margin: 0; font-size: 42px; font-weight: 700; letter-spacing: -0.035em; }
+.meta { margin: 8px 0 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); }
+.meta .sep { width: 3px; height: 3px; border-radius: 50%; background: var(--ink-3); }
+.chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 650; background: var(--tone-bg); color: var(--tone-ink); }
+.plans { margin-top: 20px; display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; transition: opacity .35s var(--ease), filter .35s var(--ease); }
+.plans.off { opacity: .4; filter: grayscale(.9); }
+.plan { border-radius: 18px; padding: 14px 16px 15px; background: var(--hover); display: flex; flex-direction: column; gap: 8px; }
+.plan.best { background: linear-gradient(180deg, #fffcf2, #fff); box-shadow: var(--shadow-card); }
+.plan .r { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 650; color: var(--ink-2); }
+.plan .r em { font-style: normal; font-size: 10px; letter-spacing: .06em; padding: 2px 7px; border-radius: 999px; background: var(--f-lim); color: #4a3200; }
+.plan .v { display: flex; align-items: baseline; gap: 8px; }
+.plan .v b { font-size: 26px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.plan .v span { font-size: 12px; color: var(--ink-2); }
+.meter { height: 5px; border-radius: 3px; background: var(--low-track); overflow: hidden; }
+.meter i { display: block; height: 100%; border-radius: 3px; background: var(--good-2); width: 0; transition: width .9s var(--ease); }
+.meter i.hi { background: var(--good); }
 
-.hero { display: grid; grid-template-columns: minmax(0,1.15fr) minmax(0,1fr); gap: 22px; padding: 0 22px 20px; align-items: center; }
-.stage.phone .hero { grid-template-columns: 1fr; }
-.big { display: flex; align-items: baseline; gap: 10px; }
-.big b { font-size: 48px; font-weight: 700; letter-spacing: -0.035em; line-height: 1; font-variant-numeric: tabular-nums; }
-.big span { font-size: 13px; color: var(--ink-2); }
-.sub { margin: 8px 0 0; font-size: 13px; color: var(--ink-2); }
-.sub b { color: var(--ink); font-weight: 600; }
+/* ── missing, folded ────────────────────────────────────────────────────── */
+details { margin-top: 12px; background: var(--surface); border-radius: 22px; box-shadow: var(--shadow-card); overflow: hidden; }
+summary { list-style: none; cursor: pointer; padding: 16px 22px; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 650; }
+summary::-webkit-details-marker { display: none; }
+summary u { text-decoration: none; color: var(--ink-3); font-weight: 500; }
+summary svg { margin-left: auto; color: var(--ink-3); transition: transform .3s var(--ease); }
+details[open] summary svg { transform: rotate(90deg); }
+details ul { margin: 0; padding: 0 22px 18px; list-style: none; }
+details li { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-top: 1px solid var(--line); font-size: 14px; }
+details li b { font-weight: 550; }
+details li .tag { margin-left: auto; font-size: 11px; font-weight: 650; padding: 4px 10px; border-radius: 999px; background: var(--hover); color: var(--ink-2); white-space: nowrap; }
+details li .tag.now { background: var(--amber-bg); color: var(--amber-ink); }
+details li s { width: 8px; height: 8px; border-radius: 50%; background: var(--low); flex: none; text-decoration: none; }
 
-/* the run line: last run → now → next run → lock */
-.rail { position: relative; height: 62px; }
-.rail .line { position: absolute; left: 0; right: 0; top: 30px; height: 4px; border-radius: 2px; background: var(--track); }
-.rail .fill { position: absolute; left: 0; top: 30px; height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--good-2), var(--good)); }
-.rail i { position: absolute; top: 24px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px var(--good); transform: translateX(-50%); }
-.rail i.next { box-shadow: 0 0 0 3px var(--low); }
-.rail i.lock { width: 4px; height: 22px; border-radius: 2px; background: var(--ink); box-shadow: none; top: 21px; }
-.rail em { position: absolute; transform: translateX(-50%); font-style: normal; font-size: 11px; color: var(--ink-2); white-space: nowrap; }
-.rail em.t { top: 0; font-weight: 600; color: var(--ink); }
-.rail em.b { top: 46px; }
-.stage.phone .rail em { display: none; }
-.stage.phone .rail em.edge { display: block; }
-
-/* five clocks */
-.clocks { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); background: var(--line); gap: 1px; border-top: 1px solid var(--line); }
-.stage.phone .clocks { grid-template-columns: 1fr 1fr; }
-.clock { background: var(--surface); padding: 15px 16px 16px; display: flex; flex-direction: column; gap: 7px; }
-.clock .k { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink-2); }
-.clock .k i { width: 7px; height: 7px; border-radius: 50%; background: var(--good); flex: none; }
-.clock .k i.slow { background: var(--low); }
-.clock .k i.live { background: var(--amber); }
-.clock b { font-size: 22px; font-weight: 650; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-.clock b small { font-size: 12px; font-weight: 500; color: var(--ink-2); letter-spacing: 0; margin-left: 3px; }
-.clock .w { font-size: 11px; color: var(--ink-3); line-height: 1.35; }
-.clock.key { background: linear-gradient(180deg, #fffdf6, #fff); }
-
-.foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 14px 22px 18px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-2); }
-.tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--hover); font-size: 11px; font-weight: 600; color: var(--ink-2); }
-.tag.pc { background: var(--amber-bg); color: var(--amber-ink); }
-
-/* folded lists */
-details.fold { background: var(--surface); border-radius: 22px; box-shadow: var(--shadow-card); margin-top: 12px; overflow: hidden; }
-details.fold > summary { list-style: none; cursor: pointer; padding: 16px 20px; display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14px; }
-details.fold > summary::-webkit-details-marker { display: none; }
-details.fold > summary span { color: var(--ink-3); font-weight: 500; }
-details.fold > summary .chev { margin-left: auto; transition: transform .3s var(--ease); color: var(--ink-3); }
-details.fold[open] > summary .chev { transform: rotate(90deg); }
-details.fold ul { margin: 0; padding: 0 20px 18px; list-style: none; display: flex; flex-direction: column; gap: 10px; }
-details.fold li { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
-details.fold li:first-child { border-top: 0; padding-top: 0; }
-details.fold li b { font-weight: 600; }
-details.fold li em { font-style: normal; font-size: 12px; color: var(--ink-2); }
-details.fold li .when { font-size: 11px; font-weight: 600; color: var(--ink-3); white-space: nowrap; }
-.mini { width: 22px; height: 22px; border-radius: 7px; background: var(--hover); display: grid; place-items: center; font-size: 11px; color: var(--ink-2); flex: none; }
-.mini.on { background: var(--good-track); color: var(--good); }
-.mini.off { background: var(--low-track); color: var(--ink-3); }
-
-/* ── the Play head chip ─────────────────────────────────────────────────── */
-.head { display: flex; align-items: flex-start; gap: 18px; padding: 4px 2px 20px; flex-wrap: wrap; }
-.head .sub2 { margin: 6px 0 0; font-size: 13px; color: var(--ink-2); display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
-.head .sub2 .sep { width: 3px; height: 3px; border-radius: 50%; background: var(--ink-3); }
-.chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
-.chip.ok { background: var(--good-track); color: var(--good); }
-.chip.warn { background: var(--amber-bg); color: var(--amber-ink); }
-.chip.bad { background: var(--red-bg); color: var(--red-ink); }
-.banner { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-radius: 18px; margin-bottom: 18px; font-size: 13px; }
-.banner.warn { background: var(--amber-bg); color: var(--amber-ink); }
-.banner.bad { background: var(--red-bg); color: var(--red-ink); }
-.banner b { display: block; font-size: 14px; margin-bottom: 2px; }
-.banner .act { margin-left: auto; align-self: center; background: var(--ink); color: #fff; border: 0; border-radius: 11px; padding: 8px 14px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-.stage.phone .banner { flex-direction: column; }
-.stage.phone .banner .act { margin-left: 0; width: 100%; }
-.ghost { opacity: .45; filter: grayscale(1); pointer-events: none; }
-.plan-stub { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
-.stage.phone .plan-stub { grid-template-columns: repeat(2, minmax(0,1fr)); }
-.plan-stub div { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow-card); padding: 13px 15px; }
-.plan-stub b { display: block; font-size: 13px; }
-.plan-stub span { font-size: 12px; color: var(--ink-2); }
-
-@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+@media (max-width: 860px) {
+  .lead { grid-template-columns: 1fr; gap: 22px; padding: 12px 20px 22px; }
+  .num b { font-size: 62px; }
+  .clocks { grid-template-columns: 1fr 1fr; }
+  .clocks .clock:last-child { grid-column: 1 / -1; }
+  .plans { grid-template-columns: 1fr 1fr; }
+  .play { padding: 18px 20px 22px; }
+  .play h1 { font-size: 32px; }
+  .top, .stats { padding-left: 20px; padding-right: 20px; }
+  .alert { flex-wrap: wrap; }
+  .alert .go { margin-left: 0; width: 100%; }
+  .top { flex-wrap: wrap; }
+  .top .pill { margin-left: 0; order: 3; }
+  .top .who { margin-left: auto; }
+  .run label.b, .run label.a:not(.edge) { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } .clock { opacity: 1; transform: none; } .run .p { transform: translateX(-50%) scale(1); } }
 </style>
 </head>
 <body>
+<div class="wrap">
 
-<nav class="nav">
-  <div class="nav-in">
-    <span class="brand"><i></i> Sofix</span>
-    <div class="seg" role="group" aria-label="View">
-      <button type="button" data-view="cc" aria-pressed="true">Control Center</button>
-      <button type="button" data-view="play" aria-pressed="false">Play head</button>
+  <div class="bar">
+    <span class="mark"><i></i> Sofix</span>
+    <div class="seg" role="group" aria-label="State">
+      <button type="button" data-s="now" aria-pressed="true">Now</button>
+      <button type="button" data-s="fresh" aria-pressed="false">Fresh</button>
+      <button type="button" data-s="moved" aria-pressed="false">Moved</button>
     </div>
-    <div class="seg" role="group" aria-label="Device">
-      <button type="button" data-dev="pc" aria-pressed="true">PC</button>
-      <button type="button" data-dev="phone" aria-pressed="false">Phone</button>
-    </div>
-    <div class="seg" id="states" role="group" aria-label="State" hidden>
-      <button type="button" data-state="bad" aria-pressed="true">Today</button>
-      <button type="button" data-state="ok" aria-pressed="false">Fresh</button>
-      <button type="button" data-state="warn" aria-pressed="false">Moved</button>
-    </div>
-    <span class="spacer"></span>
-    <span class="note">S3 · A · real data, 23 Sep 2026 16:07</span>
   </div>
-</nav>
 
-<main class="stage" id="stage">
-<div class="frame">
-
-<!-- ════════ Control Center ════════ -->
-<section id="v-cc">
-  <p class="lede">The Play page is only as good as the moment it was built. <b>One "last synced" would lie</b>:
-    your cards change when you buy, the rules change once a gameweek, and Sorare's projections move right up to
-    the lock. So the Control Center gets one Sorare panel with <b>five clocks</b>, each saying when its own piece
-    last changed and when it changes next.</p>
-
-  <section class="card panel" aria-labelledby="s3-title">
-    <div class="ph">
+  <section class="panel" aria-labelledby="t">
+    <div class="top">
       <span class="foil" aria-hidden="true"></span>
-      <span class="who">
-        <b id="s3-title">Sorare</b>
-        <span>yares · 96 cards, 87 playable</span>
-      </span>
-      <span class="state bad" id="cc-state"><i class="dot"></i> Never run in the cloud</span>
+      <b id="t">Sorare</b>
+      <span class="who">yares · 96 cards</span>
+      <span class="pill" id="pill"><i class="dot"></i> <span id="pill-t">Never run in the cloud</span></span>
     </div>
 
-    <div class="hero">
+    <div class="lead">
       <div>
-        <div class="big"><b id="cc-age">25</b><span>minutes ago</span></div>
-        <p class="sub" id="cc-line"></p>
+        <p class="num"><b id="hero">25</b><i id="hero-u">min</i></p>
+        <p class="cap" id="cap">since Gameweek 17 was built</p>
+        <span class="src warn" id="src">⌂ your PC, 16:07</span>
       </div>
-      <div class="rail" role="img" aria-label="Built 16:07; runs at 00:43, 09:17, 00:43 and 09:17; the gameweek locks Friday at 16:00">
-        <span class="line"></span><span class="fill" style="width: 4%"></span>
-        <i style="left: 4%"></i><em class="t edge" style="left: 4%">16:07</em><em class="b edge" style="left: 4%">built</em>
-        <i class="next" style="left: 21%"></i><em class="b" style="left: 21%">00:43</em>
-        <i class="next" style="left: 38%"></i><em class="b" style="left: 38%">09:17</em>
-        <i class="next" style="left: 69%"></i><em class="b" style="left: 69%">00:43</em>
-        <i class="next" style="left: 86%"></i><em class="t" style="left: 86%">09:17</em><em class="b" style="left: 86%">last rebuild</em>
-        <i class="lock" style="left: 99%"></i><em class="t edge" style="left: 99%">Fri 16:00</em><em class="b edge" style="left: 99%">lock</em>
-      </div>
+      <div class="run" id="run" role="img" aria-label="Built 16:07; scheduled runs at 00:43, 09:17, 00:43 and 09:17; the gameweek locks Friday 16:00"></div>
     </div>
 
     <div class="clocks">
-      <div class="clock">
-        <span class="k"><i class="slow"></i> Your cards</span>
-        <b>96<small>· 87 playable</small></b>
-        <span class="w">Changes when you buy, sell or seal one. 9 left out today.</span>
+      <div class="clock" style="--i:0" title="Changes when you buy, sell or seal a card">
+        <span class="k"><s></s> Cards</span><b>87<em>of 96</em></b><span class="n">when you trade</span>
       </div>
-      <div class="clock">
-        <span class="k"><i class="slow"></i> Competitions</span>
-        <b>6<small>· you can enter</small></b>
-        <span class="w">Rules, fees and rewards, read from Sorare. New set each gameweek.</span>
+      <div class="clock" style="--i:1" title="Rules, fees and rewards, read from Sorare">
+        <span class="k"><s></s> Competitions</span><b>6<em>open</em></b><span class="n">each gameweek</span>
       </div>
-      <div class="clock key">
-        <span class="k"><i></i> Projections</span>
-        <b>12<small>· players</small></b>
-        <span class="w">Published Wed 20:00, and Sorare keeps moving them until the lock. This one decides the plan.</span>
+      <div class="clock key" style="--i:2" title="Sorare publishes about two days before the lock and keeps moving them until it">
+        <span class="k"><s class="fast"></s> Projections</span><b>12<em>players</em></b><span class="n">until the lock</span>
       </div>
-      <div class="clock">
-        <span class="k"><i class="live"></i> Scores</span>
-        <b>GW16<small>· live now</small></b>
-        <span class="w">Arrive while the games are on. GW15 is the last one replayed.</span>
+      <div class="clock" style="--i:3" title="Scores arrive while the games are on">
+        <span class="k"><s class="live"></s> Scores</span><b>GW16<em>live</em></b><span class="n">during the games</span>
       </div>
-      <div class="clock">
-        <span class="k"><i class="slow"></i> Reward cut-offs</span>
-        <b>3<small>· gameweeks</small></b>
-        <span class="w">The scores that paid, kept between runs. Only a finished gameweek adds one.</span>
+      <div class="clock" style="--i:4" title="The scores that paid, kept between runs">
+        <span class="k"><s></s> Cut-offs</span><b>3<em>weeks</em></b><span class="n">when one ends</span>
       </div>
     </div>
 
-    <div class="foot">
-      <span class="tag pc" id="cc-src">⌂ written by this PC, 16:07</span>
-      <span>179 calls · 140 s · 172 KiB in the database · 98% of Neon still free</span>
+    <div class="stats">
+      <span><b>179</b> calls</span><span><b>140 s</b></span><span><b>172 KiB</b> stored</span><span><b>98%</b> of Neon free</span>
     </div>
   </section>
 
-  <details class="fold">
-    <summary>Not synced yet <span>· 5</span>
-      <svg class="chev" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="m5 2 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <div class="sec"><h2>Play</h2><span>the same state, where you act on it</span></div>
+
+  <section class="play">
+    <div id="alert"></div>
+    <p class="eyebrow"><i></i> Sorare · your gameweek</p>
+    <h1>Gameweek 17</h1>
+    <p class="meta"><span>Fri 25–29 Sep</span><span class="sep"></span><span>locks Fri 16:00</span>
+      <span class="chip" id="chip"><i class="dot"></i> <span id="chip-t">built on your PC</span></span></p>
+    <div class="plans" id="plans">
+      <div class="plan best"><span class="r">Plan 1 <em>BEST</em></span><span class="v"><b>16%</b><span>≈55</span></span><span class="meter"><i data-w="16"></i></span></div>
+      <div class="plan"><span class="r">Plan 2</span><span class="v"><b>40%</b><span>≈46</span></span><span class="meter"><i data-w="40" class="hi"></i></span></div>
+      <div class="plan"><span class="r">Plan 3</span><span class="v"><b>44%</b><span>≈26</span></span><span class="meter"><i data-w="44" class="hi"></i></span></div>
+      <div class="plan"><span class="r">Plan 4</span><span class="v"><b>38%</b><span>≈25</span></span><span class="meter"><i data-w="38"></i></span></div>
+    </div>
+  </section>
+
+  <details>
+    <summary>Not synced yet <u>· 5</u>
+      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="m5 2 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </summary>
     <ul>
-      <li><span class="mini off">↻</span>
-        <span><b>Sorare's projections, kept over time</b><br><em>Sorare only serves the projection for a player's next game, so every run that doesn't record it loses it for good. Needed before S4 can prove it beats them.</em></span>
-        <span class="when">start now</span></li>
-      <li><span class="mini off">◔</span>
-        <span><b>Players you don't own</b><br><em>For Player search, and to fit the model on more than your 96 cards.</em></span>
-        <span class="when">S5</span></li>
-      <li><span class="mini off">☰</span>
-        <span><b>Lineups you already saved on Sorare</b><br><em>Needs the extension: it has never checked in yet.</em></span>
-        <span class="when">extension</span></li>
-      <li><span class="mini off">★</span>
-        <span><b>Hot Streak and your Arena rooms</b><br><em>Same session as above; rooms are sampled publicly today, not read from your account.</em></span>
-        <span class="when">extension</span></li>
-      <li><span class="mini off">⚑</span>
-        <span><b>ClubElo for European opponents</b><br><em>Once a day. Injuries and suspensions are already inside Sorare's starting chances, so they stay out.</em></span>
-        <span class="when">S4</span></li>
+      <li><s></s><b>Sorare's projections, kept</b><span class="tag now">can't be backfilled</span></li>
+      <li><s></s><b>Players you don't own</b><span class="tag">S5</span></li>
+      <li><s></s><b>Lineups saved on Sorare</b><span class="tag">extension</span></li>
+      <li><s></s><b>Hot Streak · your rooms</b><span class="tag">extension</span></li>
+      <li><s></s><b>ClubElo for Europe</b><span class="tag">S4</span></li>
     </ul>
   </details>
 
-  <div class="sec"><h2>What each piece costs</h2><span>per run</span></div>
-  <div class="card">
-    <p class="sub" style="margin-top:0">A warm run is <b>140–180 calls in 1–3 minutes</b>: the cut-offs of past gameweeks
-      and a finished gameweek's replay are kept in the database, so a run only fetches what it doesn't already know.
-      A cold run — first time, or after the payload changes shape — is about <b>1,000 calls in 10 minutes</b>.
-      The whole Sorare state is <b>172 KiB</b>; recording the projections adds roughly <b>2 MB a season</b>.</p>
-  </div>
-</section>
-
-<!-- ════════ Play head ════════ -->
-<section id="v-play" hidden>
-  <p class="lede">The same three states, where they are actually needed: at the top of the Play page.
-    <b>An out-of-date plan is never shown as if it were current.</b></p>
-
-  <div id="pl-banner"></div>
-
-  <header class="head">
-    <div>
-      <p class="eyebrow"><span class="foil sm"></span> Sorare · your gameweek</p>
-      <h1>Gameweek 17</h1>
-      <p class="sub2">
-        <span>Fri 25–29 Sep</span><span class="sep"></span><span>locks Fri 16:00</span><span class="sep"></span>
-        <span class="chip bad" id="pl-chip"><i class="dot"></i> Built on your PC · the cloud has never run it</span>
-      </p>
-    </div>
-  </header>
-
-  <div id="pl-plans">
-    <div class="plan-stub">
-      <div><b>Plan 1 · best</b><span>16% · ≈55 essence</span></div>
-      <div><b>Plan 2</b><span>40% · ≈46</span></div>
-      <div><b>Plan 3</b><span>44% · ≈26</span></div>
-      <div><b>Plan 4</b><span>38% · ≈25</span></div>
-    </div>
-  </div>
-
-  <div class="sec"><h2>Why not just a timestamp</h2><span>the three states</span></div>
-  <div class="card">
-    <p class="sub" style="margin-top:0"><b>Fresh</b> — the plan was built after Sorare's latest projections, and another
-      run lands before the lock. Nothing to do.<br>
-      <b>Moved</b> — Sorare has changed its projections since this plan was built. The plan still shows, dimmed, with the
-      time it will rebuild itself; you can start it now if you don't want to wait.<br>
-      <b>Not in the cloud</b> — the scheduled job hasn't written Sorare data (no key in the repository, or it failed).
-      In both of the last two the plan stays on screen but dimmed behind the warning: you can still read it, and you
-      can't mistake it for current.</p>
-  </div>
-</section>
-
 </div>
-</main>
 
 <script>
 const $ = (s) => document.querySelector(s);
-const stage = $('#stage');
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Built Wed 16:07 → locks Fri 16:00. The scheduled runs in between, in Madrid time.
+const MARKS = [
+  { at: 4,  a: '16:07', b: 'built', on: true, edge: true },
+  { at: 21, b: '00:43' },
+  { at: 38, b: '09:17' },
+  { at: 69, b: '00:43' },
+  { at: 86, a: '09:17', b: 'last rebuild' },
+];
+const LOCK = { at: 99, a: 'Fri 16:00', b: 'lock', lock: true, edge: true };
+
+function drawRun(done) {
+  const run = $('#run');
+  run.innerHTML = '<span class="trk"></span><span class="fil"></span>';
+  [...MARKS, LOCK].forEach((m, i) => {
+    const on = m.lock ? false : m.at <= done;
+    run.insertAdjacentHTML('beforeend',
+      `<span class="p${on ? ' on' : ''}${m.lock ? ' lock' : ''}" style="left:${m.at}%;animation-delay:${reduced ? 0 : 120 + i * 70}ms"></span>` +
+      (m.a ? `<label class="a${m.edge ? ' edge' : ''}" style="left:${m.at}%">${m.a}</label>` : '') +
+      (m.b ? `<label class="b" style="left:${m.at}%">${m.b}</label>` : ''));
+  });
+  requestAnimationFrame(() => { run.querySelector('.fil').style.width = `${done}%`; });
+}
+
+function countTo(el, target, unit) {
+  $('#hero-u').textContent = unit;
+  if (reduced) { el.textContent = target; return; }
+  const from = 0, start = performance.now(), ms = 700;
+  const step = (t) => {
+    const k = Math.min(1, (t - start) / ms);
+    el.textContent = Math.round(from + (target - from) * (1 - Math.pow(1 - k, 3)));
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
 
 const STATES = {
-  ok: {
-    cc: ['state ok', '<i class="dot"></i> Fresh'],
-    chip: ['chip ok', '<i class="dot"></i> Synced 25 min ago'],
-    banner: '',
-    dim: false,
-    line: `Gameweek 17 built from Sorare's own projections · <b>4 plans</b> · 13 of your cards play. <b>Four more runs</b> before the lock; the last lands <b>Fri 09:17</b>, 6 h before it.`,
+  now: {
+    tone: ['--red', '--red-bg', '--red-ink'],
+    pill: 'Never run in the cloud', chip: 'built on your PC',
+    hero: [25, 'min'], cap: 'since Gameweek 17 was built', src: ['⌂ your PC, 16:07', true],
+    done: 4, dim: true,
+    alert: `<div class="alert"><span aria-hidden="true">!</span><div><b>The cloud has never synced Sorare</b>
+      First attempt 00:43 — it needs <code>SORARE_API_KEY</code> in the repository secrets.</div>
+      <button class="go" type="button">Show me how</button></div>`,
   },
-  warn: {
-    cc: ['state warn', '<i class="dot"></i> Projections moved'],
-    chip: ['chip warn', '<i class="dot"></i> Sorare moved its projections 40 min ago'],
-    banner: `<div class="banner warn"><span aria-hidden="true">⟳</span><div><b>This plan is from before Sorare's latest numbers</b>
-      Nine of your players changed starting chance. Sofix rebuilds it at 00:43, 39 h before the lock.</div>
-      <button class="act" type="button">Rebuild now</button></div>`,
-    dim: true,
-    line: `Sorare has moved its projections since this plan was built · <b>9 players</b> changed starting chance. The next run rebuilds it at <b>00:43</b>, 39 h before the lock.`,
+  fresh: {
+    tone: ['--good', '--good-track', '--good'],
+    pill: 'Fresh', chip: 'synced 25 min ago',
+    hero: [3, 'runs'], cap: 'rebuilds left before the lock', src: ['☁ the cloud, 00:43', false],
+    done: 21, dim: false, alert: '',
   },
-  bad: {
-    cc: ['state bad', '<i class="dot"></i> Never run in the cloud'],
-    chip: ['chip bad', '<i class="dot"></i> Built on your PC · the cloud has never run it'],
-    banner: `<div class="banner bad"><span aria-hidden="true">!</span><div><b>The cloud has never synced Sorare</b>
-      This plan was built on your PC at 16:07. The scheduled job tries for the first time at 00:43 — and if
-      <code>SORARE_API_KEY</code> isn't in the repository secrets it will log "skipped" and this plan will quietly age
-      until you run it by hand again.</div>
-      <button class="act" type="button">Show me how</button></div>`,
-    dim: true,
-    line: `Gameweek 17 built from Sorare's own projections · <b>4 plans</b> · 13 of your cards play. <b>No scheduled run has written it yet</b>; the first one tries at <b>00:43</b>.`,
+  moved: {
+    tone: ['--amber', '--amber-bg', '--amber-ink'],
+    pill: 'Projections moved', chip: 'Sorare moved its numbers',
+    hero: [8, 'h'], cap: 'until the next rebuild, at 00:43', src: ['⌂ your PC, 16:07', true],
+    done: 4, dim: true,
+    alert: `<div class="alert"><span aria-hidden="true">⟳</span><div><b>Built before Sorare's latest projections</b>
+      Rebuilds itself at 00:43, 39 h before the lock.</div>
+      <button class="go" type="button">Rebuild now</button></div>`,
   },
 };
 
-function setState(key) {
+function set(key) {
   const s = STATES[key];
-  const cc = $('#cc-state');
-  cc.className = s.cc[0];
-  cc.innerHTML = s.cc[1];
-  const chip = $('#pl-chip');
-  chip.className = s.chip[0];
-  chip.innerHTML = s.chip[1];
-  $('#pl-banner').innerHTML = s.banner;
-  $('#pl-plans').classList.toggle('ghost', s.dim);
-  $('#cc-src').classList.toggle('pc', key !== 'ok');
-  $('#cc-src').textContent = key === 'ok' ? '☁ written by the cloud, 00:43' : '⌂ written by this PC, 16:07';
-  $('#cc-line').innerHTML = s.line;
-  document.querySelectorAll('#states button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.state === key)));
+  const root = document.documentElement.style;
+  root.setProperty('--tone', `var(${s.tone[0]})`);
+  root.setProperty('--tone-bg', `var(${s.tone[1]})`);
+  root.setProperty('--tone-ink', `var(${s.tone[2]})`);
+  $('#pill-t').textContent = s.pill;
+  $('#chip-t').textContent = s.chip;
+  $('#cap').textContent = s.cap;
+  $('#src').textContent = s.src[0];
+  $('#src').classList.toggle('warn', s.src[1]);
+  $('#alert').innerHTML = s.alert;
+  $('#plans').classList.toggle('off', s.dim);
+  countTo($('#hero'), s.hero[0], s.hero[1]);
+  drawRun(s.done);
+  document.querySelectorAll('.seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.s === key)));
 }
 
-document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => {
-  const view = b.dataset.view;
-  document.querySelectorAll('[data-view]').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
-  $('#v-cc').hidden = view !== 'cc';
-  $('#v-play').hidden = view !== 'play';
-  $('#states').hidden = false;
-}));
-document.querySelectorAll('[data-dev]').forEach((b) => b.addEventListener('click', () => {
-  document.querySelectorAll('[data-dev]').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
-  stage.classList.toggle('phone', b.dataset.dev === 'phone');
-}));
-document.querySelectorAll('#states button').forEach((b) => b.addEventListener('click', () => setState(b.dataset.state)));
-$('#states').hidden = false;
-setState('bad'); // the preview opens on what is true right now, not on the happy state
+document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => set(b.dataset.s)));
+document.querySelectorAll('.meter i').forEach((i) => requestAnimationFrame(() => { i.style.width = `${i.dataset.w}%`; }));
+set('now'); // what is true right now
 </script>
 </body>
 </html>

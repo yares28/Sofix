@@ -6,8 +6,8 @@
 <title>Apply</title>
 <style>
 :root {
-  --bg: #fbfbfd; --surface: #ffffff; --ink: #1d1d1f; --ink-2: #6e6e73; --ink-3: #86868b; --ink-seg: #5e5e63;
-  --line: #e8e8ed; --hover: #f5f5f7; --track: #ececf0; --accent: #0071e3;
+  --bg: #fbfbfd; --surface: #ffffff; --ink: #1d1d1f; --ink-2: #6e6e73; --ink-3: #86868b;
+  --line: #e8e8ed; --hover: #f5f5f7; --track: #ececf0;
   --good: #1f7a4f; --good-2: #5cc58d; --good-track: #d3f2e1; --good-ink: #11633b;
   --low: #aeaeb2; --low-track: #f1f1f4;
   --amber: #ff9f0a; --amber-bg: #fff4e0; --amber-ink: #8a5300;
@@ -15,279 +15,347 @@
   --f-lim: linear-gradient(145deg, #fff3c4 0%, #f7c948 38%, #d99a0b 62%, #ffe08a 100%);
   --brand: linear-gradient(135deg, #1f7a4f, #5cc58d);
   --shadow-card: 0 0 0 1px rgba(0,0,0,.04), 0 2px 4px rgba(0,0,0,.02), 0 12px 32px rgba(0,0,0,.05);
-  --shadow-lift: 0 0 0 1px rgba(0,0,0,.04), 0 8px 18px rgba(0,0,0,.06), 0 24px 48px rgba(0,0,0,.08);
+  --shadow-lift: 0 0 0 1px rgba(0,0,0,.04), 0 10px 22px rgba(0,0,0,.07), 0 30px 60px rgba(0,0,0,.10);
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, "Segoe UI", system-ui, sans-serif;
   --ease: cubic-bezier(.3,.7,.2,1);
+  --tone: var(--good); --tone-bg: var(--good-track); --tone-ink: var(--good-ink);
   color-scheme: light;
 }
 * { box-sizing: border-box; }
-[hidden] { display: none !important; }
 html, body { margin: 0; background: var(--bg); color: var(--ink); }
 body { font: 14px/1.45 var(--font); letter-spacing: -0.01em; -webkit-font-smoothing: antialiased; }
 button { font: inherit; color: inherit; }
-
-.wrap { max-width: 900px; margin: 0 auto; padding: 22px 20px 90px; }
-.bar { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
-.mark { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 15px; letter-spacing: -0.02em; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 26px 20px 80px; }
+.mark { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 15px; letter-spacing: -0.02em; margin-bottom: 20px; }
 .mark i { width: 20px; height: 20px; border-radius: 6px; background: var(--brand); }
-.seg { margin-left: auto; display: inline-flex; background: var(--track); border-radius: 12px; padding: 3px; }
-.seg button { border: 0; background: none; cursor: pointer; padding: 7px 14px; border-radius: 10px; font-size: 13px; font-weight: 550; color: var(--ink-seg); transition: background .25s var(--ease), color .25s var(--ease); }
-.seg button[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.07); }
 
-/* ── the sheet ──────────────────────────────────────────────────────────── */
+/* ── sheet ─────────────────────────────────────────────────────────────── */
 .sheet { position: relative; background: var(--surface); border-radius: 30px; box-shadow: var(--shadow-lift); overflow: hidden; }
 .sheet::before {
-  content: ""; position: absolute; inset: 0 0 auto auto; width: 420px; height: 260px; pointer-events: none;
-  background: radial-gradient(60% 60% at 85% 0%, color-mix(in srgb, var(--tone, var(--good)) 14%, transparent), transparent 70%);
-  transition: background .5s var(--ease);
+  content: ""; position: absolute; inset: 0 0 auto auto; width: 520px; height: 300px; pointer-events: none;
+  background: radial-gradient(62% 62% at 85% 0%, color-mix(in srgb, var(--tone) 17%, transparent), transparent 72%);
+  transition: background .55s var(--ease);
 }
 .head { position: relative; display: flex; align-items: center; gap: 12px; padding: 22px 26px 0; }
-.foil { width: 17px; height: 23px; border-radius: 3px; background: var(--f-lim); box-shadow: inset 0 0 0 1px rgba(255,255,255,.6), 0 1px 3px rgba(0,0,0,.25); flex: none; }
-.head b { font-size: 18px; font-weight: 650; letter-spacing: -0.02em; }
-.head .fmt { font-size: 13px; color: var(--ink-2); }
-.x { margin-left: auto; width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--hover); cursor: pointer; color: var(--ink-2); font-size: 15px; }
+.foil { width: 18px; height: 25px; border-radius: 3px; background: var(--f-lim); box-shadow: inset 0 0 0 1px rgba(255,255,255,.65), 0 1px 3px rgba(0,0,0,.28); flex: none; }
+.head b { font-size: 19px; font-weight: 650; letter-spacing: -0.02em; }
+.head span { font-size: 13px; color: var(--ink-2); }
+.x { margin-left: auto; width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--hover); cursor: pointer; color: var(--ink-2); }
 
-/* step rail */
-.steps { display: flex; align-items: center; gap: 0; padding: 18px 26px 4px; }
-.step { display: flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 600; color: var(--ink-3); }
-.step i { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--track); color: var(--ink-3); font-size: 12px; font-weight: 700; transition: background .35s var(--ease), color .35s var(--ease); }
-.step.on { color: var(--ink); }
-.step.on i { background: var(--ink); color: #fff; }
-.step.done { color: var(--good-ink); }
-.step.done i { background: var(--good-track); color: var(--good-ink); }
-.link { flex: 1; height: 2px; margin: 0 12px; border-radius: 1px; background: var(--track); }
-.link.done { background: var(--good-2); }
+/* the step rail is the only control */
+.rail { position: relative; display: flex; align-items: center; padding: 18px 26px 2px; }
+.rail button { flex: none; display: flex; align-items: center; gap: 9px; border: 0; background: none; cursor: pointer; padding: 0; font-size: 13px; font-weight: 600; color: var(--ink-3); }
+.rail button i { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--track); font-size: 12px; font-weight: 700; transition: background .35s var(--ease), color .35s var(--ease), transform .35s var(--ease); }
+.rail button.on { color: var(--ink); }
+.rail button.on i { background: var(--ink); color: #fff; transform: scale(1.08); }
+.rail button.done { color: var(--good-ink); }
+.rail button.done i { background: var(--good-track); color: var(--good-ink); }
+.rail .bar { flex: 1; height: 2px; margin: 0 14px; border-radius: 1px; background: var(--track); overflow: hidden; }
+.rail .bar i { display: block; height: 100%; width: 0; background: var(--good-2); transition: width .6s var(--ease); }
 
-/* the one number */
-.lead { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center; padding: 14px 26px 20px; }
-.num { margin: 0; display: flex; align-items: baseline; gap: 10px; }
-.num b { font-size: 60px; line-height: .95; font-weight: 700; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; }
-.num i { font-style: normal; font-size: 17px; font-weight: 600; color: var(--ink-2); }
-.cap { margin: 8px 0 0; font-size: 13px; color: var(--ink-2); }
-.cost { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-.tag { display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; border-radius: 999px; background: var(--hover); font-size: 12px; font-weight: 650; color: var(--ink-2); }
-.tag.good { background: var(--good-track); color: var(--good-ink); }
-.tag.warn { background: var(--amber-bg); color: var(--amber-ink); }
+/* one hero */
+.lead { position: relative; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 22px; align-items: end; padding: 14px 26px 22px; }
+.num { margin: 0; display: flex; align-items: baseline; gap: 11px; }
+.num b { font-size: 68px; line-height: .92; font-weight: 700; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; }
+.num i { font-style: normal; font-size: 18px; font-weight: 600; color: var(--ink-2); }
+.cap { margin: 9px 0 0; font-size: 13px; color: var(--ink-2); }
+.cap b { color: var(--ink); font-weight: 650; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; border-radius: 999px; background: var(--hover); font-size: 12px; font-weight: 650; color: var(--ink-2); white-space: nowrap; }
+.chip.tone { background: var(--tone-bg); color: var(--tone-ink); }
 
-/* the eleven */
-/* the whole lineup on one line: nine slots, however wide the sheet is */
-.cards { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 6px; padding: 0 26px 18px; }
-.pc { min-width: 0; border-radius: 12px; background: var(--hover); padding: 8px 9px 9px; display: flex; flex-direction: column; gap: 3px; }
-.pc.sub { background: repeating-linear-gradient(135deg, #f5f5f7, #f5f5f7 6px, #eeeef1 6px, #eeeef1 12px); }
-.pc s { text-decoration: none; font-size: 10px; font-weight: 700; letter-spacing: .05em; color: var(--ink-3); }
-.pc b { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pc em { font-style: normal; font-size: 11px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.pc .c { color: var(--good-ink); font-weight: 700; }
+/* the lineup, as the cards really look */
+.cards { display: grid; grid-template-columns: repeat(9, minmax(0,1fr)); gap: 8px; padding: 0 26px 20px; }
+.pc { min-width: 0; display: flex; flex-direction: column; gap: 6px; opacity: 0; transform: translateY(10px); animation: rise .5s var(--ease) forwards; animation-delay: calc(var(--i) * 45ms + 120ms); }
+@keyframes rise { to { opacity: 1; transform: none; } }
+.art { position: relative; aspect-ratio: 320 / 452; border-radius: 9px; overflow: hidden; background: #16181d; box-shadow: 0 1px 2px rgba(0,0,0,.18), 0 6px 14px rgba(0,0,0,.14); }
+.art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pc.sub .art { box-shadow: 0 1px 2px rgba(0,0,0,.1); }
+.pc.sub .art::after { content: ""; position: absolute; inset: 0; background: rgba(251,251,253,.55); }
+.pc.out .art { filter: grayscale(1); }
+.pc.out .art::after { content: ""; position: absolute; inset: 0; background: rgba(215,38,61,.18); }
+.rib { position: absolute; left: 4px; top: 4px; padding: 1px 6px; border-radius: 6px; font-size: 10px; font-weight: 750; background: rgba(255,255,255,.94); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+.cap-mark { position: absolute; right: 4px; top: 4px; width: 17px; height: 17px; border-radius: 50%; display: grid; place-items: center; font-size: 10px; font-weight: 800; background: var(--f-lim); color: #4a3200; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.who { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.who b { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.who span { font-size: 11px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.slot { font-size: 10px; font-weight: 750; letter-spacing: .05em; color: var(--ink-2); }
 
-/* what Sorare says */
-.verdict { margin: 0 26px 18px; border-radius: 18px; background: var(--hover); padding: 14px 16px; }
-.verdict .t { display: flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 650; margin-bottom: 10px; }
-.verdict .t s { text-decoration: none; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; background: var(--good-track); color: var(--good-ink); }
-.rules { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 7px 18px; }
+/* Sorare's verdict */
+.verdict { margin: 0 26px 20px; border-radius: 20px; background: var(--hover); padding: 15px 17px; }
+.vt { display: flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 650; margin-bottom: 11px; }
+.vt s { text-decoration: none; width: 19px; height: 19px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; background: var(--tone-bg); color: var(--tone-ink); }
+.vt em { font-style: normal; margin-left: auto; font-weight: 600; font-size: 12px; color: var(--ink-3); }
+.rules { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px 20px; }
 .rule { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); }
-.rule s { text-decoration: none; color: var(--good-ink); font-weight: 700; }
-.rule.off s { color: var(--low); }
-.rule.bad { color: var(--red-ink); }
+.rule s { text-decoration: none; color: var(--good-ink); font-weight: 750; }
+.rule.bad { color: var(--red-ink); font-weight: 600; }
 .rule.bad s { color: var(--red-ink); }
-.waiting { margin: 0 26px 18px; border-radius: 18px; padding: 13px 16px; background: var(--amber-bg); color: var(--amber-ink); font-size: 13px; font-weight: 550; }
-.waiting b { display: block; font-size: 14px; font-weight: 650; }
 
-.foot { display: flex; align-items: center; gap: 12px; padding: 16px 26px 20px; border-top: 1px solid var(--line); flex-wrap: wrap; }
-.foot .note { font-size: 12px; color: var(--ink-3); max-width: 330px; }
-.go { margin-left: auto; display: inline-flex; align-items: center; gap: 9px; border: 0; border-radius: 14px; padding: 12px 20px; font-size: 14px; font-weight: 650; cursor: pointer; background: var(--ink); color: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.2); transition: transform .2s var(--ease); }
+.foot { display: flex; align-items: center; gap: 14px; padding: 16px 26px 22px; border-top: 1px solid var(--line); }
+.foot .note { font-size: 12px; color: var(--ink-3); max-width: 380px; }
+.go { margin-left: auto; border: 0; border-radius: 14px; padding: 13px 22px; font-size: 14px; font-weight: 650; cursor: pointer; background: var(--ink); color: #fff; box-shadow: 0 2px 12px rgba(0,0,0,.22); transition: transform .2s var(--ease); }
 .go:active { transform: scale(.98); }
-.go[disabled] { background: var(--track); color: var(--ink-3); box-shadow: none; cursor: default; }
-.soft { border: 0; border-radius: 14px; padding: 12px 18px; font-size: 14px; font-weight: 600; background: var(--hover); color: var(--ink); cursor: pointer; }
-.spin { width: 15px; height: 15px; border-radius: 50%; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff; animation: spin .7s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+.go.soft { background: var(--hover); color: var(--ink); box-shadow: none; }
+.link { margin-left: auto; font-size: 13px; font-weight: 600; color: var(--ink); text-decoration: none; }
 
-.after { display: flex; align-items: center; gap: 12px; padding: 16px 26px 20px; border-top: 1px solid var(--line); font-size: 13px; color: var(--ink-2); }
-.after b { color: var(--ink); }
-.after a { margin-left: auto; color: var(--ink); font-weight: 600; text-decoration: none; }
+/* the two things that can go wrong, shown rather than described */
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+.mini { background: var(--surface); border-radius: 22px; box-shadow: var(--shadow-card); padding: 17px 19px; display: flex; flex-direction: column; gap: 11px; }
+.mini .t { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 650; }
+.mini .t s { text-decoration: none; width: 21px; height: 21px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 800; }
+.mini.red .t s { background: var(--red-bg); color: var(--red-ink); }
+.mini.grey .t s { background: var(--low-track); color: var(--ink-2); }
+.mini p { margin: 0; font-size: 12px; color: var(--ink-2); }
+.mini .act { align-self: flex-start; border: 0; border-radius: 11px; padding: 9px 15px; font-size: 12px; font-weight: 650; background: var(--hover); cursor: pointer; }
 
-.note-row { margin-top: 14px; display: flex; gap: 10px; align-items: flex-start; font-size: 12px; color: var(--ink-3); }
-h2.sec { margin: 34px 4px 12px; font-size: 13px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-3); }
-.card { background: var(--surface); border-radius: 22px; box-shadow: var(--shadow-card); padding: 18px 22px; font-size: 13px; color: var(--ink-2); }
-.card b { color: var(--ink); }
-.card p { margin: 0 0 10px; }
-.card p:last-child { margin: 0; }
-
-@media (max-width: 700px) {
-  .lead { grid-template-columns: 1fr; gap: 14px; padding: 12px 18px 16px; }
-  .cost { justify-content: flex-start; }
-  .num b { font-size: 50px; }
-  .head, .steps { padding-left: 18px; padding-right: 18px; }
-  .cards, .verdict, .waiting { padding-left: 18px; padding-right: 18px; margin-left: 0; margin-right: 0; }
-  .verdict, .waiting { margin: 0 18px 16px; }
-  .foot { padding: 14px 18px 18px; }
-  .go, .soft { width: 100%; justify-content: center; margin-left: 0; }
-  .step span { display: none; }
-  .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 760px) {
+  .lead { grid-template-columns: 1fr; align-items: start; gap: 14px; padding: 12px 18px 18px; }
+  .chips { justify-content: flex-start; }
+  .num b { font-size: 54px; }
+  .head, .rail { padding-left: 18px; padding-right: 18px; }
+  .cards { grid-template-columns: repeat(3, minmax(0,1fr)); padding: 0 18px 18px; }
+  .verdict { margin: 0 18px 18px; }
+  .foot { padding: 14px 18px 18px; flex-wrap: wrap; }
+  .go, .link { margin-left: 0; width: 100%; text-align: center; }
+  .rail button span { display: none; }
+  .pair { grid-template-columns: 1fr; }
 }
-@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } .pc { opacity: 1; transform: none; } }
 </style>
 </head>
 <body>
 <div class="wrap">
-
-  <div class="bar">
-    <span class="mark"><i></i> Sofix</span>
-    <div class="seg" role="group" aria-label="Step">
-      <button type="button" data-s="check" aria-pressed="true">Check</button>
-      <button type="button" data-s="draft" aria-pressed="false">Draft saved</button>
-      <button type="button" data-s="entered" aria-pressed="false">Entered</button>
-      <button type="button" data-s="refused" aria-pressed="false">Sorare refuses</button>
-      <button type="button" data-s="offline" aria-pressed="false">Chrome shut</button>
-    </div>
-  </div>
+  <p class="mark"><i></i> Sofix</p>
 
   <section class="sheet" id="sheet" aria-labelledby="t">
     <div class="head">
       <span class="foil" aria-hidden="true"></span>
       <b id="t">All Star</b>
-      <span class="fmt">7 + 2 subs · Gameweek 17</span>
+      <span>7 + 2 subs · Gameweek 17</span>
       <button class="x" type="button" aria-label="Close">✕</button>
     </div>
 
-    <div class="steps" id="steps"></div>
+    <nav class="rail" id="rail" aria-label="Step"></nav>
 
     <div class="lead">
       <div>
         <p class="num"><b id="hero">417</b><i id="unit">xScore</i></p>
-        <p class="cap" id="cap">487 needed to pay · 16% chance of a reward</p>
+        <p class="cap" id="cap"></p>
       </div>
-      <div class="cost" id="cost"></div>
+      <div class="chips" id="chips"></div>
     </div>
 
     <div class="cards" id="cards"></div>
-
-    <div id="body"></div>
-    <div id="foot"></div>
+    <div class="verdict" id="verdict"></div>
+    <div class="foot" id="foot"></div>
   </section>
 
-  <h2 class="sec">Why two clicks</h2>
-  <div class="card">
-    <p><b>Sorare has a draft.</b> <code>createOrUpdateSo5Lineup</code> takes <code>draft: true</code>, which saves a
-      lineup without entering it, and <code>confirmSo5Lineups</code> enters it afterwards. So the first click is
-      reversible and the second is the one that spends a card slot or an entry fee.</p>
-    <p><b>Sorare checks it first.</b> <code>previewSo5Lineup</code> returns a state per rule, the bonuses it will
-      really apply and the reward multiplier — so the sheet shows Sorare's own verdict, not ours, before anything
-      is written. When the two disagree, that is a bug in Sofix and it is shown, not hidden.</p>
-    <p><b>Only your browser can do it.</b> The API key is read-only; entering a lineup needs the sorare.com session,
-      which lives in the extension. Apply is the one thing here that cannot happen while your PC is off.</p>
+  <div class="pair">
+    <div class="mini red">
+      <span class="t"><s>✕</s> Sorare says no</span>
+      <p><b>Carl Starfelt is already in another lineup this gameweek.</b> Sorare's words, not ours — and a
+        disagreement like this is a bug in Sofix, so it is shown.</p>
+      <button class="act" type="button">Build another plan</button>
+    </div>
+    <div class="mini grey">
+      <span class="t"><s>⌂</s> Chrome is shut</span>
+      <p>Entering uses your own sorare.com session, which only exists in the browser. Everything else here keeps
+        running without it.</p>
+      <button class="act" type="button">Open sorare.com</button>
+    </div>
   </div>
-
 </div>
 
 <script>
 const $ = (s) => document.querySelector(s);
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-// The real plan for GW17: one All Star lineup, 7 + 2, from the owner's 96 cards.
+// The real plan for GW17: one All Star lineup, the owner's own cards.
 const LINEUP = [
-  { slot: "GK", name: "Ionuț Radu", mult: 1.03, p: 0.99 },
-  { slot: "DEF", name: "Andrei Rațiu", mult: 1.02, p: 0.93 },
-  { slot: "DEF", name: "A. Grimaldo", mult: 1.03, p: 0.89 },
-  { slot: "MID", name: "Gumbau", mult: 1.03, p: 0.89 },
-  { slot: "MID", name: "Arda Güler", mult: 1.05, p: 0.93, captain: true },
-  { slot: "FWD", name: "G. Tsitaishvili", mult: 1.05, p: 0.93 },
-  { slot: "EXT", name: "Carl Starfelt", mult: 1.07, p: 0.70 },
-  { slot: "SUB GK", name: "Jan Oblak", p: 0.89, sub: true },
-  { slot: "SUB", name: "Oyarzabal", p: 0.89, sub: true },
+  {
+    "slot": "GK",
+    "name": "Ionuț Radu",
+    "pic": "https://assets.sorare.com/card/f8ea5488-bd68-47c6-9fa8-6137bce55db7/picture/tinified-f09fa874114d074488aed17cfc5d2ce5.png",
+    "mult": 1.03,
+    "p": 0.987,
+    "x": 56,
+    "captain": false,
+    "sub": false
+  },
+  {
+    "slot": "DEF",
+    "name": "Andrei Rațiu",
+    "pic": "https://assets.sorare.com/card/76c3e2f9-247b-491a-a054-7855edc23fb0/picture/tinified-7edaa0e463e29b5a9e724ad16d5f5e0b.png",
+    "mult": 1.02,
+    "p": 0.934,
+    "x": 49,
+    "captain": false,
+    "sub": false
+  },
+  {
+    "slot": "DEF",
+    "name": "Alejandro Grimaldo",
+    "pic": "https://assets.sorare.com/card/4ceb39d1-2f2a-4d2f-bce7-d135b5b8e11c/picture/tinified-2425f3f6daba7fdb508582618f66325a.png",
+    "mult": 1.03,
+    "p": 0.886,
+    "x": 48,
+    "captain": false,
+    "sub": false
+  },
+  {
+    "slot": "MID",
+    "name": "Gumbau",
+    "pic": "https://assets.sorare.com/card/30675a21-5736-4cd2-bc8a-410867d853bb/picture/tinified-c9762be92964f038d9a3b738b6bff0c2.png",
+    "mult": 1.03,
+    "p": 0.886,
+    "x": 42,
+    "captain": false,
+    "sub": false
+  },
+  {
+    "slot": "MID",
+    "name": "Arda Güler",
+    "pic": "https://assets.sorare.com/card/ba894418-7621-42bf-b59e-8ef66d16a0af/picture/tinified-5c5924dbc5746c87b5c94b3ab9ade76e.png",
+    "mult": 1.05,
+    "p": 0.934,
+    "x": 60,
+    "captain": true,
+    "sub": false
+  },
+  {
+    "slot": "FWD",
+    "name": "Giorgi Tsitaishvili",
+    "pic": "https://assets.sorare.com/card/c437ff5e-e9de-4ff3-a298-49acbe85a511/picture/tinified-397533987fd9de6be3aa8bd88bf6d084.png",
+    "mult": 1.05,
+    "p": 0.934,
+    "x": 50,
+    "captain": false,
+    "sub": false
+  },
+  {
+    "slot": "EXT",
+    "name": "Carl Starfelt",
+    "pic": "https://assets.sorare.com/card/a125c416-f289-4071-a60c-b82bca0619a5/picture/tinified-f8fc6f7b0ce483d41eb4a0bbd3b269ac.png",
+    "mult": 1.07,
+    "p": 0.705,
+    "x": 36,
+    "captain": false,
+    "sub": false
+  },
+  {
+    "slot": "GK",
+    "name": "Jan Oblak",
+    "pic": "https://assets.sorare.com/card/c0af94c9-927b-422e-ac4e-a051f16e72ae/picture/tinified-4e59e1794fe68061a586ff8ba74fd171.png",
+    "mult": 1.07,
+    "p": 0.886,
+    "x": 47,
+    "captain": false,
+    "sub": true
+  },
+  {
+    "slot": "OUT",
+    "name": "Oyarzabal",
+    "pic": "https://assets.sorare.com/card/9a11ab15-bf62-471d-b635-de4c2f0d8b78/picture/tinified-970c1134ae91a483242ec0a3c0bf7e5f.png",
+    "mult": 1.03,
+    "p": 0.886,
+    "x": 44,
+    "captain": false,
+    "sub": true
+  }
 ];
 
 const RULES = [
-  ["Seven cards, two subs", "ok"],
-  ["Every card yours and unsealed", "ok"],
-  ["Max 2 per club · +2%", "ok"],
-  ["Average total 364 ≤ 370 · +4%", "ok"],
-  ["Captain +50% on Arda Güler", "ok"],
-  ["No card used twice this gameweek", "ok"],
+  "Seven cards, two subs",
+  "Every card yours and unsealed",
+  "Max 2 per club · +2%",
+  "Average total 364 ≤ 370 · +4%",
+  "Captain +50% · Arda Güler",
+  "No card used twice this gameweek",
 ];
 
-const STATES = {
-  check: {
-    tone: "var(--good)", step: 0,
-    hero: ["417", "xScore"], cap: "487 needed to pay · 16% chance of a reward",
-    cost: [["Free to enter", ""], ["9 of your 96 cards", ""]],
-    verdict: { title: "Sorare checked this lineup", mark: "✓", rules: RULES },
-    foot: { note: "Nothing is saved yet. The draft can be changed or deleted on sorare.com.", action: "Save as a draft", kind: "go" },
+const STEPS = [
+  {
+    name: "Check", tone: ["--good", "--good-track", "--good-ink"],
+    hero: [417, "xScore"], cap: "<b>487</b> needed to pay · 16% chance of a reward",
+    chips: [["Free to enter", ""], ["9 of your 96 cards", ""]],
+    verdict: ["✓", "Sorare checked it", "nothing saved yet"],
+    foot: ["A draft can be changed or deleted on sorare.com.", "Save as a draft"],
   },
-  draft: {
-    tone: "var(--amber)", step: 1,
-    hero: ["417", "xScore"], cap: "saved as a draft · not entered yet",
-    cost: [["Draft on sorare.com", "warn"], ["Free to enter", ""]],
-    verdict: { title: "Sorare accepted the draft", mark: "✓", rules: RULES },
-    foot: { note: "Entering spends one of your 4 lineup slots in this competition. It can't be taken back after the lock.", action: "Enter the competition", kind: "go" },
+  {
+    name: "Draft", tone: ["--amber", "--amber-bg", "--amber-ink"],
+    hero: [417, "xScore"], cap: "saved as a draft · <b>not entered</b>",
+    chips: [["Draft on sorare.com", "tone"], ["Free to enter", ""]],
+    verdict: ["✓", "Sorare accepted the draft", "reward ×1.04"],
+    foot: ["Entering spends one of your four lineup slots here, and can't be undone after the lock.", "Enter the competition"],
   },
-  entered: {
-    tone: "var(--good)", step: 2,
-    hero: ["417", "xScore"], cap: "entered · locks Fri 16:00",
-    cost: [["Entered", "good"], ["3 slots left here", ""]],
-    verdict: { title: "Sorare has it", mark: "✓", rules: RULES },
-    after: true,
+  {
+    name: "Enter", tone: ["--good", "--good-track", "--good-ink"],
+    hero: [417, "xScore"], cap: "entered · locks <b>Fri 16:00</b>",
+    chips: [["Entered", "tone"], ["3 slots left here", ""]],
+    verdict: ["✓", "Sorare has it", "reward ×1.04"],
+    done: true,
   },
-  refused: {
-    tone: "var(--red)", step: 0,
-    hero: ["1", "problem"], cap: "Sorare will not take this lineup",
-    cost: [["Not saved", "warn"]],
-    verdict: {
-      title: "Sorare refused it", mark: "!", bad: true,
-      rules: [["Carl Starfelt is in another lineup this gameweek", "bad"], ...RULES.slice(0, 4)],
-    },
-    foot: { note: "Sorare's own words, not ours. A card can only play once a gameweek, so the plan has to be rebuilt without him.", action: "Build another plan", kind: "soft" },
-  },
-  offline: {
-    tone: "var(--low)", step: 0,
-    hero: ["—", ""], cap: "Sofix can't reach your Sorare session",
-    cost: [["Chrome is shut", "warn"]],
-    waiting: { title: "Open sorare.com in Chrome, signed in", detail: "Entering a lineup uses your own session, which only exists in the browser. Everything else here keeps running without it." },
-    foot: { note: "The extension checked in 3 h ago as Yares.", action: "Open sorare.com", kind: "soft" },
-  },
-};
+];
 
-const STEP_NAMES = ["Check", "Draft", "Enter"];
+let at = 0;
 
-function render(key) {
-  const s = STATES[key];
-  $("#sheet").style.setProperty("--tone", s.tone);
-
-  $("#steps").innerHTML = STEP_NAMES.map((name, i) => {
-    const cls = i < s.step ? "done" : i === s.step ? "on" : "";
-    const mark = i < s.step ? "✓" : String(i + 1);
-    return `<span class="step ${cls}"><i>${mark}</i><span>${name}</span></span>` +
-      (i < 2 ? `<span class="link${i < s.step ? " done" : ""}"></span>` : "");
-  }).join("");
-
-  $("#hero").textContent = s.hero[0];
-  $("#unit").textContent = s.hero[1];
-  $("#cap").textContent = s.cap;
-  $("#cost").innerHTML = s.cost.map(([text, kind]) => `<span class="tag ${kind}">${text}</span>`).join("");
-
-  $("#cards").innerHTML = LINEUP.map((c) => `
-    <span class="pc${c.sub ? " sub" : ""}">
-      <s>${c.slot}</s>
-      <b>${c.name}${c.captain ? ' <span class="c">C</span>' : ""}</b>
-      <em>${c.mult ? `×${c.mult.toFixed(2)} · ` : ""}${Math.round(c.p * 100)}%</em>
-    </span>`).join("");
-
-  let body = "";
-  if (s.waiting) body += `<div class="waiting"><b>${s.waiting.title}</b>${s.waiting.detail}</div>`;
-  if (s.verdict) {
-    body += `<div class="verdict"><div class="t"><s style="${s.verdict.bad ? "background:var(--red-bg);color:var(--red-ink)" : ""}">${s.verdict.mark}</s>${s.verdict.title}</div><div class="rules">` +
-      s.verdict.rules.map(([text, kind]) => `<span class="rule ${kind === "bad" ? "bad" : ""}"><s>${kind === "bad" ? "✕" : "✓"}</s>${text}</span>`).join("") +
-      `</div></div>`;
-  }
-  $("#body").innerHTML = body;
-
-  $("#foot").innerHTML = s.after
-    ? `<div class="after"><span>Entered <b>just now</b> · Sofix will show what it scores once the games are on.</span><a href="#">See it on sorare.com →</a></div>`
-    : `<div class="foot"><span class="note">${s.foot.note}</span><button class="${s.foot.kind}" type="button">${s.foot.action}</button></div>`;
-
-  document.querySelectorAll(".seg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.s === key)));
+function countTo(el, target) {
+  if (reduced) { el.textContent = target; return; }
+  const start = performance.now();
+  const step = (t) => {
+    const k = Math.min(1, (t - start) / 700);
+    el.textContent = Math.round(target * (1 - Math.pow(1 - k, 3)));
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
 }
 
-document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => render(b.dataset.s)));
-render("check");
+function draw() {
+  const s = STEPS[at];
+  const root = document.documentElement.style;
+  root.setProperty("--tone", `var(${s.tone[0]})`);
+  root.setProperty("--tone-bg", `var(${s.tone[1]})`);
+  root.setProperty("--tone-ink", `var(${s.tone[2]})`);
+
+  $("#rail").innerHTML = STEPS.map((step, i) => {
+    const cls = i < at ? "done" : i === at ? "on" : "";
+    return `<button type="button" data-i="${i}" class="${cls}"><i>${i < at ? "✓" : i + 1}</i><span>${step.name}</span></button>` +
+      (i < 2 ? `<span class="bar"><i style="width:${i < at ? 100 : 0}%"></i></span>` : "");
+  }).join("");
+
+  countTo($("#hero"), s.hero[0]);
+  $("#unit").textContent = s.hero[1];
+  $("#cap").innerHTML = s.cap;
+  $("#chips").innerHTML = s.chips.map(([text, kind]) => `<span class="chip ${kind}">${text}</span>`).join("");
+
+  $("#cards").innerHTML = LINEUP.map((c, i) => `
+    <div class="pc${c.sub ? " sub" : ""}" style="--i:${i}">
+      <span class="art">
+        <img src="${c.pic}" alt="" loading="lazy" referrerpolicy="no-referrer">
+        <span class="rib">${c.x}</span>
+        ${c.captain ? '<span class="cap-mark">C</span>' : ""}
+      </span>
+      <span class="who">
+        <span class="slot">${c.sub ? "SUB · " : ""}${c.slot}</span>
+        <span>${Math.round(c.p * 100)}% · ×${c.mult.toFixed(2)}</span>
+      </span>
+    </div>`).join("");
+
+  $("#verdict").innerHTML =
+    `<div class="vt"><s>${s.verdict[0]}</s>${s.verdict[1]}<em>${s.verdict[2]}</em></div>` +
+    `<div class="rules">${RULES.map((r) => `<span class="rule"><s>✓</s>${r}</span>`).join("")}</div>`;
+
+  $("#foot").innerHTML = s.done
+    ? `<span class="note">Sofix shows what it scores once the games are on.</span><a class="link" href="#">See it on sorare.com →</a>`
+    : `<span class="note">${s.foot[0]}</span><button class="go" type="button" id="next">${s.foot[1]}</button>`;
+
+  const next = $("#next");
+  if (next) next.addEventListener("click", () => { at = Math.min(at + 1, STEPS.length - 1); draw(); });
+  document.querySelectorAll("#rail button").forEach((b) => b.addEventListener("click", () => { at = Number(b.dataset.i); draw(); }));
+}
+
+draw();
 </script>
 </body>
 </html>

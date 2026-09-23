@@ -145,16 +145,16 @@ Meter thresholds: ≥ 50% `--good` · 20–49% `--good-2` · < 20% `--low`.
 
 ## Added by Apply (S6, `S6-apply.html`)
 
-- **Steps, not a button.** A three-dot rail across the top of the sheet — Check · Draft · Enter — each dot black
-  while it is the current one and `--good-track` with a tick once it is done. The rail is the promise that nothing
-  irreversible happens on the first click.
-- **The hero is the thing you are about to spend or win.** xScore while it is worth entering, the number of
-  problems when Sorare refuses. One 60 px number, one muted line under it, and the cost as chips on the right
-  ("Free to enter", "9 of your 96 cards", "3 slots left here").
-- **The lineup is one row.** `grid-template-columns: repeat(9, minmax(0, 1fr))` so the whole thing reads at a
-  glance, three per row on a phone; substitutes are hatched (`repeating-linear-gradient`) instead of labelled.
-- **Sorare's verdict, in Sorare's words.** A tinted block listing each rule with a tick or a cross, headed by
-  whether Sorare accepted it. A refusal keeps the passing rules visible underneath, so the one problem stands out
-  rather than replacing everything.
-- **The tone follows the step**: green while it is fine, amber for a draft that is saved but not entered, red for
-  a refusal, grey when Chrome is shut and Sofix cannot reach the session at all.
+- **The step rail is the control.** Check · Draft · Enter across the top of the sheet: black while current, a tick
+  on `--good-track` once done, the connecting bar filling in 600 ms. Clicking a step goes to it, so the preview
+  needs no switcher of its own.
+- **The lineup is the cards.** The real Sorare art (`pic`), nine across and three on a phone, each with its xScore
+  on a ribbon, the captain's gold disc, and `SLOT · 99% · ×1.03` underneath. No name line: the art carries it.
+  Substitutes are washed out rather than labelled, and a card Sorare rejects goes grey with a red tint.
+- **One hero.** 68 px xScore, one muted line with the score that pays, and the cost as chips on the right.
+- **Sorare's verdict in Sorare's words**, one tinted block, a tick per rule, and what it is worth on the right.
+- **The tone follows the step** (`--tone`): green while it is fine, amber for a saved draft, and it reaches the
+  glow behind the card, the chips and the verdict badge.
+- **What can go wrong is shown, not explained**: two small cards under the sheet, one for a refusal and one for
+  a shut browser, each with the single action that fixes it.
+

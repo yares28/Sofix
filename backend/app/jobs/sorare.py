@@ -25,6 +25,7 @@ from app.logging_config import configure_logging
 from app.models import ReadModel
 from app.services.publish import notify_app, put
 from app.sorare import publish as sorare_publish
+from app.sorare import record as sorare_record
 from app.sorare import sync as sorare_sync
 from app.sorare.client import SorareClient
 
@@ -80,6 +81,11 @@ def run(
         logger.info("sorare (dry run): %s", summary)
         return {**summary, "dryRun": True}
     now = datetime.now(UTC)
+    # Sorare's projections only exist for a player's next game, so they are written down before they are lost.
+    planned = sorare_record.rows(snapshot, "plan")
+    summary["moved"] = sorare_record.moved(db, planned)
+    summary["kept"] = sorare_record.save(db, planned, now)
+    sorare_record.save(db, sorare_record.rows(snapshot, "past"), now, final=True)
     put(db, SORARE_KEY, payload, now)
     put(db, REFERENCES_KEY, snapshot["references"], now)
     if standalone:

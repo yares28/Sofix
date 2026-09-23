@@ -54,6 +54,7 @@ def test_upgrade_to_head_builds_the_schema(tmp_path):
         "refresh_runs",
         "market_odds",
         "read_models",
+        "sorare_forecasts",
     }
     upgrade_to_head(url)  # idempotent at head
 

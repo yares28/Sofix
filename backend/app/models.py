@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint, text
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -145,3 +145,29 @@ class RefreshRun(Base):
             sqlite_where=text("status = 'running'"),
         ),
     )
+
+
+class SorareForecast(Base):
+    """What was known about one player for one Sorare gameweek, before it locked, and what he then scored.
+
+    Sorare only serves a player's *next* fixture projection, so once a gameweek is played the numbers a plan was
+    built on are gone for good. This table keeps them: while the gameweek is open each run overwrites the row with
+    the latest numbers, and once it has locked the forecast columns are frozen and only `actual` is filled in.
+    That makes a later model (S4) scoreable against what Sorare itself said at the time.
+    """
+
+    __tablename__ = "sorare_forecasts"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    player: Mapped[str] = mapped_column(String(100))  # Sorare's player slug
+    gameweek: Mapped[str] = mapped_column(String(100))  # the fixture slug, e.g. football-25-29-sep-2026
+    games: Mapped[int] = mapped_column(Integer, default=0)  # his games inside the gameweek
+    projection: Mapped[float | None] = mapped_column(Float)  # Sorare's projected score, "if he plays"
+    plays_odds: Mapped[float | None] = mapped_column(Float)  # Sorare's starter + substitute chance, 0–1
+    mu: Mapped[float] = mapped_column(Float)  # ours: the score if he plays
+    p_play: Mapped[float] = mapped_column(Float)  # ours: the chance he plays at all
+    source: Mapped[str] = mapped_column(String(16))  # sorare | form | no game
+    captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    lock: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    actual: Mapped[float | None] = mapped_column(Float)  # what he scored, once the gameweek is over
+    played: Mapped[bool | None] = mapped_column(Boolean)
+    __table_args__ = (UniqueConstraint("player", "gameweek", name="uq_sorare_forecasts_player_gameweek"),)

@@ -412,9 +412,13 @@ costs, and what Sorare will still hand over later — and what it won't.
 - The state sets `--tone` and everything follows it, including a radial glow on the panel. The preview opens on
   **what is true right now** — never run in the cloud — not on the happy state.
 
-### B · Build — planned
-- ⬜ Record Sorare's projections and starting chances on every run (own table, ~2 MB a season). First, because it
-  cannot be backfilled.
+### B · Build
+- ✅ Record Sorare's projections and starting chances on every run: table `sorare_forecasts`, one row per player
+  per gameweek, overwritten while the gameweek is open and frozen at the lock, with what he then scored filled in
+  afterwards (`app/sorare/record.py`, 8 tests). Players with no game in the gameweek are left out. The first run
+  kept 83 rows for GW17, 11 of them with a Sorare projection — it is an international break, so most of the squad
+  has no game. A gameweek nobody recorded before its lock stays a gap: rebuilding one from form would look like a
+  record of what Sorare said, and it isn't.
 - ⬜ The Sorare panel in the Control Center and the chip + banner on Play, from one small status read model
   (who wrote it, when, and the five clocks).
 - ⬜ Players beyond your own cards — with S5, where they are first used.

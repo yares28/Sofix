@@ -113,6 +113,13 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
+      # Every design preview against the owner's bar: one hero, no explainer prose, no preview
+      # scaffolding, real assets, motion with a reduced-motion escape, and nothing unreadable.
+      - name: Design previews
+        run: npm run design
+        env:
+          CI: "true"
+
       # Runs the app against e2e/mock-api.mjs: no database, no secrets, no external APIs.
       - name: Playwright
         run: npx playwright test

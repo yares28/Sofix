@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="design-check" content="record">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sofix Home v2</title>
 <style>
@@ -106,7 +107,7 @@ h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spa
 .t-link { text-decoration: none; outline: none; cursor: pointer; }
 .t-link::after { content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: 2; }
 .t-meta { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.chev { margin-left: auto; flex: none; color: var(--ink-3); transition: transform .25s var(--ease), color .25s; }
+.chev { margin-left: auto; flex: none; color: var(--ink-2); transition: transform .25s var(--ease), color .25s; }
 .tile.link:hover .chev, .lu:hover .chev { transform: translateX(3px); color: var(--ink); }
 .crest { width: 16px; height: 16px; object-fit: contain; flex: none; }
 .crest.lg { width: 36px; height: 36px; }
@@ -197,7 +198,7 @@ h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spa
 .pva-row { display: grid; grid-template-columns: 84px minmax(0, 1fr) 54px; gap: 10px; align-items: center; }
 .pva-row .nm { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pva-row .res { font-size: 12px; font-weight: 650; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; }
-.pva-row .res.none { color: var(--ink-3); font-weight: 500; }
+.pva-row .res.none { color: var(--ink-2); font-weight: 500; }
 .rv { position: relative; height: 18px; }
 .rv .rail { position: absolute; left: 0; right: 0; top: 8px; height: 3px; border-radius: 2px; background: var(--hover); }
 .rv .band { position: absolute; top: 7px; height: 5px; border-radius: 3px; background: linear-gradient(90deg, #cfe9da, #5cc58d); }
@@ -410,7 +411,7 @@ h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spa
 .fold summary { list-style: none; cursor: pointer; padding: 16px 20px; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; }
 .fold summary::-webkit-details-marker { display: none; }
 .fold summary span { color: var(--ink-2); font-weight: 500; }
-.fold summary svg { margin-left: auto; color: var(--ink-3); transition: transform .25s var(--ease); flex: none; }
+.fold summary svg { margin-left: auto; color: var(--ink-2); transition: transform .25s var(--ease); flex: none; }
 .fold[open] summary svg { transform: rotate(90deg); }
 .fold summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 22px; }
 .fold ul { margin: 0; padding: 0 20px 14px; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 28px; }
@@ -480,7 +481,7 @@ h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spa
 .ladder summary { list-style: none; cursor: pointer; padding: 12px 20px; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; }
 .ladder summary::-webkit-details-marker { display: none; }
 .ladder summary span { color: var(--ink-2); font-weight: 500; }
-.ladder summary svg { margin-left: auto; color: var(--ink-3); transition: transform .25s var(--ease); }
+.ladder summary svg { margin-left: auto; color: var(--ink-2); transition: transform .25s var(--ease); }
 .ladder[open] summary svg { transform: rotate(90deg); }
 .ladder table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .ladder td { padding: 9px 20px; box-shadow: inset 0 1px 0 var(--line); font-variant-numeric: tabular-nums; }
@@ -499,7 +500,7 @@ h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spa
 .phone { position: relative; width: 402px; height: 860px; border-radius: 58px; background: #0b0b0d; padding: 12px; box-shadow: 0 0 0 2px #2c2c30, 0 40px 80px rgba(0,0,0,.28); }
 .phone iframe { width: 100%; height: 100%; border: 0; border-radius: 46px; background: var(--bg); }
 .phone::before { content: ""; position: absolute; top: 22px; left: 50%; width: 118px; height: 34px; margin-left: -59px; border-radius: 20px; background: #0b0b0d; z-index: 2; }
-.note { max-width: 1240px; margin: 0 auto 110px; padding: 0 20px; font-size: 12px; color: var(--ink-3); }
+.note { max-width: 1240px; margin: 0 auto 110px; padding: 0 20px; font-size: 12px; color: var(--ink-2); }
 .note p { margin: 0 0 6px; }
 body.embed .preview-bar, body.embed .note { display: none; }
 
@@ -583,7 +584,7 @@ body.embed .preview-bar, body.embed .note { display: none; }
     padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); background: rgba(251,251,253,.86);
     backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-top: 1px solid rgba(0,0,0,.06);
   }
-  .tabbar a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 0; border-radius: 12px; font-size: 10px; font-weight: 600; color: var(--ink-3); text-decoration: none; cursor: pointer; }
+  .tabbar a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 0; border-radius: 12px; font-size: 10px; font-weight: 600; color: var(--ink-2); text-decoration: none; cursor: pointer; }
   .tabbar a[aria-current="page"] { color: var(--ink); }
   .tabbar a[aria-current="page"] svg { color: var(--accent); }
   body.embed .tabbar { padding-bottom: 22px; }
@@ -747,7 +748,7 @@ const DATA = {"generatedAt": "2026-09-22T14:05:00+00:00", "now": "2026-09-22T14:
     const body = `<div class="nx"><div class="nx-l">
         <div class="big"><b data-to="${cards}">${cards}</b><span>of your ${DATA.cards.usable} cards play</span></div>
         <div class="split">${Object.entries(g.byComp).map(([k, v]) => `<span class="chip">${v} <small>${k}</small></span>`).join('')}<span class="chip">${DATA.cards.usable - cards} <small>rest</small></span></div>
-        <div class="faces" aria-label="Your players with a game">${faces}</div>
+        <div class="faces" tabindex="0" aria-label="Your players with a game">${faces}</div>
         <div class="wait-row"><span class="ring-sm"><svg viewBox="0 0 44 44"><circle class="trk" cx="22" cy="22" r="18" fill="none" stroke-width="4"/><circle class="bar" cx="22" cy="22" r="18" fill="none" stroke-width="4" stroke-dasharray="${C}" stroke-dashoffset="${C}" data-off="${C * (1 - done)}"/></svg><i>${proj.d ? `${proj.d}d` : `${proj.h}h`}</i></span>
           <div><b>Your 5 best plans: ${wd(g.projectionsAt)} ${hm(g.projectionsAt)}</b><span>When Sorare publishes its projections for these games.</span></div></div>
       </div>
@@ -826,7 +827,7 @@ const DATA = {"generatedAt": "2026-09-22T14:05:00+00:00", "now": "2026-09-22T14:
     const tones = ['var(--good)', 'var(--good-2)', '#cfe9da'];
     const hero = `<div class="t-hero">${crest(lead[0], 'crest lg')}<div class="who"><b>${esc(L.names[lead[0]])}</b><span>to win the league</span></div><div class="val"><b data-to="${lead[1]}">${lead[1]}</b><span>% chance</span></div></div>`;
     const race = `<div class="race" role="img" aria-label="Chance of winning the league: ${title.map(([c, v]) => `${esc(L.names[c])} ${v}%`).join(', ')}">${title.map(([, v], i) => `<i style="flex:${v};background:${tones[i]}"></i>`).join('')}</div><div class="race-key">${title.map(([c, v], i) => `<span><i style="background:${tones[i]}"></i>${c} ${v}%</span>`).join('')}</div>`;
-    const top = `<ol class="mini">${S.slice(0, 4).map((s) => `<li><span class="pos">${s.pos}</span>${crest(s.code)}<span class="nm">${esc(s.name)}</span><span class="form" aria-label="Last five: ${s.form}">${[...s.form].map((x) => `<i class="${x}"></i>`).join('')}</span><span class="pts">${s.pts}</span></li>`).join('')}</ol>`;
+    const top = `<ol class="mini">${S.slice(0, 4).map((s) => `<li><span class="pos">${s.pos}</span>${crest(s.code)}<span class="nm">${esc(s.name)}</span><span class="form" role="img" aria-label="Last five: ${s.form}">${[...s.form].map((x) => `<i class="${x}"></i>`).join('')}</span><span class="pts">${s.pts}</span></li>`).join('')}</ol>`;
     const rel = `<div class="sub-h" style="margin-bottom:-6px"><span>Relegation</span><span>chance</span></div><ol class="mini down">${down.map(([c, v]) => `<li>${crest(c)}<span class="nm">${esc(L.names[c])}</span><span class="m"><i style="width:${v}%"></i></span><span class="pc">${v}%</span></li>`).join('')}</ol>`;
     return lgTile('tbl', 5, 'Table', 'after GW7', hero + race + top + rel, 't-tbl');
   }
@@ -1003,7 +1004,7 @@ const DATA = {"generatedAt": "2026-09-22T14:05:00+00:00", "now": "2026-09-22T14:
       const faces = g.players.map((p) => `<div class="face"><span class="av">${img(p.avatar, p.name)}${p.inSeason ? '<i class="is"></i>' : ''}${p.cards > 1 ? `<i class="n2">×${p.cards}</i>` : ''}</span><b>${esc(p.name.split(' ').slice(-1)[0])}</b><span>${vsLabel(p)}</span></div>`).join('');
       const opts = g.playable.map((o) => `<li><span class="foil limited sm" aria-hidden="true"></span><span class="nm">${esc(o.name)}<small>${o.group === 'Room' ? 'Room of 10' : `${o.size} + ${o.subs} subs`}${o.cap ? ` · cap ${o.cap}` : ''}</small></span><span class="fee ${o.fee ? '' : 'free'}">${o.fee ? `${ESS(12)}${o.fee}` : 'Free'}</span><span class="mx">${o.max}<small>×</small></span></li>`).join('');
       return `<section class="gw-state"><div style="display:flex;flex-direction:column;gap:16px"><div><h2>Plans ${wd(g.projectionsAt)} ${hm(g.projectionsAt)}</h2><p>Sorare publishes its projections for GW17 then. Sofix builds your 5 full-gameweek plans from them, and their reward chances once GW16, the first break week under this season’s rules, has scores.</p></div>
-        <div class="big"><b>${g.players.reduce((s, p) => s + p.cards, 0)}</b><span>of your cards play · ${proj.d} d ${proj.h} h to the projections</span></div><div class="faces">${faces}</div></div>
+        <div class="big"><b>${g.players.reduce((s, p) => s + p.cards, 0)}</b><span>of your cards play · ${proj.d} d ${proj.h} h to the projections</span></div><div class="faces" tabindex="0" role="group" aria-label="Your players with a game">${faces}</div></div>
         <div><div class="sub-h"><span>You can play</span><span>lineups</span></div><ul class="opts">${opts}</ul>${g.blocked.filter((b) => b.rarity === 'limited').map((b) => `<div class="t-foot" style="margin-top:8px">${esc(b.name)} · ${esc(b.why.toLowerCase())}</div>`).join('')}</div></section>`;
     }
     if (id === '16') return `<section class="gw-state"><div><h2>None of your cards play</h2><p>GW16 is Nations League games only, and none of your players has one. It locked today at 16:00.</p></div><div></div></section>`;

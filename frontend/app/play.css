@@ -1560,9 +1560,10 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 }
 .pl-go:hover { background: #000; }
-/* What is actually out of date stays readable, but can't be mistaken for current. */
+/* What is out of date stays readable — desaturated rather than faded, because fading the text
+   below 4.5:1 makes "still readable" untrue. */
 .pl-lus.behind,
-.pl-main > .behind { opacity: 0.55; filter: grayscale(0.55); }
+.pl-main > .behind { filter: grayscale(1); }
 
 @media (max-width: 700px) {
   .pl-alert { flex-wrap: wrap; }

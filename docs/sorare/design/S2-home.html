@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="design-check" content="record">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sofix Home</title>
 <style>
@@ -76,13 +77,13 @@ h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spa
 .tl-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .tl-top { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 650; color: var(--ink-seg); }
 .tl-item[aria-pressed="true"] .tl-top { color: var(--ink); }
-.tl-date { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tl-date { font-size: 12px; color: var(--ink-seg); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .tl-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
 .tl-dot.done { background: var(--ink-3); }
 .tl-dot.next { background: var(--accent); }
 .tl-dot.later { background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink-3); }
 .tl-break { flex: 1.3 0 auto; min-width: 150px; border-radius: 14px; padding: 8px 14px; display: flex; flex-direction: column; gap: 2px; color: var(--ink-2); background: repeating-linear-gradient(135deg, transparent 0 6px, rgba(0,0,0,.035) 6px 7px); }
-.tl-break b { font-size: 14px; font-weight: 600; color: var(--ink-3); }
+.tl-break b { font-size: 14px; font-weight: 600; color: var(--ink-2); }
 .tl-break span { font-size: 12px; }
 
 /* ---------- bento ---------- */
@@ -96,7 +97,7 @@ h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spa
 .t-link { text-decoration: none; outline: none; }
 .t-link::after { content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: 2; } /* the whole tile opens its page */
 .t-meta { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.chev { margin-left: auto; flex: none; color: var(--ink-3); transition: transform .25s var(--ease), color .25s; }
+.chev { margin-left: auto; flex: none; color: var(--ink-2); transition: transform .25s var(--ease), color .25s; }
 .tile:hover .chev { transform: translateX(3px); color: var(--ink); }
 .fixtures, .diff, .tbl { grid-column: span 4; min-height: 460px; }
 .play { grid-column: span 6; }
@@ -139,7 +140,7 @@ h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spa
 .m-row { display: grid; grid-template-columns: 30px repeat(5, minmax(0, 1fr)) 28px; gap: 3px; align-items: center; height: 11px; animation: fade .45s var(--ease) both; animation-delay: calc(var(--r) * 16ms + 180ms); }
 @keyframes fade { from { opacity: 0; transform: translateX(-4px); } }
 .m-row.hd { height: 14px; animation: none; }
-.m-row.hd span { font-size: 10px; color: var(--ink-3); font-weight: 600; text-align: center; }
+.m-row.hd span { font-size: 10px; color: var(--ink-2); font-weight: 600; text-align: center; }
 .m-row .code { font-size: 9.5px; font-weight: 600; color: var(--ink-2); letter-spacing: .01em; }
 .m-row .xp { font-size: 10px; font-weight: 500; color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; }
 .m-row.top .code, .m-row.top .xp, .m-row.bottom .code, .m-row.bottom .xp { color: var(--ink); font-weight: 700; }
@@ -244,7 +245,7 @@ h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spa
 
 /* waiting: the tile exists, its data arrives with a later phase (never a made-up number) */
 .ghost { flex: 1; display: grid; place-content: center; justify-items: center; gap: 12px; text-align: center; color: var(--ink-2); font-size: 13px; padding: 8px 0; }
-.ghost .shape { width: 72px; height: 72px; border-radius: 50%; border: 2px dashed #d1d1d6; display: grid; place-items: center; color: var(--ink-3); }
+.ghost .shape { width: 72px; height: 72px; border-radius: 50%; border: 2px dashed #d1d1d6; display: grid; place-items: center; color: var(--ink-2); }
 .ghost .shape.card { width: 50px; height: 70px; border-radius: 9px; }
 .ghost b { color: var(--ink); font-weight: 600; font-size: 14px; }
 .ghost p { margin: 0; max-width: 26ch; }
@@ -257,7 +258,7 @@ h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spa
 .preview-bar .seg { display: inline-flex; padding: 3px; border-radius: 999px; background: rgba(255,255,255,.12); }
 .preview-bar button { border: 0; background: none; color: rgba(255,255,255,.75); padding: 5px 12px; border-radius: 999px; cursor: pointer; font-size: 12px; font-weight: 600; }
 .preview-bar button[aria-pressed="true"] { background: #fff; color: var(--ink); }
-.note { max-width: 1240px; margin: 0 auto 110px; padding: 0 20px; font-size: 12px; color: var(--ink-3); }
+.note { max-width: 1240px; margin: 0 auto 110px; padding: 0 20px; font-size: 12px; color: var(--ink-2); }
 .note p { margin: 0 0 6px; }
 
 @media (max-width: 1100px) {
@@ -278,7 +279,7 @@ h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spa
     padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); background: rgba(251,251,253,.86);
     backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-top: 1px solid rgba(0,0,0,.06);
   }
-  .tabbar a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 0; border-radius: 12px; font-size: 10px; font-weight: 600; color: var(--ink-3); text-decoration: none; }
+  .tabbar a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 0; border-radius: 12px; font-size: 10px; font-weight: 600; color: var(--ink-2); text-decoration: none; }
   .tabbar a[aria-current="page"] { color: var(--ink); }
   .tabbar a[aria-current="page"] svg { color: var(--accent); }
   .preview-bar { bottom: 84px; }
@@ -473,7 +474,7 @@ const DATA = {"now":"2026-09-22T01:10:00+02:00","timeline":[{"gw":5,"from":"2026
     const tones = ['var(--good)', 'var(--good-2)', '#cfe9da'];
     const hero = `<div class="t-hero">${crest(lead[0], 'crest lg')}<div class="who"><b>${DATA.names[lead[0]]}</b><span>to win the league</span></div><div class="num"><b data-to="${lead[1]}">${lead[1]}</b><span>% chance</span></div></div>`;
     const race = `<div class="race" role="img" aria-label="Chance of winning the league: ${title.map(([c, v]) => `${DATA.names[c]} ${v}%`).join(', ')}">${title.map(([, v], i) => `<i style="flex:${v};background:${tones[i]}"></i>`).join('')}</div><div class="race-key">${title.map(([c, v], i) => `<span><i style="background:${tones[i]}"></i>${c} ${v}%</span>`).join('')}</div>`;
-    const top = `<ol class="mini">${S.slice(0, 4).map((s) => `<li><span class="pos">${s.pos}</span>${crest(s.code)}<span class="nm">${s.name}</span><span class="form" aria-label="Last five: ${s.form}">${[...s.form].map((x) => `<i class="${x}"></i>`).join('')}</span><span class="pts">${s.pts}</span></li>`).join('')}</ol>`;
+    const top = `<ol class="mini">${S.slice(0, 4).map((s) => `<li><span class="pos">${s.pos}</span>${crest(s.code)}<span class="nm">${s.name}</span><span class="form" role="img" aria-label="Last five: ${s.form}">${[...s.form].map((x) => `<i class="${x}"></i>`).join('')}</span><span class="pts">${s.pts}</span></li>`).join('')}</ol>`;
     const rel = `<div class="sub-h"><span>Relegation</span><span>chance</span></div><ol class="mini down">${down.map(([c, v]) => `<li>${crest(c)}<span class="nm">${DATA.names[c]}</span><span class="m"><i style="width:${v}%"></i></span><span class="pc">${v}%</span></li>`).join('')}</ol>`;
     return tile('tbl', 2, 'Table', 'after GW7', hero + race + top + rel, 't-tbl');
   }

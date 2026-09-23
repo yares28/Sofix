@@ -15,7 +15,11 @@ Sorare merge (phases S0–S9, decisions, findings): [docs/sorare_plan.md](docs/s
 
 Follow [docs/sorare/design/DESIGN.md](docs/sorare/design/DESIGN.md); the reference implementation is
 `docs/sorare/design/S0-competitions.html`. In short:
-- Build previews on real data.
+- Build previews on real data, and run `npm run design` before showing one: it opens every preview in a
+  browser and fails on a missing hero, explainer prose, preview scaffolding (PC/Phone toggles), grey boxes
+  where real card art belongs, missing motion or a reduced-motion escape, sideways scrolling on a phone,
+  and anything axe calls unreadable. A page waives a rule in its own `<meta name="design-check">`, with
+  the reason visible in the file.
 - Order the page: decision first (hero with one ≥ 48 px number), then a summary strip, then every option,
   then secondary things folded away.
 - Few words.
@@ -95,6 +99,7 @@ npm test             # vitest
 npm run typecheck
 npm run lint         # eslint (next + jsx-a11y), zero warnings
 npm run e2e          # Playwright against e2e/mock-api.mjs (ports 3100/8765, installed Chrome locally)
+npm run design       # every docs/sorare/design/*.html against the design bar (CI runs it too)
 npm run gen:types    # after python -m app.openapi_export
 ```
 

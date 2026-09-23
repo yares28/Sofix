@@ -44,7 +44,7 @@ button { font: inherit; color: inherit; }
 
 /* the step rail is the only control */
 .rail { position: relative; display: flex; align-items: center; padding: 18px 26px 2px; }
-.rail button { flex: none; display: flex; align-items: center; gap: 9px; border: 0; background: none; cursor: pointer; padding: 0; font-size: 13px; font-weight: 600; color: var(--ink-3); }
+.rail button { flex: none; display: flex; align-items: center; gap: 9px; border: 0; background: none; cursor: pointer; padding: 0; font-size: 13px; font-weight: 600; color: var(--ink-2); }
 .rail button i { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--track); font-size: 12px; font-weight: 700; transition: background .35s var(--ease), color .35s var(--ease), transform .35s var(--ease); }
 .rail button.on { color: var(--ink); }
 .rail button.on i { background: var(--ink); color: #fff; transform: scale(1.08); }
@@ -78,14 +78,14 @@ button { font: inherit; color: inherit; }
 .cap-mark { position: absolute; right: 4px; top: 4px; width: 17px; height: 17px; border-radius: 50%; display: grid; place-items: center; font-size: 10px; font-weight: 800; background: var(--f-lim); color: #4a3200; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
 .who { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .who b { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.who span { font-size: 11px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.who span { font-size: 11px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .slot { font-size: 10px; font-weight: 750; letter-spacing: .05em; color: var(--ink-2); }
 
 /* Sorare's verdict */
 .verdict { margin: 0 26px 20px; border-radius: 20px; background: var(--hover); padding: 15px 17px; }
 .vt { display: flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 650; margin-bottom: 11px; }
 .vt s { text-decoration: none; width: 19px; height: 19px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; background: var(--tone-bg); color: var(--tone-ink); }
-.vt em { font-style: normal; margin-left: auto; font-weight: 600; font-size: 12px; color: var(--ink-3); }
+.vt em { font-style: normal; margin-left: auto; font-weight: 600; font-size: 12px; color: var(--ink-2); }
 .rules { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px 20px; }
 .rule { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); }
 .rule s { text-decoration: none; color: var(--good-ink); font-weight: 750; }
@@ -93,7 +93,7 @@ button { font: inherit; color: inherit; }
 .rule.bad s { color: var(--red-ink); }
 
 .foot { display: flex; align-items: center; gap: 14px; padding: 16px 26px 22px; border-top: 1px solid var(--line); }
-.foot .note { font-size: 12px; color: var(--ink-3); max-width: 380px; }
+.foot .note { font-size: 12px; color: var(--ink-2); max-width: 380px; }
 .go { margin-left: auto; border: 0; border-radius: 14px; padding: 13px 22px; font-size: 14px; font-weight: 650; cursor: pointer; background: var(--ink); color: #fff; box-shadow: 0 2px 12px rgba(0,0,0,.22); transition: transform .2s var(--ease); }
 .go:active { transform: scale(.98); }
 .go.soft { background: var(--hover); color: var(--ink); box-shadow: none; }

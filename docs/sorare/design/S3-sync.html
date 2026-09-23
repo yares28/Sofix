@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="design-check" content="no-images: a sync panel has no card art — the numbers are the subject">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sorare sync</title>
 <style>
@@ -76,35 +77,36 @@ code { font: 12px ui-monospace, "SF Mono", Menlo, Consolas, monospace; backgroun
 .clocks { position: relative; display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 1px; background: var(--line); border-top: 1px solid var(--line); }
 .clock { background: var(--surface); padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 6px; opacity: 0; transform: translateY(8px); animation: rise .5s var(--ease) forwards; animation-delay: calc(var(--i) * 45ms + .15s); }
 @keyframes rise { to { opacity: 1; transform: none; } }
-.clock .k { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-3); }
+.clock .k { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); }
 .clock .k s { width: 7px; height: 7px; border-radius: 50%; background: var(--low); flex: none; }
 .clock .k s.fast { background: var(--good); }
 .clock .k s.live { background: var(--amber); }
 .clock b { font-size: 27px; font-weight: 650; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
 .clock b em { font-style: normal; font-size: 13px; font-weight: 500; color: var(--ink-2); letter-spacing: -0.01em; margin-left: 4px; }
-.clock span.n { font-size: 12px; color: var(--ink-3); }
+.clock span.n { font-size: 12px; color: var(--ink-2); }
 .clock.key { background: linear-gradient(180deg, #fffcf2, #fff); }
 
-.stats { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; padding: 14px 26px 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-3); }
+.stats { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; padding: 14px 26px 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-2); }
 .stats b { color: var(--ink-2); font-weight: 650; }
 
 /* ── play head ──────────────────────────────────────────────────────────── */
 .sec { display: flex; align-items: baseline; gap: 12px; margin: 34px 4px 14px; }
-.sec h2 { margin: 0; font-size: 13px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-3); }
-.sec span { font-size: 12px; color: var(--ink-3); }
+.sec h2 { margin: 0; font-size: 13px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); }
+.sec span { font-size: 12px; color: var(--ink-2); }
 
 .play { background: var(--surface); border-radius: 28px; box-shadow: var(--shadow-card); padding: 22px 26px 26px; }
 .alert { display: flex; align-items: center; gap: 13px; padding: 13px 14px 13px 16px; border-radius: 18px; background: var(--tone-bg); color: var(--tone-ink); margin-bottom: 20px; font-size: 13px; font-weight: 550; }
 .alert b { font-size: 14px; font-weight: 650; display: block; }
 .alert .go { margin-left: auto; background: var(--ink); color: #fff; border: 0; border-radius: 12px; padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.18); }
-.eyebrow { margin: 0 0 6px; font-size: 11px; font-weight: 650; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); display: flex; align-items: center; gap: 8px; }
+.eyebrow { margin: 0 0 6px; font-size: 11px; font-weight: 650; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-2); display: flex; align-items: center; gap: 8px; }
 .eyebrow i { width: 12px; height: 16px; border-radius: 2px; background: var(--f-lim); }
 .play h1 { margin: 0; font-size: 42px; font-weight: 700; letter-spacing: -0.035em; }
 .meta { margin: 8px 0 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); }
 .meta .sep { width: 3px; height: 3px; border-radius: 50%; background: var(--ink-3); }
 .chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 650; background: var(--tone-bg); color: var(--tone-ink); }
 .plans { margin-top: 20px; display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; transition: opacity .35s var(--ease), filter .35s var(--ease); }
-.plans.off { opacity: .4; filter: grayscale(.9); }
+/* desaturated, never faded: opacity drops muted text under 4.5:1, and "still readable" has to be true */
+.plans.off { filter: grayscale(1); }
 .plan { border-radius: 18px; padding: 14px 16px 15px; background: var(--hover); display: flex; flex-direction: column; gap: 8px; }
 .plan.best { background: linear-gradient(180deg, #fffcf2, #fff); box-shadow: var(--shadow-card); }
 .plan .r { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 650; color: var(--ink-2); }
@@ -120,8 +122,8 @@ code { font: 12px ui-monospace, "SF Mono", Menlo, Consolas, monospace; backgroun
 details { margin-top: 12px; background: var(--surface); border-radius: 22px; box-shadow: var(--shadow-card); overflow: hidden; }
 summary { list-style: none; cursor: pointer; padding: 16px 22px; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 650; }
 summary::-webkit-details-marker { display: none; }
-summary u { text-decoration: none; color: var(--ink-3); font-weight: 500; }
-summary svg { margin-left: auto; color: var(--ink-3); transition: transform .3s var(--ease); }
+summary u { text-decoration: none; color: var(--ink-2); font-weight: 500; }
+summary svg { margin-left: auto; color: var(--ink-2); transition: transform .3s var(--ease); }
 details[open] summary svg { transform: rotate(90deg); }
 details ul { margin: 0; padding: 0 22px 18px; list-style: none; }
 details li { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-top: 1px solid var(--line); font-size: 14px; }

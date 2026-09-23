@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="design-check" content="record">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Always on</title>
 <style>
@@ -265,7 +266,7 @@ h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spa
 .preview-bar .seg { display: inline-flex; padding: 3px; border-radius: 999px; background: rgba(255,255,255,.12); }
 .preview-bar button { border: 0; background: none; color: rgba(255,255,255,.75); padding: 5px 12px; border-radius: 999px; cursor: pointer; font-size: 12px; font-weight: 600; }
 .preview-bar button[aria-pressed="true"] { background: #fff; color: var(--ink); }
-.note { margin: 36px auto 90px; max-width: 1240px; padding: 0 20px; font-size: 12px; color: var(--ink-3); }
+.note { margin: 36px auto 90px; max-width: 1240px; padding: 0 20px; font-size: 12px; color: var(--ink-2); }
 
 @media (max-width: 1100px) {
   .always { grid-template-columns: 1fr; }
@@ -274,6 +275,8 @@ h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spa
   .getapp, .ext { grid-template-columns: 1fr; }
 }
 @media (max-width: 700px) {
+  /* 340px of phone mock-up plus 24px of padding each side does not fit a 390px screen */
+  .stage { padding: 22px 10px 18px; }
   main { padding: 20px 16px 48px; }
   .links { display: none; }
   h1 { font-size: 32px; }

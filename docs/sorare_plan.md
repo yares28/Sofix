@@ -383,11 +383,21 @@ selectors, two numbers, and the Sorare side stuck on whichever gameweek the job 
 3. **Looking ahead is cheap.** Counting which cards have a game in the next three gameweeks took **5 calls**:
    3 cards play in GW18, **14 in GW19**, 3 in GW20. Planning them adds roughly 10–20 calls each.
 
+4. **A season is 43 weeks, and Sorare only ever shows eight of them.** LaLiga's 38 rounds run Aug 2026 → May
+   2027; Sorare publishes a rolling window (GW13–GW20 today). So most weeks of the year carry a LaLiga round and
+   no game week, and the selector has to say "Sorare opens this week nearer the time" rather than hide them.
+5. **The lineups the owner actually entered are not readable from the public API.** `User.boardsLineups` returns
+   one CAREER lineup and none in SQUAD, so a past week can only show *our* replay until the extension can read
+   his own (S3's private half). Worth being blunt about: the "500" the timeline shows against GW15 is what our
+   plan would have won, not what he won, and the row now says so.
+
 **Design:** `docs/sorare/design/week-selector.html`.
 - One control in the bar, on every page: a pill with the week's state dot, its number and its dates.
-- It opens a menu of weeks, each row carrying the LaLiga round (or "no LaLiga"), how many of your cards play,
-  and what the week is worth — essence won for a week that is done, the expected essence and plan count for the
-  one being planned, and the number of cards that play for a week still ahead.
+- It opens on a **month rail** — Aug through May — with the weeks of that month underneath, so a 43-week season
+  stays one screen and any week is two clicks away. A dot marks the month you are really in, and "Now" jumps back.
+- Each row carries whichever numbers the week has (`GW15 · MD7`, `GW17` alone, `MD18` alone), its dates, how many
+  of your cards play, and what it is worth — the expected essence for the week being planned, our plan's replay
+  for one that is done, the cards that play for one still ahead, and "Sorare opens later" beyond its window.
 - Picking a week moves every page at once: Fixtures, Difficulty, Table, Play and the last gameweek.
 
 **Build — planned**

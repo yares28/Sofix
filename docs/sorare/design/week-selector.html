@@ -11,7 +11,6 @@
   --line: #e8e8ed; --hover: #f5f5f7; --track: #ececf0; --accent: #0071e3;
   --good: #1f7a4f; --good-2: #5cc58d; --good-track: #d3f2e1; --good-ink: #11633b;
   --low: #aeaeb2; --low-track: #f1f1f4;
-  --amber: #ff9f0a; --amber-bg: #fff4e0; --amber-ink: #8a5300;
   --f-lim: linear-gradient(145deg, #fff3c4 0%, #f7c948 38%, #d99a0b 62%, #ffe08a 100%);
   --brand: linear-gradient(135deg, #1f7a4f, #5cc58d);
   --shadow-card: 0 0 0 1px rgba(0,0,0,.04), 0 2px 4px rgba(0,0,0,.02), 0 12px 32px rgba(0,0,0,.05);
@@ -25,7 +24,6 @@ html, body { margin: 0; background: var(--bg); color: var(--ink); }
 body { font: 14px/1.45 var(--font); letter-spacing: -0.01em; -webkit-font-smoothing: antialiased; }
 button { font: inherit; color: inherit; }
 
-/* ── the bar ───────────────────────────────────────────────────────────── */
 .nav { position: sticky; top: 0; z-index: 40; background: rgba(251,251,253,.82); backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid rgba(0,0,0,.06); }
 .nav-in { max-width: 1120px; margin: 0 auto; height: 56px; padding: 0 20px; display: flex; align-items: center; gap: 24px; }
 .brand { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 16px; letter-spacing: -0.02em; }
@@ -34,65 +32,65 @@ button { font: inherit; color: inherit; }
 .tabs a { color: var(--ink-2); text-decoration: none; font-size: 13px; font-weight: 550; }
 .tabs a[aria-current] { color: var(--ink); }
 
-/* the one control: which week the whole app is showing */
+/* the one control */
 .pick { margin-left: auto; position: relative; }
-.trigger {
-  display: inline-flex; align-items: center; gap: 10px; border: 0; cursor: pointer; padding: 7px 12px 7px 11px;
-  border-radius: 13px; background: var(--surface); box-shadow: var(--shadow-card); transition: transform .2s var(--ease);
-}
+.trigger { display: inline-flex; align-items: center; gap: 10px; border: 0; cursor: pointer; padding: 7px 12px 7px 11px; border-radius: 13px; background: var(--surface); box-shadow: var(--shadow-card); transition: transform .2s var(--ease); }
 .trigger:hover { transform: translateY(-1px); }
-.trigger .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.trigger .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--low); }
+.trigger .dot.next { background: var(--accent); }
 .trigger .dot.live { background: var(--good); animation: beat 2.4s var(--ease) infinite; }
 .trigger b { font-size: 14px; font-weight: 650; letter-spacing: -0.02em; }
 .trigger span { font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.trigger svg { color: var(--ink-3); transition: transform .3s var(--ease); }
+.trigger svg { color: var(--ink-2); transition: transform .3s var(--ease); }
 .pick.open .trigger svg { transform: rotate(180deg); }
 @keyframes beat { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
 
-/* ── the menu ──────────────────────────────────────────────────────────── */
+/* the menu: a month at a time, so a 38-round season stays one screen */
 .menu {
-  position: absolute; right: 0; top: calc(100% + 10px); width: 460px; max-width: calc(100vw - 32px);
-  background: var(--surface); border-radius: 22px; box-shadow: var(--shadow-pop); padding: 8px; z-index: 50;
+  position: absolute; right: 0; top: calc(100% + 10px); width: 490px; max-width: calc(100vw - 32px);
+  background: var(--surface); border-radius: 22px; box-shadow: var(--shadow-pop); padding: 10px; z-index: 50;
   transform-origin: top right; opacity: 0; transform: scale(.96) translateY(-6px); pointer-events: none;
   transition: opacity .22s var(--ease), transform .22s var(--ease);
 }
 .pick.open .menu { opacity: 1; transform: none; pointer-events: auto; }
-.menu .hd { display: flex; align-items: baseline; padding: 8px 12px 10px; font-size: 11px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-2); }
-.menu .hd span { margin-left: auto; text-transform: none; letter-spacing: 0; font-weight: 500; }
-.week {
-  width: 100%; display: grid; grid-template-columns: 14px 64px minmax(0,1fr) auto; align-items: center; gap: 12px;
-  border: 0; background: none; cursor: pointer; text-align: left; padding: 10px 12px; border-radius: 15px;
-  opacity: 0; transform: translateY(5px); animation: rise .35s var(--ease) forwards;
-}
-.pick.open .week { animation-delay: calc(var(--i) * 28ms + 60ms); }
-@keyframes rise { to { opacity: 1; transform: none; } }
+.months { display: flex; gap: 2px; padding: 2px; background: var(--track); border-radius: 13px; overflow-x: auto; scrollbar-width: none; }
+.months::-webkit-scrollbar { display: none; }
+.months button { flex: none; border: 0; background: none; cursor: pointer; padding: 7px 11px; border-radius: 11px; font-size: 12px; font-weight: 650; color: var(--ink-seg); white-space: nowrap; transition: background .2s var(--ease), color .2s var(--ease); }
+.months button[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 10px rgba(0,0,0,.07); }
+.months button s { text-decoration: none; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); margin-left: 5px; vertical-align: 1px; }
+
+.rows { margin-top: 6px; max-height: 322px; overflow-y: auto; scrollbar-width: thin; }
+.week { width: 100%; display: grid; grid-template-columns: 12px minmax(76px, auto) minmax(0,1fr) auto; align-items: center; gap: 11px; border: 0; background: none; cursor: pointer; text-align: left; padding: 9px 11px; border-radius: 14px; opacity: 0; animation: rise .3s var(--ease) forwards; animation-delay: calc(var(--i) * 26ms + 40ms); }
+@keyframes rise { from { transform: translateY(5px); } to { opacity: 1; transform: none; } }
 .week:hover { background: var(--hover); }
 .week[aria-checked="true"] { background: var(--ink); }
 .week[aria-checked="true"] .n, .week[aria-checked="true"] .val b { color: #fff; }
-.week[aria-checked="true"] .d, .week[aria-checked="true"] .val span, .week[aria-checked="true"] .tag:not(.foil) { color: rgba(255,255,255,.72); }
-.week[aria-checked="true"] .tag:not(.foil) { background: rgba(255,255,255,.14); }
-.week[aria-checked="true"] .tag.foil { color: #4a3200; } /* the foil stays gold on the dark row */
+.week[aria-checked="true"] .n em, .week[aria-checked="true"] .d, .week[aria-checked="true"] .val span { color: rgba(255,255,255,.72); }
+.week[aria-checked="true"] .tag:not(.foil) { background: rgba(255,255,255,.14); color: rgba(255,255,255,.72); }
 .week s { text-decoration: none; width: 8px; height: 8px; border-radius: 50%; background: var(--low); justify-self: center; }
-.week s.done { background: var(--low); }
 .week s.live { background: var(--good); animation: beat 2.4s var(--ease) infinite; }
 .week s.next { background: var(--accent); }
-.week .n { font-size: 14px; font-weight: 650; letter-spacing: -0.02em; }
-.week .d { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.week s.later { background: #fff; box-shadow: inset 0 0 0 1.5px var(--low); }
+.week .n { font-size: 14px; font-weight: 650; letter-spacing: -0.02em; white-space: nowrap; }
+.week .n em { font-style: normal; font-weight: 550; color: var(--ink-2); }
 .week .mid { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.week .d { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .tag { font-size: 11px; font-weight: 650; padding: 3px 8px; border-radius: 999px; background: var(--hover); color: var(--ink-2); white-space: nowrap; }
-.tag.none { color: var(--ink-2); }
 .tag.foil { background: var(--f-lim); color: #4a3200; }
 .val { text-align: right; display: flex; flex-direction: column; gap: 1px; }
-.val b { font-size: 14px; font-weight: 650; font-variant-numeric: tabular-nums; }
-.val span { font-size: 11px; color: var(--ink-2); }
+.val b { font-size: 14px; font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.val span { font-size: 11px; color: var(--ink-2); white-space: nowrap; }
+.foot { display: flex; align-items: center; gap: 8px; padding: 9px 11px 3px; }
+.foot .now { border: 0; cursor: pointer; border-radius: 10px; padding: 7px 13px; font-size: 12px; font-weight: 650; background: var(--ink); color: #fff; }
+.foot span { font-size: 11px; color: var(--ink-2); margin-left: auto; }
 
-/* ── what changes behind it ────────────────────────────────────────────── */
+/* what changes behind it */
 .page { max-width: 1120px; margin: 0 auto; padding: 26px 20px 80px; }
-.lead { display: flex; align-items: flex-end; gap: 20px; flex-wrap: wrap; margin-bottom: 22px; }
+.lead { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; margin-bottom: 20px; }
 .lead h1 { margin: 0; font-size: 52px; line-height: 1; font-weight: 700; letter-spacing: -0.04em; }
 .lead p { margin: 0; font-size: 14px; color: var(--ink-2); }
 .grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; }
-.card { background: var(--surface); border-radius: 24px; box-shadow: var(--shadow-card); padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; min-height: 148px; }
+.card { background: var(--surface); border-radius: 24px; box-shadow: var(--shadow-card); padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; min-height: 146px; }
 .card .t { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); }
 .card .t em { font-style: normal; margin-left: auto; text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--ink-2); }
 .card .big { display: flex; align-items: baseline; gap: 8px; }
@@ -100,13 +98,14 @@ button { font: inherit; color: inherit; }
 .card .big i { font-style: normal; font-size: 13px; color: var(--ink-2); }
 .card .sub { font-size: 12px; color: var(--ink-2); }
 .card.empty { background: repeating-linear-gradient(135deg, #fafafc, #fafafc 8px, #f5f5f8 8px, #f5f5f8 16px); box-shadow: inset 0 0 0 1px var(--line); }
-.card.empty .big b { color: var(--ink-3); }
-.foil { width: 13px; height: 18px; border-radius: 2px; background: var(--f-lim); box-shadow: inset 0 0 0 1px rgba(255,255,255,.6); }
+/* the little card icon, scoped: `.tag.foil` is a pill and must not inherit these fixed sizes */
+.card .foil { display: inline-block; width: 13px; height: 18px; border-radius: 2px; background: var(--f-lim); box-shadow: inset 0 0 0 1px rgba(255,255,255,.6); }
 
 @media (max-width: 760px) {
   .tabs { display: none; }
   .nav-in { padding: 0 14px; }
   .menu { width: calc(100vw - 28px); right: -6px; }
+  .rows { max-height: 46vh; }
   .grid { grid-template-columns: 1fr; }
   .lead h1 { font-size: 40px; }
   .page { padding: 20px 14px 60px; }
@@ -119,93 +118,122 @@ button { font: inherit; color: inherit; }
 <nav class="nav">
   <div class="nav-in">
     <span class="brand"><i></i> Sofix</span>
-    <div class="tabs">
-      <a href="#" aria-current="page">Play</a><a href="#">Fixtures</a><a href="#">Difficulty</a><a href="#">Table</a>
-    </div>
+    <div class="tabs"><a href="#" aria-current="page">Play</a><a href="#">Fixtures</a><a href="#">Difficulty</a><a href="#">Table</a></div>
     <div class="pick open" id="pick">
-      <button class="trigger" type="button" id="trigger" aria-expanded="true" aria-haspopup="menu">
-        <span class="dot" id="tdot"></span>
-        <b id="tnum">GW17</b>
-        <span id="tdate">25–29 Sep</span>
+      <button class="trigger" type="button" id="trigger" aria-expanded="true" aria-haspopup="true">
+        <span class="dot next" id="tdot"></span><b id="tnum">GW17</b><span id="tdate">25–29 Sep</span>
         <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="m2 4.5 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <div class="menu" id="menu" role="menu" aria-label="Week"></div>
+      <div class="menu" id="menu">
+        <div class="months" id="months" role="group" aria-label="Month"></div>
+        <div class="rows" id="rows" role="radiogroup" aria-label="Week"></div>
+        <div class="foot"><button class="now" type="button" id="now">Now</button><span id="count"></span></div>
+      </div>
     </div>
   </div>
 </nav>
 
 <main class="page">
-  <div class="lead">
-    <h1 id="h1">Gameweek 17</h1>
-    <p id="lead-sub"></p>
-  </div>
+  <div class="lead"><h1 id="h1">Gameweek 17</h1><p id="sub"></p></div>
   <div class="grid" id="cards"></div>
 </main>
 
 <script>
 const $ = (s) => document.querySelector(s);
+const MONTH = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-// Real: Sorare's weeks, the LaLiga round inside each, and how many of the owner's 87 playable cards have a game.
-const WEEKS = [
-  { gw: 13, from: "11 Sep", to: "15 Sep", state: "done", laliga: 5, cards: 0, won: 0 },
-  { gw: 14, from: "15 Sep", to: "18 Sep", state: "done", laliga: 6, cards: 0, won: 0 },
-  { gw: 15, from: "18 Sep", to: "22 Sep", state: "done", laliga: 7, cards: 87, won: 500 },
-  { gw: 16, from: "22 Sep", to: "25 Sep", state: "live", laliga: null, cards: 0 },
-  { gw: 17, from: "25 Sep", to: "29 Sep", state: "next", laliga: null, cards: 13, essence: 55, plans: 4 },
-  { gw: 18, from: "29 Sep", to: "2 Oct", state: "later", laliga: null, cards: 3 },
-  { gw: 19, from: "2 Oct", to: "6 Oct", state: "later", laliga: null, cards: 14 },
-  { gw: 20, from: "6 Oct", to: "9 Oct", state: "later", laliga: null, cards: 3 },
+/* Real: LaLiga's 38 rounds (Aug 2026 → May 2027) and the eight game weeks Sorare has published so far.
+   Most weeks carry only one of the two. */
+const ROUNDS = [[1,"2026-08-15","2026-08-19",1],[2,"2026-08-20","2026-08-24",1],[3,"2026-08-28","2026-08-31",1],[4,"2026-09-04","2026-09-07",1],[5,"2026-09-11","2026-09-14",1],[6,"2026-09-15","2026-09-17",1],[7,"2026-09-18","2026-09-20",1],[8,"2026-10-09","2026-10-12",0],[9,"2026-10-16","2026-10-19",0],[10,"2026-10-23","2026-10-26",0],[11,"2026-11-01","2026-11-01",0],[12,"2026-11-08","2026-11-08",0],[13,"2026-11-22","2026-11-22",0],[14,"2026-11-29","2026-11-29",0],[15,"2026-12-06","2026-12-06",0],[16,"2026-12-13","2026-12-13",0],[17,"2026-12-20","2026-12-20",0],[18,"2027-01-03","2027-01-03",0],[19,"2027-01-10","2027-01-10",0],[20,"2027-01-17","2027-01-17",0],[21,"2027-01-24","2027-01-24",0],[22,"2027-01-31","2027-01-31",0],[23,"2027-02-07","2027-02-07",0],[24,"2027-02-14","2027-02-14",0],[25,"2027-02-21","2027-02-21",0],[26,"2027-02-28","2027-02-28",0],[27,"2027-03-07","2027-03-07",0],[28,"2027-03-14","2027-03-14",0],[29,"2027-03-21","2027-03-21",0],[30,"2027-04-04","2027-04-04",0],[31,"2027-04-11","2027-04-11",0],[32,"2027-04-18","2027-04-18",0],[33,"2027-04-21","2027-04-21",0],[34,"2027-05-02","2027-05-02",0],[35,"2027-05-09","2027-05-09",0],[36,"2027-05-16","2027-05-16",0],[37,"2027-05-23","2027-05-23",0],[38,"2027-05-30","2027-05-30",0]];
+const SORARE = [
+  { gw: 13, from: "2026-09-11", to: "2026-09-15", state: "done", cards: 0 },
+  { gw: 14, from: "2026-09-15", to: "2026-09-18", state: "done", cards: 0 },
+  { gw: 15, from: "2026-09-18", to: "2026-09-22", state: "done", cards: 87, replay: 500 },
+  { gw: 16, from: "2026-09-22", to: "2026-09-25", state: "live", cards: 0 },
+  { gw: 17, from: "2026-09-25", to: "2026-09-29", state: "next", cards: 13, essence: 55, plans: 4 },
+  { gw: 18, from: "2026-09-29", to: "2026-10-02", state: "later", cards: 3 },
+  { gw: 19, from: "2026-10-02", to: "2026-10-06", state: "later", cards: 14 },
+  { gw: 20, from: "2026-10-06", to: "2026-10-09", state: "later", cards: 3 },
 ];
 
-let at = 4;
+const day = (iso) => new Date(`${iso}T12:00:00Z`);
+const span = (a, b) => {
+  const x = day(a), y = day(b);
+  const same = x.getUTCMonth() === y.getUTCMonth();
+  return a === b ? `${x.getUTCDate()} ${MONTH[x.getUTCMonth()]}`
+    : `${x.getUTCDate()}${same ? "" : ` ${MONTH[x.getUTCMonth()]}`}–${y.getUTCDate()} ${MONTH[y.getUTCMonth()]}`;
+};
 
+/* One entry per week of the season: the LaLiga round, the Sorare game week, or both. */
+const WEEKS = [];
+const used = new Set();
+for (const [md, from, to, finished] of ROUNDS) {
+  // half-open [from, to): a Sorare week ends where the next begins, so 15 Sep belongs to GW14, not GW13
+  const s = SORARE.find((w) => day(from) >= day(w.from) && day(from) < day(w.to));
+  if (s) used.add(s.gw);
+  WEEKS.push({ md, from, to, finished: !!finished, ...(s ?? {}) });
+}
+for (const s of SORARE) if (!used.has(s.gw)) WEEKS.push({ md: null, finished: s.state === "done", ...s });
+WEEKS.sort((a, b) => day(a.from) - day(b.from));
+WEEKS.forEach((w, i) => (w.i = i));
+
+const key = (w) => `${day(w.from).getUTCFullYear()}-${day(w.from).getUTCMonth()}`;
+const MONTHS = [...new Set(WEEKS.map(key))];
+const NOW = WEEKS.findIndex((w) => w.state === "next");
+let at = NOW;
+let month = MONTHS.indexOf(key(WEEKS[at]));
+
+const state = (w) => w.state ?? (w.finished ? "done" : "later");
 function value(w) {
-  if (w.state === "done") return w.won ? [`${w.won}`, "essence won"] : ["—", "nothing entered"];
-  if (w.state === "live") return ["live", "locked"];
   if (w.essence) return [`≈${w.essence}`, `${w.plans} plans`];
-  return [String(w.cards), w.cards === 1 ? "card plays" : "cards play"];
+  if (w.replay) return [String(w.replay), "our plan's replay"];
+  if (state(w) === "live") return ["live", "locked"];
+  if (w.cards) return [String(w.cards), w.cards === 1 ? "card plays" : "cards play"];
+  if (w.gw) return ["—", "no cards play"];
+  return ["—", "Sorare opens later"];
 }
 
 function drawMenu() {
-  $("#menu").innerHTML =
-    `<div class="hd">Week<span>LaLiga · your cards</span></div>` +
-    WEEKS.map((w, i) => {
-      const [big, small] = value(w);
-      const laliga = w.laliga ? `<span class="tag">MD${w.laliga}</span>` : `<span class="tag none">no LaLiga</span>`;
-      const mine = w.cards ? `<span class="tag foil">${w.cards} cards</span>` : "";
-      return `<button class="week" role="menuitemradio" data-i="${i}" style="--i:${i}" aria-checked="${i === at}">
-        <s class="${w.state}"></s>
-        <span><span class="n">GW${w.gw}</span></span>
-        <span class="mid"><span class="d">${w.from}–${w.to}</span>${laliga}${mine}</span>
-        <span class="val"><b>${big}</b><span>${small}</span></span>
-      </button>`;
-    }).join("");
+  $("#months").innerHTML = MONTHS.map((k, i) => {
+    const [y, m] = k.split("-").map(Number);
+    return `<button type="button" data-m="${i}" aria-pressed="${i === month}">${MONTH[m]}${k === key(WEEKS[NOW]) ? "<s></s>" : ""}</button>`;
+  }).join("");
+
+  const shown = WEEKS.filter((w) => key(w) === MONTHS[month]);
+  $("#rows").innerHTML = shown.map((w, i) => {
+    const [big, small] = value(w);
+    const name = w.gw ? `GW${w.gw}${w.md ? ` <em>· MD${w.md}</em>` : ""}` : `MD${w.md}`;
+    const mine = w.cards ? `<span class="tag foil">${w.cards} cards</span>` : "";
+    return `<button class="week" role="radio" data-i="${w.i}" style="--i:${i}" aria-checked="${w.i === at}">
+      <s class="${state(w)}"></s>
+      <span class="n">${name}</span>
+      <span class="mid"><span class="d">${span(w.from, w.to)}</span>${mine}</span>
+      <span class="val"><b>${big}</b><span>${small}</span></span></button>`;
+  }).join("");
+  $("#count").textContent = `${WEEKS.length} weeks · ${SORARE.length} open on Sorare`;
   document.querySelectorAll(".week").forEach((b) => b.addEventListener("click", () => { at = Number(b.dataset.i); draw(); }));
+  // the week you are on has to be the one you see when the list opens
+  document.querySelector('.week[aria-checked="true"]')?.scrollIntoView({ block: "nearest" });
+  document.querySelectorAll(".months button").forEach((b) => b.addEventListener("click", () => { month = Number(b.dataset.m); drawMenu(); }));
 }
 
 function draw() {
   const w = WEEKS[at];
-  $("#tnum").textContent = `GW${w.gw}`;
-  $("#tdate").textContent = `${w.from}–${w.to}`;
-  $("#tdot").className = `dot ${w.state === "live" ? "live" : ""}`;
-  $("#h1").textContent = `Gameweek ${w.gw}`;
-  $("#lead-sub").textContent = `${w.from}–${w.to} · ${w.laliga ? `LaLiga matchday ${w.laliga}` : "no LaLiga round this week"}`;
+  $("#tnum").textContent = w.gw ? `GW${w.gw}` : `MD${w.md}`;
+  $("#tdate").textContent = span(w.from, w.to);
+  $("#tdot").className = `dot ${state(w)}`;
+  $("#h1").textContent = w.gw ? `Gameweek ${w.gw}` : `Matchday ${w.md}`;
+  $("#sub").textContent = `${span(w.from, w.to)} · ${w.md ? `LaLiga matchday ${w.md}` : "no LaLiga round this week"}${w.gw ? "" : " · Sorare opens this week nearer the time"}`;
 
   const play = w.essence
-    ? `<div class="card"><span class="t"><span class="foil"></span> Play<em>${w.plans} plans</em></span>
-         <span class="big"><b>≈${w.essence}</b><i>essence</i></span>
-         <span class="sub">${w.cards} of your cards play · 16% chance of a reward</span></div>`
-    : w.state === "done"
-      ? `<div class="card"><span class="t"><span class="foil"></span> Play<em>played</em></span>
-           <span class="big"><b>${w.won ?? 0}</b><i>essence won</i></span>
-           <span class="sub">${w.cards ? `${w.cards} cards entered` : "nothing entered"}</span></div>`
-      : `<div class="card${w.cards ? "" : " empty"}"><span class="t"><span class="foil"></span> Play<em>${w.state === "live" ? "locked" : "ahead"}</em></span>
-           <span class="big"><b>${w.cards}</b><i>${w.cards === 1 ? "card plays" : "cards play"}</i></span>
-           <span class="sub">${w.cards ? "a plan from form until Sorare publishes" : "none of your cards play"}</span></div>`;
+    ? `<div class="card"><span class="t"><span class="foil"></span> Play<em>${w.plans} plans</em></span><span class="big"><b>≈${w.essence}</b><i>essence</i></span><span class="sub">${w.cards} of your cards play</span></div>`
+    : w.replay
+      ? `<div class="card"><span class="t"><span class="foil"></span> Play<em>replayed</em></span><span class="big"><b>${w.replay}</b><i>essence</i></span><span class="sub">what our plan would have won, not what you entered</span></div>`
+      : `<div class="card${w.cards ? "" : " empty"}"><span class="t"><span class="foil"></span> Play<em>${w.gw ? state(w) : "—"}</em></span><span class="big"><b>${w.cards || "—"}</b><i>${w.cards ? "cards play" : ""}</i></span><span class="sub">${w.cards ? "a plan from form until Sorare publishes" : w.gw ? "none of your cards play" : "Sorare opens this week nearer the time"}</span></div>`;
 
-  const board = w.laliga
-    ? `<div class="card"><span class="t">Fixtures<em>MD${w.laliga}</em></span><span class="big"><b>10</b><i>matches</i></span><span class="sub">difficulty, table and the grid all follow this week</span></div>
-       <div class="card"><span class="t">Table<em>after MD${w.laliga}</em></span><span class="big"><b>20</b><i>clubs</i></span><span class="sub">projected from here to the end of the season</span></div>`
+  const board = w.md
+    ? `<div class="card"><span class="t">Fixtures<em>MD${w.md}</em></span><span class="big"><b>10</b><i>matches</i></span><span class="sub">difficulty, table and the grid follow this week</span></div>
+       <div class="card"><span class="t">Table<em>${w.finished ? `after MD${w.md}` : `to MD${w.md}`}</em></span><span class="big"><b>20</b><i>clubs</i></span><span class="sub">${w.finished ? "as it stood" : "projected from here"}</span></div>`
     : `<div class="card empty"><span class="t">Fixtures<em>—</em></span><span class="big"><b>0</b><i>matches</i></span><span class="sub">no LaLiga round falls in this week</span></div>
        <div class="card empty"><span class="t">Table<em>—</em></span><span class="big"><b>—</b><i></i></span><span class="sub">unchanged while LaLiga is away</span></div>`;
 
@@ -217,6 +245,7 @@ $("#trigger").addEventListener("click", () => {
   const open = $("#pick").classList.toggle("open");
   $("#trigger").setAttribute("aria-expanded", String(open));
 });
+$("#now").addEventListener("click", () => { at = NOW; month = MONTHS.indexOf(key(WEEKS[at])); draw(); });
 draw();
 </script>
 </body>

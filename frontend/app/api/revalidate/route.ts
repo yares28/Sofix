@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { revalidateTag } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
+import { SORARE_TAG } from "../../../lib/play";
 import { GRID_TAG } from "../../../lib/refresh";
 import { SYSTEM_TAG } from "../../../lib/system";
 
@@ -27,5 +28,6 @@ export async function POST(request: NextRequest) {
   }
   revalidateTag(GRID_TAG);
   revalidateTag(SYSTEM_TAG);
+  revalidateTag(SORARE_TAG);
   return NextResponse.json({ revalidated: true }, { headers: { "Cache-Control": "no-store" } });
 }

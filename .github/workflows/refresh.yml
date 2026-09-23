@@ -39,6 +39,9 @@ jobs:
       POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
       FOOTBALL_DATA_ORG_TOKEN: ${{ secrets.FOOTBALL_DATA_ORG_TOKEN }}
       ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }} # optional; the odds step is skipped without it (and throttled to 6 h)
+      # Sorare's public API (read-only). Without it the Sorare step is skipped.
+      SORARE_API_KEY: ${{ secrets.SORARE_API_KEY }}
+      SORARE_USER: ${{ vars.SORARE_USER || 'yares' }}
       # After publishing, the job pings {APP_URL}/api/revalidate; skipped when these are missing.
       APP_URL: ${{ secrets.APP_URL }}
       REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}

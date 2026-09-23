@@ -1,0 +1,2591 @@
+{
+ "success": true,
+ "data": {
+  "version": 2,
+  "generatedAt": "2026-09-23T06:00:00+00:00",
+  "user": "e2e-manager",
+  "timeline": [
+   {
+    "id": "13",
+    "slug": "football-28-aug-1-sep-2026",
+    "number": 13,
+    "start": "2026-08-28T17:00:00+00:00",
+    "end": "2026-09-01T21:00:00+00:00",
+    "lock": "2026-08-28T17:00:00+00:00",
+    "status": "done",
+    "won": 0
+   },
+   {
+    "id": "14",
+    "slug": "football-4-8-sep-2026",
+    "number": 14,
+    "start": "2026-09-04T17:00:00+00:00",
+    "end": "2026-09-08T21:00:00+00:00",
+    "lock": "2026-09-04T17:00:00+00:00",
+    "status": "done",
+    "won": 500
+   },
+   {
+    "id": "15",
+    "slug": "football-11-15-sep-2026",
+    "number": 15,
+    "start": "2026-09-11T17:00:00+00:00",
+    "end": "2026-09-15T21:00:00+00:00",
+    "lock": "2026-09-11T17:00:00+00:00",
+    "status": "done",
+    "won": 250
+   },
+   {
+    "id": "16",
+    "slug": "football-18-22-sep-2026",
+    "number": 16,
+    "start": "2026-09-18T17:00:00+00:00",
+    "end": "2026-09-22T21:00:00+00:00",
+    "lock": "2026-09-18T17:00:00+00:00",
+    "status": "done",
+    "won": 0
+   },
+   {
+    "id": "17",
+    "slug": "football-25-29-sep-2026",
+    "number": 17,
+    "start": "2026-09-25T17:00:00+00:00",
+    "end": "2026-09-29T21:00:00+00:00",
+    "lock": "2026-09-25T17:00:00+00:00",
+    "status": "next",
+    "playing": 13
+   },
+   {
+    "id": "18",
+    "slug": "football-2-6-oct-2026",
+    "number": 18,
+    "start": "2026-10-02T17:00:00+00:00",
+    "end": "2026-10-06T21:00:00+00:00",
+    "lock": "2026-10-02T17:00:00+00:00",
+    "status": "later"
+   }
+  ],
+  "next": {
+   "gameweek": {
+    "id": "17",
+    "slug": "football-25-29-sep-2026",
+    "number": 17,
+    "name": "Game Week 17",
+    "start": "2026-09-25T17:00:00+00:00",
+    "end": "2026-09-29T21:00:00+00:00",
+    "lock": "2026-09-25T17:00:00+00:00"
+   },
+   "state": "ready",
+   "played": false,
+   "projectionsAt": "2026-09-24T10:00:00+00:00",
+   "source": "sorare",
+   "playing": {
+    "cards": 13,
+    "players": [
+     {
+      "name": "Unai Simón",
+      "pos": "GK",
+      "avatar": "https://assets.sorare.com/player/football/unai-simon/avatar.png",
+      "club": "Athletic Club",
+      "inSeason": true,
+      "cards": 1,
+      "games": [
+       {
+        "kickoff": "2026-09-26T16:30:00+00:00",
+        "competition": "LaLiga",
+        "opponent": "Getafe CF",
+        "opponentCrest": "https://assets.sorare.com/club/getafe-cf/logo.png",
+        "venue": "H"
+       }
+      ]
+     },
+     {
+      "name": "Pau Cubarsí",
+      "pos": "DEF",
+      "avatar": "https://assets.sorare.com/player/football/pau-cubarsi/avatar.png",
+      "club": "FC Barcelona",
+      "inSeason": true,
+      "cards": 1,
+      "games": [
+       {
+        "kickoff": "2026-09-26T19:00:00+00:00",
+        "competition": "LaLiga",
+        "opponent": "RC Celta",
+        "opponentCrest": "https://assets.sorare.com/club/rc-celta/logo.png",
+        "venue": "A"
+       }
+      ]
+     },
+     {
+      "name": "Pedri",
+      "pos": "MID",
+      "avatar": "https://assets.sorare.com/player/football/pedri/avatar.png",
+      "club": "FC Barcelona",
+      "inSeason": true,
+      "cards": 2,
+      "games": [
+       {
+        "kickoff": "2026-09-26T19:00:00+00:00",
+        "competition": "LaLiga",
+        "opponent": "RC Celta",
+        "opponentCrest": "https://assets.sorare.com/club/rc-celta/logo.png",
+        "venue": "A"
+       }
+      ]
+     },
+     {
+      "name": "Julián Álvarez",
+      "pos": "FWD",
+      "avatar": "https://assets.sorare.com/player/football/julian-alvarez/avatar.png",
+      "club": "Atlético de Madrid",
+      "inSeason": true,
+      "cards": 1,
+      "games": [
+       {
+        "kickoff": "2026-09-27T14:00:00+00:00",
+        "competition": "LaLiga",
+        "opponent": "Rayo Vallecano",
+        "opponentCrest": "https://assets.sorare.com/club/rayo-vallecano/logo.png",
+        "venue": "H"
+       }
+      ]
+     },
+     {
+      "name": "Takefusa Kubo",
+      "pos": "MID",
+      "avatar": "https://assets.sorare.com/player/football/takefusa-kubo/avatar.png",
+      "club": "Real Sociedad",
+      "inSeason": true,
+      "cards": 1,
+      "games": [
+       {
+        "kickoff": "2026-09-27T16:15:00+00:00",
+        "competition": "LaLiga",
+        "opponent": "Levante UD",
+        "opponentCrest": "https://assets.sorare.com/club/levante-ud/logo.png",
+        "venue": "A"
+       }
+      ]
+     },
+     {
+      "name": "Lionel Messi",
+      "pos": "FWD",
+      "avatar": "https://assets.sorare.com/player/football/lionel-messi/avatar.png",
+      "club": "Inter Miami CF",
+      "inSeason": false,
+      "cards": 2,
+      "games": [
+       {
+        "kickoff": "2026-09-27T23:30:00+00:00",
+        "competition": "MLS",
+        "opponent": "Orlando City",
+        "opponentCrest": "https://assets.sorare.com/club/orlando-city-sc/logo.png",
+        "venue": "A"
+       }
+      ]
+     },
+     {
+      "name": "Thiago Almada",
+      "pos": "MID",
+      "avatar": "https://assets.sorare.com/player/football/thiago-almada/avatar.png",
+      "club": "Botafogo",
+      "inSeason": false,
+      "cards": 1,
+      "games": [
+       {
+        "kickoff": "2026-09-27T21:00:00+00:00",
+        "competition": "Brasileirão",
+        "opponent": "Palmeiras",
+        "opponentCrest": "https://assets.sorare.com/club/palmeiras/logo.png",
+        "venue": "H"
+       }
+      ]
+     },
+     {
+      "name": "Denis Bouanga",
+      "pos": "FWD",
+      "avatar": "https://assets.sorare.com/player/football/denis-bouanga/avatar.png",
+      "club": "Los Angeles FC",
+      "inSeason": false,
+      "cards": 1,
+      "games": [
+       {
+        "kickoff": "2026-09-26T02:30:00+00:00",
+        "competition": "MLS",
+        "opponent": "SJ Earthquakes",
+        "opponentCrest": "https://assets.sorare.com/club/san-jose-earthquakes/logo.png",
+        "venue": "H"
+       }
+      ]
+     }
+    ]
+   },
+   "playable": [
+    {
+     "name": "LALIGA EA SPORTS Limited",
+     "key": "laliga-ea-sports-limited",
+     "group": "In-season",
+     "rarity": "limited",
+     "fee": 0,
+     "size": 5,
+     "subs": 2,
+     "cap": null,
+     "max": 4,
+     "entries": 4487,
+     "tiers": [
+      {
+       "lo": 1,
+       "hi": 25,
+       "cash": 12,
+       "essence": 0,
+       "card": false
+      },
+      {
+       "lo": 26,
+       "hi": 300,
+       "cash": 0,
+       "essence": 600,
+       "card": false
+      },
+      {
+       "lo": 301,
+       "hi": 1500,
+       "cash": 0,
+       "essence": 250,
+       "card": false
+      }
+     ]
+    },
+    {
+     "name": "All Star Limited",
+     "key": "all-star-limited",
+     "group": "Classic",
+     "rarity": "limited",
+     "fee": 0,
+     "size": 7,
+     "subs": 2,
+     "cap": null,
+     "max": 1,
+     "entries": 1820,
+     "tiers": [
+      {
+       "lo": 1,
+       "hi": 40,
+       "cash": 0,
+       "essence": 0,
+       "card": true
+      },
+      {
+       "lo": 41,
+       "hi": 260,
+       "cash": 0,
+       "essence": 500,
+       "card": false
+      },
+      {
+       "lo": 261,
+       "hi": 900,
+       "cash": 0,
+       "essence": 200,
+       "card": false
+      }
+     ]
+    },
+    {
+     "name": "Champion Europe Limited",
+     "key": "champion-europe-limited",
+     "group": "In-season",
+     "rarity": "limited",
+     "fee": 0,
+     "size": 5,
+     "subs": 2,
+     "cap": null,
+     "max": 1,
+     "entries": 2140,
+     "tiers": [
+      {
+       "lo": 1,
+       "hi": 25,
+       "cash": 12,
+       "essence": 0,
+       "card": false
+      },
+      {
+       "lo": 26,
+       "hi": 300,
+       "cash": 0,
+       "essence": 600,
+       "card": false
+      },
+      {
+       "lo": 301,
+       "hi": 1500,
+       "cash": 0,
+       "essence": 250,
+       "card": false
+      }
+     ]
+    },
+    {
+     "name": "Room of 10 · 300",
+     "key": "room-limited-300",
+     "group": "Room",
+     "rarity": "limited",
+     "fee": 300,
+     "size": 5,
+     "subs": 0,
+     "cap": 260,
+     "max": 3,
+     "entries": 10,
+     "tiers": []
+    }
+   ],
+   "blocked": [
+    {
+     "name": "LALIGA EA SPORTS Rare",
+     "rarity": "rare",
+     "group": "In-season",
+     "why": "no Rare goalkeeper: 1 needed"
+    },
+    {
+     "name": "U23 Limited",
+     "rarity": "limited",
+     "group": "Classic",
+     "why": "2 cards under 23, 7 needed"
+    }
+   ],
+   "notWorth": [
+    {
+     "name": "Room of 10 · 800",
+     "group": "Room",
+     "fee": 800,
+     "eEss": -212,
+     "pReturn": 0.24,
+     "x": 251
+    }
+   ],
+   "plans": [
+    {
+     "rank": 1,
+     "essence": 571,
+     "cash": 1.31,
+     "pAny": 0.85,
+     "rewards": 1.4,
+     "cardsUsed": 19,
+     "cardsAvailable": 38,
+     "lineups": [
+      {
+       "comp": "LALIGA EA SPORTS",
+       "key": "laliga-ea-sports-limited",
+       "group": "In-season",
+       "fee": 0,
+       "rarity": "limited",
+       "size": 5,
+       "subSlots": 2,
+       "minInSeason": 4,
+       "cap": null,
+       "captainBonus": 0.5,
+       "entries": 4487,
+       "x": 308,
+       "lo": 224,
+       "hi": 386,
+       "pReturn": 0.48,
+       "eEss": 268,
+       "eCash": 0.07,
+       "pCard": 0,
+       "need": 311,
+       "needFrom": "GW13",
+       "tiers": [
+        {
+         "lo": 1,
+         "hi": 25,
+         "cash": 12,
+         "essence": 0,
+         "card": false,
+         "p": 0.006
+        },
+        {
+         "lo": 26,
+         "hi": 300,
+         "cash": 0,
+         "essence": 600,
+         "card": false,
+         "p": 0.08
+        },
+        {
+         "lo": 301,
+         "hi": 1500,
+         "cash": 0,
+         "essence": 250,
+         "card": false,
+         "p": 0.39
+        }
+       ],
+       "starters": [
+        {
+         "slug": "unai-simon-2026",
+         "name": "Unai Simón",
+         "pos": "GK",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/unai-simon-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/unai-simon/avatar.png",
+         "club": "Athletic Club",
+         "crest": "https://assets.sorare.com/club/athletic-club/logo.png",
+         "mult": 1.08,
+         "p": 0.94,
+         "mu": 58,
+         "x": 54.5,
+         "average": 55,
+         "actual": null,
+         "fixture": {
+          "opponent": "Getafe CF",
+          "opponentCrest": "https://assets.sorare.com/club/getafe-cf/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-26T16:30:00+00:00",
+          "games": 1
+         },
+         "slot": "Goalkeeper"
+        },
+        {
+         "slug": "pau-cubarsi-2026",
+         "name": "Pau Cubarsí",
+         "pos": "DEF",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/pau-cubarsi-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/pau-cubarsi/avatar.png",
+         "club": "FC Barcelona",
+         "crest": "https://assets.sorare.com/club/fc-barcelona/logo.png",
+         "mult": 1.08,
+         "p": 0.88,
+         "mu": 61,
+         "x": 53.7,
+         "average": 57,
+         "actual": null,
+         "fixture": {
+          "opponent": "RC Celta",
+          "opponentCrest": "https://assets.sorare.com/club/rc-celta/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-26T19:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Defender"
+        },
+        {
+         "slug": "pedri-2026",
+         "name": "Pedri",
+         "pos": "MID",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/pedri-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/pedri/avatar.png",
+         "club": "FC Barcelona",
+         "crest": "https://assets.sorare.com/club/fc-barcelona/logo.png",
+         "mult": 1.08,
+         "p": 0.9,
+         "mu": 68,
+         "x": 61.2,
+         "average": 64,
+         "actual": null,
+         "fixture": {
+          "opponent": "RC Celta",
+          "opponentCrest": "https://assets.sorare.com/club/rc-celta/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-26T19:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Midfielder",
+         "captain": true
+        },
+        {
+         "slug": "julian-alvarez-2026",
+         "name": "Julián Álvarez",
+         "pos": "FWD",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/julian-alvarez-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/julian-alvarez/avatar.png",
+         "club": "Atlético de Madrid",
+         "crest": "https://assets.sorare.com/club/atletico-madrid/logo.png",
+         "mult": 1.08,
+         "p": 0.93,
+         "mu": 66,
+         "x": 61.4,
+         "average": 62,
+         "actual": null,
+         "fixture": {
+          "opponent": "Rayo Vallecano",
+          "opponentCrest": "https://assets.sorare.com/club/rayo-vallecano/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-27T14:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Forward"
+        },
+        {
+         "slug": "takefusa-kubo-2026",
+         "name": "Takefusa Kubo",
+         "pos": "MID",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/takefusa-kubo-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/takefusa-kubo/avatar.png",
+         "club": "Real Sociedad",
+         "crest": "https://assets.sorare.com/club/real-sociedad/logo.png",
+         "mult": 1.08,
+         "p": 0.85,
+         "mu": 59,
+         "x": 50.2,
+         "average": 54,
+         "actual": null,
+         "fixture": {
+          "opponent": "Levante UD",
+          "opponentCrest": "https://assets.sorare.com/club/levante-ud/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-27T16:15:00+00:00",
+          "games": 1
+         },
+         "slot": "Extra"
+        }
+       ],
+       "subs": [
+        {
+         "slug": "alex-remiro-2026",
+         "name": "Álex Remiro",
+         "pos": "GK",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/alex-remiro-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/alex-remiro/avatar.png",
+         "club": "Real Sociedad",
+         "crest": "https://assets.sorare.com/club/real-sociedad/logo.png",
+         "mult": 1.08,
+         "p": 0.81,
+         "mu": 54,
+         "x": 43.7,
+         "average": 52,
+         "actual": null,
+         "fixture": {
+          "opponent": "Levante UD",
+          "opponentCrest": "https://assets.sorare.com/club/levante-ud/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-27T16:15:00+00:00",
+          "games": 1
+         },
+         "slot": "GK"
+        },
+        {
+         "slug": "alex-baena-2026",
+         "name": "Álex Baena",
+         "pos": "MID",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/alex-baena-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/alex-baena/avatar.png",
+         "club": "Atlético de Madrid",
+         "crest": "https://assets.sorare.com/club/atletico-madrid/logo.png",
+         "mult": 1.08,
+         "p": 0.62,
+         "mu": 56,
+         "x": 34.7,
+         "average": 51,
+         "actual": null,
+         "fixture": {
+          "opponent": "Rayo Vallecano",
+          "opponentCrest": "https://assets.sorare.com/club/rayo-vallecano/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-27T14:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Extra"
+        }
+       ],
+       "average": 244
+      },
+      {
+       "comp": "All Star",
+       "key": "all-star-limited",
+       "group": "Classic",
+       "fee": 0,
+       "rarity": "limited",
+       "size": 7,
+       "subSlots": 2,
+       "minInSeason": 0,
+       "cap": null,
+       "captainBonus": 0.5,
+       "entries": 1820,
+       "x": 402,
+       "lo": 306,
+       "hi": 498,
+       "pReturn": 0.29,
+       "eEss": 141,
+       "eCash": 0,
+       "pCard": 0.01,
+       "need": 421,
+       "needFrom": "GW14",
+       "tiers": [
+        {
+         "lo": 1,
+         "hi": 40,
+         "cash": 0,
+         "essence": 0,
+         "card": true,
+         "p": 0.012
+        },
+        {
+         "lo": 41,
+         "hi": 260,
+         "cash": 0,
+         "essence": 500,
+         "card": false,
+         "p": 0.06
+        },
+        {
+         "lo": 261,
+         "hi": 900,
+         "cash": 0,
+         "essence": 200,
+         "card": false,
+         "p": 0.22
+        }
+       ],
+       "starters": [
+        {
+         "slug": "hugo-lloris-2024",
+         "name": "Hugo Lloris",
+         "pos": "GK",
+         "rarity": "limited",
+         "inSeason": false,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/hugo-lloris-2024/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/hugo-lloris/avatar.png",
+         "club": "Los Angeles FC",
+         "crest": "https://assets.sorare.com/club/los-angeles-fc/logo.png",
+         "mult": 1.03,
+         "p": 0.9,
+         "mu": 55,
+         "x": 49.5,
+         "average": 53,
+         "actual": null,
+         "fixture": {
+          "opponent": "SJ Earthquakes",
+          "opponentCrest": "https://assets.sorare.com/club/san-jose-earthquakes/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-26T02:30:00+00:00",
+          "games": 1
+         },
+         "slot": "Goalkeeper"
+        },
+        {
+         "slug": "jordi-alba-2024",
+         "name": "Jordi Alba",
+         "pos": "DEF",
+         "rarity": "limited",
+         "inSeason": false,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/jordi-alba-2024/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/jordi-alba/avatar.png",
+         "club": "Inter Miami CF",
+         "crest": "https://assets.sorare.com/club/inter-miami-cf/logo.png",
+         "mult": 1.03,
+         "p": 0.86,
+         "mu": 57,
+         "x": 49,
+         "average": 55,
+         "actual": null,
+         "fixture": {
+          "opponent": "Orlando City",
+          "opponentCrest": "https://assets.sorare.com/club/orlando-city-sc/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-27T23:30:00+00:00",
+          "games": 1
+         },
+         "slot": "Defender"
+        },
+        {
+         "slug": "thiago-almada-2024",
+         "name": "Thiago Almada",
+         "pos": "MID",
+         "rarity": "limited",
+         "inSeason": false,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/thiago-almada-2024/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/thiago-almada/avatar.png",
+         "club": "Botafogo",
+         "crest": "https://assets.sorare.com/club/botafogo/logo.png",
+         "mult": 1.03,
+         "p": 0.83,
+         "mu": 60,
+         "x": 49.8,
+         "average": 56,
+         "actual": null,
+         "fixture": {
+          "opponent": "Palmeiras",
+          "opponentCrest": "https://assets.sorare.com/club/palmeiras/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-27T21:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Midfielder"
+        },
+        {
+         "slug": "sergio-busquets-2024",
+         "name": "Sergio Busquets",
+         "pos": "MID",
+         "rarity": "limited",
+         "inSeason": false,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/sergio-busquets-2024/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/sergio-busquets/avatar.png",
+         "club": "Inter Miami CF",
+         "crest": "https://assets.sorare.com/club/inter-miami-cf/logo.png",
+         "mult": 1.03,
+         "p": 0.84,
+         "mu": 54,
+         "x": 45.4,
+         "average": 52,
+         "actual": null,
+         "fixture": {
+          "opponent": "Orlando City",
+          "opponentCrest": "https://assets.sorare.com/club/orlando-city-sc/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-27T23:30:00+00:00",
+          "games": 1
+         },
+         "slot": "Midfielder"
+        },
+        {
+         "slug": "lionel-messi-2024",
+         "name": "Lionel Messi",
+         "pos": "FWD",
+         "rarity": "limited",
+         "inSeason": false,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/lionel-messi-2024/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/lionel-messi/avatar.png",
+         "club": "Inter Miami CF",
+         "crest": "https://assets.sorare.com/club/inter-miami-cf/logo.png",
+         "mult": 1.04,
+         "p": 0.88,
+         "mu": 74,
+         "x": 65.1,
+         "average": 71,
+         "actual": null,
+         "fixture": {
+          "opponent": "Orlando City",
+          "opponentCrest": "https://assets.sorare.com/club/orlando-city-sc/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-27T23:30:00+00:00",
+          "games": 1
+         },
+         "slot": "Forward",
+         "captain": true
+        },
+        {
+         "slug": "denis-bouanga-2024",
+         "name": "Denis Bouanga",
+         "pos": "FWD",
+         "rarity": "limited",
+         "inSeason": false,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/denis-bouanga-2024/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/denis-bouanga/avatar.png",
+         "club": "Los Angeles FC",
+         "crest": "https://assets.sorare.com/club/los-angeles-fc/logo.png",
+         "mult": 1.03,
+         "p": 0.91,
+         "mu": 63,
+         "x": 57.3,
+         "average": 60,
+         "actual": null,
+         "fixture": {
+          "opponent": "SJ Earthquakes",
+          "opponentCrest": "https://assets.sorare.com/club/san-jose-earthquakes/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-26T02:30:00+00:00",
+          "games": 1
+         },
+         "slot": "Forward"
+        },
+        {
+         "slug": "hulk-2024",
+         "name": "Hulk",
+         "pos": "FWD",
+         "rarity": "limited",
+         "inSeason": false,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/hulk-2024/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/hulk/avatar.png",
+         "club": "Atlético Mineiro",
+         "crest": "https://assets.sorare.com/club/atletico-mineiro/logo.png",
+         "mult": 1.03,
+         "p": 0.79,
+         "mu": 58,
+         "x": 45.8,
+         "average": 55,
+         "actual": null,
+         "fixture": {
+          "opponent": "Fluminense",
+          "opponentCrest": "https://assets.sorare.com/club/fluminense/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-28T00:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Extra"
+        }
+       ],
+       "subs": [],
+       "average": 352
+      },
+      {
+       "comp": "Room of 10",
+       "key": "room-limited-300",
+       "group": "Room",
+       "fee": 300,
+       "rarity": "limited",
+       "size": 5,
+       "subSlots": 0,
+       "minInSeason": 0,
+       "cap": 260,
+       "captainBonus": 0.2,
+       "entries": 10,
+       "x": 251,
+       "lo": 176,
+       "hi": 324,
+       "pReturn": 0.33,
+       "eEss": -18,
+       "eCash": 0,
+       "pCard": 0,
+       "need": 268,
+       "needFrom": "rooms played",
+       "tiers": [
+        {
+         "label": "1st",
+         "cash": 0,
+         "essence": 1200,
+         "card": false,
+         "p": 0.12
+        },
+        {
+         "label": "2nd",
+         "cash": 0,
+         "essence": 700,
+         "card": false,
+         "p": 0.11
+        },
+        {
+         "label": "3rd",
+         "cash": 0,
+         "essence": 400,
+         "card": false,
+         "p": 0.1
+        }
+       ],
+       "starters": [
+        {
+         "slug": "inaki-pena-2026",
+         "name": "Iñaki Peña",
+         "pos": "GK",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/inaki-pena-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/inaki-pena/avatar.png",
+         "club": "FC Barcelona",
+         "crest": "https://assets.sorare.com/club/fc-barcelona/logo.png",
+         "mult": 1.08,
+         "p": 0.35,
+         "mu": 50,
+         "x": 17.5,
+         "average": 44,
+         "actual": null,
+         "fixture": {
+          "opponent": "RC Celta",
+          "opponentCrest": "https://assets.sorare.com/club/rc-celta/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-26T19:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Goalkeeper"
+        },
+        {
+         "slug": "robin-le-normand-2026",
+         "name": "Robin Le Normand",
+         "pos": "DEF",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/robin-le-normand-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/robin-le-normand/avatar.png",
+         "club": "Atlético de Madrid",
+         "crest": "https://assets.sorare.com/club/atletico-madrid/logo.png",
+         "mult": 1.08,
+         "p": 0.9,
+         "mu": 56,
+         "x": 50.4,
+         "average": 53,
+         "actual": null,
+         "fixture": {
+          "opponent": "Rayo Vallecano",
+          "opponentCrest": "https://assets.sorare.com/club/rayo-vallecano/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-27T14:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Defender"
+        },
+        {
+         "slug": "fermin-lopez-2026",
+         "name": "Fermín López",
+         "pos": "MID",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/fermin-lopez-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/fermin-lopez/avatar.png",
+         "club": "FC Barcelona",
+         "crest": "https://assets.sorare.com/club/fc-barcelona/logo.png",
+         "mult": 1.08,
+         "p": 0.7,
+         "mu": 57,
+         "x": 39.9,
+         "average": 50,
+         "actual": null,
+         "fixture": {
+          "opponent": "RC Celta",
+          "opponentCrest": "https://assets.sorare.com/club/rc-celta/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-26T19:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Midfielder",
+         "captain": true
+        },
+        {
+         "slug": "ayoze-perez-2026",
+         "name": "Ayoze Pérez",
+         "pos": "FWD",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/ayoze-perez-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/ayoze-perez/avatar.png",
+         "club": "Villarreal CF",
+         "crest": "https://assets.sorare.com/club/villarreal-cf/logo.png",
+         "mult": 1.08,
+         "p": 0.76,
+         "mu": 55,
+         "x": 41.8,
+         "average": 49,
+         "actual": null,
+         "fixture": {
+          "opponent": "Real Sociedad",
+          "opponentCrest": "https://assets.sorare.com/club/real-sociedad/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-28T19:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Forward"
+        },
+        {
+         "slug": "gerard-moreno-2026",
+         "name": "Gerard Moreno",
+         "pos": "FWD",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/gerard-moreno-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/gerard-moreno/avatar.png",
+         "club": "Villarreal CF",
+         "crest": "https://assets.sorare.com/club/villarreal-cf/logo.png",
+         "mult": 1.08,
+         "p": 0.68,
+         "mu": 53,
+         "x": 36,
+         "average": 47,
+         "actual": null,
+         "fixture": {
+          "opponent": "Real Sociedad",
+          "opponentCrest": "https://assets.sorare.com/club/real-sociedad/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-28T19:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Extra"
+        }
+       ],
+       "subs": [],
+       "average": 243
+      }
+     ]
+    },
+    {
+     "rank": 2,
+     "essence": 409,
+     "cash": 1.31,
+     "pAny": 0.71,
+     "rewards": 1.1,
+     "cardsUsed": 14,
+     "cardsAvailable": 38,
+     "lineups": [
+      {
+       "comp": "LALIGA EA SPORTS",
+       "key": "laliga-ea-sports-limited",
+       "group": "In-season",
+       "fee": 0,
+       "rarity": "limited",
+       "size": 5,
+       "subSlots": 2,
+       "minInSeason": 4,
+       "cap": null,
+       "captainBonus": 0.5,
+       "entries": 4487,
+       "x": 308,
+       "lo": 224,
+       "hi": 386,
+       "pReturn": 0.48,
+       "eEss": 268,
+       "eCash": 0.07,
+       "pCard": 0,
+       "need": 311,
+       "needFrom": "GW13",
+       "tiers": [
+        {
+         "lo": 1,
+         "hi": 25,
+         "cash": 12,
+         "essence": 0,
+         "card": false,
+         "p": 0.006
+        },
+        {
+         "lo": 26,
+         "hi": 300,
+         "cash": 0,
+         "essence": 600,
+         "card": false,
+         "p": 0.08
+        },
+        {
+         "lo": 301,
+         "hi": 1500,
+         "cash": 0,
+         "essence": 250,
+         "card": false,
+         "p": 0.39
+        }
+       ],
+       "starters": [
+        {
+         "slug": "unai-simon-2026",
+         "name": "Unai Simón",
+         "pos": "GK",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/unai-simon-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/unai-simon/avatar.png",
+         "club": "Athletic Club",
+         "crest": "https://assets.sorare.com/club/athletic-club/logo.png",
+         "mult": 1.08,
+         "p": 0.94,
+         "mu": 58,
+         "x": 54.5,
+         "average": 55,
+         "actual": null,
+         "fixture": {
+          "opponent": "Getafe CF",
+          "opponentCrest": "https://assets.sorare.com/club/getafe-cf/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-26T16:30:00+00:00",
+          "games": 1
+         },
+         "slot": "Goalkeeper"
+        },
+        {
+         "slug": "pau-cubarsi-2026",
+         "name": "Pau Cubarsí",
+         "pos": "DEF",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/pau-cubarsi-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/pau-cubarsi/avatar.png",
+         "club": "FC Barcelona",
+         "crest": "https://assets.sorare.com/club/fc-barcelona/logo.png",
+         "mult": 1.08,
+         "p": 0.88,
+         "mu": 61,
+         "x": 53.7,
+         "average": 57,
+         "actual": null,
+         "fixture": {
+          "opponent": "RC Celta",
+          "opponentCrest": "https://assets.sorare.com/club/rc-celta/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-26T19:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Defender"
+        },
+        {
+         "slug": "pedri-2026",
+         "name": "Pedri",
+         "pos": "MID",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/pedri-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/pedri/avatar.png",
+         "club": "FC Barcelona",
+         "crest": "https://assets.sorare.com/club/fc-barcelona/logo.png",
+         "mult": 1.08,
+         "p": 0.9,
+         "mu": 68,
+         "x": 61.2,
+         "average": 64,
+         "actual": null,
+         "fixture": {
+          "opponent": "RC Celta",
+          "opponentCrest": "https://assets.sorare.com/club/rc-celta/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-26T19:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Midfielder",
+         "captain": true
+        },
+        {
+         "slug": "julian-alvarez-2026",
+         "name": "Julián Álvarez",
+         "pos": "FWD",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/julian-alvarez-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/julian-alvarez/avatar.png",
+         "club": "Atlético de Madrid",
+         "crest": "https://assets.sorare.com/club/atletico-madrid/logo.png",
+         "mult": 1.08,
+         "p": 0.93,
+         "mu": 66,
+         "x": 61.4,
+         "average": 62,
+         "actual": null,
+         "fixture": {
+          "opponent": "Rayo Vallecano",
+          "opponentCrest": "https://assets.sorare.com/club/rayo-vallecano/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-27T14:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Forward"
+        },
+        {
+         "slug": "takefusa-kubo-2026",
+         "name": "Takefusa Kubo",
+         "pos": "MID",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/takefusa-kubo-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/takefusa-kubo/avatar.png",
+         "club": "Real Sociedad",
+         "crest": "https://assets.sorare.com/club/real-sociedad/logo.png",
+         "mult": 1.08,
+         "p": 0.85,
+         "mu": 59,
+         "x": 50.2,
+         "average": 54,
+         "actual": null,
+         "fixture": {
+          "opponent": "Levante UD",
+          "opponentCrest": "https://assets.sorare.com/club/levante-ud/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-27T16:15:00+00:00",
+          "games": 1
+         },
+         "slot": "Extra"
+        }
+       ],
+       "subs": [
+        {
+         "slug": "alex-remiro-2026",
+         "name": "Álex Remiro",
+         "pos": "GK",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/alex-remiro-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/alex-remiro/avatar.png",
+         "club": "Real Sociedad",
+         "crest": "https://assets.sorare.com/club/real-sociedad/logo.png",
+         "mult": 1.08,
+         "p": 0.81,
+         "mu": 54,
+         "x": 43.7,
+         "average": 52,
+         "actual": null,
+         "fixture": {
+          "opponent": "Levante UD",
+          "opponentCrest": "https://assets.sorare.com/club/levante-ud/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-27T16:15:00+00:00",
+          "games": 1
+         },
+         "slot": "GK"
+        },
+        {
+         "slug": "alex-baena-2026",
+         "name": "Álex Baena",
+         "pos": "MID",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/alex-baena-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/alex-baena/avatar.png",
+         "club": "Atlético de Madrid",
+         "crest": "https://assets.sorare.com/club/atletico-madrid/logo.png",
+         "mult": 1.08,
+         "p": 0.62,
+         "mu": 56,
+         "x": 34.7,
+         "average": 51,
+         "actual": null,
+         "fixture": {
+          "opponent": "Rayo Vallecano",
+          "opponentCrest": "https://assets.sorare.com/club/rayo-vallecano/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-27T14:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Extra"
+        }
+       ],
+       "average": 244
+      },
+      {
+       "comp": "All Star",
+       "key": "all-star-limited",
+       "group": "Classic",
+       "fee": 0,
+       "rarity": "limited",
+       "size": 7,
+       "subSlots": 2,
+       "minInSeason": 0,
+       "cap": null,
+       "captainBonus": 0.5,
+       "entries": 1820,
+       "x": 402,
+       "lo": 306,
+       "hi": 498,
+       "pReturn": 0.29,
+       "eEss": 141,
+       "eCash": 0,
+       "pCard": 0.01,
+       "need": 421,
+       "needFrom": "GW14",
+       "tiers": [
+        {
+         "lo": 1,
+         "hi": 40,
+         "cash": 0,
+         "essence": 0,
+         "card": true,
+         "p": 0.012
+        },
+        {
+         "lo": 41,
+         "hi": 260,
+         "cash": 0,
+         "essence": 500,
+         "card": false,
+         "p": 0.06
+        },
+        {
+         "lo": 261,
+         "hi": 900,
+         "cash": 0,
+         "essence": 200,
+         "card": false,
+         "p": 0.22
+        }
+       ],
+       "starters": [
+        {
+         "slug": "hugo-lloris-2024",
+         "name": "Hugo Lloris",
+         "pos": "GK",
+         "rarity": "limited",
+         "inSeason": false,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/hugo-lloris-2024/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/hugo-lloris/avatar.png",
+         "club": "Los Angeles FC",
+         "crest": "https://assets.sorare.com/club/los-angeles-fc/logo.png",
+         "mult": 1.03,
+         "p": 0.9,
+         "mu": 55,
+         "x": 49.5,
+         "average": 53,
+         "actual": null,
+         "fixture": {
+          "opponent": "SJ Earthquakes",
+          "opponentCrest": "https://assets.sorare.com/club/san-jose-earthquakes/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-26T02:30:00+00:00",
+          "games": 1
+         },
+         "slot": "Goalkeeper"
+        },
+        {
+         "slug": "jordi-alba-2024",
+         "name": "Jordi Alba",
+         "pos": "DEF",
+         "rarity": "limited",
+         "inSeason": false,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/jordi-alba-2024/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/jordi-alba/avatar.png",
+         "club": "Inter Miami CF",
+         "crest": "https://assets.sorare.com/club/inter-miami-cf/logo.png",
+         "mult": 1.03,
+         "p": 0.86,
+         "mu": 57,
+         "x": 49,
+         "average": 55,
+         "actual": null,
+         "fixture": {
+          "opponent": "Orlando City",
+          "opponentCrest": "https://assets.sorare.com/club/orlando-city-sc/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-27T23:30:00+00:00",
+          "games": 1
+         },
+         "slot": "Defender"
+        },
+        {
+         "slug": "thiago-almada-2024",
+         "name": "Thiago Almada",
+         "pos": "MID",
+         "rarity": "limited",
+         "inSeason": false,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/thiago-almada-2024/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/thiago-almada/avatar.png",
+         "club": "Botafogo",
+         "crest": "https://assets.sorare.com/club/botafogo/logo.png",
+         "mult": 1.03,
+         "p": 0.83,
+         "mu": 60,
+         "x": 49.8,
+         "average": 56,
+         "actual": null,
+         "fixture": {
+          "opponent": "Palmeiras",
+          "opponentCrest": "https://assets.sorare.com/club/palmeiras/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-27T21:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Midfielder"
+        },
+        {
+         "slug": "sergio-busquets-2024",
+         "name": "Sergio Busquets",
+         "pos": "MID",
+         "rarity": "limited",
+         "inSeason": false,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/sergio-busquets-2024/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/sergio-busquets/avatar.png",
+         "club": "Inter Miami CF",
+         "crest": "https://assets.sorare.com/club/inter-miami-cf/logo.png",
+         "mult": 1.03,
+         "p": 0.84,
+         "mu": 54,
+         "x": 45.4,
+         "average": 52,
+         "actual": null,
+         "fixture": {
+          "opponent": "Orlando City",
+          "opponentCrest": "https://assets.sorare.com/club/orlando-city-sc/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-27T23:30:00+00:00",
+          "games": 1
+         },
+         "slot": "Midfielder"
+        },
+        {
+         "slug": "lionel-messi-2024",
+         "name": "Lionel Messi",
+         "pos": "FWD",
+         "rarity": "limited",
+         "inSeason": false,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/lionel-messi-2024/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/lionel-messi/avatar.png",
+         "club": "Inter Miami CF",
+         "crest": "https://assets.sorare.com/club/inter-miami-cf/logo.png",
+         "mult": 1.04,
+         "p": 0.88,
+         "mu": 74,
+         "x": 65.1,
+         "average": 71,
+         "actual": null,
+         "fixture": {
+          "opponent": "Orlando City",
+          "opponentCrest": "https://assets.sorare.com/club/orlando-city-sc/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-27T23:30:00+00:00",
+          "games": 1
+         },
+         "slot": "Forward",
+         "captain": true
+        },
+        {
+         "slug": "denis-bouanga-2024",
+         "name": "Denis Bouanga",
+         "pos": "FWD",
+         "rarity": "limited",
+         "inSeason": false,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/denis-bouanga-2024/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/denis-bouanga/avatar.png",
+         "club": "Los Angeles FC",
+         "crest": "https://assets.sorare.com/club/los-angeles-fc/logo.png",
+         "mult": 1.03,
+         "p": 0.91,
+         "mu": 63,
+         "x": 57.3,
+         "average": 60,
+         "actual": null,
+         "fixture": {
+          "opponent": "SJ Earthquakes",
+          "opponentCrest": "https://assets.sorare.com/club/san-jose-earthquakes/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-26T02:30:00+00:00",
+          "games": 1
+         },
+         "slot": "Forward"
+        },
+        {
+         "slug": "hulk-2024",
+         "name": "Hulk",
+         "pos": "FWD",
+         "rarity": "limited",
+         "inSeason": false,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/hulk-2024/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/hulk/avatar.png",
+         "club": "Atlético Mineiro",
+         "crest": "https://assets.sorare.com/club/atletico-mineiro/logo.png",
+         "mult": 1.03,
+         "p": 0.79,
+         "mu": 58,
+         "x": 45.8,
+         "average": 55,
+         "actual": null,
+         "fixture": {
+          "opponent": "Fluminense",
+          "opponentCrest": "https://assets.sorare.com/club/fluminense/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-28T00:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Extra"
+        }
+       ],
+       "subs": [],
+       "average": 352
+      }
+     ]
+    }
+   ]
+  },
+  "last": {
+   "gameweek": {
+    "id": "15",
+    "slug": "football-11-15-sep-2026",
+    "number": 15,
+    "name": "Game Week 15",
+    "start": "2026-09-11T17:00:00+00:00",
+    "end": "2026-09-15T21:00:00+00:00",
+    "lock": "2026-09-11T17:00:00+00:00"
+   },
+   "state": "ready",
+   "played": true,
+   "projectionsAt": "2026-09-10T10:00:00+00:00",
+   "source": "sorare",
+   "playing": {
+    "cards": 11,
+    "players": [
+     {
+      "name": "Unai Simón",
+      "pos": "GK",
+      "avatar": "https://assets.sorare.com/player/football/unai-simon/avatar.png",
+      "club": "Athletic Club",
+      "inSeason": true,
+      "cards": 1,
+      "games": [
+       {
+        "kickoff": "2026-09-26T16:30:00+00:00",
+        "competition": "LaLiga",
+        "opponent": "Getafe CF",
+        "opponentCrest": "https://assets.sorare.com/club/getafe-cf/logo.png",
+        "venue": "H"
+       }
+      ]
+     },
+     {
+      "name": "Pau Cubarsí",
+      "pos": "DEF",
+      "avatar": "https://assets.sorare.com/player/football/pau-cubarsi/avatar.png",
+      "club": "FC Barcelona",
+      "inSeason": true,
+      "cards": 1,
+      "games": [
+       {
+        "kickoff": "2026-09-26T19:00:00+00:00",
+        "competition": "LaLiga",
+        "opponent": "RC Celta",
+        "opponentCrest": "https://assets.sorare.com/club/rc-celta/logo.png",
+        "venue": "A"
+       }
+      ]
+     },
+     {
+      "name": "Pedri",
+      "pos": "MID",
+      "avatar": "https://assets.sorare.com/player/football/pedri/avatar.png",
+      "club": "FC Barcelona",
+      "inSeason": true,
+      "cards": 2,
+      "games": [
+       {
+        "kickoff": "2026-09-26T19:00:00+00:00",
+        "competition": "LaLiga",
+        "opponent": "RC Celta",
+        "opponentCrest": "https://assets.sorare.com/club/rc-celta/logo.png",
+        "venue": "A"
+       }
+      ]
+     },
+     {
+      "name": "Julián Álvarez",
+      "pos": "FWD",
+      "avatar": "https://assets.sorare.com/player/football/julian-alvarez/avatar.png",
+      "club": "Atlético de Madrid",
+      "inSeason": true,
+      "cards": 1,
+      "games": [
+       {
+        "kickoff": "2026-09-27T14:00:00+00:00",
+        "competition": "LaLiga",
+        "opponent": "Rayo Vallecano",
+        "opponentCrest": "https://assets.sorare.com/club/rayo-vallecano/logo.png",
+        "venue": "H"
+       }
+      ]
+     },
+     {
+      "name": "Takefusa Kubo",
+      "pos": "MID",
+      "avatar": "https://assets.sorare.com/player/football/takefusa-kubo/avatar.png",
+      "club": "Real Sociedad",
+      "inSeason": true,
+      "cards": 1,
+      "games": [
+       {
+        "kickoff": "2026-09-27T16:15:00+00:00",
+        "competition": "LaLiga",
+        "opponent": "Levante UD",
+        "opponentCrest": "https://assets.sorare.com/club/levante-ud/logo.png",
+        "venue": "A"
+       }
+      ]
+     }
+    ]
+   },
+   "playable": [
+    {
+     "name": "LALIGA EA SPORTS Limited",
+     "key": "laliga-ea-sports-limited",
+     "group": "In-season",
+     "rarity": "limited",
+     "fee": 0,
+     "size": 5,
+     "subs": 2,
+     "cap": null,
+     "max": 4,
+     "entries": 4487,
+     "tiers": [
+      {
+       "lo": 1,
+       "hi": 25,
+       "cash": 12,
+       "essence": 0,
+       "card": false
+      },
+      {
+       "lo": 26,
+       "hi": 300,
+       "cash": 0,
+       "essence": 600,
+       "card": false
+      },
+      {
+       "lo": 301,
+       "hi": 1500,
+       "cash": 0,
+       "essence": 250,
+       "card": false
+      }
+     ]
+    },
+    {
+     "name": "All Star Limited",
+     "key": "all-star-limited",
+     "group": "Classic",
+     "rarity": "limited",
+     "fee": 0,
+     "size": 7,
+     "subs": 2,
+     "cap": null,
+     "max": 1,
+     "entries": 1820,
+     "tiers": [
+      {
+       "lo": 1,
+       "hi": 40,
+       "cash": 0,
+       "essence": 0,
+       "card": true
+      },
+      {
+       "lo": 41,
+       "hi": 260,
+       "cash": 0,
+       "essence": 500,
+       "card": false
+      },
+      {
+       "lo": 261,
+       "hi": 900,
+       "cash": 0,
+       "essence": 200,
+       "card": false
+      }
+     ]
+    },
+    {
+     "name": "Champion Europe Limited",
+     "key": "champion-europe-limited",
+     "group": "In-season",
+     "rarity": "limited",
+     "fee": 0,
+     "size": 5,
+     "subs": 2,
+     "cap": null,
+     "max": 1,
+     "entries": 2140,
+     "tiers": [
+      {
+       "lo": 1,
+       "hi": 25,
+       "cash": 12,
+       "essence": 0,
+       "card": false
+      },
+      {
+       "lo": 26,
+       "hi": 300,
+       "cash": 0,
+       "essence": 600,
+       "card": false
+      },
+      {
+       "lo": 301,
+       "hi": 1500,
+       "cash": 0,
+       "essence": 250,
+       "card": false
+      }
+     ]
+    },
+    {
+     "name": "Room of 10 · 300",
+     "key": "room-limited-300",
+     "group": "Room",
+     "rarity": "limited",
+     "fee": 300,
+     "size": 5,
+     "subs": 0,
+     "cap": 260,
+     "max": 3,
+     "entries": 10,
+     "tiers": []
+    }
+   ],
+   "blocked": [
+    {
+     "name": "LALIGA EA SPORTS Rare",
+     "rarity": "rare",
+     "group": "In-season",
+     "why": "no Rare goalkeeper: 1 needed"
+    },
+    {
+     "name": "U23 Limited",
+     "rarity": "limited",
+     "group": "Classic",
+     "why": "2 cards under 23, 7 needed"
+    }
+   ],
+   "notWorth": [],
+   "plans": [
+    {
+     "rank": 1,
+     "essence": 409,
+     "cash": 0.58,
+     "pAny": 0.66,
+     "rewards": 0.8,
+     "cardsUsed": 14,
+     "cardsAvailable": 38,
+     "lineups": [
+      {
+       "comp": "LALIGA EA SPORTS",
+       "key": "laliga-ea-sports-limited",
+       "group": "In-season",
+       "fee": 0,
+       "rarity": "limited",
+       "size": 5,
+       "subSlots": 2,
+       "minInSeason": 4,
+       "cap": null,
+       "captainBonus": 0.5,
+       "entries": 4487,
+       "x": 300,
+       "lo": 220,
+       "hi": 380,
+       "pReturn": 0.48,
+       "eEss": 268,
+       "eCash": 0.07,
+       "pCard": 0,
+       "need": 307,
+       "needFrom": "GW13",
+       "tiers": [
+        {
+         "lo": 1,
+         "hi": 25,
+         "cash": 12,
+         "essence": 0,
+         "card": false,
+         "p": 0.006
+        },
+        {
+         "lo": 26,
+         "hi": 300,
+         "cash": 0,
+         "essence": 600,
+         "card": false,
+         "p": 0.08
+        },
+        {
+         "lo": 301,
+         "hi": 1500,
+         "cash": 0,
+         "essence": 250,
+         "card": false,
+         "p": 0.39
+        }
+       ],
+       "starters": [
+        {
+         "slug": "unai-simon-2026",
+         "name": "Unai Simón",
+         "pos": "GK",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/unai-simon-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/unai-simon/avatar.png",
+         "club": "Athletic Club",
+         "crest": "https://assets.sorare.com/club/athletic-club/logo.png",
+         "mult": 1.08,
+         "p": 0.94,
+         "mu": 58,
+         "x": 54.5,
+         "average": 55,
+         "actual": null,
+         "fixture": {
+          "opponent": "Getafe CF",
+          "opponentCrest": "https://assets.sorare.com/club/getafe-cf/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-26T16:30:00+00:00",
+          "games": 1
+         },
+         "slot": "Goalkeeper",
+         "subbedBy": "alex-remiro-2026"
+        },
+        {
+         "slug": "pau-cubarsi-2026",
+         "name": "Pau Cubarsí",
+         "pos": "DEF",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/pau-cubarsi-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/pau-cubarsi/avatar.png",
+         "club": "FC Barcelona",
+         "crest": "https://assets.sorare.com/club/fc-barcelona/logo.png",
+         "mult": 1.08,
+         "p": 0.88,
+         "mu": 61,
+         "x": 53.7,
+         "average": 57,
+         "actual": 58,
+         "fixture": {
+          "opponent": "RC Celta",
+          "opponentCrest": "https://assets.sorare.com/club/rc-celta/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-26T19:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Defender"
+        },
+        {
+         "slug": "pedri-2026",
+         "name": "Pedri",
+         "pos": "MID",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/pedri-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/pedri/avatar.png",
+         "club": "FC Barcelona",
+         "crest": "https://assets.sorare.com/club/fc-barcelona/logo.png",
+         "mult": 1.08,
+         "p": 0.9,
+         "mu": 68,
+         "x": 61.2,
+         "average": 64,
+         "actual": 76,
+         "fixture": {
+          "opponent": "RC Celta",
+          "opponentCrest": "https://assets.sorare.com/club/rc-celta/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-26T19:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Midfielder",
+         "captain": true
+        },
+        {
+         "slug": "julian-alvarez-2026",
+         "name": "Julián Álvarez",
+         "pos": "FWD",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/julian-alvarez-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/julian-alvarez/avatar.png",
+         "club": "Atlético de Madrid",
+         "crest": "https://assets.sorare.com/club/atletico-madrid/logo.png",
+         "mult": 1.08,
+         "p": 0.93,
+         "mu": 66,
+         "x": 61.4,
+         "average": 62,
+         "actual": 71,
+         "fixture": {
+          "opponent": "Rayo Vallecano",
+          "opponentCrest": "https://assets.sorare.com/club/rayo-vallecano/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-27T14:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Forward"
+        },
+        {
+         "slug": "takefusa-kubo-2026",
+         "name": "Takefusa Kubo",
+         "pos": "MID",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/takefusa-kubo-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/takefusa-kubo/avatar.png",
+         "club": "Real Sociedad",
+         "crest": "https://assets.sorare.com/club/real-sociedad/logo.png",
+         "mult": 1.08,
+         "p": 0.85,
+         "mu": 59,
+         "x": 50.2,
+         "average": 54,
+         "actual": 54,
+         "fixture": {
+          "opponent": "Levante UD",
+          "opponentCrest": "https://assets.sorare.com/club/levante-ud/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-27T16:15:00+00:00",
+          "games": 1
+         },
+         "slot": "Extra"
+        }
+       ],
+       "subs": [
+        {
+         "slug": "alex-remiro-2026",
+         "name": "Álex Remiro",
+         "pos": "GK",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/alex-remiro-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/alex-remiro/avatar.png",
+         "club": "Real Sociedad",
+         "crest": "https://assets.sorare.com/club/real-sociedad/logo.png",
+         "mult": 1.08,
+         "p": 0.81,
+         "mu": 54,
+         "x": 43.7,
+         "average": 52,
+         "actual": 61,
+         "fixture": {
+          "opponent": "Levante UD",
+          "opponentCrest": "https://assets.sorare.com/club/levante-ud/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-27T16:15:00+00:00",
+          "games": 1
+         },
+         "slot": "GK",
+         "cameIn": true
+        },
+        {
+         "slug": "alex-baena-2026",
+         "name": "Álex Baena",
+         "pos": "MID",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/alex-baena-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/alex-baena/avatar.png",
+         "club": "Atlético de Madrid",
+         "crest": "https://assets.sorare.com/club/atletico-madrid/logo.png",
+         "mult": 1.08,
+         "p": 0.62,
+         "mu": 56,
+         "x": 34.7,
+         "average": 51,
+         "actual": null,
+         "fixture": {
+          "opponent": "Rayo Vallecano",
+          "opponentCrest": "https://assets.sorare.com/club/rayo-vallecano/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-27T14:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Extra",
+         "cameIn": false
+        }
+       ],
+       "average": 244,
+       "actual": {
+        "total": 313,
+        "cash": 0,
+        "essence": 250,
+        "card": false,
+        "need": 307,
+        "bonusLost": true,
+        "cameIn": [
+         {
+          "sub": "alex-remiro-2026",
+          "for": "unai-simon-2026"
+         }
+        ]
+       }
+      },
+      {
+       "comp": "All Star",
+       "key": "all-star-limited",
+       "group": "Classic",
+       "fee": 0,
+       "rarity": "limited",
+       "size": 7,
+       "subSlots": 2,
+       "minInSeason": 0,
+       "cap": null,
+       "captainBonus": 0.5,
+       "entries": 1820,
+       "x": 402,
+       "lo": 306,
+       "hi": 498,
+       "pReturn": 0.29,
+       "eEss": 141,
+       "eCash": 0,
+       "pCard": 0.01,
+       "need": 364,
+       "needFrom": "GW14",
+       "tiers": [
+        {
+         "lo": 1,
+         "hi": 40,
+         "cash": 0,
+         "essence": 0,
+         "card": true,
+         "p": 0.012
+        },
+        {
+         "lo": 41,
+         "hi": 260,
+         "cash": 0,
+         "essence": 500,
+         "card": false,
+         "p": 0.06
+        },
+        {
+         "lo": 261,
+         "hi": 900,
+         "cash": 0,
+         "essence": 200,
+         "card": false,
+         "p": 0.22
+        }
+       ],
+       "starters": [
+        {
+         "slug": "hugo-lloris-2024",
+         "name": "Hugo Lloris",
+         "pos": "GK",
+         "rarity": "limited",
+         "inSeason": false,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/hugo-lloris-2024/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/hugo-lloris/avatar.png",
+         "club": "Los Angeles FC",
+         "crest": "https://assets.sorare.com/club/los-angeles-fc/logo.png",
+         "mult": 1.03,
+         "p": 0.9,
+         "mu": 55,
+         "x": 49.5,
+         "average": 53,
+         "actual": 49,
+         "fixture": {
+          "opponent": "SJ Earthquakes",
+          "opponentCrest": "https://assets.sorare.com/club/san-jose-earthquakes/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-26T02:30:00+00:00",
+          "games": 1
+         },
+         "slot": "Goalkeeper"
+        },
+        {
+         "slug": "jordi-alba-2024",
+         "name": "Jordi Alba",
+         "pos": "DEF",
+         "rarity": "limited",
+         "inSeason": false,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/jordi-alba-2024/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/jordi-alba/avatar.png",
+         "club": "Inter Miami CF",
+         "crest": "https://assets.sorare.com/club/inter-miami-cf/logo.png",
+         "mult": 1.03,
+         "p": 0.86,
+         "mu": 57,
+         "x": 49,
+         "average": 55,
+         "actual": 41,
+         "fixture": {
+          "opponent": "Orlando City",
+          "opponentCrest": "https://assets.sorare.com/club/orlando-city-sc/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-27T23:30:00+00:00",
+          "games": 1
+         },
+         "slot": "Defender"
+        },
+        {
+         "slug": "thiago-almada-2024",
+         "name": "Thiago Almada",
+         "pos": "MID",
+         "rarity": "limited",
+         "inSeason": false,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/thiago-almada-2024/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/thiago-almada/avatar.png",
+         "club": "Botafogo",
+         "crest": "https://assets.sorare.com/club/botafogo/logo.png",
+         "mult": 1.03,
+         "p": 0.83,
+         "mu": 60,
+         "x": 49.8,
+         "average": 56,
+         "actual": 38,
+         "fixture": {
+          "opponent": "Palmeiras",
+          "opponentCrest": "https://assets.sorare.com/club/palmeiras/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-27T21:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Midfielder"
+        },
+        {
+         "slug": "sergio-busquets-2024",
+         "name": "Sergio Busquets",
+         "pos": "MID",
+         "rarity": "limited",
+         "inSeason": false,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/sergio-busquets-2024/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/sergio-busquets/avatar.png",
+         "club": "Inter Miami CF",
+         "crest": "https://assets.sorare.com/club/inter-miami-cf/logo.png",
+         "mult": 1.03,
+         "p": 0.84,
+         "mu": 54,
+         "x": 45.4,
+         "average": 52,
+         "actual": 30,
+         "fixture": {
+          "opponent": "Orlando City",
+          "opponentCrest": "https://assets.sorare.com/club/orlando-city-sc/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-27T23:30:00+00:00",
+          "games": 1
+         },
+         "slot": "Midfielder"
+        },
+        {
+         "slug": "lionel-messi-2024",
+         "name": "Lionel Messi",
+         "pos": "FWD",
+         "rarity": "limited",
+         "inSeason": false,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/lionel-messi-2024/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/lionel-messi/avatar.png",
+         "club": "Inter Miami CF",
+         "crest": "https://assets.sorare.com/club/inter-miami-cf/logo.png",
+         "mult": 1.04,
+         "p": 0.88,
+         "mu": 74,
+         "x": 65.1,
+         "average": 71,
+         "actual": 62,
+         "fixture": {
+          "opponent": "Orlando City",
+          "opponentCrest": "https://assets.sorare.com/club/orlando-city-sc/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-27T23:30:00+00:00",
+          "games": 1
+         },
+         "slot": "Forward",
+         "captain": true
+        },
+        {
+         "slug": "denis-bouanga-2024",
+         "name": "Denis Bouanga",
+         "pos": "FWD",
+         "rarity": "limited",
+         "inSeason": false,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/denis-bouanga-2024/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/denis-bouanga/avatar.png",
+         "club": "Los Angeles FC",
+         "crest": "https://assets.sorare.com/club/los-angeles-fc/logo.png",
+         "mult": 1.03,
+         "p": 0.91,
+         "mu": 63,
+         "x": 57.3,
+         "average": 60,
+         "actual": 27,
+         "fixture": {
+          "opponent": "SJ Earthquakes",
+          "opponentCrest": "https://assets.sorare.com/club/san-jose-earthquakes/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-26T02:30:00+00:00",
+          "games": 1
+         },
+         "slot": "Forward"
+        },
+        {
+         "slug": "hulk-2024",
+         "name": "Hulk",
+         "pos": "FWD",
+         "rarity": "limited",
+         "inSeason": false,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/hulk-2024/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/hulk/avatar.png",
+         "club": "Atlético Mineiro",
+         "crest": "https://assets.sorare.com/club/atletico-mineiro/logo.png",
+         "mult": 1.03,
+         "p": 0.79,
+         "mu": 58,
+         "x": 45.8,
+         "average": 55,
+         "actual": 21,
+         "fixture": {
+          "opponent": "Fluminense",
+          "opponentCrest": "https://assets.sorare.com/club/fluminense/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-28T00:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Extra"
+        }
+       ],
+       "subs": [],
+       "average": 352,
+       "actual": {
+        "total": 268,
+        "cash": 0,
+        "essence": 0,
+        "card": false,
+        "need": 364,
+        "bonusLost": false,
+        "cameIn": []
+       }
+      }
+     ],
+     "actual": {
+      "essence": 250,
+      "cash": 0,
+      "cards": 14,
+      "paid": 1,
+      "inRange": 1
+     }
+    },
+    {
+     "rank": 2,
+     "essence": 268,
+     "cash": 0.07,
+     "pAny": 0.48,
+     "rewards": 0.5,
+     "cardsUsed": 7,
+     "cardsAvailable": 38,
+     "lineups": [
+      {
+       "comp": "LALIGA EA SPORTS",
+       "key": "laliga-ea-sports-limited",
+       "group": "In-season",
+       "fee": 0,
+       "rarity": "limited",
+       "size": 5,
+       "subSlots": 2,
+       "minInSeason": 4,
+       "cap": null,
+       "captainBonus": 0.5,
+       "entries": 4487,
+       "x": 300,
+       "lo": 220,
+       "hi": 380,
+       "pReturn": 0.48,
+       "eEss": 268,
+       "eCash": 0.07,
+       "pCard": 0,
+       "need": 307,
+       "needFrom": "GW13",
+       "tiers": [
+        {
+         "lo": 1,
+         "hi": 25,
+         "cash": 12,
+         "essence": 0,
+         "card": false,
+         "p": 0.006
+        },
+        {
+         "lo": 26,
+         "hi": 300,
+         "cash": 0,
+         "essence": 600,
+         "card": false,
+         "p": 0.08
+        },
+        {
+         "lo": 301,
+         "hi": 1500,
+         "cash": 0,
+         "essence": 250,
+         "card": false,
+         "p": 0.39
+        }
+       ],
+       "starters": [
+        {
+         "slug": "unai-simon-2026",
+         "name": "Unai Simón",
+         "pos": "GK",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/unai-simon-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/unai-simon/avatar.png",
+         "club": "Athletic Club",
+         "crest": "https://assets.sorare.com/club/athletic-club/logo.png",
+         "mult": 1.08,
+         "p": 0.94,
+         "mu": 58,
+         "x": 54.5,
+         "average": 55,
+         "actual": null,
+         "fixture": {
+          "opponent": "Getafe CF",
+          "opponentCrest": "https://assets.sorare.com/club/getafe-cf/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-26T16:30:00+00:00",
+          "games": 1
+         },
+         "slot": "Goalkeeper",
+         "subbedBy": "alex-remiro-2026"
+        },
+        {
+         "slug": "pau-cubarsi-2026",
+         "name": "Pau Cubarsí",
+         "pos": "DEF",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/pau-cubarsi-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/pau-cubarsi/avatar.png",
+         "club": "FC Barcelona",
+         "crest": "https://assets.sorare.com/club/fc-barcelona/logo.png",
+         "mult": 1.08,
+         "p": 0.88,
+         "mu": 61,
+         "x": 53.7,
+         "average": 57,
+         "actual": 58,
+         "fixture": {
+          "opponent": "RC Celta",
+          "opponentCrest": "https://assets.sorare.com/club/rc-celta/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-26T19:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Defender"
+        },
+        {
+         "slug": "pedri-2026",
+         "name": "Pedri",
+         "pos": "MID",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/pedri-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/pedri/avatar.png",
+         "club": "FC Barcelona",
+         "crest": "https://assets.sorare.com/club/fc-barcelona/logo.png",
+         "mult": 1.08,
+         "p": 0.9,
+         "mu": 68,
+         "x": 61.2,
+         "average": 64,
+         "actual": 76,
+         "fixture": {
+          "opponent": "RC Celta",
+          "opponentCrest": "https://assets.sorare.com/club/rc-celta/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-26T19:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Midfielder",
+         "captain": true
+        },
+        {
+         "slug": "julian-alvarez-2026",
+         "name": "Julián Álvarez",
+         "pos": "FWD",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/julian-alvarez-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/julian-alvarez/avatar.png",
+         "club": "Atlético de Madrid",
+         "crest": "https://assets.sorare.com/club/atletico-madrid/logo.png",
+         "mult": 1.08,
+         "p": 0.93,
+         "mu": 66,
+         "x": 61.4,
+         "average": 62,
+         "actual": 71,
+         "fixture": {
+          "opponent": "Rayo Vallecano",
+          "opponentCrest": "https://assets.sorare.com/club/rayo-vallecano/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-27T14:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Forward"
+        },
+        {
+         "slug": "takefusa-kubo-2026",
+         "name": "Takefusa Kubo",
+         "pos": "MID",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/takefusa-kubo-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/takefusa-kubo/avatar.png",
+         "club": "Real Sociedad",
+         "crest": "https://assets.sorare.com/club/real-sociedad/logo.png",
+         "mult": 1.08,
+         "p": 0.85,
+         "mu": 59,
+         "x": 50.2,
+         "average": 54,
+         "actual": 54,
+         "fixture": {
+          "opponent": "Levante UD",
+          "opponentCrest": "https://assets.sorare.com/club/levante-ud/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-27T16:15:00+00:00",
+          "games": 1
+         },
+         "slot": "Extra"
+        }
+       ],
+       "subs": [
+        {
+         "slug": "alex-remiro-2026",
+         "name": "Álex Remiro",
+         "pos": "GK",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/alex-remiro-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/alex-remiro/avatar.png",
+         "club": "Real Sociedad",
+         "crest": "https://assets.sorare.com/club/real-sociedad/logo.png",
+         "mult": 1.08,
+         "p": 0.81,
+         "mu": 54,
+         "x": 43.7,
+         "average": 52,
+         "actual": 61,
+         "fixture": {
+          "opponent": "Levante UD",
+          "opponentCrest": "https://assets.sorare.com/club/levante-ud/logo.png",
+          "venue": "A",
+          "kickoff": "2026-09-27T16:15:00+00:00",
+          "games": 1
+         },
+         "slot": "GK",
+         "cameIn": true
+        },
+        {
+         "slug": "alex-baena-2026",
+         "name": "Álex Baena",
+         "pos": "MID",
+         "rarity": "limited",
+         "inSeason": true,
+         "level": 3,
+         "pic": "https://assets.sorare.com/card/football/alex-baena-2026/picture.png",
+         "avatar": "https://assets.sorare.com/player/football/alex-baena/avatar.png",
+         "club": "Atlético de Madrid",
+         "crest": "https://assets.sorare.com/club/atletico-madrid/logo.png",
+         "mult": 1.08,
+         "p": 0.62,
+         "mu": 56,
+         "x": 34.7,
+         "average": 51,
+         "actual": null,
+         "fixture": {
+          "opponent": "Rayo Vallecano",
+          "opponentCrest": "https://assets.sorare.com/club/rayo-vallecano/logo.png",
+          "venue": "H",
+          "kickoff": "2026-09-27T14:00:00+00:00",
+          "games": 1
+         },
+         "slot": "Extra",
+         "cameIn": false
+        }
+       ],
+       "average": 244,
+       "actual": {
+        "total": 313,
+        "cash": 0,
+        "essence": 250,
+        "card": false,
+        "need": 307,
+        "bonusLost": true,
+        "cameIn": [
+         {
+          "sub": "alex-remiro-2026",
+          "for": "unai-simon-2026"
+         }
+        ]
+       }
+      }
+     ],
+     "actual": {
+      "essence": 250,
+      "cash": 0,
+      "cards": 7,
+      "paid": 1,
+      "inRange": 1
+     }
+    }
+   ]
+  },
+  "cards": {
+   "total": 42,
+   "usable": 38,
+   "excluded": [
+    {
+     "name": "Nico Williams",
+     "why": "sealed",
+     "rarity": "limited"
+    },
+    {
+     "name": "Álvaro Morata",
+     "why": "sealed",
+     "rarity": "limited"
+    },
+    {
+     "name": "Dani Olmo",
+     "why": "sealed",
+     "rarity": "rare"
+    },
+    {
+     "name": "Iago Aspas",
+     "why": "in an offer",
+     "rarity": "limited"
+    }
+   ],
+   "byRarity": {
+    "limited": 36,
+    "rare": 6
+   },
+   "byPosition": {
+    "limited": {
+     "GK": 4,
+     "DEF": 11,
+     "MID": 13,
+     "FWD": 8
+    },
+    "rare": {
+     "GK": 0,
+     "DEF": 2,
+     "MID": 2,
+     "FWD": 2
+    }
+   },
+   "inSeason": 21,
+   "rareGoalkeepers": 0
+  }
+ },
+ "error": null,
+ "meta": null
+}

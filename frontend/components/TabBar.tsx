@@ -20,10 +20,17 @@ const ICONS: Record<string, React.ReactNode> = {
     </>
   ),
   "/table": <path d="M4 6h14M4 11h14M4 16h9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />,
+  "/play": (
+    <>
+      <rect x="6" y="3" width="10" height="16" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M8.5 15h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </>
+  ),
 };
 
 const TABS = [
   { href: "/", label: "Home" },
+  { href: "/play", label: "Play" },
   { href: "/fixtures", label: "Fixtures" },
   { href: "/difficulty", label: "Difficulty" },
   { href: "/table", label: "Table" },

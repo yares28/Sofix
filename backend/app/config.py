@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     football_data_org_competition: str = "PD"
     # The Odds API (free Starter plan, 500 credits/month). Without it the odds step is skipped.
     odds_api_key: str = ""
+    # Sorare's public API: the key only raises the rate limit, everything read with it is public.
+    # Without it the Sorare step is skipped. `sorare_user` is the manager whose cards are planned.
+    sorare_api_key: str = ""
+    sorare_user: str = "yares"
     dixon_coles_config_path: str = str(BACKEND_DIR / "artifacts" / "dixon_coles.json")
     clean_sheet_calibration_path: str = str(BACKEND_DIR / "artifacts" / "clean_sheet_calibration.json")
     market_blend_path: str = str(BACKEND_DIR / "artifacts" / "market_blend.json")

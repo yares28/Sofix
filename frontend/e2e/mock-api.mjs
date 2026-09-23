@@ -1,6 +1,7 @@
 // Deterministic stand-in for the FastAPI backend during end-to-end tests: no database, no network.
-// Serves a recorded grid (e2e/fixtures/grid-response.json), a scripted refresh run, and the two GitHub Actions
-// endpoints the Refresh button uses (the app's GITHUB_API_URL points at /github here).
+// Serves a recorded grid (e2e/fixtures/grid-response.json), a Sorare gameweek (e2e/fixtures/sorare-response.json),
+// a scripted refresh run, and the two GitHub Actions endpoints the Refresh button uses (the app's
+// GITHUB_API_URL points at /github here).
 import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 
@@ -9,12 +10,26 @@ const TOKEN = process.env.E2E_REFRESH_TOKEN ?? "";
 const GITHUB_TOKEN = process.env.E2E_GITHUB_TOKEN ?? "";
 const GITHUB_POLLS = 3; // status checks before the scripted workflow run completes
 const recorded = JSON.parse(readFileSync(new URL("./fixtures/grid-response.json", import.meta.url), "utf8"));
+const sorareFixture = JSON.parse(readFileSync(new URL("./fixtures/sorare-response.json", import.meta.url), "utf8"));
 const STEPS = ["sync", "predict", "weather"];
 const COOLDOWN_S = 600;
 
+// The Sorare page counts down to the lock, so the recorded gameweek is moved forward once, at start-up,
+// to sit two days ahead of the machine's clock. Every date in the payload shifts by the same amount, so
+// the gameweek that was played stays played.
+const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
+const SHIFT = Date.now() + 2 * 86_400_000 - new Date(sorareFixture.data.next.gameweek.lock).getTime();
+const moved = (value) => {
+  if (typeof value === "string") return ISO.test(value) ? new Date(new Date(value).getTime() + SHIFT).toISOString() : value;
+  if (Array.isArray(value)) return value.map(moved);
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, moved(v)]));
+  return value;
+};
+const sorare = { ...sorareFixture, data: moved(sorareFixture.data) };
+
 let state;
 function reset() {
-  state = { mode: "ok", nextId: 1, run: null, polls: 0 };
+  state = { mode: "ok", sorare: "ok", nextId: 1, run: null, polls: 0 };
 }
 reset();
 
@@ -57,6 +72,13 @@ const server = createServer((req, res) => {
       ...recorded,
       meta: { ...recorded.meta, last_synced_at: minutesAgo(12), last_predicted_at: minutesAgo(12) },
     });
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/sorare") {
+    if (state.sorare === "missing") {
+      return send(res, 200, { success: false, data: null, error: "Sorare has not been synced yet.", meta: null });
+    }
+    return send(res, 200, sorare);
   }
 
   if (req.method === "POST" && url.pathname === "/api/admin/refresh") {
@@ -122,8 +144,9 @@ const server = createServer((req, res) => {
   }
   if (req.method === "POST" && url.pathname === "/__test/mode") {
     state.mode = url.searchParams.get("mode") === "malformed" ? "malformed" : "ok";
+    state.sorare = url.searchParams.get("sorare") === "missing" ? "missing" : "ok";
     state.run = finishedRun("cli");
-    return send(res, 200, { ok: true, mode: state.mode });
+    return send(res, 200, { ok: true, mode: state.mode, sorare: state.sorare });
   }
 
   send(res, 404, { success: false, error: "Not found." });

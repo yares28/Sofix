@@ -6,12 +6,14 @@ import FixturesTile from "../components/home/FixturesTile";
 import GameweekTimeline from "../components/home/GameweekTimeline";
 import HomeHead from "../components/home/HomeHead";
 import SorareRow from "../components/home/SorareRow";
+import SorareTiles from "../components/home/SorareTiles";
 import TableTile from "../components/home/TableTile";
 import SiteNav from "../components/SiteNav";
 import { loadGrid } from "../lib/api";
 import { legacyBoardUrl, openingColumn } from "../lib/grid";
 import { boardHref, gameweekHead, timelineEntries } from "../lib/home";
 import { loadChances } from "../lib/homeData";
+import { loadSorare } from "../lib/playData";
 import { loadSystem } from "../lib/system";
 
 export const metadata: Metadata = { title: "Sofix" };
@@ -33,7 +35,12 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   const legacy = legacyBoardUrl(params);
   if (legacy) redirect(legacy);
 
-  const [{ grid, meta, error }, system, chances] = await Promise.all([loadGrid(), loadSystem(), loadChances()]);
+  const [{ grid, meta, error }, system, chances, sorare] = await Promise.all([
+    loadGrid(),
+    loadSystem(),
+    loadChances(),
+    loadSorare(),
+  ]);
   if (!grid) {
     return (
       <>
@@ -64,7 +71,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
           <FixturesTile grid={grid} column={column} href={href("/fixtures")} />
           <DifficultyTile grid={grid} column={column} href={href("/difficulty")} />
           <TableTile grid={grid} column={column} chances={chances} href={href("/table")} />
-          <SorareRow />
+          {sorare ? <SorareTiles data={sorare} now={new Date()} /> : <SorareRow />}
         </div>
       </main>
     </>

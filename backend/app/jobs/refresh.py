@@ -9,7 +9,8 @@
 2. odds: bookmaker odds from The Odds API (needs ODDS_API_KEY; skipped without it, throttled to 6 h)
 3. predict: rating model predictions (football-data.co.uk history, no key; blends the odds above into
    the next week's fixtures)
-4. publish (production runs only): writes the board for the web app into `read_models`; after the run
+4. sorare: reads Sorare (needs SORARE_API_KEY; skipped without it) and publishes the whole-gameweek plans
+5. publish (production runs only): writes the board for the web app into `read_models`; after the run
    is recorded the job pings the app's revalidate route (skipped without APP_URL / REVALIDATE_SECRET)
 
 Steps 1–3 are isolated: a failure is recorded and the next step still runs (predictions from the
@@ -35,7 +36,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import settings
 from app.db import SessionLocal, database_target
-from app.jobs import predict, seed_and_sync, sync_odds
+from app.jobs import predict, seed_and_sync, sorare, sync_odds
 from app.logging_config import configure_logging
 from app.migrate import ensure_schema_current, upgrade_to_head
 from app.models import RUNNING, RefreshRun
@@ -162,7 +163,13 @@ def main(
         # Production (no custom steps) also publishes the pages for the web app, even after a failed
         # step, so the app always shows whatever is in the database; then it asks the app to reload.
         step_list = (
-            list(steps) if steps is not None else [*default_steps(), ("publish", lambda: publish.publish_all(db))]
+            list(steps)
+            if steps is not None
+            else [
+                *default_steps(),
+                ("sorare", lambda: sorare.run(db)),
+                ("publish", lambda: publish.publish_all(db)),
+            ]
         )
         all_ok = False
         try:

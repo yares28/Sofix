@@ -34,6 +34,7 @@ The Odds API ────────┘                                    │ 
                                            POST /api/revalidate          Next.js on Vercel reads Neon
                                                           └──────────────> (frontend/, locked to the owner)
 Chrome extension (extension/) ── sorare.com session in the page ── check-ins ──> /api/ext/checkin
+Sorare public GraphQL ── app.jobs.sorare (read-only, SORARE_API_KEY) ──> read_models: sorare, sorare_references
 ```
 
 Production runs no Python server: the job publishes each page's finished data into `read_models` and the app
@@ -42,7 +43,7 @@ reads it (`lib/db.ts`). FastAPI (`backend/app/main.py`) is only for local develo
 | Area | Where |
 |---|---|
 | API (local dev only) | `backend/app/main.py`, `api.py`, `schemas.py` (FastAPI, `ApiResponse` envelope) |
-| Publish | `backend/app/services/publish.py`: the `publish` step writes `read_models` keys `grid` (same envelope as `/api/fixture-grid`) and `system` (Odds credits, database size); after the run the job pings the app's `/api/revalidate` (`APP_URL`, `REVALIDATE_SECRET`, `VERCEL_BYPASS_SECRET`) |
+| Publish | `backend/app/services/publish.py`: the `publish` step writes `read_models` keys `grid` (same envelope as `/api/fixture-grid`) and `system` (Odds credits, database size); the `sorare` step writes `sorare` (the whole Play page) and `sorare_references` (past cut-offs, kept between runs); after the run the job pings the app's `/api/revalidate` (`APP_URL`, `REVALIDATE_SECRET`, `VERCEL_BYPASS_SECRET`), which revalidates the tags `fixture-grid`, `system` and `sorare` |
 | Grid payload | `backend/app/services/fixture_grid.py` (buckets come from labels; lens scales are computed here) |
 | Rating model | `backend/app/modeling/dixon_coles.py`; tuned settings in `backend/artifacts/dixon_coles.json` |
 | Predictions | `backend/app/jobs/predict.py`, `services/rating_predictions.py` (replace rows per model version); labels in `services/scoring.py` (venue-aware top cut); the record at each price in `services/odds_record.py` and both-teams-to-score, both stored in `Prediction.explanation`; played games reviewed with `services/postmortem.py` and served as `GridCell.review` |
@@ -56,7 +57,9 @@ reads it (`lib/db.ts`). FastAPI (`backend/app/main.py`) is only for local develo
 | Control Center | Page `/control` (`app/control/page.tsx`), opened by `components/StatusPill.tsx` (heartbeat link in the nav). `ControlCenter.tsx`: status (good / 1 step left / stale / failed / database paused), 24-hour dial, last runs, connection chain, free-limit gauges, then `components/control/`: `ExtensionSetup` (the Chrome step, acted out; `EXTENSION_DIR` gives the folder to copy), `RefreshSetup` (pre-filled GitHub key link while `GITHUB_TOKEN` is missing), `GetTheApp` (Chrome's install prompt, a QR code from `lib/qr.ts`), `HowItRuns` (map; a column on phones). The page pings the extension (`lib/extension.ts`) so setup updates live. Logic in `lib/control.ts`, data in `lib/system.ts` (cached, tag `system`); styles in `app/control-center.css` |
 | Installable app | `app/manifest.webmanifest/route.ts`, linked in `app/layout.tsx` with `crossorigin="use-credentials"` (Vercel's login guards the manifest too; `app/manifest.ts` would omit the attribute in production); `app/app-icon/[variant]/route.tsx` + `app/apple-icon.tsx` (stripe icons from `lib/appIcon.tsx`); the layout's inline script keeps Chrome's install prompt for the Install button (`lib/install.ts`) |
 | Extension | `extension/` (MV3, plain JS, fixed ID `lfgchmhjigjodjfchagphfpkcicochlk` from the manifest key): `bridge.js` (sorare.com page world; keeps Sorare's GraphQL address/headers in memory only), `content.js`, `background.js` (check-ins when something changes or every 6 h, `ping` for the app), popup; `node extension/scripts/configure.mjs` writes `manifest.json` + `config.js` from `.env` (both git-ignored); app side `app/api/ext/checkin/route.ts` |
-| Home | `frontend/app/page.tsx` at `/`: gameweek head with one hero number (days to kickoff, games played while it's on, shocks once played), the S0 gameweek timeline (`components/home/GameweekTimeline.tsx`, links to `/?gw=N`, knob placed by fixed widths), and the bento: Fixtures, Difficulty (a mosaic of every club's next five games), Table tiles, plus the Sorare row (waiting until S3/S6/S8). Logic in `lib/home.ts` (pure, tested), title/relegation chances cached per grid in `lib/homeData.ts`; styles in `app/home.css`. Old `/?view=…` board links redirect (`legacyBoardUrl`) |
+| Home | `frontend/app/page.tsx` at `/`: gameweek head with one hero number (days to kickoff, games played while it's on, shocks once played), the S0 gameweek timeline (`components/home/GameweekTimeline.tsx`, links to `/?gw=N`, knob placed by fixed widths), and the bento: Fixtures, Difficulty (a mosaic of every club's next five games), Table tiles, plus the Sorare row: `components/home/SorareTiles.tsx` (Play, Last gameweek, My cards) once the Sorare job has published, `SorareRow.tsx` (waiting tiles) before. Logic in `lib/home.ts` (pure, tested), title/relegation chances cached per grid in `lib/homeData.ts`; styles in `app/home.css`. Old `/?view=…` board links redirect (`legacyBoardUrl`) |
+| Play | `frontend/app/play/page.tsx` at `/play`: your whole Sorare gameweek. Server-rendered from one cached read (`lib/playData.ts`, `unstable_cache`, tag `sorare`); all state is in the address (`?gw=`, `?plan=`, `?after=1`). `components/play/`: `PlayView.tsx` (head, gameweek bar, plan switch, plan hero, folds), `Lineup.tsx` (a lineup and its sheet), `LineupSheet.tsx` (the only client component — a `<dialog>`), `bits.tsx`, `SorareImage.tsx` (Sorare's asset host only, `unoptimized`). Display helpers and the payload types in `lib/play.ts` (pure, tested); styles in `app/play.css` |
+| Sorare data | `backend/app/sorare/`: `client.py` (read-only GraphQL, APIKEY header, throttled), `sync.py` (what is fetched), `forecast.py` (each player's chance of playing and score), `rules.py` + `model.py` (competitions read from Sorare's own rules), `planner.py` (lineup search, substitutions, reward chances, whole-gameweek plans), `publish.py` (the page's payload, `PAYLOAD_VERSION`). Job: `app/jobs/sorare.py`, also a step in `refresh` |
 | Navigation | `components/NavLinks.tsx` (top bar, PC) and `components/TabBar.tsx` (phones, fixed at the bottom, rendered outside the top bar); both follow `usePathname()` |
 | Frontend | Board pages `/fixtures`, `/difficulty`, `/table`: `frontend/app/(board)/*/page.tsx` → `board-route.tsx` (cached server fetch, tag `fixture-grid`), `components/FixtureBoard.tsx`, `Overview.tsx`, `DifficultyGrid.tsx`, `GameweekSelector.tsx`, `LeagueTable.tsx` + `TableProgression.tsx` (nivo chart, `lib/progression.ts`), `lib/grid.ts`, `lib/types.ts` |
 
@@ -67,6 +70,7 @@ Backend (from `backend/`, venv at `backend/.venv`):
 ```bash
 .venv\Scripts\python -m app.jobs.refresh      # migrations, fixtures, odds, predictions
 .venv\Scripts\python -m app.jobs.refresh --skip-migrations   # as schedule/button run it: schema check only
+.venv\Scripts\python -m app.jobs.sorare      # only the Sorare step (--dry-run builds it without writing)
 .venv\Scripts\python -m app.jobs.backtest     # tune + score the model; writes reports/ and artifacts/
 .venv\Scripts\python -m app.jobs.opening_projection   # once a season: the pre-season table the chart's August line draws
 # blind 9-season replay behind docs/fixture_difficulty.md (~2 min, cached CSVs only; --cache reuses forecasts)
@@ -232,6 +236,7 @@ npm run gen:types    # after python -m app.openapi_export
 | The Odds API | Free Starter plan: **500 credits/month**; `h2h,totals` × `eu` = 2 credits per call | One call per sync, skipped when the last fetch is < 6 h old (≤ 4 calls/day ≈ 240 credits/month); never per-event markets; key only in `.env` / Actions secret, sent as a query parameter, so never log request URLs or raw httpx errors |
 | Neon Free | **0.5 GB/project, 100 CU-hours/month**, up to 2 CU, scale to zero after 5 min idle, 10 branches, 6 h history, 5 GB egress. **Hitting any limit suspends compute until next month** | Cache the grid and revalidate only after a refresh; never point uptime monitors at DB-backed endpoints (≈182 CU-h/month); keep `/api/health` DB-free |
 | Club crests | No licence stated; club trademarks | Personal use only; `NEXT_PUBLIC_SHOW_CLUB_CRESTS=false` (in `frontend/.env.local`) shows colour badges instead; URLs allowlisted to `https://crests.football-data.org/` in `services/crests.py` and again in `Crest.tsx`; hot-linked (`unoptimized`, `no-referrer`), never downloaded or proxied |
+| Sorare API | Public GraphQL, free; the API key only raises the rate limit (read-only, no OAuth). Rate limits are per key and unpublished | One run is 135–180 calls in ~1–3 min: the client pauses 0.35 s between calls, past cut-offs are cached in `read_models` (`sorare_references`) and a finished gameweek's replay is kept. Never write to Sorare from the job; `SORARE_USER` and the key live in `.env` / Actions secrets |
 | StatsBomb Open Data | LaLiga only to 2020/21, Barcelona matches only | Research only; not in the pipeline |
 | Vercel Hobby | Personal, non-commercial; 100 deployments/day; functions default 10 s | Only reads published data and small writes; heavy work stays in GitHub Actions |
 | GitHub Actions | Free on standard runners for public repos (private: 2,000 min/month); scheduled workflows in public repos are disabled after 60 days without commits | Keep jobs short; one refresh at a time (`concurrency: refresh`) |
@@ -242,15 +247,17 @@ Transfermarkt Terms prohibit scraping. No LaLiga logo or wordmark.
 
 - Root `.env` (git-ignored): `FOOTBALL_DATA_ORG_TOKEN`, `POSTGRES_URL` (Neon **pooled** host, role **`fdr_app`**),
   `POSTGRES_MIGRATION_URL` (Neon **direct** host, role `neondb_owner`), `REFRESH_TOKEN` (≥ 32 bytes, local admin path),
-  optional `ODDS_API_KEY`, and for the cloud: `APP_URL`, `REVALIDATE_SECRET`, `EXTENSION_TOKEN` (both ≥ 32),
-  `VERCEL_BYPASS_SECRET`.
+  optional `ODDS_API_KEY`, optional `SORARE_API_KEY` + `SORARE_USER` (the manager the Play page plans for;
+  without the key the Sorare step is skipped, like the odds step), and for the cloud: `APP_URL`,
+  `REVALIDATE_SECRET`, `EXTENSION_TOKEN` (both ≥ 32), `VERCEL_BYPASS_SECRET`.
 - `frontend/.env.local` (git-ignored, local dev): `DATABASE_URL` (the app-role URL with a plain `postgresql://`
   scheme; without it the app asks FastAPI), `REVALIDATE_SECRET`, `EXTENSION_TOKEN`, optional `GITHUB_TOKEN`, `EXTENSION_DIR`.
 - Vercel production env (project `sofix`): `DATABASE_URL`, `REVALIDATE_SECRET`, `EXTENSION_TOKEN`, `GITHUB_REPO`,
   `EXTENSION_DIR` (the local extension folder the Control Center offers to copy; not a secret, kept out of the public repo),
   and `GITHUB_TOKEN` (fine-grained, Sofix only, Actions read/write) for the Refresh button.
 - GitHub Actions secrets: `POSTGRES_URL` (app role), `FOOTBALL_DATA_ORG_TOKEN`, `ODDS_API_KEY`, `APP_URL`,
-  `REVALIDATE_SECRET`, `VERCEL_BYPASS_SECRET`, `SORARE_API_KEY` (S3).
+  `REVALIDATE_SECRET`, `VERCEL_BYPASS_SECRET`, `SORARE_API_KEY` (the Sorare step; the manager is the
+  repository variable `SORARE_USER`, not a secret).
 - `fdr_app` was created with SQL (so it is not in `neon_superuser`): DML on all tables + sequences, default
   privileges for tables the owner creates later, no DDL. Migrations must keep using the owner URL.
 - Neon TLS: `app/db.py` forces `sslmode=verify-full` with the certifi CA bundle for `*.neon.tech` hosts.

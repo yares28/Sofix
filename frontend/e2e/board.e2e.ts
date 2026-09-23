@@ -512,13 +512,13 @@ test("home: the gameweek, its hero number, the three board tiles and the Sorare 
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1, name: `Gameweek ${openingMatchday}` })).toBeVisible();
   await expect(page.locator(".hm-count")).toContainText(/to kickoff|games played/);
-  for (const title of ["Fixtures", "Difficulty", "Table", "Sorare", "Play", "My cards", "Predicted vs actual"]) {
+  for (const title of ["Fixtures", "Difficulty", "Table", "Sorare", "Play", "Last gameweek", "My cards"]) {
     await expect(page.getByRole("heading", { level: 2, name: title, exact: true })).toBeVisible();
   }
   const matches = gameweekMatches(grid, column(openingMatchday)).matches.length;
   await expect(page.locator(".hm-fixtures .hm-fx")).toHaveCount(matches);
   await expect(page.locator(".hm-mosaic .m-row:not(.hd)")).toHaveCount(grid.teams.length);
-  await expect(page.locator(".hm-wait")).toHaveCount(3); // the Sorare tiles wait for their data
+  await expect(page.locator(".hm-wait")).toHaveCount(0); // the Sorare tiles have their gameweek (see play.e2e.ts)
   const scan = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(scan.violations.map((v) => `${v.id}: ${v.nodes.slice(0, 4).map((n) => n.target.join(" ")).join("; ")}`)).toEqual([]);
 

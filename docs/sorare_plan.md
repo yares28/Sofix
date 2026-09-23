@@ -26,7 +26,7 @@ Every phase has two parts:
 |---|---|---|---|
 | S0 | What Sorare allows | ✅ | ✅ (discovery only; nothing to build) |
 | S1 | Foundation: always on, nothing to start (cloud) | ✅ | ✅ (3 owner steps left) |
-| S2 | Home page (bento) · v2: the whole gameweek | ✅ v1 · 🟡 v2 | ✅ v1 · ⬜ v2 |
+| S2 | Home page (bento) · v2: the whole gameweek | ✅ v1 · ✅ v2 | ✅ v1 · ✅ v2 |
 | S3 | Data sync (public + your cards) | ⬜ | ⬜ (public sync moves into S2 v2) |
 | S4 | xScore model | ⬜ | ⬜ |
 | S5 | My cards and Player search | ⬜ | ⬜ |
@@ -347,14 +347,25 @@ planner (`scratchpad/planner_proto.py`, moves to `backend/app/sorare/` in B) bui
   a swipe row, LaLiga's three tiles become one card with a Fixtures / Difficulty / Table switch, and the tab bar
   gains Play.
 
-### B · Build (v2) — planned
-- ⬜ Sorare sync in the refresh job (public API, key only): gameweeks, competitions with rules/rewards/fees, past
+### B · Build (v2)
+- ✅ Sorare sync in the refresh job (public API, key only): gameweeks, competitions with rules/rewards/fees, past
   cut-offs, sampled rooms, the owner's cards, his players' scores, Sorare projections and starting chances →
-  `read_models` (pulled forward from S3).
-- ⬜ Planner in `backend/app/sorare/` (lineup search, substitution rules, reward chances, whole-gameweek plans),
-  with unit tests on a recorded gameweek (pulled forward from S6).
-- ⬜ `/play` page and the home's Play tile; phone polish; tests (unit + browser) and a live check.
+  `read_models` (pulled forward from S3). `backend/app/sorare/{client,sync,forecast}.py`,
+  step `sorare` in `app.jobs.refresh`, or `python -m app.jobs.sorare` on its own.
+- ✅ Planner in `backend/app/sorare/{model,rules,planner}.py`: beam search per competition under Sorare's own
+  rules, 3,000 simulated gameweeks with the substitution logic, reward chances read from a comparable finished
+  gameweek, then whole-gameweek plans (each card once) ranked on cash and essence side by side. Benches are
+  optional: a card only sits on one when the lineup is worth more with it than the bonuses it risks.
+  38 unit tests (`backend/tests/test_sorare_planner.py`, `test_sorare_publish.py`).
+- ✅ `/play` page and the home's Sorare row (Play, Last gameweek, My cards), the phone layout, and the whole page
+  server-rendered from one cached read (`frontend/lib/play.ts` + `playData.ts`, 19 unit tests).
+- ✅ Browser tests: `frontend/e2e/play.e2e.ts` (10) and two phone tests, against a recorded gameweek
+  (`e2e/fixtures/sorare-response.json`) served by `e2e/mock-api.mjs` — no Sorare, no Neon.
 - ⬜ Apply (saving lineups to Sorare) stays in S6/S7 with the extension.
+
+**What the job costs.** A warm run is 135–180 calls in 65–175 s: the cut-offs of past gameweeks are kept in
+`read_models` key `sorare_references`, and a finished gameweek's replay is kept from the payload the app is
+already showing (gated by `publish.PAYLOAD_VERSION`, so a change to the payload rebuilds it once).
 
 ## S3 — Data sync
 - ⬜ A: design of the sync status and data freshness.

@@ -8,6 +8,7 @@ import { githubTokenUrl, VERCEL_ENV_URL } from "../../lib/github";
 import { loadSorare } from "../../lib/playData";
 import { qrCode } from "../../lib/qr";
 import { loadSystem } from "../../lib/system";
+import { weekContext } from "../../lib/weeks";
 
 export const metadata: Metadata = { title: "Control Center · Sofix" };
 
@@ -24,10 +25,15 @@ async function appAddress(): Promise<string> {
 
 export default async function ControlPage() {
   await connection(); // per request (from the cache): the status reads the clock
-  const [{ meta }, system, sorare, address] = await Promise.all([loadGrid(), loadSystem(), loadSorare(), appAddress()]);
+  const [{ grid, meta }, system, sorare, address] = await Promise.all([
+    loadGrid(),
+    loadSystem(),
+    loadSorare(),
+    appAddress(),
+  ]);
   return (
     <>
-      <SiteNav meta={meta} system={system} current="control" />
+      <SiteNav meta={meta} system={system} current="control" week={weekContext(grid, sorare, new Date())} />
       <main className="cc-page">
         <ControlCenter
           serverNow={new Date().toISOString()}

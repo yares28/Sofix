@@ -395,8 +395,8 @@ selectors, two numbers, and the Sorare side stuck on whichever gameweek the job 
 - One control in the bar, on every page: a pill with the week's state dot, its number and its dates.
 - It opens on a **month rail** — Aug through May — with the weeks of that month underneath, so a 43-week season
   stays one screen and any week is two clicks away. A dot marks the month you are really in, and "Now" jumps back.
-- Each row carries whichever numbers the week has (`GW15 · MD7`, `GW17` alone, `MD18` alone), its dates, how many
-  of your cards play, and what it is worth — the expected essence for the week being planned, our plan's replay
+- Each row carries whichever numbers the week has (`GW15 · LaLiga GW7`, `GW17` alone, `LaLiga GW18` alone — the
+  app never writes "MD"), its dates, how many of your cards play, and what it is worth — the expected essence for the week being planned, our plan's replay
   for one that is done, the cards that play for one still ahead, and "Sorare opens later" beyond its window.
 - Picking a week moves every page at once: Fixtures, Difficulty, Table, Play and the last gameweek.
 
@@ -409,9 +409,14 @@ selectors, two numbers, and the Sorare side stuck on whichever gameweek the job 
   ahead (3 cards play in GW18, 14 in GW19).
 - ✅ A week you opened to look ahead says so in its own words ("from form — Sorare hasn't published this week")
   instead of the cloud warning, which belongs to the app as a whole.
-- ⬜ The week picker in the bar, replacing the `<select>`; `?gw=` becomes the week, and the board resolves the
-  LaLiga round inside it.
-- ⬜ The empty state that matters: a week with no LaLiga round says so instead of showing the last one.
+- ✅ The week picker in the bar, replacing the board's `<select>`: `?w=` is the week and every page resolves what
+  it holds (`lib/weeks.ts`, 16 tests). The arrows step only through the weeks *this* page can show, so a board
+  page never walks through a fortnight of Sorare weeks holding no LaLiga round. Both systems are written "GW" and
+  whichever the page is not counting in is named, so `/difficulty` reads GW8 where `/play` reads GW17.
+- ✅ An older `?gw=` link still works and now moves the bar with it, so the two can never disagree; the board only
+  pins its gameweek when a week was actually asked for, leaving the full-season projection alone otherwise.
+- ✅ A week this page can't draw snaps to the nearest one it can (`holds`), rather than the page quietly showing
+  something else than the bar says.
 
 ## S3 — Data sync
 

@@ -64,8 +64,8 @@ reads it (`lib/db.ts`). FastAPI (`backend/app/main.py`) is only for local develo
 | Home | `frontend/app/page.tsx` at `/`: gameweek head with one hero number (days to kickoff, games played while it's on, shocks once played), the S0 gameweek timeline (`components/home/GameweekTimeline.tsx`, links to `/?gw=N`, knob placed by fixed widths), and the bento: Fixtures, Difficulty (a mosaic of every club's next five games), Table tiles, plus the Sorare row: `components/home/SorareTiles.tsx` (Play, Last gameweek, My cards) once the Sorare job has published, `SorareRow.tsx` (waiting tiles) before. Logic in `lib/home.ts` (pure, tested), title/relegation chances cached per grid in `lib/homeData.ts`; styles in `app/home.css`. Old `/?view=…` board links redirect (`legacyBoardUrl`) |
 | Play | `frontend/app/play/page.tsx` at `/play`: your whole Sorare gameweek. Server-rendered from one cached read (`lib/playData.ts`, `unstable_cache`, tag `sorare`); all state is in the address (`?gw=`, `?plan=`, `?after=1`). `components/play/`: `PlayView.tsx` (head with the freshness chip, gameweek bar, the alert when the data is behind, plan switch, plan hero, folds), `Lineup.tsx` (a lineup and its sheet), `LineupSheet.tsx` (the only client component — a `<dialog>`), `bits.tsx`, `SorareImage.tsx` (Sorare's asset host only, `unoptimized`). Display helpers and the payload types in `lib/play.ts` (pure, tested); styles in `app/play.css` |
 | Sorare data | `backend/app/sorare/`: `client.py` (read-only GraphQL, APIKEY header, throttled), `sync.py` (what is fetched), `forecast.py` (each player's chance of playing and score), `rules.py` + `model.py` (competitions read from Sorare's own rules), `planner.py` (lineup search, substitutions, reward chances, whole-gameweek plans), `publish.py` (the page's payload, `PAYLOAD_VERSION`), `record.py` (writes each gameweek's projections to `sorare_forecasts` before Sorare drops them). Job: `app/jobs/sorare.py`, also a step in `refresh` |
-| Navigation | `components/NavLinks.tsx` (top bar, PC) and `components/TabBar.tsx` (phones, fixed at the bottom, rendered outside the top bar); both follow `usePathname()` |
-| Frontend | Board pages `/fixtures`, `/difficulty`, `/table`: `frontend/app/(board)/*/page.tsx` → `board-route.tsx` (cached server fetch, tag `fixture-grid`), `components/FixtureBoard.tsx`, `Overview.tsx`, `DifficultyGrid.tsx`, `GameweekSelector.tsx`, `LeagueTable.tsx` + `TableProgression.tsx` (nivo chart, `lib/progression.ts`), `lib/grid.ts`, `lib/types.ts` |
+| Navigation | `components/NavLinks.tsx` (top bar, PC) and `components/TabBar.tsx` (phones, fixed at the bottom, rendered outside the top bar); both follow `usePathname()`. `components/WeekPicker.tsx` is the app's one gameweek control, in the top bar on every page (`lib/weeks.ts`, tested) |
+| Frontend | Board pages `/fixtures`, `/difficulty`, `/table`: `frontend/app/(board)/*/page.tsx` → `board-route.tsx` (cached server fetch, tag `fixture-grid`), `components/FixtureBoard.tsx`, `Overview.tsx`, `DifficultyGrid.tsx`, `LeagueTable.tsx` + `TableProgression.tsx` (nivo chart, `lib/progression.ts`), `lib/grid.ts`, `lib/types.ts` |
 
 ## Commands
 
@@ -115,9 +115,18 @@ npm run gen:types    # after python -m app.openapi_export
 - The board's tab is its path (`VIEW_PATH`: `/fixtures`, `/difficulty`, `/table`); every other setting stays in the query
   string. Switching tabs in the page doesn't navigate: `useViewState` rewrites the path with
   `history.replaceState(null, …)` (null, so Next's `usePathname` follows; passing Next's own state skips the sync).
-- One app-wide gameweek (`?gw=`, selector in the header; default = opening GW) drives every tab: the overview window,
-  the grid, the fixtures list and both tables. Picking a gameweek by hand (`state.gw !== null`) also stops the
-  projection there ("Projected table after GW7"); left alone the table shows every result and the full-season projection.
+- One app-wide **week** (`?w=`, the picker in the top bar) drives every page. LaLiga counts 38 rounds and Sorare
+  its own game weeks, and the numbers differ (LaLiga's GW7 is Sorare's GW17), so a week is what they share:
+  `lib/weeks.ts` merges them on half-open `[from, to)` windows and each page resolves what the week holds — the
+  board its round, Play its gameweek. `weekContext(grid, sorare, now, asked, holds)` also reads the older per-page
+  `?gw=` so an old link keeps the bar and the page agreeing, and `holds` snaps a week this page can't draw (a
+  Sorare week with no LaLiga round) to the nearest one it can. Both systems are written "GW"; whichever the page
+  is not counting in is named ("Sorare GW17", "LaLiga GW7").
+- The week still reaches the board as its own gameweek (`?gw=`, `state.gw`): `board-route.tsx` writes it only when
+  a week was asked for, because picking a gameweek by hand (`state.gw !== null`) also stops the projection there
+  ("Projected table after GW7"); left alone the table shows every result and the full-season projection. The board's
+  state follows a newly served gameweek (`hooks/useViewState.ts`), and the picker reads `window.location.search`,
+  not `useSearchParams()`, so a week change keeps the lens, horizon and pins the board wrote with `replaceState`.
 - Played games keep the forecast they carried before kickoff (`GridCell.prediction` on a finished cell, from
   `fixture_grid.historic_predictions`, which ignores the model version on purpose) plus `GridCell.review`: the chance
   the board gave the result, the points won against the expected points, and `surprise` from `services/postmortem.py`

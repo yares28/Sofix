@@ -226,3 +226,32 @@ test("the head says how current the gameweek is, and the Control Center shows th
   await expect(panel.locator(".sr-stats")).toContainText("3 moved since the run before");
   await expect(panel.getByRole("img")).toHaveAttribute("aria-label", /scheduled runs before the gameweek locks/);
 });
+
+test("the week in the bar moves the whole app, a month at a time", async ({ page }) => {
+  await page.goto("/play");
+  const trigger = page.locator(".wk-trigger");
+  await expect(trigger).toContainText("GW17"); // the gameweek being planned
+
+  await trigger.click();
+  const panel = page.locator(".wk-panel");
+  await expect(panel.getByRole("radio", { name: /GW15/ })).toContainText("our plan's replay");
+  await expect(panel.getByRole("radio", { name: /GW17/ })).toHaveAttribute("aria-checked", "true");
+  // A month at a time, so a whole season stays one screen.
+  await expect(panel.locator(".wk-months button").first()).toBeVisible();
+  await expect(panel.locator(".wk-foot")).toContainText("open on Sorare");
+
+  await panel.getByRole("radio", { name: /GW15/ }).click();
+  await expect(page).toHaveURL(/\/play\?w=\d{4}-\d{2}-\d{2}$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Gameweek 15" })).toBeVisible();
+  await expect(trigger).toContainText("GW15");
+
+  // The same week, carried to another page by the address alone. The board counts LaLiga rounds, so it names
+  // that week by its own gameweek — the dates are what the two pages share.
+  const week = new URL(page.url()).searchParams.get("w")!;
+  const dates = (await trigger.locator(".wk-when").textContent())!;
+  await page.goto(`/difficulty?w=${week}`);
+  await expect(page.locator(".wk-trigger .wk-when")).toHaveText(dates);
+  const round = (await page.locator(".wk-trigger b").textContent())!.replace("GW", "");
+  await expect(page.locator(".toolbar .range")).toContainText(`GW${round}`); // the board followed the week
+  await expect(page.locator("#gw-select")).toHaveCount(0); // the board's own selector is gone
+});

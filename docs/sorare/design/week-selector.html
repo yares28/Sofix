@@ -202,7 +202,7 @@ function drawMenu() {
   const shown = WEEKS.filter((w) => key(w) === MONTHS[month]);
   $("#rows").innerHTML = shown.map((w, i) => {
     const [big, small] = value(w);
-    const name = w.gw ? `GW${w.gw}${w.md ? ` <em>· MD${w.md}</em>` : ""}` : `MD${w.md}`;
+    const name = w.gw ? `GW${w.gw}${w.md ? ` <em>· LaLiga GW${w.md}</em>` : ""}` : `LaLiga GW${w.md}`;
     const mine = w.cards ? `<span class="tag foil">${w.cards} cards</span>` : "";
     return `<button class="week" role="radio" data-i="${w.i}" style="--i:${i}" aria-checked="${w.i === at}">
       <s class="${state(w)}"></s>
@@ -219,11 +219,11 @@ function drawMenu() {
 
 function draw() {
   const w = WEEKS[at];
-  $("#tnum").textContent = w.gw ? `GW${w.gw}` : `MD${w.md}`;
+  $("#tnum").textContent = w.gw ? `GW${w.gw}` : `LaLiga GW${w.md}`;
   $("#tdate").textContent = span(w.from, w.to);
   $("#tdot").className = `dot ${state(w)}`;
-  $("#h1").textContent = w.gw ? `Gameweek ${w.gw}` : `Matchday ${w.md}`;
-  $("#sub").textContent = `${span(w.from, w.to)} · ${w.md ? `LaLiga matchday ${w.md}` : "no LaLiga round this week"}${w.gw ? "" : " · Sorare opens this week nearer the time"}`;
+  $("#h1").textContent = w.gw ? `Gameweek ${w.gw}` : `LaLiga gameweek ${w.md}`;
+  $("#sub").textContent = `${span(w.from, w.to)} · ${w.md ? `LaLiga gameweek ${w.md}` : "no LaLiga round this week"}${w.gw ? "" : " · Sorare opens this week nearer the time"}`;
 
   const play = w.essence
     ? `<div class="card"><span class="t"><span class="foil"></span> Play<em>${w.plans} plans</em></span><span class="big"><b>≈${w.essence}</b><i>essence</i></span><span class="sub">${w.cards} of your cards play</span></div>`
@@ -232,8 +232,8 @@ function draw() {
       : `<div class="card${w.cards ? "" : " empty"}"><span class="t"><span class="foil"></span> Play<em>${w.gw ? state(w) : "—"}</em></span><span class="big"><b>${w.cards || "—"}</b><i>${w.cards ? "cards play" : ""}</i></span><span class="sub">${w.cards ? "a plan from form until Sorare publishes" : w.gw ? "none of your cards play" : "Sorare opens this week nearer the time"}</span></div>`;
 
   const board = w.md
-    ? `<div class="card"><span class="t">Fixtures<em>MD${w.md}</em></span><span class="big"><b>10</b><i>matches</i></span><span class="sub">difficulty, table and the grid follow this week</span></div>
-       <div class="card"><span class="t">Table<em>${w.finished ? `after MD${w.md}` : `to MD${w.md}`}</em></span><span class="big"><b>20</b><i>clubs</i></span><span class="sub">${w.finished ? "as it stood" : "projected from here"}</span></div>`
+    ? `<div class="card"><span class="t">Fixtures<em>GW${w.md}</em></span><span class="big"><b>10</b><i>matches</i></span><span class="sub">difficulty, table and the grid follow this week</span></div>
+       <div class="card"><span class="t">Table<em>${w.finished ? `after GW${w.md}` : `to GW${w.md}`}</em></span><span class="big"><b>20</b><i>clubs</i></span><span class="sub">${w.finished ? "as it stood" : "projected from here"}</span></div>`
     : `<div class="card empty"><span class="t">Fixtures<em>—</em></span><span class="big"><b>0</b><i>matches</i></span><span class="sub">no LaLiga round falls in this week</span></div>
        <div class="card empty"><span class="t">Table<em>—</em></span><span class="big"><b>—</b><i></i></span><span class="sub">unchanged while LaLiga is away</span></div>`;
 

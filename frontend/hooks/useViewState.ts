@@ -24,6 +24,15 @@ export function useViewState(initial: ViewState, pinsInUrl: boolean, knownCodes:
     }
   }, [pinsInUrl, knownCodes]);
 
+  // The header's week picker navigates, and the server comes back with the gameweek that week holds: the board
+  // follows it. Everything else in the state is the board's own and survives the week change.
+  const served = useRef(initial.gw);
+  useEffect(() => {
+    if (initial.gw === served.current) return;
+    served.current = initial.gw;
+    setState((current) => ({ ...current, gw: initial.gw }));
+  }, [initial.gw]);
+
   // Keep the URL shareable and the pins remembered, without a navigation or a server round trip. A tab switch
   // rewrites the path too (/fixtures, /difficulty, /table), so the tab stays instant and a reload lands on it.
   const firstSync = useRef(true);

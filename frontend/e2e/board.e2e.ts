@@ -15,7 +15,7 @@ const column = (number: number) => grid.matchdays.findIndex((md) => md.number ==
 test("first load shows the overview, then the grid and the fixtures, from the opening gameweek", async ({ page }) => {
   await page.goto("/difficulty");
   await expect(page.getByRole("heading", { level: 1, name: "Fixtures & Difficulty" })).toBeVisible();
-  await expect(page.locator("#gw-select").locator("option:checked")).toHaveText(new RegExp(`^GW${openingMatchday} · .* · next$`));
+  await expect(page.locator(".wk-trigger")).toBeVisible(); // the week lives in the bar now, not in the board
   await expect(page.getByRole("article", { name: /^Most points coming: / })).toBeVisible();
   await expect(page.getByRole("article", { name: /^Fewest points coming: / })).toBeVisible();
   await expect(page.locator(".run-card")).toHaveCount(2); // the schedule swings sit behind each card's arrow
@@ -196,17 +196,14 @@ test("the grid's lens and horizon are kept in the URL", async ({ page }) => {
 test("the gameweek selector moves every card, the grid, the fixtures and the table", async ({ page }) => {
   const next = openingMatchday + 1;
   const past = openingMatchday - 2; // fully played (the gameweek before the opening one still has a live game)
-  await page.goto("/difficulty");
-  await page.getByRole("button", { name: "Next gameweek" }).click();
-  await expect(page).toHaveURL(new RegExp(`gw=${next}`));
+  await page.goto(`/difficulty?gw=${next}`);
   await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${next}`, exact: true })).toBeVisible();
   await expect(page.locator(".run-card .bento-meta").first()).toHaveText(`GW${next}–GW${next + 4}`);
   await expect(page.locator(".toolbar .range")).toHaveText(`GW${next} – GW${next + 4}`);
   await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${next} fixtures` })).toBeVisible();
 
   // A played gameweek: its results, and the table as it stood after it.
-  await page.locator("#gw-select").selectOption(String(column(past)));
-  await expect(page).toHaveURL(new RegExp(`gw=${past}`));
+  await page.goto(`/difficulty?gw=${past}`);
   await expect(page.locator(".gw-card .gw-score").first()).toHaveText(/^FT \d+–\d+$/);
   await expect(page.getByRole("heading", { level: 2, name: `Table after GW${past}` })).toBeVisible();
   const playedAfter = await page.locator(".table-card .list-rows > li").count();
@@ -217,9 +214,10 @@ test("the gameweek selector moves every card, the grid, the fixtures and the tab
   const games = (await page.locator("table.standings tbody tr td:nth-child(3)").allTextContents()).map(Number);
   expect(Math.max(...games)).toBeLessThanOrEqual(past);
 
-  await page.getByRole("button", { name: `Back to GW${openingMatchday}` }).click();
-  await expect(page).not.toHaveURL(/gw=/);
+  await page.locator(".wk-trigger").click(); // the week picker in the header
+  await page.getByRole("button", { name: "Now" }).click();
   await expect(page.getByRole("heading", { level: 2, name: "LaLiga table" })).toBeVisible();
+  await expect(page).not.toHaveURL(/[?&](gw|w)=/);
 });
 
 test("columns sort from the keyboard", async ({ page }) => {
@@ -344,7 +342,7 @@ test("the Fixtures tab lists the selected gameweek, results included", async ({ 
   await expect(page.locator(".board")).toHaveCount(0);
 
   // Back into a played gameweek: scores instead of kick-off times.
-  await page.getByRole("button", { name: "Previous gameweek" }).click();
+  await page.goto(`/fixtures?gw=${openingMatchday - 1}`);
   await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${openingMatchday - 1} fixtures` })).toBeVisible();
   await expect(page.locator(".fixture-middle.score").first()).toHaveText(/^\d+–\d+$/);
 });
@@ -386,7 +384,7 @@ test("the Table tab walks back and forward a gameweek at a time, and charts the 
   await expect(headers().nth(6)).toHaveText("xGD");
 
   // Stepping back stops the projection at that gameweek.
-  await page.locator("#gw-select").selectOption(String(column(past)));
+  await page.goto(`/table?t=predicted&gw=${past}`);
   await expect(page.getByRole("heading", { level: 2, name: `Projected table after GW${past}` })).toBeVisible();
   await page.getByRole("group", { name: "Table" }).getByRole("button", { name: "Current" }).click();
   await expect(page.getByRole("heading", { level: 2, name: `Table after GW${past}` })).toBeVisible();

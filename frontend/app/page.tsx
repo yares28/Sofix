@@ -14,6 +14,7 @@ import { legacyBoardUrl, openingColumn } from "../lib/grid";
 import { boardHref, gameweekHead, timelineEntries } from "../lib/home";
 import { loadChances } from "../lib/homeData";
 import { loadSorare } from "../lib/playData";
+import { weekContext } from "../lib/weeks";
 import { loadSystem } from "../lib/system";
 
 export const metadata: Metadata = { title: "Sofix" };
@@ -41,10 +42,18 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
     loadChances(),
     loadSorare(),
   ]);
+  const opening = grid ? openingColumn(grid) : 0;
+  const week = weekContext(
+    grid,
+    sorare,
+    new Date(),
+    { w: params.get("w"), md: Number(params.get("gw")) || (grid?.matchdays[opening]?.number ?? null) },
+    (item) => item.md !== null,
+  );
   if (!grid) {
     return (
       <>
-        <SiteNav meta={meta} system={system} />
+        <SiteNav meta={meta} system={system} week={week} />
         <main>
           <section className="card empty-state" role="status">
             <h1>Sofix</h1>
@@ -55,15 +64,15 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
     );
   }
 
-  const opening = openingColumn(grid);
-  const requested = params.has("gw") ? grid.matchdays.findIndex((md) => String(md.number) === params.get("gw")) : opening;
-  if (requested < 0) redirect("/"); // a gameweek this season doesn't have
-  const column = requested;
+  if (params.has("gw") && !grid.matchdays.some((md) => String(md.number) === params.get("gw"))) {
+    redirect("/"); // a gameweek this season doesn't have
+  }
+  const column = week.current?.column ?? opening; // the week in the bar decides which gameweek the page is about
   const href = (path: string) => boardHref(path, grid, column, opening);
 
   return (
     <>
-      <SiteNav meta={meta} system={system} />
+      <SiteNav meta={meta} system={system} week={week} />
       <main className="hm">
         <HomeHead head={gameweekHead(grid, column, new Date())} />
         <GameweekTimeline entries={timelineEntries(grid, opening)} column={column} opening={opening} />

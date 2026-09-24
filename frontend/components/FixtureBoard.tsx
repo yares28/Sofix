@@ -8,7 +8,6 @@ import {
 import type { FixtureGrid, ModelNote } from "../lib/types";
 import DifficultyGrid from "./DifficultyGrid";
 import FixturesList from "./FixturesList";
-import GameweekSelector from "./GameweekSelector";
 import LeagueTable from "./LeagueTable";
 import Overview from "./Overview";
 import SegmentedControl from "./SegmentedControl";
@@ -29,10 +28,8 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl }: Pr
   const { state, patch, togglePin } = useViewState(initialView, pinsInUrl, knownCodes);
   const { view, lens, horizon, pins } = state;
 
-  // One gameweek drives every tab: the overview's window, the grid, the fixtures list and the table.
+  // One week drives every tab: the picker in the bar sets it, and the board opens on the round inside it.
   const column = selectedColumn(grid.matchdays, state.gw, opening);
-  const selectGameweek = (next: number) =>
-    patch({ gw: next === opening ? null : (grid.matchdays[next]?.number ?? null) }); // the default keeps a clean URL
   const { start, end } = windowRange(total, column, horizonSize(horizon, total));
   // The table follows the gameweek only once one is picked by hand: results up to it, and the projection
   // stopped there too. Left alone it shows every result so far and the projection to the end of the season.
@@ -55,7 +52,6 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl }: Pr
           <h1>{view === "table" ? "Table" : view === "plain" ? "Fixtures" : "Fixtures & Difficulty"}</h1>
         </div>
         <div className="hero-controls">
-          <GameweekSelector matchdays={grid.matchdays} column={column} opening={opening} onSelect={selectGameweek} />
           <div className="board-tabs">
             <SegmentedControl<View>
               label="View"

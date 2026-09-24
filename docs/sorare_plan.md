@@ -29,7 +29,7 @@ Every phase has two parts:
 | S2 | Home page (bento) · v2: the whole gameweek | ✅ v1 · ✅ v2 | ✅ v1 · ✅ v2 |
 | S3 | Data sync (public + your cards) | 🟡 waiting for approval | ⬜ (public sync moved into S2 v2) |
 | S4 | xScore model | ✅ | ⬜ (waiting on a played gameweek) |
-| S5 | My cards and Player search | ⬜ | ⬜ |
+| S5 | My cards and Player search | ✅ | ⬜ |
 | S6 | Apply (save lineups to Sorare) | ✅ | ✅ (needs Chrome to try for real) |
 | S7 | Overlay on sorare.com | ⬜ | ⬜ |
 | S8 | Predicted vs actual | ⬜ | ⬜ |
@@ -523,7 +523,38 @@ the weeks before it. Every number on the page is one of those; nothing is invent
   scored rows yet, so the first replay is possible after GW17 is played.
 
 ## S5 — My cards and Player search
-- ⬜ A: designs. ⬜ B: pages.
+
+### A · Think & show (2026-09-24)
+
+**Done:** `docs/sorare/design/S5-cards.html` and `S5-search.html`, built on the owner's real 96 cards and on 92
+LaLiga players with the price Sorare is actually quoting for them. Nothing was written to Sorare.
+
+1. **The collection says something the counts never did.** 87 playable of 96, but only **75 players**: twelve
+   cards are a second (or third) of someone he already has, and a player can only be in one lineup per
+   competition. The shape is lopsided too — 38 defenders against 10 goalkeepers — so the page leads with the
+   number he can play, then the shape, then the cards themselves, filterable by position and rarity. The nine
+   sealed cards fold away with their reason.
+2. **A player search can be honest about money.** `searchPlayers(query:)` works with the read-only key and
+   returns the club, the last-ten average, Sorare's next-fixture projection and
+   `commonPlayer.marketValue(rarity, seasonEligibility)` — a real euro price per rarity. Jan Oblak's Limited is
+   €43.97 as of this run.
+3. **The useful question is "would he improve my team", not "who exists".** The search compares a player to the
+   fifth-best card the owner already holds in that position (GK 52, DEF 58, MID 53, FWD 51), and says so in
+   those words: *+27 on your FWD*. Someone he already owns is marked and sorted below — Ionuț Radu came up as a
+   "signing" until that was fixed. **19 of the 92** priced LaLiga players would actually improve the team.
+4. **What the API will and will not do.** The search index holds 19,234 players across every Sorare sport, and
+   the only facet that answers is `position`; `club`, `league` and `competition` come back empty, `sorts` are
+   accepted and then ignored, and `so5LeaderboardSlug` does not narrow anything. So a *name* search is a live
+   call, while *browsing* has to be built from squads: `football.competition(slug:"laliga-es").clubs` →
+   `club.activePlayers`, which is 1 + 20 calls for the whole league, form and price included.
+5. **It belongs in the job, not in the app.** Production runs no Python and the key is not on Vercel, so S5 · B
+   publishes a LaLiga index (about 500 players) beside the rest of the payload and the page searches that —
+   free, instant, and the same architecture as everything else.
+
+### B · Build — planned
+- ⬜ The collection in the payload: every card, not only the counts.
+- ⬜ A LaLiga index (form, projection, market value) from the squads, once per refresh.
+- ⬜ `/cards` and `/players`, with the comparison to what he already holds.
 
 ## S6 — Apply (the optimizer shipped in S2 v2)
 

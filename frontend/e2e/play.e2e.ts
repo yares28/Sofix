@@ -255,3 +255,32 @@ test("the week in the bar moves the whole app, a month at a time", async ({ page
   await expect(page.locator(".toolbar .range")).toContainText(`GW${round}`); // the board followed the week
   await expect(page.locator("#gw-select")).toHaveCount(0); // the board's own selector is gone
 });
+
+test("Apply opens on the first step and does nothing until it is pressed", async ({ page }) => {
+  await page.goto("/play");
+  await page.getByRole("button", { name: "Apply plan" }).click();
+  const sheet = page.locator(".ap");
+  await expect(sheet).toBeVisible();
+
+  // One hero, the lineup's own xScore, and the three steps in order.
+  await expect(sheet.locator(".ap-num b")).toHaveText(/^\d+$/);
+  await expect(sheet.locator(".ap-rail")).toContainText("1Check2Draft3Enter");
+  await expect(sheet.locator(".ap-step > span.on")).toContainText("Check");
+  // Every card the lineup holds, starters then subs, as many as its head says.
+  const head = (await sheet.locator(".ap-what").textContent())!.match(/(\d+) \+ (\d+) subs/)!;
+  const starters = Number(head[1]);
+  const subs = Number(head[2]);
+  await expect(sheet.locator(".ap-pc")).toHaveCount(starters + subs);
+  await expect(sheet.locator(".ap-pc.sub")).toHaveCount(subs);
+
+  // Playwright's Chrome has no extension, so the sheet says so instead of pretending, and the step that
+  // would write anything cannot be pressed.
+  await expect(sheet.locator(".ap-verdict")).toContainText("Chrome doesn't have the extension");
+  await expect(sheet.getByRole("link", { name: /Set it up/ })).toHaveAttribute("href", "/control");
+  await expect(sheet.getByRole("button", { name: "Check with Sorare" })).toHaveCount(0);
+  await expect(sheet.getByRole("button", { name: "Try again" })).toBeEnabled();
+  await expect(sheet.locator(".ap-foot .note")).toHaveText("Nothing has been saved.");
+
+  await sheet.getByRole("button", { name: "Close" }).click();
+  await expect(sheet).toBeHidden();
+});

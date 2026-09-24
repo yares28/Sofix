@@ -291,8 +291,9 @@ def test_the_plans_use_each_card_once_and_name_their_lineups(payload):
 def test_a_lineup_carries_what_the_app_needs_to_draw_it(payload):
     lineup = publish.week_of(payload)["plans"][0]["lineups"][0]
     assert lineup["need"] and lineup["tiers"]
-    # Entering this lineup takes Sorare's id for the leaderboard, which only the job can read (S6).
-    assert lineup["boardId"].startswith("So5Leaderboard:")
+    # Entering this lineup takes Sorare's id for the leaderboard, which only the job can read (S6), and
+    # asking Sorare about it takes the slug.
+    assert lineup["boardId"] == f"So5Leaderboard:{lineup['board']}"
     assert 0 <= lineup["pReturn"] <= 1
     card = lineup["starters"][0]
     assert card["pic"].startswith("https://assets.sorare.com/")

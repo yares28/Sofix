@@ -11,6 +11,7 @@ import {
   waitingFor,
 } from "../../lib/play";
 import { syncState } from "../../lib/sorareStatus";
+import ApplySheet from "./ApplySheet";
 import { Cash, Chevron, Essence, Foil, GROUP_COLOUR } from "./bits";
 import Lineup from "./Lineup";
 import SorareImage from "./SorareImage";
@@ -74,7 +75,7 @@ export default function PlayView({
         <>
           <PlanSwitch week={week} planIndex={planIndex} after={after} href={href} />
           <div className={sync?.behind ? "behind" : undefined}>
-            <PlanHero plan={plan} week={week} after={after} />
+            <PlanHero plan={plan} week={week} after={after} now={now} />
           </div>
           <div className="pl-sec">
             <h2>Lineups</h2>
@@ -261,7 +262,7 @@ function PlanSwitch({
   );
 }
 
-function PlanHero({ plan, week, after }: { plan: Plan; week: GameweekPlan; after: boolean }) {
+function PlanHero({ plan, week, after, now }: { plan: Plan; week: GameweekPlan; after: boolean; now: Date }) {
   const parts = allocation(plan);
   const counts = new Map<string, { group: string; lineups: number; cards: number }>();
   for (const lineup of plan.lineups) {
@@ -336,9 +337,9 @@ function PlanHero({ plan, week, after }: { plan: Plan; week: GameweekPlan; after
           </div>
         </div>
         <div className="pl-actions">
-          <span className="pl-btn" title="Saving lineups to Sorare arrives with the extension step">
-            Apply plan
-          </span>
+          {after ? null : (
+            <ApplySheet lineups={plan.lineups} week={week} rank={plan.rank} now={now.toISOString()} />
+          )}
         </div>
       </div>
 

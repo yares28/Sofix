@@ -324,7 +324,8 @@ def lineup_payload(
     payload = {
         "comp": comp.name,
         "key": comp.key,
-        "boardId": comp.board_id,  # what Apply enters; everything else it needs is session-only (S6)
+        "board": comp.slug,  # Sorare reaches a leaderboard by slug, and enters one by id: Apply needs both
+        "boardId": comp.board_id,
         "group": comp.group,
         "fee": comp.fee,
         "rarity": comp.rarity,

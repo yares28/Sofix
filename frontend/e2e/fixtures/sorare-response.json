@@ -625,7 +625,8 @@
                     }
                   ]
                 },
-                "boardId": "So5Leaderboard:laliga-ea-sports-limited"
+                "boardId": "So5Leaderboard:laliga-ea-sports-limited",
+                "board": "laliga-ea-sports-limited"
               },
               {
                 "comp": "All Star",
@@ -870,7 +871,8 @@
                   "bonusLost": false,
                   "cameIn": []
                 },
-                "boardId": "So5Leaderboard:all-star-limited"
+                "boardId": "So5Leaderboard:all-star-limited",
+                "board": "all-star-limited"
               }
             ],
             "actual": {
@@ -1142,7 +1144,8 @@
                     }
                   ]
                 },
-                "boardId": "So5Leaderboard:laliga-ea-sports-limited"
+                "boardId": "So5Leaderboard:laliga-ea-sports-limited",
+                "board": "laliga-ea-sports-limited"
               }
             ],
             "actual": {
@@ -1699,7 +1702,8 @@
                   }
                 ],
                 "average": 244,
-                "boardId": "So5Leaderboard:laliga-ea-sports-limited"
+                "boardId": "So5Leaderboard:laliga-ea-sports-limited",
+                "board": "laliga-ea-sports-limited"
               },
               {
                 "comp": "All Star",
@@ -1935,7 +1939,8 @@
                 ],
                 "subs": [],
                 "average": 352,
-                "boardId": "So5Leaderboard:all-star-limited"
+                "boardId": "So5Leaderboard:all-star-limited",
+                "board": "all-star-limited"
               },
               {
                 "comp": "Room of 10",
@@ -2116,7 +2121,8 @@
                 ],
                 "subs": [],
                 "average": 243,
-                "boardId": "So5Leaderboard:room-limited-300"
+                "boardId": "So5Leaderboard:room-limited-300",
+                "board": "room-limited-300"
               }
             ]
           },
@@ -2364,7 +2370,8 @@
                   }
                 ],
                 "average": 244,
-                "boardId": "So5Leaderboard:laliga-ea-sports-limited"
+                "boardId": "So5Leaderboard:laliga-ea-sports-limited",
+                "board": "laliga-ea-sports-limited"
               },
               {
                 "comp": "All Star",
@@ -2600,7 +2607,8 @@
                 ],
                 "subs": [],
                 "average": 352,
-                "boardId": "So5Leaderboard:all-star-limited"
+                "boardId": "So5Leaderboard:all-star-limited",
+                "board": "all-star-limited"
               }
             ]
           }

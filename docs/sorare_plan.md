@@ -30,7 +30,7 @@ Every phase has two parts:
 | S3 | Data sync (public + your cards) | 🟡 waiting for approval | ⬜ (public sync moved into S2 v2) |
 | S4 | xScore model | ⬜ | ⬜ |
 | S5 | My cards and Player search | ⬜ | ⬜ |
-| S6 | Apply (save lineups to Sorare) | 🟡 waiting for approval | ⬜ (the optimizer shipped in S2 v2) |
+| S6 | Apply (save lineups to Sorare) | ✅ | ✅ (needs Chrome to try for real) |
 | S7 | Overlay on sorare.com | ⬜ | ⬜ |
 | S8 | Predicted vs actual | ⬜ | ⬜ |
 | S9 | Hardening and retiring SorareExt | ⬜ | ⬜ |
@@ -533,11 +533,26 @@ already do. Nothing was written to Sorare.
    (S3's `waiting` state) means entering a lineup chosen on last-five-games form. The Apply sheet has to carry
    that state, not just the Play page's head.
 
-### B · Build — planned
-- ⬜ `so5LeaderboardId` in the sync and the payload.
-- ⬜ Extension: preview → draft → confirm, each an explicit step, with Sorare's own errors surfaced.
-- ⬜ The Apply sheet on Play: what will be entered, Sorare's verdict, what it costs, and what is already entered.
-- ⬜ Never automatic: no lineup is ever saved or entered without a click for that competition.
+### B · Build (2026-09-24)
+
+Checked against Sorare's published schema (`api.sorare.com/graphql/schema`), not guessed: introspection is off
+on the API itself, so every field below was read from the SDL and the ones that matter were probed live.
+
+- ✅ `so5LeaderboardId` in the sync and the payload. `createOrUpdateSo5Lineup` takes the leaderboard's **id**
+  while Sofix is keyed by its **slug**, so a lineup carries both (`board`, `boardId`; `PAYLOAD_VERSION` 4).
+- ✅ Extension: check → draft → confirm, each an explicit step. `background.js` holds the only list of steps the
+  app may name and `bridge.js` the only list of operations it may run, so neither the page nor the app can turn
+  the bridge into a general proxy. Sorare's `UserError`s and its `feedbackRules` come back as they are.
+- ✅ The Apply sheet on Play (`components/play/ApplySheet.tsx`, `lib/apply.ts`, 7 tests): the lineup's cards,
+  Sorare's verdict, what it costs, what is already entered and how many slots are left. Without Chrome, the
+  extension or a sorare.com tab it says which one is missing and offers only "Try again".
+- ✅ Never automatic: the only thing that runs on opening the sheet is the read of what is already entered.
+  Saving a draft and entering are a press each, and an e2e test holds that line — in a browser with no
+  extension, no button that writes is even rendered.
+
+**What the probe settled:** with the API key alone, `mySo5Lineups` answers *"Not authorized … You should log
+in"* and `canCompose` comes back `value: false` with no reason. Both need the sorare.com session, so neither
+belongs in the job — what is already entered is the browser's answer to give, or nobody's.
 
 ## S7 — Overlay on sorare.com
 - ⬜ A: design matching SorareInside (ribbons, drawer). ⬜ B: build.

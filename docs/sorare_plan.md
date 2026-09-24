@@ -31,7 +31,7 @@ Every phase has two parts:
 | S4 | xScore model | ✅ | ⬜ (waiting on a played gameweek) |
 | S5 | My cards and Player search | ✅ | ⬜ |
 | S6 | Apply (save lineups to Sorare) | ✅ | ✅ (needs Chrome to try for real) |
-| S7 | Overlay on sorare.com | ⬜ | ⬜ |
+| S7 | Overlay on sorare.com | ✅ | ⬜ |
 | S8 | Predicted vs actual | ⬜ | ⬜ |
 | S9 | Hardening and retiring SorareExt | ⬜ | ⬜ |
 
@@ -614,7 +614,38 @@ in"* and `canCompose` comes back `value: false` with no reason. Both need the so
 belongs in the job — what is already entered is the browser's answer to give, or nobody's.
 
 ## S7 — Overlay on sorare.com
-- ⬜ A: design matching SorareInside (ribbons, drawer). ⬜ B: build.
+
+### A · Think & show (2026-09-24)
+
+**Done:** `docs/sorare/design/S7-overlay.html` — Sofix's panel, card ribbon and drawer on a sorare.com player
+page, drawn with Jan Oblak's real numbers: our forecast recorded before the lock, his real last five, the card
+the owner actually holds, and the prices Sorare was showing on 24 Sep. Nothing was written to Sorare, and no
+page was opened as the owner.
+
+1. **Never anchor to a class.** Sorare's page is styled-components: every class is a build hash
+   (`sc-fiVjAF hoZsWH`) and changes when they deploy. What is stable is the address — `/football/players/<slug>`
+   — and the links a card carries, `?card=jan-oblak-2026-limited-327`. The page also exposes
+   `data-sorare-version` and `data-sorare-revision`, worth recording so a breakage can be told apart from a bug.
+2. **Their card slugs are our card slugs.** The owner's `jan-oblak-2023-limited-344` is the same shape as the
+   slug in Sorare's own links, so a card drawn anywhere on their site joins to a card in our payload by slug
+   alone — no scraping, no guessing.
+3. **The data comes from Sofix, not from Sorare.** The background worker already reaches the app with the
+   extension token and the Vercel bypass header, so it can hand the published payload to the content script;
+   a fetch from inside the page would be subject to sorare.com's own CSP, and this costs zero Sorare calls.
+4. **What it is for.** On the page where the owner is about to spend money, the panel puts our number beside
+   theirs: Sorare projects Oblak at 53 and so do we — but our xScore is **47**, because it counts the 11%
+   chance he does not play at all. Beside it: what he is worth to us (€43.97) against the lowest listing
+   (€46.50), that he already owns one, and that this week's plan does not use him. A ribbon carries the same
+   number onto any card image, and a drawer holds the gameweek's plan.
+5. **Entering stays in Sofix.** The drawer's button opens Apply in the app; the three presses (S6) do not move
+   onto Sorare's page, where a misclick is a real entry.
+6. **The look is theirs.** Dark `#0e0e0e`, their score ramp from red to green, their layout — the one exception
+   in DESIGN.md. Their wordmark is not reproduced: the mock says where you are with the address bar.
+
+### B · Build — planned
+- ⬜ The overlay bundle in the extension: panel on a player page, ribbon on any card, drawer on every page.
+- ⬜ The payload relayed through the background worker, cached per gameweek.
+- ⬜ Anchors by href only, with the Sorare build recorded on each check-in.
 
 ## S8 — Predicted vs actual
 - ⬜ A: design. ⬜ B: per player and per lineup review, weekly summary, correction gate.

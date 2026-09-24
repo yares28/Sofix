@@ -28,7 +28,7 @@ Every phase has two parts:
 | S1 | Foundation: always on, nothing to start (cloud) | ✅ | ✅ (3 owner steps left) |
 | S2 | Home page (bento) · v2: the whole gameweek | ✅ v1 · ✅ v2 | ✅ v1 · ✅ v2 |
 | S3 | Data sync (public + your cards) | 🟡 waiting for approval | ⬜ (public sync moved into S2 v2) |
-| S4 | xScore model | ⬜ | ⬜ |
+| S4 | xScore model | ✅ | ⬜ (waiting on a played gameweek) |
 | S5 | My cards and Player search | ⬜ | ⬜ |
 | S6 | Apply (save lineups to Sorare) | ✅ | ✅ (needs Chrome to try for real) |
 | S7 | Overlay on sorare.com | ⬜ | ⬜ |
@@ -492,11 +492,35 @@ costs, and what Sorare will still hand over later — and what it won't.
 - ⬜ ClubElo ratings for European opponents (once a day) — with S4, where they feed the model.
 
 ## S4 — xScore model
-- ⬜ A: design of the xScore display (average + bad / average / good range).
-- ⬜ B: chance of playing (Sorare starting chances + minutes history + injuries).
-- ⬜ B: score if he plays, from Sorare's projection, the player's history and our match model (team goals,
+
+### A · Think & show (2026-09-24)
+
+**Done:** `docs/sorare/design/S4-xscore.html`, built on the twelve players the owner holds for Sorare GW17, the
+forecast recorded before that gameweek's lock (`sorare_forecasts`) and the scores those players really got in
+the weeks before it. Every number on the page is one of those; nothing is invented.
+
+1. **One number is not enough, and the page says why.** A card's xScore is two things multiplied: the chance he
+   plays at all and what he scores when he does. Arda Güler is 93% × 65 = **61**; Altay Bayındır is 31% × 10 =
+   **3**. Showing only 61 and 3 hides that the first is a near-certainty and the second is mostly a zero.
+2. **The range is the honest part.** A Sorare score has a spread of about 17.6 points around its mean
+   (`planner.SCORE_SD`), so the middle half of Güler's scores is **53–77**. The band draws that, our mean is a
+   black mark on it, and Sorare's own projection is a gold one beside it — when they disagree, you can see it.
+3. **The axis is a score, so only scores go on it.** The chance of not playing is a chance, and stays a chance:
+   the green pill and the per-player column. An earlier draft drew it as a block on the axis, which quietly
+   turned a probability into points.
+4. **His last five sit next to it**, with a hatched bar for a game he didn't play — the evidence behind the two
+   numbers, in the same view.
+5. **What this tells us about the model to build.** For GW17, `plays_odds` came back empty from Sorare for every
+   player, so the chance of playing is our own from form while the score is Sorare's projection. The two halves
+   have different sources more often than not, which is exactly what S4 · B has to own.
+
+### B · Build — planned
+- ⬜ Chance of playing (Sorare starting chances + minutes history + injuries).
+- ⬜ Score if he plays, from Sorare's projection, the player's history and our match model (team goals,
   clean sheets), blended with weights fitted on past seasons.
-- ⬜ B: blind replay vs real Sorare scores; ships only if it beats Sorare's own projection or matches it with a better range.
+- ⬜ Blind replay vs real Sorare scores; ships only if it beats Sorare's own projection or matches it with a
+  better range. **Blocked until a recorded gameweek finishes**: `sorare_forecasts` holds one gameweek and no
+  scored rows yet, so the first replay is possible after GW17 is played.
 
 ## S5 — My cards and Player search
 - ⬜ A: designs. ⬜ B: pages.

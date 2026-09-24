@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>xScore</title>
+<style>
+:root {
+  --bg: #fbfbfd; --surface: #ffffff; --ink: #1d1d1f; --ink-2: #6e6e73; --ink-3: #86868b;
+  --line: #e8e8ed; --hover: #f5f5f7; --track: #ececf0;
+  --good: #1f7a4f; --good-2: #5cc58d; --good-track: #d3f2e1; --good-ink: #11633b;
+  --low: #aeaeb2; --low-track: #f1f1f4;
+  --amber: #ff9f0a; --amber-bg: #fff4e0; --amber-ink: #8a5300;
+  --f-lim: linear-gradient(145deg, #fff3c4 0%, #f7c948 38%, #d99a0b 62%, #ffe08a 100%);
+  --brand: linear-gradient(135deg, #1f7a4f, #5cc58d);
+  --shadow-card: 0 0 0 1px rgba(0,0,0,.04), 0 2px 4px rgba(0,0,0,.02), 0 12px 32px rgba(0,0,0,.05);
+  --shadow-lift: 0 0 0 1px rgba(0,0,0,.04), 0 10px 22px rgba(0,0,0,.07), 0 30px 60px rgba(0,0,0,.10);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, "Segoe UI", system-ui, sans-serif;
+  --ease: cubic-bezier(.3,.7,.2,1);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); }
+body { font: 14px/1.45 var(--font); letter-spacing: -0.01em; -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; }
+.wrap { max-width: 1060px; margin: 0 auto; padding: 26px 20px 80px; }
+.mark { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 15px; letter-spacing: -0.02em; margin-bottom: 20px; }
+.mark i { width: 20px; height: 20px; border-radius: 6px; background: var(--brand); }
+.card { background: var(--surface); border-radius: 26px; box-shadow: var(--shadow-card); }
+
+/* the player in focus */
+.focus { position: relative; overflow: hidden; box-shadow: var(--shadow-lift); padding: 24px 26px 22px; }
+.focus::before {
+  content: ""; position: absolute; inset: 0 0 auto auto; width: 460px; height: 260px; pointer-events: none;
+  background: radial-gradient(60% 60% at 88% 0%, rgba(247,201,72,.20), transparent 70%);
+}
+.f-top { position: relative; display: grid; grid-template-columns: 84px minmax(0,1fr) auto; gap: 18px; align-items: start; }
+.art { position: relative; aspect-ratio: 320 / 452; border-radius: 11px; overflow: hidden; background: #16181d; box-shadow: 0 2px 4px rgba(0,0,0,.18), 0 10px 22px rgba(0,0,0,.16); }
+.art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.who h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.03em; }
+.who p { margin: 3px 0 0; font-size: 13px; color: var(--ink-2); }
+.num { margin: 14px 0 0; display: flex; align-items: baseline; gap: 11px; }
+.num b { font-size: 72px; line-height: .9; font-weight: 700; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; }
+.num i { font-style: normal; font-size: 17px; font-weight: 600; color: var(--ink-2); }
+.split { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.pill { display: inline-flex; align-items: baseline; gap: 7px; padding: 8px 13px; border-radius: 999px; background: var(--hover); font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+.pill b { font-size: 15px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.pill.on { background: var(--good-track); color: var(--good-ink); }
+.pill.on b { color: var(--good-ink); }
+
+/* what the card can really score */
+.range { position: relative; margin-top: 20px; }
+.axis { position: relative; height: 64px; }
+.band { position: absolute; top: 20px; height: 26px; border-radius: 8px; background: linear-gradient(90deg, #e9e9ee, #d0d0d8); transform-origin: left center; animation: grow .7s var(--ease) both .15s; }
+@keyframes grow { from { transform: scaleX(.02); opacity: .3; } }
+.mark-avg { position: absolute; top: 12px; width: 3px; height: 42px; border-radius: 2px; background: var(--ink); animation: appear .5s var(--ease) both .55s; }
+.mark-sor { position: absolute; top: 16px; width: 3px; height: 34px; border-radius: 2px; background: var(--amber); animation: appear .5s var(--ease) both .7s; }
+@keyframes appear { from { opacity: 0; } }
+.lbl { position: absolute; transform: translateX(-50%); font-size: 11px; font-weight: 650; white-space: nowrap; }
+.lbl.avg { top: -2px; color: var(--ink); }
+.lbl.sor { top: 52px; color: var(--amber-ink); }
+.tick { position: absolute; top: 52px; transform: translateX(-50%); font-size: 11px; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.scale { position: relative; height: 18px; border-top: 1px solid var(--line); }
+.scale span { position: absolute; top: 3px; transform: translateX(-50%); font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.range h2 { margin: 0 0 2px; font-size: 11px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-2); }
+
+/* his last five */
+.side { min-width: 196px; }
+.side h2 { margin: 0 0 6px; font-size: 11px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-2); }
+.form { display: flex; align-items: flex-end; gap: 6px; height: 92px; }
+.form div { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; height: 100%; }
+.form i { display: block; width: 100%; border-radius: 5px 5px 2px 2px; background: #b9b9c1; transform-origin: bottom; animation: rise .55s var(--ease) both; }
+.form i.out { background: repeating-linear-gradient(135deg, #ececf1 0 5px, #e0e0e7 5px 10px); }
+@keyframes rise { from { transform: scaleY(0); } }
+.form span { font-size: 10px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+/* everyone else */
+.list { margin-top: 16px; padding: 8px; }
+.row { display: grid; grid-template-columns: 34px minmax(0,1.1fr) 46px minmax(150px,1.6fr) 58px; gap: 12px; align-items: center; width: 100%; border: 0; background: none; cursor: pointer; text-align: left; padding: 8px 12px; border-radius: 16px; }
+.row:hover { background: var(--hover); }
+.row[aria-pressed="true"] { background: var(--hover); box-shadow: inset 0 0 0 1px var(--line); }
+.row:focus-visible { outline: 2px solid var(--good); outline-offset: -2px; }
+.mini { width: 34px; aspect-ratio: 320/452; border-radius: 5px; overflow: hidden; background: #16181d; }
+.mini img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.nm { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.nm b { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nm span { font-size: 11px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; text-align: right; }
+.bar { position: relative; height: 14px; border-radius: 7px; background: var(--low-track); }
+.bar i { position: absolute; top: 0; height: 100%; border-radius: 7px; background: #d0d0d8; }
+.bar s { position: absolute; top: -2px; width: 3px; height: 18px; border-radius: 2px; background: var(--ink); }
+.bar u { position: absolute; top: 0; width: 3px; height: 14px; border-radius: 2px; background: var(--amber); }
+.xs { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
+.xs b { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.xs span { font-size: 10px; color: var(--ink-2); }
+
+.foot { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 14px 0 0; padding: 0 14px; font-size: 12px; color: var(--ink-2); }
+.key { display: inline-flex; align-items: center; gap: 6px; }
+.key s { text-decoration: none; display: inline-block; width: 22px; height: 12px; border-radius: 3px; }
+.key s.avg, .key s.sor { width: 3px; height: 14px; border-radius: 2px; }
+.key s.avg { background: var(--ink); }
+.key s.sor { background: var(--amber); }
+.key s.band { background: linear-gradient(90deg, #e9e9ee, #d0d0d8); }
+
+@media (max-width: 860px) {
+  .f-top { grid-template-columns: 64px minmax(0,1fr); }
+  .side { grid-column: 1 / -1; min-width: 0; }
+  .num b { font-size: 56px; }
+  .row { grid-template-columns: 30px minmax(0,1fr) 44px 54px; row-gap: 8px; }
+  .bar { grid-column: 1 / -1; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="mark"><i></i> Sofix</p>
+  <section class="card focus" id="focus" aria-live="polite"></section>
+  <div class="card list" id="list" role="group" aria-label="Your players"></div>
+  <p class="foot">
+    <span class="key"><s class="avg"></s> our xScore</span>
+    <span class="key"><s class="sor"></s> Sorare&rsquo;s projection</span>
+    <span class="key"><s class="band"></s> the middle half of his scores</span>
+  </p>
+</div>
+
+<script>
+// Real: the owner's players for Sorare GW17, the forecast recorded before the lock
+// (backend/app/sorare/record.py) and the scores they really got in the weeks before it.
+const DATA = {"week":{"number":17,"start":"2026-09-25T14:00:00Z","end":"2026-09-29T13:59:00Z","lock":"2026-09-25T14:00:00Z"},"players":[{"name":"Arda Güler","pos":"MID","club":"Real Madrid","pic":"https://assets.sorare.com/card/ba894418-7621-42bf-b59e-8ef66d16a0af/picture/tinified-5c5924dbc5746c87b5c94b3ab9ade76e.png","cards":1,"average":69.0,"games":2,"mu":64.82,"p":0.9339,"projection":59.0,"source":"sorare","history":[{"d":"2026-09-20","s":41.0,"played":true},{"d":"2026-09-15","s":57.2,"played":true},{"d":"2026-09-12","s":85.4,"played":true},{"d":"2026-09-08","s":0.0,"played":false},{"d":"2026-09-04","s":65.2,"played":true}]},{"name":"Ionuț Radu","pos":"GK","club":"Celta de Vigo","pic":"https://assets.sorare.com/card/f8ea5488-bd68-47c6-9fa8-6137bce55db7/picture/tinified-f09fa874114d074488aed17cfc5d2ce5.png","cards":1,"average":59.0,"games":2,"mu":56.83,"p":0.9869,"projection":49.0,"source":"sorare","history":[{"d":"2026-09-19","s":75.8,"played":true},{"d":"2026-09-16","s":45.2,"played":true},{"d":"2026-09-13","s":40.4,"played":true},{"d":"2026-09-07","s":43.0,"played":true},{"d":"2026-09-03","s":82.8,"played":true}]},{"name":"Giorgi Tsitaishvili","pos":"FWD","club":"Rayo Vallecano","pic":"https://assets.sorare.com/card/c437ff5e-e9de-4ff3-a298-49acbe85a511/picture/tinified-397533987fd9de6be3aa8bd88bf6d084.png","cards":1,"average":44.0,"games":2,"mu":53.82,"p":0.9339,"projection":48.0,"source":"sorare","history":[{"d":"2026-09-19","s":30.6,"played":true},{"d":"2026-09-15","s":35.2,"played":true},{"d":"2026-09-12","s":37.2,"played":true},{"d":"2026-09-05","s":33.9,"played":true},{"d":"2026-08-31","s":0.0,"played":false}]},{"name":"Andrei Rațiu","pos":"DEF","club":"Rayo Vallecano","pic":"https://assets.sorare.com/card/76c3e2f9-247b-491a-a054-7855edc23fb0/picture/tinified-7edaa0e463e29b5a9e724ad16d5f5e0b.png","cards":1,"average":47.0,"games":2,"mu":52.82,"p":0.9339,"projection":47.0,"source":"sorare","history":[{"d":"2026-09-19","s":43.3,"played":true},{"d":"2026-09-15","s":60.3,"played":true},{"d":"2026-09-12","s":20.3,"played":true},{"d":"2026-09-05","s":60.0,"played":true},{"d":"2026-08-31","s":0.0,"played":false}]},{"name":"Alejandro Grimaldo","pos":"DEF","club":"Atlético Madrid","pic":"https://assets.sorare.com/card/4ceb39d1-2f2a-4d2f-bce7-d135b5b8e11c/picture/tinified-2425f3f6daba7fdb508582618f66325a.png","cards":1,"average":52.0,"games":1,"mu":54.0,"p":0.8857,"projection":54.0,"source":"sorare","history":[{"d":"2026-09-20","s":60.0,"played":true},{"d":"2026-09-16","s":71.4,"played":true},{"d":"2026-09-13","s":91.1,"played":true},{"d":"2026-09-09","s":42.2,"played":true},{"d":"2026-09-05","s":44.8,"played":true}]},{"name":"Jan Oblak","pos":"GK","club":"Atlético Madrid","pic":"https://assets.sorare.com/card/c0af94c9-927b-422e-ac4e-a051f16e72ae/picture/tinified-4e59e1794fe68061a586ff8ba74fd171.png","cards":1,"average":54.0,"games":1,"mu":53.0,"p":0.8857,"projection":53.0,"source":"sorare","history":[{"d":"2026-09-20","s":37.9,"played":true},{"d":"2026-09-16","s":63.2,"played":true},{"d":"2026-09-13","s":71.8,"played":true},{"d":"2026-09-09","s":37.3,"played":true},{"d":"2026-09-05","s":22.3,"played":true}]},{"name":"Oyarzabal","pos":"FWD","club":"Real Sociedad","pic":"https://assets.sorare.com/card/9a11ab15-bf62-471d-b635-de4c2f0d8b78/picture/tinified-970c1134ae91a483242ec0a3c0bf7e5f.png","cards":1,"average":44.0,"games":1,"mu":50.0,"p":0.8857,"projection":50.0,"source":"sorare","history":[{"d":"2026-09-20","s":41.6,"played":true},{"d":"2026-09-17","s":32.2,"played":true},{"d":"2026-09-13","s":38.7,"played":true},{"d":"2026-09-07","s":39.2,"played":true},{"d":"2026-09-03","s":43.7,"played":true}]},{"name":"Gumbau","pos":"MID","club":"Granada","pic":"https://assets.sorare.com/card/30675a21-5736-4cd2-bc8a-410867d853bb/picture/tinified-c9762be92964f038d9a3b738b6bff0c2.png","cards":1,"average":48.0,"games":1,"mu":47.69,"p":0.8857,"projection":null,"source":"form","history":[{"d":"2026-09-20","s":60.8,"played":true},{"d":"2026-09-12","s":45.1,"played":true},{"d":"2026-09-06","s":44.0,"played":true},{"d":"2026-08-30","s":47.7,"played":true},{"d":"2026-08-24","s":46.2,"played":true}]},{"name":"Carl Starfelt","pos":"DEF","club":"Celta de Vigo","pic":"https://assets.sorare.com/card/106328fa-fe61-47e1-8dc3-9ab407d2451e/picture/tinified-3b65f2a8974ebbb80f287b24e96bb240.png","cards":2,"average":45.0,"games":2,"mu":50.92,"p":0.7053,"projection":48.0,"source":"sorare","history":[{"d":"2026-09-19","s":0.0,"played":false},{"d":"2026-09-16","s":40.7,"played":true},{"d":"2026-09-13","s":0.0,"played":false},{"d":"2026-09-07","s":93.3,"played":true},{"d":"2026-09-03","s":0.0,"played":false}]},{"name":"David López","pos":"DEF","club":"Girona","pic":"https://assets.sorare.com/card/9242f43b-dcb2-4e18-94af-f6ae148b1b7c/picture/tinified-ee5e3e36f5fb29e5c284527ae3870abd.png","cards":1,"average":41.0,"games":1,"mu":45.0,"p":0.7429,"projection":45.0,"source":"sorare","history":[{"d":"2026-09-19","s":20.6,"played":true},{"d":"2026-09-12","s":57.8,"played":true},{"d":"2026-09-05","s":56.6,"played":true},{"d":"2026-08-29","s":49.9,"played":true},{"d":"2026-08-21","s":0.0,"played":false}]},{"name":"Abdul Mumin","pos":"DEF","club":"Girona","pic":"https://assets.sorare.com/card/c8ce9418-6e6e-4a39-9b50-83f79d8a06ee/picture/tinified-b3fdc0d72ed3fbac16abcd754278a4e7.png","cards":1,"average":34.0,"games":1,"mu":40.0,"p":0.6,"projection":40.0,"source":"sorare","history":[{"d":"2026-09-19","s":37.6,"played":true},{"d":"2026-09-12","s":25.5,"played":true},{"d":"2026-09-05","s":37.5,"played":true},{"d":"2026-08-29","s":0.0,"played":false},{"d":"2026-08-21","s":0.0,"played":false}]},{"name":"Altay Bayındır","pos":"GK","club":"Celta de Vigo","pic":"https://assets.sorare.com/card/9f863723-5ec6-491d-b2eb-4b0a988f982d/picture/tinified-32581cc2349c960d8b4a97717ce7714c.png","cards":1,"average":46.0,"games":2,"mu":9.92,"p":0.3135,"projection":9.0,"source":"sorare","history":[{"d":"2026-09-19","s":0.0,"played":false},{"d":"2026-09-16","s":0.0,"played":false},{"d":"2026-09-13","s":0.0,"played":false},{"d":"2026-09-07","s":0.0,"played":false},{"d":"2026-09-03","s":0.0,"played":false}]}]};
+const SD = 17.6;            // the spread of a Sorare score around its mean (app/sorare/planner.py)
+const $ = (s) => document.querySelector(s);
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// The normal quantile, so a range can be read off mu and SD without a table.
+function z(p) {
+  const a = [-39.69683028665376, 220.9460984245205, -275.9285104469687, 138.3577518672690, -30.66479806614716, 2.506628277459239];
+  const b = [-54.47609879822406, 161.5858368580409, -155.6989798598866, 66.80131188771972, -13.28068155288572];
+  const c = [-0.007784894002430293, -0.3223964580411365, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783];
+  const d = [0.007784695709041462, 0.3224671290700398, 2.445134137142996, 3.754408661907416];
+  const lo = 0.02425;
+  let q, r;
+  if (p < lo) { q = Math.sqrt(-2 * Math.log(p)); return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
+  if (p > 1 - lo) { q = Math.sqrt(-2 * Math.log(1 - p)); return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
+  q = p - 0.5; r = q * q;
+  return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q / (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);
+}
+
+const clamp = (v) => Math.max(0, Math.min(100, v));
+const pct = (v) => clamp(v) + "%";
+
+/** What the card is really worth this week, from the forecast recorded before the lock. */
+function shape(p) {
+  return {
+    x: p.p * p.mu,                        // the number every plan is built on
+    mu: p.mu,
+    plays: p.p,
+    bad: clamp(p.mu + z(0.25) * SD),      // the middle half of his scores, when he plays
+    good: clamp(p.mu + z(0.75) * SD),
+    sorare: p.projection,
+  };
+}
+
+let at = 0;
+
+function countTo(el, target) {
+  if (reduced) { el.textContent = Math.round(target); return; }
+  const start = performance.now();
+  const step = (t) => {
+    const k = Math.min(1, (t - start) / 700);
+    el.textContent = Math.round(target * (1 - Math.pow(1 - k, 3)));
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+function drawFocus() {
+  const p = DATA.players[at];
+  const s = shape(p);
+  const form = p.history.slice().reverse();
+
+  $("#focus").innerHTML =
+    '<div class="f-top">' +
+      '<span class="art"><img src="' + p.pic + '" alt="" loading="lazy" referrerpolicy="no-referrer"></span>' +
+      '<div class="who">' +
+        '<h1>' + p.name + '</h1>' +
+        '<p>' + p.pos + ' \u00b7 ' + p.club + ' \u00b7 ' + (p.games === 2 ? 'two games' : 'one game') + ' this week</p>' +
+        '<p class="num"><b id="hero">0</b><i>xScore</i></p>' +
+        '<div class="split">' +
+          '<span class="pill on"><b>' + Math.round(s.plays * 100) + '%</b> plays</span>' +
+          '<span class="pill"><b>' + Math.round(s.mu) + '</b> if he does</span>' +
+          '<span class="pill"><b>' + Math.round(s.bad) + '\u2013' + Math.round(s.good) + '</b> most weeks</span>' +
+          (s.sorare !== null ? '<span class="pill"><b>' + Math.round(s.sorare) + '</b> Sorare says</span>' : '') +
+        '</div>' +
+      '</div>' +
+      '<div class="side"><h2>Last five</h2><div class="form">' +
+        form.map(function (h, i) {
+          return '<div><i class="' + (h.played ? '' : 'out') + '" style="height:' + (h.played ? Math.max(4, h.s) : 100) + '%; animation-delay:' + (120 + i * 60) + 'ms"></i>' +
+                 '<span>' + (h.played ? Math.round(h.s) : '\u2014') + '</span></div>';
+        }).join('') +
+      '</div></div>' +
+    '</div>' +
+    '<div class="range"><h2>Score when he plays</h2><div class="axis">' +
+      '<span class="band" style="left:' + pct(s.bad) + '; width:' + pct(s.good - s.bad) + '"></span>' +
+      '<span class="mark-avg" style="left:' + pct(s.mu) + '"></span>' +
+      '<span class="lbl avg" style="left:' + pct(s.mu) + '">' + Math.round(s.mu) + '</span>' +
+      (s.sorare !== null ? '<span class="mark-sor" style="left:' + pct(s.sorare) + '"></span><span class="lbl sor" style="left:' + pct(s.sorare) + '">Sorare ' + Math.round(s.sorare) + '</span>' : '') +
+    '</div><div class="scale">' +
+      [0, 25, 50, 75, 100].map(function (v) { return '<span style="left:' + v + '%">' + v + '</span>'; }).join('') +
+    '</div></div>';
+
+  countTo($("#hero"), s.x);
+  document.querySelectorAll("#list .row").forEach(function (b, i) { b.setAttribute("aria-pressed", String(i === at)); });
+}
+
+function drawList() {
+  $("#list").innerHTML = DATA.players.map(function (p, i) {
+    const s = shape(p);
+    return '<button type="button" class="row" data-i="' + i + '" aria-pressed="' + (i === at) + '">' +
+      '<span class="mini"><img src="' + p.pic + '" alt="" loading="lazy" referrerpolicy="no-referrer"></span>' +
+      '<span class="nm"><b>' + p.name + '</b><span>' + p.pos + ' \u00b7 ' + p.club + '</span></span>' +
+      '<span class="pl">' + Math.round(s.plays * 100) + '%</span>' +
+      '<span class="bar">' +
+        '<i style="left:' + pct(s.bad) + '; width:' + pct(s.good - s.bad) + '"></i>' +
+        '<s style="left:' + pct(s.mu) + '"></s>' +
+        (s.sorare !== null ? '<u style="left:' + pct(s.sorare) + '"></u>' : '') +
+      '</span>' +
+      '<span class="xs"><b>' + Math.round(s.x) + '</b><span>xScore</span></span>' +
+    '</button>';
+  }).join('');
+  document.querySelectorAll("#list .row").forEach(function (b) {
+    b.addEventListener("click", function () { at = Number(b.dataset.i); drawFocus(); });
+  });
+}
+
+drawList();
+drawFocus();
+</script>
+</body>
+</html>

@@ -6,6 +6,8 @@ import {
   essenceLabel,
   formatOf,
   insideRange,
+  lastWeek,
+  nextWeek,
   rangeScale,
   timeUntil,
   waitingFor,
@@ -25,6 +27,7 @@ const clock = (iso: string) => madrid(iso, { hour: "2-digit", minute: "2-digit",
  * Everything is computed by the job; these tiles only draw it. Design: docs/sorare/design/S2-home-v2.html.
  */
 export default function SorareTiles({ data, now }: { data: Sorare; now: Date }) {
+  const played = lastWeek(data);
   return (
     <>
       <div className="hm-sec">
@@ -34,8 +37,8 @@ export default function SorareTiles({ data, now }: { data: Sorare; now: Date }) 
         </h2>
         <span>{data.user}</span>
       </div>
-      <PlayTile week={data.next} now={now} />
-      {data.last && data.last.plans.length ? <LastTile week={data.last} /> : null}
+      <PlayTile week={nextWeek(data)} now={now} />
+      {played && played.plans.length ? <LastTile week={played} /> : null}
       <CardsTile data={data} />
     </>
   );

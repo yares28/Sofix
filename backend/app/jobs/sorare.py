@@ -68,12 +68,14 @@ def run(
         )
     payload = sorare_publish.build_payload(snapshot, runs=runs, previous=previous)
     size = len(json.dumps(payload, separators=(",", ":")))
+    planned_week = sorare_publish.week_of(payload) or {}
     summary = {
-        "gameweek": payload["next"]["gameweek"]["number"],
-        "state": payload["next"]["state"],
-        "plans": len(payload["next"]["plans"]),
-        "playing": payload["next"]["playing"]["cards"],
-        "playable": len(payload["next"]["playable"]),
+        "gameweek": planned_week.get("gameweek", {}).get("number"),
+        "state": planned_week.get("state"),
+        "plans": len(planned_week.get("plans", [])),
+        "playing": planned_week.get("playing", {}).get("cards"),
+        "playable": len(planned_week.get("playable", [])),
+        "weeks": [w["gameweek"]["number"] for w in payload.get("weeks", [])],
         "calls": snapshot["calls"],
         "bytes": size,
         "seconds": round((datetime.now(UTC) - started).total_seconds()),

@@ -6,6 +6,8 @@ import {
   essenceLabel,
   formatOf,
   insideRange,
+  lastWeek,
+  nextWeek,
   paysNote,
   rangeScale,
   rewardChips,
@@ -209,14 +211,20 @@ describe("reward chips", () => {
 });
 
 describe("picking the gameweek to show", () => {
-  const data = {
-    next: gameweek(),
-    last: gameweek({ gameweek: { ...gameweek().gameweek, id: "15", number: 15 }, played: true }),
-  } as Sorare;
+  const played = gameweek({ gameweek: { ...gameweek().gameweek, id: "15", number: 15 }, played: true });
+  const ahead = gameweek({ gameweek: { ...gameweek().gameweek, id: "19", number: 19 }, source: "form" });
+  const data = { weeks: [played, gameweek(), ahead], nextId: "17", lastId: "15" } as Sorare;
 
-  it("finds the one being planned and the one just played", () => {
+  it("finds the one being planned, the one just played, and the ones ahead", () => {
     expect(weekPlan(data, "17")?.gameweek.number).toBe(17);
     expect(weekPlan(data, "15")?.played).toBe(true);
+    expect(weekPlan(data, "19")?.source).toBe("form");
     expect(weekPlan(data, "99")).toBeNull();
+    expect(nextWeek(data).gameweek.id).toBe("17");
+    expect(lastWeek(data)?.gameweek.id).toBe("15");
+  });
+
+  it("has no last gameweek until one has been replayed", () => {
+    expect(lastWeek({ ...data, lastId: null } as Sorare)).toBeNull();
   });
 });

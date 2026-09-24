@@ -59,6 +59,19 @@ export function syncState(data: Sorare, week: GameweekPlan, now: Date): SyncStat
   const missed = runs.filter((run) => run.done).length;
   const base = { builtAt, runs, lastChance, lock };
 
+  // A week beyond the next one always stands on form, whatever the cloud is doing: Sorare publishes a projection
+  // for a player's next fixture only. That is the fact worth showing on a page you opened to look ahead.
+  const ahead = week.gameweek.id !== data.nextId && !week.played && now < lock;
+  if (ahead && week.source === "form") {
+    return {
+      ...base,
+      state: "waiting",
+      behind: false, // nothing is out of date: these are simply the best numbers that exist yet
+      chip: "from form — Sorare hasn't published this week",
+      alert: null,
+    };
+  }
+
   // The cloud is the only thing that keeps this current while the PC is off, so its absence outranks everything —
   // but only once it has actually had a turn. A scheduled run that hasn't come round yet has skipped nothing.
   const never = !status.lastCloudAt;

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Sorare } from "../../lib/play";
+import { lastWeek, nextWeek } from "../../lib/play";
 import { heroOf, railOf, syncState, type SyncState } from "../../lib/sorareStatus";
 
 const madrid = (iso: string | Date, options: Intl.DateTimeFormatOptions) =>
@@ -26,7 +27,8 @@ const WORD: Record<SyncState["state"], string> = {
  * each piece changes on its own schedule, so one "last synced" would be misleading. Design: S3-sync.html.
  */
 export default function SorarePanel({ data, now }: { data: Sorare; now: Date }) {
-  const week = data.next;
+  const week = nextWeek(data);
+  const played = lastWeek(data);
   const sync = syncState(data, week, now);
   if (!sync) return null;
   const tone = TONE[sync.state];
@@ -63,7 +65,7 @@ export default function SorarePanel({ data, now }: { data: Sorare; now: Date }) 
     {
       key: "scores",
       label: "Scores",
-      value: live ? `GW${live.number}` : data.last ? `GW${data.last.gameweek.number}` : "—",
+      value: live ? `GW${live.number}` : played ? `GW${played.gameweek.number}` : "—",
       unit: live ? "live" : "done",
       next: "during the games",
       dot: live ? "live" : "slow",

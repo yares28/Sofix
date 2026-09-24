@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { nextWeek } from "../lib/play";
 import { offline, resetBackend, sorare } from "./helpers";
 
 // The Play page draws the Sorare gameweek the job publishes (e2e/fixtures/sorare-response.json, served by
@@ -10,7 +11,8 @@ test.beforeEach(async ({ page, request }) => {
   await offline(page);
 });
 
-const plan1 = sorare.next.plans[0]!;
+const planned = nextWeek(sorare);
+const plan1 = planned.plans[0]!;
 const laliga = plan1.lineups[0]!;
 
 test("the gameweek opens on its best plan: the ring, both rewards and every lineup", async ({ page }) => {
@@ -20,7 +22,7 @@ test("the gameweek opens on its best plan: the ring, both rewards and every line
   await expect(page.locator(".pl-head .pl-sub")).toContainText("locks");
 
   const plans = page.getByRole("navigation", { name: "Plan" });
-  await expect(plans.getByRole("link")).toHaveCount(sorare.next.plans.length);
+  await expect(plans.getByRole("link")).toHaveCount(planned.plans.length);
   await expect(plans.getByRole("link").first()).toHaveAttribute("aria-current", "page");
   await expect(plans.getByRole("link").first()).toContainText("best");
 

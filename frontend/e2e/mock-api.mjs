@@ -18,7 +18,8 @@ const COOLDOWN_S = 600;
 // to sit two days ahead of the machine's clock. Every date in the payload shifts by the same amount, so
 // the gameweek that was played stays played.
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
-const SHIFT = Date.now() + 2 * 86_400_000 - new Date(sorareFixture.data.next.gameweek.lock).getTime();
+const plannedWeek = sorareFixture.data.weeks.find((week) => week.gameweek.id === sorareFixture.data.nextId);
+const SHIFT = Date.now() + 2 * 86_400_000 - new Date(plannedWeek.gameweek.lock).getTime();
 const moved = (value) => {
   if (typeof value === "string") return ISO.test(value) ? new Date(new Date(value).getTime() + SHIFT).toISOString() : value;
   if (Array.isArray(value)) return value.map(moved);

@@ -41,7 +41,7 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
     );
   }
 
-  const week = weekPlan(data, single("gw") ?? data.next.gameweek.id);
+  const week = weekPlan(data, single("gw") ?? data.nextId);
   if (!week) redirect("/play"); // an old link to a gameweek this page no longer holds
   const requested = Number(single("plan") ?? 1);
   const planIndex = Number.isFinite(requested) ? Math.min(Math.max(requested, 1), Math.max(week.plans.length, 1)) - 1 : 0;

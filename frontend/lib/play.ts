@@ -166,8 +166,10 @@ export type Sorare = {
   user: string;
   status?: Status;
   timeline: TimelineWeek[];
-  next: GameweekPlan;
-  last: GameweekPlan | null;
+  /** Every gameweek the job planned, oldest first: the one it replayed, the one being planned, then the ones ahead. */
+  weeks: GameweekPlan[];
+  nextId: string;
+  lastId: string | null;
   cards: {
     total: number;
     usable: number;
@@ -280,11 +282,19 @@ export function rewardChips(lineup: Lineup, after: boolean): { kind: "essence" |
 
 /** The gameweek a page opens on: the one being planned. */
 export function defaultWeek(data: Sorare): string {
-  return data.next.gameweek.id;
+  return data.nextId;
+}
+
+/** The gameweek being planned. Every payload has one, so this never has to be guarded. */
+export function nextWeek(data: Sorare): GameweekPlan {
+  return weekPlan(data, data.nextId) ?? data.weeks[0]!;
+}
+
+/** The last gameweek that was played, when the payload still carries its replay. */
+export function lastWeek(data: Sorare): GameweekPlan | null {
+  return data.lastId ? weekPlan(data, data.lastId) : null;
 }
 
 export function weekPlan(data: Sorare, id: string): GameweekPlan | null {
-  if (data.next.gameweek.id === id) return data.next;
-  if (data.last && data.last.gameweek.id === id) return data.last;
-  return null;
+  return data.weeks.find((week) => week.gameweek.id === id) ?? null;
 }

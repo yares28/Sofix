@@ -400,9 +400,15 @@ selectors, two numbers, and the Sorare side stuck on whichever gameweek the job 
   for one that is done, the cards that play for one still ahead, and "Sorare opens later" beyond its window.
 - Picking a week moves every page at once: Fixtures, Difficulty, Table, Play and the last gameweek.
 
-**Build — planned**
-- ⬜ Plan the next three gameweeks, not one: `weeks[]` in the payload (`PAYLOAD_VERSION` 3), each with its own
-  state, and the ones beyond Sorare's projections marked as built from form.
+**Build**
+- ✅ The job plans several gameweeks, not one: `weeks[]` in the payload (`PAYLOAD_VERSION` 3, `nextId`/`lastId`
+  naming which is which), oldest first. The cards query asks for every gameweek's games at once under one alias
+  each, so looking ahead costs no extra pages. A week beyond the next stands on form — Sorare publishes a
+  projection for a player's next fixture only — gets one plan instead of five, and says `source: "form"`.
+  On the real account: **197 calls, 2.5 minutes, 421 KiB** for GW15 replayed, GW17 planned, and GW18 and GW19
+  ahead (3 cards play in GW18, 14 in GW19).
+- ✅ A week you opened to look ahead says so in its own words ("from form — Sorare hasn't published this week")
+  instead of the cloud warning, which belongs to the app as a whole.
 - ⬜ The week picker in the bar, replacing the `<select>`; `?gw=` becomes the week, and the board resolves the
   LaLiga round inside it.
 - ⬜ The empty state that matters: a week with no LaLiga round says so instead of showing the last one.

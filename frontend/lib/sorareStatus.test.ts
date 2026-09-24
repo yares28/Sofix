@@ -16,9 +16,9 @@ const status = (over: Partial<Status> = {}): Status => ({
   ...over,
 });
 
-const data = (over: Partial<Status> = {}) => ({ status: status(over) }) as Sorare;
-const week = (source: "sorare" | "form" = "sorare") =>
-  ({ gameweek: { lock: LOCK }, source }) as unknown as GameweekPlan;
+const data = (over: Partial<Status> = {}) => ({ status: status(over), nextId: "17" }) as Sorare;
+const week = (source: "sorare" | "form" = "sorare", id = "17") =>
+  ({ gameweek: { id, lock: LOCK }, source }) as unknown as GameweekPlan;
 
 const now = (iso: string) => new Date(iso);
 
@@ -121,5 +121,20 @@ describe("the run line", () => {
     expect(middle).toEqual([...middle].sort((a, b) => a - b));
     expect(Math.min(...middle)).toBeGreaterThan(3);
     expect(Math.max(...middle)).toBeLessThan(100);
+  });
+});
+
+describe("a week you opened to look ahead", () => {
+  it("says it stands on form, whatever the cloud is doing", () => {
+    const sync = syncState(data({ where: "pc", lastCloudAt: null }), week("form", "19"), now("2026-09-23T14:32:00Z"))!;
+    expect(sync.state).toBe("waiting");
+    expect(sync.chip).toContain("from form");
+    expect(sync.behind).toBe(false); // these are the best numbers that exist yet, not stale ones
+    expect(sync.alert).toBeNull();
+  });
+
+  it("still lets the cloud warning through on the gameweek being planned", () => {
+    const sync = syncState(data({ where: "pc", lastCloudAt: null }), week("form", "17"), now("2026-09-23T23:00:00Z"))!;
+    expect(sync.state).toBe("cloudless");
   });
 });

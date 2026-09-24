@@ -34,6 +34,18 @@ PAST_GW = {
 }
 
 
+AHEAD_GW = {
+    "slug": "gw-ahead",
+    "number": 22,
+    "name": "Game Week 22",
+    "state": "opened",
+    "start": "2026-10-16T14:00:00+00:00",
+    "end": "2026-10-20T13:59:00+00:00",
+    "lock": "2026-10-16T14:00:00+00:00",
+    "games": 240,
+}
+
+
 def slots(size: int, subs: int) -> list[dict[str, Any]]:
     names = ["goalkeeper", "defender", "midfielder", "forward", "extra", "defender", "midfielder"][:size]
     out = [{"name": n, "sub": False} for n in names]
@@ -116,6 +128,7 @@ def card(
     plays: int = 9000,
     games: int = 1,
     born: str = "1997-05-05",
+    ahead: bool = True,
 ) -> dict[str, Any]:
     game = {
         "id": f"game-{slug}",
@@ -159,6 +172,7 @@ def card(
             },
             "plan": [game] * games,
             "past": [past_game],
+            "a0": [{**game, "id": f"ahead-{slug}", "date": "2026-10-17T14:00:00Z"}] if ahead else [],
         },
     }
 
@@ -204,9 +218,10 @@ def snapshot() -> dict[str, Any]:
     return {
         "fetchedAt": "2026-10-07T10:00:00+00:00",
         "user": "yares",
-        "gameweeks": [PAST_GW, PLAN_GW],
+        "gameweeks": [PAST_GW, PLAN_GW, AHEAD_GW],
         "planGameweek": PLAN_GW,
         "pastGameweek": PAST_GW,
+        "aheadGameweeks": [AHEAD_GW],
         "cards": squad,
         "competitions": {
             "gw-plan": [
@@ -215,6 +230,7 @@ def snapshot() -> dict[str, Any]:
                 competition("Under 23", "Limited", size=7, in_season=False, age_max=23),
             ],
             "gw-past": [competition("LALIGA EA SPORTS", "Limited", leagues=["laliga-es"])],
+            "gw-ahead": [competition("LALIGA EA SPORTS", "Limited", leagues=["laliga-es"])],
         },
         "history": history,
         "references": {
@@ -236,9 +252,9 @@ def payload() -> dict[str, Any]:
 
 
 def test_the_page_names_the_gameweek_being_planned(payload):
-    assert payload["next"]["gameweek"]["number"] == 21
-    assert payload["next"]["state"] == "ready"
-    assert payload["next"]["source"] == "sorare"  # Sorare's projection and starting chances were there
+    assert publish.week_of(payload)["gameweek"]["number"] == 21
+    assert publish.week_of(payload)["state"] == "ready"
+    assert publish.week_of(payload)["source"] == "sorare"  # Sorare's projection and starting chances were there
     assert payload["generatedAt"].startswith("2026-10-07")
 
 
@@ -250,14 +266,14 @@ def test_sealed_cards_are_left_out_and_counted(payload):
 
 
 def test_only_competitions_you_can_field_a_lineup_in_are_offered(payload):
-    playable = {o["name"] for o in payload["next"]["playable"]}
+    playable = {o["name"] for o in publish.week_of(payload)["playable"]}
     assert "LaLiga" in playable and "All Star" in playable
-    blocked = {b["name"]: b["why"] for b in payload["next"]["blocked"]}
+    blocked = {b["name"]: b["why"] for b in publish.week_of(payload)["blocked"]}
     assert blocked["U23"] == "Needs a goalkeeper aged 23 or under"  # two young outfielders, no young keeper
 
 
 def test_the_plans_use_each_card_once_and_name_their_lineups(payload):
-    plans = payload["next"]["plans"]
+    plans = publish.week_of(payload)["plans"]
     assert plans, "the gameweek has plans"
     for plan in plans:
         slugs = [c["slug"] for lu in plan["lineups"] for c in lu["starters"] + lu["subs"]]
@@ -272,7 +288,7 @@ def test_the_plans_use_each_card_once_and_name_their_lineups(payload):
 
 
 def test_a_lineup_carries_what_the_app_needs_to_draw_it(payload):
-    lineup = payload["next"]["plans"][0]["lineups"][0]
+    lineup = publish.week_of(payload)["plans"][0]["lineups"][0]
     assert lineup["need"] and lineup["tiers"]
     assert 0 <= lineup["pReturn"] <= 1
     card = lineup["starters"][0]
@@ -282,7 +298,7 @@ def test_a_lineup_carries_what_the_app_needs_to_draw_it(payload):
 
 
 def test_the_gameweek_just_played_is_replayed_against_what_happened(payload):
-    last = payload["last"]
+    last = publish.week_of(payload, "last")
     assert last is not None and last["played"] is True
     assert last["source"] == "form", "a replay may only use what was known before the lock"
     plan = last["plans"][0]
@@ -316,13 +332,17 @@ def test_the_job_publishes_the_page_and_keeps_the_reference_scores(db, monkeypat
         "build_payload",
         lambda snap, **k: {
             "generatedAt": snap["fetchedAt"],
-            "next": {
-                "gameweek": {"number": 21},
-                "state": "ready",
-                "plans": [],
-                "playing": {"cards": 3},
-                "playable": [],
-            },
+            "nextId": "21",
+            "lastId": None,
+            "weeks": [
+                {
+                    "gameweek": {"id": "21", "number": 21},
+                    "state": "ready",
+                    "plans": [],
+                    "playing": {"cards": 3},
+                    "playable": [],
+                }
+            ],
         },
     )
     summary = sorare_job.run(db, "yares", runs=1)
@@ -374,3 +394,26 @@ def test_a_dry_run_writes_nothing(db, monkeypatch):  # noqa: F811
 def test_the_snapshot_time_is_the_generated_time(payload):
     assert datetime.fromisoformat(payload["generatedAt"]).tzinfo is not None
     assert datetime.fromisoformat(payload["generatedAt"]) < datetime(2026, 10, 8, tzinfo=UTC)
+
+
+def test_the_weeks_after_the_next_one_are_planned_from_form() -> None:
+    """Sorare publishes a projection for a player's next fixture only, so anything further stands on form."""
+    payload = publish.build_payload(snapshot(), runs=2, draws=200)
+    numbers = [w["gameweek"]["number"] for w in payload["weeks"]]
+    assert numbers == [15, 21, 22], "oldest first: the replay, the one being planned, then the ones ahead"
+    assert payload["nextId"] == "21" and payload["lastId"] == "15"
+
+    planned = publish.week_of(payload)
+    ahead = payload["weeks"][-1]
+    assert planned["source"] == "sorare" and ahead["source"] == "form"
+    assert ahead["playing"]["cards"] > 0 and ahead["plans"], "his cards play, so there is a lineup to show"
+    assert len(ahead["plans"]) == 1, "one plan is enough that far out"
+
+
+def test_a_week_where_none_of_your_cards_play_says_so() -> None:
+    idle = snapshot()
+    for entry in idle["cards"]:
+        entry["player"]["a0"] = []
+    ahead = publish.build_payload(idle, runs=2, draws=200)["weeks"][-1]
+    assert ahead["gameweek"]["number"] == 22
+    assert ahead["state"] == "none" and ahead["playing"]["cards"] == 0 and ahead["plans"] == []

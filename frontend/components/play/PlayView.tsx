@@ -44,7 +44,7 @@ export default function PlayView({
   const href = (options: { gw?: string; plan?: number; after?: boolean }) => {
     const params = new URLSearchParams();
     const gw = options.gw ?? id;
-    if (gw !== data.next.gameweek.id) params.set("gw", gw);
+    if (gw !== data.nextId) params.set("gw", gw);
     const index = options.plan ?? planIndex;
     if (index > 0) params.set("plan", String(index + 1));
     const showActual = options.after ?? after;
@@ -164,7 +164,7 @@ function GameweekBar({
   week: GameweekPlan;
   href: (options: { gw?: string; plan?: number; after?: boolean }) => string;
 }) {
-  const openable = new Set([data.next.gameweek.id, data.last?.gameweek.id].filter(Boolean) as string[]);
+  const openable = new Set(data.weeks.map((week) => week.gameweek.id));
   return (
     <div className="hm-timeline">
       <div className="tl-track" role="group" aria-label="Gameweek">

@@ -22,7 +22,7 @@ from app.sorare.planner import DRAWS, Lineup, Plan, build, fill_bench, plans, re
 logger = logging.getLogger(__name__)
 
 POSITION_WORDS = {"GK": "goalkeeper", "DEF": "defender", "MID": "midfielder", "FWD": "forward"}
-PAYLOAD_VERSION = 2
+PAYLOAD_VERSION = 3
 """The shape of the published page. A run only keeps a finished gameweek's replay from the payload the app is
 already showing when that payload was built by this same version."""
 LIVE_STATES = {"started", "live"}
@@ -573,8 +573,36 @@ def build_payload(
             draws=draws,
         )
 
+    # The gameweeks after the next one: Sorare has opened them and the cards are known, but it publishes a
+    # projection only for a player's next fixture, so these stand on form and the payload says so.
+    ahead: list[dict[str, Any]] = []
+    for i, week in enumerate(snapshot.get("aheadGameweeks") or []):
+        comps = read_competitions(snapshot["competitions"].get(week["slug"], []), plan_reference)
+        games = card_games(snapshot["cards"], f"a{i}")
+        forecasts = build_forecasts(
+            player_weeks(snapshot["cards"], games, snapshot["history"], _dt(week["lock"]), None, use_sorare=False)
+        )
+        ahead.append(
+            gameweek_payload(
+                snapshot,
+                week,
+                comps if games else [],
+                cards,
+                forecasts,
+                games,
+                played=False,
+                count=1,  # one plan is enough this far out: the numbers will change before it locks
+                runs=max(4, runs // 4),
+                draws=draws,
+            )
+        )
+
     timeline = []
-    keep = {plan_week["slug"], (past_week or {}).get("slug")}
+    keep = {
+        plan_week["slug"],
+        (past_week or {}).get("slug"),
+        *[w["slug"] for w in (snapshot.get("aheadGameweeks") or [])],
+    }
     for week in snapshot["gameweeks"]:
         outside = _dt(week["end"]) < now - _week_window() or _dt(week["start"]) > now + _week_window(days=24)
         if outside and week["slug"] not in keep:
@@ -610,8 +638,9 @@ def build_payload(
         "generatedAt": snapshot["fetchedAt"],
         "user": snapshot["user"],
         "timeline": timeline,
-        "next": next_gw,
-        "last": last_gw,
+        "weeks": [w for w in [last_gw, next_gw, *ahead] if w],
+        "nextId": next_gw["gameweek"]["id"],
+        "lastId": last_gw["gameweek"]["id"] if last_gw else None,
         "cards": {
             "total": len(snapshot["cards"]),
             "usable": len(cards),
@@ -622,6 +651,12 @@ def build_payload(
             "rareGoalkeepers": sum(1 for c in cards if c.rarity == "rare" and c.positions[0] == "GK"),
         },
     }
+
+
+def week_of(payload: dict[str, Any], which: str = "next") -> dict[str, Any] | None:
+    """The gameweek being planned (`next`) or the last one played (`last`), out of the payload's `weeks`."""
+    wanted = payload.get("nextId") if which == "next" else payload.get("lastId")
+    return next((w for w in payload.get("weeks", []) if w["gameweek"]["id"] == wanted), None) if wanted else None
 
 
 def with_status(

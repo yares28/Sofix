@@ -58,8 +58,15 @@ query($s:String!){ so5 { so5Leaderboard(slug:$s){
 """
 )
 
+GAMES_FOR = (
+    "{alias}: anyGamesForFixture(so5FixtureSlug: ${alias}) {{ id date competition {{ slug }} "
+    "homeTeam {{ slug name pictureUrl ... on Club {{ shortName }} }} "
+    "awayTeam {{ slug name pictureUrl ... on Club {{ shortName }} }} }}"
+)
+"""One gameweek's games for a player. A run asks for several at once — aliases cost nothing, a second page does."""
+
 CARDS = """
-query($a:String,$plan:String!,$past:String!){ user(slug:$USER){ cards(first: 10, after: $a, sport: FOOTBALL, rarities: [limited, rare]) {
+query($a:String$ARGS){ user(slug:$USER){ cards(first: 10, after: $a, sport: FOOTBALL, rarities: [limited, rare]) {
   pageInfo { hasNextPage endCursor }
   nodes { ... on Card {
     slug rarityTyped seasonYear inSeasonEligible sealed grade power pictureUrl anyPositions
@@ -70,8 +77,7 @@ query($a:String,$plan:String!,$past:String!){ user(slug:$USER){ cards(first: 10,
       average: averageScore(type: LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
       nextClassicFixtureProjectedScore
       nextClassicFixturePlayingStatusOdds { starterOddsBasisPoints substituteOddsBasisPoints nonPlayingOddsBasisPoints }
-      plan: anyGamesForFixture(so5FixtureSlug: $plan) { id date competition { slug } homeTeam { slug name pictureUrl ... on Club { shortName } } awayTeam { slug name pictureUrl ... on Club { shortName } } }
-      past: anyGamesForFixture(so5FixtureSlug: $past) { id date competition { slug } homeTeam { slug name pictureUrl ... on Club { shortName } } awayTeam { slug name pictureUrl ... on Club { shortName } } }
+      $GAMES
     } } } } } }
 """
 
@@ -128,13 +134,17 @@ def gameweeks(client: SorareClient) -> list[dict[str, Any]]:
     return sorted(out, key=lambda g: g["start"])
 
 
-def pick_gameweeks(weeks: list[dict[str, Any]], now: datetime) -> tuple[dict[str, Any], dict[str, Any] | None]:
-    """The gameweek to plan (the first whose lock is still ahead) and the last one that finished."""
-    ahead = [g for g in weeks if datetime.fromisoformat(g["lock"]) > now]
+def pick_gameweeks(weeks: list[dict[str, Any]], now: datetime, ahead: int = 2) -> dict[str, Any]:
+    """Which gameweeks a run covers: the one being planned, the next few, and the last one played.
+
+    The ones after the next are planned too, but from form only — Sorare publishes a projection for a player's
+    *next* fixture and nothing further, so a lineup that far out is the best guess from his last five games.
+    """
+    open_weeks = [g for g in weeks if datetime.fromisoformat(g["lock"]) > now]
     done = [g for g in weeks if datetime.fromisoformat(g["end"]) < now]
-    if not ahead:
+    if not open_weeks:
         raise SorareError("no gameweek is open")
-    return ahead[0], (done[-1] if done else None)
+    return {"plan": open_weeks[0], "ahead": open_weeks[1 : 1 + ahead], "past": done[-1] if done else None}
 
 
 def _tracks(client: SorareClient, fixture: str) -> tuple[list[str], list[dict[str, Any]]]:
@@ -193,12 +203,18 @@ def competitions(
     return out
 
 
-def cards(client: SorareClient, user: str, plan: str, past: str) -> list[dict[str, Any]]:
-    query = CARDS.replace("$USER", f'"{user}"')
+def cards(client: SorareClient, user: str, fixtures: dict[str, str]) -> list[dict[str, Any]]:
+    """Every card, with each player's games in each of these gameweeks (`{alias: fixture slug}`)."""
+    args = "".join(f",${alias}:String!" for alias in fixtures)
+    query = (
+        CARDS.replace("$USER", f'"{user}"')
+        .replace("$ARGS", args)
+        .replace("$GAMES", "\n      ".join(GAMES_FOR.format(alias=alias) for alias in fixtures))
+    )
     out: list[dict[str, Any]] = []
     after: str | None = None
     while True:
-        page = client.query(query, {"a": after, "plan": plan, "past": past})["user"]["cards"]
+        page = client.query(query, {"a": after, **fixtures})["user"]["cards"]
         out.extend(page["nodes"])
         if not page["pageInfo"]["hasNextPage"]:
             return out
@@ -359,6 +375,7 @@ def snapshot(
     now: datetime | None = None,
     cached_references: dict[str, Any] | None = None,
     replayed: str | None = None,
+    ahead: int = 2,
 ) -> dict[str, Any]:
     """One run's worth of Sorare: the gameweek to plan, the last one played, and everything about both.
 
@@ -367,11 +384,16 @@ def snapshot(
     """
     now = now or datetime.now(UTC)
     weeks = gameweeks(client)
-    plan_gw, past_gw = pick_gameweeks(weeks, now)
+    picked = pick_gameweeks(weeks, now, ahead=ahead)
+    plan_gw, past_gw, ahead_gws = picked["plan"], picked["past"], picked["ahead"]
     for week in weeks:  # how much football each gameweek holds, to compare like with like
         week["games"] = games_count(client, week["slug"])
     past_slug = past_gw["slug"] if past_gw else plan_gw["slug"]
-    my_cards = cards(client, user, plan_gw["slug"], past_slug)
+    # One alias per gameweek: the games of all of them come back in the same pages of cards.
+    aliases = {"plan": plan_gw["slug"], "past": past_slug}
+    for i, week in enumerate(ahead_gws):
+        aliases[f"a{i}"] = week["slug"]
+    my_cards = cards(client, user, aliases)
     my_leagues = {
         ((c["player"].get("activeClub") or {}).get("domesticLeague") or {}).get("slug")
         for c in my_cards
@@ -385,8 +407,16 @@ def snapshot(
         if past_gw and past_slug != replayed
         else []
     )
+    # A gameweek further ahead is only worth reading for the players who actually have a game in it.
+    ahead_comps = {
+        week["slug"]: competitions(client, week["slug"], my_leagues)  # type: ignore[arg-type]
+        if any(c["player"].get(f"a{i}") for c in my_cards)
+        else []
+        for i, week in enumerate(ahead_gws)
+    }
 
-    players = sorted({c["player"]["slug"] for c in my_cards if c["player"].get("plan") or c["player"].get("past")})
+    played_in = ("plan", "past", *[f"a{i}" for i in range(len(ahead_gws))])
+    players = sorted({c["player"]["slug"] for c in my_cards if any(c["player"].get(k) for k in played_in)})
     scores = history(client, players, datetime.fromisoformat(plan_gw["lock"]))
 
     # Reward chances come from a gameweek that has already been played. The gameweek being planned looks at the
@@ -420,8 +450,9 @@ def snapshot(
         "gameweeks": weeks,
         "planGameweek": plan_gw,
         "pastGameweek": past_gw,
+        "aheadGameweeks": ahead_gws,
         "cards": my_cards,
-        "competitions": {plan_gw["slug"]: planned, past_slug: past_comps},
+        "competitions": {plan_gw["slug"]: planned, past_slug: past_comps, **ahead_comps},
         "history": scores,
         "references": references,
         "referenceFor": reference_for,

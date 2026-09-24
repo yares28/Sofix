@@ -55,6 +55,8 @@ export type Tier = {
 export type Lineup = {
   comp: string;
   key: string;
+  /** Sorare's own id for the leaderboard this lineup enters — what Apply needs, and nothing else uses. */
+  boardId: string;
   group: Group;
   fee: number;
   rarity: string;

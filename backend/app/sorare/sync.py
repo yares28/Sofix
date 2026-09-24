@@ -46,7 +46,7 @@ LEADERBOARD = (
     REWARD_FRAGMENT
     + """
 query($s:String!){ so5 { so5Leaderboard(slug:$s){
-  slug mainRarityType so5LineupsCount teamsCap projectedLineupsReadyAt
+  id slug mainRarityType so5LineupsCount teamsCap projectedLineupsReadyAt
   format { title entryItem { __typename ... on So5CardShardsEntryItem { quantity rarity } } }
   roomsConfig { roomsSize }
   rules { lockType rarities sumOfAverageScores age { min max cutOffDate } competitions { slug }

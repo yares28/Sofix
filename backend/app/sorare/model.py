@@ -90,6 +90,7 @@ class Competition:
     rarity: str
     starters: list[tuple[str, ...]]
     subs: list[tuple[str, ...]]
+    board_id: str = ""  # Sorare's own id for that leaderboard ("So5Leaderboard:…"), what entering one takes
     rarities: frozenset[str] = frozenset()
     min_in_season: int = 0
     leagues: frozenset[str] | None = None

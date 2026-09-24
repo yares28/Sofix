@@ -22,7 +22,7 @@ from app.sorare.planner import DRAWS, Lineup, Plan, build, fill_bench, plans, re
 logger = logging.getLogger(__name__)
 
 POSITION_WORDS = {"GK": "goalkeeper", "DEF": "defender", "MID": "midfielder", "FWD": "forward"}
-PAYLOAD_VERSION = 3
+PAYLOAD_VERSION = 4
 """The shape of the published page. A run only keeps a finished gameweek's replay from the payload the app is
 already showing when that payload was built by this same version."""
 LIVE_STATES = {"started", "live"}
@@ -324,6 +324,7 @@ def lineup_payload(
     payload = {
         "comp": comp.name,
         "key": comp.key,
+        "boardId": comp.board_id,  # what Apply enters; everything else it needs is session-only (S6)
         "group": comp.group,
         "fee": comp.fee,
         "rarity": comp.rarity,

@@ -83,6 +83,7 @@ def competition(payload: dict[str, Any]) -> Competition:
     return Competition(
         key=f"{league} | {track}",
         slug=payload["slug"],
+        board_id=payload.get("id") or "",
         name=simple_name(league, track, group, fmt),
         group=group,
         rarity=payload.get("rarity") or payload.get("mainRarityType") or "limited",

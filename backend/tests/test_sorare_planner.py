@@ -113,6 +113,7 @@ def test_rules_read_an_in_season_competition_as_sorare_states_it():
         "league": "LALIGA EA SPORTS",
         "track": "Limited",
         "slug": "football-9-13-oct-2026-laliga-limited",
+        "id": "So5Leaderboard:ea339c43-7d93-41d7-b766-ccfe52331977",
         "mainRarityType": "limited",
         "so5LineupsCount": 4487,
         "teamsCap": 4,
@@ -167,6 +168,8 @@ def test_rules_read_an_in_season_competition_as_sorare_states_it():
     }
     comp = rules.competition(payload)
     assert comp.name == "LaLiga" and comp.group == IN_SEASON
+    # Sorare's own id for the leaderboard: entering one takes the id, while everything else keys off the slug.
+    assert comp.board_id == "So5Leaderboard:ea339c43-7d93-41d7-b766-ccfe52331977"
     assert len(comp.starters) == 5 and len(comp.subs) == 2
     assert comp.min_in_season == 4 and comp.teams_cap == 4 and comp.fee == 0
     assert comp.leagues == frozenset({"laliga-es"}) and comp.captain_bonus == 0.5

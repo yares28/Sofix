@@ -23,6 +23,7 @@ import {
 const lineup = (over: Partial<Lineup> = {}): Lineup => ({
   comp: "LaLiga",
   key: "LALIGA EA SPORTS | Limited",
+  boardId: "So5Leaderboard:laliga-limited",
   group: "In-season",
   fee: 0,
   rarity: "limited",

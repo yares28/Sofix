@@ -96,14 +96,18 @@ export default function ApplySheet({
     [take],
   );
 
+  // A plan published before Apply existed carries no leaderboard: there is nothing to enter it with until the
+  // job runs again (PAYLOAD_VERSION 4).
+  const stale = Boolean(lineup) && (!lineup?.board || !lineup?.boardId);
+
   useEffect(() => {
-    if (!open || !lineup) return;
+    if (!open || !lineup || stale) return;
     setStage(0);
     setVerdict(null);
     setProblem(null);
     setDraftId(null);
     void readEntered(lineup);
-  }, [open, lineup, readEntered]);
+  }, [open, lineup, stale, readEntered]);
 
   if (!lineups.length || !lineup) return null;
 
@@ -138,7 +142,13 @@ export default function ApplySheet({
     ...lineup.subs.map((card) => ({ card, sub: true })),
   ];
   const bad = verdict ? broken(verdict.rules) : [];
-  const stuck = problem ? (problem.state === "rejected" ? null : cannot(problem.state)) : null;
+  const stuck = stale
+    ? { title: "This plan came before Apply", says: "The next refresh gives it what entering takes.", act: null }
+    : problem
+      ? problem.state === "rejected"
+        ? null
+        : cannot(problem.state)
+      : null;
   const left = cap ? cap - held.filter((entry) => !entry.draft).length : null;
   const tone = stage === 1 ? "amber" : stage === 3 ? "good" : bad.length || problem ? "red" : "good";
 
@@ -267,11 +277,13 @@ export default function ApplySheet({
           <div className="ap-verdict">
             <div className="vt">
               <s>{problem ? "!" : verdict && !bad.length ? "✓" : "·"}</s>
-              {problem
-                ? problem.state === "rejected"
-                  ? "Sorare says no"
-                  : (stuck?.title ?? "That didn't go through")
-                : stage === 0
+              {stale
+                ? stuck!.title
+                : problem
+                  ? problem.state === "rejected"
+                    ? "Sorare says no"
+                    : (stuck?.title ?? "That didn't go through")
+                  : stage === 0
                   ? "Sorare hasn't checked it yet"
                   : bad.length
                     ? "Sorare found a problem"
@@ -336,7 +348,7 @@ export default function ApplySheet({
             ) : (
               <>
                 <span className="note">{stuck ? "Nothing has been saved." : action.note}</span>
-                {stuck ? (
+                {stale ? null : stuck ? (
                   // Opening sorare.com or setting the extension up happens in another tab: one press looks again.
                   <button type="button" className="ap-go" onClick={() => void readEntered(lineup)} disabled={busy}>
                     {busy ? "Looking…" : "Try again"}

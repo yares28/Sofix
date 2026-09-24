@@ -1,10 +1,13 @@
 import Image from "next/image";
 
-const SORARE_ORIGIN = "https://assets.sorare.com/";
+// Card art and club badges come from one host, national-team flags from another. Both are Sorare's, both are
+// hot-linked, and the Content-Security-Policy in next.config.ts allows exactly these two.
+const SORARE_ORIGINS = ["https://assets.sorare.com/", "https://frontend-assets.sorare.com/"];
 
 /**
- * A picture Sorare hosts: card art, a player's face, a club badge. Hot-linked, never downloaded or proxied
- * (`unoptimized`), and only from Sorare's own asset host — the same rule the club crests follow.
+ * A picture Sorare hosts: card art, a player's face, a club badge, a national-team flag. Hot-linked, never
+ * downloaded or proxied (`unoptimized`), and only from Sorare's own asset hosts — the same rule the club
+ * crests follow.
  */
 export default function SorareImage({
   src,
@@ -21,7 +24,7 @@ export default function SorareImage({
   fill?: boolean;
   className?: string;
 }) {
-  if (!src || !src.startsWith(SORARE_ORIGIN)) return null;
+  if (!src || !SORARE_ORIGINS.some((origin) => src.startsWith(origin))) return null;
   const common = { src, unoptimized: true, loading: "lazy" as const, referrerPolicy: "no-referrer" as const, className };
   return fill ? (
     <Image alt={alt} {...common} fill sizes="120px" style={{ objectFit: "cover" }} />

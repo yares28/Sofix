@@ -58,7 +58,6 @@ export default function PlayView({
   return (
     <main className="pl-main">
       <Head data={data} week={week} after={after} href={href} now={now} sync={sync} />
-      <GameweekBar data={data} week={week} href={href} />
       {sync?.alert ? (
         <div className={`pl-alert ${sync.state}`} role="status">
           <span aria-hidden="true">{sync.state === "cloudless" ? "!" : "⟳"}</span>
@@ -156,64 +155,6 @@ function Head({
   );
 }
 
-function GameweekBar({
-  data,
-  week,
-  href,
-}: {
-  data: Sorare;
-  week: GameweekPlan;
-  href: (options: { gw?: string; plan?: number; after?: boolean }) => string;
-}) {
-  const openable = new Set(data.weeks.map((week) => week.gameweek.id));
-  return (
-    <div className="hm-timeline">
-      <div className="tl-track" role="group" aria-label="Gameweek">
-        {data.timeline.map((item) => {
-          const selected = item.id === week.gameweek.id;
-          const dot = item.status === "done" ? "done" : item.status === "live" ? "live" : item.status === "next" ? "next" : "later";
-          const extra =
-            item.won !== undefined ? (
-              <>
-                {" · "}
-                <Essence size={11} /> {essenceLabel(item.won)}
-              </>
-            ) : item.playing !== undefined ? (
-              ` · ${item.playing} play`
-            ) : null;
-          const inside = (
-            <>
-              <span className="tl-top">
-                <span className={`tl-dot ${dot}`} />
-                GW{item.number}
-              </span>
-              <span className="tl-date">
-                {span(item.start, item.end)}
-                {extra}
-              </span>
-            </>
-          );
-          return openable.has(item.id) ? (
-            <Link
-              key={item.id}
-              className={`tl-item${selected ? " on" : ""}`}
-              href={href({ gw: item.id, plan: 0 })}
-              aria-current={selected ? "page" : undefined}
-              scroll={false}
-              prefetch={false}
-            >
-              {inside}
-            </Link>
-          ) : (
-            <span key={item.id} className="tl-item quiet">
-              {inside}
-            </span>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 function PlanSwitch({
   week,

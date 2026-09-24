@@ -5,7 +5,9 @@ import { useViewState } from "../hooks/useViewState";
 import {
   LENS_COPY, MIDFIELD_ATTACK_WEIGHT, horizonSize, openingColumn, selectedColumn, windowRange, type View, type ViewState,
 } from "../lib/grid";
+import type { GameweekPlan } from "../lib/play";
 import type { FixtureGrid, ModelNote } from "../lib/types";
+import AwayWeek from "./AwayWeek";
 import DifficultyGrid from "./DifficultyGrid";
 import FixturesList from "./FixturesList";
 import LeagueTable from "./LeagueTable";
@@ -17,9 +19,11 @@ interface Props {
   notes: ModelNote[];
   initialView: ViewState;
   pinsInUrl: boolean; // a shared link's pins win over the ones saved in this browser
+  /** Set when the week in the bar holds no LaLiga round: there is nothing of ours to draw for it. */
+  away: { plan: GameweekPlan | null; dates: string } | null;
 }
 
-export default function FixtureBoard({ grid, notes, initialView, pinsInUrl }: Props) {
+export default function FixtureBoard({ grid, notes, initialView, pinsInUrl, away }: Props) {
   const total = grid.matchdays.length;
   const opening = useMemo(() => openingColumn(grid), [grid]);
   const finished = useMemo(() => grid.matchdays.map((md) => md.finished), [grid]);
@@ -68,6 +72,20 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl }: Pr
         </div>
       </section>
 
+      {away ? (
+        <>
+          {view !== "table" && <AwayWeek plan={away.plan} dates={away.dates} variant={view === "plain" ? "fixtures" : "difficulty"} />}
+          {view === "table" && (
+            <>
+              <p className="ow-note" role="status">
+                LaLiga isn&apos;t playing this week — the table is as it stands.
+              </p>
+              <LeagueTable grid={grid} through={tableThrough} mode={state.table} onMode={(table) => patch({ table })} />
+            </>
+          )}
+        </>
+      ) : (
+        <>
       {view === "plain" && <FixturesList grid={grid} column={column} />}
 
       {view === "table" && <LeagueTable grid={grid} through={tableThrough} mode={state.table} onMode={(table) => patch({ table })} />}
@@ -139,6 +157,8 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl }: Pr
           Predictions use the rating model’s win, draw and loss chances for every remaining fixture; postponed games without
           a new date aren’t included. Title, top-4 and relegation chances come from 5,000 simulated seasons.
         </p>
+      )}
+        </>
       )}
       <p className="footnote attribution">
         Model {grid.model_version ?? "not run yet"}. Fixtures, results and crests: football-data.org. Match history and

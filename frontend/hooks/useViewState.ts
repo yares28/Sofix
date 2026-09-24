@@ -41,7 +41,11 @@ export function useViewState(initial: ViewState, pinsInUrl: boolean, knownCodes:
       firstSync.current = false;
       return;
     }
-    const query = serializeViewState(state);
+    // The board writes its own view into the address, and must not throw away what it does not own: the
+    // app-wide week (`?w=`) is set by the picker in the top bar and belongs to every page.
+    const week = new URLSearchParams(window.location.search).get("w");
+    const own = serializeViewState(state);
+    const query = week ? `w=${encodeURIComponent(week)}${own ? `&${own}` : ""}` : own;
     const path = VIEW_PATH[state.view];
     // null, not window.history.state: Next.js skips syncing its router for calls that carry its own state, and the
     // top bar's links (usePathname) must follow the tab.

@@ -128,14 +128,16 @@ test("the competitions that can't be entered, and the ones not worth entering, a
 });
 
 test("the gameweek that was played shows what each lineup really scored and won", async ({ page }) => {
+  // The week picker in the top bar is the only gameweek control there is.
   await page.goto("/play");
-  await page.getByRole("group", { name: "Gameweek" }).getByRole("link", { name: /^GW15/ }).click();
-  await expect(page).toHaveURL(/\/play\?gw=15$/);
+  await page.locator(".wk-trigger").click();
+  await page.locator(".wk-panel").getByRole("radio", { name: /GW15/ }).click();
+  await expect(page).toHaveURL(/\/play\?w=\d{4}-\d{2}-\d{2}$/);
   await expect(page.getByRole("heading", { level: 1, name: "Gameweek 15" })).toBeVisible();
   await expect(page.locator(".pl-eyebrow").first()).toContainText("Sorare · played");
 
   await page.getByRole("group", { name: "Show" }).getByRole("link", { name: "After the games" }).click();
-  await expect(page).toHaveURL(/\/play\?gw=15&after=1$/);
+  await expect(page).toHaveURL(/after=1$/);
   const hero = page.locator(".pl-hero");
   await expect(hero.getByRole("img", { name: "50% lineups paid" })).toBeVisible();
   await expect(hero.locator(".pl-side")).toContainText("1 of 2 lineups paid");

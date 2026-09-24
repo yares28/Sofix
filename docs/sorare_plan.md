@@ -415,8 +415,12 @@ selectors, two numbers, and the Sorare side stuck on whichever gameweek the job 
   whichever the page is not counting in is named, so `/difficulty` reads GW8 where `/play` reads GW17.
 - ✅ An older `?gw=` link still works and now moves the bar with it, so the two can never disagree; the board only
   pins its gameweek when a week was actually asked for, leaving the full-season projection alone otherwise.
-- ✅ A week this page can't draw snaps to the nearest one it can (`holds`), rather than the page quietly showing
-  something else than the bar says.
+- ✅ The week you pick is the week you get. Nothing snaps: a page with nothing for that week says so, and the
+  board shows the games your own players play instead (`components/AwayWeek.tsx`) — the whole international
+  break is now a page rather than a blank. Difficulty ranks those players by the chance each plays and his
+  expected score, because our model rates LaLiga and nothing else; the table is simply unchanged.
+- ✅ One picker, not two: the Play page's own gameweek rail is gone, and the top bar's links carry the week
+  between pages.
 
 ## S3 — Data sync
 

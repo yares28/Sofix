@@ -957,3 +957,65 @@ thead th .tbc-mark { font-weight: 600; }
 @media (prefers-reduced-motion: reduce) {
   .wk-panel, .wk-week, .wk-dot, .wk-week > s { animation: none !important; }
 }
+
+/* ---------- a week LaLiga is away ----------
+   No round to draw and no difficulty to rate, so the board shows the games your own Sorare players play. */
+.ow { padding: 22px 24px 20px; }
+.ow-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; align-items: end; margin-bottom: 18px; }
+.ow-head h2 { margin: 0 0 6px; font-size: var(--text-sm); font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); }
+.ow-num { margin: 0; display: flex; align-items: baseline; gap: 10px; }
+.ow-num b { font-size: 60px; line-height: .92; font-weight: 700; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; }
+.ow-num i { font-style: normal; font-size: var(--text-md); font-weight: 600; color: var(--ink-2); }
+.ow-cap { margin: 8px 0 0; max-width: 62ch; font-size: var(--text-sm); color: var(--ink-2); }
+.ow-cap b { color: var(--ink); font-weight: 650; }
+.ow-comps { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.ow-comps span { padding: 6px 12px; border-radius: 999px; background: var(--hover); font-size: var(--text-xs); font-weight: 650; color: var(--ink-2); white-space: nowrap; }
+
+.ow-day + .ow-day { margin-top: 18px; }
+.ow-day h3 { margin: 0 0 8px; font-size: var(--text-xs); font-weight: 650; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-2); }
+.ow-games, .ow-rank { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.ow-games li, .ow-rank li { display: grid; align-items: center; gap: 12px; padding: 7px 10px; border-radius: 14px; }
+.ow-games li { grid-template-columns: 46px minmax(0, 1.1fr) minmax(0, 1.4fr) auto; }
+.ow-rank li { grid-template-columns: 46px minmax(0, 1.1fr) minmax(64px, 100px) 40px auto minmax(0, 1.3fr); }
+.ow-games li:nth-child(odd), .ow-rank li:nth-child(odd) { background: var(--hover); }
+
+/* The whole card, the way Sorare draws it: the player fills the frame, so cropping it only shows the sky. */
+.ow-card { position: relative; display: block; width: 46px; aspect-ratio: 320 / 452; border-radius: 6px; overflow: hidden; background: #16181d; box-shadow: 0 1px 2px rgba(0,0,0,.2), 0 3px 8px rgba(0,0,0,.12); }
+.ow-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ow-card.rare { box-shadow: 0 0 0 1px #d7263d55, 0 1px 2px rgba(0,0,0,.2), 0 3px 8px rgba(0,0,0,.12); }
+.ow-card i { position: absolute; right: 2px; bottom: 2px; min-width: 13px; height: 13px; padding: 0 3px; border-radius: 7px; display: grid; place-items: center; font-style: normal; font-size: 9px; font-weight: 800; background: rgba(255,255,255,.94); color: var(--ink); }
+
+.ow .who { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.ow .who b { font-size: var(--text-sm); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ow .who > span { font-size: var(--text-xs); color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.ow-opp { min-width: 0; display: flex; align-items: center; gap: 7px; }
+.ow-opp img { border-radius: 3px; object-fit: contain; }
+.ow-opp b { font-size: var(--text-sm); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ow-opp em { font-style: normal; font-size: var(--text-2xs); font-weight: 700; color: var(--ink-2); }
+.ow-opp > span { font-size: var(--text-2xs); color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ow .opp { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.ow .at { font-size: var(--text-sm); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+.ow-meter { display: block; height: 6px; border-radius: 3px; background: var(--hover); overflow: hidden; }
+.ow-meter i { display: block; height: 100%; background: var(--fdr1-bg); }
+.ow .pct { font-size: var(--text-xs); color: var(--ink-2); font-variant-numeric: tabular-nums; text-align: right; }
+.ow .xs { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.15; }
+.ow .xs b { font-size: var(--text-md); font-weight: 700; font-variant-numeric: tabular-nums; }
+.ow .xs > span { font-size: var(--text-2xs); color: var(--ink-2); }
+
+.ow-note { margin: 0 0 12px; font-size: var(--text-sm); color: var(--ink-2); }
+.ow-none h2 { margin: 0 0 6px; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+
+@media (max-width: 860px) {
+  .ow { padding: 18px 16px 16px; }
+  .ow-head { grid-template-columns: 1fr; align-items: start; gap: 12px; }
+  .ow-comps { justify-content: flex-start; }
+  .ow-num b { font-size: 48px; }
+  .ow-games li { grid-template-columns: 38px minmax(0, 1fr) auto; row-gap: 6px; }
+  .ow-games li .ow-opp { grid-column: 2 / -1; }
+  .ow-rank li { grid-template-columns: 38px minmax(0, 1fr) 40px auto; row-gap: 6px; }
+  .ow-rank li .ow-meter { display: none; }
+  .ow-rank li .opp { grid-column: 2 / -1; }
+  .ow-card { width: 38px; }
+}

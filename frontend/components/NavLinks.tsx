@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useWeekSuffix } from "../lib/navWeek";
 
 export const SECTIONS = [
   { href: "/play", label: "Play" },
@@ -16,10 +17,11 @@ export const SECTIONS = [
  */
 export default function NavLinks() {
   const path = usePathname();
+  const week = useWeekSuffix(); // the week you picked comes with you
   return (
     <div className="nav-links">
       {SECTIONS.map((section) => (
-        <Link key={section.href} href={section.href} aria-current={path === section.href ? "page" : undefined}>
+        <Link key={section.href} href={`${section.href}${week}`} aria-current={path === section.href ? "page" : undefined}>
           {section.label}
         </Link>
       ))}

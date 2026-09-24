@@ -43,13 +43,10 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
     loadSorare(),
   ]);
   const opening = grid ? openingColumn(grid) : 0;
-  const week = weekContext(
-    grid,
-    sorare,
-    new Date(),
-    { w: params.get("w"), md: Number(params.get("gw")) || (grid?.matchdays[opening]?.number ?? null) },
-    (item) => item.md !== null,
-  );
+  const week = weekContext(grid, sorare, new Date(), {
+    w: params.get("w"),
+    md: Number(params.get("gw")) || (grid?.matchdays[opening]?.number ?? null),
+  });
   if (!grid) {
     return (
       <>

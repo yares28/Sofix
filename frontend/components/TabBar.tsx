@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useWeekSuffix } from "../lib/navWeek";
 
 const ICONS: Record<string, React.ReactNode> = {
   "/": <path d="M3.5 10 11 4l7.5 6v7.5a1 1 0 0 1-1 1H14v-5H8v5H4.5a1 1 0 0 1-1-1Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />,
@@ -42,10 +43,11 @@ const TABS = [
  */
 export default function TabBar() {
   const path = usePathname();
+  const week = useWeekSuffix(); // the week you picked comes with you
   return (
     <nav className="tabbar" aria-label="Sections">
       {TABS.map((tab) => (
-        <Link key={tab.href} href={tab.href} aria-current={path === tab.href ? "page" : undefined}>
+        <Link key={tab.href} href={`${tab.href}${week}`} aria-current={path === tab.href ? "page" : undefined}>
           <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
             {ICONS[tab.href]}
           </svg>

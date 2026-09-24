@@ -3,7 +3,8 @@ import FixtureBoard from "../../components/FixtureBoard";
 import SiteNav from "../../components/SiteNav";
 import { loadGrid } from "../../lib/api";
 import { loadSorare } from "../../lib/playData";
-import { weekContext } from "../../lib/weeks";
+import { weekPlan } from "../../lib/play";
+import { weekContext, weekDates } from "../../lib/weeks";
 import { loadSystem } from "../../lib/system";
 import { DEFAULT_VIEW, openingColumn, parseViewState, type View } from "../../lib/grid";
 
@@ -30,15 +31,11 @@ export async function BoardRoute({ view, searchParams }: { view: View; searchPar
     if (typeof value === "string") params.set(key, value);
   }
   // One week drives the whole app: the board opens on the LaLiga round inside it, and an older ?gw= link
-  // still decides which week that is.
+  // still decides which week that is. A week with no round at all stays itself — the board then shows the
+  // games the owner's own players play, because there is no LaLiga to show.
   const opening = grid ? (grid.matchdays[openingColumn(grid)]?.number ?? null) : null;
-  const week = weekContext(
-    grid,
-    sorare,
-    new Date(),
-    { w: params.get("w"), md: Number(params.get("gw")) || opening },
-    (item) => item.md !== null,
-  );
+  const week = weekContext(grid, sorare, new Date(), { w: params.get("w"), md: Number(params.get("gw")) || opening });
+  const away = week.current && week.current.md === null ? week.current : null;
   // Only a week that was asked for pins the board: left alone it stays on its own opening gameweek, where the
   // table still projects the whole season (lib/grid.ts, `state.gw === null`).
   if (params.has("w") && week.current?.md) params.set("gw", String(week.current.md));
@@ -52,7 +49,13 @@ export async function BoardRoute({ view, searchParams }: { view: View; searchPar
       <SiteNav meta={meta} system={system} week={week} />
       <main>
         {grid ? (
-          <FixtureBoard grid={grid} notes={meta?.model_notes ?? []} initialView={initialView} pinsInUrl={params.has("pins")} />
+          <FixtureBoard
+            grid={grid}
+            notes={meta?.model_notes ?? []}
+            initialView={initialView}
+            pinsInUrl={params.has("pins")}
+            away={away ? { plan: (sorare && away.gw && weekPlan(sorare, away.gw)) || null, dates: weekDates(away) } : null}
+          />
         ) : (
           <section className="card empty-state" role="status">
             <h1>{TITLES[view]}</h1>

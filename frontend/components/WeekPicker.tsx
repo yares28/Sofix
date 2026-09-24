@@ -62,8 +62,9 @@ export default function WeekPicker({ weeks, current, now }: { weeks: Week[]; cur
     // The address as it really is: the board rewrites its own view into it with history.replaceState, which
     // Next's useSearchParams() does not follow, and a week change must not throw the lens or horizon away.
     const next = new URLSearchParams(window.location.search);
-    if (week.id === now?.id) next.delete("w");
-    else next.set("w", week.id);
+    // Always written, even for the week the app is on: each page has its own idea of "no week asked for" —
+    // the board opens on the next LaLiga round — so a week you picked has to be said out loud to be kept.
+    next.set("w", week.id);
     next.delete("gw"); // the old per-page gameweek; the week replaces it
     const query = next.toString();
     router.push(query ? `${pathname}?${query}` : pathname, { scroll: false });

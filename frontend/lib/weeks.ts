@@ -40,6 +40,7 @@ export type Week = {
 // en-GB writes "Sept"; the app writes three letters everywhere else, so the months are spelled here.
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const madrid = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "numeric", timeZone: "Europe/Madrid" });
+const weekday = new Intl.DateTimeFormat("en-GB", { weekday: "long", timeZone: "Europe/Madrid" });
 const dayMonth = (iso: string) => {
   const [d, m] = madrid.format(new Date(iso)).split("/");
   return { day: Number(d), month: MONTHS[Number(m) - 1]! };
@@ -148,6 +149,12 @@ export function weekDates(week: Week): string {
     : `${from.day} ${from.month} – ${to.day} ${to.month}`;
 }
 
+/** A day the way the app writes it: "Friday 25 Sep". */
+export function dayName(iso: string): string {
+  const { day, month } = dayMonth(iso);
+  return `${weekday.format(new Date(iso))} ${day} ${month}`;
+}
+
 /** What the week is worth, for the right-hand column of the picker. */
 export function weekValue(week: Week): { value: string; note: string } {
   // A plan built from form is a guess at a lineup, not at a reward: the honest headline is who actually plays.
@@ -165,16 +172,14 @@ export function weekValue(week: Week): { value: string; note: string } {
  * What the bar needs: every week, the one being shown, and the one the app would open on.
  *
  * `asked` is the address: `w` is a week, and `md`/`gw` are the per-page gameweek a link made before the week
- * existed still carries, so the bar agrees with the page underneath it. `holds` is what this page can draw —
- * the board a LaLiga round, Play a Sorare gameweek — and a week it holds nothing for snaps to the nearest one
- * it does, instead of the page quietly showing something else than the bar says.
+ * existed still carries, so the bar agrees with the page underneath it. The week you pick is the week you get —
+ * a page that holds nothing for it says so itself rather than quietly showing another one.
  */
 export function weekContext(
   grid: FixtureGrid | null,
   sorare: Sorare | null,
   now: Date,
   asked?: { w?: string | null; md?: number | null; gw?: string | null },
-  holds?: (week: Week) => boolean,
 ): { weeks: Week[]; current: Week | null; now: Week | null } {
   const weeks = seasonWeeks(grid, sorare, now);
   const here = currentWeek(weeks);
@@ -183,11 +188,5 @@ export function weekContext(
     (asked?.md != null ? (weeks.find((week) => week.md === asked.md) ?? null) : null) ??
     (asked?.gw ? (weeks.find((week) => week.gw === asked.gw) ?? null) : null) ??
     here;
-  const current = !picked || !holds || holds(picked) ? picked : nearest(weeks.filter(holds), picked);
-  return { weeks, current, now: here };
-}
-
-/** The first of `weeks` that has not started before `to`, else the last one: never null while `weeks` has any. */
-function nearest(weeks: Week[], to: Week): Week | null {
-  return weeks.find((week) => at(week.from) >= at(to.from)) ?? weeks.at(-1) ?? null;
+  return { weeks, current: picked, now: here };
 }

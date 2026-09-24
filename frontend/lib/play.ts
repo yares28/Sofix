@@ -120,14 +120,30 @@ export type Option = {
 export type Blocked = { name: string; rarity: string; group: Group; why: string };
 export type AlsoOpen = { name: string; group: Group; fee: number; eEss: number; pReturn: number; x: number };
 
+export type PlayerGame = {
+  kickoff: string;
+  competition: string;
+  opponent: string;
+  opponentCrest: string | null;
+  venue: "H" | "A";
+};
+
 export type PlayingPlayer = {
   name: string;
   pos: "GK" | "DEF" | "MID" | "FWD";
   avatar: string;
+  /** The art of one of your cards for him, and his club's badge: the board draws these when LaLiga is away. */
+  pic: string;
+  crest: string | null;
+  rarity: string;
   club: string | null;
   inSeason: boolean;
   cards: number;
-  games: { kickoff: string; competition: string; opponent: string; opponentCrest: string | null; venue: "H" | "A" }[];
+  /** His chance of playing, what he is expected to score, and the average every cap counts. */
+  p: number;
+  x: number;
+  average: number;
+  games: PlayerGame[];
 };
 
 export type GameweekPlan = {

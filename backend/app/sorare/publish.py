@@ -22,7 +22,7 @@ from app.sorare.planner import DRAWS, Lineup, Plan, build, fill_bench, plans, re
 logger = logging.getLogger(__name__)
 
 POSITION_WORDS = {"GK": "goalkeeper", "DEF": "defender", "MID": "midfielder", "FWD": "forward"}
-PAYLOAD_VERSION = 4
+PAYLOAD_VERSION = 5
 """The shape of the published page. A run only keeps a finished gameweek's replay from the payload the app is
 already showing when that payload was built by this same version."""
 LIVE_STATES = {"started", "live"}
@@ -72,6 +72,11 @@ def read_cards(rows: list[dict[str, Any]]) -> tuple[list[Card], list[dict[str, s
             )
         )
     return usable, left_out
+
+
+def _expected(forecast: Forecast | None) -> float:
+    """What a player is expected to score, counting the chance he does not play at all."""
+    return forecast.p_play * forecast.mu if forecast else 0.0
 
 
 def card_games(rows: list[dict[str, Any]], key: str) -> dict[str, list[dict[str, Any]]]:
@@ -468,14 +473,22 @@ def gameweek_payload(
                 }
             )
 
+    # Every player of yours with a game this week. In a week LaLiga is away, this is the whole board: the
+    # app has nothing else to show, so the card, the chance he plays and what he is expected to score go with it.
     players = [
         {
             "name": card.name,
             "pos": card.positions[0],
             "avatar": card.avatar,
+            "pic": card.picture,
             "club": card.club_name,
+            "crest": card.club_crest,
+            "rarity": card.rarity,
             "inSeason": card.in_season,
             "cards": sum(1 for c in cards if c.player == card.player),
+            "p": round(forecasts.get(card.player, Forecast(0, 0)).p_play, 3),
+            "x": round(_expected(forecasts.get(card.player)), 1),
+            "average": card.average,
             "games": games.get(card.player) or [],
         }
         for card in {c.player: c for c in cards if games.get(c.player)}.values()

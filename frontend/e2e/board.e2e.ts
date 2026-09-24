@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { scaleBucket } from "../lib/grid";
 import { gameweekMatches } from "../lib/matches";
-import { grid, offline, openingMatchday, resetBackend, teamRows } from "./helpers";
+import { grid, offline, openingMatchday, resetBackend, sorare, teamRows } from "./helpers";
 
 test.beforeEach(async ({ page, request }) => {
   await resetBackend(request);
@@ -214,10 +214,13 @@ test("the gameweek selector moves every card, the grid, the fixtures and the tab
   const games = (await page.locator("table.standings tbody tr td:nth-child(3)").allTextContents()).map(Number);
   expect(Math.max(...games)).toBeLessThanOrEqual(past);
 
+  // "Now" is the week the app is on, whatever that week holds: here LaLiga is away, and the table says so
+  // instead of the board quietly showing a round from another week.
   await page.locator(".wk-trigger").click(); // the week picker in the header
   await page.getByRole("button", { name: "Now" }).click();
+  await expect(page).toHaveURL(/[?&]w=\d{4}-\d{2}-\d{2}/);
+  await expect(page.locator(".ow-note")).toContainText("LaLiga isn't playing this week");
   await expect(page.getByRole("heading", { level: 2, name: "LaLiga table" })).toBeVisible();
-  await expect(page).not.toHaveURL(/[?&](gw|w)=/);
 });
 
 test("columns sort from the keyboard", async ({ page }) => {
@@ -589,4 +592,32 @@ test("the board has no automatically detectable accessibility violations", async
       scan.violations.map((v) => `${path} ${v.id}: ${v.nodes.slice(0, 4).map((n) => `${n.target.join(" ")} (${n.any[0]?.message ?? ""})`).join("; ")}`),
     ).toEqual([]);
   }
+});
+
+test("a week with no LaLiga round shows the games your own players play", async ({ page }) => {
+  // The week Sorare is planning holds no LaLiga round at all. Play opens on it, so the week comes from there
+  // and travels to the board in the address, the way the top bar's links carry it.
+  const planned = sorare.weeks.find((week) => week.gameweek.id === sorare.nextId)!.gameweek.number;
+  await page.goto("/play");
+  await page.locator(".wk-trigger").click();
+  await page.locator(".wk-panel").getByRole("radio", { name: new RegExp(String.raw`GW${planned}\b`) }).click();
+  await expect(page).toHaveURL(/\/play\?w=\d{4}-\d{2}-\d{2}$/);
+  await page.getByRole("navigation").getByRole("link", { name: "Fixtures" }).click();
+  await expect(page).toHaveURL(/\/fixtures\?w=\d{4}-\d{2}-\d{2}$/);
+
+  const own = page.locator(".ow");
+  await expect(own).toBeVisible();
+  await expect(own.locator(".ow-cap")).toContainText("LaLiga is away");
+  await expect(own.locator(".ow-num b")).toHaveText(/^\d+$/); // one hero: the games there are
+  await expect(own.locator(".ow-games li").first().locator(".ow-card img")).toBeVisible(); // the card, not a box
+  await expect(page.locator(".fixture-row")).toHaveCount(0); // no LaLiga round is invented for it
+
+  // The same week on the other two tabs: the difficulty we do have, and the table as it stands.
+  await page.getByRole("group", { name: "View" }).getByRole("button", { name: "Difficulty" }).click();
+  await expect(page.locator(".ow-rank li").first()).toContainText("xScore");
+  await expect(page.locator(".board")).toHaveCount(0);
+
+  await page.getByRole("group", { name: "View" }).getByRole("button", { name: "Table" }).click();
+  await expect(page.locator(".ow-note")).toContainText("LaLiga isn't playing this week");
+  await expect(page.locator("table.standings tbody tr")).toHaveCount(grid.teams.length);
 });

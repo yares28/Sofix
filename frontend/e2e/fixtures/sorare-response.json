@@ -156,7 +156,13 @@
                   "opponentCrest": "https://assets.sorare.com/club/getafe-cf/logo.png",
                   "venue": "H"
                 }
-              ]
+              ],
+              "pic": "https://assets.sorare.com/card/football/unai-simon-2026/picture.png",
+              "crest": "https://assets.sorare.com/club/athletic-club/logo.png",
+              "rarity": "limited",
+              "p": 0.94,
+              "x": 54.5,
+              "average": 55
             },
             {
               "name": "Pau Cubarsí",
@@ -173,7 +179,13 @@
                   "opponentCrest": "https://assets.sorare.com/club/rc-celta/logo.png",
                   "venue": "A"
                 }
-              ]
+              ],
+              "pic": "https://assets.sorare.com/card/football/pau-cubarsi-2026/picture.png",
+              "crest": "https://assets.sorare.com/club/fc-barcelona/logo.png",
+              "rarity": "limited",
+              "p": 0.88,
+              "x": 53.7,
+              "average": 57
             },
             {
               "name": "Pedri",
@@ -190,7 +202,13 @@
                   "opponentCrest": "https://assets.sorare.com/club/rc-celta/logo.png",
                   "venue": "A"
                 }
-              ]
+              ],
+              "pic": "https://assets.sorare.com/card/football/pedri-2026/picture.png",
+              "crest": "https://assets.sorare.com/club/fc-barcelona/logo.png",
+              "rarity": "limited",
+              "p": 0.9,
+              "x": 61.2,
+              "average": 64
             },
             {
               "name": "Julián Álvarez",
@@ -207,7 +225,13 @@
                   "opponentCrest": "https://assets.sorare.com/club/rayo-vallecano/logo.png",
                   "venue": "H"
                 }
-              ]
+              ],
+              "pic": "https://assets.sorare.com/card/football/julian-alvarez-2026/picture.png",
+              "crest": "https://assets.sorare.com/club/atletico-madrid/logo.png",
+              "rarity": "limited",
+              "p": 0.93,
+              "x": 61.4,
+              "average": 62
             },
             {
               "name": "Takefusa Kubo",
@@ -224,7 +248,13 @@
                   "opponentCrest": "https://assets.sorare.com/club/levante-ud/logo.png",
                   "venue": "A"
                 }
-              ]
+              ],
+              "pic": "https://assets.sorare.com/card/football/takefusa-kubo-2026/picture.png",
+              "crest": "https://assets.sorare.com/club/real-sociedad/logo.png",
+              "rarity": "limited",
+              "p": 0.85,
+              "x": 50.2,
+              "average": 54
             }
           ]
         },
@@ -1190,7 +1220,13 @@
                   "opponentCrest": "https://assets.sorare.com/club/getafe-cf/logo.png",
                   "venue": "H"
                 }
-              ]
+              ],
+              "pic": "https://assets.sorare.com/card/football/unai-simon-2026/picture.png",
+              "crest": "https://assets.sorare.com/club/athletic-club/logo.png",
+              "rarity": "limited",
+              "p": 0.94,
+              "x": 54.5,
+              "average": 55
             },
             {
               "name": "Pau Cubarsí",
@@ -1207,7 +1243,13 @@
                   "opponentCrest": "https://assets.sorare.com/club/rc-celta/logo.png",
                   "venue": "A"
                 }
-              ]
+              ],
+              "pic": "https://assets.sorare.com/card/football/pau-cubarsi-2026/picture.png",
+              "crest": "https://assets.sorare.com/club/fc-barcelona/logo.png",
+              "rarity": "limited",
+              "p": 0.88,
+              "x": 53.7,
+              "average": 57
             },
             {
               "name": "Pedri",
@@ -1224,7 +1266,13 @@
                   "opponentCrest": "https://assets.sorare.com/club/rc-celta/logo.png",
                   "venue": "A"
                 }
-              ]
+              ],
+              "pic": "https://assets.sorare.com/card/football/pedri-2026/picture.png",
+              "crest": "https://assets.sorare.com/club/fc-barcelona/logo.png",
+              "rarity": "limited",
+              "p": 0.9,
+              "x": 61.2,
+              "average": 64
             },
             {
               "name": "Julián Álvarez",
@@ -1241,7 +1289,13 @@
                   "opponentCrest": "https://assets.sorare.com/club/rayo-vallecano/logo.png",
                   "venue": "H"
                 }
-              ]
+              ],
+              "pic": "https://assets.sorare.com/card/football/julian-alvarez-2026/picture.png",
+              "crest": "https://assets.sorare.com/club/atletico-madrid/logo.png",
+              "rarity": "limited",
+              "p": 0.93,
+              "x": 61.4,
+              "average": 62
             },
             {
               "name": "Takefusa Kubo",
@@ -1258,7 +1312,13 @@
                   "opponentCrest": "https://assets.sorare.com/club/levante-ud/logo.png",
                   "venue": "A"
                 }
-              ]
+              ],
+              "pic": "https://assets.sorare.com/card/football/takefusa-kubo-2026/picture.png",
+              "crest": "https://assets.sorare.com/club/real-sociedad/logo.png",
+              "rarity": "limited",
+              "p": 0.85,
+              "x": 50.2,
+              "average": 54
             },
             {
               "name": "Lionel Messi",
@@ -1275,7 +1335,13 @@
                   "opponentCrest": "https://assets.sorare.com/club/orlando-city-sc/logo.png",
                   "venue": "A"
                 }
-              ]
+              ],
+              "pic": "https://assets.sorare.com/card/football/lionel-messi-2024/picture.png",
+              "crest": "https://assets.sorare.com/club/inter-miami-cf/logo.png",
+              "rarity": "limited",
+              "p": 0.88,
+              "x": 65.1,
+              "average": 71
             },
             {
               "name": "Thiago Almada",
@@ -1292,7 +1358,13 @@
                   "opponentCrest": "https://assets.sorare.com/club/palmeiras/logo.png",
                   "venue": "H"
                 }
-              ]
+              ],
+              "pic": "https://assets.sorare.com/card/football/thiago-almada-2024/picture.png",
+              "crest": "https://assets.sorare.com/club/botafogo/logo.png",
+              "rarity": "limited",
+              "p": 0.83,
+              "x": 49.8,
+              "average": 56
             },
             {
               "name": "Denis Bouanga",
@@ -1309,7 +1381,13 @@
                   "opponentCrest": "https://assets.sorare.com/club/san-jose-earthquakes/logo.png",
                   "venue": "H"
                 }
-              ]
+              ],
+              "pic": "https://assets.sorare.com/card/football/denis-bouanga-2024/picture.png",
+              "crest": "https://assets.sorare.com/club/los-angeles-fc/logo.png",
+              "rarity": "limited",
+              "p": 0.91,
+              "x": 57.3,
+              "average": 60
             }
           ]
         },

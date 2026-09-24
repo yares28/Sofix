@@ -28,13 +28,7 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
   };
 
   const [data, { grid, meta }, system] = await Promise.all([loadSorare(), loadGrid(), loadSystem()]);
-  const week = weekContext(
-    grid,
-    data,
-    new Date(),
-    { w: single("w"), gw: single("gw") },
-    (item) => Boolean(item.gw),
-  );
+  const week = weekContext(grid, data, new Date(), { w: single("w"), gw: single("gw") });
   if (!data) {
     return (
       <>
@@ -53,8 +47,27 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
   // one naming a gameweek this page no longer holds is dropped rather than silently showing another.
   const legacy = single("gw");
   if (legacy && !weekPlan(data, legacy)) redirect("/play");
-  const showing = weekPlan(data, week.current?.gw ?? data.nextId);
-  if (!showing) redirect("/play");
+  const asked = week.current;
+  const showing = weekPlan(data, asked?.gw ?? data.nextId);
+  // A week Sorare has not opened, or one the job has not planned: the page says so rather than showing
+  // another gameweek under that week's name.
+  if (!showing || (asked && !asked.gw)) {
+    return (
+      <>
+        <SiteNav meta={meta} system={system} week={week} />
+        <main className="pl-main">
+          <section className="card empty-state" role="status">
+            <h1>{asked?.md ? `Gameweek ${asked.md}` : "Play"}</h1>
+            <p>
+              {asked && !asked.gw
+                ? "Sorare hasn't opened this week. It opens about a week before the games."
+                : "Your Sorare gameweek appears after the next refresh."}
+            </p>
+          </section>
+        </main>
+      </>
+    );
+  }
   const requested = Number(single("plan") ?? 1);
   const planIndex = Number.isFinite(requested) ? Math.min(Math.max(requested, 1), Math.max(showing.plans.length, 1)) - 1 : 0;
   const after = single("after") === "1" && showing.played;

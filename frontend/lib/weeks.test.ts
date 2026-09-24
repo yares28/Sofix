@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { GameweekPlan, Sorare, TimelineWeek } from "./play";
 import type { FixtureGrid, GridMatchday } from "./types";
-import { byMonth, currentWeek, seasonWeeks, weekById, weekContext, weekDates, weekValue, type Week } from "./weeks";
+import { byMonth, currentWeek, seasonWeeks, weekById, weekContext, weekDates, weekValue } from "./weeks";
 
 // The real shape of the 2026/27 season: LaLiga plays MD5–MD7 and then stops for an international break,
 // while Sorare keeps running a game week every few days.
@@ -131,9 +131,7 @@ describe("with nothing synced", () => {
 });
 
 describe("what the bar shows on a page", () => {
-  const context = (asked?: Parameters<typeof weekContext>[3], holds?: Parameters<typeof weekContext>[4]) =>
-    weekContext(grid, sorare, NOW, asked, holds);
-  const board = (week: Week) => week.md !== null;
+  const context = (asked?: Parameters<typeof weekContext>[3]) => weekContext(grid, sorare, NOW, asked);
 
   it("opens on the week Sorare is planning", () => {
     expect(context().current!.number).toBe(17);
@@ -150,11 +148,12 @@ describe("what the bar shows on a page", () => {
     expect(context({ w: "2026-10-09", md: 5 }).current!.md).toBe(8); // the week wins over the old link
   });
 
-  it("snaps to the nearest week the page can draw", () => {
-    // GW17 has no LaLiga round: a board page shows the next week that does, instead of disagreeing with itself.
-    expect(context(undefined, board).current!.md).toBe(8);
-    expect(context({ w: "2026-10-09" }, (week) => Boolean(week.gw)).current!.number).toBe(19);
-    expect(context(undefined, board).now!.number).toBe(17); // "Now" is still the app's week
+  it("gives back the week that was asked for, whatever the page can draw", () => {
+    // GW17 has no LaLiga round, and the week you pick is still the week you get: the board says so itself
+    // rather than quietly showing another one (components/AwayWeek.tsx).
+    expect(context().current!.number).toBe(17);
+    expect(context().current!.md).toBeNull();
+    expect(context({ w: "2026-10-09" }).current!.gw).toBeNull();
   });
 
   it("gives back nothing when there is nothing", () => {

@@ -17,7 +17,7 @@ import {
 } from "../../lib/cards";
 import type { CollectionCard, Sorare } from "../../lib/play";
 import { Foil } from "../play/bits";
-import SorareImage from "../play/SorareImage";
+import CardArt from "./CardArt";
 import useCountUp from "./useCountUp";
 
 const RARITIES: { key: string; label: string }[] = [
@@ -254,7 +254,7 @@ function CardTile({ card, index, stack }: { card: CollectionCard; index: number;
   return (
     <article className="s5-pc" style={{ animationDelay: `${Math.min(index * 20, 360)}ms` }}>
       <span className="art">
-        <SorareImage src={card.pic} fill />
+        <CardArt src={card.pic} name={card.name} />
         {stack > 1 ? <span className="dup">×{stack}</span> : null}
         <SeasonMark card={card} />
       </span>

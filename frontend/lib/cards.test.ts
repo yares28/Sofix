@@ -5,6 +5,7 @@ import {
   duplicateCounts,
   gain,
   improvers,
+  initials,
   ownedPlayers,
   priceLabel,
   scoreColour,
@@ -285,6 +286,15 @@ describe("tierLabel", () => {
     expect(tierLabel({ stars: 3, rarity: "limited" })).toBe("3★");
     expect(tierLabel({ stars: null, rarity: "rare" })).toBe("Rare");
     expect(tierLabel({ stars: 0, rarity: "limited" })).toBe("Limited");
+  });
+});
+
+describe("initials", () => {
+  it("takes up to two initials, uppercased", () => {
+    expect(initials("Aïssa Mandi")).toBe("AM");
+    expect(initials("Isco")).toBe("I");
+    expect(initials("Luíz Júnior")).toBe("LJ");
+    expect(initials("jan van der berg")).toBe("JV");
   });
 });
 

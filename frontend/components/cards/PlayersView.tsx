@@ -13,7 +13,7 @@ import {
 } from "../../lib/cards";
 import type { MarketPlayer, Sorare } from "../../lib/play";
 import { Foil } from "../play/bits";
-import SorareImage from "../play/SorareImage";
+import CardArt from "./CardArt";
 import useCountUp from "./useCountUp";
 
 const LIMIT = 30;
@@ -122,7 +122,7 @@ function ResultCard({
       style={{ animationDelay: `${Math.min(index * 18, 380)}ms` }}
     >
       <span className="art">
-        <SorareImage src={player.pic} fill />
+        <CardArt src={player.pic} name={player.name} />
       </span>
       <span className="who">
         <b>{player.name}</b>

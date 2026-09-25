@@ -225,6 +225,17 @@ export function ownedPlayers(collection: CollectionCard[]): Set<string> {
   return new Set(collection.map((card) => card.player));
 }
 
+/** Up to two initials for a player, used when the card art can't be loaded. */
+export function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
 /** A euro price the way the search shows it: whole euros with a separator above 100, cents below. */
 export function priceLabel(eur: number): string {
   return `\u20ac${eur >= 100 ? Math.round(eur).toLocaleString("en-US") : eur.toFixed(2)}`;

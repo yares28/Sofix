@@ -45,6 +45,12 @@ class Card:
     club_crest: str | None = None
     picture: str = ""
     avatar: str = ""
+    l5: float | None = None  # last-five average score
+    l40: float | None = None  # last-forty average score
+    started5: float | None = None  # share of the last five games he played, 0–100
+    started10: float | None = None
+    started40: float | None = None
+    stars: int | None = None  # gameplay tier as 1–5 stars (5 is Icon)
 
     def age_on(self, day: date) -> int | None:
         if not self.birth_day:

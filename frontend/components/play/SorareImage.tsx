@@ -15,7 +15,6 @@ export default function SorareImage({
   width,
   height,
   fill = false,
-  fit = "cover",
   className,
 }: {
   src: string | null | undefined;
@@ -23,14 +22,12 @@ export default function SorareImage({
   width?: number;
   height?: number;
   fill?: boolean;
-  /** How the image sits in a `fill` box. Card art uses "contain" so nothing is cropped off the edges. */
-  fit?: "cover" | "contain";
   className?: string;
 }) {
   if (!src || !SORARE_ORIGINS.some((origin) => src.startsWith(origin))) return null;
   const common = { src, unoptimized: true, loading: "lazy" as const, referrerPolicy: "no-referrer" as const, className };
   return fill ? (
-    <Image alt={alt} {...common} fill sizes="120px" style={{ objectFit: fit }} />
+    <Image alt={alt} {...common} fill sizes="120px" style={{ objectFit: "cover" }} />
   ) : (
     <Image alt={alt} {...common} width={width ?? 48} height={height ?? 48} />
   );

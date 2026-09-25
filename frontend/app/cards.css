@@ -76,7 +76,7 @@
 .s5-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(126px, 1fr)); gap: 16px; }
 .s5-pc { position: relative; display: flex; flex-direction: column; gap: 8px; opacity: 0; transform: translateY(10px); animation: s5-rise 0.5s var(--ease) forwards; }
 @keyframes s5-rise { to { opacity: 1; transform: none; } }
-.s5-pc .art { position: relative; aspect-ratio: 320 / 452; border-radius: var(--r-md); overflow: hidden; background: #16181d; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18), 0 8px 18px rgba(0, 0, 0, 0.12); transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease); }
+.s5-pc .art { position: relative; aspect-ratio: 5 / 8; border-radius: var(--r-md); overflow: hidden; background: #e9e9ee; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18), 0 8px 18px rgba(0, 0, 0, 0.12); transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease); }
 .s5-pc:hover .art { transform: translateY(-4px); box-shadow: var(--shadow-lift); }
 .s5-pc .art img { width: 100%; height: 100%; object-fit: cover; }
 .s5-pc:hover, .s5-pc:focus-within { z-index: 3; }
@@ -134,7 +134,7 @@
 .s5-res { position: relative; display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: 14px; row-gap: 12px; align-items: center; padding: 15px 16px; border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow-card); opacity: 0; transform: translateY(10px); animation: s5-rise 0.5s var(--ease) forwards; transition: box-shadow 0.3s var(--ease), transform 0.3s var(--ease); }
 .s5-res:hover { box-shadow: var(--shadow-lift); transform: translateY(-2px); }
 .s5-res.owned { background: #fcfcfe; }
-.s5-res .art { position: relative; width: 46px; aspect-ratio: 320 / 452; border-radius: 8px; overflow: hidden; background: #16181d; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); }
+.s5-res .art { position: relative; width: 46px; aspect-ratio: 5 / 8; border-radius: 8px; overflow: hidden; background: #e9e9ee; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); }
 .s5-res .art img { width: 100%; height: 100%; object-fit: cover; }
 .s5-res .who { min-width: 0; }
 .s5-res .who b { display: block; font-size: 15px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

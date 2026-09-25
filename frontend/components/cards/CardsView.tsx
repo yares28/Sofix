@@ -262,7 +262,7 @@ function CardTile({ card, index, stack }: { card: CollectionCard; index: number;
   return (
     <article className="s5-pc" style={{ animationDelay: `${Math.min(index * 20, 360)}ms` }}>
       <span className="art">
-        <SorareImage src={card.pic} fill fit="contain" />
+        <SorareImage src={card.pic} fill />
         {stack > 1 ? <span className="dup">×{stack}</span> : null}
         <SeasonMark inSeason={card.inSeason} />
       </span>

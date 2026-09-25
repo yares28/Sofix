@@ -180,6 +180,33 @@ export type Status = {
   kept: { gameweeks: number; rows: number; projections: number; scored: number };
 };
 
+/** One card in the owner's collection, as the My cards page (S5) draws it. */
+export type CollectionCard = {
+  slug: string;
+  player: string;
+  name: string;
+  pos: "GK" | "DEF" | "MID" | "FWD";
+  rarity: string;
+  inSeason: boolean;
+  level: number;
+  average: number;
+  club: string | null;
+  pic: string;
+};
+
+/** One LaLiga player Sorare is quoting a price for, as the Player search page (S5) draws it. */
+export type MarketPlayer = {
+  slug: string;
+  name: string;
+  pos: "GK" | "DEF" | "MID" | "FWD";
+  club: string | null;
+  crest: string | null;
+  average: number;
+  projection: number | null;
+  eur: number;
+  pic: string;
+};
+
 export type Sorare = {
   generatedAt: string;
   user: string;
@@ -198,6 +225,10 @@ export type Sorare = {
     inSeason: number;
     rareGoalkeepers: number;
   };
+  /** The whole collection, card by card (S5 My cards). Absent until the Sorare job publishes it. */
+  collection?: CollectionCard[];
+  /** LaLiga players priced right now (S5 Player search). Absent until the Sorare job publishes it. */
+  market?: MarketPlayer[];
 };
 
 const DAY = 86_400_000;

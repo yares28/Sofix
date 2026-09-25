@@ -665,7 +665,53 @@ def build_payload(
             "inSeason": sum(1 for c in cards if c.in_season),
             "rareGoalkeepers": sum(1 for c in cards if c.rarity == "rare" and c.positions[0] == "GK"),
         },
+        # S5: the whole collection card by card, and the LaLiga players priced right now.
+        "collection": collection_out(cards),
+        "market": market_out(snapshot.get("market") or []),
     }
+
+
+def collection_out(cards: list[Card]) -> list[dict[str, Any]]:
+    """Every usable card, in the shape the My cards page (S5) draws. The page groups and sorts them itself."""
+    return [
+        {
+            "slug": c.slug,
+            "player": c.player,
+            "name": c.name,
+            "pos": c.positions[0],
+            "rarity": c.rarity,
+            "inSeason": c.in_season,
+            "level": c.level,
+            "average": round(c.average, 1),
+            "club": c.club_name,
+            "pic": c.picture,
+        }
+        for c in cards
+    ]
+
+
+def market_out(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The LaLiga price index for the Player search page (S5), one row per player, keyed the app's way."""
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        eur = row.get("eur")
+        if eur is None:
+            continue
+        out.append(
+            {
+                "slug": row["slug"],
+                "name": row["name"],
+                "pos": row["pos"],
+                "club": row.get("club"),
+                "crest": row.get("crest"),
+                "average": round(float(row.get("average") or 0.0), 1),
+                "projection": row.get("projection"),
+                "eur": round(float(eur), 2),
+                "pic": row.get("pic") or "",
+            }
+        )
+    out.sort(key=lambda p: -p["average"])
+    return out
 
 
 def week_of(payload: dict[str, Any], which: str = "next") -> dict[str, Any] | None:

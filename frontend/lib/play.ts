@@ -180,6 +180,15 @@ export type Status = {
   kept: { gameweeks: number; rows: number; projections: number; scored: number };
 };
 
+/** A player's average over a window of games (Sorare's L5 / L10 / L40), and how often he started them. */
+export type CardScore = {
+  window: "L5" | "L10" | "L40";
+  /** The average Sorare score over the window, or null when there aren't enough games. */
+  score: number | null;
+  /** The share of the window's games he started, 0–100, or null when unknown. */
+  started: number | null;
+};
+
 /** One card in the owner's collection, as the My cards page (S5) draws it. */
 export type CollectionCard = {
   slug: string;
@@ -192,6 +201,10 @@ export type CollectionCard = {
   average: number;
   club: string | null;
   pic: string;
+  /** L5 / L10 / L40 hexagon scores with %started. Falls back to `average` (L10) when absent. */
+  scores?: CardScore[];
+  /** The player's Sorare star tier, 0–5 (the "Icon" row shows 5). Null when the job hasn't got it yet. */
+  stars?: number | null;
 };
 
 /** One LaLiga player Sorare is quoting a price for, as the Player search page (S5) draws it. */

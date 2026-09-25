@@ -1,16 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
+  cardWindows,
   collectionSummary,
   duplicateCounts,
   gain,
   improvers,
   ownedPlayers,
   priceLabel,
+  scoreColour,
   searchMarket,
   shelves,
   squadBar,
   stackCounts,
   stackKey,
+  tierLabel,
   verdict,
 } from "./cards";
 import type { CollectionCard, MarketPlayer } from "./play";
@@ -225,6 +228,53 @@ describe("searchMarket", () => {
     expect(searchMarket(market, bar, owned, { pos: "all", query: "villarreal" }).map((p) => p.slug)).toEqual([
       "fwd",
     ]);
+  });
+});
+
+describe("scoreColour", () => {
+  it("follows Sorare's ramp across the bands", () => {
+    expect(scoreColour(98).fill).toBe("#22c7c7"); // teal
+    expect(scoreColour(81).fill).toBe("#3fb5df"); // cyan
+    expect(scoreColour(72).fill).toBe("#46c05a"); // green
+    expect(scoreColour(52).fill).toBe("#9bd227"); // lime
+    expect(scoreColour(48).fill).toBe("#e6b91e"); // amber
+    expect(scoreColour(20).fill).toBe("#e5602f"); // deep orange
+    expect(scoreColour(5).fill).toBe("#c0433f"); // red
+  });
+
+  it("greys out an unknown score with light ink", () => {
+    expect(scoreColour(null)).toEqual({ fill: "#55555c", ink: "#ffffff" });
+  });
+});
+
+describe("cardWindows", () => {
+  it("returns the three windows in order when the card carries them", () => {
+    const windows = cardWindows(
+      card({
+        scores: [
+          { window: "L40", score: 40, started: 60 },
+          { window: "L5", score: 55, started: 100 },
+          { window: "L10", score: 52, started: 80 },
+        ],
+      }),
+    );
+    expect(windows.map((w) => w.window)).toEqual(["L5", "L10", "L40"]);
+    expect(windows.map((w) => w.score)).toEqual([55, 52, 40]);
+    expect(windows[0]!.started).toBe(100);
+  });
+
+  it("falls back to the last-ten average for L10 when there is no per-window data", () => {
+    const windows = cardWindows(card({ average: 61, scores: undefined }));
+    expect(windows.map((w) => w.score)).toEqual([null, 61, null]);
+  });
+});
+
+describe("tierLabel", () => {
+  it("names five stars Icon, other star counts by number, and falls back to rarity", () => {
+    expect(tierLabel({ stars: 5, rarity: "limited" })).toBe("Icon");
+    expect(tierLabel({ stars: 3, rarity: "limited" })).toBe("3★");
+    expect(tierLabel({ stars: null, rarity: "rare" })).toBe("Rare");
+    expect(tierLabel({ stars: 0, rarity: "limited" })).toBe("Limited");
   });
 });
 

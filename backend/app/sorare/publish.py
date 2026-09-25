@@ -672,7 +672,12 @@ def build_payload(
 
 
 def collection_out(cards: list[Card]) -> list[dict[str, Any]]:
-    """Every usable card, in the shape the My cards page (S5) draws. The page groups and sorts them itself."""
+    """Every usable card, in the shape the My cards page (S5) draws. The page groups and sorts them itself.
+
+    Only the last-ten average is known here today, so it fills the L10 hexagon and L5/L40 are left null (the page
+    shows them empty). Wiring L5/L40, %started and the star tier from Sorare is a follow-up (S5 · B), so `scores`
+    carries the shape now and `stars` is null until the sync fetches it.
+    """
     return [
         {
             "slug": c.slug,
@@ -685,6 +690,12 @@ def collection_out(cards: list[Card]) -> list[dict[str, Any]]:
             "average": round(c.average, 1),
             "club": c.club_name,
             "pic": c.picture,
+            "scores": [
+                {"window": "L5", "score": None, "started": None},
+                {"window": "L10", "score": round(c.average, 1) if c.average else None, "started": None},
+                {"window": "L40", "score": None, "started": None},
+            ],
+            "stars": None,
         }
         for c in cards
     ]

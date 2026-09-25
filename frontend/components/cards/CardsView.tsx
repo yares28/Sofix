@@ -2,12 +2,15 @@
 
 import { useMemo, useState } from "react";
 import {
+  cardWindows,
   collectionSummary,
   POSITIONS,
   POSITION_LABEL,
+  scoreColour,
   shelves,
   stackCounts,
   stackKey,
+  tierLabel,
   type Position,
   type Season,
 } from "../../lib/cards";
@@ -43,6 +46,61 @@ function SeasonMark({ inSeason }: { inSeason: boolean }) {
           <path d="M6 3v3l2 1.2" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
         </svg>
       )}
+    </span>
+  );
+}
+
+/** One Sorare score hexagon: flat-sided, filled by band, the number centred in contrasting ink. */
+function Hexagon({ score }: { score: number | null }) {
+  const { fill, ink } = scoreColour(score);
+  return (
+    <svg className="s5-hex-svg" viewBox="0 0 34 30" width="34" height="30" aria-hidden="true">
+      <polygon points="8.5,1 25.5,1 34,15 25.5,29 8.5,29 0,15" fill={fill} />
+      <text x="17" y="16.5" textAnchor="middle" dominantBaseline="middle" fill={ink} className="s5-hex-num">
+        {score === null ? "–" : Math.round(score)}
+      </text>
+    </svg>
+  );
+}
+
+/** Gold stars for a card's tier, e.g. five for an Icon. */
+function Stars({ n }: { n: number }) {
+  return (
+    <span className="s5-stars" aria-hidden="true">
+      {Array.from({ length: 5 }, (_, i) => (
+        <svg key={i} width="10" height="10" viewBox="0 0 12 12" className={i < n ? "on" : "off"}>
+          <path d="M6 0l1.5 3.9L12 4.6 8.7 7.4 9.7 12 6 9.5 2.3 12l1-4.6L0 4.6l4.5-.7z" fill="currentColor" />
+        </svg>
+      ))}
+    </span>
+  );
+}
+
+/** The small top-right "i": on hover or focus it reveals the card's level and tier. */
+function InfoButton({ card }: { card: CollectionCard }) {
+  const tier = tierLabel(card);
+  return (
+    <span className="s5-info">
+      <button type="button" className="s5-info-btn" aria-label={`Details: level ${card.level}, ${tier}`}>
+        <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true">
+          <circle cx="6" cy="6" r="5.2" fill="none" stroke="currentColor" strokeWidth="1.3" />
+          <circle cx="6" cy="3.6" r="0.9" fill="currentColor" />
+          <path d="M6 5.4v3.2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+        </svg>
+      </button>
+      <span className="s5-info-pop" role="tooltip">
+        <span className="row">
+          <span>Level</span>
+          <b>Lvl {card.level}</b>
+        </span>
+        <span className="row">
+          <span>Tier</span>
+          <b className="tier">
+            {card.stars ? <Stars n={card.stars} /> : null}
+            {tier}
+          </b>
+        </span>
+      </span>
     </span>
   );
 }
@@ -200,20 +258,26 @@ export default function CardsView({ data }: { data: Sorare }) {
 }
 
 function CardTile({ card, index, stack }: { card: CollectionCard; index: number; stack: number }) {
+  const windows = cardWindows(card);
   return (
     <article className="s5-pc" style={{ animationDelay: `${Math.min(index * 20, 360)}ms` }}>
       <span className="art">
         <SorareImage src={card.pic} fill fit="contain" />
-        {card.level > 0 ? <span className="lvl">Lvl {card.level}</span> : null}
         {stack > 1 ? <span className="dup">×{stack}</span> : null}
         <SeasonMark inSeason={card.inSeason} />
       </span>
+      <InfoButton card={card} />
       <span className="nm">
         <b>{card.name}</b>
-        <span className="s5-score">
-          <small>L10</small>
-          <b>{Math.round(card.average)}</b>
-        </span>
+      </span>
+      <span className="s5-hexrow" role="group" aria-label="Average score by window">
+        {windows.map((w) => (
+          <span className="s5-hex" key={w.window}>
+            <small className="win">{w.window}</small>
+            <Hexagon score={w.score} />
+            <small className="pct">{w.started === null ? "\u00a0" : `${Math.round(w.started)}%`}</small>
+          </span>
+        ))}
       </span>
     </article>
   );

@@ -2706,7 +2706,25 @@
         "level": 1,
         "average": 50,
         "club": "Villarreal",
-        "pic": "https://assets.sorare.com/card/e7524f8c-2531-4b10-9172-5a99cf7eec61/picture/tinified-dff1d4ffb9118c35d267983bcc51a3a0.png"
+        "pic": "https://assets.sorare.com/card/e7524f8c-2531-4b10-9172-5a99cf7eec61/picture/tinified-dff1d4ffb9118c35d267983bcc51a3a0.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 47,
+            "started": 52
+          },
+          {
+            "window": "L10",
+            "score": 50,
+            "started": 64
+          },
+          {
+            "window": "L40",
+            "score": 54,
+            "started": 33
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "ander-guevara-lajo-2026-limited-177",
@@ -2718,7 +2736,25 @@
         "level": 0,
         "average": 40,
         "club": "Deportivo Alavés",
-        "pic": "https://assets.sorare.com/card/9f848b74-dbf2-48e4-8393-45450eee2ea6/picture/tinified-2d1f65cc66df9a3004dc9e814ee98b63.png"
+        "pic": "https://assets.sorare.com/card/9f848b74-dbf2-48e4-8393-45450eee2ea6/picture/tinified-2d1f65cc66df9a3004dc9e814ee98b63.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 43,
+            "started": 36
+          },
+          {
+            "window": "L10",
+            "score": 40,
+            "started": 58
+          },
+          {
+            "window": "L40",
+            "score": 42,
+            "started": 26
+          }
+        ],
+        "stars": 1
       },
       {
         "slug": "david-soria-solis-2026-limited-401",
@@ -2730,7 +2766,25 @@
         "level": 1,
         "average": 56,
         "club": "Getafe",
-        "pic": "https://assets.sorare.com/card/b2c18133-4d2d-42e6-9d46-a5d6735ae19b/picture/tinified-2268e120f7432aecc7f31b593f330d5b.png"
+        "pic": "https://assets.sorare.com/card/b2c18133-4d2d-42e6-9d46-a5d6735ae19b/picture/tinified-2268e120f7432aecc7f31b593f330d5b.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 51,
+            "started": 44
+          },
+          {
+            "window": "L10",
+            "score": 56,
+            "started": 37
+          },
+          {
+            "window": "L40",
+            "score": 59,
+            "started": 42
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "inigo-vicente-elorduy-2026-limited-356",
@@ -2742,7 +2796,25 @@
         "level": 2,
         "average": 65,
         "club": "Racing Santander",
-        "pic": "https://assets.sorare.com/card/5f62a121-98a4-4823-8803-7a905903e73c/picture/tinified-6bfab4a46d903378e2dadee57667d30b.png"
+        "pic": "https://assets.sorare.com/card/5f62a121-98a4-4823-8803-7a905903e73c/picture/tinified-6bfab4a46d903378e2dadee57667d30b.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 65,
+            "started": 62
+          },
+          {
+            "window": "L10",
+            "score": 65,
+            "started": 62
+          },
+          {
+            "window": "L40",
+            "score": 62,
+            "started": 63
+          }
+        ],
+        "stars": 4
       },
       {
         "slug": "altay-bayindir-2026-limited-48",
@@ -2754,7 +2826,25 @@
         "level": 0,
         "average": 46,
         "club": "Celta de Vigo",
-        "pic": "https://assets.sorare.com/card/9f863723-5ec6-491d-b2eb-4b0a988f982d/picture/tinified-32581cc2349c960d8b4a97717ce7714c.png"
+        "pic": "https://assets.sorare.com/card/9f863723-5ec6-491d-b2eb-4b0a988f982d/picture/tinified-32581cc2349c960d8b4a97717ce7714c.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 44,
+            "started": 52
+          },
+          {
+            "window": "L10",
+            "score": 46,
+            "started": 60
+          },
+          {
+            "window": "L40",
+            "score": 47,
+            "started": 64
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "nathan-saliba-2026-limited-53",
@@ -2766,7 +2856,25 @@
         "level": 2,
         "average": 48,
         "club": "Villarreal",
-        "pic": "https://assets.sorare.com/card/bcbf3930-16bf-4ab3-b897-674d8b35b09c/picture/tinified-47495e0d5a25f6cb4958ef63fbbb2cb8.png"
+        "pic": "https://assets.sorare.com/card/bcbf3930-16bf-4ab3-b897-674d8b35b09c/picture/tinified-47495e0d5a25f6cb4958ef63fbbb2cb8.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 51,
+            "started": 57
+          },
+          {
+            "window": "L10",
+            "score": 48,
+            "started": 70
+          },
+          {
+            "window": "L40",
+            "score": 47,
+            "started": 81
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "heorhii-tsitaishvili-2026-limited-98",
@@ -2778,7 +2886,25 @@
         "level": 0,
         "average": 44,
         "club": "Rayo Vallecano",
-        "pic": "https://assets.sorare.com/card/c437ff5e-e9de-4ff3-a298-49acbe85a511/picture/tinified-397533987fd9de6be3aa8bd88bf6d084.png"
+        "pic": "https://assets.sorare.com/card/c437ff5e-e9de-4ff3-a298-49acbe85a511/picture/tinified-397533987fd9de6be3aa8bd88bf6d084.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 44,
+            "started": 34
+          },
+          {
+            "window": "L10",
+            "score": 44,
+            "started": 66
+          },
+          {
+            "window": "L40",
+            "score": 43,
+            "started": 42
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "abderrahman-rebbach-2026-limited-165",
@@ -2790,7 +2916,25 @@
         "level": 1,
         "average": 47,
         "club": "Deportivo Alavés",
-        "pic": "https://assets.sorare.com/card/38fd7010-35db-460f-82ae-f9739ee381dd/picture/tinified-a6e7dba438972e9708e468e6deb1cec9.png"
+        "pic": "https://assets.sorare.com/card/38fd7010-35db-460f-82ae-f9739ee381dd/picture/tinified-a6e7dba438972e9708e468e6deb1cec9.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 42,
+            "started": 40
+          },
+          {
+            "window": "L10",
+            "score": 47,
+            "started": 50
+          },
+          {
+            "window": "L40",
+            "score": 50,
+            "started": 34
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "couhaib-driouech-2026-limited-183",
@@ -2802,7 +2946,25 @@
         "level": 1,
         "average": 51,
         "club": "Celta de Vigo",
-        "pic": "https://assets.sorare.com/card/4e04fd1a-d7b8-4d50-9a87-0f3e0bf96fcc/picture/tinified-767b1289a5daa0783971848c51a4d291.png"
+        "pic": "https://assets.sorare.com/card/4e04fd1a-d7b8-4d50-9a87-0f3e0bf96fcc/picture/tinified-767b1289a5daa0783971848c51a4d291.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 52,
+            "started": 60
+          },
+          {
+            "window": "L10",
+            "score": 51,
+            "started": 42
+          },
+          {
+            "window": "L40",
+            "score": 51,
+            "started": 68
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "matias-ezequiel-dituro-2026-limited-191",
@@ -2814,7 +2976,25 @@
         "level": 1,
         "average": 32,
         "club": "Elche",
-        "pic": "https://assets.sorare.com/card/4b936830-51d0-4fe2-ba0c-78c4ebdceffa/picture/tinified-7d6a926dd6121b283131d43d85cd45dc.png"
+        "pic": "https://assets.sorare.com/card/4b936830-51d0-4fe2-ba0c-78c4ebdceffa/picture/tinified-7d6a926dd6121b283131d43d85cd45dc.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 28,
+            "started": 49
+          },
+          {
+            "window": "L10",
+            "score": 32,
+            "started": 53
+          },
+          {
+            "window": "L40",
+            "score": 30,
+            "started": 43
+          }
+        ],
+        "stars": 1
       },
       {
         "slug": "aleix-febas-perez-2026-limited-194",
@@ -2826,7 +3006,25 @@
         "level": 3,
         "average": 48,
         "club": "Celta de Vigo",
-        "pic": "https://assets.sorare.com/card/5ebb5734-0e62-45b2-9330-1b10542d4230/picture/tinified-87b2d79a354a8eef13b5239dbfe1a7d5.png"
+        "pic": "https://assets.sorare.com/card/5ebb5734-0e62-45b2-9330-1b10542d4230/picture/tinified-87b2d79a354a8eef13b5239dbfe1a7d5.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 48,
+            "started": 58
+          },
+          {
+            "window": "L10",
+            "score": 48,
+            "started": 54
+          },
+          {
+            "window": "L40",
+            "score": 51,
+            "started": 61
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "justin-de-haas-2026-limited-34",
@@ -2838,7 +3036,25 @@
         "level": 2,
         "average": 58,
         "club": "Valencia",
-        "pic": "https://assets.sorare.com/card/b3d6a5b7-7a1f-4958-9d2d-de75c15211b6/picture/tinified-975f926f172ecad171522b5b7ac20c4e.png"
+        "pic": "https://assets.sorare.com/card/b3d6a5b7-7a1f-4958-9d2d-de75c15211b6/picture/tinified-975f926f172ecad171522b5b7ac20c4e.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 64,
+            "started": 72
+          },
+          {
+            "window": "L10",
+            "score": 58,
+            "started": 60
+          },
+          {
+            "window": "L40",
+            "score": 56,
+            "started": 43
+          }
+        ],
+        "stars": 4
       },
       {
         "slug": "guido-rodriguez-2026-limited-91",
@@ -2850,7 +3066,25 @@
         "level": 2,
         "average": 58,
         "club": "Valencia",
-        "pic": "https://assets.sorare.com/card/545601a7-bc3f-4372-9182-5569188e01c4/picture/tinified-0a5166e938b212646045eb828d658d38.png"
+        "pic": "https://assets.sorare.com/card/545601a7-bc3f-4372-9182-5569188e01c4/picture/tinified-0a5166e938b212646045eb828d658d38.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 53,
+            "started": 61
+          },
+          {
+            "window": "L10",
+            "score": 58,
+            "started": 72
+          },
+          {
+            "window": "L40",
+            "score": 61,
+            "started": 59
+          }
+        ],
+        "stars": 4
       },
       {
         "slug": "marcos-alonso-mendoza-2026-limited-130",
@@ -2862,7 +3096,25 @@
         "level": 3,
         "average": 56,
         "club": "Celta de Vigo",
-        "pic": "https://assets.sorare.com/card/ffc620aa-e4aa-406f-892e-626afd41ca5b/picture/tinified-6df6780b81dabc39cb61eaf1db01dce7.png"
+        "pic": "https://assets.sorare.com/card/ffc620aa-e4aa-406f-892e-626afd41ca5b/picture/tinified-6df6780b81dabc39cb61eaf1db01dce7.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 58,
+            "started": 55
+          },
+          {
+            "window": "L10",
+            "score": 56,
+            "started": 71
+          },
+          {
+            "window": "L40",
+            "score": 56,
+            "started": 86
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "ferran-jutlga-blanc-2026-limited-173",
@@ -2874,7 +3126,25 @@
         "level": 1,
         "average": 42,
         "club": "Celta de Vigo",
-        "pic": "https://assets.sorare.com/card/51e07daf-d625-4997-9ede-02f957a6c187/picture/tinified-e9eaba37b6d29144d533bd4ee35a1c4d.png"
+        "pic": "https://assets.sorare.com/card/51e07daf-d625-4997-9ede-02f957a6c187/picture/tinified-e9eaba37b6d29144d533bd4ee35a1c4d.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 46,
+            "started": 64
+          },
+          {
+            "window": "L10",
+            "score": 42,
+            "started": 57
+          },
+          {
+            "window": "L40",
+            "score": 46,
+            "started": 75
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "benat-gerenabarrena-zendoia-2026-limited-98",
@@ -2886,7 +3156,25 @@
         "level": 2,
         "average": 51,
         "club": "Athletic Club",
-        "pic": "https://assets.sorare.com/card/c87f2e80-93ce-48f9-974a-1b06220db59c/picture/tinified-ba300c40b74c98237f501ac9c5fecc0f.png"
+        "pic": "https://assets.sorare.com/card/c87f2e80-93ce-48f9-974a-1b06220db59c/picture/tinified-ba300c40b74c98237f501ac9c5fecc0f.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 47,
+            "started": 79
+          },
+          {
+            "window": "L10",
+            "score": 51,
+            "started": 53
+          },
+          {
+            "window": "L40",
+            "score": 53,
+            "started": 75
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "miguel-roman-gonzalez-2026-limited-190",
@@ -2898,7 +3186,25 @@
         "level": 3,
         "average": 54,
         "club": "Celta de Vigo",
-        "pic": "https://assets.sorare.com/card/dfdc8cb8-4cf2-44ca-9fad-1bc99128b123/picture/tinified-131a5cc58f7f143fda902112da9e459c.png"
+        "pic": "https://assets.sorare.com/card/dfdc8cb8-4cf2-44ca-9fad-1bc99128b123/picture/tinified-131a5cc58f7f143fda902112da9e459c.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 49,
+            "started": 65
+          },
+          {
+            "window": "L10",
+            "score": 54,
+            "started": 75
+          },
+          {
+            "window": "L40",
+            "score": 50,
+            "started": 64
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "nahuel-tenaglia-2026-limited-189",
@@ -2910,7 +3216,25 @@
         "level": 3,
         "average": 50,
         "club": "Deportivo Alavés",
-        "pic": "https://assets.sorare.com/card/73309a06-d00e-424b-a052-9554f4730ffc/picture/tinified-648ef6ab3578c2bef8ecf72c18760b0c.png"
+        "pic": "https://assets.sorare.com/card/73309a06-d00e-424b-a052-9554f4730ffc/picture/tinified-648ef6ab3578c2bef8ecf72c18760b0c.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 44,
+            "started": 71
+          },
+          {
+            "window": "L10",
+            "score": 50,
+            "started": 52
+          },
+          {
+            "window": "L40",
+            "score": 47,
+            "started": 78
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "aissa-mandi-2026-limited-190",
@@ -2922,7 +3246,25 @@
         "level": 4,
         "average": 56,
         "club": "Levante",
-        "pic": "https://assets.sorare.com/card/1eb0b44c-a42b-4332-ac60-7a414df8b769/picture/tinified-10d9fca14d28d3abae39e310842bf834.png"
+        "pic": "https://assets.sorare.com/card/1eb0b44c-a42b-4332-ac60-7a414df8b769/picture/tinified-10d9fca14d28d3abae39e310842bf834.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 53,
+            "started": 81
+          },
+          {
+            "window": "L10",
+            "score": 56,
+            "started": 87
+          },
+          {
+            "window": "L40",
+            "score": 58,
+            "started": 87
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "yuri-berchiche-izeta-2026-limited-165",
@@ -2934,7 +3276,25 @@
         "level": 4,
         "average": 62,
         "club": "Athletic Club",
-        "pic": "https://assets.sorare.com/card/d2e21698-b537-4baa-9809-7876321e2cbc/picture/tinified-808f0320ddbfc71d0b7a8fdfd3905985.png"
+        "pic": "https://assets.sorare.com/card/d2e21698-b537-4baa-9809-7876321e2cbc/picture/tinified-808f0320ddbfc71d0b7a8fdfd3905985.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 65,
+            "started": 67
+          },
+          {
+            "window": "L10",
+            "score": 62,
+            "started": 70
+          },
+          {
+            "window": "L40",
+            "score": 58,
+            "started": 80
+          }
+        ],
+        "stars": 4
       },
       {
         "slug": "mathew-ryan-2026-limited-157",
@@ -2946,7 +3306,25 @@
         "level": 4,
         "average": 57,
         "club": "Levante",
-        "pic": "https://assets.sorare.com/card/6a157c42-aa72-4b95-8dac-312b2c1779e0/picture/tinified-94bdfba4033373203e162cfabf6b35a3.png"
+        "pic": "https://assets.sorare.com/card/6a157c42-aa72-4b95-8dac-312b2c1779e0/picture/tinified-94bdfba4033373203e162cfabf6b35a3.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 51,
+            "started": 72
+          },
+          {
+            "window": "L10",
+            "score": 57,
+            "started": 73
+          },
+          {
+            "window": "L40",
+            "score": 58,
+            "started": 53
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "german-valera-karabinaite-2026-limited-146",
@@ -2958,7 +3336,25 @@
         "level": 2,
         "average": 53,
         "club": "Elche",
-        "pic": "https://assets.sorare.com/card/4edea66b-dc0f-4d5a-9a65-b7fde7c177cb/picture/tinified-ae514a57670d9cfde7b0832c40de4ff9.png"
+        "pic": "https://assets.sorare.com/card/4edea66b-dc0f-4d5a-9a65-b7fde7c177cb/picture/tinified-ae514a57670d9cfde7b0832c40de4ff9.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 58,
+            "started": 60
+          },
+          {
+            "window": "L10",
+            "score": 53,
+            "started": 45
+          },
+          {
+            "window": "L40",
+            "score": 57,
+            "started": 43
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "peio-canales-urtasun-2026-limited-216",
@@ -2970,7 +3366,25 @@
         "level": 2,
         "average": 51,
         "club": "Athletic Club",
-        "pic": "https://assets.sorare.com/card/f12e7c68-fc03-4cfa-a43c-e628f754473f/picture/tinified-669beaa298d002590285cc671543598b.png"
+        "pic": "https://assets.sorare.com/card/f12e7c68-fc03-4cfa-a43c-e628f754473f/picture/tinified-669beaa298d002590285cc671543598b.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 46,
+            "started": 80
+          },
+          {
+            "window": "L10",
+            "score": 51,
+            "started": 75
+          },
+          {
+            "window": "L40",
+            "score": 47,
+            "started": 78
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "nacho-perez-gomez-2026-limited-167",
@@ -2982,7 +3396,25 @@
         "level": 2,
         "average": 42,
         "club": "Levante",
-        "pic": "https://assets.sorare.com/card/f1aa6c10-df69-4c22-8387-33d16484a630/picture/tinified-5b8b748c3a5d1d59d650e3921fdbf36c.png"
+        "pic": "https://assets.sorare.com/card/f1aa6c10-df69-4c22-8387-33d16484a630/picture/tinified-5b8b748c3a5d1d59d650e3921fdbf36c.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 45,
+            "started": 81
+          },
+          {
+            "window": "L10",
+            "score": 42,
+            "started": 57
+          },
+          {
+            "window": "L40",
+            "score": 44,
+            "started": 74
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "carl-starfelt-2026-limited-120",
@@ -2994,7 +3426,25 @@
         "level": 2,
         "average": 45,
         "club": "Celta de Vigo",
-        "pic": "https://assets.sorare.com/card/a125c416-f289-4071-a60c-b82bca0619a5/picture/tinified-f8fc6f7b0ce483d41eb4a0bbd3b269ac.png"
+        "pic": "https://assets.sorare.com/card/a125c416-f289-4071-a60c-b82bca0619a5/picture/tinified-f8fc6f7b0ce483d41eb4a0bbd3b269ac.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 47,
+            "started": 76
+          },
+          {
+            "window": "L10",
+            "score": 45,
+            "started": 58
+          },
+          {
+            "window": "L40",
+            "score": 46,
+            "started": 80
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "pelayo-fernandez-balboa-2026-limited-111",
@@ -3006,7 +3456,25 @@
         "level": 1,
         "average": 45,
         "club": "Rayo Vallecano",
-        "pic": "https://assets.sorare.com/card/e8562bb1-4642-4e10-87db-d5b371a22b38/picture/tinified-8ea33f309341af58b420815b1144e408.png"
+        "pic": "https://assets.sorare.com/card/e8562bb1-4642-4e10-87db-d5b371a22b38/picture/tinified-8ea33f309341af58b420815b1144e408.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 44,
+            "started": 73
+          },
+          {
+            "window": "L10",
+            "score": 45,
+            "started": 44
+          },
+          {
+            "window": "L40",
+            "score": 44,
+            "started": 55
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "antonio-martinez-lopez-2026-limited-132",
@@ -3018,7 +3486,25 @@
         "level": 2,
         "average": 46,
         "club": "Deportivo Alavés",
-        "pic": "https://assets.sorare.com/card/dccbf177-2ed9-4614-9c41-abec5430c858/picture/tinified-8509c942494691c423ce80e8aab3702e.png"
+        "pic": "https://assets.sorare.com/card/dccbf177-2ed9-4614-9c41-abec5430c858/picture/tinified-8509c942494691c423ce80e8aab3702e.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 47,
+            "started": 59
+          },
+          {
+            "window": "L10",
+            "score": 46,
+            "started": 47
+          },
+          {
+            "window": "L40",
+            "score": 44,
+            "started": 44
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "yan-diomande-2026-limited-109",
@@ -3030,7 +3516,25 @@
         "level": 3,
         "average": 51,
         "club": "Real Madrid",
-        "pic": "https://assets.sorare.com/card/5572d2c7-6d93-417e-9b57-6a91da57648e/picture/tinified-0d624d1c2d61562913f527d241cddc42.png"
+        "pic": "https://assets.sorare.com/card/5572d2c7-6d93-417e-9b57-6a91da57648e/picture/tinified-0d624d1c2d61562913f527d241cddc42.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 48,
+            "started": 72
+          },
+          {
+            "window": "L10",
+            "score": 51,
+            "started": 87
+          },
+          {
+            "window": "L40",
+            "score": 52,
+            "started": 77
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "carl-starfelt-2025-limited-70",
@@ -3042,7 +3546,25 @@
         "level": 1,
         "average": 45,
         "club": "Celta de Vigo",
-        "pic": "https://assets.sorare.com/card/106328fa-fe61-47e1-8dc3-9ab407d2451e/picture/tinified-3b65f2a8974ebbb80f287b24e96bb240.png"
+        "pic": "https://assets.sorare.com/card/106328fa-fe61-47e1-8dc3-9ab407d2451e/picture/tinified-3b65f2a8974ebbb80f287b24e96bb240.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 41,
+            "started": 68
+          },
+          {
+            "window": "L10",
+            "score": 45,
+            "started": 47
+          },
+          {
+            "window": "L40",
+            "score": 47,
+            "started": 37
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "javier-galan-gil-2023-rare-53",
@@ -3054,7 +3576,25 @@
         "level": 5,
         "average": 37,
         "club": "Celta de Vigo",
-        "pic": "https://assets.sorare.com/card/0831f342-4b8d-48de-b35f-5ac8a0c186b4/picture/tinified-7778b084e4dd57df38f2f511aa744cde.png"
+        "pic": "https://assets.sorare.com/card/0831f342-4b8d-48de-b35f-5ac8a0c186b4/picture/tinified-7778b084e4dd57df38f2f511aa744cde.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 40,
+            "started": 69
+          },
+          {
+            "window": "L10",
+            "score": 37,
+            "started": 84
+          },
+          {
+            "window": "L40",
+            "score": 38,
+            "started": 92
+          }
+        ],
+        "stars": 1
       },
       {
         "slug": "igor-zubeldia-elorza-2022-rare-8",
@@ -3066,7 +3606,25 @@
         "level": 5,
         "average": 44,
         "club": "Real Sociedad",
-        "pic": "https://assets.sorare.com/carddata/e02f930a-04f6-4038-bcc4-23d136278e3a/picture/tinified-1a19f64ded94558e25851c7d138910fc.png"
+        "pic": "https://assets.sorare.com/carddata/e02f930a-04f6-4038-bcc4-23d136278e3a/picture/tinified-1a19f64ded94558e25851c7d138910fc.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 45,
+            "started": 96
+          },
+          {
+            "window": "L10",
+            "score": 44,
+            "started": 66
+          },
+          {
+            "window": "L40",
+            "score": 46,
+            "started": 85
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "marc-bartra-aregall-2024-rare-9",
@@ -3078,7 +3636,25 @@
         "level": 2,
         "average": 58,
         "club": "Real Betis",
-        "pic": "https://assets.sorare.com/card/80c55230-b028-4ad2-9e86-361c773ac62f/picture/tinified-030ee5cf889f85a86eaf59a6dc570fdd.png"
+        "pic": "https://assets.sorare.com/card/80c55230-b028-4ad2-9e86-361c773ac62f/picture/tinified-030ee5cf889f85a86eaf59a6dc570fdd.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 57,
+            "started": 65
+          },
+          {
+            "window": "L10",
+            "score": 58,
+            "started": 68
+          },
+          {
+            "window": "L40",
+            "score": 56,
+            "started": 55
+          }
+        ],
+        "stars": 4
       },
       {
         "slug": "alejandro-catena-marugan-2022-rare-38",
@@ -3090,7 +3666,25 @@
         "level": 6,
         "average": 46,
         "club": "Osasuna",
-        "pic": "https://assets.sorare.com/card/c35231f7-0480-40a1-aec2-23474f8ad6ab/picture/tinified-4c914f1076395ed787df5ae2bc765293.png"
+        "pic": "https://assets.sorare.com/card/c35231f7-0480-40a1-aec2-23474f8ad6ab/picture/tinified-4c914f1076395ed787df5ae2bc765293.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 45,
+            "started": 72
+          },
+          {
+            "window": "L10",
+            "score": 46,
+            "started": 82
+          },
+          {
+            "window": "L40",
+            "score": 42,
+            "started": 100
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "marc-bartra-aregall-2021-rare-71",
@@ -3102,7 +3696,25 @@
         "level": 4,
         "average": 58,
         "club": "Real Betis",
-        "pic": "https://assets.sorare.com/carddata/926f4e2d-a687-4c30-850f-04dcfc8b389d/picture/tinified-428e989e94eb9b5e4647a58cd6b379ee.png"
+        "pic": "https://assets.sorare.com/carddata/926f4e2d-a687-4c30-850f-04dcfc8b389d/picture/tinified-428e989e94eb9b5e4647a58cd6b379ee.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 59,
+            "started": 74
+          },
+          {
+            "window": "L10",
+            "score": 58,
+            "started": 80
+          },
+          {
+            "window": "L40",
+            "score": 58,
+            "started": 72
+          }
+        ],
+        "stars": 4
       },
       {
         "slug": "inigo-ruiz-de-galarreta-etxeberria-2025-rare-54",
@@ -3114,7 +3726,25 @@
         "level": 2,
         "average": 53,
         "club": "Athletic Club",
-        "pic": "https://assets.sorare.com/card/a8d0aa73-b5e4-40df-8b0a-fa46bb5ad9bd/picture/tinified-555d0bd6b83f6162110ac55564f0ca76.png"
+        "pic": "https://assets.sorare.com/card/a8d0aa73-b5e4-40df-8b0a-fa46bb5ad9bd/picture/tinified-555d0bd6b83f6162110ac55564f0ca76.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 53,
+            "started": 44
+          },
+          {
+            "window": "L10",
+            "score": 53,
+            "started": 57
+          },
+          {
+            "window": "L40",
+            "score": 54,
+            "started": 65
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "jose-luis-gaya-pena-2022-rare-69",
@@ -3126,7 +3756,25 @@
         "level": 3,
         "average": 55,
         "club": "Valencia",
-        "pic": "https://assets.sorare.com/card/c7cc94b7-3e7e-47bd-81e2-612493ced94d/picture/tinified-3a7f1b26e7590809d3b69839d70c303a.png"
+        "pic": "https://assets.sorare.com/card/c7cc94b7-3e7e-47bd-81e2-612493ced94d/picture/tinified-3a7f1b26e7590809d3b69839d70c303a.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 54,
+            "started": 68
+          },
+          {
+            "window": "L10",
+            "score": 55,
+            "started": 65
+          },
+          {
+            "window": "L40",
+            "score": 54,
+            "started": 90
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "andoni-gorosabel-espinosa-2023-rare-38",
@@ -3138,7 +3786,25 @@
         "level": 2,
         "average": 44,
         "club": "Espanyol",
-        "pic": "https://assets.sorare.com/card/b9aa6923-f0b1-4e9e-9870-c585e63abdd9/picture/tinified-15946f13c11d54fbb963723d5962b5c7.png"
+        "pic": "https://assets.sorare.com/card/b9aa6923-f0b1-4e9e-9870-c585e63abdd9/picture/tinified-15946f13c11d54fbb963723d5962b5c7.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 45,
+            "started": 55
+          },
+          {
+            "window": "L10",
+            "score": 44,
+            "started": 72
+          },
+          {
+            "window": "L40",
+            "score": 46,
+            "started": 51
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "yuri-berchiche-izeta-2024-rare-3",
@@ -3150,7 +3816,25 @@
         "level": 4,
         "average": 62,
         "club": "Athletic Club",
-        "pic": "https://assets.sorare.com/card/55d97b11-2c8d-4348-8182-523cfdf761d2/picture/tinified-bfb0b2d2390b7fab12445122e89f2f0d.png"
+        "pic": "https://assets.sorare.com/card/55d97b11-2c8d-4348-8182-523cfdf761d2/picture/tinified-bfb0b2d2390b7fab12445122e89f2f0d.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 56,
+            "started": 75
+          },
+          {
+            "window": "L10",
+            "score": 62,
+            "started": 82
+          },
+          {
+            "window": "L40",
+            "score": 66,
+            "started": 96
+          }
+        ],
+        "stars": 4
       },
       {
         "slug": "iago-aspas-juncal-2023-rare-61",
@@ -3162,7 +3846,25 @@
         "level": 5,
         "average": 42,
         "club": "Celta de Vigo",
-        "pic": "https://assets.sorare.com/card/7e830df2-9125-4417-a215-20cc3b58e771/picture/tinified-839aadd044bab296a7c6fd3d3dfd299c.png"
+        "pic": "https://assets.sorare.com/card/7e830df2-9125-4417-a215-20cc3b58e771/picture/tinified-839aadd044bab296a7c6fd3d3dfd299c.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 44,
+            "started": 87
+          },
+          {
+            "window": "L10",
+            "score": 42,
+            "started": 74
+          },
+          {
+            "window": "L40",
+            "score": 45,
+            "started": 88
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "borja-iglesias-quintas-2025-rare-38",
@@ -3174,7 +3876,25 @@
         "level": 1,
         "average": 38,
         "club": "Celta de Vigo",
-        "pic": "https://assets.sorare.com/card/9c1b6e5e-0a5b-4abf-82b5-fb3e5145d327/picture/tinified-9ded484e08a7f54402fdb6e43a752cc3.png"
+        "pic": "https://assets.sorare.com/card/9c1b6e5e-0a5b-4abf-82b5-fb3e5145d327/picture/tinified-9ded484e08a7f54402fdb6e43a752cc3.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 39,
+            "started": 63
+          },
+          {
+            "window": "L10",
+            "score": 38,
+            "started": 44
+          },
+          {
+            "window": "L40",
+            "score": 41,
+            "started": 71
+          }
+        ],
+        "stars": 1
       },
       {
         "slug": "jorge-resurreccion-merodio-2021-rare-71",
@@ -3186,7 +3906,25 @@
         "level": 5,
         "average": 51,
         "club": "Atlético Madrid",
-        "pic": "https://assets.sorare.com/carddata/35a3d0b6-192c-4293-a3f5-157f958cbdba/picture/tinified-b1afbc39d62ff857237e806687915d69.png"
+        "pic": "https://assets.sorare.com/carddata/35a3d0b6-192c-4293-a3f5-157f958cbdba/picture/tinified-b1afbc39d62ff857237e806687915d69.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 48,
+            "started": 96
+          },
+          {
+            "window": "L10",
+            "score": 51,
+            "started": 75
+          },
+          {
+            "window": "L40",
+            "score": 55,
+            "started": 94
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "inaki-williams-arthuer-2024-rare-62",
@@ -3198,7 +3936,25 @@
         "level": 4,
         "average": 46,
         "club": "Athletic Club",
-        "pic": "https://assets.sorare.com/card/3eb0a05f-e373-45a2-b7be-a33e2c750edf/picture/tinified-add625fb0da12351b8fb7a4181015a8c.png"
+        "pic": "https://assets.sorare.com/card/3eb0a05f-e373-45a2-b7be-a33e2c750edf/picture/tinified-add625fb0da12351b8fb7a4181015a8c.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 52,
+            "started": 95
+          },
+          {
+            "window": "L10",
+            "score": 46,
+            "started": 62
+          },
+          {
+            "window": "L40",
+            "score": 50,
+            "started": 92
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "jose-luis-garcia-vaya-2023-rare-37",
@@ -3210,7 +3966,25 @@
         "level": 3,
         "average": 40,
         "club": "Valencia",
-        "pic": "https://assets.sorare.com/card/0c6aca80-2420-472d-b976-7ec5caff8a3b/picture/tinified-0a61f10ca10563ef01d4d4307c26b9bf.png"
+        "pic": "https://assets.sorare.com/card/0c6aca80-2420-472d-b976-7ec5caff8a3b/picture/tinified-0a61f10ca10563ef01d4d4307c26b9bf.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 37,
+            "started": 60
+          },
+          {
+            "window": "L10",
+            "score": 40,
+            "started": 66
+          },
+          {
+            "window": "L40",
+            "score": 36,
+            "started": 76
+          }
+        ],
+        "stars": 1
       },
       {
         "slug": "jose-luis-gaya-pena-2026-limited-89",
@@ -3222,7 +3996,25 @@
         "level": 2,
         "average": 55,
         "club": "Valencia",
-        "pic": "https://assets.sorare.com/card/1f9c3059-08a7-4599-83fb-3c90d3685275/picture/tinified-eaf9e514f6ab1210703d3740b88bdc42.png"
+        "pic": "https://assets.sorare.com/card/1f9c3059-08a7-4599-83fb-3c90d3685275/picture/tinified-eaf9e514f6ab1210703d3740b88bdc42.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 56,
+            "started": 72
+          },
+          {
+            "window": "L10",
+            "score": 55,
+            "started": 47
+          },
+          {
+            "window": "L40",
+            "score": 53,
+            "started": 62
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "aissa-mandi-2023-limited-84",
@@ -3234,7 +4026,25 @@
         "level": 3,
         "average": 56,
         "club": "Levante",
-        "pic": "https://assets.sorare.com/card/2363cacd-1846-4a7d-b3c2-61f25522d8ea/picture/tinified-e81fd103239884a7de7b6d59721b2503.png"
+        "pic": "https://assets.sorare.com/card/2363cacd-1846-4a7d-b3c2-61f25522d8ea/picture/tinified-e81fd103239884a7de7b6d59721b2503.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 57,
+            "started": 83
+          },
+          {
+            "window": "L10",
+            "score": 56,
+            "started": 67
+          },
+          {
+            "window": "L40",
+            "score": 59,
+            "started": 85
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "alejandro-grimaldo-garcia-2025-limited-7",
@@ -3246,7 +4056,25 @@
         "level": 3,
         "average": 52,
         "club": "Atlético Madrid",
-        "pic": "https://assets.sorare.com/card/4ceb39d1-2f2a-4d2f-bce7-d135b5b8e11c/picture/tinified-2425f3f6daba7fdb508582618f66325a.png"
+        "pic": "https://assets.sorare.com/card/4ceb39d1-2f2a-4d2f-bce7-d135b5b8e11c/picture/tinified-2425f3f6daba7fdb508582618f66325a.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 49,
+            "started": 57
+          },
+          {
+            "window": "L10",
+            "score": 52,
+            "started": 74
+          },
+          {
+            "window": "L40",
+            "score": 49,
+            "started": 54
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "jose-luis-garcia-vaya-2026-limited-74",
@@ -3258,7 +4086,25 @@
         "level": 2,
         "average": 40,
         "club": "Valencia",
-        "pic": "https://assets.sorare.com/card/46276367-3498-40ef-901c-5d54f0b05dc7/picture/tinified-a1c8d12509f3cf8ec43afadb9e305a77.png"
+        "pic": "https://assets.sorare.com/card/46276367-3498-40ef-901c-5d54f0b05dc7/picture/tinified-a1c8d12509f3cf8ec43afadb9e305a77.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 39,
+            "started": 54
+          },
+          {
+            "window": "L10",
+            "score": 40,
+            "started": 73
+          },
+          {
+            "window": "L40",
+            "score": 38,
+            "started": 75
+          }
+        ],
+        "stars": 1
       },
       {
         "slug": "jose-salinas-moran-2026-limited-67",
@@ -3270,7 +4116,25 @@
         "level": 1,
         "average": 31,
         "club": "Málaga",
-        "pic": "https://assets.sorare.com/card/32e6e87a-8c27-4a16-99d4-be74790a7101/picture/tinified-6244bedc988a56997386a1f260581e8a.png"
+        "pic": "https://assets.sorare.com/card/32e6e87a-8c27-4a16-99d4-be74790a7101/picture/tinified-6244bedc988a56997386a1f260581e8a.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 35,
+            "started": 64
+          },
+          {
+            "window": "L10",
+            "score": 31,
+            "started": 67
+          },
+          {
+            "window": "L40",
+            "score": 34,
+            "started": 32
+          }
+        ],
+        "stars": 1
       },
       {
         "slug": "juan-berrocal-gonzalez-2022-rare-24",
@@ -3282,7 +4146,25 @@
         "level": 7,
         "average": 49,
         "club": "Málaga",
-        "pic": "https://assets.sorare.com/card/68fa36f8-ee3c-4e2c-b031-b5fb391430aa/picture/tinified-572a9b489161259306e6cd82883c7ae5.png"
+        "pic": "https://assets.sorare.com/card/68fa36f8-ee3c-4e2c-b031-b5fb391430aa/picture/tinified-572a9b489161259306e6cd82883c7ae5.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 51,
+            "started": 86
+          },
+          {
+            "window": "L10",
+            "score": 49,
+            "started": 92
+          },
+          {
+            "window": "L40",
+            "score": 48,
+            "started": 74
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "pau-navarro-badenes-2026-limited-79",
@@ -3294,7 +4176,25 @@
         "level": 2,
         "average": 39,
         "club": "Villarreal",
-        "pic": "https://assets.sorare.com/card/5233de9e-19c1-4ec9-b59e-adf4d2757c15/picture/tinified-1f0c7367f1ab25a35c1698b6d28a5a7a.png"
+        "pic": "https://assets.sorare.com/card/5233de9e-19c1-4ec9-b59e-adf4d2757c15/picture/tinified-1f0c7367f1ab25a35c1698b6d28a5a7a.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 42,
+            "started": 58
+          },
+          {
+            "window": "L10",
+            "score": 39,
+            "started": 80
+          },
+          {
+            "window": "L40",
+            "score": 39,
+            "started": 47
+          }
+        ],
+        "stars": 1
       },
       {
         "slug": "javier-galan-gil-2026-limited-77",
@@ -3306,7 +4206,25 @@
         "level": 3,
         "average": 37,
         "club": "Celta de Vigo",
-        "pic": "https://assets.sorare.com/card/b22515c8-aee8-4134-810d-79efcea1a23b/picture/tinified-5d60227fd886b38ceae16d4e9310acbd.png"
+        "pic": "https://assets.sorare.com/card/b22515c8-aee8-4134-810d-79efcea1a23b/picture/tinified-5d60227fd886b38ceae16d4e9310acbd.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 34,
+            "started": 74
+          },
+          {
+            "window": "L10",
+            "score": 37,
+            "started": 84
+          },
+          {
+            "window": "L40",
+            "score": 39,
+            "started": 57
+          }
+        ],
+        "stars": 1
       },
       {
         "slug": "arda-guler-2024-limited-452",
@@ -3318,7 +4236,25 @@
         "level": 5,
         "average": 69,
         "club": "Real Madrid",
-        "pic": "https://assets.sorare.com/card/ba894418-7621-42bf-b59e-8ef66d16a0af/picture/tinified-5c5924dbc5746c87b5c94b3ab9ade76e.png"
+        "pic": "https://assets.sorare.com/card/ba894418-7621-42bf-b59e-8ef66d16a0af/picture/tinified-5c5924dbc5746c87b5c94b3ab9ade76e.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 69,
+            "started": 71
+          },
+          {
+            "window": "L10",
+            "score": 69,
+            "started": 96
+          },
+          {
+            "window": "L40",
+            "score": 67,
+            "started": 99
+          }
+        ],
+        "stars": 5
       },
       {
         "slug": "andrei-florin-ratiu-2025-limited-834",
@@ -3330,7 +4266,25 @@
         "level": 2,
         "average": 47,
         "club": "Rayo Vallecano",
-        "pic": "https://assets.sorare.com/card/76c3e2f9-247b-491a-a054-7855edc23fb0/picture/tinified-7edaa0e463e29b5a9e724ad16d5f5e0b.png"
+        "pic": "https://assets.sorare.com/card/76c3e2f9-247b-491a-a054-7855edc23fb0/picture/tinified-7edaa0e463e29b5a9e724ad16d5f5e0b.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 44,
+            "started": 53
+          },
+          {
+            "window": "L10",
+            "score": 47,
+            "started": 69
+          },
+          {
+            "window": "L40",
+            "score": 44,
+            "started": 66
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "thibaut-courtois-2023-limited-14",
@@ -3342,7 +4296,25 @@
         "level": 8,
         "average": 47,
         "club": "Real Madrid",
-        "pic": "https://assets.sorare.com/card/ca171f1d-f639-4ae0-a740-7973270a9f0e/picture/tinified-85a120a9b76f838a583b7b2bcbb5640c.png"
+        "pic": "https://assets.sorare.com/card/ca171f1d-f639-4ae0-a740-7973270a9f0e/picture/tinified-85a120a9b76f838a583b7b2bcbb5640c.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 48,
+            "started": 100
+          },
+          {
+            "window": "L10",
+            "score": 47,
+            "started": 100
+          },
+          {
+            "window": "L40",
+            "score": 51,
+            "started": 96
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "mikel-oyarzabal-ugarte-2024-limited-107",
@@ -3354,7 +4326,25 @@
         "level": 3,
         "average": 44,
         "club": "Real Sociedad",
-        "pic": "https://assets.sorare.com/card/9a11ab15-bf62-471d-b635-de4c2f0d8b78/picture/tinified-970c1134ae91a483242ec0a3c0bf7e5f.png"
+        "pic": "https://assets.sorare.com/card/9a11ab15-bf62-471d-b635-de4c2f0d8b78/picture/tinified-970c1134ae91a483242ec0a3c0bf7e5f.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 41,
+            "started": 82
+          },
+          {
+            "window": "L10",
+            "score": 44,
+            "started": 58
+          },
+          {
+            "window": "L40",
+            "score": 43,
+            "started": 56
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "jorge-de-frutos-sebastian-2025-limited-683",
@@ -3366,7 +4356,25 @@
         "level": 2,
         "average": 39,
         "club": "Rayo Vallecano",
-        "pic": "https://assets.sorare.com/card/b1743f34-8821-44b3-bc18-ff05e71ec438/picture/tinified-660b1e5372a0bffcc86338cbce072a2d.png"
+        "pic": "https://assets.sorare.com/card/b1743f34-8821-44b3-bc18-ff05e71ec438/picture/tinified-660b1e5372a0bffcc86338cbce072a2d.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 44,
+            "started": 65
+          },
+          {
+            "window": "L10",
+            "score": 39,
+            "started": 78
+          },
+          {
+            "window": "L40",
+            "score": 36,
+            "started": 68
+          }
+        ],
+        "stars": 1
       },
       {
         "slug": "ionu-andrei-radu-2025-limited-119",
@@ -3378,7 +4386,25 @@
         "level": 3,
         "average": 59,
         "club": "Celta de Vigo",
-        "pic": "https://assets.sorare.com/card/f8ea5488-bd68-47c6-9fa8-6137bce55db7/picture/tinified-f09fa874114d074488aed17cfc5d2ce5.png"
+        "pic": "https://assets.sorare.com/card/f8ea5488-bd68-47c6-9fa8-6137bce55db7/picture/tinified-f09fa874114d074488aed17cfc5d2ce5.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 57,
+            "started": 56
+          },
+          {
+            "window": "L10",
+            "score": 59,
+            "started": 52
+          },
+          {
+            "window": "L40",
+            "score": 61,
+            "started": 84
+          }
+        ],
+        "stars": 4
       },
       {
         "slug": "pau-navarro-badenes-2025-limited-652",
@@ -3390,7 +4416,25 @@
         "level": 1,
         "average": 39,
         "club": "Villarreal",
-        "pic": "https://assets.sorare.com/card/3c9e38aa-2d10-438f-94db-8f4b963ae48a/picture/tinified-112a06e1c2477a480000273b3f3a2b9c.png"
+        "pic": "https://assets.sorare.com/card/3c9e38aa-2d10-438f-94db-8f4b963ae48a/picture/tinified-112a06e1c2477a480000273b3f3a2b9c.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 40,
+            "started": 64
+          },
+          {
+            "window": "L10",
+            "score": 39,
+            "started": 67
+          },
+          {
+            "window": "L40",
+            "score": 36,
+            "started": 70
+          }
+        ],
+        "stars": 1
       },
       {
         "slug": "luiz-lucio-reis-junior-2024-limited-421",
@@ -3402,7 +4446,25 @@
         "level": 3,
         "average": 40,
         "club": "Villarreal",
-        "pic": "https://assets.sorare.com/card/3e9ac397-0000-4c53-b2ab-d0cc0677ec52/picture/tinified-6bdc75ee5faa7ca2040f4abba3a885e9.png"
+        "pic": "https://assets.sorare.com/card/3e9ac397-0000-4c53-b2ab-d0cc0677ec52/picture/tinified-6bdc75ee5faa7ca2040f4abba3a885e9.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 46,
+            "started": 83
+          },
+          {
+            "window": "L10",
+            "score": 40,
+            "started": 57
+          },
+          {
+            "window": "L40",
+            "score": 38,
+            "started": 61
+          }
+        ],
+        "stars": 1
       },
       {
         "slug": "maximilian-mittelstadt-2024-limited-9",
@@ -3414,7 +4476,25 @@
         "level": 3,
         "average": 67,
         "club": "Stuttgart",
-        "pic": "https://assets.sorare.com/card/7132109d-9a76-4a96-b4bc-da21f4415531/picture/tinified-b4926d5d1dbd757ed2d153491b0d09e3.png"
+        "pic": "https://assets.sorare.com/card/7132109d-9a76-4a96-b4bc-da21f4415531/picture/tinified-b4926d5d1dbd757ed2d153491b0d09e3.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 69,
+            "started": 62
+          },
+          {
+            "window": "L10",
+            "score": 67,
+            "started": 81
+          },
+          {
+            "window": "L40",
+            "score": 66,
+            "started": 74
+          }
+        ],
+        "stars": 4
       },
       {
         "slug": "jan-oblak-2023-limited-344",
@@ -3426,7 +4506,25 @@
         "level": 7,
         "average": 54,
         "club": "Atlético Madrid",
-        "pic": "https://assets.sorare.com/card/c0af94c9-927b-422e-ac4e-a051f16e72ae/picture/tinified-4e59e1794fe68061a586ff8ba74fd171.png"
+        "pic": "https://assets.sorare.com/card/c0af94c9-927b-422e-ac4e-a051f16e72ae/picture/tinified-4e59e1794fe68061a586ff8ba74fd171.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 58,
+            "started": 80
+          },
+          {
+            "window": "L10",
+            "score": 54,
+            "started": 100
+          },
+          {
+            "window": "L40",
+            "score": 50,
+            "started": 100
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "alvaro-nunez-cobo-2025-limited-751",
@@ -3438,7 +4536,25 @@
         "level": 1,
         "average": 50,
         "club": "Celta de Vigo",
-        "pic": "https://assets.sorare.com/card/636337f1-3650-4dfb-8382-02532e584054/picture/tinified-824b6c41c0860c8cc1f1578bf34896ce.png"
+        "pic": "https://assets.sorare.com/card/636337f1-3650-4dfb-8382-02532e584054/picture/tinified-824b6c41c0860c8cc1f1578bf34896ce.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 48,
+            "started": 71
+          },
+          {
+            "window": "L10",
+            "score": 50,
+            "started": 51
+          },
+          {
+            "window": "L40",
+            "score": 53,
+            "started": 37
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "marcos-alonso-mendoza-2025-limited-804",
@@ -3450,7 +4566,25 @@
         "level": 3,
         "average": 56,
         "club": "Celta de Vigo",
-        "pic": "https://assets.sorare.com/card/f0e61d31-034c-45f5-849e-1e7ea99b413e/picture/tinified-36ca6f45f0a2d6ab1812ff3602374693.png"
+        "pic": "https://assets.sorare.com/card/f0e61d31-034c-45f5-849e-1e7ea99b413e/picture/tinified-36ca6f45f0a2d6ab1812ff3602374693.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 57,
+            "started": 59
+          },
+          {
+            "window": "L10",
+            "score": 56,
+            "started": 60
+          },
+          {
+            "window": "L40",
+            "score": 60,
+            "started": 70
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "takefusa-kubo-2025-limited-335",
@@ -3462,7 +4596,25 @@
         "level": 3,
         "average": 42,
         "club": "Real Sociedad",
-        "pic": "https://assets.sorare.com/card/00641ff5-2689-442d-a3d7-977fcefc3bdf/picture/tinified-465896d4ba594a1d80536edd9c6d052f.png"
+        "pic": "https://assets.sorare.com/card/00641ff5-2689-442d-a3d7-977fcefc3bdf/picture/tinified-465896d4ba594a1d80536edd9c6d052f.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 43,
+            "started": 57
+          },
+          {
+            "window": "L10",
+            "score": 42,
+            "started": 61
+          },
+          {
+            "window": "L40",
+            "score": 40,
+            "started": 68
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "carlos-martin-dominguez-2025-limited-204",
@@ -3474,7 +4626,25 @@
         "level": 1,
         "average": 36,
         "club": "Hajduk Split",
-        "pic": "https://assets.sorare.com/card/2e7040f2-af15-42e3-a6e1-d9f0eb59474a/picture/tinified-5854dffacc6ef3ad9758560dd5264c90.png"
+        "pic": "https://assets.sorare.com/card/2e7040f2-af15-42e3-a6e1-d9f0eb59474a/picture/tinified-5854dffacc6ef3ad9758560dd5264c90.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 42,
+            "started": 56
+          },
+          {
+            "window": "L10",
+            "score": 36,
+            "started": 54
+          },
+          {
+            "window": "L40",
+            "score": 34,
+            "started": 70
+          }
+        ],
+        "stars": 1
       },
       {
         "slug": "rodrigo-riquelme-reche-2025-limited-614",
@@ -3486,7 +4656,25 @@
         "level": 2,
         "average": 51,
         "club": "Real Betis",
-        "pic": "https://assets.sorare.com/card/84a5d414-bf46-487b-af3f-29426bdecb46/picture/tinified-8659f86a33ff47a922bece6eab8fc594.png"
+        "pic": "https://assets.sorare.com/card/84a5d414-bf46-487b-af3f-29426bdecb46/picture/tinified-8659f86a33ff47a922bece6eab8fc594.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 49,
+            "started": 75
+          },
+          {
+            "window": "L10",
+            "score": 51,
+            "started": 51
+          },
+          {
+            "window": "L40",
+            "score": 54,
+            "started": 47
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "julen-agirrezabala-astulez-2025-limited-269",
@@ -3498,7 +4686,25 @@
         "level": 3,
         "average": 52,
         "club": "Racing Santander",
-        "pic": "https://assets.sorare.com/card/d3b8668c-86ce-4e78-8c27-646f2b126b06/picture/tinified-70dd44f8fb980072f6c530757b7d0b35.png"
+        "pic": "https://assets.sorare.com/card/d3b8668c-86ce-4e78-8c27-646f2b126b06/picture/tinified-70dd44f8fb980072f6c530757b7d0b35.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 53,
+            "started": 73
+          },
+          {
+            "window": "L10",
+            "score": 52,
+            "started": 53
+          },
+          {
+            "window": "L40",
+            "score": 50,
+            "started": 59
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "francisco-roman-alarcon-suarez-2025-limited-159",
@@ -3510,7 +4716,25 @@
         "level": 2,
         "average": 51,
         "club": "Real Betis",
-        "pic": "https://assets.sorare.com/card/a58640da-d327-428f-9044-912995d05ac8/picture/tinified-fbcf4f16daefc1270150469226af2e70.png"
+        "pic": "https://assets.sorare.com/card/a58640da-d327-428f-9044-912995d05ac8/picture/tinified-fbcf4f16daefc1270150469226af2e70.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 51,
+            "started": 62
+          },
+          {
+            "window": "L10",
+            "score": 51,
+            "started": 55
+          },
+          {
+            "window": "L40",
+            "score": 52,
+            "started": 39
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "francisco-roman-alarcon-suarez-2025-limited-267",
@@ -3522,7 +4746,25 @@
         "level": 3,
         "average": 51,
         "club": "Real Betis",
-        "pic": "https://assets.sorare.com/card/71fc2d59-e3e4-4815-8d39-3fff3d579509/picture/tinified-cca827a89bffb67a9d0a6c6aa27f9b08.png"
+        "pic": "https://assets.sorare.com/card/71fc2d59-e3e4-4815-8d39-3fff3d579509/picture/tinified-cca827a89bffb67a9d0a6c6aa27f9b08.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 45,
+            "started": 87
+          },
+          {
+            "window": "L10",
+            "score": 51,
+            "started": 59
+          },
+          {
+            "window": "L40",
+            "score": 52,
+            "started": 90
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "francisco-roman-alarcon-suarez-2025-limited-300",
@@ -3534,7 +4776,25 @@
         "level": 1,
         "average": 51,
         "club": "Real Betis",
-        "pic": "https://assets.sorare.com/card/137dd52b-26d9-4bb5-9f48-9a07ebb49ad6/picture/tinified-44cec471ac884d9a183b6108aeb7f641.png"
+        "pic": "https://assets.sorare.com/card/137dd52b-26d9-4bb5-9f48-9a07ebb49ad6/picture/tinified-44cec471ac884d9a183b6108aeb7f641.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 48,
+            "started": 63
+          },
+          {
+            "window": "L10",
+            "score": 51,
+            "started": 60
+          },
+          {
+            "window": "L40",
+            "score": 55,
+            "started": 69
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "josep-maria-chavarria-perez-2025-limited-304",
@@ -3546,7 +4806,25 @@
         "level": 2,
         "average": 39,
         "club": "Chelsea",
-        "pic": "https://assets.sorare.com/card/a1d29bc3-0fa8-44e4-b925-5ff50ad1df73/picture/tinified-8793198caffbc96d1b5bff43a2a5a2ee.png"
+        "pic": "https://assets.sorare.com/card/a1d29bc3-0fa8-44e4-b925-5ff50ad1df73/picture/tinified-8793198caffbc96d1b5bff43a2a5a2ee.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 41,
+            "started": 61
+          },
+          {
+            "window": "L10",
+            "score": 39,
+            "started": 78
+          },
+          {
+            "window": "L40",
+            "score": 38,
+            "started": 69
+          }
+        ],
+        "stars": 1
       },
       {
         "slug": "gerard-moreno-balaguero-2025-limited-286",
@@ -3558,7 +4836,25 @@
         "level": 3,
         "average": 51,
         "club": "Villarreal",
-        "pic": "https://assets.sorare.com/card/e369533b-f610-44bd-9884-012c05dacbe5/picture/tinified-2ff506f7c7068566d34d8a857739ac92.png"
+        "pic": "https://assets.sorare.com/card/e369533b-f610-44bd-9884-012c05dacbe5/picture/tinified-2ff506f7c7068566d34d8a857739ac92.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 57,
+            "started": 86
+          },
+          {
+            "window": "L10",
+            "score": 51,
+            "started": 67
+          },
+          {
+            "window": "L40",
+            "score": 52,
+            "started": 87
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "florian-lejeune-2024-limited-248",
@@ -3570,7 +4866,25 @@
         "level": 4,
         "average": 49,
         "club": "Rayo Vallecano",
-        "pic": "https://assets.sorare.com/card/d4bdde1f-9e4c-4e7a-b2de-9911f1f548b4/picture/tinified-d664e76fab28c46bb4a82e892d55139f.png"
+        "pic": "https://assets.sorare.com/card/d4bdde1f-9e4c-4e7a-b2de-9911f1f548b4/picture/tinified-d664e76fab28c46bb4a82e892d55139f.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 48,
+            "started": 65
+          },
+          {
+            "window": "L10",
+            "score": 49,
+            "started": 79
+          },
+          {
+            "window": "L40",
+            "score": 51,
+            "started": 82
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "gerard-gumbau-garriga-2025-limited-301",
@@ -3582,7 +4896,25 @@
         "level": 3,
         "average": 48,
         "club": "Granada",
-        "pic": "https://assets.sorare.com/card/30675a21-5736-4cd2-bc8a-410867d853bb/picture/tinified-c9762be92964f038d9a3b738b6bff0c2.png"
+        "pic": "https://assets.sorare.com/card/30675a21-5736-4cd2-bc8a-410867d853bb/picture/tinified-c9762be92964f038d9a3b738b6bff0c2.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 42,
+            "started": 77
+          },
+          {
+            "window": "L10",
+            "score": 48,
+            "started": 69
+          },
+          {
+            "window": "L40",
+            "score": 46,
+            "started": 47
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "luis-alfonso-espino-garcia-2025-limited-12",
@@ -3594,7 +4926,25 @@
         "level": 3,
         "average": 46,
         "club": "Racing Club",
-        "pic": "https://assets.sorare.com/card/60282dd2-d3e5-4fc0-bad0-7f8a41146af8/picture/tinified-c97734cd339b2f73be3d74d94052c12c.png"
+        "pic": "https://assets.sorare.com/card/60282dd2-d3e5-4fc0-bad0-7f8a41146af8/picture/tinified-c97734cd339b2f73be3d74d94052c12c.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 45,
+            "started": 85
+          },
+          {
+            "window": "L10",
+            "score": 46,
+            "started": 60
+          },
+          {
+            "window": "L40",
+            "score": 44,
+            "started": 78
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "abdul-mumin-2024-limited-574",
@@ -3606,7 +4956,25 @@
         "level": 2,
         "average": 34,
         "club": "Girona",
-        "pic": "https://assets.sorare.com/card/c8ce9418-6e6e-4a39-9b50-83f79d8a06ee/picture/tinified-b3fdc0d72ed3fbac16abcd754278a4e7.png"
+        "pic": "https://assets.sorare.com/card/c8ce9418-6e6e-4a39-9b50-83f79d8a06ee/picture/tinified-b3fdc0d72ed3fbac16abcd754278a4e7.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 34,
+            "started": 63
+          },
+          {
+            "window": "L10",
+            "score": 34,
+            "started": 46
+          },
+          {
+            "window": "L40",
+            "score": 38,
+            "started": 48
+          }
+        ],
+        "stars": 1
       },
       {
         "slug": "unai-lopez-cabrera-2025-limited-300",
@@ -3618,7 +4986,25 @@
         "level": 4,
         "average": 51,
         "club": "Rayo Vallecano",
-        "pic": "https://assets.sorare.com/card/e2129b07-6614-4507-80fb-3791f7aa2b52/picture/tinified-a342ef519ef007f66a3dd5ef3c944a62.png"
+        "pic": "https://assets.sorare.com/card/e2129b07-6614-4507-80fb-3791f7aa2b52/picture/tinified-a342ef519ef007f66a3dd5ef3c944a62.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 48,
+            "started": 79
+          },
+          {
+            "window": "L10",
+            "score": 51,
+            "started": 59
+          },
+          {
+            "window": "L40",
+            "score": 53,
+            "started": 87
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "isaac-palazon-camacho-2025-limited-536",
@@ -3630,7 +5016,25 @@
         "level": 4,
         "average": 48,
         "club": "Rayo Vallecano",
-        "pic": "https://assets.sorare.com/card/ed4a4288-931e-42a9-b342-bf5fe4423a55/picture/tinified-050a4f87fc42c8c982679b4996f8d830.png"
+        "pic": "https://assets.sorare.com/card/ed4a4288-931e-42a9-b342-bf5fe4423a55/picture/tinified-050a4f87fc42c8c982679b4996f8d830.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 48,
+            "started": 94
+          },
+          {
+            "window": "L10",
+            "score": 48,
+            "started": 87
+          },
+          {
+            "window": "L40",
+            "score": 52,
+            "started": 72
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "alvaro-garcia-rivera-2025-limited-355",
@@ -3642,7 +5046,25 @@
         "level": 5,
         "average": 42,
         "club": "Rayo Vallecano",
-        "pic": "https://assets.sorare.com/card/b67f41b2-f5fe-4ce6-953c-856369809c52/picture/tinified-fbc80245b16183b9c82ab1ed08954bb2.png"
+        "pic": "https://assets.sorare.com/card/b67f41b2-f5fe-4ce6-953c-856369809c52/picture/tinified-fbc80245b16183b9c82ab1ed08954bb2.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 42,
+            "started": 100
+          },
+          {
+            "window": "L10",
+            "score": 42,
+            "started": 98
+          },
+          {
+            "window": "L40",
+            "score": 40,
+            "started": 60
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "moriba-kourouma-kourouma-2025-limited-319",
@@ -3654,7 +5076,25 @@
         "level": 4,
         "average": 56,
         "club": "Celta de Vigo",
-        "pic": "https://assets.sorare.com/card/19cb4e5d-b0b0-43c0-8135-08dcc0c3ae66/picture/tinified-9ddb988d7de8f6fe21ccc281f0049a59.png"
+        "pic": "https://assets.sorare.com/card/19cb4e5d-b0b0-43c0-8135-08dcc0c3ae66/picture/tinified-9ddb988d7de8f6fe21ccc281f0049a59.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 54,
+            "started": 95
+          },
+          {
+            "window": "L10",
+            "score": 56,
+            "started": 85
+          },
+          {
+            "window": "L40",
+            "score": 52,
+            "started": 72
+          }
+        ],
+        "stars": 3
       },
       {
         "slug": "hugo-sotelo-2025-limited-271",
@@ -3666,7 +5106,25 @@
         "level": 3,
         "average": 45,
         "club": "Levante",
-        "pic": "https://assets.sorare.com/card/ed314b8e-f8f9-4314-93e3-97386dd7dc41/picture/tinified-1b948f6c6d8738f141e6616c2cb43b59.png"
+        "pic": "https://assets.sorare.com/card/ed314b8e-f8f9-4314-93e3-97386dd7dc41/picture/tinified-1b948f6c6d8738f141e6616c2cb43b59.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 46,
+            "started": 64
+          },
+          {
+            "window": "L10",
+            "score": 45,
+            "started": 67
+          },
+          {
+            "window": "L40",
+            "score": 47,
+            "started": 83
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "diego-javier-llorente-rios-2025-limited-154",
@@ -3678,7 +5136,25 @@
         "level": 3,
         "average": 58,
         "club": "Real Betis",
-        "pic": "https://assets.sorare.com/card/86cdc185-90d9-4b9a-8acb-68d9c93ce067/picture/tinified-1a243835cabdfb03894e18b9e5924200.png"
+        "pic": "https://assets.sorare.com/card/86cdc185-90d9-4b9a-8acb-68d9c93ce067/picture/tinified-1a243835cabdfb03894e18b9e5924200.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 53,
+            "started": 76
+          },
+          {
+            "window": "L10",
+            "score": 58,
+            "started": 56
+          },
+          {
+            "window": "L40",
+            "score": 60,
+            "started": 54
+          }
+        ],
+        "stars": 4
       },
       {
         "slug": "oscar-mingueza-garcia-2025-limited-228",
@@ -3690,7 +5166,25 @@
         "level": 5,
         "average": 42,
         "club": "Crystal Palace",
-        "pic": "https://assets.sorare.com/card/00261929-9e79-4e9e-8c03-49fd98538e80/picture/tinified-1a23be94356dc6a449d63a54d0f03b29.png"
+        "pic": "https://assets.sorare.com/card/00261929-9e79-4e9e-8c03-49fd98538e80/picture/tinified-1a23be94356dc6a449d63a54d0f03b29.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 42,
+            "started": 94
+          },
+          {
+            "window": "L10",
+            "score": 42,
+            "started": 87
+          },
+          {
+            "window": "L40",
+            "score": 42,
+            "started": 84
+          }
+        ],
+        "stars": 2
       },
       {
         "slug": "fraser-forster-2024-limited-549",
@@ -3702,7 +5196,25 @@
         "level": 2,
         "average": 0,
         "club": "AFC Bournemouth",
-        "pic": "https://assets.sorare.com/card/46721fcf-6386-4e4e-a54f-345c259c2f88/picture/tinified-83d894ca20a3432d0bcd913cf7c0ab15.png"
+        "pic": "https://assets.sorare.com/card/46721fcf-6386-4e4e-a54f-345c259c2f88/picture/tinified-83d894ca20a3432d0bcd913cf7c0ab15.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 6,
+            "started": 82
+          },
+          {
+            "window": "L10",
+            "score": null,
+            "started": 77
+          },
+          {
+            "window": "L40",
+            "score": 3,
+            "started": 61
+          }
+        ],
+        "stars": 1
       },
       {
         "slug": "sheraldo-becker-2024-limited-471",
@@ -3714,7 +5226,25 @@
         "level": 3,
         "average": 59,
         "club": "Mainz 05",
-        "pic": "https://assets.sorare.com/card/7bc3adb9-8220-412e-a4a2-6e0de5f7dfba/picture/tinified-5050a908ff9530eeb095870e562ffa54.png"
+        "pic": "https://assets.sorare.com/card/7bc3adb9-8220-412e-a4a2-6e0de5f7dfba/picture/tinified-5050a908ff9530eeb095870e562ffa54.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 60,
+            "started": 65
+          },
+          {
+            "window": "L10",
+            "score": 59,
+            "started": 67
+          },
+          {
+            "window": "L40",
+            "score": 55,
+            "started": 64
+          }
+        ],
+        "stars": 4
       },
       {
         "slug": "david-lopez-silva-2024-limited-497",
@@ -3726,7 +5256,25 @@
         "level": 3,
         "average": 41,
         "club": "Girona",
-        "pic": "https://assets.sorare.com/card/9242f43b-dcb2-4e18-94af-f6ae148b1b7c/picture/tinified-ee5e3e36f5fb29e5c284527ae3870abd.png"
+        "pic": "https://assets.sorare.com/card/9242f43b-dcb2-4e18-94af-f6ae148b1b7c/picture/tinified-ee5e3e36f5fb29e5c284527ae3870abd.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 42,
+            "started": 61
+          },
+          {
+            "window": "L10",
+            "score": 41,
+            "started": 71
+          },
+          {
+            "window": "L40",
+            "score": 42,
+            "started": 69
+          }
+        ],
+        "stars": 1
       },
       {
         "slug": "diego-javier-llorente-rios-2024-limited-355",
@@ -3738,7 +5286,25 @@
         "level": 5,
         "average": 58,
         "club": "Real Betis",
-        "pic": "https://assets.sorare.com/card/34cfb820-12e8-40d8-8b6e-83ee6f6432bb/picture/tinified-08eedd02718ad7180e0b234f0b7c7ea3.png"
+        "pic": "https://assets.sorare.com/card/34cfb820-12e8-40d8-8b6e-83ee6f6432bb/picture/tinified-08eedd02718ad7180e0b234f0b7c7ea3.png",
+        "scores": [
+          {
+            "window": "L5",
+            "score": 58,
+            "started": 93
+          },
+          {
+            "window": "L10",
+            "score": 58,
+            "started": 100
+          },
+          {
+            "window": "L40",
+            "score": 58,
+            "started": 67
+          }
+        ],
+        "stars": 4
       }
     ],
     "market": [

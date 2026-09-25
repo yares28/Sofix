@@ -6,9 +6,50 @@
  * Design: docs/sorare/design/S5-cards.html and S5-search.html.
  */
 
-import type { CollectionCard, MarketPlayer } from "./play";
+import type { CardScore, CollectionCard, MarketPlayer } from "./play";
 
 export type Position = "GK" | "DEF" | "MID" | "FWD";
+
+export const SCORE_WINDOWS: CardScore["window"][] = ["L5", "L10", "L40"];
+
+/**
+ * The colour Sorare gives a score hexagon, by band: red → orange → amber → lime → green → cyan → teal, with a
+ * grey for "not enough games". `ink` is the number's colour on that fill. Matched to Sorare's own ramp
+ * (e.g. 48 amber, 52 lime, 72 green, 81 cyan, 98 teal).
+ */
+export function scoreColour(score: number | null): { fill: string; ink: string } {
+  if (score === null || Number.isNaN(score)) return { fill: "#55555c", ink: "#ffffff" };
+  if (score >= 90) return { fill: "#22c7c7", ink: "#08302f" };
+  if (score >= 80) return { fill: "#3fb5df", ink: "#062838" };
+  if (score >= 65) return { fill: "#46c05a", ink: "#0c2f16" };
+  if (score >= 50) return { fill: "#9bd227", ink: "#22300a" };
+  if (score >= 40) return { fill: "#e6b91e", ink: "#332600" };
+  if (score >= 30) return { fill: "#ef8a3c", ink: "#3a1e05" };
+  if (score >= 15) return { fill: "#e5602f", ink: "#ffffff" };
+  return { fill: "#c0433f", ink: "#ffffff" };
+}
+
+/** The three hexagons a card shows, in order. Falls back to the last-ten average when per-window data is absent. */
+export function cardWindows(card: CollectionCard): CardScore[] {
+  if (card.scores && card.scores.length) {
+    return SCORE_WINDOWS.map(
+      (window) =>
+        card.scores!.find((entry) => entry.window === window) ?? { window, score: null, started: null },
+    );
+  }
+  return SCORE_WINDOWS.map((window) => ({
+    window,
+    score: window === "L10" ? (card.average || null) : null,
+    started: null,
+  }));
+}
+
+/** The card's tier in words, from its star rating (Sorare's "Icon" is five stars); rarity when no stars. */
+export function tierLabel(card: Pick<CollectionCard, "stars" | "rarity">): string {
+  if (card.stars && card.stars >= 5) return "Icon";
+  if (card.stars && card.stars > 0) return `${card.stars}★`;
+  return card.rarity.charAt(0).toUpperCase() + card.rarity.slice(1);
+}
 
 export const POSITIONS: Position[] = ["GK", "DEF", "MID", "FWD"];
 export const POSITION_LABEL: Record<Position, string> = {

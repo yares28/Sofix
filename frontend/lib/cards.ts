@@ -44,6 +44,17 @@ export function cardWindows(card: CollectionCard): CardScore[] {
   }));
 }
 
+/**
+ * Sorare's seasonality mark: an in-season card shows its season's short number (a 2026/27 card → "27"), a
+ * classic card shows "C". The season year is read from the card slug (…-2026-limited-…).
+ */
+export function seasonBadge(card: Pick<CollectionCard, "inSeason" | "slug">): string {
+  if (!card.inSeason) return "C";
+  const match = card.slug.match(/-(\d{4})-(?:limited|rare|super[-_]?rare|unique|common)\b/);
+  if (!match) return "IS";
+  return String((Number(match[1]) + 1) % 100).padStart(2, "0");
+}
+
 /** The card's tier in words, from its star rating (Sorare's "Icon" is five stars); rarity when no stars. */
 export function tierLabel(card: Pick<CollectionCard, "stars" | "rarity">): string {
   if (card.stars && card.stars >= 5) return "Icon";

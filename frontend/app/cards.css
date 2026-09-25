@@ -81,9 +81,7 @@
 .s5-pc .art img { width: 100%; height: 100%; object-fit: cover; }
 .s5-pc:hover, .s5-pc:focus-within { z-index: 3; }
 .s5-pc .dup { position: absolute; left: 7px; top: 7px; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 10px; display: grid; place-items: center; font-size: 10px; font-weight: 800; background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28); }
-.s5-season { position: absolute; left: 7px; bottom: 7px; width: 20px; height: 20px; border-radius: 7px; display: grid; place-items: center; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28); }
-.s5-season.in { background: var(--good); color: #fff; }
-.s5-season.out { background: rgba(255, 255, 255, 0.92); color: #4a4a4f; }
+.s5-season { position: absolute; left: 7px; bottom: 7px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 6px; display: grid; place-items: center; font-size: 10px; font-weight: 800; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; background: rgba(20, 22, 26, 0.82); color: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); backdrop-filter: blur(3px); }
 
 /* info button (top-right over the art) + hover/focus popover with level and tier */
 .s5-info { position: absolute; top: 7px; right: 7px; z-index: 4; }

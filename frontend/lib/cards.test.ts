@@ -8,6 +8,7 @@ import {
   ownedPlayers,
   priceLabel,
   scoreColour,
+  seasonBadge,
   searchMarket,
   shelves,
   squadBar,
@@ -266,6 +267,15 @@ describe("cardWindows", () => {
   it("falls back to the last-ten average for L10 when there is no per-window data", () => {
     const windows = cardWindows(card({ average: 61, scores: undefined }));
     expect(windows.map((w) => w.score)).toEqual([null, 61, null]);
+  });
+});
+
+describe("seasonBadge", () => {
+  it("shows the season number for an in-season card and C for a classic one", () => {
+    expect(seasonBadge({ inSeason: true, slug: "aissa-mandi-2026-limited-190" })).toBe("27");
+    expect(seasonBadge({ inSeason: false, slug: "aissa-mandi-2023-limited-84" })).toBe("C");
+    expect(seasonBadge({ inSeason: true, slug: "jan-oblak-2023-limited-344" })).toBe("24");
+    expect(seasonBadge({ inSeason: true, slug: "no-year-here" })).toBe("IS");
   });
 });
 

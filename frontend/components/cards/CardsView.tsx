@@ -7,6 +7,7 @@ import {
   POSITIONS,
   POSITION_LABEL,
   scoreColour,
+  seasonBadge,
   shelves,
   stackCounts,
   stackKey,
@@ -31,21 +32,12 @@ const SEASONS: { key: Season; label: string }[] = [
   { key: "out", label: "Classic" },
 ];
 
-/** Sorare marks a current-season card with a spark; an older card with a clock. Icon only, corner of the art. */
-function SeasonMark({ inSeason }: { inSeason: boolean }) {
+/** Sorare's seasonality mark: an in-season card shows its season number ("27"), a classic card shows "C". */
+function SeasonMark({ card }: { card: CollectionCard }) {
   return (
-    <span className={`s5-season ${inSeason ? "in" : "out"}`} title={inSeason ? "In season" : "Classic"}>
-      <span className="visually-hidden">{inSeason ? "In season" : "Classic"}</span>
-      {inSeason ? (
-        <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true">
-          <path d="M6 0l1.3 3.5L11 4.7 8.2 7l.9 4L6 9.1 2.9 11l.9-4L1 4.7l3.7-1.2z" fill="currentColor" />
-        </svg>
-      ) : (
-        <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true">
-          <circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" strokeWidth="1.4" />
-          <path d="M6 3v3l2 1.2" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-        </svg>
-      )}
+    <span className={`s5-season ${card.inSeason ? "in" : "out"}`} title={card.inSeason ? "In season" : "Classic"}>
+      <span className="visually-hidden">{card.inSeason ? "In season" : "Classic"}</span>
+      {seasonBadge(card)}
     </span>
   );
 }
@@ -264,7 +256,7 @@ function CardTile({ card, index, stack }: { card: CollectionCard; index: number;
       <span className="art">
         <SorareImage src={card.pic} fill />
         {stack > 1 ? <span className="dup">×{stack}</span> : null}
-        <SeasonMark inSeason={card.inSeason} />
+        <SeasonMark card={card} />
       </span>
       <InfoButton card={card} />
       <span className="nm">

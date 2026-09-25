@@ -9,6 +9,8 @@ import {
   searchMarket,
   shelves,
   squadBar,
+  stackCounts,
+  stackKey,
   verdict,
 } from "./cards";
 import type { CollectionCard, MarketPlayer } from "./play";
@@ -89,6 +91,28 @@ describe("duplicateCounts", () => {
   });
 });
 
+describe("stackCounts", () => {
+  it("counts identical cards but treats a different rarity or season as its own card", () => {
+    const collection = [
+      card({ slug: "m-in", player: "mandi", rarity: "limited", inSeason: true }),
+      card({ slug: "m-out", player: "mandi", rarity: "limited", inSeason: false }),
+      card({ slug: "b1", player: "bartra", rarity: "rare", inSeason: false }),
+      card({ slug: "b2", player: "bartra", rarity: "rare", inSeason: false }),
+      card({ slug: "i1", player: "isco", rarity: "limited", inSeason: false }),
+      card({ slug: "i2", player: "isco", rarity: "limited", inSeason: false }),
+      card({ slug: "i3", player: "isco", rarity: "limited", inSeason: false }),
+    ];
+    const counts = stackCounts(collection);
+    // the two Mandis differ by season, so each stands alone
+    expect(counts.get(stackKey(collection[0]!))).toBe(1);
+    expect(counts.get(stackKey(collection[1]!))).toBe(1);
+    // two identical rare Bartras stack to 2
+    expect(counts.get(stackKey(collection[2]!))).toBe(2);
+    // three identical Iscos stack to 3
+    expect(counts.get(stackKey(collection[4]!))).toBe(3);
+  });
+});
+
 describe("shelves", () => {
   const collection = [
     card({ slug: "gk", player: "gk", pos: "GK", average: 55 }),
@@ -112,6 +136,20 @@ describe("shelves", () => {
     const grouped = shelves(collection, { pos: "all", rarity: "rare" });
     expect(grouped.map((shelf) => shelf.pos)).toEqual(["DEF"]);
     expect(grouped[0]!.cards.map((c) => c.slug)).toEqual(["d-lo"]);
+  });
+
+  it("filters by season", () => {
+    const seasoned = [
+      card({ slug: "in1", player: "in1", pos: "MID", inSeason: true }),
+      card({ slug: "out1", player: "out1", pos: "MID", inSeason: false }),
+    ];
+    expect(shelves(seasoned, { pos: "all", rarity: "all", season: "in" })[0]!.cards.map((c) => c.slug)).toEqual([
+      "in1",
+    ]);
+    expect(shelves(seasoned, { pos: "all", rarity: "all", season: "out" })[0]!.cards.map((c) => c.slug)).toEqual(
+      ["out1"],
+    );
+    expect(shelves(seasoned, { pos: "all", rarity: "all", season: "all" })[0]!.cards).toHaveLength(2);
   });
 });
 

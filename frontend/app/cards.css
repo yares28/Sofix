@@ -79,14 +79,16 @@
 .s5-pc .art { position: relative; aspect-ratio: 320 / 452; border-radius: var(--r-md); overflow: hidden; background: #16181d; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18), 0 8px 18px rgba(0, 0, 0, 0.12); transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease); }
 .s5-pc:hover .art { transform: translateY(-4px); box-shadow: var(--shadow-lift); }
 .s5-pc .art img { width: 100%; height: 100%; object-fit: cover; }
-.s5-pc .lvl { position: absolute; left: 7px; top: 7px; padding: 2px 7px; border-radius: 8px; font-size: 10px; font-weight: 750; background: rgba(20, 22, 26, 0.62); color: #fff; backdrop-filter: blur(4px); }
+.s5-pc .lvl { position: absolute; left: 7px; top: 7px; padding: 2px 7px; border-radius: 8px; font-size: 10px; font-weight: 700; letter-spacing: 0.01em; background: rgba(20, 22, 26, 0.62); color: #fff; backdrop-filter: blur(4px); }
 .s5-pc .dup { position: absolute; right: 7px; top: 7px; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 10px; display: grid; place-items: center; font-size: 10px; font-weight: 800; background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28); }
-.s5-pc .season { position: absolute; left: 7px; bottom: 7px; display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px 2px 6px; border-radius: 999px; font-size: 9px; font-weight: 750; letter-spacing: 0.04em; background: var(--good-track); color: var(--good-ink); }
-.s5-pc .season i { width: 5px; height: 5px; border-radius: 50%; background: var(--good); }
-.s5-pc .nm { min-width: 0; padding: 0 2px; }
-.s5-pc .nm b { display: block; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.s5-pc .nm span { display: block; font-size: 11px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.s5-pc .nm span b { display: inline; color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; }
+.s5-season { position: absolute; left: 7px; bottom: 7px; width: 20px; height: 20px; border-radius: 7px; display: grid; place-items: center; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28); }
+.s5-season.in { background: var(--good); color: #fff; }
+.s5-season.out { background: rgba(255, 255, 255, 0.92); color: #4a4a4f; }
+.s5-pc .nm { min-width: 0; padding: 0 2px; display: flex; flex-direction: column; gap: 5px; align-items: flex-start; }
+.s5-pc .nm > b { max-width: 100%; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.s5-score { display: inline-flex; align-items: baseline; gap: 5px; padding: 2px 8px; border-radius: 8px; background: var(--hover); }
+.s5-score small { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-3); text-transform: uppercase; }
+.s5-score b { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); }
 
 /* ---------- sealed fold ---------- */
 .s5-fold { margin-top: 26px; background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow-card); overflow: hidden; }

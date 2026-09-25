@@ -18,10 +18,26 @@ export const POSITION_LABEL: Record<Position, string> = {
   FWD: "Forwards",
 };
 
-/** How many cards are a second (or third) of a player already held. */
+/** How many cards are a second (or third) of a player already held (any rarity or season). */
 export function duplicateCounts(collection: CollectionCard[]): Map<string, number> {
   const counts = new Map<string, number>();
   for (const card of collection) counts.set(card.player, (counts.get(card.player) ?? 0) + 1);
+  return counts;
+}
+
+/**
+ * The key that makes two cards "the same" for the ×N badge: same player, same rarity and same seasonality. An
+ * in-season Limited and an out-of-season Limited of one player are different cards, so neither shows ×2; two
+ * cards that share all three do.
+ */
+export function stackKey(card: CollectionCard): string {
+  return `${card.player}|${card.rarity}|${card.inSeason ? "in" : "out"}`;
+}
+
+/** How many identical cards (player + rarity + season) sit in the collection, per stack key. */
+export function stackCounts(collection: CollectionCard[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const card of collection) counts.set(stackKey(card), (counts.get(stackKey(card)) ?? 0) + 1);
   return counts;
 }
 
@@ -62,17 +78,27 @@ export function collectionSummary(collection: CollectionCard[]): CollectionSumma
   };
 }
 
-/** The collection grouped into position shelves, each sorted by average, after a position/rarity filter. */
+export type Season = "all" | "in" | "out";
+
+/** The collection grouped into position shelves, each sorted by average, after the position/rarity/season filter. */
 export function shelves(
   collection: CollectionCard[],
-  filter: { pos: Position | "all"; rarity: string },
+  filter: { pos: Position | "all"; rarity: string; season?: Season },
 ): { pos: Position; cards: CollectionCard[] }[] {
   const positions = filter.pos === "all" ? POSITIONS : [filter.pos];
+  const season = filter.season ?? "all";
+  const seasonOk = (card: CollectionCard) =>
+    season === "all" || (season === "in" ? card.inSeason : !card.inSeason);
   return positions
     .map((pos) => ({
       pos,
       cards: collection
-        .filter((card) => card.pos === pos && (filter.rarity === "all" || card.rarity === filter.rarity))
+        .filter(
+          (card) =>
+            card.pos === pos &&
+            (filter.rarity === "all" || card.rarity === filter.rarity) &&
+            seasonOk(card),
+        )
         .sort((a, b) => b.average - a.average),
     }))
     .filter((shelf) => shelf.cards.length > 0);

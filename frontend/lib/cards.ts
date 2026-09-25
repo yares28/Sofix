@@ -55,10 +55,12 @@ export function seasonBadge(card: Pick<CollectionCard, "inSeason" | "slug">): st
   return String((Number(match[1]) + 1) % 100).padStart(2, "0");
 }
 
-/** The card's tier in words, from its star rating (Sorare's "Icon" is five stars); rarity when no stars. */
+/** Sorare's gameplay tier, in the same order as the star count the sync stores (1–5). */
+const TIER_NAME = ["", "DNP", "Roster", "Impact", "Star", "Icon"] as const;
+
+/** The card's tier in words. Five stars is Icon; with no tier, the rarity. */
 export function tierLabel(card: Pick<CollectionCard, "stars" | "rarity">): string {
-  if (card.stars && card.stars >= 5) return "Icon";
-  if (card.stars && card.stars > 0) return `${card.stars}★`;
+  if (card.stars && card.stars >= 1 && card.stars <= 5) return TIER_NAME[card.stars]!;
   return card.rarity.charAt(0).toUpperCase() + card.rarity.slice(1);
 }
 

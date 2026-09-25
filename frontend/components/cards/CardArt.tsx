@@ -1,22 +1,44 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { initials } from "../../lib/cards";
 import SorareImage from "../play/SorareImage";
 
+const SORARE_ORIGINS = ["https://assets.sorare.com/", "https://frontend-assets.sorare.com/"];
+
 /**
- * A card's art with a graceful fallback: if the Sorare picture can't be fetched (offline, blocked, or an
- * environment that can't reach assets.sorare.com), the frame shows the player's initials instead of staying blank.
+ * A card's art, resilient in three stages:
+ *  1. hot-link the Sorare picture directly (the app's normal behaviour);
+ *  2. if that fails, load it through the same-origin proxy (/api/sorare-image) — for environments whose
+ *     browser can't reach assets.sorare.com but can reach the app;
+ *  3. if that also fails, show the player's initials instead of a blank frame.
  */
 export default function CardArt({ src, name }: { src: string | null | undefined; name: string }) {
-  const [failed, setFailed] = useState(false);
-  const usable = !!src && src.startsWith("https://assets.sorare.com/") && !failed;
-  if (usable) {
-    return <SorareImage src={src} fill onError={() => setFailed(true)} />;
+  const [stage, setStage] = useState<"direct" | "proxy" | "failed">("direct");
+  const usable = !!src && SORARE_ORIGINS.some((origin) => src.startsWith(origin));
+
+  if (!usable || stage === "failed") {
+    return (
+      <span className="s5-art-fallback" aria-hidden="true">
+        {initials(name)}
+      </span>
+    );
+  }
+  if (stage === "direct") {
+    return <SorareImage src={src} fill onError={() => setStage("proxy")} />;
   }
   return (
-    <span className="s5-art-fallback" aria-hidden="true">
-      {initials(name)}
-    </span>
+    <Image
+      alt=""
+      src={`/api/sorare-image?u=${encodeURIComponent(src!)}`}
+      unoptimized
+      fill
+      sizes="120px"
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      style={{ objectFit: "cover" }}
+      onError={() => setStage("failed")}
+    />
   );
 }

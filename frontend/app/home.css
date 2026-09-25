@@ -1,4 +1,4 @@
-/* Home (/): the gameweek head, the timeline and the bento. Also the top bar's section links and the phone tab bar.
+/* Home (/): the gameweek head and the bento. Also the top bar's section links and the phone tab bar.
    Ported from docs/sorare/design/S2-home.html (owner-approved design language, docs/sorare/design/DESIGN.md). */
 :root {
   --f-lim: linear-gradient(145deg, #fff3c4 0%, #f7c948 38%, #d99a0b 62%, #ffe08a 100%);
@@ -31,34 +31,6 @@ main.hm { max-width: calc(1240px + 56px); }
 .hm-count.live .ic { background: #e8f8ee; }
 .hm-count .pulse { width: 9px; height: 9px; border-radius: 50%; background: #34c759; animation: hm-pulse 1.8s infinite; }
 @keyframes hm-pulse { 0% { box-shadow: 0 0 0 0 rgba(52,199,89,.5); } 70% { box-shadow: 0 0 0 8px rgba(52,199,89,0); } 100% { box-shadow: 0 0 0 0 rgba(52,199,89,0); } }
-
-/* ---------- gameweek timeline (S0 component) ---------- */
-.hm-timeline { margin-top: 22px; display: flex; align-items: center; gap: 10px; }
-.tl-arrow { flex: none; width: 36px; height: 36px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-card); display: grid; place-items: center; color: var(--ink); transition: transform .2s var(--ease); }
-a.tl-arrow:hover { transform: scale(1.06); }
-.tl-arrow.off { opacity: .35; }
-.tl-arrow:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.tl-track { position: relative; flex: 1; min-width: 0; display: flex; gap: 4px; padding: 5px; background: var(--track); border-radius: 18px; overflow-x: auto; scrollbar-width: none; }
-.tl-track::-webkit-scrollbar { display: none; }
-.tl-knob { position: absolute; top: 5px; bottom: 5px; left: 0; border-radius: 14px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 6px 16px rgba(0,0,0,.08); transition: transform .45s var(--ease); }
-.tl-item { position: relative; z-index: 1; flex: none; border-radius: 14px; padding: 8px 14px; display: flex; flex-direction: column; gap: 2px; text-decoration: none; color: inherit; }
-a.tl-item { text-decoration: none; }
-.tl-item[aria-current="page"] { background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 6px 16px rgba(0,0,0,.08); }
-/* A gameweek this page can't open. Only the dot fades: fading the text would drop it to 3.1:1 on the track. */
-.tl-item.quiet { cursor: default; }
-.tl-item.quiet .tl-dot { opacity: .5; }
-.tl-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.tl-top { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 650; color: var(--ink-seg); }
-.tl-item[aria-current="page"] .tl-top { color: var(--ink); }
-.tl-item:hover .tl-top { color: var(--ink); }
-.tl-date { font-size: 12px; color: var(--ink-seg); font-variant-numeric: tabular-nums; white-space: nowrap; } /* 5.3:1 on the grey track (ink-2 is 4.2:1) */
-.tl-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
-.tl-dot.done { background: var(--ink-3); }
-.tl-dot.next { background: var(--accent); }
-.tl-dot.later { background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink-3); }
-.tl-break { flex: none; border-radius: 14px; padding: 8px 14px; display: flex; flex-direction: column; gap: 2px; color: var(--ink-seg); background: repeating-linear-gradient(135deg, transparent 0 6px, rgba(0,0,0,.035) 6px 7px); }
-.tl-break b { font-size: 14px; font-weight: 600; color: var(--ink-seg); }
-.tl-break span { font-size: 12px; white-space: nowrap; }
 
 /* ---------- bento ---------- */
 .hm-bento { margin-top: 18px; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; }
@@ -259,7 +231,6 @@ a.tl-item { text-decoration: none; }
   .hm-count { text-align: left; } /* on its own row under the title */
   .hm-count .n { justify-content: flex-start; }
   .hm-count .n b { font-size: 48px; }
-  .tl-arrow { display: none; }
   .hm-fixtures, .hm-difficulty, .hm-table, .hm-play, .hm-last, .hm-cards, .hm-review { grid-column: span 12; min-height: 0; }
   .hm-play-grid, .hm-play-grid.wait { grid-template-columns: 1fr; gap: 16px; }
   .hm-play-a { flex-direction: column; align-items: stretch; gap: 14px; }
@@ -280,5 +251,5 @@ a.tl-item { text-decoration: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .hm-tile, .hm-odds .bar3 i, .hm-mosaic .m-row, .hm-race i, .hm-down .m i, .hm-count .pulse { animation: none !important; }
-  .hm-tile, .tl-knob, .hm-chev, .tl-arrow { transition: none !important; }
+  .hm-tile, .hm-chev { transition: none !important; }
 }

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import recorded from "../e2e/fixtures/grid-response.json";
 import { SHOCK, runStats } from "./grid";
 import {
-  boardHref, chanceLabel, dateRange, difficultyMosaic, fixtureDays, gameweekHead, tableSummary, timelineEntries,
+  boardHref, chanceLabel, dateRange, difficultyMosaic, fixtureDays, gameweekHead, tableSummary,
 } from "./home";
 import { gameweekMatches } from "./matches";
 import type { ApiResponse, FixtureGrid, GridCell, GridTeam } from "./types";
@@ -11,24 +11,8 @@ import type { ApiResponse, FixtureGrid, GridCell, GridTeam } from "./types";
 const grid = (recorded as ApiResponse<FixtureGrid>).data!;
 const col = (number: number) => grid.matchdays.findIndex((md) => md.number === number);
 
-describe("timeline", () => {
-  const entries = timelineEntries(grid, col(7));
-
-  it("lists every gameweek once, marking played ones and the opening one", () => {
-    const gws = entries.filter((e) => e.kind === "gw");
-    expect(gws).toHaveLength(grid.matchdays.length);
-    expect(gws.find((e) => e.number === 6)?.state).toBe("done");
-    expect(gws.find((e) => e.number === 7)?.state).toBe("next");
-    expect(gws.find((e) => e.number === 8)?.state).toBe("later");
-  });
-
-  it("shows LaLiga's long pause as a break between GW7 and GW8", () => {
-    const at = entries.findIndex((e) => e.kind === "gw" && e.number === 8);
-    expect(entries[at - 1]).toMatchObject({ kind: "break" });
-    expect(entries.filter((e) => e.kind === "break").length).toBeGreaterThanOrEqual(1);
-  });
-
-  it("writes date ranges the board's way", () => {
+describe("date ranges", () => {
+  it("writes them the board's way", () => {
     expect(dateRange("2026-10-09T19:00:00Z", "2026-10-12T19:00:00Z")).toBe("9–12 Oct");
     expect(dateRange("2026-09-30T19:00:00Z", "2026-10-02T19:00:00Z")).toBe("30 Sep – 2 Oct");
     expect(dateRange("2026-10-25T00:00:00Z", "2026-10-25T00:00:00Z")).toBe("25 Oct");

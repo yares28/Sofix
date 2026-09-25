@@ -10,42 +10,6 @@ import type { Bucket, FixtureGrid, GridCell, GridTeam, Venue } from "./types";
 
 const DAY_MS = 86_400_000;
 const HOUR_MS = 3_600_000;
-/** A pause longer than this between two gameweeks shows as a break on the timeline (international breaks). */
-const BREAK_DAYS = 10;
-
-// ---------------------------------------------------------------- timeline
-
-export type TimelineEntry =
-  | { kind: "gw"; column: number; number: number; from: string; to: string; state: "done" | "next" | "later"; tbc: boolean }
-  | { kind: "break"; from: string; to: string };
-
-const timesKnown = (grid: FixtureGrid, column: number) =>
-  grid.teams.some((team) => (team.cells[column] ?? []).some((cell) => cell.date_confirmed));
-
-/** Every gameweek in order, the opening one marked "next", with a break wherever LaLiga stops for more than ten days. */
-export function timelineEntries(grid: FixtureGrid, opening: number): TimelineEntry[] {
-  const entries: TimelineEntry[] = [];
-  grid.matchdays.forEach((md, column) => {
-    const prev = grid.matchdays[column - 1];
-    if (prev && Date.parse(md.date_from) - Date.parse(prev.date_to) > BREAK_DAYS * DAY_MS) {
-      entries.push({
-        kind: "break",
-        from: new Date(Date.parse(prev.date_to) + DAY_MS).toISOString(),
-        to: new Date(Date.parse(md.date_from) - DAY_MS).toISOString(),
-      });
-    }
-    entries.push({
-      kind: "gw",
-      column,
-      number: md.number,
-      from: md.date_from,
-      to: md.date_to,
-      state: md.finished ? "done" : column === opening ? "next" : "later",
-      tbc: !timesKnown(grid, column),
-    });
-  });
-  return entries;
-}
 
 /** "9–12 Oct", "30 Sep – 2 Oct" (Madrid dates). */
 export function dateRange(from: string, to: string): string {
@@ -72,6 +36,9 @@ export interface GameweekHead {
 }
 
 const playedOut = (status: GridCell["status"]) => status === "finished";
+
+const timesKnown = (grid: FixtureGrid, column: number) =>
+  grid.teams.some((team) => (team.cells[column] ?? []).some((cell) => cell.date_confirmed));
 
 /**
  * Before a gameweek: days (and hours) to its first kickoff. During it: how many games are done. After it: how many

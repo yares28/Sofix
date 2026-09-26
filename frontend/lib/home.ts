@@ -55,15 +55,20 @@ export interface HeadCard {
   rarity: string;
 }
 
-/** A game your players play, named for the one projected to score the most in it. */
+/** A game your players play. Win and clean sheet are that club's chances, and only for a LaLiga fixture we rate. */
 export interface HeadGame {
   key: string;
+  /** Your player's club, then the other side. */
+  club: string;
   opponent: string;
-  crest: string | null;
+  clubCrest: string | null;
+  opponentCrest: string | null;
   venue: PlayerGame["venue"];
   competition: string;
-  kickoff: string;
-  player: string;
+  /** The club's chance of winning, and of a clean sheet. Null when the game is outside LaLiga. */
+  win: number | null;
+  cleanSheet: number | null;
+  /** The best projection you have in the game: it ranks the row, and stays off the row itself. */
   x: number;
 }
 
@@ -100,12 +105,64 @@ function headDays(matches: Match[]): HeadDay[] {
 
 const shortName = (name: string) => name.split(" ").filter(Boolean).at(-1) ?? name;
 
+/** Club words Sorare adds and the board does not: "FC Barcelona" and "Barcelona" are the same club. */
+const CLUB_WORDS = new Set(["fc", "cf", "ud", "rc", "cd", "ac", "sc", "sad", "de", "club"]);
+
+const clubKey = (name: string): string => {
+  const words = name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .split(" ")
+    .filter(Boolean);
+  const kept = words.filter((word) => !CLUB_WORDS.has(word));
+  return (kept.length ? kept : words).join(" ");
+};
+
+interface SideOutlook {
+  club: string;
+  opponent: string;
+  win: number | null;
+  cleanSheet: number | null;
+}
+
+/**
+ * Each club's own forecast for a fixture, keyed by club, venue and opponent. A season has one home meeting,
+ * so the names are the game. Anything we cannot name on both sides is left out: the model only rates LaLiga.
+ */
+function sideOutlook(grid: FixtureGrid): Map<string, SideOutlook> {
+  const byCode = new Map(grid.teams.map((team) => [team.code, team]));
+  const index = new Map<string, SideOutlook>();
+  for (const team of grid.teams) {
+    for (const column of team.cells) {
+      for (const cell of column) {
+        const opponent = byCode.get(cell.opponent_code);
+        if (!opponent) continue;
+        const key = `${clubKey(team.name)}|${cell.venue}|${clubKey(opponent.name)}`;
+        const next: SideOutlook = {
+          club: team.name,
+          opponent: opponent.name,
+          win: cell.prediction?.probabilities.win ?? null,
+          cleanSheet: cell.prediction?.clean_sheet ?? null,
+        };
+        const prev = index.get(key);
+        if (!prev || (prev.win === null && next.win !== null)) index.set(key, next);
+      }
+    }
+  }
+  return index;
+}
+
 /**
  * The header's cards and games. Cards are your highest projected scores. A game is one fixture, ranked by the
- * best projection you have in it, so two of your players in the same match count once.
+ * best projection you have in it, so two of your players in the same match count once. Win and clean sheet are
+ * your club's chances in that fixture when it is a LaLiga game on the board.
  */
-export function headCast(players: PlayingPlayer[], gw: number, named: boolean): HeadCast | null {
+export function headCast(players: PlayingPlayer[], gw: number, named: boolean, grid: FixtureGrid | null = null): HeadCast | null {
   if (!players.length) return null;
+  const outlook = grid ? sideOutlook(grid) : null;
   const cards = [...players]
     .sort((a, b) => b.x - a.x || a.name.localeCompare(b.name))
     .slice(0, 4)
@@ -116,19 +173,22 @@ export function headCast(players: PlayingPlayer[], gw: number, named: boolean): 
       const key = `${game.kickoff}|${game.competition}|${game.opponent}`;
       const existing = games.get(key);
       if (existing && existing.x >= player.x) continue;
+      const forecast = player.club && outlook ? outlook.get(`${clubKey(player.club)}|${game.venue}|${clubKey(game.opponent)}`) : undefined;
       games.set(key, {
         key,
-        opponent: game.opponent,
-        crest: game.opponentCrest,
+        club: forecast?.club ?? player.club ?? "—",
+        opponent: forecast?.opponent ?? game.opponent,
+        clubCrest: player.crest,
+        opponentCrest: game.opponentCrest,
         venue: game.venue,
         competition: game.competition,
-        kickoff: game.kickoff,
-        player: shortName(player.name),
+        win: forecast?.win ?? null,
+        cleanSheet: forecast?.cleanSheet ?? null,
         x: player.x,
       });
     }
   }
-  const ranked = [...games.values()].sort((a, b) => b.x - a.x || a.kickoff.localeCompare(b.kickoff)).slice(0, 3);
+  const ranked = [...games.values()].sort((a, b) => b.x - a.x || a.key.localeCompare(b.key)).slice(0, 3);
   return { gw, named, cards, games: ranked };
 }
 
@@ -136,15 +196,15 @@ export function headCast(players: PlayingPlayer[], gw: number, named: boolean): 
  * The cards for the week in the bar. A week Sorare has opened uses only that gameweek — an empty one stays
  * empty. A LaLiga week Sorare hasn't opened shows the gameweek being planned, and says so.
  */
-export function castForWeek(sorare: Sorare | null, gw: string | null): HeadCast | "none" | null {
+export function castForWeek(sorare: Sorare | null, gw: string | null, grid: FixtureGrid | null = null): HeadCast | "none" | null {
   if (!sorare) return null;
   if (gw) {
     const plan = weekPlan(sorare, gw);
     if (!plan?.playing.players.length) return "none";
-    return headCast(plan.playing.players, plan.gameweek.number, false);
+    return headCast(plan.playing.players, plan.gameweek.number, false, grid);
   }
   const next = nextWeek(sorare);
-  return headCast(next.playing.players, next.gameweek.number, true);
+  return headCast(next.playing.players, next.gameweek.number, true, grid);
 }
 
 /**

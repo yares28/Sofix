@@ -76,15 +76,18 @@ describe("your cards in the header", () => {
 
   it("ranks your highest projections and keeps one row per game", () => {
     const week = sorare.weeks.find((item) => item.gameweek.id === sorare.nextId)!;
-    const cast = headCast(week.playing.players, week.gameweek.number, false);
+    const cast = headCast(week.playing.players, week.gameweek.number, false, grid);
     expect(cast?.cards.map((card) => card.short)).toEqual(["Messi", "Álvarez", "Pedri", "Bouanga"]);
     expect(cast?.cards[0]?.x).toBeGreaterThan(cast!.cards[1]!.x);
-    // Pedri and Cubarsí both play Celta; the game is listed once, for Pedri.
-    expect(cast?.games.map((game) => [game.player, game.opponent])).toEqual([
-      ["Messi", "Orlando City"],
-      ["Álvarez", "Rayo Vallecano"],
-      ["Pedri", "RC Celta"],
+    // Pedri and Cubarsí both play Celta; the game is listed once. Win and clean sheet are the club's own chances.
+    // Messi's game is MLS, which the model does not rate.
+    expect(cast?.games.map((game) => [game.club, game.opponent, game.win, game.cleanSheet])).toEqual([
+      ["Inter Miami CF", "Orlando City", null, null],
+      ["Atlético Madrid", "Rayo Vallecano", 0.621, 0.4],
+      ["Barcelona", "Celta", 0.602, 0.291],
     ]);
+    expect(cast?.games[1]?.venue).toBe("H");
+    expect(cast?.games[2]?.venue).toBe("A");
   });
 
   it("uses the week in the bar, and the one being planned when Sorare has not opened this week", () => {

@@ -1,9 +1,17 @@
-import { formatKickoff, formatShortKickoff } from "../../lib/grid";
-import { dateRange, type GameweekHead, type HeadCast, type HeadDay, type HeadState } from "../../lib/home";
+import { formatKickoff } from "../../lib/grid";
+import { dateRange, type GameweekHead, type HeadCast, type HeadDay, type HeadGame, type HeadState } from "../../lib/home";
 import { competitionName } from "../AwayWeek";
 import SorareImage from "../play/SorareImage";
 
 const score = (x: number) => x.toFixed(1);
+const pct = (p: number) => `${Math.round(p * 100)}%`;
+
+function gameLabel(game: HeadGame): string {
+  const teams = `${game.club} ${game.venue === "H" ? "v" : "against"} ${game.opponent}`;
+  if (game.win == null) return `${teams}, ${competitionName(game.competition)}`;
+  const sheet = game.cleanSheet == null ? "" : `, ${pct(game.cleanSheet)} clean sheet`;
+  return `${teams}, ${pct(game.win)} win${sheet}`;
+}
 
 function dayTone(day: HeadDay, state: HeadState, index: number): string {
   if (day.done === day.matches) return "done";
@@ -117,20 +125,33 @@ export default function HomeHead({ head, cast }: { head: GameweekHead; cast: Hea
               <p className="hm-kicker">Best games</p>
               <ol className="hm-best">
                 {cast.games.map((game) => (
-                  <li key={game.key}>
-                    <SorareImage src={game.crest} alt="" width={20} height={20} />
-                    <span className="opp">
-                      <b>
-                        {game.venue === "H" ? "v" : "@"} {game.opponent}
-                      </b>
-                      <span>
-                        {competitionName(game.competition)} · {formatShortKickoff(game.kickoff)}
+                  <li key={game.key} aria-label={gameLabel(game)}>
+                    <span className="sides">
+                      <span className="side">
+                        <SorareImage src={game.clubCrest} alt="" width={16} height={16} />
+                        <b>{game.club}</b>
+                      </span>
+                      <span className="side opp">
+                        <SorareImage src={game.opponentCrest} alt="" width={16} height={16} />
+                        <span>
+                          {game.venue === "H" ? "v" : "@"} {game.opponent}
+                        </span>
                       </span>
                     </span>
-                    <span className="xs">
-                      <b>{score(game.x)}</b>
-                      <span>{game.player}</span>
-                    </span>
+                    {game.win == null ? (
+                      <span className="comp">{competitionName(game.competition)}</span>
+                    ) : (
+                      <span className="rates">
+                        <span>
+                          <b>{pct(game.win)}</b>
+                          <span>Win</span>
+                        </span>
+                        <span>
+                          <b>{game.cleanSheet == null ? "—" : pct(game.cleanSheet)}</b>
+                          <span>Clean sheet</span>
+                        </span>
+                      </span>
+                    )}
                   </li>
                 ))}
               </ol>

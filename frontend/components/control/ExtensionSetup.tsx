@@ -19,7 +19,7 @@ const SPOTS: [number, number][] = [
 
 const HEAD: Record<ExtensionStage, { eyebrow: string; title: (user: string | null) => string; lede: string }> = {
   add: { eyebrow: "On your PC · once · about a minute", title: () => "Add the Sorare extension", lede: "Then lineups save to Sorare from the app." },
-  "sign-in": { eyebrow: "Almost there", title: () => "Now open sorare.com", lede: "Signed in as usual, once, so the extension learns your account." },
+  "sign-in": { eyebrow: "Almost there", title: () => "Now open sorare.com", lede: "Signed in as usual. A tab that is already open is enough." },
   done: { eyebrow: "Done", title: (user) => (user ? `Linked as ${user}` : "Extension linked"), lede: "Sorare, the extension and Sofix are connected." },
 };
 

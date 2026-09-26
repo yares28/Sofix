@@ -1,14 +1,17 @@
 // Sofix extension, sorare.com content script.
 // The only way between the extension and your Sorare session: it passes a question to the page bridge
 // (bridge.js) and passes the answer back. It starts by asking who is signed in; the rest it does on request,
-// when you press a step of Apply in the app.
-// The bridge only knows the API's address once Sorare's page has made its first GraphQL request, so it retries.
+// when you press a step of Apply in the app, or when the app pings and the background asks again.
 (() => {
-  let tries = 0;
+  if (globalThis.__sofixContent) return;
+  globalThis.__sofixContent = true;
+
   let asked = 0;
+  let tries = 0;
+  let known = false;
 
   /** Put one question to the page bridge and wait for its answer. */
-  function bridge(message, timeoutMs = 20000) {
+  function bridge(message, timeoutMs = 8000) {
     return new Promise((resolve) => {
       const id = `sofix-${Date.now()}-${asked++}`;
       const timer = setTimeout(() => {
@@ -16,30 +19,57 @@
         resolve({ state: "timeout" });
       }, timeoutMs);
       const onReply = (event) => {
-        if (event.source !== window || !event.data || event.data.source !== "sofix-bridge" || event.data.id !== id) return;
+        if (event.source !== window || !event.data || event.data.source !== "sofix-bridge-2" || event.data.id !== id) return;
         clearTimeout(timer);
         window.removeEventListener("message", onReply);
-        const { source, id: _id, ...answer } = event.data;
+        const { source, id: _id, type, ...answer } = event.data;
         resolve(answer);
       };
       window.addEventListener("message", onReply);
-      window.postMessage({ source: "sofix-content", id, ...message }, location.origin);
+      window.postMessage({ source: "sofix-content-2", id, ...message }, location.origin);
     });
   }
 
-  async function whoAmI() {
-    const answer = await bridge({ type: "whoami" });
-    if (answer.state === "signed-in") chrome.runtime.sendMessage({ type: "sorare-user", user: answer.user });
-    else if (answer.state === "signed-out") chrome.runtime.sendMessage({ type: "sorare-user", user: null });
-    else if (tries++ < 8) setTimeout(whoAmI, 5000);
+  function remember(answer) {
+    if (answer.state === "signed-in") {
+      known = true;
+      chrome.runtime.sendMessage({ type: "sorare-user", user: answer.user });
+    } else if (answer.state === "signed-out") {
+      known = false;
+      chrome.runtime.sendMessage({ type: "sorare-user", user: null });
+    } else if (tries++ < 12) setTimeout(whoAmI, 4000);
+    return answer;
   }
 
-  // From the background worker, which is relaying a step the app asked for.
-  chrome.runtime.onMessage.addListener((message, sender, reply) => {
-    if (sender.id !== chrome.runtime.id || message?.type !== "ask") return;
-    bridge({ type: "ask", operation: message.operation, variables: message.variables }).then(reply);
-    return true; // reply asynchronously
+  function whoAmI() {
+    return bridge({ type: "whoami" }).then(remember);
+  }
+
+  // A GraphQL call of the page's own just landed: ask again, in case the first look was too early.
+  window.addEventListener("message", (event) => {
+    if (event.source !== window || !event.data || event.data.source !== "sofix-bridge-2" || event.data.type !== "ready" || known) return;
+    tries = 0;
+    whoAmI();
   });
 
-  setTimeout(whoAmI, 3000);
+  // From the background worker: a liveness check, a fresh "who is signed in", or a step the app asked for.
+  chrome.runtime.onMessage.addListener((message, sender, reply) => {
+    if (sender.id !== chrome.runtime.id) return;
+    if (message?.type === "sofix-ping") {
+      reply({ ok: true });
+      return;
+    }
+    if (message?.type === "whoami") {
+      bridge({ type: "whoami" }).then((answer) => {
+        remember(answer);
+        reply(answer);
+      });
+      return true;
+    }
+    if (message?.type !== "ask") return;
+    bridge({ type: "ask", operation: message.operation, variables: message.variables }, 20000).then(reply);
+    return true;
+  });
+
+  setTimeout(whoAmI, 1000);
 })();

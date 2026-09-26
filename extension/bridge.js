@@ -6,11 +6,15 @@
 // It asks nothing on its own: every call below answers a message, and the only two that write anything save a
 // draft and enter a competition, each behind its own click in the app (docs/sorare_plan.md, S6).
 (() => {
-  if (window.__sofixBridge) return;
-  window.__sofixBridge = true;
+  // 2: a tab that was already open keeps the previous bridge. A new one must still install, or that tab
+  // stays invisible. The message source is versioned for the same reason: the old bridge would answer first.
+  if (window.__sofixBridge === 2) return;
+  window.__sofixBridge = 2;
 
   const originalFetch = window.fetch;
   let endpoint = null; // { url, headers } of the last GraphQL request Sorare's page made
+  let sawGraphQLAt = 0;
+  const KNOWN = "https://api.sorare.com/graphql";
 
   function plainHeaders(source) {
     const out = {};
@@ -26,6 +30,11 @@
       const method = String((init && init.method) || (input && input.method) || "GET").toUpperCase();
       if (url && method === "POST" && /graphql/i.test(url)) {
         endpoint = { url: new URL(url, location.href).href, headers: plainHeaders((init && init.headers) || (input && input.headers)) };
+        const now = Date.now();
+        if (now - sawGraphQLAt > 2000) {
+          sawGraphQLAt = now;
+          window.postMessage({ source: "sofix-bridge-2", type: "ready" }, location.origin);
+        }
       }
     } catch {
       // never break Sorare's own request
@@ -64,16 +73,38 @@
         so5Lineups { id name draft } } }`,
   };
 
+  function cookie(name) {
+    const match = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+
+  // The page's own calls are the best copy of the headers. Until one happens — the tab was already open, or
+  // its calls finished before this script — Sorare's website endpoint still answers as the signed-in manager,
+  // because this runs in the page and the session cookie goes with it.
+  function knownEndpoint() {
+    const root = document.documentElement;
+    const headers = { accept: "application/json", "content-type": "application/json", "sorare-client": "Web" };
+    const version = root && root.getAttribute("data-sorare-version");
+    const build = root && root.getAttribute("data-sorare-revision");
+    if (version) headers["sorare-version"] = version;
+    if (build) headers["sorare-build"] = build;
+    const token = cookie("csrftoken");
+    if (token) headers["x-csrf-token"] = token;
+    return { url: KNOWN, headers };
+  }
+
   async function ask(operation, variables) {
     if (!Object.hasOwn(OPERATIONS, operation)) return { state: "refused" };
-    if (!endpoint) return { state: "unknown" };
+    const target = endpoint || knownEndpoint();
     try {
-      const response = await originalFetch(endpoint.url, {
+      const response = await originalFetch(target.url, {
         method: "POST",
         credentials: "include",
-        headers: { ...endpoint.headers, "content-type": "application/json" },
+        headers: { ...target.headers, "content-type": "application/json" },
         body: JSON.stringify({ operationName: operation, query: OPERATIONS[operation], variables: variables || {} }),
       });
+      const issued = response.headers.get("csrf-token");
+      if (issued && !cookie("csrftoken")) document.cookie = `csrftoken=${encodeURIComponent(issued)}; path=/`;
       if (!response.ok) return { state: "error", status: response.status };
       const body = await response.json();
       // Sorare answers a refused write with 200 and an errors array: those are its words, and they are kept.
@@ -92,9 +123,9 @@
   }
 
   window.addEventListener("message", async (event) => {
-    if (event.source !== window || !event.data || event.data.source !== "sofix-content") return;
+    if (event.source !== window || !event.data || event.data.source !== "sofix-content-2") return;
     const { type, id, operation, variables } = event.data;
     const result = type === "whoami" ? await whoAmI() : type === "ask" ? await ask(operation, variables) : null;
-    if (result) window.postMessage({ source: "sofix-bridge", id, ...result }, location.origin);
+    if (result) window.postMessage({ source: "sofix-bridge-2", id, ...result }, location.origin);
   });
 })();

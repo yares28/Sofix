@@ -31,4 +31,9 @@ $("overlay").addEventListener("click", async () => {
   render();
 });
 
+// The tab may already be open. Ask it before showing "sign in".
+chrome.runtime.sendMessage({ type: "refresh-session" }, () => {
+  void chrome.runtime.lastError;
+  render();
+});
 render();

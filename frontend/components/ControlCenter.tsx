@@ -176,9 +176,13 @@ export default function ControlCenter({ serverNow, syncedAt, system: stored, sor
   // owner returns from chrome://extensions or sorare.com.
   useEffect(() => {
     let cancelled = false;
-    const check = async () => {
+    let followUpTimer = 0;
+    const check = async (followUp = true) => {
       const ping = await pingExtension();
-      if (!cancelled && ping) setLive(ping);
+      if (cancelled || !ping) return;
+      setLive(ping);
+      // The extension reads an already-open sorare.com tab after it answers. Ask once more for that account.
+      if (followUp && !ping.sorareUser) followUpTimer = window.setTimeout(() => void check(false), 4000);
     };
     void check();
     const onVisible = () => {
@@ -187,6 +191,7 @@ export default function ControlCenter({ serverNow, syncedAt, system: stored, sor
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       cancelled = true;
+      window.clearTimeout(followUpTimer);
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);

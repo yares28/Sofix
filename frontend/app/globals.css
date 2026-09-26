@@ -46,16 +46,22 @@ code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-si
 .muted { color: var(--ink-2); }
 
 /* ---------- Nav ---------- */
+/* The bar is a floating island on every page: the sticky frame is clear, the island carries the surface. */
 .nav {
   position: sticky; top: 0; z-index: 50;
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  background: rgba(251, 251, 253, 0.78);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 12px 28px 0;
+  background: transparent;
 }
 .nav-inner {
-  max-width: var(--page-max); margin: 0 auto; height: 52px; padding: 0 28px;
+  max-width: calc(var(--page-max) - 56px); margin: 0 auto; height: 52px; padding: 0 14px 0 16px;
   display: flex; align-items: center; justify-content: space-between;
+  border-radius: 18px; background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: saturate(180%) blur(18px); -webkit-backdrop-filter: saturate(180%) blur(18px);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+@media (max-width: 700px) {
+  .nav { padding: 8px 12px 0; }
+  .nav-inner { padding: 0 12px; border-radius: 16px; }
 }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 16px; letter-spacing: -0.02em; }
 .brand-mark {
@@ -809,7 +815,6 @@ thead th .tbc-mark { font-weight: 600; }
 /* ---------- Phones ---------- */
 @media (max-width: 600px) {
   main { padding: 18px 16px 64px; }
-  .nav-inner { padding: 0 16px; }
   .brand-name { display: none; }
   .hero { margin-bottom: 14px; gap: 12px; }
   .segmented.lg button { padding: 8px 18px; font-size: 13px; }

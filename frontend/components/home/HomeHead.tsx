@@ -102,6 +102,7 @@ export default function HomeHead({ head, cast }: { head: GameweekHead; cast: Hea
                 <li key={card.name} aria-label={`${card.name}, projected ${score(card.x)}`}>
                   <span className={`hm-art ${card.rarity}`} aria-hidden="true">
                     <SorareImage src={card.pic} alt="" fill />
+                    <span className="hm-shine" />
                   </span>
                   <span className="who" aria-hidden="true">
                     <b>{score(card.x)}</b>

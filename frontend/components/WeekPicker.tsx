@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { byMonth, weekDates, weekValue, type Week } from "../lib/weeks";
+import { byMonth, weekDates, weekOn, weekValue, type Week } from "../lib/weeks";
 
 const BOARD = ["/fixtures", "/difficulty", "/table"];
 
@@ -84,6 +84,7 @@ export default function WeekPicker({ weeks, current, now }: { weeks: Week[]; cur
   const back = here >= 0 ? scoped[here - 1] : ahead > 0 ? scoped[ahead - 1] : undefined;
   const forward = here >= 0 ? scoped[here + 1] : ahead >= 0 ? scoped[ahead] : undefined;
   const step = (week: Week | undefined) => week && go(week);
+  const today = weekOn(weeks, new Date());
 
   return (
     <div className={`wk${open ? " open" : ""}`} role="group" aria-label="Choose gameweek">
@@ -118,6 +119,20 @@ export default function WeekPicker({ weeks, current, now }: { weeks: Week[]; cur
           <path d="M4.5 2 8.5 6l-4 4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
+      {today ? (
+        <button
+          type="button"
+          className="wk-today"
+          aria-label="Today"
+          disabled={today.id === current.id}
+          onClick={() => go(today)}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+            <circle cx="6" cy="6" r="4.25" fill="none" stroke="currentColor" strokeWidth="1.4" />
+            <circle cx="6" cy="6" r="1.6" fill="currentColor" />
+          </svg>
+        </button>
+      ) : null}
 
       <div className="wk-panel" ref={panel} hidden={!open}>
         <div className="wk-months" role="group" aria-label="Month">

@@ -886,7 +886,14 @@ thead th .tbc-mark { font-weight: 600; }
 }
 .wk-step:hover:not(:disabled) { background: var(--hover); color: var(--ink); }
 .wk-step:disabled { color: var(--ink-3); cursor: default; }
-.wk-step:focus-visible, .wk-trigger:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wk-step:focus-visible, .wk-trigger:focus-visible, .wk-today:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wk-today {
+  width: 20px; height: 20px; margin-left: 6px; padding: 0; border: 0; border-radius: 50%;
+  background: var(--surface); color: var(--ink-2); box-shadow: var(--shadow-card);
+  display: grid; place-items: center; cursor: pointer;
+}
+.wk-today:hover:not(:disabled) { color: var(--ink); }
+.wk-today:disabled { color: var(--ink-3); background: transparent; box-shadow: none; cursor: default; }
 .wk-trigger {
   display: inline-flex; align-items: center; gap: 9px; border: 0; cursor: pointer; padding: 6px 11px 6px 10px;
   border-radius: 12px; background: var(--surface); box-shadow: var(--shadow-card); color: inherit;

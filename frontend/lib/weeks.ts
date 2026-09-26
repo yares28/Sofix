@@ -120,6 +120,12 @@ function stateOf(from: string, to: string, sorare: Sorare | null, gw: string | u
   return "later";
 }
 
+/** The week that contains this moment: half-open [from, to), else the latest week already under way. */
+export function weekOn(weeks: Week[], instant: Date): Week | null {
+  const t = instant.getTime();
+  return weeks.find((week) => at(week.from) <= t && t < at(week.to)) ?? [...weeks].reverse().find((week) => at(week.from) <= t) ?? null;
+}
+
 /** The week the app opens on: the one Sorare is planning, or the first that has not finished. */
 export function currentWeek(weeks: Week[]): Week | null {
   return weeks.find((week) => week.state === "next") ?? weeks.find((week) => week.state !== "done") ?? weeks.at(-1) ?? null;

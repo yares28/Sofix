@@ -214,10 +214,9 @@ test("the gameweek selector moves every card, the grid, the fixtures and the tab
   const games = (await page.locator("table.standings tbody tr td:nth-child(3)").allTextContents()).map(Number);
   expect(Math.max(...games)).toBeLessThanOrEqual(past);
 
-  // "Now" is the week the app is on, whatever that week holds: here LaLiga is away, and the table says so
+  // Today sits beside the picker, not in its menu. Here that week has no LaLiga round, and the table says so
   // instead of the board quietly showing a round from another week.
-  await page.locator(".wk-trigger").click(); // the week picker in the header
-  await page.getByRole("button", { name: "Now" }).click();
+  await page.getByRole("button", { name: "Today" }).click();
   await expect(page).toHaveURL(/[?&]w=\d{4}-\d{2}-\d{2}/);
   await expect(page.locator(".ow-note")).toContainText("LaLiga isn't playing this week");
   await expect(page.getByRole("heading", { level: 2, name: "LaLiga table" })).toBeVisible();

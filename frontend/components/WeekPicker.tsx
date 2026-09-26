@@ -87,6 +87,7 @@ export default function WeekPicker({ weeks, current, now }: { weeks: Week[]; cur
   const today = weekOn(weeks, new Date());
 
   return (
+    <div className="wk-bar">
     <div className={`wk${open ? " open" : ""}`} role="group" aria-label="Choose gameweek">
       <button type="button" className="wk-step" aria-label="Previous gameweek" disabled={!back} onClick={() => step(back)}>
         <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
@@ -119,20 +120,6 @@ export default function WeekPicker({ weeks, current, now }: { weeks: Week[]; cur
           <path d="M4.5 2 8.5 6l-4 4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
-      {today ? (
-        <button
-          type="button"
-          className="wk-today"
-          aria-label="Today"
-          disabled={today.id === current.id}
-          onClick={() => go(today)}
-        >
-          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
-            <circle cx="6" cy="6" r="4.25" fill="none" stroke="currentColor" strokeWidth="1.4" />
-            <circle cx="6" cy="6" r="1.6" fill="currentColor" />
-          </svg>
-        </button>
-      ) : null}
 
       <div className="wk-panel" ref={panel} hidden={!open}>
         <div className="wk-months" role="group" aria-label="Month">
@@ -182,18 +169,26 @@ export default function WeekPicker({ weeks, current, now }: { weeks: Week[]; cur
         </div>
 
         <div className="wk-foot">
-          {now && now.id !== current.id ? (
-            <button type="button" className="wk-now" onClick={() => go(now)}>
-              Now
-            </button>
-          ) : (
-            <span />
-          )}
           <span>
             {weeks.length} weeks · {weeks.filter((week) => week.gw).length} open on Sorare
           </span>
         </div>
       </div>
+    </div>
+      {today ? (
+        <button
+          type="button"
+          className="wk-today"
+          aria-label="Today"
+          disabled={today.id === current.id}
+          onClick={() => go(today)}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+            <circle cx="6" cy="6" r="4.25" fill="none" stroke="currentColor" strokeWidth="1.4" />
+            <circle cx="6" cy="6" r="1.6" fill="currentColor" />
+          </svg>
+        </button>
+      ) : null}
     </div>
   );
 }

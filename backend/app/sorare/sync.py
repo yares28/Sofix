@@ -76,6 +76,10 @@ query($a:String$ARGS){ user(slug:$USER){ cards(first: 10, after: $a, sport: FOOT
       activeClub { slug name shortName pictureUrl domesticLeague { slug } }
       activeNationalTeam { slug name }
       average: averageScore(type: LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
+      l5: averageScore(type: LAST_FIVE_SO5_AVERAGE_SCORE)
+      l40: averageScore(type: LAST_FORTY_SO5_AVERAGE_SCORE)
+      lastFiveSo5Appearances lastTenSo5Appearances lastFortySo5Appearances
+      gameplayTier
       nextClassicFixtureProjectedScore
       nextClassicFixturePlayingStatusOdds { starterOddsBasisPoints substituteOddsBasisPoints nonPlayingOddsBasisPoints }
       $GAMES

@@ -567,6 +567,9 @@ leads every result with the upgrade over the squad in green (`+27 on your FWD`) 
 - ✅ `/cards` and `/players` built (`app/cards`, `app/players`, `components/cards/`, `app/cards.css`), pure logic
   in `lib/cards.ts` (16 tests), a `Play · My cards · Players` sub-nav, and the home "My cards" tile now links to
   `/cards`. The comparison to what he already holds (the fifth-best card per position) is `squadBar`/`verdict`.
+- ✅ Each card's L5 / L10 / L40 score, the share of those games he played, and his star tier. They ride on the
+  cards query that already runs (no extra calls): last-five and last-forty averages, appearance counts, and
+  `gameplayTier` (Star is four stars, Icon is five).
 - 🟡 The LaLiga index (form, projection, market value from the squads): `sync.laliga_index` + `publish.market_out`
   are in place and defensive (a schema mismatch leaves the index empty and never breaks a run), but the new
   GraphQL needs the owner's `SORARE_API_KEY` to validate live. Until a real run populates `market`, `/players`

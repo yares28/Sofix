@@ -414,6 +414,28 @@ def test_the_weeks_after_the_next_one_are_planned_from_form() -> None:
     assert len(ahead["plans"]) == 1, "one plan is enough that far out"
 
 
+def test_a_card_carries_its_score_windows_and_tier() -> None:
+    row = card("jan-oblak", "GK")
+    row["player"].update(
+        {
+            "l5": 47,
+            "l40": 50.4,
+            "lastFiveSo5Appearances": 5,
+            "lastTenSo5Appearances": 9,
+            "lastFortySo5Appearances": 30,
+            "gameplayTier": "STAR",
+        }
+    )
+    usable, _left = publish.read_cards([row])
+    out = publish.collection_out(usable)[0]
+    assert out["stars"] == 4
+    assert out["scores"] == [
+        {"window": "L5", "score": 47.0, "started": 100.0},
+        {"window": "L10", "score": 48.0, "started": 90.0},
+        {"window": "L40", "score": 50.4, "started": 75.0},
+    ]
+
+
 def test_a_week_where_none_of_your_cards_play_says_so() -> None:
     idle = snapshot()
     for entry in idle["cards"]:

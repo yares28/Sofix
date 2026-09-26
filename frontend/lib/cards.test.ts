@@ -281,9 +281,10 @@ describe("seasonBadge", () => {
 });
 
 describe("tierLabel", () => {
-  it("names five stars Icon, other star counts by number, and falls back to rarity", () => {
+  it("names the gameplay tier, and falls back to rarity when there is none", () => {
     expect(tierLabel({ stars: 5, rarity: "limited" })).toBe("Icon");
-    expect(tierLabel({ stars: 3, rarity: "limited" })).toBe("3★");
+    expect(tierLabel({ stars: 4, rarity: "limited" })).toBe("Star");
+    expect(tierLabel({ stars: 3, rarity: "limited" })).toBe("Impact");
     expect(tierLabel({ stars: null, rarity: "rare" })).toBe("Rare");
     expect(tierLabel({ stars: 0, rarity: "limited" })).toBe("Limited");
   });

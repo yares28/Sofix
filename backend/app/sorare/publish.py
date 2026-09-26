@@ -69,6 +69,12 @@ def read_cards(rows: list[dict[str, Any]]) -> tuple[list[Card], list[dict[str, s
                 club_crest=club.get("pictureUrl"),
                 picture=row.get("pictureUrl") or "",
                 avatar=player.get("avatarPictureUrl") or "",
+                l5=_score(player.get("l5")),
+                l40=_score(player.get("l40")),
+                started5=_started(player.get("lastFiveSo5Appearances"), 5),
+                started10=_started(player.get("lastTenSo5Appearances"), 10),
+                started40=_started(player.get("lastFortySo5Appearances"), 40),
+                stars=_STARS.get(player.get("gameplayTier") or ""),
             )
         )
     return usable, left_out
@@ -671,12 +677,25 @@ def build_payload(
     }
 
 
+# Sorare's gameplay tier, drawn as one to five stars. Five is the top, which the page calls Icon.
+_STARS = {"DNP": 1, "ROSTER": 2, "IMPACT": 3, "STAR": 4, "GOAT": 5}
+
+
+def _score(value: Any) -> float | None:
+    return None if value is None else round(float(value), 1)
+
+
+def _started(appeared: Any, window: int) -> float | None:
+    """How often he played in that window, as a percentage. `appeared` is a count out of `window` games."""
+    return None if appeared is None else round(100 * float(appeared) / window, 1)
+
+
 def collection_out(cards: list[Card]) -> list[dict[str, Any]]:
     """Every usable card, in the shape the My cards page (S5) draws. The page groups and sorts them itself.
 
-    Only the last-ten average is known here today, so it fills the L10 hexagon and L5/L40 are left null (the page
-    shows them empty). Wiring L5/L40, %started and the star tier from Sorare is a follow-up (S5 · B), so `scores`
-    carries the shape now and `stars` is null until the sync fetches it.
+    L5 and L40 are Sorare's average scores over those windows; L10 is the last-ten-played average the rest of
+    the app already uses. `started` is the share of games in that window he actually played. `stars` is his
+    gameplay tier (Star, Icon, and the rest).
     """
     return [
         {
@@ -691,11 +710,11 @@ def collection_out(cards: list[Card]) -> list[dict[str, Any]]:
             "club": c.club_name,
             "pic": c.picture,
             "scores": [
-                {"window": "L5", "score": None, "started": None},
-                {"window": "L10", "score": round(c.average, 1) if c.average else None, "started": None},
-                {"window": "L40", "score": None, "started": None},
+                {"window": "L5", "score": c.l5, "started": c.started5},
+                {"window": "L10", "score": round(c.average, 1) if c.average else None, "started": c.started10},
+                {"window": "L40", "score": c.l40, "started": c.started40},
             ],
-            "stars": None,
+            "stars": c.stars,
         }
         for c in cards
     ]

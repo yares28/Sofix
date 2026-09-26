@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import recorded from "../e2e/fixtures/grid-response.json";
+import sorareRecorded from "../e2e/fixtures/sorare-response.json";
 import { SHOCK, runStats } from "./grid";
 import {
-  boardHref, chanceLabel, dateRange, difficultyMosaic, fixtureDays, gameweekHead, tableSummary,
+  boardHref, castForWeek, chanceLabel, dateRange, difficultyMosaic, fixtureDays, gameweekHead, headCast, tableSummary,
 } from "./home";
+import type { Sorare } from "./play";
 import { gameweekMatches } from "./matches";
 import type { ApiResponse, FixtureGrid, GridCell, GridTeam } from "./types";
 
@@ -48,7 +50,7 @@ describe("head", () => {
     expect(gameweekHead(grid, col(8), new Date(first + 60_000)).state).toMatchObject({ kind: "live", played: 0 });
   });
 
-  it("shows how the matches fall across the days and names the clearest favourite", () => {
+  it("shows how the matches fall across the days", () => {
     const head = gameweekHead(grid, col(8), new Date("2026-09-26T12:00:00Z"));
     expect(head.days.map((day) => [day.weekday, day.day, day.matches, day.done])).toEqual([
       ["Fri", "9", 1, 0],
@@ -56,35 +58,44 @@ describe("head", () => {
       ["Sun", "11", 4, 0],
       ["Mon", "12", 1, 0],
     ]);
-    expect(head.spotlight).toMatchObject({
-      label: "Clearest",
-      pick: "home",
-      home: { code: "FCB" },
-      away: { code: "GET" },
-      detail: "Barcelona to win",
-      score: null,
-    });
-    expect(head.spotlight?.chance).toBeGreaterThan(0.7);
-    expect(head.spotlight?.bar?.home).toBe(head.spotlight?.chance);
   });
 
-  it("points a played gameweek at its least expected result", () => {
+  it("keeps a moved game on a played gameweek's days", () => {
     const head = gameweekHead(grid, col(6), new Date("2026-09-21T12:00:00Z"));
-    expect(head.spotlight).toMatchObject({
-      label: "Least expected",
-      pick: null,
-      home: { code: "ALA" },
-      away: { code: "VAL" },
-      score: [0, 1],
-      bar: null,
-    });
-    expect(head.days.some((day) => day.done < day.matches)).toBe(true); // the game moved to October
+    expect(head.days.some((day) => day.done < day.matches)).toBe(true);
   });
 
-  it("points a live gameweek at the match that is on", () => {
+  it("marks a day that is partly played while the gameweek is on", () => {
     const head = gameweekHead(grid, col(7), new Date("2026-09-19T20:00:00Z"));
-    expect(head.spotlight?.label).toBe("Live");
     expect(head.days.some((day) => day.done > 0 && day.done < day.matches)).toBe(true);
+  });
+});
+
+describe("your cards in the header", () => {
+  const sorare = (sorareRecorded as { data: Sorare }).data;
+
+  it("ranks your highest projections and keeps one row per game", () => {
+    const week = sorare.weeks.find((item) => item.gameweek.id === sorare.nextId)!;
+    const cast = headCast(week.playing.players, week.gameweek.number, false);
+    expect(cast?.cards.map((card) => card.short)).toEqual(["Messi", "Álvarez", "Pedri", "Bouanga"]);
+    expect(cast?.cards[0]?.x).toBeGreaterThan(cast!.cards[1]!.x);
+    // Pedri and Cubarsí both play Celta; the game is listed once, for Pedri.
+    expect(cast?.games.map((game) => [game.player, game.opponent])).toEqual([
+      ["Messi", "Orlando City"],
+      ["Álvarez", "Rayo Vallecano"],
+      ["Pedri", "RC Celta"],
+    ]);
+  });
+
+  it("uses the week in the bar, and the one being planned when Sorare has not opened this week", () => {
+    expect(castForWeek(null, null)).toBeNull();
+    const own = castForWeek(sorare, "17");
+    const planned = castForWeek(sorare, null);
+    expect(own && own !== "none" && own.named).toBe(false);
+    expect(own && own !== "none" ? own.cards[0]?.short : null).toBe("Messi");
+    expect(planned && planned !== "none" && planned.named).toBe(true);
+    expect(planned && planned !== "none" ? planned.gw : null).toBe(17);
+    expect(castForWeek(sorare, "missing")).toBe("none");
   });
 });
 

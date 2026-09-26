@@ -10,7 +10,7 @@ import TableTile from "../components/home/TableTile";
 import SiteNav from "../components/SiteNav";
 import { loadGrid } from "../lib/api";
 import { legacyBoardUrl, openingColumn } from "../lib/grid";
-import { boardHref, gameweekHead } from "../lib/home";
+import { boardHref, castForWeek, gameweekHead } from "../lib/home";
 import { loadChances } from "../lib/homeData";
 import { loadSorare } from "../lib/playData";
 import { weekContext } from "../lib/weeks";
@@ -70,7 +70,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
     <>
       <SiteNav meta={meta} system={system} week={week} />
       <main className="hm">
-        <HomeHead head={gameweekHead(grid, column, new Date())} />
+        <HomeHead head={gameweekHead(grid, column, new Date())} cast={castForWeek(sorare, week.current?.gw ?? null)} />
         <div className="hm-bento">
           <FixturesTile grid={grid} column={column} href={href("/fixtures")} />
           <DifficultyTile grid={grid} column={column} href={href("/difficulty")} />

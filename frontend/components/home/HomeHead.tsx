@@ -1,8 +1,9 @@
-import { formatKickoff } from "../../lib/grid";
-import { dateRange, type GameweekHead, type HeadDay, type HeadState } from "../../lib/home";
-import Crest from "../Crest";
+import { formatKickoff, formatShortKickoff } from "../../lib/grid";
+import { dateRange, type GameweekHead, type HeadCast, type HeadDay, type HeadState } from "../../lib/home";
+import { competitionName } from "../AwayWeek";
+import SorareImage from "../play/SorareImage";
 
-const pct = (p: number) => `${Math.round(p * 100)}%`;
+const score = (x: number) => x.toFixed(1);
 
 function dayTone(day: HeadDay, state: HeadState, index: number): string {
   if (day.done === day.matches) return "done";
@@ -17,9 +18,9 @@ function kickoffLine(state: Extract<HeadState, { kind: "upcoming" }>): string {
   return state.confirmed ? when : `${when.split(",")[0]}, time TBC`;
 }
 
-/** The gameweek as a card: the number, the shape of the week, and the one match worth naming. */
-export default function HomeHead({ head }: { head: GameweekHead }) {
-  const { state, spotlight } = head;
+/** The gameweek as a card: the number, the shape of the week, then your best cards and their best games. */
+export default function HomeHead({ head, cast }: { head: GameweekHead; cast: HeadCast | "none" | null }) {
+  const { state } = head;
   const unit =
     state.kind === "upcoming"
       ? state.days > 0
@@ -87,41 +88,55 @@ export default function HomeHead({ head }: { head: GameweekHead }) {
         )}
       </div>
 
-      {spotlight && (
+      {cast === "none" ? (
+        <p className="hm-spot hm-spot-empty">None of your cards play this week.</p>
+      ) : cast ? (
         <div className="hm-spot">
-          <div className={`hm-side home${spotlight.pick === "home" ? " pick" : ""}`}>
-            <Crest team={spotlight.home} size={40} />
-            <div className="hm-club">
-              <b>{spotlight.home.code}</b>
-              <span>{spotlight.home.name}</span>
+          <div>
+            <p className="hm-kicker">
+              Best cards
+              {cast.named ? <span>Sorare GW{cast.gw}</span> : null}
+            </p>
+            <ol className="hm-cast">
+              {cast.cards.map((card) => (
+                <li key={card.name} aria-label={`${card.name}, projected ${score(card.x)}`}>
+                  <span className={`hm-art ${card.rarity}`} aria-hidden="true">
+                    <SorareImage src={card.pic} alt="" fill />
+                  </span>
+                  <span className="who" aria-hidden="true">
+                    <b>{score(card.x)}</b>
+                    <span>{card.short}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+          {cast.games.length > 0 && (
+            <div>
+              <p className="hm-kicker">Best games</p>
+              <ol className="hm-best">
+                {cast.games.map((game) => (
+                  <li key={game.key}>
+                    <SorareImage src={game.crest} alt="" width={20} height={20} />
+                    <span className="opp">
+                      <b>
+                        {game.venue === "H" ? "v" : "@"} {game.opponent}
+                      </b>
+                      <span>
+                        {competitionName(game.competition)} · {formatShortKickoff(game.kickoff)}
+                      </span>
+                    </span>
+                    <span className="xs">
+                      <b>{score(game.x)}</b>
+                      <span>{game.player}</span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
             </div>
-          </div>
-          <div className="hm-call">
-            {spotlight.score && (
-              <b className="hm-score">
-                {spotlight.score[0]}–{spotlight.score[1]}
-              </b>
-            )}
-            {spotlight.chance !== null && <b className={spotlight.score ? "hm-given" : "hm-pct"}>{pct(spotlight.chance)}</b>}
-            <span className="hm-kicker">{spotlight.label}</span>
-            <span className="hm-detail">{spotlight.detail}</span>
-            {spotlight.bar && (
-              <span className="bar3" aria-hidden="true">
-                <i className="h" style={{ flexGrow: spotlight.bar.home }} />
-                <i className="d" style={{ flexGrow: spotlight.bar.draw }} />
-                <i className="a" style={{ flexGrow: spotlight.bar.away }} />
-              </span>
-            )}
-          </div>
-          <div className={`hm-side away${spotlight.pick === "away" ? " pick" : ""}`}>
-            <Crest team={spotlight.away} size={40} />
-            <div className="hm-club">
-              <b>{spotlight.away.code}</b>
-              <span>{spotlight.away.name}</span>
-            </div>
-          </div>
+          )}
         </div>
-      )}
+      ) : null}
     </header>
   );
 }

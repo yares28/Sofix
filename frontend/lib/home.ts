@@ -1,5 +1,6 @@
 import { SHOCK, cellBucket, formatDay, formatShortKickoff, runStats, windowRange } from "./grid";
 import { gameweekMatches, type Match } from "./matches";
+import { nextWeek, weekPlan, type PlayerGame, type PlayingPlayer, type Sorare } from "./play";
 import { currentTable, type Outcome } from "./table";
 import type { Bucket, FixtureGrid, GridCell, GridTeam, Venue } from "./types";
 
@@ -36,44 +37,48 @@ export interface HeadDay {
   done: number;
 }
 
-export type HeadClub = Pick<GridTeam, "code" | "name" | "color" | "crest_url">;
-
-/**
- * The one match the header points at. Upcoming: the clearest favourite. Live: the game on now, else the next one.
- * Played: the least expected result.
- */
-export interface HeadSpotlight {
-  home: HeadClub;
-  away: HeadClub;
-  pick: "home" | "away" | null;
-  label: string;
-  detail: string;
-  chance: number | null;
-  score: [number, number] | null;
-  bar: { home: number; draw: number; away: number } | null;
-}
-
 export interface GameweekHead {
   number: number;
   from: string;
   to: string;
   matches: number;
   days: HeadDay[];
-  spotlight: HeadSpotlight | null;
   state: HeadState;
+}
+
+/** One of your cards in the header: the player, his projected score, and the art of a card you hold. */
+export interface HeadCard {
+  name: string;
+  short: string;
+  x: number;
+  pic: string;
+  rarity: string;
+}
+
+/** A game your players play, named for the one projected to score the most in it. */
+export interface HeadGame {
+  key: string;
+  opponent: string;
+  crest: string | null;
+  venue: PlayerGame["venue"];
+  competition: string;
+  kickoff: string;
+  player: string;
+  x: number;
+}
+
+export interface HeadCast {
+  /** Sorare's gameweek number, shown when these cards are not the LaLiga week's own. */
+  gw: number;
+  named: boolean;
+  cards: HeadCard[];
+  games: HeadGame[];
 }
 
 const playedOut = (status: GridCell["status"]) => status === "finished";
 
 const timesKnown = (grid: FixtureGrid, column: number) =>
   grid.teams.some((team) => (team.cells[column] ?? []).some((cell) => cell.date_confirmed));
-
-const clubOf = (team: GridTeam): HeadClub => ({
-  code: team.code,
-  name: team.name,
-  color: team.color,
-  crest_url: team.crest_url,
-});
 
 /** Matches grouped by Madrid date, in kickoff order. */
 function headDays(matches: Match[]): HeadDay[] {
@@ -93,54 +98,58 @@ function headDays(matches: Match[]): HeadDay[] {
   return days;
 }
 
-function callOf(match: Match): { pick: "home" | "away" | null; chance: number; detail: string; bar: HeadSpotlight["bar"] } | null {
-  const p = match.homeCell.prediction?.probabilities;
-  if (!p) return null;
-  const bar = { home: p.win, draw: p.draw, away: p.loss };
-  if (Math.abs(p.win - p.loss) < 0.005) return { pick: null, chance: p.draw, detail: "level", bar };
-  const pick = p.win > p.loss ? "home" : "away";
-  const club = pick === "home" ? match.home : match.away;
-  return { pick, chance: Math.max(p.win, p.loss), detail: `${club.name} to win`, bar };
+const shortName = (name: string) => name.split(" ").filter(Boolean).at(-1) ?? name;
+
+/**
+ * The header's cards and games. Cards are your highest projected scores. A game is one fixture, ranked by the
+ * best projection you have in it, so two of your players in the same match count once.
+ */
+export function headCast(players: PlayingPlayer[], gw: number, named: boolean): HeadCast | null {
+  if (!players.length) return null;
+  const cards = [...players]
+    .sort((a, b) => b.x - a.x || a.name.localeCompare(b.name))
+    .slice(0, 4)
+    .map((player): HeadCard => ({ name: player.name, short: shortName(player.name), x: player.x, pic: player.pic, rarity: player.rarity }));
+  const games = new Map<string, HeadGame>();
+  for (const player of players) {
+    for (const game of player.games) {
+      const key = `${game.kickoff}|${game.competition}|${game.opponent}`;
+      const existing = games.get(key);
+      if (existing && existing.x >= player.x) continue;
+      games.set(key, {
+        key,
+        opponent: game.opponent,
+        crest: game.opponentCrest,
+        venue: game.venue,
+        competition: game.competition,
+        kickoff: game.kickoff,
+        player: shortName(player.name),
+        x: player.x,
+      });
+    }
+  }
+  const ranked = [...games.values()].sort((a, b) => b.x - a.x || a.kickoff.localeCompare(b.kickoff)).slice(0, 3);
+  return { gw, named, cards, games: ranked };
 }
 
-function spotlightOf(match: Match, label: string, detail: string, chance: number | null, score: [number, number] | null, pick: "home" | "away" | null, bar: HeadSpotlight["bar"]): HeadSpotlight {
-  return { home: clubOf(match.home), away: clubOf(match.away), pick, label, detail, chance, score, bar };
-}
-
-/** The match worth putting on the header, or nothing when the gameweek has no forecast and no result. */
-function headSpotlight(matches: Match[], state: HeadState): HeadSpotlight | null {
-  if (state.kind === "played") {
-    const finished = matches.filter((m) => playedOut(m.homeCell.status) && m.homeCell.result);
-    finished.sort((a, b) => (a.homeCell.review?.surprise ?? 2) - (b.homeCell.review?.surprise ?? 2) || Date.parse(a.kickoff) - Date.parse(b.kickoff));
-    const match = finished[0];
-    if (!match?.homeCell.result) return null;
-    const review = match.homeCell.review;
-    const { goals_for, goals_against } = match.homeCell.result;
-    const shock = Boolean(review && review.surprise < SHOCK);
-    return spotlightOf(match, shock ? "Shock" : "Least expected", "given this", review?.outcome_chance ?? null, [goals_for, goals_against], null, null);
+/**
+ * The cards for the week in the bar. A week Sorare has opened uses only that gameweek — an empty one stays
+ * empty. A LaLiga week Sorare hasn't opened shows the gameweek being planned, and says so.
+ */
+export function castForWeek(sorare: Sorare | null, gw: string | null): HeadCast | "none" | null {
+  if (!sorare) return null;
+  if (gw) {
+    const plan = weekPlan(sorare, gw);
+    if (!plan?.playing.players.length) return "none";
+    return headCast(plan.playing.players, plan.gameweek.number, false);
   }
-  if (state.kind === "live") {
-    const live = matches.find((m) => m.homeCell.status === "live");
-    const next = matches.find((m) => !playedOut(m.homeCell.status) && m.homeCell.status !== "live");
-    const match = live ?? next;
-    if (!match) return null;
-    const call = callOf(match);
-    const when = formatShortKickoff(match.kickoff);
-    return spotlightOf(match, live ? "Live" : "Next", live ? (call?.detail ?? "on now") : when, call?.chance ?? null, null, call?.pick ?? null, call?.bar ?? null);
-  }
-  let best: { match: Match; call: NonNullable<ReturnType<typeof callOf>> } | null = null;
-  for (const match of matches) {
-    const call = callOf(match);
-    if (call && (!best || call.chance > best.call.chance)) best = { match, call };
-  }
-  if (!best) return null;
-  return spotlightOf(best.match, "Clearest", best.call.detail, best.call.chance, null, best.call.pick, best.call.bar);
+  const next = nextWeek(sorare);
+  return headCast(next.playing.players, next.gameweek.number, true);
 }
 
 /**
  * Before a gameweek: days (and hours) to its first kickoff. During it: how many games are done. After it: how many
- * results were shocks (the board's own definition, review.surprise under SHOCK). The days and the spotlight are
- * the rest of the header: how the matches sit across the week, and the one game worth naming.
+ * results were shocks (the board's own definition, review.surprise under SHOCK). The days are the shape of the week.
  *
  * "Played" is the backend's matchday flag (a single game moved weeks later doesn't hold a gameweek open), and
  * "under way" starts at the gameweek's first regular kickoff (date_from), so a game brought forward weeks early
@@ -169,7 +178,6 @@ export function gameweekHead(grid: FixtureGrid, column: number, now: Date): Game
     to: md.date_to,
     matches: counted.length,
     days: headDays(counted),
-    spotlight: headSpotlight(counted, state),
     state,
   };
 }

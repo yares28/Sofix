@@ -1,84 +1,164 @@
-import { formatKickoff, formatShortKickoff } from "../../lib/grid";
-import { dateRange, type GameweekHead } from "../../lib/home";
+import { formatKickoff } from "../../lib/grid";
+import { dateRange, type GameweekHead, type HeadCast, type HeadDay, type HeadGame, type HeadState } from "../../lib/home";
+import { competitionName } from "../AwayWeek";
+import SorareImage from "../play/SorareImage";
 
-const CLOCK = (
-  <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-    <circle cx="9" cy="9" r="6.8" fill="none" stroke="currentColor" strokeWidth="1.8" />
-    <path d="M9 5.2V9l2.6 1.6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-  </svg>
-);
-const TICK = (
-  <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-    <path d="m4 9.5 3 3 7-7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
+const score = (x: number) => x.toFixed(1);
+const pct = (p: number) => `${Math.round(p * 100)}%`;
 
-/** "Gameweek 8" and the page's one hero number: days to kickoff, games done while it's on, shocks once played. */
-export default function HomeHead({ head }: { head: GameweekHead }) {
+function gameLabel(game: HeadGame): string {
+  const teams = `${game.club} ${game.venue === "H" ? "v" : "against"} ${game.opponent}`;
+  if (game.win == null) return `${teams}, ${competitionName(game.competition)}`;
+  const sheet = game.cleanSheet == null ? "" : `, ${pct(game.cleanSheet)} clean sheet`;
+  return `${teams}, ${pct(game.win)} win${sheet}`;
+}
+
+function dayTone(day: HeadDay, state: HeadState, index: number): string {
+  if (day.done === day.matches) return "done";
+  if (state.kind === "live") return "now";
+  if (state.kind === "upcoming" && index === 0) return "next";
+  if (day.done < day.matches && state.kind === "played") return "next";
+  return "";
+}
+
+function kickoffLine(state: Extract<HeadState, { kind: "upcoming" }>): string {
+  const when = formatKickoff(state.kickoff);
+  return state.confirmed ? when : `${when.split(",")[0]}, time TBC`;
+}
+
+/** The gameweek as a card: the number, the shape of the week, then your best cards and their best games. */
+export default function HomeHead({ head, cast }: { head: GameweekHead; cast: HeadCast | "none" | null }) {
   const { state } = head;
-  const weekday = formatShortKickoff(head.from).split(" ")[0];
-  const count =
-    state.kind === "upcoming" ? (
+  const unit =
+    state.kind === "upcoming"
+      ? state.days > 0
+        ? state.days === 1
+          ? "day"
+          : "days"
+        : state.hours === 1
+          ? "hour"
+          : "hours"
+      : state.kind === "live"
+        ? `of ${state.total}`
+        : state.shocks === 1
+          ? "shock"
+          : "shocks";
+  const figure = state.kind === "upcoming" ? (state.days > 0 ? state.days : state.hours) : state.kind === "live" ? state.played : state.shocks;
+
+  return (
+    <header className={`hm-top ${state.kind}`}>
+      <div className="hm-id">
+        <h1>
+          <span className="hm-kicker">Gameweek </span>
+          <b>{head.number}</b>
+        </h1>
+        <p className="hm-when">{dateRange(head.from, head.to)}</p>
+      </div>
+
+      {head.days.length > 0 && (
+        <ol className="hm-days" aria-label="Matches by day">
+          {head.days.map((day, index) => (
+            <li key={day.label} className={dayTone(day, state, index)} aria-label={`${day.weekday} ${day.label}, ${day.matches} ${day.matches === 1 ? "match" : "matches"}`}>
+              <span className="wd">{day.weekday}</span>
+              <b>{day.day}</b>
+              <span className="pips" aria-hidden="true">
+                {Array.from({ length: day.matches }, (_, i) => (
+                  <i key={i} style={{ animationDelay: `${i * 40}ms` }} />
+                ))}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+
       <div className="hm-count">
-        <span className="ic">{CLOCK}</span>
-        <div>
-          <div className="n">
-            <b>{state.days > 0 ? state.days : state.hours}</b>
-            <span>{state.days > 0 ? (state.days === 1 ? "day" : "days") : state.hours === 1 ? "hour" : "hours"}</span>
-          </div>
+        <div className="n">
+          <b>{figure}</b>
+          <span>{unit}</span>
+        </div>
+        {state.kind === "upcoming" ? (
           <small>
             to kickoff
-            <br />
-            {state.confirmed ? formatKickoff(state.kickoff) : `${formatKickoff(state.kickoff).split(",")[0]}, time TBC`}
+            <span className="when">{kickoffLine(state)}</span>
           </small>
-        </div>
-      </div>
-    ) : state.kind === "live" ? (
-      <div className="hm-count live">
-        <span className="ic">
-          <span className="pulse" />
-        </span>
-        <div>
-          <div className="n">
-            <b>{state.played}</b>
-            <span>of {state.total}</span>
-          </div>
+        ) : state.kind === "live" ? (
           <small>
-            games played
-            <br />
-            gameweek under way
+            <span className="live-tag">
+              <span className="pulse" />
+              games played
+            </span>
           </small>
-        </div>
-      </div>
-    ) : (
-      <div className="hm-count played">
-        <span className="ic">{TICK}</span>
-        <div>
-          <div className="n">
-            <b>{state.shocks}</b>
-            <span>{state.shocks === 1 ? "shock" : "shocks"}</span>
-          </div>
+        ) : (
           <small>
-            results we didn&rsquo;t expect
-            <br />
-            {state.total} games played
+            unexpected
+            <span className="when">{state.total} played</span>
           </small>
+        )}
+      </div>
+
+      {cast === "none" ? (
+        <p className="hm-spot hm-spot-empty">None of your cards play this week.</p>
+      ) : cast ? (
+        <div className="hm-spot">
+          <div>
+            <p className="hm-kicker">
+              Best cards
+              {cast.named ? <span>Sorare GW{cast.gw}</span> : null}
+            </p>
+            <ol className="hm-cast">
+              {cast.cards.map((card) => (
+                <li key={card.name} aria-label={`${card.name}, projected ${score(card.x)}`}>
+                  <span className={`hm-art ${card.rarity}`} aria-hidden="true">
+                    <SorareImage src={card.pic} alt="" fill />
+                    <span className="hm-shine" />
+                  </span>
+                  <span className="who" aria-hidden="true">
+                    <b>{score(card.x)}</b>
+                    <span>{card.short}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+          {cast.games.length > 0 && (
+            <div>
+              <p className="hm-kicker">Best games</p>
+              <ol className="hm-best">
+                {cast.games.map((game) => (
+                  <li key={game.key} aria-label={gameLabel(game)}>
+                    <span className="sides">
+                      <span className="side">
+                        <SorareImage src={game.clubCrest} alt="" width={16} height={16} />
+                        <b>{game.club}</b>
+                      </span>
+                      <span className="side opp">
+                        <SorareImage src={game.opponentCrest} alt="" width={16} height={16} />
+                        <span>
+                          {game.venue === "H" ? "v" : "@"} {game.opponent}
+                        </span>
+                      </span>
+                    </span>
+                    {game.win == null ? (
+                      <span className="comp">{competitionName(game.competition)}</span>
+                    ) : (
+                      <span className="rates">
+                        <span>
+                          <b>{pct(game.win)}</b>
+                          <span>Win</span>
+                        </span>
+                        <span>
+                          <b>{game.cleanSheet == null ? "—" : pct(game.cleanSheet)}</b>
+                          <span>Clean sheet</span>
+                        </span>
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
         </div>
-      </div>
-    );
-  return (
-    <header className="hm-top">
-      <div>
-        <h1>Gameweek {head.number}</h1>
-        <p className="hm-sub">
-          <span>
-            {weekday} {dateRange(head.from, head.to)}
-          </span>
-          <span className="dot" aria-hidden="true" />
-          <span>{head.matches} matches</span>
-        </p>
-      </div>
-      {count}
+      ) : null}
     </header>
   );
 }

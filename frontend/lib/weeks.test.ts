@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { GameweekPlan, Sorare, TimelineWeek } from "./play";
 import type { FixtureGrid, GridMatchday } from "./types";
-import { byMonth, currentWeek, seasonWeeks, weekById, weekContext, weekDates, weekValue } from "./weeks";
+import { byMonth, currentWeek, seasonWeeks, weekById, weekContext, weekDates, weekOn, weekValue } from "./weeks";
 
 // The real shape of the 2026/27 season: LaLiga plays MD5–MD7 and then stops for an international break,
 // while Sorare keeps running a game week every few days.
@@ -154,6 +154,13 @@ describe("what the bar shows on a page", () => {
     expect(context().current!.number).toBe(17);
     expect(context().current!.md).toBeNull();
     expect(context({ w: "2026-10-09" }).current!.gw).toBeNull();
+  });
+
+  it("finds the week that contains today, not the one the app opens on", () => {
+    const weeks = seasonWeeks(grid, sorare, NOW);
+    expect(weekOn(weeks, new Date("2026-09-26T12:00:00Z"))!.number).toBe(17);
+    expect(weekOn(weeks, NOW)!.id).toBe("2026-09-22");
+    expect(weekOn([], NOW)).toBeNull();
   });
 
   it("gives back nothing when there is nothing", () => {

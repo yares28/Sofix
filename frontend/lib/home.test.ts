@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import recorded from "../e2e/fixtures/grid-response.json";
+import sorareRecorded from "../e2e/fixtures/sorare-response.json";
 import { SHOCK, runStats } from "./grid";
 import {
-  boardHref, chanceLabel, dateRange, difficultyMosaic, fixtureDays, gameweekHead, tableSummary, timelineEntries,
+  boardHref, castForWeek, chanceLabel, dateRange, difficultyMosaic, fixtureDays, gameweekHead, headCast, tableSummary,
 } from "./home";
+import type { Sorare } from "./play";
 import { gameweekMatches } from "./matches";
 import type { ApiResponse, FixtureGrid, GridCell, GridTeam } from "./types";
 
@@ -11,24 +13,8 @@ import type { ApiResponse, FixtureGrid, GridCell, GridTeam } from "./types";
 const grid = (recorded as ApiResponse<FixtureGrid>).data!;
 const col = (number: number) => grid.matchdays.findIndex((md) => md.number === number);
 
-describe("timeline", () => {
-  const entries = timelineEntries(grid, col(7));
-
-  it("lists every gameweek once, marking played ones and the opening one", () => {
-    const gws = entries.filter((e) => e.kind === "gw");
-    expect(gws).toHaveLength(grid.matchdays.length);
-    expect(gws.find((e) => e.number === 6)?.state).toBe("done");
-    expect(gws.find((e) => e.number === 7)?.state).toBe("next");
-    expect(gws.find((e) => e.number === 8)?.state).toBe("later");
-  });
-
-  it("shows LaLiga's long pause as a break between GW7 and GW8", () => {
-    const at = entries.findIndex((e) => e.kind === "gw" && e.number === 8);
-    expect(entries[at - 1]).toMatchObject({ kind: "break" });
-    expect(entries.filter((e) => e.kind === "break").length).toBeGreaterThanOrEqual(1);
-  });
-
-  it("writes date ranges the board's way", () => {
+describe("date ranges", () => {
+  it("writes them the board's way", () => {
     expect(dateRange("2026-10-09T19:00:00Z", "2026-10-12T19:00:00Z")).toBe("9–12 Oct");
     expect(dateRange("2026-09-30T19:00:00Z", "2026-10-02T19:00:00Z")).toBe("30 Sep – 2 Oct");
     expect(dateRange("2026-10-25T00:00:00Z", "2026-10-25T00:00:00Z")).toBe("25 Oct");
@@ -62,6 +48,57 @@ describe("head", () => {
   it("is under way from the first regular kickoff, even before a result arrives", () => {
     const first = Date.parse(grid.matchdays[col(8)]!.date_from);
     expect(gameweekHead(grid, col(8), new Date(first + 60_000)).state).toMatchObject({ kind: "live", played: 0 });
+  });
+
+  it("shows how the matches fall across the days", () => {
+    const head = gameweekHead(grid, col(8), new Date("2026-09-26T12:00:00Z"));
+    expect(head.days.map((day) => [day.weekday, day.day, day.matches, day.done])).toEqual([
+      ["Fri", "9", 1, 0],
+      ["Sat", "10", 4, 0],
+      ["Sun", "11", 4, 0],
+      ["Mon", "12", 1, 0],
+    ]);
+  });
+
+  it("keeps a moved game on a played gameweek's days", () => {
+    const head = gameweekHead(grid, col(6), new Date("2026-09-21T12:00:00Z"));
+    expect(head.days.some((day) => day.done < day.matches)).toBe(true);
+  });
+
+  it("marks a day that is partly played while the gameweek is on", () => {
+    const head = gameweekHead(grid, col(7), new Date("2026-09-19T20:00:00Z"));
+    expect(head.days.some((day) => day.done > 0 && day.done < day.matches)).toBe(true);
+  });
+});
+
+describe("your cards in the header", () => {
+  const sorare = (sorareRecorded as { data: Sorare }).data;
+
+  it("ranks your highest projections and keeps one row per game", () => {
+    const week = sorare.weeks.find((item) => item.gameweek.id === sorare.nextId)!;
+    const cast = headCast(week.playing.players, week.gameweek.number, false, grid);
+    expect(cast?.cards.map((card) => card.short)).toEqual(["Messi", "Álvarez", "Pedri", "Bouanga"]);
+    expect(cast?.cards[0]?.x).toBeGreaterThan(cast!.cards[1]!.x);
+    // Pedri and Cubarsí both play Celta; the game is listed once. Win and clean sheet are the club's own chances.
+    // Messi's game is MLS, which the model does not rate.
+    expect(cast?.games.map((game) => [game.club, game.opponent, game.win, game.cleanSheet])).toEqual([
+      ["Inter Miami CF", "Orlando City", null, null],
+      ["Atlético Madrid", "Rayo Vallecano", 0.621, 0.4],
+      ["Barcelona", "Celta", 0.602, 0.291],
+    ]);
+    expect(cast?.games[1]?.venue).toBe("H");
+    expect(cast?.games[2]?.venue).toBe("A");
+  });
+
+  it("uses the week in the bar, and the one being planned when Sorare has not opened this week", () => {
+    expect(castForWeek(null, null)).toBeNull();
+    const own = castForWeek(sorare, "17");
+    const planned = castForWeek(sorare, null);
+    expect(own && own !== "none" && own.named).toBe(false);
+    expect(own && own !== "none" ? own.cards[0]?.short : null).toBe("Messi");
+    expect(planned && planned !== "none" && planned.named).toBe(true);
+    expect(planned && planned !== "none" ? planned.gw : null).toBe(17);
+    expect(castForWeek(sorare, "missing")).toBe("none");
   });
 });
 

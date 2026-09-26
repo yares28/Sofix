@@ -22,15 +22,14 @@ export default function StatusPill({ syncedAt, system, current }: Props) {
 
   const pulse = now ? pulseOf(system, syncedAt, now) : null;
   const updated = now && syncedAt ? relativeTime(syncedAt, now) : null;
+  const label = pulse ? PILL_LABEL[pulse.state] : "Status";
+  const name = updated ? `Control Center: ${label}, updated ${updated}` : `Control Center: ${label}`;
 
   return (
-    <Link href="/control" className={`status-pill ${pulse?.state ?? ""}`} aria-current={current ? "page" : undefined}>
+    <Link href="/control" className={`status-pill ${pulse?.state ?? ""}`} aria-label={name} aria-current={current ? "page" : undefined}>
       <svg className="beat" viewBox="0 0 22 14" aria-hidden="true">
         <path d="M1 7h5l2-5 3 10 2-5h8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      <span className="visually-hidden">Control Center: </span>
-      <span>{pulse ? PILL_LABEL[pulse.state] : "Status"}</span>
-      {updated && <small>· updated {updated}</small>}
     </Link>
   );
 }

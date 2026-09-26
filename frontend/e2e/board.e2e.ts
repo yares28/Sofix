@@ -214,10 +214,9 @@ test("the gameweek selector moves every card, the grid, the fixtures and the tab
   const games = (await page.locator("table.standings tbody tr td:nth-child(3)").allTextContents()).map(Number);
   expect(Math.max(...games)).toBeLessThanOrEqual(past);
 
-  // "Now" is the week the app is on, whatever that week holds: here LaLiga is away, and the table says so
+  // Today sits beside the picker, not in its menu. Here that week has no LaLiga round, and the table says so
   // instead of the board quietly showing a round from another week.
-  await page.locator(".wk-trigger").click(); // the week picker in the header
-  await page.getByRole("button", { name: "Now" }).click();
+  await page.getByRole("button", { name: "Today" }).click();
   await expect(page).toHaveURL(/[?&]w=\d{4}-\d{2}-\d{2}/);
   await expect(page.locator(".ow-note")).toContainText("LaLiga isn't playing this week");
   await expect(page.getByRole("heading", { level: 2, name: "LaLiga table" })).toBeVisible();
@@ -529,19 +528,23 @@ test("home: the gameweek, its hero number, the three board tiles and the Sorare 
   await expect(page.getByRole("heading", { level: 1, name: "Fixtures & Difficulty" })).toBeVisible();
 });
 
-test("home: the timeline moves to a played gameweek and every tile follows", async ({ page }) => {
+test("home: the week in the bar moves to a played gameweek and every tile follows", async ({ page }) => {
   const past = openingMatchday - 2; // fully played
   await page.goto("/");
-  await page.getByRole("navigation", { name: "Gameweeks" }).getByRole("link", { name: new RegExp(`^GW${past}\\b`) }).click();
-  await expect(page).toHaveURL(new RegExp(`/\\?gw=${past}$`));
+  await expect(page.locator(".hm-timeline")).toHaveCount(0);
+  const picker = page.getByRole("group", { name: "Choose gameweek" });
+  await picker.getByRole("button", { expanded: false }).click();
+  await picker.getByRole("button", { name: "Sep", exact: true }).click();
+  await picker.getByRole("radio", { name: new RegExp(`GW${past}\\b`) }).click();
+  await expect(page).toHaveURL(/\?w=/);
   await expect(page.getByRole("heading", { level: 1, name: `Gameweek ${past}` })).toBeVisible();
   await expect(page.locator(".hm-count")).toContainText(/shocks?/);
   await expect(page.locator(".hm-fixtures .hm-fx-t").first()).toHaveText("FT");
   await expect(page.locator(".hm-table .hm-meta")).toHaveText(`after GW${past}`);
-  await expect(page.locator('.tl-item[aria-current="page"]')).toContainText(`GW${past}`);
 
-  await page.getByRole("link", { name: `Next gameweek, GW${past + 1}` }).click();
-  await expect(page).toHaveURL(new RegExp(`/\\?gw=${past + 1}$`));
+  await picker.getByRole("button", { expanded: false }).click();
+  await picker.getByRole("radio", { name: new RegExp(`GW${past + 1}\\b`) }).click();
+  await expect(page).toHaveURL(/\?w=/);
   await page.getByRole("link", { name: "Fixtures", exact: true }).last().click();
   await expect(page).toHaveURL(new RegExp(`/fixtures\\?gw=${past + 1}$`), { timeout: 30_000 });
   await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${past + 1} fixtures` })).toBeVisible();

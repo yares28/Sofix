@@ -12,14 +12,13 @@
 
 /* ---------- Status pill (nav) ---------- */
 .status-pill {
-  display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px 0 9px; border: 0; cursor: pointer;
-  border-radius: 999px; background: #fff; color: var(--ink); font-size: 13px; font-weight: 600; white-space: nowrap;
-  text-decoration: none; box-shadow: 0 0 0 1px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.06); transition: box-shadow .2s var(--ease);
+  display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; cursor: pointer;
+  border-radius: 50%; background: #fff; color: var(--ink); text-decoration: none;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.06); transition: box-shadow .2s var(--ease);
 }
 .status-pill:hover { box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.08); }
 .status-pill:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .status-pill[aria-current="page"] { box-shadow: 0 0 0 1.5px var(--ink), 0 1px 3px rgba(0,0,0,.06); }
-.status-pill small { color: var(--ink-2); font-weight: 500; font-size: 13px; }
 .beat { width: 22px; height: 14px; color: #34c759; flex: none; }
 .beat path { stroke-dasharray: 40; animation: beat 1.6s linear infinite; }
 @keyframes beat { from { stroke-dashoffset: 40; } to { stroke-dashoffset: -40; } }
@@ -297,7 +296,6 @@ main.cc-page { max-width: calc(1240px + 56px); }
   .cc-map { display: none; }
   .cc-flow { display: block; }
   .cc-qrrow { display: none; } /* a phone can't scan its own screen */
-  .status-pill small { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .cc-w, .cc-bar i, .cc-tube i, .cc-tube i::before, .cc-wire::after, .cc-orb::after, .cc-ecg path, .beat path,

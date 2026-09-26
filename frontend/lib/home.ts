@@ -1,5 +1,6 @@
 import { SHOCK, cellBucket, formatDay, formatShortKickoff, runStats, windowRange } from "./grid";
-import { gameweekMatches } from "./matches";
+import { gameweekMatches, type Match } from "./matches";
+import { nextWeek, weekPlan, type PlayerGame, type PlayingPlayer, type Sorare } from "./play";
 import { currentTable, type Outcome } from "./table";
 import type { Bucket, FixtureGrid, GridCell, GridTeam, Venue } from "./types";
 
@@ -10,42 +11,6 @@ import type { Bucket, FixtureGrid, GridCell, GridTeam, Venue } from "./types";
 
 const DAY_MS = 86_400_000;
 const HOUR_MS = 3_600_000;
-/** A pause longer than this between two gameweeks shows as a break on the timeline (international breaks). */
-const BREAK_DAYS = 10;
-
-// ---------------------------------------------------------------- timeline
-
-export type TimelineEntry =
-  | { kind: "gw"; column: number; number: number; from: string; to: string; state: "done" | "next" | "later"; tbc: boolean }
-  | { kind: "break"; from: string; to: string };
-
-const timesKnown = (grid: FixtureGrid, column: number) =>
-  grid.teams.some((team) => (team.cells[column] ?? []).some((cell) => cell.date_confirmed));
-
-/** Every gameweek in order, the opening one marked "next", with a break wherever LaLiga stops for more than ten days. */
-export function timelineEntries(grid: FixtureGrid, opening: number): TimelineEntry[] {
-  const entries: TimelineEntry[] = [];
-  grid.matchdays.forEach((md, column) => {
-    const prev = grid.matchdays[column - 1];
-    if (prev && Date.parse(md.date_from) - Date.parse(prev.date_to) > BREAK_DAYS * DAY_MS) {
-      entries.push({
-        kind: "break",
-        from: new Date(Date.parse(prev.date_to) + DAY_MS).toISOString(),
-        to: new Date(Date.parse(md.date_from) - DAY_MS).toISOString(),
-      });
-    }
-    entries.push({
-      kind: "gw",
-      column,
-      number: md.number,
-      from: md.date_from,
-      to: md.date_to,
-      state: md.finished ? "done" : column === opening ? "next" : "later",
-      tbc: !timesKnown(grid, column),
-    });
-  });
-  return entries;
-}
 
 /** "9–12 Oct", "30 Sep – 2 Oct" (Madrid dates). */
 export function dateRange(from: string, to: string): string {
@@ -63,19 +28,188 @@ export type HeadState =
   | { kind: "live"; played: number; total: number }
   | { kind: "played"; shocks: number; total: number };
 
+/** One Madrid day of the gameweek, and how many of its matches are already played. */
+export interface HeadDay {
+  label: string; // "9 Oct"
+  weekday: string; // "Fri"
+  day: string; // "9"
+  matches: number;
+  done: number;
+}
+
 export interface GameweekHead {
   number: number;
   from: string;
   to: string;
   matches: number;
+  days: HeadDay[];
   state: HeadState;
+}
+
+/** One of your cards in the header: the player, his projected score, and the art of a card you hold. */
+export interface HeadCard {
+  name: string;
+  short: string;
+  x: number;
+  pic: string;
+  rarity: string;
+}
+
+/** A game your players play. Win and clean sheet are that club's chances, and only for a LaLiga fixture we rate. */
+export interface HeadGame {
+  key: string;
+  /** Your player's club, then the other side. */
+  club: string;
+  opponent: string;
+  clubCrest: string | null;
+  opponentCrest: string | null;
+  venue: PlayerGame["venue"];
+  competition: string;
+  /** The club's chance of winning, and of a clean sheet. Null when the game is outside LaLiga. */
+  win: number | null;
+  cleanSheet: number | null;
+  /** The best projection you have in the game: it ranks the row, and stays off the row itself. */
+  x: number;
+}
+
+export interface HeadCast {
+  /** Sorare's gameweek number, shown when these cards are not the LaLiga week's own. */
+  gw: number;
+  named: boolean;
+  cards: HeadCard[];
+  games: HeadGame[];
 }
 
 const playedOut = (status: GridCell["status"]) => status === "finished";
 
+const timesKnown = (grid: FixtureGrid, column: number) =>
+  grid.teams.some((team) => (team.cells[column] ?? []).some((cell) => cell.date_confirmed));
+
+/** Matches grouped by Madrid date, in kickoff order. */
+function headDays(matches: Match[]): HeadDay[] {
+  const days: HeadDay[] = [];
+  for (const match of matches) {
+    const label = formatDay(match.kickoff);
+    const weekday = formatShortKickoff(match.kickoff).split(" ")[0] ?? "";
+    const done = playedOut(match.homeCell.status) ? 1 : 0;
+    const last = days[days.length - 1];
+    if (last && last.label === label) {
+      last.matches += 1;
+      last.done += done;
+    } else {
+      days.push({ label, weekday, day: label.split(" ")[0] ?? "", matches: 1, done });
+    }
+  }
+  return days;
+}
+
+const shortName = (name: string) => name.split(" ").filter(Boolean).at(-1) ?? name;
+
+/** Club words Sorare adds and the board does not: "FC Barcelona" and "Barcelona" are the same club. */
+const CLUB_WORDS = new Set(["fc", "cf", "ud", "rc", "cd", "ac", "sc", "sad", "de", "club"]);
+
+const clubKey = (name: string): string => {
+  const words = name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .split(" ")
+    .filter(Boolean);
+  const kept = words.filter((word) => !CLUB_WORDS.has(word));
+  return (kept.length ? kept : words).join(" ");
+};
+
+interface SideOutlook {
+  club: string;
+  opponent: string;
+  win: number | null;
+  cleanSheet: number | null;
+}
+
+/**
+ * Each club's own forecast for a fixture, keyed by club, venue and opponent. A season has one home meeting,
+ * so the names are the game. Anything we cannot name on both sides is left out: the model only rates LaLiga.
+ */
+function sideOutlook(grid: FixtureGrid): Map<string, SideOutlook> {
+  const byCode = new Map(grid.teams.map((team) => [team.code, team]));
+  const index = new Map<string, SideOutlook>();
+  for (const team of grid.teams) {
+    for (const column of team.cells) {
+      for (const cell of column) {
+        const opponent = byCode.get(cell.opponent_code);
+        if (!opponent) continue;
+        const key = `${clubKey(team.name)}|${cell.venue}|${clubKey(opponent.name)}`;
+        const next: SideOutlook = {
+          club: team.name,
+          opponent: opponent.name,
+          win: cell.prediction?.probabilities.win ?? null,
+          cleanSheet: cell.prediction?.clean_sheet ?? null,
+        };
+        const prev = index.get(key);
+        if (!prev || (prev.win === null && next.win !== null)) index.set(key, next);
+      }
+    }
+  }
+  return index;
+}
+
+/**
+ * The header's cards and games. Cards are your highest projected scores. A game is one fixture, ranked by the
+ * best projection you have in it, so two of your players in the same match count once. Win and clean sheet are
+ * your club's chances in that fixture when it is a LaLiga game on the board.
+ */
+export function headCast(players: PlayingPlayer[], gw: number, named: boolean, grid: FixtureGrid | null = null): HeadCast | null {
+  if (!players.length) return null;
+  const outlook = grid ? sideOutlook(grid) : null;
+  const cards = [...players]
+    .sort((a, b) => b.x - a.x || a.name.localeCompare(b.name))
+    .slice(0, 4)
+    .map((player): HeadCard => ({ name: player.name, short: shortName(player.name), x: player.x, pic: player.pic, rarity: player.rarity }));
+  const games = new Map<string, HeadGame>();
+  for (const player of players) {
+    for (const game of player.games) {
+      const key = `${game.kickoff}|${game.competition}|${game.opponent}`;
+      const existing = games.get(key);
+      if (existing && existing.x >= player.x) continue;
+      const forecast = player.club && outlook ? outlook.get(`${clubKey(player.club)}|${game.venue}|${clubKey(game.opponent)}`) : undefined;
+      games.set(key, {
+        key,
+        club: forecast?.club ?? player.club ?? "—",
+        opponent: forecast?.opponent ?? game.opponent,
+        clubCrest: player.crest,
+        opponentCrest: game.opponentCrest,
+        venue: game.venue,
+        competition: game.competition,
+        win: forecast?.win ?? null,
+        cleanSheet: forecast?.cleanSheet ?? null,
+        x: player.x,
+      });
+    }
+  }
+  const ranked = [...games.values()].sort((a, b) => b.x - a.x || a.key.localeCompare(b.key)).slice(0, 3);
+  return { gw, named, cards, games: ranked };
+}
+
+/**
+ * The cards for the week in the bar. A week Sorare has opened uses only that gameweek — an empty one stays
+ * empty. A LaLiga week Sorare hasn't opened shows the gameweek being planned, and says so.
+ */
+export function castForWeek(sorare: Sorare | null, gw: string | null, grid: FixtureGrid | null = null): HeadCast | "none" | null {
+  if (!sorare) return null;
+  if (gw) {
+    const plan = weekPlan(sorare, gw);
+    if (!plan?.playing.players.length) return "none";
+    return headCast(plan.playing.players, plan.gameweek.number, false, grid);
+  }
+  const next = nextWeek(sorare);
+  return headCast(next.playing.players, next.gameweek.number, true, grid);
+}
+
 /**
  * Before a gameweek: days (and hours) to its first kickoff. During it: how many games are done. After it: how many
- * results were shocks (the board's own definition, review.surprise under SHOCK).
+ * results were shocks (the board's own definition, review.surprise under SHOCK). The days are the shape of the week.
  *
  * "Played" is the backend's matchday flag (a single game moved weeks later doesn't hold a gameweek open), and
  * "under way" starts at the gameweek's first regular kickoff (date_from), so a game brought forward weeks early
@@ -86,22 +220,25 @@ export function gameweekHead(grid: FixtureGrid, column: number, now: Date): Game
   const { matches } = gameweekMatches(grid, column);
   const counted = matches.filter((m) => m.homeCell.status !== "postponed");
   const done = counted.filter((m) => playedOut(m.homeCell.status));
-  const base = { number: md.number, from: md.date_from, to: md.date_to, matches: counted.length };
-  if (md.finished) {
-    const shocks = done.filter((m) => m.homeCell.review && m.homeCell.review.surprise < SHOCK).length;
-    return { ...base, state: { kind: "played", shocks, total: done.length } };
-  }
   const wait = Date.parse(md.date_from) - now.getTime();
-  if (wait <= 0) return { ...base, state: { kind: "live", played: done.length, total: counted.length } };
+  const state: HeadState = md.finished
+    ? { kind: "played", shocks: done.filter((m) => m.homeCell.review && m.homeCell.review.surprise < SHOCK).length, total: done.length }
+    : wait <= 0
+      ? { kind: "live", played: done.length, total: counted.length }
+      : {
+          kind: "upcoming",
+          days: Math.floor(wait / DAY_MS),
+          hours: Math.floor((wait % DAY_MS) / HOUR_MS),
+          kickoff: md.date_from,
+          confirmed: timesKnown(grid, column),
+        };
   return {
-    ...base,
-    state: {
-      kind: "upcoming",
-      days: Math.floor(wait / DAY_MS),
-      hours: Math.floor((wait % DAY_MS) / HOUR_MS),
-      kickoff: md.date_from,
-      confirmed: timesKnown(grid, column),
-    },
+    number: md.number,
+    from: md.date_from,
+    to: md.date_to,
+    matches: counted.length,
+    days: headDays(counted),
+    state,
   };
 }
 

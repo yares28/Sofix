@@ -29,7 +29,7 @@ Every phase has two parts:
 | S2 | Home page (bento) · v2: the whole gameweek | ✅ v1 · ✅ v2 | ✅ v1 · ✅ v2 |
 | S3 | Data sync (public + your cards) | 🟡 waiting for approval | ⬜ (public sync moved into S2 v2) |
 | S4 | xScore model | ✅ | ⬜ (waiting on a played gameweek) |
-| S5 | My cards and Player search | ✅ | ⬜ |
+| S5 | My cards and Player search | ✅ v1 · ✅ v2 | ✅ `/cards` · 🟡 `/players` (index needs a live Sorare run) |
 | S6 | Apply (save lineups to Sorare) | ✅ | ✅ (needs Chrome to try for real) |
 | S7 | Overlay on sorare.com | ✅ | ⬜ |
 | S8 | Predicted vs actual | ⬜ | ⬜ |
@@ -551,10 +551,26 @@ LaLiga players with the price Sorare is actually quoting for them. Nothing was w
    publishes a LaLiga index (about 500 players) beside the rest of the payload and the page searches that —
    free, instant, and the same architecture as everything else.
 
-### B · Build — planned
-- ⬜ The collection in the payload: every card, not only the counts.
-- ⬜ A LaLiga index (form, projection, market value) from the squads, once per refresh.
-- ⬜ `/cards` and `/players`, with the comparison to what he already holds.
+### A · Think & show (v2, 2026-09-25) — the previews rebuilt
+
+The first previews were below the design bar in feel: My cards was a flat wall of 84 tiny tiles, its position
+shape a muddy greyscale bar; Player search was a striped spreadsheet with three-colour verdict pills. Both were
+rebuilt (`S5-cards.html`, `S5-search.html`) around one hero each and real hierarchy — My cards groups the
+collection into position **shelves** whose proportion bars carry the shape (38 DEF vs 10 GK), and Player search
+leads every result with the upgrade over the squad in green (`+27 on your FWD`) with price beside it. Both pass
+`npm run design`.
+
+### B · Build (2026-09-25)
+- ✅ The collection in the payload, card by card: `publish.collection_out` emits every usable card
+  (`read_models` key `sorare`, field `collection`) straight from cards already synced — no new Sorare calls — so
+  `/cards` is populated end to end. Types in `lib/play.ts` (`CollectionCard`).
+- ✅ `/cards` and `/players` built (`app/cards`, `app/players`, `components/cards/`, `app/cards.css`), pure logic
+  in `lib/cards.ts` (16 tests), a `Play · My cards · Players` sub-nav, and the home "My cards" tile now links to
+  `/cards`. The comparison to what he already holds (the fifth-best card per position) is `squadBar`/`verdict`.
+- 🟡 The LaLiga index (form, projection, market value from the squads): `sync.laliga_index` + `publish.market_out`
+  are in place and defensive (a schema mismatch leaves the index empty and never breaks a run), but the new
+  GraphQL needs the owner's `SORARE_API_KEY` to validate live. Until a real run populates `market`, `/players`
+  shows its empty state.
 
 ## S6 — Apply (the optimizer shipped in S2 v2)
 

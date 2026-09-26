@@ -271,7 +271,7 @@ function CardsTile({ data }: { data: Sorare }) {
   const sealed = data.cards.excluded.filter((card) => card.why === "sealed").length;
   const other = data.cards.excluded.length - sealed;
   return (
-    <HomeTile id="hm-cards" title="My cards" meta={data.user} className="hm-cards" index={5}>
+    <HomeTile id="hm-cards" title="My cards" meta={data.user} href="/cards" className="hm-cards" index={5}>
       <div className="hm-cards-grid">
         <div>
           <span className="lbl">You can play</span>

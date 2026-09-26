@@ -17,6 +17,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from app.sorare.client import SorareClient, SorareError
+from app.sorare.model import SORARE_POSITION
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +109,75 @@ ROOM_SCORES = """
 query($s:String!){ so5 { so5Leaderboard(slug:$s){ so5RankingsPaginated(page:0, pageSize:10){
   so5Rankings { ranking score } } } } }
 """
+
+
+# The LaLiga price index for the Player search page (S5). Built from the league's squads, not a live name
+# search, so browsing is free and instant on the page. Field shapes are from the S0/S5 findings
+# (docs/sorare_plan.md); the fetch is best-effort — any error leaves the index empty and the run carries on.
+MARKET = """
+query($s:String!){ football { competition(slug:$s){ clubs { nodes {
+  activePlayers(first: 40) { nodes {
+    slug displayName position pictureUrl avatarPictureUrl
+    activeClub { slug name shortName pictureUrl }
+    average: averageScore(type: LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
+    nextClassicFixtureProjectedScore
+    marketValue: commonPlayer { marketValue(rarity: limited) { eur } }
+  } }
+} } } } }
+"""
+
+
+def _market_price(node: dict[str, Any]) -> float | None:
+    """The euro price of a Limited card for this player, from whichever shape Sorare returns it in."""
+    holder = node.get("marketValue") or {}
+    value = holder.get("marketValue") if isinstance(holder, dict) else None
+    if isinstance(value, dict):
+        for key in ("eur", "value", "amount"):
+            if value.get(key) is not None:
+                try:
+                    return float(value[key])
+                except (TypeError, ValueError):
+                    return None
+    return None
+
+
+def laliga_index(client: SorareClient, competition: str = "laliga-es") -> list[dict[str, Any]]:
+    """Every LaLiga player Sorare is quoting a Limited price for, one row per player, priced players only.
+
+    Read from the league's clubs and their active players (1 + one call per club). Best-effort: a schema change
+    or a single missing field leaves the index empty rather than breaking the whole Sorare step.
+    """
+    try:
+        clubs = client.query(MARKET, {"s": competition})["football"]["competition"]["clubs"]["nodes"]
+    except (SorareError, KeyError, TypeError) as error:
+        logger.warning("laliga index unavailable, player search will be empty: %s", error)
+        return []
+    seen: set[str] = set()
+    rows: list[dict[str, Any]] = []
+    for club in clubs:
+        for player in (club.get("activePlayers") or {}).get("nodes") or []:
+            slug = player.get("slug")
+            if not slug or slug in seen:
+                continue
+            eur = _market_price(player)
+            if eur is None:
+                continue
+            seen.add(slug)
+            active = player.get("activeClub") or {}
+            rows.append(
+                {
+                    "slug": slug,
+                    "name": player.get("displayName") or slug,
+                    "pos": SORARE_POSITION.get(player.get("position", ""), "MID"),
+                    "club": active.get("shortName") or active.get("name"),
+                    "crest": active.get("pictureUrl"),
+                    "average": float(player.get("average") or 0.0),
+                    "projection": player.get("nextClassicFixtureProjectedScore"),
+                    "eur": eur,
+                    "pic": player.get("pictureUrl") or player.get("avatarPictureUrl") or "",
+                }
+            )
+    return rows
 
 
 def display_number(name: str, fallback: int) -> int:
@@ -444,6 +514,8 @@ def snapshot(
             client, past_gw["slug"], past_gw["number"], past_comps, references.get(past_gw["slug"])
         )
 
+    market = laliga_index(client)  # the Player search index (S5); empty if the fetch fails
+
     return {
         "fetchedAt": now.isoformat(),
         "user": user,
@@ -456,5 +528,6 @@ def snapshot(
         "history": scores,
         "references": references,
         "referenceFor": reference_for,
+        "market": market,
         "calls": client.calls,
     }

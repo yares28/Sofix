@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { GameweekPlan, Sorare, Status } from "./play";
 import { ago, heroOf, railOf, syncState } from "./sorareStatus";
 
-// The refresh schedule runs 09:17 and 00:43 Madrid every day (plus Tue and Fri), so between a Wednesday
-// afternoon build and a Friday 16:00 lock there are four runs.
+// The refresh schedule runs 09:17, 14:07 and 00:43 Madrid every day (plus Tue and Fri). Between a Wednesday
+// afternoon build and a Friday 16:00 lock, the last rebuild is 14:07, two hours before the cutoff.
 const BUILT = "2026-09-23T14:07:00+00:00"; // Wed 16:07 Madrid
 const LOCK = "2026-09-25T14:00:00+00:00"; // Fri 16:00 Madrid
 
@@ -40,7 +40,7 @@ describe("the state of the sync", () => {
     expect(sync.state).toBe("fresh");
     expect(sync.chip).toBe("synced 25 min ago");
     expect(sync.alert).toBeNull();
-    expect(sync.runs).toHaveLength(4);
+    expect(sync.runs).toHaveLength(6);
     expect(sync.runs.every((run) => !run.done)).toBe(true);
   });
 
@@ -88,9 +88,9 @@ describe("the hero number", () => {
   it("counts the rebuilds left, and says when the last one lands", () => {
     const sync = syncState(data(), week(), now("2026-09-23T14:32:00Z"))!;
     expect(heroOf(sync, now("2026-09-23T14:32:00Z"))).toEqual({
-      value: "4",
+      value: "6",
       unit: "runs",
-      caption: "left before the lock, the last at 09:17",
+      caption: "left before the lock, the last at 14:07",
     });
   });
 

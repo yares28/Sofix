@@ -6,6 +6,7 @@ name: Scheduled refresh
 on:
   schedule:
     - cron: "17 7 * * *" #   ~09:15 Madrid (summer) / 08:15 (winter): overnight results
+    - cron: "7 12 * * *" #   14:07 Madrid (summer) / 13:07 (winter): two hours before Sorare's 14:00 UTC cutoff
     - cron: "43 22 * * *" #  ~00:45 Madrid (summer) / 23:45 (winter): after the day's late games
     - cron: "23 13 * * 2" #  Tuesday after football-data.co.uk's ~13:00 UK update
     - cron: "23 17 * * 5" #  Friday after football-data.co.uk's ~17:00 UK update

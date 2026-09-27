@@ -18,7 +18,11 @@ describe("refresh schedule", () => {
   it("lists the runs of a Monday (daily ones only) in order", () => {
     // 21 Sep 2026 is a Monday
     const runs = runsBetween(new Date("2026-09-21T00:00:00Z"), new Date("2026-09-22T00:00:00Z"));
-    expect(runs.map((d) => d.toISOString())).toEqual(["2026-09-21T07:17:00.000Z", "2026-09-21T22:43:00.000Z"]);
+    expect(runs.map((d) => d.toISOString())).toEqual([
+      "2026-09-21T07:17:00.000Z",
+      "2026-09-21T12:07:00.000Z",
+      "2026-09-21T22:43:00.000Z",
+    ]);
   });
 
   it("adds Tuesday's extra run", () => {
@@ -27,7 +31,7 @@ describe("refresh schedule", () => {
   });
 
   it("finds the next run", () => {
-    expect(nextRun(new Date("2026-09-21T12:00:00Z"))?.toISOString()).toBe("2026-09-21T22:43:00.000Z");
+    expect(nextRun(new Date("2026-09-21T12:00:00Z"))?.toISOString()).toBe("2026-09-21T12:07:00.000Z");
   });
 
   it("reads Madrid's clock across midnight", () => {
@@ -37,7 +41,7 @@ describe("refresh schedule", () => {
 
   it("keeps today's runs in Madrid time", () => {
     const today = todaysRuns(new Date("2026-09-21T12:00:00Z")).map((d) => d.toISOString());
-    // Madrid's Monday: 00:43 (22:43 UTC Sunday) and 09:17; tonight's 00:43 belongs to Tuesday
-    expect(today).toEqual(["2026-09-20T22:43:00.000Z", "2026-09-21T07:17:00.000Z"]);
+    // Madrid's Monday: 00:43, 09:17 and 14:07 (two hours before a 16:00 Sorare cutoff). Tonight's 00:43 belongs to Tuesday.
+    expect(today).toEqual(["2026-09-20T22:43:00.000Z", "2026-09-21T07:17:00.000Z", "2026-09-21T12:07:00.000Z"]);
   });
 });

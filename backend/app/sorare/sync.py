@@ -116,50 +116,76 @@ query($s:String!){ so5 { so5Leaderboard(slug:$s){ so5RankingsPaginated(page:0, p
 
 
 # The LaLiga price index for the Player search page (S5). Built from the league's squads, not a live name
-# search, so browsing is free and instant on the page. Field shapes are from the S0/S5 findings
-# (docs/sorare_plan.md); the fetch is best-effort — any error leaves the index empty and the run carries on.
-MARKET = """
-query($s:String!){ football { competition(slug:$s){ clubs { nodes {
-  activePlayers(first: 40) { nodes {
+# search, so browsing is free and instant on the page. Sorare will not return activePlayers on the clubs
+# list, and a Limited in-season price is eurCents on MonetaryAmount (there is no `eur` field).
+CLUBS = """
+query($s:String!){ football { competition(slug:$s){ clubs { nodes { slug } } } } }
+"""
+
+SQUAD = """
+query($s:String!,$a:String){ football { club(slug:$s){ activePlayers(first: 50, after: $a) {
+  pageInfo { hasNextPage endCursor }
+  nodes {
     slug displayName position pictureUrl avatarPictureUrl
     activeClub { slug name shortName pictureUrl }
     average: averageScore(type: LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
     nextClassicFixtureProjectedScore
-    marketValue: commonPlayer { marketValue(rarity: limited) { eur } }
-  } }
-} } } } }
+    commonPlayer(rarity: limited) {
+      marketValue(rarity: limited, seasonEligibility: IN_SEASON) { eurCents }
+    }
+  } } } } }
 """
 
 
 def _market_price(node: dict[str, Any]) -> float | None:
-    """The euro price of a Limited card for this player, from whichever shape Sorare returns it in."""
-    holder = node.get("marketValue") or {}
-    value = holder.get("marketValue") if isinstance(holder, dict) else None
-    if isinstance(value, dict):
-        for key in ("eur", "value", "amount"):
-            if value.get(key) is not None:
-                try:
-                    return float(value[key])
-                except (TypeError, ValueError):
-                    return None
-    return None
+    """Euros for a Limited in-season card. Sorare sends the price in cents."""
+    common = node.get("commonPlayer") or {}
+    value = common.get("marketValue") if isinstance(common, dict) else None
+    if not isinstance(value, dict) or value.get("eurCents") is None:
+        return None
+    try:
+        return float(value["eurCents"]) / 100
+    except (TypeError, ValueError):
+        return None
+
+
+def _squad(client: SorareClient, club: str) -> list[dict[str, Any]]:
+    """One club's active players, paged. A club Sorare will not read is skipped, not fatal."""
+    players: list[dict[str, Any]] = []
+    after: str | None = None
+    for _ in range(4):  # 50 a page: a squad fits in one, the cap is only a runaway guard
+        page = client.query(SQUAD, {"s": club, "a": after})["football"]["club"]["activePlayers"]
+        players.extend(page.get("nodes") or [])
+        info = page.get("pageInfo") or {}
+        after = info.get("endCursor")
+        if not info.get("hasNextPage") or not after:
+            break
+    return players
 
 
 def laliga_index(client: SorareClient, competition: str = "laliga-es") -> list[dict[str, Any]]:
     """Every LaLiga player Sorare is quoting a Limited price for, one row per player, priced players only.
 
-    Read from the league's clubs and their active players (1 + one call per club). Best-effort: a schema change
-    or a single missing field leaves the index empty rather than breaking the whole Sorare step.
+    One call for the club list, then one call per club. Best-effort: a schema change leaves the index empty,
+    and one club that fails is skipped, rather than breaking the whole Sorare step.
     """
     try:
-        clubs = client.query(MARKET, {"s": competition})["football"]["competition"]["clubs"]["nodes"]
+        clubs = client.query(CLUBS, {"s": competition})["football"]["competition"]["clubs"]["nodes"]
     except (SorareError, KeyError, TypeError) as error:
         logger.warning("laliga index unavailable, player search will be empty: %s", error)
         return []
     seen: set[str] = set()
     rows: list[dict[str, Any]] = []
     for club in clubs:
-        for player in (club.get("activePlayers") or {}).get("nodes") or []:
+        club_slug = club.get("slug")
+        if not club_slug:
+            continue
+        try:
+            players = _squad(client, club_slug)
+        except (SorareError, KeyError, TypeError) as error:
+            logger.warning("laliga index skipped %s: %s", club_slug, error)
+            continue
+        for player in players:
             slug = player.get("slug")
             if not slug or slug in seen:
                 continue

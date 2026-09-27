@@ -197,9 +197,22 @@ async function throughSorare(operation, variables) {
   return answer ?? { state: "error" };
 }
 
-// From the Sofix app (only its own origin can connect, see manifest externally_connectable).
+/** Production is APP_URL. Local dev is this machine, on whatever port Next bound. */
+function fromApp(url) {
+  let page;
+  try {
+    page = new URL(url);
+  } catch {
+    return false;
+  }
+  if (page.origin === CONFIG.appUrl) return true;
+  return page.protocol === "http:" && (page.hostname === "localhost" || page.hostname === "127.0.0.1");
+}
+
+// From the Sofix app. Production is APP_URL; local dev is http://localhost or http://127.0.0.1
+// on any port (see manifest externally_connectable). Anything else is dropped.
 chrome.runtime.onMessageExternal.addListener((message, sender, reply) => {
-  if (!sender.url || new URL(sender.url).origin !== CONFIG.appUrl) return;
+  if (!sender.url || !fromApp(sender.url)) return;
   if (message?.type === "ping") {
     // Look at the open tab, but answer with whoever we already know so a slow page never hides the extension.
     refreshSession();

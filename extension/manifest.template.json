@@ -18,5 +18,7 @@
     { "matches": ["https://sorare.com/*"], "js": ["bridge.js"], "run_at": "document_start", "world": "MAIN" },
     { "matches": ["https://sorare.com/*"], "js": ["content.js"], "run_at": "document_idle" }
   ],
-  "externally_connectable": { "matches": ["__APP_ORIGIN__/*"] }
+  "externally_connectable": {
+    "matches": ["__APP_ORIGIN__/*", "http://localhost/*", "http://127.0.0.1/*"]
+  }
 }

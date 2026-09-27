@@ -570,10 +570,9 @@ leads every result with the upgrade over the squad in green (`+27 on your FWD`) 
 - ✅ Each card's L5 / L10 / L40 score, the share of those games he played, and his star tier. They ride on the
   cards query that already runs (no extra calls): last-five and last-forty averages, appearance counts, and
   `gameplayTier` (Star is four stars, Icon is five).
-- 🟡 The LaLiga index (form, projection, market value from the squads): `sync.laliga_index` + `publish.market_out`
-  are in place and defensive (a schema mismatch leaves the index empty and never breaks a run), but the new
-  GraphQL needs the owner's `SORARE_API_KEY` to validate live. Until a real run populates `market`, `/players`
-  shows its empty state.
+- ✅ The LaLiga index (form, projection, market value from the squads): `sync.laliga_index` + `publish.market_out`.
+  Sorare prices a Limited in-season card as `eurCents` and will not return `activePlayers` on the clubs list,
+  so the job reads each club on its own. A schema mismatch still leaves the index empty rather than failing the run.
 
 ## S6 — Apply (the optimizer shipped in S2 v2)
 

@@ -55,7 +55,15 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
   const planned = new Map((sorare?.weeks ?? []).map((week) => [week.gameweek.id, week]));
   const timeline = sorare?.timeline ?? [];
   const taken = new Set<string>();
+  const usedIds = new Set<string>();
   const weeks: Week[] = [];
+  // Two LaLiga rounds can sit inside one Sorare window. The id is a day, and it has to be unique or both
+  // rows write the same address and picking the second does nothing.
+  const claim = (preferred: string, extra: string) => {
+    const id = usedIds.has(preferred) ? `${preferred}-${extra}` : preferred;
+    usedIds.add(id);
+    return id;
+  };
 
   const fromSorare = (id: string): Partial<Week> => {
     const week: GameweekPlan | undefined = planned.get(id);
@@ -74,8 +82,9 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
     // Half-open [start, end): a Sorare week ends where the next begins, so a Monday round belongs to one of them.
     const week = timeline.find((item) => at(round.date_from!) >= at(item.start) && at(round.date_from!) < at(item.end));
     if (week) taken.add(week.id);
+    const startDay = day(week ? week.start : round.date_from!);
     weeks.push({
-      id: day(week ? week.start : round.date_from!),
+      id: claim(startDay, String(round.number)),
       from: week ? week.start : round.date_from!,
       to: week ? week.end : (round.date_to ?? round.date_from!),
       state: stateOf(week ? week.start : round.date_from!, week ? week.end : (round.date_to ?? round.date_from!), sorare, week?.id, now),
@@ -92,7 +101,7 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
   for (const item of timeline) {
     if (taken.has(item.id)) continue;
     weeks.push({
-      id: day(item.start),
+      id: claim(day(item.start), item.id),
       from: item.start,
       to: item.end,
       state: stateOf(item.start, item.end, sorare, item.id, now),

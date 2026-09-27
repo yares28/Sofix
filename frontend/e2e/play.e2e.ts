@@ -131,7 +131,8 @@ test("the gameweek that was played shows what each lineup really scored and won"
   // The week picker in the top bar is the only gameweek control there is.
   await page.goto("/play");
   await page.locator(".wk-trigger").click();
-  await page.locator(".wk-panel").getByRole("radio", { name: /GW15/ }).click();
+  // September holds two GW15 rows (different LaLiga rounds). The played one is the replay.
+  await page.locator(".wk-panel").getByRole("radio", { name: /^GW15 · LaLiga GW6\b/ }).click();
   await expect(page).toHaveURL(/\/play\?w=\d{4}-\d{2}-\d{2}$/);
   await expect(page.getByRole("heading", { level: 1, name: "Gameweek 15" })).toBeVisible();
   await expect(page.locator(".pl-eyebrow").first()).toContainText("Sorare · played");
@@ -236,13 +237,14 @@ test("the week in the bar moves the whole app, a month at a time", async ({ page
 
   await trigger.click();
   const panel = page.locator(".wk-panel");
-  await expect(panel.getByRole("radio", { name: /GW15/ })).toContainText("our plan's replay");
-  await expect(panel.getByRole("radio", { name: /GW17/ })).toHaveAttribute("aria-checked", "true");
+  const played = panel.getByRole("radio", { name: /^GW15 · LaLiga GW6\b/ });
+  await expect(played).toContainText("our plan's replay");
+  await expect(panel.getByRole("radio", { name: /^GW17\b/ })).toHaveAttribute("aria-checked", "true");
   // A month at a time, so a whole season stays one screen.
   await expect(panel.locator(".wk-months button").first()).toBeVisible();
   await expect(panel.locator(".wk-foot")).toContainText("open on Sorare");
 
-  await panel.getByRole("radio", { name: /GW15/ }).click();
+  await played.click();
   await expect(page).toHaveURL(/\/play\?w=\d{4}-\d{2}-\d{2}$/);
   await expect(page.getByRole("heading", { level: 1, name: "Gameweek 15" })).toBeVisible();
   await expect(trigger).toContainText("GW15");

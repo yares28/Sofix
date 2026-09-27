@@ -87,6 +87,21 @@ describe("the weeks of a season", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  it("gives two rounds inside one Sorare week different addresses", () => {
+    const squeezed = seasonWeeks(
+      { matchdays: [
+        { number: 6, date_from: "2026-09-18T18:00:00Z", date_to: "2026-09-19T19:00:00Z", finished: true },
+        { number: 7, date_from: "2026-09-20T19:00:00Z", date_to: "2026-09-21T19:00:00Z", finished: true },
+      ] } as FixtureGrid,
+      { weeks: [], timeline: [TIMELINE[2]!], nextId: null } as unknown as Sorare,
+      NOW,
+    );
+    expect(squeezed.map((w) => w.md)).toEqual([6, 7]);
+    expect(squeezed.map((w) => w.number)).toEqual([15, 15]);
+    expect(new Set(squeezed.map((w) => w.id)).size).toBe(2);
+    expect(weekById(squeezed, squeezed[1]!.id)!.md).toBe(7);
+  });
+
   it("carries what the job planned, and marks a replay as ours", () => {
     expect(weekValue(weeks.find((w) => w.number === 17)!)).toEqual({ value: "≈55", note: "1 plan" });
     expect(weekValue(weeks.find((w) => w.number === 15)!)).toEqual({ value: "500", note: "our plan's replay" });

@@ -535,7 +535,8 @@ test("home: the week in the bar moves to a played gameweek and every tile follow
   const picker = page.getByRole("group", { name: "Choose gameweek" });
   await picker.getByRole("button", { expanded: false }).click();
   await picker.getByRole("button", { name: "Sep", exact: true }).click();
-  await picker.getByRole("radio", { name: new RegExp(`GW${past}\\b`) }).click();
+  // The name starts with the LaLiga round. A later "Sorare GW7" on another row must not match.
+  await picker.getByRole("radio", { name: new RegExp(`^GW${past}\\b`) }).click();
   await expect(page).toHaveURL(/\?w=/);
   await expect(page.getByRole("heading", { level: 1, name: `Gameweek ${past}` })).toBeVisible();
   await expect(page.locator(".hm-count")).toContainText(/shocks?/);
@@ -543,7 +544,8 @@ test("home: the week in the bar moves to a played gameweek and every tile follow
   await expect(page.locator(".hm-table .hm-meta")).toHaveText(`after GW${past}`);
 
   await picker.getByRole("button", { expanded: false }).click();
-  await picker.getByRole("radio", { name: new RegExp(`GW${past + 1}\\b`) }).click();
+  await picker.getByRole("radio", { name: new RegExp(`^GW${past + 1}\\b`) }).click();
+  await expect(page.getByRole("heading", { level: 1, name: `Gameweek ${past + 1}` })).toBeVisible();
   await expect(page).toHaveURL(/\?w=/);
   await page.getByRole("link", { name: "Fixtures", exact: true }).last().click();
   await expect(page).toHaveURL(new RegExp(`/fixtures\\?gw=${past + 1}$`), { timeout: 30_000 });

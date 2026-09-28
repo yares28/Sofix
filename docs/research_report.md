@@ -249,7 +249,7 @@ proof of third-party asset uptime.
 3. ~~Remove the stale weather step/comment from the E2E mock/registry description and replace out-of-league mock players.~~ Done 2026-09-28.
 4. Accumulate scored pre-lock forecasts; fit/replay S4 only under a declared holdout gate.
 5. Measure reward-probability calibration and correlated outcomes before refining the percentage.
-6. Add fake-Sorare extension E2E plus one live Check/Draft/Enter owner acceptance test.
+6. ~~Add fake-Sorare extension E2E~~ (done 2026-09-28, `frontend/e2e/apply.e2e.ts`) plus one live Check/Draft/Enter owner acceptance test.
 7. Retire SorareExt only after the new extension passes that acceptance test and recovery steps are written.
 
 ## Documentation map and authority

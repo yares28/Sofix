@@ -164,11 +164,11 @@ export default function ApplySheet({
       </>
     ) : stage === 1 ? (
       <>
-        saved as a draft · <b>not entered</b>
+        checked · <b>nothing saved yet</b>
       </>
     ) : stage === 2 ? (
       <>
-        ready to enter · <b>nothing spent yet</b>
+        saved as a draft · <b>not entered</b>
       </>
     ) : (
       <>

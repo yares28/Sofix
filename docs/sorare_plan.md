@@ -111,6 +111,8 @@ run. The E2E fixture now holds only LaLiga clubs.
 - [x] Show Sorare preview feedback/errors/bonuses/costs.
 - [x] Dedicated Draft press and separate Enter confirmation.
 - [x] No write control without extension/tab/account preconditions.
+- [x] Fake-Sorare E2E: the three presses, Sorare's refusal in its own words, and what it already holds, all
+  driven through a stubbed `chrome.runtime.sendMessage` (`frontend/e2e/apply.e2e.ts`).
 - [ ] Real owner test: Check, Draft, update/undo and safe Enter; document rejection/session recovery and fees.
 
 ## S7 — overlay 🚧

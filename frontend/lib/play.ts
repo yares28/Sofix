@@ -135,6 +135,8 @@ export type PlayerGame = {
 };
 
 export type PlayingPlayer = {
+  /** His Sorare slug. Payloads published before the overlay do not carry it, so it may be absent. */
+  player?: string;
   name: string;
   pos: "GK" | "DEF" | "MID" | "FWD";
   avatar: string;

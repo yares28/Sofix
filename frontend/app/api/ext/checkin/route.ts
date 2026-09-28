@@ -1,8 +1,8 @@
-import { timingSafeEqual } from "node:crypto";
 import { revalidateTag } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { database } from "../../../../lib/db";
+import { authorised } from "../../../../lib/extAuth";
 import { SYSTEM_TAG } from "../../../../lib/system";
 
 // The Chrome extension says it is alive and which Sorare account is signed in (extension/background.js).
@@ -14,16 +14,6 @@ const CheckIn = z.object({
   version: z.string().regex(/^\d+\.\d+\.\d+$/),
   sorare_user: z.string().trim().min(1).max(40).nullable(),
 });
-
-function authorised(request: NextRequest): boolean {
-  const expected = process.env.EXTENSION_TOKEN ?? "";
-  if (expected.length < 32) return false;
-  const [scheme, supplied] = (request.headers.get("authorization") ?? "").split(" ");
-  if (scheme?.toLowerCase() !== "bearer" || !supplied) return false;
-  const a = Buffer.from(supplied);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
 
 export async function POST(request: NextRequest) {
   if (!authorised(request)) return NextResponse.json({ ok: false, error: "Not authorised." }, { status: 401 });

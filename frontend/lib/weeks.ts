@@ -61,7 +61,15 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
   const planned = new Map((sorare?.weeks ?? []).map((week) => [week.gameweek.id, week]));
   const timeline = sorare?.timeline ?? [];
   const taken = new Set<string>();
+  const usedIds = new Set<string>();
   const weeks: Week[] = [];
+  // Every week writes its own address, and a day can be claimed only once: two rows sharing one address is
+  // two ways to ask for different things and get the first.
+  const claim = (preferred: string, extra: string) => {
+    const id = usedIds.has(preferred) ? `${preferred}-${extra}` : preferred;
+    usedIds.add(id);
+    return id;
+  };
 
   const fromSorare = (id: string): Partial<Week> => {
     const week: GameweekPlan | undefined = planned.get(id);
@@ -86,7 +94,9 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
     const to = round.date_to ?? round.date_from!;
     const span = week ? { from: week.start, to: week.end } : null;
     weeks.push({
-      id: day(from),
+      // Unique by construction now that a round keeps its own days, and still claimed: a round can start on
+      // the same calendar day a later Sorare window opens.
+      id: claim(day(from), String(round.number)),
       from,
       to,
       span,
@@ -104,7 +114,7 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
   for (const item of timeline) {
     if (taken.has(item.id)) continue;
     weeks.push({
-      id: day(item.start),
+      id: claim(day(item.start), item.id),
       from: item.start,
       to: item.end,
       span: { from: item.start, to: item.end },

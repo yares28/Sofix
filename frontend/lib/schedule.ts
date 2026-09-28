@@ -2,7 +2,20 @@
  * The board refresh schedule, exactly as `.github/workflows/refresh.yml` runs it (cron in UTC).
  * schedule.test.ts reads the workflow file and fails if the two ever drift apart.
  */
-export const REFRESH_CRONS = ["17 7 * * *", "43 22 * * *", "23 13 * * 2", "23 17 * * 5"] as const;
+export const REFRESH_CRONS = [
+  "17 7 * * *",
+  "7 12 * * *",
+  "37 13 * * 1",
+  "7 15 * * 1",
+  "7 15 * * 2",
+  "37 13 * * 3",
+  "7 15 * * 3",
+  "37 13 * * 4",
+  "7 15 * * 4",
+  "43 22 * * *",
+  "23 13 * * 2",
+  "23 17 * * 5",
+] as const;
 
 export type CronSpec = { minute: number; hour: number; weekday: number | null };
 

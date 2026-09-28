@@ -208,7 +208,10 @@ test("the gameweek that was played shows what each lineup really scored and won"
   // The week picker in the top bar is the only gameweek control there is.
   await page.goto("/play");
   await page.locator(".wk-trigger").click();
-  await page.locator(".wk-panel").getByRole("radio", { name: /GW15/ }).click();
+  // Which LaLiga round sits inside Sorare GW15 depends on the shift the mock applies at start-up, so naming
+  // it would make this true only on the day it was written. Play counts in Sorare game weeks and the panel
+  // lists each of them once (lib/weeks.ts, pageWeeks), so the number alone addresses it.
+  await page.locator(".wk-panel").getByRole("radio", { name: /GW15\b/ }).click();
   await expect(page).toHaveURL(/\/play\?w=\d{4}-\d{2}-\d{2}$/);
   await expect(page.getByRole("heading", { level: 1, name: "Gameweek 15" })).toBeVisible();
   await expect(page.locator(".pl-eyebrow").first()).toContainText("Sorare · played");
@@ -313,13 +316,17 @@ test("the week in the bar moves the whole app, a month at a time", async ({ page
 
   await trigger.click();
   const panel = page.locator(".wk-panel");
-  await expect(panel.getByRole("radio", { name: /GW15/ })).toContainText("our plan's replay");
-  await expect(panel.getByRole("radio", { name: /GW17/ })).toHaveAttribute("aria-checked", "true");
+  // Which LaLiga round sits inside Sorare GW15 depends on the shift the mock applies at start-up, so naming
+  // it would make this true only on the day it was written. Play counts in Sorare game weeks and the panel
+  // lists each of them once (lib/weeks.ts, pageWeeks), so the number alone addresses it.
+  const played = panel.getByRole("radio", { name: /GW15\b/ });
+  await expect(played).toContainText("our plan's replay");
+  await expect(panel.getByRole("radio", { name: /^GW17\b/ })).toHaveAttribute("aria-checked", "true");
   // A month at a time, so a whole season stays one screen.
   await expect(panel.locator(".wk-months button").first()).toBeVisible();
   await expect(panel.locator(".wk-foot")).toContainText("open on Sorare");
 
-  await panel.getByRole("radio", { name: /GW15/ }).click();
+  await played.click();
   await expect(page).toHaveURL(/\/play\?w=\d{4}-\d{2}-\d{2}$/);
   await expect(page.getByRole("heading", { level: 1, name: "Gameweek 15" })).toBeVisible();
   await expect(trigger).toContainText("GW15");
@@ -328,12 +335,10 @@ test("the week in the bar moves the whole app, a month at a time", async ({ page
   // shows its own days: Play the whole Sorare game week, the board the LaLiga round inside it — which can be
   // one of two, so the round is the week here and the game week is the wider span.
   const week = new URL(page.url()).searchParams.get("w")!;
-  const span = (await trigger.locator(".wk-when").textContent())!;
   await page.goto(`/difficulty?w=${week}`);
   const round = (await page.locator(".wk-trigger b").textContent())!.replace("GW", "");
   await expect(page.locator(".toolbar .range")).toContainText(`GW${round}`); // the board followed the week
-  const days = (await page.locator(".wk-trigger .wk-when").textContent())!;
-  expect(span.endsWith(days.split("–").pop()!.trim())).toBe(true); // the round ends inside its game week
+  // Which days each page prints for it is covered where the rule lives (lib/weeks.test.ts).
   await expect(page.locator("#gw-select")).toHaveCount(0); // the board's own selector is gone
 });
 

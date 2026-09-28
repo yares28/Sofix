@@ -6,6 +6,17 @@ name: Scheduled refresh
 on:
   schedule:
     - cron: "17 7 * * *" #   ~09:15 Madrid (summer) / 08:15 (winter): overnight results
+    - cron: "7 12 * * *" #   14:07 Madrid (summer) / 13:07 (winter): two hours before Sorare's 14:00 UTC cutoff
+    # Mondays, and Tue–Thu when Europe plays, the deadline is 17:30 or 19:00 Madrid instead of 16:00.
+    # Summer times below; in winter each one lands an hour earlier and still before the lock.
+    # Tuesday's 15:23 football-data run already covers the 17:30 deadline, so only 19:00 is added that day.
+    - cron: "37 13 * * 1" #  Mon 15:37 Madrid: two hours before a 17:30 deadline
+    - cron: "7 15 * * 1" #   Mon 17:07 Madrid: two hours before a 19:00 deadline
+    - cron: "7 15 * * 2" #   Tue 17:07 Madrid: two hours before a 19:00 deadline
+    - cron: "37 13 * * 3" #  Wed 15:37 Madrid: two hours before a 17:30 deadline
+    - cron: "7 15 * * 3" #   Wed 17:07 Madrid: two hours before a 19:00 deadline
+    - cron: "37 13 * * 4" #  Thu 15:37 Madrid: two hours before a 17:30 deadline
+    - cron: "7 15 * * 4" #   Thu 17:07 Madrid: two hours before a 19:00 deadline
     - cron: "43 22 * * *" #  ~00:45 Madrid (summer) / 23:45 (winter): after the day's late games
     - cron: "23 13 * * 2" #  Tuesday after football-data.co.uk's ~13:00 UK update
     - cron: "23 17 * * 5" #  Friday after football-data.co.uk's ~17:00 UK update

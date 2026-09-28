@@ -99,7 +99,9 @@ available; multi-game chance of any appearance plus best-of-two uplift; `xScore=
   improvement over fifth-best owned same-position card.
 - [x] Subnav/home links, tests, browser/design checks.
 
-Production index is `laliga-es`; E2E still has Inter Miami fixture examples to replace.
+Production index is `laliga-es`, read club by club: Sorare prices a Limited in-season card as `eurCents` and
+will not return `activePlayers` on the clubs list. A schema mismatch leaves the index empty rather than failing a
+run. The E2E fixture now holds only LaLiga clubs.
 
 ## S6 — Apply 🚧
 

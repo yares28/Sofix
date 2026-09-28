@@ -488,6 +488,7 @@ def gameweek_payload(
     # app has nothing else to show, so the card, the chance he plays and what he is expected to score go with it.
     players = [
         {
+            "player": card.player,
             "name": card.name,
             "pos": card.positions[0],
             "avatar": card.avatar,

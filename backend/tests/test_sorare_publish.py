@@ -297,6 +297,14 @@ def test_sealed_cards_are_left_out_and_counted(payload):
     assert payload["cards"]["inSeason"] == 10
 
 
+def test_every_player_who_plays_is_named_by_his_sorare_slug(payload):
+    # The sorare.com overlay finds a player by the slug Sorare's own page carries, never by his name.
+    players = publish.week_of(payload)["playing"]["players"]
+    assert players
+    assert all(p["player"] and isinstance(p["player"], str) for p in players)
+    assert len({p["player"] for p in players}) == len(players)
+
+
 def test_only_competitions_you_can_field_a_lineup_in_are_offered(payload):
     playable = {o["name"] for o in publish.week_of(payload)["playable"]}
     assert "LaLiga" in playable and "All Star" in playable

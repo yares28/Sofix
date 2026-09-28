@@ -6,10 +6,10 @@
 // It asks nothing on its own: every call below answers a message, and the only two that write anything save a
 // draft and enter a competition, each behind its own click in the app (docs/sorare_plan.md, S6).
 (() => {
-  // 2: a tab that was already open keeps the previous bridge. A new one must still install, or that tab
+  // 3: a tab that was already open keeps the previous bridge. A new one must still install, or that tab
   // stays invisible. The message source is versioned for the same reason: the old bridge would answer first.
-  if (window.__sofixBridge === 2) return;
-  window.__sofixBridge = 2;
+  if (window.__sofixBridge === 3) return;
+  window.__sofixBridge = 3;
 
   const originalFetch = window.fetch;
   let endpoint = null; // { url, headers } of the last GraphQL request Sorare's page made
@@ -33,7 +33,7 @@
         const now = Date.now();
         if (now - sawGraphQLAt > 2000) {
           sawGraphQLAt = now;
-          window.postMessage({ source: "sofix-bridge-2", type: "ready" }, location.origin);
+          window.postMessage({ source: "sofix-bridge-3", type: "ready" }, location.origin);
         }
       }
     } catch {
@@ -51,7 +51,19 @@
     SofixMyLineups: `query SofixMyLineups($slug: String!) { so5 { so5Leaderboard(slug: $slug) {
       id slug teamsCap
       mySo5Lineups { id name draft confirmable deletable rewardMultiplier
-        so5Appearances(includeSubs: true) { id card { slug } } } } } }`,
+        so5Appearances(includeSubs: true) { id anyCard { slug } } } } } }`,
+
+    // Every lineup the signed-in manager put in one exact gameweek. This is deliberately fixture-level:
+    // it also finds competitions that Sofix did not include in one of its own optimized plans.
+    SofixFixtureLineups: `query SofixFixtureLineups($slug: String!) { so5 { so5Fixture(slug: $slug) {
+      id slug gameWeek
+      mySo5Lineups(withTraining: false) { id name draft confirmable
+        so5Leaderboard { slug displayName }
+        so5Appearances(includeSubs: true) {
+          id rarity pictureUrl(derivative: "tinified") player { displayName } anyCard { slug }
+        }
+      }
+    } } }`,
 
     // Sorare's own verdict on a lineup, before anything is written.
     SofixPreviewLineup: `query SofixPreviewLineup($slug: String!, $appearances: [So5AppearanceInput!]!) {
@@ -123,9 +135,9 @@
   }
 
   window.addEventListener("message", async (event) => {
-    if (event.source !== window || !event.data || event.data.source !== "sofix-content-2") return;
+    if (event.source !== window || !event.data || event.data.source !== "sofix-content-3") return;
     const { type, id, operation, variables } = event.data;
     const result = type === "whoami" ? await whoAmI() : type === "ask" ? await ask(operation, variables) : null;
-    if (result) window.postMessage({ source: "sofix-bridge-2", id, ...result }, location.origin);
+    if (result) window.postMessage({ source: "sofix-bridge-3", id, ...result }, location.origin);
   });
 })();

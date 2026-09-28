@@ -99,7 +99,7 @@ export default function AwayWeek({
               </span>
               <span className="opp">
                 {player.games.map((game) => (
-                  <Opponent key={game.kickoff} game={game} />
+                  <Opponent key={game.kickoff} game={game} player={player} />
                 ))}
               </span>
             </li>
@@ -125,7 +125,7 @@ export default function AwayWeek({
         id="away-t"
         hero={String(games.length)}
         unit={games.length === 1 ? "game" : "games"}
-        title="Your week"
+        title="No LaLiga this week"
         caption={
           <>
             <b>{players.length}</b> of your players · {dates} · LaLiga is away
@@ -146,13 +146,25 @@ export default function AwayWeek({
                     {row.player.pos} · {row.player.club ?? "no club"}
                   </span>
                 </span>
-                <Opponent game={row.game} />
+                <Opponent game={row.game} player={row.player} />
+                <span className="ow-forecast" aria-label={`${Math.round(row.player.p * 100)}% chance of playing`}>
+                  <b>{Math.round(row.player.p * 100)}%</b>
+                  <span>play</span>
+                </span>
+                <span className="xs">
+                  <b>{Math.round(row.player.x)}</b>
+                  <span>xScore</span>
+                </span>
                 <span className="at">{clock.format(new Date(row.game.kickoff))}</span>
               </li>
             ))}
           </ul>
         </div>
       ))}
+      <p className="footnote">
+        Sofix has no match odds outside LaLiga. The percentage is that player&apos;s chance to play; xScore also counts
+        the chance he does not play.
+      </p>
     </section>
   );
 }
@@ -200,12 +212,19 @@ function Card({ player }: { player: PlayingPlayer }) {
   );
 }
 
-function Opponent({ game }: { game: PlayerGame }) {
+const INTERNATIONAL = /(nations-league|world-cup|euro-qual|olympic|international)/i;
+
+function Opponent({ game, player }: { game: PlayerGame; player: PlayingPlayer }) {
+  const international = INTERNATIONAL.test(game.competition);
+  const team = game.team ?? (international ? "National team" : player.club ?? "Team");
+  const teamCrest = game.teamCrest ?? (international ? null : player.crest);
   return (
     <span className="ow-opp">
+      <SorareImage src={teamCrest} alt="" width={18} height={18} />
+      <b>{team}</b>
+      <em>{game.venue === "H" ? "v" : "@"}</em>
       <SorareImage src={game.opponentCrest} alt="" width={18} height={18} />
       <b>{game.opponent}</b>
-      <em>{game.venue}</em>
       <span>{competitionName(game.competition)}</span>
     </span>
   );

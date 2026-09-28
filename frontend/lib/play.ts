@@ -11,6 +11,8 @@ export const SORARE_TAG = "sorare";
 export type Group = "In-season" | "Classic" | "Room";
 
 export type Fixture = {
+  team?: string | null;
+  teamCrest?: string | null;
   opponent: string | null;
   opponentCrest: string | null;
   venue: "H" | "A" | null;
@@ -121,8 +123,12 @@ export type Blocked = { name: string; rarity: string; group: Group; why: string 
 export type AlsoOpen = { name: string; group: Group; fee: number; eEss: number; pReturn: number; x: number };
 
 export type PlayerGame = {
+  id?: string;
   kickoff: string;
   competition: string;
+  /** The side the player represents in this fixture; it can be a national team rather than his club. */
+  team?: string | null;
+  teamCrest?: string | null;
   opponent: string;
   opponentCrest: string | null;
   venue: "H" | "A";

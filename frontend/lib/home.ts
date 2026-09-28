@@ -51,24 +51,30 @@ export interface HeadCard {
   name: string;
   short: string;
   x: number;
+  p: number;
   pic: string;
   rarity: string;
+  cards: number;
 }
+
+export type HeadGamePlayer = HeadCard;
 
 /** A game your players play. Win and clean sheet are that club's chances, and only for a LaLiga fixture we rate. */
 export interface HeadGame {
   key: string;
-  /** Your player's club, then the other side. */
-  club: string;
+  /** The team actually playing; during an international break this is the national team, not the player's club. */
+  team: string;
   opponent: string;
-  clubCrest: string | null;
+  teamCrest: string | null;
   opponentCrest: string | null;
   venue: PlayerGame["venue"];
   competition: string;
   /** The club's chance of winning, and of a clean sheet. Null when the game is outside LaLiga. */
   win: number | null;
   cleanSheet: number | null;
-  /** The best projection you have in the game: it ranks the row, and stays off the row itself. */
+  /** Every owned player/card represented in the fixture, highest projection first. */
+  players: HeadGamePlayer[];
+  /** The best projection you have in the game: it ranks otherwise-equivalent rows. */
   x: number;
 }
 
@@ -121,6 +127,18 @@ const clubKey = (name: string): string => {
   return (kept.length ? kept : words).join(" ");
 };
 
+const NATIONAL_COMPETITION = /(nations-league|world-cup|euro-qual|olympic|international)/i;
+
+/** Old cached payloads did not name the player's side. Never turn his club into a national team by accident. */
+function playingSide(player: PlayingPlayer, game: PlayerGame, forecast: SideOutlook | undefined): { name: string; crest: string | null } {
+  if (forecast) return { name: forecast.club, crest: player.crest };
+  if (game.team) return { name: game.team, crest: game.teamCrest ?? null };
+  if (NATIONAL_COMPETITION.test(game.competition)) {
+    return { name: "National team", crest: null };
+  }
+  return { name: player.club ?? `${shortName(player.name)}'s team`, crest: player.crest };
+}
+
 interface SideOutlook {
   club: string;
   opponent: string;
@@ -166,29 +184,57 @@ export function headCast(players: PlayingPlayer[], gw: number, named: boolean, g
   const cards = [...players]
     .sort((a, b) => b.x - a.x || a.name.localeCompare(b.name))
     .slice(0, 4)
-    .map((player): HeadCard => ({ name: player.name, short: shortName(player.name), x: player.x, pic: player.pic, rarity: player.rarity }));
+    .map((player): HeadCard => ({
+      name: player.name,
+      short: shortName(player.name),
+      x: player.x,
+      p: player.p,
+      pic: player.pic,
+      rarity: player.rarity,
+      cards: player.cards,
+    }));
   const games = new Map<string, HeadGame>();
   for (const player of players) {
     for (const game of player.games) {
-      const key = `${game.kickoff}|${game.competition}|${game.opponent}`;
+      const key = game.id ?? `${game.kickoff}|${game.competition}|${game.team ?? ""}|${game.opponent}`;
+      const gamePlayer: HeadGamePlayer = {
+        name: player.name,
+        short: shortName(player.name),
+        x: player.x,
+        p: player.p,
+        pic: player.pic,
+        rarity: player.rarity,
+        cards: player.cards,
+      };
       const existing = games.get(key);
-      if (existing && existing.x >= player.x) continue;
+      if (existing) {
+        if (!existing.players.some((item) => item.name === player.name)) {
+          existing.players.push(gamePlayer);
+          existing.players.sort((a, b) => b.x - a.x || a.name.localeCompare(b.name));
+        }
+        existing.x = Math.max(existing.x, player.x);
+        continue;
+      }
       const forecast = player.club && outlook ? outlook.get(`${clubKey(player.club)}|${game.venue}|${clubKey(game.opponent)}`) : undefined;
+      const side = playingSide(player, game, forecast);
       games.set(key, {
         key,
-        club: forecast?.club ?? player.club ?? "—",
+        team: side.name,
         opponent: forecast?.opponent ?? game.opponent,
-        clubCrest: player.crest,
+        teamCrest: side.crest,
         opponentCrest: game.opponentCrest,
         venue: game.venue,
         competition: game.competition,
         win: forecast?.win ?? null,
         cleanSheet: forecast?.cleanSheet ?? null,
+        players: [gamePlayer],
         x: player.x,
       });
     }
   }
-  const ranked = [...games.values()].sort((a, b) => b.x - a.x || a.key.localeCompare(b.key)).slice(0, 3);
+  const ranked = [...games.values()]
+    .sort((a, b) => Number(b.win !== null) - Number(a.win !== null) || b.x - a.x || a.key.localeCompare(b.key))
+    .slice(0, 3);
   return { gw, named, cards, games: ranked };
 }
 

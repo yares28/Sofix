@@ -247,6 +247,37 @@ def snapshot() -> dict[str, Any]:
     }
 
 
+def test_card_games_names_the_side_that_is_actually_playing() -> None:
+    row = card("international-mid", "MID", club="real-madrid")
+    row["player"]["activeNationalTeam"] = {
+        "slug": "turkiye",
+        "name": "Türkiye",
+        "shortName": "Türkiye",
+        "pictureUrl": "https://frontend-assets.sorare.com/turkiye.png",
+    }
+    row["player"]["plan"] = [
+        {
+            "id": "turkiye-belgium",
+            "date": "2026-10-10T14:00:00Z",
+            "competition": {"slug": "uefa-nations-league"},
+            "homeTeam": row["player"]["activeNationalTeam"],
+            "awayTeam": {
+                "slug": "belgium",
+                "name": "Belgium",
+                "shortName": "Belgium",
+                "pictureUrl": "https://frontend-assets.sorare.com/belgium.png",
+            },
+        }
+    ]
+
+    game = publish.card_games([row], "plan")["international-mid"][0]
+
+    assert game["team"] == "Türkiye"
+    assert game["teamCrest"].endswith("turkiye.png")
+    assert game["opponent"] == "Belgium"
+    assert game["venue"] == "H"
+
+
 @pytest.fixture(scope="module")
 def payload() -> dict[str, Any]:
     return publish.build_payload(snapshot(), runs=4, draws=600)

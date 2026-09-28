@@ -97,7 +97,7 @@ export default function ApplySheet({
   );
 
   // A plan published before Apply existed carries no leaderboard: there is nothing to enter it with until the
-  // job runs again (PAYLOAD_VERSION 4).
+  // job runs again (the backend payload version is the compatibility boundary).
   const stale = Boolean(lineup) && (!lineup?.board || !lineup?.boardId);
 
   useEffect(() => {

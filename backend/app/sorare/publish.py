@@ -22,7 +22,7 @@ from app.sorare.planner import DRAWS, Lineup, Plan, build, fill_bench, plans, re
 logger = logging.getLogger(__name__)
 
 POSITION_WORDS = {"GK": "goalkeeper", "DEF": "defender", "MID": "midfielder", "FWD": "forward"}
-PAYLOAD_VERSION = 5
+PAYLOAD_VERSION = 6
 """The shape of the published page. A run only keeps a finished gameweek's replay from the payload the app is
 already showing when that payload was built by this same version."""
 LIVE_STATES = {"started", "live"}
@@ -100,12 +100,15 @@ def card_games(rows: list[dict[str, Any]], key: str) -> dict[str, list[dict[str,
         for game in games:
             home, away = game["homeTeam"], game["awayTeam"]
             at_home = home["slug"] in mine
+            team = home if at_home else away
             other = away if at_home else home
             listed.append(
                 {
                     "id": game["id"],
                     "kickoff": game["date"],
                     "competition": game["competition"]["slug"],
+                    "team": team.get("shortName") or team["name"],
+                    "teamCrest": team.get("pictureUrl"),
                     "opponent": other.get("shortName") or other["name"],
                     "opponentCrest": other.get("pictureUrl"),
                     "venue": "H" if at_home else "A",
@@ -256,6 +259,8 @@ def card_payload(
         "average": card.average,
         "actual": forecast.actual,
         "fixture": {
+            "team": game.get("team"),
+            "teamCrest": game.get("teamCrest"),
             "opponent": game.get("opponent"),
             "opponentCrest": game.get("opponentCrest"),
             "venue": game.get("venue"),

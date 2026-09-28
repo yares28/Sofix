@@ -81,7 +81,7 @@ describe("reading Sorare's answer", () => {
                 name: null,
                 draft: false,
                 confirmable: false,
-                so5Appearances: [{ card: { slug: "gk" } }, { card: null }],
+                so5Appearances: [{ anyCard: { slug: "gk" } }, { card: { slug: "legacy-response" } }],
               },
             ],
           },
@@ -90,7 +90,7 @@ describe("reading Sorare's answer", () => {
     });
     if (answer.state !== "ok") throw new Error("unreachable");
     expect(answer.entered).toEqual([
-      { id: "So5Lineup:1", name: null, draft: false, confirmable: false, cards: ["gk"] },
+      { id: "So5Lineup:1", name: null, draft: false, confirmable: false, cards: ["gk", "legacy-response"] },
     ]);
   });
 
@@ -118,7 +118,7 @@ describe("reading Sorare's answer", () => {
 
   it("says what to do about it, and never blames the owner for a missing tab", () => {
     expect(cannot("no-tab")).toMatchObject({ act: "Open sorare.com" });
-    expect(cannot("no-extension")).toMatchObject({ act: "Set it up" });
+    expect(cannot("no-extension")).toMatchObject({ title: "This browser can't reach the extension", act: "Set it up" });
     expect(cannot("timeout")?.says).toContain("Nothing was saved");
     expect(cannot("ok")).toBeNull();
   });

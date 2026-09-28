@@ -1,71 +1,111 @@
 # Sofix
 
-Personal **LaLiga fixture difficulty board**: every team's run of games, rated by a backtested rating model and
-shown in a premium white grid. LaLiga has no official FDR, so difficulty comes from our own Dixon-Coles model.
+Sofix is a private, single-user LaLiga fixture-difficulty and Sorare decision board. It combines an independently
+backtested football model, bookmaker prices, the owner's Sorare collection and explicit lineup actions in a premium
+white, installable web app.
 
-- Product and model reference: [PLAN.md](PLAN.md)
-- What's next, phase by phase: [docs/next_features_plan.md](docs/next_features_plan.md)
-- Working rules for Claude Code (limits, gotchas): [CLAUDE.md](CLAUDE.md)
+Start here:
 
-## Stack
+- [Illustrated user manual](docs/user_manual.md) — every page, control and extension action.
+- [Whole-app research and audit](docs/research_report.md) — current implementation, evidence and every material
+  inconsistency found during the 2026-09-27 review.
+- [How the numbers work](docs/how_it_works.md) — refresh pipeline, model, six lenses, Sorare planner and API contract.
+- [Architecture](docs/architecture.md), [data dictionary](docs/data_dictionary.md),
+  [fixture-model research](docs/fixture_difficulty.md) and the [generated backtest](backend/reports/backtest_laliga.md).
+- [Current execution plan](docs/next_features_plan.md) and [Sorare plan/history](docs/sorare_plan.md).
 
-| Layer | Choice |
+## Product surface
+
+| Route | Purpose |
 |---|---|
-| Frontend | Next.js 15 + React 19 + TypeScript (`frontend/`) |
-| API | FastAPI (`backend/app/main.py`, `api.py`) |
-| Data + model | Python 3.11 jobs (pandas, numpy, scipy) in `backend/app/jobs/` |
-| Database | Neon Postgres (SQLAlchemy 2 + Alembic); SQLite fallback for local runs |
-| Quality | pytest, ruff, mypy, ESLint, vitest; GitHub Actions CI |
+| `/` | One-screen LaLiga and Sorare gameweek briefing |
+| `/play` | Optimized Sorare plans, reward chances, replay and Apply |
+| `/fixtures` | Selected LaLiga gameweek fixture list |
+| `/difficulty` | Six difficulty lenses, overview rankings and full grid |
+| `/table` | Current table at the selected GW and seeded final projection |
+| `/cards` | Current synced Sorare collection |
+| `/players` | Cached LaLiga player/market index and squad-upgrade comparison |
+| `/team/[code]` | One club's schedule, form and difficulty context |
+| `/control` | Refresh health, schedule, limits, installation and extension setup |
 
-## How it works
+The Chrome extension adds Sofix forecasts and the published plan to signed-in `sorare.com` pages, and lets the app
+show the owner's real lineups under the Sorare gameweek where they were entered. It never receives a Sorare password
+or session cookie. Lineup changes remain a deliberate **Check → Draft → Enter** flow.
 
+## Production architecture
+
+```text
+football-data.org ──┐
+football-data.co.uk ├─> GitHub Actions refresh ─> Neon/read_models ─> Next.js on Vercel ─> PWA
+The Odds API ───────┤
+Sorare GraphQL ─────┘
+
+signed-in sorare.com tab <─> Chrome extension <─> Next.js extension endpoints
 ```
-football-data.org ──┐                                        ┌─> GET /api/fixture-grid ──> Next.js board
-football-data.co.uk ─┼─> python -m app.jobs.refresh ─> Neon ──┘
-Open-Meteo ─────────┘    migrate → sync → predict → weather
-```
 
-1. **Sync** (`app.jobs.seed_and_sync`): fixtures, kickoff times and results from football-data.org; clubs resolved
-   through `app/services/team_registry.py`.
-2. **Predict** (`app.jobs.predict`): fits the Dixon-Coles model on football-data.co.uk history plus newly synced
-   results, then writes one prediction per team per upcoming fixture (W/D/L, expected points, difficulty 0–100 and
-   label, clean-sheet chance, expected goals).
-3. **Weather** (`app.jobs.sync_weather`): Open-Meteo kickoff forecasts for the next 14 days (tooltip context only).
+Production does not need a continuously running Python server. FastAPI is the local-development and typed-API
+fallback. The Python job publishes complete page models to Neon and revalidates the app's one-hour caches.
 
-Difficulty for a team in a fixture: `EP = 3·P(win) + P(draw)`, `difficulty = 100 · (1 − EP/3)`, bucketed into
-Easy / Easy-ish / Normal / Hard-ish / Hard with backtested thresholds. Model results:
-[backend/reports/backtest_laliga.md](backend/reports/backtest_laliga.md).
+## Repository map
+
+| Area | Location |
+|---|---|
+| Refresh, sources and prediction | `backend/app/jobs/`, `backend/app/sources/`, `backend/app/modeling/` |
+| Published models | `backend/app/services/publish.py`, `backend/app/sorare/publish.py` |
+| Database/migrations | `backend/app/models.py`, `backend/migrations/` |
+| Web app | `frontend/app/`, `frontend/components/`, `frontend/lib/` |
+| Chrome extension | `extension/` |
+| Tests | `backend/tests/`, `frontend/**/*.test.ts`, `frontend/e2e/` |
+| Manual/research | `docs/`, `backend/reports/` |
 
 ## Run locally
 
-```bash
-cp .env.example .env    # add the football-data.org token and Neon URLs (see comments in the file)
+Requirements: Python 3.11, Node.js/npm, and Chrome for browser tests. Copy `.env.example` to `.env`; never commit
+real values. Without `DATABASE_URL`, Next.js falls back to local FastAPI.
 
+```powershell
 cd backend
-python -m venv .venv
-# Windows: .venv\Scripts\activate
-pip install -r requirements-dev.lock   # exact versions; or: uv pip sync requirements-dev.lock
-python -m app.jobs.refresh             # migrations, fixtures, predictions, weather
-uvicorn app.main:app --port 8000       # http://127.0.0.1:8000/api/fixture-grid
-
-cd ../frontend
-npm ci
-npm run dev                            # http://127.0.0.1:3000
+py -3.11 -m venv .venv
+.venv\Scripts\python -m pip install -r requirements-dev.lock
+.venv\Scripts\python -m app.migrate
+.venv\Scripts\python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-## Everyday commands
+In another terminal:
 
-| Task | Command (backend from `backend/`, frontend from `frontend/`) |
-|---|---|
-| Refresh data | `python -m app.jobs.refresh`, or the **Refresh** button in the page header (needs `REFRESH_TOKEN` in `.env` and `frontend/.env.local`; one run per 10 min) |
-| Scheduled refresh | `.github/workflows/refresh.yml`, twice a day plus after football-data.co.uk updates; repo secrets `POSTGRES_URL` (app role) and `FOOTBALL_DATA_ORG_TOKEN` |
-| Backtest / retune the model | `python -m app.jobs.backtest` (writes `reports/` and `artifacts/dixon_coles.json`) |
-| Schema change | edit `app/models.py` → `alembic revision --autogenerate -m "..."` → review → `python -m app.migrate` |
-| Backend checks | `pytest -q`, `ruff check .`, `ruff format --check .`, `mypy` |
-| Frontend checks | `npm run lint`, `npm run typecheck`, `npm test` |
+```powershell
+cd frontend
+npm ci
+npm run dev
+```
 
-## Data sources and credits
+Open `http://127.0.0.1:3000`. Dev servers stay on `127.0.0.1`.
 
-Fixtures and results: [football-data.org](https://www.football-data.org). Match history and odds:
-[football-data.co.uk](https://www.football-data.co.uk). Weather: [Open-Meteo](https://open-meteo.com) (CC BY 4.0).
-Free-tier limits and how the code respects them are listed in [CLAUDE.md](CLAUDE.md).
+## Verification
+
+```powershell
+# backend/
+.venv\Scripts\python -m pytest -q
+.venv\Scripts\ruff check .
+.venv\Scripts\mypy
+
+# frontend/ only
+npm run lint
+npm run typecheck
+npm test
+npm run e2e
+npm run design
+```
+
+CI also checks migration/generated-type drift and dependency audits. See [AGENTS.md](AGENTS.md) for the contributor
+contract.
+
+## Data and attribution
+
+- Fixtures/results/crests: football-data.org.
+- Historical results, shots and closing odds: football-data.co.uk.
+- Current bookmaker prices: The Odds API.
+- Cards, rules, scores, projections and public market values: Sorare public GraphQL.
+- Sofix ratings/recommendations are independent, not official LaLiga, bookmaker or Sorare ratings.
+- Third-party art remains owned by its source and is hot-linked rather than redistributed.
+- Personal, non-commercial use only. No Transfermarkt scraping, LaLiga logo or wordmark.

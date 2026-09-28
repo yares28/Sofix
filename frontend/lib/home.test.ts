@@ -5,7 +5,7 @@ import { SHOCK, runStats } from "./grid";
 import {
   boardHref, castForWeek, chanceLabel, dateRange, difficultyMosaic, fixtureDays, gameweekHead, headCast, tableSummary,
 } from "./home";
-import type { Sorare } from "./play";
+import type { PlayingPlayer, Sorare } from "./play";
 import { gameweekMatches } from "./matches";
 import type { ApiResponse, FixtureGrid, GridCell, GridTeam } from "./types";
 
@@ -74,20 +74,45 @@ describe("head", () => {
 describe("your cards in the header", () => {
   const sorare = (sorareRecorded as { data: Sorare }).data;
 
+  const international = (name: string, x: number, p: number): PlayingPlayer => ({
+    name,
+    pos: "MID",
+    avatar: "https://assets.sorare.com/avatar.png",
+    pic: `https://assets.sorare.com/${name.toLowerCase().replaceAll(" ", "-")}.png`,
+    crest: "https://assets.sorare.com/real-madrid.png",
+    rarity: "limited",
+    club: "Real Madrid",
+    inSeason: true,
+    cards: 1,
+    p,
+    x,
+    average: 50,
+    games: [{
+      id: "turkiye-belgium",
+      kickoff: "2026-10-10T18:00:00Z",
+      competition: "uefa-nations-league",
+      team: "Türkiye",
+      teamCrest: "https://frontend-assets.sorare.com/turkiye.png",
+      opponent: "Belgium",
+      opponentCrest: "https://frontend-assets.sorare.com/belgium.png",
+      venue: "H",
+    }],
+  });
+
   it("ranks your highest projections and keeps one row per game", () => {
     const week = sorare.weeks.find((item) => item.gameweek.id === sorare.nextId)!;
     const cast = headCast(week.playing.players, week.gameweek.number, false, grid);
     expect(cast?.cards.map((card) => card.short)).toEqual(["Messi", "Álvarez", "Pedri", "Bouanga"]);
     expect(cast?.cards[0]?.x).toBeGreaterThan(cast!.cards[1]!.x);
-    // Pedri and Cubarsí both play Celta; the game is listed once. Win and clean sheet are the club's own chances.
-    // Messi's game is MLS, which the model does not rate.
-    expect(cast?.games.map((game) => [game.club, game.opponent, game.win, game.cleanSheet])).toEqual([
-      ["Inter Miami CF", "Orlando City", null, null],
+    // Pedri and Cubarsí both play Celta; the game is listed once. Rated LaLiga fixtures lead, so an MLS game
+    // cannot hide one of the three useful probability rows.
+    expect(cast?.games.map((game) => [game.team, game.opponent, game.win, game.cleanSheet])).toEqual([
       ["Atlético Madrid", "Rayo Vallecano", 0.621, 0.4],
       ["Barcelona", "Celta", 0.602, 0.291],
+      ["Athletic Club", "Getafe", 0.479, 0.498],
     ]);
-    expect(cast?.games[1]?.venue).toBe("H");
-    expect(cast?.games[2]?.venue).toBe("A");
+    expect(cast?.games[0]?.venue).toBe("H");
+    expect(cast?.games[1]?.venue).toBe("A");
   });
 
   it("uses the week in the bar, and the one being planned when Sorare has not opened this week", () => {
@@ -99,6 +124,26 @@ describe("your cards in the header", () => {
     expect(planned && planned !== "none" && planned.named).toBe(true);
     expect(planned && planned !== "none" ? planned.gw : null).toBe(17);
     expect(castForWeek(sorare, "missing")).toBe("none");
+  });
+
+  it("names the real national side and lists every owned card in its fixture", () => {
+    const cast = headCast([international("Arda Güler", 59.4, 0.91), international("Kenan Yıldız", 48.2, 0.83)], 20, false, grid);
+    const game = cast?.games[0];
+
+    expect(game).toMatchObject({ team: "Türkiye", opponent: "Belgium", win: null, cleanSheet: null });
+    expect(game?.players.map((player) => [player.short, player.p, player.x])).toEqual([
+      ["Güler", 0.91, 59.4],
+      ["Yıldız", 0.83, 48.2],
+    ]);
+    expect(game?.teamCrest).toContain("turkiye.png");
+  });
+
+  it("does not let an unmodelled international hide an available LaLiga fixture", () => {
+    const rated = sorare.weeks.find((item) => item.gameweek.id === sorare.nextId)!.playing.players.find((player) => player.club === "FC Barcelona")!;
+    const cast = headCast([international("Arda Güler", 99, 0.95), rated], 20, false, grid);
+
+    expect(cast?.games[0]?.win).not.toBeNull();
+    expect(cast?.games[0]?.competition.toLowerCase()).toContain("laliga");
   });
 });
 

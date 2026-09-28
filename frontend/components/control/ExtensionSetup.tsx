@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import CopyButton from "./CopyButton";
 
-/** add: not in this Chrome yet · sign-in: added, but it hasn't seen a Sorare account · done: linked just now. */
-export type ExtensionStage = "add" | "sign-in" | "done";
+/** add: missing · update: old build · sign-in: no Sorare account seen · done: linked just now. */
+export type ExtensionStage = "add" | "update" | "sign-in" | "done";
 
 type Props = { stage: ExtensionStage; user: string | null; version: string | null; extensionDir: string | null };
+type SetupStep = { title: string; sub: string; action: ReactNode; mono?: boolean };
 
 // Where the pointer goes in the Chrome picture for each phase (percent of its body): the Developer mode label, its
 // switch, "Load unpacked", then the extension's card.
@@ -19,6 +20,11 @@ const SPOTS: [number, number][] = [
 
 const HEAD: Record<ExtensionStage, { eyebrow: string; title: (user: string | null) => string; lede: string }> = {
   add: { eyebrow: "On your PC · once · about a minute", title: () => "Add the Sorare extension", lede: "Then lineups save to Sorare from the app." },
+  update: {
+    eyebrow: "Update needed · under a minute",
+    title: () => "Reload the Sofix extension",
+    lede: "Chrome is still running the older build. Reloading activates selected-gameweek lineups.",
+  },
   "sign-in": { eyebrow: "Almost there", title: () => "Now open sorare.com", lede: "Signed in as usual. A tab that is already open is enough." },
   done: { eyebrow: "Done", title: (user) => (user ? `Linked as ${user}` : "Extension linked"), lede: "Sorare, the extension and Sofix are connected." },
 };
@@ -44,12 +50,12 @@ export default function ExtensionSetup({ stage, user, version, extensionDir }: P
     return () => window.clearInterval(timer);
   }, [stage]);
 
-  const active = stage === "add" ? Math.min(phase, 2) : stage === "sign-in" ? 3 : -1;
-  const doneUpTo = stage === "add" ? -1 : stage === "sign-in" ? 2 : 3;
+  const active = stage === "add" ? Math.min(phase, 2) : stage === "update" ? 0 : stage === "sign-in" ? 3 : -1;
+  const doneUpTo = stage === "add" || stage === "update" ? -1 : stage === "sign-in" ? 2 : 3;
   const head = HEAD[stage];
   const [x, y] = SPOTS[phase] ?? [50, 80];
 
-  const steps = [
+  const installSteps: SetupStep[] = [
     {
       title: "Open chrome://extensions",
       sub: "paste it in the address bar",
@@ -73,6 +79,16 @@ export default function ExtensionSetup({ stage, user, version, extensionDir }: P
       ),
     },
   ];
+  const updateSteps: SetupStep[] = [
+    {
+      title: "Open chrome://extensions",
+      sub: "paste it in Chrome's address bar",
+      action: <CopyButton text="chrome://extensions" label="chrome://extensions" />,
+    },
+    { title: "Find Sofix and press Reload", sub: version ? `Chrome currently has v${version}` : "use the circular-arrow button", action: null },
+    { title: "Reload sorare.com, then Sofix", sub: "the Sorare reload installs the new page bridge", action: null },
+  ];
+  const steps = stage === "update" ? updateSteps : installSteps;
 
   return (
     <section className={`cc-card cc-ext ${stage}`} id="extension" aria-labelledby="cc-ext-title">

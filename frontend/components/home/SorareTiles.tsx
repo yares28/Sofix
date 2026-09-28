@@ -13,6 +13,7 @@ import {
   waitingFor,
 } from "../../lib/play";
 import { Cash, Essence, Foil, GROUP_COLOUR } from "../play/bits";
+import EnteredLineups from "../play/EnteredLineups";
 import SorareImage from "../play/SorareImage";
 import HomeTile from "./HomeTile";
 
@@ -26,7 +27,15 @@ const clock = (iso: string) => madrid(iso, { hour: "2-digit", minute: "2-digit",
  * the gameweek just played against what really happened, and your cards.
  * Everything is computed by the job; these tiles only draw it. Design: docs/sorare/design/S2-home-v2.html.
  */
-export default function SorareTiles({ data, now }: { data: Sorare; now: Date }) {
+export default function SorareTiles({
+  data,
+  selected,
+  now,
+}: {
+  data: Sorare;
+  selected: { slug: string; number: number } | null;
+  now: Date;
+}) {
   const played = lastWeek(data);
   return (
     <>
@@ -37,6 +46,7 @@ export default function SorareTiles({ data, now }: { data: Sorare; now: Date }) 
         </h2>
         <span>{data.user}</span>
       </div>
+      {selected ? <EnteredLineups week={selected} /> : null}
       <PlayTile week={nextWeek(data)} now={now} />
       {played && played.plans.length ? <LastTile week={played} /> : null}
       <CardsTile data={data} />

@@ -7,10 +7,11 @@ const score = (x: number) => x.toFixed(1);
 const pct = (p: number) => `${Math.round(p * 100)}%`;
 
 function gameLabel(game: HeadGame): string {
-  const teams = `${game.club} ${game.venue === "H" ? "v" : "against"} ${game.opponent}`;
-  if (game.win == null) return `${teams}, ${competitionName(game.competition)}`;
+  const teams = `${game.team} ${game.venue === "H" ? "v" : "against"} ${game.opponent}`;
+  const cards = game.players.map((player) => `${player.name}, ${pct(player.p)} chance to play`).join("; ");
+  if (game.win == null) return `${teams}, ${competitionName(game.competition)}. Your cards: ${cards}`;
   const sheet = game.cleanSheet == null ? "" : `, ${pct(game.cleanSheet)} clean sheet`;
-  return `${teams}, ${pct(game.win)} win${sheet}`;
+  return `${teams}, ${pct(game.win)} win${sheet}. Your cards: ${cards}`;
 }
 
 function dayTone(day: HeadDay, state: HeadState, index: number): string {
@@ -107,14 +108,15 @@ export default function HomeHead({ head, cast }: { head: GameweekHead; cast: Hea
             </p>
             <ol className="hm-cast">
               {cast.cards.map((card) => (
-                <li key={card.name} aria-label={`${card.name}, projected ${score(card.x)}`}>
+                <li key={card.name} aria-label={`${card.name}, ${pct(card.p)} chance to play, ${score(card.x)} xScore`}>
                   <span className={`hm-art ${card.rarity}`} aria-hidden="true">
                     <SorareImage src={card.pic} alt="" fill />
+                    {card.cards > 1 ? <i className="hm-card-count">{card.cards}</i> : null}
                     <span className="hm-shine" />
                   </span>
                   <span className="who" aria-hidden="true">
                     <b>{score(card.x)}</b>
-                    <span>{card.short}</span>
+                    <span>{card.short} · xScore</span>
                   </span>
                 </li>
               ))}
@@ -122,38 +124,53 @@ export default function HomeHead({ head, cast }: { head: GameweekHead; cast: Hea
           </div>
           {cast.games.length > 0 && (
             <div>
-              <p className="hm-kicker">Best games</p>
+              <p className="hm-kicker">Your fixtures</p>
               <ol className="hm-best">
-                {cast.games.map((game) => (
-                  <li key={game.key} aria-label={gameLabel(game)}>
-                    <span className="sides">
-                      <span className="side">
-                        <SorareImage src={game.clubCrest} alt="" width={16} height={16} />
-                        <b>{game.club}</b>
-                      </span>
-                      <span className="side opp">
-                        <SorareImage src={game.opponentCrest} alt="" width={16} height={16} />
-                        <span>
-                          {game.venue === "H" ? "v" : "@"} {game.opponent}
+                {cast.games.map((game) => {
+                  const best = game.players[0]!;
+                  return (
+                    <li key={game.key} aria-label={gameLabel(game)}>
+                      <span className="hm-game-main">
+                        <span className="sides">
+                          <span className="side">
+                            <SorareImage src={game.teamCrest} alt="" width={16} height={16} />
+                            <b>{game.team}</b>
+                          </span>
+                          <span className="side opp">
+                            <SorareImage src={game.opponentCrest} alt="" width={16} height={16} />
+                            <span>
+                              {game.venue === "H" ? "v" : "@"} {game.opponent}
+                            </span>
+                            <em>{competitionName(game.competition)}</em>
+                          </span>
+                        </span>
+                        <span className="hm-game-cards" aria-hidden="true">
+                          <span className="hm-mini-stack">
+                            {game.players.slice(0, 3).map((player) => (
+                              <span className={`hm-mini-card ${player.rarity}`} key={player.name}>
+                                <SorareImage src={player.pic} alt="" fill />
+                              </span>
+                            ))}
+                          </span>
+                          <span className="hm-game-names">
+                            {game.players.map((player) => player.short).join(", ")}
+                            <small>{game.players.length === 1 ? "1 owned player" : `${game.players.length} owned players`}</small>
+                          </span>
                         </span>
                       </span>
-                    </span>
-                    {game.win == null ? (
-                      <span className="comp">{competitionName(game.competition)}</span>
-                    ) : (
                       <span className="rates">
                         <span>
-                          <b>{pct(game.win)}</b>
-                          <span>Win</span>
+                          <b>{game.win == null ? pct(best.p) : pct(game.win)}</b>
+                          <span>{game.win == null ? "Play" : "Win"}</span>
                         </span>
                         <span>
-                          <b>{game.cleanSheet == null ? "—" : pct(game.cleanSheet)}</b>
-                          <span>Clean sheet</span>
+                          <b>{game.win == null ? score(best.x) : game.cleanSheet == null ? "–" : pct(game.cleanSheet)}</b>
+                          <span>{game.win == null ? "xScore" : "Clean sheet"}</span>
                         </span>
                       </span>
-                    )}
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ol>
             </div>
           )}

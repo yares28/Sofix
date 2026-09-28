@@ -2,6 +2,21 @@ import { z } from "zod";
 
 /** The Sofix extension's fixed ID (from the `key` in extension/manifest.template.json). */
 export const EXTENSION_ID = "lfgchmhjigjodjfchagphfpkcicochlk";
+/** First extension build that can read every lineup in a selected Sorare gameweek. */
+export const REQUIRED_EXTENSION_VERSION = "0.1.1";
+
+/** Chrome manifest versions are numeric dot-separated values; compare them without relying on string ordering. */
+export function extensionAtLeast(version: string, minimum = REQUIRED_EXTENSION_VERSION): boolean {
+  const read = (value: string) => (/^\d+\.\d+\.\d+$/.test(value) ? value.split(".").map(Number) : null);
+  const actual = read(version);
+  const wanted = read(minimum);
+  if (!actual || !wanted) return false;
+  for (let i = 0; i < Math.max(actual.length, wanted.length); i += 1) {
+    const difference = (actual[i] ?? 0) - (wanted[i] ?? 0);
+    if (difference !== 0) return difference > 0;
+  }
+  return true;
+}
 
 /** What the extension answers when the app pings it (extension/background.js). */
 export type ExtensionPing = { version: string; sorareUser: string | null; appReachable: boolean | null };

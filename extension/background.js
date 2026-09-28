@@ -65,11 +65,12 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   }
 });
 
-// The four things the app may ask Sorare through your session, and the shape of each. The app names a step,
+// The fixed things the app may ask Sorare through your session, and the shape of each. The app names a step,
 // never a query: nothing outside this table can be asked, and the two that write are separate steps so that
 // saving a draft and entering a competition can never be one click (docs/sorare_plan.md, S6).
 const STEPS = {
   entered: (input) => ["SofixMyLineups", { slug: input.slug }],
+  "week-entered": (input) => ["SofixFixtureLineups", { slug: String(input.slug || "").slice(0, 120) }],
   check: (input) => ["SofixPreviewLineup", { slug: input.slug, appearances: appearances(input) }],
   draft: (input) => [
     "SofixSaveDraft",
@@ -116,7 +117,8 @@ const revived = new Set();
 
 /** Content scripts do not appear in a tab that was already open. Put them there, or reload the tab once so they do. */
 async function ensureBridge(tabId) {
-  if ((await askTab(tabId, { type: "sofix-ping" }, 500))?.ok) return true;
+  const existing = await askTab(tabId, { type: "sofix-ping-3" }, 500);
+  if (existing?.ok && existing.version === 3) return true;
   try {
     await chrome.scripting.executeScript({ target: { tabId }, files: ["bridge.js"], world: "MAIN" });
     await chrome.scripting.executeScript({ target: { tabId }, files: ["content.js"] });
@@ -142,12 +144,14 @@ async function ensureBridge(tabId) {
       chrome.tabs.onUpdated.addListener(onUpdated);
     });
     for (let i = 0; i < 8; i++) {
-      if ((await askTab(tabId, { type: "sofix-ping" }, 400))?.ok) return true;
+      const answer = await askTab(tabId, { type: "sofix-ping-3" }, 400);
+      if (answer?.ok && answer.version === 3) return true;
       await new Promise((resolve) => setTimeout(resolve, 300));
     }
     return false;
   }
-  return Boolean((await askTab(tabId, { type: "sofix-ping" }, 800))?.ok);
+  const answer = await askTab(tabId, { type: "sofix-ping-3" }, 800);
+  return Boolean(answer?.ok && answer.version === 3);
 }
 
 async function sorareTabs() {

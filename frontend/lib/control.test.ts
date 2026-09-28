@@ -26,7 +26,7 @@ const run = (id: number, startedAt: string, trigger = "cli", status = "succeeded
 });
 
 const system = (runs: RunSummary[], extra: Partial<SystemStatus> = {}): SystemStatus => ({ runs, limits: null, extension: null, ...extra });
-const LINKED = { version: "0.1.0", sorareUser: "Yares", seenAt: "2026-09-21T11:40:00Z" };
+const LINKED = { version: "0.1.1", sorareUser: "Yares", seenAt: "2026-09-21T11:40:00Z" };
 
 describe("pulse", () => {
   it("is good when the data is fresh and setup is done, with the next run", () => {
@@ -49,6 +49,16 @@ describe("pulse", () => {
     const added = system([], { extension: { ...LINKED, sorareUser: null } });
     expect(pulseOf(added, fresh, NOW)).toMatchObject({ state: "setup", detail: "Open sorare.com once, signed in" });
     expect(PILL_LABEL.setup).toBe("1 step left");
+  });
+
+  it("asks for a reload when Chrome still has the pre-lineup extension", () => {
+    const old = system([], { extension: { ...LINKED, version: "0.1.0" } });
+    expect(setupLeft(old)).toBe(true);
+    expect(pulseOf(old, "2026-09-21T11:00:00Z", NOW)).toMatchObject({
+      state: "setup",
+      title: "Reload the extension",
+      detail: "Chrome is running v0.1.0 · Sofix needs v0.1.1",
+    });
   });
 
   it("doesn't nag about setup without the database (local development)", () => {
@@ -84,7 +94,7 @@ describe("live extension", () => {
   });
 
   it("keeps the known account when the extension hasn't seen sorare.com since it restarted", () => {
-    const merged = withLiveExtension(system([], { extension: LINKED }), { version: "0.1.0", sorareUser: null }, NOW);
+    const merged = withLiveExtension(system([], { extension: LINKED }), { version: "0.1.1", sorareUser: null }, NOW);
     expect(merged?.extension?.sorareUser).toBe("Yares");
   });
 
@@ -153,7 +163,7 @@ describe("connection chain", () => {
   it("lights up when the extension and the schedule are alive", () => {
     const chain = chainOf(
       system([run(1, "2026-09-21T07:18:00Z", "schedule")], {
-        extension: { version: "0.1.0", sorareUser: "Yares", seenAt: "2026-09-21T11:40:00Z" },
+        extension: { version: "0.1.1", sorareUser: "Yares", seenAt: "2026-09-21T11:40:00Z" },
       }),
       NOW,
     );
@@ -162,7 +172,12 @@ describe("connection chain", () => {
   });
 
   it("drops the extension after two missed check-ins", () => {
-    const chain = chainOf(system([], { extension: { version: "0.1.0", sorareUser: "Yares", seenAt: "2026-09-20T20:00:00Z" } }), NOW);
+    const chain = chainOf(system([], { extension: { version: "0.1.1", sorareUser: "Yares", seenAt: "2026-09-20T20:00:00Z" } }), NOW);
     expect(chain[1]).toMatchObject({ on: false, sub: "not seen lately" });
+  });
+
+  it("does not call an old but recently seen extension linked", () => {
+    const chain = chainOf(system([], { extension: { ...LINKED, version: "0.1.0" } }), NOW);
+    expect(chain[1]).toMatchObject({ on: false, sub: "v0.1.0 · reload" });
   });
 });

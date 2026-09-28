@@ -70,7 +70,13 @@ const LineupSchema = z.object({
   draft: z.boolean(),
   confirmable: z.boolean().default(false),
   so5Appearances: z
-    .array(z.object({ card: z.object({ slug: z.string() }).nullable().default(null) }))
+    .array(
+      z.object({
+        anyCard: z.object({ slug: z.string() }).nullable().optional(),
+        // Pre-v0.1.1 extension/test payloads used the old field name. Keep them readable while tabs reload.
+        card: z.object({ slug: z.string() }).nullable().optional(),
+      }),
+    )
     .optional()
     .default([]),
 });
@@ -105,7 +111,10 @@ const entered = (lineups: z.infer<typeof LineupSchema>[]): Entered[] =>
     name: lineup.name,
     draft: lineup.draft,
     confirmable: lineup.confirmable,
-    cards: lineup.so5Appearances.flatMap((slot) => (slot.card ? [slot.card.slug] : [])),
+    cards: lineup.so5Appearances.flatMap((slot) => {
+      const card = slot.anyCard ?? slot.card;
+      return card ? [card.slug] : [];
+    }),
   }));
 
 const EMPTY: Verdict = { state: "ok", multiplier: null, rules: [], lineupId: null, entered: [], cap: 0 };
@@ -145,8 +154,8 @@ export function cannot(state: Answer["state"]): { title: string; says: string; a
   switch (state) {
     case "no-extension":
       return {
-        title: "Chrome doesn't have the extension",
-        says: "Entering uses your own sorare.com session, which only the extension can reach.",
+        title: "This browser can't reach the extension",
+        says: "Open Sofix in the Chrome profile where the extension is installed, with a signed-in sorare.com tab.",
         act: "Set it up",
       };
     case "no-tab":

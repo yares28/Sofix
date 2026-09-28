@@ -18,7 +18,7 @@ import {
   type PulseState,
   type SystemStatus,
 } from "../lib/control";
-import { pingExtension, type ExtensionPing } from "../lib/extension";
+import { extensionAtLeast, pingExtension, type ExtensionPing } from "../lib/extension";
 import type { QrCode } from "../lib/qr";
 import ExtensionSetup, { type ExtensionStage } from "./control/ExtensionSetup";
 import GetTheApp from "./control/GetTheApp";
@@ -221,7 +221,8 @@ export default function ControlCenter({ serverNow, syncedAt, system: stored, sor
   const missing = chain.filter((node) => !node.on).length;
 
   const extension = system?.extension ?? null;
-  const stage: ExtensionStage = !setupLeft(system) ? "done" : extension ? "sign-in" : "add";
+  const needsExtensionUpdate = Boolean(extension && !extensionAtLeast(extension.version));
+  const stage: ExtensionStage = needsExtensionUpdate ? "update" : !setupLeft(system) ? "done" : extension ? "sign-in" : "add";
   const showExtension = stage !== "done" || setupAtLoad;
   const linked = chain.find((node) => node.id === "sorare")?.on ?? false;
   const setupNote = showExtension && stage !== "done" ? "1 step left" : refreshEnabled ? "done" : "optional";
@@ -256,7 +257,7 @@ export default function ControlCenter({ serverNow, syncedAt, system: stored, sor
                 </a>
               ) : (
                 <a className={`cc-btn ${refreshEnabled ? "soft" : "primary"}`} href="#extension">
-                  Add extension
+                  {stage === "update" ? "Reload extension" : "Add extension"}
                 </a>
               ))}
             {!refreshEnabled && pulse.state !== "setup" && (

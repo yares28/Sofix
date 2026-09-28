@@ -1,0 +1,315 @@
+# Sofix illustrated user manual
+
+**Edition:** 2026-09-28 · **Audience:** the Sofix owner · **Scope:** web app, PWA, Control Center and Chrome extension.
+
+The screenshots in this manual use the repository's deterministic demo fixture, and the extension shots use a
+recorded 24 September review payload. They demonstrate layout and meaning—not live recommendations, balances,
+prices or standings. Live pages always show their own sync/freshness state.
+
+## 1. First use
+
+Open Sofix in Chrome or Edge. The app is private and protected by the deployment login. Use the header to move
+between Play, Fixtures, Difficulty, Table, Cards and Players. The Sofix wordmark returns home.
+
+The week control on the right is app-wide:
+
+- left/right arrows move one available week;
+- the centre opens the week picker;
+- the target icon returns to the current week;
+- the round status dot distinguishes LaLiga from Sorare-only weeks.
+
+The selected week lives in the URL (`?gw=` for LaLiga-oriented pages and the shared week mapping behind `?w=` for
+the combined calendar), so a bookmark preserves the view. LaLiga and Sorare gameweek numbers are separate systems;
+the date range is the reliable common reference.
+
+### Install as an app
+
+Open **Control** from the circular status control, then use **Get the app**:
+
+1. Desktop Chrome/Edge: choose the install icon at the end of the address bar.
+2. Phone: scan the QR code, open the private site, then choose **Add to Home Screen**.
+3. Keep the same private deployment login. Installation does not create another account or background service.
+
+The PWA is a windowed shortcut to the same cached app. It is not an offline database; stale/failed source states
+remain visible rather than being invented locally.
+
+## 2. Home — the whole week at a glance
+
+![Sofix home with LaLiga and Sorare bento cards](images/home.png)
+
+The top strip shows the selected LaLiga gameweek, its playing days and time to the next kickoff. **Best cards** uses
+one fixed Sorare-card ratio and shows xScore. **Your fixtures** names the side actually playing—club or national
+team—and the owned players/cards in that match. A rated LaLiga row shows Win and Clean sheet; an outside-LaLiga row
+shows the best owned player's clearly labelled **Play** percentage and xScore because Sofix has no match odds for it.
+Under the strip:
+
+- **Fixtures** groups all matches by Madrid date/time and shows the market/model win split.
+- **Difficulty** previews the selected multi-week run and expected points ranking.
+- **Table** shows the current leader and seeded title/relegation probabilities.
+- **Your Sorare lineups** is the first block in the Sorare section. It reads the signed-in owner's entered lineups
+  and drafts for the selected Sorare GW, with competition, lineup name and card art. It is read-only.
+- **Play** summarizes the published Sorare plan, estimated chance of any reward, expected essence/cash and time to lock.
+- **Last gameweek** compares pre-lock predictions with the owner's submitted-lineup actuals when scores exist.
+- **My cards** shows usable cards, rarity/position shape and the most important constraint.
+
+Every large card is a link to the detailed page. A missing data block should say why—no fixtures, waiting for Sorare,
+stale data or a failed connection—rather than silently substituting another week.
+
+When a selected Sorare week has no LaLiga round, Home replaces the LaLiga strip/tiles with **No LaLiga this week**
+and lists the owner's actual fixtures, chance to play and xScore. It does not silently show the next league round.
+
+![Home during a Sorare gameweek with no LaLiga round](images/home-away.png)
+
+## 3. Fixtures
+
+![Selected LaLiga gameweek fixture list](images/fixtures.png)
+
+Fixtures is the plain schedule for the selected LaLiga GW. Each row contains kickoff in `Europe/Madrid`, home/away
+clubs, status or score, and the pre-match outlook. “Date TBC” means football-data.org has not assigned a kickoff.
+
+For a future match, use the probability/price context as a forecast, not as a certainty. For a finished match, the
+stored forecast stays attached so the result can be reviewed honestly. Changing the header week changes this list,
+the difficulty overview and the current-table cutoff together.
+
+## 4. Difficulty
+
+![Difficulty overview, rankings and grid](images/difficulty.png)
+
+Difficulty is the main football-planning page. It contains:
+
+1. **Kindest/toughest run** — per-game comparison for the chosen horizon.
+2. **This GW** — the selected matches.
+3. **Who to pick** — forwards by expected goals, defenders/keepers by clean-sheet chance, midfielders by a 65/35
+   attack/defence blend.
+4. **All-club ranking beside the current table** — row-aligned, with xPts as a number rather than a decorative bar.
+5. **Full fixture grid** and the selected GW's fixture list.
+
+### Horizon
+
+**Next** shows the selected gameweek as match cards. **Next 3/5/8** aggregates future games from that week. Finished
+fixtures remain visible for review but do not inflate future totals.
+
+### Six lenses
+
+| Lens | Tile answers | Ranking total answers |
+|---|---|---|
+| Overall | How likely is the club to get a result? | Expected points across future games |
+| Attack | How many goals should it score? | Expected goals across future games |
+| Defence | How likely is a clean sheet? | Expected clean sheets across future games |
+| Record | How has this club historically done at this model price? | Average actual points in comparable price bands |
+| Vs odds | How has it historically done at this bookmaker price? | Average actual points in comparable market bands |
+| Odds | What is the fair bookmaker win chance? | Market expected points per priced future game |
+
+Record and Vs odds are descriptive checks, not hidden inputs to the forecast. They use five seasons, require at least
+five club matches and shrink toward an eight-game prior. Odds totals are averaged per priced future match so a club
+with an extra priced game is not automatically favoured.
+
+### Colours and labels
+
+Lower difficulty is kinder. The five spoken labels are **Very favourite**, **Favourite**, **Even**, **Underdog** and
+**Big underdog**. Tiles show colour, opponent and venue; bucket numbers deliberately stay in tooltips/screen-reader
+text. Buckets 4–5 also receive a visible ring. The top cutoff is stricter away than at home.
+
+### Price menu
+
+For multi-week Record/Vs odds cards, choose which price/result statistic appears: W/D/L, scoring/two-plus goals,
+clean sheet or conceding two-plus. Fair odds are `1 / probability`. Market-derived scoring and clean-sheet numbers
+are fitted from fair 1X2 plus totals prices; they are implied probabilities, not direct bookmaker markets.
+
+## 5. Table
+
+![Current and predicted LaLiga tables](images/table.png)
+
+The left/current table stops after the selected LaLiga GW. Its ordering applies LaLiga head-to-head only after both
+mutual matches have been played, then goal difference and goals scored. Early in a season, that can differ from a
+site that provisionally uses goal difference for unresolved ties.
+
+The predicted table combines played points with expected future points and seeded season simulations. Identical
+input always produces identical title/Europe/relegation percentages. It is a model projection, not the official
+table and not a live betting price. The preseason opening projection is fixed so later views do not rewrite what
+Sofix believed before the season.
+
+## 6. Team page
+
+![One club's fixture and difficulty page](images/team.png)
+
+Open a club from a table, fixture or grid. The team page gathers its selected-week match, upcoming run, lens values,
+results/form and table context. Use it when the grid's compact tile is not enough. The same global week and model
+definitions apply; the page does not run a separate club model.
+
+## 7. Play — Sorare planner
+
+![Sorare Play page with optimized plans](images/play.png)
+
+Play shows the latest published plan for the selected Sorare gameweek. It is built from the synced collection,
+competition rules, pre-lock forecasts and reward cutoffs.
+
+At the top, **Your Sorare lineups** shows what the signed-in owner actually put on Sorare for this exact GW. Entered
+lineups and drafts are labelled separately and retain their Sorare competition and card list. This is not Sofix's
+suggested plan: the extension reads the selected Sorare fixture directly, so the block also works for timeline weeks
+that Sofix no longer retains as an optimized plan. A signed-in `sorare.com` tab must be open; otherwise the block says
+which extension/session prerequisite is missing. Lineups from another GW are never carried into the selected one.
+
+Read each lineup from left to right:
+
+- competition and lock state;
+- cards/slots, captain and substitutes;
+- **xScore**, which includes the chance of not playing;
+- an expected range, not a guarantee;
+- reward probability and the cutoff evidence behind it;
+- expected essence and expected cash, kept as separate units.
+
+The planner enforces the published slots, caps, in-season minimum, club/card/player uniqueness, bonuses and substitute
+rules. A substitute is kept only when its expected protection exceeds the bonus sacrificed by using it. It repeats a
+seeded, slightly randomized whole-gameweek search and returns up to five plans whose card sets are materially different;
+cash and essence are normalized for ranking but remain separate in the UI.
+
+### xScore
+
+`xScore = P(plays) × score if playing`. The “if playing” score usually comes from Sorare's projection; starting/sub
+odds supply P(plays) when published. Before those exist, last-five form plus conservative priors is used. The source
+and freshness label matters: “form” is weaker evidence than a recorded Sorare-informed pre-lock forecast.
+
+### Predicted vs actual
+
+After a gameweek, Play compares recorded pre-lock player/lineup ranges with actual submitted-lineup scores. A replay
+is meaningful only when the forecast was stored before lock. Actuals do not retroactively change the old forecast.
+
+## 8. Apply a lineup
+
+![Apply sheet showing the explicit Check, Draft and Enter stages](images/apply.png)
+
+Apply is the only Sofix flow that can change Sorare. It requires the configured extension, a signed-in Sorare tab,
+the matching Sorare account and an unlocked/non-stale plan.
+
+1. **Open Apply.** Sofix reads already-entered lineups and available slots; this is read-only.
+2. **Check.** Sorare previews the appearances and returns its rule verdict, bonuses, multiplier, costs and errors.
+   Nothing is saved.
+3. **Save draft.** Sorare creates or updates a draft. The lineup is not yet entered.
+4. **Enter.** A separate explicit confirmation calls Sorare's confirm operation. This can consume a slot or fee.
+
+Never treat Check or Draft as proof of entry. Read Sorare's returned feedback. If Sofix and Sorare disagree, stop:
+the server's rule verdict wins and the mismatch is a bug to investigate. Sofix never schedules or auto-retries Enter.
+
+## 9. My cards
+
+![My cards collection page](images/cards.png)
+
+Cards is the latest synced collection snapshot, not a historical collection at the selected week. It distinguishes:
+
+- usable cards from sealed/for-sale/in-offer/otherwise excluded cards;
+- physical cards from distinct players, because duplicates do not create another usable player in one lineup;
+- position and rarity balance;
+- L5/L10/L40 form, play share and gameplay tier when supplied.
+
+Search by player or club, filter position/rarity and change sort; those choices are URL state and can be bookmarked.
+Excluded cards are folded rather than deleted so the reason remains inspectable.
+
+## 10. Players
+
+![LaLiga player search and squad-upgrade comparison](images/players.png)
+
+Players is a cached index built from LaLiga club squads during refresh—one competition query plus one query per club.
+Search is local and fast; it does not make a Sorare request per keystroke.
+
+Each result shows recent average, Sorare projection **if he plays**, cached Limited market value, and the improvement
+against the fifth-best owned card in the same position. “You have him” prevents an owned player being presented as
+a new signing. The price is Sorare's last-synced market valuation, not the lowest current listing and not an offer
+Sofix can execute.
+
+If the index is empty, the page should show a sync/schema/key state. It must not broaden silently to other leagues.
+
+## 11. Control Center
+
+![Control Center status, schedule, limits and setup](images/control-center.png)
+
+Control is the operational truth for the owner:
+
+- **All good / failure state** and last-update age;
+- manual **Refresh**, which dispatches the same GitHub workflow as the schedule;
+- next scheduled runs and recent run history;
+- connection chain: Sorare sign-in → extension → Sofix → cloud jobs;
+- remaining Odds API credits and Neon storage where available;
+- Sorare sync freshness and forecast/replay counts;
+- PWA installation and QR;
+- extension and GitHub setup instructions when a piece is missing;
+- a diagram of the always-on cloud path.
+
+The scheduled times are 07:17 and 22:43 UTC daily, plus Tuesday 13:23 and Friday 17:23 UTC. The UI converts them to
+Madrid time, so the local hour moves at daylight-saving changes. Manual refresh has a ten-minute cooldown and cannot
+run alongside another refresh. It does not apply migrations.
+
+If GitHub/extension setup is missing, Control gives the required owner step. Never paste a token into chat, an issue
+or a committed file.
+
+## 12. Chrome extension
+
+### Install or rebuild
+
+The extension is a local Manifest V3 build, not a store listing.
+
+1. In root `.env`, set `APP_URL`, a random `EXTENSION_TOKEN` of at least 32 bytes, and
+   `VERCEL_BYPASS_SECRET`.
+2. Run `node extension/scripts/configure.mjs` from the repository root.
+3. Open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select `extension/`. If Sofix
+   was already loaded, press its circular-arrow **Reload** button instead; a changed file on disk does not update the
+   running Chrome extension by itself. Reload the already-open `sorare.com` tab too, because its page bridge was
+   injected by the previous extension build.
+4. In that same Chrome profile, open Sofix and a signed-in `sorare.com` tab, then check Control. The popup can
+   disable/enable the overlay. Codex's in-app browser and other browsers cannot call a Chrome extension.
+
+`manifest.json` and `config.js` are generated and git-ignored because the latter holds secrets. Re-run configure and
+reload the extension after changing the app origin or token.
+
+### Player overlay
+
+![Sofix panel and card ribbon on a Sorare player review page](images/extension-overlay.png)
+
+On `/football/players/<slug>`, Sofix adds a dark panel with xScore, Sorare conditional projection, chance to play,
+recent games, owned-card context, cached value and plan membership. A small ribbon can join a visible card to the
+same player by stable card/player slug. It does not depend on Sorare's generated CSS class names.
+
+### Plan drawer
+
+![Sofix plan drawer in the Sorare overlay](images/extension-plan.png)
+
+The drawer summarizes the published plan. **Open Apply in Sofix** returns to the controlled three-step flow; lineup
+write buttons are intentionally not placed over Sorare's browsing UI.
+
+### Privacy and account matching
+
+The extension captures the last Sorare GraphQL endpoint/headers in page memory only so allowlisted operations can
+use the existing signed-in session. One read-only operation fetches all of the owner's lineups for the selected
+Sorare fixture; Apply's separate competition-level read still checks capacity before a write. The extension never
+sends the cookie/password to Sofix and exposes no general proxy. Check-in
+sends only public username, version and Sorare build/revision. Private overlay data is returned only when the signed-in
+page account matches the published Sofix account. Another account receives no private plan.
+
+## 13. Reading freshness and errors
+
+| Message/state | Meaning | Action |
+|---|---|---|
+| Fresh / up to date | Latest publish is within its expected window | None |
+| Waiting for projections | Sorare has not published the strong pre-lock inputs | Use form-only plan cautiously or wait |
+| No odds yet | Optional odds step skipped/too old/no match | Use model lenses; do not interpret Odds as zero |
+| This browser can't reach the extension | Sofix is open outside the Chrome profile that loaded it | Open Sofix in that Chrome profile; keep Sorare signed in there |
+| Reload the Sofix extension | Chrome is running an older local build (lineup reads require v0.1.1+) | In `chrome://extensions`, press **Reload** on Sofix; reload the Sorare tab, then the app |
+| Sorare tab missing / signed out | Actual lineups and Apply bridge are unavailable | Open Sorare in the same Chrome profile, sign in, then retry |
+| Database paused | Neon free monthly compute limit was exhausted | Wait for monthly reset; avoid repeated DB monitors |
+| Refresh failed at a step | Source/schema/job error; older payload may still be visible | Inspect Control/GitHub run before trusting freshness |
+| Date TBC | Kickoff unassigned | Do not infer midnight or local date |
+
+## 14. What Sofix cannot promise
+
+- Match probabilities, player availability, scores and rewards remain uncertain.
+- Sorare xScore is currently a documented heuristic awaiting enough blind replay data for a fitted replacement.
+- Reward simulations use a common measured score spread and simplify cross-player/lineup correlation.
+- A market value is not a tradable quote.
+- Sorare can change rules or its page/API; the Check response is authoritative before any draft/entry.
+- The app is personal/non-commercial and its third-party imagery/marks remain owned by their respective holders.
+
+Known calendar limitation at this edition: if one Sorare gameweek spans two LaLiga rounds (possible around a midweek
+round), the global picker can show that Sorare GW twice and a cross-page link can choose the wrong LaLiga round. Treat
+the date/round shown on the destination page as authoritative and use that page's direct GW control until fixed.
+
+For the evidence and exact technical debt, continue to [the research report](research_report.md).

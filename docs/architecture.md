@@ -1,59 +1,84 @@
 # Architecture
 
-## Pipeline (implemented)
+**Current 2026-09-28.** Production is a scheduled Python publisher plus cached Next.js reader—not a permanent FastAPI
+deployment.
 
-`sources → canonical teams → fixtures/results → rating model → P(W/D/L), xG, clean sheet → expected points → difficulty 0–100 → label/bucket → grid API → board`
+```text
+ football-data.org ─┐
+ football-data.co.uk├─> GitHub Actions / Python refresh ─> Neon normalized tables + read_models
+ The Odds API ──────┤       schema→sync→odds→predict              │
+ Sorare GraphQL ────┘       →Sorare→publish→revalidate            v
+                                                        Next.js/Vercel → PWA/browser
+                                                               │
+ signed-in sorare.com tab <─ allowlisted Chrome extension <────┘
+```
 
-| Step | Module | Notes |
+## Runtime ownership
+
+| Runtime | Owns | Does not do |
 |---|---|---|
-| Migrations | `app/migrate.py`, `migrations/` | Run as the Neon owner via `POSTGRES_MIGRATION_URL`; refuses a different database than the app's |
-| Sync | `app/jobs/seed_and_sync.py` | One football-data.org call; teams via `services/team_registry.py`; replaces fixture fields in place |
-| Predict | `app/jobs/predict.py`, `services/rating_predictions.py` | Dixon-Coles fit on football-data.co.uk history + synced results; replaces rows per model version |
-| Grid | `services/fixture_grid.py`, `api.py` | Teams × matchdays; buckets derived from labels; lens scales from the games still to come; a played cell keeps its pre-kickoff forecast plus a `review` (postmortem) |
-| Board | `frontend/` | Renders buckets and scales from the API; no business thresholds in the browser |
+| GitHub Actions | Python 3.11 refresh, CSV cache, Neon writes, revalidation | Migrations or browser actions |
+| Python | Sources, normalization, Dixon-Coles, market fit, Sorare plan/replay, publishing, local FastAPI | Serve production pages continuously |
+| Neon | Normalized state, run log, pre-lock replay rows, complete page JSON | Compute forecasts |
+| Next.js/Vercel | Server-only reads/validation/cache, refresh dispatch/status, extension API | Run Python or expose DB credentials |
+| Chrome extension | Overlay and six allowlisted session operations | Store password/cookies, general proxy, automatic entry |
 
-From the selected team's perspective:
+## Refresh lifecycle
 
-- `EP = 3·P(win) + P(draw)`
-- `Difficulty = 100·(1 − EP/3)`
-- Labels (backtested, 15/20/30/20/15 % shares, top cut venue-aware since 2026-09-16):
-  Very favourite ≤ 36.0 home / 23.4 away < Favourite ≤ 48.6 < Even ≤ 61.1 < Underdog ≤ 71.3 < Big underdog
+1. Verify Alembic head (`--skip-migrations`); migrations are manual/owner-only.
+2. Acquire the partial-unique running lock in `refresh_runs`.
+3. Sync fixtures/results and current historical CSV cache.
+4. Sync one batched odds call only if the last is ≥6 hours old.
+5. Replace predictions for the current model version.
+6. Sync Sorare, plan lineups and retain pre-lock forecasts.
+7. Replace `grid`, `system`, `sorare` and `sorare_references` read models.
+8. Authenticated `/api/revalidate`; otherwise one-hour cache expiry catches up.
 
-Keep the continuous score; change thresholds only after rolling-origin backtests.
+Steps record status/timing and are isolated so an optional-source failure need not blank every page. The run still
+fails visibly when a step fails.
 
-## Rating model
+## Web/cache boundary
 
-Dixon-Coles Poisson goals model (`app/modeling/dixon_coles.py`): team attack and defence ratings, home advantage,
-time-decayed match weights, a goals/shots-on-target target blend, a ridge prior (promoted-team offset), and the
-low-score correction. Tuned and validated with `app/jobs/backtest.py`.
+- `DATABASE_URL` is server-only Neon HTTP. Without it, local pages call `API_BASE_URL` (default `127.0.0.1:8000`).
+- Named one-hour tags cover football, system and Sorare models; failures are not cached.
+- Refresh status is dynamic/no-store because it combines GitHub workflow and DB run state.
+- There is no client polling of DB-backed pages. Neon free-limit suspension has a specific owner-facing state.
 
-## Data model (Neon)
+## Model boundaries
 
-`competitions`, `teams`, `stadiums`, `source_entity_map`, `fixtures`, `predictions`, `market_odds`, `refresh_runs`.
-The app connects as the least-privilege role `fdr_app`; migrations use the owner role.
+`modeling/dixon_coles.py` owns fit/matrix; `jobs/predict.py` owns run/calibration/market blend;
+`services/fixture_grid.py` owns labels, buckets, six scales and payload. The browser only aggregates published fields.
 
-## Future feature families (research, not implemented)
+Sorare public reads run in cloud. The extension uses the signed-in tab for identity, a fixture-level read of every
+lineup in the selected GW, a competition-level capacity read for Apply, check, draft and enter. The fixture slug comes
+from the published timeline, so a historical/current week does not need a retained optimizer plan. App and page bridge
+each maintain an allowlist. Overlay payload is returned only when signed-in/public manager matches the published owner.
 
-The original research listed these candidate inputs. Each would be added only if a backtest shows it improves
-the model (see `docs/next_features_plan.md`, phase 6):
+## Storage/schema
 
-1. Dynamic Elo / team strength — covered by the rating model
-2. Home/away strength — covered (league-wide home advantage)
-3. Recency-weighted form — covered (time decay)
-4. xG / xGA / npxG / xPts
-5. Shots / SOT, finishing and goalkeeper over/under-performance — SOT covered
-6. League table / season progress
-7. Injuries / suspensions and player contribution
-8. Expected XI and rotation
-9. Rest / congestion / Europe / cup context
-10. Travel / stadium geography
-11. Transfers / squad continuity
-12. Manager change / tenure
-13. Tactical style (possession, PPDA, pressures, set pieces)
-14. Market 1X2 probabilities
-15. Weather (context only today)
-16. Motivation: title / relegation / derby
-17. Referee tendencies
-18. Low-weight head-to-head
-19. Promoted-team prior — covered
-20. Missingness / source uncertainty
+Normalized tables enable recomputation; `read_models` avoids per-view rebuilds. See [data_dictionary.md](data_dictionary.md).
+
+```text
+models.py → autogenerate migration → review → dev-branch test → production owner migrate
+```
+
+Actions receives the DML-only app URL, never the owner/direct migration URL.
+
+## Security/privacy
+
+- Secrets stay server-side or in ignored generated extension files.
+- Extension hosts are Sorare and the configured Sofix origin. Its permissions are `storage`, `alarms` and `scripting`;
+  scripting injects the bridge/content bundle into an already-open Sorare tab when needed.
+- Check-in sends public manager, version and Sorare build/revision—not credentials.
+- Overlay cache is session-only for 15 minutes; check-in is change-driven or six-hourly.
+- Destructive database/branch actions require explicit owner approval.
+
+## Failure behavior
+
+| Failure | Behavior |
+|---|---|
+| Missing/stale odds | Model remains; Odds may be empty, never zero |
+| Missing Sorare key/source error | Football remains; last Sorare state shows freshness/error |
+| Revalidation error | Data stored; app catches up within one hour |
+| Missing extension/tab | Read-only app works; Apply says what is missing and renders no write button |
+| Neon limit reached | Cached data may remain; failed read reports paused state |

@@ -1,6 +1,7 @@
 import { relativeTime } from "./grid";
 import { isStale } from "./refresh";
 import { madridClock, nextRun, todaysRuns } from "./schedule";
+import { extensionAtLeast, REQUIRED_EXTENSION_VERSION } from "./extension";
 
 /** What the Control Center shows. Built from the database (lib/system.ts) and the refresh schedule. */
 export type RunSummary = {
@@ -65,7 +66,11 @@ export function withLiveExtension(
 
 /** Setup ends once the extension has checked in with a Sorare account. Unknown (so not nagged) without the database. */
 export function setupLeft(system: SystemStatus | null): boolean {
-  return Boolean(system && !system.paused && !system.extension?.sorareUser);
+  return Boolean(
+    system &&
+      !system.paused &&
+      (!system.extension?.sorareUser || (system.extension && !extensionAtLeast(system.extension.version))),
+  );
 }
 
 export function nextRunLabel(now: Date): string | null {
@@ -101,6 +106,13 @@ export function pulseOf(system: SystemStatus | null, syncedAt: string | null, no
   }
   if (isStale(syncedAt, now.getTime())) {
     return { state: "stale", title: "Data is getting old", detail: schedule };
+  }
+  if (system?.extension && !extensionAtLeast(system.extension.version)) {
+    return {
+      state: "setup",
+      title: "Reload the extension",
+      detail: `Chrome is running v${system.extension.version} · Sofix needs v${REQUIRED_EXTENSION_VERSION}`,
+    };
   }
   if (setupLeft(system)) {
     const added = Boolean(system?.extension);
@@ -169,11 +181,17 @@ export type ChainNode = { id: "sorare" | "extension" | "app" | "jobs"; label: st
 export function chainOf(system: SystemStatus | null, now: Date): ChainNode[] {
   const ext = system?.extension ?? null;
   const extAlive = Boolean(ext && now.getTime() - Date.parse(ext.seenAt) < EXTENSION_GONE_MS);
+  const extCurrent = Boolean(ext && extensionAtLeast(ext.version));
   const lastScheduled = system?.runs.filter((run) => run.trigger === "schedule").at(-1);
   const jobsOn = Boolean(lastScheduled && now.getTime() - Date.parse(lastScheduled.startedAt) < 36 * 3_600_000);
   return [
     { id: "sorare", label: "sorare.com", sub: extAlive && ext?.sorareUser ? ext.sorareUser : "sign in", on: extAlive && Boolean(ext?.sorareUser) },
-    { id: "extension", label: "Extension", sub: extAlive && ext ? `v${ext.version}` : ext ? "not seen lately" : "not added", on: extAlive },
+    {
+      id: "extension",
+      label: "Extension",
+      sub: extAlive && ext ? (extCurrent ? `v${ext.version}` : `v${ext.version} · reload`) : ext ? "not seen lately" : "not added",
+      on: extAlive && extCurrent,
+    },
     { id: "app", label: "Sofix", sub: "online", on: true },
     { id: "jobs", label: "Cloud jobs", sub: jobsOn ? "on a clock" : "waiting for first run", on: jobsOn },
   ];

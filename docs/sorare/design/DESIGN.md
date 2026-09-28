@@ -1,160 +1,80 @@
-# Design language (approved 2026-09-21)
+# Sofix design language
 
-The owner approved `S0-competitions.html` (the Play page) as the look for every new page, the sorare.com
-overlay excepted (that one copies SorareInside, see S7). Open that file next to this guide: it is the reference
-implementation, and every value below comes from it.
+**Approved 2026-09-21 · reconciled 2026-09-27.** HTML files here are historical phase previews checked by
+`npm run design`. The implemented UI and [illustrated manual](../../user_manual.md) are authoritative if they differ.
 
 ## Principles
 
-1. **Real data, even in previews.** Build previews from live API data and Sofix's own predictions.
-   Never placeholder numbers; if a number doesn't exist yet, the element isn't shown.
-2. **Decision first.** Top to bottom: the one thing to do (hero), a summary strip, every option,
-   then secondary things folded away (e.g. "Not playable · 5").
-3. **One hero number per view** (≥ 48 px). Everything else steps down: 40 → 34 → 22 → 14 → 12 px.
-4. **Few words.** Labels are 11–12 px muted; numbers carry the page. No sentence where a number and a
-   label will do. Explanations live in tooltips, disclosures and the sheet, not on the page.
-5. **Colour has one job each.**
-   - Green (`--good`) = a good chance or a reward won. Lighter green or grey = less likely.
-   - Foil gold / foil red = the Limited / Rare rarity. It replaces rarity text labels.
-   - FDR bucket colours = fixture difficulty, taken from the board, never re-derived.
-   - Text is always ink (`--ink`, `--ink-2`), never the data colour.
-6. **Cash and essence are shown side by side and never converted.** Essence takes the rarity's colour.
-7. **Premium depth, calm motion.**
-   - Soft layered shadows and a faint radial glow tinted by context (gold for Limited, red for Rare).
-   - A foil shine that sweeps on hover.
-   - Numbers count up in 700 ms, rings fill in 1 s, cards rise in with a 45 ms stagger, switch knobs slide in 350–450 ms.
-   - `prefers-reduced-motion` turns all of it off.
-8. **Say why when something is missing.** A locked competition shows its reason ("Needs a Rare goalkeeper").
-   An empty state shows what would unlock it.
+1. One decision/question per surface.
+2. Quiet white shell, strong data: near-black type, soft structure, colour only for meaning.
+3. One hero fact, aligned support, then evidence/details.
+4. Bento composition without boxing every label/value.
+5. Honest fresh/waiting/stale/no-game/no-odds/not-signed-in states; missing is never zero.
+6. Tabular aligned numbers and explicit units/source/freshness.
+7. Motion explains change and respects reduced motion.
+8. Sofix stays its own design; dark extension harmonizes with Sorare but copies no wordmark/classes.
 
-## Tokens
+## Tokens and type
 
-| Token | Value | Use |
-|---|---|---|
-| `--bg` / `--surface` | `#fbfbfd` / `#fff` | page / cards (same as the board) |
-| `--ink`, `--ink-2`, `--ink-3` | `#1d1d1f`, `#6e6e73`, `#86868b` | text; `--ink-3` decorative only |
-| `--track` | `#ececf0` | segmented-control and timeline tracks |
-| `--good`, `--good-2`, `--good-track` | `#1f7a4f`, `#5cc58d`, `#d3f2e1` | meters, rings, "won" chips |
-| `--low`, `--low-track` | `#aeaeb2`, `#f1f1f4` | meters under 20% |
-| `--f-lim` | `linear-gradient(145deg,#fff3c4,#f7c948 38%,#d99a0b 62%,#ffe08a)` | Limited foil |
-| `--f-rare` | `linear-gradient(145deg,#ffd6cf,#f0594c 40%,#b3261e 66%,#ff9e94)` | Rare foil |
-| radii | 28 (hero, sheet 30) · 22 (cards) · 16 (inner) · 12 (buttons) | |
-| `--shadow-card` | `0 0 0 1px rgba(0,0,0,.04), 0 2px 4px rgba(0,0,0,.02), 0 12px 32px rgba(0,0,0,.05)` | resting cards |
-| `--shadow-lift` | `…0 8px 18px rgba(0,0,0,.06), 0 24px 48px rgba(0,0,0,.08)` | hover |
-| `--ease` | `cubic-bezier(.3,.7,.2,1)` | all motion |
-| type | SF / Inter; titles −0.03 em tracking; big numbers proportional, columns `tabular-nums` | |
+Implementation CSS variables are authoritative. Canvas is cool white; cards white with 1 px soft border, restrained
+shadow and generous radius; positive is deep green, market secondary blue, risk coral/red, attention amber with text.
+Rarity colour appears only as card data. Avoid dense text over gradients and fully saturated large surfaces.
 
-Meter thresholds: ≥ 50% `--good` · 20–49% `--good-2` · < 20% `--low`.
-
-## Components (all in the reference file)
-
-- **Page head:** `h1` 40 px bold with one muted line under it (dates, lock time, a "in N days" pill; a pulsing
-  green dot when live). Switches sit on the right.
-- **Foil chip:** 16×22 px card with the rarity foil, a 1 px inner edge and a hover shine. A `.lg` 22×30
-  size, plus a `.stack` variant (second card behind) for titles.
-- **Rarity switch:** segmented track with two foil chips, name and card count; a white knob slides between them.
-- **Gameweek timeline:**
-  - Items in a `--track` pill, each with a status dot (grey = done, pulsing green = live, blue = next), a date
-    line and the essence won or expected.
-  - Breaks are hatched and not clickable.
-  - Arrow buttons at both ends; ← / → keys move it; on phones it scrolls and centres the selected item.
-- **Hero** (28 px radius, three columns, stacks on phones):
-  - eyebrow (12 px uppercase), foil-stack and name at 30 px;
-  - a 132 px ring meter holding the one hero number;
-  - a 40 px secondary number with a range bar (bad → good band, a tick for "score needed", a dot for the
-    prediction or a blue dot for the actual result);
-  - reward chips;
-  - a fan of the real Sorare card images with score ribbons and the captain marked;
-  - a primary black button plus a soft grey one.
-- **KPI strip:** one card, five tiles, divided by 1 px lines; label 12 px muted, value 22 px.
-- **Option card** (competition):
-  - 5 px foil edge on the left, name and mode, a 34 px value with a small label;
-  - a 6 px meter, a stack of avatars and one pill;
-  - lifts on hover and opens the sheet.
-- **Folded list:** `<details>` card, "Not playable · N", two-column rows with a reason on the right.
-- **Empty state:** big title ("One Rare goalkeeper away") beside foil slot cards; the missing slot is outlined with "+".
-- **Sheet:**
-  - blurred scrim; 30 px panel (a bottom sheet on phones) with a sticky header and lineup tabs as a segmented control;
-  - a summary card (ring, number, range, rewards, Apply);
-  - a grid of card art with a 3D tilt on hover, SorareInside-style score ribbons
-    (`s9 ≥ 70`, `s7 ≥ 55`, `s5 ≥ 40`, `s3 ≥ 25`, `s1` below, `s0` unknown);
-  - fixture line (opponent crest, H/A, Madrid kickoff, FDR dot), number rows, subs, ticked rules and a
-    rewards disclosure.
-
-### Added by the home page (S2, `S2-home.html`, built in `frontend/components/home/`)
-
-- **Bento tile:** 22 px radius; a 17 px title that is the link, stretched over the whole tile, a muted meta beside
-  it and a chevron that slides on hover. One 34 px number per tile, name on the left, number on the right.
-- **Waiting tile:** a Sorare tile whose data comes with a later phase. A dashed outline shape and one line
-  saying what fills it. Never a placeholder number.
-- **Mosaic:** every club's next five games as 11 px cells in the board's difficulty colours, easiest run first.
-  Played games are hatched and a double gameweek gets a dot.
-- **Page hero number** (56 px): the time to act (days to kickoff, later the Sorare lock), the games done while a
-  gameweek is on, the shocks once it's played.
-- **Phones:** a bottom tab bar (the installed app has no browser bar), rendered outside the top bar.
-
-### Added by the whole gameweek (S2 v2, `S2-home-v2.html`)
-
-- **Plan tile** (home, full width): ring with the chance of any reward, the two currencies side by side, a
-  "where your cards go" bar coloured by competition kind, the other plans as chips, and the plan's lineups as
-  rows (name, kind, xScore, chance meter).
-- **Waiting tile with real content:** when the plans aren't computable yet, the tile still carries the facts —
-  how many cards play, who they are and against whom, what can be entered with its fee and lineup count, and a
-  small ring counting down to the moment the data arrives. Never a placeholder number.
-- **Plan switch:** five options in one track with a sliding knob; each shows its chance and expected essence and a
-  two-tone bar of where its cards go. On phones it becomes a swipe row of cards.
-- **Lineup card:** foil edge, competition name, a kind chip (In-season / Classic / Room), the format in words
-  ("5 + 2 subs · 4 in-season"), the xScore with the bad–good range and a tick for the score that pays, the chance
-  with its meter, the whole lineup as small card art (captain badge, green dot = in-season, subs after a divider),
-  reward chips and who pays. After the games it swaps to the real score, per-card scores, DNP, the sub that came in
-  and what it won.
-- **Competition kinds have one colour each:** in-season blue, Classic gold, rooms violet — used in the bars and chips.
-- **Folded rows:** "Also open, not worth it" (with the essence it would cost), "Not playable" (with the reason),
-  "How subs and plans work" (six rules, open by default).
+Use the app system font stack. Hero numbers may be bold; labels are short/sentence case; body remains readable at zoom.
+Reflow instead of shrinking critical text. Numeric columns use tabular figures.
 
 ## Layout
 
-- Max width 1240 px, 20 px side padding (16 px on phones).
-- Breakpoints: 1100 px (hero 2 columns, grid 2 columns, KPI 3 columns) and 700 px (single column, sheet
-  becomes a bottom sheet, timeline arrows hidden).
-- No horizontal page scroll; only the timeline scrolls.
+- Fluid and centered beyond `--page-max` 1600 px.
+- Shared header/week control on every route.
+- Ranking/current-table cards stack below 1200 px.
+- Reused internals respond to named containers (`ladder`, `gwcard`) rather than viewport alone.
+- Mobile keeps decision → evidence → detail order and accessible touch targets.
+- Horizontal scrolling is intentional data behavior, never broken page chrome.
+
+## Components
+
+- **Status:** dot/icon plus text; include age/source when trust depends on it.
+- **Week selector:** step arrows, centre picker, target/current; date range is common reference while both GW numbers stay distinct.
+- **Probability/score:** `%`, fair odds `x.xx`, points; keep conditional score, P(play), xScore and range distinct.
+- **Collection:** position shelves, distinct-player vs duplicate counts, folded exclusions/reasons; no flat tiny-card wall.
+- **Player search:** lead with squad improvement or owned state, then cached value/projection/form; no fake buy affordance.
+- **Planner:** rules/lock/xScore/range/reward evidence; cash and essence separate.
+- **Apply:** visible Check → Draft → Enter progress; final action distinct and never automatic/default-focused.
+- **Control:** state first, then schedule/history, connections/limits, freshness, setup/install and architecture.
+- **Extension:** dark panel/mint accent; stable URL/slug anchors; drawer opens Apply, never writes in overlay.
 
 ## Accessibility
 
-- Segmented controls use `aria-pressed`; meters and range bars carry an `aria-label` with the numbers.
-- `:focus-visible` shows a 2 px accent ring. The sheet is `role="dialog"`, closes on Esc and returns focus.
-- Images from Sorare and football-data.org load with `referrerpolicy="no-referrer"`.
+- WCAG AA text, visible focus and correct landmarks/headings.
+- Native controls first; no clickable divs.
+- Colour has text/shape/pattern equivalent; buckets 4–5 retain ring and spoken label.
+- Tables keep headers; custom charts expose equivalent text.
+- Reduced motion removes count/entrance animation.
+- Third-party art never carries unique information alone.
 
-## Added by the sync status (S3, `S3-sync.html`)
+## Preview index
 
-- **One hero per state.** The panel answers "is this current?" with a single 76 px number that changes meaning
-  with the state — minutes since it was built, rebuilds left before the lock, hours until the next one — and one
-  muted line under it. Labels, never sentences: the long version lives in a `title`.
-- **State drives colour, not layout.** `--tone` / `--tone-bg` / `--tone-ink` are set once (green, amber, red) and
-  the pill, the chip, the alert, the "who wrote it" tag and a radial glow at the card's top-right all follow. The
-  glow is `color-mix(in srgb, var(--tone) 16%, transparent)` and transitions over 500 ms.
-- **Run line.** A 6 px track from the moment the data was built to the gameweek's lock, a 20 px dot per scheduled
-  run (ringed green once it has happened, grey before), and an ink tick for the lock. The fill grows in 1.1 s and
-  the dots pop in with a 70 ms stagger. On a phone only the two end labels stay; the dots carry the rest.
-- **Clocks strip.** Five equal tiles divided by 1 px lines: an uppercase 11 px label with a dot (grey = rarely,
-  green = moves often, amber = live now), a 27 px number with a small unit, and a 12 px "when it changes next".
-  They rise in with a 45 ms stagger. The tile that decides the page is tinted `linear-gradient(180deg,#fffcf2,#fff)`.
-- **Stale content is dimmed, never hidden.** `opacity: .4; filter: grayscale(.9)` under an alert in the tone
-  colour carrying one black button.
-- **No device switch in a preview.** The page is responsive; open it on a phone to see the phone layout.
+| File | Decision | Status |
+|---|---|---|
+| `S0-competitions.html` | Rule discovery | Historical evidence |
+| `S1-foundation.html` | Always-on/status | Built into Control |
+| `S2-home.html` | Initial home | Superseded by v2 |
+| `S2-home-v2.html` | Whole-gameweek home | Built/evolved |
+| `week-selector.html` | Shared calendar | Built |
+| `S3-sync.html` | Sync freshness | Built in Control |
+| `S4-xscore.html` | Conditional/P(play)/xScore evidence | Heuristic built; fitted model open |
+| `S5-cards.html` | Collection shelves | Built |
+| `S5-search.html` | Squad-upgrade search | Built |
+| `S6-apply.html` | Three-stage Apply | Built; live acceptance open |
+| `S7-overlay.html` | Dark panel/ribbon/drawer | Built; hardening open |
 
-## Added by Apply (S6, `S6-apply.html`)
+## Review checklist
 
-- **The step rail is the control.** Check · Draft · Enter across the top of the sheet: black while current, a tick
-  on `--good-track` once done, the connecting bar filling in 600 ms. Clicking a step goes to it, so the preview
-  needs no switcher of its own.
-- **The lineup is the cards.** The real Sorare art (`pic`), nine across and three on a phone, each with its xScore
-  on a ribbon, the captain's gold disc, and `SLOT · 99% · ×1.03` underneath. No name line: the art carries it.
-  Substitutes are washed out rather than labelled, and a card Sorare rejects goes grey with a red tint.
-- **One hero.** 68 px xScore, one muted line with the score that pays, and the cost as chips on the right.
-- **Sorare's verdict in Sorare's words**, one tinted block, a tick per rule, and what it is worth on the right.
-- **The tone follows the step** (`--tone`): green while it is fine, amber for a saved draft, and it reaches the
-  glow behind the card, the chips and the verdict badge.
-- **What can go wrong is shown, not explained**: two small cards under the sheet, one for a refusal and one for
-  a shut browser, each with the single action that fixes it.
+- Can the primary question be answered in five seconds?
+- Are unit/source/freshness/uncertainty unambiguous and missing truthful?
+- Is presentation re-deriving a backend decision?
+- Does mobile preserve decision order and keyboard/zoom/focus/reduced-motion behavior?
+- Does it still feel like Sofix rather than a generic dashboard?
+- If it writes to Sorare, are Check, Draft and Enter unmistakably separate?
 

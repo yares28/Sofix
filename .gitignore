@@ -42,3 +42,7 @@ extension/.key.json
 
 # Vercel CLI link (project id)
 .vercel
+
+# Browser-tool scratch: console logs, page snapshots and captured screenshots
+.playwright-mcp/
+output/

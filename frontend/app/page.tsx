@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
+import AwayWeek from "../components/AwayWeek";
 import DifficultyTile from "../components/home/DifficultyTile";
 import FixturesTile from "../components/home/FixturesTile";
 import HomeHead from "../components/home/HomeHead";
@@ -12,8 +13,9 @@ import { loadGrid } from "../lib/api";
 import { legacyBoardUrl, openingColumn } from "../lib/grid";
 import { boardHref, castForWeek, gameweekHead } from "../lib/home";
 import { loadChances } from "../lib/homeData";
+import { weekPlan } from "../lib/play";
 import { loadSorare } from "../lib/playData";
-import { weekContext } from "../lib/weeks";
+import { weekContext, weekDates } from "../lib/weeks";
 import { loadSystem } from "../lib/system";
 
 export const metadata: Metadata = { title: "Sofix" };
@@ -63,19 +65,35 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   if (params.has("gw") && !grid.matchdays.some((md) => String(md.number) === params.get("gw"))) {
     redirect("/"); // a gameweek this season doesn't have
   }
-  const column = week.current?.column ?? opening; // the week in the bar decides which gameweek the page is about
+  // A Sorare-only week must not silently show the next LaLiga round underneath it. An explicitly selected one
+  // gets the same honest "LaLiga is away" treatment as the board pages.
+  const away = params.has("w") && week.current?.column === null ? week.current : null;
+  const column = week.current?.column ?? opening;
   const href = (path: string) => boardHref(path, grid, column, opening);
+  const awayPlan = away && sorare && away.gw ? weekPlan(sorare, away.gw) : null;
+  const selectedSorare =
+    sorare && week.current?.gw
+      ? (sorare.timeline.find((item) => item.id === week.current?.gw) ?? weekPlan(sorare, week.current.gw)?.gameweek ?? null)
+      : null;
 
   return (
     <>
       <SiteNav meta={meta} system={system} week={week} />
       <main className="hm">
-        <HomeHead head={gameweekHead(grid, column, new Date())} cast={castForWeek(sorare, week.current?.gw ?? null, grid)} />
-        <div className="hm-bento">
-          <FixturesTile grid={grid} column={column} href={href("/fixtures")} />
-          <DifficultyTile grid={grid} column={column} href={href("/difficulty")} />
-          <TableTile grid={grid} column={column} chances={chances} href={href("/table")} />
-          {sorare ? <SorareTiles data={sorare} now={new Date()} /> : <SorareRow />}
+        {away ? (
+          <AwayWeek plan={awayPlan} variant="fixtures" dates={weekDates(away)} />
+        ) : (
+          <HomeHead head={gameweekHead(grid, column, new Date())} cast={castForWeek(sorare, week.current?.gw ?? null, grid)} />
+        )}
+        <div className={`hm-bento${away ? " hm-away" : ""}`}>
+          {!away ? (
+            <>
+              <FixturesTile grid={grid} column={column} href={href("/fixtures")} />
+              <DifficultyTile grid={grid} column={column} href={href("/difficulty")} />
+              <TableTile grid={grid} column={column} chances={chances} href={href("/table")} />
+            </>
+          ) : null}
+          {sorare ? <SorareTiles data={sorare} selected={selectedSorare} now={new Date()} /> : <SorareRow />}
         </div>
       </main>
     </>

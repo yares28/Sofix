@@ -1,6 +1,6 @@
 # Fixture difficulty: how it is calculated, and how it did on nine past seasons
 
-Written 2026-09-15, updated 2026-09-16. Part 1 explains, step by step, how every club's fixture difficulty is
+Written 2026-09-15, implementation notes updated 2026-09-27. Part 1 explains, step by step, how every club's fixture difficulty is
 produced. Part 2 replays nine finished LaLiga seasons, forecasting each game only from what was known before it, and
 compares the forecasts with what happened. **Part 3 records what changed as a result** - what was fixed, what was
 built and rejected, and what "keeps learning" actually amounts to. Part 1 describes the pipeline as it stands after
@@ -8,14 +8,23 @@ those changes. Backtest numbers come from
 [`backend/reports/experiments/difficulty_backtest.py`](../backend/reports/experiments/difficulty_backtest.py) and
 [`bench.py`](../backend/reports/experiments/bench.py); the raw replay output is in the appendix.
 
+> **Current-state note (2026-09-27).** The replay and raw appendix are preserved as generated research. Their tables
+> use the old single-cut labels `Easy / Easy-ish / Normal / Hard-ish / Hard`; the live UI now says `Very favourite /
+> Favourite / Even / Underdog / Big underdog` and uses a venue-aware strongest cut (36.0 home, 23.4 away). The live
+> grid has six lenses: Overall, Attack, Defence, Record, Vs odds and Odds. Record and Vs odds are descriptive only.
+> Eligible next-seven-day W/D/L can receive a 35% market blend, while the rating fit remains results/shots based.
+> The generated report prints tuned/spread RPS 0.1947, but the accepted shipped-baseline contract says 0.1953; rerun
+> from the reconciled tree and update artifact/contracts together before changing the baseline.
+
 ## Summary
 
 **How it works.** Every refresh fits a goals model (Dixon-Coles) to the last two years of LaLiga results: each club
 gets an attack and a defence rating, plus one league-wide home advantage. For a fixture, the ratings give both
 clubs' expected goals, which become a grid of scoreline probabilities and then win / draw / loss chances from each
 club's side. **Difficulty = 100 × (1 − expected points ÷ 3)** with expected points = 3 × P(win) + P(draw). In words:
-the share of the three points the club is expected to drop. It equals 100 × P(loss) + 66.7 × P(draw). Five labels
-(cut at 37.4 / 48.6 / 61.1 / 71.3) colour the tiles, and the cards add up expected points over the chosen gameweeks.
+the share of the three points the club is expected to drop. It equals 100 × P(loss) + 66.7 × P(draw). Five current
+labels use 36.0 home / 23.4 away for the strongest band, then 48.6 / 61.1 / 71.3. Model lenses add future quantities;
+historical/market comparison lenses average eligible games.
 
 **How it did, without knowing the results.** Every Monday of 2017/18 to 2025/26 (374 Mondays, 3,420 matches), the
 model was fitted only on matches already played and forecast every remaining game of the season. The settings it used
@@ -96,8 +105,9 @@ board: tiles, run totals, ranking, kindest/toughest run, picks, predicted table 
 | Who is promoted | this season's fixtures minus last season's CSV clubs | the rating prior (same as everyone else in production) |
 | Club identity | `services/team_registry.py` (football-data.org code ↔ CSV name) | joining the two sources |
 
-Not used by the difficulty: injuries, line-ups, European fixtures, rest days, manager changes, weather, betting odds.
-Odds feed only the separate Odds lens.
+Not used by the underlying team-strength fit: injuries, line-ups, European fixtures, rest days, manager changes or
+weather. Eligible bookmaker W/D/L blends 35% into fixtures within seven days; Odds and implied market goal fields also
+use it. Everything further out remains model-only.
 
 ## 1.3 The rating model (Dixon-Coles)
 
@@ -246,6 +256,8 @@ the fit (3.3) because the raw model runs high. Overall, Attack and Odds are unto
 | Overall | difficulty | the fixed label cut points above | expected points |
 | Attack | expected goals for (λ) | 15/20/30/20/15% of all forecasts on the board (`fixture_grid.quantile_scale`), recomputed each refresh | expected goals |
 | Defence | clean-sheet chance | same relative cut | expected clean sheets |
+| Record | historical club edge in the model-price band | shrunk club edge against league baseline | average edge per eligible game |
+| Vs odds | historical club edge in the market-price band | shrunk club edge against league baseline | average edge per priced game |
 | Odds | bookmakers' win chance | same relative cut, over priced games | market points (3 × win + draw) per priced game |
 
 Odds lens prices are fair probabilities: The Odds API prices, margin removed proportionally, median across
@@ -293,10 +305,10 @@ Fitted on 2026-09-15 with the production settings: 757 matches in the 730-day wi
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Real Madrid v Getafe | Real Madrid | H | +0.544 | +0.325 | 1.94 | 0.54 | 70.9% | 19.5% | 9.5% | 2.32 | 22.6 | Very favourite | 58.2% |
 | Real Madrid v Getafe | Getafe | A | −0.389 | +0.266 | 0.54 | 1.94 | 9.5% | 19.5% | 70.9% | 0.48 | 84.0 | Big underdog | 14.4% |
-| Getafe v Real Madrid | Getafe | H | −0.389 | +0.266 | 0.72 | 1.46 | 18.6% | 26.4% | 55.1% | 0.82 | 72.6 | Hard | 23.2% |
-| Getafe v Real Madrid | Real Madrid | A | +0.544 | +0.325 | 1.46 | 0.72 | 55.1% | 26.4% | 18.6% | 1.92 | 36.2 | Easy | 48.7% |
-| Celta v Villarreal | Celta | H | +0.062 | +0.074 | 1.43 | 1.45 | 37.4% | 24.5% | 38.0% | 1.37 | 54.4 | Normal | 23.5% |
-| Celta v Villarreal | Villarreal | A | +0.343 | +0.086 | 1.45 | 1.43 | 38.0% | 24.5% | 37.4% | 1.39 | 53.8 | Normal | 23.8% |
+| Getafe v Real Madrid | Getafe | H | −0.389 | +0.266 | 0.72 | 1.46 | 18.6% | 26.4% | 55.1% | 0.82 | 72.6 | Big underdog | 23.2% |
+| Getafe v Real Madrid | Real Madrid | A | +0.544 | +0.325 | 1.46 | 0.72 | 55.1% | 26.4% | 18.6% | 1.92 | 36.2 | Favourite | 48.7% |
+| Celta v Villarreal | Celta | H | +0.062 | +0.074 | 1.43 | 1.45 | 37.4% | 24.5% | 38.0% | 1.37 | 54.4 | Even | 23.5% |
+| Celta v Villarreal | Villarreal | A | +0.343 | +0.086 | 1.45 | 1.43 | 38.0% | 24.5% | 37.4% | 1.39 | 53.8 | Even | 23.8% |
 
 Real Madrid at home, by hand (ratings shown are after the ×1.10 spread of 3.2):
 
@@ -308,7 +320,8 @@ EP = 3 × 0.709 + 0.195 = 2.32   →   difficulty = 100 × (1 − 2.32/3) = 22.6
 Getafe's tile for the same match: 84.0; 22.6 + 84.0 = 106.6 = 100 + 33.3 × 0.195
 ```
 
-Swapping venues moves Real Madrid from 22.6 to 36.2 (still Easy) and Getafe from Hard (84.0) to Hard (72.6). The
+Swapping venues moves Real Madrid from 22.6 (Very favourite at home) to 36.2 (Favourite away); Getafe remains a
+Big underdog (84.0 away, 72.6 home). The
 clean-sheet column already has the correction of 3.3 applied; everything else is the model's own.
 
 If either fixture were inside the next seven days and priced, the win/draw/loss row - and with it the difficulty -

@@ -2,6 +2,11 @@
 
 Generated 2026-09-16 00:29 UTC from football-data.co.uk results (2016/17 → 2026/27).
 
+> **Interpretation update, 2026-09-27:** numeric tables remain generated evidence. Elo below is a benchmark, not a
+> runtime fallback. Label tables use historical single-cut names; live UI uses the five current labels and a
+> venue-aware strongest cut. This report's tuned spread row is RPS 0.1947 while the repository's accepted shipped
+> baseline is 0.1953; a clean canonical rerun must settle and update baseline/artifact together.
+
 **Method.** Every Monday of a season, each model is fitted only on matches played before that day and
 forecasts every match in the next 8 weeks. Settings were tuned on 2019/20, 2020/21, 2021/22, 2022/23; all numbers below are
 from **2023/24, 2024/25, 2025/26**, which tuning never saw. Every method is scored on the same 8339
@@ -59,7 +64,7 @@ had much weaker home advantage, so settings that suit them may not suit normal s
 | Closing odds (ceiling) | 8339 | 0.1886 | 0.9530 | 55.5% | — |
 | Dixon-Coles (tuned) | 8339 | 0.1947 | 0.9717 | 53.2% | 0.1818 |
 | Dixon-Coles (no form, goals only) | 8339 | 0.1960 | 0.9753 | 52.7% | 0.1828 |
-| Elo (current fallback) | 8339 | 0.2050 | 1.0109 | 52.7% | — |
+| Elo (benchmark) | 8339 | 0.2050 | 1.0109 | 52.7% | — |
 | Base rates | 8339 | 0.2255 | 1.0652 | 46.0% | 0.1909 |
 
 ## 3. RPS by how far ahead the forecast is
@@ -69,7 +74,7 @@ had much weaker home advantage, so settings that suit them may not suit normal s
 | Closing odds (ceiling) | 0.1888 | 0.1882 | 0.1882 | 0.1892 |
 | Dixon-Coles (tuned) | 0.1943 | 0.1938 | 0.1946 | 0.1956 |
 | Dixon-Coles (no form, goals only) | 0.1955 | 0.1951 | 0.1960 | 0.1970 |
-| Elo (current fallback) | 0.2043 | 0.2045 | 0.2052 | 0.2056 |
+| Elo (benchmark) | 0.2043 | 0.2045 | 0.2052 | 0.2056 |
 | Base rates | 0.2257 | 0.2254 | 0.2253 | 0.2257 |
 
 ## 4. Early season vs rest of season (RPS)
@@ -80,7 +85,7 @@ had much weaker home advantage, so settings that suit them may not suit normal s
 | Closing odds (ceiling) | 0.1814 | 0.1906 |
 | Dixon-Coles (no form, goals only) | 0.1866 | 0.1986 |
 | Dixon-Coles (tuned) | 0.1853 | 0.1972 |
-| Elo (current fallback) | 0.1996 | 0.2065 |
+| Elo (benchmark) | 0.1996 | 0.2065 |
 
 ## 5. Ranking runs of fixtures (what an FDR is for)
 
@@ -92,10 +97,10 @@ actually got, averaged over cutoffs (1 = perfect ranking, 0 = no better than ran
 | Closing odds (ceiling) | 0.617 | 115 |
 | Dixon-Coles (tuned) | 0.554 | 115 |
 | Dixon-Coles (no form, goals only) | 0.542 | 115 |
-| Elo (current fallback) | 0.532 | 115 |
+| Elo (benchmark) | 0.532 | 115 |
 | Base rates | 0.097 | 115 |
 
-## 6. Difficulty labels (tuned model, test seasons)
+## 6. Historical single-cut difficulty labels (tuned model, test seasons)
 
 Current thresholds from `app/services/scoring.py` (37.4, 48.6, 61.1, 71.3):
 

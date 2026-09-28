@@ -13,6 +13,7 @@ import {
 import { syncState } from "../../lib/sorareStatus";
 import ApplySheet from "./ApplySheet";
 import { Cash, Chevron, Essence, Foil, GROUP_COLOUR } from "./bits";
+import EnteredLineups from "./EnteredLineups";
 import Lineup from "./Lineup";
 import SorareImage from "./SorareImage";
 
@@ -70,6 +71,7 @@ export default function PlayView({
           </Link>
         </div>
       ) : null}
+      <EnteredLineups week={week.gameweek} />
       {plan ? (
         <>
           <PlanSwitch week={week} planIndex={planIndex} after={after} href={href} />

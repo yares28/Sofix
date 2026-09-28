@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Sofix",
-  "version": "0.1.1",
-  "description": "Links sorare.com to your Sofix app: your lineups, scores and rewards.",
+  "version": "0.2.0",
+  "description": "Links sorare.com to your Sofix app: your lineups, and your scores drawn on the cards.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtCOvdJzJRiA90k2xBz1f8ADx9jx5iQayYv3SPrmnCraBWXC/EFkRpKgyUvBAYmuicEIkD4Z6C9d+3C6HpcKKew+3HXMFAJVpclm7Vtca2UcxMIYYJ6Mqf/j+fyMsK1RTHKuQbcpoP/HruruMEEiNbDnngXbMn6Xo95bOkrocUA9aHY7Rbm0FVV8wUvtgOaV4dnsKVlUYnG9uCSnt1Dljtc5wyPE0XuT+S9ihTiVvydamD63AIVEQCIMRm2pteOe2n5vmveU2igbnm0JRx5tCEYeEtTW0tWniMVkj31icTdY52Ik0tj8AEicObRgd+CfBaQd86Eig556ZloW/nswxAQIDAQAB",
   "minimum_chrome_version": "120",
   "permissions": ["storage", "alarms", "scripting"],
@@ -15,8 +15,9 @@
   },
   "icons": { "16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png", "128": "icons/128.png" },
   "content_scripts": [
-    { "matches": ["https://sorare.com/*"], "js": ["bridge.js"], "run_at": "document_start", "world": "MAIN" },
-    { "matches": ["https://sorare.com/*"], "js": ["content.js"], "run_at": "document_idle" }
+    { "matches": ["https://sorare.com/*"], "js": ["core.js", "bridge.js"], "run_at": "document_start", "world": "MAIN" },
+    { "matches": ["https://sorare.com/*"], "css": ["overlay.css"], "run_at": "document_start" },
+    { "matches": ["https://sorare.com/*"], "js": ["core.js", "content.js", "overlay.js", "drawer.js"], "run_at": "document_idle" }
   ],
   "externally_connectable": {
     "matches": ["__APP_ORIGIN__/*", "http://localhost/*", "http://127.0.0.1/*"]

@@ -5,16 +5,60 @@
 //
 // It asks nothing on its own: every call below answers a message, and the only two that write anything save a
 // draft and enter a competition, each behind its own click in the app (docs/sorare_plan.md, S6).
+//
+// It also reads the answers the page itself gets, to learn which card each picture on screen is (the overlay,
+// plans/overlay.md O1). What it learns is a small index kept in this closure: nothing stored, nothing sent away.
 (() => {
-  // 3: a tab that was already open keeps the previous bridge. A new one must still install, or that tab
+  // 4: a tab that was already open keeps the previous bridge. A new one must still install, or that tab
   // stays invisible. The message source is versioned for the same reason: the old bridge would answer first.
-  if (window.__sofixBridge === 3) return;
-  window.__sofixBridge = 3;
+  if (window.__sofixBridge === 4) return;
+  window.__sofixBridge = 4;
 
   const originalFetch = window.fetch;
   let endpoint = null; // { url, headers } of the last GraphQL request Sorare's page made
   let sawGraphQLAt = 0;
   const KNOWN = "https://api.sorare.com/graphql";
+  const core = window.__sofixCore; // core.js runs first; without it the bridge still works, it just learns no cards
+
+  // Which card a picture is. Keyed by the picture's own id (core.cardImageKey), and by the player's name as an
+  // image's alt text spells it, for a picture whose id was never seen in an answer. Capped, oldest out first.
+  const INDEX_MAX = 2000;
+  const cards = new Map(); // key -> { cardSlug, playerSlug, name }
+  const byName = new Map(); // normalised name -> playerSlug, or null when two players share the name
+  let announceTimer = 0;
+
+  function learn(found) {
+    if (!core || !found.length) return;
+    for (const item of found) {
+      cards.delete(item.key); // re-inserting moves it to the newest end
+      cards.set(item.key, { cardSlug: item.cardSlug, playerSlug: item.playerSlug, name: item.name });
+      if (item.name && item.playerSlug) {
+        const name = core.normalizeCardName(item.name);
+        if (name) byName.set(name, byName.has(name) && byName.get(name) !== item.playerSlug ? null : item.playerSlug);
+      }
+    }
+    while (cards.size > INDEX_MAX) cards.delete(cards.keys().next().value);
+    if (byName.size > INDEX_MAX) byName.clear();
+    // Tell the overlay there is more to look up, once per burst of answers.
+    if (!announceTimer) {
+      announceTimer = setTimeout(() => {
+        announceTimer = 0;
+        window.postMessage({ source: "sofix-bridge-4", type: "cards" }, location.origin);
+      }, 250);
+    }
+  }
+
+  /** Read a copy of an answer the page asked for. Never touches the answer the page receives. */
+  async function readAnswer(response) {
+    try {
+      if (!core || !response || !response.ok) return;
+      if (!/json/i.test(response.headers.get("content-type") || "")) return;
+      if (Number(response.headers.get("content-length") || 0) > 8000000) return;
+      learn(core.collectCards(await response.clone().json()));
+    } catch {
+      // a failure of ours must never reach the page
+    }
+  }
 
   function plainHeaders(source) {
     const out = {};
@@ -25,21 +69,26 @@
   }
 
   window.fetch = function sofixFetch(input, init) {
+    let graphql = false;
     try {
       const url = typeof input === "string" ? input : input && input.url;
       const method = String((init && init.method) || (input && input.method) || "GET").toUpperCase();
       if (url && method === "POST" && /graphql/i.test(url)) {
+        graphql = true;
         endpoint = { url: new URL(url, location.href).href, headers: plainHeaders((init && init.headers) || (input && input.headers)) };
         const now = Date.now();
         if (now - sawGraphQLAt > 2000) {
           sawGraphQLAt = now;
-          window.postMessage({ source: "sofix-bridge-3", type: "ready" }, location.origin);
+          window.postMessage({ source: "sofix-bridge-4", type: "ready" }, location.origin);
         }
       }
     } catch {
       // never break Sorare's own request
     }
-    return originalFetch.apply(this, arguments);
+    const pending = originalFetch.apply(this, arguments);
+    // Registered before the page's own handlers, so the copy is taken before the page reads the answer.
+    if (graphql) pending.then(readAnswer, () => {});
+    return pending;
   };
 
   // The only questions this bridge will ask Sorare. It is not a general proxy: an operation that is not in
@@ -121,6 +170,7 @@
       const body = await response.json();
       // Sorare answers a refused write with 200 and an errors array: those are its words, and they are kept.
       if (body && body.errors) return { state: "rejected", errors: body.errors.map((e) => String(e.message || e)) };
+      if (core && body && body.data) learn(core.collectCards(body.data)); // a lineup's cards are worth knowing too
       return { state: "ok", data: (body && body.data) || null };
     } catch {
       return { state: "error" };
@@ -134,10 +184,31 @@
     return user ? { state: "signed-in", user: user.nickname || user.slug } : { state: "signed-out" };
   }
 
+  /**
+   * Which card each picture is: `items` are `{ key, name }` (a picture's id and its alt text). A picture found by
+   * id answers with its card and player; one found only by name answers with the player, because a name is
+   * shared by all of a player's cards. What is not known is left out.
+   */
+  function identify(items) {
+    const found = {};
+    for (const item of Array.isArray(items) ? items.slice(0, 200) : []) {
+      if (!item || typeof item.key !== "string") continue;
+      const known = cards.get(item.key);
+      if (known) {
+        found[item.key] = { cardSlug: known.cardSlug, playerSlug: known.playerSlug };
+        continue;
+      }
+      const byAlt = core && typeof item.name === "string" ? byName.get(core.normalizeCardName(item.name)) : null;
+      if (byAlt) found[item.key] = { cardSlug: null, playerSlug: byAlt };
+    }
+    return { state: "ok", found, known: cards.size };
+  }
+
   window.addEventListener("message", async (event) => {
-    if (event.source !== window || !event.data || event.data.source !== "sofix-content-3") return;
-    const { type, id, operation, variables } = event.data;
-    const result = type === "whoami" ? await whoAmI() : type === "ask" ? await ask(operation, variables) : null;
-    if (result) window.postMessage({ source: "sofix-bridge-3", id, ...result }, location.origin);
+    if (event.source !== window || !event.data || event.data.source !== "sofix-content-4") return;
+    const { type, id, operation, variables, items } = event.data;
+    const result =
+      type === "whoami" ? await whoAmI() : type === "ask" ? await ask(operation, variables) : type === "identify" ? identify(items) : null;
+    if (result) window.postMessage({ source: "sofix-bridge-4", id, ...result }, location.origin);
   });
 })();

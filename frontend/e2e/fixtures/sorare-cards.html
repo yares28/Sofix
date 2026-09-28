@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sorare cards, as the overlay meets them</title>
+<style>
+/* A stand-in for sorare.com: the same card pictures at every size the real site draws them, wrapped the way it
+   wraps them (rounded, clipped), with a button of its own beside a card. Served to the overlay test only. */
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 16px; background: #0e0e0e; color: #fff; font: 14px/1.4 -apple-system, "Segoe UI", sans-serif; }
+h1 { margin: 0 0 4px; font-size: 20px; }
+h2 { margin: 24px 0 8px; font-size: 13px; font-weight: 650; color: #b6b6bf; letter-spacing: .04em; text-transform: uppercase; }
+.row { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; }
+.card { position: relative; overflow: hidden; border-radius: 8px; background: #000; }
+.card img, .card video { display: block; width: 100%; height: auto; aspect-ratio: 320 / 452; object-fit: cover; }
+.lineup .card { width: 88px; }
+.bench .card { width: 56px; }
+.gallery .card { width: 163px; }
+.hero .card { width: 240px; }
+.mini { display: flex; align-items: center; gap: 8px; }
+.mini img { width: 18px; height: 26px; border-radius: 50%; object-fit: cover; }
+.face { width: 40px; height: 40px; border-radius: 50%; overflow: hidden; }
+.face img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.buy { display: block; margin-top: 8px; width: 163px; padding: 10px; border: 0; border-radius: 10px; background: #6a48e8; color: #fff; font-weight: 650; }
+a.card { display: block; color: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Sorare cards</h1>
+  <h2>Lineup</h2>
+  <div class="row lineup" id="lineup">
+    <div class="card" id="slot-a"><img alt="Unai Simón - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000001/picture/tinified-aaa1.png?width=200"></div>
+    <div class="card" id="slot-b"><img alt="Pau Cubarsí - rare" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000002/picture/tinified-aaa2.png?width=200"></div>
+    <div class="card" id="slot-c"><img alt="Lionel Messi - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000003/picture/tinified-aaa3.png?width=200"></div>
+  </div>
+
+  <h2>Bench</h2>
+  <div class="row bench" id="bench">
+    <div class="card" id="thumb"><img alt="Unai Simón - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000001/picture/tinified-aaa1.png?width=80"></div>
+  </div>
+
+  <h2>Gallery</h2>
+  <div class="row gallery" id="gallery">
+    <div class="card" id="copy"><img alt="Unai Simón - super_rare" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000004/picture/tinified-aaa4.png?width=300"></div>
+    <div class="card" id="stranger"><img alt="Someone Else - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000005/picture/tinified-aaa5.png?width=300"></div>
+    <div class="card" id="abroad"><img alt="Lionel Messi - rare" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000007/picture/tinified-aaa7.png?width=300"></div>
+    <a class="card" id="linked" href="/football/players/x/cards?sale=true&card=pedri-2026-limited-7"><img alt="Pedri - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000006/picture/tinified-aaa6.png?width=300"></a>
+    <div>
+      <div class="card" id="clip"><video id="clip-video" muted preload="none" poster="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-000000000001/picture/tinified-aaa1.png"><source src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-000000000001/video/low_res-vid1.webm"></video></div>
+      <button class="buy" id="buy" type="button">Buy now</button>
+    </div>
+  </div>
+
+  <h2>Player page</h2>
+  <div class="row hero" id="hero">
+    <div class="card" id="big"><img alt="Unai Simón - limited" src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-000000000001/picture/tinified-aaa1.png"></div>
+    <div>
+      <div class="mini" id="mini"><img alt="Unai Simón" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000001/picture/avatar-aaa1.png?width=40"><span>Unai Simón</span></div>
+      <div class="face" id="face"><img alt="Unai Simón - face" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000001/picture/tinified-aaa1.png?width=80"></div>
+    </div>
+  </div>
+</main>
+<script>
+// What the real page does: draws first, learns which card is which from its own GraphQL answers a moment later.
+window.rerender = function () {
+  // A list that re-renders hands every card a brand new element.
+  document.querySelectorAll("#lineup .card, #gallery > .card").forEach(function (node) {
+    var old = node.querySelector("img");
+    var fresh = node.cloneNode(false);
+    var img = document.createElement("img");
+    img.alt = old.alt;
+    img.src = old.src;
+    fresh.append(img);
+    node.replaceWith(fresh);
+  });
+};
+window.swapCard = function (id, uuid, alt) {
+  // A list that is re-used for another card: the same element, a different picture.
+  var img = document.querySelector("#" + id + " img");
+  img.alt = alt;
+  img.src = "https://assets.sorare.com/image-resize/card/" + uuid + "/picture/tinified-swap.png?width=200";
+};
+setTimeout(function () {
+  fetch("https://api.sorare.com/graphql", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ operationName: "LineupQuery", query: "query LineupQuery { cards { slug } }" }),
+  }).then(function (r) { return r.json(); }).then(function (body) { window.__answer = body; document.body.dataset.answered = "yes"; });
+}, 250);
+</script>
+</body>
+</html>

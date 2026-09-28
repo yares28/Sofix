@@ -63,7 +63,117 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     refreshSession().then((state) => reply({ ok: true, state }));
     return true;
   }
+  // From overlay.js, and only from a sorare.com tab.
+  if (!fromSorare(sender)) return;
+  if (message?.type === "overlay-numbers") {
+    overlayNumbers(message.cards, message.players).then(reply);
+    return true;
+  }
+  if (message?.type === "overlay-plan") {
+    overlayPlan().then(reply);
+    return true;
+  }
+  if (message?.type === "overlay-stats") {
+    const seen = Number(message.seen) || 0;
+    const matched = Number(message.matched) || 0;
+    chrome.storage.local.set({ overlayStats: { seen, matched, at: Date.now() } });
+    return;
+  }
+  if (message?.type === "open-app") {
+    chrome.tabs.create({ url: CONFIG.appUrl + (APP_PATH.test(String(message.path)) ? message.path : "/") });
+    return;
+  }
 });
+
+// Where the overlay may send you in the app: home, Control, or the Play page of one gameweek. Nothing else.
+const APP_PATH = /^(\/|\/control|\/play(\?gw=\d{1,4})?)$/;
+
+function fromSorare(sender) {
+  try {
+    return Boolean(sender.tab) && new URL(sender.url).origin === "https://sorare.com";
+  } catch {
+    return false;
+  }
+}
+
+// The numbers the overlay draws on sorare.com's cards (plans/overlay.md, O2). Which cards a page shows goes only to
+// your own app, in batches, and the answers are kept for a few minutes in the browser's memory (storage.session:
+// gone when Chrome closes), so scrolling a gallery never asks twice. An unknown slug is remembered as unknown too.
+const OVERLAY_TTL_MS = 15 * 60 * 1000;
+const OVERLAY_BATCH = 120; // the app's cap per call
+const SLUG = /^[a-z0-9][a-z0-9_-]{0,119}$/;
+let overlayDown = { until: 0, state: "unreachable" }; // after a failure, do not ask again for a moment
+
+const slugs = (value) => [...new Set(Array.isArray(value) ? value.filter((slug) => typeof slug === "string" && SLUG.test(slug)) : [])];
+
+/** One call to the app's overlay endpoint. `{ body }` when it answered, `{ state }` ("auth" | "unreachable") when it did not. */
+async function askApp(payload) {
+  if (Date.now() < overlayDown.until) return { state: overlayDown.state };
+  let response;
+  try {
+    response = await fetch(`${CONFIG.appUrl}/api/ext/overlay`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${CONFIG.token}`,
+        "x-vercel-protection-bypass": CONFIG.bypass,
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    response = null;
+  }
+  const body = response?.ok ? await response.json().catch(() => null) : null;
+  if (body?.ok) return { body };
+  // 401: the app does not accept this extension's token. Anything else: the app is not answering. Either way, say
+  // so once and leave it alone for 30 seconds (a 429 is honoured the same way).
+  overlayDown = { until: Date.now() + 30_000, state: response?.status === 401 ? "auth" : "unreachable" };
+  await chrome.storage.local.set(
+    response?.status === 401 ? { lastError: "HTTP 401" } : { appReachable: false, lastError: response ? `HTTP ${response.status}` : "network error" },
+  );
+  return { state: overlayDown.state };
+}
+
+async function overlayNumbers(cards, players) {
+  const wanted = [...slugs(cards).map((slug) => `c:${slug}`), ...slugs(players).map((slug) => `p:${slug}`)].slice(0, 400);
+  if (!wanted.length) return { state: "ok", cards: {}, players: {} };
+  const cached = await chrome.storage.session.get(wanted.map((key) => `ov:${key}`));
+  const now = Date.now();
+  const answers = {};
+  const missing = [];
+  for (const key of wanted) {
+    const hit = cached[`ov:${key}`];
+    if (hit && now - hit.at < OVERLAY_TTL_MS) answers[key] = hit.entry;
+    else missing.push(key);
+  }
+  for (let i = 0; i < missing.length; i += OVERLAY_BATCH) {
+    const batch = missing.slice(i, i + OVERLAY_BATCH);
+    const asked = {
+      cards: batch.filter((key) => key.startsWith("c:")).map((key) => key.slice(2)),
+      players: batch.filter((key) => key.startsWith("p:")).map((key) => key.slice(2)),
+    };
+    const answer = await askApp(asked);
+    if (!answer.body) return { state: answer.state };
+    const fresh = {};
+    for (const slug of asked.cards) fresh[`c:${slug}`] = answer.body.cards?.[slug] ?? null;
+    for (const slug of asked.players) fresh[`p:${slug}`] = answer.body.players?.[slug] ?? null;
+    Object.assign(answers, fresh);
+    await chrome.storage.session.set(Object.fromEntries(Object.entries(fresh).map(([key, entry]) => [`ov:${key}`, { at: Date.now(), entry }])));
+  }
+  const out = { state: "ok", cards: {}, players: {} };
+  for (const [key, entry] of Object.entries(answers)) if (entry) out[key.startsWith("c:") ? "cards" : "players"][key.slice(2)] = entry;
+  return out;
+}
+
+/** The gameweek's plan, for the drawer. Asked for only when the drawer is opened, and kept as long as the numbers. */
+async function overlayPlan() {
+  const { "ov:plan": held } = await chrome.storage.session.get("ov:plan");
+  if (held && Date.now() - held.at < OVERLAY_TTL_MS) return { state: "ok", plan: held.plan };
+  const answer = await askApp({ cards: [], players: [], plan: true });
+  if (!answer.body?.plan) return { state: answer.state ?? "unreachable" };
+  await chrome.storage.session.set({ "ov:plan": { at: Date.now(), plan: answer.body.plan } });
+  return { state: "ok", plan: answer.body.plan };
+}
 
 // The fixed things the app may ask Sorare through your session, and the shape of each. The app names a step,
 // never a query: nothing outside this table can be asked, and the two that write are separate steps so that
@@ -117,11 +227,12 @@ const revived = new Set();
 
 /** Content scripts do not appear in a tab that was already open. Put them there, or reload the tab once so they do. */
 async function ensureBridge(tabId) {
-  const existing = await askTab(tabId, { type: "sofix-ping-3" }, 500);
-  if (existing?.ok && existing.version === 3) return true;
+  const existing = await askTab(tabId, { type: "sofix-ping-4" }, 500);
+  if (existing?.ok && existing.version === 4) return true;
   try {
-    await chrome.scripting.executeScript({ target: { tabId }, files: ["bridge.js"], world: "MAIN" });
-    await chrome.scripting.executeScript({ target: { tabId }, files: ["content.js"] });
+    await chrome.scripting.executeScript({ target: { tabId }, files: ["core.js", "bridge.js"], world: "MAIN" });
+    await chrome.scripting.executeScript({ target: { tabId }, files: ["core.js", "content.js", "overlay.js", "drawer.js"] });
+    await chrome.scripting.insertCSS({ target: { tabId }, files: ["overlay.css"] });
   } catch {
     // The loaded manifest may not have "scripting" yet. Reloading the tab lets its content scripts start.
     if (revived.has(tabId)) return false;
@@ -144,14 +255,14 @@ async function ensureBridge(tabId) {
       chrome.tabs.onUpdated.addListener(onUpdated);
     });
     for (let i = 0; i < 8; i++) {
-      const answer = await askTab(tabId, { type: "sofix-ping-3" }, 400);
-      if (answer?.ok && answer.version === 3) return true;
+      const answer = await askTab(tabId, { type: "sofix-ping-4" }, 400);
+      if (answer?.ok && answer.version === 4) return true;
       await new Promise((resolve) => setTimeout(resolve, 300));
     }
     return false;
   }
-  const answer = await askTab(tabId, { type: "sofix-ping-3" }, 800);
-  return Boolean(answer?.ok && answer.version === 3);
+  const answer = await askTab(tabId, { type: "sofix-ping-4" }, 800);
+  return Boolean(answer?.ok && answer.version === 4);
 }
 
 async function sorareTabs() {

@@ -11,7 +11,7 @@ const GITHUB_TOKEN = process.env.E2E_GITHUB_TOKEN ?? "";
 const GITHUB_POLLS = 3; // status checks before the scripted workflow run completes
 const recorded = JSON.parse(readFileSync(new URL("./fixtures/grid-response.json", import.meta.url), "utf8"));
 const sorareFixture = JSON.parse(readFileSync(new URL("./fixtures/sorare-response.json", import.meta.url), "utf8"));
-const STEPS = ["sync", "predict", "weather"];
+const STEPS = ["sync", "odds", "predict", "sorare", "publish"]; // the steps the job really runs, in order
 const COOLDOWN_S = 600;
 
 // The Sorare page counts down to the lock, so the recorded gameweek is moved forward once, at start-up,

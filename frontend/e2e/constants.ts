@@ -1,5 +1,7 @@
-export const E2E_PORT = 3100;
-export const MOCK_PORT = 8765;
+// Both default, and both move with the environment: a busy port should not make the suite assert the wrong
+// address (the Control Center's QR code spells the one the phone would open).
+export const E2E_PORT = Number(process.env.E2E_PORT ?? 3100);
+export const MOCK_PORT = Number(process.env.E2E_MOCK_PORT ?? 8765);
 // Only ever used between the test app and the mock API.
 export const E2E_REFRESH_TOKEN = "e2e-only-refresh-token-not-a-secret-0123456789";
 export const E2E_GITHUB_TOKEN = "e2e-only-github-token-not-a-secret";

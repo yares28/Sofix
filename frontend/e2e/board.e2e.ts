@@ -2,6 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { scaleBucket } from "../lib/grid";
 import { gameweekMatches } from "../lib/matches";
+import { E2E_PORT } from "./constants";
 import { grid, offline, openingMatchday, resetBackend, sorare, teamRows } from "./helpers";
 
 test.beforeEach(async ({ page, request }) => {
@@ -501,7 +502,7 @@ test("the status pill opens the Control Center: status, install with a QR code, 
   await expect(page.getByRole("heading", { level: 2, name: "All good" })).toBeVisible(); // no database: no setup to nag about
   await expect(page.getByRole("button", { name: "Refresh" })).toBeVisible();
   await expect(page.getByRole("heading", { level: 2, name: "Get the app" })).toBeVisible();
-  await expect(page.getByRole("img", { name: /^QR code for 127\.0\.0\.1:3100$/ })).toBeVisible();
+  await expect(page.getByRole("img", { name: `QR code for 127.0.0.1:${E2E_PORT}`, exact: true })).toBeVisible();
   await expect(page.getByRole("img", { name: /^GitHub runs the jobs on a clock/ })).toBeVisible();
   const scan = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(scan.violations.map((v) => `${v.id}: ${v.nodes.slice(0, 4).map((n) => n.target.join(" ")).join("; ")}`)).toEqual([]);
@@ -519,6 +520,20 @@ test("home: the gameweek, its hero number, the three board tiles and the Sorare 
   await expect(page.locator(".hm-fixtures .hm-fx")).toHaveCount(matches);
   await expect(page.locator(".hm-mosaic .m-row:not(.hd)")).toHaveCount(grid.teams.length);
   await expect(page.locator(".hm-wait")).toHaveCount(0); // the Sorare tiles have their gameweek (see play.e2e.ts)
+  const cardBoxes = await page.locator(".hm-art").evaluateAll((cards) =>
+    cards.map((card) => {
+      const box = card.getBoundingClientRect();
+      return { width: box.width, height: box.height };
+    }),
+  );
+  if (cardBoxes.length) {
+    expect(new Set(cardBoxes.map((box) => Math.round(box.width))).size).toBe(1);
+    expect(new Set(cardBoxes.map((box) => Math.round(box.height))).size).toBe(1);
+    expect(cardBoxes[0]!.width).toBeGreaterThanOrEqual(100);
+    expect(cardBoxes[0]!.width / cardBoxes[0]!.height).toBeCloseTo(320 / 452, 2);
+    await expect(page.locator(".hm-best .hm-game-cards").first()).toBeVisible();
+    await expect(page.locator(".hm-best .rates").first()).toContainText(/Play|Win/);
+  }
   const scan = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(scan.violations.map((v) => `${v.id}: ${v.nodes.slice(0, 4).map((n) => n.target.join(" ")).join("; ")}`)).toEqual([]);
 
@@ -544,10 +559,23 @@ test("home: the week in the bar moves to a played gameweek and every tile follow
 
   await picker.getByRole("button", { expanded: false }).click();
   await picker.getByRole("radio", { name: new RegExp(`GW${past + 1}\\b`) }).click();
-  await expect(page).toHaveURL(/\?w=/);
+  // The bar has to show the round that was picked before the tiles are asked to follow it: one
+  // Sorare game week can hold two LaLiga rounds, and each is its own week (lib/weeks.ts).
+  await expect(picker.getByRole("button", { expanded: false })).toContainText(`GW${past + 1}`);
   await page.getByRole("link", { name: "Fixtures", exact: true }).last().click();
   await expect(page).toHaveURL(new RegExp(`/fixtures\\?gw=${past + 1}$`), { timeout: 30_000 });
   await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${past + 1} fixtures` })).toBeVisible();
+});
+
+test("home: a Sorare-only week says LaLiga is away and identifies each player's real fixture", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Previous gameweek" }).click();
+
+  await expect(page.locator(".wk-trigger")).toContainText("Sorare GW");
+  await expect(page.getByRole("heading", { level: 2, name: "No LaLiga this week" })).toBeVisible();
+  await expect(page.locator(".hm-top")).toHaveCount(0);
+  await expect(page.locator(".ow-games li").first()).toContainText(/\d+%\s*play/);
+  await expect(page.locator(".ow-games li").first()).toContainText(/xScore/);
 });
 
 test("home: a gameweek the season doesn't have goes back to the home page", async ({ page }) => {

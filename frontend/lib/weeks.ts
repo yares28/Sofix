@@ -16,16 +16,22 @@ import type { GameweekPlan, Sorare } from "./play";
 export type WeekState = "done" | "live" | "next" | "later";
 
 export type Week = {
-  /** The week's own address, used as `?w=` — its first day, which never collides between the two systems. */
+  /**
+   * The week's own address, used as `?w=`: its first day. A Sorare game week can cover two LaLiga rounds — a
+   * weekend and a midweek one — and then each round is its own week here, with its own id, so picking the
+   * second can never land on the first. The Sorare gameweek they share is still planned once (`span`).
+   */
   id: string;
   from: string;
   to: string;
+  /** The Sorare game week's own window, when this week sits inside one. Wider than a single round. */
+  span: { from: string; to: string } | null;
   state: WeekState;
   /** The LaLiga round inside this week, and its column in the grid. */
   md: number | null;
   column: number | null;
   finished: boolean;
-  /** Sorare's game week, when it has opened one. */
+  /** Sorare's game week, when it has opened one. Two weeks may share it; the plan behind it is one. */
   gw: string | null;
   number: number | null;
   /** What the job knows about it: only ever set for a gameweek it planned. */
@@ -74,11 +80,17 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
     // Half-open [start, end): a Sorare week ends where the next begins, so a Monday round belongs to one of them.
     const week = timeline.find((item) => at(round.date_from!) >= at(item.start) && at(round.date_from!) < at(item.end));
     if (week) taken.add(week.id);
+    // The round's own days are the week's, even inside a wider Sorare window: two rounds in one game week are
+    // two different things to pick, and they must not share an address.
+    const from = round.date_from!;
+    const to = round.date_to ?? round.date_from!;
+    const span = week ? { from: week.start, to: week.end } : null;
     weeks.push({
-      id: day(week ? week.start : round.date_from!),
-      from: week ? week.start : round.date_from!,
-      to: week ? week.end : (round.date_to ?? round.date_from!),
-      state: stateOf(week ? week.start : round.date_from!, week ? week.end : (round.date_to ?? round.date_from!), sorare, week?.id, now),
+      id: day(from),
+      from,
+      to,
+      span,
+      state: stateOf(span?.from ?? from, span?.to ?? to, sorare, week?.id, now),
       md: round.number,
       column: (grid?.matchdays ?? []).indexOf(round),
       finished: Boolean(round.finished),
@@ -95,6 +107,7 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
       id: day(item.start),
       from: item.start,
       to: item.end,
+      span: { from: item.start, to: item.end },
       state: stateOf(item.start, item.end, sorare, item.id, now),
       md: null,
       column: null,
@@ -135,6 +148,30 @@ export function weekById(weeks: Week[], id: string | undefined | null): Week | n
   return (id && weeks.find((week) => week.id === id)) || null;
 }
 
+export type Page = "board" | "play" | "all";
+
+/**
+ * The weeks a page can offer.
+ *
+ * The board counts LaLiga rounds, so a Sorare game week holding two of them offers both. Play counts Sorare
+ * game weeks, so that same pair is one row there — the plan behind it is one plan, and offering it twice would
+ * be two ways to reach the same page. Everything else sees the whole calendar.
+ */
+export function pageWeeks(weeks: Week[], page: Page): Week[] {
+  if (page === "board") return weeks.filter((week) => week.md !== null);
+  if (page !== "play") return weeks;
+  const seen = new Set<string>();
+  return weeks.filter((week) => {
+    if (!week.gw || seen.has(week.gw)) return false;
+    seen.add(week.gw);
+    return true;
+  });
+}
+
+/** The days a week covers on this page: its round, or the whole Sorare game week on Play. */
+export const weekWindow = (week: Week, page: Page): { from: string; to: string } =>
+  page === "play" && week.span ? week.span : { from: week.from, to: week.to };
+
 /** Weeks grouped into the months the picker shows, so a 43-week season stays one screen. */
 export function byMonth(weeks: Week[]): { key: string; label: string; weeks: Week[] }[] {
   const months = new Map<string, Week[]>();
@@ -146,9 +183,10 @@ export function byMonth(weeks: Week[]): { key: string; label: string; weeks: Wee
 }
 
 /** The dates a week covers, the way the app writes them: "25–29 Sep", "29 Sep – 2 Oct", "3 Jan". */
-export function weekDates(week: Week): string {
-  const from = dayMonth(week.from);
-  const to = dayMonth(week.to);
+export function weekDates(week: Week, page: Page = "all"): string {
+  const window = weekWindow(week, page);
+  const from = dayMonth(window.from);
+  const to = dayMonth(window.to);
   if (from.day === to.day && from.month === to.month) return `${from.day} ${from.month}`;
   return from.month === to.month
     ? `${from.day}–${to.day} ${to.month}`

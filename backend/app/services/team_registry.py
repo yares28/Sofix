@@ -2,7 +2,7 @@
 
 - `code`: football-data.org three-letter code (tla), our stable key
 - `history_name`: the name football-data.co.uk uses in its CSVs (the rating model's key)
-- display name, badge colour, and home stadium for weather lookups
+- display name, badge colour, and home stadium
 """
 
 from __future__ import annotations

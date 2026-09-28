@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { GameweekPlan, Sorare, TimelineWeek } from "./play";
 import type { FixtureGrid, GridMatchday } from "./types";
-import { byMonth, currentWeek, seasonWeeks, weekById, weekContext, weekDates, weekOn, weekValue } from "./weeks";
+import { byMonth, currentWeek, pageWeeks, seasonWeeks, weekById, weekContext, weekDates, weekOn, weekValue } from "./weeks";
 
 // The real shape of the 2026/27 season: LaLiga plays MD5–MD7 and then stops for an international break,
 // while Sorare keeps running a game week every few days.
@@ -165,5 +165,46 @@ describe("what the bar shows on a page", () => {
 
   it("gives back nothing when there is nothing", () => {
     expect(weekContext(null, null, NOW).current).toBeNull();
+  });
+});
+
+// A midweek round: Sorare game week 21 runs Fri–Wed and holds both LaLiga GW9 (the weekend) and GW10
+// (the Tuesday). This is the ordinary shape of a rescheduled league round, not a quirk of the test clock.
+const DOUBLE_ROUNDS: GridMatchday[] = [
+  { number: 9, date_from: "2026-10-16T19:00:00Z", date_to: "2026-10-18T19:00:00Z", finished: false },
+  { number: 10, date_from: "2026-10-20T19:00:00Z", date_to: "2026-10-21T19:00:00Z", finished: false },
+] as GridMatchday[];
+const DOUBLE_TIMELINE: TimelineWeek[] = [
+  { id: "21", slug: "g", number: 21, start: "2026-10-16T17:00:00Z", end: "2026-10-22T17:00:00Z", lock: "", status: "next" },
+];
+const doubleSorare = { timeline: DOUBLE_TIMELINE, nextId: "21", lastId: null, weeks: [week("21")] } as Sorare;
+const doubleGrid = { matchdays: DOUBLE_ROUNDS } as FixtureGrid;
+
+describe("one Sorare game week over two LaLiga rounds", () => {
+  const weeks = seasonWeeks(doubleGrid, doubleSorare, new Date("2026-10-17T10:00:00Z"));
+
+  it("gives each round its own week, so picking the second cannot land on the first", () => {
+    expect(weeks.map((w) => w.md)).toEqual([9, 10]);
+    expect(weeks.map((w) => w.id)).toEqual(["2026-10-16", "2026-10-20"]);
+    expect(new Set(weeks.map((w) => w.id)).size).toBe(2);
+    expect(weekById(weeks, "2026-10-20")!.md).toBe(10);
+  });
+
+  it("still shares the one Sorare game week, and its plan, between them", () => {
+    expect(weeks.every((w) => w.gw === "21" && w.number === 21)).toBe(true);
+    expect(weeks.every((w) => w.cards === 13 && w.plans === 1)).toBe(true);
+    expect(weeks.every((w) => w.state === "next")).toBe(true); // the game week is what Sorare is planning
+  });
+
+  it("offers both rounds to the board and the game week once to Play", () => {
+    expect(pageWeeks(weeks, "board").map((w) => w.md)).toEqual([9, 10]);
+    expect(pageWeeks(weeks, "play").map((w) => w.gw)).toEqual(["21"]);
+    expect(pageWeeks(weeks, "all")).toHaveLength(2);
+  });
+
+  it("writes each round's own days, and the whole game week on Play", () => {
+    expect(weekDates(weeks[0]!)).toBe("16–18 Oct");
+    expect(weekDates(weeks[1]!)).toBe("20–21 Oct");
+    expect(weekDates(weeks[0]!, "play")).toBe("16–22 Oct");
   });
 });

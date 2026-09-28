@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { nextWeek } from "../lib/play";
-import { offline, resetBackend, sorare } from "./helpers";
+import { grid, offline, resetBackend, sorare } from "./helpers";
 
 // The Play page draws the Sorare gameweek the job publishes (e2e/fixtures/sorare-response.json, served by
 // the mock API). Nothing here recomputes a number: the tests check that what the payload says reaches the page.
@@ -14,6 +14,83 @@ test.beforeEach(async ({ page, request }) => {
 const planned = nextWeek(sorare);
 const plan1 = planned.plans[0]!;
 const laliga = plan1.lineups[0]!;
+const timelineOnly = sorare.timeline.find(
+  (item) =>
+    !sorare.weeks.some((week) => week.gameweek.id === item.id) &&
+    !grid.matchdays.some((matchday) => matchday.date_from?.slice(0, 10) === item.start.slice(0, 10)),
+)!;
+
+test("entered Sorare lineups sit at the top of the gameweek they belong to", async ({ page }) => {
+  const cards = sorare.collection!.slice(0, 7);
+  await page.addInitScript(
+    ({ fixtureSlugs, cards }) => {
+      const root = globalThis as typeof globalThis & {
+        chrome?: { runtime?: { sendMessage?: (id: string, message: Record<string, unknown>, reply: (value: unknown) => void) => void } };
+      };
+      root.chrome ??= {};
+      root.chrome.runtime ??= {};
+      root.chrome.runtime.sendMessage = (_id, message, reply) => {
+        if (message.type === "ping") {
+          reply({ ok: true, version: "0.1.1", sorareUser: "e2e-manager", appReachable: true });
+          return;
+        }
+        const entered = message.step === "week-entered" && fixtureSlugs.includes(String(message.slug));
+        reply({
+          state: "ok",
+          data: {
+            so5: {
+              so5Fixture: entered
+                ? {
+                    mySo5Lineups: [
+                      {
+                        id: "mine-1",
+                        name: "Friday team",
+                        draft: false,
+                        confirmable: false,
+                        so5Leaderboard: { slug: "laliga-limited", displayName: "LALIGA EA SPORTS" },
+                        so5Appearances: cards.map((card) => ({
+                          anyCard: { slug: card.slug },
+                          pictureUrl: card.pic,
+                          player: { displayName: card.name },
+                          rarity: card.rarity,
+                        })),
+                      },
+                    ],
+                  }
+                : null,
+            },
+          },
+        });
+      };
+    },
+    { fixtureSlugs: [planned.gameweek.slug, timelineOnly.slug], cards },
+  );
+
+  await page.goto("/play");
+  const mine = page.getByRole("region", { name: "Your Sorare lineups" });
+  await expect(mine).toContainText("Friday team");
+  await expect(mine).toContainText("LALIGA EA SPORTS");
+  await expect(mine).toContainText("7 cards");
+  await expect(mine.getByRole("img")).toHaveCount(7);
+
+  const children = await page.locator(".pl-main > *").evaluateAll((nodes) => nodes.map((node) => node.className));
+  expect(children.indexOf("pl-entered")).toBeLessThan(children.indexOf("pl-plans"));
+
+  await page.goto(`/?w=${timelineOnly.start.slice(0, 10)}`);
+  const home = page.getByRole("region", { name: "Your Sorare lineups" });
+  await expect(home).toContainText("Friday team");
+  await expect(home).toContainText("LALIGA EA SPORTS");
+  await expect(home).toContainText(`GW${timelineOnly.number}`);
+  const sorareOrder = await page.locator(".hm-bento > *").evaluateAll((nodes) => nodes.map((node) => node.className));
+  expect(sorareOrder.indexOf("pl-entered")).toBeLessThan(sorareOrder.findIndex((name) => String(name).includes("hm-play")));
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(home).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  const cardBox = await home.locator(".pl-entered-card").first().boundingBox();
+  expect(cardBox?.width).toBeLessThanOrEqual(36);
+  expect(cardBox?.height).toBeGreaterThan(cardBox?.width ?? 0);
+});
 
 test("the gameweek opens on its best plan: the ring, both rewards and every lineup", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" }); // the ring fills and the numbers count up
@@ -247,14 +324,16 @@ test("the week in the bar moves the whole app, a month at a time", async ({ page
   await expect(page.getByRole("heading", { level: 1, name: "Gameweek 15" })).toBeVisible();
   await expect(trigger).toContainText("GW15");
 
-  // The same week, carried to another page by the address alone. The board counts LaLiga rounds, so it names
-  // that week by its own gameweek — the dates are what the two pages share.
+  // The same week, carried to another page by the address alone. Each page counts in its own gameweeks and
+  // shows its own days: Play the whole Sorare game week, the board the LaLiga round inside it — which can be
+  // one of two, so the round is the week here and the game week is the wider span.
   const week = new URL(page.url()).searchParams.get("w")!;
-  const dates = (await trigger.locator(".wk-when").textContent())!;
+  const span = (await trigger.locator(".wk-when").textContent())!;
   await page.goto(`/difficulty?w=${week}`);
-  await expect(page.locator(".wk-trigger .wk-when")).toHaveText(dates);
   const round = (await page.locator(".wk-trigger b").textContent())!.replace("GW", "");
   await expect(page.locator(".toolbar .range")).toContainText(`GW${round}`); // the board followed the week
+  const days = (await page.locator(".wk-trigger .wk-when").textContent())!;
+  expect(span.endsWith(days.split("–").pop()!.trim())).toBe(true); // the round ends inside its game week
   await expect(page.locator("#gw-select")).toHaveCount(0); // the board's own selector is gone
 });
 
@@ -277,7 +356,7 @@ test("Apply opens on the first step and does nothing until it is pressed", async
 
   // Playwright's Chrome has no extension, so the sheet says so instead of pretending, and the step that
   // would write anything cannot be pressed.
-  await expect(sheet.locator(".ap-verdict")).toContainText("Chrome doesn't have the extension");
+  await expect(sheet.locator(".ap-verdict")).toContainText("This browser can't reach the extension");
   await expect(sheet.getByRole("link", { name: /Set it up/ })).toHaveAttribute("href", "/control");
   await expect(sheet.getByRole("button", { name: "Check with Sorare" })).toHaveCount(0);
   await expect(sheet.getByRole("button", { name: "Try again" })).toBeEnabled();

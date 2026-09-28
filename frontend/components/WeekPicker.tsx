@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { byMonth, weekDates, weekOn, weekValue, type Week } from "../lib/weeks";
+import { byMonth, pageWeeks, weekDates, weekOn, weekValue, type Page, type Week } from "../lib/weeks";
 
 const BOARD = ["/fixtures", "/difficulty", "/table"];
 
@@ -54,8 +54,16 @@ export default function WeekPicker({ weeks, current, now }: { weeks: Week[]; cur
     requestAnimationFrame(() => panel.current?.querySelector('[aria-checked="true"]')?.scrollIntoView({ block: "nearest" }));
   }, [open, current, now]);
 
-  if (!weeks.length || !current) return null;
-  const months = byMonth(weeks);
+  // The list and the arrows hold the weeks *this page* can show: a board page would otherwise walk through a
+  // fortnight of Sorare game weeks holding no LaLiga round and appear to do nothing, and Play would offer one
+  // game week twice when it covers a weekend round and a midweek one.
+  const play = pathname === "/play";
+  const page: Page = BOARD.includes(pathname) ? "board" : play ? "play" : "all";
+  const scoped = pageWeeks(weeks, page);
+
+  // Nothing this page can open — Play before Sorare has ever synced — is no bar at all, not an empty one.
+  if (!scoped.length || !current) return null;
+  const months = byMonth(scoped);
   const shown = months.find((m) => m.key === month) ?? months[0]!;
 
   const go = (week: Week) => {
@@ -71,14 +79,6 @@ export default function WeekPicker({ weeks, current, now }: { weeks: Week[]; cur
     setOpen(false);
   };
 
-  // The arrows step through the weeks *this page* can show: a board page would otherwise walk through a
-  // fortnight of Sorare game weeks that hold no LaLiga round, and appear to do nothing.
-  const play = pathname === "/play";
-  const scoped = BOARD.includes(pathname)
-    ? weeks.filter((week) => week.md !== null)
-    : play
-      ? weeks.filter((week) => week.gw)
-      : weeks;
   const here = scoped.findIndex((week) => week.id === current.id);
   const ahead = here >= 0 ? here : scoped.findIndex((week) => week.from > current.from);
   const back = here >= 0 ? scoped[here - 1] : ahead > 0 ? scoped[ahead - 1] : undefined;
@@ -104,7 +104,7 @@ export default function WeekPicker({ weeks, current, now }: { weeks: Week[]; cur
       >
         <span className={`wk-dot ${current.state}`} />
         <b>{names(current, play).lead}</b>
-        <span className="wk-when">{weekDates(current)}</span>
+        <span className="wk-when">{weekDates(current, page)}</span>
         <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
           <path d="m2 4.5 4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -156,7 +156,7 @@ export default function WeekPicker({ weeks, current, now }: { weeks: Week[]; cur
                   {also ? <em> · {also}</em> : null}
                 </span>
                 <span className="mid">
-                  <span className="d">{weekDates(week)}</span>
+                  <span className="d">{weekDates(week, page)}</span>
                   {week.cards ? <span className="wk-cards">{week.cards} cards</span> : null}
                 </span>
                 <span className="val">
@@ -170,7 +170,7 @@ export default function WeekPicker({ weeks, current, now }: { weeks: Week[]; cur
 
         <div className="wk-foot">
           <span>
-            {weeks.length} weeks · {weeks.filter((week) => week.gw).length} open on Sorare
+            {scoped.length} weeks · {scoped.filter((week) => week.gw).length} open on Sorare
           </span>
         </div>
       </div>

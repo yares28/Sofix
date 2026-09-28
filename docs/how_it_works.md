@@ -176,8 +176,9 @@ private response; they are not reconstructed from the current collection snapsho
 Check (read-only Sorare verdict) → Draft (saved, not entered) → Enter (separate confirmation)
 ```
 
-The page bridge keeps captured request headers in its closure; credentials/cookies do not go to Sofix. Overlay payload
-is account-matched, cached 15 minutes in session, and anchored by stable URL/card slugs rather than generated CSS.
+The page bridge keeps captured request headers in its closure; credentials/cookies do not go to Sofix. Overlay numbers
+are gated by the extension token, cached 15 minutes in session, and anchored by card-picture addresses and Sorare slugs
+rather than generated CSS.
 Check-in sends public account/version/build/revision on change or every six hours.
 
 ## 12. Published/API contract
@@ -216,5 +217,5 @@ Schema/runtime: migrations owner-only, dev branch first; unattended schema check
 | Web cache/load | `frontend/lib/api.ts`, `playData.ts`, `db.ts` |
 | Football UI | `frontend/components/Overview.tsx`, `DifficultyGrid.tsx`, `FixtureBoard.tsx` |
 | Sorare UI/Apply | `frontend/components/play/`, `components/cards/`, `lib/apply.ts` |
-| Extension | `extension/background.js`, `bridge.js`, `content.js`, `overlay.js/css` |
+| Extension | `extension/background.js`, `core.js`, `bridge.js`, `content.js`, `overlay.js/css`, `drawer.js` |
 | Operations | `.github/workflows/refresh.yml`, `frontend/app/control/`, `frontend/lib/github.ts` |

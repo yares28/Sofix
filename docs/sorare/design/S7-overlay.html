@@ -54,7 +54,7 @@ button { font: inherit; color: inherit; }
 
 .rail { display: flex; flex-direction: column; gap: 12px; }
 .listing { border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
-.listing .art { width: 92px; aspect-ratio: 320/452; border-radius: 8px; overflow: hidden; margin: 0 auto 10px; position: relative; box-shadow: 0 6px 18px rgba(0,0,0,.5); }
+.listing .art { width: 148px; aspect-ratio: 320/452; border-radius: 8px; overflow: hidden; margin: 0 auto 10px; position: relative; box-shadow: 0 6px 18px rgba(0,0,0,.5); }
 .listing .art img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .listing .price { text-align: center; font-size: 19px; font-weight: 700; }
 .listing .price s { text-decoration: none; display: block; font-size: 11px; color: var(--text-2); font-weight: 500; margin-top: 2px; }
@@ -94,9 +94,16 @@ button { font: inherit; color: inherit; }
 .chip.own b { color: #d6f6e5; }
 .foil { display: inline-block; width: 11px; height: 15px; border-radius: 2px; background: var(--f-lim); }
 
-/* the ribbon the extension puts on a card wherever one is drawn */
-.rib { position: absolute; left: 5px; top: 5px; display: inline-flex; align-items: center; gap: 5px; padding: 3px 7px; border-radius: 7px; background: rgba(8,18,13,.88); box-shadow: inset 0 0 0 1px rgba(92,197,141,.5); font-size: 11px; font-weight: 750; color: #d6f6e5; }
-.rib i { width: 8px; height: 8px; border-radius: 3px; background: linear-gradient(135deg, var(--sofix-deep), var(--sofix)); }
+/* the ribbon the extension puts on a card wherever one is drawn (extension/overlay.css): a label and a value, coloured
+   by the board's own score ramp, with a small fold. A big card carries three; a small one, a single number. */
+.ribs { position: absolute; left: 6px; top: 6px; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+.rib { position: relative; display: inline-flex; height: 17px; border-radius: 2px; font: 800 10px/17px var(--font); letter-spacing: .02em; text-transform: uppercase; white-space: nowrap; font-variant-numeric: tabular-nums; box-shadow: 0 1px 0 rgba(255,255,255,.55) inset, 0 2px 4px rgba(0,0,0,.28); }
+.rib b { display: block; padding: 0 5px; font: inherit; }
+.rib .l { background: #0b1711; color: #5cc58d; padding: 0 4px; border-radius: 2px 0 0 2px; }
+.rib .v { background: var(--fill, #55555c); color: var(--ink, #fff); border-radius: 0 2px 2px 0; }
+.rib.x::after { content: ""; position: absolute; right: 1px; bottom: -5px; border-style: solid; border-width: 5px 0 0 6px; border-color: color-mix(in srgb, var(--fill) 55%, #000) transparent transparent transparent; }
+.rib.play .v { background: #101012; color: #e9f7ef; }
+.rib.game .v { background: #d3f2e1; color: #11633b; border-radius: 2px; }
 
 /* the drawer, on the edge of their page */
 .tab { position: fixed; right: 0; top: 40%; z-index: 20; display: flex; align-items: center; gap: 8px; border: 0; border-radius: 12px 0 0 12px; padding: 12px 14px; background: var(--panel); box-shadow: inset 0 0 0 1px rgba(92,197,141,.3), -6px 0 20px rgba(0,0,0,.5); color: var(--text); font-size: 12px; font-weight: 650; cursor: pointer; writing-mode: vertical-rl; }
@@ -184,6 +191,18 @@ function tone(score) {
 
 const P = DATA.player, S = DATA.sorare, X = DATA.sofix;
 const x = X.p * X.mu;
+// The same ramp the board and the extension use (extension/core.js, scoreBand).
+function bandOf(score) {
+  if (score >= 90) return { fill: "#22c7c7", ink: "#08302f" };
+  if (score >= 80) return { fill: "#3fb5df", ink: "#062838" };
+  if (score >= 65) return { fill: "#46c05a", ink: "#0c2f16" };
+  if (score >= 50) return { fill: "#9bd227", ink: "#22300a" };
+  if (score >= 40) return { fill: "#e6b91e", ink: "#332600" };
+  if (score >= 30) return { fill: "#ef8a3c", ink: "#3a1e05" };
+  if (score >= 15) return { fill: "#e5602f", ink: "#ffffff" };
+  return { fill: "#c0433f", ink: "#ffffff" };
+}
+const band = bandOf(x);
 const bad = clamp(X.mu + z(0.25) * SD);
 const good = clamp(X.mu + z(0.75) * SD);
 const form = X.history.slice().reverse();
@@ -214,7 +233,11 @@ $("#bars").innerHTML = form.map(function (h, i) {
 $("#rail").innerHTML =
   '<div class="listing">' +
     '<div class="art"><img src="' + X.card.pic + '" alt="" referrerpolicy="no-referrer">' +
-      '<span class="rib"><i></i>' + Math.round(x) + '</span></div>' +
+      '<div class="ribs">' +
+        '<span class="rib x" style="--fill:' + band.fill + '; --ink:' + band.ink + '"><b class="l">X</b><b class="v">' + Math.round(x) + '</b></span>' +
+        '<span class="rib play"><b class="l">Play</b><b class="v">' + Math.round(X.p * 100) + '%</b></span>' +
+        '<span class="rib game"><b class="v">GET (H)</b></span>' +
+      '</div></div>' +
     '<p class="price">\u20ac' + S.listing.toFixed(2) + '<s>lowest listing \u00b7 \u20ac' + S.newCard.toFixed(2) + ' new</s></p>' +
     '<button class="buy" type="button">Buy now</button>' +
   '</div>';

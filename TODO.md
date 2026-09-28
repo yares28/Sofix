@@ -35,16 +35,24 @@ Chrome address bar → install. Not blocking anything.
 
 ## Mine
 
-### Build the overlay on sorare.com — *planned, not started*
-Your Sofix numbers drawn on Sorare's own cards and lineups. The switch in the popup has always been wired to
-nothing — that is why reloading the extension showed you nothing. The feature was never built.
+### Check the overlay on your own Sorare pages — *built, live acceptance is yours*
+Your Sofix numbers are now drawn on Sorare's own cards (a ribbon: expected score, chance of playing, the game) and
+an edge tab opens your gameweek's plan. Built from [plans/overlay.md](plans/overlay.md); automated proof is
+`frontend/e2e/overlay.e2e.ts`, and the card-finding was checked against real public sorare.com pages.
 
-**The plan is written: [plans/overlay.md](plans/overlay.md).** Five phases (O1 identity → O2 one endpoint →
-O3 the ribbon → O4 the switch and drawer → O5 proof), built on the approved S7 design and on the mechanics
-of the SorareInside reference extension — its card-finding, sizing and anchoring, in Sofix's own colours and
-class names, with none of its branding.
+**Wait for O6 first:** the chips are being restyled to look like Sorare's own (solid colour, hanging off the card's
+edge) instead of the current black boxes ([plans/overlay.md, O6](plans/overlay.md)). Then one pass judges the final
+look. What no test can do is look at **your** signed-in pages:
 
-Next: O1.
+1. `node extension/scripts/configure.mjs`, then **Reload** Sofix in `chrome://extensions` (it is now 0.2.0) and
+   reload your sorare.com tab.
+2. Let one Sorare refresh finish after this ships: it adds each player's Sorare slug to the published gameweek,
+   which is how a card is matched to its numbers. Until then the ribbons have nothing to show.
+3. Look at: a lineup page, the compose page, a gallery, a player page, signed out, and with the popup switch off.
+   The popup's **Cards recognised here** should read "N of N"; "0 of N" means Sorare changed its pictures.
+
+Not built (designed in S7, not in the plan): the big "Sofix panel" on a player page. Not enforced yet: matching the
+signed-in Sorare account to the owner (numbers are gated by the extension's token).
 
 ### Fit and blind-test the Sorare xScore model — *blocked on data*
 Today's xScore is a transparent heuristic, not a fitted model. Needs enough scored pre-lock gameweeks in
@@ -60,5 +68,5 @@ Only after the live acceptance test passes and the recovery steps are written do
 
 ## Not blocked, not started
 
-Nothing. Everything open is waiting on either your browser, your decision on the overlay, or more recorded
-gameweeks.
+Nothing. Everything open is waiting on either your browser (including the overlay's live check), or more
+recorded gameweeks.

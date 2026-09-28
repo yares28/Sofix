@@ -67,7 +67,7 @@ Reflow instead of shrinking critical text. Numeric columns use tabular figures.
 | `S5-cards.html` | Collection shelves | Built |
 | `S5-search.html` | Squad-upgrade search | Built |
 | `S6-apply.html` | Three-stage Apply | Built; live acceptance open |
-| `S7-overlay.html` | Dark panel/ribbon/drawer | Built; hardening open |
+| `S7-overlay.html` | Dark ribbon/drawer (the player panel is not built) | Ribbon and drawer built; live acceptance open |
 
 ## Review checklist
 

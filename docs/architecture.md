@@ -52,7 +52,8 @@ fails visibly when a step fails.
 Sorare public reads run in cloud. The extension uses the signed-in tab for identity, a fixture-level read of every
 lineup in the selected GW, a competition-level capacity read for Apply, check, draft and enter. The fixture slug comes
 from the published timeline, so a historical/current week does not need a retained optimizer plan. App and page bridge
-each maintain an allowlist. Overlay payload is returned only when signed-in/public manager matches the published owner.
+each maintain an allowlist. Overlay numbers (`/api/ext/overlay`) are returned only to a request carrying the extension
+token and are keyed by Sorare slugs. Matching the signed-in account to the published owner is not enforced yet.
 
 ## Storage/schema
 

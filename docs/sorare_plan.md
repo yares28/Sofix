@@ -117,12 +117,15 @@ run. The E2E fixture now holds only LaLiga clubs.
 
 ## S7 — overlay 🚧
 
-- [x] Player panel by stable URL slug and card ribbon by card/player slug.
-- [x] xScore, conditional projection, P(play), range/history, cards/value/plan membership.
-- [x] Global plan drawer opens Apply in Sofix.
-- [x] 15-minute session cache, change/six-hour check-in, popup toggle, account matching.
-- [ ] Fake-Sorare navigation/dynamic-card/revision E2E.
-- [ ] Payload-version negotiation and live current-layout owner acceptance.
+- [x] Card ribbon (xScore, chance of playing, the game) by card/player slug; cards found by picture address, never by
+  Sorare's class names (`extension/core.js`, `overlay.js`, `overlay.css`; app side `lib/overlay.ts`, `/api/ext/overlay`).
+- [x] Plan drawer (edge tab) opens Apply in Sofix and never writes (`extension/drawer.js`).
+- [x] 15-minute session cache, change/six-hour check-in, popup switch that acts live, cards-recognised count.
+- [x] Fake-Sorare E2E (`frontend/e2e/overlay.e2e.ts`): every card size, every state, no doubles on re-render, the
+  switch, Sorare's own buttons stay hittable, axe. Card-finding also checked on real public sorare.com pages.
+- [ ] Player panel (range, history, value, plan membership): designed in S7, not built, not in `plans/overlay.md`.
+- [ ] Account matching: numbers are gated by the extension token, not by the signed-in Sorare account.
+- [ ] Payload-version negotiation and live current-layout owner acceptance (lineup, compose, signed out).
 
 ## S8 — replay ✅ initial
 

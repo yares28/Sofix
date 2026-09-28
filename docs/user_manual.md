@@ -261,20 +261,31 @@ The extension is a local Manifest V3 build, not a store listing.
 `manifest.json` and `config.js` are generated and git-ignored because the latter holds secrets. Re-run configure and
 reload the extension after changing the app origin or token.
 
-### Player overlay
+### Cards on sorare.com
 
-![Sofix panel and card ribbon on a Sorare player review page](images/extension-overlay.png)
+On Sorare's football pages Sofix draws a small ribbon on each card it can name. A big card gets three chips:
+**X 53** (the score he is expected to score, coloured the way the board colours a score), **Play 88%** (his chance
+of playing) and the game, such as **GET (H)** (the opponent, home or away, coloured by how hard the board rates it).
+A small card, such as a lineup slot, gets just the number. A grey number with a ring means he is not expected to
+start. Outside LaLiga the game chip says **No odds**: there are no bookmaker prices to rate it with.
 
-On `/football/players/<slug>`, Sofix adds a dark panel with xScore, Sorare conditional projection, chance to play,
-recent games, owned-card context, cached value and plan membership. A small ribbon can join a visible card to the
-same player by stable card/player slug. It does not depend on Sorare's generated CSS class names.
+Ribbons appear for the players you own who have a game in the gameweek. A card Sofix has nothing on gets nothing.
+If the app cannot be reached, a dark **Sofix** chip appears instead and opens it. Cards are found by the address of
+their picture, not by Sorare's generated CSS class names, so a redesign should not break it.
 
 ### Plan drawer
 
-![Sofix plan drawer in the Sorare overlay](images/extension-plan.png)
+The **Sofix** tab on the right edge of Sorare's football pages opens your gameweek: what the best plan adds up to,
+the cards of its leading lineup, the reward chance, the essence expected and how many of your cards it uses.
+**Open Apply in Sofix** opens the Play page for that gameweek and returns you to the controlled three-step flow;
+lineup write buttons are intentionally not placed over Sorare's browsing UI. The tab is hidden on narrow windows.
 
-The drawer summarizes the published plan. **Open Apply in Sofix** returns to the controlled three-step flow; lineup
-write buttons are intentionally not placed over Sorare's browsing UI.
+### The switch
+
+The popup's **Scores on sorare.com** switch turns the ribbons and the tab on and off at once, with no reload.
+**Cards recognised here** shows how many cards on the page you are looking at Sofix could name ("7 of 7"). "0 of 8"
+means Sorare has changed how it draws cards and the overlay needs an update. The larger "Sofix panel" on a player
+page in the design preview (S7) is not built.
 
 ### Privacy and account matching
 
@@ -282,8 +293,10 @@ The extension captures the last Sorare GraphQL endpoint/headers in page memory o
 use the existing signed-in session. One read-only operation fetches all of the owner's lineups for the selected
 Sorare fixture; Apply's separate competition-level read still checks capacity before a write. The extension never
 sends the cookie/password to Sofix and exposes no general proxy. Check-in
-sends only public username, version and Sorare build/revision. Private overlay data is returned only when the signed-in
-page account matches the published Sofix account. Another account receives no private plan.
+sends only public username, version and Sorare build/revision. Which cards a page shows is sent only to your own Sofix
+app, as card and player slugs, and only with the extension's secret token; answers are kept in the browser's memory
+for 15 minutes. Matching the signed-in Sorare account to the Sofix owner is not enforced yet: the numbers go only to
+the extension that holds the token.
 
 ## 13. Reading freshness and errors
 

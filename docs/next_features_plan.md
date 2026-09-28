@@ -82,7 +82,7 @@ Status: ✅ complete · 🚧 partial/proof pending · ⬜ open.
 - [x] Transparent xScore heuristic, repeated diverse whole-week optimizer and pre-lock replay.
 - [x] Check → Draft → Enter Apply.
 - [x] Read and show the owner's real entered/draft lineups at the top of their selected Sorare GW.
-- [x] Account-matched overlay/plan drawer.
+- [x] Card ribbon and plan drawer on sorare.com (`plans/overlay.md`). Player panel and account matching are still open.
 - [ ] Fit/blind-test S4 after enough scored weeks.
 - [ ] Measure reward correlation/calibration.
 - [ ] Fake-Sorare E2E and live owner acceptance.

@@ -8,6 +8,54 @@ build.
 
 ---
 
+## Status · 2026-09-29
+
+**O1 to O4 are built, and so is the automated half of O5.** What is left is the half no test can do: looking at the
+owner's own signed-in pages (lineup, compose, gallery, player page, signed out, switch off).
+
+| Phase | Where |
+|---|---|
+| O1 identity | `extension/core.js` (key, alt name, answer walker), `bridge.js` (index, `identify`) |
+| O2 numbers | `frontend/lib/overlay.ts`, `app/api/ext/overlay/route.ts`, `lib/extAuth.ts`, `background.js` (`askApp`, session cache); `backend/app/sorare/publish.py` now names each player by slug |
+| O3 ribbon | `extension/overlay.js`, `overlay.css` |
+| O4 switch, drawer | `overlay.js` and `drawer.js` read `overlay` live; the popup shows "Cards recognised here"; the app answers `plan: true` for the drawer |
+| O5 proof | `frontend/e2e/overlay.e2e.ts` on `e2e/fixtures/sorare-cards.html` (real extension scripts, stubbed `chrome.*`, axe); `S7-overlay.html` shows the built ribbon |
+
+**Checked on real sorare.com** (public pages, nobody signed in, stub numbers): a player page resolved 5 of 5 visible
+cards and a card gallery 7 of 7, from real GraphQL answers, with one batched ask. That is O1's "done when" on public
+pages; the same on a lineup page needs the owner's session.
+
+**Where the build differs from this plan, and why**
+
+- **No clearing on route change (O1).** The index is capped at 2000 and evicts oldest first. Clearing on navigation
+  would lose cards Sorare re-draws from its own cache without asking again; the cap already bounds memory.
+- **No `overflow: visible` overrides (2.4).** The ribbon sits inside the card's own picture, so nothing clips it and
+  nothing of Sorare's has to be restyled. It is placed by measuring how far it is from where it should be, which does
+  not depend on which ancestor is positioned.
+- **Numbers exist only for players you own.** xScore is computed for your players, so the endpoint answers those and
+  omits everyone else; there is no `owned` flag because it would always be true. A market player gets no ribbon.
+- **The app is asked by player slug when the page's answers name it, by card slug otherwise.** xScore belongs to the
+  player, so one ask covers all his cards. A card only its link names (`?card=…`) is asked by card slug.
+- **Difficulty reuses the board's club-name matcher** (`sideOutlook` in `lib/home.ts`), so the overlay can never
+  disagree with the board. Outside LaLiga, and for national-team games, the chip says "No odds".
+- **The drawer shows the gameweek's best plan, not one card's.** It asks for the plan only when opened.
+- **Account matching is not enforced.** The numbers are gated by the extension's token. The app cannot compare the
+  signed-in account with the published owner reliably: the extension reports `nickname || slug`, the job plans for
+  `SORARE_USER`, and a wrong guess would silently blank the owner's own overlay. Needs `whoami` to report both.
+- **Found on the real site, not in the plan:** slugs contain underscores (`…-super_rare-9`), so a slug pattern of
+  letters, digits and hyphens rejects a whole batch; a card's small face-only picture (`/picture/avatar-…`) carries the
+  card's id and must not get a ribbon; gallery cards link to `?card=<slug>`, used as a fallback identity.
+
+**To see it live:** run `node extension/scripts/configure.mjs`, reload the extension (0.2.0) and the sorare.com tab,
+and let one Sorare refresh finish, because `playing.players` only carries each player's slug from that refresh on.
+
+**Next: [O6](#o6--the-look--a-chip-that-belongs-on-sorares-card), the restyle.** The ribbon works but does not
+look like it belongs: its label and chance chips are near-black boxes set inside the art, where Sorare's own chips
+and the reference's are solid colour, hanging off the card's right edge. Doing O6 before the owner's live pass means
+that pass judges the final look once, instead of twice.
+
+---
+
 ## 1 · What already exists
 
 Three-quarters of the hard parts are done, in both repos.
@@ -112,6 +160,8 @@ is not expected to start.
 - Their logo, wordmark, icons, name, and the `si-companion-*` class names — all become `sfx-*`.
 - Their Mantine colour ramp (`#2b8a3e`, `#ffd43b`, `#fa5252` ...). Our difficulty and xScore already have a
   colour language; the overlay uses **ours**, so a green on Sorare means the same as a green on the board.
+  *(O6 revisits the paint, not the meaning: on sorare.com a score is painted with Sorare's own score tokens, at the
+  same cut points, so the chip matches the page it sits on.)*
 - Their cookie permission, their auth bridge, their subscription and paywall states.
 - **Their CSS file itself.** We re-implement the pattern in our own tokens and class names rather than copying
   the file — which is what design rule 8 ("copies no wordmark/classes") already requires of us, and it keeps
@@ -208,6 +258,93 @@ States, in Sofix's plain language — never an optimistic blank:
 - **Live acceptance** on real sorare.com, which no test can stand in for: lineup, compose, gallery, player
   page, signed out, and with the switch off.
 
+### O6 · The look — a chip that belongs on Sorare's card
+
+**Why:** what O3 shipped reads as a black box. The `X` label (`#0b1711`) and the whole chance chip (`#101012`) are
+near-black, and the stack sits inset at the art's top-left. Sorare's own chips and the reference's are **one solid
+colour each, dark type, hanging off the card's right edge with a folded tail**, so they look wrapped around the card.
+O6 makes ours the same family. It changes paint and placement only: identity, numbers, states and tests of behaviour
+stay as they are.
+
+**What Sorare draws** (measured 2026-09-29 on a public card gallery, the "19H 06M" and "Best value" chips):
+
+| Property | Sorare's chip |
+|---|---|
+| Stack | absolute, `top: 8px`, `right: 0` of the card, one chip per row, right-aligned |
+| Chip | 18px high, `padding: 2px 4px`, `gap: 4px` (12px icon, then text), radius `4px 4px 0 4px` (square bottom-right) |
+| Type | `pressio` (Sorare's own face, already loaded by the page), 14px/14px, weight 400, uppercase |
+| Colour | solid token fill, ink `#0e0e0e`; the violet `#7029ff` chip uses white ink |
+| Overhang | the chip's right edge sits 6px past the card art |
+| Tail | a 4 x 4 triangle under the right edge (`clip-path: polygon(100% 0, 0 0, 0 100%)`), same fill with a `rgba(14,14,14,.6)` layer on top: the fold |
+| Score tokens | `--c-score-veryLow #ff5a5a`, `low #ff7e34`, `mediumLow #f0ce1d`, `medium #b6ff1a`, `mediumHigh #25ed36`, `high #00f3eb` |
+
+**What the reference draws** (`SorareInside Ext/ribbon.css`, read for the pattern only, per section 2): one chip
+per fact, the whole chip in the score colour, dark ink, the label dimmed to 75% **inside the same chip** rather than
+in a box of its own, `pressio` 10px/800, 17px high, a smaller 14.5px "detail" chip underneath, stacked on the right
+edge at `right: -8px` below Sorare's own badges.
+
+**What ours becomes**
+
+- **One chip per fact, solid fill, dark ink.** `X 53` is one chip in the score colour with `X` dimmed, not a black
+  label next to a coloured number. No near-black chip remains except the deliberate "Sofix / open the app" one.
+- **Right edge, hanging off it**, with the 4px folded tail tucked under, stacked **below Sorare's own badges**. Their
+  stack height changes per card (none, a lock, "Best value"), so it is measured, not assumed: ours starts under the
+  lowest thing of theirs drawn in the card's top-right band, found geometrically (never by their class names).
+- **Sorare's type and metrics:** `pressio` with our system stack as fallback. Full tier 18px chips at 14px; compact
+  tier a single 15px chip at about 11px. Exact compact numbers are set by eye on a real lineup slot.
+- **Score paint from Sorare's tokens,** read at run time from the page (`getComputedStyle(:root)`), with the measured
+  hex values above as fallback when a token is renamed. The meaning stays ours: the cut points are pinned to where
+  Sorare puts its own colour changes before anything ships (see "to settle" below).
+- **The other chips, proposed:**
+
+| Chip | Paint |
+|---|---|
+| Score `X 53` | Sorare score token for 53, dark ink |
+| Chance `PLAY 88%` | white chip, dark ink; `--c-score-veryLow` red when he is not expected to start |
+| Score when he is not expected to start | light grey chip (`#d9dde4`), dark ink: the number is shown, its colour is withdrawn |
+| Game `GET (H)`, rated | the board's five buckets painted in Sorare's hues: 1 `mediumHigh` green, 2 `medium` lime, 3 white, 4 `low` orange, 5 `veryLow` red. The word stays the board's label in the accessible name |
+| Game outside LaLiga | grey chip, `NO ODDS · ORL (A)` |
+| Loading | the grey chip at 60%, with the 8px spinner |
+| App unreachable / token refused | the one dark chip, `SOFIX`, same shape and tail, clickable |
+
+- **Escape the clip, the reference's way.** Hanging past the edge brings back section 2.4, which O3 avoided by
+  staying inside the art: the chip's anchor and one ancestor get `overflow: visible` (classes `sfx-anchor`,
+  `sfx-anchor-up`), **two ancestors at most**, removed again when the switch goes off. Sorare's own badge wrappers
+  already measured `overflow: visible`, so on most surfaces nothing needs changing; the anchor is for the ones
+  that do clip.
+- **Motion:** the chip slides 4px in from the edge as it appears (the tail last); none under reduced motion.
+
+**Files:** `extension/overlay.css` (rewritten), `overlay.js` (placement against the right edge, the badge-stack
+measurement, token read, the anchor classes on and off), `core.js` (score to Sorare token, bucket to hue).
+
+**Tests that change, and why**
+
+- `e2e/overlay.e2e.ts`: the "exactly on its card" check becomes "hangs 6px past the right edge, starts below
+  Sorare's own badges, and covers none of them"; colour checks move to the Sorare tokens. The fixture gains a
+  Sorare-style badge stack and a card wrapper with `overflow: hidden`, to prove the anchor. Switching off must also
+  remove the anchor classes.
+- `lib/overlayCore.test.ts`: the "same bands as the board" test becomes "same cut points as Sorare", with the pinned
+  thresholds written into it.
+- Contrast: dark ink on every token and white on the violet one pass AA by calculation (worst is red at about 6:1);
+  axe on the fixture keeps checking it.
+- `S7-overlay.html` redrawn to the new chip, and `npm run design`.
+- A one-off live comparison on a public sorare.com gallery with stub numbers, our chips next to Sorare's own, desktop
+  and a phone width; the throwaway spec is deleted after, as in O5.
+
+**To settle before shipping**
+
+- **The cut points.** A first look at a player page showed a 50 painted like `mediumLow` and a 54 like `medium`,
+  which would disagree with the board's `scoreColour()` at 50. Sample Sorare's own hexagons and bars across the
+  range, pin where each colour starts, and record it. If the board's bands are off, fixing `scoreColour()` is its
+  own change, not part of this one.
+- **Game-chip hues** (the table above) and **white chance chip vs. violet**: owner's call when the first screenshots
+  are in.
+- **The drawer and edge tab are not in O6.** They are the approved S7 dark panel; say if they should follow.
+
+**Done when** on a live public gallery and a lineup page our chips read as the same family as Sorare's (same height
+and type, same edge, same fold), sit below theirs without covering them, pass AA, and every O5 behaviour test still
+passes with the new geometry.
+
 ---
 
 ## 5 · Risks
@@ -220,12 +357,17 @@ States, in Sofix's plain language — never an optimistic blank:
 | We cover one of their controls | `pointer-events: none`, and a fixture test asserting their buttons stay hittable |
 | `overflow: visible` breaks their scroll area | Two ancestors maximum, exactly as the reference does |
 | Someone else's CSS in a public repo | Re-implemented in our own tokens and names (section 2, "what we do not take") |
+| Sorare renames its `--c-score-*` tokens (O6) | Measured hex values as fallback: the chip keeps its colour, it just stops following their theme |
+| The overhang lands on a surface that clips it (O6) | `sfx-anchor` on two ancestors at most, removed with the switch; a fixture card with `overflow: hidden` proves it |
+| Their badge stack grows and ours covers it (O6) | Placement measures their top-right band on every pass, and a fixture test asserts no overlap |
 
 ---
 
 ## 6 · Order, and what it costs
 
 O1 -> O2 -> O3 are strictly sequential: identity feeds numbers, numbers feed pixels. O4 and O5 can overlap.
+O6 comes after O5 and **before** the owner's live pass, so that pass looks at the final chip once. It touches only
+the stylesheet, placement and paint, so it needs no new data and no change to the app.
 
 The shortest honest path to something on screen is **O1 + O2 + O3**. O3 is the phase holding the real unknowns,
 because it is the one negotiating with someone else's live DOM.

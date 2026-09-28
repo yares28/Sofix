@@ -35,19 +35,16 @@ Chrome address bar → install. Not blocking anything.
 
 ## Mine
 
-### Decide what the "Scores on sorare.com" switch means — *this is the overlay you couldn't find*
-You were right, and it isn't hidden. **The overlay was never built.**
-`popup.js` writes an `overlay` key to `chrome.storage.sync`, and nothing anywhere reads it:
-`content.js` only asks who is signed in and relays Apply's questions. So reloading the extension changed
-nothing on sorare.com, on cards or on lineups — there is no code that draws there.
+### Build the overlay on sorare.com — *planned, not started*
+Your Sofix numbers drawn on Sorare's own cards and lineups. The switch in the popup has always been wired to
+nothing — that is why reloading the extension showed you nothing. The feature was never built.
 
-A decision I shouldn't make alone, because one is a feature and one is a deletion:
+**The plan is written: [plans/overlay.md](plans/overlay.md).** Five phases (O1 identity → O2 one endpoint →
+O3 the ribbon → O4 the switch and drawer → O5 proof), built on the approved S7 design and on the mechanics
+of the SorareInside reference extension — its card-finding, sizing and anchoring, in Sofix's own colours and
+class names, with none of its branding.
 
-- **Build it** — inject Sofix difficulty/xScore next to cards and lineups on sorare.com. Needs a new content
-  script, its own CSS under the dark-context exception, and the design bar. Real work, and new surface.
-- **Remove the switch** — one honest popup, no promise of a thing that isn't there.
-
-Until you pick, the switch is a lie in the UI, so if you'd rather I just choose, I'll remove it.
+Next: O1.
 
 ### Fit and blind-test the Sorare xScore model — *blocked on data*
 Today's xScore is a transparent heuristic, not a fitted model. Needs enough scored pre-lock gameweeks in

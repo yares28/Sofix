@@ -40,12 +40,13 @@ a 0–10 score matrix. The fitting target is 70% goals / 30% scaled shots on tar
 
 For fixtures within seven days, W/D/L can blend 65% model / 35% de-margined market when prices are ≤48 hours old
 and at least three bookmakers contributed. Clean-sheet output is calibrated (`a=-0.1542058812`, `b=0.9321588120`,
-`n=22,334`, through 2026-09-07).
+`n=22,334`, through 2026-09-17).
 
 Current model version: `dixon-coles-v1+42f7fe83`. Accepted repository baseline on the 2023/24–2025/26 holdout
-(8,339 forecasts): production 0.1953 RPS, closing odds 0.1886, Elo benchmark 0.2050, base rates 0.2255. The generated
-report also contains a 0.1947 tuned/spread row; this documented inconsistency must be settled by a clean canonical
-rerun before changing the accepted baseline.
+(8,339 forecasts): production **0.1947** RPS, closing odds 0.1886, Elo benchmark 0.2050, base rates 0.2255. Settled
+on 2026-09-28 by a canonical rerun, which chose the same settings byte for byte and reproduced the report. 0.1953 is
+the same model without the rating spread — the figure the blind replay gives for that window — and is not the
+shipped baseline.
 
 Tune only on 2019/20–2022/23. Ship a change only if the matchday-bootstrap RPS interval excludes zero, or calibration
 improves without worse RPS.

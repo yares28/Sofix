@@ -72,7 +72,7 @@ Status: ✅ complete · 🚧 partial/proof pending · ⬜ open.
 - [x] Stretch and CS calibration; venue-aware strongest label.
 - [x] Gated market blend/implied secondary values; post-match review/opening projection.
 - [x] Reject unproven drift/promoted booster.
-- [ ] Canonically rerun and settle accepted 0.1953 versus generated 0.1947.
+- [x] Canonically rerun and settle the accepted baseline: **0.1947** (2026-09-28); 0.1953 is the same model without the shipped rating spread.
 - [ ] Revisit favourite/promoted calibration only with predeclared held-out candidates.
 
 ## 7 — Sorare 🚧

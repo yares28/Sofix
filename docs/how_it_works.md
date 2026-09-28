@@ -73,7 +73,7 @@ Missing/stale/sparse market means model-only, not zero. Clean-sheet display is c
 logit(P_calibrated) = -0.1542058812 + 0.9321588120 × logit(P_raw)
 ```
 
-Fit `n=22,334`, through 2026-09-07. Other probabilities are not silently passed through this correction.
+Fit `n=22,334`, through 2026-09-17. Other probabilities are not silently passed through this correction.
 
 ## 4. Difficulty and labels
 
@@ -196,7 +196,8 @@ Schema change: Pydantic → OpenAPI export → generated TS → Zod → typechec
 ## 13. Evidence/change gates
 
 Football: tune 2019/20–2022/23, test 2023/24–2025/26 once; ship only with significant RPS improvement or calibration
-gain without loss. The accepted 0.1953 baseline versus report's 0.1947 row must be settled by canonical clean rerun.
+gain without loss. The accepted baseline is RPS 0.1947, reproduced by a canonical rerun on 2026-09-28; 0.1953 is the
+same model without the shipped rating spread.
 
 Sorare: use pre-lock records, declared split, compare with Sorare baseline and report uncertainty. Never call replay
 blind if it used post-lock data.

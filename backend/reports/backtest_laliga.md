@@ -1,11 +1,6 @@
 # LaLiga difficulty model — backtest report
 
-Generated 2026-09-16 00:29 UTC from football-data.co.uk results (2016/17 → 2026/27).
-
-> **Interpretation update, 2026-09-27:** numeric tables remain generated evidence. Elo below is a benchmark, not a
-> runtime fallback. Label tables use historical single-cut names; live UI uses the five current labels and a
-> venue-aware strongest cut. This report's tuned spread row is RPS 0.1947 while the repository's accepted shipped
-> baseline is 0.1953; a clean canonical rerun must settle and update baseline/artifact together.
+Generated 2026-09-28 18:43 UTC from football-data.co.uk results (2016/17 → 2026/27).
 
 **Method.** Every Monday of a season, each model is fitted only on matches played before that day and
 forecasts every match in the next 8 weeks. Settings were tuned on 2019/20, 2020/21, 2021/22, 2022/23; all numbers below are
@@ -64,7 +59,7 @@ had much weaker home advantage, so settings that suit them may not suit normal s
 | Closing odds (ceiling) | 8339 | 0.1886 | 0.9530 | 55.5% | — |
 | Dixon-Coles (tuned) | 8339 | 0.1947 | 0.9717 | 53.2% | 0.1818 |
 | Dixon-Coles (no form, goals only) | 8339 | 0.1960 | 0.9753 | 52.7% | 0.1828 |
-| Elo (benchmark) | 8339 | 0.2050 | 1.0109 | 52.7% | — |
+| Elo (current fallback) | 8339 | 0.2050 | 1.0109 | 52.7% | — |
 | Base rates | 8339 | 0.2255 | 1.0652 | 46.0% | 0.1909 |
 
 ## 3. RPS by how far ahead the forecast is
@@ -74,7 +69,7 @@ had much weaker home advantage, so settings that suit them may not suit normal s
 | Closing odds (ceiling) | 0.1888 | 0.1882 | 0.1882 | 0.1892 |
 | Dixon-Coles (tuned) | 0.1943 | 0.1938 | 0.1946 | 0.1956 |
 | Dixon-Coles (no form, goals only) | 0.1955 | 0.1951 | 0.1960 | 0.1970 |
-| Elo (benchmark) | 0.2043 | 0.2045 | 0.2052 | 0.2056 |
+| Elo (current fallback) | 0.2043 | 0.2045 | 0.2052 | 0.2056 |
 | Base rates | 0.2257 | 0.2254 | 0.2253 | 0.2257 |
 
 ## 4. Early season vs rest of season (RPS)
@@ -85,7 +80,7 @@ had much weaker home advantage, so settings that suit them may not suit normal s
 | Closing odds (ceiling) | 0.1814 | 0.1906 |
 | Dixon-Coles (no form, goals only) | 0.1866 | 0.1986 |
 | Dixon-Coles (tuned) | 0.1853 | 0.1972 |
-| Elo (benchmark) | 0.1996 | 0.2065 |
+| Elo (current fallback) | 0.1996 | 0.2065 |
 
 ## 5. Ranking runs of fixtures (what an FDR is for)
 
@@ -97,30 +92,30 @@ actually got, averaged over cutoffs (1 = perfect ranking, 0 = no better than ran
 | Closing odds (ceiling) | 0.617 | 115 |
 | Dixon-Coles (tuned) | 0.554 | 115 |
 | Dixon-Coles (no form, goals only) | 0.542 | 115 |
-| Elo (benchmark) | 0.532 | 115 |
+| Elo (current fallback) | 0.532 | 115 |
 | Base rates | 0.097 | 115 |
 
-## 6. Historical single-cut difficulty labels (tuned model, test seasons)
+## 6. Difficulty labels (tuned model, test seasons)
 
-Current thresholds from `app/services/scoring.py` (37.4, 48.6, 61.1, 71.3):
+Current thresholds from `app/services/scoring.py` (36.0, 48.6, 61.1, 71.3):
 
 | label | fixtures | expected_ppg | actual_ppg | win_rate | share |
 |---|---|---|---|---|---|
-| Easy | 2957 | 2.16 | 2.29 | 70.4% | 17.7% |
-| Easy-ish | 3110 | 1.70 | 1.70 | 46.2% | 18.6% |
-| Normal | 4524 | 1.36 | 1.35 | 35.1% | 27.1% |
-| Hard-ish | 3231 | 1.03 | 0.98 | 22.2% | 19.4% |
-| Hard | 2856 | 0.62 | 0.54 | 12.3% | 17.1% |
+| Very favourite | 2640 | 2.20 | 2.32 | 71.9% | 15.8% |
+| Favourite | 3427 | 1.72 | 1.73 | 47.4% | 20.5% |
+| Even | 4524 | 1.36 | 1.35 | 35.1% | 27.1% |
+| Underdog | 3231 | 1.03 | 0.98 | 22.2% | 19.4% |
+| Big underdog | 2856 | 0.62 | 0.54 | 12.3% | 17.1% |
 
 Proposed thresholds (36.1, 48.2, 61.6, 72.5) (15 / 20 / 30 / 20 / 15 % of fixtures, fitted on the tuning seasons):
 
 | label | fixtures | expected_ppg | actual_ppg | win_rate | share |
 |---|---|---|---|---|---|
-| Easy | 2663 | 2.19 | 2.32 | 71.8% | 16.0% |
-| Easy-ish | 3248 | 1.72 | 1.74 | 47.4% | 19.5% |
-| Normal | 4894 | 1.35 | 1.34 | 35.0% | 29.3% |
-| Hard-ish | 3311 | 1.00 | 0.94 | 21.1% | 19.9% |
-| Hard | 2562 | 0.60 | 0.53 | 12.3% | 15.4% |
+| Very favourite | 2663 | 2.19 | 2.32 | 71.8% | 16.0% |
+| Favourite | 3248 | 1.72 | 1.74 | 47.4% | 19.5% |
+| Even | 4894 | 1.35 | 1.34 | 35.0% | 29.3% |
+| Underdog | 3311 | 1.00 | 0.94 | 21.1% | 19.9% |
+| Big underdog | 2562 | 0.60 | 0.53 | 12.3% | 15.4% |
 
 ## 7. Clean-sheet calibration (tuned model, test seasons)
 
@@ -149,30 +144,30 @@ Forecast vs actual goals and clean sheets per match (test seasons):
 | Dixon-Coles (no form, goals only) | 1.452 | 1.510 | 1.097 | 1.149 | 35.8% | 31.1% | 26.4% | 21.2% |
 | Dixon-Coles (tuned) | 1.458 | 1.510 | 1.102 | 1.149 | 35.5% | 31.1% | 26.1% | 21.2% |
 
-## 8. Current ratings (2026/27, data through 2026-09-07)
+## 8. Current ratings (2026/27, data through 2026-09-17)
 
 Log-scale: +0.10 attack ≈ 10% more goals than an average team; +0.10 defence ≈ 10% fewer conceded.
-Home advantage = +0.284, rho = +0.016.
+Home advantage = +0.275, rho = +0.015.
 
 | rank | team | attack | defence | overall |
 |---|---|---|---|---|
-| 1 | Barcelona | +0.741 | +0.344 | +1.085 |
-| 2 | Real Madrid | +0.545 | +0.334 | +0.879 |
-| 3 | Ath Madrid | +0.299 | +0.232 | +0.531 |
-| 4 | Villarreal | +0.345 | +0.086 | +0.431 |
-| 5 | Betis | +0.232 | +0.044 | +0.276 |
-| 6 | Ath Bilbao | +0.055 | +0.151 | +0.206 |
-| 7 | La Coruna | +0.226 | -0.023 | +0.203 |
-| 8 | Celta | +0.062 | +0.074 | +0.136 |
-| 9 | Vallecano | -0.019 | +0.099 | +0.080 |
-| 10 | Sociedad | +0.069 | -0.037 | +0.032 |
-| 11 | Alaves | -0.032 | +0.050 | +0.018 |
-| 12 | Osasuna | -0.024 | +0.020 | -0.004 |
-| 13 | Sevilla | -0.027 | -0.037 | -0.064 |
-| 14 | Elche | +0.039 | -0.140 | -0.101 |
-| 15 | Levante | +0.010 | -0.136 | -0.126 |
-| 16 | Getafe | -0.394 | +0.267 | -0.127 |
-| 17 | Valencia | -0.126 | -0.008 | -0.134 |
-| 18 | Espanol | -0.090 | -0.055 | -0.145 |
-| 19 | Santander | +0.218 | -0.379 | -0.161 |
-| 20 | Malaga | -0.688 | -0.003 | -0.691 |
+| 1 | Barcelona | +0.756 | +0.321 | +1.078 |
+| 2 | Real Madrid | +0.565 | +0.312 | +0.877 |
+| 3 | Ath Madrid | +0.329 | +0.265 | +0.595 |
+| 4 | Villarreal | +0.350 | +0.074 | +0.424 |
+| 5 | Betis | +0.250 | +0.062 | +0.312 |
+| 6 | Ath Bilbao | +0.036 | +0.172 | +0.208 |
+| 7 | Celta | +0.055 | +0.079 | +0.133 |
+| 8 | Vallecano | -0.018 | +0.081 | +0.064 |
+| 9 | Sociedad | +0.071 | -0.042 | +0.029 |
+| 10 | La Coruna | +0.051 | -0.035 | +0.016 |
+| 11 | Alaves | -0.060 | +0.069 | +0.008 |
+| 12 | Sevilla | -0.029 | +0.002 | -0.027 |
+| 13 | Osasuna | -0.051 | +0.002 | -0.048 |
+| 14 | Elche | +0.042 | -0.126 | -0.084 |
+| 15 | Levante | +0.033 | -0.143 | -0.110 |
+| 16 | Espanol | -0.084 | -0.026 | -0.110 |
+| 17 | Valencia | -0.136 | +0.023 | -0.112 |
+| 18 | Getafe | -0.402 | +0.275 | -0.127 |
+| 19 | Santander | +0.289 | -0.485 | -0.196 |
+| 20 | Malaga | -0.621 | -0.082 | -0.703 |

@@ -62,5 +62,6 @@ Check → Draft → explicit Enter.
 The merge was resolved on `main` at `8c4ff20`. The 2026-09-27 audit's multi-round defect is fixed (2026-09-28): a
 Sorare game week holding two LaLiga rounds is now one week per round, each with its own address and days, sharing the
 one game week and its single plan, and each page lists only the weeks it can open (`lib/weeks.ts`, `pageWeeks`). The
-full suite passes. Still open: the 0.1953-vs-0.1947 football baseline, a heuristic—not fitted—Sorare xScore, and
-extension/reward-calibration acceptance.
+full suite passes. The football baseline is settled at 0.1947 (canonical rerun, 2026-09-28; 0.1953 was the same
+model without the shipped rating spread). Still open: a heuristic—not fitted—Sorare xScore, and extension/reward
+-calibration acceptance.

@@ -18,7 +18,7 @@ Its production architecture is coherent and free-tier aware: GitHub Actions comp
 renders cached read models, and the extension runs only where a private browser session is necessary. The application
 is not a weather app and no longer depends on a production FastAPI server—two facts that older docs obscured.
 
-The football model is unusually well documented and its 0.1953 test RPS is meaningfully better than Elo/base rates,
+The football model is unusually well documented and its 0.1947 test RPS is meaningfully better than Elo/base rates,
 though still behind closing odds. The Sorare side is useful but less mature: xScore is still a transparent heuristic,
 and reward simulations make independence/spread simplifications that must remain visible until measured replay data
 supports a better model.
@@ -81,7 +81,7 @@ The 8,339-forecast test RPS comparison is:
 | Model | RPS | Interpretation |
 |---|---:|---|
 | Closing odds | 0.1886 | Best external benchmark |
-| Production | 0.1953 | Shipped result |
+| Production | 0.1947 | Shipped result (canonical rerun, 2026-09-28) |
 | Elo | 0.2050 | Benchmark only |
 | Base rates | 0.2255 | Naive lower bar |
 
@@ -154,12 +154,20 @@ previews, ESLint/tsc/ruff/mypy clean.
 Enough pre-lock/scored gameweeks must accumulate before fitting and blind-comparing a replacement. Shipping an S4
 model merely because data now exists would violate the same evidence standard used by the football model.
 
-### P1 — accepted football RPS and generated report disagree
+### Resolved 2026-09-28 — accepted football RPS and generated report disagree
 
-The operating contract calls 0.1953 the current production test RPS, while the generated 2026-09-16 report table
-prints 0.1947 for the tuned model with its spread correction. The raw report is preserved rather than edited into
-agreement. From the reconciled merge, rerun the canonical backtest and decide whether 0.1947 is an
-accepted shipped configuration or only an experiment; update artifact, contract and report atomically.
+The operating contract called 0.1953 the current production test RPS, while the generated report printed 0.1947 for
+the tuned model with its spread correction.
+
+**Settled by a canonical rerun** of `app.jobs.backtest` on the reconciled tree: `artifacts/dixon_coles.json` came
+back byte for byte identical (xi 0.001, goals weight 0.7, ridge 1.0, spread 1.10), the clean-sheet fit produced the
+same `a`/`b` on the same 22,334 forecasts with only its `fitted_through` moving to 2026-09-17, and the test seasons
+scored **0.1947** against closing odds 0.1886, Elo 0.2050 and base rates 0.2255 on the same 8,339 forecasts. Nothing
+about the shipped model changed, so no refresh was needed.
+
+0.1953 is that model **without** the rating spread, which is shipped — the same number the blind replay gives for
+that window (`docs/fixture_difficulty.md`, "RPS by season"). Carrying it as the production baseline was the error.
+Artifact, contracts, the replay harness's `PUBLISHED_RPS` and the regenerated report now agree on 0.1947.
 
 ### Resolved — demo fixture league mismatch
 
@@ -237,7 +245,7 @@ proof of third-party asset uptime.
 ## Recommended order
 
 1. ~~Redesign/test the shared calendar for one Sorare window containing multiple LaLiga rounds; make the QR E2E use its configured port.~~ Done 2026-09-28.
-2. Canonically rerun the football backtest and settle the 0.1953/0.1947 accepted baseline.
+2. ~~Canonically rerun the football backtest and settle the 0.1953/0.1947 accepted baseline.~~ Done 2026-09-28: 0.1947.
 3. ~~Remove the stale weather step/comment from the E2E mock/registry description and replace out-of-league mock players.~~ Done 2026-09-28.
 4. Accumulate scored pre-lock forecasts; fit/replay S4 only under a declared holdout gate.
 5. Measure reward-probability calibration and correlated outcomes before refining the percentage.

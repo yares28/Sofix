@@ -13,8 +13,8 @@ those changes. Backtest numbers come from
 > Favourite / Even / Underdog / Big underdog` and uses a venue-aware strongest cut (36.0 home, 23.4 away). The live
 > grid has six lenses: Overall, Attack, Defence, Record, Vs odds and Odds. Record and Vs odds are descriptive only.
 > Eligible next-seven-day W/D/L can receive a 35% market blend, while the rating fit remains results/shots based.
-> The generated report prints tuned/spread RPS 0.1947, but the accepted shipped-baseline contract says 0.1953; rerun
-> from the reconciled tree and update artifact/contracts together before changing the baseline.
+> Settled 2026-09-28 by a canonical rerun: the accepted shipped baseline is RPS **0.1947**, and the tuned config
+> came back byte for byte identical. 0.1953 is the same model without the rating spread, which is shipped.
 
 ## Summary
 
@@ -413,7 +413,7 @@ differences cost little (section 2.2).
 
 **Reproduction check.** On 2023/24–2025/26 the harness gives exactly the published report
 (`reports/backtest_laliga.md`):
-- RPS 0.1953 / 0.1886 / 0.2050 / 0.2255 for model, closing odds, Elo and base rates, on the same 8,339 forecasts;
+- RPS 0.1947 / 0.1886 / 0.2050 / 0.2255 for model, closing odds, Elo and base rates, on the same 8,339 forecasts;
 - identical label counts (2,717 / 3,284 / 4,746 / 3,335 / 2,596).
 
 A run from scratch and a run from cached forecasts produce identical tables. No model fit failed to converge.
@@ -1085,7 +1085,7 @@ The harness reproduces `app.jobs.backtest` on 2023/24 to 2025/26 (within 8 weeks
 
 | method | forecasts | rps | published rps |
 |---|---|---|---|
-| Dixon-Coles, production settings | 8339 | 0.1947 | 0.1953 |
+| Dixon-Coles, production settings | 8339 | 0.1947 | 0.1947 |
 | Closing odds (ceiling) | 8339 | 0.1886 | 0.1886 |
 | Elo (old scaffold) | 8339 | 0.2050 | 0.2050 |
 | Venue only | 8339 | 0.2255 | 0.2255 |

@@ -102,8 +102,10 @@ Extension from root: `node extension/scripts/configure.mjs`; load `extension/` u
 
 ## Model rules
 
-- Accepted holdout baseline: production RPS 0.1953, closing odds 0.1886, Elo benchmark 0.2050, base 0.2255 on 8,339
-  2023/24–2025/26 forecasts. Generated report also prints tuned/spread 0.1947; settle by canonical rerun before release.
+- Accepted holdout baseline: production RPS **0.1947**, closing odds 0.1886, Elo benchmark 0.2050, base 0.2255 on
+  8,339 2023/24–2025/26 forecasts. Settled by a canonical rerun on 2026-09-28, which reproduced the tuned config
+  byte for byte. 0.1953 is the same model **without** the shipped rating spread — the blind-settings figure for that
+  window — and is not the production baseline.
 - Tune only 2019/20–2022/23. Ship only if matchday-bootstrap RPS CI excludes zero, or calibration improves with no loss.
 - Known: 60–70% favourites under-confident, promoted teams slow after week 8, raw CS high (calibrator corrects CS).
 - Artifact, refresh, report and baseline text change together.

@@ -86,7 +86,8 @@ Extension from root: `node extension/scripts/configure.mjs`; load `extension/` u
 - Public GraphQL is read-only; never add password/login handling.
 - Apply remains Check → Draft → explicit Enter. Nothing automatically writes/retries.
 - Only identity, entered, check, draft and enter operations; keep allowlists in worker and page bridge.
-- Private overlay is account-matched. No write buttons in overlay; it opens Apply in Sofix.
+- Overlay numbers are gated by the extension token; matching the signed-in Sorare account to the owner is not enforced
+  yet. No write buttons in overlay; it opens Apply in Sofix.
 - xScore is heuristic until S4 passes blind comparison. Cash/essence never convert. Reward percentages have documented
   spread/correlation assumptions.
 
@@ -132,6 +133,28 @@ Python/root: `POSTGRES_URL`, owner-only `POSTGRES_MIGRATION_URL`, football/odds/
 Neon production uses `fdr_app` DML-only, verify-full TLS. Destructive SQL/branch actions need explicit approval.
 Dev binds `127.0.0.1`; no Docker; port 5432 belongs elsewhere; run npm only from `frontend/`; Windows reload may miss
 model/schema edits. Preserve unrelated work. Commits: `<type>: <description>`.
+
+## Engineering operating rules (free-first)
+
+The general contract is the global `~/.claude/rules/engineering-os.md`; if it is missing, these are the rules that bind
+this repo. Precedence: this file, then the global rules.
+
+- **€0 incremental spend.** Never upgrade Neon/Vercel/GitHub/Odds API/Firecrawl/Context7/Figma, buy credits, enable
+  pay-as-you-go, raise a cap or attach a payment method. Quota/402/429 → back off, use cache or the local fallback, report
+  only what it blocks. Limits table above is the current contract.
+- **Local first.** Run affected pytest/vitest → `npm run typecheck` → `npm run lint` → build → browser
+  (`npm run e2e`, `npm run design`) before pushing; batch, push once, then read CI. CI/Vercel are not debuggers; one
+  coherent preview, no redeploy per edit. No polling GitHub; use local git for local code.
+- **Production Neon is read-only** for agents (`fdr_app` is DML-only). Test on local/dev data; seed deterministically.
+  No seeding, truncating, deleting or speculative migrations on production; migrations follow `backend/migrations/`.
+- **Tests:** test-first for behavior changes (rules, regressions, contracts), no coverage-padding. Bug fix = failing
+  regression test first. Report pre-existing failures separately; never claim "all pass" if any fail.
+- **Browser proof for UI:** desktop + mobile screenshots of the affected state, semantic selectors, no horizontal
+  overflow. Authenticated Sorare flows use the extension test path only; never print or commit tokens/cookies.
+- **Paid/side-effecting APIs** (Odds API 500/month, Sorare, any AI inference): fixtures/mocks; one batched real call at most.
+- **Subagents/tools sparingly:** main context for small work; Context7 1–3 queries, Firecrawl ~3–5 pages, Figma only for
+  a real source-of-truth frame. Reuse results within a task.
+- **Final report:** Implemented / Verified / Notes, stating exactly which checks ran and which were unavailable.
 
 ## Yearly rollover
 

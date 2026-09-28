@@ -3,6 +3,10 @@
 The authoritative contributor contract is [AGENTS.md](AGENTS.md). This file adds the visual/review rules most often
 needed during implementation and was reconciled with the app on 2026-09-28.
 
+Cost and engineering discipline (free-first, local verification before CI/deploy, production DB read-only, subagent and
+tool budgets, truthful reporting) is defined in the "Engineering operating rules" section of
+[AGENTS.md](AGENTS.md), backed by the global `~/.claude/rules/engineering-os.md`.
+
 ## Product
 
 Sofix is a private white LaLiga fixture-difficulty board plus Sorare collection/planning companion. Production is

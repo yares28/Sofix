@@ -102,14 +102,20 @@
       mySo5Lineups { id name draft confirmable deletable rewardMultiplier
         so5Appearances(includeSubs: true) { id anyCard { slug } } } } } }`,
 
-    // Every lineup the signed-in manager put in one exact gameweek. This is deliberately fixture-level:
-    // it also finds competitions that Sofix did not include in one of its own optimized plans.
+    // Every lineup the signed-in manager put in one exact gameweek, with what it scored, where it ranked and what it
+    // was paid. This is deliberately fixture-level: it also finds competitions that Sofix did not include in one of
+    // its own optimized plans, and it works for a gameweek played long ago. Read only.
     SofixFixtureLineups: `query SofixFixtureLineups($slug: String!) { so5 { so5Fixture(slug: $slug) {
       id slug gameWeek
       mySo5Lineups(withTraining: false) { id name draft confirmable
         so5Leaderboard { slug displayName }
+        so5Rankings { id ranking score so5Leaderboard { slug }
+          so5Rewards { rewardConfigs { __typename
+            ... on MonetaryRewardConfig { amount { usdCents } }
+            ... on CardShardRewardConfig { rarity quantity }
+            ... on CardRewardConfig { rarity quality } } } }
         so5Appearances(includeSubs: true) {
-          id rarity pictureUrl(derivative: "tinified") player { displayName } anyCard { slug }
+          id rarity pictureUrl(derivative: "tinified") score captain player { displayName } anyCard { slug }
         }
       }
     } } }`,

@@ -1,11 +1,14 @@
 import { z } from "zod";
-import { nextWeek, waitingFor, weekPlan, type GameweekPlan, type PlayingPlayer, type Sorare } from "./play";
+import { NATIONAL_COMPETITION, clubKey, sideOutlook, type SideOutlook } from "./home";
+import { nextWeek, waitingFor, weekPlan, type GameweekPlan, type PlayerGame, type PlayingPlayer, type Sorare } from "./play";
+import type { Bucket, FixtureGrid } from "./types";
 
 /**
  * What the sorare.com overlay draws on a card (extension/overlay.js): the numbers Sofix already has for the
- * player, keyed by the Sorare slug the page itself carries. Nothing here is computed: xScore and the chance of
- * playing are the ones the job published and the board shows. Nothing about the game goes with them: Sorare's own
- * card already draws the opponent, the odds and the kickoff, so the overlay says only what Sorare does not.
+ * player, keyed by the Sorare slug the page itself carries. Nothing here is computed: xScore, the chance of
+ * playing and the game's odds and difficulty are the ones the job published and the board shows. The game's
+ * numbers are Sofix's own read of it, drawn under Sorare's odds, so there is no opponent or kickoff: Sorare's own
+ * card already draws those.
  */
 
 /** Most slugs one call may carry (cards and players together): a page is asked in batches, never all at once. */
@@ -25,11 +28,49 @@ export const OverlayRequest = z
   .refine((body) => body.cards.length + body.players.length <= OVERLAY_CAP, { message: `At most ${OVERLAY_CAP} slugs per call.` });
 export type OverlayRequest = z.infer<typeof OverlayRequest>;
 
+/**
+ * Sofix's read of the game Sorare's card shows: his next one in the gameweek. Win and clean sheet are fractions (0.56
+ * is 56%); difficulty is the board's 0-100 with its label and 1 (easiest) to 5 bucket. `source` says where it came
+ * from: the board's own model for a LaLiga game, else Sorare's odds for the game (any league or national team).
+ */
+export type OverlayGame = {
+  win: number | null;
+  cleanSheet: number | null;
+  /** The goals his side is expected to score in it: the model's for a LaLiga game, else what Sorare's prices imply. */
+  goalsFor: number | null;
+  difficulty: number;
+  bucket: Bucket;
+  label: string;
+  source: "model" | "sorare";
+};
+
 export type OverlayEntry = {
   /** What he is expected to score, the chance he plays (a substitute appearance counts), and the average every cap counts. */
   x: number;
   p: number;
   average: number;
+  /** His position, which decides the tile's driver (difficulty for a goalkeeper or defender, expected goals otherwise). */
+  pos: PlayingPlayer["pos"];
+  /** When the job published these numbers (ISO time), for the hover's "updated ... ago". */
+  at: string;
+  /** Null when neither the model nor Sorare has priced his game yet: the tile says "no odds", never zeros. */
+  game: OverlayGame | null;
+  /**
+   * His score if he starts (the tile's number) and if he does not, and the chance of each. Absent for a payload
+   * published before they existed: the overlay then falls back to `x` rather than showing an invented split.
+   */
+  start?: number;
+  bench?: number;
+  pStart?: number;
+  pOn?: number;
+  /** His expected goals in this game if he starts. Absent when Understat has nothing on him: the tile says "xG -". */
+  xg?: number;  /**
+   * What the best plan does with the cards he is on, by card slug: the lineup it uses each in, and whether he captains it.
+   * Only cards the plan uses are here, so a card it leaves out has nothing. Absent when there is no plan yet.
+   */
+  inPlan?: Record<string, { lineup: string; captain: boolean }>;
+  /** His game has kicked off (or been played): the numbers are about a game that is no longer ahead. */
+  over?: true;
 };
 
 /** The gameweek's plan in a few numbers, for the drawer: what the best plan adds up to and what it uses. */
@@ -79,21 +120,107 @@ export function overlayPlan(gameweek: GameweekPlan, now: Date): OverlayPlan {
   };
 }
 
+/** The board only models LaLiga. Sorare names it "laliga-es"; "laliga-2" and every cup are other competitions. */
+const LALIGA = /^laliga(-es)?$/i;
+
+/** The game to show: the next one still to be played, or the last when they are all done. */
+function shownGame(games: PlayerGame[], now: Date): PlayerGame | null {
+  if (!games.length) return null;
+  const ordered = [...games].sort((a, b) => Date.parse(a.kickoff) - Date.parse(b.kickoff));
+  return ordered.find((game) => Date.parse(game.kickoff) > now.getTime()) ?? ordered[ordered.length - 1]!;
+}
+
+/**
+ * The read of his next game. A LaLiga game is the board's own numbers, matched on the side he plays for, its
+ * venue and the opponent, so it says what /difficulty says. Anything else (or a LaLiga game the board has no
+ * forecast for) is Sorare's odds as the job published them, and no odds at all is `null`.
+ */
+function gameFor(player: PlayingPlayer, outlook: Map<string, SideOutlook> | null, now: Date): OverlayGame | null {
+  const game = shownGame(player.games, now);
+  if (!game) return null;
+  const side = game.team ?? player.club;
+  const board = outlook && side && LALIGA.test(game.competition) ? outlook.get(`${clubKey(side)}|${game.venue}|${clubKey(game.opponent)}`) : undefined;
+  if (board && board.win !== null && board.difficulty !== null && board.bucket !== null && board.label !== null) {
+    return { win: board.win, cleanSheet: board.cleanSheet, goalsFor: board.xgFor, difficulty: board.difficulty, bucket: board.bucket, label: board.label, source: "model" };
+  }
+  const odds = game.odds;
+  return odds
+    ? { win: odds.win, cleanSheet: odds.cleanSheet, goalsFor: odds.goalsFor ?? null, difficulty: odds.difficulty, bucket: odds.bucket, label: odds.label, source: "sorare" }
+    : null;
+}
+
+/**
+ * His expected goals in the game he is shown, if he starts: his non-penalty rate scaled by how many goals his side is
+ * expected to score in it against its own average (clamped to half and double, so one odd price cannot make a number),
+ * plus his penalty part. A national-team game is his own rate as it is: a club average is no yardstick for a country's
+ * goals. No game, or no goals for it, is his own rate as well. Nothing at all when Understat has no numbers on him.
+ */
+function xgFor(player: PlayingPlayer, game: OverlayGame | null, now: Date): number | undefined {
+  const base = player.xg;
+  if (!base) return undefined;
+  const shown = shownGame(player.games, now);
+  const scaled = shown && !NATIONAL_COMPETITION.test(shown.competition) && game?.goalsFor && base.team;
+  const factor = scaled ? Math.min(2, Math.max(0.5, game.goalsFor! / base.team!)) : 1;
+  return Math.round((base.np * factor + base.pen) * 100) / 100;
+}
+
+function entryFor(
+  player: PlayingPlayer,
+  outlook: Map<string, SideOutlook> | null,
+  now: Date,
+  at: string,
+  inPlan: OverlayEntry["inPlan"],
+): OverlayEntry {
+  const split =
+    player.start !== undefined && player.bench !== undefined && player.pStart !== undefined && player.pOn !== undefined
+      ? { start: player.start, bench: player.bench, pStart: player.pStart, pOn: player.pOn }
+      : {};
+  const game = gameFor(player, outlook, now);
+  const xg = xgFor(player, game, now);
+  const shown = shownGame(player.games, now);
+  const over = shown !== null && Date.parse(shown.kickoff) <= now.getTime();
+  return {
+    x: player.x,
+    p: player.p,
+    average: player.average,
+    pos: player.pos,
+    at,
+    game,
+    ...split,
+    ...(xg !== undefined ? { xg } : {}),
+    ...(inPlan ? { inPlan } : {}),
+    ...(over ? { over: true as const } : {}),
+  };
+}
+
 /**
  * The numbers for the cards and players asked about. A card of yours answers with its player's numbers (xScore
  * belongs to the player, not the copy), and so does the player's own slug, which is how a card you do not own
  * still gets a ribbon for a player you do. Anything unknown is left out, so a page never draws an empty chip.
  */
-export function overlayNumbers(sorare: Sorare, request: OverlayRequest, now: Date): OverlayAnswer {
+export function overlayNumbers(sorare: Sorare, grid: FixtureGrid | null, request: OverlayRequest, now: Date): OverlayAnswer {
   const plan = (request.week ? weekPlan(sorare, request.week) : null) ?? nextWeek(sorare);
+  const outlook = grid ? sideOutlook(grid) : null;
 
   const owners = new Map((sorare.collection ?? []).map((card) => [card.slug, card.player]));
   const playing = new Map<string, PlayingPlayer>();
   for (const player of plan.playing.players) if (player.player) playing.set(player.player, player);
 
+  // The best plan's cards, by the player each belongs to, with the lineup each is in and whether he captains it.
+  const inPlan = new Map<string, NonNullable<OverlayEntry["inPlan"]>>();
+  for (const lineup of (plan.plans ?? [])[0]?.lineups ?? []) {
+    for (const card of [...(lineup.starters ?? []), ...(lineup.subs ?? [])]) {
+      const owner = owners.get(card.slug);
+      if (owner) inPlan.set(owner, { ...inPlan.get(owner), [card.slug]: { lineup: lineup.comp, captain: card.captain === true } });
+    }
+  }
+
+  const entries = new Map<string, OverlayEntry | null>();
   const forPlayer = (playerSlug: string | undefined): OverlayEntry | null => {
     const player = playerSlug ? playing.get(playerSlug) : undefined;
-    return player ? { x: player.x, p: player.p, average: player.average } : null;
+    if (!playerSlug || !player) return null;
+    if (!entries.has(playerSlug)) entries.set(playerSlug, entryFor(player, outlook, now, sorare.generatedAt, inPlan.get(playerSlug)));
+    return entries.get(playerSlug) ?? null;
   };
 
   const cards: Record<string, OverlayEntry> = {};

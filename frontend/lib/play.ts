@@ -5,6 +5,7 @@
  * Everything here is display logic. Nothing is computed twice: the plans, the chances and the reasons a
  * competition can't be entered all come from the job.
  */
+import type { Bucket } from "./types";
 
 export const SORARE_TAG = "sorare";
 
@@ -122,6 +123,25 @@ export type Option = {
 export type Blocked = { name: string; rarity: string; group: Group; why: string };
 export type AlsoOpen = { name: string; group: Group; fee: number; eEss: number; pReturn: number; x: number };
 
+/**
+ * Sorare's own odds for the side the player is on, as the job published them: fractions (0.56 = 56%), and the
+ * board's difficulty formula and label for that side and venue. Absent while Sorare has not priced the game.
+ */
+export type GameOdds = {
+  win: number;
+  draw: number;
+  loss: number;
+  /** The chance behind Sorare's clean-sheet price (its margin is in it). Null when Sorare gave no usable price. */
+  cleanSheet: number | null;
+  /** The goals each side's clean-sheet price implies (his side's, then the other's); null when a price is missing or older payload. */
+  goalsFor?: number | null;
+  goalsAgainst?: number | null;
+  difficulty: number;
+  label: string;
+  bucket: Bucket;
+  source: "sorare";
+};
+
 export type PlayerGame = {
   id?: string;
   kickoff: string;
@@ -132,6 +152,7 @@ export type PlayerGame = {
   opponent: string;
   opponentCrest: string | null;
   venue: "H" | "A";
+  odds?: GameOdds;
 };
 
 export type PlayingPlayer = {
@@ -151,6 +172,20 @@ export type PlayingPlayer = {
   p: number;
   x: number;
   average: number;
+  /**
+   * His score if he starts and if he does not, and the chance of each (plans/overlay.md, O9). For the overlay:
+   * the plans keep using `x`. Payloads published before O9 do not carry them.
+   */
+  start?: number;
+  bench?: number;
+  pStart?: number;
+  pOn?: number;
+  /**
+   * His xG in one game he starts, for an average game of his side, from Understat's season so far (plans/overlay.md, O11):
+   * non-penalty and penalty parts, and his team's own average xG per game to scale the game by. Only a midfielder or
+   * forward Understat could name has it.
+   */
+  xg?: { np: number; pen: number; team: number | null };
   games: PlayerGame[];
 };
 

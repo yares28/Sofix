@@ -114,7 +114,16 @@ const shortName = (name: string) => name.split(" ").filter(Boolean).at(-1) ?? na
 /** Club words Sorare adds and the board does not: "FC Barcelona" and "Barcelona" are the same club. */
 const CLUB_WORDS = new Set(["fc", "cf", "ud", "rc", "cd", "ac", "sc", "sad", "de", "club"]);
 
-const clubKey = (name: string): string => {
+/**
+ * Clubs Sorare names differently from the board even without those words ("Deportivo Alavés" is "Alavés" on the
+ * board), as club key -> the board's club key. Checked against Sorare's LaLiga club list on 2026-09-29.
+ */
+const CLUB_ALIASES: Record<string, string> = {
+  "deportivo alaves": "alaves",
+  "deportivo la coruna": "deportivo",
+};
+
+export const clubKey = (name: string): string => {
   const words = name
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -124,10 +133,11 @@ const clubKey = (name: string): string => {
     .split(" ")
     .filter(Boolean);
   const kept = words.filter((word) => !CLUB_WORDS.has(word));
-  return (kept.length ? kept : words).join(" ");
+  const key = (kept.length ? kept : words).join(" ");
+  return CLUB_ALIASES[key] ?? key;
 };
 
-const NATIONAL_COMPETITION = /(nations-league|world-cup|euro-qual|olympic|international)/i;
+export const NATIONAL_COMPETITION = /(nations-league|world-cup|euro-qual|olympic|international)/i;
 
 /** Old cached payloads did not name the player's side. Never turn his club into a national team by accident. */
 function playingSide(player: PlayingPlayer, game: PlayerGame, forecast: SideOutlook | undefined): { name: string; crest: string | null } {
@@ -139,18 +149,24 @@ function playingSide(player: PlayingPlayer, game: PlayerGame, forecast: SideOutl
   return { name: player.club ?? `${shortName(player.name)}'s team`, crest: player.crest };
 }
 
-interface SideOutlook {
+export interface SideOutlook {
   club: string;
   opponent: string;
   win: number | null;
   cleanSheet: number | null;
+  /** The goals the model expects his side to score in the game. */
+  xgFor: number | null;
+  /** The board's result difficulty, 0–100 and 1 (easiest) to 5, with its plain-language label. */
+  difficulty: number | null;
+  bucket: Bucket | null;
+  label: string | null;
 }
 
 /**
  * Each club's own forecast for a fixture, keyed by club, venue and opponent. A season has one home meeting,
  * so the names are the game. Anything we cannot name on both sides is left out: the model only rates LaLiga.
  */
-function sideOutlook(grid: FixtureGrid): Map<string, SideOutlook> {
+export function sideOutlook(grid: FixtureGrid): Map<string, SideOutlook> {
   const byCode = new Map(grid.teams.map((team) => [team.code, team]));
   const index = new Map<string, SideOutlook>();
   for (const team of grid.teams) {
@@ -164,6 +180,10 @@ function sideOutlook(grid: FixtureGrid): Map<string, SideOutlook> {
           opponent: opponent.name,
           win: cell.prediction?.probabilities.win ?? null,
           cleanSheet: cell.prediction?.clean_sheet ?? null,
+          xgFor: cell.prediction?.xg_for ?? null,
+          difficulty: cell.prediction?.difficulty ?? null,
+          bucket: cell.prediction?.bucket ?? null,
+          label: cell.prediction?.label ?? null,
         };
         const prev = index.get(key);
         if (!prev || (prev.win === null && next.win !== null)) index.set(key, next);

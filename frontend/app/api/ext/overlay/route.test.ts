@@ -6,17 +6,27 @@ const TOKEN = "t".repeat(48);
 
 const loadSorare = vi.fn<() => Promise<Sorare | null>>();
 vi.mock("../../../../lib/playData", () => ({ loadSorare: () => loadSorare() }));
+vi.mock("../../../../lib/api", () => ({ loadGrid: async () => ({ grid: null, meta: null, error: "no grid" }) }));
 
 const { POST } = await import("./route");
 
 const simon = {
   player: "unai-simon", name: "Unai Simón", pos: "GK", avatar: "", pic: "", crest: null, rarity: "limited", club: "Athletic Club",
-  inSeason: true, cards: 1, p: 0.94, x: 54.5, average: 55,
-  games: [{ kickoff: "2026-10-10T19:00:00+00:00", competition: "LaLiga", opponent: "Getafe CF", opponentCrest: null, venue: "H" }],
+  inSeason: true, cards: 1, p: 0.94, x: 54.5, average: 55, start: 56.1, bench: 0.8, pStart: 0.93, pOn: 0.01,
+  games: [{ kickoff: "2026-10-10T19:00:00+00:00", competition: "laliga-es", opponent: "Getafe CF", opponentCrest: null, venue: "H" }],
+} satisfies PlayingPlayer;
+
+// Jan Oblak on 29 Sep: Slovenia at home to North Macedonia, priced by Sorare.
+const oblak = {
+  ...simon, player: "jan-oblak", name: "Jan Oblak", club: "Atlético Madrid",
+  games: [{
+    kickoff: "2026-10-10T18:45:00+00:00", competition: "uefa-nations-league", team: "Slovenia", opponent: "North Macedonia", opponentCrest: null, venue: "H",
+    odds: { win: 0.56, draw: 0.27, loss: 0.17, cleanSheet: 0.556, difficulty: 35, label: "Very favourite", bucket: 1, source: "sorare" },
+  }],
 } satisfies PlayingPlayer;
 
 const payload = {
-  weeks: [{ gameweek: { id: "17", number: 17 }, playing: { players: [simon] } }],
+  weeks: [{ gameweek: { id: "17", number: 17 }, playing: { players: [simon, oblak] } }],
   nextId: "17",
   collection: [{ slug: "unai-simon-2026-limited-12", player: "unai-simon" }],
 } as unknown as Sorare;
@@ -35,7 +45,17 @@ describe("POST /api/ext/overlay", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     const body = await response.json();
-    expect(body).toMatchObject({ ok: true, week: 17, cards: { "unai-simon-2026-limited-12": { x: 54.5, p: 0.94, average: 55 } } });
+    expect(body).toMatchObject({
+      ok: true,
+      week: 17,
+      cards: { "unai-simon-2026-limited-12": { x: 54.5, p: 0.94, average: 55, start: 56.1, bench: 0.8, pStart: 0.93, pOn: 0.01 } },
+    });
+  });
+
+  it("carries Sofix's read of the game: Sorare's odds for a national-team game, nothing where none are priced", async () => {
+    const body = await (await call({ cards: [], players: ["jan-oblak", "unai-simon"] })).json();
+    expect(body.players["jan-oblak"].game).toEqual({ win: 0.56, cleanSheet: 0.556, goalsFor: null, difficulty: 35, bucket: 1, label: "Very favourite", source: "sorare" });
+    expect(body.players["unai-simon"].game).toBeNull();
   });
 
   it("omits a slug it does not know", async () => {

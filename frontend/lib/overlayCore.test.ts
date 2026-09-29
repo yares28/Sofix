@@ -16,10 +16,20 @@ type Core = {
   SCORE_INK: string;
   chanceLabel: (p: number) => string;
   DOUBTFUL: number;
+  STRIPE: string[];
+  fdrLevel: (bucket: unknown) => string | null;
+  driverOf: (pos: unknown) => "fdr" | "xg" | null;
+  startChance: (entry: { p: number; pStart?: number }) => number;
+  benchOnChance: (entry: { pStart?: number; pOn?: number }) => number | null;
+  agoLabel: (iso: unknown, nowMs: number) => string | null;
+  STALE_HOURS: number;
+  staleness: (entry: { at?: string; over?: boolean }, nowMs: number) => { kind: "over" | "old"; hours: number } | null;
+  topThree: (items: { key: string; x: number }[]) => Map<string, number>;
+  isPickHeading: (text: unknown) => boolean;
 };
 const core = createRequire(import.meta.url)("../../extension/core.js") as Core;
 
-// Real card pictures, as the approved overlay design (docs/sorare/design/S7-overlay.html) carries them.
+// Real card pictures, as the design previews (docs/sorare/design/S7-overlay.html, S7-player-page.html) carry them.
 const OBLAK = "https://assets.sorare.com/card/c0af94c9-927b-422e-ac4e-a051f16e72ae/picture/tinified-4e59e1794fe68061a586ff8ba74fd171.png";
 const FOYTH = "https://assets.sorare.com/card/e7524f8c-2531-4b10-9172-5a99cf7eec61/picture/tinified-dff1d4ffb9118c35d267983bcc51a3a0.png";
 
@@ -186,5 +196,88 @@ describe("shared with the app", () => {
   it("looks for card art by its address, never by a class name", () => {
     expect(core.CARD_SELECTOR).toContain('img[src*="/card/"]');
     expect(core.CARD_SELECTOR).not.toMatch(/\.[A-Za-z_-]+[\s,]/); // no class selectors
+  });
+});
+
+describe("the tile's own helpers", () => {
+  it("colours the five difficulty bands in Sorare's own tokens, easiest to hardest, and knows no other band", () => {
+    expect([1, 2, 3, 4, 5].map(core.fdrLevel)).toEqual(["high", "mediumHigh", "mediumLow", "low", "veryLow"]);
+    expect(core.STRIPE).toEqual(["high", "mediumHigh", "mediumLow", "low", "veryLow"]);
+    for (const bad of [0, 6, null, undefined, "1"]) expect(core.fdrLevel(bad)).toBeNull();
+    // Every band's colour is one of the six Sorare has, so the FDR reads as a Sorare number.
+    for (const level of core.STRIPE) expect(core.SCORE_FALLBACK).toHaveProperty(level);
+  });
+
+  it("gives a goalkeeper or defender the difficulty and a midfielder or forward the expected goals", () => {
+    expect(["GK", "DEF"].map(core.driverOf)).toEqual(["fdr", "fdr"]);
+    expect(["MID", "FWD"].map(core.driverOf)).toEqual(["xg", "xg"]);
+    expect(core.driverOf("COACH")).toBeNull();
+    expect(core.driverOf(undefined)).toBeNull();
+  });
+
+  it("reads his chance of starting from the split, and from the chance of playing on an older answer", () => {
+    expect(core.startChance({ p: 0.94, pStart: 0.78 })).toBe(0.78);
+    expect(core.startChance({ p: 0.94 })).toBe(0.94);
+  });
+
+  it("turns the two chances into the chance he comes on when he is not in the starting eleven", () => {
+    expect(core.benchOnChance({ pStart: 0.9, pOn: 0.05 })).toBeCloseTo(0.5); // 0.05 of the 0.10 left
+    expect(core.benchOnChance({ pStart: 0.5, pOn: 0.6 })).toBe(1); // never more than certain
+    expect(core.benchOnChance({ pStart: 1, pOn: 0 })).toBe(0); // nothing is left to be benched
+    expect(core.benchOnChance({ pStart: 0.5 })).toBeNull(); // an answer without the split says nothing
+  });
+
+  it("says how long ago the numbers were made, in the coarsest unit that is honest", () => {
+    const at = "2026-10-08T00:00:00Z";
+    const later = (minutes: number) => Date.parse(at) + minutes * 60_000;
+    expect(core.agoLabel(at, later(0))).toBe("just now");
+    expect(core.agoLabel(at, later(5))).toBe("5 min ago");
+    expect(core.agoLabel(at, later(11 * 60))).toBe("11 h ago");
+    expect(core.agoLabel(at, later(3 * 24 * 60))).toBe("3 d ago");
+    expect(core.agoLabel(undefined, later(1))).toBeNull();
+    expect(core.agoLabel("not a date", later(1))).toBeNull();
+    expect(core.agoLabel(at, Date.parse(at) - 1000)).toBe("just now"); // a clock a little behind is not "in the future"
+  });
+});
+
+describe("deciding what to do with a number (O7)", () => {
+  const at = "2026-10-08T00:00:00Z";
+  const later = (hours: number) => Date.parse(at) + hours * 3600_000;
+
+  it("greys numbers that are older than a day, or about a game that has started, and says which", () => {
+    expect(core.STALE_HOURS).toBe(24);
+    expect(core.staleness({ at }, later(3))).toBeNull();
+    expect(core.staleness({ at }, later(24))).toBeNull(); // a refresh that is exactly a day old is still fine
+    expect(core.staleness({ at }, later(25))).toEqual({ kind: "old", hours: 25 });
+    expect(core.staleness({ at, over: true }, later(1))).toEqual({ kind: "over", hours: 1 }); // the game wins over the age
+    expect(core.staleness({ over: true }, later(1))).toEqual({ kind: "over", hours: 0 });
+  });
+
+  it("does not grey a number it cannot date, rather than guess", () => {
+    expect(core.staleness({}, later(500))).toBeNull();
+    expect(core.staleness({ at: "not a date" }, later(500))).toBeNull();
+  });
+
+  it("ranks the best three of four or more, by xScore, and no one when there are fewer", () => {
+    const list = [
+      { key: "a", x: 41 },
+      { key: "b", x: 68 },
+      { key: "c", x: 55 },
+      { key: "d", x: 62 },
+      { key: "e", x: 50 },
+    ];
+    expect([...core.topThree(list)]).toEqual([["b", 1], ["d", 2], ["c", 3]]);
+    expect(core.topThree(list.slice(0, 3)).size).toBe(0); // a list of three is not a list to pick from
+    expect(core.topThree([]).size).toBe(0);
+  });
+
+  it("gives ties distinct ranks in the order the cards are shown", () => {
+    const tied = ["a", "b", "c", "d"].map((key) => ({ key, x: 50 }));
+    expect([...core.topThree(tied)]).toEqual([["a", 1], ["b", 2], ["c", 3]]);
+  });
+
+  it("knows the heading of a pick list: \"Select your Goalkeeper\", in any case, and nothing that merely contains it", () => {
+    for (const yes of ["Select your Goalkeeper", "  select your defender ", "SELECT YOUR FORWARD"]) expect(core.isPickHeading(yes), yes).toBe(true);
+    for (const no of ["Your lineup", "Please select your Goalkeeper", "Selected", "", undefined, null]) expect(core.isPickHeading(no), String(no)).toBe(false);
   });
 });

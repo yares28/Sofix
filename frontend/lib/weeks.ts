@@ -165,14 +165,17 @@ export type Page = "board" | "play" | "all";
  *
  * The board counts LaLiga rounds, so a Sorare game week holding two of them offers both. Play counts Sorare
  * game weeks, so that same pair is one row there — the plan behind it is one plan, and offering it twice would
- * be two ways to reach the same page. Everything else sees the whole calendar.
+ * be two ways to reach the same page. Play also offers every week still to come that Sorare hasn't opened, so
+ * the season ahead stays in view and its page can say when Sorare opens it; a week already over with no Sorare
+ * game week behind it has nothing true to show there. Everything else sees the whole calendar.
  */
 export function pageWeeks(weeks: Week[], page: Page): Week[] {
   if (page === "board") return weeks.filter((week) => week.md !== null);
   if (page !== "play") return weeks;
   const seen = new Set<string>();
   return weeks.filter((week) => {
-    if (!week.gw || seen.has(week.gw)) return false;
+    if (!week.gw) return week.state !== "done";
+    if (seen.has(week.gw)) return false;
     seen.add(week.gw);
     return true;
   });

@@ -57,7 +57,8 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
         <SiteNav meta={meta} system={system} week={week} />
         <main className="pl-main">
           <section className="card empty-state" role="status">
-            <h1>{asked?.md ? `Gameweek ${asked.md}` : "Play"}</h1>
+            {/* Named the way the week picker names it on Play: its Sorare game week, else its LaLiga round. */}
+            <h1>{asked?.gw ? `Gameweek ${asked.number}` : asked?.md ? `LaLiga GW${asked.md}` : "Play"}</h1>
             <p>
               {asked && !asked.gw
                 ? "Sorare hasn't opened this week. It opens about a week before the games."

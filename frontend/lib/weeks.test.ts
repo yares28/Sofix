@@ -81,6 +81,14 @@ describe("the weeks of a season", () => {
     expect(weekValue(md8)).toEqual({ value: "—", note: "Sorare opens later" });
   });
 
+  it("offers Play each game week once, and every round still to come that Sorare hasn't opened", () => {
+    // MD4 is over and sits in no Sorare week the payload holds: Play has nothing true to say about it.
+    const over = { number: 4, date_from: "2026-09-01T19:00:00Z", date_to: "2026-09-02T19:00:00Z", finished: true } as GridMatchday;
+    const all = seasonWeeks({ matchdays: [over, ...ROUNDS] } as FixtureGrid, sorare, NOW);
+    const play = pageWeeks(all, "play").map((w) => (w.gw ? `GW${w.number}` : `MD${w.md}`));
+    expect(play).toEqual(["GW13", "GW14", "GW15", "GW16", "GW17", "GW19", "MD8"]);
+  });
+
   it("is in date order and has no duplicates", () => {
     const ids = weeks.map((w) => w.id);
     expect(ids).toEqual([...ids].sort());

@@ -36,16 +36,15 @@ Chrome address bar → install. Not blocking anything.
 ## Mine
 
 ### Check the overlay on your own Sorare pages — *built, live acceptance is yours*
-Your Sofix numbers are now drawn on Sorare's own cards (a ribbon: expected score, chance of playing, the game) and
+Your Sofix numbers are now drawn on Sorare's own cards (one chip: expected score and chance of playing) and
 an edge tab opens your gameweek's plan. Built from [plans/overlay.md](plans/overlay.md); automated proof is
 `frontend/e2e/overlay.e2e.ts`, and the card-finding was checked against real public sorare.com pages.
 
-**Wait for O6 first:** your first live look showed three chips stacked on the card, two of them black boxes and one
-repeating the fixture Sorare already draws. O6 makes it one solid chip on the card's edge, clear of Sorare's own
-([plans/overlay.md, O6](plans/overlay.md)); O7 then marks the cards in your plan. Then one pass judges the final
-look. What no test can do is look at **your** signed-in pages:
+**The look was redone (O6)** after your first live look: one solid chip on the card's left edge in Sorare's own colours,
+no game detail, clear of Sorare's own chips ([plans/overlay.md, O6](plans/overlay.md)). O7 will mark the cards in your
+plan. What no test can do is look at **your** signed-in pages:
 
-1. `node extension/scripts/configure.mjs`, then **Reload** Sofix in `chrome://extensions` (it is now 0.2.0) and
+1. `node extension/scripts/configure.mjs`, then **Reload** Sofix in `chrome://extensions` (it is now 0.2.1) and
    reload your sorare.com tab.
 2. ~~Let one Sorare refresh finish~~ — done (run #21, 2026-09-29): the published gameweek now names every player by
    his Sorare slug, which is how a card is matched to its numbers. Only players with a game in the planned

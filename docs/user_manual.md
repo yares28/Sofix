@@ -263,15 +263,17 @@ reload the extension after changing the app origin or token.
 
 ### Cards on sorare.com
 
-On Sorare's football pages Sofix draws a small ribbon on each card it can name. A big card gets three chips:
-**X 53** (the score he is expected to score, coloured the way the board colours a score), **Play 88%** (his chance
-of playing) and the game, such as **GET (H)** (the opponent, home or away, coloured by how hard the board rates it).
-A small card, such as a lineup slot, gets just the number. A grey number with a ring means he is not expected to
-start. Outside LaLiga the game chip says **No odds**: there are no bookmaker prices to rate it with.
+On Sorare's football pages Sofix hangs one small chip off the top-left edge of each card it can name: **X 41 | 74%**.
+The first number is the score he is expected to score, painted in Sorare's own colour for that score (the same yellow,
+lime, green or cyan Sorare gives a 41, a 55, a 70 or an 80). The second is his chance of playing; a substitute
+appearance counts. A small card, such as a lineup slot, gets just the number, and a picture under 48 px wide gets
+nothing. If he is not expected to start, the score turns grey and the chance red.
 
-Ribbons appear for the players you own who have a game in the gameweek. A card Sofix has nothing on gets nothing.
-If the app cannot be reached, a dark **Sofix** chip appears instead and opens it. Cards are found by the address of
-their picture, not by Sorare's generated CSS class names, so a redesign should not break it.
+It says nothing about the game: Sorare's card already shows the opponent, the odds and the kickoff. It starts below
+any chip of Sorare's own on that edge, never touches the ones on the right (their percentage, the captain button,
+the lock timer, "Best value"), and covers about 2% of a card. Ribbons appear for the players you own who have a game
+in the gameweek; a card Sofix has nothing on gets nothing. If the app cannot be reached, a dark **Sofix** chip appears
+instead and opens it. Cards are found by the address of their picture, not by Sorare's generated CSS class names.
 
 ### Plan drawer
 
@@ -282,7 +284,8 @@ lineup write buttons are intentionally not placed over Sorare's browsing UI. The
 
 ### The switch
 
-The popup's **Scores on sorare.com** switch turns the ribbons and the tab on and off at once, with no reload.
+The popup's **Scores on sorare.com** switch turns the chips and the tab on and off at once, with no reload, and
+**Show chance of playing** takes the second number off the chip and leaves the score.
 **Cards recognised here** shows how many cards on the page you are looking at Sofix could name ("7 of 7"). "0 of 8"
 means Sorare has changed how it draws cards and the overlay needs an update. The larger "Sofix panel" on a player
 page in the design preview (S7) is not built.

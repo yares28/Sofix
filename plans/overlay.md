@@ -17,7 +17,7 @@ owner's own signed-in pages (lineup, compose, gallery, player page, signed out, 
 |---|---|
 | O1 identity | `extension/core.js` (key, alt name, answer walker), `bridge.js` (index, `identify`) |
 | O2 numbers | `frontend/lib/overlay.ts`, `app/api/ext/overlay/route.ts`, `lib/extAuth.ts`, `background.js` (`askApp`, session cache); `backend/app/sorare/publish.py` now names each player by slug |
-| O3 ribbon | `extension/overlay.js`, `overlay.css` |
+| O3 ribbon, restyled by O6 | `extension/overlay.js`, `overlay.css`: one chip on the card's left edge (see O6) |
 | O4 switch, drawer | `overlay.js` and `drawer.js` read `overlay` live; the popup shows "Cards recognised here"; the app answers `plan: true` for the drawer |
 | O5 proof | `frontend/e2e/overlay.e2e.ts` on `e2e/fixtures/sorare-cards.html` (real extension scripts, stubbed `chrome.*`, axe); `S7-overlay.html` shows the built ribbon |
 
@@ -49,12 +49,10 @@ pages; the same on a lineup page needs the owner's session.
 **To see it live:** run `node extension/scripts/configure.mjs`, reload the extension (0.2.0) and the sorare.com tab,
 and let one Sorare refresh finish, because `playing.players` only carries each player's slug from that refresh on.
 
-**Next: [O6](#o6--the-look--one-chip-that-belongs-on-sorares-card), the restyle and repositioning: top priority.**
-The owner's live look (compose page, 2026-09-29) showed three chips stacked on the card's art, two of them black boxes
-and one repeating the fixture Sorare already draws. O6 makes it one solid chip on the card's left edge, drops the game
-detail, and stays clear of Sorare's own chips. **O7** (marking the cards in your plan, ranking a pick list, greying
-stale numbers) is the upgrade that turns the numbers into decisions. Both come before the owner's live pass, so that
-pass judges the final look once.
+**O6, the restyle and repositioning, is built (2026-09-29): see its "Built" record below.** The chip is now one solid
+chip on the card's left edge in Sorare's own colours, with no game detail; the owner's compose-page screenshot drove
+it. **Next: O7** (marking the cards in your plan, ranking a pick list, greying stale numbers), then the owner's live
+pass on the final look.
 
 ---
 
@@ -380,6 +378,38 @@ height and type, same fold), hangs off the left edge without touching a chip of 
 and none of its face, passes AA, and every O5 behaviour test still passes with the new geometry.
 
 ---
+
+**Built (2026-09-29).** What changed from the plan above, and what was measured on the way:
+
+- **Sorare's colour rule, read from its own public script** (`thresholds-*.js`, football): the first step whose limit
+  is `>=` the score: 20 red, 35 orange, 50 yellow, 60 lime, 75 green, above 75 cyan. It matched **all 42 real hexagons**
+  sampled across the goalkeeper, defender, midfielder and forward scouting lists (41 and 50 yellow, 53 and 60 lime,
+  61 and 75 green, 76 to 96 cyan). Pinned in `extension/core.js` (`scoreLevel`) and `lib/overlayCore.test.ts`, with the
+  measured hex values as fallback when the page's `--c-score-*` tokens cannot be read. The chip paints the *rounded*
+  score, so the number seen and its colour agree.
+- **The board's own `scoreColour()` (`lib/cards.ts`) does not follow that rule.** It steps at 15/30/40/50/65/80/90
+  with a blue and a teal Sorare does not use, so a 76 to 79 is green on the board and cyan on Sorare, and its comment
+  ("matched to Sorare's own ramp") is wrong. Fixing it changes the My cards page, so it is **its own change**, not
+  part of O6.
+- **Game fields removed end to end:** the answer is `{ x, p, average }`; the `home.ts` exports added for the difficulty
+  matcher are reverted, and the route no longer reads the fixture grid at all.
+- **Placement is measured, not assumed:** the strip the chip would take is sampled with `elementsFromPoint` (position
+  and size only, never class names), remembered until the card or the page around it changes, and the chip starts
+  below anything small of Sorare's own found there. If that would sink past 45% of the card's height it stays put
+  rather than cover the face.
+- **A wrapper that only clips is let show the hanging chip** (`sfx-anchor`, `sfx-anchor-up`, two levels at most,
+  given back on switch-off). A wrapper that scrolls is never touched: the chip stays inside the picture there.
+- **Dropped from the plan:** the 4 px slide-in (the position is corrected from measured rectangles, and a moving
+  element makes those wrong; the chip fades in instead), and a picture under **48 px** wide gets no chip at all (a
+  40 px rarity thumbnail on a real player page took 11% of the picture).
+- **New setting:** the popup's **Show chance of playing** (`overlayChance`, on by default).
+- **Checked live** on Sorare's public gallery and player page with stub numbers, at 1440 and 390 wide: the chip
+  covers 2.3% of a gallery card (the owner's first look lost about 17%), hangs 6 px off the edge, sits 8 px down, uses
+  Sorare's own `pressio` font, and had none of Sorare's own chips under it. It scales with Sorare's carousel
+  transforms. The compose page itself needs the owner's session, so that layout is proved on the fixture page only.
+- **Still open from "to settle":** what Sorare's gold percentage on the compose card is (its public API returns no odds
+  outside an open gameweek, so it could not be checked from here), and whether the left band carries a badge on a
+  lineup slot. Both are for the owner's live pass.
 
 ### O7 · Decisions, not just numbers
 

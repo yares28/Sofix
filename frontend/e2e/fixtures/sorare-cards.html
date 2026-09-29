@@ -38,8 +38,13 @@ a.card { display: block; color: inherit; }
 .frame { position: relative; width: 180px; }
 .frame .card { width: 180px; }
 .cap { position: absolute; z-index: 2; top: 32px; right: -6px; width: 24px; height: 24px; border: 0; border-radius: 6px; background: #3fb950; color: #0e0e0e; font-weight: 700; }
-.foot { display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 6px 8px; border-radius: 6px; background: #1d1d20; color: #d8d8de; font-size: 12px; }
-.odds { flex: 1; height: 6px; border-radius: 3px; background: linear-gradient(90deg, #2ea98a 78%, #7c7c85 78% 92%, #ff5a5a 92%); }
+/* Sorare's own win / draw / loss bar under a compose card, and its kickoff line below that. */
+.wdl { display: flex; align-items: center; justify-content: space-around; height: 24px; margin-top: 6px; border-radius: 8px; background: #242424; font: 700 15px/15px -apple-system, "Segoe UI", sans-serif; }
+.wdl span:nth-child(1) { color: #b6ff1a; } .wdl span:nth-child(2) { color: #b6b6b6; } .wdl span:nth-child(3) { color: #ff5a5a; }
+.foot { margin-top: 6px; padding: 6px 8px; border-radius: 6px; background: #1d1d20; color: #d8d8de; font-size: 12px; }
+/* A footer that is pinned where the room under the bar would be: making room moves nothing, so no row may be drawn there. */
+.pinned .foot { position: absolute; left: 0; right: 0; top: 288px; margin: 0; }
+.picks .card { width: 130px; }
 .scroller { width: 200px; overflow-x: auto; display: flex; gap: 12px; }
 .scroller .card { flex: none; width: 100px; }
 </style>
@@ -66,6 +71,9 @@ a.card { display: block; color: inherit; }
     <div class="card" id="doubtful"><img alt="Pau Cubarsí - rare" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000002/picture/tinified-aaa2.png?width=300"></div>
     <div class="card" id="stranger"><img alt="Someone Else - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000005/picture/tinified-aaa5.png?width=300"></div>
     <div class="card" id="abroad"><img alt="Lionel Messi - rare" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000007/picture/tinified-aaa7.png?width=300"></div>
+    <div class="card" id="noxg"><img alt="Kai Havertz - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000008/picture/tinified-aaa8.png?width=300"></div>
+    <div class="card" id="over"><img alt="Over - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-0000000000020/picture/tinified-p20.png?width=300"></div>
+    <div class="card" id="old"><img alt="Old - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-0000000000021/picture/tinified-p21.png?width=300"></div>
     <a class="card" id="linked" href="/football/players/x/cards?sale=true&card=pedri-2026-limited-7"><img alt="Pedri - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000006/picture/tinified-aaa6.png?width=300"></a>
     <div>
       <div class="card" id="clip"><video id="clip-video" muted preload="none" poster="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-000000000001/picture/tinified-aaa1.png"><source src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-000000000001/video/low_res-vid1.webm"></video></div>
@@ -79,7 +87,13 @@ a.card { display: block; color: inherit; }
       <div class="card" id="composecard"><img alt="Unai Simón - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000001/picture/tinified-aaa1.png?width=300"></div>
       <span class="gold" id="gold">60%</span>
       <button class="cap" id="cap" type="button" aria-label="Captain">C</button>
-      <div class="foot" id="foot"><span>ESP</span><i class="odds"></i><span>CRO</span></div>
+      <div class="wdl" id="wdl"><span>46%</span><span>27%</span><span>27%</span></div>
+      <div class="foot" id="foot">Sat 10 Oct · 16:15</div>
+    </div>
+    <div class="frame pinned" id="frame2">
+      <div class="card" id="pinnedcard"><img alt="Pau Cubarsí - rare" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000002/picture/tinified-aaa2.png?width=300"></div>
+      <div class="wdl" id="wdl2"><span>38%</span><span>30%</span><span>32%</span></div>
+      <div class="foot" id="foot2">Sat 10 Oct · 18:30</div>
     </div>
   </div>
 
@@ -97,9 +111,29 @@ a.card { display: block; color: inherit; }
       <div class="face" id="face"><img alt="Unai Simón - face" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000001/picture/tinified-aaa1.png?width=80"></div>
     </div>
   </div>
+  <h2 id="pickhead">Select your Defender</h2>
+  <div class="row picks" id="picks">
+    <div class="card" id="pick-1"><img alt="Pick 1 - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-0000000000011/picture/tinified-p11.png?width=300"></div>
+    <div class="card" id="pick-2"><img alt="Pick 2 - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-0000000000012/picture/tinified-p12.png?width=300"></div>
+    <div class="card" id="pick-3"><img alt="Pick 3 - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-0000000000013/picture/tinified-p13.png?width=300"></div>
+    <div class="card" id="pick-4"><img alt="Pick 4 - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-0000000000014/picture/tinified-p14.png?width=300"></div>
+    <div class="card" id="pick-5"><img alt="Pick 5 - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-0000000000015/picture/tinified-p15.png?width=300"></div>
+    <div class="card" id="pick-6"><img alt="Pick 6 - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-0000000000016/picture/tinified-p16.png?width=300"></div>
+  </div>
+  <h2 id="pickhead2">Select your Forward</h2>
+  <div class="row picks" id="picks2">
+    <div class="card" id="fwd-1"><img alt="Fwd 1 - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-0000000000031/picture/tinified-p31.png?width=300"></div>
+    <div class="card" id="fwd-2"><img alt="Fwd 2 - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-0000000000032/picture/tinified-p32.png?width=300"></div>
+    <div class="card" id="fwd-3"><img alt="Fwd 3 - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-0000000000033/picture/tinified-p33.png?width=300"></div>
+  </div>
 </main>
 <script>
 // What the real page does: draws first, learns which card is which from its own GraphQL answers a moment later.
+// Which card a click reached: what Sorare does to select a card for a lineup.
+document.addEventListener("click", function (event) {
+  var card = event.target.closest && event.target.closest(".card");
+  if (card) window.__picked = card.id;
+});
 window.rerender = function () {
   // A list that re-renders hands every card a brand new element.
   document.querySelectorAll("#lineup .card, #gallery > .card").forEach(function (node) {

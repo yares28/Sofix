@@ -118,9 +118,74 @@
     return Math.round(p * 100) + "%";
   }
 
-  /** Below this he is not expected to start, and the chip says so: the score is greyed and the chance is red. */
+  /** Below this he is not expected to start, and the tile says so with a red row of his chance of starting. */
   const DOUBTFUL = 0.5;
 
-  root.__sofixCore = { CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK, chanceLabel, DOUBTFUL };
+  // The five difficulty bands (plans/overlay.md, O10) wear five of the six colours Sorare gives a score, easiest first:
+  // band 1 is the colour of a score above 75 and band 5 that of a score under 20, so the FDR reads as a Sorare number.
+  const FDR_LEVEL = { 1: "high", 2: "mediumHigh", 3: "mediumLow", 4: "low", 5: "veryLow" };
+  const STRIPE = ["high", "mediumHigh", "mediumLow", "low", "veryLow"];
+  const fdrLevel = (bucket) => (Number.isInteger(bucket) && FDR_LEVEL[bucket]) || null;
+
+  /** What the tile shows under the score: the difficulty of his game for a goalkeeper or defender, his xG otherwise. */
+  function driverOf(pos) {
+    return pos === "GK" || pos === "DEF" ? "fdr" : pos === "MID" || pos === "FWD" ? "xg" : null;
+  }
+
+  /** His chance of starting: the split when the app has it, else the chance of playing an older answer carries. */
+  const startChance = (entry) => (typeof entry.pStart === "number" ? entry.pStart : entry.p);
+
+  /** Of the times he is not in the starting eleven, how often he still plays: null when the answer has no split. */
+  function benchOnChance(entry) {
+    if (typeof entry.pStart !== "number" || typeof entry.pOn !== "number") return null;
+    if (entry.pStart >= 1) return 0;
+    return Math.min(1, Math.max(0, entry.pOn / (1 - entry.pStart)));
+  }
+
+  /** "11 h ago": the age of an ISO time, or null when there is no time to read. */
+  function agoLabel(iso, nowMs) {
+    const at = typeof iso === "string" ? Date.parse(iso) : Number.NaN;
+    if (Number.isNaN(at)) return null;
+    const minutes = Math.floor((nowMs - at) / 60000);
+    if (minutes < 1) return "just now";
+    if (minutes < 60) return minutes + " min ago";
+    if (minutes < 60 * 24) return Math.floor(minutes / 60) + " h ago";
+    return Math.floor(minutes / (60 * 24)) + " d ago";
+  }
+
+  /** A published gameweek older than this, with no refresh, is not a number to lean on. The refresh runs at least three times a day. */
+  const STALE_HOURS = 24;
+
+  /**
+   * Whether a number should be greyed and why: "over" when his game has kicked off (it is about a game no longer ahead),
+   * "old" when it was made more than STALE_HOURS ago. A number that cannot be dated is not greyed on a guess.
+   */
+  function staleness(entry, nowMs) {
+    const made = typeof entry.at === "string" ? Date.parse(entry.at) : Number.NaN;
+    const hours = Number.isNaN(made) ? 0 : Math.max(0, Math.floor((nowMs - made) / 3600000));
+    if (entry.over) return { kind: "over", hours };
+    return hours > STALE_HOURS ? { kind: "old", hours } : null;
+  }
+
+  /** The best three of a list by xScore, as `key -> 1..3`, when there are four or more to choose from. Ties keep their order. */
+  function topThree(items) {
+    const ranks = new Map();
+    if (items.length < 4) return ranks;
+    [...items]
+      .map((item, index) => ({ item, index }))
+      .sort((a, b) => b.item.x - a.item.x || a.index - b.index)
+      .slice(0, 3)
+      .forEach(({ item }, place) => ranks.set(item.key, place + 1));
+    return ranks;
+  }
+
+  /** The heading Sorare puts over a list of cards to pick from: "Select your Goalkeeper". */
+  const isPickHeading = (text) => typeof text === "string" && /^\s*select your\b/i.test(text);
+
+  root.__sofixCore = {
+    CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
+    chanceLabel, DOUBTFUL, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, agoLabel, STALE_HOURS, staleness, topThree,
+    isPickHeading,
+  };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;
 })(typeof globalThis !== "undefined" ? globalThis : this);

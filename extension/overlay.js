@@ -1,11 +1,14 @@
-// Sofix extension, the sorare.com overlay (plans/overlay.md, O3 and O4).
-// Draws Sofix's numbers on the cards Sorare shows: one chip with the expected score and the chance he plays. Nothing
-// about the game: Sorare's own card already draws that. It only reads and draws. It has no button that writes to Sorare; the one thing here that takes a click opens the app.
+// Sofix extension, the sorare.com overlay (plans/overlay.md, O3, O4 and O10).
+// Draws Sofix's numbers on the cards Sorare shows: a glass tile inside the card's top-left corner (the score if he
+// starts, then difficulty for a goalkeeper or defender and expected goals for the rest), Sofix's win and clean sheet
+// under Sorare's own odds bar, and a panel beside the card on hover with the two scores. It only reads and draws. It
+// has no control that writes to Sorare; the one thing here that takes a click apart from the tile's own hover opens the app.
 //
 //   find a card by where its picture comes from (never by Sorare's class names)
 //   -> ask the page bridge which card that is (bridge.js learned it from the page's own answers)
 //   -> ask the app for that player's numbers (through the background worker, which caches them)
-//   -> hang a chip off the picture's left edge, sized to how big the card is drawn and clear of Sorare's own chips.
+//   -> draw the tile inside the picture's corner, sized to how big the card is drawn and clear of Sorare's own chips
+//   -> find Sorare's odds bar by what it says and where it sits, make room under it, and draw Sofix's row there.
 //
 // A failure here must never break their page: every entry point is wrapped, and the worst outcome is that a
 // ribbon does not appear.
@@ -34,9 +37,9 @@
   let frame = 0;
   let scan = true; // the page changed: look for new pictures on the next pass
   let appState = "ok"; // "ok", or why the app did not answer: "auth" | "unreachable"
-  let chanceOn = true; // the popup's "Show chance of playing"
   let pageEpoch = 0; // bumped whenever the page itself changes, so a chip re-checks what is near it
 
+  let panel = null; // the one open hover panel: { record, entry, el, mode, ... }
   const records = new WeakMap(); // picture element -> its record (or a note that it is not a card)
   const live = new Set(); // the records being drawn; the WeakMap alone cannot be walked
   const numbers = new Map(); // "p:slug" | "c:slug" -> { at, entry | null }
@@ -98,9 +101,7 @@
     record.live = false;
     live.delete(record);
     records.delete(record.media); // so a card that comes back (the switch turned on again) is found again
-    if (record.ribs) record.ribs.remove();
-    record.ribs = null;
-    release(record);
+    clearDrawn(record);
     try {
       visibility.unobserve(record.media);
       resizing.unobserve(record.media);
@@ -203,16 +204,14 @@
     return radius.includes("%") ? value >= 50 : value >= Math.min(rect.width, rect.height) / 2;
   }
 
-  // -- the chip --------------------------------------------------------------------------------------------------
-
-  const GREY = "#d9dde4"; // the score of a player who is not expected to start: the number stays, its colour goes
-  const HEIGHT = { full: 18, compact: 15 };
-  const HANG = { full: 6, compact: 3 }; // how far the chip hangs off the card's left edge, like Sorare's own do off the right
-  const INSET = { full: 8, compact: 4 }; // and how far down from its top
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const INSET = { full: { x: 6, y: 6 }, compact: { x: 4, y: 4 }, tiny: { x: 3, y: 3 } }; // how far in from the picture's top-left corner the tile sits
+  const TINY_UNDER = 80; // a card narrower than this (a bench thumbnail) gets the smallest tile
+  const ODDS_GAP = 4; // between Sorare's odds bar and ours; the room made for the row is this plus its own 22px
 
   let tokenAt = 0;
   let tokens = {};
-  /** Sorare's own colour for a level, read from the page so the chip follows its theme; the measured value otherwise. */
+  /** Sorare's own colour for a level, read from the page so the tile follows its theme; the measured value otherwise. */
   function colour(level) {
     if (now() - tokenAt > 10000) {
       tokenAt = now();
@@ -226,68 +225,220 @@
     return tokens[level] || core.SCORE_FALLBACK[level];
   }
 
-  function segment(className, text) {
-    const b = document.createElement("b");
-    b.className = className;
-    b.textContent = text;
-    return b;
+  function node(tag, className, text) {
+    const made = document.createElement(tag);
+    if (className) made.className = className;
+    if (text !== undefined) made.textContent = text;
+    return made;
   }
 
-  /** What to draw on a card of this size: a signature (to skip redrawing what has not changed), the chip, its name. */
-  function build(record, tier) {
+  /** Sorare's five colours side by side, easiest to hardest: the tile's top edge, the odds row's and the panel's. */
+  function stripe() {
+    const bar = node("span", "sfx-stripe");
+    bar.setAttribute("aria-hidden", "true");
+    for (const level of core.STRIPE) {
+      const part = document.createElement("i");
+      part.style.background = colour(level);
+      bar.append(part);
+    }
+    return bar;
+  }
+
+  /** The small shirt that says "if he starts". */
+  function shirt(className) {
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("viewBox", "0 0 12 12");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("class", className);
+    const path = document.createElementNS(SVG_NS, "path");
+    path.setAttribute("d", "M4 1.4 1 3.1l.9 2.5L3 5.2v5.4h6V5.2l1.1.4.9-2.5L8 1.4C7.6 2.3 6.9 2.8 6 2.8S4.4 2.3 4 1.4Z");
+    svg.append(path);
+    return svg;
+  }
+
+  /** A percentage the way the tile writes it: the number large and the sign small. */
+  function percent(className, text) {
+    const holder = node("span", className);
+    holder.append(text.replace("%", ""));
+    holder.append(node("small", "", "%"));
+    return holder;
+  }
+
+  /** Everything the tile and the panel say about one answer, worked out once. */
+  function facts(entry) {
+    const split = typeof entry.start === "number" && typeof entry.bench === "number";
+    const startChance = core.startChance(entry);
+    return {
+      split,
+      score: Math.round(split ? entry.start : entry.x),
+      startChance,
+      doubt: startChance < core.DOUBTFUL,
+      game: entry.game || null,
+      driver: core.driverOf(entry.pos),
+      xg: typeof entry.xg === "number" ? entry.xg : null,
+    };
+  }
+
+  /** The tile's name for a screen reader: the same things it shows, in words. */
+  function describe(f, more = []) {
+    const said = [f.split ? `Sofix: ${f.score} if he starts.` : `Sofix: expected score ${f.score}.`];
+    if (f.driver === "fdr") {
+      said.push(f.game ? `Difficulty ${Math.round(f.game.difficulty)} of 100, ${f.game.label.toLowerCase()}.` : "No odds for this game yet.");
+    } else if (f.driver === "xg") {
+      said.push(f.xg !== null ? `Expected goals ${f.xg.toFixed(2)}.` : f.game ? "No odds. Expected goals not available for this player." : "No odds for this game yet.");
+    }
+    if (f.doubt) said.push(`He starts only ${core.chanceLabel(f.startChance)} of the time.`);
+    return [...said, ...more].join(" ");
+  }
+
+  // -- the tile ---------------------------------------------------------------------------------------------------
+
+  const STALE_INK = "#a3a3ab"; // the score of a number that no longer holds: the colour goes, the number stays
+
+  /** What the best plan does with this very card (a copy of the player, by its slug), or null: a card it leaves out has nothing. */
+  function planFor(record, entry) {
+    return (record.cardSlug && entry.inPlan && entry.inPlan[record.cardSlug]) || null;
+  }
+
+  /** The tick of a card the best plan uses, or the star of its captain, hanging off the tile's top-right corner. */
+  function mark(captain) {
+    const badge = node("span", `sfx-mark${captain ? " sfx-mark--star" : ""}`);
+    badge.setAttribute("aria-hidden", "true");
+    if (captain) badge.style.setProperty("--sfx-m", colour("mediumLow"));
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("viewBox", "0 0 12 12");
+    const path = document.createElementNS(SVG_NS, "path");
+    path.setAttribute("d", captain ? "M6 1 7.5 4.3l3.6.4-2.7 2.4.8 3.5L6 8.7 2.8 10.6l.8-3.5L.9 4.7l3.6-.4Z" : "M2.4 6.4 4.9 8.8 9.7 3.4");
+    if (!captain) {
+      path.setAttribute("fill", "none");
+      path.setAttribute("stroke", "currentColor");
+      path.setAttribute("stroke-width", "1.9");
+      path.setAttribute("stroke-linecap", "round");
+      path.setAttribute("stroke-linejoin", "round");
+    } else {
+      path.setAttribute("fill", "currentColor");
+    }
+    svg.append(path);
+    badge.append(svg);
+    return badge;
+  }
+
+  /** "#1": where he stands among the cards on a list to pick from. */
+  function rankBadge(rank) {
+    const badge = node("span", "sfx-rank", `#${rank}`);
+    badge.setAttribute("aria-hidden", "true");
+    return badge;
+  }
+
+  /** What to draw on a card of this size: a signature (to skip redrawing what has not changed), the node, its name. */
+  function build(record, tier, size, rank) {
     const slug = slugOf(record);
     const held = entryOf(record);
     const entry = held && held.entry;
-    if (entry) {
-      const score = Math.round(entry.x);
-      const doubtful = entry.p < core.DOUBTFUL;
-      const fill = doubtful ? GREY : colour(core.scoreLevel(score));
-      const withChance = tier === "full" && chanceOn;
-      const chip = document.createElement("span");
-      chip.className = `sfx-chip${doubtful ? " sfx-chip--doubt" : ""}`;
-      chip.style.setProperty("--sfx-fill", fill);
-      if (doubtful) chip.style.setProperty("--sfx-red", colour("veryLow"));
-      if (tier === "full") chip.append(segment("sfx-x", "X"));
-      chip.append(segment("sfx-v", String(score)));
-      if (withChance) chip.append(segment("sfx-c", core.chanceLabel(entry.p)));
-      const label = `Sofix: expected score ${score}, ${core.chanceLabel(entry.p)} chance of playing`;
-      return { sig: [tier, score, entry.p, fill, withChance].join("|"), chip, label };
-    }
+    if (entry) return buildTile(record, tier, size, entry, rank);
     if (held) return null; // asked, and Sofix has nothing on this player: a card we cannot help with draws nothing
     if (appState !== "ok") {
       if (tier !== "full") return null;
-      const button = document.createElement("button"); // a real button, so it can be reached and pressed from the keyboard
-      button.type = "button";
-      button.className = "sfx-chip sfx-chip--auth";
-      button.textContent = "Sofix";
-      button.setAttribute("aria-label", appState === "auth" ? "Sofix does not recognise this extension. Open Sofix" : "Sofix is not reachable. Open Sofix");
-      button.addEventListener("click", guard((event) => {
+      const tag = node("button");
+      tag.type = "button"; // a real button, so it can be reached and pressed from the keyboard
+      tag.className = "sfx-tag";
+      tag.append(stripe(), node("span", "", appState === "auth" ? "Sign in" : "Offline"));
+      const label = appState === "auth" ? "Sofix does not recognise this extension. Open Sofix" : "Sofix is not reachable. Open Sofix";
+      tag.setAttribute("aria-label", label);
+      tag.addEventListener("click", guard((event) => {
         event.preventDefault();
         event.stopPropagation();
         chrome.runtime.sendMessage({ type: "open-app", path: "/" });
       }));
-      return { sig: `${tier}|auth|${appState}`, chip: button, label: "Sofix" };
+      return { sig: `${tier}|tag|${appState}`, node: tag, marks: [], label, interactive: false };
     }
     if (slug && asking.has(slug)) {
-      const chip = document.createElement("span");
-      chip.className = "sfx-chip sfx-chip--loading";
-      chip.append(segment("sfx-v", ""));
-      return { sig: `${tier}|loading`, chip, label: "Sofix: loading" };
+      const tile = node("span", `sfx-tile sfx-tile--loading${tier === "compact" ? " sfx-tile--compact" : ""}${size === "tiny" ? " sfx-tile--tiny" : ""}`);
+      tile.setAttribute("role", "img");
+      tile.setAttribute("aria-label", "Sofix numbers loading");
+      const skeleton = node("span", "sfx-skel");
+      skeleton.append(document.createElement("i"), document.createElement("i"));
+      tile.append(stripe(), skeleton);
+      return { sig: `${size}|loading`, node: tile, marks: [], label: "Sofix numbers loading", interactive: false };
     }
     return null;
   }
 
+  function buildTile(record, tier, size, entry, rank) {
+    const f = facts(entry);
+    const stale = core.staleness(entry, now());
+    const plan = planFor(record, entry);
+    const scoreColour = stale ? STALE_INK : colour(core.scoreLevel(f.score));
+    const level = f.game ? core.fdrLevel(f.game.bucket) : null;
+    const driveColour = level ? colour(level) : "";
+    const more = [];
+    if (plan) more.push(`In your best plan, ${plan.lineup} lineup${plan.captain ? ", as captain" : ""}.`);
+    if (rank && tier === "full") more.push(`Number ${rank} of the cards on this list by expected score.`);
+    if (stale) more.push(stale.kind === "over" ? "His game has started, so these numbers are about a game no longer ahead." : `These numbers are ${stale.hours} h old.`);
+    const label = describe(f, more);
+    const shownRank = tier === "full" ? rank || 0 : 0;
+    const sig = [size, f.score, f.split, f.startChance, f.driver, f.xg, entry.pos, f.game && `${f.game.difficulty}:${f.game.bucket}`, scoreColour, driveColour, stale && stale.kind, plan && `${plan.lineup}:${plan.captain}`, shownRank].join("|");
+    const marks = [...(plan ? [mark(plan.captain)] : []), ...(shownRank ? [rankBadge(shownRank)] : [])];
+    const staleClass = stale ? " sfx-tile--stale" : "";
+
+    if (tier === "compact") {
+      const tile = node("span", `sfx-tile sfx-tile--compact${size === "tiny" ? " sfx-tile--tiny" : ""}${f.doubt ? " sfx-tile--doubt" : ""}${staleClass}`);
+      tile.setAttribute("role", "img");
+      tile.setAttribute("aria-label", label);
+      tile.style.setProperty("--sfx-c", scoreColour);
+      tile.append(stripe(), node("b", "sfx-score", String(f.score)));
+      return { sig, node: tile, marks, label, interactive: false };
+    }
+
+    const tile = node("button", `sfx-tile${f.doubt ? " sfx-tile--doubt" : ""}${staleClass}`);
+    tile.type = "button"; // the one thing on the card that answers the pointer: it opens the panel and nothing else
+    tile.setAttribute("aria-label", label);
+    tile.setAttribute("aria-haspopup", "dialog");
+    tile.setAttribute("aria-expanded", "false");
+    tile.style.setProperty("--sfx-c", scoreColour);
+    if (driveColour) tile.style.setProperty("--sfx-d", driveColour);
+    const main = node("span", "sfx-main");
+    main.append(shirt("sfx-shirt"), node("b", "sfx-score", String(f.score)));
+    tile.append(stripe(), main);
+
+    if (stale) {
+      const row = node("span", "sfx-drive sfx-drive--none"); // the driver is no longer worth reading: say why instead
+      row.append(node("span", "sfx-cap", stale.kind === "over" ? "Started" : "Old"));
+      tile.append(row);
+    } else if (f.driver === "fdr" && f.game) {
+      const row = node("span", "sfx-drive");
+      row.append(node("span", "sfx-cap", "FDR"), node("b", "sfx-fdr", String(Math.round(f.game.difficulty))));
+      tile.append(row);
+    } else if (f.driver === "xg" && f.xg !== null) {
+      const row = node("span", "sfx-drive");
+      row.append(node("span", "sfx-cap sfx-cap--xg", "xG"), node("b", "sfx-xg", f.xg.toFixed(2)));
+      tile.append(row);
+    } else {
+      const row = node("span", "sfx-drive sfx-drive--none");
+      row.append(node("span", "sfx-cap", "No odds"));
+      tile.append(row);
+    }
+    if (f.doubt) {
+      const doubt = node("span", "sfx-doubt");
+      doubt.setAttribute("aria-hidden", "true");
+      const chance = node("b");
+      chance.append(core.chanceLabel(f.startChance).replace("%", ""), node("small", "", "%"));
+      doubt.append(shirt(""), chance);
+      tile.append(doubt);
+    }
+    return { sig, node: tile, marks, label, interactive: true };
+  }
+
   /**
-   * Where the chip goes down the card's left edge. Sorare draws its own chips there on some cards (a season badge, a
-   * serial number), and they differ per card, so this looks at what is actually under the strip the chip would take
+   * Where the tile goes down the card's left edge. Sorare draws its own chips there on some cards (a season badge, a
+   * serial number), and they differ per card, so this looks at what is actually under the strip the tile would take
    * and starts below it. Found by position and size, never by what anything is called: a backdrop or a card-sized
    * link is not a chip; a small box in the strip is.
    */
-  function clearOf(media, rect, tier, width) {
-    const height = HEIGHT[tier];
-    const wanted = rect.top + INSET[tier];
+  function clearOf(media, rect, size, width, height) {
+    const wanted = rect.top + INSET[size].y;
     const limit = rect.top + rect.height * 0.45; // never sink into the player's face to get out of the way
-    const left = Math.max(rect.left - HANG[tier], 2);
+    const left = rect.left + INSET[size].x;
     const xs = [];
     for (let x = left + 1; x < left + width; x += 10) xs.push(x);
     xs.push(left + width - 1);
@@ -313,83 +464,495 @@
   }
 
   /** `clearOf`, remembered until the card moves or the page around it changes: it is the one costly thing a pass does. */
-  function clearOfCached(record, rect, tier, width) {
-    const key = [rect.left, rect.top, rect.width, rect.height, tier, Math.round(width), pageEpoch].map((n) => (typeof n === "number" ? Math.round(n) : n)).join("|");
+  function clearOfCached(record, rect, size, width, height) {
+    const key = [rect.left, rect.top, rect.width, rect.height, size, Math.round(width), Math.round(height), pageEpoch].map((n) => (typeof n === "number" ? Math.round(n) : n)).join("|");
     if (record.bandKey !== key) {
       record.bandKey = key;
-      record.bandTop = clearOf(record.media, rect, tier, width);
+      record.bandTop = clearOf(record.media, rect, size, width, height);
     }
     return record.bandTop;
   }
 
-  /** The two nearest ancestors that would cut the chip off where it hangs past the card's left edge. */
-  function clippers(ribs, box) {
-    const found = [];
-    let node = ribs.parentElement;
-    for (let level = 0; level < 2 && node && node !== document.body; level += 1, node = node.parentElement) {
-      const overflow = getComputedStyle(node).overflowX;
-      if (!/hidden|clip|auto|scroll/.test(overflow)) continue;
-      if (box.left < node.getBoundingClientRect().left - 0.5) found.push({ node, level, scrolls: /auto|scroll/.test(overflow) });
+  // -- Sorare's odds bar, and our row under it --------------------------------------------------------------------
+
+  const THREE_PERCENTS = /^\d{1,3}%\d{1,3}%\d{1,3}%$/;
+  const compact = (text) => (text || "").replace(/\s+/g, "");
+
+  /**
+   * Sorare's win / draw / loss bar under a card: the smallest box in the card's own block whose whole text is three
+   * percentages, right under the picture and about as wide as it. Found by what it says and where it sits, never by
+   * a class name; null when there is none, and then no row is drawn.
+   */
+  function locateBar(media, rect) {
+    let scope = media.parentElement;
+    for (let level = 0; level < 4 && scope && scope !== document.body; level += 1, scope = scope.parentElement) {
+      const box = scope.getBoundingClientRect();
+      if (box.height > rect.height * 2.4 || box.width > rect.width * 2.4) return null; // past this card's own block
+      let best = null;
+      let distance = Infinity;
+      let seen = 0;
+      for (const el of scope.querySelectorAll("*")) {
+        if (++seen > 400) break;
+        if (el.closest("[data-sfx]") || el === media || el.contains(media)) continue;
+        const text = compact(el.textContent);
+        if (text.length > 14 || !THREE_PERCENTS.test(text)) continue;
+        if ([...el.children].some((child) => THREE_PERCENTS.test(compact(child.textContent)))) continue; // a wrapper of the bar
+        const r = el.getBoundingClientRect();
+        if (r.width < rect.width * 0.6 || r.width > rect.width * 1.3 || r.height < 8 || r.height > 60) continue;
+        if (r.top < rect.bottom - 6 || r.top > rect.bottom + 60 || r.left < rect.left - 20 || r.right > rect.right + 20) continue;
+        if (r.top - rect.bottom < distance) {
+          best = el;
+          distance = r.top - rect.bottom;
+        }
+      }
+      if (best) return best;
     }
-    return found;
+    return null;
   }
 
-  /** Hand back what was overridden to let the chip hang out. */
-  function release(record) {
-    for (const node of record.anchored || []) node.classList.remove("sfx-anchor", "sfx-anchor-up");
-    record.anchored = [];
+  function barFor(record, rect) {
+    const key = [Math.round(rect.left), Math.round(rect.bottom), Math.round(rect.width), pageEpoch].join("|");
+    if (record.barKey !== key || (record.bar && !record.bar.isConnected)) {
+      record.barKey = key;
+      record.bar = locateBar(record.media, rect);
+    }
+    return record.bar;
   }
 
-  /** Draws, updates or removes one card's chip. Returns true when it needs another pass to be placed. */
-  function place({ record, rect, tier, ribs, box, at, top, clip }) {
-    const drawn = tier === "skip" ? null : build(record, tier);
+  /**
+   * Is the room under their bar really free? After it is made, nothing of theirs (their kickoff line) may sit in it:
+   * if something does, the margin did not move it, and drawing there would cover it, so the row is not drawn at all.
+   */
+  function roomIsFree(bar, barRect, mediaRect) {
+    const y = barRect.bottom + ODDS_GAP + 11;
+    const REPLACED = /^(IMG|SVG|VIDEO|CANVAS|BUTTON|INPUT)$/;
+    for (const x of [barRect.left + 8, barRect.left + barRect.width / 2, barRect.right - 8]) {
+      if (x < 0 || y < 0 || x >= innerWidth || y >= innerHeight) continue;
+      for (const el of document.elementsFromPoint(x, y)) {
+        if (el === bar || el.contains(bar) || bar.contains(el) || el.closest("[data-sfx]")) continue;
+        const r = el.getBoundingClientRect();
+        if (r.width * r.height > mediaRect.width * mediaRect.height * 0.25) continue; // a backdrop or a card-sized link
+        if (!compact(el.textContent) && !REPLACED.test(el.tagName.toUpperCase())) continue; // nothing to see there
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function buildOdds(game) {
+    const win = Math.round(game.win * 100);
+    const clean = typeof game.cleanSheet === "number" ? Math.round(game.cleanSheet * 100) : null;
+    const label = clean === null ? `Sofix odds: win ${win}%` : `Sofix odds: win ${win}%, clean sheet ${clean}%`;
+    const cell = (caption, value, className) => {
+      const holder = node("span", "sfx-odds-cell");
+      holder.append(node("span", "sfx-cap", caption), value === null ? node("b", "sfx-odds-num sfx-odds-num--none", "—") : percent(`sfx-odds-num ${className}`, `${value}%`));
+      return holder;
+    };
+    const rule = node("span", "sfx-odds-rule");
+    rule.setAttribute("aria-hidden", "true");
+    return { sig: `${win}|${clean}`, label, nodes: [stripe(), cell("WIN", win, "sfx-odds-num--win"), rule, cell("CS", clean, "")] };
+  }
+
+  /** Hand back what was done to their bar. */
+  function releaseBar(record) {
+    if (record.roomBar) record.roomBar.classList.remove("sfx-room");
+    record.roomBar = null;
+  }
+
+  function removeOdds(record) {
+    if (record.odds) record.odds.remove();
+    record.odds = null;
+    record.oddsSig = "";
+    releaseBar(record);
+  }
+
+  /** Takes off everything drawn for one card, and gives back what was borrowed. */
+  function clearDrawn(record) {
+    if (panel && panel.record === record) closePanel(false);
+    if (record.ribs) record.ribs.remove();
+    record.ribs = null;
+    record.sig = "";
+    record.tile = null;
+    removeOdds(record);
+  }
+
+  // -- the panel beside the card -----------------------------------------------------------------------------------
+
+  const PANEL_WIDTH = 222;
+  const scoreColourOf = (score) => colour(core.scoreLevel(score));
+
+  /** The number and its words: the score if he starts, or if he does not, and the chance of that. */
+  function panelBig(entry, mode) {
+    const f = facts(entry);
+    const starts = mode === "start" || !f.split;
+    const score = starts ? f.score : Math.round(entry.bench);
+    const big = node("div", "sfx-big");
+    big.style.setProperty("--sfx-c", scoreColourOf(score));
+    const line = node("div");
+    line.append(node("strong", "", String(score)), node("span", "", f.split ? (starts ? "if he starts" : "if he doesn't start") : "expected score"));
+    big.append(line);
+    const chance = starts ? f.startChance : core.benchOnChance(entry);
+    if (chance !== null && (f.split || !starts)) {
+      const words = node("p");
+      words.append(node("b", "", core.chanceLabel(chance)), starts ? " he starts" : " he comes on");
+      big.append(words);
+    } else if (!f.split) {
+      const words = node("p");
+      words.append(node("b", "", core.chanceLabel(entry.p)), " he plays");
+      big.append(words);
+    }
+    return big;
+  }
+
+  function driverRows(entry) {
+    const f = facts(entry);
+    const rows = [];
+    if (f.driver === "xg") {
+      const row = node("div", "sfx-driver");
+      const head = node("div", "sfx-row");
+      head.append(node("span", "", "Expected goals"), f.xg !== null ? node("b", "sfx-pct", f.xg.toFixed(2)) : node("b", "sfx-pct sfx-pct--none", "—"));
+      row.append(head);
+      row.append(node("p", "sfx-note", f.xg === null ? "Not available for this player." : "From Understat's season numbers."));
+      rows.push(row);
+    }
+    if (!f.game) {
+      rows.push(node("p", "sfx-note", "No odds for this game yet."));
+      return rows;
+    }
+    if (f.driver === "fdr") {
+      const level = core.fdrLevel(f.game.bucket);
+      const colourNow = level ? colour(level) : "#fff";
+      const row = node("div", "sfx-driver");
+      row.style.setProperty("--sfx-d", colourNow);
+      const head = node("div", "sfx-row");
+      const value = node("span", "sfx-val");
+      value.append(node("span", "", f.game.label), node("b", "sfx-fdr", String(Math.round(f.game.difficulty))));
+      value.querySelector(".sfx-fdr").style.setProperty("--sfx-d", colourNow);
+      head.append(node("span", "", "Difficulty"), value);
+      const bands = node("div", "sfx-bands");
+      bands.setAttribute("role", "img");
+      bands.setAttribute("aria-label", `Band ${f.game.bucket} of 5 difficulty bands, 1 easiest`);
+      core.STRIPE.forEach((name, index) => {
+        const band = document.createElement("i");
+        band.style.background = colour(name);
+        band.style.setProperty("--sfx-band", colour(name));
+        if (index + 1 === f.game.bucket) band.setAttribute("data-on", "");
+        bands.append(band);
+      });
+      row.append(head, bands);
+      rows.push(row);
+    }
+    // The chance that goes with his job: a clean sheet for anyone who defends or plays midfield, a win for a forward.
+    const wins = entry.pos === "FWD";
+    const value = wins ? f.game.win : f.game.cleanSheet;
+    const bar = node("div", "sfx-driver");
+    const head = node("div", "sfx-row");
+    head.append(node("span", "", wins ? "Win chance" : "Clean sheet"), typeof value === "number" ? percent("sfx-pct", `${Math.round(value * 100)}%`) : node("b", "sfx-pct sfx-pct--none", "—"));
+    bar.append(head);
+    if (typeof value === "number") {
+      const track = node("div", "sfx-track");
+      track.setAttribute("aria-hidden", "true");
+      const fill = document.createElement("i");
+      fill.style.width = `${Math.max(2, Math.round(value * 100))}%`;
+      track.append(fill);
+      bar.append(track);
+    }
+    rows.push(bar);
+    rows.push(node("p", "sfx-note", f.game.source === "model" ? "From Sofix's own model of this game." : "From Sorare's odds for this game."));
+    return rows;
+  }
+
+  function panelNode(entry, mode, onPick, plan) {
+    const f = facts(entry);
+    const el = node("div", "sfx-panel");
+    el.setAttribute("data-sfx", "panel");
+    el.setAttribute("role", "dialog");
+    el.setAttribute("aria-label", "Sofix details");
+    const body = node("div", "sfx-body");
+    const brand = node("span", "sfx-brand");
+    const mark = stripe();
+    brand.append(mark, "SOFIX");
+    const head = node("div", "sfx-head");
+    head.append(brand);
+    const age = core.agoLabel(entry.at, now());
+    if (age) head.append(node("span", "sfx-age", `updated ${age}`));
+    body.append(head);
+    if (plan) body.append(node("p", "sfx-plan", `In your best plan · ${plan.lineup}${plan.captain ? " · Captain" : ""}`));
+    const stale = core.staleness(entry, now());
+    if (stale) body.append(node("p", "sfx-note", stale.kind === "over" ? "His game has started." : `These numbers are ${stale.hours} h old.`));
+    if (f.split) {
+      const seg = node("div", "sfx-seg");
+      seg.setAttribute("role", "group");
+      seg.setAttribute("aria-label", "Projected score when he");
+      for (const [key, text] of [["start", "Starts"], ["bench", "Doesn't start"]]) {
+        const button = node("button", "", text);
+        button.type = "button";
+        button.setAttribute("aria-pressed", String(key === mode));
+        button.setAttribute("data-mode", key);
+        button.addEventListener("click", guard((event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          onPick(key);
+        }));
+        seg.append(button);
+      }
+      body.append(seg);
+    }
+    body.append(panelBig(entry, mode), node("div", "sfx-rule"), ...driverRows(entry));
+    el.append(stripe(), node("span", "sfx-arrow"), body);
+    return el;
+  }
+
+  function positionPanel() {
+    if (!panel || !panel.record.tile) return;
+    const tile = panel.record.tile.getBoundingClientRect();
+    const media = panel.record.media.getBoundingClientRect();
+    const height = panel.el.offsetHeight;
+    let side = "left";
+    let left = tile.left - 12 - PANEL_WIDTH;
+    if (left < 8) {
+      side = "right";
+      left = Math.min(media.right + 12, innerWidth - PANEL_WIDTH - 8);
+    }
+    const top = Math.min(Math.max(tile.top + tile.height / 2 - 21, 8), Math.max(8, innerHeight - height - 8));
+    panel.el.dataset.side = side;
+    panel.el.style.left = `${Math.max(8, left)}px`;
+    panel.el.style.top = `${top}px`;
+    const arrow = panel.el.querySelector(".sfx-arrow");
+    if (arrow) arrow.style.top = `${Math.min(Math.max(tile.top + tile.height / 2 - top - 5, 12), Math.max(12, height - 24))}px`;
+  }
+
+  function scheduleClose() {
+    if (!panel) return;
+    clearTimeout(panel.timer);
+    panel.timer = setTimeout(
+      guard(() => {
+        if (!panel || panel.overTile || panel.overPanel) return;
+        const active = document.activeElement;
+        // Focus from the keyboard keeps it open (that is how it is reached without a pointer); focus left by a mouse press does not.
+        if (active && (panel.el.contains(active) || panel.record.tile === active) && active.matches(":focus-visible")) return;
+        closePanel(false);
+      }),
+      200,
+    );
+  }
+
+  function closePanel(returnFocus) {
+    if (!panel) return;
+    const { record, el, timer } = panel;
+    clearTimeout(timer);
+    const hadFocus = el.contains(document.activeElement) || (record.tile && record.tile === document.activeElement);
+    el.remove();
+    if (record.tile) record.tile.setAttribute("aria-expanded", "false");
+    document.removeEventListener("keydown", onPanelKey, true);
+    document.removeEventListener("pointerdown", onOutside, true);
+    window.removeEventListener("scroll", onPanelScroll, true);
+    window.removeEventListener("resize", onPanelScroll, true);
+    panel = null;
+    if (returnFocus && hadFocus && record.tile && record.tile.isConnected) {
+      record.quiet = true; // giving the focus back is not a reason to open the panel again
+      record.tile.focus({ preventScroll: true });
+      record.quiet = false;
+    }
+  }
+
+  const onPanelKey = guard((event) => {
+    if (event.key !== "Escape" || !panel) return;
+    event.stopPropagation();
+    closePanel(true);
+  });
+  const onOutside = guard((event) => {
+    if (!panel) return;
+    if (panel.el.contains(event.target) || (panel.record.tile && panel.record.tile.contains(event.target))) return;
+    closePanel(false);
+  });
+  const onPanelScroll = guard(() => {
+    if (!panel || !panel.record.tile) return;
+    const tile = panel.record.tile.getBoundingClientRect();
+    if (tile.bottom < 0 || tile.top > innerHeight || tile.right < 0 || tile.left > innerWidth) closePanel(false);
+    else positionPanel();
+  });
+
+  function openPanel(record, focusInside) {
+    const held = entryOf(record);
+    const entry = held && held.entry;
+    if (!entry || !record.tile || !record.tile.isConnected) return;
+    if (panel && panel.record === record) {
+      clearTimeout(panel.timer);
+      if (focusInside) focusFirst();
+      return;
+    }
+    closePanel(false);
+    const state = { record, entry, mode: "start", el: null, timer: 0, overTile: true, overPanel: false };
+    const pick = (mode) => {
+      if (!panel || panel !== state) return;
+      state.mode = mode;
+      const fresh = panelBig(entry, mode);
+      state.el.querySelector(".sfx-big").replaceWith(fresh); // only the number changes, so the buttons keep the focus
+      for (const button of state.el.querySelectorAll(".sfx-seg button")) button.setAttribute("aria-pressed", String(button.getAttribute("data-mode") === mode));
+    };
+    state.el = panelNode(entry, "start", pick, planFor(record, entry));
+    state.el.addEventListener("pointerenter", guard(() => { state.overPanel = true; clearTimeout(state.timer); }));
+    state.el.addEventListener("pointerleave", guard(() => { state.overPanel = false; scheduleClose(); }));
+    state.el.addEventListener("focusout", guard(() => scheduleClose()));
+    panel = state;
+    document.body.append(state.el);
+    record.tile.setAttribute("aria-expanded", "true");
+    positionPanel();
+    document.addEventListener("keydown", onPanelKey, true);
+    document.addEventListener("pointerdown", onOutside, true);
+    window.addEventListener("scroll", onPanelScroll, true);
+    window.addEventListener("resize", onPanelScroll, true);
+    if (focusInside) focusFirst();
+  }
+
+  function focusFirst() {
+    const first = panel && panel.el.querySelector(".sfx-seg button");
+    if (first) first.focus({ preventScroll: true });
+  }
+
+  /** The tile is the one thing on the card that answers the pointer, and all it does is open the panel. */
+  function wire(record, drawn) {
+    if (!drawn.interactive) return;
+    const tile = drawn.node;
+    tile.addEventListener("pointerenter", guard(() => {
+      openPanel(record, false);
+      if (panel && panel.record === record) panel.overTile = true;
+    }));
+    tile.addEventListener("pointerleave", guard(() => {
+      if (panel && panel.record === record) panel.overTile = false;
+      scheduleClose();
+    }));
+    tile.addEventListener("focus", guard(() => { if (!record.quiet) openPanel(record, false); }));
+    tile.addEventListener("blur", guard(() => scheduleClose()));
+    tile.addEventListener("click", guard((event) => {
+      event.preventDefault(); // the card underneath is not selected by a press on this tile
+      event.stopPropagation();
+      openPanel(record, false);
+    }));
+    tile.addEventListener("keydown", guard((event) => {
+      if (!["Enter", " ", "ArrowRight", "ArrowLeft", "ArrowDown"].includes(event.key)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      openPanel(record, true);
+    }));
+  }
+
+  // -- placing ----------------------------------------------------------------------------------------------------
+
+  /** Draws, updates or removes one card's tile. Returns true when it needs another pass to be placed. */
+  function placeTile({ record, rect, tier, size, ribs, box, at, top, rank }) {
+    const drawn = tier === "skip" ? null : build(record, tier, size, rank);
     if (!drawn) {
       if (record.ribs) record.ribs.remove();
       record.ribs = null;
       record.sig = "";
-      release(record);
+      record.tile = null;
       return false;
     }
     let target = ribs;
     let created = false;
     if (!target || record.sig !== drawn.sig) {
+      if (panel && panel.record === record) closePanel(false); // the tile it belongs to is being replaced
       if (!target) {
         target = document.createElement("span");
         target.setAttribute("data-sfx", "");
         target.setAttribute("data-pending", ""); // hidden until it has been placed, so it never flashes in the corner
-        target.setAttribute("role", "group");
         record.media.parentElement.append(target);
         record.ribs = target;
         created = true;
       }
       target.className = `sfx-ribs sfx-ribs--${tier}`;
-      target.setAttribute("aria-label", drawn.label);
-      target.replaceChildren(drawn.chip);
+      target.replaceChildren(drawn.node, ...drawn.marks);
       record.sig = drawn.sig;
+      record.tile = drawn.node;
+      wire(record, drawn);
+      created = true; // a new tile is measured on the next pass, the same as a new wrapper
     }
-    if (box && at) {
-      // A card that sits in a box that cuts what hangs past its edge: let a wrapper that only clips (hidden) show it,
-      // two levels up at most, and given back when the chip goes; one that scrolls is never touched, so the chip
-      // stays inside the picture there instead.
-      if ((clip || []).some((cut) => cut.scrolls)) {
-        record.inside = true;
-        release(record);
-      } else {
-        for (const { node, level } of clip || []) {
-          node.classList.add(level === 0 ? "sfx-anchor" : "sfx-anchor-up");
-          (record.anchored ||= []).push(node);
-        }
-      }
-      // Sorare's layout decides where an absolutely placed box starts, so the chip is moved by how far it is from
+    if (box && at && !created) {
+      // Sorare's layout decides where an absolutely placed box starts, so the tile is moved by how far it is from
       // where it should be, rather than worked out from their styles.
-      const left = record.inside ? rect.left + HANG.compact : Math.max(rect.left - HANG[tier], 2);
-      const dx = left - box.left;
+      const dx = rect.left + INSET[size].x - box.left;
       const dy = top - box.top;
       if (Math.abs(dx) > 0.5) target.style.left = `${at.left + dx}px`;
       if (Math.abs(dy) > 0.5) target.style.top = `${at.top + dy}px`;
       target.removeAttribute("data-pending");
     }
-    return created || (!box && Boolean(target));
+    return created || !box;
+  }
+
+  /** Sofix's win and clean sheet directly under Sorare's own bar, with room made for it. */
+  function placeOdds(read) {
+    const { record, odds } = read;
+    const held = entryOf(record);
+    const game = held && held.entry && held.entry.game;
+    if (read.tier !== "full" || !game || !odds) {
+      removeOdds(record);
+      return false;
+    }
+    if (odds.crowded) {
+      removeOdds(record);
+      record.crowded = pageEpoch; // the margin did not clear the room here: leave it be until the page changes
+      return false;
+    }
+    if (record.roomBar !== odds.bar) {
+      releaseBar(record);
+      odds.bar.classList.add("sfx-room");
+      record.roomBar = odds.bar;
+    }
+    const drawn = buildOdds(game);
+    let row = odds.row;
+    let created = false;
+    if (!row) {
+      row = document.createElement("span");
+      row.setAttribute("data-sfx", "");
+      row.setAttribute("data-pending", "");
+      odds.bar.parentElement.append(row);
+      record.odds = row;
+      created = true;
+    }
+    if (record.oddsSig !== drawn.sig || created) {
+      row.className = "sfx-odds";
+      row.setAttribute("role", "group");
+      row.setAttribute("aria-label", drawn.label);
+      row.replaceChildren(...drawn.nodes);
+      record.oddsSig = drawn.sig;
+    }
+    if (odds.box && odds.at) {
+      const width = `${odds.barRect.width}px`;
+      if (row.style.width !== width) row.style.width = width;
+      const dx = odds.barRect.left - odds.box.left;
+      const dy = odds.barRect.bottom + ODDS_GAP - odds.box.top;
+      if (Math.abs(dx) > 0.5) row.style.left = `${odds.at.left + dx}px`;
+      if (Math.abs(dy) > 0.5) row.style.top = `${odds.at.top + dy}px`;
+      row.removeAttribute("data-pending");
+    }
+    return created || !odds.box;
+  }
+
+  /**
+   * The best three cards of a list to pick from, worked out from what is on screen (no new data): the list is the cards as
+   * wide as the first one under a "Select your ..." heading, up to the next such heading, and needs four or more. Without
+   * that heading nothing is ranked, so a gallery of cards never grows a "#1".
+   */
+  function rankings(reads) {
+    const ranks = new Map();
+    const heads = [...document.querySelectorAll("h1, h2, h3, h4, [role=heading]")]
+      .filter((h) => core.isPickHeading(h.textContent))
+      .map((h) => h.getBoundingClientRect())
+      .filter((r) => r.width > 0 && r.height > 0)
+      .sort((a, b) => a.top - b.top);
+    if (!heads.length) return ranks;
+    const cards = reads.filter((r) => r.tier === "full" && entryOf(r.record) && entryOf(r.record).entry);
+    heads.forEach((head, i) => {
+      const limit = heads[i + 1] ? heads[i + 1].top : Infinity;
+      const below = cards.filter((c) => c.rect.top >= head.bottom - 4 && c.rect.top < limit);
+      if (below.length < 4) return;
+      const first = below.reduce((a, b) => (b.rect.top < a.rect.top - 2 || (Math.abs(b.rect.top - a.rect.top) <= 2 && b.rect.left < a.rect.left) ? b : a));
+      const list = below.filter((c) => Math.abs(c.rect.width - first.rect.width) <= 2);
+      for (const [record, place] of core.topThree(list.map((c) => ({ key: c.record, x: entryOf(c.record).entry.x })))) ranks.set(record, place);
+    });
+    return ranks;
   }
 
   function paint() {
@@ -406,26 +969,49 @@
     const reads = drawing.map((record) => {
       const rect = record.media.getBoundingClientRect();
       const tier = core.surfaceOf(rect.width, rect.height, isRound(record.media, rect));
+      const size = tier === "compact" && rect.width < TINY_UNDER ? "tiny" : tier;
       const ribs = record.ribs && record.ribs.isConnected ? record.ribs : null;
       const box = ribs ? ribs.getBoundingClientRect() : null;
-      return {
+      const read = {
         record,
         rect,
         tier,
+        size,
         ribs,
         box,
         at: ribs ? { left: parseFloat(ribs.style.left) || 0, top: parseFloat(ribs.style.top) || 0 } : null,
-        top: tier === "skip" || !box ? rect.top + INSET.full : clearOfCached(record, rect, tier, box.width),
-        clip: tier === "skip" || !box || record.inside ? null : clippers(ribs, box),
+        top: tier === "skip" || !box ? rect.top + INSET.full.y : clearOfCached(record, rect, size, box.width, box.height),
+        odds: null,
       };
+      const held = entryOf(record);
+      if (tier === "full" && held && held.entry && held.entry.game && record.crowded !== pageEpoch) {
+        const bar = barFor(record, rect);
+        if (bar) {
+          const row = record.odds && record.odds.isConnected ? record.odds : null;
+          const barRect = bar.getBoundingClientRect();
+          read.odds = {
+            bar,
+            barRect,
+            row,
+            box: row ? row.getBoundingClientRect() : null,
+            at: row ? { left: parseFloat(row.style.left) || 0, top: parseFloat(row.style.top) || 0 } : null,
+            crowded: Boolean(row) && record.roomBar === bar && !roomIsFree(bar, barRect, rect),
+          };
+        }
+      }
+      return read;
     });
+
+    const ranks = rankings(reads);
+    for (const read of reads) read.rank = ranks.get(read.record) || 0;
 
     let again = false;
     for (const read of reads) {
       try {
-        if (place(read)) again = true;
+        if (placeTile(read)) again = true;
+        if (placeOdds(read)) again = true;
       } catch {
-        // one card that will not take a chip must not stop the others
+        // one card that will not take a tile must not stop the others
       }
     }
     if (again) schedule();
@@ -532,8 +1118,9 @@
     lastReport = "";
     clearTimeout(reportTimer);
     reportTimer = 0;
+    closePanel(false);
     document.querySelectorAll("[data-sfx]").forEach((el) => el.remove());
-    document.querySelectorAll(".sfx-anchor, .sfx-anchor-up").forEach((el) => el.classList.remove("sfx-anchor", "sfx-anchor-up"));
+    document.querySelectorAll(".sfx-room").forEach((el) => el.classList.remove("sfx-room"));
   }
 
   // The bridge learned more cards from the page's own answers: cards it could not name a moment ago may be known now.
@@ -549,25 +1136,16 @@
   });
 
   // -- the switch ------------------------------------------------------------------------------------------------
-  // The popup's "Scores on sorare.com" writes `overlay` to storage; flipping it adds or removes the chips at once.
-  // "Show chance of playing" writes `overlayChance`; it redraws them with or without that segment.
+  // The popup's "Scores on sorare.com" writes `overlay` to storage; flipping it adds or removes the tiles at once.
 
   const apply = guard((value) => (value === false ? stop() : start()));
   try {
-    chrome.storage.sync.get({ overlay: true, overlayChance: true }).then(
-      ({ overlay, overlayChance }) => {
-        chanceOn = overlayChance !== false;
-        apply(overlay);
-      },
+    chrome.storage.sync.get({ overlay: true }).then(
+      ({ overlay }) => apply(overlay),
       () => apply(true),
     );
     chrome.storage.onChanged.addListener((changes, area) => {
-      if (area !== "sync") return;
-      if (changes.overlayChance) {
-        chanceOn = changes.overlayChance.newValue !== false;
-        schedule();
-      }
-      if (changes.overlay) apply(changes.overlay.newValue);
+      if (area === "sync" && changes.overlay) apply(changes.overlay.newValue);
     });
   } catch {
     apply(true);

@@ -20,6 +20,16 @@ const PAGE_URL = "https://sorare.com/football/e2e/cards";
 const uuid = (n: number) => `11111111-aaaa-4aaa-8aaa-00000000000${n}`;
 const picture = (n: number) => `https://assets.sorare.com/card/${uuid(n)}/picture/tinified-x.png`;
 
+/** The defenders of a "Select your Defender" list, best expected score first, and three forwards under "Select your Forward". */
+const PICKS = [70, 65, 60, 55, 50, 45].map((x, i) => ({ n: i + 1, x, slug: `pick-${i + 1}`, card: `pick-${i + 1}-2026-limited-1`, pic: picture(11 + i) }));
+const FORWARDS = [1, 2, 3].map((n) => ({ n, slug: `fwd-${n}`, card: `fwd-${n}-2026-limited-1`, pic: picture(30 + n) }));
+const EXTRA_CARDS = [
+  ...PICKS.map((p) => ({ slug: p.card, pictureUrl: p.pic, anyPlayer: { slug: p.slug, displayName: `Pick ${p.n}` } })),
+  ...FORWARDS.map((p) => ({ slug: p.card, pictureUrl: p.pic, anyPlayer: { slug: p.slug, displayName: `Fwd ${p.n}` } })),
+  { slug: "ivan-over-2026-limited-1", pictureUrl: picture(20), anyPlayer: { slug: "ivan-over", displayName: "Ivan Over" } },
+  { slug: "olga-old-2026-limited-1", pictureUrl: picture(21), anyPlayer: { slug: "olga-old", displayName: "Olga Old" } },
+];
+
 /** What Sorare's own page would learn from its GraphQL answers: which card each picture is. */
 const IDENTITY = {
   data: {
@@ -30,20 +40,65 @@ const IDENTITY = {
       { slug: "unai-simon-2023-super_rare-2", pictureUrl: picture(4), anyPlayer: { slug: "unai-simon", displayName: "Unai Simón" } },
       { slug: "someone-else-2026-limited-1", pictureUrl: picture(5), anyPlayer: { slug: "someone-else", displayName: "Someone Else" } },
       { slug: "lionel-messi-2026-rare-4", pictureUrl: picture(7), anyPlayer: { slug: "lionel-messi", displayName: "Lionel Messi" } },
+      { slug: "kai-havertz-2026-limited-2", pictureUrl: picture(8), anyPlayer: { slug: "kai-havertz", displayName: "Kai Havertz" } },
+      ...EXTRA_CARDS,
       // Card 6 is never named by an answer: the page's own link (?card=…) is all that says which card it is.
     ],
   },
 };
 
-/** What the app answers (frontend/lib/overlay.ts): the score, the chance, the average. Sofix has nothing on `someone-else`. */
+const ELEVEN_HOURS_AGO = new Date(Date.now() - 11 * 3600_000).toISOString();
+const FORTY_HOURS_AGO = new Date(Date.now() - 40 * 3600_000).toISOString();
+
+/**
+ * What the app answers (frontend/lib/overlay.ts): the two scores and the chances, his position, the game's odds. Sofix has
+ * nothing on `someone-else`. Unai Simón is a keeper on a LaLiga game (the board's own model), Pau Cubarsí a defender who starts
+ * only 31% of the time, Messi a forward with an xG on a national-team game (Sorare's odds), and Pedri a midfielder whose game
+ * nobody has priced yet.
+ */
 const NUMBERS = {
   players: {
-    "unai-simon": { x: 53.4, p: 0.88, average: 55 },
-    "pau-cubarsi": { x: 47.2, p: 0.31, average: 50 },
-    "lionel-messi": { x: 61.3, p: 0.9, average: 70 },
+    "unai-simon": {
+      x: 53.4, p: 0.88, average: 55, pos: "GK", at: ELEVEN_HOURS_AGO, start: 53.4, bench: 1.2, pStart: 0.88, pOn: 0.01,
+      game: { win: 0.46, cleanSheet: 0.33, difficulty: 45.2, bucket: 2, label: "Favourite", source: "model" },
+    },
+    "pau-cubarsi": {
+      x: 47.2, p: 0.31, average: 50, pos: "DEF", at: ELEVEN_HOURS_AGO, start: 52.6, bench: 8.4, pStart: 0.31, pOn: 0.3,
+      game: { win: 0.38, cleanSheet: 0.22, difficulty: 58.4, bucket: 3, label: "Even", source: "sorare" },
+    },
+    "lionel-messi": {
+      x: 61.3, p: 0.9, average: 70, pos: "FWD", at: ELEVEN_HOURS_AGO, start: 64.2, bench: 20.1, pStart: 0.82, pOn: 0.08, xg: 0.38,
+      game: { win: 0.65, cleanSheet: 0.29, difficulty: 30.4, bucket: 1, label: "Very favourite", source: "sorare" },
+    },
+    // A forward at a club Understat does not cover, with a priced game: he has odds but no xG.
+    "kai-havertz": {
+      x: 55.1, p: 0.85, average: 58, pos: "FWD", at: ELEVEN_HOURS_AGO, start: 58.4, bench: 9.1, pStart: 0.8, pOn: 0.05,
+      game: { win: 0.52, cleanSheet: 0.31, difficulty: 38.7, bucket: 2, label: "Favourite", source: "model" },
+    },
+    ...Object.fromEntries(
+      PICKS.map((p) => [
+        p.slug,
+        {
+          x: p.x, p: 0.9, average: 55, pos: "DEF", at: ELEVEN_HOURS_AGO, start: p.x, bench: 5, pStart: 0.9, pOn: 0.03,
+          game: { win: 0.5, cleanSheet: 0.3, difficulty: 44, bucket: 2, label: "Favourite", source: "model" },
+          // The best plan uses the second and fourth of them, and captains the fourth.
+          ...(p.n === 2 ? { inPlan: { [p.card]: { lineup: "All Star", captain: false } } } : {}),
+          ...(p.n === 4 ? { inPlan: { [p.card]: { lineup: "All Star", captain: true } } } : {}),
+        },
+      ]),
+    ),
+    ...Object.fromEntries(
+      FORWARDS.map((p) => [
+        p.slug,
+        { x: 60 - p.n, p: 0.9, average: 55, pos: "FWD", at: ELEVEN_HOURS_AGO, start: 60 - p.n, bench: 5, pStart: 0.9, pOn: 0.03, game: null },
+      ]),
+    ),
+    // His game has kicked off, and a gameweek published two days ago: numbers that no longer hold.
+    "ivan-over": { x: 58, p: 0.9, average: 55, pos: "MID", at: ELEVEN_HOURS_AGO, over: true, start: 58, bench: 5, pStart: 0.9, pOn: 0.03, game: null },
+    "olga-old": { x: 58, p: 0.9, average: 55, pos: "MID", at: FORTY_HOURS_AGO, start: 58, bench: 5, pStart: 0.9, pOn: 0.03, game: null },
   },
   cards: {
-    "pedri-2026-limited-7": { x: 61.2, p: 0.9, average: 65 },
+    "pedri-2026-limited-7": { x: 61.2, p: 0.9, average: 65, pos: "MID", at: ELEVEN_HOURS_AGO, start: 62.3, bench: 15, pStart: 0.9, pOn: 0.04, game: null },
   },
 };
 
@@ -51,9 +106,9 @@ const NUMBERS = {
 const PLAN = { state: "ready", week: 17, lineups: 1, x: 417, comp: "All Star", pics: [1, 2, 3, 4, 7].map(picture), pAny: 0.16, essence: 55, cardsUsed: 9, cardsAvailable: 87 };
 
 type Mode = "ok" | "auth" | "unreachable";
-type Probe = { sent: { type: string; cards?: string[]; players?: string[] }[]; opened: string[]; setOverlay: (value: boolean) => void; setChance: (value: boolean) => void };
+type Probe = { sent: { type: string; cards?: string[]; players?: string[] }[]; opened: string[]; setOverlay: (value: boolean) => void };
 
-async function openPage(page: Page, options: { mode?: Mode; overlay?: boolean; viewport?: { width: number; height: number } } = {}) {
+async function openPage(page: Page, options: { mode?: Mode; overlay?: boolean; delay?: number; viewport?: { width: number; height: number } } = {}) {
   const mode = options.mode ?? "ok";
   if (options.viewport) await page.setViewportSize(options.viewport);
 
@@ -80,14 +135,9 @@ async function openPage(page: Page, options: { mode?: Mode; overlay?: boolean; v
         sent: [] as unknown[],
         opened: [] as string[],
         overlay: config.overlay,
-        chance: true,
         setOverlay(value: boolean) {
           probe.overlay = value;
           listeners.forEach((listener) => listener({ overlay: { newValue: value } }, "sync"));
-        },
-        setChance(value: boolean) {
-          probe.chance = value;
-          listeners.forEach((listener) => listener({ overlayChance: { newValue: value } }, "sync"));
         },
       };
       (window as unknown as { __sfx: unknown }).__sfx = probe;
@@ -108,16 +158,16 @@ async function openPage(page: Page, options: { mode?: Mode; overlay?: boolean; v
           sendMessage(message: { type: string; path?: string }, reply?: (response: unknown) => void) {
             probe.sent.push(message);
             if (message.type === "open-app") probe.opened.push(String(message.path));
-            if (reply) setTimeout(() => reply(answer(message)), 15);
+            if (reply) setTimeout(() => reply(answer(message)), config.delay);
           },
         },
         storage: {
-          sync: { get: async (defaults: Record<string, unknown>) => ({ ...defaults, overlay: probe.overlay, overlayChance: probe.chance }) },
+          sync: { get: async (defaults: Record<string, unknown>) => ({ ...defaults, overlay: probe.overlay }) },
           onChanged: { addListener: (listener: (changes: unknown, area: string) => void) => listeners.push(listener) },
         },
       };
     },
-    { mode, overlay: options.overlay ?? true, numbers: NUMBERS, plan: PLAN },
+    { mode, overlay: options.overlay ?? true, numbers: NUMBERS, plan: PLAN, delay: options.delay ?? 15 },
   );
   for (const file of ["core.js", "bridge.js", "content.js", "overlay.js", "drawer.js"]) await page.addInitScript({ path: path.join(EXTENSION, file) });
 
@@ -127,29 +177,32 @@ async function openPage(page: Page, options: { mode?: Mode; overlay?: boolean; v
 
 const probe = (page: Page) => page.evaluate(() => (window as unknown as { __sfx: Probe }).__sfx as unknown as { sent: Probe["sent"]; opened: string[] });
 const ribs = (page: Page, id: string) => page.locator(`#${id} [data-sfx]`);
-/** The chip's segments, in order: the label, the score, the chance. */
-const text = (page: Page, id: string) => ribs(page, id).evaluate((el) => [...el.querySelectorAll(".sfx-chip > b")].map((part) => part.textContent));
+const tileOf = (page: Page, id: string) => page.locator(`#${id} [data-sfx] .sfx-tile`);
+/** What a tile says, in reading order: the score, the driver's label and value, and the doubtful starter's chance. */
+const text = (page: Page, id: string) =>
+  tileOf(page, id).evaluate((el) => [...el.querySelectorAll(".sfx-score, .sfx-cap, .sfx-fdr, .sfx-xg, .sfx-doubt b")].map((part) => part.textContent));
 type Box = { left: number; top: number; right: number; bottom: number; width: number; height: number };
 const box = (page: Page, selector: string): Promise<Box> =>
   page.evaluate((query) => {
     const r = document.querySelector(query)!.getBoundingClientRect();
     return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
   }, selector);
-const chip = (page: Page, id: string) => box(page, `#${id} [data-sfx] .sfx-chip`);
+const tile = (page: Page, id: string) => box(page, `#${id} [data-sfx] .sfx-tile`);
 const art = (page: Page, id: string) => box(page, `#${id} img, #${id} video`);
 const meets = (a: Box, b: Box) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+const panel = (page: Page) => page.getByRole("dialog", { name: "Sofix details" });
 
 /**
  * Cards wait their turn until they are near the screen, as on the real site, so the page has settled once each kind
  * has been scrolled to and drawn. What is drawn stays drawn, so the tests then read the whole page.
  */
 async function settled(page: Page) {
-  for (const id of ["slot-a", "badged", "linked", "doubtful", "composecard", "scrolled", "big"]) {
+  for (const id of ["slot-a", "badged", "linked", "noxg", "over", "old", "doubtful", "composecard", "pinnedcard", "scrolled", "big", "pick-1", "pick-6", "fwd-1"]) {
     await page.locator(`#${id}`).scrollIntoViewIfNeeded();
     await expect(ribs(page, id)).toBeVisible();
   }
   await page.evaluate(() => window.scrollTo(0, 0));
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(250);
 }
 
 test.describe("the sorare.com overlay", () => {
@@ -157,38 +210,51 @@ test.describe("the sorare.com overlay", () => {
     await openPage(page);
     await settled(page);
 
-    // A gallery or player page: the score and the chance in ONE chip, painted with Sorare's own colour for a 53
-    // (the page's token, not the extension's fallback: the fixture's differs by a digit).
-    expect(await text(page, "big")).toEqual(["X", "53", "88%"]);
-    await expect(ribs(page, "big").locator(".sfx-chip")).toHaveCount(1);
-    await expect(ribs(page, "big").locator(".sfx-chip")).toHaveCSS("--sfx-fill", "#b7ff1b");
-    await expect(ribs(page, "big").locator(".sfx-c")).toHaveCSS("background-color", "rgb(255, 255, 255)");
-    await expect(ribs(page, "big")).toHaveAttribute("aria-label", "Sofix: expected score 53, 88% chance of playing");
+    // A gallery or player page, a keeper: the score if he starts, then the difficulty of his game. Painted with
+    // Sorare's own colours (the page's tokens, not the extension's fallbacks: the fixture's 53 differs by a digit).
+    expect(await text(page, "big")).toEqual(["53", "FDR", "45"]);
+    await expect(tileOf(page, "big")).toHaveCount(1);
+    await expect(tileOf(page, "big")).toHaveCSS("--sfx-c", "#b7ff1b");
+    await expect(tileOf(page, "big").locator(".sfx-fdr")).toHaveCSS("background-color", "rgb(37, 237, 54)"); // band 2 of 5
+    await expect(tileOf(page, "big")).toHaveAttribute("aria-label", "Sofix: 53 if he starts. Difficulty 45 of 100, favourite.");
+    await expect(tileOf(page, "big")).toHaveAttribute("aria-haspopup", "dialog");
+    await expect(ribs(page, "big")).toHaveClass(/sfx-ribs--full/);
 
-    // Another copy of the same player is the same numbers: xScore belongs to the player, not the card.
-    expect(await text(page, "copy")).toEqual(["X", "53", "88%"]);
+    // Another copy of the same player is the same numbers: the score belongs to the player, not the card.
+    expect(await text(page, "copy")).toEqual(["53", "FDR", "45"]);
 
-    // A lineup slot and a thumbnail: one number, no label, no chance.
+    // A lineup slot and a thumbnail: the number alone, and the thumbnail's is the smallest.
     expect(await text(page, "slot-a")).toEqual(["53"]);
     expect(await text(page, "thumb")).toEqual(["53"]);
     await expect(ribs(page, "slot-a")).toHaveClass(/sfx-ribs--compact/);
-    await expect(ribs(page, "big")).toHaveClass(/sfx-ribs--full/);
+    await expect(tileOf(page, "slot-a")).not.toHaveClass(/sfx-tile--tiny/);
+    await expect(tileOf(page, "thumb")).toHaveClass(/sfx-tile--tiny/);
 
     // A video is a card too.
-    expect(await text(page, "clip")).toEqual(["X", "53", "88%"]);
+    expect(await text(page, "clip")).toEqual(["53", "FDR", "45"]);
 
-    // Not expected to start: the score's colour is withdrawn (grey) and the chance turns red, whatever the score.
-    await expect(ribs(page, "slot-b").locator(".sfx-chip")).toHaveClass(/sfx-chip--doubt/);
-    await expect(ribs(page, "slot-b").locator(".sfx-chip")).toHaveCSS("--sfx-fill", "#d9dde4");
-    await expect(ribs(page, "doubtful").locator(".sfx-c")).toHaveCSS("background-color", "rgb(255, 90, 90)");
-    expect(await text(page, "doubtful")).toEqual(["X", "47", "31%"]);
+    // A forward: his xG, not the difficulty, and the score painted for a 64.
+    expect(await text(page, "abroad")).toEqual(["64", "xG", "0.38"]);
+    await expect(tileOf(page, "abroad")).toHaveCSS("--sfx-c", "#25ed36");
+    await expect(tileOf(page, "abroad")).toHaveAttribute("aria-label", "Sofix: 64 if he starts. Expected goals 0.38.");
 
-    // Nothing about the game: Sorare's own card draws the opponent, the odds and the kickoff.
-    expect(await text(page, "abroad")).toEqual(["X", "61", "90%"]);
-    expect(await page.locator("[data-sfx]").evaluateAll((all) => all.some((el) => /\(H\)|\(A\)|odds/i.test(el.textContent ?? "")))).toBe(false);
+    // A defender who starts only 31% of the time: his score if he starts is still shown, with a red row that says so.
+    expect(await text(page, "doubtful")).toEqual(["53", "FDR", "58", "31%"]);
+    await expect(tileOf(page, "doubtful")).toHaveClass(/sfx-tile--doubt/);
+    await expect(tileOf(page, "doubtful").locator(".sfx-doubt b")).toHaveCSS("color", "rgb(255, 90, 90)");
+    await expect(tileOf(page, "doubtful")).toHaveAttribute("aria-label", /He starts only 31% of the time\./);
+    await expect(tileOf(page, "slot-b")).toHaveClass(/sfx-tile--doubt/);
 
-    // A card only its link names still finds its numbers (the card slug, since nothing said which player).
-    expect(await text(page, "linked")).toEqual(["X", "61", "90%"]);
+    // A forward Understat cannot name (his club is in another league), though his game is priced: the same plain words, no dash.
+    expect(await text(page, "noxg")).toEqual(["58", "No odds"]);
+    await expect(tileOf(page, "noxg")).toHaveAttribute("aria-label", "Sofix: 58 if he starts. No odds. Expected goals not available for this player.");
+
+    // A midfielder whose game nobody has priced: the score, and the plain words "No odds", never an invented number.
+    expect(await text(page, "linked")).toEqual(["62", "No odds"]);
+    await expect(tileOf(page, "linked")).toHaveAttribute("aria-label", "Sofix: 62 if he starts. No odds for this game yet.");
+
+    // Nothing about the game's teams or kickoff: Sorare's own card draws those.
+    expect(await page.locator("[data-sfx]").evaluateAll((all) => all.some((el) => /\(H\)|\(A\)|Sat 10 Oct|kickoff/i.test(el.textContent ?? "")))).toBe(false);
 
     // Nothing for what is not a card, or what Sofix has nothing on.
     await expect(ribs(page, "stranger")).toHaveCount(0);
@@ -208,14 +274,16 @@ test.describe("the sorare.com overlay", () => {
     const cards = asked.flatMap((message) => message.cards ?? []);
     // Six pictures show him, and he is asked about once. The linked card only has a card slug, so that is what is sent.
     expect(players.filter((slug) => slug === "unai-simon")).toHaveLength(1);
-    expect(players.sort()).toEqual(["lionel-messi", "pau-cubarsi", "someone-else", "unai-simon"]);
+    expect(players.sort()).toEqual(
+      ["fwd-1", "fwd-2", "fwd-3", "ivan-over", "kai-havertz", "lionel-messi", "olga-old", "pau-cubarsi", ...PICKS.map((p) => p.slug), "someone-else", "unai-simon"].sort(),
+    );
     expect(cards).toEqual(["pedri-2026-limited-7"]);
     for (const message of asked) expect((message.players?.length ?? 0) + (message.cards?.length ?? 0)).toBeLessThanOrEqual(120);
     // Nothing but slugs leaves the page: no picture addresses, no names, no prices.
     expect(JSON.stringify(asked)).not.toMatch(/https?:|Unai|assets\.sorare/);
   });
 
-  test("never doubles a ribbon when the page re-renders, and follows an element that is given another card", async ({ page }) => {
+  test("never doubles a tile when the page re-renders, and follows an element that is given another card", async ({ page }) => {
     await openPage(page);
     await settled(page);
 
@@ -224,74 +292,85 @@ test.describe("the sorare.com overlay", () => {
     await expect(ribs(page, "slot-b")).toHaveCount(1);
     await expect(ribs(page, "big")).toBeVisible();
     await page.waitForTimeout(300);
-    for (const id of ["slot-a", "slot-b", "slot-c", "copy", "abroad", "linked"]) await expect(ribs(page, id)).toHaveCount(1);
+    for (const id of ["slot-a", "slot-b", "slot-c", "copy", "abroad", "linked", "noxg"]) await expect(ribs(page, id)).toHaveCount(1);
     expect(await text(page, "slot-a")).toEqual(["53"]);
 
     // The same element, now Pau Cubarsí's card: the old numbers must not stay on it.
     await page.evaluate((n) => (window as unknown as { swapCard: (id: string, uuid: string, alt: string) => void }).swapCard("slot-a", `11111111-aaaa-4aaa-8aaa-00000000000${n}`, "Pau Cubarsí - rare"), 2);
-    await expect(ribs(page, "slot-a").locator(".sfx-chip")).toHaveClass(/sfx-chip--doubt/);
-    expect(await text(page, "slot-a")).toEqual(["47"]);
+    await expect(tileOf(page, "slot-a")).toHaveClass(/sfx-tile--doubt/);
+    expect(await text(page, "slot-a")).toEqual(["53"]);
     await expect(ribs(page, "slot-a")).toHaveCount(1);
   });
 
-  test("hangs off the card's left edge the way Sorare's own chips hang off the right, and lets a clipping wrapper show it", async ({ page }) => {
+  test("sits inside the card's top-left corner and leaves every wrapper of Sorare's as it was", async ({ page }) => {
     await openPage(page);
     await settled(page);
     await page.waitForTimeout(250);
 
     for (const id of ["big", "copy", "clip", "composecard"]) {
-      const [c, m] = [await chip(page, id), await art(page, id)];
-      expect(Math.abs(c.left - (m.left - 6)), `${id} hangs 6px off the edge`).toBeLessThan(1);
-      expect(Math.abs(c.top - (m.top + 8)), `${id} sits 8px down`).toBeLessThan(1);
-      expect(c.height, id).toBeCloseTo(18, 0); // Sorare's own height
+      const [t, m] = [await tile(page, id), await art(page, id)];
+      expect(Math.abs(t.left - (m.left + 6)), `${id} sits 6px in`).toBeLessThan(1);
+      expect(Math.abs(t.top - (m.top + 6)), `${id} sits 6px down`).toBeLessThan(1);
+      expect([t.width, t.height], id).toEqual([44, 42]);
+      expect(t.left, id).toBeGreaterThan(m.left);
+      expect(t.right, id).toBeLessThan(m.right);
     }
-    for (const id of ["slot-a", "slot-b"]) {
-      const [c, m] = [await chip(page, id), await art(page, id)];
-      expect(Math.abs(c.left - (m.left - 3)), id).toBeLessThan(1);
-      expect(c.height, id).toBeCloseTo(15, 0);
-    }
+    const slot = await tile(page, "slot-a");
+    expect([slot.left - (await art(page, "slot-a")).left, slot.top - (await art(page, "slot-a")).top, slot.width]).toEqual([4, 4, 24]);
+    const thumb = await tile(page, "thumb");
+    expect([thumb.left - (await art(page, "thumb")).left, thumb.top - (await art(page, "thumb")).top, thumb.width]).toEqual([3, 3, 18]);
 
-    // The gallery card's wrapper clips whatever hangs past it, so it is let show the chip: this wrapper only.
-    await expect(page.locator("#big")).toHaveClass(/sfx-anchor/);
-    await expect(page.locator("#big")).toHaveCSS("overflow", "visible");
-
-    // Switching off gives every wrapper back exactly as it was.
-    await page.evaluate(() => (window as unknown as { __sfx: Probe }).__sfx.setOverlay(false));
-    await expect(page.locator("[data-sfx]")).toHaveCount(0);
-    await expect(page.locator(".sfx-anchor, .sfx-anchor-up")).toHaveCount(0);
+    // Nothing hangs past the picture any more, so no wrapper is told to let it show: the card keeps its own clipping.
     await expect(page.locator("#big")).toHaveCSS("overflow", "hidden");
+    // The only thing of ours on a page that carries a class of Sorare's is the margin on their odds bar (checked below).
+    const borrowed = await page.evaluate(() => [...document.querySelectorAll('[class*="sfx-"]')].filter((el) => !el.closest("[data-sfx]") && !el.hasAttribute("data-sfx")).map((el) => el.id));
+    expect(borrowed).toEqual(["wdl"]);
   });
 
   test("takes little room and none of the card's face", async ({ page }) => {
     await openPage(page);
     await settled(page);
     await page.waitForTimeout(250);
-    for (const id of ["big", "copy", "clip", "composecard", "slot-a", "thumb", "linked"]) {
-      const [c, m] = [await chip(page, id), await art(page, id)];
-      // The owner's first live look lost about 17% of a card to three chips. One chip stays under 6% of a full card
-      // and under 8% of a thumbnail, where a single number is all there is room for.
-      expect((c.width * c.height) / (m.width * m.height), `${id} covers little of the card`).toBeLessThan(id === "thumb" ? 0.08 : 0.06);
+    const fraction = async (id: string) => {
+      const [t, m] = [await tile(page, id), await art(page, id)];
+      return { t, m, share: (t.width * t.height) / (m.width * m.height) };
+    };
+    for (const id of ["big", "copy", "clip", "composecard", "linked"]) {
+      const { t, m, share } = await fraction(id);
+      // The owner's first live look lost about 17% of a card to three chips. The tile stays under 6% of a full card.
+      expect(share, `${id} covers little of the card`).toBeLessThan(0.06);
       const centre: Box = { left: m.left + m.width * 0.25, right: m.right - m.width * 0.25, top: m.top + m.height * 0.25, bottom: m.bottom - m.height * 0.25, width: 0, height: 0 };
-      expect(meets(c, centre), `${id} stays out of the centre`).toBe(false);
+      expect(meets(t, centre), `${id} stays out of the centre`).toBe(false);
     }
+    for (const id of ["slot-a", "thumb"]) {
+      const { t, m, share } = await fraction(id);
+      expect(share, `${id} covers little of a small card`).toBeLessThan(0.08);
+      const centre: Box = { left: m.left + m.width * 0.25, right: m.right - m.width * 0.25, top: m.top + m.height * 0.25, bottom: m.bottom - m.height * 0.25, width: 0, height: 0 };
+      expect(meets(t, centre), `${id} stays out of the centre`).toBe(false);
+    }
+    // The doubtful starter's red row lengthens the tile on purpose: still under 7.5% of the card and off the face.
+    const doubt = await fraction("doubtful");
+    expect(doubt.share).toBeLessThan(0.075);
+    expect(doubt.t.bottom).toBeLessThan(doubt.m.top + doubt.m.height * 0.3);
   });
 
-  test("starts below a chip of Sorare's own, and never covers a control of theirs", async ({ page }) => {
+  test("starts below a chip of Sorare's own, never covers a control of theirs, and only its own box answers the pointer", async ({ page }) => {
     await openPage(page);
     await settled(page);
     await expect(ribs(page, "badged")).toBeVisible();
     await page.waitForTimeout(250);
 
-    // A badge of theirs sits where the chip would go: the chip starts under it, whatever it is called.
-    const [mine, badge] = [await chip(page, "badged"), await box(page, "#badge")];
+    // A badge of theirs sits where the tile would go: the tile starts under it, whatever it is called.
+    const [mine, badge] = [await tile(page, "badged"), await box(page, "#badge")];
     expect(meets(mine, badge)).toBe(false);
     expect(mine.top).toBeGreaterThanOrEqual(badge.bottom);
 
     // On the compose card their percentage and their captain control hang off the right: neither is touched, and the
     // captain control is still what is under the pointer.
-    const [ours, gold, cap] = [await chip(page, "composecard"), await box(page, "#gold"), await box(page, "#cap")];
+    const [ours, gold, cap] = [await tile(page, "composecard"), await box(page, "#gold"), await box(page, "#cap")];
     expect(meets(ours, gold)).toBe(false);
     expect(meets(ours, cap)).toBe(false);
+    await page.locator("#composecard").scrollIntoViewIfNeeded(); // a point off the screen has nothing under it
     const under = await page.evaluate(() => {
       const at = (id: string) => {
         const r = document.querySelector(id)!.getBoundingClientRect();
@@ -301,7 +380,7 @@ test.describe("the sorare.com overlay", () => {
     });
     expect(under).toEqual({ cap: "cap", gold: "gold" });
 
-    // Their "Buy now" button under a card is still the thing under the pointer, and no chip lies over it.
+    // Their "Buy now" button under a card is still the thing under the pointer, and nothing of ours lies over it.
     const buy = await page.evaluate(() => {
       const target = document.querySelector("#buy")!.getBoundingClientRect();
       const top = document.elementFromPoint(target.left + target.width / 2, target.top + target.height / 2) as HTMLElement | null;
@@ -313,36 +392,263 @@ test.describe("the sorare.com overlay", () => {
     });
     expect(buy).toEqual({ hit: "buy", overlaps: false });
 
-    // A chip takes no click: only the signed-out chip (checked below) ever does.
-    const catching = await page.evaluate(() => [...document.querySelectorAll("[data-sfx]")].filter((el) => getComputedStyle(el).pointerEvents !== "none").length);
-    expect(catching).toBe(0);
+    // The wrappers take no click. What does is the tile of a full card, in its own 44px, and never a small card's number.
+    const wrappers = await page.evaluate(() => [...document.querySelectorAll("[data-sfx]")].filter((el) => getComputedStyle(el).pointerEvents !== "none").length);
+    expect(wrappers).toBe(0);
+    const answering = await page.evaluate(() =>
+      [...document.querySelectorAll(".sfx-tile")].map((el) => ({ pointer: getComputedStyle(el).pointerEvents, width: el.getBoundingClientRect().width, compact: el.classList.contains("sfx-tile--compact") })),
+    );
+    for (const one of answering) {
+      expect(one.pointer, JSON.stringify(one)).toBe(one.compact ? "none" : "auto");
+      expect(one.width).toBeLessThanOrEqual(44);
+    }
+
+    // A press anywhere on the card except the tile still selects the card; a press on the tile selects nothing.
+    await page.locator("#big").scrollIntoViewIfNeeded(); // the hero card is below the fold: a click there needs it on screen
+    const face = await box(page, "#big img");
+    await page.evaluate(() => ((window as unknown as { __picked: string | null }).__picked = null));
+    await page.mouse.click(face.left + face.width / 2, face.top + face.height * 0.7);
+    expect(await page.evaluate(() => (window as unknown as { __picked: string | null }).__picked)).toBe("big");
+    await page.evaluate(() => ((window as unknown as { __picked: string | null }).__picked = null));
+    await tileOf(page, "big").click();
+    expect(await page.evaluate(() => (window as unknown as { __picked: string | null }).__picked)).toBeNull();
+    await expect(panel(page)).toBeVisible();
   });
 
-  test("in a list that scrolls the chip stays inside the picture, and the list is left exactly as it was", async ({ page }) => {
+  test("in a list that scrolls the tile stays inside the picture, and the list is left exactly as it was", async ({ page }) => {
     await openPage(page);
     await settled(page);
     await expect(ribs(page, "scrolled")).toBeVisible();
     await page.waitForTimeout(250);
-    const [mine, m] = [await chip(page, "scrolled"), await art(page, "scrolled")];
+    const [mine, m] = [await tile(page, "scrolled"), await art(page, "scrolled")];
     expect(mine.left).toBeGreaterThanOrEqual(m.left);
     await expect(page.locator("#scroller")).toHaveCSS("overflow-x", "auto");
     await expect(page.locator("#scrolled")).toHaveCSS("overflow", "hidden");
-    expect(await page.locator("#scroller, #scrolled").evaluateAll((all) => all.some((el) => /sfx-anchor/.test(el.className)))).toBe(false);
   });
 
-  test("shows the chance only while \"Show chance of playing\" is on", async ({ page }) => {
+  test("draws Sofix's win and clean sheet directly under Sorare's odds bar, makes room without moving anything into it, and gives it back", async ({ page }) => {
     await openPage(page);
     await settled(page);
-    expect(await text(page, "big")).toEqual(["X", "53", "88%"]);
+    const row = page.locator("#frame .sfx-odds");
+    await expect(row).toBeVisible();
+    await page.waitForTimeout(250);
 
-    await page.evaluate(() => (window as unknown as { __sfx: Probe }).__sfx.setChance(false));
-    await page.locator("#big").scrollIntoViewIfNeeded(); // a card off the screen is redrawn when it comes back
-    await expect(ribs(page, "big").locator(".sfx-c")).toHaveCount(0);
-    expect(await text(page, "big")).toEqual(["X", "53"]);
-    await expect(ribs(page, "big")).toHaveAttribute("aria-label", "Sofix: expected score 53, 88% chance of playing"); // the name keeps it
+    // The same width as Sorare's bar, directly under it, 22px tall.
+    const [bar, mine] = [await box(page, "#wdl"), await box(page, "#frame .sfx-odds")];
+    expect(Math.abs(mine.left - bar.left)).toBeLessThan(1);
+    expect(Math.abs(mine.width - bar.width)).toBeLessThan(1);
+    expect(Math.abs(mine.top - (bar.bottom + 4))).toBeLessThan(1);
+    expect(mine.height).toBe(22);
+    await expect(row).toHaveText(/WIN\s*46%\s*CS\s*33%/);
+    await expect(row).toHaveAttribute("aria-label", "Sofix odds: win 46%, clean sheet 33%");
+    await expect(row).toHaveCSS("pointer-events", "none");
+    await expect(row.locator(".sfx-odds-num--win")).toHaveCSS("color", "rgb(182, 255, 26)");
 
-    await page.evaluate(() => (window as unknown as { __sfx: Probe }).__sfx.setChance(true));
-    await expect(ribs(page, "big").locator(".sfx-c")).toHaveCount(1);
+    // Sorare's kickoff line moved down to make room: still visible, below our row, overlapped by nothing.
+    const foot = await box(page, "#foot");
+    expect(foot.top).toBeGreaterThanOrEqual(mine.bottom);
+    expect(meets(mine, foot)).toBe(false);
+    await expect(page.locator("#foot")).toBeVisible();
+    await expect(page.locator("#wdl")).toHaveClass(/sfx-room/);
+
+    // A card with no odds bar near it gets no row: the gallery and the hero have none.
+    await expect(page.locator("#gallery .sfx-odds, #hero .sfx-odds, #lineup .sfx-odds")).toHaveCount(0);
+
+    // Their kickoff line pinned in the room (making room moves nothing): no row is drawn and their bar is given back.
+    await expect(page.locator("#frame2 .sfx-odds")).toHaveCount(0);
+    await expect(page.locator("#wdl2")).not.toHaveClass(/sfx-room/);
+    expect(meets(await box(page, "#foot2"), mine)).toBe(false);
+    const pinned = await Promise.all([box(page, "#foot2"), box(page, "#wdl2")]);
+    expect(pinned[0].top).toBeGreaterThan(pinned[1].bottom); // where they put it, untouched
+
+    // Switching off gives everything back: no row, no margin, the kickoff line where it began.
+    await page.evaluate(() => (window as unknown as { __sfx: Probe }).__sfx.setOverlay(false));
+    await expect(page.locator(".sfx-odds")).toHaveCount(0);
+    await expect(page.locator(".sfx-room")).toHaveCount(0);
+    const [after, wdl] = [await box(page, "#foot"), await box(page, "#wdl")];
+    expect(Math.abs(after.top - (wdl.bottom + 6))).toBeLessThan(1);
+  });
+
+  test("opens a panel beside the card on hover: starts by default, the other score one press away, and it never writes anything", async ({ page }) => {
+    await openPage(page);
+    await settled(page);
+    await page.waitForTimeout(250);
+    await expect(panel(page)).toHaveCount(0);
+
+    // A card far enough from the left edge: the panel opens on its left, pointing at the tile.
+    await tileOf(page, "abroad").hover();
+    await expect(panel(page)).toBeVisible();
+    await expect(panel(page)).toHaveAttribute("data-side", "left");
+    await expect(tileOf(page, "abroad")).toHaveAttribute("aria-expanded", "true");
+    expect(await panel(page).evaluate((el) => el.parentElement === document.body)).toBe(true); // out of Sorare's clipping boxes
+    const [p, t] = [await panel(page).boundingBox(), await tile(page, "abroad")];
+    expect(p!.x + p!.width).toBeLessThanOrEqual(t.left);
+    expect(p!.x).toBeGreaterThanOrEqual(0);
+    await expect(panel(page)).toContainText("SOFIX");
+    await expect(panel(page)).toContainText("updated 11 h ago");
+    await expect(panel(page).getByRole("button", { name: "Starts" })).toHaveAttribute("aria-pressed", "true");
+    await expect(panel(page).getByRole("button", { name: "Doesn't start" })).toHaveAttribute("aria-pressed", "false");
+    await expect(panel(page).locator(".sfx-big strong")).toHaveText("64");
+    await expect(panel(page).locator(".sfx-big")).toContainText("if he starts");
+    await expect(panel(page).locator(".sfx-big")).toContainText("82% he starts");
+    // A forward: his expected goals and his side's chance to win; and where the odds came from.
+    await expect(panel(page)).toContainText("Expected goals");
+    await expect(panel(page)).toContainText("0.38");
+    await expect(panel(page)).toContainText("From Understat's season numbers.");
+    await expect(panel(page)).toContainText("Win chance");
+    await expect(panel(page)).toContainText("65%");
+    await expect(panel(page)).toContainText("From Sorare's odds for this game.");
+
+    // The other case: the score if he does not start, and the chance he comes on (0.08 of the 0.18 not starting).
+    await panel(page).getByRole("button", { name: "Doesn't start" }).click();
+    await expect(panel(page).getByRole("button", { name: "Doesn't start" })).toHaveAttribute("aria-pressed", "true");
+    await expect(panel(page).locator(".sfx-big strong")).toHaveText("20");
+    await expect(panel(page).locator(".sfx-big")).toContainText("if he doesn't start");
+    await expect(panel(page).locator(".sfx-big")).toContainText("44% he comes on");
+
+    // Moving from the tile onto the panel keeps it open; leaving both closes it.
+    const inside = await panel(page).boundingBox();
+    await page.mouse.move(inside!.x + inside!.width / 2, inside!.y + inside!.height / 2);
+    await page.waitForTimeout(450);
+    await expect(panel(page)).toBeVisible();
+    await page.mouse.move(2, 2);
+    await expect(panel(page)).toHaveCount(0);
+    await expect(tileOf(page, "abroad")).toHaveAttribute("aria-expanded", "false");
+
+    // A keeper's panel: the difficulty with its five bands and a clean-sheet bar; on a card near the left edge it opens on the right.
+    await tileOf(page, "big").hover();
+    await expect(panel(page)).toHaveAttribute("data-side", "right");
+    await expect(panel(page)).toContainText("Difficulty");
+    await expect(panel(page)).toContainText("Favourite");
+    await expect(panel(page).getByRole("img", { name: "Band 2 of 5 difficulty bands, 1 easiest" })).toBeVisible();
+    await expect(panel(page)).toContainText("Clean sheet");
+    await expect(panel(page)).toContainText("33%");
+    await expect(panel(page)).toContainText("From Sofix's own model of this game.");
+    await panel(page).getByRole("button", { name: "Doesn't start" }).click();
+    await expect(panel(page).locator(".sfx-big strong")).toHaveText("1");
+    await expect(panel(page).locator(".sfx-big")).toContainText("8% he comes on");
+
+    // A midfielder whose game is not priced says so and gives no odds; his xG is not there yet, and it says that too.
+    await page.mouse.move(2, 2);
+    await expect(panel(page)).toHaveCount(0);
+    await tileOf(page, "linked").hover();
+    await expect(panel(page)).toContainText("No odds for this game yet.");
+    await expect(panel(page)).toContainText("Not available for this player.");
+
+    // Nothing it sends is a step that writes to Sorare.
+    const kinds = new Set((await probe(page)).sent.map((message) => message.type));
+    expect([...kinds].filter((kind) => !["overlay-numbers", "overlay-plan", "overlay-stats", "open-app", "sorare-user"].includes(kind))).toEqual([]);
+  });
+
+  test("opens from the keyboard and closes with Escape, giving the focus back to the tile", async ({ page }) => {
+    await openPage(page);
+    await settled(page);
+    await page.waitForTimeout(250);
+    await tileOf(page, "big").focus();
+    await expect(panel(page)).toBeVisible();
+
+    await page.keyboard.press("Enter");
+    await expect(panel(page).getByRole("button", { name: "Starts" })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(panel(page).getByRole("button", { name: "Doesn't start" })).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(panel(page).getByRole("button", { name: "Doesn't start" })).toHaveAttribute("aria-pressed", "true");
+    await expect(panel(page).getByRole("button", { name: "Doesn't start" })).toBeFocused(); // the press keeps the focus
+
+    await page.keyboard.press("Escape");
+    await expect(panel(page)).toHaveCount(0);
+    await expect(tileOf(page, "big")).toBeFocused();
+  });
+
+  test("shows a loading tile until the numbers arrive", async ({ page }) => {
+    await openPage(page, { delay: 1500 });
+    await page.locator("#big").scrollIntoViewIfNeeded();
+    await expect(tileOf(page, "big")).toHaveClass(/sfx-tile--loading/);
+    await expect(tileOf(page, "big")).toHaveAttribute("aria-label", "Sofix numbers loading");
+    await expect.poll(async () => text(page, "big"), { timeout: 6000 }).toEqual(["53", "FDR", "45"]);
+    await expect(tileOf(page, "big")).not.toHaveClass(/sfx-tile--loading/);
+  });
+
+  test("ticks the cards the best plan uses, stars its captain, and says which lineup only to a screen reader and in the panel", async ({ page }, testInfo) => {
+    await openPage(page);
+    await settled(page);
+    await page.locator("#pick-1").scrollIntoViewIfNeeded(); // the list has to be in front of the reader: only what is on screen is drawn
+    await expect(page.locator("#pick-2 .sfx-mark")).toHaveCount(1);
+    await page.waitForTimeout(250);
+
+    await expect(page.locator("#pick-2 .sfx-mark")).toHaveCount(1);
+    await expect(page.locator("#pick-2 .sfx-mark--star")).toHaveCount(0);
+    await expect(page.locator("#pick-4 .sfx-mark--star")).toHaveCount(1);
+    // Only those two, on the whole page: a card the plan leaves out is the plain tile, never a warning.
+    await expect(page.locator(".sfx-mark")).toHaveCount(2);
+    await expect(tileOf(page, "pick-2")).toHaveAttribute("aria-label", /In your best plan, All Star lineup\./);
+    await expect(tileOf(page, "pick-4")).toHaveAttribute("aria-label", /In your best plan, All Star lineup, as captain\./);
+    await expect(tileOf(page, "pick-3")).not.toHaveAttribute("aria-label", /best plan/);
+    expect(await page.locator(".sfx-ribs").evaluateAll((all) => all.some((el) => /All Star/.test(el.textContent ?? "")))).toBe(false); // never on the art
+
+    // Beside the tile's top-right corner, inside the card, and never in the way of a click.
+    const [tick, t, m] = [await box(page, "#pick-2 .sfx-mark"), await tile(page, "pick-2"), await art(page, "pick-2")];
+    expect(Math.abs(tick.right - (t.right + 6))).toBeLessThan(1);
+    expect(Math.abs(tick.top - (t.top - 5))).toBeLessThan(1);
+    expect(tick.top).toBeGreaterThanOrEqual(m.top);
+    await expect(page.locator("#pick-2 .sfx-mark")).toHaveCSS("pointer-events", "none");
+    await expect(page.locator("#pick-4 .sfx-mark--star")).toHaveCSS("background-color", "rgb(240, 206, 29)"); // Sorare's yellow
+
+    await page.locator("#picks").screenshot({ path: testInfo.outputPath("overlay-picks.png") });
+
+    // The panel says it in words.
+    await tileOf(page, "pick-4").hover();
+    await expect(panel(page)).toContainText("In your best plan · All Star · Captain");
+    await page.mouse.move(2, 2);
+    await tileOf(page, "pick-3").hover();
+    await expect(panel(page)).not.toContainText("best plan");
+  });
+
+  test("ranks the best three of a list to pick from, and ranks nothing that is not one", async ({ page }) => {
+    await openPage(page);
+    await settled(page);
+    await page.locator("#pick-1").scrollIntoViewIfNeeded(); // the list has to be in front of the reader: only what is on screen is ranked
+    await expect(page.locator("#pick-1 .sfx-rank")).toHaveText("#1");
+    await page.waitForTimeout(250);
+
+    // Six defenders under "Select your Defender": the three with the best xScore, in order.
+    for (const [id, rank] of [["pick-1", "#1"], ["pick-2", "#2"], ["pick-3", "#3"]] as const) {
+      await expect(page.locator(`#${id} .sfx-rank`)).toHaveText(rank);
+    }
+    for (const id of ["pick-4", "pick-5", "pick-6"]) await expect(page.locator(`#${id} .sfx-rank`)).toHaveCount(0);
+    await expect(tileOf(page, "pick-1")).toHaveAttribute("aria-label", /Number 1 of the cards on this list by expected score\./);
+    // Three forwards under the next heading are not a list to choose from; the gallery and the compose page have no such heading.
+    await expect(page.locator("#picks2 .sfx-rank")).toHaveCount(0);
+    await expect(page.locator(".sfx-rank")).toHaveCount(3);
+    await expect(page.locator(".sfx-rank").first()).toHaveCSS("pointer-events", "none");
+
+    // Take the heading away and nothing is ranked.
+    await page.evaluate(() => document.querySelectorAll("#pickhead, #pickhead2").forEach((el) => el.replaceWith(Object.assign(document.createElement("h2"), { textContent: "Defenders" }))));
+    await expect(page.locator(".sfx-rank")).toHaveCount(0);
+  });
+
+  test("greys a number that is about a game that has started, or is more than a day old, and says so", async ({ page }, testInfo) => {
+    await openPage(page);
+    await settled(page);
+    await page.waitForTimeout(250);
+
+    expect(await text(page, "over")).toEqual(["58", "Started"]);
+    await expect(tileOf(page, "over")).toHaveClass(/sfx-tile--stale/);
+    await expect(tileOf(page, "over")).toHaveCSS("--sfx-c", "#a3a3ab");
+    await expect(tileOf(page, "over")).toHaveAttribute("aria-label", /His game has started, so these numbers are about a game no longer ahead\./);
+
+    expect(await text(page, "old")).toEqual(["58", "Old"]);
+    await expect(tileOf(page, "old")).toHaveClass(/sfx-tile--stale/);
+    await expect(tileOf(page, "old")).toHaveAttribute("aria-label", /These numbers are 40 h old\./);
+
+    await page.locator("#gallery").screenshot({ path: testInfo.outputPath("overlay-gallery.png") });
+
+    // Numbers made eleven hours ago are still good: no other tile on the page is grey.
+    await expect(page.locator(".sfx-tile--stale")).toHaveCount(2);
+
+    await tileOf(page, "old").hover();
+    await expect(panel(page)).toContainText("These numbers are 40 h old.");
+    await expect(panel(page)).toContainText("updated 1 d ago"); // forty hours is a day and a bit: the label changes unit after 24
   });
 
   test("goes when the switch goes off and returns when it is back on, with no reload", async ({ page }) => {
@@ -358,7 +664,7 @@ test.describe("the sorare.com overlay", () => {
     await page.evaluate(() => (window as unknown as { __sfx: Probe }).__sfx.setOverlay(true));
     await page.locator("#big").scrollIntoViewIfNeeded();
     await expect(ribs(page, "big")).toBeVisible();
-    expect(await text(page, "big")).toEqual(["X", "53", "88%"]);
+    expect(await text(page, "big")).toEqual(["53", "FDR", "45"]);
     await expect(ribs(page, "big")).toHaveCount(1);
   });
 
@@ -370,16 +676,21 @@ test.describe("the sorare.com overlay", () => {
     expect((await probe(page)).sent.filter((message) => message.type === "overlay-numbers")).toEqual([]); // and asks nothing
   });
 
-  for (const mode of ["auth", "unreachable"] as const) {
-    test(`says so, and opens the app, when the app answers "${mode}"`, async ({ page }) => {
+  for (const [mode, words] of [["auth", "Sign in"], ["unreachable", "Offline"]] as const) {
+    test(`says so in a very small tag, and opens the app, when the app answers "${mode}"`, async ({ page }) => {
       await openPage(page, { mode });
       await page.locator("#big").scrollIntoViewIfNeeded();
-      const chip = ribs(page, "big").getByRole("button", { name: /Open Sofix/ });
-      await expect(chip).toBeVisible();
-      await expect(chip).toHaveText("Sofix");
+      const tag = ribs(page, "big").getByRole("button", { name: /Open Sofix/ });
+      await expect(tag).toBeVisible();
+      await expect(tag).toHaveText(words);
+      const small = await tag.boundingBox();
+      expect(small!.width).toBeLessThan(44); // narrower than the tile, and only a few pixels tall
+      expect(small!.height).toBeLessThanOrEqual(16);
       await expect(ribs(page, "slot-a")).toHaveCount(0); // a small card has no room for it
+      await page.locator("#stranger").scrollIntoViewIfNeeded();
       await expect(ribs(page, "stranger")).toHaveCount(1);
-      await chip.click();
+      await page.locator("#big").scrollIntoViewIfNeeded();
+      await tag.click();
       expect((await probe(page)).opened).toEqual(["/"]);
     });
   }
@@ -443,6 +754,16 @@ test.describe("the sorare.com overlay", () => {
     await settled(page);
     await page.waitForTimeout(300);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+
+    // With the hover panel open, and its two scores switched, still nothing to fix.
+    await tileOf(page, "abroad").hover();
+    await expect(panel(page)).toBeVisible();
+    await panel(page).getByRole("button", { name: "Doesn't start" }).click();
+    await page.waitForTimeout(600); // past the pop-in: contrast is measured on what is settled
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    await page.screenshot({ path: testInfo.outputPath("overlay-panel.png") });
+    await page.mouse.move(2, 2);
+    await expect(panel(page)).toHaveCount(0);
 
     await page.getByRole("button", { name: "Sofix", exact: true }).click();
     await expect(page.getByRole("dialog", { name: "Your gameweek 17" })).toBeVisible();

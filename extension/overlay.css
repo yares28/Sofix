@@ -1,17 +1,20 @@
-/* Sofix extension: the chip drawn on sorare.com's cards (plans/overlay.md, O6).
-   One solid chip per card, built to the same measurements as Sorare's own chips (18px, 4px corners, a small fold
-   under one end, its own type) and hung off the card's left edge, where its own chips hang off the right. Every name
-   here starts with sfx-, and nothing styles anything of Sorare's. The colour of a score is Sorare's: the chip's fill
-   is set from the page's own --c-score-* tokens by overlay.js, so a score reads the same on the chip and on the card. */
+/* Sofix extension: what is drawn on sorare.com's cards (plans/overlay.md, O10).
+   A glass tile inside the card's top-left corner (the score if he starts, then one driver), a Sofix odds row directly
+   under Sorare's own win/draw/loss bar, and a panel beside the card on hover. Every name here starts with sfx-, and
+   nothing styles anything of Sorare's except one margin class on its odds bar (sfx-room), given back when the switch
+   goes off. Colours are Sorare's: overlay.js sets them from the page's own --c-score-* tokens. */
 :root {
   --sfx-font: pressio, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  --sfx-cond: pressio, "Barlow Condensed", "Arial Narrow", "Roboto Condensed", -apple-system, "Segoe UI", sans-serif;
   --sfx-ink: #0e0e0e;
   --sfx-white: #ffffff;
   --sfx-red: #ff5a5a;
-  --sfx-dark: #0e0e0e;
+  --sfx-glass: rgba(12, 12, 14, 0.8);
 }
 
-/* The wrapper that is measured and moved. It never takes a click: only the signed-out chip below does. */
+[data-sfx], [data-sfx] * { box-sizing: border-box; }
+
+/* The wrapper that is measured and moved. It never takes a click: only the tile or tag inside does, and only its own box. */
 .sfx-ribs {
   position: absolute;
   left: 0;
@@ -24,98 +27,288 @@
   border: 0;
   pointer-events: none;
   user-select: none;
-  animation: sfx-in 0.18s ease-out both;
+  animation: sfx-fade 0.2s ease-out both; /* opacity only: this box is measured, and a transform would be measured mid-flight */
 }
-.sfx-ribs[data-pending] { visibility: hidden; }
+.sfx-ribs[data-pending], .sfx-odds[data-pending] { visibility: hidden; }
 
-.sfx-chip {
+/* ---- the tile ---------------------------------------------------------------------------------------------------- */
+.sfx-tile {
   position: relative;
   display: flex;
-  align-items: center;
-  box-sizing: border-box;
-  height: 18px;
+  flex-direction: column;
+  width: 44px;
   margin: 0;
   padding: 0;
   border: 0;
-  border-radius: 4px 4px 4px 0; /* Sorare's chips are square at the end that carries the fold; ours carries it on the left */
-  color: var(--sfx-ink);
-  font: 400 14px/14px var(--sfx-font);
-  letter-spacing: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--sfx-glass);
+  backdrop-filter: blur(8px) saturate(140%);
+  -webkit-backdrop-filter: blur(8px) saturate(140%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 6px 16px -6px rgba(0, 0, 0, 0.75);
+  color: var(--sfx-white);
+  font: 400 10px/1 var(--sfx-font);
+  text-align: left;
   text-decoration: none;
   text-shadow: none;
-  text-transform: uppercase;
-  white-space: nowrap;
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: default;
+  pointer-events: auto;
+  -webkit-appearance: none;
+  appearance: none;
+  animation: sfx-in 0.3s cubic-bezier(0.3, 0.7, 0.2, 1) both;
+}
+.sfx-tile:focus-visible, .sfx-tag:focus-visible { outline: 2px solid var(--sfx-white); outline-offset: 2px; }
+
+/* Sorare's own five colours, easiest to hardest: the tile's top edge, and the same stripe on the odds row and panel. */
+.sfx-stripe { display: flex; height: 2px; flex: none; }
+.sfx-stripe > i { display: block; flex: 1 1 0; }
+
+.sfx-main { display: flex; align-items: center; justify-content: center; gap: 2px; padding: 3px 0 1px; }
+.sfx-shirt { width: 7px; height: 7px; flex: none; fill: rgba(255, 255, 255, 0.55); }
+.sfx-score {
+  font: 700 19px/18px var(--sfx-cond);
+  color: var(--sfx-c, var(--sfx-white));
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 12px color-mix(in srgb, var(--sfx-c, #fff) 35%, transparent);
+}
+
+/* The one driver under the score: difficulty for a goalkeeper or defender, expected goals otherwise. */
+.sfx-drive { display: flex; align-items: center; justify-content: space-between; height: 18px; padding: 1px 5px 5px; }
+.sfx-cap { font: 600 7.5px/8px var(--sfx-font); letter-spacing: 0.1em; color: rgba(255, 255, 255, 0.6); text-transform: uppercase; }
+.sfx-cap--xg { letter-spacing: 0.06em; text-transform: none; }
+.sfx-fdr {
+  padding: 1px 3px;
+  border-radius: 3px;
+  background: var(--sfx-d, var(--sfx-white));
+  color: var(--sfx-ink);
+  font: 700 10px/10px var(--sfx-cond);
   font-variant-numeric: tabular-nums;
 }
-.sfx-chip > b {
-  display: block;
-  margin: 0;
-  padding: 2px 4px;
-  font: inherit;
-}
-.sfx-chip > b:first-child { border-radius: 4px 0 0 0; }
-.sfx-chip > b:last-child { border-radius: 0 4px 4px 0; }
-.sfx-chip > b:only-child { border-radius: 4px 4px 4px 0; }
-.sfx-x, .sfx-v { background: var(--sfx-fill, var(--sfx-white)); }
-.sfx-x { padding-right: 0; opacity: 0.6; } /* the label is dimmed inside the same chip, never a box of its own */
-.sfx-x + .sfx-v { padding-left: 3px; }
-.sfx-c { background: var(--sfx-white); }
+.sfx-xg { font: 700 11.5px/12px var(--sfx-cond); color: var(--sfx-white); font-variant-numeric: tabular-nums; }
+.sfx-drive--none { justify-content: center; height: auto; padding: 2px 0 5px; }
+.sfx-drive--none .sfx-cap { line-height: 9px; letter-spacing: 0.08em; }
 
-/* The fold: a 4px triangle under the left end, the chip's own colour a shade darker, like Sorare's under its right. */
-.sfx-chip::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: -4px;
-  width: 4px;
-  height: 4px;
-  background: color-mix(in srgb, var(--sfx-fill, var(--sfx-white)) 45%, #0e0e0e);
-  clip-path: polygon(0 0, 100% 0, 100% 100%);
+/* Doubtful starter: a red row with his chance of starting. It lengthens the tile, on purpose: it is the warning. */
+.sfx-tile--doubt .sfx-drive { height: 16px; padding-bottom: 3px; }
+.sfx-doubt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 13px;
+  margin: 0 5px 5px;
+  padding: 0 3px;
+  border-radius: 3px;
+  background: rgba(255, 90, 90, 0.18);
 }
-
-/* Not expected to start: the number stays, its colour is withdrawn, and the chance turns red. */
-.sfx-chip--doubt .sfx-c { background: var(--sfx-red); }
+.sfx-doubt svg { width: 8px; height: 8px; flex: none; fill: #ff8a8a; }
+.sfx-doubt b { font: 700 11px/11px var(--sfx-cond); color: var(--sfx-red); font-variant-numeric: tabular-nums; }
+.sfx-doubt b small { font-size: 7.5px; margin-left: 0.5px; }
 
 /* Waiting for the numbers. */
-.sfx-chip--loading { opacity: 0.6; --sfx-fill: #d9dde4; }
-.sfx-chip--loading .sfx-v { min-width: 22px; }
-.sfx-chip--loading .sfx-v::before {
-  content: "";
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  margin-right: 0;
-  vertical-align: -1px;
-  border: 1.5px solid currentColor;
-  border-right-color: transparent;
-  border-radius: 50%;
-  animation: sfx-spin 0.7s linear infinite;
+.sfx-tile--loading { height: 42px; background: rgba(12, 12, 14, 0.72); }
+.sfx-tile--loading .sfx-stripe { opacity: 0.45; }
+.sfx-skel { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 7px 5px 0; }
+.sfx-skel > i {
+  display: block;
+  height: 12px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.24) 50%, rgba(255, 255, 255, 0.08) 100%);
+  background-size: 44px 12px;
+  animation: sfx-shimmer 1.1s linear infinite;
 }
+.sfx-skel > i:first-child { width: 22px; }
+.sfx-skel > i:last-child { width: 34px; height: 6px; background-size: 44px 6px; animation-delay: 0.1s; }
 
-/* Signed out of Sofix, or the app is not answering: the one dark chip, same shape, and the only thing here that takes a click. */
-.sfx-chip--auth {
-  --sfx-fill: var(--sfx-dark);
-  padding: 2px 6px;
+/* Signed out of Sofix, or the app is not answering: a very small tag, the only thing here that takes a click. */
+.sfx-tag {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(12, 12, 14, 0.86);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  color: var(--sfx-white);
   cursor: pointer;
   pointer-events: auto;
-  background: var(--sfx-dark);
-  color: var(--sfx-white);
-  font-family: var(--sfx-font);
+  text-decoration: none;
+  -webkit-appearance: none;
+  appearance: none;
 }
-.sfx-chip--auth:hover { background: #26262b; }
-.sfx-chip--auth:focus-visible { outline: 2px solid #b6ff1a; outline-offset: 1px; }
+.sfx-tag .sfx-stripe { height: 1.5px; }
+.sfx-tag > span:last-child { padding: 2px 5px 3px; font: 700 7px/8px var(--sfx-font); letter-spacing: 0.08em; text-transform: uppercase; }
+.sfx-tag:hover { background: rgba(38, 38, 43, 0.92); }
 
-/* A small card has room for one number and nothing else. */
-.sfx-ribs--compact .sfx-chip { height: 15px; font-size: 11px; line-height: 11px; }
-.sfx-ribs--compact .sfx-chip > b { padding: 2px 3px; }
-.sfx-ribs--compact .sfx-chip::after { bottom: -3px; width: 3px; height: 3px; }
+/* A small card has room for the number alone: it does not open anything. Loading is one small block. */
+.sfx-tile--compact.sfx-tile--loading { height: auto; }
+.sfx-tile--compact .sfx-skel { padding: 3px 0 4px; }
+.sfx-tile--compact .sfx-skel > i:first-child { width: 12px; height: 9px; }
+.sfx-tile--compact .sfx-skel > i:last-child { display: none; }
 
-/* A wrapper that only clips is let show the chip where it hangs past the card's edge. Two levels at most, given back
-   when the chip goes or the switch is turned off; a wrapper that scrolls is never touched. */
-.sfx-anchor, .sfx-anchor-up { overflow: visible !important; }
+.sfx-tile--compact {
+  width: 24px;
+  border-radius: 5px;
+  backdrop-filter: blur(6px) saturate(140%);
+  -webkit-backdrop-filter: blur(6px) saturate(140%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 4px 10px -4px rgba(0, 0, 0, 0.75);
+  pointer-events: none;
+}
+.sfx-tile--compact .sfx-score { display: block; padding: 1px 0 2px; font: 700 12px/14px var(--sfx-cond); text-align: center; text-shadow: none; }
+.sfx-tile--compact.sfx-tile--doubt .sfx-score { opacity: 0.7; }
+.sfx-tile--tiny { width: 18px; border-radius: 4px; }
+.sfx-tile--tiny .sfx-score { padding: 0 0 1px; font: 700 10px/12px var(--sfx-cond); }
 
-@keyframes sfx-in { from { opacity: 0; } }
-@keyframes sfx-spin { to { transform: rotate(360deg); } }
+/* ---- decisions: what the best plan does with a card, where he stands on a list, and numbers that no longer hold ----- */
+/* Drawn beside the tile, inside the wrapper (the tile itself clips its corners), and never answering the pointer:
+   what they mean is in the tile's own name for a screen reader. */
+.sfx-mark, .sfx-rank {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  background: #f4f4f6;
+  color: var(--sfx-ink);
+  box-shadow: 0 0 0 1.5px rgba(12, 12, 14, 0.9), 0 3px 8px -2px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+.sfx-mark { top: -5px; right: -6px; width: 15px; height: 15px; border-radius: 50%; }
+.sfx-mark svg { width: 9px; height: 9px; }
+.sfx-mark--star { background: var(--sfx-m, #f0ce1d); }
+.sfx-rank { left: 50%; bottom: -6px; min-width: 18px; height: 12px; padding: 0 4px; border-radius: 6px; transform: translateX(-50%); font: 700 8.5px/12px var(--sfx-cond); font-variant-numeric: tabular-nums; }
+.sfx-ribs--compact .sfx-mark { top: -4px; right: -4px; width: 10px; height: 10px; }
+.sfx-ribs--compact .sfx-mark svg { width: 6px; height: 6px; }
+
+/* A number about a game that has started, or that is more than a day old: the colour goes, the number stays, and the tile says why. */
+.sfx-tile--stale .sfx-stripe { opacity: 0.35; }
+.sfx-tile--stale .sfx-score { text-shadow: none; }
+
+/* ---- the odds row, under Sorare's own bar ------------------------------------------------------------------------ */
+.sfx-odds {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: stretch;
+  height: 22px;
+  padding-top: 2px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #151517;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+  color: var(--sfx-white);
+  pointer-events: none;
+  user-select: none;
+  animation: sfx-fade 0.2s ease-out both;
+}
+.sfx-odds .sfx-stripe { position: absolute; left: 0; top: 0; right: 0; }
+.sfx-odds-cell { display: flex; flex: 1 1 0; align-items: center; justify-content: center; gap: 5px; }
+.sfx-odds-cell .sfx-cap { font-size: 7.5px; }
+.sfx-odds-num { display: flex; align-items: baseline; font: 700 14px/14px var(--sfx-cond); color: var(--sfx-white); font-variant-numeric: tabular-nums; }
+.sfx-odds-num small { margin-left: 1px; font-size: 9px; }
+.sfx-odds-num--win { color: var(--sfx-lime, #b6ff1a); }
+.sfx-odds-num--none { color: rgba(255, 255, 255, 0.55); }
+.sfx-odds-rule { width: 1px; margin: 5px 0; background: rgba(255, 255, 255, 0.09); }
+
+/* The room under Sorare's odds bar for our row: the one thing done to their page, given back on switch-off. */
+.sfx-room { margin-bottom: 26px !important; }
+
+/* ---- the panel beside the card ----------------------------------------------------------------------------------- */
+.sfx-panel {
+  position: fixed;
+  z-index: 2147483000;
+  width: 222px;
+  border-radius: 14px;
+  background: rgba(22, 22, 25, 0.95);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 26px 50px -18px rgba(0, 0, 0, 0.9);
+  color: var(--sfx-white);
+  font: 500 12px/16px var(--sfx-font);
+  pointer-events: auto;
+  animation: sfx-pop 0.3s cubic-bezier(0.3, 0.7, 0.2, 1) both;
+}
+.sfx-panel[data-side="left"] { --sfx-slide: 6px; }
+.sfx-panel[data-side="right"] { --sfx-slide: -6px; }
+.sfx-panel > .sfx-stripe { height: 3px; border-radius: 14px 14px 0 0; overflow: hidden; }
+.sfx-arrow {
+  position: absolute;
+  top: 16px;
+  width: 10px;
+  height: 10px;
+  background: rgba(22, 22, 25, 0.95);
+  transform: rotate(45deg);
+}
+.sfx-panel[data-side="left"] .sfx-arrow { right: -5px; clip-path: polygon(0 0, 100% 0, 100% 100%); box-shadow: inset -1px 1px 0 rgba(255, 255, 255, 0.1); }
+.sfx-panel[data-side="right"] .sfx-arrow { left: -5px; clip-path: polygon(0 0, 0 100%, 100% 100%); box-shadow: inset 1px -1px 0 rgba(255, 255, 255, 0.1); }
+.sfx-body { display: flex; flex-direction: column; gap: 13px; padding: 12px 15px 15px; }
+.sfx-head { display: flex; align-items: center; justify-content: space-between; }
+.sfx-brand { display: flex; align-items: center; gap: 7px; font: 700 10px/12px var(--sfx-font); letter-spacing: 0.16em; color: var(--sfx-white); }
+.sfx-brand .sfx-stripe { width: 12px; height: 12px; border-radius: 3px; overflow: hidden; }
+.sfx-brand .sfx-stripe > i { flex: 1 1 0; }
+.sfx-age { font: 500 10px/12px var(--sfx-font); color: #a3a3ab; }
+.sfx-plan { margin: -5px 0 0; font: 600 11px/14px var(--sfx-font); color: var(--sfx-white); }
+
+.sfx-seg { display: flex; gap: 3px; padding: 3px; border-radius: 10px; background: rgba(255, 255, 255, 0.07); }
+.sfx-seg button {
+  flex: 1 1 0;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  font: 700 11px/12px var(--sfx-font);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.sfx-seg button[aria-pressed="true"] { background: #f4f4f6; color: var(--sfx-ink); }
+.sfx-seg button:focus-visible { outline: 2px solid var(--sfx-white); outline-offset: 2px; }
+
+.sfx-big { display: flex; flex-direction: column; gap: 5px; animation: sfx-num 0.28s cubic-bezier(0.3, 0.7, 0.2, 1) both; }
+.sfx-big > div { display: flex; align-items: baseline; gap: 8px; }
+.sfx-big strong {
+  font: 700 44px/38px var(--sfx-cond);
+  color: var(--sfx-c, var(--sfx-white));
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 24px color-mix(in srgb, var(--sfx-c, #fff) 30%, transparent);
+}
+.sfx-big span { font: 600 13px/16px var(--sfx-font); color: #c9c9cf; }
+.sfx-big p { margin: 0; font: 500 12px/16px var(--sfx-font); color: #a3a3ab; }
+.sfx-big p b { font-weight: 700; color: var(--sfx-white); }
+
+.sfx-rule { height: 1px; background: rgba(255, 255, 255, 0.08); }
+.sfx-driver { display: flex; flex-direction: column; gap: 7px; }
+.sfx-row { display: flex; align-items: baseline; justify-content: space-between; }
+.sfx-row > span:first-child { font: 600 12px/16px var(--sfx-font); color: var(--sfx-white); }
+.sfx-row .sfx-val { display: flex; align-items: center; gap: 7px; font: 600 12px/16px var(--sfx-font); color: var(--sfx-d, var(--sfx-white)); }
+.sfx-row .sfx-val .sfx-fdr { font-size: 14px; line-height: 14px; border-radius: 4px; padding: 2px 5px 1px; }
+.sfx-pct { display: flex; align-items: baseline; font: 700 18px/18px var(--sfx-cond); color: var(--sfx-white); font-variant-numeric: tabular-nums; }
+.sfx-pct small { margin-left: 1px; font-size: 11px; opacity: 0.85; }
+.sfx-pct--none { color: rgba(255, 255, 255, 0.55); }
+.sfx-bands { display: flex; gap: 3px; height: 5px; }
+.sfx-bands > i { flex: 1 1 0; border-radius: 3px; opacity: 0.25; }
+.sfx-bands > i[data-on] { opacity: 1; box-shadow: 0 0 10px color-mix(in srgb, var(--sfx-band) 50%, transparent); transform-origin: center bottom; animation: sfx-seg 0.45s 0.25s cubic-bezier(0.3, 0.7, 0.2, 1) both; }
+.sfx-track { height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.sfx-track > i { display: block; height: 5px; border-radius: 3px; background: var(--sfx-white); transform-origin: left center; animation: sfx-fill 0.7s 0.15s cubic-bezier(0.3, 0.7, 0.2, 1) both; }
+.sfx-note { margin: 0; font: 500 11px/14px var(--sfx-font); color: #a3a3ab; }
+
+@keyframes sfx-fade { from { opacity: 0; } }
+@keyframes sfx-in { from { opacity: 0; transform: translateY(4px) scale(0.92); } }
+@keyframes sfx-pop { from { opacity: 0; transform: translateX(var(--sfx-slide, 6px)) scale(0.97); } }
+@keyframes sfx-fill { from { transform: scaleX(0); } }
+@keyframes sfx-seg { from { opacity: 0; transform: scaleY(0.2); } }
+@keyframes sfx-num { from { opacity: 0; transform: translateY(5px); } }
+@keyframes sfx-shimmer { from { background-position: -44px 0; } to { background-position: 44px 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .sfx-ribs, .sfx-chip--loading .sfx-v::before { animation: none; }
+  .sfx-ribs, .sfx-odds, .sfx-tile, .sfx-panel, .sfx-big, .sfx-skel > i, .sfx-bands > i, .sfx-track > i { animation: none !important; }
 }

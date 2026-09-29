@@ -5,7 +5,7 @@ const $ = (id) => document.getElementById(id);
 
 async function render() {
   const { sorareUser = null, appReachable = null, overlayStats = null } = await chrome.storage.local.get(["sorareUser", "appReachable", "overlayStats"]);
-  const { overlay = true, overlayChance = true } = await chrome.storage.sync.get(["overlay", "overlayChance"]);
+  const { overlay = true } = await chrome.storage.sync.get(["overlay"]);
   const signedIn = Boolean(sorareUser);
   const linked = signedIn && appReachable !== false;
 
@@ -21,8 +21,6 @@ async function render() {
   $("user").textContent = sorareUser ?? "—";
   $("app").textContent = appReachable === false ? "Not reachable" : appReachable ? "Online" : "Not checked yet";
   $("overlay").setAttribute("aria-checked", String(overlay));
-  $("chance").setAttribute("aria-checked", String(overlayChance));
-  $("chance").disabled = !overlay; // with the overlay off there is no chip to show it on
   // What the last sorare.com page showed: a Sorare that changed its pictures reads "0 of 8", not silence.
   const fresh = overlayStats && Date.now() - overlayStats.at < 10 * 60 * 1000 && overlayStats.seen > 0;
   $("cards").textContent = !overlay ? "Switched off" : fresh ? `${overlayStats.matched} of ${overlayStats.seen}` : "—";
@@ -33,12 +31,6 @@ async function render() {
 $("overlay").addEventListener("click", async () => {
   const { overlay = true } = await chrome.storage.sync.get(["overlay"]);
   await chrome.storage.sync.set({ overlay: !overlay });
-  render();
-});
-
-$("chance").addEventListener("click", async () => {
-  const { overlayChance = true } = await chrome.storage.sync.get(["overlayChance"]);
-  await chrome.storage.sync.set({ overlayChance: !overlayChance });
   render();
 });
 

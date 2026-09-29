@@ -10,7 +10,18 @@ const time = (iso: string) =>
   );
 
 /** One lineup of a plan: what it is expected to score, what that is worth, and the cards in it. */
-export default function Lineup({ lineup, after, index }: { lineup: LineupData; after: boolean; index: number }) {
+export default function Lineup({
+  lineup,
+  after,
+  index,
+  hindsight = false,
+}: {
+  lineup: LineupData;
+  after: boolean;
+  index: number;
+  /** A lineup built knowing the scores: what it expected is what it scored, so it does not say what it expected. */
+  hindsight?: boolean;
+}) {
   const group = GROUP_CLASS[lineup.group];
   const chance = lineup.pReturn;
   const tone = chance >= 0.5 ? "" : chance >= 0.2 ? "mid" : "low";
@@ -30,7 +41,7 @@ export default function Lineup({ lineup, after, index }: { lineup: LineupData; a
           <>
             <span className="pl-kv">
               <b>{lineup.actual.total}</b>
-              <span>scored · xScore {lineup.x}</span>
+              <span>{hindsight ? "scored" : `scored · xScore ${lineup.x}`}</span>
             </span>
             <span className={`pl-kv${won ? " good" : ""}`}>
               <b>{lineup.actual.cash ? cashLabel(lineup.actual.cash) : essenceLabel(lineup.actual.essence)}</b>
@@ -49,7 +60,7 @@ export default function Lineup({ lineup, after, index }: { lineup: LineupData; a
             </span>
           </>
         )}
-        <RangeBar lineup={lineup} after={after} />
+        {hindsight ? null : <RangeBar lineup={lineup} after={after} />}
       </span>
       {after ? null : (
         <span className={`pl-meter ${tone}`.trim()} role="img" aria-label={`${chanceLabel(chance)} chance of a reward`}>
@@ -75,12 +86,12 @@ export default function Lineup({ lineup, after, index }: { lineup: LineupData; a
 
   return (
     <LineupSheet title={`${lineup.comp} lineup`} head={head} card={face}>
-      <Sheet lineup={lineup} after={after} index={index} />
+      <Sheet lineup={lineup} after={after} index={index} hindsight={hindsight} />
     </LineupSheet>
   );
 }
 
-function Sheet({ lineup, after, index }: { lineup: LineupData; after: boolean; index: number }) {
+function Sheet({ lineup, after, index, hindsight }: { lineup: LineupData; after: boolean; index: number; hindsight: boolean }) {
   const inSeason = lineup.starters.filter((card) => card.inSeason).length;
   const clubs = new Map<string, number>();
   for (const card of lineup.starters) clubs.set(card.club ?? "", (clubs.get(card.club ?? "") ?? 0) + 1);
@@ -101,11 +112,11 @@ function Sheet({ lineup, after, index }: { lineup: LineupData; after: boolean; i
             <b>{after && lineup.actual ? lineup.actual.total : lineup.x}</b>
             <span>
               {after && lineup.actual
-                ? `scored · xScore was ${lineup.x} (${lineup.lo}–${lineup.hi})${lineup.actual.need ? ` · ${lineup.actual.need} was needed` : ""}`
+                ? `scored${hindsight ? "" : ` · xScore was ${lineup.x} (${lineup.lo}–${lineup.hi})`}${lineup.actual.need ? ` · ${lineup.actual.need} was needed` : ""}`
                 : `xScore · ${lineup.lo}–${lineup.hi} from a bad to a good week`}
             </span>
           </div>
-          <RangeBar lineup={lineup} after={after} />
+          {hindsight ? null : <RangeBar lineup={lineup} after={after} />}
         </div>
         <div className="pl-lu-foot" style={{ justifyContent: "flex-end" }}>
           <RewardChips lineup={lineup} after={after} />

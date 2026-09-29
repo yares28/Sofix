@@ -28,6 +28,34 @@ const moved = (value) => {
 };
 const sorare = { ...sorareFixture, data: moved(sorareFixture.data) };
 
+// Two LaLiga rounds Sorare has not opened get an early plan the job kept apart (`read_models` key `sorare_ahead:<round>`):
+// the week being planned, built again as an early plan for that round, with one plan.
+const planning = sorare.data.weeks.find((week) => week.gameweek.id === sorare.data.nextId);
+const earlyWeeks = new Map(
+  recorded.data.matchdays
+    .filter((matchday) => matchday.number === 8 || matchday.number === 9)
+    .map((matchday) => {
+      const gameweek = { ...planning.gameweek, id: `md${matchday.number}`, slug: `projected-md${matchday.number}`, number: 0, name: `LaLiga GW${matchday.number}` };
+      const week = { ...structuredClone(planning), gameweek, source: "form", plans: planning.plans.slice(0, 1), projected: { round: matchday.number, basedOn: `GW${planning.gameweek.number}` } };
+      return [matchday.number, week];
+    }),
+);
+sorare.data.projected = [...earlyWeeks].map(([round, week]) => ({
+  round, id: week.gameweek.id, from: week.gameweek.start, to: week.gameweek.end, cards: week.playing.cards, plans: week.plans.length,
+}));
+
+// A finished week the job kept apart (`read_models` key `sorare_week:<slug>`): the timeline marks GW14 as kept, and it
+// is served here by its slug as the played week with GW14's own dates.
+const keptWeeks = new Map(
+  sorare.data.timeline
+    .filter((item) => item.kept && !sorare.data.weeks.some((week) => week.gameweek.id === item.id))
+    .map((item) => {
+      const played = sorare.data.weeks.find((week) => week.gameweek.id === sorare.data.lastId);
+      const gameweek = { ...played.gameweek, id: item.id, slug: item.slug, number: item.number, name: `Game Week ${item.number}`, start: item.start, end: item.end, lock: item.lock };
+      return [item.slug, { ...structuredClone(played), gameweek }];
+    }),
+);
+
 let state;
 function reset() {
   state = { mode: "ok", sorare: "ok", nextId: 1, run: null, polls: 0 };
@@ -80,6 +108,18 @@ const server = createServer((req, res) => {
       return send(res, 200, { success: false, data: null, error: "Sorare has not been synced yet.", meta: null });
     }
     return send(res, 200, sorare);
+  }
+
+  const earlyWeek = url.pathname.match(/^\/api\/sorare\/ahead\/(\d+)$/);
+  if (req.method === "GET" && earlyWeek) {
+    const early = state.sorare === "ok" ? earlyWeeks.get(Number(earlyWeek[1])) : undefined;
+    return send(res, 200, early ? { success: true, data: early } : { success: false, data: null, error: "There is no early plan for this round." });
+  }
+
+  const keptWeek = url.pathname.match(/^\/api\/sorare\/week\/([a-z0-9-]+)$/);
+  if (req.method === "GET" && keptWeek) {
+    const kept = state.sorare === "ok" ? keptWeeks.get(keptWeek[1]) : undefined;
+    return send(res, 200, kept ? { success: true, data: kept } : { success: false, data: null, error: "Sofix did not keep this gameweek." });
   }
 
   if (req.method === "POST" && url.pathname === "/api/admin/refresh") {

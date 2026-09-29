@@ -104,6 +104,8 @@ export type Plan = {
   cardsAvailable: number;
   lineups: Lineup[];
   actual?: { essence: number; cash: number; cards: number; paid: number; inRange: number };
+  /** The best lineups the planner finds for a finished week once it knows every score. Its numbers are what happened. */
+  hindsight?: boolean;
 };
 
 export type Option = {
@@ -200,7 +202,17 @@ export type GameweekPlan = {
   blocked: Blocked[];
   notWorth: AlsoOpen[];
   plans: Plan[];
+  /** A finished week only: the best lineups in hindsight, priced by what really paid (Rooms left out). */
+  hindsight?: Plan;
+  /**
+   * Only for a LaLiga round Sorare has not opened a gameweek for: an early plan from the calendar and form, with the
+   * competitions of the gameweek named in `basedOn`. Nothing in it can be entered.
+   */
+  projected?: { round: number; basedOn: string };
 };
+
+/** What the main page says about an early plan: enough for the week picker. The week itself is read apart. */
+export type ProjectedHead = { round: number; id: string; from: string; to: string; cards: number; plans: number };
 
 export type TimelineWeek = {
   id: string;
@@ -212,6 +224,8 @@ export type TimelineWeek = {
   status: "done" | "live" | "next" | "later";
   playing?: number;
   won?: number;
+  /** The job kept this finished week whole, apart from the page (`loadSorareWeek`). `playing` and `won` are its headline. */
+  kept?: boolean;
 };
 
 /** How the payload came to be: who built it, when the cloud last managed it, and what the record holds. */
@@ -268,6 +282,8 @@ export type Sorare = {
   user: string;
   status?: Status;
   timeline: TimelineWeek[];
+  /** The LaLiga rounds Sorare has not opened, each with an early plan the job kept apart (`loadProjectedWeek`). */
+  projected?: ProjectedHead[];
   /** Every gameweek the job planned, oldest first: the one it replayed, the one being planned, then the ones ahead. */
   weeks: GameweekPlan[];
   nextId: string;
@@ -403,4 +419,12 @@ export function lastWeek(data: Sorare): GameweekPlan | null {
 
 export function weekPlan(data: Sorare, id: string): GameweekPlan | null {
   return data.weeks.find((week) => week.gameweek.id === id) ?? null;
+}
+
+/**
+ * The plans a page offers for a week: Sofix's own, and once the games are over and you look at what happened, the best
+ * lineups in hindsight after them. Before the lock, what it could have been is not the question.
+ */
+export function plansOf(week: GameweekPlan, after: boolean): Plan[] {
+  return after && week.played && week.hindsight ? [...week.plans, week.hindsight] : week.plans;
 }

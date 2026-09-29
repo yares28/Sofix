@@ -58,6 +58,86 @@
         }
       }
     },
+    "/api/sorare/week/{slug}": {
+      "get": {
+        "summary": "Sorare Week",
+        "description": "One finished gameweek the job kept whole, by its Sorare slug. Local development only, like /sorare.",
+        "operationId": "sorare_week_api_sorare_week__slug__get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_dict_str__Any__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sorare/ahead/{round}": {
+      "get": {
+        "summary": "Sorare Ahead",
+        "description": "The early plan the job made for a LaLiga round Sorare has not opened. Local development only, like /sorare.",
+        "operationId": "sorare_ahead_api_sorare_ahead__round__get",
+        "parameters": [
+          {
+            "name": "round",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Round"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_dict_str__Any__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/refresh": {
       "post": {
         "summary": "Start Refresh",

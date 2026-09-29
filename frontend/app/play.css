@@ -141,6 +141,18 @@
   white-space: nowrap;
 }
 .pl-entered-status.draft { background: #fff4e0; color: #8a5300; }
+/* What Sorare says the lineup made: the score first, then where it ranked and what it was paid. */
+.pl-entered-card .cap {
+  position: absolute; left: 2px; top: 2px; display: grid; place-items: center; width: 12px; height: 12px;
+  border-radius: 50%; background: #fff; color: #111; font-size: 8px; font-style: normal; font-weight: 800; line-height: 1;
+}
+.pl-entered-card .sc {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 1px 0; background: rgba(12, 12, 14, 0.78);
+  color: #fff; font-size: 9px; font-weight: 700; line-height: 1.2; text-align: center; font-variant-numeric: tabular-nums;
+}
+.pl-entered-result { justify-self: end; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; min-width: 0; }
+.pl-entered-result b { font-size: 20px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.pl-entered-result small { font-size: 11px; color: var(--ink-2); white-space: nowrap; }
 .pl-entered-wait,
 .pl-entered-empty {
   margin-top: 14px;
@@ -1453,7 +1465,8 @@
   .pl-entered-head { align-items: flex-start; }
   .pl-entered-lineup { grid-template-columns: minmax(0, 1fr) auto; gap: 11px 14px; }
   .pl-entered-cards { grid-column: 1 / -1; }
-  .pl-entered-status { grid-column: 2; grid-row: 1; }
+  .pl-entered-status,
+  .pl-entered-result { grid-column: 2; grid-row: 1; }
   .pl-entered-empty { align-items: flex-start; flex-direction: column; }
   .pl-plans {
     display: flex;
@@ -1633,6 +1646,10 @@
   color: #8a5300;
 }
 .pl-alert.cloudless { background: #fdeced; color: #8f1526; }
+/* An early plan is not a warning: a plain note in the page's own colours. */
+.pl-alert.early { background: var(--hover); color: var(--ink); align-items: flex-start; }
+.pl-alert.early > span { flex: none; font-size: 17px; line-height: 1.2; color: var(--ink-2); }
+.pl-alert.early > div { min-width: 0; }
 .pl-alert b { display: block; font-size: 14px; font-weight: 650; }
 .pl-go {
   margin-left: auto;
@@ -1654,6 +1671,7 @@
 
 @media (max-width: 700px) {
   .pl-alert { flex-wrap: wrap; }
+  .pl-alert.early { flex-wrap: nowrap; }
   .pl-go { margin-left: 0; width: 100%; text-align: center; }
 }
 

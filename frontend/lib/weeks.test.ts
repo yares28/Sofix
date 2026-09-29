@@ -81,6 +81,55 @@ describe("the weeks of a season", () => {
     expect(weekValue(md8)).toEqual({ value: "—", note: "Sorare opens later" });
   });
 
+  it("says a finished week Sofix holds nothing for was not recorded, rather than that no cards played", () => {
+    const gw13 = weeks.find((w) => w.number === 13)!;
+    expect(gw13.state).toBe("done");
+    expect(weekValue(gw13)).toEqual({ value: "—", note: "not recorded" });
+  });
+
+  it("shows the headline of a week the job kept apart, though the page no longer holds its plans", () => {
+    const kept = { ...TIMELINE[1]!, playing: 14, won: 250, kept: true };
+    const all = seasonWeeks(grid, { ...sorare, timeline: [TIMELINE[0]!, kept, ...TIMELINE.slice(2)] } as Sorare, NOW);
+    const gw14 = all.find((w) => w.number === 14)!;
+    expect(gw14.kept).toBe(true);
+    expect(gw14.cards).toBe(14);
+    expect(weekValue(gw14)).toEqual({ value: "250", note: "our plan's replay" });
+    expect(all.find((w) => w.number === 13)!.kept).toBe(false); // the one beside it was not kept
+  });
+
+  it("gives a round Sorare has not opened the headline of its early plan, and leaves the others as they were", () => {
+    const early = { round: 8, id: "md8", from: "2026-10-09T14:00:00+00:00", to: "2026-10-13T14:00:00+00:00", cards: 11, plans: 1 };
+    const all = seasonWeeks(grid, { ...sorare, projected: [early] } as Sorare, NOW);
+    const md8 = all.find((w) => w.md === 8)!;
+    expect(md8.gw).toBeNull();
+    expect(md8.early).toBe(true);
+    expect(md8.cards).toBe(11);
+    expect(weekValue(md8)).toEqual({ value: "11", note: "early plan" });
+    expect(all.find((w) => w.number === 17)!.early).toBe(false);
+    // no early plan for it (an older page, or none could be made): still "Sorare opens later"
+    const bare = seasonWeeks(grid, { ...sorare, projected: [] } as Sorare, NOW).find((w) => w.md === 8)!;
+    expect(bare.early).toBe(false);
+    expect(weekValue(bare)).toEqual({ value: "—", note: "Sorare opens later" });
+  });
+
+  it("says no cards play in an early plan where none of yours has a game", () => {
+    const early = { round: 8, id: "md8", from: "2026-10-09T14:00:00+00:00", to: "2026-10-13T14:00:00+00:00", cards: 0, plans: 0 };
+    const md8 = seasonWeeks(grid, { ...sorare, projected: [early] } as Sorare, NOW).find((w) => w.md === 8)!;
+    expect(weekValue(md8)).toEqual({ value: "—", note: "no cards play" });
+  });
+
+  it("does not take a headline from a week nobody kept, even when an older timeline carries one", () => {
+    const stale = { ...TIMELINE[0]!, playing: 9, won: 0 }; // the number a replay once left behind
+    const all = seasonWeeks(grid, { ...sorare, timeline: [stale, ...TIMELINE.slice(1)] } as Sorare, NOW);
+    expect(weekValue(all.find((w) => w.number === 13)!)).toEqual({ value: "—", note: "not recorded" });
+  });
+
+  it("still says no cards play for a coming week that is planned and holds none of yours", () => {
+    const empty = week("19", { plans: [], playing: { cards: 0, players: [] } });
+    const quiet = seasonWeeks(grid, { ...sorare, weeks: [...sorare.weeks.filter((w) => w.gameweek.id !== "19"), empty] } as Sorare, NOW);
+    expect(weekValue(quiet.find((w) => w.number === 19)!)).toEqual({ value: "—", note: "no cards play" });
+  });
+
   it("offers Play each game week once, and every round still to come that Sorare hasn't opened", () => {
     // MD4 is over and sits in no Sorare week the payload holds: Play has nothing true to say about it.
     const over = { number: 4, date_from: "2026-09-01T19:00:00Z", date_to: "2026-09-02T19:00:00Z", finished: true } as GridMatchday;

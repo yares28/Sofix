@@ -11,7 +11,7 @@
  */
 
 import type { FixtureGrid, GridMatchday } from "./types";
-import type { GameweekPlan, Sorare } from "./play";
+import type { GameweekPlan, ProjectedHead, Sorare } from "./play";
 
 export type WeekState = "done" | "live" | "next" | "later";
 
@@ -41,6 +41,10 @@ export type Week = {
   /** Essence our own replayed plan would have won — never what the owner actually entered. */
   replay: number | null;
   source: "sorare" | "form" | null;
+  /** Sofix holds this finished week's plans: on the page, or kept whole apart from it. False for one played before that. */
+  kept: boolean;
+  /** A LaLiga round Sorare has not opened, with an early plan the job made from the calendar and form. */
+  early: boolean;
 };
 
 // en-GB writes "Sept"; the app writes three letters everywhere else, so the months are spelled here.
@@ -60,6 +64,7 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
   const rounds: GridMatchday[] = (grid?.matchdays ?? []).filter((md) => md.date_from);
   const planned = new Map((sorare?.weeks ?? []).map((week) => [week.gameweek.id, week]));
   const timeline = sorare?.timeline ?? [];
+  const early = new Map((sorare?.projected ?? []).map((head) => [head.round, head]));
   const taken = new Set<string>();
   const usedIds = new Set<string>();
   const weeks: Week[] = [];
@@ -73,7 +78,13 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
 
   const fromSorare = (id: string): Partial<Week> => {
     const week: GameweekPlan | undefined = planned.get(id);
-    if (!week) return { cards: 0, plans: 0, essence: null, replay: null, source: null };
+    if (!week) {
+      // Not on the page: a week the job kept apart still has its headline in the timeline. Only such a week: the
+      // numbers an older timeline carries for any other belong to a replay nobody kept.
+      const item = timeline.find((entry) => entry.id === id);
+      if (item?.kept !== true) return { cards: 0, plans: 0, essence: null, replay: null, source: null, kept: false, early: false };
+      return { cards: item.playing ?? 0, plans: 0, essence: null, replay: item.won ?? null, source: null, kept: true, early: false };
+    }
     const best = week.plans[0];
     return {
       cards: week.playing.cards,
@@ -81,6 +92,8 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
       essence: week.played ? null : (best?.essence ?? null),
       replay: week.played ? (best?.actual?.essence ?? 0) : null,
       source: week.source,
+      kept: true,
+      early: false,
     };
   };
 
@@ -106,8 +119,9 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
       finished: Boolean(round.finished),
       gw: week?.id ?? null,
       number: week?.number ?? null,
-      ...({ cards: 0, plans: 0, essence: null, replay: null, source: null } as Partial<Week>),
-      ...(week ? fromSorare(week.id) : {}),
+      ...({ cards: 0, plans: 0, essence: null, replay: null, source: null, kept: false, early: false } as Partial<Week>),
+      // A round with no Sorare gameweek yet may still have an early plan; a round inside one has the real plan.
+      ...(week ? fromSorare(week.id) : earlyOf(early.get(round.number))),
     } as Week);
   }
 
@@ -129,11 +143,18 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
       essence: null,
       replay: null,
       source: null,
+      kept: false,
+      early: false,
       ...fromSorare(item.id),
     } as Week);
   }
 
   return weeks.sort((a, b) => at(a.from) - at(b.from));
+}
+
+/** What the picker knows of a round's early plan: how many of your cards play in it. */
+function earlyOf(head: ProjectedHead | undefined): Partial<Week> {
+  return head ? { cards: head.cards, plans: head.plans, early: true } : {};
 }
 
 function stateOf(from: string, to: string, sorare: Sorare | null, gw: string | undefined, now: Date): WeekState {
@@ -220,7 +241,10 @@ export function weekValue(week: Week): { value: string; note: string } {
   }
   if (week.replay !== null) return { value: String(Math.round(week.replay)), note: "our plan's replay" };
   if (week.state === "live") return { value: "live", note: "locked" };
+  if (week.early) return week.cards ? { value: String(week.cards), note: "early plan" } : { value: "—", note: "no cards play" };
   if (week.cards) return { value: String(week.cards), note: week.cards === 1 ? "card plays" : "cards play" };
+  // A finished week the job holds nothing for was played before Sofix kept weeks: not one where no cards played.
+  if (week.gw && week.state === "done" && !week.kept) return { value: "—", note: "not recorded" };
   if (week.gw) return { value: "—", note: "no cards play" };
   return { value: "—", note: "Sorare opens later" };
 }

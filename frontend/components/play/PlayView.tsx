@@ -7,6 +7,7 @@ import {
   essenceLabel,
   formatOf,
   insideRange,
+  plansOf,
   timeUntil,
   waitingFor,
 } from "../../lib/play";
@@ -34,19 +35,24 @@ export default function PlayView({
   planIndex,
   after,
   now,
+  weekId,
 }: {
   data: Sorare;
   week: GameweekPlan;
   planIndex: number;
   after: boolean;
   now: Date;
+  /** The week in the address (`?w=`), which the page's own links keep: it names every kind of week, early ones too. */
+  weekId?: string;
 }) {
   const id = week.gameweek.id;
-  const plan = week.plans[planIndex];
+  const plans = plansOf(week, after);
+  const plan = plans[planIndex];
   const href = (options: { gw?: string; plan?: number; after?: boolean }) => {
     const params = new URLSearchParams();
     const gw = options.gw ?? id;
-    if (gw !== data.nextId) params.set("gw", gw);
+    if (weekId) params.set("w", weekId);
+    else if (gw !== data.nextId) params.set("gw", gw);
     const index = options.plan ?? planIndex;
     if (index > 0) params.set("plan", String(index + 1));
     const showActual = options.after ?? after;
@@ -55,7 +61,7 @@ export default function PlayView({
     return query ? `/play?${query}` : "/play";
   };
 
-  const sync = after ? null : syncState(data, week, now);
+  const sync = after || week.projected ? null : syncState(data, week, now);
   return (
     <main className="pl-main">
       <Head data={data} week={week} after={after} href={href} now={now} sync={sync} />
@@ -71,10 +77,21 @@ export default function PlayView({
           </Link>
         </div>
       ) : null}
-      <EnteredLineups week={week.gameweek} />
+      {week.projected ? (
+        <div className="pl-alert early" role="status">
+          <span aria-hidden="true">≈</span>
+          <div>
+            <b>An early plan</b>
+            Sorare hasn&apos;t opened this week. Built from LaLiga&apos;s calendar, your cards&apos; form and the competitions of{" "}
+            {week.projected.basedOn}; it moves as the week gets closer, and nothing here can be entered yet.
+          </div>
+        </div>
+      ) : (
+        <EnteredLineups week={week.gameweek} />
+      )}
       {plan ? (
         <>
-          <PlanSwitch week={week} planIndex={planIndex} after={after} href={href} />
+          <PlanSwitch plans={plans} planIndex={planIndex} after={after} href={href} />
           <div className={sync?.behind ? "behind" : undefined}>
             <PlanHero plan={plan} week={week} after={after} now={now} />
           </div>
@@ -84,7 +101,7 @@ export default function PlayView({
           </div>
           <div className={`pl-lus${sync?.behind ? " behind" : ""}`}>
             {plan.lineups.map((lineup, index) => (
-              <Lineup key={`${lineup.key}-${index}`} lineup={lineup} after={after} index={index} />
+              <Lineup key={`${lineup.key}-${index}`} lineup={lineup} after={after} index={index} hindsight={plan.hindsight === true} />
             ))}
           </div>
         </>
@@ -113,7 +130,13 @@ function Head({
 }) {
   const { lock, start, end } = week.gameweek;
   const locked = new Date(lock) <= now;
-  const eyebrow = week.played ? "Sorare · played" : week.state === "none" ? "Sorare" : "Sorare · your gameweek";
+  const eyebrow = week.projected
+    ? "Sorare · not open yet"
+    : week.played
+      ? "Sorare · played"
+      : week.state === "none"
+        ? "Sorare"
+        : "Sorare · your gameweek";
   return (
     <header className="pl-head">
       <div>
@@ -121,7 +144,7 @@ function Head({
           <Foil rarity="limited" className="sm" />
           {eyebrow}
         </p>
-        <h1>Gameweek {week.gameweek.number}</h1>
+        <h1>{week.projected ? week.gameweek.name : `Gameweek ${week.gameweek.number}`}</h1>
         <p className="pl-sub">
           <span>
             {weekday(start)} {span(start, end)}
@@ -159,29 +182,29 @@ function Head({
 
 
 function PlanSwitch({
-  week,
+  plans,
   planIndex,
   after,
   href,
 }: {
-  week: GameweekPlan;
+  plans: Plan[];
   planIndex: number;
   after: boolean;
   href: (options: { gw?: string; plan?: number; after?: boolean }) => string;
 }) {
   return (
-    <nav className="pl-plans" style={{ ["--plans" as string]: String(week.plans.length) }} aria-label="Plan">
-      {week.plans.map((plan, index) => (
+    <nav className="pl-plans" style={{ ["--plans" as string]: String(plans.length) }} aria-label="Plan">
+      {plans.map((plan, index) => (
         <Link
-          key={plan.rank}
+          key={plan.hindsight ? "hindsight" : plan.rank}
           href={href({ plan: index })}
           aria-current={index === planIndex ? "page" : undefined}
           scroll={false}
           prefetch={false}
         >
           <span className="l1">
-            Plan {plan.rank}
-            {index === 0 ? <span className="best">best</span> : null}
+            {plan.hindsight ? "In hindsight" : `Plan ${plan.rank}`}
+            {index === 0 && !plan.hindsight ? <span className="best">best</span> : null}
           </span>
           <span className="l2">
             {after && plan.actual ? (
@@ -220,7 +243,7 @@ function PlanHero({ plan, week, after, now }: { plan: Plan; week: GameweekPlan; 
     <section className="pl-hero" aria-live="polite">
       <div className="pl-id">
         <p className="pl-eyebrow" style={{ margin: 0 }}>
-          Plan {plan.rank} of {week.plans.length}
+          {plan.hindsight ? "The best lineups in hindsight" : `Plan ${plan.rank} of ${week.plans.length}`}
         </p>
         <div className="pl-name">
           <Foil rarity="limited" className="lg" />
@@ -239,12 +262,16 @@ function PlanHero({ plan, week, after, now }: { plan: Plan; week: GameweekPlan; 
                   </b>{" "}
                   lineups paid
                 </span>
-                <span>
-                  <b>
-                    {insideRange(plan)} of {plan.lineups.length}
-                  </b>{" "}
-                  inside the range
-                </span>
+                {plan.hindsight ? (
+                  <span>knowing every score, with your cards today</span>
+                ) : (
+                  <span>
+                    <b>
+                      {insideRange(plan)} of {plan.lineups.length}
+                    </b>{" "}
+                    inside the range
+                  </span>
+                )}
               </>
             ) : (
               <>
@@ -269,18 +296,18 @@ function PlanHero({ plan, week, after, now }: { plan: Plan; week: GameweekPlan; 
             <b>
               {after && plan.actual ? essenceLabel(plan.actual.essence) : `≈${essenceLabel(plan.essence)}`}
             </b>
-            <small>{after ? `expected ≈${essenceLabel(plan.essence)}` : "expected"}</small>
+            <small>{plan.hindsight ? "the most it could have won" : after ? `expected ≈${essenceLabel(plan.essence)}` : "expected"}</small>
           </div>
           <div className={after ? "won" : ""}>
             <span className="lbl">
               <Cash /> Cash{after ? " won" : ""}
             </span>
             <b>{after && plan.actual ? cashLabel(plan.actual.cash) : `≈${cashLabel(plan.cash)}`}</b>
-            <small>{after ? `expected ≈${cashLabel(plan.cash)}` : "expected · never converted"}</small>
+            <small>{plan.hindsight ? "Rooms not counted" : after ? `expected ≈${cashLabel(plan.cash)}` : "expected · never converted"}</small>
           </div>
         </div>
         <div className="pl-actions">
-          {after ? null : (
+          {after || week.projected ? null : (
             <ApplySheet lineups={plan.lineups} week={week} rank={plan.rank} now={now.toISOString()} />
           )}
         </div>

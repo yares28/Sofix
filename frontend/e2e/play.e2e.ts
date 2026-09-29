@@ -38,7 +38,11 @@ async function showMonthOf(page: Page, week: Week) {
 
 const gameweek = async (request: APIRequestContext, id: string) => (await playWeeks(request)).find((week) => week.gw === id)!;
 
-test("entered Sorare lineups sit at the top of the gameweek they belong to", async ({ page }) => {
+/**
+ * The Sofix extension as Sorare answers through it: one entered lineup, with what it scored, where it ranked and
+ * what it was paid, for exactly these gameweeks. Any other gameweek has no lineups.
+ */
+async function fakeExtension(page: Page, fixtureSlugs: string[]) {
   const cards = sorare.collection!.slice(0, 7);
   await page.addInitScript(
     ({ fixtureSlugs, cards }) => {
@@ -49,7 +53,7 @@ test("entered Sorare lineups sit at the top of the gameweek they belong to", asy
       root.chrome.runtime ??= {};
       root.chrome.runtime.sendMessage = (_id, message, reply) => {
         if (message.type === "ping") {
-          reply({ ok: true, version: "0.1.1", sorareUser: "e2e-manager", appReachable: true });
+          reply({ ok: true, version: "0.2.2", sorareUser: "e2e-manager", appReachable: true });
           return;
         }
         const entered = message.step === "week-entered" && fixtureSlugs.includes(String(message.slug));
@@ -66,11 +70,29 @@ test("entered Sorare lineups sit at the top of the gameweek they belong to", asy
                         draft: false,
                         confirmable: false,
                         so5Leaderboard: { slug: "laliga-limited", displayName: "LALIGA EA SPORTS" },
-                        so5Appearances: cards.map((card) => ({
+                        so5Rankings: [
+                          {
+                            id: "rank-1",
+                            ranking: 1204,
+                            score: 313.4,
+                            so5Leaderboard: { slug: "laliga-limited" },
+                            so5Rewards: [
+                              {
+                                rewardConfigs: [
+                                  { __typename: "MonetaryRewardConfig", amount: { usdCents: 250 } },
+                                  { __typename: "CardShardRewardConfig", rarity: "limited", quantity: 250 },
+                                ],
+                              },
+                            ],
+                          },
+                        ],
+                        so5Appearances: cards.map((card, index) => ({
                           anyCard: { slug: card.slug },
                           pictureUrl: card.pic,
                           player: { displayName: card.name },
                           rarity: card.rarity,
+                          score: 40 + index,
+                          captain: index === 0,
                         })),
                       },
                     ],
@@ -81,15 +103,25 @@ test("entered Sorare lineups sit at the top of the gameweek they belong to", asy
         });
       };
     },
-    { fixtureSlugs: [planned.gameweek.slug, timelineOnly.slug], cards },
+    { fixtureSlugs, cards },
   );
+}
+
+test("entered Sorare lineups sit at the top of the gameweek they belong to", async ({ page }) => {
+  await fakeExtension(page, [planned.gameweek.slug, timelineOnly.slug]);
 
   await page.goto("/play");
   const mine = page.getByRole("region", { name: "Your Sorare lineups" });
   await expect(mine).toContainText("Friday team");
   await expect(mine).toContainText("LALIGA EA SPORTS");
-  await expect(mine).toContainText("7 cards");
+  await expect(mine.getByLabel("7 cards")).toBeVisible();
   await expect(mine.getByRole("img")).toHaveCount(7);
+  // What Sorare says it made: the score, where it ranked, what it was paid, and each card's score with the captain marked.
+  const lineup = mine.locator(".pl-entered-lineup");
+  await expect(lineup.locator(".pl-entered-result b")).toHaveText("313");
+  await expect(lineup.locator(".pl-entered-result small")).toHaveText("Rank 1,204 · $2.50 · 250 essence");
+  await expect(lineup.locator(".pl-entered-card .cap")).toHaveCount(1);
+  await expect(lineup.locator(".pl-entered-card .sc").first()).toHaveText("40");
 
   const children = await page.locator(".pl-main > *").evaluateAll((nodes) => nodes.map((node) => node.className));
   expect(children.indexOf("pl-entered")).toBeLessThan(children.indexOf("pl-plans"));
@@ -278,6 +310,121 @@ test("Play lists the weeks Sorare hasn't opened yet, and their page says so", as
   await expect(page).toHaveURL(new RegExp(`/play\\?w=${later.id}$`));
   await expect(page.getByRole("heading", { level: 1, name: `LaLiga GW${later.md}` })).toBeVisible();
   await expect(page.locator(".empty-state")).toContainText("Sorare hasn't opened this week.");
+});
+
+test("every gameweek of the season is in Play's picker, and one Sofix didn't keep says so", async ({ page, request }) => {
+  // GW13, GW14 and GW16 finished before the job started keeping weeks: the payload lists them and holds nothing for them.
+  const weeks = await playWeeks(request);
+  const notKept = weeks.filter((week) => week.gw && week.state === "done" && !week.kept);
+  expect(notKept.length).toBeGreaterThan(0);
+  const old = notKept[0]!;
+
+  await page.goto("/play");
+  await page.locator(".wk-trigger").click();
+  await showMonthOf(page, old);
+  const row = page.locator(".wk-panel").getByRole("radio", { name: new RegExp(`^GW${old.number}\\b`) });
+  await expect(row).toContainText("not recorded");
+  await row.click();
+  await expect(page).toHaveURL(new RegExp(`/play\\?w=${old.id}$`));
+  await expect(page.getByRole("heading", { level: 1, name: `Gameweek ${old.number}` })).toBeVisible();
+  await expect(page.locator(".empty-state")).toContainText("Sofix didn't keep the plans for this gameweek");
+});
+
+test("a gameweek Sofix didn't keep still shows what you entered in it and what it won, read from Sorare", async ({ page, request }) => {
+  const old = (await playWeeks(request)).find((week) => week.gw && week.state === "done" && !week.kept)!;
+  const slug = sorare.timeline.find((item) => item.id === old.gw)!.slug;
+  await fakeExtension(page, [slug]);
+
+  await page.goto(`/play?w=${old.id}`);
+  await expect(page.getByRole("heading", { level: 1, name: `Gameweek ${old.number}` })).toBeVisible();
+  const mine = page.getByRole("region", { name: "Your Sorare lineups" });
+  await expect(mine).toContainText(`GW${old.number}`);
+  await expect(mine).toContainText("Friday team");
+  await expect(mine.locator(".pl-entered-result b")).toHaveText("313");
+  await expect(mine.locator(".pl-entered-result small")).toHaveText("Rank 1,204 · $2.50 · 250 essence");
+
+  // Nothing overflows on a phone.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(mine).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});
+
+test("a week the job kept apart opens as the week that was played, with the best lineups in hindsight", async ({ page, request }) => {
+  const weeks = await playWeeks(request);
+  const kept = weeks.find((week) => week.kept && week.gw !== sorare.lastId && week.state === "done")!; // GW14: kept, not on the page
+  await page.goto("/play");
+  await page.locator(".wk-trigger").click();
+  await showMonthOf(page, kept);
+  const row = page.locator(".wk-panel").getByRole("radio", { name: new RegExp(`^GW${kept.number}\\b`) });
+  await expect(row).toContainText("our plan's replay"); // its headline comes from the timeline, not "not recorded"
+  await row.click();
+
+  await expect(page.getByRole("heading", { level: 1, name: `Gameweek ${kept.number}` })).toBeVisible();
+  await expect(page.locator(".pl-eyebrow").first()).toContainText("Sorare · played");
+  await page.getByRole("group", { name: "Show" }).getByRole("link", { name: "After the games" }).click();
+  await expect(page).toHaveURL(/after=1/);
+
+  // The plans, then the best lineups in hindsight as the last tab: what it could have won, and no guess of what it expected.
+  const tabs = page.getByRole("navigation", { name: "Plan" }).getByRole("link");
+  await expect(tabs).toHaveCount(3);
+  await tabs.last().click();
+  await expect(page).toHaveURL(/plan=3/);
+  const hero = page.locator(".pl-hero");
+  await expect(hero.locator(".pl-eyebrow").first()).toHaveText("The best lineups in hindsight");
+  await expect(hero.locator(".pl-side")).toContainText("2 of 2 lineups paid");
+  await expect(hero.locator(".pl-side")).toContainText("knowing every score, with your cards today");
+  await expect(hero.locator(".pl-pair b").first()).toHaveText("500");
+  await expect(hero.locator(".pl-pair small").first()).toHaveText("the most it could have won");
+  const first = page.locator(".pl-lu").first();
+  await expect(first).toContainText("scored");
+  await expect(first).not.toContainText("xScore");
+
+  // Before the lock there is no hindsight: it is not what the plan was.
+  await page.goto(`/play?w=${kept.id}`);
+  await expect(page.getByRole("navigation", { name: "Plan" }).getByRole("link")).toHaveCount(2);
+});
+
+test("the week just played on the page has the same best lineups in hindsight", async ({ page, request }) => {
+  await page.goto("/play");
+  await page.locator(".wk-trigger").click();
+  await showMonthOf(page, await gameweek(request, "15"));
+  await page.locator(".wk-panel").getByRole("radio", { name: /GW15\b/ }).click();
+  await page.getByRole("group", { name: "Show" }).getByRole("link", { name: "After the games" }).click();
+  await page.getByRole("navigation", { name: "Plan" }).getByRole("link", { name: /In hindsight/ }).click();
+  await expect(page.locator(".pl-hero .pl-pair b").first()).toHaveText("500");
+});
+
+test("a LaLiga round Sorare has not opened opens as an early plan that says so and cannot be entered", async ({ page, request }) => {
+  const early = (await playWeeks(request)).find((week) => week.early)!; // MD8: the job made it an early plan
+  await page.goto("/play");
+  await page.locator(".wk-trigger").click();
+  await showMonthOf(page, early);
+  const row = page.locator(".wk-panel").getByRole("radio", { name: new RegExp(`^LaLiga GW${early.md}\\b`) });
+  await expect(row).toContainText("early plan");
+  await row.click();
+
+  await expect(page.getByRole("heading", { level: 1, name: `LaLiga GW${early.md}` })).toBeVisible();
+  await expect(page.locator(".pl-eyebrow").first()).toContainText("Sorare · not open yet");
+  const note = page.getByRole("status").filter({ hasText: "An early plan" });
+  await expect(note).toContainText("Sorare hasn't opened this week");
+  await expect(note).toContainText("GW17"); // the competitions it borrows
+
+  // One plan, and nothing here reaches Sorare: no Apply, and no lineups of yours to read for a gameweek that does not exist.
+  await expect(page.getByRole("button", { name: "Apply plan" })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Your Sorare lineups" })).toHaveCount(0);
+  await expect(page.locator(".pl-hero")).toBeVisible();
+  const tabs = page.getByRole("navigation", { name: "Plan" }).getByRole("link");
+  await expect(tabs).toHaveCount(1);
+
+  // The plan's own link keeps the week you are on rather than jumping to another.
+  await tabs.click();
+  await expect(page).toHaveURL(new RegExp(`w=${early.id}`));
+  await expect(page.getByRole("heading", { level: 1, name: `LaLiga GW${early.md}` })).toBeVisible();
+
+  // A round with no early plan (the far end of the season here) still says Sorare has not opened it.
+  const bare = (await playWeeks(request)).filter((week) => week.md !== null && !week.gw && !week.early).at(-1)!;
+  await page.goto(`/play?w=${bare.id}`);
+  await expect(page.locator(".empty-state")).toContainText("Sorare hasn't opened this week");
 });
 
 test("a link to a gameweek the page no longer holds falls back to the one being planned", async ({ page }) => {

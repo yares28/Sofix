@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { cannot } from "../../lib/apply";
-import { runWeekLineups, type GameweekLineup, type WeekLineupsAnswer } from "../../lib/entered";
+import { resultLine, runWeekLineups, type GameweekLineup, type WeekLineupsAnswer } from "../../lib/entered";
 import { REQUIRED_EXTENSION_VERSION } from "../../lib/extension";
 import { Foil } from "./bits";
 import SorareImage from "./SorareImage";
@@ -100,12 +100,21 @@ export default function EnteredLineups({ week }: { week: Week }) {
                   <span className="pl-entered-card" key={card.slug} title={card.name}>
                     <SorareImage src={card.picture ?? undefined} alt={card.name} fill />
                     {!card.picture ? card.name.slice(0, 1).toUpperCase() : null}
+                    {card.captain ? <i className="cap" title="Captain">C</i> : null}
+                    {lineup.result && card.score !== null ? <b className="sc">{Math.round(card.score)}</b> : null}
                   </span>
                 ))}
               </div>
-              <span className={`pl-entered-status${lineup.draft ? " draft" : ""}`}>
-                {lineup.draft ? "Draft" : "Entered"} · {lineup.cards.length} cards
-              </span>
+              {lineup.result && !lineup.draft ? (
+                <span className="pl-entered-result">
+                  <b>{Math.round(lineup.result.score)}</b>
+                  <small>{resultLine(lineup.result)}</small>
+                </span>
+              ) : (
+                <span className={`pl-entered-status${lineup.draft ? " draft" : ""}`}>
+                  {lineup.draft ? "Draft" : "Entered"} · {lineup.cards.length} cards
+                </span>
+              )}
             </article>
           ))}
         </div>

@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
+import EnteredLineups from "../../components/play/EnteredLineups";
 import PlayView from "../../components/play/PlayView";
 import SiteNav from "../../components/SiteNav";
 import { loadGrid } from "../../lib/api";
-import { weekPlan } from "../../lib/play";
-import { loadSorare } from "../../lib/playData";
+import { plansOf, weekPlan } from "../../lib/play";
+import { loadProjectedWeek, loadSorare, loadSorareWeek } from "../../lib/playData";
 import { loadSystem } from "../../lib/system";
 import { weekContext } from "../../lib/weeks";
 
@@ -46,12 +47,22 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
   // The week in the bar decides the gameweek; ?gw= still works for a link made before the week existed, and
   // one naming a gameweek this page no longer holds is dropped rather than silently showing another.
   const legacy = single("gw");
-  if (legacy && !weekPlan(data, legacy)) redirect("/play");
+  if (legacy && !weekPlan(data, legacy) && !data.timeline.some((item) => item.id === legacy)) redirect("/play");
   const asked = week.current;
-  const showing = weekPlan(data, asked?.gw ?? data.nextId);
-  // A week Sorare has not opened, or one the job has not planned: the page says so rather than showing
-  // another gameweek under that week's name.
-  if (!showing || (asked && !asked.gw)) {
+  const item = asked?.gw ? data.timeline.find((entry) => entry.id === asked.gw) : undefined;
+  const over = item !== undefined && asked?.state === "done";
+  // A LaLiga round Sorare has not opened has no gameweek to show, only the early plan the job made for it (or none).
+  const unopened = asked !== null && !asked.gw;
+  const early = unopened && asked.early && asked.md !== null ? await loadProjectedWeek(asked.md) : null;
+  // The page holds the last weeks; a finished one the job kept apart is read from where it was kept.
+  const showing = unopened
+    ? early
+    : (weekPlan(data, asked?.gw ?? data.nextId) ?? (over && item.kept ? await loadSorareWeek(item.slug) : null));
+  // A week Sorare has not opened and no early plan covers, or one the job has not planned: the page says so rather
+  // than showing another gameweek under that week's name.
+  if (!showing) {
+    // A finished Sorare gameweek Sofix holds nothing for: what you entered and won is still readable from Sorare.
+    const played = over ? item : undefined;
     return (
       <>
         <SiteNav meta={meta} system={system} week={week} />
@@ -60,23 +71,27 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
             {/* Named the way the week picker names it on Play: its Sorare game week, else its LaLiga round. */}
             <h1>{asked?.gw ? `Gameweek ${asked.number}` : asked?.md ? `LaLiga GW${asked.md}` : "Play"}</h1>
             <p>
-              {asked && !asked.gw
+              {unopened
                 ? "Sorare hasn't opened this week. It opens about a week before the games."
-                : "Your Sorare gameweek appears after the next refresh."}
+                : played
+                  ? "Sofix didn't keep the plans for this gameweek: it was played before Sofix started keeping them. Every gameweek from now on is kept, with its plans and what your lineups won."
+                  : "Your Sorare gameweek appears after the next refresh."}
             </p>
           </section>
+          {played ? <EnteredLineups week={played} /> : null}
         </main>
       </>
     );
   }
-  const requested = Number(single("plan") ?? 1);
-  const planIndex = Number.isFinite(requested) ? Math.min(Math.max(requested, 1), Math.max(showing.plans.length, 1)) - 1 : 0;
   const after = single("after") === "1" && showing.played;
+  const requested = Number(single("plan") ?? 1);
+  const offered = Math.max(plansOf(showing, after).length, 1);
+  const planIndex = Number.isFinite(requested) ? Math.min(Math.max(requested, 1), offered) - 1 : 0;
 
   return (
     <>
       <SiteNav meta={meta} system={system} week={week} />
-      <PlayView data={data} week={showing} planIndex={planIndex} after={after} now={new Date()} />
+      <PlayView data={data} week={showing} planIndex={planIndex} after={after} now={new Date()} weekId={single("w")} />
     </>
   );
 }

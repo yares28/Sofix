@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { database, readModel } from "./db";
-import { SORARE_TAG, type Sorare } from "./play";
+import { SORARE_TAG, type GameweekPlan, type Sorare } from "./play";
 
 // Local development and the browser tests have no Neon: they ask the FastAPI stand-in instead.
 const API_BASE = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -31,6 +31,66 @@ export async function loadSorare(): Promise<Sorare | null> {
     return await cachedSorare();
   } catch (error) {
     console.error(`[sorare] could not be read: ${error instanceof Error ? error.message : "unknown"}`);
+    return null;
+  }
+}
+
+/**
+ * The early plan the job made for a LaLiga round Sorare has not opened (`read_models` key `sorare_ahead:<round>`), or null
+ * when there is none. It is rewritten every run, so it is cached for as long as the page is and dropped with it.
+ */
+export async function loadProjectedWeek(round: number): Promise<GameweekPlan | null> {
+  if (!Number.isInteger(round) || round < 1 || round > 60) return null;
+  const read = unstable_cache(
+    async (): Promise<GameweekPlan | null> => {
+      if (database()) {
+        const row = await readModel<GameweekPlan>(`sorare_ahead:${round}`);
+        return row?.payload ?? null;
+      }
+      const response = await fetch(`${API_BASE}/api/sorare/ahead/${round}`, { cache: "no-store", signal: AbortSignal.timeout(8000) });
+      if (!response.ok) return null;
+      const body = (await response.json()) as { success?: boolean; data?: GameweekPlan };
+      return body?.success ? (body.data ?? null) : null;
+    },
+    ["sorare-ahead-v1", String(round)],
+    { tags: [SORARE_TAG], revalidate: 3600 },
+  );
+  try {
+    return await read();
+  } catch (error) {
+    console.error(`[sorare] early plan for round ${round} could not be read: ${error instanceof Error ? error.message : "unknown"}`);
+    return null;
+  }
+}
+
+/** A slug from Sorare's own list ("football-25-29-sep-2026"): nothing else is a key the job wrote a week under. */
+const WEEK_SLUG = /^[a-z0-9][a-z0-9-]{0,80}$/;
+
+/**
+ * One finished gameweek the job kept whole (`read_models` key `sorare_week:<slug>`), or null when it did not keep
+ * that one. Weeks before the job started keeping them are not here; the page says so and shows what Sorare holds.
+ * A finished week never changes, so this is the same read as the page's, cached under the same tag.
+ */
+export async function loadSorareWeek(slug: string): Promise<GameweekPlan | null> {
+  if (!WEEK_SLUG.test(slug)) return null;
+  const read = unstable_cache(
+    async (): Promise<GameweekPlan | null> => {
+      if (database()) {
+        const row = await readModel<GameweekPlan>(`sorare_week:${slug}`);
+        return row?.payload ?? null;
+      }
+      const response = await fetch(`${API_BASE}/api/sorare/week/${slug}`, { cache: "no-store", signal: AbortSignal.timeout(8000) });
+      if (!response.ok) return null;
+      const body = (await response.json()) as { success?: boolean; data?: GameweekPlan };
+      return body?.success ? (body.data ?? null) : null;
+    },
+    ["sorare-week-v1", slug],
+    { tags: [SORARE_TAG], revalidate: 3600 },
+  );
+  try {
+    return await read();
+  } catch (error) {
+    console.error(`[sorare] week ${slug} could not be read: ${error instanceof Error ? error.message : "unknown"}`);
     return null;
   }
 }

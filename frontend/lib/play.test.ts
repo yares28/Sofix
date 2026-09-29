@@ -9,6 +9,7 @@ import {
   lastWeek,
   nextWeek,
   paysNote,
+  plansOf,
   rangeScale,
   rewardChips,
   timeUntil,
@@ -228,5 +229,20 @@ describe("picking the gameweek to show", () => {
 
   it("has no last gameweek until one has been replayed", () => {
     expect(lastWeek({ ...data, lastId: null } as Sorare)).toBeNull();
+  });
+});
+
+describe("the plans a gameweek offers", () => {
+  const plan = (rank: number, over: Partial<Plan> = {}): Plan => ({ rank, essence: 100, cash: 0, pAny: 0.5, rewards: 1, cardsUsed: 5, cardsAvailable: 9, lineups: [], ...over });
+  const hindsight = plan(1, { hindsight: true, actual: { essence: 500, cash: 0, cards: 0, paid: 2, inRange: 2 } });
+  const played = gameweek({ played: true, plans: [plan(1), plan(2)], hindsight });
+
+  it("adds the best lineups in hindsight after the plans, once the games are over and you look at what happened", () => {
+    expect(plansOf(played, true).map((p) => p.hindsight === true)).toEqual([false, false, true]);
+  });
+
+  it("does not show them before the lock, or for a week with none", () => {
+    expect(plansOf(played, false)).toHaveLength(2);
+    expect(plansOf(gameweek({ played: true, plans: [plan(1)] }), true)).toHaveLength(1);
   });
 });

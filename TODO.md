@@ -40,14 +40,16 @@ Your Sofix numbers are now drawn on Sorare's own cards (a ribbon: expected score
 an edge tab opens your gameweek's plan. Built from [plans/overlay.md](plans/overlay.md); automated proof is
 `frontend/e2e/overlay.e2e.ts`, and the card-finding was checked against real public sorare.com pages.
 
-**Wait for O6 first:** the chips are being restyled to look like Sorare's own (solid colour, hanging off the card's
-edge) instead of the current black boxes ([plans/overlay.md, O6](plans/overlay.md)). Then one pass judges the final
+**Wait for O6 first:** your first live look showed three chips stacked on the card, two of them black boxes and one
+repeating the fixture Sorare already draws. O6 makes it one solid chip on the card's edge, clear of Sorare's own
+([plans/overlay.md, O6](plans/overlay.md)); O7 then marks the cards in your plan. Then one pass judges the final
 look. What no test can do is look at **your** signed-in pages:
 
 1. `node extension/scripts/configure.mjs`, then **Reload** Sofix in `chrome://extensions` (it is now 0.2.0) and
    reload your sorare.com tab.
-2. Let one Sorare refresh finish after this ships: it adds each player's Sorare slug to the published gameweek,
-   which is how a card is matched to its numbers. Until then the ribbons have nothing to show.
+2. ~~Let one Sorare refresh finish~~ — done (run #21, 2026-09-29): the published gameweek now names every player by
+   his Sorare slug, which is how a card is matched to its numbers. Only players with a game in the planned
+   gameweek get a ribbon, so few cards will show one during an international break.
 3. Look at: a lineup page, the compose page, a gallery, a player page, signed out, and with the popup switch off.
    The popup's **Cards recognised here** should read "N of N"; "0 of N" means Sorare changed its pictures.
 

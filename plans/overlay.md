@@ -49,10 +49,12 @@ pages; the same on a lineup page needs the owner's session.
 **To see it live:** run `node extension/scripts/configure.mjs`, reload the extension (0.2.0) and the sorare.com tab,
 and let one Sorare refresh finish, because `playing.players` only carries each player's slug from that refresh on.
 
-**Next: [O6](#o6--the-look--a-chip-that-belongs-on-sorares-card), the restyle.** The ribbon works but does not
-look like it belongs: its label and chance chips are near-black boxes set inside the art, where Sorare's own chips
-and the reference's are solid colour, hanging off the card's right edge. Doing O6 before the owner's live pass means
-that pass judges the final look once, instead of twice.
+**Next: [O6](#o6--the-look--one-chip-that-belongs-on-sorares-card), the restyle and repositioning: top priority.**
+The owner's live look (compose page, 2026-09-29) showed three chips stacked on the card's art, two of them black boxes
+and one repeating the fixture Sorare already draws. O6 makes it one solid chip on the card's left edge, drops the game
+detail, and stays clear of Sorare's own chips. **O7** (marking the cards in your plan, ranking a pick list, greying
+stale numbers) is the upgrade that turns the numbers into decisions. Both come before the owner's live pass, so that
+pass judges the final look once.
 
 ---
 
@@ -171,22 +173,27 @@ is not expected to start.
 
 ## 3 · What the ribbon says
 
-The approved S7 design and our data agree on this. Per card, in priority order:
+*Revised by O6 after the owner's live look (2026-09-29): one chip, no game detail. The first design below is kept
+struck through so the reasoning is not lost.*
 
-1. **`X 53`** — xScore (`PlayCard.x`), the headline. Colour-banded on our own scale.
-2. **`88%`** — chance of playing (`PlayCard.p`). Greyed inset-ring treatment when it is low.
-3. **Detail ribbon** on large surfaces only: opponent, venue and its difficulty (`ATL (H)`), from the fixture
-   the board already computes.
+Per card, in priority order:
+
+1. **`X 41`** — xScore (`PlayCard.x`), the headline, in Sorare's own score colour.
+2. **`74%`** — chance of playing (`PlayCard.p`), a second segment of the **same chip**, not a chip of its own.
+3. ~~**Detail ribbon** (opponent, venue and its difficulty, `ATL (H)`)~~ — **dropped.** Sorare's card already draws the
+   fixture: both flags, its own win/draw/loss bar and the kickoff. Repeating it on top of the art is noise.
 
 States, in Sofix's plain language — never an optimistic blank:
 
 | State | Ribbon |
 |---|---|
-| Numbers ready | the value, colour-banded |
+| Numbers ready | one chip: the score in its colour, then the chance |
+| Not expected to start | the score greyed, the chance in red: the number stays, its colour is withdrawn |
 | Not signed in to Sofix, or app unreachable | dark chip, "Sofix" — clicking opens the app |
-| Player outside LaLiga | "no odds" — we say so rather than show a number we do not have |
 | Still loading | translucent chip + spinner |
-| Card we do not recognise | nothing at all — never a broken chip |
+| Card we do not recognise, or Sofix has nothing on him | nothing at all — never a broken chip |
+
+~~Player outside LaLiga: "no odds".~~ No longer a state: nothing about the game is drawn.
 
 ---
 
@@ -258,13 +265,21 @@ States, in Sofix's plain language — never an optimistic blank:
 - **Live acceptance** on real sorare.com, which no test can stand in for: lineup, compose, gallery, player
   page, signed out, and with the switch off.
 
-### O6 · The look — a chip that belongs on Sorare's card
+### O6 · The look — one chip that belongs on Sorare's card
 
-**Why:** what O3 shipped reads as a black box. The `X` label (`#0b1711`) and the whole chance chip (`#101012`) are
-near-black, and the stack sits inset at the art's top-left. Sorare's own chips and the reference's are **one solid
-colour each, dark type, hanging off the card's right edge with a folded tail**, so they look wrapped around the card.
-O6 makes ours the same family. It changes paint and placement only: identity, numbers, states and tests of behaviour
-stay as they are.
+**Why.** The owner's live look, 2026-09-29, on the compose page ("Select your Defender"), with the real card:
+
+- Our three chips stacked at the card's top-left cover about **a sixth of the card** (roughly 110 x 70 px of 180 x 250),
+  including the player's shoulder. Two of them are near-black boxes; the third, "NO ODDS  CRO (H)", says what the
+  card already says just below it (the flags, Sorare's own 78/14/8 win-draw-loss bar, "Tue 20:45").
+- Sorare's own chips on the same card are **one row each, solid colour, hanging off the right edge**: a gold
+  percentage with a crown, and a green "C" (a captain control, so it must stay clickable).
+- Two different percentages sit side by side: Sorare's gold 60% and our 74%. Ours counts a substitute appearance
+  (`starterOdds + substituteOdds`); theirs looks like the starter chance alone. Same idea, different number, no label.
+
+Restyling **and repositioning** is the top priority: paint alone would not have fixed this card. O6 changes what is
+drawn, where it goes and how much room it takes. Identity, numbers, states and the drawer's data stay as they are,
+apart from the game fields that go.
 
 **What Sorare draws** (measured 2026-09-29 on a public card gallery, the "19H 06M" and "Best value" chips):
 
@@ -279,71 +294,113 @@ stay as they are.
 | Score tokens | `--c-score-veryLow #ff5a5a`, `low #ff7e34`, `mediumLow #f0ce1d`, `medium #b6ff1a`, `mediumHigh #25ed36`, `high #00f3eb` |
 
 **What the reference draws** (`SorareInside Ext/ribbon.css`, read for the pattern only, per section 2): one chip
-per fact, the whole chip in the score colour, dark ink, the label dimmed to 75% **inside the same chip** rather than
-in a box of its own, `pressio` 10px/800, 17px high, a smaller 14.5px "detail" chip underneath, stacked on the right
-edge at `right: -8px` below Sorare's own badges.
+per fact, the whole chip in the score colour, dark ink, the label dimmed to 75% **inside the same chip**,
+`pressio` 10px/800, 17px high, stacked on the right edge at `right: -8px` below Sorare's own badges.
 
 **What ours becomes**
 
-- **One chip per fact, solid fill, dark ink.** `X 53` is one chip in the score colour with `X` dimmed, not a black
-  label next to a coloured number. No near-black chip remains except the deliberate "Sofix / open the app" one.
-- **Right edge, hanging off it**, with the 4px folded tail tucked under, stacked **below Sorare's own badges**. Their
-  stack height changes per card (none, a lock, "Best value"), so it is measured, not assumed: ours starts under the
-  lowest thing of theirs drawn in the card's top-right band, found geometrically (never by their class names).
-- **Sorare's type and metrics:** `pressio` with our system stack as fallback. Full tier 18px chips at 14px; compact
-  tier a single 15px chip at about 11px. Exact compact numbers are set by eye on a real lineup slot.
-- **Score paint from Sorare's tokens,** read at run time from the page (`getComputedStyle(:root)`), with the measured
-  hex values above as fallback when a token is renamed. The meaning stays ours: the cut points are pinned to where
-  Sorare puts its own colour changes before anything ships (see "to settle" below).
-- **The other chips, proposed:**
+1. **One chip, one row.** `X 41` and `74%` are two segments of a single solid chip, in the score colour with dark ink,
+   the `X` dimmed. No near-black chip remains, except the deliberate "Sofix / open the app" one.
+2. **Nothing about the game.** The opponent, venue, kickoff, difficulty and "no odds" leave the chip, its accessible
+   name, and the endpoint's answer. `lib/overlay.ts` stops matching clubs against the board (so the `home.ts` exports
+   added for it are reverted) and the tests for them go. Less on the wire, less to keep true.
+3. **Where: the top of the card's left edge, hanging 6px off it,** the mirror of Sorare's right-edge chips, with the
+   4px fold tucked under on that side. The right band is theirs (the percentage, the "C", the lock, "Best value") and is
+   never touched. Their stack differs per card, so placement is **measured on every pass, geometrically** (never by
+   their class names): anything of theirs found in our band pushes ours below it. It stays out of the central band of
+   the art, where the face is.
+4. **A room budget, as a test.** The chip covers **under 6% of the card's area** and none of its centre. The card in
+   the screenshot lost about 17%.
+5. **Sorare's type and metrics:** `pressio`, system stack as fallback; 18px chip at 14px on a full card, 15px at about
+   11px on a small one (a lineup slot or thumbnail: the number alone, no chance segment).
+6. **Paint from Sorare's tokens,** read at run time from the page, with the measured hex values as fallback if a token
+   is renamed. The cut points are pinned to where Sorare puts its own colour changes (see "to settle").
+7. **The other states, same shape and tail:**
 
-| Chip | Paint |
+| State | Paint |
 |---|---|
-| Score `X 53` | Sorare score token for 53, dark ink |
-| Chance `PLAY 88%` | white chip, dark ink; `--c-score-veryLow` red when he is not expected to start |
-| Score when he is not expected to start | light grey chip (`#d9dde4`), dark ink: the number is shown, its colour is withdrawn |
-| Game `GET (H)`, rated | the board's five buckets painted in Sorare's hues: 1 `mediumHigh` green, 2 `medium` lime, 3 white, 4 `low` orange, 5 `veryLow` red. The word stays the board's label in the accessible name |
-| Game outside LaLiga | grey chip, `NO ODDS · ORL (A)` |
+| Score `X 41` | Sorare score token for 41, dark ink |
+| Chance `74%` | white segment, dark ink |
+| Not expected to start | light grey score segment (`#d9dde4`), the chance segment `--c-score-veryLow` red |
 | Loading | the grey chip at 60%, with the 8px spinner |
-| App unreachable / token refused | the one dark chip, `SOFIX`, same shape and tail, clickable |
+| App unreachable / token refused | the one dark chip, `SOFIX`, clickable |
 
-- **Escape the clip, the reference's way.** Hanging past the edge brings back section 2.4, which O3 avoided by
-  staying inside the art: the chip's anchor and one ancestor get `overflow: visible` (classes `sfx-anchor`,
-  `sfx-anchor-up`), **two ancestors at most**, removed again when the switch goes off. Sorare's own badge wrappers
-  already measured `overflow: visible`, so on most surfaces nothing needs changing; the anchor is for the ones
-  that do clip.
-- **Motion:** the chip slides 4px in from the edge as it appears (the tail last); none under reduced motion.
+8. **Escape the clip, the reference's way.** Hanging past the edge brings back section 2.4, which O3 avoided by staying
+   inside the art: the chip's anchor and one ancestor get `overflow: visible` (`sfx-anchor`, `sfx-anchor-up`), **two
+   ancestors at most**, removed again when the switch goes off.
+9. **Motion:** the chip slides 4px in from its edge as it appears; none under reduced motion.
+10. **One new setting, in the popup: "Show chance of playing"** (on by default). Off leaves the number alone. It is
+    the one control that answers "too much" without an update, and it is cheap: the same live storage key path.
 
-**Files:** `extension/overlay.css` (rewritten), `overlay.js` (placement against the right edge, the badge-stack
-measurement, token read, the anchor classes on and off), `core.js` (score to Sorare token, bucket to hue).
+**Upgrades considered** (what else would make it better, and where each goes)
+
+| Idea | What it adds | Data | Verdict |
+|---|---|---|---|
+| **A mark for cards in your plan, and the plan's captain** | Turns numbers into a decision: on "Select your Defender", *these are the ones Sofix picks*. A small mint tick in the chip; a star for the captain | Already published: the best plan's lineups list each card (`starters`, `subs`, `captain`) | **O7, and the most valuable of the lot.** Needs the endpoint to answer plan membership per card |
+| **Rank on a pick list** (`#1`, `#2`, `#3` among the cards on screen) | Ranks a long list at a glance | None: the page's own visible cards | **O7**, only where 4 or more ranked cards are on screen |
+| **After the game: what he scored** against what Sofix expected | Review without opening the app | Actuals per player (the plan cards have them; the player list does not) | Later |
+| **Stale numbers grey out** when the published data is older than a set age or his game is played | Never shows a confident number that is out of date | Publish time, kickoff | **O7**, small |
+| **One score-if-he-plays number** in the drawer | Separates form from availability | `mu`, not returned today | Not now |
+| **A delta against Sorare's own L10 hexagon** | | | **Rejected:** it mostly restates the chance and reads as a contradiction next to their number |
+
+**Files:** `extension/overlay.css` (rewritten), `overlay.js` (one chip, left-edge placement, the band measurement, the
+token read, the anchor classes on and off, the setting), `core.js` (score to Sorare token), `popup.html/js` (the
+setting), `frontend/lib/overlay.ts` and its tests (the game fields out), `frontend/lib/home.ts` (exports reverted).
 
 **Tests that change, and why**
 
-- `e2e/overlay.e2e.ts`: the "exactly on its card" check becomes "hangs 6px past the right edge, starts below
-  Sorare's own badges, and covers none of them"; colour checks move to the Sorare tokens. The fixture gains a
-  Sorare-style badge stack and a card wrapper with `overflow: hidden`, to prove the anchor. Switching off must also
-  remove the anchor classes.
-- `lib/overlayCore.test.ts`: the "same bands as the board" test becomes "same cut points as Sorare", with the pinned
-  thresholds written into it.
-- Contrast: dark ink on every token and white on the violet one pass AA by calculation (worst is red at about 6:1);
-  axe on the fixture keeps checking it.
-- `S7-overlay.html` redrawn to the new chip, and `npm run design`.
-- A one-off live comparison on a public sorare.com gallery with stub numbers, our chips next to Sorare's own, desktop
-  and a phone width; the throwaway spec is deleted after, as in O5.
+- `e2e/overlay.e2e.ts`: "exactly on its card" becomes "hangs 6px off the left edge, covers under 6% of the card, none
+  of its centre, and none of Sorare's own chips". The game-chip and "No odds" assertions go. The fixture gains a
+  **compose-style card**: a gold percentage chip and a working "C" button on the right, a footer with flags and an
+  odds bar, and a wrapper with `overflow: hidden`. The "C" must still be the thing under the pointer, and switching off
+  must remove the anchor classes.
+- `lib/overlayCore.test.ts`: "same bands as the board" becomes "same cut points as Sorare", with the pinned thresholds.
+- `lib/overlay.test.ts`, the route test and `extensionBackground.test.ts`: the game fields and the difficulty matching
+  come out of what they assert.
+- Contrast: dark ink on every token passes AA by calculation (the worst, red, is about 6:1); axe keeps checking it.
+- `S7-overlay.html` redrawn to the one-chip look, and `npm run design`.
+- A one-off live comparison on a public sorare.com gallery with stub numbers, our chip beside Sorare's own, at desktop
+  and phone width; the throwaway spec is deleted after, as in O5.
 
 **To settle before shipping**
 
 - **The cut points.** A first look at a player page showed a 50 painted like `mediumLow` and a 54 like `medium`,
-  which would disagree with the board's `scoreColour()` at 50. Sample Sorare's own hexagons and bars across the
-  range, pin where each colour starts, and record it. If the board's bands are off, fixing `scoreColour()` is its
-  own change, not part of this one.
-- **Game-chip hues** (the table above) and **white chance chip vs. violet**: owner's call when the first screenshots
-  are in.
+  which would disagree with the board's `scoreColour()` at 50. Sample Sorare's own hexagons and bars across the range,
+  pin where each colour starts, and record it. If the board's bands are off, fixing `scoreColour()` is its own change.
+- **What Sorare's gold percentage is,** checked against `starterOddsBasisPoints` on the same player. If it is the
+  starter chance alone, decide whether ours keeps counting substitutes or matches theirs (the score already weights it
+  either way), and say which in the popup's wording.
+- **The left band on other surfaces.** The compose card's left is free; a lineup slot, a gallery card and the player
+  page must be looked at for a rarity or season badge there. The measurement handles it, but the owner's live pages are
+  the proof.
 - **The drawer and edge tab are not in O6.** They are the approved S7 dark panel; say if they should follow.
 
-**Done when** on a live public gallery and a lineup page our chips read as the same family as Sorare's (same height
-and type, same edge, same fold), sit below theirs without covering them, pass AA, and every O5 behaviour test still
-passes with the new geometry.
+**Done when** on the compose page, a gallery and a lineup page the chip reads as the same family as Sorare's (same
+height and type, same fold), hangs off the left edge without touching a chip of theirs, covers under 6% of the card
+and none of its face, passes AA, and every O5 behaviour test still passes with the new geometry.
+
+---
+
+### O7 · Decisions, not just numbers
+
+**Why.** A number on a card says how good he is expected to be; it does not say what to do. The owner opens
+"Select your Defender" to *choose*, and Sofix already knows the answer: its best plan has already put specific cards in
+specific lineups. O7 shows that on the card, on the same single chip from O6.
+
+- **Plan mark.** A card that the best plan uses gets a small mint tick in the chip; the plan's captain gets a star. A
+  card the plan leaves out shows the plain chip, never a warning. Which lineup it is in goes in the accessible name,
+  never on the art.
+- **Rank on a pick list.** Where 4 or more cards with numbers are on screen at once (a "Select your ..." list), the
+  top three by xScore get `#1`, `#2`, `#3` in the chip. Worked out in the page from what is visible; no new data.
+- **Stale grey-out.** When the published gameweek is old (more than a set number of hours) or his game has been played,
+  the chip greys and says so rather than showing a confident number that no longer holds.
+- **The endpoint's one new answer:** per card slug, `{ inPlan, captain, lineup }` from the best plan's lineups, plus the
+  publish time. Small, cached, and read from the same read model.
+- **Tests:** a plan-membership case in `lib/overlay.test.ts`; the fixture page gains a pick list of six cards with
+  known numbers, asserting who is ticked, who is starred, and that a list of three is not ranked.
+
+**Done when** on the compose page the cards Sofix would pick are visibly the ones ticked, the captain is starred, and
+nothing else on the card changed. Not in O7: anything that changes a lineup. Apply stays Check, Draft, Enter, in the app.
 
 ---
 
@@ -359,15 +416,15 @@ passes with the new geometry.
 | Someone else's CSS in a public repo | Re-implemented in our own tokens and names (section 2, "what we do not take") |
 | Sorare renames its `--c-score-*` tokens (O6) | Measured hex values as fallback: the chip keeps its colour, it just stops following their theme |
 | The overhang lands on a surface that clips it (O6) | `sfx-anchor` on two ancestors at most, removed with the switch; a fixture card with `overflow: hidden` proves it |
-| Their badge stack grows and ours covers it (O6) | Placement measures their top-right band on every pass, and a fixture test asserts no overlap |
+| Their chips grow and ours covers them, or covers the art (O6) | Placement measures the band on every pass; a fixture test asserts no overlap, that their "C" stays clickable, and a room budget under 6% |
 
 ---
 
 ## 6 · Order, and what it costs
 
 O1 -> O2 -> O3 are strictly sequential: identity feeds numbers, numbers feed pixels. O4 and O5 can overlap.
-O6 comes after O5 and **before** the owner's live pass, so that pass looks at the final chip once. It touches only
-the stylesheet, placement and paint, so it needs no new data and no change to the app.
+O6 comes after O5 and **before** the owner's live pass, so that pass looks at the final chip once. It removes data
+(the game fields) rather than adding any. O7 needs one new answer from the app: plan membership per card.
 
 The shortest honest path to something on screen is **O1 + O2 + O3**. O3 is the phase holding the real unknowns,
 because it is the one negotiating with someone else's live DOM.

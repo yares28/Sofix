@@ -29,6 +29,7 @@ from app.sorare import publish as sorare_publish
 from app.sorare import record as sorare_record
 from app.sorare import sync as sorare_sync
 from app.sorare.client import SorareClient
+from app.sources import understat
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,16 @@ def run(
         snapshot = sorare_sync.snapshot(
             client, user or settings.sorare_user, started, cached_references=references, replayed=replayed
         )
+    # Understat's xG for the midfielders and forwards, for the leagues the owner has players in: one request each, and a
+    # league that cannot be read is left out, so its players simply show no xG.
+    leagues = sorted(
+        {
+            slug
+            for row in snapshot["cards"]
+            if (slug := ((row["player"].get("activeClub") or {}).get("domesticLeague") or {}).get("slug"))
+        }
+    )
+    snapshot["understat"] = understat.fetch_leagues(leagues, understat.season_of(started.date()))
     payload = sorare_publish.build_payload(snapshot, runs=runs, previous=previous)
     size = len(json.dumps(payload, separators=(",", ":")))
     planned_week = sorare_publish.week_of(payload) or {}
@@ -74,6 +85,7 @@ def run(
         "state": planned_week.get("state"),
         "plans": len(planned_week.get("plans", [])),
         "playing": planned_week.get("playing", {}).get("cards"),
+        "xg": sum(1 for p in planned_week.get("playing", {}).get("players", []) if "xg" in p),
         "playable": len(planned_week.get("playable", [])),
         "weeks": [w["gameweek"]["number"] for w in payload.get("weeks", [])],
         "calls": snapshot["calls"],

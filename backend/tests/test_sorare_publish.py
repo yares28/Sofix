@@ -278,9 +278,234 @@ def test_card_games_names_the_side_that_is_actually_playing() -> None:
     assert game["venue"] == "H"
 
 
+def national_row(side: str, home_stats: dict[str, Any] | None, away_stats: dict[str, Any] | None) -> dict[str, Any]:
+    """A goalkeeper of Slovenia (home) or North Macedonia (away), the game as Sorare answers it for 29 Sep."""
+    slovenia = {"slug": "slovenia", "name": "Slovenia", "shortName": "Slovenia", "pictureUrl": "https://f/si.png"}
+    macedonia = {"slug": "north-macedonia", "name": "North Macedonia", "pictureUrl": "https://f/mk.png"}
+    row = card("keeper-national", "GK", club="atletico-madrid")
+    row["player"]["activeNationalTeam"] = slovenia if side == "home" else macedonia
+    row["player"]["plan"] = [
+        {
+            "id": "si-mk",
+            "date": "2026-09-29T18:45:00Z",
+            "competition": {"slug": "uefa-nations-league"},
+            "homeTeam": slovenia,
+            "awayTeam": macedonia,
+            "homeStats": home_stats,
+            "awayStats": away_stats,
+        }
+    ]
+    return row
+
+
+SLOVENIA = {"winOddsBasisPoints": 5600, "drawOddsBasisPoints": 2700, "loseOddsBasisPoints": 1700, "cleanSheetOdds": 1.8}
+MACEDONIA = {
+    "winOddsBasisPoints": 1700,
+    "drawOddsBasisPoints": 2700,
+    "loseOddsBasisPoints": 5600,
+    "cleanSheetOdds": 4.33,
+}
+
+
+def test_a_game_carries_sorares_odds_for_the_side_the_player_is_on() -> None:
+    home = publish.card_games([national_row("home", SLOVENIA, MACEDONIA)], "plan")["keeper-national"][0]
+    away = publish.card_games([national_row("away", SLOVENIA, MACEDONIA)], "plan")["keeper-national"][0]
+
+    # Slovenia at home: 56% to win, the clean-sheet price 1.80 is a 56% chance, and the board's own formula gives 35.
+    assert (
+        home["odds"]
+        == {
+            "win": 0.56,
+            "draw": 0.27,
+            "loss": 0.17,
+            "cleanSheet": 0.556,
+            "goalsFor": 1.47,  # ln(4.33): North Macedonia keeps a clean sheet 23% of the time, so Slovenia scores 1.47 a game
+            "goalsAgainst": 0.59,  # ln(1.80)
+            "difficulty": 35.0,
+            "label": "Very favourite",
+            "bucket": 1,
+            "source": "sorare",
+        }
+    )
+    # North Macedonia away, the same game read from the other side: 17% to win, price 4.33, a big underdog.
+    assert away["odds"]["win"] == 0.17
+    assert away["odds"]["cleanSheet"] == 0.231
+    assert (away["odds"]["goalsFor"], away["odds"]["goalsAgainst"]) == (0.59, 1.47)  # the same game from the other side
+    assert away["odds"]["difficulty"] == 74.0
+    assert (away["odds"]["label"], away["odds"]["bucket"]) == ("Big underdog", 5)
+
+
+def test_the_same_difficulty_reads_differently_home_and_away() -> None:
+    """The board's venue cut points apply: 30 is a top-band game at home and only a favourite away."""
+    even = {"winOddsBasisPoints": 6000, "drawOddsBasisPoints": 2500, "loseOddsBasisPoints": 1500, "cleanSheetOdds": 2.0}
+    at_home = publish.card_games([national_row("home", even, None)], "plan")["keeper-national"][0]["odds"]
+    on_the_road = publish.card_games([national_row("away", None, even)], "plan")["keeper-national"][0]["odds"]
+
+    assert at_home["difficulty"] == on_the_road["difficulty"] == 31.7
+    assert at_home["label"] == "Very favourite"
+    assert on_the_road["label"] == "Favourite"
+
+
+def test_a_game_without_odds_has_no_odds_block_never_zeros() -> None:
+    empty = {
+        "winOddsBasisPoints": None,
+        "drawOddsBasisPoints": None,
+        "loseOddsBasisPoints": None,
+        "cleanSheetOdds": None,
+    }
+    for home_stats in (empty, None, {}):
+        game = publish.card_games([national_row("home", home_stats, home_stats)], "plan")["keeper-national"][0]
+        assert "odds" not in game
+    # An older snapshot that never asked for the odds reads the same as no odds.
+    assert "odds" not in publish.card_games([card("keeper-one", "GK")], "plan")["keeper-one"][0]
+
+
+def test_a_missing_or_impossible_clean_sheet_price_leaves_only_that_number_out() -> None:
+    for price in (None, 0.9, 1.0):
+        odds = publish.card_games([national_row("home", {**SLOVENIA, "cleanSheetOdds": price}, MACEDONIA)], "plan")[
+            "keeper-national"
+        ][0]["odds"]
+        assert odds["cleanSheet"] is None
+        assert odds["goalsAgainst"] is None  # both come from his own side's price
+        assert odds["goalsFor"] == 1.47  # ...and his goals from the other side's, which is fine
+        assert odds["win"] == 0.56  # the rest of the read is still real
+
+
+@pytest.fixture(autouse=True)
+def no_understat(monkeypatch):
+    """No test reaches Understat over the network: the job's fetch answers nothing unless a test says otherwise."""
+    monkeypatch.setattr(sorare_job.understat, "fetch_leagues", lambda *a, **k: {})
+
+
 @pytest.fixture(scope="module")
 def payload() -> dict[str, Any]:
     return publish.build_payload(snapshot(), runs=4, draws=600)
+
+
+def _past_game(date: str, score: float, role: str) -> dict[str, Any]:
+    """One row of a player's history as Sorare answers it: a start, a substitute appearance, a miss, or still to come."""
+    played = role in ("start", "sub")
+    return {
+        "date": date,
+        "competition": "laliga-es",
+        "gameId": f"g-{date}",
+        "score": score if played else 0.0,
+        "played": played,
+        "started": role == "start",
+        "mins": {"start": 90, "sub": 20}.get(role),
+        # Sorare gives a game not yet played a PENDING row with no score and playedInGame false; a game he sat out
+        # entirely is DID_NOT_PLAY. Only the second is a game he missed.
+        "status": {"pending": "PENDING", "miss": "DID_NOT_PLAY"}.get(role, "FINAL"),
+    }
+
+
+def _form_of(history: list[dict[str, Any]]):
+    """His forecast for the gameweek locking on 9 Oct, from form alone (no Sorare odds), given this history."""
+    from app.sorare.forecast import forecast
+
+    lock = datetime(2026, 10, 9, 17, 0, tzinfo=UTC)
+    rows = [card("keeper-one", "GK")]
+    games = {"keeper-one": [{"id": "next"}]}
+    weeks = publish.player_weeks(rows, games, {"keeper-one": history}, lock, None, use_sorare=False)
+    return forecast(weeks["keeper-one"])
+
+
+PLAYED = [
+    _past_game("2026-09-26T18:00:00Z", 60.0, "start"),
+    _past_game("2026-09-20T18:00:00Z", 50.0, "start"),
+    _past_game("2026-09-13T18:00:00Z", 35.0, "sub"),
+    _past_game("2026-09-06T18:00:00Z", 55.0, "start"),
+    _past_game("2026-08-30T18:00:00Z", 45.0, "start"),
+]
+TO_COME = [_past_game(f"2026-10-0{day}T18:45:00Z", 0.0, "pending") for day in (1, 4, 7)]  # all before the lock
+
+
+def test_games_still_to_come_are_not_games_he_missed():
+    """A gameweek planned from form counts the games Sorare has scored, never the ones it has not yet played."""
+    without = _form_of(PLAYED)
+    with_pending = _form_of([*TO_COME, *PLAYED])
+
+    assert (with_pending.p_play, with_pending.mu) == (without.p_play, without.mu)
+    assert (with_pending.p_start, with_pending.p_on, with_pending.start) == (
+        without.p_start,
+        without.p_on,
+        without.start,
+    )
+    # Five games played, all of them appearances: a high chance of playing, not the 5 in 8 that three phantom misses give.
+    assert without.p_play > 0.85
+
+
+def test_a_game_he_sat_out_still_counts_as_a_miss():
+    """DID_NOT_PLAY is a real miss, unlike PENDING: the fix must not forget how to lower a benched player's chance."""
+    benched = [
+        _past_game("2026-09-26T18:00:00Z", 0.0, "miss"),
+        _past_game("2026-09-20T18:00:00Z", 0.0, "miss"),
+        *PLAYED[2:],
+    ]
+    assert _form_of(benched).p_play < _form_of(PLAYED).p_play
+
+
+def test_every_player_carries_two_scores_and_two_chances(payload):
+    players = publish.week_of(payload)["playing"]["players"]
+    assert players
+    for player in players:
+        assert {"start", "bench", "pStart", "pOn"} <= player.keys(), player["name"]
+        assert 0 <= player["pStart"] + player["pOn"] <= 1 and player["bench"] <= player["start"]
+    keeper = next(p for p in players if p["player"] == "keeper-one")
+    # Sorare gave starter 90%, substitute 5%, not playing 5%; a regular starter's start score is its projection.
+    assert (keeper["pStart"], keeper["pOn"], keeper["start"]) == (0.9, 0.05, 55.0)
+    assert keeper["bench"] == pytest.approx(0.5 * 42.0, abs=0.06)  # benched: on 0.05 / (0.05 + 0.05) of the time
+
+
+def _with_understat(snap: dict[str, Any]) -> dict[str, Any]:
+    from app.sources.understat import League, Player
+
+    snap["understat"] = {
+        "laliga-es": League(
+            players=[
+                Player(id="1", name="Mid One", team="Club A", games=6, minutes=480.0, xg=2.4, npxg=1.8, position="M"),
+                Player(id="2", name="Front One", team="Club A", games=6, minutes=500.0, xg=4.0, npxg=4.0, position="F"),
+                Player(id="3", name="Back One", team="Club A", games=6, minutes=520.0, xg=0.5, npxg=0.5, position="D"),
+            ],
+            team_xg={"Club A": 1.5},
+        )
+    }
+    return snap
+
+
+def test_a_midfielder_or_forward_understat_can_name_carries_his_expected_goals(payload):
+    with_xg = publish.build_payload(_with_understat(snapshot()), runs=4, draws=600)
+    players = {p["player"]: p for p in publish.week_of(with_xg)["playing"]["players"]}
+
+    assert set(players["mid-one"]["xg"]) == {"np", "pen", "team"}
+    assert players["mid-one"]["xg"]["team"] == 1.5
+    assert players["mid-one"]["xg"]["pen"] > 0  # 2.4 xG against 1.8 non-penalty: he takes penalties
+    assert players["front-one"]["xg"]["np"] > players["mid-one"]["xg"]["np"]
+    # A defender's tile shows the difficulty, a keeper has no match, and a player Understat does not list has none.
+    for slug in ("back-one", "keeper-one", "mid-two", "kid-one"):
+        assert "xg" not in players[slug], slug
+    # Without Understat nobody has it, and that is the payload every earlier run published.
+    assert all("xg" not in p for p in publish.week_of(payload)["playing"]["players"])
+
+
+def test_expected_goals_change_no_plan(payload):
+    with_xg = publish.build_payload(_with_understat(snapshot()), runs=4, draws=600)
+    assert publish.week_of(with_xg)["plans"] == publish.week_of(payload)["plans"]
+
+
+def test_knowing_how_each_game_was_played_changes_no_plan(payload):
+    """The split is for the overlay: the planner's chance of playing x score is what the plans are built from."""
+    roles = snapshot()
+    for rows in roles["history"].values():
+        for row, started in zip(rows, (True, False), strict=True):
+            row["started"], row["mins"] = started, 90 if started else 20
+    with_roles = publish.build_payload(roles, runs=4, draws=600)
+
+    assert publish.week_of(with_roles)["plans"] == publish.week_of(payload)["plans"]
+    for before, after in zip(
+        publish.week_of(payload)["playing"]["players"], publish.week_of(with_roles)["playing"]["players"], strict=True
+    ):
+        assert (after["p"], after["x"]) == (before["p"], before["x"])
 
 
 def test_the_page_names_the_gameweek_being_planned(payload):
@@ -404,6 +629,45 @@ def test_the_job_publishes_the_page_and_keeps_the_reference_scores(db, monkeypat
     sorare_job.run(db, "yares", runs=1)
     again = db.get(ReadModel, sorare_job.SORARE_KEY).payload["status"]
     assert again["where"] == "cloud" and again["lastCloudAt"] == again["builtAt"]
+
+
+def test_the_job_reads_understat_once_for_each_league_the_owner_plays_in_and_publishes_his_xg(db, monkeypatch):  # noqa: F811
+    from app.sources.understat import League, Player
+
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    monkeypatch.setattr(sorare_job.settings, "sorare_api_key", "test-key")
+    monkeypatch.setattr(sorare_job, "SorareClient", lambda *a, **k: _FakeClient())
+    monkeypatch.setattr(sorare_job.sorare_sync, "snapshot", lambda *a, **k: snapshot())
+    asked: list[tuple[list[str], int]] = []
+
+    def fake(slugs, season, **k):
+        asked.append((slugs, season))
+        players = [
+            Player(id="1", name="Mid One", team="Club A", games=6, minutes=480.0, xg=1.8, npxg=1.8, position="M")
+        ]
+        return {"laliga-es": League(players=players, team_xg={"Club A": 1.5})}
+
+    monkeypatch.setattr(sorare_job.understat, "fetch_leagues", fake)
+
+    summary = sorare_job.run(db, "yares", runs=1)
+
+    # Every card in the fixture is at a LaLiga club: one league, the season that started in 2026, asked for once.
+    assert asked == [(["laliga-es"], 2026)]
+    assert summary["xg"] == 1
+    players = db.get(ReadModel, sorare_job.SORARE_KEY).payload["weeks"][0]["playing"]["players"]
+    assert [p["player"] for p in players if "xg" in p] == ["mid-one"]
+
+
+def test_the_job_publishes_without_xg_when_understat_gives_nothing(db, monkeypatch):  # noqa: F811
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    monkeypatch.setattr(sorare_job.settings, "sorare_api_key", "test-key")
+    monkeypatch.setattr(sorare_job, "SorareClient", lambda *a, **k: _FakeClient())
+    monkeypatch.setattr(sorare_job.sorare_sync, "snapshot", lambda *a, **k: snapshot())
+    summary = sorare_job.run(db, "yares", runs=1)  # the autouse guard answers {}: Understat is down
+
+    assert summary["xg"] == 0 and summary["state"] == "ready"
+    players = db.get(ReadModel, sorare_job.SORARE_KEY).payload["weeks"][0]["playing"]["players"]
+    assert not any("xg" in p for p in players)
 
 
 class _FakeClient:

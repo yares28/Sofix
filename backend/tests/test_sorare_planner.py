@@ -417,6 +417,80 @@ def test_no_game_means_no_forecast_and_a_double_gameweek_raises_both():
     assert double.mu > single.mu  # the better of the two games counts
 
 
+# --------------------------------------------------------------------------- two scores: if he starts, if he doesn't
+def _games(*rows: tuple[str, float, str]) -> tuple[list[tuple[str, float, bool]], dict[str, bool]]:
+    """(date, score, role) newest first, role being "start", "sub" or "miss", as a PlayerWeek carries them."""
+    history = [(date, score, role != "miss") for date, score, role in rows]
+    starts = {date: role == "start" for date, _, role in rows if role != "miss"}
+    return history, starts
+
+
+def test_a_regular_starter_keeps_sorares_projection_as_his_start_score():
+    history, starts = _games(*[(f"2026-09-{20 - i:02d}", 60.0, "start") for i in range(5)])
+    week = PlayerWeek(
+        games=1, projection=62.0, plays_odds=0.92, start_odds=0.88, history=history, starts=starts, pos="DEF"
+    )
+    made = forecast(week)
+
+    assert made.start == 62.0  # "if he plays" is "if he starts" for someone who always starts
+    assert (made.p_start, made.p_on) == (0.88, 0.04)
+    # Benched (12%): he comes on in 0.04 / (0.04 + 0.08) = a third of those, scoring a substitute's typical 42.
+    assert made.bench == pytest.approx(14.0, abs=0.06)
+
+
+def test_a_player_who_often_comes_on_is_scored_by_his_own_starts_and_substitute_appearances():
+    history, starts = _games(
+        ("2026-09-20", 60.0, "start"),
+        ("2026-09-16", 30.0, "sub"),
+        ("2026-09-13", 35.0, "sub"),
+        ("2026-09-09", 0.0, "miss"),
+        ("2026-09-02", 40.0, "sub"),
+    )
+    week = PlayerWeek(
+        games=1, projection=40.0, plays_odds=0.8, start_odds=0.2, history=history, starts=starts, pos="MID"
+    )
+    made = forecast(week)
+
+    # Sorare's projection blends his roles, so his own single start decides (pulled towards a typical start, 51).
+    assert made.start == pytest.approx((60.0 + 2 * 51.0) / 3, abs=0.06)
+    # Benched (80%): 0.6 of it he comes on, 0.2 he is out, so three in four; his substitute scores 30, 35, 40 + prior.
+    assert made.bench == pytest.approx(0.75 * (105.0 + 2 * 42.0) / 5, abs=0.06)
+    assert (made.p_start, made.p_on) == (0.2, pytest.approx(0.6))
+
+
+def test_a_goalkeeper_who_never_comes_on_has_a_bench_score_near_nothing():
+    history, starts = _games(*[(f"2026-09-{20 - i:02d}", 55.0, "start") for i in range(5)])
+    made = forecast(PlayerWeek(games=1, history=history, starts=starts, pos="GK"))  # no Sorare numbers yet
+
+    assert made.bench is not None and made.bench < 1.0
+    assert made.p_start == pytest.approx(5.8 / 7, abs=1e-3)  # his last five games, smoothed like his chance of playing
+    assert made.p_on == pytest.approx(0.4 / 7, abs=1e-3)
+    assert made.start == pytest.approx((5 * 55.0 + 2 * 51.0) / 7, abs=0.06)
+
+
+def test_the_two_chances_add_up_to_the_chance_of_playing_the_planner_already_uses():
+    history, starts = _games(("2026-09-20", 60.0, "start"), ("2026-09-16", 30.0, "sub"), ("2026-09-13", 0.0, "miss"))
+    made = forecast(PlayerWeek(games=1, history=history, starts=starts, pos="FWD"))
+    assert made.p_start + made.p_on == pytest.approx(made.p_play, abs=1e-3)
+
+
+def test_the_planners_numbers_do_not_change_when_the_roles_are_known():
+    history, starts = _games(("2026-09-20", 60.0, "start"), ("2026-09-16", 30.0, "sub"), ("2026-09-13", 0.0, "miss"))
+    for extra in ({}, {"projection": 55.0, "plays_odds": 0.7, "start_odds": 0.5}):
+        without = forecast(PlayerWeek(games=1, history=history, **extra))
+        with_roles = forecast(PlayerWeek(games=1, history=history, starts=starts, pos="MID", **extra))
+        assert (with_roles.p_play, with_roles.mu, with_roles.source) == (without.p_play, without.mu, without.source)
+
+
+def test_no_role_history_still_answers_from_the_priors_and_no_game_answers_nothing():
+    made = forecast(PlayerWeek(games=1, history=[("2026-09-20", 50.0, True)], pos="DEF"))  # role never recorded
+    assert made.start is not None and made.bench is not None
+    assert 0 < made.p_start < 1 and 0 < made.p_on < 1
+
+    idle = forecast(PlayerWeek(games=0))
+    assert (idle.start, idle.bench, idle.p_start, idle.p_on) == (None, None, None, None)
+
+
 @pytest.mark.parametrize("position", ["GK", "DEF", "MID", "FWD"])
 def test_every_position_can_be_built_into_a_lineup(position):
     cards = squad(12) + [card("extra-one", position)]

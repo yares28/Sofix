@@ -59,12 +59,16 @@ query($s:String!){ so5 { so5Leaderboard(slug:$s){
 """
 )
 
+_GAME_ODDS = "winOddsBasisPoints drawOddsBasisPoints loseOddsBasisPoints cleanSheetOdds"
 GAMES_FOR = (
     "{alias}: anyGamesForFixture(so5FixtureSlug: ${alias}) {{ id date competition {{ slug }} "
     "homeTeam {{ slug name pictureUrl ... on Club {{ shortName }} }} "
-    "awayTeam {{ slug name pictureUrl ... on Club {{ shortName }} }} }}"
+    "awayTeam {{ slug name pictureUrl ... on Club {{ shortName }} }} "
+    "homeStats {{ ... on FootballTeamGameStats {{ " + _GAME_ODDS + " }} }} "
+    "awayStats {{ ... on FootballTeamGameStats {{ " + _GAME_ODDS + " }} }} }}"
 )
-"""One gameweek's games for a player. A run asks for several at once — aliases cost nothing, a second page does."""
+"""One gameweek's games for a player, with each side's odds. Sorare fills the odds only in the last few days before
+a game, so they are often null. A run asks for several gameweeks at once — aliases cost nothing, a second page does."""
 
 CARDS = """
 query($a:String$ARGS){ user(slug:$USER){ cards(first: 10, after: $a, sport: FOOTBALL, rarities: [limited, rare]) {
@@ -91,7 +95,7 @@ query($p:String!,$from:ISO8601DateTime!,$to:ISO8601DateTime!){ anyPlayer(slug:$p
   ... on Player { allPlayerGameScores(from:$from, to:$to, first: 40) { nodes {
     score scoreStatus
     anyGame { id date competition { slug } }
-    anyPlayerGameStats { playedInGame } } } } } }
+    anyPlayerGameStats { playedInGame ... on PlayerGameStats { gameStarted minsPlayed } } } } } } }
 """
 
 GAMES = """
@@ -342,6 +346,8 @@ def history(
                 "gameId": row["anyGame"]["id"],
                 "score": row["score"],
                 "played": bool((row.get("anyPlayerGameStats") or {}).get("playedInGame")),
+                "started": bool((row.get("anyPlayerGameStats") or {}).get("gameStarted")),
+                "mins": (row.get("anyPlayerGameStats") or {}).get("minsPlayed"),
                 "status": row["scoreStatus"],
             }
             for row in scores

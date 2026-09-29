@@ -8,12 +8,14 @@ against what really happened.
 from __future__ import annotations
 
 import logging
+import math
 from datetime import UTC, date, datetime
 from typing import Any
 
 import numpy as np
 
-from app.sorare import rules
+from app.services.scoring import difficulty_label, difficulty_score, label_bucket
+from app.sorare import rules, xg
 from app.sorare.forecast import PlayerWeek
 from app.sorare.forecast import forecasts as build_forecasts
 from app.sorare.model import SORARE_POSITION, Card, Competition, Forecast
@@ -85,8 +87,66 @@ def _expected(forecast: Forecast | None) -> float:
     return forecast.p_play * forecast.mu if forecast else 0.0
 
 
+def _goals(price: Any) -> float | None:
+    """The goals a clean-sheet price implies. The chance a side keeps a clean sheet is the chance the other scores none,
+    e^-goals for a Poisson count, so a price of 1.80 (56%) means the other side scores 0.59 a game. Its margin makes the
+    chance a little high and the goals a little low."""
+    if isinstance(price, int | float) and not isinstance(price, bool) and price > 1:
+        return round(math.log(price), 2)
+    return None
+
+
+def game_odds(game: dict[str, Any], at_home: bool) -> dict[str, Any] | None:
+    """Sorare's own odds for the side the player is on, read the way the board reads a game.
+
+    Win, draw and loss are Sorare's basis points; the clean sheet is the chance behind its decimal price (so a
+    point or two high, the bookmaker's margin is in it). `goalsFor` and `goalsAgainst` are the goals each side's clean-sheet
+    price implies, which the overlay uses to say how many goals his side is expected to score. Difficulty and label use the board's formula and its
+    home/away cut points, so a 35 here is the 35 on /difficulty. A game Sorare has not priced yet (it fills the
+    odds only in the last few days) has no block at all: an absent number, never a zero.
+    """
+    stats = game.get("homeStats" if at_home else "awayStats") or {}
+    basis = [stats.get(key) for key in ("winOddsBasisPoints", "drawOddsBasisPoints", "loseOddsBasisPoints")]
+    if not all(isinstance(value, int | float) and not isinstance(value, bool) for value in basis):
+        return None
+    win, draw, loss = (float(value) / 10000 for value in basis)  # type: ignore[arg-type]
+    if win + draw + loss <= 0:
+        return None
+    score = difficulty_score(win, draw, loss)
+    label = difficulty_label(score, "H" if at_home else "A")
+    price = stats.get("cleanSheetOdds")
+    clean = (
+        round(1 / price, 3) if isinstance(price, int | float) and not isinstance(price, bool) and price > 1 else None
+    )
+    other = game.get("awayStats" if at_home else "homeStats") or {}
+    return {
+        "win": round(win, 4),
+        "draw": round(draw, 4),
+        "loss": round(loss, 4),
+        "cleanSheet": clean,
+        "goalsFor": _goals(other.get("cleanSheetOdds")),
+        "goalsAgainst": _goals(price),
+        "difficulty": round(score, 1),
+        "label": label,
+        "bucket": label_bucket(label),
+        "source": "sorare",
+    }
+
+
+def _split_out(forecast: Forecast | None) -> dict[str, float]:
+    """His score if he starts and if he does not, and the chance of each (O9). For the overlay; plans never use it."""
+    if not forecast or forecast.start is None or forecast.bench is None:
+        return {}
+    return {
+        "start": forecast.start,
+        "bench": forecast.bench,
+        "pStart": forecast.p_start if forecast.p_start is not None else 0.0,
+        "pOn": forecast.p_on if forecast.p_on is not None else 0.0,
+    }
+
+
 def card_games(rows: list[dict[str, Any]], key: str) -> dict[str, list[dict[str, Any]]]:
-    """Each player's games inside one gameweek, with the opponent as the app shows it."""
+    """Each player's games inside one gameweek, with the opponent as the app shows it (and Sorare's odds, if priced)."""
     out: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
         player = row["player"]
@@ -102,6 +162,7 @@ def card_games(rows: list[dict[str, Any]], key: str) -> dict[str, list[dict[str,
             at_home = home["slug"] in mine
             team = home if at_home else away
             other = away if at_home else home
+            odds = game_odds(game, at_home)
             listed.append(
                 {
                     "id": game["id"],
@@ -112,6 +173,7 @@ def card_games(rows: list[dict[str, Any]], key: str) -> dict[str, list[dict[str,
                     "opponent": other.get("shortName") or other["name"],
                     "opponentCrest": other.get("pictureUrl"),
                     "venue": "H" if at_home else "A",
+                    **({"odds": odds} if odds else {}),
                 }
             )
         out[player["slug"]] = listed
@@ -134,12 +196,16 @@ def player_weeks(
         if slug in weeks:
             continue
         mine = games.get(slug) or []
-        past = [h for h in history.get(slug, []) if _dt(h["date"]) < lock]
+        # A game Sorare has not scored yet comes back as a PENDING row (no score, playedInGame false): it is a game to
+        # come, not one he missed, so it is no part of his form. DID_NOT_PLAY is the real miss and stays.
+        past = [h for h in history.get(slug, []) if _dt(h["date"]) < lock and h.get("status") != "PENDING"]
         past.sort(key=lambda h: h["date"], reverse=True)
         odds = player.get("nextClassicFixturePlayingStatusOdds") or {}
         plays = None
+        start_odds = None
         if use_sorare and odds:
             plays = (odds.get("starterOddsBasisPoints", 0) + odds.get("substituteOddsBasisPoints", 0)) / 10000
+            start_odds = odds.get("starterOddsBasisPoints", 0) / 10000
         actual = None
         if window:
             played = [
@@ -154,6 +220,10 @@ def player_weeks(
             plays_odds=plays,
             history=[(h["date"], h["score"] or 0.0, h["played"]) for h in past],
             actual=actual,
+            start_odds=start_odds,
+            # Only games he played have a role worth recording; a snapshot from before O9 has none.
+            starts={h["date"]: bool(h["started"]) for h in past if h["played"] and "started" in h},
+            pos=SORARE_POSITION.get(player.get("position") or ""),
         )
     return weeks
 
@@ -419,6 +489,7 @@ def gameweek_payload(
     games: dict[str, list[dict[str, Any]]],
     *,
     played: bool,
+    xg_rates: dict[str, dict[str, Any]] | None = None,
     actual_references: dict[str, dict[int, float]] | None = None,
     count: int = 5,
     runs: int = 30,
@@ -486,6 +557,7 @@ def gameweek_payload(
 
     # Every player of yours with a game this week. In a week LaLiga is away, this is the whole board: the
     # app has nothing else to show, so the card, the chance he plays and what he is expected to score go with it.
+    rates = xg_rates or {}
     players = [
         {
             "player": card.player,
@@ -502,6 +574,8 @@ def gameweek_payload(
             "x": round(_expected(forecasts.get(card.player)), 1),
             "average": card.average,
             "games": games.get(card.player) or [],
+            **_split_out(forecasts.get(card.player)),
+            **({"xg": rates[card.player]} if card.player in rates else {}),
         }
         for card in {c.player: c for c in cards if games.get(c.player)}.values()
     ]
@@ -552,6 +626,8 @@ def build_payload(
     past_week = snapshot.get("pastGameweek")
 
     plan_games = card_games(snapshot["cards"], "plan")
+    # Understat's numbers (when the job could read them) turned into each midfielder's and forward's xG for a game he starts
+    xg_rates = xg.build(snapshot["cards"], snapshot["history"], snapshot.get("understat") or {})
     reference_for = snapshot.get("referenceFor") or {}
     references = snapshot.get("references") or {}
     plan_reference = references.get(reference_for.get("plan", ""), {})
@@ -560,7 +636,16 @@ def build_payload(
         player_weeks(snapshot["cards"], plan_games, snapshot["history"], _dt(plan_week["lock"]), None, use_sorare=True)
     )
     next_gw = gameweek_payload(
-        snapshot, plan_week, plan_comps, cards, plan_forecasts, plan_games, played=False, runs=runs, draws=draws
+        snapshot,
+        plan_week,
+        plan_comps,
+        cards,
+        plan_forecasts,
+        plan_games,
+        played=False,
+        xg_rates=xg_rates,
+        runs=runs,
+        draws=draws,
     )
 
     last_gw = None
@@ -595,6 +680,7 @@ def build_payload(
             past_forecasts,
             past_games,
             played=True,
+            xg_rates=xg_rates,
             actual_references=actual_reference,
             runs=runs,
             draws=draws,
@@ -618,6 +704,7 @@ def build_payload(
                 forecasts,
                 games,
                 played=False,
+                xg_rates=xg_rates,
                 count=1,  # one plan is enough this far out: the numbers will change before it locks
                 runs=max(4, runs // 4),
                 draws=draws,

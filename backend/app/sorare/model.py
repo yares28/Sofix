@@ -68,6 +68,11 @@ class Forecast:
     games: int = 1
     source: str = "form"  # "sorare" (its projection and starting odds) or "form" (his last five games)
     actual: float | None = None  # only for a gameweek that has been played: what he really scored
+    # The same forecast split by how he plays, for the overlay only: the planner never reads these.
+    start: float | None = None  # his score if he starts (one game)
+    bench: float | None = None  # his score if he does not start: the chance he comes on x what a substitute scores
+    p_start: float | None = None  # the chance he starts
+    p_on: float | None = None  # the chance he comes on as a substitute
 
 
 @dataclass(frozen=True)

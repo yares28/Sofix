@@ -9,13 +9,13 @@ from __future__ import annotations
 
 import logging
 import math
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 import numpy as np
 
 from app.services.scoring import difficulty_label, difficulty_score, label_bucket
-from app.sorare import rules, xg
+from app.sorare import projection, rules, xg
 from app.sorare.forecast import PlayerWeek
 from app.sorare.forecast import forecasts as build_forecasts
 from app.sorare.model import SORARE_POSITION, Card, Competition, Forecast
@@ -24,10 +24,17 @@ from app.sorare.planner import DRAWS, Lineup, Plan, build, fill_bench, plans, re
 logger = logging.getLogger(__name__)
 
 POSITION_WORDS = {"GK": "goalkeeper", "DEF": "defender", "MID": "midfielder", "FWD": "forward"}
-PAYLOAD_VERSION = 6
+PAYLOAD_VERSION = 7
 """The shape of the published page. A run only keeps a finished gameweek's replay from the payload the app is
 already showing when that payload was built by this same version."""
 LIVE_STATES = {"started", "live"}
+ARCHIVE_PREFIX = "sorare_week:"
+"""A finished gameweek is kept whole under `sorare_week:<its slug>` in `read_models`, apart from the main page."""
+AHEAD_PREFIX = "sorare_ahead:"
+"""An early plan for a LaLiga round Sorare has not opened is kept whole under `sorare_ahead:<round>`, rewritten every run."""
+SETTLE = timedelta(hours=24)
+"""How long after a gameweek ends its scores can still move (Sorare reviews some for a while). A replay built earlier
+is rebuilt; one built later is final, kept as it is, and written to the archive."""
 
 
 def _dt(value: str) -> datetime:
@@ -480,6 +487,52 @@ def plan_payload(
     return payload
 
 
+def hindsight_forecasts(forecasts: dict[str, Forecast]) -> dict[str, Forecast]:
+    """What the planner would have known with the results in: who played, and exactly what each scored.
+
+    A player who did not play cannot be picked, and one who did scores what he scored, with no spread left to
+    guess. Feeding these to the planner gives the best lineups of a week that is already over.
+    """
+    return {
+        player: Forecast(
+            p_play=1.0 if f.actual is not None else 0.0,
+            mu=f.actual if f.actual is not None else 0.0,
+            games=f.games,
+            source="hindsight",
+            actual=f.actual,
+            sd=0.0,
+        )
+        for player, f in forecasts.items()
+    }
+
+
+def hindsight_plan(
+    comps: list[Competition],
+    cards: list[Card],
+    forecasts: dict[str, Forecast],
+    games: dict[str, list[dict[str, Any]]],
+    actual_references: dict[str, dict[int, float]],
+    *,
+    runs: int,
+    seed: int = 11,
+) -> dict[str, Any] | None:
+    """The best way to spread your cards over a finished week's competitions, knowing every score.
+
+    Competitions are priced by the scores that really paid that week, and a Room is left out: what it pays depends on
+    nine other managers' lineups, which is not known here. None when no lineup can be filled.
+    """
+    oracle = hindsight_forecasts(forecasts)
+    ready = [c for c in comps if not c.is_room and c.reference and lineups_possible(c, cards, oracle)]
+    found = plans(ready, cards, oracle, count=1, runs=runs, seed=seed, draws=4) if ready else []
+    if not found:
+        return None
+    for lineup in found[0].lineups:
+        replay_rewards(lineup, oracle, actual_references.get(lineup.comp.key, {}))
+    payload = plan_payload(found[0], 1, oracle, games, len(cards), actual_references)
+    payload["hindsight"] = True
+    return payload
+
+
 def gameweek_payload(
     snapshot: dict[str, Any],
     week: dict[str, Any],
@@ -491,6 +544,7 @@ def gameweek_payload(
     played: bool,
     xg_rates: dict[str, dict[str, Any]] | None = None,
     actual_references: dict[str, dict[int, float]] | None = None,
+    hindsight_comps: list[Competition] | None = None,
     count: int = 5,
     runs: int = 30,
     draws: int = DRAWS,
@@ -587,9 +641,9 @@ def gameweek_payload(
     )
     source = "sorare" if any(f.source == "sorare" for f in forecasts.values()) else "form"
     state = "none" if not players else ("ready" if found else "waiting")
-    return {
+    out: dict[str, Any] = {
         "gameweek": {
-            "id": str(week["number"]),
+            "id": str(week.get("id", week["number"])),
             "slug": week["slug"],
             "number": week["number"],
             "name": week["name"],
@@ -610,10 +664,112 @@ def gameweek_payload(
             for i, plan in enumerate(found)
         ],
     }
+    if played and hindsight_comps is not None:
+        hindsight = hindsight_plan(
+            hindsight_comps, cards, forecasts, games, actual_references or {}, runs=max(4, runs // 2), seed=seed
+        )
+        if hindsight:
+            out["hindsight"] = hindsight
+    return out
+
+
+def settled_replay(previous: dict[str, Any] | None) -> dict[str, Any] | None:
+    """The replay of the gameweek last played in the page the app is showing, when it is final and can be kept.
+
+    Final means the page was built by this same version and at least SETTLE after that gameweek ended (before that
+    some of its scores can still move). Anything else is rebuilt from the snapshot.
+    """
+    if not previous or previous.get("version") != PAYLOAD_VERSION:
+        return None
+    last = week_of(previous, "last")
+    if not last or not last.get("played"):
+        return None
+    return last if _dt(previous["generatedAt"]) >= _dt(last["gameweek"]["end"]) + SETTLE else None
+
+
+def kept_replay(previous: dict[str, Any] | None, past_week: dict[str, Any] | None) -> dict[str, Any] | None:
+    """That replay, if it is for the gameweek this run treats as the one just played."""
+    last = settled_replay(previous)
+    return last if last and past_week and last["gameweek"]["slug"] == past_week["slug"] else None
+
+
+def archive_of(payload: dict[str, Any]) -> tuple[str, dict[str, Any]] | None:
+    """The gameweek just played, with the key it is kept under, once its scores are final. None before that."""
+    last = week_of(payload, "last")
+    if not last or _dt(payload["generatedAt"]) < _dt(last["gameweek"]["end"]) + SETTLE:
+        return None
+    return f"{ARCHIVE_PREFIX}{last['gameweek']['slug']}", last
+
+
+def projected_weeks(
+    snapshot: dict[str, Any], rounds: list[projection.Round], *, runs: int = 30, draws: int = DRAWS
+) -> list[dict[str, Any]]:
+    """An early plan for each LaLiga round Sorare has not opened a gameweek for.
+
+    Which cards play comes from the LaLiga calendar; the competitions are the ones of the gameweek being planned, the
+    best guess of what Sorare will publish; the forecasts stand on form, since Sorare projects only a player's next game.
+    One plan is enough this far out: the numbers will move before the week opens, and Sorare's own replace all of it.
+    """
+    cards, _ = read_cards(snapshot["cards"])
+    plan_week = snapshot["planGameweek"]
+    reference_for = snapshot.get("referenceFor") or {}
+    reference = (snapshot.get("references") or {}).get(reference_for.get("plan", ""), {})
+    comps = read_competitions(snapshot["competitions"].get(plan_week["slug"], []), reference)
+    out = []
+    for round_ in rounds:
+        start, end, lock = projection.window(round_.first)
+        games = projection.games_for(cards, round_)
+        forecasts = build_forecasts(
+            player_weeks(snapshot["cards"], games, snapshot["history"], lock, None, use_sorare=False)
+        )
+        week = {
+            "id": f"md{round_.number}",
+            "number": 0,
+            "slug": f"projected-md{round_.number}",
+            "name": f"LaLiga GW{round_.number}",
+            "start": start.isoformat(),
+            "end": end.isoformat(),
+            "lock": lock.isoformat(),
+        }
+        early = gameweek_payload(
+            snapshot,
+            week,
+            comps if games else [],
+            cards,
+            forecasts,
+            games,
+            played=False,
+            count=1,
+            runs=max(4, runs // 4),
+            draws=draws,
+        )
+        early["projected"] = {"round": round_.number, "basedOn": f"GW{plan_week['number']}"}
+        out.append(early)
+    return out
+
+
+def projected_heads(weeks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """What the main page says about each early week: enough for the week picker, never the whole week."""
+    return [
+        {
+            "round": week["projected"]["round"],
+            "id": week["gameweek"]["id"],
+            "from": week["gameweek"]["start"],
+            "to": week["gameweek"]["end"],
+            "cards": week["playing"]["cards"],
+            "plans": len(week["plans"]),
+        }
+        for week in weeks
+    ]
 
 
 def build_payload(
-    snapshot: dict[str, Any], *, runs: int = 30, draws: int = DRAWS, previous: dict[str, Any] | None = None
+    snapshot: dict[str, Any],
+    *,
+    runs: int = 30,
+    draws: int = DRAWS,
+    previous: dict[str, Any] | None = None,
+    projected: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """The whole `sorare` read model, from one snapshot.
 
@@ -648,11 +804,8 @@ def build_payload(
         draws=draws,
     )
 
-    last_gw = None
-    kept = (previous or {}).get("last") if (previous or {}).get("version") == PAYLOAD_VERSION else None
-    if past_week and kept and kept.get("gameweek", {}).get("slug") == past_week["slug"] and kept.get("played"):
-        last_gw = kept
-    elif past_week:
+    last_gw = kept_replay(previous, past_week)
+    if past_week and not last_gw:
         past_games = card_games(snapshot["cards"], "past")
         # a replay may only use the gameweek before it, and is scored against that gameweek's own results
         past_comps = read_competitions(
@@ -662,6 +815,10 @@ def build_payload(
             key: {int(r): float(v) for r, v in (entry.get("cuts") or {}).items()}
             for key, entry in (references.get(reference_for.get("pastActual", "")) or {}).items()
         }
+        # the same competitions priced by what really paid that week, for the best lineups in hindsight
+        hindsight_comps = read_competitions(
+            snapshot["competitions"].get(past_week["slug"], []), references.get(reference_for.get("pastActual", ""), {})
+        )
         past_forecasts = build_forecasts(
             player_weeks(
                 snapshot["cards"],
@@ -682,6 +839,7 @@ def build_payload(
             played=True,
             xg_rates=xg_rates,
             actual_references=actual_reference,
+            hindsight_comps=hindsight_comps,
             runs=runs,
             draws=draws,
         )
@@ -717,9 +875,17 @@ def build_payload(
         (past_week or {}).get("slug"),
         *[w["slug"] for w in (snapshot.get("aheadGameweeks") or [])],
     }
+    # What the page before said about the weeks it kept apart: the picker still needs their headline once they are
+    # no longer the week just played, and reading them back from the archive would be a whole page each.
+    carried = {
+        entry["slug"]: entry
+        for entry in (previous or {}).get("timeline") or []
+        if entry.get("kept") and "slug" in entry
+    }
     for week in snapshot["gameweeks"]:
-        outside = _dt(week["end"]) < now - _week_window() or _dt(week["start"]) > now + _week_window(days=24)
-        if outside and week["slug"] not in keep:
+        # Every week of the season so far stays: a finished week is still a week you can open. Only the far future
+        # is left out, until Sorare has opened it.
+        if _dt(week["start"]) > now + _week_window(days=24) and week["slug"] not in keep:
             continue
         status = "done" if _dt(week["end"]) < now else "live" if _dt(week["lock"]) <= now else "later"
         if week["slug"] == plan_week["slug"]:
@@ -733,11 +899,16 @@ def build_payload(
             "lock": week["lock"],
             "status": status,
         }
+        before = carried.get(week["slug"])
+        if before:
+            item.update({key: before[key] for key in ("playing", "won", "kept") if key in before})
         if week["slug"] == plan_week["slug"]:
             item["playing"] = next_gw["playing"]["cards"]
         elif last_gw and past_week and week["slug"] == past_week["slug"]:
             item["playing"] = last_gw["playing"]["cards"]
             item["won"] = last_gw["plans"][0]["actual"]["essence"] if last_gw["plans"] else 0
+            if now >= _dt(week["end"]) + SETTLE:
+                item["kept"] = True  # the job writes it to the archive in this run, once
         timeline.append(item)
 
     by_rarity: dict[str, int] = {}
@@ -755,6 +926,8 @@ def build_payload(
         "weeks": [w for w in [last_gw, next_gw, *ahead] if w],
         "nextId": next_gw["gameweek"]["id"],
         "lastId": last_gw["gameweek"]["id"] if last_gw else None,
+        # LaLiga rounds Sorare has not opened: each early plan is a read model of its own, this is its headline
+        "projected": projected or [],
         "cards": {
             "total": len(snapshot["cards"]),
             "usable": len(cards),

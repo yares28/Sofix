@@ -147,8 +147,9 @@ def simulate(
     cards = lineup.cards
     p = np.array([forecasts[c.player].p_play for c in cards])
     mu = np.array([forecasts[c.player].mu for c in cards])
+    sd = np.array([SCORE_SD if forecasts[c.player].sd is None else forecasts[c.player].sd for c in cards])
     plays = rng.random((draws, len(cards))) < p
-    scores = np.clip(rng.normal(mu, SCORE_SD, (draws, len(cards))), 0, 100)
+    scores = np.clip(rng.normal(mu, sd, (draws, len(cards))), 0, 100)
     return totals(lineup, plays, scores)
 
 

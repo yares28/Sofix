@@ -25,6 +25,7 @@ from app.db import SessionLocal
 from app.logging_config import configure_logging
 from app.models import ReadModel
 from app.services.publish import notify_app, put
+from app.sorare import projection
 from app.sorare import publish as sorare_publish
 from app.sorare import record as sorare_record
 from app.sorare import sync as sorare_sync
@@ -57,9 +58,9 @@ def run(
     started = datetime.now(UTC)
     references = cached_references(db)
     previous = published(db)
-    last = previous.get("last") or {}
-    kept = last.get("played") and previous.get("version") == sorare_publish.PAYLOAD_VERSION
-    replayed = (last.get("gameweek") or {}).get("slug") if kept else None
+    # A finished gameweek's replay never changes once its scores are final: keep it, and fetch nothing for it.
+    kept = sorare_publish.settled_replay(previous)
+    replayed = kept["gameweek"]["slug"] if kept else None
     # Sorare and the planner take a few minutes; Neon closes a connection that sits inside an open
     # transaction, so the session is let go here and picked up again to write the result.
     db.rollback()
@@ -77,7 +78,14 @@ def run(
         }
     )
     snapshot["understat"] = understat.fetch_leagues(leagues, understat.season_of(started.date()))
-    payload = sorare_publish.build_payload(snapshot, runs=runs, previous=previous)
+    # Every LaLiga round Sorare has not opened a gameweek for is planned early, from the calendar the app already holds.
+    fetched = datetime.fromisoformat(snapshot["fetchedAt"])
+    early = sorare_publish.projected_weeks(
+        snapshot, projection.unopened(projection.calendar(db, fetched), snapshot["gameweeks"], now=fetched), runs=runs
+    )
+    payload = sorare_publish.build_payload(
+        snapshot, runs=runs, previous=previous, projected=sorare_publish.projected_heads(early)
+    )
     size = len(json.dumps(payload, separators=(",", ":")))
     planned_week = sorare_publish.week_of(payload) or {}
     summary = {
@@ -88,6 +96,7 @@ def run(
         "xg": sum(1 for p in planned_week.get("playing", {}).get("players", []) if "xg" in p),
         "playable": len(planned_week.get("playable", [])),
         "weeks": [w["gameweek"]["number"] for w in payload.get("weeks", [])],
+        "projected": [w["projected"]["round"] for w in early],
         "calls": snapshot["calls"],
         "bytes": size,
         "seconds": round((datetime.now(UTC) - started).total_seconds()),
@@ -110,6 +119,15 @@ def run(
     )
     put(db, SORARE_KEY, payload, now)
     put(db, REFERENCES_KEY, snapshot["references"], now)
+    # Each early plan is a page of its own, read only when that week is opened; it is written again every run because it
+    # follows the numbers.
+    for week in early:
+        put(db, f"{sorare_publish.AHEAD_PREFIX}{week['projected']['round']}", week, now)
+    # The week just played, once final, is also kept whole on its own so it can be opened long after it leaves the page.
+    archived = sorare_publish.archive_of(payload)
+    if archived and db.get(ReadModel, archived[0]) is None:
+        put(db, archived[0], archived[1], now)
+        summary["archived"] = archived[0]
     if standalone:
         # run by hand: ask the app to reload its cached pages, the way the refresh job does at the end
         summary["revalidate"] = notify_app(settings.app_url, settings.revalidate_secret, settings.vercel_bypass_secret)

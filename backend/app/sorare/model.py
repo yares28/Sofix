@@ -68,6 +68,7 @@ class Forecast:
     games: int = 1
     source: str = "form"  # "sorare" (its projection and starting odds) or "form" (his last five games)
     actual: float | None = None  # only for a gameweek that has been played: what he really scored
+    sd: float | None = None  # the spread of his score: the planner's usual one, or 0 when the score is already known
     # The same forecast split by how he plays, for the overlay only: the planner never reads these.
     start: float | None = None  # his score if he starts (one game)
     bench: float | None = None  # his score if he does not start: the chance he comes on x what a substitute scores

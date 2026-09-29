@@ -658,6 +658,26 @@ def test_the_job_reads_understat_once_for_each_league_the_owner_plays_in_and_pub
     assert [p["player"] for p in players if "xg" in p] == ["mid-one"]
 
 
+def test_the_job_archives_the_week_just_played_once_its_scores_are_final(db, monkeypatch):  # noqa: F811
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    monkeypatch.setattr(sorare_job.settings, "sorare_api_key", "test-key")
+    monkeypatch.setattr(sorare_job, "SorareClient", lambda *a, **k: _FakeClient())
+    monkeypatch.setattr(sorare_job.sorare_sync, "snapshot", lambda *a, **k: snapshot())
+
+    first = sorare_job.run(db, "yares", runs=1)
+
+    key = "sorare_week:gw-past"  # the fixture's run is two weeks after that gameweek ended
+    row = db.get(ReadModel, key)
+    assert row is not None and first["archived"] == key
+    assert row.payload["gameweek"]["slug"] == "gw-past" and row.payload["played"] is True
+    assert "hindsight" in row.payload and row.payload["plans"]
+    stamp = row.updated_at
+
+    second = sorare_job.run(db, "yares", runs=1)
+    assert "archived" not in second, "it is written once: a finished week never changes"
+    assert db.get(ReadModel, key).updated_at == stamp
+
+
 def test_the_job_publishes_without_xg_when_understat_gives_nothing(db, monkeypatch):  # noqa: F811
     monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
     monkeypatch.setattr(sorare_job.settings, "sorare_api_key", "test-key")

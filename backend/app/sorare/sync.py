@@ -32,8 +32,9 @@ fragment R on AnyRewardConfigInterface { __typename
 """
 
 FIXTURES = """
-{ so5 { so5Fixtures(first: 14, eventType: CLASSIC, sport: FOOTBALL) { nodes {
-  slug gameWeek displayName aasmState startDate endDate cutOffDate } } } }
+query($first:Int!,$after:String){ so5 { so5Fixtures(first: $first, after: $after, eventType: CLASSIC, sport: FOOTBALL) {
+  pageInfo { hasNextPage endCursor }
+  nodes { slug gameWeek displayName aasmState startDate endDate cutOffDate } } } }
 """
 
 LEAGUES = """
@@ -220,8 +221,25 @@ def display_number(name: str, fallback: int) -> int:
     return int(digits[-1]) if digits else fallback
 
 
-def gameweeks(client: SorareClient) -> list[dict[str, Any]]:
-    nodes = client.query(FIXTURES)["so5"]["so5Fixtures"]["nodes"]
+def gameweeks(client: SorareClient, page: int = 30, max_pages: int = 5) -> list[dict[str, Any]]:
+    """Every gameweek of this season so far, oldest first, plus the ones Sorare has opened.
+
+    Sorare lists them newest first and runs them all year, numbering from "Game Week 1" again when a season
+    starts, so the list is read page by page until that Game Week 1 turns up: everything after it is this
+    season's, everything before it is last season's. If it never turns up (a schema change) a few pages are read
+    and the run carries on with what it has, rather than paging without end.
+    """
+    nodes: list[dict[str, Any]] = []
+    after: str | None = None
+    for _ in range(max_pages):
+        connection = client.query(FIXTURES, {"first": page, "after": after})["so5"]["so5Fixtures"]
+        nodes.extend(connection["nodes"])
+        info = connection.get("pageInfo") or {}
+        after = info.get("endCursor")
+        if any(display_number(n["displayName"], n["gameWeek"]) == 1 for n in connection["nodes"]):
+            break  # this season's first gameweek: nothing older is this season's
+        if not info.get("hasNextPage") or not after:
+            break
     out = [
         {
             "slug": n["slug"],
@@ -235,7 +253,35 @@ def gameweeks(client: SorareClient) -> list[dict[str, Any]]:
         }
         for n in nodes
     ]
-    return sorted(out, key=lambda g: g["start"])
+    out.sort(key=lambda g: g["start"])
+    first = next((i for i in range(len(out) - 1, -1, -1) if out[i]["number"] == 1), None)
+    return out[first:] if first is not None else out
+
+
+def history_players(cards: list[dict[str, Any]], played_in: tuple[str, ...], league: str = "laliga-es") -> list[str]:
+    """The players whose past scores a run reads: anyone with a game in a gameweek it plans, and every LaLiga player.
+
+    A LaLiga player with no game this gameweek (an international break, say) is still in the early plans for the rounds
+    ahead, and those stand on his form.
+    """
+    return sorted(
+        {
+            c["player"]["slug"]
+            for c in cards
+            if any(c["player"].get(k) for k in played_in)
+            or ((c["player"].get("activeClub") or {}).get("domesticLeague") or {}).get("slug") == league
+        }
+    )
+
+
+def recent_weeks(weeks: list[dict[str, Any]], now: datetime, days: int = 45) -> list[dict[str, Any]]:
+    """The weeks worth counting games in: the last `days` days and everything coming.
+
+    Counting a week's games is one call each, and only a recent finished week is ever compared with the one being
+    planned (`pick_reference`), so the older ones of a season are not counted.
+    """
+    since = now - timedelta(days=days)
+    return [w for w in weeks if datetime.fromisoformat(w["end"]) > since]
 
 
 def pick_gameweeks(weeks: list[dict[str, Any]], now: datetime, ahead: int = 2) -> dict[str, Any]:
@@ -492,7 +538,7 @@ def snapshot(
     weeks = gameweeks(client)
     picked = pick_gameweeks(weeks, now, ahead=ahead)
     plan_gw, past_gw, ahead_gws = picked["plan"], picked["past"], picked["ahead"]
-    for week in weeks:  # how much football each gameweek holds, to compare like with like
+    for week in recent_weeks(weeks, now):  # how much football each gameweek holds, to compare like with like
         week["games"] = games_count(client, week["slug"])
     past_slug = past_gw["slug"] if past_gw else plan_gw["slug"]
     # One alias per gameweek: the games of all of them come back in the same pages of cards.
@@ -522,8 +568,7 @@ def snapshot(
     }
 
     played_in = ("plan", "past", *[f"a{i}" for i in range(len(ahead_gws))])
-    players = sorted({c["player"]["slug"] for c in my_cards if any(c["player"].get(k) for k in played_in)})
-    scores = history(client, players, datetime.fromisoformat(plan_gw["lock"]))
+    scores = history(client, history_players(my_cards, played_in), datetime.fromisoformat(plan_gw["lock"]))
 
     # Reward chances come from a gameweek that has already been played. The gameweek being planned looks at the
     # last one finished; the replay of a played gameweek may only look at the one before it, and is scored

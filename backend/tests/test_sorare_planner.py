@@ -19,6 +19,7 @@ from app.sorare.planner import (
     replay,
     replay_rewards,
     score_at_rank,
+    simulate,
     totals,
 )
 
@@ -522,3 +523,13 @@ def test_fill_bench_leaves_a_useless_substitute_out():
     lineup = evaluate(Lineup(comp=comp, starters=starters, subs=[None, None], captain=0), fc, np.random.default_rng(11))
     left = fill_bench([lineup], [spare], fc, np.random.default_rng(11), draws=800)
     assert lineup.bench == [] and left == [spare], "nobody ever misses a game, so a substitute adds nothing"
+
+
+def test_a_score_that_is_already_known_is_given_no_spread():
+    starters = [card("gk", "GK"), card("def", "DEF"), card("mid", "MID"), card("fwd", "FWD"), card("extra", "MID")]
+    lineup = Lineup(comp=in_season_comp(), starters=starters, subs=[None, None], captain=0)
+    known = {c.player: Forecast(p_play=1.0, mu=55.0, games=1, sd=0.0) for c in starters}
+    guessed = {c.player: Forecast(p_play=1.0, mu=55.0, games=1) for c in starters}
+    rng = np.random.default_rng(3)
+    assert np.ptp(simulate(lineup, known, rng, 200)) == 0.0, "the same total every draw"
+    assert np.ptp(simulate(lineup, guessed, rng, 200)) > 0.0, "a forecast still has its spread"

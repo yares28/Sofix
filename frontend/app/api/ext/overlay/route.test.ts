@@ -6,7 +6,6 @@ const TOKEN = "t".repeat(48);
 
 const loadSorare = vi.fn<() => Promise<Sorare | null>>();
 vi.mock("../../../../lib/playData", () => ({ loadSorare: () => loadSorare() }));
-vi.mock("../../../../lib/api", () => ({ loadGrid: async () => ({ grid: null, meta: null, error: "no grid" }) }));
 
 const { POST } = await import("./route");
 
@@ -36,7 +35,7 @@ describe("POST /api/ext/overlay", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     const body = await response.json();
-    expect(body).toMatchObject({ ok: true, week: 17, cards: { "unai-simon-2026-limited-12": { x: 54.5, p: 0.94, opponent: "Getafe CF" } } });
+    expect(body).toMatchObject({ ok: true, week: 17, cards: { "unai-simon-2026-limited-12": { x: 54.5, p: 0.94, average: 55 } } });
   });
 
   it("omits a slug it does not know", async () => {

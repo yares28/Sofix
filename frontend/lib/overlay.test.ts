@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { OVERLAY_CAP, OverlayRequest, overlayNumbers, overlayPlan } from "./overlay";
 import type { GameweekPlan, Lineup, PlayCard, PlayerGame, PlayingPlayer, Plan, Sorare } from "./play";
-import type { FixtureGrid } from "./types";
-import recordedGrid from "../e2e/fixtures/grid-response.json";
 
-const grid = (recordedGrid as unknown as { data: FixtureGrid }).data;
 const NOW = new Date("2026-10-08T12:00:00Z");
 
 const game = (over: Partial<PlayerGame> = {}): PlayerGame => ({
@@ -86,70 +83,41 @@ describe("the request", () => {
 
 describe("overlayNumbers", () => {
   it("answers a card you own with its player's numbers, and the same for the player's slug", () => {
-    const answer = overlayNumbers(sorare([player()]), grid, ask({ cards: ["unai-simon-2026-limited-12", "unai-simon-2023-rare-3"], players: ["unai-simon"] }), NOW);
+    const answer = overlayNumbers(sorare([player()]), ask({ cards: ["unai-simon-2026-limited-12", "unai-simon-2023-rare-3"], players: ["unai-simon"] }), NOW);
     expect(answer.week).toBe(17);
-    expect(answer.cards["unai-simon-2026-limited-12"]).toMatchObject({ x: 54.5, p: 0.94, average: 55, opponent: "Getafe CF", venue: "H" });
+    expect(answer.cards["unai-simon-2026-limited-12"]).toEqual({ x: 54.5, p: 0.94, average: 55 });
     expect(answer.cards["unai-simon-2023-rare-3"]).toEqual(answer.cards["unai-simon-2026-limited-12"]);
     expect(answer.players["unai-simon"]).toEqual(answer.cards["unai-simon-2026-limited-12"]);
   });
 
-  it("puts the board's difficulty on a LaLiga fixture, matched by club name", () => {
-    const entry = overlayNumbers(sorare([player()]), grid, ask({ players: ["unai-simon"] }), NOW).players["unai-simon"]!;
-    expect(entry.code).toBe("GET");
-    expect(entry.difficulty).toBeGreaterThanOrEqual(0);
-    expect(entry.difficulty).toBeLessThanOrEqual(100);
-    expect([1, 2, 3, 4, 5]).toContain(entry.bucket);
-    expect(typeof entry.label).toBe("string");
-  });
-
-  it("says there are no odds, rather than inventing a difficulty, outside LaLiga", () => {
-    const abroad = player({ player: "lionel-messi", name: "Lionel Messi", club: "Inter Miami CF", games: [game({ competition: "MLS", opponent: "Orlando City", venue: "A" })] });
-    const entry = overlayNumbers(sorare([abroad]), grid, ask({ players: ["lionel-messi"] }), NOW).players["lionel-messi"]!;
-    expect(entry).toMatchObject({ x: 54.5, opponent: "Orlando City", venue: "A", code: "ORL" });
-    expect(entry.difficulty).toBeUndefined();
-    expect(entry.bucket).toBeUndefined();
-  });
-
-  it("never labels a national-team game with the club's grid difficulty", () => {
-    const national = player({ games: [game({ competition: "uefa-nations-league", team: "Spain", opponent: "Getafe CF" })] });
-    expect(overlayNumbers(sorare([national]), grid, ask({ players: ["unai-simon"] }), NOW).players["unai-simon"]!.difficulty).toBeUndefined();
+  it("says nothing about the game: Sorare's own card already draws the opponent, the odds and the kickoff", () => {
+    const abroad = player({ games: [game({ competition: "uefa-nations-league", team: "Spain", opponent: "North Macedonia", venue: "A" })] });
+    const entry = overlayNumbers(sorare([abroad]), ask({ players: ["unai-simon"] }), NOW).players["unai-simon"]!;
+    expect(Object.keys(entry).sort()).toEqual(["average", "p", "x"]);
   });
 
   it("omits what it does not know instead of returning empty entries", () => {
-    const answer = overlayNumbers(sorare([player()]), grid, ask({ cards: ["someone-elses-card-2026-limited-1"], players: ["nobody"] }), NOW);
+    const answer = overlayNumbers(sorare([player()]), ask({ cards: ["someone-elses-card-2026-limited-1"], players: ["nobody"] }), NOW);
     expect(answer.cards).toEqual({});
     expect(answer.players).toEqual({});
   });
 
   it("does not answer a card whose player has no game this week", () => {
-    const answer = overlayNumbers(sorare([]), grid, ask({ cards: ["unai-simon-2026-limited-12"] }), NOW);
+    const answer = overlayNumbers(sorare([]), ask({ cards: ["unai-simon-2026-limited-12"] }), NOW);
     expect(answer.cards).toEqual({});
   });
 
   it("reads the week asked for, and falls back to the one being planned when it is unknown", () => {
-    expect(overlayNumbers(sorare([player()]), grid, ask({ players: ["unai-simon"], week: "18" }), NOW).players["unai-simon"]!.x).toBe(11);
-    const unknown = overlayNumbers(sorare([player()]), grid, ask({ players: ["unai-simon"], week: "99" }), NOW);
+    expect(overlayNumbers(sorare([player()]), ask({ players: ["unai-simon"], week: "18" }), NOW).players["unai-simon"]!.x).toBe(11);
+    const unknown = overlayNumbers(sorare([player()]), ask({ players: ["unai-simon"], week: "99" }), NOW);
     expect(unknown.week).toBe(17);
     expect(unknown.players["unai-simon"]!.x).toBe(54.5);
-  });
-
-  it("shows the next game of a double gameweek, or the last once both are played", () => {
-    const two = player({ games: [game({ kickoff: "2026-10-07T19:00:00+00:00", opponent: "Levante UD" }), game({ kickoff: "2026-10-11T19:00:00+00:00", opponent: "Getafe CF" })] });
-    expect(overlayNumbers(sorare([two]), grid, ask({ players: ["unai-simon"] }), NOW).players["unai-simon"]!.opponent).toBe("Getafe CF");
-    expect(overlayNumbers(sorare([two]), grid, ask({ players: ["unai-simon"] }), new Date("2026-10-20T00:00:00Z")).players["unai-simon"]!.opponent).toBe("Getafe CF");
-    expect(overlayNumbers(sorare([two]), grid, ask({ players: ["unai-simon"] }), new Date("2026-10-06T00:00:00Z")).players["unai-simon"]!.opponent).toBe("Levante UD");
-  });
-
-  it("still gives the numbers with no grid to read a difficulty from", () => {
-    const entry = overlayNumbers(sorare([player()]), null, ask({ players: ["unai-simon"] }), NOW).players["unai-simon"]!;
-    expect(entry.x).toBe(54.5);
-    expect(entry.difficulty).toBeUndefined();
   });
 
   it("copes with a payload the job published before players carried their slug", () => {
     const old = player();
     delete (old as { player?: string }).player;
-    expect(overlayNumbers(sorare([old]), grid, ask({ players: ["unai-simon"] }), NOW).players).toEqual({});
+    expect(overlayNumbers(sorare([old]), ask({ players: ["unai-simon"] }), NOW).players).toEqual({});
   });
 });
 
@@ -195,9 +163,9 @@ describe("overlayPlan", () => {
 
   it("is what the endpoint returns when asked for the plan, for the gameweek named or the one being planned", () => {
     const data = sorare([player()]);
-    const asked = overlayNumbers(data, grid, ask({ plan: true }), NOW);
+    const asked = overlayNumbers(data, ask({ plan: true }), NOW);
     expect(asked.plan).toMatchObject({ state: "none", week: 17 });
-    expect(overlayNumbers(data, grid, ask({}), NOW).plan).toBeUndefined();
-    expect(overlayNumbers(data, grid, ask({ plan: true, week: "18" }), NOW).plan).toMatchObject({ week: 18 });
+    expect(overlayNumbers(data, ask({}), NOW).plan).toBeUndefined();
+    expect(overlayNumbers(data, ask({ plan: true, week: "18" }), NOW).plan).toMatchObject({ week: 18 });
   });
 });

@@ -20,7 +20,8 @@ The week control on the right is app-wide:
 
 Each page lists the weeks it can show: the LaLiga pages list LaLiga rounds; **Play** lists every Sorare gameweek
 once (one that covers a weekend and a midweek round is one row), plus every LaLiga week still to come that Sorare
-hasn't opened yet, marked **Sorare opens later**. Its page says so instead of showing another gameweek.
+hasn't opened yet, marked **Sorare opens later**, or **early plan** when the job has planned it. A week with nothing to
+show says so instead of showing another gameweek.
 
 The selected week lives in the URL (`?gw=` for LaLiga-oriented pages and the shared week mapping behind `?w=` for
 the combined calendar), so a bookmark preserves the view. LaLiga and Sorare gameweek numbers are separate systems;
@@ -154,6 +155,12 @@ suggested plan: the extension reads the selected Sorare fixture directly, so the
 that Sofix no longer retains as an optimized plan. A signed-in `sorare.com` tab must be open; otherwise the block says
 which extension/session prerequisite is missing. Lineups from another GW are never carried into the selected one.
 
+Once Sorare has scored a lineup, its row shows the **score** (large), then **where it ranked and what it was paid**
+("Rank 1,204 · $2.50 · 250 essence", or "no reward paid" once it is ranked and nothing was), and each card carries its
+own score with a **C** on the captain. While the games are still being played it says "Still scoring". This needs the
+extension at version 0.2.2 or later (reload it in `chrome://extensions`); an older one still shows the lineups, without
+their results. Essence counts Limited essence only, as the plans do.
+
 Read each lineup from left to right:
 
 - competition and lock state;
@@ -178,6 +185,21 @@ and freshness label matters: “form” is weaker evidence than a recorded Sorar
 
 After a gameweek, Play compares recorded pre-lock player/lineup ranges with actual submitted-lineup scores. A replay
 is meaningful only when the forecast was stored before lock. Actuals do not retroactively change the old forecast.
+
+Choose **After the games** on a played week: each plan shows what it won against what it was expected to win (the
+expected numbers are a replay, built from form as it stood before the lock, not the Sorare-informed plan you saw then).
+The last tab, **In hindsight**, is the best way to have spread your cards over that week's competitions knowing every
+score: the most it could have won, against the scores that really paid that week. It uses the cards you own today, leaves
+Rooms out (a Room depends on nine other managers' lineups), and never names an expected number, because there is none.
+
+A LaLiga round Sorare has not opened yet (LaLiga GW36 in May, say) opens as an **early plan**: a plain note says so,
+and it is built from the LaLiga calendar for your cards' games, their recent form and the competitions of the gameweek
+being planned, with one plan and no Apply button. It is a first guess: your cards as they are today, no start odds, and
+competitions Sorare may change. It moves each refresh, and Sorare's own numbers replace it when the week opens.
+
+Every gameweek is **kept** once its scores are final (a day after it ends) and stays in the picker with its replay
+and hindsight, however old. A week played before Sofix started keeping them is marked **not recorded**; it still opens,
+to the lineups you entered and what they won, read from Sorare.
 
 ## 8. Apply a lineup
 
@@ -360,8 +382,10 @@ the extension that holds the token.
 - Sorare can change rules or its page/API; the Check response is authoritative before any draft/entry.
 - The app is personal/non-commercial and its third-party imagery/marks remain owned by their respective holders.
 
-Known calendar limitation at this edition: Play keeps only the Sorare gameweeks of the last ten days or so, and only the
-last one played has its replay; older weeks drop out of the picker. Keeping every week of the season, with what you
-entered and won, is being built (TODO.md, batch 1, step 3).
+Known calendar limitation at this edition: every Sorare gameweek of the season is in Play's picker, but Sofix only has
+the plans, replay and best lineups in hindsight of the weeks it has kept, which starts with the first one played after
+this feature went live. Any earlier week is marked **not recorded** and opens to your entered lineups with their
+results, read from Sorare, under a note that Sofix didn't keep its plans. Rebuilding those earlier weeks from Sorare's
+history, with the cards you own today, is written down in TODO.md.
 
 For the evidence and exact technical debt, continue to [the research report](research_report.md).

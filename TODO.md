@@ -41,14 +41,28 @@ on your go: local checks → push to `main` → one Sorare refresh → you look 
 
 0. This file: every other issue written down in full ("Next, one at a time", below).
 1. **CI is red on `main`.** Two Play tests look for GW15 in the week panel, which shows one month at a time; near
-   a month's end the week they want sits in the other month. A test fix; the app is right.
+   a month's end the week they want sits in the other month. A test fix; the app is right. *Done, local.*
 2. **Play lists every week again.** Since `e5a7154` (28 Sep) Play lists only the weeks Sorare has opened, so the
-   later ones vanished.
-3. **Past weeks are kept, and complete.** Today only the last played week has anything, and weeks drop out of the
-   list 10 days after they end. Wanted for every played week: the lineups you entered with their score and
+   later ones vanished. *Done, local.*
+3. **Past weeks are kept, and complete.** Wanted for every played week: the lineups you entered with their score and
    reward, what Sofix's plans expected, and the best lineups in hindsight with what they would have won.
-4. **Plans for weeks Sorare hasn't opened yet**, e.g. a LaLiga weekend three weeks out: planned from form with
-   the competitions of the last comparable week, and saying so.
+   *Built, local:* every week of the season is in the picker (the sync pages Sorare's list back to Game Week 1);
+   your entered lineups show their score, rank and rewards for any week, read from Sorare through the extension
+   (0.2.2); a finished week is replayed once its scores are final, with its best lineups in hindsight, and written
+   to its own row (`sorare_week:<slug>`) so it can be opened for as long as the season lasts. *Not built:*
+   - **Weeks played before this** (GW1 to GW16 on 29 Sep) are "not recorded": Sofix has no plans or hindsight for
+     them, only what Sorare says you entered and won. Rebuilding them from Sorare's history is possible but
+     approximate (see "Old weeks, rebuilt", below); say if you want it.
+   - **The plan as it stood at the lock.** A kept week's "expected" is a replay from form as it stood before the
+     lock, not the Sorare-informed plan you saw then. Freezing the plan at the last run before the lock, and showing
+     it beside what happened, is a follow-up (below).
+4. **Plans for weeks Sorare hasn't opened yet**, any LaLiga round to the end of the season (you asked about GW36,
+   16 May 2027): planned from form with the competitions of the last comparable week, and saying so. Sorare's own
+   game weeks are only created a few weeks ahead (its furthest on 29 Sep is GW24, 20–23 Oct), so the calendar leads.
+   *Built, local:* each such round opens as an early plan (one plan, a note saying what it is built from, no Apply);
+   its window is the one Sorare will most likely draw, and Sorare's own numbers replace it when the week opens.
+   *Limits:* only LaLiga cards are placed (a card at another league or a national team has no game there); the
+   competitions are those of the week being planned, which Sorare may change; far-out dates are provisional.
 5. **The overlay fixes your live test showed** (next entry): the odds row, the #1–#3 ranks, a start % on every
    tile, "No xG", and old weeks' pages showing this week's numbers.
 6. **Start collecting Futbol Fantasy's starting %** once a day (nothing on screen yet), so T2 can compare it.
@@ -157,6 +171,19 @@ fitted to.
 
 **To ask you when it starts.** Should Sofix overrule Sorare's projection when the backtest says ours is better? How
 much should a player's national-team form count for a national-team game?
+
+### Old weeks, rebuilt (follow-up to batch 1, step 3)
+Only if you want them: GW1 to GW16 are "not recorded". Each could be rebuilt from Sorare's history: that week's
+competitions and the scores that paid (about a hundred calls a week, so a few weeks per run over a couple of days),
+your players' scores in it (their history is already fetched for the last ten weeks), and the **cards you own today**,
+since which cards you owned then is not recoverable. The results are honest but approximate: "what these cards could
+have won", not "what you could have won". Expected results would be a form-only replay, marked as rebuilt.
+
+### The plan as it stood at the lock (follow-up to batch 1, step 3)
+At the first run after a week locks, the page still holds the plan Sofix built for it before the lock, with Sorare's
+projections. Freeze that as `sorare_plan:<slug>` and show it in the kept week's "Before the lock" view, beside the
+replay, so "what Sofix said" and "what it would say from form" are both there. Scoring that frozen plan against the
+real scores needs the planner's lineups rebuilt from the saved cards, which is the larger half of the work.
 
 ### T2 · Which starting % to trust: Futbol Fantasy, Sorare or Sofix
 **What you said.** "Get the starting % from Futbol Fantasy

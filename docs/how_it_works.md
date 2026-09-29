@@ -170,11 +170,31 @@ Public key cannot read private future lineups or mutate them. The extension brid
 two independent allowlists for identity, gameweek lineups, competition entries/capacity, preview/check, draft and enter.
 The home Sorare section and Play ask for `so5Fixture(slug)` and its `mySo5Lineups`, so the selected timeline GW owns
 the result even when no optimized `GameweekPlan` is retained. Card art/names and leaderboard names come from that
-private response; they are not reconstructed from the current collection snapshot:
+private response; they are not reconstructed from the current collection snapshot. The same response carries what
+each lineup scored (`so5Rankings`: its score, its rank and the rewards Sorare paid) and each card's score and captain
+mark, so a week played long ago still shows what you entered and won. Applying always runs in this order:
 
 ```text
 Check (read-only Sorare verdict) → Draft (saved, not entered) → Enter (separate confirmation)
 ```
+
+The published `timeline` lists every gameweek of the season so far, not only the ones with a plan: the sync pages
+Sorare's list back to this season's Game Week 1 (Sorare numbers its gameweeks all year, so last season's tail is left
+out), and only the far future is held back until Sorare opens it.
+
+A finished gameweek's replay never changes once its scores are final, so a run keeps it: the week just played is
+replayed and planned once, at least 24 hours after it ended (`settled_replay`), together with its best lineups in
+hindsight (the planner on `hindsight_forecasts`: who played, what each scored, no spread left, priced by that week's real
+cut scores). The same run writes it whole to `read_models` under `sorare_week:<slug>`, once, and marks it `kept` in the
+timeline, which later runs carry forward. Play reads such a week from there when it is opened.
+
+Sorare opens a gameweek only a few days ahead, but LaLiga's calendar is known for the whole season, so every round that
+has not started and sits in no gameweek Sorare has opened is planned early (`projected_weeks`). Its window is the one
+Sorare will most likely draw (weekend Friday 14:00 UTC to Tuesday 14:00, midweek Tuesday to Friday; `projection.window`),
+which of your cards play comes from the calendar (`projection.games_for`, clubs matched through the team registry), the
+competitions are those of the gameweek being planned, and the forecasts stand on form, since Sorare projects only a
+player's next game. One plan per round; each is kept as its own row (`sorare_ahead:<round>`) and rewritten every run, and
+Sorare's own numbers replace it the moment it opens the week. It cannot be applied: nothing exists to enter yet.
 
 The page bridge keeps captured request headers in its closure; credentials/cookies do not go to Sofix. Overlay numbers
 are gated by the extension token, cached 15 minutes in session, and anchored by card-picture addresses and Sorare slugs

@@ -26,7 +26,7 @@ Not used: Open-Meteo/weather (removed), Transfermarkt (scraping prohibited), liv
 | `fixtures` | Match/status/UTC kickoff/result | Upsert |
 | `predictions` | Fixture + model-version pre-match forecast | Replace per version |
 | `market_odds` | Fair outcome/totals fit and source age/count | Replace current |
-| `read_models` | JSON `grid`, `system`, `sorare`, `sorare_references`, `extension` | Atomic key replace |
+| `read_models` | JSON `grid`, `system`, `sorare`, `sorare_references`, `extension`, one `sorare_week:<slug>` per finished gameweek, and one `sorare_ahead:<round>` per LaLiga round Sorare has not opened | Atomic key replace; a `sorare_week:` row is written once and never replaced, a `sorare_ahead:` row is rewritten every run |
 | `refresh_runs` | Operational run/step audit | Append; one running |
 | `sorare_forecasts` | Pre-lock forecast plus later actual | Retain for replay/fitting |
 
@@ -40,9 +40,14 @@ projection and timestamps. Consumers must use `prediction.bucket` and `lens_scal
 
 ## Published Sorare model
 
-Payload version 6 contains account/freshness, gameweek mapping, card collection/exclusions, forecasts
+Payload version 7 contains account/freshness, gameweek mapping, card collection/exclusions, forecasts
 (`pPlay`, conditional `mu`, xScore/range/source/history), competition rules/rewards, diverse optimized plans, submitted replay
-and cached LaLiga player/market index. Each player game names both the actual participating side and opponent, so a
+with the best lineups in hindsight (`hindsight`: one plan built knowing every score, priced by what really paid, no Rooms)
+and cached LaLiga player/market index. `timeline` lists every gameweek of the season so far; an item carries `kept`
+(with `playing` and `won`, its headline) once the job wrote that week whole to its `sorare_week:<slug>` row, which
+happens once its scores are final (24 hours after it ends). `projected` lists a headline (`round`, `from`, `to`, `cards`,
+`plans`) for each LaLiga round Sorare has not opened a gameweek for; the early plan itself (`sorare_ahead:<round>`, a
+gameweek payload with `projected: {round, basedOn}`) is read only when that week is opened. Each player game names both the actual participating side and opponent, so a
 national-team fixture is never labelled with the player's club. `sorare_references` preserves reusable rule/calendar structures. `extension`
 stores only version, public account and last-seen time.
 

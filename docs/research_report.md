@@ -100,7 +100,7 @@ three-bookmaker gate.
 ### Sorare forecast status
 
 The current forecast intentionally prefers Sorare's conditional projection and play odds, with last-five priors as
-fallback. It is not yet the proposed S4 fitted model and has not demonstrated that it beats Sorare's own projection.
+fallback (the last five games Sorare has scored: a game still to come is not a game he missed, fixed 2026-09-29). It is not yet the proposed S4 fitted model and has not demonstrated that it beats Sorare's own projection.
 The source comment correctly makes that a future replacement gate. Documentation that called S4 “done” was wrong;
 S4 recording/replay infrastructure is done, fitted-model validation is open.
 

@@ -36,13 +36,15 @@ Chrome address bar → install. Not blocking anything.
 ## Mine
 
 ### Check the overlay on your own Sorare pages — *built, live acceptance is yours*
-Your Sofix numbers are now drawn on Sorare's own cards (one chip: expected score and chance of playing) and
+Your Sofix numbers are drawn on Sorare's own cards (a tile with the score if he starts, plus difficulty or xG) and
 an edge tab opens your gameweek's plan. Built from [plans/overlay.md](plans/overlay.md); automated proof is
 `frontend/e2e/overlay.e2e.ts`, and the card-finding was checked against real public sorare.com pages.
 
-**The look was redone (O6)** after your first live look: one solid chip on the card's left edge in Sorare's own colours,
-no game detail, clear of Sorare's own chips ([plans/overlay.md, O6](plans/overlay.md)). O7 will mark the cards in your
-plan. What no test can do is look at **your** signed-in pages:
+**The look was redone (O10, 2026-09-29) and is built.** You rejected O6's chip and approved a new design: a glass tile with
+the score if he starts and FDR or xG, a Sofix row with win % and clean sheet % under Sorare's odds, a starts / doesn't-start
+hover, numbers for every game including national teams ([plans/overlay.md, O8 to O11](plans/overlay.md)). O7 to O11 (plan marks, odds, two scores, the look, xG from Understat) are built and tested; a player Understat cannot name, or at a club outside its six leagues,
+shows "No odds" on the tile (you chose no estimate). What no test can do is look at
+**your** signed-in pages, in particular whether Sorare's own odds bar is found under a compose card, and whether its "Select your ..." heading is what the ranking looks for:
 
 1. `node extension/scripts/configure.mjs`, then **Reload** Sofix in `chrome://extensions` (it is now 0.2.1) and
    reload your sorare.com tab.

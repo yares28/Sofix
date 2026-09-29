@@ -124,8 +124,15 @@ run. The E2E fixture now holds only LaLiga clubs.
 - [x] Fake-Sorare E2E (`frontend/e2e/overlay.e2e.ts`): every card size, every state, no doubles on re-render, the
   switch, Sorare's own buttons stay hittable, axe. Card-finding also checked on real public sorare.com pages.
 - [x] O6 restyle: one solid chip on the card's left edge in Sorare's own colours, no game detail, clear of Sorare's own
-  chips (owner's compose-page screenshot, 2026-09-29).
-- [ ] O7: plan/captain marks, rank on a pick list, stale grey-out.
+  chips (owner's compose-page screenshot, 2026-09-29). Rejected the same day; its look is superseded by O10.
+- [x] O8: odds for every game his players play, from Sorare's own game odds (any league, national teams); LaLiga games
+  keep Sofix's model. Built and checked live 2026-09-29; nothing shows on screen until O10.
+- [x] O9: two scores, if he starts and if he doesn't, from Sorare's starter/substitute odds and his started games
+  (display only; the planner is unchanged until S4). Built 2026-09-29; priors measured on 80 LaLiga players.
+- [x] O10: the approved look (design canvas, 2026-09-29): a glass tile inside the corner (score if he starts, then FDR
+  or xG), a Sofix win / clean sheet row under Sorare's odds, a starts / doesn't-start hover, Sorare's colours. Built 2026-09-29 and checked against a stand-in Sorare; live check on Sorare's own pages is open.
+- [x] O11: player xG from Understat (big-five leagues and Russia); elsewhere no estimate ("No odds", the owner's call). Built 2026-09-29; 77% of real midfielders and forwards have a name match.
+- [x] O7: plan/captain marks, rank on a pick list, stale grey-out, on the O10 tile. Built 2026-09-29; Sorare's real "Select your ..." heading is unchecked.
 - [ ] The board's `scoreColour()` steps differ from Sorare's (measured 2026-09-29); fix as its own change.
 - [ ] Player panel (range, history, value, plan membership): designed in S7, not built, not in `plans/overlay.md`.
 - [ ] Account matching: numbers are gated by the extension token, not by the signed-in Sorare account.

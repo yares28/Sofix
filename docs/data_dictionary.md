@@ -10,6 +10,7 @@
 | football-data.co.uk | Five-season goals, shots/on-target, closing 1X2 | Historic cache; current season conditional download |
 | The Odds API | Current EU h2h + totals | One batch, skipped <6 h; 2 credits/call, 500/month |
 | Sorare public GraphQL | GW/games/rules/rewards/cards/scores/projections/squads/values | Batched read-only sync; rate/complexity/depth limits |
+| Understat | Players' season xG, non-penalty xG and minutes, teams' xG per game (LaLiga, Premier League, Bundesliga, Serie A, Ligue 1, Russia); the overlay's xG | One request per league per refresh; unofficial, so a failure drops xG ("xG —") |
 | GitHub Actions API | Dispatch/latest workflow status | Control/Refresh only; fine-grained repo Actions token |
 
 Not used: Open-Meteo/weather (removed), Transfermarkt (scraping prohibited), live events, and StatsBomb production.

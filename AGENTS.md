@@ -119,6 +119,7 @@ Extension from root: `node extension/scripts/configure.mjs`; load `extension/` u
 | football-data.co.uk | Free CSV, Tue/Fri | Cache history; conditional current; tolerate new-season 404 |
 | The Odds API | 500/month; call costs 2 | One ≥6-hour batch; never log key URL/raw error |
 | Sorare | Read-only/rate/complexity limits | Batch/reuse; session actions extension-only |
+| Understat | No API, no key; unofficial | One request per league per refresh, only leagues the owner has players in; clear user agent; a failure leaves xG out, never an old number |
 | Neon Free | 0.5 GB, 100 CU-hours/month | Publish/cache; no uptime monitor |
 | Third-party art | External ownership | Hot-link; personal use; no LaLiga mark |
 

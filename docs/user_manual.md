@@ -263,17 +263,48 @@ reload the extension after changing the app origin or token.
 
 ### Cards on sorare.com
 
-On Sorare's football pages Sofix hangs one small chip off the top-left edge of each card it can name: **X 41 | 74%**.
-The first number is the score he is expected to score, painted in Sorare's own colour for that score (the same yellow,
-lime, green or cyan Sorare gives a 41, a 55, a 70 or an 80). The second is his chance of playing; a substitute
-appearance counts. A small card, such as a lineup slot, gets just the number, and a picture under 48 px wide gets
-nothing. If he is not expected to start, the score turns grey and the chance red.
+On Sorare's football pages Sofix draws a small dark-glass **tile** inside the top-left corner of each card it can name.
+The big number is the score he is expected to score **if he starts** (a small shirt marks it), painted in Sorare's own
+colour for that score. Under it is one thing that drives the score, chosen by position:
 
-It says nothing about the game: Sorare's card already shows the opponent, the odds and the kickoff. It starts below
-any chip of Sorare's own on that edge, never touches the ones on the right (their percentage, the captain button,
-the lock timer, "Best value"), and covers about 2% of a card. Ribbons appear for the players you own who have a game
-in the gameweek; a card Sofix has nothing on gets nothing. If the app cannot be reached, a dark **Sofix** chip appears
-instead and opens it. Cards are found by the address of their picture, not by Sorare's generated CSS class names.
+- **Goalkeepers and defenders: FDR**, Sofix's difficulty of his game (0 to 100), in Sorare's five colours from cyan
+  (very favourite) to red (big underdog). It is the same number as the difficulty page.
+- **Midfielders and forwards: xG**, his expected goals if he starts: his season's rate from Understat, scaled to how many
+  goals his side is expected to score in that game. It is there for players Understat can name in the Premier League, La
+  Liga, Bundesliga, Serie A, Ligue 1 and the Russian league who have played at least a full game. Anyone else, and any
+  player at a club in another league, shows **No odds** where the xG would be, rather than a made-up number.
+
+On the compose page, directly under Sorare's own win / draw / loss bar, Sofix adds a row: **its win % and its clean
+sheet %** for that game. For a LaLiga game they are Sofix's own model; for any other league or a national team they come
+from Sorare's odds for the game. Sorare fills those odds only in the last few days before a game, so a card whose game is
+not priced shows the tile with **No odds** and no row. To make room, Sofix moves Sorare's kickoff line down a few pixels;
+if that line cannot be moved, the row is not drawn.
+
+**Hover the tile, or focus it with the keyboard**, and a panel opens beside the card. A switch shows the score if he
+**starts** (the default) or if he **doesn't start**, with his chance of each (the chance he comes on is worth little for a
+goalkeeper: "2% he comes on"). Under it: difficulty with its five bands and the clean-sheet chance for a goalkeeper or
+defender, xG and the clean-sheet chance for a midfielder, xG and the win chance for a forward, where the odds came from,
+and how long ago the numbers were made. Escape closes it. It only shows things; nothing in it writes to Sorare.
+
+- **Doubtful starter:** below a 50% chance of starting, a red row under the tile gives that chance.
+- **Loading** shows a shimmer; a **small card** (a lineup slot) gets the number alone, a **thumbnail** an even smaller one,
+  and a picture under 48 px wide gets nothing.
+- **Signed out or app unreachable:** a very small **SIGN IN** or **OFFLINE** tag, the only thing here that takes a click
+  apart from the tile; it opens Sofix.
+
+**Decisions.** Sofix's best plan for the gameweek marks the cards it would use: a white **tick** on the tile's corner for a
+card in the plan and a gold **star** for its captain. Only the copy the plan uses is marked (your other copy of the same player
+stays plain), and a card the plan leaves out shows nothing, never a warning. Which lineup it is in is in the panel ("In your
+best plan · All Star · Captain"). On a **"Select your ..." list of four or more cards**, the three with the best expected score
+get **#1, #2, #3**, worked out from the cards on screen, so on a long list they can change as you scroll; there is no rank on a
+page without that heading. When his game has started, or the numbers are more than a day old, the tile loses its colour and its
+last line says **Started** or **Old**, instead of showing a confident number that no longer holds.
+
+The tile takes about 5% of a card and none of its face. It starts below any chip of Sorare's own on that corner, never
+touches the ones on the right (their percentage, the captain button, the lock timer, "Best value"), and a press on the
+card anywhere except the tile still selects the card. Tiles appear for the players you own who have a game in the
+gameweek; a card Sofix has nothing on gets nothing. Cards are found by the address of their picture, not by Sorare's
+generated CSS class names.
 
 ### Plan drawer
 
@@ -284,11 +315,12 @@ lineup write buttons are intentionally not placed over Sorare's browsing UI. The
 
 ### The switch
 
-The popup's **Scores on sorare.com** switch turns the chips and the tab on and off at once, with no reload, and
-**Show chance of playing** takes the second number off the chip and leaves the score.
+The popup's **Scores on sorare.com** switch turns the tiles, the odds row and the tab on and off at once, with no
+reload; switching off gives back the room made under Sorare's odds bar. (The old **Show chance of playing** switch is
+gone: his chance of starting now lives in the panel, and in the red row when it is low.)
 **Cards recognised here** shows how many cards on the page you are looking at Sofix could name ("7 of 7"). "0 of 8"
 means Sorare has changed how it draws cards and the overlay needs an update. The larger "Sofix panel" on a player
-page in the design preview (S7) is not built.
+page in the design preview (`S7-player-page.html`) is not built.
 
 ### Privacy and account matching
 

@@ -67,7 +67,8 @@ Reflow instead of shrinking critical text. Numeric columns use tabular figures.
 | `S5-cards.html` | Collection shelves | Built |
 | `S5-search.html` | Squad-upgrade search | Built |
 | `S6-apply.html` | Three-stage Apply | Built; live acceptance open |
-| `S7-overlay.html` | Dark ribbon/drawer (the player panel is not built) | Ribbon and drawer built; live acceptance open |
+| `S7-overlay.html` | The card tile, Sofix odds row, hover panel and states, drawn with the extension's own stylesheet | Built (O10); live acceptance open |
+| `S7-player-page.html` | Record of the larger player-page panel and the retired one-chip look (the panel is not built) | Not built |
 
 ## Review checklist
 

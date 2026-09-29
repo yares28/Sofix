@@ -18,6 +18,10 @@ The week control on the right is app-wide:
 - the target icon returns to the current week;
 - the round status dot distinguishes LaLiga from Sorare-only weeks.
 
+Each page lists the weeks it can show: the LaLiga pages list LaLiga rounds; **Play** lists every Sorare gameweek
+once (one that covers a weekend and a midweek round is one row), plus every LaLiga week still to come that Sorare
+hasn't opened yet, marked **Sorare opens later**. Its page says so instead of showing another gameweek.
+
 The selected week lives in the URL (`?gw=` for LaLiga-oriented pages and the shared week mapping behind `?w=` for
 the combined calendar), so a bookmark preserves the view. LaLiga and Sorare gameweek numbers are separate systems;
 the date range is the reliable common reference.
@@ -356,8 +360,8 @@ the extension that holds the token.
 - Sorare can change rules or its page/API; the Check response is authoritative before any draft/entry.
 - The app is personal/non-commercial and its third-party imagery/marks remain owned by their respective holders.
 
-Known calendar limitation at this edition: if one Sorare gameweek spans two LaLiga rounds (possible around a midweek
-round), the global picker can show that Sorare GW twice and a cross-page link can choose the wrong LaLiga round. Treat
-the date/round shown on the destination page as authoritative and use that page's direct GW control until fixed.
+Known calendar limitation at this edition: Play keeps only the Sorare gameweeks of the last ten days or so, and only the
+last one played has its replay; older weeks drop out of the picker. Keeping every week of the season, with what you
+entered and won, is being built (TODO.md, batch 1, step 3).
 
 For the evidence and exact technical debt, continue to [the research report](research_report.md).

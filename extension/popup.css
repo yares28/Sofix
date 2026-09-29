@@ -29,6 +29,7 @@ h1 { margin: 12px 0 2px; font-size: 22px; font-weight: 700; letter-spacing: -0.0
 .sw::after { content: ""; position: absolute; top: 2px; left: 18px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: left .25s var(--ease); }
 .sw[aria-checked="false"] { background: #d1d1d6; }
 .sw[aria-checked="false"]::after { left: 2px; }
+.sw:disabled { opacity: .4; cursor: default; }
 .sw:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .foot { padding: 0 12px 14px; display: flex; }
 .btn { flex: 1; border: 0; border-radius: 12px; padding: 11px 18px; font-size: 14px; font-weight: 600; cursor: pointer; }

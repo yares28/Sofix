@@ -35,16 +35,15 @@ const IDENTITY = {
   },
 };
 
-const game = { kickoff: "2026-10-10T19:00:00+00:00", competition: "LaLiga", average: 55 };
-/** What the app answers (frontend/lib/overlay.ts). Sofix has nothing on `someone-else`, so the answer omits him. */
+/** What the app answers (frontend/lib/overlay.ts): the score, the chance, the average. Sofix has nothing on `someone-else`. */
 const NUMBERS = {
   players: {
-    "unai-simon": { ...game, x: 53.4, p: 0.88, opponent: "Getafe CF", code: "GET", venue: "H", difficulty: 31, bucket: 2, label: "Favourite" },
-    "pau-cubarsi": { ...game, x: 47.2, p: 0.31, opponent: "RC Celta", code: "CEL", venue: "A", difficulty: 66, bucket: 4, label: "Underdog" },
-    "lionel-messi": { ...game, competition: "MLS", x: 61.3, p: 0.9, opponent: "Orlando City", code: "ORL", venue: "A" },
+    "unai-simon": { x: 53.4, p: 0.88, average: 55 },
+    "pau-cubarsi": { x: 47.2, p: 0.31, average: 50 },
+    "lionel-messi": { x: 61.3, p: 0.9, average: 70 },
   },
   cards: {
-    "pedri-2026-limited-7": { ...game, x: 61.2, p: 0.9, opponent: "RC Celta", code: "CEL", venue: "A", difficulty: 50, bucket: 3, label: "Even" },
+    "pedri-2026-limited-7": { x: 61.2, p: 0.9, average: 65 },
   },
 };
 
@@ -52,7 +51,7 @@ const NUMBERS = {
 const PLAN = { state: "ready", week: 17, lineups: 1, x: 417, comp: "All Star", pics: [1, 2, 3, 4, 7].map(picture), pAny: 0.16, essence: 55, cardsUsed: 9, cardsAvailable: 87 };
 
 type Mode = "ok" | "auth" | "unreachable";
-type Probe = { sent: { type: string; cards?: string[]; players?: string[] }[]; opened: string[]; setOverlay: (value: boolean) => void };
+type Probe = { sent: { type: string; cards?: string[]; players?: string[] }[]; opened: string[]; setOverlay: (value: boolean) => void; setChance: (value: boolean) => void };
 
 async function openPage(page: Page, options: { mode?: Mode; overlay?: boolean; viewport?: { width: number; height: number } } = {}) {
   const mode = options.mode ?? "ok";
@@ -81,9 +80,14 @@ async function openPage(page: Page, options: { mode?: Mode; overlay?: boolean; v
         sent: [] as unknown[],
         opened: [] as string[],
         overlay: config.overlay,
+        chance: true,
         setOverlay(value: boolean) {
           probe.overlay = value;
           listeners.forEach((listener) => listener({ overlay: { newValue: value } }, "sync"));
+        },
+        setChance(value: boolean) {
+          probe.chance = value;
+          listeners.forEach((listener) => listener({ overlayChance: { newValue: value } }, "sync"));
         },
       };
       (window as unknown as { __sfx: unknown }).__sfx = probe;
@@ -108,7 +112,7 @@ async function openPage(page: Page, options: { mode?: Mode; overlay?: boolean; v
           },
         },
         storage: {
-          sync: { get: async (defaults: Record<string, unknown>) => ({ ...defaults, overlay: probe.overlay }) },
+          sync: { get: async (defaults: Record<string, unknown>) => ({ ...defaults, overlay: probe.overlay, overlayChance: probe.chance }) },
           onChanged: { addListener: (listener: (changes: unknown, area: string) => void) => listeners.push(listener) },
         },
       };
@@ -123,13 +127,29 @@ async function openPage(page: Page, options: { mode?: Mode; overlay?: boolean; v
 
 const probe = (page: Page) => page.evaluate(() => (window as unknown as { __sfx: Probe }).__sfx as unknown as { sent: Probe["sent"]; opened: string[] });
 const ribs = (page: Page, id: string) => page.locator(`#${id} [data-sfx]`);
-const text = (page: Page, id: string) => ribs(page, id).evaluate((el) => [...el.querySelectorAll(".sfx-rib")].map((chip) => chip.textContent));
+/** The chip's segments, in order: the label, the score, the chance. */
+const text = (page: Page, id: string) => ribs(page, id).evaluate((el) => [...el.querySelectorAll(".sfx-chip > b")].map((part) => part.textContent));
+type Box = { left: number; top: number; right: number; bottom: number; width: number; height: number };
+const box = (page: Page, selector: string): Promise<Box> =>
+  page.evaluate((query) => {
+    const r = document.querySelector(query)!.getBoundingClientRect();
+    return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
+  }, selector);
+const chip = (page: Page, id: string) => box(page, `#${id} [data-sfx] .sfx-chip`);
+const art = (page: Page, id: string) => box(page, `#${id} img, #${id} video`);
+const meets = (a: Box, b: Box) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 
-/** Every card that should be drawn is: the page has settled when the last of them shows its ribbon. */
+/**
+ * Cards wait their turn until they are near the screen, as on the real site, so the page has settled once each kind
+ * has been scrolled to and drawn. What is drawn stays drawn, so the tests then read the whole page.
+ */
 async function settled(page: Page) {
-  await expect(ribs(page, "big")).toBeVisible();
-  await expect(ribs(page, "linked")).toBeVisible();
-  await expect(ribs(page, "slot-a")).toBeVisible();
+  for (const id of ["slot-a", "badged", "linked", "doubtful", "composecard", "scrolled", "big"]) {
+    await page.locator(`#${id}`).scrollIntoViewIfNeeded();
+    await expect(ribs(page, id)).toBeVisible();
+  }
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(200);
 }
 
 test.describe("the sorare.com overlay", () => {
@@ -137,35 +157,38 @@ test.describe("the sorare.com overlay", () => {
     await openPage(page);
     await settled(page);
 
-    // A gallery or player page: the whole ribbon. 53.4 sits in the 50-64 band; he plays at home to a favourite fixture.
-    expect(await text(page, "big")).toEqual(["X53", "Play88%", "GET (H)"]);
-    await expect(ribs(page, "big").locator(".sfx-rib--x")).toHaveCSS("--sfx-fill", "#9bd227");
-    await expect(ribs(page, "big").locator(".sfx-rib--game")).toHaveClass(/sfx-rib--f2/);
-    await expect(ribs(page, "big")).toHaveAttribute("aria-label", "Sofix: expected score 53, 88% chance of playing, home to Getafe CF, Favourite");
+    // A gallery or player page: the score and the chance in ONE chip, painted with Sorare's own colour for a 53
+    // (the page's token, not the extension's fallback: the fixture's differs by a digit).
+    expect(await text(page, "big")).toEqual(["X", "53", "88%"]);
+    await expect(ribs(page, "big").locator(".sfx-chip")).toHaveCount(1);
+    await expect(ribs(page, "big").locator(".sfx-chip")).toHaveCSS("--sfx-fill", "#b7ff1b");
+    await expect(ribs(page, "big").locator(".sfx-c")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    await expect(ribs(page, "big")).toHaveAttribute("aria-label", "Sofix: expected score 53, 88% chance of playing");
 
     // Another copy of the same player is the same numbers: xScore belongs to the player, not the card.
-    expect(await text(page, "copy")).toEqual(["X53", "Play88%", "GET (H)"]);
+    expect(await text(page, "copy")).toEqual(["X", "53", "88%"]);
 
-    // A lineup slot and a thumbnail: one number, no label.
+    // A lineup slot and a thumbnail: one number, no label, no chance.
     expect(await text(page, "slot-a")).toEqual(["53"]);
     expect(await text(page, "thumb")).toEqual(["53"]);
     await expect(ribs(page, "slot-a")).toHaveClass(/sfx-ribs--compact/);
     await expect(ribs(page, "big")).toHaveClass(/sfx-ribs--full/);
 
     // A video is a card too.
-    expect(await text(page, "clip")).toEqual(["X53", "Play88%", "GET (H)"]);
+    expect(await text(page, "clip")).toEqual(["X", "53", "88%"]);
 
-    // Not expected to start: the colour is taken away and the chance is flagged, whatever the score.
-    await expect(ribs(page, "slot-b").locator(".sfx-rib--x")).toHaveClass(/sfx-rib--doubt/);
-    await expect(ribs(page, "slot-b").locator(".sfx-rib--x .sfx-rib__value")).toHaveCSS("background-color", "rgb(85, 85, 92)");
+    // Not expected to start: the score's colour is withdrawn (grey) and the chance turns red, whatever the score.
+    await expect(ribs(page, "slot-b").locator(".sfx-chip")).toHaveClass(/sfx-chip--doubt/);
+    await expect(ribs(page, "slot-b").locator(".sfx-chip")).toHaveCSS("--sfx-fill", "#d9dde4");
+    await expect(ribs(page, "doubtful").locator(".sfx-c")).toHaveCSS("background-color", "rgb(255, 90, 90)");
+    expect(await text(page, "doubtful")).toEqual(["X", "47", "31%"]);
 
-    // Outside LaLiga there are no odds, and none are invented.
-    expect(await text(page, "abroad")).toEqual(["X61", "Play90%", "No oddsORL (A)"]);
-    await expect(ribs(page, "abroad").locator(".sfx-rib--game")).not.toHaveClass(/sfx-rib--f\d/);
+    // Nothing about the game: Sorare's own card draws the opponent, the odds and the kickoff.
+    expect(await text(page, "abroad")).toEqual(["X", "61", "90%"]);
+    expect(await page.locator("[data-sfx]").evaluateAll((all) => all.some((el) => /\(H\)|\(A\)|odds/i.test(el.textContent ?? "")))).toBe(false);
 
     // A card only its link names still finds its numbers (the card slug, since nothing said which player).
-    expect(await text(page, "linked")).toEqual(["X61", "Play90%", "CEL (A)"]);
-    await expect(ribs(page, "linked").locator(".sfx-rib--game")).toHaveClass(/sfx-rib--f3/);
+    expect(await text(page, "linked")).toEqual(["X", "61", "90%"]);
 
     // Nothing for what is not a card, or what Sofix has nothing on.
     await expect(ribs(page, "stranger")).toHaveCount(0);
@@ -173,6 +196,7 @@ test.describe("the sorare.com overlay", () => {
     await expect(ribs(page, "mini")).toHaveCount(0);
 
     await page.screenshot({ path: testInfo.outputPath("overlay-desktop.png"), fullPage: true });
+    await page.locator("#frame").screenshot({ path: testInfo.outputPath("overlay-compose.png") });
   });
 
   test("asks the app only for slugs, once each, and only for what a card names", async ({ page }) => {
@@ -205,43 +229,120 @@ test.describe("the sorare.com overlay", () => {
 
     // The same element, now Pau Cubarsí's card: the old numbers must not stay on it.
     await page.evaluate((n) => (window as unknown as { swapCard: (id: string, uuid: string, alt: string) => void }).swapCard("slot-a", `11111111-aaaa-4aaa-8aaa-00000000000${n}`, "Pau Cubarsí - rare"), 2);
-    await expect(ribs(page, "slot-a").locator(".sfx-rib--x")).toHaveClass(/sfx-rib--doubt/);
+    await expect(ribs(page, "slot-a").locator(".sfx-chip")).toHaveClass(/sfx-chip--doubt/);
     expect(await text(page, "slot-a")).toEqual(["47"]);
     await expect(ribs(page, "slot-a")).toHaveCount(1);
   });
 
-  test("puts a ribbon exactly on its card, and never over one of Sorare's own controls", async ({ page }) => {
+  test("hangs off the card's left edge the way Sorare's own chips hang off the right, and lets a clipping wrapper show it", async ({ page }) => {
     await openPage(page);
     await settled(page);
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(250);
 
-    for (const id of ["big", "copy", "slot-a", "slot-b", "clip"]) {
-      const on = await page.evaluate((cardId) => {
-        const card = document.querySelector(`#${cardId}`)!;
-        const media = card.querySelector("img, video")!.getBoundingClientRect();
-        const ribbon = card.querySelector("[data-sfx]")!.getBoundingClientRect();
-        return { left: ribbon.left - media.left, top: ribbon.top - media.top, inside: ribbon.right <= media.right && ribbon.bottom <= media.bottom };
-      }, id);
-      expect(on.inside, id).toBe(true);
-      expect(Math.abs(on.left - (id.startsWith("slot") ? 3 : 6)), id).toBeLessThan(1);
-      expect(Math.abs(on.top - (id.startsWith("slot") ? 3 : 6)), id).toBeLessThan(1);
+    for (const id of ["big", "copy", "clip", "composecard"]) {
+      const [c, m] = [await chip(page, id), await art(page, id)];
+      expect(Math.abs(c.left - (m.left - 6)), `${id} hangs 6px off the edge`).toBeLessThan(1);
+      expect(Math.abs(c.top - (m.top + 8)), `${id} sits 8px down`).toBeLessThan(1);
+      expect(c.height, id).toBeCloseTo(18, 0); // Sorare's own height
+    }
+    for (const id of ["slot-a", "slot-b"]) {
+      const [c, m] = [await chip(page, id), await art(page, id)];
+      expect(Math.abs(c.left - (m.left - 3)), id).toBeLessThan(1);
+      expect(c.height, id).toBeCloseTo(15, 0);
     }
 
-    // Their "Buy now" button under a card is still the thing under the pointer, and no ribbon lies over it.
+    // The gallery card's wrapper clips whatever hangs past it, so it is let show the chip: this wrapper only.
+    await expect(page.locator("#big")).toHaveClass(/sfx-anchor/);
+    await expect(page.locator("#big")).toHaveCSS("overflow", "visible");
+
+    // Switching off gives every wrapper back exactly as it was.
+    await page.evaluate(() => (window as unknown as { __sfx: Probe }).__sfx.setOverlay(false));
+    await expect(page.locator("[data-sfx]")).toHaveCount(0);
+    await expect(page.locator(".sfx-anchor, .sfx-anchor-up")).toHaveCount(0);
+    await expect(page.locator("#big")).toHaveCSS("overflow", "hidden");
+  });
+
+  test("takes little room and none of the card's face", async ({ page }) => {
+    await openPage(page);
+    await settled(page);
+    await page.waitForTimeout(250);
+    for (const id of ["big", "copy", "clip", "composecard", "slot-a", "thumb", "linked"]) {
+      const [c, m] = [await chip(page, id), await art(page, id)];
+      // The owner's first live look lost about 17% of a card to three chips. One chip stays under 6% of a full card
+      // and under 8% of a thumbnail, where a single number is all there is room for.
+      expect((c.width * c.height) / (m.width * m.height), `${id} covers little of the card`).toBeLessThan(id === "thumb" ? 0.08 : 0.06);
+      const centre: Box = { left: m.left + m.width * 0.25, right: m.right - m.width * 0.25, top: m.top + m.height * 0.25, bottom: m.bottom - m.height * 0.25, width: 0, height: 0 };
+      expect(meets(c, centre), `${id} stays out of the centre`).toBe(false);
+    }
+  });
+
+  test("starts below a chip of Sorare's own, and never covers a control of theirs", async ({ page }) => {
+    await openPage(page);
+    await settled(page);
+    await expect(ribs(page, "badged")).toBeVisible();
+    await page.waitForTimeout(250);
+
+    // A badge of theirs sits where the chip would go: the chip starts under it, whatever it is called.
+    const [mine, badge] = [await chip(page, "badged"), await box(page, "#badge")];
+    expect(meets(mine, badge)).toBe(false);
+    expect(mine.top).toBeGreaterThanOrEqual(badge.bottom);
+
+    // On the compose card their percentage and their captain control hang off the right: neither is touched, and the
+    // captain control is still what is under the pointer.
+    const [ours, gold, cap] = [await chip(page, "composecard"), await box(page, "#gold"), await box(page, "#cap")];
+    expect(meets(ours, gold)).toBe(false);
+    expect(meets(ours, cap)).toBe(false);
+    const under = await page.evaluate(() => {
+      const at = (id: string) => {
+        const r = document.querySelector(id)!.getBoundingClientRect();
+        return (document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) as HTMLElement | null)?.id;
+      };
+      return { cap: at("#cap"), gold: at("#gold") };
+    });
+    expect(under).toEqual({ cap: "cap", gold: "gold" });
+
+    // Their "Buy now" button under a card is still the thing under the pointer, and no chip lies over it.
     const buy = await page.evaluate(() => {
-      const box = document.querySelector("#buy")!.getBoundingClientRect();
-      const top = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2) as HTMLElement | null;
+      const target = document.querySelector("#buy")!.getBoundingClientRect();
+      const top = document.elementFromPoint(target.left + target.width / 2, target.top + target.height / 2) as HTMLElement | null;
       const overlaps = [...document.querySelectorAll("[data-sfx]")].some((el) => {
         const r = el.getBoundingClientRect();
-        return r.left < box.right && r.right > box.left && r.top < box.bottom && r.bottom > box.top;
+        return r.left < target.right && r.right > target.left && r.top < target.bottom && r.bottom > target.top;
       });
       return { hit: top?.id, overlaps };
     });
     expect(buy).toEqual({ hit: "buy", overlaps: false });
 
-    // A ribbon takes no click: only the signed-out chip (checked below) ever does.
+    // A chip takes no click: only the signed-out chip (checked below) ever does.
     const catching = await page.evaluate(() => [...document.querySelectorAll("[data-sfx]")].filter((el) => getComputedStyle(el).pointerEvents !== "none").length);
     expect(catching).toBe(0);
+  });
+
+  test("in a list that scrolls the chip stays inside the picture, and the list is left exactly as it was", async ({ page }) => {
+    await openPage(page);
+    await settled(page);
+    await expect(ribs(page, "scrolled")).toBeVisible();
+    await page.waitForTimeout(250);
+    const [mine, m] = [await chip(page, "scrolled"), await art(page, "scrolled")];
+    expect(mine.left).toBeGreaterThanOrEqual(m.left);
+    await expect(page.locator("#scroller")).toHaveCSS("overflow-x", "auto");
+    await expect(page.locator("#scrolled")).toHaveCSS("overflow", "hidden");
+    expect(await page.locator("#scroller, #scrolled").evaluateAll((all) => all.some((el) => /sfx-anchor/.test(el.className)))).toBe(false);
+  });
+
+  test("shows the chance only while \"Show chance of playing\" is on", async ({ page }) => {
+    await openPage(page);
+    await settled(page);
+    expect(await text(page, "big")).toEqual(["X", "53", "88%"]);
+
+    await page.evaluate(() => (window as unknown as { __sfx: Probe }).__sfx.setChance(false));
+    await page.locator("#big").scrollIntoViewIfNeeded(); // a card off the screen is redrawn when it comes back
+    await expect(ribs(page, "big").locator(".sfx-c")).toHaveCount(0);
+    expect(await text(page, "big")).toEqual(["X", "53"]);
+    await expect(ribs(page, "big")).toHaveAttribute("aria-label", "Sofix: expected score 53, 88% chance of playing"); // the name keeps it
+
+    await page.evaluate(() => (window as unknown as { __sfx: Probe }).__sfx.setChance(true));
+    await expect(ribs(page, "big").locator(".sfx-c")).toHaveCount(1);
   });
 
   test("goes when the switch goes off and returns when it is back on, with no reload", async ({ page }) => {
@@ -255,8 +356,9 @@ test.describe("the sorare.com overlay", () => {
     await expect(page.locator("[data-sfx]")).toHaveCount(0);
 
     await page.evaluate(() => (window as unknown as { __sfx: Probe }).__sfx.setOverlay(true));
+    await page.locator("#big").scrollIntoViewIfNeeded();
     await expect(ribs(page, "big")).toBeVisible();
-    expect(await text(page, "big")).toEqual(["X53", "Play88%", "GET (H)"]);
+    expect(await text(page, "big")).toEqual(["X", "53", "88%"]);
     await expect(ribs(page, "big")).toHaveCount(1);
   });
 
@@ -271,6 +373,7 @@ test.describe("the sorare.com overlay", () => {
   for (const mode of ["auth", "unreachable"] as const) {
     test(`says so, and opens the app, when the app answers "${mode}"`, async ({ page }) => {
       await openPage(page, { mode });
+      await page.locator("#big").scrollIntoViewIfNeeded();
       const chip = ribs(page, "big").getByRole("button", { name: /Open Sofix/ });
       await expect(chip).toBeVisible();
       await expect(chip).toHaveText("Sofix");

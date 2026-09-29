@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
-import { scoreColour } from "./cards";
+import { contrastRatio } from "./contrast";
 import { chanceLabel } from "./play";
 
 // extension/core.js is a plain script the browser loads before the overlay. It is required here as it is, not copied.
@@ -11,7 +11,9 @@ type Core = {
   normalizeCardName: (alt: unknown) => string;
   collectCards: (json: unknown, limit?: number) => { key: string; cardSlug: string | null; playerSlug: string | null; name: string | null }[];
   surfaceOf: (width: number, height: number, round?: boolean) => "full" | "compact" | "skip";
-  scoreBand: (score: number | null) => { fill: string; ink: string };
+  scoreLevel: (score: number | null) => "veryLow" | "low" | "mediumLow" | "medium" | "mediumHigh" | "high" | null;
+  SCORE_FALLBACK: Record<string, string>;
+  SCORE_INK: string;
   chanceLabel: (p: number) => string;
   DOUBTFUL: number;
 };
@@ -130,16 +132,53 @@ describe("surfaceOf", () => {
     expect(core.surfaceOf(200, 339, true)).toBe("skip"); // round
     expect(core.surfaceOf(0, 0)).toBe("skip"); // not laid out yet
     expect(core.surfaceOf(20, 28)).toBe("skip"); // too small to read anything on
+    // Seen on a real player page: a 40px rarity thumbnail. A chip there would cover a tenth of the picture.
+    expect(core.surfaceOf(40, 65)).toBe("skip");
+    expect(core.surfaceOf(48, 68)).toBe("compact");
+  });
+});
+
+// Sorare's own rule for colouring a football score, read from its public script (thresholds-*.js) on 2026-09-29 and
+// checked against 42 hexagons on its scouting pages: the first step whose limit is >= the score, else the top colour.
+const STEPS: [number, string][] = [[20, "veryLow"], [35, "low"], [50, "mediumLow"], [60, "medium"], [75, "mediumHigh"]];
+
+describe("scoreLevel", () => {
+  it("paints a score the way Sorare does, boundaries included", () => {
+    for (const [score, level] of [
+      [0, "veryLow"], [20, "veryLow"], [21, "low"], [35, "low"], [36, "mediumLow"], [50, "mediumLow"], [51, "medium"],
+      [60, "medium"], [61, "mediumHigh"], [75, "mediumHigh"], [76, "high"], [99, "high"], [100, "high"],
+    ] as const) {
+      expect(core.scoreLevel(score), String(score)).toBe(level);
+    }
+  });
+
+  it("agrees with the steps written above and with real hexagons seen on Sorare's pages", () => {
+    for (const [limit, level] of STEPS) expect(core.scoreLevel(limit)).toBe(level);
+    // (score, colour) read off real scouting pages: 41 and 50 yellow, 53 and 60 lime, 61 and 75 green, 76 and 96 cyan.
+    for (const [score, level] of [[41, "mediumLow"], [47, "mediumLow"], [50, "mediumLow"], [53, "medium"], [60, "medium"], [61, "mediumHigh"], [75, "mediumHigh"], [76, "high"], [96, "high"]] as const) {
+      expect(core.scoreLevel(score)).toBe(level);
+    }
+  });
+
+  it("is null for no score at all, never a colour", () => {
+    expect(core.scoreLevel(null)).toBeNull();
+    expect(core.scoreLevel(Number.NaN)).toBeNull();
+  });
+
+  it("keeps Sorare's measured colours as the fallback when the page's own tokens go away", () => {
+    expect(core.SCORE_FALLBACK).toEqual({
+      veryLow: "#ff5a5a", low: "#ff7e34", mediumLow: "#f0ce1d", medium: "#b6ff1a", mediumHigh: "#25ed36", high: "#00f3eb",
+    });
+  });
+
+  it("reads on every colour Sorare uses: dark type passes AA on all six", () => {
+    for (const [level, fill] of Object.entries(core.SCORE_FALLBACK)) {
+      expect(contrastRatio(core.SCORE_INK, fill), level).toBeGreaterThanOrEqual(4.5);
+    }
   });
 });
 
 describe("shared with the app", () => {
-  it("colours a score the way the board does", () => {
-    for (const score of [null, 0, 14, 15, 29, 30, 39, 40, 49, 50, 64, 65, 79, 80, 89, 90, 100]) {
-      expect(core.scoreBand(score)).toEqual(scoreColour(score));
-    }
-  });
-
   it("writes a chance the way the board does", () => {
     for (const p of [0, 0.001, 0.004, 0.005, 0.43, 0.885, 0.994, 0.995, 1]) expect(core.chanceLabel(p)).toBe(chanceLabel(p));
   });

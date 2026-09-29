@@ -1,11 +1,11 @@
 // Sofix extension, the sorare.com overlay (plans/overlay.md, O3 and O4).
-// Draws Sofix's numbers on the cards Sorare shows: the expected score, the chance he plays, and the game. It only
-// reads and draws. It has no button that writes to Sorare; the one thing here that takes a click opens the app.
+// Draws Sofix's numbers on the cards Sorare shows: one chip with the expected score and the chance he plays. Nothing
+// about the game: Sorare's own card already draws that. It only reads and draws. It has no button that writes to Sorare; the one thing here that takes a click opens the app.
 //
 //   find a card by where its picture comes from (never by Sorare's class names)
 //   -> ask the page bridge which card that is (bridge.js learned it from the page's own answers)
 //   -> ask the app for that player's numbers (through the background worker, which caches them)
-//   -> put a ribbon next to the picture, sized to how big the card is drawn.
+//   -> hang a chip off the picture's left edge, sized to how big the card is drawn and clear of Sorare's own chips.
 //
 // A failure here must never break their page: every entry point is wrapped, and the worst outcome is that a
 // ribbon does not appear.
@@ -34,6 +34,8 @@
   let frame = 0;
   let scan = true; // the page changed: look for new pictures on the next pass
   let appState = "ok"; // "ok", or why the app did not answer: "auth" | "unreachable"
+  let chanceOn = true; // the popup's "Show chance of playing"
+  let pageEpoch = 0; // bumped whenever the page itself changes, so a chip re-checks what is near it
 
   const records = new WeakMap(); // picture element -> its record (or a note that it is not a card)
   const live = new Set(); // the records being drawn; the WeakMap alone cannot be walked
@@ -98,6 +100,7 @@
     records.delete(record.media); // so a card that comes back (the switch turned on again) is found again
     if (record.ribs) record.ribs.remove();
     record.ribs = null;
+    release(record);
     try {
       visibility.unobserve(record.media);
       resizing.unobserve(record.media);
@@ -200,52 +203,62 @@
     return radius.includes("%") ? value >= 50 : value >= Math.min(rect.width, rect.height) / 2;
   }
 
-  function chip(classes, parts) {
-    const rib = document.createElement("span");
-    rib.className = `sfx-rib ${classes}`;
-    for (const [text, part] of parts) {
-      const b = document.createElement("b");
-      if (part) b.className = part;
-      b.textContent = text;
-      rib.append(b);
+  // -- the chip --------------------------------------------------------------------------------------------------
+
+  const GREY = "#d9dde4"; // the score of a player who is not expected to start: the number stays, its colour goes
+  const HEIGHT = { full: 18, compact: 15 };
+  const HANG = { full: 6, compact: 3 }; // how far the chip hangs off the card's left edge, like Sorare's own do off the right
+  const INSET = { full: 8, compact: 4 }; // and how far down from its top
+
+  let tokenAt = 0;
+  let tokens = {};
+  /** Sorare's own colour for a level, read from the page so the chip follows its theme; the measured value otherwise. */
+  function colour(level) {
+    if (now() - tokenAt > 10000) {
+      tokenAt = now();
+      tokens = {};
+      const style = getComputedStyle(document.documentElement);
+      for (const name of Object.keys(core.SCORE_FALLBACK)) {
+        const value = style.getPropertyValue(`--c-score-${name}`).trim();
+        if (/^#[0-9a-f]{6}$/i.test(value)) tokens[name] = value;
+      }
     }
-    return rib;
+    return tokens[level] || core.SCORE_FALLBACK[level];
   }
 
-  /** What to draw on a card of this size, as a signature (to skip redrawing what has not changed) and the chips. */
+  function segment(className, text) {
+    const b = document.createElement("b");
+    b.className = className;
+    b.textContent = text;
+    return b;
+  }
+
+  /** What to draw on a card of this size: a signature (to skip redrawing what has not changed), the chip, its name. */
   function build(record, tier) {
     const slug = slugOf(record);
     const held = entryOf(record);
     const entry = held && held.entry;
     if (entry) {
-      const band = core.scoreBand(entry.x);
+      const score = Math.round(entry.x);
       const doubtful = entry.p < core.DOUBTFUL;
-      const rated = entry.bucket >= 1 && entry.bucket <= 5;
-      const sig = [tier, entry.x, entry.p, entry.code, entry.venue, entry.bucket].join("|");
-      const score = chip(
-        `sfx-rib--x${doubtful ? " sfx-rib--doubt" : ""}`,
-        tier === "full" ? [["X", "sfx-rib__label"], [String(Math.round(entry.x)), "sfx-rib__value"]] : [[String(Math.round(entry.x)), "sfx-rib__value"]],
-      );
-      score.style.setProperty("--sfx-fill", band.fill);
-      score.style.setProperty("--sfx-ink", band.ink);
-      const chips = [score];
-      let label = `expected score ${Math.round(entry.x)}, ${core.chanceLabel(entry.p)} chance of playing`;
-      if (tier === "full") {
-        chips.push(chip(`sfx-rib--play${doubtful ? " sfx-rib--doubt" : ""}`, [["Play", "sfx-rib__label"], [core.chanceLabel(entry.p), "sfx-rib__value"]]));
-        if (entry.opponent) {
-          const game = `${entry.code} (${entry.venue})`;
-          chips.push(chip(rated ? `sfx-rib--game sfx-rib--f${entry.bucket}` : "sfx-rib--game", rated ? [[game, "sfx-rib__value"]] : [["No odds", "sfx-rib__label"], [game, "sfx-rib__value"]]));
-          label += `, ${entry.venue === "H" ? "home" : "away"} to ${entry.opponent}, ${rated ? entry.label : "no odds for this game"}`;
-        }
-      }
-      return { sig, chips, label: `Sofix: ${label}` };
+      const fill = doubtful ? GREY : colour(core.scoreLevel(score));
+      const withChance = tier === "full" && chanceOn;
+      const chip = document.createElement("span");
+      chip.className = `sfx-chip${doubtful ? " sfx-chip--doubt" : ""}`;
+      chip.style.setProperty("--sfx-fill", fill);
+      if (doubtful) chip.style.setProperty("--sfx-red", colour("veryLow"));
+      if (tier === "full") chip.append(segment("sfx-x", "X"));
+      chip.append(segment("sfx-v", String(score)));
+      if (withChance) chip.append(segment("sfx-c", core.chanceLabel(entry.p)));
+      const label = `Sofix: expected score ${score}, ${core.chanceLabel(entry.p)} chance of playing`;
+      return { sig: [tier, score, entry.p, fill, withChance].join("|"), chip, label };
     }
     if (held) return null; // asked, and Sofix has nothing on this player: a card we cannot help with draws nothing
     if (appState !== "ok") {
       if (tier !== "full") return null;
       const button = document.createElement("button"); // a real button, so it can be reached and pressed from the keyboard
       button.type = "button";
-      button.className = "sfx-rib sfx-rib--auth";
+      button.className = "sfx-chip sfx-chip--auth";
       button.textContent = "Sofix";
       button.setAttribute("aria-label", appState === "auth" ? "Sofix does not recognise this extension. Open Sofix" : "Sofix is not reachable. Open Sofix");
       button.addEventListener("click", guard((event) => {
@@ -253,19 +266,88 @@
         event.stopPropagation();
         chrome.runtime.sendMessage({ type: "open-app", path: "/" });
       }));
-      return { sig: `${tier}|auth|${appState}`, chips: [button], label: "Sofix" };
+      return { sig: `${tier}|auth|${appState}`, chip: button, label: "Sofix" };
     }
-    if (slug && asking.has(slug)) return { sig: `${tier}|loading`, chips: [chip("sfx-rib--loading", [["", "sfx-rib__value"]])], label: "Sofix: loading" };
+    if (slug && asking.has(slug)) {
+      const chip = document.createElement("span");
+      chip.className = "sfx-chip sfx-chip--loading";
+      chip.append(segment("sfx-v", ""));
+      return { sig: `${tier}|loading`, chip, label: "Sofix: loading" };
+    }
     return null;
   }
 
-  /** Draws, updates or removes one card's ribbon. Returns true when it needs another pass to be placed. */
-  function place({ record, rect, tier, ribs, box, at }) {
+  /**
+   * Where the chip goes down the card's left edge. Sorare draws its own chips there on some cards (a season badge, a
+   * serial number), and they differ per card, so this looks at what is actually under the strip the chip would take
+   * and starts below it. Found by position and size, never by what anything is called: a backdrop or a card-sized
+   * link is not a chip; a small box in the strip is.
+   */
+  function clearOf(media, rect, tier, width) {
+    const height = HEIGHT[tier];
+    const wanted = rect.top + INSET[tier];
+    const limit = rect.top + rect.height * 0.45; // never sink into the player's face to get out of the way
+    const left = Math.max(rect.left - HANG[tier], 2);
+    const xs = [];
+    for (let x = left + 1; x < left + width; x += 10) xs.push(x);
+    xs.push(left + width - 1);
+    let top = wanted;
+    for (let round = 0; round < 4; round += 1) {
+      let lowest = 0;
+      for (const y of [top + 2, top + height - 2]) {
+        for (const x of xs) {
+          if (x < 0 || y < 0 || x >= innerWidth || y >= innerHeight) continue;
+          for (const el of document.elementsFromPoint(x, y)) {
+            if (el === media || el.contains(media) || media.contains(el) || el.closest("[data-sfx],[data-sfx-drawer]")) continue;
+            const r = el.getBoundingClientRect();
+            if (r.width * r.height > rect.width * rect.height * 0.25) continue; // a backdrop, not a chip
+            lowest = Math.max(lowest, r.bottom);
+          }
+        }
+      }
+      if (!lowest) return top;
+      top = lowest + 3;
+      if (top > limit) return wanted; // no room below theirs: stay where the card has room rather than cover the face
+    }
+    return top;
+  }
+
+  /** `clearOf`, remembered until the card moves or the page around it changes: it is the one costly thing a pass does. */
+  function clearOfCached(record, rect, tier, width) {
+    const key = [rect.left, rect.top, rect.width, rect.height, tier, Math.round(width), pageEpoch].map((n) => (typeof n === "number" ? Math.round(n) : n)).join("|");
+    if (record.bandKey !== key) {
+      record.bandKey = key;
+      record.bandTop = clearOf(record.media, rect, tier, width);
+    }
+    return record.bandTop;
+  }
+
+  /** The two nearest ancestors that would cut the chip off where it hangs past the card's left edge. */
+  function clippers(ribs, box) {
+    const found = [];
+    let node = ribs.parentElement;
+    for (let level = 0; level < 2 && node && node !== document.body; level += 1, node = node.parentElement) {
+      const overflow = getComputedStyle(node).overflowX;
+      if (!/hidden|clip|auto|scroll/.test(overflow)) continue;
+      if (box.left < node.getBoundingClientRect().left - 0.5) found.push({ node, level, scrolls: /auto|scroll/.test(overflow) });
+    }
+    return found;
+  }
+
+  /** Hand back what was overridden to let the chip hang out. */
+  function release(record) {
+    for (const node of record.anchored || []) node.classList.remove("sfx-anchor", "sfx-anchor-up");
+    record.anchored = [];
+  }
+
+  /** Draws, updates or removes one card's chip. Returns true when it needs another pass to be placed. */
+  function place({ record, rect, tier, ribs, box, at, top, clip }) {
     const drawn = tier === "skip" ? null : build(record, tier);
     if (!drawn) {
       if (record.ribs) record.ribs.remove();
       record.ribs = null;
       record.sig = "";
+      release(record);
       return false;
     }
     let target = ribs;
@@ -282,15 +364,27 @@
       }
       target.className = `sfx-ribs sfx-ribs--${tier}`;
       target.setAttribute("aria-label", drawn.label);
-      target.replaceChildren(...drawn.chips);
+      target.replaceChildren(drawn.chip);
       record.sig = drawn.sig;
     }
     if (box && at) {
-      // Sorare's layout decides where an absolutely placed box starts, so the position is corrected by how far
-      // the ribbon is from where it should be, rather than worked out from their styles.
-      const inset = tier === "full" ? 6 : 3;
-      const dx = rect.left + inset - box.left;
-      const dy = rect.top + inset - box.top;
+      // A card that sits in a box that cuts what hangs past its edge: let a wrapper that only clips (hidden) show it,
+      // two levels up at most, and given back when the chip goes; one that scrolls is never touched, so the chip
+      // stays inside the picture there instead.
+      if ((clip || []).some((cut) => cut.scrolls)) {
+        record.inside = true;
+        release(record);
+      } else {
+        for (const { node, level } of clip || []) {
+          node.classList.add(level === 0 ? "sfx-anchor" : "sfx-anchor-up");
+          (record.anchored ||= []).push(node);
+        }
+      }
+      // Sorare's layout decides where an absolutely placed box starts, so the chip is moved by how far it is from
+      // where it should be, rather than worked out from their styles.
+      const left = record.inside ? rect.left + HANG.compact : Math.max(rect.left - HANG[tier], 2);
+      const dx = left - box.left;
+      const dy = top - box.top;
       if (Math.abs(dx) > 0.5) target.style.left = `${at.left + dx}px`;
       if (Math.abs(dy) > 0.5) target.style.top = `${at.top + dy}px`;
       target.removeAttribute("data-pending");
@@ -313,7 +407,17 @@
       const rect = record.media.getBoundingClientRect();
       const tier = core.surfaceOf(rect.width, rect.height, isRound(record.media, rect));
       const ribs = record.ribs && record.ribs.isConnected ? record.ribs : null;
-      return { record, rect, tier, ribs, box: ribs ? ribs.getBoundingClientRect() : null, at: ribs ? { left: parseFloat(ribs.style.left) || 0, top: parseFloat(ribs.style.top) || 0 } : null };
+      const box = ribs ? ribs.getBoundingClientRect() : null;
+      return {
+        record,
+        rect,
+        tier,
+        ribs,
+        box,
+        at: ribs ? { left: parseFloat(ribs.style.left) || 0, top: parseFloat(ribs.style.top) || 0 } : null,
+        top: tier === "skip" || !box ? rect.top + INSET.full : clearOfCached(record, rect, tier, box.width),
+        clip: tier === "skip" || !box || record.inside ? null : clippers(ribs, box),
+      };
     });
 
     let again = false;
@@ -321,7 +425,7 @@
       try {
         if (place(read)) again = true;
       } catch {
-        // one card that will not take a ribbon must not stop the others
+        // one card that will not take a chip must not stop the others
       }
     }
     if (again) schedule();
@@ -400,6 +504,7 @@
     mutations = new MutationObserver(
       guard((list) => {
         if (!list.some(theirs)) return;
+        pageEpoch += 1;
         if (list.some((change) => change.type === "attributes" || change.addedNodes.length)) scan = true;
         schedule();
       }),
@@ -428,6 +533,7 @@
     clearTimeout(reportTimer);
     reportTimer = 0;
     document.querySelectorAll("[data-sfx]").forEach((el) => el.remove());
+    document.querySelectorAll(".sfx-anchor, .sfx-anchor-up").forEach((el) => el.classList.remove("sfx-anchor", "sfx-anchor-up"));
   }
 
   // The bridge learned more cards from the page's own answers: cards it could not name a moment ago may be known now.
@@ -443,13 +549,25 @@
   });
 
   // -- the switch ------------------------------------------------------------------------------------------------
-  // The popup's "Scores on sorare.com" writes `overlay` to storage; flipping it adds or removes the ribbons at once.
+  // The popup's "Scores on sorare.com" writes `overlay` to storage; flipping it adds or removes the chips at once.
+  // "Show chance of playing" writes `overlayChance`; it redraws them with or without that segment.
 
   const apply = guard((value) => (value === false ? stop() : start()));
   try {
-    chrome.storage.sync.get({ overlay: true }).then(({ overlay }) => apply(overlay), () => apply(true));
+    chrome.storage.sync.get({ overlay: true, overlayChance: true }).then(
+      ({ overlay, overlayChance }) => {
+        chanceOn = overlayChance !== false;
+        apply(overlay);
+      },
+      () => apply(true),
+    );
     chrome.storage.onChanged.addListener((changes, area) => {
-      if (area === "sync" && changes.overlay) apply(changes.overlay.newValue);
+      if (area !== "sync") return;
+      if (changes.overlayChance) {
+        chanceOn = changes.overlayChance.newValue !== false;
+        schedule();
+      }
+      if (changes.overlay) apply(changes.overlay.newValue);
     });
   } catch {
     apply(true);

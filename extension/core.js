@@ -78,27 +78,37 @@
   /**
    * What a picture on the page is, judged by the size it is drawn at. One page shows the same card at several
    * sizes, so the route alone says nothing. `skip`: not a card (a face, a badge, a hidden or tiny picture).
-   * `compact`: a lineup slot or a thumbnail, room for one number. `full`: room for the whole ribbon.
+   * `compact`: a lineup slot or a thumbnail, room for one number. `full`: room for the score and the chance.
    */
   function surfaceOf(width, height, round) {
-    if (!(width >= 28) || !(height > 0) || round) return "skip";
+    if (!(width >= 48) || !(height > 0) || round) return "skip"; // under 48px a chip would cover a tenth of the picture
     const ratio = width / height;
     if (ratio < 0.55 || ratio > 0.9) return "skip"; // a card is portrait (320 x 452); faces and crests are square
     return width <= 112 || height <= 170 ? "compact" : "full";
   }
 
-  // The colour Sorare gives a score, by band. Kept equal to scoreColour() in frontend/lib/cards.ts (a test says so):
-  // a green on sorare.com then means what a green means on the board.
-  function scoreBand(score) {
-    if (score === null || score === undefined || Number.isNaN(score)) return { fill: "#55555c", ink: "#ffffff" };
-    if (score >= 90) return { fill: "#22c7c7", ink: "#08302f" };
-    if (score >= 80) return { fill: "#3fb5df", ink: "#062838" };
-    if (score >= 65) return { fill: "#46c05a", ink: "#0c2f16" };
-    if (score >= 50) return { fill: "#9bd227", ink: "#22300a" };
-    if (score >= 40) return { fill: "#e6b91e", ink: "#332600" };
-    if (score >= 30) return { fill: "#ef8a3c", ink: "#3a1e05" };
-    if (score >= 15) return { fill: "#e5602f", ink: "#ffffff" };
-    return { fill: "#c0433f", ink: "#ffffff" };
+  // How Sorare colours a football score, read from its own public script on 2026-09-29 (thresholds-*.js) and checked
+  // against 42 real hexagons: the first step whose limit is >= the score, else the top colour. A chip on its card then
+  // means exactly what its own numbers mean. (The board's scoreColour() in lib/cards.ts uses other cut points.)
+  const SCORE_STEPS = [
+    [20, "veryLow"],
+    [35, "low"],
+    [50, "mediumLow"],
+    [60, "medium"],
+    [75, "mediumHigh"],
+  ];
+
+  /** Sorare's measured colours, used only when the page's own `--c-score-*` tokens cannot be read. */
+  const SCORE_FALLBACK = { veryLow: "#ff5a5a", low: "#ff7e34", mediumLow: "#f0ce1d", medium: "#b6ff1a", mediumHigh: "#25ed36", high: "#00f3eb" };
+
+  /** The type Sorare puts on those colours. It passes AA on all six. */
+  const SCORE_INK = "#0e0e0e";
+
+  /** The name of the colour Sorare gives this score, or null when there is no score. */
+  function scoreLevel(score) {
+    if (typeof score !== "number" || Number.isNaN(score)) return null;
+    for (const [limit, level] of SCORE_STEPS) if (score <= limit) return level;
+    return "high";
   }
 
   /** A chance the way the board writes it: ">99%", "<1%", "43%". Kept equal to chanceLabel() in lib/play.ts. */
@@ -108,9 +118,9 @@
     return Math.round(p * 100) + "%";
   }
 
-  /** Below this he is not expected to start, and the ribbon says so with a grey ring instead of a colour. */
+  /** Below this he is not expected to start, and the chip says so: the score is greyed and the chance is red. */
   const DOUBTFUL = 0.5;
 
-  root.__sofixCore = { CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, surfaceOf, scoreBand, chanceLabel, DOUBTFUL };
+  root.__sofixCore = { CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK, chanceLabel, DOUBTFUL };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;
 })(typeof globalThis !== "undefined" ? globalThis : this);

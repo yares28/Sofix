@@ -1,117 +1,90 @@
-/* Sofix extension: the ribbons drawn on sorare.com's cards (plans/overlay.md, O3).
-   Every name here starts with sfx-, and nothing styles anything of Sorare's. The colours are Sofix's own: a score is
-   coloured the way the board colours it, and a game the way the board colours a fixture. */
+/* Sofix extension: the chip drawn on sorare.com's cards (plans/overlay.md, O6).
+   One solid chip per card, built to the same measurements as Sorare's own chips (18px, 4px corners, a small fold
+   under one end, its own type) and hung off the card's left edge, where its own chips hang off the right. Every name
+   here starts with sfx-, and nothing styles anything of Sorare's. The colour of a score is Sorare's: the chip's fill
+   is set from the page's own --c-score-* tokens by overlay.js, so a score reads the same on the chip and on the card. */
 :root {
-  --sfx-rib-h: 17px;
-  --sfx-rib-radius: 2px;
-  --sfx-rib-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-  --sfx-rib-label-bg: #0b1711;
-  --sfx-rib-label-ink: #5cc58d;
-  --sfx-rib-dark: #101012;
-  --sfx-rib-dark-ink: #e9f7ef;
-  --sfx-rib-grey: #55555c;
-  --sfx-f1-bg: #1f7a4f; --sfx-f1-fg: #ffffff;
-  --sfx-f2-bg: #d3f2e1; --sfx-f2-fg: #11633b;
-  --sfx-f3-bg: #f1f1f4; --sfx-f3-fg: #3a3a3c;
-  --sfx-f4-bg: #ffdcd8; --sfx-f4-fg: #b42318; --sfx-f4-ring: #e8998f;
-  --sfx-f5-bg: #c4312a; --sfx-f5-fg: #ffffff; --sfx-f5-ring: #8f1f19;
+  --sfx-font: pressio, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  --sfx-ink: #0e0e0e;
+  --sfx-white: #ffffff;
+  --sfx-red: #ff5a5a;
+  --sfx-dark: #0e0e0e;
 }
 
-/* The stack of chips on one card. It never takes a click: only the signed-out chip below does. */
+/* The wrapper that is measured and moved. It never takes a click: only the signed-out chip below does. */
 .sfx-ribs {
   position: absolute;
   left: 0;
   top: 0;
   z-index: 3;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
+  display: block;
+  width: max-content;
   margin: 0;
   padding: 0;
   border: 0;
   pointer-events: none;
   user-select: none;
-  animation: sfx-in 0.16s ease-out both;
+  animation: sfx-in 0.18s ease-out both;
 }
 .sfx-ribs[data-pending] { visibility: hidden; }
 
-.sfx-rib {
+.sfx-chip {
   position: relative;
-  display: inline-flex;
-  align-items: stretch;
+  display: flex;
+  align-items: center;
   box-sizing: border-box;
-  height: var(--sfx-rib-h);
+  height: 18px;
   margin: 0;
   padding: 0;
   border: 0;
-  border-radius: var(--sfx-rib-radius);
-  font: 800 10px/var(--sfx-rib-h) var(--sfx-rib-font);
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  border-radius: 4px 4px 4px 0; /* Sorare's chips are square at the end that carries the fold; ours carries it on the left */
+  color: var(--sfx-ink);
+  font: 400 14px/14px var(--sfx-font);
+  letter-spacing: 0;
   text-decoration: none;
   text-shadow: none;
+  text-transform: uppercase;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.55) inset, 0 2px 4px rgba(0, 0, 0, 0.28);
 }
-.sfx-rib > b {
+.sfx-chip > b {
   display: block;
   margin: 0;
-  padding: 0 5px;
+  padding: 2px 4px;
   font: inherit;
 }
-.sfx-rib > b:first-child { border-radius: var(--sfx-rib-radius) 0 0 var(--sfx-rib-radius); }
-.sfx-rib > b:last-child { border-radius: 0 var(--sfx-rib-radius) var(--sfx-rib-radius) 0; }
-.sfx-rib > b:only-child { border-radius: var(--sfx-rib-radius); }
-.sfx-rib__label { background: var(--sfx-rib-label-bg); color: var(--sfx-rib-label-ink); padding: 0 4px; }
-.sfx-rib__value { background: var(--sfx-fill, var(--sfx-rib-grey)); color: var(--sfx-ink, #fff); }
+.sfx-chip > b:first-child { border-radius: 4px 0 0 0; }
+.sfx-chip > b:last-child { border-radius: 0 4px 4px 0; }
+.sfx-chip > b:only-child { border-radius: 4px 4px 4px 0; }
+.sfx-x, .sfx-v { background: var(--sfx-fill, var(--sfx-white)); }
+.sfx-x { padding-right: 0; opacity: 0.6; } /* the label is dimmed inside the same chip, never a box of its own */
+.sfx-x + .sfx-v { padding-left: 3px; }
+.sfx-c { background: var(--sfx-white); }
 
-/* The fold: a small triangle tucked under the right edge, in a darker shade of the chip's own colour. */
-.sfx-rib::after {
+/* The fold: a 4px triangle under the left end, the chip's own colour a shade darker, like Sorare's under its right. */
+.sfx-chip::after {
   content: "";
   position: absolute;
-  right: 1px;
-  bottom: -5px;
-  width: 0;
-  height: 0;
-  border-style: solid;
-  border-width: 5px 0 0 6px;
-  border-color: color-mix(in srgb, var(--sfx-fill, var(--sfx-rib-grey)) 55%, #000) transparent transparent transparent;
+  left: 0;
+  bottom: -4px;
+  width: 4px;
+  height: 4px;
+  background: color-mix(in srgb, var(--sfx-fill, var(--sfx-white)) 45%, #0e0e0e);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
 }
 
-/* Not expected to start: the colour is taken away and a ring says so, whatever the score. */
-.sfx-rib--doubt .sfx-rib__value {
-  --sfx-fill: var(--sfx-rib-grey);
-  --sfx-ink: #ffffff;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7) inset;
-}
-.sfx-rib--doubt::after { border-color: #2e2e33 transparent transparent transparent; }
-.sfx-rib--play .sfx-rib__value { background: var(--sfx-rib-dark); color: var(--sfx-rib-dark-ink); }
-.sfx-rib--play.sfx-rib--doubt .sfx-rib__value { background: var(--sfx-f5-bg); color: var(--sfx-f5-fg); box-shadow: none; }
-.sfx-rib--play::after { display: none; }
-
-/* The game: coloured by how hard the board rates it. Outside LaLiga there are no odds, so it is grey and says so. */
-.sfx-rib--game::after { display: none; }
-.sfx-rib--game > b { background: var(--sfx-fill, var(--sfx-rib-grey)); color: var(--sfx-ink, #fff); }
-.sfx-rib--game > .sfx-rib__label { background: var(--sfx-rib-label-bg); color: var(--sfx-rib-label-ink); }
-.sfx-rib--f1 { --sfx-fill: var(--sfx-f1-bg); --sfx-ink: var(--sfx-f1-fg); }
-.sfx-rib--f2 { --sfx-fill: var(--sfx-f2-bg); --sfx-ink: var(--sfx-f2-fg); }
-.sfx-rib--f3 { --sfx-fill: var(--sfx-f3-bg); --sfx-ink: var(--sfx-f3-fg); }
-.sfx-rib--f4 { --sfx-fill: var(--sfx-f4-bg); --sfx-ink: var(--sfx-f4-fg); }
-.sfx-rib--f5 { --sfx-fill: var(--sfx-f5-bg); --sfx-ink: var(--sfx-f5-fg); }
-.sfx-rib--f4 > b:last-child { box-shadow: 0 0 0 1.5px var(--sfx-f4-ring) inset; }
-.sfx-rib--f5 > b:last-child { box-shadow: 0 0 0 2px var(--sfx-f5-ring) inset; }
+/* Not expected to start: the number stays, its colour is withdrawn, and the chance turns red. */
+.sfx-chip--doubt .sfx-c { background: var(--sfx-red); }
 
 /* Waiting for the numbers. */
-.sfx-rib--loading { opacity: 0.6; }
-.sfx-rib--loading::after { display: none; }
-.sfx-rib--loading .sfx-rib__value::before {
+.sfx-chip--loading { opacity: 0.6; --sfx-fill: #d9dde4; }
+.sfx-chip--loading .sfx-v { min-width: 22px; }
+.sfx-chip--loading .sfx-v::before {
   content: "";
   display: inline-block;
-  width: 7px;
-  height: 7px;
-  margin-right: 4px;
+  width: 8px;
+  height: 8px;
+  margin-right: 0;
   vertical-align: -1px;
   border: 1.5px solid currentColor;
   border-right-color: transparent;
@@ -119,27 +92,30 @@
   animation: sfx-spin 0.7s linear infinite;
 }
 
-/* Signed out of Sofix, or the app is not answering: a dark chip that opens the app. The only thing here that takes a click. */
-.sfx-rib--auth {
+/* Signed out of Sofix, or the app is not answering: the one dark chip, same shape, and the only thing here that takes a click. */
+.sfx-chip--auth {
+  --sfx-fill: var(--sfx-dark);
+  padding: 2px 6px;
   cursor: pointer;
   pointer-events: auto;
-  background: var(--sfx-rib-dark);
-  color: var(--sfx-rib-dark-ink);
-  font-family: var(--sfx-rib-font);
+  background: var(--sfx-dark);
+  color: var(--sfx-white);
+  font-family: var(--sfx-font);
 }
-.sfx-rib--auth::after { display: none; }
-.sfx-rib--auth > b { background: none; color: inherit; }
-.sfx-rib--auth:hover { background: #23232a; }
-.sfx-rib--auth:focus-visible { outline: 2px solid #5cc58d; outline-offset: 1px; }
+.sfx-chip--auth:hover { background: #26262b; }
+.sfx-chip--auth:focus-visible { outline: 2px solid #b6ff1a; outline-offset: 1px; }
 
 /* A small card has room for one number and nothing else. */
-.sfx-ribs--compact { gap: 0; }
-.sfx-ribs--compact .sfx-rib { --sfx-rib-h: 15px; font-size: 9px; }
-.sfx-ribs--compact .sfx-rib > b { padding: 0 4px; }
-.sfx-ribs--compact .sfx-rib::after { display: none; }
+.sfx-ribs--compact .sfx-chip { height: 15px; font-size: 11px; line-height: 11px; }
+.sfx-ribs--compact .sfx-chip > b { padding: 2px 3px; }
+.sfx-ribs--compact .sfx-chip::after { bottom: -3px; width: 3px; height: 3px; }
+
+/* A wrapper that only clips is let show the chip where it hangs past the card's edge. Two levels at most, given back
+   when the chip goes or the switch is turned off; a wrapper that scrolls is never touched. */
+.sfx-anchor, .sfx-anchor-up { overflow: visible !important; }
 
 @keyframes sfx-in { from { opacity: 0; } }
 @keyframes sfx-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
-  .sfx-ribs, .sfx-rib--loading .sfx-rib__value::before { animation: none; }
+  .sfx-ribs, .sfx-chip--loading .sfx-v::before { animation: none; }
 }

@@ -43,6 +43,12 @@ export type PlayCard = {
   captain?: boolean;
   subbedBy?: string | null;
   cameIn?: boolean;
+  /** His sorare player slug (the card's own is `slug`). */
+  player?: string;
+  /** His chance of starting his first game, whose number it is, and what Futbol Fantasy says is wrong with him (plans/futbolfantasy.md). */
+  pStart?: number;
+  startSource?: StartSource;
+  ffKind?: "out" | "doubt" | "suspended";
 };
 
 export type Tier = {
@@ -174,6 +180,27 @@ export type PlayerGame = {
 /** Whose number a start chance is: Futbol Fantasy's expected lineup, else Sorare's own odds, else the app's from his form. */
 export type StartSource = "futbolfantasy" | "sorare" | "sofix";
 
+/** The three sources of a start chance, in the order the app trusts them: two letters each, as everywhere on screen. */
+export const SOURCE_SHORT: Record<StartSource, string> = { futbolfantasy: "FF", sorare: "SO", sofix: "SF" };
+export const SOURCE_NAME: Record<StartSource, string> = {
+  futbolfantasy: "Futbol Fantasy's expected lineup",
+  sorare: "Sorare's starter odds",
+  sofix: "Sofix's estimate from his form",
+};
+
+/**
+ * What a lineup card says about his chance of starting: the percentage, whose it is and a sentence for the tooltip. Null for a
+ * card from a payload that does not carry it (older ones say "plays" instead).
+ */
+export function startChance(
+  card: Pick<PlayCard, "pStart" | "startSource" | "ffKind">,
+): { percent: number; source: StartSource; title: string } | null {
+  if (card.pStart === undefined || !card.startSource) return null;
+  const percent = Math.round(card.pStart * 100);
+  const why = card.ffKind ? ` · ${card.ffKind === "out" ? "injured" : card.ffKind === "suspended" ? "suspended" : "doubt"}` : "";
+  return { percent, source: card.startSource, title: `${percent}% to start · ${SOURCE_SHORT[card.startSource]}: ${SOURCE_NAME[card.startSource]}${why}` };
+}
+
 export type FfStatus = {
   kind?: "out" | "doubt" | "available" | "suspended";
   cause?: string;
@@ -208,6 +235,9 @@ export type PlayingPlayer = {
   bench?: number;
   pStart?: number;
   pOn?: number;
+  /** Whose number `pStart` is, and what each of the three says of his first game (Futbol Fantasy's only when it has one). */
+  startSource?: StartSource;
+  sources?: Partial<Record<StartSource, number>>;
   /**
    * His xG in one game he starts, for an average game of his side, from Understat's season so far (plans/overlay.md, O11):
    * non-penalty and penalty parts, and his team's own average xG per game to scale the game by. Only a midfielder or
@@ -230,11 +260,35 @@ export type GameweekPlan = {
   plans: Plan[];
   /** A finished week only: the best lineups in hindsight, priced by what really paid (Rooms left out). */
   hindsight?: Plan;
+  /** The gameweek being planned only, and only once Futbol Fantasy has told the job something about a player of the owner's. */
+  teamNews?: TeamNews;
   /**
    * Only for a LaLiga round Sorare has not opened a gameweek for: an early plan from the calendar and form, with the
    * competitions of the gameweek named in `basedOn`. Nothing in it can be entered.
    */
   projected?: { round: number; basedOn: string };
+};
+
+/** The game a team-news row is about, as the plan has it. */
+export type NewsGame = { id: string; kickoff: string; team: string | null; opponent: string; venue: "H" | "A" | null };
+export type NewsPlayer = { player: string; name: string; pos: "GK" | "DEF" | "MID" | "FWD"; rarity: string; pic: string };
+export type NewsRisk = NewsPlayer & { comp: string; captain: boolean; game: NewsGame; p: number; kind: FfStatus["kind"] | null };
+export type NewsMove = NewsPlayer & { from: number; to: number; kind: FfStatus["kind"] | null; game: NewsGame };
+
+/**
+ * What the Home says about the players' chances of starting (backend/app/sorare/ff_news.py): the players of the week split by
+ * how likely Futbol Fantasy makes them, the first plan's starters it puts under 70%, and what moved since a reading about a day old.
+ */
+export type TeamNews = {
+  /** When the newest of its numbers was read. */
+  readAt: string | null;
+  /** Players with a number from Futbol Fantasy, and how many more have a game this week without one. */
+  players: number;
+  without: number;
+  split: { likely: number; doubtful: number; unlikely: number; out: number };
+  atRisk: { total: number; players: NewsRisk[] };
+  /** Null until a reading a day old exists to compare with. */
+  moved: { since: string; total: number; players: NewsMove[] } | null;
 };
 
 /** What the main page says about an early plan: enough for the week picker. The week itself is read apart. */

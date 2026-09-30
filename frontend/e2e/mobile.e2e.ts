@@ -122,3 +122,13 @@ test("Lineups on a phone: the tap targets of the reading and the link are at lea
     expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(44);
   }
 });
+
+test("the home's team news fits a phone: one column, no sideways scrolling", async ({ page }) => {
+  await page.goto("/");
+  const news = page.getByRole("region", { name: "Team news" });
+
+  await expect(news).toBeVisible();
+  const columns = await news.locator(".hm-nw-col").evaluateAll((cols) => cols.map((col) => Math.round(col.getBoundingClientRect().left)));
+  expect(new Set(columns).size).toBe(1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});

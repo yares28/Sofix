@@ -25,7 +25,7 @@ from app.db import SessionLocal
 from app.logging_config import configure_logging
 from app.models import ReadModel
 from app.services.publish import notify_app, put
-from app.sorare import projection, starts
+from app.sorare import early, projection, starts
 from app.sorare import publish as sorare_publish
 from app.sorare import record as sorare_record
 from app.sorare import sync as sorare_sync
@@ -81,15 +81,16 @@ def run(
     # Every LaLiga round Sorare has not opened a gameweek for is planned early, from the calendar the app already holds.
     fetched = datetime.fromisoformat(snapshot["fetchedAt"])
     rounds = projection.calendar(db, fetched)
-    early = sorare_publish.projected_weeks(
-        snapshot, projection.unopened(rounds, snapshot["gameweeks"], now=fetched), runs=runs
+    # A run plans only the few that are missing or stale, so it stays well inside its time; the rest keep their last plan.
+    made = early.plan(
+        db, snapshot, projection.unopened(rounds, snapshot["gameweeks"], now=fetched), runs=runs, now=fetched
     )
     # Who says he will start (Sorare, Sofix, Futbol Fantasy), written down to be scored against what happens. The site is
     # asked at most every few hours; a page it cannot read leaves its column empty, never filled from an old answer.
     found = starts.chances(db, fetched, datetime.fromisoformat(snapshot["planGameweek"]["lock"]), write=not dry_run)
     start_rows = starts.rows(snapshot, found, rounds)
     payload = sorare_publish.build_payload(
-        snapshot, runs=runs, previous=previous, projected=sorare_publish.projected_heads(early)
+        snapshot, runs=runs, previous=previous, projected=sorare_publish.projected_heads(made.weeks)
     )
     size = len(json.dumps(payload, separators=(",", ":")))
     planned_week = sorare_publish.week_of(payload) or {}
@@ -101,7 +102,8 @@ def run(
         "xg": sum(1 for p in planned_week.get("playing", {}).get("players", []) if "xg" in p),
         "playable": len(planned_week.get("playable", [])),
         "weeks": [w["gameweek"]["number"] for w in payload.get("weeks", [])],
-        "projected": [w["projected"]["round"] for w in early],
+        "projected": [w["projected"]["round"] for w in made.weeks],
+        "planned": [w["projected"]["round"] for w in made.fresh],
         "futbolfantasy": len(found.chances) if found else 0,
         "calls": snapshot["calls"],
         "bytes": size,
@@ -125,9 +127,8 @@ def run(
     )
     put(db, SORARE_KEY, payload, now)
     put(db, REFERENCES_KEY, snapshot["references"], now)
-    # Each early plan is a page of its own, read only when that week is opened; it is written again every run because it
-    # follows the numbers.
-    for week in early:
+    # Each early plan is a page of its own, read only when that week is opened; one is written again when it has gone stale.
+    for week in made.fresh:
         put(db, f"{sorare_publish.AHEAD_PREFIX}{week['projected']['round']}", week, now)
     summary["starts"] = {**starts.save(db, start_rows, now), **starts.settle(db, snapshot)}
     # The week just played, once final, is also kept whole on its own so it can be opened long after it leaves the page.

@@ -30,6 +30,9 @@ already showing when that payload was built by this same version."""
 LIVE_STATES = {"started", "live"}
 ARCHIVE_PREFIX = "sorare_week:"
 """A finished gameweek is kept whole under `sorare_week:<its slug>` in `read_models`, apart from the main page."""
+EARLY_DRAWS = 600
+"""Simulated weeks per lineup in an early plan: a fifth of a real plan's, which keeps each under a few seconds. It is a first
+guess anyway, and Sorare's own numbers replace it the moment the week opens."""
 AHEAD_PREFIX = "sorare_ahead:"
 """An early plan for a LaLiga round Sorare has not opened is kept whole under `sorare_ahead:<round>`, rewritten every run."""
 SETTLE = timedelta(hours=24)
@@ -702,7 +705,7 @@ def archive_of(payload: dict[str, Any]) -> tuple[str, dict[str, Any]] | None:
 
 
 def projected_weeks(
-    snapshot: dict[str, Any], rounds: list[projection.Round], *, runs: int = 30, draws: int = DRAWS
+    snapshot: dict[str, Any], rounds: list[projection.Round], *, runs: int = 30, draws: int = EARLY_DRAWS
 ) -> list[dict[str, Any]]:
     """An early plan for each LaLiga round Sorare has not opened a gameweek for.
 

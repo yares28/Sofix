@@ -27,7 +27,7 @@ Not used: Open-Meteo/weather (removed), Transfermarkt (scraping prohibited), liv
 | `fixtures` | Match/status/UTC kickoff/result | Upsert |
 | `predictions` | Fixture + model-version pre-match forecast | Replace per version |
 | `market_odds` | Fair outcome/totals fit and source age/count | Replace current |
-| `read_models` | JSON `grid`, `system`, `sorare`, `sorare_references`, `extension`, one `sorare_week:<slug>` per finished gameweek, one `sorare_ahead:<round>` per LaLiga round Sorare has not opened, `start_chances` (who said he would start) and `futbolfantasy` (its last page, kept between reads) | Atomic key replace; a `sorare_week:` row is written once and never replaced, a `sorare_ahead:` row is rewritten every run |
+| `read_models` | JSON `grid`, `system`, `sorare`, `sorare_references`, `extension`, one `sorare_week:<slug>` per finished gameweek, one `sorare_ahead:<round>` per LaLiga round Sorare has not opened, `start_chances` (who said he would start) and `futbolfantasy` (its last page, kept between reads) | Atomic key replace; a `sorare_week:` row is written once and never replaced, a `sorare_ahead:` row is rewritten when it has gone stale (six hours for the next four rounds, a day for the rest) |
 | `refresh_runs` | Operational run/step audit | Append; one running |
 | `sorare_forecasts` | Pre-lock forecast plus later actual | Retain for replay/fitting |
 

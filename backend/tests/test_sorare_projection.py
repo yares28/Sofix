@@ -190,26 +190,33 @@ def test_the_main_page_only_carries_a_headline_for_each_early_week(early):
     assert len(str(payload["projected"])) < 2000, "the whole week is not in the main page"
 
 
-def test_the_job_writes_each_early_week_apart_and_replaces_it_every_run(db, monkeypatch):  # noqa: F811
+def test_the_job_writes_each_early_week_apart_and_only_replans_one_that_has_gone_stale(db, monkeypatch):  # noqa: F811
     from app.models import ReadModel
 
     monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
     monkeypatch.setattr(sorare_job.settings, "sorare_api_key", "test-key")
     monkeypatch.setattr(sorare_job, "SorareClient", lambda *a, **k: _Client())
-    monkeypatch.setattr(sorare_job.sorare_sync, "snapshot", lambda *a, **k: early_snapshot())
+    snap = early_snapshot()
+    snap["fetchedAt"] = datetime.now(
+        UTC
+    ).isoformat()  # the job writes with the clock, and judges staleness by the snapshot's
+    monkeypatch.setattr(sorare_job.sorare_sync, "snapshot", lambda *a, **k: snap)
     monkeypatch.setattr(sorare_job.projection, "calendar", lambda db, now: rounds())
 
     summary = sorare_job.run(db, "yares", runs=1)
 
-    assert summary["projected"] == [11, 36]
+    assert summary["projected"] == [11, 36] and summary["planned"] == [11, 36]
     row = db.get(ReadModel, "sorare_ahead:11")
     assert row is not None and row.payload["projected"]["round"] == 11
     main = db.get(ReadModel, sorare_job.SORARE_KEY)
     assert [h["round"] for h in main.payload["projected"]] == [11, 36]
     first = row.updated_at
 
-    sorare_job.run(db, "yares", runs=1)
-    assert db.get(ReadModel, "sorare_ahead:11").updated_at >= first, "written again: the plan follows the numbers"
+    # The next run, straight after: both plans are current, so none is made again, and both are still listed.
+    again = sorare_job.run(db, "yares", runs=1)
+    assert again["planned"] == [] and again["projected"] == [11, 36]
+    assert db.get(ReadModel, "sorare_ahead:11").updated_at == first
+    assert [h["round"] for h in db.get(ReadModel, sorare_job.SORARE_KEY).payload["projected"]] == [11, 36]
 
 
 class _Client:

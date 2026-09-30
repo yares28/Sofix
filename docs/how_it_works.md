@@ -199,8 +199,11 @@ has not started and sits in no gameweek Sorare has opened is planned early (`pro
 Sorare will most likely draw (weekend Friday 14:00 UTC to Tuesday 14:00, midweek Tuesday to Friday; `projection.window`),
 which of your cards play comes from the calendar (`projection.games_for`, clubs matched through the team registry), the
 competitions are those of the gameweek being planned, and the forecasts stand on form, since Sorare projects only a
-player's next game. One plan per round; each is kept as its own row (`sorare_ahead:<round>`) and rewritten every run, and
-Sorare's own numbers replace it the moment it opens the week. It cannot be applied: nothing exists to enter yet.
+player's next game. One plan per round; each is kept as its own row (`sorare_ahead:<round>`). Planning one takes a few
+seconds with a real collection, so a run plans only the rounds with no plan yet, then the stalest (`app.sorare.early`): the
+next four rounds are kept current to six hours and the far ones to a day, at most eight a run, and the others keep showing
+the plan they have. Sorare's own numbers replace an early plan the moment it opens the week. It cannot be applied: nothing
+exists to enter yet.
 
 The page bridge keeps captured request headers in its closure; credentials/cookies do not go to Sofix. Overlay numbers
 are gated by the extension token, cached 15 minutes in session, and anchored by card-picture addresses and Sorare slugs

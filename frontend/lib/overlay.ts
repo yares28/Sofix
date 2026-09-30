@@ -78,8 +78,11 @@ export type OverlayEntry = {
   startSource?: StartSource;
   startAt?: string;
   ffStatus?: FfStatus;
+  /** What each source says of his first game (Futbol Fantasy's only when it has one): the panel's list of sources. */
+  sources?: Partial<Record<StartSource, number>>;
   /** His expected goals in this game if he starts. Absent when Understat has nothing on him: the tile says "xG -". */
-  xg?: number;  /**
+  xg?: number;
+  /**
    * What the best plan does with the cards he is on, by card slug: the lineup it uses each in, and whether he captains it.
    * Only cards the plan uses are here, so a card it leaves out has nothing. Absent when there is no plan yet.
    */
@@ -197,14 +200,13 @@ function entryFor(
   const pOn = told?.pOn ?? player.pOn;
   const hasSplit = player.start !== undefined && player.bench !== undefined && pStart !== undefined && pOn !== undefined;
   const split = hasSplit ? { start: player.start, bench: player.bench, pStart, pOn } : {};
-  const source =
-    told && told.startSource
-      ? {
-          startSource: told.startSource,
-          ...(told.startAt ? { startAt: told.startAt } : {}),
-          ...(told.ffStatus ? { ffStatus: told.ffStatus } : {}),
-        }
-      : {};
+  const named = told?.startSource ?? player.startSource;
+  const source = {
+    ...(named ? { startSource: named } : {}),
+    ...(told?.startSource && told.startAt ? { startAt: told.startAt } : {}),
+    ...(told?.startSource && told.ffStatus ? { ffStatus: told.ffStatus } : {}),
+    ...(player.sources ? { sources: player.sources } : {}),
+  };
   return {
     x: player.x,
     p: player.p,

@@ -198,11 +198,22 @@ describe("overlayNumbers", () => {
       expect(later).not.toHaveProperty("startAt");
     });
 
-    it("leaves the week's chance alone, with no source to name, for a player the job told nothing game by game", () => {
-      const one = player({ start: 58.2, bench: 12.6, pStart: 0.78, pOn: 0.12 });
+    it("keeps the week's chance and names the source the job gave it for a player it told nothing game by game", () => {
+      const one = player({ start: 58.2, bench: 12.6, pStart: 0.78, pOn: 0.12, startSource: "sorare", sources: { sorare: 0.78, sofix: 0.6 } });
       const entry = entryOf(one);
+      expect(entry).toMatchObject({ pStart: 0.78, pOn: 0.12, startSource: "sorare", sources: { sorare: 0.78, sofix: 0.6 } });
+      for (const key of ["startAt", "ffStatus"]) expect(entry).not.toHaveProperty(key);
+    });
+
+    it("has no source to name when the payload does not carry one", () => {
+      const entry = entryOf(player({ start: 58.2, bench: 12.6, pStart: 0.78, pOn: 0.12 }));
       expect(entry).toMatchObject({ pStart: 0.78, pOn: 0.12 });
-      for (const key of ["startSource", "startAt", "ffStatus"]) expect(entry).not.toHaveProperty(key);
+      for (const key of ["startSource", "sources", "startAt", "ffStatus"]) expect(entry).not.toHaveProperty(key);
+    });
+
+    it("carries what each source says beside the one it shows", () => {
+      const one = player({ start: 58.2, bench: 12.6, pStart: 0.78, pOn: 0.12, sources: { futbolfantasy: 0.9, sorare: 0.78, sofix: 0.6 }, games: [told()] });
+      expect(entryOf(one).sources).toEqual({ futbolfantasy: 0.9, sorare: 0.78, sofix: 0.6 });
     });
 
     it("names no source without the two scores it splits, which a payload from before them does not carry", () => {

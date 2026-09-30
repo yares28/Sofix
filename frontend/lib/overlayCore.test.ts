@@ -20,6 +20,18 @@ type Core = {
   fdrLevel: (bucket: unknown) => string | null;
   driverOf: (pos: unknown) => "fdr" | "xg" | null;
   startChance: (entry: { p: number; pStart?: number }) => number;
+  OUT_CHANCE: number;
+  SOURCE_SHORT: Record<string, string>;
+  startTone: (entry: { p: number; pStart?: number; ffStatus?: { kind?: string } }) => "out" | "doubt" | "ok";
+  statusNote: (entry: { ffStatus?: { kind?: string; cause?: string; since?: string } }) => { kind: string; text: string } | null;
+  clockLabel: (iso: unknown) => string | null;
+  sourceRows: (entry: {
+    p: number;
+    pStart?: number;
+    startSource?: string;
+    startAt?: string;
+    sources?: Record<string, number>;
+  }) => { source: string; label: string; value: number | null; shown: boolean; at: string | null }[];
   benchOnChance: (entry: { pStart?: number; pOn?: number }) => number | null;
   agoLabel: (iso: unknown, nowMs: number) => string | null;
   STALE_HOURS: number;
@@ -311,5 +323,70 @@ describe("the gameweek a Sorare page is about (O7)", () => {
 
   it("takes the first when an address names two", () => {
     expect(core.fixtureOf("https://sorare.com/a/football-1-2-oct-2026?then=football-2-6-oct-2026")).toBe("football-1-2-oct-2026");
+  });
+});
+
+
+describe("the start row", () => {
+  const one = (extra: Record<string, unknown>) => ({ p: 0.9, pStart: 0.9, ...extra });
+
+  it("is quiet when he probably starts, amber in doubt, red when he will not", () => {
+    expect(core.startTone(one({}))).toBe("ok");
+    expect(core.startTone(one({ pStart: 0.5 }))).toBe("ok");
+    expect(core.startTone(one({ pStart: 0.49 }))).toBe("doubt");
+    expect(core.startTone(one({ pStart: 0.5, ffStatus: { kind: "doubt" } }))).toBe("doubt");
+    expect(core.startTone(one({ pStart: 0.14 }))).toBe("out");
+    expect(core.startTone(one({ pStart: 0.9, ffStatus: { kind: "out" } }))).toBe("out");
+    expect(core.startTone(one({ pStart: 0.9, ffStatus: { kind: "suspended" } }))).toBe("out");
+    expect(core.startTone(one({ pStart: 0.9, ffStatus: { kind: "available" } }))).toBe("ok");
+  });
+
+  it("names the source by two letters", () => {
+    expect(core.SOURCE_SHORT).toEqual({ futbolfantasy: "FF", sorare: "SO", sofix: "SF" });
+  });
+});
+
+describe("what the site says is wrong with him", () => {
+  it("is the status and since when, the site's cause only when there is no date", () => {
+    expect(core.statusNote({ ffStatus: { kind: "doubt", cause: "Molestias", since: "Desde 12/09 (18 días)" } })).toEqual({ kind: "doubt", text: "Doubt · since 12 Sep" });
+    expect(core.statusNote({ ffStatus: { kind: "doubt", cause: "Molestias en el tobillo" } })).toEqual({ kind: "doubt", text: "Doubt · Molestias en el tobillo" });
+    expect(core.statusNote({ ffStatus: { kind: "out" } })).toEqual({ kind: "out", text: "Out" });
+    expect(core.statusNote({ ffStatus: { kind: "suspended" } })).toEqual({ kind: "suspended", text: "Suspended" });
+  });
+
+  it("is nothing for a knock he is available despite, or when the site says nothing", () => {
+    expect(core.statusNote({ ffStatus: { kind: "available" } })).toBeNull();
+    expect(core.statusNote({ ffStatus: {} })).toBeNull();
+    expect(core.statusNote({})).toBeNull();
+  });
+});
+
+describe("the list of sources", () => {
+  it("has all three in order, the one shown marked, the others faded when they say nothing", () => {
+    const rows = core.sourceRows({ p: 0.9, pStart: 0.9, startSource: "futbolfantasy", sources: { futbolfantasy: 0.9, sofix: 0.78 }, startAt: "2026-10-09T14:56:00Z" });
+
+    expect(rows.map((r) => [r.label, r.value, r.shown])).toEqual([
+      ["FF", 0.9, true],
+      ["SO", null, false],
+      ["SF", 0.78, false],
+    ]);
+    expect(rows[0]!.at).toMatch(/^\d\d:\d\d$/);
+    expect(rows[1]!.at).toBeNull();
+  });
+
+  it("uses the tile's own number for the source it shows when the answer carries no list", () => {
+    const rows = core.sourceRows({ p: 0.8, pStart: 0.8, startSource: "sorare" });
+
+    expect(rows.map((r) => [r.label, r.value, r.shown])).toEqual([
+      ["FF", null, false],
+      ["SO", 0.8, true],
+      ["SF", null, false],
+    ]);
+  });
+
+  it("reads a clock time, and nothing from a bad one", () => {
+    expect(core.clockLabel("2026-10-09T14:56:00Z")).toMatch(/^\d\d:\d\d$/);
+    expect(core.clockLabel("not a time")).toBeNull();
+    expect(core.clockLabel(undefined)).toBeNull();
   });
 });

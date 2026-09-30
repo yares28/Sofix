@@ -344,6 +344,8 @@ def test_the_job_reads_the_site_before_planning_and_the_page_carries_its_chance(
     assert mid["games"][0]["ffMatch"]["id"] == 501 and mid["pStart"] == 0.7
     assert summary["futbolfantasy"]["read"] == 1 and summary["futbolfantasy"]["games"] >= 1
     assert summary["futbolfantasy"]["linked"] >= 1 and "failed" not in summary
+    odds = summary["sorareOdds"]
+    assert odds["players"] >= 12 and odds["withOdds"] == odds["players"], "every fixture player has Sorare's odds"
 
 
 def test_the_job_writes_each_sources_chance_for_each_game_and_asks_the_site_only_once_in_a_while(

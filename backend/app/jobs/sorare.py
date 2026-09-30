@@ -117,6 +117,17 @@ def record_starts(
     return {"starts": record}
 
 
+def sorare_odds(snapshot: dict[str, Any]) -> dict[str, int]:
+    """How many of the owner's players with a game in the gameweek being planned have Sorare's starter odds: the record
+    held none in its first 30 rows, so this says every run whether Sorare's number is ever the fallback in practice."""
+    players = {
+        row["player"]["slug"]: bool(row["player"].get("nextClassicFixturePlayingStatusOdds"))
+        for row in snapshot["cards"]
+        if row["player"].get("plan")
+    }
+    return {"players": len(players), "withOdds": sum(players.values())}
+
+
 def lineups_summary(feed: ff_feed.Feed | None, lineups: ff_use.Lineups | None, week: dict[str, Any]) -> dict[str, Any]:
     """What Futbol Fantasy gave this run: matches held and read, who is linked, who could not be and how many games have a number."""
     if feed is None:
@@ -202,6 +213,7 @@ def run(
         "calls": snapshot["calls"],
         "bytes": size,
         "futbolfantasy": lineups_summary(feed, lineups, planned_week),
+        "sorareOdds": sorare_odds(snapshot),
         "seconds": round((datetime.now(UTC) - started).total_seconds()),
     }
     if snapshot.get("pastGaps"):

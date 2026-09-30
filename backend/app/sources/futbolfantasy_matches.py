@@ -946,7 +946,14 @@ def read_matches(
                 if (item.score is not None and not include_played) or not wanted(competition, item):
                     continue
                 page = fetch(item.url)
-                match = parse_match(page, item.url) if page is not None else None
+                try:
+                    match = parse_match(page, item.url) if page is not None else None
+                except (
+                    Exception
+                ) as error:  # a page of a shape nobody expected costs that match, never the rest of the read
+                    logger.exception("futbolfantasy: %s could not be parsed", item.url)
+                    reading.failed.append(f"{item.url}: could not be parsed ({type(error).__name__})")
+                    continue
                 if match is None:
                     if page is not None:
                         reading.failed.append(f"{item.url}: not a lineup page")

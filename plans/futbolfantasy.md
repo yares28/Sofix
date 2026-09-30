@@ -38,15 +38,19 @@ number. FF's full probable lineups get a new page and a new section on the home 
   has to note for itself when a team's lineup changed, by comparing one read with the next.
 - **One page per match, both teams** (`/partidos/<id>-<home>-<away>`):
   - **Lineup:** the XI placed on a pitch (x and y), then "Alternativas al once", ranked.
-  - **Each player:** a %, one of 0, 5, 10, 20 … 90, 95 (never 100). Plus flags: an injury code, doubt, suspended,
-    warned (4 yellows, with the count shown) and called up by his national team.
+  - **Each player:** a %, one of 0, 5, 10, 20 … 90, 95 (never 100); his age; an injury code (-1 nothing, 0 out, 1 a
+    doubt, 2 a knock he is available despite); suspended; called up by his national team; and his yellow and red cards
+    for the season. The eleven also says which one keeps goal; the alternatives do not.
   - **Each team:** the coach, and a rotations level (5 steps, "Sin rotaciones" to "Rotaciones extremas"). Also this
-    round's predictability (5 steps, "Muy previsible" to "Muy imprevisible") and its season predictability (how often FF
-    has been right, e.g. 83% for both Real Sociedad and Deportivo).
+    round's predictability (5 steps, "Muy previsible" to "Muy imprevisible") and a season predictability, a share of how
+    predictable its lineups have been this season (83% for both Real Sociedad and Deportivo). It is a gauge of the
+    team, not a count of how often FF was right.
   - **Squad news:** the injury list, with cause, since when and "doubt for round 8"; the suspensions; the squad list
     once the club publishes it.
-- **Doubles.** A second name in grey under a starter means both may start, as much as 50/50 (33% if three). The %
-  already says it.
+- **The alternatives are nearly the whole squad.** Below the eleven the page lists about 15 more players in order of
+  likelihood, each with his %: on the ten round-8 pages the two lists together named 515 players (25 to 30 a club), so
+  almost everyone at a club is found in them. The injury lists repeat players by their profile address (71 of 72 were
+  also in the eleven or the alternatives), which is how an injury is joined to the person it is about.
 - **Round pages.** They list the round's matches with kickoff and link. LaLiga round 8 has 10 matches, from Fri 9 Oct
   21:00 to Mon 12 Oct 21:00 Madrid. The Champions and Europa League pages list every match of the matchday (18 each, all
   clubs, Stuttgart included). On 30 Sep both still showed matchday 1, already played, so matchday 2's lineups are not
@@ -54,8 +58,16 @@ number. FF's full probable lineups get a new page and a new section on the home 
 - **No FF at all for:** the Conference League, national teams outside tournaments, the Bundesliga, Croatia and
   Argentina. LaLiga 2 and the Premier League exist, but you chose not to use them.
 - **Its own claim:** "over 86%" of its calls are right.
-- **What production last read** (30 Sep, 14:56 UTC, read-only count): round 8, 515 players from 20 teams. Of those, 251
-  are at 50% or more, 72 at 0%, 123 are called up by national teams and 2 are suspended.
+- **What production last read** with the old team-page reader (30 Sep, 14:56 UTC, read-only count): round 8, 515
+  players from 20 teams. Of those, 251 are at 50% or more, 72 at 0%, 123 are called up by national teams and 2 are
+  suspended.
+- **Names and identities** (checked on the ten round-8 pages against your 84 cards):
+  - A player's number is the one in his shirt's class and in his photo's address (`jugador_2675`, `.../ficha/2675.png`).
+    It is stable; his spelling is not. Profile addresses lose accented letters (`lvaro-nunez`, `arda-gler`), so names
+    are read from the page's own label, which keeps them (`Álvaro Núñez`).
+  - FF writes names the way a fan does: `Isco Alarcón`, `Mat Ryan`, `Javi Galán`, `Álex Grimaldo`, `Georgiy Tsitaishvili`
+    (Sorare: `Isco` over `francisco-roman-alarcon-suarez`, `Mathew Ryan`, `Javier Galán`, `Alejandro Grimaldo`,
+    `heorhii-tsitaishvili`). Two Williams play at Athletic. "Racing" is Racing Santander and "Deportivo" is La Coruña.
 
 ## 2 · The rule for "% he starts"
 
@@ -76,7 +88,8 @@ Around that:
   "Plays at least one" is 1 − (1 − p₁)(1 − p₂). The best-of-two lift uses the chance of playing both (p₁ × p₂), where
   `forecast.py` squares one number today.
 - **The source goes with the number.** Every % carries its source (FF, Sorare or Sofix) and the time it was read. From
-  FF it also carries a status line: doubt with X, injured (cause), suspended, warned, or not in the squad.
+  FF it also carries a status line: doubt, injured (cause, since when), suspended, called up, and his cards. "Not in the
+  squad" needs the club's match squad, which the page lists only once the club names it: not read yet.
 - **Plans, the captain and the xScore use the same number.** A plan can change when FF changes.
 - **Unchanged:**
   - Early plans for rounds weeks away: FF only has each team's next game.
@@ -86,6 +99,17 @@ Around that:
 
 Two tracks run in parallel. The numbers switch first because they need no styling: the tile and Play already show the
 published %. The page and the section wait for the design you choose.
+
+**Status, 30 Sep (branch `claude/amazing-lovelace-8pxz0r`; it reaches production when that is merged to main):**
+
+| Step | State |
+|---|---|
+| D · Design canvas | Built: 12 boards, waiting for your choices (Lineups A/B/C, Home A/B, the % source A/B/C) |
+| S1 · Read FF by match | Done: parser, reader and fixtures of the real pages; 240 s budget; one unparseable page costs only its match |
+| S2 · Link FF to your players | Done: all 74 of your cards at the 20 LaLiga clubs link to the right person on the real pages (72 by name, 1 by a short first name, 1 by surname and age) |
+| S3 · The numbers | Done in the job, the page and the overlay's answer; Play shows the new `p` and `x`; the labels wait for the design |
+| S4 · Near-lock runs | Written (`near-lock.yml`); inert until it is on main, and the Refresh button (S6) still needs the GitHub key |
+| S5–S8 | After you choose the design (S7 also needs a real sorare.com tab) |
 
 ### Now
 
@@ -123,13 +147,19 @@ the source labels) is built before that; only the numbers behind today's % chang
 - **Done when** the fixtures give all 10 round-8 matches with 22 starters and their alternatives, and a real read gives
   the same shape.
 
-**S2 · Link FF to our clubs and your players**
+**S2 · Link FF to our clubs and your players** (`sorare/ff_link.py`)
 
-- **Clubs:** FF's club id (the number in its crest address; 16 is Real Sociedad) maps to our team registry through an
-  alias table. European clubs are mapped only where needed.
-- **Players:** FF's player id is linked to the Sorare slug by name within the club (the Understat matcher, `xg.find`,
-  restricted to the club). A confirmed link is kept, so a player stays linked. Misses get hand-checked overrides.
-  Unmatched names are listed on /control.
+- **Clubs:** FF's club id (the number in its crest address; 16 is Real Sociedad) is in our team registry for the twenty
+  LaLiga clubs, and the registry decides by identity whenever it knows either club. Clubs it does not know (abroad,
+  the lower divisions of the cup) are told apart by their words ("Stuttgart" is "VfB Stuttgart"; "Real" alone is nobody).
+- **Players:** inside one club's side of one match, never across the league, in this order, each step used only when the
+  one before found nobody: a hand-checked override; a link found on an earlier run that still looks like him; the same
+  name; one name inside the other's words, the Sorare slug's included; the same surname and a short form of the first
+  name ("Mat", "Javi", "Álex"); and only with both ages to check, the surname alone. Age (a year either way) and the
+  goalkeeper's gloves veto any step. Two candidates, or two of your cards coming out as one person, are left unlinked.
+  The links found are kept (`ff_links`).
+- **Reported, not guessed:** who could not be linked, and why, is in each run's summary (`futbolfantasy.unlinked`).
+  /control shows it when the page work (S5) lands.
 - **Traps already in your collection:**
   - FF's "Racing" is Racing Santander, not your Racing Club (Argentina) player.
   - FF's "Deportivo" is Deportivo de La Coruña, while Deportivo Alavés is "Alavés".
@@ -242,7 +272,9 @@ Target: S1 to S4 before round 8's lock (Fri 9 Oct), so the numbers switch for ro
 | Case | What Sofix does |
 |---|---|
 | Club names that collide (Racing, Deportivo, Real, Atlético/Athletic) | Clubs matched by FF's id and our aliases, never by name alone |
-| Player names: accents, nicknames (Angeliño), short names (Oyarzabal), one name at two clubs | Matched within the club; confirmed links kept; overrides; an unmatched player falls back, never a guess |
+| Player names: accents, nicknames (Angeliño), short names (Oyarzabal), one name at two clubs, two players of one surname (the Williams) | Matched within the club; confirmed links kept; overrides; an unmatched player falls back, never a guess |
+| Sorare spells a name FF does not (Heorhii/Georgiy, Ionuț/Ionut, Take/Takefusa Kubo) | The slug's words count as well as the display name, then the surname with both ages; otherwise unlinked and reported |
+| The injury list names a player the eleven and the alternatives do not (1 of 72 on the round-8 pages) | He stands alone, found by his profile address; a player only there has no % unless he is out |
 | A transfer or loan (summer and January) | The link follows FF's player id; a club mismatch is flagged, not used silently |
 | One player on several of your cards | One % per player |
 | A new season (promoted clubs; FF's addresses carry the season, e.g. `laliga-26-27`) | The yearly rollover adds the new clubs' FF ids |
@@ -254,10 +286,11 @@ Target: S1 to S4 before round 8's lock (Fri 9 Oct), so the numbers switch for ro
 |---|---|
 | 0% and no flag | Won't start; can still come on |
 | 0% and injured, suspended or out of the squad | Won't play at all |
-| A double (two players about 50%) | Each keeps his %; "doubt with X" |
-| Warned (one yellow from a ban) | No change now; shown, since a card could cost the next gameweek |
+| Two players of one place, each at about 50% | Each keeps his % |
+| His yellow and red cards for the season | Kept and shown; nothing is inferred about a ban (the page says who is suspended) |
 | Called up during a break | Already in FF's %; the flag is shown |
-| A second goalkeeper at 0–5% | Almost no chance of coming on |
+| A second goalkeeper at 0–5% | Almost no chance of coming on (a goalkeeper's prior is 2%) |
+| Only the eleven says who keeps goal | The keeper check (a keeper is never an outfield card and the reverse) only applies to players of the eleven |
 | FF never says 100% | 95% is used as it is |
 | A captain choice that FF moves | The plan's captain can change between runs |
 

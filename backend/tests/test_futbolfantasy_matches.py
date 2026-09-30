@@ -300,6 +300,31 @@ def test_a_page_that_is_not_a_lineup_page_is_said_so_not_kept() -> None:
     assert reading.matches == [] and reading.failed == [f"{MATCH_URL}: not a lineup page"]
 
 
+def test_a_page_the_parser_chokes_on_costs_that_match_and_not_the_rest_of_the_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    other = "https://www.futbolfantasy.com/partidos/22493-alaves-atletico"
+    site = Site(
+        {
+            LALIGA_ROUND: page("round_laliga_8.html"),
+            other: page("match_real_sociedad_deportivo.html"),
+            MATCH_URL: page("match_real_sociedad_deportivo.html"),
+        }
+    )
+    real = ffm.parse_match
+
+    def choke(html: str, url: str) -> ffm.Match | None:
+        if url == other:
+            raise ValueError("a shape nobody expected")
+        return real(html, url)
+
+    monkeypatch.setattr(ffm, "parse_match", choke)
+    reading = ffm.read_matches(lambda c, item: item.match_id in (22493, 22502), client=site.client(), pause=0)
+
+    assert [m.match_id for m in reading.matches] == [22502]
+    assert reading.failed == [f"{other}: could not be parsed (ValueError)"]
+
+
 def test_it_leaves_the_site_alone_after_three_unreadable_pages_in_a_row() -> None:
     site = Site({LALIGA_ROUND: page("round_laliga_8.html")})  # every match page is unreachable
 

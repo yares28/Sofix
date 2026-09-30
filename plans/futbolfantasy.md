@@ -382,3 +382,50 @@ These are questions for FF's and Sorare's pages, not for you:
 - **Weeks of comparison before showing FF.** Your decision; the comparison lives on the Audit page instead.
 - **Recalibration, weighted blends, gameweek resampling.** Audit material; not needed to hit the goal.
 - **A shared migration with the xScore plan.** Not needed: everything here lives in read models.
+
+## 9 · Checks still to run (for someone with access)
+
+The session that built S1–S4 (30 Sep) could not reach Sorare's API, Futbol Fantasy, Sorare's image hosts or the owner's
+browser from its container. These checks need that access. Each says what it proves, how to run it and what passes. Run
+them against the branch `claude/amazing-lovelace-8pxz0r` (or main once it is merged), never write to production Neon
+(read-only `SELECT`s only), and write each result under "Results" at the end of this section: the date, pass or fail,
+and the numbers or output that show it.
+
+**Before the round-8 lock (Fri 9 Oct)**
+
+| # | What it proves | How | Passes when |
+|---|---|---|---|
+| C1 | The job reads Futbol Fantasy for real, all ten round-8 matches | With the backend's `.env` (`POSTGRES_URL`, `SORARE_API_KEY`): `cd backend && python -m app.jobs.sorare --dry-run --runs 3`. Read `futbolfantasy` in the printed summary | `read` is 10 (LaLiga round 8), `failed` is empty or only European/cup round pages with no match, no `stopped` |
+| C2 | Sorare's names for the round-8 games meet Futbol Fantasy's matches | Same summary: `futbolfantasy.noMatch` and `futbolfantasy.games` | `noMatch` lists no round-8 LaLiga game; `games` equals the number of your players' LaLiga games in the gameweek being planned (the week must be round 8's: check `gameweek` in the summary) |
+| C3 | Every one of your LaLiga players is linked | Same summary: `futbolfantasy.linked` and `futbolfantasy.unlinked` | `unlinked` is empty, or each entry is a player Futbol Fantasy really does not list (check on his club's match page). A wrong or missing link gets a hand-checked entry in `OVERRIDES` (`backend/app/sorare/ff_link.py`: Sorare slug → the number in his photo's address on the match page) |
+| C4 | Whether Sorare ever gives starter odds for your players | Same summary: `sorareOdds` | Report the two numbers. If `withOdds` is 0 again, say so: the fallback is then Futbol Fantasy → Sofix in practice (section 4, "Fallbacks") |
+| C5 | Five numbers by eye | Open Play for the gameweek of round 8 and five of your players' match pages on futbolfantasy.com (e.g. Oyarzabal, Take Kubo, Iago Aspas, Iñaki Williams, Ionuț Radu) | Each player's chance of starting on the overlay's hover / in the page payload (`games[].pStart`, `startSource: "futbolfantasy"`) equals the site's percentage read at the time in `startAt` |
+| C6 | The plan moves with the site | Pick one of your players whom Futbol Fantasy has at 0–40% or out. Compare Play's plan before and after the switch (the last production run before the merge vs the first after) | His `p` fell with the site's number, and a player the site has out is in no lineup |
+| C7 | The overlay shows the game's own number | On sorare.com with the extension on, a gameweek page with one of your round-8 players | The tile's start chance is Futbol Fantasy's for that game (compare with C5) |
+| C8 | Futbol Fantasy answers GitHub's runners | After the merge, start "Scheduled refresh" by hand (Actions → Run workflow, trigger `cli`) and read the Sorare step's summary in the log | `futbolfantasy.read` ≥ 10 and no `HTTP 403`/`HTTP 429` in `failed`. If the site refuses the runners, say so: the numbers would then only come from the extension's live reads (S7) |
+| C9 | The half-hourly check starts runs near a lock | After the merge, on Fri 9 Oct: Actions → "Refresh near a lock" and "Scheduled refresh" | "Refresh near a lock" runs every ~30 min all day; in the three hours before the lock its log says "Started a refresh" about every 30 minutes and a "Scheduled refresh" run follows each (trigger `schedule`); before that it says the lock is more than 3 h away |
+| C10 | What was stored | Read-only SQL on Neon: `SELECT key, length(payload::text), updated_at FROM read_models WHERE key IN ('futbolfantasy','ff_links','start_chances');` then `SELECT jsonb_object_keys(payload->'matches') FROM read_models WHERE key='futbolfantasy';` | `futbolfantasy` has `"version": 2` and the ten round-8 match ids (22493–22502); `ff_links` has one entry per linked player; `start_chances` has `games` entries for the round-8 gameweek with `sorare`, `sofix` and `futbolfantasy` keys |
+
+**During and after round 8**
+
+| # | What it proves | How | Passes when |
+|---|---|---|---|
+| C11 | A game that has kicked off stops using the site | After Málaga–Espanyol (Fri 21:00 Madrid) and before the last game, look at a player of a finished match in the page payload | His finished game has no `startSource: "futbolfantasy"`; the games still ahead keep it |
+| C12 | The record is settled game by game | A day after round 8 ends (Tue 13 Oct evening): `cd backend && python -m app.jobs.starts` | Settled rows for all three sources; `futbolfantasy` has n ≥ 30 |
+| C13 | European games use the site once it publishes them | Thu 15 Oct (Real Sociedad plays in the Europa League): dry run as in C1 on Wed 14 or Thu 15 Oct | The Europa League match is in `futbolfantasy.read`; Real Sociedad players' Europa game has `startSource: "futbolfantasy"` |
+
+**Questions about the site and Sorare (answers go into section 7)**
+
+| # | Question | How |
+|---|---|---|
+| Q1 | What a match page shows after kickoff (the real XI? the same percentages?) | Open a round-8 match page during and after the game; save the HTML |
+| Q2 | When the LaLiga round page moves to round 9, and what a team page shows in between | Open `https://www.futbolfantasy.com/laliga/posibles-alineaciones` on Sat 10, Mon 12 and Tue 13 Oct; note the round it shows. Open a team page that has played (e.g. Rayo's on Sat 10 evening): does "Próximos partidos" link to its round-9 match with lineups already? |
+| Q3 | The cup and Supercopa addresses | Do `https://www.futbolfantasy.com/copa-del-rey/posibles-alineaciones` and `/supercopa-espana/posibles-alineaciones` exist, and which matches do they list? |
+| Q4 | Conditional requests | `curl -sI` a match page twice: is there an `ETag` or `Last-Modified`, and does `If-None-Match` answer 304? |
+| Q5 | The match squad ("Convocatorias") | On a match page on matchday, where is the squad list once the club publishes it, and what markup holds it (needed for "not in the squad") |
+| Q6 | A Sorare card picture for any player, not only the owner's | In Sorare's schema (`https://api.sorare.com/graphql/schema`), find a field that gives a player's card art without owning a card (for example a sample card per rarity or season). The Lineups page draws every starter as a card; today only the owner's cards have a picture (`collection[].pic`) |
+| Q7 | Club crests for every club on the page | Sorare's club `pictureUrl` (already hot-linked by the app) for the 20 LaLiga clubs and any European opponent; or Futbol Fantasy's `escudom/<id>.png`. Say which is allowed to be hot-linked (AGENTS.md: third-party art is hot-linked, personal use) |
+
+**Results**
+
+_(none yet)_

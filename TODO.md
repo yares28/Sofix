@@ -14,7 +14,7 @@ Widest change on screen first. Batch 1 is already on `main` and deployed (produc
 
 | # | Item | What changes on screen | State |
 |---|---|---|---|
-| 1 | **T2 · Futbol Fantasy lineups and start %** | FF's % becomes the main % on every tile, Play card and plan (xScore, captain); a new Lineups page; a new home section under "Sorare" | Plan rewritten with your answers (30 Sep); design canvas and the number switch next, aiming at round 8 (Fri 9 Oct). [plans/futbolfantasy.md](plans/futbolfantasy.md) |
+| 1 | **T2 · Futbol Fantasy lineups and start %** | FF's % becomes the main % on every tile, Play card and plan (xScore, captain); a new Lineups page; a new home section under "Sorare" | **Numbers built (30 Sep, on the working branch, not yet on main):** FF → Sorare → Sofix per game in the forecast, plans, captain and the overlay's answer; all 74 of your LaLiga cards link on the real round-8 pages; near-lock runs written. Waiting on you: the design choice (canvas) for the Lineups page and the home section, and the merge to main before round 8's lock (Fri 9 Oct). [plans/futbolfantasy.md](plans/futbolfantasy.md) |
 | 2 | **T1 · the xScore** | Every tile's score (Giorgi 45 / Oyarzabal 43), "2 games", the bench pair, club vs national | Planning; P0 (diagnose) next. [plans/xscore.md](plans/xscore.md) |
 | 3 | **Batch 1, live** (you) | Play's every week, past weeks, early plans to GW36, the overlay fixes; then the second overlay pass | Deployed; waits for your look |
 | 4 | **T3 · Pro** | A whole competition type missing from Play's best lineups, plus level and progress | Research first |
@@ -275,6 +275,14 @@ Its "Últ. act." times belong to the fantasy games' market values; a lineup has 
 Sofix's number for all 15, **Sorare's for none and Futbol Fantasy's for none.** Futbol Fantasy's none is because that
 week is a national-team week, and FF only covers each team's next LaLiga (or European, cup) game. Sorare's none matches
 the record above: its starter odds have never been stored; the plan's step S3 logs whether they arrive at all.
+
+**Built on 30 Sep (S1 to S4 of the plan).** Futbol Fantasy is read match by match before each plan; its chance is the start
+chance of each of your players in each game (else Sorare's, else Sofix's), and moves the chance he plays, so the expected
+score, the plans and the captain follow it; the overlay's tile shows the shown game's own chance. The run's summary says what
+was read, who could not be linked, which LaLiga games have no match and how many of your players have Sorare's starter
+odds. `start_chances` now records one entry per player, game and source. Still to build: the Lineups page, the home
+section and the source labels (after you choose the design), the Refresh button's GitHub key (your item 2), and the
+extension's live reads.
 
 **The collection** (batch 1, step 6, on `main`) stays: what each source said at the lock, settled by what happened, is
 the Audit page's data (T7).

@@ -285,9 +285,10 @@
     if (f.driver === "fdr") {
       said.push(f.game ? `Difficulty ${Math.round(f.game.difficulty)} of 100, ${f.game.label.toLowerCase()}.` : "No odds for this game yet.");
     } else if (f.driver === "xg") {
-      said.push(f.xg !== null ? `Expected goals ${f.xg.toFixed(2)}.` : f.game ? "No odds. Expected goals not available for this player." : "No odds for this game yet.");
+      if (f.xg !== null) said.push(`Expected goals ${f.xg.toFixed(2)}.`);
+      else said.push(f.game ? "No xG: expected goals are not available for this player." : "No xG for this player, and no odds for this game yet.");
     }
-    if (f.doubt) said.push(`He starts only ${core.chanceLabel(f.startChance)} of the time.`);
+    said.push(f.doubt ? `He starts only ${core.chanceLabel(f.startChance)} of the time.` : `He starts ${core.chanceLabel(f.startChance)} of the time.`);
     return [...said, ...more].join(" ");
   }
 
@@ -414,17 +415,21 @@
       row.append(node("span", "sfx-cap sfx-cap--xg", "xG"), node("b", "sfx-xg", f.xg.toFixed(2)));
       tile.append(row);
     } else {
+      // What is missing is the driver: a midfielder's or forward's xG (his league or he may be unknown to Understat), or a
+      // keeper's or defender's game odds. The words name it.
       const row = node("span", "sfx-drive sfx-drive--none");
-      row.append(node("span", "sfx-cap", "No odds"));
+      row.append(node("span", "sfx-cap", f.driver === "xg" ? "No xG" : "No odds"));
       tile.append(row);
     }
-    if (f.doubt) {
-      const doubt = node("span", "sfx-doubt");
-      doubt.setAttribute("aria-hidden", "true");
+    if (!stale) {
+      // How likely he is to start, on every tile: Sorare's own odds where it has them, the app's chance where it has not.
+      // Only under half is it a warning, and then the row is red.
+      const starts = node("span", `sfx-starts${f.doubt ? " sfx-doubt" : ""}`);
+      starts.setAttribute("aria-hidden", "true");
       const chance = node("b");
       chance.append(core.chanceLabel(f.startChance).replace("%", ""), node("small", "", "%"));
-      doubt.append(shirt(""), chance);
-      tile.append(doubt);
+      starts.append(shirt(""), chance);
+      tile.append(starts);
     }
     return { sig, node: tile, marks, label, interactive: true };
   }
@@ -484,6 +489,9 @@
    * a class name; null when there is none, and then no row is drawn.
    */
   function locateBar(media, rect) {
+    // On Sorare's lists the bar is not right under the picture: a form-and-score row and a flags row come first, so it
+    // starts about 75px down a card 150px wide. Look as far as half the card's height, never as far as the next row.
+    const reach = Math.max(60, rect.height * 0.55);
     let scope = media.parentElement;
     for (let level = 0; level < 4 && scope && scope !== document.body; level += 1, scope = scope.parentElement) {
       const box = scope.getBoundingClientRect();
@@ -499,7 +507,7 @@
         if ([...el.children].some((child) => THREE_PERCENTS.test(compact(child.textContent)))) continue; // a wrapper of the bar
         const r = el.getBoundingClientRect();
         if (r.width < rect.width * 0.6 || r.width > rect.width * 1.3 || r.height < 8 || r.height > 60) continue;
-        if (r.top < rect.bottom - 6 || r.top > rect.bottom + 60 || r.left < rect.left - 20 || r.right > rect.right + 20) continue;
+        if (r.top < rect.bottom - 6 || r.top > rect.bottom + reach || r.left < rect.left - 20 || r.right > rect.right + 20) continue;
         if (r.top - rect.bottom < distance) {
           best = el;
           distance = r.top - rect.bottom;
@@ -930,6 +938,28 @@
     return created || !odds.box;
   }
 
+  let headsAt = 0;
+  let heads = [];
+  /**
+   * The titles of the lists to pick from ("Select your Defender"), wherever the page puts them: a heading element when it
+   * uses one, otherwise any text that says so, since Sorare's title is styled text and may be a plain div (or split over two
+   * nodes: the text that starts it is enough). Looked for at most twice a second, as a page can hold thousands of text nodes.
+   */
+  function pickHeadings() {
+    if (now() - headsAt < 500 && heads.every((el) => el.isConnected)) return heads;
+    headsAt = now();
+    const found = new Set();
+    for (const el of document.querySelectorAll("h1, h2, h3, h4, [role=heading]")) if (core.isPickHeading(el.textContent)) found.add(el);
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let text = walker.nextNode(); text; text = walker.nextNode()) {
+      if (text.data.length > 40 || !core.isPickHeading(text.data)) continue;
+      const el = text.parentElement;
+      if (el && !el.closest("[data-sfx], script, style")) found.add(el);
+    }
+    heads = [...found];
+    return heads;
+  }
+
   /**
    * The best three cards of a list to pick from, worked out from what is on screen (no new data): the list is the cards as
    * wide as the first one under a "Select your ..." heading, up to the next such heading, and needs four or more. Without
@@ -937,8 +967,7 @@
    */
   function rankings(reads) {
     const ranks = new Map();
-    const heads = [...document.querySelectorAll("h1, h2, h3, h4, [role=heading]")]
-      .filter((h) => core.isPickHeading(h.textContent))
+    const heads = pickHeadings()
       .map((h) => h.getBoundingClientRect())
       .filter((r) => r.width > 0 && r.height > 0)
       .sort((a, b) => a.top - b.top);

@@ -44,6 +44,15 @@ a.card { display: block; color: inherit; }
 .foot { margin-top: 6px; padding: 6px 8px; border-radius: 6px; background: #1d1d20; color: #d8d8de; font-size: 12px; }
 /* A footer that is pinned where the room under the bar would be: making room moves nothing, so no row may be drawn there. */
 .pinned .foot { position: absolute; left: 0; right: 0; top: 288px; margin: 0; }
+/* Sorare's real block under a card in a list: a form-and-score row, a flags row, and only then the win / draw / loss bar,
+   about 75px below the picture, then a "best score chosen" line and the kickoff. */
+.real, .real .card { width: 147px; }
+.real .info > div { margin-top: 1px; }
+.real .form { height: 38px; margin-top: 12px; padding: 10px; border-radius: 8px 8px 0 0; background: #242424; font-size: 12px; }
+.real .flags { height: 25px; padding: 5px 10px; background: #2e2e2e; font-size: 12px; }
+.real .pick { height: 22px; margin-top: 4px; padding: 4px 8px; border-radius: 6px; background: #1d1d20; font-size: 11px; }
+/* A list's title as Sorare draws it: styled text in a div, not a heading element, and split across two nodes. */
+.pickhead { margin: 24px 0 8px; font-size: 20px; font-weight: 700; }
 .picks .card { width: 130px; }
 .scroller { width: 200px; overflow-x: auto; display: flex; gap: 12px; }
 .scroller .card { flex: none; width: 100px; }
@@ -95,6 +104,16 @@ a.card { display: block; color: inherit; }
       <div class="wdl" id="wdl2"><span>38%</span><span>30%</span><span>32%</span></div>
       <div class="foot" id="foot2">Sat 10 Oct · 18:30</div>
     </div>
+    <div class="frame real" id="frame3">
+      <div class="card" id="realcard"><img alt="Unai Simón - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000001/picture/tinified-aaa1.png?width=300"></div>
+      <div class="info">
+        <div class="form" id="form3">form · 50</div>
+        <div class="flags" id="flags3"><span>POL</span> <span>SWE</span></div>
+        <div class="wdl" id="wdl3"><span>58%</span><span>24%</span><span>18%</span></div>
+        <div class="pick" id="pick3">Best score chosen</div>
+        <div class="foot" id="foot3">Fri 20:45</div>
+      </div>
+    </div>
   </div>
 
   <h2>A list that scrolls</h2>
@@ -111,7 +130,7 @@ a.card { display: block; color: inherit; }
       <div class="face" id="face"><img alt="Unai Simón - face" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-000000000001/picture/tinified-aaa1.png?width=80"></div>
     </div>
   </div>
-  <h2 id="pickhead">Select your Defender</h2>
+  <div class="pickhead" id="pickhead"><span>Select your</span> <b>Defender</b></div>
   <div class="row picks" id="picks">
     <div class="card" id="pick-1"><img alt="Pick 1 - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-0000000000011/picture/tinified-p11.png?width=300"></div>
     <div class="card" id="pick-2"><img alt="Pick 2 - limited" src="https://assets.sorare.com/image-resize/card/11111111-aaaa-4aaa-8aaa-0000000000012/picture/tinified-p12.png?width=300"></div>

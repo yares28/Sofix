@@ -4,7 +4,8 @@ The site lists, for each LaLiga team, every player with the chance it gives him 
 (`data-probabilidad="80%"` on his row). It has no API and its robots.txt blocks nothing, so this is polite by
 construction: a clear user agent, one request per team page (twenty, plus the page that names them), a pause between them,
 one retry on a server error, and the caller reads it only a few times a day. A team that fails is left out; nothing stands
-in for a page that could not be read.
+in for a page that could not be read. It also never holds the refresh it is part of: the whole read has a time budget,
+and a site that stops answering is left alone after a few pages in a row fail.
 
 These numbers are only stored and compared for now. Nothing on screen uses them until they have proved themselves.
 """
@@ -14,6 +15,7 @@ from __future__ import annotations
 import logging
 import re
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
 
@@ -27,7 +29,9 @@ BASE = "https://www.futbolfantasy.com"
 LINEUPS = f"{BASE}/laliga/posibles-alineaciones"
 USER_AGENT = "Sofix/1.0 (personal, read-only; one request per team per fetch)"
 PAUSE = 2.0  # seconds between two team pages
-TIMEOUT = 30.0
+TIMEOUT = 12.0  # for one request: a page that is not answering is not waited for
+BUDGET = 150.0  # seconds for the whole read; a normal one takes about a minute, and the refresh has fifteen
+GIVE_UP = 3  # team pages in a row that could not be read: the site is not answering, so it is left alone
 
 
 class FutbolFantasyError(RuntimeError):
@@ -143,8 +147,18 @@ def _get(client: httpx.Client, url: str) -> str:
     raise FutbolFantasyError(f"{url}: no answer")
 
 
-def fetch_all(client: httpx.Client | None = None, pause: float = PAUSE) -> Snapshot | None:
-    """Every team's chances for the next round, or None when the page that names the teams cannot be read."""
+def fetch_all(
+    client: httpx.Client | None = None,
+    pause: float = PAUSE,
+    budget: float = BUDGET,
+    clock: Callable[[], float] = time.monotonic,
+) -> Snapshot | None:
+    """Every team's chances for the next round, or None when the page that names the teams cannot be read.
+
+    A read that runs out of time, or meets `GIVE_UP` unreadable pages in a row, stops where it is and returns the teams it
+    has; the others are left out like any team that failed.
+    """
+    started = clock()
     http = client or httpx.Client(timeout=TIMEOUT, follow_redirects=True, headers={"User-Agent": USER_AGENT})
     try:
         try:
@@ -157,13 +171,22 @@ def fetch_all(client: httpx.Client | None = None, pause: float = PAUSE) -> Snaps
             logger.warning("futbolfantasy: the lineups page names no teams, no chances this time")
             return None
         chances: list[Chance] = []
+        failed = 0  # team pages in a row that could not be read
         for index, slug in enumerate(slugs):
+            if clock() - started >= budget:
+                logger.warning("futbolfantasy: out of time after %d of %d teams, the rest left out", index, len(slugs))
+                break
             if index and pause:
                 time.sleep(pause)
             try:
                 chances.extend(parse_team(_get(http, f"{BASE}/laliga/equipos/{slug}"), slug))
+                failed = 0
             except FutbolFantasyError as error:
                 logger.warning("futbolfantasy: %s left out (%s)", slug, error)
+                failed += 1
+                if failed >= GIVE_UP:
+                    logger.warning("futbolfantasy: %d pages in a row could not be read, the rest left out", failed)
+                    break
         return Snapshot(round=round_of(lineups), chances=chances)
     finally:
         if client is None:

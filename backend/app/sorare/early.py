@@ -33,6 +33,15 @@ def _aware(stamp: datetime) -> datetime:
     return stamp if stamp.tzinfo else stamp.replace(tzinfo=UTC)
 
 
+def planned_for(week: dict[str, Any], round_: projection.Round) -> bool:
+    """Whether a stored early plan is for this round as the calendar holds it now.
+
+    A round that has moved, or a new season that reuses the round numbers, is planned again: the stored plan would show
+    last season's opponents and dates under the new round.
+    """
+    return (week.get("gameweek") or {}).get("start") == projection.window(round_.first)[0].isoformat()
+
+
 def choose(
     db: Session, rounds: list[projection.Round], now: datetime
 ) -> tuple[list[projection.Round], dict[int, dict[str, Any]]]:
@@ -42,7 +51,7 @@ def choose(
     kept: dict[int, dict[str, Any]] = {}
     for index, round_ in enumerate(sorted(rounds, key=lambda r: r.number)):
         row = db.get(ReadModel, f"{publish.AHEAD_PREFIX}{round_.number}")
-        if row is None or not isinstance(row.payload, dict):
+        if row is None or not isinstance(row.payload, dict) or not planned_for(row.payload, round_):
             missing.append(round_)
             continue
         kept[round_.number] = dict(row.payload)
@@ -58,6 +67,7 @@ def choose(
 
 def plan(db: Session, snapshot: dict[str, Any], rounds: list[projection.Round], *, runs: int, now: datetime) -> Early:
     wanted, kept = choose(db, rounds, now)
+    db.rollback()  # the reads are done and planning takes seconds: Neon closes a connection left inside a transaction
     fresh = publish.projected_weeks(snapshot, wanted, runs=runs) if wanted else []
     by_round = {**kept, **{week["projected"]["round"]: week for week in fresh}}
     weeks = [by_round[r.number] for r in sorted(rounds, key=lambda r: r.number) if r.number in by_round]

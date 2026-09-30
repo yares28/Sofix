@@ -219,6 +219,30 @@ def test_the_job_writes_each_early_week_apart_and_only_replans_one_that_has_gone
     assert [h["round"] for h in db.get(ReadModel, sorare_job.SORARE_KEY).payload["projected"]] == [11, 36]
 
 
+def test_early_plans_that_fail_leave_the_page_publishing_with_the_list_it_had(db, monkeypatch):  # noqa: F811
+    from app.models import ReadModel
+
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    monkeypatch.setattr(sorare_job.settings, "sorare_api_key", "test-key")
+    monkeypatch.setattr(sorare_job, "SorareClient", lambda *a, **k: _Client())
+    snap = early_snapshot()
+    snap["fetchedAt"] = datetime.now(UTC).isoformat()
+    monkeypatch.setattr(sorare_job.sorare_sync, "snapshot", lambda *a, **k: snap)
+    monkeypatch.setattr(sorare_job.projection, "calendar", lambda db, now: rounds())
+    assert sorare_job.run(db, "yares", runs=1)["projected"] == [11, 36]
+
+    def broken(*args, **kwargs):
+        raise RuntimeError("the planner broke")
+
+    monkeypatch.setattr(sorare_job.early, "plan", broken)
+    summary = sorare_job.run(db, "yares", runs=1)
+
+    assert "RuntimeError" in summary["failed"]["early plans"]
+    assert summary["planned"] == [] and summary["projected"] == [11, 36], "the list it had is kept"
+    main = db.get(ReadModel, sorare_job.SORARE_KEY)
+    assert main is not None and [h["round"] for h in main.payload["projected"]] == [11, 36]
+
+
 class _Client:
     def __enter__(self):
         return self

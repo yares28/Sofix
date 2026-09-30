@@ -331,6 +331,35 @@ def test_when_the_site_cannot_be_read_the_other_two_sources_are_still_written(db
     assert set(players["mid-one"]) == {"sorare", "sofix"}
 
 
+def test_a_site_that_breaks_costs_the_record_of_its_chances_never_the_page(db, monkeypatch, the_job) -> None:  # noqa: F811
+    def boom() -> futbolfantasy.Snapshot:
+        raise RuntimeError("the site changed")
+
+    monkeypatch.setattr(futbolfantasy, "fetch_all", boom)
+
+    summary = the_job.run(db, "yares", runs=1)
+
+    assert summary["futbolfantasy"] == 0 and "RuntimeError" in summary["failed"]["futbol fantasy"]
+    assert db.get(ReadModel, the_job.SORARE_KEY) is not None, "the page was published"
+    assert set(weeks(db)["gw-plan"]["players"]["mid-one"]) == {"sorare", "sofix"}, (
+        "and the other two sources were written"
+    )
+
+
+def test_the_page_is_published_before_the_site_is_asked(db, monkeypatch, the_job) -> None:  # noqa: F811
+    published_when_asked: list[bool] = []
+
+    def fetch() -> futbolfantasy.Snapshot:
+        published_when_asked.append(db.get(ReadModel, the_job.SORARE_KEY) is not None)
+        return snapshot_of()
+
+    monkeypatch.setattr(futbolfantasy, "fetch_all", fetch)
+    summary = the_job.run(db, "yares", runs=1)
+
+    assert published_when_asked == [True]
+    assert "failed" not in summary
+
+
 def test_the_report_puts_the_best_source_first_and_says_when_there_is_too_little_to_tell() -> None:
     from app.jobs import starts as report
 

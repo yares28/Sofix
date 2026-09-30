@@ -10,6 +10,7 @@ import pytest
 from app.jobs import sorare as sorare_job
 from app.sorare import publish
 from app.sorare.model import Forecast
+from tests.test_pipeline import db  # noqa: F401  (fixture)
 from tests.test_sorare_publish import snapshot
 
 
@@ -118,6 +119,76 @@ def test_only_a_week_with_final_scores_goes_to_the_archive():
     assert publish.archive_of(_later(payload, 2)) is None
     key, week = publish.archive_of(_later(payload, 30))  # type: ignore[misc]
     assert key == "sorare_week:gw-past" and week["gameweek"]["slug"] == "gw-past" and "hindsight" in week
+
+
+def _fetched(hours: float) -> dict[str, Any]:
+    """The fixture's snapshot as a run `hours` after the week just played ended would have taken it."""
+    snap = snapshot()
+    snap["fetchedAt"] = (datetime.fromisoformat(snap["pastGameweek"]["end"]) + timedelta(hours=hours)).isoformat()
+    return snap
+
+
+def test_a_replay_built_while_sorare_left_something_unanswered_is_not_made_final():
+    clean = publish.build_payload(_fetched(30), runs=2, draws=200)
+    assert publish.archive_of(clean) is not None and publish.settled_replay(clean) is not None
+
+    gappy_snap = _fetched(30)  # a day and more after it ended: its scores have settled, but a call got no answer
+    gappy_snap["pastGaps"] = ["Europe | Champion: could not be read"]
+    gappy = publish.build_payload(gappy_snap, runs=2, draws=200)
+
+    assert publish.week_of(gappy, "last")["complete"] is False  # type: ignore[index]
+    assert publish.archive_of(gappy) is None, "it is not written to the archive as the last word"
+    assert publish.settled_replay(gappy) is None, "and the next run rebuilds it instead of skipping it"
+    assert "kept" not in {i["number"]: i for i in gappy["timeline"]}[15]
+
+
+def test_a_replay_that_still_lacks_something_a_week_later_is_kept_as_it_is():
+    snap = _fetched(24 * 8)  # waiting has not helped
+    snap["pastGaps"] = ["Europe | Champion: could not be read"]
+    payload = publish.build_payload(snap, runs=2, draws=200)
+    assert publish.archive_of(payload) is not None and publish.settled_replay(payload) is not None
+    assert {i["number"]: i for i in payload["timeline"]}[15]["kept"] is True
+
+
+def test_a_week_is_final_on_the_clock_alone_when_nothing_says_it_is_incomplete():
+    week = publish.week_of(publish.build_payload(_fetched(30), runs=2, draws=200), "last")
+    assert week is not None
+    end = datetime.fromisoformat(week["gameweek"]["end"])
+    assert not publish.is_final(week, end + timedelta(hours=23))
+    assert publish.is_final(week, end + timedelta(hours=25))
+    older = {k: v for k, v in week.items() if k != "complete"}  # a replay from before the flag existed
+    assert publish.is_final(older, end + timedelta(hours=25))
+
+
+class _Client:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return None
+
+
+def test_what_the_page_points_at_is_written_before_the_page(db, monkeypatch):  # noqa: F811
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    monkeypatch.setattr(sorare_job.settings, "sorare_api_key", "test-key")
+    monkeypatch.setattr(sorare_job, "SorareClient", lambda *a, **k: _Client())
+    monkeypatch.setattr(sorare_job.sorare_sync, "snapshot", lambda *a, **k: snapshot())
+    monkeypatch.setattr(sorare_job.projection, "calendar", lambda db, now: [])
+    written: list[str] = []
+    real = sorare_job.put
+
+    def recording(session, key, payload, now):
+        written.append(key)
+        real(session, key, payload, now)
+
+    monkeypatch.setattr(sorare_job, "put", recording)
+
+    summary = sorare_job.run(db, "yares", runs=1)
+
+    assert summary["archived"] == "sorare_week:gw-past"
+    assert written.index("sorare_week:gw-past") < written.index(sorare_job.SORARE_KEY), (
+        "the page marks the week as kept: its page must exist by then"
+    )
 
 
 # --------------------------------------------------------------------------- the timeline says which weeks are kept

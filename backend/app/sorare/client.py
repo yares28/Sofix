@@ -37,6 +37,7 @@ class SorareClient:
         self.api_key = api_key if api_key is not None else settings.sorare_api_key
         self.pause = pause
         self.calls = 0
+        self.errors = 0  # questions that got no answer after all the tries: a caller that goes on without one can tell
         self._client = client or httpx.Client(
             timeout=TIMEOUT,
             headers={
@@ -78,9 +79,12 @@ class SorareClient:
             body = response.json()
             if body.get("errors"):
                 # One bad field should not kill a whole sync; the caller decides what to do without it.
+                self.errors += 1
                 raise SorareError(str(body["errors"])[:400])
             data = body.get("data")
             if data is None:
+                self.errors += 1
                 raise SorareError("no data in the answer")
             return data
+        self.errors += 1
         raise SorareError(f"gave up after {RETRIES} tries: {last}")

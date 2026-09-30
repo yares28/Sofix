@@ -6,6 +6,10 @@ Read-only against Sorare (the API key only raises the rate limit), then the whol
 stored as one payload the web app renders as it is. The scores that paid in past gameweeks are kept in
 `read_models` between runs, so a run only fetches what it doesn't already know.
 
+The page comes first. What the page points at (each early plan, the week just played) is written before it, so a week it
+lists can always be opened; and what it can do without (early plans, Futbol Fantasy, the start-chance record) is tried
+in a way that a failure only leaves it out, reported in the summary, instead of stopping the page from publishing.
+
 Without SORARE_API_KEY the step is skipped, exactly like the odds step without its key.
 """
 
@@ -15,8 +19,9 @@ import argparse
 import json
 import logging
 import os
+from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, TypeVar
 
 from sqlalchemy.orm import Session
 
@@ -37,6 +42,8 @@ logger = logging.getLogger(__name__)
 SORARE_KEY = "sorare"
 REFERENCES_KEY = "sorare_references"
 
+T = TypeVar("T")
+
 
 def cached_references(db: Session) -> dict[str, Any]:
     row = db.get(ReadModel, REFERENCES_KEY)
@@ -47,6 +54,47 @@ def published(db: Session) -> dict[str, Any]:
     """What the app is showing now: its replay of the last gameweek can be kept instead of rebuilt."""
     row = db.get(ReadModel, SORARE_KEY)
     return dict(row.payload) if row and isinstance(row.payload, dict) else {}
+
+
+def optional(db: Session, failed: dict[str, str], step: str, work: Callable[[], T], fallback: T) -> T:
+    """A step the page can publish without: when it fails it is logged, noted in the run's summary and left out.
+
+    The session is let go too, since a statement that failed leaves it unusable until it is.
+    """
+    try:
+        return work()
+    except Exception as exc:
+        logger.exception("sorare: %s failed, carrying on without it", step)
+        db.rollback()
+        failed[step] = f"{type(exc).__name__}: {exc}"[:200]
+        return fallback
+
+
+def record_starts(
+    db: Session,
+    failed: dict[str, str],
+    snapshot: dict[str, Any],
+    rounds: list[projection.Round],
+    fetched: datetime,
+    *,
+    write: bool,
+) -> dict[str, Any]:
+    """Who says he will start (Sorare, Sofix, Futbol Fantasy), written down to be scored against what happens.
+
+    The site is asked at most every few hours, within a time budget of its own, and a page it cannot read leaves its column
+    empty, never filled from an old answer. A run that is not writing (a dry run) asks and reports but remembers nothing.
+    """
+    lock = datetime.fromisoformat(snapshot["planGameweek"]["lock"])
+    found = optional(db, failed, "futbol fantasy", lambda: starts.chances(db, fetched, lock, write=write), None)
+    out: dict[str, Any] = {"futbolfantasy": len(found.chances) if found else 0}
+    if write:
+        rows: list[starts.Row] = optional(db, failed, "start rows", lambda: starts.rows(snapshot, found, rounds), [])
+        now = datetime.now(UTC)
+        record: dict[str, int] = optional(
+            db, failed, "start record", lambda: {**starts.save(db, rows, now), **starts.settle(db, snapshot)}, {}
+        )
+        out["starts"] = record
+    return out
 
 
 def run(
@@ -78,23 +126,29 @@ def run(
         }
     )
     snapshot["understat"] = understat.fetch_leagues(leagues, understat.season_of(started.date()))
-    # Every LaLiga round Sorare has not opened a gameweek for is planned early, from the calendar the app already holds.
+    failed: dict[str, str] = {}
+    # Every LaLiga round Sorare has not opened a gameweek for is planned early, from the calendar the app already holds. A
+    # run plans only the few that are missing or stale, so it stays well inside its time; the rest keep their last plan.
+    # If planning fails the page keeps the list of early weeks it had.
     fetched = datetime.fromisoformat(snapshot["fetchedAt"])
-    rounds = projection.calendar(db, fetched)
-    # A run plans only the few that are missing or stale, so it stays well inside its time; the rest keep their last plan.
-    made = early.plan(
-        db, snapshot, projection.unopened(rounds, snapshot["gameweeks"], now=fetched), runs=runs, now=fetched
+    rounds: list[projection.Round] = optional(db, failed, "calendar", lambda: projection.calendar(db, fetched), [])
+    db.rollback()  # the calendar was a read, and what follows takes a while: the connection is not left inside a transaction
+    made = optional(
+        db,
+        failed,
+        "early plans",
+        lambda: early.plan(
+            db, snapshot, projection.unopened(rounds, snapshot["gameweeks"], now=fetched), runs=runs, now=fetched
+        ),
+        None,
     )
-    # Who says he will start (Sorare, Sofix, Futbol Fantasy), written down to be scored against what happens. The site is
-    # asked at most every few hours; a page it cannot read leaves its column empty, never filled from an old answer.
-    found = starts.chances(db, fetched, datetime.fromisoformat(snapshot["planGameweek"]["lock"]), write=not dry_run)
-    start_rows = starts.rows(snapshot, found, rounds)
-    payload = sorare_publish.build_payload(
-        snapshot, runs=runs, previous=previous, projected=sorare_publish.projected_heads(made.weeks)
-    )
+    early_weeks = made.weeks if made else []
+    fresh_weeks = made.fresh if made else []
+    heads = sorare_publish.projected_heads(early_weeks) if made else list(previous.get("projected") or [])
+    payload = sorare_publish.build_payload(snapshot, runs=runs, previous=previous, projected=heads)
     size = len(json.dumps(payload, separators=(",", ":")))
     planned_week = sorare_publish.week_of(payload) or {}
-    summary = {
+    summary: dict[str, Any] = {
         "gameweek": planned_week.get("gameweek", {}).get("number"),
         "state": planned_week.get("state"),
         "plans": len(planned_week.get("plans", [])),
@@ -102,14 +156,19 @@ def run(
         "xg": sum(1 for p in planned_week.get("playing", {}).get("players", []) if "xg" in p),
         "playable": len(planned_week.get("playable", [])),
         "weeks": [w["gameweek"]["number"] for w in payload.get("weeks", [])],
-        "projected": [w["projected"]["round"] for w in made.weeks],
-        "planned": [w["projected"]["round"] for w in made.fresh],
-        "futbolfantasy": len(found.chances) if found else 0,
+        "projected": [h["round"] for h in heads],
+        "planned": [w["projected"]["round"] for w in fresh_weeks],
         "calls": snapshot["calls"],
         "bytes": size,
         "seconds": round((datetime.now(UTC) - started).total_seconds()),
     }
+    if snapshot.get("pastGaps"):
+        # Sorare did not answer everything the week just played was built from: it is not made final, and is rebuilt next run.
+        summary["pastGaps"] = snapshot["pastGaps"]
     if dry_run:
+        summary.update(record_starts(db, failed, snapshot, rounds, fetched, write=False))
+        if failed:
+            summary["failed"] = failed
         logger.info("sorare (dry run): %s", summary)
         return {**summary, "dryRun": True}
     now = datetime.now(UTC)
@@ -125,17 +184,22 @@ def run(
         kept=sorare_record.summary(db),
         previous=previous,
     )
-    put(db, SORARE_KEY, payload, now)
-    put(db, REFERENCES_KEY, snapshot["references"], now)
-    # Each early plan is a page of its own, read only when that week is opened; one is written again when it has gone stale.
-    for week in made.fresh:
+    # What the page points at is written before the page, so a week it lists is always there to open. Each early plan is a
+    # page of its own, read only when that week is opened (written again when it has gone stale); the week just played, once
+    # final, is kept whole on its own so it can be opened long after it leaves the page.
+    for week in fresh_weeks:
         put(db, f"{sorare_publish.AHEAD_PREFIX}{week['projected']['round']}", week, now)
-    summary["starts"] = {**starts.save(db, start_rows, now), **starts.settle(db, snapshot)}
-    # The week just played, once final, is also kept whole on its own so it can be opened long after it leaves the page.
     archived = sorare_publish.archive_of(payload)
     if archived and db.get(ReadModel, archived[0]) is None:
         put(db, archived[0], archived[1], now)
         summary["archived"] = archived[0]
+    put(db, SORARE_KEY, payload, now)
+    put(db, REFERENCES_KEY, snapshot["references"], now)
+    # Only now, with the page published, is Futbol Fantasy asked: a site that is slow or down costs the record of who said
+    # he would start, never the page.
+    summary.update(record_starts(db, failed, snapshot, rounds, fetched, write=True))
+    if failed:
+        summary["failed"] = failed
     if standalone:
         # run by hand: ask the app to reload its cached pages, the way the refresh job does at the end
         summary["revalidate"] = notify_app(settings.app_url, settings.revalidate_secret, settings.vercel_bypass_secret)

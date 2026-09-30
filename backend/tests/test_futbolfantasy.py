@@ -80,6 +80,68 @@ def test_it_asks_once_per_team_politely_and_leaves_a_failed_team_out() -> None:
     assert all("Sofix" in r.headers["user-agent"] for r in seen)
 
 
+def teams_page(count: int) -> str:
+    return "<title>Alineaciones - Jornada 8</title>" + "".join(
+        f'<a href="/laliga/equipos/team-{n}">x</a>' for n in range(count)
+    )
+
+
+def test_a_site_that_crawls_is_given_up_on_when_the_time_is_spent() -> None:
+    clock = [0.0]
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url.path)
+        clock[0] += 100  # every answer takes a hundred seconds
+        if request.url.path == "/laliga/posibles-alineaciones":
+            return httpx.Response(200, text=LINEUPS)
+        return httpx.Response(200, text=team_page(player("x-" + request.url.path.rsplit("/", 1)[1], "60%")))
+
+    found = futbolfantasy.fetch_all(client_for(handler), pause=0, budget=150, clock=lambda: clock[0])
+
+    assert found is not None
+    assert sorted({c.team for c in found.chances}) == ["Real Sociedad"], (
+        "the teams read before the time ran out are kept"
+    )
+    assert seen == ["/laliga/posibles-alineaciones", "/laliga/equipos/real-sociedad"], "and no other team is asked"
+
+
+def test_a_site_that_stops_answering_is_left_alone_after_three_failed_pages_in_a_row() -> None:
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url.path)
+        if request.url.path == "/laliga/posibles-alineaciones":
+            return httpx.Response(200, text=teams_page(6))
+        return httpx.Response(503)
+
+    found = futbolfantasy.fetch_all(client_for(handler), pause=0)
+
+    assert found is not None and found.chances == []
+    teams = [path.rsplit("/", 1)[1] for path in seen if path != "/laliga/posibles-alineaciones"]
+    assert teams == ["team-0", "team-0", "team-1", "team-1", "team-2", "team-2"], (
+        "three teams, each tried twice, then it stops"
+    )
+
+
+def test_a_page_that_reads_between_failed_ones_keeps_the_read_going() -> None:
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url.path)
+        if request.url.path == "/laliga/posibles-alineaciones":
+            return httpx.Response(200, text=teams_page(5))
+        team = request.url.path.rsplit("/", 1)[1]
+        if team == "team-2":
+            return httpx.Response(200, text=team_page(player("x-team-2", "60%")))
+        return httpx.Response(503)
+
+    found = futbolfantasy.fetch_all(client_for(handler), pause=0)
+
+    assert found is not None and [c.slug for c in found.chances] == ["x-team-2"]
+    assert "/laliga/equipos/team-4" in seen, "two failures, a good page, two more failures is never three in a row"
+
+
 def test_a_lineups_page_it_cannot_read_gives_nothing_rather_than_a_guess() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(500)

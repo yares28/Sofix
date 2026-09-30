@@ -221,13 +221,34 @@ def display_number(name: str, fallback: int) -> int:
     return int(digits[-1]) if digits else fallback
 
 
-def gameweeks(client: SorareClient, page: int = 30, max_pages: int = 5) -> list[dict[str, Any]]:
+ROLLOVER = timedelta(days=4)
+"""How long a week of the last season is kept after it ends, once the new season is being numbered: long enough for the run
+that follows it to replay it and, a day later, keep it (`publish.SETTLE`)."""
+
+
+def this_season(weeks: list[dict[str, Any]], now: datetime) -> list[dict[str, Any]]:
+    """This season's gameweeks from a list (oldest first) that may reach back into the last one.
+
+    The season starts at the latest week numbered 1 or, when there is none in the list, where the numbers last go back
+    down. A week of the season before that is kept all the same while it is still to be played, or has only just been
+    played (`ROLLOVER`): a new season being numbered does not end it, and it is still there to plan, replay and keep.
+    """
+    first = next((i for i in range(len(weeks) - 1, -1, -1) if weeks[i]["number"] == 1), None)
+    if first is None:
+        first = next((i for i in range(len(weeks) - 1, 0, -1) if weeks[i]["number"] < weeks[i - 1]["number"]), 0)
+    since = now - ROLLOVER
+    return [w for i, w in enumerate(weeks) if i >= first or datetime.fromisoformat(w["end"]) > since]
+
+
+def gameweeks(
+    client: SorareClient, page: int = 30, max_pages: int = 5, now: datetime | None = None
+) -> list[dict[str, Any]]:
     """Every gameweek of this season so far, oldest first, plus the ones Sorare has opened.
 
     Sorare lists them newest first and runs them all year, numbering from "Game Week 1" again when a season
     starts, so the list is read page by page until that Game Week 1 turns up: everything after it is this
-    season's, everything before it is last season's. If it never turns up (a schema change) a few pages are read
-    and the run carries on with what it has, rather than paging without end.
+    season's, everything before it is last season's (`this_season`). If it never turns up (a schema change) a few pages
+    are read and the run carries on with what it has, rather than paging without end.
     """
     nodes: list[dict[str, Any]] = []
     after: str | None = None
@@ -254,8 +275,7 @@ def gameweeks(client: SorareClient, page: int = 30, max_pages: int = 5) -> list[
         for n in nodes
     ]
     out.sort(key=lambda g: g["start"])
-    first = next((i for i in range(len(out) - 1, -1, -1) if out[i]["number"] == 1), None)
-    return out[first:] if first is not None else out
+    return this_season(out, now or datetime.now(UTC))
 
 
 def history_players(cards: list[dict[str, Any]], played_in: tuple[str, ...], league: str = "laliga-es") -> list[str]:
@@ -272,6 +292,31 @@ def history_players(cards: list[dict[str, Any]], played_in: tuple[str, ...], lea
             or ((c["player"].get("activeClub") or {}).get("domesticLeague") or {}).get("slug") == league
         }
     )
+
+
+def past_gaps(
+    past_comps: list[dict[str, Any]],
+    cards: list[dict[str, Any]],
+    scores: dict[str, list[dict[str, Any]]],
+    unanswered: int,
+) -> list[str]:
+    """What the replay of the week just played lacks because Sorare did not answer, in words; empty when nothing is missing.
+
+    A replay is only made final (kept, archived, never read again) once this is empty, so a call that failed on the one run
+    that mattered is asked again on the next instead of being written down as the truth. `unanswered` counts the questions
+    about that week's competitions and what they paid that got no answer; a player with a game that week whose scores could
+    not be read is named too, since he would count as not having played.
+    """
+    gaps = [
+        f"{c['league']} | {c['track']}: could not be read"
+        for c in past_comps
+        if c.get("skipped") == "could not be read"
+    ]
+    played = {c["player"]["slug"] for c in cards if c["player"].get("past")}
+    gaps += [f"{slug}: his scores could not be read" for slug in sorted(played - scores.keys())]
+    if unanswered:
+        gaps.append(f"{unanswered} question(s) about the week's competitions and what they paid got no answer")
+    return gaps
 
 
 def recent_weeks(weeks: list[dict[str, Any]], now: datetime, days: int = 45) -> list[dict[str, Any]]:
@@ -535,7 +580,7 @@ def snapshot(
     never changes.
     """
     now = now or datetime.now(UTC)
-    weeks = gameweeks(client)
+    weeks = gameweeks(client, now=now)
     picked = pick_gameweeks(weeks, now, ahead=ahead)
     plan_gw, past_gw, ahead_gws = picked["plan"], picked["past"], picked["ahead"]
     for week in recent_weeks(weeks, now):  # how much football each gameweek holds, to compare like with like
@@ -554,11 +599,10 @@ def snapshot(
     my_leagues.discard(None)
     planned = competitions(client, plan_gw["slug"], my_leagues)  # type: ignore[arg-type]
     # A finished gameweek's replay never changes, so when the app already holds it nothing is fetched for it.
-    past_comps = (
-        competitions(client, past_slug, my_leagues)  # type: ignore[arg-type]
-        if past_gw and past_slug != replayed
-        else []
-    )
+    replaying = bool(past_gw) and past_slug != replayed
+    mark = client.errors
+    past_comps = competitions(client, past_slug, my_leagues) if replaying else []  # type: ignore[arg-type]
+    unanswered = client.errors - mark  # questions about the week just played that got no answer, counted from here
     # A gameweek further ahead is only worth reading for the players who actually have a game in it.
     ahead_comps = {
         week["slug"]: competitions(client, week["slug"], my_leagues)  # type: ignore[arg-type]
@@ -583,6 +627,7 @@ def snapshot(
             client, latest["slug"], latest["number"], planned, references.get(latest["slug"])
         )
     if past_gw and past_comps:
+        mark = client.errors
         earlier = [g for g in done if g["end"] < past_gw["start"]]
         before = pick_reference(earlier, past_gw)
         if before:
@@ -594,7 +639,9 @@ def snapshot(
         references[past_gw["slug"]] = reference_scores(
             client, past_gw["slug"], past_gw["number"], past_comps, references.get(past_gw["slug"])
         )
+        unanswered += client.errors - mark
 
+    gaps = past_gaps(past_comps, my_cards, scores, unanswered) if replaying else []
     market = laliga_index(client)  # the Player search index (S5); empty if the fetch fails
 
     return {
@@ -604,6 +651,7 @@ def snapshot(
         "planGameweek": plan_gw,
         "pastGameweek": past_gw,
         "aheadGameweeks": ahead_gws,
+        "pastGaps": gaps,
         "cards": my_cards,
         "competitions": {plan_gw["slug"]: planned, past_slug: past_comps, **ahead_comps},
         "history": scores,

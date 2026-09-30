@@ -54,9 +54,12 @@ def season() -> list[dict[str, Any]]:
     return last + this
 
 
+NOW = datetime(2026, 9, 25, 12, tzinfo=UTC)  # well into the season: last season's tail ended in July
+
+
 def test_the_list_goes_back_to_this_seasons_first_gameweek_and_no_further() -> None:
     client = FakeSorare(season())
-    weeks = sync.gameweeks(client, page=8)  # type: ignore[arg-type]
+    weeks = sync.gameweeks(client, page=8, now=NOW)  # type: ignore[arg-type]
 
     assert [w["number"] for w in weeks] == list(range(1, 21)), "last season's Game Weeks 93 to 95 are not this season's"
     assert weeks == sorted(weeks, key=lambda w: w["start"])
@@ -65,7 +68,7 @@ def test_the_list_goes_back_to_this_seasons_first_gameweek_and_no_further() -> N
 
 def test_a_season_shorter_than_one_page_takes_one_call() -> None:
     client = FakeSorare([fixture(n, datetime(2026, 7, 31, tzinfo=UTC) + timedelta(days=3 * n)) for n in range(1, 6)])
-    weeks = sync.gameweeks(client, page=30)  # type: ignore[arg-type]
+    weeks = sync.gameweeks(client, page=30, now=NOW)  # type: ignore[arg-type]
     assert len(weeks) == 5
     assert client.pages == 1
 
@@ -73,9 +76,43 @@ def test_a_season_shorter_than_one_page_takes_one_call() -> None:
 def test_it_gives_up_paging_rather_than_run_away() -> None:
     # No Game Week 1 anywhere (a schema change, say): it reads a few pages and stops with what it has.
     client = FakeSorare([fixture(n, datetime(2026, 1, 1, tzinfo=UTC) + timedelta(days=3 * n)) for n in range(2, 60)])
-    weeks = sync.gameweeks(client, page=5, max_pages=3)  # type: ignore[arg-type]
+    weeks = sync.gameweeks(client, page=5, max_pages=3, now=NOW)  # type: ignore[arg-type]
     assert len(weeks) == 15
     assert client.pages == 3
+
+
+def test_weeks_of_last_season_still_to_play_are_kept_and_the_one_that_locks_first_is_planned() -> None:
+    now = datetime(
+        2026, 7, 21, 12, tzinfo=UTC
+    )  # Game Week 1 is listed already; last season's 93, 94 and 95 are still open
+    weeks = sync.gameweeks(FakeSorare(season()), page=8, now=now)  # type: ignore[arg-type]
+    assert [w["number"] for w in weeks] == [93, 94, 95, *range(1, 21)]
+    picked = sync.pick_gameweeks(weeks, now)
+    assert picked["plan"]["number"] == 93 and [w["number"] for w in picked["ahead"]] == [94, 95]
+
+
+def test_the_last_week_of_a_season_is_still_the_week_just_played_as_the_new_one_starts() -> None:
+    now = datetime(2026, 8, 1, 12, tzinfo=UTC)  # 95 ended yesterday, as Game Week 1 started
+    weeks = sync.gameweeks(FakeSorare(season()), page=8, now=now)  # type: ignore[arg-type]
+    picked = sync.pick_gameweeks(weeks, now)
+    assert picked["past"]["number"] == 95, (
+        "it is replayed and kept like any week, not dropped with the rest of last season"
+    )
+    assert picked["plan"]["number"] == 2
+
+
+def test_last_seasons_weeks_go_once_they_have_been_over_for_a_few_days() -> None:
+    weeks = sync.gameweeks(FakeSorare(season()), page=8, now=datetime(2026, 8, 10, tzinfo=UTC))  # type: ignore[arg-type]
+    assert [w["number"] for w in weeks] == list(range(1, 21))
+
+
+def test_without_a_game_week_one_the_season_starts_where_the_numbers_go_back_down() -> None:
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+    nodes = [fixture(n, start + timedelta(days=3 * i)) for i, n in enumerate([46, 47, 48, 2, 3, 4, 5])]
+    weeks = sync.gameweeks(FakeSorare(nodes), page=30, now=datetime(2026, 3, 1, tzinfo=UTC))  # type: ignore[arg-type]
+    assert [w["number"] for w in weeks] == [2, 3, 4, 5], (
+        "48 to 2 is a new season; nothing of the old one is still to play"
+    )
 
 
 def test_only_recent_and_coming_weeks_are_worth_counting_games_for() -> None:

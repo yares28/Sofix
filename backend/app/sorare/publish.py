@@ -38,10 +38,23 @@ AHEAD_PREFIX = "sorare_ahead:"
 SETTLE = timedelta(hours=24)
 """How long after a gameweek ends its scores can still move (Sorare reviews some for a while). A replay built earlier
 is rebuilt; one built later is final, kept as it is, and written to the archive."""
+GIVE_UP = timedelta(days=7)
+"""A replay built from everything Sorare was asked is final once SETTLE has passed. One that still lacks something (a call
+that got no answer) is rebuilt on every run until it has it; if that has not happened this long after the week ended,
+waiting will not bring it, and the replay is kept as it is."""
 
 
 def _dt(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def is_final(week: dict[str, Any], at: datetime) -> bool:
+    """Whether a replay built at `at` is the last word on its week: its scores have settled, and nothing it was built from
+    was missing (`complete`), unless it has lacked something for so long that it is kept as it is."""
+    ended = _dt(week["gameweek"]["end"])
+    if at < ended + SETTLE:
+        return False
+    return bool(week.get("complete", True)) or at >= ended + GIVE_UP
 
 
 # --------------------------------------------------------------------------- cards
@@ -679,15 +692,15 @@ def gameweek_payload(
 def settled_replay(previous: dict[str, Any] | None) -> dict[str, Any] | None:
     """The replay of the gameweek last played in the page the app is showing, when it is final and can be kept.
 
-    Final means the page was built by this same version and at least SETTLE after that gameweek ended (before that
-    some of its scores can still move). Anything else is rebuilt from the snapshot.
+    Final means the page was built by this same version, at least SETTLE after that gameweek ended (before that some of
+    its scores can still move), from everything Sorare was asked (`is_final`). Anything else is rebuilt from the snapshot.
     """
     if not previous or previous.get("version") != PAYLOAD_VERSION:
         return None
     last = week_of(previous, "last")
     if not last or not last.get("played"):
         return None
-    return last if _dt(previous["generatedAt"]) >= _dt(last["gameweek"]["end"]) + SETTLE else None
+    return last if is_final(last, _dt(previous["generatedAt"])) else None
 
 
 def kept_replay(previous: dict[str, Any] | None, past_week: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -699,7 +712,7 @@ def kept_replay(previous: dict[str, Any] | None, past_week: dict[str, Any] | Non
 def archive_of(payload: dict[str, Any]) -> tuple[str, dict[str, Any]] | None:
     """The gameweek just played, with the key it is kept under, once its scores are final. None before that."""
     last = week_of(payload, "last")
-    if not last or _dt(payload["generatedAt"]) < _dt(last["gameweek"]["end"]) + SETTLE:
+    if not last or not is_final(last, _dt(payload["generatedAt"])):
         return None
     return f"{ARCHIVE_PREFIX}{last['gameweek']['slug']}", last
 
@@ -846,6 +859,8 @@ def build_payload(
             runs=runs,
             draws=draws,
         )
+        # Whether Sorare answered everything this week was built from; if not, it is rebuilt next run, not kept as final.
+        last_gw["complete"] = not snapshot.get("pastGaps")
 
     # The gameweeks after the next one: Sorare has opened them and the cards are known, but it publishes a
     # projection only for a player's next fixture, so these stand on form and the payload says so.
@@ -910,7 +925,7 @@ def build_payload(
         elif last_gw and past_week and week["slug"] == past_week["slug"]:
             item["playing"] = last_gw["playing"]["cards"]
             item["won"] = last_gw["plans"][0]["actual"]["essence"] if last_gw["plans"] else 0
-            if now >= _dt(week["end"]) + SETTLE:
+            if is_final(last_gw, now):
                 item["kept"] = True  # the job writes it to the archive in this run, once
         timeline.append(item)
 

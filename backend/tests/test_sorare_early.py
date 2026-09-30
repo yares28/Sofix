@@ -29,9 +29,11 @@ def rounds(count: int, first: int = 10) -> list[projection.Round]:
     ]
 
 
-def keep(db, number: int, age: timedelta) -> dict[str, Any]:  # noqa: F811
-    """A stored early plan for a round, written `age` ago."""
-    payload = {"projected": {"round": number, "basedOn": "GW21"}, "stored": True}
+def keep(db, number: int, age: timedelta, *, start: str | None = None) -> dict[str, Any]:  # noqa: F811
+    """A stored early plan for a round, written `age` ago, for the dates `rounds()` gives that round unless told otherwise."""
+    first = at("2026-10-31") + timedelta(days=7 * (number - 10))
+    window = start or projection.window(first)[0].isoformat()
+    payload = {"projected": {"round": number, "basedOn": "GW21"}, "gameweek": {"start": window}, "stored": True}
     db.add(ReadModel(key=f"{publish.AHEAD_PREFIX}{number}", payload=payload, updated_at=NOW - age))
     db.commit()
     return payload
@@ -71,6 +73,21 @@ def test_a_round_left_for_a_later_run_still_shows_the_plan_it_already_has(db) ->
     assert len(kept) == 2, "the two that did not fit keep showing what they have"
 
 
+def test_a_plan_made_for_other_dates_is_planned_again_instead_of_shown_under_the_round(db) -> None:  # noqa: F811
+    keep(db, 10, timedelta(hours=1))  # current, for the dates the calendar holds
+    keep(db, 11, timedelta(hours=1), start="2025-11-07T14:00:00+00:00")  # last season's round 11, same number
+    plan, kept = early.choose(db, rounds(2), NOW)
+    assert [r.number for r in plan] == [11], "a fresh row for other dates counts as no plan at all"
+    assert set(kept) == {10}
+
+
+def test_a_stored_plan_without_its_dates_is_not_trusted(db) -> None:  # noqa: F811
+    db.add(ReadModel(key=f"{publish.AHEAD_PREFIX}10", payload={"projected": {"round": 10}}, updated_at=NOW))
+    db.commit()
+    plan, kept = early.choose(db, rounds(1), NOW)
+    assert [r.number for r in plan] == [10] and kept == {}
+
+
 def test_a_round_that_is_no_longer_early_is_left_out(db) -> None:  # noqa: F811
     keep(db, 9, timedelta(hours=1))  # it has started since
     plan, kept = early.choose(db, rounds(2), NOW)
@@ -97,7 +114,10 @@ def test_a_stored_time_with_or_without_a_zone_is_read_the_same(db, naive: bool) 
     db.add(
         ReadModel(
             key=f"{publish.AHEAD_PREFIX}10",
-            payload={"projected": {"round": 10}},
+            payload={
+                "projected": {"round": 10},
+                "gameweek": {"start": projection.window(rounds(1)[0].first)[0].isoformat()},
+            },
             updated_at=stamp.replace(tzinfo=None) if naive else stamp,
         )
     )

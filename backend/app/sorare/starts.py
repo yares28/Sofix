@@ -106,6 +106,7 @@ def chances(
     every = NEAR_REFRESH if timedelta(0) <= lock - now <= NEAR else REFRESH
     if kept is not None and row is not None and now - _dt(row.payload["fetchedAt"]) < every:
         return kept
+    db.rollback()  # reading the site takes a while: the connection is not left inside a transaction meanwhile
     found = (fetch or futbolfantasy.fetch_all)()
     if found is None or not found.chances:
         return None

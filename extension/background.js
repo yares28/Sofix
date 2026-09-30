@@ -66,7 +66,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   // From overlay.js, and only from a sorare.com tab.
   if (!fromSorare(sender)) return;
   if (message?.type === "overlay-numbers") {
-    overlayNumbers(message.cards, message.players).then(reply);
+    overlayNumbers(message.cards, message.players, fixtureOf(message.fixture)).then(reply);
     return true;
   }
   if (message?.type === "overlay-plan") {
@@ -76,7 +76,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   if (message?.type === "overlay-stats") {
     const seen = Number(message.seen) || 0;
     const matched = Number(message.matched) || 0;
-    chrome.storage.local.set({ overlayStats: { seen, matched, at: Date.now() } });
+    chrome.storage.local.set({ overlayStats: { seen, matched, fixture: fixtureOf(message.fixture), at: Date.now() } });
     return;
   }
   if (message?.type === "open-app") {
@@ -102,6 +102,8 @@ function fromSorare(sender) {
 const OVERLAY_TTL_MS = 15 * 60 * 1000;
 const OVERLAY_BATCH = 120; // the app's cap per call
 const SLUG = /^[a-z0-9][a-z0-9_-]{0,119}$/;
+const FIXTURE = /^football-[a-z0-9-]{1,80}-\d{4}$/; // the gameweek a page's address names (core.fixtureOf), or nothing
+const fixtureOf = (value) => (typeof value === "string" && FIXTURE.test(value) ? value : null);
 let overlayDown = { until: 0, state: "unreachable" }; // after a failure, do not ask again for a moment
 
 const slugs = (value) => [...new Set(Array.isArray(value) ? value.filter((slug) => typeof slug === "string" && SLUG.test(slug)) : [])];
@@ -134,15 +136,17 @@ async function askApp(payload) {
   return { state: overlayDown.state };
 }
 
-async function overlayNumbers(cards, players) {
+async function overlayNumbers(cards, players, fixture = null) {
   const wanted = [...slugs(cards).map((slug) => `c:${slug}`), ...slugs(players).map((slug) => `p:${slug}`)].slice(0, 400);
   if (!wanted.length) return { state: "ok", cards: {}, players: {} };
-  const cached = await chrome.storage.session.get(wanted.map((key) => `ov:${key}`));
+  // What is kept is kept per gameweek: the numbers of one week are never the answer for a page about another.
+  const scope = `ov:${fixture || "now"}:`;
+  const cached = await chrome.storage.session.get(wanted.map((key) => `${scope}${key}`));
   const now = Date.now();
   const answers = {};
   const missing = [];
   for (const key of wanted) {
-    const hit = cached[`ov:${key}`];
+    const hit = cached[`${scope}${key}`];
     if (hit && now - hit.at < OVERLAY_TTL_MS) answers[key] = hit.entry;
     else missing.push(key);
   }
@@ -152,13 +156,13 @@ async function overlayNumbers(cards, players) {
       cards: batch.filter((key) => key.startsWith("c:")).map((key) => key.slice(2)),
       players: batch.filter((key) => key.startsWith("p:")).map((key) => key.slice(2)),
     };
-    const answer = await askApp(asked);
+    const answer = await askApp(fixture ? { ...asked, fixture } : asked);
     if (!answer.body) return { state: answer.state };
     const fresh = {};
     for (const slug of asked.cards) fresh[`c:${slug}`] = answer.body.cards?.[slug] ?? null;
     for (const slug of asked.players) fresh[`p:${slug}`] = answer.body.players?.[slug] ?? null;
     Object.assign(answers, fresh);
-    await chrome.storage.session.set(Object.fromEntries(Object.entries(fresh).map(([key, entry]) => [`ov:${key}`, { at: Date.now(), entry }])));
+    await chrome.storage.session.set(Object.fromEntries(Object.entries(fresh).map(([key, entry]) => [`${scope}${key}`, { at: Date.now(), entry }])));
   }
   const out = { state: "ok", cards: {}, players: {} };
   for (const [key, entry] of Object.entries(answers)) if (entry) out[key.startsWith("c:") ? "cards" : "players"][key.slice(2)] = entry;

@@ -79,6 +79,14 @@ describe("the request", () => {
     expect(OverlayRequest.safeParse({ players: [] }).success).toBe(false);
   });
 
+  it("takes the fixture of the page it is asked from, and only a real one", () => {
+    expect(OverlayRequest.safeParse({ cards: [], players: [], fixture: "football-25-29-sep-2026" }).success).toBe(true);
+    expect(OverlayRequest.safeParse({ cards: [], players: [], fixture: "football-28-aug-1-sep-2026" }).success).toBe(true);
+    for (const fixture of ["../football-25-sep-2026", "football", "football-25-29-sep-2026/../x", "FOOTBALL-25-sep-2026", ""]) {
+      expect(OverlayRequest.safeParse({ cards: [], players: [], fixture }).success, fixture).toBe(false);
+    }
+  });
+
   it("refuses more than the cap in one call, cards and players counted together", () => {
     const slugs = (n: number, tag: string) => Array.from({ length: n }, (_, i) => `${tag}-${i}`);
     expect(OverlayRequest.safeParse({ cards: slugs(OVERLAY_CAP, "c"), players: [] }).success).toBe(true);
@@ -271,6 +279,51 @@ describe("overlayNumbers", () => {
     const unknown = overlayNumbers(sorare([player()]), grid, ask({ players: ["unai-simon"], week: "99" }), NOW);
     expect(unknown.week).toBe(17);
     expect(unknown.players["unai-simon"]!.x).toBe(54.5);
+  });
+
+  describe("the gameweek of the page it is asked from", () => {
+    const timeline = [
+      { id: "16", slug: "football-22-25-sep-2026", number: 16, start: "", end: "", lock: "", status: "done", kept: true },
+      { id: "15", slug: "football-18-22-sep-2026", number: 15, start: "", end: "", lock: "", status: "done" },
+      { id: "17", slug: "football-25-29-sep-2026", number: 17, start: "", end: "", lock: "", status: "next" },
+      { id: "18", slug: "football-2-6-oct-2026", number: 18, start: "", end: "", lock: "", status: "later" },
+    ] as Sorare["timeline"];
+    const data = () => sorare([player()], { timeline });
+    const archive = () => ({
+      ...sorare([player({ x: 33 })]).weeks[0]!,
+      gameweek: { id: "16", slug: "football-22-25-sep-2026", number: 16, name: "", start: "", end: "", lock: "" },
+      played: true,
+    });
+
+    it("answers from the gameweek the page names, not the one being planned", () => {
+      const answer = overlayNumbers(data(), grid, ask({ players: ["unai-simon"], fixture: "football-2-6-oct-2026" }), NOW);
+      expect(answer.week).toBe(18);
+      expect(answer.players["unai-simon"]!.x).toBe(11);
+    });
+
+    it("answers from a gameweek the job kept apart when the page no longer holds it", () => {
+      const answer = overlayNumbers(data(), grid, ask({ players: ["unai-simon"], fixture: "football-22-25-sep-2026" }), NOW, archive());
+      expect(answer.week).toBe(16);
+      expect(answer.players["unai-simon"]!.x).toBe(33);
+    });
+
+    it("says nothing for a week nobody kept, rather than the numbers of this week under its name", () => {
+      const old = overlayNumbers(data(), grid, ask({ players: ["unai-simon"], cards: ["unai-simon-2026-limited-12"], fixture: "football-18-22-sep-2026" }), NOW);
+      expect(old).toMatchObject({ week: 15, cards: {}, players: {} });
+      const unknown = overlayNumbers(data(), grid, ask({ players: ["unai-simon"], fixture: "football-1-5-jan-2027" }), NOW);
+      expect(unknown).toMatchObject({ week: 0, cards: {}, players: {} });
+    });
+
+    it("gives the plan of the week asked about, or none for one with nothing", () => {
+      expect(overlayNumbers(data(), grid, ask({ plan: true, fixture: "football-2-6-oct-2026" }), NOW).plan).toMatchObject({ week: 18 });
+      expect(overlayNumbers(data(), grid, ask({ plan: true, fixture: "football-18-22-sep-2026" }), NOW).plan).toBeUndefined();
+    });
+
+    it("changes nothing for a page that names no gameweek", () => {
+      const answer = overlayNumbers(data(), grid, ask({ players: ["unai-simon"] }), NOW);
+      expect(answer.week).toBe(17);
+      expect(answer.players["unai-simon"]!.x).toBe(54.5);
+    });
   });
 
   it("copes with a payload the job published before players carried their slug", () => {

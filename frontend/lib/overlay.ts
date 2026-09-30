@@ -24,6 +24,14 @@ export const OverlayRequest = z
     players: z.array(slug),
     /** Also answer with the gameweek's plan: the drawer asks for it when it is opened, never with the cards. */
     plan: z.boolean().optional(),
+    /**
+     * The Sorare gameweek the page's address names ("football-25-29-sep-2026"), when it names one: the cards on it are
+     * about that gameweek, so it is that gameweek's numbers that are answered. Without it, the one being planned.
+     */
+    fixture: z
+      .string()
+      .regex(/^football-[a-z0-9-]{1,80}-\d{4}$/)
+      .optional(),
   })
   .refine((body) => body.cards.length + body.players.length <= OVERLAY_CAP, { message: `At most ${OVERLAY_CAP} slugs per call.` });
 export type OverlayRequest = z.infer<typeof OverlayRequest>;
@@ -197,10 +205,29 @@ function entryFor(
  * The numbers for the cards and players asked about. A card of yours answers with its player's numbers (xScore
  * belongs to the player, not the copy), and so does the player's own slug, which is how a card you do not own
  * still gets a ribbon for a player you do. Anything unknown is left out, so a page never draws an empty chip.
+ *
+ * A page whose address names a gameweek (`request.fixture`) is about that gameweek: it is answered from that week, from the
+ * page's own copy or from the one the job kept apart (`archived`, which the endpoint reads when the timeline says there is
+ * one), and with nothing at all when Sofix holds none. It is never answered with this week's numbers under another week's name.
  */
-export function overlayNumbers(sorare: Sorare, grid: FixtureGrid | null, request: OverlayRequest, now: Date): OverlayAnswer {
-  const plan = (request.week ? weekPlan(sorare, request.week) : null) ?? nextWeek(sorare);
+export function overlayNumbers(
+  sorare: Sorare,
+  grid: FixtureGrid | null,
+  request: OverlayRequest,
+  now: Date,
+  archived: GameweekPlan | null = null,
+): OverlayAnswer {
+  const named = request.fixture ? sorare.timeline.find((item) => item.slug === request.fixture) : undefined;
+  const kept = named && archived && archived.gameweek.slug === named.slug ? archived : null;
+  const plan: GameweekPlan | null = request.fixture
+    ? named
+      ? (weekPlan(sorare, named.id) ?? kept)
+      : null
+    : ((request.week ? weekPlan(sorare, request.week) : null) ?? nextWeek(sorare));
+  if (!plan) return { week: named?.number ?? 0, cards: {}, players: {} };
   const outlook = grid ? sideOutlook(grid) : null;
+  // The numbers of a week kept apart are as they stood when it finished, and its plan was a replay, not what you entered.
+  const madeAt = plan === kept ? plan.gameweek.end : sorare.generatedAt;
 
   const owners = new Map((sorare.collection ?? []).map((card) => [card.slug, card.player]));
   const playing = new Map<string, PlayingPlayer>();
@@ -208,7 +235,7 @@ export function overlayNumbers(sorare: Sorare, grid: FixtureGrid | null, request
 
   // The best plan's cards, by the player each belongs to, with the lineup each is in and whether he captains it.
   const inPlan = new Map<string, NonNullable<OverlayEntry["inPlan"]>>();
-  for (const lineup of (plan.plans ?? [])[0]?.lineups ?? []) {
+  for (const lineup of (plan === kept ? [] : (plan.plans ?? [])[0]?.lineups) ?? []) {
     for (const card of [...(lineup.starters ?? []), ...(lineup.subs ?? [])]) {
       const owner = owners.get(card.slug);
       if (owner) inPlan.set(owner, { ...inPlan.get(owner), [card.slug]: { lineup: lineup.comp, captain: card.captain === true } });
@@ -219,7 +246,7 @@ export function overlayNumbers(sorare: Sorare, grid: FixtureGrid | null, request
   const forPlayer = (playerSlug: string | undefined): OverlayEntry | null => {
     const player = playerSlug ? playing.get(playerSlug) : undefined;
     if (!playerSlug || !player) return null;
-    if (!entries.has(playerSlug)) entries.set(playerSlug, entryFor(player, outlook, now, sorare.generatedAt, inPlan.get(playerSlug)));
+    if (!entries.has(playerSlug)) entries.set(playerSlug, entryFor(player, outlook, now, madeAt, inPlan.get(playerSlug)));
     return entries.get(playerSlug) ?? null;
   };
 

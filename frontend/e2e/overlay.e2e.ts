@@ -106,13 +106,21 @@ const NUMBERS = {
 const PLAN = { state: "ready", week: 17, lineups: 1, x: 417, comp: "All Star", pics: [1, 2, 3, 4, 7].map(picture), pAny: 0.16, essence: 55, cardsUsed: 9, cardsAvailable: 87 };
 
 type Mode = "ok" | "auth" | "unreachable";
-type Probe = { sent: { type: string; cards?: string[]; players?: string[] }[]; opened: string[]; setOverlay: (value: boolean) => void };
+type Probe = { sent: { type: string; cards?: string[]; players?: string[]; fixture?: string | null }[]; opened: string[]; setOverlay: (value: boolean) => void };
 
-async function openPage(page: Page, options: { mode?: Mode; overlay?: boolean; delay?: number; viewport?: { width: number; height: number } } = {}) {
+/** The gameweek Sofix is planning, as a page would name it in its address; any other gameweek has no numbers in these tests. */
+const THIS_WEEK = "football-25-29-sep-2026";
+const OLD_WEEK = "football-18-22-sep-2026";
+
+async function openPage(
+  page: Page,
+  options: { mode?: Mode; overlay?: boolean; delay?: number; viewport?: { width: number; height: number }; query?: string } = {},
+) {
   const mode = options.mode ?? "ok";
   if (options.viewport) await page.setViewportSize(options.viewport);
 
-  await page.route(PAGE_URL, (route) => route.fulfill({ contentType: "text/html", body: FIXTURE }));
+  // The page answers at its address whatever the query is, as Sorare's does.
+  await page.route((url) => url.origin + url.pathname === PAGE_URL, (route) => route.fulfill({ contentType: "text/html", body: FIXTURE }));
   await page.route("https://assets.sorare.com/**", (route) => {
     if (/\.webm/.test(route.request().url())) return route.fulfill({ status: 200, contentType: "video/webm", body: "" });
     const art =
@@ -141,11 +149,13 @@ async function openPage(page: Page, options: { mode?: Mode; overlay?: boolean; d
         },
       };
       (window as unknown as { __sfx: unknown }).__sfx = probe;
-      const answer = (message: { type: string; cards?: string[]; players?: string[] }) => {
+      const answer = (message: { type: string; cards?: string[]; players?: string[]; fixture?: string | null }) => {
         if (message.type === "overlay-plan") return config.mode === "ok" ? { state: "ok", plan: config.plan } : { state: config.mode };
         if (message.type !== "overlay-numbers") return undefined;
         if (config.mode !== "ok") return { state: config.mode };
         const out = { state: "ok", cards: {} as Record<string, unknown>, players: {} as Record<string, unknown> };
+        // What the app does: a page that names a gameweek is answered for that week, and only this week has numbers here.
+        if (message.fixture && message.fixture !== config.thisWeek) return out;
         for (const slug of message.cards ?? []) if (slug in config.numbers.cards) out.cards[slug] = (config.numbers.cards as Record<string, unknown>)[slug];
         for (const slug of message.players ?? []) if (slug in config.numbers.players) out.players[slug] = (config.numbers.players as Record<string, unknown>)[slug];
         return out;
@@ -167,11 +177,11 @@ async function openPage(page: Page, options: { mode?: Mode; overlay?: boolean; d
         },
       };
     },
-    { mode, overlay: options.overlay ?? true, numbers: NUMBERS, plan: PLAN, delay: options.delay ?? 15 },
+    { mode, overlay: options.overlay ?? true, numbers: NUMBERS, plan: PLAN, delay: options.delay ?? 15, thisWeek: THIS_WEEK },
   );
   for (const file of ["core.js", "bridge.js", "content.js", "overlay.js", "drawer.js"]) await page.addInitScript({ path: path.join(EXTENSION, file) });
 
-  await page.goto(PAGE_URL);
+  await page.goto(PAGE_URL + (options.query ?? ""));
   await page.addStyleTag({ path: path.join(EXTENSION, "overlay.css") });
 }
 
@@ -528,6 +538,42 @@ test.describe("the sorare.com overlay", () => {
     expect(pick.top).toBeGreaterThanOrEqual(mine.bottom);
     expect(meets(mine, pick)).toBe(false);
     expect(meets(mine, await box(page, "#foot3"))).toBe(false);
+  });
+
+  test("draws nothing on a page about a gameweek Sofix has no numbers for, instead of this week's under its name", async ({ page }) => {
+    await openPage(page, { query: `?so5Fixture=${OLD_WEEK}` });
+    await page.waitForTimeout(900);
+    await expect(page.locator(".sfx-tile")).toHaveCount(0);
+    const asked = (await probe(page)).sent.filter((message) => message.type === "overlay-numbers");
+    expect(asked.length).toBeGreaterThan(0);
+    expect(asked.every((message) => message.fixture === OLD_WEEK)).toBe(true);
+  });
+
+  test("draws this week's numbers on a page whose address names the week being planned", async ({ page }) => {
+    await openPage(page, { query: `?so5Fixture=${THIS_WEEK}` });
+    await settled(page);
+    expect(await text(page, "big")).toEqual(["53", "FDR", "45", "88%"]);
+    expect((await probe(page)).sent.some((message) => message.type === "overlay-numbers" && message.fixture === THIS_WEEK)).toBe(true);
+  });
+
+  test("follows the page when Sorare moves to another gameweek without a reload, and back", async ({ page }) => {
+    await openPage(page);
+    await settled(page);
+    await expect(tileOf(page, "big")).toHaveCount(1);
+
+    // Sorare changes the address and redraws the page: its numbers are about another week now, and there are none.
+    const move = (query: string) =>
+      page.evaluate((next) => {
+        history.pushState(null, "", next);
+        document.body.append(document.createElement("i")); // the page redrawing, which is what the overlay hears
+      }, query);
+    await move(`?so5Fixture=${OLD_WEEK}`);
+    await expect(page.locator(".sfx-tile")).toHaveCount(0);
+
+    // And back to a page that names none: this week's numbers return.
+    await move("?");
+    await page.locator("#big").scrollIntoViewIfNeeded();
+    await expect.poll(() => text(page, "big"), { timeout: 6000 }).toEqual(["53", "FDR", "45", "88%"]); // a shimmer first, then the numbers
   });
 
   test("opens a panel beside the card on hover: starts by default, the other score one press away, and it never writes anything", async ({ page }) => {

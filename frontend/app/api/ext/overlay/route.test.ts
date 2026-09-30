@@ -5,7 +5,8 @@ import type { PlayingPlayer, Sorare } from "../../../../lib/play";
 const TOKEN = "t".repeat(48);
 
 const loadSorare = vi.fn<() => Promise<Sorare | null>>();
-vi.mock("../../../../lib/playData", () => ({ loadSorare: () => loadSorare() }));
+const loadSorareWeek = vi.fn<(slug: string) => Promise<unknown>>();
+vi.mock("../../../../lib/playData", () => ({ loadSorare: () => loadSorare(), loadSorareWeek: (slug: string) => loadSorareWeek(slug) }));
 vi.mock("../../../../lib/api", () => ({ loadGrid: async () => ({ grid: null, meta: null, error: "no grid" }) }));
 
 const { POST } = await import("./route");
@@ -37,6 +38,7 @@ const call = (body: unknown, headers: Record<string, string> = { authorization: 
 beforeEach(() => {
   process.env.EXTENSION_TOKEN = TOKEN;
   loadSorare.mockReset().mockResolvedValue(payload);
+  loadSorareWeek.mockReset().mockResolvedValue(null);
 });
 
 describe("POST /api/ext/overlay", () => {
@@ -87,5 +89,39 @@ describe("POST /api/ext/overlay", () => {
   it("says so when Sorare has never been synced", async () => {
     loadSorare.mockResolvedValue(null);
     expect((await call({ cards: [], players: [] })).status).toBe(503);
+  });
+});
+
+describe("a page that names a gameweek", () => {
+  const kept = {
+    gameweek: { id: "16", slug: "football-22-25-sep-2026", number: 16 },
+    playing: { players: [{ ...simon, x: 33, p: 0.5 }] },
+  };
+  const held = {
+    ...payload,
+    timeline: [
+      { id: "16", slug: "football-22-25-sep-2026", number: 16, status: "done", kept: true },
+      { id: "15", slug: "football-18-22-sep-2026", number: 15, status: "done" },
+    ],
+  } as unknown as Sorare;
+
+  it("reads a week the job kept apart and answers from it", async () => {
+    loadSorare.mockResolvedValue(held);
+    loadSorareWeek.mockResolvedValue(kept);
+    const body = await (await call({ cards: ["unai-simon-2026-limited-12"], players: [], fixture: "football-22-25-sep-2026" })).json();
+    expect(loadSorareWeek).toHaveBeenCalledWith("football-22-25-sep-2026");
+    expect(body).toMatchObject({ ok: true, week: 16, cards: { "unai-simon-2026-limited-12": { x: 33 } } });
+  });
+
+  it("does not look for a week the timeline says nobody kept, and answers nothing for it", async () => {
+    loadSorare.mockResolvedValue(held);
+    const body = await (await call({ cards: ["unai-simon-2026-limited-12"], players: [], fixture: "football-18-22-sep-2026" })).json();
+    expect(loadSorareWeek).not.toHaveBeenCalled();
+    expect(body).toMatchObject({ ok: true, week: 15, cards: {}, players: {} });
+  });
+
+  it("asks for nothing extra when the page names no gameweek", async () => {
+    await call({ cards: ["unai-simon-2026-limited-12"], players: [] });
+    expect(loadSorareWeek).not.toHaveBeenCalled();
   });
 });

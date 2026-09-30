@@ -24,6 +24,8 @@ async function render() {
   // What the last sorare.com page showed: a Sorare that changed its pictures reads "0 of 8", not silence.
   const fresh = overlayStats && Date.now() - overlayStats.at < 10 * 60 * 1000 && overlayStats.seen > 0;
   $("cards").textContent = !overlay ? "Switched off" : fresh ? `${overlayStats.matched} of ${overlayStats.seen}` : "—";
+  // Which gameweek the address of the last sorare.com page names ("25 29 sep 2026"): numbers for another week are not drawn.
+  $("fixture").textContent = !overlay || !fresh ? "—" : overlayStats.fixture ? overlayStats.fixture.replace(/^football-/, "").replace(/-/g, " ") : "none named";
   $("go").textContent = signedIn ? "Open Sofix" : "Open sorare.com";
   $("go").onclick = () => chrome.tabs.create({ url: signedIn ? CONFIG.appUrl : "https://sorare.com/" });
 }

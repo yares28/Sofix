@@ -113,13 +113,35 @@ describe("the overlay's numbers", () => {
   it("asks again once what it kept is older than fifteen minutes", async () => {
     worker.respondWith(known(["unai-simon"]));
     await worker.send({ type: "overlay-numbers", cards: [], players: ["unai-simon"] });
-    const key = "ov:p:unai-simon";
+    const key = "ov:now:p:unai-simon";
     worker.session.set(key, { at: Date.now() - 14 * 60_000, entry: { x: 50 } });
     await worker.send({ type: "overlay-numbers", cards: [], players: ["unai-simon"] });
     expect(worker.calls).toHaveLength(1);
     worker.session.set(key, { at: Date.now() - 16 * 60_000, entry: { x: 50 } });
     await worker.send({ type: "overlay-numbers", cards: [], players: ["unai-simon"] });
     expect(worker.calls).toHaveLength(2);
+  });
+
+  it("keeps what it is told per gameweek, and sends the gameweek a page's address names", async () => {
+    worker.respondWith(known(["unai-simon"]));
+    const ask = (fixture?: unknown) => worker.send({ type: "overlay-numbers", cards: [], players: ["unai-simon"], fixture });
+    await ask();
+    await ask("football-18-22-sep-2026"); // another week is another question, not this week's answer
+    expect(worker.calls).toHaveLength(2);
+    expect(worker.body(worker.calls[0]!)).toEqual({ cards: [], players: ["unai-simon"] });
+    expect(worker.body(worker.calls[1]!)).toEqual({ cards: [], players: ["unai-simon"], fixture: "football-18-22-sep-2026" });
+    // Each is remembered on its own.
+    await ask();
+    await ask("football-18-22-sep-2026");
+    expect(worker.calls).toHaveLength(2);
+  });
+
+  it("ignores a gameweek that is not shaped like one", async () => {
+    worker.respondWith(known([]));
+    for (const fixture of ["../../x", "football-", "soccer-18-22-sep-2026", "football-18-22-sep-26", 7, {}])
+      await worker.send({ type: "overlay-numbers", cards: [], players: ["a-player"], fixture });
+    expect(worker.calls).toHaveLength(1); // all six were the page of no named week, answered once
+    expect(worker.body(worker.calls[0]!)).toEqual({ cards: [], players: ["a-player"] });
   });
 
   it("splits a long list into calls the app will accept", async () => {
@@ -196,8 +218,10 @@ describe("what a page may ask the worker to do", () => {
     expect(worker.created).toHaveLength(7);
   });
 
-  it("keeps the count of recognised cards for the popup", async () => {
-    await worker.send({ type: "overlay-stats", seen: 8, matched: 7 });
-    expect(worker.local.get("overlayStats")).toMatchObject({ seen: 8, matched: 7 });
+  it("keeps the count of recognised cards for the popup, and the gameweek the page named", async () => {
+    await worker.send({ type: "overlay-stats", seen: 8, matched: 7, fixture: "football-25-29-sep-2026" });
+    expect(worker.local.get("overlayStats")).toMatchObject({ seen: 8, matched: 7, fixture: "football-25-29-sep-2026" });
+    await worker.send({ type: "overlay-stats", seen: 8, matched: 7, fixture: "nonsense" });
+    expect(worker.local.get("overlayStats")).toMatchObject({ fixture: null });
   });
 });

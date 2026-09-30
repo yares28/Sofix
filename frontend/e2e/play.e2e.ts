@@ -16,11 +16,20 @@ test.beforeEach(async ({ page, request }) => {
 const planned = nextWeek(sorare);
 const plan1 = planned.plans[0]!;
 const laliga = plan1.lineups[0]!;
-const timelineOnly = sorare.timeline.find(
-  (item) =>
-    !sorare.weeks.some((week) => week.gameweek.id === item.id) &&
-    !grid.matchdays.some((matchday) => matchday.date_from?.slice(0, 10) === item.start.slice(0, 10)),
-)!;
+
+/**
+ * A gameweek of the timeline that the page holds no plan for and that no LaLiga round starts on, as the mock serves it.
+ * The mock moves the Sorare dates with the clock and not the grid's, so which week that is changes through the day: it is
+ * read from what is served, never from the recording.
+ */
+async function timelineOnlyWeek(request: APIRequestContext) {
+  const served = ((await (await request.get(`${MOCK}/api/sorare`)).json()) as ApiResponse<Sorare>).data!;
+  return served.timeline.find(
+    (item) =>
+      !served.weeks.some((week) => week.gameweek.id === item.id) &&
+      !grid.matchdays.some((matchday) => matchday.date_from?.slice(0, 10) === item.start.slice(0, 10)),
+  )!;
+}
 
 /** The weeks Play offers, worked out the way the app does from what the mock serves (its dates move every day). */
 async function playWeeks(request: APIRequestContext): Promise<Week[]> {
@@ -107,7 +116,8 @@ async function fakeExtension(page: Page, fixtureSlugs: string[]) {
   );
 }
 
-test("entered Sorare lineups sit at the top of the gameweek they belong to", async ({ page }) => {
+test("entered Sorare lineups sit at the top of the gameweek they belong to", async ({ page, request }) => {
+  const timelineOnly = await timelineOnlyWeek(request);
   await fakeExtension(page, [planned.gameweek.slug, timelineOnly.slug]);
 
   await page.goto("/play");

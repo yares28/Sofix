@@ -182,10 +182,21 @@
   /** The heading Sorare puts over a list of cards to pick from: "Select your Goalkeeper". */
   const isPickHeading = (text) => typeof text === "string" && /^\s*select your\b/i.test(text);
 
+  // Sorare names each gameweek by the dates it covers ("football-25-29-sep-2026", "football-28-aug-1-sep-2026"). When a page's
+  // address carries one, that is the gameweek the cards on it are about; a month and a year are required so that nothing
+  // merely called football is taken for one.
+  const FIXTURE = /(?<![a-z0-9])football(?:-[a-z0-9]+)*-(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)-20\d{2}(?![a-z0-9])/i;
+
+  /** The gameweek slug in an address, lower-cased, or null when the address names none. */
+  function fixtureOf(url) {
+    const found = typeof url === "string" ? FIXTURE.exec(url) : null;
+    return found ? found[0].toLowerCase() : null;
+  }
+
   root.__sofixCore = {
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
     chanceLabel, DOUBTFUL, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, agoLabel, STALE_HOURS, staleness, topThree,
-    isPickHeading,
+    isPickHeading, fixtureOf,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;
 })(typeof globalThis !== "undefined" ? globalThis : this);

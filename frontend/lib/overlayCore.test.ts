@@ -26,6 +26,7 @@ type Core = {
   staleness: (entry: { at?: string; over?: boolean }, nowMs: number) => { kind: "over" | "old"; hours: number } | null;
   topThree: (items: { key: string; x: number }[]) => Map<string, number>;
   isPickHeading: (text: unknown) => boolean;
+  fixtureOf: (url: unknown) => string | null;
 };
 const core = createRequire(import.meta.url)("../../extension/core.js") as Core;
 
@@ -279,5 +280,36 @@ describe("deciding what to do with a number (O7)", () => {
   it("knows the heading of a pick list: \"Select your Goalkeeper\", in any case, and nothing that merely contains it", () => {
     for (const yes of ["Select your Goalkeeper", "  select your defender ", "SELECT YOUR FORWARD"]) expect(core.isPickHeading(yes), yes).toBe(true);
     for (const no of ["Your lineup", "Please select your Goalkeeper", "Selected", "", undefined, null]) expect(core.isPickHeading(no), String(no)).toBe(false);
+  });
+});
+
+describe("the gameweek a Sorare page is about (O7)", () => {
+  it("reads Sorare's fixture slug out of the address, in the path or in the query, in any case", () => {
+    expect(core.fixtureOf("https://sorare.com/football/so5/lineup/football-25-29-sep-2026/abc")).toBe("football-25-29-sep-2026");
+    expect(core.fixtureOf("https://sorare.com/football/play?so5Fixture=football-2-6-oct-2026&x=1")).toBe("football-2-6-oct-2026");
+    expect(core.fixtureOf("https://sorare.com/football/my-lineups/Football-25-29-SEP-2026")).toBe("football-25-29-sep-2026");
+  });
+
+  it("reads a week that runs over two months", () => {
+    expect(core.fixtureOf("https://sorare.com/x/football-28-aug-1-sep-2026/y")).toBe("football-28-aug-1-sep-2026");
+  });
+
+  it("finds nothing in an address that does not name a gameweek, and is not fooled by something merely called football", () => {
+    for (const url of [
+      "https://sorare.com/football/my-cards",
+      "https://sorare.com/football/players/jan-oblak",
+      "https://sorare.com/football/leagues/football-league-2026", // a year, but no month: not a gameweek
+      "https://sorare.com/xfootball-25-29-sep-2026",
+      "",
+      undefined,
+      null,
+      42,
+    ]) {
+      expect(core.fixtureOf(url), String(url)).toBeNull();
+    }
+  });
+
+  it("takes the first when an address names two", () => {
+    expect(core.fixtureOf("https://sorare.com/a/football-1-2-oct-2026?then=football-2-6-oct-2026")).toBe("football-1-2-oct-2026");
   });
 });

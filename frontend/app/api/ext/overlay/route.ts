@@ -2,7 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { loadGrid } from "../../../../lib/api";
 import { authorised } from "../../../../lib/extAuth";
 import { OverlayRequest, overlayNumbers } from "../../../../lib/overlay";
-import { loadSorare } from "../../../../lib/playData";
+import { weekPlan } from "../../../../lib/play";
+import { loadSorare, loadSorareWeek } from "../../../../lib/playData";
 
 // The numbers the Chrome extension draws on sorare.com's cards (extension/overlay.js). Which cards a page shows
 // is only ever sent here, to your own app; nothing goes to a third party. It reads the read models the app
@@ -19,5 +20,10 @@ export async function POST(request: NextRequest) {
   const [sorare, loaded] = await Promise.all([loadSorare(), loadGrid()]);
   if (!sorare) return NextResponse.json({ ok: false, error: "Sorare has not been synced yet." }, { status: 503, headers: NO_STORE });
 
-  return NextResponse.json({ ok: true, ...overlayNumbers(sorare, loaded.grid, parsed.data, new Date()) }, { headers: NO_STORE });
+  // A page about a finished gameweek the job kept apart (and the page no longer holds) is answered from that copy; one
+  // about a week nobody kept is answered with nothing, so no read is made for it.
+  const named = parsed.data.fixture ? sorare.timeline.find((item) => item.slug === parsed.data.fixture) : undefined;
+  const archived = named?.kept && !weekPlan(sorare, named.id) ? await loadSorareWeek(named.slug) : null;
+
+  return NextResponse.json({ ok: true, ...overlayNumbers(sorare, loaded.grid, parsed.data, new Date(), archived) }, { headers: NO_STORE });
 }

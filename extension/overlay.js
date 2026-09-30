@@ -47,6 +47,7 @@
   let askTimer = 0;
   let sending = false;
   let downUntil = 0;
+  let fixtureNow = core.fixtureOf(location.href); // the gameweek the page is about, from its address; null when it names none
 
   const now = () => Date.now();
 
@@ -166,9 +167,14 @@
     const cards = batch.filter((s) => s.startsWith("c:")).map((s) => s.slice(2));
     const players = batch.filter((s) => s.startsWith("p:")).map((s) => s.slice(2));
     sending = true;
+    const askedFor = fixtureNow;
     try {
-      chrome.runtime.sendMessage({ type: "overlay-numbers", cards, players }, (reply) => {
+      chrome.runtime.sendMessage({ type: "overlay-numbers", cards, players, fixture: askedFor }, (reply) => {
         sending = false;
+        if (askedFor !== fixtureNow) {
+          schedule(); // the page moved to another gameweek while this was out: its answer is about the last one
+          return;
+        }
         if (chrome.runtime.lastError || !reply) {
           void chrome.runtime.lastError;
           downUntil = now() + 30000; // the worker is not answering: leave it alone for a while
@@ -1054,9 +1060,22 @@
     frame = requestAnimationFrame(guard(pass));
   }
 
+  /** A page that moves to another gameweek (Sorare changes the address without a reload) must not keep the last one's numbers. */
+  function watchFixture() {
+    const here = core.fixtureOf(location.href);
+    if (here === fixtureNow) return;
+    fixtureNow = here;
+    numbers.clear();
+    asking.clear();
+    for (const record of live) clearDrawn(record); // off the screen too: a card scrolled into view later must not show the last week's
+    pageEpoch += 1;
+    lastReport = "";
+  }
+
   function pass() {
     frame = 0;
     if (!enabled) return;
+    watchFixture();
     if (scan) {
       scan = false;
       discover();
@@ -1082,11 +1101,11 @@
           seen += 1;
           if (record.ident === "done") matched += 1;
         }
-        const text = `${seen}/${matched}`;
+        const text = `${seen}/${matched}/${fixtureNow || ""}`;
         if (text === lastReport) return;
         lastReport = text;
         try {
-          chrome.runtime.sendMessage({ type: "overlay-stats", seen, matched }, () => void chrome.runtime.lastError);
+          chrome.runtime.sendMessage({ type: "overlay-stats", seen, matched, fixture: fixtureNow }, () => void chrome.runtime.lastError);
         } catch {
           dead = true;
         }
@@ -1126,6 +1145,7 @@
     );
     mutations.observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ["src", "srcset", "poster", "alt"] });
     window.addEventListener("message", onBridge);
+    window.addEventListener("popstate", schedule); // back and forward change the address: the gameweek it names may have too
     schedule();
   }
 
@@ -1137,6 +1157,7 @@
     if (resizing) resizing.disconnect();
     mutations = visibility = resizing = null;
     window.removeEventListener("message", onBridge);
+    window.removeEventListener("popstate", schedule);
     if (frame) cancelAnimationFrame(frame);
     frame = 0;
     clearTimeout(askTimer);

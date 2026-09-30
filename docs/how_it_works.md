@@ -180,7 +180,9 @@ Check (read-only Sorare verdict) → Draft (saved, not entered) → Enter (separ
 
 The published `timeline` lists every gameweek of the season so far, not only the ones with a plan: the sync pages
 Sorare's list back to this season's Game Week 1 (Sorare numbers its gameweeks all year, so last season's tail is left
-out), and only the far future is held back until Sorare opens it.
+out), and only the far future is held back until Sorare opens it. When a new season starts numbering from Game Week 1,
+last season's weeks that are still to play, or were played in the last four days, stay in the list (`sync.this_season`),
+so the last week of a season is still planned, replayed and kept.
 
 A finished gameweek's replay never changes once its scores are final, so a run keeps it: the week just played is
 replayed and planned once, at least 24 hours after it ended (`settled_replay`), together with its best lineups in
@@ -188,9 +190,20 @@ hindsight (the planner on `hindsight_forecasts`: who played, what each scored, n
 cut scores). The same run writes it whole to `read_models` under `sorare_week:<slug>`, once, and marks it `kept` in the
 timeline, which later runs carry forward. Play reads such a week from there when it is opened.
 
+Final also means complete. When a question to Sorare about that week got no answer (a competition that could not be read,
+what a competition paid, a player whose scores could not be read), the snapshot lists it in `pastGaps`, the replay is marked
+`complete: false`, and every run rebuilds it until nothing is missing; one still missing something seven days after the week
+ended is kept as it is (`publish.is_final`, `GIVE_UP`). The run's summary names what was missing under `pastGaps`.
+
+The page comes first. A run writes what the page points at (each early plan, the week just played) before the page, so a week
+it lists can always be opened, and the optional steps after or around it (early plans, Futbol Fantasy, the start-chance
+record) are tried so that a failure is logged and listed under `failed` in the summary instead of stopping the page from
+publishing. The database connection is let go before each long step, since Neon closes one left inside a transaction.
+
 Every run also writes down who says each of the owner's players will start the gameweek being planned (`app.sorare.starts`):
 Sorare's own odds, Sofix's model from form alone, and Futbol Fantasy's expected lineups (`app.sources.futbolfantasy`: twenty
-team pages, read at most every six hours, more often in the last three before a lock). The numbers are frozen at the lock
+team pages, read at most every six hours, more often in the last three before a lock, within a 150-second budget, and it
+gives up after three unreadable pages in a row). It is done after the page is published. The numbers are frozen at the lock
 and settled by what happened a day after the gameweek ends, so `python -m app.jobs.starts` can say which source to trust.
 Nothing on screen uses them yet.
 
@@ -202,8 +215,10 @@ competitions are those of the gameweek being planned, and the forecasts stand on
 player's next game. One plan per round; each is kept as its own row (`sorare_ahead:<round>`). Planning one takes a few
 seconds with a real collection, so a run plans only the rounds with no plan yet, then the stalest (`app.sorare.early`): the
 next four rounds are kept current to six hours and the far ones to a day, at most eight a run, and the others keep showing
-the plan they have. Sorare's own numbers replace an early plan the moment it opens the week. It cannot be applied: nothing
-exists to enter yet.
+the plan they have. A stored plan is reused only when it was made for the round's dates as the calendar holds them now
+(`early.planned_for`), so a new season that reuses the round numbers is planned again rather than shown with last season's
+opponents. Sorare's own numbers replace an early plan the moment it opens the week. It cannot be applied: nothing exists to
+enter yet.
 
 What Sorare's public API allows, read without a key on 2026-09-29. Its schema downloads from
 `https://api.sorare.com/graphql/schema` (introspection itself is off), which is how a new operation is checked offline

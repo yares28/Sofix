@@ -46,7 +46,9 @@ Payload version 7 contains account/freshness, gameweek mapping, card collection/
 with the best lineups in hindsight (`hindsight`: one plan built knowing every score, priced by what really paid, no Rooms)
 and cached LaLiga player/market index. `timeline` lists every gameweek of the season so far; an item carries `kept`
 (with `playing` and `won`, its headline) once the job wrote that week whole to its `sorare_week:<slug>` row, which
-happens once its scores are final (24 hours after it ends). `projected` lists a headline (`round`, `from`, `to`, `cards`,
+happens once its scores are final (24 hours after it ends) and nothing it was built from was missing: a replay carries
+`complete: false` while Sorare left a question about that week unanswered, and is rebuilt until it does not (or seven
+days have passed). `projected` lists a headline (`round`, `from`, `to`, `cards`,
 `plans`) for each LaLiga round Sorare has not opened a gameweek for; the early plan itself (`sorare_ahead:<round>`, a
 gameweek payload with `projected: {round, basedOn}`) is read only when that week is opened. Each player game names both the actual participating side and opponent, so a
 national-team fixture is never labelled with the player's club. `sorare_references` preserves reusable rule/calendar structures. `extension`

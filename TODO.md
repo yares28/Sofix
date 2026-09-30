@@ -263,3 +263,15 @@ plan for it."
 than Classic (Pro, T3); Super Rare and Unique competitions (filtered out); gameweeks beyond the ones Sorare has opened
 (batch 1, steps 2–4); your entered lineups' scores, ranks and rewards (batch 1, step 3); levels and progress. Each
 gap then becomes its own entry here.
+
+### Small things the review before the first push left open
+Found by an independent read of the batch-1 commits (2026-09-30); the ones that could cost you a page or a wrong
+number were fixed (the Futbol Fantasy time budget, the page written last, a week made final only when complete,
+early plans that belong to another season, the hindsight label, the no-plan wording). What is left is small:
+
+- **A postponed game is its own early round** (LaLiga MD3 with one game left in December), and it takes one of the four
+  six-hour refresh slots meant for the nearest rounds. Harmless; ordering those slots by date would fix it.
+- **A fourth open Sorare week gets no plan.** Sofix plans the next three Sorare gameweeks; an early plan skips any
+  round inside a week Sorare has opened. Play now says so and still shows your lineups. Rare: Sorare opens about three.
+- **The overlay may rank any gallery of four or more cards** that sits under a short text starting "Select your". It only
+  reads, at most twice a second, so the cost is nil; it would show as a stray #1 to #3.

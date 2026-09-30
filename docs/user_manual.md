@@ -189,7 +189,8 @@ is meaningful only when the forecast was stored before lock. Actuals do not retr
 Choose **After the games** on a played week: each plan shows what it won against what it was expected to win (the
 expected numbers are a replay, built from form as it stood before the lock, not the Sorare-informed plan you saw then).
 The last tab, **In hindsight**, is the best way to have spread your cards over that week's competitions knowing every
-score: the most it could have won, against the scores that really paid that week. It uses the cards you own today, leaves
+score: the most Sofix found it could have won, against the scores that really paid that week. It is the best result of a
+search, not a proven maximum, so one of your own lineups can occasionally beat it. It uses the cards you own today, leaves
 Rooms out (a Room depends on nine other managers' lineups), and never names an expected number, because there is none.
 
 A LaLiga round Sorare has not opened yet (LaLiga GW36 in May, say) opens as an **early plan**: a plain note says so,
@@ -197,9 +198,12 @@ and it is built from the LaLiga calendar for your cards' games, their recent for
 being planned, with one plan and no Apply button. It is a first guess: your cards as they are today, no start odds, and
 competitions Sorare may change. It moves each refresh, and Sorare's own numbers replace it when the week opens.
 
-Every gameweek is **kept** once its scores are final (a day after it ends) and stays in the picker with its replay
-and hindsight, however old. A week played before Sofix started keeping them is marked **not recorded**; it still opens,
-to the lineups you entered and what they won, read from Sorare.
+Every gameweek is **kept** once its scores are final (a day after it ends, and once everything it was built from could
+be read from Sorare) and stays in the picker with its replay and hindsight, however old. A week played before Sofix started
+keeping them is marked **not recorded**; it still opens, to the lineups you entered and what they won, read from Sorare.
+
+A week Sofix holds no plan for says why, and still shows your lineups for it: one being played is locked, so there is
+nothing left to plan; one further off than the next three Sorare gameweeks gets its plan once it is one of them.
 
 ## 8. Apply a lineup
 

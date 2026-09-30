@@ -1,0 +1,34 @@
+name: Refresh near a lock
+
+# The last hours before a Sorare gameweek locks are when the team news counts, and Futbol Fantasy's lineups change daily, so
+# the scheduled refresh is not often enough then. Every 30 minutes this asks Sorare's public API when the next lock is (one
+# query, no database) and, when it is under three hours away and no refresh started in the last 25 minutes, starts the
+# refresh workflow. GitHub lets a workflow_dispatch made with the workflow's own token start another workflow. The repo is
+# public, so the minutes are free; the odds call stays throttled to 6 hours, so it costs no Odds API credits. Cron is UTC.
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write # to start the refresh workflow; nothing else
+  contents: read
+
+concurrency:
+  group: near-lock
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Is a lock near?
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+      - name: Check the next lock
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          SORARE_API_KEY: ${{ secrets.SORARE_API_KEY }} # optional: it only raises the rate limit
+        run: python3 .github/scripts/near_lock.py

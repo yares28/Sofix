@@ -25,7 +25,7 @@ on:
       trigger:
         description: Who started this run
         type: choice
-        options: [cli, button]
+        options: [cli, button, schedule] # `schedule` is for the near-lock workflow, which starts runs like the cron does
         default: cli
 
 permissions:

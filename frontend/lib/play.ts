@@ -155,6 +155,32 @@ export type PlayerGame = {
   opponentCrest: string | null;
   venue: "H" | "A";
   odds?: GameOdds;
+  /**
+   * His chance of starting this game and of coming on in it, once Futbol Fantasy speaks about one of his games
+   * (plans/futbolfantasy.md): every game of such a player carries them, each with the source of its number. Absent
+   * for a player it says nothing about, whose one chance for the week (`PlayingPlayer.pStart`) stands.
+   */
+  pStart?: number;
+  pOn?: number;
+  startSource?: StartSource;
+  /** When Futbol Fantasy's number was read (ISO), what its page says of him, its match page, his id there, and when that team's lineup last changed. */
+  startAt?: string;
+  ffStatus?: FfStatus;
+  ffMatch?: { id: number; url: string };
+  ffPlayer?: string;
+  ffChanged?: string;
+};
+
+/** Whose number a start chance is: Futbol Fantasy's expected lineup, else Sorare's own odds, else the app's from his form. */
+export type StartSource = "futbolfantasy" | "sorare" | "sofix";
+
+export type FfStatus = {
+  kind?: "out" | "doubt" | "available" | "suspended";
+  cause?: string;
+  since?: string;
+  note?: string;
+  international?: boolean;
+  yellows?: number;
 };
 
 export type PlayingPlayer = {

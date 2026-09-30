@@ -166,6 +166,51 @@ describe("overlayNumbers", () => {
     expect(entry).toMatchObject({ x: 54.5, p: 0.94, start: 58.2, bench: 12.6, pStart: 0.78, pOn: 0.12 });
   });
 
+  describe("his chance of starting the game the tile shows, when the job told it game by game", () => {
+    const told = (over: Partial<PlayerGame> = {}) =>
+      game({ pStart: 0.9, pOn: 0.05, startSource: "futbolfantasy", startAt: "2026-10-08T09:00:00+00:00", ...over });
+    const entryOf = (one: PlayingPlayer, when: Date = NOW) => overlayNumbers(sorare([one]), grid, ask({ players: ["unai-simon"] }), when).players["unai-simon"]!;
+
+    it("is that game's own, with whose number it is and when it was read, instead of the week's", () => {
+      const one = player({ start: 58.2, bench: 12.6, pStart: 0.78, pOn: 0.12, games: [told({ ffStatus: { kind: "doubt", note: "Duda para la jornada 8" } })] });
+      expect(entryOf(one)).toMatchObject({
+        start: 58.2,
+        bench: 12.6,
+        pStart: 0.9,
+        pOn: 0.05,
+        startSource: "futbolfantasy",
+        startAt: "2026-10-08T09:00:00+00:00",
+        ffStatus: { kind: "doubt", note: "Duda para la jornada 8" },
+      });
+    });
+
+    it("follows the game the tile moves on to in a double gameweek", () => {
+      const one = player({
+        start: 58.2,
+        bench: 12.6,
+        pStart: 0.9,
+        pOn: 0.05,
+        games: [told({ kickoff: "2026-10-08T19:00:00+00:00" }), told({ kickoff: "2026-10-12T19:00:00+00:00", pStart: 0.2, pOn: 0.3, startSource: "sofix", startAt: undefined })],
+      });
+      expect(entryOf(one, new Date("2026-10-08T12:00:00Z"))).toMatchObject({ pStart: 0.9, startSource: "futbolfantasy" });
+      const later = entryOf(one, new Date("2026-10-09T12:00:00Z"));
+      expect(later).toMatchObject({ pStart: 0.2, pOn: 0.3, startSource: "sofix" });
+      expect(later).not.toHaveProperty("startAt");
+    });
+
+    it("leaves the week's chance alone, with no source to name, for a player the job told nothing game by game", () => {
+      const one = player({ start: 58.2, bench: 12.6, pStart: 0.78, pOn: 0.12 });
+      const entry = entryOf(one);
+      expect(entry).toMatchObject({ pStart: 0.78, pOn: 0.12 });
+      for (const key of ["startSource", "startAt", "ffStatus"]) expect(entry).not.toHaveProperty(key);
+    });
+
+    it("names no source without the two scores it splits, which a payload from before them does not carry", () => {
+      const entry = entryOf(player({ games: [told()] }));
+      for (const key of ["start", "bench", "pStart", "pOn", "startSource"]) expect(entry).not.toHaveProperty(key);
+    });
+  });
+
   it("leaves the two scores out for a payload published before they existed, rather than inventing them", () => {
     const entry = overlayNumbers(sorare([player()]), grid, ask({ players: ["unai-simon"] }), NOW).players["unai-simon"]!;
     for (const key of ["start", "bench", "pStart", "pOn"]) expect(entry).not.toHaveProperty(key);

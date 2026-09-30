@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { NATIONAL_COMPETITION, clubKey, sideOutlook, type SideOutlook } from "./home";
-import { nextWeek, waitingFor, weekPlan, type GameweekPlan, type PlayerGame, type PlayingPlayer, type Sorare } from "./play";
+import { nextWeek, waitingFor, weekPlan, type FfStatus, type GameweekPlan, type PlayerGame, type PlayingPlayer, type Sorare, type StartSource } from "./play";
 import type { Bucket, FixtureGrid } from "./types";
 
 /**
@@ -71,6 +71,13 @@ export type OverlayEntry = {
   bench?: number;
   pStart?: number;
   pOn?: number;
+  /**
+   * Whose number `pStart` is, when it was read and what the page says of him, for the hover. Only when the job told his
+   * game game by game (Futbol Fantasy spoke about it); the other entries have no source to name yet.
+   */
+  startSource?: StartSource;
+  startAt?: string;
+  ffStatus?: FfStatus;
   /** His expected goals in this game if he starts. Absent when Understat has nothing on him: the tile says "xG -". */
   xg?: number;  /**
    * What the best plan does with the cards he is on, by card slug: the lineup it uses each in, and whether he captains it.
@@ -179,14 +186,25 @@ function entryFor(
   at: string,
   inPlan: OverlayEntry["inPlan"],
 ): OverlayEntry {
-  const split =
-    player.start !== undefined && player.bench !== undefined && player.pStart !== undefined && player.pOn !== undefined
-      ? { start: player.start, bench: player.bench, pStart: player.pStart, pOn: player.pOn }
-      : {};
   const game = gameFor(player, outlook, now);
   const xg = xgFor(player, game, now);
   const shown = shownGame(player.games, now);
   const over = shown !== null && Date.parse(shown.kickoff) <= now.getTime();
+  // The chance of the game the tile shows: its own when the job told it game by game (Futbol Fantasy spoke about one of his
+  // games), else the one for the week, as before. Either is used only with the two scores it splits.
+  const told = shown && shown.pStart !== undefined && shown.pOn !== undefined ? shown : null;
+  const pStart = told?.pStart ?? player.pStart;
+  const pOn = told?.pOn ?? player.pOn;
+  const hasSplit = player.start !== undefined && player.bench !== undefined && pStart !== undefined && pOn !== undefined;
+  const split = hasSplit ? { start: player.start, bench: player.bench, pStart, pOn } : {};
+  const source =
+    told && told.startSource
+      ? {
+          startSource: told.startSource,
+          ...(told.startAt ? { startAt: told.startAt } : {}),
+          ...(told.ffStatus ? { ffStatus: told.ffStatus } : {}),
+        }
+      : {};
   return {
     x: player.x,
     p: player.p,
@@ -195,6 +213,7 @@ function entryFor(
     at,
     game,
     ...split,
+    ...(hasSplit ? source : {}),
     ...(xg !== undefined ? { xg } : {}),
     ...(inPlan ? { inPlan } : {}),
     ...(over ? { over: true as const } : {}),

@@ -67,6 +67,7 @@ const NUMBERS = {
       x: 47.2, p: 0.31, average: 50, pos: "DEF", at: ELEVEN_HOURS_AGO, start: 52.6, bench: 8.4, pStart: 0.31, pOn: 0.3,
       startSource: "futbolfantasy", startAt: "2026-10-09T14:56:00Z", ffStatus: { kind: "doubt", since: "Desde 12/09 (18 días)" },
       sources: { futbolfantasy: 0.31, sorare: 0.4, sofix: 0.35 },
+      ffMatch: { id: 22502, url: "https://www.futbolfantasy.com/partidos/22502-real-sociedad-deportivo" }, ffPlayer: "2802", benchedOn: 0.435,
       game: { win: 0.38, cleanSheet: 0.22, difficulty: 58.4, bucket: 3, label: "Even", source: "sorare" },
     },
     "lionel-messi": {
@@ -112,6 +113,7 @@ const NUMBERS = {
 const PLAN = { state: "ready", week: 17, lineups: 1, x: 417, comp: "All Star", pics: [1, 2, 3, 4, 7].map(picture), pAny: 0.16, essence: 55, cardsUsed: 9, cardsAvailable: 87 };
 
 type Mode = "ok" | "auth" | "unreachable";
+type Live = Record<string, { at: string; players: Record<string, { p: number; lesion: number }> }>;
 type Probe = { sent: { type: string; cards?: string[]; players?: string[]; fixture?: string | null }[]; opened: string[]; setOverlay: (value: boolean) => void };
 
 /** The gameweek Sofix is planning, as a page would name it in its address; any other gameweek has no numbers in these tests. */
@@ -120,7 +122,7 @@ const OLD_WEEK = "football-18-22-sep-2026";
 
 async function openPage(
   page: Page,
-  options: { mode?: Mode; overlay?: boolean; delay?: number; viewport?: { width: number; height: number }; query?: string } = {},
+  options: { mode?: Mode; overlay?: boolean; delay?: number; viewport?: { width: number; height: number }; query?: string; live?: Live } = {},
 ) {
   const mode = options.mode ?? "ok";
   if (options.viewport) await page.setViewportSize(options.viewport);
@@ -156,6 +158,8 @@ async function openPage(
       };
       (window as unknown as { __sfx: unknown }).__sfx = probe;
       const answer = (message: { type: string; cards?: string[]; players?: string[]; fixture?: string | null }) => {
+        // What the worker answers for Futbol Fantasy read live: nothing unless a test gives it a reading.
+        if (message.type === "ff-live") return config.mode === "ok" ? { state: "ok", live: config.live } : { state: config.mode };
         if (message.type === "overlay-plan") return config.mode === "ok" ? { state: "ok", plan: config.plan } : { state: config.mode };
         if (message.type !== "overlay-numbers") return undefined;
         if (config.mode !== "ok") return { state: config.mode };
@@ -183,7 +187,7 @@ async function openPage(
         },
       };
     },
-    { mode, overlay: options.overlay ?? true, numbers: NUMBERS, plan: PLAN, delay: options.delay ?? 15, thisWeek: THIS_WEEK },
+    { mode, overlay: options.overlay ?? true, numbers: NUMBERS, plan: PLAN, delay: options.delay ?? 15, thisWeek: THIS_WEEK, live: options.live ?? {} },
   );
   for (const file of ["core.js", "bridge.js", "content.js", "overlay.js", "drawer.js"]) await page.addInitScript({ path: path.join(EXTENSION, file) });
 
@@ -657,7 +661,7 @@ test.describe("the sorare.com overlay", () => {
 
     // Nothing it sends is a step that writes to Sorare.
     const kinds = new Set((await probe(page)).sent.map((message) => message.type));
-    expect([...kinds].filter((kind) => !["overlay-numbers", "overlay-plan", "overlay-stats", "open-app", "sorare-user"].includes(kind))).toEqual([]);
+    expect([...kinds].filter((kind) => !["overlay-numbers", "overlay-plan", "overlay-stats", "open-app", "sorare-user", "ff-live"].includes(kind))).toEqual([]);
   });
 
   test("says what the site says is wrong with him only when it does, and keeps who says it behind one button", async ({ page }) => {
@@ -690,6 +694,44 @@ test.describe("the sorare.com overlay", () => {
     await expect(panel(page)).toHaveCount(0);
     await tileOf(page, "abroad").hover(); // nothing wrong with him: no alert
     await expect(panel(page).getByRole("status")).toHaveCount(0);
+  });
+
+  test("redraws a tile with what Futbol Fantasy says now, read live, and says so in the panel", async ({ page }) => {
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60_000).toISOString();
+    await openPage(page, { live: { "22502": { at: twoMinutesAgo, players: { "2802": { p: 0.8, lesion: -1 } } } } });
+    await settled(page);
+    await page.waitForTimeout(1200);
+
+    // The job had him at 31% and in doubt; the site now has him at 80% and fit.
+    const doubtful = tileOf(page, "doubtful");
+    await expect(doubtful.locator(".sfx-starts b")).toHaveText("80%");
+    await expect(doubtful.locator(".sfx-starts")).not.toHaveClass(/sfx-doubt/);
+    await expect(doubtful.locator(".sfx-src--futbolfantasy")).toHaveCount(1);
+    await expect(doubtful).toHaveAttribute("aria-label", /He starts 80% of the time \(FF\)\./);
+    await expect(doubtful).not.toHaveClass(/sfx-tile--doubt/);
+    expect(await text(page, "doubtful")).toEqual(["53", "FDR", "58", "80%"]); // his score if he starts does not move
+
+    await doubtful.hover();
+    await expect(panel(page)).toContainText("FF live 2 min ago");
+    await expect(panel(page).locator(".sfx-chance")).toContainText("80%");
+    await expect(panel(page).getByRole("status")).toHaveCount(0); // no longer a doubt
+    await panel(page).getByRole("button", { name: "SOURCES" }).click();
+    await expect(panel(page).locator(".sfx-sources-list li").first()).toContainText("80%");
+    await expect(panel(page).locator(".sfx-sources-list li").nth(1)).toContainText("40%"); // what SO said stays
+
+    // It asked once, for the match the cards on screen are about, and named nothing else.
+    const asked = (await probe(page)).sent.filter((message) => message.type === "ff-live") as unknown as { matches: { id: number; url: string }[] }[];
+    expect(asked).toHaveLength(1);
+    expect(asked[0]!.matches).toEqual([{ id: 22502, url: "https://www.futbolfantasy.com/partidos/22502-real-sociedad-deportivo" }]);
+  });
+
+  test("keeps the job's numbers when the live read says nothing", async ({ page }) => {
+    await openPage(page);
+    await settled(page);
+    await page.waitForTimeout(1200);
+
+    expect(await text(page, "doubtful")).toEqual(["53", "FDR", "58", "31%"]);
+    await expect(tileOf(page, "doubtful")).toHaveClass(/sfx-tile--doubt/);
   });
 
   test("opens from the keyboard and closes with Escape, giving the focus back to the tile", async ({ page }) => {
@@ -880,7 +922,7 @@ test.describe("the sorare.com overlay", () => {
 
     // It shows and opens things. Nothing it sends is a step that writes to Sorare.
     const kinds = new Set((await probe(page)).sent.map((message) => message.type));
-    expect([...kinds].filter((kind) => !["overlay-numbers", "overlay-plan", "overlay-stats", "open-app", "sorare-user"].includes(kind))).toEqual([]);
+    expect([...kinds].filter((kind) => !["overlay-numbers", "overlay-plan", "overlay-stats", "open-app", "sorare-user", "ff-live"].includes(kind))).toEqual([]);
   });
 
   test("says so when the app cannot be reached, and still opens it", async ({ page }) => {

@@ -95,6 +95,8 @@ class Forecast:
     # source mark and the overlay's list. Every source that has a number is in `by_source`; the page shows one.
     start_source: str | None = None
     by_source: dict[str, float] = field(default_factory=dict)
+    # Of the games he does not start, how often he still plays: what a changed start chance is split with (the extension uses it).
+    benched_on: float | None = None
 
 
 @dataclass(frozen=True)

@@ -147,3 +147,35 @@ def test_a_card_in_a_lineup_carries_his_start_chance_its_source_and_what_the_sit
     assert all(c["pStart"] == 0.5 and c["startSource"] == "futbolfantasy" and c["ffKind"] == "doubt" for c in mine)
     others = [c for c in cards if c["player"] != "mid-one"]
     assert all(c["startSource"] in ("sorare", "sofix") and "ffKind" not in c for c in others)
+
+
+# ---------------------------------------------------------------------------- the formula the extension shares
+def test_the_chance_of_coming_on_follows_the_chance_of_starting_as_the_extension_computes_it() -> None:
+    """extension/core.js (liveSplit) reads the same cases: the two must agree to the last digit shown."""
+    import json
+    from pathlib import Path
+
+    from app.sorare.forecast import PlayerWeek, Split, _per_game
+
+    cases = json.loads((Path(__file__).parent / "fixtures" / "live_start_cases.json").read_text("utf-8"))["cases"]
+    for case in cases:
+        live = case["live"]
+        week = PlayerWeek(
+            games=1,
+            game_ids=["g"],
+            game_starts=[GameStart("g", live["p"], out=live["lesion"] == 0)],
+        )
+        split = Split(start=50.0, bench=10.0, p_start=0.5, p_on=0.1, benched_on=case["benchedOn"])
+
+        chances, _ = _per_game(week, split, plays=0.6)
+
+        assert round(chances[0].p_start, 3) == pytest.approx(case["expect"]["pStart"], abs=5e-4), case["name"]
+        assert round(chances[0].p_on, 3) == pytest.approx(case["expect"]["pOn"], abs=5e-4), case["name"]
+
+
+def test_the_rate_he_comes_on_at_goes_with_the_player_so_the_extension_need_not_work_it_out() -> None:
+    week = page(told)
+    mid = players(week)["mid-one"]
+
+    assert 0 <= mid["benchedOn"] <= 1
+    assert mid["pOn"] == pytest.approx((1 - mid["pStart"]) * mid["benchedOn"], abs=2e-3)

@@ -211,6 +211,26 @@ describe("overlayNumbers", () => {
       for (const key of ["startSource", "sources", "startAt", "ffStatus"]) expect(entry).not.toHaveProperty(key);
     });
 
+    it("carries where to read his game live, and the rate he comes on at, for the extension", () => {
+      const one = player({
+        start: 58.2,
+        bench: 12.6,
+        pStart: 0.78,
+        pOn: 0.12,
+        benchedOn: 0.3,
+        games: [told({ ffMatch: { id: 22502, url: "https://www.futbolfantasy.com/partidos/22502-real-sociedad-deportivo" }, ffPlayer: "2675" })],
+      });
+      expect(entryOf(one)).toMatchObject({ ffMatch: { id: 22502, url: "https://www.futbolfantasy.com/partidos/22502-real-sociedad-deportivo" }, ffPlayer: "2675", benchedOn: 0.3 });
+    });
+
+    it("has nothing to read live for a game that has kicked off, or that the site did not tell", () => {
+      const live = { ffMatch: { id: 1, url: "https://www.futbolfantasy.com/partidos/1" }, ffPlayer: "9" };
+      const started = entryOf(player({ start: 58.2, bench: 12.6, pStart: 0.78, pOn: 0.12, games: [told({ kickoff: "2026-10-07T19:00:00+00:00", ...live })] }));
+      expect(started).not.toHaveProperty("ffMatch");
+      const untold = entryOf(player({ start: 58.2, bench: 12.6, pStart: 0.78, pOn: 0.12 }));
+      for (const key of ["ffMatch", "ffPlayer"]) expect(untold).not.toHaveProperty(key);
+    });
+
     it("carries what each source says beside the one it shows", () => {
       const one = player({ start: 58.2, bench: 12.6, pStart: 0.78, pOn: 0.12, sources: { futbolfantasy: 0.9, sorare: 0.78, sofix: 0.6 }, games: [told()] });
       expect(entryOf(one).sources).toEqual({ futbolfantasy: 0.9, sorare: 0.78, sofix: 0.6 });

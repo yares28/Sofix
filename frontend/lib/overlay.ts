@@ -80,6 +80,13 @@ export type OverlayEntry = {
   ffStatus?: FfStatus;
   /** What each source says of his first game (Futbol Fantasy's only when it has one): the panel's list of sources. */
   sources?: Partial<Record<StartSource, number>>;
+  /**
+   * What the extension needs to read Futbol Fantasy live for him (plans/futbolfantasy.md, S7): the match page of the game the tile
+   * shows and his number on it, and the rate at which he comes on in games he does not start.
+   */
+  ffMatch?: { id: number; url: string };
+  ffPlayer?: string;
+  benchedOn?: number;
   /** His expected goals in this game if he starts. Absent when Understat has nothing on him: the tile says "xG -". */
   xg?: number;
   /**
@@ -206,6 +213,8 @@ function entryFor(
     ...(told?.startSource && told.startAt ? { startAt: told.startAt } : {}),
     ...(told?.startSource && told.ffStatus ? { ffStatus: told.ffStatus } : {}),
     ...(player.sources ? { sources: player.sources } : {}),
+    ...(told?.ffMatch && told.ffPlayer && over === false ? { ffMatch: told.ffMatch, ffPlayer: told.ffPlayer } : {}),
+    ...(player.benchedOn !== undefined ? { benchedOn: player.benchedOn } : {}),
   };
   return {
     x: player.x,

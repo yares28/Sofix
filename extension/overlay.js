@@ -44,6 +44,14 @@
   const live = new Set(); // the records being drawn; the WeakMap alone cannot be walked
   const numbers = new Map(); // "p:slug" | "c:slug" -> { at, entry | null }
   const asking = new Set(); // slugs the app has been asked about and has not answered
+  // Futbol Fantasy read live (plans/futbolfantasy.md, S7): the last reading of each match page the cards on screen are about. The
+  // worker reads a page at most every 10 minutes whatever is asked; this only remembers what it said and asks again every few.
+  const liveByMatch = new Map(); // match number -> { at, players }
+  const LIVE_POLL_MS = 5 * 60 * 1000;
+  const LIVE_MATCHES = 8; // pages one ask may name: a lineup page rarely shows more games than this
+  let liveTimer = 0;
+  let liveAsking = false;
+  let liveKey = ""; // the matches last asked about, so a new card scrolling into view asks at once and a quiet page does not
   let askTimer = 0;
   let sending = false;
   let downUntil = 0;
@@ -149,7 +157,63 @@
   function entryOf(record) {
     const slug = slugOf(record);
     const held = slug && numbers.get(slug);
-    return held && now() - held.at < NUMBERS_TTL_MS ? held : null;
+    return held && now() - held.at < NUMBERS_TTL_MS ? withLive(held) : null;
+  }
+
+  /**
+   * The answer with Futbol Fantasy's latest reading of his game applied, when there is one: his chance of starting and of
+   * coming on, what it says of him and where, and nothing else (the plan's ticks and xScore stay as the job made them).
+   * Kept on the answer so that a card redrawn does not do the arithmetic again.
+   */
+  function withLive(held) {
+    const entry = held.entry;
+    const match = entry && entry.ffMatch;
+    const reading = match && liveByMatch.get(String(match.id));
+    const player = reading && reading.players[entry.ffPlayer];
+    if (!player) return held;
+    if (held.merged && held.mergedAt === reading.at) return held.merged;
+    const patch = core.liveSplit(entry, player, new Date(reading.at).toISOString());
+    if (!patch) return held;
+    held.mergedAt = reading.at;
+    held.merged = { at: held.at, entry: { ...entry, ...patch } };
+    return held.merged;
+  }
+
+  /** Ask the worker for the match pages the cards on screen are about; it reads each at most every 10 minutes. */
+  function wantLive(force) {
+    if (!enabled || dead || liveAsking || appState !== "ok") return;
+    const matches = new Map();
+    for (const record of live) {
+      if (record.ident !== "done" || !record.visible) continue;
+      const slug = slugOf(record);
+      const held = slug && numbers.get(slug);
+      const match = held && held.entry && held.entry.ffMatch;
+      if (match && matches.size < LIVE_MATCHES) matches.set(match.id, { id: match.id, url: match.url });
+    }
+    const key = [...matches.keys()].sort().join(",");
+    if (!key || (!force && key === liveKey)) return;
+    liveKey = key;
+    liveAsking = true;
+    try {
+      chrome.runtime.sendMessage({ type: "ff-live", matches: [...matches.values()] }, (reply) => {
+        liveAsking = false;
+        if (chrome.runtime.lastError || !reply || reply.state !== "ok") {
+          void chrome.runtime.lastError;
+          return;
+        }
+        guard(() => {
+          for (const [id, reading] of Object.entries(reply.live || {})) {
+            const at = Date.parse(reading && reading.at);
+            if (!Number.isNaN(at) && reading.players) liveByMatch.set(id, { at, players: reading.players });
+          }
+          schedule();
+        })();
+      });
+    } catch {
+      liveAsking = false;
+      dead = true;
+      stop();
+    }
   }
 
   function wantNumbers() {
@@ -192,6 +256,7 @@
           }
           for (const slug of batch) asking.delete(slug);
           schedule();
+          if (appState === "ok") setTimeout(guard(() => wantLive(false)), 600);
         })();
       });
     } catch {
@@ -395,7 +460,7 @@
     if (stale) more.push(stale.kind === "over" ? "His game has started, so these numbers are about a game no longer ahead." : `These numbers are ${stale.hours} h old.`);
     const label = describe(f, more);
     const shownRank = tier === "full" ? rank || 0 : 0;
-    const sig = [size, f.score, f.split, f.startChance, f.tone, f.source, f.driver, f.xg, entry.pos, f.game && `${f.game.difficulty}:${f.game.bucket}`, scoreColour, driveColour, stale && stale.kind, plan && `${plan.lineup}:${plan.captain}`, shownRank].join("|");
+    const sig = [size, f.score, f.split, f.startChance, f.tone, f.source, entry.live && entry.startAt, f.driver, f.xg, entry.pos, f.game && `${f.game.difficulty}:${f.game.bucket}`, scoreColour, driveColour, stale && stale.kind, plan && `${plan.lineup}:${plan.captain}`, shownRank].join("|");
     const marks = [...(plan ? [mark(plan.captain)] : []), ...(shownRank ? [rankBadge(shownRank)] : [])];
     const staleClass = stale ? " sfx-tile--stale" : "";
 
@@ -742,8 +807,8 @@
       }
       head.append(chip);
     }
-    const age = core.agoLabel(entry.at, now());
-    if (age) head.append(node("span", "sfx-age", age));
+    const age = entry.live ? core.agoLabel(entry.startAt, now()) : core.agoLabel(entry.at, now());
+    if (age) head.append(node("span", "sfx-age", entry.live ? `FF live ${age}` : age));
     body.append(head);
     const stale = core.staleness(entry, now());
     if (stale) body.append(node("p", "sfx-note", stale.kind === "over" ? "His game has started." : `These numbers are ${stale.hours} h old.`));
@@ -1123,6 +1188,8 @@
     fixtureNow = here;
     numbers.clear();
     asking.clear();
+    liveByMatch.clear(); // another gameweek's matches are not these
+    liveKey = "";
     for (const record of live) clearDrawn(record); // off the screen too: a card scrolled into view later must not show the last week's
     pageEpoch += 1;
     lastReport = "";
@@ -1202,6 +1269,7 @@
     mutations.observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ["src", "srcset", "poster", "alt"] });
     window.addEventListener("message", onBridge);
     window.addEventListener("popstate", schedule); // back and forward change the address: the gameweek it names may have too
+    liveTimer = setInterval(guard(() => wantLive(true)), LIVE_POLL_MS);
     schedule();
   }
 
@@ -1218,6 +1286,11 @@
     frame = 0;
     clearTimeout(askTimer);
     askTimer = 0;
+    clearInterval(liveTimer);
+    liveTimer = 0;
+    liveAsking = false;
+    liveKey = "";
+    liveByMatch.clear();
     for (const record of [...live]) forget(record);
     live.clear();
     asking.clear();

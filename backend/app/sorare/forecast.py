@@ -218,6 +218,7 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
         per_game=per_game,
         start_source=start_source,
         by_source=by_source,
+        benched_on=round(split.benched_on, 3),
     )
 
 

@@ -238,6 +238,8 @@ export type PlayingPlayer = {
   /** Whose number `pStart` is, and what each of the three says of his first game (Futbol Fantasy's only when it has one). */
   startSource?: StartSource;
   sources?: Partial<Record<StartSource, number>>;
+  /** Of the games he does not start, how often he still plays: what the extension splits a changed start chance with. */
+  benchedOn?: number;
   /**
    * His xG in one game he starts, for an average game of his side, from Understat's season so far (plans/overlay.md, O11):
    * non-penalty and penalty parts, and his team's own average xG per game to scale the game by. Only a midfielder or

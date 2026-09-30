@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
 import { contrastRatio } from "./contrast";
@@ -20,6 +21,12 @@ type Core = {
   fdrLevel: (bucket: unknown) => string | null;
   driverOf: (pos: unknown) => "fdr" | "xg" | null;
   startChance: (entry: { p: number; pStart?: number }) => number;
+  ffPlayersOf: (html: unknown) => Record<string, { p: number; lesion: number }>;
+  liveSplit: (
+    entry: Record<string, unknown>,
+    live: unknown,
+    atIso: string,
+  ) => { pStart: number; pOn: number; startSource: string; startAt: string; sources: Record<string, number>; ffStatus?: { kind: string }; live: true } | null;
   OUT_CHANCE: number;
   SOURCE_SHORT: Record<string, string>;
   startTone: (entry: { p: number; pStart?: number; ffStatus?: { kind?: string } }) => "out" | "doubt" | "ok";
@@ -388,5 +395,79 @@ describe("the list of sources", () => {
     expect(core.clockLabel("2026-10-09T14:56:00Z")).toMatch(/^\d\d:\d\d$/);
     expect(core.clockLabel("not a time")).toBeNull();
     expect(core.clockLabel(undefined)).toBeNull();
+  });
+});
+
+
+describe("Futbol Fantasy's match page, read in the browser", () => {
+  const page = readFileSync(new URL("../../backend/tests/fixtures/futbolfantasy/match_real_sociedad_deportivo.html", import.meta.url), "utf8");
+
+  it("gives each player's chance and injury code by his number, as the job's own parser reads them", () => {
+    const players = core.ffPlayersOf(page);
+
+    expect(Object.keys(players).length).toBeGreaterThanOrEqual(40);
+    expect(players["2675"]).toEqual({ p: 0.9, lesion: -1 }); // Oyarzabal
+    expect(players["2802"]).toEqual({ p: 0.5, lesion: 1 }); // Zubeldia, a doubt
+    expect(players["12538"]).toEqual({ p: 0.8, lesion: -1 }); // Aramburu, called up by his country
+  });
+
+  it("agrees with the job's parser on everybody the job read", () => {
+    const parsed = JSON.parse(
+      readFileSync(new URL("../../backend/tests/fixtures/futbolfantasy/matches_round_8.json", import.meta.url), "utf8"),
+    ) as { match_id: number; home: { xi: { ff_id: string; chance: number | null; lesion: number }[] }; away: { xi: { ff_id: string; chance: number | null; lesion: number }[] } }[];
+    const match = parsed.find((item) => item.match_id === 22502)!;
+    const players = core.ffPlayersOf(page);
+
+    for (const one of [...match.home.xi, ...match.away.xi]) {
+      expect(players[one.ff_id], one.ff_id).toEqual({ p: one.chance, lesion: one.lesion });
+    }
+  });
+
+  it("gives nothing for a page that is not a lineup page, or for nothing", () => {
+    expect(core.ffPlayersOf("<html><body>Mantenimiento</body></html>")).toEqual({});
+    expect(core.ffPlayersOf(undefined)).toEqual({});
+    expect(core.ffPlayersOf('<div class="jugador_5 campo" data-onceff="titular"><a data-probabilidad="140%">')).toEqual({});
+  });
+});
+
+describe("a changed chance of starting, applied to an answer", () => {
+  const cases = JSON.parse(readFileSync(new URL("../../backend/tests/fixtures/live_start_cases.json", import.meta.url), "utf8")).cases as {
+    name: string;
+    benchedOn: number;
+    live: { p: number; lesion: number };
+    expect: { pStart: number; pOn: number };
+  }[];
+
+  it.each(cases)("$name: the same numbers as the job's", ({ benchedOn, live, expect: want }) => {
+    const done = core.liveSplit({ pStart: 0.9, pOn: 0.05, benchedOn }, live, "2026-10-09T14:56:00Z")!;
+
+    expect(done.pStart).toBeCloseTo(want.pStart, 3);
+    expect(done.pOn).toBeCloseTo(want.pOn, 3);
+    expect(done.startSource).toBe("futbolfantasy");
+    expect(done.startAt).toBe("2026-10-09T14:56:00Z");
+    expect(done.sources.futbolfantasy).toBeCloseTo(want.pStart, 3);
+  });
+
+  it("works the rate out from an answer that does not carry it", () => {
+    const done = core.liveSplit({ pStart: 0.8, pOn: 0.1 }, { p: 0.4, lesion: -1 }, "2026-10-09T14:56:00Z")!;
+
+    expect(done.pOn).toBeCloseTo(0.3, 3); // he came on in half the games he did not start: 0.6 of them are left
+  });
+
+  it("keeps what the other sources said, and the cause of an injury while the kind stays the same", () => {
+    const before = { pStart: 0.9, pOn: 0.05, benchedOn: 0.3, sources: { sorare: 0.8 }, ffStatus: { kind: "doubt", cause: "Molestias" } };
+
+    const same = core.liveSplit(before, { p: 0.5, lesion: 1 }, "2026-10-09T14:56:00Z")!;
+    expect(same.sources).toEqual({ sorare: 0.8, futbolfantasy: 0.5 });
+    expect(same.ffStatus).toEqual({ kind: "doubt", cause: "Molestias" });
+
+    expect(core.liveSplit(before, { p: 0, lesion: 0 }, "2026-10-09T14:56:00Z")!.ffStatus).toEqual({ kind: "out" });
+    expect(core.liveSplit(before, { p: 0.9, lesion: -1 }, "2026-10-09T14:56:00Z")!.ffStatus).toBeUndefined();
+  });
+
+  it("applies nothing when there is nothing to apply", () => {
+    expect(core.liveSplit({ pStart: 0.9, pOn: 0.05 }, undefined, "t")).toBeNull();
+    expect(core.liveSplit({ pStart: 0.9, pOn: 0.05 }, { p: 1.5, lesion: -1 }, "t")).toBeNull();
+    expect(core.liveSplit({ pStart: 0.9, pOn: 0.05 }, { p: Number.NaN, lesion: -1 }, "t")).toBeNull();
   });
 });

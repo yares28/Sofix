@@ -1,9 +1,36 @@
 # Sofix · what's left
 
-Two lists: what only you can do, and what I do. Updated 2026-09-29.
+Two lists: what only you can do, and what I do. Updated 2026-09-30.
 
 The phase plan lives in [docs/sorare_plan.md](docs/sorare_plan.md) and the audit in
 [docs/research_report.md](docs/research_report.md); this file is only the open ends.
+
+---
+
+## Order of work, by potential visual impact (set 2026-09-30)
+
+Widest change on screen first. Batch 1 is already on `main` and deployed (production `b84c6ba`, 30 Sep), so its row is
+"you look at it", not "ship it".
+
+| # | Item | What changes on screen | State |
+|---|---|---|---|
+| 1 | **T2 · Futbol Fantasy start %** | The "% he starts" on every tile, and through it (`p_play × mu`) every expected score, plan and captain | Collecting, on `main`; first LaLiga week is the test. [plans/starts.md](plans/starts.md) |
+| 2 | **T1 · the xScore** | Every tile's score (Giorgi 45 / Oyarzabal 43), "2 games", the bench pair, club vs national | Planning; P0 (diagnose) next. [plans/xscore.md](plans/xscore.md) |
+| 3 | **Batch 1, live** (you) | Play's every week, past weeks, early plans to GW36, the overlay fixes; then the second overlay pass | Deployed; waits for your look |
+| 4 | **T3 · Pro** | A whole competition type missing from Play's best lineups, plus level and progress | Research first |
+| 5 | **T4 · "Your gameweek" sheet** | The edge-tab panel on every sorare.com page | Design canvas first |
+| 6 | **T5 · expected score beside your lineups** | New numbers on sorare.com's lineups and compose pages | Not started |
+| 7 | **Old weeks, rebuilt** | GW1–16 (16 of 36 weeks) are "not recorded"; approximate | Optional |
+| 8 | **The plan as it stood at the lock** | A second view in kept weeks | Follow-up |
+| 9 | **Calibrate reward probabilities** | The "Reward chance" figures | Blocked on data |
+| 10 | **Sofix panel on a player page** | A large new panel | Designed, not in the plan |
+| 11 | **T6 · Sorare vs Sofix audit** | Nothing directly; produces future entries | Not started |
+| 12 | **Small things** | Stray #1–#3 on galleries, the PWA, the Refresh button, the review leftovers | Whenever |
+
+No visual impact, but they gate work: **the live Apply acceptance test** (yours, item 1 below) and **Retire SorareExt**.
+
+Work order: T1 P0 and T2 A0 start now and are independent; T2's verdict needs weeks of settled games, so T1's
+backtest runs while it accumulates. Neither model change ships in the same refresh as the other.
 
 ---
 
@@ -38,6 +65,11 @@ Chrome address bar → install. Not blocking anything.
 ### Now · fix what's broken (batch 1, planned 2026-09-29)
 From your first live look at the overlay and the issues you listed with it. Each step ships on its own and only
 on your go: local checks → push to `main` → one Sorare refresh → you look at it on your pages.
+
+**Status 2026-09-30:** steps 0–6 are pushed (`b84c6ba`), Vercel's production deployment of that commit is READY, and
+a refresh has written what they make (early plans `sorare_ahead:*`, the kept week `sorare_week:*`, `start_chances`,
+`futbolfantasy`; all updated today). "Local", "Done, local" and "Fixed locally" in the notes below mean "as built, before
+it was pushed". What is left is your look at the pages, and the overlay's second live pass.
 
 0. This file: every other issue written down in full ("Next, one at a time", below).
 1. **CI is red on `main`.** Two Play tests look for GW15 in the week panel, which shows one month at a time; near
@@ -124,6 +156,24 @@ Each gets its own plan when its turn comes; they are written down in full here s
 Issue 2 of your list, with two of its edge cases (two games in a week, "doesn't start"). It replaces "Fit and
 blind-test the Sorare xScore model".
 
+**Plan: [plans/xscore.md](plans/xscore.md), started 2026-09-30.** Findings so far, from the code and a read-only count of
+production:
+
+- **There is almost nothing to backtest on yet.** `sorare_forecasts` holds 3 gameweeks, 30 rows, 11 scored, and none of
+  its rows has Sorare's starter/substitute odds. The backtest below therefore starts from Sorare's per-game history
+  (form only, walk-forward) and adds the comparison with Sorare's projection when about 100 scored players exist. The
+  record also lacks the competition, minutes and start/bench split, so P1 adds them (one migration, with T2).
+- **The big number on a tile is "if he starts", not the expected score.** That alone makes Giorgi 45 / Oyarzabal 43 look
+  alike. Question for you (plan §6): should the big number be the expected score instead, or both?
+- **Two leads are very likely:** a player with no start in his last five gets Sorare's projection as his start score
+  (Giorgi's 45), and Oyarzabal's 54% is the form formula on five mixed club and national games (3 starts in 5 gives
+  exactly 54%), not Sorare's odds. Both are to be confirmed in P0.
+- **Correction to the edge case below:** plans already count a best-of-two bump for two games; the tile does not, says
+  nothing about two games, and the bump reuses one game's numbers.
+- **Confirmed from Sorare's help page:** a starter and a substitute who comes on both begin at 35; levels above 0 have
+  a guaranteed minimum. Which of two games counts is not on that page ("Best score chosen" is what Sorare's lineup screen
+  says) and is checked in P0.
+
 **What you said.** "How does Giorgi have an xS of 45 and Oyarzabal 43? The xS has to have more depth: depending on
 the competition a player can have different xGs. Oyarzabal has had a weird start of season, but with Spain he always
 does something, and if he starts he can have a very good game. In LaLiga Giorgi rarely starts compared to
@@ -209,9 +259,17 @@ every player with `data-nombre="pedri-gonzalez"` and `data-probabilidad="80%"`, 
 international flags and "Últ. act." (last update) times. Barcelona: 26 players, e.g. Lamine Yamal 95%, Pedri 80%,
 Cubarsí 80%, Raphinha 70%. Its percentages are for **LaLiga's next round only**, not national-team games.
 
-**Collection** is batch 1, step 6 (built, local): stored beside Sorare's and Sofix's numbers, frozen at the lock, settled by
+**Plan: [plans/starts.md](plans/starts.md), started 2026-09-30.**
+
+**Collection** is batch 1, step 6 (on `main`): stored beside Sorare's and Sofix's numbers, frozen at the lock, settled by
 what happened. It covers only players you own with a game in the gameweek being planned, so the sample grows by about a
 few dozen players a week; `python -m app.jobs.starts` says when there is enough (100 or more settled players per source).
+
+**State in production, 2026-09-30** (read-only count): `start_chances` holds 1 gameweek, 15 players, none settled, with
+Sofix's number for all 15, **Sorare's for none and Futbol Fantasy's for none.** Futbol Fantasy's none is probably because
+that week is a national-team week (it covers LaLiga's next round only); this is the thing to confirm at the first
+LaLiga week. Sorare's none matches the record above: its starter odds have never been stored, so whether they arrive at
+all is the first question (plan A0).
 
 **The comparison (this entry).** After several gameweeks, score each source against who actually started (history's
 `started`), overall and per competition. The tile then uses the best source for each case (say, Futbol Fantasy for

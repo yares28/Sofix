@@ -366,3 +366,56 @@ def test_it_waits_between_pages_and_says_who_it_is() -> None:
 
     assert waits == [2.0], "no pause before the first page, one before the second"
     assert "personal" in ffm.USER_AGENT
+
+
+# ------------------------------------------------------------------------------------------------ the squad pages
+SQUAD_URL = "https://www.futbolfantasy.com/laliga/equipos/real-sociedad/plantilla"
+
+
+def test_a_squad_page_gives_each_player_his_number_his_profile_and_his_line() -> None:
+    squad = ffm.parse_squad(page("squad_real_sociedad.html"))
+
+    assert squad is not None and squad.club_id == "16"
+    by_id = {m.ff_id: m for m in squad.members}
+    remiro = by_id["1975"]
+    assert (remiro.name, remiro.slug, remiro.line, remiro.on_loan) == ("Álex Remiro", "alex-remiro", "GK", False)
+    lines = [m.line for m in squad.members if not m.on_loan]
+    assert lines.count("GK") == 4 and lines.count("DEF") >= 10 and lines.count("MID") >= 10 and lines.count("FWD") >= 3
+    assert by_id["12538"].slug == "jon-aramburu" and by_id["12538"].line == "DEF", "the same number the match page uses"
+
+
+def test_a_player_out_on_loan_is_there_but_marked() -> None:
+    squad = ffm.parse_squad(page("squad_real_sociedad.html"))
+
+    assert squad is not None
+    loaned = [m for m in squad.members if m.on_loan]
+    assert len(loaned) == 2
+    assert {m.slug for m in loaned} >= {"javi-lopez-1", "mikel-goti"}
+    assert next(m for m in loaned if m.slug == "javi-lopez-1").line == "DEF"
+
+
+def test_a_page_that_is_not_a_squad_gives_nothing() -> None:
+    assert ffm.parse_squad("<html><body>Mantenimiento</body></html>") is None
+    assert ffm.parse_squad(page("round_laliga_8.html")) is None
+
+
+def test_the_reader_takes_each_clubs_squad_page_politely_and_names_the_one_it_could_not_read() -> None:
+    other = "https://www.futbolfantasy.com/laliga/equipos/deportivo/plantilla"
+    site = Site({SQUAD_URL: page("squad_real_sociedad.html"), other: 500})
+
+    reading = ffm.read_squads({"16": "real-sociedad", "8": "deportivo"}, client=site.client(), pause=0)
+
+    assert site.asked == [SQUAD_URL, other, other], "one retry on a server error"
+    assert list(reading.squads) == ["16"] and reading.failed == [f"{other}: HTTP 500"]
+    assert reading.stopped is None
+
+
+def test_the_squad_reader_keeps_to_its_time_budget() -> None:
+    site = Site({SQUAD_URL: page("squad_real_sociedad.html")})
+    clock = iter([0.0, 0.0, 100.0, 100.0])
+
+    reading = ffm.read_squads(
+        {"16": "real-sociedad", "8": "deportivo"}, client=site.client(), pause=0, budget=60, clock=lambda: next(clock)
+    )
+
+    assert list(reading.squads) == ["16"] and reading.stopped == "out of time"

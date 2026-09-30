@@ -452,6 +452,32 @@ def test_the_job_publishes_the_lineups_page_and_the_homes_team_news(db, monkeypa
     assert db.get(ReadModel, "ff_positions") is not None
 
 
+def test_the_job_reads_the_squad_pages_once_a_week_and_keeps_where_everyone_plays(db, monkeypatch, the_job) -> None:
+    from app.sorare import ff_lineups
+
+    home = ffm.Side(
+        **{**side("Real Sociedad", "16", xi=(player("1", "One", keeper=True),)).__dict__, "slug": "real-sociedad"}
+    )
+    away = ffm.Side(**{**side("Getafe", "8").__dict__, "slug": "getafe"})
+    monkeypatch.setattr(ffm, "read_matches", Site([match(home, away, datetime(2026, 10, 10, 14, tzinfo=UTC), 502)]))
+    asked: list[dict[str, str]] = []
+
+    def squads(clubs: Any, now: datetime | None = None, **_: Any) -> ffm.SquadReading:
+        asked.append(dict(clubs))
+        member = ffm.SquadMember("99", "Suplente Uno", "suplente-uno", "MID")
+        return ffm.SquadReading(at=now or READ, squads={club: ffm.Squad(club, (member,)) for club in clubs})
+
+    monkeypatch.setattr(ffm, "read_squads", squads)
+
+    summary = the_job.run(db, "yares", runs=1)
+    the_job.run(db, "yares", runs=1)
+
+    assert asked == [{"16": "real-sociedad", "8": "getafe"}], "a week apart, not every run"
+    assert summary["lineupsPage"]["squads"] == 2
+    kept = ff_lineups.load_memory(db)
+    assert kept.positions["99"] == "MID" and kept.positions["1"] == "GK" and set(kept.squads) == {"16", "8"}
+
+
 def test_a_second_run_soon_after_keeps_the_one_reading_to_compare_with(db, monkeypatch, the_job) -> None:
     monkeypatch.setattr(ffm, "read_matches", Site())
 

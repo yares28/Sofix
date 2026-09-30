@@ -106,19 +106,28 @@ def publish_lineups(
 ) -> dict[str, Any]:
     """The Lineups page's data, written as soon as the site has been read: it does not wait for the plans, which take minutes.
 
-    Also brings up to date the memory of which line each player was last drawn in, which the page places the alternatives by.
+    Also brings up to date the memory of where each player plays (the squad pages, read a week apart, and the lines the elevens
+    draw), which the page places the alternatives by.
     """
     if feed is None:
         return {}
 
     def work() -> dict[str, Any]:
         cards, _ = sorare_publish.read_cards(snapshot["cards"])
-        positions = ff_lineups.remember(ff_lineups.load_positions(db), feed, lineups)
-        page = ff_lineups.payload(feed, lineups, cards, positions, at)
+        memory = ff_lineups.load_memory(db)
+        db.rollback()  # the squad pages are read over a minute or more, and Neon closes a connection left inside a transaction
+        memory, squads = ff_lineups.read_squads(memory, feed, at)
+        memory = ff_lineups.Memory(ff_lineups.remember(memory.positions, feed, lineups), memory.squads)
+        page = ff_lineups.payload(feed, lineups, cards, memory.positions, at)
         if write:
-            ff_lineups.save_positions(db, positions, at)
+            ff_lineups.save_memory(db, memory, at)
             put(db, ff_lineups.LINEUPS_KEY, page, at)
-        return {"matches": len(page["matches"]), "bytes": len(json.dumps(page, separators=(",", ":")))}
+        out: dict[str, Any] = {"matches": len(page["matches"]), "bytes": len(json.dumps(page, separators=(",", ":")))}
+        if squads is not None:
+            out["squads"] = len(squads.squads)
+            if squads.failed:
+                out["squadsFailed"] = squads.failed[:5]
+        return out
 
     return optional(db, failed, "lineups page", work, {})
 

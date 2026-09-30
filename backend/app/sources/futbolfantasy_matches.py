@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 import re
 import time
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from dataclasses import dataclass, field, fields, is_dataclass
 from datetime import UTC, date, datetime, timedelta
 from html.parser import HTMLParser
@@ -861,6 +861,71 @@ def parse_upcoming(html: str, today: date | None = None) -> list[Upcoming]:
 
 
 # ---------------------------------------------------------------------------------------------------------- reading
+# ------------------------------------------------------------------------------------------------------ a squad page
+LINES = {"Portero": "GK", "Defensa": "DEF", "Mediocampista": "MID", "Delantero": "FWD"}
+_SQUAD_SECTIONS = {"porteros": "GK", "defensas": "DEF", "mediocampistas": "MID", "delanteros": "FWD", "cedidos": None}
+
+
+@dataclass(frozen=True)
+class SquadMember:
+    ff_id: (
+        str  # the number in his photo's address (`ficha/1975.png`): the one the match pages give him in `jugador_1975`
+    )
+    name: str
+    slug: str | None
+    line: str  # "GK", "DEF", "MID" or "FWD": the site's own position for him
+    on_loan: bool = False
+
+
+@dataclass(frozen=True)
+class Squad:
+    club_id: str | None
+    members: tuple[SquadMember, ...]
+
+
+def parse_squad(html: str) -> Squad | None:
+    """A club's squad page (`/laliga/equipos/<club>/plantilla`): every player with his number, profile and position.
+
+    The page groups them as goalkeepers, defenders, midfielders and forwards, then those out on loan; a man's position is what
+    the site writes beside his name, else the group he is in. A page with no player in it is not a squad page.
+    """
+    root = parse_html(html)
+    members: list[SquadMember] = []
+    for section in _find_all(root, "div", cls="posicion"):
+        group = next((key for key in _SQUAD_SECTIONS if key in section.classes), None)
+        if group is None:
+            continue
+        for item in _find_all(section, "div", cls="wjugador"):
+            link = _find(item, "a", cls="jugador")
+            photo = _find(item, "img")
+            found = re.search(r"ficha/(\d+)\.", (photo.get("data-src") or photo.get("src") or "") if photo else "")
+            if link is None or found is None:
+                continue
+            written = _find(item, "span", cls="posicion")
+            line = LINES.get(written.text()) if written is not None else None
+            line = line or _SQUAD_SECTIONS[group]
+            if line is None:
+                continue
+            name = re.sub(r"^\s*\d+\s*\.\s*", "", link.text()).strip()
+            members.append(
+                SquadMember(found.group(1), name, _slug_of(link.get("href"), "jugadores"), line, group == "cedidos")
+            )
+    if not members:
+        return None
+    ids = [node.get("data-equipo") for node in root.elements() if node.get("data-equipo")]
+    return Squad(ids[0] if ids else None, tuple(members))
+
+
+@dataclass
+class SquadReading:
+    """What one ask of the squad pages gave: each club's squad by the club's number, and what could not be read."""
+
+    at: datetime
+    squads: dict[str, Squad] = field(default_factory=dict)
+    failed: list[str] = field(default_factory=list)
+    stopped: str | None = None
+
+
 class FutbolFantasyError(RuntimeError):
     pass
 
@@ -889,6 +954,51 @@ def round_url(competition: str) -> str:
     return f"{BASE}/{COMPETITIONS[competition][0]}/posibles-alineaciones"
 
 
+class _Polite:
+    """The site asked one page at a time: a pause between pages, a time budget, one retry, and a stop after a few failures in a row."""
+
+    def __init__(
+        self,
+        client: httpx.Client,
+        pause: float,
+        budget: float,
+        clock: Callable[[], float],
+        sleep: Callable[[float], None],
+        failed: list[str],
+    ) -> None:
+        self.client, self.pause, self.budget, self.clock, self.sleep, self.failed = (
+            client,
+            pause,
+            budget,
+            clock,
+            sleep,
+            failed,
+        )
+        self.started = clock()
+        self.failures = 0
+        self.requests = 0
+        self.stopped: str | None = None
+
+    def get(self, url: str) -> str | None:
+        if self.clock() - self.started >= self.budget:
+            self.stopped = self.stopped or "out of time"
+            return None
+        if self.requests and self.pause:
+            self.sleep(self.pause)
+        self.requests += 1
+        try:
+            text = _get(self.client, url)
+        except FutbolFantasyError as error:
+            self.failures += 1
+            self.failed.append(str(error))  # already "<address>: <what happened>"
+            logger.warning("futbolfantasy: %s", error)
+            if self.failures >= GIVE_UP:
+                self.stopped = f"{self.failures} pages in a row could not be read"
+            return None
+        self.failures = 0
+        return text
+
+
 def read_matches(
     wanted: Callable[[str, RoundMatch], bool],
     competitions: Iterable[str] = ("laliga",),
@@ -906,36 +1016,13 @@ def read_matches(
     is kept. A page that cannot be read is named in `failed` and leaves no trace in the matches.
     """
     reading = Reading(at=now or datetime.now(UTC))
-    started = clock()
     http = client or httpx.Client(timeout=TIMEOUT, follow_redirects=True, headers={"User-Agent": USER_AGENT})
-    failures = 0
-    requests = 0
-
-    def fetch(url: str) -> str | None:
-        nonlocal failures, requests
-        if clock() - started >= budget:
-            reading.stopped = reading.stopped or "out of time"
-            return None
-        if requests and pause:
-            sleep(pause)
-        requests += 1
-        try:
-            text = _get(http, url)
-        except FutbolFantasyError as error:
-            failures += 1
-            reading.failed.append(str(error))  # already "<address>: <what happened>"
-            logger.warning("futbolfantasy: %s", error)
-            if failures >= GIVE_UP:
-                reading.stopped = f"{failures} pages in a row could not be read"
-            return None
-        failures = 0
-        return text
-
+    site = _Polite(http, pause, budget, clock, sleep, reading.failed)
     try:
         for competition in competitions:
-            if reading.stopped:
+            if site.stopped:
                 break
-            html = fetch(round_url(competition))
+            html = site.get(round_url(competition))
             found = parse_round(html) if html is not None else None
             if found is None:
                 if html is not None:
@@ -943,11 +1030,11 @@ def read_matches(
                 continue
             reading.rounds[competition] = found
             for item in found.matches:
-                if reading.stopped:
+                if site.stopped:
                     break
                 if (item.score is not None and not include_played) or not wanted(competition, item):
                     continue
-                page = fetch(item.url)
+                page = site.get(item.url)
                 try:
                     match = parse_match(page, item.url) if page is not None else None
                 except (
@@ -964,6 +1051,55 @@ def read_matches(
     finally:
         if client is None:
             http.close()
+    reading.stopped = site.stopped
     if reading.stopped:
         logger.warning("futbolfantasy: stopped early (%s), %d match(es) read", reading.stopped, len(reading.matches))
+    return reading
+
+
+SQUAD_BUDGET = 90.0  # seconds for all the squad pages: twenty clubs, two seconds apart, once a week
+
+
+def squad_url(slug: str) -> str:
+    return f"{BASE}/laliga/equipos/{slug}/plantilla"
+
+
+def read_squads(
+    clubs: Mapping[str, str],
+    client: httpx.Client | None = None,
+    pause: float = PAUSE,
+    budget: float = SQUAD_BUDGET,
+    clock: Callable[[], float] = time.monotonic,
+    sleep: Callable[[float], None] = time.sleep,
+    now: datetime | None = None,
+) -> SquadReading:
+    """The squad page of each club (`{club number: its address's name}`), as politely as the match pages are read.
+
+    What it gives is where each player plays, which the match pages leave out for everyone not in the eleven. A page that
+    cannot be read is named in `failed` and leaves that club out, to be asked again later.
+    """
+    reading = SquadReading(at=now or datetime.now(UTC))
+    http = client or httpx.Client(timeout=TIMEOUT, follow_redirects=True, headers={"User-Agent": USER_AGENT})
+    site = _Polite(http, pause, budget, clock, sleep, reading.failed)
+    try:
+        for club_id, slug in clubs.items():
+            if site.stopped:
+                break
+            html = site.get(squad_url(slug))
+            if html is None:
+                continue
+            try:
+                squad = parse_squad(html)
+            except Exception as error:  # a page of a shape nobody expected costs that club, never the rest
+                logger.exception("futbolfantasy: %s could not be parsed", squad_url(slug))
+                reading.failed.append(f"{squad_url(slug)}: could not be parsed ({type(error).__name__})")
+                continue
+            if squad is None:
+                reading.failed.append(f"{squad_url(slug)}: not a squad page")
+                continue
+            reading.squads[club_id] = squad
+    finally:
+        if client is None:
+            http.close()
+    reading.stopped = site.stopped
     return reading

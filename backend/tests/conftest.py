@@ -74,4 +74,8 @@ def no_futbolfantasy(monkeypatch, request):
     def nothing(wanted, competitions=(), now=None, **kwargs):
         return futbolfantasy_matches.Reading(at=now or datetime.now(UTC))
 
+    def no_squads(clubs, now=None, **kwargs):
+        return futbolfantasy_matches.SquadReading(at=now or datetime.now(UTC))
+
     monkeypatch.setattr(futbolfantasy_matches, "read_matches", nothing)
+    monkeypatch.setattr(futbolfantasy_matches, "read_squads", no_squads)

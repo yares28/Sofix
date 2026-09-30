@@ -321,21 +321,95 @@ def test_his_sorare_position_outranks_where_the_pitch_drew_him_and_a_fresh_eleve
 
 
 def test_the_memory_is_kept_between_runs_and_nothing_is_written_when_it_did_not_change(db: Session) -> None:  # noqa: F811
-    assert ff_lineups.load_positions(db) == {}
+    assert ff_lineups.load_memory(db) == ff_lineups.Memory()
+    kept = ff_lineups.Memory({"1": "DEF"}, {"16": NOW})
 
-    assert ff_lineups.save_positions(db, {"1": "DEF"}, NOW) is True
-    assert ff_lineups.load_positions(db) == {"1": "DEF"}
-    assert ff_lineups.save_positions(db, {"1": "DEF"}, NOW) is False
-    assert ff_lineups.save_positions(db, {"1": "DEF", "2": "GK"}, NOW) is True
+    assert ff_lineups.save_memory(db, kept, NOW) is True
+    assert ff_lineups.load_memory(db) == kept
+    assert ff_lineups.save_memory(db, kept, NOW) is False
+    assert ff_lineups.save_memory(db, ff_lineups.Memory({"1": "DEF", "2": "GK"}, {"16": NOW}), NOW) is True
 
 
 def test_a_memory_that_does_not_read_is_empty(db: Session) -> None:  # noqa: F811
     from app.models import ReadModel
 
-    db.add(ReadModel(key=ff_lineups.POSITIONS_KEY, payload={"positions": ["x"]}, updated_at=NOW))
+    db.add(
+        ReadModel(
+            key=ff_lineups.POSITIONS_KEY, payload={"positions": ["x"], "squads": {"16": "not a date"}}, updated_at=NOW
+        )
+    )
     db.commit()
 
-    assert ff_lineups.load_positions(db) == {}
+    assert ff_lineups.load_memory(db) == ff_lineups.Memory()
+
+
+# ------------------------------------------------------------------------------------------ the squad pages
+def squad_reading(*clubs: str) -> ffm.SquadReading:
+    members = (
+        ffm.SquadMember("1975", "Álex Remiro", "alex-remiro", "GK"),
+        ffm.SquadMember("7777", "Nuevo Fichaje", "nuevo", "FWD"),
+        ffm.SquadMember("7781", "Javi López", "javi-lopez-1", "DEF", on_loan=True),
+    )
+    return ffm.SquadReading(at=BEFORE, squads={club: ffm.Squad(club, members) for club in clubs})
+
+
+def test_a_club_is_read_when_its_squad_was_never_read_or_a_week_ago(real: list[ffm.Match]) -> None:
+    feed = feed_of(real)
+
+    everyone = ff_lineups.due_squads(feed, ff_lineups.Memory(), BEFORE)
+    assert len(everyone) == 20 and everyone["16"] == "real-sociedad" and everyone["14"] == "rayo-vallecano"
+
+    fresh = ff_lineups.Memory({}, {"16": BEFORE - timedelta(days=3), "14": BEFORE - timedelta(days=8)})
+    left = ff_lineups.due_squads(feed, fresh, BEFORE)
+    assert "16" not in left and "14" in left and len(left) == 19
+
+
+def test_a_club_the_registry_does_not_keep_is_not_asked_for() -> None:
+    foreign = side("Bayern München", "30", xi=())
+    foreign = ffm.Side(**{**foreign.__dict__, "slug": "bayern-munchen"})
+    one = match(
+        foreign,
+        ffm.Side(**{**side("Real Sociedad", "16").__dict__, "slug": "real-sociedad"}),
+        BEFORE + timedelta(days=1),
+    )
+
+    assert ff_lineups.due_squads(feed_of([one]), ff_lineups.Memory(), BEFORE) == {"16": "real-sociedad"}
+
+
+def test_the_squads_read_put_every_player_in_his_place_and_those_on_loan_out_of_it(real: list[ffm.Match]) -> None:
+    asked: list[dict[str, str]] = []
+
+    def reader(clubs: dict[str, str], now: datetime | None = None, **_: object) -> ffm.SquadReading:
+        asked.append(clubs)
+        return squad_reading("16")
+
+    memory, reading = ff_lineups.read_squads(ff_lineups.Memory({"5": "MID"}), feed_of(real), BEFORE, reader=reader)
+
+    assert len(asked[0]) == 20 and reading is not None
+    assert memory.positions == {"5": "MID", "1975": "GK", "7777": "FWD"}, "the man on loan is nobody's alternative"
+    assert memory.squads == {"16": BEFORE}, "only the club whose page was read is marked read"
+
+
+def test_nothing_is_asked_when_every_squad_was_read_this_week(real: list[ffm.Match]) -> None:
+    clubs = {
+        club: BEFORE - timedelta(days=1) for club in ff_lineups.due_squads(feed_of(real), ff_lineups.Memory(), BEFORE)
+    }
+
+    def reader(*args: object, **kwargs: object) -> ffm.SquadReading:
+        raise AssertionError("the site was asked")
+
+    memory, reading = ff_lineups.read_squads(ff_lineups.Memory({}, clubs), feed_of(real), BEFORE, reader=reader)
+
+    assert reading is None and memory.squads == clubs
+
+
+def test_a_squad_page_that_could_not_be_read_is_asked_again_next_time(real: list[ffm.Match]) -> None:
+    memory, reading = ff_lineups.read_squads(
+        ff_lineups.Memory(), feed_of(real), BEFORE, reader=lambda clubs, now=None, **_: squad_reading()
+    )
+
+    assert memory == ff_lineups.Memory() and reading is not None
+    assert len(ff_lineups.due_squads(feed_of(real), memory, BEFORE)) == 20
 
 
 def test_the_ten_round_8_matches_stay_light_enough_to_be_read_on_every_visit(real: list[ffm.Match]) -> None:

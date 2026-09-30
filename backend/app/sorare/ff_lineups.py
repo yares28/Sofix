@@ -7,14 +7,16 @@ coordinates the site draws the eleven at: its rows of players sit at a few fixed
 height and read from the goal up (defenders first, then midfield rows, the forwards at the top), never by a guess about
 a player's real position.
 
-The site does not say where an alternative plays. So that the page can put each one under the line he covers, the
-line every player was last drawn in (in any eleven read) is kept in `ff_positions`, and the owner's own Sorare
-positions count before it. A man who has never been in an eleven read has no place, and the page lists him apart.
+The match page does not say where an alternative plays. So that the page can put each one under the line he covers, each
+club's squad page (which lists every player with his position) is read once a week, the line every player was last drawn in
+(in any eleven read) is added, and the owner's own Sorare positions count last; all of it is kept in `ff_positions`. A man
+none of these knows has no place, and the page lists him apart.
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -31,6 +33,8 @@ LINEUPS_KEY = "lineups"
 POSITIONS_KEY = "ff_positions"
 VERSION = 1
 ROW_GAP = 8.0  # the site draws its rows at fixed heights (0 to 100): a row spreads up to 7 from its first player, the next is 9+ away
+SQUADS_EVERY = timedelta(days=7)  # a squad page is read again after this: who plays where hardly changes
+SquadReader = Callable[..., ffm.SquadReading]
 STAYS = timedelta(hours=12)  # a match stays on the page this long after its kickoff
 CRESTS = "https://static.futbolfantasy.com/uploads/images/equipos/escudom/"
 RARITIES = ("common", "limited", "rare", "super_rare", "unique")
@@ -64,25 +68,74 @@ def pitch(xi: Iterable[ffm.Player]) -> tuple[list[tuple[str, list[ffm.Player]]],
 
 
 # ---------------------------------------------------------------------------------------------- where people play
-def load_positions(db: Session) -> dict[str, str]:
-    """The line each Futbol Fantasy player was last seen in: `{ff id: "GK" | "DEF" | "MID" | "FWD"}`."""
+@dataclass(frozen=True)
+class Memory:
+    """Where each player plays (`{ff id: line}`) and when each club's squad page was last read (`{club number: time}`)."""
+
+    positions: dict[str, str] = field(default_factory=dict)
+    squads: dict[str, datetime] = field(default_factory=dict)
+
+
+def load_memory(db: Session) -> Memory:
     row = db.get(ReadModel, POSITIONS_KEY)
-    found = row.payload.get("positions") if row and isinstance(row.payload, dict) else None
-    if not isinstance(found, dict):
-        return {}
-    return {str(key): line for key, line in found.items() if line in POSITIONS}
+    payload = row.payload if row and isinstance(row.payload, dict) else {}
+    found = payload.get("positions")
+    positions = {str(key): line for key, line in found.items() if line in POSITIONS} if isinstance(found, dict) else {}
+    squads: dict[str, datetime] = {}
+    for club, raw in (payload.get("squads") or {}).items() if isinstance(payload.get("squads"), dict) else []:
+        try:
+            squads[str(club)] = datetime.fromisoformat(raw)
+        except (TypeError, ValueError):
+            continue
+    return Memory(positions, squads)
 
 
-def save_positions(db: Session, positions: Mapping[str, str], now: datetime) -> bool:
+def save_memory(db: Session, memory: Memory, now: datetime) -> bool:
     """Write the memory down when it changed; whether it did."""
-    if dict(positions) == load_positions(db):
+    if memory == load_memory(db):
         return False
-    put(db, POSITIONS_KEY, {"positions": dict(positions)}, now)
+    put(
+        db,
+        POSITIONS_KEY,
+        {"positions": memory.positions, "squads": {club: at.isoformat() for club, at in memory.squads.items()}},
+        now,
+    )
     return True
 
 
+def due_squads(feed: Feed, memory: Memory, now: datetime) -> dict[str, str]:
+    """The clubs of the matches held (LaLiga's, which the registry keeps) whose squad page has not been read in a week."""
+    due: dict[str, str] = {}
+    for item in feed.matches.values():
+        for side in (item.match.home, item.match.away):
+            if not side.club_id or not side.slug or ff_link.club_of(side.club_id, side.name) is None:
+                continue
+            read = memory.squads.get(side.club_id)
+            if read is None or now - read >= SQUADS_EVERY:
+                due[side.club_id] = side.slug
+    return due
+
+
+def read_squads(
+    memory: Memory, feed: Feed, now: datetime, *, reader: SquadReader | None = None
+) -> tuple[Memory, ffm.SquadReading | None]:
+    """The squad pages of the clubs that are due, and the memory with what they say: everyone's place, from the site itself."""
+    due = due_squads(feed, memory, now)
+    if not due:
+        return memory, None
+    reading = (reader or ffm.read_squads)(due, now=now)
+    positions = dict(memory.positions)
+    squads = dict(memory.squads)
+    for club, squad in reading.squads.items():
+        squads[club] = now
+        for member in squad.members:
+            if not member.on_loan:
+                positions[member.ff_id] = member.line
+    return Memory(positions, squads), reading
+
+
 def remember(known: Mapping[str, str], feed: Feed, lineups: ff_use.Lineups | None) -> dict[str, str]:
-    """The memory brought up to date: the line of everyone in an eleven now read, then the owner's Sorare positions."""
+    """The positions brought up to date: the line of everyone in an eleven now read, then the owner's Sorare positions."""
     found = dict(known)
     for item in feed.matches.values():
         for side in (item.match.home, item.match.away):

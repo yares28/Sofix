@@ -207,7 +207,7 @@ const panel = (page: Page) => page.getByRole("dialog", { name: "Sofix details" }
  * has been scrolled to and drawn. What is drawn stays drawn, so the tests then read the whole page.
  */
 async function settled(page: Page) {
-  for (const id of ["slot-a", "badged", "linked", "noxg", "over", "old", "doubtful", "composecard", "pinnedcard", "realcard", "scrolled", "big", "pick-1", "pick-6", "fwd-1"]) {
+  for (const id of ["slot-a", "badged", "midchip", "linked", "noxg", "over", "old", "doubtful", "composecard", "pinnedcard", "realcard", "scrolled", "big", "pick-1", "pick-6", "fwd-1"]) {
     await page.locator(`#${id}`).scrollIntoViewIfNeeded();
     await expect(ribs(page, id)).toBeVisible();
   }
@@ -377,6 +377,11 @@ test.describe("the sorare.com overlay", () => {
     const [mine, badge] = [await tile(page, "badged"), await box(page, "#badge")];
     expect(meets(mine, badge)).toBe(false);
     expect(mine.top).toBeGreaterThanOrEqual(badge.bottom);
+
+    // A chip of theirs lower down the edge, between the tile's top and bottom lines, is cleared all the same.
+    const [low, chip] = [await tile(page, "midchip"), await box(page, "#midbadge")];
+    expect(meets(low, chip)).toBe(false);
+    expect(low.top).toBeGreaterThanOrEqual(chip.bottom);
 
     // On the compose card their percentage and their captain control hang off the right: neither is touched, and the
     // captain control is still what is under the pointer.

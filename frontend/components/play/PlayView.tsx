@@ -296,7 +296,7 @@ function PlanHero({ plan, week, after, now }: { plan: Plan; week: GameweekPlan; 
             <b>
               {after && plan.actual ? essenceLabel(plan.actual.essence) : `≈${essenceLabel(plan.essence)}`}
             </b>
-            <small>{plan.hindsight ? "the most it could have won" : after ? `expected ≈${essenceLabel(plan.essence)}` : "expected"}</small>
+            <small>{plan.hindsight ? "the most Sofix found it could have won" : after ? `expected ≈${essenceLabel(plan.essence)}` : "expected"}</small>
           </div>
           <div className={after ? "won" : ""}>
             <span className="lbl">

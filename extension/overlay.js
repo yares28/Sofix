@@ -448,6 +448,13 @@
    */
   function clearOf(media, rect, size, width, height) {
     const wanted = rect.top + INSET[size].y;
+    // Every 12px down the band, so a chip smaller than the band cannot sit between two of the lines that are looked along.
+    const rows = (top) => {
+      const ys = [];
+      for (let y = top + 2; y < top + height - 2; y += 12) ys.push(y);
+      ys.push(top + height - 2);
+      return ys;
+    };
     const limit = rect.top + rect.height * 0.45; // never sink into the player's face to get out of the way
     const left = rect.left + INSET[size].x;
     const xs = [];
@@ -456,7 +463,7 @@
     let top = wanted;
     for (let round = 0; round < 4; round += 1) {
       let lowest = 0;
-      for (const y of [top + 2, top + height - 2]) {
+      for (const y of rows(top)) {
         for (const x of xs) {
           if (x < 0 || y < 0 || x >= innerWidth || y >= innerHeight) continue;
           for (const el of document.elementsFromPoint(x, y)) {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { GameweekPlan, Sorare, TimelineWeek } from "./play";
 import type { FixtureGrid, GridMatchday } from "./types";
-import { byMonth, currentWeek, pageWeeks, seasonWeeks, weekById, weekContext, weekDates, weekOn, weekValue } from "./weeks";
+import { byMonth, currentWeek, noPlan, pageWeeks, seasonWeeks, weekById, weekContext, weekDates, weekOn, weekValue } from "./weeks";
 
 // The real shape of the 2026/27 season: LaLiga plays MD5–MD7 and then stops for an international break,
 // while Sorare keeps running a game week every few days.
@@ -278,5 +278,52 @@ describe("one Sorare game week over two LaLiga rounds", () => {
     expect(weekDates(weeks[0]!)).toBe("16–18 Oct");
     expect(weekDates(weeks[1]!)).toBe("20–21 Oct");
     expect(weekDates(weeks[0]!, "play")).toBe("16–22 Oct");
+  });
+});
+
+describe("what Play says for a week it holds no plan for", () => {
+  const item = { slug: "football-18-22-sep-2026", number: 15 };
+  const sorareWeek = { gw: "15", md: null, number: 15, state: "done", kept: false } as const;
+
+  it("says a round Sorare has not opened is not open, and has no lineups of yours to show", () => {
+    const said = noPlan({ gw: null, md: 12, number: null, state: "later", kept: false }, undefined);
+    expect(said.heading).toBe("LaLiga GW12");
+    expect(said.says).toContain("Sorare hasn't opened this week");
+    expect(said.lineups).toBeNull();
+  });
+
+  it("says a finished week Sofix did not keep was played before it kept them, and still shows what you entered", () => {
+    const said = noPlan(sorareWeek, item);
+    expect(said.heading).toBe("Gameweek 15");
+    expect(said.says).toContain("played before Sofix started keeping them");
+    expect(said.lineups).toEqual(item);
+  });
+
+  it("does not claim a kept week was never kept when it only could not be read just now", () => {
+    const said = noPlan({ ...sorareWeek, kept: true }, item);
+    expect(said.says).toContain("could not read it just now");
+    expect(said.says).not.toContain("played before Sofix started");
+    expect(said.lineups).toEqual(item);
+  });
+
+  it("says a week being played is locked, instead of promising a plan that will never come", () => {
+    const said = noPlan({ ...sorareWeek, state: "live" }, item);
+    expect(said.says).toContain("locked and being played");
+    expect(said.says).not.toContain("after the next refresh");
+    expect(said.lineups).toEqual(item);
+  });
+
+  it("says an open week further off than the next three gets its plan once it is one of them", () => {
+    const said = noPlan({ ...sorareWeek, state: "later" }, item);
+    expect(said.says).toContain("next three Sorare gameweeks");
+    expect(said.lineups).toEqual(item);
+  });
+
+  it("has a plain answer when there is no week at all", () => {
+    expect(noPlan(null, undefined)).toEqual({
+      heading: "Play",
+      says: "Your Sorare gameweek appears after the next refresh.",
+      lineups: null,
+    });
   });
 });

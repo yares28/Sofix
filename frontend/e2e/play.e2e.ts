@@ -384,7 +384,7 @@ test("a week the job kept apart opens as the week that was played, with the best
   await expect(hero.locator(".pl-side")).toContainText("2 of 2 lineups paid");
   await expect(hero.locator(".pl-side")).toContainText("knowing every score, with your cards today");
   await expect(hero.locator(".pl-pair b").first()).toHaveText("500");
-  await expect(hero.locator(".pl-pair small").first()).toHaveText("the most it could have won");
+  await expect(hero.locator(".pl-pair small").first()).toHaveText("the most Sofix found it could have won");
   const first = page.locator(".pl-lu").first();
   await expect(first).toContainText("scored");
   await expect(first).not.toContainText("xScore");

@@ -8,7 +8,7 @@ import { loadGrid } from "../../lib/api";
 import { plansOf, weekPlan } from "../../lib/play";
 import { loadProjectedWeek, loadSorare, loadSorareWeek } from "../../lib/playData";
 import { loadSystem } from "../../lib/system";
-import { weekContext } from "../../lib/weeks";
+import { noPlan, weekContext } from "../../lib/weeks";
 
 export const metadata: Metadata = { title: "Play · Sofix" };
 
@@ -61,24 +61,17 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
   // A week Sorare has not opened and no early plan covers, or one the job has not planned: the page says so rather
   // than showing another gameweek under that week's name.
   if (!showing) {
-    // A finished Sorare gameweek Sofix holds nothing for: what you entered and won is still readable from Sorare.
-    const played = over ? item : undefined;
+    const said = noPlan(asked, item);
     return (
       <>
         <SiteNav meta={meta} system={system} week={week} />
         <main className="pl-main">
           <section className="card empty-state" role="status">
-            {/* Named the way the week picker names it on Play: its Sorare game week, else its LaLiga round. */}
-            <h1>{asked?.gw ? `Gameweek ${asked.number}` : asked?.md ? `LaLiga GW${asked.md}` : "Play"}</h1>
-            <p>
-              {unopened
-                ? "Sorare hasn't opened this week. It opens about a week before the games."
-                : played
-                  ? "Sofix didn't keep the plans for this gameweek: it was played before Sofix started keeping them. Every gameweek from now on is kept, with its plans and what your lineups won."
-                  : "Your Sorare gameweek appears after the next refresh."}
-            </p>
+            <h1>{said.heading}</h1>
+            <p>{said.says}</p>
           </section>
-          {played ? <EnteredLineups week={played} /> : null}
+          {/* What you entered and won is readable from Sorare whenever it has the gameweek, whether or not Sofix holds a plan. */}
+          {said.lineups ? <EnteredLineups week={said.lineups} /> : null}
         </main>
       </>
     );

@@ -250,6 +250,46 @@ export function weekValue(week: Week): { value: string; note: string } {
 }
 
 /**
+ * What Play says for a week it holds no plan for, and whether the lineups you entered on Sorare for it can still be shown.
+ *
+ * Each case gets words that are true of it: a round Sorare has not opened; a finished week Sofix did not keep (or kept
+ * and could not read just now); a week being played, which is locked and has nothing left to plan; and an open week
+ * further off than the next three Sorare gameweeks, which are the ones Sofix plans.
+ */
+export function noPlan(
+  week: Pick<Week, "gw" | "md" | "number" | "state" | "kept"> | null,
+  item: { slug: string; number: number } | undefined,
+): { heading: string; says: string; lineups: { slug: string; number: number } | null } {
+  const heading = week?.gw ? `Gameweek ${week.number}` : week?.md ? `LaLiga GW${week.md}` : "Play";
+  if (!week) return { heading, says: "Your Sorare gameweek appears after the next refresh.", lineups: null };
+  if (!week.gw) {
+    return { heading, says: "Sorare hasn't opened this week. It opens about a week before the games.", lineups: null };
+  }
+  const lineups = item ?? null;
+  if (week.state === "done") {
+    return {
+      heading,
+      says: week.kept
+        ? "Sofix kept this gameweek but could not read it just now. Reload in a moment; what you entered is below."
+        : "Sofix didn't keep the plans for this gameweek: it was played before Sofix started keeping them. Every gameweek from now on is kept, with its plans and what your lineups won.",
+      lineups,
+    };
+  }
+  if (week.state === "live") {
+    return {
+      heading,
+      says: "This gameweek is locked and being played, so there is nothing left to plan. Your lineups for it are below, with the scores Sorare gives them.",
+      lineups,
+    };
+  }
+  return {
+    heading,
+    says: "Sofix plans the next three Sorare gameweeks. This one is open on Sorare but further off, so it gets its plan once it is one of them.",
+    lineups,
+  };
+}
+
+/**
  * What the bar needs: every week, the one being shown, and the one the app would open on.
  *
  * `asked` is the address: `w` is a week, and `md`/`gw` are the per-page gameweek a link made before the week

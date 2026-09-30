@@ -349,6 +349,18 @@ def test_clubs_are_the_same_by_identity_when_the_registry_knows_them_and_by_word
     assert link.same_club(ours, side(theirs, club_id)) is same
 
 
+def test_the_long_forms_of_a_clubs_name_resolve_to_it() -> None:
+    for name, code in [
+        ("Real Betis Balompié", "BET"),
+        ("Real Sociedad de Fútbol", "RSO"),
+        ("Rayo Vallecano de Madrid", "RAY"),
+        ("Deportivo de La Coruña", "DEP"),
+        ("Racing Club", None),  # Argentina's, not Santander's
+    ]:
+        club = team_registry.by_odds_name(name)
+        assert (club.code if club else None) == code, name
+
+
 def test_the_registry_knows_every_clubs_futbol_fantasy_number_and_the_pages_agree_with_it(
     matches: list[ffm.Match],
 ) -> None:

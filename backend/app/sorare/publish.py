@@ -175,7 +175,7 @@ def _with_chances(games: list[dict[str, Any]], forecast: Forecast | None) -> lis
     ]
 
 
-def _split_out(forecast: Forecast | None) -> dict[str, float]:
+def _split_out(forecast: Forecast | None) -> dict[str, Any]:
     """His score if he starts and if he does not, and the chance of each (O9). For the overlay; plans never use it."""
     if not forecast or forecast.start is None or forecast.bench is None:
         return {}

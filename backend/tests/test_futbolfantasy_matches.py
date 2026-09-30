@@ -352,7 +352,10 @@ def test_an_unreadable_round_page_gives_nothing_and_says_so() -> None:
 
     reading = ffm.read_matches(lambda c, item: True, client=site.client(), pause=0)
 
-    assert reading.matches == [] and reading.rounds == {} and len(reading.failed) == 1
+    assert reading.matches == [] and reading.rounds == {}
+    assert reading.failed == [f"{LALIGA_ROUND}: HTTP 403"], (
+        "what the run's summary shows: the page and the status, short"
+    )
 
 
 def test_it_waits_between_pages_and_says_who_it_is() -> None:

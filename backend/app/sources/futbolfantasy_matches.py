@@ -878,8 +878,10 @@ def _get(client: httpx.Client, url: str) -> str:
             if attempt == 0:
                 continue
             raise FutbolFantasyError(f"{url}: timed out") from exc
+        except httpx.HTTPStatusError as exc:
+            raise FutbolFantasyError(f"{url}: HTTP {exc.response.status_code}") from exc
         except httpx.HTTPError as exc:
-            raise FutbolFantasyError(f"{url}: {exc}") from exc
+            raise FutbolFantasyError(f"{url}: {type(exc).__name__}") from exc
     raise FutbolFantasyError(f"{url}: no answer")
 
 

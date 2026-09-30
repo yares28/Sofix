@@ -219,6 +219,19 @@ words, a short form of the first name, or a surname alone only with both ages to
 that cannot be told is reported in the summary (`futbolfantasy.unlinked`) and keeps Sorare's number, and a game with no
 match found is named under `noMatch`. The links found are kept in the `ff_links` read model.
 
+Each LaLiga club's squad page (`/laliga/equipos/<club>/plantilla`) is read once a week (`ff_lineups.read_squads`, a 90-second
+budget, the same politeness) for where each player plays, which the match pages do not say for anyone outside the eleven. The
+memory of it, and of the line each player was last drawn in, is the `ff_positions` read model. The Lineups page's data is
+written as soon as the site has been read (`ff_lineups.payload` into the `lineups` read model): the eleven drawn in rows from
+the pitch coordinates (rows at fixed heights, read from the goal up), each alternative under the line he covers, the injury
+lists, and which of the people are the owner's. The Home's team news (`ff_news.team_news`, into the planned week as `teamNews`)
+is built from the finished page: the owner's players split at 70% and 40%, the first plan's starters under 70%, and what moved by
+10 points or more since a reading at least 16 hours old (`ff_chances` keeps one every six hours for two days).
+
+The extension does the same arithmetic for a chance it reads live: his chance of coming on is what is left, at the rate he comes
+on in the games he does not start (`benchedOn`, published with the player): `pOn = (1 - pStart) x benchedOn`, and nothing when he
+is out. `forecast._per_game` and `extension/core.js` (`liveSplit`) both read `backend/tests/fixtures/live_start_cases.json`.
+
 A workflow (`near-lock.yml`) asks Sorare every 30 minutes when the next gameweek locks and, in the last three hours, starts the
 refresh when none started in the last 25 minutes, so the team news is read often when it counts.
 

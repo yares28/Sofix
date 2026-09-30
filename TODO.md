@@ -14,7 +14,7 @@ Widest change on screen first. Batch 1 is already on `main` and deployed (produc
 
 | # | Item | What changes on screen | State |
 |---|---|---|---|
-| 1 | **T2 · Futbol Fantasy lineups and start %** | FF's % becomes the main % on every tile, Play card and plan (xScore, captain); a new Lineups page; a new home section under "Sorare" | **Numbers built (30 Sep, on the working branch, not yet on main):** FF → Sorare → Sofix per game in the forecast, plans, captain and the overlay's answer; all 74 of your LaLiga cards link on the real round-8 pages; near-lock runs written. Waiting on you: the design choice (canvas) for the Lineups page and the home section, and the merge to main before round 8's lock (Fri 9 Oct). [plans/futbolfantasy.md](plans/futbolfantasy.md) |
+| 1 | **T2 · Futbol Fantasy lineups and start %** | FF's % becomes the main % on every tile, Play card and plan (xScore, captain); a new Lineups page; a new home section under "Sorare" | **Built (30 Sep, on the working branch, not yet on main):** FF → Sorare → Sofix per game in the forecast, plans, captain and the overlay; all 74 of your LaLiga cards link on the real round-8 pages; near-lock runs; the Lineups page (desktop and phone), the Home's team news, the FF / SO / SF marks on Play's cards, the redesigned overlay and the extension's live FF reads. Waiting on you: the merge to main before round 8's lock (Fri 9 Oct), the GitHub key for the Refresh button, reloading the extension, and the checks in section 9 of the plan, which need access this session did not have. [plans/futbolfantasy.md](plans/futbolfantasy.md) |
 | 2 | **T1 · the xScore** | Every tile's score (Giorgi 45 / Oyarzabal 43), "2 games", the bench pair, club vs national | Planning; P0 (diagnose) next. [plans/xscore.md](plans/xscore.md) |
 | 3 | **Batch 1, live** (you) | Play's every week, past weeks, early plans to GW36, the overlay fixes; then the second overlay pass | Deployed; waits for your look |
 | 4 | **T3 · Pro** | A whole competition type missing from Play's best lineups, plus level and progress | Research first |
@@ -280,9 +280,17 @@ the record above: its starter odds have never been stored; the plan's step S3 lo
 chance of each of your players in each game (else Sorare's, else Sofix's), and moves the chance he plays, so the expected
 score, the plans and the captain follow it; the overlay's tile shows the shown game's own chance. The run's summary says what
 was read, who could not be linked, which LaLiga games have no match and how many of your players have Sorare's starter
-odds. `start_chances` now records one entry per player, game and source. Still to build: the Lineups page, the home
-section and the source labels (after you choose the design), the Refresh button's GitHub key (your item 2), and the
-extension's live reads.
+odds. `start_chances` now records one entry per player, game and source.
+
+**Built on 30 Sep and 1 Oct (S5 to S8).** The Lineups page (`/lineups`): every match FF has published, both elevens as Sorare-style
+cards on a pitch with their chance of starting, who else could play under each line (each club's squad page is read once a
+week for that), injuries and bans as icons, your cards outlined. The Home's **Team news** under Sorare: your players split by
+how likely FF makes them to start, the plan's starters under 70%, and what moved since yesterday (the job keeps a reading every
+six hours for two days). Play's cards say "50% starts" with a mark for whose number it is (FF a filled dot, SO a ring, SF a
+dashed ring). The overlay's tile and panel were cut down to what matters, with SOURCES behind one button; and while a sorare.com
+page is open the extension reads FF's match pages itself, at most every ten minutes per match. What is not proven yet is on
+the list in section 9 of the plan: a real read from GitHub's runners and from your browser, round 8's names, card art for
+players you do not own.
 
 **The collection** (batch 1, step 6, on `main`) stays: what each source said at the lock, settled by what happened, is
 the Audit page's data (T7).

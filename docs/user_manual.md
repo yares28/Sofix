@@ -53,6 +53,10 @@ Under the strip:
 - **Table** shows the current leader and seeded title/relegation probabilities.
 - **Your Sorare lineups** is the first block in the Sorare section. It reads the signed-in owner's entered lineups
   and drafts for the selected Sorare GW, with competition, lineup name and card art. It is read-only.
+- **Team news** (under Sorare) says how your players look for the round from Futbol Fantasy (FF): one bar (likely to start at
+  70% or more, in doubt from 40%, unlikely, out), which starters of your best plan might not start (under 70%, with their game,
+  lineup and an icon for a doubt or injury), and what moved by 10 points or more since yesterday. A link opens Lineups. Players
+  FF says nothing about are only counted; their number is Sorare's or Sofix's.
 - **Play** summarizes the published Sorare plan, estimated chance of any reward, expected essence/cash and time to lock.
 - **Last gameweek** compares pre-lock predictions with the owner's submitted-lineup actuals when scores exist.
 - **My cards** shows usable cards, rarity/position shape and the most important constraint.
@@ -205,6 +209,31 @@ keeping them is marked **not recorded**; it still opens, to the lineups you ente
 A week Sofix holds no plan for says why, and still shows your lineups for it: one being played is locked, so there is
 nothing left to plan; one further off than the next three Sorare gameweeks gets its plan once it is one of them.
 
+## 7a. Lineups — who starts
+
+Futbol Fantasy's probable elevens for every match it has published (FF covers each team's next game only, so the page is not
+tied to the week in the top bar). One bar holds the round's matches, with how many of your players are in each (the blue dot);
+the page opens on the next match. Competition and round tabs appear only when the page holds more than one.
+
+- **The pitch.** Each team's eleven as cards in rows, attack at the top, with the formation beside the team name. Your own
+  cards show their Sorare art with a blue outline; the others are drawn with FF's photo. The badge under a card is his chance of
+  starting; a round mark at its corner is an injury, a doubt, a ban, or (blue) a call-up to his national team.
+- **Who else could play.** Under each line, the alternatives most likely first, with their chance. A player FF has not
+  placed yet is listed apart as "Others in the squad"; those at 0% are named in one line under the injuries.
+- **Injuries and bans** are icons with FF's note in English where the pattern is known ("Doubt for round 8", "Out until
+  October"). **Your players FF does not list** are named under their club with why, and use Sorare's or Sofix's number.
+- **The small button** at the top right of a match, "Read 16:56", opens when FF was last read and when each team's lineup last
+  changed; the arrow beside it opens the match on Futbol Fantasy.
+- **States.** The pill under the title says how many teams are read and when; it says when FF could not be read (the last
+  reading stands for 24 hours) or is over a day old (no longer used in plans). A team FF has not published yet says so, a match
+  that has kicked off is frozen, and "Date TBC" is matched by teams and round.
+
+On a phone one team shows at a time, switched by the two names under the match.
+
+**The mark beside a start chance** says whose number it is: a filled dot is FF, a ring is SO (Sorare's starter odds), a dashed
+ring is SF (Sofix's estimate from his form). Play's cards say "50% starts" with the mark and, when FF says so, an icon for the
+doubt; hover the mark for the name.
+
 ## 8. Apply a lineup
 
 ![Apply sheet showing the explicit Check, Draft and Enter stages](images/apply.png)
@@ -313,15 +342,23 @@ about half a card's height under the picture: on a list of cards it is the third
 room, Sofix moves Sorare's next line ("Best score chosen", the kickoff) down a few pixels; if that line cannot be moved, the
 row is not drawn.
 
-**Hover the tile, or focus it with the keyboard**, and a panel opens beside the card. A switch shows the score if he
-**starts** (the default) or if he **doesn't start**, with his chance of each (the chance he comes on is worth little for a
-goalkeeper: "2% he comes on"). Under it: difficulty with its five bands and the clean-sheet chance for a goalkeeper or
-defender, xG and the clean-sheet chance for a midfielder, xG and the win chance for a forward, where the odds came from,
-and how long ago the numbers were made. Escape closes it. It only shows things; nothing in it writes to Sorare.
+**Hover the tile, or focus it with the keyboard**, and a panel opens beside the card. From the top: SOFIX with a small green chip
+when your best plan uses the card (the lineup's name, and a C for the captain) and how long ago the numbers were made; a switch
+between the score if he **starts** (the default) and if he is **benched**; the big score with his chance of starting and whose
+number it is ("START · FF"); one line only when FF says something is wrong with him ("Doubt · since 12 Sep", amber, or an
+injury or ban, red); three numbers (xG or clean sheet for his job, his side's win chance, and the difficulty); and **SOURCES**,
+folded away, which opens to what FF, SO and SF each say and when FF was read. Escape closes it. It only shows things; nothing in
+it writes to Sorare.
 
-- **His chance of starting** is the bottom row of every full tile ("90%"): Sorare's own odds where it has them, the app's
-  chance where it has not. It is quiet while he probably starts; **below 50% the row is red**, which is the warning. A tile
-  greyed as "Started" or "Old" has none, and a small lineup tile has no room for it.
+- **His chance of starting** is the bottom row of every full tile ("90%") with a mark for whose it is: FF's expected lineup where
+  it has him, else Sorare's odds, else the app's own. It is quiet while he probably starts, **amber in doubt** (FF calls him a
+  doubt, or he is under 50%) and **red when he will not start** (injured, banned, or under 15%). A tile greyed as "Started" or
+  "Old" has none, and a small lineup tile has no room for it.
+- **Live FF reads.** While a sorare.com page is open with the overlay on, the extension reads the Futbol Fantasy match pages of
+  the games its cards are about, at most once every ten minutes each, and redraws the tile and panel when a chance changed (the
+  panel then says "FF live 2 min ago"). The plan's ticks, xScore and #1 to #3 ranks stay as the last run made them. Version 0.3.0
+  needs the extension reloaded with its manifest rebuilt (`node extension/scripts/configure.mjs`, then reload it in
+  `chrome://extensions`) because it asks for one more site, `futbolfantasy.com/partidos`.
 - **Loading** shows a shimmer; a **small card** (a lineup slot) gets the number alone, a **thumbnail** an even smaller one,
   and a picture under 48 px wide gets nothing.
 - **Signed out or app unreachable:** a very small **SIGN IN** or **OFFLINE** tag, the only thing here that takes a click
@@ -329,8 +366,7 @@ and how long ago the numbers were made. Escape closes it. It only shows things; 
 
 **Decisions.** Sofix's best plan for the gameweek marks the cards it would use: a white **tick** on the tile's corner for a
 card in the plan and a gold **star** for its captain. Only the copy the plan uses is marked (your other copy of the same player
-stays plain), and a card the plan leaves out shows nothing, never a warning. Which lineup it is in is in the panel ("In your
-best plan · All Star · Captain"). On a **"Select your ..." list of four or more cards**, the three with the best expected score
+stays plain), and a card the plan leaves out shows nothing, never a warning. Which lineup it is in is on the panel's green chip. On a **"Select your ..." list of four or more cards**, the three with the best expected score
 get **#1, #2, #3**, worked out from the cards on screen, so on a long list they can change as you scroll; there is no rank on a
 page without that heading. When his game has started, or the numbers are more than a day old, the tile loses its colour and its
 last line says **Started** or **Old**, instead of showing a confident number that no longer holds.

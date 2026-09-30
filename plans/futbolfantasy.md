@@ -100,16 +100,19 @@ Around that:
 Two tracks run in parallel. The numbers switch first because they need no styling: the tile and Play already show the
 published %. The page and the section wait for the design you choose.
 
-**Status, 30 Sep (branch `claude/amazing-lovelace-8pxz0r`; it reaches production when that is merged to main):**
+**Status, 30 Sep and 1 Oct (branch `claude/amazing-lovelace-8pxz0r`; it reaches production when that is merged to main):**
 
 | Step | State |
 |---|---|
-| D · Design canvas | Built: 12 boards, waiting for your choices (Lineups A/B/C, Home A/B, the % source A/B/C) |
+| D · Design canvas | Done: the boards were chosen (Lineups A, Home, the % source B, the overlay, the states) |
 | S1 · Read FF by match | Done: parser, reader and fixtures of the real pages; 240 s budget; one unparseable page costs only its match |
 | S2 · Link FF to your players | Done: all 74 of your cards at the 20 LaLiga clubs link to the right person on the real pages (72 by name, 1 by a short first name, 1 by surname and age) |
-| S3 · The numbers | Done in the job, the page and the overlay's answer; Play shows the new `p` and `x`; the labels wait for the design |
-| S4 · Near-lock runs | Written (`near-lock.yml`); inert until it is on main, and the Refresh button (S6) still needs the GitHub key |
-| S5–S8 | After you choose the design (S7 also needs a real sorare.com tab) |
+| S3 · The numbers | Done in the job, the page and the overlay's answer |
+| S4 · Near-lock runs | Written (`near-lock.yml`); inert until it is on main |
+| S5 · The pages | Done: `/lineups` (desktop and phone), the Home's team news, the FF / SO / SF marks on Play's cards, the overlay's new tile and panel. Also each LaLiga club's squad page, read once a week, so every alternative sits under his own line |
+| S6 · Refresh button | Route, cooldown and walkthrough exist and pass their tests; it needs the GitHub key in Vercel (your item 2) and the code on main |
+| S7 · The extension reads FF live | Done and tested with the real page; needs a reload of the extension (it asks for one more site) and the check C19 below |
+| S8 · Docs | Done: AGENTS.md, the manual, `docs/how_it_works.md`, TODO.md |
 
 ### Now
 
@@ -377,6 +380,21 @@ These are questions for FF's and Sorare's pages, not for you:
 - Whether FF answers conditional requests (ETag / Last-Modified).
 - Whether FF answers GitHub's runners and your browser the same way.
 
+**Answered on 1 Oct while building S5 to S7:**
+
+- **Where each player plays.** The match page does not say for anyone outside the eleven. Each club has a squad page,
+  `/laliga/equipos/<club>/plantilla` (the club's address is the `slug` its match sides already carry), which lists every
+  player by position (goalkeepers, defenders, mediocampistas, forwards, then those on loan) with the same number as the match
+  pages (in his photo's address, `ficha/<number>.png`) and his profile address. It is read once a week (`ff_lineups`).
+- **Photos and crests.** A player's photo is `https://static.futbolfantasy.com/uploads/images/jugadores/ficha/<number>.png`
+  (checked: it answers 200, image/png; the site's own thumbnails sit on `media.futbolfantasy.com/thumb/150x150/v<version>/…`
+  with a version that changes). A club's crest is `…/equipos/escudom/<club number>.png`. Both are hot-linked, and the
+  Content-Security-Policy lets the page load them.
+- **What a browser can read.** The extension's worker reads the match page with `host_permissions` for
+  `futbolfantasy.com/partidos/*` and no credentials; the chance and the injury code are in attributes of each player's shirt
+  (`data-probabilidad`, `data-lesion`), which `core.ffPlayersOf` reads without an HTML parser and which agrees with the job's
+  parser on all 22 starters of the saved page.
+
 ## 8 · What the first draft planned that is gone, and why
 
 - **Weeks of comparison before showing FF.** Your decision; the comparison lives on the Audit page instead.
@@ -414,6 +432,19 @@ and the numbers or output that show it.
 | C12 | The record is settled game by game | A day after round 8 ends (Tue 13 Oct evening): `cd backend && python -m app.jobs.starts` | Settled rows for all three sources; `futbolfantasy` has n ≥ 30 |
 | C13 | European games use the site once it publishes them | Thu 15 Oct (Real Sociedad plays in the Europa League): dry run as in C1 on Wed 14 or Thu 15 Oct | The Europa League match is in `futbolfantasy.read`; Real Sociedad players' Europa game has `startSource: "futbolfantasy"` |
 
+**Added on 1 Oct, for S5 to S8 (run them after the merge and one real refresh)**
+
+| # | What it proves | How | Passes when |
+|---|---|---|---|
+| C14 | The squad pages read from GitHub's runners, for all twenty clubs | The first refresh after the merge, then read-only SQL: `SELECT jsonb_object_length(payload->'squads'), jsonb_object_length(payload->'positions') FROM read_models WHERE key='ff_positions';` and the run's summary `lineupsPage` | 20 squads and at least 500 positions; `squadsFailed` absent. If the site refuses the runners (HTTP 403/429), say so: the Lineups page then places only players who have been in an eleven |
+| C15 | The Lineups page on production | Open `/lineups` on a desktop and a phone after a run; the browser's console open | Ten round-8 matches in the bar; both elevens as cards with their chance; your players outlined with their Sorare art; alternatives under lines with few or none under "Others in the squad"; no Content-Security-Policy error in the console |
+| C16 | Crests and photos load | The same page | LaLiga crests from football-data, a European opponent's from `static.futbolfantasy.com`, FF's photos on the cards you do not own; if any is refused or missing, say which host (Q7) |
+| C17 | The Home's team news | Open `/` after the first real run, then again a day later | The tile shows the split (its numbers add up to "of your players have an FF chance"), the plan's starters under 70%, and, from the second day, "Moved since yesterday" with real moves (SQL: `SELECT jsonb_array_length(payload->'readings') FROM read_models WHERE key='ff_chances';` is 2 or more) |
+| C18 | The overlay on a real Sorare page | sorare.com with the extension: a lineup page, a list to pick from, the compose page | Tiles show the mark (FF, SO or SF) and the amber or red row when it applies; the panel shows the plan chip, Starts / Benched, the chance with "START · FF", the three numbers, and SOURCES folded; nothing overlaps Sorare's own chips |
+| C19 | The extension's live read | Rebuild and reload the extension (`node extension/scripts/configure.mjs`, then reload it in `chrome://extensions`, accepting the new site). Open Sorare's lineup page with a player of a round-8 match. In the service worker's Network panel, watch futbolfantasy.com | One request per match page, not more often than every 10 minutes per match and two seconds apart; the tile redraws and the panel says "FF live N min ago"; change the match's lineup on the site's side (or wait for it to change) and the tile follows within about 15 minutes. If the site answers the browser with an error or a block page, say what it returned |
+| C20 | The refresh still fits its time | Actions → "Scheduled refresh" after the merge | The run ends well inside its 15-minute limit with the squad pages read on the first run and not on the next |
+| C21 | Alternatives are under the right line | Five alternatives on `/lineups`, each against his club's squad page on Futbol Fantasy | Every one is under the line his squad page gives him |
+
 **Questions about the site and Sorare (answers go into section 7)**
 
 | # | Question | How |
@@ -423,7 +454,7 @@ and the numbers or output that show it.
 | Q3 | The cup and Supercopa addresses | Do `https://www.futbolfantasy.com/copa-del-rey/posibles-alineaciones` and `/supercopa-espana/posibles-alineaciones` exist, and which matches do they list? |
 | Q4 | Conditional requests | `curl -sI` a match page twice: is there an `ETag` or `Last-Modified`, and does `If-None-Match` answer 304? |
 | Q5 | The match squad ("Convocatorias") | On a match page on matchday, where is the squad list once the club publishes it, and what markup holds it (needed for "not in the squad") |
-| Q6 | A Sorare card picture for any player, not only the owner's | In Sorare's schema (`https://api.sorare.com/graphql/schema`), find a field that gives a player's card art without owning a card (for example a sample card per rarity or season). The Lineups page draws every starter as a card; today only the owner's cards have a picture (`collection[].pic`) |
+| Q6 | A Sorare card picture for any player, not only the owner's (today the page draws a neutral card with FF's photo for the cards you do not own) | In Sorare's schema (`https://api.sorare.com/graphql/schema`), find a field that gives a player's card art without owning a card (for example a sample card per rarity or season). The Lineups page draws every starter as a card; today only the owner's cards have a picture (`collection[].pic`) |
 | Q7 | Club crests for every club on the page | Sorare's club `pictureUrl` (already hot-linked by the app) for the 20 LaLiga clubs and any European opponent; or Futbol Fantasy's `escudom/<id>.png`. Say which is allowed to be hot-linked (AGENTS.md: third-party art is hot-linked, personal use) |
 
 **Results**

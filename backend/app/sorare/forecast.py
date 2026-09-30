@@ -1,20 +1,26 @@
 """What each of your players is expected to do in a gameweek.
 
-Two sources, in this order:
+His score if he plays, from two sources in this order:
 
-1. **Sorare's own numbers**, published about two days before the lock: its projected score ("if he plays") and
-   the bookmakers' starting chances it shows (starter / substitute / not playing).
-2. **The player's last five games**, when Sorare hasn't published yet: how often he played, and what he scored.
+1. **Sorare's own numbers**, published about two days before the lock: its projected score ("if he plays").
+2. **The player's last five games**, when Sorare hasn't published yet: what he scored.
 
-Both are only ever read from before the lock, so a replay of a played gameweek stays honest. S4 replaces this with
-a fitted model that has to beat Sorare's projection.
+His chance of starting a game, and so of playing it, from three, game by game:
+
+1. **Futbol Fantasy's expected lineup** for that game, when it has one (plans/futbolfantasy.md, S3);
+2. **Sorare's** starting odds (the bookmakers' starter / substitute / not playing);
+3. **The app's own**, from how he was used in his last five games.
+
+All are only ever read from before the lock, so a replay of a played gameweek stays honest. A player with no Futbol
+Fantasy number for any of his games is answered exactly as he was before it existed.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any, NamedTuple
 
-from app.sorare.model import Forecast
+from app.sorare.model import Forecast, GameChance
 from app.sorare.planner import SCORE_SD
 
 PRIOR_SCORE = 45.0  # a Sorare score around which players without a record sit
@@ -40,6 +46,18 @@ NATIONAL = {
 }
 
 
+@dataclass(frozen=True)
+class GameStart:
+    """What Futbol Fantasy says about one of his games: the only source that speaks game by game."""
+
+    game: str  # Sorare's id for the game
+    p_start: float  # 0 to 1: the chance it gives him of starting it
+    out: bool = False  # injured or suspended: he will not play at all, so there is no coming on from the bench either
+    info: dict[str, Any] = field(
+        default_factory=dict
+    )  # for the page, carried untouched: when it was read, status, link
+
+
 @dataclass
 class PlayerWeek:
     """Everything known about one player for one gameweek, before its lock."""
@@ -52,6 +70,8 @@ class PlayerWeek:
     start_odds: float | None = None  # Sorare's starter chance alone, 0-1 (`plays_odds` is starter + substitute)
     starts: dict[str, bool] = field(default_factory=dict)  # date -> he started, for the games in `history` he played
     pos: str | None = None  # "GK", "DEF", "MID" or "FWD"
+    game_ids: list[str] = field(default_factory=list)  # his games in kickoff order; needed to use `game_starts`
+    game_starts: list[GameStart] = field(default_factory=list)  # Futbol Fantasy's number, for the games it has
 
 
 def _from_form(history: list[tuple[str, float, bool]]) -> tuple[float, float]:
@@ -62,8 +82,18 @@ def _from_form(history: list[tuple[str, float, bool]]) -> tuple[float, float]:
     return plays, mu
 
 
-def _split(week: PlayerWeek, base_mu: float, plays: float) -> tuple[float, float, float, float]:
-    """(start, bench, p_start, p_on) for one game: his score if he starts, if he does not, and the chance of each.
+class Split(NamedTuple):
+    start: float  # his score if he starts
+    bench: float  # his score if he does not: the chance he comes on x what a substitute scores
+    p_start: float
+    p_on: float
+    benched_on: (
+        float  # of the games he does not start, how often he still plays (what another start chance is split with)
+    )
+
+
+def _split(week: PlayerWeek, base_mu: float, plays: float) -> Split:
+    """His score if he starts and if he does not, and the chance of each, for one game.
 
     His last five games say how he is used: a start, a substitute appearance or a miss. Sorare's starter and
     substitute odds replace that for the chances when it has published them. A regular starter's start score is
@@ -89,15 +119,45 @@ def _split(week: PlayerWeek, base_mu: float, plays: float) -> tuple[float, float
     else:
         start = (sum(started) + 2 * PRIOR_START_SCORE) / (len(started) + 2)
 
+    not_started = len(came_on) + sum(1 for _, _, ok in last if not ok)
+    prior = PRIOR_ON.get(week.pos or "", PRIOR_ON_OUTFIELD)
+    from_form = (len(came_on) + 2 * prior) / (not_started + 2.0)
+    benched_on = from_form
     if have_odds:  # of the games he does not start, how many he still plays
         benched = 1.0 - p_start
         p_on_if_benched = p_on / benched if benched > 0 else 0.0
+        benched_on = p_on_if_benched if benched > 0 else from_form  # with no bench in Sorare's odds, his form says
     else:
-        not_started = len(came_on) + sum(1 for _, _, ok in last if not ok)
-        prior = PRIOR_ON.get(week.pos or "", PRIOR_ON_OUTFIELD)
-        p_on_if_benched = (len(came_on) + 2 * prior) / (not_started + 2.0)
+        p_on_if_benched = from_form
     score_on = (sum(came_on) + 2 * PRIOR_SUB_SCORE) / (len(came_on) + 2)
-    return start, p_on_if_benched * score_on, min(p_start, 1.0), min(p_on, 1.0)
+    return Split(start, p_on_if_benched * score_on, min(p_start, 1.0), min(p_on, 1.0), benched_on)
+
+
+def _per_game(week: PlayerWeek, split: Split, plays: float) -> tuple[tuple[GameChance, ...], list[float]]:
+    """Each game's chance of starting and of coming on, and of playing it, from the best source that has that game.
+
+    A game Futbol Fantasy has is its number; the chance of coming on is what is left after it, at the rate Sorare's
+    substitute odds give (his form's when Sorare has none), and nothing when he is out. Any other game keeps the
+    numbers he had before Futbol Fantasy existed.
+    """
+    given = {start.game: start for start in week.game_starts}
+    sorare = week.start_odds is not None and week.plays_odds is not None
+    chances: list[GameChance] = []
+    played: list[float] = []
+    for game in week.game_ids:
+        told = given.get(game)
+        if told is None:
+            chances.append(GameChance(game, split.p_start, split.p_on, "sorare" if sorare else "sofix"))
+            played.append(plays)
+        elif told.out:
+            chances.append(GameChance(game, 0.0, 0.0, "futbolfantasy", told.info))
+            played.append(0.0)
+        else:
+            p_start = min(1.0, max(0.0, told.p_start))
+            p_on = (1.0 - p_start) * split.benched_on
+            chances.append(GameChance(game, p_start, p_on, "futbolfantasy", told.info))
+            played.append(min(1.0, p_start + p_on))
+    return tuple(chances), played
 
 
 def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
@@ -111,11 +171,24 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
     if week.plays_odds is not None:
         plays = week.plays_odds
         source = "sorare"
-    start, bench, p_start, p_on = _split(week, mu, plays)
+    split = _split(week, mu, plays)
+    start, bench, p_start, p_on = split.start, split.bench, split.p_start, split.p_on
+    per_game: tuple[GameChance, ...] = ()
+    if week.game_starts and len(week.game_ids) == week.games:
+        per_game, played = _per_game(week, split, plays)
+        p_start, p_on = per_game[0].p_start, per_game[0].p_on
+        p_any = 1.0
+        for chance in played:
+            p_any *= 1 - chance
+        p_any = 1 - p_any
+        best = sorted(played, reverse=True)[:2]
+        both = best[0] * best[1] if len(best) > 1 else best[0]
+    else:
+        p_any = 1 - (1 - plays) ** week.games
+        both = plays * plays
     # A double gameweek: he has to miss both to score nothing, and the better of the two games counts.
-    p_any = 1 - (1 - plays) ** week.games
     if week.games > 1 and p_any > 0:
-        mu += 0.56 * sd * plays * plays / p_any
+        mu += 0.56 * sd * both / p_any
     return Forecast(
         p_play=round(p_any, 4),
         mu=round(mu, 2),
@@ -126,6 +199,7 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
         bench=round(bench, 1),
         p_start=round(p_start, 3),
         p_on=round(p_on, 3),
+        per_game=per_game,
     )
 
 

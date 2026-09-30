@@ -201,9 +201,10 @@ def people(side: Side) -> list[Person]:
 
 
 # ------------------------------------------------------------------------------------------------------------- clubs
-def _club_of_side(side: Side) -> team_registry.TeamInfo | None:
-    """The registry's club for a side: by the number in its crest when known (the same in every competition), else by name."""
-    return team_registry.by_ff_id(side.club_id) or team_registry.by_odds_name(side.name)
+def club_of(club_id: str | None, name: str) -> team_registry.TeamInfo | None:
+    """The registry's club for one the pages name: by the number in its crest when known (the same in every competition),
+    else by name. None for a club the registry does not keep (abroad, the lower divisions of the cup)."""
+    return team_registry.by_ff_id(club_id) or team_registry.by_odds_name(name)
 
 
 def _same_words(ours: str, theirs: str) -> bool:
@@ -216,20 +217,25 @@ def _same_words(ours: str, theirs: str) -> bool:
     return small <= large and (len(small) >= 2 or max(map(len, small)) >= 5)  # "real" alone names half of Spain
 
 
-def same_club(names: Iterable[str], side: Side) -> bool:
-    """Is one of these Sorare club names the club of a match side?
+def club_matches(names: Iterable[str], club_id: str | None, club_name: str) -> bool:
+    """Is one of these Sorare club names the club a page calls `club_name`, whose crest number is `club_id`?
 
     The registry decides whenever either side is a club it knows, by identity and never by words: "Deportivo" is La Coruña
     and "Deportivo Alavés" is not, "Racing Club" is not "Racing Santander". Clubs it does not know (abroad, the lower
     divisions of the cup) are told apart by their words.
     """
     names = [name for name in names if name]
-    known = _club_of_side(side)
+    known = club_of(club_id, club_name)
     ours = {info for name in names if (info := team_registry.by_odds_name(name))}
     if known is not None or ours:
         return known is not None and known in ours
-    theirs = xg.club_key(side.name)
+    theirs = xg.club_key(club_name)
     return any(_same_words(xg.club_key(name), theirs) for name in names)
+
+
+def same_club(names: Iterable[str], side: Side) -> bool:
+    """Is one of these Sorare club names the club of a match side?"""
+    return club_matches(names, side.club_id, side.name)
 
 
 def match_of_game(team: str, opponent: str, kickoff: datetime, matches: Iterable[Match]) -> tuple[Match, Side] | None:

@@ -65,8 +65,13 @@ def league():
 @pytest.fixture(autouse=True)
 def no_futbolfantasy(monkeypatch, request):
     """No test reaches Futbol Fantasy over the network, except the one that tests the reader itself."""
-    if request.module.__name__.endswith("test_futbolfantasy"):
+    if request.module.__name__.endswith("test_futbolfantasy_matches"):
         return
-    from app.sources import futbolfantasy
+    from datetime import UTC, datetime
 
-    monkeypatch.setattr(futbolfantasy, "fetch_all", lambda *args, **kwargs: None)
+    from app.sources import futbolfantasy_matches
+
+    def nothing(wanted, competitions=(), now=None, **kwargs):
+        return futbolfantasy_matches.Reading(at=now or datetime.now(UTC))
+
+    monkeypatch.setattr(futbolfantasy_matches, "read_matches", nothing)

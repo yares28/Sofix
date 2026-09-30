@@ -13,7 +13,6 @@ from pathlib import Path
 import httpx
 import pytest
 
-from app.sources import futbolfantasy
 from app.sources import futbolfantasy_matches as ffm
 
 FIXTURES = Path(__file__).parent / "fixtures" / "futbolfantasy"
@@ -254,7 +253,7 @@ class Site:
                 return httpx.Response(answer, request=request)
             return httpx.Response(200, text=answer, request=request)
 
-        return httpx.Client(transport=httpx.MockTransport(handler), headers={"User-Agent": futbolfantasy.USER_AGENT})
+        return httpx.Client(transport=httpx.MockTransport(handler), headers={"User-Agent": ffm.USER_AGENT})
 
 
 LALIGA_ROUND = "https://www.futbolfantasy.com/laliga/posibles-alineaciones"
@@ -338,4 +337,4 @@ def test_it_waits_between_pages_and_says_who_it_is() -> None:
     ffm.read_matches(lambda c, item: item.match_id == 22502, client=site.client(), pause=2.0, sleep=waits.append)
 
     assert waits == [2.0], "no pause before the first page, one before the second"
-    assert "personal" in futbolfantasy.USER_AGENT
+    assert "personal" in ffm.USER_AGENT

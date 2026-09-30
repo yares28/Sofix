@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import date, datetime
+from typing import Any
 
 POSITIONS = ("GK", "DEF", "MID", "FWD")
 SORARE_POSITION = {"Goalkeeper": "GK", "Defender": "DEF", "Midfielder": "MID", "Forward": "FWD"}
@@ -59,6 +60,19 @@ class Card:
         return day.year - born.year - ((day.month, day.day) < (born.month, born.day))
 
 
+@dataclass(frozen=True)
+class GameChance:
+    """His chance of starting one game and of coming on in it, and whose number the start chance is."""
+
+    game: str  # Sorare's id for the game
+    p_start: float
+    p_on: float
+    source: str  # "futbolfantasy", "sorare" or "sofix"
+    info: dict[str, Any] = field(
+        default_factory=dict
+    )  # what the page shows with it: when it was read, his status, its link
+
+
 @dataclass
 class Forecast:
     """What a player is expected to do in one gameweek, from before its lock."""
@@ -74,6 +88,9 @@ class Forecast:
     bench: float | None = None  # his score if he does not start: the chance he comes on x what a substitute scores
     p_start: float | None = None  # the chance he starts
     p_on: float | None = None  # the chance he comes on as a substitute
+    # Game by game, in kickoff order, once Futbol Fantasy speaks about any of his games; empty otherwise, and then the
+    # chances above are the one answer for every game. `p_start` and `p_on` above are the first game's.
+    per_game: tuple[GameChance, ...] = ()
 
 
 @dataclass(frozen=True)

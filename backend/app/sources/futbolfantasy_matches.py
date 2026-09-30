@@ -34,10 +34,11 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
 
-from app.sources.futbolfantasy import BASE, TIMEOUT, USER_AGENT, FutbolFantasyError, _get
-
 logger = logging.getLogger(__name__)
 
+BASE = "https://www.futbolfantasy.com"
+USER_AGENT = "Sofix/1.0 (personal, read-only; one request per match page per read)"
+TIMEOUT = 12.0  # for one request: a page that is not answering is not waited for
 PAUSE = 2.0  # seconds between two pages
 BUDGET = 240.0  # seconds for the whole read: a LaLiga round is about 11 pages, a European matchday a dozen more
 GIVE_UP = 3  # pages in a row that could not be read: the site is not answering, so it is left alone
@@ -860,6 +861,28 @@ def parse_upcoming(html: str, today: date | None = None) -> list[Upcoming]:
 
 
 # ---------------------------------------------------------------------------------------------------------- reading
+class FutbolFantasyError(RuntimeError):
+    pass
+
+
+def _get(client: httpx.Client, url: str) -> str:
+    """One page. One retry on a server error or a timeout, none on anything else."""
+    for attempt in range(2):
+        try:
+            response = client.get(url)
+            if response.status_code >= 500 and attempt == 0:
+                continue
+            response.raise_for_status()
+            return response.text
+        except httpx.TimeoutException as exc:
+            if attempt == 0:
+                continue
+            raise FutbolFantasyError(f"{url}: timed out") from exc
+        except httpx.HTTPError as exc:
+            raise FutbolFantasyError(f"{url}: {exc}") from exc
+    raise FutbolFantasyError(f"{url}: no answer")
+
+
 def round_url(competition: str) -> str:
     return f"{BASE}/{COMPETITIONS[competition][0]}/posibles-alineaciones"
 

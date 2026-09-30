@@ -6,9 +6,11 @@ Read-only against Sorare (the API key only raises the rate limit), then the whol
 stored as one payload the web app renders as it is. The scores that paid in past gameweeks are kept in
 `read_models` between runs, so a run only fetches what it doesn't already know.
 
-The page comes first. What the page points at (each early plan, the week just played) is written before it, so a week it
-lists can always be opened; and what it can do without (early plans, Futbol Fantasy, the start-chance record) is tried
-in a way that a failure only leaves it out, reported in the summary, instead of stopping the page from publishing.
+What the page points at (each early plan, the week just played) is written before it, so a week it lists can always be
+opened; and what it can do without (early plans, Futbol Fantasy, the start-chance record) is tried in a way that a failure
+only leaves it out, reported in the summary, instead of stopping the page from publishing. Futbol Fantasy is read before the
+page is planned, since its chances are what the plans are built on, but inside a time budget of its own: a site that is slow
+or down costs its numbers (yesterday's reading is used for a day), never the page.
 
 Without SORARE_API_KEY the step is skipped, exactly like the odds step without its key.
 """
@@ -30,7 +32,7 @@ from app.db import SessionLocal
 from app.logging_config import configure_logging
 from app.models import ReadModel
 from app.services.publish import notify_app, put
-from app.sorare import early, projection, starts
+from app.sorare import early, ff_feed, ff_link, ff_use, projection, starts
 from app.sorare import publish as sorare_publish
 from app.sorare import record as sorare_record
 from app.sorare import sync as sorare_sync
@@ -70,30 +72,63 @@ def optional(db: Session, failed: dict[str, str], step: str, work: Callable[[], 
         return fallback
 
 
+def read_lineups(
+    db: Session, failed: dict[str, str], snapshot: dict[str, Any], fetched: datetime, *, write: bool
+) -> tuple[ff_feed.Feed | None, ff_use.Lineups | None]:
+    """Futbol Fantasy's match pages, read now (what could not be read keeps its last reading for a day), and each of the
+    owner's players linked to the people on them. A read that breaks outright falls back to what was kept."""
+    feed = optional(
+        db, failed, "futbol fantasy", lambda: ff_feed.refresh(db, snapshot["cards"], fetched, write=write), None
+    )
+    if feed is None:
+        feed = optional(db, failed, "futbol fantasy (kept)", lambda: ff_feed.load(db), None)
+    if feed is None:
+        return None, None
+
+    def link() -> ff_use.Lineups:
+        lineups = ff_use.Lineups(feed, snapshot["cards"], fetched, ff_link.load_kept(db))
+        if write:
+            ff_link.save_kept(db, lineups.links.links, fetched)
+        return lineups
+
+    return feed, optional(db, failed, "futbol fantasy links", link, None)
+
+
 def record_starts(
     db: Session,
     failed: dict[str, str],
     snapshot: dict[str, Any],
-    rounds: list[projection.Round],
-    fetched: datetime,
+    lineups: ff_use.Lineups | None,
+    now: datetime,
     *,
     write: bool,
 ) -> dict[str, Any]:
-    """Who says he will start (Sorare, Sofix, Futbol Fantasy), written down to be scored against what happens.
+    """Who says he will start (Sorare, Sofix, Futbol Fantasy), game by game, written down to be scored against what happens.
 
-    The site is asked at most every few hours, within a time budget of its own, and a page it cannot read leaves its column
-    empty, never filled from an old answer. A run that is not writing (a dry run) asks and reports but remembers nothing.
+    A run that is not writing (a dry run) asks and reports but remembers nothing.
     """
-    lock = datetime.fromisoformat(snapshot["planGameweek"]["lock"])
-    found = optional(db, failed, "futbol fantasy", lambda: starts.chances(db, fetched, lock, write=write), None)
-    out: dict[str, Any] = {"futbolfantasy": len(found.chances) if found else 0}
-    if write:
-        rows: list[starts.Row] = optional(db, failed, "start rows", lambda: starts.rows(snapshot, found, rounds), [])
-        now = datetime.now(UTC)
-        record: dict[str, int] = optional(
-            db, failed, "start record", lambda: {**starts.save(db, rows, now), **starts.settle(db, snapshot)}, {}
-        )
-        out["starts"] = record
+    if not write:
+        return {}
+    ff = lineups.starts if lineups else None
+    rows: list[starts.Row] = optional(db, failed, "start rows", lambda: starts.rows(snapshot, ff), [])
+    record: dict[str, int] = optional(
+        db, failed, "start record", lambda: {**starts.save(db, rows, now), **starts.settle(db, snapshot)}, {}
+    )
+    return {"starts": record}
+
+
+def lineups_summary(feed: ff_feed.Feed | None, lineups: ff_use.Lineups | None, week: dict[str, Any]) -> dict[str, Any]:
+    """What Futbol Fantasy gave this run: matches held and read, who is linked, who could not be and how many games have a number."""
+    if feed is None:
+        return {"matches": 0, "read": 0}
+    out: dict[str, Any] = ff_feed.stamp(feed)
+    if lineups is not None:
+        players = week.get("playing", {}).get("players", [])
+        out.update(lineups.report([p["player"] for p in players if p.get("player")]))
+        games = [g for p in players for g in p.get("games", [])]
+        out["games"] = sum(1 for g in games if g.get("startSource") == "futbolfantasy")
+        if gaps := lineups.missing(games):
+            out["noMatch"] = gaps[:10]
     return out
 
 
@@ -127,10 +162,14 @@ def run(
     )
     snapshot["understat"] = understat.fetch_leagues(leagues, understat.season_of(started.date()))
     failed: dict[str, str] = {}
+    fetched = datetime.fromisoformat(snapshot["fetchedAt"])
+    # Futbol Fantasy's expected lineups, before anything is planned: its chance that each player starts each game is what
+    # the expected scores, the plans and the captain are built on. Only the gameweek being planned uses it.
+    feed, lineups = read_lineups(db, failed, snapshot, fetched, write=not dry_run)
+    db.rollback()
     # Every LaLiga round Sorare has not opened a gameweek for is planned early, from the calendar the app already holds. A
     # run plans only the few that are missing or stale, so it stays well inside its time; the rest keep their last plan.
     # If planning fails the page keeps the list of early weeks it had.
-    fetched = datetime.fromisoformat(snapshot["fetchedAt"])
     rounds: list[projection.Round] = optional(db, failed, "calendar", lambda: projection.calendar(db, fetched), [])
     db.rollback()  # the calendar was a read, and what follows takes a while: the connection is not left inside a transaction
     made = optional(
@@ -145,7 +184,9 @@ def run(
     early_weeks = made.weeks if made else []
     fresh_weeks = made.fresh if made else []
     heads = sorare_publish.projected_heads(early_weeks) if made else list(previous.get("projected") or [])
-    payload = sorare_publish.build_payload(snapshot, runs=runs, previous=previous, projected=heads)
+    payload = sorare_publish.build_payload(
+        snapshot, runs=runs, previous=previous, projected=heads, ff=lineups.starts if lineups else None
+    )
     size = len(json.dumps(payload, separators=(",", ":")))
     planned_week = sorare_publish.week_of(payload) or {}
     summary: dict[str, Any] = {
@@ -160,13 +201,13 @@ def run(
         "planned": [w["projected"]["round"] for w in fresh_weeks],
         "calls": snapshot["calls"],
         "bytes": size,
+        "futbolfantasy": lineups_summary(feed, lineups, planned_week),
         "seconds": round((datetime.now(UTC) - started).total_seconds()),
     }
     if snapshot.get("pastGaps"):
         # Sorare did not answer everything the week just played was built from: it is not made final, and is rebuilt next run.
         summary["pastGaps"] = snapshot["pastGaps"]
     if dry_run:
-        summary.update(record_starts(db, failed, snapshot, rounds, fetched, write=False))
         if failed:
             summary["failed"] = failed
         logger.info("sorare (dry run): %s", summary)
@@ -195,9 +236,7 @@ def run(
         summary["archived"] = archived[0]
     put(db, SORARE_KEY, payload, now)
     put(db, REFERENCES_KEY, snapshot["references"], now)
-    # Only now, with the page published, is Futbol Fantasy asked: a site that is slow or down costs the record of who said
-    # he would start, never the page.
-    summary.update(record_starts(db, failed, snapshot, rounds, fetched, write=True))
+    summary.update(record_starts(db, failed, snapshot, lineups, fetched, write=True))
     if failed:
         summary["failed"] = failed
     if standalone:

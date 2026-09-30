@@ -434,3 +434,45 @@ def test_the_report_puts_the_best_source_first_and_says_when_there_is_too_little
     assert "0.099" in lines[1] and "90%" in lines[1]
     assert "Fewer than 100 players for futbolfantasy" in text
     assert report.table({}) == "Nothing is settled yet: a gameweek is scored a day after it ends."
+
+
+def test_the_job_publishes_the_lineups_page_and_the_homes_team_news(db, monkeypatch, the_job) -> None:
+    monkeypatch.setattr(ffm, "read_matches", Site())
+
+    summary = the_job.run(db, "yares", runs=1)
+
+    lineups = db.get(ReadModel, "lineups")
+    assert lineups is not None and [m["id"] for m in lineups.payload["matches"]] == [501]
+    assert summary["lineupsPage"]["matches"] == 1
+    news = page_of(db)["teamNews"]
+    assert news["players"] >= 1 and news["split"]["likely"] >= 1 and news["moved"] is None, "no reading a day old yet"
+    assert summary["teamNews"]["players"] == news["players"]
+    kept = db.get(ReadModel, "ff_chances")
+    assert kept is not None and len(kept.payload["readings"]) == 1
+    assert db.get(ReadModel, "ff_positions") is not None
+
+
+def test_a_second_run_soon_after_keeps_the_one_reading_to_compare_with(db, monkeypatch, the_job) -> None:
+    monkeypatch.setattr(ffm, "read_matches", Site())
+
+    the_job.run(db, "yares", runs=1)
+    the_job.run(db, "yares", runs=1)
+
+    assert len(db.get(ReadModel, "ff_chances").payload["readings"]) == 1
+
+
+def test_a_dry_run_builds_the_news_and_the_page_but_writes_neither(db, monkeypatch, the_job) -> None:
+    monkeypatch.setattr(ffm, "read_matches", Site())
+
+    summary = the_job.run(db, "yares", runs=1, dry_run=True)
+
+    assert summary["lineupsPage"]["matches"] == 1 and summary["teamNews"]["players"] >= 1
+    for key in ("lineups", "ff_chances", "ff_positions"):
+        assert db.get(ReadModel, key) is None, key
+
+
+def test_with_no_site_there_is_no_lineups_page_and_no_news(db, the_job) -> None:
+    summary = the_job.run(db, "yares", runs=1)
+
+    assert summary["teamNews"] is None and "teamNews" not in page_of(db)
+    assert db.get(ReadModel, "ff_chances") is None

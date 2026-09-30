@@ -32,7 +32,7 @@ from app.db import SessionLocal
 from app.logging_config import configure_logging
 from app.models import ReadModel
 from app.services.publish import notify_app, put
-from app.sorare import early, ff_feed, ff_link, ff_use, projection, starts
+from app.sorare import early, ff_feed, ff_lineups, ff_link, ff_news, ff_use, projection, starts
 from app.sorare import publish as sorare_publish
 from app.sorare import record as sorare_record
 from app.sorare import sync as sorare_sync
@@ -92,6 +92,44 @@ def read_lineups(
         return lineups
 
     return feed, optional(db, failed, "futbol fantasy links", link, None)
+
+
+def publish_lineups(
+    db: Session,
+    failed: dict[str, str],
+    snapshot: dict[str, Any],
+    feed: ff_feed.Feed | None,
+    lineups: ff_use.Lineups | None,
+    at: datetime,
+    *,
+    write: bool,
+) -> dict[str, Any]:
+    """The Lineups page's data, written as soon as the site has been read: it does not wait for the plans, which take minutes.
+
+    Also brings up to date the memory of which line each player was last drawn in, which the page places the alternatives by.
+    """
+    if feed is None:
+        return {}
+
+    def work() -> dict[str, Any]:
+        cards, _ = sorare_publish.read_cards(snapshot["cards"])
+        positions = ff_lineups.remember(ff_lineups.load_positions(db), feed, lineups)
+        page = ff_lineups.payload(feed, lineups, cards, positions, at)
+        if write:
+            ff_lineups.save_positions(db, positions, at)
+            put(db, ff_lineups.LINEUPS_KEY, page, at)
+        return {"matches": len(page["matches"]), "bytes": len(json.dumps(page, separators=(",", ":")))}
+
+    return optional(db, failed, "lineups page", work, {})
+
+
+def team_news(
+    db: Session, failed: dict[str, str], week: dict[str, Any], at: datetime
+) -> tuple[dict[str, Any] | None, list[ff_news.Reading]]:
+    """The Home's team news for the planned gameweek, and the earlier readings it was compared with."""
+    readings: list[ff_news.Reading] = optional(db, failed, "team news history", lambda: ff_news.load(db), [])
+    news = optional(db, failed, "team news", lambda: ff_news.team_news(week, at, readings), None)
+    return news, readings
 
 
 def record_starts(
@@ -177,6 +215,7 @@ def run(
     # Futbol Fantasy's expected lineups, before anything is planned: its chance that each player starts each game is what
     # the expected scores, the plans and the captain are built on. Only the gameweek being planned uses it.
     feed, lineups = read_lineups(db, failed, snapshot, fetched, write=not dry_run)
+    lineups_page = publish_lineups(db, failed, snapshot, feed, lineups, fetched, write=not dry_run)
     db.rollback()
     # Every LaLiga round Sorare has not opened a gameweek for is planned early, from the calendar the app already holds. A
     # run plans only the few that are missing or stale, so it stays well inside its time; the rest keep their last plan.
@@ -198,8 +237,11 @@ def run(
     payload = sorare_publish.build_payload(
         snapshot, runs=runs, previous=previous, projected=heads, ff=lineups.starts if lineups else None
     )
-    size = len(json.dumps(payload, separators=(",", ":")))
     planned_week = sorare_publish.week_of(payload) or {}
+    news, readings = team_news(db, failed, planned_week, fetched)
+    if news:
+        planned_week["teamNews"] = news  # the Home's team news belongs to the week the site's numbers are about
+    size = len(json.dumps(payload, separators=(",", ":")))
     summary: dict[str, Any] = {
         "gameweek": planned_week.get("gameweek", {}).get("number"),
         "state": planned_week.get("state"),
@@ -213,6 +255,8 @@ def run(
         "calls": snapshot["calls"],
         "bytes": size,
         "futbolfantasy": lineups_summary(feed, lineups, planned_week),
+        "lineupsPage": lineups_page,
+        "teamNews": {"players": news["players"], "atRisk": news["atRisk"]["total"]} if news else None,
         "sorareOdds": sorare_odds(snapshot),
         "seconds": round((datetime.now(UTC) - started).total_seconds()),
     }
@@ -248,6 +292,13 @@ def run(
         summary["archived"] = archived[0]
     put(db, SORARE_KEY, payload, now)
     put(db, REFERENCES_KEY, snapshot["references"], now)
+    optional(
+        db,
+        failed,
+        "team news history",
+        lambda: ff_news.save(db, ff_news.record(readings, ff_news.chances(planned_week), fetched), fetched),
+        False,
+    )
     summary.update(record_starts(db, failed, snapshot, lineups, fetched, write=True))
     if failed:
         summary["failed"] = failed

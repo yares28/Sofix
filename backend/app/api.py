@@ -7,6 +7,7 @@ from app.db import get_db
 from app.models import ReadModel
 from app.schemas import ApiResponse, FixtureGrid
 from app.services.fixture_grid import build_fixture_grid, grid_meta
+from app.sorare.ff_lineups import LINEUPS_KEY
 from app.sorare.publish import AHEAD_PREFIX, ARCHIVE_PREFIX
 
 router = APIRouter(prefix="/api")
@@ -50,4 +51,13 @@ def sorare_ahead(round: int, db: Session = Depends(get_db)):
     row = db.get(ReadModel, f"{AHEAD_PREFIX}{round}")
     if row is None:
         return ApiResponse[dict[str, Any]](success=False, error="There is no early plan for this round.")
+    return ApiResponse[dict[str, Any]](success=True, data=row.payload)
+
+
+@router.get("/lineups", response_model=ApiResponse[dict[str, Any]])
+def lineups(db: Session = Depends(get_db)):
+    """Futbol Fantasy's lineups as the Lineups page draws them. Local development only, like /sorare."""
+    row = db.get(ReadModel, LINEUPS_KEY)
+    if row is None:
+        return ApiResponse[dict[str, Any]](success=False, error="Futbol Fantasy's lineups have not been read yet.")
     return ApiResponse[dict[str, Any]](success=True, data=row.payload)

@@ -364,6 +364,7 @@ def card_payload(
     game = (games.get(card.player) or [{}])[0]
     out: dict[str, Any] = {
         "slug": card.slug,
+        "player": card.player,
         "name": card.name,
         "pos": card.positions[0],
         "rarity": card.rarity,

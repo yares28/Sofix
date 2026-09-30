@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
 
-from app.sorare import publish
+from app.sorare import ff_news, publish
 from app.sorare.forecast import GameStart
 from tests.test_sorare_publish import snapshot
 
@@ -77,3 +78,25 @@ def test_a_plan_changes_when_futbol_fantasy_changes() -> None:
 
     assert page() != page(moved)
     assert players(page(moved))["back-one"]["p"] < players(page())["back-one"]["p"]
+
+
+def test_a_starter_carries_his_player_so_the_news_can_find_him() -> None:
+    starters = [c for plan in page()["plans"] for lineup in plan["lineups"] for c in lineup["starters"]]
+
+    assert starters and all(c["player"] and c["slug"].startswith(c["player"]) for c in starters)
+
+
+def test_the_home_news_is_built_from_the_finished_page() -> None:
+    week = page(told)
+    now = datetime(2026, 10, 7, 9, 30, tzinfo=UTC)
+
+    news = ff_news.team_news(week, now)
+
+    assert news is not None
+    assert news["players"] == 2 and news["split"] == {"likely": 0, "doubtful": 0, "unlikely": 1, "out": 1}
+    assert news["without"] == len(week["playing"]["players"]) - 2
+    assert news["readAt"] == READ
+    assert ff_news.chances(week) == {
+        "front-one": {"g": players(week)["front-one"]["games"][0]["id"], "p": 0},
+        "mid-one": {"g": players(week)["mid-one"]["games"][0]["id"], "p": 25},
+    }

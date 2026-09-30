@@ -71,6 +71,7 @@ class Lineups:
         self.now = now
         self.usable: list[Stored] = feed.usable(now)
         wanted = {w.slug: w for row in cards if (w := ff_link.wanted(row))}
+        self.wanted = wanted  # the owner's players as the linking knows them: the page names the ones it could not link
         # Who is who does not depend on how fresh a reading is, so every match held is used to find it.
         self.links = ff_link.link_cards(
             wanted.values(),

@@ -14,23 +14,26 @@ Widest change on screen first. Batch 1 is already on `main` and deployed (produc
 
 | # | Item | What changes on screen | State |
 |---|---|---|---|
-| 1 | **T2 · Futbol Fantasy start %** | The "% he starts" on every tile, and through it (`p_play × mu`) every expected score, plan and captain | Collecting, on `main`; first LaLiga week is the test. [plans/starts.md](plans/starts.md) |
+| 1 | **T2 · Futbol Fantasy lineups and start %** | FF's % becomes the main % on every tile, Play card and plan (xScore, captain); a new Lineups page; a new home section under "Sorare" | Plan rewritten with your answers (30 Sep); design canvas and the number switch next, aiming at round 8 (Fri 9 Oct). [plans/futbolfantasy.md](plans/futbolfantasy.md) |
 | 2 | **T1 · the xScore** | Every tile's score (Giorgi 45 / Oyarzabal 43), "2 games", the bench pair, club vs national | Planning; P0 (diagnose) next. [plans/xscore.md](plans/xscore.md) |
 | 3 | **Batch 1, live** (you) | Play's every week, past weeks, early plans to GW36, the overlay fixes; then the second overlay pass | Deployed; waits for your look |
 | 4 | **T3 · Pro** | A whole competition type missing from Play's best lineups, plus level and progress | Research first |
-| 5 | **T4 · "Your gameweek" sheet** | The edge-tab panel on every sorare.com page | Design canvas first |
-| 6 | **T5 · expected score beside your lineups** | New numbers on sorare.com's lineups and compose pages | Not started |
-| 7 | **Old weeks, rebuilt** | GW1–16 (16 of 36 weeks) are "not recorded"; approximate | Optional |
-| 8 | **The plan as it stood at the lock** | A second view in kept weeks | Follow-up |
-| 9 | **Calibrate reward probabilities** | The "Reward chance" figures | Blocked on data |
-| 10 | **Sofix panel on a player page** | A large new panel | Designed, not in the plan |
-| 11 | **T6 · Sorare vs Sofix audit** | Nothing directly; produces future entries | Not started |
-| 12 | **Small things** | Stray #1–#3 on galleries, the PWA, the Refresh button, the review leftovers | Whenever |
+| 5 | **T7 · The Audit page** (new idea) | A new page: how right FF, Sorare and Sofix were on starts, the xScore, plan scores, rewards and best lineups | Idea; needs the plan frozen at the lock (row 9) for half of it |
+| 6 | **T4 · "Your gameweek" sheet** | The edge-tab panel on every sorare.com page | Design canvas first |
+| 7 | **T5 · expected score beside your lineups** | New numbers on sorare.com's lineups and compose pages | Not started |
+| 8 | **Old weeks, rebuilt** | GW1–16 (16 of 36 weeks) are "not recorded"; approximate | Optional |
+| 9 | **The plan as it stood at the lock** | A second view in kept weeks; the Audit's plan figures need it | Follow-up |
+| 10 | **Calibrate reward probabilities** | The "Reward chance" figures | Blocked on data |
+| 11 | **Sofix panel on a player page** | A large new panel | Designed, not in the plan |
+| 12 | **T6 · Sorare vs Sofix audit** | Nothing directly; produces future entries | Not started |
+| 13 | **Small things** | Stray #1–#3 on galleries, the PWA, the review leftovers | Whenever |
 
 No visual impact, but they gate work: **the live Apply acceptance test** (yours, item 1 below) and **Retire SorareExt**.
+The Refresh button (yours, item 2) left "small things": the FF plan uses it.
 
-Work order: T1 P0 and T2 A0 start now and are independent; T2's verdict needs weeks of settled games, so T1's
-backtest runs while it accumulates. Neither model change ships in the same refresh as the other.
+Work order: the FF plan's design canvas and its number switch (steps S1 to S4) start now, aiming at round 8; T1's P0 is
+independent. Never ship an xScore model change in the same refresh as the FF switch: a shift in numbers could not be
+blamed on either.
 
 ---
 
@@ -46,14 +49,14 @@ The one thing no test can stand in for, because it needs your signed-in Sorare t
 
 Until this passes, `SorareExt` stays. There is no data gate here — you can do it today.
 
-### 2 · A Refresh button — optional, and you don't have the key yet
+### 2 · A Refresh button — you chose it on 30 Sep, and you don't have the key yet
 `GITHUB_TOKEN` is not missing from your `.env`; it never existed. It is a GitHub key you'd **create**,
 and its only power is starting this repo's refresh workflow. Refreshes already run on a clock without it —
-the key only adds a button that starts one early.
+the key only adds a button that starts one early. The FF plan (step S6) counts on it, so that you can pull
+Futbol Fantasy's latest lineups just before a lock.
 
 The app walks you through it: **/control → "A Refresh button"**. Two steps, both pre-filled links (create the
 key with repository access limited to Sofix, then add it to Vercel as `GITHUB_TOKEN` and redeploy).
-Skip it entirely if you don't want the button.
 
 ### 3 · Install the PWA
 Chrome address bar → install. Not blocking anything.
@@ -162,7 +165,7 @@ production:
 - **There is almost nothing to backtest on yet.** `sorare_forecasts` holds 3 gameweeks, 30 rows, 11 scored, and none of
   its rows has Sorare's starter/substitute odds. The backtest below therefore starts from Sorare's per-game history
   (form only, walk-forward) and adds the comparison with Sorare's projection when about 100 scored players exist. The
-  record also lacks the competition, minutes and start/bench split, so P1 adds them (one migration, with T2).
+  record also lacks the competition, minutes and start/bench split, so P1 adds them (one migration; the FF plan needs none).
 - **The big number on a tile is "if he starts", not the expected score.** That alone makes Giorgi 45 / Oyarzabal 43 look
   alike. Question for you (plan §6): should the big number be the expected score instead, or both?
 - **Two leads are very likely:** a player with no start in his last five gets Sorare's projection as his start score
@@ -248,32 +251,33 @@ projections. Freeze that as `sorare_plan:<slug>` and show it in the kept week's 
 replay, so "what Sofix said" and "what it would say from form" are both there. Scoring that frozen plan against the
 real scores needs the planner's lineups rebuilt from the saved cards, which is the larger half of the work.
 
-### T2 · Which starting % to trust: Futbol Fantasy, Sorare or Sofix
-**What you said.** "Get the starting % from Futbol Fantasy
+### T2 · Futbol Fantasy's lineups and start % in Sofix
+**What you said (29 Sep).** "Get the starting % from Futbol Fantasy
 (https://www.futbolfantasy.com/laliga/equipos/barcelona), add a scrape of every team's expected starting % to the
-run workflow, and compare it with the app's and Sorare's to find the most accurate. Futbol Fantasy needs time before
-we know if it's trustworthy."
+run workflow, and compare it with the app's and Sorare's to find the most accurate."
 
-**What's known** (checked 29 Sep). Its robots.txt blocks nothing. Each team page (about 2.5 MB of plain HTML) lists
-every player with `data-nombre="pedri-gonzalez"` and `data-probabilidad="80%"`, plus injury, suspension and
-international flags and "Últ. act." (last update) times. Barcelona: 26 players, e.g. Lamine Yamal 95%, Pedri 80%,
-Cubarsí 80%, Raphinha 70%. Its percentages are for **LaLiga's next round only**, not national-team games.
+**What you said (30 Sep).** "The FF odds of starting only affect the next game for that team, and change about a day
+after that team played. I want FF's full lineups to show on Sofix, and the players I have will get FF's starting % as
+the main %, falling back to Sorare's and then the app's (statistically, Sofix has the least information on injuries and
+starting of the three). You'll have to test it on their next LaLiga game. A new lineups page and a new section under
+'Sorare' on the home page; I want to decide the styling before implementation using /design. The overlay has to work
+the same way."
 
-**Plan: [plans/starts.md](plans/starts.md), started 2026-09-30.**
+**Plan: [plans/futbolfantasy.md](plans/futbolfantasy.md), rewritten 2026-09-30 with your answers** (FF everywhere,
+including xScore and plans; every match on the page; LaLiga, European and cup games; extra runs before locks, the Refresh
+button and live reads in the extension). It lists 40-odd edge cases and the proof on round 8 (Fri 9 – Mon 12 Oct).
 
-**Collection** is batch 1, step 6 (on `main`): stored beside Sorare's and Sofix's numbers, frozen at the lock, settled by
-what happened. It covers only players you own with a game in the gameweek being planned, so the sample grows by about a
-few dozen players a week; `python -m app.jobs.starts` says when there is enough (100 or more settled players per source).
+**Corrected on 30 Sep.** The earlier note here said FF's percentages were "for LaLiga's next round only". They are for
+**each team's next game**, per competition: FF has its own Champions League, Europa League and Copa del Rey sections.
+Its "Últ. act." times belong to the fantasy games' market values; a lineup has no time stamp.
 
 **State in production, 2026-09-30** (read-only count): `start_chances` holds 1 gameweek, 15 players, none settled, with
-Sofix's number for all 15, **Sorare's for none and Futbol Fantasy's for none.** Futbol Fantasy's none is probably because
-that week is a national-team week (it covers LaLiga's next round only); this is the thing to confirm at the first
-LaLiga week. Sorare's none matches the record above: its starter odds have never been stored, so whether they arrive at
-all is the first question (plan A0).
+Sofix's number for all 15, **Sorare's for none and Futbol Fantasy's for none.** Futbol Fantasy's none is because that
+week is a national-team week, and FF only covers each team's next LaLiga (or European, cup) game. Sorare's none matches
+the record above: its starter odds have never been stored; the plan's step S3 logs whether they arrive at all.
 
-**The comparison (this entry).** After several gameweeks, score each source against who actually started (history's
-`started`), overall and per competition. The tile then uses the best source for each case (say, Futbol Fantasy for
-LaLiga and Sorare for internationals), and the panel names it.
+**The collection** (batch 1, step 6, on `main`) stays: what each source said at the lock, settled by what happened, is
+the Audit page's data (T7).
 
 ### T3 · Pro in the best plan
 **What you said.** "The app doesn't compute all game modes. It never gives me the Pro option when best lineups are
@@ -321,6 +325,64 @@ plan for it."
 than Classic (Pro, T3); Super Rare and Unique competitions (filtered out); gameweeks beyond the ones Sorare has opened
 (batch 1, steps 2–4); your entered lineups' scores, ranks and rewards (batch 1, step 3); levels and progress. Each
 gap then becomes its own entry here.
+
+### T7 · The Audit page (idea, 2026-09-30)
+**What you said.** "A new page idea, called 'Audit'. It will get the % of correct start guesses from all 3 sources and
+compare them; the score prediction difference for xScore in Sofix, to know how precise it is; the difference in plan
+team score, to see how precise the team building is; the % of plans that correctly guessed the reward, and the % of
+times it properly guessed the best lineup; and more that you'll have to think about."
+
+**What it would show.** Each figure per gameweek and for the season, with how many cases stand behind it; under a
+floor it says "too few to tell" instead of a number.
+
+Your five:
+
+1. **Who starts, three sources.** FF, Sorare and Sofix side by side:
+   - how often each was right: said 50% or more and he started, or less and he didn't;
+   - how far off each was (Brier score);
+   - whether their % mean what they say: of the players each put at 80%, how many started.
+
+   Split by competition, position and team. The big misses are listed: said 80% or more and he didn't start, said 20% or
+   less and he did. FF's own season predictability per team sits beside ours.
+2. **xScore precision.** Expected against actual score per player:
+   - the average miss, and whether it runs high or low;
+   - split by position, by role (started, came on, didn't play), by competition and by which source gave the %;
+   - how often the actual landed inside the range shown.
+3. **Plan team score.** The plan's expected lineup total against what the lineup scored: high or low, inside the
+   range or not.
+4. **Rewards guessed.** How often the reward the plan expected was reached, and whether "reward chance 30%" came true
+   about 30% of the time.
+5. **Best lineup guessed.** How often the plan's lineup was the best possible in hindsight, and how many of its five
+   cards were. Also the points left on the table: the hindsight best minus the plan.
+
+More:
+
+6. **Captain.** How often the captain was the lineup's top scorer, and what the choice cost in points.
+7. **You against the plan.** The lineups you entered against Sofix's plan, in points and rewards.
+8. **Sorare's projection against Sofix's xScore**, on the same players and games.
+9. **Two-game weeks.** How the best-of-two estimate did.
+10. **Early plans.** How far a plan made weeks ahead was from the final plan and from what happened.
+11. **FF's doubles.** When FF showed two names for one place, how often the first one started.
+12. **The football board.** The model's season so far: its RPS against the 0.1947 baseline and the bookmakers, and its
+    clean-sheet calls.
+13. **Coverage and freshness.** For your players:
+    - the share with an FF % and the share with Sorare odds;
+    - FF names not linked, and FF reads that failed;
+    - how old the FF number was at the lock.
+14. **Money.** Essence and cash expected against won.
+
+**What it needs first.** Already recorded:
+
+- what each source said at the lock (`start_chances`);
+- the forecasts and actual scores (`sorare_forecasts`);
+- the kept weeks (`sorare_week:*`);
+- your entered lineups with their scores and rewards (the extension reads them, batch 1 step 3).
+
+Missing: the plan as it stood at the lock (the entry above). Figures 3 to 7 and 10 need it. So the page can open with
+1, 2, 8, 9 and 11 to 13, and add the rest once each lock freezes the plan. It replaces the "is Futbol Fantasy
+trustworthy?" comparison of T2's first draft.
+
+**Where.** A new page, `/audit`, designed on a canvas first like the others.
 
 ### Small things the review before the first push left open
 Found by an independent read of the batch-1 commits (2026-09-30); the ones that could cost you a page or a wrong

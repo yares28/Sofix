@@ -1,7 +1,8 @@
 # Plan · the xScore: why some predictions look wrong, then the fix (T1)
 
-Written 2026-09-30. Entry in [TODO.md](../TODO.md) (T1); the sibling plan is [starts.md](starts.md), which decides where
-the "will he start?" number comes from. S4 in [docs/sorare_plan.md](../docs/sorare_plan.md) is this plan's checklist.
+Written 2026-09-30. Entry in [TODO.md](../TODO.md) (T1); the sibling plan is [futbolfantasy.md](futbolfantasy.md),
+which makes Futbol Fantasy the main source of the "will he start?" number (your decision, 30 Sep). S4 in
+[docs/sorare_plan.md](../docs/sorare_plan.md) is this plan's checklist.
 
 **What you said.** Giorgi Tsitaishvili shows 45 and Oyarzabal 43 in an international week; Oyarzabal has had a weird
 club start but with Spain "he always does something", Giorgi rarely starts in LaLiga and often has worse games. "We
@@ -127,8 +128,8 @@ that has them). Also settle the open unknowns: the API's field names for decisiv
 
 - `sorare_forecasts` gains: Sorare's starter odds alone, our `p_start`/`p_on`/`start`/`bench`, the games (competition and
   opponent) and, once settled, `started`, minutes and each game's score. One **Alembic migration applied to production by
-  you first**, then the code; the unattended job cannot add columns. It is **shared with [starts.md](starts.md) phase C**
-  (`start_source`), so there is one migration, not two.
+  you first**, then the code; the unattended job cannot add columns. The FF plan needs none: its
+  number and source live in read models.
 - **"2 games" on the tile, and both games in the hover panel.** Display only; no model change. This is the one item in
   this plan that can ship before the backtest, because it only says what the data already holds. Overlay e2e, design
   check, desktop and mobile screenshots.
@@ -182,7 +183,7 @@ ours for club games, Sorare's for internationals). It is your product decision, 
 | A fix to one slice hurts another | Every change is scored on all slices, not only the one it targets. |
 | A migration the unattended job cannot run | P1 waits for you to apply it; code is written to ship after it, not before. |
 | Sorare's API changes | The same guards as `sync.py`; an unreadable field leaves the number out, never a stale one. |
-| Shifting numbers confuse the picture | One change per refresh; nothing in the same refresh as [starts.md](starts.md) phase C. |
+| Shifting numbers confuse the picture | One change per refresh; nothing in the same refresh as the FF switch ([futbolfantasy.md](futbolfantasy.md) S3). |
 
 ## 6 · For the owner
 
@@ -196,6 +197,7 @@ ours for club games, Sorare's for internationals). It is your product decision, 
 
 ## 7 · Order
 
-P0 and [starts.md](starts.md) A0 start now and are independent. P1 follows P0 (what to record depends on what P0 finds).
+P0 and the FF plan's first steps ([futbolfantasy.md](futbolfantasy.md) S1 to S4) start now and are independent. P1
+follows P0 (what to record depends on what P0 finds).
 P2 to P4 run while the recorded weeks accumulate; P6 waits for them. Nothing ships without the held-out comparison except
 the display-only "2 games" in P1.

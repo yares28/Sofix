@@ -91,6 +91,7 @@ class Player:
     yellows: int | None  # the season count in the cards column, when it is there
     reds: int | None
     nationality: str | None
+    age: int | None = None  # in years, as the site shows it: what tells two players of one surname apart
     x: float | None = None  # where the eleven draws him, 0 to 100 across and 0 (attack) to 100 (goal) down; eleven only
     y: float | None = None
     goalkeeper: bool = False
@@ -632,6 +633,7 @@ def _player(block: Node, modals: dict[str, tuple[str | None, str | None]]) -> Pl
         yellows=_icon_count(shirt, "apercibido_box_min"),
         reds=_icon_count(shirt, "sancionadoR_box_min"),
         nationality=shirt.get("data-nacionalidad") or None,
+        age=_int(shirt.get("data-edad")),
         x=x,
         y=y,
         goalkeeper="portero" in block.classes,

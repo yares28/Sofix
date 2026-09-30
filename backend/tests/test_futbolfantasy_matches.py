@@ -102,6 +102,15 @@ def test_both_elevens_come_with_each_players_chance_and_place_on_the_pitch(match
     assert all(p.chance is not None and 0 <= p.chance <= 1 for p in match.home.xi + match.away.xi)
 
 
+def test_a_player_carries_the_age_the_page_shows_which_tells_two_of_a_surname_apart(match: ffm.Match) -> None:
+    home = {p.name: p for p in match.home.xi + match.home.alternatives}
+
+    assert (home["Mikel Oyarzabal"].age, home["Takefusa Kubo"].age) == (29, 25)
+    assert all(
+        p.age is not None for p in match.home.xi + match.home.alternatives + match.away.xi + match.away.alternatives
+    )
+
+
 def test_a_name_keeps_its_accents_when_the_site_does_and_falls_back_to_the_profile_address(match: ffm.Match) -> None:
     names = {p.name for p in match.home.xi}
     assert {"Gonçalo Guedes", "Álex Remiro", "Jon Martín"} <= names

@@ -205,6 +205,14 @@ next four rounds are kept current to six hours and the far ones to a day, at mos
 the plan they have. Sorare's own numbers replace an early plan the moment it opens the week. It cannot be applied: nothing
 exists to enter yet.
 
+What Sorare's public API allows, read without a key on 2026-09-29. Its schema downloads from
+`https://api.sorare.com/graphql/schema` (introspection itself is off), which is how a new operation is checked offline
+before it runs against the real thing. Without a key a query may be 7 levels deep and cost 500 (13 and 30,000 with one),
+so the sync's queries stay inside that. `so5Fixtures` lists newest first and pages with `after`/`endCursor`. Its default
+list leaves out the gameweeks still `preparing` and the cancelled ones; `aasmStates: ["preparing"]` lists the coming ones
+with their real windows (GW21 to GW24, 9 to 23 October, that day). The sync does not read them yet: an early plan's window is
+the rhythm above, and the real gameweek replaces it once it opens.
+
 The page bridge keeps captured request headers in its closure; credentials/cookies do not go to Sofix. Overlay numbers
 are gated by the extension token, cached 15 minutes in session, and anchored by card-picture addresses and Sorare slugs
 rather than generated CSS.

@@ -64,9 +64,10 @@ on your go: local checks → push to `main` → one Sorare refresh → you look 
    *Limits:* only LaLiga cards are placed (a card at another league or a national team has no game there); the
    competitions are those of the week being planned, which Sorare may change; far-out dates are provisional.
 5. **The overlay fixes your live test showed** (next entry): the odds row, the #1–#3 ranks, a start % on every
-   tile, "No xG", and old weeks' pages showing this week's numbers. *Built, local:* all but the last (the odds bar is
-   found up to half a card's height down, the list title by its text, the start % on every tile, "No xG"). The last
-   one needs to know which week a Sorare page is about, which only your pages can show.
+   tile, "No xG", and old weeks' pages showing this week's numbers. *Built, local:* the odds bar is found up to half a
+   card's height down, the list title by its text, the start % on every tile, "No xG"; and a page whose address names a
+   Sorare gameweek ("football-25-29-sep-2026") now gets that gameweek's numbers, or none. That last one is a guess about
+   Sorare's addresses: the popup's new **Gameweek in the address** row tells you whether they carry it.
 6. **Start collecting Futbol Fantasy's starting %** (nothing on screen yet), so T2 can compare it. *Built, local:*
    every run writes down, for each of your players with a game, what Sorare, Sofix (from form alone) and Futbol Fantasy
    say his chance of starting is; the site is asked at most every six hours (every 45 minutes just before a lock);
@@ -95,7 +96,11 @@ Classic All Star lineup, the gameweek sheet, the edge tab):
   "no expected goals", since Understat doesn't cover his league. You chose **"No xG"**. Batch 1, step 5. *Fixed
   locally.*
 - **Old weeks' pages show this week's numbers**, and some cards there have none: the extension never tells the app
-  which week a page is about. Batch 1, step 5.
+  which week a page is about. Batch 1, step 5. *Built locally, on a guess:* the extension reads a gameweek out of the
+  page's address when it carries one ("football-25-29-sep-2026") and the app answers for that week, from the copy it
+  kept, or with nothing. Whether Sorare's addresses carry it is what your pages will say: open an old week's page
+  and read the popup's **Gameweek in the address** row. "none named" means they don't, and then the gameweek has to be
+  read from the page itself.
 
 To look again after a fix: `node extension/scripts/configure.mjs`, **Reload** Sofix in `chrome://extensions`, then
 reload your sorare.com tab. The popup's **Cards recognised here** should read "N of N".

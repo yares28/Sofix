@@ -781,8 +781,15 @@ against a fixture that now looks like the page you showed, since the old one had
 - **"No odds" on a midfielder or forward with no xG** now reads **No xG**, which is what is missing (his game's odds are in the
   row under Sorare's bar). A goalkeeper or defender whose game is not priced still reads "No odds".
 
-**Not done, needs your pages:** which week a Sorare page is about (so an old week's page stops showing this week's numbers),
-and whether the three fixes above find what is really there. See TODO.md.
+- **Old weeks' pages showed this week's numbers** (built, local, on a guess about Sorare's addresses). The extension now reads a
+  Sorare fixture slug out of the page's address (`core.fixtureOf`: "football", dates, a month and a year) and sends it with
+  the ask; the endpoint answers from that gameweek (the page's copy, or the one the job kept apart), and with nothing for one
+  it holds nothing on. The tiles are cleared and asked again when the address changes, including without a reload. A page whose
+  address names no gameweek behaves as before. The popup's "Gameweek in the address" row says what the last page named.
+
+**Still needs your pages:** whether Sorare's addresses really carry the slug (the popup row will say "none named" if not, and
+then the next step is to read the gameweek from the page itself), and whether the three fixes above find what is really there.
+See TODO.md.
 
 ---
 

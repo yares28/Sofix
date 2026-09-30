@@ -344,6 +344,15 @@ the cards of its leading lineup, the reward chance, the essence expected and how
 **Open Apply in Sofix** opens the Play page for that gameweek and returns you to the controlled three-step flow;
 lineup write buttons are intentionally not placed over Sorare's browsing UI. The tab is hidden on narrow windows.
 
+### Which gameweek a page is about
+
+When the address of a Sorare page names a gameweek (Sorare names them by their dates, "football-25-29-sep-2026"), the tiles
+are that gameweek's numbers and not this week's. A gameweek Sofix kept shows its numbers as they stood when it ended (grey,
+"Started"); one it did not keep shows **no tiles at all** rather than this week's numbers under its name. A page whose
+address names no gameweek shows the gameweek being planned, as before. The popup's **Gameweek in the address** row says
+what the last page named ("25 29 sep 2026", or "none named"), which is how to tell whether a page carries one. The tiles follow
+the page when Sorare moves to another gameweek without reloading, and back.
+
 ### The switch
 
 The popup's **Scores on sorare.com** switch turns the tiles, the odds row and the tab on and off at once, with no

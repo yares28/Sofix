@@ -923,7 +923,7 @@ def read_matches(
             text = _get(http, url)
         except FutbolFantasyError as error:
             failures += 1
-            reading.failed.append(f"{url}: {error}")
+            reading.failed.append(str(error))  # already "<address>: <what happened>"
             logger.warning("futbolfantasy: %s", error)
             if failures >= GIVE_UP:
                 reading.stopped = f"{failures} pages in a row could not be read"

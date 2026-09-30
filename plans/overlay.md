@@ -762,6 +762,30 @@ web app's colours.
 
 ---
 
+## First live pass, 2026-09-29: what changed (built 2026-09-30, all local)
+
+Your six screenshots showed the tiles, the ticks and the captain's star working, and four things not. Each is fixed
+against a fixture that now looks like the page you showed, since the old one had let all four through:
+
+- **No Sofix odds row anywhere.** The bar was looked for only 60 px under the picture; on Sorare's lists it is the third row
+  of the block under each card (form and score, flags, then win / draw / loss), about 75 px down. The search now reaches half
+  the card's height. The fixture gained a card with that block (its bar is 77 px down), and a test that the row lands under the
+  bar and that "Best score chosen" is pushed clear of it.
+- **No #1 to #3 on "Select your Extra".** The title was looked for only among heading elements; Sorare's is styled text and may
+  be a plain div, split over two nodes. It is now found by the text that starts it (checked at most twice a second). The
+  fixture's title became a div with two spans.
+- **The chance of starting on some tiles only.** It was drawn only below 50%. It is now the bottom row of every full tile,
+  quiet above 50% and red below, from Sorare's odds when it has them and the app's chance when it has not. The tile is 44 × 50
+  (it was 42, and 58 with the red row): the rows were tightened so it still stays out of the middle of a card, and its budget
+  is now 7% of a full card (it was 6%).
+- **"No odds" on a midfielder or forward with no xG** now reads **No xG**, which is what is missing (his game's odds are in the
+  row under Sorare's bar). A goalkeeper or defender whose game is not priced still reads "No odds".
+
+**Not done, needs your pages:** which week a Sorare page is about (so an old week's page stops showing this week's numbers),
+and whether the three fixes above find what is really there. See TODO.md.
+
+---
+
 ## 6 · Order, and what it costs
 
 O1 -> O2 -> O3 are strictly sequential: identity feeds numbers, numbers feed pixels. O4 and O5 can overlap.

@@ -87,8 +87,9 @@ function tile(o) {
     ? '<span class="sfx-drive"><span class="sfx-cap">FDR</span><b class="sfx-fdr">' + o.fdr + "</b></span>"
     : o.xg
       ? '<span class="sfx-drive"><span class="sfx-cap sfx-cap--xg">xG</span><b class="sfx-xg">' + o.xg + "</b></span>"
-      : '<span class="sfx-drive sfx-drive--none"><span class="sfx-cap">No odds</span></span>';
-  var doubt = o.doubt ? '<span class="sfx-doubt" aria-hidden="true">' + SHIRT.replace('class="sfx-shirt" ', "") + "<b>" + o.doubt + "<small>%</small></b></span>" : "";
+      : '<span class="sfx-drive sfx-drive--none"><span class="sfx-cap">' + (o.none || "No odds") + "</span></span>";
+  // His chance of starting is on every tile: quiet while he probably will, red (and a warning) under half. A stale tile has none.
+  var doubt = o.stale ? "" : '<span class="sfx-starts' + (o.doubt ? " sfx-doubt" : "") + '" aria-hidden="true">' + SHIRT.replace('class="sfx-shirt" ', "") + "<b>" + (o.doubt || o.starts || 90) + "<small>%</small></b></span>";
   return '<span class="sfx-ribs sfx-ribs--full" data-sfx><button type="button" class="sfx-tile' + (o.doubt ? " sfx-tile--doubt" : "") + (o.stale ? " sfx-tile--stale" : "") + '" aria-label="' + o.label +
     '" style="--sfx-c:' + (o.stale ? "#a3a3ab" : scoreColour(o.score)) + ";--sfx-d:" + (o.fdrColour || "#fff") + '">' + stripe() +
     '<span class="sfx-main">' + SHIRT + '<b class="sfx-score">' + o.score + "</b></span>" + driver + doubt + "</button>" +
@@ -145,6 +146,7 @@ document.getElementById("attack").innerHTML =
 document.getElementById("states").innerHTML =
   figure('<div class="crop spot"><img src="' + OBLAK + '" alt="" referrerpolicy="no-referrer"><span class="sfx-ribs sfx-ribs--full" data-sfx><span class="sfx-tile sfx-tile--loading" role="img" aria-label="Sofix numbers loading">' + stripe() + '<span class="sfx-skel"><i></i><i></i></span></span></span></div>', "Loading") +
   figure('<div class="crop spot"><img src="' + OBLAK + '" alt="" referrerpolicy="no-referrer">' + tile({ score: 51, label: "Sofix: 51 if he starts. No odds for this game yet." }) + "</div>", "No odds yet") +
+  figure(frame(GULER, "Midfielder with no xG", tile({ score: 64, none: "No xG", label: "Sofix: 64 if he starts. No xG: expected goals are not available for this player. He starts 90% of the time." })), "No xG", "His league is not one Understat covers") +
   figure('<div class="crop spot"><img src="' + OBLAK + '" alt="" referrerpolicy="no-referrer">' + tile({ score: 53, fdr: 45, fdrColour: C.up, doubt: 34, label: "Sofix: 53 if he starts. Difficulty 45 of 100, favourite. He starts only 34% of the time." }) + "</div>", "Doubtful starter") +
   figure('<div class="crop spot"><img src="' + OBLAK + '" alt="" referrerpolicy="no-referrer"><span class="sfx-ribs sfx-ribs--full" data-sfx><button type="button" class="sfx-tag" aria-label="Sofix does not recognise this extension. Open Sofix">' + stripe() + "<span>Sign in</span></button></span></div>", "Signed out") +
   figure('<div class="small"><div class="frame spot"><img src="' + OBLAK + '" alt="">' + small(53, false) + "</div></div>", "Small card") +

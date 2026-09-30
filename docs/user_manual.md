@@ -298,13 +298,16 @@ colour for that score. Under it is one thing that drives the score, chosen by po
 - **Midfielders and forwards: xG**, his expected goals if he starts: his season's rate from Understat, scaled to how many
   goals his side is expected to score in that game. It is there for players Understat can name in the Premier League, La
   Liga, Bundesliga, Serie A, Ligue 1 and the Russian league who have played at least a full game. Anyone else, and any
-  player at a club in another league, shows **No odds** where the xG would be, rather than a made-up number.
+  player at a club in another league, shows **No xG** where the xG would be, rather than a made-up number. (A goalkeeper
+  or defender whose game is not priced shows **No odds**, since his line is the game's difficulty.)
 
 On the compose page, directly under Sorare's own win / draw / loss bar, Sofix adds a row: **its win % and its clean
 sheet %** for that game. For a LaLiga game they are Sofix's own model; for any other league or a national team they come
 from Sorare's odds for the game. Sorare fills those odds only in the last few days before a game, so a card whose game is
-not priced shows the tile with **No odds** and no row. To make room, Sofix moves Sorare's kickoff line down a few pixels;
-if that line cannot be moved, the row is not drawn.
+not priced shows the tile and no row. Sorare's bar is found by what it says (three percentages) and where it is, up to
+about half a card's height under the picture: on a list of cards it is the third row of the block under each card. To make
+room, Sofix moves Sorare's next line ("Best score chosen", the kickoff) down a few pixels; if that line cannot be moved, the
+row is not drawn.
 
 **Hover the tile, or focus it with the keyboard**, and a panel opens beside the card. A switch shows the score if he
 **starts** (the default) or if he **doesn't start**, with his chance of each (the chance he comes on is worth little for a
@@ -312,7 +315,9 @@ goalkeeper: "2% he comes on"). Under it: difficulty with its five bands and the 
 defender, xG and the clean-sheet chance for a midfielder, xG and the win chance for a forward, where the odds came from,
 and how long ago the numbers were made. Escape closes it. It only shows things; nothing in it writes to Sorare.
 
-- **Doubtful starter:** below a 50% chance of starting, a red row under the tile gives that chance.
+- **His chance of starting** is the bottom row of every full tile ("90%"): Sorare's own odds where it has them, the app's
+  chance where it has not. It is quiet while he probably starts; **below 50% the row is red**, which is the warning. A tile
+  greyed as "Started" or "Old" has none, and a small lineup tile has no room for it.
 - **Loading** shows a shimmer; a **small card** (a lineup slot) gets the number alone, a **thumbnail** an even smaller one,
   and a picture under 48 px wide gets nothing.
 - **Signed out or app unreachable:** a very small **SIGN IN** or **OFFLINE** tag, the only thing here that takes a click
@@ -343,7 +348,7 @@ lineup write buttons are intentionally not placed over Sorare's browsing UI. The
 
 The popup's **Scores on sorare.com** switch turns the tiles, the odds row and the tab on and off at once, with no
 reload; switching off gives back the room made under Sorare's odds bar. (The old **Show chance of playing** switch is
-gone: his chance of starting now lives in the panel, and in the red row when it is low.)
+gone: his chance of starting is now on every tile and in the panel.)
 **Cards recognised here** shows how many cards on the page you are looking at Sofix could name ("7 of 7"). "0 of 8"
 means Sorare has changed how it draws cards and the overlay needs an update. The larger "Sofix panel" on a player
 page in the design preview (`S7-player-page.html`) is not built.

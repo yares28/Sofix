@@ -120,6 +120,7 @@ Extension from root: `node extension/scripts/configure.mjs`; load `extension/` u
 | The Odds API | 500/month; call costs 2 | One ≥6-hour batch; never log key URL/raw error |
 | Sorare | Read-only/rate/complexity limits | Batch/reuse; session actions extension-only |
 | Understat | No API, no key; unofficial | One request per league per refresh, only leagues the owner has players in; clear user agent; a failure leaves xG out, never an old number |
+| Futbol Fantasy | No API; its robots.txt blocks nothing; unofficial | LaLiga only. Twenty team pages plus the page naming them, two seconds apart, at most every six hours (every 45 minutes in the last three before a lock); clear user agent; a page it cannot read leaves its column empty, never an old answer. Stored and compared only: nothing on screen uses it until it has proved itself |
 | Neon Free | 0.5 GB, 100 CU-hours/month | Publish/cache; no uptime monitor |
 | Third-party art | External ownership | Hot-link; personal use; no LaLiga mark |
 

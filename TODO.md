@@ -67,7 +67,11 @@ on your go: local checks → push to `main` → one Sorare refresh → you look 
    tile, "No xG", and old weeks' pages showing this week's numbers. *Built, local:* all but the last (the odds bar is
    found up to half a card's height down, the list title by its text, the start % on every tile, "No xG"). The last
    one needs to know which week a Sorare page is about, which only your pages can show.
-6. **Start collecting Futbol Fantasy's starting %** once a day (nothing on screen yet), so T2 can compare it.
+6. **Start collecting Futbol Fantasy's starting %** (nothing on screen yet), so T2 can compare it. *Built, local:*
+   every run writes down, for each of your players with a game, what Sorare, Sofix (from form alone) and Futbol Fantasy
+   say his chance of starting is; the site is asked at most every six hours (every 45 minutes just before a lock);
+   numbers freeze at the lock and are settled a day after the week ends. `python -m app.jobs.starts` scores the sources.
+   No table or migration: it is one read model, so nothing for the unattended refresh to trip over.
 
 ### Check the overlay on your own Sorare pages — *first live pass done 2026-09-29*
 Your Sofix numbers are drawn on Sorare's own cards (a tile with the score if he starts, plus difficulty or xG), and
@@ -200,7 +204,9 @@ every player with `data-nombre="pedri-gonzalez"` and `data-probabilidad="80%"`, 
 international flags and "Últ. act." (last update) times. Barcelona: 26 players, e.g. Lamine Yamal 95%, Pedri 80%,
 Cubarsí 80%, Raphinha 70%. Its percentages are for **LaLiga's next round only**, not national-team games.
 
-**Collection** is batch 1, step 6: once a day, stored beside Sorare's and Sofix's numbers and frozen at the lock.
+**Collection** is batch 1, step 6 (built, local): stored beside Sorare's and Sofix's numbers, frozen at the lock, settled by
+what happened. It covers only players you own with a game in the gameweek being planned, so the sample grows by about a
+few dozen players a week; `python -m app.jobs.starts` says when there is enough (100 or more settled players per source).
 
 **The comparison (this entry).** After several gameweeks, score each source against who actually started (history's
 `started`), overall and per competition. The tile then uses the best source for each case (say, Futbol Fantasy for

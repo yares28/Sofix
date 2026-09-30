@@ -10,6 +10,7 @@
 | football-data.co.uk | Five-season goals, shots/on-target, closing 1X2 | Historic cache; current season conditional download |
 | The Odds API | Current EU h2h + totals | One batch, skipped <6 h; 2 credits/call, 500/month |
 | Sorare public GraphQL | GW/games/rules/rewards/cards/scores/projections/squads/values | Batched read-only sync; rate/complexity/depth limits |
+| Futbol Fantasy | Each LaLiga player's expected chance of starting the next round, per team page (`data-probabilidad`), plus the round it is about; stored and compared with Sorare's and Sofix's own, not shown | Twenty team pages at most every six hours, more often just before a lock; unofficial, so a failure leaves its column empty |
 | Understat | Players' season xG, non-penalty xG and minutes, teams' xG per game (LaLiga, Premier League, Bundesliga, Serie A, Ligue 1, Russia); the overlay's xG | One request per league per refresh; unofficial, so a failure drops xG ("xG —") |
 | GitHub Actions API | Dispatch/latest workflow status | Control/Refresh only; fine-grained repo Actions token |
 
@@ -26,7 +27,7 @@ Not used: Open-Meteo/weather (removed), Transfermarkt (scraping prohibited), liv
 | `fixtures` | Match/status/UTC kickoff/result | Upsert |
 | `predictions` | Fixture + model-version pre-match forecast | Replace per version |
 | `market_odds` | Fair outcome/totals fit and source age/count | Replace current |
-| `read_models` | JSON `grid`, `system`, `sorare`, `sorare_references`, `extension`, one `sorare_week:<slug>` per finished gameweek, and one `sorare_ahead:<round>` per LaLiga round Sorare has not opened | Atomic key replace; a `sorare_week:` row is written once and never replaced, a `sorare_ahead:` row is rewritten every run |
+| `read_models` | JSON `grid`, `system`, `sorare`, `sorare_references`, `extension`, one `sorare_week:<slug>` per finished gameweek, one `sorare_ahead:<round>` per LaLiga round Sorare has not opened, `start_chances` (who said he would start) and `futbolfantasy` (its last page, kept between reads) | Atomic key replace; a `sorare_week:` row is written once and never replaced, a `sorare_ahead:` row is rewritten every run |
 | `refresh_runs` | Operational run/step audit | Append; one running |
 | `sorare_forecasts` | Pre-lock forecast plus later actual | Retain for replay/fitting |
 
@@ -50,6 +51,17 @@ happens once its scores are final (24 hours after it ends). `projected` lists a 
 gameweek payload with `projected: {round, basedOn}`) is read only when that week is opened. Each player game names both the actual participating side and opponent, so a
 national-team fixture is never labelled with the player's club. `sorare_references` preserves reusable rule/calendar structures. `extension`
 stores only version, public account and last-seen time.
+
+## Who said he would start
+
+`read_models` key `start_chances`: `{"weeks": {<gameweek slug>: {"lock": <iso>, "players": {<Sorare player slug>: {"sorare":
+{"chance", "at"}, "sofix": {...}, "futbolfantasy": {...}, "started": true|false}}}}}`. For each of the owner's players with a
+game in the gameweek being planned, each source that has a number writes its chance of starting (0 to 1): **sorare** its
+own starter odds, **sofix** the model's chance from form alone (Sorare's numbers taken away, so it is a second opinion, not a
+copy), **futbolfantasy** the site's chance, only when the player can be named with confidence and the round the site
+means is the round he plays in. While the gameweek is open a later run replaces the number; at the lock it is frozen, and
+one first seen after the lock is not made up. A day after the gameweek ends `started` is filled in from his scored games
+(`python -m app.jobs.starts` compares the sources).
 
 ## Derived values
 

@@ -188,6 +188,12 @@ hindsight (the planner on `hindsight_forecasts`: who played, what each scored, n
 cut scores). The same run writes it whole to `read_models` under `sorare_week:<slug>`, once, and marks it `kept` in the
 timeline, which later runs carry forward. Play reads such a week from there when it is opened.
 
+Every run also writes down who says each of the owner's players will start the gameweek being planned (`app.sorare.starts`):
+Sorare's own odds, Sofix's model from form alone, and Futbol Fantasy's expected lineups (`app.sources.futbolfantasy`: twenty
+team pages, read at most every six hours, more often in the last three before a lock). The numbers are frozen at the lock
+and settled by what happened a day after the gameweek ends, so `python -m app.jobs.starts` can say which source to trust.
+Nothing on screen uses them yet.
+
 Sorare opens a gameweek only a few days ahead, but LaLiga's calendar is known for the whole season, so every round that
 has not started and sits in no gameweek Sorare has opened is planned early (`projected_weeks`). Its window is the one
 Sorare will most likely draw (weekend Friday 14:00 UTC to Tuesday 14:00, midweek Tuesday to Friday; `projection.window`),

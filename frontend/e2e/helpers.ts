@@ -22,12 +22,15 @@ export async function resetBackend(request: APIRequestContext, mode: "ok" | "mal
 }
 
 /**
- * Pictures are hot-linked from football-data.org (crests) and Sorare (card art, faces): block both so tests
+ * Pictures are hot-linked from football-data.org (crests), Sorare (card art, faces) and Futbol Fantasy: block them so tests
  * never touch the network. The board shows colour badges instead, and Sorare's images stay empty.
  */
 export async function offline(page: Page) {
   await page.route("https://crests.football-data.org/**", (route) => route.abort());
   await page.route("https://assets.sorare.com/**", (route) => route.abort());
+  // Futbol Fantasy's crests and player photos, on the Lineups page.
+  await page.route("https://static.futbolfantasy.com/**", (route) => route.abort());
+  await page.route("https://media.futbolfantasy.com/**", (route) => route.abort());
 }
 
 export const teamRows = (page: Page) => page.locator("tbody tr:not(.pin-divider)");

@@ -56,6 +56,24 @@ const keptWeeks = new Map(
     }),
 );
 
+// Futbol Fantasy's lineups (`read_models` key `lineups`): the ten real round-8 pages of 30 Sep 2026, moved forward once like the
+// Sorare week so the first kickoff sits two days ahead; each reading is made a few minutes ago and each side's change a day or so ago.
+const lineupsFixture = JSON.parse(readFileSync(new URL("./fixtures/lineups-response.json", import.meta.url), "utf8"));
+const firstKickoff = Math.min(...lineupsFixture.data.matches.map((match) => new Date(match.kickoff).getTime()));
+const LINEUPS_SHIFT = Date.now() + 2 * 86_400_000 - firstKickoff;
+const lineupsPayload = (() => {
+  const data = structuredClone(lineupsFixture.data);
+  const ago = (hours) => new Date(Date.now() - hours * 3_600_000).toISOString();
+  data.generatedAt = ago(0.1);
+  data.readAt = ago(0.1);
+  for (const match of data.matches) {
+    match.kickoff = new Date(new Date(match.kickoff).getTime() + LINEUPS_SHIFT).toISOString();
+    match.readAt = ago(0.1);
+    for (const side of [match.home, match.away]) if (side.changedAt) side.changedAt = ago(20);
+  }
+  return { success: true, data };
+})();
+
 let state;
 function reset() {
   state = { mode: "ok", sorare: "ok", nextId: 1, run: null, polls: 0 };
@@ -108,6 +126,11 @@ const server = createServer((req, res) => {
       return send(res, 200, { success: false, data: null, error: "Sorare has not been synced yet.", meta: null });
     }
     return send(res, 200, sorare);
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/lineups") {
+    if (state.sorare === "missing") return send(res, 200, { success: false, data: null, error: "Futbol Fantasy's lineups have not been read yet." });
+    return send(res, 200, lineupsPayload);
   }
 
   const earlyWeek = url.pathname.match(/^\/api\/sorare\/ahead\/(\d+)$/);

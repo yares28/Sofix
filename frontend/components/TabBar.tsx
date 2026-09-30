@@ -21,6 +21,13 @@ const ICONS: Record<string, React.ReactNode> = {
     </>
   ),
   "/table": <path d="M4 6h14M4 11h14M4 16h9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />,
+  "/lineups": (
+    <>
+      <rect x="3.5" y="4" width="15" height="14" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M3.5 11h15" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="11" cy="11" r="2.4" fill="none" stroke="currentColor" strokeWidth="1.8" />
+    </>
+  ),
   "/play": (
     <>
       <rect x="6" y="3" width="10" height="16" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
@@ -32,6 +39,7 @@ const ICONS: Record<string, React.ReactNode> = {
 const TABS = [
   { href: "/", label: "Home" },
   { href: "/play", label: "Play" },
+  { href: "/lineups", label: "Lineups" },
   { href: "/fixtures", label: "Fixtures" },
   { href: "/difficulty", label: "Difficulty" },
   { href: "/table", label: "Table" },

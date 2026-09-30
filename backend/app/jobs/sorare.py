@@ -25,7 +25,7 @@ from app.db import SessionLocal
 from app.logging_config import configure_logging
 from app.models import ReadModel
 from app.services.publish import notify_app, put
-from app.sorare import projection
+from app.sorare import projection, starts
 from app.sorare import publish as sorare_publish
 from app.sorare import record as sorare_record
 from app.sorare import sync as sorare_sync
@@ -80,9 +80,14 @@ def run(
     snapshot["understat"] = understat.fetch_leagues(leagues, understat.season_of(started.date()))
     # Every LaLiga round Sorare has not opened a gameweek for is planned early, from the calendar the app already holds.
     fetched = datetime.fromisoformat(snapshot["fetchedAt"])
+    rounds = projection.calendar(db, fetched)
     early = sorare_publish.projected_weeks(
-        snapshot, projection.unopened(projection.calendar(db, fetched), snapshot["gameweeks"], now=fetched), runs=runs
+        snapshot, projection.unopened(rounds, snapshot["gameweeks"], now=fetched), runs=runs
     )
+    # Who says he will start (Sorare, Sofix, Futbol Fantasy), written down to be scored against what happens. The site is
+    # asked at most every few hours; a page it cannot read leaves its column empty, never filled from an old answer.
+    found = starts.chances(db, fetched, datetime.fromisoformat(snapshot["planGameweek"]["lock"]), write=not dry_run)
+    start_rows = starts.rows(snapshot, found, rounds)
     payload = sorare_publish.build_payload(
         snapshot, runs=runs, previous=previous, projected=sorare_publish.projected_heads(early)
     )
@@ -97,6 +102,7 @@ def run(
         "playable": len(planned_week.get("playable", [])),
         "weeks": [w["gameweek"]["number"] for w in payload.get("weeks", [])],
         "projected": [w["projected"]["round"] for w in early],
+        "futbolfantasy": len(found.chances) if found else 0,
         "calls": snapshot["calls"],
         "bytes": size,
         "seconds": round((datetime.now(UTC) - started).total_seconds()),
@@ -123,6 +129,7 @@ def run(
     # follows the numbers.
     for week in early:
         put(db, f"{sorare_publish.AHEAD_PREFIX}{week['projected']['round']}", week, now)
+    summary["starts"] = {**starts.save(db, start_rows, now), **starts.settle(db, snapshot)}
     # The week just played, once final, is also kept whole on its own so it can be opened long after it leaves the page.
     archived = sorare_publish.archive_of(payload)
     if archived and db.get(ReadModel, archived[0]) is None:

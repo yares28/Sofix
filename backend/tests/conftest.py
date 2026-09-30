@@ -60,3 +60,13 @@ def simulate_league(seasons=(2020, 2021, 2022), repeats=4, seed=7, n_teams=None)
 @pytest.fixture(scope="session")
 def league():
     return simulate_league()
+
+
+@pytest.fixture(autouse=True)
+def no_futbolfantasy(monkeypatch, request):
+    """No test reaches Futbol Fantasy over the network, except the one that tests the reader itself."""
+    if request.module.__name__.endswith("test_futbolfantasy"):
+        return
+    from app.sources import futbolfantasy
+
+    monkeypatch.setattr(futbolfantasy, "fetch_all", lambda *args, **kwargs: None)

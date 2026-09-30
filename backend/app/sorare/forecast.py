@@ -17,6 +17,7 @@ Fantasy number for any of his games is answered exactly as he was before it exis
 
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass, field
 from typing import Any, NamedTuple
 
@@ -160,6 +161,13 @@ def _per_game(week: PlayerWeek, split: Split, plays: float) -> tuple[tuple[GameC
     return tuple(chances), played
 
 
+def _own_start(week: PlayerWeek) -> float:
+    """The app's own chance that he starts, from his form alone: Sorare's projection and odds and Futbol Fantasy taken away."""
+    bare = dataclasses.replace(week, projection=None, plays_odds=None, start_odds=None, game_ids=[], game_starts=[])
+    plays, mu = _from_form(bare.history)
+    return _split(bare, mu, plays).p_start
+
+
 def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
     if week.games <= 0:
         return Forecast(p_play=0.0, mu=PRIOR_SCORE, games=0, source="no game", actual=week.actual)
@@ -174,9 +182,17 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
     split = _split(week, mu, plays)
     start, bench, p_start, p_on = split.start, split.bench, split.p_start, split.p_on
     per_game: tuple[GameChance, ...] = ()
+    has_odds = week.start_odds is not None and week.plays_odds is not None
+    start_source = "sorare" if has_odds else "sofix"
+    by_source = {"sofix": round(_own_start(week), 3)}
+    if week.start_odds is not None:
+        by_source["sorare"] = round(week.start_odds, 3)
     if week.game_starts and len(week.game_ids) == week.games:
         per_game, played = _per_game(week, split, plays)
         p_start, p_on = per_game[0].p_start, per_game[0].p_on
+        start_source = per_game[0].source
+        if start_source == "futbolfantasy":
+            by_source["futbolfantasy"] = round(p_start, 3)
         p_any = 1.0
         for chance in played:
             p_any *= 1 - chance
@@ -200,6 +216,8 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
         p_start=round(p_start, 3),
         p_on=round(p_on, 3),
         per_game=per_game,
+        start_source=start_source,
+        by_source=by_source,
     )
 
 

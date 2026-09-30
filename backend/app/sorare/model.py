@@ -91,6 +91,10 @@ class Forecast:
     # Game by game, in kickoff order, once Futbol Fantasy speaks about any of his games; empty otherwise, and then the
     # chances above are the one answer for every game. `p_start` and `p_on` above are the first game's.
     per_game: tuple[GameChance, ...] = ()
+    # Whose number `p_start` is ("futbolfantasy", "sorare" or "sofix"), and what each source says of his first game, for the page's
+    # source mark and the overlay's list. Every source that has a number is in `by_source`; the page shows one.
+    start_source: str | None = None
+    by_source: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

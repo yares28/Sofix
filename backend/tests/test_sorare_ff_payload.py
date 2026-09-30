@@ -100,3 +100,50 @@ def test_the_home_news_is_built_from_the_finished_page() -> None:
         "front-one": {"g": players(week)["front-one"]["games"][0]["id"], "p": 0},
         "mid-one": {"g": players(week)["mid-one"]["games"][0]["id"], "p": 25},
     }
+
+
+# ------------------------------------------------------------------------------- who says it, for the source mark
+def test_each_player_carries_what_each_source_says_and_whose_number_is_shown() -> None:
+    week = page(told)
+    mid, back = players(week)["mid-one"], players(week)["back-one"]
+
+    assert mid["startSource"] == "futbolfantasy"
+    assert mid["sources"]["futbolfantasy"] == 0.25
+    assert 0 < mid["sources"]["sofix"] < 1 and "sorare" in mid["sources"], "the other two are what they said before"
+    assert back["startSource"] == "sorare", "the fixture's players have Sorare's odds"
+    assert "futbolfantasy" not in back["sources"] and "sorare" in back["sources"] and "sofix" in back["sources"]
+
+
+def test_a_player_without_sorares_odds_shows_the_apps_own_number_and_says_so() -> None:
+    snap = snapshot()
+    for row in snap["cards"]:
+        row["player"]["nextClassicFixturePlayingStatusOdds"] = None
+    week = publish.week_of(publish.build_payload(snap, runs=3))
+    assert week is not None
+
+    back = players(week)["back-one"]
+    assert back["startSource"] == "sofix" and set(back["sources"]) == {"sofix"}
+    assert back["sources"]["sofix"] == back["pStart"]
+
+
+def test_the_number_the_apps_own_form_gives_does_not_depend_on_what_the_site_says() -> None:
+    before, after = players(page())["mid-one"], players(page(told))["mid-one"]
+
+    assert before["sources"]["sofix"] == after["sources"]["sofix"]
+    assert before["sources"]["sorare"] == after["sources"]["sorare"]
+
+
+def test_a_card_in_a_lineup_carries_his_start_chance_its_source_and_what_the_site_says_is_wrong_with_him() -> None:
+    def doubtful(slug: str, games: list[dict[str, Any]]) -> list[GameStart]:
+        if slug != "mid-one":
+            return []
+        return [GameStart(games[0]["id"], 0.5, info={"startAt": READ, "ffStatus": {"kind": "doubt"}})]
+
+    week = page(doubtful)
+    cards = [c for plan in week["plans"] for lineup in plan["lineups"] for c in (*lineup["starters"], *lineup["subs"])]
+    mine = [c for c in cards if c["player"] == "mid-one"]
+
+    assert mine, "he is in a lineup"
+    assert all(c["pStart"] == 0.5 and c["startSource"] == "futbolfantasy" and c["ffKind"] == "doubt" for c in mine)
+    others = [c for c in cards if c["player"] != "mid-one"]
+    assert all(c["startSource"] in ("sorare", "sofix") and "ffKind" not in c for c in others)

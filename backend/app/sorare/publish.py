@@ -184,6 +184,8 @@ def _split_out(forecast: Forecast | None) -> dict[str, float]:
         "bench": forecast.bench,
         "pStart": forecast.p_start if forecast.p_start is not None else 0.0,
         "pOn": forecast.p_on if forecast.p_on is not None else 0.0,
+        "startSource": forecast.start_source,
+        "sources": forecast.by_source,
     }
 
 
@@ -354,6 +356,17 @@ def lineups_possible(comp: Competition, cards: list[Card], forecasts: dict[str, 
 
 
 # --------------------------------------------------------------------------- payload
+def _start_of(forecast: Forecast) -> dict[str, Any]:
+    """A card's chance of starting, whose number it is, and what the site says is wrong with him when it says anything."""
+    if forecast.p_start is None or forecast.start_source is None:
+        return {}
+    out: dict[str, Any] = {"pStart": round(forecast.p_start, 3), "startSource": forecast.start_source}
+    kind = ((forecast.per_game[0].info.get("ffStatus") or {}).get("kind")) if forecast.per_game else None
+    if kind in ("out", "doubt", "suspended"):
+        out["ffKind"] = kind
+    return out
+
+
 def card_payload(
     card: Card,
     comp: Competition,
@@ -376,6 +389,7 @@ def card_payload(
         "crest": card.club_crest,
         "mult": round(comp.multiplier(card), 3),
         "p": round(forecast.p_play, 3),
+        **_start_of(forecast),
         "mu": round(forecast.mu, 1),
         "x": round(forecast.p_play * forecast.mu, 1),
         "average": card.average,

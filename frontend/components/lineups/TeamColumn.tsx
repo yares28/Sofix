@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { absenceText } from "../../lib/absence";
+import { cardHref } from "../../lib/links";
 import {
   gaugeText,
   playerLabels,
@@ -130,7 +132,7 @@ export default function TeamColumn({
       {side.absent.length ? (
         <ul className="lu-news" aria-label={`${side.name} injuries and suspensions`}>
           {news.map((entry, index) => (
-            <News key={`${entry.name}-${index}`} entry={entry} round={round} now={now} mine={Boolean(entry.yours && cards[entry.yours])} />
+            <News key={`${entry.name}-${index}`} entry={entry} round={round} now={now} mine={entry.yours && cards[entry.yours] ? entry.yours : null} />
           ))}
           {fit.length ? (
             <li className="lu-fit">
@@ -138,7 +140,7 @@ export default function TeamColumn({
                 <summary>{fit.length} more fit to play</summary>
                 <ul>
                   {fit.map((entry, index) => (
-                    <News key={`${entry.name}-${index}`} entry={entry} round={round} now={now} mine={false} />
+                    <News key={`${entry.name}-${index}`} entry={entry} round={round} now={now} mine={null} />
                   ))}
                 </ul>
               </details>
@@ -162,13 +164,14 @@ export default function TeamColumn({
 
 const OWN_WORDS = "Futbol Fantasy's own words";
 
-function News({ entry, round, now, mine }: { entry: Absent; round: number | null; now: Date; mine: boolean }) {
+/** One name of the injury list; `mine` is the Sorare slug of the player when he is one of yours, and the name then opens his card. */
+function News({ entry, round, now, mine }: { entry: Absent; round: number | null; now: Date; mine: string | null }) {
   const text = absenceText(entry, round, now);
   return (
     <li className="lu-new">
       <KindIcon kind={entry.kind} />
       <div>
-        <b data-mine={mine ? "" : undefined}>{entry.name}</b>
+        <b data-mine={mine ? "" : undefined}>{mine ? <Link href={cardHref(mine)} title={`${entry.name}: open your card`}>{entry.name}</Link> : entry.name}</b>
         {text.cause || text.since ? (
           <span>
             {text.cause ? text.causeFf ? <i lang="es" title={OWN_WORDS}>{cap(text.cause)}</i> : cap(text.cause) : null}

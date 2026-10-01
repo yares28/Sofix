@@ -3,7 +3,7 @@ import { expect, test, type APIRequestContext, type Page } from "@playwright/tes
 import type { Sorare } from "../lib/play";
 import type { ApiResponse } from "../lib/types";
 import { seasonWeeks } from "../lib/weeks";
-import { grid, MOCK, offline, resetBackend } from "./helpers";
+import { grid, MOCK, offline, resetBackend, sorare as served } from "./helpers";
 
 // The Lineups page draws Futbol Fantasy's probable elevens as the job published them (e2e/fixtures/lineups-response.json: the ten
 // real round-8 pages of 30 Sep 2026, served by the mock API with their dates moved to two days ahead). Nothing here recomputes a
@@ -253,6 +253,23 @@ test("your players are listed at the top of each match with their chance and wha
   await expect(mine).toHaveCSS("opacity", "1");
   await strip.getByRole("switch", { name: "Only my players" }).uncheck();
   await expect(others).toHaveCSS("opacity", "1");
+});
+
+test("a player of yours opens his card on Cards, from the strip, the pitch and the alternatives", async ({ page }) => {
+  await page.goto("/lineups?m=22498");
+  const owned = new Set(served.collection!.map((card) => card.player));
+  const strip = page.getByRole("region", { name: "Your players in this match" });
+  const hrefs = await strip.locator("a.lu-yours-name").evaluateAll((links) => links.map((link) => link.getAttribute("href")!));
+  expect(hrefs.length, "every one of yours in the strip is a link").toBe(await strip.locator(".lu-yours-one").count());
+  const href = hrefs.find((one) => owned.has(one.replace("/cards#p-", "")))!;
+  // the pitch and the chips under it link the same way
+  await expect(page.locator(".lu-card[data-mine] a.lu-go").first()).toHaveAttribute("href", /^\/cards#p-/);
+  await expect(page.locator(".lu-card:not([data-mine]) a")).toHaveCount(0);
+  await expect(page.locator(".lu-alt[data-mine] a").first()).toHaveAttribute("href", /^\/cards#p-/);
+
+  await strip.locator(`a[href="${href}"]`).click();
+  await expect(page).toHaveURL(new RegExp(`${href}$`));
+  await expect(page.locator(`#${href.split("#")[1]}`)).toBeInViewport();
 });
 
 test("a match with none of your players says so, and offers no switch", async ({ page }) => {

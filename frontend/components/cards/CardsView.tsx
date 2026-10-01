@@ -15,6 +15,7 @@ import {
   type Position,
   type Season,
 } from "../../lib/cards";
+import { cardAnchor } from "../../lib/links";
 import type { CollectionCard, Sorare } from "../../lib/play";
 import { Foil } from "../play/bits";
 import CardArt from "./CardArt";
@@ -111,6 +112,12 @@ export default function CardsView({ data }: { data: Sorare }) {
     [collection, pos, rarity, season],
   );
   const shown = groups.reduce((total, group) => total + group.cards.length, 0);
+  // a link from another page opens one tile per player: the first card of his that is on the page
+  const anchored = useMemo(() => {
+    const first = new Map<string, string>();
+    for (const group of groups) for (const card of group.cards) if (!first.has(card.player)) first.set(card.player, card.slug);
+    return new Set(first.values());
+  }, [groups]);
   const players = useCountUp(summary.players);
 
   return (
@@ -220,7 +227,7 @@ export default function CardsView({ data }: { data: Sorare }) {
             </div>
             <div className="s5-grid">
               {group.cards.map((card, index) => (
-                <CardTile key={card.slug} card={card} index={index} stack={stacks.get(stackKey(card)) ?? 1} />
+                <CardTile key={card.slug} card={card} index={index} stack={stacks.get(stackKey(card)) ?? 1} anchor={anchored.has(card.slug)} />
               ))}
             </div>
           </section>
@@ -249,10 +256,10 @@ export default function CardsView({ data }: { data: Sorare }) {
   );
 }
 
-function CardTile({ card, index, stack }: { card: CollectionCard; index: number; stack: number }) {
+function CardTile({ card, index, stack, anchor }: { card: CollectionCard; index: number; stack: number; anchor: boolean }) {
   const windows = cardWindows(card);
   return (
-    <article className="s5-pc" style={{ animationDelay: `${Math.min(index * 20, 360)}ms` }}>
+    <article className="s5-pc" id={anchor ? cardAnchor(card.player) : undefined} style={{ animationDelay: `${Math.min(index * 20, 360)}ms` }}>
       <span className="art">
         <CardArt src={card.pic} name={card.name} />
         {stack > 1 ? <span className="dup">×{stack}</span> : null}

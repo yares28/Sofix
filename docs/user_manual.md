@@ -190,6 +190,9 @@ Read each lineup from left to right:
 - reward probability and the cutoff evidence behind it;
 - expected essence and expected cash, kept as separate units.
 
+In a lineup's sheet, a card's name opens his match on **Lineups** (Futbol Fantasy's probable elevens and the chance of each player of his
+side). A game Futbol Fantasy has no page for, such as a national-team game, has no link.
+
 The planner enforces the published slots, caps, in-season minimum, club/card/player uniqueness, bonuses and substitute
 rules. A substitute is kept only when its expected protection exceeds the bonus sacrificed by using it. It repeats a
 seeded, slightly randomized whole-gameweek search and returns up to five plans whose card sets are materially different;
@@ -257,7 +260,8 @@ FF says so above the next match.
   page never says both.
 - **Your players, first.** Above the pitch a strip lists the players of yours the match names ("Your 3 here"): the eleven first, then the
   alternatives (marked "alt"), each with his short name, his chance and, when something is wrong, the icon and the word (doubt, out,
-  suspended). The **Only my players** switch dims everyone else, on the pitch and in the injury lists.
+  suspended). The **Only my players** switch dims everyone else, on the pitch and in the injury lists. Every player of yours, in the strip, on the
+  pitch, among the alternatives and in the injury list, is a link: it opens his card on **My cards** (his tile is outlined there).
 - **Who else could play.** Under each line, the alternatives most likely first, with their chance. A player is written the same short way
   on his card and on a chip (his surname, with an initial where two of a side share it), and his full name shows on hover. The % badge
   sits under a card, never over the name Sorare prints on your own cards. A player FF has not

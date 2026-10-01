@@ -22,6 +22,7 @@ import {
   type PlayerKind,
   type Section,
 } from "../../lib/lineups";
+import { cardHref } from "../../lib/links";
 import { ExternalIcon, InfoIcon, KindIcon, CalledUpIcon } from "./Icons";
 import Shield from "./Shield";
 import TeamColumn from "./TeamColumn";
@@ -164,7 +165,9 @@ function YoursStrip({ match }: { match: LineupMatch }) {
               data-kind={player.kind ?? undefined}
               title={`${player.name} (${player.club}): ${player.starting ? "in the probable eleven" : "an alternative"}`}
             >
-              <b>{player.label}</b>
+              <Link className="lu-yours-name" href={cardHref(player.slug)}>
+                <b>{player.label}</b>
+              </Link>
               <span className="lu-pct lu-pct-sm" data-tone={chanceTone(player.p)}>
                 {pct(player.p)}
               </span>

@@ -211,7 +211,9 @@ Target: S1 to S4 before round 8's lock (Fri 9 Oct), so the numbers switch for ro
   - tabs per competition, and matches by kickoff;
   - for each match, both XIs on the pitch with their %, the alternatives, the injuries, suspensions and warnings, the
     rotations and predictability;
-  - your players marked with their card;
+  - your players marked with their card, listed first on each match (a strip with the "Only my players" switch), and each one a link to his
+    tile on /cards (`/cards#p-<player slug>`); in return a card in a Play lineup sheet links to its match here (`/lineups?m=<id>`, from the
+    `ffMatch` of his game; none for a game FF has no page for);
   - "FF read 14:07 · this team changed 11:40", and a link to FF's match page ("Source: Futbol Fantasy").
 - **Home, under "Sorare":** all teams' start %, compact; your players' next-game %, with what changed since the last
   read; the next matches, compact, opening /lineups.

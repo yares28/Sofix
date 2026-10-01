@@ -38,6 +38,11 @@
 .lu-only input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .lu-yours-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
 .lu-yours-one { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 12px; border-radius: 999px; background: #fff; box-shadow: 0 0 0 2px var(--lu-mine); font-size: 12.5px; }
+/* A player of yours opens his card: the whole pitch card is the link (no hover lift to shout about), the strip and chips link by name. */
+.lu-go { position: absolute; inset: 0; z-index: 2; border-radius: 12px; }
+.lu-go:focus-visible, .lu-yours-name:focus-visible, .lu-alt-go:focus-visible, .lu-new b a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lu-yours-name, .lu-alt-go, .lu-new b a { color: inherit; text-decoration: none; }
+.lu-yours-name:hover b, .lu-alt-go:hover, .lu-new b a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .lu-yours-one b { font-weight: 700; letter-spacing: 0.01em; }
 .lu-yours-one:not([data-starting]) { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--lu-mine) 45%, transparent); }
 .lu-yours-one[data-kind="out"], .lu-yours-one[data-kind="suspended"] { opacity: 0.85; }

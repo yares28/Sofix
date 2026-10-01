@@ -1,4 +1,6 @@
-import type { Lineup as LineupData, PlayCard } from "../../lib/play";
+import Link from "next/link";
+import { matchHref, matchOfCard } from "../../lib/links";
+import type { Lineup as LineupData, PlayCard, PlayingPlayer } from "../../lib/play";
 import { cashLabel, chanceLabel, essenceLabel, formatOf, paysNote, startChance } from "../../lib/play";
 import { KindIcon } from "../lineups/Icons";
 import SourceMark from "../SourceMark";
@@ -17,12 +19,15 @@ export default function Lineup({
   after,
   index,
   hindsight = false,
+  players = [],
 }: {
   lineup: LineupData;
   after: boolean;
   index: number;
   /** A lineup built knowing the scores: what it expected is what it scored, so it does not say what it expected. */
   hindsight?: boolean;
+  /** The week's playing players, whose games name the Lineups match each card opens. */
+  players?: PlayingPlayer[];
 }) {
   const group = GROUP_CLASS[lineup.group];
   const chance = lineup.pReturn;
@@ -94,12 +99,12 @@ export default function Lineup({
 
   return (
     <LineupSheet title={`${lineup.comp} lineup`} head={head} card={face}>
-      <Sheet lineup={lineup} after={after} index={index} hindsight={hindsight} />
+      <Sheet lineup={lineup} after={after} index={index} hindsight={hindsight} players={players} />
     </LineupSheet>
   );
 }
 
-function Sheet({ lineup, after, index, hindsight }: { lineup: LineupData; after: boolean; index: number; hindsight: boolean }) {
+function Sheet({ lineup, after, index, hindsight, players }: { lineup: LineupData; after: boolean; index: number; hindsight: boolean; players: PlayingPlayer[] }) {
   const inSeason = lineup.starters.filter((card) => card.inSeason).length;
   const clubs = new Map<string, number>();
   for (const card of lineup.starters) clubs.set(card.club ?? "", (clubs.get(card.club ?? "") ?? 0) + 1);
@@ -133,7 +138,7 @@ function Sheet({ lineup, after, index, hindsight }: { lineup: LineupData; after:
 
       <div className="pl-grid" style={{ ["--n" as string]: String(Math.min(lineup.starters.length, 7)) }}>
         {lineup.starters.map((card, i) => (
-          <SheetCard key={card.slug} card={card} lineup={lineup} after={after} position={i} />
+          <SheetCard key={card.slug} card={card} lineup={lineup} after={after} position={i} match={matchOfCard(card, players)} />
         ))}
       </div>
 
@@ -235,7 +240,7 @@ function Sheet({ lineup, after, index, hindsight }: { lineup: LineupData; after:
   );
 }
 
-function SheetCard({ card, lineup, after, position }: { card: PlayCard; lineup: LineupData; after: boolean; position: number }) {
+function SheetCard({ card, lineup, after, position, match }: { card: PlayCard; lineup: LineupData; after: boolean; position: number; match: number | null }) {
   const value = after ? card.actual : Math.round(card.x);
   const out = after && card.actual === null;
   const swap = after ? (lineup.actual?.cameIn ?? []).find((entry) => entry.for === card.slug) : undefined;
@@ -251,7 +256,15 @@ function SheetCard({ card, lineup, after, position }: { card: PlayCard; lineup: 
         </span>
       </div>
       <div className="pl-who">
-        <b>{card.name}</b>
+        <b>
+          {match === null ? (
+            card.name
+          ) : (
+            <Link href={matchHref(match)} title={`${card.name}: open his match on Lineups`}>
+              {card.name}
+            </Link>
+          )}
+        </b>
         <span className="pl-fx">
           <SorareImage src={card.fixture?.opponentCrest} width={16} height={16} />
           {/* the opponent and the kickoff share one line that ends in an ellipsis, so a long club name can't widen the card */}

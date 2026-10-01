@@ -1,6 +1,8 @@
+import Link from "next/link";
 import CardArt from "../cards/CardArt";
 import FacePhoto from "./FacePhoto";
 import { chanceTone, type Line, type LineupPlayer, type OwnedCard } from "../../lib/lineups";
+import { cardHref } from "../../lib/links";
 import { CalledUpIcon, KindIcon, KIND_LABEL } from "./Icons";
 
 const RARITY_TEXT: Record<string, string> = { limited: "LIMITED", rare: "RARE", super_rare: "SUPER RARE", unique: "UNIQUE" };
@@ -69,6 +71,7 @@ export default function PlayerCard({
         {percent(player.p)}%
       </span>
       {mark ? <span className="lu-mark">{mark}</span> : null}
+      {card && player.yours ? <Link className="lu-go" href={cardHref(player.yours)} aria-label={`${player.name}: open your card`} title={`${player.name}: open your card`} /> : null}
     </li>
   );
 }

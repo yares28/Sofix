@@ -31,6 +31,14 @@ const sorare = { ...sorareFixture, data: moved(sorareFixture.data) };
 // Two LaLiga rounds Sorare has not opened get an early plan the job kept apart (`read_models` key `sorare_ahead:<round>`):
 // the week being planned, built again as an early plan for that round, with one plan.
 const planning = sorare.data.weeks.find((week) => week.gameweek.id === sorare.data.nextId);
+// Futbol Fantasy's page for each game of the planned week, as the job publishes it (`ffMatch`): the ten matches of the Lineups recording, in turn.
+{
+  const ids = JSON.parse(readFileSync(new URL("./fixtures/lineups-response.json", import.meta.url), "utf8")).data.matches.map((match) => match.id);
+  planning.playing.players.forEach((player, index) => {
+    const id = ids[index % ids.length];
+    for (const game of player.games) game.ffMatch = { id, url: `https://www.futbolfantasy.com/laliga/partidos/${id}` };
+  });
+}
 
 // The Home's team news (`teamNews` of the gameweek being planned, built by backend/app/sorare/ff_news.py): four of the first lineup's
 // starters under 70%, and five players who moved since a reading a day old, so the tile has something of each to draw.
@@ -63,7 +71,7 @@ const planning = sorare.data.weeks.find((week) => week.gameweek.id === sorare.da
       players: starters.slice(0, 4).map((card, index) => ({ ...who(card), comp: first.comp, captain: false, game: gameOf(card, index), p: 0.5, kind: index < 2 ? "doubt" : null })),
     },
     moved: {
-      since: ago(20),
+      since: ago(24), // a reading a day old: "since yesterday" at any hour (20 h ago is still today after 20:00)
       total: others.length,
       players: others.map((player, index) => ({
         player: player.player ?? player.name, name: player.name, pos: player.pos, rarity: player.rarity, pic: player.pic,

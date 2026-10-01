@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gameLine, lockChip, movedWhy, shares, sinceLabel, splitLabel } from "./teamNews";
+import { gameLine, idleNote, lockChip, movedWhy, shares, sinceLabel, splitLabel } from "./teamNews";
 import type { NewsGame, NewsMove } from "./play";
 
 const NOW = new Date("2026-10-07T12:00:00Z"); // Wed 7 Oct 14:00 in Madrid
@@ -57,5 +57,38 @@ describe("the lock and the comparison", () => {
   it("says since yesterday when the reading is from the day before, else since the day and time", () => {
     expect(sinceLabel("2026-10-06T20:00:00Z", NOW)).toBe("since yesterday");
     expect(sinceLabel("2026-10-05T20:00:00Z", NOW)).toBe("since Mon 22:00");
+  });
+});
+
+describe("why there is no news yet", () => {
+  const week = (competition: string) => ({ gameweek: { number: 19 }, playing: { players: [{ games: [{ competition }] }, { games: [{ competition }] }] } });
+
+  it("says a national-team week is not Futbol Fantasy's, and where the next club games are", () => {
+    const note = idleNote(week("uefa-nations-league"), { round: 8, yours: 9 });
+
+    expect(note.lead).toBe("GW19 is national-team games.");
+    expect(note.rest).toBe("Futbol Fantasy covers LaLiga only.");
+    expect(note.lineups).toBe("Round 8's lineups are on Lineups (9 of your players).");
+  });
+
+  it("names no round when the page holds none, and speaks of one player in the singular", () => {
+    expect(idleNote(week("international-friendlies"), null).lineups).toBeNull();
+    expect(idleNote(week("uefa-nations-league"), { round: 8, yours: 1 }).lineups).toBe("Round 8's lineups are on Lineups (1 of your players).");
+    expect(idleNote(week("uefa-nations-league"), { round: 8, yours: 0 }).lineups).toBe("Round 8's lineups are on Lineups (none of your players).");
+  });
+
+  it("says when it publishes a club's next game, in a week of club games", () => {
+    const note = idleNote(week("laliga-es"), { round: 8, yours: 9 });
+
+    expect(note.lead).toBe("Futbol Fantasy has not published a lineup for your players yet.");
+    expect(note.rest).toContain("It publishes each club's next game about a day after its last one.");
+    expect(note.lineups).toBeNull();
+  });
+
+  it("does not call a week national-team games while some of its games are a club's", () => {
+    const mixed = { gameweek: { number: 19 }, playing: { players: [{ games: [{ competition: "uefa-nations-league" }] }, { games: [{ competition: "laliga-es" }] }] } };
+
+    expect(idleNote(mixed, null).lead).toMatch(/^Futbol Fantasy has not published/);
+    expect(idleNote({ gameweek: { number: 19 }, playing: { players: [] } }, null).lead).toMatch(/^Futbol Fantasy has not published/);
   });
 });

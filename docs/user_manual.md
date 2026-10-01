@@ -56,7 +56,10 @@ Under the strip:
 - **Team news** (under Sorare) says how your players look for the round from Futbol Fantasy (FF): one bar (likely to start at
   70% or more, in doubt from 40%, unlikely, out), which starters of your best plan might not start (under 70%, with their game,
   lineup and an icon for a doubt or injury), and what moved by 10 points or more since yesterday. A link opens Lineups. Players
-  FF says nothing about are only counted; their number is Sorare's or Sofix's.
+  FF says nothing about are only counted; their number is Sorare's or Sofix's. While FF has told nothing about the week, the
+  tile says why: in a break of national-team games (GW19, say) "GW19 is national-team games. Futbol Fantasy covers LaLiga only."
+  and where the next club games are, with how many of your players are in them; in a week of club games, that FF publishes each
+  club's next game about a day after its last one.
 - **Play** summarizes the published Sorare plan, estimated chance of any reward, expected essence/cash and time to lock.
 - **Last gameweek** compares pre-lock predictions with the owner's submitted-lineup actuals when scores exist.
 - **My cards** shows usable cards, rarity/position shape and the most important constraint.

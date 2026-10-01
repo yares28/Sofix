@@ -60,3 +60,27 @@ test("the team news has no accessibility violations", async ({ page }) => {
   const results = await new AxeBuilder({ page }).include(".hm-news").analyze();
   expect(results.violations.map((v) => `${v.id}: ${v.nodes.length}`)).toEqual([]);
 });
+
+test.describe("while Futbol Fantasy has told nothing about the week", () => {
+  test("a break of national-team games says so, and where the next club games are", async ({ page, request }) => {
+    await resetBackend(request, "no-news-national");
+    await page.goto("/");
+    const news = page.getByRole("region", { name: "Team news" });
+
+    await expect(news.getByRole("status")).toContainText(/GW\d+ is national-team games\./);
+    await expect(news.getByRole("status")).toContainText("Futbol Fantasy covers LaLiga only.");
+    await expect(news.getByRole("status")).toContainText(/Round 8's lineups are on Lineups \(\d+ of your players\)\./);
+    await expect(news).not.toContainText("has not published a lineup");
+    await expect(news.getByRole("link", { name: "Lineups" })).toHaveAttribute("href", "/lineups");
+  });
+
+  test("a week of club games says when Futbol Fantasy publishes a club's next game", async ({ page, request }) => {
+    await resetBackend(request, "no-news-laliga");
+    await page.goto("/");
+    const news = page.getByRole("region", { name: "Team news" });
+
+    await expect(news.getByRole("status")).toContainText("Futbol Fantasy has not published a lineup for your players yet.");
+    await expect(news.getByRole("status")).toContainText("about a day after its last one");
+    await expect(news).not.toContainText("national-team games");
+  });
+});

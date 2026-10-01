@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { readLabel } from "../../lib/lineups";
+import { readLabel, type LineupsGlance } from "../../lib/lineups";
 import type { GameweekPlan, NewsGame, NewsMove, NewsRisk } from "../../lib/play";
-import { gameLine, lockChip, movedWhy, shares, sinceLabel, splitLabel } from "../../lib/teamNews";
+import { gameLine, idleNote, lockChip, movedWhy, shares, sinceLabel, splitLabel } from "../../lib/teamNews";
 import { KindIcon } from "../lineups/Icons";
 import SorareImage from "../play/SorareImage";
 import SourceMark from "../SourceMark";
@@ -30,9 +30,10 @@ const pct = (p: number) => `${Math.round(p * 100)}%`;
  * start, and what moved since yesterday. Everything comes from the job (`TeamNews`); only Futbol Fantasy's numbers are news.
  * Design: the "Team news" boards of the futbolfantasy design canvas.
  */
-export default function TeamNewsTile({ week, now }: { week: GameweekPlan; now: Date }) {
+export default function TeamNewsTile({ week, now, glance }: { week: GameweekPlan; now: Date; glance: LineupsGlance | null }) {
   const news = week.teamNews;
   if (!news) {
+    const note = idleNote(week, glance);
     return (
       <section className="hm-tile hm-news hm-nw-idle" aria-labelledby="hm-news">
         <header className="hm-nw-head">
@@ -42,7 +43,8 @@ export default function TeamNewsTile({ week, now }: { week: GameweekPlan; now: D
           </Link>
         </header>
         <p role="status">
-          <b>Futbol Fantasy has not published a lineup for your players yet.</b> Sorare&apos;s odds, then Sofix&apos;s estimate, stand in until it does.
+          <b>{note.lead}</b> {note.rest}
+          {note.lineups ? ` ${note.lineups}` : null}
         </p>
       </section>
     );

@@ -7,6 +7,7 @@ import {
   gaugeText,
   initialsOf,
   kickoffLabel,
+  lineupsGlance,
   matchState,
   pickMatch,
   readable,
@@ -145,6 +146,35 @@ describe("what a match says about itself", () => {
     });
 
     expect(yoursIn(one)).toBe(3);
+  });
+});
+
+describe("the glance Home takes at the lineups", () => {
+  const europa = { competition: "europa-league", competitionName: "Europa League", round: 2 };
+  const two = (kickoff: string, extra: Partial<LineupMatch> = {}) =>
+    match(1, kickoff, {
+      ...extra,
+      home: side("Home", { rows: [{ line: "FWD", players: [player("1", { yours: "a" })] }], alternatives: [player("3", { yours: "b" })] }),
+      away: side("Away", { alternatives: [player("4", { yours: "c" })] }),
+    });
+
+  it("is the LaLiga round still to play and how many of his players are in it", () => {
+    const more = match(2, "2026-10-11T16:15:00Z", { home: side("X", { alternatives: [player("9", { yours: "d" })] }) });
+
+    expect(lineupsGlance(data([two("2026-10-11T14:15:00Z"), more]), NOW)).toEqual({ round: 8, yours: 4 });
+  });
+
+  it("counts a player once, and leaves out the other competitions", () => {
+    const again = match(2, "2026-10-11T16:15:00Z", { home: side("X", { alternatives: [player("1", { yours: "a" })] }) });
+
+    expect(lineupsGlance(data([two("2026-10-11T14:15:00Z"), again, two("2026-10-14T19:00:00Z", europa)]), NOW)).toEqual({ round: 8, yours: 3 });
+  });
+
+  it("is nothing when the page holds no LaLiga round to come", () => {
+    expect(lineupsGlance(null, NOW)).toBeNull();
+    expect(lineupsGlance(data([]), NOW)).toBeNull();
+    expect(lineupsGlance(data([two("2026-10-09T14:15:00Z")]), NOW)).toBeNull();
+    expect(lineupsGlance(data([two("2026-10-14T19:00:00Z", europa)]), NOW)).toBeNull();
   });
 });
 

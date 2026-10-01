@@ -226,7 +226,10 @@ written as soon as the site has been read (`ff_lineups.payload` into the `lineup
 the pitch coordinates (rows at fixed heights, read from the goal up), each alternative under the line he covers, the injury
 lists, and which of the people are the owner's. The Home's team news (`ff_news.team_news`, into the planned week as `teamNews`)
 is built from the finished page: the owner's players split at 70% and 40%, the first plan's starters under 70%, and what moved by
-10 points or more since a reading at least 16 hours old (`ff_chances` keeps one every six hours for two days).
+10 points or more since a reading at least 16 hours old (`ff_chances` keeps one every six hours for two days). When the job has
+nothing to put in `teamNews`, the tile says why (`teamNews.idleNote`): a week whose every game is a national team's is not the site's
+to cover, and the note points to the LaLiga round the Lineups page holds (`lineups.lineupsGlance`, the owner's distinct players in
+it); in a week of club games the site has simply not reached it yet.
 
 The extension does the same arithmetic for a chance it reads live: his chance of coming on is what is left, at the rate he comes
 on in the games he does not start (`benchedOn`, published with the player): `pOn = (1 - pStart) x benchedOn`, and nothing when he

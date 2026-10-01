@@ -190,6 +190,27 @@ export function yoursIn(match: LineupMatch): number {
   return count;
 }
 
+export type LineupsGlance = { round: number; yours: number };
+
+/**
+ * What the Home needs of this page when its own week has no Futbol Fantasy news: the LaLiga round still to play (the site holds
+ * each club's next game, so one round) and how many different players of the owner's it names. Null when the page holds no such round.
+ */
+export function lineupsGlance(data: LineupsData | null, now: Date): LineupsGlance | null {
+  if (!data) return null;
+  const section = sectionsOf(data).find(
+    (one) => one.competition === "laliga" && one.round !== null && one.matches.some((match) => !match.kickoff || new Date(match.kickoff).getTime() > now.getTime()),
+  );
+  if (!section) return null;
+  const yours = new Set<string>();
+  for (const match of section.matches) {
+    for (const side of [match.home, match.away]) {
+      for (const player of [...side.rows.flatMap((row) => row.players), ...side.alternatives]) if (player.yours) yours.add(player.yours);
+    }
+  }
+  return { round: section.round!, yours: yours.size };
+}
+
 // ---------------------------------------------------------------------------------------------------- how fresh
 export type Freshness = {
   /** fresh: read under a day ago; failed: the last ask got nothing new; old: what is held is over a day old; none: never read. */

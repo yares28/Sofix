@@ -16,6 +16,7 @@ import { Cash, Essence, Foil, GROUP_COLOUR } from "../play/bits";
 import EnteredLineups from "../play/EnteredLineups";
 import SorareImage from "../play/SorareImage";
 import HomeTile from "./HomeTile";
+import type { LineupsGlance } from "../../lib/lineups";
 import TeamNewsTile from "./TeamNewsTile";
 
 const madrid = (iso: string, options: Intl.DateTimeFormatOptions) =>
@@ -32,10 +33,12 @@ export default function SorareTiles({
   data,
   selected,
   now,
+  glance,
 }: {
   data: Sorare;
   selected: { slug: string; number: number } | null;
   now: Date;
+  glance: LineupsGlance | null;
 }) {
   const played = lastWeek(data);
   return (
@@ -49,7 +52,7 @@ export default function SorareTiles({
       </div>
       {selected ? <EnteredLineups week={selected} /> : null}
       <PlayTile week={nextWeek(data)} now={now} />
-      <TeamNewsTile week={nextWeek(data)} now={now} />
+      <TeamNewsTile week={nextWeek(data)} now={now} glance={glance} />
       {played && played.plans.length ? <LastTile week={played} /> : null}
       <CardsTile data={data} />
     </>

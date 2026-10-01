@@ -73,6 +73,17 @@ const planning = sorare.data.weeks.find((week) => week.gameweek.id === sorare.da
     },
   };
 }
+// The same payload when Futbol Fantasy has told the job nothing about the planned week (no `teamNews`): once as a week of club games,
+// once as a break whose games are all a national team's (GW19 in October), for the Home's team-news tile.
+const idleSorare = Object.fromEntries(
+  [["laliga", false], ["national", true]].map(([kind, national]) => {
+    const data = structuredClone(sorare.data);
+    const week = data.weeks.find((one) => one.gameweek.id === data.nextId);
+    delete week.teamNews;
+    if (national) for (const player of week.playing.players) for (const game of player.games) game.competition = "uefa-nations-league";
+    return [kind, { ...sorare, data }];
+  }),
+);
 const earlyWeeks = new Map(
   recorded.data.matchdays
     .filter((matchday) => matchday.number === 8 || matchday.number === 9)
@@ -118,7 +129,7 @@ const lineupsPayload = (() => {
 
 let state;
 function reset() {
-  state = { mode: "ok", sorare: "ok", nextId: 1, run: null, polls: 0 };
+  state = { mode: "ok", sorare: "ok", news: null, nextId: 1, run: null, polls: 0 };
 }
 reset();
 
@@ -167,7 +178,7 @@ const server = createServer((req, res) => {
     if (state.sorare === "missing") {
       return send(res, 200, { success: false, data: null, error: "Sorare has not been synced yet.", meta: null });
     }
-    return send(res, 200, sorare);
+    return send(res, 200, idleSorare[state.news] ?? sorare);
   }
 
   if (req.method === "GET" && url.pathname === "/api/lineups") {
@@ -251,8 +262,9 @@ const server = createServer((req, res) => {
   if (req.method === "POST" && url.pathname === "/__test/mode") {
     state.mode = url.searchParams.get("mode") === "malformed" ? "malformed" : "ok";
     state.sorare = url.searchParams.get("sorare") === "missing" ? "missing" : "ok";
+    state.news = url.searchParams.get("news"); // "laliga" or "national": the planned week with no team news
     state.run = finishedRun("cli");
-    return send(res, 200, { ok: true, mode: state.mode, sorare: state.sorare });
+    return send(res, 200, { ok: true, mode: state.mode, sorare: state.sorare, news: state.news });
   }
 
   send(res, 404, { success: false, error: "Not found." });

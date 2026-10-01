@@ -273,7 +273,9 @@ with five or more LaLiga games and in none of the 3 with fewer. So a round with 
 competition is marked `expected` with the week it was copied from, is planned for like any other (one card is never in two
 lineups of a plan, official or not) and cannot be entered: Apply only works for competitions Sorare lists. The same is added to a
 gameweek Sorare has opened that holds a LaLiga game but lists no LaLiga competition for it yet; once it lists them the next run
-shows only Sorare's own, never both (`publish.with_expected`). A round with no game, or no finished week of its kind yet, gets
+shows only Sorare's own, never both (`publish.with_expected`). A gameweek opened ahead is judged by the cut-offs of the finished week of
+its kind for its LaLiga competitions (`publish.reference_of_week`): the week being planned can be a break, and the finished week it
+is judged by then has no LaLiga cut-off at all, which would leave the weekend round after it with no LaLiga lineup to plan. A round with no game, or no finished week of its kind yet, gets
 none; a national-team week keeps its own competitions. Planning one takes a few
 seconds with a real collection, so a run plans only the rounds with no plan yet, then the stalest (`app.sorare.early`): the
 next four rounds are kept current to six hours and the far ones to a day, at most eight a run, and the others keep showing

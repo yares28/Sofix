@@ -325,6 +325,20 @@ def expected_competitions(snapshot: dict[str, Any], laliga_games: int) -> list[C
     return read_competitions(template["competitions"], reference, expected_from=f"GW{template['number']}")
 
 
+def reference_of_week(snapshot: dict[str, Any], week: dict[str, Any], plan_reference: dict[str, Any]) -> dict[str, Any]:
+    """The reward cut-offs a gameweek opened ahead is judged by.
+
+    The week being planned is judged by the finished week with about as much football in it; a week further ahead can be of
+    another kind (the weekend round after an international break), and that finished week had no LaLiga competition at all. A
+    week holding LaLiga games takes the cut-offs of the finished week of its kind (`expected`) for its LaLiga competitions.
+    """
+    laliga = int(week.get("laliga") or 0)
+    template = (snapshot.get("expected") or {}).get(expected.band(laliga)) if expected.gets_laliga(laliga) else None
+    if not template:
+        return plan_reference
+    return {**plan_reference, **(snapshot.get("references") or {}).get(template["slug"], {})}
+
+
 def with_expected(snapshot: dict[str, Any], comps: list[Competition], week: dict[str, Any]) -> list[Competition]:
     """A gameweek Sorare has opened, plus the LaLiga competitions it has not listed for it yet.
 
@@ -979,7 +993,11 @@ def build_payload(
     ahead: list[dict[str, Any]] = []
     for i, week in enumerate(snapshot.get("aheadGameweeks") or []):
         comps = with_expected(
-            snapshot, read_competitions(snapshot["competitions"].get(week["slug"], []), plan_reference), week
+            snapshot,
+            read_competitions(
+                snapshot["competitions"].get(week["slug"], []), reference_of_week(snapshot, week, plan_reference)
+            ),
+            week,
         )
         games = card_games(snapshot["cards"], f"a{i}")
         # Futbol Fantasy has each club's next game, which can sit in a week Sorare has opened but is not planning yet (the weekend

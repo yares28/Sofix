@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { initials } from "../../lib/cards";
 import SorareImage from "../play/SorareImage";
 
@@ -14,8 +14,9 @@ const SORARE_ORIGINS = ["https://assets.sorare.com/", "https://frontend-assets.s
  *     browser can't reach assets.sorare.com but can reach the app;
  *  3. if that also fails, show the player's initials instead of a blank frame.
  */
-export default function CardArt({ src, name }: { src: string | null | undefined; name: string }) {
+export default function CardArt({ src, name, skeleton }: { src: string | null | undefined; name: string; skeleton?: ReactNode }) {
   const [stage, setStage] = useState<"direct" | "proxy" | "failed">("direct");
+  const [loaded, setLoaded] = useState(false);
   const usable = !!src && SORARE_ORIGINS.some((origin) => src.startsWith(origin));
 
   if (!usable || stage === "failed") {
@@ -26,10 +27,17 @@ export default function CardArt({ src, name }: { src: string | null | undefined;
     );
   }
   if (stage === "direct") {
-    return <SorareImage src={src} fill onError={() => setStage("proxy")} />;
+    return (
+      <>
+        {loaded ? null : skeleton}
+        <SorareImage src={src} fill onError={() => setStage("proxy")} onLoad={() => setLoaded(true)} />
+      </>
+    );
   }
   return (
-    <Image
+    <>
+      {loaded ? null : skeleton}
+      <Image
       alt=""
       src={`/api/sorare-image?u=${encodeURIComponent(src!)}`}
       unoptimized
@@ -39,6 +47,8 @@ export default function CardArt({ src, name }: { src: string | null | undefined;
       referrerPolicy="no-referrer"
       style={{ objectFit: "cover" }}
       onError={() => setStage("failed")}
+      onLoad={() => setLoaded(true)}
     />
+    </>
   );
 }

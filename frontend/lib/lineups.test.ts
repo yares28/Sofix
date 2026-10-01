@@ -20,6 +20,7 @@ import {
   shortCode,
   sorareLine,
   splitAbsent,
+  CHANCE_KEY,
   slotAlternatives,
   splitDead,
   squadOut,
@@ -78,7 +79,7 @@ function match(id: number, kickoff: string | null, extra: Partial<LineupMatch> =
 }
 
 function data(matches: LineupMatch[], extra: Partial<LineupsData> = {}): LineupsData {
-  return { version: 1, generatedAt: NOW.toISOString(), readAt: "2026-10-10T14:50:00Z", failed: [], stopped: null, matches, cards: {}, ...extra };
+  return { version: 1, generatedAt: NOW.toISOString(), readAt: "2026-10-10T14:50:00Z", failed: [], stopped: null, matches, cards: {}, art: {}, ...extra };
 }
 
 const player = (id: string, extra: Record<string, unknown> = {}) => ({ id, name: `P ${id}`, p: 0.5, ...extra });
@@ -540,5 +541,24 @@ describe("slotAlternatives", () => {
       }),
     );
     expect(placed.bySlot.get("1")!.map((one) => one.id)).toEqual(["8"]);
+  });
+});
+
+describe("the colour key", () => {
+  it("names each shade of the % badge with the range it covers, the ones chanceTone draws", () => {
+    expect(CHANCE_KEY.map((one) => one.tone)).toEqual(["strong", "good", "mid", "low"]);
+    expect(CHANCE_KEY.map((one) => one.label)).toEqual(["80% or more", "60–79%", "40–59%", "under 40%"]);
+    for (const [percent, tone] of [[100, "strong"], [80, "strong"], [79, "good"], [60, "good"], [59, "mid"], [40, "mid"], [39, "low"], [0, "low"]] as const) {
+      expect(chanceTone(percent / 100), String(percent)).toBe(tone);
+    }
+  });
+});
+
+describe("readable", () => {
+  it("gives a payload from before the card art an empty art, and keeps the art it has", () => {
+    const old = readable({ version: 1, matches: [] });
+    expect(old?.art).toEqual({});
+    const fresh = readable({ version: 1, matches: [], art: { "5032": "https://assets.sorare.com/card/x/picture/y.png" } });
+    expect(fresh?.art["5032"]).toBe("https://assets.sorare.com/card/x/picture/y.png");
   });
 });

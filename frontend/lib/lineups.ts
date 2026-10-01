@@ -21,6 +21,8 @@ export type PlayerStatus = {
   since?: string;
   note?: string;
   international?: boolean;
+  /** The country he is called up by, as the two letters Futbol Fantasy writes ("KE"). */
+  nat?: string;
   yellows?: number;
 };
 
@@ -93,6 +95,8 @@ export type LineupsData = {
   stopped: string | null;
   matches: LineupMatch[];
   cards: Record<string, OwnedCard>;
+  /** A real Sorare card for every player the job could link to one, by his Futbol Fantasy id: how a player the owner does not have is drawn. */
+  art: Record<string, string>;
 };
 
 /** The payload is the job's own; a row that does not look like it is left out rather than drawn wrongly. */
@@ -100,7 +104,7 @@ export function readable(value: unknown): LineupsData | null {
   if (!value || typeof value !== "object") return null;
   const data = value as Partial<LineupsData>;
   if (data.version !== 1 || !Array.isArray(data.matches)) return null;
-  return { cards: {}, failed: [], stopped: null, readAt: null, generatedAt: "", ...data } as LineupsData;
+  return { cards: {}, art: {}, failed: [], stopped: null, readAt: null, generatedAt: "", ...data } as LineupsData;
 }
 
 // ------------------------------------------------------------------------------------------------------ the matches
@@ -409,6 +413,14 @@ export function chanceTone(p: number | null): Tone {
   const percent = Math.round(p * 100);
   return percent >= 80 ? "strong" : percent >= 60 ? "good" : percent >= 40 ? "mid" : "low";
 }
+
+/** What each shade of the % badge means: the ranges `chanceTone` draws, said once under the match head. */
+export const CHANCE_KEY: { tone: Tone; label: string }[] = [
+  { tone: "strong", label: "80% or more" },
+  { tone: "good", label: "60–79%" },
+  { tone: "mid", label: "40–59%" },
+  { tone: "low", label: "under 40%" },
+];
 
 const surname = (name: string) => name.trim().split(/\s+/).at(-1) ?? name;
 const upper = (text: string) => text.toLocaleUpperCase("es");

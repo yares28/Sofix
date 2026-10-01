@@ -46,6 +46,7 @@ export default function TeamColumn({
   place,
   round,
   cards,
+  art,
   look,
   now,
 }: {
@@ -53,6 +54,8 @@ export default function TeamColumn({
   place: "home" | "away";
   round: number | null;
   cards: Record<string, OwnedCard>;
+  /** A real Sorare card for each player the owner does not have, by Futbol Fantasy id. */
+  art: Record<string, string>;
   look: ClubLook | undefined;
   now: Date;
 }) {
@@ -105,6 +108,7 @@ export default function TeamColumn({
                     line={row.line}
                     card={player.yours ? cards[player.yours] : undefined}
                     calledUp={squadOut(side)}
+                    art={art[player.id]}
                     next={slots.bySlot.get(player.id)}
                     labels={labels}
                     mine={mine}

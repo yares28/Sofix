@@ -3,7 +3,7 @@ import CardArt from "../cards/CardArt";
 import FacePhoto from "./FacePhoto";
 import { chanceTone, type Line, type LineupPlayer, type OwnedCard } from "../../lib/lineups";
 import { cardHref } from "../../lib/links";
-import { CalledUpIcon, KindIcon, KIND_LABEL } from "./Icons";
+import { CalledUpIcon, CalledUpMark, KindIcon, KIND_LABEL } from "./Icons";
 
 /** The rarity as the card's own words say it: shown to a screen reader and on hover, the card's colour carries it on the pitch. */
 const RARITY_TEXT: Record<string, string> = { limited: "limited", rare: "rare", super_rare: "super rare", unique: "unique" };
@@ -29,6 +29,7 @@ export default function PlayerCard({
   line,
   card,
   calledUp,
+  art,
   next = [],
   labels = {},
   mine = new Set<string>(),
@@ -39,19 +40,40 @@ export default function PlayerCard({
   card: OwnedCard | undefined;
   /** Whether his club has named its squad: a call-up is not shown before that. */
   calledUp: boolean;
+  /** A real Sorare card of him when he is not one of yours, from the job: every player is drawn as his card wherever Sorare has one. */
+  art?: string;
   /** Who can come in for him in his slot, in the page's order: their names go under his card (Futbol Fantasy draws it so). */
   next?: LineupPlayer[];
   labels?: Record<string, string>;
   mine?: Set<string>;
 }) {
-  const rarity = card?.rarity ?? "common";
+  const pic = card?.pic ?? art;
+  const rarity = card?.rarity ?? (art ? "limited" : "common");
   const kind = player.status?.kind;
-  const mark = kind ? <KindIcon kind={kind} ring /> : calledUp && player.status?.international ? <CalledUpIcon ring /> : null;
+  const mark = kind ? <KindIcon kind={kind} ring /> : calledUp && player.status?.international ? player.status.nat ? <CalledUpMark code={player.status.nat} /> : <CalledUpIcon ring /> : null;
   return (
     <li className="lu-card" data-rarity={rarity} data-mine={card ? "" : undefined} data-out={kind === "out" || kind === "suspended" ? "" : undefined} aria-label={describe(player, Boolean(card), calledUp)} title={card ? `${player.name} · your ${RARITY_TEXT[rarity] ?? ""} card`.replace("  ", " ") : player.name}>
       <div className="lu-face">
-        {card?.pic ? (
-          <CardArt src={card.pic} name={card.name} />
+        {pic ? (
+          <CardArt
+            src={pic}
+            name={card?.name ?? player.name}
+            skeleton={
+              <div className="lu-skel" aria-hidden="true">
+                <svg viewBox="0 0 70 78" preserveAspectRatio="xMidYMax meet">
+                  <circle cx="35" cy="25" r="15" />
+                  <path d="M5 78c2-20 14-31 30-31s28 11 30 31z" />
+                </svg>
+                <div className="lu-skel-name">
+                  <b>{label}</b>
+                  <span>
+                    {line}
+                    {player.age ? ` · ${player.age}` : ""}
+                  </span>
+                </div>
+              </div>
+            }
+          />
         ) : (
           <>
             <svg className="lu-sil" aria-hidden="true" viewBox="0 0 70 78" preserveAspectRatio="xMidYMax meet">

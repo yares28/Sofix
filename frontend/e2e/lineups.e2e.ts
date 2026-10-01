@@ -136,18 +136,23 @@ test("a call-up is shown only for a club whose squad list is out, and the page n
 
   // Real Sociedad has not named its squad: the note is there, and no card carries a call-up
   await expect(home.getByText("Squad list not out.")).toBeVisible();
-  await expect(home.getByRole("img", { name: "Called up by his national team" })).toHaveCount(0);
+  await expect(home.locator(".lu-card .lu-call")).toHaveCount(0);
   await expect(home.locator('.lu-card[aria-label*="called up"]')).toHaveCount(0);
   // Deportivo has: two cards show the mark, and the legend names it
   await expect(away.getByText("Squad list not out.")).toHaveCount(0);
-  await expect(away.getByRole("img", { name: "Called up by his national team" })).toHaveCount(2);
+  // the mark says which country: his two letters on the card's corner, the country's name for a screen reader
+  const marks = away.locator(".lu-card .lu-call");
+  await expect(marks).toHaveCount(2);
+  await expect(marks).toHaveText(["KE", "ES"]);
+  await expect(marks.first()).toHaveAttribute("aria-label", "Called up by Kenya");
+  await expect(marks.nth(1)).toHaveAttribute("aria-label", "Called up by Spain");
   await expect(page.getByText("Called up by his national team", { exact: true })).toBeVisible();
 });
 
 test("the legend leaves the call-up out when no club of the match has named its squad", async ({ page }) => {
   await page.goto("/lineups?m=22497");
 
-  await expect(page.getByRole("img", { name: "Called up by his national team" })).toHaveCount(0);
+  await expect(page.locator(".lu-call")).toHaveCount(0);
   await expect(page.getByText("Called up by his national team")).toHaveCount(0);
 });
 
@@ -331,6 +336,92 @@ test("who can come in sits under each starter's own card, as Futbol Fantasy draw
   // he is not listed a second time among the line's chips, and the page says it is a slot's own list
   await expect(home.locator(".lu-pitch .lu-row .lu-alts .lu-alt", { hasText: "VALENTINI" })).toHaveCount(0);
   await expect(home.getByRole("list", { name: /Could come in for/ })).toHaveCount(3);
+});
+
+test("every player is drawn as his Sorare card, yours with the ring, the others with a real card of him", async ({ page }) => {
+  const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+  await page.route("https://assets.sorare.com/**", (route) => route.fulfill({ contentType: "image/png", body: PNG }));
+  await page.goto("/lineups?m=22493");
+  const cards = page.locator(".lu-card");
+
+  expect(await cards.count()).toBe(22);
+  await expect(page.locator(".lu-card .lu-sil")).toHaveCount(0); // no silhouette anywhere: all 22 are cards
+  const others = page.locator(".lu-card:not([data-mine])");
+  const mineCount = await page.locator(".lu-card[data-mine]").count();
+  await expect(others).toHaveCount(22 - mineCount);
+  for (const card of await others.all()) {
+    await expect(card).toHaveAttribute("data-rarity", "limited");
+    await expect(card.locator("img").first()).toHaveAttribute("src", /assets\.sorare\.com\/card\/e2e-\d+\//);
+  }
+  // yours keep the ring and are the only ones that link to a card of yours
+  await expect(page.locator(".lu-card[data-mine] a.lu-go").first()).toHaveAttribute("href", /^\/cards#p-/);
+  await expect(others.locator("a.lu-go")).toHaveCount(0);
+});
+
+test("a match with no card art keeps the face and the silhouette for the players it has none of", async ({ page }) => {
+  await page.goto("/lineups?m=22502");
+  await expect(page.locator(".lu-card:not([data-mine]) .lu-sil").first()).toBeVisible();
+});
+
+test("a key under the match head says what the colours of the % mean, in the colours the badges use", async ({ page }) => {
+  await page.goto("/lineups?m=22502");
+  const key = page.getByRole("group", { name: "What the colours of the chances mean" });
+
+  await expect(key).toBeVisible();
+  await expect(key.locator("span")).toHaveText(["80% or more", "60–79%", "40–59%", "under 40%"]);
+  for (const tone of ["strong", "good", "mid", "low"]) {
+    const swatch = await key.locator(`i[data-tone="${tone}"]`).evaluate((el) => getComputedStyle(el).backgroundColor);
+    const badge = await page.locator(`.lu-pct[data-tone="${tone}"]`).first().evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(swatch, tone).toBe(badge);
+  }
+});
+
+const PIXEL = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+
+test("a card shows his name and position on a quiet skeleton while Sorare's picture is on its way, then the picture alone", async ({ page }) => {
+  await page.route("https://assets.sorare.com/**", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 3000)); // the art takes its time
+    await route.fulfill({ contentType: "image/png", body: PIXEL });
+  });
+  await page.goto("/lineups?m=22493");
+  const first = page.locator(".lu-card").first();
+
+  await expect(first.locator(".lu-skel")).toBeVisible();
+  await expect(first.locator(".lu-skel")).toContainText(/GK|DEF|MID|FWD/);
+  await expect(first.locator(".lu-skel b")).not.toHaveText("");
+  await expect(first.locator(".lu-skel")).toHaveCount(0, { timeout: 15_000 }); // the picture arrived: nothing of the skeleton is left
+  await expect(first.locator("img")).toBeVisible();
+});
+
+test("a club's shield in its colour holds the crest's place until the crest arrives, and stays if it never does", async ({ page }) => {
+  await page.route("https://crests.football-data.org/**", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    await route.fulfill({ contentType: "image/png", body: PIXEL });
+  });
+  await page.goto("/lineups?m=22493");
+  const shield = page.locator(".lu-match-head .lu-shield").first();
+
+  await expect(shield.locator("svg")).toHaveCSS("opacity", "1");
+  const box = await shield.boundingBox();
+  expect(box!.width).toBeGreaterThan(40); // the room is kept while it waits
+  await expect(shield.locator("svg")).toHaveCSS("opacity", "0", { timeout: 15_000 }); // the crest is there: the shield steps back
+});
+
+test("a crest that never arrives leaves the shield in its colour", async ({ page }) => {
+  await page.goto("/lineups?m=22493"); // the suite blocks every crest
+  await expect(page.locator(".lu-match-head .lu-shield svg").first()).toHaveCSS("opacity", "1");
+});
+
+test("the lines of the pitch sit close together: a team shorter than the other keeps its rows tight, not spread to fill the column", async ({ page }) => {
+  await page.goto("/lineups?m=22502");
+  // the other team's column is made much taller (a long injury list does that): this team's pitch must not spread its lines to fill it
+  await page.addStyleTag({ content: ".lu-team.away { min-height: 2200px; }" });
+  for (const name of ["Real Sociedad lineup"]) {
+    const rows = page.getByRole("region", { name }).locator(".lu-pitch .lu-row:not(.lu-others)");
+    const boxes = await rows.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().toJSON()));
+    const gaps = boxes.slice(0, -1).map((box, index) => boxes[index + 1]!.top - box.bottom);
+    for (const [index, gap] of gaps.entries()) expect(gap, `${name}: between line ${index + 1} and ${index + 2}`).toBeLessThanOrEqual(46);
+  }
 });
 
 test("a payload from before the slots were read still puts the alternatives by line", async ({ page }) => {

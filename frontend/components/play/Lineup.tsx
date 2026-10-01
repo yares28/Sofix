@@ -1,5 +1,7 @@
 import type { Lineup as LineupData, PlayCard } from "../../lib/play";
-import { cashLabel, chanceLabel, essenceLabel, formatOf, paysNote } from "../../lib/play";
+import { cashLabel, chanceLabel, essenceLabel, formatOf, paysNote, startChance } from "../../lib/play";
+import { KindIcon } from "../lineups/Icons";
+import SourceMark from "../SourceMark";
 import { Cash, Chevron, Essence, Foil, GROUP_CLASS, MiniCards, RangeBar, RewardChips, Ring, ribbonClass } from "./bits";
 import LineupSheet from "./LineupSheet";
 import SorareImage from "./SorareImage";
@@ -232,6 +234,7 @@ function SheetCard({ card, lineup, after, position }: { card: PlayCard; lineup: 
   const out = after && card.actual === null;
   const swap = after ? (lineup.actual?.cameIn ?? []).find((entry) => entry.for === card.slug) : undefined;
   const sub = swap ? lineup.subs.find((entry) => entry.slug === swap.sub) : null;
+  const start = after ? null : startChance(card);
   return (
     <div className={`pl-pc${out ? " out" : ""}`} style={{ ["--i" as string]: String(position) }}>
       <div className="art">
@@ -253,9 +256,17 @@ function SheetCard({ card, lineup, after, position }: { card: PlayCard; lineup: 
         </span>
       </div>
       <div className="pl-row">
-        <span>
-          plays <b>{chanceLabel(card.p)}</b>
-        </span>
+        {start ? (
+          <span className="pl-start" title={`${start.title} · plays ${chanceLabel(card.p)} (starts or comes on)`}>
+            <SourceMark source={start.source} />
+            <b>{start.percent}%</b> starts
+            {card.ffKind ? <KindIcon kind={card.ffKind} size={14} /> : null}
+          </span>
+        ) : (
+          <span>
+            plays <b>{chanceLabel(card.p)}</b>
+          </span>
+        )}
         <span>
           ×<b>{(card.mult + (card.captain ? lineup.captainBonus : 0)).toFixed(2)}</b>
         </span>

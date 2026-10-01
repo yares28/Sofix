@@ -138,6 +138,25 @@
         }
       }
     },
+    "/api/lineups": {
+      "get": {
+        "summary": "Lineups",
+        "description": "Futbol Fantasy's lineups as the Lineups page draws them. Local development only, like /sorare.",
+        "operationId": "lineups_api_lineups_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_dict_str__Any__"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/refresh": {
       "post": {
         "summary": "Start Refresh",

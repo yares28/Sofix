@@ -105,3 +105,19 @@ def test_an_early_plan_is_served_by_its_round_and_a_round_without_one_says_so(db
     missing = client.get("/api/sorare/ahead/12").json()
     assert missing["success"] is False and missing["data"] is None
     assert client.get("/api/sorare/ahead/not-a-round").status_code == 422
+
+
+def test_futbol_fantasys_lineups_are_served_as_the_job_wrote_them_and_say_so_when_there_are_none(db):  # noqa: F811
+    from datetime import UTC, datetime
+
+    from app.models import ReadModel
+
+    app = create_app(Settings(app_env="dev"))
+    app.dependency_overrides[get_db] = lambda: db
+    client = TestClient(app)
+
+    assert client.get("/api/lineups").json()["success"] is False
+
+    db.add(ReadModel(key="lineups", payload={"matches": []}, updated_at=datetime.now(UTC)))
+    db.commit()
+    assert client.get("/api/lineups").json()["data"] == {"matches": []}

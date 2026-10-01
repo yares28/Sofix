@@ -1803,3 +1803,8 @@
   .ap::before, .ap-step > span i, .ap-bar i, .ap-go { transition: none; }
   .ap-pc { animation: none; opacity: 1; transform: none; }
 }
+
+/* the start chance on a lineup card: whose number it is (FF, SO, SF), the percentage, and an injury mark when the site says so */
+.pl-start { display: inline-flex; align-items: center; gap: 5px; }
+.pl-start b { font-variant-numeric: tabular-nums; }
+.pl-start svg { flex: none; }

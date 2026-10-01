@@ -132,8 +132,124 @@
     return pos === "GK" || pos === "DEF" ? "fdr" : pos === "MID" || pos === "FWD" ? "xg" : null;
   }
 
+  /** Under this he is not expected to play a minute from the start: the start row says he will not start. */
+  const OUT_CHANCE = 0.15;
+
+  /** The three sources of a start chance, in the order the app trusts them: two letters each, as everywhere on screen. */
+  const SOURCE_ORDER = ["futbolfantasy", "sorare", "sofix"];
+  const SOURCE_SHORT = { futbolfantasy: "FF", sorare: "SO", sofix: "SF" };
+
   /** His chance of starting: the split when the app has it, else the chance of playing an older answer carries. */
   const startChance = (entry) => (typeof entry.pStart === "number" ? entry.pStart : entry.p);
+
+  /**
+   * How the start row reads: "out" when he will not start (injured or banned, or hardly any chance), "doubt" when Futbol Fantasy
+   * calls him a doubt or he is under an even chance, "ok" otherwise.
+   */
+  function startTone(entry) {
+    const kind = entry.ffStatus && entry.ffStatus.kind;
+    const p = startChance(entry);
+    if (kind === "out" || kind === "suspended" || p < OUT_CHANCE) return "out";
+    if (kind === "doubt" || p < DOUBTFUL) return "doubt";
+    return "ok";
+  }
+
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const STATUS_WORD = { out: "Out", doubt: "Doubt", suspended: "Suspended" };
+
+  /**
+   * The line under the start chance when Futbol Fantasy says something is wrong with him: "Doubt · since 12 Sep". The site's
+   * own words (its cause, in Spanish) follow only when there is nothing else to say. Null when nothing is wrong.
+   */
+  function statusNote(entry) {
+    const status = entry.ffStatus;
+    const word = status && STATUS_WORD[status.kind];
+    if (!word) return null;
+    const since = typeof status.since === "string" ? /^Desde (\d{1,2})\/(\d{1,2})/i.exec(status.since) : null;
+    const detail = since ? "since " + Number(since[1]) + " " + (MONTHS[Number(since[2]) - 1] || since[2]) : status.cause || "";
+    return { kind: status.kind, text: detail ? word + " · " + detail : word };
+  }
+
+  /** The clock time of an ISO time in the viewer's own time zone, "16:56", or null. */
+  function clockLabel(iso) {
+    const at = typeof iso === "string" ? new Date(iso) : null;
+    if (!at || Number.isNaN(at.getTime())) return null;
+    return String(at.getHours()).padStart(2, "0") + ":" + String(at.getMinutes()).padStart(2, "0");
+  }
+
+  /**
+   * What each source says of his first game, in the order the app trusts them. `shown` marks the one the tile uses; a source with
+   * no number says so (`value` null) and is drawn faded. Futbol Fantasy's row carries the time it was read.
+   */
+  function sourceRows(entry) {
+    const said = entry.sources || {};
+    return SOURCE_ORDER.map((key) => {
+      const shown = entry.startSource === key;
+      const value = typeof said[key] === "number" ? said[key] : shown ? startChance(entry) : null;
+      return {
+        source: key,
+        label: SOURCE_SHORT[key],
+        value,
+        shown,
+        at: key === "futbolfantasy" && value !== null ? clockLabel(entry.startAt) : null,
+      };
+    });
+  }
+
+  // -- Futbol Fantasy, read in the browser (plans/futbolfantasy.md, S7) ---------------------------------------------------
+
+  /**
+   * A Futbol Fantasy match page's players: `{ his number: { p: chance of starting 0-1, lesion: -1 none, 0 out, 1 doubt, 2 a knock
+   * he is available despite } }`. The service worker has no HTML parser, so the page is read the way it is written: each player
+   * starts at the class `jugador_<number>` and says his chance and his injury code in the attributes that follow. Only the
+   * eleven and the alternatives have a role (`data-onceff`), so nothing else on the page can be taken for a player. A page that
+   * is not a lineup page gives nothing.
+   */
+  function ffPlayersOf(html) {
+    const out = {};
+    if (typeof html !== "string") return out;
+    const parts = html.split('class="jugador_');
+    for (let i = 1; i < parts.length; i++) {
+      const chunk = parts[i].slice(0, 2000);
+      const id = /^(\d+)/.exec(chunk);
+      const role = /data-onceff="(?:titular|suplente)"/.test(chunk);
+      const chance = /data-probabilidad="(\d{1,3})%"/.exec(chunk);
+      if (!id || !role || !chance || Number(chance[1]) > 100) continue;
+      const lesion = /data-lesion="(-?\d)"/.exec(chunk);
+      out[id[1]] = { p: Number(chance[1]) / 100, lesion: lesion ? Number(lesion[1]) : -1 };
+    }
+    return out;
+  }
+
+  const LESION_KIND = { 0: "out", 1: "doubt", 2: "available" };
+  const third = (x) => Math.round(x * 1000) / 1000;
+
+  /**
+   * What an answer becomes when Futbol Fantasy's chance that he starts has just been read: his chance of coming on is what is
+   * left, at the rate he comes on in the games he does not start (`benchedOn`, which the job publishes), and nothing when he is out.
+   * The same arithmetic as `_per_game` in backend/app/sorare/forecast.py; both read backend/tests/fixtures/live_start_cases.json.
+   * The plan's ticks, his xScore and the rankings stay as the job made them. Null when there is nothing to apply.
+   */
+  function liveSplit(entry, live, atIso) {
+    if (!entry || !live || !Number.isFinite(live.p) || live.p < 0 || live.p > 1) return null;
+    const rate = typeof entry.benchedOn === "number" ? entry.benchedOn : benchOnChance(entry);
+    const out = live.lesion === 0;
+    const pStart = out ? 0 : live.p;
+    const pOn = out ? 0 : (1 - pStart) * (rate === null ? 0 : rate);
+    const kind = LESION_KIND[live.lesion];
+    const before = entry.ffStatus || {};
+    // The injury list's cause and date are not on this page's players: they are kept while the kind stays the same.
+    const ffStatus = kind ? (before.kind === kind ? before : { kind }) : before.kind === "suspended" ? before : undefined;
+    return {
+      pStart: third(pStart),
+      pOn: third(pOn),
+      startSource: "futbolfantasy",
+      startAt: atIso,
+      sources: { ...(entry.sources || {}), futbolfantasy: third(pStart) },
+      ffStatus,
+      live: true,
+    };
+  }
 
   /** Of the times he is not in the starting eleven, how often he still plays: null when the answer has no split. */
   function benchOnChance(entry) {
@@ -195,7 +311,7 @@
 
   root.__sofixCore = {
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
-    chanceLabel, DOUBTFUL, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, agoLabel, STALE_HOURS, staleness, topThree,
+    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, statusNote, clockLabel, sourceRows, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, agoLabel, STALE_HOURS, staleness, topThree,
     isPickHeading, fixtureOf,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;

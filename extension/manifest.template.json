@@ -1,12 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Sofix",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "Links sorare.com to your Sofix app: your lineups, and your scores drawn on the cards.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtCOvdJzJRiA90k2xBz1f8ADx9jx5iQayYv3SPrmnCraBWXC/EFkRpKgyUvBAYmuicEIkD4Z6C9d+3C6HpcKKew+3HXMFAJVpclm7Vtca2UcxMIYYJ6Mqf/j+fyMsK1RTHKuQbcpoP/HruruMEEiNbDnngXbMn6Xo95bOkrocUA9aHY7Rbm0FVV8wUvtgOaV4dnsKVlUYnG9uCSnt1Dljtc5wyPE0XuT+S9ihTiVvydamD63AIVEQCIMRm2pteOe2n5vmveU2igbnm0JRx5tCEYeEtTW0tWniMVkj31icTdY52Ik0tj8AEicObRgd+CfBaQd86Eig556ZloW/nswxAQIDAQAB",
   "minimum_chrome_version": "120",
   "permissions": ["storage", "alarms", "scripting"],
-  "host_permissions": ["https://sorare.com/*", "__APP_ORIGIN__/*"],
+  "host_permissions": ["https://sorare.com/*", "https://www.futbolfantasy.com/partidos/*", "__APP_ORIGIN__/*"],
   "background": { "service_worker": "background.js", "type": "module" },
   "action": {
     "default_title": "Sofix",

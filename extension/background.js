@@ -4,6 +4,7 @@
 // - Answers the app's "ping" so the app knows the extension is installed (externally_connectable).
 // It never sends Sorare credentials anywhere: only the version and the account's public nickname.
 import { CONFIG } from "./config.js";
+import "./core.js"; // the page reader and the formula the overlay shares: sets globalThis.__sofixCore
 
 const VERSION = chrome.runtime.getManifest().version;
 const CHECKIN_MS = 6 * 60 * 60 * 1000;
@@ -71,6 +72,10 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   }
   if (message?.type === "overlay-plan") {
     overlayPlan().then(reply);
+    return true;
+  }
+  if (message?.type === "ff-live") {
+    ffLive(message.matches).then(reply);
     return true;
   }
   if (message?.type === "overlay-stats") {
@@ -167,6 +172,69 @@ async function overlayNumbers(cards, players, fixture = null) {
   const out = { state: "ok", cards: {}, players: {} };
   for (const [key, entry] of Object.entries(answers)) if (entry) out[key.startsWith("c:") ? "cards" : "players"][key.slice(2)] = entry;
   return out;
+}
+
+// Futbol Fantasy, read live (plans/futbolfantasy.md, S7). While a sorare.com page is open with the overlay on, the match pages
+// of the games its cards are about are read here, so a change in a lineup shows on the tile within minutes instead of at the
+// next run. Read-only and polite: only `/partidos/<number>` pages, each at most once every ten minutes however often it is asked
+// for, one page at a time with a pause between, and left alone for five minutes after one fails. The page is read as it is
+// written (core.ffPlayersOf); nothing is sent anywhere, and nothing of Futbol Fantasy's is kept after the browser closes.
+const FF_MATCH = /^https:\/\/www\.futbolfantasy\.com\/partidos\/(\d{1,7})(?:-[a-z0-9-]{1,120})?$/;
+const FF_TTL_MS = 10 * 60 * 1000;
+const FF_BACKOFF_MS = 5 * 60 * 1000;
+const FF_PAUSE_MS = 2000;
+const FF_PAGES = 8; // per ask
+const FF_MAX_CHARS = 6_000_000;
+let ffQueue = Promise.resolve();
+
+function ffLive(matches) {
+  const wanted = [];
+  for (const item of Array.isArray(matches) ? matches : []) {
+    const found = item && typeof item.url === "string" ? FF_MATCH.exec(item.url) : null;
+    if (found && String(item.id) === found[1] && !wanted.some((one) => one.id === found[1])) wanted.push({ id: found[1], url: item.url });
+  }
+  // One ask at a time, so two tabs asking together read a page once.
+  const answer = ffQueue.then(() => ffRead(wanted.slice(0, FF_PAGES)));
+  ffQueue = answer.catch(() => {});
+  return answer.catch(() => ({ state: "unreachable" }));
+}
+
+async function ffRead(wanted) {
+  const keys = wanted.map((one) => `ff:${one.id}`);
+  const held = keys.length ? await chrome.storage.session.get(keys) : {};
+  const live = {};
+  let fetched = 0;
+  for (const one of wanted) {
+    const key = `ff:${one.id}`;
+    const hit = held[key];
+    if (hit && hit.players && Date.now() - hit.at < FF_TTL_MS) {
+      live[one.id] = { at: new Date(hit.at).toISOString(), players: hit.players };
+      continue;
+    }
+    if (hit && hit.failedAt && Date.now() - hit.failedAt < FF_BACKOFF_MS) {
+      if (hit.players) live[one.id] = { at: new Date(hit.at).toISOString(), players: hit.players }; // the last reading stands
+      continue;
+    }
+    if (fetched) await new Promise((done) => setTimeout(done, FF_PAUSE_MS));
+    fetched += 1;
+    let players = null;
+    try {
+      const response = await fetch(one.url, { credentials: "omit", referrerPolicy: "no-referrer", cache: "no-store" });
+      const text = response.ok ? await response.text() : "";
+      players = text && text.length <= FF_MAX_CHARS ? globalThis.__sofixCore.ffPlayersOf(text) : null;
+    } catch {
+      players = null;
+    }
+    if (players && Object.keys(players).length) {
+      const at = Date.now();
+      await chrome.storage.session.set({ [key]: { at, players } });
+      live[one.id] = { at: new Date(at).toISOString(), players };
+    } else {
+      await chrome.storage.session.set({ [key]: { ...(hit || {}), failedAt: Date.now() } });
+      if (hit && hit.players) live[one.id] = { at: new Date(hit.at).toISOString(), players: hit.players };
+    }
+  }
+  return { state: "ok", live };
 }
 
 /** The gameweek's plan, for the drawer. Asked for only when the drawer is opened, and kept as long as the numbers. */

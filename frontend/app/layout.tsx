@@ -7,6 +7,7 @@ import "./control-center.css";
 import "./home.css";
 import "./play.css";
 import "./cards.css";
+import "./lineups.css";
 
 // Self-hosted at build time by next/font (no request to Google from the browser, so the CSP stays 'self').
 // Apple devices keep SF via -apple-system; everyone else gets Inter instead of the platform default.

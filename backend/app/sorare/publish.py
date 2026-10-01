@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import math
+from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
@@ -16,7 +17,7 @@ import numpy as np
 
 from app.services.scoring import difficulty_label, difficulty_score, label_bucket
 from app.sorare import projection, rules, xg
-from app.sorare.forecast import PlayerWeek
+from app.sorare.forecast import GameStart, PlayerWeek
 from app.sorare.forecast import forecasts as build_forecasts
 from app.sorare.model import SORARE_POSITION, Card, Competition, Forecast
 from app.sorare.planner import DRAWS, Lineup, Plan, build, fill_bench, plans, replay_rewards, score_at_rank
@@ -156,7 +157,25 @@ def game_odds(game: dict[str, Any], at_home: bool) -> dict[str, Any] | None:
     }
 
 
-def _split_out(forecast: Forecast | None) -> dict[str, float]:
+def _with_chances(games: list[dict[str, Any]], forecast: Forecast | None) -> list[dict[str, Any]]:
+    """His games, each with its own chance of starting, where it is told game by game (Futbol Fantasy speaks about one).
+
+    `pStart` and `pOn` are that game's, `startSource` whose number the start chance is (futbolfantasy, sorare or sofix), and
+    the rest (`startAt`, `ffStatus`, `ffMatch`, `ffPlayer`, `ffChanged`) what Futbol Fantasy said and when. A player it
+    has nothing on keeps his games as they were: one chance for the week, as before.
+    """
+    if not forecast or not forecast.per_game:
+        return games
+    told = {chance.game: chance for chance in forecast.per_game}
+    return [
+        {**game, "pStart": round(c.p_start, 3), "pOn": round(c.p_on, 3), "startSource": c.source, **c.info}
+        if (c := told.get(game["id"]))
+        else game
+        for game in games
+    ]
+
+
+def _split_out(forecast: Forecast | None) -> dict[str, Any]:
     """His score if he starts and if he does not, and the chance of each (O9). For the overlay; plans never use it."""
     if not forecast or forecast.start is None or forecast.bench is None:
         return {}
@@ -165,6 +184,9 @@ def _split_out(forecast: Forecast | None) -> dict[str, float]:
         "bench": forecast.bench,
         "pStart": forecast.p_start if forecast.p_start is not None else 0.0,
         "pOn": forecast.p_on if forecast.p_on is not None else 0.0,
+        "startSource": forecast.start_source,
+        "sources": forecast.by_source,
+        **({"benchedOn": forecast.benched_on} if forecast.benched_on is not None else {}),
     }
 
 
@@ -210,8 +232,13 @@ def player_weeks(
     lock: datetime,
     window: tuple[datetime, datetime] | None,
     use_sorare: bool,
+    ff: Callable[[str, list[dict[str, Any]]], list[GameStart]] | None = None,
 ) -> dict[str, PlayerWeek]:
-    """What is known about each player before the lock (and, for a played gameweek, what he scored)."""
+    """What is known about each player before the lock (and, for a played gameweek, what he scored).
+
+    `ff` answers, for a player and his games in kickoff order, Futbol Fantasy's chance for each game it has one for. It is
+    only asked for the gameweek being planned (`use_sorare`): it knows each team's next game and nothing further.
+    """
     weeks: dict[str, PlayerWeek] = {}
     for row in rows:
         player = row["player"]
@@ -237,6 +264,8 @@ def player_weeks(
                 if window[0] <= _dt(h["date"]) < window[1] and h["played"] and h["score"] is not None
             ]
             actual = max(played) if played else None
+        ordered = sorted(mine, key=lambda g: _dt(g["kickoff"])) if ff and use_sorare else mine
+        told = ff(slug, ordered) if ff and use_sorare else []
         weeks[slug] = PlayerWeek(
             games=len(mine),
             projection=player.get("nextClassicFixtureProjectedScore") if use_sorare else None,
@@ -247,6 +276,8 @@ def player_weeks(
             # Only games he played have a role worth recording; a snapshot from before O9 has none.
             starts={h["date"]: bool(h["started"]) for h in past if h["played"] and "started" in h},
             pos=SORARE_POSITION.get(player.get("position") or ""),
+            game_ids=[g["id"] for g in ordered] if told else [],
+            game_starts=told,
         )
     return weeks
 
@@ -326,6 +357,17 @@ def lineups_possible(comp: Competition, cards: list[Card], forecasts: dict[str, 
 
 
 # --------------------------------------------------------------------------- payload
+def _start_of(forecast: Forecast) -> dict[str, Any]:
+    """A card's chance of starting, whose number it is, and what the site says is wrong with him when it says anything."""
+    if forecast.p_start is None or forecast.start_source is None:
+        return {}
+    out: dict[str, Any] = {"pStart": round(forecast.p_start, 3), "startSource": forecast.start_source}
+    kind = ((forecast.per_game[0].info.get("ffStatus") or {}).get("kind")) if forecast.per_game else None
+    if kind in ("out", "doubt", "suspended"):
+        out["ffKind"] = kind
+    return out
+
+
 def card_payload(
     card: Card,
     comp: Competition,
@@ -336,6 +378,7 @@ def card_payload(
     game = (games.get(card.player) or [{}])[0]
     out: dict[str, Any] = {
         "slug": card.slug,
+        "player": card.player,
         "name": card.name,
         "pos": card.positions[0],
         "rarity": card.rarity,
@@ -347,6 +390,7 @@ def card_payload(
         "crest": card.club_crest,
         "mult": round(comp.multiplier(card), 3),
         "p": round(forecast.p_play, 3),
+        **_start_of(forecast),
         "mu": round(forecast.mu, 1),
         "x": round(forecast.p_play * forecast.mu, 1),
         "average": card.average,
@@ -643,7 +687,7 @@ def gameweek_payload(
             "p": round(forecasts.get(card.player, Forecast(0, 0)).p_play, 3),
             "x": round(_expected(forecasts.get(card.player)), 1),
             "average": card.average,
-            "games": games.get(card.player) or [],
+            "games": _with_chances(games.get(card.player) or [], forecasts.get(card.player)),
             **_split_out(forecasts.get(card.player)),
             **({"xg": rates[card.player]} if card.player in rates else {}),
         }
@@ -786,11 +830,13 @@ def build_payload(
     draws: int = DRAWS,
     previous: dict[str, Any] | None = None,
     projected: list[dict[str, Any]] | None = None,
+    ff: Callable[[str, list[dict[str, Any]]], list[GameStart]] | None = None,
 ) -> dict[str, Any]:
     """The whole `sorare` read model, from one snapshot.
 
     `previous` is the payload the app is already showing: when it holds the replay of the same finished
-    gameweek, that part is kept as it is instead of being planned again.
+    gameweek, that part is kept as it is instead of being planned again. `ff` is Futbol Fantasy's chance game by game
+    for the gameweek being planned (`ff_use.Lineups.starts`); without it the page is what it was.
     """
     now = _dt(snapshot["fetchedAt"])
     cards, left_out = read_cards(snapshot["cards"])
@@ -805,7 +851,9 @@ def build_payload(
     plan_reference = references.get(reference_for.get("plan", ""), {})
     plan_comps = read_competitions(snapshot["competitions"].get(plan_week["slug"], []), plan_reference)
     plan_forecasts = build_forecasts(
-        player_weeks(snapshot["cards"], plan_games, snapshot["history"], _dt(plan_week["lock"]), None, use_sorare=True)
+        player_weeks(
+            snapshot["cards"], plan_games, snapshot["history"], _dt(plan_week["lock"]), None, use_sorare=True, ff=ff
+        )
     )
     next_gw = gameweek_payload(
         snapshot,

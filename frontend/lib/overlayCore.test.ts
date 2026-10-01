@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
 import { contrastRatio } from "./contrast";
@@ -20,6 +21,24 @@ type Core = {
   fdrLevel: (bucket: unknown) => string | null;
   driverOf: (pos: unknown) => "fdr" | "xg" | null;
   startChance: (entry: { p: number; pStart?: number }) => number;
+  ffPlayersOf: (html: unknown) => Record<string, { p: number; lesion: number }>;
+  liveSplit: (
+    entry: Record<string, unknown>,
+    live: unknown,
+    atIso: string,
+  ) => { pStart: number; pOn: number; startSource: string; startAt: string; sources: Record<string, number>; ffStatus?: { kind: string }; live: true } | null;
+  OUT_CHANCE: number;
+  SOURCE_SHORT: Record<string, string>;
+  startTone: (entry: { p: number; pStart?: number; ffStatus?: { kind?: string } }) => "out" | "doubt" | "ok";
+  statusNote: (entry: { ffStatus?: { kind?: string; cause?: string; since?: string } }) => { kind: string; text: string } | null;
+  clockLabel: (iso: unknown) => string | null;
+  sourceRows: (entry: {
+    p: number;
+    pStart?: number;
+    startSource?: string;
+    startAt?: string;
+    sources?: Record<string, number>;
+  }) => { source: string; label: string; value: number | null; shown: boolean; at: string | null }[];
   benchOnChance: (entry: { pStart?: number; pOn?: number }) => number | null;
   agoLabel: (iso: unknown, nowMs: number) => string | null;
   STALE_HOURS: number;
@@ -311,5 +330,144 @@ describe("the gameweek a Sorare page is about (O7)", () => {
 
   it("takes the first when an address names two", () => {
     expect(core.fixtureOf("https://sorare.com/a/football-1-2-oct-2026?then=football-2-6-oct-2026")).toBe("football-1-2-oct-2026");
+  });
+});
+
+
+describe("the start row", () => {
+  const one = (extra: Record<string, unknown>) => ({ p: 0.9, pStart: 0.9, ...extra });
+
+  it("is quiet when he probably starts, amber in doubt, red when he will not", () => {
+    expect(core.startTone(one({}))).toBe("ok");
+    expect(core.startTone(one({ pStart: 0.5 }))).toBe("ok");
+    expect(core.startTone(one({ pStart: 0.49 }))).toBe("doubt");
+    expect(core.startTone(one({ pStart: 0.5, ffStatus: { kind: "doubt" } }))).toBe("doubt");
+    expect(core.startTone(one({ pStart: 0.14 }))).toBe("out");
+    expect(core.startTone(one({ pStart: 0.9, ffStatus: { kind: "out" } }))).toBe("out");
+    expect(core.startTone(one({ pStart: 0.9, ffStatus: { kind: "suspended" } }))).toBe("out");
+    expect(core.startTone(one({ pStart: 0.9, ffStatus: { kind: "available" } }))).toBe("ok");
+  });
+
+  it("names the source by two letters", () => {
+    expect(core.SOURCE_SHORT).toEqual({ futbolfantasy: "FF", sorare: "SO", sofix: "SF" });
+  });
+});
+
+describe("what the site says is wrong with him", () => {
+  it("is the status and since when, the site's cause only when there is no date", () => {
+    expect(core.statusNote({ ffStatus: { kind: "doubt", cause: "Molestias", since: "Desde 12/09 (18 días)" } })).toEqual({ kind: "doubt", text: "Doubt · since 12 Sep" });
+    expect(core.statusNote({ ffStatus: { kind: "doubt", cause: "Molestias en el tobillo" } })).toEqual({ kind: "doubt", text: "Doubt · Molestias en el tobillo" });
+    expect(core.statusNote({ ffStatus: { kind: "out" } })).toEqual({ kind: "out", text: "Out" });
+    expect(core.statusNote({ ffStatus: { kind: "suspended" } })).toEqual({ kind: "suspended", text: "Suspended" });
+  });
+
+  it("is nothing for a knock he is available despite, or when the site says nothing", () => {
+    expect(core.statusNote({ ffStatus: { kind: "available" } })).toBeNull();
+    expect(core.statusNote({ ffStatus: {} })).toBeNull();
+    expect(core.statusNote({})).toBeNull();
+  });
+});
+
+describe("the list of sources", () => {
+  it("has all three in order, the one shown marked, the others faded when they say nothing", () => {
+    const rows = core.sourceRows({ p: 0.9, pStart: 0.9, startSource: "futbolfantasy", sources: { futbolfantasy: 0.9, sofix: 0.78 }, startAt: "2026-10-09T14:56:00Z" });
+
+    expect(rows.map((r) => [r.label, r.value, r.shown])).toEqual([
+      ["FF", 0.9, true],
+      ["SO", null, false],
+      ["SF", 0.78, false],
+    ]);
+    expect(rows[0]!.at).toMatch(/^\d\d:\d\d$/);
+    expect(rows[1]!.at).toBeNull();
+  });
+
+  it("uses the tile's own number for the source it shows when the answer carries no list", () => {
+    const rows = core.sourceRows({ p: 0.8, pStart: 0.8, startSource: "sorare" });
+
+    expect(rows.map((r) => [r.label, r.value, r.shown])).toEqual([
+      ["FF", null, false],
+      ["SO", 0.8, true],
+      ["SF", null, false],
+    ]);
+  });
+
+  it("reads a clock time, and nothing from a bad one", () => {
+    expect(core.clockLabel("2026-10-09T14:56:00Z")).toMatch(/^\d\d:\d\d$/);
+    expect(core.clockLabel("not a time")).toBeNull();
+    expect(core.clockLabel(undefined)).toBeNull();
+  });
+});
+
+
+describe("Futbol Fantasy's match page, read in the browser", () => {
+  const page = readFileSync(new URL("../../backend/tests/fixtures/futbolfantasy/match_real_sociedad_deportivo.html", import.meta.url), "utf8");
+
+  it("gives each player's chance and injury code by his number, as the job's own parser reads them", () => {
+    const players = core.ffPlayersOf(page);
+
+    expect(Object.keys(players).length).toBeGreaterThanOrEqual(40);
+    expect(players["2675"]).toEqual({ p: 0.9, lesion: -1 }); // Oyarzabal
+    expect(players["2802"]).toEqual({ p: 0.5, lesion: 1 }); // Zubeldia, a doubt
+    expect(players["12538"]).toEqual({ p: 0.8, lesion: -1 }); // Aramburu, called up by his country
+  });
+
+  it("agrees with the job's parser on everybody the job read", () => {
+    const parsed = JSON.parse(
+      readFileSync(new URL("../../backend/tests/fixtures/futbolfantasy/matches_round_8.json", import.meta.url), "utf8"),
+    ) as { match_id: number; home: { xi: { ff_id: string; chance: number | null; lesion: number }[] }; away: { xi: { ff_id: string; chance: number | null; lesion: number }[] } }[];
+    const match = parsed.find((item) => item.match_id === 22502)!;
+    const players = core.ffPlayersOf(page);
+
+    for (const one of [...match.home.xi, ...match.away.xi]) {
+      expect(players[one.ff_id], one.ff_id).toEqual({ p: one.chance, lesion: one.lesion });
+    }
+  });
+
+  it("gives nothing for a page that is not a lineup page, or for nothing", () => {
+    expect(core.ffPlayersOf("<html><body>Mantenimiento</body></html>")).toEqual({});
+    expect(core.ffPlayersOf(undefined)).toEqual({});
+    expect(core.ffPlayersOf('<div class="jugador_5 campo" data-onceff="titular"><a data-probabilidad="140%">')).toEqual({});
+  });
+});
+
+describe("a changed chance of starting, applied to an answer", () => {
+  const cases = JSON.parse(readFileSync(new URL("../../backend/tests/fixtures/live_start_cases.json", import.meta.url), "utf8")).cases as {
+    name: string;
+    benchedOn: number;
+    live: { p: number; lesion: number };
+    expect: { pStart: number; pOn: number };
+  }[];
+
+  it.each(cases)("$name: the same numbers as the job's", ({ benchedOn, live, expect: want }) => {
+    const done = core.liveSplit({ pStart: 0.9, pOn: 0.05, benchedOn }, live, "2026-10-09T14:56:00Z")!;
+
+    expect(done.pStart).toBeCloseTo(want.pStart, 3);
+    expect(done.pOn).toBeCloseTo(want.pOn, 3);
+    expect(done.startSource).toBe("futbolfantasy");
+    expect(done.startAt).toBe("2026-10-09T14:56:00Z");
+    expect(done.sources.futbolfantasy).toBeCloseTo(want.pStart, 3);
+  });
+
+  it("works the rate out from an answer that does not carry it", () => {
+    const done = core.liveSplit({ pStart: 0.8, pOn: 0.1 }, { p: 0.4, lesion: -1 }, "2026-10-09T14:56:00Z")!;
+
+    expect(done.pOn).toBeCloseTo(0.3, 3); // he came on in half the games he did not start: 0.6 of them are left
+  });
+
+  it("keeps what the other sources said, and the cause of an injury while the kind stays the same", () => {
+    const before = { pStart: 0.9, pOn: 0.05, benchedOn: 0.3, sources: { sorare: 0.8 }, ffStatus: { kind: "doubt", cause: "Molestias" } };
+
+    const same = core.liveSplit(before, { p: 0.5, lesion: 1 }, "2026-10-09T14:56:00Z")!;
+    expect(same.sources).toEqual({ sorare: 0.8, futbolfantasy: 0.5 });
+    expect(same.ffStatus).toEqual({ kind: "doubt", cause: "Molestias" });
+
+    expect(core.liveSplit(before, { p: 0, lesion: 0 }, "2026-10-09T14:56:00Z")!.ffStatus).toEqual({ kind: "out" });
+    expect(core.liveSplit(before, { p: 0.9, lesion: -1 }, "2026-10-09T14:56:00Z")!.ffStatus).toBeUndefined();
+  });
+
+  it("applies nothing when there is nothing to apply", () => {
+    expect(core.liveSplit({ pStart: 0.9, pOn: 0.05 }, undefined, "t")).toBeNull();
+    expect(core.liveSplit({ pStart: 0.9, pOn: 0.05 }, { p: 1.5, lesion: -1 }, "t")).toBeNull();
+    expect(core.liveSplit({ pStart: 0.9, pOn: 0.05 }, { p: Number.NaN, lesion: -1 }, "t")).toBeNull();
   });
 });

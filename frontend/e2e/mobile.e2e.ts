@@ -97,3 +97,38 @@ test("the phone's Sorare tiles and the gameweek just played fit without sideways
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), path).toBe(true);
   }
 });
+
+test("Lineups on a phone shows one team at a time and does not scroll sideways", async ({ page }) => {
+  await page.goto("/lineups?m=22502");
+  const home = page.getByRole("region", { name: "Real Sociedad lineup" });
+  const away = page.getByRole("region", { name: "Deportivo lineup" });
+
+  await expect(home).toBeVisible();
+  await expect(away).toBeHidden();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+  await page.locator('label[for="lu-side-away"]').click();
+  await expect(away).toBeVisible();
+  await expect(home).toBeHidden();
+  await expect(away.locator(".lu-card")).toHaveCount(11);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test("Lineups on a phone: the tap targets of the reading and the link are at least 44 px", async ({ page }) => {
+  await page.goto("/lineups?m=22502");
+
+  for (const target of [page.getByText(/^Read /).first(), page.getByRole("link", { name: "Open this match on Futbol Fantasy" })]) {
+    const box = (await target.boundingBox())!;
+    expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(44);
+  }
+});
+
+test("the home's team news fits a phone: one column, no sideways scrolling", async ({ page }) => {
+  await page.goto("/");
+  const news = page.getByRole("region", { name: "Team news" });
+
+  await expect(news).toBeVisible();
+  const columns = await news.locator(".hm-nw-col").evaluateAll((cols) => cols.map((col) => Math.round(col.getBoundingClientRect().left)));
+  expect(new Set(columns).size).toBe(1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});

@@ -43,7 +43,7 @@ Use [docs/sorare/design/DESIGN.md](docs/sorare/design/DESIGN.md) and the real
 
 ## Semantics
 
-Routes: `/`, `/play`, `/fixtures`, `/difficulty`, `/table`, `/cards`, `/players`, `/control`, `/team/[code]`.
+Routes: `/`, `/play`, `/lineups`, `/fixtures`, `/difficulty`, `/table`, `/cards`, `/players`, `/control`, `/team/[code]`.
 One date/week drives the app, while LaLiga and Sorare GW numbers remain distinct. Difficulty lenses are Overall,
 Attack, Defence, Record, Vs odds and Odds. Cards/value are current snapshots; conditional projection differs from
 xScore. Sorare fixture labels use the side actually playing, not a player's club during internationals; outside

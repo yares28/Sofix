@@ -1,56 +1,56 @@
-"""How likely three sources said each player was to start, written down before the lock and settled by what happened."""
+"""How likely three sources said each player was to start each game, written down before the lock and settled by what happened."""
 
+# ruff: noqa: F811  (the `db` fixture is used by importing it)
 from __future__ import annotations
 
+import dataclasses
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
 
 from app.models import ReadModel
-from app.sorare import projection, starts
-from app.sources import futbolfantasy
+from app.sorare import ff_feed, starts
+from app.sorare.forecast import GameStart
+from app.sources import futbolfantasy_matches as ffm
+from tests.test_ff_link import match, player, side
 from tests.test_pipeline import db  # noqa: F401  (fixture)
 from tests.test_sorare_publish import snapshot
 
 LOCK = datetime(2026, 10, 9, 14, tzinfo=UTC)  # the fixture's planned gameweek opens (and locks) then
+READ = datetime(2026, 10, 7, 9, tzinfo=UTC)  # when Futbol Fantasy's page was read
 
 
-def chance(slug: str, team: str, value: float) -> futbolfantasy.Chance:
-    return futbolfantasy.Chance(
-        team=team,
-        slug=slug,
-        name=slug.replace("-", " ").title(),
-        chance=value,
-        international=False,
-        lesion=-1,
-        suspended=False,
-    )
-
-
-def round_8() -> projection.Round:
-    """LaLiga round 8 around the fixture's plan week: the cards' game is on 10 October."""
-    side = projection.Side("FCB", "Club A", None)
-    other = projection.Side("RMA", "Club Z", None)
-    match = projection.Match(id="m1", kickoff=datetime(2026, 10, 10, 14, tzinfo=UTC), home=side, away=other)
-    return projection.Round(8, (match,))
+def told(slug: str, games: list[dict[str, Any]]) -> list[GameStart]:
+    """Futbol Fantasy's chance for "mid-one"'s game, as `ff_use.Lineups.starts` would answer."""
+    if slug != "mid-one":
+        return []
+    return [GameStart(games[0]["id"], 0.7, info={"startAt": READ.isoformat()})]
 
 
 # --------------------------------------------------------------------------- the rows a run writes
-def test_a_player_gets_a_row_for_each_source_that_has_a_number_for_him() -> None:
-    ff = futbolfantasy.Snapshot(round=8, chances=[chance("mid-one", "Club A", 0.7)])
-    rows = starts.rows(snapshot(), ff, [round_8()])
+def test_a_game_gets_a_row_for_each_source_that_has_a_number_for_it() -> None:
+    rows = starts.rows(snapshot(), told)
 
     by_source = {r.source: r for r in rows if r.player == "mid-one"}
     assert set(by_source) == {"sorare", "sofix", "futbolfantasy"}
     assert by_source["sorare"].chance == pytest.approx(0.9)  # Sorare's starter odds: 9000 basis points in the fixture
-    assert by_source["futbolfantasy"].chance == 0.7
+    assert by_source["futbolfantasy"].chance == 0.7 and by_source["futbolfantasy"].at == READ
     assert 0 < by_source["sofix"].chance <= 1
-    assert all(r.lock == LOCK and r.gameweek == "gw-plan" for r in rows)
+    assert all(
+        r.lock == LOCK and r.gameweek == "gw-plan" and r.game == "game-mid-one" for r in rows if r.player == "mid-one"
+    )
+
+
+def test_a_player_the_site_has_nothing_on_has_no_row_from_it() -> None:
+    rows = starts.rows(snapshot(), told)
+
+    assert not any(r.source == "futbolfantasy" and r.player != "mid-one" for r in rows)
+    assert not any(r.source == "futbolfantasy" for r in starts.rows(snapshot()))
 
 
 def test_the_apps_own_chance_does_not_borrow_sorares() -> None:
-    rows = starts.rows(snapshot(), None, [])
+    rows = starts.rows(snapshot())
     mine = {r.player: r.chance for r in rows if r.source == "sofix"}
     theirs = {r.player: r.chance for r in rows if r.source == "sorare"}
     assert mine and theirs
@@ -62,64 +62,82 @@ def test_a_player_with_no_game_in_the_week_has_no_row() -> None:
     for row in snap["cards"]:
         if row["player"]["slug"] == "front-one":
             row["player"]["plan"] = []
-    players = {r.player for r in starts.rows(snap, None, [])}
+    players = {r.player for r in starts.rows(snap)}
     assert "front-one" not in players and "mid-one" in players
 
 
-def test_futbol_fantasys_chance_is_only_kept_for_the_round_it_is_about() -> None:
-    ff = futbolfantasy.Snapshot(round=8, chances=[chance("mid-one", "Club A", 0.7)])
-    assert any(r.source == "futbolfantasy" for r in starts.rows(snapshot(), ff, [round_8()]))
-    # The round it names is not one the calendar knows, or his game is on another day than that round: no row.
-    assert not any(r.source == "futbolfantasy" for r in starts.rows(snapshot(), ff, []))
-    wrong = futbolfantasy.Snapshot(round=9, chances=ff.chances)
-    assert not any(r.source == "futbolfantasy" for r in starts.rows(snapshot(), wrong, [round_8()]))
-    assert not any(
-        r.source == "futbolfantasy"
-        for r in starts.rows(snapshot(), futbolfantasy.Snapshot(round=None, chances=ff.chances), [round_8()])
-    )
+def test_two_games_are_two_rows_with_sorares_odds_on_the_first_only() -> None:
+    snap = snapshot()
+    for row in snap["cards"]:
+        if row["player"]["slug"] == "mid-one":
+            first, second = dict(row["player"]["plan"][0]), dict(row["player"]["plan"][0])
+            first["id"], second["id"] = "game-1", "game-2"
+            second["date"] = "2026-10-12T19:00:00Z"
+            row["player"]["plan"] = [second, first]  # not in order: the first is found by its kickoff
 
+    def both(slug: str, games: list[dict[str, Any]]) -> list[GameStart]:
+        return [GameStart("game-2", 0.4, info={"startAt": READ.isoformat()})] if slug == "mid-one" else []
 
-def test_a_player_the_site_lists_twice_or_names_differently_is_not_guessed() -> None:
-    ff = futbolfantasy.Snapshot(round=8, chances=[chance("someone-else", "Club A", 0.9)])
-    assert not any(r.source == "futbolfantasy" for r in starts.rows(snapshot(), ff, [round_8()]))
+    rows = [r for r in starts.rows(snap, both) if r.player == "mid-one"]
+
+    assert {(r.game, r.source) for r in rows} == {
+        ("game-1", "sorare"),
+        ("game-1", "sofix"),
+        ("game-2", "sofix"),
+        ("game-2", "futbolfantasy"),
+    }
 
 
 # --------------------------------------------------------------------------- written before the lock, frozen at it
-def fresh(chance_value: float = 0.6, source: str = "sorare", player: str = "p1") -> starts.Row:
-    return starts.Row(player=player, gameweek="gw-x", source=source, chance=chance_value, lock=LOCK)
+def fresh(chance_value: float = 0.6, source: str = "sorare", player_: str = "p1", game: str = "g1") -> starts.Row:
+    return starts.Row(player=player_, gameweek="gw-x", game=game, source=source, chance=chance_value, lock=LOCK)
 
 
-def weeks(db) -> dict[str, Any]:  # noqa: F811
+def weeks(db) -> dict[str, Any]:
     row = db.get(ReadModel, starts.START_KEY)
     return row.payload["weeks"] if row else {}
 
 
-def test_a_run_writes_the_rows_and_a_later_run_before_the_lock_takes_the_newer_number(db) -> None:  # noqa: F811
+def game_of(db, player_: str = "p1", game: str = "g1", week: str = "gw-x") -> dict[str, Any]:
+    return weeks(db)[week]["players"][player_]["games"][game]
+
+
+def test_a_run_writes_the_rows_and_a_later_run_before_the_lock_takes_the_newer_number(db) -> None:
     early = LOCK - timedelta(days=2)
     assert starts.save(db, [fresh(0.6), fresh(0.4, "sofix")], early) == {"written": 2, "frozen": 0}
     assert starts.save(db, [fresh(0.85)], early + timedelta(hours=8)) == {"written": 1, "frozen": 0}
 
-    player = weeks(db)["gw-x"]["players"]["p1"]
-    assert player["sorare"] == {"chance": 0.85, "at": (early + timedelta(hours=8)).isoformat()}
-    assert player["sofix"]["chance"] == 0.4
+    assert game_of(db)["sorare"] == {"chance": 0.85, "at": (early + timedelta(hours=8)).isoformat()}
+    assert game_of(db)["sofix"]["chance"] == 0.4
     assert weeks(db)["gw-x"]["lock"] == LOCK.isoformat()
-    assert len(weeks(db)["gw-x"]["players"]) == 1, "the same player, week and source is one entry"
+    assert len(weeks(db)["gw-x"]["players"]) == 1, "the same player, game and source is one entry"
 
 
-def test_once_the_week_has_locked_what_was_said_stays_as_it_was(db) -> None:  # noqa: F811
+def test_each_game_of_a_player_is_its_own_entry_and_a_sources_own_reading_time_is_kept(db) -> None:
+    now = LOCK - timedelta(hours=1)
+    one = starts.Row("p1", "gw-x", "g1", "futbolfantasy", 0.9, LOCK, at=READ)
+    two = starts.Row("p1", "gw-x", "g2", "futbolfantasy", 0.2, LOCK, at=READ - timedelta(hours=3))
+    starts.save(db, [one, two], now)
+
+    assert game_of(db, game="g1")["futbolfantasy"] == {"chance": 0.9, "at": READ.isoformat()}
+    assert game_of(db, game="g2")["futbolfantasy"]["chance"] == 0.2
+    assert game_of(db, game="g2")["futbolfantasy"]["at"] == (READ - timedelta(hours=3)).isoformat()
+
+
+def test_once_the_week_has_locked_what_was_said_stays_as_it_was(db) -> None:
     starts.save(db, [fresh(0.6)], LOCK - timedelta(hours=3))
     result = starts.save(db, [fresh(0.05)], LOCK + timedelta(hours=1))
     assert result == {"written": 0, "frozen": 1}
-    assert weeks(db)["gw-x"]["players"]["p1"]["sorare"]["chance"] == 0.6, "after the team news it is not what was said"
+    assert game_of(db)["sorare"]["chance"] == 0.6, "after the team news it is not what was said"
 
 
-def test_a_row_first_seen_after_the_lock_is_not_made_up_afterwards(db) -> None:  # noqa: F811
+def test_a_row_first_seen_after_the_lock_is_not_made_up_afterwards(db) -> None:
     assert starts.save(db, [fresh(0.6)], LOCK + timedelta(hours=1)) == {"written": 0, "frozen": 0}
     assert weeks(db) == {}
 
 
 # --------------------------------------------------------------------------- settled by what happened
-def past_snapshot(started: bool | None, *, end_hours_ago: float = 30) -> dict[str, Any]:
+def past_snapshot(started: bool | None, *, end_hours_ago: float = 30, game: str = "g") -> dict[str, Any]:
     snap = snapshot()
     week = snap["pastGameweek"]
     end = datetime.fromisoformat(week["end"])
@@ -130,7 +148,7 @@ def past_snapshot(started: bool | None, *, end_hours_ago: float = 30) -> dict[st
             {
                 "date": "2026-09-19T14:00:00+00:00",
                 "competition": "laliga-es",
-                "gameId": "g",
+                "gameId": game,
                 "score": 40.0,
                 "played": played,
                 "started": bool(started),
@@ -142,66 +160,85 @@ def past_snapshot(started: bool | None, *, end_hours_ago: float = 30) -> dict[st
     return snap
 
 
-def test_what_happened_fills_in_whether_he_started_once_the_scores_are_final(db) -> None:  # noqa: F811
+def row_past(player_: str, game: str = "g") -> starts.Row:
+    return starts.Row(player_, "gw-past", game, "sorare", 0.7, LOCK)
+
+
+def test_what_happened_fills_in_whether_he_started_the_game_once_the_scores_are_final(db) -> None:
+    starts.save(db, [row_past("p1"), row_past("p2")], LOCK - timedelta(days=30))
+
+    assert starts.settle(db, past_snapshot(True)) == {"settled": 1}
+    assert game_of(db, "p1", "g", "gw-past")["started"] is True
+    assert "started" not in game_of(db, "p2", "g", "gw-past"), "no result for p2: left open rather than guessed"
+
+
+def test_a_double_gameweek_is_settled_game_by_game(db) -> None:
+    starts.save(db, [row_past("p1", "g"), row_past("p1", "h")], LOCK - timedelta(days=30))
     snap = past_snapshot(True)
-    starts.save(
-        db,
-        [starts.Row("p1", "gw-past", "sorare", 0.7, LOCK), starts.Row("p2", "gw-past", "sorare", 0.5, LOCK)],
-        LOCK - timedelta(days=30),
+    snap["history"]["p1"].append(
+        {**snap["history"]["p1"][0], "gameId": "h", "started": False, "date": "2026-09-21T19:00:00+00:00"}
     )
-    assert starts.settle(db, snap) == {"settled": 1}
-    players = weeks(db)["gw-past"]["players"]
-    assert players["p1"]["started"] is True
-    assert "started" not in players["p2"], "no history for p2: left open rather than guessed"
+
+    assert starts.settle(db, snap) == {"settled": 2}
+    assert game_of(db, "p1", "g", "gw-past")["started"] is True
+    assert game_of(db, "p1", "h", "gw-past")["started"] is False, "he came on in the second: not a start"
 
 
-def test_a_player_who_did_not_play_did_not_start(db) -> None:  # noqa: F811
-    starts.save(db, [starts.Row("p1", "gw-past", "sorare", 0.7, LOCK)], LOCK - timedelta(days=30))
+def test_a_player_who_did_not_play_did_not_start(db) -> None:
+    starts.save(db, [row_past("p1")], LOCK - timedelta(days=30))
     snap = past_snapshot(None)
-    snap["history"]["p1"] = [
-        {
-            "date": "2026-09-19T14:00:00+00:00",
-            "competition": "laliga-es",
-            "gameId": "g",
-            "score": 0.0,
-            "played": False,
-            "started": False,
-            "status": "DID_NOT_PLAY",
-        }
-    ]
+    snap["history"]["p1"][0].update(score=0.0, status="DID_NOT_PLAY")
+
     assert starts.settle(db, snap) == {"settled": 1}
-    assert weeks(db)["gw-past"]["players"]["p1"]["started"] is False
+    assert game_of(db, "p1", "g", "gw-past")["started"] is False
 
 
-def test_nothing_is_settled_while_scores_can_still_move(db) -> None:  # noqa: F811
-    starts.save(db, [starts.Row("p1", "gw-past", "sorare", 0.7, LOCK)], LOCK - timedelta(days=30))
+def test_a_game_still_to_be_scored_is_left_open(db) -> None:
+    starts.save(db, [row_past("p1")], LOCK - timedelta(days=30))
+    snap = past_snapshot(True)
+    snap["history"]["p1"][0]["status"] = "PENDING"
+
+    assert starts.settle(db, snap) == {"settled": 0}
+
+
+def test_nothing_is_settled_while_scores_can_still_move(db) -> None:
+    starts.save(db, [row_past("p1")], LOCK - timedelta(days=30))
     assert starts.settle(db, past_snapshot(True, end_hours_ago=5)) == {"settled": 0}
-    assert "started" not in weeks(db)["gw-past"]["players"]["p1"]
+    assert "started" not in game_of(db, "p1", "g", "gw-past")
 
 
-def test_a_row_already_settled_is_left_alone(db) -> None:  # noqa: F811
-    starts.save(db, [starts.Row("p1", "gw-past", "sorare", 0.7, LOCK)], LOCK - timedelta(days=30))
+def test_a_game_already_settled_is_left_alone(db) -> None:
+    starts.save(db, [row_past("p1")], LOCK - timedelta(days=30))
     starts.settle(db, past_snapshot(True))
     assert starts.settle(db, past_snapshot(False)) == {"settled": 0}
+    assert game_of(db, "p1", "g", "gw-past")["started"] is True
+
+
+def test_entries_written_before_games_were_told_apart_are_still_settled_over_the_weeks_days(db) -> None:
+    old = {"weeks": {"gw-past": {"lock": LOCK.isoformat(), "players": {"p1": {"sorare": {"chance": 0.7, "at": "x"}}}}}}
+    db.add(ReadModel(key=starts.START_KEY, payload=old, updated_at=LOCK))
+    db.commit()
+
+    assert starts.settle(db, past_snapshot(True)) == {"settled": 1}
     assert weeks(db)["gw-past"]["players"]["p1"]["started"] is True
 
 
 # --------------------------------------------------------------------------- which source to trust
-def entry(started: bool | None, **sources: float) -> dict[str, Any]:
+def said(started: bool | None, **sources: float) -> dict[str, Any]:
     made = {name: {"chance": value, "at": LOCK.isoformat()} for name, value in sources.items()}
     return {**made, **({} if started is None else {"started": started})}
 
 
-def test_each_source_is_scored_on_the_same_players_it_had_a_number_for() -> None:
+def test_each_source_is_scored_on_the_same_games_it_had_a_number_for() -> None:
     payload = {
         "weeks": {
             "g1": {
                 "lock": LOCK.isoformat(),
                 "players": {
-                    "a": entry(True, sorare=0.9, sofix=0.5),
-                    "b": entry(True, sorare=0.9, sofix=0.5),
-                    "c": entry(False, sorare=0.8),
-                    "d": entry(None, sorare=0.7),  # not settled yet: not counted
+                    "a": {"games": {"1": said(True, sorare=0.9, sofix=0.5)}},
+                    "b": {"games": {"1": said(True, sorare=0.9, sofix=0.5)}},
+                    "c": {"games": {"1": said(False, sorare=0.8)}},
+                    "d": {"games": {"1": said(None, sorare=0.7)}},  # not settled yet: not counted
                 },
             }
         }
@@ -221,57 +258,20 @@ def test_each_source_is_scored_on_the_same_players_it_had_a_number_for() -> None
     assert "futbolfantasy" not in scores
 
 
+def test_two_games_of_one_player_count_twice_and_the_older_entries_count_once() -> None:
+    payload = {
+        "weeks": {
+            "g1": {"players": {"a": {"games": {"1": said(True, sorare=0.9), "2": said(False, sorare=0.9)}}}},
+            "g0": {"players": {"b": said(True, sorare=0.6)}},
+        }
+    }
+
+    assert starts.compare(payload)["sorare"]["n"] == 3
+
+
 def test_no_settled_rows_is_an_empty_comparison_not_an_error() -> None:
     assert starts.compare({}) == {}
     assert starts.compare({"weeks": {}}) == {}
-
-
-# --------------------------------------------------------------------------- the site is asked only every few hours
-def snapshot_of(round_number: int = 8) -> futbolfantasy.Snapshot:
-    return futbolfantasy.Snapshot(round=round_number, chances=[chance("mid-one", "Club A", 0.7)])
-
-
-def test_the_site_is_asked_at_most_every_six_hours_and_its_answer_kept_between(db) -> None:  # noqa: F811
-    asked: list[int] = []
-
-    def fetch() -> futbolfantasy.Snapshot:
-        asked.append(1)
-        return snapshot_of()
-
-    first = NOW = LOCK - timedelta(days=2)
-    assert starts.chances(db, first, LOCK, fetch=fetch) is not None
-    again = starts.chances(db, first + timedelta(hours=5), LOCK, fetch=fetch)
-    assert len(asked) == 1, "five hours later it is not asked again"
-    assert again is not None and again.round == 8 and again.chances[0].slug == "mid-one"
-    starts.chances(db, NOW + timedelta(hours=7), LOCK, fetch=fetch)
-    assert len(asked) == 2
-
-
-def test_as_the_lock_gets_close_it_is_asked_more_often_because_the_team_news_is_what_counts(db) -> None:  # noqa: F811
-    asked: list[int] = []
-
-    def fetch() -> futbolfantasy.Snapshot:
-        asked.append(1)
-        return snapshot_of()
-
-    near = LOCK - timedelta(hours=2)
-    starts.chances(db, near, LOCK, fetch=fetch)
-    starts.chances(db, near + timedelta(minutes=30), LOCK, fetch=fetch)
-    assert len(asked) == 1
-    starts.chances(db, near + timedelta(minutes=50), LOCK, fetch=fetch)
-    assert len(asked) == 2
-
-
-def test_a_page_that_cannot_be_read_gives_nothing_and_never_an_old_answer_in_its_place(db) -> None:  # noqa: F811
-    starts.chances(db, LOCK - timedelta(days=2), LOCK, fetch=lambda: snapshot_of())
-    later = LOCK - timedelta(days=2) + timedelta(hours=7)
-    assert starts.chances(db, later, LOCK, fetch=lambda: None) is None
-    assert starts.chances(db, later, LOCK, fetch=lambda: futbolfantasy.Snapshot(round=8, chances=[])) is None
-
-
-def test_a_dry_run_asks_but_remembers_nothing(db) -> None:  # noqa: F811
-    assert starts.chances(db, LOCK - timedelta(days=2), LOCK, fetch=snapshot_of, write=False) is not None
-    assert db.get(ReadModel, starts.FF_KEY) is None
 
 
 # --------------------------------------------------------------------------- the job writes it down
@@ -283,8 +283,35 @@ class _Client:
         return None
 
 
+def the_match() -> ffm.Match:
+    """Futbol Fantasy's page for the fixture's game: Club A at home to Club Z on the 10th, "Mid One" at 70%."""
+    mid = dataclasses.replace(player("1", "Mid One", age=29), chance=0.7)
+    home = side("Club A", "901", xi=(mid, player("2", "Back One", age=29)))
+    away = side("Club Z", "902", xi=(player("3", "Their Nine"),))
+    return match(home, away, datetime(2026, 10, 10, 14, tzinfo=UTC), 501)
+
+
+class Site:
+    """Stands in for the site: answers with the matches it is given, and counts how often it is asked."""
+
+    def __init__(self, matches: list[ffm.Match] | None = None) -> None:
+        self.matches = matches if matches is not None else [the_match()]
+        self.asked = 0
+        self.read: list[list[int]] = []  # the matches each question was for
+
+    def __call__(self, wanted: Any, competitions: Any, now: datetime | None = None, **_: Any) -> ffm.Reading:
+        self.asked += 1
+        picked = [m for m in self.matches if wanted(m.competition, _round(m))]
+        self.read.append([m.match_id for m in picked])
+        return ffm.Reading(at=now or READ, matches=picked)
+
+
+def _round(m: ffm.Match) -> ffm.RoundMatch:
+    return ffm.RoundMatch(m.match_id, m.url, m.home.name, m.away.name, m.home.club_id, m.away.club_id, m.kickoff)
+
+
 @pytest.fixture()
-def the_job(db, monkeypatch):  # noqa: F811
+def the_job(db, monkeypatch):
     from app.jobs import sorare as sorare_job
 
     monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
@@ -292,72 +319,105 @@ def the_job(db, monkeypatch):  # noqa: F811
     monkeypatch.setattr(sorare_job, "SorareClient", lambda *a, **k: _Client())
     monkeypatch.setattr(sorare_job.sorare_sync, "snapshot", lambda *a, **k: snapshot())
     monkeypatch.setattr(sorare_job.understat, "fetch_leagues", lambda *a, **k: {})
-    monkeypatch.setattr(sorare_job.projection, "calendar", lambda db, now: [round_8()])
+    monkeypatch.setattr(sorare_job.projection, "calendar", lambda db, now: [])
     return sorare_job
 
 
-def test_the_job_writes_each_sources_chance_and_asks_the_site_only_once_in_a_while(db, monkeypatch, the_job) -> None:  # noqa: F811
-    asked: list[int] = []
+def page_of(db) -> dict[str, Any]:
+    from app.sorare import publish
 
-    def fetch() -> futbolfantasy.Snapshot:
-        asked.append(1)
-        return snapshot_of()
+    row = db.get(ReadModel, "sorare")
+    assert row is not None
+    week = publish.week_of(dict(row.payload))
+    assert week is not None
+    return week
 
-    monkeypatch.setattr(futbolfantasy, "fetch_all", fetch)
+
+def test_the_job_reads_the_site_before_planning_and_the_page_carries_its_chance(db, monkeypatch, the_job) -> None:
+    site = Site()
+    monkeypatch.setattr(ffm, "read_matches", site)
 
     summary = the_job.run(db, "yares", runs=1)
 
-    assert summary["futbolfantasy"] == 1 and summary["starts"]["written"] >= 3
-    players = weeks(db)["gw-plan"]["players"]
-    assert set(players["mid-one"]) >= {"sorare", "sofix", "futbolfantasy"}
-    assert players["mid-one"]["futbolfantasy"]["chance"] == 0.7
-    assert "futbolfantasy" not in players["back-one"], "the site had nothing on him"
+    mid = {p["player"]: p for p in page_of(db)["playing"]["players"]}["mid-one"]
+    assert mid["games"][0]["pStart"] == 0.7 and mid["games"][0]["startSource"] == "futbolfantasy"
+    assert mid["games"][0]["ffMatch"]["id"] == 501 and mid["pStart"] == 0.7
+    assert summary["futbolfantasy"]["read"] == 1 and summary["futbolfantasy"]["games"] >= 1
+    assert summary["futbolfantasy"]["linked"] >= 1 and "failed" not in summary
+    odds = summary["sorareOdds"]
+    assert odds["players"] >= 12 and odds["withOdds"] == odds["players"], "every fixture player has Sorare's odds"
+
+
+def test_the_job_writes_each_sources_chance_for_each_game_and_asks_the_site_only_once_in_a_while(
+    db, monkeypatch, the_job
+) -> None:
+    site = Site()
+    monkeypatch.setattr(ffm, "read_matches", site)
+
+    summary = the_job.run(db, "yares", runs=1)
+
+    assert summary["starts"]["written"] >= 3
+    game = game_of(db, "mid-one", "game-mid-one", "gw-plan")
+    assert set(game) >= {"sorare", "sofix", "futbolfantasy"} and game["futbolfantasy"]["chance"] == 0.7
+    assert "futbolfantasy" not in game_of(db, "front-one", "game-front-one", "gw-plan"), "the site had nothing on him"
 
     the_job.run(db, "yares", runs=1)
-    assert len(asked) == 1, "the second run, straight after, reuses the page it already read"
+    assert site.read == [[501], []], (
+        "the second run, straight after, finds the match read a moment ago and asks for no page"
+    )
+    assert len(ff_feed.load(db).matches) == 1
 
 
-def test_a_dry_run_reads_the_site_but_writes_nothing(db, monkeypatch, the_job) -> None:  # noqa: F811
-    monkeypatch.setattr(futbolfantasy, "fetch_all", lambda *a, **k: snapshot_of())
+def test_a_dry_run_reads_the_site_but_writes_nothing(db, monkeypatch, the_job) -> None:
+    site = Site()
+    monkeypatch.setattr(ffm, "read_matches", site)
+
     summary = the_job.run(db, "yares", runs=1, dry_run=True)
-    assert summary["dryRun"] is True and summary["futbolfantasy"] == 1
-    assert db.get(ReadModel, starts.START_KEY) is None and db.get(ReadModel, starts.FF_KEY) is None
+
+    assert summary["dryRun"] is True and summary["futbolfantasy"]["read"] == 1 and site.asked == 1
+    assert db.get(ReadModel, starts.START_KEY) is None and db.get(ReadModel, ff_feed.STORE_KEY) is None
+    assert db.get(ReadModel, "ff_links") is None
 
 
-def test_when_the_site_cannot_be_read_the_other_two_sources_are_still_written(db, the_job) -> None:  # noqa: F811
-    summary = the_job.run(db, "yares", runs=1)  # the test guard answers None, as a failed read does
-    assert summary["futbolfantasy"] == 0
-    players = weeks(db)["gw-plan"]["players"]
-    assert set(players["mid-one"]) == {"sorare", "sofix"}
+def test_when_the_site_cannot_be_read_the_page_and_the_other_two_sources_are_still_written(db, the_job) -> None:
+    summary = the_job.run(db, "yares", runs=1)  # the test guard answers with nothing, as a failed read does
+
+    assert summary["futbolfantasy"]["matches"] == 0 and summary["futbolfantasy"]["games"] == 0
+    game = game_of(db, "mid-one", "game-mid-one", "gw-plan")
+    assert set(game) == {"sorare", "sofix"}
+    assert "startSource" not in {p["player"]: p for p in page_of(db)["playing"]["players"]}["mid-one"]["games"][0]
 
 
-def test_a_site_that_breaks_costs_the_record_of_its_chances_never_the_page(db, monkeypatch, the_job) -> None:  # noqa: F811
-    def boom() -> futbolfantasy.Snapshot:
+def test_a_site_that_breaks_costs_its_numbers_never_the_page(db, monkeypatch, the_job) -> None:
+    def boom(*args: Any, **kwargs: Any) -> ffm.Reading:
         raise RuntimeError("the site changed")
 
-    monkeypatch.setattr(futbolfantasy, "fetch_all", boom)
+    monkeypatch.setattr(ffm, "read_matches", boom)
 
     summary = the_job.run(db, "yares", runs=1)
 
-    assert summary["futbolfantasy"] == 0 and "RuntimeError" in summary["failed"]["futbol fantasy"]
+    assert "RuntimeError" in summary["failed"]["futbol fantasy"]
     assert db.get(ReadModel, the_job.SORARE_KEY) is not None, "the page was published"
-    assert set(weeks(db)["gw-plan"]["players"]["mid-one"]) == {"sorare", "sofix"}, (
-        "and the other two sources were written"
-    )
+    assert set(game_of(db, "mid-one", "game-mid-one", "gw-plan")) == {"sorare", "sofix"}
 
 
-def test_the_page_is_published_before_the_site_is_asked(db, monkeypatch, the_job) -> None:  # noqa: F811
-    published_when_asked: list[bool] = []
+def test_a_site_that_breaks_still_leaves_the_last_reading_to_be_used_for_a_day(db, monkeypatch, the_job) -> None:
+    monkeypatch.setattr(ffm, "read_matches", Site())
+    the_job.run(db, "yares", runs=1)
+    monkeypatch.setattr(ffm, "read_matches", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("down")))
 
-    def fetch() -> futbolfantasy.Snapshot:
-        published_when_asked.append(db.get(ReadModel, the_job.SORARE_KEY) is not None)
-        return snapshot_of()
+    the_job.run(db, "yares", runs=1)
 
-    monkeypatch.setattr(futbolfantasy, "fetch_all", fetch)
-    summary = the_job.run(db, "yares", runs=1)
+    mid = {p["player"]: p for p in page_of(db)["playing"]["players"]}["mid-one"]
+    assert mid["games"][0]["startSource"] == "futbolfantasy", "yesterday's reading is better than none, up to a day"
 
-    assert published_when_asked == [True]
-    assert "failed" not in summary
+
+def test_the_links_found_are_remembered_between_runs(db, monkeypatch, the_job) -> None:
+    monkeypatch.setattr(ffm, "read_matches", Site())
+    the_job.run(db, "yares", runs=1)
+
+    row = db.get(ReadModel, "ff_links")
+    assert row is not None and row.payload["links"]["mid-one"]["ffId"] == "1"
 
 
 def test_the_report_puts_the_best_source_first_and_says_when_there_is_too_little_to_tell() -> None:
@@ -374,3 +434,71 @@ def test_the_report_puts_the_best_source_first_and_says_when_there_is_too_little
     assert "0.099" in lines[1] and "90%" in lines[1]
     assert "Fewer than 100 players for futbolfantasy" in text
     assert report.table({}) == "Nothing is settled yet: a gameweek is scored a day after it ends."
+
+
+def test_the_job_publishes_the_lineups_page_and_the_homes_team_news(db, monkeypatch, the_job) -> None:
+    monkeypatch.setattr(ffm, "read_matches", Site())
+
+    summary = the_job.run(db, "yares", runs=1)
+
+    lineups = db.get(ReadModel, "lineups")
+    assert lineups is not None and [m["id"] for m in lineups.payload["matches"]] == [501]
+    assert summary["lineupsPage"]["matches"] == 1
+    news = page_of(db)["teamNews"]
+    assert news["players"] >= 1 and news["split"]["likely"] >= 1 and news["moved"] is None, "no reading a day old yet"
+    assert summary["teamNews"]["players"] == news["players"]
+    kept = db.get(ReadModel, "ff_chances")
+    assert kept is not None and len(kept.payload["readings"]) == 1
+    assert db.get(ReadModel, "ff_positions") is not None
+
+
+def test_the_job_reads_the_squad_pages_once_a_week_and_keeps_where_everyone_plays(db, monkeypatch, the_job) -> None:
+    from app.sorare import ff_lineups
+
+    home = ffm.Side(
+        **{**side("Real Sociedad", "16", xi=(player("1", "One", keeper=True),)).__dict__, "slug": "real-sociedad"}
+    )
+    away = ffm.Side(**{**side("Getafe", "8").__dict__, "slug": "getafe"})
+    monkeypatch.setattr(ffm, "read_matches", Site([match(home, away, datetime(2026, 10, 10, 14, tzinfo=UTC), 502)]))
+    asked: list[dict[str, str]] = []
+
+    def squads(clubs: Any, now: datetime | None = None, **_: Any) -> ffm.SquadReading:
+        asked.append(dict(clubs))
+        member = ffm.SquadMember("99", "Suplente Uno", "suplente-uno", "MID")
+        return ffm.SquadReading(at=now or READ, squads={club: ffm.Squad(club, (member,)) for club in clubs})
+
+    monkeypatch.setattr(ffm, "read_squads", squads)
+
+    summary = the_job.run(db, "yares", runs=1)
+    the_job.run(db, "yares", runs=1)
+
+    assert asked == [{"16": "real-sociedad", "8": "getafe"}], "a week apart, not every run"
+    assert summary["lineupsPage"]["squads"] == 2
+    kept = ff_lineups.load_memory(db)
+    assert kept.positions["99"] == "MID" and kept.positions["1"] == "GK" and set(kept.squads) == {"16", "8"}
+
+
+def test_a_second_run_soon_after_keeps_the_one_reading_to_compare_with(db, monkeypatch, the_job) -> None:
+    monkeypatch.setattr(ffm, "read_matches", Site())
+
+    the_job.run(db, "yares", runs=1)
+    the_job.run(db, "yares", runs=1)
+
+    assert len(db.get(ReadModel, "ff_chances").payload["readings"]) == 1
+
+
+def test_a_dry_run_builds_the_news_and_the_page_but_writes_neither(db, monkeypatch, the_job) -> None:
+    monkeypatch.setattr(ffm, "read_matches", Site())
+
+    summary = the_job.run(db, "yares", runs=1, dry_run=True)
+
+    assert summary["lineupsPage"]["matches"] == 1 and summary["teamNews"]["players"] >= 1
+    for key in ("lineups", "ff_chances", "ff_positions"):
+        assert db.get(ReadModel, key) is None, key
+
+
+def test_with_no_site_there_is_no_lineups_page_and_no_news(db, the_job) -> None:
+    summary = the_job.run(db, "yares", runs=1)
+
+    assert summary["teamNews"] is None and "teamNews" not in page_of(db)
+    assert db.get(ReadModel, "ff_chances") is None

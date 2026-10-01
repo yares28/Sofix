@@ -44,6 +44,14 @@
   const live = new Set(); // the records being drawn; the WeakMap alone cannot be walked
   const numbers = new Map(); // "p:slug" | "c:slug" -> { at, entry | null }
   const asking = new Set(); // slugs the app has been asked about and has not answered
+  // Futbol Fantasy read live (plans/futbolfantasy.md, S7): the last reading of each match page the cards on screen are about. The
+  // worker reads a page at most every 10 minutes whatever is asked; this only remembers what it said and asks again every few.
+  const liveByMatch = new Map(); // match number -> { at, players }
+  const LIVE_POLL_MS = 5 * 60 * 1000;
+  const LIVE_MATCHES = 8; // pages one ask may name: a lineup page rarely shows more games than this
+  let liveTimer = 0;
+  let liveAsking = false;
+  let liveKey = ""; // the matches last asked about, so a new card scrolling into view asks at once and a quiet page does not
   let askTimer = 0;
   let sending = false;
   let downUntil = 0;
@@ -149,7 +157,63 @@
   function entryOf(record) {
     const slug = slugOf(record);
     const held = slug && numbers.get(slug);
-    return held && now() - held.at < NUMBERS_TTL_MS ? held : null;
+    return held && now() - held.at < NUMBERS_TTL_MS ? withLive(held) : null;
+  }
+
+  /**
+   * The answer with Futbol Fantasy's latest reading of his game applied, when there is one: his chance of starting and of
+   * coming on, what it says of him and where, and nothing else (the plan's ticks and xScore stay as the job made them).
+   * Kept on the answer so that a card redrawn does not do the arithmetic again.
+   */
+  function withLive(held) {
+    const entry = held.entry;
+    const match = entry && entry.ffMatch;
+    const reading = match && liveByMatch.get(String(match.id));
+    const player = reading && reading.players[entry.ffPlayer];
+    if (!player) return held;
+    if (held.merged && held.mergedAt === reading.at) return held.merged;
+    const patch = core.liveSplit(entry, player, new Date(reading.at).toISOString());
+    if (!patch) return held;
+    held.mergedAt = reading.at;
+    held.merged = { at: held.at, entry: { ...entry, ...patch } };
+    return held.merged;
+  }
+
+  /** Ask the worker for the match pages the cards on screen are about; it reads each at most every 10 minutes. */
+  function wantLive(force) {
+    if (!enabled || dead || liveAsking || appState !== "ok") return;
+    const matches = new Map();
+    for (const record of live) {
+      if (record.ident !== "done" || !record.visible) continue;
+      const slug = slugOf(record);
+      const held = slug && numbers.get(slug);
+      const match = held && held.entry && held.entry.ffMatch;
+      if (match && matches.size < LIVE_MATCHES) matches.set(match.id, { id: match.id, url: match.url });
+    }
+    const key = [...matches.keys()].sort().join(",");
+    if (!key || (!force && key === liveKey)) return;
+    liveKey = key;
+    liveAsking = true;
+    try {
+      chrome.runtime.sendMessage({ type: "ff-live", matches: [...matches.values()] }, (reply) => {
+        liveAsking = false;
+        if (chrome.runtime.lastError || !reply || reply.state !== "ok") {
+          void chrome.runtime.lastError;
+          return;
+        }
+        guard(() => {
+          for (const [id, reading] of Object.entries(reply.live || {})) {
+            const at = Date.parse(reading && reading.at);
+            if (!Number.isNaN(at) && reading.players) liveByMatch.set(id, { at, players: reading.players });
+          }
+          schedule();
+        })();
+      });
+    } catch {
+      liveAsking = false;
+      dead = true;
+      stop();
+    }
   }
 
   function wantNumbers() {
@@ -192,6 +256,7 @@
           }
           for (const slug of batch) asking.delete(slug);
           schedule();
+          if (appState === "ok") setTimeout(guard(() => wantLive(false)), 600);
         })();
       });
     } catch {
@@ -270,6 +335,13 @@
     return holder;
   }
 
+  /** The small mark that says whose number a start chance is: a filled dot for FF, a ring for SO, a dashed ring for SF. */
+  function sourceDot(source) {
+    const dot = node("span", `sfx-src sfx-src--${source}`);
+    dot.setAttribute("aria-hidden", "true");
+    return dot;
+  }
+
   /** Everything the tile and the panel say about one answer, worked out once. */
   function facts(entry) {
     const split = typeof entry.start === "number" && typeof entry.bench === "number";
@@ -278,7 +350,10 @@
       split,
       score: Math.round(split ? entry.start : entry.x),
       startChance,
-      doubt: startChance < core.DOUBTFUL,
+      tone: core.startTone(entry),
+      doubt: core.startTone(entry) !== "ok",
+      source: entry.startSource || null,
+      note: core.statusNote(entry),
       game: entry.game || null,
       driver: core.driverOf(entry.pos),
       xg: typeof entry.xg === "number" ? entry.xg : null,
@@ -294,7 +369,8 @@
       if (f.xg !== null) said.push(`Expected goals ${f.xg.toFixed(2)}.`);
       else said.push(f.game ? "No xG: expected goals are not available for this player." : "No xG for this player, and no odds for this game yet.");
     }
-    said.push(f.doubt ? `He starts only ${core.chanceLabel(f.startChance)} of the time.` : `He starts ${core.chanceLabel(f.startChance)} of the time.`);
+    const from = f.source ? ` (${core.SOURCE_SHORT[f.source]})` : "";
+    said.push(f.doubt ? `He starts only ${core.chanceLabel(f.startChance)} of the time${from}.` : `He starts ${core.chanceLabel(f.startChance)} of the time${from}.`);
     return [...said, ...more].join(" ");
   }
 
@@ -384,7 +460,7 @@
     if (stale) more.push(stale.kind === "over" ? "His game has started, so these numbers are about a game no longer ahead." : `These numbers are ${stale.hours} h old.`);
     const label = describe(f, more);
     const shownRank = tier === "full" ? rank || 0 : 0;
-    const sig = [size, f.score, f.split, f.startChance, f.driver, f.xg, entry.pos, f.game && `${f.game.difficulty}:${f.game.bucket}`, scoreColour, driveColour, stale && stale.kind, plan && `${plan.lineup}:${plan.captain}`, shownRank].join("|");
+    const sig = [size, f.score, f.split, f.startChance, f.tone, f.source, entry.live && entry.startAt, f.driver, f.xg, entry.pos, f.game && `${f.game.difficulty}:${f.game.bucket}`, scoreColour, driveColour, stale && stale.kind, plan && `${plan.lineup}:${plan.captain}`, shownRank].join("|");
     const marks = [...(plan ? [mark(plan.captain)] : []), ...(shownRank ? [rankBadge(shownRank)] : [])];
     const staleClass = stale ? " sfx-tile--stale" : "";
 
@@ -428,13 +504,13 @@
       tile.append(row);
     }
     if (!stale) {
-      // How likely he is to start, on every tile: Sorare's own odds where it has them, the app's chance where it has not.
-      // Only under half is it a warning, and then the row is red.
-      const starts = node("span", `sfx-starts${f.doubt ? " sfx-doubt" : ""}`);
+      // How likely he is to start, on every tile, and whose number it is: FF's lineup where it has him, else SO's odds, else SF's own.
+      // Amber when he is in doubt, red when he will not start.
+      const starts = node("span", `sfx-starts${f.tone === "doubt" ? " sfx-doubt" : ""}${f.tone === "out" ? " sfx-out" : ""}`);
       starts.setAttribute("aria-hidden", "true");
       const chance = node("b");
       chance.append(core.chanceLabel(f.startChance).replace("%", ""), node("small", "", "%"));
-      starts.append(shirt(""), chance);
+      starts.append(f.source ? sourceDot(f.source) : shirt(""), chance);
       tile.append(starts);
     }
     return { sig, node: tile, marks, label, interactive: true };
@@ -602,88 +678,115 @@
   const PANEL_WIDTH = 222;
   const scoreColourOf = (score) => colour(core.scoreLevel(score));
 
-  /** The number and its words: the score if he starts, or if he does not, and the chance of that. */
+  /** The number and its words: the score if he starts (or if he is benched), and the chance of that with whose number it is. */
   function panelBig(entry, mode) {
     const f = facts(entry);
     const starts = mode === "start" || !f.split;
     const score = starts ? f.score : Math.round(entry.bench);
     const big = node("div", "sfx-big");
     big.style.setProperty("--sfx-c", scoreColourOf(score));
-    const line = node("div");
-    line.append(node("strong", "", String(score)), node("span", "", f.split ? (starts ? "if he starts" : "if he doesn't start") : "expected score"));
+    const line = node("div", "sfx-num");
+    line.append(node("strong", "", String(score)), node("span", "", f.split ? (starts ? "if he starts" : "if benched") : "expected score"));
     big.append(line);
     const chance = starts ? f.startChance : core.benchOnChance(entry);
+    const side = node("div", `sfx-chance${starts && f.tone === "doubt" ? " sfx-chance--doubt" : ""}${starts && f.tone === "out" ? " sfx-chance--out" : ""}`);
     if (chance !== null && (f.split || !starts)) {
-      const words = node("p");
-      words.append(node("b", "", core.chanceLabel(chance)), starts ? " he starts" : " he comes on");
-      big.append(words);
+      const value = node("div", "sfx-chance-row");
+      if (starts && f.source) value.append(sourceDot(f.source));
+      value.append(node("b", "", core.chanceLabel(chance)));
+      const what = starts ? `START${f.source ? " · " + core.SOURCE_SHORT[f.source] : ""}` : "COMES ON";
+      side.append(value, node("span", "", what));
+      big.append(side);
     } else if (!f.split) {
-      const words = node("p");
-      words.append(node("b", "", core.chanceLabel(entry.p)), " he plays");
-      big.append(words);
+      const value = node("div", "sfx-chance-row");
+      value.append(node("b", "", core.chanceLabel(entry.p)));
+      side.append(value, node("span", "", "PLAYS"));
+      big.append(side);
     }
     return big;
   }
 
-  function driverRows(entry) {
+  /** The three numbers that matter about his game: his driver (xG, or a clean sheet), his side's win chance, and the difficulty. */
+  function statCells(entry) {
     const f = facts(entry);
-    const rows = [];
-    if (f.driver === "xg") {
-      const row = node("div", "sfx-driver");
-      const head = node("div", "sfx-row");
-      head.append(node("span", "", "Expected goals"), f.xg !== null ? node("b", "sfx-pct", f.xg.toFixed(2)) : node("b", "sfx-pct sfx-pct--none", "—"));
-      row.append(head);
-      row.append(node("p", "sfx-note", f.xg === null ? "Not available for this player." : "From Understat's season numbers."));
-      rows.push(row);
+    const cells = [];
+    if (f.driver === "xg") cells.push(["XG", f.xg !== null ? f.xg.toFixed(2) : "—", ""]);
+    else cells.push(["CS", f.game && typeof f.game.cleanSheet === "number" ? `${Math.round(f.game.cleanSheet * 100)}%` : "—", ""]);
+    cells.push(["WIN", f.game && typeof f.game.win === "number" ? `${Math.round(f.game.win * 100)}%` : "—", ""]);
+    const level = f.game ? core.fdrLevel(f.game.bucket) : null;
+    cells.push(["DIFF", f.game ? String(Math.round(f.game.difficulty)) : "—", level ? colour(level) : ""]);
+    const grid = node("div", "sfx-stats");
+    for (const [key, value, tint] of cells) {
+      const cell = node("div", "sfx-stat");
+      const number = node("b", value === "—" ? "sfx-stat--none" : "", value);
+      if (tint) number.style.color = tint;
+      cell.append(node("span", "", key), number);
+      grid.append(cell);
     }
-    if (!f.game) {
-      rows.push(node("p", "sfx-note", "No odds for this game yet."));
-      return rows;
-    }
-    if (f.driver === "fdr") {
-      const level = core.fdrLevel(f.game.bucket);
-      const colourNow = level ? colour(level) : "#fff";
-      const row = node("div", "sfx-driver");
-      row.style.setProperty("--sfx-d", colourNow);
-      const head = node("div", "sfx-row");
-      const value = node("span", "sfx-val");
-      value.append(node("span", "", f.game.label), node("b", "sfx-fdr", String(Math.round(f.game.difficulty))));
-      value.querySelector(".sfx-fdr").style.setProperty("--sfx-d", colourNow);
-      head.append(node("span", "", "Difficulty"), value);
-      const bands = node("div", "sfx-bands");
-      bands.setAttribute("role", "img");
-      bands.setAttribute("aria-label", `Band ${f.game.bucket} of 5 difficulty bands, 1 easiest`);
-      core.STRIPE.forEach((name, index) => {
-        const band = document.createElement("i");
-        band.style.background = colour(name);
-        band.style.setProperty("--sfx-band", colour(name));
-        if (index + 1 === f.game.bucket) band.setAttribute("data-on", "");
-        bands.append(band);
-      });
-      row.append(head, bands);
-      rows.push(row);
-    }
-    // The chance that goes with his job: a clean sheet for anyone who defends or plays midfield, a win for a forward.
-    const wins = entry.pos === "FWD";
-    const value = wins ? f.game.win : f.game.cleanSheet;
-    const bar = node("div", "sfx-driver");
-    const head = node("div", "sfx-row");
-    head.append(node("span", "", wins ? "Win chance" : "Clean sheet"), typeof value === "number" ? percent("sfx-pct", `${Math.round(value * 100)}%`) : node("b", "sfx-pct sfx-pct--none", "—"));
-    bar.append(head);
-    if (typeof value === "number") {
-      const track = node("div", "sfx-track");
-      track.setAttribute("aria-hidden", "true");
-      const fill = document.createElement("i");
-      fill.style.width = `${Math.max(2, Math.round(value * 100))}%`;
-      track.append(fill);
-      bar.append(track);
-    }
-    rows.push(bar);
-    rows.push(node("p", "sfx-note", f.game.source === "model" ? "From Sofix's own model of this game." : "From Sorare's odds for this game."));
-    return rows;
+    return grid;
   }
 
-  function panelNode(entry, mode, onPick, plan) {
+  /** What the site says is wrong with him, only when it says so: an amber line for a doubt, a red one for an injury or a ban. */
+  function alertNode(entry) {
+    const note = core.statusNote(entry);
+    if (!note) return null;
+    const alert = node("p", `sfx-alert${note.kind === "doubt" ? "" : " sfx-alert--out"}`);
+    alert.setAttribute("role", "status");
+    const icon = document.createElementNS(SVG_NS, "svg");
+    icon.setAttribute("viewBox", "0 0 18 18");
+    icon.setAttribute("aria-hidden", "true");
+    const disc = document.createElementNS(SVG_NS, "circle");
+    disc.setAttribute("cx", "9");
+    disc.setAttribute("cy", "9");
+    disc.setAttribute("r", "8.2");
+    const glyph = document.createElementNS(SVG_NS, "path");
+    glyph.setAttribute("fill", "none");
+    glyph.setAttribute("stroke-width", "1.9");
+    glyph.setAttribute("stroke-linecap", "round");
+    glyph.setAttribute("d", note.kind === "doubt" ? "M6.9 7.1a2.2 2.2 0 1 1 3.2 2c-.7.35-1.1.75-1.1 1.5v.3M9 13.4h.01" : "M9 5.2v7.6M5.2 9h7.6");
+    icon.append(disc, glyph);
+    alert.append(icon, node("span", "", note.text));
+    return alert;
+  }
+
+  /** Who says it, hidden until asked for: FF, SO and SF with what each says and, for FF, when it was read. */
+  function sourcesNode(entry, onResize) {
+    const box = node("div", "sfx-sources");
+    const toggle = node("button", "sfx-sources-toggle");
+    toggle.type = "button";
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.append("SOURCES");
+    const chevron = document.createElementNS(SVG_NS, "svg");
+    chevron.setAttribute("viewBox", "0 0 10 10");
+    chevron.setAttribute("aria-hidden", "true");
+    const arrow = document.createElementNS(SVG_NS, "path");
+    arrow.setAttribute("d", "M2 3.5l3 3 3-3");
+    arrow.setAttribute("fill", "none");
+    arrow.setAttribute("stroke-width", "1.5");
+    arrow.setAttribute("stroke-linecap", "round");
+    arrow.setAttribute("stroke-linejoin", "round");
+    chevron.append(arrow);
+    toggle.append(chevron);
+    const list = node("ul", "sfx-sources-list");
+    list.hidden = true;
+    for (const row of core.sourceRows(entry)) {
+      const item = node("li", row.shown ? "is-shown" : row.value === null ? "is-none" : "");
+      item.append(sourceDot(row.source), node("span", "sfx-source-name", row.label), node("span", "sfx-source-at", row.at || ""), node("b", "", row.value === null ? "—" : core.chanceLabel(row.value)));
+      list.append(item);
+    }
+    toggle.addEventListener("click", guard((event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const open = list.hidden;
+      list.hidden = !open;
+      toggle.setAttribute("aria-expanded", String(open));
+      onResize();
+    }));
+    box.append(toggle, list);
+    return box;
+  }
+
+  function panelNode(entry, mode, onPick, plan, onResize) {
     const f = facts(entry);
     const el = node("div", "sfx-panel");
     el.setAttribute("data-sfx", "panel");
@@ -695,17 +798,25 @@
     brand.append(mark, "SOFIX");
     const head = node("div", "sfx-head");
     head.append(brand);
-    const age = core.agoLabel(entry.at, now());
-    if (age) head.append(node("span", "sfx-age", `updated ${age}`));
+    if (plan) {
+      const chip = node("span", "sfx-plan", plan.lineup);
+      if (plan.captain) {
+        const captain = node("span", "sfx-plan-c", "C");
+        captain.setAttribute("aria-label", "Captain");
+        chip.append(captain);
+      }
+      head.append(chip);
+    }
+    const age = entry.live ? core.agoLabel(entry.startAt, now()) : core.agoLabel(entry.at, now());
+    if (age) head.append(node("span", "sfx-age", entry.live ? `FF live ${age}` : age));
     body.append(head);
-    if (plan) body.append(node("p", "sfx-plan", `In your best plan · ${plan.lineup}${plan.captain ? " · Captain" : ""}`));
     const stale = core.staleness(entry, now());
     if (stale) body.append(node("p", "sfx-note", stale.kind === "over" ? "His game has started." : `These numbers are ${stale.hours} h old.`));
     if (f.split) {
       const seg = node("div", "sfx-seg");
       seg.setAttribute("role", "group");
       seg.setAttribute("aria-label", "Projected score when he");
-      for (const [key, text] of [["start", "Starts"], ["bench", "Doesn't start"]]) {
+      for (const [key, text] of [["start", "Starts"], ["bench", "Benched"]]) {
         const button = node("button", "", text);
         button.type = "button";
         button.setAttribute("aria-pressed", String(key === mode));
@@ -719,7 +830,10 @@
       }
       body.append(seg);
     }
-    body.append(panelBig(entry, mode), node("div", "sfx-rule"), ...driverRows(entry));
+    body.append(panelBig(entry, mode));
+    const alert = alertNode(entry);
+    if (alert) body.append(alert);
+    body.append(statCells(entry), sourcesNode(entry, onResize));
     el.append(stripe(), node("span", "sfx-arrow"), body);
     return el;
   }
@@ -812,7 +926,7 @@
       state.el.querySelector(".sfx-big").replaceWith(fresh); // only the number changes, so the buttons keep the focus
       for (const button of state.el.querySelectorAll(".sfx-seg button")) button.setAttribute("aria-pressed", String(button.getAttribute("data-mode") === mode));
     };
-    state.el = panelNode(entry, "start", pick, planFor(record, entry));
+    state.el = panelNode(entry, "start", pick, planFor(record, entry), () => { if (panel === state) positionPanel(); });
     state.el.addEventListener("pointerenter", guard(() => { state.overPanel = true; clearTimeout(state.timer); }));
     state.el.addEventListener("pointerleave", guard(() => { state.overPanel = false; scheduleClose(); }));
     state.el.addEventListener("focusout", guard(() => scheduleClose()));
@@ -1074,6 +1188,8 @@
     fixtureNow = here;
     numbers.clear();
     asking.clear();
+    liveByMatch.clear(); // another gameweek's matches are not these
+    liveKey = "";
     for (const record of live) clearDrawn(record); // off the screen too: a card scrolled into view later must not show the last week's
     pageEpoch += 1;
     lastReport = "";
@@ -1153,6 +1269,7 @@
     mutations.observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ["src", "srcset", "poster", "alt"] });
     window.addEventListener("message", onBridge);
     window.addEventListener("popstate", schedule); // back and forward change the address: the gameweek it names may have too
+    liveTimer = setInterval(guard(() => wantLive(true)), LIVE_POLL_MS);
     schedule();
   }
 
@@ -1169,6 +1286,11 @@
     frame = 0;
     clearTimeout(askTimer);
     askTimer = 0;
+    clearInterval(liveTimer);
+    liveTimer = 0;
+    liveAsking = false;
+    liveKey = "";
+    liveByMatch.clear();
     for (const record of [...live]) forget(record);
     live.clear();
     asking.clear();

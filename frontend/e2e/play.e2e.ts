@@ -233,6 +233,21 @@ test("a lineup opens a sheet with its cards, its subs and the rules it keeps", a
   await expect(sheet).toBeHidden();
 });
 
+test("a lineup card says his chance of starting with whose number it is, as a mark and not a sentence", async ({ page }) => {
+  await page.goto("/play");
+  await page.locator(".pl-lu").first().click();
+  const cards = page.getByRole("dialog", { name: "LALIGA EA SPORTS lineup" }).locator(".pl-pc");
+
+  const first = cards.nth(0).locator(".pl-start");
+  await expect(first).toContainText("50% starts");
+  await expect(first.getByRole("img", { name: "FF" })).toBeVisible();
+  await expect(first.getByRole("img", { name: "Doubt" })).toBeVisible();
+  await expect(first).toHaveAttribute("title", /50% to start · FF: Futbol Fantasy's expected lineup · doubt/);
+  await expect(cards.nth(1).locator(".pl-start").getByRole("img", { name: "SO" })).toBeVisible();
+  await expect(cards.nth(2).locator(".pl-start").getByRole("img", { name: "SF" })).toBeVisible();
+  await expect(cards.nth(3)).toContainText("plays"); // a card the payload says nothing about keeps what it had
+});
+
 test("a lineup with no bench says why, and a room shows its entry fee", async ({ page }) => {
   await page.goto("/play");
   await page.locator(".pl-lu").nth(1).click();

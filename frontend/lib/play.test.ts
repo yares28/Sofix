@@ -12,6 +12,7 @@ import {
   plansOf,
   rangeScale,
   rewardChips,
+  startChance,
   timeUntil,
   waitingFor,
   weekPlan,
@@ -244,5 +245,24 @@ describe("the plans a gameweek offers", () => {
   it("does not show them before the lock, or for a week with none", () => {
     expect(plansOf(played, false)).toHaveLength(2);
     expect(plansOf(gameweek({ played: true, plans: [plan(1)] }), true)).toHaveLength(1);
+  });
+});
+
+
+describe("the start chance on a lineup card", () => {
+  it("is the percentage with whose it is, and says what the site says is wrong with him", () => {
+    expect(startChance({ pStart: 0.5, startSource: "futbolfantasy", ffKind: "doubt" })).toEqual({
+      percent: 50,
+      source: "futbolfantasy",
+      title: "50% to start · FF: Futbol Fantasy's expected lineup · doubt",
+    });
+    expect(startChance({ pStart: 0.8, startSource: "sorare" })?.title).toBe("80% to start · SO: Sorare's starter odds");
+    expect(startChance({ pStart: 0.54, startSource: "sofix" })?.percent).toBe(54);
+    expect(startChance({ pStart: 0, startSource: "futbolfantasy", ffKind: "out" })?.title).toContain("injured");
+  });
+
+  it("is nothing for a payload that does not carry it", () => {
+    expect(startChance({})).toBeNull();
+    expect(startChance({ pStart: 0.5 })).toBeNull();
   });
 });

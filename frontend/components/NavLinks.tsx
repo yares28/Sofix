@@ -6,6 +6,7 @@ import { useWeekSuffix } from "../lib/navWeek";
 
 export const SECTIONS = [
   { href: "/play", label: "Play" },
+  { href: "/lineups", label: "Lineups" },
   { href: "/fixtures", label: "Fixtures" },
   { href: "/difficulty", label: "Difficulty" },
   { href: "/table", label: "Table" },

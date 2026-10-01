@@ -31,6 +31,48 @@ const sorare = { ...sorareFixture, data: moved(sorareFixture.data) };
 // Two LaLiga rounds Sorare has not opened get an early plan the job kept apart (`read_models` key `sorare_ahead:<round>`):
 // the week being planned, built again as an early plan for that round, with one plan.
 const planning = sorare.data.weeks.find((week) => week.gameweek.id === sorare.data.nextId);
+
+// The Home's team news (`teamNews` of the gameweek being planned, built by backend/app/sorare/ff_news.py): four of the first lineup's
+// starters under 70%, and five players who moved since a reading a day old, so the tile has something of each to draw.
+{
+  const first = planning.plans[0]?.lineups?.[0];
+  const ago = (hours) => new Date(Date.now() - hours * 3_600_000).toISOString();
+  const gameOf = (card, index) => ({
+    id: `news-${index}`,
+    kickoff: card.fixture?.kickoff ?? planning.gameweek.lock,
+    team: card.fixture?.team ?? null,
+    opponent: card.fixture?.opponent ?? "Opponent",
+    venue: card.fixture?.venue ?? "H",
+  });
+  const who = (card) => ({ player: card.slug, name: card.name, pos: card.pos, rarity: card.rarity, pic: card.pic });
+  const starters = first?.starters ?? [];
+  // The first lineup's cards carry a start chance and whose it is, as the job publishes them: FF (with a doubt), SO, then SF.
+  [
+    { pStart: 0.5, startSource: "futbolfantasy", ffKind: "doubt" },
+    { pStart: 0.8, startSource: "sorare" },
+    { pStart: 0.54, startSource: "sofix" },
+  ].forEach((extra, index) => starters[index] && Object.assign(starters[index], extra));
+  const others = planning.playing.players.slice(0, 5);
+  planning.teamNews = {
+    readAt: ago(0.15),
+    players: 73,
+    without: 11,
+    split: { likely: 35, doubtful: 21, unlikely: 16, out: 1 },
+    atRisk: {
+      total: Math.min(starters.length, 4),
+      players: starters.slice(0, 4).map((card, index) => ({ ...who(card), comp: first.comp, captain: false, game: gameOf(card, index), p: 0.5, kind: index < 2 ? "doubt" : null })),
+    },
+    moved: {
+      since: ago(20),
+      total: others.length,
+      players: others.map((player, index) => ({
+        player: player.player ?? player.name, name: player.name, pos: player.pos, rarity: player.rarity, pic: player.pic,
+        from: index % 2 ? 20 : 80, to: index % 2 ? 40 : index === 0 ? 0 : 50, kind: index === 0 ? "out" : index === 2 ? "doubt" : null,
+        game: gameOf({ fixture: player.games[0] ? { ...player.games[0] } : null }, index),
+      })),
+    },
+  };
+}
 const earlyWeeks = new Map(
   recorded.data.matchdays
     .filter((matchday) => matchday.number === 8 || matchday.number === 9)
@@ -55,6 +97,24 @@ const keptWeeks = new Map(
       return [item.slug, { ...structuredClone(played), gameweek }];
     }),
 );
+
+// Futbol Fantasy's lineups (`read_models` key `lineups`): the ten real round-8 pages of 30 Sep 2026, moved forward once like the
+// Sorare week so the first kickoff sits two days ahead; each reading is made a few minutes ago and each side's change a day or so ago.
+const lineupsFixture = JSON.parse(readFileSync(new URL("./fixtures/lineups-response.json", import.meta.url), "utf8"));
+const firstKickoff = Math.min(...lineupsFixture.data.matches.map((match) => new Date(match.kickoff).getTime()));
+const LINEUPS_SHIFT = Date.now() + 2 * 86_400_000 - firstKickoff;
+const lineupsPayload = (() => {
+  const data = structuredClone(lineupsFixture.data);
+  const ago = (hours) => new Date(Date.now() - hours * 3_600_000).toISOString();
+  data.generatedAt = ago(0.1);
+  data.readAt = ago(0.1);
+  for (const match of data.matches) {
+    match.kickoff = new Date(new Date(match.kickoff).getTime() + LINEUPS_SHIFT).toISOString();
+    match.readAt = ago(0.1);
+    for (const side of [match.home, match.away]) if (side.changedAt) side.changedAt = ago(20);
+  }
+  return { success: true, data };
+})();
 
 let state;
 function reset() {
@@ -108,6 +168,11 @@ const server = createServer((req, res) => {
       return send(res, 200, { success: false, data: null, error: "Sorare has not been synced yet.", meta: null });
     }
     return send(res, 200, sorare);
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/lineups") {
+    if (state.sorare === "missing") return send(res, 200, { success: false, data: null, error: "Futbol Fantasy's lineups have not been read yet." });
+    return send(res, 200, lineupsPayload);
   }
 
   const earlyWeek = url.pathname.match(/^\/api\/sorare\/ahead\/(\d+)$/);

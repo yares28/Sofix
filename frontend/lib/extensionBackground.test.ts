@@ -10,21 +10,22 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const APP = "https://sofix.example";
 const TOKEN = "t".repeat(48);
-const SOURCE = readFileSync(new URL("../../extension/background.js", import.meta.url), "utf8").replace(
-  /import \{ CONFIG \} from "\.\/config\.js";/,
-  `const CONFIG = { appUrl: "${APP}", token: "${TOKEN}", bypass: "bypass-secret" };`,
-);
+// The worker imports core.js for its side effect (the page reader the overlay shares); the harness runs it first in the same context.
+const CORE = readFileSync(new URL("../../extension/core.js", import.meta.url), "utf8");
+const SOURCE = readFileSync(new URL("../../extension/background.js", import.meta.url), "utf8")
+  .replace(/import \{ CONFIG \} from "\.\/config\.js";/, `const CONFIG = { appUrl: "${APP}", token: "${TOKEN}", bypass: "bypass-secret" };`)
+  .replace('import "./core.js";', "");
 
 type Message = Record<string, unknown>;
 type Handler = (message: Message, sender: unknown, reply: (answer: unknown) => void) => unknown;
-type Call = { url: string; init: { headers: Record<string, string>; body: string } };
+type Call = { url: string; init: { headers: Record<string, string>; body: string; credentials?: string; referrerPolicy?: string } };
 
 function load() {
   const session = new Map<string, unknown>();
   const local = new Map<string, unknown>();
   const created: { url: string }[] = [];
   const calls: Call[] = [];
-  let respond: (call: Call) => { ok: boolean; status: number; body?: unknown } | "network" = () => ({ ok: true, status: 200, body: { ok: true, cards: {}, players: {} } });
+  let respond: (call: Call) => { ok: boolean; status: number; body?: unknown; text?: string } | "network" = () => ({ ok: true, status: 200, body: { ok: true, cards: {}, players: {} } });
   const store = (map: Map<string, unknown>) => ({
     get: async (keys?: string | string[]) => Object.fromEntries((Array.isArray(keys) ? keys : [keys]).filter((k) => k !== undefined && map.has(k as string)).map((k) => [k, map.get(k as string)])),
     set: async (values: Record<string, unknown>) => void Object.entries(values).forEach(([k, v]) => map.set(k, v)),
@@ -50,9 +51,11 @@ function load() {
     calls.push(call);
     const answer = respond(call);
     if (answer === "network") throw new TypeError("network");
-    return { ok: answer.ok, status: answer.status, json: async () => answer.body };
+    return { ok: answer.ok, status: answer.status, json: async () => answer.body, text: async () => answer.text ?? "" };
   };
-  vm.runInNewContext(SOURCE, { chrome, fetch, console, setTimeout, clearTimeout, URL, Date }, { filename: "background.js" });
+  const context = vm.createContext({ chrome, fetch, console, setTimeout, clearTimeout, URL, Date });
+  vm.runInContext(CORE, context, { filename: "core.js" });
+  vm.runInContext(SOURCE, context, { filename: "background.js" });
   const listener = handlers[0]!;
   const SORARE = { id: "sofix", tab: { id: 7 }, url: "https://sorare.com/football/home" };
   return {
@@ -223,5 +226,127 @@ describe("what a page may ask the worker to do", () => {
     expect(worker.local.get("overlayStats")).toMatchObject({ seen: 8, matched: 7, fixture: "football-25-29-sep-2026" });
     await worker.send({ type: "overlay-stats", seen: 8, matched: 7, fixture: "nonsense" });
     expect(worker.local.get("overlayStats")).toMatchObject({ fixture: null });
+  });
+});
+
+
+describe("Futbol Fantasy, read live for the overlay", () => {
+  const MATCH = "https://www.futbolfantasy.com/partidos/22502-real-sociedad-deportivo";
+  const PAGE = readFileSync(new URL("../../backend/tests/fixtures/futbolfantasy/match_real_sociedad_deportivo.html", import.meta.url), "utf8");
+  const ask = (matches: unknown) => worker.send({ type: "ff-live", matches });
+  const ff = (calls: Call[]) => calls.filter((call) => call.url.includes("futbolfantasy.com"));
+  const page = () => ({ ok: true, status: 200, text: PAGE });
+
+  type Live = { state: string; live: Record<string, { at: string; players: Record<string, { p: number; lesion: number }> }> };
+
+  it("reads a match page and answers each player's chance and injury code by his number", async () => {
+    worker.respondWith(page);
+
+    const answer = (await ask([{ id: 22502, url: MATCH }])) as Live;
+
+    expect(answer.state).toBe("ok");
+    expect(answer.live["22502"]!.players["2675"]).toEqual({ p: 0.9, lesion: -1 });
+    expect(answer.live["22502"]!.players["2802"]).toEqual({ p: 0.5, lesion: 1 });
+    expect(Date.parse(answer.live["22502"]!.at)).toBeGreaterThan(Date.now() - 5000);
+  });
+
+  it("reads it as a visitor would: no credentials, no referrer", async () => {
+    worker.respondWith(page);
+
+    await ask([{ id: 22502, url: MATCH }]);
+
+    const [call] = ff(worker.calls);
+    expect(call!.init).toMatchObject({ credentials: "omit", referrerPolicy: "no-referrer" });
+    expect(call!.init.headers).toBeUndefined();
+  });
+
+  it("does not ask the site again within ten minutes, however often it is asked", async () => {
+    worker.respondWith(page);
+
+    await ask([{ id: 22502, url: MATCH }]);
+    await ask([{ id: 22502, url: MATCH }]);
+    const third = (await ask([{ id: 22502, url: MATCH }])) as Live;
+
+    expect(ff(worker.calls)).toHaveLength(1);
+    expect(third.live["22502"]!.players["2675"]!.p).toBe(0.9);
+  });
+
+  it("reads it again once the reading is ten minutes old", async () => {
+    worker.respondWith(page);
+    await ask([{ id: 22502, url: MATCH }]);
+    const held = worker.session.get("ff:22502") as { at: number; players: unknown };
+    worker.session.set("ff:22502", { ...held, at: Date.now() - 11 * 60_000 });
+
+    await ask([{ id: 22502, url: MATCH }]);
+
+    expect(ff(worker.calls)).toHaveLength(2);
+  });
+
+  it("names nothing for a page the site refuses, and leaves it alone for five minutes", async () => {
+    worker.respondWith(() => ({ ok: false, status: 403 }));
+
+    const first = (await ask([{ id: 22502, url: MATCH }])) as Live;
+    const second = (await ask([{ id: 22502, url: MATCH }])) as Live;
+
+    expect(first).toEqual({ state: "ok", live: {} });
+    expect(second).toEqual({ state: "ok", live: {} });
+    expect(ff(worker.calls)).toHaveLength(1);
+  });
+
+  it("keeps the last reading when a later one fails", async () => {
+    worker.respondWith(page);
+    await ask([{ id: 22502, url: MATCH }]);
+    const held = worker.session.get("ff:22502") as { at: number; players: unknown };
+    worker.session.set("ff:22502", { ...held, at: Date.now() - 11 * 60_000 });
+    worker.respondWith(() => ({ ok: false, status: 500 }));
+
+    const answer = (await ask([{ id: 22502, url: MATCH }])) as Live;
+
+    expect(answer.live["22502"]!.players["2675"]!.p).toBe(0.9);
+  });
+
+  it("does not take a page that is not a lineup page for one", async () => {
+    worker.respondWith(() => ({ ok: true, status: 200, text: "<html><body>Mantenimiento</body></html>" }));
+
+    expect(await ask([{ id: 22502, url: MATCH }])).toEqual({ state: "ok", live: {} });
+  });
+
+  it("reads only match pages of Futbol Fantasy, named by the number they carry", async () => {
+    worker.respondWith(page);
+
+    const answer = (await ask([
+      { id: 1, url: "https://evil.example/partidos/1-x" },
+      { id: 2, url: "https://www.futbolfantasy.com/jugadores/alex-remiro/laliga-26-27" },
+      { id: 3, url: "https://www.futbolfantasy.com/partidos/4-the-wrong-number" },
+      { id: 22502, url: "http://www.futbolfantasy.com/partidos/22502-x" },
+      "not a match",
+      null,
+    ])) as Live;
+
+    expect(answer).toEqual({ state: "ok", live: {} });
+    expect(worker.calls).toHaveLength(0);
+  });
+
+  it("reads each page once however it is named twice, one after another with a pause", async () => {
+    vi.useFakeTimers();
+    worker = load();
+    worker.respondWith(page);
+    const other = "https://www.futbolfantasy.com/partidos/22493-alaves-atletico";
+
+    const pending = ask([{ id: 22502, url: MATCH }, { id: 22502, url: MATCH }, { id: 22493, url: other }]);
+    await vi.advanceTimersByTimeAsync(2500);
+    const answer = (await pending) as Live;
+
+    expect(ff(worker.calls).map((call) => call.url)).toEqual([MATCH, other]);
+    expect(Object.keys(answer.live).sort()).toEqual(["22493", "22502"]);
+  });
+
+  it("answers no one who is not a sorare.com tab", async () => {
+    worker.respondWith(page);
+
+    const answer = await worker.send({ type: "ff-live", matches: [{ id: 22502, url: MATCH }] }, { id: "sofix", tab: { id: 9 }, url: "https://evil.example/" });
+
+    expect(answer).toBeNull();
+    expect(worker.calls).toHaveLength(0);
   });
 });

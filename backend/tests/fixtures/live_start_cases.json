@@ -1,0 +1,12 @@
+{
+  "about": "One formula, two implementations. When Futbol Fantasy's chance that he starts changes, his chance of coming on is what is left, at the rate he comes on in the games he does not start: pOn = (1 - pStart) * benchedOn, and nothing at all when he is out. The job does it in backend/app/sorare/forecast.py (_per_game); the extension does it on sorare.com in extension/core.js (liveSplit). Both tests read this file, so they cannot drift apart.",
+  "cases": [
+    { "name": "a likely starter drops to a coin toss", "benchedOn": 0.25, "live": { "p": 0.5, "lesion": -1 }, "expect": { "pStart": 0.5, "pOn": 0.125 } },
+    { "name": "a doubt keeps his chance and is still playing", "benchedOn": 0.3, "live": { "p": 0.5, "lesion": 1 }, "expect": { "pStart": 0.5, "pOn": 0.15 } },
+    { "name": "a player who is out starts nothing and comes on never", "benchedOn": 0.3, "live": { "p": 0.7, "lesion": 0 }, "expect": { "pStart": 0, "pOn": 0 } },
+    { "name": "a certain starter has nobody to come on for", "benchedOn": 0.3, "live": { "p": 1, "lesion": -1 }, "expect": { "pStart": 1, "pOn": 0 } },
+    { "name": "a goalkeeper hardly ever comes on", "benchedOn": 0.02, "live": { "p": 0.05, "lesion": -1 }, "expect": { "pStart": 0.05, "pOn": 0.019 } },
+    { "name": "a player the site has at zero can still come on", "benchedOn": 0.3, "live": { "p": 0, "lesion": -1 }, "expect": { "pStart": 0, "pOn": 0.3 } },
+    { "name": "a knock he is available despite changes nothing", "benchedOn": 0.4, "live": { "p": 0.8, "lesion": 2 }, "expect": { "pStart": 0.8, "pOn": 0.08 } }
+  ]
+}

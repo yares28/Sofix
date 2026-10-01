@@ -195,17 +195,50 @@ what a competition paid, a player whose scores could not be read), the snapshot 
 `complete: false`, and every run rebuilds it until nothing is missing; one still missing something seven days after the week
 ended is kept as it is (`publish.is_final`, `GIVE_UP`). The run's summary names what was missing under `pastGaps`.
 
-The page comes first. A run writes what the page points at (each early plan, the week just played) before the page, so a week
-it lists can always be opened, and the optional steps after or around it (early plans, Futbol Fantasy, the start-chance
-record) are tried so that a failure is logged and listed under `failed` in the summary instead of stopping the page from
-publishing. The database connection is let go before each long step, since Neon closes one left inside a transaction.
+A run writes what the page points at (each early plan, the week just played) before the page, so a week it lists can
+always be opened, and the optional steps after or around it (early plans, Futbol Fantasy, the start-chance record) are tried
+so that a failure is logged and listed under `failed` in the summary instead of stopping the page from publishing. The
+database connection is let go before each long step, since Neon closes one left inside a transaction.
 
-Every run also writes down who says each of the owner's players will start the gameweek being planned (`app.sorare.starts`):
-Sorare's own odds, Sofix's model from form alone, and Futbol Fantasy's expected lineups (`app.sources.futbolfantasy`: twenty
-team pages, read at most every six hours, more often in the last three before a lock, within a 150-second budget, and it
-gives up after three unreadable pages in a row). It is done after the page is published. The numbers are frozen at the lock
-and settled by what happened a day after the gameweek ends, so `python -m app.jobs.starts` can say which source to trust.
-Nothing on screen uses them yet.
+**Who starts.** His chance of starting each game of the gameweek being planned is, in this order, Futbol Fantasy's for
+that game, Sorare's own starter odds, and Sofix's from his last five games (`sorare.forecast`; plans/futbolfantasy.md). It
+sets the chance he plays, so the expected score, the plans and the captain follow it; his score if he plays and if he
+starts do not change. The chance of coming on from the bench is what Sorare's substitute odds say of the benched share,
+else his form's, and nothing when Futbol Fantasy has him injured or suspended. Two games in a gameweek each take their own
+source and combine as one minus the misses. A player Futbol Fantasy says nothing about is answered exactly as before it
+existed, and each game of one it does carries its own `pStart`, `pOn` and `startSource` in the page.
+
+Futbol Fantasy is read before the page is planned (`app.sources.futbolfantasy_matches`, `app.sorare.ff_feed`): the round page
+of LaLiga, Champions League, Europa League and Copa del Rey, then the match pages of every LaLiga match and of the others
+that have a Spanish club or a club one of the owner's players is at, two seconds apart, inside a 240-second budget, giving up
+after three unreadable pages in a row; a match read in the last 25 minutes is not asked for again. Each match is kept with
+the time it was read and used for a day at most, never after, and never once it has kicked off. The site gives no time for
+its lineups, so each club's "changed at" is found by comparing one reading with the last. Its players are matched to the
+owner's Sorare players inside one club's side of one match (`app.sorare.ff_link`: same name, one name inside the other's
+words, a short form of the first name, or a surname alone only with both ages to check), never across the league; a player
+that cannot be told is reported in the summary (`futbolfantasy.unlinked`) and keeps Sorare's number, and a game with no
+match found is named under `noMatch`. The links found are kept in the `ff_links` read model.
+
+Each LaLiga club's squad page (`/laliga/equipos/<club>/plantilla`) is read once a week (`ff_lineups.read_squads`, a 90-second
+budget, the same politeness) for where each player plays, which the match pages do not say for anyone outside the eleven. The
+memory of it, and of the line each player was last drawn in, is the `ff_positions` read model. The Lineups page's data is
+written as soon as the site has been read (`ff_lineups.payload` into the `lineups` read model): the eleven drawn in rows from
+the pitch coordinates (rows at fixed heights, read from the goal up), each alternative under the line he covers, the injury
+lists, and which of the people are the owner's. The Home's team news (`ff_news.team_news`, into the planned week as `teamNews`)
+is built from the finished page: the owner's players split at 70% and 40%, the first plan's starters under 70%, and what moved by
+10 points or more since a reading at least 16 hours old (`ff_chances` keeps one every six hours for two days).
+
+The extension does the same arithmetic for a chance it reads live: his chance of coming on is what is left, at the rate he comes
+on in the games he does not start (`benchedOn`, published with the player): `pOn = (1 - pStart) x benchedOn`, and nothing when he
+is out. `forecast._per_game` and `extension/core.js` (`liveSplit`) both read `backend/tests/fixtures/live_start_cases.json`.
+
+A workflow (`near-lock.yml`) asks Sorare every 30 minutes when the next gameweek locks and, in the last three hours, starts the
+refresh when none started in the last 25 minutes, so the team news is read often when it counts.
+
+Every run also writes down who says each of the owner's players will start each game of the gameweek being planned
+(`app.sorare.starts`): Sorare's own odds (against his first game), Sofix's model from form alone, and Futbol Fantasy's number
+with the time it was read. The numbers are frozen at the lock and settled game by game by what happened a day after the
+gameweek ends, so `python -m app.jobs.starts` can say which source to trust.
 
 Sorare opens a gameweek only a few days ahead, but LaLiga's calendar is known for the whole season, so every round that
 has not started and sits in no gameweek Sorare has opened is planned early (`projected_weeks`). Its window is the one

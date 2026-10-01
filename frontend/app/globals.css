@@ -1036,3 +1036,9 @@ thead th .tbc-mark { font-weight: 600; }
   .ow-rank li .opp { grid-column: 2 / -1; }
   .ow-card { width: 38px; }
 }
+
+/* ---------- Start-chance source marks (FF, SO, SF): components/SourceMark.tsx ---------- */
+.src-mark { display: inline-block; flex: none; width: 9px; height: 9px; box-sizing: border-box; border-radius: 50%; vertical-align: 0; }
+.src-mark[data-source="futbolfantasy"] { background: #1a7a4e; }
+.src-mark[data-source="sorare"] { border: 1.6px solid #6e6e73; background: #fff; }
+.src-mark[data-source="sofix"] { border: 1.6px dashed #6e6e73; background: #fff; }

@@ -295,6 +295,105 @@ players you do not own.
 **The collection** (batch 1, step 6, on `main`) stays: what each source said at the lock, settled by what happened, is
 the Audit page's data (T7).
 
+### T2b · Review of the live pages, 2026-10-01 (found in your Chrome on production)
+Looked at `/lineups` (all 10 matches), `/`, `/play` (GW19, GW20, LaLiga GW8, 9, 10), `/cards`, `/players`, `/control`,
+`/fixtures`, `/difficulty`, `/table` and the sorare.com lineup page with the overlay. Not seen: a phone-width screen
+(the browser cannot go below about 500 px; the phone CSS was only read), a match that has kicked off, a failed or old
+Futbol Fantasy read, a European or cup round. Per your rule: broken first, then one step at a time, each checked on
+production. **Order, goals and checks: [plans/review-fixes.md](plans/review-fixes.md).** Corrected 1 Oct: FF only has each
+club's next LaLiga game (today round 8), never older rounds, later rounds or national-team weeks; R1, R2 and R4 below are
+narrowed accordingly.
+
+**A · Broken or contradicting itself (fix first)**
+- **R1 · Play's early plan for round 8 ignores FF, so it contradicts `/lineups`.** Round 8 is the one round FF covers
+  (each club's next LaLiga game). All 21 start chances I read on LaLiga GW8 are Sofix's own (SF), taking only four values
+  (83, 69, 54, 40%). Miguel Román is in a GW8 lineup at 83% while `/lineups` shows him out until early November at 0%.
+  Early plans never get FF (`projected_weeks` in `backend/app/sorare/publish.py`). Fix: give FF's numbers to the early
+  plan of the round FF has, and never put an out or suspended player in a plan. GW9 and GW10 are right to have none.
+- **R2 · Home "Team news" says FF has "not published a lineup for your players *yet*".** GW19 is national-team games,
+  which FF never covers, so "yet" is wrong. Say what is true: "GW19 is national-team games; Futbol Fantasy covers LaLiga
+  only; round 8's lineups are on Lineups (n of your players)".
+- **R3 · The early plans for GW8, GW9 and GW10 are identical** (3 lineups, 7%, ≈27, the same 24 cards, 418 / 392 / 378
+  xScore). They stand on form alone and copy the open week's All Star competitions. Not about FF. **Your decision (1 Oct):**
+  plan for the LaLiga competitions Sorare is going to open whenever a week has a full LaLiga round, open or not, and
+  replace them with Sorare's own once listed (plan step 1.7).
+- **R4 · `/lineups` gives no word when it cannot show the week you came from.** Showing round 8 for every week is right
+  (FF has nothing else). What is missing: arriving with `?w=` for a past, national-team or later week shows round 8
+  without saying why, and an unknown `?m=99999` silently shows the first match.
+- **R5 · `/lineups` never says which Sorare week it feeds.** The header is "Who starts this round? LaLiga · Round 8 ·
+  9–12 Oct". It should say "LaLiga round 8 · Sorare: not open yet" (then "Sorare GWnn · locks Fri 16:00" once Sorare
+  opens it), with a link to plan that week.
+- **R6 · Most photos of players you do not own never load.** On Elche–Celta 10 of 13 FF photo addresses fail (the page
+  makes those requests on every view), so about three in four cards are a grey silhouette, next to the owner's full Sorare
+  art. This is Q6 of the plan; it is the biggest visual flaw.
+- **R7 · Injury text is stale and half Spanish.** "Out until late September" (Antañón) is in the past; "Out until enero
+  2027"; "Disponible para la jornada 8", "Baja confirmada para la jornada 8", "Trabajo al margen", "Rotura de lig. cruzado
+  anterior", "Roja directa" are FF's Spanish inside an English page. Translate the status words, turn past dates into
+  "back from…", keep the diagnosis only if short.
+- **R8 · "Called up" (the blue P) appears next to "Squad list not out. Until it is, nobody is assumed out."** Both cannot
+  be true. Find out what FF's mark really means before round 8; label or hide it.
+- **R9 · Home says "1 lineups".** Play says "1 lineup".
+- **R10 · An entered lineup before its lock reads "0 · Still scoring"** with a 0 under every card (Play GW19, locks in 1 d
+  3 h). Say "Locks in 1 d 3 h".
+- **R11 · Home "Last gameweek: GW17"** while Control says GW18 was the last scored. Check which is right.
+- **R12 · Control contradicts itself:** "2× board refreshes a day" under "How it runs" next to "6 runs left before the lock"
+  and "4 of 6 on schedule".
+
+**B · Inconsistent names, dates and freshness**
+- **R13 · Four ways to say the week.** The bar says "GW8" on Home and the LaLiga pages, "GW19" on Play, "Sorare GW19" on
+  Cards and Players; the picker says "LaLiga GW8 / GW9"; the early-plan note says "the competitions of GW19". Always show
+  both, "LaLiga round 8 · Sorare GWnn" (or "Sorare not open").
+- **R14 · One week, two ranges.** Play's GW8 says "Fri 9–13 Oct"; the picker, Home and Lineups say "9–12 Oct".
+- **R15 · Five ways to say how fresh it is:** Control "Updated 9 h ago", Play "synced 9 h ago" and "updated Thu 03:33",
+  Lineups "read today 03:33" and "Read 03:33", Home nothing. Use "9 h ago (03:33)" everywhere.
+- **R16 · The picker's right column mixes units:** "≈9 · 3 plans", "2 cards play", "88 early plan"; and the gold chips say
+  "15 cards", "2 cards", "88 cards" without saying playable.
+- **R17 · The blue dot and number on each match tab** ("● 3") has no legend and only a hover title, and it counts your
+  alternatives too: Málaga–Espanyol says 3, none of them in the eleven; Elche–Celta says 17 (9 in the eleven, 8 chips).
+- **R18 · Names are written three ways:** surname in capitals on pitch cards, full names on alternative chips, and on your
+  Sorare cards the name is half hidden under the % pill ("VICTOR CHUST", "IONUT RADU").
+- **R19 · Kickoff times carry no time zone** (they are Madrid time; Control says so, the other pages do not).
+
+**C · Usability and pain points**
+- **R20 · Your players are the point of the page and are the hardest thing on it.** One match is about 2,200 px tall; your
+  players sit in both columns and in the alternatives. Add a strip at the top of each match: "Your 9 here: Radu 95% ·
+  Moriba 70% · Román 0% out…", and a "Only my players" switch; the tab count should say "6 likely to start".
+- **R21 · Alternatives are full of players who cannot play** (0% out, 0% suspended, 0% doubt) and take two or three rows
+  per line. Fold 0–5% into "n more", keep injured ones in the list below.
+- **R22 · "Also in the squad, at 0%: Bambo Diaby, …"** gives no reason. Say why or drop it.
+- **R23 · The injury list below each team repeats "Knock, but available"** (five for Athletic). Fold those; they are not news.
+- **R24 · Nothing links the page to the rest.** A player on `/lineups` does not open his card or his Play row; a Play
+  card does not open his match on `/lineups`.
+- **R25 · Cards has no "next game, chance to start" column**, and Players shows "Projected —" for many.
+- **R26 · The overlay panel on a lineup you entered shows five thumbnails of nine cards** and no FF number (GW19 is national
+  teams, so none exists). When there is none, say "FF covers club games only".
+- **R27 · A tab switch reloads the whole page (about 120 KB, 0.3 s).** It works; a quicker switch would make it feel
+  like one page.
+- **R28 · Tiny text.** On the phone the position is 7 px, the line above the name 6 px, names 9 px; on the desktop 8.5 px
+  positions and 10.5 px names.
+
+**D · Styling**
+- **R29 · Blank gold (Limited) or red (Rare) rectangles for 3 to 10 seconds** while Sorare's art loads, with no name or
+  position; Play's lineup rows have the same gaps. Show the name and position over a quiet skeleton, or preload.
+- **R30 · Crests are missing on the first paint** (tabs, match header; 2 of 26 failed to load). Reserve the space and
+  fall back to the club colour shield.
+- **R31 · Two card styles side by side:** your full-art cards and flat silhouettes, and inside one row some real photos and some
+  silhouettes (Bigas has one, Revivo does not). One style for everyone: a card in the club's colours with number, name
+  and photo when there is one.
+- **R32 · The blue "P" badge** reads like a parking sign; the legend explains it only at the foot of the page.
+- **R33 · The % colours** (90 dark green, 60–70 light green, 50 yellow, 30 grey) are never explained.
+- **R34 · Empty pitch rows** (up to 80 px between lines with no alternatives) make the page longer than it needs to be.
+- **R35 · Home "Team news" is a full-width card holding one sentence;** "All Star · Ca…" is cut off in Last gameweek.
+
+**E · Edge cases still to see** (none could be reached today): a match that has kicked off (score, "frozen"), the page
+when FF fails or is over a day old, round 9 replacing round 8 (Q2), a European or cup match and the competition tabs, a
+postponed game, a phone-width screen.
+
+**Checked and fine:** `/lineups` shows all ten matches with elevens, chances, crests, injury list and your outlined
+cards; Oyarzabal 90% and Take Kubo 40% match the plan's notes; no broken image on the owner's cards; no console error
+or sideways scroll at desktop width; Control reads "All good" with the extension at v0.3.0; the sorare.com overlay opens
+and shows GW19's xScore, reward chance and essence; the page refuses to load inside a frame.
+
 ### T3 · Pro in the best plan
 **What you said.** "The app doesn't compute all game modes. It never gives me the Pro option when best lineups are
 calculated per competition. Find detailed info on Pro and plan its integration into the best plan. Pro has future

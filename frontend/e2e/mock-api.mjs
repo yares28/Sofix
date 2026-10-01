@@ -182,6 +182,11 @@ const lineupsPayload = (() => {
   // One match that names none of the owner's players (Levante–Sevilla), so the strip's empty state has something to show.
   const quiet = data.matches.find((match) => match.id === 22496);
   for (const side of [quiet.home, quiet.away]) for (const one of [...side.rows.flatMap((row) => row.players), ...side.alternatives]) delete one.yours;
+  // Who the live page of 2 Oct puts under each starter's own card on Alavés–Atlético (read with the parser, ids as the page has them): Valentini
+  // under Jonny Castro, Mariano under Toni Martínez, Aleñá under Denis Suárez; and Lookman under both Lee and Grimaldo.
+  const next = { home: { 189: ["14979"], 5032: ["3226"], 1778: ["2759"] }, away: { 6337: ["4434"], 12647: ["63"], 9573: ["10287"], 2771: ["4434"] } };
+  const slots = data.matches.find((match) => match.id === 22493);
+  for (const [place, mapping] of Object.entries(next)) for (const one of slots[place].rows.flatMap((row) => row.players)) if (mapping[one.id]) one.next = mapping[one.id];
   const sociedad = data.matches.find((match) => match.id === 22502);
   spanishInjuries(sociedad);
   calledUp(sociedad);

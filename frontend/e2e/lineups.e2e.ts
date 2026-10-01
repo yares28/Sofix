@@ -312,6 +312,33 @@ test("a modified click on a match tab still opens it as a link would", async ({ 
   await expect(page).toHaveURL(/m=22497$/); // this page stayed where it was
 });
 
+test("who can come in sits under each starter's own card, as Futbol Fantasy draws it, and one player can stand under several slots", async ({ page }) => {
+  await page.goto("/lineups?m=22493");
+  const home = page.getByRole("region", { name: "Alavés lineup" });
+  const away = page.getByRole("region", { name: "Atlético lineup" });
+
+  // Atlético: four starters have somebody under them, and Lookman is under two of them
+  await expect(away.locator(".lu-card:has(.lu-nx)")).toHaveCount(4);
+  await expect(away.locator(".lu-nx", { hasText: "LOOKMAN" })).toHaveCount(2);
+  const lee = away.locator(".lu-card").filter({ has: page.locator(".lu-nx", { hasText: "LOOKMAN" }) }).first();
+  await expect(lee.locator(".lu-nx")).toHaveCount(1);
+  // Alavés: Mariano under Toni, Aleñá under Denis Suárez, Valentini under Jonny, each with his chance
+  for (const name of ["DÍAZ", "ALEÑÁ", "VALENTINI"]) {
+    const under = home.locator(".lu-nx", { hasText: name });
+    await expect(under, name).toHaveCount(1);
+    await expect(under).toContainText(/\d+%/);
+  }
+  // he is not listed a second time among the line's chips, and the page says it is a slot's own list
+  await expect(home.locator(".lu-pitch .lu-row .lu-alts .lu-alt", { hasText: "VALENTINI" })).toHaveCount(0);
+  await expect(home.getByRole("list", { name: /Could come in for/ })).toHaveCount(3);
+});
+
+test("a payload from before the slots were read still puts the alternatives by line", async ({ page }) => {
+  await page.goto("/lineups?m=22502"); // Real Sociedad–Deportivo carries no per-slot names
+  await expect(page.locator(".lu-nx")).toHaveCount(0);
+  await expect(page.locator(".lu-pitch .lu-alt").first()).toBeVisible();
+});
+
 test("a match with none of your players says so, and offers no switch", async ({ page }) => {
   await page.goto("/lineups");
   const strips = page.getByRole("region", { name: "Your players in this match" });

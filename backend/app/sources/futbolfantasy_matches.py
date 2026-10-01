@@ -97,6 +97,7 @@ class Player:
     y: float | None = None
     goalkeeper: bool = False
     news: bool = False  # the site has a news item on him (its "Más info" pop-up)
+    next: tuple[str, ...] = ()  # the profile slugs of who can come in for him in his slot, in the page's order (eleven only)
 
 
 @dataclass(frozen=True)
@@ -223,6 +224,10 @@ def _pair(value: Any) -> tuple[int, int] | None:
     return (int(value[0]), int(value[1])) if isinstance(value, (list, tuple)) and len(value) == 2 else None
 
 
+def _player_from(data: dict[str, Any]) -> Player:
+    return _build(Player, data, next=tuple(data.get("next") or ()))
+
+
 def _side_from(data: dict[str, Any]) -> Side:
     def level(item: Any) -> Level | None:
         return _build(Level, item) if isinstance(item, dict) else None
@@ -232,8 +237,8 @@ def _side_from(data: dict[str, Any]) -> Side:
         data,
         rotations=level(data.get("rotations")),
         predictability=level(data.get("predictability")),
-        xi=tuple(_build(Player, item) for item in data.get("xi") or []),
-        alternatives=tuple(_build(Player, item) for item in data.get("alternatives") or []),
+        xi=tuple(_player_from(item) for item in data.get("xi") or []),
+        alternatives=tuple(_player_from(item) for item in data.get("alternatives") or []),
         absences=tuple(_build(Absence, item) for item in data.get("absences") or []),
     )
 
@@ -639,7 +644,17 @@ def _player(block: Node, modals: dict[str, tuple[str | None, str | None]]) -> Pl
         y=y,
         goalkeeper="portero" in block.classes,
         news=news,
+        next=_next_in_line(block) if eleven else (),
     )
+
+
+def _next_in_line(block: Node) -> tuple[str, ...]:
+    """Who can come in for a starter: under him the page lists himself (`pos-0`) and then, in order, the alternatives for his slot."""
+    box = _find(block, "div", "juggadores")
+    if box is None:
+        return ()
+    slugs = (_slug_of(link.get("href"), "jugadores") for link in _find_all(box, "a", "juggador") if "pos-0" not in link.classes)
+    return tuple(slug for slug in slugs if slug)
 
 
 def _percent_position(value: str | None) -> float | None:

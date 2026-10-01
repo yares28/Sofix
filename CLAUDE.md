@@ -37,6 +37,10 @@ Use [docs/sorare/design/DESIGN.md](docs/sorare/design/DESIGN.md) and the real
 - Premium white shell, restrained semantic colour, near-black text, soft border/shadow.
 - One clear hero/question per page; aligned tabular evidence; no wall of generic cards.
 - Motion explains change, preserves contrast and respects reduced motion.
+- **Players are always drawn as their Sorare card, and clubs as their real crest, wherever that is possible** (owner's rule, 2 Oct
+  2026). A card is the real card art: yours for a card you own, else a real card of his from Sorare's public listing
+  (`allCards`, Limited, current season). A face, silhouette or initials stand in only while the picture loads or when Sorare has
+  none; a coloured shield stands in for a crest the same way. Never design a different, "simpler" look for players who are not yours.
 - Text is never smaller than 11 px on a desktop or 10 px on a phone (checked by `npm run design` for previews, and by `smallText` in
   `frontend/e2e/helpers.ts` for Lineups, Cards and Players; SVG text and text only a screen reader gets are left out).
 - Responsive behavior uses named containers where components are reused; centre beyond 1600 px.

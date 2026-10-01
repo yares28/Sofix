@@ -20,6 +20,7 @@ import {
   shortCode,
   sorareLine,
   splitAbsent,
+  slotAlternatives,
   splitDead,
   squadOut,
   startersIn,
@@ -489,5 +490,55 @@ describe("switching match inside the page", () => {
     expect(matchAsked(matches, null, matches[1]!).id).toBe(2);
     expect(matchAsked(matches, "999", matches[1]!).id).toBe(2);
     expect(matchAsked(matches, "", matches[0]!).id).toBe(1);
+  });
+});
+
+describe("slotAlternatives", () => {
+  const pl = (id: string, extra: Record<string, unknown> = {}) => ({ id, name: `P ${id}`, p: 0.5, ...extra }) as LineupSide["alternatives"][number];
+  const starter = (id: string, next?: string[]) => pl(id, { x: 50, y: 50, ...(next ? { next } : {}) });
+
+  it("is the old placement by line when the page names nobody under any slot", () => {
+    const placed = slotAlternatives(side("A", { rows: [{ line: "DEF", players: [starter("1")] }], alternatives: [pl("9", { pos: "DEF" })] }));
+    expect(placed.perSlot).toBe(false);
+    expect(placed.rest.map((one) => one.id)).toEqual(["9"]);
+  });
+
+  it("puts who can come in under the slot he fills, in the page's order, and one player under several slots", () => {
+    const placed = slotAlternatives(
+      side("A", {
+        rows: [
+          { line: "FWD", players: [starter("1", ["8"]), starter("2", ["8", "9"])] },
+          { line: "DEF", players: [starter("3")] },
+        ],
+        alternatives: [pl("8"), pl("9"), pl("7")],
+      }),
+    );
+    expect(placed.perSlot).toBe(true);
+    expect(placed.bySlot.get("1")!.map((one) => one.id)).toEqual(["8"]);
+    expect(placed.bySlot.get("2")!.map((one) => one.id)).toEqual(["8", "9"]);
+    expect(placed.bySlot.has("3")).toBe(false);
+    expect(placed.rest.map((one) => one.id)).toEqual(["7"]); // on the bench, named under no slot
+  });
+
+  it("folds the ones at 5% or less, or out, into the 'more' list even when a slot names them", () => {
+    const placed = slotAlternatives(
+      side("A", {
+        rows: [{ line: "MID", players: [starter("1", ["8", "9", "7"])] }],
+        alternatives: [pl("8", { p: 0.02 }), pl("9", { status: { kind: "out" } }), pl("7", { p: 0.4 })],
+      }),
+    );
+    expect(placed.bySlot.get("1")!.map((one) => one.id)).toEqual(["7"]);
+    expect(placed.dead.map((one) => one.id).sort()).toEqual(["8", "9"]);
+    expect(placed.rest).toEqual([]);
+  });
+
+  it("ignores an id the bench does not have, and keeps a player of yours however unlikely", () => {
+    const placed = slotAlternatives(
+      side("A", {
+        rows: [{ line: "MID", players: [starter("1", ["404", "8"])] }],
+        alternatives: [pl("8", { p: 0.01, yours: "someone" })],
+      }),
+    );
+    expect(placed.bySlot.get("1")!.map((one) => one.id)).toEqual(["8"]);
   });
 });

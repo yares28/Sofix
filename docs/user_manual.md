@@ -266,7 +266,10 @@ FF says so above the next match.
   alternatives (marked "alt"), each with his short name, his chance and, when something is wrong, the icon and the word (doubt, out,
   suspended). The **Only my players** switch dims everyone else, on the pitch and in the injury lists. Every player of yours, in the strip, on the
   pitch, among the alternatives and in the injury list, is a link: it opens his card on **My cards** (his tile is outlined there).
-- **Who else could play.** Under each line, the alternatives most likely first, with their chance. A player is written the same short way
+- **Who could come in for whom.** Under each starter's own card, the names of the alternatives Futbol Fantasy puts in his slot, with their
+  chance ("DÍAZ 40%" under Toni Martínez, "ALEÑÁ 40%" under Denis Suárez), the way its own pitch draws it. One player can stand under several
+  starters (Lookman under both Lee and Grimaldo). Bench players it names under nobody are listed under the pitch as "Also on the bench".
+  A reading from before the slots were read (before 2 Oct) places the alternatives under each line instead. A player is written the same short way
   on his card and on a chip (his surname, with an initial where two of a side share it), and his full name shows on hover. The % badge
   sits under a card, never over the name Sorare prints on your own cards. A player FF has not
   placed yet is listed apart as "Others in the squad"; alternatives at 5% or less, and anyone out or suspended, fold into one "+3 more" under the pitch (open it for their names and

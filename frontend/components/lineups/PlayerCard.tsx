@@ -29,6 +29,9 @@ export default function PlayerCard({
   line,
   card,
   calledUp,
+  next = [],
+  labels = {},
+  mine = new Set<string>(),
 }: {
   player: LineupPlayer;
   label: string;
@@ -36,6 +39,10 @@ export default function PlayerCard({
   card: OwnedCard | undefined;
   /** Whether his club has named its squad: a call-up is not shown before that. */
   calledUp: boolean;
+  /** Who can come in for him in his slot, in the page's order: their names go under his card (Futbol Fantasy draws it so). */
+  next?: LineupPlayer[];
+  labels?: Record<string, string>;
+  mine?: Set<string>;
 }) {
   const rarity = card?.rarity ?? "common";
   const kind = player.status?.kind;
@@ -67,6 +74,26 @@ export default function PlayerCard({
         {percent(player.p)}%
       </span>
       {mark ? <span className="lu-mark">{mark}</span> : null}
+      {next.length ? (
+        <ul className="lu-next" aria-label={`Could come in for ${player.name}`}>
+          {next.map((one) => {
+            const own = Boolean(one.yours && mine.has(one.yours));
+            const name = labels[one.id] ?? one.name;
+            return (
+              <li key={one.id} className="lu-nx" data-mine={own ? "" : undefined} title={`${one.name}${one.p === null ? "" : ` · ${percent(one.p)}% to start`}`}>
+                {own ? (
+                  <Link className="lu-nx-go" href={cardHref(one.yours!)}>
+                    {name}
+                  </Link>
+                ) : (
+                  <span>{name}</span>
+                )}
+                <i data-tone={chanceTone(one.p)}>{percent(one.p)}%</i>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
       {card && player.yours ? <Link className="lu-go" href={cardHref(player.yours)} aria-label={`${player.name}: open your card`} title={`${player.name}: open your card`} /> : null}
     </li>
   );

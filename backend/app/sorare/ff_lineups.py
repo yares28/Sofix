@@ -162,12 +162,17 @@ def _player(
     line: str | None,
     *,
     eleven: bool,
+    bench: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     out: dict[str, Any] = {"id": player.ff_id, "name": player.name, "p": player.chance}
     if eleven:
         out["x"], out["y"] = player.x, player.y
         if player.goalkeeper:
             out["gk"] = True
+        # who the page puts under him as able to come in for him, by the ids of the bench (one player can be under several slots)
+        coming = [bench[slug] for slug in player.next if bench and slug in bench]
+        if coming:
+            out["next"] = coming
     elif line:
         out["pos"] = line
     if player.age:
@@ -198,10 +203,11 @@ def _side(
         return found
 
     rows, formation = pitch(side.xi)
+    bench = {p.slug: p.ff_id for p in side.alternatives if p.slug}
     drawn = [
         {
             "line": line,
-            "players": [_player(p, by_id.get(p.ff_id), yours(p), line, eleven=True) for p in group],
+            "players": [_player(p, by_id.get(p.ff_id), yours(p), line, eleven=True, bench=bench) for p in group],
         }
         for line, group in rows
     ]

@@ -286,9 +286,11 @@ main.hm { max-width: calc(1240px + 56px); }
 .hm-waitline { margin: 0; display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 16px; background: #f6f9ff; box-shadow: inset 0 0 0 1px #e3edfb; font-size: 12px; color: var(--ink-2); }
 .hm-waitline b { font-size: 14px; color: var(--ink); font-weight: 650; }
 .hm-pva { display: flex; flex-direction: column; gap: 10px; flex: 1; justify-content: center; }
-.hm-pva-row { display: grid; grid-template-columns: 78px minmax(0, 1fr) 52px; gap: 10px; align-items: center; }
-.hm-pva-row .nm { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hm-pva-row .res { font-size: 12px; font-weight: 650; text-align: right; font-variant-numeric: tabular-nums; }
+/* A competition's name is written whole on its own line, with what it won beside it, and its range under both. */
+.hm-pva-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "nm res" "rv rv"; gap: 6px 10px; align-items: baseline; }
+.hm-pva-row .nm { grid-area: nm; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hm-pva-row .res { grid-area: res; font-size: 12px; font-weight: 650; text-align: right; font-variant-numeric: tabular-nums; }
+.hm-pva-row .hm-rv { grid-area: rv; }
 .hm-pva-row .res.none { color: var(--ink-3); font-weight: 500; }
 .hm-rv { position: relative; display: block; height: 18px; }
 .hm-rv .rail { position: absolute; left: 0; right: 0; top: 8px; height: 3px; border-radius: 2px; background: var(--hover); }
@@ -385,7 +387,17 @@ main.hm { max-width: calc(1240px + 56px); }
 .hm-nw-link:hover { color: var(--ink); }
 .hm-nw-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
 .hm-nw-link.sm { font-size: 12.5px; }
-.hm-nw-idle { padding: 20px 26px 22px; gap: 10px; }
+.hm-nw-idle { padding: 20px 22px 22px; gap: 10px; }
+/* With nothing to say it takes a quarter of its row, beside the last gameweek and the cards, not a whole row for one sentence. */
+@media (min-width: 1101px) {
+  .hm-bento .hm-nw-idle { grid-column: span 3; }
+  .hm-bento:has(.hm-nw-idle) .hm-last { grid-column: span 4; }
+  .hm-bento:has(.hm-nw-idle) .hm-cards { grid-column: span 5; }
+  /* Five columns are too few for four blocks side by side: two by two, as on a narrower screen. */
+  .hm-bento:has(.hm-nw-idle) .hm-cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 14px; }
+  .hm-bento:has(.hm-nw-idle) .hm-cards-grid > div:nth-child(3) { box-shadow: inset 0 1px 0 var(--line); }
+  .hm-bento:has(.hm-nw-idle) .hm-cards-grid > div:nth-child(4) { box-shadow: inset 1px 0 0 var(--line), inset 0 1px 0 var(--line); }
+}
 .hm-nw-idle .hm-nw-head { padding: 0; }
 .hm-nw-idle p { margin: 0; font-size: 13.5px; color: var(--ink-2); }
 .hm-nw-idle p b { color: var(--ink); font-weight: 600; }

@@ -3,6 +3,7 @@
  * `lineups`, built by backend/app/sorare/ff_lineups.py) and the small pure helpers the page shares. The rows, the
  * formation and who is the owner's all come from the job; this only groups, labels and words them (plans/futbolfantasy.md, S5).
  */
+import { freshLabel } from "./fresh";
 import type { Week } from "./weeks";
 
 export const LINEUPS_KEY = "lineups";
@@ -318,16 +319,9 @@ export function initialsOf(name: string): string {
 }
 
 // ----------------------------------------------------------------------------------------------- the words around
-const dayKey = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid", year: "numeric", month: "2-digit", day: "2-digit" });
-
-/** When a reading was made, the way people say it: today 16:56, yesterday 17:05, Tue 29 Sep 11:40. */
+/** When a reading was made, the way every page says it: "9 h ago (03:33)". */
 export function readLabel(iso: string | null, now: Date): string {
-  if (!iso) return "never";
-  const { day, time } = kickoffLabel(iso);
-  const that = dayKey.format(new Date(iso));
-  if (that === dayKey.format(now)) return `today ${time}`;
-  if (that === dayKey.format(new Date(now.getTime() - 86_400_000))) return `yesterday ${time}`;
-  return `${day} ${time}`;
+  return iso ? freshLabel(iso, now) : "never";
 }
 
 /** A club's short name for a chip: our code for the clubs the app keeps, else the first three letters of its name. */

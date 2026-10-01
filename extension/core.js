@@ -258,6 +258,16 @@
     return Math.min(1, Math.max(0, entry.pOn / (1 - entry.pStart)));
   }
 
+  /** "11 h ago (03:33)": how long ago, and the Madrid time it was made; the same words as Sofix's pages. Null when there is no time to read. */
+  function freshLabel(iso, nowMs) {
+    const age = agoLabel(iso, nowMs);
+    if (age === null) return null;
+    const at = new Date(iso);
+    const over = nowMs - at.getTime() >= 24 * 60 * 60 * 1000;
+    const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", hourCycle: "h23", weekday: over ? "short" : undefined, hour: "2-digit", minute: "2-digit" }).format(at);
+    return age + " (" + parts.replace(",", "") + ")";
+  }
+
   /** "11 h ago": the age of an ISO time, or null when there is no time to read. */
   function agoLabel(iso, nowMs) {
     const at = typeof iso === "string" ? Date.parse(iso) : Number.NaN;
@@ -311,7 +321,7 @@
 
   root.__sofixCore = {
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
-    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, statusNote, clockLabel, sourceRows, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, agoLabel, STALE_HOURS, staleness, topThree,
+    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, statusNote, clockLabel, sourceRows, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
     isPickHeading, fixtureOf,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;

@@ -13,6 +13,7 @@
  */
 
 import type { GameweekPlan, Sorare, Status } from "./play";
+import { freshLabel } from "./fresh";
 import { runsBetween } from "./schedule";
 
 export type Freshness = "fresh" | "pending" | "waiting" | "cloudless" | "stale";
@@ -90,7 +91,7 @@ export function syncState(data: Sorare, week: GameweekPlan, now: Date): SyncStat
       ...base,
       state: "cloudless",
       behind: missed > 0,
-      chip: never ? "the cloud skipped it" : `cloud last synced ${ago(new Date(status.lastCloudAt as string), now)} ago`,
+      chip: never ? "the cloud skipped it" : `cloud last synced ${freshLabel(status.lastCloudAt as string, now)}`,
       alert: {
         title: never ? "A scheduled run came and went without syncing Sorare" : "The scheduled job has stopped syncing Sorare",
         detail: `This gameweek is still the one your PC built ${ago(builtAt, now)} ago. The step skips itself when SORARE_API_KEY is missing from the repository secrets — the key in your .env only reaches runs started on this machine.`,
@@ -120,7 +121,7 @@ export function syncState(data: Sorare, week: GameweekPlan, now: Date): SyncStat
     };
   }
 
-  return { ...base, state: "fresh", chip: `synced ${ago(builtAt, now)} ago`, alert: null, behind: false };
+  return { ...base, state: "fresh", chip: `synced ${freshLabel(status.builtAt, now)}`, alert: null, behind: false };
 }
 
 /** The hero of the panel: one number, and what it counts. */

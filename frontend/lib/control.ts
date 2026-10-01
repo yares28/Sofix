@@ -1,4 +1,4 @@
-import { relativeTime } from "./grid";
+import { freshLabel } from "./fresh";
 import { isStale } from "./refresh";
 import { madridClock, nextRun, todaysRuns } from "./schedule";
 import { extensionAtLeast, extensionIsLatest, REQUIRED_EXTENSION_VERSION } from "./extension";
@@ -96,7 +96,7 @@ export const PILL_LABEL: Record<PulseState, string> = {
 export function pulseOf(system: SystemStatus | null, syncedAt: string | null, now: Date): Pulse {
   const last = system?.runs.at(-1);
   const next = nextRunLabel(now);
-  const updated = syncedAt ? `Updated ${relativeTime(syncedAt, now)}` : "Not updated yet";
+  const updated = syncedAt ? `Updated ${freshLabel(syncedAt, now)}` : "Not updated yet";
   const schedule = `${updated}${next ? ` · next ${next}` : ""}`;
   if (system?.paused) {
     return { state: "paused", title: "Database paused", detail: `Free limit reached · back on ${resumeLabel(now)}` };

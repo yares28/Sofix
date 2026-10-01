@@ -12,6 +12,7 @@ import {
   timeUntil,
   waitingFor,
 } from "../../lib/play";
+import { freshLabel } from "../../lib/fresh";
 import { syncState } from "../../lib/sorareStatus";
 import ApplySheet from "./ApplySheet";
 import { Cash, Chevron, Essence, Foil, GROUP_COLOUR } from "./bits";
@@ -183,7 +184,7 @@ function Head({
           ) : data.generatedAt ? (
             <>
               <span className="dot" />
-              <span>updated {weekday(data.generatedAt)} {clock(data.generatedAt)}</span>
+              <span>updated {freshLabel(data.generatedAt, now)}</span>
             </>
           ) : null}
         </p>

@@ -311,10 +311,10 @@ describe("the payload the job wrote", () => {
 });
 
 describe("the words on the page", () => {
-  it("says when a reading was made: today, yesterday, or the day", () => {
-    expect(readLabel("2026-10-10T14:56:00Z", NOW)).toBe("today 16:56");
-    expect(readLabel("2026-10-09T15:05:00Z", NOW)).toBe("yesterday 17:05");
-    expect(readLabel("2026-09-29T09:40:00Z", NOW)).toBe("Tue 29 Sep 11:40");
+  it("says when a reading was made: how long ago and the Madrid time", () => {
+    expect(readLabel("2026-10-10T14:56:00Z", NOW)).toBe("just now (16:56)");
+    expect(readLabel("2026-10-09T15:05:00Z", NOW)).toBe("24 h ago (17:05)");
+    expect(readLabel("2026-09-29T09:40:00Z", NOW)).toBe("11 days ago (Tue 11:40)");
     expect(readLabel(null, NOW)).toBe("never");
   });
 

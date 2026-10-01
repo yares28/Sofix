@@ -19,6 +19,7 @@ import EnteredLineups from "../play/EnteredLineups";
 import SorareImage from "../play/SorareImage";
 import HomeTile from "./HomeTile";
 import type { LineupsGlance } from "../../lib/lineups";
+import { freshLabel } from "../../lib/fresh";
 import { noun } from "../../lib/words";
 import TeamNewsTile from "./TeamNewsTile";
 
@@ -51,7 +52,10 @@ export default function SorareTiles({
           <span className="foil limited stack" aria-hidden="true" />
           Sorare
         </h2>
-        <span>{data.user}</span>
+        <span>
+          {data.user}
+          {data.generatedAt ? ` · synced ${freshLabel(data.generatedAt, now)}` : ""}
+        </span>
       </div>
       {selected ? <EnteredLineups week={selected} /> : null}
       <PlayTile week={nextWeek(data)} now={now} />

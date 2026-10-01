@@ -246,6 +246,9 @@ A week is named in one place (`weekName` and `sorareName` in `frontend/lib/weeks
 not open", or for a week with no LaLiga round "Sorare GW19 · national teams" (`Week.national`: no LaLiga game in it and national teams' games the
 bulk, `teamNews.nationalWeek`). The picker, the Play title, the Home head, the no-plan pages and the notes all read it.
 
+Freshness is written in one place (`freshLabel` in `frontend/lib/fresh.ts`, and `core.freshLabel` in `extension/core.js` for the overlay, which
+both tests pin to the same form): "9 h ago (03:33)", with the day added once the reading is over a day old.
+
 A workflow (`near-lock.yml`) asks Sorare every 30 minutes when the next gameweek locks and, in the last three hours, starts the
 refresh when none started in the last 25 minutes, so the team news is read often when it counts.
 

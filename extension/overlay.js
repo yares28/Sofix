@@ -807,7 +807,7 @@
       }
       head.append(chip);
     }
-    const age = entry.live ? core.agoLabel(entry.startAt, now()) : core.agoLabel(entry.at, now());
+    const age = entry.live ? core.freshLabel(entry.startAt, now()) : core.freshLabel(entry.at, now());
     if (age) head.append(node("span", "sfx-age", entry.live ? `FF live ${age}` : age));
     body.append(head);
     const stale = core.staleness(entry, now());

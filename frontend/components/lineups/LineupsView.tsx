@@ -218,7 +218,7 @@ function MatchHead({ match, state, now, clubs }: { match: LineupMatch; state: Re
         <details className="lu-info">
           <summary aria-label="When Futbol Fantasy was read">
             <InfoIcon />
-            Read {readLabel(match.readAt, now).replace(/^today /, "")}
+            Read {readLabel(match.readAt, now)}
           </summary>
           <div className="lu-info-card" role="group" aria-label="Futbol Fantasy reading">
             <b>Futbol Fantasy</b>

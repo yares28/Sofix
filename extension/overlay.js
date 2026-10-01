@@ -771,7 +771,9 @@
     list.hidden = true;
     for (const row of core.sourceRows(entry)) {
       const item = node("li", row.shown ? "is-shown" : row.value === null ? "is-none" : "");
-      item.append(sourceDot(row.source), node("span", "sfx-source-name", row.label), node("span", "sfx-source-at", row.at || ""), node("b", "", row.value === null ? "—" : core.chanceLabel(row.value)));
+      const value = node("b", row.note ? "sfx-source-note" : "", row.value === null ? row.note || "—" : core.chanceLabel(row.value));
+      if (row.note) value.title = "Futbol Fantasy covers LaLiga only";
+      item.append(sourceDot(row.source), node("span", "sfx-source-name", row.label), node("span", "sfx-source-at", row.at || ""), value);
       list.append(item);
     }
     toggle.addEventListener("click", guard((event) => {

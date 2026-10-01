@@ -138,7 +138,15 @@ describe("overlayNumbers", () => {
   it("has no game numbers, rather than zeros, when nobody has priced the game", () => {
     const unpriced = player({ games: [game({ competition: "mls", team: "Inter Miami CF", opponent: "Orlando City", venue: "A" })] });
     const entry = overlayNumbers(sorare([unpriced]), grid, ask({ players: ["unai-simon"] }), NOW).players["unai-simon"]!;
-    expect(entry).toEqual({ x: 54.5, p: 0.94, average: 55, pos: "GK", at: "2026-10-08T00:00:00Z", game: null });
+    // the game is not LaLiga's: Futbol Fantasy covers none of it, which the panel says when it has no number
+    expect(entry).toEqual({ x: 54.5, p: 0.94, average: 55, pos: "GK", laliga: false, at: "2026-10-08T00:00:00Z", game: null });
+  });
+
+  it("says whether the game the tile shows is a LaLiga one", () => {
+    const answer = (competition: string) =>
+      overlayNumbers(sorare([player({ games: [game({ competition })] })]), grid, ask({ players: ["unai-simon"] }), NOW).players["unai-simon"]!;
+    expect(answer("laliga-es").laliga).toBe(true);
+    expect(answer("uefa-nations-league").laliga).toBe(false);
   });
 
   it("matches the two LaLiga clubs Sorare names differently from the board", () => {
@@ -435,7 +443,8 @@ describe("overlayPlan", () => {
       lineups: 2,
       x: 417,
       comp: "All Star",
-      pics: ["b", "c", "d", "e", "f"].map((slug) => `https://assets.sorare.com/card/${slug}/picture/x.png`),
+      // every starter of the plan, the lineup that leads it first (the drawer says how many more the plan uses)
+      pics: ["b", "c", "d", "e", "f", "g", "a"].map((slug) => `https://assets.sorare.com/card/${slug}/picture/x.png`),
       pAny: 0.16,
       essence: 55,
       cardsUsed: 9,

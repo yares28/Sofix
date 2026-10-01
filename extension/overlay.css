@@ -339,6 +339,7 @@
 .sfx-source-name { flex: 1; font: 700 11px/14px var(--sfx-font); }
 .sfx-source-at { font: 500 10px/12px var(--sfx-font); color: #8e8e93; }
 .sfx-sources-list b { width: 34px; text-align: right; font: 700 14px/14px var(--sfx-cond); font-variant-numeric: tabular-nums; }
+.sfx-sources-list b.sfx-source-note { width: auto; font: 600 11px/14px var(--sfx-font); white-space: nowrap; color: #8e8e93; }
 .sfx-note { margin: 0; font: 500 11px/14px var(--sfx-font); color: #a3a3ab; }
 
 @keyframes sfx-fade { from { opacity: 0; } }

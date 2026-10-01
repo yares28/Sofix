@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { NATIONAL_COMPETITION, clubKey, sideOutlook, type SideOutlook } from "./home";
-import { nextWeek, waitingFor, weekPlan, type FfStatus, type GameweekPlan, type PlayerGame, type PlayingPlayer, type Sorare, type StartSource } from "./play";
+import { nextWeek, waitingFor, weekPlan, type FfStatus, type GameweekPlan, type Lineup, type PlayerGame, type PlayingPlayer, type Sorare, type StartSource } from "./play";
 import type { Bucket, FixtureGrid } from "./types";
 
 /**
@@ -59,6 +59,8 @@ export type OverlayEntry = {
   average: number;
   /** His position, which decides the tile's driver (difficulty for a goalkeeper or defender, expected goals otherwise). */
   pos: PlayingPlayer["pos"];
+  /** Whether the game the tile shows is a LaLiga one, the only competition Futbol Fantasy covers: the panel says so when it has no number. */
+  laliga?: boolean;
   /** When the job published these numbers (ISO time), for the hover's "updated ... ago". */
   at: string;
   /** Null when neither the model nor Sorare has priced his game yet: the tile says "no odds", never zeros. */
@@ -124,20 +126,23 @@ export type OverlayAnswer = {
   plan?: OverlayPlan;
 };
 
+/** The plan's lineups, the one expected to score most first. */
+const lineupsByScore = (lineups: Lineup[]): Lineup[] => [...lineups].sort((a, b) => b.x - a.x);
+
 export function overlayPlan(gameweek: GameweekPlan, now: Date): OverlayPlan {
   const week = gameweek.gameweek.number;
   const best = gameweek.plans[0];
   if (gameweek.state !== "ready" || !best) {
     return { state: gameweek.state === "waiting" ? "waiting" : "none", week, note: waitingFor(gameweek, now) ?? "Nothing is planned for this gameweek yet." };
   }
-  const leading = [...best.lineups].sort((a, b) => b.x - a.x)[0];
+  const leading = lineupsByScore(best.lineups)[0];
   return {
     state: "ready",
     week,
     lineups: best.lineups.length,
     x: Math.round(best.lineups.reduce((sum, lineup) => sum + lineup.x, 0)),
     comp: leading?.comp ?? "",
-    pics: (leading?.starters ?? []).map((card) => card.pic).filter(Boolean).slice(0, 5),
+    pics: [...new Set(lineupsByScore(best.lineups).flatMap((lineup) => lineup.starters.map((card) => card.pic)).filter(Boolean))],
     pAny: best.pAny,
     essence: Math.round(best.essence),
     cardsUsed: best.cardsUsed,
@@ -221,6 +226,7 @@ function entryFor(
     p: player.p,
     average: player.average,
     pos: player.pos,
+    ...(shown ? { laliga: LALIGA.test(shown.competition) } : {}),
     at,
     game,
     ...split,

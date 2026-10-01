@@ -158,15 +158,15 @@
   const STATUS_WORD = { out: "Out", doubt: "Doubt", suspended: "Suspended" };
 
   /**
-   * The line under the start chance when Futbol Fantasy says something is wrong with him: "Doubt · since 12 Sep". The site's
-   * own words (its cause, in Spanish) follow only when there is nothing else to say. Null when nothing is wrong.
+   * The line under the start chance when Futbol Fantasy says something is wrong with him: "Doubt · since 12 Sep". The site's own
+   * words (its cause, in Spanish) are left out: the Lineups page translates them. Null when nothing is wrong.
    */
   function statusNote(entry) {
     const status = entry.ffStatus;
     const word = status && STATUS_WORD[status.kind];
     if (!word) return null;
     const since = typeof status.since === "string" ? /^Desde (\d{1,2})\/(\d{1,2})/i.exec(status.since) : null;
-    const detail = since ? "since " + Number(since[1]) + " " + (MONTHS[Number(since[2]) - 1] || since[2]) : status.cause || "";
+    const detail = since ? "since " + Number(since[1]) + " " + (MONTHS[Number(since[2]) - 1] || since[2]) : "";
     return { kind: status.kind, text: detail ? word + " · " + detail : word };
   }
 
@@ -179,7 +179,8 @@
 
   /**
    * What each source says of his first game, in the order the app trusts them. `shown` marks the one the tile uses; a source with
-   * no number says so (`value` null) and is drawn faded. Futbol Fantasy's row carries the time it was read.
+   * no number says so (`value` null) and is drawn faded. Futbol Fantasy's row carries the time it was read, or the reason it has no
+   * number when the game is not a LaLiga one (`note`): it covers LaLiga only.
    */
   function sourceRows(entry) {
     const said = entry.sources || {};
@@ -192,8 +193,23 @@
         value,
         shown,
         at: key === "futbolfantasy" && value !== null ? clockLabel(entry.startAt) : null,
+        note: key === "futbolfantasy" && value === null && entry.laliga === false ? "LaLiga only" : null,
       };
     });
+  }
+
+  /** The most cards the drawer draws for the plan: two rows of five. */
+  const DRAWER_CARDS = 10;
+
+  /**
+   * The cards of the plan as the drawer draws them: Sorare's own pictures only, every one when they fit, else the first nine
+   * and a place for the rest; `more` is how many cards the plan uses that no thumbnail stands for ("+4").
+   */
+  function drawerCards(plan) {
+    const urls = (plan && Array.isArray(plan.pics) ? plan.pics : []).filter((url) => typeof url === "string" && url.startsWith("https://assets.sorare.com/"));
+    const pics = urls.length > DRAWER_CARDS ? urls.slice(0, DRAWER_CARDS - 1) : urls;
+    const used = plan && Number.isFinite(plan.cardsUsed) ? plan.cardsUsed : pics.length;
+    return { pics, more: Math.max(0, used - pics.length) };
   }
 
   // -- Futbol Fantasy, read in the browser (plans/futbolfantasy.md, S7) ---------------------------------------------------
@@ -321,7 +337,7 @@
 
   root.__sofixCore = {
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
-    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, statusNote, clockLabel, sourceRows, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
+    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, statusNote, clockLabel, sourceRows, drawerCards, DRAWER_CARDS, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
     isPickHeading, fixtureOf,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;

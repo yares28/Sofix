@@ -409,7 +409,9 @@ when your best plan uses the card (the lineup's name, and a C for the captain) a
 between the score if he **starts** (the default) and if he is **benched**; the big score with his chance of starting and whose
 number it is ("START · FF"); one line only when FF says something is wrong with him ("Doubt · since 12 Sep", amber, or an
 injury or ban, red); three numbers (xG or clean sheet for his job, his side's win chance, and the difficulty); and **SOURCES**,
-folded away, which opens to what FF, SO and SF each say and when FF was read. Escape closes it. It only shows things; nothing in
+folded away, which opens to what FF, SO and SF each say and when FF was read; for a national-team game or another league's, where FF
+has no number, its row says "LaLiga only" (FF covers LaLiga only). The overlay never shows FF's Spanish words; the Lineups page
+translates them. Escape closes it. It only shows things; nothing in
 it writes to Sorare.
 
 - **His chance of starting** is the bottom row of every full tile ("90%") with a mark for whose it is: FF's expected lineup where
@@ -442,7 +444,8 @@ generated CSS class names.
 ### Plan drawer
 
 The **Sofix** tab on the right edge of Sorare's football pages opens your gameweek: what the best plan adds up to,
-the cards of its leading lineup, the reward chance, the essence expected and how many of your cards it uses.
+a thumbnail of every card of its lineups (the leading lineup first; every card up to ten, else nine and a "+N" for the rest, so the thumbnails and
+the "+N" always add up to the cards the plan uses), the reward chance, the essence expected and how many of your cards it uses.
 **Open Apply in Sofix** opens the Play page for that gameweek and returns you to the controlled three-step flow;
 lineup write buttons are intentionally not placed over Sorare's browsing UI. The tab is hidden on narrow windows.
 

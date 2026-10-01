@@ -49,6 +49,7 @@
     .cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin: 0; padding: 0; list-style: none; }
     .cards li { aspect-ratio: 320 / 452; border-radius: 5px; overflow: hidden; background: #000; }
     .cards img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .cards li.more { display: grid; place-items: center; background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--line); color: var(--text-2); font-size: 13px; font-weight: 650; font-variant-numeric: tabular-nums; }
     .line { display: flex; justify-content: space-between; margin: 0; padding: 10px 0; border-top: 1px solid var(--line); font-size: 12px; color: var(--text-2); }
     .line b { color: var(--text); font-weight: 650; font-variant-numeric: tabular-nums; }
     .say { margin: 0; font-size: 15px; font-weight: 600; }
@@ -120,9 +121,9 @@
     const hero = el("p", "num");
     hero.append(el("b", "", String(plan.x)), el("i", "", plan.lineups === 1 ? `xScore · ${plan.comp}` : `xScore · ${plan.lineups} lineups`));
     const pics = el("ul", "cards");
-    pics.setAttribute("aria-label", `Cards of your leading lineup, ${plan.comp}`);
-    for (const url of plan.pics) {
-      if (typeof url !== "string" || !url.startsWith("https://assets.sorare.com/")) continue;
+    pics.setAttribute("aria-label", `Cards of your best plan, ${plan.comp} leading`);
+    const drawn = core.drawerCards(plan);
+    for (const url of drawn.pics) {
       const item = el("li");
       const image = document.createElement("img");
       image.alt = "";
@@ -130,6 +131,11 @@
       image.src = url;
       item.append(image);
       pics.append(item);
+    }
+    if (drawn.more > 0) {
+      const rest = el("li", "more", `+${drawn.more}`);
+      rest.setAttribute("aria-label", `${drawn.more} more cards in the plan`);
+      pics.append(rest);
     }
     const line = (label, value) => {
       const row = el("p", "line", label);

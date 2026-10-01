@@ -72,8 +72,10 @@ Futbol Fantasy covers LaLiga only."
   and where the next club games are, with how many of your players are in them; in a week of club games, that FF publishes each
   club's next game about a day after its last one.
 - **Play** summarizes the published Sorare plan, estimated chance of any reward, expected essence/cash and time to lock.
+  While Team news has nothing to list (no round it covers), it takes a quarter of the row beside Last gameweek and My cards instead of a whole row.
 - **Last gameweek** compares pre-lock predictions with the owner's submitted-lineup actuals when scores exist. It is the last
-  gameweek that has finished; when another is being played its number follows ("GW17 · GW18 still scoring").
+  gameweek that has finished; when another is being played its number follows ("GW17 · GW18 still scoring"). Each competition's name is
+  written whole on a line of its own with what it won beside it, and its range of expected scores under both.
 - **My cards** shows usable cards, rarity/position shape and the most important constraint.
 
 Every large card is a link to the detailed page. A missing data block should say why—no fixtures, waiting for Sorare,
@@ -256,9 +258,14 @@ for the same reason. Arriving with a week that FF does not cover (a past round, 
 "Futbol Fantasy only has each club's next LaLiga game: round 8. GW19 is national-team games." A match address that is no longer on
 FF says so above the next match.
 
-- **The pitch.** Each team's eleven as cards in rows, attack at the top, with the formation beside the team name. Your own
-  cards show their Sorare art with a blue outline; the others are drawn with FF's photo. The badge under a card is his chance of
-  starting; a round mark at its corner is an injury, a doubt, a ban, or (blue) a call-up to his national team. A call-up is only shown
+- **The pitch.** Each team's eleven as cards in rows, attack at the top, with the formation beside the team name; the two teams sit close,
+  with no empty band between them. **Every player is drawn as his real Sorare card**: the card you own for yours (with a blue outline),
+  and for everyone else a real Limited card of his from Sorare's public listing for this season, so the page looks the same for all
+  22. While a card's picture is on its way it shows his name and position on a quiet skeleton, then the picture alone; a player Sorare
+  has no card for (a club outside LaLiga, a new signing) keeps FF's photo or a silhouette. A club is its real crest, with its shield in
+  the club's colour underneath until the crest arrives. The badge under a card is his chance of starting, and a key under the match
+  head says what its colours mean (80% or more, 60–79%, 40–59%, under 40%). A round mark at a card's corner is an injury, a doubt or a
+  ban; a **blue chip with two letters** ("KE", "ES") is a call-up to that country's national team (hover for the country's name). A call-up is only shown
   once his club has named its match squad on FF; until then the team carries "Squad list not out" and no call-up mark, so the
   page never says both. Names and positions on a card are 11 px or more on a desktop and 10 px on a phone (a long surname ends in an
   ellipsis; hover for the whole name); the card's colour says its rarity, and the hover says it in words.
@@ -266,7 +273,7 @@ FF says so above the next match.
   alternatives (marked "alt"), each with his short name, his chance and, when something is wrong, the icon and the word (doubt, out,
   suspended). The **Only my players** switch dims everyone else, on the pitch and in the injury lists. Every player of yours, in the strip, on the
   pitch, among the alternatives and in the injury list, is a link: it opens his card on **My cards** (his tile is outlined there).
-- **Who could come in for whom.** Under each starter's own card, the names of the alternatives Futbol Fantasy puts in his slot, with their
+- **Who could come in for whom.** Under each starter's own card, the names of the alternatives Futbol Fantasy puts in his slot (the order it gives them), with their
   chance ("DÍAZ 40%" under Toni Martínez, "ALEÑÁ 40%" under Denis Suárez), the way its own pitch draws it. One player can stand under several
   starters (Lookman under both Lee and Grimaldo). Bench players it names under nobody are listed under the pitch as "Also on the bench".
   A reading from before the slots were read (before 2 Oct) places the alternatives under each line instead. A player is written the same short way

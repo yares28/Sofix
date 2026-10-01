@@ -258,7 +258,16 @@ This is the largest step. Give it its own push.
     - a tighter pitch (R34)
     - the Team news tile and the "All Star · Ca…" cut-off (R35)
   - **Stop** until you choose. Save the chosen look as `docs/sorare/design/lineups-v2.html`.
+  - **Your answer (2 Oct 2026):** (A) was "not what I had in mind": the goal is the same Sorare cards as Toni, Rebach and Tenaglia for every
+    player, so (C) was drawn and chosen; on the call-up mark and the colour key he did not choose, so the recommendations were built (the
+    country's two letters on a blue chip; a key of four dots under the match head). Added the same day: who could come in sits under the
+    starter's own card, as Futbol Fantasy draws it (Aleñá under Denis Suárez, Mariano under Toni Martínez, Valentini under Jonny), one
+    player under several starters.
 - **4.2 · Build the chosen look,** then compare it with the board on production at desktop and phone width.
+  - **Built (2 Oct 2026):** real Sorare card for every player (`card_art` job step, `sorare_card_art` read model, `art` in the payload,
+    `PlayerCard`), skeleton while the picture loads, crest on a shield in the club's colour, country-letters call-up chip (`status.nat`),
+    colour key (`CHANCE_KEY`), tighter pitch, per-slot alternatives (`Player.next`, `slotAlternatives`), idle Team news sharing a row with
+    Last gameweek and My cards, and each competition's name written whole in Last gameweek.
 
 ## Results
 

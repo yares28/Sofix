@@ -223,8 +223,16 @@ Each LaLiga club's squad page (`/laliga/equipos/<club>/plantilla`) is read once 
 budget, the same politeness) for where each player plays, which the match pages do not say for anyone outside the eleven. The
 memory of it, and of the line each player was last drawn in, is the `ff_positions` read model. The Lineups page's data is
 written as soon as the site has been read (`ff_lineups.payload` into the `lineups` read model): the eleven drawn in rows from
-the pitch coordinates (rows at fixed heights, read from the goal up), each alternative under the line he covers, the injury
-lists, and which of the people are the owner's. The Home's team news (`ff_news.team_news`, into the planned week as `teamNews`)
+the pitch coordinates (rows at fixed heights, read from the goal up), each alternative under the starter whose slot he could fill, the injury
+lists, and which of the people are the owner's. The match page marks a starter's wrapper with the alternates of his slot (`a.juggador.pos-N`,
+N >= 1, in the order FF gives them), so one player can be second in line for several slots; the parser keeps them as `Player.next`, the
+payload as `next` on each starter (a payload from before 2 Oct has none, and the page then places the alternatives under each line, as it did).
+The card of a player who is not the owner's is a real Sorare Limited card of the current season, found by the job through Sorare's public,
+read-only `football.allCards(playerSlugs, rarities: [limited], seasonStartYears: [2026], first: 1)`, a few players to a query (aliases) so
+the unkeyed complexity limit is never reached (`app.sorare.card_art`; the LaLiga roster is `club.activePlayers`). The result is kept in the
+`sorare_card_art` read model and linked to the people of the page by the same name matching (`ff_link`), inside one club's side; the
+payload carries it as the top-level `art` (player id to picture) and the page falls back to FF's photo, then a silhouette, for a player Sorare
+has no card for. The country of a call-up (`nat`, two letters) travels in the player's status (`ff_use`). The Home's team news (`ff_news.team_news`, into the planned week as `teamNews`)
 is built from the finished page: the owner's players split at 70% and 40%, the first plan's starters under 70%, and what moved by
 10 points or more since a reading at least 16 hours old (`ff_chances` keeps one every six hours for two days). When the job has
 nothing to put in `teamNews`, the tile says why (`teamNews.idleNote`): a week with no LaLiga game is not the site's to cover (national-team

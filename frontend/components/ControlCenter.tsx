@@ -18,7 +18,7 @@ import {
   type PulseState,
   type SystemStatus,
 } from "../lib/control";
-import { extensionAtLeast, pingExtension, type ExtensionPing } from "../lib/extension";
+import { extensionIsLatest, pingExtension, type ExtensionPing } from "../lib/extension";
 import type { QrCode } from "../lib/qr";
 import ExtensionSetup, { type ExtensionStage } from "./control/ExtensionSetup";
 import GetTheApp from "./control/GetTheApp";
@@ -221,7 +221,8 @@ export default function ControlCenter({ serverNow, syncedAt, system: stored, sor
   const missing = chain.filter((node) => !node.on).length;
 
   const extension = system?.extension ?? null;
-  const needsExtensionUpdate = Boolean(extension && !extensionAtLeast(extension.version));
+  // An older build that still works is offered the update too: the newest one reads Futbol Fantasy live.
+  const needsExtensionUpdate = Boolean(extension && !extensionIsLatest(extension.version));
   const stage: ExtensionStage = needsExtensionUpdate ? "update" : !setupLeft(system) ? "done" : extension ? "sign-in" : "add";
   const showExtension = stage !== "done" || setupAtLoad;
   const linked = chain.find((node) => node.id === "sorare")?.on ?? false;

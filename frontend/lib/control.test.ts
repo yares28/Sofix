@@ -179,6 +179,11 @@ describe("connection chain", () => {
     expect(chain[1]).toMatchObject({ on: false, sub: "not seen lately" });
   });
 
+  it("says an extension that works but is not the newest has an update", () => {
+    expect(chainOf(system([], { extension: { ...LINKED, version: "0.2.3" } }), NOW)[1]).toMatchObject({ on: true, sub: "v0.2.3 · update" });
+    expect(chainOf(system([], { extension: { ...LINKED, version: "0.3.0" } }), NOW)[1]).toMatchObject({ on: true, sub: "v0.3.0" });
+  });
+
   it("does not call an old but recently seen extension linked", () => {
     const chain = chainOf(system([], { extension: { ...LINKED, version: "0.1.0" } }), NOW);
     expect(chain[1]).toMatchObject({ on: false, sub: "v0.1.0 · reload" });

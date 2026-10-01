@@ -47,6 +47,9 @@ async function showMonthOf(page: Page, week: Week) {
 
 const gameweek = async (request: APIRequestContext, id: string) => (await playWeeks(request)).find((week) => week.gw === id)!;
 
+/** Where Play lands once this week is picked: its own address, whatever the day the mock's clock puts it on. */
+const addressOf = (week: Week) => new RegExp(`/play\\?w=${week.id}$`);
+
 /**
  * The Sofix extension as Sorare answers through it: one entered lineup, with what it scored, where it ranked and
  * what it was paid, for exactly these gameweeks. Any other gameweek has no lineups. `unscored` is the same lineup before any game: score 0
@@ -289,9 +292,10 @@ test("the gameweek that was played shows what each lineup really scored and won"
   // Which LaLiga round sits inside Sorare GW15, and which month holds it, depends on the shift the mock applies
   // at start-up, so naming either would make this true only on the day it was written. Play counts in Sorare
   // game weeks and the panel lists each of them once (lib/weeks.ts, pageWeeks), so the number addresses it.
-  await showMonthOf(page, await gameweek(request, "15"));
+  const week15 = await gameweek(request, "15");
+  await showMonthOf(page, week15);
   await page.locator(".wk-panel").getByRole("radio", { name: /GW15\b/ }).click();
-  await expect(page).toHaveURL(/\/play\?w=\d{4}-\d{2}-\d{2}$/);
+  await expect(page).toHaveURL(addressOf(week15)); // the week's own address, which carries a suffix when a day is claimed twice
   await expect(page.getByRole("heading", { level: 1, name: "Gameweek 15" })).toBeVisible();
   await expect(page.locator(".pl-eyebrow").first()).toContainText("Sorare · played");
 
@@ -533,27 +537,28 @@ test("the week in the bar moves the whole app, a month at a time", async ({ page
   // Which LaLiga round sits inside Sorare GW15, and which month holds it, depends on the shift the mock applies
   // at start-up, so naming either would make this true only on the day it was written. Play counts in Sorare
   // game weeks and the panel lists each of them once (lib/weeks.ts, pageWeeks), so the number addresses it.
-  await showMonthOf(page, await gameweek(request, "15"));
+  const week15 = await gameweek(request, "15");
+  await showMonthOf(page, week15);
   const played = panel.getByRole("radio", { name: /GW15\b/ });
   await expect(played).toContainText("our plan's replay");
   await played.click();
-  await expect(page).toHaveURL(/\/play\?w=\d{4}-\d{2}-\d{2}$/);
+  await expect(page).toHaveURL(addressOf(week15));
   await expect(page.getByRole("heading", { level: 1, name: "Gameweek 15" })).toBeVisible();
   await expect(trigger).toContainText("GW15");
 
   // The same week, carried to another page by the address alone. Each page counts in its own gameweeks and
   // shows its own days: Play the whole Sorare game week, the board the LaLiga round inside it — which can be
-  // one of two, so the round is the week here and the game week is the wider span.
+  // one of two, so the round is the week here and the game week is the wider span. The mock moves the Sorare
+  // weeks with the clock and not the recorded grid, so whether any round sits inside GW15 changes through the
+  // day: the page is held to what the week really holds, read from what is served, never to one of the two.
   const week = new URL(page.url()).searchParams.get("w")!;
   await page.goto(`/difficulty?w=${week}`);
-  if ((await gameweek(request, "15")).md === null) {
-    // The mock moves the Sorare weeks with the clock and not the grid's, so whether a LaLiga round sits inside GW15 depends on the
-    // day the test runs (not during an international break). A week with no round has no board: the page shows your week there.
-    await expect(page.locator(".wk-trigger")).toContainText("GW15");
-    await expect(page.getByRole("region", { name: "Your week" })).toContainText("Outside LaLiga there is no difficulty to rate");
+  if (week15.md !== null) {
+    await expect(page.locator(".wk-trigger b")).toHaveText(`GW${week15.md}`);
+    await expect(page.locator(".toolbar .range")).toContainText(`GW${week15.md}`); // the board followed the week
   } else {
-    const round = (await page.locator(".wk-trigger b").textContent())!.replace("GW", "");
-    await expect(page.locator(".toolbar .range")).toContainText(`GW${round}`); // the board followed the week
+    await expect(page.locator(".wk-trigger b")).toHaveText("Sorare GW15"); // no round of ours to name it by
+    await expect(page.locator(".toolbar")).toHaveCount(0); // and no round invented to draw (it says LaLiga is away)
   }
   // Which days each page prints for it is covered where the rule lives (lib/weeks.test.ts).
   await expect(page.locator("#gw-select")).toHaveCount(0); // the board's own selector is gone

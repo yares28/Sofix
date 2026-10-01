@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   MAX_AGE_MS,
   calledUpIn,
+  chanceTone,
   freshness,
   kickoffLabel,
   matchState,
@@ -13,10 +14,12 @@ import {
   tint,
   yoursIn,
   yoursLabel,
+  yoursPlayers,
   yoursSummary,
   type LineupMatch,
   type LineupsData,
   type LineupSide,
+  type PlayerKind,
   type Section,
 } from "../../lib/lineups";
 import { ExternalIcon, InfoIcon, KindIcon, CalledUpIcon } from "./Icons";
@@ -107,6 +110,7 @@ export default function LineupsView({ data, sections, section, selected, now, cl
 
       <article className="lu-match" aria-label={`${selected.home.name} against ${selected.away.name}`}>
         <MatchHead match={selected} state={state} now={now} clubs={clubs} />
+        <YoursStrip match={selected} />
         <fieldset className="lu-switch" aria-label="Team">
           <legend className="visually-hidden">Team</legend>
           <input type="radio" name="lu-side" id="lu-side-home" className="lu-pick lu-pick-home" defaultChecked />
@@ -127,6 +131,51 @@ export default function LineupsView({ data, sections, section, selected, now, cl
         <Legend calledUp={calledUpIn(selected)} />
       </article>
     </main>
+  );
+}
+
+const WORD: Partial<Record<PlayerKind, string>> = { out: "out", doubt: "doubt", suspended: "suspended" };
+const pct = (p: number | null) => (p === null ? "–" : `${Math.round(p * 100)}%`);
+
+/**
+ * Your players are the point of the page, so they come first: who of yours the match names, with his chance, whether he is in the
+ * eleven or an alternative, and what is wrong with him. The switch dims everyone else on the pitch and in the lists (CSS only).
+ */
+function YoursStrip({ match }: { match: LineupMatch }) {
+  const list = yoursPlayers(match);
+  return (
+    <section className="lu-yours" aria-label="Your players in this match">
+      <div className="lu-yours-head">
+        <h2>{list.length === 0 ? "None of your players are in this match" : `Your ${list.length} here`}</h2>
+        {list.length > 0 ? (
+          <label className="lu-only" htmlFor="lu-only">
+            <input type="checkbox" role="switch" id="lu-only" />
+            Only my players
+          </label>
+        ) : null}
+      </div>
+      {list.length > 0 ? (
+        <ul className="lu-yours-list">
+          {list.map((player) => (
+            <li
+              key={player.slug}
+              className="lu-yours-one"
+              data-starting={player.starting ? "" : undefined}
+              data-kind={player.kind ?? undefined}
+              title={`${player.name} (${player.club}): ${player.starting ? "in the probable eleven" : "an alternative"}`}
+            >
+              <b>{player.label}</b>
+              <span className="lu-pct lu-pct-sm" data-tone={chanceTone(player.p)}>
+                {pct(player.p)}
+              </span>
+              {player.kind ? <KindIcon kind={player.kind} size={15} /> : null}
+              {player.kind && WORD[player.kind] ? <span className="lu-yours-word">{WORD[player.kind]}</span> : null}
+              {!player.starting ? <span className="lu-yours-alt">alt</span> : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
   );
 }
 

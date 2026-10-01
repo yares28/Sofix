@@ -26,6 +26,7 @@ import {
   tint,
   yoursIn,
   yoursLabel,
+  yoursPlayers,
   type LineupMatch,
   type LineupSide,
   type LineupsData,
@@ -234,6 +235,39 @@ describe("the glance Home takes at the lineups", () => {
     expect(lineupsGlance(data([]), NOW)).toBeNull();
     expect(lineupsGlance(data([two("2026-10-09T14:15:00Z")]), NOW)).toBeNull();
     expect(lineupsGlance(data([two("2026-10-14T19:00:00Z", europa)]), NOW)).toBeNull();
+  });
+});
+
+describe("your players in a match, for the strip at its top", () => {
+  const one = match(1, "2026-10-11T14:15:00Z", {
+    home: side("Home", {
+      club: "RSO",
+      rows: [{ line: "FWD", players: [player("1", { name: "Mikel Oyarzabal", p: 0.9, yours: "oyarzabal" }), player("2", { name: "Ander Barrenetxea", p: 0.5 })] }],
+      alternatives: [player("3", { name: "Takefusa Kubo", p: 0.4, yours: "kubo" }), player("4", { name: "Orri Steinn Óskarsson", p: 0, yours: "orri", status: { kind: "suspended" } })],
+    }),
+    away: side("Away", {
+      club: "DEP",
+      rows: [{ line: "DEF", players: [player("5", { name: "Luismi Cruz", p: 0.7, yours: "luismi", status: { kind: "doubt" } })] }],
+      alternatives: [player("6", { name: "Noé Carrillo", p: null, yours: "noe" })],
+    }),
+  });
+
+  it("lists the eleven first by chance, then the alternatives, with his short name, club and what is wrong with him", () => {
+    const list = yoursPlayers(one);
+
+    expect(list.map((p) => [p.label, p.p, p.starting, p.club, p.kind])).toEqual([
+      ["OYARZABAL", 0.9, true, "RSO", null],
+      ["CRUZ", 0.7, true, "DEP", "doubt"],
+      ["KUBO", 0.4, false, "RSO", null],
+      ["CARRILLO", null, false, "DEP", null],
+      ["ÓSKARSSON", 0, false, "RSO", "suspended"],
+    ]);
+    expect(list[0]).toMatchObject({ slug: "oyarzabal", name: "Mikel Oyarzabal" });
+  });
+
+  it("counts the same players as the tab does", () => {
+    expect(yoursPlayers(one)).toHaveLength(yoursIn(one));
+    expect(yoursPlayers(match(2, null))).toEqual([]);
   });
 });
 

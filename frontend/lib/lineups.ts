@@ -271,6 +271,38 @@ export function yoursLabel(match: LineupMatch): string {
   return `${yoursIn(match)} yours · ${startersIn(match)} starting`;
 }
 
+export type YoursPlayer = {
+  slug: string;
+  id: string;
+  name: string;
+  /** His short name, the same on a card and on a chip. */
+  label: string;
+  p: number | null;
+  kind: PlayerKind | null;
+  /** In the probable eleven (else an alternative). */
+  starting: boolean;
+  /** His club's short code. */
+  club: string;
+};
+
+/**
+ * The owner's players a match names, for the strip at its top: the eleven first, then the alternatives, each by chance (a player with
+ * none given, or at 0, last), then by name.
+ */
+export function yoursPlayers(match: LineupMatch): YoursPlayer[] {
+  const out: YoursPlayer[] = [];
+  for (const side of [match.home, match.away]) {
+    const labels = playerLabels([...side.rows.flatMap((row) => row.players), ...side.alternatives]);
+    const named = (player: LineupPlayer, starting: boolean) => {
+      if (!player.yours) return;
+      out.push({ slug: player.yours, id: player.id, name: player.name, label: labels[player.id] ?? player.name, p: player.p, kind: player.status?.kind ?? null, starting, club: shortCode(side) });
+    };
+    for (const row of side.rows) for (const player of row.players) named(player, true);
+    for (const player of side.alternatives) named(player, false);
+  }
+  return out.sort((a, b) => Number(b.starting) - Number(a.starting) || (b.p ?? 0) - (a.p ?? 0) || a.name.localeCompare(b.name));
+}
+
 // ---------------------------------------------------------------------------------------------------- how fresh
 export type Freshness = {
   /** fresh: read under a day ago; failed: the last ask got nothing new; old: what is held is over a day old; none: never read. */

@@ -231,3 +231,35 @@ test("a pitch card and an alternative's chip write a player's name the same way,
     expect(text, `${full} as a chip`).not.toBe(full.includes(" ") ? full : "");
   }
 });
+
+test("your players are listed at the top of each match with their chance and what is wrong, and a switch dims everyone else", async ({ page }) => {
+  await page.goto("/lineups?m=22502");
+  const strip = page.getByRole("region", { name: "Your players in this match" });
+
+  await expect(strip.getByRole("heading")).toHaveText(/^Your \d+ here$/);
+  const listed = await strip.locator(".lu-yours-one").count();
+  const named = Number(((await page.locator('.lu-chip[aria-current="page"]').innerText()).match(/(\d+) yours/) ?? [])[1]);
+  expect(listed, "the strip lists the same players the tab counts").toBe(named);
+  // one of yours is in doubt for this round: his short name, his chance and the word say so
+  const zubeldia = strip.locator(".lu-yours-one", { hasText: "ZUBELDIA" });
+  await expect(zubeldia).toContainText("50%");
+  await expect(zubeldia).toContainText("doubt");
+  // everyone else is dimmed by the switch, and yours are not
+  const others = page.locator(".lu-card:not([data-mine])").first();
+  const mine = page.locator(".lu-card[data-mine]").first();
+  await expect(others).toHaveCSS("opacity", "1");
+  await strip.getByRole("switch", { name: "Only my players" }).check();
+  await expect(others).toHaveCSS("opacity", "0.22");
+  await expect(mine).toHaveCSS("opacity", "1");
+  await strip.getByRole("switch", { name: "Only my players" }).uncheck();
+  await expect(others).toHaveCSS("opacity", "1");
+});
+
+test("a match with none of your players says so, and offers no switch", async ({ page }) => {
+  await page.goto("/lineups");
+  const strips = page.getByRole("region", { name: "Your players in this match" });
+  await page.goto("/lineups?m=22496"); // the mock's Levante–Sevilla names none of yours
+  await expect(page.locator('.lu-chip[aria-current="page"]')).toContainText("0 yours · 0 starting");
+  await expect(strips.getByRole("heading")).toHaveText("None of your players are in this match");
+  await expect(strips.getByRole("switch")).toHaveCount(0);
+});

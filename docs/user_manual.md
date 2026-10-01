@@ -255,6 +255,9 @@ FF says so above the next match.
   starting; a round mark at its corner is an injury, a doubt, a ban, or (blue) a call-up to his national team. A call-up is only shown
   once his club has named its match squad on FF; until then the team carries "Squad list not out" and no call-up mark, so the
   page never says both.
+- **Your players, first.** Above the pitch a strip lists the players of yours the match names ("Your 3 here"): the eleven first, then the
+  alternatives (marked "alt"), each with his short name, his chance and, when something is wrong, the icon and the word (doubt, out,
+  suspended). The **Only my players** switch dims everyone else, on the pitch and in the injury lists.
 - **Who else could play.** Under each line, the alternatives most likely first, with their chance. A player is written the same short way
   on his card and on a chip (his surname, with an initial where two of a side share it), and his full name shows on hover. The % badge
   sits under a card, never over the name Sorare prints on your own cards. A player FF has not

@@ -164,6 +164,9 @@ const lineupsPayload = (() => {
     match.readAt = ago(0.1);
     for (const side of [match.home, match.away]) if (side.changedAt) side.changedAt = ago(20);
   }
+  // One match that names none of the owner's players (Levante–Sevilla), so the strip's empty state has something to show.
+  const quiet = data.matches.find((match) => match.id === 22496);
+  for (const side of [quiet.home, quiet.away]) for (const one of [...side.rows.flatMap((row) => row.players), ...side.alternatives]) delete one.yours;
   const sociedad = data.matches.find((match) => match.id === 22502);
   spanishInjuries(sociedad);
   calledUp(sociedad);

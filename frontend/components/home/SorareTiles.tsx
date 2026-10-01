@@ -77,6 +77,11 @@ function PlayTile({ week, now }: { week: GameweekPlan; now: Date }) {
             <span>
               <b>{plan.lineups.length}</b> {noun(plan.lineups.length, "lineup")}
             </span>
+            {plan.lineups.some((lineup) => lineup.expected) ? (
+              <span>
+                <b>{plan.lineups.filter((lineup) => lineup.expected).length}</b> expected
+              </span>
+            ) : null}
             <span>
               <b>{plan.cardsUsed}</b> of {plan.cardsAvailable} cards
             </span>

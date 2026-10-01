@@ -348,3 +348,27 @@ describe("what Play says for a week it holds no plan for", () => {
     });
   });
 });
+
+describe("a week whose competitions Sorare has not opened", () => {
+  const base = seasonWeeks(grid, sorare, NOW).find((w) => w.number === 17)!;
+
+  it("says expected beside what the plan is worth", () => {
+    expect(weekValue(base).note).toBe("1 plan");
+    expect(weekValue({ ...base, expected: true }).note).toBe("1 plan · expected");
+  });
+
+  it("says expected beside an early plan too", () => {
+    const early = { ...base, gw: null, essence: null, plans: 1, replay: null, early: true, cards: 14 };
+
+    expect(weekValue(early)).toEqual({ value: "14", note: "early plan" });
+    expect(weekValue({ ...early, expected: true })).toEqual({ value: "14", note: "early plan · expected" });
+  });
+
+  it("is read from the plan's own competitions: any that Sorare has not opened", () => {
+    const plan = week("17", { playable: [{ name: "LaLiga", key: "k", group: "In-season", rarity: "limited", fee: 0, size: 5, subs: 2, cap: null, max: 1, entries: 0, tiers: [], expected: true }] });
+    const asked = seasonWeeks(grid, { ...sorare, weeks: [plan, ...sorare.weeks.filter((w) => w.gameweek.id !== "17")] } as Sorare, NOW);
+
+    expect(asked.find((w) => w.number === 17)!.expected).toBe(true);
+    expect(seasonWeeks(grid, sorare, NOW).find((w) => w.number === 17)!.expected).toBe(false);
+  });
+});

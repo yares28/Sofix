@@ -258,7 +258,7 @@ Target: S1 to S4 before round 8's lock (Fri 9 Oct), so the numbers switch for ro
 | The game has kicked off | FF no longer used; /lineups marks it started, then played |
 | International break | FF already has the next LaLiga round; the gameweek's national games use Sorare, then form; /lineups and home show the LaLiga round ahead with its date |
 | A cup game Sorare does not count | Shown on /lineups only; plans follow Sorare's own game list (the existing rule) |
-| The second and third open Sorare gameweeks, and early plans for later rounds | No FF: it only has each team's next game |
+| The second and third open Sorare gameweeks, and early plans for later rounds | FF only for the games it holds (each team's next game): a weekend round that sits in an opened week ahead during a break takes it, every other game stands on form |
 | The early plan for the round FF holds (a round before Sorare opens its gameweek, e.g. round 8 during a break) | FF's chance, with its mark and read time; anyone out or suspended is in no lineup. That plan is made again every run, as FF's lineups move; rounds after it keep form |
 | A Sorare gameweek with two LaLiga rounds | Already one week per round (since 28 Sep); FF is per match anyway |
 

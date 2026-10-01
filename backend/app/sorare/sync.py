@@ -16,6 +16,7 @@ import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from app.sorare import expected
 from app.sorare.client import SorareClient, SorareError
 from app.sorare.model import SORARE_POSITION
 
@@ -100,7 +101,7 @@ query($p:String!,$from:ISO8601DateTime!,$to:ISO8601DateTime!){ anyPlayer(slug:$p
 """
 
 GAMES = """
-query($s:String!){ so5 { so5Fixture(slug:$s){ games { id } } } }
+query($s:String!){ so5 { so5Fixture(slug:$s){ games { id competition { slug } } } } }
 """
 
 RANK = """
@@ -495,12 +496,52 @@ def sample_rooms(client: SorareClient, fixture: str, wanted: set[str], per_type:
     return out
 
 
-def games_count(client: SorareClient, fixture: str) -> int:
-    """How much football a gameweek holds. A break week has a fraction of a full weekend's games."""
+def games_summary(client: SorareClient, fixture: str) -> tuple[int, int]:
+    """How much football a gameweek holds, and how much of it is LaLiga: (all games, LaLiga games).
+
+    A break week has a fraction of a full weekend's games; the LaLiga count is what decides whether Sorare opens LaLiga's
+    competitions for it (`expected`).
+    """
     try:
-        return len(client.query(GAMES, {"s": fixture})["so5"]["so5Fixture"]["games"])
+        games = client.query(GAMES, {"s": fixture})["so5"]["so5Fixture"]["games"]
     except SorareError:
-        return 0
+        return 0, 0
+    return len(games), sum(1 for game in games if (game.get("competition") or {}).get("slug") == expected.LALIGA)
+
+
+def expected_templates(
+    client: SorareClient,
+    weeks: list[dict[str, Any]],
+    now: datetime,
+    my_leagues: set[str],
+    cached: dict[str, Any] | None,
+) -> dict[str, dict[str, Any]]:
+    """The finished gameweeks whose LaLiga competitions stand in for the ones Sorare has not opened (`expected.pick_templates`).
+
+    Each is read once, when it becomes the latest of its kind, and kept: a finished gameweek never changes.
+    """
+    out: dict[str, dict[str, Any]] = {}
+    for kind, week in expected.pick_templates(weeks, now).items():
+        stored = (cached or {}).get(kind)
+        if stored and stored.get("slug") == week["slug"] and stored.get("competitions"):
+            out[kind] = stored
+            continue
+        try:
+            comps = expected.laliga_competitions(competitions(client, week["slug"], my_leagues))
+        except SorareError as exc:  # the plans can do without it: keep the one read before, if any
+            logger.warning("sorare: no template %s (%s)", week["slug"], exc)
+            if stored and stored.get("competitions"):
+                out[kind] = stored
+            continue
+        if comps:
+            out[kind] = {
+                "slug": week["slug"],
+                "number": week["number"],
+                "name": week["name"],
+                "laliga": week["laliga"],
+                "competitions": comps,
+            }
+    return out
 
 
 def pick_reference(done: list[dict[str, Any]], target: dict[str, Any], spread: float = 0.45) -> dict[str, Any] | None:
@@ -573,6 +614,7 @@ def snapshot(
     cached_references: dict[str, Any] | None = None,
     replayed: str | None = None,
     ahead: int = 2,
+    cached_templates: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """One run's worth of Sorare: the gameweek to plan, the last one played, and everything about both.
 
@@ -584,7 +626,7 @@ def snapshot(
     picked = pick_gameweeks(weeks, now, ahead=ahead)
     plan_gw, past_gw, ahead_gws = picked["plan"], picked["past"], picked["ahead"]
     for week in recent_weeks(weeks, now):  # how much football each gameweek holds, to compare like with like
-        week["games"] = games_count(client, week["slug"])
+        week["games"], week["laliga"] = games_summary(client, week["slug"])
     past_slug = past_gw["slug"] if past_gw else plan_gw["slug"]
     # One alias per gameweek: the games of all of them come back in the same pages of cards.
     aliases = {"plan": plan_gw["slug"], "past": past_slug}
@@ -641,6 +683,13 @@ def snapshot(
         )
         unanswered += client.errors - mark
 
+    # The LaLiga competitions of the latest finished week of each kind, to plan the weeks Sorare has not opened them for.
+    templates = expected_templates(client, done, now, my_leagues, cached_templates)  # type: ignore[arg-type]
+    for template in templates.values():
+        references[template["slug"]] = reference_scores(
+            client, template["slug"], template["number"], template["competitions"], references.get(template["slug"])
+        )
+
     gaps = past_gaps(past_comps, my_cards, scores, unanswered) if replaying else []
     market = laliga_index(client)  # the Player search index (S5); empty if the fetch fails
 
@@ -657,6 +706,7 @@ def snapshot(
         "history": scores,
         "references": references,
         "referenceFor": reference_for,
+        "expected": templates,
         "market": market,
         "calls": client.calls,
     }

@@ -839,6 +839,15 @@
   white-space: nowrap;
 }
 
+/* A competition Sorare has not opened yet: copied from a finished week, nothing to enter. */
+.pl-exp {
+  display: block;
+  margin: 2px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8a5300;
+}
+
 /* ---------- folded lists ---------- */
 .pl-fold {
   margin-top: 14px;

@@ -4,6 +4,7 @@ import {
   allocation,
   cashLabel,
   chanceLabel,
+  enterable,
   essenceLabel,
   formatOf,
   insideRange,
@@ -85,13 +86,24 @@ export default function PlayView({
           <span aria-hidden="true">≈</span>
           <div>
             <b>An early plan</b>
-            Sorare hasn&apos;t opened this week. Built from LaLiga&apos;s calendar, your cards&apos; form and the competitions of{" "}
-            {week.projected.basedOn}; it moves as the week gets closer, and nothing here can be entered yet.
+            {week.projected.expected
+              ? `Sorare hasn't opened this week. Built from LaLiga's calendar, your cards' form and the LaLiga competitions Sorare opened for ${week.projected.basedOn}, which it is expected to open again. Built on form, so later weeks look alike until Sorare opens them; it moves as the week gets closer, and nothing here can be entered yet.`
+              : "Sorare hasn't opened this week, and there is no finished week of its kind to copy its competitions from. Built from LaLiga's calendar and your cards' form; it moves as the week gets closer, and nothing here can be entered yet."}
           </div>
         </div>
       ) : (
         <EnteredLineups week={week.gameweek} />
       )}
+      {!week.projected && week.playable.some((option) => option.expected) ? (
+        <div className="pl-alert early" role="status">
+          <span aria-hidden="true">≈</span>
+          <div>
+            <b>Some lineups are expected</b>
+            Sorare has not listed LaLiga&apos;s competitions for this week yet. The lineups marked Expected use the ones it opened for{" "}
+            {week.playable.find((option) => option.expected)?.expectedFrom}; they cannot be entered until it lists them.
+          </div>
+        </div>
+      ) : null}
       {plan ? (
         <>
           <PlanSwitch plans={plans} planIndex={planIndex} after={after} href={href} />
@@ -313,7 +325,7 @@ function PlanHero({ plan, week, after, now }: { plan: Plan; week: GameweekPlan; 
         </div>
         <div className="pl-actions">
           {after || week.projected ? null : (
-            <ApplySheet lineups={plan.lineups} week={week} rank={plan.rank} now={now.toISOString()} />
+            <ApplySheet lineups={enterable(plan.lineups)} week={week} rank={plan.rank} now={now.toISOString()} />
           )}
         </div>
       </div>

@@ -11,7 +11,7 @@ from app.jobs import sorare as sorare_job
 from app.sorare import projection, publish
 from app.sorare.model import Card
 from tests.test_pipeline import db  # noqa: F401  (fixture)
-from tests.test_sorare_publish import AHEAD_GW, PAST_GW, PLAN_GW, snapshot
+from tests.test_sorare_publish import AHEAD_GW, PAST_GW, PLAN_GW, competition, snapshot
 
 CLUBS = {"club-a": "Barcelona", "club-b": "Real Madrid", "club-c": "Sevilla"}
 FCB = projection.Side("FCB", "Barcelona", "https://crests.football-data.org/81.png")
@@ -139,9 +139,48 @@ def early_snapshot() -> dict[str, Any]:
     return snap
 
 
+def laliga(raw: dict[str, Any], league_slugs: list[str] | None = None) -> dict[str, Any]:
+    return {**raw, "leagueCompetitions": league_slugs or ["laliga-es"]}
+
+
+def with_templates(snap: dict[str, Any], *, full: bool = True, thin: bool = False) -> dict[str, Any]:
+    """The snapshot as a run that read the finished gameweeks leaves it: the LaLiga competitions of the latest week of each kind."""
+    cuts = {"1": 520.0, "50": 430.0, "1500": 300.0}
+    snap = {**snap, "references": dict(snap["references"]), "expected": {}}
+    if full:
+        snap["expected"]["full"] = {
+            "slug": "gw-full",
+            "number": 15,
+            "name": "Game Week 15",
+            "laliga": 10,
+            "competitions": [
+                laliga(competition("LALIGA EA SPORTS", "Limited", leagues=["laliga-es"])),
+                laliga(competition("Champion", "Limited", size=7, in_season=False, leagues=["laliga-es"])),
+            ],
+        }
+        snap["references"]["gw-full"] = {
+            "LALIGA EA SPORTS | Limited": {"from": "gw-full", "gameweek": 15, "cuts": cuts},
+            "Champion | Limited": {"from": "gw-full", "gameweek": 15, "cuts": cuts},
+        }
+    if thin:
+        snap["expected"]["thin"] = {
+            "slug": "gw-thin",
+            "number": 10,
+            "name": "Game Week 10",
+            "laliga": 1,
+            "competitions": [laliga(competition("LALIGA EA SPORTS", "Limited", leagues=["laliga-es"]))],
+        }
+        snap["references"]["gw-thin"] = {
+            "LALIGA EA SPORTS | Limited": {"from": "gw-thin", "gameweek": 10, "cuts": cuts}
+        }
+    return snap
+
+
 @pytest.fixture(scope="module")
 def early() -> list[dict[str, Any]]:
-    return publish.projected_weeks(early_snapshot(), rounds()[1:], runs=4, draws=300)
+    return publish.projected_weeks(
+        with_templates(early_snapshot(), full=True, thin=True), rounds()[1:], runs=4, draws=300
+    )
 
 
 def test_every_unopened_round_becomes_a_week_of_its_own(early):
@@ -157,7 +196,10 @@ def test_every_unopened_round_becomes_a_week_of_its_own(early):
 def test_it_says_what_it_is_built_from(early):
     note = early[0]["projected"]
     assert note["round"] == 11
-    assert note["basedOn"] == "GW21", "the competitions of the week being planned"
+    assert note["basedOn"] == "GW10", (
+        "the competitions of the finished week of its kind: round 11 has two games, a thin week"
+    )
+    assert note["expected"] is True
     assert early[0]["source"] == "form", "Sorare projects only a player's next game"
 
 
@@ -184,7 +226,7 @@ def test_a_round_no_club_of_yours_plays_in_is_an_honest_empty_week():
 def test_the_main_page_only_carries_a_headline_for_each_early_week(early):
     heads = publish.projected_heads(early)
     assert [h["round"] for h in heads] == [11, 36]
-    assert set(heads[0]) == {"round", "id", "from", "to", "cards", "plans"}
+    assert set(heads[0]) == {"round", "id", "from", "to", "cards", "plans", "expected"}
     payload = publish.build_payload(early_snapshot(), runs=2, draws=100, projected=heads)
     assert payload["projected"] == heads
     assert len(str(payload["projected"])) < 2000, "the whole week is not in the main page"

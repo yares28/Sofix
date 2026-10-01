@@ -33,7 +33,11 @@ def keep(db, number: int, age: timedelta, *, start: str | None = None) -> dict[s
     """A stored early plan for a round, written `age` ago, for the dates `rounds()` gives that round unless told otherwise."""
     first = at("2026-10-31") + timedelta(days=7 * (number - 10))
     window = start or projection.window(first)[0].isoformat()
-    payload = {"projected": {"round": number, "basedOn": "GW21"}, "gameweek": {"start": window}, "stored": True}
+    payload = {
+        "projected": {"round": number, "basedOn": "GW21", "expected": True},
+        "gameweek": {"start": window},
+        "stored": True,
+    }
     db.add(ReadModel(key=f"{publish.AHEAD_PREFIX}{number}", payload=payload, updated_at=NOW - age))
     db.commit()
     return payload
@@ -115,7 +119,7 @@ def test_a_stored_time_with_or_without_a_zone_is_read_the_same(db, naive: bool) 
         ReadModel(
             key=f"{publish.AHEAD_PREFIX}10",
             payload={
-                "projected": {"round": 10},
+                "projected": {"round": 10, "expected": True},
                 "gameweek": {"start": projection.window(rounds(1)[0].first)[0].isoformat()},
             },
             updated_at=stamp.replace(tzinfo=None) if naive else stamp,

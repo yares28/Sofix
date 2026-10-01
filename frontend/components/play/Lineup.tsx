@@ -69,6 +69,7 @@ export default function Lineup({
           <i style={{ width: `${Math.round(chance * 100)}%` }} />
         </span>
       )}
+      {lineup.expected ? <span className="pl-exp">Expected · Sorare has not opened it yet</span> : null}
       <MiniCards lineup={lineup} after={after} />
       <span className="pl-lu-foot">
         <RewardChips lineup={lineup} after={after} />
@@ -83,6 +84,11 @@ export default function Lineup({
       <h2>{lineup.comp}</h2>
       <span className={`pl-group ${group}`}>{lineup.group}</span>
       <span className="pl-fmt">{paysNote(lineup)}</span>
+      {lineup.expected ? (
+        <span className="pl-exp" title={`Copied from ${lineup.expectedFrom}`}>
+          Expected · Sorare has not opened it yet
+        </span>
+      ) : null}
     </>
   );
 

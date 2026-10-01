@@ -227,8 +227,9 @@ the pitch coordinates (rows at fixed heights, read from the goal up), each alter
 lists, and which of the people are the owner's. The Home's team news (`ff_news.team_news`, into the planned week as `teamNews`)
 is built from the finished page: the owner's players split at 70% and 40%, the first plan's starters under 70%, and what moved by
 10 points or more since a reading at least 16 hours old (`ff_chances` keeps one every six hours for two days). When the job has
-nothing to put in `teamNews`, the tile says why (`teamNews.idleNote`): a week whose every game is a national team's is not the site's
-to cover, and the note points to the LaLiga round the Lineups page holds (`lineups.lineupsGlance`, the owner's distinct players in
+nothing to put in `teamNews`, the tile says why (`teamNews.idleNote`): a week with no LaLiga game is not the site's to cover (national-team
+games the bulk of it is a "break"; a few games of other leagues that play on, Segunda or Argentina, do not make it a club week), and the
+note points to the LaLiga round the Lineups page holds (`lineups.lineupsGlance`, the owner's distinct players in
 it); in a week of club games the site has simply not reached it yet.
 
 The extension does the same arithmetic for a chance it reads live: his chance of coming on is what is left, at the rate he comes
@@ -253,11 +254,27 @@ Sorare opens a gameweek only a few days ahead, but LaLiga's calendar is known fo
 has not started and sits in no gameweek Sorare has opened is planned early (`projected_weeks`). Its window is the one
 Sorare will most likely draw (weekend Friday 14:00 UTC to Tuesday 14:00, midweek Tuesday to Friday; `projection.window`),
 which of your cards play comes from the calendar (`projection.games_for`, clubs matched through the team registry), the
-competitions are those of the gameweek being planned, and the forecasts stand on form, since Sorare projects only a
+competitions are the LaLiga ones Sorare is going to open (below), and the forecasts stand on form, since Sorare projects only a
 player's next game. The one exception is Futbol Fantasy, which has each club's next game: for the round it holds (match
 by the two clubs and the kickoff, `ff_use.Lineups.covers`) the early plan takes its chance to start, with its mark and read
 time, and a player it has out or suspended is in no lineup. That round is planned again every run, because its lineups
-move (`early.choose`, `live`); every later round has no Futbol Fantasy and stands on form. One plan per round; each is kept as its own row (`sorare_ahead:<round>`). Planning one takes a few
+move (`early.choose`, `live`); every later round has no Futbol Fantasy and stands on form. The same holds for a gameweek Sorare has opened but is not planning yet
+(`build_payload` passes the reader to it): when the round the site holds sits in it, as the weekend round does during a break, those games
+take its chance and the rest of the week stands on form. One plan per round; each is kept as its own
+row (`sorare_ahead:<round>`).
+
+**The competitions Sorare is going to open** (`app.sorare.expected`). Sorare opens a gameweek's competitions only a few days ahead, so
+a round weeks away is planned for the ones it opened for the rounds before. Measured on gameweeks 1 to 21 of 2026/27 (Sorare's API,
+22 read-only calls): LaLiga's own competitions (LALIGA EA SPORTS, Under 23, All Star with LaLiga in it) were opened in all 11 gameweeks
+that held a LaLiga game, even one, and in none of the 10 that held none; the Champion league (the top five leagues together) in all 8
+with five or more LaLiga games and in none of the 3 with fewer. So a round with a LaLiga game is a "thin" week (1 to 4 games) or a
+"full" one (5 or more), and takes the competitions, rewards and reward cut-offs of the latest finished gameweek of its kind
+(`sync.expected_templates`, kept in the `sorare_templates` row: a finished week never changes, so each is read once). Each such
+competition is marked `expected` with the week it was copied from, is planned for like any other (one card is never in two
+lineups of a plan, official or not) and cannot be entered: Apply only works for competitions Sorare lists. The same is added to a
+gameweek Sorare has opened that holds a LaLiga game but lists no LaLiga competition for it yet; once it lists them the next run
+shows only Sorare's own, never both (`publish.with_expected`). A round with no game, or no finished week of its kind yet, gets
+none; a national-team week keeps its own competitions. Planning one takes a few
 seconds with a real collection, so a run plans only the rounds with no plan yet, then the stalest (`app.sorare.early`): the
 next four rounds are kept current to six hours and the far ones to a day, at most eight a run, and the others keep showing
 the plan they have. A stored plan is reused only when it was made for the round's dates as the calendar holds them now

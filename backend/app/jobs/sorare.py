@@ -43,12 +43,20 @@ logger = logging.getLogger(__name__)
 
 SORARE_KEY = "sorare"
 REFERENCES_KEY = "sorare_references"
+TEMPLATES_KEY = (
+    "sorare_templates"  # the finished gameweeks whose LaLiga competitions stand in for the ones Sorare has not opened
+)
 
 T = TypeVar("T")
 
 
 def cached_references(db: Session) -> dict[str, Any]:
     row = db.get(ReadModel, REFERENCES_KEY)
+    return dict(row.payload) if row and isinstance(row.payload, dict) else {}
+
+
+def cached_templates(db: Session) -> dict[str, Any]:
+    row = db.get(ReadModel, TEMPLATES_KEY)
     return dict(row.payload) if row and isinstance(row.payload, dict) else {}
 
 
@@ -198,6 +206,7 @@ def run(
         return {"skipped": "no SORARE_API_KEY"}
     started = datetime.now(UTC)
     references = cached_references(db)
+    templates = cached_templates(db)
     previous = published(db)
     # A finished gameweek's replay never changes once its scores are final: keep it, and fetch nothing for it.
     kept = sorare_publish.settled_replay(previous)
@@ -207,7 +216,12 @@ def run(
     db.rollback()
     with SorareClient() as client:
         snapshot = sorare_sync.snapshot(
-            client, user or settings.sorare_user, started, cached_references=references, replayed=replayed
+            client,
+            user or settings.sorare_user,
+            started,
+            cached_references=references,
+            replayed=replayed,
+            cached_templates=templates,
         )
     # Understat's xG for the midfielders and forwards, for the leagues the owner has players in: one request each, and a
     # league that cannot be read is left out, so its players simply show no xG.
@@ -306,6 +320,10 @@ def run(
         summary["archived"] = archived[0]
     put(db, SORARE_KEY, payload, now)
     put(db, REFERENCES_KEY, snapshot["references"], now)
+    if (
+        snapshot.get("expected") or {}
+    ) != templates:  # a finished week never changes: write only when a new one became the template
+        put(db, TEMPLATES_KEY, snapshot.get("expected") or {}, now)
     optional(
         db,
         failed,

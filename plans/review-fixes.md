@@ -232,6 +232,13 @@ This is the largest step. Give it its own push.
 
 - **4.0 · Research Q6 first (free, read-only).** Is there a field in Sorare's schema that gives a card picture for a
   player you do not own? The answer decides the options in 4.1.
+  - **Answer (2 Oct 2026, read-only, 4 calls and no key): yes.** Sorare's `Player` has `pictureUrl` (a cut-out of the player, a PNG of
+    0.5–0.9 MB) and `avatarPictureUrl` (the same at 40 KB; Sorare's grey `player-v2.png` for a player with no picture) for any player
+    of a club, owned or not: `club.activePlayers`, the query the job already runs for Players. On Alavés–Atlético, 43 of the 45 players
+    Futbol Fantasy names were matched to a Sorare player by name alone (the two left, Grimaldo and Cardoso, are no longer in Atlético's
+    Sorare squad) and Sorare has a picture for 42 of them, while FF's own photos load for 20 of the 45 (9 of 23 and 11 of 22). The
+    full-art card exists only for a card someone minted, so (A) means a card frame drawn here with Sorare's cut-out in it. It needs the
+    job to keep one picture per LaLiga player (about 600) and link FF's players to them by name, as it does for your players.
 - **4.1 · A design canvas** (`/design`, as for the overlay and the first Lineups board):
   - **One card for every player (R6, R31):**
     - (A) Sorare art for everyone, if Q6 allows it.

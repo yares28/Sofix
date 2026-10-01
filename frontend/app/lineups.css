@@ -63,6 +63,8 @@
 .lu-chip[aria-current="page"] .lu-chip-when { color: rgba(255, 255, 255, 0.72); }
 .lu-chip[data-state="started"] .lu-chip-teams { opacity: 0.6; }
 .lu-chip-mine { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; color: #0a58ad; }
+.lu-chip .lu-chip-mine { font-size: 11.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.lu-dot { display: inline-block; width: 7px; height: 7px; margin-right: 4px; border-radius: 50%; background: #0a58ad; vertical-align: 1px; }
 .lu-chip-mine span:first-child { display: block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .lu-chip[aria-current="page"] .lu-chip-mine { color: #8fc2ff; }
 .lu-crest { flex: none; display: block; object-fit: contain; }
@@ -198,7 +200,7 @@
   .lu { --lu-card-w: 66px; --lu-card-h: 102px; --lu-gap: 9px; padding: 24px 16px 40px; }
   .lu-head p { font-size: 14px; }
   .lu-strip { margin: 18px -16px 0; padding: 6px 16px 8px; border-radius: 0; background: transparent; box-shadow: none; }
-  .lu-chip { flex: none; width: 112px; min-width: 112px; min-height: 58px; background: var(--surface); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05); }
+  .lu-chip { flex: none; width: 128px; min-width: 128px; min-height: 70px; background: var(--surface); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05); }
   .lu-chip[aria-current="page"] { background: #1d1d1f; }
   .lu-match { margin-top: 8px; border-radius: 26px; }
   .lu-match-head { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; padding: 52px 14px 16px; }

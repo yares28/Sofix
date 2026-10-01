@@ -18,12 +18,14 @@ import {
   shortCode,
   sorareLine,
   squadOut,
+  startersIn,
   statusLine,
   yoursSummary,
   sectionsOf,
   teamsRead,
   tint,
   yoursIn,
+  yoursLabel,
   type LineupMatch,
   type LineupSide,
   type LineupsData,
@@ -232,6 +234,29 @@ describe("the glance Home takes at the lineups", () => {
     expect(lineupsGlance(data([]), NOW)).toBeNull();
     expect(lineupsGlance(data([two("2026-10-09T14:15:00Z")]), NOW)).toBeNull();
     expect(lineupsGlance(data([two("2026-10-14T19:00:00Z", europa)]), NOW)).toBeNull();
+  });
+});
+
+describe("what a match tab says about your players", () => {
+  const mixed = match(1, "2026-10-11T14:15:00Z", {
+    home: side("Home", {
+      rows: [{ line: "FWD", players: [player("1", { yours: "a" }), player("2")] }],
+      alternatives: [player("3", { yours: "b" }), player("5", { yours: "c" })],
+    }),
+    away: side("Away", { rows: [{ line: "DEF", players: [player("4", { yours: "d" })] }], alternatives: [player("6", { yours: "e" })] }),
+  });
+
+  it("counts yours in the match and how many of them are in the probable eleven", () => {
+    expect(yoursIn(mixed)).toBe(5);
+    expect(startersIn(mixed)).toBe(2);
+    expect(yoursLabel(mixed)).toBe("5 yours · 2 starting");
+  });
+
+  it("says none starting when every one of yours is an alternative", () => {
+    const none = match(2, "2026-10-11T16:15:00Z", { home: side("H", { alternatives: [player("7", { yours: "a" }), player("8", { yours: "b" }), player("9", { yours: "c" })] }) });
+
+    expect(yoursLabel(none)).toBe("3 yours · 0 starting");
+    expect(yoursLabel(match(3, null))).toBe("0 yours · 0 starting");
   });
 });
 

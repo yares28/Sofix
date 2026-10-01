@@ -259,6 +259,18 @@ export function lineupsGlance(data: LineupsData | null, now: Date): LineupsGlanc
   return { round: section.round!, yours: yours.size };
 }
 
+/** How many of the owner's players are in a match's probable elevens, the alternatives left out. */
+export function startersIn(match: LineupMatch): number {
+  let count = 0;
+  for (const side of [match.home, match.away]) for (const row of side.rows) count += row.players.filter((player) => player.yours).length;
+  return count;
+}
+
+/** What a match tab says of your players: "3 yours · 0 starting" (named in the match, and in the probable eleven). */
+export function yoursLabel(match: LineupMatch): string {
+  return `${yoursIn(match)} yours · ${startersIn(match)} starting`;
+}
+
 // ---------------------------------------------------------------------------------------------------- how fresh
 export type Freshness = {
   /** fresh: read under a day ago; failed: the last ask got nothing new; old: what is held is over a day old; none: never read. */

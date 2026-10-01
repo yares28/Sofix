@@ -199,3 +199,16 @@ test("a match that is no longer on the site is said so, above the next one", asy
   const strip = page.getByRole("navigation", { name: /^Matches of LaLiga · Round 8/ });
   await expect(strip.getByRole("link").first()).toHaveAttribute("aria-current", "page");
 });
+
+test("each match tab says how many of your players are in it and how many are starting, and the legend explains it", async ({ page }) => {
+  await page.goto("/lineups");
+  const strip = page.getByRole("navigation", { name: /^Matches of LaLiga · Round 8/ });
+
+  for (const tab of await strip.getByRole("link").all()) await expect(tab).toContainText(/\d+ yours · \d+ starting/);
+  await expect(page.getByText("on a match tab: your players named in the match, and how many are in the probable eleven")).toBeVisible();
+  // never more starting than named
+  for (const tab of await strip.getByRole("link").all()) {
+    const [, named, starting] = ((await tab.innerText()).match(/(\d+) yours · (\d+) starting/) ?? []).map(Number);
+    expect(starting).toBeLessThanOrEqual(named!);
+  }
+});

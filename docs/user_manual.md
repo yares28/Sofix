@@ -239,7 +239,8 @@ nothing left to plan; one further off than the next three Sorare gameweeks gets 
 ## 7a. Lineups — who starts
 
 Futbol Fantasy's probable elevens for every match it has published (FF covers each team's next game only, so the page is not
-tied to the week in the top bar). One bar holds the round's matches, with how many of your players are in each (the blue dot);
+tied to the week in the top bar). One bar holds the round's matches, each tab saying "3 yours · 0 starting" (how many of your players the match names, and how many are in the probable
+eleven; the legend says so too);
 the page opens on the next match. Competition and round tabs appear only when the page holds more than one.
 
 The header names what the page is: "LaLiga round 8 · Fri 9 – Mon 12 Oct · Sorare: not open yet" (the days are the first and last

@@ -66,7 +66,7 @@ export default function LineupsView({ data, sections, section, selected, now, cl
               </>
             ) : null}
           </p>
-          <p className="lu-source">Probable elevens from Futbol Fantasy</p>
+          <p className="lu-source">Probable elevens from Futbol Fantasy · kickoffs in Madrid time</p>
         </div>
         <ReadPill data={data} matches={section.matches} now={now} />
       </header>

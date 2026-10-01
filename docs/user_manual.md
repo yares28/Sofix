@@ -245,7 +245,8 @@ the page opens on the next match. Competition and round tabs appear only when th
 
 The header names what the page is: "LaLiga round 8 · Fri 9 – Mon 12 Oct · Sorare: not open yet" (the days are the first and last
 kickoff, Madrid time), and once Sorare opens the week it feeds, "Sorare GW21 · locks Fri 16:00". The Sorare part links to Play for
-that week. Arriving with a week that FF does not cover (a past round, a later one, or a national-team week) adds one line:
+that week. Under it, "Probable elevens from Futbol Fantasy · kickoffs in Madrid time"; the Fixtures list says "Madrid time" beside its match count
+for the same reason. Arriving with a week that FF does not cover (a past round, a later one, or a national-team week) adds one line:
 "Futbol Fantasy only has each club's next LaLiga game: round 8. GW19 is national-team games." A match address that is no longer on
 FF says so above the next match.
 

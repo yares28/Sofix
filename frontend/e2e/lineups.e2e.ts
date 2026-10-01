@@ -166,7 +166,7 @@ test("the header names the LaLiga round, its days and the Sorare week it feeds, 
   const sorare = header(page).getByRole("link", { name: /^Sorare/ });
   await expect(sorare).toHaveText(/^Sorare(: not open yet| GW\d+( · locks \w{3} \d{2}:\d{2}| · locked)?)$/);
   await expect(sorare).toHaveAttribute("href", /^\/play\?w=\d{4}-\d{2}-\d{2}$/);
-  await expect(page.getByText("Probable elevens from Futbol Fantasy")).toBeVisible();
+  await expect(page.getByText("Probable elevens from Futbol Fantasy · kickoffs in Madrid time")).toBeVisible();
 });
 
 test("arriving for a week that is past says Futbol Fantasy only has the next round", async ({ page, request }) => {

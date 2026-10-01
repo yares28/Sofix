@@ -38,7 +38,7 @@ export default function FixturesList({ grid, column }: Props) {
         <div>
           <h2 id="fixtures-title">Gameweek {gameweek.number} fixtures</h2>
           <div className="insight-meta">
-            {matches.length} {matches.length === 1 ? "match" : "matches"}
+            {matches.length} {matches.length === 1 ? "match" : "matches"} · Madrid time
             {notPlaying.length > 0 && ` · no game: ${notPlaying.map((t) => t.name).join(", ")}`}
           </div>
         </div>

@@ -341,6 +341,7 @@ test("the Fixtures tab lists the selected gameweek, results included", async ({ 
   await expect(page).toHaveURL(/\/fixtures$/); // the tab is the path; switching it doesn't reload
   await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${openingMatchday} fixtures` })).toBeVisible();
   await expect(page.locator(".fixture-row")).toHaveCount(gameweekMatches(grid, column(openingMatchday)).matches.length);
+  await expect(page.locator("#fixtures-title").locator("xpath=..")).toContainText(/\d+ matches? · Madrid time/); // kickoffs carry their time zone
   await expect(page.locator(".bento")).toHaveCount(0);
   await expect(page.locator(".board")).toHaveCount(0);
 

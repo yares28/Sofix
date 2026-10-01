@@ -31,7 +31,7 @@ export default async function Players({ searchParams }: { searchParams: SearchPa
       <main className="s5-main">
         <SorareSubnav />
         {ready ? (
-          <PlayersView data={data} />
+          <PlayersView data={data} now={new Date().toISOString()} />
         ) : (
           <section className="s5-empty" role="status">
             <h1>Player search</h1>

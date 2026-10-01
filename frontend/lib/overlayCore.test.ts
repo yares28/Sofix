@@ -38,7 +38,10 @@ type Core = {
     startSource?: string;
     startAt?: string;
     sources?: Record<string, number>;
-  }) => { source: string; label: string; value: number | null; shown: boolean; at: string | null }[];
+    laliga?: boolean;
+  }) => { source: string; label: string; value: number | null; shown: boolean; at: string | null; note: string | null }[];
+  drawerCards: (plan: { pics?: unknown[]; cardsUsed?: number }) => { pics: string[]; more: number };
+  DRAWER_CARDS: number;
   benchOnChance: (entry: { pStart?: number; pOn?: number }) => number | null;
   agoLabel: (iso: unknown, nowMs: number) => string | null;
   freshLabel: (iso: unknown, nowMs: number) => string | null;
@@ -364,9 +367,10 @@ describe("the start row", () => {
 });
 
 describe("what the site says is wrong with him", () => {
-  it("is the status and since when, the site's cause only when there is no date", () => {
+  it("is the status and since when, never the site's own Spanish words", () => {
     expect(core.statusNote({ ffStatus: { kind: "doubt", cause: "Molestias", since: "Desde 12/09 (18 días)" } })).toEqual({ kind: "doubt", text: "Doubt · since 12 Sep" });
-    expect(core.statusNote({ ffStatus: { kind: "doubt", cause: "Molestias en el tobillo" } })).toEqual({ kind: "doubt", text: "Doubt · Molestias en el tobillo" });
+    // the site's cause is in Spanish: the overlay says the word and leaves its diagnosis to Lineups, which translates it
+    expect(core.statusNote({ ffStatus: { kind: "doubt", cause: "Molestias en el tobillo" } })).toEqual({ kind: "doubt", text: "Doubt" });
     expect(core.statusNote({ ffStatus: { kind: "out" } })).toEqual({ kind: "out", text: "Out" });
     expect(core.statusNote({ ffStatus: { kind: "suspended" } })).toEqual({ kind: "suspended", text: "Suspended" });
   });
@@ -401,6 +405,18 @@ describe("the list of sources", () => {
     ]);
   });
 
+  it("says Futbol Fantasy covers LaLiga only when a game of another competition has no number from it", () => {
+    const abroad = core.sourceRows({ p: 0.9, pStart: 0.82, startSource: "sofix", sources: { sofix: 0.82 }, laliga: false });
+    expect(abroad.map((r) => [r.label, r.note])).toEqual([
+      ["FF", "LaLiga only"],
+      ["SO", null],
+      ["SF", null],
+    ]);
+    // a LaLiga game it has not spoken about, and an answer that does not say, have nothing to explain
+    expect(core.sourceRows({ p: 0.9, pStart: 0.82, startSource: "sofix", sources: { sofix: 0.82 }, laliga: true })[0]!.note).toBeNull();
+    expect(core.sourceRows({ p: 0.9, pStart: 0.82, startSource: "sofix", sources: { sofix: 0.82 } })[0]!.note).toBeNull();
+  });
+
   it("reads a clock time, and nothing from a bad one", () => {
     expect(core.clockLabel("2026-10-09T14:56:00Z")).toMatch(/^\d\d:\d\d$/);
     expect(core.clockLabel("not a time")).toBeNull();
@@ -408,6 +424,29 @@ describe("the list of sources", () => {
   });
 });
 
+
+describe("the cards of the plan in the drawer", () => {
+  const pic = (n: number) => `https://assets.sorare.com/card/${n}/picture/x.png`;
+
+  it("shows every card, and says how many more the plan uses when the lineup shows fewer", () => {
+    expect(core.drawerCards({ pics: [1, 2, 3, 4, 5].map(pic), cardsUsed: 9 })).toEqual({ pics: [1, 2, 3, 4, 5].map(pic), more: 4 });
+    expect(core.drawerCards({ pics: [1, 2, 3].map(pic), cardsUsed: 3 })).toEqual({ pics: [1, 2, 3].map(pic), more: 0 });
+  });
+
+  it("keeps a place for the \"+N\" when there are more cards than the drawer has room for", () => {
+    const many = Array.from({ length: 14 }, (_, n) => pic(n));
+    const shown = core.drawerCards({ pics: many, cardsUsed: 14 });
+    expect(shown.pics).toEqual(many.slice(0, core.DRAWER_CARDS - 1));
+    expect(shown.more).toBe(14 - (core.DRAWER_CARDS - 1));
+  });
+
+  it("draws nothing it should not: only Sorare's own pictures, and no \"+N\" from a count that is lower", () => {
+    expect(core.drawerCards({ pics: [pic(1), "https://evil.example/x.png", 7], cardsUsed: 2 })).toEqual({ pics: [pic(1)], more: 1 });
+    expect(core.drawerCards({ pics: [pic(1), pic(2)], cardsUsed: 1 }).more).toBe(0);
+    expect(core.drawerCards({ pics: [pic(1)] })).toEqual({ pics: [pic(1)], more: 0 });
+    expect(core.drawerCards({})).toEqual({ pics: [], more: 0 });
+  });
+});
 
 describe("Futbol Fantasy's match page, read in the browser", () => {
   const page = readFileSync(new URL("../../backend/tests/fixtures/futbolfantasy/match_real_sociedad_deportivo.html", import.meta.url), "utf8");

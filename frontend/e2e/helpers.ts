@@ -39,3 +39,25 @@ export async function offline(page: Page) {
 }
 
 export const teamRows = (page: Page) => page.locator("tbody tr:not(.pin-divider)");
+
+/**
+ * The text the page draws smaller than `min` px (the readable-size rule of the 1 Oct review: 11 px on a desktop, 10 px on a phone),
+ * as "text (size px)". The same rule as `npm run design`: SVG text is left out (its size is in the drawing's own units) and so is
+ * text only a screen reader gets.
+ */
+export function smallText(page: Page, min: number): Promise<string[]> {
+  return page.evaluate((limit) => {
+    const found: string[] = [];
+    for (const el of document.querySelectorAll("body *")) {
+      if (el instanceof SVGElement || el.closest("svg, .visually-hidden, [hidden], script, style")) continue;
+      const text = [...el.childNodes].filter((node) => node.nodeType === 3).map((node) => node.textContent!.trim()).join(" ").trim();
+      if (!text) continue;
+      const rect = el.getBoundingClientRect();
+      const style = getComputedStyle(el);
+      if (rect.width < 2 || rect.height < 2 || style.visibility === "hidden" || style.display === "none") continue;
+      const size = parseFloat(style.fontSize);
+      if (size < limit) found.push(`${text.slice(0, 18)} (${size}px) in ${el.tagName.toLowerCase()}${el.className && typeof el.className === "string" ? "." + el.className.split(" ")[0] : ""}`);
+    }
+    return found;
+  }, min);
+}

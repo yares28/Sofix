@@ -37,6 +37,8 @@ Use [docs/sorare/design/DESIGN.md](docs/sorare/design/DESIGN.md) and the real
 - Premium white shell, restrained semantic colour, near-black text, soft border/shadow.
 - One clear hero/question per page; aligned tabular evidence; no wall of generic cards.
 - Motion explains change, preserves contrast and respects reduced motion.
+- Text is never smaller than 11 px on a desktop or 10 px on a phone (checked by `npm run design` for previews, and by `smallText` in
+  `frontend/e2e/helpers.ts` for Lineups, Cards and Players; SVG text and text only a screen reader gets are left out).
 - Responsive behavior uses named containers where components are reused; centre beyond 1600 px.
 - Sorare overlay is the dark-context exception but never copies the wordmark.
 - Say fresh/waiting/stale/no odds/not signed in instead of optimistic empty placeholders.

@@ -3,7 +3,7 @@ import { expect, test, type APIRequestContext, type Page } from "@playwright/tes
 import type { Sorare } from "../lib/play";
 import type { ApiResponse } from "../lib/types";
 import { seasonWeeks } from "../lib/weeks";
-import { grid, MOCK, offline, resetBackend } from "./helpers";
+import { grid, MOCK, offline, resetBackend, smallText, sorare as served } from "./helpers";
 
 // The Lineups page draws Futbol Fantasy's probable elevens as the job published them (e2e/fixtures/lineups-response.json: the ten
 // real round-8 pages of 30 Sep 2026, served by the mock API with their dates moved to two days ahead). Nothing here recomputes a
@@ -230,4 +230,121 @@ test("a pitch card and an alternative's chip write a player's name the same way,
     const text = (await alt.innerText()).replace(/\d+%/, "").trim();
     expect(text, `${full} as a chip`).not.toBe(full.includes(" ") ? full : "");
   }
+});
+
+test("your players are listed at the top of each match with their chance and what is wrong, and a switch dims everyone else", async ({ page }) => {
+  await page.goto("/lineups?m=22502");
+  const strip = page.getByRole("region", { name: "Your players in this match" });
+
+  await expect(strip.getByRole("heading")).toHaveText(/^Your \d+ here$/);
+  const listed = await strip.locator(".lu-yours-one").count();
+  const named = Number(((await page.locator('.lu-chip[aria-current="page"]').innerText()).match(/(\d+) yours/) ?? [])[1]);
+  expect(listed, "the strip lists the same players the tab counts").toBe(named);
+  // one of yours is in doubt for this round: his short name, his chance and the word say so
+  const zubeldia = strip.locator(".lu-yours-one", { hasText: "ZUBELDIA" });
+  await expect(zubeldia).toContainText("50%");
+  await expect(zubeldia).toContainText("doubt");
+  // everyone else is dimmed by the switch, and yours are not
+  const others = page.locator(".lu-card:not([data-mine])").first();
+  const mine = page.locator(".lu-card[data-mine]").first();
+  await expect(others).toHaveCSS("opacity", "1");
+  await strip.getByRole("switch", { name: "Only my players" }).check();
+  await expect(others).toHaveCSS("opacity", "0.22");
+  await expect(mine).toHaveCSS("opacity", "1");
+  await strip.getByRole("switch", { name: "Only my players" }).uncheck();
+  await expect(others).toHaveCSS("opacity", "1");
+});
+
+test("a player of yours opens his card on Cards, from the strip, the pitch and the alternatives", async ({ page }) => {
+  await page.goto("/lineups?m=22498");
+  const owned = new Set(served.collection!.map((card) => card.player));
+  const strip = page.getByRole("region", { name: "Your players in this match" });
+  const hrefs = await strip.locator("a.lu-yours-name").evaluateAll((links) => links.map((link) => link.getAttribute("href")!));
+  expect(hrefs.length, "every one of yours in the strip is a link").toBe(await strip.locator(".lu-yours-one").count());
+  const href = hrefs.find((one) => owned.has(one.replace("/cards#p-", "")))!;
+  // the pitch and the chips under it link the same way
+  await expect(page.locator(".lu-card[data-mine] a.lu-go").first()).toHaveAttribute("href", /^\/cards#p-/);
+  await expect(page.locator(".lu-card:not([data-mine]) a")).toHaveCount(0);
+  await expect(page.locator(".lu-alt[data-mine] a").first()).toHaveAttribute("href", /^\/cards#p-/);
+
+  await strip.locator(`a[href="${href}"]`).click();
+  await expect(page).toHaveURL(new RegExp(`${href}$`));
+  await expect(page.locator(`#${href.split("#")[1]}`)).toBeInViewport();
+});
+
+test("switching match answers from the page: no new request, the address follows, and Back returns", async ({ page }) => {
+  await page.goto("/lineups?m=22497");
+  await page.evaluate(() => {
+    (window as unknown as { __kept: boolean }).__kept = true; // a reload would drop it
+  });
+  const asked: string[] = [];
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname === "/lineups") asked.push(request.url());
+  });
+  const strip = page.getByRole("navigation", { name: /^Matches of LaLiga · Round 8/ });
+  const kept = () => page.evaluate(() => (window as unknown as { __kept?: boolean }).__kept === true);
+
+  await strip.getByRole("link", { name: /RAY – ATH/ }).click();
+  await expect(page).toHaveURL(/\/lineups\?m=22498$/);
+  await expect(page.getByRole("article", { name: /^Rayo.* against Athletic/ })).toBeVisible();
+  await expect(strip.getByRole("link", { name: /RAY – ATH/ })).toHaveAttribute("aria-current", "page");
+  await expect(strip.getByRole("link", { name: /MAL – ESP/ })).not.toHaveAttribute("aria-current", "page");
+  expect(await kept(), "the page was not reloaded").toBe(true);
+  expect(asked, "nothing was asked of the server").toEqual([]);
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/lineups\?m=22497$/);
+  await expect(page.getByRole("article", { name: /^M.laga.* against Espanyol/ })).toBeVisible();
+  expect(await kept(), "Back did not reload it either").toBe(true);
+});
+
+test("a modified click on a match tab still opens it as a link would", async ({ page, context }) => {
+  await page.goto("/lineups?m=22497");
+  const strip = page.getByRole("navigation", { name: /^Matches of LaLiga · Round 8/ });
+  const opened = context.waitForEvent("page");
+  await strip.getByRole("link", { name: /RAY – ATH/ }).click({ modifiers: ["Control"] });
+  const tab = await opened;
+  await expect(tab).toHaveURL(/\/lineups\?m=22498$/);
+  await expect(page).toHaveURL(/m=22497$/); // this page stayed where it was
+});
+
+test("a match with none of your players says so, and offers no switch", async ({ page }) => {
+  await page.goto("/lineups");
+  const strips = page.getByRole("region", { name: "Your players in this match" });
+  await page.goto("/lineups?m=22496"); // the mock's Levante–Sevilla names none of yours
+  await expect(page.locator('.lu-chip[aria-current="page"]')).toContainText("0 yours · 0 starting");
+  await expect(strips.getByRole("heading")).toHaveText("None of your players are in this match");
+  await expect(strips.getByRole("switch")).toHaveCount(0);
+});
+
+test("alternatives at 5% or less and anyone out or suspended fold into '+N more', and the knocks he plays despite into 'N more fit to play'", async ({ page }) => {
+  await page.goto("/lineups?m=22502");
+  const home = page.getByRole("region", { name: "Real Sociedad lineup" });
+  const away = page.getByRole("region", { name: "Deportivo lineup" });
+
+  // no chip on the pitch is at 5% or less unless it is yours
+  for (const chip of await home.locator(".lu-pitch .lu-alt:not([data-mine])").all()) {
+    const pct = Number((await chip.innerText()).match(/(\d+)%/)![1]);
+    expect(pct, await chip.innerText()).toBeGreaterThan(5);
+  }
+  // the folded ones are one line, and open to names with their reasons
+  const more = home.locator("details.lu-more");
+  await expect(more.locator("summary")).toHaveText(/^\+\d+ more$/);
+  await expect(more.getByText("ÓSKARSSON")).toBeHidden();
+  await more.locator("summary").click();
+  await expect(more.getByText("ÓSKARSSON")).toBeVisible();
+  await expect(more).toContainText("the list below says why");
+  // "Also in the squad, at 0%" is gone
+  await expect(page.getByText("Also in the squad, at 0%")).toHaveCount(0);
+  // the knock he plays despite is folded away from the news
+  await expect(away.locator(".lu-news > li.lu-new", { hasText: "Amatucci" })).toHaveCount(0);
+  await expect(away.locator(".lu-fit summary")).toHaveText("1 more fit to play");
+  await away.locator(".lu-fit summary").click();
+  await expect(away.locator(".lu-fit").getByText("Lorenzo Amatucci")).toBeVisible();
+});
+
+test("every text on a match is 11 px or more", async ({ page }) => {
+  await page.goto("/lineups?m=22502"); // Real Sociedad–Deportivo: injuries, a call-up, your players, alternatives
+  await page.waitForTimeout(400);
+  expect(await smallText(page, 11)).toEqual([]);
 });

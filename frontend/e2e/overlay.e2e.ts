@@ -59,7 +59,7 @@ const FORTY_HOURS_AGO = new Date(Date.now() - 40 * 3600_000).toISOString();
 const NUMBERS = {
   players: {
     "unai-simon": {
-      x: 53.4, p: 0.88, average: 55, pos: "GK", at: ELEVEN_HOURS_AGO, start: 53.4, bench: 1.2, pStart: 0.88, pOn: 0.01,
+      x: 53.4, p: 0.88, average: 55, pos: "GK", laliga: true, at: ELEVEN_HOURS_AGO, start: 53.4, bench: 1.2, pStart: 0.88, pOn: 0.01,
       startSource: "sorare", sources: { sorare: 0.88, sofix: 0.7 },
       game: { win: 0.46, cleanSheet: 0.33, difficulty: 45.2, bucket: 2, label: "Favourite", source: "model" },
     },
@@ -71,7 +71,7 @@ const NUMBERS = {
       game: { win: 0.38, cleanSheet: 0.22, difficulty: 58.4, bucket: 3, label: "Even", source: "sorare" },
     },
     "lionel-messi": {
-      x: 61.3, p: 0.9, average: 70, pos: "FWD", at: ELEVEN_HOURS_AGO, start: 64.2, bench: 20.1, pStart: 0.82, pOn: 0.08, xg: 0.38,
+      x: 61.3, p: 0.9, average: 70, pos: "FWD", laliga: false, at: ELEVEN_HOURS_AGO, start: 64.2, bench: 20.1, pStart: 0.82, pOn: 0.08, xg: 0.38,
       startSource: "sofix", sources: { sofix: 0.82 },
       game: { win: 0.65, cleanSheet: 0.29, difficulty: 30.4, bucket: 1, label: "Very favourite", source: "sorare" },
     },
@@ -696,6 +696,20 @@ test.describe("the sorare.com overlay", () => {
     await expect(panel(page).getByRole("status")).toHaveCount(0);
   });
 
+  test("says Futbol Fantasy covers LaLiga only when a game abroad has no number from it", async ({ page }) => {
+    await openPage(page);
+    await settled(page);
+    await page.waitForTimeout(250);
+
+    await tileOf(page, "abroad").hover(); // a national-team game: Futbol Fantasy has none of it
+    await panel(page).getByRole("button", { name: "SOURCES" }).click();
+    const ff = panel(page).locator(".sfx-sources-list li").first();
+    await expect(ff).toContainText("FF");
+    await expect(ff).toContainText("LaLiga only");
+    await expect(ff.locator("b")).toHaveAttribute("title", "Futbol Fantasy covers LaLiga only");
+    await expect(panel(page).locator(".sfx-sources-list li").nth(2)).toContainText("82%");
+  });
+
   test("redraws a tile with what Futbol Fantasy says now, read live, and says so in the panel", async ({ page }) => {
     const twoMinutesAgo = new Date(Date.now() - 2 * 60_000).toISOString();
     await openPage(page, { live: { "22502": { at: twoMinutesAgo, players: { "2802": { p: 0.8, lesion: -1 } } } } });
@@ -909,7 +923,10 @@ test.describe("the sorare.com overlay", () => {
     await expect(drawer.getByText("16%")).toBeVisible();
     await expect(drawer.getByText("≈55")).toBeVisible();
     await expect(drawer.getByText("9 of 87")).toBeVisible();
-    await expect(drawer.getByRole("list", { name: /leading lineup, All Star/ }).locator("img")).toHaveCount(5);
+    // five thumbnails, and "+4" for the other four of the nine cards the plan uses
+    const cards = drawer.getByRole("list", { name: /best plan, All Star leading/ });
+    await expect(cards.locator("img")).toHaveCount(5);
+    await expect(cards.getByRole("listitem", { name: "4 more cards in the plan" })).toHaveText("+4");
     await expect(drawer.getByRole("button", { name: "Close" })).toBeFocused();
 
     await drawer.getByRole("button", { name: "Open Apply in Sofix" }).click();

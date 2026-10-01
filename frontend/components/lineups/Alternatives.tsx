@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { chanceTone, type LineupPlayer } from "../../lib/lineups";
+import { cardHref } from "../../lib/links";
 import { KindIcon } from "./Icons";
 import { describe, percent } from "./PlayerCard";
 
@@ -9,7 +11,13 @@ export default function Alternatives({ players, mine, labels }: { players: Lineu
     <ul className="lu-alts" aria-label="Alternatives, most likely first">
       {players.map((player) => (
         <li key={player.id} className="lu-alt" data-mine={player.yours && mine.has(player.yours) ? "" : undefined} aria-label={describe(player, Boolean(player.yours))} title={player.name}>
-          {labels[player.id] ?? player.name}
+          {player.yours && mine.has(player.yours) ? (
+            <Link className="lu-alt-go" href={cardHref(player.yours)} title={`${player.name}: open your card`}>
+              {labels[player.id] ?? player.name}
+            </Link>
+          ) : (
+            (labels[player.id] ?? player.name)
+          )}
           {player.status?.kind ? <KindIcon kind={player.status.kind} size={15} /> : null}
           <span className="lu-pct lu-pct-sm" data-tone={chanceTone(player.p)}>
             {percent(player.p)}%

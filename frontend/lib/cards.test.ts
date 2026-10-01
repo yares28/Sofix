@@ -8,6 +8,7 @@ import {
   initials,
   ownedPlayers,
   priceLabel,
+  projectionNote,
   scoreColour,
   seasonBadge,
   searchMarket,
@@ -304,5 +305,18 @@ describe("priceLabel", () => {
     expect(priceLabel(43.97)).toBe("\u20ac43.97");
     expect(priceLabel(214.01)).toBe("\u20ac214");
     expect(priceLabel(1360)).toBe("\u20ac1,360");
+  });
+});
+
+describe("projectionNote", () => {
+  const now = new Date("2026-10-01T10:00:00Z");
+
+  it("says when Sorare will publish the projection, in Madrid time, while it is still to come", () => {
+    expect(projectionNote("2026-10-09T10:00:00Z", now)).toBe("A dash: Sorare has not published its projection for his next game yet (due Fri 12:00, Madrid time).");
+  });
+
+  it("says Sorare gives none once the time has passed or is not known", () => {
+    expect(projectionNote("2026-09-30T10:00:00Z", now)).toBe("A dash: Sorare gives no projection for his next game.");
+    expect(projectionNote(null, now)).toBe("A dash: Sorare gives no projection for his next game.");
   });
 });

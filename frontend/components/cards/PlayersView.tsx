@@ -6,12 +6,13 @@ import {
   ownedPlayers,
   POSITIONS,
   priceLabel,
+  projectionNote,
   searchMarket,
   squadBar,
   verdict,
   type Position,
 } from "../../lib/cards";
-import type { MarketPlayer, Sorare } from "../../lib/play";
+import { nextWeek, type MarketPlayer, type Sorare } from "../../lib/play";
 import { Foil } from "../play/bits";
 import CardArt from "./CardArt";
 import useCountUp from "./useCountUp";
@@ -19,7 +20,7 @@ import useCountUp from "./useCountUp";
 const LIMIT = 30;
 
 /** Player search: the LaLiga players priced now, led by who would actually improve the squad. */
-export default function PlayersView({ data }: { data: Sorare }) {
+export default function PlayersView({ data, now }: { data: Sorare; now: string }) {
   const market = useMemo(() => data.market ?? [], [data.market]);
   const collection = useMemo(() => data.collection ?? [], [data.collection]);
   const [query, setQuery] = useState("");
@@ -34,6 +35,8 @@ export default function PlayersView({ data }: { data: Sorare }) {
   );
   const shownImproving = results.filter((player) => verdict(player, bar, owned).kind === "up").length;
   const heroValue = useCountUp(upgrades);
+  const dash = projectionNote(nextWeek(data).projectionsAt, new Date(now));
+  const shownDash = results.slice(0, LIMIT).some((player) => player.projection === null);
 
   return (
     <>
@@ -82,6 +85,7 @@ export default function PlayersView({ data }: { data: Sorare }) {
           ? `${shownImproving} would improve your team · ${results.length} shown`
           : ""}
       </p>
+      {shownDash ? <p className="s5-dash">{dash}</p> : null}
 
       <div className="s5-results">
         {results.length === 0 ? (
@@ -89,7 +93,7 @@ export default function PlayersView({ data }: { data: Sorare }) {
         ) : (
           <>
             {results.slice(0, LIMIT).map((player, index) => (
-              <ResultCard key={player.slug} player={player} index={index} bar={bar} owned={owned} />
+              <ResultCard key={player.slug} player={player} index={index} bar={bar} owned={owned} dash={dash} />
             ))}
             {results.length > LIMIT ? (
               <p className="s5-more">
@@ -108,11 +112,13 @@ function ResultCard({
   index,
   bar,
   owned,
+  dash,
 }: {
   player: MarketPlayer;
   index: number;
   bar: Record<Position, number>;
   owned: Set<string>;
+  dash: string;
 }) {
   const v = verdict(player, bar, owned);
   const isOwned = owned.has(player.slug);
@@ -139,7 +145,7 @@ function ResultCard({
           <b>{Math.round(player.average)}</b>
           <span>Last 10 avg</span>
         </span>
-        <span className="s5-stat">
+        <span className="s5-stat" title={player.projection === null ? dash : undefined}>
           <b>{player.projection === null ? "—" : Math.round(player.projection)}</b>
           <span>Projected</span>
         </span>

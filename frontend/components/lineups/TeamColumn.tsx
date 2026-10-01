@@ -1,7 +1,11 @@
+import Link from "next/link";
 import { absenceText } from "../../lib/absence";
+import { cardHref } from "../../lib/links";
 import {
   gaugeText,
   playerLabels,
+  splitAbsent,
+  splitDead,
   squadOut,
   statusLine,
   type Absent,
@@ -18,23 +22,22 @@ import type { ClubLook } from "./LineupsView";
 
 const cap = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
-/** The alternatives of a line go under the lowest row of that line on the pitch (the one nearest his own goal). */
-function placement(side: LineupSide): { byRow: Map<number, LineupPlayer[]>; others: LineupPlayer[]; zero: LineupPlayer[] } {
+/**
+ * The alternatives of a line go under the lowest row of that line on the pitch (the one nearest his own goal). The ones at 5% or
+ * less and anyone out or suspended do not take a chip: they fold into "+N more" (`splitDead`).
+ */
+function placement(side: LineupSide): { byRow: Map<number, LineupPlayer[]>; others: LineupPlayer[]; dead: LineupPlayer[] } {
   const lastRow = new Map<Line, number>();
   side.rows.forEach((row, index) => lastRow.set(row.line, index));
   const byRow = new Map<number, LineupPlayer[]>();
   const others: LineupPlayer[] = [];
-  const zero: LineupPlayer[] = [];
-  for (const player of side.alternatives) {
-    if ((player.p ?? 0) === 0 && !player.yours && !player.status?.kind) {
-      zero.push(player);
-      continue;
-    }
+  const { live, dead } = splitDead(side.alternatives);
+  for (const player of live) {
     const row = player.pos ? lastRow.get(player.pos) : undefined;
     if (row === undefined) others.push(player);
     else byRow.set(row, [...(byRow.get(row) ?? []), player]);
   }
-  return { byRow, others, zero };
+  return { byRow, others, dead };
 }
 
 export default function TeamColumn({
@@ -55,7 +58,8 @@ export default function TeamColumn({
   // One short name per player, pitch cards and chips alike: two with the same surname get an initial, whichever list they are in.
   const labels = playerLabels([...side.rows.flatMap((row) => row.players), ...side.alternatives]);
   const mine = new Set(Object.keys(cards));
-  const { byRow, others, zero } = placement(side);
+  const { byRow, others, dead } = placement(side);
+  const { news, fit } = splitAbsent(side.absent);
   const rotation = gaugeText(side.rotations, "rotations");
   const predict = statusLine(side.predictability, side.season);
   return (
@@ -117,17 +121,32 @@ export default function TeamColumn({
         </p>
       ) : null}
 
+      {dead.length ? (
+        <details className="lu-more">
+          <summary>+{dead.length} more</summary>
+          <p>Not expected to start (5% or less), or out or suspended: the list below says why.</p>
+          <Alternatives players={[...dead].sort((a, b) => (b.p ?? 0) - (a.p ?? 0))} mine={mine} labels={labels} />
+        </details>
+      ) : null}
+
       {side.absent.length ? (
         <ul className="lu-news" aria-label={`${side.name} injuries and suspensions`}>
-          {side.absent.map((entry, index) => (
-            <News key={`${entry.name}-${index}`} entry={entry} round={round} now={now} mine={Boolean(entry.yours && cards[entry.yours])} />
+          {news.map((entry, index) => (
+            <News key={`${entry.name}-${index}`} entry={entry} round={round} now={now} mine={entry.yours && cards[entry.yours] ? entry.yours : null} />
           ))}
+          {fit.length ? (
+            <li className="lu-fit">
+              <details>
+                <summary>{fit.length} more fit to play</summary>
+                <ul>
+                  {fit.map((entry, index) => (
+                    <News key={`${entry.name}-${index}`} entry={entry} round={round} now={now} mine={null} />
+                  ))}
+                </ul>
+              </details>
+            </li>
+          ) : null}
         </ul>
-      ) : null}
-      {zero.length ? (
-        <p className="lu-zero">
-          Also in the squad, at 0%: {zero.map((player) => player.name).join(", ")}
-        </p>
       ) : null}
       {side.unlinked.length ? (
         <ul className="lu-unlinked" aria-label="Your players Futbol Fantasy does not list">
@@ -145,13 +164,14 @@ export default function TeamColumn({
 
 const OWN_WORDS = "Futbol Fantasy's own words";
 
-function News({ entry, round, now, mine }: { entry: Absent; round: number | null; now: Date; mine: boolean }) {
+/** One name of the injury list; `mine` is the Sorare slug of the player when he is one of yours, and the name then opens his card. */
+function News({ entry, round, now, mine }: { entry: Absent; round: number | null; now: Date; mine: string | null }) {
   const text = absenceText(entry, round, now);
   return (
     <li className="lu-new">
       <KindIcon kind={entry.kind} />
       <div>
-        <b data-mine={mine ? "" : undefined}>{entry.name}</b>
+        <b data-mine={mine ? "" : undefined}>{mine ? <Link href={cardHref(mine)} title={`${entry.name}: open your card`}>{entry.name}</Link> : entry.name}</b>
         {text.cause || text.since ? (
           <span>
             {text.cause ? text.causeFf ? <i lang="es" title={OWN_WORDS}>{cap(text.cause)}</i> : cap(text.cause) : null}

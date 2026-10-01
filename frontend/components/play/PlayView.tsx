@@ -120,7 +120,7 @@ export default function PlayView({
           </div>
           <div className={`pl-lus${sync?.behind ? " behind" : ""}`}>
             {plan.lineups.map((lineup, index) => (
-              <Lineup key={`${lineup.key}-${index}`} lineup={lineup} after={after} index={index} hindsight={plan.hindsight === true} />
+              <Lineup key={`${lineup.key}-${index}`} lineup={lineup} after={after} index={index} hindsight={plan.hindsight === true} players={week.playing.players} />
             ))}
           </div>
         </>

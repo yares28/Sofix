@@ -190,6 +190,9 @@ Read each lineup from left to right:
 - reward probability and the cutoff evidence behind it;
 - expected essence and expected cash, kept as separate units.
 
+In a lineup's sheet, a card's name opens his match on **Lineups** (Futbol Fantasy's probable elevens and the chance of each player of his
+side). A game Futbol Fantasy has no page for, such as a national-team game, has no link.
+
 The planner enforces the published slots, caps, in-season minimum, club/card/player uniqueness, bonuses and substitute
 rules. A substitute is kept only when its expected protection exceeds the bonus sacrificed by using it. It repeats a
 seeded, slightly randomized whole-gameweek search and returns up to five plans whose card sets are materially different;
@@ -241,7 +244,10 @@ nothing left to plan; one further off than the next three Sorare gameweeks gets 
 Futbol Fantasy's probable elevens for every match it has published (FF covers each team's next game only, so the page is not
 tied to the week in the top bar). One bar holds the round's matches, each tab saying "3 yours · 0 starting" (how many of your players the match names, and how many are in the probable
 eleven; the legend says so too);
-the page opens on the next match. Competition and round tabs appear only when the page holds more than one.
+the page opens on the next match. Competition and round tabs appear only when the page holds more than one. Picking a match, a round or a
+competition changes the page at once, from what it already holds (all the round's matches arrive with it): no reload, no wait, and
+the address still says `?m=<match>` so the match can be bookmarked or sent, and Back returns to the one before. A click with
+Ctrl or Cmd opens the match in a new tab as a link does.
 
 The header names what the page is: "LaLiga round 8 · Fri 9 – Mon 12 Oct · Sorare: not open yet" (the days are the first and last
 kickoff, Madrid time), and once Sorare opens the week it feeds, "Sorare GW21 · locks Fri 16:00". The Sorare part links to Play for
@@ -254,11 +260,18 @@ FF says so above the next match.
   cards show their Sorare art with a blue outline; the others are drawn with FF's photo. The badge under a card is his chance of
   starting; a round mark at its corner is an injury, a doubt, a ban, or (blue) a call-up to his national team. A call-up is only shown
   once his club has named its match squad on FF; until then the team carries "Squad list not out" and no call-up mark, so the
-  page never says both.
+  page never says both. Names and positions on a card are 11 px or more on a desktop and 10 px on a phone (a long surname ends in an
+  ellipsis; hover for the whole name); the card's colour says its rarity, and the hover says it in words.
+- **Your players, first.** Above the pitch a strip lists the players of yours the match names ("Your 3 here"): the eleven first, then the
+  alternatives (marked "alt"), each with his short name, his chance and, when something is wrong, the icon and the word (doubt, out,
+  suspended). The **Only my players** switch dims everyone else, on the pitch and in the injury lists. Every player of yours, in the strip, on the
+  pitch, among the alternatives and in the injury list, is a link: it opens his card on **My cards** (his tile is outlined there).
 - **Who else could play.** Under each line, the alternatives most likely first, with their chance. A player is written the same short way
   on his card and on a chip (his surname, with an initial where two of a side share it), and his full name shows on hover. The % badge
   sits under a card, never over the name Sorare prints on your own cards. A player FF has not
-  placed yet is listed apart as "Others in the squad"; those at 0% are named in one line under the injuries.
+  placed yet is listed apart as "Others in the squad"; alternatives at 5% or less, and anyone out or suspended, fold into one "+3 more" under the pitch (open it for their names and
+  chances; the injury list below says why). Your own players never fold. In that list the knocks a player plays despite fold into "4 more fit
+  to play".
 - **Injuries and bans** are icons with FF's words in English: the diagnosis ("ACL tear", "Hamstring injury", "Training
   apart"), "since 12 Sep", and the note ("Doubt for round 8", "Available for round 8", "Out for round 8", "Out until January
   2027"). A return date that has already gone by reads "Was due back late September", never "Out until". A diagnosis the page
@@ -302,6 +315,12 @@ Cards is the latest synced collection snapshot, not a historical collection at t
 - position and rarity balance;
 - L5/L10/L40 form, play share and gameplay tier when supplied.
 
+Under each card is **his next game** (opponent, `v` home or `@` away, kickoff in Madrid time) and **his chance to start it** from each
+source that has one: Futbol Fantasy (FF), Sorare (SO) and Sofix (SF). The darker number is the one Sofix uses. The game is the earliest one
+still to come in any week the page holds, so a player called up by his national team shows that game; Futbol Fantasy only speaks about a
+club's next LaLiga game. A card whose player has no game in the weeks Sorare has opened says "No game yet". A player of yours linked from
+Lineups is outlined here.
+
 Search by player or club, filter position/rarity and change sort; those choices are URL state and can be bookmarked.
 Excluded cards are folded rather than deleted so the reason remains inspectable.
 
@@ -316,6 +335,10 @@ Each result shows recent average, Sorare projection **if he plays**, cached Limi
 against the fifth-best owned card in the same position. “You have him” prevents an owned player being presented as
 a new signing. The price is Sorare's last-synced market valuation, not the lowest current listing and not an offer
 Sofix can execute.
+
+A dash under **Projected** means Sorare has not given a projection for his next game: Sorare scores a game ahead only once it has
+opened its week. The line above the results says when it is due (Madrid time), or that Sorare gives none; the dash itself carries the same
+words on hover.
 
 If the index is empty, the page should show a sync/schema/key state. It must not broaden silently to other leagues.
 
@@ -390,7 +413,9 @@ when your best plan uses the card (the lineup's name, and a C for the captain) a
 between the score if he **starts** (the default) and if he is **benched**; the big score with his chance of starting and whose
 number it is ("START · FF"); one line only when FF says something is wrong with him ("Doubt · since 12 Sep", amber, or an
 injury or ban, red); three numbers (xG or clean sheet for his job, his side's win chance, and the difficulty); and **SOURCES**,
-folded away, which opens to what FF, SO and SF each say and when FF was read. Escape closes it. It only shows things; nothing in
+folded away, which opens to what FF, SO and SF each say and when FF was read; for a national-team game or another league's, where FF
+has no number, its row says "LaLiga only" (FF covers LaLiga only). The overlay never shows FF's Spanish words; the Lineups page
+translates them. Escape closes it. It only shows things; nothing in
 it writes to Sorare.
 
 - **His chance of starting** is the bottom row of every full tile ("90%") with a mark for whose it is: FF's expected lineup where
@@ -423,7 +448,8 @@ generated CSS class names.
 ### Plan drawer
 
 The **Sofix** tab on the right edge of Sorare's football pages opens your gameweek: what the best plan adds up to,
-the cards of its leading lineup, the reward chance, the essence expected and how many of your cards it uses.
+a thumbnail of every card of its lineups (the leading lineup first; every card up to ten, else nine and a "+N" for the rest, so the thumbnails and
+the "+N" always add up to the cards the plan uses), the reward chance, the essence expected and how many of your cards it uses.
 **Open Apply in Sofix** opens the Play page for that gameweek and returns you to the controlled three-step flow;
 lineup write buttons are intentionally not placed over Sorare's browsing UI. The tab is hidden on narrow windows.
 

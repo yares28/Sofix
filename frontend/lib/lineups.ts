@@ -155,6 +155,18 @@ export function pickMatch(sections: Section[], asked: string | null, now: Date):
   return ordered.find((match) => at(match.kickoff) > now.getTime()) ?? ordered[ordered.length - 1]!;
 }
 
+/** The address of a match: `?m=` set to its id, whatever else the address says kept. */
+export function matchAddress(search: string, id: number): string {
+  const params = new URLSearchParams(search);
+  params.set("m", String(id));
+  return `/lineups?${params.toString()}`;
+}
+
+/** The match an address asks for among those the page holds, else the one the page opened on. */
+export function matchAsked(matches: LineupMatch[], asked: string | null, fallback: LineupMatch): LineupMatch {
+  return (asked ? matches.find((match) => String(match.id) === asked) : undefined) ?? fallback;
+}
+
 export type MatchState = "ahead" | "started" | "tbc";
 
 export function matchState(match: LineupMatch, now: Date): MatchState {
@@ -269,6 +281,62 @@ export function startersIn(match: LineupMatch): number {
 /** What a match tab says of your players: "3 yours · 0 starting" (named in the match, and in the probable eleven). */
 export function yoursLabel(match: LineupMatch): string {
   return `${yoursIn(match)} yours · ${startersIn(match)} starting`;
+}
+
+/** An alternative at or under this chance is not worth a chip on the pitch. */
+export const DEAD_CHANCE = 0.05;
+
+/**
+ * The alternatives worth a chip, and the ones that fold into "+3 more": anyone at 5% or less, and anyone out or suspended (the list
+ * below the team says why). A player of yours is never folded.
+ */
+export function splitDead(players: LineupPlayer[]): { live: LineupPlayer[]; dead: LineupPlayer[] } {
+  const live: LineupPlayer[] = [];
+  const dead: LineupPlayer[] = [];
+  for (const player of players) {
+    const kind = player.status?.kind;
+    const folds = !player.yours && (kind === "out" || kind === "suspended" || (player.p ?? 0) <= DEAD_CHANCE);
+    (folds ? dead : live).push(player);
+  }
+  return { live, dead };
+}
+
+/** The injury list without the knocks a player plays despite, which fold into "4 more fit to play" (a player of yours stays). */
+export function splitAbsent(entries: Absent[]): { news: Absent[]; fit: Absent[] } {
+  const fit = entries.filter((entry) => entry.kind === "available" && !entry.yours);
+  return { news: entries.filter((entry) => !fit.includes(entry)), fit };
+}
+
+export type YoursPlayer = {
+  slug: string;
+  id: string;
+  name: string;
+  /** His short name, the same on a card and on a chip. */
+  label: string;
+  p: number | null;
+  kind: PlayerKind | null;
+  /** In the probable eleven (else an alternative). */
+  starting: boolean;
+  /** His club's short code. */
+  club: string;
+};
+
+/**
+ * The owner's players a match names, for the strip at its top: the eleven first, then the alternatives, each by chance (a player with
+ * none given, or at 0, last), then by name.
+ */
+export function yoursPlayers(match: LineupMatch): YoursPlayer[] {
+  const out: YoursPlayer[] = [];
+  for (const side of [match.home, match.away]) {
+    const labels = playerLabels([...side.rows.flatMap((row) => row.players), ...side.alternatives]);
+    const named = (player: LineupPlayer, starting: boolean) => {
+      if (!player.yours) return;
+      out.push({ slug: player.yours, id: player.id, name: player.name, label: labels[player.id] ?? player.name, p: player.p, kind: player.status?.kind ?? null, starting, club: shortCode(side) });
+    };
+    for (const row of side.rows) for (const player of row.players) named(player, true);
+    for (const player of side.alternatives) named(player, false);
+  }
+  return out.sort((a, b) => Number(b.starting) - Number(a.starting) || (b.p ?? 0) - (a.p ?? 0) || a.name.localeCompare(b.name));
 }
 
 // ---------------------------------------------------------------------------------------------------- how fresh

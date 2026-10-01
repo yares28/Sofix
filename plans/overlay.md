@@ -38,7 +38,10 @@ pages; the same on a lineup page needs the owner's session.
   player, so one ask covers all his cards. A card only its link names (`?card=…`) is asked by card slug.
 - **Difficulty reuses the board's club-name matcher** (`sideOutlook` in `lib/home.ts`), so the overlay can never
   disagree with the board. Outside LaLiga, and for national-team games, the chip says "No odds".
-- **The drawer shows the gameweek's best plan, not one card's.** It asks for the plan only when opened.
+- **The drawer shows the gameweek's best plan, not one card's.** It asks for the plan only when opened. It draws a thumbnail of every card
+  of the plan's lineups (the leading one first), every card up to ten and else nine and "+N", where N is what the plan uses beyond the thumbnails
+  (`core.drawerCards`); it used to stop at five of the leading lineup's cards without saying so. The panel's SOURCES list says "LaLiga
+  only" on the FF row when the game is not a LaLiga one (`laliga` in the answer), and the status line never carries FF's Spanish cause.
 - **Account matching is not enforced.** The numbers are gated by the extension's token. The app cannot compare the
   signed-in account with the published owner reliably: the extension reports `nickname || slug`, the job plans for
   `SORARE_USER`, and a wrong guess would silently blank the owner's own overlay. Needs `whoami` to report both.

@@ -10,6 +10,8 @@ import {
   lineupsGlance,
   matchState,
   otherWeekNote,
+  matchAddress,
+  matchAsked,
   pickMatch,
   readable,
   playerLabels,
@@ -17,6 +19,8 @@ import {
   roundDays,
   shortCode,
   sorareLine,
+  splitAbsent,
+  splitDead,
   squadOut,
   startersIn,
   statusLine,
@@ -26,6 +30,7 @@ import {
   tint,
   yoursIn,
   yoursLabel,
+  yoursPlayers,
   type LineupMatch,
   type LineupSide,
   type LineupsData,
@@ -237,6 +242,75 @@ describe("the glance Home takes at the lineups", () => {
   });
 });
 
+describe("names worth a place on the pitch, and names that fold", () => {
+  it("folds alternatives at 5% or less and anyone out or suspended, but never a player of yours", () => {
+    const list = [
+      player("1", { p: 0.5 }),
+      player("2", { p: 0.05 }),
+      player("3", { p: 0.06 }),
+      player("4", { p: 0 }),
+      player("5", { p: 0.4, status: { kind: "out" } }),
+      player("6", { p: 0.4, status: { kind: "suspended" } }),
+      player("7", { p: 0.3, status: { kind: "doubt" } }),
+      player("8", { p: 0, yours: "mine", status: { kind: "out" } }),
+      player("9", { p: null }),
+    ];
+
+    const { live, dead } = splitDead(list);
+
+    expect(live.map((p) => p.id)).toEqual(["1", "3", "7", "8"]);
+    expect(dead.map((p) => p.id)).toEqual(["2", "4", "5", "6", "9"]);
+  });
+
+  it("folds the knocks he plays despite, but keeps the news and a player of yours in the list", () => {
+    const entries = [
+      { name: "a", kind: "out" as const },
+      { name: "b", kind: "available" as const },
+      { name: "c", kind: "doubt" as const },
+      { name: "d", kind: "available" as const },
+      { name: "e", kind: "available" as const, yours: "mine" },
+    ];
+
+    const { news, fit } = splitAbsent(entries);
+
+    expect(news.map((e) => e.name)).toEqual(["a", "c", "e"]);
+    expect(fit.map((e) => e.name)).toEqual(["b", "d"]);
+  });
+});
+
+describe("your players in a match, for the strip at its top", () => {
+  const one = match(1, "2026-10-11T14:15:00Z", {
+    home: side("Home", {
+      club: "RSO",
+      rows: [{ line: "FWD", players: [player("1", { name: "Mikel Oyarzabal", p: 0.9, yours: "oyarzabal" }), player("2", { name: "Ander Barrenetxea", p: 0.5 })] }],
+      alternatives: [player("3", { name: "Takefusa Kubo", p: 0.4, yours: "kubo" }), player("4", { name: "Orri Steinn Óskarsson", p: 0, yours: "orri", status: { kind: "suspended" } })],
+    }),
+    away: side("Away", {
+      club: "DEP",
+      rows: [{ line: "DEF", players: [player("5", { name: "Luismi Cruz", p: 0.7, yours: "luismi", status: { kind: "doubt" } })] }],
+      alternatives: [player("6", { name: "Noé Carrillo", p: null, yours: "noe" })],
+    }),
+  });
+
+  it("lists the eleven first by chance, then the alternatives, with his short name, club and what is wrong with him", () => {
+    const list = yoursPlayers(one);
+
+    expect(list.map((p) => [p.label, p.p, p.starting, p.club, p.kind])).toEqual([
+      ["OYARZABAL", 0.9, true, "RSO", null],
+      ["CRUZ", 0.7, true, "DEP", "doubt"],
+      ["KUBO", 0.4, false, "RSO", null],
+      ["CARRILLO", null, false, "DEP", null],
+      ["ÓSKARSSON", 0, false, "RSO", "suspended"],
+    ]);
+    expect(list[0]).toMatchObject({ slug: "oyarzabal", name: "Mikel Oyarzabal" });
+  });
+
+  it("counts the same players as the tab does", () => {
+    expect(yoursPlayers(one)).toHaveLength(yoursIn(one));
+    expect(yoursPlayers(match(2, null))).toEqual([]);
+  });
+});
+
 describe("what a player is called on a card and on a chip", () => {
   it("is his surname, with an initial where two of the same side share it, whichever list they are in", () => {
     const labels = playerLabels([
@@ -397,5 +471,23 @@ describe("the crests", () => {
     expect(tint("#0067b1", "1a")).toBe("#0067b11a");
     expect(tint("blue", "1a")).toBe("transparent");
     expect(tint(undefined, "1a")).toBe("transparent");
+  });
+});
+
+describe("switching match inside the page", () => {
+  it("writes the address of a match, keeping what else the address says", () => {
+    expect(matchAddress("", 22497)).toBe("/lineups?m=22497");
+    expect(matchAddress("?m=22498", 22497)).toBe("/lineups?m=22497");
+    expect(matchAddress("?w=md8&m=22498", 22497)).toBe("/lineups?w=md8&m=22497");
+    expect(matchAddress("?w=md8", 22497)).toBe("/lineups?w=md8&m=22497");
+  });
+
+  it("reads the match an address asks for, and falls back to the one the page opened on when it names none that exists", () => {
+    const matches = [{ id: 1 }, { id: 2 }, { id: 3 }] as LineupMatch[];
+
+    expect(matchAsked(matches, "3", matches[1]!).id).toBe(3);
+    expect(matchAsked(matches, null, matches[1]!).id).toBe(2);
+    expect(matchAsked(matches, "999", matches[1]!).id).toBe(2);
+    expect(matchAsked(matches, "", matches[0]!).id).toBe(1);
   });
 });

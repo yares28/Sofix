@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { offline, resetBackend } from "./helpers";
+import { offline, resetBackend, smallText } from "./helpers";
 
 test.beforeEach(async ({ page, request }) => {
   await resetBackend(request);
@@ -131,4 +131,12 @@ test("the home's team news fits a phone: one column, no sideways scrolling", asy
   const columns = await news.locator(".hm-nw-col").evaluateAll((cols) => cols.map((col) => Math.round(col.getBoundingClientRect().left)));
   expect(new Set(columns).size).toBe(1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test("on a phone every text on Lineups, Cards and Players is 10 px or more", async ({ page }) => {
+  for (const route of ["/lineups?m=22502", "/cards", "/players"]) {
+    await page.goto(route);
+    await page.waitForTimeout(600);
+    expect(await smallText(page, 10), route).toEqual([]);
+  }
 });

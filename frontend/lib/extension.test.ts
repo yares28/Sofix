@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extensionAtLeast, parsePing, pingExtension } from "./extension";
+import { extensionAtLeast, extensionIsLatest, LATEST_EXTENSION_VERSION, parsePing, pingExtension } from "./extension";
 
 describe("extension ping", () => {
   it("reads the extension's answer", () => {
@@ -28,5 +28,13 @@ describe("extension ping", () => {
     expect(extensionAtLeast("0.2.0")).toBe(true);
     expect(extensionAtLeast("1.0.0")).toBe(true);
     expect(extensionAtLeast("latest")).toBe(false);
+  });
+
+  it("knows the newest build, which older ones still work without (they lack the live Futbol Fantasy reads)", () => {
+    expect(LATEST_EXTENSION_VERSION).toBe("0.3.0");
+    expect(extensionIsLatest("0.2.3")).toBe(false);
+    expect(extensionIsLatest("0.3.0")).toBe(true);
+    expect(extensionIsLatest("0.3.1")).toBe(true);
+    expect(extensionIsLatest("junk")).toBe(false);
   });
 });

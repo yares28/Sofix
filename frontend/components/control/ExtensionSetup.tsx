@@ -22,8 +22,8 @@ const HEAD: Record<ExtensionStage, { eyebrow: string; title: (user: string | nul
   add: { eyebrow: "On your PC · once · about a minute", title: () => "Add the Sorare extension", lede: "Then lineups save to Sorare from the app." },
   update: {
     eyebrow: "Update needed · under a minute",
-    title: () => "Reload the Sofix extension",
-    lede: "Chrome is still running the older build. Reloading activates selected-gameweek lineups.",
+    title: () => "Update the Sofix extension",
+    lede: "Chrome is still running an older build. The newest reads Futbol Fantasy live and needs its folder rebuilt first: Reload alone keeps the old version.",
   },
   "sign-in": { eyebrow: "Almost there", title: () => "Now open sorare.com", lede: "Signed in as usual. A tab that is already open is enough." },
   done: { eyebrow: "Done", title: (user) => (user ? `Linked as ${user}` : "Extension linked"), lede: "Sorare, the extension and Sofix are connected." },
@@ -80,6 +80,12 @@ export default function ExtensionSetup({ stage, user, version, extensionDir }: P
     },
   ];
   const updateSteps: SetupStep[] = [
+    {
+      title: "Update the folder, in the Sofix folder on your PC",
+      sub: "git pull, then rebuild the extension's manifest",
+      mono: true,
+      action: <CopyButton text="git pull; node extension/scripts/configure.mjs" label="the two commands" />,
+    },
     {
       title: "Open chrome://extensions",
       sub: "paste it in Chrome's address bar",

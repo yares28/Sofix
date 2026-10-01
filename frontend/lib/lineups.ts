@@ -271,6 +271,30 @@ export function yoursLabel(match: LineupMatch): string {
   return `${yoursIn(match)} yours · ${startersIn(match)} starting`;
 }
 
+/** An alternative at or under this chance is not worth a chip on the pitch. */
+export const DEAD_CHANCE = 0.05;
+
+/**
+ * The alternatives worth a chip, and the ones that fold into "+3 more": anyone at 5% or less, and anyone out or suspended (the list
+ * below the team says why). A player of yours is never folded.
+ */
+export function splitDead(players: LineupPlayer[]): { live: LineupPlayer[]; dead: LineupPlayer[] } {
+  const live: LineupPlayer[] = [];
+  const dead: LineupPlayer[] = [];
+  for (const player of players) {
+    const kind = player.status?.kind;
+    const folds = !player.yours && (kind === "out" || kind === "suspended" || (player.p ?? 0) <= DEAD_CHANCE);
+    (folds ? dead : live).push(player);
+  }
+  return { live, dead };
+}
+
+/** The injury list without the knocks a player plays despite, which fold into "4 more fit to play" (a player of yours stays). */
+export function splitAbsent(entries: Absent[]): { news: Absent[]; fit: Absent[] } {
+  const fit = entries.filter((entry) => entry.kind === "available" && !entry.yours);
+  return { news: entries.filter((entry) => !fit.includes(entry)), fit };
+}
+
 export type YoursPlayer = {
   slug: string;
   id: string;

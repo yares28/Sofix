@@ -263,3 +263,29 @@ test("a match with none of your players says so, and offers no switch", async ({
   await expect(strips.getByRole("heading")).toHaveText("None of your players are in this match");
   await expect(strips.getByRole("switch")).toHaveCount(0);
 });
+
+test("alternatives at 5% or less and anyone out or suspended fold into '+N more', and the knocks he plays despite into 'N more fit to play'", async ({ page }) => {
+  await page.goto("/lineups?m=22502");
+  const home = page.getByRole("region", { name: "Real Sociedad lineup" });
+  const away = page.getByRole("region", { name: "Deportivo lineup" });
+
+  // no chip on the pitch is at 5% or less unless it is yours
+  for (const chip of await home.locator(".lu-pitch .lu-alt:not([data-mine])").all()) {
+    const pct = Number((await chip.innerText()).match(/(\d+)%/)![1]);
+    expect(pct, await chip.innerText()).toBeGreaterThan(5);
+  }
+  // the folded ones are one line, and open to names with their reasons
+  const more = home.locator("details.lu-more");
+  await expect(more.locator("summary")).toHaveText(/^\+\d+ more$/);
+  await expect(more.getByText("ÓSKARSSON")).toBeHidden();
+  await more.locator("summary").click();
+  await expect(more.getByText("ÓSKARSSON")).toBeVisible();
+  await expect(more).toContainText("the list below says why");
+  // "Also in the squad, at 0%" is gone
+  await expect(page.getByText("Also in the squad, at 0%")).toHaveCount(0);
+  // the knock he plays despite is folded away from the news
+  await expect(away.locator(".lu-news > li.lu-new", { hasText: "Amatucci" })).toHaveCount(0);
+  await expect(away.locator(".lu-fit summary")).toHaveText("1 more fit to play");
+  await away.locator(".lu-fit summary").click();
+  await expect(away.locator(".lu-fit").getByText("Lorenzo Amatucci")).toBeVisible();
+});

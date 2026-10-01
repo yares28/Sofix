@@ -17,6 +17,8 @@ import {
   roundDays,
   shortCode,
   sorareLine,
+  splitAbsent,
+  splitDead,
   squadOut,
   startersIn,
   statusLine,
@@ -235,6 +237,42 @@ describe("the glance Home takes at the lineups", () => {
     expect(lineupsGlance(data([]), NOW)).toBeNull();
     expect(lineupsGlance(data([two("2026-10-09T14:15:00Z")]), NOW)).toBeNull();
     expect(lineupsGlance(data([two("2026-10-14T19:00:00Z", europa)]), NOW)).toBeNull();
+  });
+});
+
+describe("names worth a place on the pitch, and names that fold", () => {
+  it("folds alternatives at 5% or less and anyone out or suspended, but never a player of yours", () => {
+    const list = [
+      player("1", { p: 0.5 }),
+      player("2", { p: 0.05 }),
+      player("3", { p: 0.06 }),
+      player("4", { p: 0 }),
+      player("5", { p: 0.4, status: { kind: "out" } }),
+      player("6", { p: 0.4, status: { kind: "suspended" } }),
+      player("7", { p: 0.3, status: { kind: "doubt" } }),
+      player("8", { p: 0, yours: "mine", status: { kind: "out" } }),
+      player("9", { p: null }),
+    ];
+
+    const { live, dead } = splitDead(list);
+
+    expect(live.map((p) => p.id)).toEqual(["1", "3", "7", "8"]);
+    expect(dead.map((p) => p.id)).toEqual(["2", "4", "5", "6", "9"]);
+  });
+
+  it("folds the knocks he plays despite, but keeps the news and a player of yours in the list", () => {
+    const entries = [
+      { name: "a", kind: "out" as const },
+      { name: "b", kind: "available" as const },
+      { name: "c", kind: "doubt" as const },
+      { name: "d", kind: "available" as const },
+      { name: "e", kind: "available" as const, yours: "mine" },
+    ];
+
+    const { news, fit } = splitAbsent(entries);
+
+    expect(news.map((e) => e.name)).toEqual(["a", "c", "e"]);
+    expect(fit.map((e) => e.name)).toEqual(["b", "d"]);
   });
 });
 

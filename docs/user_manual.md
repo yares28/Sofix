@@ -261,7 +261,9 @@ FF says so above the next match.
 - **Who else could play.** Under each line, the alternatives most likely first, with their chance. A player is written the same short way
   on his card and on a chip (his surname, with an initial where two of a side share it), and his full name shows on hover. The % badge
   sits under a card, never over the name Sorare prints on your own cards. A player FF has not
-  placed yet is listed apart as "Others in the squad"; those at 0% are named in one line under the injuries.
+  placed yet is listed apart as "Others in the squad"; alternatives at 5% or less, and anyone out or suspended, fold into one "+3 more" under the pitch (open it for their names and
+  chances; the injury list below says why). Your own players never fold. In that list the knocks a player plays despite fold into "4 more fit
+  to play".
 - **Injuries and bans** are icons with FF's words in English: the diagnosis ("ACL tear", "Hamstring injury", "Training
   apart"), "since 12 Sep", and the note ("Doubt for round 8", "Available for round 8", "Out for round 8", "Out until January
   2027"). A return date that has already gone by reads "Was due back late September", never "Out until". A diagnosis the page

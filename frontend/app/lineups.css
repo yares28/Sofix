@@ -200,6 +200,17 @@
 .lu-new em { font-style: normal; font-size: 12.5px; font-weight: 500; white-space: nowrap; color: #b42318; }
 .lu-new em[data-kind="doubt"] { color: #8a5300; }
 .lu-new em[data-kind="available"] { color: #1a6a42; }
+/* Names that fold: "+3 more" under the pitch, "4 more fit to play" in the injury list. */
+.lu-more { margin: 14px 0 0; font-size: 12.5px; color: var(--ink-2); }
+.lu-more summary, .lu-fit summary { cursor: pointer; font-weight: 600; color: var(--ink-2); list-style: none; }
+.lu-more summary::-webkit-details-marker, .lu-fit summary::-webkit-details-marker { display: none; }
+.lu-more summary::before, .lu-fit summary::before { content: "›"; display: inline-block; width: 12px; transition: transform 0.2s; }
+.lu-more[open] summary::before, .lu-fit details[open] summary::before { transform: rotate(90deg); }
+.lu-more summary:focus-visible, .lu-fit summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.lu-more p { margin: 8px 0 10px; }
+.lu-more .lu-alts { margin: 0; justify-content: flex-start; }
+.lu-fit { display: block; padding: 10px 0 0; border-top: 1px solid #f0f0f3; font-size: 12.5px; }
+.lu-fit ul { margin: 8px 0 0; padding: 0; list-style: none; }
 .lu-zero, .lu-note { margin: 0; padding: 11px 2px 0; border-top: 1px solid #f0f0f3; font-size: 12.5px; color: var(--ink-2); }
 .lu-note { margin-top: 14px; border-top: 0; padding: 0; }
 .lu-unlinked { margin: 14px 0 0; padding: 0; list-style: none; font-size: 12.5px; color: var(--ink-2); }

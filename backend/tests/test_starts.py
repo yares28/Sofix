@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import dataclasses
+import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -276,11 +277,24 @@ def test_no_settled_rows_is_an_empty_comparison_not_an_error() -> None:
 
 # --------------------------------------------------------------------------- the job writes it down
 class _Client:
+    """Sorare as the job sees it here: the snapshot is faked, so what it is asked is only the card art (a squad, then cards)."""
+
+    roster: list[dict[str, Any]] = []
+    pictures: dict[str, str] = {}
+
     def __enter__(self):
         return self
 
     def __exit__(self, *exc):
         return None
+
+    def query(self, text: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
+        if "nodes { slug }" in text:
+            return {"football": {"competition": {"clubs": {"nodes": [{"slug": "club-a"}] if self.roster else []}}}}
+        if "activePlayers" in text:
+            return {"football": {"club": {"activePlayers": {"pageInfo": {"hasNextPage": False}, "nodes": self.roster}}}}
+        slugs = re.findall(r'(p\d+): allCards\(playerSlugs: \["([a-z0-9-]+)"\]', text)
+        return {"football": {alias: {"nodes": [{"pictureUrl": self.pictures[slug]}] if slug in self.pictures else []} for alias, slug in slugs}}
 
 
 def the_match() -> ffm.Match:
@@ -502,3 +516,34 @@ def test_with_no_site_there_is_no_lineups_page_and_no_news(db, the_job) -> None:
 
     assert summary["teamNews"] is None and "teamNews" not in page_of(db)
     assert db.get(ReadModel, "ff_chances") is None
+
+
+def test_the_lineups_page_carries_a_real_card_for_a_player_the_owner_does_not_have(db, monkeypatch, the_job) -> None:
+    monkeypatch.setattr(ffm, "read_matches", Site())
+    monkeypatch.setattr(
+        _Client,
+        "roster",
+        [{"slug": "back-one", "displayName": "Back One", "position": "Defender", "birthDay": None, "activeClub": {"slug": "club-a", "name": "Club A", "shortName": "Club A"}}],
+    )
+    monkeypatch.setattr(_Client, "pictures", {"back-one": "https://assets.sorare.com/card/zzz/picture/back-one.png"})
+
+    summary = the_job.run(db, "yares", runs=1)
+
+    page = db.get(ReadModel, "lineups")
+    assert page is not None and page.payload["art"]["2"] == "https://assets.sorare.com/card/zzz/picture/back-one.png"
+    assert db.get(ReadModel, "sorare_card_art") is not None and "failed" not in summary
+
+
+def test_a_card_art_step_that_fails_costs_only_the_cards(db, monkeypatch, the_job) -> None:
+    monkeypatch.setattr(ffm, "read_matches", Site())
+
+    def down(self, text, variables=None):
+        raise RuntimeError("Sorare is down")
+
+    monkeypatch.setattr(_Client, "query", down)
+
+    summary = the_job.run(db, "yares", runs=1)
+
+    assert set(summary["failed"]) == {"card art"}, "what was kept is read instead, which cannot fail"
+    page = db.get(ReadModel, "lineups")
+    assert page is not None and page.payload["art"] == {} and page.payload["matches"], "the page is there, without cards for the others"

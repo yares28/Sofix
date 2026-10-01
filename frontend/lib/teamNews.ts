@@ -62,21 +62,35 @@ export function sinceLabel(since: string, now: Date): string {
 /** The part of a week the idle note reads: its number and the competition of each game its players have. */
 type IdleWeek = { gameweek: { number: number }; playing: { players: { games: { competition: string }[] }[] } };
 
-/** A week in which every game of every player is a national team's: the site only covers clubs. */
+const LALIGA = "laliga-es";
+
+const gamesOf = (week: IdleWeek) => week.playing.players.flatMap((player) => player.games);
+
+/** A week of games with none of LaLiga's in it: the site only covers LaLiga, so it has nothing to say about any of them. */
+const withoutLaLiga = (week: IdleWeek): boolean => {
+  const games = gamesOf(week);
+  return games.length > 0 && !games.some((game) => game.competition === LALIGA);
+};
+
+/**
+ * A break: no LaLiga game in the week and national teams' games the bulk of it. A few games of other leagues that play on
+ * (Segunda, Argentina: 4 of 19 on the first of October) do not make it a club week.
+ */
 export const nationalWeek = (week: IdleWeek): boolean => {
-  const games = week.playing.players.flatMap((player) => player.games);
-  return games.length > 0 && games.every((game) => NATIONAL_COMPETITION.test(game.competition));
+  const games = gamesOf(week);
+  return withoutLaLiga(week) && games.filter((game) => NATIONAL_COMPETITION.test(game.competition)).length * 2 >= games.length;
 };
 
 /**
  * What the team-news tile says while Futbol Fantasy has told the job nothing about the week: why, which is not the same
- * for a break (it never covers national teams) as for a club week (it publishes each club's next game about a day after the last).
+ * for a break (it never covers national teams), for a week with no LaLiga game, and for a week of LaLiga games it has not reached
+ * (it publishes each club's next game about a day after the last).
  */
 export function idleNote(week: IdleWeek, glance: LineupsGlance | null): { lead: string; rest: string; lineups: string | null } {
-  if (nationalWeek(week)) {
+  if (withoutLaLiga(week)) {
     const yours = glance && (glance.yours === 0 ? "none of" : `${glance.yours} of`);
     return {
-      lead: `GW${week.gameweek.number} is national-team games.`,
+      lead: nationalWeek(week) ? `GW${week.gameweek.number} is national-team games.` : `GW${week.gameweek.number} has no LaLiga games.`,
       rest: "Futbol Fantasy covers LaLiga only.",
       lineups: glance ? `Round ${glance.round}'s lineups are on Lineups (${yours} your players).` : null,
     };

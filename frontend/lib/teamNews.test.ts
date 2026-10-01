@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gameLine, idleNote, lockChip, movedWhy, shares, sinceLabel, splitLabel } from "./teamNews";
+import { gameLine, idleNote, lockChip, movedWhy, nationalWeek, shares, sinceLabel, splitLabel } from "./teamNews";
 import type { NewsGame, NewsMove } from "./play";
 
 const NOW = new Date("2026-10-07T12:00:00Z"); // Wed 7 Oct 14:00 in Madrid
@@ -90,5 +90,34 @@ describe("why there is no news yet", () => {
 
     expect(idleNote(mixed, null).lead).toMatch(/^Futbol Fantasy has not published/);
     expect(idleNote({ gameweek: { number: 19 }, playing: { players: [] } }, null).lead).toMatch(/^Futbol Fantasy has not published/);
+  });
+});
+
+describe("a week with a few games of other leagues in it (GW19 on 1 Oct: 15 national, 3 Segunda, 1 Argentine)", () => {
+  const games = (...competitions: string[]) => ({
+    gameweek: { number: 19 },
+    playing: { players: competitions.map((competition) => ({ games: [{ competition }] })) },
+  });
+  const break_ = games(...Array(15).fill("uefa-nations-league"), ...Array(3).fill("segunda-division-es"), "superliga-argentina-de-futbol");
+
+  it("is still national-team games: no LaLiga game, and the national ones are the bulk", () => {
+    expect(nationalWeek(break_)).toBe(true);
+    const note = idleNote(break_, { round: 8, yours: 9 });
+    expect(note.lead).toBe("GW19 is national-team games.");
+    expect(note.rest).toBe("Futbol Fantasy covers LaLiga only.");
+  });
+
+  it("is not once a LaLiga game is in it, however few", () => {
+    expect(nationalWeek(games("uefa-nations-league", "uefa-nations-league", "uefa-nations-league", "laliga-es"))).toBe(false);
+  });
+
+  it("says there is no LaLiga when the week is not mostly national either", () => {
+    const other = games("segunda-division-es", "segunda-division-es", "primera-a", "uefa-nations-league");
+
+    expect(nationalWeek(other)).toBe(false);
+    const note = idleNote(other, { round: 8, yours: 3 });
+    expect(note.lead).toBe("GW19 has no LaLiga games.");
+    expect(note.rest).toBe("Futbol Fantasy covers LaLiga only.");
+    expect(note.lineups).toBe("Round 8's lineups are on Lineups (3 of your players).");
   });
 });

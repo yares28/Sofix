@@ -249,3 +249,23 @@ def test_the_job_keeps_the_templates_between_runs(db, monkeypatch) -> None:  # n
     assert asked[0] == {} and asked[1] == snap["expected"], "the second run is given what the first one kept"
     again = db.get(ReadModel, sorare_job.TEMPLATES_KEY)
     assert again is not None and again.updated_at == written, "and writes nothing when nothing changed"
+
+
+def test_a_week_opened_ahead_is_judged_by_the_finished_week_of_its_kind_not_the_break_before_it() -> None:
+    """GW21 (round 8) on 1 Oct: the plan week is a break, so the finished week it is judged by had no LaLiga cut-offs at all."""
+    snap = with_templates(early_snapshot())
+    snap["references"]["gw-break"] = {}
+    snap["referenceFor"] = {**snap["referenceFor"], "plan": "gw-break"}
+    snap["aheadGameweeks"] = [{**snap["aheadGameweeks"][0], "laliga": 10}]
+    snap["gameweeks"] = [snap["pastGameweek"], snap["planGameweek"], *snap["aheadGameweeks"]]
+
+    page = publish.build_payload(snap, runs=2, draws=100)
+    ahead = next(w for w in page["weeks"] if w["gameweek"]["slug"] == "gw-ahead")
+
+    laliga_lineups = [
+        lu for plan in ahead["plans"] for lu in plan["lineups"] if lu["key"] == "LALIGA EA SPORTS | Limited"
+    ]
+    assert laliga_lineups, "its LaLiga competition is planned for"
+    assert all(lu["needFrom"] == "GW15" and "expected" not in lu for lu in laliga_lineups), (
+        "official, with the full week's cut-offs"
+    )

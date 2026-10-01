@@ -5,6 +5,12 @@ export const EXTENSION_ID = "lfgchmhjigjodjfchagphfpkcicochlk";
 /** First extension build that can read every lineup in a selected Sorare gameweek. */
 export const REQUIRED_EXTENSION_VERSION = "0.1.1";
 
+/**
+ * The newest build. Older ones from REQUIRED_EXTENSION_VERSION up still work, but lack what came later: 0.3.0 reads Futbol
+ * Fantasy live and needs one more permission, which only a rebuilt manifest.json carries.
+ */
+export const LATEST_EXTENSION_VERSION = "0.3.0";
+
 /** Chrome manifest versions are numeric dot-separated values; compare them without relying on string ordering. */
 export function extensionAtLeast(version: string, minimum = REQUIRED_EXTENSION_VERSION): boolean {
   const read = (value: string) => (/^\d+\.\d+\.\d+$/.test(value) ? value.split(".").map(Number) : null);
@@ -17,6 +23,8 @@ export function extensionAtLeast(version: string, minimum = REQUIRED_EXTENSION_V
   }
   return true;
 }
+
+export const extensionIsLatest = (version: string): boolean => extensionAtLeast(version, LATEST_EXTENSION_VERSION);
 
 /** What the extension answers when the app pings it (extension/background.js). */
 export type ExtensionPing = { version: string; sorareUser: string | null; appReachable: boolean | null };

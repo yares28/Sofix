@@ -1,7 +1,7 @@
 import { relativeTime } from "./grid";
 import { isStale } from "./refresh";
 import { madridClock, nextRun, todaysRuns } from "./schedule";
-import { extensionAtLeast, REQUIRED_EXTENSION_VERSION } from "./extension";
+import { extensionAtLeast, extensionIsLatest, REQUIRED_EXTENSION_VERSION } from "./extension";
 
 /** What the Control Center shows. Built from the database (lib/system.ts) and the refresh schedule. */
 export type RunSummary = {
@@ -189,7 +189,7 @@ export function chainOf(system: SystemStatus | null, now: Date): ChainNode[] {
     {
       id: "extension",
       label: "Extension",
-      sub: extAlive && ext ? (extCurrent ? `v${ext.version}` : `v${ext.version} · reload`) : ext ? "not seen lately" : "not added",
+      sub: extAlive && ext ? (extCurrent ? (extensionIsLatest(ext.version) ? `v${ext.version}` : `v${ext.version} · update`) : `v${ext.version} · reload`) : ext ? "not seen lately" : "not added",
       on: extAlive && extCurrent,
     },
     { id: "app", label: "Sofix", sub: "online", on: true },

@@ -80,7 +80,13 @@ const idleSorare = Object.fromEntries(
     const data = structuredClone(sorare.data);
     const week = data.weeks.find((one) => one.gameweek.id === data.nextId);
     delete week.teamNews;
-    if (national) for (const player of week.playing.players) for (const game of player.games) game.competition = "uefa-nations-league";
+    if (national) {
+      for (const player of week.playing.players) for (const game of player.games) game.competition = "uefa-nations-league";
+      // And a week of Sorare's with national-team games only, far from any LaLiga round (GW19 of the real season): the one a Lineups link names.
+      const gameweek = { ...week.gameweek, id: "9019", slug: "football-2-6-jan-2030", number: 19, name: "Game Week 19", start: "2030-01-02T14:00:00Z", end: "2030-01-06T14:00:00Z", lock: "2030-01-02T14:00:00Z" };
+      data.weeks.push({ ...structuredClone(week), gameweek });
+      data.timeline.push({ id: gameweek.id, slug: gameweek.slug, number: 19, start: gameweek.start, end: gameweek.end, lock: gameweek.lock, status: "later" });
+    }
     return [kind, { ...sorare, data }];
   }),
 );

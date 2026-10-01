@@ -3,6 +3,7 @@
  * `lineups`, built by backend/app/sorare/ff_lineups.py) and the small pure helpers the page shares. The rows, the
  * formation and who is the owner's all come from the job; this only groups, labels and words them (plans/futbolfantasy.md, S5).
  */
+import type { Week } from "./weeks";
 
 export const LINEUPS_KEY = "lineups";
 /** A reading older than this is not used by the job, and the page says so. */
@@ -190,6 +191,41 @@ export const squadOut = (side: LineupSide): boolean => side.published && side.sq
 /** Whether any player of the match shows a call-up, which is when the legend names the mark. */
 export const calledUpIn = (match: LineupMatch): boolean =>
   [match.home, match.away].some((side) => squadOut(side) && [...side.rows.flatMap((row) => row.players), ...side.alternatives].some((player) => player.status?.international));
+
+/** The days of a round, from its first kickoff to its last, in Madrid time: "Fri 9 – Mon 12 Oct". */
+export function roundDays(first: string, last: string): string {
+  const [a, b] = [kickoffLabel(first).day.split(" "), kickoffLabel(last).day.split(" ")];
+  if (a.join(" ") === b.join(" ")) return a.join(" ");
+  return a[2] === b[2] ? `${a[0]} ${a[1]} – ${b[0]} ${b[1]} ${b[2]}` : `${a.join(" ")} – ${b.join(" ")}`;
+}
+
+/**
+ * The Sorare week a LaLiga round feeds, as the page's header names it, with the Play page for it: "Sorare GW21 · locks Fri 16:00" once
+ * Sorare has opened the week, "Sorare: not open yet" before. Null when the round is not one of the season's weeks.
+ */
+export function sorareLine(
+  week: Pick<Week, "id" | "gw" | "number"> | undefined,
+  lock: string | undefined,
+  now: Date,
+): { text: string; href: string } | null {
+  if (!week) return null;
+  const href = `/play?w=${encodeURIComponent(week.id)}`;
+  if (!week.gw) return { text: "Sorare: not open yet", href };
+  const name = `Sorare GW${week.number}`;
+  if (!lock) return { text: name, href };
+  return { text: new Date(lock) <= now ? `${name} · locked` : `${name} · locks ${kickoffLabel(lock).short}`, href };
+}
+
+/**
+ * The one line shown when the page was opened for a week it does not cover (`?w=`): it holds each club's next LaLiga game and
+ * nothing else, so a week that is past, later, or a national-team week gets the round it does hold and what that week is.
+ */
+export function otherWeekNote(asked: Pick<Week, "md" | "number"> | null, round: number | null, nationalGames: boolean): string | null {
+  if (!asked || round === null || asked.md === round) return null;
+  const base = `Futbol Fantasy only has each club's next LaLiga game: round ${round}.`;
+  if (asked.md !== null) return `${base} Round ${asked.md} ${asked.md < round ? "has been played" : "comes after it"}.`;
+  return `${base} GW${asked.number} ${nationalGames ? "is national-team games" : "has no LaLiga round"}.`;
+}
 
 /** How many of the owner's players a match names, the eleven and the alternatives of both sides. */
 export function yoursIn(match: LineupMatch): number {

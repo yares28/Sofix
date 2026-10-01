@@ -312,7 +312,7 @@ Target: S1 to S4 before round 8's lock (Fri 9 Oct), so the numbers switch for ro
 
 | Case | What Sofix does |
 |---|---|
-| /lineups and the week picked in the app (one date drives the app) | The page shows the next games; a past or far week says FF only covers each team's next game |
+| /lineups and the week picked in the app (one date drives the app) | The page shows the next games; a past, later or national-team week (`?w=`) says FF only covers each team's next game and what that week is; an unknown `?m=` says the match is no longer on FF. The header names the LaLiga round, its days and the Sorare week it feeds, with a link to Play (1 Oct review, R4 R5) |
 | A big page (10 matches, two XIs, alternatives, injuries) | The design decides what folds away, above all on a phone |
 | The overlay on an old gameweek's page | No FF (those games are over), as today |
 | The overlay's tile | The % of the game the tile shows |

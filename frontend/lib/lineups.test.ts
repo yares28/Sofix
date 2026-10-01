@@ -9,11 +9,14 @@ import {
   kickoffLabel,
   lineupsGlance,
   matchState,
+  otherWeekNote,
   pickMatch,
   readable,
   playerLabels,
   readLabel,
+  roundDays,
   shortCode,
+  sorareLine,
   squadOut,
   statusLine,
   yoursSummary,
@@ -147,6 +150,38 @@ describe("what a match says about itself", () => {
     });
 
     expect(yoursIn(one)).toBe(3);
+  });
+});
+
+describe("which week the page is for", () => {
+  it("writes the days of the round from its first kickoff to its last, in Madrid time", () => {
+    expect(roundDays("2026-10-09T19:00:00Z", "2026-10-12T19:00:00Z")).toBe("Fri 9 – Mon 12 Oct");
+    expect(roundDays("2026-09-30T19:00:00Z", "2026-10-03T19:00:00Z")).toBe("Wed 30 Sep – Sat 3 Oct");
+    expect(roundDays("2026-10-10T19:00:00Z", "2026-10-10T21:00:00Z")).toBe("Sat 10 Oct");
+  });
+
+  it("links to the Sorare week the round feeds, or says Sorare has not opened it", () => {
+    const open = { id: "2026-10-09", gw: "21", number: 21 };
+    const early = { id: "2026-10-09", gw: null, number: null };
+
+    expect(sorareLine(undefined, undefined, NOW)).toBeNull();
+    expect(sorareLine(early, undefined, NOW)).toEqual({ text: "Sorare: not open yet", href: "/play?w=2026-10-09" });
+    expect(sorareLine(open, "2026-10-16T14:00:00Z", NOW)).toEqual({ text: "Sorare GW21 · locks Fri 16:00", href: "/play?w=2026-10-09" });
+    expect(sorareLine(open, "2026-10-10T10:00:00Z", NOW)?.text).toBe("Sorare GW21 · locked");
+    expect(sorareLine(open, undefined, NOW)?.text).toBe("Sorare GW21");
+  });
+
+  it("says why the page shows round 8 when it was opened for another week", () => {
+    const ask = (md: number | null, number: number | null) => otherWeekNote({ md, number }, 8, false);
+    const base = "Futbol Fantasy only has each club's next LaLiga game: round 8.";
+
+    expect(otherWeekNote(null, 8, false)).toBeNull();
+    expect(ask(8, null)).toBeNull();
+    expect(ask(6, null)).toBe(`${base} Round 6 has been played.`);
+    expect(ask(9, null)).toBe(`${base} Round 9 comes after it.`);
+    expect(ask(null, 19)).toBe(`${base} GW19 has no LaLiga round.`);
+    expect(otherWeekNote({ md: null, number: 19 }, 8, true)).toBe(`${base} GW19 is national-team games.`);
+    expect(otherWeekNote({ md: 6, number: null }, null, false)).toBeNull();
   });
 });
 

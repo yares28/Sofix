@@ -63,7 +63,7 @@ export function sinceLabel(since: string, now: Date): string {
 type IdleWeek = { gameweek: { number: number }; playing: { players: { games: { competition: string }[] }[] } };
 
 /** A week in which every game of every player is a national team's: the site only covers clubs. */
-const nationalWeek = (week: IdleWeek): boolean => {
+export const nationalWeek = (week: IdleWeek): boolean => {
   const games = week.playing.players.flatMap((player) => player.games);
   return games.length > 0 && games.every((game) => NATIONAL_COMPETITION.test(game.competition));
 };

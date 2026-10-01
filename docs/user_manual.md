@@ -223,6 +223,12 @@ Futbol Fantasy's probable elevens for every match it has published (FF covers ea
 tied to the week in the top bar). One bar holds the round's matches, with how many of your players are in each (the blue dot);
 the page opens on the next match. Competition and round tabs appear only when the page holds more than one.
 
+The header names what the page is: "LaLiga round 8 · Fri 9 – Mon 12 Oct · Sorare: not open yet" (the days are the first and last
+kickoff, Madrid time), and once Sorare opens the week it feeds, "Sorare GW21 · locks Fri 16:00". The Sorare part links to Play for
+that week. Arriving with a week that FF does not cover (a past round, a later one, or a national-team week) adds one line:
+"Futbol Fantasy only has each club's next LaLiga game: round 8. GW19 is national-team games." A match address that is no longer on
+FF says so above the next match.
+
 - **The pitch.** Each team's eleven as cards in rows, attack at the top, with the formation beside the team name. Your own
   cards show their Sorare art with a blue outline; the others are drawn with FF's photo. The badge under a card is his chance of
   starting; a round mark at its corner is an injury, a doubt, a ban, or (blue) a call-up to his national team. A call-up is only shown

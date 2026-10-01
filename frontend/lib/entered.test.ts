@@ -41,7 +41,8 @@ describe("what a lineup says before its games", () => {
     expect(pendingLine(lineup(zero), LOCK, new Date("2026-10-02T14:05:00Z"))).toBe("Not started");
   });
 
-  it("says nothing once a card has scored, and for a draft", () => {
+  it("says nothing once a card has scored or a rank is given, even before the lock, and for a draft", () => {
+    expect(pendingLine(lineup({ score: 313, rank: 1204, cash: 0, essence: 0, card: false }, [60, 80]), LOCK, new Date("2026-09-30T10:57:00Z"))).toBeNull();
     const after = new Date("2026-10-02T20:00:00Z");
     expect(pendingLine(lineup({ ...zero, score: 31 }, [31, 0]), LOCK, after)).toBeNull();
     expect(pendingLine(lineup({ ...zero, score: 0 }, [0, 12]), LOCK, after)).toBeNull();

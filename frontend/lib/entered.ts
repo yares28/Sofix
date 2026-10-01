@@ -154,10 +154,10 @@ export function readWeekLineups(response: unknown): WeekLineupsAnswer {
  */
 export function pendingLine(lineup: GameweekLineup, lock: string | undefined, now: Date): string | null {
   if (lineup.draft) return null;
-  const left = lock ? timeUntil(lock, now) : null;
-  if (left && !left.past) return `Locks in ${spanLabel(left)}`;
   const scored = (lineup.result?.score ?? 0) > 0 || lineup.cards.some((card) => (card.score ?? 0) > 0) || (lineup.result?.rank ?? null) !== null;
-  return scored ? null : "Not started";
+  if (scored) return null;
+  const left = lock ? timeUntil(lock, now) : null;
+  return left && !left.past ? `Locks in ${spanLabel(left)}` : "Not started";
 }
 
 /** "Rank 1,204 · $2.50 · 250 essence · a card": where it ranked and what it was paid. Before it has a rank, it is still scoring. */

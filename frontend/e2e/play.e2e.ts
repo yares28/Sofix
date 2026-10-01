@@ -546,8 +546,15 @@ test("the week in the bar moves the whole app, a month at a time", async ({ page
   // one of two, so the round is the week here and the game week is the wider span.
   const week = new URL(page.url()).searchParams.get("w")!;
   await page.goto(`/difficulty?w=${week}`);
-  const round = (await page.locator(".wk-trigger b").textContent())!.replace("GW", "");
-  await expect(page.locator(".toolbar .range")).toContainText(`GW${round}`); // the board followed the week
+  if ((await gameweek(request, "15")).md === null) {
+    // The mock moves the Sorare weeks with the clock and not the grid's, so whether a LaLiga round sits inside GW15 depends on the
+    // day the test runs (not during an international break). A week with no round has no board: the page shows your week there.
+    await expect(page.locator(".wk-trigger")).toContainText("GW15");
+    await expect(page.getByRole("region", { name: "Your week" })).toContainText("Outside LaLiga there is no difficulty to rate");
+  } else {
+    const round = (await page.locator(".wk-trigger b").textContent())!.replace("GW", "");
+    await expect(page.locator(".toolbar .range")).toContainText(`GW${round}`); // the board followed the week
+  }
   // Which days each page prints for it is covered where the rule lives (lib/weeks.test.ts).
   await expect(page.locator("#gw-select")).toHaveCount(0); // the board's own selector is gone
 });

@@ -65,7 +65,7 @@ export default function SorareTiles({
 function PlayTile({ week, now }: { week: GameweekPlan; now: Date }) {
   const plan = week.plans[0];
   const lock = timeUntil(week.gameweek.lock, now);
-  const meta = `GW${week.gameweek.number} · locks ${weekday(week.gameweek.lock)} ${clock(week.gameweek.lock)}`;
+  const meta = `Sorare GW${week.gameweek.number} · locks ${weekday(week.gameweek.lock)} ${clock(week.gameweek.lock)}`;
   if (!plan) return <WaitingTile week={week} now={now} meta={meta} />;
   const parts = allocation(plan);
   return (

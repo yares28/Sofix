@@ -224,7 +224,7 @@ export function otherWeekNote(asked: Pick<Week, "md" | "number"> | null, round: 
   if (!asked || round === null || asked.md === round) return null;
   const base = `Futbol Fantasy only has each club's next LaLiga game: round ${round}.`;
   if (asked.md !== null) return `${base} Round ${asked.md} ${asked.md < round ? "has been played" : "comes after it"}.`;
-  return `${base} GW${asked.number} ${nationalGames ? "is national-team games" : "has no LaLiga round"}.`;
+  return `${base} Sorare GW${asked.number} ${nationalGames ? "is national-team games" : "has no LaLiga round"}.`;
 }
 
 /** How many of the owner's players a match names, the eleven and the alternatives of both sides. */

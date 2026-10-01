@@ -65,7 +65,7 @@ test("Overview, Fixtures and Table fit a phone without sideways page scrolling",
 
 test("Play fits a phone: the plans, a lineup's sheet and the cards inside it", async ({ page }) => {
   await page.goto("/play");
-  await expect(page.getByRole("heading", { level: 1, name: "Gameweek 17" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: /Sorare GW17$/ })).toBeVisible();
   await expect(page.locator(".pl-lu")).toHaveCount(3);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 

@@ -38,6 +38,7 @@ export default function PlayView({
   now,
   weekId,
   dates,
+  title,
 }: {
   data: Sorare;
   week: GameweekPlan;
@@ -48,6 +49,8 @@ export default function PlayView({
   weekId?: string;
   /** The days of the week as the picker writes them (`weekDates`), so the header and the picker never disagree. */
   dates?: string | null;
+  /** The week's name as the picker writes it (`weekName`). */
+  title?: string | null;
 }) {
   const id = week.gameweek.id;
   const plans = plansOf(week, after);
@@ -68,7 +71,7 @@ export default function PlayView({
   const sync = after || week.projected ? null : syncState(data, week, now);
   return (
     <main className="pl-main">
-      <Head data={data} week={week} after={after} href={href} now={now} sync={sync} dates={dates ?? null} />
+      <Head data={data} week={week} after={after} href={href} now={now} sync={sync} dates={dates ?? null} title={title ?? null} />
       {sync?.alert ? (
         <div className={`pl-alert ${sync.state}`} role="status">
           <span aria-hidden="true">{sync.state === "cloudless" ? "!" : "⟳"}</span>
@@ -87,7 +90,7 @@ export default function PlayView({
           <div>
             <b>An early plan</b>
             {week.projected.expected
-              ? `Sorare hasn't opened this week. Built from LaLiga's calendar, your cards' form and the LaLiga competitions Sorare opened for ${week.projected.basedOn}, which it is expected to open again. Built on form, so later weeks look alike until Sorare opens them; it moves as the week gets closer, and nothing here can be entered yet.`
+              ? `Sorare hasn't opened this week. Built from LaLiga's calendar, your cards' form and the LaLiga competitions Sorare opened for the last finished week like it, which it is expected to open again. Built on form, so later weeks look alike until Sorare opens them; it moves as the week gets closer, and nothing here can be entered yet.`
               : "Sorare hasn't opened this week, and there is no finished week of its kind to copy its competitions from. Built from LaLiga's calendar and your cards' form; it moves as the week gets closer, and nothing here can be entered yet."}
           </div>
         </div>
@@ -99,8 +102,8 @@ export default function PlayView({
           <span aria-hidden="true">≈</span>
           <div>
             <b>Some lineups are expected</b>
-            Sorare has not listed LaLiga&apos;s competitions for this week yet. The lineups marked Expected use the ones it opened for{" "}
-            {week.playable.find((option) => option.expected)?.expectedFrom}; they cannot be entered until it lists them.
+            Sorare has not listed LaLiga&apos;s competitions for this week yet. The lineups marked Expected use the ones it opened for the last finished week like this one; they cannot be entered until it
+            lists them.
           </div>
         </div>
       ) : null}
@@ -136,6 +139,7 @@ function Head({
   now,
   sync,
   dates,
+  title,
 }: {
   data: Sorare;
   week: GameweekPlan;
@@ -144,6 +148,7 @@ function Head({
   now: Date;
   sync: ReturnType<typeof syncState>;
   dates: string | null;
+  title: string | null;
 }) {
   const { lock, start, end } = week.gameweek;
   const locked = new Date(lock) <= now;
@@ -161,7 +166,7 @@ function Head({
           <Foil rarity="limited" className="sm" />
           {eyebrow}
         </p>
-        <h1>{week.projected ? week.gameweek.name : `Gameweek ${week.gameweek.number}`}</h1>
+        <h1>{title ?? (week.projected ? week.gameweek.name : `Sorare GW${week.gameweek.number}`)}</h1>
         <p className="pl-sub">
           <span>
             {weekday(start)} {dates ?? span(start, end)}

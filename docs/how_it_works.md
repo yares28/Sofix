@@ -242,6 +242,10 @@ confirmada para la jornada N" and "Baja hasta ...". A "hasta" date without a yea
 began missing games (April after a September injury is next April); one that is earlier than today is written "Was due back ...".
 What it cannot translate is shown as written, flagged `causeFf` / `noteFf`.
 
+A week is named in one place (`weekName` and `sorareName` in `frontend/lib/weeks.ts`): "LaLiga round 8 · Sorare GW21", "LaLiga round 9 · Sorare
+not open", or for a week with no LaLiga round "Sorare GW19 · national teams" (`Week.national`: no LaLiga game in it and national teams' games the
+bulk, `teamNews.nationalWeek`). The picker, the Play title, the Home head, the no-plan pages and the notes all read it.
+
 A workflow (`near-lock.yml`) asks Sorare every 30 minutes when the next gameweek locks and, in the last three hours, starts the
 refresh when none started in the last 25 minutes, so the team news is read often when it counts.
 

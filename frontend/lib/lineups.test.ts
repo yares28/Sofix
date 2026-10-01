@@ -179,8 +179,8 @@ describe("which week the page is for", () => {
     expect(ask(8, null)).toBeNull();
     expect(ask(6, null)).toBe(`${base} Round 6 has been played.`);
     expect(ask(9, null)).toBe(`${base} Round 9 comes after it.`);
-    expect(ask(null, 19)).toBe(`${base} GW19 has no LaLiga round.`);
-    expect(otherWeekNote({ md: null, number: 19 }, 8, true)).toBe(`${base} GW19 is national-team games.`);
+    expect(ask(null, 19)).toBe(`${base} Sorare GW19 has no LaLiga round.`);
+    expect(otherWeekNote({ md: null, number: 19 }, 8, true)).toBe(`${base} Sorare GW19 is national-team games.`);
     expect(otherWeekNote({ md: 6, number: null }, null, false)).toBeNull();
   });
 });

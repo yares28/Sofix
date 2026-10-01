@@ -90,7 +90,7 @@ export function idleNote(week: IdleWeek, glance: LineupsGlance | null): { lead: 
   if (withoutLaLiga(week)) {
     const yours = glance && (glance.yours === 0 ? "none of" : `${glance.yours} of`);
     return {
-      lead: nationalWeek(week) ? `GW${week.gameweek.number} is national-team games.` : `GW${week.gameweek.number} has no LaLiga games.`,
+      lead: nationalWeek(week) ? `Sorare GW${week.gameweek.number} is national-team games.` : `Sorare GW${week.gameweek.number} has no LaLiga games.`,
       rest: "Futbol Fantasy covers LaLiga only.",
       lineups: glance ? `Round ${glance.round}'s lineups are on Lineups (${yours} your players).` : null,
     };

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { GameweekPlan, Sorare, TimelineWeek } from "./play";
 import type { FixtureGrid, GridMatchday } from "./types";
-import { byMonth, currentWeek, noPlan, pageWeeks, seasonWeeks, weekById, weekContext, weekDates, weekOn, weekValue } from "./weeks";
+import { byMonth, currentWeek, noPlan, pageWeeks, seasonWeeks, sorareName, weekById, weekContext, weekDates, weekName, weekOn, weekValue } from "./weeks";
 
 // The real shape of the 2026/27 season: LaLiga plays MD5–MD7 and then stops for an international break,
 // while Sorare keeps running a game week every few days.
@@ -308,14 +308,14 @@ describe("what Play says for a week it holds no plan for", () => {
 
   it("says a round Sorare has not opened is not open, and has no lineups of yours to show", () => {
     const said = noPlan({ gw: null, md: 12, number: null, state: "later", kept: false }, undefined);
-    expect(said.heading).toBe("LaLiga GW12");
+    expect(said.heading).toBe("LaLiga round 12 · Sorare not open");
     expect(said.says).toContain("Sorare hasn't opened this week");
     expect(said.lineups).toBeNull();
   });
 
   it("says a finished week Sofix did not keep was played before it kept them, and still shows what you entered", () => {
     const said = noPlan(sorareWeek, item);
-    expect(said.heading).toBe("Gameweek 15");
+    expect(said.heading).toBe("Sorare GW15");
     expect(said.says).toContain("played before Sofix started keeping them");
     expect(said.lineups).toEqual(item);
   });
@@ -370,5 +370,32 @@ describe("a week whose competitions Sorare has not opened", () => {
 
     expect(asked.find((w) => w.number === 17)!.expected).toBe(true);
     expect(seasonWeeks(grid, sorare, NOW).find((w) => w.number === 17)!.expected).toBe(false);
+  });
+});
+
+describe("what a week is called, on every page", () => {
+  const national = week("19", { playing: { cards: 14, players: [{ games: [{ competition: "uefa-nations-league" }] }] } as GameweekPlan["playing"], source: "form" });
+  const weeks = seasonWeeks(grid, { ...sorare, weeks: [...sorare.weeks.filter((w) => w.gameweek.id !== "19"), national] } as Sorare, NOW);
+
+  it("names the LaLiga round and the Sorare gameweek together", () => {
+    const double = seasonWeeks(doubleGrid, doubleSorare, new Date("2026-10-17T10:00:00Z"));
+
+    expect(weekName(double[0]!)).toBe("LaLiga round 9 · Sorare GW21");
+    expect(weekName(double[1]!)).toBe("LaLiga round 10 · Sorare GW21");
+  });
+
+  it("says Sorare has not opened a round's week", () => {
+    expect(weekName(weeks.find((w) => w.md === 8)!)).toBe("LaLiga round 8 · Sorare not open");
+  });
+
+  it("names a week that has no LaLiga round by its Sorare gameweek, and says when it is national teams", () => {
+    expect(weekName(weeks.find((w) => w.number === 17)!)).toBe("Sorare GW17");
+    expect(weekName(weeks.find((w) => w.number === 19)!)).toBe("Sorare GW19 · national teams");
+  });
+
+  it("gives Sorare's half alone for the places that already name the round", () => {
+    expect(sorareName(weeks.find((w) => w.md === 8)!)).toBe("Sorare not open");
+    expect(sorareName(weeks.find((w) => w.number === 17)!)).toBe("Sorare GW17");
+    expect(sorareName(weeks.find((w) => w.number === 19)!)).toBe("Sorare GW19 · national teams");
   });
 });

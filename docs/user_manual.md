@@ -18,6 +18,10 @@ The week control on the right is app-wide:
 - the target icon returns to the current week;
 - the round status dot distinguishes LaLiga from Sorare-only weeks.
 
+A week has one name on every page, in the bar, in the Play title and on Lineups and Home, because the two leagues count their
+weeks differently (LaLiga's round 8 is Sorare's GW21): **LaLiga round 8 · Sorare GW21**; before Sorare opens the week
+**LaLiga round 9 · Sorare not open**; an international break has no LaLiga round, **Sorare GW19 · national teams**.
+
 Each page lists the weeks it can show: the LaLiga pages list LaLiga rounds; **Play** lists every Sorare gameweek
 once (one that covers a weekend and a midweek round is one row), plus every LaLiga week still to come that Sorare
 hasn't opened yet, marked **Sorare opens later**, or **early plan** when the job has planned it. A week with nothing to

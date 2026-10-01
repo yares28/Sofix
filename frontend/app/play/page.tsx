@@ -8,7 +8,7 @@ import { loadGrid } from "../../lib/api";
 import { plansOf, weekPlan } from "../../lib/play";
 import { loadProjectedWeek, loadSorare, loadSorareWeek } from "../../lib/playData";
 import { loadSystem } from "../../lib/system";
-import { noPlan, weekContext, weekDates } from "../../lib/weeks";
+import { noPlan, weekContext, weekDates, weekName } from "../../lib/weeks";
 
 export const metadata: Metadata = { title: "Play · Sofix" };
 
@@ -76,6 +76,8 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
       </>
     );
   }
+  // The week in the bar, when it is the one being shown (a legacy ?gw= can name another): the page then writes it as the bar does.
+  const shown = asked && (asked.gw ? asked.gw === showing.gameweek.id : asked.md !== null && asked.md === showing.projected?.round) ? asked : null;
   const after = single("after") === "1" && showing.played;
   const requested = Number(single("plan") ?? 1);
   const offered = Math.max(plansOf(showing, after).length, 1);
@@ -84,7 +86,16 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
   return (
     <>
       <SiteNav meta={meta} system={system} week={week} />
-      <PlayView data={data} week={showing} planIndex={planIndex} after={after} now={new Date()} weekId={single("w")} dates={asked && (asked.gw ? asked.gw === showing.gameweek.id : asked.md !== null && asked.md === showing.projected?.round) ? weekDates(asked, "play") : null} />
+      <PlayView
+        data={data}
+        week={showing}
+        planIndex={planIndex}
+        after={after}
+        now={new Date()}
+        weekId={single("w")}
+        dates={shown ? weekDates(shown, "play") : null}
+        title={shown ? weekName(shown) : null}
+      />
     </>
   );
 }

@@ -2,6 +2,7 @@ import { absenceText } from "../../lib/absence";
 import {
   gaugeText,
   playerLabels,
+  squadOut,
   statusLine,
   type Absent,
   type Line,
@@ -89,7 +90,7 @@ export default function TeamColumn({
             <div key={index} className="lu-row">
               <ul className="lu-cards" aria-label={`${row.line} row`}>
                 {row.players.map((player) => (
-                  <PlayerCard key={player.id} player={player} label={labels[player.id] ?? player.name} line={row.line} card={player.yours ? cards[player.yours] : undefined} />
+                  <PlayerCard key={player.id} player={player} label={labels[player.id] ?? player.name} line={row.line} card={player.yours ? cards[player.yours] : undefined} calledUp={squadOut(side)} />
                 ))}
               </ul>
               <Alternatives players={byRow.get(index) ?? []} mine={mine} />

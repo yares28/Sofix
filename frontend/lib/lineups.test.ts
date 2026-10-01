@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  calledUpIn,
   chanceTone,
   crestSource,
   freshness,
@@ -13,6 +14,7 @@ import {
   playerLabels,
   readLabel,
   shortCode,
+  squadOut,
   statusLine,
   yoursSummary,
   sectionsOf,
@@ -145,6 +147,27 @@ describe("what a match says about itself", () => {
     });
 
     expect(yoursIn(one)).toBe(3);
+  });
+});
+
+describe("when a call-up is shown", () => {
+  const called = [{ line: "FWD" as const, players: [player("1", { status: { international: true } }), player("2")] }];
+
+  it("is once the club has named its squad, and not before", () => {
+    expect(squadOut(side("A", { squad: true }))).toBe(true);
+    expect(squadOut(side("A", { squad: false }))).toBe(false);
+    expect(squadOut(side("A", { squad: null }))).toBe(false);
+    expect(squadOut(side("A", { squad: true, published: false }))).toBe(false);
+  });
+
+  it("puts it in the legend only when some player in the match shows one", () => {
+    const named = match(1, "2026-10-11T14:15:00Z", { home: side("H", { squad: true, rows: called }), away: side("A", { squad: false, rows: called }) });
+    const unnamed = match(1, "2026-10-11T14:15:00Z", { home: side("H", { squad: false, rows: called }), away: side("A", { squad: null, rows: called }) });
+    const none = match(1, "2026-10-11T14:15:00Z", { home: side("H", { squad: true, rows: [{ line: "FWD", players: [player("2")] }] }) });
+
+    expect(calledUpIn(named)).toBe(true);
+    expect(calledUpIn(unnamed)).toBe(false);
+    expect(calledUpIn(none)).toBe(false);
   });
 });
 

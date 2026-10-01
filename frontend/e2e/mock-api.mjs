@@ -127,6 +127,11 @@ function spanishInjuries(match) {
   Object.assign(by("Marc Casadó"), { cause: "Pubalgia" });
   Object.assign(by("Lorenzo Amatucci"), { cause: "Sobrecarga muscular", note: "Disponible para la jornada 8" });
 }
+// Two of each side's eleven are called up by their national team; only Deportivo has named its match squad, so only its two show it.
+function calledUp(match) {
+  for (const side of [match.home, match.away]) for (const one of side.rows.flatMap((row) => row.players).filter((player) => !player.status?.kind).slice(0, 2)) one.status = { ...one.status, international: true };
+  match.away.squad = true;
+}
 const lineupsPayload = (() => {
   const data = structuredClone(lineupsFixture.data);
   const ago = (hours) => new Date(Date.now() - hours * 3_600_000).toISOString();
@@ -137,7 +142,9 @@ const lineupsPayload = (() => {
     match.readAt = ago(0.1);
     for (const side of [match.home, match.away]) if (side.changedAt) side.changedAt = ago(20);
   }
-  spanishInjuries(data.matches.find((match) => match.id === 22502));
+  const sociedad = data.matches.find((match) => match.id === 22502);
+  spanishInjuries(sociedad);
+  calledUp(sociedad);
   return { success: true, data };
 })();
 

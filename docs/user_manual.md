@@ -223,7 +223,9 @@ the page opens on the next match. Competition and round tabs appear only when th
 
 - **The pitch.** Each team's eleven as cards in rows, attack at the top, with the formation beside the team name. Your own
   cards show their Sorare art with a blue outline; the others are drawn with FF's photo. The badge under a card is his chance of
-  starting; a round mark at its corner is an injury, a doubt, a ban, or (blue) a call-up to his national team.
+  starting; a round mark at its corner is an injury, a doubt, a ban, or (blue) a call-up to his national team. A call-up is only shown
+  once his club has named its match squad on FF; until then the team carries "Squad list not out" and no call-up mark, so the
+  page never says both.
 - **Who else could play.** Under each line, the alternatives most likely first, with their chance. A player FF has not
   placed yet is listed apart as "Others in the squad"; those at 0% are named in one line under the injuries.
 - **Injuries and bans** are icons with FF's words in English: the diagnosis ("ACL tear", "Hamstring injury", "Training

@@ -180,6 +180,17 @@ export function kickoffLabel(iso: string | null): { day: string; time: string; s
   return { day: `${found.weekday} ${Number(found.day)} ${MONTHS[Number(found.month) - 1]}`, time, short: `${found.weekday} ${time}` };
 }
 
+/**
+ * Whether a call-up is shown beside a player: only once his club has named its match squad. The page cannot say "called up" while it
+ * also says the squad list is not out (R8, 1 Oct review). The mark itself (`data-internacional`) is a national-squad call-up, a different
+ * list from the club's, so until the club names its squad it stays out of sight.
+ */
+export const squadOut = (side: LineupSide): boolean => side.published && side.squad === true;
+
+/** Whether any player of the match shows a call-up, which is when the legend names the mark. */
+export const calledUpIn = (match: LineupMatch): boolean =>
+  [match.home, match.away].some((side) => squadOut(side) && [...side.rows.flatMap((row) => row.players), ...side.alternatives].some((player) => player.status?.international));
+
 /** How many of the owner's players a match names, the eleven and the alternatives of both sides. */
 export function yoursIn(match: LineupMatch): number {
   let count = 0;

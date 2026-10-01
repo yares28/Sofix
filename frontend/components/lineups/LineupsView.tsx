@@ -2,6 +2,7 @@ import Link from "next/link";
 import { dateRange } from "../../lib/home";
 import {
   MAX_AGE_MS,
+  calledUpIn,
   freshness,
   kickoffLabel,
   matchState,
@@ -101,7 +102,7 @@ export default function LineupsView({ data, sections, section, selected, now, cl
             <TeamColumn side={selected.away} place="away" round={selected.round} cards={data.cards} look={lookOf(selected.away, clubs)} now={now} />
           </div>
         </fieldset>
-        <Legend />
+        <Legend calledUp={calledUpIn(selected)} />
       </article>
     </main>
   );
@@ -226,7 +227,7 @@ function MatchHead({ match, state, now, clubs }: { match: LineupMatch; state: Re
   );
 }
 
-function Legend() {
+function Legend({ calledUp }: { calledUp: boolean }) {
   return (
     <footer className="lu-legend">
       <span>
@@ -249,10 +250,12 @@ function Legend() {
         <KindIcon kind="available" size={16} />
         Knock, but available
       </span>
-      <span>
-        <CalledUpIcon size={16} />
-        Called up
-      </span>
+      {calledUp ? (
+        <span>
+          <CalledUpIcon size={16} />
+          Called up by his national team
+        </span>
+      ) : null}
       <em>% = his chance of starting, from Futbol Fantasy. Under each line: who else could play there.</em>
     </footer>
   );

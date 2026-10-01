@@ -294,7 +294,7 @@ Target: S1 to S4 before round 8's lock (Fri 9 Oct), so the numbers switch for ro
 | 0% and injured, suspended or out of the squad | Won't play at all |
 | Two players of one place, each at about 50% | Each keeps his % |
 | His yellow and red cards for the season | Kept and shown; nothing is inferred about a ban (the page says who is suspended) |
-| Called up during a break | Already in FF's %; the flag is shown |
+| Called up during a break | Already in FF's %; the flag (`data-internacional`, a national-squad call-up, not the club's match squad) is shown only once the club has named its squad, so it never sits beside "Squad list not out" (1 Oct review, R8) |
 | A second goalkeeper at 0–5% | Almost no chance of coming on (a goalkeeper's prior is 2%) |
 | Only the eleven says who keeps goal | The keeper check (a keeper is never an outfield card and the reverse) only applies to players of the eleven |
 | FF never says 100% | 95% is used as it is |

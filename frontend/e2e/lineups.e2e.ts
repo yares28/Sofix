@@ -125,3 +125,25 @@ test("what the site writes about an injury is in English, and a return that has 
     await expect(page.locator("main")).not.toContainText(spanish);
   }
 });
+
+test("a call-up is shown only for a club whose squad list is out, and the page never says both at once", async ({ page }) => {
+  await page.goto("/lineups?m=22502");
+  const home = page.getByRole("region", { name: "Real Sociedad lineup" });
+  const away = page.getByRole("region", { name: "Deportivo lineup" });
+
+  // Real Sociedad has not named its squad: the note is there, and no card carries a call-up
+  await expect(home.getByText("Squad list not out.")).toBeVisible();
+  await expect(home.getByRole("img", { name: "Called up by his national team" })).toHaveCount(0);
+  await expect(home.locator('.lu-card[aria-label*="called up"]')).toHaveCount(0);
+  // Deportivo has: two cards show the mark, and the legend names it
+  await expect(away.getByText("Squad list not out.")).toHaveCount(0);
+  await expect(away.getByRole("img", { name: "Called up by his national team" })).toHaveCount(2);
+  await expect(page.getByText("Called up by his national team", { exact: true })).toBeVisible();
+});
+
+test("the legend leaves the call-up out when no club of the match has named its squad", async ({ page }) => {
+  await page.goto("/lineups?m=22497");
+
+  await expect(page.getByRole("img", { name: "Called up by his national team" })).toHaveCount(0);
+  await expect(page.getByText("Called up by his national team")).toHaveCount(0);
+});

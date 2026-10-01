@@ -3,7 +3,7 @@ import { expect, test, type APIRequestContext, type Page } from "@playwright/tes
 import type { Sorare } from "../lib/play";
 import type { ApiResponse } from "../lib/types";
 import { seasonWeeks } from "../lib/weeks";
-import { grid, MOCK, offline, resetBackend, sorare as served } from "./helpers";
+import { grid, MOCK, offline, resetBackend, smallText, sorare as served } from "./helpers";
 
 // The Lineups page draws Futbol Fantasy's probable elevens as the job published them (e2e/fixtures/lineups-response.json: the ten
 // real round-8 pages of 30 Sep 2026, served by the mock API with their dates moved to two days ahead). Nothing here recomputes a
@@ -341,4 +341,10 @@ test("alternatives at 5% or less and anyone out or suspended fold into '+N more'
   await expect(away.locator(".lu-fit summary")).toHaveText("1 more fit to play");
   await away.locator(".lu-fit summary").click();
   await expect(away.locator(".lu-fit").getByText("Lorenzo Amatucci")).toBeVisible();
+});
+
+test("every text on a match is 11 px or more", async ({ page }) => {
+  await page.goto("/lineups?m=22502"); // Real Sociedad–Deportivo: injuries, a call-up, your players, alternatives
+  await page.waitForTimeout(400);
+  expect(await smallText(page, 11)).toEqual([]);
 });

@@ -22,12 +22,33 @@ const HERO_PX = 48; // "one number ≥ 48 px decides the view"
 const CROWD_PX = 40; // three or four numbers this big means no hero at all
 const PROSE_WORDS = 55; // a block longer than this is an explainer, and explanations live in the plan
 const PHONE = { width: 390, height: 844 };
+const MIN_TEXT_PX = 11; // no text under this on a desktop (the 1 Oct review: 8.5 px positions and 10.5 px names)
+const MIN_TEXT_PHONE_PX = 10; // and none under this at 390 px (it had 6 and 7 px)
 
 const files = process.argv.slice(2).length
   ? process.argv.slice(2).map((name) => (name.includes("/") || name.includes("\\") ? resolve(name) : join(HERE, name)))
   : readdirSync(HERE)
       .filter((name) => name.endsWith(".html"))
       .map((name) => join(HERE, name));
+
+/**
+ * Text drawn smaller than `min` px: the visible elements whose own text is, as "text (8.5px)". SVG text is left out (its size is in the
+ * drawing's own units) and so is text only a screen reader gets.
+ */
+function smallText(min) {
+  const found = [];
+  for (const el of document.querySelectorAll("body *")) {
+    if (el instanceof SVGElement || el.closest("svg, .visually-hidden, [hidden], script, style")) continue;
+    const text = [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent.trim()).join(" ").trim();
+    if (!text) continue;
+    const rect = el.getBoundingClientRect();
+    const style = getComputedStyle(el);
+    if (rect.width < 2 || rect.height < 2 || style.visibility === "hidden" || style.display === "none") continue;
+    const size = parseFloat(style.fontSize);
+    if (size < min) found.push(`${text.slice(0, 18)} (${size}px)`);
+  }
+  return found;
+}
 
 /** Everything that needs the page's own DOM, in one pass. */
 function measure(limits) {
@@ -78,11 +99,12 @@ function measure(limits) {
     // A page opts out of a rule in its own <head>, where the reason is visible:
     //   <meta name="design-check" content="no-images: a status panel has no card art">
     //   <meta name="design-check" content="record">   (a shipped preview, kept as a record)
+    //   <meta name="design-check" content="small-text: a dense legend">   (text under the readable size, with the reason)
     waived: (document.querySelector('meta[name="design-check"]')?.content ?? "").toLowerCase(),
   };
 }
 
-const RECORD = ["hero", "crowd", "scaffolding", "prose", "images"]; // what a shipped preview is excused
+const RECORD = ["hero", "crowd", "scaffolding", "prose", "images", "small-text"]; // what a shipped preview is excused
 
 const browser = await chromium.launch({ channel: process.env.CI ? undefined : "chrome" });
 const context = await browser.newContext({ viewport: { width: 1280, height: 900 } }); // axe needs a context's page
@@ -96,11 +118,13 @@ for (const file of files) {
   await page.waitForTimeout(900); // let the entrance animations settle before measuring
 
   const seen = await page.evaluate(measure, { hero: HERO_PX, crowd: CROWD_PX, prose: PROSE_WORDS });
+  const smallOnDesktop = await page.evaluate(smallText, MIN_TEXT_PX);
   const scan = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
 
   await page.setViewportSize(PHONE);
   await page.waitForTimeout(300);
   const sideways = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+  const smallOnPhone = await page.evaluate(smallText, MIN_TEXT_PHONE_PX);
   await page.close();
 
   const waived = (rule) => seen.waived.includes(rule) || (seen.waived.includes("record") && RECORD.includes(rule));
@@ -114,6 +138,8 @@ for (const file of files) {
   if (!seen.motion) problems.push("nothing animates");
   if (seen.motion && !seen.reducedMotion) problems.push("motion with no prefers-reduced-motion escape");
   if (sideways && !waived("sideways")) problems.push("scrolls sideways at 390px");
+  if (smallOnDesktop.length && !waived("small-text")) problems.push(`${smallOnDesktop.length} text(s) under ${MIN_TEXT_PX}px on a desktop: ${smallOnDesktop.slice(0, 3).join(", ")}`);
+  if (smallOnPhone.length && !waived("small-text")) problems.push(`${smallOnPhone.length} text(s) under ${MIN_TEXT_PHONE_PX}px at 390px: ${smallOnPhone.slice(0, 3).join(", ")}`);
   for (const violation of scan.violations) {
     problems.push(`${violation.id}: ${violation.nodes.slice(0, 3).map((n) => n.target.join(" ")).join("; ")}`);
   }

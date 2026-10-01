@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { offline, resetBackend, sorare } from "./helpers";
+import { offline, resetBackend, smallText, sorare } from "./helpers";
 
 // The Cards and Players pages draw what the Sorare job publishes (e2e/fixtures/sorare-response.json, served by the mock API, which makes
 // three of the planned week's players cards of the collection and gives them a chance to start from one, two and three sources).
@@ -36,4 +36,12 @@ test("a dash under Projected says why, once on the page and on each card", async
   await expect(page.locator(".s5-dash")).toHaveText(note);
   const dash = page.locator(".s5-stat", { hasText: "Projected" }).filter({ hasText: "—" }).first();
   await expect(dash).toHaveAttribute("title", note);
+});
+
+test("Cards and Players keep every text at 11 px or more", async ({ page }) => {
+  for (const route of ["/cards", "/players"]) {
+    await page.goto(route);
+    await page.waitForTimeout(600); // past the tiles' entrance
+    expect(await smallText(page, 11), route).toEqual([]);
+  }
 });

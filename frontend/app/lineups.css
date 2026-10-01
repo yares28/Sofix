@@ -164,13 +164,12 @@
 .lu-card[data-mine] { box-shadow: 0 0 0 2.5px #fff, 0 0 0 5px var(--lu-mine), 0 8px 18px rgba(0, 0, 0, 0.16); }
 .lu-card[data-out] .lu-face { opacity: 0.6; }
 .lu-face { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; }
-.lu-meta { position: absolute; left: 8px; right: 8px; top: 7px; display: flex; justify-content: space-between; font-size: 7.5px; font-weight: 700; letter-spacing: 0.08em; color: var(--metaink); }
 .lu-sil { position: absolute; left: 10%; right: 10%; top: 13%; height: 57%; width: 80%; fill: var(--sil); }
 .lu-photo { position: absolute; left: 6%; right: 6%; top: 9%; width: 88%; height: 62%; object-fit: contain; object-position: center bottom; }
 .lu-foot { position: absolute; left: 0; right: 0; bottom: 0; height: 41%; background: var(--foot); }
 .lu-name { position: absolute; left: 5px; right: 5px; bottom: 20px; text-align: center; }
-.lu-name b { display: block; font-size: 10.5px; font-weight: 800; letter-spacing: 0.01em; color: var(--name); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lu-name span { display: block; margin-top: 1px; font-size: 8.5px; font-weight: 600; color: var(--metaink); }
+.lu-name b { display: block; font-size: 11px; font-weight: 800; letter-spacing: 0.01em; color: var(--name); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lu-name span { display: block; margin-top: 1px; font-size: 11px; font-weight: 600; color: var(--metaink); }
 
 .lu-pct {
   display: flex; align-items: center; justify-content: center; min-width: 42px; height: 21px; padding: 0 7px; border-radius: 999px; box-shadow: 0 0 0 2px #fff;
@@ -274,10 +273,9 @@
   .lu-pitch::before { width: 120px; height: 120px; margin-left: -60px; top: -60px; }
   .lu-pitch::after { width: 200px; height: 72px; margin-left: -100px; }
   .lu-row { gap: 17px; }
-  .lu-name b { font-size: 9px; }
+  .lu-name b { font-size: 10px; letter-spacing: 0; }
   .lu-name { bottom: 15px; }
-  .lu-name span { font-size: 7px; }
-  .lu-meta { font-size: 6px; left: 6px; right: 6px; top: 5px; }
+  .lu-name span { font-size: 10px; }
   .lu-card { margin-bottom: 14px; }
   .lu-card .lu-pct { min-width: 36px; height: 19px; font-size: 11px; bottom: -22px; }
   .lu-mark { right: -6px; top: -6px; }

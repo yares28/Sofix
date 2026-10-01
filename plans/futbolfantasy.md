@@ -208,7 +208,8 @@ Target: S1 to S4 before round 8's lock (Fri 9 Oct), so the numbers switch for ro
 **S5 · The pages**
 
 - **`/lineups`**, a new page in the top bar:
-  - tabs per competition, and matches by kickoff;
+  - tabs per competition, and matches by kickoff; picking one switches on the client from the payload the page holds, with `?m=` kept in
+    the address through `history.pushState` (`components/lineups/LineupsView.tsx`, `switchTo`; 1 Oct review, R27);
   - for each match, both XIs on the pitch with their %, the alternatives, the injuries, suspensions and warnings, the
     rotations and predictability;
   - your players marked with their card, listed first on each match (a strip with the "Only my players" switch), and each one a link to his

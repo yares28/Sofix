@@ -244,7 +244,10 @@ nothing left to plan; one further off than the next three Sorare gameweeks gets 
 Futbol Fantasy's probable elevens for every match it has published (FF covers each team's next game only, so the page is not
 tied to the week in the top bar). One bar holds the round's matches, each tab saying "3 yours · 0 starting" (how many of your players the match names, and how many are in the probable
 eleven; the legend says so too);
-the page opens on the next match. Competition and round tabs appear only when the page holds more than one.
+the page opens on the next match. Competition and round tabs appear only when the page holds more than one. Picking a match, a round or a
+competition changes the page at once, from what it already holds (all the round's matches arrive with it): no reload, no wait, and
+the address still says `?m=<match>` so the match can be bookmarked or sent, and Back returns to the one before. A click with
+Ctrl or Cmd opens the match in a new tab as a link does.
 
 The header names what the page is: "LaLiga round 8 · Fri 9 – Mon 12 Oct · Sorare: not open yet" (the days are the first and last
 kickoff, Madrid time), and once Sorare opens the week it feeds, "Sorare GW21 · locks Fri 16:00". The Sorare part links to Play for

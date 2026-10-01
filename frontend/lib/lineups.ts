@@ -155,6 +155,18 @@ export function pickMatch(sections: Section[], asked: string | null, now: Date):
   return ordered.find((match) => at(match.kickoff) > now.getTime()) ?? ordered[ordered.length - 1]!;
 }
 
+/** The address of a match: `?m=` set to its id, whatever else the address says kept. */
+export function matchAddress(search: string, id: number): string {
+  const params = new URLSearchParams(search);
+  params.set("m", String(id));
+  return `/lineups?${params.toString()}`;
+}
+
+/** The match an address asks for among those the page holds, else the one the page opened on. */
+export function matchAsked(matches: LineupMatch[], asked: string | null, fallback: LineupMatch): LineupMatch {
+  return (asked ? matches.find((match) => String(match.id) === asked) : undefined) ?? fallback;
+}
+
 export type MatchState = "ahead" | "started" | "tbc";
 
 export function matchState(match: LineupMatch, now: Date): MatchState {

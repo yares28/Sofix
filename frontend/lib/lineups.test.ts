@@ -10,6 +10,8 @@ import {
   lineupsGlance,
   matchState,
   otherWeekNote,
+  matchAddress,
+  matchAsked,
   pickMatch,
   readable,
   playerLabels,
@@ -469,5 +471,23 @@ describe("the crests", () => {
     expect(tint("#0067b1", "1a")).toBe("#0067b11a");
     expect(tint("blue", "1a")).toBe("transparent");
     expect(tint(undefined, "1a")).toBe("transparent");
+  });
+});
+
+describe("switching match inside the page", () => {
+  it("writes the address of a match, keeping what else the address says", () => {
+    expect(matchAddress("", 22497)).toBe("/lineups?m=22497");
+    expect(matchAddress("?m=22498", 22497)).toBe("/lineups?m=22497");
+    expect(matchAddress("?w=md8&m=22498", 22497)).toBe("/lineups?w=md8&m=22497");
+    expect(matchAddress("?w=md8", 22497)).toBe("/lineups?w=md8&m=22497");
+  });
+
+  it("reads the match an address asks for, and falls back to the one the page opened on when it names none that exists", () => {
+    const matches = [{ id: 1 }, { id: 2 }, { id: 3 }] as LineupMatch[];
+
+    expect(matchAsked(matches, "3", matches[1]!).id).toBe(3);
+    expect(matchAsked(matches, null, matches[1]!).id).toBe(2);
+    expect(matchAsked(matches, "999", matches[1]!).id).toBe(2);
+    expect(matchAsked(matches, "", matches[0]!).id).toBe(1);
   });
 });

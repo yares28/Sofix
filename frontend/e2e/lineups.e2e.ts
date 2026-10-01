@@ -272,6 +272,42 @@ test("a player of yours opens his card on Cards, from the strip, the pitch and t
   await expect(page.locator(`#${href.split("#")[1]}`)).toBeInViewport();
 });
 
+test("switching match answers from the page: no new request, the address follows, and Back returns", async ({ page }) => {
+  await page.goto("/lineups?m=22497");
+  await page.evaluate(() => {
+    (window as unknown as { __kept: boolean }).__kept = true; // a reload would drop it
+  });
+  const asked: string[] = [];
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname === "/lineups") asked.push(request.url());
+  });
+  const strip = page.getByRole("navigation", { name: /^Matches of LaLiga · Round 8/ });
+  const kept = () => page.evaluate(() => (window as unknown as { __kept?: boolean }).__kept === true);
+
+  await strip.getByRole("link", { name: /RAY – ATH/ }).click();
+  await expect(page).toHaveURL(/\/lineups\?m=22498$/);
+  await expect(page.getByRole("article", { name: /^Rayo.* against Athletic/ })).toBeVisible();
+  await expect(strip.getByRole("link", { name: /RAY – ATH/ })).toHaveAttribute("aria-current", "page");
+  await expect(strip.getByRole("link", { name: /MAL – ESP/ })).not.toHaveAttribute("aria-current", "page");
+  expect(await kept(), "the page was not reloaded").toBe(true);
+  expect(asked, "nothing was asked of the server").toEqual([]);
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/lineups\?m=22497$/);
+  await expect(page.getByRole("article", { name: /^M.laga.* against Espanyol/ })).toBeVisible();
+  expect(await kept(), "Back did not reload it either").toBe(true);
+});
+
+test("a modified click on a match tab still opens it as a link would", async ({ page, context }) => {
+  await page.goto("/lineups?m=22497");
+  const strip = page.getByRole("navigation", { name: /^Matches of LaLiga · Round 8/ });
+  const opened = context.waitForEvent("page");
+  await strip.getByRole("link", { name: /RAY – ATH/ }).click({ modifiers: ["Control"] });
+  const tab = await opened;
+  await expect(tab).toHaveURL(/\/lineups\?m=22498$/);
+  await expect(page).toHaveURL(/m=22497$/); // this page stayed where it was
+});
+
 test("a match with none of your players says so, and offers no switch", async ({ page }) => {
   await page.goto("/lineups");
   const strips = page.getByRole("region", { name: "Your players in this match" });

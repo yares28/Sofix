@@ -58,14 +58,12 @@ export default async function Lineups({ searchParams }: { searchParams: SearchPa
   const lock = feeds?.gw ? sorare?.timeline.find((item) => item.id === feeds.gw)?.lock : undefined;
   const wanted = typeof params.w === "string" ? weekById(weeks, params.w) : null;
   const wantedPlan = wanted?.gw && sorare ? weekPlan(sorare, wanted.gw) : null;
-  const flash = [
-    otherWeekNote(wanted, round, wantedPlan ? nationalWeek(wantedPlan) : false),
-    asked && !data.matches.some((match) => String(match.id) === asked) ? "That match is no longer on Futbol Fantasy. Showing the next one." : null,
-  ].filter((line): line is string => line !== null);
+  const flash = [otherWeekNote(wanted, round, wantedPlan ? nationalWeek(wantedPlan) : false)].filter((line): line is string => line !== null);
+  const gone = asked && !data.matches.some((match) => String(match.id) === asked) ? asked : null;
   return (
     <>
       <SiteNav meta={meta} system={system} />
-      <LineupsView data={data} sections={sections} section={section} selected={selected} now={now} clubs={clubs} sorare={sorareLine(feeds, lock, now)} flash={flash} />
+      <LineupsView data={data} sections={sections} initial={selected} now={now} clubs={clubs} sorare={sorareLine(feeds, lock, now)} flash={flash} gone={gone} />
     </>
   );
 }

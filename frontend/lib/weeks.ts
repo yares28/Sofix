@@ -267,17 +267,20 @@ export function dayName(iso: string): string {
   return `${weekday.format(new Date(iso))} ${day} ${month}`;
 }
 
-/** What the week is worth, for the right-hand column of the picker. */
+/**
+ * What the right-hand column of the picker says: always a number with what it counts, or a word for the kind of week —
+ * "≈9 essence · 3 plans", "250 essence · our plan's replay", "early plan", "2 cards play" — never a bare figure.
+ */
 export function weekValue(week: Week): { value: string; note: string } {
   const tag = week.expected ? " · expected" : "";
   // A plan built from form is a guess at a lineup, not at a reward: the honest headline is who actually plays.
   if (week.essence !== null && week.plans && week.source !== "form") {
-    return { value: `≈${Math.round(week.essence)}`, note: `${week.plans} plan${week.plans === 1 ? "" : "s"}${tag}` };
+    return { value: `≈${Math.round(week.essence)} essence`, note: `${week.plans} plan${week.plans === 1 ? "" : "s"}${tag}` };
   }
-  if (week.replay !== null) return { value: String(Math.round(week.replay)), note: "our plan's replay" };
+  if (week.replay !== null) return { value: `${Math.round(week.replay)} essence`, note: "our plan's replay" };
   if (week.state === "live") return { value: "live", note: "locked" };
-  if (week.early) return week.cards ? { value: String(week.cards), note: `early plan${tag}` } : { value: "—", note: "no cards play" };
-  if (week.cards) return { value: String(week.cards), note: week.cards === 1 ? "card plays" : "cards play" };
+  if (week.early) return week.cards ? { value: "early plan", note: week.expected ? "expected" : "" } : { value: "—", note: "no cards play" };
+  if (week.cards) return { value: week.cards === 1 ? "1 card plays" : `${week.cards} cards play`, note: "" };
   // A finished week the job holds nothing for was played before Sofix kept weeks: not one where no cards played.
   if (week.gw && week.state === "done" && !week.kept) return { value: "—", note: "not recorded" };
   if (week.gw) return { value: "—", note: "no cards play" };

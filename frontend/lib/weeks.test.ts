@@ -93,7 +93,7 @@ describe("the weeks of a season", () => {
     const gw14 = all.find((w) => w.number === 14)!;
     expect(gw14.kept).toBe(true);
     expect(gw14.cards).toBe(14);
-    expect(weekValue(gw14)).toEqual({ value: "250", note: "our plan's replay" });
+    expect(weekValue(gw14)).toEqual({ value: "250 essence", note: "our plan's replay" });
     expect(all.find((w) => w.number === 13)!.kept).toBe(false); // the one beside it was not kept
   });
 
@@ -104,7 +104,7 @@ describe("the weeks of a season", () => {
     expect(md8.gw).toBeNull();
     expect(md8.early).toBe(true);
     expect(md8.cards).toBe(11);
-    expect(weekValue(md8)).toEqual({ value: "11", note: "early plan" });
+    expect(weekValue(md8)).toEqual({ value: "early plan", note: "" });
     expect(all.find((w) => w.number === 17)!.early).toBe(false);
     // no early plan for it (an older page, or none could be made): still "Sorare opens later"
     const bare = seasonWeeks(grid, { ...sorare, projected: [] } as Sorare, NOW).find((w) => w.md === 8)!;
@@ -160,9 +160,9 @@ describe("the weeks of a season", () => {
   });
 
   it("carries what the job planned, and marks a replay as ours", () => {
-    expect(weekValue(weeks.find((w) => w.number === 17)!)).toEqual({ value: "≈55", note: "1 plan" });
-    expect(weekValue(weeks.find((w) => w.number === 15)!)).toEqual({ value: "500", note: "our plan's replay" });
-    expect(weekValue(weeks.find((w) => w.number === 19)!)).toEqual({ value: "14", note: "cards play" });
+    expect(weekValue(weeks.find((w) => w.number === 17)!)).toEqual({ value: "≈55 essence", note: "1 plan" });
+    expect(weekValue(weeks.find((w) => w.number === 15)!)).toEqual({ value: "500 essence", note: "our plan's replay" });
+    expect(weekValue(weeks.find((w) => w.number === 19)!)).toEqual({ value: "14 cards play", note: "" });
   });
 
   it("knows which week is live and which is next", () => {
@@ -360,8 +360,8 @@ describe("a week whose competitions Sorare has not opened", () => {
   it("says expected beside an early plan too", () => {
     const early = { ...base, gw: null, essence: null, plans: 1, replay: null, early: true, cards: 14 };
 
-    expect(weekValue(early)).toEqual({ value: "14", note: "early plan" });
-    expect(weekValue({ ...early, expected: true })).toEqual({ value: "14", note: "early plan · expected" });
+    expect(weekValue(early)).toEqual({ value: "early plan", note: "" });
+    expect(weekValue({ ...early, expected: true })).toEqual({ value: "early plan", note: "expected" });
   });
 
   it("is read from the plan's own competitions: any that Sorare has not opened", () => {

@@ -656,3 +656,18 @@ test("the home counts the lineups that are expected", async ({ page, request }) 
 
   await expect(page.locator("section:has(#hm-play)")).toContainText("1 expected");
 });
+
+test("the week picker's columns say what their numbers are: a chip of playable cards, a value with its unit", async ({ page }) => {
+  await page.goto("/play");
+  await page.locator(".wk-trigger").click();
+  const rows = page.locator(".wk-panel .wk-week");
+  expect(await rows.count()).toBeGreaterThan(1);
+
+  for (const row of await rows.all()) {
+    const chip = row.locator(".wk-cards");
+    if (await chip.count()) await expect(chip).toHaveText(/^\d+ playable$/);
+    await expect(row.locator(".val b")).toHaveText(/^(≈\d+ essence|\d+ essence|early plan|live|1 card plays|\d+ cards play|—)$/);
+  }
+  await expect(page.locator(".wk-panel .wk-week .val b", { hasText: /^≈\d+ essence$/ }).first()).toBeVisible();
+  await expect(page.locator(".wk-panel").getByText("early plan", { exact: true }).first()).toBeVisible();
+});

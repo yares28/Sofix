@@ -141,11 +141,11 @@ export default function WeekPicker({ weeks, current, now }: { weeks: Week[]; cur
                 <span className="n">{weekName(week)}</span>
                 <span className="mid">
                   <span className="d">{weekDates(week, page)}</span>
-                  {week.cards ? <span className="wk-cards">{week.cards} cards</span> : null}
+                  {week.cards ? <span className="wk-cards">{week.cards} playable</span> : null}
                 </span>
                 <span className="val">
                   <b>{value}</b>
-                  <span>{note}</span>
+                  {note ? <span>{note}</span> : null}
                 </span>
               </button>
             );

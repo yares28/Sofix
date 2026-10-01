@@ -8,10 +8,10 @@ const RARITY_TEXT: Record<string, string> = { limited: "LIMITED", rare: "RARE", 
 export const percent = (p: number | null) => (p === null ? "–" : `${Math.round(p * 100)}`);
 
 /** The spoken version of a player's place on the page, for screen readers and the tooltip. */
-export function describe(player: LineupPlayer, owned: boolean): string {
+export function describe(player: LineupPlayer, owned: boolean, calledUp = false): string {
   const bits = [player.name, player.p === null ? "no chance given" : `${percent(player.p)}% to start`];
   if (player.status?.kind) bits.push(KIND_LABEL[player.status.kind].toLowerCase());
-  if (player.status?.international) bits.push("called up by his national team");
+  if (calledUp && player.status?.international) bits.push("called up by his national team");
   if (owned) bits.push("your card");
   return bits.join(", ");
 }
@@ -25,17 +25,20 @@ export default function PlayerCard({
   label,
   line,
   card,
+  calledUp,
 }: {
   player: LineupPlayer;
   label: string;
   line: Line;
   card: OwnedCard | undefined;
+  /** Whether his club has named its squad: a call-up is not shown before that. */
+  calledUp: boolean;
 }) {
   const rarity = card?.rarity ?? "common";
   const kind = player.status?.kind;
-  const mark = kind ? <KindIcon kind={kind} ring /> : player.status?.international ? <CalledUpIcon ring /> : null;
+  const mark = kind ? <KindIcon kind={kind} ring /> : calledUp && player.status?.international ? <CalledUpIcon ring /> : null;
   return (
-    <li className="lu-card" data-rarity={rarity} data-mine={card ? "" : undefined} data-out={kind === "out" || kind === "suspended" ? "" : undefined} aria-label={describe(player, Boolean(card))}>
+    <li className="lu-card" data-rarity={rarity} data-mine={card ? "" : undefined} data-out={kind === "out" || kind === "suspended" ? "" : undefined} aria-label={describe(player, Boolean(card), calledUp)}>
       <div className="lu-face">
         {card?.pic ? (
           <CardArt src={card.pic} name={card.name} />

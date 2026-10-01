@@ -654,3 +654,12 @@ test("a week with no LaLiga round shows the games your own players play", async 
   await expect(page.locator(".ow-note")).toContainText("LaLiga isn't playing this week");
   await expect(page.locator("table.standings tbody tr")).toHaveCount(grid.teams.length);
 });
+
+test("Control says how often the board refreshes from the real schedule, and the cloud box is not the old 2× a day", async ({ page }) => {
+  await page.goto("/control");
+  const facts = page.locator(".cc-facts");
+
+  await expect(facts.getByText("3–5×")).toBeVisible();
+  await expect(facts).toContainText("board refreshes a day");
+  await expect(facts).not.toContainText("2×");
+});

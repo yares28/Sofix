@@ -24,8 +24,11 @@ export type Week = {
   id: string;
   from: string;
   to: string;
-  /** The Sorare game week's own window, when this week sits inside one. Wider than a single round. */
-  span: { from: string; to: string } | null;
+  /**
+   * The Sorare game week's own window, when this week sits inside one. Wider than a single round. `through` is the last
+   * kickoff of the LaLiga rounds inside it: the window runs on to its lock, but a week is named by the day of its last game.
+   */
+  span: { from: string; to: string; through?: string } | null;
   state: WeekState;
   /** The LaLiga round inside this week, and its column in the grid. */
   md: number | null;
@@ -105,7 +108,8 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
     // two different things to pick, and they must not share an address.
     const from = round.date_from!;
     const to = round.date_to ?? round.date_from!;
-    const span = week ? { from: week.start, to: week.end } : null;
+    const through = week ? lastKickoff(rounds, week) : undefined;
+    const span = week ? { from: week.start, to: week.end, through } : null;
     weeks.push({
       // Unique by construction now that a round keeps its own days, and still claimed: a round can start on
       // the same calendar day a later Sorare window opens.
@@ -150,6 +154,12 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
   }
 
   return weeks.sort((a, b) => at(a.from) - at(b.from));
+}
+
+/** The latest kickoff of the rounds that start inside a Sorare game week; undefined when it holds none. */
+function lastKickoff(rounds: GridMatchday[], week: { start: string; end: string }): string | undefined {
+  const inside = rounds.filter((round) => at(round.date_from!) >= at(week.start) && at(round.date_from!) < at(week.end));
+  return inside.map((round) => round.date_to ?? round.date_from!).sort((a, b) => at(a) - at(b)).at(-1);
 }
 
 /** What the picker knows of a round's early plan: how many of your cards play in it. */
@@ -202,9 +212,9 @@ export function pageWeeks(weeks: Week[], page: Page): Week[] {
   });
 }
 
-/** The days a week covers on this page: its round, or the whole Sorare game week on Play. */
+/** The days a week covers on this page: its round, or on Play the Sorare game week from its first day to its last kickoff. */
 export const weekWindow = (week: Week, page: Page): { from: string; to: string } =>
-  page === "play" && week.span ? week.span : { from: week.from, to: week.to };
+  page === "play" && week.span ? { from: week.span.from, to: week.span.through ?? week.span.to } : { from: week.from, to: week.to };
 
 /** Weeks grouped into the months the picker shows, so a 43-week season stays one screen. */
 export function byMonth(weeks: Week[]): { key: string; label: string; weeks: Week[] }[] {

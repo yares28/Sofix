@@ -226,11 +226,20 @@ written as soon as the site has been read (`ff_lineups.payload` into the `lineup
 the pitch coordinates (rows at fixed heights, read from the goal up), each alternative under the line he covers, the injury
 lists, and which of the people are the owner's. The Home's team news (`ff_news.team_news`, into the planned week as `teamNews`)
 is built from the finished page: the owner's players split at 70% and 40%, the first plan's starters under 70%, and what moved by
-10 points or more since a reading at least 16 hours old (`ff_chances` keeps one every six hours for two days).
+10 points or more since a reading at least 16 hours old (`ff_chances` keeps one every six hours for two days). When the job has
+nothing to put in `teamNews`, the tile says why (`teamNews.idleNote`): a week whose every game is a national team's is not the site's
+to cover, and the note points to the LaLiga round the Lineups page holds (`lineups.lineupsGlance`, the owner's distinct players in
+it); in a week of club games the site has simply not reached it yet.
 
 The extension does the same arithmetic for a chance it reads live: his chance of coming on is what is left, at the rate he comes
 on in the games he does not start (`benchedOn`, published with the player): `pOn = (1 - pStart) x benchedOn`, and nothing when he
 is out. `forecast._per_game` and `extension/core.js` (`liveSplit`) both read `backend/tests/fixtures/live_start_cases.json`.
+
+The injury lines on Lineups are translated in `frontend/lib/absence.ts`: a diagnosis is a kind (rotura, lesión, molestias, sobrecarga,
+esguince, fractura, ...) plus a body part, so a new combination of known words needs no change; the notes are "Duda / Disponible / Baja
+confirmada para la jornada N" and "Baja hasta ...". A "hasta" date without a year is the first such date on or after the day he
+began missing games (April after a September injury is next April); one that is earlier than today is written "Was due back ...".
+What it cannot translate is shown as written, flagged `causeFf` / `noteFf`.
 
 A workflow (`near-lock.yml`) asks Sorare every 30 minutes when the next gameweek locks and, in the last three hours, starts the
 refresh when none started in the last 25 minutes, so the team news is read often when it counts.
@@ -245,7 +254,10 @@ has not started and sits in no gameweek Sorare has opened is planned early (`pro
 Sorare will most likely draw (weekend Friday 14:00 UTC to Tuesday 14:00, midweek Tuesday to Friday; `projection.window`),
 which of your cards play comes from the calendar (`projection.games_for`, clubs matched through the team registry), the
 competitions are those of the gameweek being planned, and the forecasts stand on form, since Sorare projects only a
-player's next game. One plan per round; each is kept as its own row (`sorare_ahead:<round>`). Planning one takes a few
+player's next game. The one exception is Futbol Fantasy, which has each club's next game: for the round it holds (match
+by the two clubs and the kickoff, `ff_use.Lineups.covers`) the early plan takes its chance to start, with its mark and read
+time, and a player it has out or suspended is in no lineup. That round is planned again every run, because its lineups
+move (`early.choose`, `live`); every later round has no Futbol Fantasy and stands on form. One plan per round; each is kept as its own row (`sorare_ahead:<round>`). Planning one takes a few
 seconds with a real collection, so a run plans only the rounds with no plan yet, then the stalest (`app.sorare.early`): the
 next four rounds are kept current to six hours and the far ones to a day, at most eight a run, and the others keep showing
 the plan they have. A stored plan is reused only when it was made for the round's dates as the calendar holds them now

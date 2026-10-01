@@ -92,7 +92,9 @@ Around that:
   squad" needs the club's match squad, which the page lists only once the club names it: not read yet.
 - **Plans, the captain and the xScore use the same number.** A plan can change when FF changes.
 - **Unchanged:**
-  - Early plans for rounds weeks away: FF only has each team's next game.
+  - Early plans for rounds weeks away: FF only has each team's next game, so those rounds stand on form. The one
+    exception is the round FF does hold (today round 8): its early plan takes FF's chance and leaves out anyone FF has
+    out or suspended (1 Oct review, R1).
   - The replay of a kept week stays built from form. What FF said at the lock is kept in `start_chances` for the Audit.
 
 ## 3 · Steps
@@ -257,6 +259,7 @@ Target: S1 to S4 before round 8's lock (Fri 9 Oct), so the numbers switch for ro
 | International break | FF already has the next LaLiga round; the gameweek's national games use Sorare, then form; /lineups and home show the LaLiga round ahead with its date |
 | A cup game Sorare does not count | Shown on /lineups only; plans follow Sorare's own game list (the existing rule) |
 | The second and third open Sorare gameweeks, and early plans for later rounds | No FF: it only has each team's next game |
+| The early plan for the round FF holds (a round before Sorare opens its gameweek, e.g. round 8 during a break) | FF's chance, with its mark and read time; anyone out or suspended is in no lineup. That plan is made again every run, as FF's lineups move; rounds after it keep form |
 | A Sorare gameweek with two LaLiga rounds | Already one week per round (since 28 Sep); FF is per match anyway |
 
 **Timing and freshness**
@@ -291,7 +294,7 @@ Target: S1 to S4 before round 8's lock (Fri 9 Oct), so the numbers switch for ro
 | 0% and injured, suspended or out of the squad | Won't play at all |
 | Two players of one place, each at about 50% | Each keeps his % |
 | His yellow and red cards for the season | Kept and shown; nothing is inferred about a ban (the page says who is suspended) |
-| Called up during a break | Already in FF's %; the flag is shown |
+| Called up during a break | Already in FF's %; the flag (`data-internacional`, a national-squad call-up, not the club's match squad) is shown only once the club has named its squad, so it never sits beside "Squad list not out" (1 Oct review, R8) |
 | A second goalkeeper at 0–5% | Almost no chance of coming on (a goalkeeper's prior is 2%) |
 | Only the eleven says who keeps goal | The keeper check (a keeper is never an outfield card and the reverse) only applies to players of the eleven |
 | FF never says 100% | 95% is used as it is |
@@ -309,7 +312,7 @@ Target: S1 to S4 before round 8's lock (Fri 9 Oct), so the numbers switch for ro
 
 | Case | What Sofix does |
 |---|---|
-| /lineups and the week picked in the app (one date drives the app) | The page shows the next games; a past or far week says FF only covers each team's next game |
+| /lineups and the week picked in the app (one date drives the app) | The page shows the next games; a past, later or national-team week (`?w=`) says FF only covers each team's next game and what that week is; an unknown `?m=` says the match is no longer on FF. The header names the LaLiga round, its days and the Sorare week it feeds, with a link to Play (1 Oct review, R4 R5) |
 | A big page (10 matches, two XIs, alternatives, injuries) | The design decides what folds away, above all on a phone |
 | The overlay on an old gameweek's page | No FF (those games are over), as today |
 | The overlay's tile | The % of the game the tile shows |

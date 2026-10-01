@@ -237,7 +237,8 @@ def player_weeks(
     """What is known about each player before the lock (and, for a played gameweek, what he scored).
 
     `ff` answers, for a player and his games in kickoff order, Futbol Fantasy's chance for each game it has one for. It is
-    only asked for the gameweek being planned (`use_sorare`): it knows each team's next game and nothing further.
+    only passed for a week still to come, the one being planned or the early plan of the round it has: it knows each
+    team's next game and nothing further, so it has nothing to say about the games of any other round.
     """
     weeks: dict[str, PlayerWeek] = {}
     for row in rows:
@@ -264,8 +265,8 @@ def player_weeks(
                 if window[0] <= _dt(h["date"]) < window[1] and h["played"] and h["score"] is not None
             ]
             actual = max(played) if played else None
-        ordered = sorted(mine, key=lambda g: _dt(g["kickoff"])) if ff and use_sorare else mine
-        told = ff(slug, ordered) if ff and use_sorare else []
+        ordered = sorted(mine, key=lambda g: _dt(g["kickoff"])) if ff else mine
+        told = ff(slug, ordered) if ff else []
         weeks[slug] = PlayerWeek(
             games=len(mine),
             projection=player.get("nextClassicFixtureProjectedScore") if use_sorare else None,
@@ -762,12 +763,19 @@ def archive_of(payload: dict[str, Any]) -> tuple[str, dict[str, Any]] | None:
 
 
 def projected_weeks(
-    snapshot: dict[str, Any], rounds: list[projection.Round], *, runs: int = 30, draws: int = EARLY_DRAWS
+    snapshot: dict[str, Any],
+    rounds: list[projection.Round],
+    *,
+    runs: int = 30,
+    draws: int = EARLY_DRAWS,
+    ff: Callable[[str, list[dict[str, Any]]], list[GameStart]] | None = None,
 ) -> list[dict[str, Any]]:
     """An early plan for each LaLiga round Sorare has not opened a gameweek for.
 
     Which cards play comes from the LaLiga calendar; the competitions are the ones of the gameweek being planned, the
     best guess of what Sorare will publish; the forecasts stand on form, since Sorare projects only a player's next game.
+    The one exception is `ff`, Futbol Fantasy's chance game by game: it has each club's next game, so it speaks for the
+    round about to be played and for no round after it. A player it has out or suspended is in no lineup.
     One plan is enough this far out: the numbers will move before the week opens, and Sorare's own replace all of it.
     """
     cards, _ = read_cards(snapshot["cards"])
@@ -780,7 +788,7 @@ def projected_weeks(
         start, end, lock = projection.window(round_.first)
         games = projection.games_for(cards, round_)
         forecasts = build_forecasts(
-            player_weeks(snapshot["cards"], games, snapshot["history"], lock, None, use_sorare=False)
+            player_weeks(snapshot["cards"], games, snapshot["history"], lock, None, use_sorare=False, ff=ff)
         )
         week = {
             "id": f"md{round_.number}",

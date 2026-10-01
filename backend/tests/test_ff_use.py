@@ -125,6 +125,22 @@ def test_a_game_with_no_match_behind_it_is_not_guessed(real: list[ffm.Match]) ->
     assert lineups.starts("mikel-oyarzabal-ugarte", [national, friendly]) == []
 
 
+def test_the_round_the_site_holds_is_covered_and_the_round_after_it_is_not(real: list[ffm.Match]) -> None:
+    from app.sorare import projection
+
+    def round_of(number: int, home: str, away: str, kickoff: str) -> projection.Round:
+        at = datetime.fromisoformat(kickoff)
+        sides = projection.Side("H", home, None), projection.Side("A", away, None)
+        return projection.Round(number, (projection.Match("m", at, *sides),))
+
+    lineups = ff_use.Lineups(feed_of(real), [OYARZABAL], NOW)
+
+    assert lineups.covers(round_of(8, "Real Sociedad", "Deportivo", "2026-10-11T14:15:00+00:00"))
+    assert not lineups.covers(round_of(9, "Real Sociedad", "Elche", "2026-10-18T14:15:00+00:00"))
+    stale = ff_use.Lineups(feed_of(real, read_at=READ - timedelta(hours=25)), [OYARZABAL], NOW)
+    assert stale.covers(round_of(8, "Real Sociedad", "Deportivo", "2026-10-11T14:15:00+00:00")), "a stale reading too"
+
+
 def test_a_player_who_is_not_linked_has_nothing(real: list[ffm.Match]) -> None:
     lineups = ff_use.Lineups(feed_of(real), [OYARZABAL], NOW)
 

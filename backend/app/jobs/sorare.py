@@ -236,7 +236,12 @@ def run(
         failed,
         "early plans",
         lambda: early.plan(
-            db, snapshot, projection.unopened(rounds, snapshot["gameweeks"], now=fetched), runs=runs, now=fetched
+            db,
+            snapshot,
+            projection.unopened(rounds, snapshot["gameweeks"], now=fetched),
+            runs=runs,
+            now=fetched,
+            ff=lineups,
         ),
         None,
     )

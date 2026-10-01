@@ -1,5 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { lastMeta, lastWeek, nextWeek, scoringWeek, type Sorare } from "../lib/play";
+import { noun } from "../lib/words";
 import { offline, resetBackend } from "./helpers";
 
 // The Home's team news under Sorare (`teamNews` of the gameweek being planned, served by the mock API): how the owner's players
@@ -59,4 +61,40 @@ test("the team news has no accessibility violations", async ({ page }) => {
 
   const results = await new AxeBuilder({ page }).include(".hm-news").analyze();
   expect(results.violations.map((v) => `${v.id}: ${v.nodes.length}`)).toEqual([]);
+});
+
+test.describe("while Futbol Fantasy has told nothing about the week", () => {
+  test("a break of national-team games says so, and where the next club games are", async ({ page, request }) => {
+    await resetBackend(request, "no-news-national");
+    await page.goto("/");
+    const news = page.getByRole("region", { name: "Team news" });
+
+    await expect(news.getByRole("status")).toContainText(/GW\d+ is national-team games\./);
+    await expect(news.getByRole("status")).toContainText("Futbol Fantasy covers LaLiga only.");
+    await expect(news.getByRole("status")).toContainText(/Round 8's lineups are on Lineups \(\d+ of your players\)\./);
+    await expect(news).not.toContainText("has not published a lineup");
+    await expect(news.getByRole("link", { name: "Lineups" })).toHaveAttribute("href", "/lineups");
+  });
+
+  test("a week of club games says when Futbol Fantasy publishes a club's next game", async ({ page, request }) => {
+    await resetBackend(request, "no-news-laliga");
+    await page.goto("/");
+    const news = page.getByRole("region", { name: "Team news" });
+
+    await expect(news.getByRole("status")).toContainText("Futbol Fantasy has not published a lineup for your players yet.");
+    await expect(news.getByRole("status")).toContainText("about a day after its last one");
+    await expect(news).not.toContainText("national-team games");
+  });
+});
+
+test("the home counts lineups in the singular and says which week is still being scored beside the last one", async ({ page, request }) => {
+  const served = (await (await request.get("http://127.0.0.1:8765/api/sorare")).json()) as { data: Sorare };
+  const week = nextWeek(served.data);
+  const last = lastWeek(served.data);
+  const scoring = scoringWeek(served.data);
+  await page.goto("/");
+
+  const play = page.locator("section:has(#hm-play)");
+  await expect(play).toContainText(`${week.plans[0]!.lineups.length} ${noun(week.plans[0]!.lineups.length, "lineup")}`);
+  if (last?.plans.length) await expect(page.locator("section:has(#hm-last)")).toContainText(lastMeta(last, scoring));
 });

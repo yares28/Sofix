@@ -1,6 +1,9 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
-import { offline, resetBackend } from "./helpers";
+import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import type { Sorare } from "../lib/play";
+import type { ApiResponse } from "../lib/types";
+import { seasonWeeks } from "../lib/weeks";
+import { grid, MOCK, offline, resetBackend } from "./helpers";
 
 // The Lineups page draws Futbol Fantasy's probable elevens as the job published them (e2e/fixtures/lineups-response.json: the ten
 // real round-8 pages of 30 Sep 2026, served by the mock API with their dates moved to two days ahead). Nothing here recomputes a
@@ -103,4 +106,96 @@ test("the top bar names the page", async ({ page }) => {
   await page.goto("/lineups");
 
   await expect(page.locator(".nav-links").getByRole("link", { name: "Lineups" })).toHaveAttribute("aria-current", "page");
+});
+
+test("what the site writes about an injury is in English, and a return that has gone by says so", async ({ page }) => {
+  await page.goto("/lineups?m=22502");
+  const home = page.getByRole("list", { name: "Real Sociedad injuries and suspensions" });
+  const away = page.getByRole("list", { name: "Deportivo injuries and suspensions" });
+
+  await expect(home).toContainText("ACL tear");
+  await expect(home).toContainText("Hamstring discomfort");
+  await expect(home).toContainText("Straight red card");
+  await expect(home).toContainText("Out for round 8");
+  await expect(home).toContainText("Doubt for round 8");
+  await expect(home.locator("em", { hasText: /^Was due back late / })).toHaveCount(1);
+  await expect(home).not.toContainText("Out until late");
+  await expect(away).toContainText("Muscle overload");
+  await expect(away).toContainText("Available for round 8");
+  // a diagnosis nobody translated keeps the site's word, and says whose it is
+  await expect(away.locator('i[lang="es"]', { hasText: "Pubalgia" })).toHaveAttribute("title", "Futbol Fantasy's own words");
+  for (const spanish of ["Rotura", "Molestias", "Roja directa", "Sobrecarga", "Disponible", "Baja ", "Duda para", "Desde "]) {
+    await expect(page.locator("main")).not.toContainText(spanish);
+  }
+});
+
+test("a call-up is shown only for a club whose squad list is out, and the page never says both at once", async ({ page }) => {
+  await page.goto("/lineups?m=22502");
+  const home = page.getByRole("region", { name: "Real Sociedad lineup" });
+  const away = page.getByRole("region", { name: "Deportivo lineup" });
+
+  // Real Sociedad has not named its squad: the note is there, and no card carries a call-up
+  await expect(home.getByText("Squad list not out.")).toBeVisible();
+  await expect(home.getByRole("img", { name: "Called up by his national team" })).toHaveCount(0);
+  await expect(home.locator('.lu-card[aria-label*="called up"]')).toHaveCount(0);
+  // Deportivo has: two cards show the mark, and the legend names it
+  await expect(away.getByText("Squad list not out.")).toHaveCount(0);
+  await expect(away.getByRole("img", { name: "Called up by his national team" })).toHaveCount(2);
+  await expect(page.getByText("Called up by his national team", { exact: true })).toBeVisible();
+});
+
+test("the legend leaves the call-up out when no club of the match has named its squad", async ({ page }) => {
+  await page.goto("/lineups?m=22497");
+
+  await expect(page.getByRole("img", { name: "Called up by his national team" })).toHaveCount(0);
+  await expect(page.getByText("Called up by his national team")).toHaveCount(0);
+});
+
+// ------------------------------------------------------------------------ which week the page is for
+const header = (page: Page) => page.locator(".lu-head > div").first();
+
+async function weeksOf(request: APIRequestContext) {
+  const served = ((await (await request.get(`${MOCK}/api/sorare`)).json()) as ApiResponse<Sorare>).data!;
+  return seasonWeeks(grid, served, new Date());
+}
+
+test("the header names the LaLiga round, its days and the Sorare week it feeds, with a link to plan it", async ({ page }) => {
+  await page.goto("/lineups");
+
+  await expect(header(page).locator("p").first()).toContainText(/^LaLiga round 8 · \w{3} \d+ – \w{3} \d+ Oct · Sorare/);
+  const sorare = header(page).getByRole("link", { name: /^Sorare/ });
+  await expect(sorare).toHaveText(/^Sorare(: not open yet| GW\d+( · locks \w{3} \d{2}:\d{2}| · locked)?)$/);
+  await expect(sorare).toHaveAttribute("href", /^\/play\?w=\d{4}-\d{2}-\d{2}$/);
+  await expect(page.getByText("Probable elevens from Futbol Fantasy")).toBeVisible();
+});
+
+test("arriving for a week that is past says Futbol Fantasy only has the next round", async ({ page, request }) => {
+  const past = (await weeksOf(request)).find((week) => week.md !== null && week.md < 8 && week.state === "done")!;
+  await page.goto(`/lineups?w=${past.id}`);
+
+  await expect(page.getByRole("status").filter({ hasText: "only has each club's next LaLiga game: round 8." })).toContainText(`Round ${past.md} has been played.`);
+});
+
+test("arriving for a national-team week says what that week is", async ({ page, request }) => {
+  await resetBackend(request, "no-news-national");
+  const national = (await weeksOf(request)).find((week) => week.number === 19 && week.md === null)!;
+  await page.goto(`/lineups?w=${national.id}`);
+
+  await expect(page.getByRole("status").filter({ hasText: "only has each club's next LaLiga game: round 8." })).toContainText("GW19 is national-team games.");
+});
+
+test("the round's own week adds no line", async ({ page, request }) => {
+  const round8 = (await weeksOf(request)).find((week) => week.md === 8)!;
+  await page.goto(`/lineups?w=${round8.id}`);
+
+  await expect(page.getByRole("heading", { level: 1, name: "Who starts this round?" })).toBeVisible();
+  await expect(page.locator(".lu-flash")).toHaveCount(0);
+});
+
+test("a match that is no longer on the site is said so, above the next one", async ({ page }) => {
+  await page.goto("/lineups?m=99999");
+
+  await expect(page.getByRole("status").filter({ hasText: "That match is no longer on Futbol Fantasy" })).toBeVisible();
+  const strip = page.getByRole("navigation", { name: /^Matches of LaLiga · Round 8/ });
+  await expect(strip.getByRole("link").first()).toHaveAttribute("aria-current", "page");
 });

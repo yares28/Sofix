@@ -12,6 +12,8 @@ import SiteNav from "../components/SiteNav";
 import { loadGrid } from "../lib/api";
 import { legacyBoardUrl, openingColumn } from "../lib/grid";
 import { boardHref, castForWeek, gameweekHead } from "../lib/home";
+import { lineupsGlance } from "../lib/lineups";
+import { loadLineups } from "../lib/lineupsData";
 import { loadChances } from "../lib/homeData";
 import { weekPlan } from "../lib/play";
 import { loadSorare } from "../lib/playData";
@@ -37,11 +39,12 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   const legacy = legacyBoardUrl(params);
   if (legacy) redirect(legacy);
 
-  const [{ grid, meta, error }, system, chances, sorare] = await Promise.all([
+  const [{ grid, meta, error }, system, chances, sorare, lineups] = await Promise.all([
     loadGrid(),
     loadSystem(),
     loadChances(),
     loadSorare(),
+    loadLineups(),
   ]);
   const opening = grid ? openingColumn(grid) : 0;
   const week = weekContext(grid, sorare, new Date(), {
@@ -93,7 +96,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
               <TableTile grid={grid} column={column} chances={chances} href={href("/table")} />
             </>
           ) : null}
-          {sorare ? <SorareTiles data={sorare} selected={selectedSorare} now={new Date()} /> : <SorareRow />}
+          {sorare ? <SorareTiles data={sorare} selected={selectedSorare} now={new Date()} glance={lineupsGlance(lineups, new Date())} /> : <SorareRow />}
         </div>
       </main>
     </>

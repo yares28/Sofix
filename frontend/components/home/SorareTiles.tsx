@@ -6,9 +6,11 @@ import {
   essenceLabel,
   formatOf,
   insideRange,
+  lastMeta,
   lastWeek,
   nextWeek,
   rangeScale,
+  scoringWeek,
   timeUntil,
   waitingFor,
 } from "../../lib/play";
@@ -16,6 +18,8 @@ import { Cash, Essence, Foil, GROUP_COLOUR } from "../play/bits";
 import EnteredLineups from "../play/EnteredLineups";
 import SorareImage from "../play/SorareImage";
 import HomeTile from "./HomeTile";
+import type { LineupsGlance } from "../../lib/lineups";
+import { noun } from "../../lib/words";
 import TeamNewsTile from "./TeamNewsTile";
 
 const madrid = (iso: string, options: Intl.DateTimeFormatOptions) =>
@@ -32,10 +36,12 @@ export default function SorareTiles({
   data,
   selected,
   now,
+  glance,
 }: {
   data: Sorare;
   selected: { slug: string; number: number } | null;
   now: Date;
+  glance: LineupsGlance | null;
 }) {
   const played = lastWeek(data);
   return (
@@ -49,8 +55,8 @@ export default function SorareTiles({
       </div>
       {selected ? <EnteredLineups week={selected} /> : null}
       <PlayTile week={nextWeek(data)} now={now} />
-      <TeamNewsTile week={nextWeek(data)} now={now} />
-      {played && played.plans.length ? <LastTile week={played} /> : null}
+      <TeamNewsTile week={nextWeek(data)} now={now} glance={glance} />
+      {played && played.plans.length ? <LastTile week={played} scoring={scoringWeek(data)} /> : null}
       <CardsTile data={data} />
     </>
   );
@@ -69,7 +75,7 @@ function PlayTile({ week, now }: { week: GameweekPlan; now: Date }) {
           <Ring value={plan.pAny} label="any reward" />
           <div className="hm-play-side">
             <span>
-              <b>{plan.lineups.length}</b> lineups
+              <b>{plan.lineups.length}</b> {noun(plan.lineups.length, "lineup")}
             </span>
             <span>
               <b>{plan.cardsUsed}</b> of {plan.cardsAvailable} cards
@@ -205,7 +211,7 @@ function WaitingTile({ week, now, meta }: { week: GameweekPlan; now: Date; meta:
   );
 }
 
-function LastTile({ week }: { week: GameweekPlan }) {
+function LastTile({ week, scoring }: { week: GameweekPlan; scoring: { number: number } | null }) {
   const plan = week.plans[0];
   if (!plan) return null;
   const inside = insideRange(plan);
@@ -213,7 +219,7 @@ function LastTile({ week }: { week: GameweekPlan }) {
     <HomeTile
       id="hm-last"
       title="Last gameweek"
-      meta={`GW${week.gameweek.number} · predicted vs actual`}
+      meta={lastMeta(week, scoring)}
       href={`/play?gw=${week.gameweek.id}&after=1`}
       className="hm-last"
       index={4}

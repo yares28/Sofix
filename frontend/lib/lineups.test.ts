@@ -1,18 +1,23 @@
 import { describe, expect, it } from "vitest";
 import {
-  absenceText,
+  calledUpIn,
   chanceTone,
   crestSource,
   freshness,
   gaugeText,
   initialsOf,
   kickoffLabel,
+  lineupsGlance,
   matchState,
+  otherWeekNote,
   pickMatch,
   readable,
   playerLabels,
   readLabel,
+  roundDays,
   shortCode,
+  sorareLine,
+  squadOut,
   statusLine,
   yoursSummary,
   sectionsOf,
@@ -148,6 +153,88 @@ describe("what a match says about itself", () => {
   });
 });
 
+describe("which week the page is for", () => {
+  it("writes the days of the round from its first kickoff to its last, in Madrid time", () => {
+    expect(roundDays("2026-10-09T19:00:00Z", "2026-10-12T19:00:00Z")).toBe("Fri 9 – Mon 12 Oct");
+    expect(roundDays("2026-09-30T19:00:00Z", "2026-10-03T19:00:00Z")).toBe("Wed 30 Sep – Sat 3 Oct");
+    expect(roundDays("2026-10-10T19:00:00Z", "2026-10-10T21:00:00Z")).toBe("Sat 10 Oct");
+  });
+
+  it("links to the Sorare week the round feeds, or says Sorare has not opened it", () => {
+    const open = { id: "2026-10-09", gw: "21", number: 21 };
+    const early = { id: "2026-10-09", gw: null, number: null };
+
+    expect(sorareLine(undefined, undefined, NOW)).toBeNull();
+    expect(sorareLine(early, undefined, NOW)).toEqual({ text: "Sorare: not open yet", href: "/play?w=2026-10-09" });
+    expect(sorareLine(open, "2026-10-16T14:00:00Z", NOW)).toEqual({ text: "Sorare GW21 · locks Fri 16:00", href: "/play?w=2026-10-09" });
+    expect(sorareLine(open, "2026-10-10T10:00:00Z", NOW)?.text).toBe("Sorare GW21 · locked");
+    expect(sorareLine(open, undefined, NOW)?.text).toBe("Sorare GW21");
+  });
+
+  it("says why the page shows round 8 when it was opened for another week", () => {
+    const ask = (md: number | null, number: number | null) => otherWeekNote({ md, number }, 8, false);
+    const base = "Futbol Fantasy only has each club's next LaLiga game: round 8.";
+
+    expect(otherWeekNote(null, 8, false)).toBeNull();
+    expect(ask(8, null)).toBeNull();
+    expect(ask(6, null)).toBe(`${base} Round 6 has been played.`);
+    expect(ask(9, null)).toBe(`${base} Round 9 comes after it.`);
+    expect(ask(null, 19)).toBe(`${base} GW19 has no LaLiga round.`);
+    expect(otherWeekNote({ md: null, number: 19 }, 8, true)).toBe(`${base} GW19 is national-team games.`);
+    expect(otherWeekNote({ md: 6, number: null }, null, false)).toBeNull();
+  });
+});
+
+describe("when a call-up is shown", () => {
+  const called = [{ line: "FWD" as const, players: [player("1", { status: { international: true } }), player("2")] }];
+
+  it("is once the club has named its squad, and not before", () => {
+    expect(squadOut(side("A", { squad: true }))).toBe(true);
+    expect(squadOut(side("A", { squad: false }))).toBe(false);
+    expect(squadOut(side("A", { squad: null }))).toBe(false);
+    expect(squadOut(side("A", { squad: true, published: false }))).toBe(false);
+  });
+
+  it("puts it in the legend only when some player in the match shows one", () => {
+    const named = match(1, "2026-10-11T14:15:00Z", { home: side("H", { squad: true, rows: called }), away: side("A", { squad: false, rows: called }) });
+    const unnamed = match(1, "2026-10-11T14:15:00Z", { home: side("H", { squad: false, rows: called }), away: side("A", { squad: null, rows: called }) });
+    const none = match(1, "2026-10-11T14:15:00Z", { home: side("H", { squad: true, rows: [{ line: "FWD", players: [player("2")] }] }) });
+
+    expect(calledUpIn(named)).toBe(true);
+    expect(calledUpIn(unnamed)).toBe(false);
+    expect(calledUpIn(none)).toBe(false);
+  });
+});
+
+describe("the glance Home takes at the lineups", () => {
+  const europa = { competition: "europa-league", competitionName: "Europa League", round: 2 };
+  const two = (kickoff: string, extra: Partial<LineupMatch> = {}) =>
+    match(1, kickoff, {
+      ...extra,
+      home: side("Home", { rows: [{ line: "FWD", players: [player("1", { yours: "a" })] }], alternatives: [player("3", { yours: "b" })] }),
+      away: side("Away", { alternatives: [player("4", { yours: "c" })] }),
+    });
+
+  it("is the LaLiga round still to play and how many of his players are in it", () => {
+    const more = match(2, "2026-10-11T16:15:00Z", { home: side("X", { alternatives: [player("9", { yours: "d" })] }) });
+
+    expect(lineupsGlance(data([two("2026-10-11T14:15:00Z"), more]), NOW)).toEqual({ round: 8, yours: 4 });
+  });
+
+  it("counts a player once, and leaves out the other competitions", () => {
+    const again = match(2, "2026-10-11T16:15:00Z", { home: side("X", { alternatives: [player("1", { yours: "a" })] }) });
+
+    expect(lineupsGlance(data([two("2026-10-11T14:15:00Z"), again, two("2026-10-14T19:00:00Z", europa)]), NOW)).toEqual({ round: 8, yours: 3 });
+  });
+
+  it("is nothing when the page holds no LaLiga round to come", () => {
+    expect(lineupsGlance(null, NOW)).toBeNull();
+    expect(lineupsGlance(data([]), NOW)).toBeNull();
+    expect(lineupsGlance(data([two("2026-10-09T14:15:00Z")]), NOW)).toBeNull();
+    expect(lineupsGlance(data([two("2026-10-14T19:00:00Z", europa)]), NOW)).toBeNull();
+  });
+});
+
 describe("how fresh the reading is", () => {
   const read = (hoursAgo: number) => new Date(NOW.getTime() - hoursAgo * 3600_000).toISOString();
 
@@ -210,30 +297,6 @@ describe("a player's look", () => {
   it("has the two letters of his name when a card has no picture", () => {
     expect(initialsOf("Mikel Oyarzabal")).toBe("MO");
     expect(initialsOf("Isco")).toBe("IS");
-  });
-});
-
-describe("the injury list in English", () => {
-  it("turns the site's Spanish notes into words the page can use", () => {
-    expect(absenceText({ name: "a", kind: "doubt", cause: "Molestias en los isquiotibiales", since: "Desde 12/09 (18 días)", note: "Duda para la jornada 8" })).toEqual({
-      cause: "Molestias en los isquiotibiales",
-      since: "since 12 Sep",
-      note: "Doubt for round 8",
-    });
-    expect(absenceText({ name: "a", kind: "out", note: "Baja hasta octubre" }).note).toBe("Out until October");
-    expect(absenceText({ name: "a", kind: "out", note: "Baja hasta principios de noviembre" }).note).toBe("Out until early November");
-    expect(absenceText({ name: "a", kind: "out", note: "Baja hasta mediados de diciembre" }).note).toBe("Out until mid-December");
-  });
-
-  it("leaves a note it does not know as the site wrote it", () => {
-    expect(absenceText({ name: "a", kind: "out", note: "Sin fecha de vuelta" }).note).toBe("Sin fecha de vuelta");
-    expect(absenceText({ name: "a", kind: "out" })).toEqual({});
-  });
-
-  it("says a suspended player misses the round when the site gives nothing else", () => {
-    expect(absenceText({ name: "a", kind: "suspended" }, 8).note).toBe("Misses round 8");
-    expect(absenceText({ name: "a", kind: "suspended" }, null).note).toBe("Suspended");
-    expect(absenceText({ name: "a", kind: "suspended", note: "Baja hasta octubre" }, 8).note).toBe("Out until October");
   });
 });
 

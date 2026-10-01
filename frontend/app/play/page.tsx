@@ -8,7 +8,7 @@ import { loadGrid } from "../../lib/api";
 import { plansOf, weekPlan } from "../../lib/play";
 import { loadProjectedWeek, loadSorare, loadSorareWeek } from "../../lib/playData";
 import { loadSystem } from "../../lib/system";
-import { noPlan, weekContext } from "../../lib/weeks";
+import { noPlan, weekContext, weekDates } from "../../lib/weeks";
 
 export const metadata: Metadata = { title: "Play · Sofix" };
 
@@ -84,7 +84,7 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
   return (
     <>
       <SiteNav meta={meta} system={system} week={week} />
-      <PlayView data={data} week={showing} planIndex={planIndex} after={after} now={new Date()} weekId={single("w")} />
+      <PlayView data={data} week={showing} planIndex={planIndex} after={after} now={new Date()} weekId={single("w")} dates={asked && (asked.gw ? asked.gw === showing.gameweek.id : asked.md !== null && asked.md === showing.projected?.round) ? weekDates(asked, "play") : null} />
     </>
   );
 }

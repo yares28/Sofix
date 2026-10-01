@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { dateRange } from "../../lib/home";
 import {
   MAX_AGE_MS,
+  calledUpIn,
   freshness,
   kickoffLabel,
   matchState,
   readLabel,
+  roundDays,
   shortCode,
   teamsRead,
   tint,
@@ -29,30 +30,50 @@ type Props = {
   selected: LineupMatch;
   now: Date;
   clubs: Record<string, ClubLook>;
+  /** The Sorare week this round feeds, with its Play page (null when the section is not LaLiga's). */
+  sorare: { text: string; href: string } | null;
+  /** Lines shown above the match: why the page is not the week or the match you came for. */
+  flash: string[];
 };
 
 const hrefOf = (match: LineupMatch) => `/lineups?m=${match.id}`;
 const lookOf = (side: LineupSide, clubs: Record<string, ClubLook>) => (side.club ? clubs[side.club] : undefined);
 
-export default function LineupsView({ data, sections, section, selected, now, clubs }: Props) {
+export default function LineupsView({ data, sections, section, selected, now, clubs, sorare, flash }: Props) {
   const state = matchState(selected, now);
   const competitions = [...new Map(sections.map((s) => [s.competition, s.competitionName])).entries()];
   const rounds = sections.filter((s) => s.competition === section.competition);
   const first = section.matches[0]?.kickoff;
   const last = section.matches.at(-1)?.kickoff;
-  const when = first && last ? dateRange(first, last) : null;
+  const when = first && last ? roundDays(first, last) : null;
+  const named = section.competition === "laliga" && section.round !== null ? `LaLiga round ${section.round}` : section.label;
   return (
     <main className="lu">
       <header className="lu-head">
         <div>
           <h1>Who starts this round?</h1>
           <p>
-            {section.label}
-            {when ? ` · ${when}` : ""} · probable elevens from Futbol Fantasy
+            {named}
+            {when ? ` · ${when}` : ""}
+            {section.competition === "laliga" && sorare ? (
+              <>
+                {" · "}
+                <Link href={sorare.href} className="lu-sorare">
+                  {sorare.text}
+                </Link>
+              </>
+            ) : null}
           </p>
+          <p className="lu-source">Probable elevens from Futbol Fantasy</p>
         </div>
         <ReadPill data={data} matches={section.matches} now={now} />
       </header>
+
+      {flash.map((line) => (
+        <p key={line} className="lu-flash" role="status">
+          {line}
+        </p>
+      ))}
 
       {competitions.length > 1 ? (
         <nav className="lu-tabs" aria-label="Competition">
@@ -97,11 +118,11 @@ export default function LineupsView({ data, sections, section, selected, now, cl
             {selected.away.name}
           </label>
           <div className="lu-teams">
-            <TeamColumn side={selected.home} place="home" round={selected.round} cards={data.cards} look={lookOf(selected.home, clubs)} />
-            <TeamColumn side={selected.away} place="away" round={selected.round} cards={data.cards} look={lookOf(selected.away, clubs)} />
+            <TeamColumn side={selected.home} place="home" round={selected.round} cards={data.cards} look={lookOf(selected.home, clubs)} now={now} />
+            <TeamColumn side={selected.away} place="away" round={selected.round} cards={data.cards} look={lookOf(selected.away, clubs)} now={now} />
           </div>
         </fieldset>
-        <Legend />
+        <Legend calledUp={calledUpIn(selected)} />
       </article>
     </main>
   );
@@ -226,7 +247,7 @@ function MatchHead({ match, state, now, clubs }: { match: LineupMatch; state: Re
   );
 }
 
-function Legend() {
+function Legend({ calledUp }: { calledUp: boolean }) {
   return (
     <footer className="lu-legend">
       <span>
@@ -249,10 +270,12 @@ function Legend() {
         <KindIcon kind="available" size={16} />
         Knock, but available
       </span>
-      <span>
-        <CalledUpIcon size={16} />
-        Called up
-      </span>
+      {calledUp ? (
+        <span>
+          <CalledUpIcon size={16} />
+          Called up by his national team
+        </span>
+      ) : null}
       <em>% = his chance of starting, from Futbol Fantasy. Under each line: who else could play there.</em>
     </footer>
   );

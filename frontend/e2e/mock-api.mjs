@@ -73,6 +73,23 @@ const planning = sorare.data.weeks.find((week) => week.gameweek.id === sorare.da
     },
   };
 }
+// The same payload when Futbol Fantasy has told the job nothing about the planned week (no `teamNews`): once as a week of club games,
+// once as a break whose games are all a national team's (GW19 in October), for the Home's team-news tile.
+const idleSorare = Object.fromEntries(
+  [["laliga", false], ["national", true]].map(([kind, national]) => {
+    const data = structuredClone(sorare.data);
+    const week = data.weeks.find((one) => one.gameweek.id === data.nextId);
+    delete week.teamNews;
+    if (national) {
+      for (const player of week.playing.players) for (const game of player.games) game.competition = "uefa-nations-league";
+      // And a week of Sorare's with national-team games only, far from any LaLiga round (GW19 of the real season): the one a Lineups link names.
+      const gameweek = { ...week.gameweek, id: "9019", slug: "football-2-6-jan-2030", number: 19, name: "Game Week 19", start: "2030-01-02T14:00:00Z", end: "2030-01-06T14:00:00Z", lock: "2030-01-02T14:00:00Z" };
+      data.weeks.push({ ...structuredClone(week), gameweek });
+      data.timeline.push({ id: gameweek.id, slug: gameweek.slug, number: 19, start: gameweek.start, end: gameweek.end, lock: gameweek.lock, status: "later" });
+    }
+    return [kind, { ...sorare, data }];
+  }),
+);
 const earlyWeeks = new Map(
   recorded.data.matchdays
     .filter((matchday) => matchday.number === 8 || matchday.number === 9)
@@ -103,6 +120,24 @@ const keptWeeks = new Map(
 const lineupsFixture = JSON.parse(readFileSync(new URL("./fixtures/lineups-response.json", import.meta.url), "utf8"));
 const firstKickoff = Math.min(...lineupsFixture.data.matches.map((match) => new Date(match.kickoff).getTime()));
 const LINEUPS_SHIFT = Date.now() + 2 * 86_400_000 - firstKickoff;
+// What the site really writes beside an injury (the causes, dates and notes of its 1 Oct pages), on the Real Sociedad match, built from today's
+// date so the "return has gone by" case stays true whenever the tests run: began 60 days ago, due back by the end of the month of 45 days ago.
+function spanishInjuries(match) {
+  const ES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  const daysAgo = (days) => new Date(Date.now() - days * 86_400_000);
+  const desde = (days) => `Desde ${daysAgo(days).getDate()}/${daysAgo(days).getMonth() + 1} (${days} días)`;
+  const by = (name) => (match.home.absent.find((a) => a.name === name) ?? match.away.absent.find((a) => a.name === name));
+  Object.assign(by("Álvaro Odriozola"), { cause: "Rotura de lig. cruzado anterior", since: desde(60), note: `Baja hasta finales de ${ES[daysAgo(45).getMonth()]}` });
+  Object.assign(by("Igor Zubeldia"), { cause: "Molestias en los isquiotibiales", since: desde(12), note: "Duda para la jornada 8" });
+  Object.assign(by("Orri Steinn Óskarsson"), { cause: "Roja directa", note: "Baja confirmada para la jornada 8" });
+  Object.assign(by("Marc Casadó"), { cause: "Pubalgia" });
+  Object.assign(by("Lorenzo Amatucci"), { cause: "Sobrecarga muscular", note: "Disponible para la jornada 8" });
+}
+// Two of each side's eleven are called up by their national team; only Deportivo has named its match squad, so only its two show it.
+function calledUp(match) {
+  for (const side of [match.home, match.away]) for (const one of side.rows.flatMap((row) => row.players).filter((player) => !player.status?.kind).slice(0, 2)) one.status = { ...one.status, international: true };
+  match.away.squad = true;
+}
 const lineupsPayload = (() => {
   const data = structuredClone(lineupsFixture.data);
   const ago = (hours) => new Date(Date.now() - hours * 3_600_000).toISOString();
@@ -113,12 +148,15 @@ const lineupsPayload = (() => {
     match.readAt = ago(0.1);
     for (const side of [match.home, match.away]) if (side.changedAt) side.changedAt = ago(20);
   }
+  const sociedad = data.matches.find((match) => match.id === 22502);
+  spanishInjuries(sociedad);
+  calledUp(sociedad);
   return { success: true, data };
 })();
 
 let state;
 function reset() {
-  state = { mode: "ok", sorare: "ok", nextId: 1, run: null, polls: 0 };
+  state = { mode: "ok", sorare: "ok", news: null, nextId: 1, run: null, polls: 0 };
 }
 reset();
 
@@ -167,7 +205,7 @@ const server = createServer((req, res) => {
     if (state.sorare === "missing") {
       return send(res, 200, { success: false, data: null, error: "Sorare has not been synced yet.", meta: null });
     }
-    return send(res, 200, sorare);
+    return send(res, 200, idleSorare[state.news] ?? sorare);
   }
 
   if (req.method === "GET" && url.pathname === "/api/lineups") {
@@ -251,8 +289,9 @@ const server = createServer((req, res) => {
   if (req.method === "POST" && url.pathname === "/__test/mode") {
     state.mode = url.searchParams.get("mode") === "malformed" ? "malformed" : "ok";
     state.sorare = url.searchParams.get("sorare") === "missing" ? "missing" : "ok";
+    state.news = url.searchParams.get("news"); // "laliga" or "national": the planned week with no team news
     state.run = finishedRun("cli");
-    return send(res, 200, { ok: true, mode: state.mode, sorare: state.sorare });
+    return send(res, 200, { ok: true, mode: state.mode, sorare: state.sorare, news: state.news });
   }
 
   send(res, 404, { success: false, error: "Not found." });

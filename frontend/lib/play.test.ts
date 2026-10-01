@@ -6,12 +6,14 @@ import {
   essenceLabel,
   formatOf,
   insideRange,
+  lastMeta,
   lastWeek,
   nextWeek,
   paysNote,
   plansOf,
   rangeScale,
   rewardChips,
+  scoringWeek,
   startChance,
   timeUntil,
   waitingFor,
@@ -230,6 +232,25 @@ describe("picking the gameweek to show", () => {
 
   it("has no last gameweek until one has been replayed", () => {
     expect(lastWeek({ ...data, lastId: null } as Sorare)).toBeNull();
+  });
+});
+
+describe("the last gameweek and the one still being scored", () => {
+  const timeline = [
+    { id: "17", slug: "a", number: 17, start: "", end: "", lock: "", status: "done" },
+    { id: "18", slug: "b", number: 18, start: "", end: "", lock: "", status: "live" },
+    { id: "19", slug: "c", number: 19, start: "", end: "", lock: "", status: "next" },
+  ];
+  const last = gameweek({ gameweek: { ...gameweek().gameweek, id: "17", number: 17 }, played: true });
+
+  it("finds the week being played, which is not yet the last one", () => {
+    expect(scoringWeek({ timeline } as unknown as Sorare)?.number).toBe(18);
+    expect(scoringWeek({ timeline: timeline.filter((w) => w.status !== "live") } as unknown as Sorare)).toBeNull();
+  });
+
+  it("says which week is still scoring beside the one it compares", () => {
+    expect(lastMeta(last, { number: 18 })).toBe("GW17 · GW18 still scoring");
+    expect(lastMeta(last, null)).toBe("GW17 · predicted vs actual");
   });
 });
 

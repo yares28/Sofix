@@ -56,9 +56,13 @@ Under the strip:
 - **Team news** (under Sorare) says how your players look for the round from Futbol Fantasy (FF): one bar (likely to start at
   70% or more, in doubt from 40%, unlikely, out), which starters of your best plan might not start (under 70%, with their game,
   lineup and an icon for a doubt or injury), and what moved by 10 points or more since yesterday. A link opens Lineups. Players
-  FF says nothing about are only counted; their number is Sorare's or Sofix's.
+  FF says nothing about are only counted; their number is Sorare's or Sofix's. While FF has told nothing about the week, the
+  tile says why: in a break of national-team games (GW19, say) "GW19 is national-team games. Futbol Fantasy covers LaLiga only."
+  and where the next club games are, with how many of your players are in them; in a week of club games, that FF publishes each
+  club's next game about a day after its last one.
 - **Play** summarizes the published Sorare plan, estimated chance of any reward, expected essence/cash and time to lock.
-- **Last gameweek** compares pre-lock predictions with the owner's submitted-lineup actuals when scores exist.
+- **Last gameweek** compares pre-lock predictions with the owner's submitted-lineup actuals when scores exist. It is the last
+  gameweek that has finished; when another is being played its number follows ("GW17 · GW18 still scoring").
 - **My cards** shows usable cards, rarity/position shape and the most important constraint.
 
 Every large card is a link to the detailed page. A missing data block should say why—no fixtures, waiting for Sorare,
@@ -161,7 +165,8 @@ which extension/session prerequisite is missing. Lineups from another GW are nev
 
 Once Sorare has scored a lineup, its row shows the **score** (large), then **where it ranked and what it was paid**
 ("Rank 1,204 · $2.50 · 250 essence", or "no reward paid" once it is ranked and nothing was), and each card carries its
-own score with a **C** on the captain. While the games are still being played it says "Still scoring". This needs the
+own score with a **C** on the captain. Before the lock the row says "Locks in 1 d 3 h" instead of a 0, between the lock and the
+first game it says "Not started", and once the games are on and it has no rank yet it says "Still scoring". This needs the
 extension at version 0.2.2 or later (reload it in `chrome://extensions`); an older one still shows the lineups, without
 their results. Essence counts Limited essence only, as the plans do.
 
@@ -200,7 +205,10 @@ Rooms out (a Room depends on nine other managers' lineups), and never names an e
 A LaLiga round Sorare has not opened yet (LaLiga GW36 in May, say) opens as an **early plan**: a plain note says so,
 and it is built from the LaLiga calendar for your cards' games, their recent form and the competitions of the gameweek
 being planned, with one plan and no Apply button. It is a first guess: your cards as they are today, no start odds, and
-competitions Sorare may change. It moves each refresh, and Sorare's own numbers replace it when the week opens.
+competitions Sorare may change. It moves each refresh, and Sorare's own numbers replace it when the week opens. The one
+round that already has a lineup on Futbol Fantasy (each club's next LaLiga game, round 8 in the October break) uses
+Futbol Fantasy's chance to start instead of Sofix's guess, with its **FF** mark, and a player it has out or suspended is in
+no lineup. Rounds after it have no Futbol Fantasy yet and keep the guess.
 
 Every gameweek is **kept** once its scores are final (a day after it ends, and once everything it was built from could
 be read from Sorare) and stays in the picker with its replay and hindsight, however old. A week played before Sofix started
@@ -215,13 +223,23 @@ Futbol Fantasy's probable elevens for every match it has published (FF covers ea
 tied to the week in the top bar). One bar holds the round's matches, with how many of your players are in each (the blue dot);
 the page opens on the next match. Competition and round tabs appear only when the page holds more than one.
 
+The header names what the page is: "LaLiga round 8 · Fri 9 – Mon 12 Oct · Sorare: not open yet" (the days are the first and last
+kickoff, Madrid time), and once Sorare opens the week it feeds, "Sorare GW21 · locks Fri 16:00". The Sorare part links to Play for
+that week. Arriving with a week that FF does not cover (a past round, a later one, or a national-team week) adds one line:
+"Futbol Fantasy only has each club's next LaLiga game: round 8. GW19 is national-team games." A match address that is no longer on
+FF says so above the next match.
+
 - **The pitch.** Each team's eleven as cards in rows, attack at the top, with the formation beside the team name. Your own
   cards show their Sorare art with a blue outline; the others are drawn with FF's photo. The badge under a card is his chance of
-  starting; a round mark at its corner is an injury, a doubt, a ban, or (blue) a call-up to his national team.
+  starting; a round mark at its corner is an injury, a doubt, a ban, or (blue) a call-up to his national team. A call-up is only shown
+  once his club has named its match squad on FF; until then the team carries "Squad list not out" and no call-up mark, so the
+  page never says both.
 - **Who else could play.** Under each line, the alternatives most likely first, with their chance. A player FF has not
   placed yet is listed apart as "Others in the squad"; those at 0% are named in one line under the injuries.
-- **Injuries and bans** are icons with FF's note in English where the pattern is known ("Doubt for round 8", "Out until
-  October"). **Your players FF does not list** are named under their club with why, and use Sorare's or Sofix's number.
+- **Injuries and bans** are icons with FF's words in English: the diagnosis ("ACL tear", "Hamstring injury", "Training
+  apart"), "since 12 Sep", and the note ("Doubt for round 8", "Available for round 8", "Out for round 8", "Out until January
+  2027"). A return date that has already gone by reads "Was due back late September", never "Out until". A diagnosis the page
+  cannot translate keeps FF's own words, in italics, with a tooltip saying so. **Your players FF does not list** are named under their club with why, and use Sorare's or Sofix's number.
 - **The small button** at the top right of a match, "Read 16:56", opens when FF was last read and when each team's lineup last
   changed; the arrow beside it opens the match on Futbol Fantasy.
 - **States.** The pill under the title says how many teams are read and when; it says when FF could not be read (the last
@@ -294,7 +312,9 @@ Control is the operational truth for the owner:
 - extension and GitHub setup instructions when a piece is missing;
 - a diagram of the always-on cloud path.
 
-The scheduled times are 07:17 and 22:43 UTC daily, plus Tuesday 13:23 and Friday 17:23 UTC. The UI converts them to
+The scheduled times are 07:17, 12:07 and 22:43 UTC daily, plus the two-hours-before-the-lock runs on Monday to Thursday (13:37 and
+15:07 UTC; Tuesday only 15:07), Tuesday 13:23 and Friday 17:23 UTC: three a day at the least and five on a Europe day, which is
+the "3–5×" the page shows (read from the schedule itself, `lib/schedule.ts`). The UI converts them to
 Madrid time, so the local hour moves at daylight-saving changes. Manual refresh has a ten-minute cooldown and cannot
 run alongside another refresh. It does not apply migrations.
 

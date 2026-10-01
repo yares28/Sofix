@@ -40,6 +40,18 @@ export function runsBetween(from: Date, to: Date, crons: readonly string[] = REF
   return out.sort((a, b) => a.getTime() - b.getTime());
 }
 
+/** The fewest and the most scheduled runs on any weekday, from the crons themselves (the near-lock checks start more, on top). */
+export function refreshesPerDay(crons: readonly string[] = REFRESH_CRONS): { min: number; max: number } {
+  const specs = crons.map(parseCron);
+  const counts = Array.from({ length: 7 }, (_, weekday) => specs.filter((spec) => spec.weekday === null || spec.weekday === weekday).length);
+  return { min: Math.min(...counts), max: Math.max(...counts) };
+}
+
+/** "3–5", or "3" when every day has the same number. */
+export function refreshesLabel({ min, max }: { min: number; max: number }): string {
+  return min === max ? String(min) : `${min}–${max}`;
+}
+
 export function nextRun(now: Date, crons: readonly string[] = REFRESH_CRONS): Date | null {
   return runsBetween(now, new Date(now.getTime() + 8 * 86_400_000), crons)[0] ?? null;
 }

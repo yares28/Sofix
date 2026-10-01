@@ -17,13 +17,16 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from app.services import team_registry
 from app.sorare import ff_link
 from app.sorare.ff_feed import Feed, Stored
 from app.sorare.forecast import GameStart
 from app.sources.futbolfantasy_matches import AVAILABLE, DOUBT, OUT
+
+if TYPE_CHECKING:
+    from app.sorare.projection import Round
 
 _LESION = {OUT: "out", DOUBT: "doubt", AVAILABLE: "available"}
 _NOT_PLAYING = ("out", "suspended")
@@ -104,6 +107,18 @@ class Lineups:
             if told is not None:
                 out.append(told)
         return out
+
+    def covers(self, round_: Round) -> bool:
+        """Whether the site holds a match of this LaLiga round: it has each club's next game, so one round at a time.
+
+        Any match held counts, a stale reading too: the early plan of that round is made again either way, with the site's
+        numbers while they can be used and without them once they cannot.
+        """
+        held = [item.match for item in self._all]
+        return any(
+            ff_link.match_of_game(match.home.name, match.away.name, match.kickoff, held) is not None
+            for match in round_.matches
+        )
 
     def _matches(self) -> list[Any]:
         return [item.match for item in self.usable]

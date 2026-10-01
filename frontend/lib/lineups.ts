@@ -3,6 +3,7 @@
  * `lineups`, built by backend/app/sorare/ff_lineups.py) and the small pure helpers the page shares. The rows, the
  * formation and who is the owner's all come from the job; this only groups, labels and words them (plans/futbolfantasy.md, S5).
  */
+import type { Week } from "./weeks";
 
 export const LINEUPS_KEY = "lineups";
 /** A reading older than this is not used by the job, and the page says so. */
@@ -180,6 +181,52 @@ export function kickoffLabel(iso: string | null): { day: string; time: string; s
   return { day: `${found.weekday} ${Number(found.day)} ${MONTHS[Number(found.month) - 1]}`, time, short: `${found.weekday} ${time}` };
 }
 
+/**
+ * Whether a call-up is shown beside a player: only once his club has named its match squad. The page cannot say "called up" while it
+ * also says the squad list is not out (R8, 1 Oct review). The mark itself (`data-internacional`) is a national-squad call-up, a different
+ * list from the club's, so until the club names its squad it stays out of sight.
+ */
+export const squadOut = (side: LineupSide): boolean => side.published && side.squad === true;
+
+/** Whether any player of the match shows a call-up, which is when the legend names the mark. */
+export const calledUpIn = (match: LineupMatch): boolean =>
+  [match.home, match.away].some((side) => squadOut(side) && [...side.rows.flatMap((row) => row.players), ...side.alternatives].some((player) => player.status?.international));
+
+/** The days of a round, from its first kickoff to its last, in Madrid time: "Fri 9 – Mon 12 Oct". */
+export function roundDays(first: string, last: string): string {
+  const [a, b] = [kickoffLabel(first).day.split(" "), kickoffLabel(last).day.split(" ")];
+  if (a.join(" ") === b.join(" ")) return a.join(" ");
+  return a[2] === b[2] ? `${a[0]} ${a[1]} – ${b[0]} ${b[1]} ${b[2]}` : `${a.join(" ")} – ${b.join(" ")}`;
+}
+
+/**
+ * The Sorare week a LaLiga round feeds, as the page's header names it, with the Play page for it: "Sorare GW21 · locks Fri 16:00" once
+ * Sorare has opened the week, "Sorare: not open yet" before. Null when the round is not one of the season's weeks.
+ */
+export function sorareLine(
+  week: Pick<Week, "id" | "gw" | "number"> | undefined,
+  lock: string | undefined,
+  now: Date,
+): { text: string; href: string } | null {
+  if (!week) return null;
+  const href = `/play?w=${encodeURIComponent(week.id)}`;
+  if (!week.gw) return { text: "Sorare: not open yet", href };
+  const name = `Sorare GW${week.number}`;
+  if (!lock) return { text: name, href };
+  return { text: new Date(lock) <= now ? `${name} · locked` : `${name} · locks ${kickoffLabel(lock).short}`, href };
+}
+
+/**
+ * The one line shown when the page was opened for a week it does not cover (`?w=`): it holds each club's next LaLiga game and
+ * nothing else, so a week that is past, later, or a national-team week gets the round it does hold and what that week is.
+ */
+export function otherWeekNote(asked: Pick<Week, "md" | "number"> | null, round: number | null, nationalGames: boolean): string | null {
+  if (!asked || round === null || asked.md === round) return null;
+  const base = `Futbol Fantasy only has each club's next LaLiga game: round ${round}.`;
+  if (asked.md !== null) return `${base} Round ${asked.md} ${asked.md < round ? "has been played" : "comes after it"}.`;
+  return `${base} GW${asked.number} ${nationalGames ? "is national-team games" : "has no LaLiga round"}.`;
+}
+
 /** How many of the owner's players a match names, the eleven and the alternatives of both sides. */
 export function yoursIn(match: LineupMatch): number {
   let count = 0;
@@ -188,6 +235,27 @@ export function yoursIn(match: LineupMatch): number {
     count += side.alternatives.filter((p) => p.yours).length;
   }
   return count;
+}
+
+export type LineupsGlance = { round: number; yours: number };
+
+/**
+ * What the Home needs of this page when its own week has no Futbol Fantasy news: the LaLiga round still to play (the site holds
+ * each club's next game, so one round) and how many different players of the owner's it names. Null when the page holds no such round.
+ */
+export function lineupsGlance(data: LineupsData | null, now: Date): LineupsGlance | null {
+  if (!data) return null;
+  const section = sectionsOf(data).find(
+    (one) => one.competition === "laliga" && one.round !== null && one.matches.some((match) => !match.kickoff || new Date(match.kickoff).getTime() > now.getTime()),
+  );
+  if (!section) return null;
+  const yours = new Set<string>();
+  for (const match of section.matches) {
+    for (const side of [match.home, match.away]) {
+      for (const player of [...side.rows.flatMap((row) => row.players), ...side.alternatives]) if (player.yours) yours.add(player.yours);
+    }
+  }
+  return { round: section.round!, yours: yours.size };
 }
 
 // ---------------------------------------------------------------------------------------------------- how fresh
@@ -247,61 +315,6 @@ export function initialsOf(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean);
   if (words.length === 0) return "";
   return upper(words.length === 1 ? words[0]!.slice(0, 2) : `${words[0]!.charAt(0)}${words.at(-1)!.charAt(0)}`);
-}
-
-// --------------------------------------------------------------------------------------------- the injury list
-const SPANISH_MONTHS: Record<string, string> = {
-  enero: "January",
-  febrero: "February",
-  marzo: "March",
-  abril: "April",
-  mayo: "May",
-  junio: "June",
-  julio: "July",
-  agosto: "August",
-  septiembre: "September",
-  setiembre: "September",
-  octubre: "October",
-  noviembre: "November",
-  diciembre: "December",
-};
-
-function untilWhen(text: string): string {
-  const lower = text.trim().toLowerCase();
-  const direct = SPANISH_MONTHS[lower];
-  if (direct) return direct;
-  const partial = lower.match(/^(principios|mediados|finales) de (\w+)$/);
-  if (partial && SPANISH_MONTHS[partial[2]!]) {
-    const month = SPANISH_MONTHS[partial[2]!]!;
-    return partial[1] === "principios" ? `early ${month}` : partial[1] === "finales" ? `late ${month}` : `mid-${month}`;
-  }
-  const dated = lower.match(/^(?:el )?(\d{1,2}) de (\w+)$/);
-  if (dated && SPANISH_MONTHS[dated[2]!]) return `${Number(dated[1])} ${SPANISH_MONTHS[dated[2]!]}`;
-  return text.trim();
-}
-
-/**
- * The words the site writes beside an injury or a ban ("Desde 12/09 (18 días)", "Duda para la jornada 8", "Baja hasta
- * octubre"), in English where the pattern is known; anything else is shown as the site wrote it. The cause is its own text.
- */
-export function absenceText(
-  entry: { name: string; kind: PlayerKind; cause?: string; since?: string; note?: string },
-  round: number | null = null,
-): { cause?: string; since?: string; note?: string } {
-  const out: { cause?: string; since?: string; note?: string } = {};
-  if (entry.cause) out.cause = entry.cause;
-  if (entry.since) {
-    const date = entry.since.match(/^Desde (\d{1,2})\/(\d{1,2})/i);
-    out.since = date ? `since ${Number(date[1])} ${MONTHS[Number(date[2]) - 1] ?? date[2]}` : entry.since;
-  }
-  if (entry.note) {
-    const doubt = entry.note.match(/^Duda para la jornada (\d+)/i);
-    const until = entry.note.match(/^Baja hasta (.+)$/i);
-    out.note = doubt ? `Doubt for round ${doubt[1]}` : until ? `Out until ${untilWhen(until[1]!)}` : entry.note;
-  } else if (entry.kind === "suspended") {
-    out.note = round !== null ? `Misses round ${round}` : "Suspended";
-  }
-  return out;
 }
 
 // ----------------------------------------------------------------------------------------------- the words around

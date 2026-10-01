@@ -269,7 +269,11 @@ test("a player of yours opens his card on Cards, from the strip, the pitch and t
 
   await strip.locator(`a[href="${href}"]`).click();
   await expect(page).toHaveURL(new RegExp(`${href}$`));
-  await expect(page.locator(`#${href.split("#")[1]}`)).toBeInViewport();
+  const tile = page.locator(`#${href.split("#")[1]}`);
+  await expect(tile).toBeInViewport();
+  // the page was reached by a client navigation, where the browser never sets :target: the tile is marked all the same
+  await expect(tile).toHaveClass(/is-target/);
+  await expect(tile.locator(".art")).toHaveCSS("box-shadow", /rgb\(0, 113, 227\)/);
 });
 
 test("switching match answers from the page: no new request, the address follows, and Back returns", async ({ page }) => {

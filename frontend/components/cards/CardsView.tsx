@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   cardWindows,
   collectionSummary,
@@ -108,6 +108,15 @@ export default function CardsView({ data, now }: { data: Sorare; now: string }) 
 
   const summary = useMemo(() => collectionSummary(collection), [collection]);
   const next = useMemo(() => nextGames(data.weeks, new Date(now)), [data.weeks, now]);
+  // The tile a link names is marked. The browser does it itself (:target) for a page loaded at its address, but not when the page was
+  // reached by a client navigation from another page of the app, so the address is read here as well.
+  const [target, setTarget] = useState("");
+  useEffect(() => {
+    const read = () => setTarget(window.location.hash.slice(1));
+    read();
+    window.addEventListener("hashchange", read);
+    return () => window.removeEventListener("hashchange", read);
+  }, []);
   const stacks = useMemo(() => stackCounts(collection), [collection]);
   const groups = useMemo(
     () => shelves(collection, { pos, rarity, season }),
@@ -233,7 +242,7 @@ export default function CardsView({ data, now }: { data: Sorare; now: string }) 
             </div>
             <div className="s5-grid">
               {group.cards.map((card, index) => (
-                <CardTile key={card.slug} card={card} index={index} stack={stacks.get(stackKey(card)) ?? 1} anchor={anchored.has(card.slug)} next={next.get(card.player) ?? next.get(card.name)} />
+                <CardTile key={card.slug} card={card} index={index} stack={stacks.get(stackKey(card)) ?? 1} anchor={anchored.has(card.slug)} target={target === cardAnchor(card.player)} next={next.get(card.player) ?? next.get(card.name)} />
               ))}
             </div>
           </section>
@@ -262,10 +271,10 @@ export default function CardsView({ data, now }: { data: Sorare; now: string }) 
   );
 }
 
-function CardTile({ card, index, stack, anchor, next }: { card: CollectionCard; index: number; stack: number; anchor: boolean; next: NextGame | undefined }) {
+function CardTile({ card, index, stack, anchor, target, next }: { card: CollectionCard; index: number; stack: number; anchor: boolean; target: boolean; next: NextGame | undefined }) {
   const windows = cardWindows(card);
   return (
-    <article className="s5-pc" id={anchor ? cardAnchor(card.player) : undefined} style={{ animationDelay: `${Math.min(index * 20, 360)}ms` }}>
+    <article className={`s5-pc${anchor && target ? " is-target" : ""}`} id={anchor ? cardAnchor(card.player) : undefined} style={{ animationDelay: `${Math.min(index * 20, 360)}ms` }}>
       <span className="art">
         <CardArt src={card.pic} name={card.name} />
         {stack > 1 ? <span className="dup">×{stack}</span> : null}

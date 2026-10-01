@@ -230,3 +230,15 @@ def test_the_run_names_a_clubs_game_the_site_has_no_match_for_and_leaves_out_the
     ]
 
     assert lineups.missing(games) == ["Real Madrid - Barcelona 17 Oct", "Real Sociedad - Some Europa Club 15 Oct"]
+
+
+def test_a_player_called_up_by_his_national_team_carries_the_country_he_is_called_up_by() -> None:
+    called = dataclasses.replace(player("14021", "Job Ochieng", age=23), international=True, nationality="KE")
+    plain = dataclasses.replace(player("2", "Back One", age=29), nationality="ES")
+    from app.sorare import ff_link
+
+    def person(one: ffm.Player) -> ff_link.Person:
+        return ff_link.Person(one.ff_id, one.name, one.ff_id, one.slug, one.age, False, one, None)
+
+    assert ff_use.status(person(called)) == {"international": True, "nat": "KE"}
+    assert ff_use.status(person(plain)) is None, "his nationality alone says nothing: only a call-up does"

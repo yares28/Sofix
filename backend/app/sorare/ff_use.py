@@ -55,6 +55,8 @@ def status(person: ff_link.Person) -> dict[str, Any] | None:
                 out[key] = value
     if player and player.international:
         out["international"] = True
+        if player.nationality:  # the country he is called up by: the two letters his card's corner shows
+            out["nat"] = player.nationality
     if player and player.yellows:
         out["yellows"] = player.yellows
     return out or None

@@ -200,7 +200,10 @@ Rooms out (a Room depends on nine other managers' lineups), and never names an e
 A LaLiga round Sorare has not opened yet (LaLiga GW36 in May, say) opens as an **early plan**: a plain note says so,
 and it is built from the LaLiga calendar for your cards' games, their recent form and the competitions of the gameweek
 being planned, with one plan and no Apply button. It is a first guess: your cards as they are today, no start odds, and
-competitions Sorare may change. It moves each refresh, and Sorare's own numbers replace it when the week opens.
+competitions Sorare may change. It moves each refresh, and Sorare's own numbers replace it when the week opens. The one
+round that already has a lineup on Futbol Fantasy (each club's next LaLiga game, round 8 in the October break) uses
+Futbol Fantasy's chance to start instead of Sofix's guess, with its **FF** mark, and a player it has out or suspended is in
+no lineup. Rounds after it have no Futbol Fantasy yet and keep the guess.
 
 Every gameweek is **kept** once its scores are final (a day after it ends, and once everything it was built from could
 be read from Sorare) and stays in the picker with its replay and hindsight, however old. A week played before Sofix started

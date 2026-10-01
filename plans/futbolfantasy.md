@@ -92,7 +92,9 @@ Around that:
   squad" needs the club's match squad, which the page lists only once the club names it: not read yet.
 - **Plans, the captain and the xScore use the same number.** A plan can change when FF changes.
 - **Unchanged:**
-  - Early plans for rounds weeks away: FF only has each team's next game.
+  - Early plans for rounds weeks away: FF only has each team's next game, so those rounds stand on form. The one
+    exception is the round FF does hold (today round 8): its early plan takes FF's chance and leaves out anyone FF has
+    out or suspended (1 Oct review, R1).
   - The replay of a kept week stays built from form. What FF said at the lock is kept in `start_chances` for the Audit.
 
 ## 3 · Steps
@@ -257,6 +259,7 @@ Target: S1 to S4 before round 8's lock (Fri 9 Oct), so the numbers switch for ro
 | International break | FF already has the next LaLiga round; the gameweek's national games use Sorare, then form; /lineups and home show the LaLiga round ahead with its date |
 | A cup game Sorare does not count | Shown on /lineups only; plans follow Sorare's own game list (the existing rule) |
 | The second and third open Sorare gameweeks, and early plans for later rounds | No FF: it only has each team's next game |
+| The early plan for the round FF holds (a round before Sorare opens its gameweek, e.g. round 8 during a break) | FF's chance, with its mark and read time; anyone out or suspended is in no lineup. That plan is made again every run, as FF's lineups move; rounds after it keep form |
 | A Sorare gameweek with two LaLiga rounds | Already one week per round (since 28 Sep); FF is per match anyway |
 
 **Timing and freshness**

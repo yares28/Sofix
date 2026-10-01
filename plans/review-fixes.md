@@ -239,6 +239,13 @@ This is the largest step. Give it its own push.
     Sorare squad) and Sorare has a picture for 42 of them, while FF's own photos load for 20 of the 45 (9 of 23 and 11 of 22). The
     full-art card exists only for a card someone minted, so (A) means a card frame drawn here with Sorare's cut-out in it. It needs the
     job to keep one picture per LaLiga player (about 600) and link FF's players to them by name, as it does for your players.
+  - **Better answer (2 Oct 2026, same day, after you asked for the same cards as your own): the full card art is available too.** The
+    public listing `football.allCards(playerSlugs: [...], rarities: [limited], seasonStartYears: [2026], first: 1)` returns a minted
+    Limited card of a player whoever owns it, with the same `pictureUrl` kind as your cards (Boyé, Suárez, Ibáñez, Blanco, Pérez,
+    Castro, Koski, Sivera and Ochieng all have a 2026 Limited card, in Alavés' current kit). Nine players take one aliased query and no
+    key; the picture prints another owner's serial (such as 241/1000), too small to read at card size. So (C) is possible: Sorare's own
+    card for every player, the blue ring on yours. The job would keep one card address per LaLiga player and refresh the ones it lacks;
+    the app already serves card art through its image optimiser. A player with no card falls back to (A).
 - **4.1 · A design canvas** (`/design`, as for the overlay and the first Lineups board):
   - **One card for every player (R6, R31):**
     - (A) Sorare art for everyone, if Q6 allows it.

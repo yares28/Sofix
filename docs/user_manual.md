@@ -226,8 +226,10 @@ the page opens on the next match. Competition and round tabs appear only when th
   starting; a round mark at its corner is an injury, a doubt, a ban, or (blue) a call-up to his national team.
 - **Who else could play.** Under each line, the alternatives most likely first, with their chance. A player FF has not
   placed yet is listed apart as "Others in the squad"; those at 0% are named in one line under the injuries.
-- **Injuries and bans** are icons with FF's note in English where the pattern is known ("Doubt for round 8", "Out until
-  October"). **Your players FF does not list** are named under their club with why, and use Sorare's or Sofix's number.
+- **Injuries and bans** are icons with FF's words in English: the diagnosis ("ACL tear", "Hamstring injury", "Training
+  apart"), "since 12 Sep", and the note ("Doubt for round 8", "Available for round 8", "Out for round 8", "Out until January
+  2027"). A return date that has already gone by reads "Was due back late September", never "Out until". A diagnosis the page
+  cannot translate keeps FF's own words, in italics, with a tooltip saying so. **Your players FF does not list** are named under their club with why, and use Sorare's or Sofix's number.
 - **The small button** at the top right of a match, "Read 16:56", opens when FF was last read and when each team's lineup last
   changed; the arrow beside it opens the match on Futbol Fantasy.
 - **States.** The pill under the title says how many teams are read and when; it says when FF could not be read (the last

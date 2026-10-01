@@ -97,8 +97,8 @@ export default function LineupsView({ data, sections, section, selected, now, cl
             {selected.away.name}
           </label>
           <div className="lu-teams">
-            <TeamColumn side={selected.home} place="home" round={selected.round} cards={data.cards} look={lookOf(selected.home, clubs)} />
-            <TeamColumn side={selected.away} place="away" round={selected.round} cards={data.cards} look={lookOf(selected.away, clubs)} />
+            <TeamColumn side={selected.home} place="home" round={selected.round} cards={data.cards} look={lookOf(selected.home, clubs)} now={now} />
+            <TeamColumn side={selected.away} place="away" round={selected.round} cards={data.cards} look={lookOf(selected.away, clubs)} now={now} />
           </div>
         </fieldset>
         <Legend />

@@ -235,6 +235,12 @@ The extension does the same arithmetic for a chance it reads live: his chance of
 on in the games he does not start (`benchedOn`, published with the player): `pOn = (1 - pStart) x benchedOn`, and nothing when he
 is out. `forecast._per_game` and `extension/core.js` (`liveSplit`) both read `backend/tests/fixtures/live_start_cases.json`.
 
+The injury lines on Lineups are translated in `frontend/lib/absence.ts`: a diagnosis is a kind (rotura, lesión, molestias, sobrecarga,
+esguince, fractura, ...) plus a body part, so a new combination of known words needs no change; the notes are "Duda / Disponible / Baja
+confirmada para la jornada N" and "Baja hasta ...". A "hasta" date without a year is the first such date on or after the day he
+began missing games (April after a September injury is next April); one that is earlier than today is written "Was due back ...".
+What it cannot translate is shown as written, flagged `causeFf` / `noteFf`.
+
 A workflow (`near-lock.yml`) asks Sorare every 30 minutes when the next gameweek locks and, in the last three hours, starts the
 refresh when none started in the last 25 minutes, so the team news is read often when it counts.
 

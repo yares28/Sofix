@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  absenceText,
   chanceTone,
   crestSource,
   freshness,
@@ -240,30 +239,6 @@ describe("a player's look", () => {
   it("has the two letters of his name when a card has no picture", () => {
     expect(initialsOf("Mikel Oyarzabal")).toBe("MO");
     expect(initialsOf("Isco")).toBe("IS");
-  });
-});
-
-describe("the injury list in English", () => {
-  it("turns the site's Spanish notes into words the page can use", () => {
-    expect(absenceText({ name: "a", kind: "doubt", cause: "Molestias en los isquiotibiales", since: "Desde 12/09 (18 días)", note: "Duda para la jornada 8" })).toEqual({
-      cause: "Molestias en los isquiotibiales",
-      since: "since 12 Sep",
-      note: "Doubt for round 8",
-    });
-    expect(absenceText({ name: "a", kind: "out", note: "Baja hasta octubre" }).note).toBe("Out until October");
-    expect(absenceText({ name: "a", kind: "out", note: "Baja hasta principios de noviembre" }).note).toBe("Out until early November");
-    expect(absenceText({ name: "a", kind: "out", note: "Baja hasta mediados de diciembre" }).note).toBe("Out until mid-December");
-  });
-
-  it("leaves a note it does not know as the site wrote it", () => {
-    expect(absenceText({ name: "a", kind: "out", note: "Sin fecha de vuelta" }).note).toBe("Sin fecha de vuelta");
-    expect(absenceText({ name: "a", kind: "out" })).toEqual({});
-  });
-
-  it("says a suspended player misses the round when the site gives nothing else", () => {
-    expect(absenceText({ name: "a", kind: "suspended" }, 8).note).toBe("Misses round 8");
-    expect(absenceText({ name: "a", kind: "suspended" }, null).note).toBe("Suspended");
-    expect(absenceText({ name: "a", kind: "suspended", note: "Baja hasta octubre" }, 8).note).toBe("Out until October");
   });
 });
 

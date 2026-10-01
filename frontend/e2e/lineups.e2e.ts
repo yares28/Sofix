@@ -104,3 +104,24 @@ test("the top bar names the page", async ({ page }) => {
 
   await expect(page.locator(".nav-links").getByRole("link", { name: "Lineups" })).toHaveAttribute("aria-current", "page");
 });
+
+test("what the site writes about an injury is in English, and a return that has gone by says so", async ({ page }) => {
+  await page.goto("/lineups?m=22502");
+  const home = page.getByRole("list", { name: "Real Sociedad injuries and suspensions" });
+  const away = page.getByRole("list", { name: "Deportivo injuries and suspensions" });
+
+  await expect(home).toContainText("ACL tear");
+  await expect(home).toContainText("Hamstring discomfort");
+  await expect(home).toContainText("Straight red card");
+  await expect(home).toContainText("Out for round 8");
+  await expect(home).toContainText("Doubt for round 8");
+  await expect(home.locator("em", { hasText: /^Was due back late / })).toHaveCount(1);
+  await expect(home).not.toContainText("Out until late");
+  await expect(away).toContainText("Muscle overload");
+  await expect(away).toContainText("Available for round 8");
+  // a diagnosis nobody translated keeps the site's word, and says whose it is
+  await expect(away.locator('i[lang="es"]', { hasText: "Pubalgia" })).toHaveAttribute("title", "Futbol Fantasy's own words");
+  for (const spanish of ["Rotura", "Molestias", "Roja directa", "Sobrecarga", "Disponible", "Baja ", "Duda para", "Desde "]) {
+    await expect(page.locator("main")).not.toContainText(spanish);
+  }
+});

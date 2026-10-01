@@ -1,5 +1,5 @@
+import { absenceText } from "../../lib/absence";
 import {
-  absenceText,
   gaugeText,
   playerLabels,
   statusLine,
@@ -42,12 +42,14 @@ export default function TeamColumn({
   round,
   cards,
   look,
+  now,
 }: {
   side: LineupSide;
   place: "home" | "away";
   round: number | null;
   cards: Record<string, OwnedCard>;
   look: ClubLook | undefined;
+  now: Date;
 }) {
   const labels = playerLabels(side.rows.flatMap((row) => row.players));
   const mine = new Set(Object.keys(cards));
@@ -116,7 +118,7 @@ export default function TeamColumn({
       {side.absent.length ? (
         <ul className="lu-news" aria-label={`${side.name} injuries and suspensions`}>
           {side.absent.map((entry, index) => (
-            <News key={`${entry.name}-${index}`} entry={entry} round={round} mine={Boolean(entry.yours && cards[entry.yours])} />
+            <News key={`${entry.name}-${index}`} entry={entry} round={round} now={now} mine={Boolean(entry.yours && cards[entry.yours])} />
           ))}
         </ul>
       ) : null}
@@ -139,17 +141,28 @@ export default function TeamColumn({
   );
 }
 
-function News({ entry, round, mine }: { entry: Absent; round: number | null; mine: boolean }) {
-  const text = absenceText(entry, round);
-  const detail = [text.cause, text.since].filter(Boolean).join(" · ");
+const OWN_WORDS = "Futbol Fantasy's own words";
+
+function News({ entry, round, now, mine }: { entry: Absent; round: number | null; now: Date; mine: boolean }) {
+  const text = absenceText(entry, round, now);
   return (
     <li className="lu-new">
       <KindIcon kind={entry.kind} />
       <div>
         <b data-mine={mine ? "" : undefined}>{entry.name}</b>
-        {detail ? <span>{cap(detail)}</span> : null}
+        {text.cause || text.since ? (
+          <span>
+            {text.cause ? text.causeFf ? <i lang="es" title={OWN_WORDS}>{cap(text.cause)}</i> : cap(text.cause) : null}
+            {text.cause && text.since ? " · " : null}
+            {text.since ? (text.cause ? text.since : cap(text.since)) : null}
+          </span>
+        ) : null}
       </div>
-      {text.note ? <em data-kind={entry.kind}>{text.note}</em> : null}
+      {text.note ? (
+        <em data-kind={entry.kind} lang={text.noteFf ? "es" : undefined} title={text.noteFf ? OWN_WORDS : undefined}>
+          {text.note}
+        </em>
+      ) : null}
     </li>
   );
 }

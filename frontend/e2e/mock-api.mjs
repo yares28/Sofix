@@ -114,6 +114,19 @@ const keptWeeks = new Map(
 const lineupsFixture = JSON.parse(readFileSync(new URL("./fixtures/lineups-response.json", import.meta.url), "utf8"));
 const firstKickoff = Math.min(...lineupsFixture.data.matches.map((match) => new Date(match.kickoff).getTime()));
 const LINEUPS_SHIFT = Date.now() + 2 * 86_400_000 - firstKickoff;
+// What the site really writes beside an injury (the causes, dates and notes of its 1 Oct pages), on the Real Sociedad match, built from today's
+// date so the "return has gone by" case stays true whenever the tests run: began 60 days ago, due back by the end of the month of 45 days ago.
+function spanishInjuries(match) {
+  const ES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  const daysAgo = (days) => new Date(Date.now() - days * 86_400_000);
+  const desde = (days) => `Desde ${daysAgo(days).getDate()}/${daysAgo(days).getMonth() + 1} (${days} días)`;
+  const by = (name) => (match.home.absent.find((a) => a.name === name) ?? match.away.absent.find((a) => a.name === name));
+  Object.assign(by("Álvaro Odriozola"), { cause: "Rotura de lig. cruzado anterior", since: desde(60), note: `Baja hasta finales de ${ES[daysAgo(45).getMonth()]}` });
+  Object.assign(by("Igor Zubeldia"), { cause: "Molestias en los isquiotibiales", since: desde(12), note: "Duda para la jornada 8" });
+  Object.assign(by("Orri Steinn Óskarsson"), { cause: "Roja directa", note: "Baja confirmada para la jornada 8" });
+  Object.assign(by("Marc Casadó"), { cause: "Pubalgia" });
+  Object.assign(by("Lorenzo Amatucci"), { cause: "Sobrecarga muscular", note: "Disponible para la jornada 8" });
+}
 const lineupsPayload = (() => {
   const data = structuredClone(lineupsFixture.data);
   const ago = (hours) => new Date(Date.now() - hours * 3_600_000).toISOString();
@@ -124,6 +137,7 @@ const lineupsPayload = (() => {
     match.readAt = ago(0.1);
     for (const side of [match.home, match.away]) if (side.changedAt) side.changedAt = ago(20);
   }
+  spanishInjuries(data.matches.find((match) => match.id === 22502));
   return { success: true, data };
 })();
 

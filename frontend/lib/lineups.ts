@@ -270,61 +270,6 @@ export function initialsOf(name: string): string {
   return upper(words.length === 1 ? words[0]!.slice(0, 2) : `${words[0]!.charAt(0)}${words.at(-1)!.charAt(0)}`);
 }
 
-// --------------------------------------------------------------------------------------------- the injury list
-const SPANISH_MONTHS: Record<string, string> = {
-  enero: "January",
-  febrero: "February",
-  marzo: "March",
-  abril: "April",
-  mayo: "May",
-  junio: "June",
-  julio: "July",
-  agosto: "August",
-  septiembre: "September",
-  setiembre: "September",
-  octubre: "October",
-  noviembre: "November",
-  diciembre: "December",
-};
-
-function untilWhen(text: string): string {
-  const lower = text.trim().toLowerCase();
-  const direct = SPANISH_MONTHS[lower];
-  if (direct) return direct;
-  const partial = lower.match(/^(principios|mediados|finales) de (\w+)$/);
-  if (partial && SPANISH_MONTHS[partial[2]!]) {
-    const month = SPANISH_MONTHS[partial[2]!]!;
-    return partial[1] === "principios" ? `early ${month}` : partial[1] === "finales" ? `late ${month}` : `mid-${month}`;
-  }
-  const dated = lower.match(/^(?:el )?(\d{1,2}) de (\w+)$/);
-  if (dated && SPANISH_MONTHS[dated[2]!]) return `${Number(dated[1])} ${SPANISH_MONTHS[dated[2]!]}`;
-  return text.trim();
-}
-
-/**
- * The words the site writes beside an injury or a ban ("Desde 12/09 (18 días)", "Duda para la jornada 8", "Baja hasta
- * octubre"), in English where the pattern is known; anything else is shown as the site wrote it. The cause is its own text.
- */
-export function absenceText(
-  entry: { name: string; kind: PlayerKind; cause?: string; since?: string; note?: string },
-  round: number | null = null,
-): { cause?: string; since?: string; note?: string } {
-  const out: { cause?: string; since?: string; note?: string } = {};
-  if (entry.cause) out.cause = entry.cause;
-  if (entry.since) {
-    const date = entry.since.match(/^Desde (\d{1,2})\/(\d{1,2})/i);
-    out.since = date ? `since ${Number(date[1])} ${MONTHS[Number(date[2]) - 1] ?? date[2]}` : entry.since;
-  }
-  if (entry.note) {
-    const doubt = entry.note.match(/^Duda para la jornada (\d+)/i);
-    const until = entry.note.match(/^Baja hasta (.+)$/i);
-    out.note = doubt ? `Doubt for round ${doubt[1]}` : until ? `Out until ${untilWhen(until[1]!)}` : entry.note;
-  } else if (entry.kind === "suspended") {
-    out.note = round !== null ? `Misses round ${round}` : "Suspended";
-  }
-  return out;
-}
-
 // ----------------------------------------------------------------------------------------------- the words around
 const dayKey = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid", year: "numeric", month: "2-digit", day: "2-digit" });
 

@@ -1,3 +1,5 @@
+import { refreshesLabel, refreshesPerDay } from "../../lib/schedule";
+
 type Props = { linked: boolean; databaseLabel: string };
 
 type Node = {
@@ -109,7 +111,7 @@ export default function HowItRuns({ linked, databaseLabel }: Props) {
             <span>every service on a free plan</span>
           </div>
           <div>
-            <b>2×</b>
+            <b>{refreshesLabel(refreshesPerDay())}×</b>
             <span>board refreshes a day</span>
           </div>
           <div>

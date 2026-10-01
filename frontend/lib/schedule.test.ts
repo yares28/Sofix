@@ -1,13 +1,21 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { REFRESH_CRONS, madridClock, nextRun, parseCron, runsBetween, todaysRuns } from "./schedule";
+import { REFRESH_CRONS, madridClock, nextRun, parseCron, refreshesLabel, refreshesPerDay, runsBetween, todaysRuns } from "./schedule";
 
 describe("refresh schedule", () => {
   it("matches the crons in .github/workflows/refresh.yml", () => {
     const yml = readFileSync(join(__dirname, "..", "..", ".github", "workflows", "refresh.yml"), "utf8");
     const crons = [...yml.matchAll(/cron:\s*"([^"]+)"/g)].map((m) => m[1]);
     expect(crons).toEqual([...REFRESH_CRONS]);
+  });
+
+  it("counts the runs a day from the crons: three at the least, five on a Europe day", () => {
+    // Mon 5, Tue 5, Wed 5, Thu 5, Fri 4, Sat 3, Sun 3 (the near-lock checks, which start more before a lock, are not scheduled here)
+    expect(refreshesPerDay()).toEqual({ min: 3, max: 5 });
+    expect(refreshesPerDay(["0 7 * * *"])).toEqual({ min: 1, max: 1 });
+    expect(refreshesLabel({ min: 3, max: 5 })).toBe("3–5");
+    expect(refreshesLabel({ min: 3, max: 3 })).toBe("3");
   });
 
   it("parses minute, hour and weekday", () => {

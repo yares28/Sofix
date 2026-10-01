@@ -252,6 +252,25 @@ const DOUBLE_TIMELINE: TimelineWeek[] = [
 const doubleSorare = { timeline: DOUBLE_TIMELINE, nextId: "21", lastId: null, weeks: [week("21")] } as Sorare;
 const doubleGrid = { matchdays: DOUBLE_ROUNDS } as FixtureGrid;
 
+describe("one rule for the last day of a week", () => {
+  // Sorare's window for MD8 runs from Fri 9 Oct to Tue 13 Oct 14:00 UTC; the round's last kickoff is Mon 12 Oct 21:00 Madrid.
+  const MD8_WINDOW: TimelineWeek = { id: "21", slug: "g", number: 21, start: "2026-10-09T14:00:00Z", end: "2026-10-13T14:00:00Z", lock: "", status: "next" };
+  const weeks = seasonWeeks({ matchdays: [ROUNDS[3]!] } as FixtureGrid, { timeline: [MD8_WINDOW], nextId: "21", lastId: null, weeks: [week("21")] } as unknown as Sorare, NOW);
+
+  it("says 9–12 Oct on every page, Play included, not the 13th the Sorare window runs to", () => {
+    const md8 = weeks[0]!;
+    expect(weekDates(md8)).toBe("9–12 Oct");
+    expect(weekDates(md8, "board")).toBe("9–12 Oct");
+    expect(weekDates(md8, "play")).toBe("9–12 Oct");
+  });
+
+  it("keeps the window for a Sorare week that has no LaLiga round, where no kickoff is known", () => {
+    const only = seasonWeeks({ matchdays: [] } as unknown as FixtureGrid, { timeline: [TIMELINE[5]!], nextId: "19", lastId: null, weeks: [week("19")] } as unknown as Sorare, NOW);
+    expect(weekDates(only[0]!, "play")).toBe("2–6 Oct");
+    expect(weekDates(only[0]!)).toBe("2–6 Oct");
+  });
+});
+
 describe("one Sorare game week over two LaLiga rounds", () => {
   const weeks = seasonWeeks(doubleGrid, doubleSorare, new Date("2026-10-17T10:00:00Z"));
 
@@ -274,10 +293,12 @@ describe("one Sorare game week over two LaLiga rounds", () => {
     expect(pageWeeks(weeks, "all")).toHaveLength(2);
   });
 
-  it("writes each round's own days, and the whole game week on Play", () => {
+  it("writes each round's own days, and on Play the game week from its first day to the day of its last kickoff", () => {
     expect(weekDates(weeks[0]!)).toBe("16–18 Oct");
     expect(weekDates(weeks[1]!)).toBe("20–21 Oct");
-    expect(weekDates(weeks[0]!, "play")).toBe("16–22 Oct");
+    // The window runs on to 22 Oct, but the last game of the second round is on the 21st: a week is named by its last kickoff.
+    expect(weekDates(weeks[0]!, "play")).toBe("16–21 Oct");
+    expect(weekDates(weeks[1]!, "play")).toBe("16–21 Oct");
   });
 });
 

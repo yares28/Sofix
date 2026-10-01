@@ -36,6 +36,7 @@ export default function PlayView({
   after,
   now,
   weekId,
+  dates,
 }: {
   data: Sorare;
   week: GameweekPlan;
@@ -44,6 +45,8 @@ export default function PlayView({
   now: Date;
   /** The week in the address (`?w=`), which the page's own links keep: it names every kind of week, early ones too. */
   weekId?: string;
+  /** The days of the week as the picker writes them (`weekDates`), so the header and the picker never disagree. */
+  dates?: string | null;
 }) {
   const id = week.gameweek.id;
   const plans = plansOf(week, after);
@@ -64,7 +67,7 @@ export default function PlayView({
   const sync = after || week.projected ? null : syncState(data, week, now);
   return (
     <main className="pl-main">
-      <Head data={data} week={week} after={after} href={href} now={now} sync={sync} />
+      <Head data={data} week={week} after={after} href={href} now={now} sync={sync} dates={dates ?? null} />
       {sync?.alert ? (
         <div className={`pl-alert ${sync.state}`} role="status">
           <span aria-hidden="true">{sync.state === "cloudless" ? "!" : "⟳"}</span>
@@ -120,6 +123,7 @@ function Head({
   href,
   now,
   sync,
+  dates,
 }: {
   data: Sorare;
   week: GameweekPlan;
@@ -127,6 +131,7 @@ function Head({
   href: (options: { gw?: string; plan?: number; after?: boolean }) => string;
   now: Date;
   sync: ReturnType<typeof syncState>;
+  dates: string | null;
 }) {
   const { lock, start, end } = week.gameweek;
   const locked = new Date(lock) <= now;
@@ -147,7 +152,7 @@ function Head({
         <h1>{week.projected ? week.gameweek.name : `Gameweek ${week.gameweek.number}`}</h1>
         <p className="pl-sub">
           <span>
-            {weekday(start)} {span(start, end)}
+            {weekday(start)} {dates ?? span(start, end)}
           </span>
           <span className="dot" />
           <span>

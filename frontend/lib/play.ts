@@ -400,6 +400,11 @@ export function timeUntil(when: string, now: Date): { days: number; hours: numbe
   };
 }
 
+/** How long is left, in the words a chip uses: "2 d 7 h", "6 h" or "40 min". */
+export function spanLabel(left: { days: number; hours: number; minutes: number }): string {
+  return left.days ? `${left.days} d ${left.hours} h` : left.hours ? `${left.hours} h` : `${left.minutes} min`;
+}
+
 /** A percentage the way the board writes it: ">99%", "<1%", "43%". */
 export function chanceLabel(p: number): string {
   if (p >= 0.995) return ">99%";
@@ -497,6 +502,16 @@ export function nextWeek(data: Sorare): GameweekPlan {
 /** The last gameweek that was played, when the payload still carries its replay. */
 export function lastWeek(data: Sorare): GameweekPlan | null {
   return data.lastId ? weekPlan(data, data.lastId) : null;
+}
+
+/** The gameweek being played right now: its games are on, so it is not yet the last one and its scores are still coming in. */
+export function scoringWeek(data: Sorare): TimelineWeek | null {
+  return data.timeline.find((week) => week.status === "live") ?? null;
+}
+
+/** What the Last gameweek tile says beside the week it compares: that another one is still being scored, when one is. */
+export function lastMeta(week: GameweekPlan, scoring: { number: number } | null): string {
+  return scoring ? `GW${week.gameweek.number} · GW${scoring.number} still scoring` : `GW${week.gameweek.number} · predicted vs actual`;
 }
 
 export function weekPlan(data: Sorare, id: string): GameweekPlan | null {

@@ -61,7 +61,8 @@ Under the strip:
   and where the next club games are, with how many of your players are in them; in a week of club games, that FF publishes each
   club's next game about a day after its last one.
 - **Play** summarizes the published Sorare plan, estimated chance of any reward, expected essence/cash and time to lock.
-- **Last gameweek** compares pre-lock predictions with the owner's submitted-lineup actuals when scores exist.
+- **Last gameweek** compares pre-lock predictions with the owner's submitted-lineup actuals when scores exist. It is the last
+  gameweek that has finished; when another is being played its number follows ("GW17 · GW18 still scoring").
 - **My cards** shows usable cards, rarity/position shape and the most important constraint.
 
 Every large card is a link to the detailed page. A missing data block should say why—no fixtures, waiting for Sorare,
@@ -164,7 +165,8 @@ which extension/session prerequisite is missing. Lineups from another GW are nev
 
 Once Sorare has scored a lineup, its row shows the **score** (large), then **where it ranked and what it was paid**
 ("Rank 1,204 · $2.50 · 250 essence", or "no reward paid" once it is ranked and nothing was), and each card carries its
-own score with a **C** on the captain. While the games are still being played it says "Still scoring". This needs the
+own score with a **C** on the captain. Before the lock the row says "Locks in 1 d 3 h" instead of a 0, between the lock and the
+first game it says "Not started", and once the games are on and it has no rank yet it says "Still scoring". This needs the
 extension at version 0.2.2 or later (reload it in `chrome://extensions`); an older one still shows the lineups, without
 their results. Essence counts Limited essence only, as the plans do.
 
@@ -304,7 +306,9 @@ Control is the operational truth for the owner:
 - extension and GitHub setup instructions when a piece is missing;
 - a diagram of the always-on cloud path.
 
-The scheduled times are 07:17 and 22:43 UTC daily, plus Tuesday 13:23 and Friday 17:23 UTC. The UI converts them to
+The scheduled times are 07:17, 12:07 and 22:43 UTC daily, plus the two-hours-before-the-lock runs on Monday to Thursday (13:37 and
+15:07 UTC; Tuesday only 15:07), Tuesday 13:23 and Friday 17:23 UTC: three a day at the least and five on a Europe day, which is
+the "3–5×" the page shows (read from the schedule itself, `lib/schedule.ts`). The UI converts them to
 Madrid time, so the local hour moves at daylight-saving changes. Manual refresh has a ten-minute cooldown and cannot
 run alongside another refresh. It does not apply migrations.
 

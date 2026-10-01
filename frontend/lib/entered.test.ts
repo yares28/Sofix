@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { readWeekLineups, resultLine, runWeekLineups } from "./entered";
+import { pendingLine, readWeekLineups, resultLine, runWeekLineups, type GameweekLineup } from "./entered";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -14,6 +14,44 @@ describe("how a lineup's result reads", () => {
   it("says nothing was paid once it is ranked, and that it is still scoring before that", () => {
     expect(resultLine({ score: 210, rank: 90_000, cash: 0, essence: 0, card: false })).toBe("Rank 90,000 · no reward paid");
     expect(resultLine({ score: 120, rank: null, cash: 0, essence: 0, card: false })).toBe("Still scoring");
+  });
+});
+
+describe("what a lineup says before its games", () => {
+  const LOCK = "2026-10-02T14:00:00Z"; // Fri 2 Oct 16:00 in Madrid
+  const lineup = (result: GameweekLineup["result"], scores: (number | null)[] = [0, 0], draft = false): GameweekLineup => ({
+    id: "l",
+    name: null,
+    draft,
+    confirmable: false,
+    board: null,
+    competition: "Limited Cap 120",
+    result,
+    cards: scores.map((score, index) => ({ slug: `c${index}`, name: `C${index}`, picture: null, rarity: "limited", score, captain: false })),
+  });
+  const zero = { score: 0, rank: null, cash: 0, essence: 0, card: false };
+
+  it("counts down to the lock instead of saying it is still scoring", () => {
+    expect(pendingLine(lineup(zero), LOCK, new Date("2026-09-30T10:57:00Z"))).toBe("Locks in 2 d 3 h");
+    expect(pendingLine(lineup(zero), LOCK, new Date("2026-10-02T09:00:00Z"))).toBe("Locks in 5 h");
+    expect(pendingLine(lineup(zero), LOCK, new Date("2026-10-02T13:20:00Z"))).toBe("Locks in 40 min");
+  });
+
+  it("says not started between the lock and the first game", () => {
+    expect(pendingLine(lineup(zero), LOCK, new Date("2026-10-02T14:05:00Z"))).toBe("Not started");
+  });
+
+  it("says nothing once a card has scored, and for a draft", () => {
+    const after = new Date("2026-10-02T20:00:00Z");
+    expect(pendingLine(lineup({ ...zero, score: 31 }, [31, 0]), LOCK, after)).toBeNull();
+    expect(pendingLine(lineup({ ...zero, score: 0 }, [0, 12]), LOCK, after)).toBeNull();
+    expect(pendingLine(lineup({ score: 300, rank: 40, cash: 0, essence: 0, card: false }, [60, 80]), LOCK, after)).toBeNull();
+    expect(pendingLine(lineup(null, [null], true), LOCK, new Date("2026-09-30T10:00:00Z"))).toBeNull();
+  });
+
+  it("does not know the lock of a week it was not told it for, so it only says not started when nothing has scored", () => {
+    expect(pendingLine(lineup(zero), undefined, new Date("2026-10-02T14:05:00Z"))).toBe("Not started");
+    expect(pendingLine(lineup({ ...zero, score: 20 }, [20, 0]), undefined, new Date("2026-10-02T14:05:00Z"))).toBeNull();
   });
 });
 

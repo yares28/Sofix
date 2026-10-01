@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { EXTENSION_ID, extensionAtLeast, pingExtension } from "./extension";
-import { cashLabel, essenceLabel } from "./play";
+import { cashLabel, essenceLabel, spanLabel, timeUntil } from "./play";
 
 export type EnteredCard = {
   slug: string;
@@ -146,6 +146,18 @@ export function readWeekLineups(response: unknown): WeekLineupsAnswer {
       }),
     })),
   };
+}
+
+/**
+ * What a lineup says while there is nothing to score yet: "Locks in 2 d 3 h" before the lock (the 0 under every card is not a
+ * result), "Not started" after the lock until a card has scored. Null once a card has scored, and for a draft.
+ */
+export function pendingLine(lineup: GameweekLineup, lock: string | undefined, now: Date): string | null {
+  if (lineup.draft) return null;
+  const left = lock ? timeUntil(lock, now) : null;
+  if (left && !left.past) return `Locks in ${spanLabel(left)}`;
+  const scored = (lineup.result?.score ?? 0) > 0 || lineup.cards.some((card) => (card.score ?? 0) > 0) || (lineup.result?.rank ?? null) !== null;
+  return scored ? null : "Not started";
 }
 
 /** "Rank 1,204 · $2.50 · 250 essence · a card": where it ranked and what it was paid. Before it has a rank, it is still scoring. */

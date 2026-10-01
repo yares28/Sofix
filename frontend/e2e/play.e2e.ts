@@ -49,12 +49,13 @@ const gameweek = async (request: APIRequestContext, id: string) => (await playWe
 
 /**
  * The Sofix extension as Sorare answers through it: one entered lineup, with what it scored, where it ranked and
- * what it was paid, for exactly these gameweeks. Any other gameweek has no lineups.
+ * what it was paid, for exactly these gameweeks. Any other gameweek has no lineups. `unscored` is the same lineup before any game: score 0
+ * everywhere and no rank yet.
  */
-async function fakeExtension(page: Page, fixtureSlugs: string[]) {
+async function fakeExtension(page: Page, fixtureSlugs: string[], unscored = false) {
   const cards = sorare.collection!.slice(0, 7);
   await page.addInitScript(
-    ({ fixtureSlugs, cards }) => {
+    ({ fixtureSlugs, cards, unscored }) => {
       const root = globalThis as typeof globalThis & {
         chrome?: { runtime?: { sendMessage?: (id: string, message: Record<string, unknown>, reply: (value: unknown) => void) => void } };
       };
@@ -82,10 +83,12 @@ async function fakeExtension(page: Page, fixtureSlugs: string[]) {
                         so5Rankings: [
                           {
                             id: "rank-1",
-                            ranking: 1204,
-                            score: 313.4,
+                            ranking: unscored ? null : 1204,
+                            score: unscored ? 0 : 313.4,
                             so5Leaderboard: { slug: "laliga-limited" },
-                            so5Rewards: [
+                            so5Rewards: unscored
+                              ? []
+                              : [
                               {
                                 rewardConfigs: [
                                   { __typename: "MonetaryRewardConfig", amount: { usdCents: 250 } },
@@ -100,7 +103,7 @@ async function fakeExtension(page: Page, fixtureSlugs: string[]) {
                           pictureUrl: card.pic,
                           player: { displayName: card.name },
                           rarity: card.rarity,
-                          score: 40 + index,
+                          score: unscored ? 0 : 40 + index,
                           captain: index === 0,
                         })),
                       },
@@ -112,7 +115,7 @@ async function fakeExtension(page: Page, fixtureSlugs: string[]) {
         });
       };
     },
-    { fixtureSlugs, cards },
+    { fixtureSlugs, cards, unscored },
   );
 }
 
@@ -576,4 +579,29 @@ test("Apply opens on the first step and does nothing until it is pressed", async
 
   await sheet.getByRole("button", { name: "Close" }).click();
   await expect(sheet).toBeHidden();
+});
+
+test("the days in Play's header are the ones the week picker shows, for a planned week and an early one", async ({ page, request }) => {
+  const header = page.locator(".pl-head .pl-sub span").first();
+  const dates = async () => (await page.locator(".wk-trigger .wk-when").innerText()).trim();
+
+  await page.goto("/play");
+  await expect(header).toContainText(await dates());
+
+  const early = (await playWeeks(request)).find((week) => !week.gw && week.early);
+  expect(early, "the mock serves an early plan").toBeTruthy();
+  await page.goto(`/play?w=${early!.id}`);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("LaLiga GW");
+  await expect(header).toContainText(await dates());
+});
+
+test("a lineup entered for a week that has not locked says when it locks, not that it is still scoring", async ({ page }) => {
+  await fakeExtension(page, [planned.gameweek.slug], true);
+  await page.goto("/play");
+  const lineup = page.getByRole("region", { name: "Your Sorare lineups" }).locator(".pl-entered-lineup");
+
+  await expect(lineup.locator(".pl-entered-result small")).toHaveText(/^Locks in (\d+ d \d+ h|\d+ h|\d+ min)$/);
+  await expect(lineup.locator(".pl-entered-result b")).toHaveText("–");
+  await expect(lineup.locator(".pl-entered-card .sc")).toHaveCount(0);
+  await expect(lineup).not.toContainText("Still scoring");
 });

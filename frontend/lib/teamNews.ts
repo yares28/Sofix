@@ -4,7 +4,7 @@
  */
 import { NATIONAL_COMPETITION } from "./home";
 import type { LineupsGlance } from "./lineups";
-import { timeUntil, type NewsGame, type NewsMove, type TeamNews } from "./play";
+import { spanLabel, timeUntil, type NewsGame, type NewsMove, type TeamNews } from "./play";
 
 type Split = TeamNews["split"];
 export type Band = keyof Split;
@@ -50,8 +50,7 @@ export function movedWhy(move: Pick<NewsMove, "kind" | "game">): string {
 export function lockChip(lock: string, now: Date): string {
   const left = timeUntil(lock, now);
   if (left.past) return "Locked";
-  const span = left.days ? `${left.days} d ${left.hours} h` : left.hours ? `${left.hours} h` : `${left.minutes} min`;
-  return `Locks ${weekday(lock)} ${clock(lock)} · in ${span}`;
+  return `Locks ${weekday(lock)} ${clock(lock)} · in ${spanLabel(left)}`;
 }
 
 /** What a comparison is against: yesterday's reading, or the day and time of an older one. */

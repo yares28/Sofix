@@ -1,5 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { lastMeta, lastWeek, nextWeek, scoringWeek, type Sorare } from "../lib/play";
+import { noun } from "../lib/words";
 import { offline, resetBackend } from "./helpers";
 
 // The Home's team news under Sorare (`teamNews` of the gameweek being planned, served by the mock API): how the owner's players
@@ -83,4 +85,16 @@ test.describe("while Futbol Fantasy has told nothing about the week", () => {
     await expect(news.getByRole("status")).toContainText("about a day after its last one");
     await expect(news).not.toContainText("national-team games");
   });
+});
+
+test("the home counts lineups in the singular and says which week is still being scored beside the last one", async ({ page, request }) => {
+  const served = (await (await request.get("http://127.0.0.1:8765/api/sorare")).json()) as { data: Sorare };
+  const week = nextWeek(served.data);
+  const last = lastWeek(served.data);
+  const scoring = scoringWeek(served.data);
+  await page.goto("/");
+
+  const play = page.locator("section:has(#hm-play)");
+  await expect(play).toContainText(`${week.plans[0]!.lineups.length} ${noun(week.plans[0]!.lineups.length, "lineup")}`);
+  if (last?.plans.length) await expect(page.locator("section:has(#hm-last)")).toContainText(lastMeta(last, scoring));
 });

@@ -341,6 +341,7 @@ test("the Fixtures tab lists the selected gameweek, results included", async ({ 
   await expect(page).toHaveURL(/\/fixtures$/); // the tab is the path; switching it doesn't reload
   await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${openingMatchday} fixtures` })).toBeVisible();
   await expect(page.locator(".fixture-row")).toHaveCount(gameweekMatches(grid, column(openingMatchday)).matches.length);
+  await expect(page.locator("#fixtures-title").locator("xpath=..")).toContainText(/\d+ matches? · Madrid time/); // kickoffs carry their time zone
   await expect(page.locator(".bento")).toHaveCount(0);
   await expect(page.locator(".board")).toHaveCount(0);
 
@@ -511,7 +512,7 @@ test("the status pill opens the Control Center: status, install with a QR code, 
 test("home: the gameweek, its hero number, the three board tiles and the Sorare row", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" }); // tiles fade in; scan the colours they settle on
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1, name: `Gameweek ${openingMatchday}` })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: `LaLiga round ${openingMatchday}` })).toBeVisible();
   await expect(page.locator(".hm-count")).toContainText(/to kickoff|games played/);
   for (const title of ["Fixtures", "Difficulty", "Table", "Sorare", "Play", "Last gameweek", "My cards"]) {
     await expect(page.getByRole("heading", { level: 2, name: title, exact: true })).toBeVisible();
@@ -551,19 +552,19 @@ test("home: the week in the bar moves to a played gameweek and every tile follow
   await picker.getByRole("button", { expanded: false }).click();
   await picker.getByRole("button", { name: "Sep", exact: true }).click();
   // The name starts with the LaLiga round. A later "Sorare GW7" on another row must not match.
-  await picker.getByRole("radio", { name: new RegExp(`^GW${past}\\b`) }).click();
+  await picker.getByRole("radio", { name: new RegExp(`^LaLiga round ${past}\\b`) }).click();
   await expect(page).toHaveURL(/\?w=/);
-  await expect(page.getByRole("heading", { level: 1, name: `Gameweek ${past}` })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: `LaLiga round ${past}` })).toBeVisible();
   await expect(page.locator(".hm-count")).toContainText(/shocks?/);
   await expect(page.locator(".hm-fixtures .hm-fx-t").first()).toHaveText("FT");
   await expect(page.locator(".hm-table .hm-meta")).toHaveText(`after GW${past}`);
 
   await picker.getByRole("button", { expanded: false }).click();
-  await picker.getByRole("radio", { name: new RegExp(String.raw`^GW${past + 1}\b`) }).click();
-  await expect(page.getByRole("heading", { level: 1, name: `Gameweek ${past + 1}` })).toBeVisible();
+  await picker.getByRole("radio", { name: new RegExp(String.raw`^LaLiga round ${past + 1}\b`) }).click();
+  await expect(page.getByRole("heading", { level: 1, name: `LaLiga round ${past + 1}` })).toBeVisible();
   // The bar has to show the round that was picked before the tiles are asked to follow it: one Sorare
   // game week can hold two LaLiga rounds, and each is its own week (lib/weeks.ts).
-  await expect(picker.getByRole("button", { expanded: false })).toContainText(`GW${past + 1}`);
+  await expect(picker.getByRole("button", { expanded: false })).toContainText(`LaLiga round ${past + 1}`);
   await page.getByRole("link", { name: "Fixtures", exact: true }).last().click();
   await expect(page).toHaveURL(new RegExp(`/fixtures\\?gw=${past + 1}$`), { timeout: 30_000 });
   await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${past + 1} fixtures` })).toBeVisible();
@@ -583,7 +584,7 @@ test("home: a Sorare-only week says LaLiga is away and identifies each player's 
 test("home: a gameweek the season doesn't have goes back to the home page", async ({ page }) => {
   await page.goto("/?gw=99");
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole("heading", { level: 1, name: `Gameweek ${openingMatchday}` })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: `LaLiga round ${openingMatchday}` })).toBeVisible();
 });
 
 test("the top bar's links follow the board's own tab switches", async ({ page }) => {

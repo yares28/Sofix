@@ -12,6 +12,7 @@
 
 import type { FixtureGrid, GridMatchday } from "./types";
 import type { GameweekPlan, ProjectedHead, Sorare } from "./play";
+import { nationalWeek } from "./teamNews";
 
 export type WeekState = "done" | "live" | "next" | "later";
 
@@ -50,6 +51,8 @@ export type Week = {
   early: boolean;
   /** Some of its lineups are for competitions Sorare has not opened yet, copied from a finished week. */
   expected: boolean;
+  /** Its games are national teams' (an international break): no LaLiga round, and nothing for Futbol Fantasy to say. */
+  national: boolean;
 };
 
 // en-GB writes "Sept"; the app writes three letters everywhere else, so the months are spelled here.
@@ -87,8 +90,8 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
       // Not on the page: a week the job kept apart still has its headline in the timeline. Only such a week: the
       // numbers an older timeline carries for any other belong to a replay nobody kept.
       const item = timeline.find((entry) => entry.id === id);
-      if (item?.kept !== true) return { cards: 0, plans: 0, essence: null, replay: null, source: null, kept: false, early: false, expected: false };
-      return { cards: item.playing ?? 0, plans: 0, essence: null, replay: item.won ?? null, source: null, kept: true, early: false, expected: false };
+      if (item?.kept !== true) return { cards: 0, plans: 0, essence: null, replay: null, source: null, kept: false, early: false, expected: false, national: false };
+      return { cards: item.playing ?? 0, plans: 0, essence: null, replay: item.won ?? null, source: null, kept: true, early: false, expected: false, national: false };
     }
     const best = week.plans[0];
     return {
@@ -100,6 +103,7 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
       kept: true,
       early: false,
       expected: week.playable.some((option) => option.expected === true),
+      national: nationalWeek(week),
     };
   };
 
@@ -126,7 +130,7 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
       finished: Boolean(round.finished),
       gw: week?.id ?? null,
       number: week?.number ?? null,
-      ...({ cards: 0, plans: 0, essence: null, replay: null, source: null, kept: false, early: false, expected: false } as Partial<Week>),
+      ...({ cards: 0, plans: 0, essence: null, replay: null, source: null, kept: false, early: false, expected: false, national: false } as Partial<Week>),
       // A round with no Sorare gameweek yet may still have an early plan; a round inside one has the real plan.
       ...(week ? fromSorare(week.id) : earlyOf(early.get(round.number))),
     } as Week);
@@ -153,6 +157,7 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
       kept: false,
       early: false,
       expected: false,
+      national: false,
       ...fromSorare(item.id),
     } as Week);
   }
@@ -230,6 +235,21 @@ export function byMonth(weeks: Week[]): { key: string; label: string; weeks: Wee
   return [...months].map(([key, list]) => ({ key, label: MONTHS[Number(key.slice(5, 7)) - 1]!, weeks: list }));
 }
 
+/** Sorare's half of a week's name: "Sorare GW21", "Sorare GW19 · national teams", or "Sorare not open" before it opens the week. */
+export function sorareName(week: Pick<Week, "gw" | "number" | "national">): string {
+  if (week.gw === null) return "Sorare not open";
+  return week.national ? `Sorare GW${week.number} · national teams` : `Sorare GW${week.number}`;
+}
+
+/**
+ * What a week is called, the same on every page: "LaLiga round 8 · Sorare GW21", "LaLiga round 9 · Sorare not open", and for a
+ * week with no LaLiga round "Sorare GW19 · national teams". The two leagues count their weeks differently (LaLiga's round 8 is
+ * Sorare's GW21), so a week always names both.
+ */
+export function weekName(week: Pick<Week, "md" | "gw" | "number" | "national">): string {
+  return week.md === null ? sorareName(week) : `LaLiga round ${week.md} · ${sorareName({ ...week, national: false })}`;
+}
+
 /** The dates a week covers, the way the app writes them: "25–29 Sep", "29 Sep – 2 Oct", "3 Jan". */
 export function weekDates(week: Week, page: Page = "all"): string {
   const window = weekWindow(week, page);
@@ -247,17 +267,20 @@ export function dayName(iso: string): string {
   return `${weekday.format(new Date(iso))} ${day} ${month}`;
 }
 
-/** What the week is worth, for the right-hand column of the picker. */
+/**
+ * What the right-hand column of the picker says: always a number with what it counts, or a word for the kind of week —
+ * "≈9 essence · 3 plans", "250 essence · our plan's replay", "early plan", "2 cards play" — never a bare figure.
+ */
 export function weekValue(week: Week): { value: string; note: string } {
   const tag = week.expected ? " · expected" : "";
   // A plan built from form is a guess at a lineup, not at a reward: the honest headline is who actually plays.
   if (week.essence !== null && week.plans && week.source !== "form") {
-    return { value: `≈${Math.round(week.essence)}`, note: `${week.plans} plan${week.plans === 1 ? "" : "s"}${tag}` };
+    return { value: `≈${Math.round(week.essence)} essence`, note: `${week.plans} plan${week.plans === 1 ? "" : "s"}${tag}` };
   }
-  if (week.replay !== null) return { value: String(Math.round(week.replay)), note: "our plan's replay" };
+  if (week.replay !== null) return { value: `${Math.round(week.replay)} essence`, note: "our plan's replay" };
   if (week.state === "live") return { value: "live", note: "locked" };
-  if (week.early) return week.cards ? { value: String(week.cards), note: `early plan${tag}` } : { value: "—", note: "no cards play" };
-  if (week.cards) return { value: String(week.cards), note: week.cards === 1 ? "card plays" : "cards play" };
+  if (week.early) return week.cards ? { value: "early plan", note: week.expected ? "expected" : "" } : { value: "—", note: "no cards play" };
+  if (week.cards) return { value: week.cards === 1 ? "1 card plays" : `${week.cards} cards play`, note: "" };
   // A finished week the job holds nothing for was played before Sofix kept weeks: not one where no cards played.
   if (week.gw && week.state === "done" && !week.kept) return { value: "—", note: "not recorded" };
   if (week.gw) return { value: "—", note: "no cards play" };
@@ -272,10 +295,10 @@ export function weekValue(week: Week): { value: string; note: string } {
  * further off than the next three Sorare gameweeks, which are the ones Sofix plans.
  */
 export function noPlan(
-  week: Pick<Week, "gw" | "md" | "number" | "state" | "kept"> | null,
+  week: Pick<Week, "gw" | "md" | "number" | "state" | "kept"> & { national?: boolean } | null,
   item: { slug: string; number: number } | undefined,
 ): { heading: string; says: string; lineups: { slug: string; number: number } | null } {
-  const heading = week?.gw ? `Gameweek ${week.number}` : week?.md ? `LaLiga GW${week.md}` : "Play";
+  const heading = week && (week.gw || week.md) ? weekName({ national: false, ...week }) : "Play";
   if (!week) return { heading, says: "Your Sorare gameweek appears after the next refresh.", lineups: null };
   if (!week.gw) {
     return { heading, says: "Sorare hasn't opened this week. It opens about a week before the games.", lineups: null };

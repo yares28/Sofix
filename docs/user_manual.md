@@ -18,6 +18,16 @@ The week control on the right is app-wide:
 - the target icon returns to the current week;
 - the round status dot distinguishes LaLiga from Sorare-only weeks.
 
+A week has one name on every page, in the bar, in the Play title and on Lineups and Home, because the two leagues count their
+weeks differently (LaLiga's round 8 is Sorare's GW21): **LaLiga round 8 · Sorare GW21**; before Sorare opens the week
+**LaLiga round 9 · Sorare not open**; an international break has no LaLiga round, **Sorare GW19 · national teams**.
+
+In the picker each week's chip says how many of your cards play ("88 playable"), and the column on its right always says what its number
+is: "≈9 essence · 3 plans", "250 essence · our plan's replay", "early plan" ("· expected" when its competitions are), "2 cards play".
+
+How fresh something is reads the same everywhere (Home, Play, Lineups, Control, the status pill, the sorare.com overlay): how long
+ago and the time it was made in Madrid, **9 h ago (03:33)**; once it is over a day old the day is added, **2 days ago (Tue 03:33)**.
+
 Each page lists the weeks it can show: the LaLiga pages list LaLiga rounds; **Play** lists every Sorare gameweek
 once (one that covers a weekend and a midweek round is one row), plus every LaLiga week still to come that Sorare
 hasn't opened yet, marked **Sorare opens later**, or **early plan** when the job has planned it. A week with nothing to
@@ -229,12 +239,14 @@ nothing left to plan; one further off than the next three Sorare gameweeks gets 
 ## 7a. Lineups — who starts
 
 Futbol Fantasy's probable elevens for every match it has published (FF covers each team's next game only, so the page is not
-tied to the week in the top bar). One bar holds the round's matches, with how many of your players are in each (the blue dot);
+tied to the week in the top bar). One bar holds the round's matches, each tab saying "3 yours · 0 starting" (how many of your players the match names, and how many are in the probable
+eleven; the legend says so too);
 the page opens on the next match. Competition and round tabs appear only when the page holds more than one.
 
 The header names what the page is: "LaLiga round 8 · Fri 9 – Mon 12 Oct · Sorare: not open yet" (the days are the first and last
 kickoff, Madrid time), and once Sorare opens the week it feeds, "Sorare GW21 · locks Fri 16:00". The Sorare part links to Play for
-that week. Arriving with a week that FF does not cover (a past round, a later one, or a national-team week) adds one line:
+that week. Under it, "Probable elevens from Futbol Fantasy · kickoffs in Madrid time"; the Fixtures list says "Madrid time" beside its match count
+for the same reason. Arriving with a week that FF does not cover (a past round, a later one, or a national-team week) adds one line:
 "Futbol Fantasy only has each club's next LaLiga game: round 8. GW19 is national-team games." A match address that is no longer on
 FF says so above the next match.
 
@@ -243,7 +255,9 @@ FF says so above the next match.
   starting; a round mark at its corner is an injury, a doubt, a ban, or (blue) a call-up to his national team. A call-up is only shown
   once his club has named its match squad on FF; until then the team carries "Squad list not out" and no call-up mark, so the
   page never says both.
-- **Who else could play.** Under each line, the alternatives most likely first, with their chance. A player FF has not
+- **Who else could play.** Under each line, the alternatives most likely first, with their chance. A player is written the same short way
+  on his card and on a chip (his surname, with an initial where two of a side share it), and his full name shows on hover. The % badge
+  sits under a card, never over the name Sorare prints on your own cards. A player FF has not
   placed yet is listed apart as "Others in the squad"; those at 0% are named in one line under the injuries.
 - **Injuries and bans** are icons with FF's words in English: the diagnosis ("ACL tear", "Hamstring injury", "Training
   apart"), "since 12 Sep", and the note ("Doubt for round 8", "Available for round 8", "Out for round 8", "Out until January

@@ -248,7 +248,39 @@ This is the largest step. Give it its own push.
 
 ## Results
 
-_(none yet)_
+### Batch 1 · 1 Oct 2026 · **pass**, with three corrections found on production and made
+
+Merged as #10 (1.1–1.6), #11 (1.7) and #12 (a correction to 1.7); two refreshes run by hand on `main` (#37, #38) so the backend steps
+could be read; Vercel was live within about a minute of each merge. Checked in your Chrome on https://sofix-yares.vercel.app.
+
+| Step | Result | What was seen |
+|---|---|---|
+| 1.1 R1 | pass | GW21 (round 8, which Sorare opened after the review) takes Futbol Fantasy's chance: 51 FF marks against 4 SF in its lineups. Miguel Román is in none of its 9 lineups. LaLiga GW9 and GW10 keep SF, as intended. |
+| 1.2 R2 | pass after a fix | Home first showed the club-week wording: GW19 holds 15 national-team games **and** 4 of other leagues (Segunda, Argentina), so "every game national" was false. Now: no LaLiga game and national games the bulk. It reads "GW19 is national-team games. Futbol Fantasy covers LaLiga only. Round 8's lineups are on Lineups (75 of your players)." |
+| 1.3 R7 | pass | No Spanish word in any injury list of the ten matches (all causes, notes and dates read). "Was due back late September", "Out until January 2027", "Out until November–December" all seen. |
+| 1.4 R8 | pass | 10 of 10 matches say "Squad list not out" and none shows a call-up mark. |
+| 1.5 R9–R12, R14 | pass | "1 lineup"; entered lineup "Locks in 1 d 0 h" with a dash for its score; "Sorare GW17 · GW18 still scoring"; Control "3–5× board refreshes a day"; Play's header "Fri 9–12 Oct" equals the picker's "9–12 Oct". |
+| 1.6 R4, R5 | pass | Header "LaLiga round 8 · Fri 9 – Mon 12 Oct · Sorare GW21 · locks Fri 16:00" (it read "Sorare: not open yet" before GW21 opened), linked to Play. A past week, a later week, a national-team week and an unknown `?m=` each get their one line; the round's own week gets none. |
+| 1.7 R3 | pass after a fix | LaLiga GW9 and GW10 early plans have LaLiga lineups marked "Expected · Sorare has not opened it yet", a 47% reward chance against GW15's cut-off of 313, no Apply, picker "early plan · expected". GW21 first showed All Star lineups only: it was judged by the week being planned (a break) whose reference week had no LaLiga cut-off; #12 fixes that, and after refresh #38 it has LaLiga, All Star and Champion lineups, official, sharing the cards. |
+
+**The rule for "enough LaLiga games", measured** (Sorare's API, read-only, gameweeks 1–21 of 2026/27, 22 calls): LaLiga's own competitions
+(LALIGA EA SPORTS, Under 23, All Star with LaLiga in it) were opened in all 11 gameweeks that held a LaLiga game, even one (week 10), and in
+none of the 10 that held none (weeks 1–4, 12, 16–20). The Champion league (top five leagues) was opened in all 8 gameweeks with 5 or more LaLiga
+games and in none of the 3 with fewer (weeks 6, 8, 10: 2, 4 and 1 games). So the rule is **at least one LaLiga game** for LaLiga's
+competitions, and **five or more** for Champion, a little looser than the plan guessed ("a full set of games"). Each kind of week copies the
+latest finished week of its kind (`backend/app/sorare/expected.py`).
+
+**What FF's call-up mark means** (1.4): `data-internacional="1"` on a shirt, 14 of 54 players on the Real Sociedad–Deportivo page of 30 Sep
+(Guedes, Portuguese and not called up, is not flagged): a **national-team call-up**, a different list from the club's match squad. It is
+hidden until the club's squad list is out, as decided.
+
+**Not checked on production:** phone width (Chrome cannot be made narrower than its window here; the mobile e2e project, 129 tests with the
+desktop ones, and `npm run design` passed locally); G1 on the sorare.com overlay (it needs a sorare.com page; Play and Lineups agree for 12
+round-8 players: Ryan 95, Güler 70, Vicente 80, Oblak 95, Alonso 80, Olasagasti 90, Diomande 50, de Haas 70, Soria 95, Saliba 60, Akhomach 70,
+Valera 80); the overlay still shows FF's Spanish diagnosis when a status has no "since" date (`extension/core.js`, step 3.5).
+
+Goals after batch 1: **G1** holds between Play and Lineups; **G6** holds (GW21 has official LaLiga lineups, GW9 and GW10 expected ones);
+**G3** holds on Lineups; G2, G4, G5 and G7's browser part follow in the next batches.
 
 ## To start a run
 

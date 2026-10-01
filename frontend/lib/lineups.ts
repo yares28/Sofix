@@ -3,6 +3,7 @@
  * `lineups`, built by backend/app/sorare/ff_lineups.py) and the small pure helpers the page shares. The rows, the
  * formation and who is the owner's all come from the job; this only groups, labels and words them (plans/futbolfantasy.md, S5).
  */
+import { freshLabel } from "./fresh";
 import type { Week } from "./weeks";
 
 export const LINEUPS_KEY = "lineups";
@@ -224,7 +225,7 @@ export function otherWeekNote(asked: Pick<Week, "md" | "number"> | null, round: 
   if (!asked || round === null || asked.md === round) return null;
   const base = `Futbol Fantasy only has each club's next LaLiga game: round ${round}.`;
   if (asked.md !== null) return `${base} Round ${asked.md} ${asked.md < round ? "has been played" : "comes after it"}.`;
-  return `${base} GW${asked.number} ${nationalGames ? "is national-team games" : "has no LaLiga round"}.`;
+  return `${base} Sorare GW${asked.number} ${nationalGames ? "is national-team games" : "has no LaLiga round"}.`;
 }
 
 /** How many of the owner's players a match names, the eleven and the alternatives of both sides. */
@@ -256,6 +257,18 @@ export function lineupsGlance(data: LineupsData | null, now: Date): LineupsGlanc
     }
   }
   return { round: section.round!, yours: yours.size };
+}
+
+/** How many of the owner's players are in a match's probable elevens, the alternatives left out. */
+export function startersIn(match: LineupMatch): number {
+  let count = 0;
+  for (const side of [match.home, match.away]) for (const row of side.rows) count += row.players.filter((player) => player.yours).length;
+  return count;
+}
+
+/** What a match tab says of your players: "3 yours · 0 starting" (named in the match, and in the probable eleven). */
+export function yoursLabel(match: LineupMatch): string {
+  return `${yoursIn(match)} yours · ${startersIn(match)} starting`;
 }
 
 // ---------------------------------------------------------------------------------------------------- how fresh
@@ -318,16 +331,9 @@ export function initialsOf(name: string): string {
 }
 
 // ----------------------------------------------------------------------------------------------- the words around
-const dayKey = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid", year: "numeric", month: "2-digit", day: "2-digit" });
-
-/** When a reading was made, the way people say it: today 16:56, yesterday 17:05, Tue 29 Sep 11:40. */
+/** When a reading was made, the way every page says it: "9 h ago (03:33)". */
 export function readLabel(iso: string | null, now: Date): string {
-  if (!iso) return "never";
-  const { day, time } = kickoffLabel(iso);
-  const that = dayKey.format(new Date(iso));
-  if (that === dayKey.format(now)) return `today ${time}`;
-  if (that === dayKey.format(new Date(now.getTime() - 86_400_000))) return `yesterday ${time}`;
-  return `${day} ${time}`;
+  return iso ? freshLabel(iso, now) : "never";
 }
 
 /** A club's short name for a chip: our code for the clubs the app keeps, else the first three letters of its name. */

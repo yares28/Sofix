@@ -38,7 +38,7 @@ export default function PlayerCard({
   const kind = player.status?.kind;
   const mark = kind ? <KindIcon kind={kind} ring /> : calledUp && player.status?.international ? <CalledUpIcon ring /> : null;
   return (
-    <li className="lu-card" data-rarity={rarity} data-mine={card ? "" : undefined} data-out={kind === "out" || kind === "suspended" ? "" : undefined} aria-label={describe(player, Boolean(card), calledUp)}>
+    <li className="lu-card" data-rarity={rarity} data-mine={card ? "" : undefined} data-out={kind === "out" || kind === "suspended" ? "" : undefined} aria-label={describe(player, Boolean(card), calledUp)} title={player.name}>
       <div className="lu-face">
         {card?.pic ? (
           <CardArt src={card.pic} name={card.name} />

@@ -28,7 +28,7 @@ function kickoffLine(state: Extract<HeadState, { kind: "upcoming" }>): string {
 }
 
 /** The gameweek as a card: the number, the shape of the week, then your best cards and their best games. */
-export default function HomeHead({ head, cast }: { head: GameweekHead; cast: HeadCast | "none" | null }) {
+export default function HomeHead({ head, cast, sorare }: { head: GameweekHead; cast: HeadCast | "none" | null; sorare?: string | null }) {
   const { state } = head;
   const unit =
     state.kind === "upcoming"
@@ -50,10 +50,13 @@ export default function HomeHead({ head, cast }: { head: GameweekHead; cast: Hea
     <header className={`hm-top ${state.kind}`}>
       <div className="hm-id">
         <h1>
-          <span className="hm-kicker">Gameweek </span>
+          <span className="hm-kicker">LaLiga round </span>
           <b>{head.number}</b>
         </h1>
-        <p className="hm-when">{dateRange(head.from, head.to)}</p>
+        <p className="hm-when">
+          {dateRange(head.from, head.to)}
+          {sorare ? ` · ${sorare}` : ""}
+        </p>
       </div>
 
       {head.days.length > 0 && (

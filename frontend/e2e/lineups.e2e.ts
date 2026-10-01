@@ -166,7 +166,7 @@ test("the header names the LaLiga round, its days and the Sorare week it feeds, 
   const sorare = header(page).getByRole("link", { name: /^Sorare/ });
   await expect(sorare).toHaveText(/^Sorare(: not open yet| GW\d+( · locks \w{3} \d{2}:\d{2}| · locked)?)$/);
   await expect(sorare).toHaveAttribute("href", /^\/play\?w=\d{4}-\d{2}-\d{2}$/);
-  await expect(page.getByText("Probable elevens from Futbol Fantasy")).toBeVisible();
+  await expect(page.getByText("Probable elevens from Futbol Fantasy · kickoffs in Madrid time")).toBeVisible();
 });
 
 test("arriving for a week that is past says Futbol Fantasy only has the next round", async ({ page, request }) => {
@@ -198,4 +198,36 @@ test("a match that is no longer on the site is said so, above the next one", asy
   await expect(page.getByRole("status").filter({ hasText: "That match is no longer on Futbol Fantasy" })).toBeVisible();
   const strip = page.getByRole("navigation", { name: /^Matches of LaLiga · Round 8/ });
   await expect(strip.getByRole("link").first()).toHaveAttribute("aria-current", "page");
+});
+
+test("each match tab says how many of your players are in it and how many are starting, and the legend explains it", async ({ page }) => {
+  await page.goto("/lineups");
+  const strip = page.getByRole("navigation", { name: /^Matches of LaLiga · Round 8/ });
+
+  for (const tab of await strip.getByRole("link").all()) await expect(tab).toContainText(/\d+ yours · \d+ starting/);
+  await expect(page.getByText("on a match tab: your players named in the match, and how many are in the probable eleven")).toBeVisible();
+  // never more starting than named
+  for (const tab of await strip.getByRole("link").all()) {
+    const [, named, starting] = ((await tab.innerText()).match(/(\d+) yours · (\d+) starting/) ?? []).map(Number);
+    expect(starting).toBeLessThanOrEqual(named!);
+  }
+});
+
+test("a pitch card and an alternative's chip write a player's name the same way, with the full name on hover", async ({ page }) => {
+  await page.goto("/lineups?m=22502");
+  const home = page.getByRole("region", { name: "Real Sociedad lineup" });
+
+  // a player of the eleven: his surname in capitals on the card (a card of yours shows Sorare art instead), his full name on hover
+  const oyarzabal = home.locator(".lu-card", { hasText: "GUEDES" });
+  await expect(oyarzabal).toHaveAttribute("title", "Gonçalo Guedes");
+  // an alternative: the same short form, not the full name
+  const chip = home.locator(".lu-alt", { hasText: "BARRENETXEA" });
+  await expect(chip).toHaveAttribute("title", "Ander Barrenetxea");
+  await expect(chip).not.toContainText("Ander");
+  // no chip keeps the long form
+  for (const alt of await home.locator(".lu-alt").all()) {
+    const full = (await alt.getAttribute("title"))!;
+    const text = (await alt.innerText()).replace(/\d+%/, "").trim();
+    expect(text, `${full} as a chip`).not.toBe(full.includes(" ") ? full : "");
+  }
 });

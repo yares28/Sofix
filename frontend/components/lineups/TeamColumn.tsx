@@ -52,7 +52,8 @@ export default function TeamColumn({
   look: ClubLook | undefined;
   now: Date;
 }) {
-  const labels = playerLabels(side.rows.flatMap((row) => row.players));
+  // One short name per player, pitch cards and chips alike: two with the same surname get an initial, whichever list they are in.
+  const labels = playerLabels([...side.rows.flatMap((row) => row.players), ...side.alternatives]);
   const mine = new Set(Object.keys(cards));
   const { byRow, others, zero } = placement(side);
   const rotation = gaugeText(side.rotations, "rotations");
@@ -93,13 +94,13 @@ export default function TeamColumn({
                   <PlayerCard key={player.id} player={player} label={labels[player.id] ?? player.name} line={row.line} card={player.yours ? cards[player.yours] : undefined} calledUp={squadOut(side)} />
                 ))}
               </ul>
-              <Alternatives players={byRow.get(index) ?? []} mine={mine} />
+              <Alternatives players={byRow.get(index) ?? []} mine={mine} labels={labels} />
             </div>
           ))}
           {others.length ? (
             <div className="lu-row lu-others">
               <span className="lu-others-title">Others in the squad</span>
-              <Alternatives players={others} mine={mine} />
+              <Alternatives players={others} mine={mine} labels={labels} />
             </div>
           ) : null}
         </div>

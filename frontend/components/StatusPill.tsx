@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { PILL_LABEL, pulseOf, type SystemStatus } from "../lib/control";
-import { relativeTime } from "../lib/grid";
+import { freshLabel } from "../lib/fresh";
 
 type Props = { syncedAt: string | null; system: SystemStatus | null; current: boolean };
 
@@ -21,7 +21,7 @@ export default function StatusPill({ syncedAt, system, current }: Props) {
   }, []);
 
   const pulse = now ? pulseOf(system, syncedAt, now) : null;
-  const updated = now && syncedAt ? relativeTime(syncedAt, now) : null;
+  const updated = now && syncedAt ? freshLabel(syncedAt, now) : null;
   const label = pulse ? PILL_LABEL[pulse.state] : "Status";
   const name = updated ? `Control Center: ${label}, updated ${updated}` : `Control Center: ${label}`;
 

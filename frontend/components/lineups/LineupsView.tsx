@@ -7,10 +7,12 @@ import {
   matchState,
   readLabel,
   roundDays,
+  startersIn,
   shortCode,
   teamsRead,
   tint,
   yoursIn,
+  yoursLabel,
   yoursSummary,
   type LineupMatch,
   type LineupsData,
@@ -64,7 +66,7 @@ export default function LineupsView({ data, sections, section, selected, now, cl
               </>
             ) : null}
           </p>
-          <p className="lu-source">Probable elevens from Futbol Fantasy</p>
+          <p className="lu-source">Probable elevens from Futbol Fantasy · kickoffs in Madrid time</p>
         </div>
         <ReadPill data={data} matches={section.matches} now={now} />
       </header>
@@ -169,13 +171,10 @@ function Chip({ match, current, now, clubs }: { match: LineupMatch; current: boo
         {shortCode(match.away)}
         <Shield crest={lookOf(match.away, clubs)?.crest ?? match.away.crest} color={lookOf(match.away, clubs)?.color} code={shortCode(match.away)} width={17} />
       </span>
-      <span className="lu-chip-when">
-        {state === "started" ? "Kicked off" : kickoffLabel(match.kickoff).short}
-        <span className="lu-chip-mine" title={yoursSummary(count)}>
-          <span aria-hidden="true" />
-          {count}
-          <span className="visually-hidden"> {yoursSummary(count)}</span>
-        </span>
+      <span className="lu-chip-when">{state === "started" ? "Kicked off" : kickoffLabel(match.kickoff).short}</span>
+      <span className="lu-chip-mine" title={`${yoursSummary(count)} named in this match; ${startersIn(match)} of them in the probable eleven`}>
+        <span aria-hidden="true" />
+        {yoursLabel(match)}
       </span>
     </Link>
   );
@@ -218,7 +217,7 @@ function MatchHead({ match, state, now, clubs }: { match: LineupMatch; state: Re
         <details className="lu-info">
           <summary aria-label="When Futbol Fantasy was read">
             <InfoIcon />
-            Read {readLabel(match.readAt, now).replace(/^today /, "")}
+            Read {readLabel(match.readAt, now)}
           </summary>
           <div className="lu-info-card" role="group" aria-label="Futbol Fantasy reading">
             <b>Futbol Fantasy</b>
@@ -253,6 +252,10 @@ function Legend({ calledUp }: { calledUp: boolean }) {
       <span>
         <i className="lu-swatch" aria-hidden="true" />
         Your card
+      </span>
+      <span>
+        <i className="lu-dot" aria-hidden="true" />
+        <b>3 yours · 0 starting</b> on a match tab: your players named in the match, and how many are in the probable eleven
       </span>
       <span>
         <KindIcon kind="out" size={16} />

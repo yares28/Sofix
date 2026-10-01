@@ -2,21 +2,9 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { byMonth, pageWeeks, weekDates, weekOn, weekValue, type Page, type Week } from "../lib/weeks";
+import { byMonth, pageWeeks, weekDates, weekName, weekOn, weekValue, type Page, type Week } from "../lib/weeks";
 
 const BOARD = ["/fixtures", "/difficulty", "/table"];
-
-/**
- * What to call a week. LaLiga and Sorare both count in gameweeks and their numbers differ — LaLiga's GW7 is
- * Sorare's GW17 — so the page's own counting leads and the other one is named.
- */
-function names(week: Week, play: boolean): { lead: string; also: string | null } {
-  const laliga = week.md === null ? null : { lead: `GW${week.md}`, named: `LaLiga GW${week.md}` };
-  const sorare = week.gw === null ? null : { lead: `GW${week.number}`, named: `Sorare GW${week.number}` };
-  const [mine, theirs] = play ? [sorare, laliga] : [laliga, sorare];
-  if (!mine) return { lead: theirs!.named, also: null };
-  return { lead: mine.lead, also: theirs?.named ?? null };
-}
 
 /**
  * The app's one gameweek control: it picks a **week**, and every page resolves what it holds — the board its
@@ -103,7 +91,7 @@ export default function WeekPicker({ weeks, current, now }: { weeks: Week[]; cur
         onClick={() => setOpen((was) => !was)}
       >
         <span className={`wk-dot ${current.state}`} />
-        <b>{names(current, play).lead}</b>
+        <b>{weekName(current)}</b>
         <span className="wk-when">{weekDates(current, page)}</span>
         <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
           <path d="m2 4.5 4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -139,7 +127,6 @@ export default function WeekPicker({ weeks, current, now }: { weeks: Week[]; cur
         <div className="wk-rows" role="radiogroup" aria-label="Week">
           {shown.weeks.map((week, index) => {
             const { value, note } = weekValue(week);
-            const { lead, also } = names(week, play);
             return (
               <button
                 key={week.id}
@@ -151,17 +138,14 @@ export default function WeekPicker({ weeks, current, now }: { weeks: Week[]; cur
                 onClick={() => go(week)}
               >
                 <s className={week.state} />
-                <span className="n">
-                  {lead}
-                  {also ? <em> · {also}</em> : null}
-                </span>
+                <span className="n">{weekName(week)}</span>
                 <span className="mid">
                   <span className="d">{weekDates(week, page)}</span>
-                  {week.cards ? <span className="wk-cards">{week.cards} cards</span> : null}
+                  {week.cards ? <span className="wk-cards">{week.cards} playable</span> : null}
                 </span>
                 <span className="val">
                   <b>{value}</b>
-                  <span>{note}</span>
+                  {note ? <span>{note}</span> : null}
                 </span>
               </button>
             );

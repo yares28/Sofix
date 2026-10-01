@@ -39,7 +39,7 @@ describe("the state of the sync", () => {
   it("is fresh when the cloud built it from Sorare's own projections", () => {
     const sync = syncState(data(), week(), now("2026-09-23T14:32:00Z"))!;
     expect(sync.state).toBe("fresh");
-    expect(sync.chip).toBe("synced 25 min ago");
+    expect(sync.chip).toBe("synced 25 min ago (16:07)");
     expect(sync.alert).toBeNull();
     expect(sync.runs).toHaveLength(9);
     expect(sync.runs.every((run) => !run.done)).toBe(true);

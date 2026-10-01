@@ -17,7 +17,7 @@ import { loadLineups } from "../lib/lineupsData";
 import { loadChances } from "../lib/homeData";
 import { weekPlan } from "../lib/play";
 import { loadSorare } from "../lib/playData";
-import { weekContext, weekDates } from "../lib/weeks";
+import { sorareName, weekContext, weekDates } from "../lib/weeks";
 import { loadSystem } from "../lib/system";
 
 export const metadata: Metadata = { title: "Sofix" };
@@ -86,7 +86,11 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
         {away ? (
           <AwayWeek plan={awayPlan} variant="fixtures" dates={weekDates(away)} />
         ) : (
-          <HomeHead head={gameweekHead(grid, column, new Date())} cast={castForWeek(sorare, week.current?.gw ?? null, grid)} />
+          <HomeHead
+            head={gameweekHead(grid, column, new Date())}
+            cast={castForWeek(sorare, week.current?.gw ?? null, grid)}
+            sorare={week.current?.md != null ? sorareName(week.current) : null}
+          />
         )}
         <div className={`hm-bento${away ? " hm-away" : ""}`}>
           {!away ? (

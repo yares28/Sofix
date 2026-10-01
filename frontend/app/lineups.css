@@ -63,6 +63,8 @@
 .lu-chip[aria-current="page"] .lu-chip-when { color: rgba(255, 255, 255, 0.72); }
 .lu-chip[data-state="started"] .lu-chip-teams { opacity: 0.6; }
 .lu-chip-mine { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; color: #0a58ad; }
+.lu-chip .lu-chip-mine { font-size: 11.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.lu-dot { display: inline-block; width: 7px; height: 7px; margin-right: 4px; border-radius: 50%; background: #0a58ad; vertical-align: 1px; }
 .lu-chip-mine span:first-child { display: block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .lu-chip[aria-current="page"] .lu-chip-mine { color: #8fc2ff; }
 .lu-crest { flex: none; display: block; object-fit: contain; }
@@ -148,7 +150,8 @@
   display: flex; align-items: center; justify-content: center; min-width: 42px; height: 21px; padding: 0 7px; border-radius: 999px; box-shadow: 0 0 0 2px #fff;
   font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; background: var(--lu-tone-low-bg); color: var(--lu-tone-low-fg);
 }
-.lu-card .lu-pct { position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%); }
+.lu-card { margin-bottom: 16px; }
+.lu-card .lu-pct { position: absolute; left: 50%; bottom: -24px; transform: translateX(-50%); }
 .lu-pct[data-tone="strong"] { background: var(--lu-tone-strong-bg); color: var(--lu-tone-strong-fg); }
 .lu-pct[data-tone="good"] { background: var(--lu-tone-good-bg); color: var(--lu-tone-good-fg); }
 .lu-pct[data-tone="mid"] { background: var(--lu-tone-mid-bg); color: var(--lu-tone-mid-fg); }
@@ -198,7 +201,7 @@
   .lu { --lu-card-w: 66px; --lu-card-h: 102px; --lu-gap: 9px; padding: 24px 16px 40px; }
   .lu-head p { font-size: 14px; }
   .lu-strip { margin: 18px -16px 0; padding: 6px 16px 8px; border-radius: 0; background: transparent; box-shadow: none; }
-  .lu-chip { flex: none; width: 112px; min-width: 112px; min-height: 58px; background: var(--surface); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05); }
+  .lu-chip { flex: none; width: 128px; min-width: 128px; min-height: 70px; background: var(--surface); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05); }
   .lu-chip[aria-current="page"] { background: #1d1d1f; }
   .lu-match { margin-top: 8px; border-radius: 26px; }
   .lu-match-head { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; padding: 52px 14px 16px; }
@@ -238,7 +241,8 @@
   .lu-name { bottom: 15px; }
   .lu-name span { font-size: 7px; }
   .lu-meta { font-size: 6px; left: 6px; right: 6px; top: 5px; }
-  .lu-card .lu-pct { min-width: 36px; height: 19px; font-size: 11px; bottom: -9px; }
+  .lu-card { margin-bottom: 14px; }
+  .lu-card .lu-pct { min-width: 36px; height: 19px; font-size: 11px; bottom: -22px; }
   .lu-mark { right: -6px; top: -6px; }
   .lu-mark svg { width: 18px; height: 18px; }
   .lu-alts { gap: 5px; }

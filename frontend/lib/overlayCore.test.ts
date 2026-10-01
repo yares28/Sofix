@@ -41,6 +41,7 @@ type Core = {
   }) => { source: string; label: string; value: number | null; shown: boolean; at: string | null }[];
   benchOnChance: (entry: { pStart?: number; pOn?: number }) => number | null;
   agoLabel: (iso: unknown, nowMs: number) => string | null;
+  freshLabel: (iso: unknown, nowMs: number) => string | null;
   STALE_HOURS: number;
   staleness: (entry: { at?: string; over?: boolean }, nowMs: number) => { kind: "over" | "old"; hours: number } | null;
   topThree: (items: { key: string; x: number }[]) => Map<string, number>;
@@ -257,6 +258,15 @@ describe("the tile's own helpers", () => {
     expect(core.agoLabel(undefined, later(1))).toBeNull();
     expect(core.agoLabel("not a date", later(1))).toBeNull();
     expect(core.agoLabel(at, Date.parse(at) - 1000)).toBe("just now"); // a clock a little behind is not "in the future"
+  });
+
+  it("writes the age the way Sofix's pages do: how long ago and the Madrid time it was made", () => {
+    const at = "2026-10-08T01:33:00Z"; // 03:33 in Madrid
+    const later = (minutes: number) => Date.parse(at) + minutes * 60_000;
+    expect(core.freshLabel(at, later(11 * 60))).toBe("11 h ago (03:33)");
+    expect(core.freshLabel(at, later(5))).toBe("5 min ago (03:33)");
+    expect(core.freshLabel(at, later(3 * 24 * 60))).toBe("3 d ago (Thu 03:33)"); // over a day: the day too, so the time is not taken for today's
+    expect(core.freshLabel(undefined, later(1))).toBeNull();
   });
 });
 

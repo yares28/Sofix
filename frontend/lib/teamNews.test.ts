@@ -66,7 +66,7 @@ describe("why there is no news yet", () => {
   it("says a national-team week is not Futbol Fantasy's, and where the next club games are", () => {
     const note = idleNote(week("uefa-nations-league"), { round: 8, yours: 9 });
 
-    expect(note.lead).toBe("GW19 is national-team games.");
+    expect(note.lead).toBe("Sorare GW19 is national-team games.");
     expect(note.rest).toBe("Futbol Fantasy covers LaLiga only.");
     expect(note.lineups).toBe("Round 8's lineups are on Lineups (9 of your players).");
   });
@@ -103,7 +103,7 @@ describe("a week with a few games of other leagues in it (GW19 on 1 Oct: 15 nati
   it("is still national-team games: no LaLiga game, and the national ones are the bulk", () => {
     expect(nationalWeek(break_)).toBe(true);
     const note = idleNote(break_, { round: 8, yours: 9 });
-    expect(note.lead).toBe("GW19 is national-team games.");
+    expect(note.lead).toBe("Sorare GW19 is national-team games.");
     expect(note.rest).toBe("Futbol Fantasy covers LaLiga only.");
   });
 
@@ -116,7 +116,7 @@ describe("a week with a few games of other leagues in it (GW19 on 1 Oct: 15 nati
 
     expect(nationalWeek(other)).toBe(false);
     const note = idleNote(other, { round: 8, yours: 3 });
-    expect(note.lead).toBe("GW19 has no LaLiga games.");
+    expect(note.lead).toBe("Sorare GW19 has no LaLiga games.");
     expect(note.rest).toBe("Futbol Fantasy covers LaLiga only.");
     expect(note.lineups).toBe("Round 8's lineups are on Lineups (3 of your players).");
   });

@@ -32,7 +32,7 @@ describe("pulse", () => {
   it("is good when the data is fresh and setup is done, with the next run", () => {
     const pulse = pulseOf(system([run(1, "2026-09-21T07:18:00Z", "schedule")], { extension: LINKED }), "2026-09-21T07:18:30Z", NOW);
     expect(pulse.state).toBe("good");
-    expect(pulse.detail).toBe("Updated 5 h ago · next 14:07");
+    expect(pulse.detail).toBe("Updated 5 h ago (09:18) · next 14:07");
   });
 
   it("flags a failed last run first", () => {

@@ -19,6 +19,7 @@ import EnteredLineups from "../play/EnteredLineups";
 import SorareImage from "../play/SorareImage";
 import HomeTile from "./HomeTile";
 import type { LineupsGlance } from "../../lib/lineups";
+import { freshLabel } from "../../lib/fresh";
 import { noun } from "../../lib/words";
 import TeamNewsTile from "./TeamNewsTile";
 
@@ -51,7 +52,10 @@ export default function SorareTiles({
           <span className="foil limited stack" aria-hidden="true" />
           Sorare
         </h2>
-        <span>{data.user}</span>
+        <span>
+          {data.user}
+          {data.generatedAt ? ` · synced ${freshLabel(data.generatedAt, now)}` : ""}
+        </span>
       </div>
       {selected ? <EnteredLineups week={selected} /> : null}
       <PlayTile week={nextWeek(data)} now={now} />
@@ -65,7 +69,7 @@ export default function SorareTiles({
 function PlayTile({ week, now }: { week: GameweekPlan; now: Date }) {
   const plan = week.plans[0];
   const lock = timeUntil(week.gameweek.lock, now);
-  const meta = `GW${week.gameweek.number} · locks ${weekday(week.gameweek.lock)} ${clock(week.gameweek.lock)}`;
+  const meta = `Sorare GW${week.gameweek.number} · locks ${weekday(week.gameweek.lock)} ${clock(week.gameweek.lock)}`;
   if (!plan) return <WaitingTile week={week} now={now} meta={meta} />;
   const parts = allocation(plan);
   return (

@@ -520,7 +520,7 @@ export function scoringWeek(data: Sorare): TimelineWeek | null {
 
 /** What the Last gameweek tile says beside the week it compares: that another one is still being scored, when one is. */
 export function lastMeta(week: GameweekPlan, scoring: { number: number } | null): string {
-  return scoring ? `GW${week.gameweek.number} · GW${scoring.number} still scoring` : `GW${week.gameweek.number} · predicted vs actual`;
+  return scoring ? `Sorare GW${week.gameweek.number} · GW${scoring.number} still scoring` : `Sorare GW${week.gameweek.number} · predicted vs actual`;
 }
 
 export function weekPlan(data: Sorare, id: string): GameweekPlan | null {

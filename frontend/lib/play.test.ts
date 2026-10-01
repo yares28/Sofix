@@ -250,8 +250,8 @@ describe("the last gameweek and the one still being scored", () => {
   });
 
   it("says which week is still scoring beside the one it compares", () => {
-    expect(lastMeta(last, { number: 18 })).toBe("GW17 · GW18 still scoring");
-    expect(lastMeta(last, null)).toBe("GW17 · predicted vs actual");
+    expect(lastMeta(last, { number: 18 })).toBe("Sorare GW17 · GW18 still scoring");
+    expect(lastMeta(last, null)).toBe("Sorare GW17 · predicted vs actual");
   });
 });
 

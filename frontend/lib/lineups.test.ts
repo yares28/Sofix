@@ -18,12 +18,14 @@ import {
   shortCode,
   sorareLine,
   squadOut,
+  startersIn,
   statusLine,
   yoursSummary,
   sectionsOf,
   teamsRead,
   tint,
   yoursIn,
+  yoursLabel,
   type LineupMatch,
   type LineupSide,
   type LineupsData,
@@ -179,8 +181,8 @@ describe("which week the page is for", () => {
     expect(ask(8, null)).toBeNull();
     expect(ask(6, null)).toBe(`${base} Round 6 has been played.`);
     expect(ask(9, null)).toBe(`${base} Round 9 comes after it.`);
-    expect(ask(null, 19)).toBe(`${base} GW19 has no LaLiga round.`);
-    expect(otherWeekNote({ md: null, number: 19 }, 8, true)).toBe(`${base} GW19 is national-team games.`);
+    expect(ask(null, 19)).toBe(`${base} Sorare GW19 has no LaLiga round.`);
+    expect(otherWeekNote({ md: null, number: 19 }, 8, true)).toBe(`${base} Sorare GW19 is national-team games.`);
     expect(otherWeekNote({ md: 6, number: null }, null, false)).toBeNull();
   });
 });
@@ -232,6 +234,42 @@ describe("the glance Home takes at the lineups", () => {
     expect(lineupsGlance(data([]), NOW)).toBeNull();
     expect(lineupsGlance(data([two("2026-10-09T14:15:00Z")]), NOW)).toBeNull();
     expect(lineupsGlance(data([two("2026-10-14T19:00:00Z", europa)]), NOW)).toBeNull();
+  });
+});
+
+describe("what a player is called on a card and on a chip", () => {
+  it("is his surname, with an initial where two of the same side share it, whichever list they are in", () => {
+    const labels = playerLabels([
+      { id: "1", name: "Mikel Oyarzabal" },
+      { id: "2", name: "Álex Remiro" },
+      { id: "3", name: "Jon Williams" },
+      { id: "4", name: "Nico Williams" },
+    ]);
+
+    expect(labels).toEqual({ "1": "OYARZABAL", "2": "REMIRO", "3": "J. WILLIAMS", "4": "N. WILLIAMS" });
+  });
+});
+
+describe("what a match tab says about your players", () => {
+  const mixed = match(1, "2026-10-11T14:15:00Z", {
+    home: side("Home", {
+      rows: [{ line: "FWD", players: [player("1", { yours: "a" }), player("2")] }],
+      alternatives: [player("3", { yours: "b" }), player("5", { yours: "c" })],
+    }),
+    away: side("Away", { rows: [{ line: "DEF", players: [player("4", { yours: "d" })] }], alternatives: [player("6", { yours: "e" })] }),
+  });
+
+  it("counts yours in the match and how many of them are in the probable eleven", () => {
+    expect(yoursIn(mixed)).toBe(5);
+    expect(startersIn(mixed)).toBe(2);
+    expect(yoursLabel(mixed)).toBe("5 yours · 2 starting");
+  });
+
+  it("says none starting when every one of yours is an alternative", () => {
+    const none = match(2, "2026-10-11T16:15:00Z", { home: side("H", { alternatives: [player("7", { yours: "a" }), player("8", { yours: "b" }), player("9", { yours: "c" })] }) });
+
+    expect(yoursLabel(none)).toBe("3 yours · 0 starting");
+    expect(yoursLabel(match(3, null))).toBe("0 yours · 0 starting");
   });
 });
 
@@ -311,10 +349,10 @@ describe("the payload the job wrote", () => {
 });
 
 describe("the words on the page", () => {
-  it("says when a reading was made: today, yesterday, or the day", () => {
-    expect(readLabel("2026-10-10T14:56:00Z", NOW)).toBe("today 16:56");
-    expect(readLabel("2026-10-09T15:05:00Z", NOW)).toBe("yesterday 17:05");
-    expect(readLabel("2026-09-29T09:40:00Z", NOW)).toBe("Tue 29 Sep 11:40");
+  it("says when a reading was made: how long ago and the Madrid time", () => {
+    expect(readLabel("2026-10-10T14:56:00Z", NOW)).toBe("just now (16:56)");
+    expect(readLabel("2026-10-09T15:05:00Z", NOW)).toBe("24 h ago (17:05)");
+    expect(readLabel("2026-09-29T09:40:00Z", NOW)).toBe("11 days ago (Tue 11:40)");
     expect(readLabel(null, NOW)).toBe("never");
   });
 

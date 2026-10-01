@@ -12,7 +12,7 @@ from app.sorare.forecast import GameStart
 from tests.test_pipeline import db  # noqa: F401  (fixture)
 from tests.test_sorare_early import NOW, keep
 from tests.test_sorare_early import rounds as spaced
-from tests.test_sorare_projection import early_snapshot, rounds
+from tests.test_sorare_projection import early_snapshot, rounds, with_templates
 
 READ = "2026-10-30T09:00:00+00:00"
 NEXT_GAMES = {"2026-10-31", "2026-11-01"}  # round 11: the only games the site has, as it has each club's next one only
@@ -32,7 +32,9 @@ def told(slug: str, games: list[dict[str, Any]]) -> list[GameStart]:
 
 
 def weeks(ff: Any = None) -> list[dict[str, Any]]:
-    return publish.projected_weeks(early_snapshot(), rounds()[1:], runs=2, draws=100, ff=ff)
+    return publish.projected_weeks(
+        with_templates(early_snapshot(), full=True, thin=True), rounds()[1:], runs=2, draws=100, ff=ff
+    )
 
 
 def players(week: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -81,3 +83,30 @@ def test_a_round_the_site_covers_is_planned_again_every_run_however_fresh_its_pl
 
     assert [r.number for r in plan] == ([10, 12] if covered else [12]), "round 12 has no plan at all"
     assert set(kept) == ({11} if covered else {10, 11})
+
+
+# --------------------------------------------------- the same for a gameweek Sorare has opened but is not planning yet
+def told_ahead(slug: str, games: list[dict[str, Any]]) -> list[GameStart]:
+    """The site's say on the games of the opened week ahead (ids `ahead-<player>` in the fixture), and nothing on the week being planned."""
+    out: list[GameStart] = []
+    for game in games:
+        if not str(game["id"]).startswith("ahead-"):
+            continue
+        if slug == "front-one":
+            out.append(GameStart(game["id"], 0.0, out=True, info={"startAt": READ, "ffStatus": {"kind": "out"}}))
+        elif slug == "mid-one":
+            out.append(GameStart(game["id"], 0.25, info={"startAt": READ, "ffMatch": {"id": 1, "url": "https://x/1"}}))
+    return out
+
+
+def test_a_gameweek_opened_ahead_that_holds_the_round_the_site_has_takes_its_chance_too() -> None:
+    from tests.test_sorare_publish import snapshot
+
+    page = publish.build_payload(snapshot(), runs=2, draws=100, ff=told_ahead)
+    ahead = next(week for week in page["weeks"] if week["gameweek"]["slug"] == "gw-ahead")
+
+    mid = players(ahead)["mid-one"]["games"][0]
+    assert (mid["pStart"], mid["startSource"]) == (0.25, "futbolfantasy")
+    assert "front-one" not in in_plans(ahead), "the site has him out"
+    planned = next(week for week in page["weeks"] if week["gameweek"]["slug"] == "gw-plan")
+    assert all(g.get("startSource") != "futbolfantasy" for p in planned["playing"]["players"] for g in p["games"])

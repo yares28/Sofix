@@ -80,8 +80,12 @@ const idleSorare = Object.fromEntries(
     const data = structuredClone(sorare.data);
     const week = data.weeks.find((one) => one.gameweek.id === data.nextId);
     delete week.teamNews;
+    // The recording names a game's competition by its display name; Sorare's API (and the job) give its slug.
+    for (const player of week.playing.players) for (const game of player.games) if (game.competition === "LaLiga") game.competition = "laliga-es";
     if (national) {
       for (const player of week.playing.players) for (const game of player.games) game.competition = "uefa-nations-league";
+      // A few players' clubs play on during the break (Segunda, Argentina: 4 of 19 on the first of October): still a national-team week.
+      for (const player of week.playing.players.slice(-2)) for (const game of player.games) game.competition = "segunda-division-es";
       // And a week of Sorare's with national-team games only, far from any LaLiga round (GW19 of the real season): the one a Lineups link names.
       const gameweek = { ...week.gameweek, id: "9019", slug: "football-2-6-jan-2030", number: 19, name: "Game Week 19", start: "2030-01-02T14:00:00Z", end: "2030-01-06T14:00:00Z", lock: "2030-01-02T14:00:00Z" };
       data.weeks.push({ ...structuredClone(week), gameweek });
@@ -90,17 +94,29 @@ const idleSorare = Object.fromEntries(
     return [kind, { ...sorare, data }];
   }),
 );
+// The planned week with its last lineup for a competition Sorare has not listed yet (copied from GW15): the mixed case.
+idleSorare.expected = (() => {
+  const data = structuredClone(sorare.data);
+  const week = data.weeks.find((one) => one.gameweek.id === data.nextId);
+  const key = week.plans[0].lineups.at(-1).key;
+  for (const plan of week.plans) for (const lineup of plan.lineups) if (lineup.key === key) Object.assign(lineup, { expected: true, expectedFrom: "GW15" });
+  for (const option of week.playable) if (option.key === key) Object.assign(option, { expected: true, expectedFrom: "GW15" });
+  return { ...sorare, data };
+})();
 const earlyWeeks = new Map(
   recorded.data.matchdays
     .filter((matchday) => matchday.number === 8 || matchday.number === 9)
     .map((matchday) => {
       const gameweek = { ...planning.gameweek, id: `md${matchday.number}`, slug: `projected-md${matchday.number}`, number: 0, name: `LaLiga GW${matchday.number}` };
-      const week = { ...structuredClone(planning), gameweek, source: "form", plans: planning.plans.slice(0, 1), projected: { round: matchday.number, basedOn: `GW${planning.gameweek.number}` } };
+      const week = { ...structuredClone(planning), gameweek, source: "form", plans: structuredClone(planning.plans.slice(0, 1)), projected: { round: matchday.number, basedOn: "GW15", expected: true } };
+      // The early plan's competitions are the ones Sorare is going to open, copied from a finished week (backend/app/sorare/expected.py).
+      for (const lineup of week.plans[0]?.lineups ?? []) Object.assign(lineup, { expected: true, expectedFrom: "GW15" });
+      for (const option of week.playable) Object.assign(option, { expected: true, expectedFrom: "GW15" });
       return [matchday.number, week];
     }),
 );
 sorare.data.projected = [...earlyWeeks].map(([round, week]) => ({
-  round, id: week.gameweek.id, from: week.gameweek.start, to: week.gameweek.end, cards: week.playing.cards, plans: week.plans.length,
+  round, id: week.gameweek.id, from: week.gameweek.start, to: week.gameweek.end, cards: week.playing.cards, plans: week.plans.length, expected: true,
 }));
 
 // A finished week the job kept apart (`read_models` key `sorare_week:<slug>`): the timeline marks GW14 as kept, and it

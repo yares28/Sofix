@@ -439,7 +439,7 @@ test("a LaLiga round Sorare has not opened opens as an early plan that says so a
   await expect(page.locator(".pl-eyebrow").first()).toContainText("Sorare · not open yet");
   const note = page.getByRole("status").filter({ hasText: "An early plan" });
   await expect(note).toContainText("Sorare hasn't opened this week");
-  await expect(note).toContainText("GW17"); // the competitions it borrows
+  await expect(note).toContainText("GW15"); // the finished week whose competitions it copies
 
   // One plan, and nothing here reaches Sorare: no Apply, and no lineups of yours to read for a gameweek that does not exist.
   await expect(page.getByRole("button", { name: "Apply plan" })).toHaveCount(0);
@@ -616,4 +616,43 @@ test("a lineup entered for a week that has not locked says when it locks, not th
   await expect(lineup.locator(".pl-entered-result b")).toHaveText("–");
   await expect(lineup.locator(".pl-entered-card .sc")).toHaveCount(0);
   await expect(lineup).not.toContainText("Still scoring");
+});
+
+test("the early plan of a round Sorare has not opened says its competitions are expected, and has nothing to enter", async ({ page, request }) => {
+  const early = (await playWeeks(request)).find((week) => !week.gw && week.early);
+  expect(early, "the mock serves an early plan").toBeTruthy();
+  await page.goto(`/play?w=${early!.id}`);
+
+  const note = page.locator(".pl-alert.early");
+  await expect(note).toContainText("LaLiga competitions Sorare opened for GW15");
+  await expect(note).toContainText("Built on form, so later weeks look alike until Sorare opens them");
+  const lineups = page.locator(".pl-lu");
+  expect(await lineups.count()).toBeGreaterThan(0);
+  for (const lineup of await lineups.all()) await expect(lineup).toContainText("Expected · Sorare has not opened it yet");
+  await expect(page.getByRole("button", { name: "Apply plan" })).toHaveCount(0);
+});
+
+test("a week with one lineup for a competition Sorare has not listed marks it, and Apply leaves it out", async ({ page, request }) => {
+  await resetBackend(request, "expected");
+  await page.goto("/play");
+
+  const lineups = page.locator(".pl-lu");
+  const total = await lineups.count();
+  expect(total).toBeGreaterThan(1);
+  await expect(page.locator(".pl-lu", { hasText: "Expected · Sorare has not opened it yet" })).toHaveCount(1);
+  await expect(page.locator(".pl-alert.early")).toContainText("Some lineups are expected");
+  await expect(page.locator(".pl-alert.early")).toContainText("GW15");
+
+  await page.getByRole("button", { name: "Apply plan" }).click();
+  const sheet = page.locator(".ap");
+  await expect(sheet).toBeVisible();
+  if (total - 1 > 1) await expect(sheet).toContainText(`lineup 1 of ${total - 1}`);
+  await expect(sheet).not.toContainText("Expected · Sorare has not opened it yet");
+});
+
+test("the home counts the lineups that are expected", async ({ page, request }) => {
+  await resetBackend(request, "expected");
+  await page.goto("/");
+
+  await expect(page.locator("section:has(#hm-play)")).toContainText("1 expected");
 });

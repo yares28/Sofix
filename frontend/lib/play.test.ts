@@ -3,6 +3,7 @@ import {
   allocation,
   cashLabel,
   chanceLabel,
+  enterable,
   essenceLabel,
   formatOf,
   insideRange,
@@ -251,6 +252,16 @@ describe("the last gameweek and the one still being scored", () => {
   it("says which week is still scoring beside the one it compares", () => {
     expect(lastMeta(last, { number: 18 })).toBe("GW17 · GW18 still scoring");
     expect(lastMeta(last, null)).toBe("GW17 · predicted vs actual");
+  });
+});
+
+describe("which lineups of a plan can be entered", () => {
+  it("leaves out the ones for a competition Sorare has not opened", () => {
+    const official = lineup({ comp: "LaLiga" });
+    const expected = lineup({ comp: "Champion", expected: true, expectedFrom: "GW15" });
+
+    expect(enterable([official, expected]).map((l) => l.comp)).toEqual(["LaLiga"]);
+    expect(enterable([expected])).toEqual([]);
   });
 });
 

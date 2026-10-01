@@ -85,6 +85,9 @@ export type Lineup = {
   pCard: number;
   need: number | null;
   needFrom: string;
+  /** The competition is one Sorare has not opened yet (see `Option`): there is nothing to enter. */
+  expected?: boolean;
+  expectedFrom?: string;
   tiers: Tier[];
   starters: PlayCard[];
   subs: PlayCard[];
@@ -126,9 +129,12 @@ export type Option = {
   max: number;
   entries: number;
   tiers: { lo: number; hi: number; cash: number; essence: number; card: boolean }[];
+  /** Sorare has not opened it: copied from the finished gameweek named in `expectedFrom`, and it cannot be entered. */
+  expected?: boolean;
+  expectedFrom?: string;
 };
 
-export type Blocked = { name: string; rarity: string; group: Group; why: string };
+export type Blocked = { name: string; rarity: string; group: Group; why: string; expected?: boolean };
 export type AlsoOpen = { name: string; group: Group; fee: number; eEss: number; pReturn: number; x: number };
 
 /**
@@ -268,7 +274,7 @@ export type GameweekPlan = {
    * Only for a LaLiga round Sorare has not opened a gameweek for: an early plan from the calendar and form, with the
    * competitions of the gameweek named in `basedOn`. Nothing in it can be entered.
    */
-  projected?: { round: number; basedOn: string };
+  projected?: { round: number; basedOn: string; expected?: boolean };
 };
 
 /** The game a team-news row is about, as the plan has it. */
@@ -294,7 +300,7 @@ export type TeamNews = {
 };
 
 /** What the main page says about an early plan: enough for the week picker. The week itself is read apart. */
-export type ProjectedHead = { round: number; id: string; from: string; to: string; cards: number; plans: number };
+export type ProjectedHead = { round: number; id: string; from: string; to: string; cards: number; plans: number; expected?: boolean };
 
 export type TimelineWeek = {
   id: string;
@@ -503,6 +509,9 @@ export function nextWeek(data: Sorare): GameweekPlan {
 export function lastWeek(data: Sorare): GameweekPlan | null {
   return data.lastId ? weekPlan(data, data.lastId) : null;
 }
+
+/** The lineups of a plan Sorare lists, which are the ones that can be entered: an expected competition has nothing to enter yet. */
+export const enterable = (lineups: Lineup[]): Lineup[] => lineups.filter((lineup) => !lineup.expected);
 
 /** The gameweek being played right now: its games are on, so it is not yet the last one and its scores are still coming in. */
 export function scoringWeek(data: Sorare): TimelineWeek | null {

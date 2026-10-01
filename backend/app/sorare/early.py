@@ -40,9 +40,14 @@ def planned_for(week: dict[str, Any], round_: projection.Round) -> bool:
     """Whether a stored early plan is for this round as the calendar holds it now.
 
     A round that has moved, or a new season that reuses the round numbers, is planned again: the stored plan would show
-    last season's opponents and dates under the new round.
+    last season's opponents and dates under the new round. So is a plan made before it carried the competitions expected for it.
     """
-    return (week.get("gameweek") or {}).get("start") == projection.window(round_.first)[0].isoformat()
+    projected = week.get("projected") or {}
+    # A plan made before the expected competitions existed has no `expected` and is made again, with them.
+    return (
+        "expected" in projected
+        and (week.get("gameweek") or {}).get("start") == projection.window(round_.first)[0].isoformat()
+    )
 
 
 def choose(

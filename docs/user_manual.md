@@ -57,7 +57,8 @@ Under the strip:
   70% or more, in doubt from 40%, unlikely, out), which starters of your best plan might not start (under 70%, with their game,
   lineup and an icon for a doubt or injury), and what moved by 10 points or more since yesterday. A link opens Lineups. Players
   FF says nothing about are only counted; their number is Sorare's or Sofix's. While FF has told nothing about the week, the
-  tile says why: in a break of national-team games (GW19, say) "GW19 is national-team games. Futbol Fantasy covers LaLiga only."
+  tile says why: in a break of national-team games (GW19, say; a few games of other leagues in it do not change that) "GW19 is national-team games.
+Futbol Fantasy covers LaLiga only."
   and where the next club games are, with how many of your players are in them; in a week of club games, that FF publishes each
   club's next game about a day after its last one.
 - **Play** summarizes the published Sorare plan, estimated chance of any reward, expected essence/cash and time to lock.
@@ -203,12 +204,20 @@ search, not a proven maximum, so one of your own lineups can occasionally beat i
 Rooms out (a Room depends on nine other managers' lineups), and never names an expected number, because there is none.
 
 A LaLiga round Sorare has not opened yet (LaLiga GW36 in May, say) opens as an **early plan**: a plain note says so,
-and it is built from the LaLiga calendar for your cards' games, their recent form and the competitions of the gameweek
-being planned, with one plan and no Apply button. It is a first guess: your cards as they are today, no start odds, and
-competitions Sorare may change. It moves each refresh, and Sorare's own numbers replace it when the week opens. The one
+and it is built from the LaLiga calendar for your cards' games, their recent form and the LaLiga competitions Sorare is
+going to open, with one plan and no Apply button. Those competitions are copied from the latest finished gameweek of the same
+kind (five or more LaLiga games, or fewer; the week and its rewards are named), and each lineup says **Expected** until Sorare
+lists the real ones. It is a first guess: your cards as they are today, no start odds, and competitions Sorare may change. It moves each refresh, and Sorare's own numbers replace it when the week opens. The one
 round that already has a lineup on Futbol Fantasy (each club's next LaLiga game, round 8 in the October break) uses
 Futbol Fantasy's chance to start instead of Sofix's guess, with its **FF** mark, and a player it has out or suspended is in
-no lineup. Rounds after it have no Futbol Fantasy yet and keep the guess.
+no lineup. Rounds after it have no Futbol Fantasy yet and keep the guess. The early-plan note also says that, built on form,
+later weeks look alike until Sorare opens them.
+
+A gameweek Sorare **has** opened can still lack its LaLiga competitions for a while. Then the same expected competitions are added
+beside the official ones: the plan shares your cards across both, each expected lineup says "Expected · Sorare has not opened it
+yet", a banner above the plan says which finished week they were copied from, and Apply leaves them out (Check, Draft and Enter only
+work for competitions Sorare lists). The Home says how many lineups are expected and the week picker adds "expected" beside the plan.
+The day Sorare lists the real competitions, the next refresh shows only those.
 
 Every gameweek is **kept** once its scores are final (a day after it ends, and once everything it was built from could
 be read from Sorare) and stays in the picker with its replay and hindsight, however old. A week played before Sofix started

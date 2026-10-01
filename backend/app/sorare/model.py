@@ -147,6 +147,10 @@ class Competition:
     reference: dict[int, float] = field(default_factory=dict)  # rank -> score that paid, from a past gameweek
     reference_rooms: list[float] = field(default_factory=list)  # scores from real rooms of 10
     reference_from: str = ""  # which gameweek those came from
+    expected: bool = (
+        False  # Sorare has not opened it: copied from a finished gameweek (`expected_from`), cannot be entered
+    )
+    expected_from: str = ""  # "GW15"
 
     @property
     def is_room(self) -> bool:

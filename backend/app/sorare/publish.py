@@ -16,7 +16,7 @@ from typing import Any
 import numpy as np
 
 from app.services.scoring import difficulty_label, difficulty_score, label_bucket
-from app.sorare import projection, rules, xg
+from app.sorare import expected, projection, rules, xg
 from app.sorare.forecast import GameStart, PlayerWeek
 from app.sorare.forecast import forecasts as build_forecasts
 from app.sorare.model import SORARE_POSITION, Card, Competition, Forecast
@@ -284,7 +284,13 @@ def player_weeks(
 
 
 # --------------------------------------------------------------------------- competitions
-def read_competitions(raw: list[dict[str, Any]], references: dict[str, Any]) -> list[Competition]:
+def read_competitions(
+    raw: list[dict[str, Any]], references: dict[str, Any], expected_from: str | None = None
+) -> list[Competition]:
+    """The competitions of one gameweek with the scores that paid in a finished one.
+
+    `expected_from` marks them as the ones Sorare is going to open, copied from that finished gameweek (`GW15`).
+    """
     comps = []
     for payload in raw:
         if payload.get("skipped") or not payload.get("appearances"):
@@ -294,8 +300,40 @@ def read_competitions(raw: list[dict[str, Any]], references: dict[str, Any]) -> 
         comp.reference = {int(k): float(v) for k, v in (reference.get("cuts") or {}).items()}
         comp.reference_rooms = [float(v) for v in (reference.get("rooms") or [])]
         comp.reference_from = f"GW{reference['gameweek']}" if reference.get("gameweek") else ""
+        if expected_from:
+            comp.expected, comp.expected_from = True, expected_from
         comps.append(comp)
     return comps
+
+
+def official_laliga(comps: list[Competition]) -> bool:
+    """Whether Sorare lists a competition that counts LaLiga games for this gameweek."""
+    return any(expected.LALIGA in (comp.leagues or ()) for comp in comps)
+
+
+def expected_competitions(snapshot: dict[str, Any], laliga_games: int) -> list[Competition]:
+    """The LaLiga competitions Sorare is going to open for a week with this many LaLiga games, from the finished week of its kind.
+
+    Nothing when the week holds no LaLiga game, or when no finished week of its kind has been read yet (`expected`).
+    """
+    if not expected.gets_laliga(laliga_games):
+        return []
+    template = (snapshot.get("expected") or {}).get(expected.band(laliga_games))
+    if not template:
+        return []
+    reference = (snapshot.get("references") or {}).get(template["slug"], {})
+    return read_competitions(template["competitions"], reference, expected_from=f"GW{template['number']}")
+
+
+def with_expected(snapshot: dict[str, Any], comps: list[Competition], week: dict[str, Any]) -> list[Competition]:
+    """A gameweek Sorare has opened, plus the LaLiga competitions it has not listed for it yet.
+
+    Only when the week holds a LaLiga game and Sorare lists none for it: once it lists them they are the week's own, and the
+    expected ones are not added, so no competition is ever shown twice.
+    """
+    if official_laliga(comps):
+        return comps
+    return [*comps, *expected_competitions(snapshot, int(week.get("laliga") or 0))]
 
 
 def why_not(comp: Competition, cards: list[Card], forecasts: dict[str, Forecast]) -> str:
@@ -339,6 +377,11 @@ def why_not(comp: Competition, cards: list[Card], forecasts: dict[str, Forecast]
     if comp.cap:
         return f"No {comp.size} under the {int(comp.cap)} cap"
     return "No lineup fits its rules"
+
+
+def _expected_flags(comp: Competition) -> dict[str, Any]:
+    """What marks a competition Sorare has not opened: it is copied from a finished gameweek and cannot be entered."""
+    return {"expected": True, "expectedFrom": comp.expected_from} if comp.expected else {}
 
 
 def lineups_possible(comp: Competition, cards: list[Card], forecasts: dict[str, Forecast]) -> int:
@@ -502,6 +545,7 @@ def lineup_payload(
         "starters": starters,
         "subs": subs,
         "average": round(sum(c.average for c in lineup.starters)),
+        **_expected_flags(comp),
     }
     if lineup.actual is not None:
         actual_need = score_at_rank(actual_reference or {}, paying[-1].hi) if paying and actual_reference else None
@@ -636,13 +680,20 @@ def gameweek_payload(
                         {"lo": t.lo, "hi": t.hi, "cash": t.cash, "essence": t.essence, "card": t.card}
                         for t in comp.paying_tiers
                     ],
+                    **_expected_flags(comp),
                 }
             )
             if comp in with_reference:
                 ready.append(comp)
         elif any(comp.allows(c) and forecasts.get(c.player, Forecast(0, 0)).p_play > 0 for c in cards):
             blocked.append(
-                {"name": comp.name, "rarity": comp.rarity, "group": comp.group, "why": why_not(comp, cards, forecasts)}
+                {
+                    "name": comp.name,
+                    "rarity": comp.rarity,
+                    "group": comp.group,
+                    "why": why_not(comp, cards, forecasts),
+                    **_expected_flags(comp),
+                }
             )
 
     found = plans(ready, cards, forecasts, count=count, runs=runs, seed=seed, draws=draws) if ready else []
@@ -772,21 +823,19 @@ def projected_weeks(
 ) -> list[dict[str, Any]]:
     """An early plan for each LaLiga round Sorare has not opened a gameweek for.
 
-    Which cards play comes from the LaLiga calendar; the competitions are the ones of the gameweek being planned, the
-    best guess of what Sorare will publish; the forecasts stand on form, since Sorare projects only a player's next game.
+    Which cards play comes from the LaLiga calendar; the competitions are the LaLiga ones Sorare is going to open for a round
+    of that size, copied from the latest finished gameweek of its kind (`expected`), with that week's rewards and cut-offs; the
+    forecasts stand on form, since Sorare projects only a player's next game.
     The one exception is `ff`, Futbol Fantasy's chance game by game: it has each club's next game, so it speaks for the
     round about to be played and for no round after it. A player it has out or suspended is in no lineup.
     One plan is enough this far out: the numbers will move before the week opens, and Sorare's own replace all of it.
     """
     cards, _ = read_cards(snapshot["cards"])
-    plan_week = snapshot["planGameweek"]
-    reference_for = snapshot.get("referenceFor") or {}
-    reference = (snapshot.get("references") or {}).get(reference_for.get("plan", ""), {})
-    comps = read_competitions(snapshot["competitions"].get(plan_week["slug"], []), reference)
     out = []
     for round_ in rounds:
         start, end, lock = projection.window(round_.first)
         games = projection.games_for(cards, round_)
+        comps = expected_competitions(snapshot, len(round_.matches))
         forecasts = build_forecasts(
             player_weeks(snapshot["cards"], games, snapshot["history"], lock, None, use_sorare=False, ff=ff)
         )
@@ -811,7 +860,11 @@ def projected_weeks(
             runs=max(4, runs // 4),
             draws=draws,
         )
-        early["projected"] = {"round": round_.number, "basedOn": f"GW{plan_week['number']}"}
+        early["projected"] = {
+            "round": round_.number,
+            "basedOn": comps[0].expected_from if comps else "",
+            "expected": bool(comps),
+        }
         out.append(early)
     return out
 
@@ -826,6 +879,7 @@ def projected_heads(weeks: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "to": week["gameweek"]["end"],
             "cards": week["playing"]["cards"],
             "plans": len(week["plans"]),
+            "expected": bool(week["projected"].get("expected")),
         }
         for week in weeks
     ]
@@ -857,7 +911,9 @@ def build_payload(
     reference_for = snapshot.get("referenceFor") or {}
     references = snapshot.get("references") or {}
     plan_reference = references.get(reference_for.get("plan", ""), {})
-    plan_comps = read_competitions(snapshot["competitions"].get(plan_week["slug"], []), plan_reference)
+    plan_comps = with_expected(
+        snapshot, read_competitions(snapshot["competitions"].get(plan_week["slug"], []), plan_reference), plan_week
+    )
     plan_forecasts = build_forecasts(
         player_weeks(
             snapshot["cards"], plan_games, snapshot["history"], _dt(plan_week["lock"]), None, use_sorare=True, ff=ff
@@ -922,10 +978,16 @@ def build_payload(
     # projection only for a player's next fixture, so these stand on form and the payload says so.
     ahead: list[dict[str, Any]] = []
     for i, week in enumerate(snapshot.get("aheadGameweeks") or []):
-        comps = read_competitions(snapshot["competitions"].get(week["slug"], []), plan_reference)
+        comps = with_expected(
+            snapshot, read_competitions(snapshot["competitions"].get(week["slug"], []), plan_reference), week
+        )
         games = card_games(snapshot["cards"], f"a{i}")
+        # Futbol Fantasy has each club's next game, which can sit in a week Sorare has opened but is not planning yet (the weekend
+        # round during an international break): it speaks for those games and for no other.
         forecasts = build_forecasts(
-            player_weeks(snapshot["cards"], games, snapshot["history"], _dt(week["lock"]), None, use_sorare=False)
+            player_weeks(
+                snapshot["cards"], games, snapshot["history"], _dt(week["lock"]), None, use_sorare=False, ff=ff
+            )
         )
         ahead.append(
             gameweek_payload(

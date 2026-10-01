@@ -416,3 +416,43 @@ def test_the_ten_round_8_matches_stay_light_enough_to_be_read_on_every_visit(rea
     size = len(json.dumps(built(real), separators=(",", ":")))
 
     assert size < 250_000, f"the ten round-8 matches are {size} bytes"
+
+
+# ------------------------------------------------------------------------------------------ who comes in for whom
+def with_next(real: list[ffm.Match], name: str, slugs: tuple[str, ...]) -> tuple[list[ffm.Match], ffm.Player]:
+    """The real matches with the first starter of one side told who comes in for him (his `next`, by profile slug)."""
+    import dataclasses
+
+    changed = []
+    first = sides(real, name).xi[0]
+    for one in real:
+        home, away = one.home, one.away
+        if home.name == name:
+            home = dataclasses.replace(home, xi=(dataclasses.replace(first, next=slugs), *home.xi[1:]))
+        if away.name == name:
+            away = dataclasses.replace(away, xi=(dataclasses.replace(first, next=slugs), *away.xi[1:]))
+        changed.append(dataclasses.replace(one, home=home, away=away))
+    return changed, first
+
+
+def test_a_starter_lists_who_comes_in_for_him_by_the_ids_of_the_bench(real: list[ffm.Match]) -> None:
+    bench = [p for p in sides(real, "Real Sociedad").alternatives if p.slug][:2]
+    matches, first = with_next(real, "Real Sociedad", (bench[1].slug or "", "nobody-on-the-bench", bench[0].slug or ""))
+    home = find(built(matches), 22502)["home"]
+    shown = {p["id"]: p for r in home["rows"] for p in r["players"]}
+
+    assert shown[first.ff_id]["next"] == [bench[1].ff_id, bench[0].ff_id], "the page's order, and only who is on the bench"
+    assert all("next" not in p for pid, p in shown.items() if pid != first.ff_id), "a slot the page names nobody under has none"
+
+
+def test_a_bench_player_can_be_next_in_line_in_more_than_one_slot(real: list[ffm.Match]) -> None:
+    import dataclasses
+
+    source = sides(real, "Real Sociedad")
+    bench = next(p for p in source.alternatives if p.slug)
+    xi = tuple(dataclasses.replace(p, next=(bench.slug or "",)) for p in source.xi[:3]) + source.xi[3:]
+    changed = [dataclasses.replace(m, home=dataclasses.replace(m.home, xi=xi)) if m.home.name == "Real Sociedad" else m for m in real]
+    home = find(built(changed), 22502)["home"]
+    shown = {p["id"]: p for r in home["rows"] for p in r["players"]}
+
+    assert [shown[p.ff_id].get("next") for p in source.xi[:3]] == [[bench.ff_id]] * 3

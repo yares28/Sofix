@@ -32,7 +32,7 @@ from app.db import SessionLocal
 from app.logging_config import configure_logging
 from app.models import ReadModel
 from app.services.publish import notify_app, put
-from app.sorare import early, ff_feed, ff_lineups, ff_link, ff_news, ff_use, projection, starts
+from app.sorare import card_art, early, ff_feed, ff_lineups, ff_link, ff_news, ff_use, projection, starts
 from app.sorare import publish as sorare_publish
 from app.sorare import record as sorare_record
 from app.sorare import sync as sorare_sync
@@ -111,6 +111,7 @@ def publish_lineups(
     at: datetime,
     *,
     write: bool,
+    art: card_art.Art | None = None,
 ) -> dict[str, Any]:
     """The Lineups page's data, written as soon as the site has been read: it does not wait for the plans, which take minutes.
 
@@ -126,7 +127,7 @@ def publish_lineups(
         db.rollback()  # the squad pages are read over a minute or more, and Neon closes a connection left inside a transaction
         memory, squads = ff_lineups.read_squads(memory, feed, at)
         memory = ff_lineups.Memory(ff_lineups.remember(memory.positions, feed, lineups), memory.squads)
-        page = ff_lineups.payload(feed, lineups, cards, memory.positions, at)
+        page = ff_lineups.payload(feed, lineups, cards, memory.positions, at, art)
         if write:
             ff_lineups.save_memory(db, memory, at)
             put(db, ff_lineups.LINEUPS_KEY, page, at)
@@ -214,6 +215,7 @@ def run(
     # Sorare and the planner take a few minutes; Neon closes a connection that sits inside an open
     # transaction, so the session is let go here and picked up again to write the result.
     db.rollback()
+    failed: dict[str, str] = {}
     with SorareClient() as client:
         snapshot = sorare_sync.snapshot(
             client,
@@ -223,6 +225,13 @@ def run(
             replayed=replayed,
             cached_templates=templates,
         )
+        # A real Sorare card for every LaLiga player, owned or not: the Lineups page draws everyone as his card. Without it a
+        # player is drawn as he was before, so a step that fails costs only that.
+        art: card_art.Art | None = optional(
+            db, failed, "card art", lambda: card_art.refresh(db, client, started, write=not dry_run), None
+        )
+    if art is None:
+        art = optional(db, failed, "card art (kept)", lambda: card_art.load(db), None)
     # Understat's xG for the midfielders and forwards, for the leagues the owner has players in: one request each, and a
     # league that cannot be read is left out, so its players simply show no xG.
     leagues = sorted(
@@ -233,12 +242,11 @@ def run(
         }
     )
     snapshot["understat"] = understat.fetch_leagues(leagues, understat.season_of(started.date()))
-    failed: dict[str, str] = {}
     fetched = datetime.fromisoformat(snapshot["fetchedAt"])
     # Futbol Fantasy's expected lineups, before anything is planned: its chance that each player starts each game is what
     # the expected scores, the plans and the captain are built on. Only the gameweek being planned uses it.
     feed, lineups = read_lineups(db, failed, snapshot, fetched, write=not dry_run)
-    lineups_page = publish_lineups(db, failed, snapshot, feed, lineups, fetched, write=not dry_run)
+    lineups_page = publish_lineups(db, failed, snapshot, feed, lineups, fetched, write=not dry_run, art=art)
     db.rollback()
     # Every LaLiga round Sorare has not opened a gameweek for is planned early, from the calendar the app already holds. A
     # run plans only the few that are missing or stale, so it stays well inside its time; the rest keep their last plan.

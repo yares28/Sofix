@@ -17,6 +17,7 @@ export default function SorareImage({
   fill = false,
   className,
   onError,
+  onLoad,
 }: {
   src: string | null | undefined;
   alt?: string;
@@ -26,9 +27,11 @@ export default function SorareImage({
   className?: string;
   /** Called when the picture fails to load, so a caller can show a fallback (client components only). */
   onError?: () => void;
+  /** Called once the picture is there, so a caller can take away what stood in for it. */
+  onLoad?: () => void;
 }) {
   if (!src || !SORARE_ORIGINS.some((origin) => src.startsWith(origin))) return null;
-  const common = { src, unoptimized: true, loading: "lazy" as const, referrerPolicy: "no-referrer" as const, className, onError };
+  const common = { src, unoptimized: true, loading: "lazy" as const, referrerPolicy: "no-referrer" as const, className, onError, onLoad };
   return fill ? (
     <Image alt={alt} {...common} fill sizes="120px" style={{ objectFit: "cover" }} />
   ) : (

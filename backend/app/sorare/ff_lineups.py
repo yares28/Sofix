@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 from app.models import ReadModel
 from app.services.publish import put
 from app.sorare import ff_link, ff_use
+from app.sorare.card_art import Art
 from app.sorare.ff_feed import Feed, Stored
 from app.sorare.model import POSITIONS, Card
 from app.sources import futbolfantasy_matches as ffm
@@ -162,12 +163,17 @@ def _player(
     line: str | None,
     *,
     eleven: bool,
+    bench: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     out: dict[str, Any] = {"id": player.ff_id, "name": player.name, "p": player.chance}
     if eleven:
         out["x"], out["y"] = player.x, player.y
         if player.goalkeeper:
             out["gk"] = True
+        # who the page puts under him as able to come in for him, by the ids of the bench (one player can be under several slots)
+        coming = [bench[slug] for slug in player.next if bench and slug in bench]
+        if coming:
+            out["next"] = coming
     elif line:
         out["pos"] = line
     if player.age:
@@ -186,6 +192,9 @@ def _side(
     lineups: ff_use.Lineups | None,
     positions: Mapping[str, str],
     cards: dict[str, None],
+    art: Art | None = None,
+    found_art: dict[str, str] | None = None,
+    today: date | None = None,
 ) -> dict[str, Any]:
     persons = ff_link.people(side)
     by_id = {p.ff_id: p for p in persons if p.ff_id}
@@ -197,11 +206,17 @@ def _side(
             cards[found] = None
         return found
 
+    if art is not None and found_art is not None and art.wanted:
+        # a real Sorare card for each person of the page the roster names, whoever owns it
+        for slug, link in ff_link.link_side(side, art.wanted, today or date.today()).links.items():
+            if link.person.ff_id and slug in art.urls:
+                found_art[link.person.ff_id] = art.urls[slug]
     rows, formation = pitch(side.xi)
+    bench = {p.slug: p.ff_id for p in side.alternatives if p.slug}
     drawn = [
         {
             "line": line,
-            "players": [_player(p, by_id.get(p.ff_id), yours(p), line, eleven=True) for p in group],
+            "players": [_player(p, by_id.get(p.ff_id), yours(p), line, eleven=True, bench=bench) for p in group],
         }
         for line, group in rows
     ]
@@ -266,11 +281,16 @@ def payload(
     cards: Sequence[Card],
     positions: Mapping[str, str],
     now: datetime,
+    art: Art | None = None,
 ) -> dict[str, Any]:
-    """The `lineups` read model: every match held that is still to be played or was played a few hours ago."""
+    """The `lineups` read model: every match held that is still to be played or was played a few hours ago.
+
+    `art` is Sorare's card picture of each LaLiga player (`card_art`): the page draws a player the owner does not have as a real card.
+    """
     shown = [item for item in feed.matches.values() if item.match.kickoff is None or item.match.kickoff > now - STAYS]
     shown.sort(key=lambda item: (item.match.kickoff is None, item.match.kickoff or now, item.match.match_id))
     used: dict[str, None] = {}
+    found_art: dict[str, str] = {}
     matches = []
     for item in shown:
         match = item.match
@@ -283,8 +303,8 @@ def payload(
             "kickoff": match.kickoff.isoformat() if match.kickoff else None,
             "score": list(match.score) if match.score else None,
             "readAt": item.read_at.isoformat(),
-            "home": _side(match.home, item, lineups, positions, used),
-            "away": _side(match.away, item, lineups, positions, used),
+            "home": _side(match.home, item, lineups, positions, used, art, found_art, now.date()),
+            "away": _side(match.away, item, lineups, positions, used, art, found_art, now.date()),
         }
         if match.round_no is None and match.round_label:
             entry["phase"] = match.round_label
@@ -297,6 +317,7 @@ def payload(
         "failed": list(feed.failed),
         "stopped": feed.stopped,
         "matches": matches,
+        "art": found_art,
         "cards": {
             slug: {
                 "name": owned[slug].name,

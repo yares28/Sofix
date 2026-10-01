@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { MouseEvent } from "react";
 import {
+  CHANCE_KEY,
   MAX_AGE_MS,
   calledUpIn,
   chanceTone,
@@ -29,7 +30,7 @@ import {
   type Section,
 } from "../../lib/lineups";
 import { cardHref } from "../../lib/links";
-import { ExternalIcon, InfoIcon, KindIcon, CalledUpIcon } from "./Icons";
+import { CalledUpMark, ExternalIcon, InfoIcon, KindIcon } from "./Icons";
 import Shield from "./Shield";
 import TeamColumn from "./TeamColumn";
 
@@ -134,6 +135,7 @@ export default function LineupsView({ data, sections, initial, now, clubs, sorar
       <article key={selected.id} className="lu-match" aria-label={`${selected.home.name} against ${selected.away.name}`}>
         <MatchHead match={selected} state={state} now={now} clubs={clubs} />
         <YoursStrip match={selected} />
+        <ChanceKey />
         <fieldset className="lu-switch" aria-label="Team">
           <legend className="visually-hidden">Team</legend>
           <input type="radio" name="lu-side" id="lu-side-home" className="lu-pick lu-pick-home" defaultChecked />
@@ -147,13 +149,28 @@ export default function LineupsView({ data, sections, initial, now, clubs, sorar
             {selected.away.name}
           </label>
           <div className="lu-teams">
-            <TeamColumn side={selected.home} place="home" round={selected.round} cards={data.cards} look={lookOf(selected.home, clubs)} now={now} />
-            <TeamColumn side={selected.away} place="away" round={selected.round} cards={data.cards} look={lookOf(selected.away, clubs)} now={now} />
+            <TeamColumn side={selected.home} place="home" round={selected.round} cards={data.cards} art={data.art} look={lookOf(selected.home, clubs)} now={now} />
+            <TeamColumn side={selected.away} place="away" round={selected.round} cards={data.cards} art={data.art} look={lookOf(selected.away, clubs)} now={now} />
           </div>
         </fieldset>
         <Legend calledUp={calledUpIn(selected)} />
       </article>
     </main>
+  );
+}
+
+/** What the colours of the % badges mean, once, under the match head (the legend at the foot said it for no colour at all). */
+function ChanceKey() {
+  return (
+    <div className="lu-key" role="group" aria-label="What the colours of the chances mean">
+      <b>Chance to start</b>
+      {CHANCE_KEY.map((one) => (
+        <span key={one.tone}>
+          <i data-tone={one.tone} aria-hidden="true" />
+          {one.label}
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -349,11 +366,11 @@ function Legend({ calledUp }: { calledUp: boolean }) {
       </span>
       {calledUp ? (
         <span>
-          <CalledUpIcon size={16} />
-          Called up by his national team
+          <CalledUpMark code="ES" sample />
+          <span>Called up by his national team</span>
         </span>
       ) : null}
-      <em>% = his chance of starting, from Futbol Fantasy. Under each line: who else could play there.</em>
+      <em>% = his chance of starting, from Futbol Fantasy. Under a card: who could come in for him.</em>
     </footer>
   );
 }

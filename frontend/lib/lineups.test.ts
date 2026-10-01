@@ -20,6 +20,8 @@ import {
   shortCode,
   sorareLine,
   splitAbsent,
+  CHANCE_KEY,
+  slotAlternatives,
   splitDead,
   squadOut,
   startersIn,
@@ -77,7 +79,7 @@ function match(id: number, kickoff: string | null, extra: Partial<LineupMatch> =
 }
 
 function data(matches: LineupMatch[], extra: Partial<LineupsData> = {}): LineupsData {
-  return { version: 1, generatedAt: NOW.toISOString(), readAt: "2026-10-10T14:50:00Z", failed: [], stopped: null, matches, cards: {}, ...extra };
+  return { version: 1, generatedAt: NOW.toISOString(), readAt: "2026-10-10T14:50:00Z", failed: [], stopped: null, matches, cards: {}, art: {}, ...extra };
 }
 
 const player = (id: string, extra: Record<string, unknown> = {}) => ({ id, name: `P ${id}`, p: 0.5, ...extra });
@@ -489,5 +491,74 @@ describe("switching match inside the page", () => {
     expect(matchAsked(matches, null, matches[1]!).id).toBe(2);
     expect(matchAsked(matches, "999", matches[1]!).id).toBe(2);
     expect(matchAsked(matches, "", matches[0]!).id).toBe(1);
+  });
+});
+
+describe("slotAlternatives", () => {
+  const pl = (id: string, extra: Record<string, unknown> = {}) => ({ id, name: `P ${id}`, p: 0.5, ...extra }) as LineupSide["alternatives"][number];
+  const starter = (id: string, next?: string[]) => pl(id, { x: 50, y: 50, ...(next ? { next } : {}) });
+
+  it("is the old placement by line when the page names nobody under any slot", () => {
+    const placed = slotAlternatives(side("A", { rows: [{ line: "DEF", players: [starter("1")] }], alternatives: [pl("9", { pos: "DEF" })] }));
+    expect(placed.perSlot).toBe(false);
+    expect(placed.rest.map((one) => one.id)).toEqual(["9"]);
+  });
+
+  it("puts who can come in under the slot he fills, in the page's order, and one player under several slots", () => {
+    const placed = slotAlternatives(
+      side("A", {
+        rows: [
+          { line: "FWD", players: [starter("1", ["8"]), starter("2", ["8", "9"])] },
+          { line: "DEF", players: [starter("3")] },
+        ],
+        alternatives: [pl("8"), pl("9"), pl("7")],
+      }),
+    );
+    expect(placed.perSlot).toBe(true);
+    expect(placed.bySlot.get("1")!.map((one) => one.id)).toEqual(["8"]);
+    expect(placed.bySlot.get("2")!.map((one) => one.id)).toEqual(["8", "9"]);
+    expect(placed.bySlot.has("3")).toBe(false);
+    expect(placed.rest.map((one) => one.id)).toEqual(["7"]); // on the bench, named under no slot
+  });
+
+  it("folds the ones at 5% or less, or out, into the 'more' list even when a slot names them", () => {
+    const placed = slotAlternatives(
+      side("A", {
+        rows: [{ line: "MID", players: [starter("1", ["8", "9", "7"])] }],
+        alternatives: [pl("8", { p: 0.02 }), pl("9", { status: { kind: "out" } }), pl("7", { p: 0.4 })],
+      }),
+    );
+    expect(placed.bySlot.get("1")!.map((one) => one.id)).toEqual(["7"]);
+    expect(placed.dead.map((one) => one.id).sort()).toEqual(["8", "9"]);
+    expect(placed.rest).toEqual([]);
+  });
+
+  it("ignores an id the bench does not have, and keeps a player of yours however unlikely", () => {
+    const placed = slotAlternatives(
+      side("A", {
+        rows: [{ line: "MID", players: [starter("1", ["404", "8"])] }],
+        alternatives: [pl("8", { p: 0.01, yours: "someone" })],
+      }),
+    );
+    expect(placed.bySlot.get("1")!.map((one) => one.id)).toEqual(["8"]);
+  });
+});
+
+describe("the colour key", () => {
+  it("names each shade of the % badge with the range it covers, the ones chanceTone draws", () => {
+    expect(CHANCE_KEY.map((one) => one.tone)).toEqual(["strong", "good", "mid", "low"]);
+    expect(CHANCE_KEY.map((one) => one.label)).toEqual(["80% or more", "60–79%", "40–59%", "under 40%"]);
+    for (const [percent, tone] of [[100, "strong"], [80, "strong"], [79, "good"], [60, "good"], [59, "mid"], [40, "mid"], [39, "low"], [0, "low"]] as const) {
+      expect(chanceTone(percent / 100), String(percent)).toBe(tone);
+    }
+  });
+});
+
+describe("readable", () => {
+  it("gives a payload from before the card art an empty art, and keeps the art it has", () => {
+    const old = readable({ version: 1, matches: [] });
+    expect(old?.art).toEqual({});
+    const fresh = readable({ version: 1, matches: [], art: { "5032": "https://assets.sorare.com/card/x/picture/y.png" } });
+    expect(fresh?.art["5032"]).toBe("https://assets.sorare.com/card/x/picture/y.png");
   });
 });

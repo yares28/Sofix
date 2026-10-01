@@ -21,6 +21,8 @@ export type PlayerStatus = {
   since?: string;
   note?: string;
   international?: boolean;
+  /** The country he is called up by, as the two letters Futbol Fantasy writes ("KE"). */
+  nat?: string;
   yellows?: number;
 };
 
@@ -38,6 +40,8 @@ export type LineupPlayer = {
   status?: PlayerStatus;
   /** The Sorare slug of the owner's player this is. */
   yours?: string;
+  /** A starter only: the ids of the alternatives the page puts under him as able to come in for him, in its order (one can be under several). */
+  next?: string[];
 };
 
 export type PitchRow = { line: Line; players: LineupPlayer[] };
@@ -91,6 +95,8 @@ export type LineupsData = {
   stopped: string | null;
   matches: LineupMatch[];
   cards: Record<string, OwnedCard>;
+  /** A real Sorare card for every player the job could link to one, by his Futbol Fantasy id: how a player the owner does not have is drawn. */
+  art: Record<string, string>;
 };
 
 /** The payload is the job's own; a row that does not look like it is left out rather than drawn wrongly. */
@@ -98,7 +104,7 @@ export function readable(value: unknown): LineupsData | null {
   if (!value || typeof value !== "object") return null;
   const data = value as Partial<LineupsData>;
   if (data.version !== 1 || !Array.isArray(data.matches)) return null;
-  return { cards: {}, failed: [], stopped: null, readAt: null, generatedAt: "", ...data } as LineupsData;
+  return { cards: {}, art: {}, failed: [], stopped: null, readAt: null, generatedAt: "", ...data } as LineupsData;
 }
 
 // ------------------------------------------------------------------------------------------------------ the matches
@@ -301,6 +307,38 @@ export function splitDead(players: LineupPlayer[]): { live: LineupPlayer[]; dead
   return { live, dead };
 }
 
+export type SlotPlacement = {
+  /** False for a payload whose page named nobody under any slot: the alternatives are then placed by line, as before. */
+  perSlot: boolean;
+  /** Each starter's own alternatives, still in the running, in the page's order. */
+  bySlot: Map<string, LineupPlayer[]>;
+  /** The ones in the running that no slot names, and the ones that fold into "+N more". */
+  rest: LineupPlayer[];
+  dead: LineupPlayer[];
+};
+
+/**
+ * Who could come in for whom, the way Futbol Fantasy draws it: under each starter's own card, the names of the alternatives for his
+ * slot, so one player can stand under several. Anyone at 5% or less or out still folds into "+N more" (`splitDead`).
+ */
+export function slotAlternatives(side: LineupSide): SlotPlacement {
+  const { live, dead } = splitDead(side.alternatives);
+  const starters = side.rows.flatMap((row) => row.players);
+  if (!starters.some((one) => (one.next?.length ?? 0) > 0)) return { perSlot: false, bySlot: new Map(), rest: live, dead };
+  const liveById = new Map(live.map((one) => [one.id, one]));
+  const named = new Set<string>();
+  const bySlot = new Map<string, LineupPlayer[]>();
+  for (const one of starters) {
+    const chips = (one.next ?? []).flatMap((id) => {
+      named.add(id);
+      const found = liveById.get(id);
+      return found ? [found] : [];
+    });
+    if (chips.length) bySlot.set(one.id, chips);
+  }
+  return { perSlot: true, bySlot, rest: live.filter((one) => !named.has(one.id)), dead };
+}
+
 /** The injury list without the knocks a player plays despite, which fold into "4 more fit to play" (a player of yours stays). */
 export function splitAbsent(entries: Absent[]): { news: Absent[]; fit: Absent[] } {
   const fit = entries.filter((entry) => entry.kind === "available" && !entry.yours);
@@ -375,6 +413,14 @@ export function chanceTone(p: number | null): Tone {
   const percent = Math.round(p * 100);
   return percent >= 80 ? "strong" : percent >= 60 ? "good" : percent >= 40 ? "mid" : "low";
 }
+
+/** What each shade of the % badge means: the ranges `chanceTone` draws, said once under the match head. */
+export const CHANCE_KEY: { tone: Tone; label: string }[] = [
+  { tone: "strong", label: "80% or more" },
+  { tone: "good", label: "60–79%" },
+  { tone: "mid", label: "40–59%" },
+  { tone: "low", label: "under 40%" },
+];
 
 const surname = (name: string) => name.trim().split(/\s+/).at(-1) ?? name;
 const upper = (text: string) => text.toLocaleUpperCase("es");

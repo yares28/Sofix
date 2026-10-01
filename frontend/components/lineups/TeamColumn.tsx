@@ -4,6 +4,7 @@ import { cardHref } from "../../lib/links";
 import {
   gaugeText,
   playerLabels,
+  slotAlternatives,
   splitAbsent,
   splitDead,
   squadOut,
@@ -45,6 +46,7 @@ export default function TeamColumn({
   place,
   round,
   cards,
+  art,
   look,
   now,
 }: {
@@ -52,13 +54,17 @@ export default function TeamColumn({
   place: "home" | "away";
   round: number | null;
   cards: Record<string, OwnedCard>;
+  /** A real Sorare card for each player the owner does not have, by Futbol Fantasy id. */
+  art: Record<string, string>;
   look: ClubLook | undefined;
   now: Date;
 }) {
   // One short name per player, pitch cards and chips alike: two with the same surname get an initial, whichever list they are in.
   const labels = playerLabels([...side.rows.flatMap((row) => row.players), ...side.alternatives]);
   const mine = new Set(Object.keys(cards));
-  const { byRow, others, dead } = placement(side);
+  // Futbol Fantasy puts who can come in under each starter's own card; a payload from before that was read places them by line.
+  const slots = slotAlternatives(side);
+  const { byRow, others, dead } = slots.perSlot ? { byRow: new Map<number, LineupPlayer[]>(), others: slots.rest, dead: slots.dead } : placement(side);
   const { news, fit } = splitAbsent(side.absent);
   const rotation = gaugeText(side.rotations, "rotations");
   const predict = statusLine(side.predictability, side.season);
@@ -92,10 +98,21 @@ export default function TeamColumn({
       {side.published ? (
         <div className="lu-pitch">
           {side.rows.map((row, index) => (
-            <div key={index} className="lu-row">
+            <div key={index} className="lu-row" style={{ ["--nx" as string]: Math.max(0, ...row.players.map((player) => slots.bySlot.get(player.id)?.length ?? 0)) }}>
               <ul className="lu-cards" aria-label={`${row.line} row`}>
                 {row.players.map((player) => (
-                  <PlayerCard key={player.id} player={player} label={labels[player.id] ?? player.name} line={row.line} card={player.yours ? cards[player.yours] : undefined} calledUp={squadOut(side)} />
+                  <PlayerCard
+                    key={player.id}
+                    player={player}
+                    label={labels[player.id] ?? player.name}
+                    line={row.line}
+                    card={player.yours ? cards[player.yours] : undefined}
+                    calledUp={squadOut(side)}
+                    art={art[player.id]}
+                    next={slots.bySlot.get(player.id)}
+                    labels={labels}
+                    mine={mine}
+                  />
                 ))}
               </ul>
               <Alternatives players={byRow.get(index) ?? []} mine={mine} labels={labels} />
@@ -103,7 +120,7 @@ export default function TeamColumn({
           ))}
           {others.length ? (
             <div className="lu-row lu-others">
-              <span className="lu-others-title">Others in the squad</span>
+              <span className="lu-others-title">{slots.perSlot ? "Also on the bench" : "Others in the squad"}</span>
               <Alternatives players={others} mine={mine} labels={labels} />
             </div>
           ) : null}

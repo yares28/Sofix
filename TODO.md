@@ -300,8 +300,8 @@ Looked at `/lineups` (all 10 matches), `/`, `/play` (GW19, GW20, LaLiga GW8, 9, 
 `/fixtures`, `/difficulty`, `/table` and the sorare.com lineup page with the overlay. Not seen: a phone-width screen
 (the browser cannot go below about 500 px; the phone CSS was only read), a match that has kicked off, a failed or old
 Futbol Fantasy read, a European or cup round. Per your rule: broken first, then one step at a time, each checked on
-production. **Order, goals and checks: [plans/review-fixes.md](plans/review-fixes.md); batches 1 and 2 (R1–R5, R7–R19) are fixed and
-checked on production, 1 Oct (see its Results).** Corrected 1 Oct: FF only has each
+production. **Order, goals and checks: [plans/review-fixes.md](plans/review-fixes.md); batches 1, 2 and 3 (R1–R5, R7–R28) are fixed and
+checked on production, 1–2 Oct, except the overlay's R26 which needs the extension reloaded (see its Results).** Corrected 1 Oct: FF only has each
 club's next LaLiga game (today round 8), never older rounds, later rounds or national-team weeks; R1, R2 and R4 below are
 narrowed accordingly.
 

@@ -419,3 +419,54 @@ def test_the_squad_reader_keeps_to_its_time_budget() -> None:
     )
 
     assert list(reading.squads) == ["16"] and reading.stopped == "out of time"
+
+
+# ------------------------------------------------------------------------------------------- who comes in for whom
+# The starter's wrapper as the live page of 2 Oct writes it (Alavés–Atlético), pruned to what the parser reads: under him the
+# page lists himself (`pos-0`) and, in the order it puts them, the alternatives who can come in for him in that slot.
+STARTER = """
+<div class="jugador_5032 campo camiseta-wrapper" style="left: 68%; top: 18%" data-index="13" data-onceFF="titular"
+     data-onceFF-x="68%" data-onceFF-y="18%">
+  <a class="camiseta " data-probabilidad="60%" data-edad="29" data-nacionalidad="ES" data-lesion="-1"
+     href="https://www.futbolfantasy.com/jugadores/antonio-martinez/laliga-26-27">
+    <span class="view probabilidad probabilidad-widget force-block d-block mb-1"><span class="mx-auto prob-2">60%</span></span>
+    <div class="fotocontainer laliga"><img alt="Toni Martínez" class="img fotozoom laliga lazyloading"></div>
+  </a>
+  <div class="juggadores">
+    <a class="juggador pos-0 flex-column" data-lesion="-1" href="https://www.futbolfantasy.com/jugadores/antonio-martinez/laliga-26-27">
+      <span class="truncate-name mx-auto">Toni Martinez</span></a>
+    <a class="juggador pos-1 flex-column" data-internacional="1" href="https://www.futbolfantasy.com/jugadores/mariano-diaz/laliga-26-27">
+      <span class="truncate-name mx-auto">Mariano</span></a>
+    <a class="juggador pos-2 flex-column" data-lesion="-1" href="https://www.futbolfantasy.com/jugadores/ander-guevara/laliga-26-27">
+      <span class="truncate-name mx-auto">Guevara</span></a>
+  </div>
+</div>
+"""
+
+
+def test_a_starter_carries_who_comes_in_for_him_in_the_pages_order() -> None:
+    block = ffm._find_all(ffm.parse_html(STARTER), "div", "camiseta-wrapper")[0]
+    player = ffm._player(block, {})
+
+    assert player is not None and player.ff_id == "5032" and player.chance == 0.6
+    assert player.next == ("mariano-diaz", "ander-guevara"), "himself (pos-0) is not his own alternative"
+
+
+def test_a_starter_the_page_names_nobody_under_has_no_alternatives() -> None:
+    plain = STARTER.split('<div class="juggadores">')[0] + "</div>"
+    block = ffm._find_all(ffm.parse_html(plain), "div", "camiseta-wrapper")[0]
+    player = ffm._player(block, {})
+
+    assert player is not None and player.next == ()
+
+
+def test_the_alternatives_of_a_slot_survive_storage_as_a_tuple() -> None:
+    import json
+
+    block = ffm._find_all(ffm.parse_html(STARTER), "div", "camiseta-wrapper")[0]
+    player = ffm._player(block, {})
+    assert player is not None
+    stored = json.loads(json.dumps(ffm.to_dict(player)))
+    assert stored["next"] == ["mariano-diaz", "ander-guevara"]
+    side = ffm._side_from({"name": "Alavés", "slug": None, "club_id": None, "coach": None, "rotations": None, "predictability": None, "season_predictability": None, "xi": [stored]})
+    assert side.xi[0].next == ("mariano-diaz", "ander-guevara") and side.xi[0] == player

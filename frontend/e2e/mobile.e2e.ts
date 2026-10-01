@@ -133,6 +133,18 @@ test("the home's team news fits a phone: one column, no sideways scrolling", asy
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
+test("on a phone the names under each card stay on the screen and the page does not scroll sideways", async ({ page }) => {
+  await page.goto("/lineups?m=22493");
+  await page.locator('label[for="lu-side-away"]').click();
+  const boxes = await page.locator(".lu-nx").evaluateAll((items) => items.filter((el) => el.getClientRects().length).map((el) => el.getBoundingClientRect().toJSON()));
+  expect(boxes.length).toBeGreaterThan(0);
+  for (const box of boxes) {
+    expect(box.left).toBeGreaterThanOrEqual(0);
+    expect(box.right).toBeLessThanOrEqual(390);
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
 test("on a phone every text on Lineups, Cards and Players is 10 px or more", async ({ page }) => {
   for (const route of ["/lineups?m=22502", "/cards", "/players"]) {
     await page.goto(route);

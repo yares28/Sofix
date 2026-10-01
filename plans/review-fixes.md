@@ -232,6 +232,20 @@ This is the largest step. Give it its own push.
 
 - **4.0 · Research Q6 first (free, read-only).** Is there a field in Sorare's schema that gives a card picture for a
   player you do not own? The answer decides the options in 4.1.
+  - **Answer (2 Oct 2026, read-only, 4 calls and no key): yes.** Sorare's `Player` has `pictureUrl` (a cut-out of the player, a PNG of
+    0.5–0.9 MB) and `avatarPictureUrl` (the same at 40 KB; Sorare's grey `player-v2.png` for a player with no picture) for any player
+    of a club, owned or not: `club.activePlayers`, the query the job already runs for Players. On Alavés–Atlético, 43 of the 45 players
+    Futbol Fantasy names were matched to a Sorare player by name alone (the two left, Grimaldo and Cardoso, are no longer in Atlético's
+    Sorare squad) and Sorare has a picture for 42 of them, while FF's own photos load for 20 of the 45 (9 of 23 and 11 of 22). The
+    full-art card exists only for a card someone minted, so (A) means a card frame drawn here with Sorare's cut-out in it. It needs the
+    job to keep one picture per LaLiga player (about 600) and link FF's players to them by name, as it does for your players.
+  - **Better answer (2 Oct 2026, same day, after you asked for the same cards as your own): the full card art is available too.** The
+    public listing `football.allCards(playerSlugs: [...], rarities: [limited], seasonStartYears: [2026], first: 1)` returns a minted
+    Limited card of a player whoever owns it, with the same `pictureUrl` kind as your cards (Boyé, Suárez, Ibáñez, Blanco, Pérez,
+    Castro, Koski, Sivera and Ochieng all have a 2026 Limited card, in Alavés' current kit). Nine players take one aliased query and no
+    key; the picture prints another owner's serial (such as 241/1000), too small to read at card size. So (C) is possible: Sorare's own
+    card for every player, the blue ring on yours. The job would keep one card address per LaLiga player and refresh the ones it lacks;
+    the app already serves card art through its image optimiser. A player with no card falls back to (A).
 - **4.1 · A design canvas** (`/design`, as for the overlay and the first Lineups board):
   - **One card for every player (R6, R31):**
     - (A) Sorare art for everyone, if Q6 allows it.
@@ -244,7 +258,16 @@ This is the largest step. Give it its own push.
     - a tighter pitch (R34)
     - the Team news tile and the "All Star · Ca…" cut-off (R35)
   - **Stop** until you choose. Save the chosen look as `docs/sorare/design/lineups-v2.html`.
+  - **Your answer (2 Oct 2026):** (A) was "not what I had in mind": the goal is the same Sorare cards as Toni, Rebach and Tenaglia for every
+    player, so (C) was drawn and chosen; on the call-up mark and the colour key he did not choose, so the recommendations were built (the
+    country's two letters on a blue chip; a key of four dots under the match head). Added the same day: who could come in sits under the
+    starter's own card, as Futbol Fantasy draws it (Aleñá under Denis Suárez, Mariano under Toni Martínez, Valentini under Jonny), one
+    player under several starters.
 - **4.2 · Build the chosen look,** then compare it with the board on production at desktop and phone width.
+  - **Built (2 Oct 2026):** real Sorare card for every player (`card_art` job step, `sorare_card_art` read model, `art` in the payload,
+    `PlayerCard`), skeleton while the picture loads, crest on a shield in the club's colour, country-letters call-up chip (`status.nat`),
+    colour key (`CHANCE_KEY`), tighter pitch, per-slot alternatives (`Player.next`, `slotAlternatives`), idle Team news sharing a row with
+    Last gameweek and My cards, and each competition's name written whole in Last gameweek.
 
 ## Results
 
@@ -303,6 +326,28 @@ Phone width was again checked only by the mobile e2e project (all 136 tests pass
 
 Goals after batch 2: **G2** holds on Home, Play, Lineups, Cards, Players and Control (the overlay shares the freshness form; its week is Sorare's own page);
 G1, G3 and G6 as after batch 1; G4 and G5 follow.
+
+### Batch 3 · 1–2 Oct 2026 · **pass**, with one correction found on production and made
+
+Merged as #14 (3.1–3.7) and #15 (the correction to 3.3); no backend change, so no refresh was needed (the data is refresh #38's).
+Checked in your Chrome on https://sofix-yares.vercel.app (the window is 2127 px wide, 1003 px high).
+
+| Step | Result | What was seen |
+|---|---|---|
+| 3.1 R20 | pass | Elche–Celta: "Your 17 here" with RADU 95% · VALERA 80% · ALONSO 80% · CHUST 80%… sits at 460 px, the first pitch card at 701 px, in a 1003 px window. "Only my players" dims the other cards to 0.22 and leaves yours at 1. |
+| 3.2 R21–R23 | pass | Elche–Celta folds "+5 more" and "+2 more"; Real Sociedad–Deportivo "+6 more" and "+8 more" and "4 more fit to play"; "Also in the squad, at 0%" is gone. |
+| 3.3 R24 | pass after a fix | The strip (17 links), the pitch (9 of yours) and the chips link to `/cards#p-<slug>`; the tile is found and in view. It was not outlined when reached from Lineups (the browser sets :target only on a full load): fixed in #15 and seen outlined after its deploy (the blue ring, in view). Play, GW21: Mathew Ryan opens `/lineups?m=22496` (Levante–Sevilla), Yuri 22498 (Rayo–Athletic), Güler 22500 (Real Madrid–Villarreal), Iñigo Vicente 22501 (Racing–Valencia). GW19's cards have no link: its games are national teams', which Futbol Fantasy has no page for. |
+| 3.4 R25 | pass | Cards: all 98 tiles have a next game ("v Sevilla · Mon 21:00", "@ Barcelona · Sat 18:30", "@ Switzerland · Sat 20:45") and the sources that have a number ("FF95 SF83"; a national-team game has SF only). Players: "A dash: Sorare gives no projection for his next game." once above the results and on each dash; 11 cards carry a projection. |
+| 3.5 R26 | **not seen live** | It is in `extension/`, which has to be reloaded in Chrome first (Reload on Sofix in `chrome://extensions`). Covered by new unit tests (the drawer's cards, the FF row, the plan) and the 31 overlay e2e tests (drawer: five thumbnails and "+4" for nine cards; Messi's national-team game: FF row "LaLiga only"). |
+| 3.6 R27 | pass | Clicking Real Sociedad–Deportivo changed the match and the address (`/lineups?m=22502`) with 0 requests to `/lineups` and no reload; Back returned to Elche–Celta, the page still the same one. |
+| 3.7 R28 | pass on desktop | Names and positions are 11 px; no text under 11 px on Lineups (m=22502) and Players on production. Phone width: the mobile e2e project checks 10 px on Lineups, Cards and Players (Chrome cannot be narrowed here). |
+
+**Seen while checking, not caused by this batch:** the Cards tile of a player called up by his national team shows that game as his next one
+("@ Poland · Fri 20:45" for Radu tonight), and only Sofix's number for it, because Futbol Fantasy covers LaLiga only; his round 8 chance
+(95%) is on Lineups. The mock's "moved since" reading was 20 h old, so a day-old heading read "Thu 03:06" instead of "yesterday" after 20:00:
+the e2e test failed in the evening and passed in the day; the mock now makes it 24 h.
+
+Goals after batch 3: **G4** holds (the strip is at the top of each match); G1, G2, G3 and G6 as after batch 2; **G5** follows in batch 4.
 
 ## To start a run
 

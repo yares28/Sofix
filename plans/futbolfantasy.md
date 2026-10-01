@@ -211,7 +211,13 @@ Target: S1 to S4 before round 8's lock (Fri 9 Oct), so the numbers switch for ro
   - tabs per competition, and matches by kickoff; picking one switches on the client from the payload the page holds, with `?m=` kept in
     the address through `history.pushState` (`components/lineups/LineupsView.tsx`, `switchTo`; 1 Oct review, R27);
   - for each match, both XIs on the pitch with their %, the alternatives, the injuries, suspensions and warnings, the
-    rotations and predictability;
+    rotations and predictability; the alternatives sit under the starter's own card as the page draws them (`juggadores` inside his
+    wrapper: `pos-0` himself, `pos-1`, `pos-2` who can come in for his slot, one player under several slots; `Player.next` in the parser,
+    `next` ids in the payload, 2 Oct review follow-up);
+  - every player drawn as his real Sorare card (yours with the blue ring, the others a real Limited card of this season kept by the job in
+    `sorare_card_art` and sent as the payload's `art`; a skeleton with his name while it loads; FF's photo or a silhouette when Sorare has
+    none), every club as its crest on a shield in its colour, the call-up as the country's two letters on a blue chip (`status.nat`), and a
+    key to the colours of the % under the match head (2 Oct review, batch 4);
   - your players marked with their card, listed first on each match (a strip with the "Only my players" switch), and each one a link to his
     tile on /cards (`/cards#p-<player slug>`); in return a card in a Play lineup sheet links to its match here (`/lineups?m=<id>`, from the
     `ffMatch` of his game; none for a game FF has no page for);

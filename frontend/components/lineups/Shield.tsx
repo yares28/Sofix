@@ -25,26 +25,12 @@ export default function Shield({
   width?: number;
 }) {
   const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const height = Math.round(width * 1.1);
   const src = failed ? null : crestSource(crest);
-  if (src) {
-    return (
-      <Image
-        src={src}
-        alt=""
-        width={width}
-        height={height}
-        unoptimized
-        loading="lazy"
-        referrerPolicy="no-referrer"
-        className="lu-crest"
-        onError={() => setFailed(true)}
-      />
-    );
-  }
   const fill = color && HEX.test(color) ? color : "#8e8e93";
-  return (
-    <svg className="lu-crest" aria-hidden="true" width={width} height={height} viewBox="0 0 24 26">
+  const shield = (
+    <svg className="lu-crest lu-shield-fb" aria-hidden="true" width={width} height={height} viewBox="0 0 24 26" style={{ opacity: loaded ? 0 : 1 }}>
       <path d="M12 1l10 4v8c0 6.5-4.4 10.6-10 12C6.4 23.6 2 19.5 2 13V5z" fill={fill} />
       <path d="M12 1l10 4v8c0 6.5-4.4 10.6-10 12z" fill="rgba(255,255,255,0.22)" />
       {width >= 40 ? (
@@ -53,5 +39,25 @@ export default function Shield({
         </text>
       ) : null}
     </svg>
+  );
+  // The shield in his colour holds the crest's place from the first paint and steps back once the crest is there; a crest that never
+  // arrives leaves it. The room is the same either way, so nothing moves when it does.
+  if (!src) return <span className="lu-shield" style={{ width, height }}>{shield}</span>;
+  return (
+    <span className="lu-shield" style={{ width, height }}>
+      {shield}
+      <Image
+        src={src}
+        alt=""
+        width={width}
+        height={height}
+        unoptimized
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        className="lu-crest lu-crest-img"
+        onLoad={() => setLoaded(true)}
+        onError={() => setFailed(true)}
+      />
+    </span>
   );
 }

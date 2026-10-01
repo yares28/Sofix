@@ -53,6 +53,22 @@ export function CalledUpIcon({ size = 20, ring = false }: { size?: number; ring?
   );
 }
 
+/** The country a player is called up by: his two letters on a blue pill, and the country's name for a screen reader. */
+export function CalledUpMark({ code, sample = false }: { code: string; sample?: boolean }) {
+  const country = (() => {
+    try {
+      return new Intl.DisplayNames(["en"], { type: "region" }).of(code.toUpperCase()) ?? code;
+    } catch {
+      return code;
+    }
+  })();
+  return (
+    <span className={`lu-call${sample ? " lu-call-key" : ""}`} role="img" aria-label={`Called up by ${country}`} title={`Called up by ${country}`}>
+      {code.toUpperCase()}
+    </span>
+  );
+}
+
 export function InfoIcon() {
   return (
     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">

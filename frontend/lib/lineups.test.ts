@@ -237,6 +237,19 @@ describe("the glance Home takes at the lineups", () => {
   });
 });
 
+describe("what a player is called on a card and on a chip", () => {
+  it("is his surname, with an initial where two of the same side share it, whichever list they are in", () => {
+    const labels = playerLabels([
+      { id: "1", name: "Mikel Oyarzabal" },
+      { id: "2", name: "Álex Remiro" },
+      { id: "3", name: "Jon Williams" },
+      { id: "4", name: "Nico Williams" },
+    ]);
+
+    expect(labels).toEqual({ "1": "OYARZABAL", "2": "REMIRO", "3": "J. WILLIAMS", "4": "N. WILLIAMS" });
+  });
+});
+
 describe("what a match tab says about your players", () => {
   const mixed = match(1, "2026-10-11T14:15:00Z", {
     home: side("Home", {

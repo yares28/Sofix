@@ -254,7 +254,9 @@ FF says so above the next match.
   starting; a round mark at its corner is an injury, a doubt, a ban, or (blue) a call-up to his national team. A call-up is only shown
   once his club has named its match squad on FF; until then the team carries "Squad list not out" and no call-up mark, so the
   page never says both.
-- **Who else could play.** Under each line, the alternatives most likely first, with their chance. A player FF has not
+- **Who else could play.** Under each line, the alternatives most likely first, with their chance. A player is written the same short way
+  on his card and on a chip (his surname, with an initial where two of a side share it), and his full name shows on hover. The % badge
+  sits under a card, never over the name Sorare prints on your own cards. A player FF has not
   placed yet is listed apart as "Others in the squad"; those at 0% are named in one line under the injuries.
 - **Injuries and bans** are icons with FF's words in English: the diagnosis ("ACL tear", "Hamstring injury", "Training
   apart"), "since 12 Sep", and the note ("Doubt for round 8", "Available for round 8", "Out for round 8", "Out until January

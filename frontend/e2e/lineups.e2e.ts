@@ -212,3 +212,22 @@ test("each match tab says how many of your players are in it and how many are st
     expect(starting).toBeLessThanOrEqual(named!);
   }
 });
+
+test("a pitch card and an alternative's chip write a player's name the same way, with the full name on hover", async ({ page }) => {
+  await page.goto("/lineups?m=22502");
+  const home = page.getByRole("region", { name: "Real Sociedad lineup" });
+
+  // a player of the eleven: his surname in capitals on the card (a card of yours shows Sorare art instead), his full name on hover
+  const oyarzabal = home.locator(".lu-card", { hasText: "GUEDES" });
+  await expect(oyarzabal).toHaveAttribute("title", "Gonçalo Guedes");
+  // an alternative: the same short form, not the full name
+  const chip = home.locator(".lu-alt", { hasText: "BARRENETXEA" });
+  await expect(chip).toHaveAttribute("title", "Ander Barrenetxea");
+  await expect(chip).not.toContainText("Ander");
+  // no chip keeps the long form
+  for (const alt of await home.locator(".lu-alt").all()) {
+    const full = (await alt.getAttribute("title"))!;
+    const text = (await alt.innerText()).replace(/\d+%/, "").trim();
+    expect(text, `${full} as a chip`).not.toBe(full.includes(" ") ? full : "");
+  }
+});

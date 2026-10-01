@@ -39,6 +39,13 @@ const planning = sorare.data.weeks.find((week) => week.gameweek.id === sorare.da
     for (const game of player.games) game.ffMatch = { id, url: `https://www.futbolfantasy.com/laliga/partidos/${id}` };
   });
 }
+// Three of the planned week's playing players are cards of the recorded collection (the recording names others), each with what Futbol Fantasy,
+// Sorare and Sofix say of his chance to start: all three, then Sorare's and Sofix's, then Sofix's alone. The rest say nothing.
+[
+  { pStart: 0.8, startSource: "futbolfantasy", sources: { futbolfantasy: 0.8, sorare: 0.7, sofix: 0.54 } },
+  { pStart: 0.7, startSource: "sorare", sources: { sorare: 0.7, sofix: 0.6 } },
+  { pStart: 0.6, startSource: "sofix", sources: { sofix: 0.6 } },
+].forEach((extra, index) => Object.assign(planning.playing.players[index], { player: sorare.data.collection[index].player }, extra));
 
 // The Home's team news (`teamNews` of the gameweek being planned, built by backend/app/sorare/ff_news.py): four of the first lineup's
 // starters under 70%, and five players who moved since a reading a day old, so the tile has something of each to draw.

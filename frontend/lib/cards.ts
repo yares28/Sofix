@@ -242,3 +242,12 @@ export function initials(name: string): string {
 export function priceLabel(eur: number): string {
   return `\u20ac${eur >= 100 ? Math.round(eur).toLocaleString("en-US") : eur.toFixed(2)}`;
 }
+
+const dueFormat = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+
+/** What a dash under "Projected" means: Sorare's own score for his next game, which it only publishes once it has opened the week. */
+export function projectionNote(projectionsAt: string | null, now: Date): string {
+  if (projectionsAt && new Date(projectionsAt).getTime() > now.getTime())
+    return `A dash: Sorare has not published its projection for his next game yet (due ${dueFormat.format(new Date(projectionsAt)).replace(",", "")}, Madrid time).`;
+  return "A dash: Sorare gives no projection for his next game.";
+}

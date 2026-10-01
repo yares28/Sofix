@@ -311,6 +311,12 @@ Cards is the latest synced collection snapshot, not a historical collection at t
 - position and rarity balance;
 - L5/L10/L40 form, play share and gameplay tier when supplied.
 
+Under each card is **his next game** (opponent, `v` home or `@` away, kickoff in Madrid time) and **his chance to start it** from each
+source that has one: Futbol Fantasy (FF), Sorare (SO) and Sofix (SF). The darker number is the one Sofix uses. The game is the earliest one
+still to come in any week the page holds, so a player called up by his national team shows that game; Futbol Fantasy only speaks about a
+club's next LaLiga game. A card whose player has no game in the weeks Sorare has opened says "No game yet". A player of yours linked from
+Lineups is outlined here.
+
 Search by player or club, filter position/rarity and change sort; those choices are URL state and can be bookmarked.
 Excluded cards are folded rather than deleted so the reason remains inspectable.
 
@@ -325,6 +331,10 @@ Each result shows recent average, Sorare projection **if he plays**, cached Limi
 against the fifth-best owned card in the same position. “You have him” prevents an owned player being presented as
 a new signing. The price is Sorare's last-synced market valuation, not the lowest current listing and not an offer
 Sofix can execute.
+
+A dash under **Projected** means Sorare has not given a projection for his next game: Sorare scores a game ahead only once it has
+opened its week. The line above the results says when it is due (Madrid time), or that Sorare gives none; the dash itself carries the same
+words on hover.
 
 If the index is empty, the page should show a sync/schema/key state. It must not broaden silently to other leagues.
 

@@ -31,7 +31,7 @@ export default async function Cards({ searchParams }: { searchParams: SearchPara
       <main className="s5-main">
         <SorareSubnav />
         {ready ? (
-          <CardsView data={data} />
+          <CardsView data={data} now={new Date().toISOString()} />
         ) : (
           <section className="s5-empty" role="status">
             <h1>My cards</h1>

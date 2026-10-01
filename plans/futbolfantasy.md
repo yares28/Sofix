@@ -217,6 +217,8 @@ Target: S1 to S4 before round 8's lock (Fri 9 Oct), so the numbers switch for ro
   - "FF read 14:07 · this team changed 11:40", and a link to FF's match page ("Source: Futbol Fantasy").
 - **Home, under "Sorare":** all teams' start %, compact; your players' next-game %, with what changed since the last
   read; the next matches, compact, opening /lineups.
+- **Cards** shows under each card his next game and the three sources' chances (FF / SO / SF, the one in use darker), from the planned
+  weeks' `sources`; **Players'** "Projected —" is Sorare's own number and says why it is empty.
 - **Play, Cards, Players:** the % with its source wherever a start chance shows. Play's cards say "plays 80%" today
   (starting or coming on); the design decides how FF's "starts" sits beside it.
 - **The overlay:** the tile keeps its place. The hover names the source and when it was read, and gives FF's status

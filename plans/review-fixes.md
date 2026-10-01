@@ -282,6 +282,28 @@ Valera 80); the overlay still shows FF's Spanish diagnosis when a status has no 
 Goals after batch 1: **G1** holds between Play and Lineups; **G6** holds (GW21 has official LaLiga lineups, GW9 and GW10 expected ones);
 **G3** holds on Lineups; G2, G4, G5 and G7's browser part follow in the next batches.
 
+### Batch 2 · 1 Oct 2026 · **pass**
+
+Merged as #13; Vercel live at 17:01 UTC. No backend change, so no refresh was needed; the data is refresh #38's (18:21 Madrid).
+
+| Step | Result | What was seen |
+|---|---|---|
+| 2.1 R13 | pass | The picker, Play's title, Home's head and the notes all use one name. Picker rows: "Sorare GW19 · national teams", "Sorare GW20 · national teams", "LaLiga round 8 · Sorare GW21", "LaLiga round 9 · Sorare not open". Home reads "LaLiga round 8 · 9–12 Oct · Sorare GW21"; Play's titles "LaLiga round 8 · Sorare GW21" and "LaLiga round 9 · Sorare not open"; Cards, Players and Control's bar chip "Sorare GW19 · national teams". The early-plan note names no other week's number. |
+| 2.2 R15 | pass | "synced 40 min ago (18:21)" on Home (which said nothing before), "Updated 41 min ago (18:21)" on Control and in the status pill, "40 min ago (18:21)" in the Lineups header; the overlay's `freshLabel` writes the same form (unit-tested, not seen live). |
+| 2.3 R16 | pass | Chips "15 playable", "98 playable"; right column "≈10 essence · 3 plans", "2 cards play", "98 cards play", "early plan · expected". |
+| 2.4 R17 | pass | Tabs read "MAL – ESP Fri 21:00 · 3 yours · 0 starting", "RAY – ATH · 14 yours · 10 starting"; the legend explains it. |
+| 2.5 R18 | pass | Chips read "OSORIO 30%" with the full name on hover, the same short form as pitch cards ("NIÑO", "LEMAR"). With the real card art on production the % badge now sits under each card and your card's printed name is clear. |
+| 2.6 R19 | pass | "Probable elevens from Futbol Fantasy · kickoffs in Madrid time" on Lineups; "10 matches · Madrid time" on Fixtures. |
+
+**Seen while checking, not caused by this batch:** the Lineups header said "Futbol Fantasy could not be read 40 min ago" because two old match
+pages (22568 Compostela–Deportivo, 22371 Celta–Sporting CP) now return HTTP 404 and each counts as a failed read; a follow-up task was
+raised to drop a removed match quietly. The gold rectangles on your cards while Sorare's art loads (R29) and the grey silhouettes (R6) remain, for batch 4.
+
+Phone width was again checked only by the mobile e2e project (all 136 tests pass with the desktop ones) and `npm run design`.
+
+Goals after batch 2: **G2** holds on Home, Play, Lineups, Cards, Players and Control (the overlay shares the freshness form; its week is Sorare's own page);
+G1, G3 and G6 as after batch 1; G4 and G5 follow.
+
 ## To start a run
 
 The prompt to paste into a new session is the one given in the chat on 1 Oct. In short: work through this file from the

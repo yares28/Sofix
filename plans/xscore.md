@@ -230,40 +230,47 @@ show the error the current model makes). Output: the tables in section 3, by sli
 ### Results of P2 and P3 (2 Oct 2026)
 
 **What was run.** Your 84 players' games from 1 Aug 2025 to 2 Oct 2026: 4,647 games, 4,615 of them scored (4,614 before 1 October,
-62 weeks, and 1 after). Each game is predicted from the games before its week and set against what he scored, zero if he did not play.
-The held-out period (from 1 Oct 2026) holds that one game so far and has not been looked at.
+in 116 Sorare gameweeks, and 1 after). Each game is predicted from the games before its gameweek and set against what he scored,
+zero if he did not play. The held-out period (from 1 Oct 2026) holds that one game so far and has not been looked at. The weeks
+are Sorare's own gameweeks (the file keeps their windows). The first run grouped games by Monday-to-Sunday weeks instead; its
+numbers were nearly the same, but it counted half of the games as being in a two-game week, which was an artefact.
 
 **What it can and cannot say.** It tests the form formula on its own. Sorare's projection and starter odds and Futbol Fantasy's
 chances are not in the history, so how the page does *with* them waits for the recorded weeks (Track B). The players are yours, so
-mostly regulars: 42% of the games are by a regular starter. A "week" here is Monday to Sunday, not Sorare's gameweek, so the
-one-or-two-games slice does not match Sorare's double gameweeks and is not read.
+mostly regulars: 42% of the games are by a regular starter.
 
 | model | games | typical miss (MAE) | squared miss (RMSE) | level (bias) |
 |---|---|---|---|---|
 | always 45 | 4,614 | 23.3 | 28.9 | +9.5 |
-| his last five | 4,614 | 19.4 | 25.4 | +0.3 |
-| his last five of the same kind | 4,614 | 19.4 | 25.4 | +0.3 |
-| today's form formula | 4,614 | 19.6 | **24.6** | **-2.9** |
+| his last five | 4,614 | 19.3 | 25.2 | +0.2 |
+| his last five of the same kind | 4,614 | 19.2 | 25.2 | +0.2 |
+| today's form formula | 4,614 | 19.5 | **24.5** | **-2.9** |
 
-1. **Today's formula is closer than his last five where it counts.** By squared error the difference is -39.5 [-53.0, -27.4]
-   over 62 weeks, an interval under zero; by typical miss there is no clear difference (+0.20 [-0.04, +0.43]). Both are shown
+1. **Today's formula is closer than his last five where it counts.** By squared error the difference is -36.4 [-47.4, -26.0]
+   over 116 gameweeks, an interval under zero; by typical miss it is slightly further (+0.23 [+0.02, +0.44]). Both are shown
    because a score is 0 or about 50: the number that misses least on a typical game is the median, while an expected score is an
    average, and squared error is the one that rewards an average that is right.
-2. **Its level is too low.** It says 32.6 on average and they scored 35.5 (-2.9): -1.8 to -3.7 in every slice but national-team
-   games, goalkeepers -2.4. Both halves are low: the chance of playing is said 68% and was 71.5%, and the score when he plays is
+2. **Its level is too low.** It says 32.6 on average and they scored 35.5 (-2.9): -1.4 to -3.6 in every slice but national-team
+   games, goalkeepers -2.6. Both halves are low: the chance of playing is said 68% and was 71.5%, and the score when he plays is
    said 48.1 and was 49.7. The two priors that pull a short record down (a 60% chance of playing and 45 points, each worth two
    games) are too low for these players; the priors for a start (51) and a substitute appearance (42) are right: starts averaged
    52.1 and appearances off the bench 40.9.
-3. **It orders players no better than his last five.** The order within a position and a week, which is what a plan chooses by, is
-   0.40 against 0.41 and 0.40. Before Sorare's own numbers the formula levels better but does not rank better.
-4. **Where it loses** to the best simple baseline: only for regular starters (1,947 games), 24.9 against 24.8 for always 45. It is the
-   closest everywhere else: rare starters 22.4 against 23.1 (level -1.8), rotation 25.9 against 26.4, and every position. (The
+3. **It orders players no better than his last five.** The order within a position and a gameweek, which is what a plan chooses by,
+   is 0.43 for all three. Before Sorare's own numbers the formula levels better but does not rank better.
+4. **Where it loses** to the best simple baseline: only for regular starters (1,921 games), 24.8 against 24.7 for always 45. It is the
+   closest everywhere else: rare starters 21.8 against 22.5 (level -1.4), rotation 26.0 against 26.4, and every position. (The
    first game of each player's file has nothing before it for any model, so it is not ranked.)
-5. **National-team games** (109 games): 26.4 against 27.0, level +0.9. Nothing yet says club and national form must be kept apart,
+5. **National-team games** (109 games): 26.2 against 26.5, level +0.6. Nothing yet says club and national form must be kept apart,
    and 109 games is few.
 6. **L5, the spread of scores:** starters score 52.1 on average with a spread of 19.1 (17.6 within one player, which is the model's
    flat number; defenders 20.3, midfielders 17.3, forwards 18.8, goalkeepers 19.1). Substitutes score 40.9 with a spread of 12.2
    (8.9 within one player). The flat 17.6 is right for starters and about twice too wide for an appearance off the bench.
+7. **Two games in a gameweek are rare** (roadmap 3.2b, scored per gameweek against the best of his games, which is Sorare's own
+   rule): 22 of 4,592 player-gameweeks, 0.5%. Sorare opens a gameweek on a Tuesday and a Friday, so a Sunday game and the
+   Tuesday one after are two gameweeks; it takes an international break or a postponed game to put two in one. On those 22 the
+   formula says too much: 10.7 points above what he made (squared miss 30.4, against 28.1 when told he has one game). Over all
+   116 gameweeks the two are no different (+0.65 [-0.96, +2.21]), because the other 99.5% have one game. Too few cases to change
+   anything; the number to watch is the 22, which grows with every break.
 
 **P3: the order of P4 after the data.**
 
@@ -271,28 +278,28 @@ one-or-two-games slice does not match Sorare's double gameweeks and is not read.
    Tried on the tuning weeks, below: closer by squared error, and lighter smoothing is not (it only helps the typical miss). Then
    once on the held-out weeks. It is the only error found in every slice. Whether the priors are wrong for LaLiga or only for your
    better-than-average players is what decision 4's wider export would show.
-2. **Two games: a week-level backtest first**, on Sorare's own gameweeks and the best score of the week, because rows of single
-   games cannot test "the best of two". It is the next piece of the harness (roadmap 3.2b).
+2. **Two games: not a priority** (roadmap 3.2b, built). The week-level backtest on Sorare's own gameweeks finds 22 such
+   player-gameweeks in 4,592 and the formula overshooting them (finding 7). Look again after the next international break.
 3. **The spread by role (L5):** worth a trial only if it moves the reward chances; try it on one real plan.
 4. **Chances and scores kept apart by competition, off the bench, and "if he starts" for a rare starter:** nothing in this data
    asks for them (rare starters and substitutes are among the formula's good slices). They wait for Track B, where Sorare's
    projection enters (P0's F1 and F3 are about it).
 5. **A national-team game's xG:** unchanged; it is not an xScore matter.
 
-**P4-1 tried on the tuning weeks only** (2 Oct, 4,518 games, 61 weeks; the held-out weeks were not scored). Two ways to take out the
-level bias, each run through the same walk-forward:
+**P4-1 tried on the tuning weeks only** (2 Oct, 4,530 games, 115 gameweeks; the held-out weeks were not scored). Two ways to take
+out the level bias, each run through the same walk-forward:
 
 | change to the form formula | level (bias) | squared miss (RMSE) | typical miss (MAE) |
 |---|---|---|---|
-| today (priors 60% and 45 points, each worth two games) | -2.68 | 24.52 | 19.53 |
-| lighter smoothing, each prior worth one game | -1.53 | 24.61 | 19.30 |
-| lighter still, half a game | -0.76 | 24.85 | 19.27 |
-| priors at these players' own level (72% and 49.7 points) | +0.26 | **24.39** | 19.52 |
-| only the chance of playing at 72% | -0.98 | 24.41 | 19.50 |
+| today (priors 60% and 45 points, each worth two games) | -2.77 | 24.41 | 19.45 |
+| lighter smoothing, each prior worth one game | -1.63 | 24.47 | 19.19 |
+| lighter still, half a game | -0.87 | 24.68 | 19.15 |
+| priors at these players' own level (72% and 49.7 points) | +0.17 | **24.26** | 19.43 |
+| only the chance of playing at 72% | -1.07 | 24.29 | 19.41 |
 
-Priors at their level are closer than today's by squared error: -6.2 [-10.6, -1.4] over 61 weeks (an interval under zero), and no
-different by typical miss. Lighter smoothing removes the bias but not the squared error (it is no closer: +4.3 [-0.7, +9.6]), only
-the typical miss gets better. Most of the gain is the chance of playing alone. So the candidate is **the prior chance of playing at
+Priors at their level are closer than today's by squared error: -7.1 [-11.3, -2.4] over 115 gameweeks (an interval under zero),
+and no different by typical miss. Lighter smoothing removes the bias but not the squared error (it is no closer: +2.9 [-1.2, +7.1]);
+only the typical miss gets better (-0.26 [-0.34, -0.17]). Most of the gain is the chance of playing alone. So the candidate is **the prior chance of playing at
 about 70%, and the score prior near 49**, not lighter smoothing. It is a fitted number, so it ships only if it clears the
 held-out weeks, and the wider export (decision 4) would say whether 70% is right for LaLiga or only for your players.
 

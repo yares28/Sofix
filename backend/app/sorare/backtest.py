@@ -6,8 +6,9 @@ what would the model have said about it knowing only what came before? The predi
 play counting as zero, as in the expected score the page shows.
 
 What is known when a game is predicted is what is known when a gameweek locks: the games before the week it is in. The week is
-the Monday it starts, and its lock is the earliest of his own games in it, so the second game of a week is predicted without the
-first, as the plan for a double gameweek is.
+Sorare's own gameweek when the file holds their windows (else the Monday to Sunday week), and its lock is the earliest of his own
+games in it, so the second game of a week is predicted without the first, as the plan for a double gameweek is. `walk_gameweeks`
+scores the gameweek itself: its expected score against the best of his games in it, which is Sorare's rule.
 
 Sorare's own projection is not in the history (it only serves the next game's), so these are the numbers of the form formula alone;
 whether it beats Sorare's projection is Track B, on what was recorded before each lock (`start_chances`, `sorare_forecasts`).
@@ -61,7 +62,7 @@ class Row:
     player: str
     pos: str | None
     date: datetime
-    week: str  # the Monday of its week, "2026-10-05"
+    week: str  # Sorare's gameweek ("football-2-6-oct-2026"), or the Monday of its week ("2026-10-05") without gameweeks
     competition: str
     klass: str
     before: int  # games of his the model had seen

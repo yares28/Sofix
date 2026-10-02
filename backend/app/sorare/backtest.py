@@ -6,8 +6,9 @@ what would the model have said about it knowing only what came before? The predi
 play counting as zero, as in the expected score the page shows.
 
 What is known when a game is predicted is what is known when a gameweek locks: the games before the week it is in. The week is
-the Monday it starts, and its lock is the earliest of his own games in it, so the second game of a week is predicted without the
-first, as the plan for a double gameweek is.
+Sorare's own gameweek when the file holds their windows (else the Monday to Sunday week), and its lock is the earliest of his own
+games in it, so the second game of a week is predicted without the first, as the plan for a double gameweek is. `walk_gameweeks`
+scores the gameweek itself: its expected score against the best of his games in it, which is Sorare's rule.
 
 Sorare's own projection is not in the history (it only serves the next game's), so these are the numbers of the form formula alone;
 whether it beats Sorare's projection is Track B, on what was recorded before each lock (`start_chances`, `sorare_forecasts`).
@@ -61,7 +62,7 @@ class Row:
     player: str
     pos: str | None
     date: datetime
-    week: str  # the Monday of its week, "2026-10-05"
+    week: str  # Sorare's gameweek ("football-2-6-oct-2026"), or the Monday of its week ("2026-10-05") without gameweeks
     competition: str
     klass: str
     before: int  # games of his the model had seen
@@ -116,9 +117,44 @@ def read_history(raw: Any) -> dict[str, dict[str, Any]]:
     }
 
 
+def read_fixtures(raw: Any) -> list[dict[str, str]]:
+    """Sorare's gameweeks from the exporter's file (slug, start, end), anything unreadable left out rather than guessed at."""
+    listed = raw.get("fixtures") if isinstance(raw, dict) else None
+    if not isinstance(listed, list):
+        return []
+    found = []
+    for item in listed:
+        if not isinstance(item, dict) or not item.get("slug"):
+            continue
+        try:
+            _when(item["start"])
+            _when(item["end"])
+        except (KeyError, TypeError, ValueError, AttributeError):
+            continue
+        found.append(item)
+    return found
+
+
+Window = tuple[datetime, datetime, str]
+
+
+def _windows(fixtures: list[dict[str, str]] | None) -> list[Window]:
+    return sorted(
+        (_when(item["start"]), _when(item["end"]), str(item["slug"])) for item in read_fixtures({"fixtures": fixtures})
+    )
+
+
 def _monday(moment: datetime) -> datetime:
     day = moment.replace(hour=0, minute=0, second=0, microsecond=0)
     return day - timedelta(days=day.weekday())
+
+
+def _week_of(when: datetime, windows: list[Window]) -> str:
+    """The gameweek of Sorare that holds this moment, else the Monday of its calendar week."""
+    for start, end, slug in windows:
+        if start <= when < end:
+            return slug
+    return _monday(when).date().isoformat()
 
 
 @dataclass(frozen=True)
@@ -129,14 +165,14 @@ class _Game:
     score: float
     played: bool
     started: bool
-    week: datetime
+    week: str  # the gameweek's slug, or the Monday of the week when Sorare's gameweeks are not known
 
     @property
     def counted(self) -> float:
         return self.score if self.played else 0.0
 
 
-def _games(entry: dict[str, Any]) -> list[_Game]:
+def _games(entry: dict[str, Any], windows: list[Window] | None = None) -> list[_Game]:
     """The scored games of a player, oldest first: one still to be played (PENDING) is not a result."""
     found = []
     for raw in entry.get("games") or []:
@@ -151,7 +187,7 @@ def _games(entry: dict[str, Any]) -> list[_Game]:
                 float(raw.get("score") or 0.0),
                 bool(raw.get("played")),
                 bool(raw.get("started")),
-                _monday(when),
+                _week_of(when, windows or []),
             )
         )
     return sorted(found, key=lambda game: game.when)
@@ -180,11 +216,11 @@ def _last5_class(seen: list[_Game], target: _Game, pos: str | None) -> Predictio
     return {"expected": _mean_last(same if same else seen)}
 
 
-def _today(seen: list[_Game], target: _Game, pos: str | None) -> Prediction:
-    """What the page would have said: the form formula on his last games, one game, no Sorare projection."""
+def _formula(seen: list[_Game], pos: str | None, games: int) -> Prediction:
+    """The form formula on his last games, for a week with `games` games and no Sorare projection."""
     newest_first = list(reversed(seen))
     week = PlayerWeek(
-        games=1,
+        games=games,
         history=[(game.raw_date, game.counted, game.played) for game in newest_first],
         starts={game.raw_date: game.started for game in newest_first if game.played},
         pos=pos,
@@ -199,18 +235,30 @@ def _today(seen: list[_Game], target: _Game, pos: str | None) -> Prediction:
     }
 
 
+def _today(seen: list[_Game], target: _Game, pos: str | None) -> Prediction:
+    """What the page would have said for one game."""
+    return _formula(seen, pos, 1)
+
+
 MODELS: dict[str, Model] = {"flat45": _flat, "last5": _last5, "last5_class": _last5_class, "today": _today}
 
 
 # ---------------------------------------------------------------------------------------------------- walking forward
-def walk_forward(players: dict[str, dict[str, Any]], since: datetime | None = None) -> list[Row]:
-    """Every scored game from `since` on, predicted by every model from the games before its week."""
+def walk_forward(
+    players: dict[str, dict[str, Any]], since: datetime | None = None, fixtures: list[dict[str, str]] | None = None
+) -> list[Row]:
+    """Every scored game from `since` on, predicted by every model from the games before its week.
+
+    A week is Sorare's own gameweek when `fixtures` (the file's gameweeks) say which one holds the game, else the Monday to
+    Sunday week it falls in. Its lock is the earliest of his own games in it, so a second game never sees the first.
+    """
     out: list[Row] = []
+    windows = _windows(fixtures)
     for slug, entry in players.items():
-        games = _games(entry)
+        games = _games(entry, windows)
         pos = entry.get("pos")
-        first_in_week: dict[datetime, datetime] = {}
-        in_week: dict[datetime, int] = defaultdict(int)
+        first_in_week: dict[str, datetime] = {}
+        in_week: dict[str, int] = defaultdict(int)
         for game in games:
             first_in_week.setdefault(game.week, game.when)
             in_week[game.week] += 1
@@ -227,7 +275,7 @@ def walk_forward(players: dict[str, dict[str, Any]], since: datetime | None = No
                         player=slug,
                         pos=pos,
                         date=target.when,
-                        week=target.week.date().isoformat(),
+                        week=target.week,
                         competition=target.competition,
                         klass=klass(target.competition),
                         before=len(seen),
@@ -242,6 +290,62 @@ def walk_forward(players: dict[str, dict[str, Any]], since: datetime | None = No
                         form_games=len(recent),
                         form_starts=sum(game.started for game in recent),
                         week_games=in_week[target.week],
+                    )
+                )
+    return out
+
+
+def walk_gameweeks(
+    players: dict[str, dict[str, Any]], fixtures: list[dict[str, str]] | None, since: datetime | None = None
+) -> list[Row]:
+    """One row per player, Sorare gameweek and model: the expected score of the gameweek against the best of his games in it.
+
+    Sorare counts the best score of a player's games in a gameweek (`multiGameScoreAggregator` is `max` on its competitions),
+    zero when he played none. `one_game` is today's formula told he has one game, so what `today` adds to it is what knowing
+    about the second game does. The prediction is made from the games before the first of the gameweek's.
+    """
+    windows = _windows(fixtures)
+    out: list[Row] = []
+    for slug, entry in players.items():
+        games = _games(entry, windows)
+        pos = entry.get("pos")
+        by_week: dict[str, list[_Game]] = defaultdict(list)
+        for game in games:
+            by_week[game.week].append(game)
+        for week, inside in by_week.items():
+            first = inside[0].when
+            if since is not None and first < since:
+                continue
+            seen = [game for game in games if game.when < first]
+            recent = seen[-5:]
+            said: dict[str, Prediction] = {
+                "flat45": {"expected": FLAT},
+                "last5": {"expected": _mean_last(seen)},
+                "one_game": _formula(seen, pos, 1),
+                "today": _formula(seen, pos, len(inside)),
+            }
+            for name, made in said.items():
+                out.append(
+                    Row(
+                        model=name,
+                        player=slug,
+                        pos=pos,
+                        date=first,
+                        week=week,
+                        competition=inside[0].competition,
+                        klass="national" if any(klass(game.competition) == "national" for game in inside) else "club",
+                        before=len(seen),
+                        score=max(game.counted for game in inside),
+                        played=any(game.played for game in inside),
+                        started=any(game.started for game in inside),
+                        expected=float(made["expected"] or 0.0),
+                        p_play=made.get("p_play"),
+                        p_start=made.get("p_start"),
+                        start=made.get("start"),
+                        mu=made.get("mu"),
+                        form_games=len(recent),
+                        form_starts=sum(game.started for game in recent),
+                        week_games=len(inside),
                     )
                 )
     return out
@@ -431,8 +535,40 @@ def _ranking(tuning: list[Row], top: int = 10) -> list[str]:
     return [*lines, ""]
 
 
-def report(rows: list[Row], holdout_from: datetime) -> str:
-    """The backtest as Markdown: each model overall, then by the slices the plan asks for, tuning weeks and held-out weeks apart."""
+def _gameweeks(weeks: list[Row], holdout_from: datetime) -> list[str]:
+    """The gameweek-level section: the expected score of a gameweek against the best of his games in it."""
+    tuning = [row for row in with_period(weeks, holdout_from) if row.period == "tuning"]
+    if not tuning:
+        return []
+    out = [
+        f"### Gameweeks: the expected score of a gameweek against the best of his games in it (tuning, {len({r.week for r in tuning})} gameweeks)",
+        "",
+        "Sorare's own gameweeks. The best score of his games in one counts (`multiGameScoreAggregator` is `max`), zero if he "
+        "played none. `one_game` is today's formula told he has one game, so what `today` adds to it is what knowing about the "
+        "second game does.",
+        "",
+    ]
+    out += _table(scores(tuning, ["model"]), ["model"]) + [""]
+    out += (
+        ["**By games in the gameweek**", ""]
+        + _table(scores(tuning, ["model", "games_that_week"]), ["model", "games_that_week"])
+        + [""]
+    )
+    for metric, label in (("absolute", "absolute error"), ("squared", "squared error")):
+        result = compare(tuning, "today", "one_game", metric=metric)
+        if result["weeks"]:
+            verdict = "closer" if result["hi"] < 0 else "further" if result["lo"] > 0 else "no clear difference"
+            out.append(
+                f"- today against one_game, by {label}: {result['diff']:+.2f} [{result['lo']:+.2f}, {result['hi']:+.2f}] over {result['weeks']} gameweeks: {verdict}"
+            )
+    return [*out, ""]
+
+
+def report(rows: list[Row], holdout_from: datetime, weeks: list[Row] | None = None) -> str:
+    """The backtest as Markdown: each model overall, then by the slices the plan asks for, tuning weeks and held-out weeks apart.
+
+    `weeks` are the gameweek-level rows (`walk_gameweeks`); with them the report ends with how the gameweek's expected score did.
+    """
     rows = with_period(rows, holdout_from)
     out = [
         f"The weeks held out begin on {holdout_from.date().isoformat()}: games on or after it are scored apart and were not looked at while tuning.",
@@ -474,4 +610,6 @@ def report(rows: list[Row], holdout_from: datetime) -> str:
                 out.append(
                     f"- today against {name}, by {label}: {result['diff']:+.2f} [{result['lo']:+.2f}, {result['hi']:+.2f}] over {result['weeks']} weeks: {verdict}"
                 )
+    if weeks:
+        out += ["", *_gameweeks(weeks, holdout_from)]
     return "\n".join(out) + "\n"

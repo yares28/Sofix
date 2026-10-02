@@ -40,7 +40,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{args.history} holds no players: run `python -m app.jobs.export_history` again.", file=sys.stderr)
         return 1
     holdout = datetime.fromisoformat(args.holdout).replace(tzinfo=UTC)
-    text = backtest.report(backtest.walk_forward(players), holdout_from=holdout)
+    fixtures = backtest.read_fixtures(raw)
+    if not fixtures:
+        print(
+            f"{args.history} has no gameweeks: weeks are Monday to Sunday and the gameweek section is left out; "
+            "run `python -m app.jobs.export_history` again to add Sorare's gameweeks.",
+            file=sys.stderr,
+        )
+    weeks = backtest.walk_gameweeks(players, fixtures) if fixtures else None
+    text = backtest.report(backtest.walk_forward(players, fixtures=fixtures), holdout_from=holdout, weeks=weeks)
     reconfigure = getattr(sys.stdout, "reconfigure", None)
     if reconfigure:  # a Windows console cannot draw every dash of the report: it prints a "?" for one rather than stop
         reconfigure(errors="replace")

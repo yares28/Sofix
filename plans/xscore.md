@@ -128,12 +128,15 @@ local `.env`; the cloud session this plan was written in has neither, so this pa
 that has them). Also settle the open unknowns: the API's field names for decisive and all-around scores; whether
 `gameStarted` and `minsPlayed` are reliable for national-team games.
 
-### P1 · Record more, and one visible quick win (about a day, needs a migration)
+### P1 · Record more, and one visible quick win (about a day; no migration after all)
 
-- `sorare_forecasts` gains: Sorare's starter odds alone, our `p_start`/`p_on`/`start`/`bench`, the games (competition and
-  opponent) and, once settled, `started`, minutes and each game's score. One **Alembic migration applied to production by
-  you first**, then the code; the unattended job cannot add columns. The FF plan needs none: its
-  number and source live in read models.
+- **Built 2 Oct 2026, in a read model instead of new columns** (roadmap 1.3): the record of what each source said
+  (`start_chances`) now also holds, per player, the model's numbers (`model`: Sorare's projection and starter odds alone, our
+  `pStart`/`pOn`/`start`/`bench`, which source's number was used, how much form he had) and, per game, `info` (competition,
+  opponent, home or away, kickoff); once settled, each game also has `score`, `mins`, `played` and `comp`. It follows the
+  rule of the chances (replaced while the week is open, frozen at its lock) and starts recording with the next run. Columns on
+  `sorare_forecasts` (what this paragraph first asked for, with a migration you would apply first) only follow if P2 needs
+  SQL over them; that would be a Stop. See [docs/how_it_works.md](../docs/how_it_works.md) section 10.
 - **"2 games" on the tile, and both games in the hover panel.** Display only; no model change. This is the one item in
   this plan that can ship before the backtest, because it only says what the data already holds. Overlay e2e, design
   check, desktop and mobile screenshots.

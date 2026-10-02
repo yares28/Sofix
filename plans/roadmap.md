@@ -277,6 +277,9 @@ the head of the batch then under way.
 
 ## Batch 4 · T3, Pro in the best plan
 
+**Paused by you on 2 Oct 2026.** 4.1 and 4.2 are done ([pro.md](pro.md)); 4.3 to 4.7 wait until you say to go on, and a run skips this
+batch. Nothing in the other batches depends on it.
+
 - **4.1 · Research (read-only).**
   - **From Sorare's help centre:** how Pro works:
     - the steps, the targets and the King's Step
@@ -388,7 +391,7 @@ Merged as #19 together with batch 1's backend steps; refresh #44 run by hand on 
 | Step | Result | What was seen |
 |---|---|---|
 | 0.1 | **waits for you** | The Refresh button is on /control (the key is in Vercel). Pressing it once and what Check, Draft and Enter said are still to be written down. |
-| 0.2 | **waits for you** | The tab my Chrome tools get is a zero-size window that reports itself hidden: nothing draws there and screenshots time out, so the overlay on Sorare's pages cannot be seen from here. The checklist is below. |
+| 0.2 | **waits for one click from you** | Tried again on 2 Oct in your Chrome through the extension. Sorare loads there signed in (your gallery, 21 cards), the Sofix stylesheet is in the page and the extension checks in (version 0.3.0, seen a minute and a half before). But the window my tab group opens is **minimized** (position -32000,-32000, size 160 x 28), so Chrome reports every page in it as hidden and draws nothing, and the overlay draws on animation frames, so it stays blank. Screenshots work for a few frames after a load and then time out; a popup opened from that window is minimized too; `resize_window` answers "resized" and changes nothing. I cannot restore a minimized window with the tools I have. **If you click that Chrome window in the taskbar (its tab is "Sorare ...") and leave it in front, the overlay draws and the checklist below can be read from here in about three minutes.** |
 | 0.3 | pass | Refresh #44 log: no warning, `futbolfantasy` `matches` 10, `read` 10, `failed` absent (refresh #42: `read` 30 and 52 failed pages, two HTTP 404). The Sorare step took 243 s against 449 s, the run 5 min 16 s against 8 min 18 s. The cause was larger than the 404s: the Copa del Rey page's sidebar was read as its matches. |
 | 0.4 | pass | Play's lineup sheet on production: 7 cards, 7 silhouettes behind the art. The e2e test holds the art back 3 s and sees the silhouette, then the picture over it. |
 | 0.5 | pass | Section 9 of the Futbol Fantasy plan has its results (C1–C21), from refresh #42's log and read-only `SELECT`s. |
@@ -427,13 +430,13 @@ in the address" says a week or "none named". Send a screenshot of anything that 
 | 3.2b | done | The export now keeps Sorare's gameweek windows (686 of them, two keyless questions) and the backtest groups games by them, so a second game no longer sees the first and "games in the week" means what Sorare means. `walk_gameweeks` scores a gameweek's expected score against the best of his games in it. **Finding: two games in one gameweek are rare, 22 of 4,592 player-gameweeks (0.5%)**: Sorare opens a gameweek on a Tuesday and a Friday, so a Sunday game and the Tuesday one after are two gameweeks. The first run, by Monday weeks, had counted half the games as double. On the 22 the best-of-two rule says 10.7 too much (squared miss 30.4 against 28.1 for "one game"); too few to act on. Two-game weeks drop to a low priority. |
 | 3.3 | done | Ranked by the squared error today's model would gain against the best simple baseline: the only loss is regular starters (24.8 against 24.7 for always 45); rare starters, the bench, national games and every position are not the problem. The level is: both the chance of playing (said 68%, was 71.5%) and the score when he plays (said 48.1, was 49.7) are low. **Tried on the tuning weeks: priors at the players' own level (about 70% and 49) beat today's by squared error (-7.1 [-11.3, -2.4] over 115 gameweeks) and lighter smoothing does not.** The new order of 3.4 is in xscore.md: the level first; two games last; the rest wait for Track B. Nothing ships before the held-out weeks have weeks in them. |
 
-### Batch 4 · 2 Oct 2026 · research done, at the Stop
+### Batch 4 · 2 Oct 2026 · research done, then paused by you
 
 | Step | Result | What was seen |
 |---|---|---|
 | 4.1 | done | [pro.md](pro.md). Sorare's help centre is readable through its public Zendesk API (`sorare.zendesk.com/api/v2/help_center/...`), so no sorare.com page was scraped (sorare.com answered 429 to a browser while the history export was running, and its help pages are rendered by script). Pro is Hot Streaks: Anytime Entry, 4 lives and tries per step, a Step Clock of one league matchday, a Rare Reward Bonus, and cards shared with Arena. The "King's Step", the step count and each step's target and reward are not in the help centre; they are `CareerProStep` fields (`target`, `rewardConfigs`, `state`) for the signed-in owner. |
 | 4.2 | done | The gap table is in pro.md: build Pro and its level, later for Super Rare and Unique, skip Rooms and Arcade, check Arena's automatic substitutes against the planner. |
-| 4.3 | **Stop, waits for you** | Three questions at the end of pro.md: the scope (recommended: show and value first, plan with it second, Apply for Pro only if you want it), which rarities you play in Pro, and whether Play needs a new look. |
+| 4.3 | **paused by you, 2 Oct** | The three questions at the end of pro.md (the scope, which rarities you play in Pro, whether Play needs a new look) are not asked until you say to go on. 4.4 to 4.7 follow them. |
 
 ### Batch 5 · 2 Oct 2026 · started, at your request: the page, the one xScore figure and who starts per source
 
@@ -469,6 +472,14 @@ _(none yet)_
 | 8.2 | kept as a note | Sorare opens about three weeks at a time; a fourth open week gets no plan, by design, until one closes. Nothing to build unless you want a fourth planned. |
 | 8.3 | waits for the live look | The rank on a pick list starts from any short text beginning "Select your". Tightening it to Sorare's real slot names needs the real headings, which nobody has read off a live page yet (S7 lists them as unchecked). Step 0.2 asks you whether #1 to #3 show on a "Select your …" list; if one does not, the exact heading text is what is wanted. |
 | 8.4 | answered: not possible | Futbol Fantasy's round page sends no `ETag` and no `Last-Modified`, and `Cache-Control: no-cache, private` with `max-age=0` (two `HEAD` requests, four seconds apart). Nothing to ask conditionally; the reads stay as throttled as they are. Recorded as Q4 in [futbolfantasy.md](futbolfantasy.md). |
+
+### Housekeeping · 2 Oct 2026
+
+- Your main folder is on `main` at the latest commit. Your old uncommitted drafts are in `git stash list`, named "2 Oct 2026: old drafts of
+  work that is now on main"; an older stash ("T7/T8 build, not requested, unfinished") is untouched. `extension/scripts/configure.mjs` was
+  run, so the extension's manifest says 0.3.1; Chrome runs 0.3.1 after you press Reload on Sofix in `chrome://extensions`.
+- The remote branch `codex/s7-ux-integration-preview` (26 Sep, 188 commits behind `main`) was deleted at your request, with its local copy.
+  No remote branch is unmerged now. `codex/s7-overlay` and `codex/ux2-board` exist only inside Codex's own worktrees.
 
 ## To start a run
 

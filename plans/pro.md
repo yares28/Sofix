@@ -7,6 +7,9 @@ into account whether it's even possible to reach the next step and fight for the
 This file holds steps 4.1 (research) and 4.2 (what Sorare has that Sofix doesn't) of [roadmap.md](roadmap.md), written
 2 Oct 2026. **Step 4.3 is a Stop: you read this and choose the scope.** Nothing here has been built.
 
+**Paused by you on 2 Oct 2026.** Steps 4.1 and 4.2 are done and stay here as the record; 4.3 to 4.7 wait until you say to go on. Nothing
+in the other batches depends on Pro.
+
 ## 4.1 · What Pro is
 
 **Source.** Sorare's own help centre, read through its public Zendesk API (`https://sorare.zendesk.com/api/v2/help_center/en-us/articles/<id>.json`),

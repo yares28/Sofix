@@ -196,9 +196,28 @@ const lineupsPayload = (() => {
   return { success: true, data };
 })();
 
+// The Audit page (`read_models` key `audit`): the page the job would publish on 2 Oct as it is (Sofix's chance written down for GW19's games, none
+// played yet; the replay of the past from the committed file), and the same page once the record has enough games to give figures, so the figures,
+// their wording and the bands have something to draw.
+const auditFixture = JSON.parse(readFileSync(new URL("./fixtures/audit-response.json", import.meta.url), "utf8"));
+function auditPayload(kind) {
+  const data = structuredClone(auditFixture.data);
+  data.generatedAt = new Date(Date.now() - 30 * 60_000).toISOString();
+  if (kind === "enough") {
+    const band = (from, to, n, said, was) => ({ from, to, n, said, was });
+    Object.assign(data.starts.live.futbolfantasy, {
+      state: "enough", recorded: 140, settled: 120, right: 0.74, brier: 0.17, mean: 0.52, started: 0.5,
+      buckets: [band(0, 0.2, 30, 0.1, 0.12), band(0.2, 0.5, 20, 0.35, 0.4), band(0.5, 0.8, 30, 0.65, 0.7), band(0.8, 1, 40, 0.9, 0.88)],
+    });
+    Object.assign(data.starts.live.sofix, { state: "few", recorded: 64, settled: 40 });
+    Object.assign(data.xscore.live, { state: "enough", noted: 40, marked: 38, pairs: 130, weeks: 8, rate: 0.64, lo: 0.58, hi: 0.69 });
+  }
+  return { success: true, data };
+}
+
 let state;
 function reset() {
-  state = { mode: "ok", sorare: "ok", news: null, nextId: 1, run: null, polls: 0 };
+  state = { mode: "ok", sorare: "ok", news: null, audit: "ok", nextId: 1, run: null, polls: 0 };
 }
 reset();
 
@@ -253,6 +272,11 @@ const server = createServer((req, res) => {
   if (req.method === "GET" && url.pathname === "/api/lineups") {
     if (state.sorare === "missing") return send(res, 200, { success: false, data: null, error: "Futbol Fantasy's lineups have not been read yet." });
     return send(res, 200, lineupsPayload);
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/audit") {
+    if (state.audit === "missing") return send(res, 200, { success: false, data: null, error: "The audit has not been written yet." });
+    return send(res, 200, auditPayload(state.audit));
   }
 
   const earlyWeek = url.pathname.match(/^\/api\/sorare\/ahead\/(\d+)$/);
@@ -332,8 +356,9 @@ const server = createServer((req, res) => {
     state.mode = url.searchParams.get("mode") === "malformed" ? "malformed" : "ok";
     state.sorare = url.searchParams.get("sorare") === "missing" ? "missing" : "ok";
     state.news = url.searchParams.get("news"); // "laliga" or "national": the planned week with no team news
+    state.audit = url.searchParams.get("audit") ?? "ok"; // "missing": the page was never written; "enough": the record has enough games for figures
     state.run = finishedRun("cli");
-    return send(res, 200, { ok: true, mode: state.mode, sorare: state.sorare, news: state.news });
+    return send(res, 200, { ok: true, mode: state.mode, sorare: state.sorare, news: state.news, audit: state.audit });
   }
 
   send(res, 404, { success: false, error: "Not found." });

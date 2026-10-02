@@ -152,3 +152,20 @@ test("on a phone every text on Lineups, Cards and Players is 10 px or more", asy
     expect(await smallText(page, 10), route).toEqual([]);
   }
 });
+
+test("the Audit page fits a phone: the figure first, one source under another, no sideways scrolling, nothing under 10 px", async ({ page }) => {
+  await page.goto("/audit");
+  await expect(page.locator(".au-big")).toBeVisible();
+  const hero = (await page.locator(".au-hero").boundingBox())!;
+  const first = (await page.getByRole("article", { name: "Futbol Fantasy" }).boundingBox())!;
+  const second = (await page.getByRole("article", { name: "Sorare" }).boundingBox())!;
+  expect(first.y).toBeGreaterThan(hero.y + hero.height); // the figure comes before the sources
+  expect(second.y).toBeGreaterThan(first.y + first.height - 1); // one column
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  expect(await smallText(page, 10)).toEqual([]);
+
+  const tabs = page.getByRole("navigation", { name: "Sections" });
+  await expect(tabs.getByRole("link", { name: "Audit" })).toHaveAttribute("aria-current", "page");
+  const boxes = await tabs.getByRole("link").evaluateAll((links) => links.map((link) => link.getBoundingClientRect().toJSON()));
+  for (const box of boxes) expect(box.right).toBeLessThanOrEqual(390); // seven tabs still fit the bar
+});

@@ -10,6 +10,7 @@ export const SECTIONS = [
   { href: "/fixtures", label: "Fixtures" },
   { href: "/difficulty", label: "Difficulty" },
   { href: "/table", label: "Table" },
+  { href: "/audit", label: "Audit" },
 ] as const;
 
 /**

@@ -443,10 +443,13 @@ _(none yet)_
 |---|---|---|
 | 7.3 | pass in tests, production check after the merge | `lib/cards.ts` now steps at 20/35/50/60/75 on the score as the hexagon draws it (rounded), six colours instead of eight, so a 76 to 79 is cyan on the board as it is on Sorare (it was green). `lib/overlayCore.test.ts` holds the band of every whole score from 0 to 100 equal to the overlay's `scoreLevel`, so the two cannot drift. Checked: 573 unit tests, typecheck, lint, the My cards browser tests. |
 
-### Batch 8 · 2 Oct 2026 · one step so far
+### Batch 8 · 2 Oct 2026 · started
 
 | Step | Result | What was seen |
 |---|---|---|
+| 8.1 | pass in tests, a refresh will carry it | `early.choose` counted "the next four rounds" by round number, so a postponed game (its old, low number, played later) took one of the six-hour slots from a round a week off. It now counts by date. A test with a round 5 played on 20 December fails before the change and passes after. No page changes until a round is postponed. |
+| 8.2 | kept as a note | Sorare opens about three weeks at a time; a fourth open week gets no plan, by design, until one closes. Nothing to build unless you want a fourth planned. |
+| 8.3 | waits for the live look | The rank on a pick list starts from any short text beginning "Select your". Tightening it to Sorare's real slot names needs the real headings, which nobody has read off a live page yet (S7 lists them as unchecked). Step 0.2 asks you whether #1 to #3 show on a "Select your …" list; if one does not, the exact heading text is what is wanted. |
 | 8.4 | answered: not possible | Futbol Fantasy's round page sends no `ETag` and no `Last-Modified`, and `Cache-Control: no-cache, private` with `max-age=0` (two `HEAD` requests, four seconds apart). Nothing to ask conditionally; the reads stay as throttled as they are. Recorded as Q4 in [futbolfantasy.md](futbolfantasy.md). |
 
 ## To start a run

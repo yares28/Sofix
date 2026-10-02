@@ -12,21 +12,47 @@ export type Position = "GK" | "DEF" | "MID" | "FWD";
 
 export const SCORE_WINDOWS: CardScore["window"][] = ["L5", "L10", "L40"];
 
+/** Sorare's six colours for a football score, by the names its own script gives them. */
+export type ScoreBand = "veryLow" | "low" | "mediumLow" | "medium" | "mediumHigh" | "high";
+
 /**
- * The colour Sorare gives a score hexagon, by band: red → orange → amber → lime → green → cyan → teal, with a
- * grey for "not enough games". `ink` is the number's colour on that fill. Matched to Sorare's own ramp
- * (e.g. 48 amber, 52 lime, 72 green, 81 cyan, 98 teal).
+ * Where Sorare steps from one colour to the next, read from its own public script and checked against 42 real hexagons
+ * (plans/overlay.md, O6): the first step whose limit is at least the score, else the top band. The sorare.com overlay
+ * steps the same way (`scoreLevel` in extension/core.js) and a test holds the two together.
+ */
+const SCORE_STEPS: readonly (readonly [number, ScoreBand])[] = [
+  [20, "veryLow"],
+  [35, "low"],
+  [50, "mediumLow"],
+  [60, "medium"],
+  [75, "mediumHigh"],
+];
+
+/** The band of a score as the hexagon draws it, which is rounded, or null when there is no score. */
+export function scoreBand(score: number | null): ScoreBand | null {
+  if (score === null || Number.isNaN(score)) return null;
+  const drawn = Math.round(score);
+  for (const [limit, band] of SCORE_STEPS) if (drawn <= limit) return band;
+  return "high";
+}
+
+/** The board's tone for each band, softer than Sorare's neon for the white shell, and the ink that reads on it. */
+const BAND_COLOURS: Record<ScoreBand, { fill: string; ink: string }> = {
+  veryLow: { fill: "#c0433f", ink: "#ffffff" }, // red
+  low: { fill: "#ef8a3c", ink: "#3a1e05" }, // orange
+  mediumLow: { fill: "#e6b91e", ink: "#332600" }, // yellow
+  medium: { fill: "#9bd227", ink: "#22300a" }, // lime
+  mediumHigh: { fill: "#46c05a", ink: "#0c2f16" }, // green
+  high: { fill: "#22c7c7", ink: "#08302f" }, // cyan
+};
+
+/**
+ * The colour of a score hexagon: Sorare's band for the score, in the board's tone, with a grey for "not enough
+ * games". `ink` is the number's colour on that fill.
  */
 export function scoreColour(score: number | null): { fill: string; ink: string } {
-  if (score === null || Number.isNaN(score)) return { fill: "#55555c", ink: "#ffffff" };
-  if (score >= 90) return { fill: "#22c7c7", ink: "#08302f" };
-  if (score >= 80) return { fill: "#3fb5df", ink: "#062838" };
-  if (score >= 65) return { fill: "#46c05a", ink: "#0c2f16" };
-  if (score >= 50) return { fill: "#9bd227", ink: "#22300a" };
-  if (score >= 40) return { fill: "#e6b91e", ink: "#332600" };
-  if (score >= 30) return { fill: "#ef8a3c", ink: "#3a1e05" };
-  if (score >= 15) return { fill: "#e5602f", ink: "#ffffff" };
-  return { fill: "#c0433f", ink: "#ffffff" };
+  const band = scoreBand(score);
+  return band ? BAND_COLOURS[band] : { fill: "#55555c", ink: "#ffffff" };
 }
 
 /** The three hexagons a card shows, in order. Falls back to the last-ten average when per-window data is absent. */

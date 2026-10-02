@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
+import { scoreBand } from "./cards";
 import { contrastRatio } from "./contrast";
 import { chanceLabel } from "./play";
 
@@ -199,6 +200,10 @@ describe("scoreLevel", () => {
   it("is null for no score at all, never a colour", () => {
     expect(core.scoreLevel(null)).toBeNull();
     expect(core.scoreLevel(Number.NaN)).toBeNull();
+  });
+
+  it("is the band the board's hexagons use for every whole score, so the two cannot drift apart", () => {
+    for (let score = 0; score <= 100; score += 1) expect(scoreBand(score), String(score)).toBe(core.scoreLevel(score));
   });
 
   it("keeps Sorare's measured colours as the fallback when the page's own tokens go away", () => {

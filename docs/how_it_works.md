@@ -146,6 +146,17 @@ Sorare's best-game behavior.
 Common SD is 17.6. Source is published (“sorare”, “form”, “no game”). This is a transparent heuristic awaiting an S4
 fitted/blind-tested replacement.
 
+How it is checked (roadmap 3.1, `app.sorare.backtest`): for every game in the owner's players' exported history
+(`app.jobs.export_history`, a git-ignored file, read only from Sorare's public API), what would the form formula have said
+knowing only the games before the gameweek it was in? Four models are scored on what he actually scored, a game he did not play
+counting as zero: always 45, his last five, his last five of the same kind (club or national team), and today's form formula
+without Sorare's projection (Sorare's own number is not in the history; that comparison waits for `sorare_forecasts`). Error is
+reported by slice (club or national, what he did, how much history, position, how often he had started, one game or two in the
+week), with the order within a position and week, and "is today's model closer" is a bootstrap over whole weeks, by absolute
+and by squared error (the score is zero or about sixty, so absolute error rewards the median and squared error the average
+that an expected score is). Games from 1 Oct 2026 on are held out and reported apart. `python -m app.jobs.xscore_backtest`
+prints it; nothing in it reaches the database or a page.
+
 ## 9. Optimizer/rewards
 
 Seeded beam search (width 120), 3,000 score draws and repeated temperature-weighted whole-week searches enforce slots,
@@ -371,6 +382,7 @@ Schema/runtime: migrations owner-only, dev branch first; unattended schema check
 | Predict/blend/calibration | `backend/app/jobs/predict.py`, `services/rating_predictions.py` |
 | Grid/labels/scales | `backend/app/services/fixture_grid.py` |
 | Sorare forecast/planner | `backend/app/sorare/forecast.py`, `planner.py` |
+| xScore backtest | `backend/app/sorare/backtest.py`, `app/jobs/export_history.py`, `app/jobs/xscore_backtest.py` |
 | Sorare sync/publish | `backend/app/sorare/sync.py`, `publish.py` |
 | Web cache/load | `frontend/lib/api.ts`, `playData.ts`, `db.ts` |
 | Football UI | `frontend/components/Overview.tsx`, `DifficultyGrid.tsx`, `FixtureBoard.tsx` |

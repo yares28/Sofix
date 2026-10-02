@@ -98,7 +98,7 @@ arithmetic slip; the questions are about what the arithmetic assumes.
 | L2 | **Confirmed** | `p_start` is the form formula on his last five games of any competition: 4 starts of 5 gives (4 + 0.8) ÷ 7 = 68.6% (it was 3 of 5, 54%, on 30 Sep, before his 29 Sep start). Sorare gave no starter odds: 0 of 14 players in refresh #42, `plays_odds` empty in all 30 rows of `sorare_forecasts`. |
 | L3 | **Confirmed**, and worse (F3) | Giorgi has two games; the expected score counts the best-of-two (47 → 52.82, ×93.4% = 49.3) but the tile's "if he starts" 45.0 does not, and nothing says "2 games". |
 | L4 | **Confirmed, by design** | `xgFor` (`frontend/lib/overlay.ts`): a national-team game shows his club rate as it is, unscaled, on purpose (O11). Not an xScore matter; what to show instead is plan step P4.5. |
-| L5 | Open | Two players are too few to say; the backtest (P2) measures the spread of scores by role. |
+| L5 | **Measured** (2 Oct, P2) | Over your 84 players: starters score 52.1 with a spread of 19.1 (17.6 within one player, the model's number), substitute appearances 40.9 with 12.2 (8.9 within one player). The flat 17.6 is right for starters and about twice too wide for the bench. See "Results of P2 and P3". |
 | L6 | Open | Which of two games Sorare counts needs a lineup holding a two-game player: public leaderboards are depth 8 and 9 and complexity 576 and over, beyond the keyless limits (7 and 500). Wanted: the extension's read of an entered lineup of yours with such a player (Giorgi has two games in GW19), or a keyed query from the refresh job. |
 
 **Their last five games before the lock** (the model's whole view of them):
@@ -214,8 +214,11 @@ show the error the current model makes). Output: the tables in section 3, by sli
   - `app/sorare/backtest.py` walks forward through that file: each game is predicted by the production forecast from the games
     before the gameweek it is in (so the second game of a week does not see the first), against three simple baselines (a flat 45,
     his last five, his last five of the same kind), with a game he did not play counting as zero. It gives error by model and by
-    slice (club or national, what he did, how much history, position), order within a position and week, and a bootstrap over
-    weeks for "is today's model closer".
+    slice (club or national, what he did, how much history, position, how often he had started, one game or two in the week),
+    order within a position and week, and a bootstrap over weeks for "is today's model closer", **by absolute and by squared
+    error**. The first run on real games showed why both: a score is zero or about sixty, so the number that misses least on a
+    typical game is the median, and an expected score is an average. Today's model came out further than "his last five" by
+    absolute error and closer by squared error, so which of the two decides the bar matters (see the results below).
   - `app/jobs/xscore_backtest.py` prints the report: games from `--holdout` (1 Oct 2026 by default) are reported apart and are
     not looked at while tuning.
 
@@ -223,6 +226,59 @@ show the error the current model makes). Output: the tables in section 3, by sli
   python -m app.jobs.export_history        # once, a few minutes to an hour, read only
   python -m app.jobs.xscore_backtest --out ../backtest-report.md
   ```
+
+### Results of P2 and P3 (2 Oct 2026)
+
+**What was run.** Your 84 players' games from 1 Aug 2025 to 2 Oct 2026: 4,647 games, 4,615 of them scored (4,614 before 1 October,
+62 weeks, and 1 after). Each game is predicted from the games before its week and set against what he scored, zero if he did not play.
+The held-out period (from 1 Oct 2026) holds that one game so far and has not been looked at.
+
+**What it can and cannot say.** It tests the form formula on its own. Sorare's projection and starter odds and Futbol Fantasy's
+chances are not in the history, so how the page does *with* them waits for the recorded weeks (Track B). The players are yours, so
+mostly regulars: 42% of the games are by a regular starter. A "week" here is Monday to Sunday, not Sorare's gameweek, so the
+one-or-two-games slice does not match Sorare's double gameweeks and is not read.
+
+| model | games | typical miss (MAE) | squared miss (RMSE) | level (bias) |
+|---|---|---|---|---|
+| always 45 | 4,614 | 23.3 | 28.9 | +9.5 |
+| his last five | 4,614 | 19.4 | 25.4 | +0.3 |
+| his last five of the same kind | 4,614 | 19.4 | 25.4 | +0.3 |
+| today's form formula | 4,614 | 19.6 | **24.6** | **-2.9** |
+
+1. **Today's formula is closer than his last five where it counts.** By squared error the difference is -39.5 [-53.0, -27.4]
+   over 62 weeks, an interval under zero; by typical miss there is no clear difference (+0.20 [-0.04, +0.43]). Both are shown
+   because a score is 0 or about 50: the number that misses least on a typical game is the median, while an expected score is an
+   average, and squared error is the one that rewards an average that is right.
+2. **Its level is too low.** It says 32.6 on average and they scored 35.5 (-2.9): -1.8 to -3.7 in every slice but national-team
+   games, goalkeepers -2.4. Both halves are low: the chance of playing is said 68% and was 71.5%, and the score when he plays is
+   said 48.1 and was 49.7. The two priors that pull a short record down (a 60% chance of playing and 45 points, each worth two
+   games) are too low for these players; the priors for a start (51) and a substitute appearance (42) are right: starts averaged
+   52.1 and appearances off the bench 40.9.
+3. **It orders players no better than his last five.** The order within a position and a week, which is what a plan chooses by, is
+   0.40 against 0.41 and 0.40. Before Sorare's own numbers the formula levels better but does not rank better.
+4. **Where it loses** to the best simple baseline: only for regular starters (1,947 games), 24.9 against 24.8 for always 45. It is the
+   closest everywhere else: rare starters 22.4 against 23.1 (level -1.8), rotation 25.9 against 26.4, and every position. (The
+   first game of each player's file has nothing before it for any model, so it is not ranked.)
+5. **National-team games** (109 games): 26.4 against 27.0, level +0.9. Nothing yet says club and national form must be kept apart,
+   and 109 games is few.
+6. **L5, the spread of scores:** starters score 52.1 on average with a spread of 19.1 (17.6 within one player, which is the model's
+   flat number; defenders 20.3, midfielders 17.3, forwards 18.8, goalkeepers 19.1). Substitutes score 40.9 with a spread of 12.2
+   (8.9 within one player). The flat 17.6 is right for starters and about twice too wide for an appearance off the bench.
+
+**P3: the order of P4 after the data.**
+
+1. **The level (new).** Lighter smoothing of the chance of playing and of the score, or priors at these players' own levels, tried
+   on the tuning weeks and then once on the held-out weeks. It is the only error found in every slice. Whether the priors are wrong
+   for LaLiga or only for your better-than-average players is what decision 4's wider export would show.
+2. **Two games: a week-level backtest first**, on Sorare's own gameweeks and the best score of the week, because rows of single
+   games cannot test "the best of two". It is the next piece of the harness (roadmap 3.2b).
+3. **The spread by role (L5):** worth a trial only if it moves the reward chances; try it on one real plan.
+4. **Chances and scores kept apart by competition, off the bench, and "if he starts" for a rare starter:** nothing in this data
+   asks for them (rare starters and substitutes are among the formula's good slices). They wait for Track B, where Sorare's
+   projection enters (P0's F1 and F3 are about it).
+5. **A national-team game's xG:** unchanged; it is not an xScore matter.
+
+Nothing ships from this: every change needs the held-out weeks, which start on 1 Oct 2026 and grow by themselves.
 
 ### P3 · Rank the errors
 

@@ -26,11 +26,26 @@ from typing import Any
 
 import numpy as np
 
-from app.sorare.forecast import NATIONAL, PlayerWeek, forecast
+from app.sorare.forecast import NATIONAL, REGULAR_STARTER, PlayerWeek, forecast
 
 FLAT = 45.0  # the score the flat baseline says for everyone
+RARE_STARTER = 0.25  # below this share of his last five games started, he is a rare starter
 MIN_RANKED = 6  # players needed in one position and week for an order to mean anything
 DEPTHS = (("0-4 games", 0, 5), ("5-9 games", 5, 10), ("10+ games", 10, 10**9))
+BASELINES = ("flat45", "last5", "last5_class")
+NO_FORM = (
+    "unknown"  # the starter group of a game with nothing before it: the first of the history, not a player nobody knows
+)
+# The slices the report cuts the games by: the Row attribute, how the report names it, and whether it is known before the
+# lock (what he did in the game is not, so it is shown but never ranked: no model can be fixed for it).
+SLICES = (
+    ("klass", "club or national", True),
+    ("role", "what he did", False),
+    ("depth", "how much history", True),
+    ("pos", "position", True),
+    ("starter", "how often he had started", True),
+    ("games_that_week", "games in the week", True),
+)
 
 
 def klass(competition: str | None) -> str:
@@ -59,10 +74,25 @@ class Row:
     start: float | None = None  # his score if he starts, today's model only
     mu: float | None = None  # his score if he plays
     period: str = "tuning"
+    form_games: int = 0  # of his last five games before the week, how many there were...
+    form_starts: int = 0  # ...and in how many he started (a game he missed is one he did not start)
+    week_games: int = 1  # his games in the week: the fixture list says so before the lock
 
     @property
     def role(self) -> str:
         return "start" if self.started else "sub" if self.played else "dnp"
+
+    @property
+    def starter(self) -> str:
+        """How he had been used going into the week."""
+        if not self.form_games:
+            return NO_FORM
+        share = self.form_starts / self.form_games
+        return "regular" if share >= REGULAR_STARTER else "rotation" if share >= RARE_STARTER else "rare"
+
+    @property
+    def games_that_week(self) -> str:
+        return "2+ games" if self.week_games > 1 else "1 game"
 
     @property
     def depth(self) -> str:
@@ -180,12 +210,15 @@ def walk_forward(players: dict[str, dict[str, Any]], since: datetime | None = No
         games = _games(entry)
         pos = entry.get("pos")
         first_in_week: dict[datetime, datetime] = {}
+        in_week: dict[datetime, int] = defaultdict(int)
         for game in games:
             first_in_week.setdefault(game.week, game.when)
+            in_week[game.week] += 1
         for target in games:
             if since is not None and target.when < since:
                 continue
             seen = [game for game in games if game.when < first_in_week[target.week]]
+            recent = seen[-5:]
             for name, model in MODELS.items():
                 said = model(seen, target, pos)
                 out.append(
@@ -206,6 +239,9 @@ def walk_forward(players: dict[str, dict[str, Any]], since: datetime | None = No
                         p_start=said.get("p_start"),
                         start=said.get("start"),
                         mu=said.get("mu"),
+                        form_games=len(recent),
+                        form_starts=sum(game.started for game in recent),
+                        week_games=in_week[target.week],
                     )
                 )
     return out
@@ -246,10 +282,60 @@ def scores(rows: list[Row], by: list[str]) -> list[dict[str, Any]]:
     return table
 
 
+def rank_slices(rows: list[Row]) -> list[dict[str, Any]]:
+    """The groups of games, cut by something known before the lock, where today's model loses most to the best simple baseline.
+
+    For each group: the squared error today's model makes against the least of the three baselines' (the mean of squared misses,
+    the number that rewards a right average), the difference (`excess`, below zero where today's model is the closest) and that
+    difference times the games in the group (`total`, how much squared error would go if today's model were as close as the best
+    baseline there). Largest `total` first, so it says where a fix would pay most, and with how many games behind it.
+    """
+    out: list[dict[str, Any]] = []
+    for key, label, known in SLICES:
+        if not known:
+            continue
+        by_value: dict[Any, dict[str, dict[str, Any]]] = defaultdict(dict)
+        for row in scores(rows, ["model", key]):
+            by_value[row[key]][row["model"]] = row
+        for value, models in by_value.items():
+            rivals = {name: models[name] for name in BASELINES if name in models}
+            if value == NO_FORM or "today" not in models or not rivals:
+                continue  # the first game of the history has nothing to go on for any model: it says nothing to fix
+            best = min(rivals, key=lambda name: rivals[name]["rmse"])
+            today = models["today"]
+            excess = today["rmse"] ** 2 - rivals[best]["rmse"] ** 2
+            out.append(
+                {
+                    "slice": label,
+                    "value": value,
+                    "n": today["n"],
+                    "best": best,
+                    "today_rmse": today["rmse"],
+                    "best_rmse": rivals[best]["rmse"],
+                    "bias": today["bias"],
+                    "excess": excess,
+                    "total": excess * today["n"],
+                }
+            )
+    return sorted(out, key=lambda item: item["total"], reverse=True)
+
+
 # ---------------------------------------------------------------------------------------------------- better or not
-def compare(rows: list[Row], a: str, b: str, *, seed: int = 0, draws: int = 2000) -> dict[str, Any]:
-    """Is model `a` closer than model `b`? The mean of |error of a| - |error of b| over the games both predicted, with a 95%
-    interval from resampling whole weeks (a week's games move together), so below zero with an interval under zero means closer."""
+def _miss(row: Row, metric: str) -> float:
+    miss = row.expected - row.score
+    return miss * miss if metric == "squared" else abs(miss)
+
+
+def compare(
+    rows: list[Row], a: str, b: str, *, seed: int = 0, draws: int = 2000, metric: str = "absolute"
+) -> dict[str, Any]:
+    """Is model `a` closer than model `b`? The mean of (miss of a) - (miss of b) over the games both predicted, with a 95%
+    interval from resampling whole weeks (a week's games move together), so below zero with an interval under zero means closer.
+
+    The miss is the size of the error ("absolute") or its square ("squared"). They can disagree: a score is zero or about
+    sixty, so the number that misses least on a typical game is the median, not the average, and an expected score is an
+    average. Squared error is the one that rewards getting that right.
+    """
     by_game: dict[tuple[str, datetime], dict[str, Row]] = defaultdict(dict)
     for row in rows:
         if row.model in (a, b):
@@ -257,9 +343,9 @@ def compare(rows: list[Row], a: str, b: str, *, seed: int = 0, draws: int = 2000
     weeks: dict[str, list[float]] = defaultdict(list)
     for pair in by_game.values():
         if a in pair and b in pair:
-            weeks[pair[a].week].append(abs(pair[a].expected - pair[a].score) - abs(pair[b].expected - pair[b].score))
+            weeks[pair[a].week].append(_miss(pair[a], metric) - _miss(pair[b], metric))
     if not weeks:
-        return {"a": a, "b": b, "weeks": 0, "n": 0, "diff": None, "lo": None, "hi": None}
+        return {"a": a, "b": b, "metric": metric, "weeks": 0, "n": 0, "diff": None, "lo": None, "hi": None}
     sums = np.array([sum(v) for v in weeks.values()])
     counts = np.array([len(v) for v in weeks.values()], dtype=float)
     diff = float(sums.sum() / counts.sum())
@@ -267,7 +353,16 @@ def compare(rows: list[Row], a: str, b: str, *, seed: int = 0, draws: int = 2000
     picks = rng.integers(0, len(sums), size=(draws, len(sums)))
     means = sums[picks].sum(axis=1) / counts[picks].sum(axis=1)
     lo, hi = np.percentile(means, [2.5, 97.5])
-    return {"a": a, "b": b, "weeks": len(weeks), "n": int(counts.sum()), "diff": diff, "lo": float(lo), "hi": float(hi)}
+    return {
+        "a": a,
+        "b": b,
+        "metric": metric,
+        "weeks": len(weeks),
+        "n": int(counts.sum()),
+        "diff": diff,
+        "lo": float(lo),
+        "hi": float(hi),
+    }
 
 
 def _spearman(x: np.ndarray, y: np.ndarray) -> float:
@@ -315,6 +410,27 @@ def _table(table: list[dict[str, Any]], keys: list[str]) -> list[str]:
     return lines
 
 
+def _ranking(tuning: list[Row], top: int = 10) -> list[str]:
+    ranked = rank_slices(tuning)
+    if not ranked:
+        return []
+    lines = [
+        "### Where today's model loses most to the best simple baseline (tuning weeks)",
+        "",
+        "Slices known before the lock, by the squared error that would go if today's model were as close as the best baseline "
+        "there (the difference of mean squared misses times the games). Below zero today's model is the closest.",
+        "",
+        "| slice | group | games | today RMSE | best baseline | its RMSE | today's bias | squared error to gain |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for item in ranked[:top]:
+        lines.append(
+            f"| {item['slice']} | {item['value']} | {item['n']} | {_fmt(item['today_rmse'])} | {item['best']} | "
+            f"{_fmt(item['best_rmse'])} | {item['bias']:+.1f} | {item['total']:+,.0f} |"
+        )
+    return [*lines, ""]
+
+
 def report(rows: list[Row], holdout_from: datetime) -> str:
     """The backtest as Markdown: each model overall, then by the slices the plan asks for, tuning weeks and held-out weeks apart."""
     rows = with_period(rows, holdout_from)
@@ -333,29 +449,29 @@ def report(rows: list[Row], holdout_from: datetime) -> str:
             continue
         out += _table(scores(part, ["model"]), ["model"]) + [""]
         if period == "tuning":
-            for key, label in (
-                ("klass", "club or national"),
-                ("role", "what he did"),
-                ("depth", "how much history"),
-                ("pos", "position"),
-            ):
+            for key, label, _ in SLICES:
                 out += [f"**By {label}**", ""] + _table(scores(part, ["model", key]), ["model", key]) + [""]
     tuning = [row for row in rows if row.period == "tuning"]
+    out += _ranking(tuning)
     out += ["### Order within a position and week (tuning weeks)", ""]
     for name in MODELS:
         out.append(f"- {name}: {_fmt(rank_correlation(tuning, name), 2)}")
     out += [
         "",
-        "### Is today's model closer than each baseline? (tuning weeks, mean |error| difference, 95% interval over weeks)",
+        "### Is today's model closer than each baseline? (tuning weeks, mean difference of the miss, 95% interval over weeks)",
+        "",
+        "Below zero with an interval under zero is closer. Absolute error is in points; squared error in points squared, and it is "
+        "the one that rewards an average that is right.",
         "",
     ]
     for name in MODELS:
         if name == "today":
             continue
-        result = compare(tuning, "today", name)
-        if result["weeks"]:
-            verdict = "closer" if result["hi"] < 0 else "further" if result["lo"] > 0 else "no clear difference"
-            out.append(
-                f"- today against {name}: {result['diff']:+.2f} points [{result['lo']:+.2f}, {result['hi']:+.2f}] over {result['weeks']} weeks: {verdict}"
-            )
+        for metric, label in (("absolute", "absolute error"), ("squared", "squared error")):
+            result = compare(tuning, "today", name, metric=metric)
+            if result["weeks"]:
+                verdict = "closer" if result["hi"] < 0 else "further" if result["lo"] > 0 else "no clear difference"
+                out.append(
+                    f"- today against {name}, by {label}: {result['diff']:+.2f} [{result['lo']:+.2f}, {result['hi']:+.2f}] over {result['weeks']} weeks: {verdict}"
+                )
     return "\n".join(out) + "\n"

@@ -89,7 +89,7 @@
 
   // How Sorare colours a football score, read from its own public script on 2026-09-29 (thresholds-*.js) and checked
   // against 42 real hexagons: the first step whose limit is >= the score, else the top colour. A chip on its card then
-  // means exactly what its own numbers mean. (The board's scoreColour() in lib/cards.ts uses other cut points.)
+  // means exactly what its own numbers mean. (The board's scoreBand() in lib/cards.ts steps the same way; a test holds the two together.)
   const SCORE_STEPS = [
     [20, "veryLow"],
     [35, "low"],

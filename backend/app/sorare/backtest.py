@@ -33,6 +33,9 @@ RARE_STARTER = 0.25  # below this share of his last five games started, he is a 
 MIN_RANKED = 6  # players needed in one position and week for an order to mean anything
 DEPTHS = (("0-4 games", 0, 5), ("5-9 games", 5, 10), ("10+ games", 10, 10**9))
 BASELINES = ("flat45", "last5", "last5_class")
+NO_FORM = (
+    "unknown"  # the starter group of a game with nothing before it: the first of the history, not a player nobody knows
+)
 # The slices the report cuts the games by: the Row attribute, how the report names it, and whether it is known before the
 # lock (what he did in the game is not, so it is shown but never ranked: no model can be fixed for it).
 SLICES = (
@@ -83,7 +86,7 @@ class Row:
     def starter(self) -> str:
         """How he had been used going into the week."""
         if not self.form_games:
-            return "unknown"
+            return NO_FORM
         share = self.form_starts / self.form_games
         return "regular" if share >= REGULAR_STARTER else "rotation" if share >= RARE_STARTER else "rare"
 
@@ -296,8 +299,8 @@ def rank_slices(rows: list[Row]) -> list[dict[str, Any]]:
             by_value[row[key]][row["model"]] = row
         for value, models in by_value.items():
             rivals = {name: models[name] for name in BASELINES if name in models}
-            if "today" not in models or not rivals:
-                continue
+            if value == NO_FORM or "today" not in models or not rivals:
+                continue  # the first game of the history has nothing to go on for any model: it says nothing to fix
             best = min(rivals, key=lambda name: rivals[name]["rmse"])
             today = models["today"]
             excess = today["rmse"] ** 2 - rivals[best]["rmse"] ** 2

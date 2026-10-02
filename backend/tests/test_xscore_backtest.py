@@ -255,6 +255,10 @@ def test_the_slices_are_ranked_by_the_squared_error_today_loses_to_the_best_simp
     assert not any(r["slice"] == "what he did" for r in ranked), (
         "what he did is known only afterwards, so it cannot be fixed for"
     )
+    assert any(r.before == 0 for r in found), "the history does start with a game that has nothing before it"
+    assert not any(r["value"] == "unknown" for r in ranked), (
+        "a game with nothing before it is the first of the history file, not a player nobody knows: it is not ranked"
+    )
 
 
 def test_a_week_is_the_monday_it_starts_and_two_games_of_one_week_share_it() -> None:

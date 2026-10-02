@@ -164,6 +164,24 @@ Pre-lock player forecasts are retained in `sorare_forecasts`; post-game actuals 
 compare submitted-lineup actual to original centre/range/reward threshold. Only rows captured before lock qualify for
 fitting; one gameweek is not sufficient evidence.
 
+Two more records are kept for the Audit page and for any fit of the xScore (roadmap 1.2 and 1.3), both as read models, so
+neither needs a migration for the unattended refresh:
+
+- **The plan as it stood at the lock** (`sorare_plan:<gameweek slug>`, `app.sorare.frozen`). Every run replaces the page,
+  so the first run after a lock writes the plan the page held, built by the last run before the lock: the week's lineups
+  with their cards, captains, expected totals and reward chances, and each of the owner's players with the chance and
+  expected score he had, game by game and from which source. It is written once and never touched again. A page built
+  after the lock is not what was said before the team news and is not kept; pictures, and what could not be entered, are
+  left out (`PICTURES`, `LEFT_OUT`) so a week is a fraction of the page. The run's summary names the weeks it kept under
+  `frozenPlans`; a dry run says what it would keep.
+- **What the model made of each player** (in `start_chances`, `app.sorare.starts.notes`), beside the three sources' chances
+  and under the same rule (replaced while the week is open, frozen at its lock, never made up afterwards): per player a
+  `model` (Sorare's projection and starter odds, his score if he starts and if he comes on, the chance of each, which source's
+  number the page used, and how much form he had: games, played, started of his last five) and per game an `info` (competition,
+  team, opponent, home or away, kickoff). A day after the week, settling a game also writes what he scored in it (`score`),
+  for how many minutes (`mins`), whether he played, and the game's competition (`comp`). The run's summary counts the players
+  noted under `starts.noted`.
+
 ## 11. Apply and extension
 
 Public key cannot read private future lineups or mutate them. The extension bridges the existing signed-in tab with

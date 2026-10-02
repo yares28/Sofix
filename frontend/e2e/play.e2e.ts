@@ -223,7 +223,7 @@ test("a card in a lineup sheet opens his match on Lineups", async ({ page }) => 
 
   await link.click();
   await expect(page).toHaveURL((url) => url.pathname + url.search === href);
-  await expect(page.locator('.lu-chip[aria-current="page"]')).toBeVisible();
+  await expect(page.locator('.lu-pair[aria-current="page"]')).toBeVisible();
 });
 
 test("a lineup opens a sheet with its cards, its subs and the rules it keeps", async ({ page }) => {

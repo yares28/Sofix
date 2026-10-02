@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import type { MouseEvent } from "react";
+import { useEffect, useRef, type MouseEvent } from "react";
 import {
   CHANCE_KEY,
   MAX_AGE_MS,
@@ -15,22 +15,20 @@ import {
   matchState,
   readLabel,
   roundDays,
-  startersIn,
   shortCode,
   teamsRead,
+  timelineOf,
   tint,
-  yoursIn,
-  yoursLabel,
   yoursPlayers,
-  yoursSummary,
   type LineupMatch,
   type LineupsData,
   type LineupSide,
   type PlayerKind,
   type Section,
+  type TimelineDay,
 } from "../../lib/lineups";
 import { cardHref } from "../../lib/links";
-import { CalledUpMark, ExternalIcon, InfoIcon, KindIcon } from "./Icons";
+import { CalledUpMark, ChevronIcon, ExternalIcon, InfoIcon, KindIcon, LockIcon } from "./Icons";
 import Shield from "./Shield";
 import TeamColumn from "./TeamColumn";
 
@@ -44,7 +42,7 @@ type Props = {
   now: Date;
   clubs: Record<string, ClubLook>;
   /** The Sorare week this round feeds, with its Play page (null when the section is not LaLiga's). */
-  sorare: { text: string; href: string } | null;
+  sorare: { text: string; href: string; open: boolean } | null;
   /** Lines shown above the match: why the page is not the week you came with. */
   flash: string[];
   /** The match the address asked for when Futbol Fantasy no longer has it: said until another match is picked. */
@@ -76,26 +74,34 @@ export default function LineupsView({ data, sections, initial, now, clubs, sorar
   const last = section.matches.at(-1)?.kickoff;
   const when = first && last ? roundDays(first, last) : null;
   const named = section.competition === "laliga" && section.round !== null ? `LaLiga round ${section.round}` : section.label;
+  const days = timelineOf(section.matches);
+  // On a phone the timeline scrolls sideways: bring the match in view to the middle whenever it changes.
+  const scroller = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const box = scroller.current;
+    const here = box?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!box || !here || box.scrollWidth <= box.clientWidth) return;
+    const left = here.getBoundingClientRect().left - box.getBoundingClientRect().left + box.scrollLeft;
+    box.scrollLeft = left - (box.clientWidth - here.offsetWidth) / 2;
+  }, [selected.id]);
   return (
     <main className="lu">
       <header className="lu-head">
-        <div>
-          <h1>Who starts this round?</h1>
-          <p>
-            {named}
-            {when ? ` · ${when}` : ""}
-            {section.competition === "laliga" && sorare ? (
-              <>
-                {" · "}
-                <Link href={sorare.href} className="lu-sorare">
-                  {sorare.text}
-                </Link>
-              </>
-            ) : null}
-          </p>
-          <p className="lu-source">Probable elevens from Futbol Fantasy · kickoffs in Madrid time</p>
+        <p className="lu-eyebrow">
+          {named}
+          {when ? ` · ${when}` : ""}
+        </p>
+        <h1>Who starts this round?</h1>
+        <div className="lu-chips">
+          {section.competition === "laliga" && sorare ? (
+            <Link href={sorare.href} className="lu-lock" data-open={sorare.open ? "" : undefined}>
+              <LockIcon />
+              {sorare.text}
+              <ChevronIcon />
+            </Link>
+          ) : null}
+          <ReadPill data={data} matches={section.matches} now={now} />
         </div>
-        <ReadPill data={data} matches={section.matches} now={now} />
       </header>
 
       {notes.map((line) => (
@@ -127,10 +133,15 @@ export default function LineupsView({ data, sections, initial, now, clubs, sorar
       ) : null}
 
       <nav className="lu-strip" aria-label={`Matches of ${section.label}`}>
-        {section.matches.map((match) => (
-          <Chip key={match.id} match={match} current={match.id === selected.id} now={now} clubs={clubs} />
-        ))}
+        <div className="lu-strip-scroll" ref={scroller}>
+          <div className="lu-days">
+            {days.map((day) => (
+              <Day key={day.key} day={day} selected={selected.id} now={now} clubs={clubs} />
+            ))}
+          </div>
+        </div>
       </nav>
+      <p className="lu-source">Futbol Fantasy · kickoffs in Madrid time</p>
 
       <article key={selected.id} className="lu-match" aria-label={`${selected.home.name} against ${selected.away.name}`}>
         <MatchHead match={selected} state={state} now={now} clubs={clubs} />
@@ -250,23 +261,51 @@ function ReadPill({ data, matches, now }: { data: LineupsData; matches: LineupMa
   );
 }
 
-function Chip({ match, current, now, clubs }: { match: LineupMatch; current: boolean; now: Date; clubs: Record<string, ClubLook> }) {
-  const count = yoursIn(match);
-  const state = matchState(match, now);
+// A pair of crests is about 86 px wide: the least room a game gets, so the timeline scrolls sideways rather than squeeze them.
+const PAIR_WIDTH = 92;
+
+/** One day of the round: its date, then each kickoff time on a rail with the games played then. */
+function Day({ day, selected, now, clubs }: { day: TimelineDay; selected: number; now: Date; clubs: Record<string, ClubLook> }) {
+  const games = day.slots.reduce((n, slot) => n + slot.matches.length, 0);
   return (
-    <Link href={hrefOf(match)} prefetch={false} onClick={switchTo(match)} className="lu-chip" aria-current={current ? "page" : undefined} data-state={state}>
-      <span className="lu-chip-teams">
-        <Shield crest={lookOf(match.home, clubs)?.crest ?? match.home.crest} color={lookOf(match.home, clubs)?.color} code={shortCode(match.home)} width={17} />
-        {shortCode(match.home)}
-        <i>–</i>
-        {shortCode(match.away)}
-        <Shield crest={lookOf(match.away, clubs)?.crest ?? match.away.crest} color={lookOf(match.away, clubs)?.color} code={shortCode(match.away)} width={17} />
-      </span>
-      <span className="lu-chip-when">{state === "started" ? "Kicked off" : kickoffLabel(match.kickoff).short}</span>
-      <span className="lu-chip-mine" title={`${yoursSummary(count)} named in this match; ${startersIn(match)} of them in the probable eleven`}>
-        <span aria-hidden="true" />
-        {yoursLabel(match)}
-      </span>
+    <div className="lu-day" style={{ flex: `${games} 1 0`, minWidth: games * PAIR_WIDTH + (day.slots.length - 1) * 4 + 28 }}>
+      <div className="lu-day-head">
+        <span>{day.weekday}</span>
+        <b>{day.date}</b>
+        {day.month ? <span>{day.month}</span> : null}
+      </div>
+      <div className="lu-slots">
+        {day.slots.map((slot) => (
+          <div key={slot.time} className="lu-slot" data-current={slot.matches.some((match) => match.id === selected) ? "" : undefined} style={{ flex: `${slot.matches.length} 1 0`, minWidth: slot.matches.length * PAIR_WIDTH }}>
+            <div className="lu-slot-time">{slot.time}</div>
+            <div className="lu-rail" aria-hidden="true">
+              <i />
+              <span />
+            </div>
+            <div className="lu-pairs">
+              {slot.matches.map((match) => (
+                <Pair key={match.id} match={match} current={match.id === selected} now={now} clubs={clubs} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** A game as its two crests, home side first; the club names are in the label and on hover. */
+function Pair({ match, current, now, clubs }: { match: LineupMatch; current: boolean; now: Date; clubs: Record<string, ClubLook> }) {
+  const state = matchState(match, now);
+  const when = kickoffLabel(match.kickoff);
+  const label = `${match.home.name} against ${match.away.name}, ${state === "started" ? `kicked off at ${when.time}` : when.short}`;
+  return (
+    <Link href={hrefOf(match)} prefetch={false} onClick={switchTo(match)} className="lu-pair" aria-current={current ? "page" : undefined} aria-label={label} title={`${match.home.name} v ${match.away.name}`} data-state={state}>
+      {[match.home, match.away].map((one, index) => (
+        <span key={index} className="lu-disc">
+          <Shield crest={lookOf(one, clubs)?.crest ?? one.crest} color={lookOf(one, clubs)?.color} code={shortCode(one)} width={23} />
+        </span>
+      ))}
     </Link>
   );
 }
@@ -343,10 +382,6 @@ function Legend({ calledUp }: { calledUp: boolean }) {
       <span>
         <i className="lu-swatch" aria-hidden="true" />
         Your card
-      </span>
-      <span>
-        <i className="lu-dot" aria-hidden="true" />
-        <b>3 yours · 0 starting</b> on a match tab: your players named in the match, and how many are in the probable eleven
       </span>
       <span>
         <KindIcon kind="out" size={16} />

@@ -200,6 +200,45 @@ export function kickoffLabel(iso: string | null): { day: string; time: string; s
   return { day: `${found.weekday} ${Number(found.day)} ${MONTHS[Number(found.month) - 1]}`, time, short: `${found.weekday} ${time}` };
 }
 
+export type TimelineSlot = { time: string; matches: LineupMatch[] };
+export type TimelineDay = {
+  key: string;
+  weekday: string;
+  date: string;
+  /** The month, only where the round crosses one: on its first day and on the day the month changes. */
+  month: string | null;
+  slots: TimelineSlot[];
+};
+
+/**
+ * A round as the page's timeline draws it: its matches (already in kickoff order) grouped by Madrid day, and inside a day by kickoff
+ * time, so games played together share one slot. Games with no date come last, as "Date TBC".
+ */
+export function timelineOf(matches: LineupMatch[]): TimelineDay[] {
+  const days: TimelineDay[] = [];
+  for (const match of matches) {
+    const { day, time } = kickoffLabel(match.kickoff);
+    const [weekday, date, month] = match.kickoff ? day.split(" ") : ["Date", "TBC", ""];
+    const key = match.kickoff ? day : "tbc";
+    let entry = days.at(-1)?.key === key ? days.at(-1) : undefined;
+    if (!entry) {
+      entry = { key, weekday: weekday!, date: date!, month: month || null, slots: [] };
+      days.push(entry);
+    }
+    const slot = entry.slots.at(-1);
+    if (slot?.time === time) slot.matches.push(match);
+    else entry.slots.push({ time, matches: [match] });
+  }
+  const months = new Set(days.map((day) => day.month).filter(Boolean));
+  let shown: string | null = null;
+  for (const day of days) {
+    const month = day.month;
+    day.month = months.size > 1 && month !== shown ? month : null;
+    if (month) shown = month;
+  }
+  return days;
+}
+
 /**
  * Whether a call-up is shown beside a player: only once his club has named its match squad. The page cannot say "called up" while it
  * also says the squad list is not out (R8, 1 Oct review). The mark itself (`data-internacional`) is a national-squad call-up, a different
@@ -220,19 +259,21 @@ export function roundDays(first: string, last: string): string {
 
 /**
  * The Sorare week a LaLiga round feeds, as the page's header names it, with the Play page for it: "Sorare GW21 · locks Fri 16:00" once
- * Sorare has opened the week, "Sorare: not open yet" before. Null when the round is not one of the season's weeks.
+ * Sorare has opened the week, "Sorare: not open yet" before. `open` is true only while there is still time to set a lineup. Null when
+ * the round is not one of the season's weeks.
  */
 export function sorareLine(
   week: Pick<Week, "id" | "gw" | "number"> | undefined,
   lock: string | undefined,
   now: Date,
-): { text: string; href: string } | null {
+): { text: string; href: string; open: boolean } | null {
   if (!week) return null;
   const href = `/play?w=${encodeURIComponent(week.id)}`;
-  if (!week.gw) return { text: "Sorare: not open yet", href };
+  if (!week.gw) return { text: "Sorare: not open yet", href, open: false };
   const name = `Sorare GW${week.number}`;
-  if (!lock) return { text: name, href };
-  return { text: new Date(lock) <= now ? `${name} · locked` : `${name} · locks ${kickoffLabel(lock).short}`, href };
+  if (!lock) return { text: name, href, open: false };
+  const locked = new Date(lock) <= now;
+  return { text: locked ? `${name} · locked` : `${name} · locks ${kickoffLabel(lock).short}`, href, open: !locked };
 }
 
 /**
@@ -244,16 +285,6 @@ export function otherWeekNote(asked: Pick<Week, "md" | "number"> | null, round: 
   const base = `Futbol Fantasy only has each club's next LaLiga game: round ${round}.`;
   if (asked.md !== null) return `${base} Round ${asked.md} ${asked.md < round ? "has been played" : "comes after it"}.`;
   return `${base} Sorare GW${asked.number} ${nationalGames ? "is national-team games" : "has no LaLiga round"}.`;
-}
-
-/** How many of the owner's players a match names, the eleven and the alternatives of both sides. */
-export function yoursIn(match: LineupMatch): number {
-  let count = 0;
-  for (const side of [match.home, match.away]) {
-    for (const row of side.rows) count += row.players.filter((p) => p.yours).length;
-    count += side.alternatives.filter((p) => p.yours).length;
-  }
-  return count;
 }
 
 export type LineupsGlance = { round: number; yours: number };
@@ -275,18 +306,6 @@ export function lineupsGlance(data: LineupsData | null, now: Date): LineupsGlanc
     }
   }
   return { round: section.round!, yours: yours.size };
-}
-
-/** How many of the owner's players are in a match's probable elevens, the alternatives left out. */
-export function startersIn(match: LineupMatch): number {
-  let count = 0;
-  for (const side of [match.home, match.away]) for (const row of side.rows) count += row.players.filter((player) => player.yours).length;
-  return count;
-}
-
-/** What a match tab says of your players: "3 yours · 0 starting" (named in the match, and in the probable eleven). */
-export function yoursLabel(match: LineupMatch): string {
-  return `${yoursIn(match)} yours · ${startersIn(match)} starting`;
 }
 
 /** An alternative at or under this chance is not worth a chip on the pitch. */
@@ -482,10 +501,6 @@ export function statusLine(predictability: Level | null, season: number | null):
   if (round && share) return `${round} this round · ${share} over the season`;
   if (round) return `${round} this round`;
   return share ? `${share} predictable over the season` : null;
-}
-
-export function yoursSummary(count: number): string {
-  return count === 0 ? "none of your players" : `${count} of your players`;
 }
 
 // ------------------------------------------------------------------------------------------------------ the crests

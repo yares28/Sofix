@@ -62,7 +62,9 @@ def choose(
     missing: list[projection.Round] = []
     stale: list[tuple[timedelta, projection.Round]] = []
     kept: dict[int, dict[str, Any]] = {}
-    for index, round_ in enumerate(sorted(rounds, key=lambda r: r.number)):
+    # "The next few" are the next by date: a postponed game keeps its old round number but is played later, and by number it
+    # would take one of the near slots away from a round that is a week off.
+    for index, round_ in enumerate(sorted(rounds, key=lambda r: (r.first, r.number))):
         row = db.get(ReadModel, f"{publish.AHEAD_PREFIX}{round_.number}")
         if row is None or not isinstance(row.payload, dict) or not planned_for(row.payload, round_):
             missing.append(round_)

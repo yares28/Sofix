@@ -63,6 +63,22 @@ def test_the_next_few_rounds_are_kept_current_and_the_far_ones_daily(db) -> None
     assert set(kept) == {14, 15, 16, 17}
 
 
+def test_the_next_few_rounds_are_the_next_by_date_so_a_postponed_game_does_not_take_one_of_the_slots(db) -> None:  # noqa: F811
+    # Round 5's postponed game is played on 20 December: the lowest number on the page, and the furthest away.
+    postponed_day = at("2026-12-20")
+    late = projection.Round(5, (match(postponed_day, FCB, RMA),))
+    many = [*rounds(5), late]
+    for number in range(10, 15):
+        keep(db, number, timedelta(hours=10))
+    keep(db, 5, timedelta(hours=10), start=projection.window(postponed_day)[0].isoformat())
+
+    plan, kept = early.choose(db, many, NOW)
+
+    # Ten hours old: past the six an early round close by is kept to, inside the day a far one is.
+    assert [r.number for r in plan] == [10, 11, 12, 13], "the four nearest by date, not the four lowest numbers"
+    assert set(kept) == {14, 5}
+
+
 def test_at_most_a_few_rounds_are_planned_in_one_run_nearest_first(db) -> None:  # noqa: F811
     plan, kept = early.choose(db, rounds(30), NOW)
     assert [r.number for r in plan] == list(range(10, 10 + early.PER_RUN))

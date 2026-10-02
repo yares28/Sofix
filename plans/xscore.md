@@ -83,6 +83,64 @@ Each is a hypothesis with a cheap test, run on your two examples.
 *Done when:* each is marked confirmed or refuted in TODO.md, with the numbers. This is also the answer to the TODO's
 "first lead": whether the tile is Sorare's projection passed straight through, and for whom.
 
+### P0 findings, 2 Oct 2026
+
+**Method.** The numbers are the page's own (`read_models`, `sorare_forecasts`, read-only `SELECT`s) for GW19 (`football-2-6-oct-2026`:
+Georgia's two Nations League games for Giorgi, Spain–Czechia for Oyarzabal). Their game history was read from Sorare (read-only,
+small queries: the local `.env` holds no Sorare key, so the keyless limits of depth 7 and complexity 500 apply), and `forecast()` was run on
+that history with Sorare's projection (47 and 52). **The rebuilt numbers equal the page's to the decimal**: Giorgi `mu` 52.82, `start`
+45.0, `p_start` 54.3%, expected score 49.3; Oyarzabal `mu` 52.0, `start` 52.0, `p_start` 68.6%, expected 46.1. Nothing on the page is an
+arithmetic slip; the questions are about what the arithmetic assumes.
+
+| # | Verdict | What the numbers say |
+|---|---|---|
+| L1 | **Refuted as worded, and a different problem found** (F1) | Giorgi's 45 is not Sorare's projection (47): it is his own three recent starts (50.4 for Georgia, 35.2 and 37.2 for Rayo) pulled towards 51. |
+| L2 | **Confirmed** | `p_start` is the form formula on his last five games of any competition: 4 starts of 5 gives (4 + 0.8) ÷ 7 = 68.6% (it was 3 of 5, 54%, on 30 Sep, before his 29 Sep start). Sorare gave no starter odds: 0 of 14 players in refresh #42, `plays_odds` empty in all 30 rows of `sorare_forecasts`. |
+| L3 | **Confirmed**, and worse (F3) | Giorgi has two games; the expected score counts the best-of-two (47 → 52.82, ×93.4% = 49.3) but the tile's "if he starts" 45.0 does not, and nothing says "2 games". |
+| L4 | **Confirmed, by design** | `xgFor` (`frontend/lib/overlay.ts`): a national-team game shows his club rate as it is, unscaled, on purpose (O11). Not an xScore matter; what to show instead is plan step P4.5. |
+| L5 | Open | Two players are too few to say; the backtest (P2) measures the spread of scores by role. |
+| L6 | Open | Which of two games Sorare counts needs a lineup holding a two-game player: public leaderboards are depth 8 and 9 and complexity 576 and over, beyond the keyless limits (7 and 500). Wanted: the extension's read of an entered lineup of yours with such a player (Giorgi has two games in GW19), or a keyed query from the refresh job. |
+
+**Their last five games before the lock** (the model's whole view of them):
+
+| | 28–29 Sep | 25–26 Sep | 19–20 Sep | 15–17 Sep | 12–13 Sep |
+|---|---|---|---|---|---|
+| Giorgi (Rayo, Georgia) | Georgia start, 90', **50.4** | Georgia: did not play | LaLiga sub, 19', **30.6** | LaLiga start, 76', **35.2** | LaLiga start, 90', **37.2** |
+| Oyarzabal (Real Sociedad, Spain) | Spain start, 90', **36.3** | Spain sub, 35', **60.0** (a goal) | LaLiga start, 61', **41.6** | Europa League start, 73', **32.2** | LaLiga start, 79', **38.7** |
+
+Behind them: Oyarzabal's eight Global Cup games for Spain (June–July) averaged **55.0**, against about 44 in his 2026/27 LaLiga games;
+he started 6 of his 7 LaLiga games this season, Giorgi 2 of 7 (3 not used at all).
+
+**What it shows.**
+
+- **F1 · A cliff, not a rule.** `start` ("if he starts") is Sorare's projection for a *regular starter* (his start share, `p_start ÷
+  (p_start + p_on)`, 75% or more, and a projection) and his own smoothed starts for anyone else. Oyarzabal's share is 77.4%, so his tile is
+  Sorare's 52, while his four recent starts averaged 37.2 (form alone says 41.8). Giorgi's share is 73.1%, so his tile is his own 45.0, with
+  Sorare's 47 beside it unused. A hair's difference in share switches which kind of number a tile shows, and "45 against 52" compares
+  two different kinds. This is the plain reason the pair looked wrong.
+- **F2 · Club and country are pooled.** Both players' last five mix club and national games, so the start chance, the sub chance and
+  the score are averages of two roles: Oyarzabal's Spain games score 55 on average and his LaLiga starts 44; Giorgi's only recent
+  Georgia start scored 50.4 against 35–37 for Rayo. This week is all national-team games, so the tile answers a question about Spain with
+  an average about Real Sociedad. It is the "competition matters" point of your note, now with numbers; P4 step 1 is the fix.
+- **F3 · Sorare publishes a projection for each game.** Oyarzabal: 52 for 3 Oct (grade F, reliability 100%) and 50.0 for the second Spain
+  game on 6 Oct; Giorgi: 47 for both games (grade E, reliability 100%). The model reads one number per week
+  (`nextClassicFixtureProjectedScore`, the next game) and uses it for both games. A week with two games can use both, and the
+  reliability can feed the spread (P6).
+- **F4 · The bench number is one or two appearances.** A substitute scores 35 plus his all-around points (Giorgi, 19 minutes: −4.4,
+  so 30.6; Oyarzabal, 35 minutes: a goal puts the decisive level at 60 and the all-around −1.5 cannot pull him under it, so 60.0: the
+  floor rule, confirmed). The model's substitute score is `(his sub scores + 2 × 42) ÷ (n + 2)`: Giorgi's one sub (30.6) makes it 38.2
+  and Oyarzabal's one (60.0, a goal) makes it 48, then times the chance of coming on (40% and 53%) gives the "15.3" and "25.6" under "if he
+  doesn't start". A single goal moves a player's bench score by about seven points (48 instead of 41 for a 38 in its place). This is the bench-score issue in numbers; P4 step 3.
+- **F5 · The chance of starting is always our own or Futbol Fantasy's.** Sorare's starter odds are absent in practice (see L2), so for
+  any game outside Futbol Fantasy's reach the number is the form formula.
+
+**Sorare's field names** (from its published schema, `https://api.sorare.com/graphql/schema`): on a `PlayerGameScore`:
+`allAroundScore`, `decisiveScore { stat points totalScore }` (the level: 35, 60, …), `positiveDecisiveStats` and `negativeDecisiveStats`
+(`stat statValue points`), `allAroundStats`, `detailedScore`, `projectedScore` and `projection { score grade reliabilityBasisPoints }`; on its
+stats `gameStarted` and `minsPlayed`, which were right in all four games checked, national-team games included (90, 35, 90 and 19
+minutes). A score is exactly decisive level + all-around, with the floor above level 0: 35 + 1.3 = 36.3, 35 + 15.4 = 50.4,
+35 − 4.4 = 30.6, and 60 (not 58.5).
+
 ## 3 · How to measure
 
 Two tracks, because the data for the two questions is different.

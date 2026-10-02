@@ -373,18 +373,36 @@ the head of the batch then under way.
 
 ## Results
 
-### Batch 0
+### Batch 0 · 2 Oct 2026 · done except the two steps that need you
 
-- **0.6 · partly done, 2 Oct.**
-  - TODO.md's order now points here.
-  - [xscore.md](xscore.md), [overlay.md](overlay.md) and [docs/sorare_plan.md](../docs/sorare_plan.md) say which step each of
-    their open items became, and S9's "one Sorare GW across two LaLiga rounds" is ticked.
-  - Left: the same pointer in [futbolfantasy.md](futbolfantasy.md), which another session was editing when this was written.
-- **Seen on /control, 2 Oct:** the Refresh button is there (step 0.1's first half).
+Merged as #19 together with batch 1's backend steps; refresh #44 run by hand on `main` (5 min 16 s). Checked in your Chrome.
 
-### Batch 1
+| Step | Result | What was seen |
+|---|---|---|
+| 0.1 | **waits for you** | The Refresh button is on /control (the key is in Vercel). Pressing it once and what Check, Draft and Enter said are still to be written down. |
+| 0.2 | **waits for you** | The tab my Chrome tools get is a zero-size window that reports itself hidden: nothing draws there and screenshots time out, so the overlay on Sorare's pages cannot be seen from here. The checklist is below. |
+| 0.3 | pass | Refresh #44 log: no warning, `futbolfantasy` `matches` 10, `read` 10, `failed` absent (refresh #42: `read` 30 and 52 failed pages, two HTTP 404). The Sorare step took 243 s against 449 s, the run 5 min 16 s against 8 min 18 s. The cause was larger than the 404s: the Copa del Rey page's sidebar was read as its matches. |
+| 0.4 | pass | Play's lineup sheet on production: 7 cards, 7 silhouettes behind the art. The e2e test holds the art back 3 s and sees the silhouette, then the picture over it. |
+| 0.5 | pass | Section 9 of the Futbol Fantasy plan has its results (C1–C21), from refresh #42's log and read-only `SELECT`s. |
+| 0.6 | pass | TODO.md, the xScore, overlay and Futbol Fantasy plans and the Sorare tracker point here; S9's "one Sorare GW across two LaLiga rounds" is ticked. |
 
-_(none yet)_
+**For you, 0.2 (about five minutes, signed in on sorare.com with the extension reloaded):** open a lineup or "Select your …" page of a
+gameweek with your players. (1) Each card has a tile with a number; hover one: the panel shows the plan chip, Starts / Benched, the
+chance with its source mark (FF, SO or SF) and the sources folded. (2) A player outside LaLiga says "LaLiga only" on the Futbol
+Fantasy row, and no Spanish word is anywhere. (3) The panel of a card in a lineup shows every card of it, or "+N". (4) On a "Select
+your …" list the cards are ranked #1 to #3. (5) The popup's "Cards recognised here" reads "N of N", and on an old week's page "Gameweek
+in the address" says a week or "none named". Send a screenshot of anything that is wrong.
+
+### Batch 1 · 2 Oct 2026 · in progress
+
+Merged as #19 (1.2 and 1.3); the rest follows.
+
+| Step | Result | What was seen |
+|---|---|---|
+| 1.1 P0 | done except L5 and L6 | Findings in [xscore.md](xscore.md) ("P0 findings"): the page's numbers for Giorgi and Oyarzabal are rebuilt to the decimal from their game history; the "45 against 52" comes from a 75% cliff between two kinds of number (F1), club and country games are pooled (F2), Sorare publishes a projection for each game and the model uses one (F3), and the bench score is one or two appearances (F4). L5 (spread by role) waits for the backtest; L6 (which of two games counts) needs a keyed read or an entered lineup with a two-game player. |
+| 1.2 | code live, first freeze due | Refresh #44 ran with it (no week had locked yet, so `frozenPlans` is absent, as the test says it should be). GW19 locks today at 16:00 Madrid; the first run after that writes `sorare_plan:football-2-6-oct-2026`. |
+| 1.3 | pass | Refresh #44: `starts` `{'written': 20, 'frozen': 0, 'noted': 14, 'settled': 0}`: the 14 players of GW19 carry their `model` and their games' `info`. |
+| 1.4 | not started | |
 
 ### Batch 2
 

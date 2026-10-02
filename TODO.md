@@ -146,7 +146,7 @@ production:
 - **There is almost nothing to backtest on yet.** `sorare_forecasts` holds 3 gameweeks, 30 rows, 11 scored, and none of
   its rows has Sorare's starter/substitute odds. The backtest below therefore starts from Sorare's per-game history
   (form only, walk-forward) and adds the comparison with Sorare's projection when about 100 scored players exist. The
-  record also lacks the competition, minutes and start/bench split, so P1 adds them (one migration; the FF plan needs none).
+  record also lacked the competition, minutes and start/bench split; P1 now adds them in a read model, so no migration (2 Oct).
 - **The big number on a tile is "if he starts", not the expected score.** That alone makes Giorgi 45 / Oyarzabal 43 look
   alike. Question for you (plan §6): should the big number be the expected score instead, or both?
 - **Two leads are very likely:** a player with no start in his last five gets Sorare's projection as his start score
@@ -157,6 +157,16 @@ production:
 - **Confirmed from Sorare's help page:** a starter and a substitute who comes on both begin at 35; levels above 0 have
   a guaranteed minimum. Which of two games counts is not on that page ("Best score chosen" is what Sorare's lineup screen
   says) and is checked in P0.
+- **P0 done on 2 Oct** (details and numbers in [plans/xscore.md](plans/xscore.md), "P0 findings"). The page's numbers for the two players
+  were rebuilt from their game history and match to the decimal. (1) The two "very likely" leads are half right: Giorgi's 45 is **not**
+  Sorare's projection (that is 47; his 45 is his own three recent starts pulled towards 51), but Oyarzabal's "% he starts" is the form
+  formula (4 starts in 5, 68.6% now), and Sorare gave no starter odds at all (0 of 14 players in the last run). (2) The real reason the
+  pair looks wrong: "if he starts" is Sorare's projection for a player who starts 75% of the time or more and his own smoothed starts for
+  anyone else, so Oyarzabal shows Sorare's 52 (his four recent starts scored 37.2) and Giorgi his own 45: two different kinds of
+  number, a cliff at 75%. (3) Club and country games are pooled: Oyarzabal's eight games for Spain this summer averaged 55, his LaLiga ones
+  44. (4) Sorare publishes a projection for each game; the model reads one per week. (5) The bench score rests on one or two substitute
+  appearances: one goal in 35 minutes puts Oyarzabal's at 48 and Giorgi's 30.6 at 38. Still open: the spread by role (needs the backtest)
+  and which of two games Sorare counts (needs an entered lineup with a two-game player, or a keyed read).
 
 **What you said.** "How does Giorgi have an xS of 45 and Oyarzabal 43? The xS has to have more depth: depending on
 the competition a player can have different xGs. Oyarzabal has had a weird start of season, but with Spain he always

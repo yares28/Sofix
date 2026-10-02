@@ -82,8 +82,9 @@ happened. The page counts the same pairs on that record: this is the real xScore
 numbers in it.
 
 It shows a figure from 100 pairs. Until then it says "too few to tell", with how far along it is, rather than a number
-that is mostly luck. Your players with a game in a gameweek are about 15, which is about 20 pairs, so expect it after
-about five gameweeks.
+that is mostly luck. The first two gameweeks recorded were international-break weeks with only 15 of your players. In a
+normal LaLiga round about 75 of them have a game, which is several hundred pairs, so expect a figure once the first
+LaLiga round (round 8, GW21) is settled, from Wed 14 Oct.
 
 ## Who starts
 
@@ -105,9 +106,10 @@ What is known today:
   (their games were Nations League, Segunda División and Argentina). It joins the record with the first gameweek that has
   one (round 8's, locking on Fri 9 Oct).
 - **Sorare:** has not given a start chance for any of your players. If that stays so, it never joins the comparison.
-- **The three side by side, on the same games,** needs about 100 games for each. At about 15 of your players a gameweek,
-  and only a few of them in LaLiga, that is months. If it is too slow, recording every LaLiga player rather than only yours
-  is the way to shorten it (roadmap, decision 4).
+- **The three side by side, on the same games,** needs about 100 games for each. Round 8's Futbol Fantasy lineups name 75 of
+  your players, so Futbol Fantasy and Sofix should reach 100 checked games within about two LaLiga rounds (round 9 is Fri 16
+  to Mon 19 Oct), and Sorare only if it ever gives odds. Recording every LaLiga player rather than only yours (roadmap,
+  decision 4) is not needed for this.
 
 Only Sofix's chance can be replayed on the past, because the other two are not kept anywhere once a game is over.
 

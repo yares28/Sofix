@@ -314,8 +314,8 @@ which scores the same, and the page says so. The line under the bars says how ma
 
 That figure is a replay: your 84 players' games since August 2025, with the xScore as the form formula alone would have said
 it. Sorare's own projection and Futbol Fantasy's chance are not in the past, so they cannot be replayed. **Live check** is the
-same count on what Sofix really wrote down before each lock; it begins empty and shows a figure from 100 pairs (about five
-gameweeks).
+same count on what Sofix really wrote down before each lock; it begins empty and shows a figure from 100 pairs, which the first
+LaLiga round gives (about 75 of your players have a game in one).
 
 **Who starts?** gives each of Futbol Fantasy, Sorare and Sofix a column. It says how often the source was right (said 50% or more
 and he started, or less and he did not), how far its chances were from what happened (the error score: 0 is perfect, 0.25 is saying

@@ -92,12 +92,13 @@ Fixed dates. These steps run on their day, between the others.
 
 | When | Step |
 |---|---|
+| Wed 7 Oct, after 14:00 UTC | The Audit's first real rows: GW19 is settled, so Sofix's column goes from "Waiting for results" to counts (about 21 checked games, still under the 100 that gives a figure) and the live check's pairs begin |
 | By Fri 9 Oct, 16:00 (GW21, round 8, locks) | Batch 1 live: the plan frozen at the lock, and the richer record |
 | Thu 8 – Fri 9 Oct, once clubs publish their squad lists | 2.1 · the call-up chip, live |
 | Fri 9 Oct, the three hours before the lock | 2.2 · near-lock runs; 2.3 · five numbers by eye |
 | Fri 9 – Mon 12 Oct, during the games | 2.4 · a match that has kicked off |
 | Sat 10 – Tue 13 Oct | 2.5 · round 9 replaces round 8 |
-| Tue 13 Oct, evening | 2.6 · the starts settled; the first frozen plan beside its real scores |
+| Wed 14 Oct, after 14:00 UTC (a day after GW21 ends) | 2.6 · the starts settled; the first frozen plan beside its real scores; the Audit's Futbol Fantasy column shows its first checked games (round 8: up to 75 of your players), so the first figures can appear |
 | Wed 14 – Thu 15 Oct | 2.7 · European games and the competition tabs |
 
 ---
@@ -434,9 +435,18 @@ in the address" says a week or "none named". Send a screenshot of anything that 
 | 4.2 | done | The gap table is in pro.md: build Pro and its level, later for Super Rare and Unique, skip Rooms and Arcade, check Arena's automatic substitutes against the planner. |
 | 4.3 | **Stop, waits for you** | Three questions at the end of pro.md: the scope (recommended: show and value first, plan with it second, Apply for Pro only if you want it), which rarities you play in Pro, and whether Play needs a new look. |
 
-### Batch 5
+### Batch 5 · 2 Oct 2026 · started, at your request: the page, the one xScore figure and who starts per source
 
-_(none yet)_
+| Step | Result | What was seen |
+|---|---|---|
+| 5.1 | skipped at your request | You asked for the page and its first figures directly, so there was no canvas Stop. It follows the Control Center's look (its widgets, tokens and states) and the design checklist: one hero figure, aligned evidence, honest empty states, text never under 11 px on a desktop or 10 px on a phone. |
+| 5.2 · 2, xScore precision | **the one figure is built** | **66.0%: of every pair of your players in one position and gameweek, the xScore rated the better one higher** (64.6% to 67.2%; 39,961 pairs in 99 Sorare gameweeks, your 84 players, 3 Aug 2025 to 1 Oct 2026). A coin flip is 50% and his last five games' average is 66.1%, so it is finding 3 of the backtest in one number. By position: goalkeepers 69%, defenders 66%, midfielders 64%, forwards 68%. Typical miss 19.5 points, runs 3 low. Explained, with a worked example and what it does not say, in [docs/xscore_success_rate.md](../docs/xscore_success_rate.md), which the page links. It is a replay of the form formula alone, so the page's second line, the live check, counts the same pairs on what was written before each lock; it shows a figure from 100 pairs, and one LaLiga round gives several hundred. Not built: the splits by role, competition and source of the chance. |
+| 5.2 · 1, who starts | **built, without the splits and the big misses** | Futbol Fantasy, Sorare and Sofix side by side, each scored on the games it had a number for once they are settled: how often it was right, the error score, and how many of the players it put at 80% or more started. A source under 100 checked games says "Too few to tell" with how far along it is, "Waiting for results" or "Nothing yet" with the reason; it never shows a made-up figure. Sofix replayed on the past: right on 72.0% of 4,615 games (always saying he starts: 56.1%; error score 0.188 against 0.246 for saying the same every time; it says 51% on average and 56% started; where it said 80% or more, 87% started). **Today's record:** 24 games written down by Sofix in the two gameweeks recorded (international-break weeks: Nations League, Segunda División and Argentina, so 15 and 3 players), none settled. Sorare gave no start chance for any of your players (0 of 14 in GW19, 0 of 3 in GW20). Futbol Fantasy has none: it covers LaLiga only. **Round 8's Futbol Fantasy lineups name 75 of your players**, so Futbol Fantasy and Sofix should reach 100 checked games within about two LaLiga rounds; decision 4 (every LaLiga player) is not needed for this. |
+| 5.2 · 13, coverage and freshness | first part | "Written down so far": for each gameweek, the games written down before its lock, how many have been checked and how many each source gave. Not built: how old Futbol Fantasy's number was at the lock, names not linked, reads that failed. |
+| 5.2 · 8, 9, 11, 12 | not built | Sorare's projection against Sofix's needs 100 scored players with both; two-game weeks are 0.5% of the total; Futbol Fantasy's doubles and the football board's RPS are separate figures. |
+| 5.3, 5.4 | not built | They need the plan frozen at the lock: GW19's is kept, and GW21's is frozen at the lock on 9 Oct. |
+| Production | **checked** | Merged as PR #26; CI #109 was green (backend 1 min 12 s, frontend 43 s, 173 end-to-end tests). The new route needed the OpenAPI document and the generated types regenerated, which `app.openapi_export --check` would have caught in CI. Vercel deployed it; refresh #64 (started by hand, 19:03 UTC) wrote the `audit` read model (1,965 bytes, nothing failed). On https://sofix-yares.vercel.app/audit: the 66%, the three sources' states, the replay bands and the two recorded gameweeks as in the database; the stylesheet applied (the figure at 148 px, three source columns), "Audit" marked in the top bar, no sideways scroll, nothing under 11 px, no console error. Not seen: the page painted in your Chrome (the tab I drive is hidden, so its screenshots time out); the painted desktop and phone captures are from the local end-to-end run on the same payload (docs/images/audit.png). |
+| Next | dated | Wed 7 Oct after 14:00 UTC: GW19 settles, so Sofix's column gets its first counts. Wed 14 Oct after 14:00 UTC: round 8 settles, so the first figures can appear. |
 
 ### Batch 6
 

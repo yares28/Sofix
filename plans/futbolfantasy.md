@@ -4,6 +4,9 @@ Written 2026-09-30. It replaces the first draft (`plans/starts.md`), which wante
 weeks before showing any of them. You decided Futbol Fantasy (FF) is the main source, so that comparison moves to the
 Audit page idea in [TODO.md](../TODO.md). Sibling plan: [xscore.md](xscore.md).
 
+**What is left of this plan is scheduled in [roadmap.md](roadmap.md) (2 Oct 2026):** the checks of section 9 that wait for round 8
+are its batch 2 (dated), the rest of the live pass is its step 0.2. This file keeps the design, the rules and the results below.
+
 **Goal.** For every player you own, the "% he starts" that Sofix and the sorare.com overlay show is FF's, for the game
 it is about. Where FF has nothing, it is Sorare's, then Sofix's own. The xScore, plans and captain are built on that
 number. FF's full probable lineups get a new page and a new section on the home page, styled first on a design canvas
@@ -102,7 +105,7 @@ Around that:
 Two tracks run in parallel. The numbers switch first because they need no styling: the tile and Play already show the
 published %. The page and the section wait for the design you choose.
 
-**Status, 30 Sep and 1 Oct (branch `claude/amazing-lovelace-8pxz0r`; it reaches production when that is merged to main):**
+**Status, 30 Sep, 1 Oct and 2 Oct (all on `main` and in production since 1 Oct):**
 
 | Step | State |
 |---|---|
@@ -110,10 +113,10 @@ published %. The page and the section wait for the design you choose.
 | S1 · Read FF by match | Done: parser, reader and fixtures of the real pages; 240 s budget; one unparseable page costs only its match |
 | S2 · Link FF to your players | Done: all 74 of your cards at the 20 LaLiga clubs link to the right person on the real pages (72 by name, 1 by a short first name, 1 by surname and age) |
 | S3 · The numbers | Done in the job, the page and the overlay's answer |
-| S4 · Near-lock runs | Written (`near-lock.yml`); inert until it is on main |
+| S4 · Near-lock runs | On main, listed in Actions as "Refresh near a lock"; the first lock it can act on is Fri 9 Oct (C9) |
 | S5 · The pages | Done: `/lineups` (desktop and phone), the Home's team news, the FF / SO / SF marks on Play's cards, the overlay's new tile and panel. Also each LaLiga club's squad page, read once a week, so every alternative sits under his own line |
-| S6 · Refresh button | Route, cooldown and walkthrough exist and pass their tests; it needs the GitHub key in Vercel (your item 2) and the code on main |
-| S7 · The extension reads FF live | Done and tested with the real page; needs a reload of the extension (it asks for one more site) and the check C19 below |
+| S6 · Refresh button | Done: the button shows on /control (2 Oct), so the GitHub key is in Vercel; pressing it once is the roadmap's step 0.1 |
+| S7 · The extension reads FF live | Done and tested with the real page; the extension is reloaded (2 Oct, your report); the live checks C18 and C19 are the roadmap's step 0.2 |
 | S8 · Docs | Done: AGENTS.md, the manual, `docs/how_it_works.md`, TODO.md |
 
 ### Now
@@ -475,4 +478,27 @@ and the numbers or output that show it.
 
 **Results**
 
-_(none yet)_
+Read on 2 Oct 2026 from refresh #42 (run by hand on `main`, GitHub's runner, 8 min 18 s; its log summary) and read-only `SELECT`s on the
+read models.
+
+| # | Result | What was seen |
+|---|---|---|
+| C1 | pass, with a finding | `futbolfantasy.matches` 10, no `stopped`. `read` was 30, not 10: the job also asked for about eighty pages of old pre-season friendlies, because the Copa del Rey page's sidebar was read as its matches (fixed 2 Oct: `parse_round` reads only the page's own area; the real page now gives 0 matches instead of 76, and LaLiga 10, Champions 18, Europa 18 as before). |
+| C2 | pass | No `noMatch` in the summary. The planned week was GW19 (national teams), so `games` is 0 and the comparison with round 8's games waits for GW21's plan (calendar 2.3). |
+| C3 | pass | `unlinked` is empty. |
+| C4 | reported | `sorareOdds`: 14 players, 0 with Sorare's starter odds (a national-team week): the order is Futbol Fantasy → Sofix in practice. |
+| C5–C7 | not run | They need a plan for a week with LaLiga games: GW21 (roadmap 2.3). |
+| C8 | pass | The site answered GitHub's runner for the ten round-8 matches and the twenty squad pages; no 403 or 429 anywhere in `failed`. |
+| C9 | not yet | Fri 9 Oct (roadmap 2.2). |
+| C10 | pass | `futbolfantasy` version 2 with the ten match ids 22493–22502; `ff_links`, `start_chances` and `ff_positions` are there. |
+| C11–C13 | not yet | During and after round 8, and Thu 15 Oct (roadmap 2.4, 2.6, 2.7). |
+| C14 | pass | `ff_positions`: 20 squads, 592 positions, no `squadsFailed`. |
+| C15 | pass | `/lineups` on production, 2 Oct (batch 4 of the review): ten matches, both elevens as Sorare cards, your players ringed, per-slot alternatives. |
+| C16 | overtaken, partly seen | Every player is a Sorare card now (214 of 220 starters), the six without one use Futbol Fantasy's photo or a silhouette (not looked at live). Crests show beside each team's name (seen on production, 2 Oct). |
+| C17 | not yet | There is no `ff_chances` row: the Team news tile had nothing to say in the national-team week. Round 8 (roadmap 2.3). |
+| C18, C19 | not yet | The live pass on your Sorare pages (roadmap 0.2). |
+| C20 | pass | 8 min 18 s against the 15-minute limit, about 100 seconds of it on the dead pages above. The squad pages were not read again (`ff_positions` dates from 1 Oct, 14:33). |
+| C21 | overtaken | The alternatives now come from Futbol Fantasy's own slots (`next`); seen against its pitch on 2 Oct: Aleñá under Denis Suárez, Mariano under Toni Martínez, Valentini under Jonny, Lookman under both Lee and Grimaldo. |
+
+Questions: **Q6** is answered (`allCards`, a real Limited card for any player, see [review-fixes.md](review-fixes.md) 4.0) and **Q7**
+(crests from football-data.org for the LaLiga clubs, Futbol Fantasy's for the others, both hot-linked) is in use. Q1 to Q5 wait for round 8.

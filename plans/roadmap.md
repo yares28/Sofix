@@ -245,6 +245,9 @@ the head of the batch then under way.
   - Tests first, with made-up histories.
   - Output: section 3 of [xscore.md](xscore.md), slice by slice, for today's model. Nothing on screen changes.
 - **3.2 · The wider export:** only if decision 4 says yes.
+- **3.2b · A week-level backtest** (added 2 Oct from 3.3's findings). The first backtest scores single games, which cannot test
+  "the best of two". Add rows per player and Sorare gameweek: the plan's expected score for the week against the best score he
+  made in it. It needs each game's gameweek (Sorare's own, from `so5Fixtures`, not Monday to Sunday), so the export gains it.
 - **3.3 · Phase P3: rank the errors.**
   - Rank which slice is worst: national-team games, rare starters, two-game weeks, the bench.
   - Re-order 3.4 by what the ranking shows, and write it into xscore.md.
@@ -404,15 +407,19 @@ in the address" says a week or "none named". Send a screenshot of anything that 
 | 1.3 | pass | Refresh #44: `starts` `{'written': 20, 'frozen': 0, 'noted': 14, 'settled': 0}`: the 14 players of GW19 carry their `model` and their games' `info`. |
 | 1.4 | pass in tests, the look waits for you | A player with two games gets `fixtures` in the app's answer, a small **×2** off the tile's lower corner, "2 games this week, best score chosen" in the tile's name, and both games in the panel with their kickoff in your clock. Checked: unit tests for the answer and for the panel's lines, the overlay e2e on the fixture page (a one-game tile has neither), the design check (13 previews) and the whole browser suite at desktop and phone width (163 passed). Extension 0.3.1: Reload Sofix in `chrome://extensions`. I could not look at it on Sorare itself (see 0.2). |
 
-### Batch 2
+### Batch 2 · early finding, 2 Oct 2026
 
-_(none yet)_
+| Step | Result | What was seen |
+|---|---|---|
+| 2.2 (early) | **the near-lock runs mostly do not happen** | "Refresh near a lock" is written to run every 30 minutes. GitHub started it 6 times in 26 hours (1 Oct 08:21, 15:44, 21:17; 2 Oct 01:20, 04:26, 10:51), none in the three hours before today's 16:00 lock, and the 14:07 scheduled refresh did not run either (scheduled runs on a quiet public repo are delayed or dropped). The page the lock would have seen was the 10:30 one; I started a refresh by hand at 15:25. The 9 Oct check (2.2, C9) would fail the same way. |
+| 2.2b | **waits for your choice** | Free ways to get a refresh in the last hours: (a) press Refresh on /control before you lock (works today); (b) **recommended:** the extension asks the app to start the refresh when you open sorare.com within three hours of a lock and the page is older than 25 minutes: the one moment you need fresh numbers, using the same key the Refresh button uses; (c) accept the scheduled runs as they come. (b) is a small change to the extension and one route in the app. |
 
 ### Batch 3 · 2 Oct 2026 · in progress
 
 | Step | Result | What was seen |
 |---|---|---|
-| 3.1 | tools built, numbers to come | The export, the backtest and the command that prints its report are written test first (32 tests on made-up histories; a player built to start for his country and come off the bench for his club shows the error today's model makes). The first export, asking about twice a second, was refused by Sorare's keyless limit after 14 players and then left every player after them out for want of waiting; it now asks once a second, waits out a refusal and asks the same question again, and stops if it is still refused after three waits. Each player takes at least 16 questions (a month at a time back to August 2025). The backtest numbers go in [xscore.md](xscore.md) once the export is whole. |
+| 3.1 | done | The export, the backtest and the command that prints its report are written test first (38 tests on made-up histories; a player built to start for his country and come off the bench for his club shows the error today's model makes). The first export, asking about twice a second, was refused by Sorare's keyless limit after 14 players and then left every player after them out for want of waiting; it now asks once a second, waits out a refusal and asks the same question again, and stops if it is still refused after three waits. Sorare's limit is on the address, not the account, and it let through about 30 players in 14 minutes. The whole history is in: 84 players, 4,647 games, none failed. Numbers: [xscore.md](xscore.md), "Results of P2 and P3". Headline: today's form formula is closer than his last five by squared error (-39.5 [-53.0, -27.4] over 62 weeks) and no closer by typical miss, orders players no better, and says 2.9 points too little in every slice but national games. |
+| 3.3 | done | Ranked by the squared error today's model would gain against the best simple baseline: the only loss is regular starters (24.9 against 24.8 for always 45); rare starters, the bench, national games and every position are not the problem. The level is: both the chance of playing (said 68%, was 71.5%) and the score when he plays (said 48.1, was 49.7) are low. The new order of 3.4 is in xscore.md: the level first, a week-level backtest second (a tool for two-game weeks), the rest wait for Track B. |
 
 ### Batch 4 · 2 Oct 2026 · research done, at the Stop
 

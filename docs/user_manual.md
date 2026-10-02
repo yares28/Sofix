@@ -289,7 +289,8 @@ FF says so above the next match.
 - **The small button** at the top right of a match, "Read 16:56", opens when FF was last read and when each team's lineup last
   changed; the arrow beside it opens the match on Futbol Fantasy.
 - **States.** The pill under the title says how many teams are read and when; it says when FF could not be read (the last
-  reading stands for 24 hours) or is over a day old (no longer used in plans). A team FF has not published yet says so, a match
+  reading stands for 24 hours) or is over a day old (no longer used in plans); a match FF has taken off its site is simply dropped
+and never counts as FF not being readable. A team FF has not published yet says so, a match
   that has kicked off is frozen, and "Date TBC" is matched by teams and round.
 
 On a phone one team shows at a time, switched by the two names under the match.

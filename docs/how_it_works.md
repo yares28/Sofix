@@ -211,7 +211,16 @@ existed, and each game of one it does carries its own `pStart`, `pOn` and `start
 Futbol Fantasy is read before the page is planned (`app.sources.futbolfantasy_matches`, `app.sorare.ff_feed`): the round page
 of LaLiga, Champions League, Europa League and Copa del Rey, then the match pages of every LaLiga match and of the others
 that have a Spanish club or a club one of the owner's players is at, two seconds apart, inside a 240-second budget, giving up
-after three unreadable pages in a row; a match read in the last 25 minutes is not asked for again. Each match is kept with
+after three unreadable pages in a row; a match read in the last 25 minutes is not asked for again. A page that cannot be read
+(a 403, a 429, a server error, a time-out, a page that is not a lineup page, a round or squad page that is missing) is listed
+under `failed`, which is what makes the Lineups header say the site could not be read, and the match keeps its last reading. A
+match page the site answers 404 for is different: the site answered, and that match is no longer on it. It is dropped from the
+stored feed (`Reading.gone`, `ff_feed.refresh`), is not a failure, and does not count towards giving up; if the round page
+still links to it, the next run asks once more and gets the same answer. A round page's matches are read from the page's own
+area only (`parse_round`, its `<main>`): the sidebar carries a "next round" widget with other competitions' matches in it
+(summer friendlies and internationals, dated with no year), and a competition with no round yet, the Copa del Rey before its
+draw, has nothing else on the page. Until 2 Oct 2026 those were read as its matches: about fifty dead pages on every run, each
+a "failed read", which was about 100 seconds of the 240 and kept the Lineups header's "could not be read" one run away. Each match is kept with
 the time it was read and used for a day at most, never after, and never once it has kicked off. The site gives no time for
 its lineups, so each club's "changed at" is found by comparing one reading with the last. Its players are matched to the
 owner's Sorare players inside one club's side of one match (`app.sorare.ff_link`: same name, one name inside the other's

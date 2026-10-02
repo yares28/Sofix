@@ -437,13 +437,17 @@ _(none yet)_
 
 _(none yet)_
 
-### Batch 7
+### Batch 7 · 2 Oct 2026 · one step so far
 
-_(none yet)_
+| Step | Result | What was seen |
+|---|---|---|
+| 7.3 | pass in tests, production check after the merge | `lib/cards.ts` now steps at 20/35/50/60/75 on the score as the hexagon draws it (rounded), six colours instead of eight, so a 76 to 79 is cyan on the board as it is on Sorare (it was green). `lib/overlayCore.test.ts` holds the band of every whole score from 0 to 100 equal to the overlay's `scoreLevel`, so the two cannot drift. Checked: 573 unit tests, typecheck, lint, the My cards browser tests. |
 
-### Batch 8
+### Batch 8 · 2 Oct 2026 · one step so far
 
-_(none yet)_
+| Step | Result | What was seen |
+|---|---|---|
+| 8.4 | answered: not possible | Futbol Fantasy's round page sends no `ETag` and no `Last-Modified`, and `Cache-Control: no-cache, private` with `max-age=0` (two `HEAD` requests, four seconds apart). Nothing to ask conditionally; the reads stay as throttled as they are. Recorded as Q4 in [futbolfantasy.md](futbolfantasy.md). |
 
 ## To start a run
 

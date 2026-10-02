@@ -207,6 +207,34 @@ def test_the_slices_by_role_depth_position_and_period() -> None:
     assert {r["period"] for r in split} == {"tuning", "held out"}
 
 
+def test_each_game_says_how_often_he_had_started_before_it() -> None:
+    regular = rows({"p": player([game(7 * i) for i in range(6)])})
+    bench = rows({"p": player([game(7 * i, started=False, score=20.0) for i in range(6)])})
+    mixed = rows(
+        {"p": player([game(0), game(7, started=False), game(14), game(21, started=False), game(28), game(35)])}
+    )
+    missed = rows(
+        {
+            "p": player(
+                [game(0), game(7), game(14, played=False), game(21, played=False), game(28, played=False), game(35)]
+            )
+        }
+    )
+
+    assert regular[0].starter == "unknown", "no game seen yet, so nothing is known of how he is used"
+    assert regular[5].starter == "regular", "five starts in his last five"
+    assert bench[5].starter == "rare", "five appearances off the bench"
+    assert mixed[5].starter == "rotation", "three starts in his last five"
+    assert missed[5].starter == "rotation", "a game he did not play counts as one he did not start: two in five"
+
+
+def test_each_game_says_how_many_games_his_week_holds() -> None:
+    found = rows({"p": player([game(0.5), game(6.5), game(7.2), game(14.1)])})
+
+    assert [r.week_games for r in found] == [2, 2, 1, 1]
+    assert [r.games_that_week for r in found] == ["2+ games", "2+ games", "1 game", "1 game"]
+
+
 def test_a_week_is_the_monday_it_starts_and_two_games_of_one_week_share_it() -> None:
     found = rows({"p": player([game(0.5), game(6.5), game(7.2)])})
 
@@ -224,6 +252,43 @@ def test_a_model_that_is_closer_every_week_beats_the_other_with_an_interval_that
     assert result["weeks"] >= 30
     assert result["diff"] < 0 and result["hi"] < 0, "last five is closer than a flat 45, week after week"
     assert backtest.compare(found, "flat45", "last5", seed=1)["lo"] > 0
+
+
+def made_row(model: str, week: int, score: float, expected: float) -> backtest.Row:
+    when = MONDAY + timedelta(days=7 * week)
+    return backtest.Row(
+        model=model,
+        player="p",
+        pos="FWD",
+        date=when,
+        week=when.date().isoformat(),
+        competition="laliga-es",
+        klass="club",
+        before=5,
+        score=score,
+        played=score > 0,
+        started=score > 0,
+        expected=expected,
+    )
+
+
+def test_the_model_that_says_the_average_is_closer_by_squared_error_and_the_one_that_says_zero_by_absolute_error() -> (
+    None
+):
+    # he scores 60 in three weeks of ten and nothing in the rest. Always saying 0 misses by less on a typical week (absolute
+    # error rewards the median); always saying the average, 18, is closer once big misses count for more (squared error),
+    # and an expected score is an average, so that is the one that says whether it is right.
+    found = []
+    for week in range(100):
+        score = 60.0 if week % 10 < 3 else 0.0
+        found += [made_row("average", week, score, 18.0), made_row("zero", week, score, 0.0)]
+
+    absolute = backtest.compare(found, "average", "zero", seed=1)
+    squared = backtest.compare(found, "average", "zero", seed=1, metric="squared")
+
+    assert absolute["metric"] == "absolute" and squared["metric"] == "squared"
+    assert absolute["diff"] > 0 and absolute["lo"] > 0, "by absolute error, saying zero is closer"
+    assert squared["diff"] < 0 and squared["hi"] < 0, "by squared error, saying the average is"
 
 
 def test_two_models_that_say_the_same_do_not_beat_each_other() -> None:
@@ -286,6 +351,22 @@ def test_the_report_names_the_split_and_each_model_with_its_error() -> None:
     for name in backtest.MODELS:
         assert name in text
     assert "MAE" in text and "bias" in text.lower()
+    assert "absolute error" in text and "squared error" in text, "each comparison is made both ways"
+
+
+def test_the_report_has_a_table_for_each_slice_the_plan_asks_to_rank() -> None:
+    games = [game(7 * i, score=40.0 + (i % 4)) for i in range(40)]
+    text = backtest.report(backtest.walk_forward({"p": player(games)}), holdout_from=MONDAY + timedelta(days=7 * 30))
+
+    for label in (
+        "club or national",
+        "what he did",
+        "how much history",
+        "position",
+        "how often he had started",
+        "games in the week",
+    ):
+        assert label in text, label
 
 
 # ---------------------------------------------------------------------------------------------------- the command

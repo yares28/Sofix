@@ -24,7 +24,9 @@ from tests.test_pipeline import db  # noqa: F401  (fixture)
 DAY = datetime(2026, 10, 2, 9, tzinfo=UTC)
 
 
-def node(slug: str, name: str, club: str = "Real Sociedad", born: str = "1996-04-01", position: str = "Midfielder") -> dict[str, Any]:
+def node(
+    slug: str, name: str, club: str = "Real Sociedad", born: str = "1996-04-01", position: str = "Midfielder"
+) -> dict[str, Any]:
     return {
         "slug": slug,
         "displayName": name,
@@ -46,7 +48,16 @@ class FakeSorare:
             return {"football": {"competition": {"clubs": {"nodes": [{"slug": club} for club in self.squads]}}}}
         if "activePlayers" in text:
             club = (variables or {}).get("s")
-            return {"football": {"club": {"activePlayers": {"pageInfo": {"hasNextPage": False, "endCursor": None}, "nodes": self.squads[club]}}}}
+            return {
+                "football": {
+                    "club": {
+                        "activePlayers": {
+                            "pageInfo": {"hasNextPage": False, "endCursor": None},
+                            "nodes": self.squads[club],
+                        }
+                    }
+                }
+            }
         if "allCards" in text:
             wanted = re.findall(r'(p\d+): allCards\(playerSlugs: \["([a-z0-9-]+)"\]', text)
             out = {}
@@ -59,7 +70,10 @@ class FakeSorare:
 
 def squads() -> dict[str, list[dict[str, Any]]]:
     return {
-        "real-sociedad": [node("mikel-oyarzabal-ugarte", "Oyarzabal"), node("igor-zubeldia", "Zubeldia", position="Defender")],
+        "real-sociedad": [
+            node("mikel-oyarzabal-ugarte", "Oyarzabal"),
+            node("igor-zubeldia", "Zubeldia", position="Defender"),
+        ],
         "deportivo": [node("mikel-balenziaga", "Balenziaga", club="Deportivo", position="Defender")],
     }
 
@@ -77,7 +91,7 @@ def test_one_aliased_question_asks_for_one_limited_card_of_the_season_per_player
 
     assert text.count("allCards") == 2
     assert 'p0: allCards(playerSlugs: ["a-b"], rarities: [limited], seasonStartYears: [2026], first: 1)' in text
-    assert "p1: allCards(playerSlugs: [\"c-d\"]" in text
+    assert 'p1: allCards(playerSlugs: ["c-d"]' in text
 
 
 def test_a_slug_that_is_not_a_slug_is_never_put_in_a_question() -> None:
@@ -108,7 +122,10 @@ def test_the_first_run_reads_every_squad_then_every_card_and_keeps_them(db: Sess
     client = FakeSorare(squads(), CARDS)
     art = card_art.refresh(db, client, DAY)
 
-    assert art.urls == {"mikel-oyarzabal-ugarte": CARDS["mikel-oyarzabal-ugarte"], "igor-zubeldia": CARDS["igor-zubeldia"]}
+    assert art.urls == {
+        "mikel-oyarzabal-ugarte": CARDS["mikel-oyarzabal-ugarte"],
+        "igor-zubeldia": CARDS["igor-zubeldia"],
+    }
     assert {w.slug for w in art.wanted} == set(art.urls), "only a player with a picture is worth linking"
     stored = db.get(ReadModel, card_art.ART_KEY)
     assert stored is not None and stored.payload["season"] == 2026
@@ -142,14 +159,18 @@ def test_a_player_with_no_card_is_asked_again_after_two_days_and_not_before(db: 
     card_art.refresh(db, soon, DAY + timedelta(days=1))
     assert not [text for text in soon.asked if "allCards" in text], "one day later he is not asked for again"
 
-    later = FakeSorare(squads(), {**CARDS, "mikel-balenziaga": "https://assets.sorare.com/card/ddd/picture/balenziaga.png"})
+    later = FakeSorare(
+        squads(), {**CARDS, "mikel-balenziaga": "https://assets.sorare.com/card/ddd/picture/balenziaga.png"}
+    )
     art = card_art.refresh(db, later, DAY + timedelta(days=3))
     assert art.urls["mikel-balenziaga"].endswith("balenziaga.png")
 
 
 def test_a_new_season_forgets_the_old_pictures(db: Session) -> None:  # noqa: F811
     card_art.refresh(db, FakeSorare(squads(), CARDS), DAY)
-    fresh = FakeSorare(squads(), {"mikel-oyarzabal-ugarte": "https://assets.sorare.com/card/eee/picture/new-season.png"})
+    fresh = FakeSorare(
+        squads(), {"mikel-oyarzabal-ugarte": "https://assets.sorare.com/card/eee/picture/new-season.png"}
+    )
     art = card_art.refresh(db, fresh, datetime(2027, 8, 1, tzinfo=UTC))
 
     assert art.urls == {"mikel-oyarzabal-ugarte": "https://assets.sorare.com/card/eee/picture/new-season.png"}
@@ -189,7 +210,9 @@ def test_a_player_the_owner_does_not_have_is_linked_to_his_card_by_name(real: li
 
 def test_a_player_with_no_picture_has_no_entry_and_the_payload_without_art_has_none(real: list) -> None:  # noqa: F811
     assert "art" not in built(real) or built(real)["art"] == {}
-    art = card_art.Art(wanted=[card_art.wanted_of("someone-else", "Someone Else", None, "Forward", ["Elsewhere"])], urls={})
+    art = card_art.Art(
+        wanted=[card_art.wanted_of("someone-else", "Someone Else", None, "Forward", ["Elsewhere"])], urls={}
+    )
     assert built_with(real, art)["art"] == {}
 
 

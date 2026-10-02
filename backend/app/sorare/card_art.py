@@ -94,7 +94,11 @@ def _load(db: Session) -> dict[str, Any]:
     row = db.get(ReadModel, ART_KEY)
     data = row.payload if row and isinstance(row.payload, dict) else {}
     players = data.get("players")
-    return {"season": data.get("season"), "rosterAt": data.get("rosterAt"), "players": dict(players) if isinstance(players, dict) else {}}
+    return {
+        "season": data.get("season"),
+        "rosterAt": data.get("rosterAt"),
+        "players": dict(players) if isinstance(players, dict) else {},
+    }
 
 
 def _at(value: Any) -> datetime | None:
@@ -142,7 +146,9 @@ def _due(entry: Mapping[str, Any], now: datetime) -> bool:
     return now - asked >= (ART_EVERY if entry.get("url") else NONE_EVERY)
 
 
-def refresh(db: Session, client: SorareClient, now: datetime, competition: str = COMPETITION, *, write: bool = True) -> Art:
+def refresh(
+    db: Session, client: SorareClient, now: datetime, competition: str = COMPETITION, *, write: bool = True
+) -> Art:
     """The roster and each player's card picture, brought up to date as far as Sorare answers, and kept (unless `write` is off)."""
     model = _load(db)
     db.rollback()  # Sorare is asked for over a minute: Neon closes a connection left inside a transaction

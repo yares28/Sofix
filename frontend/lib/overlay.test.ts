@@ -168,6 +168,25 @@ describe("overlayNumbers", () => {
     expect(at("2026-10-06T00:00:00Z")).toBe(0.56); // neither played: the first
   });
 
+  it("lists each game of a double gameweek in kickoff order, and has nothing for a single game", () => {
+    const two = player({
+      games: [
+        game({ kickoff: "2026-10-11T19:00:00+00:00", opponent: "Macedonia", venue: "A", competition: "cup", odds: MACEDONIA }),
+        game({ kickoff: "2026-10-07T19:00:00+00:00", opponent: "Slovenia", venue: "H", competition: "cup", odds: SLOVENIA }),
+      ],
+    });
+    const entry = overlayNumbers(sorare([two]), null, ask({ players: ["unai-simon"] }), NOW).players["unai-simon"]!;
+
+    expect(entry.fixtures).toEqual([
+      { opponent: "Slovenia", venue: "H", kickoff: "2026-10-07T19:00:00+00:00", competition: "cup" },
+      { opponent: "Macedonia", venue: "A", kickoff: "2026-10-11T19:00:00+00:00", competition: "cup" },
+    ]);
+    expect(entry.game?.win).toBe(0.17); // the tile still reads the next game, as before
+
+    const single = overlayNumbers(sorare([player()]), null, ask({ players: ["unai-simon"] }), NOW).players["unai-simon"]!;
+    expect(single.fixtures).toBeUndefined();
+  });
+
   it("carries his score if he starts and if he does not, and the chance of each, when the job published them", () => {
     const split = player({ start: 58.2, bench: 12.6, pStart: 0.78, pOn: 0.12 });
     const entry = overlayNumbers(sorare([split]), grid, ask({ players: ["unai-simon"] }), NOW).players["unai-simon"]!;

@@ -145,12 +145,22 @@ def test_a_player_is_written_with_the_numbers_the_model_had_for_him_and_what_eac
     assert (mid.gameweek, mid.lock) == ("gw-plan", LOCK)
     model = mid.model
     assert model["pos"] == "MID" and model["games"] == 1
-    assert model["projection"] == 55.0 and model["startOdds"] == pytest.approx(0.9) and model["playsOdds"] is not None  # Sorare's own
+    assert (
+        model["projection"] == 55.0 and model["startOdds"] == pytest.approx(0.9) and model["playsOdds"] is not None
+    )  # Sorare's own
     assert model["pStart"] == 0.7 and model["startSource"] == "futbolfantasy"  # the number the page used
     assert {"mu", "pPlay", "start", "bench", "pOn", "benchedOn", "source"} <= set(model) and model["bench"] > 0
-    assert model["form"] == {"n": 2, "played": 2, "started": 0}, "two games in his history, and no roles recorded for them"
+    assert model["form"] == {"n": 2, "played": 2, "started": 0}, (
+        "two games in his history, and no roles recorded for them"
+    )
     info = mid.games["game-mid-one"]
-    assert info == {"competition": "laliga-es", "team": "Club A", "opponent": "Club Z", "venue": "H", "kickoff": "2026-10-10T14:00:00Z"}
+    assert info == {
+        "competition": "laliga-es",
+        "team": "Club A",
+        "opponent": "Club Z",
+        "venue": "H",
+        "kickoff": "2026-10-10T14:00:00Z",
+    }
 
 
 def test_a_player_with_no_game_in_the_week_has_no_note() -> None:
@@ -162,8 +172,16 @@ def test_a_player_with_no_game_in_the_week_has_no_note() -> None:
     assert "front-one" not in {n.player for n in starts.notes(snap)}
 
 
-def noted(model: dict[str, Any] | None = None, games: dict[str, dict[str, Any]] | None = None, player_: str = "p1") -> starts.Note:
-    return starts.Note(player_, "gw-x", LOCK, model or {"pStart": 0.6, "mu": 50.0}, games or {"g1": {"competition": "laliga-es", "opponent": "Club Z"}})
+def noted(
+    model: dict[str, Any] | None = None, games: dict[str, dict[str, Any]] | None = None, player_: str = "p1"
+) -> starts.Note:
+    return starts.Note(
+        player_,
+        "gw-x",
+        LOCK,
+        model or {"pStart": 0.6, "mu": 50.0},
+        games or {"g1": {"competition": "laliga-es", "opponent": "Club Z"}},
+    )
 
 
 def test_the_notes_follow_the_same_rule_as_the_chances_open_replaced_locked_kept(db) -> None:
@@ -178,7 +196,9 @@ def test_the_notes_follow_the_same_rule_as_the_chances_open_replaced_locked_kept
 
     after = LOCK + timedelta(hours=1)
     starts.save(db, [fresh(0.05)], after, [noted({"pStart": 0.05, "mu": 10.0})])
-    assert weeks(db)["gw-x"]["players"]["p1"]["model"]["pStart"] == 0.8, "after the team news it is not what the model said"
+    assert weeks(db)["gw-x"]["players"]["p1"]["model"]["pStart"] == 0.8, (
+        "after the team news it is not what the model said"
+    )
 
 
 def test_a_note_first_seen_after_the_lock_is_not_made_up_afterwards(db) -> None:
@@ -200,7 +220,13 @@ def test_a_game_that_is_settled_also_says_what_he_scored_and_for_how_long_he_pla
 
     assert starts.settle(db, snap) == {"settled": 1}
     game = game_of(db, "p1", "g", "gw-past")
-    assert (game["started"], game["played"], game["score"], game["mins"], game["comp"]) == (True, True, 61.5, 87, "laliga-es")
+    assert (game["started"], game["played"], game["score"], game["mins"], game["comp"]) == (
+        True,
+        True,
+        61.5,
+        87,
+        "laliga-es",
+    )
 
 
 def test_a_player_who_did_not_play_is_settled_with_no_minutes(db) -> None:
@@ -370,7 +396,12 @@ class _Client:
         if "activePlayers" in text:
             return {"football": {"club": {"activePlayers": {"pageInfo": {"hasNextPage": False}, "nodes": self.roster}}}}
         slugs = re.findall(r'(p\d+): allCards\(playerSlugs: \["([a-z0-9-]+)"\]', text)
-        return {"football": {alias: {"nodes": [{"pictureUrl": self.pictures[slug]}] if slug in self.pictures else []} for alias, slug in slugs}}
+        return {
+            "football": {
+                alias: {"nodes": [{"pictureUrl": self.pictures[slug]}] if slug in self.pictures else []}
+                for alias, slug in slugs
+            }
+        }
 
 
 def the_match() -> ffm.Match:
@@ -476,7 +507,11 @@ def test_the_job_writes_what_the_model_made_of_each_player_and_what_his_games_we
 
     assert summary["starts"]["noted"] >= 12  # every fixture player with a game
     mid = weeks(db)["gw-plan"]["players"]["mid-one"]
-    assert mid["model"]["pStart"] == 0.7 and mid["model"]["startSource"] == "futbolfantasy" and mid["model"]["startOdds"] == pytest.approx(0.9)
+    assert (
+        mid["model"]["pStart"] == 0.7
+        and mid["model"]["startSource"] == "futbolfantasy"
+        and mid["model"]["startOdds"] == pytest.approx(0.9)
+    )
     assert mid["games"]["game-mid-one"]["info"]["competition"] == "laliga-es"
     assert set(mid["games"]["game-mid-one"]) >= {"sorare", "sofix", "futbolfantasy", "info"}, "beside the three chances"
 
@@ -492,7 +527,9 @@ def test_the_job_keeps_the_plan_it_had_when_the_week_locked_and_only_once(db, mo
     assert "frozenPlans" not in first and db.get(ReadModel, "sorare_plan:gw-plan") is None
 
     second = the_job.run(db, "yares", runs=1, dry_run=True)
-    assert second["frozenPlans"] == ["gw-plan"] and db.get(ReadModel, "sorare_plan:gw-plan") is None, "a dry run says, and keeps nothing"
+    assert second["frozenPlans"] == ["gw-plan"] and db.get(ReadModel, "sorare_plan:gw-plan") is None, (
+        "a dry run says, and keeps nothing"
+    )
 
     runs = iter([after, {**after, "fetchedAt": "2026-10-09T21:00:00+00:00"}])
     third = the_job.run(db, "yares", runs=1)
@@ -638,7 +675,15 @@ def test_the_lineups_page_carries_a_real_card_for_a_player_the_owner_does_not_ha
     monkeypatch.setattr(
         _Client,
         "roster",
-        [{"slug": "back-one", "displayName": "Back One", "position": "Defender", "birthDay": None, "activeClub": {"slug": "club-a", "name": "Club A", "shortName": "Club A"}}],
+        [
+            {
+                "slug": "back-one",
+                "displayName": "Back One",
+                "position": "Defender",
+                "birthDay": None,
+                "activeClub": {"slug": "club-a", "name": "Club A", "shortName": "Club A"},
+            }
+        ],
     )
     monkeypatch.setattr(_Client, "pictures", {"back-one": "https://assets.sorare.com/card/zzz/picture/back-one.png"})
 
@@ -661,4 +706,6 @@ def test_a_card_art_step_that_fails_costs_only_the_cards(db, monkeypatch, the_jo
 
     assert set(summary["failed"]) == {"card art"}, "what was kept is read instead, which cannot fail"
     page = db.get(ReadModel, "lineups")
-    assert page is not None and page.payload["art"] == {} and page.payload["matches"], "the page is there, without cards for the others"
+    assert page is not None and page.payload["art"] == {} and page.payload["matches"], (
+        "the page is there, without cards for the others"
+    )

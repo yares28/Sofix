@@ -180,7 +180,7 @@
 /* ---- decisions: what the best plan does with a card, where he stands on a list, and numbers that no longer hold ----- */
 /* Drawn beside the tile, inside the wrapper (the tile itself clips its corners), and never answering the pointer:
    what they mean is in the tile's own name for a screen reader. */
-.sfx-mark, .sfx-rank {
+.sfx-mark, .sfx-rank, .sfx-games {
   position: absolute;
   display: grid;
   place-items: center;
@@ -192,6 +192,7 @@
 .sfx-mark { top: -5px; right: -6px; width: 15px; height: 15px; border-radius: 50%; }
 .sfx-mark svg { width: 9px; height: 9px; }
 .sfx-mark--star { background: var(--sfx-m, #f0ce1d); }
+.sfx-games { right: -11px; bottom: -7px; min-width: 18px; height: 12px; padding: 0 4px; border-radius: 6px; font: 700 8.5px/12px var(--sfx-cond); font-variant-numeric: tabular-nums; background: #f4f4f6; }
 .sfx-rank { left: 50%; bottom: -6px; min-width: 18px; height: 12px; padding: 0 4px; border-radius: 6px; transform: translateX(-50%); font: 700 8.5px/12px var(--sfx-cond); font-variant-numeric: tabular-nums; }
 .sfx-ribs--compact .sfx-mark { top: -4px; right: -4px; width: 10px; height: 10px; }
 .sfx-ribs--compact .sfx-mark svg { width: 6px; height: 6px; }
@@ -323,6 +324,12 @@
 .sfx-stat b { display: block; font: 700 17px/18px var(--sfx-cond); color: var(--sfx-white); font-variant-numeric: tabular-nums; }
 .sfx-stat b.sfx-stat--none { color: rgba(255, 255, 255, 0.45); }
 
+/* A gameweek with two games: both, soonest first, the next one lit. */
+.sfx-fixtures { border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 8px; }
+.sfx-fixtures-cap { display: block; font: 600 8.5px/10px var(--sfx-font); letter-spacing: 0.08em; text-transform: uppercase; color: #a1a1a6; }
+.sfx-fixtures ul { display: flex; flex-direction: column; gap: 4px; margin: 6px 0 0; padding: 0; list-style: none; }
+.sfx-fixtures li { font: 500 11.5px/14px var(--sfx-font); color: #a3a3ab; font-variant-numeric: tabular-nums; }
+.sfx-fixtures li.is-next { color: var(--sfx-white); font-weight: 650; }
 .sfx-sources { border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 8px; }
 .sfx-sources-toggle {
   display: flex; align-items: center; justify-content: space-between; width: 100%; margin: 0; padding: 0; border: 0; background: transparent;

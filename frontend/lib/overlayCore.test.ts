@@ -50,6 +50,8 @@ type Core = {
   topThree: (items: { key: string; x: number }[]) => Map<string, number>;
   isPickHeading: (text: unknown) => boolean;
   fixtureOf: (url: unknown) => string | null;
+  gamesCount: (entry: { fixtures?: unknown }) => number;
+  fixtureLine: (fixture: { kickoff?: string; venue?: string; opponent?: string }, timeZone?: string) => string | null;
 };
 const core = createRequire(import.meta.url)("../../extension/core.js") as Core;
 
@@ -518,5 +520,29 @@ describe("a changed chance of starting, applied to an answer", () => {
     expect(core.liveSplit({ pStart: 0.9, pOn: 0.05 }, undefined, "t")).toBeNull();
     expect(core.liveSplit({ pStart: 0.9, pOn: 0.05 }, { p: 1.5, lesion: -1 }, "t")).toBeNull();
     expect(core.liveSplit({ pStart: 0.9, pOn: 0.05 }, { p: Number.NaN, lesion: -1 }, "t")).toBeNull();
+  });
+});
+
+describe("games in the gameweek", () => {
+  it("counts one game unless the answer lists more than one", () => {
+    expect(core.gamesCount({})).toBe(1);
+    expect(core.gamesCount({ fixtures: [] })).toBe(1);
+    expect(core.gamesCount({ fixtures: [{}] })).toBe(1);
+    expect(core.gamesCount({ fixtures: [{}, {}] })).toBe(2);
+    expect(core.gamesCount({ fixtures: "two" })).toBe(1);
+    expect(core.gamesCount(undefined as never)).toBe(1);
+  });
+
+  it("writes a game as a day, a time and an opponent, with 'v' at home and 'at' away", () => {
+    const away = { kickoff: "2026-10-02T16:45:00Z", venue: "A", opponent: "Hungary" };
+    expect(core.fixtureLine(away, "Europe/Madrid")).toBe("Fri 18:45 · at Hungary");
+    expect(core.fixtureLine({ ...away, kickoff: "2026-10-05T16:45:00Z", venue: "H", opponent: "Northern Ireland" }, "Europe/Madrid")).toBe("Mon 18:45 · v Northern Ireland");
+    expect(core.fixtureLine(away, "UTC")).toBe("Fri 16:45 · at Hungary");
+  });
+
+  it("says nothing for a game it cannot read", () => {
+    expect(core.fixtureLine({ venue: "H", opponent: "Spain" })).toBeNull();
+    expect(core.fixtureLine({ kickoff: "soon", venue: "H", opponent: "Spain" })).toBeNull();
+    expect(core.fixtureLine({ kickoff: "2026-10-02T16:45:00Z", venue: "H" })).toBeNull();
   });
 });

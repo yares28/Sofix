@@ -277,7 +277,11 @@ class Site:
 
 
 LALIGA_ROUND = "https://www.futbolfantasy.com/laliga/posibles-alineaciones"
-GONE_PAGES = [(22497, "malaga-espanyol"), (22498, "rayo-athletic"), (22493, "alaves-atletico")]  # the round's first three
+GONE_PAGES = [
+    (22497, "malaga-espanyol"),
+    (22498, "rayo-athletic"),
+    (22493, "alaves-atletico"),
+]  # the round's first three
 CHAMPIONS_ROUND = "https://www.futbolfantasy.com/champions/posibles-alineaciones"
 
 
@@ -554,5 +558,16 @@ def test_the_alternatives_of_a_slot_survive_storage_as_a_tuple() -> None:
     assert player is not None
     stored = json.loads(json.dumps(ffm.to_dict(player)))
     assert stored["next"] == ["mariano-diaz", "ander-guevara"]
-    side = ffm._side_from({"name": "Alavés", "slug": None, "club_id": None, "coach": None, "rotations": None, "predictability": None, "season_predictability": None, "xi": [stored]})
+    side = ffm._side_from(
+        {
+            "name": "Alavés",
+            "slug": None,
+            "club_id": None,
+            "coach": None,
+            "rotations": None,
+            "predictability": None,
+            "season_predictability": None,
+            "xi": [stored],
+        }
+    )
     assert side.xi[0].next == ("mariano-diaz", "ander-guevara") and side.xi[0] == player

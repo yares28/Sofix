@@ -17,13 +17,51 @@ AFTER = LOCK + timedelta(hours=1)  # the first run after it
 PICTURES = ("pic", "avatar", "crest", "teamCrest", "opponentCrest")
 
 
-def week(slug: str = "gw-plan", lock: datetime = LOCK, *, played: bool = False, plans: int = 1, players: int = 1) -> dict[str, Any]:
-    game = {"id": "g1", "opponent": "Club Z", "opponentCrest": "https://x/z.png", "pStart": 0.7, "startSource": "futbolfantasy"}
-    player = {"player": "mid-one", "name": "Mid One", "pic": "https://x/p.png", "avatar": "https://x/a.png", "crest": "https://x/c.png", "x": 41.0, "p": 0.8, "games": [game]}
-    card = {"slug": "c1", "player": "mid-one", "pic": "https://x/p.png", "crest": "https://x/c.png", "x": 41.0, "pStart": 0.7, "fixture": {"teamCrest": "https://x/t.png", "opponentCrest": "https://x/z.png", "opponent": "Club Z"}}
-    plan = {"rank": 1, "essence": 120, "pAny": 0.4, "lineups": [{"comp": "All Star", "x": 300, "pReturn": 0.4, "starters": [card], "subs": []}]}
+def week(
+    slug: str = "gw-plan", lock: datetime = LOCK, *, played: bool = False, plans: int = 1, players: int = 1
+) -> dict[str, Any]:
+    game = {
+        "id": "g1",
+        "opponent": "Club Z",
+        "opponentCrest": "https://x/z.png",
+        "pStart": 0.7,
+        "startSource": "futbolfantasy",
+    }
+    player = {
+        "player": "mid-one",
+        "name": "Mid One",
+        "pic": "https://x/p.png",
+        "avatar": "https://x/a.png",
+        "crest": "https://x/c.png",
+        "x": 41.0,
+        "p": 0.8,
+        "games": [game],
+    }
+    card = {
+        "slug": "c1",
+        "player": "mid-one",
+        "pic": "https://x/p.png",
+        "crest": "https://x/c.png",
+        "x": 41.0,
+        "pStart": 0.7,
+        "fixture": {"teamCrest": "https://x/t.png", "opponentCrest": "https://x/z.png", "opponent": "Club Z"},
+    }
+    plan = {
+        "rank": 1,
+        "essence": 120,
+        "pAny": 0.4,
+        "lineups": [{"comp": "All Star", "x": 300, "pReturn": 0.4, "starters": [card], "subs": []}],
+    }
     return {
-        "gameweek": {"id": "21", "slug": slug, "number": 21, "name": "Game Week 21", "start": "2026-10-09T00:00:00+00:00", "end": "2026-10-13T00:00:00+00:00", "lock": lock.isoformat()},
+        "gameweek": {
+            "id": "21",
+            "slug": slug,
+            "number": 21,
+            "name": "Game Week 21",
+            "start": "2026-10-09T00:00:00+00:00",
+            "end": "2026-10-13T00:00:00+00:00",
+            "lock": lock.isoformat(),
+        },
         "state": "ready",
         "played": played,
         "source": "sorare",

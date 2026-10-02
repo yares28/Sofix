@@ -181,7 +181,8 @@ describe("connection chain", () => {
 
   it("says an extension that works but is not the newest has an update", () => {
     expect(chainOf(system([], { extension: { ...LINKED, version: "0.2.3" } }), NOW)[1]).toMatchObject({ on: true, sub: "v0.2.3 · update" });
-    expect(chainOf(system([], { extension: { ...LINKED, version: "0.3.0" } }), NOW)[1]).toMatchObject({ on: true, sub: "v0.3.0" });
+    expect(chainOf(system([], { extension: { ...LINKED, version: "0.3.0" } }), NOW)[1]).toMatchObject({ on: true, sub: "v0.3.0 · update" });
+    expect(chainOf(system([], { extension: { ...LINKED, version: "0.3.1" } }), NOW)[1]).toMatchObject({ on: true, sub: "v0.3.1" });
   });
 
   it("does not call an old but recently seen extension linked", () => {

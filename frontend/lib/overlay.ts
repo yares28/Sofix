@@ -98,7 +98,14 @@ export type OverlayEntry = {
   inPlan?: Record<string, { lineup: string; captain: boolean }>;
   /** His game has kicked off (or been played): the numbers are about a game that is no longer ahead. */
   over?: true;
+  /**
+   * Each of his games in the gameweek, in kickoff order, when he has more than one (an international week, a double gameweek):
+   * the tile says "2 games" and the panel lists them. Absent for a single game. The tile's own numbers are about the next one.
+   */
+  fixtures?: OverlayFixture[];
 };
+
+export type OverlayFixture = { opponent: string; venue: "H" | "A"; kickoff: string; competition: string };
 
 /** The gameweek's plan in a few numbers, for the drawer: what the best plan adds up to and what it uses. */
 export type OverlayPlan =
@@ -210,6 +217,12 @@ function entryFor(
   const told = shown && shown.pStart !== undefined && shown.pOn !== undefined ? shown : null;
   const pStart = told?.pStart ?? player.pStart;
   const pOn = told?.pOn ?? player.pOn;
+  const fixtures =
+    player.games.length > 1
+      ? [...player.games]
+          .sort((a, b) => Date.parse(a.kickoff) - Date.parse(b.kickoff))
+          .map((one): OverlayFixture => ({ opponent: one.opponent, venue: one.venue, kickoff: one.kickoff, competition: one.competition }))
+      : undefined;
   const hasSplit = player.start !== undefined && player.bench !== undefined && pStart !== undefined && pOn !== undefined;
   const split = hasSplit ? { start: player.start, bench: player.bench, pStart, pOn } : {};
   const named = told?.startSource ?? player.startSource;
@@ -232,6 +245,7 @@ function entryFor(
     ...split,
     ...(hasSplit ? source : {}),
     ...(xg !== undefined ? { xg } : {}),
+    ...(fixtures ? { fixtures } : {}),
     ...(inPlan ? { inPlan } : {}),
     ...(over ? { over: true as const } : {}),
   };

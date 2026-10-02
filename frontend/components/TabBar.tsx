@@ -34,6 +34,12 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="M8.5 15h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </>
   ),
+  "/audit": (
+    <>
+      <circle cx="11" cy="11" r="7.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="m7.6 11.2 2.5 2.5 4.4-4.9" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
 };
 
 const TABS = [
@@ -43,6 +49,7 @@ const TABS = [
   { href: "/fixtures", label: "Fixtures" },
   { href: "/difficulty", label: "Difficulty" },
   { href: "/table", label: "Table" },
+  { href: "/audit", label: "Audit" },
 ];
 
 /**

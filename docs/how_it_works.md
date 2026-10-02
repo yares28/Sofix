@@ -157,7 +157,22 @@ and by squared error (the score is zero or about sixty, so absolute error reward
 that an expected score is). A week is Sorare's own gameweek (the export keeps their windows in the file); a gameweek is also
 scored as a whole, its expected score against the best of his games in it (Sorare's rule, `multiGameScoreAggregator` is
 `max`), which is where the best-of-two logic is tested. Games from 1 Oct 2026 on are held out and reported apart. `python -m app.jobs.xscore_backtest`
-prints it; nothing in it reaches the database or a page.
+prints it; nothing in it reaches the database or a page, except through `--summary` (below).
+
+The one figure the xScore is judged by (`backtest.pair_accuracy`, [xscore_success_rate.md](xscore_success_rate.md)): over every pair of
+the owner's players in one position and gameweek who scored differently, the share where the higher expected score scored more. A tie in
+the expected score counts half, so saying the same for everyone is exactly 50%, and the interval is 95% from resampling whole
+gameweeks. On the 84 players' games from August 2025 it is 66.0% (64.6% to 67.2%, 39,961 pairs, 99 gameweeks); his last five games'
+average scores 66.1%, so the formula adds nothing to the order yet. `--summary` writes the numbers the Audit page shows to
+`backend/data/audit/replay.json` (numbers only, committed, since the history it is made from is the owner's and is not).
+
+**The Audit page** (`/audit`, `app.sorare.audit`, read model `audit`). The refresh writes it right after the start record, so it
+says what the record says: the replay file's numbers (the xScore success rate, and Sofix's chance of starting replayed on the past
+in bands) beside the live record, which begins empty. `starts_record` scores each source (Sorare, Futbol Fantasy, Sofix) on the games
+it had a number for once they are settled; `xscore_record` counts the same pairs on what the model noted before each lock (the
+chance he plays times his score if he plays) against his best game once the gameweek is settled. A figure under `FLOOR` (100 cases)
+is withheld by the job, which sends the counts and no rate, and the page says "too few to tell". The step is optional: if it
+fails the Play page is still published and the run's summary names `audit` under `failed`.
 
 ## 9. Optimizer/rewards
 
@@ -385,6 +400,7 @@ Schema/runtime: migrations owner-only, dev branch first; unattended schema check
 | Grid/labels/scales | `backend/app/services/fixture_grid.py` |
 | Sorare forecast/planner | `backend/app/sorare/forecast.py`, `planner.py` |
 | xScore backtest | `backend/app/sorare/backtest.py`, `app/jobs/export_history.py`, `app/jobs/xscore_backtest.py` |
+| Audit page | `backend/app/sorare/audit.py`, `backend/data/audit/replay.json`, `frontend/app/audit`, `frontend/components/audit`, read model `audit` |
 | Sorare sync/publish | `backend/app/sorare/sync.py`, `publish.py` |
 | Web cache/load | `frontend/lib/api.ts`, `playData.ts`, `db.ts` |
 | Football UI | `frontend/components/Overview.tsx`, `DifficultyGrid.tsx`, `FixtureBoard.tsx` |

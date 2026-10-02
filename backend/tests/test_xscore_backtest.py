@@ -6,6 +6,7 @@ one, and a week of two games must not tell the second what the first did."""
 
 from __future__ import annotations
 
+import dataclasses
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -449,6 +450,97 @@ def test_rank_correlation_needs_enough_players_in_a_week_to_mean_anything() -> N
     assert backtest.rank_correlation(found, "today") is None
 
 
+# ---------------------------------------------------------------------------------------------------- the better of two
+def pair_row(model: str, week: int, pos: str, who: str, score: float, expected: float) -> backtest.Row:
+    return dataclasses.replace(made_row(model, week, score, expected), pos=pos, player=who)
+
+
+def test_a_model_that_orders_every_pair_as_the_scores_do_picks_the_better_player_every_time() -> None:
+    found = [pair_row("m", 0, "MID", f"p{i}", score=10.0 * i, expected=7.0 * i) for i in range(1, 7)]
+    backwards = [dataclasses.replace(row, model="back", expected=-row.expected) for row in found]
+
+    right = backtest.pair_accuracy([*found, *backwards], "m")
+    wrong = backtest.pair_accuracy([*found, *backwards], "back")
+
+    assert right["rate"] == 1.0 and right["pairs"] == 15 and right["weeks"] == 1, "six players make fifteen pairs"
+    assert wrong["rate"] == 0.0, "only the named model's rows count: the reversed one is the reverse"
+
+
+def test_saying_the_same_for_everyone_is_a_coin_flip_whatever_the_scores_are() -> None:
+    found = [
+        pair_row("flat", w, "DEF", f"p{i}", score=float(5 * i + w), expected=45.0) for w in range(4) for i in range(5)
+    ]
+
+    result = backtest.pair_accuracy(found, "flat")
+
+    assert result["rate"] == 0.5 and result["lo"] == 0.5 and result["hi"] == 0.5
+    assert result["pairs"] == 40, "four weeks of ten pairs"
+
+
+def test_two_players_with_the_same_real_score_are_not_a_pair() -> None:
+    found = [
+        pair_row("m", 0, "FWD", "a", 0.0, 10.0),
+        pair_row("m", 0, "FWD", "b", 0.0, 20.0),
+        pair_row("m", 0, "FWD", "c", 50.0, 30.0),
+    ]
+
+    result = backtest.pair_accuracy(found, "m")
+
+    assert result["pairs"] == 2 and result["rate"] == 1.0, "a and b both did nothing: neither was the better pick"
+
+
+def test_a_tie_in_what_it_expected_counts_half_a_pair() -> None:
+    found = [pair_row("m", 0, "MID", "a", 10.0, 30.0), pair_row("m", 0, "MID", "b", 50.0, 30.0)]
+
+    assert backtest.pair_accuracy(found, "m")["rate"] == 0.5
+
+
+def test_players_are_only_compared_within_their_position_and_week() -> None:
+    # Across positions or weeks the order is all wrong; inside each position and week it is right. Only those pairs count.
+    found = []
+    for week in (0, 1):
+        found += [
+            pair_row("m", week, "GK", "g1", 20.0, 40.0),
+            pair_row("m", week, "GK", "g2", 10.0, 30.0),
+            pair_row("m", week, "FWD", "f1", 60.0, 10.0),
+            pair_row("m", week, "FWD", "f2", 50.0, 5.0),
+        ]
+
+    result = backtest.pair_accuracy(found, "m")
+
+    assert result["pairs"] == 4 and result["rate"] == 1.0 and result["groups"] == 4
+
+
+def test_a_player_is_never_paired_with_himself() -> None:
+    # his two games of one week, when the rows are per game rather than per gameweek
+    found = [pair_row("m", 0, "MID", "a", 10.0, 10.0), pair_row("m", 0, "MID", "a", 50.0, 20.0)]
+
+    result = backtest.pair_accuracy(found, "m")
+
+    assert result["pairs"] == 0 and result["rate"] is None and result["lo"] is None
+
+
+def test_the_interval_resamples_whole_weeks_and_is_the_same_every_time() -> None:
+    # six players a week: ordered right in 20 weeks and exactly backwards in 10, so two thirds of the pairs are right
+    found = []
+    for week in range(30):
+        sign = 1.0 if week % 3 else -1.0
+        found += [pair_row("m", week, "MID", f"p{i}", score=10.0 * i, expected=sign * 7.0 * i) for i in range(1, 7)]
+
+    result = backtest.pair_accuracy(found, "m", seed=4)
+
+    assert result["rate"] == pytest.approx(2 / 3)
+    assert result["lo"] < result["rate"] < result["hi"] and result["hi"] - result["lo"] > 0.1
+    assert result == backtest.pair_accuracy(found, "m", seed=4)
+    assert result["weeks"] == 30 and result["pairs"] == 30 * 15
+
+
+def test_a_model_with_no_pairs_says_so_instead_of_a_rate() -> None:
+    result = backtest.pair_accuracy([], "m")
+
+    assert result["rate"] is None and result["pairs"] == 0 and result["weeks"] == 0
+
+
 # ---------------------------------------------------------------------------------------------------- the file and the report
 def test_a_history_file_is_read_with_the_exporters_shape_and_nothing_else_is_trusted() -> None:
     raw = {
@@ -557,3 +649,38 @@ def test_the_command_uses_the_gameweeks_of_the_file_and_says_when_it_has_none(tm
     heard = capsys.readouterr()
     assert "Gameweeks" not in heard.out
     assert "export_history" in heard.err, "it says how to get the gameweeks, and weeks are Monday to Sunday meanwhile"
+
+
+def test_the_command_writes_the_numbers_the_audit_page_shows_when_asked(tmp_path, capsys) -> None:
+    import json
+
+    from app.jobs import xscore_backtest
+    from app.sorare import audit
+
+    players = {f"p{i}": player([game(7 * w, score=30.0 + 8 * i) for w in range(12)], pos="MID") for i in range(6)}
+    windows = [window(f"gw-{w}", 7 * w - 1, 7 * w + 6) for w in range(12)]
+    path = tmp_path / "history.json"
+    path.write_text(json.dumps({"players": players, "fixtures": windows}), encoding="utf-8")
+    summary = tmp_path / "audit" / "replay.json"
+
+    assert xscore_backtest.main(["--history", str(path), "--holdout", "2026-08-03", "--summary", str(summary)]) == 0
+
+    written = audit.read_replay(summary)
+    assert written is not None and written["players"] == 6 and written["xscore"]["pairs"]["weeks"] == 12
+    assert "Gameweeks" in capsys.readouterr().out, "the report still prints"
+    assert "p0" not in summary.read_text("utf-8"), "numbers only: no player is named"
+
+
+def test_the_summary_needs_sorares_gameweeks_and_says_so_without_writing_anything(tmp_path, capsys) -> None:
+    import json
+
+    from app.jobs import xscore_backtest
+
+    path = tmp_path / "history.json"
+    path.write_text(json.dumps({"players": {"p": player([game(7 * i) for i in range(10)])}}), encoding="utf-8")
+    summary = tmp_path / "replay.json"
+
+    assert xscore_backtest.main(["--history", str(path), "--summary", str(summary)]) == 1
+
+    assert not summary.exists()
+    assert "export_history" in capsys.readouterr().err

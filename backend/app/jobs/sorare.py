@@ -32,7 +32,7 @@ from app.db import SessionLocal
 from app.logging_config import configure_logging
 from app.models import ReadModel
 from app.services.publish import notify_app, put
-from app.sorare import card_art, early, ff_feed, ff_lineups, ff_link, ff_news, ff_use, frozen, projection, starts
+from app.sorare import audit, card_art, early, ff_feed, ff_lineups, ff_link, ff_news, ff_use, frozen, projection, starts
 from app.sorare import publish as sorare_publish
 from app.sorare import record as sorare_record
 from app.sorare import sync as sorare_sync
@@ -351,6 +351,10 @@ def run(
         False,
     )
     summary.update(record_starts(db, failed, snapshot, lineups, fetched, write=True))
+    # The Audit page, from the record as it now stands: after this run's own rows and settlements, so it says what they say.
+    audited: dict[str, int] = optional(db, failed, "audit", lambda: audit.publish(db, now), {})
+    if audited:
+        summary["audit"] = audited
     if failed:
         summary["failed"] = failed
     if standalone:

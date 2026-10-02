@@ -492,6 +492,56 @@ def rank_correlation(rows: list[Row], model: str) -> float | None:
     return float(np.mean(found)) if found else None
 
 
+def _pair_counts(group: list[Row]) -> tuple[float, int]:
+    """For the players of one position and week: how many of the pairs with different real scores the model put the right way
+    round (a tie in what it expected counts half), and how many such pairs there are. A player is never paired with himself."""
+    expected = np.array([row.expected for row in group], dtype=float)
+    score = np.array([row.score for row in group], dtype=float)
+    who = np.array([row.player for row in group])
+    said = np.sign(expected[:, None] - expected[None, :])
+    was = np.sign(score[:, None] - score[None, :])
+    pairs = np.triu((was != 0) & (who[:, None] != who[None, :]), k=1)
+    agree = (said * was)[pairs]
+    return float((agree > 0).sum() + 0.5 * (agree == 0).sum()), int(pairs.sum())
+
+
+def pair_accuracy(rows: list[Row], model: str, *, seed: int = 0, draws: int = 2000) -> dict[str, Any]:
+    """How often the model's higher expected score went with the higher real one: the share of pairs of players, in one position and
+    gameweek and with different real scores, that it put the right way round. Saying the same for everyone is 50%, a coin flip.
+
+    It is the question a lineup asks of the expected score: of these two, who is the better pick? The rows are one per player and
+    gameweek (`walk_gameweeks`). The interval is 95%, from resampling whole gameweeks as `compare` does, since a week's pairs move together.
+    """
+    groups: dict[tuple[str, str | None], list[Row]] = defaultdict(list)
+    for row in rows:
+        if row.model == model:
+            groups[(row.week, row.pos)].append(row)
+    per_week: dict[str, list[float]] = defaultdict(lambda: [0.0, 0.0])
+    used = 0
+    for (week, _), group in groups.items():
+        right, count = _pair_counts(group)
+        if count:
+            per_week[week][0] += right
+            per_week[week][1] += count
+            used += 1
+    if not per_week:
+        return {"model": model, "rate": None, "lo": None, "hi": None, "pairs": 0, "weeks": 0, "groups": 0}
+    totals = np.array(list(per_week.values()), dtype=float)
+    rng = np.random.default_rng(seed)
+    picks = rng.integers(0, len(totals), size=(draws, len(totals)))
+    means = totals[picks, 0].sum(axis=1) / totals[picks, 1].sum(axis=1)
+    lo, hi = np.percentile(means, [2.5, 97.5])
+    return {
+        "model": model,
+        "rate": float(totals[:, 0].sum() / totals[:, 1].sum()),
+        "lo": float(lo),
+        "hi": float(hi),
+        "pairs": int(totals[:, 1].sum()),
+        "weeks": len(totals),
+        "groups": used,
+    }
+
+
 # ---------------------------------------------------------------------------------------------------- the report
 def _fmt(value: float | None, digits: int = 1) -> str:
     return "–" if value is None else f"{value:.{digits}f}"

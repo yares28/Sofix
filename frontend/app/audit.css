@@ -1,0 +1,131 @@
+/* The Audit page (/audit): how often Sofix's numbers were right, checked against what happened.
+   One hero figure (how often the xScore picks the better of two players), then who starts per source. Classes are prefixed au-;
+   the tokens are the Control Center's (control-center.css), so the page sits in the same family without touching any other page. */
+
+.au { max-width: 1120px; margin: 0 auto; padding: 34px 32px 96px; }
+.au-top h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spacing: -0.035em; }
+.au-top p { margin: 6px 0 0; color: var(--ink-2); font-size: 14px; }
+.au-top .au-fresh { margin-top: 4px; font-size: 12px; }
+
+.au-w {
+  position: relative; margin-top: 22px; padding: 26px 28px; border-radius: 24px; background: var(--surface);
+  box-shadow: var(--shadow-card); animation: au-rise .55s var(--ease) both;
+}
+.au-w + .au-w { animation-delay: 70ms; }
+@keyframes au-rise { from { opacity: 0; transform: translateY(10px); } }
+@keyframes au-grow { from { transform: scaleX(0); } }
+.au-label { margin: 0 0 10px; font-size: 12px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; color: var(--ink-2); }
+/* The hero's own name keeps the product's spelling (xScore), so it is not set in capitals. */
+.au-label.au-label-name { font-size: 14px; letter-spacing: 0; text-transform: none; color: var(--ink); }
+.au-sub { margin: 10px 0 0; max-width: 56ch; font-size: 14.5px; line-height: 1.5; color: var(--ink-2); }
+.au-sub b { color: var(--ink); font-weight: 650; }
+.au .figure { font-variant-numeric: tabular-nums; }
+
+/* ---------- hero ---------- */
+.au-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr); gap: 22px 56px; }
+.au-hero-main { display: flex; flex-direction: column; }
+.au-big { margin: 0; font-size: clamp(96px, 13vw, 148px); line-height: .9; font-weight: 700; letter-spacing: -0.055em; font-variant-numeric: tabular-nums; color: var(--ink); }
+.au-big span { margin-left: .04em; font-size: .5em; letter-spacing: -0.03em; color: var(--ink-2); }
+.au-hero h2 { margin: 16px 0 0; max-width: 20ch; font-size: 24px; line-height: 1.2; font-weight: 650; letter-spacing: -0.02em; text-wrap: balance; }
+.au-hero h2.au-none { max-width: none; font-size: 20px; color: var(--ink-2); }
+.au-hero-evidence { align-self: end; display: flex; flex-direction: column; gap: 6px; }
+.au-bars { display: grid; gap: 16px; margin: 0; padding: 0; list-style: none; }
+.au-bars li, .au-axis { display: grid; grid-template-columns: 132px minmax(0, 1fr) 44px; align-items: center; gap: 12px; }
+.au-bar-name { font-size: 13px; font-weight: 600; line-height: 1.25; }
+.au-bar-track { position: relative; height: 14px; border-radius: 7px; background: var(--track); }
+.au-bar-fill {
+  position: absolute; inset: 0 auto 0 0; width: var(--w); border-radius: 7px; transform-origin: left;
+  background: linear-gradient(90deg, #5cc58d, #1f7a4f); animation: au-grow .9s var(--ease) both .25s;
+}
+.au-bar-fill.grey { background: linear-gradient(90deg, #d1d1d6, #aeaeb2); }
+.au-bar-value { font-size: 15px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.au-axis { margin-top: -2px; }
+.au-axis-line { display: flex; justify-content: space-between; font-size: 11px; font-weight: 600; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.au-axis-line span { display: flex; flex-direction: column; }
+.au-axis-line span:last-child { align-items: flex-end; }
+.au-axis-line span:nth-child(2) { align-items: center; }
+.au-axis-line small { font-size: 11px; font-weight: 500; }
+.au-note { margin: 8px 0 0; font-size: 13px; line-height: 1.45; color: var(--ink); font-weight: 600; }
+.au-meta { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+/* What the count rests on: each fact is kept whole, so a range such as 65-67% never breaks across two lines. */
+.au-facts { display: flex; flex-wrap: wrap; gap: 2px 18px; margin: 0; padding: 0; list-style: none; font-size: 12.5px; line-height: 1.45; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.au-facts li { white-space: nowrap; }
+.au-note + .au-facts { margin-top: 2px; }
+.au-hero-foot {
+  grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px;
+  padding-top: 16px; border-top: 1px solid var(--line);
+}
+.au-live { margin: 0; font-size: 13px; line-height: 1.45; color: var(--ink-2); }
+.au-live b { margin-right: 6px; font-weight: 650; color: var(--ink); }
+.au-link { font-size: 13px; font-weight: 600; color: var(--ink); text-decoration: none; }
+.au-link::after { content: " \2192"; }
+.au-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.au-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+/* ---------- who starts ---------- */
+.au-starts h2 { margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -0.02em; }
+.au-srcs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+.au-src {
+  display: flex; flex-direction: column; min-height: 196px; padding: 18px 18px 20px; border-radius: 18px;
+  background: #fafafc; box-shadow: inset 0 0 0 1px var(--line);
+}
+.au-src h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 15px; font-weight: 650; }
+.au-src-what { margin: 2px 0 0; font-size: 12px; color: var(--ink-2); }
+.au-src-main { margin: 18px 0 0; font-size: 20px; line-height: 1.2; font-weight: 650; letter-spacing: -0.02em; }
+.au-src-main.figure { font-size: 44px; line-height: 1; font-weight: 700; letter-spacing: -0.04em; }
+.au-src[data-state="none"] .au-src-main { color: var(--ink-2); }
+.au-src-sub { margin: 6px 0 0; font-size: 13px; line-height: 1.45; color: var(--ink-2); }
+.au-progress { display: block; height: 6px; margin-top: auto; border-radius: 3px; background: var(--track); overflow: hidden; }
+.au-src-sub + .au-progress { margin-top: 18px; }
+.au-progress i { display: block; width: var(--w); height: 100%; border-radius: 3px; background: var(--good-2); transform-origin: left; animation: au-grow .9s var(--ease) both .3s; }
+.au-src-more { display: grid; gap: 6px; margin: auto 0 0; padding-top: 14px; font-size: 13px; }
+.au-src-more div { display: flex; justify-content: space-between; gap: 12px; }
+.au-src-more dt { color: var(--ink-2); }
+.au-src-more dd { margin: 0; font-weight: 650; font-variant-numeric: tabular-nums; }
+
+.au-replay { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 18px 48px; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line); }
+.au-replay-big { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0; font-size: 15px; color: var(--ink-2); }
+.au-replay-big .figure { font-size: 44px; line-height: 1; font-weight: 700; letter-spacing: -0.04em; color: var(--ink); }
+.au-replay .au-src-sub { max-width: 56ch; }
+.au-bands { display: grid; align-content: center; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.au-bands li { display: grid; grid-template-columns: 112px minmax(0, 1fr) minmax(0, 170px); align-items: center; gap: 12px; }
+.au-band-name { font-size: 13px; font-weight: 600; }
+.au-band-track { position: relative; height: 10px; border-radius: 5px; background: var(--track); }
+.au-band-fill { position: absolute; inset: 0 auto 0 0; width: var(--w); border-radius: 5px; transform-origin: left; background: linear-gradient(90deg, #5cc58d, #1f7a4f); animation: au-grow .9s var(--ease) both .3s; }
+.au-band-said { position: absolute; top: -4px; bottom: -4px; left: var(--x); width: 2px; margin-left: -1px; border-radius: 1px; background: var(--ink); }
+.au-band-text { font-size: 12px; line-height: 1.35; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.au-band-text b { color: var(--ink); }
+.au-band-text small { display: block; font-size: 11px; }
+.au-bands-key { margin: 10px 0 0; font-size: 12px; color: var(--ink-2); }
+
+.au-record { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line); }
+.au-record table { width: 100%; max-width: 640px; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.au-record th, .au-record td { padding: 9px 10px; text-align: right; border-bottom: 1px solid var(--line); }
+.au-record thead th .src-mark { margin-right: 6px; }
+.au-record tbody tr:last-child th, .au-record tbody tr:last-child td { border-bottom: 0; }
+.au-record thead th { font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.au-record thead th:first-child, .au-record tbody th { text-align: left; }
+.au-record tbody th { font-weight: 600; }
+
+.au-empty h1 { margin: 0; font-size: 34px; font-weight: 700; letter-spacing: -0.035em; }
+.au-empty p { margin: 8px 0 0; color: var(--ink-2); font-size: 14px; }
+
+@media (max-width: 900px) {
+  .au-hero { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .au-srcs { grid-template-columns: minmax(0, 1fr); }
+  .au-src { min-height: 0; }
+  .au-replay { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 700px) {
+  .au { padding: 22px 16px 0; }
+  .au-top h1 { font-size: 34px; }
+  .au-w { padding: 20px 18px; border-radius: 22px; }
+  .au-bars li, .au-axis { grid-template-columns: 92px minmax(0, 1fr) 40px; gap: 10px; }
+  .au-hero h2 { font-size: 21px; }
+  .au-bands li { grid-template-columns: 96px minmax(0, 1fr); }
+  .au-band-text { grid-column: 1 / -1; }
+  .au-record th, .au-record td { padding: 9px 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .au-w, .au-bar-fill, .au-progress i, .au-band-fill { animation: none; }
+}

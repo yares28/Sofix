@@ -271,6 +271,10 @@ mostly regulars: 42% of the games are by a regular starter.
    formula says too much: 10.7 points above what he made (squared miss 30.4, against 28.1 when told he has one game). Over all
    116 gameweeks the two are no different (+0.65 [-0.96, +2.21]), because the other 99.5% have one game. Too few cases to change
    anything; the number to watch is the 22, which grows with every break.
+8. **The one figure (2 Oct, [xscore_success_rate.md](../docs/xscore_success_rate.md), the Audit page).** Of every pair of your players in
+   one position and gameweek who scored differently, the xScore rated the better one higher in **66.0%** (64.6% to 67.2%; 39,961
+   pairs, 99 gameweeks); a coin flip is 50% and his last five games' average is 66.1%. So finding 3 in one number: it levels
+   better than a plain average and does not choose better. By position: goalkeepers 69%, defenders 66%, midfielders 64%, forwards 68%.
 
 **P3: the order of P4 after the data.**
 

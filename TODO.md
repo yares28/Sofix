@@ -436,6 +436,12 @@ than Classic (Pro, T3); Super Rare and Unique competitions (filtered out); gamew
 gap then becomes its own entry here.
 
 ### T7 · The Audit page (idea, 2026-09-30)
+**Started 2 Oct 2026, at your request: `/audit` is built** ([plans/roadmap.md](plans/roadmap.md), batch 5 results). It leads with the one
+xScore figure ([docs/xscore_success_rate.md](docs/xscore_success_rate.md): 66% of the time it picks the better of two players, a coin
+flip is 50) and gives "who starts" per source (figure 1, without the splits by competition, position and team and without the big
+misses), with what has been written down per gameweek (the first part of 13). Left: the rest of 2, 8, 9, 11, 12 and 13, and everything
+that needs the plan frozen at the lock (3 to 7, 10, 14).
+
 **What you said.** "A new page idea, called 'Audit'. It will get the % of correct start guesses from all 3 sources and
 compare them; the score prediction difference for xScore in Sofix, to know how precise it is; the difference in plan
 team score, to see how precise the team building is; the % of plans that correctly guessed the reward, and the % of

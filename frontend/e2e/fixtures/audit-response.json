@@ -1,0 +1,188 @@
+{
+ "success": true,
+ "data": {
+  "version": 1,
+  "generatedAt": "2026-10-02T18:00:00+00:00",
+  "floor": 100,
+  "replay": {
+   "builtAt": "2026-10-02T18:23:13.056494+00:00",
+   "from": "2025-08-03",
+   "to": "2026-10-01",
+   "players": 84
+  },
+  "xscore": {
+   "replay": {
+    "bias": -3.0,
+    "byPosition": {
+     "DEF": {
+      "hi": 0.6762,
+      "lo": 0.6413,
+      "pairs": 22012,
+      "rate": 0.659,
+      "weeks": 93
+     },
+     "FWD": {
+      "hi": 0.7018,
+      "lo": 0.6545,
+      "pairs": 6236,
+      "rate": 0.6781,
+      "weeks": 92
+     },
+     "GK": {
+      "hi": 0.7318,
+      "lo": 0.6484,
+      "pairs": 1646,
+      "rate": 0.6908,
+      "weeks": 80
+     },
+     "MID": {
+      "hi": 0.6653,
+      "lo": 0.6239,
+      "pairs": 10067,
+      "rate": 0.6444,
+      "weeks": 87
+     }
+    },
+    "flat": {
+     "hi": 0.5,
+     "lo": 0.5,
+     "pairs": 39961,
+     "rate": 0.5,
+     "weeks": 99
+    },
+    "games": 4593,
+    "last5": {
+     "hi": 0.6729,
+     "lo": 0.6482,
+     "pairs": 39961,
+     "rate": 0.6612,
+     "weeks": 99
+    },
+    "pairs": {
+     "hi": 0.6717,
+     "lo": 0.6463,
+     "pairs": 39961,
+     "rate": 0.6596,
+     "weeks": 99
+    },
+    "said": 32.7,
+    "typicalMiss": 19.5,
+    "was": 35.6,
+    "within": {
+     "10": 0.3534,
+     "15": 0.4897,
+     "20": 0.5865
+    }
+   },
+   "live": {
+    "state": "waiting",
+    "floor": 100,
+    "noted": 18,
+    "marked": 0,
+    "pairs": 0,
+    "weeks": 0,
+    "rate": null,
+    "lo": null,
+    "hi": null
+   }
+  },
+  "starts": {
+   "replay": {
+    "sofix": {
+     "always": 0.5612,
+     "brier": 0.188,
+     "buckets": [
+      {
+       "from": 0.0,
+       "n": 746,
+       "said": 0.1159,
+       "to": 0.2,
+       "was": 0.13
+      },
+      {
+       "from": 0.2,
+       "n": 1164,
+       "said": 0.3388,
+       "to": 0.5,
+       "was": 0.4218
+      },
+      {
+       "from": 0.5,
+       "n": 1775,
+       "said": 0.6219,
+       "to": 0.8,
+       "was": 0.6738
+      },
+      {
+       "from": 0.8,
+       "n": 930,
+       "said": 0.8283,
+       "to": 1.0,
+       "was": 0.8667
+      }
+     ],
+     "games": 4615,
+     "mean": 0.5103,
+     "right": 0.7203,
+     "started": 0.5612
+    }
+   },
+   "live": {
+    "sorare": {
+     "state": "none",
+     "recorded": 0,
+     "settled": 0,
+     "right": null,
+     "brier": null,
+     "mean": null,
+     "started": null,
+     "buckets": null
+    },
+    "sofix": {
+     "state": "waiting",
+     "recorded": 24,
+     "settled": 0,
+     "right": null,
+     "brier": null,
+     "mean": null,
+     "started": null,
+     "buckets": null
+    },
+    "futbolfantasy": {
+     "state": "none",
+     "recorded": 0,
+     "settled": 0,
+     "right": null,
+     "brier": null,
+     "mean": null,
+     "started": null,
+     "buckets": null
+    }
+   },
+   "weeks": [
+    {
+     "slug": "football-7-9-oct-2026",
+     "lock": "2026-10-06T14:00:00+00:00",
+     "games": 3,
+     "settled": 0,
+     "sources": {
+      "sorare": 0,
+      "sofix": 3,
+      "futbolfantasy": 0
+     }
+    },
+    {
+     "slug": "football-2-6-oct-2026",
+     "lock": "2026-10-02T14:00:00+00:00",
+     "games": 21,
+     "settled": 0,
+     "sources": {
+      "sorare": 0,
+      "sofix": 21,
+      "futbolfantasy": 0
+     }
+    }
+   ]
+  }
+ }
+}

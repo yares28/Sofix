@@ -349,6 +349,43 @@ the e2e test failed in the evening and passed in the day; the mock now makes it 
 
 Goals after batch 3: **G4** holds (the strip is at the top of each match); G1, G2, G3 and G6 as after batch 2; **G5** follows in batch 4.
 
+### Batch 4 · 2 Oct 2026 · **pass**, with one outage found on production and fixed
+
+Merged as #16 (4.1 and 4.2, with the card art job step and the per-slot alternatives), then #17 (the fix below); refresh #42 run by hand on
+`main` so `art`, `next` and `nat` reached the lineups read model. Checked in your Chrome on https://sofix-yares.vercel.app; that tab is
+flagged hidden by Chrome (so its screenshots time out and lazy pictures wait), so the painted look was checked in a local, visible
+Chromium with the real card pictures (the two images in `docs/sorare/design/lineups-v2/`).
+
+**What went wrong:** after #16 deployed, `/lineups` returned HTTP 500 for about ten minutes. Next keeps `unstable_cache` entries across
+deploys, so the new build was handed the lineups an older `readable` had cached, with no `art`, and failed on `art[id]`. #17 applies
+`readable` again after the cache is read (`lib/lineupsData.ts`, with a unit test that fails without it). Not caught earlier because the
+tests and the local run start with an empty cache.
+
+| Step | Result | What was seen |
+|---|---|---|
+| 4.2 R6, R31 | pass | Alavés–Atlético: all 22 cards are `assets.sorare.com/card/...` pictures: yours with the blue ring, the others real Limited cards (Boyé, David, Baena, Lee…). In the live data 214 of 220 starters across the ten matches have one; the 6 without (Chupete, Javi Morcillo, Unai Santos, Miguel Sierra, Enzo Bardelli, Aaron Ndive Mayol) have no 2026 Limited card and keep FF's photo or a silhouette. |
+| 4.2 alternatives | pass | Under the starter's own card: DÍAZ 40% under Toni Martínez, ALEÑÁ 40% under Denis Suárez, VALENTINI 40% under Jonny, ÁLVAREZ 40% under David, LOOKMAN 50% under both Lee and Grimaldo, as Futbol Fantasy draws them. |
+| 4.2 R29 | pass on Lineups | A card shows his name and position on a skeleton until the picture arrives (a 3 s delay in the e2e test), then the picture alone. Play's lineup sheet already prints the name under the art, so it keeps its card unchanged. |
+| 4.2 R30 | pass | Crests in the tabs, the head and both team headers (Alavés, Atlético) on a shield in the club's colour; the shield steps back when the crest is there, stays if it never comes (e2e). |
+| 4.2 R32 | **not seen live** | No call-up chip can be on production while every club's squad list is "not out"; covered by the e2e test (`KE`, `ES`, the country name for a screen reader) and a unit-tested `nat` in the payload. |
+| 4.2 R33 | pass | "Chance to start" key under the match head: 80% or more, 60–79%, 40–59%, under 40%, each dot the colour of its badge (e2e compares the colours). |
+| 4.2 R34 | pass | The two teams sit close; no empty band between rows (a test stretches the other column and checks the pitch does not follow). |
+| 4.2 R35 | pass | Home: Team news (idle) takes a quarter of its row beside Last gameweek and My cards, which is two by two; "All Star · Cap 260" is written whole. |
+
+**G5:** every player card is the same product on Lineups: a real Sorare card for 214 of 220 starters and a labelled fallback for the rest, no
+blank rectangle (skeleton), and the card-art host is the only picture host asked for them. Not checked live: phone width on production (Chrome
+cannot be made narrower here: the mobile e2e project and the phone image in `lineups-v2/` stand in), the call-up chip, and the sorare.com
+overlay change of 3.5 (needs Reload on Sofix in `chrome://extensions`).
+
+**Weight:** each card picture is a 771 × 1248 PNG of about 400 KB that Sorare serves with no smaller size, hot-linked and lazy-loaded; 22
+of them took about 6 s to paint in a local Chromium with no main-thread stall (one 260 ms task). The phone loads one team at a time. Resizing
+them through Vercel's image optimiser was left out because its free allowance is 1,000 source images a month and about 600 players exist.
+
+Goals after batch 4: G1–G4, G6 as before; **G5** holds on Lineups as above; **G7** is checked below.
+
+**Checks (G7):** backend `pytest -q` 652 passed, `ruff check .` and `mypy` clean; frontend `npm test` 566, `typecheck`, `lint`, `npm run design` (13 of 13)
+and `npm run e2e` (161: desktop and mobile) all pass.
+
 ## To start a run
 
 The prompt to paste into a new session is the one given in the chat on 1 Oct. In short: work through this file from the

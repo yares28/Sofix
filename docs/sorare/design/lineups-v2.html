@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="design-check" content="record">
+<title>Lineups, every player a Sorare card</title>
+<!-- A record of the look built for the 1 Oct review (batch 4, 2 Oct 2026): the two pictures are the built page, Alavés–Atlético, each player
+     drawn with his own real Sorare card. The decisions are in plans/review-fixes.md (4.1, 4.2); the page is frontend/app/lineups.css and
+     frontend/components/lineups/. -->
+<style>
+:root { --page: #fafafc; --card: #ffffff; --ink: #1d1d1f; --ink-2: #6e6e73; --line: #e5e5ea; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--page); color: var(--ink); }
+body { font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+main { max-width: 1240px; margin: 0 auto; padding: 40px 20px 80px; }
+h1 { margin: 0 0 6px; font-size: 56px; line-height: 1.05; letter-spacing: -0.03em; }
+.sub { margin: 0 0 28px; color: var(--ink-2); font-size: 15px; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
+figure { margin: 0; background: var(--card); border-radius: 20px; box-shadow: 0 0 0 1px var(--line), 0 8px 30px rgba(0, 0, 0, 0.05); overflow: hidden; }
+figure img { display: block; width: 100%; height: auto; }
+figcaption { padding: 12px 16px; font-size: 12px; color: var(--ink-2); border-top: 1px solid var(--line); }
+ul { margin: 28px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px 24px; }
+li { padding: 12px 0; border-top: 1px solid var(--line); font-size: 14px; }
+li b { display: block; margin-bottom: 2px; font-size: 14px; }
+li span { color: var(--ink-2); }
+figure { animation: rise 0.5s cubic-bezier(0.3, 0.7, 0.2, 1) both; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: reduce) { figure { animation: none; } }
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } h1 { font-size: 40px; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Every player, his card</h1>
+  <p class="sub">Lineups after the 1 Oct review · Alavés–Atlético · yours ringed in blue, everyone else a real card of this season</p>
+  <div class="grid">
+    <figure>
+      <img src="lineups-v2/desktop.png" alt="Lineups on a desktop: both elevens drawn as Sorare cards, the colour key under the match head, a name under each starter for who could come in">
+      <figcaption>Desktop, 1440 px</figcaption>
+    </figure>
+    <figure>
+      <img src="lineups-v2/phone.png" alt="Lineups on a phone: one team at a time, switched by the two tabs under the key">
+      <figcaption>Phone, 390 px · one team at a time</figcaption>
+    </figure>
+  </div>
+  <ul>
+    <li><b>A card for everyone</b><span>Yours is the card you own; every other player is a real Limited card of his from Sorare's public listing. A skeleton with his name holds the place while it loads; a face or silhouette only when Sorare has none.</span></li>
+    <li><b>Who could come in</b><span>Under each starter's own card, as Futbol Fantasy draws it (Aleñá under Denis Suárez, Lookman under both Lee and Grimaldo).</span></li>
+    <li><b>Crests</b><span>Each club's real crest, over a shield in its colour until it arrives.</span></li>
+    <li><b>Called up</b><span>Two letters of the country on a blue chip, shown once the club's squad list is out.</span></li>
+    <li><b>The colour key</b><span>Four dots under the match head say what the colours of the % mean.</span></li>
+    <li><b>Tighter pitch</b><span>The two teams sit close, with no empty band between the rows.</span></li>
+  </ul>
+</main>
+</body>
+</html>

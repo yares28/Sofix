@@ -331,8 +331,8 @@ its kind for its LaLiga competitions (`publish.reference_of_week`): the week bei
 is judged by then has no LaLiga cut-off at all, which would leave the weekend round after it with no LaLiga lineup to plan. A round with no game, or no finished week of its kind yet, gets
 none; a national-team week keeps its own competitions. Planning one takes a few
 seconds with a real collection, so a run plans only the rounds with no plan yet, then the stalest (`app.sorare.early`): the
-next four rounds are kept current to six hours and the far ones to a day, at most eight a run, and the others keep showing
-the plan they have. A stored plan is reused only when it was made for the round's dates as the calendar holds them now
+next four rounds by date (a postponed game keeps its old round number but is played later, so it does not take a near slot) are
+kept current to six hours and the far ones to a day, at most eight a run, and the others keep showing the plan they have. A stored plan is reused only when it was made for the round's dates as the calendar holds them now
 (`early.planned_for`), so a new season that reuses the round numbers is planned again rather than shown with last season's
 opponents. Sorare's own numbers replace an early plan the moment it opens the week. It cannot be applied: nothing exists to
 enter yet.

@@ -214,8 +214,11 @@ show the error the current model makes). Output: the tables in section 3, by sli
   - `app/sorare/backtest.py` walks forward through that file: each game is predicted by the production forecast from the games
     before the gameweek it is in (so the second game of a week does not see the first), against three simple baselines (a flat 45,
     his last five, his last five of the same kind), with a game he did not play counting as zero. It gives error by model and by
-    slice (club or national, what he did, how much history, position), order within a position and week, and a bootstrap over
-    weeks for "is today's model closer".
+    slice (club or national, what he did, how much history, position, how often he had started, one game or two in the week),
+    order within a position and week, and a bootstrap over weeks for "is today's model closer", **by absolute and by squared
+    error**. The first run on real games showed why both: a score is zero or about sixty, so the number that misses least on a
+    typical game is the median, and an expected score is an average. Today's model came out further than "his last five" by
+    absolute error and closer by squared error, so which of the two decides the bar matters (see the results below).
   - `app/jobs/xscore_backtest.py` prints the report: games from `--holdout` (1 Oct 2026 by default) are reported apart and are
     not looked at while tuning.
 

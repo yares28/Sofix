@@ -437,10 +437,11 @@ _(none yet)_
 
 _(none yet)_
 
-### Batch 7 · 2 Oct 2026 · one step so far
+### Batch 7 · 2 Oct 2026 · started
 
 | Step | Result | What was seen |
 |---|---|---|
+| 7.5 | done | The manual's "Reading freshness and errors" table (section 13) now has a row for each way Apply can stop, in the words the app uses ("sorare.com isn't open", "The tab needs a reload", "You're signed out of Sorare", "Sorare didn't answer", "That didn't go through", Sorare's own refusal in red) and for the extension gone ("not seen lately", SIGN IN or OFFLINE): what happened and what to do. Each says whether anything was saved: nothing was. Read from `lib/apply.ts` (`cannot`) and `lib/control.ts` (`chainOf`), not from memory. |
 | 7.3 | pass in tests, production check after the merge | `lib/cards.ts` now steps at 20/35/50/60/75 on the score as the hexagon draws it (rounded), six colours instead of eight, so a 76 to 79 is cyan on the board as it is on Sorare (it was green). `lib/overlayCore.test.ts` holds the band of every whole score from 0 to 100 equal to the overlay's `scoreLevel`, so the two cannot drift. Checked: 573 unit tests, typecheck, lint, the My cards browser tests. |
 
 ### Batch 8 · 2 Oct 2026 · started

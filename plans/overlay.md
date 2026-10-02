@@ -417,7 +417,9 @@ and none of its face, passes AA, and every O5 behaviour test still passes with t
 - **The board's own `scoreColour()` (`lib/cards.ts`) does not follow that rule.** It steps at 15/30/40/50/65/80/90
   with a blue and a teal Sorare does not use, so a 76 to 79 is green on the board and cyan on Sorare, and its comment
   ("matched to Sorare's own ramp") is wrong. Fixing it changes the My cards page, so it is **its own change**, not
-  part of O6.
+  part of O6. **Fixed 2 Oct 2026 (roadmap 7.3):** `scoreBand()` and `scoreColour()` in `lib/cards.ts` now step at 20/35/50/60/75 on
+  the score as the hexagon draws it (rounded), six colours instead of eight, and `lib/overlayCore.test.ts` holds the band of every
+  whole score from 0 to 100 equal to the overlay's `scoreLevel`, so the two cannot drift apart again.
 - **Game fields removed end to end:** the answer is `{ x, p, average }`; the `home.ts` exports added for the difficulty
   matcher are reverted, and the route no longer reads the fixture grid at all.
 - **Placement is measured, not assumed:** the strip the chip would take is sampled with `elementsFromPoint` (position

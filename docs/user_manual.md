@@ -329,6 +329,9 @@ Cards is the latest synced collection snapshot, not a historical collection at t
 - position and rarity balance;
 - L5/L10/L40 form, play share and gameplay tier when supplied.
 
+The three score hexagons are coloured where Sorare colours them, on the score as drawn: up to 20 red, 21 to 35 orange, 36 to 50
+yellow, 51 to 60 lime, 61 to 75 green, 76 and above cyan. They are the same bands the sorare.com overlay uses, in softer tones.
+
 Under each card is **his next game** (opponent, `v` home or `@` away, kickoff in Madrid time) and **his chance to start it** from each
 source that has one: Futbol Fantasy (FF), Sorare (SO) and Sofix (SF). The darker number is the one Sofix uses. The game is the earliest one
 still to come in any week the page holds, so a player called up by his national team shows that game; Futbol Fantasy only speaks about a

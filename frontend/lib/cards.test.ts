@@ -9,6 +9,7 @@ import {
   ownedPlayers,
   priceLabel,
   projectionNote,
+  scoreBand,
   scoreColour,
   seasonBadge,
   searchMarket,
@@ -234,19 +235,37 @@ describe("searchMarket", () => {
   });
 });
 
-describe("scoreColour", () => {
-  it("follows Sorare's ramp across the bands", () => {
-    expect(scoreColour(98).fill).toBe("#22c7c7"); // teal
-    expect(scoreColour(81).fill).toBe("#3fb5df"); // cyan
-    expect(scoreColour(72).fill).toBe("#46c05a"); // green
-    expect(scoreColour(52).fill).toBe("#9bd227"); // lime
-    expect(scoreColour(48).fill).toBe("#e6b91e"); // amber
-    expect(scoreColour(20).fill).toBe("#e5602f"); // deep orange
-    expect(scoreColour(5).fill).toBe("#c0433f"); // red
+describe("scoreBand and scoreColour", () => {
+  it("steps where Sorare's own script does: the first step whose limit is at least the score", () => {
+    for (const [score, band] of [
+      [0, "veryLow"], [20, "veryLow"], [21, "low"], [35, "low"], [36, "mediumLow"], [50, "mediumLow"], [51, "medium"],
+      [60, "medium"], [61, "mediumHigh"], [75, "mediumHigh"], [76, "high"], [100, "high"],
+    ] as const) {
+      expect(scoreBand(score), String(score)).toBe(band);
+    }
+    // read off real hexagons on Sorare's scouting pages: 41 and 50 yellow, 53 and 60 lime, 61 and 75 green, 76 to 96 cyan
+    expect([41, 50, 53, 60, 61, 75, 76, 96].map((score) => scoreBand(score))).toEqual([
+      "mediumLow", "mediumLow", "medium", "medium", "mediumHigh", "mediumHigh", "high", "high",
+    ]);
   });
 
-  it("greys out an unknown score with light ink", () => {
+  it("judges the score as the hexagon draws it, rounded", () => {
+    expect(scoreBand(50.4)).toBe("mediumLow"); // drawn 50
+    expect(scoreBand(50.5)).toBe("medium"); // drawn 51
+  });
+
+  it("gives each of the six bands its own fill, and a grey with light ink to no score", () => {
+    const fills = [10, 30, 45, 55, 70, 90].map((score) => scoreColour(score).fill);
+    expect(new Set(fills).size).toBe(6);
+    expect(scoreBand(null)).toBeNull();
+    expect(scoreBand(Number.NaN)).toBeNull();
     expect(scoreColour(null)).toEqual({ fill: "#55555c", ink: "#ffffff" });
+  });
+
+  it("paints a 76 to 79 the way the overlay does on Sorare's own cards: the top band, not green", () => {
+    const top = scoreColour(98).fill;
+    expect([76, 79, 80, 90].map((score) => scoreColour(score).fill)).toEqual([top, top, top, top]);
+    expect(scoreColour(72).fill).not.toBe(top);
   });
 });
 

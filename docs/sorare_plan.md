@@ -140,7 +140,8 @@ run. The E2E fixture now holds only LaLiga clubs.
   or xG), a Sofix win / clean sheet row under Sorare's odds, a starts / doesn't-start hover, Sorare's colours. Built 2026-09-29 and checked against a stand-in Sorare; live check on Sorare's own pages is open.
 - [x] O11: player xG from Understat (big-five leagues and Russia); elsewhere no estimate ("No odds", the owner's call). Built 2026-09-29; 77% of real midfielders and forwards have a name match.
 - [x] O7: plan/captain marks, rank on a pick list, stale grey-out, on the O10 tile. Built 2026-09-29; Sorare's real "Select your ..." heading is unchecked.
-- [ ] The board's `scoreColour()` steps differ from Sorare's (measured 2026-09-29); fix as its own change.
+- [x] The board's `scoreColour()` steps differed from Sorare's (measured 2026-09-29); fixed as its own change on 2 Oct 2026
+  (roadmap 7.3): `scoreBand()` in `lib/cards.ts` steps at 20/35/50/60/75 on the rounded score, and a test holds it to the overlay's.
 - [ ] Player panel (range, history, value, plan membership): designed in S7, not built, not in `plans/overlay.md`.
 - [ ] Account matching: numbers are gated by the extension token, not by the signed-in Sorare account.
 - [ ] Payload-version negotiation and live current-layout owner acceptance (lineup, compose, signed out).

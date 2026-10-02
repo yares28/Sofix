@@ -4,6 +4,10 @@ Written 2026-09-30. Entry in [TODO.md](../TODO.md) (T1); the sibling plan is [fu
 which makes Futbol Fantasy the main source of the "will he start?" number (your decision, 30 Sep). S4 in
 [docs/sorare_plan.md](../docs/sorare_plan.md) is this plan's checklist.
 
+**Scheduled in [roadmap.md](roadmap.md) (2 Oct 2026):** P0 and P1 in its batch 1, before round 8 locks; P2 to P6 in batch 3.
+One change from this file: P1's record goes in a read model, like `start_chances`, so it needs no migration and starts before the
+lock. This file keeps the detail; the order and the results are in the roadmap.
+
 **What you said.** Giorgi Tsitaishvili shows 45 and Oyarzabal 43 in an international week; Oyarzabal has had a weird
 club start but with Spain "he always does something", Giorgi rarely starts in LaLiga and often has worse games. "We
 need a deep dive to find the issues and edge cases."

@@ -5,6 +5,13 @@
 
 Status: ✅ implemented · 🚧 proof/acceptance pending · ⬜ open.
 
+**The open boxes below are scheduled in [plans/roadmap.md](../plans/roadmap.md) (2 Oct 2026):**
+- S4: batches 1 and 3
+- S6: step 0.1
+- S7: steps 0.2 and 1.4, and batches 6 and 7
+- S8's calibration: batch 5
+- S9: batch 7
+
 ## Fixed decisions
 
 | Topic | Decision |
@@ -149,7 +156,8 @@ Next: calibration by source/position/competition with adequate samples and corre
 ## S9 — hardening ⬜
 
 - [x] Merge integration landed at `8c4ff20`.
-- [ ] Fix one Sorare GW spanning multiple LaLiga rounds (duplicate picker and wrong cross-page round).
+- [x] Fix one Sorare GW spanning multiple LaLiga rounds (duplicate picker and wrong cross-page round). Done 2026-09-28
+  (`lib/weeks.ts`, `pageWeeks`; see PLAN.md).
 - [ ] Add fake-Sorare security/contract E2E.
 - [ ] Measure reward calibration/correlation.
 - [ ] Complete live Apply/overlay acceptance and recovery docs.

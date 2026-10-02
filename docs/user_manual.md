@@ -9,7 +9,7 @@ prices or standings. Live pages always show their own sync/freshness state.
 ## 1. First use
 
 Open Sofix in Chrome or Edge. The app is private and protected by the deployment login. Use the header to move
-between Play, Fixtures, Difficulty, Table, Cards and Players. The Sofix wordmark returns home.
+between Play, Lineups, Fixtures, Difficulty, Table, Audit, Cards and Players. The Sofix wordmark returns home.
 
 The week control on the right is app-wide:
 
@@ -302,6 +302,33 @@ On a phone one team shows at a time, switched by the two names under the match.
 ring is SF (Sofix's estimate from his form). Play's cards say "50% starts" with the mark and, when FF says so, an icon for the
 doubt; hover the mark for the name.
 
+## 7b. Audit — how often the numbers were right
+
+![Audit: the xScore success rate, who starts per source and what has been written down](images/audit.png)
+
+The Audit page checks Sofix's numbers against what happened. **One figure leads: how often the xScore picks the better of two
+players.** Take two of your players in the same position and the same gameweek; the one the xScore rated higher scored more in 66
+of every 100 pairs (a coin flip gets 50; likely 65% to 67%). The bars beside it set it against his last five games' average,
+which scores the same, and the page says so. The line under the bars says how many pairs, gameweeks and players it rests on.
+[How it is counted](xscore_success_rate.md) has the steps, a worked example and what the figure does not say.
+
+That figure is a replay: your 84 players' games since August 2025, with the xScore as the form formula alone would have said
+it. Sorare's own projection and Futbol Fantasy's chance are not in the past, so they cannot be replayed. **Live check** is the
+same count on what Sofix really wrote down before each lock; it begins empty and shows a figure from 100 pairs (about five
+gameweeks).
+
+**Who starts?** gives each of Futbol Fantasy, Sorare and Sofix a column. It says how often the source was right (said 50% or more
+and he started, or less and he did not), how far its chances were from what happened (the error score: 0 is perfect, 0.25 is saying
+50% every time), and how many of the players it put at 80% or more started. A source shows figures from 100 games. Under that it says
+"Too few to tell" and how far along it is, or "Waiting for results" while the games are written down but not played, or "Nothing
+yet" with the reason: Sorare has not given a start chance for any of your players, and Futbol Fantasy covers LaLiga only, so it
+joins with the first gameweek that has a LaLiga player of yours (round 8's). **On past games** replays Sofix's own chance on 4,615
+games (right on 72%; the bars show what it said against how often he started, band by band). **Written down so far** lists each
+gameweek: the games written down before its lock, how many have been checked since, and how many each source gave.
+
+The Audit page never writes to Sorare. It is rebuilt by each refresh; "The audit appears after the next refresh" means none has
+written it yet.
+
 ## 8. Apply a lineup
 
 ![Apply sheet showing the explicit Check, Draft and Enter stages](images/apply.png)
@@ -525,6 +552,8 @@ the extension that holds the token.
 | Apply says "Sorare didn't answer" or "That didn't go through" | Sorare was slow, or the call failed on the way | Press the step again; nothing was saved |
 | Apply shows Sorare's own words in red (Check or Draft refused) | Sorare's rules refuse that lineup: the cap, a position, an in-season rule | Read what Sorare says and change the lineup; nothing was saved. If Sorare refuses something Sofix's plan said was allowed, that is a bug in Sofix: write down the competition and the words |
 | Control says the extension was "not seen lately", or the overlay's tag says SIGN IN or OFFLINE | Chrome was restarted, or the extension was reloaded while the tabs stayed as they were | Reload Sofix in `chrome://extensions`, reload the sorare.com tab, then open Sofix again |
+| Audit says "Too few to tell" | The source has fewer than 100 checked games, so a figure would be mostly luck | Wait: it fills as gameweeks are played; the counts show how far along it is |
+| Audit says "The audit appears after the next refresh" | No refresh has written the Audit page yet | Run a refresh from Control |
 | Database paused | Neon free monthly compute limit was exhausted | Wait for monthly reset; avoid repeated DB monitors |
 | Refresh failed at a step | Source/schema/job error; older payload may still be visible | Inspect Control/GitHub run before trusting freshness |
 | Date TBC | Kickoff unassigned | Do not infer midnight or local date |

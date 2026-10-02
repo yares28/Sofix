@@ -303,6 +303,9 @@ the head of the batch then under way.
 
 ## Batch 5 · T7, the Audit page
 
+**Started on 2 Oct, at your request.** You asked for the page, the xScore's success rate and who starts per source directly, so 5.1's
+canvas Stop was not taken: the page follows the Control Center's look. What is built and what is left is in the Results.
+
 - **5.1 · Design canvas for `/audit` (Stop).**
   - Each figure per gameweek and for the season, with how many cases stand behind it.
   - Under a floor it says "too few to tell" instead of a number.

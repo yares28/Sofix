@@ -2,16 +2,17 @@ import { formatKickoff } from "../../lib/grid";
 import { dateRange, type GameweekHead, type HeadCast, type HeadDay, type HeadGame, type HeadState } from "../../lib/home";
 import { competitionName } from "../AwayWeek";
 import SorareImage from "../play/SorareImage";
+import GameCrest from "./GameCrest";
 
 const score = (x: number) => x.toFixed(1);
 const pct = (p: number) => `${Math.round(p * 100)}%`;
 
 function gameLabel(game: HeadGame): string {
-  const teams = `${game.team} ${game.venue === "H" ? "v" : "against"} ${game.opponent}`;
+  const teams = game.venue === "A" ? `${game.opponent} against ${game.team}` : `${game.team} against ${game.opponent}`;
   const cards = game.players.map((player) => `${player.name}, ${pct(player.p)} chance to play`).join("; ");
   if (game.win == null) return `${teams}, ${competitionName(game.competition)}. Your cards: ${cards}`;
-  const sheet = game.cleanSheet == null ? "" : `, ${pct(game.cleanSheet)} clean sheet`;
-  return `${teams}, ${pct(game.win)} win${sheet}. Your cards: ${cards}`;
+  const sheet = game.cleanSheet == null ? "" : `, ${pct(game.cleanSheet)} chance of a clean sheet`;
+  return `${teams}. ${game.team}: ${pct(game.win)} chance to win${sheet}. Your cards: ${cards}`;
 }
 
 function dayTone(day: HeadDay, state: HeadState, index: number): string {
@@ -134,18 +135,22 @@ export default function HomeHead({ head, cast, sorare }: { head: GameweekHead; c
                   return (
                     <li key={game.key} aria-label={gameLabel(game)}>
                       <span className="hm-game-main">
-                        <span className="sides">
-                          <span className="side">
-                            <SorareImage src={game.teamCrest} alt="" width={16} height={16} />
-                            <b>{game.team}</b>
-                          </span>
-                          <span className="side opp">
-                            <SorareImage src={game.opponentCrest} alt="" width={16} height={16} />
-                            <span>
-                              {game.venue === "H" ? "v" : "@"} {game.opponent}
-                            </span>
-                            <em>{competitionName(game.competition)}</em>
-                          </span>
+                        <span className="hm-fixture">
+                          {/* Home side first, like a fixture list; the ring marks the club your cards play for. */}
+                          {game.venue === "A" ? (
+                            <>
+                              <GameCrest src={game.opponentCrest} name={game.opponent} />
+                              <i>v</i>
+                              <GameCrest src={game.teamCrest} name={game.team} mine />
+                            </>
+                          ) : (
+                            <>
+                              <GameCrest src={game.teamCrest} name={game.team} mine />
+                              <i>v</i>
+                              <GameCrest src={game.opponentCrest} name={game.opponent} />
+                            </>
+                          )}
+                          <em>{competitionName(game.competition)}</em>
                         </span>
                         <span className="hm-game-cards" aria-hidden="true">
                           <span className="hm-mini-stack">
@@ -162,13 +167,14 @@ export default function HomeHead({ head, cast, sorare }: { head: GameweekHead; c
                         </span>
                       </span>
                       <span className="rates">
-                        <span>
+                        {game.win == null ? null : <GameCrest src={game.teamCrest} name={`${game.team}'s chances`} mine size={22} />}
+                        <span className="rate">
                           <b>{game.win == null ? pct(best.p) : pct(game.win)}</b>
-                          <span>{game.win == null ? "Play" : "Win"}</span>
+                          <span className="lbl">{game.win == null ? "Play" : "Win"}</span>
                         </span>
-                        <span>
+                        <span className="rate">
                           <b>{game.win == null ? score(best.x) : game.cleanSheet == null ? "–" : pct(game.cleanSheet)}</b>
-                          <span>{game.win == null ? "xScore" : "Clean sheet"}</span>
+                          <span className="lbl">{game.win == null ? "xScore" : "Clean sheet"}</span>
                         </span>
                       </span>
                     </li>

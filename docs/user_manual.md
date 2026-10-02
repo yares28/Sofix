@@ -53,8 +53,9 @@ remain visible rather than being invented locally.
 ![Sofix home with LaLiga and Sorare bento cards](images/home.png)
 
 The top strip shows the selected LaLiga gameweek, its playing days and time to the next kickoff. **Best cards** uses
-one fixed Sorare-card ratio and shows xScore. **Your fixtures** names the side actually playing—club or national
-team—and the owned players/cards in that match. A rated LaLiga row shows Win and Clean sheet; an outside-LaLiga row
+one fixed Sorare-card ratio and shows xScore. **Your fixtures** draws each match as two crests, home side first, with the side actually playing—club or national
+team—ringed in blue, and the owned players/cards in that match. A rated LaLiga row shows Win and Clean sheet for the
+ringed side, led by that same ringed crest so the percentages are never ambiguous; an outside-LaLiga row
 shows the best owned player's clearly labelled **Play** percentage and xScore because Sofix has no match odds for it.
 Under the strip:
 

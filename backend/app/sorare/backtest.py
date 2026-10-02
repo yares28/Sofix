@@ -32,6 +32,17 @@ FLAT = 45.0  # the score the flat baseline says for everyone
 RARE_STARTER = 0.25  # below this share of his last five games started, he is a rare starter
 MIN_RANKED = 6  # players needed in one position and week for an order to mean anything
 DEPTHS = (("0-4 games", 0, 5), ("5-9 games", 5, 10), ("10+ games", 10, 10**9))
+BASELINES = ("flat45", "last5", "last5_class")
+# The slices the report cuts the games by: the Row attribute, how the report names it, and whether it is known before the
+# lock (what he did in the game is not, so it is shown but never ranked: no model can be fixed for it).
+SLICES = (
+    ("klass", "club or national", True),
+    ("role", "what he did", False),
+    ("depth", "how much history", True),
+    ("pos", "position", True),
+    ("starter", "how often he had started", True),
+    ("games_that_week", "games in the week", True),
+)
 
 
 def klass(competition: str | None) -> str:
@@ -268,6 +279,44 @@ def scores(rows: list[Row], by: list[str]) -> list[dict[str, Any]]:
     return table
 
 
+def rank_slices(rows: list[Row]) -> list[dict[str, Any]]:
+    """The groups of games, cut by something known before the lock, where today's model loses most to the best simple baseline.
+
+    For each group: the squared error today's model makes against the least of the three baselines' (the mean of squared misses,
+    the number that rewards a right average), the difference (`excess`, below zero where today's model is the closest) and that
+    difference times the games in the group (`total`, how much squared error would go if today's model were as close as the best
+    baseline there). Largest `total` first, so it says where a fix would pay most, and with how many games behind it.
+    """
+    out: list[dict[str, Any]] = []
+    for key, label, known in SLICES:
+        if not known:
+            continue
+        by_value: dict[Any, dict[str, dict[str, Any]]] = defaultdict(dict)
+        for row in scores(rows, ["model", key]):
+            by_value[row[key]][row["model"]] = row
+        for value, models in by_value.items():
+            rivals = {name: models[name] for name in BASELINES if name in models}
+            if "today" not in models or not rivals:
+                continue
+            best = min(rivals, key=lambda name: rivals[name]["rmse"])
+            today = models["today"]
+            excess = today["rmse"] ** 2 - rivals[best]["rmse"] ** 2
+            out.append(
+                {
+                    "slice": label,
+                    "value": value,
+                    "n": today["n"],
+                    "best": best,
+                    "today_rmse": today["rmse"],
+                    "best_rmse": rivals[best]["rmse"],
+                    "bias": today["bias"],
+                    "excess": excess,
+                    "total": excess * today["n"],
+                }
+            )
+    return sorted(out, key=lambda item: item["total"], reverse=True)
+
+
 # ---------------------------------------------------------------------------------------------------- better or not
 def _miss(row: Row, metric: str) -> float:
     miss = row.expected - row.score
@@ -358,6 +407,27 @@ def _table(table: list[dict[str, Any]], keys: list[str]) -> list[str]:
     return lines
 
 
+def _ranking(tuning: list[Row], top: int = 10) -> list[str]:
+    ranked = rank_slices(tuning)
+    if not ranked:
+        return []
+    lines = [
+        "### Where today's model loses most to the best simple baseline (tuning weeks)",
+        "",
+        "Slices known before the lock, by the squared error that would go if today's model were as close as the best baseline "
+        "there (the difference of mean squared misses times the games). Below zero today's model is the closest.",
+        "",
+        "| slice | group | games | today RMSE | best baseline | its RMSE | today's bias | squared error to gain |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for item in ranked[:top]:
+        lines.append(
+            f"| {item['slice']} | {item['value']} | {item['n']} | {_fmt(item['today_rmse'])} | {item['best']} | "
+            f"{_fmt(item['best_rmse'])} | {item['bias']:+.1f} | {item['total']:+,.0f} |"
+        )
+    return [*lines, ""]
+
+
 def report(rows: list[Row], holdout_from: datetime) -> str:
     """The backtest as Markdown: each model overall, then by the slices the plan asks for, tuning weeks and held-out weeks apart."""
     rows = with_period(rows, holdout_from)
@@ -376,16 +446,10 @@ def report(rows: list[Row], holdout_from: datetime) -> str:
             continue
         out += _table(scores(part, ["model"]), ["model"]) + [""]
         if period == "tuning":
-            for key, label in (
-                ("klass", "club or national"),
-                ("role", "what he did"),
-                ("depth", "how much history"),
-                ("pos", "position"),
-                ("starter", "how often he had started"),
-                ("games_that_week", "games in the week"),
-            ):
+            for key, label, _ in SLICES:
                 out += [f"**By {label}**", ""] + _table(scores(part, ["model", key]), ["model", key]) + [""]
     tuning = [row for row in rows if row.period == "tuning"]
+    out += _ranking(tuning)
     out += ["### Order within a position and week (tuning weeks)", ""]
     for name in MODELS:
         out.append(f"- {name}: {_fmt(rank_correlation(tuning, name), 2)}")

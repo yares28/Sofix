@@ -235,6 +235,28 @@ def test_each_game_says_how_many_games_his_week_holds() -> None:
     assert [r.games_that_week for r in found] == ["2+ games", "2+ games", "1 game", "1 game"]
 
 
+def test_the_slices_are_ranked_by_the_squared_error_today_loses_to_the_best_simple_baseline() -> None:
+    found = backtest.walk_forward({"p": starter_for_his_country()})
+
+    ranked = backtest.rank_slices(found)
+
+    assert ranked, "there is something to rank"
+    assert [r["total"] for r in ranked] == sorted((r["total"] for r in ranked), reverse=True)
+    national = next(r for r in ranked if r["slice"] == "club or national" and r["value"] == "national")
+    table = {r["model"]: r for r in backtest.scores(found, by=["model", "klass"]) if r["klass"] == "national"}
+    best = min(backtest.BASELINES, key=lambda name: table[name]["rmse"])
+    assert national["best"] == best and national["best_rmse"] == pytest.approx(table[best]["rmse"])
+    assert national["today_rmse"] == pytest.approx(table["today"]["rmse"])
+    assert national["excess"] == pytest.approx(table["today"]["rmse"] ** 2 - table[best]["rmse"] ** 2)
+    assert national["excess"] > 0 and national["bias"] < -10, (
+        "today under-predicts his country's games and loses to a baseline"
+    )
+    assert national["total"] == pytest.approx(national["excess"] * national["n"])
+    assert not any(r["slice"] == "what he did" for r in ranked), (
+        "what he did is known only afterwards, so it cannot be fixed for"
+    )
+
+
 def test_a_week_is_the_monday_it_starts_and_two_games_of_one_week_share_it() -> None:
     found = rows({"p": player([game(0.5), game(6.5), game(7.2)])})
 
@@ -352,6 +374,7 @@ def test_the_report_names_the_split_and_each_model_with_its_error() -> None:
         assert name in text
     assert "MAE" in text and "bias" in text.lower()
     assert "absolute error" in text and "squared error" in text, "each comparison is made both ways"
+    assert "loses most" in text, "the slices are ranked"
 
 
 def test_the_report_has_a_table_for_each_slice_the_plan_asks_to_rank() -> None:

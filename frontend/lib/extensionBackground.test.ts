@@ -20,18 +20,30 @@ type Message = Record<string, unknown>;
 type Handler = (message: Message, sender: unknown, reply: (answer: unknown) => void) => unknown;
 type Call = { url: string; init: { headers: Record<string, string>; body: string; credentials?: string; referrerPolicy?: string } };
 
-function load() {
+function load(options: { sorareTab?: boolean } = {}) {
   const session = new Map<string, unknown>();
   const local = new Map<string, unknown>();
   const created: { url: string }[] = [];
   const calls: Call[] = [];
+  /** What the page bridge was asked to put to Sorare, when a signed-in sorare.com tab is stood in for. */
+  const asked: { operation: string; variables: Record<string, unknown> }[] = [];
   let respond: (call: Call) => { ok: boolean; status: number; body?: unknown; text?: string } | "network" = () => ({ ok: true, status: 200, body: { ok: true, cards: {}, players: {} } });
   const store = (map: Map<string, unknown>) => ({
     get: async (keys?: string | string[]) => Object.fromEntries((Array.isArray(keys) ? keys : [keys]).filter((k) => k !== undefined && map.has(k as string)).map((k) => [k, map.get(k as string)])),
     set: async (values: Record<string, unknown>) => void Object.entries(values).forEach(([k, v]) => map.set(k, v)),
   });
   const handlers: Handler[] = [];
+  const outside: Handler[] = [];
   const nothing = { addListener() {}, create() {} };
+  // The page bridge in a sorare.com tab: it answers its ping and records each question it is given for Sorare.
+  const bridge = (_tab: number, message: Message, answer?: (response: unknown) => void) => {
+    if (!options.sorareTab || !answer) return;
+    if (message.type === "sofix-ping-4") answer({ ok: true, version: 4 });
+    else if (message.type === "ask") {
+      asked.push({ operation: String(message.operation), variables: message.variables as Record<string, unknown> });
+      answer({ state: "ok", data: null });
+    } else answer(undefined);
+  };
   const chrome = {
     runtime: {
       id: "sofix",
@@ -39,11 +51,17 @@ function load() {
       onInstalled: nothing,
       onStartup: nothing,
       onMessage: { addListener: (fn: Handler) => handlers.push(fn) },
-      onMessageExternal: nothing,
+      onMessageExternal: { addListener: (fn: Handler) => outside.push(fn) },
     },
     alarms: { create() {}, onAlarm: nothing },
     storage: { session: store(session), local: store(local) },
-    tabs: { create: (options: { url: string }) => created.push(options), query: async () => [], sendMessage() {}, reload() {}, onUpdated: nothing },
+    tabs: {
+      create: (options: { url: string }) => created.push(options),
+      query: async () => (options.sorareTab ? [{ id: 7, active: true }] : []),
+      sendMessage: bridge,
+      reload() {},
+      onUpdated: nothing,
+    },
     scripting: { executeScript: async () => [], insertCSS: async () => undefined },
   };
   const fetch = async (url: string, init: Call["init"]) => {
@@ -63,11 +81,18 @@ function load() {
     created,
     session,
     local,
+    asked,
     respondWith: (fn: typeof respond) => void (respond = fn),
     /** A message to the worker, and what it answered (null when it stayed silent). */
     send: (message: Message, sender: unknown = SORARE) =>
       new Promise<unknown>((resolve) => {
         const handled = listener(message, sender, (answer) => resolve(JSON.parse(JSON.stringify(answer ?? null))));
+        if (handled !== true) resolve(null);
+      }),
+    /** A message from a web page that is allowed to reach the extension (the app), by the address it was sent from. */
+    sendFrom: (url: string | undefined, message: Message) =>
+      new Promise<unknown>((resolve) => {
+        const handled = outside[0]!(message, { id: "sofix", url }, (answer) => resolve(JSON.parse(JSON.stringify(answer ?? null))));
         if (handled !== true) resolve(null);
       }),
     body: (call: Call) => JSON.parse(call.init.body) as { cards: string[]; players: string[]; plan?: boolean },
@@ -348,5 +373,66 @@ describe("Futbol Fantasy, read live for the overlay", () => {
 
     expect(answer).toBeNull();
     expect(worker.calls).toHaveLength(0);
+  });
+});
+
+describe("who may ask the extension to do something from a web page (roadmap 7.4)", () => {
+  const INPUT = {
+    slug: "football-2-6-oct-2026-limited",
+    boardId: "board-1",
+    appearances: [{ cardSlug: "pedri-2026-limited-7", captain: true, index: 0 }],
+    lineupIds: ["lineup-1"],
+  };
+  // Any page that is not the app, Sorare's own pages included: none of them may reach the extension from outside.
+  const OTHERS = ["https://evil.example/", `${APP}.evil.example/`, "http://sofix.example/", "https://localhost:3000/", "https://sorare.com/", "javascript:alert(1)", "not a url", undefined];
+
+  beforeEach(() => {
+    worker = load({ sorareTab: true });
+  });
+
+  it("answers the app's ping from its own address or a local development server, and from nowhere else", async () => {
+    for (const url of [`${APP}/play`, "http://localhost:3000/", "http://127.0.0.1:8765/play"]) {
+      expect(await worker.sendFrom(url, { type: "ping" }), url).toMatchObject({ ok: true, version: "0.2.0" });
+    }
+    for (const url of OTHERS) expect(await worker.sendFrom(url, { type: "ping" }), String(url)).toBeNull();
+  });
+
+  it("turns each step the app may name into one fixed question for Sorare, and nothing else", async () => {
+    const question: Record<string, string> = {
+      entered: "SofixMyLineups",
+      "week-entered": "SofixFixtureLineups",
+      check: "SofixPreviewLineup",
+      draft: "SofixSaveDraft",
+      enter: "SofixConfirmLineups",
+    };
+    for (const [step, operation] of Object.entries(question)) {
+      worker.asked.length = 0;
+      expect(await worker.sendFrom(`${APP}/play`, { type: "sorare", step, ...INPUT }), step).toMatchObject({ ok: true, step, state: "ok" });
+      expect(worker.asked.map((one) => one.operation), step).toEqual([operation]);
+    }
+  });
+
+  it("ignores a step that is not in the table, even one named like an operation or like something every object has", async () => {
+    for (const step of ["whoami", "SofixConfirmLineups", "SofixSaveDraft", "mutation", "__proto__", "constructor", "toString", "hasOwnProperty", ""]) {
+      expect(await worker.sendFrom(`${APP}/play`, { type: "sorare", step, ...INPUT }), step).toBeNull();
+    }
+    expect(worker.asked).toEqual([]);
+  });
+
+  it("lets no other address start a step, the two that write included", async () => {
+    for (const url of OTHERS) for (const step of ["entered", "draft", "enter"]) expect(await worker.sendFrom(url, { type: "sorare", step, ...INPUT }), `${url} ${step}`).toBeNull();
+    expect(worker.asked).toEqual([]);
+  });
+
+  it("saves a draft as a draft whatever the page says, and keeps an input to what a lineup can hold", async () => {
+    const twenty = Array.from({ length: 20 }, (_, index) => ({ cardSlug: `card-${index}`, captain: index === 0, index }));
+    await worker.sendFrom(`${APP}/play`, { type: "sorare", step: "draft", ...INPUT, draft: false, appearances: twenty });
+    const saved = worker.asked[0]!.variables.input as { draft: boolean; so5Appearances: unknown[] };
+    expect(saved.draft).toBe(true);
+    expect(saved.so5Appearances).toHaveLength(12);
+
+    worker.asked.length = 0;
+    await worker.sendFrom(`${APP}/play`, { type: "sorare", step: "enter", ...INPUT, lineupIds: Array.from({ length: 12 }, (_, index) => `lineup-${index}`) });
+    expect((worker.asked[0]!.variables.input as { so5LineupIds: string[] }).so5LineupIds).toHaveLength(8);
   });
 });

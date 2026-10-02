@@ -393,24 +393,26 @@ Fantasy row, and no Spanish word is anywhere. (3) The panel of a card in a lineu
 your …" list the cards are ranked #1 to #3. (5) The popup's "Cards recognised here" reads "N of N", and on an old week's page "Gameweek
 in the address" says a week or "none named". Send a screenshot of anything that is wrong.
 
-### Batch 1 · 2 Oct 2026 · in progress
+### Batch 1 · 2 Oct 2026 · done except the first freeze and the look at 1.4 on Sorare
 
-Merged as #19 (1.2 and 1.3); the rest follows.
+1.2 and 1.3 were merged as #19; 1.4 came in the next pull request.
 
 | Step | Result | What was seen |
 |---|---|---|
 | 1.1 P0 | done except L5 and L6 | Findings in [xscore.md](xscore.md) ("P0 findings"): the page's numbers for Giorgi and Oyarzabal are rebuilt to the decimal from their game history; the "45 against 52" comes from a 75% cliff between two kinds of number (F1), club and country games are pooled (F2), Sorare publishes a projection for each game and the model uses one (F3), and the bench score is one or two appearances (F4). L5 (spread by role) waits for the backtest; L6 (which of two games counts) needs a keyed read or an entered lineup with a two-game player. |
 | 1.2 | code live, first freeze due | Refresh #44 ran with it (no week had locked yet, so `frozenPlans` is absent, as the test says it should be). GW19 locks today at 16:00 Madrid; the first run after that writes `sorare_plan:football-2-6-oct-2026`. |
 | 1.3 | pass | Refresh #44: `starts` `{'written': 20, 'frozen': 0, 'noted': 14, 'settled': 0}`: the 14 players of GW19 carry their `model` and their games' `info`. |
-| 1.4 | not started | |
+| 1.4 | pass in tests, the look waits for you | A player with two games gets `fixtures` in the app's answer, a small **×2** off the tile's lower corner, "2 games this week, best score chosen" in the tile's name, and both games in the panel with their kickoff in your clock. Checked: unit tests for the answer and for the panel's lines, the overlay e2e on the fixture page (a one-game tile has neither), the design check (13 previews) and the whole browser suite at desktop and phone width (163 passed). Extension 0.3.1: Reload Sofix in `chrome://extensions`. I could not look at it on Sorare itself (see 0.2). |
 
 ### Batch 2
 
 _(none yet)_
 
-### Batch 3
+### Batch 3 · 2 Oct 2026 · in progress
 
-_(none yet)_
+| Step | Result | What was seen |
+|---|---|---|
+| 3.1 | tools built, numbers to come | The export, the backtest and the command that prints its report are written test first (32 tests on made-up histories; a player built to start for his country and come off the bench for his club shows the error today's model makes). The first export, asking about twice a second, was refused by Sorare's keyless limit after 14 players and then left every player after them out for want of waiting; it now asks once a second, waits out a refusal and asks the same question again, and stops if it is still refused after three waits. Each player takes at least 16 questions (a month at a time back to August 2025). The backtest numbers go in [xscore.md](xscore.md) once the export is whole. |
 
 ### Batch 4
 

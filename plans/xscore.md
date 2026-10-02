@@ -197,13 +197,32 @@ that has them). Also settle the open unknowns: the API's field names for decisiv
   SQL over them; that would be a Stop. See [docs/how_it_works.md](../docs/how_it_works.md) section 10.
 - **"2 games" on the tile, and both games in the hover panel.** Display only; no model change. This is the one item in
   this plan that can ship before the backtest, because it only says what the data already holds. Overlay e2e, design
-  check, desktop and mobile screenshots.
+  check, desktop and mobile screenshots. **Built 2 Oct 2026** (roadmap 1.4, extension 0.3.1): a small **×2** off the tile's
+  corner and both games, with their kickoffs, in the panel.
 
 ### P2 · The backtest harness (two to three days)
 
 `backend/app/sorare/backtest.py` and a read-only job, reusing `backend/app/backtest/metrics.py`; an export script for
 the history; tests first with synthetic histories (a player built to start in national games and not in club games must
 show the error the current model makes). Output: the tables in section 3, by slice, for today's model. No behaviour change.
+
+- **Tools built 2 Oct 2026** (roadmap 3.1); the numbers follow once the export is whole.
+  - `app/jobs/export_history.py` reads every game of your players back to August 2025 from Sorare's public API into
+    `backend/data/raw/sorare_history.json` (git-ignored). Without a key Sorare refuses a client that asks too fast, so it asks
+    once a second, waits out a refusal and asks the same question again, and a run still refused after three waits stops where it
+    is; started again it goes on from the players already kept.
+  - `app/sorare/backtest.py` walks forward through that file: each game is predicted by the production forecast from the games
+    before the gameweek it is in (so the second game of a week does not see the first), against three simple baselines (a flat 45,
+    his last five, his last five of the same kind), with a game he did not play counting as zero. It gives error by model and by
+    slice (club or national, what he did, how much history, position), order within a position and week, and a bootstrap over
+    weeks for "is today's model closer".
+  - `app/jobs/xscore_backtest.py` prints the report: games from `--holdout` (1 Oct 2026 by default) are reported apart and are
+    not looked at while tuning.
+
+  ```
+  python -m app.jobs.export_history        # once, a few minutes to an hour, read only
+  python -m app.jobs.xscore_backtest --out ../backtest-report.md
+  ```
 
 ### P3 · Rank the errors
 

@@ -28,7 +28,10 @@ const cachedLineups = unstable_cache(
 /** Null while the site has never been read (no key yet, or the first run has not happened). */
 export async function loadLineups(): Promise<LineupsData | null> {
   try {
-    return await cachedLineups();
+    // Read again after the cache: Next keeps an entry across deploys, so one written by an older build lacks the fields this build
+    // added. The defaults are applied to it here, never only before it is stored.
+    const cached = await cachedLineups();
+    return cached ? readable(cached) : null;
   } catch (error) {
     console.error(`[lineups] could not be read: ${error instanceof Error ? error.message : "unknown"}`);
     return null;

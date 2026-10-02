@@ -154,7 +154,9 @@ without Sorare's projection (Sorare's own number is not in the history; that com
 reported by slice (club or national, what he did, how much history, position, how often he had started, one game or two in the
 week), with the order within a position and week, and "is today's model closer" is a bootstrap over whole weeks, by absolute
 and by squared error (the score is zero or about sixty, so absolute error rewards the median and squared error the average
-that an expected score is). Games from 1 Oct 2026 on are held out and reported apart. `python -m app.jobs.xscore_backtest`
+that an expected score is). A week is Sorare's own gameweek (the export keeps their windows in the file); a gameweek is also
+scored as a whole, its expected score against the best of his games in it (Sorare's rule, `multiGameScoreAggregator` is
+`max`), which is where the best-of-two logic is tested. Games from 1 Oct 2026 on are held out and reported apart. `python -m app.jobs.xscore_backtest`
 prints it; nothing in it reaches the database or a page.
 
 ## 9. Optimizer/rewards

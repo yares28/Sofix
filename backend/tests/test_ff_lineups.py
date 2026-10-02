@@ -441,8 +441,12 @@ def test_a_starter_lists_who_comes_in_for_him_by_the_ids_of_the_bench(real: list
     home = find(built(matches), 22502)["home"]
     shown = {p["id"]: p for r in home["rows"] for p in r["players"]}
 
-    assert shown[first.ff_id]["next"] == [bench[1].ff_id, bench[0].ff_id], "the page's order, and only who is on the bench"
-    assert all("next" not in p for pid, p in shown.items() if pid != first.ff_id), "a slot the page names nobody under has none"
+    assert shown[first.ff_id]["next"] == [bench[1].ff_id, bench[0].ff_id], (
+        "the page's order, and only who is on the bench"
+    )
+    assert all("next" not in p for pid, p in shown.items() if pid != first.ff_id), (
+        "a slot the page names nobody under has none"
+    )
 
 
 def test_a_bench_player_can_be_next_in_line_in_more_than_one_slot(real: list[ffm.Match]) -> None:
@@ -451,7 +455,10 @@ def test_a_bench_player_can_be_next_in_line_in_more_than_one_slot(real: list[ffm
     source = sides(real, "Real Sociedad")
     bench = next(p for p in source.alternatives if p.slug)
     xi = tuple(dataclasses.replace(p, next=(bench.slug or "",)) for p in source.xi[:3]) + source.xi[3:]
-    changed = [dataclasses.replace(m, home=dataclasses.replace(m.home, xi=xi)) if m.home.name == "Real Sociedad" else m for m in real]
+    changed = [
+        dataclasses.replace(m, home=dataclasses.replace(m.home, xi=xi)) if m.home.name == "Real Sociedad" else m
+        for m in real
+    ]
     home = find(built(changed), 22502)["home"]
     shown = {p["id"]: p for r in home["rows"] for p in r["players"]}
 

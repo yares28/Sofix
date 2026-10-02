@@ -97,7 +97,9 @@ class Player:
     y: float | None = None
     goalkeeper: bool = False
     news: bool = False  # the site has a news item on him (its "Más info" pop-up)
-    next: tuple[str, ...] = ()  # the profile slugs of who can come in for him in his slot, in the page's order (eleven only)
+    next: tuple[
+        str, ...
+    ] = ()  # the profile slugs of who can come in for him in his slot, in the page's order (eleven only)
 
 
 @dataclass(frozen=True)
@@ -659,7 +661,11 @@ def _next_in_line(block: Node) -> tuple[str, ...]:
     box = _find(block, "div", "juggadores")
     if box is None:
         return ()
-    slugs = (_slug_of(link.get("href"), "jugadores") for link in _find_all(box, "a", "juggador") if "pos-0" not in link.classes)
+    slugs = (
+        _slug_of(link.get("href"), "jugadores")
+        for link in _find_all(box, "a", "juggador")
+        if "pos-0" not in link.classes
+    )
     return tuple(slug for slug in slugs if slug)
 
 

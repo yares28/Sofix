@@ -357,12 +357,14 @@
       game: entry.game || null,
       driver: core.driverOf(entry.pos),
       xg: typeof entry.xg === "number" ? entry.xg : null,
+      games: core.gamesCount(entry),
     };
   }
 
   /** The tile's name for a screen reader: the same things it shows, in words. */
   function describe(f, more = []) {
     const said = [f.split ? `Sofix: ${f.score} if he starts.` : `Sofix: expected score ${f.score}.`];
+    if (f.games > 1) said.push(`${f.games} games this week, best score chosen.`); // Sorare's own words for which one counts
     if (f.driver === "fdr") {
       said.push(f.game ? `Difficulty ${Math.round(f.game.difficulty)} of 100, ${f.game.label.toLowerCase()}.` : "No odds for this game yet.");
     } else if (f.driver === "xg") {
@@ -403,6 +405,13 @@
     }
     svg.append(path);
     badge.append(svg);
+    return badge;
+  }
+
+  /** "×2": he has two games in the gameweek, hanging off the tile's lower corner like the rank. Its meaning is in the tile's own name. */
+  function gamesBadge(count) {
+    const badge = node("span", "sfx-games", `×${count}`);
+    badge.setAttribute("aria-hidden", "true");
     return badge;
   }
 
@@ -460,8 +469,8 @@
     if (stale) more.push(stale.kind === "over" ? "His game has started, so these numbers are about a game no longer ahead." : `These numbers are ${stale.hours} h old.`);
     const label = describe(f, more);
     const shownRank = tier === "full" ? rank || 0 : 0;
-    const sig = [size, f.score, f.split, f.startChance, f.tone, f.source, entry.live && entry.startAt, f.driver, f.xg, entry.pos, f.game && `${f.game.difficulty}:${f.game.bucket}`, scoreColour, driveColour, stale && stale.kind, plan && `${plan.lineup}:${plan.captain}`, shownRank].join("|");
-    const marks = [...(plan ? [mark(plan.captain)] : []), ...(shownRank ? [rankBadge(shownRank)] : [])];
+    const sig = [size, f.score, f.split, f.startChance, f.tone, f.source, entry.live && entry.startAt, f.driver, f.xg, entry.pos, f.game && `${f.game.difficulty}:${f.game.bucket}`, scoreColour, driveColour, stale && stale.kind, plan && `${plan.lineup}:${plan.captain}`, shownRank, tier === "full" && f.games].join("|");
+    const marks = [...(plan ? [mark(plan.captain)] : []), ...(shownRank ? [rankBadge(shownRank)] : []), ...(tier === "full" && f.games > 1 ? [gamesBadge(f.games)] : [])];
     const staleClass = stale ? " sfx-tile--stale" : "";
 
     if (tier === "compact") {
@@ -749,6 +758,19 @@
     return alert;
   }
 
+  /** Both games of a gameweek with two, soonest first, the next one marked: the tile reads the next one. Null for a single game. */
+  function fixturesNode(entry) {
+    const rows = (Array.isArray(entry.fixtures) ? entry.fixtures : []).map((one) => ({ one, text: core.fixtureLine(one) })).filter((row) => row.text);
+    if (rows.length < 2) return null;
+    const box = node("div", "sfx-fixtures");
+    box.append(node("span", "sfx-fixtures-cap", `${rows.length} games · best score chosen`));
+    const list = node("ul");
+    const next = rows.findIndex((row) => Date.parse(row.one.kickoff) > now());
+    rows.forEach((row, index) => list.append(node("li", index === next ? "is-next" : "", row.text)));
+    box.append(list);
+    return box;
+  }
+
   /** Who says it, hidden until asked for: FF, SO and SF with what each says and, for FF, when it was read. */
   function sourcesNode(entry, onResize) {
     const box = node("div", "sfx-sources");
@@ -835,7 +857,10 @@
     body.append(panelBig(entry, mode));
     const alert = alertNode(entry);
     if (alert) body.append(alert);
-    body.append(statCells(entry), sourcesNode(entry, onResize));
+    body.append(statCells(entry));
+    const fixtures = fixturesNode(entry);
+    if (fixtures) body.append(fixtures);
+    body.append(sourcesNode(entry, onResize));
     el.append(stripe(), node("span", "sfx-arrow"), body);
     return el;
   }

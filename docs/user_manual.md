@@ -438,6 +438,11 @@ it writes to Sorare.
   panel then says "FF live 2 min ago"). The plan's ticks, xScore and #1 to #3 ranks stay as the last run made them. Version 0.3.0
   needs the extension reloaded with its manifest rebuilt (`node extension/scripts/configure.mjs`, then reload it in
   `chrome://extensions`) because it asks for one more site, `futbolfantasy.com/partidos`.
+- **Two games in the gameweek** (an international week, a double gameweek): a small **×2** hangs off the tile's lower corner, the tile's
+  name says "2 games this week, best score chosen" (Sorare's own words for which one counts), and the panel lists both, soonest first,
+  the next one in white ("Sat 12:47 · v Slovenia", "Tue 12:47 · at Macedonia": the day and time in your browser's clock, "v" for a game at
+  home, "at" for one away). The tile's numbers are still about the next game. A player with one game has neither. It needs version
+  0.3.1: Reload on Sofix in `chrome://extensions` (Control says "update" until you do).
 - **Loading** shows a shimmer; a **small card** (a lineup slot) gets the number alone, a **thumbnail** an even smaller one,
   and a picture under 48 px wide gets nothing.
 - **Signed out or app unreachable:** a very small **SIGN IN** or **OFFLINE** tag, the only thing here that takes a click

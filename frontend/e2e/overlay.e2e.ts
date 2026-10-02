@@ -28,6 +28,7 @@ const EXTRA_CARDS = [
   ...FORWARDS.map((p) => ({ slug: p.card, pictureUrl: p.pic, anyPlayer: { slug: p.slug, displayName: `Fwd ${p.n}` } })),
   { slug: "ivan-over-2026-limited-1", pictureUrl: picture(20), anyPlayer: { slug: "ivan-over", displayName: "Ivan Over" } },
   { slug: "olga-old-2026-limited-1", pictureUrl: picture(21), anyPlayer: { slug: "olga-old", displayName: "Olga Old" } },
+  { slug: "dan-double-2026-limited-1", pictureUrl: picture(40), anyPlayer: { slug: "double-dan", displayName: "Dan Double" } },
 ];
 
 /** What Sorare's own page would learn from its GraphQL answers: which card each picture is. */
@@ -103,6 +104,14 @@ const NUMBERS = {
     // His game has kicked off, and a gameweek published two days ago: numbers that no longer hold.
     "ivan-over": { x: 58, p: 0.9, average: 55, pos: "MID", at: ELEVEN_HOURS_AGO, over: true, start: 58, bench: 5, pStart: 0.9, pOn: 0.03, game: null },
     "olga-old": { x: 58, p: 0.9, average: 55, pos: "MID", at: FORTY_HOURS_AGO, start: 58, bench: 5, pStart: 0.9, pOn: 0.03, game: null },
+    // Two games in the gameweek (a national team in an international week): his tile says so, and his panel lists both.
+    "double-dan": {
+      x: 61, p: 0.93, average: 55, pos: "MID", at: ELEVEN_HOURS_AGO, start: 58, bench: 14, pStart: 0.7, pOn: 0.2, game: null,
+      fixtures: [
+        { opponent: "Slovenia", venue: "H", kickoff: new Date(Date.now() + 26 * 3600_000).toISOString(), competition: "uefa-nations-league" },
+        { opponent: "Macedonia", venue: "A", kickoff: new Date(Date.now() + 98 * 3600_000).toISOString(), competition: "uefa-nations-league" },
+      ],
+    },
   },
   cards: {
     "pedri-2026-limited-7": { x: 61.2, p: 0.9, average: 65, pos: "MID", at: ELEVEN_HOURS_AGO, start: 62.3, bench: 15, pStart: 0.9, pOn: 0.04, game: null },
@@ -297,7 +306,7 @@ test.describe("the sorare.com overlay", () => {
     // Six pictures show him, and he is asked about once. The linked card only has a card slug, so that is what is sent.
     expect(players.filter((slug) => slug === "unai-simon")).toHaveLength(1);
     expect(players.sort()).toEqual(
-      ["fwd-1", "fwd-2", "fwd-3", "ivan-over", "kai-havertz", "lionel-messi", "olga-old", "pau-cubarsi", ...PICKS.map((p) => p.slug), "someone-else", "unai-simon"].sort(),
+      ["double-dan", "fwd-1", "fwd-2", "fwd-3", "ivan-over", "kai-havertz", "lionel-messi", "olga-old", "pau-cubarsi", ...PICKS.map((p) => p.slug), "someone-else", "unai-simon"].sort(),
     );
     expect(cards).toEqual(["pedri-2026-limited-7"]);
     for (const message of asked) expect((message.players?.length ?? 0) + (message.cards?.length ?? 0)).toBeLessThanOrEqual(120);
@@ -596,6 +605,38 @@ test.describe("the sorare.com overlay", () => {
     await move("?");
     await page.locator("#big").scrollIntoViewIfNeeded();
     await expect.poll(() => text(page, "big"), { timeout: 6000 }).toEqual(["53", "FDR", "45", "88%"]); // a shimmer first, then the numbers
+  });
+
+  test("a player with two games in the gameweek says so on his tile, and his panel lists both", async ({ page }, testInfo) => {
+    await openPage(page);
+    await page.locator("#double").scrollIntoViewIfNeeded();
+    await expect(ribs(page, "double")).toBeVisible();
+
+    // The tile: a small "×2" hanging off its corner, and the same in words for a screen reader. Nobody else has one.
+    await expect(page.locator("#double .sfx-games")).toHaveText("×2");
+    await expect(tileOf(page, "double")).toHaveAttribute("aria-label", /^Sofix: 58 if he starts\. 2 games this week, best score chosen\./);
+    await expect(page.locator("[data-sfx] .sfx-games")).toHaveCount(1);
+    expect(await text(page, "double")).toEqual(["58", "No xG", "70%"]); // what the tile reads is what it was
+
+    // The panel: the two games, soonest first, the next one marked; the clock is the browser's own.
+    await tileOf(page, "double").hover();
+    await expect(panel(page)).toBeVisible();
+    const lines = panel(page).locator(".sfx-fixtures li");
+    await expect(lines).toHaveCount(2);
+    await expect(lines.nth(0)).toContainText("v Slovenia");
+    await expect(lines.nth(0)).toHaveClass(/is-next/);
+    await expect(lines.nth(1)).toContainText("at Macedonia");
+    await expect(lines.nth(1)).not.toHaveClass(/is-next/);
+    await expect(panel(page).locator(".sfx-fixtures")).toContainText("2 games");
+    await expect(panel(page).locator(".sfx-fixtures")).toContainText("best score chosen");
+    await page.screenshot({ path: testInfo.outputPath("overlay-two-games.png") });
+
+    // A player with one game has no list in his panel.
+    await page.keyboard.press("Escape");
+    await page.locator("#big").scrollIntoViewIfNeeded();
+    await tileOf(page, "big").hover();
+    await expect(panel(page)).toBeVisible();
+    await expect(panel(page).locator(".sfx-fixtures")).toHaveCount(0);
   });
 
   test("opens a panel beside the card on hover: starts by default, the other score one press away, and it never writes anything", async ({ page }) => {

@@ -198,6 +198,24 @@
     });
   }
 
+  /** How many games he has in the gameweek the answer is about: one unless the answer lists more than one. */
+  function gamesCount(entry) {
+    const list = entry && entry.fixtures;
+    return Array.isArray(list) && list.length > 1 ? list.length : 1;
+  }
+
+  /**
+   * One of his games as a line of the panel: "Fri 18:45 · at Hungary" ("v" for a game at home), in the viewer's own time zone unless
+   * one is given. Null for a game it cannot read.
+   */
+  function fixtureLine(fixture, timeZone) {
+    const at = fixture && typeof fixture.kickoff === "string" ? new Date(fixture.kickoff) : null;
+    if (!at || Number.isNaN(at.getTime()) || !fixture.opponent) return null;
+    const parts = new Intl.DateTimeFormat("en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23", ...(timeZone ? { timeZone } : {}) }).formatToParts(at);
+    const of = (type) => (parts.find((part) => part.type === type) || {}).value || "";
+    return `${of("weekday")} ${of("hour")}:${of("minute")} · ${fixture.venue === "H" ? "v" : "at"} ${fixture.opponent}`;
+  }
+
   /** The most cards the drawer draws for the plan: two rows of five. */
   const DRAWER_CARDS = 10;
 
@@ -338,7 +356,7 @@
   root.__sofixCore = {
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
     chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, statusNote, clockLabel, sourceRows, drawerCards, DRAWER_CARDS, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
-    isPickHeading, fixtureOf,
+    isPickHeading, fixtureOf, gamesCount, fixtureLine,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;
 })(typeof globalThis !== "undefined" ? globalThis : this);

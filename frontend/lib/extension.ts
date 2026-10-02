@@ -7,9 +7,10 @@ export const REQUIRED_EXTENSION_VERSION = "0.1.1";
 
 /**
  * The newest build. Older ones from REQUIRED_EXTENSION_VERSION up still work, but lack what came later: 0.3.0 reads Futbol
- * Fantasy live and needs one more permission, which only a rebuilt manifest.json carries.
+ * Fantasy live and needs one more permission, which only a rebuilt manifest.json carries; 0.3.1 says "×2" on the tile of a
+ * player with two games in the gameweek and lists both in his panel.
  */
-export const LATEST_EXTENSION_VERSION = "0.3.0";
+export const LATEST_EXTENSION_VERSION = "0.3.1";
 
 /** Chrome manifest versions are numeric dot-separated values; compare them without relying on string ordering. */
 export function extensionAtLeast(version: string, minimum = REQUIRED_EXTENSION_VERSION): boolean {

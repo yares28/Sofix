@@ -10,6 +10,11 @@ Sofix's numbers, drawn on Sorare's own pages. Written 2026-09-29.
 
 This file keeps the design and the build record.
 
+**Built 2 Oct 2026 (roadmap 1.4, extension 0.3.1): "×2" on the tile, both games in the panel.** A player with more than one game in
+the gameweek has `fixtures` in the app's answer (`lib/overlay.ts`, kickoff order); the tile hangs a small **×2** off its lower corner
+(full tiles only) and its name says "2 games this week, best score chosen"; the panel lists the games under the three numbers
+(`core.fixtureLine`: "Sat 12:47 · v Slovenia"), the next one lit. Display only: the numbers are still about the next game.
+
 **Why this plan exists:** the popup has had a "Scores on sorare.com" switch since the first version. It writes
 `overlay` to `chrome.storage.sync` and nothing reads it. The feature behind it was never built. This is the
 build.

@@ -414,9 +414,13 @@ _(none yet)_
 |---|---|---|
 | 3.1 | tools built, numbers to come | The export, the backtest and the command that prints its report are written test first (32 tests on made-up histories; a player built to start for his country and come off the bench for his club shows the error today's model makes). The first export, asking about twice a second, was refused by Sorare's keyless limit after 14 players and then left every player after them out for want of waiting; it now asks once a second, waits out a refusal and asks the same question again, and stops if it is still refused after three waits. Each player takes at least 16 questions (a month at a time back to August 2025). The backtest numbers go in [xscore.md](xscore.md) once the export is whole. |
 
-### Batch 4
+### Batch 4 · 2 Oct 2026 · research done, at the Stop
 
-_(none yet)_
+| Step | Result | What was seen |
+|---|---|---|
+| 4.1 | done | [pro.md](pro.md). Sorare's help centre is readable through its public Zendesk API (`sorare.zendesk.com/api/v2/help_center/...`), so no sorare.com page was scraped (sorare.com answered 429 to a browser while the history export was running, and its help pages are rendered by script). Pro is Hot Streaks: Anytime Entry, 4 lives and tries per step, a Step Clock of one league matchday, a Rare Reward Bonus, and cards shared with Arena. The "King's Step", the step count and each step's target and reward are not in the help centre; they are `CareerProStep` fields (`target`, `rewardConfigs`, `state`) for the signed-in owner. |
+| 4.2 | done | The gap table is in pro.md: build Pro and its level, later for Super Rare and Unique, skip Rooms and Arcade, check Arena's automatic substitutes against the planner. |
+| 4.3 | **Stop, waits for you** | Three questions at the end of pro.md: the scope (recommended: show and value first, plan with it second, Apply for Pro only if you want it), which rarities you play in Pro, and whether Play needs a new look. |
 
 ### Batch 5
 

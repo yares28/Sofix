@@ -388,6 +388,7 @@ or sideways scroll at desktop width; Control reads "All good" with the extension
 and shows GW19's xScore, reward chance and essence; the page refuses to load inside a frame.
 
 ### T3 · Pro in the best plan
+**Researched 2 Oct 2026: [plans/pro.md](plans/pro.md)** (the rules, what the API shows, the gap table and three questions for you).
 **What you said.** "The app doesn't compute all game modes. It never gives me the Pro option when best lineups are
 calculated per competition. Find detailed info on Pro and plan its integration into the best plan. Pro has future
 levels, so it has to take into account whether it's even possible to reach the next step and fight for the upgraded

@@ -267,9 +267,10 @@ one-or-two-games slice does not match Sorare's double gameweeks and is not read.
 
 **P3: the order of P4 after the data.**
 
-1. **The level (new).** Lighter smoothing of the chance of playing and of the score, or priors at these players' own levels, tried
-   on the tuning weeks and then once on the held-out weeks. It is the only error found in every slice. Whether the priors are wrong
-   for LaLiga or only for your better-than-average players is what decision 4's wider export would show.
+1. **The level (new).** The priors of the chance of playing (about 70%) and of the score (near 49) at these players' own levels.
+   Tried on the tuning weeks, below: closer by squared error, and lighter smoothing is not (it only helps the typical miss). Then
+   once on the held-out weeks. It is the only error found in every slice. Whether the priors are wrong for LaLiga or only for your
+   better-than-average players is what decision 4's wider export would show.
 2. **Two games: a week-level backtest first**, on Sorare's own gameweeks and the best score of the week, because rows of single
    games cannot test "the best of two". It is the next piece of the harness (roadmap 3.2b).
 3. **The spread by role (L5):** worth a trial only if it moves the reward chances; try it on one real plan.
@@ -277,6 +278,23 @@ one-or-two-games slice does not match Sorare's double gameweeks and is not read.
    asks for them (rare starters and substitutes are among the formula's good slices). They wait for Track B, where Sorare's
    projection enters (P0's F1 and F3 are about it).
 5. **A national-team game's xG:** unchanged; it is not an xScore matter.
+
+**P4-1 tried on the tuning weeks only** (2 Oct, 4,518 games, 61 weeks; the held-out weeks were not scored). Two ways to take out the
+level bias, each run through the same walk-forward:
+
+| change to the form formula | level (bias) | squared miss (RMSE) | typical miss (MAE) |
+|---|---|---|---|
+| today (priors 60% and 45 points, each worth two games) | -2.68 | 24.52 | 19.53 |
+| lighter smoothing, each prior worth one game | -1.53 | 24.61 | 19.30 |
+| lighter still, half a game | -0.76 | 24.85 | 19.27 |
+| priors at these players' own level (72% and 49.7 points) | +0.26 | **24.39** | 19.52 |
+| only the chance of playing at 72% | -0.98 | 24.41 | 19.50 |
+
+Priors at their level are closer than today's by squared error: -6.2 [-10.6, -1.4] over 61 weeks (an interval under zero), and no
+different by typical miss. Lighter smoothing removes the bias but not the squared error (it is no closer: +4.3 [-0.7, +9.6]), only
+the typical miss gets better. Most of the gain is the chance of playing alone. So the candidate is **the prior chance of playing at
+about 70%, and the score prior near 49**, not lighter smoothing. It is a fitted number, so it ships only if it clears the
+held-out weeks, and the wider export (decision 4) would say whether 70% is right for LaLiga or only for your players.
 
 Nothing ships from this: every change needs the held-out weeks, which start on 1 Oct 2026 and grow by themselves.
 

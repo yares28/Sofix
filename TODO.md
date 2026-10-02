@@ -1,39 +1,18 @@
 # Sofix · what's left
 
-Two lists: what only you can do, and what I do. Updated 2026-09-30.
+Two lists: what only you can do, and what I do. Updated 2026-10-02.
 
 The phase plan lives in [docs/sorare_plan.md](docs/sorare_plan.md) and the audit in
 [docs/research_report.md](docs/research_report.md); this file is only the open ends.
 
 ---
 
-## Order of work, by potential visual impact (set 2026-09-30)
+## Order of work
 
-Widest change on screen first. Batch 1 is already on `main` and deployed (production `b84c6ba`, 30 Sep), so its row is
-"you look at it", not "ship it".
-
-| # | Item | What changes on screen | State |
-|---|---|---|---|
-| 1 | **T2 · Futbol Fantasy lineups and start %** | FF's % becomes the main % on every tile, Play card and plan (xScore, captain); a new Lineups page; a new home section under "Sorare" | **Built (30 Sep, on the working branch, not yet on main):** FF → Sorare → Sofix per game in the forecast, plans, captain and the overlay; all 74 of your LaLiga cards link on the real round-8 pages; near-lock runs; the Lineups page (desktop and phone), the Home's team news, the FF / SO / SF marks on Play's cards, the redesigned overlay and the extension's live FF reads. Waiting on you: the merge to main before round 8's lock (Fri 9 Oct), the GitHub key for the Refresh button, reloading the extension, and the checks in section 9 of the plan, which need access this session did not have. [plans/futbolfantasy.md](plans/futbolfantasy.md) |
-| 2 | **T1 · the xScore** | Every tile's score (Giorgi 45 / Oyarzabal 43), "2 games", the bench pair, club vs national | Planning; P0 (diagnose) next. [plans/xscore.md](plans/xscore.md) |
-| 3 | **Batch 1, live** (you) | Play's every week, past weeks, early plans to GW36, the overlay fixes; then the second overlay pass | Deployed; waits for your look |
-| 4 | **T3 · Pro** | A whole competition type missing from Play's best lineups, plus level and progress | Research first |
-| 5 | **T7 · The Audit page** (new idea) | A new page: how right FF, Sorare and Sofix were on starts, the xScore, plan scores, rewards and best lineups | Idea; needs the plan frozen at the lock (row 9) for half of it |
-| 6 | **T4 · "Your gameweek" sheet** | The edge-tab panel on every sorare.com page | Design canvas first |
-| 7 | **T5 · expected score beside your lineups** | New numbers on sorare.com's lineups and compose pages | Not started |
-| 8 | **Old weeks, rebuilt** | GW1–16 (16 of 36 weeks) are "not recorded"; approximate | Optional |
-| 9 | **The plan as it stood at the lock** | A second view in kept weeks; the Audit's plan figures need it | Follow-up |
-| 10 | **Calibrate reward probabilities** | The "Reward chance" figures | Blocked on data |
-| 11 | **Sofix panel on a player page** | A large new panel | Designed, not in the plan |
-| 12 | **T6 · Sorare vs Sofix audit** | Nothing directly; produces future entries | Not started |
-| 13 | **Small things** | Stray #1–#3 on galleries, the PWA, the review leftovers | Whenever |
-
-No visual impact, but they gate work: **the live Apply acceptance test** (yours, item 1 below) and **Retire SorareExt**.
-The Refresh button (yours, item 2) left "small things": the FF plan uses it.
-
-Work order: the FF plan's design canvas and its number switch (steps S1 to S4) start now, aiming at round 8; T1's P0 is
-independent. Never ship an xScore model change in the same refresh as the FF switch: a shift in numbers could not be
-blamed on either.
+**Moved to [plans/roadmap.md](plans/roadmap.md) (2 Oct 2026).** It merges every plan with steps left into one order, with a
+"done when" and a check for each step: T1's xScore plan, the Futbol Fantasy plan's checks, the overlay's live pass, the open
+boxes of S4, S6, S7, S8 and S9, T3 to T7, the review's follow-ups and the small things. This file keeps the full text of each
+item, what you said and why; the order, the steps and the results live in the roadmap.
 
 ---
 
@@ -49,7 +28,9 @@ The one thing no test can stand in for, because it needs your signed-in Sorare t
 
 Until this passes, `SorareExt` stays. There is no data gate here — you can do it today.
 
-### 2 · A Refresh button — you chose it on 30 Sep, and you don't have the key yet
+**Reported done on 2 Oct.** What Check, Draft and Enter did is written down in the roadmap's step 0.1 once you say it.
+
+### 2 · A Refresh button — **done 2 Oct** (the button shows on /control; the roadmap's step 0.1 presses it once)
 `GITHUB_TOKEN` is not missing from your `.env`; it never existed. It is a GitHub key you'd **create**,
 and its only power is starting this repo's refresh workflow. Refreshes already run on a clock without it —
 the key only adds a button that starts one early. The FF plan (step S6) counts on it, so that you can pull

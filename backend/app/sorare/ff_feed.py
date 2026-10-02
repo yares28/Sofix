@@ -188,7 +188,8 @@ def refresh(
     """Ask the site for the matches worth asking about, keep what it says, and return everything now known.
 
     The connection is let go while the site is read, which takes a minute or more. A site that cannot be asked, or a page it
-    cannot answer, leaves that match as it was (used for a day at most); nothing stands in for a page that was not read.
+    cannot answer, leaves that match as it was (used for a day at most); nothing stands in for a page that was not read. A
+    match whose page the site now answers 404 for is gone from it: it leaves the feed, and is not a failed read.
     """
     feed = load(db)
     owned = club_names(cards)
@@ -203,7 +204,7 @@ def refresh(
     feed.matches = {
         match_id: item
         for match_id, item in feed.matches.items()
-        if item.match.kickoff is None or item.match.kickoff > now - KEEP
+        if match_id not in reading.gone and (item.match.kickoff is None or item.match.kickoff > now - KEEP)
     }
     feed.read_at = now
     feed.fresh = len(reading.matches)

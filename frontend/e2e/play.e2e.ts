@@ -252,6 +252,34 @@ test("a lineup opens a sheet with its cards, its subs and the rules it keeps", a
   await expect(sheet).toBeHidden();
 });
 
+test("a lineup card's picture area holds a quiet silhouette while Sorare's art is on its way, and the art alone once it is there", async ({ page }) => {
+  const PIXEL = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+  await page.route("https://assets.sorare.com/**", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 3000)); // the art takes its time
+    await route.fulfill({ contentType: "image/png", body: PIXEL });
+  });
+  await page.goto("/play");
+  await page.locator(".pl-lu").first().click();
+  const art = page.getByRole("dialog", { name: "LALIGA EA SPORTS lineup" }).locator(".pl-pc .art").first();
+  const arrived = () => art.locator("img").evaluate((img) => (img as HTMLImageElement).complete && (img as HTMLImageElement).naturalWidth > 0);
+
+  await expect(art.locator("svg.pl-sil")).toBeVisible(); // not an empty rectangle
+  expect(await arrived()).toBe(false);
+  await expect.poll(arrived, { timeout: 15_000 }).toBe(true);
+  // the picture is painted over the silhouette: it comes after it in the area and both are placed
+  const layers = await art.evaluate((el) => {
+    const svg = el.querySelector("svg.pl-sil")!;
+    const img = el.querySelector("img")!;
+    return {
+      silhouetteFirst: Boolean(svg.compareDocumentPosition(img) & Node.DOCUMENT_POSITION_FOLLOWING),
+      silhouette: getComputedStyle(svg).position,
+      picture: getComputedStyle(img).position,
+      covers: img.getBoundingClientRect().width >= el.getBoundingClientRect().width - 1,
+    };
+  });
+  expect(layers).toEqual({ silhouetteFirst: true, silhouette: "absolute", picture: "absolute", covers: true });
+});
+
 test("a lineup card says his chance of starting with whose number it is, as a mark and not a sentence", async ({ page }) => {
   await page.goto("/play");
   await page.locator(".pl-lu").first().click();

@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { scaleBucket } from "../lib/grid";
 import { gameweekMatches } from "../lib/matches";
 import { E2E_PORT } from "./constants";
-import { grid, offline, openingMatchday, resetBackend, sorare, teamRows } from "./helpers";
+import { grid, MOCK, offline, openingMatchday, resetBackend, sorare, teamRows } from "./helpers";
 
 test.beforeEach(async ({ page, request }) => {
   await resetBackend(request);
@@ -266,7 +266,7 @@ test("fixture tiles work from the keyboard with a tooltip", async ({ page }) => 
 });
 
 test("the refresh button runs a refresh, then waits out the cooldown", async ({ page, request }) => {
-  await request.post("http://127.0.0.1:8765/__test/reset"); // reset() records a finished run 10 min ago
+  await request.post(`${MOCK}/__test/reset`); // reset() records a finished run 10 min ago
   await page.goto("/difficulty");
   await page.locator(".status-pill").click(); // the button lives in the Control Center page
   await expect(page).toHaveURL(/\/control$/, { timeout: 30_000 }); // the dev server compiles the page on first visit

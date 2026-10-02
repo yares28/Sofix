@@ -1224,6 +1224,16 @@
   object-fit: cover;
   display: block;
 }
+/* A quiet silhouette holds the card's place while Sorare's art is on its way, and stays when it never comes: the card's picture
+   is drawn over it. His name is printed under the card, so the room needs no more. */
+.pl-pc .art .pl-sil {
+  position: absolute;
+  left: 18%;
+  top: 14%;
+  width: 64%;
+  height: 52%;
+  fill: #c9c9d1;
+}
 .pl-pc.out .art {
   opacity: 0.4;
   filter: grayscale(1);

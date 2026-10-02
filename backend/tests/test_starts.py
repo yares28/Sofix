@@ -137,6 +137,82 @@ def test_a_row_first_seen_after_the_lock_is_not_made_up_afterwards(db) -> None:
     assert weeks(db) == {}
 
 
+# --------------------------------------------------------------------------- what the model made of him (roadmap 1.3)
+def test_a_player_is_written_with_the_numbers_the_model_had_for_him_and_what_each_game_was() -> None:
+    notes = {n.player: n for n in starts.notes(snapshot(), told)}
+
+    mid = notes["mid-one"]
+    assert (mid.gameweek, mid.lock) == ("gw-plan", LOCK)
+    model = mid.model
+    assert model["pos"] == "MID" and model["games"] == 1
+    assert model["projection"] == 55.0 and model["startOdds"] == pytest.approx(0.9) and model["playsOdds"] is not None  # Sorare's own
+    assert model["pStart"] == 0.7 and model["startSource"] == "futbolfantasy"  # the number the page used
+    assert {"mu", "pPlay", "start", "bench", "pOn", "benchedOn", "source"} <= set(model) and model["bench"] > 0
+    assert model["form"] == {"n": 2, "played": 2, "started": 0}, "two games in his history, and no roles recorded for them"
+    info = mid.games["game-mid-one"]
+    assert info == {"competition": "laliga-es", "team": "Club A", "opponent": "Club Z", "venue": "H", "kickoff": "2026-10-10T14:00:00Z"}
+
+
+def test_a_player_with_no_game_in_the_week_has_no_note() -> None:
+    snap = snapshot()
+    for row in snap["cards"]:
+        if row["player"]["slug"] == "front-one":
+            row["player"]["plan"] = []
+
+    assert "front-one" not in {n.player for n in starts.notes(snap)}
+
+
+def noted(model: dict[str, Any] | None = None, games: dict[str, dict[str, Any]] | None = None, player_: str = "p1") -> starts.Note:
+    return starts.Note(player_, "gw-x", LOCK, model or {"pStart": 0.6, "mu": 50.0}, games or {"g1": {"competition": "laliga-es", "opponent": "Club Z"}})
+
+
+def test_the_notes_follow_the_same_rule_as_the_chances_open_replaced_locked_kept(db) -> None:
+    early = LOCK - timedelta(days=2)
+    starts.save(db, [fresh(0.6)], early, [noted()])
+    assert weeks(db)["gw-x"]["players"]["p1"]["model"] == {"at": early.isoformat(), "pStart": 0.6, "mu": 50.0}
+    assert game_of(db)["info"] == {"competition": "laliga-es", "opponent": "Club Z"}
+
+    later = early + timedelta(hours=8)
+    starts.save(db, [fresh(0.85)], later, [noted({"pStart": 0.8, "mu": 52.0})])
+    assert weeks(db)["gw-x"]["players"]["p1"]["model"] == {"at": later.isoformat(), "pStart": 0.8, "mu": 52.0}
+
+    after = LOCK + timedelta(hours=1)
+    starts.save(db, [fresh(0.05)], after, [noted({"pStart": 0.05, "mu": 10.0})])
+    assert weeks(db)["gw-x"]["players"]["p1"]["model"]["pStart"] == 0.8, "after the team news it is not what the model said"
+
+
+def test_a_note_first_seen_after_the_lock_is_not_made_up_afterwards(db) -> None:
+    starts.save(db, [], LOCK + timedelta(hours=1), [noted()])
+
+    assert weeks(db) == {}
+
+
+def test_the_return_of_save_is_what_it_was_unless_notes_are_given(db) -> None:
+    now = LOCK - timedelta(hours=3)
+    assert starts.save(db, [fresh(0.6)], now) == {"written": 1, "frozen": 0}
+    assert starts.save(db, [fresh(0.7)], now, [noted()]) == {"written": 1, "frozen": 0, "noted": 1}
+
+
+def test_a_game_that_is_settled_also_says_what_he_scored_and_for_how_long_he_played(db) -> None:
+    starts.save(db, [row_past("p1")], LOCK - timedelta(days=30))
+    snap = past_snapshot(True)
+    snap["history"]["p1"][0].update(score=61.5, mins=87, competition="laliga-es")
+
+    assert starts.settle(db, snap) == {"settled": 1}
+    game = game_of(db, "p1", "g", "gw-past")
+    assert (game["started"], game["played"], game["score"], game["mins"], game["comp"]) == (True, True, 61.5, 87, "laliga-es")
+
+
+def test_a_player_who_did_not_play_is_settled_with_no_minutes(db) -> None:
+    starts.save(db, [row_past("p1")], LOCK - timedelta(days=30))
+    snap = past_snapshot(None)
+    snap["history"]["p1"][0].update(score=0.0, status="DID_NOT_PLAY")
+
+    starts.settle(db, snap)
+    game = game_of(db, "p1", "g", "gw-past")
+    assert (game["started"], game["played"], game["score"], game["mins"]) == (False, False, 0.0, None)
+
+
 # --------------------------------------------------------------------------- settled by what happened
 def past_snapshot(started: bool | None, *, end_hours_ago: float = 30, game: str = "g") -> dict[str, Any]:
     snap = snapshot()
@@ -393,12 +469,51 @@ def test_a_dry_run_reads_the_site_but_writes_nothing(db, monkeypatch, the_job) -
     assert db.get(ReadModel, "ff_links") is None
 
 
+def test_the_job_writes_what_the_model_made_of_each_player_and_what_his_games_were(db, monkeypatch, the_job) -> None:
+    monkeypatch.setattr(ffm, "read_matches", Site())
+
+    summary = the_job.run(db, "yares", runs=1)
+
+    assert summary["starts"]["noted"] >= 12  # every fixture player with a game
+    mid = weeks(db)["gw-plan"]["players"]["mid-one"]
+    assert mid["model"]["pStart"] == 0.7 and mid["model"]["startSource"] == "futbolfantasy" and mid["model"]["startOdds"] == pytest.approx(0.9)
+    assert mid["games"]["game-mid-one"]["info"]["competition"] == "laliga-es"
+    assert set(mid["games"]["game-mid-one"]) >= {"sorare", "sofix", "futbolfantasy", "info"}, "beside the three chances"
+
+
+def test_the_job_keeps_the_plan_it_had_when_the_week_locked_and_only_once(db, monkeypatch, the_job) -> None:
+    monkeypatch.setattr(ffm, "read_matches", Site())
+    before = snapshot()  # fetched two days before the lock
+    after = {**snapshot(), "fetchedAt": "2026-10-09T15:00:00+00:00"}  # the first run after it
+    runs = iter([before, after, {**after, "fetchedAt": "2026-10-09T21:00:00+00:00"}])
+    monkeypatch.setattr(the_job.sorare_sync, "snapshot", lambda *a, **k: next(runs))
+
+    first = the_job.run(db, "yares", runs=1)
+    assert "frozenPlans" not in first and db.get(ReadModel, "sorare_plan:gw-plan") is None
+
+    second = the_job.run(db, "yares", runs=1, dry_run=True)
+    assert second["frozenPlans"] == ["gw-plan"] and db.get(ReadModel, "sorare_plan:gw-plan") is None, "a dry run says, and keeps nothing"
+
+    runs = iter([after, {**after, "fetchedAt": "2026-10-09T21:00:00+00:00"}])
+    third = the_job.run(db, "yares", runs=1)
+    assert third["frozenPlans"] == ["gw-plan"]
+    row = db.get(ReadModel, "sorare_plan:gw-plan")
+    assert row is not None
+    plan = dict(row.payload)
+    assert plan["gameweek"]["slug"] == "gw-plan" and plan["builtAt"] == before["fetchedAt"]
+    assert plan["plans"] and plan["playing"]["players"], "what the page had made for the week, before its lock"
+
+    fourth = the_job.run(db, "yares", runs=1)
+    assert "frozenPlans" not in fourth, "the one kept is not written again"
+    assert dict(db.get(ReadModel, "sorare_plan:gw-plan").payload) == plan  # type: ignore[union-attr]
+
+
 def test_when_the_site_cannot_be_read_the_page_and_the_other_two_sources_are_still_written(db, the_job) -> None:
     summary = the_job.run(db, "yares", runs=1)  # the test guard answers with nothing, as a failed read does
 
     assert summary["futbolfantasy"]["matches"] == 0 and summary["futbolfantasy"]["games"] == 0
     game = game_of(db, "mid-one", "game-mid-one", "gw-plan")
-    assert set(game) == {"sorare", "sofix"}
+    assert set(game) - {"info"} == {"sorare", "sofix"}  # `info` is what the game was, not a source
     assert "startSource" not in {p["player"]: p for p in page_of(db)["playing"]["players"]}["mid-one"]["games"][0]
 
 
@@ -412,7 +527,7 @@ def test_a_site_that_breaks_costs_its_numbers_never_the_page(db, monkeypatch, th
 
     assert "RuntimeError" in summary["failed"]["futbol fantasy"]
     assert db.get(ReadModel, the_job.SORARE_KEY) is not None, "the page was published"
-    assert set(game_of(db, "mid-one", "game-mid-one", "gw-plan")) == {"sorare", "sofix"}
+    assert set(game_of(db, "mid-one", "game-mid-one", "gw-plan")) - {"info"} == {"sorare", "sofix"}
 
 
 def test_a_site_that_breaks_still_leaves_the_last_reading_to_be_used_for_a_day(db, monkeypatch, the_job) -> None:

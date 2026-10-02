@@ -227,6 +227,26 @@ def test_a_team_page_lists_its_next_matches_in_every_competition() -> None:
     assert league.kickoff == datetime(2026, 10, 11, 14, 15, tzinfo=UTC)
 
 
+def test_a_round_page_takes_its_matches_from_its_own_area_and_not_from_the_sidebar() -> None:
+    """Before the Copa del Rey is drawn its own area says so, and the only matches on the page are in the sidebar widget: the
+    summer's friendlies and internationals, dated with no year (so July 2026 read as July 2027). Reading them asked for about
+    fifty dead pages on every run (2 Oct 2026), and every one of them was a "failed read"."""
+    dormant = page("round_copa_dormant.html")
+    round_ = ffm.parse_round(dormant)
+
+    assert round_ is not None and round_.competition == "copa-del-rey" and round_.label == "Jornada 1"
+    assert round_.matches == ()
+
+    # a page with matches of its own is read from its own area too, whatever the sidebar adds after it
+    sidebar = dormant[dormant.index("<aside") : dormant.index("</aside>") + len("</aside>")]
+    assert sidebar.count('class="partido ') == 4
+    alone = ffm.parse_round(page("round_laliga_8.html"))
+    with_sidebar = ffm.parse_round(page("round_laliga_8.html").replace("</main>", "</main>" + sidebar, 1))
+    assert alone is not None and with_sidebar is not None
+    assert len(with_sidebar.matches) == 10
+    assert [m.match_id for m in with_sidebar.matches] == [m.match_id for m in alone.matches]
+
+
 def test_a_date_with_no_year_is_the_next_one_even_across_new_year() -> None:
     assert ffm._short_when("Sáb 03/01 16:15h", date(2026, 12, 28)) == datetime(2027, 1, 3, 15, 15, tzinfo=UTC)
     assert ffm._short_when("Dom 11/10 16:15h", date(2026, 9, 30)) == datetime(2026, 10, 11, 14, 15, tzinfo=UTC)
@@ -257,6 +277,7 @@ class Site:
 
 
 LALIGA_ROUND = "https://www.futbolfantasy.com/laliga/posibles-alineaciones"
+GONE_PAGES = [(22497, "malaga-espanyol"), (22498, "rayo-athletic"), (22493, "alaves-atletico")]  # the round's first three
 CHAMPIONS_ROUND = "https://www.futbolfantasy.com/champions/posibles-alineaciones"
 
 
@@ -290,6 +311,62 @@ def test_a_page_that_fails_is_named_and_leaves_the_others_alone() -> None:
     assert [m.match_id for m in reading.matches] == [22502]
     assert len(reading.failed) == 1 and reading.failed[0].startswith(other)
     assert site.asked.count(other) == 2, "one retry on a server error, as before"
+
+
+def test_a_match_page_the_site_answers_404_for_is_a_match_that_is_gone_not_a_failed_read() -> None:
+    other = "https://www.futbolfantasy.com/partidos/22493-alaves-atletico"
+    site = Site(
+        {LALIGA_ROUND: page("round_laliga_8.html"), other: 404, MATCH_URL: page("match_real_sociedad_deportivo.html")}
+    )
+
+    reading = ffm.read_matches(lambda c, item: item.match_id in (22493, 22502), client=site.client(), pause=0)
+
+    assert [m.match_id for m in reading.matches] == [22502]
+    assert reading.gone == [22493] and reading.failed == [] and reading.stopped is None
+    assert site.asked.count(other) == 1, "no retry: the site answered"
+
+
+def test_a_site_that_answers_404_is_answering_so_gone_matches_do_not_count_towards_giving_up() -> None:
+    gone = [f"https://www.futbolfantasy.com/partidos/{n}-{slug}" for n, slug in GONE_PAGES]
+    site = Site({LALIGA_ROUND: page("round_laliga_8.html"), MATCH_URL: page("match_real_sociedad_deportivo.html")})
+    site.pages.update({url: 404 for url in gone})  # three in a row, then a page that reads
+
+    reading = ffm.read_matches(
+        lambda c, item: item.match_id in (22497, 22498, 22493, 22502), client=site.client(), pause=0
+    )
+
+    assert reading.gone == [22497, 22498, 22493] and reading.stopped is None
+    assert [m.match_id for m in reading.matches] == [22502] and reading.failed == []
+
+
+def test_a_page_the_site_answers_for_ends_the_run_of_unreadable_pages() -> None:
+    gone = "https://www.futbolfantasy.com/partidos/22493-alaves-atletico"
+    site = Site({LALIGA_ROUND: page("round_laliga_8.html"), gone: 404})  # the others are unreachable
+
+    reading = ffm.read_matches(
+        lambda c, item: item.match_id in (22497, 22498, 22493, 22495), client=site.client(), pause=0
+    )
+
+    assert len(reading.failed) == 3 and reading.gone == [22493], "two, the answer, then one: never three in a row"
+    assert reading.stopped is None
+
+
+@pytest.mark.parametrize("status", [403, 429, 500, 503])
+def test_every_other_status_on_a_match_page_is_still_a_failed_read(status: int) -> None:
+    other = "https://www.futbolfantasy.com/partidos/22493-alaves-atletico"
+    site = Site({LALIGA_ROUND: page("round_laliga_8.html"), other: status})
+
+    reading = ffm.read_matches(lambda c, item: item.match_id == 22493, client=site.client(), pause=0)
+
+    assert reading.failed == [f"{other}: HTTP {status}"] and reading.gone == []
+
+
+def test_a_round_page_that_answers_404_is_not_a_match_gone_it_is_still_a_failed_read() -> None:
+    site = Site({LALIGA_ROUND: 404})
+
+    reading = ffm.read_matches(lambda c, item: True, client=site.client(), pause=0)
+
+    assert reading.failed == [f"{LALIGA_ROUND}: HTTP 404"] and reading.gone == []
 
 
 def test_a_page_that_is_not_a_lineup_page_is_said_so_not_kept() -> None:
@@ -408,6 +485,15 @@ def test_the_reader_takes_each_clubs_squad_page_politely_and_names_the_one_it_co
     assert site.asked == [SQUAD_URL, other, other], "one retry on a server error"
     assert list(reading.squads) == ["16"] and reading.failed == [f"{other}: HTTP 500"]
     assert reading.stopped is None
+
+
+def test_a_squad_page_that_answers_404_is_still_a_failed_read_it_is_not_a_match_gone() -> None:
+    other = "https://www.futbolfantasy.com/laliga/equipos/deportivo/plantilla"
+    site = Site({SQUAD_URL: page("squad_real_sociedad.html"), other: 404})
+
+    reading = ffm.read_squads({"16": "real-sociedad", "8": "deportivo"}, client=site.client(), pause=0)
+
+    assert list(reading.squads) == ["16"] and reading.failed == [f"{other}: HTTP 404"]
 
 
 def test_the_squad_reader_keeps_to_its_time_budget() -> None:

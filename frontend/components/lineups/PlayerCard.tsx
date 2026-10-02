@@ -1,5 +1,6 @@
 import Link from "next/link";
 import CardArt from "../cards/CardArt";
+import Silhouette from "../Silhouette";
 import FacePhoto from "./FacePhoto";
 import { chanceTone, type Line, type LineupPlayer, type OwnedCard } from "../../lib/lineups";
 import { cardHref } from "../../lib/links";
@@ -60,10 +61,7 @@ export default function PlayerCard({
             name={card?.name ?? player.name}
             skeleton={
               <div className="lu-skel" aria-hidden="true">
-                <svg viewBox="0 0 70 78" preserveAspectRatio="xMidYMax meet">
-                  <circle cx="35" cy="25" r="15" />
-                  <path d="M5 78c2-20 14-31 30-31s28 11 30 31z" />
-                </svg>
+                <Silhouette />
                 <div className="lu-skel-name">
                   <b>{label}</b>
                   <span>
@@ -76,10 +74,7 @@ export default function PlayerCard({
           />
         ) : (
           <>
-            <svg className="lu-sil" aria-hidden="true" viewBox="0 0 70 78" preserveAspectRatio="xMidYMax meet">
-              <circle cx="35" cy="25" r="15" />
-              <path d="M5 78c2-20 14-31 30-31s28 11 30 31z" />
-            </svg>
+            <Silhouette className="lu-sil" />
             <FacePhoto ffId={player.id} />
             <div className="lu-foot" />
             <div className="lu-name">

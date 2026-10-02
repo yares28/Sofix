@@ -3,6 +3,7 @@ import { matchHref, matchOfCard } from "../../lib/links";
 import type { Lineup as LineupData, PlayCard, PlayingPlayer } from "../../lib/play";
 import { cashLabel, chanceLabel, essenceLabel, formatOf, paysNote, startChance } from "../../lib/play";
 import { KindIcon } from "../lineups/Icons";
+import Silhouette from "../Silhouette";
 import SourceMark from "../SourceMark";
 import { Cash, Chevron, Essence, Foil, GROUP_CLASS, MiniCards, RangeBar, RewardChips, Ring, ribbonClass } from "./bits";
 import LineupSheet from "./LineupSheet";
@@ -249,6 +250,7 @@ function SheetCard({ card, lineup, after, position, match }: { card: PlayCard; l
   return (
     <div className={`pl-pc${out ? " out" : ""}`} style={{ ["--i" as string]: String(position) }}>
       <div className="art">
+        <Silhouette className="pl-sil" />
         <SorareImage src={card.pic} alt={card.name} fill />
         {card.captain ? <span className="pl-cap">C</span> : null}
         <span className={`pl-rib ${ribbonClass(after ? card.actual : Math.round(card.x))}`}>

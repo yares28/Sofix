@@ -2,6 +2,14 @@
 
 Sofix's numbers, drawn on Sorare's own pages. Written 2026-09-29.
 
+**What is left is scheduled in [roadmap.md](roadmap.md) (2 Oct 2026):**
+- the live pass on your pages and the questions still open from O6: its step 0.2
+- "2 games" on the tile: 1.4
+- the sorare.com sheet, the expected scores and the player panel: batch 6
+- account matching, version agreement and `scoreColour()`: batch 7
+
+This file keeps the design and the build record.
+
 **Why this plan exists:** the popup has had a "Scores on sorare.com" switch since the first version. It writes
 `overlay` to `chrome.storage.sync` and nothing reads it. The feature behind it was never built. This is the
 build.

@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { lastMeta, lastWeek, nextWeek, scoringWeek, type Sorare } from "../lib/play";
 import { noun } from "../lib/words";
-import { offline, resetBackend } from "./helpers";
+import { MOCK, offline, resetBackend } from "./helpers";
 
 // The Home's team news under Sorare (`teamNews` of the gameweek being planned, served by the mock API): how the owner's players
 // look, who in his plan might not start, and what moved since yesterday.
@@ -110,7 +110,7 @@ test("every competition in the last gameweek is written whole, above its range, 
 });
 
 test("the home counts lineups in the singular and says which week is still being scored beside the last one", async ({ page, request }) => {
-  const served = (await (await request.get("http://127.0.0.1:8765/api/sorare")).json()) as { data: Sorare };
+  const served = (await (await request.get(`${MOCK}/api/sorare`)).json()) as { data: Sorare };
   const week = nextWeek(served.data);
   const last = lastWeek(served.data);
   const scoring = scoringWeek(served.data);

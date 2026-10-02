@@ -4,6 +4,10 @@ Written 2026-09-30. Entry in [TODO.md](../TODO.md) (T1); the sibling plan is [fu
 which makes Futbol Fantasy the main source of the "will he start?" number (your decision, 30 Sep). S4 in
 [docs/sorare_plan.md](../docs/sorare_plan.md) is this plan's checklist.
 
+**Scheduled in [roadmap.md](roadmap.md) (2 Oct 2026):** P0 and P1 in its batch 1, before round 8 locks; P2 to P6 in batch 3.
+One change from this file: P1's record goes in a read model, like `start_chances`, so it needs no migration and starts before the
+lock. This file keeps the detail; the order and the results are in the roadmap.
+
 **What you said.** Giorgi Tsitaishvili shows 45 and Oyarzabal 43 in an international week; Oyarzabal has had a weird
 club start but with Spain "he always does something", Giorgi rarely starts in LaLiga and often has worse games. "We
 need a deep dive to find the issues and edge cases."
@@ -124,12 +128,15 @@ local `.env`; the cloud session this plan was written in has neither, so this pa
 that has them). Also settle the open unknowns: the API's field names for decisive and all-around scores; whether
 `gameStarted` and `minsPlayed` are reliable for national-team games.
 
-### P1 · Record more, and one visible quick win (about a day, needs a migration)
+### P1 · Record more, and one visible quick win (about a day; no migration after all)
 
-- `sorare_forecasts` gains: Sorare's starter odds alone, our `p_start`/`p_on`/`start`/`bench`, the games (competition and
-  opponent) and, once settled, `started`, minutes and each game's score. One **Alembic migration applied to production by
-  you first**, then the code; the unattended job cannot add columns. The FF plan needs none: its
-  number and source live in read models.
+- **Built 2 Oct 2026, in a read model instead of new columns** (roadmap 1.3): the record of what each source said
+  (`start_chances`) now also holds, per player, the model's numbers (`model`: Sorare's projection and starter odds alone, our
+  `pStart`/`pOn`/`start`/`bench`, which source's number was used, how much form he had) and, per game, `info` (competition,
+  opponent, home or away, kickoff); once settled, each game also has `score`, `mins`, `played` and `comp`. It follows the
+  rule of the chances (replaced while the week is open, frozen at its lock) and starts recording with the next run. Columns on
+  `sorare_forecasts` (what this paragraph first asked for, with a migration you would apply first) only follow if P2 needs
+  SQL over them; that would be a Stop. See [docs/how_it_works.md](../docs/how_it_works.md) section 10.
 - **"2 games" on the tile, and both games in the hover panel.** Display only; no model change. This is the one item in
   this plan that can ship before the backtest, because it only says what the data already holds. Overlay e2e, design
   check, desktop and mobile screenshots.

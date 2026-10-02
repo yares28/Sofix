@@ -32,7 +32,7 @@ from app.db import SessionLocal
 from app.logging_config import configure_logging
 from app.models import ReadModel
 from app.services.publish import notify_app, put
-from app.sorare import card_art, early, ff_feed, ff_lineups, ff_link, ff_news, ff_use, projection, starts
+from app.sorare import card_art, early, ff_feed, ff_lineups, ff_link, ff_news, ff_use, frozen, projection, starts
 from app.sorare import publish as sorare_publish
 from app.sorare import record as sorare_record
 from app.sorare import sync as sorare_sync
@@ -167,8 +167,10 @@ def record_starts(
         return {}
     ff = lineups.starts if lineups else None
     rows: list[starts.Row] = optional(db, failed, "start rows", lambda: starts.rows(snapshot, ff), [])
+    # What the model made of each player and what his games are, beside the chances: what a backtest of the xScore needs.
+    extra: list[starts.Note] = optional(db, failed, "start notes", lambda: starts.notes(snapshot, ff), [])
     record: dict[str, int] = optional(
-        db, failed, "start record", lambda: {**starts.save(db, rows, now), **starts.settle(db, snapshot)}, {}
+        db, failed, "start record", lambda: {**starts.save(db, rows, now, extra), **starts.settle(db, snapshot)}, {}
     )
     return {"starts": record}
 
@@ -300,6 +302,11 @@ def run(
         # Sorare did not answer everything the week just played was built from: it is not made final, and is rebuilt next run.
         summary["pastGaps"] = snapshot["pastGaps"]
     if dry_run:
+        would: list[str] = optional(
+            db, failed, "frozen plan", lambda: frozen.freeze(db, previous, fetched, write=False), []
+        )
+        if would:
+            summary["frozenPlans"] = would
         if failed:
             summary["failed"] = failed
         logger.info("sorare (dry run): %s", summary)
@@ -327,6 +334,10 @@ def run(
         put(db, archived[0], archived[1], now)
         summary["archived"] = archived[0]
     put(db, SORARE_KEY, payload, now)
+    # The plan the page held when a week locked is kept once, before it is lost to the next run's page (roadmap 1.2).
+    kept_plans: list[str] = optional(db, failed, "frozen plan", lambda: frozen.freeze(db, previous, fetched), [])
+    if kept_plans:
+        summary["frozenPlans"] = kept_plans
     put(db, REFERENCES_KEY, snapshot["references"], now)
     if (
         snapshot.get("expected") or {}

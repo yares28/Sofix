@@ -31,8 +31,14 @@ def real() -> list[ffm.Match]:
 class Site:
     """A reader that answers with the matches it is given, for the ones it is asked to read, and remembers the questions."""
 
-    def __init__(self, matches: list[ffm.Match], failed: list[str] | None = None, stopped: str | None = None) -> None:
-        self.matches, self.failed, self.stopped = matches, failed or [], stopped
+    def __init__(
+        self,
+        matches: list[ffm.Match],
+        failed: list[str] | None = None,
+        stopped: str | None = None,
+        gone: list[int] | None = None,
+    ) -> None:
+        self.matches, self.failed, self.stopped, self.gone = matches, failed or [], stopped, gone or []
         self.asked: list[tuple[str, int]] = []
         self.calls = 0
 
@@ -46,7 +52,9 @@ class Site:
             if wanted(one.competition, item):
                 self.asked.append((one.competition, one.match_id))
                 read.append(one)
-        return ffm.Reading(at=now or NOW, matches=read, failed=list(self.failed), stopped=self.stopped)
+        return ffm.Reading(
+            at=now or NOW, matches=read, failed=list(self.failed), stopped=self.stopped, gone=list(self.gone)
+        )
 
 
 def with_chance(one: ffm.Match, ff_id: str, chance: float) -> ffm.Match:
@@ -142,6 +150,26 @@ def test_a_page_that_could_not_be_read_keeps_its_last_reading_for_a_day_and_not_
     assert feed.fresh == 0 and feed.failed == ["https://x: 403"]
     assert len(feed.matches) == 10 and len(feed.usable(later)) == 10
     assert len(feed.usable(NOW + timedelta(hours=24))) == 10 and feed.usable(NOW + timedelta(hours=24, minutes=1)) == []
+
+
+def test_a_match_the_site_no_longer_has_leaves_the_feed_and_is_no_failed_read(
+    db: Session, real: list[ffm.Match]
+) -> None:
+    ff_feed.refresh(db, [], NOW, reader=Site(real))
+    later = NOW + timedelta(hours=6)
+    still_there = [m for m in real if m.match_id != 22502]
+    feed = ff_feed.refresh(db, [], later, reader=Site(still_there, gone=[22502]))
+
+    assert 22502 not in feed.matches and len(feed.matches) == 9 and len(feed.usable(later)) == 9
+    assert feed.failed == [] and feed.stopped is None and ff_feed.stamp(feed) == {"matches": 9, "read": 9}
+    kept = ff_feed.load(db)
+    assert sorted(kept.matches) == sorted(feed.matches) and kept.failed == []
+
+
+def test_a_gone_match_the_feed_never_held_changes_nothing(db: Session, real: list[ffm.Match]) -> None:
+    feed = ff_feed.refresh(db, [], NOW, reader=Site(real, gone=[99999]))
+
+    assert len(feed.matches) == 10 and feed.failed == []
 
 
 def test_a_read_that_stopped_early_keeps_the_rest_as_they_were(db: Session, real: list[ffm.Match]) -> None:

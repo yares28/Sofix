@@ -191,6 +191,7 @@ class Reading:
     rounds: dict[str, Round] = field(default_factory=dict)
     failed: list[str] = field(default_factory=list)  # addresses not read, each with a short reason
     stopped: str | None = None  # why it stopped early, if it did
+    gone: list[int] = field(default_factory=list)  # matches the site answered 404 for: no longer there, not a failure
 
 
 # ------------------------------------------------------------------------------------------------------ storing them
@@ -542,7 +543,12 @@ def parse_round(html: str) -> Round | None:
     key, name = competition_of(named.group(1))
     number = re.search(r"Jornada\s+(\d+)", title)
     label = re.search(r"((?:Jornada|Ronda|Octavos|Cuartos|Semifinal|Final)[^-|]*?)\s+-\s+Futbol", title, re.I)
-    box = _find(root, "div", "matches")
+    # The page's own area. Its sidebar (`aside`) has a "next round" widget of the same markup with other competitions' matches in
+    # it, friendlies and internationals dated with no year, and a competition that has no round yet (the Copa del Rey before its
+    # draw) has nothing else on the page: those were read as its matches, about fifty dead pages on every run.
+    own = _find(root, "main")
+    scope = root if own is None else own
+    box = _find(scope, "div", "matches")
     matches: list[RoundMatch] = []
     if box is not None:
         kickoff: datetime | None = None
@@ -557,8 +563,8 @@ def parse_round(html: str) -> Round | None:
                 if found is not None:
                     matches.append(found)
                 kickoff = None
-    if not matches:  # a layout without the flat list: every match link on the page, in order
-        for link in _find_all(root, "a", "partido"):
+    if not matches:  # a layout without the flat list: every match link in the page's own area, in order
+        for link in _find_all(scope, "a", "partido"):
             found = _round_match(link, None)
             if found is not None and found.match_id not in {m.match_id for m in matches}:
                 matches.append(found)
@@ -942,7 +948,9 @@ class SquadReading:
 
 
 class FutbolFantasyError(RuntimeError):
-    pass
+    def __init__(self, message: str, status: int | None = None) -> None:
+        super().__init__(message)
+        self.status = status  # the HTTP status the site answered with, when it answered
 
 
 def _get(client: httpx.Client, url: str) -> str:
@@ -959,7 +967,7 @@ def _get(client: httpx.Client, url: str) -> str:
                 continue
             raise FutbolFantasyError(f"{url}: timed out") from exc
         except httpx.HTTPStatusError as exc:
-            raise FutbolFantasyError(f"{url}: HTTP {exc.response.status_code}") from exc
+            raise FutbolFantasyError(f"{url}: HTTP {exc.response.status_code}", exc.response.status_code) from exc
         except httpx.HTTPError as exc:
             raise FutbolFantasyError(f"{url}: {type(exc).__name__}") from exc
     raise FutbolFantasyError(f"{url}: no answer")
@@ -993,8 +1001,12 @@ class _Polite:
         self.failures = 0
         self.requests = 0
         self.stopped: str | None = None
+        self.gone: set[str] = set()  # pages asked with `may_be_gone` that the site answered 404 for
 
-    def get(self, url: str) -> str | None:
+    def get(self, url: str, may_be_gone: bool = False) -> str | None:
+        """The page, or None. A 404 for a page that `may_be_gone` is the site answering that it no longer has it: it is put
+        in `gone`, is no failure, and does not count towards giving up. Any other trouble, or a 404 for any other page
+        (a round or a squad page that moved is a redesign), is a failure named in `failed`."""
         if self.clock() - self.started >= self.budget:
             self.stopped = self.stopped or "out of time"
             return None
@@ -1004,6 +1016,11 @@ class _Polite:
         try:
             text = _get(self.client, url)
         except FutbolFantasyError as error:
+            if may_be_gone and error.status == 404:
+                self.failures = 0
+                self.gone.add(url)
+                logger.info("futbolfantasy: %s is no longer on the site (HTTP 404)", url)
+                return None
             self.failures += 1
             self.failed.append(str(error))  # already "<address>: <what happened>"
             logger.warning("futbolfantasy: %s", error)
@@ -1028,7 +1045,8 @@ def read_matches(
     """Each competition's round page, then the match pages `wanted` picks from it (never one already played, unless asked).
 
     Stops where it is when the budget is spent or `GIVE_UP` pages in a row cannot be read, and says so; what it had by then
-    is kept. A page that cannot be read is named in `failed` and leaves no trace in the matches.
+    is kept. A page that cannot be read is named in `failed` and leaves no trace in the matches. A match page the site answers
+    404 for is a match that is gone from it: its number is in `gone`, not in `failed`.
     """
     reading = Reading(at=now or datetime.now(UTC))
     http = client or httpx.Client(timeout=TIMEOUT, follow_redirects=True, headers={"User-Agent": USER_AGENT})
@@ -1049,7 +1067,10 @@ def read_matches(
                     break
                 if (item.score is not None and not include_played) or not wanted(competition, item):
                     continue
-                page = site.get(item.url)
+                page = site.get(item.url, may_be_gone=True)
+                if page is None and item.url in site.gone:
+                    reading.gone.append(item.match_id)
+                    continue
                 try:
                     match = parse_match(page, item.url) if page is not None else None
                 except (

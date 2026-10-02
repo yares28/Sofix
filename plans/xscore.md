@@ -99,7 +99,7 @@ arithmetic slip; the questions are about what the arithmetic assumes.
 | L3 | **Confirmed**, and worse (F3) | Giorgi has two games; the expected score counts the best-of-two (47 → 52.82, ×93.4% = 49.3) but the tile's "if he starts" 45.0 does not, and nothing says "2 games". |
 | L4 | **Confirmed, by design** | `xgFor` (`frontend/lib/overlay.ts`): a national-team game shows his club rate as it is, unscaled, on purpose (O11). Not an xScore matter; what to show instead is plan step P4.5. |
 | L5 | **Measured** (2 Oct, P2) | Over your 84 players: starters score 52.1 with a spread of 19.1 (17.6 within one player, the model's number), substitute appearances 40.9 with 12.2 (8.9 within one player). The flat 17.6 is right for starters and about twice too wide for the bench. See "Results of P2 and P3". |
-| L6 | Open | Which of two games Sorare counts needs a lineup holding a two-game player: public leaderboards are depth 8 and 9 and complexity 576 and over, beyond the keyless limits (7 and 500). Wanted: the extension's read of an entered lineup of yours with such a player (Giorgi has two games in GW19), or a keyed query from the refresh job. |
+| L6 | **Answered** (2 Oct) | Sorare says it in each competition's rules: `engineConfiguration.multiGameScoreAggregator` is `max` on all 29 leaderboards of GW19 (one keyless question, depth 7, complexity under 500), so a player with two games in a gameweek counts his **best** score, which is what the model assumes. The refresh job already asks for the field (`sync.LEADERBOARD`) and ignores it: a competition with another rule would be planned wrongly without a word. A guard (keep the value, warn when it is not `max`) is a small follow-up. |
 
 **Their last five games before the lock** (the model's whole view of them):
 

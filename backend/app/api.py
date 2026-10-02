@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends
@@ -7,6 +8,7 @@ from app.db import get_db
 from app.models import ReadModel
 from app.schemas import ApiResponse, FixtureGrid
 from app.services.fixture_grid import build_fixture_grid, grid_meta
+from app.sorare import audit
 from app.sorare.ff_lineups import LINEUPS_KEY
 from app.sorare.publish import AHEAD_PREFIX, ARCHIVE_PREFIX
 
@@ -52,6 +54,16 @@ def sorare_ahead(round: int, db: Session = Depends(get_db)):
     if row is None:
         return ApiResponse[dict[str, Any]](success=False, error="There is no early plan for this round.")
     return ApiResponse[dict[str, Any]](success=True, data=row.payload)
+
+
+@router.get("/audit", response_model=ApiResponse[dict[str, Any]])
+def audit_page(db: Session = Depends(get_db)):
+    """The Audit page's numbers: the page the job published, else built from the start record as it stands. Local development only, like /sorare."""
+    row = db.get(ReadModel, audit.AUDIT_KEY)
+    if row is not None:
+        return ApiResponse[dict[str, Any]](success=True, data=row.payload)
+    page = audit.build(audit.record_of(db), audit.read_replay(), datetime.now(UTC))
+    return ApiResponse[dict[str, Any]](success=True, data=page)
 
 
 @router.get("/lineups", response_model=ApiResponse[dict[str, Any]])

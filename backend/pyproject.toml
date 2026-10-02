@@ -50,6 +50,7 @@ files = [
     "app/sorare/ff_lineups.py",
     "app/sorare/ff_link.py",
     "app/sorare/ff_news.py",
+    "app/sorare/audit.py",
     "app/sorare/backtest.py",
     "app/sorare/ff_use.py",
     "app/sorare/frozen.py",

@@ -138,6 +138,25 @@
         }
       }
     },
+    "/api/audit": {
+      "get": {
+        "summary": "Audit Page",
+        "description": "The Audit page's numbers: the page the job published, else built from the start record as it stands. Local development only, like /sorare.",
+        "operationId": "audit_page_api_audit_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_dict_str__Any__"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/lineups": {
       "get": {
         "summary": "Lineups",

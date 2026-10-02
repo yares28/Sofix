@@ -48,7 +48,13 @@ query($p:String!,$from:ISO8601DateTime!,$to:ISO8601DateTime!){ anyPlayer(slug:$p
     } } } } }
 """
 
-__all__ = ["RATE_WAITS", "RateLimited", "SorareError", "collection_players", "fetch_player", "run"]
+FIXTURES_QUERY = """
+query($after:String){ so5 { so5Fixtures(first: 50, after: $after, eventType: CLASSIC, sport: FOOTBALL) {
+  pageInfo { hasNextPage endCursor }
+  nodes { slug startDate endDate cutOffDate } } } }
+"""
+
+__all__ = ["RATE_WAITS", "RateLimited", "SorareError", "collection_players", "fetch_fixtures", "fetch_player", "run"]
 
 
 class RateLimited(SorareError):
@@ -142,12 +148,45 @@ def collection_players(page: dict[str, Any]) -> dict[str, str]:
     return found
 
 
+def fetch_fixtures(client: Any) -> list[dict[str, str]]:
+    """Sorare's gameweeks with the window each covers, oldest first: what the backtest groups a player's games by.
+
+    One question a page of fifty; a gameweek without its dates is left out rather than guessed at.
+    """
+    found: list[dict[str, str]] = []
+    after: str | None = None
+    while True:
+        page = client.query(FIXTURES_QUERY, {"after": after})["so5"]["so5Fixtures"]
+        for node in page.get("nodes") or []:
+            if node.get("slug") and node.get("startDate") and node.get("endDate"):
+                found.append(
+                    {
+                        "slug": node["slug"],
+                        "start": node["startDate"],
+                        "end": node["endDate"],
+                        "cutOff": node.get("cutOffDate") or node["startDate"],
+                    }
+                )
+        info = page.get("pageInfo") or {}
+        if not info.get("hasNextPage"):
+            return sorted(found, key=lambda window: window["start"])
+        after = info.get("endCursor")
+
+
 def _load(out: Path) -> dict[str, Any]:
     try:
         data = json.loads(out.read_text("utf-8"))
     except (OSError, ValueError):
         return {}
     return data if isinstance(data, dict) else {}
+
+
+def _save(out: Path, since: datetime, players: dict[str, Any], fixtures: list[dict[str, str]] | None) -> None:
+    out.parent.mkdir(parents=True, exist_ok=True)
+    body: dict[str, Any] = {"exportedAt": _iso(datetime.now(UTC)), "since": since.isoformat(), "players": players}
+    if fixtures is not None:
+        body["fixtures"] = fixtures
+    out.write_text(json.dumps(body, separators=(",", ":")), "utf-8")
 
 
 def run(
@@ -159,10 +198,17 @@ def run(
     until: datetime,
     pause: float = 0.5,
     cool_down: float = COOL_DOWN,
+    fixtures: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
-    """Fetch each player not already in the file, writing it after every player so a stopped run loses nothing."""
+    """Fetch each player not already in the file, writing it after every player so a stopped run loses nothing.
+
+    `fixtures` are the gameweeks to keep in the file beside the players; a run that is not given them keeps the ones it had.
+    """
     saved = _load(out)
     kept: dict[str, Any] = saved.get("players") or {} if saved.get("since") == since.isoformat() else {}
+    windows = fixtures if fixtures is not None else saved.get("fixtures")
+    if fixtures is not None and fixtures != saved.get("fixtures"):
+        _save(out, since, kept, windows)  # new gameweeks are kept at once, even when every player was already there
     result: dict[str, Any] = {"players": 0, "games": 0, "failed": [], "skipped": 0}
     patient = _Patient(client, cool_down)
     for slug in players:
@@ -183,14 +229,7 @@ def run(
             continue
         result["players"] += 1
         result["games"] += len(kept[slug]["games"])
-        out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(
-            json.dumps(
-                {"exportedAt": _iso(datetime.now(UTC)), "since": since.isoformat(), "players": kept},
-                separators=(",", ":"),
-            ),
-            "utf-8",
-        )
+        _save(out, since, kept, windows)
         if pause:
             time.sleep(pause)
     return result
@@ -218,8 +257,21 @@ def main(argv: list[str] | None = None) -> int:
         print("No players: the collection is not published yet.", file=sys.stderr)
         return 1
     with SorareClient(pause=args.call_pause) as client:
+        try:
+            windows: list[dict[str, str]] | None = fetch_fixtures(_Patient(client, COOL_DOWN))
+        except SorareError as exc:
+            logger.warning(
+                "export: the gameweeks could not be read (%s); the file keeps the ones it had", str(exc)[:160]
+            )
+            windows = None
         result = run(
-            client, slugs, args.out, since=since, until=datetime.now(UTC) + timedelta(days=8), pause=args.pause
+            client,
+            slugs,
+            args.out,
+            since=since,
+            until=datetime.now(UTC) + timedelta(days=8),
+            pause=args.pause,
+            fixtures=windows,
         )
     print(json.dumps({**result, "out": str(args.out)}, indent=2))
     return 0 if not result["failed"] and "stoppedAt" not in result else 2

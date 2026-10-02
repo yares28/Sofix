@@ -235,6 +235,102 @@ def test_each_game_says_how_many_games_his_week_holds() -> None:
     assert [r.games_that_week for r in found] == ["2+ games", "2+ games", "1 game", "1 game"]
 
 
+# ---------------------------------------------------------------------------------------------------- Sorare's own gameweeks
+def stamp(day: float) -> str:
+    return (MONDAY + timedelta(days=day)).isoformat().replace("+00:00", "Z")
+
+
+def window(slug: str, start: float, end: float) -> dict[str, str]:
+    return {"slug": slug, "start": stamp(start), "end": stamp(end), "cutOff": stamp(start)}
+
+
+# MONDAY is a Monday, so day 5 is a Saturday and day 8 the Tuesday after: Sorare's gameweeks run from Saturday or Tuesday, and
+# a game on the Sunday and one on the Wednesday after are in two Monday weeks and in one gameweek of three days.
+GAMEWEEKS = [window("gw-a", 4.5, 8.5), window("gw-b", 8.5, 11.5), window("gw-c", 11.5, 15.5)]
+
+
+def test_the_fixtures_of_the_file_are_read_and_anything_unreadable_is_left_out() -> None:
+    raw = {"fixtures": [GAMEWEEKS[0], {"slug": "no-dates"}, 3, {"slug": "x", "start": "soon", "end": "later"}]}
+
+    assert [w["slug"] for w in backtest.read_fixtures(raw)] == ["gw-a"]
+    assert backtest.read_fixtures({}) == [] and backtest.read_fixtures({"fixtures": "none"}) == []
+
+
+def test_with_gameweeks_a_game_is_in_the_gameweek_that_holds_it_and_not_in_a_monday_week() -> None:
+    # Sunday and the Tuesday after (day 6.5 and 8.0): two Monday weeks, but one gameweek (4.5 to 8.5).
+    games = [game(-14, score=40.0), game(-7, score=40.0), game(6.5, score=70.0), game(8.0, score=20.0)]
+    plain = rows({"p": player(games)})
+    by_gameweek = rows({"p": player(games)}, fixtures=GAMEWEEKS)
+
+    sunday, tuesday = by_gameweek[2], by_gameweek[3]
+    assert sunday.week == tuesday.week == "gw-a" and sunday.week_games == tuesday.week_games == 2
+    assert plain[2].week != plain[3].week, "by Monday weeks the two games were two weeks"
+    other = [dict(g) for g in games]
+    other[2]["score"] = 5.0  # the Sunday game goes very differently
+    assert rows({"p": player(other)}, fixtures=GAMEWEEKS)[3].expected == tuesday.expected, (
+        "the Tuesday game cannot see the Sunday one"
+    )
+
+
+def test_a_game_outside_every_gameweek_keeps_its_monday_week() -> None:
+    found = rows({"p": player([game(0), game(28)])}, fixtures=GAMEWEEKS)
+
+    assert [r.week for r in found] == [MONDAY.date().isoformat(), (MONDAY + timedelta(days=28)).date().isoformat()]
+
+
+def history_before(count: int = 6) -> list[dict[str, Any]]:
+    return [game(-7 * (count - i), score=50.0) for i in range(count)]  # six steady weeks before the first gameweek
+
+
+def test_a_gameweek_scores_the_best_of_his_games_and_a_missed_game_is_nothing() -> None:
+    both = history_before() + [game(5.0, score=60.0), game(8.0, score=20.0)]  # gw-a: two games
+    missed = history_before() + [game(5.0, played=False), game(8.0, score=40.0)]  # gw-a: he misses one
+    nothing = history_before() + [game(5.0, played=False), game(8.0, played=False)]
+
+    def week(games: list[dict[str, Any]]) -> backtest.Row:
+        return next(
+            r
+            for r in backtest.walk_gameweeks({"p": player(games)}, GAMEWEEKS)
+            if r.model == "today" and r.week == "gw-a"
+        )
+
+    assert week(both).score == 60.0 and week(both).week_games == 2
+    assert week(missed).score == 40.0
+    assert week(nothing).score == 0.0
+
+
+def test_a_gameweek_prediction_knows_how_many_games_he_has_and_never_sees_them() -> None:
+    games = history_before() + [game(5.0, score=60.0), game(8.0, score=20.0)]
+    changed = history_before() + [game(5.0, score=5.0), game(8.0, score=99.0)]  # the gameweek goes very differently
+
+    a = {r.model: r for r in backtest.walk_gameweeks({"p": player(games)}, GAMEWEEKS) if r.week == "gw-a"}
+    b = {r.model: r for r in backtest.walk_gameweeks({"p": player(changed)}, GAMEWEEKS) if r.week == "gw-a"}
+
+    assert set(a) == {"flat45", "last5", "one_game", "today"}
+    assert all(a[m].expected == b[m].expected for m in a), "what the gameweek holds is not known when it is predicted"
+    assert a["today"].expected > a["one_game"].expected, "two games: more chance of playing, and the better one counts"
+    single = {
+        r.model: r
+        for r in backtest.walk_gameweeks({"p": player(history_before() + [game(8.0)])}, GAMEWEEKS)
+        if r.week == "gw-a"
+    }
+    assert single["today"].expected == single["one_game"].expected, "with one game the two are the same"
+
+
+def test_the_report_has_a_gameweek_section_only_when_it_is_given_gameweeks() -> None:
+    games = [game(7 * i, score=40.0 + (i % 4)) for i in range(40)]
+    found = backtest.walk_forward(
+        {"p": player(games)}, fixtures=[window(f"gw-{i}", 7 * i - 1, 7 * i + 6) for i in range(40)]
+    )
+    weeks = backtest.walk_gameweeks({"p": player(games)}, [window(f"gw-{i}", 7 * i - 1, 7 * i + 6) for i in range(40)])
+
+    with_weeks = backtest.report(found, holdout_from=MONDAY + timedelta(days=7 * 30), weeks=weeks)
+    without = backtest.report(found, holdout_from=MONDAY + timedelta(days=7 * 30))
+
+    assert "Gameweeks" in with_weeks and "one_game" in with_weeks and "best of his games" in with_weeks
+    assert "Gameweeks" not in without
+
+
 def test_the_slices_are_ranked_by_the_squared_error_today_loses_to_the_best_simple_baseline() -> None:
     found = backtest.walk_forward({"p": starter_for_his_country()})
 
@@ -439,3 +535,25 @@ def test_the_command_says_what_to_run_first_when_there_is_no_file(tmp_path, caps
 
     assert xscore_backtest.main(["--history", str(tmp_path / "missing.json")]) == 1
     assert "export_history" in capsys.readouterr().err
+
+
+def test_the_command_uses_the_gameweeks_of_the_file_and_says_when_it_has_none(tmp_path, capsys) -> None:
+    import json
+
+    from app.jobs import xscore_backtest
+
+    games = [game(7 * i, score=40.0 + (i % 4)) for i in range(40)]
+    windows = [window(f"gw-{i}", 7 * i - 1, 7 * i + 6) for i in range(40)]
+    with_weeks = tmp_path / "with.json"
+    with_weeks.write_text(json.dumps({"players": {"p": player(games)}, "fixtures": windows}), encoding="utf-8")
+    without = tmp_path / "without.json"
+    without.write_text(json.dumps({"players": {"p": player(games)}}), encoding="utf-8")
+
+    assert xscore_backtest.main(["--history", str(with_weeks), "--holdout", "2026-08-03"]) == 0
+    heard = capsys.readouterr()
+    assert "Gameweeks" in heard.out and "gw-" not in heard.err
+
+    assert xscore_backtest.main(["--history", str(without), "--holdout", "2026-08-03"]) == 0
+    heard = capsys.readouterr()
+    assert "Gameweeks" not in heard.out
+    assert "export_history" in heard.err, "it says how to get the gameweeks, and weeks are Monday to Sunday meanwhile"

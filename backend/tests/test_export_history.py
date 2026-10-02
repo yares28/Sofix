@@ -162,6 +162,67 @@ def test_a_run_that_stays_rate_limited_stops_where_it_is_instead_of_leaving_out_
     assert not out.exists(), "nothing was learned, so nothing is written"
 
 
+class Gameweeks:
+    """Sorare's list of gameweeks, two to a page."""
+
+    def __init__(self, nodes: list[dict[str, Any]]) -> None:
+        self.nodes = nodes
+
+    def query(self, text: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
+        start = int((variables or {}).get("after") or 0)
+        return {
+            "so5": {
+                "so5Fixtures": {
+                    "pageInfo": {"hasNextPage": start + 2 < len(self.nodes), "endCursor": str(start + 2)},
+                    "nodes": self.nodes[start : start + 2],
+                }
+            }
+        }
+
+
+def gameweek(slug: str, start: str, end: str) -> dict[str, Any]:
+    return {"slug": slug, "startDate": start, "endDate": end, "cutOffDate": start}
+
+
+def test_the_gameweeks_come_back_page_by_page_with_their_windows_oldest_first() -> None:
+    nodes = [
+        gameweek("gw3", "2026-10-02T14:00:00Z", "2026-10-06T14:00:00Z"),
+        gameweek("gw1", "2026-09-18T14:00:00Z", "2026-09-22T14:00:00Z"),
+        {"slug": "no-dates"},
+        gameweek("gw2", "2026-09-25T14:00:00Z", "2026-09-29T14:00:00Z"),
+    ]
+
+    found = export.fetch_fixtures(Gameweeks(nodes))
+
+    assert [f["slug"] for f in found] == ["gw1", "gw2", "gw3"], "all three pages read, the one without dates left out"
+    assert found[0] == {
+        "slug": "gw1",
+        "start": "2026-09-18T14:00:00Z",
+        "end": "2026-09-22T14:00:00Z",
+        "cutOff": "2026-09-18T14:00:00Z",
+    }
+
+
+def test_the_file_keeps_the_gameweeks_and_a_later_run_does_not_lose_them(tmp_path: Path) -> None:
+    out = tmp_path / "history.json"
+    windows = [
+        {
+            "slug": "gw1",
+            "start": "2026-01-02T14:00:00Z",
+            "end": "2026-01-06T14:00:00Z",
+            "cutOff": "2026-01-02T14:00:00Z",
+        }
+    ]
+    export.run(Sorare({"a": [game(10)]}), ["a"], out, since=SINCE, until=END, pause=0, fixtures=windows)
+    assert json.loads(out.read_text("utf-8"))["fixtures"] == windows
+
+    export.run(Sorare({"a": [game(10)], "b": [game(20)]}), ["a", "b"], out, since=SINCE, until=END, pause=0)
+
+    assert json.loads(out.read_text("utf-8"))["fixtures"] == windows, (
+        "a run that was not given them keeps what the file had"
+    )
+
+
 def test_a_run_that_was_stopped_goes_on_where_it_stopped(tmp_path: Path) -> None:
     out = tmp_path / "history.json"
     sorare = Sorare({"a": [game(10)], "b": [game(20)]})

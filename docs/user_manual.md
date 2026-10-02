@@ -403,6 +403,11 @@ The extension is a local Manifest V3 build, not a store listing.
 `manifest.json` and `config.js` are generated and git-ignored because the latter holds secrets. Re-run configure and
 reload the extension after changing the app origin or token.
 
+**A new version.** Reload only picks up what is on disk in the folder Chrome loaded. When Control says "update" next to the
+extension, first bring that checkout up to `main` (`git switch main`, `git pull`; set aside uncommitted work first with
+`git stash push -u`), then run `node extension/scripts/configure.mjs` again, because `manifest.json` is rebuilt from the template,
+and only then press **Reload** and reload the `sorare.com` tab.
+
 ### Cards on sorare.com
 
 On Sorare's football pages Sofix draws a small dark-glass **tile** inside the top-left corner of each card it can name.

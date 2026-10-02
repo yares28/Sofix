@@ -24,14 +24,11 @@ import {
   slotAlternatives,
   splitDead,
   squadOut,
-  startersIn,
   statusLine,
-  yoursSummary,
   sectionsOf,
   teamsRead,
+  timelineOf,
   tint,
-  yoursIn,
-  yoursLabel,
   yoursPlayers,
   type LineupMatch,
   type LineupSide,
@@ -148,17 +145,44 @@ describe("what a match says about itself", () => {
     expect(kickoffLabel("2026-10-11T14:15:00Z")).toEqual({ day: "Sun 11 Oct", time: "16:15", short: "Sun 16:15" });
     expect(kickoffLabel(null)).toEqual({ day: "Date TBC", time: "TBC", short: "TBC" });
   });
+});
 
-  it("counts the players of his it names, in the eleven and among the alternatives", () => {
-    const one = match(1, "2026-10-11T14:15:00Z", {
-      home: side("Home", {
-        rows: [{ line: "FWD", players: [player("1", { yours: "a" }), player("2")] }],
-        alternatives: [player("3", { yours: "b" })],
-      }),
-      away: side("Away", { alternatives: [player("4", { yours: "c" })] }),
-    });
+describe("the round as a timeline", () => {
+  const ids = (days: ReturnType<typeof timelineOf>) => days.map((day) => [day.weekday, day.date, day.slots.map((slot) => [slot.time, slot.matches.map((m) => m.id)])]);
 
-    expect(yoursIn(one)).toBe(3);
+  it("groups a round by Madrid day, and inside a day by kickoff time, so two games at 21:00 share one", () => {
+    const days = timelineOf([
+      match(1, "2026-10-09T19:00:00Z"),
+      match(2, "2026-10-10T12:00:00Z"),
+      match(3, "2026-10-10T19:00:00Z"),
+      match(4, "2026-10-11T19:00:00Z"),
+      match(5, "2026-10-11T19:00:00Z"),
+    ]);
+
+    expect(ids(days)).toEqual([
+      ["Fri", "9", [["21:00", [1]]]],
+      ["Sat", "10", [["14:00", [2]], ["21:00", [3]]]],
+      ["Sun", "11", [["21:00", [4, 5]]]],
+    ]);
+  });
+
+  it("puts a game just after midnight in Madrid on the next day", () => {
+    expect(ids(timelineOf([match(1, "2026-10-09T22:30:00Z")]))).toEqual([["Sat", "10", [["00:30", [1]]]]]);
+  });
+
+  it("closes the round with the games that have no date yet", () => {
+    const days = timelineOf([match(1, "2026-10-09T19:00:00Z"), match(2, null)]);
+
+    expect(ids(days)).toEqual([
+      ["Fri", "9", [["21:00", [1]]]],
+      ["Date", "TBC", [["TBC", [2]]]],
+    ]);
+    expect(timelineOf([])).toEqual([]);
+  });
+
+  it("names the month only when the round crosses one", () => {
+    expect(timelineOf([match(1, "2026-10-09T19:00:00Z"), match(2, "2026-10-12T19:00:00Z")]).map((d) => d.month)).toEqual([null, null]);
+    expect(timelineOf([match(1, "2026-10-30T19:00:00Z"), match(2, "2026-10-31T19:00:00Z"), match(3, "2026-11-01T19:00:00Z")]).map((d) => d.month)).toEqual(["Oct", null, "Nov"]);
   });
 });
 
@@ -174,10 +198,10 @@ describe("which week the page is for", () => {
     const early = { id: "2026-10-09", gw: null, number: null };
 
     expect(sorareLine(undefined, undefined, NOW)).toBeNull();
-    expect(sorareLine(early, undefined, NOW)).toEqual({ text: "Sorare: not open yet", href: "/play?w=2026-10-09" });
-    expect(sorareLine(open, "2026-10-16T14:00:00Z", NOW)).toEqual({ text: "Sorare GW21 · locks Fri 16:00", href: "/play?w=2026-10-09" });
-    expect(sorareLine(open, "2026-10-10T10:00:00Z", NOW)?.text).toBe("Sorare GW21 · locked");
-    expect(sorareLine(open, undefined, NOW)?.text).toBe("Sorare GW21");
+    expect(sorareLine(early, undefined, NOW)).toEqual({ text: "Sorare: not open yet", href: "/play?w=2026-10-09", open: false });
+    expect(sorareLine(open, "2026-10-16T14:00:00Z", NOW)).toEqual({ text: "Sorare GW21 · locks Fri 16:00", href: "/play?w=2026-10-09", open: true });
+    expect(sorareLine(open, "2026-10-10T10:00:00Z", NOW)).toMatchObject({ text: "Sorare GW21 · locked", open: false });
+    expect(sorareLine(open, undefined, NOW)).toMatchObject({ text: "Sorare GW21", open: false });
   });
 
   it("says why the page shows round 8 when it was opened for another week", () => {
@@ -307,8 +331,7 @@ describe("your players in a match, for the strip at its top", () => {
     expect(list[0]).toMatchObject({ slug: "oyarzabal", name: "Mikel Oyarzabal" });
   });
 
-  it("counts the same players as the tab does", () => {
-    expect(yoursPlayers(one)).toHaveLength(yoursIn(one));
+  it("lists none when the match is not on the page", () => {
     expect(yoursPlayers(match(2, null))).toEqual([]);
   });
 });
@@ -323,29 +346,6 @@ describe("what a player is called on a card and on a chip", () => {
     ]);
 
     expect(labels).toEqual({ "1": "OYARZABAL", "2": "REMIRO", "3": "J. WILLIAMS", "4": "N. WILLIAMS" });
-  });
-});
-
-describe("what a match tab says about your players", () => {
-  const mixed = match(1, "2026-10-11T14:15:00Z", {
-    home: side("Home", {
-      rows: [{ line: "FWD", players: [player("1", { yours: "a" }), player("2")] }],
-      alternatives: [player("3", { yours: "b" }), player("5", { yours: "c" })],
-    }),
-    away: side("Away", { rows: [{ line: "DEF", players: [player("4", { yours: "d" })] }], alternatives: [player("6", { yours: "e" })] }),
-  });
-
-  it("counts yours in the match and how many of them are in the probable eleven", () => {
-    expect(yoursIn(mixed)).toBe(5);
-    expect(startersIn(mixed)).toBe(2);
-    expect(yoursLabel(mixed)).toBe("5 yours · 2 starting");
-  });
-
-  it("says none starting when every one of yours is an alternative", () => {
-    const none = match(2, "2026-10-11T16:15:00Z", { home: side("H", { alternatives: [player("7", { yours: "a" }), player("8", { yours: "b" }), player("9", { yours: "c" })] }) });
-
-    expect(yoursLabel(none)).toBe("3 yours · 0 starting");
-    expect(yoursLabel(match(3, null))).toBe("0 yours · 0 starting");
   });
 });
 
@@ -451,12 +451,6 @@ describe("the words on the page", () => {
     expect(statusLine({ value: 4, label: "Poco previsible" }, null)).toBe("Not very predictable this round");
     expect(statusLine(null, 0.83)).toBe("83% predictable over the season");
     expect(statusLine(null, null)).toBeNull();
-  });
-
-  it("sums up the owner's players on a match for the strip's tooltip", () => {
-    expect(yoursSummary(0)).toBe("none of your players");
-    expect(yoursSummary(1)).toBe("1 of your players");
-    expect(yoursSummary(3)).toBe("3 of your players");
   });
 });
 

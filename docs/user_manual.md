@@ -53,8 +53,9 @@ remain visible rather than being invented locally.
 ![Sofix home with LaLiga and Sorare bento cards](images/home.png)
 
 The top strip shows the selected LaLiga gameweek, its playing days and time to the next kickoff. **Best cards** uses
-one fixed Sorare-card ratio and shows xScore. **Your fixtures** names the side actually playing—club or national
-team—and the owned players/cards in that match. A rated LaLiga row shows Win and Clean sheet; an outside-LaLiga row
+one fixed Sorare-card ratio and shows xScore. **Your fixtures** draws each match as two crests, home side first, with the side actually playing—club or national
+team—ringed in blue, and the owned players/cards in that match. A rated LaLiga row shows Win and Clean sheet for the
+ringed side, led by that same ringed crest so the percentages are never ambiguous; an outside-LaLiga row
 shows the best owned player's clearly labelled **Play** percentage and xScore because Sofix has no match odds for it.
 Under the strip:
 
@@ -244,17 +245,19 @@ nothing left to plan; one further off than the next three Sorare gameweeks gets 
 ## 7a. Lineups — who starts
 
 Futbol Fantasy's probable elevens for every match it has published (FF covers each team's next game only, so the page is not
-tied to the week in the top bar). One bar holds the round's matches, each tab saying "3 yours · 0 starting" (how many of your players the match names, and how many are in the probable
-eleven; the legend says so too);
-the page opens on the next match. Competition and round tabs appear only when the page holds more than one. Picking a match, a round or a
+tied to the week in the top bar). One timeline holds the round's matches: a column for each day (Fri 9, Sat 10…), each kickoff time written once on a rail, and a match as
+its two crests, home side first, under its time. Two games played together share one time. The open match is the black pair and its time
+is darker; hover a pair for the club names. The page opens on the next match. On a phone the timeline scrolls sideways and keeps the open
+match in the middle. Your players are counted in the strip above each pitch, not on the timeline. Competition and round tabs appear only when the page holds more than one. Picking a match, a round or a
 competition changes the page at once, from what it already holds (all the round's matches arrive with it): no reload, no wait, and
 the address still says `?m=<match>` so the match can be bookmarked or sent, and Back returns to the one before. A click with
 Ctrl or Cmd opens the match in a new tab as a link does.
 
-The header names what the page is: "LaLiga round 8 · Fri 9 – Mon 12 Oct · Sorare: not open yet" (the days are the first and last
-kickoff, Madrid time), and once Sorare opens the week it feeds, "Sorare GW21 · locks Fri 16:00". The Sorare part links to Play for
-that week. Under it, "Probable elevens from Futbol Fantasy · kickoffs in Madrid time"; the Fixtures list says "Madrid time" beside its match count
-for the same reason. Arriving with a week that FF does not cover (a past round, a later one, or a national-team week) adds one line:
+The header is centred: "LaLiga round 8 · Fri 9 – Mon 12 Oct" (the days are the first and last kickoff, Madrid time), the question "Who starts
+this round?", then two chips. The first says where the Sorare week it feeds stands, "Sorare: not open yet" or, once Sorare opens it,
+"Sorare GW21 · locks Fri 16:00" (amber while there is time to set a lineup, grey once it is locked or not open), and links to Play for that
+week. The second says how fresh Futbol Fantasy's reading is. Under the timeline, "Futbol Fantasy · kickoffs in Madrid time"; the Fixtures list says
+"Madrid time" beside its match count for the same reason. Arriving with a week that FF does not cover (a past round, a later one, or a national-team week) adds one line:
 "Futbol Fantasy only has each club's next LaLiga game: round 8. GW19 is national-team games." A match address that is no longer on
 FF says so above the next match.
 

@@ -14,7 +14,7 @@ test.beforeEach(async ({ page, request }) => {
   await offline(page);
 });
 
-test("the round's ten matches sit in one bar, and the page opens on the next one", async ({ page }) => {
+test("the round's ten matches sit on one timeline, and the page opens on the next one", async ({ page }) => {
   await page.goto("/lineups");
   await expect(page.getByRole("heading", { level: 1, name: "Who starts this round?" })).toBeVisible();
 
@@ -22,6 +22,27 @@ test("the round's ten matches sit in one bar, and the page opens on the next one
   await expect(strip.getByRole("link")).toHaveCount(10);
   await expect(strip.getByRole("link").first()).toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("status").first()).toContainText("All 20 teams read");
+});
+
+test("the round is drawn as days, each kickoff time once, and a game as its two crests", async ({ page }) => {
+  await page.goto("/lineups");
+  const strip = page.getByRole("navigation", { name: /^Matches of LaLiga · Round 8/ });
+
+  // the mock moves its dates to be ahead of today, so the days are counted, not named
+  await expect(strip.locator(".lu-day")).toHaveCount(4);
+  await expect(strip.locator(".lu-day-head b")).toHaveText([/^\d+$/, /^\d+$/, /^\d+$/, /^\d+$/]);
+  // two games kick off together on the third day, last: one time, two pairs
+  const together = strip.locator(".lu-day").nth(2).locator(".lu-slot").last();
+  await expect(together.locator(".lu-slot-time")).toHaveText(/^\d{2}:\d{2}$/);
+  await expect(together.getByRole("link")).toHaveCount(2);
+  // a game carries no names or codes on the bar: the label and the hover title have them
+  const first = strip.getByRole("link").first();
+  await expect(first).toHaveText("");
+  await expect(first).toHaveAttribute("aria-label", /^M.laga against Espanyol, \w{3} \d{2}:\d{2}$/);
+  await expect(first).toHaveAttribute("title", /^M.laga v Espanyol$/);
+  // the slot of the open match is marked
+  await expect(strip.locator(".lu-slot[data-current]")).toHaveCount(1);
+  await expect(strip.locator(".lu-slot[data-current]").getByRole("link")).toHaveAttribute("aria-current", "page");
 });
 
 test("there are no competition tabs when the round has only LaLiga", async ({ page }) => {
@@ -157,7 +178,7 @@ test("the legend leaves the call-up out when no club of the match has named its 
 });
 
 // ------------------------------------------------------------------------ which week the page is for
-const header = (page: Page) => page.locator(".lu-head > div").first();
+const header = (page: Page) => page.locator(".lu-head");
 
 async function weeksOf(request: APIRequestContext) {
   const served = ((await (await request.get(`${MOCK}/api/sorare`)).json()) as ApiResponse<Sorare>).data!;
@@ -167,11 +188,11 @@ async function weeksOf(request: APIRequestContext) {
 test("the header names the LaLiga round, its days and the Sorare week it feeds, with a link to plan it", async ({ page }) => {
   await page.goto("/lineups");
 
-  await expect(header(page).locator("p").first()).toContainText(/^LaLiga round 8 · \w{3} \d+ – \w{3} \d+ Oct · Sorare/);
+  await expect(header(page).locator(".lu-eyebrow")).toHaveText(/^LaLiga round 8 · \w{3} \d+ – \w{3} \d+ Oct$/);
   const sorare = header(page).getByRole("link", { name: /^Sorare/ });
   await expect(sorare).toHaveText(/^Sorare(: not open yet| GW\d+( · locks \w{3} \d{2}:\d{2}| · locked)?)$/);
   await expect(sorare).toHaveAttribute("href", /^\/play\?w=\d{4}-\d{2}-\d{2}$/);
-  await expect(page.getByText("Probable elevens from Futbol Fantasy · kickoffs in Madrid time")).toBeVisible();
+  await expect(page.getByText("Futbol Fantasy · kickoffs in Madrid time")).toBeVisible();
 });
 
 test("arriving for a week that is past says Futbol Fantasy only has the next round", async ({ page, request }) => {
@@ -205,19 +226,6 @@ test("a match that is no longer on the site is said so, above the next one", asy
   await expect(strip.getByRole("link").first()).toHaveAttribute("aria-current", "page");
 });
 
-test("each match tab says how many of your players are in it and how many are starting, and the legend explains it", async ({ page }) => {
-  await page.goto("/lineups");
-  const strip = page.getByRole("navigation", { name: /^Matches of LaLiga · Round 8/ });
-
-  for (const tab of await strip.getByRole("link").all()) await expect(tab).toContainText(/\d+ yours · \d+ starting/);
-  await expect(page.getByText("on a match tab: your players named in the match, and how many are in the probable eleven")).toBeVisible();
-  // never more starting than named
-  for (const tab of await strip.getByRole("link").all()) {
-    const [, named, starting] = ((await tab.innerText()).match(/(\d+) yours · (\d+) starting/) ?? []).map(Number);
-    expect(starting).toBeLessThanOrEqual(named!);
-  }
-});
-
 test("a pitch card and an alternative's chip write a player's name the same way, with the full name on hover", async ({ page }) => {
   await page.goto("/lineups?m=22502");
   const home = page.getByRole("region", { name: "Real Sociedad lineup" });
@@ -243,8 +251,9 @@ test("your players are listed at the top of each match with their chance and wha
 
   await expect(strip.getByRole("heading")).toHaveText(/^Your \d+ here$/);
   const listed = await strip.locator(".lu-yours-one").count();
-  const named = Number(((await page.locator('.lu-chip[aria-current="page"]').innerText()).match(/(\d+) yours/) ?? [])[1]);
-  expect(listed, "the strip lists the same players the tab counts").toBe(named);
+  const named = Number(((await strip.getByRole("heading").innerText()).match(/\d+/) ?? [])[0]);
+  expect(listed, "the strip lists the players its heading counts").toBe(named);
+  await expect(page.locator(".lu-strip")).not.toContainText("yours"); // the match tabs carry no count of yours
   // one of yours is in doubt for this round: his short name, his chance and the word say so
   const zubeldia = strip.locator(".lu-yours-one", { hasText: "ZUBELDIA" });
   await expect(zubeldia).toContainText("50%");
@@ -293,11 +302,11 @@ test("switching match answers from the page: no new request, the address follows
   const strip = page.getByRole("navigation", { name: /^Matches of LaLiga · Round 8/ });
   const kept = () => page.evaluate(() => (window as unknown as { __kept?: boolean }).__kept === true);
 
-  await strip.getByRole("link", { name: /RAY – ATH/ }).click();
+  await strip.getByRole("link", { name: /Rayo against Athletic/ }).click();
   await expect(page).toHaveURL(/\/lineups\?m=22498$/);
   await expect(page.getByRole("article", { name: /^Rayo.* against Athletic/ })).toBeVisible();
-  await expect(strip.getByRole("link", { name: /RAY – ATH/ })).toHaveAttribute("aria-current", "page");
-  await expect(strip.getByRole("link", { name: /MAL – ESP/ })).not.toHaveAttribute("aria-current", "page");
+  await expect(strip.getByRole("link", { name: /Rayo against Athletic/ })).toHaveAttribute("aria-current", "page");
+  await expect(strip.getByRole("link", { name: /^M.laga against Espanyol/ })).not.toHaveAttribute("aria-current", "page");
   expect(await kept(), "the page was not reloaded").toBe(true);
   expect(asked, "nothing was asked of the server").toEqual([]);
 
@@ -311,7 +320,7 @@ test("a modified click on a match tab still opens it as a link would", async ({ 
   await page.goto("/lineups?m=22497");
   const strip = page.getByRole("navigation", { name: /^Matches of LaLiga · Round 8/ });
   const opened = context.waitForEvent("page");
-  await strip.getByRole("link", { name: /RAY – ATH/ }).click({ modifiers: ["Control"] });
+  await strip.getByRole("link", { name: /Rayo against Athletic/ }).click({ modifiers: ["Control"] });
   const tab = await opened;
   await expect(tab).toHaveURL(/\/lineups\?m=22498$/);
   await expect(page).toHaveURL(/m=22497$/); // this page stayed where it was
@@ -434,7 +443,6 @@ test("a match with none of your players says so, and offers no switch", async ({
   await page.goto("/lineups");
   const strips = page.getByRole("region", { name: "Your players in this match" });
   await page.goto("/lineups?m=22496"); // the mock's Levante–Sevilla names none of yours
-  await expect(page.locator('.lu-chip[aria-current="page"]')).toContainText("0 yours · 0 starting");
   await expect(strips.getByRole("heading")).toHaveText("None of your players are in this match");
   await expect(strips.getByRole("switch")).toHaveCount(0);
 });

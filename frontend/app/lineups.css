@@ -19,12 +19,15 @@
 .lu .card.empty-state { padding: 32px; }
 
 /* ---------- head ---------- */
-.lu-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
-.lu-head h1 { margin: 0; font-size: clamp(30px, 3.4vw, 46px); font-weight: 700; letter-spacing: -0.035em; line-height: 1.05; }
-.lu-head p { margin: 10px 0 0; font-size: 16px; color: var(--ink-2); }
-.lu-head p.lu-source { margin-top: 4px; font-size: 13px; }
-.lu-sorare { color: inherit; text-decoration: underline; text-decoration-color: rgba(0, 0, 0, 0.25); text-underline-offset: 3px; }
-.lu-sorare:hover { text-decoration-color: currentColor; }
+.lu-head { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+.lu-head h1 { margin: 0; font-size: clamp(34px, 4.2vw, 54px); font-weight: 700; letter-spacing: -0.04em; line-height: 1.04; text-wrap: balance; }
+.lu-head p.lu-eyebrow { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; color: var(--ink-2); }
+.lu-chips { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; margin-top: 2px; }
+/* Where the round's Sorare week stands: amber while there is still time to set a lineup, grey once it is locked or not open. */
+.lu-lock { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 13px; border-radius: 999px; background: #ececf0; color: var(--ink-seg); font-size: 13px; font-weight: 600; text-decoration: none; }
+.lu-lock[data-open] { background: #fff1d6; color: #8a5300; }
+.lu-lock:hover { filter: brightness(0.97); }
+.lu-lock:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .lu-flash { margin: 16px 0 0; padding: 11px 16px; border-radius: 14px; background: #f5f5f7; color: var(--ink-2); font-size: 13.5px; line-height: 1.45; }
 /* The key to the % colours, under the match head. */
 .lu-key { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; padding: 4px 20px 0; font-size: 12px; color: #3a3a3c; }
@@ -78,30 +81,39 @@
 .lu-tabs a[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 10px rgba(0, 0, 0, 0.06); }
 .lu-tabs a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* ---------- the matches of the round: one wide bar ---------- */
-.lu-strip {
-  position: relative; /* so the visually hidden text inside the chips is clipped with them, not left sticking out of the page */
-  display: flex; align-items: stretch; gap: 8px; margin-top: 26px; padding: 8px; border-radius: 22px; background: var(--surface);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 10px 30px rgba(0, 0, 0, 0.05); overflow-x: auto; scrollbar-width: none;
-}
-.lu-strip::-webkit-scrollbar { display: none; }
-.lu-chip {
-  flex: 1 1 0; min-width: 112px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 10px 6px;
-  border-radius: 15px; color: var(--ink); text-decoration: none;
-}
-.lu-chip:hover { background: var(--hover); }
-.lu-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.lu-chip[aria-current="page"] { background: #1d1d1f; color: #fff; }
-.lu-chip-teams { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.02em; }
-.lu-chip-teams i { font-style: normal; font-weight: 400; opacity: 0.55; }
-.lu-chip-when { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.lu-chip[aria-current="page"] .lu-chip-when { color: rgba(255, 255, 255, 0.72); }
-.lu-chip[data-state="started"] .lu-chip-teams { opacity: 0.6; }
+/* ---------- the matches of the round: the days on a timeline, a game as its two crests under its kickoff time ---------- */
+.lu-strip { position: relative; margin-top: 38px; border-radius: 22px; background: var(--surface); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 10px 30px rgba(0, 0, 0, 0.05); overflow: hidden; }
+.lu-strip-scroll { overflow-x: auto; scrollbar-width: none; }
+.lu-strip-scroll::-webkit-scrollbar { display: none; }
+.lu-days { display: flex; padding: 16px 18px 18px; }
+.lu-day { padding: 0 14px; animation: lu-rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.lu-day:nth-child(2) { animation-delay: 80ms; }
+.lu-day:nth-child(3) { animation-delay: 160ms; }
+.lu-day:nth-child(n + 4) { animation-delay: 240ms; }
+.lu-day + .lu-day { border-left: 1px solid var(--line); }
+.lu-day-head { display: flex; align-items: baseline; gap: 7px; margin-bottom: 12px; }
+.lu-day-head span { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
+.lu-day-head b { font-size: 24px; line-height: 1; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.lu-slots { display: flex; gap: 4px; }
+.lu-slot { min-width: 0; }
+.lu-slot-time { padding-left: 2px; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.lu-slot[data-current] .lu-slot-time { color: var(--ink); }
+.lu-rail { display: flex; align-items: center; margin: 6px 0 7px; }
+.lu-rail i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: #c7c7cc; }
+.lu-slot[data-current] .lu-rail i { width: 9px; height: 9px; background: var(--ink); }
+.lu-rail span { flex: 1; height: 1px; background: #e0e0e5; transform-origin: left center; animation: lu-draw 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.lu-pairs { display: flex; gap: 2px; }
+.lu-pair { display: flex; gap: 4px; padding: 7px; border-radius: 15px; text-decoration: none; transition: background 0.2s, box-shadow 0.2s; }
+.lu-pair:hover { background: var(--hover); }
+.lu-pair:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lu-pair[aria-current="page"] { background: #1d1d1f; box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18); }
+.lu-pair[data-state="started"] .lu-disc { opacity: 0.55; }
+/* The crest sits on a white disc so it reads on the dark selected pair as well as on the white bar. */
+.lu-disc { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08); }
+@keyframes lu-rise { from { opacity: 0; transform: translateY(8px); } }
+@keyframes lu-draw { from { transform: scaleX(0); } }
+.lu-source { margin: 14px 0 0; text-align: center; font-size: 12px; color: var(--ink-2); }
 .lu-chip-mine { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; color: #0a58ad; }
-.lu-chip .lu-chip-mine { font-size: 11.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.lu-dot { display: inline-block; width: 7px; height: 7px; margin-right: 4px; border-radius: 50%; background: #0a58ad; vertical-align: 1px; }
-.lu-chip-mine span:first-child { display: block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.lu-chip[aria-current="page"] .lu-chip-mine { color: #8fc2ff; }
 .lu-crest { flex: none; display: block; object-fit: contain; }
 /* A crest's place: the club's shield in its colour is under it from the first paint and steps back once the crest is there. */
 .lu-shield { position: relative; display: inline-block; flex: none; line-height: 0; }
@@ -119,7 +131,7 @@
 .lu-skel-name span { display: block; font-size: 11px; font-weight: 600; opacity: 0.75; }
 .lu-skel::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.6) 50%, transparent 70%); transform: translateX(-100%); animation: lu-sweep 1.7s ease-in-out infinite; }
 @keyframes lu-sweep { to { transform: translateX(100%); } }
-@media (prefers-reduced-motion: reduce) { .lu-skel::after { animation: none; } .lu-shield-fb { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .lu-skel::after { animation: none; } .lu-shield-fb { transition: none; } .lu-day, .lu-rail span { animation: none; } .lu-pair { transition: none; } }
 
 /* ---------- the match ---------- */
 .lu-match { margin-top: 18px; background: var(--surface); border-radius: 30px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 18px 48px rgba(0, 0, 0, 0.06); overflow: hidden; }
@@ -278,10 +290,12 @@
 /* ---------- phone: one team at a time ---------- */
 @media (max-width: 899px) {
   .lu { --lu-card-w: 66px; --lu-card-h: 102px; --lu-gap: 9px; padding: 24px 16px 40px; }
-  .lu-head p { font-size: 14px; }
-  .lu-strip { margin: 18px -16px 0; padding: 6px 16px 8px; border-radius: 0; background: transparent; box-shadow: none; }
-  .lu-chip { flex: none; width: 128px; min-width: 128px; min-height: 70px; background: var(--surface); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05); }
-  .lu-chip[aria-current="page"] { background: #1d1d1f; }
+  .lu-head h1 { font-size: 36px; }
+  .lu-chips { flex-direction: column; gap: 8px; }
+  .lu-strip { margin-top: 24px; }
+  /* The timeline scrolls sideways; a soft edge on the right says there is more, and the last day clears it. */
+  .lu-strip::after { content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 44px; background: linear-gradient(90deg, rgba(255, 255, 255, 0), #fff 85%); pointer-events: none; }
+  .lu-days { padding-right: 44px; }
   .lu-match { margin-top: 8px; border-radius: 26px; }
   .lu-match-head { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; padding: 52px 14px 16px; }
   .lu-side, .lu-side-home { flex-direction: column-reverse; justify-content: center; gap: 6px; text-align: center; }

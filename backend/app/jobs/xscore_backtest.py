@@ -41,6 +41,9 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     holdout = datetime.fromisoformat(args.holdout).replace(tzinfo=UTC)
     text = backtest.report(backtest.walk_forward(players), holdout_from=holdout)
+    reconfigure = getattr(sys.stdout, "reconfigure", None)
+    if reconfigure:  # a Windows console cannot draw every dash of the report: it prints a "?" for one rather than stop
+        reconfigure(errors="replace")
     print(text, end="")
     if args.out:
         args.out.write_text(text, "utf-8")

@@ -306,6 +306,26 @@ def test_the_command_reads_the_exported_file_and_prints_the_report(tmp_path, cap
     assert out.read_text("utf-8") == printed
 
 
+def test_the_command_prints_on_a_console_that_cannot_draw_the_reports_dashes(tmp_path, monkeypatch) -> None:
+    """A Windows PowerShell console is cp437 or cp850, which have no en dash: the report must still print there."""
+    import io
+    import json
+    import sys
+
+    from app.jobs import xscore_backtest
+
+    games = [game(7 * i, score=40.0 + (i % 4)) for i in range(40)]
+    path = tmp_path / "history.json"
+    path.write_text(json.dumps({"players": {"p": player(games)}}), encoding="utf-8")
+    raw = io.BytesIO()
+    console = io.TextIOWrapper(raw, encoding="cp437", write_through=True)
+    monkeypatch.setattr(sys, "stdout", console)
+
+    assert xscore_backtest.main(["--history", str(path), "--holdout", "2026-08-03"]) == 0
+
+    assert b"flat45" in raw.getvalue() and b"held out" in raw.getvalue()
+
+
 def test_the_command_says_what_to_run_first_when_there_is_no_file(tmp_path, capsys) -> None:
     from app.jobs import xscore_backtest
 

@@ -22,11 +22,13 @@ and a check, so a session can work through it alone and stop only where you have
   `ubuntu-24.04` is approved (9.9); the bench score is done (9.4) and the opponent is researched and **waits for your call** (9.5, [xscore.md](xscore.md)
   P8). The xScore's level fix, the Audit's other figures and the frozen plan scored are **paused by you** until data exists (steps 3.4, 5.2, 5.3 and
   5.4), and so is the Apply result (0.1). Pro stays paused.
-- **The new xScore is planned** (your two requests of 3 Oct, evening; batch 10, [xscore.md](xscore.md) P9): the score added up the way Sorare
-  adds it, the chance of a decisive action with a score with and without one, then his range and where this game puts him, from ten parts:
-  form that knows the opponent, the app's difficulty, starting or coming on, his share of his side's attack, what the opponent gives his
-  position, shots, minutes, Sorare's projection and grade, cards and the rest. It takes in 9.5 (the opponent for keepers) and answers
-  decision 4. **Waiting for your go.**
+- **The new xScore is planned** (your three requests of 3 Oct, evening; batch 10, [xscore.md](xscore.md) P9): the score added up the way
+  Sorare adds it, the chance of a decisive action with a score with and without one, then his range and where this game puts him, from
+  eleven parts: form that knows the opponent, the app's difficulty, starting or coming on, his share of his side's attack, what the opponent
+  gives his position, shots, minutes, Sorare's projection and grade, cards, the rest, and his stat sheet. Every number it gives is written
+  down and scored, and the Audit page shows how often each was right; each player's stat sheet goes on the Players page, and each daily
+  mission gets its best cards, one card in one mission. It takes in 9.5 (the opponent for keepers) and answers decision 4. **Waiting for
+  your go.**
 
 ### As of 2 Oct
 
@@ -333,7 +335,9 @@ batch. Nothing in the other batches depends on it.
 canvas Stop was not taken: the page follows the Control Center's look. What is built and what is left is in the Results.
 
 **Paused by you on 3 Oct:** the rest of 5.2 and all of 5.3 and 5.4. They need settled games (GW19 from Wed 7 Oct, round 8 from Wed
-14 Oct) and the plan frozen at GW21's lock to have been played. The page fills its existing figures by itself meanwhile.
+14 Oct) and the plan frozen at GW21's lock to have been played. The page fills its existing figures by itself meanwhile. **The xScore's
+figures move to batch 10 (10.2, your request of 3 Oct, evening):** every number the new xScore gives, for every LaLiga player, scored
+after each gameweek, so they do not wait for your players' games alone.
 
 - **5.1 · Design canvas for `/audit` (Stop).**
   - Each figure per gameweek and for the season, with how many cases stand behind it.
@@ -448,22 +452,33 @@ waits for your call; 9.6 to 9.10 are the owner's TODO.md items B, A, C, D and F,
 
 ## Batch 10 · The new xScore: the score added up the way Sorare adds it
 
-Your two requests of 3 Oct, evening. Plan: [xscore.md](xscore.md) P9; TODO.md "G". **Waits for your go.** Each step that changes numbers
-is one refresh on its own and ships only if it clears the bar on the held-out weeks (P9 "The bar").
+Your three requests of 3 Oct, evening. Plan: [xscore.md](xscore.md) P9; TODO.md "G". **Waits for your go.** Each step that changes
+numbers is one refresh on its own and ships only if it clears the bar on the held-out weeks (P9 "The bar").
 
 - **10.1 · The data.** Two free questions per LaLiga game (`Game.playerGameScores`; one question is over Sorare's keyless limit). The first:
   every player's score, decisive level and all-around points, started, minutes, Sorare's projection and grade, the teams and the result.
   The second: each score's 53 stats. For 2025/26 and 2026/27, about 900 questions two seconds apart, into a git-ignored file; each game
   joined to the football model's forecast from the Monday before and to football-data.co.uk's shots. *Test first:* made-up games for the
   reader and the joins. *Done when* every LaLiga game has its players, its stats and its forecast, and the counts are in P9.
-- **10.2 · Keepers** (P8's groundwork). The chance of a clean sheet (their decisive action) and of a penalty save, the score with and
-  without one, from parts 1 to 5 and 8 of P9, each weighted on 2025/26; then the range. *Done when* the table against today's formula,
+- **10.2 · Tracking first** (P9 "Tracking"). Before each lock, every number Sofix gives for every LaLiga player is written down in a read
+  model; a day after the gameweek ends each is scored; the Audit page shows each figure of P9's tracking table as "right N of M",
+  "too few to tell" under 100, with today's formula beside it from the two-season replay. *Test first:* made-up predictions and results
+  for each figure, including the band test of a chance and the "too few" floor. *Done when* the Audit shows today's formula on every
+  figure, so each later step reads as a before and an after.
+- **10.3 · Keepers** (P8's groundwork). The chance of a clean sheet (their decisive action) and of a penalty save, the score with and
+  without one, from parts 1 to 5, 8 and 11 of P9, each weighted on 2025/26; then the range. *Done when* the table against today's formula,
   the keepers' average and Sorare's projection is in P9 and, if it clears the bar, one refresh ships it.
-- **10.3 · Defenders, then midfielders and forwards.** The same, with goals and assists as the decisive actions; one refresh per position.
-- **10.4 · On screen.** A design canvas first (decision 8, a **Stop**): the panel's chance of a decisive action with the score with and
-  without one, the range, and the reasons in points. The tile keeps one big number (decision 1). The Audit adds how honest the chances
-  and the range were. *Done when* it is on production at desktop and phone width, and the manual and how_it_works.md describe the new score.
-- **10.5 · Parts 6, 7, 9 and 10 of P9,** one at a time: shots, minutes, cards and errors, then two games, club or national team, a European
+- **10.4 · Defenders, then midfielders and forwards.** The same, with goals and assists as the decisive actions; one refresh per position.
+- **10.5 · On screen.** A design canvas first (decision 8, a **Stop**): the panel's chance of a decisive action with the score with and
+  without one, the range and the reasons in points; each player's stat sheet on the Players page (every stat of Sorare's table, per game
+  and in points, last five and season, and what is expected in his next game); the Audit's new figures. The tile keeps one big number
+  (decision 1). *Done when* it is on production at desktop and phone width, and the manual and how_it_works.md describe the new score.
+- **10.6 · Daily missions** (P9 "Daily missions"). The extension reads the missions running (`DecisivePlayerPickerTask`: DECISIVE or SCORE,
+  the actions that count, how many picks, which cards) from your signed-in Sorare tab, read only. Sofix ranks your cards for each: the
+  chance of a listed decisive action times the XP of his scarcity, or the chance he beats the average by the amount asked; a card goes to
+  one mission at a time. *Test first:* two missions sharing cards, each card placed once. *Done when* each mission shows its best cards
+  on production and the Audit counts how many suggested cards completed it.
+- **10.7 · Parts 6, 7, 9 and 10 of P9,** one at a time: shots, minutes, cards and errors, then two games, club or national team, a European
   game three days before and penalty duty.
 
 ---

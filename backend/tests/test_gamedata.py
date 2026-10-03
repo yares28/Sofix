@@ -33,6 +33,9 @@ def game(
         "players": {
             f"p{i}": {
                 "pos": "GK",
+                "team": "h",
+                "score": 50.0 if i == 0 else 0.0,
+                "mins": 90 if i == 0 else 0,
                 "played": i == 0,
                 "started": i == 0,
                 "stats": {"saves": [3, 6.0]} if i == 0 else {},
@@ -184,3 +187,48 @@ def test_the_counts_say_how_much_of_the_season_has_each_part_and_per_season() ->
     )
     assert counts["with_stats"] == 3  # a game whose played players have stats
     assert counts["unmatched_clubs"] == ["Unknown FC"]
+
+
+# ------------------------------------------------------------------------------------------------ the games as a player history
+
+
+def test_the_games_become_a_history_by_player_with_every_game_he_is_listed_in_oldest_first() -> None:
+    first = game(1, day="2026-09-12")
+    second = game(2, day="2026-09-19")
+    first["players"] = {"p1": {**first["players"]["p0"], "pos": "GK", "team": "a", "score": 61.5, "mins": 90}}
+    second["players"] = {
+        "p1": {
+            **second["players"]["p0"],
+            "pos": "GK",
+            "team": "b",
+            "score": 0.0,
+            "played": False,
+            "started": False,
+            "mins": 0,
+        }
+    }
+
+    players = gamedata.players_of([second, first])  # in the wrong order on purpose
+
+    entry = players["p1"]
+    assert entry["pos"] == "GK" and entry["club"] == "b"  # his club is the latest he was listed for
+    assert [g["gameId"] for g in entry["games"]] == ["Game:1", "Game:2"]
+    assert entry["games"][0] == {
+        "date": "2026-09-12T14:15:00Z",
+        "competition": "laliga-es",
+        "gameId": "Game:1",
+        "score": 61.5,
+        "played": True,
+        "started": True,
+        "mins": 90,
+        "status": "FINAL",
+    }
+    assert entry["games"][1]["played"] is False and entry["games"][1]["status"] == "DID_NOT_PLAY"
+
+
+def test_the_history_file_carries_the_gameweeks_the_backtest_counts_by() -> None:
+    fixtures = [{"slug": "football-2-6-oct-2026", "start": "2026-10-02T14:00:00Z", "end": "2026-10-06T14:00:00Z"}]
+
+    raw = gamedata.history_file([game(1)], fixtures)
+
+    assert raw["fixtures"] == fixtures and set(raw["players"]) == {"p0", "p1", "p2"}

@@ -27,6 +27,7 @@ BACKEND = Path(__file__).resolve().parents[2]
 DEFAULT_GAMES = BACKEND / "data" / "raw" / "sorare_games.jsonl"
 DEFAULT_CACHE = BACKEND / "data" / "raw" / "football-data-co-uk"
 DEFAULT_CONFIG = BACKEND / "artifacts" / "dixon_coles.json"
+COMPETITION = "laliga-es"
 SEASONS = (2025, 2026)  # 2025/26 and 2026/27
 TOLERANCE = pd.Timedelta(days=2)  # football-data's day is local, Sorare's is UTC
 FORECAST_COLUMNS = ("p_h", "p_d", "p_a", "cs_h", "cs_a", "lam_h", "lam_a")
@@ -270,6 +271,38 @@ def coverage(joined: list[dict[str, Any]], unmatched: set[str], last_day: pd.Tim
     }
 
 
+def players_of(games: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """The games as the xScore backtest reads a history: players by slug, each with his position and every game he is listed in, oldest first.
+
+    A game he did not play is a row too (`DID_NOT_PLAY`, scored 0), as in the owner's own history. Only LaLiga games are here, so a
+    player's form is his LaLiga form: a European or international game of his is not seen.
+    """
+    players: dict[str, dict[str, Any]] = {}
+    for game in sorted(games, key=lambda one: one["date"]):
+        for slug, row in game["players"].items():
+            entry = players.setdefault(slug, {"pos": row["pos"], "club": row["team"], "games": []})
+            entry["pos"] = row["pos"] or entry["pos"]
+            entry["club"] = row["team"] or entry["club"]
+            entry["games"].append(
+                {
+                    "date": game["date"],
+                    "competition": COMPETITION,
+                    "gameId": game["id"],
+                    "score": row["score"],
+                    "played": row["played"],
+                    "started": row["started"],
+                    "mins": row["mins"],
+                    "status": "FINAL" if row["played"] else "DID_NOT_PLAY",
+                }
+            )
+    return players
+
+
+def history_file(games: list[dict[str, Any]], fixtures: list[dict[str, str]]) -> dict[str, Any]:
+    """The file `app.jobs.export_history` writes, for every LaLiga player: what `app.jobs.xscore_backtest --history` reads."""
+    return {"players": players_of(games), "fixtures": fixtures}
+
+
 def load_joined(
     games_path: Path = DEFAULT_GAMES, cache: Path = DEFAULT_CACHE, *, refresh: bool = False
 ) -> tuple[list[dict[str, Any]], set[str], pd.Timestamp]:
@@ -290,11 +323,31 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--refresh", action="store_true", help="download the newest season's football-data.co.uk file again"
     )
+    parser.add_argument(
+        "--history-out",
+        type=Path,
+        default=None,
+        help="also write every LaLiga player's games as a history file for app.jobs.xscore_backtest (needs --fixtures-from)",
+    )
+    parser.add_argument(
+        "--fixtures-from",
+        type=Path,
+        default=None,
+        help="a history file of app.jobs.export_history, for Sorare's gameweeks",
+    )
     args = parser.parse_args(argv)
     joined, unmatched, last_day = load_joined(args.games, args.cache, refresh=args.refresh)
     counts = coverage(joined, unmatched, last_day)
     print(f"football-data.co.uk holds matches up to {last_day.date()}")
     print(json.dumps(counts, indent=2, ensure_ascii=False))
+    if args.history_out:
+        if not args.fixtures_from:
+            print("--history-out needs --fixtures-from: the history file carries Sorare's gameweeks.", file=sys.stderr)
+            return 1
+        fixtures = json.loads(args.fixtures_from.read_text("utf-8")).get("fixtures") or []
+        args.history_out.parent.mkdir(parents=True, exist_ok=True)
+        args.history_out.write_text(json.dumps(history_file(joined, fixtures), separators=(",", ":")), "utf-8")
+        print(f"wrote {args.history_out}")
     return 0
 
 

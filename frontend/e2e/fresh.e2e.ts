@@ -26,7 +26,11 @@ test("Play says when it was synced in the same form", async ({ page }) => {
 test("Lineups says when it was read in the same form", async ({ page }) => {
   await page.goto("/lineups");
 
-  await expect(page.getByText(new RegExp(`^Read ${AGO}$`)).first()).toBeVisible();
+  // A match's reading time sits behind its info button (the card names it "Last read"), in the same form.
+  await page.getByRole("button", { name: "Futbol Fantasy reading details" }).first().click();
+  const lastRead = page.getByRole("group", { name: "Futbol Fantasy reading" }).first().locator("dd").first();
+  await expect(lastRead).toBeVisible();
+  await expect(lastRead).toHaveText(new RegExp(`^${AGO}$`));
   await expect(page.getByRole("status").first()).toContainText(new RegExp(`teams read ${AGO}`));
 });
 

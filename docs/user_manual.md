@@ -459,8 +459,10 @@ row is not drawn.
 
 **Hover the tile, or focus it with the keyboard**, and a panel opens beside the card. From the top: SOFIX with a small green chip
 when your best plan uses the card (the lineup's name, and a C for the captain) and how long ago the numbers were made; a switch
-between the score if he **starts** (the default) and if he is **benched**; the big score with his chance of starting and whose
-number it is ("START · FF"); one line only when FF says something is wrong with him ("Doubt · since 12 Sep", amber, or an
+between the score if he **starts** (the default) and if he **comes on** from the bench; the big score with his chance of starting and whose
+number it is ("START · FF"; on the other side, "COMES ON 30%": how often he still plays when he is not in the eleven). The "comes on" score is a real score:
+a substitute starts at 35 points like a starter, so it is near 40 whatever his chance (until 3 Oct the panel showed that chance multiplied into it, which
+read 1 for a goalkeeper; a payload from before the change still says "benched" and shows the old number); one line only when FF says something is wrong with him ("Doubt · since 12 Sep", amber, or an
 injury or ban, red); three numbers (xG or clean sheet for his job, his side's win chance, and the difficulty); and **SOURCES**,
 folded away, which opens to what FF, SO and SF each say and when FF was read; for a national-team game or another league's, where FF
 has no number, its row says "LaLiga only" (FF covers LaLiga only). The overlay never shows FF's Spanish words; the Lineups page
@@ -499,13 +501,15 @@ card anywhere except the tile still selects the card. Tiles appear for the playe
 gameweek; a card Sofix has nothing on gets nothing. Cards are found by the address of their picture, not by Sorare's
 generated CSS class names.
 
-**Known faults (found 3 Oct 2026; the fixes are planned in the roadmap's batch 9).** The live Futbol Fantasy read finds no player, so the
-panel never says "FF live" yet and keeps the last refresh's time. The Sofix tab shows the gameweek being planned even on a page about
-another week. Every Celta game shows **No odds**, because Sorare's "Celta de Vigo" does not match the board's "Celta".
+**Fixed in 0.3.2 (found 3 Oct 2026).** The live Futbol Fantasy read found no player (it looked for a label in small letters that the site
+writes with capitals), so the panel never said "FF live" and kept the last refresh's time; the Sofix tab showed the gameweek being planned
+even on a page about another week; and every Celta game showed **No odds**, because Sorare's "Celta de Vigo" did not match the board's
+"Celta". Reload Sofix in `chrome://extensions` (Control says "update" until you do); the Celta fix is in the app and needs no reload.
 
 ### Plan drawer
 
-The **Sofix** tab on the right edge of Sorare's football pages opens your gameweek: what the best plan adds up to,
+The **Sofix** tab on the right edge of Sorare's football pages opens your gameweek, the one the page's address names (the one being
+planned when it names none; a week Sofix holds nothing on says so): what the best plan adds up to,
 a thumbnail of every card of its lineups (the leading lineup first; every card up to ten, else nine and a "+N" for the rest, so the thumbnails and
 the "+N" always add up to the cards the plan uses), the reward chance, the essence expected and how many of your cards it uses.
 **Open Apply in Sofix** opens the Play page for that gameweek and returns you to the controlled three-step flow;

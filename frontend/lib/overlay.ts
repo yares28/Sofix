@@ -71,6 +71,8 @@ export type OverlayEntry = {
    */
   start?: number;
   bench?: number;
+  /** His score if he comes on from the bench: a substitute starts at 35 like a starter, so about 40 (P7). Absent in older payloads. */
+  on?: number;
   pStart?: number;
   pOn?: number;
   /**
@@ -224,7 +226,7 @@ function entryFor(
           .map((one): OverlayFixture => ({ opponent: one.opponent, venue: one.venue, kickoff: one.kickoff, competition: one.competition }))
       : undefined;
   const hasSplit = player.start !== undefined && player.bench !== undefined && pStart !== undefined && pOn !== undefined;
-  const split = hasSplit ? { start: player.start, bench: player.bench, pStart, pOn } : {};
+  const split = hasSplit ? { start: player.start, bench: player.bench, ...(player.on !== undefined ? { on: player.on } : {}), pStart, pOn } : {};
   const named = told?.startSource ?? player.startSource;
   const source = {
     ...(named ? { startSource: named } : {}),
@@ -274,7 +276,12 @@ export function overlayNumbers(
       ? (weekPlan(sorare, named.id) ?? kept)
       : null
     : ((request.week ? weekPlan(sorare, request.week) : null) ?? nextWeek(sorare));
-  if (!plan) return { week: named?.number ?? 0, cards: {}, players: {} };
+  if (!plan) {
+    const week = named?.number ?? 0;
+    // The drawer asked for this week's plan: say there is none in words, not nothing (it read nothing as "Sofix is not reachable").
+    const note = { state: "none" as const, week, note: "Sofix holds nothing on this gameweek." };
+    return { week, cards: {}, players: {}, ...(request.plan ? { plan: note } : {}) };
+  }
   const outlook = grid ? sideOutlook(grid) : null;
   // The numbers of a week kept apart are as they stood when it finished, and its plan was a replay, not what you entered.
   const madeAt = plan === kept ? plan.gameweek.end : sorare.generatedAt;

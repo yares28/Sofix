@@ -85,7 +85,12 @@ class Forecast:
     sd: float | None = None  # the spread of his score: the planner's usual one, or 0 when the score is already known
     # The same forecast split by how he plays, for the overlay only: the planner never reads these.
     start: float | None = None  # his score if he starts (one game)
-    bench: float | None = None  # his score if he does not start: the chance he comes on x what a substitute scores
+    bench: float | None = (
+        None  # the old "benched" number: the chance he comes on if benched x what a substitute scores (an expectation)
+    )
+    on: float | None = (
+        None  # his score if he comes on from the bench: a substitute starts at 35 like a starter, so about 40 (P7)
+    )
     p_start: float | None = None  # the chance he starts
     p_on: float | None = None  # the chance he comes on as a substitute
     # Game by game, in kickoff order, once Futbol Fantasy speaks about any of his games; empty otherwise, and then the

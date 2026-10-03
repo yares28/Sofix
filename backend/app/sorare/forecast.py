@@ -85,12 +85,13 @@ def _from_form(history: list[tuple[str, float, bool]]) -> tuple[float, float]:
 
 class Split(NamedTuple):
     start: float  # his score if he starts
-    bench: float  # his score if he does not: the chance he comes on x what a substitute scores
+    bench: float  # the old "benched" number: the chance he comes on if benched x what a substitute scores
     p_start: float
     p_on: float
     benched_on: (
         float  # of the games he does not start, how often he still plays (what another start chance is split with)
     )
+    on: float = 0.0  # his score if he comes on: a score, not an expectation (P7)
 
 
 def _split(week: PlayerWeek, base_mu: float, plays: float) -> Split:
@@ -131,7 +132,7 @@ def _split(week: PlayerWeek, base_mu: float, plays: float) -> Split:
     else:
         p_on_if_benched = from_form
     score_on = (sum(came_on) + 2 * PRIOR_SUB_SCORE) / (len(came_on) + 2)
-    return Split(start, p_on_if_benched * score_on, min(p_start, 1.0), min(p_on, 1.0), benched_on)
+    return Split(start, p_on_if_benched * score_on, min(p_start, 1.0), min(p_on, 1.0), benched_on, score_on)
 
 
 def _per_game(week: PlayerWeek, split: Split, plays: float) -> tuple[tuple[GameChance, ...], list[float]]:
@@ -213,6 +214,7 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
         actual=week.actual,
         start=round(start, 1),
         bench=round(bench, 1),
+        on=round(split.on, 1),
         p_start=round(p_start, 3),
         p_on=round(p_on, 3),
         per_game=per_game,

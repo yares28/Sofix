@@ -116,11 +116,13 @@ const CLUB_WORDS = new Set(["fc", "cf", "ud", "rc", "cd", "ac", "sc", "sad", "de
 
 /**
  * Clubs Sorare names differently from the board even without those words ("Deportivo Alavés" is "Alavés" on the
- * board), as club key -> the board's club key. Checked against Sorare's LaLiga club list on 2026-09-29.
+ * board), as club key -> the board's club key. Checked against Sorare's LaLiga club list on 2026-09-29 and again on 2026-10-03,
+ * when "Celta de Vigo" (the board says "Celta") was found missing: all 20 names are in overlay.test.ts.
  */
 const CLUB_ALIASES: Record<string, string> = {
   "deportivo alaves": "alaves",
   "deportivo la coruna": "deportivo",
+  "celta vigo": "celta",
 };
 
 export const clubKey = (name: string): string => {

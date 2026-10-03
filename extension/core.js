@@ -246,10 +246,12 @@
     for (let i = 1; i < parts.length; i++) {
       const chunk = parts[i].slice(0, 2000);
       const id = /^(\d+)/.exec(chunk);
-      const role = /data-onceff="(?:titular|suplente)"/.test(chunk);
-      const chance = /data-probabilidad="(\d{1,3})%"/.exec(chunk);
+      // The page's text is read as it is written, and the site writes `data-onceFF` with capitals: the names are matched
+      // whatever their case (a parser would have lowercased them, which is how the saved test pages hid this).
+      const role = /data-onceff="(?:titular|suplente)"/i.test(chunk);
+      const chance = /data-probabilidad="(\d{1,3})%"/i.exec(chunk);
       if (!id || !role || !chance || Number(chance[1]) > 100) continue;
-      const lesion = /data-lesion="(-?\d)"/.exec(chunk);
+      const lesion = /data-lesion="(-?\d)"/i.exec(chunk);
       out[id[1]] = { p: Number(chance[1]) / 100, lesion: lesion ? Number(lesion[1]) : -1 };
     }
     return out;
@@ -283,6 +285,16 @@
       ffStatus,
       live: true,
     };
+  }
+
+  /**
+   * His score if he comes on from the bench, for the panel's second number (plans/xscore.md, P7). A substitute starts at 35 points like
+   * a starter, so it is a score near 40 whatever his chance of coming on: the chance is shown beside it, never multiplied into it. A
+   * payload from before that score existed carries only `bench` (the chance times a substitute's score), which keeps its old name.
+   */
+  function comesOnScore(entry) {
+    if (typeof entry.on === "number") return { score: Math.round(entry.on), words: "if he comes on", tab: "Comes on" };
+    return { score: Math.round(entry.bench), words: "if benched", tab: "Benched" };
   }
 
   /** Of the times he is not in the starting eleven, how often he still plays: null when the answer has no split. */
@@ -355,7 +367,7 @@
 
   root.__sofixCore = {
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
-    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, statusNote, clockLabel, sourceRows, drawerCards, DRAWER_CARDS, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
+    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, statusNote, clockLabel, sourceRows, drawerCards, DRAWER_CARDS, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
     isPickHeading, fixtureOf, gamesCount, fixtureLine,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;

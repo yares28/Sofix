@@ -691,11 +691,12 @@
   function panelBig(entry, mode) {
     const f = facts(entry);
     const starts = mode === "start" || !f.split;
-    const score = starts ? f.score : Math.round(entry.bench);
+    const comes = core.comesOnScore(entry);
+    const score = starts ? f.score : comes.score;
     const big = node("div", "sfx-big");
     big.style.setProperty("--sfx-c", scoreColourOf(score));
     const line = node("div", "sfx-num");
-    line.append(node("strong", "", String(score)), node("span", "", f.split ? (starts ? "if he starts" : "if benched") : "expected score"));
+    line.append(node("strong", "", String(score)), node("span", "", f.split ? (starts ? "if he starts" : comes.words) : "expected score"));
     big.append(line);
     const chance = starts ? f.startChance : core.benchOnChance(entry);
     const side = node("div", `sfx-chance${starts && f.tone === "doubt" ? " sfx-chance--doubt" : ""}${starts && f.tone === "out" ? " sfx-chance--out" : ""}`);
@@ -840,7 +841,7 @@
       const seg = node("div", "sfx-seg");
       seg.setAttribute("role", "group");
       seg.setAttribute("aria-label", "Projected score when he");
-      for (const [key, text] of [["start", "Starts"], ["bench", "Benched"]]) {
+      for (const [key, text] of [["start", "Starts"], ["bench", core.comesOnScore(entry).tab]]) {
         const button = node("button", "", text);
         button.type = "button";
         button.setAttribute("aria-pressed", String(key === mode));

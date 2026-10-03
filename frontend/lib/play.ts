@@ -239,6 +239,8 @@ export type PlayingPlayer = {
    */
   start?: number;
   bench?: number;
+  /** His score if he comes on from the bench (plans/xscore.md, P7); payloads published before it do not carry it. */
+  on?: number;
   pStart?: number;
   pOn?: number;
   /** Whose number `pStart` is, and what each of the three says of his first game (Futbol Fantasy's only when it has one). */

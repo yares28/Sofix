@@ -432,7 +432,39 @@ follows your rule of 3 Oct (decision 1 in the roadmap): Futbol Fantasy's start c
 more the "starts" score. Under 40% the tile also shows his chance of coming on, so a keeper at 5% who comes on 2% of the time reads
 "36 · on 2%" and is not taken for a good pick.
 
-**Done when:** the three checks are in a table here; the forecast keeps `bench` for the old payloads and adds the score if he comes on
+**Results (3 Oct 2026, `python -m app.jobs.xscore_backtest --conditional`; tests in `backend/tests/test_xscore_conditional.py`).** Each number
+is set against what he scored in games of its own role, walk-forward, from the games before each week's lock; the pool for a position's norm is
+every player's games of that role before it. Tuning weeks only: the held-out weeks hold one game so far. (Candidate 2, with the decisive and
+all-around split, was not run: it needs the export to read them first, and the results below say there is little left for it to find.)
+
+*If he comes on* (712 appearances off the bench, 99 gameweeks):
+
+| candidate | typical miss (MAE) | squared miss (RMSE) | level (bias) |
+|---|---|---|---|
+| today's substitute score | 8.5 | 12.3 | +0.4 |
+| position's norm | 8.4 | 12.4 | -0.3 |
+| his own appearances shrunk to the norm | 8.3 | 12.2 | -0.2 |
+| norm by minutes played | 8.5 | 12.6 | -0.7 |
+
+No candidate is clearly closer than today's (each interval over weeks contains zero, by both measures). **So the number does not change: "if
+he comes on" is today's substitute score (43.5 for a player with 40 and 50 off the bench, 42 for one who never came on).** What was wrong
+was the display, and it is fixed in 0.3.2: the panel's second tab shows this score ("Comes on") instead of the chance times it.
+
+*If he starts* (2,589 games he started, 107 gameweeks):
+
+| candidate | typical miss (MAE) | squared miss (RMSE) | level (bias) |
+|---|---|---|---|
+| today's `start` (last five games, pulled towards 51) | 15.8 | 19.6 | -0.5 |
+| his last five starts | 16.4 | 20.5 | +0.0 |
+| position's norm | 15.7 | 19.2 | -0.0 |
+| his own starts shrunk to the norm (three games' worth) | **15.4** | **19.0** | +0.1 |
+
+His own starts shrunk to the norm are closer than today's by both measures (squared miss -25.0 [-34.4, -16.2], typical miss -0.39 [-0.61,
+-0.17]); the position's norm alone is closer by squared miss (-16.0 [-24.7, -7.1]) and no different by typical miss; his last five starts are
+further. That is a model change to "if he starts", fitted on no game it is scored on, but the held-out weeks (from 1 Oct) hold one game, so it
+is **held back** like the level fix (roadmap 3.4) until they hold enough.
+
+**Done when:** the three checks are in a table here (done, above); the forecast keeps `bench` for the old payloads and adds the score if he comes on
 (defaults applied after the cache read, the lesson of the 500 on /lineups); Play, Lineups and the overlay show the pair; unit tests,
 the overlay e2e, `npm run design` and the phone width pass; the manual, `docs/how_it_works.md` and S4 say how the two numbers are made;
 one refresh carries this change and nothing else.

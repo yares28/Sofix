@@ -182,6 +182,7 @@ def _split_out(forecast: Forecast | None) -> dict[str, Any]:
     return {
         "start": forecast.start,
         "bench": forecast.bench,
+        **({"on": forecast.on} if forecast.on is not None else {}),
         "pStart": forecast.p_start if forecast.p_start is not None else 0.0,
         "pOn": forecast.p_on if forecast.p_on is not None else 0.0,
         "startSource": forecast.start_source,

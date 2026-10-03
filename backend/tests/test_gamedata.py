@@ -214,6 +214,9 @@ def test_the_games_become_a_history_by_player_with_every_game_he_is_listed_in_ol
     entry = players["p1"]
     # His club is the latest he was listed for, by name (the game says which slug is which club); a slug the game does not name stays as it is.
     assert entry["pos"] == "GK" and entry["club"] == "Athletic Club"
+    assert (
+        entry["name"] == "p1"
+    )  # the export has no display names: the slug stands in, as the research scripts want a name
     assert players["p2"]["club"] == "unknown-slug"
     assert [g["gameId"] for g in entry["games"]] == ["Game:1", "Game:2"]
     assert entry["games"][0] == {

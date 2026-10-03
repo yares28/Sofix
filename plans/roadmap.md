@@ -15,8 +15,8 @@ and a check, so a session can work through it alone and stop only where you have
 ## Where things stand (3 Oct)
 
 - **The live pass on your Sorare pages (0.2) is done** (Results): the overlay works, with three faults, fixed in release 0.3.2 (batch 9, merged
-  3 Oct: the live Futbol Fantasy read, the Sofix tab's week, Celta's name) together with a real "comes on" score. **Waiting for you: press Reload
-  on Sofix in `chrome://extensions`** (your folder is already at 0.3.2), then the live look (Results, batch 9).
+  3 Oct: the live Futbol Fantasy read, the Sofix tab's week, Celta's name) together with a real "comes on" score. **You reloaded the extension
+  (v0.3.2 on Control) and the live look passed on 4 Oct** (Results, batch 9).
 - **Your answers of 3 Oct:** the tile's big number follows his start chance (decision 1, step 9.6, after 9.4 which is done); "why didn't the
   near-lock refresh run?" is answered (Results, 2.2) and its fix is chosen (the extension and the app start it, step 9.8); pinning
   `ubuntu-24.04` is approved (9.9); the bench score is done (9.4) and the opponent is researched and **waits for your call** (9.5, [xscore.md](xscore.md)
@@ -606,16 +606,15 @@ the plan was asked without a week); the two new browser tests fail on the old dr
 
 | Step | Result | What was seen |
 |---|---|---|
-| 9.1 live FF reads | **built and tested; live look waits** | `ffPlayersOf` ignores case; the test uses text copied from the real page. Checked by hand on the real page of match 22493 before the change: 0 of 45 players; after, 45, and Oblak (player 1826) reads 0.95 as the app says. Needs your Reload of 0.3.2 to be seen: Control still says "v0.3.1 · update". |
-| 9.2 the tab's week | **built and tested; live look waits** | The tab asks for the week the address names; the worker keeps one plan per week; the app answers "Sofix holds nothing on this gameweek." in words for a week it does not hold (the tab used to read that silence as "not reachable"). |
-| 9.3 Celta | **built and tested; live look waits for the extension only** | One alias, and a test holding all 20 LaLiga club names Sorare uses. The app is deployed, so the four Celta/Elche keepers should show a difficulty on the tile once the page is reloaded. |
-| 9.4 the "comes on" score | **done in the data; shown after the Reload** | Refresh #53 wrote `on` for all 84 GW21 players (read-only `SELECT`): Soria 42.0, Oblak 42.0, Altay 40.3, beside the old `bench` (0.8, 0.8, 7.0), which stays for older payloads. The backtest ([xscore.md](xscore.md) P7): no candidate was clearly closer than today's substitute score on 712 appearances, so the number is unchanged; the panel's tab is "Comes on". |
+| 9.1 live FF reads | **done, seen live 4 Oct** | `ffPlayersOf` ignores case; the test uses text copied from the real page. Checked by hand on the real page of match 22493 before the change: 0 of 45 players; after, 45, and Oblak (player 1826) reads 0.95 as the app says. **Live, after your Reload (Control: v0.3.2), round 8's compose page, 01:27 Madrid:** the panel says "FF live just now (01:27)", and ten of the 11 tiles take their start chance from Futbol Fantasy ("He starts 95% of the time (FF)": 95, 95, 95, 95, 95, 95, 20, 5, 5, 70%); the eleventh is Sofix's (11%). |
+| 9.2 the tab's week | **done, seen live 4 Oct** | The tab asks for the week the address names; the worker keeps one plan per week; the app answers "Sofix holds nothing on this gameweek." in words for a week it does not hold (the tab used to read that silence as "not reachable"). **Live:** the Sofix tab says "YOUR GAMEWEEK 21 · 2734 xScore · 9 lineups · reward chance 88% · essence expected ≈568 · cards used 66 of 98". |
+| 9.3 Celta | **done, seen live 4 Oct** | One alias, and a test holding all 20 LaLiga club names Sorare uses. **Live:** all 11 tiles of round 8's goalkeepers show a difficulty (48, 91, 43, 53, 55, 28, 78, 55, 55, 53, 68) and none says "No odds". |
+| 9.4 the "comes on" score | **done, seen live 4 Oct** | Refresh #53 wrote `on` for all 84 GW21 players (read-only `SELECT`): Soria 42.0, Oblak 42.0, Altay 40.3, beside the old `bench` (0.8, 0.8, 7.0), which stays for older payloads. The backtest ([xscore.md](xscore.md) P7): no candidate was clearly closer than today's substitute score on 712 appearances, so the number is unchanged; the panel's tab is "Comes on". **Live:** on a goalkeeper with a 20% chance of starting the panel's two tabs are "Starts" (42 if he starts, 20% START · FF) and "Comes on" (42 if he comes on, 1% COMES ON). |
 | 9.5 the opponent, keepers | **researched; waits for your call** | 637 starts by 20 keepers. The strongest sides lower a keeper's score by 4 to 6 points; today's number is 4.0 too high against them; a better number (the keepers' average plus 35% of the game's effect plus his own level) is closer than today's by 31 points squared [-49, -14] over all starts, but it flattens keepers (Oblak 62 → 51, Dituro 35 → 49). Ship, wait, or leave as it is: [xscore.md](xscore.md) P8, "Results, keepers". Research script: `backend/reports/experiments/keeper_opponent.py`. |
 
-**To finish 9.1 to 9.3 once you press Reload on Sofix in `chrome://extensions`** (Control then says v0.3.2): on round 8's compose page
-(`https://sorare.com/football/play/classic/compose/football-9-13-oct-2026-seasonal-all_star-all_seasons_all_star_limited?arena=true`) the panel of a card
-says "FF live N min ago" within a minute (C19); the Sofix tab says "Your gameweek 21" with its cards or "+N" (R26); Radu, Altay and Dituro show a difficulty
-instead of "No odds"; the panel's second tab reads "Comes on" with a score near 40.
+**Done 4 Oct 2026:** you pressed Reload (Control says v0.3.2), and the four checks that were left were made on round 8's compose page in your Chrome, read only
+(no Sorare button pressed): the panel says "FF live just now" (C19), the Sofix tab says "Your gameweek 21" (R26), every tile shows a difficulty instead of "No odds",
+and the panel's second tab reads "Comes on" with a score of 42.
 
 ### Batch 10 · 4 Oct 2026 · 10.1 and 10.2a done (the plan is merged; PR #34)
 

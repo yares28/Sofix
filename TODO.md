@@ -1,6 +1,6 @@
 # Sofix · what's left
 
-Two lists: what only you can do, and what I do. Updated 2026-10-02.
+Two lists: what only you can do, and what I do. Updated 2026-10-03.
 
 The phase plan lives in [docs/sorare_plan.md](docs/sorare_plan.md) and the audit in
 [docs/research_report.md](docs/research_report.md); this file is only the open ends.
@@ -16,6 +16,87 @@ item, what you said and why; the order, the steps and the results live in the ro
 
 ---
 
+## To do, from your answers of 3 Oct
+
+Items 4 to 9 of my list of 3 Oct. The three faults the live pass found (items 1 to 3) and your two new model issues (13 and 14) have
+plans of their own: [plans/overlay.md](plans/overlay.md) O12 to O14 and [plans/xscore.md](plans/xscore.md) P7 and P8. The order is the
+roadmap's batch 9.
+
+### A · The extension updates itself, so you never press Reload again (item 4)
+- **The issue.** Every new version waits for you to press Reload on Sofix in `chrome://extensions`. The Chrome tool I use only opens web
+  pages: it turns `chrome://extensions` into `https://chrome//extensions`, and Chrome blocks automation on its own pages anyway.
+- **The fix.** The extension looks at its own version file in your folder once a minute and reloads itself when the one on disk is newer
+  than the one running. After a merge I update your folder (pull, then `node extension/scripts/configure.mjs`) and the new version runs
+  within a minute. No new permission, nothing downloaded: Chrome loads it from your folder as it does today.
+- **What it needs from you.** One last Reload, for the version that brings it. After that, none.
+- **When.** Release 1 (roadmap 9.7).
+
+### B · The big number on a tile follows his chance of starting (item 5, decided 3 Oct)
+- **Your rule.** Futbol Fantasy's start % is the main one (else Sorare's, else Sofix's). Under 40%: the big number is his score if he comes
+  on from the bench. 40% or more: his score if he starts. The panel keeps both.
+- **Why it waits.** Today's "benched" number is not a score (a keeper's is 0.8): it is fixed first, in P7 (item 13). Under 40% the tile
+  also shows his chance of coming on, so a keeper at 5% who comes on 2% of the time is not read as a good pick.
+- **When.** Release 2, with P7 (roadmap 9.6).
+
+### C · Fresh numbers before a lock: why the near-lock refresh did not run (item 6)
+- **The answer.** GitHub did not start it; our check never got the chance. It is set for every 30 minutes, so about 84 runs from its first
+  one (1 Oct 06:21 UTC) to 2 Oct 23:56 UTC; GitHub started **9**, 3 to 7½ hours apart, none between 08:51 and 15:24 UTC on 2 Oct, and the
+  lock was at 14:00. The regular refresh is late the same way: **every scheduled run since 22 Sep has started late, the night run 2 to 3½
+  hours and the daytime runs 2 to 8 hours.** On 2 Oct the 12:07 UTC run, meant for two hours before the lock, started at 17:49, after it.
+  GW19's frozen page was fresh only because the 07:17 morning run happened to start at 13:55 and I started one by hand at 13:25.
+- **Why GitHub does this.** Its own documentation: scheduled runs are delayed when it is busy, and some are dropped. On a free public
+  repository there is no guarantee. Its status page shows an "Actions Job Delays" incident on 1 Oct and nothing on 2 Oct, so this lateness
+  is its normal service here, not a one-off.
+- **The fix, three free ways (your choice, decision 9):**
+  - **Recommended:** the extension asks the app to start a refresh when you open sorare.com in the last three hours before a lock and the
+    numbers are over 25 minutes old, and the app does the same when you open Sofix then. That is exactly when you need fresh numbers,
+    and it uses the same key as the Refresh button.
+  - A free outside clock (for example cron-job.org) that calls the app every 30 minutes before a lock: on time even if you open nothing,
+    but it needs an account that only you can create, holding a secret link.
+  - Pressing Refresh on /control yourself before you lock.
+  The cron minutes also move off the busy :00 and :30 (a small help, not a fix).
+- **Until it ships** I start a refresh by hand before round 8's lock (Fri 9 Oct, 16:00 Madrid) and one after it.
+- **When.** Release 1 (roadmap 9.8), once you choose.
+
+### D · Pin GitHub's machine version before 19 Oct (item 7, approved 3 Oct)
+- **The issue.** The three workflow files say `ubuntu-latest`, which becomes Ubuntu 26 on 19 Oct, so the refresh could break that day.
+- **The fix.** `ubuntu-24.04` in `ci.yml`, `refresh.yml` and `near-lock.yml`. Free.
+- **When.** Release 1 (roadmap 9.9), before 19 Oct.
+
+### E · Your Apply result, and one press of Refresh (item 8)
+- **What Apply is.** On Play, **Apply plan** puts Sofix's lineups into Sorare through your own signed-in tab, in three presses: **Check**
+  (Sorare says whether the lineup is allowed; nothing is saved), **Save as a draft** (saved on Sorare as a draft, not entered), **Enter**
+  (the only press that enters the competition).
+- **What is missing.** On 2 Oct you said you had done it, but not what each press did. One line is enough: did all three work? If one did
+  not, which one and what Sorare said, and what happened if your session had run out.
+- **Why it matters.** It is the last check of the Apply flow (S6), and the old SorareExt extension can only be retired after it (7.6).
+- **Refresh.** Press **Refresh** on /control once: a run starts in GitHub's Actions, the button waits out its 10-minute pause, and the page
+  updates when the run ends. That closes the Futbol Fantasy plan's S6. I can press it from your Chrome instead if you prefer.
+- **When.** Yours, any time (roadmap 0.1).
+
+### F · The overlay answers only for your account, and an old extension says "reload" (item 9)
+- **The issue.** The extension does not check that the Sorare account signed in on the tab is yours. And if the app's answer changes and the
+  extension is older, the tiles could show wrong numbers without saying so.
+- **The fix.** The extension reports the nickname and the account id of the signed-in Sorare account and the app answers only when it is
+  yours (tested both ways: another account gets nothing, and your own tiles are never blanked by a wrong guess). The extension sends its
+  version, and when it is older than the app needs, the tile reads "Reload" instead of numbers. With A, that should almost never show.
+- **When.** Release 1 (roadmap 9.10, formerly 7.1 and 7.2).
+
+## Paused
+
+Not buildable now. Each starts again when its data exists, and I ask you first.
+
+- **The xScore's level** (item 10, roadmap 3.4). It says your players play 68% of the time (they play 71.5%) and score 48.1 when they play
+  (49.7). A fix (starting points of about 70% and 49) beat today's on the weeks it was tuned on, and it ships only if it also wins on games
+  from 1 Oct onward, of which there is almost none. P7 and P8 come first.
+- **The Audit page's other figures** (item 11, roadmap 5.2): each needs 100 checked games per source. GW19 gives the first counts from
+  Wed 7 Oct, round 8 the first figures from Wed 14 Oct. The page fills what it has by itself.
+- **The frozen plan, scored** (item 12, roadmap 5.3 and 5.4): whether "30% reward chance" came true about 30% of the time. It needs the plan
+  frozen at GW21's lock to have been played: from Wed 14 Oct.
+- **T3 · Pro** (paused by you on 2 Oct; [plans/pro.md](plans/pro.md)).
+
+---
+
 ## Yours
 
 ### 1 · The live Apply acceptance test — blocks retiring SorareExt
@@ -28,7 +109,8 @@ The one thing no test can stand in for, because it needs your signed-in Sorare t
 
 Until this passes, `SorareExt` stays. There is no data gate here — you can do it today.
 
-**Reported done on 2 Oct.** What Check, Draft and Enter did is written down in the roadmap's step 0.1 once you say it.
+**Reported done on 2 Oct.** What Check, Draft and Enter did is written down in the roadmap's step 0.1 once you say it (above,
+"To do, from your answers of 3 Oct", E).
 
 ### 2 · A Refresh button — **done 2 Oct** (the button shows on /control; the roadmap's step 0.1 presses it once)
 `GITHUB_TOKEN` is not missing from your `.env`; it never existed. It is a GitHub key you'd **create**,
@@ -90,10 +172,17 @@ it was pushed". What is left is your look at the pages, and the overlay's second
    numbers freeze at the lock and are settled a day after the week ends. `python -m app.jobs.starts` scores the sources.
    No table or migration: it is one read model, so nothing for the unattended refresh to trip over.
 
-### Check the overlay on your own Sorare pages — *first live pass done 2026-09-29*
+### Check the overlay on your own Sorare pages — *first live pass done 2026-09-29, second 2026-10-03*
 Your Sofix numbers are drawn on Sorare's own cards (a tile with the score if he starts, plus difficulty or xG), and
 an edge tab opens your gameweek's plan. Built from [plans/overlay.md](plans/overlay.md) (O7 to O11); automated proof
 is `frontend/e2e/overlay.e2e.ts`.
+
+**Second pass, 3 Oct (by me, in your Chrome, extension 0.3.1).** On round 8's "Select your Goalkeeper" list everything you asked for
+works: a tile on every card with its FF or SF mark, amber and red chances, ticks, stars, #1 to #3, the panel with its chip, Starts /
+Benched, "START · FF" and folded sources, "LaLiga only" outside LaLiga, no Spanish, and numbers equal to the database. Three faults, planned
+as O12 to O14 (roadmap 9.1 to 9.3): the live Futbol Fantasy read finds no player (a matter of capital letters), the Sofix tab shows the
+week being planned instead of the page's, and every Celta game shows "No odds" (Sorare's "Celta de Vigo" never meets the board's "Celta").
+The old-week question is answered: Sorare's addresses carry the week. Details in the roadmap's Results (0.2) and in overlay.md.
 
 **What your first pass showed** (six screenshots: "Select your Forward", "Select your Extra", the compose page, the
 Classic All Star lineup, the gameweek sheet, the edge tab):
@@ -140,7 +229,11 @@ Each gets its own plan when its turn comes; they are written down in full here s
 Issue 2 of your list, with two of its edge cases (two games in a week, "doesn't start"). It replaces "Fit and
 blind-test the Sorare xScore model".
 
-**Plan: [plans/xscore.md](plans/xscore.md), started 2026-09-30.** Findings so far, from the code and a read-only count of
+**Plan: [plans/xscore.md](plans/xscore.md), started 2026-09-30.** *3 Oct: your two new issues are planned there.* **P7, the bench
+score:** the panel's "Benched" number is the chance he comes on × a substitute's score (0.8 for a keeper), not the score he gets when he
+comes on, which is about 40 (a substitute starts at 35, like a starter). **P8, the opponent:** Soria's "52 if he starts" against Barcelona
+is the average of his own last five games; no score depends on the opponent today, and keepers this season scored 33 against Barcelona,
+Real Madrid or Atlético and 51 against the rest. Findings so far, from the code and a read-only count of
 production:
 
 - **There is almost nothing to backtest on yet.** `sorare_forecasts` holds 3 gameweeks, 30 rows, 11 scored, and none of

@@ -809,6 +809,66 @@ against a fixture that now looks like the page you showed, since the old one had
 then the next step is to read the gameweek from the page itself), and whether the three fixes above find what is really there.
 See TODO.md.
 
+## Second live pass, 3 Oct 2026: what it found (O12 to O14)
+
+Run by me in your Chrome, signed in on sorare.com, with extension 0.3.1 (Control said "v0.3.1, online"). The main page was round 8's
+compose page, `https://sorare.com/football/play/classic/compose/football-9-13-oct-2026-seasonal-all_star-all_seasons_all_star_limited?arena=true`
+(a plain page load; nothing on Sorare was pressed), "Select your Goalkeeper", 12 cards. Also: the Lineups page of the gameweek being
+played, an old week's Lineups page (`/football/lineups/arena/football-25-29-sep-2026`) and your gallery. The window was behind another
+one most of the time, so each step was driven by taking small screenshots (each one makes the page draw once) and reading the page.
+
+**Worked:** a tile on every card, FF or SF dot, the amber and red rows by their own rules (20% amber; 5% and 11% red), ticks for the
+plan's cards, stars for its captains, #1 to #3 on the list, nothing over Sorare's own chips; the panel's plan chip, Starts / Benched,
+"START · FF", SOURCES folded, "LaLiga only" for a player outside LaLiga, no Spanish anywhere; seven keepers' numbers equal to the
+database to the decimal; the old week's page drawn grey from the kept week, and its tiles naming "2 games this week" for three players;
+Sorare's addresses carry the week on its Lineups, board and compose pages. Sorare's gold "+11%" under a card is the card's bonus (XP 4,
+season 5, collection 2, from its own tooltip). The left band carries no badge of Sorare's on those cards.
+
+**By design, not a fault:** your gallery draws no tiles today. An address with no week in it uses the week being planned, which is
+GW20 until it locks on Tue 6 Oct (an international week: 2 of your players, no plan).
+
+**Not seen:** the ×2 badge (no large card of a two-game player exists on any page that opens today; the e2e covers its look) and the
+drawer's "every card or +N" (see O13).
+
+### O12 · Live Futbol Fantasy reads find nobody
+
+- **What happens.** "FF live N min ago" never appears: the panel only ever shows the last refresh's time. The extension's reader
+  (`ffPlayersOf` in `extension/core.js`) looks for `data-onceff="titular"`; Futbol Fantasy's page writes `data-onceFF="titular"`,
+  with capitals. On the real page of Alavés v Atlético (match 22493) it finds **0 of 45 players**; ignoring capitals it finds all 45
+  (22 starters, 23 substitutes), and Oblak (player 1826) reads 0.95, as the app does. So no live read has worked since 0.3.0.
+- **Why the tests passed.** The saved pages in `backend/tests/fixtures/futbolfantasy/` went through an HTML parser, which writes
+  attribute names in small letters, and the unit test was written from them. The backend reads the pages with a parser too, so it is
+  not affected.
+- **Change.** The three patterns in `ffPlayersOf` ignore capitals. Nothing else.
+- **Test first.** In `frontend/lib/overlayCore.test.ts`, a snippet copied from the real page (two players, the real spelling) gives two
+  players; today's code gives none. The fake Futbol Fantasy page the overlay e2e uses gets the real spelling too.
+- **Done when** the tests pass and, on the compose page above, the panel says "FF live N min ago" within a minute of opening (C19), with
+  each match page read at most once every 10 minutes.
+
+### O13 · The Sofix tab shows the week being planned on a page about another week
+
+- **What happens.** On GW21's compose page the tiles are GW21's, but the tab says "Your gameweek 20 · Sorare publishes its projections
+  for these games first". GW20 has no plan; GW21 has the real one.
+- **Why.** `drawer.js` asks for the plan without the page's week, and `background.js` (`overlayPlan`) asks the app without one and keeps
+  a single answer under `ov:plan`. The app already answers for a named week; the tiles use it.
+- **Change.** The tab sends the week in the address (`core.fixtureOf`), the worker checks it and passes it on, keeps one answer per week
+  (`ov:plan:<week>`), and the tab asks again when Sorare moves to another week without reloading. The title names the week answered.
+- **Test first.** `frontend/lib/extensionBackground.test.ts`: a plan asked for with a week sends it to the app and keeps two weeks'
+  answers apart. The overlay e2e: the fixture page with a week in its address shows that week in the tab.
+- **Done when** the tests pass and, on GW21's compose page, the tab says "Your gameweek 21" with the plan's cards, every card or "+N"
+  (the rest of R26).
+
+### O14 · Every Celta game shows "No odds"
+
+- **What happens.** Radu, Altay (both copies) and Dituro show "No odds" for Elche v Celta, while every other LaLiga game has a
+  difficulty. The board has the game (Elche at home 52.9, Celta away 55.3).
+- **Why.** Sorare calls the club "Celta de Vigo" and the board "Celta". `clubKey` in `frontend/lib/home.ts` drops "de" but keeps
+  "vigo", so the two names never meet. It is the only one of the 20 clubs that fails (all 20 of Sorare's names in the payload were
+  checked against the board's). The home page's header uses the same lookup, so its Celta games lose their win and clean sheet too.
+- **Change.** One alias: `"celta vigo"` is `"celta"`.
+- **Test first.** `frontend/lib/overlay.test.ts`: every LaLiga club name Sorare uses finds its board club; today only Celta fails.
+- **Done when** the test passes and the four keepers show a difficulty on production.
+
 ---
 
 ## 6 · Order, and what it costs

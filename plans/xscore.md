@@ -831,8 +831,9 @@ again afterwards, so only the one that cannot is recorded live.
 - **Not recoverable, so recorded: Futbol Fantasy's start chance for every player of every match, who is out and why, and the
   formation** (`app/sorare/ff_chances.py`, read model `ff_chances`, written by the refresh's Sorare step beside the Lineups page, a
   failure of it leaving only itself out). Per match, `last` is the latest reading before the kick-off (replaced by each run until it,
-  then frozen) and `atLock` the reading at the Sorare gameweek's lock (replaced until the lock, then frozen): what a manager could
-  see when he set his lineup. A match first seen after its kick-off is not made up. Players are Futbol Fantasy's ids and names, matched
+  then frozen) and `atLock` the reading at the lock of the Sorare gameweek the match falls in (replaced until the lock, then frozen,
+  from the first run that sees the match, even before that gameweek is the one being planned): what a manager could see when he set
+  his lineup. A match first seen after its kick-off is not made up. Players are Futbol Fantasy's ids and names, matched
   to Sorare's when it is scored. About 40 KB a round, 1.5 MB a season; no migration. 9 tests, among them that a failure here still
   publishes the page.
 - **Not built, on purpose:** a record of Sorare's projection and odds for every player before the lock. A game not yet played lists its

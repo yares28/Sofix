@@ -78,8 +78,8 @@ def test_each_player_is_kept_with_his_chance_whether_in_the_eleven_or_an_alterna
 
 
 def test_before_the_lock_both_readings_follow_the_site_and_the_second_run_replaces_the_first(db: Any) -> None:
-    ff_chances.save(db, page(LOCK - timedelta(hours=20), p=0.8), WEEK, LOCK - timedelta(hours=20))
-    ff_chances.save(db, page(LOCK - timedelta(hours=3), p=0.6), WEEK, LOCK - timedelta(hours=3))
+    ff_chances.save(db, page(LOCK - timedelta(hours=20), p=0.8), [WEEK], LOCK - timedelta(hours=20))
+    ff_chances.save(db, page(LOCK - timedelta(hours=3), p=0.6), [WEEK], LOCK - timedelta(hours=3))
 
     match = kept(db)["matches"]["1"]
     assert match["gw"] == "gw-plan" and match["atLock"]["home"]["players"]["10"]["p"] == 0.6
@@ -88,8 +88,10 @@ def test_before_the_lock_both_readings_follow_the_site_and_the_second_run_replac
 
 
 def test_after_the_lock_the_reading_at_the_lock_stays_and_the_last_reading_goes_on_until_the_kick_off(db: Any) -> None:
-    ff_chances.save(db, page(LOCK - timedelta(hours=3), p=0.6), WEEK, LOCK - timedelta(hours=3))
-    ff_chances.save(db, page(LOCK + timedelta(hours=2), p=0.2), WEEK, LOCK + timedelta(hours=2))  # news after the lock
+    ff_chances.save(db, page(LOCK - timedelta(hours=3), p=0.6), [WEEK], LOCK - timedelta(hours=3))
+    ff_chances.save(
+        db, page(LOCK + timedelta(hours=2), p=0.2), [WEEK], LOCK + timedelta(hours=2)
+    )  # news after the lock
 
     match = kept(db)["matches"]["1"]
     assert match["atLock"]["home"]["players"]["10"]["p"] == 0.6  # what a manager could see when he set his lineup
@@ -98,16 +100,18 @@ def test_after_the_lock_the_reading_at_the_lock_stays_and_the_last_reading_goes_
 
 def test_after_the_kick_off_nothing_changes_and_a_match_first_seen_then_is_not_made_up(db: Any) -> None:
     kickoff = LOCK + timedelta(hours=5)
-    ff_chances.save(db, page(kickoff - timedelta(hours=1), p=0.7, kickoff=kickoff), WEEK, kickoff - timedelta(hours=1))
+    ff_chances.save(
+        db, page(kickoff - timedelta(hours=1), p=0.7, kickoff=kickoff), [WEEK], kickoff - timedelta(hours=1)
+    )
     before = copy.deepcopy(kept(db))
 
     done = ff_chances.save(
-        db, page(kickoff + timedelta(minutes=5), p=0.1, kickoff=kickoff), WEEK, kickoff + timedelta(minutes=5)
+        db, page(kickoff + timedelta(minutes=5), p=0.1, kickoff=kickoff), [WEEK], kickoff + timedelta(minutes=5)
     )
     late = ff_chances.save(
         db,
         page(kickoff + timedelta(hours=1), kickoff=kickoff - timedelta(days=1), match_id=2),
-        WEEK,
+        [WEEK],
         kickoff + timedelta(hours=1),
     )
 
@@ -117,7 +121,7 @@ def test_after_the_kick_off_nothing_changes_and_a_match_first_seen_then_is_not_m
 
 def test_a_match_outside_the_planned_gameweek_has_only_its_last_reading(db: Any) -> None:
     later = datetime.fromisoformat(WEEK["end"]) + timedelta(days=3)
-    ff_chances.save(db, page(LOCK - timedelta(hours=3), kickoff=later), WEEK, LOCK - timedelta(hours=3))
+    ff_chances.save(db, page(LOCK - timedelta(hours=3), kickoff=later), [WEEK], LOCK - timedelta(hours=3))
 
     match = kept(db)["matches"]["1"]
     assert "last" in match and "atLock" not in match and match["gw"] is None
@@ -151,7 +155,7 @@ def test_the_refresh_keeps_every_players_chance_beside_the_lineups_page(db: Any,
     job = _step(monkeypatch, built)
     failed: dict[str, str] = {}
 
-    out = job.publish_lineups(db, failed, {"cards": [], "planGameweek": WEEK}, object(), None, read, write=True)
+    out = job.publish_lineups(db, failed, {"cards": [], "gameweeks": [WEEK]}, object(), None, read, write=True)
 
     assert failed == {} and out["matches"] == 1 and out["chances"] == {"written": 1, "frozen": 0}
     assert db.get(ReadModel, "lineups") is not None
@@ -162,7 +166,7 @@ def test_a_dry_run_keeps_nothing(db: Any, monkeypatch: Any) -> None:
     job = _step(monkeypatch, page(LOCK - timedelta(hours=3)))
 
     out = job.publish_lineups(
-        db, {}, {"cards": [], "planGameweek": WEEK}, object(), None, LOCK - timedelta(hours=3), write=False
+        db, {}, {"cards": [], "gameweeks": [WEEK]}, object(), None, LOCK - timedelta(hours=3), write=False
     )
 
     assert "chances" not in out and db.get(ReadModel, ff_chances.KEY) is None
@@ -178,8 +182,27 @@ def test_if_keeping_the_chances_fails_the_lineups_page_is_still_published(db: An
     failed: dict[str, str] = {}
 
     out = job.publish_lineups(
-        db, failed, {"cards": [], "planGameweek": WEEK}, object(), None, LOCK - timedelta(hours=3), write=True
+        db, failed, {"cards": [], "gameweeks": [WEEK]}, object(), None, LOCK - timedelta(hours=3), write=True
     )
 
     assert "ff chances" in failed and out["matches"] == 1 and out["chances"] == {}
     assert db.get(ReadModel, "lineups") is not None
+
+
+def test_a_match_in_a_later_gameweek_gets_its_reading_at_that_gameweeks_lock_before_it_is_the_planned_one(
+    db: Any,
+) -> None:
+    # Round 8 belongs to the gameweek after the one being planned: the snapshot lists every gameweek, so the reading at its lock is kept from now.
+    next_week = {
+        "slug": "gw-next",
+        "start": "2026-10-16T14:00:00+00:00",
+        "end": "2026-10-20T13:59:00+00:00",
+        "lock": "2026-10-16T14:00:00+00:00",
+    }
+    kickoff = datetime(2026, 10, 16, 19, tzinfo=UTC)
+    now = LOCK - timedelta(days=2)
+
+    ff_chances.save(db, page(now, p=0.55, kickoff=kickoff), [WEEK, next_week], now)
+
+    match = kept(db)["matches"]["1"]
+    assert match["gw"] == "gw-next" and match["atLock"]["home"]["players"]["10"]["p"] == 0.55

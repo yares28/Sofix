@@ -12,7 +12,8 @@ absent and why, and the formation:
 
 * `last`: the latest reading before the kick-off. Each run replaces it until the match starts, then it is frozen.
 * `atLock`: the reading at the Sorare gameweek's lock, which is what a manager could see when he set his lineup. Each run replaces
-  it until the lock, then it is frozen. A match outside the gameweek being planned has none.
+  it until the lock, then it is frozen. The gameweek is the one the match's kick-off falls in, whether or not it is the one being
+  planned yet, so the reading at the lock is kept from the first run that sees the match.
 
 A match first seen after its kick-off is not made up. One read model (`ff_chances`), no table: a round is about 40 KB, a season about
 1.5 MB. Players are Futbol Fantasy's own ids and names; matching them to Sorare's players is done afterwards, when it is scored.
@@ -77,16 +78,25 @@ def _load(db: Session) -> dict[str, Any]:
     return payload
 
 
-def save(db: Session, page: dict[str, Any], week: dict[str, Any] | None, now: datetime) -> dict[str, int]:
+def _gameweek_of(weeks: list[dict[str, Any]] | None, kickoff: datetime) -> tuple[str, datetime] | None:
+    """The Sorare gameweek a kick-off falls in, and its lock: [start, end), so a match on the day one ends belongs to the next."""
+    for week in weeks or []:
+        if _dt(week["start"]) <= kickoff < _dt(week["end"]):
+            return week["slug"], _dt(week["lock"])
+    return None
+
+
+def save(db: Session, page: dict[str, Any], weeks: list[dict[str, Any]] | None, now: datetime) -> dict[str, int]:
     """Write down each match of the Lineups page that has not kicked off, and freeze the readings as their moments pass.
 
-    `week` is the Sorare gameweek being planned (`slug`, `start`, `end`, `lock`): a match that kicks off inside it has an `atLock`
-    reading, replaced by each run until the lock. Returns how many matches were written and how many were already frozen.
+    `weeks` are Sorare's gameweeks (`slug`, `start`, `end`, `lock`), the planned one and the ones after it: a match that kicks off
+    inside one has an `atLock` reading, replaced by each run until that gameweek's lock, so the reading at the lock is kept from the
+    first run that sees the match, not only once its gameweek is the one being planned. Returns how many matches were written and how
+    many were already frozen.
     """
     matches = compact(page)
     if not matches:
         return {"written": 0, "frozen": 0}
-    start, end, lock = (_dt(week[key]) for key in ("start", "end", "lock")) if week else (None, None, None)
     payload = _load(db)
     written = frozen = 0
     for match_id, reading in matches.items():
@@ -95,15 +105,13 @@ def save(db: Session, page: dict[str, Any], week: dict[str, Any] | None, now: da
             frozen += 1
             continue
         entry = payload["matches"].setdefault(match_id, {})
-        in_week = bool(week and start and end and start <= kickoff < end)
-        entry.update(
-            {"kickoff": reading["kickoff"], "round": reading["round"], "gw": week["slug"] if week and in_week else None}
-        )
+        week = _gameweek_of(weeks, kickoff)
+        entry.update({"kickoff": reading["kickoff"], "round": reading["round"], "gw": week[0] if week else None})
         stamped = {"at": now.isoformat(), **reading}
         stamped.pop("kickoff", None)
         stamped.pop("round", None)
         entry["last"] = stamped
-        if in_week and lock and now < lock:
+        if week and now < week[1]:
             entry["atLock"] = copy.deepcopy(stamped)
         written += 1
     if written:

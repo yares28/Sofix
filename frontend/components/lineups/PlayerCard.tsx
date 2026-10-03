@@ -1,19 +1,20 @@
 import Link from "next/link";
+import { useContext } from "react";
 import CardArt from "../cards/CardArt";
 import Silhouette from "../Silhouette";
 import FacePhoto from "./FacePhoto";
-import { chanceTone, type Line, type LineupPlayer, type OwnedCard } from "../../lib/lineups";
+import { type Line, type LineupPlayer, type OwnedCard } from "../../lib/lineups";
+import { chanceFor, chancePercent } from "../../lib/lineupChances";
+import Chance, { ChanceContext } from "./Chance";
 import { cardHref } from "../../lib/links";
 import { CalledUpIcon, CalledUpMark, KindIcon, KIND_LABEL } from "./Icons";
 
 /** The rarity as the card's own words say it: shown to a screen reader and on hover, the card's colour carries it on the pitch. */
 const RARITY_TEXT: Record<string, string> = { limited: "limited", rare: "rare", super_rare: "super rare", unique: "unique" };
 
-export const percent = (p: number | null) => (p === null ? "–" : `${Math.round(p * 100)}`);
-
 /** The spoken version of a player's place on the page, for screen readers and the tooltip. */
-export function describe(player: LineupPlayer, owned: boolean, calledUp = false): string {
-  const bits = [player.name, player.p === null ? "no chance given" : `${percent(player.p)}% to start`];
+export function describe(player: LineupPlayer, owned: boolean, calledUp = false, p = player.p): string {
+  const bits = [player.name, p === null ? "no chance given" : `${chancePercent(p)} to start`];
   if (player.status?.kind) bits.push(KIND_LABEL[player.status.kind].toLowerCase());
   if (calledUp && player.status?.international) bits.push("called up by his national team");
   if (owned) bits.push("your card");
@@ -48,12 +49,13 @@ export default function PlayerCard({
   labels?: Record<string, string>;
   mine?: Set<string>;
 }) {
+  const view = useContext(ChanceContext);
   const pic = card?.pic ?? art;
   const rarity = card?.rarity ?? (art ? "limited" : "common");
   const kind = player.status?.kind;
   const mark = kind ? <KindIcon kind={kind} ring /> : calledUp && player.status?.international ? player.status.nat ? <CalledUpMark code={player.status.nat} /> : <CalledUpIcon ring /> : null;
   return (
-    <li className="lu-card" data-rarity={rarity} data-mine={card ? "" : undefined} data-out={kind === "out" || kind === "suspended" ? "" : undefined} aria-label={describe(player, Boolean(card), calledUp)} title={card ? `${player.name} · your ${RARITY_TEXT[rarity] ?? ""} card`.replace("  ", " ") : player.name}>
+    <li className="lu-card" data-rarity={rarity} data-art={pic ? "" : undefined} data-mine={card ? "" : undefined} data-out={kind === "out" || kind === "suspended" ? "" : undefined} aria-label={describe(player, Boolean(card), calledUp, chanceFor(player, view))} title={card ? `${player.name} · your ${RARITY_TEXT[rarity] ?? ""} card`.replace("  ", " ") : player.name}>
       <div className="lu-face">
         {pic ? (
           <CardArt
@@ -87,9 +89,7 @@ export default function PlayerCard({
           </>
         )}
       </div>
-      <span className="lu-pct" data-tone={chanceTone(player.p)}>
-        {percent(player.p)}%
-      </span>
+      <Chance player={player} />
       {mark ? <span className="lu-mark">{mark}</span> : null}
       {next.length ? (
         <ul className="lu-next" aria-label={`Could come in for ${player.name}`}>
@@ -97,7 +97,7 @@ export default function PlayerCard({
             const own = Boolean(one.yours && mine.has(one.yours));
             const name = labels[one.id] ?? one.name;
             return (
-              <li key={one.id} className="lu-nx" data-mine={own ? "" : undefined} title={`${one.name}${one.p === null ? "" : ` · ${percent(one.p)}% to start`}`}>
+              <li key={one.id} className="lu-nx" data-mine={own ? "" : undefined} title={describe(one, own, false, chanceFor(one, view))}>
                 {own ? (
                   <Link className="lu-nx-go" href={cardHref(one.yours!)}>
                     {name}
@@ -105,7 +105,7 @@ export default function PlayerCard({
                 ) : (
                   <span>{name}</span>
                 )}
-                <i data-tone={chanceTone(one.p)}>{percent(one.p)}%</i>
+                <Chance player={one} inline />
               </li>
             );
           })}

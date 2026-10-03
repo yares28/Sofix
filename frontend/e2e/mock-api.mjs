@@ -201,6 +201,16 @@ const lineupsPayload = (() => {
   return { success: true, data };
 })();
 
+// Give the three scripted source forecasts their recorded FF match/player identity for the Lineups source switch.
+for (const player of planning.playing.players.slice(0, 3)) {
+  const first = [...player.games].sort((a, b) => a.kickoff.localeCompare(b.kickoff))[0];
+  if (!first) continue;
+  for (const match of lineupsPayload.data.matches) for (const side of [match.home, match.away]) {
+    const linked = [...side.rows.flatMap((row) => row.players), ...side.alternatives].find((one) => one.yours === player.player);
+    if (linked) Object.assign(first, { ffMatch: { id: match.id, url: match.url }, ffPlayer: linked.id });
+  }
+}
+
 // The Audit page (`read_models` key `audit`): the page the job would publish on 2 Oct as it is (Sofix's chance written down for GW19's games, none
 // played yet; the replay of the past from the committed file), and the same page once the record has enough games to give figures, so the figures,
 // their wording and the bands have something to draw.

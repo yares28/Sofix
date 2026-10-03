@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { createPortal } from "react-dom";
 import {
-  CHANCE_KEY,
   MAX_AGE_MS,
   calledUpIn,
-  chanceTone,
   freshness,
   kickoffLabel,
   matchAddress,
@@ -19,16 +18,17 @@ import {
   teamsRead,
   timelineOf,
   tint,
-  yoursPlayers,
   type LineupMatch,
   type LineupsData,
   type LineupSide,
-  type PlayerKind,
   type Section,
   type TimelineDay,
 } from "../../lib/lineups";
-import { cardHref } from "../../lib/links";
-import { CalledUpMark, ChevronIcon, ExternalIcon, InfoIcon, KindIcon, LockIcon } from "./Icons";
+import { CHANCE_SOURCES, type LineupChances } from "../../lib/lineupChances";
+import type { MatchFacts } from "../../lib/lineupMatchFacts";
+import type { StartSource } from "../../lib/play";
+import { ChanceContext } from "./Chance";
+import { CalledUpMark, ExternalIcon, InfoIcon, KindIcon } from "./Icons";
 import Shield from "./Shield";
 import TeamColumn from "./TeamColumn";
 
@@ -36,13 +36,13 @@ export type ClubLook = { color: string; crest: string | null };
 
 type Props = {
   data: LineupsData;
+  chances: LineupChances;
+  facts: Record<number, MatchFacts>;
   sections: Section[];
   /** The match the page opened on: the one the address asked for, else the next to be played. */
   initial: LineupMatch;
   now: Date;
   clubs: Record<string, ClubLook>;
-  /** The Sorare week this round feeds, with its Play page (null when the section is not LaLiga's). */
-  sorare: { text: string; href: string; open: boolean } | null;
   /** Lines shown above the match: why the page is not the week you came with. */
   flash: string[];
   /** The match the address asked for when Futbol Fantasy no longer has it: said until another match is picked. */
@@ -62,7 +62,9 @@ const switchTo = (match: LineupMatch) => (event: MouseEvent<HTMLAnchorElement>) 
 };
 const lookOf = (side: LineupSide, clubs: Record<string, ClubLook>) => (side.club ? clubs[side.club] : undefined);
 
-export default function LineupsView({ data, sections, initial, now, clubs, sorare, flash, gone }: Props) {
+export default function LineupsView({ data, chances, facts, sections, initial, now, clubs, flash, gone }: Props) {
+  const [source, setSource] = useState<StartSource>("futbolfantasy");
+  const [onlyMine, setOnlyMine] = useState(false);
   const asked = useSearchParams().get("m");
   const selected = matchAsked(data.matches, asked, initial);
   const section = sections.find((one) => one.matches.some((match) => match.id === selected.id)) ?? sections[0]!;
@@ -93,13 +95,6 @@ export default function LineupsView({ data, sections, initial, now, clubs, sorar
         </p>
         <h1>Who starts this round?</h1>
         <div className="lu-chips">
-          {section.competition === "laliga" && sorare ? (
-            <Link href={sorare.href} className="lu-lock" data-open={sorare.open ? "" : undefined}>
-              <LockIcon />
-              {sorare.text}
-              <ChevronIcon />
-            </Link>
-          ) : null}
           <ReadPill data={data} matches={section.matches} now={now} />
         </div>
       </header>
@@ -136,7 +131,7 @@ export default function LineupsView({ data, sections, initial, now, clubs, sorar
         <div className="lu-strip-scroll" ref={scroller}>
           <div className="lu-days">
             {days.map((day) => (
-              <Day key={day.key} day={day} selected={selected.id} now={now} clubs={clubs} />
+              <Day key={day.key} day={day} selected={selected.id} now={now} clubs={clubs} facts={facts} />
             ))}
           </div>
         </div>
@@ -145,90 +140,43 @@ export default function LineupsView({ data, sections, initial, now, clubs, sorar
 
       <article key={selected.id} className="lu-match" aria-label={`${selected.home.name} against ${selected.away.name}`}>
         <MatchHead match={selected} state={state} now={now} clubs={clubs} />
-        <YoursStrip match={selected} />
-        <ChanceKey />
-        <fieldset className="lu-switch" aria-label="Team">
-          <legend className="visually-hidden">Team</legend>
-          <input type="radio" name="lu-side" id="lu-side-home" className="lu-pick lu-pick-home" defaultChecked />
-          <label htmlFor="lu-side-home">
-            <Shield crest={lookOf(selected.home, clubs)?.crest ?? selected.home.crest} color={lookOf(selected.home, clubs)?.color} code={shortCode(selected.home)} width={16} />
-            {selected.home.name}
+        <div className="lu-controls">
+          <fieldset className="lu-chance-sources">
+            <legend className="visually-hidden">Chance to start source</legend>
+            {(Object.entries(CHANCE_SOURCES) as [StartSource, string][]).map(([key, name]) => (
+              <label key={key}>
+                <input type="radio" name="lu-source" value={key} checked={source === key} onChange={() => setSource(key)} />
+                <span>{name}</span>
+              </label>
+            ))}
+          </fieldset>
+          <label className="lu-only" htmlFor="lu-only">
+            <input type="checkbox" role="switch" id="lu-only" checked={onlyMine} onChange={(event) => setOnlyMine(event.target.checked)} />
+            Only my players
           </label>
-          <input type="radio" name="lu-side" id="lu-side-away" className="lu-pick lu-pick-away" />
-          <label htmlFor="lu-side-away">
-            <Shield crest={lookOf(selected.away, clubs)?.crest ?? selected.away.crest} color={lookOf(selected.away, clubs)?.color} code={shortCode(selected.away)} width={16} />
-            {selected.away.name}
-          </label>
-          <div className="lu-teams">
-            <TeamColumn side={selected.home} place="home" round={selected.round} cards={data.cards} art={data.art} look={lookOf(selected.home, clubs)} now={now} />
-            <TeamColumn side={selected.away} place="away" round={selected.round} cards={data.cards} art={data.art} look={lookOf(selected.away, clubs)} now={now} />
-          </div>
-        </fieldset>
+        </div>
+        <ChanceContext.Provider value={{ source, values: chances[selected.id] ?? {}, url: selected.url }}>
+          <fieldset className="lu-switch" aria-label="Team">
+            <legend className="visually-hidden">Team</legend>
+            <input type="radio" name="lu-side" id="lu-side-home" className="lu-pick lu-pick-home" defaultChecked />
+            <label htmlFor="lu-side-home">
+              <Shield crest={lookOf(selected.home, clubs)?.crest ?? selected.home.crest} color={lookOf(selected.home, clubs)?.color} code={shortCode(selected.home)} width={16} />
+              {selected.home.name}
+            </label>
+            <input type="radio" name="lu-side" id="lu-side-away" className="lu-pick lu-pick-away" />
+            <label htmlFor="lu-side-away">
+              <Shield crest={lookOf(selected.away, clubs)?.crest ?? selected.away.crest} color={lookOf(selected.away, clubs)?.color} code={shortCode(selected.away)} width={16} />
+              {selected.away.name}
+            </label>
+            <div className="lu-teams">
+              <TeamColumn side={selected.home} place="home" round={selected.round} cards={data.cards} art={data.art} look={lookOf(selected.home, clubs)} now={now} />
+              <TeamColumn side={selected.away} place="away" round={selected.round} cards={data.cards} art={data.art} look={lookOf(selected.away, clubs)} now={now} />
+            </div>
+          </fieldset>
+        </ChanceContext.Provider>
         <Legend calledUp={calledUpIn(selected)} />
       </article>
     </main>
-  );
-}
-
-/** What the colours of the % badges mean, once, under the match head (the legend at the foot said it for no colour at all). */
-function ChanceKey() {
-  return (
-    <div className="lu-key" role="group" aria-label="What the colours of the chances mean">
-      <b>Chance to start</b>
-      {CHANCE_KEY.map((one) => (
-        <span key={one.tone}>
-          <i data-tone={one.tone} aria-hidden="true" />
-          {one.label}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-const WORD: Partial<Record<PlayerKind, string>> = { out: "out", doubt: "doubt", suspended: "suspended" };
-const pct = (p: number | null) => (p === null ? "–" : `${Math.round(p * 100)}%`);
-
-/**
- * Your players are the point of the page, so they come first: who of yours the match names, with his chance, whether he is in the
- * eleven or an alternative, and what is wrong with him. The switch dims everyone else on the pitch and in the lists (CSS only).
- */
-function YoursStrip({ match }: { match: LineupMatch }) {
-  const list = yoursPlayers(match);
-  return (
-    <section className="lu-yours" aria-label="Your players in this match">
-      <div className="lu-yours-head">
-        <h2>{list.length === 0 ? "None of your players are in this match" : `Your ${list.length} here`}</h2>
-        {list.length > 0 ? (
-          <label className="lu-only" htmlFor="lu-only">
-            <input type="checkbox" role="switch" id="lu-only" />
-            Only my players
-          </label>
-        ) : null}
-      </div>
-      {list.length > 0 ? (
-        <ul className="lu-yours-list">
-          {list.map((player) => (
-            <li
-              key={player.slug}
-              className="lu-yours-one"
-              data-starting={player.starting ? "" : undefined}
-              data-kind={player.kind ?? undefined}
-              title={`${player.name} (${player.club}): ${player.starting ? "in the probable eleven" : "an alternative"}`}
-            >
-              <Link className="lu-yours-name" href={cardHref(player.slug)}>
-                <b>{player.label}</b>
-              </Link>
-              <span className="lu-pct lu-pct-sm" data-tone={chanceTone(player.p)}>
-                {pct(player.p)}
-              </span>
-              {player.kind ? <KindIcon kind={player.kind} size={15} /> : null}
-              {player.kind && WORD[player.kind] ? <span className="lu-yours-word">{WORD[player.kind]}</span> : null}
-              {!player.starting ? <span className="lu-yours-alt">alt</span> : null}
-            </li>
-          ))}
-        </ul>
-      ) : null}
-    </section>
   );
 }
 
@@ -265,7 +213,7 @@ function ReadPill({ data, matches, now }: { data: LineupsData; matches: LineupMa
 const PAIR_WIDTH = 92;
 
 /** One day of the round: its date, then each kickoff time on a rail with the games played then. */
-function Day({ day, selected, now, clubs }: { day: TimelineDay; selected: number; now: Date; clubs: Record<string, ClubLook> }) {
+function Day({ day, selected, now, clubs, facts }: { day: TimelineDay; selected: number; now: Date; clubs: Record<string, ClubLook>; facts: Record<number, MatchFacts> }) {
   const games = day.slots.reduce((n, slot) => n + slot.matches.length, 0);
   return (
     <div className="lu-day" style={{ flex: `${games} 1 0`, minWidth: games * PAIR_WIDTH + (day.slots.length - 1) * 4 + 28 }}>
@@ -284,7 +232,7 @@ function Day({ day, selected, now, clubs }: { day: TimelineDay; selected: number
             </div>
             <div className="lu-pairs">
               {slot.matches.map((match) => (
-                <Pair key={match.id} match={match} current={match.id === selected} now={now} clubs={clubs} />
+                <Pair key={match.id} match={match} current={match.id === selected} now={now} clubs={clubs} facts={facts[match.id]} />
               ))}
             </div>
           </div>
@@ -295,22 +243,39 @@ function Day({ day, selected, now, clubs }: { day: TimelineDay; selected: number
 }
 
 /** A game as its two crests, home side first; the club names are in the label and on hover. */
-function Pair({ match, current, now, clubs }: { match: LineupMatch; current: boolean; now: Date; clubs: Record<string, ClubLook> }) {
+function Pair({ match, current, now, clubs, facts }: { match: LineupMatch; current: boolean; now: Date; clubs: Record<string, ClubLook>; facts?: MatchFacts }) {
   const state = matchState(match, now);
   const when = kickoffLabel(match.kickoff);
   const label = `${match.home.name} against ${match.away.name}, ${state === "started" ? `kicked off at ${when.time}` : when.short}`;
+  const [point, setPoint] = useState<{ left: number; top: number } | null>(null);
+  const show = (element: HTMLElement) => {
+    const rect = element.getBoundingClientRect();
+    setPoint({ left: Math.min(window.innerWidth - 170, Math.max(170, rect.left + rect.width / 2)), top: rect.bottom + 10 });
+  };
   return (
-    <Link href={hrefOf(match)} prefetch={false} onClick={switchTo(match)} className="lu-pair" aria-current={current ? "page" : undefined} aria-label={label} title={`${match.home.name} v ${match.away.name}`} data-state={state}>
+    <Link href={hrefOf(match)} prefetch={false} onClick={switchTo(match)} onMouseEnter={(event) => show(event.currentTarget)} onMouseLeave={() => setPoint(null)} onFocus={(event) => show(event.currentTarget)} onBlur={() => setPoint(null)} className="lu-pair" aria-current={current ? "page" : undefined} aria-label={label} aria-describedby={point ? `lu-pair-tip-${match.id}` : undefined} data-state={state}>
       {[match.home, match.away].map((one, index) => (
         <span key={index} className="lu-disc">
           <Shield crest={lookOf(one, clubs)?.crest ?? one.crest} color={lookOf(one, clubs)?.color} code={shortCode(one)} width={23} />
         </span>
       ))}
+      {point && createPortal(<span className="lu-pair-card" style={{ left: point.left, top: point.top }} role="tooltip" id={`lu-pair-tip-${match.id}`}>
+        <strong>{match.home.name} <span>vs</span> {match.away.name}</strong>
+        <small>{when.short} · {match.competitionName}</small>
+        {facts?.market ? (
+          <span className="lu-pair-facts"><em>Bookmaker chances</em><b>Home {Math.round(facts.market.win * 100)}%</b><b>Draw {Math.round(facts.market.draw * 100)}%</b><b>Away {Math.round(facts.market.loss * 100)}%</b></span>
+        ) : <span className="lu-pair-unavailable">Bookmaker odds unavailable</span>}
+        {facts?.prediction ? (
+          <span className="lu-pair-facts"><em>Sofix forecast</em><b>Home {Math.round(facts.prediction.probabilities.win * 100)}%</b><b>Draw {Math.round(facts.prediction.probabilities.draw * 100)}%</b><b>Away {Math.round(facts.prediction.probabilities.loss * 100)}%</b>{facts.prediction.xg_for !== null && facts.prediction.xg_against !== null ? <span>xG {facts.prediction.xg_for.toFixed(1)}–{facts.prediction.xg_against.toFixed(1)}</span> : null}</span>
+        ) : null}
+        <span className="lu-pair-facts"><em>Lineup notes</em><span>{match.home.formation} · {match.away.formation}</span></span>
+      </span>, document.body)}
     </Link>
   );
 }
 
 function MatchHead({ match, state, now, clubs }: { match: LineupMatch; state: ReturnType<typeof matchState>; now: Date; clubs: Record<string, ClubLook> }) {
+  const [infoOpen, setInfoOpen] = useState(false);
   const kick = kickoffLabel(match.kickoff);
   const homeLook = lookOf(match.home, clubs);
   const awayLook = lookOf(match.away, clubs);
@@ -344,11 +309,10 @@ function MatchHead({ match, state, now, clubs }: { match: LineupMatch; state: Re
       </div>
 
       <div className="lu-tools">
-        <details className="lu-info">
-          <summary aria-label="When Futbol Fantasy was read">
+        <div className="lu-info" data-open={infoOpen ? "" : undefined}>
+          <button type="button" aria-label="Futbol Fantasy reading details" aria-expanded={infoOpen} onClick={() => setInfoOpen(!infoOpen)}>
             <InfoIcon />
-            Read {readLabel(match.readAt, now)}
-          </summary>
+          </button>
           <div className="lu-info-card" role="group" aria-label="Futbol Fantasy reading">
             <b>Futbol Fantasy</b>
             <dl>
@@ -367,7 +331,7 @@ function MatchHead({ match, state, now, clubs }: { match: LineupMatch; state: Re
                   : "Lineups keep changing until kickoff."}
             </p>
           </div>
-        </details>
+        </div>
         <a className="lu-ext" href={match.url} target="_blank" rel="noopener noreferrer" aria-label="Open this match on Futbol Fantasy" title="Open on Futbol Fantasy">
           <ExternalIcon />
         </a>
@@ -405,7 +369,6 @@ function Legend({ calledUp }: { calledUp: boolean }) {
           <span>Called up by his national team</span>
         </span>
       ) : null}
-      <em>% = his chance of starting, from Futbol Fantasy. Under a card: who could come in for him.</em>
     </footer>
   );
 }

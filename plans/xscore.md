@@ -576,7 +576,10 @@ gameweek grade, a score if he makes a decisive action and one if he does not wit
 makes it finer but still accurate. Then a third time: keep every number on the Audit page with how often it was right and in how many
 games (the chance of a decisive action, the expected all-around points, the share of scores within 7 points of the xScore, and so on);
 show each player's average points for every stat, as in Sorare's tables, and use them to predict better; and say who is best for each
-daily mission, a card never in two missions at once.
+daily mission, a card never in two missions at once. Then a fourth time: all ten upgrades proposed that night (bookmakers' goal markets,
+team news for both sides, chances not just goals, penalty and set-piece takers, lineups on the real spread with linked scores, official
+lineups for daily missions, self-correcting numbers, the next five gameweeks, a decision scorecard, his role tonight), and as many
+tracked statistics as possible.
 
 **The idea.** A Sorare score is a decisive level plus all-around points: 35 with no decisive action, 60 with one, 70 with two (a level of
 60 or more is also a floor), and 15 or less after a red card, an own goal, a penalty conceded or an error that leads to a goal. Sivera at
@@ -606,33 +609,53 @@ stays because it sounds right.
 | 7 · Minutes | A starter often taken off near the hour earns fewer all-around points, has less time for a decisive action and can miss a defender's 60-minute clean sheet. | both |
 | 8 · Sorare's projection and its grade (A to F) | Sorare keeps, for every past game, the projection and the grade it gave before kick-off (checked 3 Oct: all 22 starters of Athletic–Alavés). The grade ranks the projection within the position: keepers 55 → A and 46 → C, defenders 55 → B, forwards 45 to 49 → D. Both become parts with a fitted weight, tested on two seasons instead of waiting for 100 recorded players (P6). | the xScore |
 | 9 · Cards and errors | His rate of red cards, own goals, penalties conceded and errors leading to a goal makes the negative chance; yellow cards and fouls cost all-around points. | the negative chance, the score without |
-| 10 · The rest, one at a time | Two games in a week (best of two, game by game, P4-4); club or national team (P4-1); a European game three days before; penalty duty where the stats show it. | as each says |
+| 10 · The rest, one at a time | Two games in a week (best of two, game by game, P4-4); club or national team (P4-1); a European game three days before. | as each says |
 | 11 · His stat sheet | His all-around points built stat by stat: how many of each stat he makes per game (saves, saves inside the box, tackles won, interceptions, passes, duels won, shots on target …) times today's points for his position, each moved by the game (a keeper's saves by the shots the opponent takes, a defender's tackles and interceptions by how much of the ball the opponent keeps). Tried against one all-around level; the closer one stays. | the score without |
+| 12 · Bookmakers' goal markets | The over/under line of each match turns, with the who-wins prices, into each side's expected goals and the chance of a clean sheet (today the football model blends only the who-wins prices, at 35%, for games within 7 days). Anytime-scorer prices once per round, if The Odds API's free plan has them for LaLiga (to check on the first read). | the chance, the score without |
+| 13 · Team news for both sides | The starters each side is missing (Futbol Fantasy's lineups and absences), each weighted by what he brings (his share of his side's shots, goals, assists, minutes and defensive actions, from X1), move each side's attack and defence before the scoreline chances are worked out: a keeper facing Barcelona without its striker gets a better chance of a clean sheet. | everything that follows the game |
+| 14 · Chances, not just goals | His decisive chance from the stats that come before goals and assists: shots on target, big chances created and missed, penalty-area entries, attempted assists. Goals are rare and mostly luck; chances repeat. Pulled to his position's rates while he has few games. | the chance |
+| 15 · Penalty and set-piece takers | Sorare's game stats count penalties, set pieces, corners and free kicks taken (`penaltyTaken`, `setPieceTaken`, `cornerTaken`, `attFreekickTotal`; checked in its schema on 3 Oct). The taker gets his side's expected penalties (a penalty is about three goals in four) and a set-piece taker his share of the assists; when he is out, the next taker inherits. | the chance |
+| 16 · His role tonight | From Futbol Fantasy's formation: a full-back used as a wing-back, a midfielder as a No. 10, a stand-in in a starter's role, a player back from injury on fewer minutes. His expected stats, minutes and share of the attack follow the role. | both scores, minutes |
 
 **The data (X1).** Two free questions per LaLiga game, because one asks for more than Sorare allows without a key (checked: 879 against a
 limit of 500). The first: every player's score, decisive level and all-around points, whether he started, his minutes, Sorare's projection
 and grade, the two teams and the result. The second: each score broken into its 53 stats (goals, assists, clean sheet, saves, saves inside
-the box, goals conceded, passes, duels, cards …). Checked on Athletic 0–0 Alavés: 57 players, 22 of them starters. 2025/26 and 2026/27 so
-far is about 450 games, so about 900 questions two seconds apart: under an hour with the waits, free, in a local git-ignored file like the
-history export. Each game is joined to the football model's forecast from the Monday before (P8's join) and to football-data.co.uk's shots.
-In production the refresh reads only the new games (about 20 questions a week) and keeps the levels and tables in a read model: no
-migration.
+the box, goals conceded, passes, duels, cards …). Checked on Athletic 0–0 Alavés: 57 players, 22 of them starters. The penalties and set
+pieces taken (part 15) come from the same game stats, in a third light question per game if the limit asks for it, and the official
+elevens from each game's `homeFormation` and `awayFormation`. 2025/26 and 2026/27 so far is about 450 games, so about 900 to 1,350
+questions two seconds apart: about an hour with the waits, free, in a local git-ignored file like the history export. Each game is joined to
+the football model's forecast from the Monday before (P8's join), to football-data.co.uk's shots, and to the over/under 2.5 prices those
+files hold for both seasons, so part 12 can be tested on history. In production the refresh reads only the new games (about 20 to 30
+questions a week) and keeps the levels and
+tables in a read model: no migration. The Odds API's over/under market about doubles the cost of each odds read, about 240 of the free 500
+credits a month at today's pace; scorer prices would cost about 10 a read; if a month would run short, scorer prices go first.
 
 With every LaLiga player, one round gives about 220 starts to test on, not only your players' games, so the held-out weeks can decide
 within a round or two.
 
 **The bar.** Walk-forward by Sorare gameweek, as P2. Fit on 2025/26, check on 2026/27 up to 1 Oct, then on the held-out weeks from 1 Oct.
 Baselines: today's formula, the position's plain average (it beat today's for keepers, P8) and Sorare's projection alone. A part stays
-only if the squared miss falls with an interval under zero and the pair figure (the Audit's 66%) does not fall. The chance of a decisive
-action must be honest (of the games where it says 30%, about 30% have one; scored like the start chances), and the range must hold about
-8 starts in 10. The Audit shows each ("too few to tell" under 100).
+only if the squared miss falls with an interval under zero and the pair figure (the Audit's 66%) does not fall; parts 12 to 16 are added
+one at a time like the others. The chance of a decisive action must be honest (of the games where it says 30%, about 30% have one; scored
+like the start chances), and the range must hold about 8 starts in 10. The Audit shows each ("too few to tell" under 100).
 
 **His stat sheet.** For every player, each all-around stat of Sorare's table (the 53 of the second question, grouped as Sorare groups
 them: general, defensive, possession, passing, attacking, goalkeeping) with how many he makes per game and the points they earn him, beside
-his decisive actions per game (goals, assists, penalties won, clean sheets, penalty saves …). Counts are kept as counts and turned into
-points with today's table (the new column of Sorare's picture, section 1), so last season's games count by this season's rules; each score's
-`scoringVersion` says which table Sorare used. It feeds part 11, and it is shown on the Players page (his whole sheet, over his last five
-games and the season, with what is expected in his next game) and, its top lines, in the overlay's panel.
+his decisive actions per game (goals, assists, penalties won, clean sheets, penalty saves …) and the set pieces he takes. Counts are kept as
+counts and turned into points with today's table (the new column of Sorare's picture, section 1), so last season's games count by this
+season's rules; each score's `scoringVersion` says which table Sorare used. It feeds part 11, and it is shown on the Players page (his
+whole sheet, over his last five games and the season, with what is expected in his next game) and, its top lines, in the overlay's panel.
+
+**Lineups and the captain, on the real spread.** Today the planner gives every player the same spread (17.6, `planner.SCORE_SD`) and
+treats each as if no one else's game mattered. With P9 it simulates each match once (a scoreline from the football model, with parts 12
+and 13) and scores every player in it from that same match: a keeper and his defenders share the clean sheet, teammates share their side's
+goals, and a striker's goal is the other keeper's goal conceded. A few thousand simulated gameweeks give each plan its true chance of each
+reward and its expected essence (TODO.md's "reward probabilities and correlated outcomes"). The planner then:
+
+- picks lineups for the reward, not only the average;
+- puts a keeper with his defenders, or teammates up front together, when a reward needs a high total, and spreads them when a safe total
+  is enough;
+- picks the captain for his ceiling (the chance of a big score) where that earns more than his average.
 
 **Daily missions.** Sorare's help (read 3 Oct): pick up to 3 players with a game that day; when they make a positive decisive action you
 earn XP, as much as the card's scarcity gives; picks can change until kick-off, and the mission resets at 9:00 CET. In Sorare's API a
@@ -648,49 +671,105 @@ A card is never suggested for two missions running at the same time: the cards a
 reward, each card in one place and each mission with its number of picks. The extension reads the missions from your signed-in Sorare tab,
 read only; you make the picks on Sorare.
 
+**Official elevens.** Picks can change until kick-off. From about an hour before each kick-off the extension checks Sorare's game for the
+official eleven (`homeFormation` and `awayFormation`, with `startingLineupAvailable`; checked in Sorare's schema on 3 Oct), re-ranks the
+cards and flags a pick who is on the bench, with the best card still free beside him.
+
+**Self-correcting numbers.** The tracking feeds back. Every Monday each chance (a decisive action of each kind, a clean sheet, a start by
+each source, coming on, the range) is checked against what happened in its bands; where the share that happened is off (said 30%,
+happened 25%), a correction per position is fitted on the recent weeks and applied in its own refresh. A correction needs 100 cases behind
+it, each one is logged, and the Audit page shows it with whether the following weeks agreed. Futbol Fantasy stays the first source for the
+start chance (decision 1): only its lean is corrected.
+
+**The next five gameweeks.** For each player, the xScore of each of his next five gameweeks (his fixtures, the football model's numbers
+for each, his start chance fading towards his usual share further out) and their sum: which cards carry the coming weeks, which to keep,
+buy or sell. On the Cards page, beside each card's price (the page's own current snapshot), the expected points per euro over the five
+weeks. Sofix only suggests: it never buys or sells.
+
 **Tracking: every number is written down, scored and shown on the Audit page.** Before each lock Sofix writes down every number it gives,
-for every LaLiga player (not only yours, so one round gives about 220 starts): the xScore, the chance of a decisive action (and of each
-kind), the score with one and without, the expected all-around points and each stat, the range, the start chance, Sorare's projection and
-grade, and the mission picks. A day after the gameweek ends (when starts are settled today) each one is scored. The Audit page shows each
-figure as "right N of M (X%)", "too few to tell" under 100, beside the same figure for today's formula from the two-season replay, so
-before and after sit side by side:
+for every LaLiga player (not only yours, so one round gives about 220 starts); a day after the gameweek ends (when starts are settled
+today) each one is scored. Every figure is shown per gameweek and for the season, per position, as "right N of M (X%)" or a miss in points,
+"too few to tell" under 100, beside the same figure for today's formula from the two-season replay, so before and after sit side by side.
+The page leads with the headline figures and each group folds open beneath them.
 
-| Figure | Counted right when |
-|---|---|
-| The xScore | the score lands within ±7 points of it; also the typical miss |
-| The better of two | the pair figure (66% today) |
-| The range | the score lands inside it (aim: 8 in 10) |
-| The chance of a decisive action | it is honest: for each band (0 to 10%, 10 to 20% …) the share of games that had one falls in the band |
-| The score with one, the score without | each within ±7, in the games where that outcome happened |
-| The expected all-around points | within ±7 of what he made |
-| Each stat | within 1 for the stats made a few times a game (saves, tackles, shots), within 20% for the many (passes); also the average miss per stat |
-| The chance of a clean sheet | honest by band (a keeper's decisive action, a defender's +10) |
-| The start chance | as today, per source (Futbol Fantasy, Sorare, Sofix) |
-| Mission picks | of the cards suggested, how many completed the mission, against the chance given |
-| Against Sorare | how often Sofix's xScore was closer than Sorare's projection, and Sorare's own ±7 figure |
-| Each part | whether it still helps on the latest weeks (measured again each month); a part that stops helping loses its weight |
+*The headline figures:* the xScore within ±7 · the chance of a decisive action honest · the expected all-around points within ±7 · the
+range holding 8 in 10 · the better of two (66% today) · closer than Sorare's projection · mission picks completed · points left on the bench.
 
-The record lives in read models (no migration). If it outgrows them, a table is a **Stop**: a migration you apply.
+1. **The xScore.**
+   - within ±3, ±7, ±10 and ±15 points of the score;
+   - the typical miss and the squared miss, in points; too high or too low on average;
+   - the better of two (the pair figure); the order within a position each gameweek, and whether its top five held the best five;
+   - closer than Sorare's projection (the share of games), Sorare's own ±7, closer than today's formula;
+   - each split by position, club or national team, home or away, started or came on, difficulty band, Sorare's grade, one game or two.
+2. **The spread.** Inside the range (aim: 8 in 10); inside the middle band (aim: 1 in 2); the chance he beats his usual score and the
+   chance of 60 or more, each honest by band.
+3. **Decisive actions.**
+   - the chance of one, honest by band, overall and for each kind: goal, assist, penalty won, clearance off the line, last-man tackle,
+     clean sheet, penalty save;
+   - the chance of a negative one, honest by band, overall and for each kind: red card, own goal, penalty conceded, error leading to a goal;
+   - the level reached (15 or less, 35, 60, 70, 80 and up): the share expected against the share that happened;
+   - the score with one and the score without, each within ±7 in the games where that outcome happened;
+   - penalties and set pieces: taken by the named taker or by someone else.
+4. **All-around points and the 53 stats.**
+   - the expected all-around points within ±7; each of Sorare's groups (general, defensive, possession, passing, attacking, goalkeeping)
+     within ±3;
+   - each stat within 1 for those made a few times a game (saves, tackles, shots) and within 20% for the many (passes), with its average
+     miss and its lean (too high or too low);
+   - the points each stat earned against what the stat sheet expected.
+5. **The match.** The chance of a clean sheet, honest by band; each side's expected goals against the goals it scored; the football
+   model's goals against the bookmakers' over/under, which was closer; team news: in games with missing starters, with and without the
+   adjustment, which was closer.
+6. **Starting, minutes and role.**
+   - the start chance honest by band, for each source (Futbol Fantasy, Sorare, Sofix), before and after its correction; of the players put
+     at 80% or more, how many started;
+   - the chance of coming on, honest by band;
+   - minutes within 15 of the expected; taken off before the hour, expected against what happened;
+   - the stand-in named for a missing starter against who played.
+7. **Lineups and rewards.**
+   - each plan's expected total against its total;
+   - the chance of each reward, honest by band; essence expected against won;
+   - the captain: how often he was his lineup's best scorer, and the points he added against the best choice;
+   - linked scores: how closely a keeper and his defenders (and teammates up front) moved together, simulated against real.
+8. **The decision scorecard.** Each gameweek, your lineups as entered (the extension reads them, as today), Sofix's plan frozen at the lock
+   and the best lineups in hindsight from the same cards: the points left on the bench, how often the captain was the best choice, essence
+   expected against won, missions completed, and how your lineups did when they followed Sofix and when they did not.
+9. **Daily missions.** The suggested cards that completed the mission, against the chance given (honest by band); XP expected against
+   won; benched picks flagged before kick-off, and how many were swapped.
+10. **The next five gameweeks.** A forecast made one, two, three, four and five weeks ahead against the score, by distance; cards marked
+    "buy" or "sell" against the rest, in points per euro over the following five weeks.
+11. **The model itself.** Each part's gain on the latest weeks (measured again each month); each Monday correction: what changed, by how
+    much, and whether the following weeks agreed.
+12. **Coverage and freshness.** How many players had each number at the lock; how old Futbol Fantasy's % was; the reads that failed;
+    Sorare's projection, the odds and the official elevens present or missing.
+
+The record lives in read models (no migration): for every LaLiga player, the counts behind each figure; for your players, each number too.
+If it outgrows them, a table is a **Stop**: a migration you apply.
 
 **The honest limit.** The same player's score moves about 18 points from one game to the next (P2), and a decisive action is a weighted
 coin. The model can give the weight; it cannot call the toss.
 
 **Order.** One change to the numbers per refresh.
 
-1. X1 · the data (about a day: the reader, its tests, the read).
-2. X2 · tracking first: the record before each lock, the scoring after it, and the Audit's figures for today's formula (from the replay
-   and from each settled gameweek), so every later change shows as a before and an after.
-3. X3 · keepers (P8 did their groundwork): the chance of a clean sheet, the score with and without one, parts 1 to 5, 8 and 11.
-4. X4 · defenders, then midfielders and forwards: each its own refresh.
-5. X5 · on screen: a design canvas first (decision 8, a Stop: you choose), then the panel's two outcomes, range and reasons, the stat
-   sheet on the Players page and the Audit's new figures. The tile keeps one big number.
-6. X6 · daily missions: the extension reads them, Sofix ranks the cards, one card in one mission at a time.
-7. X7 · parts 6, 7, 9 and 10, one at a time.
+1. X1 · the data (about a day): the per-game reads, penalties and set pieces, the official elevens, the over/under line, and whether The
+   Odds API's free plan has scorer prices for LaLiga.
+2. X2 · tracking first: the record before each lock, the scoring after it, the Audit's figures with today's formula beside them, and the
+   decision scorecard, so every later change shows as a before and an after.
+3. X3 · keepers (P8 did their groundwork): the chance of a clean sheet and of a penalty save, the score with and without one, parts 1 to
+   5, 8, 11, 12 and 13.
+4. X4 · defenders, then midfielders and forwards: the same with parts 14, 15 and 16; each its own refresh.
+5. X5 · on screen: a design canvas first (decision 8, a Stop: you choose), covering the panel's two outcomes, range and reasons, the stat
+   sheet on the Players page, the next five gameweeks, the daily missions and the Audit's new figures. The tile keeps one big number.
+6. X6 · lineups and the captain on the real spread (its own refresh: the reward chances change).
+7. X7 · daily missions, with the official elevens.
+8. X8 · self-correcting numbers, from the first band with 100 cases.
+9. X9 · the next five gameweeks, with points per euro on the Cards page.
+10. X10 · parts 6, 7, 9 and 10, one at a time.
 
 **Done when:** each position that clears the bar ships in its own refresh; the panel shows the chance of a decisive action, the score with
-and without one, the range and the reasons; the Players page shows each player's stat sheet; each daily mission shows its best cards; the
-Audit shows every figure of the tracking table with its counts, before and after; the manual and `docs/how_it_works.md` describe the
-new score.
+and without one, the range and the reasons; the Players page shows each player's stat sheet and his next five gameweeks; the planner picks
+lineups and captains on the real spread; each daily mission shows its best cards and flags a benched pick; the Monday corrections run; the
+Audit shows every figure of the tracking catalogue with its counts, before and after, and the decision scorecard; the manual and
+`docs/how_it_works.md` describe the new score.
 
 ## 5 · Risks
 
@@ -701,6 +780,9 @@ new score.
 | A migration the unattended job cannot run | P1 waits for you to apply it; code is written to ship after it, not before. |
 | Sorare's API changes | The same guards as `sync.py`; an unreadable field leaves the number out, never a stale one. |
 | Shifting numbers confuse the picture | One change per refresh; nothing in the same refresh as the FF switch ([futbolfantasy.md](futbolfantasy.md) S3). |
+| Sixteen parts on two seasons (P9) | Each part fitted on 2025/26 and kept only if it clears the bar on its own; parts 12 to 16 added one at a time; shrinkage everywhere. |
+| The Odds API's free credits (P9 part 12) | The over/under market about doubles a read's cost (about 240 of 500 a month); scorer prices go first if a month would run short; nothing paid. |
+| An Audit page with too many figures (P9 tracking) | The headline figures lead; each group folds open; every figure says how many cases stand behind it, "too few to tell" under 100. |
 
 ## 6 · For the owner
 
@@ -728,5 +810,5 @@ each (roadmap batch 9). P4-1, the level fix, is paused by you until games from 1
 
 **From 3 Oct, evening:** P9 replaces P8's single number with the full model (roadmap batch 10): the data, then the tracking (so every
 change shows as a before and an after on the Audit page), then keepers, then the other positions, one refresh each, each built as the
-chance of a decisive action with a score with and without one; then the stat sheet and the daily missions. Its look on screen waits for a
-design canvas.
+chance of a decisive action with a score with and without one; then the screens, lineups and the captain on the real spread, the daily
+missions with the official elevens, the Monday corrections and the next five gameweeks. Its look on screen waits for a design canvas.

@@ -83,7 +83,7 @@ roadmap's batch 9.
   version, and when it is older than the app needs, the tile reads "Reload" instead of numbers. With A, that should almost never show.
 - **When.** Release 1 (roadmap 9.10, formerly 7.1 and 7.2).
 
-### G · The new xScore: the score added up the way Sorare adds it (your three requests of 3 Oct, evening)
+### G · The new xScore: the score added up the way Sorare adds it (your four requests of 3 Oct, evening)
 - **What you said.** Mix in form against the opponent, Elo-style: a good game against weak teams, or when his side was the favourite, is a
   small boost; otherwise a big one. Also the app's difficulty, his average when he starts and when he does not, what keepers (or any
   position) score against that team, and more. "xScore has to be intricate": a range of scores, and everything together says whether he
@@ -91,18 +91,26 @@ roadmap's batch 9.
   and one if he does not with the chance that he makes one, and more parts that make it finer but still accurate. Then, with Sorare's three
   scoring tables: show on the Audit page how often each number was right and in how many games (the expected decisive %, the expected
   all-around points, the scores within ±7 of the xScore, and so on); show each player's average points for every stat and use them to
-  predict better; and say who is best for each daily mission, a card never in two missions at a time.
+  predict better; and say who is best for each daily mission, a card never in two missions at a time. Then: "I like all of them" (the ten
+  upgrades proposed: bookmakers' goal markets, team news for both sides, chances not just goals, penalty and set-piece takers, lineups on
+  the real spread with linked scores, official lineups for missions, self-correcting numbers, the next five gameweeks, a decision
+  scorecard, his role tonight), with as many tracked statistics as possible.
 - **The plan.** [plans/xscore.md](plans/xscore.md) P9. For each player and game: the chance of a decisive action (and of a negative one),
   his score with one and without, and from those the xScore, his range and the reasons in points ("decisive 28% → about 66 · none 72% →
-  about 39"). Eleven parts go in, each weighted by the backtest per position: form that knows the opponent, the game (the numbers behind
+  about 39"). Sixteen parts go in, each weighted by the backtest per position: form that knows the opponent, the game (the numbers behind
   the difficulty), starting or coming on, his share of his side's attack, what the opponent gives his position, shots, minutes, Sorare's
-  projection and grade (Sorare keeps both for past games, checked), cards and errors, the rest, and his stat sheet (his all-around points
-  built stat by stat). Every number is written down before each lock for every LaLiga player and scored after the games; the Audit page
-  shows each as "right N of M" beside today's formula. The stat sheet goes on the Players page. Each daily mission (Sorare's
-  `DecisivePlayerPickerTask`, read only through the extension) gets its best cards, one card in one mission. It takes in P8 (keepers first).
+  projection and grade (Sorare keeps both for past games, checked), cards and errors, the rest, his stat sheet (his all-around points built
+  stat by stat), the bookmakers' goal markets, team news for both sides, chances not just goals, penalty and set-piece takers, and his role
+  tonight. The planner picks lineups and captains on the real spread, with linked scores. Each daily mission (Sorare's
+  `DecisivePlayerPickerTask`, read only through the extension) gets its best cards, one card in one mission, re-ranked when the official
+  elevens are out. The chances correct themselves every Monday. The next five gameweeks go on the Players page, with points per euro on
+  the Cards page. Every number is written down before each lock for every LaLiga player and scored after the games; the Audit page shows a
+  catalogue of twelve groups of figures (headline figures first) beside today's formula, and a decision scorecard. It takes in P8 (keepers
+  first).
 - **What it needs from you.** Your go; a choice on a design canvas before it shows on screen; and whether Sorare's projection still
   replaces the number near the lock until it is measured (recommended: no, it sits beside it).
-- **When.** Roadmap batch 10: the data, tracking first, then one refresh per position, the screens, then daily missions.
+- **When.** Roadmap batch 10: the data, tracking first, one refresh per position, the screens, lineups on the real spread, daily missions,
+  the Monday corrections, then the next five gameweeks.
 
 ## Paused
 
@@ -235,8 +243,9 @@ reload your sorare.com tab. The popup's **Cards recognised here** should read "N
 Not built (designed in S7, not in the plan): the big "Sofix panel" on a player page. Not enforced yet: matching the
 signed-in Sorare account to the owner (numbers are gated by the extension's token).
 
-### Calibrate reward probabilities and correlated outcomes — *blocked on the same data as T1*
-Whether the stated reward odds match what actually happens, and whether picks in one lineup move together.
+### Calibrate reward probabilities and correlated outcomes — *planned in roadmap 10.6 (P9, 3 Oct)*
+Whether the stated reward odds match what actually happens, and whether picks in one lineup move together. P9 simulates each match once
+and scores every player from it, so linked scores are counted, and its tracking scores the reward chances by band.
 
 ### Retire SorareExt — *blocked on your item 1*
 Only after the live acceptance test passes and the recovery steps are written down.

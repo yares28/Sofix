@@ -149,7 +149,7 @@ def test_a_player_is_written_with_the_numbers_the_model_had_for_him_and_what_eac
         model["projection"] == 55.0 and model["startOdds"] == pytest.approx(0.9) and model["playsOdds"] is not None
     )  # Sorare's own
     assert model["pStart"] == 0.7 and model["startSource"] == "futbolfantasy"  # the number the page used
-    assert {"mu", "pPlay", "start", "bench", "pOn", "benchedOn", "source"} <= set(model) and model["bench"] > 0
+    assert {"mu", "pPlay", "start", "bench", "on", "pOn", "benchedOn", "source"} <= set(model) and model["bench"] > 0
     assert model["form"] == {"n": 2, "played": 2, "started": 0}, (
         "two games in his history, and no roles recorded for them"
     )

@@ -449,12 +449,15 @@ def test_every_player_carries_two_scores_and_two_chances(payload):
     players = publish.week_of(payload)["playing"]["players"]
     assert players
     for player in players:
-        assert {"start", "bench", "pStart", "pOn"} <= player.keys(), player["name"]
+        assert {"start", "bench", "on", "pStart", "pOn"} <= player.keys(), player["name"]
         assert 0 <= player["pStart"] + player["pOn"] <= 1 and player["bench"] <= player["start"]
     keeper = next(p for p in players if p["player"] == "keeper-one")
     # Sorare gave starter 90%, substitute 5%, not playing 5%; a regular starter's start score is its projection.
     assert (keeper["pStart"], keeper["pOn"], keeper["start"]) == (0.9, 0.05, 55.0)
     assert keeper["bench"] == pytest.approx(0.5 * 42.0, abs=0.06)  # benched: on 0.05 / (0.05 + 0.05) of the time
+    # The score if he comes on is the substitute score itself (P7), not the chance of coming on times it: 42 here, the bench prior.
+    assert keeper["on"] == pytest.approx(42.0, abs=0.06)
+    assert all(player["on"] > player["bench"] or player["on"] == pytest.approx(player["bench"]) for player in players)
 
 
 def _with_understat(snap: dict[str, Any]) -> dict[str, Any]:

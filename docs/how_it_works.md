@@ -254,6 +254,16 @@ else his form's, and nothing when Futbol Fantasy has him injured or suspended. T
 source and combine as one minus the misses. A player Futbol Fantasy says nothing about is answered exactly as before it
 existed, and each game of one it does carries its own `pStart`, `pOn` and `startSource` in the page.
 
+**The two scores (plans/xscore.md, P7).** A player has a score if he starts (`start`) and a score if he comes on from the bench (`on`).
+Sorare's rule is that a substitute who comes on starts at the same 35 points as a starter, so `on` is a score of about 40: his
+substitute appearances pulled towards 42, each worth two (`forecast._split`, `score_on`). It is not multiplied by the chance of coming
+on any more; that chance (`pOn` of the games he does not start, `benchedOn`) is shown beside it. `bench`, which is that chance times
+the score, is still published for the pages and extensions that predate `on`, and means what it always did. The backtest
+(`python -m app.jobs.xscore_backtest --conditional`) scores each number on the games of its own role: on 712 appearances off the bench no
+candidate (the position's norm, his own appearances shrunk to it, the norm by minutes played) was clearly closer than today's, so `on` is
+today's substitute score unchanged. On 2,589 games he started, his own starts shrunk towards the position's norm were closer than today's
+`start` (squared error -25 points [-34, -16] over 107 weeks), a candidate that waits for the held-out weeks.
+
 Futbol Fantasy is read before the page is planned (`app.sources.futbolfantasy_matches`, `app.sorare.ff_feed`): the round page
 of LaLiga, Champions League, Europa League and Copa del Rey, then the match pages of every LaLiga match and of the others
 that have a Spanish club or a club one of the owner's players is at, two seconds apart, inside a 240-second budget, giving up

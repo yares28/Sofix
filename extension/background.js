@@ -71,7 +71,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     return true;
   }
   if (message?.type === "overlay-plan") {
-    overlayPlan().then(reply);
+    overlayPlan(fixtureOf(message.fixture)).then(reply);
     return true;
   }
   if (message?.type === "ff-live") {
@@ -237,13 +237,17 @@ async function ffRead(wanted) {
   return { state: "ok", live };
 }
 
-/** The gameweek's plan, for the drawer. Asked for only when the drawer is opened, and kept as long as the numbers. */
-async function overlayPlan() {
-  const { "ov:plan": held } = await chrome.storage.session.get("ov:plan");
+/**
+ * The gameweek's plan, for the drawer: the one the page's address names, or the one being planned when it names none. Asked for
+ * only when the drawer is opened, and kept as long as the numbers, one answer per gameweek (a page about GW21 once showed GW20's).
+ */
+async function overlayPlan(fixture = null) {
+  const key = `ov:plan:${fixture || "now"}`;
+  const held = (await chrome.storage.session.get(key))[key];
   if (held && Date.now() - held.at < OVERLAY_TTL_MS) return { state: "ok", plan: held.plan };
-  const answer = await askApp({ cards: [], players: [], plan: true });
+  const answer = await askApp({ cards: [], players: [], plan: true, ...(fixture ? { fixture } : {}) });
   if (!answer.body?.plan) return { state: answer.state ?? "unreachable" };
-  await chrome.storage.session.set({ "ov:plan": { at: Date.now(), plan: answer.body.plan } });
+  await chrome.storage.session.set({ [key]: { at: Date.now(), plan: answer.body.plan } });
   return { state: "ok", plan: answer.body.plan };
 }
 

@@ -19,15 +19,24 @@ Nothing here touches the network or the database.
 from __future__ import annotations
 
 import dataclasses
+from bisect import bisect_left
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from itertools import accumulate
 from typing import Any
 
 import numpy as np
 
-from app.sorare.forecast import NATIONAL, REGULAR_STARTER, PlayerWeek, forecast
+from app.sorare.forecast import (
+    NATIONAL,
+    PRIOR_START_SCORE,
+    PRIOR_SUB_SCORE,
+    REGULAR_STARTER,
+    PlayerWeek,
+    forecast,
+)
 
 FLAT = 45.0  # the score the flat baseline says for everyone
 RARE_STARTER = 0.25  # below this share of his last five games started, he is a rare starter
@@ -166,6 +175,7 @@ class _Game:
     played: bool
     started: bool
     week: str  # the gameweek's slug, or the Monday of the week when Sorare's gameweeks are not known
+    mins: float | None = None  # minutes he was on the pitch, when the history says
 
     @property
     def counted(self) -> float:
@@ -188,6 +198,7 @@ def _games(entry: dict[str, Any], windows: list[Window] | None = None) -> list[_
                 bool(raw.get("played")),
                 bool(raw.get("started")),
                 _week_of(when, windows or []),
+                float(raw["mins"]) if isinstance(raw.get("mins"), (int, float)) else None,
             )
         )
     return sorted(found, key=lambda game: game.when)
@@ -231,6 +242,7 @@ def _formula(seen: list[_Game], pos: str | None, games: int) -> Prediction:
         "p_play": made.p_play,
         "p_start": made.p_start,
         "start": made.start,
+        "on": made.on,
         "mu": made.mu,
     }
 
@@ -346,6 +358,135 @@ def walk_gameweeks(
                         form_games=len(recent),
                         form_starts=sum(game.started for game in recent),
                         week_games=len(inside),
+                    )
+                )
+    return out
+
+
+# ---------------------------------------------------------------------------------------------------- the two scores
+# P7 (plans/xscore.md): a player has two scores, "if he starts" and "if he comes on". Each is scored on the games of its own role:
+# what the candidates say of a game he started against what he scored in it, and what they say of an appearance off the bench
+# against what he scored there. The chance of each is not in question here, so a game he did not play belongs to neither.
+CONDITIONAL_MODELS = (
+    "start:today",
+    "start:norm",
+    "start:own",
+    "start:last5",
+    "on:today",
+    "on:norm",
+    "on:own",
+    "on:minutes",
+)
+SHRINK = 3  # games the position's norm is worth against his own, for the "own" candidates
+MINUTE_EDGES = (15, 30, 45)  # a substitute's minutes are told in four steps: the longer he plays the more he can do
+
+
+def _bucket(minutes: float) -> int:
+    return sum(minutes >= edge for edge in MINUTE_EDGES)
+
+
+class _Pool:
+    """Every player's games by role, so a norm can be read as it stood at a moment: from the games before it, and no other."""
+
+    def __init__(self) -> None:
+        self._items: dict[tuple[Any, ...], list[tuple[datetime, float]]] = defaultdict(list)
+        self._ready: dict[tuple[Any, ...], tuple[list[datetime], list[float]]] = {}
+
+    def add(self, key: tuple[Any, ...], when: datetime, score: float) -> None:
+        self._items[key].append((when, score))
+        self._ready.pop(key, None)
+
+    def mean(self, key: tuple[Any, ...], before: datetime) -> float | None:
+        if key not in self._ready:
+            ordered = sorted(self._items.get(key, []))
+            self._ready[key] = ([when for when, _ in ordered], [0.0, *accumulate(score for _, score in ordered)])
+        times, sums = self._ready[key]
+        count = bisect_left(times, before)  # the games strictly before the moment
+        return sums[count] / count if count else None
+
+
+def _shrunk(own: list[float], norm: float) -> float:
+    return (sum(own) + SHRINK * norm) / (len(own) + SHRINK)
+
+
+def walk_conditional(
+    players: dict[str, dict[str, Any]], since: datetime | None = None, fixtures: list[dict[str, str]] | None = None
+) -> list[Row]:
+    """Every game he played from `since` on, predicted by the candidate models of its role from what was known before its week's lock.
+
+    A game he started is predicted by the `start:` models (today's "if he starts", the norm of his position, his own starts pulled
+    towards that norm, his last five starts); an appearance off the bench by the `on:` models (today's substitute score, the norm of
+    his position, his own appearances pulled towards it, and the norm of substitutes who got about as many minutes as he usually does).
+    The rows are those of `walk_forward`, so `scores` and `compare` read them as they read those. The norm is every player's games of
+    that role before the lock, his own included: that is what is known then.
+    """
+    windows = _windows(fixtures)
+    listed = {slug: (entry.get("pos"), _games(entry, windows)) for slug, entry in players.items()}
+    pool = _Pool()
+    for pos, games in listed.values():
+        for one in games:
+            if not one.played:
+                continue
+            if one.started:
+                pool.add((pos, "start"), one.when, one.score)
+            else:
+                pool.add((pos, "on"), one.when, one.score)
+                if one.mins is not None:
+                    pool.add((pos, "on", _bucket(one.mins)), one.when, one.score)
+    out: list[Row] = []
+    for slug, (pos, games) in listed.items():
+        first_in_week: dict[str, datetime] = {}
+        in_week: dict[str, int] = defaultdict(int)
+        for one in games:
+            first_in_week.setdefault(one.week, one.when)
+            in_week[one.week] += 1
+        for target in games:
+            if not target.played or (since is not None and target.when < since):
+                continue
+            lock = first_in_week[target.week]
+            seen = [one for one in games if one.when < lock]
+            recent = seen[-5:]
+            today = _formula(seen, pos, 1)
+            if target.started:
+                norm = pool.mean((pos, "start"), lock)
+                norm = PRIOR_START_SCORE if norm is None else norm
+                own = [one.score for one in seen if one.played and one.started]
+                said = {
+                    "start:today": today["start"],
+                    "start:norm": norm,
+                    "start:own": _shrunk(own, norm),
+                    "start:last5": sum(own[-5:]) / len(own[-5:]) if own else norm,
+                }
+            else:
+                norm = pool.mean((pos, "on"), lock)
+                norm = PRIOR_SUB_SCORE if norm is None else norm
+                came_on = [one for one in seen if one.played and not one.started]
+                minutes = [one.mins for one in came_on[-5:] if one.mins is not None]
+                by_minutes = pool.mean((pos, "on", _bucket(sum(minutes) / len(minutes))), lock) if minutes else None
+                said = {
+                    "on:today": today["on"],
+                    "on:norm": norm,
+                    "on:own": _shrunk([one.score for one in came_on], norm),
+                    "on:minutes": norm if by_minutes is None else by_minutes,
+                }
+            for name, value in said.items():
+                out.append(
+                    Row(
+                        model=name,
+                        player=slug,
+                        pos=pos,
+                        date=target.when,
+                        week=target.week,
+                        competition=target.competition,
+                        klass=klass(target.competition),
+                        before=len(seen),
+                        score=target.score,
+                        played=True,
+                        started=target.started,
+                        expected=float(value or 0.0),
+                        form_games=len(recent),
+                        form_starts=sum(one.started for one in recent),
+                        week_games=in_week[target.week],
                     )
                 )
     return out
@@ -662,4 +803,51 @@ def report(rows: list[Row], holdout_from: datetime, weeks: list[Row] | None = No
                 )
     if weeks:
         out += ["", *_gameweeks(weeks, holdout_from)]
+    return "\n".join(out) + "\n"
+
+
+def _cond_table(table: list[dict[str, Any]]) -> list[str]:
+    lines = ["| model | games | MAE | RMSE | bias |", "|---|---|---|---|---|"]
+    for row in table:
+        lines.append(f"| {row['model']} | {row['n']} | {_fmt(row['mae'])} | {_fmt(row['rmse'])} | {row['bias']:+.1f} |")
+    return lines
+
+
+def conditional_report(rows: list[Row], holdout_from: datetime) -> str:
+    """The two scores as Markdown: each candidate against what he scored, on the games of its own role, tuning and held-out weeks apart.
+
+    `bias` is what the candidate said minus what he scored on average. Each candidate is also set against today's number with a 95%
+    interval over weeks (below zero with an interval under zero is closer); squared error is the one that rewards a right average.
+    """
+    rows = with_period(rows, holdout_from)
+    out = [
+        f"The weeks held out begin on {holdout_from.date().isoformat()}: games on or after it are scored apart and were not looked at while tuning.",
+        "",
+    ]
+    for kind, title in (
+        ("start", "If he starts: the games he started"),
+        ("on", "If he comes on: his appearances off the bench"),
+    ):
+        mine = [row for row in rows if row.model.startswith(f"{kind}:")]
+        for period in ("tuning", "held out"):
+            part = [row for row in mine if row.period == period]
+            games = len({(row.player, row.date) for row in part})
+            out += [f"### {title} · {period} · {games} games", ""]
+            if not part:
+                out += ["Nothing in this period yet.", ""]
+                continue
+            out += _cond_table(scores(part, ["model"])) + [""]
+        tuning = [row for row in mine if row.period == "tuning"]
+        out += [f"**Against today's number ({kind}:today), tuning weeks**", ""]
+        for name in CONDITIONAL_MODELS:
+            if not name.startswith(f"{kind}:") or name == f"{kind}:today":
+                continue
+            for metric, label in (("absolute", "absolute error"), ("squared", "squared error")):
+                result = compare(tuning, name, f"{kind}:today", metric=metric)
+                if result["weeks"]:
+                    verdict = "closer" if result["hi"] < 0 else "further" if result["lo"] > 0 else "no clear difference"
+                    out.append(
+                        f"- {name}, by {label}: {result['diff']:+.2f} [{result['lo']:+.2f}, {result['hi']:+.2f}] over {result['weeks']} weeks: {verdict}"
+                    )
+        out.append("")
     return "\n".join(out) + "\n"

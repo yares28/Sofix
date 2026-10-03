@@ -69,6 +69,7 @@
   let close = null;
   let open = false;
   let loadedAt = 0;
+  let loadedFor = ""; // the gameweek of the address that plan was asked for
   let loading = false;
 
   function el(tag, className, text) {
@@ -112,8 +113,8 @@
       return;
     }
     const plan = answer.plan;
-    const heading = `Your gameweek ${plan.week}`;
-    const path = `/play?gw=${plan.week}`;
+    const heading = plan.week ? `Your gameweek ${plan.week}` : "Your gameweek"; // 0: a week Sofix holds nothing on, which has no number here
+    const path = plan.week ? `/play?gw=${plan.week}` : "/play";
     if (plan.state !== "ready") {
       show(heading, [el("p", "say", plan.note), link("Open Sofix", path)]);
       return;
@@ -153,13 +154,24 @@
     ]);
   }
 
+  /** The gameweek the page's address names ("" when it names none): the plan shown is that week's, as the tiles are. */
+  const weekHere = () => core.fixtureOf(location.href) || "";
+
   function fetchPlan() {
-    if (loading || (loadedAt && Date.now() - loadedAt < STALE_MS)) return;
+    const week = weekHere();
+    if (loading || (loadedAt && loadedFor === week && Date.now() - loadedAt < STALE_MS)) return;
     loading = true;
-    if (!loadedAt) show("Your gameweek", [el("p", "note", "Loading your gameweek…")]);
-    send({ type: "overlay-plan" }, (answer) => {
+    if (!loadedAt || loadedFor !== week) show("Your gameweek", [el("p", "note", "Loading your gameweek…")]);
+    send({ type: "overlay-plan", ...(week ? { fixture: week } : {}) }, (answer) => {
       loading = false;
-      if (answer && answer.state === "ok") loadedAt = Date.now();
+      if (week !== weekHere()) {
+        if (open) fetchPlan(); // the page moved to another gameweek while this was out: its answer is about the last one
+        return;
+      }
+      if (answer && answer.state === "ok") {
+        loadedAt = Date.now();
+        loadedFor = week;
+      }
       render(answer);
     });
   }
@@ -187,6 +199,7 @@
     const here = location.pathname.startsWith("/football");
     host.hidden = !here;
     if (!here && open) toggle(false);
+    else if (open) fetchPlan(); // Sorare moved to another gameweek without a reload: an open drawer follows it
   }
 
   function setup() {
@@ -238,6 +251,7 @@
     host = tab = panel = title = body = close = null;
     open = false;
     loadedAt = 0;
+    loadedFor = "";
     loading = false;
   }
 

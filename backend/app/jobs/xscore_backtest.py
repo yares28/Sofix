@@ -37,6 +37,11 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="also write the numbers the Audit page leads with (numbers only: backend/data/audit/replay.json); needs the gameweeks",
     )
+    parser.add_argument(
+        "--conditional",
+        action="store_true",
+        help="also print the two scores (if he starts, if he comes on) scored on the games of their own role (plans/xscore.md, P7)",
+    )
     args = parser.parse_args(argv)
     try:
         raw = json.loads(args.history.read_text("utf-8"))
@@ -64,6 +69,10 @@ def main(argv: list[str] | None = None) -> int:
         )
     weeks = backtest.walk_gameweeks(players, fixtures) if fixtures else None
     text = backtest.report(backtest.walk_forward(players, fixtures=fixtures), holdout_from=holdout, weeks=weeks)
+    if args.conditional:
+        text += "\n## The two scores\n\n" + backtest.conditional_report(
+            backtest.walk_conditional(players, fixtures=fixtures), holdout_from=holdout
+        )
     reconfigure = getattr(sys.stdout, "reconfigure", None)
     if reconfigure:  # a Windows console cannot draw every dash of the report: it prints a "?" for one rather than stop
         reconfigure(errors="replace")

@@ -105,6 +105,7 @@ def notes(snapshot: dict[str, Any], ff: Starts | None = None) -> list[Note]:
             "source": made.source,
             "start": _round(made.start),
             "bench": _round(made.bench),
+            "on": _round(made.on),
             "pStart": _round(made.p_start),
             "pOn": _round(made.p_on),
             "benchedOn": _round(made.benched_on),

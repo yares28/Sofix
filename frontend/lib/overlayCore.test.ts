@@ -44,6 +44,7 @@ type Core = {
   drawerCards: (plan: { pics?: unknown[]; cardsUsed?: number }) => { pics: string[]; more: number };
   DRAWER_CARDS: number;
   benchOnChance: (entry: { pStart?: number; pOn?: number }) => number | null;
+  comesOnScore: (entry: { on?: number; bench?: number }) => { score: number; words: string; tab: string };
   agoLabel: (iso: unknown, nowMs: number) => string | null;
   freshLabel: (iso: unknown, nowMs: number) => string | null;
   STALE_HOURS: number;
@@ -256,6 +257,13 @@ describe("the tile's own helpers", () => {
     expect(core.benchOnChance({ pStart: 0.5, pOn: 0.6 })).toBe(1); // never more than certain
     expect(core.benchOnChance({ pStart: 1, pOn: 0 })).toBe(0); // nothing is left to be benched
     expect(core.benchOnChance({ pStart: 0.5 })).toBeNull(); // an answer without the split says nothing
+  });
+
+  it("gives the score if he comes on as a score, and the old benched number only for a payload that has no such score (P7)", () => {
+    // A substitute starts at 35 like a starter: what he scores if he comes on is about 40, not his chance of coming on times it.
+    expect(core.comesOnScore({ on: 41.6, bench: 0.8 })).toEqual({ score: 42, words: "if he comes on", tab: "Comes on" });
+    expect(core.comesOnScore({ on: 0, bench: 5 })).toEqual({ score: 0, words: "if he comes on", tab: "Comes on" });
+    expect(core.comesOnScore({ bench: 12.6 })).toEqual({ score: 13, words: "if benched", tab: "Benched" });
   });
 
   it("says how long ago the numbers were made, in the coarsest unit that is honest", () => {
@@ -477,6 +485,17 @@ describe("Futbol Fantasy's match page, read in the browser", () => {
     for (const one of [...match.home.xi, ...match.away.xi]) {
       expect(players[one.ff_id], one.ff_id).toEqual({ p: one.chance, lesion: one.lesion });
     }
+  });
+
+  it("reads the page as the site really writes it: data-onceFF has capitals (found on the live page, 3 Oct 2026)", () => {
+    // Copied from match 22493 (Alavés v Atlético). The saved pages above went through a parser that lowercases attribute names,
+    // which is how a reader that looked for lowercase passed every test and found 0 of 45 players on the real site.
+    const raw =
+      '<div class="jugador_1826 portero    camiseta-wrapper" style="left: 50%; top: 88%" data-index="0" data-onceFF="titular" data-onceFF-x="50%" data-onceFF-y="88%" >' +
+      '<a class="camiseta " data-totalPartidosJugados="7" data-probabilidad="95%" data-edad="31" data-lesion="-1" data-forma-value="3"></a></div>' +
+      '<div class="jugador_63 campo    camiseta-wrapper" data-index="12" data-onceFF="suplente" data-onceFF-x="10%" data-onceFF-y="10%" >' +
+      '<a class="camiseta " data-probabilidad="50%" data-edad="24" data-lesion="1"></a></div>';
+    expect(core.ffPlayersOf(raw)).toEqual({ "1826": { p: 0.95, lesion: -1 }, "63": { p: 0.5, lesion: 1 } });
   });
 
   it("gives nothing for a page that is not a lineup page, or for nothing", () => {

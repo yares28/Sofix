@@ -225,6 +225,26 @@ describe("the drawer's plan", () => {
     expect(worker.body(worker.calls[0]!)).toEqual({ cards: [], players: [], plan: true });
   });
 
+  it("asks for the plan of the gameweek a page's address names, and keeps each week's plan apart (3 Oct: GW21's page showed GW20)", async () => {
+    worker.respondWith(() => ({ ok: true, status: 200, body: { ok: true, week: 21, cards: {}, players: {}, plan } }));
+    await worker.send({ type: "overlay-plan", fixture: "football-9-13-oct-2026" });
+    await worker.send({ type: "overlay-plan" });
+    expect(worker.calls).toHaveLength(2);
+    expect(worker.body(worker.calls[0]!)).toEqual({ cards: [], players: [], plan: true, fixture: "football-9-13-oct-2026" });
+    expect(worker.body(worker.calls[1]!)).toEqual({ cards: [], players: [], plan: true });
+    // Each is remembered on its own.
+    await worker.send({ type: "overlay-plan", fixture: "football-9-13-oct-2026" });
+    await worker.send({ type: "overlay-plan" });
+    expect(worker.calls).toHaveLength(2);
+  });
+
+  it("ignores a plan's gameweek that is not shaped like one", async () => {
+    worker.respondWith(() => ({ ok: true, status: 200, body: { ok: true, week: 17, cards: {}, players: {}, plan } }));
+    for (const fixture of ["../../x", "football-", "soccer-18-22-sep-2026", 7, {}]) await worker.send({ type: "overlay-plan", fixture });
+    expect(worker.calls).toHaveLength(1); // all five were the page of no named week, answered once
+    expect(worker.body(worker.calls[0]!)).toEqual({ cards: [], players: [], plan: true });
+  });
+
   it("does not invent a plan the app did not send, and tells a refused token from an app that is away", async () => {
     worker.respondWith(() => ({ ok: true, status: 200, body: { ok: true, week: 17, cards: {}, players: {} } }));
     expect(await worker.send({ type: "overlay-plan" })).toEqual({ state: "unreachable" });

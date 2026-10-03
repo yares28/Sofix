@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { clubKey } from "./home";
 import { OVERLAY_CAP, OverlayRequest, overlayNumbers, overlayPlan } from "./overlay";
 import type { GameOdds, GameweekPlan, Lineup, PlayCard, PlayerGame, PlayingPlayer, Plan, Sorare } from "./play";
 import type { FixtureGrid, GridCell } from "./types";
@@ -160,6 +161,32 @@ describe("overlayNumbers", () => {
     }
   });
 
+  it("finds the board club for every LaLiga club name Sorare uses (3 Oct 2026: Celta de Vigo was the only one that failed)", () => {
+    const pairs: [string, string][] = [
+      ["Athletic Club", "Athletic Club"],
+      ["Atlético Madrid", "Atlético Madrid"],
+      ["Barcelona", "Barcelona"],
+      ["Celta de Vigo", "Celta"],
+      ["Deportivo Alavés", "Alavés"],
+      ["Deportivo La Coruña", "Deportivo"],
+      ["Elche", "Elche"],
+      ["Espanyol", "Espanyol"],
+      ["Getafe", "Getafe"],
+      ["Levante", "Levante"],
+      ["Málaga", "Málaga"],
+      ["Osasuna", "Osasuna"],
+      ["Racing Santander", "Racing Santander"],
+      ["Rayo Vallecano", "Rayo Vallecano"],
+      ["Real Betis", "Real Betis"],
+      ["Real Madrid", "Real Madrid"],
+      ["Real Sociedad", "Real Sociedad"],
+      ["Sevilla", "Sevilla"],
+      ["Valencia", "Valencia"],
+      ["Villarreal", "Villarreal"],
+    ];
+    for (const [sorareName, boardName] of pairs) expect(clubKey(sorareName), sorareName).toBe(clubKey(boardName));
+  });
+
   it("shows the next game of a double gameweek, or the last once both are played", () => {
     const two = player({ games: [game({ kickoff: "2026-10-07T19:00:00+00:00", odds: SLOVENIA, competition: "cup" }), game({ kickoff: "2026-10-11T19:00:00+00:00", odds: MACEDONIA, competition: "cup" })] });
     const at = (when: string) => overlayNumbers(sorare([two]), null, ask({ players: ["unai-simon"] }), new Date(when)).players["unai-simon"]!.game!.win;
@@ -191,6 +218,13 @@ describe("overlayNumbers", () => {
     const split = player({ start: 58.2, bench: 12.6, pStart: 0.78, pOn: 0.12 });
     const entry = overlayNumbers(sorare([split]), grid, ask({ players: ["unai-simon"] }), NOW).players["unai-simon"]!;
     expect(entry).toMatchObject({ x: 54.5, p: 0.94, start: 58.2, bench: 12.6, pStart: 0.78, pOn: 0.12 });
+    expect(entry.on).toBeUndefined(); // a payload from before the score if he comes on existed does not get one made up
+  });
+
+  it("carries his score if he comes on (a score near 40, not the chance times it) when the job published it", () => {
+    const split = player({ start: 58.2, bench: 12.6, on: 41.5, pStart: 0.78, pOn: 0.12 });
+    const entry = overlayNumbers(sorare([split]), grid, ask({ players: ["unai-simon"] }), NOW).players["unai-simon"]!;
+    expect(entry).toMatchObject({ start: 58.2, bench: 12.6, on: 41.5 });
   });
 
   describe("his chance of starting the game the tile shows, when the job told it game by game", () => {
@@ -417,9 +451,14 @@ describe("overlayNumbers", () => {
       expect(unknown).toMatchObject({ week: 0, cards: {}, players: {} });
     });
 
-    it("gives the plan of the week asked about, or none for one with nothing", () => {
+    it("gives the plan of the week asked about, and for one with nothing says so in words instead of staying silent", () => {
       expect(overlayNumbers(data(), grid, ask({ plan: true, fixture: "football-2-6-oct-2026" }), NOW).plan).toMatchObject({ week: 18 });
-      expect(overlayNumbers(data(), grid, ask({ plan: true, fixture: "football-18-22-sep-2026" }), NOW).plan).toBeUndefined();
+      // A page about a week Sofix holds nothing on: the drawer must be able to say that (it used to hear nothing and read "not reachable").
+      expect(overlayNumbers(data(), grid, ask({ plan: true, fixture: "football-18-22-sep-2026" }), NOW).plan).toMatchObject({
+        state: "none",
+        note: "Sofix holds nothing on this gameweek.",
+      });
+      expect(overlayNumbers(data(), grid, ask({ fixture: "football-18-22-sep-2026" }), NOW).plan).toBeUndefined(); // not asked for: not sent
     });
 
     it("changes nothing for a page that names no gameweek", () => {

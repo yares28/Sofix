@@ -60,7 +60,7 @@ const FORTY_HOURS_AGO = new Date(Date.now() - 40 * 3600_000).toISOString();
 const NUMBERS = {
   players: {
     "unai-simon": {
-      x: 53.4, p: 0.88, average: 55, pos: "GK", laliga: true, at: ELEVEN_HOURS_AGO, start: 53.4, bench: 1.2, pStart: 0.88, pOn: 0.01,
+      x: 53.4, p: 0.88, average: 55, pos: "GK", laliga: true, at: ELEVEN_HOURS_AGO, start: 53.4, bench: 1.2, on: 42, pStart: 0.88, pOn: 0.01,
       startSource: "sorare", sources: { sorare: 0.88, sofix: 0.7 },
       game: { win: 0.46, cleanSheet: 0.33, difficulty: 45.2, bucket: 2, label: "Favourite", source: "model" },
     },
@@ -72,7 +72,7 @@ const NUMBERS = {
       game: { win: 0.38, cleanSheet: 0.22, difficulty: 58.4, bucket: 3, label: "Even", source: "sorare" },
     },
     "lionel-messi": {
-      x: 61.3, p: 0.9, average: 70, pos: "FWD", laliga: false, at: ELEVEN_HOURS_AGO, start: 64.2, bench: 20.1, pStart: 0.82, pOn: 0.08, xg: 0.38,
+      x: 61.3, p: 0.9, average: 70, pos: "FWD", laliga: false, at: ELEVEN_HOURS_AGO, start: 64.2, bench: 20.1, on: 45.2, pStart: 0.82, pOn: 0.08, xg: 0.38,
       startSource: "sofix", sources: { sofix: 0.82 },
       game: { win: 0.65, cleanSheet: 0.29, difficulty: 30.4, bucket: 1, label: "Very favourite", source: "sorare" },
     },
@@ -169,7 +169,12 @@ async function openPage(
       const answer = (message: { type: string; cards?: string[]; players?: string[]; fixture?: string | null }) => {
         // What the worker answers for Futbol Fantasy read live: nothing unless a test gives it a reading.
         if (message.type === "ff-live") return config.mode === "ok" ? { state: "ok", live: config.live } : { state: config.mode };
-        if (message.type === "overlay-plan") return config.mode === "ok" ? { state: "ok", plan: config.plan } : { state: config.mode };
+        if (message.type === "overlay-plan") {
+          if (config.mode !== "ok") return { state: config.mode };
+          // What the app does for a page about a gameweek it holds nothing on: says so, in words.
+          if (message.fixture && message.fixture !== config.thisWeek) return { state: "ok", plan: { state: "none", week: 0, note: "Sofix holds nothing on this gameweek." } };
+          return { state: "ok", plan: config.plan };
+        }
         if (message.type !== "overlay-numbers") return undefined;
         if (config.mode !== "ok") return { state: config.mode };
         const out = { state: "ok", cards: {} as Record<string, unknown>, players: {} as Record<string, unknown> };
@@ -657,7 +662,7 @@ test.describe("the sorare.com overlay", () => {
     await expect(panel(page)).toContainText("SOFIX");
     await expect(panel(page)).toContainText("11 h ago");
     await expect(panel(page).getByRole("button", { name: "Starts" })).toHaveAttribute("aria-pressed", "true");
-    await expect(panel(page).getByRole("button", { name: "Benched" })).toHaveAttribute("aria-pressed", "false");
+    await expect(panel(page).getByRole("button", { name: "Comes on" })).toHaveAttribute("aria-pressed", "false");
     await expect(panel(page).locator(".sfx-big strong")).toHaveText("64");
     await expect(panel(page).locator(".sfx-big")).toContainText("if he starts");
     await expect(panel(page).locator(".sfx-chance")).toContainText("82%");
@@ -668,11 +673,12 @@ test.describe("the sorare.com overlay", () => {
     await expect(panel(page)).not.toContainText("Understat");
     await expect(panel(page)).not.toContainText("From Sorare's odds");
 
-    // The other case: the score if he is benched, and the chance he comes on (0.08 of the 0.18 not starting).
-    await panel(page).getByRole("button", { name: "Benched" }).click();
-    await expect(panel(page).getByRole("button", { name: "Benched" })).toHaveAttribute("aria-pressed", "true");
-    await expect(panel(page).locator(".sfx-big strong")).toHaveText("20");
-    await expect(panel(page).locator(".sfx-big")).toContainText("if benched");
+    // The other case: the score if he comes on from the bench (a substitute starts at 35, so it is a score near 40, never his chance
+    // times it), and the chance he comes on (0.08 of the 0.18 not starting).
+    await panel(page).getByRole("button", { name: "Comes on" }).click();
+    await expect(panel(page).getByRole("button", { name: "Comes on" })).toHaveAttribute("aria-pressed", "true");
+    await expect(panel(page).locator(".sfx-big strong")).toHaveText("45");
+    await expect(panel(page).locator(".sfx-big")).toContainText("if he comes on");
     await expect(panel(page).locator(".sfx-chance")).toContainText("44%");
     await expect(panel(page).locator(".sfx-chance")).toContainText("COMES ON");
 
@@ -690,8 +696,8 @@ test.describe("the sorare.com overlay", () => {
     await expect(panel(page)).toHaveAttribute("data-side", "right");
     await expect(panel(page).locator(".sfx-stat")).toHaveText(["CS33%", "WIN46%", "DIFF45"]);
     await expect(panel(page).locator(".sfx-chance")).toContainText("START · SO");
-    await panel(page).getByRole("button", { name: "Benched" }).click();
-    await expect(panel(page).locator(".sfx-big strong")).toHaveText("1");
+    await panel(page).getByRole("button", { name: "Comes on" }).click();
+    await expect(panel(page).locator(".sfx-big strong")).toHaveText("42"); // a keeper who comes on scores like a substitute: 0.8 was his chance times it
     await expect(panel(page).locator(".sfx-chance")).toContainText("8%");
 
     // A midfielder whose game is not priced has nothing to put in its cells, and they say so in a dash.
@@ -699,6 +705,10 @@ test.describe("the sorare.com overlay", () => {
     await expect(panel(page)).toHaveCount(0);
     await tileOf(page, "linked").hover();
     await expect(panel(page).locator(".sfx-stat b.sfx-stat--none")).toHaveCount(3);
+    // His payload is from before the score if he comes on existed: it still opens, with the old number under its old name.
+    await panel(page).getByRole("button", { name: "Benched" }).click();
+    await expect(panel(page).locator(".sfx-big")).toContainText("if benched");
+    await expect(panel(page).locator(".sfx-big strong")).toHaveText("15");
 
     // Nothing it sends is a step that writes to Sorare.
     const kinds = new Set((await probe(page)).sent.map((message) => message.type));
@@ -799,10 +809,10 @@ test.describe("the sorare.com overlay", () => {
     await page.keyboard.press("Enter");
     await expect(panel(page).getByRole("button", { name: "Starts" })).toBeFocused();
     await page.keyboard.press("Tab");
-    await expect(panel(page).getByRole("button", { name: "Benched" })).toBeFocused();
+    await expect(panel(page).getByRole("button", { name: "Comes on" })).toBeFocused();
     await page.keyboard.press("Enter");
-    await expect(panel(page).getByRole("button", { name: "Benched" })).toHaveAttribute("aria-pressed", "true");
-    await expect(panel(page).getByRole("button", { name: "Benched" })).toBeFocused(); // the press keeps the focus
+    await expect(panel(page).getByRole("button", { name: "Comes on" })).toHaveAttribute("aria-pressed", "true");
+    await expect(panel(page).getByRole("button", { name: "Comes on" })).toBeFocused(); // the press keeps the focus
 
     await page.keyboard.press("Escape");
     await expect(panel(page)).toHaveCount(0);
@@ -983,6 +993,27 @@ test.describe("the sorare.com overlay", () => {
     expect([...kinds].filter((kind) => !["overlay-numbers", "overlay-plan", "overlay-stats", "open-app", "sorare-user", "ff-live"].includes(kind))).toEqual([]);
   });
 
+  test("shows the gameweek the page's address names, not the one being planned (3 Oct: a GW21 page showed GW20)", async ({ page }) => {
+    await openPage(page, { query: `?so5Fixture=${THIS_WEEK}` });
+    await page.getByRole("button", { name: "Sofix", exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "Your gameweek 17" })).toBeVisible();
+    const asked = (await probe(page)).sent.filter((message) => message.type === "overlay-plan");
+    expect(asked).toEqual([{ type: "overlay-plan", fixture: THIS_WEEK }]);
+  });
+
+  test("says Sofix holds nothing on a gameweek it has no plan for, and asks again when the page moves to another week", async ({ page }) => {
+    await openPage(page, { query: `?so5Fixture=${OLD_WEEK}` });
+    await page.getByRole("button", { name: "Sofix", exact: true }).click();
+    const drawer = page.getByRole("dialog", { name: "Your gameweek" });
+    await expect(drawer.getByText("Sofix holds nothing on this gameweek.")).toBeVisible();
+    // Sorare moves to another gameweek without a reload: the open drawer follows it.
+    await page.evaluate((week) => history.pushState({}, "", `${location.pathname}?so5Fixture=${week}`), THIS_WEEK);
+    await page.evaluate(() => window.dispatchEvent(new PopStateEvent("popstate")));
+    await expect(page.getByRole("dialog", { name: "Your gameweek 17" })).toBeVisible();
+    const asked = (await probe(page)).sent.filter((message) => message.type === "overlay-plan");
+    expect(asked.map((message) => (message as { fixture?: string }).fixture)).toEqual([OLD_WEEK, THIS_WEEK]);
+  });
+
   test("says so when the app cannot be reached, and still opens it", async ({ page }) => {
     await openPage(page, { mode: "unreachable" });
     await page.getByRole("button", { name: "Sofix", exact: true }).click();
@@ -1015,7 +1046,7 @@ test.describe("the sorare.com overlay", () => {
     // With the hover panel open, and its two scores switched, still nothing to fix.
     await tileOf(page, "abroad").hover();
     await expect(panel(page)).toBeVisible();
-    await panel(page).getByRole("button", { name: "Benched" }).click();
+    await panel(page).getByRole("button", { name: "Comes on" }).click();
     await page.waitForTimeout(600); // past the pop-in: contrast is measured on what is settled
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath("overlay-panel.png") });

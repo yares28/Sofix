@@ -31,7 +31,8 @@ and a check, so a session can work through it alone and stop only where you have
   the chances correct themselves each Monday; the next five gameweeks go on the Players and Cards pages. Every number is written down and
   scored, and the Audit page shows a catalogue of twelve groups of figures with a decision scorecard. It takes in 9.5 (the opponent for
   keepers) and answers decision 4. **Started on your go (3 Oct, night):** the data is read (449 games, 29,094 player rows) and today's
-  formula is scored on every LaLiga player (10.1 and 10.2a, Results); the live record (10.2b) is next.
+  formula is scored on every LaLiga player (10.1 and 10.2a, Results); Futbol Fantasy's chance for every player is now kept at each lock
+  (10.2b), which is the one input that cannot be read again afterwards.
 
 ### As of 2 Oct
 
@@ -474,8 +475,9 @@ the held-out weeks (P9 "The bar").
   "too few" floor. *Done when* the Audit shows today's formula on every figure, so each later step reads as a before and an after. In
   three parts:
   - **10.2a · today's formula replayed on every LaLiga player, and against Sorare's projection. Done 4 Oct** (Results; no change on screen).
-  - **10.2b · the live record for every LaLiga player** (design in [xscore.md](xscore.md) P9 progress): two read models, no migration; the
-    refresh writes each round's numbers before the lock and settles them after the games.
+  - **10.2b · what must be written down while it is still said: built 4 Oct** (Results; [xscore.md](xscore.md) P9 progress): Futbol Fantasy's
+    start chance for every player of every match, kept at the lock and before the kick-off, in one read model (`ff_chances`), no migration.
+    Everything else is read again afterwards from Sorare's games export and recomputed.
   - **10.2c · the Audit shows the league figures and the catalogue's first groups,** beside today's formula (the look needs 10.5's canvas).
 - **10.3 · Keepers** (P8's groundwork). The chance of a clean sheet (their decisive action) and of a penalty save, the score with and
   without one, from parts 1 to 5, 8, 11, 12 and 13 of P9, each weighted on 2025/26; then the range. *Done when* the table against today's
@@ -625,7 +627,8 @@ were merged, your main folder was fast-forwarded to `main`, and production serve
 |---|---|---|
 | 10.1 the data | **done** | `app.jobs.export_games` (resumable, two keyless questions a game, pages of 35: 50 is over the limit) read **449 played LaLiga games since 1 Aug 2025, 29,094 player rows, 9,878 starts, 28,958 with Sorare's projection and grade, in about an hour, none failed**; `app.sorare.gamedata` joined each to the football model's forecast, football-data.co.uk's shots, cards and over/under prices and both official elevens: 449 of 449 each, no club unmatched. Findings (P9 progress): scoring version 7 in both seasons and the new all-around column in force (95 of 96 stats exact; a keeper's goal conceded is −5, not the picture's −3); an upcoming game lists its players but carries no projection; over/under is already in the odds read; a keeper almost never comes on (4 of 902). 19 tests. |
 | 10.2a today's formula on every LaLiga player | **done** | `app.jobs.league_replay` → `backend/data/audit/replay_league.json` (numbers only). The tile's "if he starts" is within ±7 on **30%** of 9,878 starts (miss 14.5), "if he comes on" within ±7 on **60%** of 4,264 appearances (miss 7.9); Sorare's own projection is within ±7 on 33%, today's number is nearer in 45% of games, and the two are as good as each other (P6 answered on history). The league pair figure is 76% but counts unused players, so it is not the owner's 66%. P8 rerun on 829 starts by 33 keepers: the same conclusions, firmer. 7 tests. |
-| 10.2b, 10.2c | not started | Design for 10.2b is in [xscore.md](xscore.md) P9 progress. 10.2c waits for 10.5's canvas. |
+| 10.2b Futbol Fantasy's chances for every player | **built and tested; production check waits for the merge and one refresh** | `app/sorare/ff_chances.py`, and the Sorare step writes it beside the Lineups page; 9 tests (both readings, the freezing at the lock and at the kick-off, a match outside the gameweek, and that a failure here still publishes the page). |
+| 10.2c | not started | The Audit shows the league figures and the catalogue's first groups; waits for 10.5's canvas. |
 
 ### Housekeeping · 2 Oct 2026
 

@@ -819,19 +819,25 @@ squared miss against today's: the keepers' plain average −25.1 [−41.4, −8.
 [−44.0, −10.3], plus his own level −31.2 [−46.3, −15.6] (the weight the other keepers support: 0.28 to 0.42, median 0.34). Fitted on 2025/26
 and scored on 2026/27 (132 starts) nothing is clearly different (squared miss 19.4 for all). The conclusions of P8 stand and are firmer.
 
-**X2b · the live record for every LaLiga player (design, next).** What cannot be recovered afterwards has to be written down before each
-lock, for the players of every game of the round (the roster of an upcoming game, about 600 a round):
+**X2b · what must be written down while it is still said: built 4 Oct 2026 (roadmap 10.2b).** The first draft of this step (a record of
+every number for every player) was cut down once the data was in: almost every input of the new model can be read
+again afterwards, so only the one that cannot is recorded live.
 
-- Sorare's projection, grade and reliability for his next game, asked player by player in batches (the way the sync asks for the owner's
-  cards); Futbol Fantasy's start chance (the `lineups` read model already holds it for every club); Sofix's start chance and today's
-  numbers from his LaLiga form (a compact history, below); the game's numbers (the football model's forecast, the odds with over/under) and
-  the official elevens when they are out.
-- A day after the gameweek ends the round's new games are read once by the same reader (about 20 questions a week) and every number is
-  scored by the Audit's figures.
-- Two read models, no migration: `league_history` (each player's games as scores, minutes and roles: about 2 MB for two seasons) and
-  `league_record` (per gameweek, about 600 players with a few numbers each: about 0.1 MB a week). The refresh step goes after the Sorare
-  step and, like the others, a failure of it never stops the numbers being published.
-- It records today's formula first, so the new model's numbers can be recorded beside it from the day it ships.
+- **Recoverable later, so not recorded:** each game's scores, Sorare's projection and grade for it (kept on every past game, checked on
+  all 449), the penalties and set pieces, the stats and both official elevens (the games export, rerun for the new games: about 20
+  questions a round); the football model's forecast from the Monday before (recomputed from the history); the over/under 2.5 and
+  who-wins prices as they stood before the match (football-data.co.uk keeps both). The model's own outputs for every player are
+  recomputed from these, so the Audit's league figures are produced by rerunning `python -m app.jobs.league_replay` after each round.
+- **Not recoverable, so recorded: Futbol Fantasy's start chance for every player of every match, who is out and why, and the
+  formation** (`app/sorare/ff_chances.py`, read model `ff_chances`, written by the refresh's Sorare step beside the Lineups page, a
+  failure of it leaving only itself out). Per match, `last` is the latest reading before the kick-off (replaced by each run until it,
+  then frozen) and `atLock` the reading at the Sorare gameweek's lock (replaced until the lock, then frozen): what a manager could
+  see when he set his lineup. A match first seen after its kick-off is not made up. Players are Futbol Fantasy's ids and names, matched
+  to Sorare's when it is scored. About 40 KB a round, 1.5 MB a season; no migration. 9 tests, among them that a failure here still
+  publishes the page.
+- **Not built, on purpose:** a record of Sorare's projection and odds for every player before the lock. A game not yet played lists its
+  players (61 in the one checked) but no projection, so it would take about 600 player questions a round for numbers Sorare keeps on
+  the played game anyway.
 
 
 ## 5 · Risks

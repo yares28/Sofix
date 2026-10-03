@@ -462,8 +462,9 @@ numbers is one refresh on its own and ships only if it clears the bar on the hel
   started, minutes, Sorare's projection and grade, the teams and the result; the second: each score's 53 stats; the official elevens from
   `homeFormation` and `awayFormation`. For 2025/26 and 2026/27, about 900 to 1,350 questions two seconds apart, into a git-ignored file;
   each game joined to the football model's forecast from the Monday before, to football-data.co.uk's shots and to its over/under 2.5
-  prices. One read of The Odds API says whether its free plan has scorer prices for LaLiga. *Test first:* made-up games for the reader and
-  the joins. *Done when* every LaLiga game has its players, its stats, its forecast and its prices, and the counts are in P9.
+  prices. Whether The Odds API's free plan has scorer prices for LaLiga is left for one read from the odds job (1 credit; the key lives only
+  in GitHub's secrets), with part 12. *Test first:* made-up games for the reader and the joins. *Done when* every LaLiga game has its
+  players, its stats, its forecast and its prices, and the counts are in P9.
 - **10.2 · Tracking first** (P9 "Tracking"). Before each lock, every number Sofix gives for every LaLiga player is written down in a read
   model; a day after the gameweek ends each is scored; the Audit page shows the twelve groups of P9's tracking catalogue, headline figures
   first, each as "right N of M" or a miss in points, "too few to tell" under 100, with today's formula beside it from the two-season replay,

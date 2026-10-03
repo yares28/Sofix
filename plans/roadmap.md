@@ -30,7 +30,8 @@ and a check, so a session can work through it alone and stop only where you have
   and captains on the real spread with linked scores; daily missions get their best cards, re-ranked when the official elevens are out;
   the chances correct themselves each Monday; the next five gameweeks go on the Players and Cards pages. Every number is written down and
   scored, and the Audit page shows a catalogue of twelve groups of figures with a decision scorecard. It takes in 9.5 (the opponent for
-  keepers) and answers decision 4. **Waiting for your go.**
+  keepers) and answers decision 4. **Started on your go (3 Oct, night):** the data is read (449 games, 29,094 player rows) and today's
+  formula is scored on every LaLiga player (10.1 and 10.2a, Results); the live record (10.2b) is next.
 
 ### As of 2 Oct
 
@@ -454,10 +455,11 @@ waits for your call; 9.6 to 9.10 are the owner's TODO.md items B, A, C, D and F,
 
 ## Batch 10 · The new xScore: the score added up the way Sorare adds it
 
-Your four requests of 3 Oct, evening. Plan: [xscore.md](xscore.md) P9; TODO.md "G". **Waits for your go.** Each step that changes
-numbers is one refresh on its own and ships only if it clears the bar on the held-out weeks (P9 "The bar").
+Your four requests of 3 Oct, evening. Plan: [xscore.md](xscore.md) P9; TODO.md "G". **Started on your go of 3 Oct (night):** 10.1 and the
+first part of 10.2 are done (Results). Each step that changes numbers is one refresh on its own and ships only if it clears the bar on
+the held-out weeks (P9 "The bar").
 
-- **10.1 · The data.** Two free questions per LaLiga game (`Game.playerGameScores`; one question is over Sorare's keyless limit), a third
+- **10.1 · The data. Done 4 Oct** (Results). Two free questions per LaLiga game (`Game.playerGameScores`; one question is over Sorare's keyless limit), a third
   light one if the penalties and set pieces taken need it. The first: every player's score, decisive level and all-around points,
   started, minutes, Sorare's projection and grade, the teams and the result; the second: each score's 53 stats; the official elevens from
   `homeFormation` and `awayFormation`. For 2025/26 and 2026/27, about 900 to 1,350 questions two seconds apart, into a git-ignored file;
@@ -469,7 +471,12 @@ numbers is one refresh on its own and ships only if it clears the bar on the hel
   model; a day after the gameweek ends each is scored; the Audit page shows the twelve groups of P9's tracking catalogue, headline figures
   first, each as "right N of M" or a miss in points, "too few to tell" under 100, with today's formula beside it from the two-season replay,
   and the decision scorecard. *Test first:* made-up predictions and results for each figure, including the band test of a chance and the
-  "too few" floor. *Done when* the Audit shows today's formula on every figure, so each later step reads as a before and an after.
+  "too few" floor. *Done when* the Audit shows today's formula on every figure, so each later step reads as a before and an after. In
+  three parts:
+  - **10.2a · today's formula replayed on every LaLiga player, and against Sorare's projection. Done 4 Oct** (Results; no change on screen).
+  - **10.2b · the live record for every LaLiga player** (design in [xscore.md](xscore.md) P9 progress): two read models, no migration; the
+    refresh writes each round's numbers before the lock and settles them after the games.
+  - **10.2c · the Audit shows the league figures and the catalogue's first groups,** beside today's formula (the look needs 10.5's canvas).
 - **10.3 · Keepers** (P8's groundwork). The chance of a clean sheet (their decisive action) and of a penalty save, the score with and
   without one, from parts 1 to 5, 8, 11, 12 and 13 of P9, each weighted on 2025/26; then the range. *Done when* the table against today's
   formula, the keepers' average and Sorare's projection is in P9 and, if it clears the bar, one refresh ships it.
@@ -607,6 +614,18 @@ the plan was asked without a week); the two new browser tests fail on the old dr
 (`https://sorare.com/football/play/classic/compose/football-9-13-oct-2026-seasonal-all_star-all_seasons_all_star_limited?arena=true`) the panel of a card
 says "FF live N min ago" within a minute (C19); the Sofix tab says "Your gameweek 21" with its cards or "+N" (R26); Radu, Altay and Dituro show a difficulty
 instead of "No odds"; the panel's second tab reads "Comes on" with a score near 40.
+
+### Batch 10 · 4 Oct 2026 · 10.1 and 10.2a done (the plan is merged; PR #34)
+
+Your "push everything, make the app up to date, then start with the plan" of 3 Oct night. Before it: PR #34 (the ten upgrades) and PR #35
+(your two unpushed lineups commits, with the one test their redesign broke: the visible "Read N min ago" line became an info icon's card)
+were merged, your main folder was fast-forwarded to `main`, and production serves the new Lineups.
+
+| Step | Result | What was seen |
+|---|---|---|
+| 10.1 the data | **done** | `app.jobs.export_games` (resumable, two keyless questions a game, pages of 35: 50 is over the limit) read **449 played LaLiga games since 1 Aug 2025, 29,094 player rows, 9,878 starts, 28,958 with Sorare's projection and grade, in about an hour, none failed**; `app.sorare.gamedata` joined each to the football model's forecast, football-data.co.uk's shots, cards and over/under prices and both official elevens: 449 of 449 each, no club unmatched. Findings (P9 progress): scoring version 7 in both seasons and the new all-around column in force (95 of 96 stats exact; a keeper's goal conceded is −5, not the picture's −3); an upcoming game lists its players but carries no projection; over/under is already in the odds read; a keeper almost never comes on (4 of 902). 19 tests. |
+| 10.2a today's formula on every LaLiga player | **done** | `app.jobs.league_replay` → `backend/data/audit/replay_league.json` (numbers only). The tile's "if he starts" is within ±7 on **30%** of 9,878 starts (miss 14.5), "if he comes on" within ±7 on **60%** of 4,264 appearances (miss 7.9); Sorare's own projection is within ±7 on 33%, today's number is nearer in 45% of games, and the two are as good as each other (P6 answered on history). The league pair figure is 76% but counts unused players, so it is not the owner's 66%. P8 rerun on 829 starts by 33 keepers: the same conclusions, firmer. 7 tests. |
+| 10.2b, 10.2c | not started | Design for 10.2b is in [xscore.md](xscore.md) P9 progress. 10.2c waits for 10.5's canvas. |
 
 ### Housekeeping · 2 Oct 2026
 

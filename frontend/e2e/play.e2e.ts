@@ -3,7 +3,7 @@ import { expect, test, type APIRequestContext, type Page } from "@playwright/tes
 import { nextWeek, type Sorare } from "../lib/play";
 import type { ApiResponse } from "../lib/types";
 import { byMonth, pageWeeks, seasonWeeks, type Week } from "../lib/weeks";
-import { grid, MOCK, offline, resetBackend, sorare } from "./helpers";
+import { MOCK, offline, resetBackend, servedGrid, sorare } from "./helpers";
 
 // The Play page draws the Sorare gameweek the job publishes (e2e/fixtures/sorare-response.json, served by
 // the mock API). Nothing here recomputes a number: the tests check that what the payload says reaches the page.
@@ -19,22 +19,22 @@ const laliga = plan1.lineups[0]!;
 
 /**
  * A gameweek of the timeline that the page holds no plan for and that no LaLiga round starts on, as the mock serves it.
- * The mock moves the Sorare dates with the clock and not the grid's, so which week that is changes through the day: it is
- * read from what is served, never from the recording.
+ * The mock moves every date with the clock, so the dates are read from what is served, never from the recording.
  */
 async function timelineOnlyWeek(request: APIRequestContext) {
   const served = ((await (await request.get(`${MOCK}/api/sorare`)).json()) as ApiResponse<Sorare>).data!;
+  const rounds = (await servedGrid(request)).matchdays;
   return served.timeline.find(
     (item) =>
       !served.weeks.some((week) => week.gameweek.id === item.id) &&
-      !grid.matchdays.some((matchday) => matchday.date_from?.slice(0, 10) === item.start.slice(0, 10)),
+      !rounds.some((matchday) => matchday.date_from?.slice(0, 10) === item.start.slice(0, 10)),
   )!;
 }
 
 /** The weeks Play offers, worked out the way the app does from what the mock serves (its dates move every day). */
 async function playWeeks(request: APIRequestContext): Promise<Week[]> {
   const served = ((await (await request.get(`${MOCK}/api/sorare`)).json()) as ApiResponse<Sorare>).data!;
-  return pageWeeks(seasonWeeks(grid, served, new Date()), "play");
+  return pageWeeks(seasonWeeks(await servedGrid(request), served, new Date()), "play");
 }
 
 /**
@@ -589,9 +589,9 @@ test("the week in the bar moves the whole app, a month at a time", async ({ page
 
   // The same week, carried to another page by the address alone. Each page counts in its own gameweeks and
   // shows its own days: Play the whole Sorare game week, the board the LaLiga round inside it — which can be
-  // one of two, so the round is the week here and the game week is the wider span. The mock moves the Sorare
-  // weeks with the clock and not the recorded grid, so whether any round sits inside GW15 changes through the
-  // day: the page is held to what the week really holds, read from what is served, never to one of the two.
+  // one of two, so the round is the week here and the game week is the wider span. Whether a round sits inside
+  // GW15 is the recording's business (the mock moves the grid and the Sorare weeks together): the page is held to
+  // what the week really holds, read from what is served, never to one of the two.
   const week = new URL(page.url()).searchParams.get("w")!;
   await page.goto(`/difficulty?w=${week}`);
   if (week15.md !== null) {

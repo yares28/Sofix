@@ -3,7 +3,7 @@ import { expect, test, type APIRequestContext, type Page } from "@playwright/tes
 import type { Sorare } from "../lib/play";
 import type { ApiResponse } from "../lib/types";
 import { seasonWeeks } from "../lib/weeks";
-import { grid, MOCK, offline, resetBackend, smallText, sorare as served } from "./helpers";
+import { MOCK, offline, resetBackend, servedGrid, smallText, sorare as served } from "./helpers";
 
 // The Lineups page draws Futbol Fantasy's probable elevens as the job published them (e2e/fixtures/lineups-response.json: the ten
 // real round-8 pages of 30 Sep 2026, served by the mock API with their dates moved to two days ahead). Nothing here recomputes a
@@ -190,7 +190,7 @@ const header = (page: Page) => page.locator(".lu-head");
 
 async function weeksOf(request: APIRequestContext) {
   const served = ((await (await request.get(`${MOCK}/api/sorare`)).json()) as ApiResponse<Sorare>).data!;
-  return seasonWeeks(grid, served, new Date());
+  return seasonWeeks(await servedGrid(request), served, new Date());
 }
 
 test("the header names the LaLiga round and its days without a speculative Sorare status", async ({ page }) => {

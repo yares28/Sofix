@@ -1,9 +1,12 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 import { scaleBucket } from "../lib/grid";
 import { gameweekMatches } from "../lib/matches";
+import type { Sorare } from "../lib/play";
+import type { ApiResponse } from "../lib/types";
+import { seasonWeeks, weekOn } from "../lib/weeks";
 import { E2E_PORT } from "./constants";
-import { grid, MOCK, offline, openingMatchday, resetBackend, sorare, teamRows } from "./helpers";
+import { grid, MOCK, offline, openingMatchday, resetBackend, servedGrid, sorare, teamRows } from "./helpers";
 
 test.beforeEach(async ({ page, request }) => {
   await resetBackend(request);
@@ -12,6 +15,17 @@ test.beforeEach(async ({ page, request }) => {
 
 const group = (page: Page, name: string) => page.getByRole("group", { name, exact: true });
 const column = (number: number) => grid.matchdays.findIndex((md) => md.number === number);
+
+/**
+ * The weeks as the app works them out from what the mock serves, which moves every date with the clock: the week
+ * Sorare is planning (in the recording it holds no LaLiga round and has your players' games) and the week Today opens.
+ */
+async function servedWeeks(request: APIRequestContext) {
+  const served = ((await (await request.get(`${MOCK}/api/sorare`)).json()) as ApiResponse<Sorare>).data!;
+  const now = new Date();
+  const weeks = seasonWeeks(await servedGrid(request), served, now);
+  return { weeks, planned: weeks.find((week) => week.gw === served.nextId)!, today: weekOn(weeks, now)! };
+}
 
 test("first load shows the overview, then the grid and the fixtures, from the opening gameweek", async ({ page }) => {
   await page.goto("/difficulty");
@@ -194,7 +208,7 @@ test("the grid's lens and horizon are kept in the URL", async ({ page }) => {
   await expect(page.getByRole("button", { name: /^Sort by gameweek/ })).toHaveCount(3);
 });
 
-test("the gameweek selector moves every card, the grid, the fixtures and the table", async ({ page }) => {
+test("the gameweek selector moves every card, the grid, the fixtures and the table", async ({ page, request }) => {
   const next = openingMatchday + 1;
   const past = openingMatchday - 2; // fully played (the gameweek before the opening one still has a live game)
   await page.goto(`/difficulty?gw=${next}`);
@@ -215,10 +229,12 @@ test("the gameweek selector moves every card, the grid, the fixtures and the tab
   const games = (await page.locator("table.standings tbody tr td:nth-child(3)").allTextContents()).map(Number);
   expect(Math.max(...games)).toBeLessThanOrEqual(past);
 
-  // Today sits beside the picker, not in its menu. Here that week has no LaLiga round, and the table says so
-  // instead of the board quietly showing a round from another week.
+  // Today sits beside the picker, not in its menu, and opens the week the clock is in.
+  const { planned, today } = await servedWeeks(request);
   await page.getByRole("button", { name: "Today" }).click();
-  await expect(page).toHaveURL(/[?&]w=\d{4}-\d{2}-\d{2}/);
+  await expect(page).toHaveURL(new RegExp(`[?&]w=${today.id}(&|$)`));
+  // A week with no LaLiga round says so on the table, instead of the board quietly showing a round from another week.
+  await page.goto(`/table?w=${planned.id}`);
   await expect(page.locator(".ow-note")).toContainText("LaLiga isn't playing this week");
   await expect(page.getByRole("heading", { level: 2, name: "LaLiga table" })).toBeVisible();
 });
@@ -570,11 +586,13 @@ test("home: the week in the bar moves to a played gameweek and every tile follow
   await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${past + 1} fixtures` })).toBeVisible();
 });
 
-test("home: a Sorare-only week says LaLiga is away and identifies each player's real fixture", async ({ page }) => {
-  await page.goto("/");
+test("home: a Sorare-only week says LaLiga is away and identifies each player's real fixture", async ({ page, request }) => {
+  // One step back from the week after the one Sorare is planning lands on it.
+  const { weeks, planned } = await servedWeeks(request);
+  await page.goto(`/?w=${weeks[weeks.indexOf(planned) + 1]!.id}`);
   await page.getByRole("button", { name: "Previous gameweek" }).click();
 
-  await expect(page.locator(".wk-trigger")).toContainText("Sorare GW");
+  await expect(page.locator(".wk-trigger")).toContainText(`Sorare GW${planned.number}`);
   await expect(page.getByRole("heading", { level: 2, name: "No LaLiga this week" })).toBeVisible();
   await expect(page.locator(".hm-top")).toHaveCount(0);
   await expect(page.locator(".ow-games li").first()).toContainText(/\d+%\s*play/);

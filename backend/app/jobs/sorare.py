@@ -149,7 +149,7 @@ def publish_lineups(
             # Every player's chance, kept at the lock and before the kick-off (roadmap 10.2b); a failure leaves it out, not the page.
             nothing: dict[str, int] = {}
             out["chances"] = optional(
-                db, failed, "ff chances", lambda: ff_chances.save(db, page, snapshot.get("planGameweek"), at), nothing
+                db, failed, "ff chances", lambda: ff_chances.save(db, page, snapshot.get("gameweeks"), at), nothing
             )
         if squads is not None:
             out["squads"] = len(squads.squads)

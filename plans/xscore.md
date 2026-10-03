@@ -5,7 +5,7 @@ which makes Futbol Fantasy the main source of the "will he start?" number (your 
 [docs/sorare_plan.md](../docs/sorare_plan.md) is this plan's checklist.
 
 **Scheduled in [roadmap.md](roadmap.md) (2 Oct 2026):** P0 and P1 in its batch 1, before round 8 locks; P2 to P6 in batch 3;
-P7 and P8, your two issues of 3 Oct, in batch 9.
+P7 and P8, your two issues of 3 Oct, in batch 9; P9, the new xScore you asked for on 3 Oct, in batch 10.
 One change from this file: P1's record goes in a read model, like `start_chances`, so it needs no migration and starts before the
 lock. This file keeps the detail; the order and the results are in the roadmap.
 
@@ -554,9 +554,80 @@ numbers apart. Whether Sorare's own projection (which replaces a regular starter
 knows the opponent is P6's question, and the number you see now for Soria is the formula alone. **Your call**, with these numbers in front of you:
 (a) ship it for keepers (one refresh); (b) wait for the held-out weeks; (c) leave keepers as they are.
 
+**Folded into P9 (3 Oct, evening).** Your answer was a fuller model rather than (a), (b) or (c): keepers are P9's first position, and these
+results are where it starts.
 
 **Done when:** the table of P8's backtest is here; each position that cleared the bar ships in its own refresh; the panel names the
 opponent's effect; the manual and `docs/how_it_works.md` say the score now depends on the game.
+
+### P9 · The new xScore: his range, and where in it this game puts him (your request of 3 Oct; roadmap batch 10)
+
+**What you asked.** Mix in everything: form that knows the opponent (Elo-style: a good game against a weak side, or when his side was the
+favourite, is a small boost; against a strong side or as the underdog, a big one), the app's difficulty, his average when he starts and
+when he does not, what keepers (or any position) score against that opponent, and more. The xScore should be a range of scores, and
+everything together should say whether he lands in its low or its high part.
+
+**The idea.** Two things for each player and game:
+
+1. **His range:** his bad day to his good day, what he scores in his worst and best tenth of starts (pulled towards his position's range
+   while he has few starts).
+2. **Where this game puts him in it:** the expected score, the band he lands in half the time, and the words *low part*, *middle* or
+   *high part*, with the two or three things that moved him most ("Barcelona away −8 · form +2").
+
+**What goes in.** Each part adds or takes points. Its weight is fitted per position on 2025/26, so a part that does not help ends with a
+weight near zero: nothing stays because it sounds right.
+
+| Part | What it does | From |
+|---|---|---|
+| 1 · Form that knows the opponent (his level) | After each game his level moves by a share of *what he scored minus what was expected of him in that game*. Against a weak side, or as the favourite, the expectation is high, so a good game moves him little and a bad one a lot; against a strong side, or as the underdog, the reverse (a bad game at Barcelona barely drops him). Starts and appearances off the bench keep separate levels (P7). The size of the share is fitted per position: P8 found a keeper's raw form is mostly luck, so expect it small for keepers. | each past game's score; the football model's win chance and goals for that game |
+| 2 · The game (the app's difficulty) | The numbers the difficulty is drawn from: his side's chance of winning, goals expected for and against, the chance of a clean sheet, home or away. | the football model's forecast from the Monday before (P8's join) |
+| 3 · Starting or coming on | Part 1's two levels give "if he starts" and "if he comes on"; the big number follows his start chance (decision 1). | as today (P7) |
+| 4 · What the opponent gives his position | Per club and position: how players in that position did against it, minus what was expected of them (keepers at Barcelona, forwards against Getafe). Recent games count more, and it counts for little until there are many games: a club plays 38 league games a season, so it gives about 38 keeper starts. It catches what the goals model misses: a side that allows many shots gives keepers saves. | every LaLiga player's scores (X1) |
+| 5 · More, each tried on its own | Minutes (a player taken off early earns fewer all-around points); club or national team (P4-1); two games in a week, best of two game by game (P4-4); a European game three days before; Sorare's projection, once P6 can weigh it. | the history export; the fixtures |
+
+**The range, built the way Sorare builds a score.** A score is a decisive level (35, 60, 70 …) plus all-around points. Sofix takes the
+chance of each scoreline from its football model (the one behind the difficulty) and, for each scoreline, what players in his position
+scored in games that ended that way (keepers: 74.8 with a clean sheet, 44.5 after one goal, 40.5 after two; P8), moved to his level by
+parts 1, 4 and 5. Together that is the whole spread of his score in this game:
+
+- the expected score (the big number) and the band he lands in half the time;
+- *low part* / *middle* / *high part*: the chance he beats his usual middle score is under 40% / 40 to 60% / over 60%;
+- the chance of 60 or more (in practice a decisive action: a goal, an assist, a keeper's clean sheet).
+
+P8 showed that the plain arithmetic overstates the game for keepers (the real effect is about a third: more shots against, more saves),
+so the game's weight is fitted like the others.
+
+**The data (X1).** One question per LaLiga game. Sorare's `Game.playerGameScores` returns every player's score in a game with its
+decisive level and all-around points, whether he started and his minutes, plus the two teams and the result. Checked on 3 Oct without a
+key: Athletic 0–0 Alavés gave 57 players, 22 of them starters, Sivera 84.8 (level 70 + 14.8). 2025/26 and 2026/27 so far is about 450
+games, so about 450 questions two seconds apart: about half an hour, free, kept in a local git-ignored file like the history export.
+Each game is joined to the football model's forecast from the Monday before. In production the refresh reads only the new games (about
+ten questions a week) and keeps the levels and the opponent table in a read model: no migration.
+
+With every LaLiga player, one round gives about 220 starts to test on, not only your players' games, so the held-out weeks can decide
+within a round or two.
+
+**The bar.** Walk-forward by Sorare gameweek, as P2. Fit on 2025/26, check on 2026/27 up to 1 Oct, then on the held-out weeks from
+1 Oct. Baselines: today's formula and the position's plain average (it beat today's for keepers, P8). A part stays only if the squared
+miss falls with an interval under zero and the pair figure (the Audit's 66%) does not fall. The range is right if about 8 in 10 starts
+land inside it; *high part* is right if those players beat their usual middle score at least 60% of the time, *low part* if at most 40%.
+The Audit shows both ("too few to tell" under 100).
+
+**The honest limit.** The same player's score moves about 18 points from one game to the next (P2). The model can tilt the odds, and
+says by how much; it cannot call every game.
+
+**Order.** One change to the numbers per refresh.
+
+1. X1 · the data (half a day).
+2. X2 · keepers: parts 1 to 4 and the range (P8 did their groundwork).
+3. X3 · defenders, then midfielders and forwards: each its own refresh.
+4. X4 · on screen: a design canvas first (decision 8, a Stop: you choose), then the panel's range, band, words and reasons. The tile
+   keeps one big number.
+5. X5 · part 5, one piece at a time.
+
+**Done when:** each position that clears the bar ships in its own refresh with its range; the panel shows the range, the band, the
+words and the reasons; the Audit shows how often *low part* and *high part* were right; the manual and `docs/how_it_works.md` describe
+the new score.
 
 ## 5 · Risks
 
@@ -573,10 +644,13 @@ opponent's effect; the manual and `docs/how_it_works.md` say the score now depen
 1. **What should the big number on the tile be?** *Decided 3 Oct:* it follows his chance of starting, Futbol Fantasy's first.
    Under 40%, the score if he comes on; 40% or more, the score if he starts. It waits for P7, because today's "benched"
    number is not a score.
-2. Should Sofix overrule Sorare's projection where the numbers say ours is better (P6)?
+2. Should Sofix overrule Sorare's projection where the numbers say ours is better (P6)? *Until P6 can weigh them (recommended):*
+   once P9 ships for a position, its number stays the big one and Sorare's sits beside it. Today a regular starter's number turns
+   into Sorare's about two days before the lock (F1's cliff); say if you would rather keep that.
 3. How much should national-team form count for a national-team game? The backtest answers it (P4 step 1); tell me if you
    have a strong prior.
-4. The wider export (all LaLiga players, about 500 calls) if the first intervals are too wide: yes or no?
+4. The wider export (all LaLiga players, about 500 calls) if the first intervals are too wide: yes or no? *Answered 3 Oct by P9:*
+   yes, every LaLiga game, at one question per game (about 450, free), not one per player (checked).
 
 ## 7 · Order
 
@@ -587,3 +661,6 @@ the display-only "2 games" in P1.
 
 **From 3 Oct:** P7 (the bench score) and P8 (the opponent, keepers first) come before the rest of P4, in that order, one refresh
 each (roadmap batch 9). P4-1, the level fix, is paused by you until games from 1 Oct exist to test it on.
+
+**From 3 Oct, evening:** P9 replaces P8's single number with the full model (roadmap batch 10): the data, then keepers, then the other
+positions, one refresh each. Its look on screen waits for a design canvas.

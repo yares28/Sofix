@@ -83,6 +83,19 @@ roadmap's batch 9.
   version, and when it is older than the app needs, the tile reads "Reload" instead of numbers. With A, that should almost never show.
 - **When.** Release 1 (roadmap 9.10, formerly 7.1 and 7.2).
 
+### G · The new xScore: his range, and where in it this game puts him (your request of 3 Oct, evening)
+- **What you said.** Mix in form against the opponent, Elo-style: a good game against weak teams, or when his side was the favourite, is a
+  small boost; otherwise a big one. Also the app's difficulty, his average when he starts and when he does not, what keepers (or any
+  position) score against that team, and more. "xScore has to be intricate": a range of scores, and everything together says whether he
+  lands in its low or high part.
+- **The plan.** [plans/xscore.md](plans/xscore.md) P9. Each player gets his range (bad day to good day) and, for this game, an expected
+  score, the band he lands in half the time, *low part* / *middle* / *high part*, the chance of 60 or more and the reasons in points. Five
+  parts go in, each weighted by the backtest per position: form that knows the opponent, the game (the numbers behind the difficulty),
+  starting or coming on, what the opponent gives his position, and smaller extras. It takes in P8 (keepers first).
+- **What it needs from you.** Your go; a choice on a design canvas before it shows on screen; and, until P6, whether Sorare's projection
+  still replaces the number near the lock (recommended: no, it sits beside it).
+- **When.** Roadmap batch 10, one refresh per position.
+
 ## Paused
 
 Not buildable now. Each starts again when its data exists, and I ask you first.

@@ -3,8 +3,8 @@
    tokens are scoped to .lu so nothing here can touch the board, Play or the collection pages. */
 
 .lu {
-  --lu-card-w: 88px;
-  --lu-card-h: 136px;
+  --lu-card-w: 100px;
+  --lu-card-h: 154px;
   --lu-gap: 18px;
   --lu-tone-strong-bg: #1f7a4f; --lu-tone-strong-fg: #fff;
   --lu-tone-good-bg: #d3f2e1; --lu-tone-good-fg: #11633b;
@@ -23,44 +23,27 @@
 .lu-head h1 { margin: 0; font-size: clamp(34px, 4.2vw, 54px); font-weight: 700; letter-spacing: -0.04em; line-height: 1.04; text-wrap: balance; }
 .lu-head p.lu-eyebrow { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; color: var(--ink-2); }
 .lu-chips { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; margin-top: 2px; }
-/* Where the round's Sorare week stands: amber while there is still time to set a lineup, grey once it is locked or not open. */
-.lu-lock { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 13px; border-radius: 999px; background: #ececf0; color: var(--ink-seg); font-size: 13px; font-weight: 600; text-decoration: none; }
-.lu-lock[data-open] { background: #fff1d6; color: #8a5300; }
-.lu-lock:hover { filter: brightness(0.97); }
-.lu-lock:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .lu-flash { margin: 16px 0 0; padding: 11px 16px; border-radius: 14px; background: #f5f5f7; color: var(--ink-2); font-size: 13.5px; line-height: 1.45; }
-/* The key to the % colours, under the match head. */
-.lu-key { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; padding: 4px 20px 0; font-size: 12px; color: #3a3a3c; }
-.lu-key b { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-2); }
-.lu-key span { display: inline-flex; align-items: center; gap: 6px; }
-.lu-key i { display: inline-block; width: 14px; height: 14px; border-radius: 7px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08); }
-.lu-key i[data-tone="strong"] { background: var(--lu-tone-strong-bg); }
-.lu-key i[data-tone="good"] { background: var(--lu-tone-good-bg); }
-.lu-key i[data-tone="mid"] { background: var(--lu-tone-mid-bg); }
-.lu-key i[data-tone="low"] { background: var(--lu-tone-low-bg); }
-/* Your players first: who of yours the match names, and a switch that dims everyone else. */
-.lu-yours { margin: 0; padding: 14px 20px 6px; }
-.lu-yours-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
-.lu-yours-head h2 { margin: 0; font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
+/* Source choice and ownership filter share one compact row above the pitches. */
+.lu-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 20px; padding: 14px 20px 0; }
+.lu-chance-sources { display: flex; min-width: 0; margin: 0; padding: 3px; gap: 2px; border: 0; border-radius: 12px; background: #ececf0; }
+.lu-chance-sources label { position: relative; cursor: pointer; }
+.lu-chance-sources input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.lu-chance-sources span { display: flex; align-items: center; justify-content: center; min-height: 38px; padding: 0 14px; border-radius: 9px; font-size: 13px; font-weight: 600; color: var(--ink-seg); }
+.lu-chance-sources input:checked + span { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
+.lu-chance-sources input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
 .lu-only { display: inline-flex; align-items: center; gap: 9px; font-size: 13px; color: var(--ink-2); cursor: pointer; }
 .lu-only input { appearance: none; position: relative; width: 36px; height: 21px; margin: 0; border-radius: 999px; background: #d4d7de; transition: background 0.2s; cursor: pointer; }
 .lu-only input::after { content: ""; position: absolute; left: 2px; top: 2px; width: 17px; height: 17px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); transition: transform 0.2s; }
 .lu-only input:checked { background: var(--lu-mine); }
 .lu-only input:checked::after { transform: translateX(15px); }
 .lu-only input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.lu-yours-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
-.lu-yours-one { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 12px; border-radius: 999px; background: #fff; box-shadow: 0 0 0 2px var(--lu-mine); font-size: 12.5px; }
-/* A player of yours opens his card: the whole pitch card is the link (no hover lift to shout about), the strip and chips link by name. */
+/* A player of yours opens his card: the whole pitch card is the link (no hover lift to shout about), the chips link by name. */
+.lu-alt-go, .lu-new b a { color: inherit; text-decoration: none; }
+.lu-alt-go:hover, .lu-new b a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .lu-go { position: absolute; inset: 0; z-index: 2; border-radius: 12px; }
-.lu-go:focus-visible, .lu-yours-name:focus-visible, .lu-alt-go:focus-visible, .lu-new b a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.lu-yours-name, .lu-alt-go, .lu-new b a { color: inherit; text-decoration: none; }
-.lu-yours-name:hover b, .lu-alt-go:hover, .lu-new b a:hover { text-decoration: underline; text-underline-offset: 3px; }
-.lu-yours-one b { font-weight: 700; letter-spacing: 0.01em; }
-.lu-yours-one:not([data-starting]) { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--lu-mine) 45%, transparent); }
-.lu-yours-one[data-kind="out"], .lu-yours-one[data-kind="suspended"] { opacity: 0.85; }
+.lu-go:focus-visible, .lu-pct:focus-visible, .lu-chance-inline:focus-visible, .lu-alt-go:focus-visible, .lu-new b a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .lu-legend b { white-space: nowrap; }
-.lu-yours-word, .lu-yours-alt { font-size: 11.5px; color: var(--ink-2); }
-.lu-yours-alt { padding-right: 6px; }
 .lu-match:has(#lu-only:checked) .lu-card:not([data-mine]),
 .lu-match:has(#lu-only:checked) .lu-alt:not([data-mine]),
 .lu-match:has(#lu-only:checked) .lu-new:not(:has(b[data-mine])) { opacity: 0.22; transition: opacity 0.2s; }
@@ -110,6 +93,14 @@
 .lu-pair[data-state="started"] .lu-disc { opacity: 0.55; }
 /* The crest sits on a white disc so it reads on the dark selected pair as well as on the white bar. */
 .lu-disc { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08); }
+.lu-pair-card { position: fixed; z-index: 1000; width: 310px; padding: 15px 17px; border: 1px solid rgba(19, 33, 28, 0.1); border-radius: 17px; background: rgba(255, 255, 255, 0.98); color: #1d1d1f; box-shadow: 0 18px 48px rgba(11, 29, 20, 0.19); backdrop-filter: blur(18px); transform: translateX(-50%); pointer-events: none; text-align: left; }
+.lu-pair-card strong { display: block; font-size: 15px; letter-spacing: -0.02em; }
+.lu-pair-card strong span { color: #86868b; font-weight: 500; }
+.lu-pair-card small { display: block; margin-top: 3px; color: #6e6e73; font-size: 11px; }
+.lu-pair-facts { display: flex; flex-wrap: wrap; gap: 5px 12px; margin-top: 11px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.lu-pair-facts em { flex-basis: 100%; color: #6e6e73; font-size: 10px; font-style: normal; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.lu-pair-facts b { font-weight: 650; }
+.lu-pair-unavailable { display: block; margin-top: 11px; color: #86868b; font-size: 12px; }
 @keyframes lu-rise { from { opacity: 0; transform: translateY(8px); } }
 @keyframes lu-draw { from { transform: scaleX(0); } }
 .lu-source { margin: 14px 0 0; text-align: center; font-size: 12px; color: var(--ink-2); }
@@ -150,18 +141,20 @@
 
 .lu-tools { position: absolute; top: 16px; right: 18px; display: flex; align-items: center; gap: 6px; }
 .lu-info { position: relative; }
-.lu-info summary, .lu-ext {
+.lu-info button, .lu-ext {
   display: flex; align-items: center; justify-content: center; gap: 7px; height: 34px; border-radius: 999px; background: rgba(255, 255, 255, 0.92); color: #3a3a3c;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08); cursor: pointer; list-style: none;
 }
-.lu-info summary { padding: 0 12px 0 9px; font-size: 12.5px; font-weight: 500; }
-.lu-info summary::-webkit-details-marker { display: none; }
+.lu-info button { width: 34px; padding: 0; border: 0; }
 .lu-ext { width: 34px; }
-.lu-info summary:focus-visible, .lu-ext:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lu-info button:hover, .lu-info[data-open] button, .lu-ext:hover { background: #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12), 0 5px 14px rgba(0, 0, 0, 0.1); }
+.lu-info button:focus-visible, .lu-ext:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .lu-info-card {
   position: absolute; top: 42px; right: 0; z-index: 3; width: 300px; padding: 14px 16px; border-radius: 16px; background: #fff; font-size: 13px;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 18px 40px rgba(0, 0, 0, 0.14);
+  opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.15s ease, visibility 0.15s ease;
 }
+.lu-info:hover .lu-info-card, .lu-info:focus-within .lu-info-card, .lu-info[data-open] .lu-info-card { opacity: 1; visibility: visible; }
 .lu-info-card dl { display: grid; grid-template-columns: auto 1fr; column-gap: 14px; row-gap: 6px; margin: 10px 0 0; color: #3a3a3c; }
 .lu-info-card dt { color: var(--ink-2); }
 .lu-info-card dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
@@ -200,6 +193,9 @@
 .lu-card[data-rarity="super_rare"] { --face: linear-gradient(165deg, #d8e8ff 0%, #4a84e8 48%, #1b3f96 100%); --sil: rgba(255, 255, 255, 0.3); --foot: linear-gradient(180deg, rgba(20, 50, 120, 0), rgba(18, 44, 110, 0.92) 42%); --name: #fff; --metaink: rgba(255, 255, 255, 0.86); }
 .lu-card[data-rarity="unique"] { --face: linear-gradient(165deg, #f0f0f2 0%, #4b4b52 48%, #16161a 100%); --sil: rgba(255, 255, 255, 0.26); --foot: linear-gradient(180deg, rgba(10, 10, 14, 0), rgba(10, 10, 14, 0.94) 42%); --name: #fff; --metaink: rgba(255, 255, 255, 0.86); }
 .lu-card[data-mine] { box-shadow: 0 0 0 2.5px #fff, 0 0 0 5px var(--lu-mine), 0 8px 18px rgba(0, 0, 0, 0.16); }
+.lu-card[data-art] { border-radius: 0; background: transparent; box-shadow: none; }
+.lu-card[data-art] .lu-face { overflow: visible; }
+.lu-card[data-art][data-mine] .lu-face { filter: drop-shadow(0 0 2px var(--lu-mine)); }
 .lu-card[data-out] .lu-face { opacity: 0.6; }
 .lu-face { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; }
 .lu-sil { position: absolute; left: 10%; right: 10%; top: 13%; height: 57%; width: 80%; fill: var(--sil); }
@@ -210,6 +206,7 @@
 .lu-name span { display: block; margin-top: 1px; font-size: 11px; font-weight: 600; color: var(--metaink); }
 
 .lu-pct {
+  text-decoration: none;
   display: flex; align-items: center; justify-content: center; min-width: 42px; height: 21px; padding: 0 7px; border-radius: 999px; box-shadow: 0 0 0 2px #fff;
   font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; background: var(--lu-tone-low-bg); color: var(--lu-tone-low-fg);
 }
@@ -251,11 +248,11 @@
 .lu-next { position: absolute; top: calc(100% + 30px); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; width: calc(var(--lu-card-w) + var(--lu-gap, 10px) * 2 - 4px); margin: 0; padding: 0; list-style: none; }
 .lu-nx { display: inline-flex; align-items: baseline; gap: 4px; max-width: 100%; font-size: 11px; line-height: 15px; font-weight: 650; color: var(--ink-2); white-space: nowrap; }
 .lu-nx > span, .lu-nx > a { overflow: hidden; text-overflow: ellipsis; min-width: 0; color: inherit; text-decoration: none; }
-.lu-nx i { flex: none; font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; }
-.lu-nx i[data-tone="strong"] { color: var(--lu-tone-strong-bg); }
-.lu-nx i[data-tone="good"] { color: var(--lu-tone-good-fg); }
-.lu-nx i[data-tone="mid"] { color: var(--lu-tone-mid-fg); }
-.lu-nx i[data-tone="low"], .lu-nx i[data-tone="none"] { color: var(--lu-tone-low-fg); }
+.lu-nx .lu-chance-inline { flex: none; overflow: visible; font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; }
+.lu-nx .lu-chance-inline[data-tone="strong"] { color: var(--lu-tone-strong-bg); }
+.lu-nx .lu-chance-inline[data-tone="good"] { color: var(--lu-tone-good-fg); }
+.lu-nx .lu-chance-inline[data-tone="mid"] { color: var(--lu-tone-mid-fg); }
+.lu-nx .lu-chance-inline[data-tone="low"], .lu-nx .lu-chance-inline[data-tone="none"] { color: var(--lu-tone-low-fg); }
 .lu-nx[data-mine] { padding: 0 6px; border-radius: 999px; background: #fff; box-shadow: 0 0 0 1.5px var(--lu-mine); color: var(--ink); }
 .lu-nx-go:hover { text-decoration: underline; text-underline-offset: 3px; }
 .lu-nx-go:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
@@ -284,13 +281,17 @@
 /* ---------- legend ---------- */
 .lu-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 22px; padding: 16px 28px; border-top: 1px solid #ededf0; background: #fbfbfd; font-size: 12.5px; color: #3a3a3c; }
 .lu-legend span { display: flex; align-items: center; gap: 7px; }
-.lu-legend em { flex: 1 1 260px; font-style: normal; text-align: right; color: var(--ink-2); }
 .lu-swatch { display: block; width: 14px; height: 20px; border-radius: 4px; background: #f3cf73; box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--lu-mine); }
 
 /* ---------- phone: one team at a time ---------- */
 @media (max-width: 899px) {
   .lu { --lu-card-w: 66px; --lu-card-h: 102px; --lu-gap: 9px; padding: 24px 16px 40px; }
   .lu-head h1 { font-size: 36px; }
+  .lu-controls { padding: 12px 12px 0; gap: 6px; }
+  .lu-chance-sources { width: 100%; }
+  .lu-chance-sources label { flex: 1; }
+  .lu-chance-sources span { min-height: 44px; padding: 0 8px; }
+  .lu-only { min-height: 44px; margin-left: auto; }
   .lu-chips { flex-direction: column; gap: 8px; }
   .lu-strip { margin-top: 24px; }
   /* The timeline scrolls sideways; a soft edge on the right says there is more, and the last day clears it. */
@@ -305,7 +306,7 @@
   .lu-side-sub { display: none; }
   .lu-when-time { font-size: 26px; }
   .lu-tools { top: 10px; right: 12px; }
-  .lu-info summary, .lu-ext { height: 44px; }
+  .lu-info button, .lu-ext { width: 44px; height: 44px; }
   .lu-ext { width: 44px; }
   .lu-info-card { width: 268px; top: 52px; }
   .lu-switch > input { display: block; position: absolute; opacity: 0; pointer-events: none; }
@@ -346,8 +347,7 @@
   .lu-alts { gap: 5px; }
   .lu-alt { height: 26px; padding: 0 3px 0 9px; font-size: 11.5px; gap: 6px; }
   .lu-legend { padding: 14px 16px; }
-  .lu-legend em { text-align: left; }
-}
+  }
 @media (min-width: 900px) and (max-width: 1199px) {
   .lu { --lu-card-w: 72px; --lu-card-h: 112px; --lu-gap: 10px; padding: 28px 20px 96px; }
   .lu-team { padding: 20px 16px 22px; }

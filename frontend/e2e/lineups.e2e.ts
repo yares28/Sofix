@@ -22,6 +22,7 @@ test("the round's ten matches sit on one timeline, and the page opens on the nex
   await expect(strip.getByRole("link")).toHaveCount(10);
   await expect(strip.getByRole("link").first()).toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("status").first()).toContainText("All 20 teams read");
+  await expect(page.locator(".lu-lock")).toHaveCount(0);
 });
 
 test("the round is drawn as days, each kickoff time once, and a game as its two crests", async ({ page }) => {
@@ -35,11 +36,16 @@ test("the round is drawn as days, each kickoff time once, and a game as its two 
   const together = strip.locator(".lu-day").nth(2).locator(".lu-slot").last();
   await expect(together.locator(".lu-slot-time")).toHaveText(/^\d{2}:\d{2}$/);
   await expect(together.getByRole("link")).toHaveCount(2);
-  // a game carries no names or codes on the bar: the label and the hover title have them
+  // a game carries no names on the bar; hover or keyboard focus reveals the saved match evidence
   const first = strip.getByRole("link").first();
   await expect(first).toHaveText("");
   await expect(first).toHaveAttribute("aria-label", /^M.laga against Espanyol, \w{3} \d{2}:\d{2}$/);
-  await expect(first).toHaveAttribute("title", /^M.laga v Espanyol$/);
+  await first.hover();
+  await expect(page.getByRole("tooltip")).toContainText("Bookmaker chances");
+  await expect(page.getByRole("tooltip")).toContainText("Home 39%");
+  await expect(page.getByRole("tooltip")).toContainText("Sofix forecast");
+  await expect(page.getByRole("tooltip")).toContainText(/xG 0\.8.1\.1/);
+  await page.screenshot({ path: "test-results/lineups-desktop-tooltip.png" });
   // the slot of the open match is marked
   await expect(strip.locator(".lu-slot[data-current]")).toHaveCount(1);
   await expect(strip.locator(".lu-slot[data-current]").getByRole("link")).toHaveAttribute("aria-current", "page");
@@ -87,11 +93,13 @@ test("an injury, a doubt and a ban are icons with a text alternative, and the no
   await expect(news).not.toContainText("Duda para");
 });
 
-test("the reading's times are behind one small button, and the match links to Futbol Fantasy", async ({ page }) => {
+test("the reading's times appear on icon hover, and the match links to Futbol Fantasy", async ({ page }) => {
   await page.goto("/lineups?m=22502");
 
   await expect(page.getByText(/Last read/)).toBeHidden();
-  await page.getByText(/^Read /).first().click();
+  const info = page.getByLabel("Futbol Fantasy reading details");
+  await expect(info).toHaveText("");
+  await info.hover();
   await expect(page.getByText("Last read")).toBeVisible();
   await expect(page.getByText("Lineups keep changing until kickoff.")).toBeVisible();
   const link = page.getByRole("link", { name: "Open this match on Futbol Fantasy" });
@@ -185,14 +193,12 @@ async function weeksOf(request: APIRequestContext) {
   return seasonWeeks(grid, served, new Date());
 }
 
-test("the header names the LaLiga round, its days and the Sorare week it feeds, with a link to plan it", async ({ page }) => {
+test("the header names the LaLiga round and its days without a speculative Sorare status", async ({ page }) => {
   await page.goto("/lineups");
 
-  await expect(header(page).locator(".lu-eyebrow")).toHaveText(/^LaLiga round 8 · \w{3} \d+ – \w{3} \d+ Oct$/);
-  const sorare = header(page).getByRole("link", { name: /^Sorare/ });
-  await expect(sorare).toHaveText(/^Sorare(: not open yet| GW\d+( · locks \w{3} \d{2}:\d{2}| · locked)?)$/);
-  await expect(sorare).toHaveAttribute("href", /^\/play\?w=\d{4}-\d{2}-\d{2}$/);
-  await expect(page.getByText("Futbol Fantasy · kickoffs in Madrid time")).toBeVisible();
+  await expect(header(page).locator(".lu-eyebrow")).toHaveText(/^LaLiga round 8 .*\w{3} \d+ . \w{3} \d+ Oct$/);
+  await expect(header(page).getByRole("link", { name: /^Sorare/ })).toHaveCount(0);
+  await expect(page.getByText(/Futbol Fantasy .* kickoffs in Madrid time/)).toBeVisible();
 });
 
 test("arriving for a week that is past says Futbol Fantasy only has the next round", async ({ page, request }) => {
@@ -245,43 +251,34 @@ test("a pitch card and an alternative's chip write a player's name the same way,
   }
 });
 
-test("your players are listed at the top of each match with their chance and what is wrong, and a switch dims everyone else", async ({ page }) => {
+test("the compact ownership switch dims others and the removed summary stays absent", async ({ page }) => {
   await page.goto("/lineups?m=22502");
-  const strip = page.getByRole("region", { name: "Your players in this match" });
-
-  await expect(strip.getByRole("heading")).toHaveText(/^Your \d+ here$/);
-  const listed = await strip.locator(".lu-yours-one").count();
-  const named = Number(((await strip.getByRole("heading").innerText()).match(/\d+/) ?? [])[0]);
-  expect(listed, "the strip lists the players its heading counts").toBe(named);
-  await expect(page.locator(".lu-strip")).not.toContainText("yours"); // the match tabs carry no count of yours
-  // one of yours is in doubt for this round: his short name, his chance and the word say so
-  const zubeldia = strip.locator(".lu-yours-one", { hasText: "ZUBELDIA" });
-  await expect(zubeldia).toContainText("50%");
-  await expect(zubeldia).toContainText("doubt");
-  // everyone else is dimmed by the switch, and yours are not
+  await expect(page.getByRole("region", { name: "Your players in this match" })).toHaveCount(0);
   const others = page.locator(".lu-card:not([data-mine])").first();
   const mine = page.locator(".lu-card[data-mine]").first();
-  await expect(others).toHaveCSS("opacity", "1");
-  await strip.getByRole("switch", { name: "Only my players" }).check();
+  await page.getByRole("switch", { name: "Only my players" }).check();
   await expect(others).toHaveCSS("opacity", "0.22");
   await expect(mine).toHaveCSS("opacity", "1");
-  await strip.getByRole("switch", { name: "Only my players" }).uncheck();
-  await expect(others).toHaveCSS("opacity", "1");
+  await page.getByRole("radio", { name: "Sorare", exact: true }).check();
+  await expect(others).toHaveCSS("opacity", "0.22");
+  await page.getByRole("navigation", { name: /^Matches of/ }).getByRole("link").first().click();
+  await expect(page.getByRole("switch", { name: "Only my players" })).toBeChecked();
+  await expect(page.getByRole("radio", { name: "Sorare", exact: true })).toBeChecked();
+  await page.getByRole("switch", { name: "Only my players" }).uncheck();
+  await expect(page.locator(".lu-card:not([data-mine])").first()).toHaveCSS("opacity", "1");
 });
 
-test("a player of yours opens his card on Cards, from the strip, the pitch and the alternatives", async ({ page }) => {
+test("a player of yours opens his card on Cards, from the pitch and the alternatives", async ({ page }) => {
   await page.goto("/lineups?m=22498");
   const owned = new Set(served.collection!.map((card) => card.player));
-  const strip = page.getByRole("region", { name: "Your players in this match" });
-  const hrefs = await strip.locator("a.lu-yours-name").evaluateAll((links) => links.map((link) => link.getAttribute("href")!));
-  expect(hrefs.length, "every one of yours in the strip is a link").toBe(await strip.locator(".lu-yours-one").count());
+  const hrefs = await page.locator(".lu-go").evaluateAll((links) => links.map((link) => link.getAttribute("href")!));
   const href = hrefs.find((one) => owned.has(one.replace("/cards#p-", "")))!;
   // the pitch and the chips under it link the same way
   await expect(page.locator(".lu-card[data-mine] a.lu-go").first()).toHaveAttribute("href", /^\/cards#p-/);
-  await expect(page.locator(".lu-card:not([data-mine]) a")).toHaveCount(0);
-  await expect(page.locator(".lu-alt[data-mine] a").first()).toHaveAttribute("href", /^\/cards#p-/);
+  await expect(page.locator(".lu-card:not([data-mine]) a.lu-go")).toHaveCount(0);
+  await expect(page.locator(".lu-alt[data-mine] a.lu-alt-go").first()).toHaveAttribute("href", /^\/cards#p-/);
 
-  await strip.locator(`a[href="${href}"]`).click();
+  await page.locator(`a.lu-go[href="${href}"]`).first().click();
   await expect(page).toHaveURL(new RegExp(`${href}$`));
   const tile = page.locator(`#${href.split("#")[1]}`);
   await expect(tile).toBeInViewport();
@@ -372,17 +369,25 @@ test("a match with no card art keeps the face and the silhouette for the players
   await expect(page.locator(".lu-card:not([data-mine]) .lu-sil").first()).toBeVisible();
 });
 
-test("a key under the match head says what the colours of the % mean, in the colours the badges use", async ({ page }) => {
-  await page.goto("/lineups?m=22502");
-  const key = page.getByRole("group", { name: "What the colours of the chances mean" });
-
-  await expect(key).toBeVisible();
-  await expect(key.locator("span")).toHaveText(["80% or more", "60–79%", "40–59%", "under 40%"]);
-  for (const tone of ["strong", "good", "mid", "low"]) {
-    const swatch = await key.locator(`i[data-tone="${tone}"]`).evaluate((el) => getComputedStyle(el).backgroundColor);
-    const badge = await page.locator(`.lu-pct[data-tone="${tone}"]`).first().evaluate((el) => getComputedStyle(el).backgroundColor);
-    expect(swatch, tone).toBe(badge);
-  }
+test("percentages switch source, missing estimates stay blank and FF keeps attribution", async ({ page }) => {
+  await page.goto("/lineups?m=22500");
+  await expect(page.getByRole("group", { name: "What the colours of the chances mean" })).toHaveCount(0);
+  await expect(page.getByText(/% = his chance of starting/)).toHaveCount(0);
+  const foyth = page.getByRole("listitem", { name: /^Juan Foyth,/ });
+  await expect(foyth.locator(".lu-pct")).toHaveText("40%");
+  await expect(foyth.getByRole("link", { name: /40% to start.*Futbol Fantasy/ })).toHaveAttribute("href", /futbolfantasy.com.*22500/);
+  const before = await page.locator(".lu-card").count();
+  await page.getByRole("radio", { name: "Sorare", exact: true }).check();
+  await expect(foyth.locator(".lu-pct")).toHaveText("70%");
+  await expect(foyth).toHaveAttribute("aria-label", /70% to start/);
+  await expect(page.locator(".lu-card:not([data-mine]) .lu-pct").first()).toHaveText("—");
+  await page.getByRole("radio", { name: "Sofix", exact: true }).check();
+  await expect(foyth.locator(".lu-pct")).toHaveText("54%");
+  await expect(page.locator(".lu-card")).toHaveCount(before);
+  await page.getByRole("radio", { name: "Futbol Fantasy", exact: true }).check();
+  await expect(foyth.locator(".lu-pct")).toHaveText("40%");
+  await page.getByRole("group", { name: "Chance to start source" }).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "../output/playwright/lineups-desktop.png", fullPage: true });
 });
 
 const PIXEL = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
@@ -439,12 +444,12 @@ test("a payload from before the slots were read still puts the alternatives by l
   await expect(page.locator(".lu-pitch .lu-alt").first()).toBeVisible();
 });
 
-test("a match with none of your players says so, and offers no switch", async ({ page }) => {
-  await page.goto("/lineups");
-  const strips = page.getByRole("region", { name: "Your players in this match" });
-  await page.goto("/lineups?m=22496"); // the mock's Levante–Sevilla names none of yours
-  await expect(strips.getByRole("heading")).toHaveText("None of your players are in this match");
-  await expect(strips.getByRole("switch")).toHaveCount(0);
+test("a match with none of your players keeps the compact controls", async ({ page }) => {
+  await page.goto("/lineups?m=22496");
+  await expect(page.getByRole("region", { name: "Your players in this match" })).toHaveCount(0);
+  await expect(page.getByRole("switch", { name: "Only my players" })).toBeVisible();
+  await page.getByRole("radio", { name: "Sofix", exact: true }).check();
+  await expect(page.locator(".lu-card .lu-pct").first()).toHaveText("—");
 });
 
 test("alternatives at 5% or less and anyone out or suspended fold into '+N more', and the knocks he plays despite into 'N more fit to play'", async ({ page }) => {

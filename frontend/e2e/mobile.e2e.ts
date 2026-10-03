@@ -116,11 +116,30 @@ test("Lineups on a phone shows one team at a time and does not scroll sideways",
 
 test("Lineups on a phone: the tap targets of the reading and the link are at least 44 px", async ({ page }) => {
   await page.goto("/lineups?m=22502");
+  await page.screenshot({ path: "test-results/lineups-mobile.png" });
 
-  for (const target of [page.getByText(/^Read /).first(), page.getByRole("link", { name: "Open this match on Futbol Fantasy" })]) {
+  for (const target of [page.getByLabel("Futbol Fantasy reading details"), page.getByRole("link", { name: "Open this match on Futbol Fantasy" })]) {
     const box = (await target.boundingBox())!;
     expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(44);
   }
+});
+
+test("Lineups source controls fit a phone and change starter percentages without moving the formation", async ({ page }) => {
+  await page.goto("/lineups?m=22495");
+  await page.getByRole("group", { name: "Team", exact: true }).locator("label").filter({ hasText: /^Getafe$/ }).click();
+  const card = page.getByRole("listitem", { name: /^David Soria,/ });
+  await expect(card.locator(".lu-pct")).toHaveText("95%");
+  await page.getByRole("radio", { name: "Sofix", exact: true }).check();
+  await expect(card.locator(".lu-pct")).toHaveText("60%");
+  await page.getByRole("radio", { name: "Sorare", exact: true }).check();
+  await expect(card.locator(".lu-pct")).toHaveText("—");
+  await page.getByRole("switch", { name: "Only my players" }).check();
+  await expect(card).toHaveCSS("opacity", "1");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole("radio", { name: "Futbol Fantasy", exact: true }).check();
+  await page.getByRole("switch", { name: "Only my players" }).uncheck();
+  await page.getByRole("group", { name: "Chance to start source" }).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "../output/playwright/lineups-mobile.png", fullPage: true });
 });
 
 test("the home's team news fits a phone: one column, no sideways scrolling", async ({ page }) => {

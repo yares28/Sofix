@@ -248,15 +248,14 @@ Futbol Fantasy's probable elevens for every match it has published (FF covers ea
 tied to the week in the top bar). One timeline holds the round's matches: a column for each day (Fri 9, Sat 10…), each kickoff time written once on a rail, and a match as
 its two crests, home side first, under its time. Two games played together share one time. The open match is the black pair and its time
 is darker; hover a pair for the club names. The page opens on the next match. On a phone the timeline scrolls sideways and keeps the open
-match in the middle. Your players are counted in the strip above each pitch, not on the timeline. Competition and round tabs appear only when the page holds more than one. Picking a match, a round or a
+match in the middle. Competition and round tabs appear only when the page holds more than one. Picking a match, a round or a
 competition changes the page at once, from what it already holds (all the round's matches arrive with it): no reload, no wait, and
 the address still says `?m=<match>` so the match can be bookmarked or sent, and Back returns to the one before. A click with
 Ctrl or Cmd opens the match in a new tab as a link does.
 
 The header is centred: "LaLiga round 8 · Fri 9 – Mon 12 Oct" (the days are the first and last kickoff, Madrid time), the question "Who starts
-this round?", then two chips. The first says where the Sorare week it feeds stands, "Sorare: not open yet" or, once Sorare opens it,
-"Sorare GW21 · locks Fri 16:00" (amber while there is time to set a lineup, grey once it is locked or not open), and links to Play for that
-week. The second says how fresh Futbol Fantasy's reading is. Under the timeline, "Futbol Fantasy · kickoffs in Madrid time"; the Fixtures list says
+this round?", then a chip saying how fresh Futbol Fantasy's reading is. Hover or focus a match on the timeline for its saved bookmaker
+chances, Sofix forecast and lineup formations; unavailable bookmaker data is labelled as such. Under the timeline, "Futbol Fantasy · kickoffs in Madrid time"; the Fixtures list says
 "Madrid time" beside its match count for the same reason. Arriving with a week that FF does not cover (a past round, a later one, or a national-team week) adds one line:
 "Futbol Fantasy only has each club's next LaLiga game: round 8. GW19 is national-team games." A match address that is no longer on
 FF says so above the next match.
@@ -266,16 +265,17 @@ FF says so above the next match.
   and for everyone else a real Limited card of his from Sorare's public listing for this season, so the page looks the same for all
   22. While a card's picture is on its way it shows his name and position on a quiet skeleton, then the picture alone; a player Sorare
   has no card for (a club outside LaLiga, a new signing) keeps FF's photo or a silhouette. A club is its real crest, with its shield in
-  the club's colour underneath until the crest arrives. The badge under a card is his chance of starting, and a key under the match
-  head says what its colours mean (80% or more, 60–79%, 40–59%, under 40%). A round mark at a card's corner is an injury, a doubt or a
+  the club's colour underneath until the crest arrives. The badge under a card is his chance of starting from the selected source. A round mark at a card's corner is an injury, a doubt or a
   ban; a **blue chip with two letters** ("KE", "ES") is a call-up to that country's national team (hover for the country's name). A call-up is only shown
   once his club has named its match squad on FF; until then the team carries "Squad list not out" and no call-up mark, so the
   page never says both. Names and positions on a card are 11 px or more on a desktop and 10 px on a phone (a long surname ends in an
   ellipsis; hover for the whole name); the card's colour says its rarity, and the hover says it in words.
-- **Your players, first.** Above the pitch a strip lists the players of yours the match names ("Your 3 here"): the eleven first, then the
-  alternatives (marked "alt"), each with his short name, his chance and, when something is wrong, the icon and the word (doubt, out,
-  suspended). The **Only my players** switch dims everyone else, on the pitch and in the injury lists. Every player of yours, in the strip, on the
-  pitch, among the alternatives and in the injury list, is a link: it opens his card on **My cards** (his tile is outlined there).
+- **Sources and your players.** Above the pitches, switch between **Futbol Fantasy**, **Sorare** and **Sofix** to see each source's
+  chance of starting this match. Futbol Fantasy is selected first; its formation and alternatives stay in place as the percentages
+  change. A dash means that source has no estimate for this player and match. Sorare and Sofix use the saved forecasts for your
+  players, including an early plan when available; a different match's number is never substituted. FF percentages link to its match
+  page. **Only my players** dims everyone else on the pitch and in the injury lists. Both choices stay selected when you pick another
+  match. Your players on the pitch, among the alternatives and in the injury list link to their card on **My cards**.
 - **Who could come in for whom.** Under each starter's own card, the names of the alternatives Futbol Fantasy puts in his slot (the order it gives them), with their
   chance ("DÍAZ 40%" under Toni Martínez, "ALEÑÁ 40%" under Denis Suárez), the way its own pitch draws it. One player can stand under several
   starters (Lookman under both Lee and Grimaldo). Bench players it names under nobody are listed under the pitch as "Also on the bench".
@@ -289,8 +289,8 @@ FF says so above the next match.
   apart"), "since 12 Sep", and the note ("Doubt for round 8", "Available for round 8", "Out for round 8", "Out until January
   2027"). A return date that has already gone by reads "Was due back late September", never "Out until". A diagnosis the page
   cannot translate keeps FF's own words, in italics, with a tooltip saying so. **Your players FF does not list** are named under their club with why, and use Sorare's or Sofix's number.
-- **The small button** at the top right of a match, "Read 16:56", opens when FF was last read and when each team's lineup last
-  changed; the arrow beside it opens the match on Futbol Fantasy.
+- **The small information icon** at the top right of a match shows when FF was last read and when each team's lineup last
+  changed on hover, focus or click; the arrow beside it opens the match on Futbol Fantasy.
 - **States.** The pill under the title says how many teams are read and when; it says when FF could not be read (the last
   reading stands for 24 hours) or is over a day old (no longer used in plans); a match FF has taken off its site is simply dropped
 and never counts as FF not being readable. A team FF has not published yet says so, a match

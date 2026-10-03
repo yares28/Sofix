@@ -82,6 +82,7 @@ class Row:
     p_play: float | None = None
     p_start: float | None = None
     start: float | None = None  # his score if he starts, today's model only
+    on: float | None = None  # his score if he comes on from the bench, today's model only
     mu: float | None = None  # his score if he plays
     period: str = "tuning"
     form_games: int = 0  # of his last five games before the week, how many there were...
@@ -298,6 +299,7 @@ def walk_forward(
                         p_play=said.get("p_play"),
                         p_start=said.get("p_start"),
                         start=said.get("start"),
+                        on=said.get("on"),
                         mu=said.get("mu"),
                         form_games=len(recent),
                         form_starts=sum(game.started for game in recent),

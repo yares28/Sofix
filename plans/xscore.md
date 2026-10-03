@@ -51,16 +51,18 @@ pictures. They were downloaded through its public help-centre API and read; noth
 
   | Action | Goalkeeper | Defender | Midfielder | Forward |
   |---|---|---|---|---|
-  | Goal conceded | **−3** (was 0) | **−4** (was −2) | −2 | 0 |
+  | Goal conceded | **−5 in the real scores** (the picture says −3; was 0) | **−4** (was −2) | −2 | 0 |
   | Clean sheet, 60 minutes or more | (it is a decisive action instead) | +10 | 0 | 0 |
   | Save / save inside the box / diving save / diving catch | +2 / **+2** (was +1) / +3 / +3.5 | | | |
   | Shot on target, big chance created | +3, +3 | +3, +3 | +3, +3 | +3, +3 |
   | Yellow card, error leading to a shot | −3, −5 | −3, −5 | −3, −3 | −3, −3 |
 
-  Which column applies in 2026/27 is to be confirmed with a keyed read of a few games' `allAroundStats` (P7 step 1); the
-  measurements below behave like the new one (a keeper who concedes four is near 20). **Confirmed 3 Oct without a key:** Sivera's score
-  at Athletic on 19 Sep (`detailedScore`) counts his 13 accurate passes as 1.3 and his 2 final-third passes as 1.0, the new column's 0.1
-  and 0.5 for a keeper (the current column gives keepers 0 for both): the new column is in force.
+  **Settled 4 Oct 2026 (P9 X1), from the points Sorare actually gave:** scoring version 7 is on all 14,142 appearances of 2025/26 and
+  2026/27 alike, and **95 of the 96 stats with a value in the picture give exactly the new column's points per unit** (each checked on
+  every game it was made in). The one exception is a keeper's goal conceded, which costs **−5** (687 cases, in both seasons), not the
+  −3 of the picture. So the new column is in force and is the table the stat sheet counts by, with −5 for a keeper's goal conceded
+  (the stored points per stat are kept beside every count, so the table is never assumed). First sign, 3 Oct: Sivera's 13 accurate
+  passes at Athletic on 19 Sep counted 1.3, the new column's 0.1 each for a keeper.
 
 **What it means for a goalkeeper.** A clean sheet puts him at level 1, so at least 60, and the saves come on top. Without one
 he stays at 35 and loses 3 for every goal, which saves only partly make up. So his score depends mostly on the goals his side
@@ -489,7 +491,7 @@ about two days before the lock, a regular starter's "if he starts" becomes Sorar
 public.
 
 **Why that is wrong for a keeper.** Sorare's rules (section 1): a clean sheet is a decisive action worth at least 60, and each goal
-conceded costs 3. His two clean sheets this season (84.5 and 81.5) carry his average. Against Barcelona a clean sheet is a 3% chance
+conceded costs 3 (the picture; the real scores give −5, settled 4 Oct). His two clean sheets this season (84.5 and 81.5) carry his average. Against Barcelona a clean sheet is a 3% chance
 by the bookmakers (Barcelona scores in 97% of their prices) and 9% by Sofix's board, and Barcelona has scored 31 in 7 league games. Your
 list of keepers against Barcelona averages 37 (middle value 30); the three in the export match yours to the point: Agirrezabala 60
 (16 Sep), Ryan 20.5 (13 Sep), Dituro 18.2 (23 Aug). A rough sum with this season's keeper scores by goals conceded gives him about
@@ -498,7 +500,7 @@ list of keepers against Barcelona averages 37 (middle value 30); the three in th
 **The fix: the game goes into the score, position by position, keepers first** (the biggest effect: 33 against 51).
 
 - **Goalkeepers:** chance of a clean sheet × his score with one + the rest × his score without one, the second falling with the
-  goals his side is expected to let in (−3 a goal, partly made up by saves). The chance of a clean sheet and the goals expected are
+  goals his side is expected to let in (−5 a goal, partly made up by saves). The chance of a clean sheet and the goals expected are
   the board's own for a LaLiga game (the panel's CS and the difficulty page), Sorare's odds for another game, and nothing when there
   are none (then today's number, as now).
 - **Defenders:** the same with +10 for a clean sheet of 60 minutes and −4 a goal conceded, plus his own decisive rate.
@@ -587,7 +589,7 @@ Athletic on 19 Sep: a clean sheet and a penalty save make level 70, plus 14.8 al
 game:
 
 1. **The chance of a decisive action**, and the smaller chance of a negative one.
-2. **His score with one and his score without**: the level plus his all-around points, which move with the game too (−3 a goal conceded
+2. **His score with one and his score without**: the level plus his all-around points, which move with the game too (−5 a goal conceded
    for a keeper, +2 a save, and so on).
 3. **The whole spread**, from a few thousand simulated games: the xScore (the big number, as decision 1 says), his range (where he
    lands 8 times in 10) and the chance he beats his usual score.
@@ -601,7 +603,7 @@ stays because it sounds right.
 | Part | What it does | Feeds |
 |---|---|---|
 | 1 · Form that knows the opponent | After each game his level moves by a share of *what he did minus what was expected of him in that game*. Against a weak side, or as the favourite, a good game moves him little; against a strong side, or as the underdog, a lot; a bad game at Barcelona barely drops him. Kept apart for his all-around points and for his decisive actions, and for starts and appearances off the bench. P8 found a keeper's raw form is mostly luck, so expect a small share for keepers. | both scores, the chance |
-| 2 · The game (the app's difficulty) | The football model's numbers behind the difficulty: his side's expected goals (an attacker's goals and assists), the chance of a clean sheet (a keeper's decisive action, a defender's +10 at 60 minutes), the goals expected against (−3 or −4 each), the win chance, home or away. | the chance, the score without |
+| 2 · The game (the app's difficulty) | The football model's numbers behind the difficulty: his side's expected goals (an attacker's goals and assists), the chance of a clean sheet (a keeper's decisive action, a defender's +10 at 60 minutes), the goals expected against (−5 for a keeper, −4 for a defender, −2 for a midfielder, each), the win chance, home or away. | the chance, the score without |
 | 3 · Starting or coming on | A substitute who comes on also starts at 35, with fewer minutes for the rest. "If he starts" and "if he comes on" each get their own chance and scores; the big number follows the start chance (decision 1). | everything |
 | 4 · His share of his side's attack | His goals and assists against his side's: a striker who scores a third of his side's goals gets a third of tonight's expected goals. Pulled to his position's share while he has few games. | the chance |
 | 5 · What the opponent gives his position | Per club and position: how players there did against it, minus what was expected of them (keepers at Barcelona, forwards against Getafe). Recent games count more; it counts for little until there are many (a club gives about 38 keeper starts a season). | the score without |
@@ -611,7 +613,7 @@ stays because it sounds right.
 | 9 · Cards and errors | His rate of red cards, own goals, penalties conceded and errors leading to a goal makes the negative chance; yellow cards and fouls cost all-around points. | the negative chance, the score without |
 | 10 · The rest, one at a time | Two games in a week (best of two, game by game, P4-4); club or national team (P4-1); a European game three days before. | as each says |
 | 11 · His stat sheet | His all-around points built stat by stat: how many of each stat he makes per game (saves, saves inside the box, tackles won, interceptions, passes, duels won, shots on target …) times today's points for his position, each moved by the game (a keeper's saves by the shots the opponent takes, a defender's tackles and interceptions by how much of the ball the opponent keeps). Tried against one all-around level; the closer one stays. | the score without |
-| 12 · Bookmakers' goal markets | The over/under line of each match turns, with the who-wins prices, into each side's expected goals and the chance of a clean sheet (today the football model blends only the who-wins prices, at 35%, for games within 7 days). Anytime-scorer prices once per round, if The Odds API's free plan has them for LaLiga (to check on the first read). | the chance, the score without |
+| 12 · Bookmakers' goal markets | The over/under line of each match turns, with the who-wins prices, into each side's expected goals and the chance of a clean sheet (today the football model blends only the who-wins prices, at 35%, for games within 7 days). The line is already read and kept for every upcoming game (`p_over_2_5` in the odds table, from the same 2-credit read as the who-wins prices), so this part costs no credits; its history comes from football-data.co.uk. Anytime-scorer prices once per round, if The Odds API's free plan has them for LaLiga (not yet checked: the key lives only in GitHub's secrets, so the first check is one read from the odds job, 1 credit). | the chance, the score without |
 | 13 · Team news for both sides | The starters each side is missing (Futbol Fantasy's lineups and absences), each weighted by what he brings (his share of his side's shots, goals, assists, minutes and defensive actions, from X1), move each side's attack and defence before the scoreline chances are worked out: a keeper facing Barcelona without its striker gets a better chance of a clean sheet. | everything that follows the game |
 | 14 · Chances, not just goals | His decisive chance from the stats that come before goals and assists: shots on target, big chances created and missed, penalty-area entries, attempted assists. Goals are rare and mostly luck; chances repeat. Pulled to his position's rates while he has few games. | the chance |
 | 15 · Penalty and set-piece takers | Sorare's game stats count penalties, set pieces, corners and free kicks taken (`penaltyTaken`, `setPieceTaken`, `cornerTaken`, `attFreekickTotal`; checked in its schema on 3 Oct). The taker gets his side's expected penalties (a penalty is about three goals in four) and a set-piece taker his share of the assists; when he is out, the next taker inherits. | the chance |
@@ -627,8 +629,9 @@ questions two seconds apart: about an hour with the waits, free, in a local git-
 the football model's forecast from the Monday before (P8's join), to football-data.co.uk's shots, and to the over/under 2.5 prices those
 files hold for both seasons, so part 12 can be tested on history. In production the refresh reads only the new games (about 20 to 30
 questions a week) and keeps the levels and
-tables in a read model: no migration. The Odds API's over/under market about doubles the cost of each odds read, about 240 of the free 500
-credits a month at today's pace; scorer prices would cost about 10 a read; if a month would run short, scorer prices go first.
+tables in a read model: no migration. The Odds API's over/under market is already part of each odds read (2 credits: who-wins and over/under
+together), so it adds nothing; only anytime-scorer prices would cost more, about 10 credits a read for a round's ten games, from the 488 that
+are free this month.
 
 With every LaLiga player, one round gives about 220 starts to test on, not only your players' games, so the held-out weeks can decide
 within a round or two.
@@ -771,6 +774,72 @@ lineups and captains on the real spread; each daily mission shows its best cards
 Audit shows every figure of the tracking catalogue with its counts, before and after, and the decision scorecard; the manual and
 `docs/how_it_works.md` describe the new score.
 
+### P9 progress
+
+**X1 · the data: done 4 Oct 2026 (roadmap 10.1).** `python -m app.jobs.export_games` read every played LaLiga game since 1 August 2025 from
+Sorare's public API without a key, in about an hour (two questions a game, three seconds apart; no refusal stopped it):
+**449 games (380 of 2025/26, 69 of 2026/27 up to 20 Sep), 29,094 player rows, 14,142 appearances, 9,878 starts** (898 by keepers, 3,665
+defenders, 2,641 midfielders, 2,674 forwards), **28,958 rows with Sorare's projection and grade**. `python -m app.sorare.gamedata` joins each
+game, by club and date, to the football model's forecast from the Monday before, to football-data.co.uk's shots, cards and over/under 2.5
+prices, and to both official elevens: **449 of 449 for each, no club unmatched** (the newest football-data file reaches 20 Sep).
+The file is `backend/data/raw/sorare_games.jsonl` (12 MB, git-ignored).
+
+What the read showed:
+
+- **Sorare's scoring did not change over the two seasons** (section 1): version 7 throughout, and the new all-around column is the one in
+  force, except a keeper's goal conceded, which is −5 and not the −3 of the picture.
+- **An upcoming game lists its rostered players (61 in the first one checked) and carries no projection** (0 of 61): Sorare gives a
+  projection for a player's next game only player by player, as the app's sync already reads it. The live record (X2b) has to ask for them.
+- **Over/under 2.5 is already in the app's odds read** (2 credits with the who-wins prices, kept as `p_over_2_5` for every upcoming game), so
+  part 12 costs no credits. The odds key is only in GitHub's secrets (not in the local settings), so whether the free plan has scorer prices
+  for LaLiga waits for one read from the odds job.
+- **A keeper almost never comes on**: 4 of his 902 appearances in the two seasons, 898 were starts.
+
+**X2a · today's formula on every LaLiga player: done 4 Oct 2026 (roadmap 10.2).** `python -m app.jobs.league_replay --fixtures-from
+<the owner's history file>` writes `backend/data/audit/replay_league.json` (numbers only). Each game is predicted from the games the
+player had before its Sorare gameweek, LaLiga games only, so his form is his LaLiga form. All 449 games, 1,020 players:
+
+| Figure | Result |
+|---|---|
+| The tile's "if he starts", on 9,878 starts | typical miss **14.5** points, leans +0.6; within ±3: **13%**, ±7: **30%**, ±10: **42%**, ±15: **60%** |
+| The tile's "if he comes on", on 4,264 appearances off the bench | typical miss **7.9**; within ±3: 27%, ±7: **60%**, ±10: 76%, ±15: 87% |
+| The expected score (the chance of not playing included), on all 29,094 rows | typical miss 16.1; within ±7: 15%; on the 14,142 who played it leans 12.8 low, by construction |
+| The better of two players | **76%** of 1.84 million pairs (a flat guess 50%, his last five games' average 75%); keepers 89%, midfielders 77%, defenders 75%, forwards 74%. It counts every rostered player, the unused ones included, so it is **not** the owner's 66% of 84 cards: the Audit's league figure has to say which players count (candidates: those with a start chance of 40% or more) |
+| Against Sorare's projection, on 8,964 starts | within ±7: today's **30%**, Sorare's **33%**; today's number nearer in 45% of games (43% in 2026/27); average miss 14.5 against 14.3 (difference +0.27 points, interval +0.11 to +0.44; Sorare leans 2.5 low, today 0.8 high), but squared miss −9.1 [−17.1, −1.3] in today's favour: Sorare's lands close more often, today's makes fewer large misses. Midfielders 42% nearer, the rest 44 to 47% |
+
+What it says. **Sorare's projection and today's formula are as good as each other** (P6, answered on history: there is no case for
+overruling or replacing either; whether the two together beat each is part 8's test). **Neither lands within ±7 points more than a third of
+the time** on a starter, because a starter's score moves about 18 points from one game to the next: the ±7 figure the Audit will show
+starts near 30% for a starter and 60% for a substitute, and what matters is how far the new model moves it.
+
+**P8 on every keeper (the research script, unchanged, on the league history):** 829 starts by 33 keepers (697 in 2025/26, 132 in 2026/27),
+against 637 by 20 before. A start scores 75.2 with a clean sheet and 44.5, 41.4, 33.8 and 30.2 after one to four goals. Barcelona 44.6
+(41 starts, today's number said 49.9), Atlético 46.3 (49.1), Real Madrid 48.7 (49.8), everyone else 50.2 (50.1). Left-one-keeper-out,
+squared miss against today's: the keepers' plain average −25.1 [−41.4, −8.2], the average plus a third of the game's effect −27.6
+[−44.0, −10.3], plus his own level −31.2 [−46.3, −15.6] (the weight the other keepers support: 0.28 to 0.42, median 0.34). Fitted on 2025/26
+and scored on 2026/27 (132 starts) nothing is clearly different (squared miss 19.4 for all). The conclusions of P8 stand and are firmer.
+
+**X2b · what must be written down while it is still said: built 4 Oct 2026 (roadmap 10.2b).** The first draft of this step (a record of
+every number for every player) was cut down once the data was in: almost every input of the new model can be read
+again afterwards, so only the one that cannot is recorded live.
+
+- **Recoverable later, so not recorded:** each game's scores, Sorare's projection and grade for it (kept on every past game, checked on
+  all 449), the penalties and set pieces, the stats and both official elevens (the games export, rerun for the new games: about 20
+  questions a round); the football model's forecast from the Monday before (recomputed from the history); the over/under 2.5 and
+  who-wins prices as they stood before the match (football-data.co.uk keeps both). The model's own outputs for every player are
+  recomputed from these, so the Audit's league figures are produced by rerunning `python -m app.jobs.league_replay` after each round.
+- **Not recoverable, so recorded: Futbol Fantasy's start chance for every player of every match, who is out and why, and the
+  formation** (`app/sorare/ff_chances.py`, read model `ff_chances`, written by the refresh's Sorare step beside the Lineups page, a
+  failure of it leaving only itself out). Per match, `last` is the latest reading before the kick-off (replaced by each run until it,
+  then frozen) and `atLock` the reading at the Sorare gameweek's lock (replaced until the lock, then frozen): what a manager could
+  see when he set his lineup. A match first seen after its kick-off is not made up. Players are Futbol Fantasy's ids and names, matched
+  to Sorare's when it is scored. About 40 KB a round, 1.5 MB a season; no migration. 9 tests, among them that a failure here still
+  publishes the page.
+- **Not built, on purpose:** a record of Sorare's projection and odds for every player before the lock. A game not yet played lists its
+  players (61 in the one checked) but no projection, so it would take about 600 player questions a round for numbers Sorare keeps on
+  the played game anyway.
+
+
 ## 5 · Risks
 
 | Risk | What limits it |
@@ -781,7 +850,7 @@ Audit shows every figure of the tracking catalogue with its counts, before and a
 | Sorare's API changes | The same guards as `sync.py`; an unreadable field leaves the number out, never a stale one. |
 | Shifting numbers confuse the picture | One change per refresh; nothing in the same refresh as the FF switch ([futbolfantasy.md](futbolfantasy.md) S3). |
 | Sixteen parts on two seasons (P9) | Each part fitted on 2025/26 and kept only if it clears the bar on its own; parts 12 to 16 added one at a time; shrinkage everywhere. |
-| The Odds API's free credits (P9 part 12) | The over/under market about doubles a read's cost (about 240 of 500 a month); scorer prices go first if a month would run short; nothing paid. |
+| The Odds API's free credits (P9 part 12) | The over/under market is already in the 2-credit read; only scorer prices (about 10 credits a read) would add, and they wait if a month would run short; nothing paid. |
 | An Audit page with too many figures (P9 tracking) | The headline figures lead; each group folds open; every figure says how many cases stand behind it, "too few to tell" under 100. |
 
 ## 6 · For the owner

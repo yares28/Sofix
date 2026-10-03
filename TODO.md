@@ -107,10 +107,12 @@ roadmap's batch 9.
   the Cards page. Every number is written down before each lock for every LaLiga player and scored after the games; the Audit page shows a
   catalogue of twelve groups of figures (headline figures first) beside today's formula, and a decision scorecard. It takes in P8 (keepers
   first).
-- **What it needs from you.** Your go; a choice on a design canvas before it shows on screen; and whether Sorare's projection still
-  replaces the number near the lock until it is measured (recommended: no, it sits beside it).
-- **When.** Roadmap batch 10: the data, tracking first, one refresh per position, the screens, lineups on the real spread, daily missions,
-  the Monday corrections, then the next five gameweeks.
+- **What it needs from you.** A choice on a design canvas before it shows on screen; and whether Sorare's projection still replaces the
+  number near the lock until it is measured (recommended: no, it sits beside it; the replay on two seasons says it and today's formula
+  are as good as each other).
+- **When.** Roadmap batch 10: the data and today's formula scored on every LaLiga player are **done (4 Oct)**; next the live record
+  (10.2b), then one refresh per position, the screens, lineups on the real spread, daily missions, the Monday corrections, then the next
+  five gameweeks.
 
 ## Paused
 

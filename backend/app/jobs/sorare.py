@@ -32,7 +32,20 @@ from app.db import SessionLocal
 from app.logging_config import configure_logging
 from app.models import ReadModel
 from app.services.publish import notify_app, put
-from app.sorare import audit, card_art, early, ff_feed, ff_lineups, ff_link, ff_news, ff_use, frozen, projection, starts
+from app.sorare import (
+    audit,
+    card_art,
+    early,
+    ff_chances,
+    ff_feed,
+    ff_lineups,
+    ff_link,
+    ff_news,
+    ff_use,
+    frozen,
+    projection,
+    starts,
+)
 from app.sorare import publish as sorare_publish
 from app.sorare import record as sorare_record
 from app.sorare import sync as sorare_sync
@@ -132,6 +145,12 @@ def publish_lineups(
             ff_lineups.save_memory(db, memory, at)
             put(db, ff_lineups.LINEUPS_KEY, page, at)
         out: dict[str, Any] = {"matches": len(page["matches"]), "bytes": len(json.dumps(page, separators=(",", ":")))}
+        if write:
+            # Every player's chance, kept at the lock and before the kick-off (roadmap 10.2b); a failure leaves it out, not the page.
+            nothing: dict[str, int] = {}
+            out["chances"] = optional(
+                db, failed, "ff chances", lambda: ff_chances.save(db, page, snapshot.get("planGameweek"), at), nothing
+            )
         if squads is not None:
             out["squads"] = len(squads.squads)
             if squads.failed:

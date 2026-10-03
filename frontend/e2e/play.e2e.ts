@@ -18,17 +18,18 @@ const plan1 = planned.plans[0]!;
 const laliga = plan1.lineups[0]!;
 
 /**
- * A gameweek of the timeline that the page holds no plan for and that no LaLiga round starts on, as the mock serves it.
- * The mock moves every date with the clock, so the dates are read from what is served, never from the recording.
+ * A gameweek of the timeline that the page holds no plan for and that stands as a week of its own, with no LaLiga round in it, as the
+ * app lists it from what the mock serves. The mock moves every date with the clock, and after midnight in Madrid a round can start
+ * inside the gameweek that the day before belonged to, so which gameweeks stand alone changes through the day: the week is taken from
+ * the app's own list, never worked out from the dates. `id` is the week's address.
  */
 async function timelineOnlyWeek(request: APIRequestContext) {
   const served = ((await (await request.get(`${MOCK}/api/sorare`)).json()) as ApiResponse<Sorare>).data!;
-  const rounds = (await servedGrid(request)).matchdays;
-  return served.timeline.find(
-    (item) =>
-      !served.weeks.some((week) => week.gameweek.id === item.id) &&
-      !rounds.some((matchday) => matchday.date_from?.slice(0, 10) === item.start.slice(0, 10)),
+  const weeks = seasonWeeks(await servedGrid(request), served, new Date());
+  const alone = weeks.find(
+    (week) => week.md === null && week.gw !== null && !served.weeks.some((held) => held.gameweek.id === week.gw),
   )!;
+  return { ...served.timeline.find((item) => item.id === alone.gw)!, id: alone.id };
 }
 
 /** The weeks Play offers, worked out the way the app does from what the mock serves (its dates move every day). */
@@ -142,7 +143,7 @@ test("entered Sorare lineups sit at the top of the gameweek they belong to", asy
   const children = await page.locator(".pl-main > *").evaluateAll((nodes) => nodes.map((node) => node.className));
   expect(children.indexOf("pl-entered")).toBeLessThan(children.indexOf("pl-plans"));
 
-  await page.goto(`/?w=${timelineOnly.start.slice(0, 10)}`);
+  await page.goto(`/?w=${timelineOnly.id}`);
   const home = page.getByRole("region", { name: "Your Sorare lineups" });
   await expect(home).toContainText("Friday team");
   await expect(home).toContainText("LALIGA EA SPORTS");

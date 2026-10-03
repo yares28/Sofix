@@ -27,6 +27,11 @@ const moved = (value) => {
   return value;
 };
 const sorare = { ...sorareFixture, data: moved(sorareFixture.data) };
+// The grid moves by the same amount, so each LaLiga round keeps its place among Sorare's weeks whatever the day: the
+// planned week holds no round, and rounds 8 and 9 lie beyond Sorare's weeks (their early plans). With the grid left
+// where it was recorded, the Sorare weeks slid one day a day onto those rounds, and on 3 Oct 2026 the tests built on
+// that broke.
+const grid = { ...recorded, data: moved(recorded.data) };
 
 // Two LaLiga rounds Sorare has not opened get an early plan the job kept apart (`read_models` key `sorare_ahead:<round>`):
 // the week being planned, built again as an early plan for that round, with one plan.
@@ -257,8 +262,8 @@ const server = createServer((req, res) => {
     if (state.mode === "malformed") return send(res, 200, { success: true, data: { season: 2026, teams: "broken" }, meta: null });
     const minutesAgo = (m) => new Date(Date.now() - m * 60_000).toISOString();
     return send(res, 200, {
-      ...recorded,
-      meta: { ...recorded.meta, last_synced_at: minutesAgo(12), last_predicted_at: minutesAgo(12) },
+      ...grid,
+      meta: { ...grid.meta, last_synced_at: minutesAgo(12), last_predicted_at: minutesAgo(12) },
     });
   }
 

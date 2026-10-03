@@ -8,8 +8,14 @@ import recordedSorare from "./fixtures/sorare-response.json";
 
 export const MOCK = `http://127.0.0.1:${MOCK_PORT}`;
 export const APP = `http://127.0.0.1:${E2E_PORT}`;
+/** The grid the mock serves. Its dates are moved forward there with the Sorare week's, so read dates from `servedGrid`. */
 export const grid = (recordedGrid as ApiResponse<FixtureGrid>).data!;
 export const openingMatchday = grid.matchdays[openingColumn(grid)]!.number;
+
+/** The grid as the mock serves it, dates moved: what the app sees. */
+export async function servedGrid(request: APIRequestContext): Promise<FixtureGrid> {
+  return ((await (await request.get(`${MOCK}/api/fixture-grid`)).json()) as ApiResponse<FixtureGrid>).data!;
+}
 /** The Sorare gameweek the mock serves. Its dates are moved forward there, so only read what doesn't move. */
 export const sorare = (recordedSorare as unknown as ApiResponse<Sorare>).data!;
 

@@ -22,6 +22,11 @@ and a check, so a session can work through it alone and stop only where you have
   `ubuntu-24.04` is approved (9.9); the bench score is done (9.4) and the opponent is researched and **waits for your call** (9.5, [xscore.md](xscore.md)
   P8). The xScore's level fix, the Audit's other figures and the frozen plan scored are **paused by you** until data exists (steps 3.4, 5.2, 5.3 and
   5.4), and so is the Apply result (0.1). Pro stays paused.
+- **The new xScore is planned** (your two requests of 3 Oct, evening; batch 10, [xscore.md](xscore.md) P9): the score added up the way Sorare
+  adds it, the chance of a decisive action with a score with and without one, then his range and where this game puts him, from ten parts:
+  form that knows the opponent, the app's difficulty, starting or coming on, his share of his side's attack, what the opponent gives his
+  position, shots, minutes, Sorare's projection and grade, cards and the rest. It takes in 9.5 (the opponent for keepers) and answers
+  decision 4. **Waiting for your go.**
 
 ### As of 2 Oct
 
@@ -49,12 +54,15 @@ Collected here so the run stops less. My recommendation comes first in each.
 1. **The big number on a card's tile.** *Decided 3 Oct:* it follows his chance of starting, Futbol Fantasy's when it has one, else
    Sorare's, else Sofix's. Under 40%: his score if he comes on from the bench; 40% or more: his score if he starts. Step 9.6, after
    9.4 (today's "benched" number is not a score yet).
-2. **Sorare's projection or ours** (step 3.6): decided with the numbers in front of you, once about 100 of your players have
-   been scored with both. Nothing to answer now.
+2. **Sorare's projection or ours** (step 3.6): decided with the numbers in front of you. No longer a wait for 100 recorded players:
+   Sorare keeps its past projections and grades (checked 3 Oct), so batch 10 measures it on two seasons. Until then (recommended):
+   once the new xScore ships for a position, its number stays the big one and Sorare's sits beside it, instead of replacing it about
+   two days before the lock as today. Say if you would rather keep today's switch.
 3. **How much a player's national-team games count for a national-team game** (step 3.4): the backtest decides, unless you
    have a strong view.
 4. **Read all LaLiga players' history** (about 500 free reads of Sorare's API, step 3.2), not only yours: only if the first
-   results are too uncertain to tell changes apart.
+   results are too uncertain to tell changes apart. *Answered by your request of 3 Oct:* yes, because the new xScore needs what every
+   position scores against each club (step 10.1). Two free questions per game return all its players (checked), so about 900 questions.
 5. **Rebuild GW1 to GW16** (approximate: it uses the cards you own today, not the ones you owned then).
    - Recommended: no. The Audit starts from the weeks Sofix recorded.
 6. **The Sofix panel on a Sorare player page** (designed in S7, never built): put it on the sorare.com canvas (step 6.1) as an
@@ -433,9 +441,30 @@ waits for your call; 9.6 to 9.10 are the owner's TODO.md items B, A, C, D and F,
 
 **Release 3 · the opponent** (one refresh per position that clears the bar)
 
-- **9.5 · The game in the score, keepers first** (your item 14). Plan: xscore.md P8. *Done when* P8's "done when" is met.
+- **9.5 · The game in the score, keepers first** (your item 14). Plan: xscore.md P8. **Moved into batch 10 on 3 Oct:** your answer was the
+  fuller model, and keepers are its first position (10.2).
 
 **Paused by you on 3 Oct:** step 0.1 (your Apply result, and one press of Refresh; TODO.md "E"). Neither blocks batch 9.
+
+## Batch 10 · The new xScore: the score added up the way Sorare adds it
+
+Your two requests of 3 Oct, evening. Plan: [xscore.md](xscore.md) P9; TODO.md "G". **Waits for your go.** Each step that changes numbers
+is one refresh on its own and ships only if it clears the bar on the held-out weeks (P9 "The bar").
+
+- **10.1 · The data.** Two free questions per LaLiga game (`Game.playerGameScores`; one question is over Sorare's keyless limit). The first:
+  every player's score, decisive level and all-around points, started, minutes, Sorare's projection and grade, the teams and the result.
+  The second: each score's 53 stats. For 2025/26 and 2026/27, about 900 questions two seconds apart, into a git-ignored file; each game
+  joined to the football model's forecast from the Monday before and to football-data.co.uk's shots. *Test first:* made-up games for the
+  reader and the joins. *Done when* every LaLiga game has its players, its stats and its forecast, and the counts are in P9.
+- **10.2 · Keepers** (P8's groundwork). The chance of a clean sheet (their decisive action) and of a penalty save, the score with and
+  without one, from parts 1 to 5 and 8 of P9, each weighted on 2025/26; then the range. *Done when* the table against today's formula,
+  the keepers' average and Sorare's projection is in P9 and, if it clears the bar, one refresh ships it.
+- **10.3 · Defenders, then midfielders and forwards.** The same, with goals and assists as the decisive actions; one refresh per position.
+- **10.4 · On screen.** A design canvas first (decision 8, a **Stop**): the panel's chance of a decisive action with the score with and
+  without one, the range, and the reasons in points. The tile keeps one big number (decision 1). The Audit adds how honest the chances
+  and the range were. *Done when* it is on production at desktop and phone width, and the manual and how_it_works.md describe the new score.
+- **10.5 · Parts 6, 7, 9 and 10 of P9,** one at a time: shots, minutes, cards and errors, then two games, club or national team, a European
+  game three days before and penalty duty.
 
 ---
 

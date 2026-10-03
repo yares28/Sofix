@@ -60,9 +60,8 @@ Collected here so the run stops less. My recommendation comes first in each.
 7. **Retire the old SorareExt** (step 7.6): only on your go.
 8. **Every design canvas is a Stop.** You choose before anything new is built: Pro on Play if it needs a new look, the Audit
    page, and the sorare.com sheet and numbers.
-9. **A refresh near a lock that does not depend on GitHub's clock** (step 9.8, TODO.md "C"). Recommended: the extension and the app
-   start a refresh when you open them in the last three hours before a lock and the numbers are over 25 minutes old. Or a free outside
-   clock (it needs an account you create), or pressing Refresh yourself.
+9. **A refresh near a lock that does not depend on GitHub’s clock** (step 9.8, TODO.md "C"). *Decided 3 Oct, option 1:* the extension and the
+   app start a refresh when you open them in the last three hours before a lock and the numbers are over 25 minutes old.
 10. **Pin `ubuntu-24.04` in the three workflows:** *yes, 3 Oct* (step 9.9, before 19 Oct).
 
 ## How the run works
@@ -412,7 +411,7 @@ should be live before round 8 locks (Fri 9 Oct, 16:00 Madrid). Releases 2 and 3 
   permission) and calls `chrome.runtime.reload()` when the version on disk is newer than the one running. After a merge I pull your
   main folder and run `node extension/scripts/configure.mjs`. *Test first:* `lib/extensionBackground.test.ts`, a newer version on disk
   reloads once and an equal or older one never does. *Done when* a version bump reaches your Chrome without your Reload (from 0.3.3).
-- **9.8 · A refresh near a lock that does not wait for GitHub's clock** (item 6; TODO.md "C"; decision 9). Built as you choose.
+- **9.8 · A refresh near a lock that does not wait for GitHub's clock** (item 6; TODO.md "C"; decision 9). Decided 3 Oct: option 1, the extension and the app start it when you open them in the last three hours before a lock.
 - **9.9 · Pin `ubuntu-24.04`** in `ci.yml`, `refresh.yml` and `near-lock.yml` (item 7, approved). *Done when* CI and one refresh run on
   it, before 19 Oct.
 - **9.10 · Your account only, and "reload" for an old extension** (item 9; TODO.md "F"): steps 7.1 and 7.2, moved here so they ship
@@ -430,7 +429,7 @@ should be live before round 8 locks (Fri 9 Oct, 16:00 Madrid). Releases 2 and 3 
 
 - **9.5 · The game in the score, keepers first** (your item 14). Plan: xscore.md P8. *Done when* P8's "done when" is met.
 
-**Yours:** step 0.1 (your Apply result, and one press of Refresh; TODO.md "E").
+**Paused by you on 3 Oct:** step 0.1 (your Apply result, and one press of Refresh; TODO.md "E"). Neither blocks batch 9.
 
 ---
 
@@ -442,7 +441,7 @@ Merged as #19 together with batch 1's backend steps; refresh #44 run by hand on 
 
 | Step | Result | What was seen |
 |---|---|---|
-| 0.1 | **waits for you** | The Refresh button is on /control (the key is in Vercel). Pressing it once and what Check, Draft and Enter said are still to be written down. |
+| 0.1 | **paused by you, 3 Oct** | The Refresh button is on /control (the key is in Vercel). Pressing it once and what Check, Draft and Enter said are still to be written down. |
 | 0.2 | **done 3 Oct: passes, with three faults** (batch 9) | Run by me in your Chrome after you reloaded the extension (Control: v0.3.1, online) and restored the window. Round 8's compose page ("Select your Goalkeeper", 12 cards), the Lineups page, an old week's page and your gallery; details in [overlay.md](overlay.md), "Second live pass". **R26:** "LaLiga only" on the FF row for a player outside LaLiga, no Spanish word anywhere: pass; the tab's "every card or +N" could not be seen, because the tab shows GW20, which has no plan (fault O13). **C18:** pass. **C19:** **fail**, the live FF read finds no player (fault O12). **Old week:** Sorare's addresses carry the week on its Lineups, board and compose pages, and an old week's page draws the kept numbers grey: no batch-7 step needed. **Ranks:** #1 to #3 on "Select your Goalkeeper": pass. **G1:** seven keepers on the overlay equal the database to the decimal (score, chance, source), and the Lineups page's three players of yours equal it too: pass. **O6:** Sorare's gold "+11%" is the card's bonus (XP 4 + season 5 + collection 2, its own tooltip); no badge on the left band. Also found: every Celta game shows "No odds" (fault O14). Not seen: the ×2 badge (no large card of a two-game player on any page that opens today); by design, your gallery has no tiles until GW20 locks on Tue 6 Oct. |
 | 0.3 | pass | Refresh #44 log: no warning, `futbolfantasy` `matches` 10, `read` 10, `failed` absent (refresh #42: `read` 30 and 52 failed pages, two HTTP 404). The Sorare step took 243 s against 449 s, the run 5 min 16 s against 8 min 18 s. The cause was larger than the 404s: the Copa del Rey page's sidebar was read as its matches. |
 | 0.4 | pass | Play's lineup sheet on production: 7 cards, 7 silhouettes behind the art. The e2e test holds the art back 3 s and sees the silhouette, then the picture over it. |

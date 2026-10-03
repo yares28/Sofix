@@ -47,7 +47,7 @@ roadmap's batch 9.
 - **Why GitHub does this.** Its own documentation: scheduled runs are delayed when it is busy, and some are dropped. On a free public
   repository there is no guarantee. Its status page shows an "Actions Job Delays" incident on 1 Oct and nothing on 2 Oct, so this lateness
   is its normal service here, not a one-off.
-- **The fix, three free ways (your choice, decision 9):**
+- **The fix: decided 3 Oct, the first way.** The three free ways were:
   - **Recommended:** the extension asks the app to start a refresh when you open sorare.com in the last three hours before a lock and the
     numbers are over 25 minutes old, and the app does the same when you open Sofix then. That is exactly when you need fresh numbers,
     and it uses the same key as the Refresh button.
@@ -56,14 +56,14 @@ roadmap's batch 9.
   - Pressing Refresh on /control yourself before you lock.
   The cron minutes also move off the busy :00 and :30 (a small help, not a fix).
 - **Until it ships** I start a refresh by hand before round 8's lock (Fri 9 Oct, 16:00 Madrid) and one after it.
-- **When.** Release 1 (roadmap 9.8), once you choose.
+- **When.** Release 1 (roadmap 9.8), built as the first way.
 
 ### D · Pin GitHub's machine version before 19 Oct (item 7, approved 3 Oct)
 - **The issue.** The three workflow files say `ubuntu-latest`, which becomes Ubuntu 26 on 19 Oct, so the refresh could break that day.
 - **The fix.** `ubuntu-24.04` in `ci.yml`, `refresh.yml` and `near-lock.yml`. Free.
 - **When.** Release 1 (roadmap 9.9), before 19 Oct.
 
-### E · Your Apply result, and one press of Refresh (item 8)
+### E · Your Apply result, and one press of Refresh (item 8) — *paused by you on 3 Oct*
 - **What Apply is.** On Play, **Apply plan** puts Sofix's lineups into Sorare through your own signed-in tab, in three presses: **Check**
   (Sorare says whether the lineup is allowed; nothing is saved), **Save as a draft** (saved on Sorare as a draft, not entered), **Enter**
   (the only press that enters the competition).
@@ -72,7 +72,7 @@ roadmap's batch 9.
 - **Why it matters.** It is the last check of the Apply flow (S6), and the old SorareExt extension can only be retired after it (7.6).
 - **Refresh.** Press **Refresh** on /control once: a run starts in GitHub's Actions, the button waits out its 10-minute pause, and the page
   updates when the run ends. That closes the Futbol Fantasy plan's S6. I can press it from your Chrome instead if you prefer.
-- **When.** Yours, any time (roadmap 0.1).
+- **When.** Paused: nothing waits on it except retiring SorareExt (7.6), which is paused with it.
 
 ### F · The overlay answers only for your account, and an old extension says "reload" (item 9)
 - **The issue.** The extension does not check that the Sorare account signed in on the tab is yours. And if the app's answer changes and the

@@ -83,20 +83,26 @@ roadmap's batch 9.
   version, and when it is older than the app needs, the tile reads "Reload" instead of numbers. With A, that should almost never show.
 - **When.** Release 1 (roadmap 9.10, formerly 7.1 and 7.2).
 
-### G · The new xScore: the score added up the way Sorare adds it (your two requests of 3 Oct, evening)
+### G · The new xScore: the score added up the way Sorare adds it (your three requests of 3 Oct, evening)
 - **What you said.** Mix in form against the opponent, Elo-style: a good game against weak teams, or when his side was the favourite, is a
   small boost; otherwise a big one. Also the app's difficulty, his average when he starts and when he does not, what keepers (or any
   position) score against that team, and more. "xScore has to be intricate": a range of scores, and everything together says whether he
   lands in its low or high part. Then: "it feels very black and white": add Sorare's gameweek grade, a score if he makes a decisive action
-  and one if he does not with the chance that he makes one, and more parts that make it finer but still accurate.
+  and one if he does not with the chance that he makes one, and more parts that make it finer but still accurate. Then, with Sorare's three
+  scoring tables: show on the Audit page how often each number was right and in how many games (the expected decisive %, the expected
+  all-around points, the scores within ±7 of the xScore, and so on); show each player's average points for every stat and use them to
+  predict better; and say who is best for each daily mission, a card never in two missions at a time.
 - **The plan.** [plans/xscore.md](plans/xscore.md) P9. For each player and game: the chance of a decisive action (and of a negative one),
   his score with one and without, and from those the xScore, his range and the reasons in points ("decisive 28% → about 66 · none 72% →
-  about 39"). Ten parts go in, each weighted by the backtest per position: form that knows the opponent, the game (the numbers behind the
-  difficulty), starting or coming on, his share of his side's attack, what the opponent gives his position, shots, minutes, Sorare's
-  projection and grade (Sorare keeps both for past games, checked), cards and errors, and the rest. It takes in P8 (keepers first).
+  about 39"). Eleven parts go in, each weighted by the backtest per position: form that knows the opponent, the game (the numbers behind
+  the difficulty), starting or coming on, his share of his side's attack, what the opponent gives his position, shots, minutes, Sorare's
+  projection and grade (Sorare keeps both for past games, checked), cards and errors, the rest, and his stat sheet (his all-around points
+  built stat by stat). Every number is written down before each lock for every LaLiga player and scored after the games; the Audit page
+  shows each as "right N of M" beside today's formula. The stat sheet goes on the Players page. Each daily mission (Sorare's
+  `DecisivePlayerPickerTask`, read only through the extension) gets its best cards, one card in one mission. It takes in P8 (keepers first).
 - **What it needs from you.** Your go; a choice on a design canvas before it shows on screen; and whether Sorare's projection still
   replaces the number near the lock until it is measured (recommended: no, it sits beside it).
-- **When.** Roadmap batch 10, one refresh per position.
+- **When.** Roadmap batch 10: the data, tracking first, then one refresh per position, the screens, then daily missions.
 
 ## Paused
 

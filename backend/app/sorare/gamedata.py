@@ -279,10 +279,12 @@ def players_of(games: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     """
     players: dict[str, dict[str, Any]] = {}
     for game in sorted(games, key=lambda one: one["date"]):
+        names = {side["slug"]: side["name"] for side in (game.get("home"), game.get("away")) if side}
         for slug, row in game["players"].items():
-            entry = players.setdefault(slug, {"pos": row["pos"], "club": row["team"], "games": []})
+            team = names.get(row["team"], row["team"])
+            entry = players.setdefault(slug, {"pos": row["pos"], "club": team, "games": []})
             entry["pos"] = row["pos"] or entry["pos"]
-            entry["club"] = row["team"] or entry["club"]
+            entry["club"] = team or entry["club"]
             entry["games"].append(
                 {
                     "date": game["date"],

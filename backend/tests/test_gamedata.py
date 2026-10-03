@@ -200,18 +200,21 @@ def test_the_games_become_a_history_by_player_with_every_game_he_is_listed_in_ol
         "p1": {
             **second["players"]["p0"],
             "pos": "GK",
-            "team": "b",
+            "team": "h",
             "score": 0.0,
             "played": False,
             "started": False,
             "mins": 0,
-        }
+        },
+        "p2": {**second["players"]["p0"], "pos": "DEF", "team": "unknown-slug"},
     }
 
     players = gamedata.players_of([second, first])  # in the wrong order on purpose
 
     entry = players["p1"]
-    assert entry["pos"] == "GK" and entry["club"] == "b"  # his club is the latest he was listed for
+    # His club is the latest he was listed for, by name (the game says which slug is which club); a slug the game does not name stays as it is.
+    assert entry["pos"] == "GK" and entry["club"] == "Athletic Club"
+    assert players["p2"]["club"] == "unknown-slug"
     assert [g["gameId"] for g in entry["games"]] == ["Game:1", "Game:2"]
     assert entry["games"][0] == {
         "date": "2026-09-12T14:15:00Z",

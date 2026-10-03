@@ -499,6 +499,10 @@ card anywhere except the tile still selects the card. Tiles appear for the playe
 gameweek; a card Sofix has nothing on gets nothing. Cards are found by the address of their picture, not by Sorare's
 generated CSS class names.
 
+**Known faults (found 3 Oct 2026; the fixes are planned in the roadmap's batch 9).** The live Futbol Fantasy read finds no player, so the
+panel never says "FF live" yet and keeps the last refresh's time. The Sofix tab shows the gameweek being planned even on a page about
+another week. Every Celta game shows **No odds**, because Sorare's "Celta de Vigo" does not match the board's "Celta".
+
 ### Plan drawer
 
 The **Sofix** tab on the right edge of Sorare's football pages opens your gameweek: what the best plan adds up to,

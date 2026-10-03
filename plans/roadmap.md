@@ -12,7 +12,16 @@ This file merges every plan that still has steps left into one order:
 Those files keep the detail: what you said, the research and the designs. This file gives each step an order, a "done when"
 and a check, so a session can work through it alone and stop only where you have to choose.
 
-## Where things stand (2 Oct)
+## Where things stand (3 Oct)
+
+- **The live pass on your Sorare pages (0.2) is done** (Results): the overlay works, with three faults to fix (batch 9: the live Futbol
+  Fantasy read, the Sofix tab's week, Celta's name). You reloaded the extension (0.3.1) and maximized Chrome.
+- **Your answers of 3 Oct:** the tile's big number follows his start chance (decision 1); "why didn't the near-lock refresh run?" is
+  answered (Results, 2.2) and its fix waits for your choice; pinning `ubuntu-24.04` is approved; two new model issues, the bench score
+  and the opponent, are planned (batch 9, [xscore.md](xscore.md) P7 and P8). The xScore's level fix, the Audit's other figures and the
+  frozen plan scored are **paused by you** until data exists (steps 3.4, 5.2, 5.3 and 5.4). Pro stays paused.
+
+### As of 2 Oct
 
 - **On production and checked:**
   - Futbol Fantasy's lineups and start % (T2, S1 to S8)
@@ -35,11 +44,9 @@ Two moves against the order you saw on 2 Oct (T1, T3, T7, T4/T5, then the small 
 
 Collected here so the run stops less. My recommendation comes first in each.
 
-1. **The big number on a card's tile** (needed by step 3.5; it is a design choice, not model work). Today it is the score *if he
-   starts*, with his chance beside it. That is why Giorgi's 45 and Oyarzabal's 43 look alike.
-   - Recommended: the **expected score** big (his chance × his score), and "45 if he starts · 38 if he comes on" when you
-     hover.
-   - Or keep it as it is, or show both.
+1. **The big number on a card's tile.** *Decided 3 Oct:* it follows his chance of starting, Futbol Fantasy's when it has one, else
+   Sorare's, else Sofix's. Under 40%: his score if he comes on from the bench; 40% or more: his score if he starts. Step 9.6, after
+   9.4 (today's "benched" number is not a score yet).
 2. **Sorare's projection or ours** (step 3.6): decided with the numbers in front of you, once about 100 of your players have
    been scored with both. Nothing to answer now.
 3. **How much a player's national-team games count for a national-team game** (step 3.4): the backtest decides, unless you
@@ -53,6 +60,9 @@ Collected here so the run stops less. My recommendation comes first in each.
 7. **Retire the old SorareExt** (step 7.6): only on your go.
 8. **Every design canvas is a Stop.** You choose before anything new is built: Pro on Play if it needs a new look, the Audit
    page, and the sorare.com sheet and numbers.
+9. **A refresh near a lock that does not depend on GitHub’s clock** (step 9.8, TODO.md "C"). *Decided 3 Oct, option 1:* the extension and the
+   app start a refresh when you open them in the last three hours before a lock and the numbers are over 25 minutes old.
+10. **Pin `ubuntu-24.04` in the three workflows:** *yes, 3 Oct* (step 9.9, before 19 Oct).
 
 ## How the run works
 
@@ -92,6 +102,7 @@ Fixed dates. These steps run on their day, between the others.
 
 | When | Step |
 |---|---|
+| Tue 6 Oct, 14:00 UTC (GW20 locks) | The week being planned becomes GW21: your gallery's tiles appear, and the Sofix tab shows GW21's plan even before 9.2 |
 | Wed 7 Oct, after 14:00 UTC | The Audit's first real rows: GW19 is settled, so Sofix's column goes from "Waiting for results" to counts (about 21 checked games, still under the 100 that gives a figure) and the live check's pairs begin |
 | By Fri 9 Oct, 16:00 (GW21, round 8, locks) | Batch 1 live: the plan frozen at the lock, and the richer record |
 | Thu 8 – Fri 9 Oct, once clubs publish their squad lists | 2.1 · the call-up chip, live |
@@ -253,7 +264,8 @@ the head of the batch then under way.
 - **3.3 · Phase P3: rank the errors.**
   - Rank which slice is worst: national-team games, rare starters, two-game weeks, the bench.
   - Re-order 3.4 by what the ranking shows, and write it into xscore.md.
-- **3.4 · Phase P4: one fix per refresh.** Each one only ships if it beats today's numbers on the weeks held out (from 1 Oct
+- **3.4 · Phase P4: one fix per refresh.** **Paused by you on 3 Oct:** the level fix (P4-1) waits until games from 1 Oct exist to test
+  it on; your two new issues, the bench score and the opponent, go first as 9.4 and 9.5. Each one only ships if it beats today's numbers on the weeks held out (from 1 Oct
   2026), and "no change" is an acceptable result. Each goes through a failing test, then the change, then the tuning weeks,
   then the held-out weeks. The candidates, before re-ordering:
   1. Chances and scores kept apart by competition (club, national team), shrunk towards the position's norm: "with Spain he
@@ -309,6 +321,9 @@ batch. Nothing in the other batches depends on it.
 
 **Started on 2 Oct, at your request.** You asked for the page, the xScore's success rate and who starts per source directly, so 5.1's
 canvas Stop was not taken: the page follows the Control Center's look. What is built and what is left is in the Results.
+
+**Paused by you on 3 Oct:** the rest of 5.2 and all of 5.3 and 5.4. They need settled games (GW19 from Wed 7 Oct, round 8 from Wed
+14 Oct) and the plan frozen at GW21's lock to have been played. The page fills its existing figures by itself meanwhile.
 
 - **5.1 · Design canvas for `/audit` (Stop).**
   - Each figure per gameweek and for the season, with how many cases stand behind it.
@@ -380,46 +395,80 @@ canvas Stop was not taken: the page follows the Control Center's look. What is b
 - **8.6 · GW1 to GW16 rebuilt,** only if decision 5 says yes.
 - **Yours, optional:** install the app (Chrome's address bar → install).
 
+## Batch 9 · From the live pass and your answers of 3 Oct
+
+Broken things first, then the model. Release 1 is one extension version (0.3.2) and one app deploy, so one last Reload by you; it
+should be live before round 8 locks (Fri 9 Oct, 16:00 Madrid). Releases 2 and 3 change numbers, so each is one refresh on its own.
+
+**Release 1 · the extension and the app**
+
+- **9.1 · Live Futbol Fantasy reads find nobody** (your item 1). Plan: [overlay.md](overlay.md) O12. The reader ignores capitals.
+  *Done when* the panel says "FF live N min ago" on round 8's compose page (C19).
+- **9.2 · The Sofix tab follows the week in the address** (item 2). Plan: overlay.md O13. *Done when* GW21's compose page shows "Your
+  gameweek 21" with its cards or "+N" (the rest of R26).
+- **9.3 · Celta's name** (item 3). Plan: overlay.md O14. *Done when* the Elche v Celta keepers show a difficulty on production.
+- **9.7 · The extension updates itself** (item 4; TODO.md "A"). The worker reads its own `manifest.json` every minute (an alarm, no new
+  permission) and calls `chrome.runtime.reload()` when the version on disk is newer than the one running. After a merge I pull your
+  main folder and run `node extension/scripts/configure.mjs`. *Test first:* `lib/extensionBackground.test.ts`, a newer version on disk
+  reloads once and an equal or older one never does. *Done when* a version bump reaches your Chrome without your Reload (from 0.3.3).
+- **9.8 · A refresh near a lock that does not wait for GitHub's clock** (item 6; TODO.md "C"; decision 9). Decided 3 Oct: option 1, the extension and the app start it when you open them in the last three hours before a lock.
+- **9.9 · Pin `ubuntu-24.04`** in `ci.yml`, `refresh.yml` and `near-lock.yml` (item 7, approved). *Done when* CI and one refresh run on
+  it, before 19 Oct.
+- **9.10 · Your account only, and "reload" for an old extension** (item 9; TODO.md "F"): steps 7.1 and 7.2, moved here so they ship
+  in the same version.
+
+**Release 2 · the bench score** (one refresh)
+
+- **9.4 · The score if he comes on from the bench** (your item 13). Plan: [xscore.md](xscore.md) P7: two scores, "if he starts" and "if
+  he comes on", each with its chance; the backtest on the games he started and the games he came on, separately. *Done when* P7's
+  "done when" is met.
+- **9.6 · The tile's big number follows his start chance** (decision 1, item 5): under 40% the "comes on" score, from 40% the "starts"
+  score, with his chance of coming on beside it under 40%. Display only, with 9.4.
+
+**Release 3 · the opponent** (one refresh per position that clears the bar)
+
+- **9.5 · The game in the score, keepers first** (your item 14). Plan: xscore.md P8. *Done when* P8's "done when" is met.
+
+**Paused by you on 3 Oct:** step 0.1 (your Apply result, and one press of Refresh; TODO.md "E"). Neither blocks batch 9.
+
 ---
 
 ## Results
 
-### Batch 0 · 2 Oct 2026 · done except the two steps that need you
+### Batch 0 · 2 Oct 2026 · done except 0.1, which needs you (0.2 done 3 Oct)
 
 Merged as #19 together with batch 1's backend steps; refresh #44 run by hand on `main` (5 min 16 s). Checked in your Chrome.
 
 | Step | Result | What was seen |
 |---|---|---|
-| 0.1 | **waits for you** | The Refresh button is on /control (the key is in Vercel). Pressing it once and what Check, Draft and Enter said are still to be written down. |
-| 0.2 | **waits for one click from you** | Tried again on 2 Oct in your Chrome through the extension. Sorare loads there signed in (your gallery, 21 cards), the Sofix stylesheet is in the page and the extension checks in (version 0.3.0, seen a minute and a half before). But the window my tab group opens is **minimized** (position -32000,-32000, size 160 x 28), so Chrome reports every page in it as hidden and draws nothing, and the overlay draws on animation frames, so it stays blank. Screenshots work for a few frames after a load and then time out; a popup opened from that window is minimized too; `resize_window` answers "resized" and changes nothing. I cannot restore a minimized window with the tools I have. **If you click that Chrome window in the taskbar (its tab is "Sorare ...") and leave it in front, the overlay draws and the checklist below can be read from here in about three minutes.** |
+| 0.1 | **paused by you, 3 Oct** | The Refresh button is on /control (the key is in Vercel). Pressing it once and what Check, Draft and Enter said are still to be written down. |
+| 0.2 | **done 3 Oct: passes, with three faults** (batch 9) | Run by me in your Chrome after you reloaded the extension (Control: v0.3.1, online) and restored the window. Round 8's compose page ("Select your Goalkeeper", 12 cards), the Lineups page, an old week's page and your gallery; details in [overlay.md](overlay.md), "Second live pass". **R26:** "LaLiga only" on the FF row for a player outside LaLiga, no Spanish word anywhere: pass; the tab's "every card or +N" could not be seen, because the tab shows GW20, which has no plan (fault O13). **C18:** pass. **C19:** **fail**, the live FF read finds no player (fault O12). **Old week:** Sorare's addresses carry the week on its Lineups, board and compose pages, and an old week's page draws the kept numbers grey: no batch-7 step needed. **Ranks:** #1 to #3 on "Select your Goalkeeper": pass. **G1:** seven keepers on the overlay equal the database to the decimal (score, chance, source), and the Lineups page's three players of yours equal it too: pass. **O6:** Sorare's gold "+11%" is the card's bonus (XP 4 + season 5 + collection 2, its own tooltip); no badge on the left band. Also found: every Celta game shows "No odds" (fault O14). Not seen: the ×2 badge (no large card of a two-game player on any page that opens today); by design, your gallery has no tiles until GW20 locks on Tue 6 Oct. |
 | 0.3 | pass | Refresh #44 log: no warning, `futbolfantasy` `matches` 10, `read` 10, `failed` absent (refresh #42: `read` 30 and 52 failed pages, two HTTP 404). The Sorare step took 243 s against 449 s, the run 5 min 16 s against 8 min 18 s. The cause was larger than the 404s: the Copa del Rey page's sidebar was read as its matches. |
 | 0.4 | pass | Play's lineup sheet on production: 7 cards, 7 silhouettes behind the art. The e2e test holds the art back 3 s and sees the silhouette, then the picture over it. |
 | 0.5 | pass | Section 9 of the Futbol Fantasy plan has its results (C1–C21), from refresh #42's log and read-only `SELECT`s. |
 | 0.6 | pass | TODO.md, the xScore, overlay and Futbol Fantasy plans and the Sorare tracker point here; S9's "one Sorare GW across two LaLiga rounds" is ticked. |
 
-**For you, 0.2 (about five minutes, signed in on sorare.com with the extension reloaded):** open a lineup or "Select your …" page of a
-gameweek with your players. (1) Each card has a tile with a number; hover one: the panel shows the plan chip, Starts / Benched, the
-chance with its source mark (FF, SO or SF) and the sources folded. (2) A player outside LaLiga says "LaLiga only" on the Futbol
-Fantasy row, and no Spanish word is anywhere. (3) The panel of a card in a lineup shows every card of it, or "+N". (4) On a "Select
-your …" list the cards are ranked #1 to #3. (5) The popup's "Cards recognised here" reads "N of N", and on an old week's page "Gameweek
-in the address" says a week or "none named". Send a screenshot of anything that is wrong.
+**0.2 needed nothing more from you** once the window was in front: I read the page and the panels from your Chrome. The popup itself
+cannot be opened by the tools (they open web pages only), so its two rows were answered from the page: every card on the list was
+recognised, and the week came from the address.
 
-### Batch 1 · 2 Oct 2026 · done except the look at 1.4 on Sorare
+### Batch 1 · 2 Oct 2026 · done (1.4 looked at on Sorare on 3 Oct)
 
 1.2 and 1.3 were merged as #19; 1.4 came in the next pull request.
 
 | Step | Result | What was seen |
 |---|---|---|
 | 1.1 P0 | **done** (L5 measured by the backtest, L6 answered by Sorare's own rule: `max`) | Findings in [xscore.md](xscore.md) ("P0 findings"): the page's numbers for Giorgi and Oyarzabal are rebuilt to the decimal from their game history; the "45 against 52" comes from a 75% cliff between two kinds of number (F1), club and country games are pooled (F2), Sorare publishes a projection for each game and the model uses one (F3), and the bench score is one or two appearances (F4). L5 (spread by role) was measured by the backtest (starters 52.1 with a spread of 19.1, substitute appearances 40.9 with 12.2); L6 (which of two games counts) is in Sorare's own rules: `multiGameScoreAggregator` is `max` on all 29 leaderboards of GW19, so the best game counts, as the model assumes. |
-| 1.2 | **pass, first live freeze, 2 Oct** | GW19 locked at 14:00 UTC. The page it kept was built at 13:56:06 UTC by refresh #46 (started by the near-lock check at 15:55 Madrid, the one tick of it that ran in the three hours before this lock); refresh #47, which I started at 14:01 UTC, wrote `sorare_plan:football-2-6-oct-2026` at 14:01:50 UTC (read-only `SELECT`): 26,592 bytes, 3 plans, 13 players, `builtAt` before the lock and `frozenAt` after it, the week's name and lock as the page had them. Before the lock I read the live page's weeks the same way and they carried the `gameweek.slug` and `lock` the freeze reads. |
+| 1.2 | **pass, first live freeze, 2 Oct** | GW19 locked at 14:00 UTC. The page it kept was built at 13:56:06 UTC by refresh #46 (corrected 3 Oct: it was the daily 07:17 UTC scheduled refresh, which GitHub started 6 h 38 min late, at 13:55 UTC, not the near-lock check, which never ran in those three hours; see 2.2 below); refresh #47, which I started at 14:01 UTC, wrote `sorare_plan:football-2-6-oct-2026` at 14:01:50 UTC (read-only `SELECT`): 26,592 bytes, 3 plans, 13 players, `builtAt` before the lock and `frozenAt` after it, the week's name and lock as the page had them. Before the lock I read the live page's weeks the same way and they carried the `gameweek.slug` and `lock` the freeze reads. |
 | 1.3 | **pass, frozen at the lock** | Refresh #44: `starts` `{'written': 20, 'frozen': 0, 'noted': 14, 'settled': 0}`: the 14 players of GW19 carry their `model` and their games' `info`. After the lock the GW19 record has 15 players, and a sample (Abdul Mumin) still says `model.at` 13:56:06 UTC, the last run before the lock: refresh #47 did not touch it, as the rule says. Each player carries `model` (`mu`, `start`, `bench`, `pPlay`, `pStart`, `pOn`, `source`, `startSource`, `form`, `projection`) and each game its `info` (team, venue, kickoff, opponent, competition). The week after (7 to 9 Oct) is open with 3 players. |
-| 1.4 | pass in tests, the look waits for you | A player with two games gets `fixtures` in the app's answer, a small **×2** off the tile's lower corner, "2 games this week, best score chosen" in the tile's name, and both games in the panel with their kickoff in your clock. Checked: unit tests for the answer and for the panel's lines, the overlay e2e on the fixture page (a one-game tile has neither), the design check (13 previews) and the whole browser suite at desktop and phone width (163 passed). Extension 0.3.1: Reload Sofix in `chrome://extensions`. I could not look at it on Sorare itself (see 0.2). |
+| 1.4 | pass in tests, the look waits for you | A player with two games gets `fixtures` in the app's answer, a small **×2** off the tile's lower corner, "2 games this week, best score chosen" in the tile's name, and both games in the panel with their kickoff in your clock. Checked: unit tests for the answer and for the panel's lines, the overlay e2e on the fixture page (a one-game tile has neither), the design check (13 previews) and the whole browser suite at desktop and phone width (163 passed). Extension 0.3.1: Reload Sofix in `chrome://extensions`. On Sorare (3 Oct, extension 0.3.1): its words, "2 games this week, best score chosen", on three tiles of an old week's page; the badge itself is drawn only on large cards, and no large card of a two-game player is on any page that opens today, so its look is the e2e's. |
 
 ### Batch 2 · early finding, 2 Oct 2026
 
 | Step | Result | What was seen |
 |---|---|---|
 | 2.2 (early) | **the near-lock runs mostly do not happen** | "Refresh near a lock" is written to run every 30 minutes. GitHub started it 6 times in 26 hours (1 Oct 08:21, 15:44, 21:17; 2 Oct 01:20, 04:26, 10:51), none in the three hours before today's 16:00 lock, and the 14:07 scheduled refresh did not run either (scheduled runs on a quiet public repo are delayed or dropped). The page the lock would have seen was the 10:30 one; I started a refresh by hand at 15:25. The 9 Oct check (2.2, C9) would fail the same way. |
+| 2.2 (why, 3 Oct) | **GitHub did not start it; our check is not at fault** | You asked why it did not run at this lock. From GitHub's public record of the runs (read-only): "Refresh near a lock" is set for every 30 minutes, about 84 runs between its first one (1 Oct 06:21 UTC) and 2 Oct 23:56 UTC; GitHub started **9**, 3 to 7½ hours apart, and none between 08:51 and 15:24 UTC on 2 Oct, while the lock was at 14:00. None of the 9 fell inside a three-hour window, so each correctly did nothing. The regular refresh is no better: **every scheduled run since the first cloud run on 22 Sep started late, every day, the night run 2 to 3½ hours late and the daytime ones 2 to 8 hours late**, and none was lost. On 2 Oct the 12:07 UTC run meant to come "two hours before the lock" started at 17:49, after it; the 07:17 morning run started at 13:55, by luck five minutes before the lock, and with my run at 13:25 it is why GW19's frozen page was fresh. GitHub's documentation says scheduled runs are delayed at busy times and some are dropped; its status page logged "Actions Job Delays" on 1 Oct (14:47 to 17:56 UTC) and nothing on 2 Oct, so this is its normal service for a free public repository, with no guarantee. Anything that must happen before a lock cannot rely on GitHub's clock: step 9.8, decision 9. Until it ships I start a refresh by hand before round 8's lock and one after it. |
 | 2.2b | **waits for your choice** | Free ways to get a refresh in the last hours: (a) press Refresh on /control before you lock (works today); (b) **recommended:** the extension asks the app to start the refresh when you open sorare.com within three hours of a lock and the page is older than 25 minutes: the one moment you need fresh numbers, using the same key the Refresh button uses; (c) accept the scheduled runs as they come. (b) is a small change to the extension and one route in the app. |
 
 ### Batch 3 · 2 Oct 2026 · in progress

@@ -4,7 +4,8 @@ Written 2026-09-30. Entry in [TODO.md](../TODO.md) (T1); the sibling plan is [fu
 which makes Futbol Fantasy the main source of the "will he start?" number (your decision, 30 Sep). S4 in
 [docs/sorare_plan.md](../docs/sorare_plan.md) is this plan's checklist.
 
-**Scheduled in [roadmap.md](roadmap.md) (2 Oct 2026):** P0 and P1 in its batch 1, before round 8 locks; P2 to P6 in batch 3.
+**Scheduled in [roadmap.md](roadmap.md) (2 Oct 2026):** P0 and P1 in its batch 1, before round 8 locks; P2 to P6 in batch 3;
+P7 and P8, your two issues of 3 Oct, in batch 9.
 One change from this file: P1's record goes in a read model, like `start_chances`, so it needs no migration and starts before the
 lock. This file keeps the detail; the order and the results are in the roadmap.
 
@@ -34,6 +35,44 @@ it is better.
   lineup screen says "Best score chosen". Our hindsight code assumes the best (`player_weeks`: `max(played)`), so this is
   to be confirmed from data (P0) before the two-game work relies on it.
 
+### Sorare's scoring tables (read 3 Oct 2026)
+
+The same help page ("How does scoring work in Sorare Football?", article 4402904001809, updated 5 Aug 2026) has three
+pictures. They were downloaded through its public help-centre API and read; nothing on sorare.com was scraped.
+
+- **The levels.** Level −3 is 0 points, −2 is 5, −1 is 15, **0 is 35**, 1 is 60, 2 is 70, 3 is 80, 4 is 90, 5 is 100. Only the
+  levels from 1 up are guaranteed: there, a negative all-around score cannot pull him below the level. At 0 and below it can.
+  The text says it in words: "Players start at level 0 (35 points for a starter and 35 points for a substitute who comes on
+  during the match)."
+- **The decisive actions.** Up a level: goal, assist, penalty won, clearance off the line, **clean sheet (goalkeepers only)**,
+  penalty save, last-man tackle. Down a level: red card, own goal, penalty conceded, error leading to a goal.
+- **The all-around table** gives points per action, by position, in two columns, "current" and "new". The changes this
+  season are in the new column. The ones that matter here:
+
+  | Action | Goalkeeper | Defender | Midfielder | Forward |
+  |---|---|---|---|---|
+  | Goal conceded | **−3** (was 0) | **−4** (was −2) | −2 | 0 |
+  | Clean sheet, 60 minutes or more | (it is a decisive action instead) | +10 | 0 | 0 |
+  | Save / save inside the box / diving save / diving catch | +2 / **+2** (was +1) / +3 / +3.5 | | | |
+  | Shot on target, big chance created | +3, +3 | +3, +3 | +3, +3 | +3, +3 |
+  | Yellow card, error leading to a shot | −3, −5 | −3, −5 | −3, −3 | −3, −3 |
+
+  Which column applies in 2026/27 is to be confirmed with a keyed read of a few games' `allAroundStats` (P7 step 1); the
+  measurements below behave like the new one (a keeper who concedes four is near 20).
+
+**What it means for a goalkeeper.** A clean sheet puts him at level 1, so at least 60, and the saves come on top. Without one
+he stays at 35 and loses 3 for every goal, which saves only partly make up. So his score depends mostly on the goals his side
+lets in, and that depends mostly on the opponent. **Measured** on the 52 league starts your LaLiga keepers made this season
+(scores from the history export, results from the database, read-only): a clean sheet **75.6** on average, one goal conceded
+**45.1**, two **43.9**, three **33.8**, four or more **33.4** (with one 60, a penalty save). Against Barcelona, Real Madrid or
+Atlético they averaged **33.4** (7 games), against everyone else **50.8** (45 games).
+
+**What it means for a substitute.** He starts at the same 35 as a starter and adds what he does in his minutes. **Measured** on
+your 84 players since August 2025 (every substitute appearance): defenders 39.4 (194 appearances, 22 minutes on average),
+midfielders 41.8 (272), forwards 41.0 (244); 8 to 13% reach 60 or more (a decisive action in the minutes he gets) and 24 to 37%
+end under 35 (a negative all-around score). By minutes on the pitch: under 15, 37.9; 15 to 30, 39.8; 30 to 45, 46.1; more, 46.3.
+A goalkeeper almost never comes on (2 appearances off the bench against 380 starts).
+
 ### How the numbers are made today (`forecast.py`, read 2026-09-30)
 
 | Quantity | How |
@@ -46,6 +85,8 @@ it is better.
 | Two games in the week | chance of playing at least one; `mu += 0.56 × 17.6 × plays² ÷ p_any` (a best-of-two bump); one value of `mu` for both games |
 | Spread | 17.6 for every player (`planner.SCORE_SD`) |
 | Expected score | `p_play × mu`; plans use it, the tile shows `start` and `p_start`, not this |
+| The opponent | **Not used** (checked 3 Oct 2026). The difficulty, clean sheet and win chance in the panel come from the board and are only shown beside the score; no number in this table depends on them, so a keeper facing Barcelona gets the same score as against anyone else. P8 is the fix. |
+| The panel's "Benched" number | `bench` above: the chance he comes on *if he does not start* × his substitute score. It is an expectation that includes not playing, not a score Sorare can give: on round 8's plan the middle value is 0.8 for a keeper, 11.4 for a defender, 12.6 for a midfielder and 17.1 for a forward, while a player who comes on scores about 40. P7 is the fix. |
 
 Two things in that table matter for your example before any model work:
 
@@ -344,6 +385,104 @@ When Track B has about 100 scored players: is Sofix's number better than Sorare'
 then does "should Sofix overrule Sorare's projection" have an answer, and the answer may differ by slice (for example
 ours for club games, Sorare's for internationals). It is your product decision, made with the numbers in front of you.
 
+### P7 · The score if he comes on from the bench (your issue of 3 Oct; roadmap 9.4)
+
+**What you said.** "The benched xScore is wrong ... all players that enter from the bench have Decisive score at 35. How it
+works now: the benched xScore is always very low, it makes no sense. Backtest it when the player actually starts and when he
+doesn't, so there are 2 options of xScore: when he starts and when he doesn't."
+
+**What is wrong.** The panel's "Benched" number is not a score. It is the chance he comes on if he is benched multiplied by what
+a substitute scores, so it mixes "will he play?" into "how much?". A keeper comes on about 2% of the time, so his number is 0.8;
+an outfield player comes on about 30% of the time, so his is 11 to 17. Sorare cannot give either: a player who comes on starts at
+35, and a player who does not play gets nothing. Measured on your players, someone who comes on scores about 40 (section 1).
+P0's F4 adds a second fault: the substitute score leans on one or two appearances, so one goal moves it by about seven points.
+
+**The fix, in words.** Two scores, each "if it happens", and two chances:
+
+- **If he starts:** his score when he starts (P8 adds the opponent).
+- **If he comes on:** his score when he comes off the bench: 35 plus what he usually adds in the minutes he usually gets, with the
+  chance of a decisive action in those minutes (60 or more), never multiplied by the chance of coming on.
+- **Starts N%** (Futbol Fantasy's first, then Sorare's, then Sofix's) and **comes on N%** (of the games he does not start).
+- The expected score the plans use stays the same sum: chance he starts × score if he starts + chance he comes on × score if he comes
+  on. The plans' maths does not change; only what the page shows does, and the "comes on" score gets better.
+
+**How "if he comes on" is made: three candidates, the backtest picks.**
+
+1. Today's substitute score on its own (his appearances off the bench pulled towards 42, each prior worth two appearances), no
+   longer multiplied by the chance.
+2. 35 + his all-around points per minute × the minutes he usually plays off the bench + the chance of a decisive action in those
+   minutes × the jump to 60. This needs the split of each score into decisive and all-around, so the export first reads
+   `decisiveScore { totalScore }` and `allAroundScore` for each game (field names confirmed in P0; one more field in the same
+   keyless reads, about an hour for 84 players at Sorare's keyless limit).
+3. The position's norm by expected minutes (the table in section 1: 38 under 15 minutes, 46 from 30 minutes).
+
+**The backtest you asked for: two separate checks, then the whole.**
+
+1. **Games he started:** "if he starts" as it stood before each game against what he scored. Today's formula, his last five starts
+   and the position's norm.
+2. **Games he came on:** "if he comes on" against what he scored. Candidates 1 to 3. About 700 appearances in the export.
+3. **Everything together:** the expected score against what he scored (zero when he did not play), and the pair figure (66%), so
+   that nothing gets worse where the plans choose.
+
+Walk-forward over the 4,615 games as in P2, intervals from resampling whole gameweeks, the held-out weeks from 1 Oct untouched until
+the end.
+
+**What you will see.** The panel's two tabs read "52 if he starts" and "39 if he comes on" with their chances. The tile's big number
+follows your rule of 3 Oct (decision 1 in the roadmap): Futbol Fantasy's start chance under 40% shows the "comes on" score, 40% or
+more the "starts" score. Under 40% the tile also shows his chance of coming on, so a keeper at 5% who comes on 2% of the time reads
+"36 · on 2%" and is not taken for a good pick.
+
+**Done when:** the three checks are in a table here; the forecast keeps `bench` for the old payloads and adds the score if he comes on
+(defaults applied after the cache read, the lesson of the 500 on /lineups); Play, Lineups and the overlay show the pair; unit tests,
+the overlay e2e, `npm run design` and the phone width pass; the manual, `docs/how_it_works.md` and S4 say how the two numbers are made;
+one refresh carries this change and nothing else.
+
+### P8 · The opponent in the score (your issue of 3 Oct: Soria against Barcelona; roadmap 9.5)
+
+**What you asked.** Soria shows "52 if he starts" for Barcelona at home to Getafe, with a difficulty of 89, a 9% clean sheet and a 7%
+win. Keepers who faced Barcelona this season scored 42, 60 (a decisive action; 29 without it), 20, 23, 24, 36, 73 and 18. How can
+his be 52? How are the scores made? Is it only averages?
+
+**Where his 52 comes from.** Only from his own last five games, all starts: 81.5 at home to Málaga (a clean sheet), 51.2 at Betis,
+51.0 to Deportivo, 44.7 to Celta, 34.6 at Osasuna. Their average is 52.6, pulled a little towards 51 (what a typical starter scores):
+52.1. Barcelona is not part of the sum. The difficulty, the clean sheet and the win chance on the panel come from the board and are
+only shown next to the score. So yes: today it is an average of his recent games, nothing else. When Sorare publishes its projection,
+about two days before the lock, a regular starter's "if he starts" becomes Sorare's number instead (F1); how Sorare makes it is not
+public.
+
+**Why that is wrong for a keeper.** Sorare's rules (section 1): a clean sheet is a decisive action worth at least 60, and each goal
+conceded costs 3. His two clean sheets this season (84.5 and 81.5) carry his average. Against Barcelona a clean sheet is a 3% chance
+by the bookmakers (Barcelona scores in 97% of their prices) and 9% by Sofix's board, and Barcelona has scored 31 in 7 league games. Your
+list of keepers against Barcelona averages 37 (middle value 30); the three in the export match yours to the point: Agirrezabala 60
+(16 Sep), Ryan 20.5 (13 Sep), Dituro 18.2 (23 Aug). A rough sum with this season's keeper scores by goals conceded gives him about
+**38 with the bookmakers' prices and 42 with Sofix's**: around 40, not 52.
+
+**The fix: the game goes into the score, position by position, keepers first** (the biggest effect: 33 against 51).
+
+- **Goalkeepers:** chance of a clean sheet × his score with one + the rest × his score without one, the second falling with the
+  goals his side is expected to let in (−3 a goal, partly made up by saves). The chance of a clean sheet and the goals expected are
+  the board's own for a LaLiga game (the panel's CS and the difficulty page), Sorare's odds for another game, and nothing when there
+  are none (then today's number, as now).
+- **Defenders:** the same with +10 for a clean sheet of 60 minutes and −4 a goal conceded, plus his own decisive rate.
+- **Midfielders and forwards:** their goals, assists and penalties won follow the goals their side is expected to score. His
+  decisive rate scaled by this game's expected goals against his usual games (the same expected goals the tile's xG uses).
+- **The simplest candidate first:** one adjustment per position for how hard the game is against his usual opponents. It is only
+  worth more parts if they beat it.
+
+**What it needs.** Each past game's opponent and its prices before kickoff. The history export has neither. LaLiga results are in the
+database's `fixtures` table and Sofix's own pre-match numbers in `predictions` (clean sheet, expected goals for and against); the
+export gets each game's two teams in the same reads, so a game outside LaLiga can be matched to Sorare's odds where they were kept.
+
+**The bar.** Fitted on 2025/26 only; tested on 2026/27 up to 1 Oct (games this change has never seen), then on the held-out weeks.
+It ships only if the squared error and the pair figure improve with an interval clear of zero; keepers can ship before defenders.
+One change per refresh, never with P7.
+
+**What you will see.** Soria against Barcelona would read about 40 if he starts, and the panel says why in one line ("clean sheet
+9% against Barcelona"). The same keeper at home to a weak attack would read higher than today.
+
+**Done when:** the table of P8's backtest is here; each position that cleared the bar ships in its own refresh; the panel names the
+opponent's effect; the manual and `docs/how_it_works.md` say the score now depends on the game.
+
 ## 5 · Risks
 
 | Risk | What limits it |
@@ -356,9 +495,9 @@ ours for club games, Sorare's for internationals). It is your product decision, 
 
 ## 6 · For the owner
 
-1. **What should the big number on the tile be?** Today: the score *if he starts*, with the chance beside it. The
-   alternative is the expected score (chance × score), which separates Giorgi from Oyarzabal at a glance but hides "how
-   good if he plays". Or both. This is a design call and does not need the model work.
+1. **What should the big number on the tile be?** *Decided 3 Oct:* it follows his chance of starting, Futbol Fantasy's first.
+   Under 40%, the score if he comes on; 40% or more, the score if he starts. It waits for P7, because today's "benched"
+   number is not a score.
 2. Should Sofix overrule Sorare's projection where the numbers say ours is better (P6)?
 3. How much should national-team form count for a national-team game? The backtest answers it (P4 step 1); tell me if you
    have a strong prior.
@@ -370,3 +509,6 @@ P0 and the FF plan's first steps ([futbolfantasy.md](futbolfantasy.md) S1 to S4)
 follows P0 (what to record depends on what P0 finds).
 P2 to P4 run while the recorded weeks accumulate; P6 waits for them. Nothing ships without the held-out comparison except
 the display-only "2 games" in P1.
+
+**From 3 Oct:** P7 (the bench score) and P8 (the opponent, keepers first) come before the rest of P4, in that order, one refresh
+each (roadmap batch 9). P4-1, the level fix, is paused by you until games from 1 Oct exist to test it on.

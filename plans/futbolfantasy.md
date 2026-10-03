@@ -116,7 +116,7 @@ published %. The page and the section wait for the design you choose.
 | S4 · Near-lock runs | On main, listed in Actions as "Refresh near a lock"; the first lock it can act on is Fri 9 Oct (C9) |
 | S5 · The pages | Done: `/lineups` (desktop and phone), the Home's team news, the FF / SO / SF marks on Play's cards, the overlay's new tile and panel. Also each LaLiga club's squad page, read once a week, so every alternative sits under his own line |
 | S6 · Refresh button | Done: the button shows on /control (2 Oct), so the GitHub key is in Vercel; pressing it once is the roadmap's step 0.1 |
-| S7 · The extension reads FF live | Done and tested with the real page; the extension is reloaded (2 Oct, your report); the live checks C18 and C19 are the roadmap's step 0.2 |
+| S7 · The extension reads FF live | Built, but **it does not work on the live site** (found 3 Oct, C19): the real page writes `data-onceFF` with capitals and the extension's reader looks for small letters, so it finds no player. The fix is the overlay plan's O12 (roadmap 9.1). C18 passed |
 | S8 · Docs | Done: AGENTS.md, the manual, `docs/how_it_works.md`, TODO.md |
 
 ### Now
@@ -496,7 +496,8 @@ read models.
 | C15 | pass | `/lineups` on production, 2 Oct (batch 4 of the review): ten matches, both elevens as Sorare cards, your players ringed, per-slot alternatives. |
 | C16 | overtaken, partly seen | Every player is a Sorare card now (214 of 220 starters), the six without one use Futbol Fantasy's photo or a silhouette (not looked at live). Crests show beside each team's name (seen on production, 2 Oct). |
 | C17 | not yet | There is no `ff_chances` row: the Team news tile had nothing to say in the national-team week. Round 8 (roadmap 2.3). |
-| C18, C19 | not yet | The live pass on your Sorare pages (roadmap 0.2). |
+| C18 | pass (3 Oct) | Round 8's "Select your Goalkeeper" list in your Chrome, extension 0.3.1: FF or SF on every tile, amber and red rows, the panel with the plan chip, Starts / Benched, "START · FF" and SOURCES folded; "LaLiga only" for a player outside LaLiga; nothing over Sorare's chips ([overlay.md](overlay.md), second live pass). |
+| C19 | **fail** (3 Oct) | The panel never says "FF live": the extension's reader finds 0 of 45 players on the real page of match 22493, because the page writes `data-onceFF` and the reader looks for `data-onceff`. Ignoring capitals it finds all 45. Fix: overlay plan O12, roadmap 9.1. |
 | C20 | pass | 8 min 18 s against the 15-minute limit, about 100 seconds of it on the dead pages above. The squad pages were not read again (`ff_positions` dates from 1 Oct, 14:33). |
 | C21 | overtaken | The alternatives now come from Futbol Fantasy's own slots (`next`); seen against its pitch on 2 Oct: Aleñá under Denis Suárez, Mariano under Toni Martínez, Valentini under Jonny, Lookman under both Lee and Grimaldo. |
 

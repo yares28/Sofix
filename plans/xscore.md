@@ -512,6 +512,49 @@ One change per refresh, never with P7.
 **What you will see.** Soria against Barcelona would read about 40 if he starts, and the panel says why in one line ("clean sheet
 9% against Barcelona"). The same keeper at home to a weak attack would read higher than today.
 
+**Results, keepers (3 Oct 2026).** `python backend/reports/experiments/keeper_opponent.py --history backend/data/raw/sorare_history.json --history <the other keepers' file>`.
+Each goalkeeper game of the history export (league games he started) is joined, by date and club, to the production model's forecast from the Monday
+before it (Dixon-Coles on football-data.co.uk, the settings in `artifacts/dixon_coles.json`: the chance of a clean sheet and the goals his side is
+expected to concede). A keeper-season counts only when his current club played on the date of every one of his league games that season (a club he
+left would not). First the 8 keepers you own that qualify (269 starts), then 12 more first-choice keepers read for the purpose (one question every two seconds,
+waiting out Sorare's refusals, about 25 minutes): **637 starts by 20 keepers** (533 in 2025/26, 104 in 2026/27).
+
+- *What a start scores, by goals conceded:* 0 → **74.8** (165 starts), 1 → 44.5 (234), 2 → 40.5 (150), 3 → 33.7 (58), 4 or more → 29.6 (30). A clean
+  sheet is worth about 30 points; each goal after the first costs 4 to 5. A keeper's score is mostly the number of goals his side lets in.
+- *Against the three strongest sides* (92 starts): Barcelona 44.0 scored (32 starts; today's number said 49.7, the number built from the game 40.6),
+  Real Madrid 46.1 (30; 49.4; 42.9), Atlético 47.0 (30; 49.9; 46.1); everyone else 50.4 (545; 49.6; 52.5). On those 92, today's number is **4.0 too
+  high** on average (the game's number 2.5 too low). With 13 Barcelona starts it had looked like 12 too high (37.9): the effect is real but a third of that.
+- *Is any number closer than today's?* Over all 637 starts, each keeper's own games left out of everything that was fitted (levels, weight): the table
+  gives the squared miss minus today's, with its 95% interval over weeks (below zero with an interval under zero is closer).
+
+  | number | typical miss | squared miss (RMSE) | level (bias) | squared miss minus today's |
+  |---|---|---|---|---|
+  | today's "if he starts" (last five starts, pulled to 51) | 16.3 | 19.85 | -0.1 | |
+  | the keepers' average (49.7), the same for everyone | 15.8 | 19.26 | +0.0 | -23.1 [-42.6, -4.0] |
+  | the game's number (chance of each number of goals conceded × what a start scored then) | 16.1 | 19.44 | +1.4 | -16.2 [-39.7, +8.0] |
+  | the average plus 35% of the game's effect (the weight the other keepers support: 0.28 to 0.45) | 15.8 | 19.20 | +0.5 | -25.4 [-45.8, -5.6] |
+  | the same plus his own level, from his earlier starts pulled to zero (20 games' worth) | 15.7 | 19.05 | +0.3 | **-31.2 [-49.2, -13.5]** |
+
+  On the 92 starts against the strongest sides the last two are 1.6 and 1.2 too high on average (today's 4.0) and closer than today's by 31 [-89, +28]
+  and 27 [-81, +26]: the same direction, too few games for the interval to leave zero. On the other 545 they are closer by 24 [-45, -2] and 32 [-51, -13].
+  Scored on 2026/27 alone after fitting on 2025/26 (104 starts) none of the numbers is clearly
+  different (RMSE 19.9 to 20.0 for all). The held-out weeks (from 1 Oct) hold no start yet.
+- *What it says.* (1) **A keeper's recent form says almost nothing about his next start**: the plain average of all keepers beats today's formula, which
+  hangs 5 games' noise (a standard deviation of 19 a game) on each keeper. (2) The game's effect is real (the strongest sides, 4 to 6 points lower than
+  the rest) but about **a third** of what Sorare's rules say it should be (clean sheets are rarer, but a keeper who faces more shots also makes more saves).
+  (3) A keeper's own level is a little real (20 games' worth of pull) and is worth about 6 more points of squared miss.
+- *Round 8 with the proposed number* (the average + 35% of the game's effect, without his own level), from Sofix's own numbers for each game: Soria at
+  Barcelona (Getafe expected to concede 2.38, clean sheet 9%) **47** against 52 today; Luíz Júnior at Real Madrid 47 (42); Agirrezabala 48 (51);
+  Altay and Radu 49 (44 and 42); Dituro 50 (35); Ryan 50 (56); Courtois 51 (48); Oblak 51 (62). The spread of keepers on the page shrinks from 35–62 to 47–51.
+
+**Not shipped, and why.** The plan's bar is met on the tuning games (squared miss clearly below today's, and the bias on the strongest sides fixed), but
+it is a large change to a number you read every week: it flattens your keepers (Oblak 62 → 51, Dituro 35 → 49), so the lineups would be chosen on who
+plays and against whom, and almost not on form. The held-out weeks cannot test it for another week or two, and 2026/27 alone does not tell the
+numbers apart. Whether Sorare's own projection (which replaces a regular starter's number once it is published, about two days before a lock) already
+knows the opponent is P6's question, and the number you see now for Soria is the formula alone. **Your call**, with these numbers in front of you:
+(a) ship it for keepers (one refresh); (b) wait for the held-out weeks; (c) leave keepers as they are.
+
+
 **Done when:** the table of P8's backtest is here; each position that cleared the bar ships in its own refresh; the panel names the
 opponent's effect; the manual and `docs/how_it_works.md` say the score now depends on the game.
 

@@ -34,9 +34,10 @@ roadmap's batch 9.
 ### B · The big number on a tile follows his chance of starting (item 5, decided 3 Oct)
 - **Your rule.** Futbol Fantasy's start % is the main one (else Sorare's, else Sofix's). Under 40%: the big number is his score if he comes
   on from the bench. 40% or more: his score if he starts. The panel keeps both.
-- **Why it waits.** Today's "benched" number is not a score (a keeper's is 0.8): it is fixed first, in P7 (item 13). Under 40% the tile
-  also shows his chance of coming on, so a keeper at 5% who comes on 2% of the time is not read as a good pick.
-- **When.** Release 2, with P7 (roadmap 9.6).
+- **What it needed.** A real "comes on" score: today's "benched" number was not one (a keeper's was 0.8). **Done in 0.3.2 (P7):** the refresh now writes
+  `on`, a score near 40, and the panel's second tab shows it. Under 40% the tile should also show his chance of coming on, so a keeper at 5% who comes on
+  2% of the time is not read as a good pick.
+- **When.** Ready to build (roadmap 9.6), after the Reload of 0.3.2 has been looked at.
 
 ### C · Fresh numbers before a lock: why the near-lock refresh did not run (item 6)
 - **The answer.** GitHub did not start it; our check never got the chance. It is set for every 30 minutes, so about 84 runs from its first

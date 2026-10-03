@@ -14,12 +14,14 @@ and a check, so a session can work through it alone and stop only where you have
 
 ## Where things stand (3 Oct)
 
-- **The live pass on your Sorare pages (0.2) is done** (Results): the overlay works, with three faults to fix (batch 9: the live Futbol
-  Fantasy read, the Sofix tab's week, Celta's name). You reloaded the extension (0.3.1) and maximized Chrome.
-- **Your answers of 3 Oct:** the tile's big number follows his start chance (decision 1); "why didn't the near-lock refresh run?" is
-  answered (Results, 2.2) and its fix waits for your choice; pinning `ubuntu-24.04` is approved; two new model issues, the bench score
-  and the opponent, are planned (batch 9, [xscore.md](xscore.md) P7 and P8). The xScore's level fix, the Audit's other figures and the
-  frozen plan scored are **paused by you** until data exists (steps 3.4, 5.2, 5.3 and 5.4). Pro stays paused.
+- **The live pass on your Sorare pages (0.2) is done** (Results): the overlay works, with three faults, fixed in release 0.3.2 (batch 9, merged
+  3 Oct: the live Futbol Fantasy read, the Sofix tab's week, Celta's name) together with a real "comes on" score. **Waiting for you: press Reload
+  on Sofix in `chrome://extensions`** (your folder is already at 0.3.2), then the live look (Results, batch 9).
+- **Your answers of 3 Oct:** the tile's big number follows his start chance (decision 1, step 9.6, after 9.4 which is done); "why didn't the
+  near-lock refresh run?" is answered (Results, 2.2) and its fix is chosen (the extension and the app start it, step 9.8); pinning
+  `ubuntu-24.04` is approved (9.9); the bench score is done (9.4) and the opponent is researched and **waits for your call** (9.5, [xscore.md](xscore.md)
+  P8). The xScore's level fix, the Audit's other figures and the frozen plan scored are **paused by you** until data exists (steps 3.4, 5.2, 5.3 and
+  5.4), and so is the Apply result (0.1). Pro stays paused.
 
 ### As of 2 Oct
 
@@ -400,6 +402,10 @@ canvas Stop was not taken: the page follows the Control Center's look. What is b
 Broken things first, then the model. Release 1 is one extension version (0.3.2) and one app deploy, so one last Reload by you; it
 should be live before round 8 locks (Fri 9 Oct, 16:00 Madrid). Releases 2 and 3 change numbers, so each is one refresh on its own.
 
+**State, 3 Oct evening:** 9.1, 9.2, 9.3 and 9.4 are merged (PR #30, extension 0.3.2; the live look waits for your Reload); 9.5 is researched and
+waits for your call; 9.6 to 9.10 are the owner's TODO.md items B, A, C, D and F, not started. The bench score turned out to need no model change
+(release 2 of the plan above was folded into release 1), so release 2 is now only the tile's rule (9.6).
+
 **Release 1 · the extension and the app**
 
 - **9.1 · Live Futbol Fantasy reads find nobody** (your item 1). Plan: [overlay.md](overlay.md) O12. The reader ignores capitals.
@@ -521,6 +527,25 @@ _(none yet)_
 | 8.2 | kept as a note | Sorare opens about three weeks at a time; a fourth open week gets no plan, by design, until one closes. Nothing to build unless you want a fourth planned. |
 | 8.3 | waits for the live look | The rank on a pick list starts from any short text beginning "Select your". Tightening it to Sorare's real slot names needs the real headings, which nobody has read off a live page yet (S7 lists them as unchecked). Step 0.2 asks you whether #1 to #3 show on a "Select your …" list; if one does not, the exact heading text is what is wanted. |
 | 8.4 | answered: not possible | Futbol Fantasy's round page sends no `ETag` and no `Last-Modified`, and `Cache-Control: no-cache, private` with `max-age=0` (two `HEAD` requests, four seconds apart). Nothing to ask conditionally; the reads stay as throttled as they are. Recorded as Q4 in [futbolfantasy.md](futbolfantasy.md). |
+
+### Batch 9 · 3 Oct 2026 · release 0.3.2 merged; the live look waits for your Reload
+
+PR #30, merged 3 Oct: CI #117 green (frontend 36 s, backend 55 s, 175 browser tests), Vercel deployed, refresh #53 started by hand on the merge commit
+(`success`, about five minutes). Each new test was seen to fail for the right reason before the change (the reader returned `{}`, Celta's key did not match,
+the plan was asked without a week); the two new browser tests fail on the old drawer.
+
+| Step | Result | What was seen |
+|---|---|---|
+| 9.1 live FF reads | **built and tested; live look waits** | `ffPlayersOf` ignores case; the test uses text copied from the real page. Checked by hand on the real page of match 22493 before the change: 0 of 45 players; after, 45, and Oblak (player 1826) reads 0.95 as the app says. Needs your Reload of 0.3.2 to be seen: Control still says "v0.3.1 · update". |
+| 9.2 the tab's week | **built and tested; live look waits** | The tab asks for the week the address names; the worker keeps one plan per week; the app answers "Sofix holds nothing on this gameweek." in words for a week it does not hold (the tab used to read that silence as "not reachable"). |
+| 9.3 Celta | **built and tested; live look waits for the extension only** | One alias, and a test holding all 20 LaLiga club names Sorare uses. The app is deployed, so the four Celta/Elche keepers should show a difficulty on the tile once the page is reloaded. |
+| 9.4 the "comes on" score | **done in the data; shown after the Reload** | Refresh #53 wrote `on` for all 84 GW21 players (read-only `SELECT`): Soria 42.0, Oblak 42.0, Altay 40.3, beside the old `bench` (0.8, 0.8, 7.0), which stays for older payloads. The backtest ([xscore.md](xscore.md) P7): no candidate was clearly closer than today's substitute score on 712 appearances, so the number is unchanged; the panel's tab is "Comes on". |
+| 9.5 the opponent, keepers | **researched; waits for your call** | 637 starts by 20 keepers. The strongest sides lower a keeper's score by 4 to 6 points; today's number is 4.0 too high against them; a better number (the keepers' average plus 35% of the game's effect plus his own level) is closer than today's by 31 points squared [-49, -14] over all starts, but it flattens keepers (Oblak 62 → 51, Dituro 35 → 49). Ship, wait, or leave as it is: [xscore.md](xscore.md) P8, "Results, keepers". Research script: `backend/reports/experiments/keeper_opponent.py`. |
+
+**To finish 9.1 to 9.3 once you press Reload on Sofix in `chrome://extensions`** (Control then says v0.3.2): on round 8's compose page
+(`https://sorare.com/football/play/classic/compose/football-9-13-oct-2026-seasonal-all_star-all_seasons_all_star_limited?arena=true`) the panel of a card
+says "FF live N min ago" within a minute (C19); the Sofix tab says "Your gameweek 21" with its cards or "+N" (R26); Radu, Altay and Dituro show a difficulty
+instead of "No odds"; the panel's second tab reads "Comes on" with a score near 40.
 
 ### Housekeeping · 2 Oct 2026
 

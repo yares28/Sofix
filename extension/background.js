@@ -52,6 +52,24 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "checkin") checkIn();
 });
 
+// The daily missions the Missions page of Sorare lists, sent to the app only when they changed (the app ranks your cards for them).
+async function sendMissions(rarity, missions) {
+  const clean = missions.map(({ id, title, description, mode, picks, made, period, state }) => ({ id, title, description, mode, picks, made, period, state }));
+  const { missionsSent = {} } = await chrome.storage.local.get("missionsSent");
+  const text = JSON.stringify(clean);
+  if (missionsSent[rarity] === text) return;
+  try {
+    const response = await fetch(`${CONFIG.appUrl}/api/ext/missions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${CONFIG.token}`, "x-vercel-protection-bypass": CONFIG.bypass },
+      body: JSON.stringify({ rarity, missions: clean }),
+    });
+    if (response.ok) await chrome.storage.local.set({ missionsSent: { ...missionsSent, [rarity]: text } });
+  } catch {
+    // the next visit to the page tries again
+  }
+}
+
 // From content.js on sorare.com: the signed-in account (or null when signed out).
 // The popup asks for a fresh look; the answer is whatever the open tab says.
 chrome.runtime.onMessage.addListener((message, sender, reply) => {
@@ -64,8 +82,12 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     refreshSession().then((state) => reply({ ok: true, state }));
     return true;
   }
-  // From overlay.js, and only from a sorare.com tab.
+  // From overlay.js and content.js, and only from a sorare.com tab.
   if (!fromSorare(sender)) return;
+  if (message?.type === "missions-seen" && typeof message.rarity === "string" && Array.isArray(message.missions)) {
+    sendMissions(message.rarity.slice(0, 20), message.missions.slice(0, 12));
+    return;
+  }
   if (message?.type === "overlay-numbers") {
     overlayNumbers(message.cards, message.players, fixtureOf(message.fixture)).then(reply);
     return true;

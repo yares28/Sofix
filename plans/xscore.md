@@ -944,6 +944,12 @@ the games export is local, so `python -m app.jobs.stat_sheets --write` writes `f
 by the goals his side is expected to concede and to score in that game (Sorare's price, kept within 60% of an average game); it is a rule, not a fitted model, and is hidden when the game has no price.
 Not in this step: the per-stat expected counts as a fitted model (part 11 of P9), and the page for a player of yours is the only one with a game and a next-games row.
 
+**X5c · the Missions page: built 4 Oct 2026 (roadmap 10.5, third part).** The extension (0.3.4) reads Sorare's own missions answer (`MissionsCategoryRarityPageQuery`, every `DecisivePlayerPickerTask` in it: title, rule in words, mode, picks, picks made;
+`core.collectMissions`, read only, the rarity from the page's address) and `POST /api/ext/missions` keeps them per rarity in the read model `missions`. `/missions` ranks your players with a game still to play on the next day any of them
+plays (`lib/missions.ts`): a decisive-action mission by the game's chance of a decisive action (the panel's `shape.p`, else his own rate), "2+ interceptions", an assist or a goal by a Poisson tail of his season's rate, each card in one mission only
+(the likeliest pairs first), with what he did over 5, 8 and two seasons (the stat sheet's last ten starts and season). The real rules seen on the Limited tab on 4 Oct: Decisive Picker (200 XP per decisive pick), Interception (2+ in a match, 50 All-Star Essence), Assist.
+Not in this step: the XP a card's scarcity earns (only the mission's own text is shown), the official-eleven check before kick-off (10.7), and the Audit counting how many suggested cards completed their mission.
+
 ## 5 · Risks
 
 | Risk | What limits it |

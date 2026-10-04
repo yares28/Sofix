@@ -57,7 +57,8 @@
   // The page's own missions answer, seen by the bridge: pass the daily missions on, with the rarity of the page they are on. Read only.
   window.addEventListener("message", (event) => {
     if (event.source !== window || !event.data || event.data.source !== "sofix-bridge-4" || event.data.type !== "missions") return;
-    const rarity = globalThis.__sofixCore?.missionsRarity(location.pathname);
+    // The rarity the question asked for; the page's address only when the question did not say.
+    const rarity = event.data.rarity || globalThis.__sofixCore?.missionsRarity(location.pathname);
     if (!rarity || !Array.isArray(event.data.missions)) return;
     chrome.runtime.sendMessage({ type: "missions-seen", rarity, missions: event.data.missions.slice(0, 12) });
   });

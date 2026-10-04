@@ -99,4 +99,13 @@ describe("who goes to which mission", () => {
     expect(day).toBe("2026-10-11");
     expect(plans[0]!.picks[0]!.opponent).toBe("Rayo");
   });
+
+  it("counts a player whose gameweek is being played, at his next game still to come (his first one already played)", () => {
+    const twoGames = player("a", { games: [
+      { kickoff: "2026-10-09T19:00:00Z", competition: "x", opponent: "Old", opponentCrest: null, venue: "H" },
+      { kickoff: "2026-10-10T19:00:00Z", competition: "x", opponent: "Next", opponentCrest: null, venue: "H" },
+    ] });
+    const { plans } = plan([INTERCEPTION], "limited", [twoGames, twoGames], { a: sheets.a }, new Date("2026-10-10T07:00:00Z"));
+    expect(plans[0]!.picks.map((x) => x.opponent)).toEqual(["Next"]); // once, at the game still to come
+  });
 });

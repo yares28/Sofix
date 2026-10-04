@@ -49,6 +49,7 @@ type Core = {
   comesOnScore: (entry: { on?: number; bench?: number }) => { score: number; words: string; tab: string };
   collectMissions: (json: unknown) => { id: string; title: string; description: string; mode: "DECISIVE" | "SCORE"; picks: number; made: number; period: string | null; state: string | null }[];
   missionsRarity: (pathname: unknown) => string | null;
+  missionsAsked: (body: unknown) => string | null;
   shapeOf: (entry: Record<string, unknown>, mode: string) => Shape | null;
   shapeBars: (shape: Shape, score: number, count?: number) => { h: number; kind: "me" | "dec" | "run" | "out" }[];
   shapeLabels: (shape: Shape) => { kind: "dec" | "plain"; at: number; text: string; p: number }[];
@@ -651,7 +652,17 @@ describe("the daily missions", () => {
     expect(core.missionsRarity("/football/missions/play/limited")).toBe("limited");
     expect(core.missionsRarity("/football/missions/play/rare/")).toBe("rare");
     expect(core.missionsRarity("/football/missions/play/super_rare")).toBe("super_rare");
+    expect(core.missionsRarity("/football/play/missions/play/limited")).toBe("limited"); // the address Sorare really uses (4 Oct)
     expect(core.missionsRarity("/football/cards")).toBeNull();
     expect(core.missionsRarity(undefined)).toBeNull();
+  });
+
+  it("takes the rarity from the question, so another rarity's answer is never filed under the page's", () => {
+    const body = (rarity: string) => JSON.stringify({ operationName: "MissionsCategoryRarityPageQuery", variables: { taskGroupSlug: "play", rarity } });
+    expect(core.missionsAsked(body("rare"))).toBe("rare");
+    expect(core.missionsAsked(body("LIMITED"))).toBe("limited");
+    expect(core.missionsAsked(JSON.stringify({ operationName: "Other", variables: { rarity: "rare" } }))).toBeNull();
+    expect(core.missionsAsked("not json")).toBeNull();
+    expect(core.missionsAsked(undefined)).toBeNull();
   });
 });

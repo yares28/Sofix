@@ -31,7 +31,7 @@ export default async function Missions({ searchParams }: { searchParams: SearchP
   const asked = single("rarity");
   const rarity = (RARITIES as readonly string[]).includes(asked ?? "") && seen.includes(asked as (typeof RARITIES)[number]) ? (asked as string) : (seen[0] ?? "limited");
   const entry = missions?.[rarity];
-  const players = data ? data.weeks.flatMap((w) => (w.played ? [] : w.playing.players)) : [];
+  const players = data ? data.weeks.flatMap((w) => w.playing.players) : [];
   const now = new Date();
   const made = entry && data ? plan(entry.missions, rarity, players, sheets.players, now) : null;
   return (

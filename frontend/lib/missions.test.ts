@@ -88,16 +88,16 @@ describe("who goes to which mission", () => {
     expect(plans[0]!.open).toBe(0);
     expect(plans[0]!.picks).toEqual([]);
     const late = plan([INTERCEPTION], "limited", players, sheets, new Date("2026-10-10T20:00:00Z"));
-    expect(late.day).toBeNull();
+    expect(late.plans[0]!.picks).toEqual([]);
     const rare = plan([INTERCEPTION], "rare", players, sheets, NOW);
     expect(rare.plans[0]!.picks).toEqual([]);
   });
 
-  it("looks at the next day with a game when none is left today", () => {
+  it("offers today only: a game on a later day is not a mission's, because tomorrow's missions are not known", () => {
     const tomorrow = player("t", { games: [{ kickoff: "2026-10-11T19:00:00Z", competition: "laliga-es", opponent: "Rayo", opponentCrest: null, venue: "A" }] });
     const { day, plans } = plan([INTERCEPTION], "limited", [tomorrow], { t: sheets.a }, NOW);
-    expect(day).toBe("2026-10-11");
-    expect(plans[0]!.picks[0]!.opponent).toBe("Rayo");
+    expect(day).toBe("2026-10-10");
+    expect(plans[0]!.picks).toEqual([]);
   });
 
   it("counts a player whose gameweek is being played, at his next game still to come (his first one already played)", () => {

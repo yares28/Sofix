@@ -227,7 +227,7 @@
     while (stack.length && visited++ < limit) {
       const node = stack.pop();
       if (!node || typeof node !== "object") continue;
-      if (!Array.isArray(node) && node.__typename === "DecisivePlayerPickerTask" && typeof node.id === "string") {
+      if (!Array.isArray(node) && node.__typename === "DecisivePlayerPickerTask" && typeof node.id === "string" && typeof node.title === "string" && node.title) {
         found.set(node.id, {
           id: node.id,
           title: typeof node.title === "string" ? node.title.slice(0, 80) : "",

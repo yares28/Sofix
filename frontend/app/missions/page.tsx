@@ -27,10 +27,13 @@ export default async function Missions({ searchParams }: { searchParams: SearchP
   const [data, missions, { grid, meta }, system] = await Promise.all([loadSorare(), loadMissions(), loadGrid(), loadSystem()]);
   const sheets = (await import("../../lib/data/stat_sheets.json")).default as unknown as Sheets;
   const week = weekContext(grid, data, new Date(), { w: single("w"), gw: single("gw") });
-  const seen = RARITIES.filter((r) => missions?.[r]?.missions.length);
+  // The daily pickers Sorare lists are the same on every rarity's tab (and a tab's answer sometimes comes without the others'), so a rarity with none of its own takes the first that has.
+  const named = (r: string) => (missions?.[r]?.missions ?? []).filter((m) => m.title);
+  const seen = RARITIES.filter((r) => named(r).length);
   const asked = single("rarity");
-  const rarity = (RARITIES as readonly string[]).includes(asked ?? "") && seen.includes(asked as (typeof RARITIES)[number]) ? (asked as string) : (seen[0] ?? "limited");
-  const entry = missions?.[rarity];
+  const rarity = (RARITIES as readonly string[]).includes(asked ?? "") ? (asked as string) : "limited";
+  const list = named(rarity).length ? named(rarity) : named(seen[0] ?? "");
+  const entry = list.length ? { missions: list, seen_at: missions?.[named(rarity).length ? rarity : (seen[0] ?? rarity)]?.seen_at ?? null } : null;
   const players = data ? data.weeks.flatMap((w) => w.playing.players) : [];
   const now = new Date();
   const made = entry && data ? plan(entry.missions, rarity, players, sheets.players, now) : null;
@@ -39,7 +42,7 @@ export default async function Missions({ searchParams }: { searchParams: SearchP
       <SiteNav meta={meta} system={system} week={week} />
       <main className="s5-main pd">
         <SorareSubnav />
-        <MissionsView rarity={rarity} seen={[...seen]} day={made?.day ?? null} plans={made?.plans ?? []} seenAt={entry?.seen_at ?? null} now={now.toISOString()} />
+        <MissionsView rarity={rarity} seen={seen.length > 1 ? [...seen] : []} day={made?.day ?? null} plans={made?.plans ?? []} seenAt={entry?.seen_at ?? null} now={now.toISOString()} />
       </main>
     </>
   );

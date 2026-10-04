@@ -373,7 +373,7 @@ Excluded cards are folded rather than deleted so the reason remains inspectable.
 Sorare's **daily missions** (the Decisive Picker, the Interception and Assist missions and the like: pick up to three players, earn XP or essence when they do what the mission asks)
 are ranked for your cards here. Open Sorare's Missions page once with the extension on (version 0.3.4, press Reload on it): it reads the open pickers (their names, rules and
 rewards, nothing of your account) and sends them to the app. **Missions** then lists each with what it asks and pays, and the cards of yours that fit it best among those with a game still
-to play on the next day any of them plays: the chance of what it asks (a decisive action from the game's picture; "2+ interceptions" or an assist from his season's rate), large, and what he did
+to play **today** (missions are daily and tomorrow's are not known, so no later day is offered; Sofix knows the games of the gameweeks it has planned, not always the one being played): the chance of what it asks (a decisive action from the game's picture; "2+ interceptions" or an assist from his season's rate), large, and what he did
 per start in his last 5, last 8 and two seasons beside it. Each card is suggested for one mission only (the likeliest pairs first). Sofix reads, never picks: you make the picks on Sorare. Missions of
 another rarity show under a small switch once the extension has seen their tab. Not yet: checking the official eleven before a kick-off to flag a benched pick.
 

@@ -246,9 +246,20 @@
     return [...found.values()].sort((a, b) => a.title.localeCompare(b.title) || a.id.localeCompare(b.id));
   }
 
+  /** The rarity a missions question asked for ("rare" -> "rare"), from the request's own variables, or null: one answer is one rarity's missions. */
+  function missionsAsked(body) {
+    try {
+      const sent = typeof body === "string" ? JSON.parse(body) : null;
+      const rarity = sent && sent.operationName === "MissionsCategoryRarityPageQuery" && sent.variables && sent.variables.rarity;
+      return typeof rarity === "string" && /^(limited|rare|super_rare|unique|custom_series)$/i.test(rarity) ? rarity.toLowerCase() : null;
+    } catch {
+      return null;
+    }
+  }
+
   /** The rarity a missions page is about, from its address ("/football/missions/play/limited" -> "limited"), or null. */
   function missionsRarity(pathname) {
-    const found = /^\/football\/missions\/[a-z-]+\/(limited|rare|super_rare|unique|custom_series)\/?$/i.exec(String(pathname || ""));
+    const found = /^\/football\/(?:play\/)?missions\/[a-z-]+\/(limited|rare|super_rare|unique|custom_series)\/?$/i.exec(String(pathname || ""));
     return found ? found[1].toLowerCase() : null;
   }
 
@@ -454,7 +465,7 @@
   root.__sofixCore = {
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
     chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, statusNote, clockLabel, sourceRows, drawerCards, DRAWER_CARDS, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, shapeOf, shapeBars, shapeLabels, whyRows, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
-    isPickHeading, fixtureOf, gamesCount, fixtureLine, collectMissions, missionsRarity,
+    isPickHeading, fixtureOf, gamesCount, fixtureLine, collectMissions, missionsRarity, missionsAsked,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;
 })(typeof globalThis !== "undefined" ? globalThis : this);

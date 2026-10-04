@@ -49,7 +49,7 @@
   }
 
   /** Read a copy of an answer the page asked for. Never touches the answer the page receives. */
-  async function readAnswer(response) {
+  async function readAnswer(response, asked) {
     try {
       if (!core || !response || !response.ok) return;
       if (!/json/i.test(response.headers.get("content-type") || "")) return;
@@ -57,7 +57,7 @@
       const body = await response.clone().json();
       learn(core.collectCards(body));
       const missions = core.collectMissions ? core.collectMissions(body) : [];
-      if (missions.length) window.postMessage({ source: "sofix-bridge-4", type: "missions", missions }, location.origin);
+      if (missions.length) window.postMessage({ source: "sofix-bridge-4", type: "missions", missions, rarity: asked }, location.origin);
     } catch {
       // a failure of ours must never reach the page
     }
@@ -73,11 +73,13 @@
 
   window.fetch = function sofixFetch(input, init) {
     let graphql = false;
+    let asked = null;
     try {
       const url = typeof input === "string" ? input : input && input.url;
       const method = String((init && init.method) || (input && input.method) || "GET").toUpperCase();
       if (url && method === "POST" && /graphql/i.test(url)) {
         graphql = true;
+        asked = core && core.missionsAsked ? core.missionsAsked(init && init.body) : null;
         endpoint = { url: new URL(url, location.href).href, headers: plainHeaders((init && init.headers) || (input && input.headers)) };
         const now = Date.now();
         if (now - sawGraphQLAt > 2000) {
@@ -90,7 +92,7 @@
     }
     const pending = originalFetch.apply(this, arguments);
     // Registered before the page's own handlers, so the copy is taken before the page reads the answer.
-    if (graphql) pending.then(readAnswer, () => {});
+    if (graphql) pending.then((response) => readAnswer(response, asked), () => {});
     return pending;
   };
 

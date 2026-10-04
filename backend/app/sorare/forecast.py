@@ -21,6 +21,7 @@ import dataclasses
 from dataclasses import dataclass, field
 from typing import Any, NamedTuple
 
+from app.sorare import outfield
 from app.sorare.model import Forecast, GameChance
 from app.sorare.planner import SCORE_SD
 
@@ -76,6 +77,8 @@ class PlayerWeek:
     game_scores: tuple[
         float, ...
     ] = ()  # his score if he starts in each game, worked out from the game itself (scores.py), kickoff order
+    shape: Any = None  # the picture of his first game behind that score (`keeper.Outcome`)
+    sub: Any = None  # his position's picture of a substitute (`outfield.SubShape`)
 
 
 def _from_form(history: list[tuple[str, float, bool]]) -> tuple[float, float]:
@@ -191,6 +194,12 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
         # a keeper or a regular starter plays as a starter: the number is his score if he plays; a rotation player's moves by his share of starts
         mu = made if week.pos == "GK" or share >= REGULAR_STARTER else mu + share * (made - start)
         start = made
+    shape = week.shape if week.game_scores else None
+    on_shape = None
+    if week.sub is not None and split.on > 0:
+        on_shape = dataclasses.replace(
+            outfield.around(split.on, week.sub), why=((("Minutes", split.on - start),) if shape else ())
+        )
     per_game: tuple[GameChance, ...] = ()
     has_odds = week.start_odds is not None and week.plays_odds is not None
     start_source = "sorare" if has_odds else "sofix"
@@ -230,6 +239,8 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
         start_source=start_source,
         by_source=by_source,
         benched_on=round(split.benched_on, 3),
+        shape=shape,
+        on_shape=on_shape,
     )
 
 

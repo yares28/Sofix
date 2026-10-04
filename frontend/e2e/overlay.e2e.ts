@@ -73,6 +73,8 @@ const NUMBERS = {
     },
     "lionel-messi": {
       x: 61.3, p: 0.9, average: 70, pos: "FWD", laliga: false, at: ELEVEN_HOURS_AGO, start: 64.2, bench: 20.1, on: 45.2, pStart: 0.82, pOn: 0.08, xg: 0.38,
+      shape: { p: 0.28, dec: 84, plain: 51, sdDec: 9, sdPlain: 15, low: 41, high: 80, why: [["Form", 7], ["Attack", 5], ["Home", 1]] },
+      onShape: { p: 0.07, dec: 70, plain: 43, sdDec: 8, sdPlain: 7, low: 33, high: 62, why: [["Minutes", -19]] },
       startSource: "sofix", sources: { sofix: 0.82 },
       game: { win: 0.65, cleanSheet: 0.29, difficulty: 30.4, bucket: 1, label: "Very favourite", source: "sorare" },
     },
@@ -667,6 +669,14 @@ test.describe("the sorare.com overlay", () => {
     await expect(panel(page).locator(".sfx-big")).toContainText("if he starts");
     await expect(panel(page).locator(".sfx-chance")).toContainText("82%");
     await expect(panel(page).locator(".sfx-chance")).toContainText("START · SF");
+    // The picture behind the number: where his games land, the two kinds of game, the range, and what moves it in points.
+    await expect(panel(page).locator(".sfx-bars i")).toHaveCount(40);
+    await expect(panel(page).locator(".sfx-bars .sfx-bar--me")).toHaveCount(1);
+    await expect(panel(page).locator(".sfx-marks")).toContainText("84 · 28%");
+    await expect(panel(page).locator(".sfx-marks")).toContainText("51 · 72%");
+    await expect(panel(page).locator(".sfx-range")).toHaveText("4180");
+    await expect(panel(page).locator(".sfx-why-row")).toHaveCount(2); // the two biggest, the point under the line left out
+    await expect(panel(page).locator(".sfx-why-row").first()).toContainText("Form+7");
     // A forward: his expected goals, his side's chance to win and the difficulty, and nothing else to read.
     const stats = panel(page).locator(".sfx-stat");
     await expect(stats).toHaveText(["XG0.38", "WIN65%", "DIFF30"]);
@@ -681,6 +691,8 @@ test.describe("the sorare.com overlay", () => {
     await expect(panel(page).locator(".sfx-big")).toContainText("if he comes on");
     await expect(panel(page).locator(".sfx-chance")).toContainText("44%");
     await expect(panel(page).locator(".sfx-chance")).toContainText("COMES ON");
+    await expect(panel(page).locator(".sfx-range")).toHaveText("3362"); // the picture of a game he comes on in
+    await expect(panel(page).locator(".sfx-why-row")).toHaveText(["Minutes−19"]);
 
     // Moving from the tile onto the panel keeps it open; leaving both closes it.
     const inside = await panel(page).boundingBox();

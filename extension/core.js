@@ -314,6 +314,56 @@
     return age + " (" + parts.replace(",", "") + ")";
   }
 
+  /**
+   * The picture of his game the answer carries for one tab: `shape` for a game he starts, `onShape` for one he comes on in. Null when the
+   * answer has none (a game the model cannot tell, an older answer): the panel then shows the number alone.
+   */
+  function shapeOf(entry, mode) {
+    const shape = mode === "bench" ? entry.onShape : entry.shape;
+    return shape && [shape.p, shape.dec, shape.plain, shape.sdDec, shape.sdPlain, shape.low, shape.high].every(Number.isFinite) ? shape : null;
+  }
+
+  const bell = (x, mean, sd) => Math.exp(-0.5 * ((x - mean) / sd) ** 2) / sd;
+
+  /**
+   * The bars of the score picture: 40 steps of 2.5 points from 0 to 100, as tall as how likely a score there is, when a start is one of two
+   * bell curves (with a decisive action, chance `p`, or without). A bar is `me` where his expected score is, `dec` where the games with a
+   * decisive action are the likelier, `run` inside the range he lands in 8 times in 10, and `out` elsewhere.
+   */
+  function shapeBars(shape, score, count = 40) {
+    const spreadDec = Math.max(shape.sdDec, 1);
+    const spreadPlain = Math.max(shape.sdPlain, 1);
+    const nearest = Math.min(count - 1, Math.max(0, Math.floor((score / 100) * count)));
+    const xs = Array.from({ length: count }, (_, i) => (i + 0.5) * (100 / count));
+    const dec = xs.map((x) => shape.p * bell(x, shape.dec, spreadDec));
+    const plain = xs.map((x) => (1 - shape.p) * bell(x, shape.plain, spreadPlain));
+    const top = Math.max(...dec.map((d, i) => d + plain[i]));
+    return xs.map((x, i) => ({
+      h: Math.max(4, Math.round(((dec[i] + plain[i]) / top) * 100)),
+      kind: i === nearest ? "me" : dec[i] > plain[i] ? "dec" : x >= shape.low && x <= shape.high ? "run" : "out",
+    }));
+  }
+
+  /**
+   * The two labels under the bars: where a game with a decisive action lands and its chance ("75 · 6%"), and the same without one. When the two
+   * would sit on top of each other only the likelier is kept. `at` is the place on the 0-100 scale.
+   */
+  function shapeLabels(shape) {
+    const pct = (p) => Math.round(p * 100) + "%";
+    const labels = [
+      { kind: "dec", at: shape.dec, text: `${Math.round(shape.dec)} · ${pct(shape.p)}`, p: shape.p },
+      { kind: "plain", at: shape.plain, text: `${Math.round(shape.plain)} · ${pct(1 - shape.p)}`, p: 1 - shape.p },
+    ];
+    return Math.abs(shape.dec - shape.plain) < 16 ? [labels.sort((a, b) => b.p - a.p)[0]] : labels;
+  }
+
+  /** What moves his number in points, the biggest two with a point or more: `[["Barcelona", -8], ["Form", 4]]` -> rows with a sign and a bar length (0-1). */
+  function whyRows(shape, limit = 2) {
+    const rows = (Array.isArray(shape.why) ? shape.why : []).filter((row) => Array.isArray(row) && Number.isFinite(row[1]) && Math.abs(row[1]) >= 1).slice(0, limit);
+    const biggest = Math.max(8, ...rows.map((row) => Math.abs(row[1])));
+    return rows.map(([label, points]) => ({ label, points, share: Math.min(1, Math.abs(points) / biggest) }));
+  }
+
   /** "11 h ago": the age of an ISO time, or null when there is no time to read. */
   function agoLabel(iso, nowMs) {
     const at = typeof iso === "string" ? Date.parse(iso) : Number.NaN;
@@ -367,7 +417,7 @@
 
   root.__sofixCore = {
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
-    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, statusNote, clockLabel, sourceRows, drawerCards, DRAWER_CARDS, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
+    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, statusNote, clockLabel, sourceRows, drawerCards, DRAWER_CARDS, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, shapeOf, shapeBars, shapeLabels, whyRows, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
     isPickHeading, fixtureOf, gamesCount, fixtureLine,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;

@@ -236,7 +236,7 @@
 .sfx-panel {
   position: fixed;
   z-index: 2147483000;
-  width: 222px;
+  width: 290px;
   border-radius: 14px;
   background: rgba(22, 22, 25, 0.95);
   backdrop-filter: blur(18px) saturate(140%);
@@ -292,22 +292,22 @@
 .sfx-seg button:focus-visible { outline: 2px solid var(--sfx-white); outline-offset: 2px; }
 
 .sfx-big { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; animation: sfx-num 0.28s cubic-bezier(0.3, 0.7, 0.2, 1) both; }
-.sfx-num { display: flex; align-items: baseline; gap: 6px; }
+.sfx-num { display: flex; align-items: flex-end; gap: 7px; }
 .sfx-big strong {
-  font: 700 46px/38px var(--sfx-cond);
+  font: 800 84px/72px var(--sfx-cond);
   color: var(--sfx-c, var(--sfx-white));
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
   text-shadow: 0 0 24px color-mix(in srgb, var(--sfx-c, #fff) 30%, transparent);
 }
-.sfx-num span { font: 600 11px/14px var(--sfx-font); color: #a1a1a6; }
+.sfx-num span { max-width: 62px; font: 600 12px/15px var(--sfx-font); color: #a1a1a6; }
 .sfx-chance { text-align: right; }
 .sfx-chance-row { display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
 .sfx-chance-row .sfx-src { width: 7px; height: 7px; color: var(--sfx-white); }
 .sfx-chance-row .sfx-src--sorare { border-width: 1.4px; }
 .sfx-chance-row .sfx-src--sofix { border-width: 1.4px; }
-.sfx-chance b { font: 700 22px/20px var(--sfx-cond); color: var(--sfx-white); font-variant-numeric: tabular-nums; }
-.sfx-chance span { font: 600 9.5px/12px var(--sfx-font); letter-spacing: 0.04em; color: #8e8e93; }
+.sfx-chance b { font: 800 36px/32px var(--sfx-cond); color: var(--sfx-white); font-variant-numeric: tabular-nums; }
+.sfx-chance span { font: 600 10px/12px var(--sfx-font); letter-spacing: 0.04em; color: #8e8e93; }
 .sfx-chance--doubt b, .sfx-chance--doubt .sfx-src { color: #f0ce1d; }
 .sfx-chance--out b, .sfx-chance--out .sfx-src { color: #ff7a7a; }
 
@@ -317,6 +317,33 @@
 .sfx-alert circle { fill: currentColor; }
 .sfx-alert path { stroke: #161619; }
 .sfx-alert span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* The picture of his game: the bars, the two kinds of game under them, the range. */
+.sfx-pic { display: flex; flex-direction: column; gap: 11px; }
+.sfx-pic:empty { display: none; }
+.sfx-shape { display: flex; flex-direction: column; }
+.sfx-bars { display: flex; align-items: flex-end; gap: 1px; height: 56px; }
+.sfx-bars i { flex: 1 1 0; display: block; min-width: 0; border-radius: 1px 1px 0 0; background: rgba(255, 255, 255, 0.16); }
+.sfx-bars .sfx-bar--run { background: #4f9e78; }
+.sfx-bars .sfx-bar--dec { background: #86e3b0; }
+.sfx-bars .sfx-bar--me { background: #fff; }
+.sfx-marks { position: relative; height: 14px; margin-top: 4px; font: 600 10px/12px var(--sfx-font); color: #a3a3ab; font-variant-numeric: tabular-nums; }
+.sfx-marks span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+.sfx-marks .sfx-mark--dec { color: #86e3b0; }
+.sfx-range { display: flex; justify-content: space-between; font: 600 10px/12px var(--sfx-font); color: #8e8e93; font-variant-numeric: tabular-nums; }
+
+/* What moves his number, in points. */
+.sfx-why { display: flex; flex-direction: column; gap: 6px; }
+.sfx-why-row { display: grid; grid-template-columns: 78px minmax(0, 1fr) 28px; gap: 8px; align-items: center; font: 500 12px/16px var(--sfx-font); color: #d4d4da; }
+.sfx-why-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sfx-why-axis { position: relative; height: 8px; }
+.sfx-why-axis::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(255, 255, 255, 0.22); }
+.sfx-why-axis i { position: absolute; top: 1px; height: 6px; border-radius: 2px; }
+.sfx-why-axis i.is-up { left: 50%; background: #86e3b0; }
+.sfx-why-axis i.is-down { right: 50%; background: #ff8a7a; }
+.sfx-why-row b { text-align: right; font: 700 12px/16px var(--sfx-font); font-variant-numeric: tabular-nums; }
+.sfx-why-row b.is-up { color: #86e3b0; }
+.sfx-why-row b.is-down { color: #ff8a7a; }
 
 .sfx-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
 .sfx-stat { padding: 6px 7px 5px; border-radius: 8px; background: rgba(255, 255, 255, 0.06); }

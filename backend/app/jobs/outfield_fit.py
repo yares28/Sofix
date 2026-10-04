@@ -161,6 +161,11 @@ def main(argv: list[str] | None = None) -> int:
         )
         models = outfield.fit_all([s for s in starts if cut is None or s.date < cut], through=args.through)
         outfield.save(outfield.ARTIFACT, models)
+        subs = outfield.subs_from_games(
+            [g for g in joined if cut is None or datetime.fromisoformat(g["date"].replace("Z", "+00:00")) < cut]
+        )
+        outfield.save_subs(outfield.SUB_ARTIFACT, subs)
+        print(f"wrote {outfield.SUB_ARTIFACT}: " + ", ".join(f"{p} {m.games} appearances" for p, m in subs.items()))
         print(f"wrote {outfield.ARTIFACT}: " + ", ".join(f"{p} {m.starts} starts" for p, m in models.items()))
     return 0
 

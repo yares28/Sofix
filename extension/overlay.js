@@ -684,7 +684,7 @@
 
   // -- the panel beside the card -----------------------------------------------------------------------------------
 
-  const PANEL_WIDTH = 222;
+  const PANEL_WIDTH = 290;
   const scoreColourOf = (score) => colour(core.scoreLevel(score));
 
   /** The number and its words: the score if he starts (or if he is benched), and the chance of that with whose number it is. */
@@ -714,6 +714,62 @@
       big.append(side);
     }
     return big;
+  }
+
+  /** The picture of his game: how likely each score is, where he lands 8 times in 10, and the two kinds of game (with a decisive action or without). */
+  function shapeNode(shape, score) {
+    const box = node("div", "sfx-shape");
+    box.setAttribute("role", "img");
+    box.setAttribute(
+      "aria-label",
+      `Lands between ${Math.round(shape.low)} and ${Math.round(shape.high)}, 8 times in 10. A decisive action ${core.chanceLabel(shape.p)} of the time: ${Math.round(shape.dec)}; without: ${Math.round(shape.plain)}.`,
+    );
+    const bars = node("div", "sfx-bars");
+    for (const bar of core.shapeBars(shape, score)) {
+      const one = node("i", bar.kind === "out" ? "" : `sfx-bar--${bar.kind}`);
+      one.style.height = `${bar.h}%`;
+      bars.append(one);
+    }
+    const marks = node("div", "sfx-marks");
+    for (const label of core.shapeLabels(shape)) {
+      const mark = node("span", label.kind === "dec" ? "sfx-mark--dec" : "", label.text);
+      mark.style.left = `${Math.min(88, Math.max(12, label.at))}%`;
+      marks.append(mark);
+    }
+    const range = node("div", "sfx-range");
+    range.append(node("span", "", String(Math.round(shape.low))), node("span", "", String(Math.round(shape.high))));
+    box.append(bars, marks, range);
+    return box;
+  }
+
+  /** What moves his number in points: a bar left of the middle for a minus, right for a plus. Null when nothing moves it by a point. */
+  function whyNode(shape) {
+    const rows = core.whyRows(shape);
+    if (!rows.length) return null;
+    const list = node("div", "sfx-why");
+    for (const row of rows) {
+      const line = node("div", "sfx-why-row");
+      const axis = node("span", "sfx-why-axis");
+      const bar = node("i", row.points > 0 ? "is-up" : "is-down");
+      bar.style.width = `${Math.round(row.share * 50)}%`;
+      axis.append(bar);
+      line.append(node("span", "sfx-why-name", row.label), axis, node("b", row.points > 0 ? "is-up" : "is-down", `${row.points > 0 ? "+" : "−"}${Math.abs(Math.round(row.points))}`));
+      list.append(line);
+    }
+    return list;
+  }
+
+  /** The picture and the reasons of the tab he is on, in one box that is swapped when the tab changes (an empty box when the answer has none). */
+  function pictureNode(entry, mode) {
+    const box = node("div", "sfx-pic");
+    const f = facts(entry);
+    const shape = core.shapeOf(entry, f.split ? mode : "start");
+    if (!shape) return box;
+    const shown = mode === "start" || !f.split ? f.score : core.comesOnScore(entry).score;
+    box.append(shapeNode(shape, shown));
+    const why = whyNode(shape);
+    if (why) box.append(why);
+    return box;
   }
 
   /** The three numbers that matter about his game: his driver (xG, or a clean sheet), his side's win chance, and the difficulty. */
@@ -856,6 +912,7 @@
       body.append(seg);
     }
     body.append(panelBig(entry, mode));
+    body.append(pictureNode(entry, mode));
     const alert = alertNode(entry);
     if (alert) body.append(alert);
     body.append(statCells(entry));
@@ -951,7 +1008,9 @@
       if (!panel || panel !== state) return;
       state.mode = mode;
       const fresh = panelBig(entry, mode);
-      state.el.querySelector(".sfx-big").replaceWith(fresh); // only the number changes, so the buttons keep the focus
+      state.el.querySelector(".sfx-big").replaceWith(fresh); // only the number and its picture change, so the buttons keep the focus
+      state.el.querySelector(".sfx-pic").replaceWith(pictureNode(entry, mode));
+      positionPanel();
       for (const button of state.el.querySelectorAll(".sfx-seg button")) button.setAttribute("aria-pressed", String(button.getAttribute("data-mode") === mode));
     };
     state.el = panelNode(entry, "start", pick, planFor(record, entry), () => { if (panel === state) positionPanel(); });

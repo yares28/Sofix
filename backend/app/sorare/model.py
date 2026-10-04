@@ -104,6 +104,10 @@ class Forecast:
     benched_on: float | None = None
     # His games of the gameweek as (Sorare's id for the game, "H" or "A"): players of one game score together (links.py). The planner reads it.
     links: tuple[tuple[str, str], ...] = ()
+    # The picture of his first game, for the overlay only (`keeper.Outcome`): the chance of a decisive action, the score with and without one,
+    # where he lands and what moves the number. `on_shape` is the same for a game he comes on in.
+    shape: Any = None
+    on_shape: Any = None
 
 
 @dataclass(frozen=True)

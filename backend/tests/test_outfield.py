@@ -26,6 +26,7 @@ def made_up(count: int = 600, seed: int = 5, pos: str = "FWD") -> list[outfield.
     for i in range(count):
         xgf = rng.uniform(0.6, 2.6)
         own = rng.uniform(35, 55)
+        score = 12 + 8 * xgf + 0.4 * own + rng.gauss(0, 6)
         out.append(
             outfield.OutfieldStart(
                 week=f"week-{i // 12:02d}",
@@ -37,7 +38,8 @@ def made_up(count: int = 600, seed: int = 5, pos: str = "FWD") -> list[outfield.
                 proj=None,
                 own_dec=0.12,
                 own_score=own,
-                score=12 + 8 * xgf + 0.4 * own + rng.gauss(0, 6),
+                score=score,
+                decisive=score >= 60,
             )
         )
     return out
@@ -168,17 +170,21 @@ def test_an_outfield_players_games_are_scored_in_kickoff_order_with_his_own_reco
     games = [laliga_game("2026-10-14T19:00:00Z"), laliga_game("2026-10-10T19:00:00Z")]
     past = [{"played": True, "started": True, "score": 70.0}] * 10
     got = of(card(), games, None, past)
-    assert len(got) == 2 and got[0] > got[1]  # the earlier game, against the stronger attack, scores more
-    assert of(card(), games[:1], None, [])[0] != of(card(), games[:1], None, past)[0]  # his record counts
+    assert (
+        len(got.outcomes) == 2 and got.outcomes[0].start > got.outcomes[1].start
+    )  # the earlier game, against the stronger attack, scores more
+    assert (
+        of(card(), games[:1], None, []).outcomes[0].start != of(card(), games[:1], None, past).outcomes[0].start
+    )  # his record counts
 
 
 def test_a_week_it_cannot_tell_is_left_to_the_old_number() -> None:
     of = scores.scores_for(None, lines(), lambda club, kickoff: numbers())
-    assert of(card(), [laliga_game(competition="uefa-champions-league")], None, []) == ()
-    assert of(card("Midfielder"), [laliga_game()], None, []) == ()  # no line fitted for midfielders
+    assert of(card(), [laliga_game(competition="uefa-champions-league")], None, []).outcomes == ()
+    assert of(card("Midfielder"), [laliga_game()], None, []).outcomes == ()  # no line fitted for midfielders
     blind = scores.scores_for(None, lines(), lambda club, kickoff: None)
-    assert blind(card(), [laliga_game()], None, []) == ()
-    assert of(card(), [], None, []) == ()
+    assert blind(card(), [laliga_game()], None, []).outcomes == ()
+    assert of(card(), [], None, []).outcomes == ()
 
 
 def test_a_goalkeeper_goes_to_the_keeper_model() -> None:
@@ -199,8 +205,8 @@ def test_a_goalkeeper_goes_to_the_keeper_model() -> None:
     )
     assert fitted is not None
     of = scores.scores_for(fitted, {}, lambda club, kickoff: numbers())
-    got = of(card("Goalkeeper"), [laliga_game()], None, [])
-    assert len(got) == 1 and 30 < got[0] < 80
+    got = of(card("Goalkeeper"), [laliga_game()], None, []).outcomes
+    assert len(got) == 1 and 30 < got[0].start < 80
 
 
 # --------------------------------------------------------------------------- the evaluation
@@ -214,3 +220,57 @@ def test_the_table_says_whether_the_new_number_beat_todays_and_how_many_starts_i
     assert fwd["new"]["pair"]["rate"] > fwd["today"]["pair"]["rate"]
     assert "too few to tell" not in outfield_fit.render(table)
     assert "too few to tell" in outfield_fit.render(outfield_fit.evaluate(walked[:40], today, None))
+
+
+# --------------------------------------------------------------------------- the picture behind the number
+def test_the_two_scores_of_a_game_add_up_to_the_number_and_the_range_holds_it() -> None:
+    model = outfield.fit(made_up(3000), "FWD")
+    assert model is not None and model.chance and model.gap > 0
+    got = model.outcome(numbers(xgf=1.8, xga=0.9), True, 0.12, 45.0)
+    assert got.start == pytest.approx(model.predict(numbers(xgf=1.8, xga=0.9), True, 0.12, 45.0))
+    assert got.p_decisive * got.if_decisive + (1 - got.p_decisive) * got.if_plain == pytest.approx(got.start, abs=0.5)
+    assert got.if_decisive > got.start > got.if_plain
+    assert got.low < got.start < got.high
+
+
+def test_a_stronger_attack_raises_the_chance_of_a_decisive_action_and_is_named_among_the_reasons() -> None:
+    model = outfield.fit(made_up(3000), "FWD")
+    assert model is not None
+    weak = model.outcome(numbers(xgf=0.7, xga=1.9), True, 0.12, 45.0)
+    strong = model.outcome(numbers(xgf=2.4, xga=0.5), True, 0.12, 45.0)
+    assert strong.p_decisive > weak.p_decisive
+    reasons = dict(strong.why)
+    assert reasons["Attack"] > 3 and dict(weak.why)["Attack"] < -3
+
+
+def test_a_substitute_game_is_centred_on_the_number_it_is_given() -> None:
+    games = [
+        {
+            "players": {
+                f"p{i}": {
+                    "pos": "MID",
+                    "played": True,
+                    "started": False,
+                    "score": 70.0 if i % 5 == 0 else 38.0,
+                    "level": 60.0 if i % 5 == 0 else 35.0,
+                }
+                for i in range(100)
+            }
+        }
+    ]
+    shapes = outfield.subs_from_games(games)
+    assert set(shapes) == {"MID"} and shapes["MID"].p == pytest.approx(0.2) and shapes["MID"].gap == pytest.approx(32.0)
+    got = outfield.around(41.0, shapes["MID"])
+    assert got.p_decisive * got.if_decisive + (1 - got.p_decisive) * got.if_plain == pytest.approx(41.0, abs=0.01)
+    assert got.low < 41.0 < got.high
+
+
+def test_the_pictures_are_written_and_read_back(tmp_path: Any) -> None:
+    models = outfield.fit_all(made_up(600))
+    outfield.save(tmp_path / "o.json", models)
+    again = outfield.load(tmp_path / "o.json")["FWD"]
+    assert again.chance == models["FWD"].chance and again.means == models["FWD"].means and again.sd == models["FWD"].sd
+    shape = outfield.SubShape(0.2, 30.0, 10.0, 8.0, 99)
+    outfield.save_subs(tmp_path / "s.json", {"MID": shape})
+    assert outfield.load_subs(tmp_path / "s.json") == {"MID": shape}
+    assert outfield.load_subs(tmp_path / "none.json") == {}

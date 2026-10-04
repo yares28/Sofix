@@ -907,7 +907,7 @@ miss and the better-of-two figure, each clear of today's) is met by all three. W
 (a little less often than today's, which sits nearer the middle), because a forward's game is a goal or not. The decisive-action split for outfield players (the chance of a
 goal or assist and the score with and without one, parts 14 to 16) is not in this step: the line already carries his rate of decisive scores, and the split comes with the
 screens (10.5). One refresh ships all three, since they share the one callback; a played week's replay, a game outside LaLiga and a game with no prediction keep the old number.
-**X6 · lineups and the captain on the real spread: built 4 Oct 2026 (roadmap 10.6).** Two changes in the planner, which change every reward chance, so one refresh:
+**X6 · lineups and the captain on the real spread: done and on production 4 Oct 2026 (roadmap 10.6; PR #42, refresh #76).** Two changes in the planner, which change every reward chance, so one refresh:
 
 - **Linked scores** (`app/sorare/links.py`). The planner scored every player as if no one else's game mattered. Measured on every start of the games export (the correlation of how far each
   starter's score landed from the number he was given; `backend/reports/experiments/linked_scores.py`): a keeper and his own defenders **+0.29** (both seasons agree: +0.28 and +0.35), defender
@@ -921,6 +921,21 @@ screens (10.5). One refresh ships all three, since they share the one callback; 
 
 Not in this step: choosing the starters themselves for the reward (they are still picked for the expected points, then evaluated on the real spread), and stacking a keeper with his defenders on purpose. The planner now
 *counts* the link, so a stacked lineup's chances are honest; picking by it is next. The Audit's lineup figures (plan's expected total against its total, the chance of each reward honest by band) come with 10.2c.
+
+**X5a · the panel on Sorare: built 4 Oct 2026 (roadmap 10.5, first part).** Your canvas (three rounds, 4 Oct) settled the panel: the xScore much larger than the chance (84 px against 36 px), the chance of starting
+(or of coming on) beside it, then **one picture of his game** and **at most two reasons in points**, then the three small numbers; no overall stats. The backend now keeps, for each of your cards, the picture the number is made of:
+
+- **A keeper** (`keeper.Outcome`, already worked out for his number): the chance of a decisive action, his score with one and without, how far each spreads, the range he lands in 8 times in 10 and two reasons, **the opponent**
+  (his number minus a typical game's, named by the club: "Barcelona −8") and **Sorare's view** (his number with Sorare's projection minus without it).
+- **A defender, midfielder or forward** (`OutfieldModel.outcome`): the chance of a goal or an assist is a **logistic line** on the same game numbers and his own record, fitted on the same starts as his line (`chance` in `artifacts/outfield_score.json`;
+  a start is decisive when Sorare's own level reached 60). His score with and without is the number shifted by the position's gap (30 points for a forward, 32 for a midfielder, 30 for a defender) so that the two add up to the number exactly;
+  the spread of each is the standard deviation of the starts' own scores (widened by the keepers' 1.2). Reasons: each feature's weight times how far this game is from a typical one, grouped as the opponent, his side's attack, his form, home
+  and Sorare's view.
+- **A substitute** (`artifacts/sub_shape.json`, from every substitute appearance of the export): the position's own chance of a decisive action (forwards 12%, midfielders 7%, defenders 4%), gap and spread, centred on his "if he comes on";
+  the one reason is the minutes (his "comes on" number minus his "starts" number). A keeper has none (4 appearances in 902).
+
+No number you already had changed: the start score, the xScore and the plans are the same as after 10.4 and 10.6; the picture is an addition to the payload (`shape`, `onShape` in each player of `playing.players`, nothing for a player the models cannot tell).
+In the extension, `core.shapeBars`/`shapeLabels`/`whyRows` and the panel (290 px wide) draw it; `frontend/lib/overlayCore.test.ts` and the overlay browser test hold the arithmetic and the panel.
 
 ## 5 · Risks
 

@@ -416,9 +416,9 @@ def _fixed(out: Outcome) -> Any:
 
     def of(
         player: dict[str, Any], games: list[dict[str, Any]], projection: float | None, past: list[dict[str, Any]]
-    ) -> tuple[float, ...]:
+    ) -> scores.Made:
         asked.append(player["slug"])
-        return tuple(out.start for _ in games) if player["position"] == "Goalkeeper" else ()
+        return scores.Made(tuple(out for _ in games) if player["position"] == "Goalkeeper" else (), None)
 
     of.asked = asked  # type: ignore[attr-defined]
     return of
@@ -436,6 +436,11 @@ def test_the_page_scores_a_keeper_from_his_game_and_leaves_a_player_the_callback
     keeper_card = next(p for p in players if p["player"] == "keeper-one")
     assert keeper_card["start"] == pytest.approx(out.start, abs=0.06)
     assert keeper_card["start"] != 55.0  # Sorare's projection alone, as before
+    assert keeper_card["shape"]["p"] == pytest.approx(
+        out.p_decisive, abs=0.001
+    )  # the picture behind the number goes with it
+    assert keeper_card["shape"]["low"] <= keeper_card["start"] <= keeper_card["shape"]["high"]
+    assert "shape" not in next(p for p in players if p["player"] == "back-one")
     assert "keeper-one" in of.asked and "back-one" in of.asked  # type: ignore[attr-defined]
     outfield = next(p for p in players if p["player"] == "back-one")
     assert outfield["start"] == 55.0

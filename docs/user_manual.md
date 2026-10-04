@@ -470,12 +470,12 @@ about half a card's height under the picture: on a list of cards it is the third
 room, Sofix moves Sorare's next line ("Best score chosen", the kickoff) down a few pixels; if that line cannot be moved, the
 row is not drawn.
 
-**Hover the tile, or focus it with the keyboard**, and a panel opens beside the card. From the top: SOFIX with a small green chip
+**Hover the tile, or focus it with the keyboard**, and a panel opens beside the card (since version 0.3.3, 4 Oct, it is wider and shows the game, not only the number: "the picture of his game" below; press Reload on the extension in chrome://extensions to get it, and the app's Control Center says "update" until you do). From the top: SOFIX with a small green chip
 when your best plan uses the card (the lineup's name, and a C for the captain) and how long ago the numbers were made; a switch
 between the score if he **starts** (the default) and if he **comes on** from the bench; the big score with his chance of starting and whose
 number it is ("START · FF"; on the other side, "COMES ON 30%": how often he still plays when he is not in the eleven). The "comes on" score is a real score:
 a substitute starts at 35 points like a starter, so it is near 40 whatever his chance (until 3 Oct the panel showed that chance multiplied into it, which
-read 1 for a goalkeeper; a payload from before the change still says "benched" and shows the old number); one line only when FF says something is wrong with him ("Doubt · since 12 Sep", amber, or an
+read 1 for a goalkeeper; a payload from before the change still says "benched" and shows the old number); **the picture of his game** (below the big number: forty bars of how likely each score is, the white one where his number sits, the green ones the range he lands in 8 times in 10, the lighter green the games where he gets a goal, an assist or a clean sheet, labelled with where those games land and how often ("75 · 6%"), and the two ends of the range under it) and **what moves it in points**, at most two lines about this game ("Barcelona −8" for the opponent, "Attack +5", "Form +7", "Minutes −9" when he comes on); one line only when FF says something is wrong with him ("Doubt · since 12 Sep", amber, or an
 injury or ban, red); three numbers (xG or clean sheet for his job, his side's win chance, and the difficulty); and **SOURCES**,
 folded away, which opens to what FF, SO and SF each say and when FF was read; for a national-team game or another league's, where FF
 has no number, its row says "LaLiga only" (FF covers LaLiga only). The overlay never shows FF's Spanish words; the Lineups page

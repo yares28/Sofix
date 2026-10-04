@@ -907,7 +907,7 @@ miss and the better-of-two figure, each clear of today's) is met by all three. W
 (a little less often than today's, which sits nearer the middle), because a forward's game is a goal or not. The decisive-action split for outfield players (the chance of a
 goal or assist and the score with and without one, parts 14 to 16) is not in this step: the line already carries his rate of decisive scores, and the split comes with the
 screens (10.5). One refresh ships all three, since they share the one callback; a played week's replay, a game outside LaLiga and a game with no prediction keep the old number.
-**X6 · lineups and the captain on the real spread: built 4 Oct 2026 (roadmap 10.6).** Two changes in the planner, which change every reward chance, so one refresh:
+**X6 · lineups and the captain on the real spread: done and on production 4 Oct 2026 (roadmap 10.6; PR #42, refresh #76).** Two changes in the planner, which change every reward chance, so one refresh:
 
 - **Linked scores** (`app/sorare/links.py`). The planner scored every player as if no one else's game mattered. Measured on every start of the games export (the correlation of how far each
   starter's score landed from the number he was given; `backend/reports/experiments/linked_scores.py`): a keeper and his own defenders **+0.29** (both seasons agree: +0.28 and +0.35), defender

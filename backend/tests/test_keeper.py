@@ -19,7 +19,7 @@ import pytest
 
 from app.models import Competition, Fixture, MarketOdds, Prediction, Team
 from app.sorare import forecast as sorare_forecast
-from app.sorare import keeper, publish
+from app.sorare import keeper, publish, scores
 from app.sorare.forecast import PlayerWeek
 from app.sorare.keeper import GameNumbers, KeeperModel, Outcome, Start
 from tests.test_pipeline import db  # noqa: F401  (fixture)
@@ -363,7 +363,7 @@ def keeper_week(*outcomes: Outcome, pos: str = "GK") -> PlayerWeek:
         history=[("2026-09-27", 40.0, True), ("2026-09-20", 30.0, True), ("2026-09-13", 50.0, True)],
         starts={"2026-09-27": True, "2026-09-20": True, "2026-09-13": True},
         pos=pos,
-        keeper=tuple(outcomes),
+        game_scores=tuple(o.start for o in outcomes),
     )
 
 
@@ -384,15 +384,29 @@ def test_with_two_games_the_start_score_is_their_average_and_the_best_of_two_bum
 
 def test_a_keeper_without_the_games_numbers_is_scored_as_before() -> None:
     assert sorare_forecast.forecast(keeper_week()) == sorare_forecast.forecast(
-        PlayerWeek(**{**keeper_week().__dict__, "keeper": ()})
+        PlayerWeek(**{**keeper_week().__dict__, "game_scores": ()})
     )
     plain = sorare_forecast.forecast(keeper_week())
     assert plain.start == pytest.approx(44.0)  # Sorare's projection for a regular starter, as today
 
 
-def test_an_outfield_player_is_never_given_a_keepers_numbers() -> None:
-    out = model().predict(numbers(cs=0.1, xga=2.0))
-    assert sorare_forecast.forecast(keeper_week(out, pos="DEF")).start == pytest.approx(44.0)
+def test_a_regular_starters_number_is_the_games_and_a_rotation_players_moves_by_his_share_of_starts() -> None:
+    regular = PlayerWeek(**{**keeper_week().__dict__, "pos": "DEF", "game_scores": (60.0,)})
+    assert sorare_forecast.forecast(regular).start == pytest.approx(60.0)
+    assert sorare_forecast.forecast(regular).mu == pytest.approx(60.0)
+    rotation = PlayerWeek(
+        **{
+            **keeper_week().__dict__,
+            "pos": "DEF",
+            "projection": None,
+            "start_odds": 0.4,
+            "plays_odds": 0.9,
+            "game_scores": (60.0,),
+        }
+    )
+    made = sorare_forecast.forecast(rotation)
+    assert made.start == pytest.approx(60.0)
+    assert made.mu < 60.0  # he comes on in the games he does not start: his score if he plays is not all starts
 
 
 # --------------------------------------------------------------------------- in the published page and the refresh
@@ -400,27 +414,29 @@ def _fixed(out: Outcome) -> Any:
     """A keeper callback that answers every keeper's game with this outcome (and records which players it was asked about)."""
     asked: list[str] = []
 
-    def of(player: dict[str, Any], games: list[dict[str, Any]], projection: float | None) -> tuple[Outcome, ...]:
+    def of(
+        player: dict[str, Any], games: list[dict[str, Any]], projection: float | None, past: list[dict[str, Any]]
+    ) -> tuple[float, ...]:
         asked.append(player["slug"])
-        return tuple(out for _ in games)
+        return tuple(out.start for _ in games) if player["position"] == "Goalkeeper" else ()
 
     of.asked = asked  # type: ignore[attr-defined]
     return of
 
 
-def test_the_page_scores_each_keeper_from_his_game_and_never_asks_about_an_outfield_player() -> None:
+def test_the_page_scores_a_keeper_from_his_game_and_leaves_a_player_the_callback_has_nothing_for() -> None:
     from tests.test_sorare_publish import snapshot
 
     out = model().predict(numbers(cs=0.1, xga=2.0), projection=55.0)
     of = _fixed(out)
 
-    payload = publish.build_payload(snapshot(), runs=2, draws=100, keeper=of)
+    payload = publish.build_payload(snapshot(), runs=2, draws=100, scores=of)
 
     players = publish.week_of(payload)["playing"]["players"]
     keeper_card = next(p for p in players if p["player"] == "keeper-one")
     assert keeper_card["start"] == pytest.approx(out.start, abs=0.06)
     assert keeper_card["start"] != 55.0  # Sorare's projection alone, as before
-    assert set(of.asked) <= {"keeper-one", "keeper-two"}  # type: ignore[attr-defined]
+    assert "keeper-one" in of.asked and "back-one" in of.asked  # type: ignore[attr-defined]
     outfield = next(p for p in players if p["player"] == "back-one")
     assert outfield["start"] == 55.0
 
@@ -437,8 +453,8 @@ def test_without_a_keeper_callback_the_page_is_what_it_was() -> None:
 def test_the_games_a_callback_cannot_tell_leave_a_keeper_scored_as_before() -> None:
     from tests.test_sorare_publish import snapshot
 
-    nothing = keeper.outcomes_for(model(), lambda club, kickoff: None)
-    payload = publish.build_payload(snapshot(), runs=2, draws=100, keeper=nothing)
+    nothing = scores.scores_for(model(), {}, lambda club, kickoff: None)
+    payload = publish.build_payload(snapshot(), runs=2, draws=100, scores=nothing)
 
     keeper_card = next(p for p in publish.week_of(payload)["playing"]["players"] if p["player"] == "keeper-one")
     assert keeper_card["start"] == 55.0
@@ -479,7 +495,7 @@ def test_a_keeper_step_that_fails_leaves_the_refresh_publishing(db: Any, monkeyp
 
     summary = job.run(db, "yares", runs=1)
 
-    assert "RuntimeError" in summary["failed"]["keeper numbers"]
+    assert "RuntimeError" in summary["failed"]["game scores"]
     from app.models import ReadModel
 
     assert db.get(ReadModel, job.SORARE_KEY) is not None

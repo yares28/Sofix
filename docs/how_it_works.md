@@ -158,6 +158,14 @@ second game in the gameweek keeps the best-of-two rule. A game the numbers canno
 artifact or a failing step leaves that keeper's number as it was, and the step's failure is listed under `failed` as "keeper numbers". The record the Audit counts
 (`sorare_record.rows`) uses the same numbers for the week being planned; a played gameweek's replay does not, since the football model's numbers for a played game are not kept.
 
+**Outfield players (plans/xscore.md P9 X4, `app.sorare.outfield`).** The same idea for defenders, midfielders and forwards, as a line per position: his score if he
+starts is fitted on his side's chance of a clean sheet and expected goals for and against (the football model with the bookmakers' goals line, `keeper.adjusted_goals`),
+home or away, Sorare's projection when it is out, and his own record (how often his starts reached 60, and his mean score, pulled to the norm while he has few). A
+past game's own record uses only the starts before it, so a test never sees the future. `scores.scores_for` is the one callback the refresh gives `publish.player_weeks`:
+it sends a goalkeeper to `keeper.py` and the rest to their position's line (`artifacts/outfield_score.json`, from `python -m app.jobs.outfield_fit`), and answers one score
+per game, which `forecast.forecast` makes his score if he starts (and his score if he plays, for a regular starter; for a player who often comes on it moves by his share of
+starts). Anything it cannot tell leaves the number as it was.
+
 Common SD is 17.6. Source is published (“sorare”, “form”, “no game”). This is a transparent heuristic awaiting an S4
 fitted/blind-tested replacement.
 

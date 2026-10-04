@@ -448,6 +448,12 @@ one about 40), so Sofix works out how likely his side is to keep a clean sheet (
 and if it does not, and uses Sorare's own projection once it is out. Two keepers' numbers sit closer together than before and move with the opponent. In a test on
 738 starts, the new number put the better of two keepers first 54 times in 100 (the old one 50, a coin flip); it lands within 7 points about a quarter of the time,
 like every other number, since a keeper's game swings that much. A game Sofix has no numbers for (a cup game, a game too far ahead) keeps the old number.
+
+**Every outfield number follows the game too.** A defender's, midfielder's or forward's "if he starts" is no longer only his last five games: it also
+counts how likely his side is to keep a clean sheet and to score (Sofix's own numbers and the bookmakers' goals line), home or away, Sorare's own projection once
+it is out, and his own record of big scores. In a test on every start of two seasons it was closer to what players scored than the old number for all three positions,
+and put the better of two players first about 59 times in 100 against 54 to 57 before. It still lands within 7 points only about a third of the time: a game is a goal
+or not. A game Sofix has no numbers for keeps the old number.
 - **Midfielders and forwards: xG**, his expected goals if he starts: his season's rate from Understat, scaled to how many
   goals his side is expected to score in that game. It is there for players Understat can name in the Premier League, La
   Liga, Bundesliga, Serie A, Ligue 1 and the Russian league who have played at least a full game. Anyone else, and any

@@ -101,13 +101,20 @@ def total_goals(p_over: float) -> float:
     return (low + high) / 2
 
 
-def adjusted(numbers: GameNumbers) -> tuple[float, float]:
-    """His side's clean-sheet chance and goals against once the bookmakers' goals line is in: the line sets how many goals the game
-    holds, the football model how they are split between the sides. A price that is missing (or is not one) leaves the model's own."""
+def adjusted_goals(numbers: GameNumbers) -> tuple[float, float, float]:
+    """His side's clean-sheet chance, goals against and goals for once the bookmakers' goals line is in: the line sets how many goals the
+    game holds, the football model how they are split between the sides. A price that is missing (or is not one) leaves the model's own."""
     if numbers.p_over is None or not 0 < numbers.p_over < 1 or numbers.xga + numbers.xgf <= 0:
-        return numbers.cs, numbers.xga
-    xga = numbers.xga * total_goals(numbers.p_over) / (numbers.xga + numbers.xgf)
-    return min(1.0, max(0.0, numbers.cs * math.exp(-(xga - numbers.xga)))), xga
+        return numbers.cs, numbers.xga, numbers.xgf
+    scale = total_goals(numbers.p_over) / (numbers.xga + numbers.xgf)
+    xga = numbers.xga * scale
+    return min(1.0, max(0.0, numbers.cs * math.exp(-(xga - numbers.xga)))), xga, numbers.xgf * scale
+
+
+def adjusted(numbers: GameNumbers) -> tuple[float, float]:
+    """His side's clean-sheet chance and goals against with the bookmakers' goals line in (`adjusted_goals`)."""
+    cs, xga, _ = adjusted_goals(numbers)
+    return cs, xga
 
 
 def raw_clean_sheet(shown: float, calibration: CleanSheetCalibration | None = None) -> float:

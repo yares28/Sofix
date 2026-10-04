@@ -883,6 +883,30 @@ today's number is a coin flip between two keepers of one gameweek (50.1%), the n
 (P8's call). The held-out weeks can neither confirm nor refute it yet (about ten keeper starts a round), so the Audit's keeper figures, from 4 Oct on, are where it is watched. **What does not use it:** a played gameweek's replay (the football model's numbers for
 a game already played are not kept), a game outside LaLiga, a game the app holds no prediction for, a keeper with no club in the registry: each keeps the old number. **What you see change** (production, 4 Oct: Soria at Barcelona 52 → 45, Oblak 62 → 50, Dituro 35 → 49; round 8's keepers 45 to 50): a
 keeper's "if he starts", his expected score and the plans built on it; the panel's reasons and the range come with 10.5.
+**X4 · defenders, midfielders and forwards: built 4 Oct 2026 (roadmap 10.4).** One line per position (`app/sorare/outfield.py`; fitted and tested by
+`python -m app.jobs.outfield_fit`, into `artifacts/outfield_score.json` and `backend/data/audit/outfield_walk_forward.json`): his score if he starts is a
+line in his side's chance of a clean sheet and the goals it is expected to score and concede (the football model moved by the bookmakers' goals line, part 12),
+home or away, Sorare's projection when it is out (part 8), and his own record (how often his starts reached a decisive 60, and his mean score, each pulled to the
+norm while he has few: part 1, simplified). Unlike a keeper, his own record is worth having: tried without it the squared miss was 2.5 points worse for
+midfielders and 7 for forwards. Walk-forward over every start of the games export (each week from the weeks before it; 3,496 defender, 2,467 midfielder, 2,489 forward starts):
+
+| position | number | typical miss | squared miss (RMSE) | within ±7 | better of two [95%] |
+|---|---|---|---|---|---|
+| DEF | today's | 15.44 | 19.43 | 28.2% | 54.2% [53.0, 55.3] |
+| | Sorare's projection | 15.01 | 19.24 | 30.3% | 58.3% [56.9, 59.7] |
+| | **new** | **14.50** | **18.30** | 30.3% | **59.2% [57.9, 60.6]** |
+| MID | today's | 12.48 | 16.15 | 37.8% | 57.2% [55.9, 58.7] |
+| | Sorare's projection | 11.85 | 16.11 | 42.1% | 60.6% [59.2, 61.8] |
+| | **new** | **11.79** | **15.29** | 38.1% | **60.9% [59.5, 62.3]** |
+| FWD | today's | 14.41 | 17.51 | 26.6% | 55.5% [54.1, 56.9] |
+| | Sorare's projection | 14.77 | 18.92 | 30.4% | 57.6% [56.1, 59.0] |
+| | **new** | **13.88** | **16.63** | 25.2% | **59.4% [57.8, 61.0]** |
+
+Squared miss minus today's: DEF **−42.7 [−53.2, −31.8]**, MID **−27.2 [−36.7, −18.0]**, FWD **−30.2 [−39.6, −21.7]**; typical miss −0.94, −0.69 and −0.53. The bar (squared
+miss and the better-of-two figure, each clear of today's) is met by all three. What it does not do: a forward's score still lands within ±7 only a quarter of the time
+(a little less often than today's, which sits nearer the middle), because a forward's game is a goal or not. The decisive-action split for outfield players (the chance of a
+goal or assist and the score with and without one, parts 14 to 16) is not in this step: the line already carries his rate of decisive scores, and the split comes with the
+screens (10.5). One refresh ships all three, since they share the one callback; a played week's replay, a game outside LaLiga and a game with no prediction keep the old number.
 
 ## 5 · Risks
 

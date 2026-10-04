@@ -90,13 +90,13 @@ def plan(
     runs: int,
     now: datetime,
     ff: ff_use.Lineups | None = None,
-    keeper: publish.KeeperOf | None = None,
+    scores: publish.ScoresOf | None = None,
 ) -> Early:
     live = {round_.number for round_ in rounds if ff and ff.covers(round_)}
     wanted, kept = choose(db, rounds, now, live)
     db.rollback()  # the reads are done and planning takes seconds: Neon closes a connection left inside a transaction
     fresh = (
-        publish.projected_weeks(snapshot, wanted, runs=runs, ff=ff.starts if ff else None, keeper=keeper)
+        publish.projected_weeks(snapshot, wanted, runs=runs, ff=ff.starts if ff else None, scores=scores)
         if wanted
         else []
     )

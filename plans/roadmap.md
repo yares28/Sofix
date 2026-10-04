@@ -493,7 +493,7 @@ the held-out weeks (P9 "The bar").
   missions; the Audit's catalogue and scorecard. The tile keeps one big number (decision 1). *Done when* it is on production at desktop
   and phone width, and the manual and how_it_works.md describe the new score.
   **Canvas settled 4 Oct** (three rounds with you; [xscore.md](xscore.md) X5). **10.5a, the panel: built 4 Oct** (extension 0.3.3, the picture of his game and at most two reasons in
-  points, the number and the chance larger). The Players page, the Missions page and the Audit's new look follow, one at a time.
+  points, the number and the chance larger). **10.5b, the Players page, built 4 Oct** (X5b). The Missions page and the Audit's new look follow, one at a time.
 - **10.6 · Lineups and the captain on the real spread** (P9). The planner simulates each match once and scores every player from it, so
   linked scores (a keeper and his defenders, teammates up front) are counted; lineups are picked for the reward and the captain for his
   ceiling where that earns more. Its own refresh: the reward chances change. *Test first:* a keeper and a defender of the same side move

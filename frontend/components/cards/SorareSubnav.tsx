@@ -20,7 +20,7 @@ export default function SorareSubnav() {
         <Link
           key={page.href}
           href={`${page.href}${week}`}
-          aria-current={path === page.href ? "page" : undefined}
+          aria-current={path === page.href || path.startsWith(`${page.href}/`) ? "page" : undefined}
         >
           {page.label}
         </Link>

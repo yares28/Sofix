@@ -51,6 +51,12 @@ const planning = sorare.data.weeks.find((week) => week.gameweek.id === sorare.da
   { pStart: 0.7, startSource: "sorare", sources: { sorare: 0.7, sofix: 0.6 } },
   { pStart: 0.6, startSource: "sofix", sources: { sofix: 0.6 } },
 ].forEach((extra, index) => Object.assign(planning.playing.players[index], { player: sorare.data.collection[index].player }, extra));
+// The first of them carries the picture of his game the panel and the Players page draw (`shape`, `onShape`).
+Object.assign(planning.playing.players[0], {
+  start: 52,
+  shape: { p: 0.28, dec: 84, plain: 51, sdDec: 9, sdPlain: 15, low: 41, high: 80, why: [["Form", 7], ["Attack", 5]] },
+  onShape: { p: 0.07, dec: 70, plain: 43, sdDec: 8, sdPlain: 7, low: 33, high: 62, why: [["Minutes", -19]] },
+});
 
 // The Home's team news (`teamNews` of the gameweek being planned, built by backend/app/sorare/ff_news.py): four of the first lineup's
 // starters under 70%, and five players who moved since a reading a day old, so the tile has something of each to draw.

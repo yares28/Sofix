@@ -57,7 +57,7 @@
       const body = await response.clone().json();
       learn(core.collectCards(body));
       const missions = core.collectMissions ? core.collectMissions(body) : [];
-      if (missions.length) window.postMessage({ source: "sofix-bridge-4", type: "missions", missions, rarity: asked }, location.origin);
+      if (missions.length && asked) window.postMessage({ source: "sofix-bridge-4", type: "missions", missions, rarity: asked }, location.origin);
     } catch {
       // a failure of ours must never reach the page
     }

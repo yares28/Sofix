@@ -117,17 +117,22 @@ export function plan(
   sheets: Record<string, Sheet | undefined>,
   now: Date,
 ): { day: string | null; plans: MissionPlan[] } {
-  const upcoming = players
-    .filter((p) => p.player && p.rarity === rarity && p.games[0] && new Date(p.games[0].kickoff) > now)
-    .sort((a, b) => a.games[0]!.kickoff.localeCompare(b.games[0]!.kickoff));
-  const day = upcoming.length ? madridDay(upcoming[0]!.games[0]!.kickoff) : null;
-  const candidates = upcoming.filter((p) => madridDay(p.games[0]!.kickoff) === day);
+  // Each of his players once, at his next game still to be played, whichever gameweek it belongs to (the one being played now included).
+  const next = new Map<string, { p: PlayingPlayer; game: PlayingPlayer["games"][number] }>();
+  for (const p of players) {
+    if (!p.player || p.rarity !== rarity) continue;
+    const game = [...p.games].sort((a, b) => a.kickoff.localeCompare(b.kickoff)).find((g) => new Date(g.kickoff) > now);
+    const held = next.get(p.player);
+    if (game && (!held || game.kickoff < held.game.kickoff)) next.set(p.player, { p, game });
+  }
+  const upcoming = [...next.values()].sort((a, b) => a.game.kickoff.localeCompare(b.game.kickoff));
+  const day = upcoming.length ? madridDay(upcoming[0]!.game.kickoff) : null;
+  const candidates = upcoming.filter((u) => madridDay(u.game.kickoff) === day);
   const plans: MissionPlan[] = missions.map((mission) => ({ mission, rule: ruleOf(mission), reward: rewardOf(mission), open: Math.max(0, mission.picks - mission.made), picks: [] }));
   const pairs: { plan: MissionPlan; pick: Suggestion }[] = [];
   for (const one of plans) {
-    for (const p of candidates) {
+    for (const { p, game } of candidates) {
       const found = fit(one.rule, p, sheets[p.player!] ?? null);
-      const game = p.games[0]!;
       if (!found) continue;
       pairs.push({
         plan: one,

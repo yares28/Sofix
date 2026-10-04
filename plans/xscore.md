@@ -883,7 +883,7 @@ today's number is a coin flip between two keepers of one gameweek (50.1%), the n
 (P8's call). The held-out weeks can neither confirm nor refute it yet (about ten keeper starts a round), so the Audit's keeper figures, from 4 Oct on, are where it is watched. **What does not use it:** a played gameweek's replay (the football model's numbers for
 a game already played are not kept), a game outside LaLiga, a game the app holds no prediction for, a keeper with no club in the registry: each keeps the old number. **What you see change** (production, 4 Oct: Soria at Barcelona 52 → 45, Oblak 62 → 50, Dituro 35 → 49; round 8's keepers 45 to 50): a
 keeper's "if he starts", his expected score and the plans built on it; the panel's reasons and the range come with 10.5.
-**X4 · defenders, midfielders and forwards: built 4 Oct 2026 (roadmap 10.4).** One line per position (`app/sorare/outfield.py`; fitted and tested by
+**X4 · defenders, midfielders and forwards: done and on production 4 Oct 2026 (roadmap 10.4; PR #41, refresh #74).** One line per position (`app/sorare/outfield.py`; fitted and tested by
 `python -m app.jobs.outfield_fit`, into `artifacts/outfield_score.json` and `backend/data/audit/outfield_walk_forward.json`): his score if he starts is a
 line in his side's chance of a clean sheet and the goals it is expected to score and concede (the football model moved by the bookmakers' goals line, part 12),
 home or away, Sorare's projection when it is out (part 8), and his own record (how often his starts reached a decisive 60, and his mean score, each pulled to the

@@ -76,6 +76,11 @@ class Outcome:
     start: float
     low: float
     high: float
+    sd_decisive: float = (
+        0.0  # how far his score with a decisive action spreads (a standard deviation), for the panel's picture
+    )
+    sd_plain: float = 0.0
+    why: tuple[tuple[str, float], ...] = ()  # what moves the number off a typical game's, in points, biggest first
 
 
 def _logit(p: float | np.ndarray) -> Any:
@@ -201,9 +206,11 @@ class KeeperModel:
     spread_plain: tuple[float, ...]
     starts: int
     through: str | None = None  # the newest start in the fit, YYYY-MM-DD
+    typical: tuple[float, float] | None = (
+        None  # a typical game's clean-sheet chance and goals against: what "the opponent" is measured from
+    )
 
-    def predict(self, numbers: GameNumbers, projection: float | None = None) -> Outcome:
-        cs, xga = adjusted(numbers)
+    def _core(self, cs: float, xga: float, projection: float | None) -> tuple[float, float, float, float]:
         p_cs = float(_sigmoid(self.cs[0] + self.cs[1] * _logit(cs)))
         p_dec = p_cs + (1 - p_cs) * self.p_save
         if projection is None:
@@ -212,9 +219,38 @@ class KeeperModel:
         else:
             if_dec = self.dec[0] + self.dec[1] * projection
             if_plain = self.plain[0] + self.plain[1] * xga + self.plain[2] * projection
-        if_dec, if_plain = min(100.0, max(0.0, if_dec)), min(100.0, max(0.0, if_plain))
+        return p_cs, p_dec, min(100.0, max(0.0, if_dec)), min(100.0, max(0.0, if_plain))
+
+    def predict(self, numbers: GameNumbers, projection: float | None = None) -> Outcome:
+        cs, xga = adjusted(numbers)
+        p_cs, p_dec, if_dec, if_plain = self._core(cs, xga, projection)
         low, high = self._range(p_dec, if_dec, if_plain)
-        return Outcome(p_cs, p_dec, if_dec, if_plain, p_dec * if_dec + (1 - p_dec) * if_plain, low, high)
+        start = p_dec * if_dec + (1 - p_dec) * if_plain
+        why: list[tuple[str, float]] = []
+        if self.typical is not None:
+            _, q, d, p = self._core(self.typical[0], self.typical[1], projection)
+            why.append(("Opponent", start - (q * d + (1 - q) * p)))
+        if projection is not None:
+            _, q, d, p = self._core(cs, xga, None)
+            why.append(("Sorare", start - (q * d + (1 - q) * p)))
+        why.sort(key=lambda item: -abs(item[1]))
+        return Outcome(
+            p_cs,
+            p_dec,
+            if_dec,
+            if_plain,
+            start,
+            low,
+            high,
+            self._sd(self.spread_dec),
+            self._sd(self.spread_plain),
+            tuple(why),
+        )
+
+    @staticmethod
+    def _sd(spread: tuple[float, ...]) -> float:
+        """A standard deviation from the 5th to the 95th percentile of what was left over (a normal's span is 3.29 deviations), widened like the range."""
+        return (spread[-1] - spread[0]) / 3.29 * SPREAD_SCALE if len(spread) > 1 else 0.0
 
     def _range(self, p_dec: float, if_dec: float, if_plain: float) -> tuple[float, float]:
         """Where he lands 8 times in 10: the 10th and 90th percentile of the two possible games, each spread as scores were."""
@@ -291,6 +327,7 @@ def fit(starts: Sequence[Start], through: str | None = None) -> KeeperModel | No
         spread_plain=tuple(float(v) for v in spread_plain),
         starts=len(starts),
         through=through,
+        typical=(float(cs.mean()), float(xga.mean())),
     )
 
 
@@ -315,6 +352,7 @@ def load(path: Path = ARTIFACT) -> KeeperModel | None:
         spread_plain=tuple(raw["spread_plain"]),
         starts=raw["starts"],
         through=raw.get("through"),
+        typical=None if raw.get("typical") is None else (raw["typical"][0], raw["typical"][1]),
     )
 
 

@@ -22,6 +22,7 @@ from app.sorare.forecast import GameStart, PlayerWeek
 from app.sorare.forecast import forecasts as build_forecasts
 from app.sorare.model import SORARE_POSITION, Card, Competition, Forecast
 from app.sorare.planner import DRAWS, Lineup, Plan, build, fill_bench, plans, replay_rewards, score_at_rank
+from app.sorare.scores import Made
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ waiting will not bring it, and the replay is kept as it is."""
 
 
 # A player's score if he starts, worked out from each game itself: (his card, his games, Sorare's projection, his past games) -> one score a game (scores.py)
-ScoresOf = Callable[[dict[str, Any], list[dict[str, Any]], float | None, list[dict[str, Any]]], tuple[float, ...]]
+ScoresOf = Callable[[dict[str, Any], list[dict[str, Any]], float | None, list[dict[str, Any]]], Made]
 
 
 def _dt(value: str) -> datetime:
@@ -180,11 +181,32 @@ def _with_chances(games: list[dict[str, Any]], forecast: Forecast | None) -> lis
     ]
 
 
+def _shape_out(shape: Any) -> dict[str, Any] | None:
+    """The picture of a game for the panel: the chance of a decisive action, the score with and without one, how far each spreads, where he
+    lands 8 times in 10 and what moves the number, in whole points (the three biggest, none under a point)."""
+    if shape is None:
+        return None
+    why = [[name, round(points)] for name, points in shape.why if round(points) != 0][:3]
+    return {
+        "p": round(shape.p_decisive, 3),
+        "dec": round(shape.if_decisive, 1),
+        "plain": round(shape.if_plain, 1),
+        "sdDec": round(shape.sd_decisive, 1),
+        "sdPlain": round(shape.sd_plain, 1),
+        "low": round(shape.low),
+        "high": round(shape.high),
+        "why": why,
+    }
+
+
 def _split_out(forecast: Forecast | None) -> dict[str, Any]:
     """His score if he starts and if he does not, and the chance of each (O9). For the overlay; plans never use it."""
     if not forecast or forecast.start is None or forecast.bench is None:
         return {}
+    shape, on_shape = _shape_out(forecast.shape), _shape_out(forecast.on_shape)
     return {
+        **({"shape": shape} if shape else {}),
+        **({"onShape": on_shape} if on_shape else {}),
         "start": forecast.start,
         "bench": forecast.bench,
         **({"on": forecast.on} if forecast.on is not None else {}),
@@ -278,6 +300,11 @@ def player_weeks(
         ordered = sorted(mine, key=lambda g: _dt(g["kickoff"])) if ff else mine
         told = ff(slug, ordered) if ff else []
         pos = SORARE_POSITION.get(player.get("position") or "")
+        made = (
+            scores(player, mine, player.get("nextClassicFixtureProjectedScore") if use_sorare else None, past)
+            if scores
+            else Made((), None)
+        )
         weeks[slug] = PlayerWeek(
             games=len(mine),
             projection=player.get("nextClassicFixtureProjectedScore") if use_sorare else None,
@@ -290,11 +317,9 @@ def player_weeks(
             pos=pos,
             game_ids=[g["id"] for g in ordered] if told else [],
             game_starts=told,
-            game_scores=scores(
-                player, mine, player.get("nextClassicFixtureProjectedScore") if use_sorare else None, past
-            )
-            if scores
-            else (),
+            game_scores=tuple(o.start for o in made.outcomes),
+            shape=made.outcomes[0] if made.outcomes else None,
+            sub=made.sub,
         )
     return weeks
 

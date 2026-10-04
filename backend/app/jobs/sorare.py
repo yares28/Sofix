@@ -278,7 +278,9 @@ def run(
         db,
         failed,
         "game scores",
-        lambda: scores.scores_for(keeper.load(), outfield.load(), keeper.numbers_for(db, fetched)),
+        lambda: scores.scores_for(
+            keeper.load(), outfield.load(), keeper.numbers_for(db, fetched), outfield.load_subs()
+        ),
         None,
     )
     db.rollback()

@@ -32,7 +32,7 @@ and a check, so a session can work through it alone and stop only where you have
   scored, and the Audit page shows a catalogue of twelve groups of figures with a decision scorecard. It takes in 9.5 (the opponent for
   keepers) and answers decision 4. **Started on your go (3 Oct, night):** the data is read (449 games, 29,094 player rows) and today's
   formula is scored on every LaLiga player (10.1 and 10.2a, Results); Futbol Fantasy's chance for every player is now kept at each lock
-  (10.2b), which is the one input that cannot be read again afterwards.
+  (10.2b), which is the one input that cannot be read again afterwards. The goalkeepers' number built from their game is built too (10.3).
 
 ### As of 2 Oct
 
@@ -482,6 +482,8 @@ the held-out weeks (P9 "The bar").
 - **10.3 · Keepers** (P8's groundwork). The chance of a clean sheet (their decisive action) and of a penalty save, the score with and
   without one, from parts 1 to 5, 8, 11, 12 and 13 of P9, each weighted on 2025/26; then the range. *Done when* the table against today's
   formula, the keepers' average and Sorare's projection is in P9 and, if it clears the bar, one refresh ships it.
+  **Built 4 Oct** (Results; [xscore.md](xscore.md) P9 progress, X3): the table is in P9 (it clears the bar on the walk-forward) and the
+  model is in `app/sorare/keeper.py`, one refresh away from the page.
 - **10.4 · Defenders, then midfielders and forwards.** The same with goals and assists as the decisive actions, and parts 14, 15 and 16; one
   refresh per position.
 - **10.5 · On screen.** A design canvas first (decision 8, a **Stop**): the panel's chance of a decisive action with the score with and
@@ -616,7 +618,7 @@ the plan was asked without a week); the two new browser tests fail on the old dr
 (no Sorare button pressed): the panel says "FF live just now" (C19), the Sofix tab says "Your gameweek 21" (R26), every tile shows a difficulty instead of "No odds",
 and the panel's second tab reads "Comes on" with a score of 42.
 
-### Batch 10 · 4 Oct 2026 · 10.1 and 10.2a done (the plan is merged; PR #34)
+### Batch 10 · 4 Oct 2026 · 10.1, 10.2a and 10.2b done, 10.3 built (the plan is merged; PR #34)
 
 Your "push everything, make the app up to date, then start with the plan" of 3 Oct night. Before it: PR #34 (the ten upgrades) and PR #35
 (your two unpushed lineups commits, with the one test their redesign broke: the visible "Read N min ago" line became an info icon's card)
@@ -627,6 +629,7 @@ were merged, your main folder was fast-forwarded to `main`, and production serve
 | 10.1 the data | **done** | `app.jobs.export_games` (resumable, two keyless questions a game, pages of 35: 50 is over the limit) read **449 played LaLiga games since 1 Aug 2025, 29,094 player rows, 9,878 starts, 28,958 with Sorare's projection and grade, in about an hour, none failed**; `app.sorare.gamedata` joined each to the football model's forecast, football-data.co.uk's shots, cards and over/under prices and both official elevens: 449 of 449 each, no club unmatched. Findings (P9 progress): scoring version 7 in both seasons and the new all-around column in force (95 of 96 stats exact; a keeper's goal conceded is −5, not the picture's −3); an upcoming game lists its players but carries no projection; over/under is already in the odds read; a keeper almost never comes on (4 of 902). 19 tests. |
 | 10.2a today's formula on every LaLiga player | **done** | `app.jobs.league_replay` → `backend/data/audit/replay_league.json` (numbers only). The tile's "if he starts" is within ±7 on **30%** of 9,878 starts (miss 14.5), "if he comes on" within ±7 on **60%** of 4,264 appearances (miss 7.9); Sorare's own projection is within ±7 on 33%, today's number is nearer in 45% of games, and the two are as good as each other (P6 answered on history). The league pair figure is 76% but counts unused players, so it is not the owner's 66%. P8 rerun on 829 starts by 33 keepers: the same conclusions, firmer. 7 tests. |
 | 10.2b Futbol Fantasy's chances for every player | **done and checked on production (refreshes #70 and #71, 3 Oct night)** | `app/sorare/ff_chances.py`, and the Sorare step writes it beside the Lineups page. Read-only `SELECT`s after refresh #70 (run by hand on the merged code): `ff_chances` holds **10 matches, 36.8 KB**, each side 22 to 28 players with their chance and 2 to 6 absentees; the run's summary says `chances: written 10`, nothing failed. First version: `atLock` was empty, because round 8 belongs to GW21, not yet the planned week; now each match takes the gameweek its kick-off falls in (from every gameweek of the season in the snapshot), so the reading at the lock is kept from the first run. **Refresh #71** (by hand on the fix, 23:19 to 23:24 UTC): all 10 matches have `gw` = GW21 (`football-9-13-oct-2026`) and an `atLock` reading of 23 to 28 players a home side, `chances: written 10`, nothing failed; each refresh until the lock (Fri 9 Oct 14:00 UTC) replaces it, then it is frozen. 10 tests (both readings, the freezing at the lock and at the kick-off, a later gameweek, none, and that a failure here still publishes the page). |
+| 10.3 keepers | **built (the refresh and the production check follow)** | `app/sorare/keeper.py`, fitted and tested by `python -m app.jobs.keeper_fit` (→ `artifacts/keeper_score.json`, `backend/data/audit/keeper_walk_forward.json`). Walk-forward over **738 keeper starts**, 43 gameweeks: the new number's squared miss is **29.4 below today's [−44.6, −13.3]** (typical miss 15.45 against 16.26), it puts the better of two keepers first **54.2%** of the time [51.6, 56.9] against today's **50.1%** (a coin flip) and Sorare's projection's 54.1%, and lands within ±7 on 25.7% (today 25.3%: a start swings between 75 and 35 on the luck of the game). Its chance of a decisive action is honest (said 26.9%, happened 27.0%) and its range holds 79.3% of scores. A keeper's own form and what keepers scored against that club added nothing over the game (P8 confirmed); the football model's raw clean-sheet chance ran 5 points high for keepers (29.7% said, 24.5% happened) and is corrected. 2026/27 alone (138 starts) points the same way but its interval includes zero; the held-out weeks hold no keeper start yet. 35 tests; 849 in all. |
 | 10.2c | not started | The Audit shows the league figures and the catalogue's first groups; waits for 10.5's canvas. |
 
 ### Housekeeping · 2 Oct 2026

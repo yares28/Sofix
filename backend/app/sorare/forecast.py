@@ -21,6 +21,7 @@ import dataclasses
 from dataclasses import dataclass, field
 from typing import Any, NamedTuple
 
+from app.sorare.keeper import Outcome
 from app.sorare.model import Forecast, GameChance
 from app.sorare.planner import SCORE_SD
 
@@ -73,6 +74,7 @@ class PlayerWeek:
     pos: str | None = None  # "GK", "DEF", "MID" or "FWD"
     game_ids: list[str] = field(default_factory=list)  # his games in kickoff order; needed to use `game_starts`
     game_starts: list[GameStart] = field(default_factory=list)  # Futbol Fantasy's number, for the games it has
+    keeper: tuple[Outcome, ...] = ()  # a keeper's games worked out from the game itself (keeper.py), in kickoff order
 
 
 def _from_form(history: list[tuple[str, float, bool]]) -> tuple[float, float]:
@@ -182,6 +184,8 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
         source = "sorare"
     split = _split(week, mu, plays)
     start, bench, p_start, p_on = split.start, split.bench, split.p_start, split.p_on
+    if week.pos == "GK" and week.keeper:  # a keeper's score is made by his game, not his last five (keeper.py)
+        mu = start = sum(game.start for game in week.keeper) / len(week.keeper)
     per_game: tuple[GameChance, ...] = ()
     has_odds = week.start_odds is not None and week.plays_odds is not None
     start_source = "sorare" if has_odds else "sofix"

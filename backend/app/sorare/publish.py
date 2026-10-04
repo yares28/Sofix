@@ -19,6 +19,7 @@ from app.services.scoring import difficulty_label, difficulty_score, label_bucke
 from app.sorare import expected, projection, rules, xg
 from app.sorare.forecast import GameStart, PlayerWeek
 from app.sorare.forecast import forecasts as build_forecasts
+from app.sorare.keeper import Outcome
 from app.sorare.model import SORARE_POSITION, Card, Competition, Forecast
 from app.sorare.planner import DRAWS, Lineup, Plan, build, fill_bench, plans, replay_rewards, score_at_rank
 
@@ -43,6 +44,10 @@ GIVE_UP = timedelta(days=7)
 """A replay built from everything Sorare was asked is final once SETTLE has passed. One that still lacks something (a call
 that got no answer) is rebuilt on every run until it has it; if that has not happened this long after the week ended,
 waiting will not bring it, and the replay is kept as it is."""
+
+
+# A keeper's games worked out from the game itself: (his card, his games, Sorare's projection) -> one `Outcome` a game (keeper.py)
+KeeperOf = Callable[[dict[str, Any], list[dict[str, Any]], float | None], tuple[Outcome, ...]]
 
 
 def _dt(value: str) -> datetime:
@@ -234,12 +239,16 @@ def player_weeks(
     window: tuple[datetime, datetime] | None,
     use_sorare: bool,
     ff: Callable[[str, list[dict[str, Any]]], list[GameStart]] | None = None,
+    keeper: KeeperOf | None = None,
 ) -> dict[str, PlayerWeek]:
     """What is known about each player before the lock (and, for a played gameweek, what he scored).
 
     `ff` answers, for a player and his games in kickoff order, Futbol Fantasy's chance for each game it has one for. It is
     only passed for a week still to come, the one being planned or the early plan of the round it has: it knows each
     team's next game and nothing further, so it has nothing to say about the games of any other round.
+
+    `keeper` works a goalkeeper's games out from the game itself (the football model's chance of a clean sheet and the goals line,
+    `keeper.py`); without it, or for a game it cannot tell, his number is what it was.
     """
     weeks: dict[str, PlayerWeek] = {}
     for row in rows:
@@ -268,6 +277,7 @@ def player_weeks(
             actual = max(played) if played else None
         ordered = sorted(mine, key=lambda g: _dt(g["kickoff"])) if ff else mine
         told = ff(slug, ordered) if ff else []
+        pos = SORARE_POSITION.get(player.get("position") or "")
         weeks[slug] = PlayerWeek(
             games=len(mine),
             projection=player.get("nextClassicFixtureProjectedScore") if use_sorare else None,
@@ -277,9 +287,12 @@ def player_weeks(
             start_odds=start_odds,
             # Only games he played have a role worth recording; a snapshot from before O9 has none.
             starts={h["date"]: bool(h["started"]) for h in past if h["played"] and "started" in h},
-            pos=SORARE_POSITION.get(player.get("position") or ""),
+            pos=pos,
             game_ids=[g["id"] for g in ordered] if told else [],
             game_starts=told,
+            keeper=keeper(player, mine, player.get("nextClassicFixtureProjectedScore") if use_sorare else None)
+            if keeper and pos == "GK"
+            else (),
         )
     return weeks
 
@@ -835,6 +848,7 @@ def projected_weeks(
     runs: int = 30,
     draws: int = EARLY_DRAWS,
     ff: Callable[[str, list[dict[str, Any]]], list[GameStart]] | None = None,
+    keeper: KeeperOf | None = None,
 ) -> list[dict[str, Any]]:
     """An early plan for each LaLiga round Sorare has not opened a gameweek for.
 
@@ -852,7 +866,9 @@ def projected_weeks(
         games = projection.games_for(cards, round_)
         comps = expected_competitions(snapshot, len(round_.matches))
         forecasts = build_forecasts(
-            player_weeks(snapshot["cards"], games, snapshot["history"], lock, None, use_sorare=False, ff=ff)
+            player_weeks(
+                snapshot["cards"], games, snapshot["history"], lock, None, use_sorare=False, ff=ff, keeper=keeper
+            )
         )
         week = {
             "id": f"md{round_.number}",
@@ -908,12 +924,14 @@ def build_payload(
     previous: dict[str, Any] | None = None,
     projected: list[dict[str, Any]] | None = None,
     ff: Callable[[str, list[dict[str, Any]]], list[GameStart]] | None = None,
+    keeper: KeeperOf | None = None,
 ) -> dict[str, Any]:
     """The whole `sorare` read model, from one snapshot.
 
     `previous` is the payload the app is already showing: when it holds the replay of the same finished
     gameweek, that part is kept as it is instead of being planned again. `ff` is Futbol Fantasy's chance game by game
-    for the gameweek being planned (`ff_use.Lineups.starts`); without it the page is what it was.
+    for the gameweek being planned (`ff_use.Lineups.starts`); without it the page is what it was. `keeper` works each goalkeeper's
+    games out from the game itself, for the week being planned and those after it (a played week's replay keeps what was known then).
     """
     now = _dt(snapshot["fetchedAt"])
     cards, left_out = read_cards(snapshot["cards"])
@@ -931,7 +949,14 @@ def build_payload(
     )
     plan_forecasts = build_forecasts(
         player_weeks(
-            snapshot["cards"], plan_games, snapshot["history"], _dt(plan_week["lock"]), None, use_sorare=True, ff=ff
+            snapshot["cards"],
+            plan_games,
+            snapshot["history"],
+            _dt(plan_week["lock"]),
+            None,
+            use_sorare=True,
+            ff=ff,
+            keeper=keeper,
         )
     )
     next_gw = gameweek_payload(
@@ -1005,7 +1030,14 @@ def build_payload(
         # round during an international break): it speaks for those games and for no other.
         forecasts = build_forecasts(
             player_weeks(
-                snapshot["cards"], games, snapshot["history"], _dt(week["lock"]), None, use_sorare=False, ff=ff
+                snapshot["cards"],
+                games,
+                snapshot["history"],
+                _dt(week["lock"]),
+                None,
+                use_sorare=False,
+                ff=ff,
+                keeper=keeper,
             )
         )
         ahead.append(

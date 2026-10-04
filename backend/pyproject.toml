@@ -53,6 +53,7 @@ files = [
     "app/sorare/audit.py",
     "app/sorare/backtest.py",
     "app/sorare/ff_use.py",
+    "app/sorare/keeper.py",
     "app/sorare/frozen.py",
     "app/sorare/forecast.py",
     "app/sorare/model.py",

@@ -840,6 +840,49 @@ again afterwards, so only the one that cannot is recorded live.
   players (61 in the one checked) but no projection, so it would take about 600 player questions a round for numbers Sorare keeps on
   the played game anyway.
 
+**X3 · keepers: built 4 Oct 2026 (roadmap 10.3).** A keeper's number is now built from his game, as P9 says: the chance of a decisive action times
+his score with one, plus the rest times his score without (`app/sorare/keeper.py`; fitted and tested by `python -m app.jobs.keeper_fit`, which writes
+`artifacts/keeper_score.json`, and `backend/data/audit/keeper_walk_forward.json`, numbers only).
+
+- **The chance of a clean sheet** is the football model's, with the bookmakers' over/under 2.5 price moving how many goals the game holds (the split
+  between the sides stays the model's: part 12), then corrected on the keepers' own starts. The model's raw chance ran high for keepers: it said
+  **29.7%** over the 738 starts tested, **24.5%** happened. The chance of a decisive action adds the penalties he saves (3.5% of the starts without a
+  clean sheet).
+- **His score with a decisive action** is 74.9 on average (plus 0.10 for each point of Sorare's projection); **without one** it is
+  37.7 plus 1.7 points for each goal his side is expected to concede (a keeper who faces more shots makes more saves) plus 0.12 of Sorare's
+  projection (part 8). Fitted on all 898 keeper starts to 20 Sep (2025/26 and 2026/27 so far), the file dated 30 Sep so that the held-out weeks stay unseen.
+- **The range** is the 10th to the 90th percentile of the two possible games, each spread as scores were around its line, widened by a fifth (the
+  leftovers of a fitted model are smaller than the next game's).
+- **Tried and left out:** a keeper's own recent level (part 1: squared miss against today's −27.9 with it, −28.9 without) and what keepers scored against that
+  opponent before (part 5: −25.8 with it, −27.2 without): neither added anything over the game, which confirms P8 ("a keeper's recent form says almost nothing"). The stat
+  sheet (part 11) was not tried: a keeper's all-around points are mostly his saves, which the game already moves. Team news for both sides (part 13) cannot
+  be tested on history (Futbol Fantasy's chances are only kept from 3 Oct, `ff_chances`).
+
+**The test (walk-forward, each week predicted from the weeks before it; 738 starts over 43 gameweeks, 17 Oct 2025 to 20 Sep 2026).** Intervals are 95%, from
+resampling whole gameweeks.
+
+| number | starts | typical miss | squared miss (RMSE) | leans | within ±7 | better of two keepers |
+|---|---|---|---|---|---|---|
+| today's "if he starts" (last five games) | 738 | 16.26 | 19.76 | +0.36 | 25.3% | 50.1% [47.8, 52.4] |
+| the keepers' average | 738 | 15.66 | 19.18 | +0.01 | 25.9% | 50.0% (it says the same for all) |
+| Sorare's projection | 738 | 15.83 | 19.28 | +0.91 | 25.5% | 54.1% [51.5, 56.6] |
+| **the new number** | 738 | **15.45** | **19.00** | −0.21 | 25.7% | **54.2% [51.6, 56.9]** |
+
+The new number's squared miss minus today's: **−29.4 [−44.6, −13.3]**, its typical miss **−0.80 [−1.13, −0.45]**; minus Sorare's projection −10.5
+[−30.7, +5.6] (as good, not clearly better). By season: 2025/26 (600 starts) −33.9 [−50.3, −17.3], better of two 53.8% against 49.2%; 2026/27 (138 starts, 10
+gameweeks) −10.0 [−46.0, +29.3], 56.0% against 54.5%: the same direction, too few weeks for the interval to leave zero. The held-out weeks (from 1 Oct) hold no
+keeper start yet.
+
+**What it says.** (1) A keeper's number cannot be made much closer: **within ±7 stays near 25%** for every number, because a start swings between 75 and 35 on the luck of
+the game. What the game does is move the middle (today's was 0.8 points further from the score on average and 29 squared points worse) and **order keepers:
+today's number is a coin flip between two keepers of one gameweek (50.1%), the new one is right 54.2% of the time.** (2) The decisive chance is honest: it said
+26.9% and 27.0% happened; by band (said, happened, starts): 9.0% / 13.4% (67), 16.4% / 14.5% (131), 23.5% / 27.2% (184), 30.9% / 29.8% (191), 41.9% / 38.8% (165).
+(3) The range holds **79.3%** of scores (aim 80%; 79.3% in 2025/26 and 79.0% in 2026/27).
+
+**Shipped.** The bar (the squared miss and the better-of-two figure, each clear of today's over 738 starts) is met on the walk-forward and on 2025/26, and you chose the fuller model
+(P8's call). The held-out weeks can neither confirm nor refute it yet (about ten keeper starts a round), so the Audit's keeper figures, from 4 Oct on, are where it is watched. **What does not use it:** a played gameweek's replay (the football model's numbers for
+a game already played are not kept), a game outside LaLiga, a game the app holds no prediction for, a keeper with no club in the registry: each keeps the old number. **What you see change:** a
+keeper's "if he starts", his expected score and the plans built on it; the panel's reasons and the range come with 10.5.
 
 ## 5 · Risks
 

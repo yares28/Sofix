@@ -143,6 +143,21 @@ Sorare's best-game behavior.
 4. For `g>1`, `P(any)=1-(1-p)^g` and conditional mean receives a best-of-two uplift.
 5. `xScore=P(any)×conditional_mean`.
 
+**Goalkeepers (plans/xscore.md P9 X3, `app.sorare.keeper`).** A keeper's score is a clean sheet or not: a decisive action worth at least 60 (75 on average over two
+seasons) or about 40, falling with the goals his side lets in. So his score if he starts is built from the game, not from his last five games, whose luck is most of what
+they say: the chance of a decisive action times his score with one, plus the rest times his score without. The chance of a clean sheet is the football model's
+(the predictions the board is built from, with the board's own correction taken off again, `keeper.raw_clean_sheet`), moved by the bookmakers' over/under 2.5 price
+(it sets how many goals the game holds, the model how they are split), then corrected on the keepers' own starts (the model ran about five points high for them);
+the chance of a penalty save is added. His score without a decisive action is a line in the goals his side is expected to concede and in Sorare's projection when it
+is out, his score with one a level and the projection. The leftovers of the fitted lines give the range (where he lands 8 times in 10). The constants are fitted on every
+keeper start of the games export (`python -m app.jobs.keeper_fit --fixtures-from <history file> --through 2026-09-30 --write`, into `artifacts/keeper_score.json`, with the
+walk-forward table and `backend/data/audit/keeper_walk_forward.json`), and the same command tests them: each week of starts is predicted from the weeks before it only.
+In the refresh, `keeper.numbers_for` reads the predictions and the goals line of the games to come from the database, `keeper.outcomes_for` works out each keeper's games, and
+`publish.player_weeks` hands them to `forecast.forecast` (`PlayerWeek.keeper`), which makes the average of his games both his score if he plays and if he starts; a
+second game in the gameweek keeps the best-of-two rule. A game the numbers cannot be found for (outside LaLiga, no prediction, a club the registry does not know), a missing
+artifact or a failing step leaves that keeper's number as it was, and the step's failure is listed under `failed` as "keeper numbers". The record the Audit counts
+(`sorare_record.rows`) uses the same numbers for the week being planned; a played gameweek's replay does not, since the football model's numbers for a played game are not kept.
+
 Common SD is 17.6. Source is published (“sorare”, “form”, “no game”). This is a transparent heuristic awaiting an S4
 fitted/blind-tested replacement.
 

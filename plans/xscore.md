@@ -840,7 +840,7 @@ again afterwards, so only the one that cannot is recorded live.
   players (61 in the one checked) but no projection, so it would take about 600 player questions a round for numbers Sorare keeps on
   the played game anyway.
 
-**X3 · keepers: built 4 Oct 2026 (roadmap 10.3).** A keeper's number is now built from his game, as P9 says: the chance of a decisive action times
+**X3 · keepers: done and on production 4 Oct 2026 (roadmap 10.3; PR #39, refresh #73).** A keeper's number is now built from his game, as P9 says: the chance of a decisive action times
 his score with one, plus the rest times his score without (`app/sorare/keeper.py`; fitted and tested by `python -m app.jobs.keeper_fit`, which writes
 `artifacts/keeper_score.json`, and `backend/data/audit/keeper_walk_forward.json`, numbers only).
 
@@ -881,7 +881,7 @@ today's number is a coin flip between two keepers of one gameweek (50.1%), the n
 
 **Shipped.** The bar (the squared miss and the better-of-two figure, each clear of today's over 738 starts) is met on the walk-forward and on 2025/26, and you chose the fuller model
 (P8's call). The held-out weeks can neither confirm nor refute it yet (about ten keeper starts a round), so the Audit's keeper figures, from 4 Oct on, are where it is watched. **What does not use it:** a played gameweek's replay (the football model's numbers for
-a game already played are not kept), a game outside LaLiga, a game the app holds no prediction for, a keeper with no club in the registry: each keeps the old number. **What you see change:** a
+a game already played are not kept), a game outside LaLiga, a game the app holds no prediction for, a keeper with no club in the registry: each keeps the old number. **What you see change** (production, 4 Oct: Soria at Barcelona 52 → 45, Oblak 62 → 50, Dituro 35 → 49; round 8's keepers 45 to 50): a
 keeper's "if he starts", his expected score and the plans built on it; the panel's reasons and the range come with 10.5.
 
 ## 5 · Risks

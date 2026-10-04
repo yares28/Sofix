@@ -304,27 +304,27 @@ doubt; hover the mark for the name.
 
 ## 7b. Audit — how often the numbers were right
 
-![Audit: the xScore success rate, who starts per source and what has been written down](images/audit.png)
+![Audit: how often the xScore picks the better of two, how close it lands, calibration and what has been written down](images/audit.png)
 
-The Audit page checks Sofix's numbers against what happened. **One figure leads: how often the xScore picks the better of two
-players.** Take two of your players in the same position and the same gameweek; the one the xScore rated higher scored more in 66
-of every 100 pairs (a coin flip gets 50; likely 65% to 67%). The bars beside it set it against his last five games' average,
-which scores the same, and the page says so. The line under the bars says how many pairs, gameweeks and players it rests on.
-[How it is counted](xscore_success_rate.md) has the steps, a worked example and what the figure does not say.
+The Audit page checks Sofix's numbers against what happened, as charts (since 4 Oct). The first block is a replay of two LaLiga seasons: every game
+predicted from the weeks before it only (9,190 starts to 20 Sep).
 
-That figure is a replay: your 84 players' games since August 2025, with the xScore as the form formula alone would have said
-it. Sorare's own projection and Futbol Fantasy's chance are not in the past, so they cannot be replayed. **Live check** is the
-same count on what Sofix really wrote down before each lock; it begins empty and shows a figure from 100 pairs, which the first
-LaLiga round gives (about 75 of your players have a game in one).
+- **Pick the better of two** leads. Take any two players of one position in the same gameweek; if Sofix gave one a higher xScore and he scored more, that is a hit. A small example pair
+  shows it, and one row per position shows how often it hits **now** (the green dot) against **the old number** (the grey one), with the coin flip (50) marked: goalkeepers 54 against 50,
+  defenders 59 against 54, midfielders 61 against 57, forwards 59 against 55.
+- **Week by week** is the same figure for each of the 46 gameweeks (all positions together), against a coin flip.
+- **How close** counts starts by how many points the score landed above or below the xScore; the four green bars in the middle are the starts within 7 points (31%); 63% are within 15.
+- **Goalkeepers** and **Who starts** each plot what Sofix said against how often it happened: a dot on the dashed diagonal is honest.
+- **Against Sorare's own number** sets the share of starts within 7 points of Sorare's projection (33%), of the old number (30%) and of the new one (31%), and the share of goalkeepers' starts inside the range (79%, the aim is 80).
 
-**Who starts?** gives each of Futbol Fantasy, Sorare and Sofix a column. It says how often the source was right (said 50% or more
-and he started, or less and he did not), how far its chances were from what happened (the error score: 0 is perfect, 0.25 is saying
-50% every time), and how many of the players it put at 80% or more started. A source shows figures from 100 games. Under that it says
-"Too few to tell" and how far along it is, or "Waiting for results" while the games are written down but not played, or "Nothing
-yet" with the reason: Sorare has not given a start chance for any of your players, and Futbol Fantasy covers LaLiga only, so it
-joins with the first gameweek that has a LaLiga player of yours (round 8's). **On past games** replays Sofix's own chance on 4,615
-games (right on 72%; the bars show what it said against how often he started, band by band). **Written down so far** lists each
-gameweek: the games written down before its lock, how many have been checked since, and how many each source gave.
+These figures are written by hand from the local games export (`python -m app.jobs.audit_league --write`, into `frontend/lib/data/audit_league.json`), not by the refresh; the page says what they
+cover. A figure with fewer than 100 starts behind it says "Too few to tell". Below them, **Who starts?** gives each of Futbol Fantasy, Sorare and Sofix a column of what has been written down
+before real locks. It says how often the source was right (said 50% or more and he started, or less and he did not), how far its chances were from what happened (the error score: 0 is perfect,
+0.25 is saying 50% every time), and how many of the players it put at 80% or more started. A source shows figures from 100 games. Under that it says "Too few to tell" and how far along it is, or
+"Waiting for results" while the games are written down but not played, or "Nothing yet" with the reason: Sorare has not given a start chance for any of your players, and Futbol Fantasy covers
+LaLiga only, so it joins with the first gameweek that has a LaLiga player of yours. **Written down so far** lists each gameweek: the games written down before its lock, how many have been
+checked since, and how many each source gave. (The old headline, 66% on your 84 players, is gone from the page: it measured the old formula on your players only; its method is still in
+[How it is counted](xscore_success_rate.md).)
 
 The Audit page never writes to Sorare. It is rebuilt by each refresh; "The audit appears after the next refresh" means none has
 written it yet.

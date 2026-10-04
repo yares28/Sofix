@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import league from "../lib/data/audit_league.json";
 import { offline, resetBackend, smallText } from "./helpers";
 
 // The Audit page draws the numbers the job published (e2e/fixtures/audit-response.json: the page of 2 Oct 2026 as backend/app/sorare/audit.py
@@ -11,31 +12,33 @@ test.beforeEach(async ({ page, request }) => {
   await offline(page);
 });
 
-test("the page leads with one figure: how often the xScore picks the better of two players", async ({ page }) => {
+test("the page leads with how often the xScore picks the better of two, per position, now against the old number", async ({ page }) => {
   await page.goto("/audit");
   await expect(page.getByRole("heading", { level: 1, name: "Audit" })).toBeVisible();
 
-  const hero = page.getByRole("region", { name: "66% of the time it picks the better of two players" });
-  await expect(hero.locator(".au-big")).toHaveText("66%");
-  await expect(hero.getByText("A coin flip gets 50.")).toBeVisible();
-  // what it is set against, and how much stands behind it
-  await expect(hero.getByText("An average of his last five games does just as well.")).toBeVisible();
-  await expect(hero.getByRole("list", { name: "What the count rests on" }).getByRole("listitem")).toHaveText([
-    "39,961 pairs",
-    "99 gameweeks",
-    "84 of your players",
-    "Aug 2025 – Oct 2026",
-    "likely 65–67%",
-  ]);
-  await expect(hero.getByRole("list", { name: /^How often each picks the better of two players/ }).getByRole("listitem")).toHaveText([/^xScore.*66%$/, /^His last five games.*66%$/]);
-  await expect(hero.getByRole("link", { name: "How it is counted" })).toHaveAttribute("href", /\/docs\/xscore_success_rate\.md$/);
+  const section = page.getByRole("region", { name: "How often Sofix picks the player who scored more" });
+  await expect(section).toContainText("A coin flip hits 50 times in 100.");
+  await expect(section).toContainText("One pair, for example"); // what the chart is about, shown with a pair
+  const rows = section.getByRole("list", { name: /How often each position's xScore picks the better of two/ }).getByRole("listitem");
+  await expect(rows).toHaveCount(4);
+  await expect(rows.nth(0)).toContainText("Goalkeepers");
+  await expect(rows.nth(0)).toContainText(`${Math.round(league.positions[0]!.now!.rate * 100)}%`);
+  await expect(rows.nth(3)).toContainText("Forwards");
 });
 
-test("the live check says what it is waiting for instead of showing a number", async ({ page }) => {
+test("the league figures draw every chart from the committed replay: weeks, how close, goalkeepers' chances, who starts, Sorare's number", async ({ page }) => {
   await page.goto("/audit");
 
-  const hero = page.getByRole("region", { name: /of the time it picks the better of two players/ });
-  await expect(hero.getByText("18 players were written down before the lock. Their gameweeks are not played yet.")).toBeVisible();
+  const weeks = page.getByRole("region", { name: /gameweeks$/ });
+  await expect(weeks.locator(".lg-wk i")).toHaveCount(league.weeks.length);
+  const close = page.getByRole("region", { name: "How far the score lands from the xScore" });
+  await expect(close.locator(".lg-hs i")).toHaveCount(28);
+  await expect(close.locator(".lg-hs i.mid")).toHaveCount(4);
+  await expect(close).toContainText(league.miss.n.toLocaleString("en-GB"));
+  await expect(page.getByRole("region", { name: /When Sofix says 30%/ }).locator(".lg-plot .pt")).not.toHaveCount(0);
+  await expect(page.getByRole("region", { name: /chance that a player starts, against who started/ }).locator(".lg-plot .pt")).not.toHaveCount(0);
+  const vs = page.getByRole("list", { name: "Share of starts within 7 points" }).getByRole("listitem");
+  await expect(vs).toHaveText([/^Sorare's projection/, /^Sofix before/, /^Sofix now/]);
 });
 
 test("each source says where it stands: nothing yet, nothing yet, or waiting for results, never a made-up figure", async ({ page }) => {
@@ -53,20 +56,6 @@ test("each source says where it stands: nothing yet, nothing yet, or waiting for
   await expect(sofix.getByRole("progressbar", { name: "Games checked" })).toHaveAttribute("aria-valuenow", "0");
   await expect(page.getByRole("progressbar")).toHaveCount(1);
   await expect(page.locator(".au-src-main.figure")).toHaveCount(0); // no figure anywhere under the floor
-});
-
-test("Sofix's chance of starting is shown replayed on the past, band by band", async ({ page }) => {
-  await page.goto("/audit");
-
-  const replay = page.locator(".au-replay");
-  await expect(replay).toContainText("72%");
-  await expect(replay).toContainText("right on 4,615 games, Aug 2025 – Oct 2026");
-  await expect(replay).toContainText("right 56% of the time"); // always saying he starts
-  const bands = replay.getByRole("list", { name: "What Sofix said against how often he started" }).getByRole("listitem");
-  await expect(bands).toHaveCount(4);
-  await expect(bands.first()).toContainText("Under 20%");
-  await expect(bands.last()).toContainText("80% or more");
-  await expect(bands.last()).toContainText("said 83% · started 87%");
 });
 
 test("the record lists each gameweek written down before its lock", async ({ page }) => {
@@ -101,8 +90,6 @@ test("with enough games a source shows its figure, and one under the floor still
   await expect(sofix.getByText("Too few to tell")).toBeVisible();
   await expect(sofix).toContainText("40 of 100 games checked");
   await expect(sofix.locator(".au-src-main.figure")).toHaveCount(0);
-  const hero = page.getByRole("region", { name: /of the time it picks the better of two players/ });
-  await expect(hero.getByText("64% (58–69%) on 130 pairs since the first lock.")).toBeVisible();
 });
 
 test("before the first refresh that writes it, the page says so instead of drawing empty figures", async ({ page, request }) => {
@@ -110,12 +97,12 @@ test("before the first refresh that writes it, the page says so instead of drawi
   await page.goto("/audit");
 
   await expect(page.getByRole("status")).toContainText("The audit appears after the next refresh.");
-  await expect(page.locator(".au-big")).toHaveCount(0);
+  await expect(page.locator(".lg-card")).toHaveCount(0);
 });
 
 test("no text is smaller than 11 px, nothing scrolls sideways, and the page has no accessibility violations", async ({ page }) => {
   await page.goto("/audit");
-  await expect(page.locator(".au-big")).toBeVisible();
+  await expect(page.locator(".lg-card").first()).toBeVisible();
 
   expect(await smallText(page, 11)).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

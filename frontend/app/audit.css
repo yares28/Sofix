@@ -129,3 +129,76 @@
 @media (prefers-reduced-motion: reduce) {
   .au-w, .au-bar-fill, .au-progress i, .au-band-fill { animation: none; }
 }
+
+/* ---------- the league figures (components/audit/LeagueAudit.tsx) ---------- */
+.lg-card h2 { margin: 0; font-size: 22px; line-height: 1.2; font-weight: 650; letter-spacing: -0.02em; }
+.lg-cap { margin: 8px 0 0; max-width: 62ch; font-size: 14px; line-height: 1.5; color: var(--ink-2); }
+.lg-key { display: flex; gap: 16px; flex-wrap: wrap; margin: 10px 0 0; font-size: 12px; color: var(--ink-2); }
+.lg-key span { display: inline-flex; gap: 6px; align-items: center; }
+.lg-key i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #c9c9d3; }
+.lg-key i.now { background: #1c7c4f; }
+.lg-hero { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 28px 48px; margin-top: 22px; align-items: center; }
+.lg-ex { display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: 18px; background: #f7f7fa; }
+.lg-ex-t { margin: 0; font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.lg-pl { display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 12px; align-items: center; font-size: 13px; font-weight: 600; }
+.lg-pb { display: grid; grid-template-columns: 1fr; gap: 3px; font-size: 11px; font-weight: 500; color: var(--ink-2); }
+.lg-pb b { color: var(--ink); }
+.lg-pb i { display: block; height: 8px; border-radius: 4px; }
+.lg-pb i.s { background: #c9c9d3; }
+.lg-pb i.r { background: #1c7c4f; }
+.lg-verdict { margin: 0; font-size: 13px; font-weight: 650; color: #1c7c4f; }
+.lg-scale { position: relative; height: 16px; margin: 0 56px 6px 138px; font-size: 11px; color: var(--ink-2); }
+.lg-scale span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+.lg-scale span:first-child { left: 0; }
+.lg-rows { display: flex; flex-direction: column; gap: 18px; margin: 0; padding: 0; list-style: none; }
+.lg-rows li { display: grid; grid-template-columns: 126px minmax(0, 1fr) 56px; gap: 12px; align-items: center; font-size: 14px; font-weight: 600; }
+.lg-ax { position: relative; height: 18px; }
+.lg-ax::before { content: ""; position: absolute; left: 0; right: 0; top: 8px; height: 2px; background: #ececf1; }
+.lg-ax .coin { position: absolute; left: 25%; top: 0; bottom: 0; width: 0; border-left: 2px dashed #c9c9d3; }
+.lg-ax .link { position: absolute; top: 8px; height: 2px; background: #8fcfae; }
+.lg-ax .was { position: absolute; top: 3px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: #c9c9d3; }
+.lg-ax .now { position: absolute; top: 1px; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; background: #1c7c4f; border: 3px solid #fff; box-shadow: 0 0 0 1px #1c7c4f; }
+.lg-val { display: flex; flex-direction: column; align-items: flex-end; font-variant-numeric: tabular-nums; }
+.lg-val small { font-size: 11px; font-weight: 400; color: var(--ink-2); }
+.lg-few { grid-column: 2 / 4; font-size: 13px; font-weight: 400; color: var(--ink-2); }
+.lg-wk { position: relative; display: flex; align-items: flex-end; gap: 3px; height: 150px; margin-top: 18px; }
+.lg-wk i { flex: 1 1 0; display: block; min-width: 0; border-radius: 3px 3px 0 0; background: #8fcfae; }
+.lg-wk .line { position: absolute; left: 0; right: 0; height: 0; border-top: 2px dashed #17181c; opacity: 0.45; }
+.lg-wk .lab { position: absolute; right: 0; margin-bottom: 4px; padding: 0 6px; font-size: 11px; background: var(--surface); color: var(--ink-2); }
+.lg-x { display: flex; justify-content: space-between; margin: 6px 0 0; font-size: 11px; color: var(--ink-2); }
+.lg-g2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+.lg-g2 > .au-w { margin-top: 22px; }
+.lg-hs { display: flex; align-items: flex-end; gap: 2px; height: 140px; margin-top: 18px; }
+.lg-hs i { flex: 1 1 0; display: block; min-width: 0; border-radius: 2px 2px 0 0; background: #d8d8e0; }
+.lg-hs i.mid { background: #1c7c4f; }
+.lg-hx { display: flex; justify-content: space-between; margin: 6px 0 0; font-size: 11px; color: var(--ink-2); }
+.lg-stats { display: flex; gap: 22px; flex-wrap: wrap; margin: 16px 0 0; }
+.lg-stats.col { flex-direction: column; gap: 12px; margin: 0; }
+.lg-stats > div { display: flex; flex-direction: column-reverse; }
+.lg-stats dd { margin: 0; font-size: 26px; font-weight: 750; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.lg-stats dt { font-size: 12px; color: var(--ink-2); }
+.lg-rw { display: flex; gap: 24px; align-items: center; margin-top: 18px; }
+.lg-cal { flex: 1 1 0; min-width: 0; }
+.lg-plot { position: relative; width: 100%; aspect-ratio: 1; max-width: 220px; border-left: 2px solid #d8d8e0; border-bottom: 2px solid #d8d8e0; }
+.lg-plot .diag { position: absolute; left: 0; bottom: 0; width: 141%; height: 0; border-top: 2px dashed #c9c9d3; transform-origin: 0 100%; transform: rotate(-45deg); }
+.lg-plot .pt { position: absolute; border-radius: 50%; background: #1c7c4f; opacity: 0.85; }
+.lg-vs { display: flex; flex-direction: column; gap: 14px; margin: 18px 0 0; padding: 0; list-style: none; }
+.lg-vs li { display: grid; grid-template-columns: 124px minmax(0, 1fr) 44px; gap: 12px; align-items: center; font-size: 13px; font-weight: 600; }
+.lg-vs .vb { position: relative; height: 14px; border-radius: 7px; background: var(--track); }
+.lg-vs .vb i { position: absolute; inset: 0 auto 0 0; border-radius: 7px; }
+.lg-vs .vb i.sorare { background: #9aa0b4; }
+.lg-vs .vb i.before { background: #c9c9d3; }
+.lg-vs .vb i.now { background: #1c7c4f; }
+.lg-vs .vb u { position: absolute; top: 0; bottom: 0; width: 2px; background: #17181c; }
+.lg-vs b { text-align: right; font-variant-numeric: tabular-nums; }
+.lg-sp { margin-top: 26px; }
+.lg-foot { margin: 22px 0 0; font-size: 12px; color: var(--ink-2); }
+@media (max-width: 860px) {
+  .lg-hero, .lg-g2 { grid-template-columns: minmax(0, 1fr); }
+  .lg-scale { margin-left: 0; }
+}
+@media (max-width: 560px) {
+  .lg-rows li { grid-template-columns: 96px minmax(0, 1fr) 52px; }
+  .lg-vs li { grid-template-columns: 96px minmax(0, 1fr) 40px; }
+  .lg-rw { flex-direction: column; align-items: stretch; }
+}

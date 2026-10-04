@@ -950,6 +950,12 @@ plays (`lib/missions.ts`): a decisive-action mission by the game's chance of a d
 (the likeliest pairs first), with what he did over 5, 8 and two seasons (the stat sheet's last ten starts and season). The real rules seen on the Limited tab on 4 Oct: Decisive Picker (200 XP per decisive pick), Interception (2+ in a match, 50 All-Star Essence), Assist.
 Not in this step: the XP a card's scarcity earns (only the mission's own text is shown), the official-eleven check before kick-off (10.7), and the Audit counting how many suggested cards completed their mission.
 
+**X5d · the Audit's league figures: built 4 Oct 2026 (roadmap 10.2c).** The Audit leads with the new xScore replayed on two LaLiga seasons (9,190 starts, 46 gameweeks to 20 Sep), per position, **now against the old number**:
+**GK 54% [52, 57] against 50%, DEF 59% [58, 61] against 54%, MID 61% [60, 62] against 57%, FWD 59% [58, 61] against 55%** of pairs of one position and gameweek picked right (a coin flip is 50), above a coin flip in all 46 gameweeks (52% to 69%). The
+same replay: 31% of starts within 7 points of the number against 30% for the old one and 33% for Sorare's projection (the new number matches the old on this and is a little behind Sorare's: it is better at ordering players than at landing on a score), 63% within 15; the goalkeepers' chance of
+a decisive action averages 27.0% against 27.0% that happened, and 79% of their scores land inside the range (the aim is 80). Not the figure of 2 Oct (66% on the owner's 84 players over 99 gameweeks): that measured the old formula on his players only, so the page no longer leads with it.
+The numbers are written by hand (`python -m app.jobs.audit_league --write`, `frontend/lib/data/audit_league.json`); the lineup and captain figures, the missions' completed picks and the next-games forecasts by distance are "still counting" until they have played weeks.
+
 ## 5 · Risks
 
 | Risk | What limits it |

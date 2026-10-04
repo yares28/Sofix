@@ -166,6 +166,11 @@ it sends a goalkeeper to `keeper.py` and the rest to their position's line (`art
 per game, which `forecast.forecast` makes his score if he starts (and his score if he plays, for a regular starter; for a player who often comes on it moves by his share of
 starts). Anything it cannot tell leaves the number as it was.
 
+**Linked scores and the captain (plans/xscore.md P9 X6, `app.sorare.links`, `planner.simulate`, `planner._captain`).** Players of one game score together, so the planner
+no longer simulates a lineup's players independently: `publish.gameweek_payload` gives each forecast its games as (game id, home or away), `links.matrix` turns them into a correlation matrix by pair of
+positions and side (a keeper and his defenders +0.29, a keeper against the other side's forwards −0.26, ...), and the simulation draws correlated scores. Reward chances, ranges and the plans ranked by them
+follow. The captain is chosen among the three starters with the best expected points by the chance of a reward his captaincy gives, then by the expected score.
+
 Common SD is 17.6. Source is published (“sorare”, “form”, “no game”). This is a transparent heuristic awaiting an S4
 fitted/blind-tested replacement.
 

@@ -907,6 +907,20 @@ miss and the better-of-two figure, each clear of today's) is met by all three. W
 (a little less often than today's, which sits nearer the middle), because a forward's game is a goal or not. The decisive-action split for outfield players (the chance of a
 goal or assist and the score with and without one, parts 14 to 16) is not in this step: the line already carries his rate of decisive scores, and the split comes with the
 screens (10.5). One refresh ships all three, since they share the one callback; a played week's replay, a game outside LaLiga and a game with no prediction keep the old number.
+**X6 · lineups and the captain on the real spread: built 4 Oct 2026 (roadmap 10.6).** Two changes in the planner, which change every reward chance, so one refresh:
+
+- **Linked scores** (`app/sorare/links.py`). The planner scored every player as if no one else's game mattered. Measured on every start of the games export (the correlation of how far each
+  starter's score landed from the number he was given; `backend/reports/experiments/linked_scores.py`): a keeper and his own defenders **+0.29** (both seasons agree: +0.28 and +0.35), defender
+  and defender +0.16, forward and forward +0.10, and the other way round a keeper and the other side's forwards **−0.26** (−0.24 and −0.34), a defender and the other side's forwards −0.16.
+  Players in the same game now share a random draw in the simulation (a Gaussian copula, the matrix kept valid when many pairs ask for much). Each player's chance of playing and spread are unchanged.
+  Check: for 738 lineups of a keeper, two of his defenders and the other side's forward, the real variance of the total miss was 1,469; the independent simulation said 1,306 (11% low), the linked one 1,458.
+  Random lineups, which mostly mix games, barely change (1,957 real; 2,050 independent; 2,024 linked).
+- **The captain for the ceiling.** Of the three starters with the best expected points, the one whose captaincy gives the lineup the best chance of a reward (then the best expected score), tried on the same
+  simulated gameweeks. The captain's bonus multiplies a score, so a player with a big ceiling can earn more of it than a steadier one with a higher average (test: a keeper at 52 ± 3 against a defender at 50 ± 30 for a
+  reward only a big captain score reaches: the old rule chose the keeper, the new one the defender).
+
+Not in this step: choosing the starters themselves for the reward (they are still picked for the expected points, then evaluated on the real spread), and stacking a keeper with his defenders on purpose. The planner now
+*counts* the link, so a stacked lineup's chances are honest; picking by it is next. The Audit's lineup figures (plan's expected total against its total, the chance of each reward honest by band) come with 10.2c.
 
 ## 5 · Risks
 

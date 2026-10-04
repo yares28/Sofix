@@ -454,6 +454,8 @@ counts how likely his side is to keep a clean sheet and to score (Sofix's own nu
 it is out, and his own record of big scores. In a test on every start of two seasons it was closer to what players scored than the old number for all three positions,
 and put the better of two players first about 59 times in 100 against 54 to 57 before. It still lands within 7 points only about a third of the time: a game is a goal
 or not. A game Sofix has no numbers for keeps the old number.
+
+**Lineups count players of one game together.** A keeper and his defenders tend to score well or badly together, and a keeper against the other side's forwards the other way round, so a lineup that stacks them swings more than the plan used to say. The chances and ranges on the plans now include that, and the captain is the player who gives the lineup the best chance of a reward, which is not always the one with the highest average.
 - **Midfielders and forwards: xG**, his expected goals if he starts: his season's rate from Understat, scaled to how many
   goals his side is expected to score in that game. It is there for players Understat can name in the Premier League, La
   Liga, Bundesliga, Serie A, Ligue 1 and the Russian league who have played at least a full game. Anyone else, and any

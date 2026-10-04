@@ -102,6 +102,8 @@ class Forecast:
     by_source: dict[str, float] = field(default_factory=dict)
     # Of the games he does not start, how often he still plays: what a changed start chance is split with (the extension uses it).
     benched_on: float | None = None
+    # His games of the gameweek as (Sorare's id for the game, "H" or "A"): players of one game score together (links.py). The planner reads it.
+    links: tuple[tuple[str, str], ...] = ()
 
 
 @dataclass(frozen=True)

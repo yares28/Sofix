@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 import math
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
@@ -686,6 +687,11 @@ def gameweek_payload(
 ) -> dict[str, Any]:
     """One gameweek: who plays, what can be entered, and the plans (replayed when it is already played)."""
     rng = np.random.default_rng(seed)
+    # Players of one game score together (links.py): the planner needs to know who plays whom.
+    forecasts = {
+        slug: replace(f, links=tuple((g["id"], g["venue"]) for g in games.get(slug, []) if g.get("venue")))
+        for slug, f in forecasts.items()
+    }
     with_reference = [c for c in comps if c.reference or c.reference_rooms]
     playable: list[dict[str, Any]] = []
     blocked: list[dict[str, Any]] = []

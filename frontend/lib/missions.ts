@@ -107,7 +107,7 @@ const madridDay = (iso: string): string => new Intl.DateTimeFormat("en-CA", { ti
 
 /**
  * The best cards for each mission: of your players with a game still to be played on the day, the ones likeliest to do what it asks, each in one mission only
- * (the likeliest pairs first), as many as it has picks left. The day is the next one, in Madrid, on which any of them plays. A mission for another rarity than a
+ * (the likeliest pairs first), as many as it has picks left. The day is today in Madrid; a later day is never offered, because tomorrow's missions are not known. A mission for another rarity than a
  * player's card is not offered to him.
  */
 export function plan(
@@ -126,7 +126,8 @@ export function plan(
     if (game && (!held || game.kickoff < held.game.kickoff)) next.set(p.player, { p, game });
   }
   const upcoming = [...next.values()].sort((a, b) => a.game.kickoff.localeCompare(b.game.kickoff));
-  const day = upcoming.length ? madridDay(upcoming[0]!.game.kickoff) : null;
+  // Missions are daily and the next ones are not known: today in Madrid, never a later day.
+  const day = madridDay(now.toISOString());
   const candidates = upcoming.filter((u) => madridDay(u.game.kickoff) === day);
   const plans: MissionPlan[] = missions.map((mission) => ({ mission, rule: ruleOf(mission), reward: rewardOf(mission), open: Math.max(0, mission.picks - mission.made), picks: [] }));
   const pairs: { plan: MissionPlan; pick: Suggestion }[] = [];

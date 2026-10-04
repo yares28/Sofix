@@ -57,7 +57,7 @@ function Mission({ one }: { one: MissionPlan }) {
           ))}
         </ol>
       ) : one.open > 0 ? (
-        <p className="pd-none">None of your cards with a game that day fits this one.</p>
+        <p className="pd-none">None of your cards with a game still to play today fits this one.</p>
       ) : null}
     </section>
   );
@@ -106,7 +106,7 @@ export default function MissionsView({
         <Mission key={one.mission.id} one={one} />
       ))}
       <p className="pd-foot">
-        {day ? "Your cards with a game still to play that day, each in one mission only. " : "None of your cards has a game left to play. "}
+        Your cards with a game still to play today, each in one mission only. 
         {seenAt ? `Missions read from Sorare ${freshLabel(seenAt, new Date(now))}.` : ""}
       </p>
     </div>

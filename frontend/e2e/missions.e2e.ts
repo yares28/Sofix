@@ -11,11 +11,9 @@ test.describe("the daily missions page", () => {
     }
     await expect(root.getByRole("region", { name: "Decisive Picker" })).toContainText("200 XP");
     await expect(root.getByRole("region", { name: "Interception - All Matches" })).toContainText("2+ interceptions");
-    const names = await root.locator(".ms-pick .who b").allInnerTexts();
-    expect(names.length).toBeGreaterThan(0);
-    expect(new Set(names).size).toBe(names.length); // a card is in one mission only
-    await expect(root.locator(".ms-pick .chance b").first()).toHaveText(/^\d+%$/);
-    await expect(root.locator(".ms-pick .avg").first()).toContainText("last 5");
+    // Missions are daily and only today's are known: with none of the recording's cards playing today, each says so instead of offering another day.
+    await expect(root.getByText("None of your cards with a game still to play today fits this one.").first()).toBeVisible();
+    await expect(root).not.toContainText("Tuesday");
   });
 
   test("fits a phone without a sideways scroll", async ({ page }) => {

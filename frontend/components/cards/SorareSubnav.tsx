@@ -8,6 +8,7 @@ const PAGES = [
   { href: "/play", label: "Play" },
   { href: "/cards", label: "My cards" },
   { href: "/players", label: "Players" },
+  { href: "/missions", label: "Missions" },
 ] as const;
 
 /** The Sorare pages, as a segmented sub-nav shared by Play, My cards and Player search. */

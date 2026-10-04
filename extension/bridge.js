@@ -54,7 +54,10 @@
       if (!core || !response || !response.ok) return;
       if (!/json/i.test(response.headers.get("content-type") || "")) return;
       if (Number(response.headers.get("content-length") || 0) > 8000000) return;
-      learn(core.collectCards(await response.clone().json()));
+      const body = await response.clone().json();
+      learn(core.collectCards(body));
+      const missions = core.collectMissions ? core.collectMissions(body) : [];
+      if (missions.length) window.postMessage({ source: "sofix-bridge-4", type: "missions", missions }, location.origin);
     } catch {
       // a failure of ours must never reach the page
     }

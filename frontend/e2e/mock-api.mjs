@@ -290,6 +290,23 @@ const server = createServer((req, res) => {
     return send(res, 200, idleSorare[state.news] ?? sorare);
   }
 
+  if (req.method === "GET" && url.pathname === "/api/missions") {
+    // The three pickers of the Limited tab, as the extension reads them from Sorare's Missions page (`collectMissions` in extension/core.js).
+    const picker = (id, title, description) => ({ id, title, description, mode: "DECISIVE", picks: 3, made: 0, period: "DAILY", state: "READY" });
+    return send(res, 200, {
+      success: true,
+      data: {
+        limited: {
+          seen_at: new Date().toISOString(),
+          missions: [
+            picker("t1", "Decisive Picker", "Earn 200 XP for each player you select who gets a positive decisive action in today's matches."),
+            picker("t2", "Interception - All Matches", "Classic: Pick a player who makes 2+ interceptions in any match and win 50 All-Star Essence per correct choice."),
+            picker("t3", "Assist - All Matches", "Classic: Pick a player who gets an assist in any match and win 50 All-Star Essence per correct choice."),
+          ],
+        },
+      },
+    });
+  }
   if (req.method === "GET" && url.pathname === "/api/lineups") {
     if (state.sorare === "missing") return send(res, 200, { success: false, data: null, error: "Futbol Fantasy's lineups have not been read yet." });
     return send(res, 200, lineupsPayload);

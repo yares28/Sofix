@@ -216,6 +216,42 @@
     return `${of("weekday")} ${of("hour")}:${of("minute")} · ${fixture.venue === "H" ? "v" : "at"} ${fixture.opponent}`;
   }
 
+  /**
+   * The daily missions a Sorare answer lists: every `DecisivePlayerPickerTask` in it, cut down to what Sofix ranks cards by (its name, the rule in words, its
+   * mode, how many picks, how many were made, the XP or essence it pays in the rule's words). Bounded like `collectCards`. Nothing else of the answer is kept.
+   */
+  function collectMissions(json, limit = 40000) {
+    const found = new Map();
+    const stack = [json];
+    let visited = 0;
+    while (stack.length && visited++ < limit) {
+      const node = stack.pop();
+      if (!node || typeof node !== "object") continue;
+      if (!Array.isArray(node) && node.__typename === "DecisivePlayerPickerTask" && typeof node.id === "string") {
+        found.set(node.id, {
+          id: node.id,
+          title: typeof node.title === "string" ? node.title.slice(0, 80) : "",
+          description: typeof node.description === "string" ? node.description.slice(0, 300) : "",
+          mode: node.mode === "SCORE" ? "SCORE" : "DECISIVE",
+          picks: Number.isInteger(node.maxAppearancesCount) ? node.maxAppearancesCount : 3,
+          made: Array.isArray(node.taskAppearances) ? node.taskAppearances.length : 0,
+          period: typeof node.periodicity === "string" ? node.periodicity : null,
+          state: typeof node.aasmState === "string" ? node.aasmState : null,
+        });
+      }
+      for (const value of Array.isArray(node) ? node : Object.values(node)) {
+        if (value && typeof value === "object") stack.push(value);
+      }
+    }
+    return [...found.values()].sort((a, b) => a.title.localeCompare(b.title) || a.id.localeCompare(b.id));
+  }
+
+  /** The rarity a missions page is about, from its address ("/football/missions/play/limited" -> "limited"), or null. */
+  function missionsRarity(pathname) {
+    const found = /^\/football\/missions\/[a-z-]+\/(limited|rare|super_rare|unique|custom_series)\/?$/i.exec(String(pathname || ""));
+    return found ? found[1].toLowerCase() : null;
+  }
+
   /** The most cards the drawer draws for the plan: two rows of five. */
   const DRAWER_CARDS = 10;
 
@@ -418,7 +454,7 @@
   root.__sofixCore = {
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
     chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, statusNote, clockLabel, sourceRows, drawerCards, DRAWER_CARDS, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, shapeOf, shapeBars, shapeLabels, whyRows, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
-    isPickHeading, fixtureOf, gamesCount, fixtureLine,
+    isPickHeading, fixtureOf, gamesCount, fixtureLine, collectMissions, missionsRarity,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;
 })(typeof globalThis !== "undefined" ? globalThis : this);

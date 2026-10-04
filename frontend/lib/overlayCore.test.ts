@@ -47,6 +47,8 @@ type Core = {
   DRAWER_CARDS: number;
   benchOnChance: (entry: { pStart?: number; pOn?: number }) => number | null;
   comesOnScore: (entry: { on?: number; bench?: number }) => { score: number; words: string; tab: string };
+  collectMissions: (json: unknown) => { id: string; title: string; description: string; mode: "DECISIVE" | "SCORE"; picks: number; made: number; period: string | null; state: string | null }[];
+  missionsRarity: (pathname: unknown) => string | null;
   shapeOf: (entry: Record<string, unknown>, mode: string) => Shape | null;
   shapeBars: (shape: Shape, score: number, count?: number) => { h: number; kind: "me" | "dec" | "run" | "out" }[];
   shapeLabels: (shape: Shape) => { kind: "dec" | "plain"; at: number; text: string; p: number }[];
@@ -614,5 +616,42 @@ describe("the picture of his game", () => {
     expect(rows[1]?.share).toBeCloseTo(0.5);
     expect(core.whyRows({ ...shape, why: undefined })).toEqual([]);
     expect(core.whyRows(shape, 1)).toHaveLength(1);
+  });
+});
+
+describe("the daily missions", () => {
+  const answer = {
+    data: {
+      currentUser: {
+        taskGroup: {
+          myTasks: [
+            { __typename: "ThresholdsStreakTask", id: "t0", title: "K League 1 Limited" },
+            { __typename: "DecisivePlayerPickerTask", id: "t2", title: "Interception - All Matches", description: "Pick a player who makes 2+ interceptions in any match", mode: "DECISIVE", maxAppearancesCount: 3, periodicity: "DAILY", aasmState: "READY", taskAppearances: [{ id: "a" }], signedSecret: "x".repeat(500) },
+            { __typename: "DecisivePlayerPickerTask", id: "t1", title: "Decisive Picker", description: "Earn 200 XP for each player you select", mode: "DECISIVE", maxAppearancesCount: 3, taskAppearances: [] },
+          ],
+        },
+      },
+    },
+  };
+
+  it("keeps only the pickers, cut down to what the ranking needs, in a steady order", () => {
+    const found = core.collectMissions(answer);
+    expect(found.map((m) => m.title)).toEqual(["Decisive Picker", "Interception - All Matches"]);
+    expect(found[1]).toEqual({ id: "t2", title: "Interception - All Matches", description: "Pick a player who makes 2+ interceptions in any match", mode: "DECISIVE", picks: 3, made: 1, period: "DAILY", state: "READY" });
+    expect(JSON.stringify(found)).not.toContain("signedSecret");
+  });
+
+  it("finds nothing in an answer with no picker, or in something that is not an answer", () => {
+    expect(core.collectMissions({ data: { currentUser: { slug: "x" } } })).toEqual([]);
+    expect(core.collectMissions(null)).toEqual([]);
+    expect(core.collectMissions("text")).toEqual([]);
+  });
+
+  it("reads the rarity from the page's address and nothing from any other", () => {
+    expect(core.missionsRarity("/football/missions/play/limited")).toBe("limited");
+    expect(core.missionsRarity("/football/missions/play/rare/")).toBe("rare");
+    expect(core.missionsRarity("/football/missions/play/super_rare")).toBe("super_rare");
+    expect(core.missionsRarity("/football/cards")).toBeNull();
+    expect(core.missionsRarity(undefined)).toBeNull();
   });
 });

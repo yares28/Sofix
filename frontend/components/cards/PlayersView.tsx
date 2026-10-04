@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   improvers,
@@ -131,7 +132,11 @@ function ResultCard({
         <CardArt src={player.pic} name={player.name} />
       </span>
       <span className="who">
-        <b>{player.name}</b>
+        <b>
+          <Link href={`/players/${player.slug}`} className="s5-who-link">
+            {player.name}
+          </Link>
+        </b>
         <span>
           {player.pos} · {player.club}
         </span>

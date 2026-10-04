@@ -937,6 +937,13 @@ Not in this step: choosing the starters themselves for the reward (they are stil
 No number you already had changed: the start score, the xScore and the plans are the same as after 10.4 and 10.6; the picture is an addition to the payload (`shape`, `onShape` in each player of `playing.players`, nothing for a player the models cannot tell).
 In the extension, `core.shapeBars`/`shapeLabels`/`whyRows` and the panel (290 px wide) draw it; `frontend/lib/overlayCore.test.ts` and the overlay browser test hold the arithmetic and the panel.
 
+**X5b · the Players page: built 4 Oct 2026 (roadmap 10.5, second part).** `/players/<name>` (click a name in the search): the xScore and the chance of starting large with the picture of his game (for a player of yours),
+**one stat sheet with a picker** (Next game, Last 10, Two seasons; the lines worth a point or more a start, five a group at most, the total counting all of them), how he compares with the others of his position as dots
+(not a number range), his last ten starts, his clean sheets and penalties saved (a goalkeeper), and his next games (up to five, from the plans the job published). The stat sheet is the one thing that is not the refresh's:
+the games export is local, so `python -m app.jobs.stat_sheets --write` writes `frontend/lib/data/stat_sheets.json` (542 players, to 20 Sep, 800 KB) and the page says "to <date>". "Next game" moves a player's two-seasons mean
+by the goals his side is expected to concede and to score in that game (Sorare's price, kept within 60% of an average game); it is a rule, not a fitted model, and is hidden when the game has no price.
+Not in this step: the per-stat expected counts as a fitted model (part 11 of P9), and the page for a player of yours is the only one with a game and a next-games row.
+
 ## 5 · Risks
 
 | Risk | What limits it |

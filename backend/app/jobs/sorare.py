@@ -44,7 +44,9 @@ from app.sorare import (
     ff_use,
     frozen,
     keeper,
+    outfield,
     projection,
+    scores,
     starts,
 )
 from app.sorare import publish as sorare_publish
@@ -270,10 +272,14 @@ def run(
     feed, lineups = read_lineups(db, failed, snapshot, fetched, write=not dry_run)
     lineups_page = publish_lineups(db, failed, snapshot, feed, lineups, fetched, write=not dry_run, art=art)
     db.rollback()
-    # A goalkeeper's number is worked out from his game (the football model's chance of a clean sheet and the bookmakers' goals line,
-    # keeper.py) instead of his last five games. A step that fails, or a game it cannot tell, leaves that keeper's number as it was.
-    keeper_of: sorare_publish.KeeperOf | None = optional(
-        db, failed, "keeper numbers", lambda: keeper.outcomes_for(keeper.load(), keeper.numbers_for(db, fetched)), None
+    # A player's score if he starts is worked out from his game (the football model's numbers and the bookmakers' goals line, scores.py)
+    # instead of only his last five games. A step that fails, or a game it cannot tell, leaves that player's number as it was.
+    scores_of: sorare_publish.ScoresOf | None = optional(
+        db,
+        failed,
+        "game scores",
+        lambda: scores.scores_for(keeper.load(), outfield.load(), keeper.numbers_for(db, fetched)),
+        None,
     )
     db.rollback()
     # Every LaLiga round Sorare has not opened a gameweek for is planned early, from the calendar the app already holds. A
@@ -292,7 +298,7 @@ def run(
             runs=runs,
             now=fetched,
             ff=lineups,
-            keeper=keeper_of,
+            scores=scores_of,
         ),
         None,
     )
@@ -305,7 +311,7 @@ def run(
         previous=previous,
         projected=heads,
         ff=lineups.starts if lineups else None,
-        keeper=keeper_of,
+        scores=scores_of,
     )
     planned_week = sorare_publish.week_of(payload) or {}
     news, readings = team_news(db, failed, planned_week, fetched)
@@ -345,7 +351,7 @@ def run(
         return {**summary, "dryRun": True}
     now = datetime.now(UTC)
     # Sorare's projections only exist for a player's next game, so they are written down before they are lost.
-    planned = sorare_record.rows(snapshot, "plan", keeper_of)
+    planned = sorare_record.rows(snapshot, "plan", scores_of)
     summary["moved"] = sorare_record.moved(db, planned)
     summary["kept"] = sorare_record.save(db, planned, now)
     sorare_record.save(db, sorare_record.rows(snapshot, "past"), now, final=True)

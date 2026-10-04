@@ -19,7 +19,6 @@ from app.services.scoring import difficulty_label, difficulty_score, label_bucke
 from app.sorare import expected, projection, rules, xg
 from app.sorare.forecast import GameStart, PlayerWeek
 from app.sorare.forecast import forecasts as build_forecasts
-from app.sorare.keeper import Outcome
 from app.sorare.model import SORARE_POSITION, Card, Competition, Forecast
 from app.sorare.planner import DRAWS, Lineup, Plan, build, fill_bench, plans, replay_rewards, score_at_rank
 
@@ -46,8 +45,8 @@ that got no answer) is rebuilt on every run until it has it; if that has not hap
 waiting will not bring it, and the replay is kept as it is."""
 
 
-# A keeper's games worked out from the game itself: (his card, his games, Sorare's projection) -> one `Outcome` a game (keeper.py)
-KeeperOf = Callable[[dict[str, Any], list[dict[str, Any]], float | None], tuple[Outcome, ...]]
+# A player's score if he starts, worked out from each game itself: (his card, his games, Sorare's projection, his past games) -> one score a game (scores.py)
+ScoresOf = Callable[[dict[str, Any], list[dict[str, Any]], float | None, list[dict[str, Any]]], tuple[float, ...]]
 
 
 def _dt(value: str) -> datetime:
@@ -239,7 +238,7 @@ def player_weeks(
     window: tuple[datetime, datetime] | None,
     use_sorare: bool,
     ff: Callable[[str, list[dict[str, Any]]], list[GameStart]] | None = None,
-    keeper: KeeperOf | None = None,
+    scores: ScoresOf | None = None,
 ) -> dict[str, PlayerWeek]:
     """What is known about each player before the lock (and, for a played gameweek, what he scored).
 
@@ -247,8 +246,8 @@ def player_weeks(
     only passed for a week still to come, the one being planned or the early plan of the round it has: it knows each
     team's next game and nothing further, so it has nothing to say about the games of any other round.
 
-    `keeper` works a goalkeeper's games out from the game itself (the football model's chance of a clean sheet and the goals line,
-    `keeper.py`); without it, or for a game it cannot tell, his number is what it was.
+    `scores` works his score if he starts out from each game itself (the football model's numbers and the goals line, `scores.py`);
+    without it, or for a game it cannot tell, his number is what it was.
     """
     weeks: dict[str, PlayerWeek] = {}
     for row in rows:
@@ -290,8 +289,10 @@ def player_weeks(
             pos=pos,
             game_ids=[g["id"] for g in ordered] if told else [],
             game_starts=told,
-            keeper=keeper(player, mine, player.get("nextClassicFixtureProjectedScore") if use_sorare else None)
-            if keeper and pos == "GK"
+            game_scores=scores(
+                player, mine, player.get("nextClassicFixtureProjectedScore") if use_sorare else None, past
+            )
+            if scores
             else (),
         )
     return weeks
@@ -848,7 +849,7 @@ def projected_weeks(
     runs: int = 30,
     draws: int = EARLY_DRAWS,
     ff: Callable[[str, list[dict[str, Any]]], list[GameStart]] | None = None,
-    keeper: KeeperOf | None = None,
+    scores: ScoresOf | None = None,
 ) -> list[dict[str, Any]]:
     """An early plan for each LaLiga round Sorare has not opened a gameweek for.
 
@@ -867,7 +868,7 @@ def projected_weeks(
         comps = expected_competitions(snapshot, len(round_.matches))
         forecasts = build_forecasts(
             player_weeks(
-                snapshot["cards"], games, snapshot["history"], lock, None, use_sorare=False, ff=ff, keeper=keeper
+                snapshot["cards"], games, snapshot["history"], lock, None, use_sorare=False, ff=ff, scores=scores
             )
         )
         week = {
@@ -924,14 +925,14 @@ def build_payload(
     previous: dict[str, Any] | None = None,
     projected: list[dict[str, Any]] | None = None,
     ff: Callable[[str, list[dict[str, Any]]], list[GameStart]] | None = None,
-    keeper: KeeperOf | None = None,
+    scores: ScoresOf | None = None,
 ) -> dict[str, Any]:
     """The whole `sorare` read model, from one snapshot.
 
     `previous` is the payload the app is already showing: when it holds the replay of the same finished
     gameweek, that part is kept as it is instead of being planned again. `ff` is Futbol Fantasy's chance game by game
-    for the gameweek being planned (`ff_use.Lineups.starts`); without it the page is what it was. `keeper` works each goalkeeper's
-    games out from the game itself, for the week being planned and those after it (a played week's replay keeps what was known then).
+    for the gameweek being planned (`ff_use.Lineups.starts`); without it the page is what it was. `scores` works each player's
+    score if he starts out from his games, for the week being planned and those after it (a played week's replay keeps what was known then).
     """
     now = _dt(snapshot["fetchedAt"])
     cards, left_out = read_cards(snapshot["cards"])
@@ -956,7 +957,7 @@ def build_payload(
             None,
             use_sorare=True,
             ff=ff,
-            keeper=keeper,
+            scores=scores,
         )
     )
     next_gw = gameweek_payload(
@@ -1037,7 +1038,7 @@ def build_payload(
                 None,
                 use_sorare=False,
                 ff=ff,
-                keeper=keeper,
+                scores=scores,
             )
         )
         ahead.append(

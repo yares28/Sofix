@@ -54,6 +54,8 @@ files = [
     "app/sorare/backtest.py",
     "app/sorare/ff_use.py",
     "app/sorare/keeper.py",
+    "app/sorare/outfield.py",
+    "app/sorare/scores.py",
     "app/sorare/frozen.py",
     "app/sorare/forecast.py",
     "app/sorare/model.py",

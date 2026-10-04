@@ -1,5 +1,6 @@
 "use client";
 
+import CardZoom from "../ui/CardZoom";
 import { useEffect, useState } from "react";
 import { cannot } from "../../lib/apply";
 import { pendingLine, resultLine, runWeekLineups, type GameweekLineup, type WeekLineupsAnswer } from "../../lib/entered";
@@ -48,6 +49,7 @@ export default function EnteredLineups({ week }: { week: Week }) {
         : cannot(load.answer.state)
       : null;
   const rejected = load.state === "unavailable" && load.answer.state === "rejected" ? load.answer.errors.join(" · ") : null;
+  const noLiveLineup = load.state === "unavailable" && ["no-tab", "no-bridge", "signed-out"].includes(load.answer.state);
 
   return (
     <section className="pl-entered" aria-labelledby="entered-lineups-title">
@@ -72,8 +74,8 @@ export default function EnteredLineups({ week }: { week: Week }) {
       ) : load.state === "unavailable" ? (
         <div className="pl-entered-empty" role="status">
           <div>
-            <b>{issue?.title ?? "Sorare lineups are unavailable"}</b>
-            <span>{rejected ?? issue?.says ?? "Try again after opening your signed-in Sorare tab."}</span>
+            <b>{noLiveLineup ? `No live lineup connected for GW${week.number}` : issue?.title ?? "Sorare lineups are unavailable"}</b>
+            <span>{noLiveLineup ? "Open Sorare while signed in to check this gameweek's live lineups." : rejected ?? issue?.says ?? "Try again after opening your signed-in Sorare tab."}</span>
           </div>
           {issue?.act ? (
             <a
@@ -100,12 +102,12 @@ export default function EnteredLineups({ week }: { week: Week }) {
               </div>
               <div className="pl-entered-cards" aria-label={`${lineup.cards.length} cards`}>
                 {lineup.cards.map((card) => (
-                  <span className="pl-entered-card" key={card.slug} title={card.name}>
+                  <CardZoom className="pl-entered-card" key={card.slug} aria-label={card.name}>
                     <SorareImage src={card.picture ?? undefined} alt={card.name} fill />
                     {!card.picture ? card.name.slice(0, 1).toUpperCase() : null}
                     {card.captain ? <i className="cap" title="Captain">C</i> : null}
                     {lineup.result && card.score !== null && !pending ? <b className="sc">{Math.round(card.score)}</b> : null}
-                  </span>
+                  </CardZoom>
                 ))}
               </div>
               {lineup.result && !lineup.draft ? (

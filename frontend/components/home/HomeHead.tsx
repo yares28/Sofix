@@ -1,26 +1,29 @@
+import type { CSSProperties } from "react";
+
+import CardZoom from "../ui/CardZoom";
 import { formatKickoff } from "../../lib/grid";
-import { dateRange, type GameweekHead, type HeadCast, type HeadDay, type HeadGame, type HeadState } from "../../lib/home";
-import { competitionName } from "../AwayWeek";
+import { dateRange, type GameweekHead, type HeadCast, type HeadState } from "../../lib/home";
 import SorareImage from "../play/SorareImage";
-import GameCrest from "./GameCrest";
 
 const score = (x: number) => x.toFixed(1);
 const pct = (p: number) => `${Math.round(p * 100)}%`;
 
-function gameLabel(game: HeadGame): string {
-  const teams = game.venue === "A" ? `${game.opponent} against ${game.team}` : `${game.team} against ${game.opponent}`;
-  const cards = game.players.map((player) => `${player.name}, ${pct(player.p)} chance to play`).join("; ");
-  if (game.win == null) return `${teams}, ${competitionName(game.competition)}. Your cards: ${cards}`;
-  const sheet = game.cleanSheet == null ? "" : `, ${pct(game.cleanSheet)} chance of a clean sheet`;
-  return `${teams}. ${game.team}: ${pct(game.win)} chance to win${sheet}. Your cards: ${cards}`;
-}
+const POSITION_FANS = [
+  { pos: "GK", label: "Goalkeepers" },
+  { pos: "DEF", label: "Defenders" },
+  { pos: "MID", label: "Midfielders" },
+  { pos: "FWD", label: "Forwards" },
+] as const;
 
-function dayTone(day: HeadDay, state: HeadState, index: number): string {
-  if (day.done === day.matches) return "done";
-  if (state.kind === "live") return "now";
-  if (state.kind === "upcoming" && index === 0) return "next";
-  if (day.done < day.matches && state.kind === "played") return "next";
-  return "";
+type ScoreTone = "s0" | "s1" | "s3" | "s5" | "s7" | "s9";
+
+function scoreTone(x: number): ScoreTone {
+  if (x >= 70) return "s9";
+  if (x >= 55) return "s7";
+  if (x >= 40) return "s5";
+  if (x >= 25) return "s3";
+  if (x > 0) return "s1";
+  return "s0";
 }
 
 function kickoffLine(state: Extract<HeadState, { kind: "upcoming" }>): string {
@@ -28,161 +31,75 @@ function kickoffLine(state: Extract<HeadState, { kind: "upcoming" }>): string {
   return state.confirmed ? when : `${when.split(",")[0]}, time TBC`;
 }
 
-/** The gameweek as a card: the number, the shape of the week, then your best cards and their best games. */
+function roundStatus(state: HeadState): string {
+  if (state.kind === "upcoming") return `First kickoff · ${kickoffLine(state)}`;
+  if (state.kind === "live") return `Live · ${state.played} of ${state.total} played`;
+  return `${state.total} played · ${state.shocks} ${state.shocks === 1 ? "upset" : "upsets"}`;
+}
+
+type FanStyle = CSSProperties & Record<"--fan-angle" | "--fan-lift" | "--fan-delay", string>;
+
+function fanStyle(index: number, count: number): FanStyle {
+  const middle = (count - 1) / 2;
+  const distance = Math.abs(index - middle);
+  return {
+    zIndex: count - index,
+    "--fan-angle": `${(index - middle) * 7}deg`,
+    "--fan-lift": `${distance * 8}px`,
+    "--fan-delay": `${index * 55}ms`,
+  };
+}
+
+/** A compact round cue followed by the owner's strongest cards, organised as one fan for each position. */
 export default function HomeHead({ head, cast, sorare }: { head: GameweekHead; cast: HeadCast | "none" | null; sorare?: string | null }) {
   const { state } = head;
-  const unit =
-    state.kind === "upcoming"
-      ? state.days > 0
-        ? state.days === 1
-          ? "day"
-          : "days"
-        : state.hours === 1
-          ? "hour"
-          : "hours"
-      : state.kind === "live"
-        ? `of ${state.total}`
-        : state.shocks === 1
-          ? "shock"
-          : "shocks";
-  const figure = state.kind === "upcoming" ? (state.days > 0 ? state.days : state.hours) : state.kind === "live" ? state.played : state.shocks;
+  const positionFans = cast && cast !== "none"
+    ? POSITION_FANS.map((fan) => ({ ...fan, cards: cast.cards.filter((card) => card.pos === fan.pos) })).filter((fan) => fan.cards.length > 0)
+    : [];
 
   return (
     <header className={`hm-top ${state.kind}`}>
-      <div className="hm-id">
-        <h1>
-          <span className="hm-kicker">LaLiga round </span>
-          <b>{head.number}</b>
-        </h1>
-        <p className="hm-when">
-          {dateRange(head.from, head.to)}
-          {sorare ? ` · ${sorare}` : ""}
-        </p>
-      </div>
-
-      {head.days.length > 0 && (
-        <ol className="hm-days" aria-label="Matches by day">
-          {head.days.map((day, index) => (
-            <li key={day.label} className={dayTone(day, state, index)} aria-label={`${day.weekday} ${day.label}, ${day.matches} ${day.matches === 1 ? "match" : "matches"}`}>
-              <span className="wd">{day.weekday}</span>
-              <b>{day.day}</b>
-              <span className="pips" aria-hidden="true">
-                {Array.from({ length: day.matches }, (_, i) => (
-                  <i key={i} style={{ animationDelay: `${i * 40}ms` }} />
-                ))}
-              </span>
-            </li>
-          ))}
-        </ol>
-      )}
-
-      <div className="hm-count">
-        <div className="n">
-          <b>{figure}</b>
-          <span>{unit}</span>
+      <div className="hm-roundbar">
+        <div className="hm-id">
+          <h1>
+            <span className="hm-kicker">LaLiga round</span>
+            <b>{head.number}</b>
+          </h1>
+          <p className="hm-when">
+            {dateRange(head.from, head.to)}
+            {sorare ? ` · ${sorare}` : ""}
+          </p>
         </div>
-        {state.kind === "upcoming" ? (
-          <small>
-            to kickoff
-            <span className="when">{kickoffLine(state)}</span>
-          </small>
-        ) : state.kind === "live" ? (
-          <small>
-            <span className="live-tag">
-              <span className="pulse" />
-              games played
-            </span>
-          </small>
-        ) : (
-          <small>
-            unexpected
-            <span className="when">{state.total} played</span>
-          </small>
-        )}
+        <p className="hm-round-status">{roundStatus(state)}</p>
       </div>
 
       {cast === "none" ? (
         <p className="hm-spot hm-spot-empty">None of your cards play this week.</p>
       ) : cast ? (
-        <div className="hm-spot">
-          <div>
-            <p className="hm-kicker">
-              Best cards
-              {cast.named ? <span>Sorare GW{cast.gw}</span> : null}
-            </p>
-            <ol className="hm-cast">
-              {cast.cards.map((card) => (
-                <li key={card.name} aria-label={`${card.name}, ${pct(card.p)} chance to play, ${score(card.x)} xScore`}>
-                  <span className={`hm-art ${card.rarity}`} aria-hidden="true">
-                    <SorareImage src={card.pic} alt="" fill />
-                    {card.cards > 1 ? <i className="hm-card-count">{card.cards}</i> : null}
-                    <span className="hm-shine" />
-                  </span>
-                  <span className="who" aria-hidden="true">
-                    <b>{score(card.x)}</b>
-                    <span>{card.short} · xScore</span>
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </div>
-          {cast.games.length > 0 && (
-            <div>
-              <p className="hm-kicker">Your fixtures</p>
-              <ol className="hm-best">
-                {cast.games.map((game) => {
-                  const best = game.players[0]!;
-                  return (
-                    <li key={game.key} aria-label={gameLabel(game)}>
-                      <span className="hm-game-main">
-                        <span className="hm-fixture">
-                          {/* Home side first, like a fixture list; the ring marks the club your cards play for. */}
-                          {game.venue === "A" ? (
-                            <>
-                              <GameCrest src={game.opponentCrest} name={game.opponent} />
-                              <i>v</i>
-                              <GameCrest src={game.teamCrest} name={game.team} mine />
-                            </>
-                          ) : (
-                            <>
-                              <GameCrest src={game.teamCrest} name={game.team} mine />
-                              <i>v</i>
-                              <GameCrest src={game.opponentCrest} name={game.opponent} />
-                            </>
-                          )}
-                          <em>{competitionName(game.competition)}</em>
-                        </span>
-                        <span className="hm-game-cards" aria-hidden="true">
-                          <span className="hm-mini-stack">
-                            {game.players.slice(0, 3).map((player) => (
-                              <span className={`hm-mini-card ${player.rarity}`} key={player.name}>
-                                <SorareImage src={player.pic} alt="" fill />
-                              </span>
-                            ))}
-                          </span>
-                          <span className="hm-game-names">
-                            {game.players.map((player) => player.short).join(", ")}
-                            <small>{game.players.length === 1 ? "1 owned player" : `${game.players.length} owned players`}</small>
-                          </span>
-                        </span>
+        <div className="hm-spot hm-position-fans">
+          <p className="hm-kicker">
+            Your best cards
+            {cast.named ? <span>Sorare GW{cast.gw}</span> : null}
+          </p>
+          <div className="hm-position-grid">
+            {positionFans.map((fan) => (
+              <section className="hm-position-fan" key={fan.pos} aria-label={`${fan.label}, ${fan.cards.length} cards`}>
+                <h2>{fan.pos}</h2>
+                <ol className="hm-fan-stage">
+                  {fan.cards.map((card, index) => (
+                    <li key={card.name} style={fanStyle(index, fan.cards.length)} aria-label={`${card.name}, ${pct(card.p)} chance to play, ${score(card.x)} xScore`}>
+                      <span className={`hm-score ${scoreTone(card.x)}`} aria-hidden="true">
+                        {score(card.x)}
                       </span>
-                      <span className="rates">
-                        {game.win == null ? null : <GameCrest src={game.teamCrest} name={`${game.team}'s chances`} mine size={22} />}
-                        <span className="rate">
-                          <b>{game.win == null ? pct(best.p) : pct(game.win)}</b>
-                          <span className="lbl">{game.win == null ? "Play" : "Win"}</span>
-                        </span>
-                        <span className="rate">
-                          <b>{game.win == null ? score(best.x) : game.cleanSheet == null ? "–" : pct(game.cleanSheet)}</b>
-                          <span className="lbl">{game.win == null ? "xScore" : "Clean sheet"}</span>
-                        </span>
-                      </span>
+                      <CardZoom className={`hm-art ${card.rarity}`} aria-hidden="true">
+                        <SorareImage src={card.pic} alt="" fill />
+                      </CardZoom>
                     </li>
-                  );
-                })}
-              </ol>
-            </div>
-          )}
+                  ))}
+                </ol>
+              </section>
+            ))}
+          </div>
         </div>
       ) : null}
     </header>

@@ -99,11 +99,15 @@ describe("your cards in the header", () => {
     }],
   });
 
-  it("ranks your highest projections and keeps one row per game", () => {
+  it("picks the best cards in each position and keeps one row per game", () => {
     const week = sorare.weeks.find((item) => item.gameweek.id === sorare.nextId)!;
     const cast = headCast(week.playing.players, week.gameweek.number, false, grid);
-    expect(cast?.cards.map((card) => card.short)).toEqual(["Messi", "Álvarez", "Pedri", "Bouanga"]);
-    expect(cast?.cards[0]?.x).toBeGreaterThan(cast!.cards[1]!.x);
+    const limits = { GK: 3, DEF: 4, MID: 3, FWD: 4 } as const;
+    for (const position of ["GK", "DEF", "MID", "FWD"] as const) {
+      const projections = cast!.cards.filter((card) => card.pos === position).map((card) => card.x);
+      expect(projections.length).toBe(Math.min(limits[position], week.playing.players.filter((player) => player.pos === position).length));
+      expect(projections).toEqual([...projections].sort((a, b) => b - a));
+    }
     // Pedri and Cubarsí both play Celta; the game is listed once. Rated LaLiga fixtures lead, so an MLS game
     // cannot hide one of the three useful probability rows.
     expect(cast?.games.map((game) => [game.team, game.opponent, game.win, game.cleanSheet])).toEqual([
@@ -120,7 +124,7 @@ describe("your cards in the header", () => {
     const own = castForWeek(sorare, "17");
     const planned = castForWeek(sorare, null);
     expect(own && own !== "none" && own.named).toBe(false);
-    expect(own && own !== "none" ? own.cards[0]?.short : null).toBe("Messi");
+    expect(own && own !== "none" ? own.cards.some((card) => card.short === "Messi") : false).toBe(true);
     expect(planned && planned !== "none" && planned.named).toBe(true);
     expect(planned && planned !== "none" ? planned.gw : null).toBe(17);
     expect(castForWeek(sorare, "missing")).toBe("none");

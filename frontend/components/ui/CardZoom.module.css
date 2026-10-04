@@ -1,0 +1,39 @@
+:where(.zoom) {
+  position: relative;
+  display: block;
+}
+
+/* Override page-specific hover transforms; existing dimensions and layout still win. */
+.zoom.zoom.zoom.zoom {
+  transform: none;
+  transform-origin: center;
+  transition: transform 240ms cubic-bezier(.2, .8, .2, 1);
+}
+
+/* The artwork owns its outline. Keep placeholders styled until an image is present. */
+.zoom.zoom.zoom.zoom:has(> img),
+.zoom.zoom.zoom.zoom > :global(.art):has(> img) {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .zoom.zoom.zoom.zoom:hover {
+    z-index: 1;
+    transform: translateY(-4px) scale(1.16);
+  }
+
+  /* Entrance animations can give the surrounding tile its own stacking context. */
+  :has(> .zoom:hover) {
+    position: relative;
+    z-index: 10;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zoom.zoom.zoom.zoom {
+    transition: none;
+  }
+}

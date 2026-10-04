@@ -50,6 +50,7 @@ export interface GameweekHead {
 export interface HeadCard {
   name: string;
   short: string;
+  pos: PlayingPlayer["pos"];
   x: number;
   p: number;
   pic: string;
@@ -85,6 +86,15 @@ export interface HeadCast {
   cards: HeadCard[];
   games: HeadGame[];
 }
+
+const HEADER_POSITION_LIMITS: Record<PlayingPlayer["pos"], number> = {
+  GK: 3,
+  DEF: 4,
+  MID: 3,
+  FWD: 4,
+};
+
+const HEADER_POSITIONS = Object.keys(HEADER_POSITION_LIMITS) as PlayingPlayer["pos"][];
 
 const playedOut = (status: GridCell["status"]) => status === "finished";
 
@@ -196,25 +206,30 @@ export function sideOutlook(grid: FixtureGrid): Map<string, SideOutlook> {
 }
 
 /**
- * The header's cards and games. Cards are your highest projected scores. A game is one fixture, ranked by the
- * best projection you have in it, so two of your players in the same match count once. Win and clean sheet are
- * your club's chances in that fixture when it is a LaLiga game on the board.
+ * The header's cards are the best owned cards in each position (3 GK, 4 DEF, 3 MID and 4 FWD). A game is one
+ * fixture, ranked by the best projection you have in it, so two of your players in the same match count once.
+ * Win and clean sheet are your club's chances in that fixture when it is a LaLiga game on the board.
  */
 export function headCast(players: PlayingPlayer[], gw: number, named: boolean, grid: FixtureGrid | null = null): HeadCast | null {
   if (!players.length) return null;
   const outlook = grid ? sideOutlook(grid) : null;
-  const cards = [...players]
-    .sort((a, b) => b.x - a.x || a.name.localeCompare(b.name))
-    .slice(0, 4)
-    .map((player): HeadCard => ({
-      name: player.name,
-      short: shortName(player.name),
-      x: player.x,
-      p: player.p,
-      pic: player.pic,
-      rarity: player.rarity,
-      cards: player.cards,
-    }));
+  const toHeadCard = (player: PlayingPlayer): HeadCard => ({
+    name: player.name,
+    short: shortName(player.name),
+    pos: player.pos,
+    x: player.x,
+    p: player.p,
+    pic: player.pic,
+    rarity: player.rarity,
+    cards: player.cards,
+  });
+  const cards = HEADER_POSITIONS.flatMap((pos) =>
+    players
+      .filter((player) => player.pos === pos)
+      .sort((a, b) => b.x - a.x || a.name.localeCompare(b.name))
+      .slice(0, HEADER_POSITION_LIMITS[pos])
+      .map(toHeadCard),
+  );
   const games = new Map<string, HeadGame>();
   for (const player of players) {
     for (const game of player.games) {
@@ -222,6 +237,7 @@ export function headCast(players: PlayingPlayer[], gw: number, named: boolean, g
       const gamePlayer: HeadGamePlayer = {
         name: player.name,
         short: shortName(player.name),
+        pos: player.pos,
         x: player.x,
         p: player.p,
         pic: player.pic,

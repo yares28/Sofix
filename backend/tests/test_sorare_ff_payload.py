@@ -137,14 +137,14 @@ def test_a_card_in_a_lineup_carries_his_start_chance_its_source_and_what_the_sit
     def doubtful(slug: str, games: list[dict[str, Any]]) -> list[GameStart]:
         if slug != "mid-one":
             return []
-        return [GameStart(games[0]["id"], 0.5, info={"startAt": READ, "ffStatus": {"kind": "doubt"}})]
+        return [GameStart(games[0]["id"], 0.85, info={"startAt": READ, "ffStatus": {"kind": "doubt"}})]
 
     week = page(doubtful)
     cards = [c for plan in week["plans"] for lineup in plan["lineups"] for c in (*lineup["starters"], *lineup["subs"])]
     mine = [c for c in cards if c["player"] == "mid-one"]
 
     assert mine, "he is in a lineup"
-    assert all(c["pStart"] == 0.5 and c["startSource"] == "futbolfantasy" and c["ffKind"] == "doubt" for c in mine)
+    assert all(c["pStart"] == 0.85 and c["startSource"] == "futbolfantasy" and c["ffKind"] == "doubt" for c in mine)
     others = [c for c in cards if c["player"] != "mid-one"]
     assert all(c["startSource"] in ("sorare", "sofix") and "ffKind" not in c for c in others)
 

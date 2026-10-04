@@ -26,6 +26,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from app.sorare import links
 from app.sorare.model import Card, Competition, Forecast
 
 SCORE_SD = 17.6
@@ -36,6 +37,8 @@ DRAWS = 3000
 BEAM = 120
 MIN_CHANCE = 0.005  # under half a percent a lineup is not worth the cards, even where entry is free
 CANDIDATES_PER_SLOT = 18
+CAPTAIN_CANDIDATES = 3  # starters with the best expected points that are tried as captain
+CAPTAIN_DRAWS = 600  # simulated gameweeks for each try
 
 
 @dataclass
@@ -149,7 +152,12 @@ def simulate(
     mu = np.array([forecasts[c.player].mu for c in cards])
     sd = np.array([SCORE_SD if forecasts[c.player].sd is None else forecasts[c.player].sd for c in cards])
     plays = rng.random((draws, len(cards))) < p
-    scores = np.clip(rng.normal(mu, sd, (draws, len(cards))), 0, 100)
+    together = links.matrix([c.positions[0] for c in cards], [forecasts[c.player].links for c in cards])
+    if np.array_equal(together, np.eye(len(cards))):
+        scores = np.clip(rng.normal(mu, sd, (draws, len(cards))), 0, 100)
+    else:  # players of one game score together: a keeper and his defenders up and down, a keeper against the other side's forwards
+        shocks = rng.standard_normal((draws, len(cards))) @ np.linalg.cholesky(together).T
+        scores = np.clip(mu + sd * shocks, 0, 100)
     return totals(lineup, plays, scores)
 
 
@@ -306,6 +314,26 @@ def best_starters(
     return [[c for c in b[1] if c] for b in beams[:keep]]
 
 
+def _captain(comp: Competition, starters: list[Card], forecasts: dict[str, Forecast], rng: np.random.Generator) -> int:
+    """The captain: of the three starters with the best expected points, the one whose captaincy gives the lineup the best chance of a
+    reward (then the best expected score), the same simulated gameweeks for each. The captain's bonus multiplies a score, so a player with a
+    big ceiling can earn more of it than a steady one with a higher average."""
+    ranked = sorted(
+        range(len(starters)), key=lambda i: -(forecasts[starters[i].player].p_play * forecasts[starters[i].player].mu)
+    )[:CAPTAIN_CANDIDATES]
+    if len(ranked) == 1:
+        return ranked[0]
+    probe = int(rng.integers(1 << 31))
+    best, best_key = ranked[0], (-1.0, -1.0)
+    for i in ranked:
+        trial = Lineup(comp=comp, starters=list(starters), subs=[None] * len(comp.subs), captain=i)
+        evaluate(trial, forecasts, np.random.default_rng(probe), CAPTAIN_DRAWS)
+        key = (round(trial.p_return, 3), trial.expected)
+        if key > best_key:
+            best, best_key = i, key
+    return best
+
+
 def build(
     comp: Competition,
     pool: list[Card],
@@ -317,10 +345,12 @@ def build(
     """The best lineups this competition can take from the pool — starters only; benches come later."""
     out = []
     for starters in best_starters(comp, pool, forecasts, keep=keep):
-        captain = max(
-            range(len(starters)), key=lambda i: forecasts[starters[i].player].p_play * forecasts[starters[i].player].mu
+        lineup = Lineup(
+            comp=comp,
+            starters=list(starters),
+            subs=[None] * len(comp.subs),
+            captain=_captain(comp, starters, forecasts, rng),
         )
-        lineup = Lineup(comp=comp, starters=list(starters), subs=[None] * len(comp.subs), captain=captain)
         out.append(evaluate(lineup, forecasts, rng, draws))
     return out
 

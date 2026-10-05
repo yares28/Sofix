@@ -9,7 +9,7 @@ export const GROUP_COLOUR: Record<Group | "Unused", string> = {
   "In-season": "var(--g-season)",
   Classic: "var(--g-classic)",
   Room: "var(--g-room)",
-  Unused: "#e2e2e7",
+  Unused: "var(--track)",
 };
 
 export function Essence({ size = 14 }: { size?: number }) {

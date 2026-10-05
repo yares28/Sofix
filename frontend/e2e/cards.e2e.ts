@@ -45,3 +45,12 @@ test("Cards and Players keep every text at 11 px or more", async ({ page }) => {
     expect(await smallText(page, 11), route).toEqual([]);
   }
 });
+
+test("with reduced motion the cards and search results still show (their rise is only a fade in, never the resting state)", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  for (const [path, item] of [["/cards", ".s5-pc"], ["/players", ".s5-res"]] as const) {
+    await page.goto(path);
+    await expect(page.locator(item).first()).toBeVisible();
+    expect(await page.locator(item).first().evaluate((el) => getComputedStyle(el).opacity), path).toBe("1");
+  }
+});

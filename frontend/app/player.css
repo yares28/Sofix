@@ -31,7 +31,7 @@
 .pd-marks { position: relative; height: 18px; margin-top: 6px; font-size: 12px; color: var(--ink-2); }
 .pd-marks span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
 .pd-marks .dec { color: var(--good-ink); font-weight: 600; }
-.pd-range { display: flex; justify-content: space-between; gap: 8px; margin-top: 2px; font-size: 12px; color: #8a8d98; }
+.pd-range { display: flex; justify-content: space-between; gap: 8px; margin-top: 2px; font-size: 12px; color: var(--ink-2); }
 
 .pd-cols { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
 .pd-sheet { flex: 1.5 1 560px; }
@@ -48,7 +48,7 @@
 .pd-row .n { text-align: right; color: var(--ink); }
 .pd-row .p { text-align: right; font-weight: 600; }
 .pd-row .p.up { color: var(--good-ink); }
-.pd-row .p.dn { color: #d24a3c; }
+.pd-row .p.dn { color: color-mix(in srgb, #e0605b 45%, var(--ink)); }
 .pd-tot { margin-top: 8px; font-weight: 700; border-bottom: 0; background: var(--hover); border-radius: 10px; }
 .pd-foot { margin: 12px 0 0; font-size: 12px; color: var(--ink-2); }
 
@@ -72,7 +72,7 @@
 .pd-l10 i { display: block; width: 100%; border-radius: 5px 5px 0 0; background: #d8d8e0; }
 .pd-l10 i.dec { background: #1c7c4f; }
 .pd-l10 .ls { font-size: 11px; font-weight: 600; }
-.pd-l10 .lo { font-size: 11px; color: #6b6e78; }
+.pd-l10 .lo { font-size: 11px; color: var(--ink-2); }
 .pd-dc { display: flex; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
 .pd-dc > div { flex: 1 1 140px; display: flex; flex-direction: column; padding: 10px 14px; border-radius: 14px; background: var(--hover); }
 .pd-dc b { font-size: 20px; }

@@ -1,12 +1,16 @@
 import { connection } from "next/server";
 import FixtureBoard from "../../components/FixtureBoard";
+import LaLigaView from "../../components/laliga/LaLigaView";
 import SiteNav from "../../components/SiteNav";
 import { loadGrid } from "../../lib/api";
 import { loadSorare } from "../../lib/playData";
 import { weekPlan } from "../../lib/play";
 import { weekContext, weekDates } from "../../lib/weeks";
 import { loadSystem } from "../../lib/system";
-import { DEFAULT_VIEW, openingColumn, parseViewState, type View } from "../../lib/grid";
+import { DEFAULT_VIEW, openingColumn, parseViewState, selectedColumn, type View } from "../../lib/grid";
+import { dateRange } from "../../lib/home";
+import { laligaRound } from "../../lib/laliga";
+import { tableAfter } from "../../lib/recap";
 
 export type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -43,6 +47,27 @@ export async function BoardRoute({ view, searchParams }: { view: View; searchPar
   const initialView = grid
     ? { ...DEFAULT_VIEW, ...parseViewState(params, new Set(grid.teams.map((team) => team.code))), view }
     : { ...DEFAULT_VIEW, view };
+
+  // This week · LaLiga is its own page now (canvas board 3); a week with no LaLiga round keeps the board's away view.
+  if (view === "plain" && grid && !away) {
+    const column = selectedColumn(grid.matchdays, initialView.gw, openingColumn(grid));
+    const md = grid.matchdays[column];
+    if (md) {
+      // The owner's players from every week the job holds (one LaLiga round can sit in a week Sorare has not opened yet).
+      const players = [...new Map((sorare?.weeks ?? []).flatMap((w) => w.playing.players).map((p) => [p.name, p])).values()];
+      return (
+        <>
+          <SiteNav meta={meta} system={system} week={week} />
+          <LaLigaView
+            round={laligaRound(grid, column, players)}
+            number={md.number}
+            dates={dateRange(md.date_from, md.date_to)}
+            table={tableAfter(grid, column)}
+          />
+        </>
+      );
+    }
+  }
 
   return (
     <>

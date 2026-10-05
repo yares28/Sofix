@@ -1,0 +1,69 @@
+/* This week · LaLiga (canvas board "3 · This week · LaLiga"): hero, kindest games, clean sheets, the games as cards,
+   the table after the round. Colours are the app's theme tokens; 0-100 numbers take Sorare's score bands inline. */
+main.ll { max-width: calc(1320px + 56px); padding-bottom: 64px; }
+
+.ll-hero { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: stretch; padding: 36px 0 24px; }
+.ll-lead { padding-right: 20px; animation: ll-rise .8s cubic-bezier(.16, 1, .3, 1) both; }
+.ll-lead h1 { margin: 0; font-size: 30px; font-weight: 650; letter-spacing: -.02em; }
+.ll-sub { margin: 6px 0 0; color: var(--ink-2); font-size: 15px; }
+.ll-big { display: flex; align-items: flex-end; gap: 16px; margin: 34px 0 0; }
+.ll-big b { font-size: 112px; line-height: .82; font-weight: 650; letter-spacing: -.055em; font-variant-numeric: tabular-nums; }
+.ll-big span { max-width: 150px; padding-bottom: 4px; font-size: 17px; line-height: 1.3; color: var(--ink-2); }
+.ll-days { display: flex; flex-wrap: wrap; gap: 8px; margin: 28px 0 0; padding: 0; list-style: none; }
+.ll-days li { padding: 7px 14px; border-radius: 999px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); font-size: 13px; color: var(--ink-2); }
+.ll-days strong { color: var(--ink); font-weight: 600; }
+
+.ll-tile { min-width: 0; padding: 24px 26px; border-radius: 22px; background: var(--surface); box-shadow: var(--shadow-card); animation: ll-rise .8s cubic-bezier(.16, 1, .3, 1) both; }
+.ll-th { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin-bottom: 14px; }
+.ll-th h2 { margin: 0; font-size: 17px; font-weight: 650; letter-spacing: -.01em; }
+.ll-th span { color: var(--ink-2); font-size: 13px; }
+.ll-th a { margin-left: auto; color: var(--ink-2); text-decoration: none; font-size: 13px; font-weight: 550; }
+.ll-th a:hover { color: var(--ink); }
+.ll-chip { display: inline-grid; place-items: center; min-width: 40px; height: 22px; padding: 0 7px; border-radius: 7px; font-size: 12px; font-weight: 650; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+.ll-rank { margin: 0; padding: 0; list-style: none; }
+.ll-rank li { display: grid; grid-template-columns: 18px 24px minmax(0, 1fr) 80px 44px; align-items: center; gap: 10px; height: 48px; border-top: 1px solid var(--line); }
+.ll-rank li:first-child { border-top: 0; }
+.ll-rank .i { color: var(--ink-2); font-size: 13px; text-align: right; }
+.ll-rank .n { min-width: 0; }
+.ll-rank .n a { display: block; overflow: hidden; color: var(--ink); font-size: 13px; font-weight: 600; text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
+.ll-rank .n a:hover { text-decoration: underline; }
+.ll-rank .n span { display: block; overflow: hidden; color: var(--ink-2); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.ll-meter { height: 6px; overflow: hidden; border-radius: 3px; background: var(--track); }
+.ll-meter i { display: block; height: 100%; border-radius: 3px; transform-origin: left; animation: ll-fill 1s cubic-bezier(.16, 1, .3, 1) both .3s; }
+
+.ll-cols { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 20px; align-items: start; }
+.ll-cols > .ll-games-tile { grid-column: span 8; }
+.ll-cols > .rc-table { grid-column: span 4; }
+.ll-games { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.ll-g { padding: 16px 18px; border-radius: 18px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); animation: ll-rise .7s cubic-bezier(.16, 1, .3, 1) both; transition: transform .25s cubic-bezier(.34, 1.56, .64, 1), box-shadow .25s; }
+.ll-g:hover { transform: translateY(-3px); box-shadow: inset 0 0 0 1px var(--line), 0 12px 26px rgba(0, 0, 0, .1); }
+.ll-g .when { display: flex; justify-content: space-between; color: var(--ink-2); font-size: 12px; }
+.ll-g .when b { font-weight: 600; }
+.ll-g .vs { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 10px; margin: 14px 0 12px; }
+.ll-g .t { display: flex; align-items: center; gap: 10px; min-width: 0; color: var(--ink); font-size: 15px; font-weight: 600; text-decoration: none; }
+.ll-g .t.r { justify-content: flex-end; }
+.ll-g .t span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ll-g .t:hover span { text-decoration: underline; }
+.ll-g .vs em { color: var(--ink-2); font-size: 12px; font-style: normal; }
+.ll-g .split { display: flex; align-items: center; gap: 6px; }
+.ll-g .bar { display: flex; flex: 1; gap: 2px; height: 8px; overflow: hidden; border-radius: 4px; }
+.ll-g .bar i { display: block; height: 100%; transform-origin: left; animation: ll-fill 1s cubic-bezier(.16, 1, .3, 1) both .35s; }
+.ll-g .drawn { margin-top: 4px; color: var(--ink-2); font-size: 11px; text-align: center; }
+.ll-g .facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.ll-g .facts div { color: var(--ink-2); font-size: 12px; line-height: 1.3; }
+.ll-g .facts b { display: block; color: var(--ink); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+@keyframes ll-rise { from { opacity: 0; transform: translateY(16px); } }
+@keyframes ll-fill { from { transform: scaleX(0); } }
+
+@media (max-width: 1100px) {
+  .ll-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .ll-lead { grid-column: 1 / -1; }
+  .ll-cols > .ll-games-tile, .ll-cols > .rc-table { grid-column: 1 / -1; }
+}
+@media (max-width: 760px) {
+  .ll-hero, .ll-games { grid-template-columns: minmax(0, 1fr); }
+  .ll-big b { font-size: 80px; }
+  .ll-tile { padding: 20px 18px; }
+}

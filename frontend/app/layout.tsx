@@ -7,6 +7,7 @@ import "./globals.css";
 import "./control-center.css";
 import "./home.css";
 import "./recap.css";
+import "./laliga.css";
 import "./play.css";
 import "./cards.css";
 import "./lineups.css";

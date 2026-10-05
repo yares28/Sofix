@@ -15,7 +15,9 @@ describe("placeOf and viewOf", () => {
       ["/team/FCB", "Season", null],
       ["/cards", "Gallery", "Cards"],
       ["/players/arda-guler", "Gallery", "Players"],
-      ["/audit", "Audit", "Audit"],
+      ["/audit", "Audit", "xScore"],
+      ["/audit/starts", "Audit", "Who starts"],
+      ["/audit/record", "Audit", "Written down"],
       ["/control", null, null],
     ];
     for (const [path, place, view] of cases) {

@@ -34,7 +34,15 @@ export const PLACES: Place[] = [
       { href: "/players", label: "Players" },
     ],
   },
-  { label: "Audit", href: "/audit", views: [{ href: "/audit", label: "Audit" }] },
+  {
+    label: "Audit",
+    href: "/audit",
+    views: [
+      { href: "/audit", label: "xScore" },
+      { href: "/audit/starts", label: "Who starts" },
+      { href: "/audit/record", label: "Written down" },
+    ],
+  },
 ];
 
 const owns = (view: View, path: string) => (view.href === "/" ? path === "/" : path === view.href || path.startsWith(`${view.href}/`));
@@ -47,5 +55,6 @@ export function placeOf(path: string): Place | null {
 
 /** The view of a place a path shows. */
 export function viewOf(place: Place, path: string): View | null {
-  return place.views.find((view) => owns(view, path)) ?? null;
+  // The longest address that owns the path wins, so /audit/starts is "Who starts", not "xScore".
+  return place.views.filter((view) => owns(view, path)).sort((a, b) => b.href.length - a.href.length)[0] ?? null;
 }

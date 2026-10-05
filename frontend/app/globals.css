@@ -15,13 +15,14 @@
 
   /* Tile tokens: bg, main text (fg), secondary text (sub, no opacity), and a ring for the hard buckets.
      lib/contrast.test.ts checks every text pair against WCAG AA. */
-  --fdr1-bg: #1f7a4f; --fdr1-fg: #ffffff; --fdr1-sub: #ecf8f1;
-  --fdr2-bg: #d3f2e1; --fdr2-fg: #11633b; --fdr2-sub: #1a6a42;
-  --fdr3-bg: #f1f1f4; --fdr3-fg: #3a3a3c; --fdr3-sub: #5c5c61;
-  --fdr4-bg: #ffdcd8; --fdr4-fg: #b42318; --fdr4-sub: #9e1f15; --fdr4-ring: #e8998f;
-  --fdr5-bg: #c4312a; --fdr5-fg: #ffffff; --fdr5-sub: #fde8e6; --fdr5-ring: #8f1f19;
-  /* Saturated versions for thin marks (bars, strips); lib/grid.ts BUCKET_STRONG points here. */
-  --fdr1-strong: #1f7a4f; --fdr2-strong: #5cc58d; --fdr3-strong: #c7c7cc; --fdr4-strong: #ff7b6e; --fdr5-strong: #c4312a;
+  --fdr1-bg: #22c7c7; --fdr1-fg: #08302f; --fdr1-sub: #0b3d3c;
+  --fdr2-bg: #46c05a; --fdr2-fg: #0c2f16; --fdr2-sub: #103a1c;
+  --fdr3-bg: #e6b91e; --fdr3-fg: #332600; --fdr3-sub: #3d2e00;
+  --fdr4-bg: #ef8a3c; --fdr4-fg: #3a1e05; --fdr4-sub: #3a1e05; --fdr4-ring: #c96a22;
+  --fdr5-bg: #c0433f; --fdr5-fg: #ffffff; --fdr5-sub: #ffffff; --fdr5-ring: #8f1f19;
+  /* Saturated versions for thin marks (bars, strips); lib/grid.ts BUCKET_STRONG points here. Sorare's score bands
+     (lib/cards.ts BAND_COLOURS), easiest cyan to hardest red (plans/restructure.md, R5). */
+  --fdr1-strong: #22c7c7; --fdr2-strong: #46c05a; --fdr3-strong: #e6b91e; --fdr4-strong: #ef8a3c; --fdr5-strong: #c0433f;
 
   /* Type scale. 11 px is the floor for any text people need to read. */
   --text-2xs: 11px;
@@ -253,7 +254,7 @@ h1 { margin: 0; font-size: clamp(28px, 3.2vw, 38px); font-weight: 700; letter-sp
 .mkt-chance { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .mkt-bar { flex: 1; min-width: 24px; display: flex; gap: 2px; height: 8px; border-radius: 4px; overflow: hidden; background: #efeff2; }
 .mkt-bar .win { background: var(--fdr1-strong); }
-.mkt-bar .draw { background: var(--fdr3-strong); }
+.mkt-bar .draw { background: #c7c7cc; }
 .mkt-bar .loss { background: var(--fdr4-strong); }
 .mkt-bar .rest { background: transparent; }
 .mkt-pct { width: 36px; flex: none; text-align: right; font-size: var(--text-xs); font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -449,7 +450,7 @@ h1 { margin: 0; font-size: clamp(28px, 3.2vw, 38px); font-weight: 700; letter-sp
 .match-score { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink-2); }
 .prob { display: flex; height: 8px; border-radius: 4px; overflow: hidden; gap: 2px; }
 .prob-seg.home { background: var(--fdr1-strong); }
-.prob-seg.draw { background: var(--fdr3-strong); }
+.prob-seg.draw { background: #c7c7cc; }
 .prob-seg.away { background: var(--accent); }
 .prob-legend { display: flex; justify-content: space-between; margin-top: 4px; font-size: var(--text-xs); font-weight: 600; font-variant-numeric: tabular-nums; }
 .prob-legend span:nth-child(2) { color: var(--ink-2); font-weight: 500; }

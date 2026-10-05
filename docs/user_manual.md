@@ -94,6 +94,10 @@ the difficulty overview and the current-table cutoff together.
 
 ## 4. Difficulty
 
+Season → Fixtures (`/season`) lists every round of the season, fixtures and results by day; a strip of round numbers
+jumps to any round, and the page opens on the round in play. Difficulty colours use Sorare's score bands: cyan for the
+easiest games, then green, yellow, orange and red for the hardest.
+
 ![Difficulty overview, rankings and grid](images/difficulty.png)
 
 Difficulty is the main football-planning page. It contains:
@@ -140,6 +144,10 @@ are fitted from fair 1X2 plus totals prices; they are implied probabilities, not
 ## 5. Table
 
 ![Current and predicted LaLiga tables](images/table.png)
+
+Season → Table switches between **Now** (played games), **After round N** (played points plus the expected points of
+every game up to the end of the week's round) and **End of season** (the projection to the last round, with title, top
+four and relegation chances); the address keeps the choice (`?t=after`, `?t=predicted`).
 
 The left/current table stops after the selected LaLiga GW. Its ordering applies LaLiga head-to-head only after both
 mutual matches have been played, then goal difference and goals scored. Early in a season, that can differ from a

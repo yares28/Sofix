@@ -19,8 +19,9 @@ export const PLACES: Place[] = [
   },
   {
     label: "Season",
-    href: "/difficulty",
+    href: "/season",
     views: [
+      { href: "/season", label: "Fixtures" },
       { href: "/difficulty", label: "Difficulty" },
       { href: "/table", label: "Table" },
     ],

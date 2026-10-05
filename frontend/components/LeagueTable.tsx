@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo } from "react";
-import type { TableMode } from "../lib/grid";
+import { openingColumn, type TableMode } from "../lib/grid";
 import { currentTable, predictedTable, zone, type Outcome } from "../lib/table";
 import type { FixtureGrid } from "../lib/types";
 import Crest from "./Crest";
@@ -26,13 +26,16 @@ const pct = (value: number) => (value >= 0.995 ? ">99%" : value > 0 && value < 0
 
 export default function LeagueTable({ grid, through, mode, onMode }: Props) {
   const last = grid.matchdays.length - 1;
-  const atEnd = through === null || through >= last;
-  const gameweek = through === null ? undefined : grid.matchdays[through];
+  // "After" projects to the end of the week's round (the one picked, else the one in play); "End of season" to the last.
+  const round = through ?? openingColumn(grid);
+  const stop = mode === "after" ? round : mode === "predicted" ? null : through;
+  const atEnd = stop === null || stop >= last;
+  const gameweek = stop === null ? undefined : grid.matchdays[stop];
   const current = useMemo(() => currentTable(grid, through ?? undefined), [grid, through]);
-  // Only simulate when the predicted table is actually shown (5,000 seasons ≈ tens of ms).
+  // Only simulate when a projected table is actually shown (5,000 seasons ≈ tens of ms).
   const predicted = useMemo(
-    () => (mode === "predicted" ? predictedTable(grid, atEnd ? {} : { through }) : []),
-    [grid, mode, through, atEnd],
+    () => (mode !== "current" ? predictedTable(grid, atEnd ? {} : { through: stop }) : []),
+    [grid, mode, stop, atEnd],
   );
   const size = current.length;
   const when = gameweek ? `GW${gameweek.number}` : "now";
@@ -55,15 +58,16 @@ export default function LeagueTable({ grid, through, mode, onMode }: Props) {
           value={mode}
           onChange={onMode}
           options={[
-            { value: "current", label: "Current" },
-            { value: "predicted", label: "Predicted" },
+            { value: "current", label: "Now" },
+            ...(round < last ? [{ value: "after" as const, label: `After round ${grid.matchdays[round]?.number}` }] : []),
+            { value: "predicted", label: "End of season" },
           ]}
         />
       </header>
 
       <div className="table-scroll">
         {/* Both modes share this skeleton, so nothing shifts when the toggle flips. */}
-        <table className={`standings ${mode}`}>
+        <table className={`standings ${mode === "current" ? "current" : "predicted"}`}>
           <caption className="visually-hidden">
             {mode === "current" ? `LaLiga ${grid.season} standings from played games` : `Projected LaLiga ${grid.season} table`}
           </caption>

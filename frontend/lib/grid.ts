@@ -449,7 +449,8 @@ export type View = "plain" | "fdr" | "table"; // Fixtures, Difficulty, Table tab
 /** Each tab has its own address; the rest of the board's settings stay in the query string. */
 export const VIEW_PATH: Record<View, string> = { plain: "/fixtures", fdr: "/difficulty", table: "/table" };
 export type Horizon = "next" | "3" | "5" | "8" | "all"; // "next" = one gameweek as match cards
-export type TableMode = "current" | "predicted";
+/** Now (played games), after the week's round, or the end of the season (plans/restructure.md, R5). */
+export type TableMode = "current" | "after" | "predicted";
 export const HORIZON_VALUES: readonly Horizon[] = ["next", "3", "5", "8", "all"];
 const LENSES = Object.keys(LENS_COPY) as Lens[];
 export const MAX_PINS = 6;
@@ -479,7 +480,8 @@ export function parseViewState(params: URLSearchParams, knownCodes: ReadonlySet<
   const view = params.get("view");
   if (view === "fdr" || view === "plain" || view === "table") state.view = view;
   if (view === "next") Object.assign(state, { view: "fdr", horizon: "next" }); // links from before "Next" moved
-  if (params.get("t") === "predicted") state.table = "predicted";
+  const table = params.get("t");
+  if (table === "predicted" || table === "after") state.table = table;
   const lens = params.get("lens");
   if (lens && (LENSES as readonly string[]).includes(lens)) state.lens = lens as Lens;
   const horizon = params.get("h");

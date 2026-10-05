@@ -165,7 +165,7 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl, away
         </>
       )}
 
-      {view === "table" && state.table === "predicted" && (
+      {view === "table" && state.table !== "current" && (
         <p className="footnote">
           Predictions use the rating model’s win, draw and loss chances for every remaining fixture; postponed games without
           a new date aren’t included. Title, top-4 and relegation chances come from 5,000 simulated seasons.

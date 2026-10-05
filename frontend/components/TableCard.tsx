@@ -64,7 +64,7 @@ export default function TableCard({ grid, through, mode, onMode, onOpenTable }: 
         </h2>
         <SegmentedControl<TableMode>
           label="Table"
-          value={mode}
+          value={mode === "after" ? "predicted" : mode}
           onChange={onMode}
           options={[
             { value: "current", label: "Current" },

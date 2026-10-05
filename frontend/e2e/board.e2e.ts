@@ -376,7 +376,7 @@ test("the Table tab shows the standings and a predicted final table", async ({ p
   const points = (await page.locator("table.standings tbody td.strong").allTextContents()).map(Number);
   expect(points).toEqual([...points].sort((a, b) => b - a));
 
-  await page.getByRole("group", { name: "Table" }).getByRole("button", { name: "Predicted" }).click();
+  await page.getByRole("group", { name: "Table" }).getByRole("button", { name: "End of season" }).click();
   await expect(page).toHaveURL(/t=predicted/);
   await expect(page.getByRole("heading", { level: 2, name: "Predicted final table" })).toBeVisible();
   await expect(page.locator("table.standings.predicted tbody tr")).toHaveCount(grid.teams.length);
@@ -387,6 +387,11 @@ test("the Table tab shows the standings and a predicted final table", async ({ p
 
   await page.reload();
   await expect(page.getByRole("heading", { level: 2, name: "Predicted final table" })).toBeVisible();
+
+  // After the round in play: the projection stops at the end of that round.
+  await page.getByRole("group", { name: "Table" }).getByRole("button", { name: `After round ${openingMatchday}` }).click();
+  await expect(page).toHaveURL(/t=after/);
+  await expect(page.getByRole("heading", { level: 2, name: `Projected table after GW${openingMatchday}` })).toBeVisible();
 });
 
 test("the Table tab walks back and forward a gameweek at a time, and charts the season", async ({ page }) => {
@@ -397,16 +402,16 @@ test("the Table tab walks back and forward a gameweek at a time, and charts the 
   const width = async () => (await page.locator("table.standings thead th").first().boundingBox())!.width;
   await expect(headers()).toHaveCount(10);
   const currentWidth = await width();
-  await page.getByRole("group", { name: "Table" }).getByRole("button", { name: "Predicted" }).click();
+  await page.getByRole("group", { name: "Table" }).getByRole("button", { name: "End of season" }).click();
   await expect(headers()).toHaveCount(10);
   expect(await width()).toBeCloseTo(currentWidth, 0);
   await expect(headers().nth(5)).toHaveText("xPts");
   await expect(headers().nth(6)).toHaveText("xGD");
 
   // Stepping back stops the projection at that gameweek.
-  await page.goto(`/table?t=predicted&gw=${past}`);
+  await page.goto(`/table?t=after&gw=${past}`);
   await expect(page.getByRole("heading", { level: 2, name: `Projected table after GW${past}` })).toBeVisible();
-  await page.getByRole("group", { name: "Table" }).getByRole("button", { name: "Current" }).click();
+  await page.getByRole("group", { name: "Table" }).getByRole("button", { name: "Now" }).click();
   await expect(page.getByRole("heading", { level: 2, name: `Table after GW${past}` })).toBeVisible();
 
   // The chart: Europe by default, one solid and one dashed line per club shown, and the crest at the end.
@@ -672,4 +677,16 @@ test("Control says how often the board refreshes from the real schedule, and the
   await expect(facts.getByText("3–5×")).toBeVisible();
   await expect(facts).toContainText("board refreshes a day");
   await expect(facts).not.toContainText("2×");
+});
+
+test("Season's Fixtures lists every round, and its round numbers jump to each one", async ({ page }) => {
+  await page.goto("/season");
+  await expect(page.getByRole("heading", { level: 1, name: "All fixtures" })).toBeVisible();
+  await expect(page.locator(".season-round")).toHaveCount(grid.matchdays.length);
+  await expect(page.locator(`#round-${openingMatchday}`)).toBeInViewport(); // it opens on the round in play
+  await expect(page.locator(".lens").getByRole("link", { name: "Fixtures" })).toHaveAttribute("aria-current", "page");
+  const last = grid.matchdays[grid.matchdays.length - 1]!.number;
+  await page.getByRole("navigation", { name: "Rounds" }).getByRole("link", { name: String(last), exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`#round-${last}$`));
+  await expect(page.locator(`#round-${last}`)).toBeInViewport();
 });

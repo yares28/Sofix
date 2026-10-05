@@ -19,7 +19,7 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="M3.5 9h15M8 3v3M14 3v3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </>
   ),
-  "/difficulty": (
+  "/season": (
     <>
       <rect x="3.5" y="3.5" width="6" height="6" rx="1.8" fill="currentColor" />
       <rect x="12.5" y="3.5" width="6" height="6" rx="1.8" fill="none" stroke="currentColor" strokeWidth="1.8" />

@@ -43,7 +43,7 @@ test("the home fits a phone, and the tab bar moves between pages", async ({ page
   const tabs = page.getByRole("navigation", { name: "Sections" });
   await expect(tabs.getByRole("link", { name: "This week" })).toHaveAttribute("aria-current", "page");
   await tabs.getByRole("link", { name: "Season" }).click();
-  await expect(page).toHaveURL(/\/difficulty$/, { timeout: 30_000 });
+  await expect(page).toHaveURL(/\/season$/, { timeout: 30_000 });
   await expect(tabs.getByRole("link", { name: "Season" })).toHaveAttribute("aria-current", "page");
   await expect(page.locator(".board-tabs")).toBeHidden(); // the tab bar replaces the page's own tabs on phones
 });
@@ -55,6 +55,7 @@ test("Overview, Fixtures and Table fit a phone without sideways page scrolling",
     ["/difficulty?h=next&lens=odds", ".ladder-card .list-rows .next-line"],
     ["/difficulty?h=3", ".ladder-card .list-rows .tile"],
     ["/fixtures", ".fixture-row"],
+    ["/season", ".season-round .fixture-row"],
     ["/table?t=predicted", "table.standings tbody tr"],
   ] as const) {
     await page.goto(path);

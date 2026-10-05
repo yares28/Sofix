@@ -138,3 +138,11 @@ main.rc { display: flex; flex-direction: column; gap: 20px; }
 @media (prefers-reduced-motion: reduce) { .rc-head, .rc-card { animation: none; } }
 .rc-l5 { color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .lg-round { margin-bottom: 18px; }
+/* R5: every round of the season */
+.season-jump { position: sticky; top: 8px; z-index: 5; display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 18px; padding: 8px; border-radius: 16px; background: var(--card, #fff); box-shadow: 0 1px 0 var(--line); }
+.season-jump a { min-width: 32px; height: 32px; display: grid; place-items: center; border-radius: 10px; font-size: 12px; font-weight: 600; color: var(--ink); text-decoration: none; font-variant-numeric: tabular-nums; }
+.season-jump a.done { color: var(--ink-2); font-weight: 500; }
+.season-jump a[aria-current] { background: var(--ink); color: #fff; }
+.season-jump a:hover { background: var(--hover); }
+.season-jump a[aria-current]:hover { background: var(--ink); }
+.season-round { scroll-margin-top: 70px; margin-bottom: 16px; }

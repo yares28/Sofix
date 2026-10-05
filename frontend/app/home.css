@@ -136,7 +136,7 @@ main.hm { max-width: calc(1240px + 56px); }
 .hm-odds .bar3 { display: flex; gap: 2px; height: 5px; }
 .hm-odds .bar3 i { border-radius: 3px; transform-origin: left; animation: hm-grow .8s var(--ease) both .15s; }
 .hm-odds .bar3 .h { background: var(--fdr1-strong); }
-.hm-odds .bar3 .d { background: var(--fdr3-strong); }
+.hm-odds .bar3 .d { background: #c7c7cc; }
 .hm-odds .bar3 .a { background: var(--accent); }
 @keyframes hm-grow { from { transform: scaleX(0); } }
 .hm-odds em { font-style: normal; font-size: 11px; color: var(--ink-2); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

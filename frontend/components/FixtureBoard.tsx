@@ -14,6 +14,7 @@ import DifficultyGrid from "./DifficultyGrid";
 import FixturesList from "./FixturesList";
 import LeagueTable from "./LeagueTable";
 import Overview from "./Overview";
+import SeasonHero from "./SeasonHero";
 
 interface Props {
   grid: FixtureGrid;
@@ -51,7 +52,9 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl, away
 
   return (
     <>
-      <section className="hero">
+      {view === "table" && !away ? <SeasonHero grid={grid} /> : null}
+      {/* On the table the season hero above replaces this one; hidden, not removed, so the board keeps its layout code in one place. */}
+      <section className="hero" hidden={view === "table" && !away}>
         <div>
           <div className="eyebrow">LaLiga · Season {grid.season}</div>
           <h1>{view === "table" ? "Table" : view === "plain" ? "Fixtures" : "Fixtures & Difficulty"}</h1>

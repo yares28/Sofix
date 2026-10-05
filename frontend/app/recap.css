@@ -1,0 +1,138 @@
+/* The Recap (home), plans/restructure.md R2; design canvas board 1. Colours of numbers come inline from lib/cards.ts. */
+main.rc { display: flex; flex-direction: column; gap: 20px; }
+.rc-head { display: flex; align-items: flex-end; gap: 24px; padding: 18px 4px 0; animation: hm-rise .55s var(--ease) both; }
+.rc-head h1 { margin: 0; font-size: 34px; font-weight: 650; letter-spacing: -0.025em; line-height: 1.1; }
+.rc-head p { margin: 6px 0 0; color: var(--ink-2); font-size: 15px; }
+.rc-act { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.rc-pill { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); border-radius: 999px; padding: 9px 16px; font-size: 13px; color: var(--ink-2); white-space: nowrap; }
+.rc-btn { display: inline-flex; align-items: center; height: 44px; padding: 0 22px; border-radius: 999px; background: var(--ink); color: #fff; text-decoration: none; font-weight: 600; white-space: nowrap; }
+.rc-btn:focus-visible, .rc-th a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+.rc-best { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 14px; padding: 8px 0 12px; }
+.rc-card { margin: 0; display: flex; flex-direction: column; align-items: center; min-width: 0; animation: hm-rise .6s var(--ease) both; }
+.rc-art { position: relative; display: block; width: 100%; aspect-ratio: 5 / 8; border-radius: 10px; overflow: hidden; background: #e9e9ee; box-shadow: 0 2px 4px rgba(0,0,0,.16), 0 12px 24px rgba(16,24,40,.14); }
+.rc-card .rc-art { overflow: visible; }
+.rc-card .rc-art img { border-radius: 10px; }
+.rc-rank { position: absolute; left: -6px; top: -8px; width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--bg); }
+.rc-hex { position: relative; z-index: 1; margin-top: -18px; width: 50px; height: 43px; display: grid; place-items: center; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; }
+.rc-hex.sm { margin-top: -13px; width: 36px; height: 31px; font-size: 13px; }
+.rc-card figcaption { margin-top: 8px; text-align: center; line-height: 1.3; width: 100%; display: flex; flex-direction: column; align-items: center; }
+.rc-card figcaption b { font-size: 13px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rc-card figcaption > span:not(.rc-chip) { font-size: 12px; color: var(--ink-2); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rc-chip { display: inline-grid; place-items: center; min-width: 38px; height: 22px; padding: 0 7px; margin-top: 5px; border-radius: 7px; font-size: 12px; font-weight: 650; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rc-chip.quiet { background: var(--hover); color: var(--ink-2); margin: 0; }
+
+.rc-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 20px; }
+.rc-grid > * { grid-column: 1 / -1; }
+.rc-grid > .rc-round { grid-column: span 8; }
+.rc-grid > .rc-table { grid-column: span 4; }
+.rc-th { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.rc-th h2 { margin: 0; font-size: 18px; font-weight: 650; letter-spacing: -0.01em; }
+.rc-th > span { color: var(--ink-2); font-size: 13px; }
+.rc-th > a { margin-left: auto; color: var(--ink-2); text-decoration: none; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.rc-none { margin: 0; color: var(--ink-2); font-size: 13px; }
+
+/* This round: each match two rows, every number under its label. */
+.rc-rh, .rc-mt { display: grid; grid-template-columns: 52px minmax(0, 1fr) 60px 136px 136px 112px; column-gap: 16px; align-items: center; }
+.rc-rh { font-size: 11px; color: var(--ink-2); margin-bottom: -6px; }
+.rc-rh span:last-child { text-align: right; }
+.rc-day { margin: 8px 0 0; font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.rc-mt { grid-template-rows: 32px 32px; padding: 6px 0; border-top: 1px solid var(--line); }
+.rc-mt time { grid-row: span 2; color: var(--ink-2); font-size: 13px; font-variant-numeric: tabular-nums; }
+.rc-ex { grid-row: span 2; grid-column: 6; font-size: 12px; color: var(--ink-2); line-height: 1.7; text-align: right; }
+.rc-ex b { color: var(--ink); font-weight: 600; }
+.rc-tm { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.rc-tm > span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink-2); font-weight: 500; }
+.rc-tm.fav > span:last-child { color: var(--ink); font-weight: 650; }
+.rc-win { margin: 0; justify-self: start; min-width: 46px; }
+.rc-met { display: flex; align-items: center; gap: 10px; }
+.rc-met > span { flex: 1; height: 6px; border-radius: 3px; background: var(--hover); overflow: hidden; }
+.rc-met i { display: block; height: 100%; border-radius: 3px; }
+.rc-met b { width: 40px; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
+
+/* Table after the round: narrow. */
+.rc-table table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.rc-table th { font-size: 11px; font-weight: 500; color: var(--ink-2); text-align: right; padding: 0 4px 6px; }
+.rc-table th:nth-child(2) { text-align: left; }
+.rc-table td { padding: 4px; text-align: right; height: 27px; }
+.rc-table th:nth-child(1) { width: 24px; } .rc-table th:nth-child(3) { width: 36px; } .rc-table th:nth-child(4) { width: 46px; } .rc-table th:nth-child(5) { width: 30px; }
+.rc-table td:nth-child(1) { color: var(--ink-2); }
+.rc-table td:nth-child(2) { text-align: left; overflow: hidden; }
+.rc-table tr.cut td { border-top: 1px dashed var(--line); }
+.rc-table .dim { color: var(--ink-2); }
+.rc-table .up { color: var(--win); font-size: 12px; font-weight: 600; }
+.rc-table .dn { color: var(--loss); font-size: 12px; font-weight: 600; }
+
+/* Your lineups: cards first, then the team score and the reward chance. */
+.rc-lu { display: grid; grid-template-columns: 150px minmax(0, 1fr) 150px 240px; align-items: center; gap: 26px; padding: 18px 0; border-top: 1px solid var(--line); }
+.rc-lu-c { display: flex; flex-direction: column; gap: 2px; }
+.rc-lu-c b { font-size: 17px; }
+.rc-lu-c span { font-size: 12px; color: var(--ink-2); }
+.rc-tag { align-self: flex-start; margin-top: 4px; padding: 2px 8px; border-radius: 999px; background: var(--hover); }
+.rc-team { list-style: none; margin: 0; padding: 0; display: flex; gap: 10px; overflow-x: auto; padding-top: 8px; }
+.rc-team li { position: relative; width: 72px; flex: none; display: flex; flex-direction: column; align-items: center; }
+.rc-team .rc-art { border-radius: 8px; }
+.rc-cap { position: absolute; top: -7px; right: -7px; z-index: 2; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--surface); }
+.rc-nm { margin-top: 3px; font-size: 12px; font-weight: 550; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rc-score b { display: block; font-size: 44px; line-height: .95; font-weight: 650; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.rc-score span { display: block; font-size: 12px; color: var(--ink-2); margin-top: 6px; }
+.rc-score em { font-style: normal; color: var(--ink); font-weight: 600; }
+.rc-rew { display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--ink-2); line-height: 1.6; }
+.rc-rew b { color: var(--ink); }
+.rc-ring { position: relative; flex: none; width: 74px; height: 74px; border-radius: 50%; display: grid; place-items: center; }
+.rc-ring::after { content: ""; position: absolute; inset: 8px; border-radius: 50%; background: var(--surface); }
+.rc-ring b { position: relative; z-index: 1; font-size: 18px; font-weight: 700; }
+.rc-rest { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13px; color: var(--ink-2); }
+.rc-rest a { margin-left: auto; color: var(--ink); font-weight: 600; text-decoration: none; }
+
+/* Missions: big cards. */
+.rc-msn { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.rc-ms { border-radius: 18px; background: var(--hover); padding: 16px; display: flex; flex-direction: column; gap: 2px; }
+.rc-ms > span { font-size: 12px; color: var(--ink-2); }
+.rc-ms ol { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.rc-ms li { display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 0; font-size: 12px; }
+.rc-ms li .rc-art { max-width: 104px; }
+.rc-ms strong { margin-top: 10px; font-size: 24px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+.rc-ms li a { margin-top: 4px; color: var(--ink); font-weight: 600; text-decoration: none; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rc-ms li > span:last-child { color: var(--ink-2); }
+
+/* News this week. */
+.rc-news-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+.rc-news h3 { margin: 0 0 12px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.rc-news h3 i { width: 10px; height: 10px; border-radius: 3px; }
+.rc-news h3 i.out { background: #c0433f; }
+.rc-news h3 i.back { background: #46c05a; }
+.rc-news ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.rc-nw { display: flex; flex-direction: column; gap: 8px; min-width: 0; font-size: 12px; }
+.rc-nw .rc-art { width: 92px; overflow: visible; }
+.rc-nw .rc-art img { border-radius: 9px; }
+.rc-nw > span:last-child { display: flex; flex-direction: column; gap: 2px; }
+.rc-nw b { font-size: 14px; }
+.rc-nw .dim { color: var(--ink-2); }
+.rc-nw .rc-chip { align-self: flex-start; }
+.rc-tag-dot { position: absolute; right: -8px; top: -8px; z-index: 2; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #fff; box-shadow: 0 0 0 2px var(--surface); }
+.rc-tag-dot.out { background: #c0433f; }
+.rc-tag-dot.doubt { background: #c86a1e; }
+.rc-tag-dot.back { background: #1f8a3a; }
+
+@media (max-width: 1100px) {
+  .rc-grid > .rc-round, .rc-grid > .rc-table { grid-column: 1 / -1; }
+  .rc-lu { grid-template-columns: 130px minmax(0, 1fr) 130px; }
+  .rc-rew { grid-column: 1 / -1; }
+}
+@media (max-width: 760px) {
+  .rc-head { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .rc-act { margin-left: 0; flex-wrap: wrap; }
+  .rc-head h1 { font-size: 28px; }
+  .rc-best { display: flex; overflow-x: auto; margin: 0 -16px; padding: 10px 16px 18px; scroll-snap-type: x mandatory; }
+  .rc-card { flex: none; width: 108px; scroll-snap-align: start; }
+  .rc-rh, .rc-mt { grid-template-columns: minmax(0, 1fr) 48px 44px 60px; column-gap: 10px; }
+  .rc-mt time, .rc-ex, .rc-rh span:first-child, .rc-rh span:last-child, .rc-met > span { display: none; }
+  .rc-met b { width: auto; flex: 1; }
+  .rc-lu { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; }
+  .rc-team { grid-column: 1 / -1; }
+  .rc-team li { width: 60px; }
+  .rc-score b { font-size: 34px; }
+  .rc-msn, .rc-news-cols { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { .rc-head, .rc-card { animation: none; } }

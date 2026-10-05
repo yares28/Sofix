@@ -525,63 +525,51 @@ test("the status pill opens the Control Center: status, install with a QR code, 
   expect(scan.violations.map((v) => `${v.id}: ${v.nodes.slice(0, 4).map((n) => n.target.join(" ")).join("; ")}`)).toEqual([]);
 });
 
-test("home: the gameweek, its hero number, the three board tiles and the Sorare row", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "reduce" }); // tiles fade in; scan the colours they settle on
+test("home (Recap): the gameweek, the best cards, the round as a scoreboard, the table after it and the Sorare blocks", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1, name: `LaLiga round ${openingMatchday}` })).toBeVisible();
-  await expect(page.locator(".hm-count")).toContainText(/to kickoff|games played/);
-  for (const title of ["Fixtures", "Difficulty", "Table", "Sorare", "Play", "Last gameweek", "My cards"]) {
+  await expect(page.locator(".rc-head h1")).toHaveText(/^Gameweek \d+$/);
+  await expect(page.locator(".rc-head p")).toContainText(`LaLiga round ${openingMatchday}`);
+  await expect(page.locator(".rc-pill")).toContainText(/^Locks? /);
+  for (const title of ["This round", `Table after round ${openingMatchday}`, "Your lineups", "Missions", "News this week", "Team news"]) {
     await expect(page.getByRole("heading", { level: 2, name: title, exact: true })).toBeVisible();
   }
   const matches = gameweekMatches(grid, column(openingMatchday)).matches.length;
-  await expect(page.locator(".hm-fixtures .hm-fx")).toHaveCount(matches);
-  await expect(page.locator(".hm-mosaic .m-row:not(.hd)")).toHaveCount(grid.teams.length);
-  await expect(page.locator(".hm-wait")).toHaveCount(0); // the Sorare tiles have their gameweek (see play.e2e.ts)
-  const cardBoxes = await page.locator(".hm-art").evaluateAll((cards) =>
-    cards.map((card) => {
-      const box = card.getBoundingClientRect();
-      return { width: box.width, height: box.height };
-    }),
-  );
-  if (cardBoxes.length) {
-    expect(new Set(cardBoxes.map((box) => Math.round(box.width))).size).toBe(1);
-    expect(new Set(cardBoxes.map((box) => Math.round(box.height))).size).toBe(1);
-    expect(cardBoxes[0]!.width).toBeGreaterThanOrEqual(100);
-    expect(cardBoxes[0]!.width / cardBoxes[0]!.height).toBeCloseTo(320 / 452, 2);
-    await expect(page.locator(".hm-best .hm-game-cards").first()).toBeVisible();
-    await expect(page.locator(".hm-best .rates").first()).toContainText(/Play|Win/);
-  }
+  await expect(page.locator(".rc-mt")).toHaveCount(matches);
+  // Each side of a match: its win chance, xG and clean sheet, in that order, under labelled columns.
+  await expect(page.locator(".rc-rh")).toContainText("Win");
+  await expect(page.locator(".rc-rh")).toContainText("Clean sheet");
+  await expect(page.locator(".rc-mt").first().locator(".rc-win")).toHaveCount(2);
+  await expect(page.locator(".rc-table tbody tr")).toHaveCount(grid.teams.length);
+  const best = page.locator(".rc-best .rc-card");
+  expect(await best.count()).toBeGreaterThan(0);
+  expect(await best.count()).toBeLessThanOrEqual(10);
+  await expect(best.first().locator(".rc-hex")).toHaveText(/^\d+$/);
+  await expect(page.locator(".rc-lu").first().locator(".rc-ring")).toContainText("%");
   const scan = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(scan.violations.map((v) => `${v.id}: ${v.nodes.slice(0, 4).map((n) => n.target.join(" ")).join("; ")}`)).toEqual([]);
 
-  // A tile opens its page for the same gameweek.
-  await page.getByRole("link", { name: "Difficulty", exact: true }).last().click();
-  await expect(page).toHaveURL(/\/difficulty$/, { timeout: 30_000 });
-  await expect(page.getByRole("heading", { level: 1, name: "Fixtures & Difficulty" })).toBeVisible();
+  // A block opens its page for the same gameweek.
+  await page.locator(".rc-table").getByRole("link", { name: /Season/ }).click();
+  await expect(page).toHaveURL(/\/table$/, { timeout: 30_000 });
 });
 
-test("home: the week in the bar moves to a played gameweek and every tile follows", async ({ page }) => {
+test("home: the week in the bar moves to a played gameweek and the round follows", async ({ page }) => {
   const past = openingMatchday - 2; // fully played
-  await page.goto("/");
-  await expect(page.locator(".hm-timeline")).toHaveCount(0);
+  // The address carries the round (the mock's dates move with the clock, so its month in the picker is not fixed).
+  await page.goto(`/?gw=${past}`);
   const picker = page.getByRole("group", { name: "Choose gameweek" });
-  await picker.getByRole("button", { expanded: false }).click();
-  await picker.getByRole("button", { name: "Sep", exact: true }).click();
-  // The name starts with the LaLiga round. A later "Sorare GW7" on another row must not match.
-  await picker.getByRole("radio", { name: new RegExp(`^LaLiga round ${past}\\b`) }).click();
-  await expect(page).toHaveURL(/\?w=/);
-  await expect(page.getByRole("heading", { level: 1, name: `LaLiga round ${past}` })).toBeVisible();
-  await expect(page.locator(".hm-count")).toContainText(/shocks?/);
-  await expect(page.locator(".hm-fixtures .hm-fx-t").first()).toHaveText("FT");
-  await expect(page.locator(".hm-table .hm-meta")).toHaveText(`after GW${past}`);
+  await expect(page.locator(".rc-head p")).toContainText(`LaLiga round ${past}`);
+  await expect(page.getByRole("heading", { level: 2, name: `Table after round ${past}` })).toBeVisible();
+  // A played match shows its score where the kickoff was.
+  await expect(page.locator(".rc-mt time").first()).toHaveText(/^\d+-\d+$/);
 
-  await picker.getByRole("button", { expanded: false }).click();
-  await picker.getByRole("radio", { name: new RegExp(String.raw`^LaLiga round ${past + 1}\b`) }).click();
-  await expect(page.getByRole("heading", { level: 1, name: `LaLiga round ${past + 1}` })).toBeVisible();
-  // The bar has to show the round that was picked before the tiles are asked to follow it: one Sorare
+  await page.getByRole("button", { name: "Next gameweek" }).click();
+  // The bar has to show the round that was picked before the blocks are asked to follow it: one Sorare
   // game week can hold two LaLiga rounds, and each is its own week (lib/weeks.ts).
   await expect(picker.getByRole("button", { expanded: false })).toContainText(`LaLiga round ${past + 1}`);
-  await page.getByRole("link", { name: "Fixtures", exact: true }).last().click();
+  await expect(page.locator(".rc-head p")).toContainText(`LaLiga round ${past + 1}`);
+  await page.locator(".rc-round").getByRole("link", { name: /All games/ }).click();
   await expect(page).toHaveURL(new RegExp(`/fixtures\\?gw=${past + 1}$`), { timeout: 30_000 });
   await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${past + 1} fixtures` })).toBeVisible();
 });
@@ -602,7 +590,7 @@ test("home: a Sorare-only week says LaLiga is away and identifies each player's 
 test("home: a gameweek the season doesn't have goes back to the home page", async ({ page }) => {
   await page.goto("/?gw=99");
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole("heading", { level: 1, name: `LaLiga round ${openingMatchday}` })).toBeVisible();
+  await expect(page.locator(".rc-head p")).toContainText(`LaLiga round ${openingMatchday}`);
 });
 
 test("the top bar's place and the switch under it follow the board's own tab switches", async ({ page }) => {

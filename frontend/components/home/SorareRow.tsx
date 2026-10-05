@@ -30,7 +30,7 @@ export default function SorareRow() {
           </p>
         </div>
       </HomeTile>
-      <HomeTile id="hm-cards" title="My cards" className="hm-cards hm-wait" index={4}>
+      <HomeTile id="hm-cards" title="Gallery" className="hm-cards hm-wait" index={4}>
         <div className="hm-ghost">
           <span className="shape card" />
           <p>

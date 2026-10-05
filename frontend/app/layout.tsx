@@ -5,6 +5,7 @@ import { INSTALL_CAPTURE_SCRIPT } from "../lib/install";
 import "./globals.css";
 import "./control-center.css";
 import "./home.css";
+import "./recap.css";
 import "./play.css";
 import "./cards.css";
 import "./lineups.css";

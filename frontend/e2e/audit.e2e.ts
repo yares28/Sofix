@@ -72,7 +72,7 @@ test("the top bar has the page, and marks it when it is open", async ({ page }) 
 
   const link = page.locator(".nav-links").getByRole("link", { name: "Audit" });
   await expect(link).toHaveAttribute("aria-current", "page");
-  await expect(page.locator(".nav-links").getByRole("link", { name: "Table" })).not.toHaveAttribute("aria-current", "page");
+  await expect(page.locator(".nav-links").getByRole("link", { name: "Season" })).not.toHaveAttribute("aria-current", "page");
 });
 
 test("with enough games a source shows its figure, and one under the floor still says too few to tell", async ({ page, request }) => {

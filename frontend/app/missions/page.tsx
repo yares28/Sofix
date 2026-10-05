@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
-import SorareSubnav from "../../components/cards/SorareSubnav";
 import MissionsView from "../../components/missions/MissionsView";
 import SiteNav from "../../components/SiteNav";
 import { loadGrid } from "../../lib/api";
@@ -41,7 +40,6 @@ export default async function Missions({ searchParams }: { searchParams: SearchP
     <>
       <SiteNav meta={meta} system={system} week={week} />
       <main className="s5-main pd">
-        <SorareSubnav />
         <MissionsView rarity={rarity} seen={seen.length > 1 ? [...seen] : []} day={made?.day ?? null} plans={made?.plans ?? []} seenAt={entry?.seen_at ?? null} now={now.toISOString()} />
       </main>
     </>

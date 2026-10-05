@@ -4,6 +4,7 @@ import type { GridMeta } from "../lib/types";
 import type { Week } from "../lib/weeks";
 import NavLinks from "./NavLinks";
 import StatusPill from "./StatusPill";
+import LensBar from "./LensBar";
 import TabBar from "./TabBar";
 import WeekPicker from "./WeekPicker";
 
@@ -31,6 +32,7 @@ export default function SiteNav({ meta, system, current, week }: Props) {
           </div>
         </div>
       </nav>
+      <LensBar />
       <TabBar />
     </>
   );

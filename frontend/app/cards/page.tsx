@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import CardsView from "../../components/cards/CardsView";
-import SorareSubnav from "../../components/cards/SorareSubnav";
 import SiteNav from "../../components/SiteNav";
 import { loadGrid } from "../../lib/api";
 import { loadSorare } from "../../lib/playData";
 import { loadSystem } from "../../lib/system";
 import { weekContext } from "../../lib/weeks";
 
-export const metadata: Metadata = { title: "My cards · Sofix" };
+export const metadata: Metadata = { title: "Gallery · Sofix" };
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -29,12 +28,11 @@ export default async function Cards({ searchParams }: { searchParams: SearchPara
     <>
       <SiteNav meta={meta} system={system} week={week} />
       <main className="s5-main">
-        <SorareSubnav />
         {ready ? (
           <CardsView data={data} now={new Date().toISOString()} />
         ) : (
           <section className="s5-empty" role="status">
-            <h1>My cards</h1>
+            <h1>Gallery</h1>
             <p>Your collection appears after the next refresh syncs Sorare.</p>
           </section>
         )}

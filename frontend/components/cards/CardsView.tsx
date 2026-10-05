@@ -135,7 +135,7 @@ export default function CardsView({ data, now }: { data: Sorare; now: string }) 
     <>
       <section className="s5-hero">
         <p className="s5-eyebrow">Your squad</p>
-        <h1>My cards</h1>
+        <h1>Gallery</h1>
         <p className="s5-big">
           <b>{players}</b>
           <i>players you can field</i>

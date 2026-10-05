@@ -41,10 +41,10 @@ test("the home fits a phone, and the tab bar moves between pages", async ({ page
   await expect(page.locator(".hm-mosaic .m-row").first()).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   const tabs = page.getByRole("navigation", { name: "Sections" });
-  await expect(tabs.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
-  await tabs.getByRole("link", { name: "Table" }).click();
+  await expect(tabs.getByRole("link", { name: "This week" })).toHaveAttribute("aria-current", "page");
+  await tabs.getByRole("link", { name: "Season" }).click();
   await expect(page).toHaveURL(/\/table$/, { timeout: 30_000 });
-  await expect(tabs.getByRole("link", { name: "Table" })).toHaveAttribute("aria-current", "page");
+  await expect(tabs.getByRole("link", { name: "Season" })).toHaveAttribute("aria-current", "page");
   await expect(page.locator(".board-tabs")).toBeHidden(); // the tab bar replaces the page's own tabs on phones
 });
 

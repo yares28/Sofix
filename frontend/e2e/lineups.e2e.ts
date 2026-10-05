@@ -131,10 +131,11 @@ test("the page has no accessibility violations", async ({ page }) => {
   expect(results.violations.map((v) => `${v.id}: ${v.nodes.length}`)).toEqual([]);
 });
 
-test("the top bar names the page", async ({ page }) => {
+test("the top bar names the place and the switch the page", async ({ page }) => {
   await page.goto("/lineups");
 
-  await expect(page.locator(".nav-links").getByRole("link", { name: "Lineups" })).toHaveAttribute("aria-current", "page");
+  await expect(page.locator(".nav-links").getByRole("link", { name: "This week" })).toHaveAttribute("aria-current", "page");
+  await expect(page.locator(".lens").getByRole("link", { name: "Lineups" })).toHaveAttribute("aria-current", "page");
 });
 
 test("what the site writes about an injury is in English, and a return that has gone by says so", async ({ page }) => {

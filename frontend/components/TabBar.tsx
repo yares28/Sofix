@@ -3,9 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useWeekSuffix } from "../lib/navWeek";
+import { PLACES, placeOf } from "../lib/places";
 
 const ICONS: Record<string, React.ReactNode> = {
   "/": <path d="M3.5 10 11 4l7.5 6v7.5a1 1 0 0 1-1 1H14v-5H8v5H4.5a1 1 0 0 1-1-1Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />,
+  "/cards": (
+    <>
+      <rect x="4" y="3.5" width="10" height="15" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M16.5 6.5 18.5 7l-2.6 11.5-2-.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    </>
+  ),
   "/fixtures": (
     <>
       <rect x="3.5" y="4.5" width="15" height="14" rx="3" fill="none" stroke="currentColor" strokeWidth="1.8" />
@@ -42,18 +49,10 @@ const ICONS: Record<string, React.ReactNode> = {
   ),
 };
 
-const TABS = [
-  { href: "/", label: "Home" },
-  { href: "/play", label: "Play" },
-  { href: "/lineups", label: "Lineups" },
-  { href: "/fixtures", label: "Fixtures" },
-  { href: "/difficulty", label: "Difficulty" },
-  { href: "/table", label: "Table" },
-  { href: "/audit", label: "Audit" },
-];
+const TABS = PLACES.map((place) => ({ href: place.href, label: place.label }));
 
 /**
- * Phones: the sections along the bottom, like an app (the installed app has no browser bar). Rendered outside the
+ * Phones: the four places along the bottom, like an app (the installed app has no browser bar). Rendered outside the
  * top bar on purpose: its backdrop-filter would trap a fixed element inside it.
  */
 export default function TabBar() {
@@ -62,7 +61,7 @@ export default function TabBar() {
   return (
     <nav className="tabbar" aria-label="Sections">
       {TABS.map((tab) => (
-        <Link key={tab.href} href={`${tab.href}${week}`} aria-current={path === tab.href ? "page" : undefined}>
+        <Link key={tab.href} href={`${tab.href}${week}`} aria-current={placeOf(path)?.href === tab.href ? "page" : undefined}>
           <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
             {ICONS[tab.href]}
           </svg>

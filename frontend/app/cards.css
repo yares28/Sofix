@@ -28,10 +28,6 @@
 }
 
 /* ---------- Sorare sub-nav ---------- */
-.s5-tabs { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--r-sm); background: var(--track); margin-bottom: 18px; }
-.s5-tabs a { text-decoration: none; padding: 7px 15px; border-radius: 10px; font-size: 13px; font-weight: 600; color: var(--ink-seg); }
-.s5-tabs a[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 10px rgba(0, 0, 0, 0.06); }
-.s5-tabs a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ---------- hero ---------- */
 .s5-hero { position: relative; overflow: hidden; border-radius: var(--r-xl); background: var(--surface); box-shadow: var(--shadow-card); padding: 30px 32px; }
@@ -185,3 +181,10 @@
   .s5-find { top: 60px; }
   .s5-results { grid-template-columns: 1fr; }
 }
+
+/* The page-wide switch under the top bar (components/LensBar.tsx): the views of the current place. */
+.lens { position: sticky; top: 0; z-index: 40; display: flex; justify-content: center; padding: 10px 16px; }
+.lens-seg { display: inline-flex; gap: 2px; padding: 4px; border-radius: 999px; background: var(--track); max-width: 100%; overflow-x: auto; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+.lens-seg a { text-decoration: none; padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--ink-seg); white-space: nowrap; }
+.lens-seg a[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 10px rgba(0,0,0,.06); }
+.lens-seg a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

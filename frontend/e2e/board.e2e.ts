@@ -605,9 +605,10 @@ test("home: a gameweek the season doesn't have goes back to the home page", asyn
   await expect(page.getByRole("heading", { level: 1, name: `LaLiga round ${openingMatchday}` })).toBeVisible();
 });
 
-test("the top bar's links follow the board's own tab switches", async ({ page }) => {
+test("the top bar's place and the switch under it follow the board's own tab switches", async ({ page }) => {
   await page.goto("/difficulty");
-  const bar = page.locator(".nav-links");
+  await expect(page.locator(".nav-links").getByRole("link", { name: "Season" })).toHaveAttribute("aria-current", "page");
+  const bar = page.locator(".lens");
   await expect(bar.getByRole("link", { name: "Difficulty" })).toHaveAttribute("aria-current", "page");
   await page.getByRole("group", { name: "View" }).getByRole("button", { name: "Table" }).click();
   await expect(page).toHaveURL(/\/table$/);
@@ -654,7 +655,7 @@ test("a week with no LaLiga round shows the games your own players play", async 
   await page.locator(".wk-trigger").click();
   await page.locator(".wk-panel").getByRole("radio", { name: new RegExp(String.raw`GW${planned}\b`) }).click();
   await expect(page).toHaveURL(/\/play\?w=\d{4}-\d{2}-\d{2}$/);
-  await page.getByRole("navigation").getByRole("link", { name: "Fixtures" }).click();
+  await page.locator(".lens").getByRole("link", { name: "LaLiga" }).click();
   await expect(page).toHaveURL(/\/fixtures\?w=\d{4}-\d{2}-\d{2}$/);
 
   const own = page.locator(".ow");

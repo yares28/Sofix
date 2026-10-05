@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { SHOCK } from "../lib/grid";
 import type { Bucket } from "../lib/grid";
 import type { GridCell } from "../lib/types";
@@ -10,6 +11,8 @@ interface Props {
   labelOf: (cell: GridCell) => string;
   row: number;
   column: number;
+  /** The opponent's crest, drawn beside its code (owner's rule: clubs as their real crest wherever possible). */
+  crestOf?: (code: string) => string | null;
 }
 
 interface TileProps {
@@ -21,10 +24,11 @@ interface TileProps {
   row: number;
   column: number;
   showTbc: boolean;
+  crest: string | null;
 }
 
 /** A button, so every fixture can be reached and read without a mouse; details open in the tooltip. */
-function Tile({ cell, bucket, compact, dataKey, label, row, column, showTbc }: TileProps) {
+function Tile({ cell, bucket, compact, dataKey, label, row, column, showTbc, crest }: TileProps) {
   const common = {
     type: "button" as const,
     "data-key": dataKey,
@@ -62,6 +66,9 @@ function Tile({ cell, bucket, compact, dataKey, label, row, column, showTbc }: T
   }
   return (
     <button {...common} className={`cell ${bucket ? `f${bucket}` : "muted"} ${size}`}>
+      {crest && !compact ? (
+        <Image className="cell-crest" src={crest} alt="" width={16} height={16} unoptimized loading="lazy" referrerPolicy="no-referrer" />
+      ) : null}
       <span className="opp">{cell.opponent_code}</span>
       <span className="venue">
         {cell.status === "live" ? (
@@ -81,7 +88,7 @@ function Tile({ cell, bucket, compact, dataKey, label, row, column, showTbc }: T
   );
 }
 
-export default function FixtureCell({ cells, bucketOf, cellKey, labelOf, row, column, showTbc }: Props) {
+export default function FixtureCell({ cells, bucketOf, cellKey, labelOf, row, column, showTbc, crestOf }: Props) {
   if (cells.length === 0) {
     return (
       <div className="cell blank">
@@ -108,6 +115,7 @@ export default function FixtureCell({ cells, bucketOf, cellKey, labelOf, row, co
           row={row}
           column={column}
           showTbc={showTbc}
+          crest={crestOf?.(cell.opponent_code) ?? null}
         />
       ))}
     </div>

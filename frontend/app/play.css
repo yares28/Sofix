@@ -64,7 +64,7 @@
   z-index: 1;
   padding: 8px 16px;
   border-radius: 10px;
-  color: #5e5e63;
+  color: var(--ink-seg);
   font-weight: 600;
   font-size: 13px;
   text-decoration: none;
@@ -140,7 +140,7 @@
   font-weight: 650;
   white-space: nowrap;
 }
-.pl-entered-status.draft { background: color-mix(in srgb, #ff9f0a 14%, var(--surface)); color: #8a5300; }
+.pl-entered-status.draft { background: color-mix(in srgb, #ff9f0a 14%, var(--surface)); color: color-mix(in srgb, #ff9f0a 45%, var(--ink)); }
 /* What Sorare says the lineup made: the score first, then where it ranked and what it was paid. */
 .pl-entered-card .cap {
   position: absolute; left: 2px; top: 2px; display: grid; place-items: center; width: 12px; height: 12px;
@@ -199,7 +199,7 @@
   gap: 8px;
   font-size: 14px;
   font-weight: 650;
-  color: #5e5e63;
+  color: var(--ink-seg);
   white-space: nowrap;
 }
 .pl-plans a[aria-current="page"] .l1 {
@@ -217,7 +217,7 @@
 }
 .pl-plans .l2 {
   font-size: 12px;
-  color: #5e5e63;
+  color: var(--ink-seg);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
@@ -555,15 +555,15 @@
 }
 .pl-group.season {
   background: color-mix(in srgb, #3b9bff 14%, var(--surface));
-  color: #0a4f9c;
+  color: color-mix(in srgb, #3b9bff 50%, var(--ink));
 }
 .pl-group.classic {
   background: color-mix(in srgb, #ff9f0a 14%, var(--surface));
-  color: #6b5210;
+  color: color-mix(in srgb, #ff9f0a 45%, var(--ink));
 }
 .pl-group.room {
   background: color-mix(in srgb, #7d5bd0 14%, var(--surface));
-  color: #5b3aa0;
+  color: color-mix(in srgb, #7d5bd0 50%, var(--ink));
 }
 .pl-fmt {
   font-size: 12px;
@@ -675,7 +675,7 @@
 .pl-range .need.act span {
   top: 22px;
   bottom: auto;
-  color: #0058b0;
+  color: color-mix(in srgb, #3b9bff 50%, var(--ink));
 }
 .pl-range .act {
   position: absolute;
@@ -830,7 +830,7 @@
 }
 .pl-rw.neg {
   background: color-mix(in srgb, #e0605b 14%, var(--surface));
-  color: #9e1f15;
+  color: color-mix(in srgb, #e0605b 45%, var(--ink));
 }
 .pl-note {
   margin-left: auto;
@@ -845,7 +845,7 @@
   margin: 2px 0 0;
   font-size: 12px;
   font-weight: 600;
-  color: #8a5300;
+  color: color-mix(in srgb, #ff9f0a 45%, var(--ink));
 }
 
 /* ---------- folded lists ---------- */
@@ -910,7 +910,7 @@
   text-align: right;
 }
 .pl-fold li em.neg {
-  color: #9e1f15;
+  color: color-mix(in srgb, #e0605b 45%, var(--ink));
   font-weight: 600;
 }
 .pl-fold li em.pos {
@@ -1421,7 +1421,7 @@
 }
 .pl-checks span.off::before {
   content: "✗ ";
-  color: #9e1f15;
+  color: color-mix(in srgb, #e0605b 45%, var(--ink));
 }
 .pl-ladder {
   border-radius: 22px;
@@ -1660,8 +1660,8 @@
   border-radius: 50%;
   background: currentColor;
 }
-.pl-main .pl-chip.waiting { background: color-mix(in srgb, #ff9f0a 14%, var(--surface)); color: #8a5300; }
-.pl-main .pl-chip.cloudless { background: color-mix(in srgb, #e0605b 14%, var(--surface)); color: #8f1526; }
+.pl-main .pl-chip.waiting { background: color-mix(in srgb, #ff9f0a 14%, var(--surface)); color: color-mix(in srgb, #ff9f0a 45%, var(--ink)); }
+.pl-main .pl-chip.cloudless { background: color-mix(in srgb, #e0605b 14%, var(--surface)); color: color-mix(in srgb, #e0605b 45%, var(--ink)); }
 .pl-main .pl-chip.stale,
 .pl-main .pl-chip.pending { background: var(--hover); color: var(--ink-2); }
 
@@ -1675,9 +1675,9 @@
   font-size: 13px;
   font-weight: 550;
   background: color-mix(in srgb, #ff9f0a 14%, var(--surface));
-  color: #8a5300;
+  color: color-mix(in srgb, #ff9f0a 45%, var(--ink));
 }
-.pl-alert.cloudless { background: color-mix(in srgb, #e0605b 14%, var(--surface)); color: #8f1526; }
+.pl-alert.cloudless { background: color-mix(in srgb, #e0605b 14%, var(--surface)); color: color-mix(in srgb, #e0605b 45%, var(--ink)); }
 /* An early plan is not a warning: a plain note in the page's own colours. */
 .pl-alert.early { background: var(--hover); color: var(--ink); align-items: flex-start; }
 .pl-alert.early > span { flex: none; font-size: 17px; line-height: 1.2; color: var(--ink-2); }
@@ -1769,10 +1769,10 @@
 .ap-cards { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 8px; padding: 0 26px 20px; }
 .ap-pc {
   min-width: 0; display: flex; flex-direction: column; gap: 6px;
-  opacity: 0; transform: translateY(10px); animation: ap-rise 0.5s cubic-bezier(0.3, 0.7, 0.2, 1) forwards;
+  animation: ap-rise 0.5s cubic-bezier(0.3, 0.7, 0.2, 1) backwards;
   animation-delay: calc(var(--i) * 45ms + 120ms);
 }
-@keyframes ap-rise { to { opacity: 1; transform: none; } }
+@keyframes ap-rise { from { opacity: 0; transform: translateY(10px); } }
 .ap-pc .art {
   position: relative; aspect-ratio: 320 / 452; border-radius: 9px; overflow: hidden; background: #16181d;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18), 0 6px 14px rgba(0, 0, 0, 0.14);

@@ -29,7 +29,7 @@ Control stays behind the status pill. Source of truth: `frontend/lib/places.ts`.
   lineup as a row (cards with xScore, team score, needs, reward ring); Before / After the games / In hindsight; missions
   folded in (big cards, last-5 rate); all current Play features kept (your Sorare lineups and their results, sheets,
   early plan banners, kept weeks, apply).
-- **R4 LaLiga view** (`/fixtures`): round hero (your players this round), kindest games, clean sheets, match cards (win,
+- **R4 LaLiga view** (done 5 Oct: scoreboard + table after the round on /fixtures; "your players this round" and kindest games stay on the Recap and Difficulty) (`/fixtures`): round hero (your players this round), kindest games, clean sheets, match cards (win,
   bookmakers, xG, clean sheet, both score), table after the round.
 - **R5 Season**: Fixtures for all 38 rounds (new), Difficulty grid in the score colours (five buckets: cyan, green,
   yellow, orange, red), Table with Now / After round N / End of season and title/top four/relegation.

@@ -71,7 +71,7 @@ function Side({ side }: { side: BoardMatch["home"] }) {
   );
 }
 
-export function RoundBoard({ matches, href }: { matches: BoardMatch[]; href: string }) {
+export function RoundBoard({ matches, href }: { matches: BoardMatch[]; href?: string }) {
   const days: { label: string; matches: BoardMatch[] }[] = [];
   for (const match of matches) {
     const label = `${formatShortKickoff(match.kickoff).split(" ")[0]} ${formatDay(match.kickoff)}`;
@@ -84,7 +84,7 @@ export function RoundBoard({ matches, href }: { matches: BoardMatch[]; href: str
       <div className="rc-th">
         <h2 id="rc-round-h">This round</h2>
         <span>chance to win, expected goals and clean sheet for each side</span>
-        <Link href={href}>All games ›</Link>
+        {href ? <Link href={href}>All games ›</Link> : null}
       </div>
       <div className="rc-rh" aria-hidden="true">
         <span /><span /><span>Win</span><span>xG</span><span>Clean sheet</span><span>Draw · both score</span>
@@ -111,16 +111,16 @@ export function RoundBoard({ matches, href }: { matches: BoardMatch[]; href: str
 }
 
 // ------------------------------------------------------------------------------------------ table after the round
-export function TableAfter({ rows, round, href }: { rows: AfterRow[]; round: number; href: string }) {
+export function TableAfter({ rows, round, href }: { rows: AfterRow[]; round: number; href?: string }) {
   return (
     <section className="hm-tile rc-table" aria-labelledby="rc-table-h">
       <div className="rc-th">
         <h2 id="rc-table-h">Table after round {round}</h2>
-        <Link href={href}>Season ›</Link>
+        {href ? <Link href={href}>Season ›</Link> : null}
       </div>
       <table>
         <thead>
-          <tr><th scope="col"><span className="sr-only">Place</span></th><th scope="col">Club</th><th scope="col">Now</th><th scope="col">After</th><th scope="col"><span className="sr-only">Moved</span></th></tr>
+          <tr><th scope="col"><span className="visually-hidden">Place</span></th><th scope="col">Club</th><th scope="col">Now</th><th scope="col">After</th><th scope="col"><span className="visually-hidden">Moved</span></th></tr>
         </thead>
         <tbody>
           {rows.map((row) => (

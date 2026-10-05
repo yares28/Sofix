@@ -541,6 +541,8 @@ test("home (Recap): the gameweek, the best cards, the round as a scoreboard, the
   await expect(page.locator(".rc-rh")).toContainText("Clean sheet");
   await expect(page.locator(".rc-mt").first().locator(".rc-win")).toHaveCount(2);
   await expect(page.locator(".rc-table tbody tr")).toHaveCount(grid.teams.length);
+  // The narrow table keeps its Now and After columns inside its tile (a global min-width once pushed them out).
+  expect(await page.locator(".rc-table").evaluate((tile) => tile.querySelector("table")!.getBoundingClientRect().right <= tile.getBoundingClientRect().right + 1)).toBe(true);
   const best = page.locator(".rc-best .rc-card");
   expect(await best.count()).toBeGreaterThan(0);
   expect(await best.count()).toBeLessThanOrEqual(10);

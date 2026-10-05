@@ -6,6 +6,8 @@ import {
   LENS_COPY, MIDFIELD_ATTACK_WEIGHT, horizonSize, openingColumn, selectedColumn, windowRange, type View, type ViewState,
 } from "../lib/grid";
 import type { GameweekPlan } from "../lib/play";
+import { roundBoard, tableAfter } from "../lib/recap";
+import { RoundBoard, TableAfter } from "./recap/Recap";
 import type { FixtureGrid, ModelNote } from "../lib/types";
 import AwayWeek from "./AwayWeek";
 import DifficultyGrid from "./DifficultyGrid";
@@ -86,7 +88,18 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl, away
         </>
       ) : (
         <>
-      {view === "plain" && <FixturesList grid={grid} column={column} />}
+      {view === "plain" && (
+        <>
+          {/* The round at a glance: each match as a scoreboard, and the table it leaves behind (plans/restructure.md, R4). */}
+          {grid.matchdays[column] ? (
+            <div className="rc-grid lg-round">
+              <RoundBoard matches={roundBoard(grid, column)} />
+              <TableAfter rows={tableAfter(grid, column)} round={grid.matchdays[column].number} href="/table" />
+            </div>
+          ) : null}
+          <FixturesList grid={grid} column={column} />
+        </>
+      )}
 
       {view === "table" && <LeagueTable grid={grid} through={tableThrough} mode={state.table} onMode={(table) => patch({ table })} />}
 

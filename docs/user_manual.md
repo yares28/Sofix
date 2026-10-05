@@ -79,6 +79,10 @@ and lists the owner's actual fixtures, chance to play and xScore. It does not si
 
 ## 3. Fixtures
 
+The LaLiga view (This week → LaLiga) opens on the round as a scoreboard: each match on two rows with each side's
+chance to win, expected goals and clean-sheet chance, plus the draw and both-score chances; beside it, the table
+after the round. The plain list of fixtures and results by day follows.
+
 ![Selected LaLiga gameweek fixture list](images/fixtures.png)
 
 Fixtures is the plain schedule for the selected LaLiga GW. Each row contains kickoff in `Europe/Madrid`, home/away

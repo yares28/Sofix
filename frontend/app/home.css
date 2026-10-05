@@ -48,7 +48,7 @@ main.hm { max-width: calc(1240px + 56px); }
 .hm-fan-stage li { position: relative; width: clamp(76px, 8vw, 120px); flex: 0 0 auto; margin-inline: clamp(-25px, -1.75vw, -12px); transform: translateY(var(--fan-lift)) rotate(var(--fan-angle)); transform-origin: center bottom; animation: hm-card-arrive .55s var(--ease) both; animation-delay: var(--fan-delay); transition: transform .25s var(--ease); }
 .hm-fan-stage li:hover, .hm-fan-stage li:focus-within { z-index: 20 !important; transform: translateY(-12px) rotate(0deg); }
 .hm-art { position: relative; display: block; width: 100%; aspect-ratio: 5 / 8; }
-.hm-score { position: absolute; z-index: 4; top: 5%; left: 7%; min-width: 28px; padding: 4px 5px; border-radius: 4px; color: #1d1d1f; box-shadow: 0 1px 3px rgba(0,0,0,.23); font-size: 10px; font-weight: 800; line-height: 1; text-align: center; font-variant-numeric: tabular-nums; transform-origin: top left; transition: transform .2s var(--ease), box-shadow .2s var(--ease); }
+.hm-score { position: absolute; z-index: 4; top: 5%; left: 7%; min-width: 28px; padding: 4px 5px; border-radius: 4px; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.23); font-size: 10px; font-weight: 800; line-height: 1; text-align: center; font-variant-numeric: tabular-nums; transform-origin: top left; transition: transform .2s var(--ease), box-shadow .2s var(--ease); }
 .hm-fan-stage li:hover .hm-score, .hm-fan-stage li:focus-within .hm-score { transform: scale(1.28); box-shadow: 0 3px 8px rgba(0,0,0,.26); }
 .hm-score.s9 { background: #2b8a3e; color: #fff; }
 .hm-score.s7 { background: #37b24d; color: #fff; }
@@ -141,7 +141,7 @@ main.hm { max-width: calc(1240px + 56px); }
 @keyframes hm-grow { from { transform: scaleX(0); } }
 .hm-odds em { font-style: normal; font-size: 11px; color: var(--ink-2); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hm-odds em b { color: var(--ink); font-weight: 600; }
-.hm-odds .tag { margin-right: 6px; font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--ink); padding: 1px 5px; border-radius: 5px; background: #fff1d6; }
+.hm-odds .tag { margin-right: 6px; font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--ink); padding: 1px 5px; border-radius: 5px; background: color-mix(in srgb, #ff9f0a 14%, var(--surface)); }
 
 /* Difficulty: every club's games as one mosaic, easiest run first */
 .hm-mosaic { display: grid; gap: 3px; align-content: start; }
@@ -158,9 +158,9 @@ main.hm { max-width: calc(1240px + 56px); }
 .hm-mosaic i.f4 { box-shadow: inset 0 0 0 1px var(--fdr4-ring); }
 .hm-mosaic i.f5 { box-shadow: none; }
 .hm-mosaic i.pl { background: repeating-linear-gradient(135deg, #fff 0 3px, #ececf0 3px 4px); box-shadow: inset 0 0 0 1px #e2e2e7; }
-.hm-mosaic i.pp, .hm-mosaic i.nf { background: #fff; box-shadow: inset 0 0 0 1px #e2e2e7; }
+.hm-mosaic i.pp, .hm-mosaic i.nf { background: var(--surface); box-shadow: inset 0 0 0 1px #e2e2e7; }
 .hm-mosaic i.bl { background: transparent; }
-.hm-mosaic i.dbl::after { content: ""; position: absolute; right: 2px; top: 50%; width: 4px; height: 4px; margin-top: -2px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.25); }
+.hm-mosaic i.dbl::after { content: ""; position: absolute; right: 2px; top: 50%; width: 4px; height: 4px; margin-top: -2px; border-radius: 50%; background: var(--surface); box-shadow: 0 0 0 1px rgba(0,0,0,.25); }
 
 /* Table */
 .hm-race { display: flex; gap: 2px; height: 8px; border-radius: 4px; overflow: hidden; }
@@ -181,8 +181,8 @@ main.hm { max-width: calc(1240px + 56px); }
 .hm-mini .form .L { background: var(--loss); }
 .hm-subhead { margin: 0 0 -6px; display: flex; align-items: center; justify-content: space-between; font-size: 11px; font-weight: 600; color: var(--ink-2); letter-spacing: .03em; text-transform: uppercase; }
 .hm-down li { grid-template-columns: 16px minmax(0, 1fr) 70px 38px; }
-.hm-down .m { height: 5px; border-radius: 3px; background: #f1f1f4; overflow: hidden; }
-.hm-down .m i { display: block; height: 100%; border-radius: 3px; background: #6e6e73; transform-origin: left; animation: hm-grow .9s var(--ease) both .3s; }
+.hm-down .m { height: 5px; border-radius: 3px; background: var(--track); overflow: hidden; }
+.hm-down .m i { display: block; height: 100%; border-radius: 3px; background: var(--ink-2); transform-origin: left; animation: hm-grow .9s var(--ease) both .3s; }
 .hm-down .pc { text-align: right; font-weight: 650; font-variant-numeric: tabular-nums; }
 
 /* ---------- Sorare row ---------- */
@@ -233,7 +233,7 @@ main.hm { max-width: calc(1240px + 56px); }
 .hm-count-in b { font-size: 40px; font-weight: 650; letter-spacing: -0.035em; line-height: 1; font-variant-numeric: tabular-nums; }
 .hm-count-in span { font-size: 13px; color: var(--ink-2); }
 .hm-faces { display: flex; gap: 10px; flex-wrap: wrap; row-gap: 12px; }
-.hm-waitline { margin: 0; display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 16px; background: #f6f9ff; box-shadow: inset 0 0 0 1px #e3edfb; font-size: 12px; color: var(--ink-2); }
+.hm-waitline { margin: 0; display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 16px; background: color-mix(in srgb, #3b9bff 14%, var(--surface)); box-shadow: inset 0 0 0 1px #e3edfb; font-size: 12px; color: var(--ink-2); }
 .hm-waitline b { font-size: 14px; color: var(--ink); font-weight: 650; }
 .hm-pva { display: flex; flex-direction: column; gap: 10px; flex: 1; justify-content: center; }
 /* A competition's name is written whole on its own line, with what it won beside it, and its range under both. */
@@ -245,7 +245,7 @@ main.hm { max-width: calc(1240px + 56px); }
 .hm-rv { position: relative; display: block; height: 18px; }
 .hm-rv .rail { position: absolute; left: 0; right: 0; top: 8px; height: 3px; border-radius: 2px; background: var(--hover); }
 .hm-rv .band { position: absolute; top: 7px; height: 5px; border-radius: 3px; background: linear-gradient(90deg, #cfe9da, #5cc58d); }
-.hm-rv .x { position: absolute; top: 4px; width: 11px; height: 11px; margin-left: -5.5px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 2px var(--ink); }
+.hm-rv .x { position: absolute; top: 4px; width: 11px; height: 11px; margin-left: -5.5px; border-radius: 50%; background: var(--surface); box-shadow: 0 0 0 2px var(--ink); }
 .hm-rv .act { position: absolute; top: 3px; width: 13px; height: 13px; margin-left: -6.5px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2.5px #fff, 0 1px 4px rgba(0,0,0,.25); }
 .hm-rv .need { position: absolute; top: 1px; width: 2px; height: 17px; margin-left: -1px; border-radius: 1px; background: var(--ink); opacity: .75; }
 .hm-rv-key { display: flex; gap: 12px; font-size: 11px; color: var(--ink-2); flex-wrap: wrap; }
@@ -302,7 +302,7 @@ main.hm { max-width: calc(1240px + 56px); }
   .hm-wait { min-height: 200px; }
   .tabbar {
     display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; justify-content: space-around;
-    padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); background: rgba(251,251,253,.86);
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--bg) 86%, transparent);
     backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-top: 1px solid rgba(0,0,0,.06);
   }
   .tabbar a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 0; border-radius: 12px; font-size: 10px; font-weight: 600; color: var(--ink-2); text-decoration: none; }
@@ -330,7 +330,7 @@ main.hm { max-width: calc(1240px + 56px); }
 .hm-nw-head h2 { margin: 0; font-size: 21px; font-weight: 700; letter-spacing: -0.02em; }
 .hm-nw-title > span { font-size: 12.5px; color: var(--ink-2); }
 .hm-nw-tools { display: flex; align-items: center; gap: 12px; }
-.hm-nw-lock { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border-radius: 999px; background: #1d1d1f; color: #fff; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.hm-nw-lock { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border-radius: 999px; background: var(--ink); color: var(--on-ink); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
 .hm-nw-link { font-size: 13px; font-weight: 600; color: #0a58ad; text-decoration: none; display: inline-flex; align-items: center; min-height: 32px; }
 .hm-nw-link:hover { color: var(--ink); }
 .hm-nw-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
@@ -383,11 +383,11 @@ main.hm { max-width: calc(1240px + 56px); }
 .hm-nw-who span { display: block; margin-top: 1px; font-size: 12px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hm-nw-pct { min-width: 46px; text-align: right; font-size: 18px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: #8a5300; }
 .hm-nw-pct[data-tone="low"] { color: #b42318; }
-.hm-nw-pct[data-up] { color: #11633b; }
+.hm-nw-pct[data-up] { color: var(--good-ink); }
 .hm-nw-col:last-child .hm-nw-pct { color: #b42318; }
-.hm-nw-col:last-child .hm-nw-pct[data-up] { color: #11633b; }
-.hm-nw-arrow { display: flex; align-items: center; justify-content: center; flex: none; width: 26px; height: 26px; border-radius: 50%; background: #ffe9e6; color: #b42318; }
-.hm-nw-arrow[data-up] { background: #e6f4ec; color: #11633b; }
+.hm-nw-col:last-child .hm-nw-pct[data-up] { color: var(--good-ink); }
+.hm-nw-arrow { display: flex; align-items: center; justify-content: center; flex: none; width: 26px; height: 26px; border-radius: 50%; background: color-mix(in srgb, #e0605b 14%, var(--surface)); color: #b42318; }
+.hm-nw-arrow[data-up] { background: color-mix(in srgb, #46c05a 14%, var(--surface)); color: var(--good-ink); }
 .hm-nw-from { font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .hm-nw-more, .hm-nw-none { margin: 10px 0 0; font-size: 12.5px; color: var(--ink-2); }
 
@@ -402,3 +402,8 @@ main.hm { max-width: calc(1240px + 56px); }
   .hm-nw-row { gap: 11px; }
   .hm-nw-link { min-height: 44px; }
 }
+
+/* ---------- theme switch (top right) ---------- */
+.theme-switch { width: 32px; height: 32px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--ink-2); cursor: pointer; transition: background .2s, color .2s; }
+.theme-switch:hover { background: var(--hover); color: var(--ink); }
+.theme-switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

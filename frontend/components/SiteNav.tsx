@@ -6,6 +6,7 @@ import NavLinks from "./NavLinks";
 import StatusPill from "./StatusPill";
 import LensBar from "./LensBar";
 import TabBar from "./TabBar";
+import ThemeSwitch from "./ThemeSwitch";
 import WeekPicker from "./WeekPicker";
 
 type Props = {
@@ -29,6 +30,7 @@ export default function SiteNav({ meta, system, current, week }: Props) {
           <div className="nav-meta">
             {week ? <WeekPicker weeks={week.weeks} current={week.current} now={week.now} /> : null}
             <StatusPill syncedAt={meta?.last_synced_at ?? meta?.last_predicted_at ?? null} system={system} current={current === "control"} />
+            <ThemeSwitch />
           </div>
         </div>
       </nav>

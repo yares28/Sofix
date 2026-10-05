@@ -18,6 +18,9 @@ The week control on the right is app-wide:
 - the target icon returns to the current week;
 - the round status dot distinguishes LaLiga from Sorare-only weeks.
 
+The sun/moon button at the top right of the bar switches between the light and the dark theme. The choice is kept in
+this browser; until one is made, Sofix follows the system's light or dark setting.
+
 A week has one name on every page, in the bar, in the Play title and on Lineups and Home, because the two leagues count their
 weeks differently (LaLiga's round 8 is Sorare's GW21): **LaLiga round 8 · Sorare GW21**; before Sorare opens the week
 **LaLiga round 9 · Sorare not open**; an international break has no LaLiga round, **Sorare GW19 · national teams**.

@@ -1,7 +1,7 @@
 /* Control Center: the status pill in the top bar and the /control page it opens.
    Ported from docs/sorare/design/S1-foundation.html (owner-approved design language, docs/sorare/design/DESIGN.md). */
 :root {
-  --good: #1f7a4f; --good-2: #5cc58d; --good-track: #d3f2e1;
+  --good: #1f7a4f; --good-2: #5cc58d; --good-track: #d3f2e1; --good-ink: #11633b;
   --low: #aeaeb2; --low-track: #f1f1f4; --track: #ececf0;
   --amber: #ff9f0a; --amber-bg: #fff4e0; --amber-ink: #8a5300;
   --shadow-card: 0 0 0 1px rgba(0,0,0,.04), 0 2px 4px rgba(0,0,0,.02), 0 12px 32px rgba(0,0,0,.05);
@@ -13,7 +13,7 @@
 /* ---------- Status pill (nav) ---------- */
 .status-pill {
   display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; cursor: pointer;
-  border-radius: 50%; background: #fff; color: var(--ink); text-decoration: none;
+  border-radius: 50%; background: var(--surface); color: var(--ink); text-decoration: none;
   box-shadow: 0 0 0 1px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.06); transition: box-shadow .2s var(--ease);
 }
 .status-pill:hover { box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.08); }
@@ -46,10 +46,10 @@ main.cc-page { max-width: calc(1240px + 56px); }
   display: inline-flex; align-items: center; gap: 8px; text-decoration: none; transition: transform .2s var(--ease), background .2s;
 }
 .cc-btn:active { transform: scale(.97); }
-.cc-btn.primary { background: var(--ink); color: #fff; }
-.cc-btn.primary:hover { background: #000; }
+.cc-btn.primary { background: var(--ink); color: var(--on-ink); }
+.cc-btn.primary:hover { background: color-mix(in srgb, var(--ink) 86%, var(--bg)); }
 .cc-btn.soft { background: var(--track); color: var(--ink); }
-.cc-btn.soft:hover { background: #e2e2e8; }
+.cc-btn.soft:hover { background: var(--track); }
 .cc-btn:focus-visible, .cc-mini:focus-visible, .cc-note a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* pulse */
@@ -71,10 +71,10 @@ main.cc-page { max-width: calc(1240px + 56px); }
 .cc-pulse:not(.good) .cc-ecg path { stroke: var(--amber); }
 @keyframes cc-ecg { from { stroke-dashoffset: 700; } to { stroke-dashoffset: 0; } }
 .cc-go { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.cc-pulse .refresh-button { height: 40px; padding: 0 18px; border-radius: 12px; background: var(--ink); color: #fff; font-size: 14px; font-weight: 600; }
-.cc-pulse .refresh-button:hover:not(:disabled) { background: #000; }
+.cc-pulse .refresh-button { height: 40px; padding: 0 18px; border-radius: 12px; background: var(--ink); color: var(--on-ink); font-size: 14px; font-weight: 600; }
+.cc-pulse .refresh-button:hover:not(:disabled) { background: color-mix(in srgb, var(--ink) 86%, var(--bg)); }
 .cc-pulse .refresh-button:disabled { background: var(--track); color: var(--ink-2); }
-.cc-pulse .refresh-button.failed { background: #ffe9e6; color: #b42318; }
+.cc-pulse .refresh-button.failed { background: color-mix(in srgb, #e0605b 14%, var(--surface)); color: #b42318; }
 .cc-note { font-size: 12px; color: var(--ink-2); }
 .cc-note a { color: var(--ink); font-weight: 600; text-decoration: none; }
 .cc-note a:hover { text-decoration: underline; }
@@ -82,24 +82,24 @@ main.cc-page { max-width: calc(1240px + 56px); }
 /* 24-hour dial */
 .cc-dial { grid-column: span 4; display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .cc-dial svg { width: 100%; max-width: 250px; aspect-ratio: 1; }
-.cc-dial .ring { fill: none; stroke: #f3f4f7; stroke-width: 22; }
-.cc-dial .night { fill: none; stroke: #e4e7ef; stroke-width: 22; }
-.cc-dial .tick { stroke: #d1d1d6; stroke-width: 1.4; stroke-linecap: round; }
-.cc-dial .tick.major { stroke: #aeaeb2; stroke-width: 2; }
+.cc-dial .ring { fill: none; stroke: var(--hover); stroke-width: 22; }
+.cc-dial .night { fill: none; stroke: var(--track); stroke-width: 22; }
+.cc-dial .tick { stroke: var(--ink-3); stroke-width: 1.4; stroke-linecap: round; }
+.cc-dial .tick.major { stroke: var(--ink-2); stroke-width: 2; }
 .cc-dial .lbl { font-size: 10px; font-weight: 600; fill: var(--ink-3); text-anchor: middle; dominant-baseline: middle; }
 .cc-dial .hand { stroke: var(--ink); stroke-width: 2.4; stroke-linecap: round; }
 .cc-dial .hub { fill: var(--ink); }
 .cc-dial .mark.done { fill: var(--good); }
-.cc-dial .mark.todo { fill: #fff; stroke: var(--good); stroke-width: 2.2; }
-.cc-dial .mark.missed { fill: #fff; stroke: var(--low); stroke-width: 2.2; }
+.cc-dial .mark.todo { fill: var(--surface); stroke: var(--good); stroke-width: 2.2; }
+.cc-dial .mark.missed { fill: var(--surface); stroke: var(--low); stroke-width: 2.2; }
 .cc-dial-cap { text-align: center; }
 .cc-dial-cap b { display: block; font-size: 17px; font-weight: 650; letter-spacing: -0.02em; }
 .cc-dial-cap span { font-size: 12px; color: var(--ink-2); }
 .cc-legend { display: flex; gap: 14px; font-size: 11px; color: var(--ink-2); }
 .cc-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
 .cc-legend i.done { background: var(--good); }
-.cc-legend i.todo { background: #fff; box-shadow: inset 0 0 0 2px var(--good); }
-.cc-legend i.missed { background: #fff; box-shadow: inset 0 0 0 2px var(--low); }
+.cc-legend i.todo { background: var(--surface); box-shadow: inset 0 0 0 2px var(--good); }
+.cc-legend i.missed { background: var(--surface); box-shadow: inset 0 0 0 2px var(--low); }
 
 /* last refreshes */
 .cc-runs { grid-column: span 3; display: flex; flex-direction: column; }
@@ -119,7 +119,7 @@ main.cc-page { max-width: calc(1240px + 56px); }
 .cc-links { display: grid; grid-template-columns: auto 1fr auto 1fr auto 1fr auto; align-items: center; margin-top: 8px; }
 .cc-node { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 92px; text-align: center; }
 .cc-node .ic {
-  width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: #fff; color: var(--ink);
+  width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: var(--surface); color: var(--ink);
   box-shadow: 0 0 0 2px var(--good-2), 0 6px 16px rgba(31,122,79,.2);
 }
 .cc-node.off .ic { box-shadow: 0 0 0 2px var(--amber), 0 6px 16px rgba(255,159,10,.2); color: var(--amber-ink); }
@@ -137,7 +137,7 @@ main.cc-page { max-width: calc(1240px + 56px); }
 .cc-cap { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
 .cc-tube { position: relative; width: 46px; height: 96px; border-radius: 16px; background: var(--low-track); box-shadow: inset 0 0 0 1px rgba(0,0,0,.05); overflow: hidden; }
 .cc-tube i { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 0 0 16px 16px; background: linear-gradient(180deg, #7fd3a6, #1f7a4f); transform-origin: bottom; animation: cc-grow 1.1s var(--ease) both .2s; }
-.cc-tube i::before { content: ""; position: absolute; left: -20%; right: -20%; top: -6px; height: 12px; border-radius: 50%; background: rgba(255,255,255,.45); animation: cc-wave 3s ease-in-out infinite; }
+.cc-tube i::before { content: ""; position: absolute; left: -20%; right: -20%; top: -6px; height: 12px; border-radius: 50%; background: color-mix(in srgb, var(--surface) 45%, transparent); animation: cc-wave 3s ease-in-out infinite; }
 @keyframes cc-wave { 50% { transform: translateX(8%) scaleY(.7); } }
 .cc-tube b { position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.25); }
 .cc-cap strong { font-size: 12px; font-weight: 600; }
@@ -160,39 +160,39 @@ main.cc-page { max-width: calc(1240px + 56px); }
 .cc-step b { font-size: 14px; font-weight: 600; }
 .cc-step span { display: block; font-size: 12px; color: var(--ink-2); overflow-wrap: anywhere; }
 .cc-step span.mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 11px; }
-.cc-step.on { background: #fff; box-shadow: var(--shadow-card); }
-.cc-step.on .n { background: var(--ink); color: #fff; }
+.cc-step.on { background: var(--surface); box-shadow: var(--shadow-card); }
+.cc-step.on .n { background: var(--ink); color: var(--on-ink); }
 .cc-step.done .n { background: var(--good-track); color: var(--good); }
 .cc-step.done b { color: var(--ink-2); }
 .cc-mini {
   border: 0; cursor: pointer; border-radius: 9px; padding: 6px 11px; font-size: 12px; font-weight: 600; background: var(--track);
   color: var(--ink); text-decoration: none; white-space: nowrap;
 }
-.cc-mini:hover { background: #e2e2e8; }
+.cc-mini:hover { background: var(--track); }
 .cc-mini.ok { color: var(--good); }
 
 /* the one Chrome step */
 .cc-ext { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 28px; padding: 30px 32px; align-items: center; }
 .cc-ext::before { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(520px circle at 0% 0%, rgba(247,201,72,.14), transparent 60%); }
 .cc-ext.done::before { background: radial-gradient(520px circle at 0% 0%, rgba(92,197,141,.18), transparent 60%); }
-.cc-browser { border-radius: 16px; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 20px 50px rgba(0,0,0,.14); overflow: hidden; position: relative; }
+.cc-browser { border-radius: 16px; background: var(--surface); box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 20px 50px rgba(0,0,0,.14); overflow: hidden; position: relative; }
 .cc-ext.done .cc-browser::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 50% 60%, rgba(92,197,141,.28), transparent 60%); animation: cc-fade 1.4s var(--ease) both; }
 @keyframes cc-fade { from { opacity: 0; } }
-.cc-browser .b-top { height: 34px; background: #eef0f4; display: flex; align-items: center; gap: 6px; padding: 0 12px; }
+.cc-browser .b-top { height: 34px; background: var(--track); display: flex; align-items: center; gap: 6px; padding: 0 12px; }
 .cc-browser .b-top i { width: 9px; height: 9px; border-radius: 50%; background: #d9dbe0; }
-.cc-browser .addr { margin-left: 12px; flex: 1; height: 20px; border-radius: 10px; background: #fff; font: 11px ui-monospace, Menlo, Consolas, monospace; color: var(--ink-2); display: flex; align-items: center; padding: 0 10px; }
+.cc-browser .addr { margin-left: 12px; flex: 1; height: 20px; border-radius: 10px; background: var(--surface); font: 11px ui-monospace, Menlo, Consolas, monospace; color: var(--ink-2); display: flex; align-items: center; padding: 0 10px; }
 .cc-browser .b-body { padding: 14px 16px 18px; min-height: 238px; position: relative; }
 .cc-browser .b-head { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; }
 .cc-browser .dev { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--ink-2); font-weight: 500; }
 .cc-browser .tg { width: 30px; height: 18px; border-radius: 9px; background: #d1d1d6; position: relative; transition: background .3s; flex: none; }
-.cc-browser .tg::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.3); transition: left .3s var(--ease); }
+.cc-browser .tg::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 2px rgba(0,0,0,.3); transition: left .3s var(--ease); }
 .cc-browser .s1 .tg, .cc-browser .s2 .tg, .cc-browser .s3 .tg { background: var(--accent); }
 .cc-browser .s1 .tg::after, .cc-browser .s2 .tg::after, .cc-browser .s3 .tg::after { left: 14px; }
 .cc-browser .devbar { margin-top: 12px; display: flex; gap: 8px; opacity: 0; transform: translateY(-4px); transition: all .35s var(--ease); }
 .cc-browser .s1 .devbar, .cc-browser .s2 .devbar, .cc-browser .s3 .devbar { opacity: 1; transform: none; }
-.cc-browser .devbar span { font-size: 11px; font-weight: 600; padding: 6px 10px; border-radius: 8px; box-shadow: inset 0 0 0 1px #c9d6f5; color: var(--accent); background: #f3f7ff; }
+.cc-browser .devbar span { font-size: 11px; font-weight: 600; padding: 6px 10px; border-radius: 8px; box-shadow: inset 0 0 0 1px #c9d6f5; color: var(--accent); background: color-mix(in srgb, #3b9bff 14%, var(--surface)); }
 .cc-browser .s2 .devbar span:first-child { background: var(--accent); color: #fff; }
-.cc-browser .picker { position: absolute; left: 16px; right: 16px; top: 88px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.1), 0 16px 32px rgba(0,0,0,.16); padding: 10px 12px; font-size: 11px; opacity: 0; transform: scale(.96); transition: all .35s var(--ease); }
+.cc-browser .picker { position: absolute; left: 16px; right: 16px; top: 88px; border-radius: 12px; background: var(--surface); box-shadow: 0 0 0 1px rgba(0,0,0,.1), 0 16px 32px rgba(0,0,0,.16); padding: 10px 12px; font-size: 11px; opacity: 0; transform: scale(.96); transition: all .35s var(--ease); }
 .cc-browser .s2 .picker { opacity: 1; transform: none; }
 .cc-browser .picker code { display: block; margin-top: 6px; padding: 6px 8px; border-radius: 7px; background: var(--hover); font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cc-browser .xcard { margin-top: 14px; display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; box-shadow: inset 0 0 0 1px var(--line); opacity: 0; transform: translateY(8px); transition: all .45s var(--ease); }
@@ -220,28 +220,28 @@ main.cc-page { max-width: calc(1240px + 56px); }
 .cc-url svg { color: var(--good); }
 .cc-qrrow { margin-top: 16px; display: flex; align-items: center; gap: 14px; }
 .cc-qrrow > span { font-size: 12px; color: var(--ink-2); }
-.cc-qr { width: 112px; flex: none; padding: 8px; border-radius: 16px; background: #fff; box-shadow: var(--shadow-lift); }
+.cc-qr { width: 112px; flex: none; padding: 8px; border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-lift); }
 .cc-qr svg { width: 100%; height: auto; display: block; }
 /* Sized by its width, so the laptop and the phone keep their proportions at any card width. */
 .cc-devices { position: relative; width: 100%; max-width: 560px; aspect-ratio: 560 / 300; justify-self: center; }
 .cc-devices .laptop { position: absolute; left: 0; top: 6%; width: 74%; }
-.cc-devices .screen { aspect-ratio: 16 / 10; border-radius: 14px 14px 4px 4px; background: #1d1d1f; padding: 8px; box-shadow: 0 20px 44px rgba(0,0,0,.2); }
+.cc-devices .screen { aspect-ratio: 16 / 10; border-radius: 14px 14px 4px 4px; background: var(--ink); padding: 8px; box-shadow: 0 20px 44px rgba(0,0,0,.2); }
 .cc-devices .app { width: 100%; height: 100%; border-radius: 7px; background: var(--bg); overflow: hidden; display: grid; grid-template-rows: 16px 1fr; }
-.cc-devices .bar2 { background: #fff; box-shadow: inset 0 -1px 0 var(--line); display: flex; align-items: center; gap: 4px; padding: 0 6px; }
+.cc-devices .bar2 { background: var(--surface); box-shadow: inset 0 -1px 0 var(--line); display: flex; align-items: center; gap: 4px; padding: 0 6px; }
 .cc-devices .bar2 i { width: 7px; height: 7px; border-radius: 2px; background: var(--stripes); }
 .cc-devices .bar2 span { font-size: 7px; font-weight: 600; }
 /* A tiny bento: a hero with its ring, two small cards, and three rows of difficulty stripes. */
 .cc-devices .content { height: 100%; padding: 6%; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: 1.2fr 1fr 1fr; gap: 5px; min-height: 0; }
-.cc-devices .content div { border-radius: 5px; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.04); display: flex; align-items: center; justify-content: center; }
+.cc-devices .content div { border-radius: 5px; background: var(--surface); box-shadow: 0 0 0 1px rgba(0,0,0,.04); display: flex; align-items: center; justify-content: center; }
 .cc-devices .content div:first-child { grid-column: span 2; grid-row: span 2; background: linear-gradient(135deg, #fff, #eaf7f0); }
 .cc-devices .content div:first-child::after { content: ""; width: 22%; aspect-ratio: 1; border-radius: 50%; border: 3px solid var(--good-2); border-right-color: var(--good-track); }
 .cc-devices .content div:nth-child(n+4)::after { content: ""; width: 76%; height: 26%; border-radius: 3px; background: var(--stripes); opacity: .85; }
 .cc-devices .base { height: 10px; margin: 0 -6%; border-radius: 0 0 12px 12px; background: linear-gradient(180deg, #d9dbe0, #b9bcc4); }
-.cc-devices .phone { position: absolute; right: 2%; top: 0; width: 23.5%; aspect-ratio: 9 / 19; border-radius: 26px; background: #1d1d1f; padding: 7px; box-shadow: 0 24px 50px rgba(0,0,0,.28); }
+.cc-devices .phone { position: absolute; right: 2%; top: 0; width: 23.5%; aspect-ratio: 9 / 19; border-radius: 26px; background: var(--ink); padding: 7px; box-shadow: 0 24px 50px rgba(0,0,0,.28); }
 .cc-devices .scr { width: 100%; height: 100%; border-radius: 20px; background: linear-gradient(160deg, #cfe0ff, #a7b8ea 55%, #8fa3dc); position: relative; overflow: hidden; }
-.cc-devices .notch { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); width: 36px; height: 9px; border-radius: 6px; background: #1d1d1f; }
+.cc-devices .notch { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); width: 36px; height: 9px; border-radius: 6px; background: var(--ink); }
 .cc-devices .icons { position: absolute; left: 10%; right: 10%; top: 13%; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10% 7%; }
-.cc-devices .icons i { aspect-ratio: 1; border-radius: 7px; background: rgba(255,255,255,.55); }
+.cc-devices .icons i { aspect-ratio: 1; border-radius: 7px; background: color-mix(in srgb, var(--surface) 55%, transparent); }
 .cc-devices .icons i.me { background: var(--stripes); box-shadow: 0 4px 10px rgba(0,0,0,.25); position: relative; animation: cc-drop 3.2s var(--ease) infinite; }
 .cc-devices .icons i.me::after { content: "Sofix"; position: absolute; top: 105%; left: 50%; transform: translateX(-50%); font-size: 5px; color: #fff; white-space: nowrap; font-weight: 600; }
 @keyframes cc-drop { 0% { transform: translateY(-60px) scale(.6); opacity: 0; } 22% { transform: translateY(4px) scale(1.08); opacity: 1; } 30%, 88% { transform: none; opacity: 1; } 100% { opacity: 0; } }
@@ -260,7 +260,7 @@ main.cc-page { max-width: calc(1240px + 56px); }
 .cc-flow { display: none; list-style: none; margin: 0; padding: 0; }
 .cc-flow li {
   position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr); column-gap: 12px; align-items: center;
-  padding: 10px 14px; border-radius: 16px; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.04), 0 6px 16px rgba(0,0,0,.07);
+  padding: 10px 14px; border-radius: 16px; background: var(--surface); box-shadow: 0 0 0 1px rgba(0,0,0,.04), 0 6px 16px rgba(0,0,0,.07);
 }
 .cc-flow li + li { margin-top: 22px; }
 .cc-flow li + li::before { content: ""; position: absolute; left: 27px; top: -20px; width: 2.5px; height: 18px; border-radius: 2px; background: #bfe3cf; }
@@ -343,7 +343,7 @@ main.cc-page { max-width: calc(1240px + 56px); }
 }
 @keyframes sr-fill { from { width: 0 !important; } }
 .sr-run .p {
-  position: absolute; top: 28px; width: 20px; height: 20px; border-radius: 50%; background: #fff;
+  position: absolute; top: 28px; width: 20px; height: 20px; border-radius: 50%; background: var(--surface);
   box-shadow: 0 0 0 3px var(--low), 0 2px 6px rgba(0, 0, 0, .12); transform: translateX(-50%);
 }
 .sr-run .p.on { box-shadow: 0 0 0 3px var(--good), 0 2px 6px rgba(0, 0, 0, .12); }
@@ -358,10 +358,10 @@ main.cc-page { max-width: calc(1240px + 56px); }
 }
 .sr-alert b { display: block; font-size: 14px; font-weight: 650; }
 .sr-go {
-  margin-left: auto; background: var(--ink); color: #fff; border-radius: 12px; padding: 9px 16px; font-size: 13px;
+  margin-left: auto; background: var(--ink); color: var(--on-ink); border-radius: 12px; padding: 9px 16px; font-size: 13px;
   font-weight: 600; text-decoration: none; white-space: nowrap; box-shadow: 0 2px 8px rgba(0, 0, 0, .18);
 }
-.sr-go:hover { background: #000; }
+.sr-go:hover { background: color-mix(in srgb, var(--ink) 86%, var(--bg)); }
 
 .sr-clocks { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; background: var(--line); border-top: 1px solid var(--line); }
 .sr-clock {

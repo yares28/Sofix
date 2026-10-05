@@ -98,7 +98,7 @@ function Dial({ marks, nowHour }: { marks: DialMark[]; nowHour: number }) {
   const C = 120;
   const pt = (h: number, r: number): [number, number] => {
     const a = (h / 24) * Math.PI * 2 - Math.PI / 2;
-    return [C + r * Math.cos(a), C + r * Math.sin(a)];
+    return [Math.round((C + r * Math.cos(a)) * 100) / 100, Math.round((C + r * Math.sin(a)) * 100) / 100]; // rounded: server and browser trig differ in the last digits
   };
   const arc = (h0: number, h1: number, r: number) => {
     const [x0, y0] = pt(h0, r);

@@ -5,15 +5,15 @@ main.rc { display: flex; flex-direction: column; gap: 20px; }
 .rc-head p { margin: 6px 0 0; color: var(--ink-2); font-size: 15px; }
 .rc-act { margin-left: auto; display: flex; align-items: center; gap: 12px; }
 .rc-pill { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); border-radius: 999px; padding: 9px 16px; font-size: 13px; color: var(--ink-2); white-space: nowrap; }
-.rc-btn { display: inline-flex; align-items: center; height: 44px; padding: 0 22px; border-radius: 999px; background: var(--ink); color: #fff; text-decoration: none; font-weight: 600; white-space: nowrap; }
+.rc-btn { display: inline-flex; align-items: center; height: 44px; padding: 0 22px; border-radius: 999px; background: var(--ink); color: var(--on-ink); text-decoration: none; font-weight: 600; white-space: nowrap; }
 .rc-btn:focus-visible, .rc-th a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
 .rc-best { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 14px; padding: 8px 0 12px; }
 .rc-card { margin: 0; display: flex; flex-direction: column; align-items: center; min-width: 0; animation: hm-rise .6s var(--ease) both; }
-.rc-art { position: relative; display: block; width: 100%; aspect-ratio: 5 / 8; border-radius: 10px; overflow: hidden; background: #e9e9ee; box-shadow: 0 2px 4px rgba(0,0,0,.16), 0 12px 24px rgba(16,24,40,.14); }
+.rc-art { position: relative; display: block; width: 100%; aspect-ratio: 5 / 8; border-radius: 10px; overflow: hidden; background: var(--track); box-shadow: 0 2px 4px rgba(0,0,0,.16), 0 12px 24px rgba(16,24,40,.14); }
 .rc-card .rc-art { overflow: visible; }
 .rc-card .rc-art img { border-radius: 10px; }
-.rc-rank { position: absolute; left: -6px; top: -8px; width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--bg); }
+.rc-rank { position: absolute; left: -6px; top: -8px; width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: var(--on-ink); font-size: 11px; font-weight: 700; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--bg); }
 .rc-hex { position: relative; z-index: 1; margin-top: -18px; width: 50px; height: 43px; display: grid; place-items: center; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; }
 .rc-hex.sm { margin-top: -13px; width: 36px; height: 31px; font-size: 13px; }
 .rc-card figcaption { margin-top: 8px; text-align: center; line-height: 1.3; width: 100%; display: flex; flex-direction: column; align-items: center; }
@@ -72,7 +72,7 @@ main.rc { display: flex; flex-direction: column; gap: 20px; }
 .rc-team { list-style: none; margin: 0; padding: 0; display: flex; gap: 10px; overflow-x: auto; padding-top: 8px; }
 .rc-team li { position: relative; width: 72px; flex: none; display: flex; flex-direction: column; align-items: center; }
 .rc-team .rc-art { border-radius: 8px; }
-.rc-cap { position: absolute; top: -7px; right: -7px; z-index: 2; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--surface); }
+.rc-cap { position: absolute; top: -7px; right: -7px; z-index: 2; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: var(--on-ink); font-size: 11px; font-weight: 700; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--surface); }
 .rc-nm { margin-top: 3px; font-size: 12px; font-weight: 550; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rc-score b { display: block; font-size: 44px; line-height: .95; font-weight: 650; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
 .rc-score span { display: block; font-size: 12px; color: var(--ink-2); margin-top: 6px; }
@@ -142,9 +142,9 @@ main.rc { display: flex; flex-direction: column; gap: 20px; }
 .season-jump { position: sticky; top: 8px; z-index: 5; display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 18px; padding: 8px; border-radius: 16px; background: var(--card, #fff); box-shadow: 0 1px 0 var(--line); }
 .season-jump a { min-width: 32px; height: 32px; display: grid; place-items: center; border-radius: 10px; font-size: 12px; font-weight: 600; color: var(--ink); text-decoration: none; font-variant-numeric: tabular-nums; }
 .season-jump a.done { color: var(--ink-2); font-weight: 500; }
-.season-jump a[aria-current] { background: var(--ink); color: #fff; }
+.season-jump a[aria-current] { background: var(--ink); color: var(--on-ink); }
 .season-jump a:hover { background: var(--hover); }
 .season-jump a[aria-current]:hover { background: var(--ink); }
 .season-round { scroll-margin-top: 70px; margin-bottom: 16px; }
 /* R8: a 0-100 score drawn in its Sorare band */
-.sc-chip { display: inline-block; padding: 1px 8px; border-radius: 8px; line-height: 1.15; }
+.sc-chip { display: inline-block; width: fit-content; padding: 1px 8px; border-radius: 8px; line-height: 1.15; }

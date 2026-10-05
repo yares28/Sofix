@@ -21,43 +21,39 @@ function Calibration({ bands, max, label, unit }: { bands: Band[]; max: number; 
   );
 }
 
-const EXAMPLE = [
-  { who: "Defender A", said: 55, scored: 62 },
-  { who: "Defender B", said: 48, scored: 40 },
-];
+/** The share of all pairs, every position together, that the xScore picks right now: the page's one number. */
+function overall(data: League): number | null {
+  const rated = data.positions.flatMap((p) => (enough(p.now) ? [p.now] : []));
+  const pairs = rated.reduce((sum, r) => sum + r.pairs, 0);
+  return pairs ? rated.reduce((sum, r) => sum + r.rate * r.pairs, 0) / pairs : null;
+}
 
+/** Audit · xScore, as the canvas draws it (board "7 · Audit · xScore"): the one number, the four positions against the old number, then the charts. */
 export default function LeagueAudit({ data }: { data: League }) {
   const story = weeklyStory(data.weeks);
   const bars = missBars(data.miss);
   const keeperMax = scaleMax(data.keeper.bands);
-  const startsMax = scaleMax(data.starts_calibration.bands);
   const w7 = data.within7;
+  const all = overall(data);
   return (
     <>
-      <section className="au-w lg-card" aria-labelledby="lg-pairs-h">
-        <p className="au-label">Pick the better of two</p>
-        <h2 id="lg-pairs-h">How often Sofix picks the player who scored more</h2>
-        <p className="lg-cap">Take any two players of one position in the same gameweek. If Sofix gave one a higher xScore and he scored more, that is a hit. A coin flip hits 50 times in 100.</p>
-        <div className="lg-hero">
-          <div className="lg-ex" aria-label="An example pair">
-            <p className="lg-ex-t">One pair, for example</p>
-            {EXAMPLE.map((p) => (
-              <div className="lg-pl" key={p.who}>
-                <span>{p.who}</span>
-                <div className="lg-pb">
-                  <span>
-                    Sofix said <b>{p.said}</b>
-                  </span>
-                  <i className="s" style={{ width: `${p.said}%` }} />
-                  <span>
-                    He scored <b>{p.scored}</b>
-                  </span>
-                  <i className="r" style={{ width: `${p.scored}%` }} />
-                </div>
-              </div>
-            ))}
-            <p className="lg-verdict">A was higher and scored more: a hit</p>
-          </div>
+      <section className="ax-hero">
+        <div className="ax-lead">
+          <h1>How often the xScore is right</h1>
+          <p className="ax-sub">Two LaLiga seasons replayed, each game predicted from the weeks before it</p>
+          <p className="ax-big">
+            <b>{all === null ? "–" : `${pct(all)}%`}</b>
+            <span>of the time it picks the better of two players. A coin flip gets 50.</span>
+          </p>
+          <ul className="ax-facts">
+            <li><strong>{count(data.starts)}</strong> starts</li>
+            <li><strong>{data.weeks.length}</strong> gameweeks</li>
+            {data.weeks.length ? <li>{asOfLabel(data.weeks[0]!.from)} to {asOfLabel(data.asOf)}</li> : null}
+          </ul>
+        </div>
+        <section className="au-w lg-card ax-pairs" aria-labelledby="lg-pairs-h">
+          <h2 id="lg-pairs-h">Pick the better of two</h2>
+          <p className="lg-cap">now, against the old number</p>
           <div className="lg-dum">
             <div className="lg-scale" aria-hidden="true">
               <span>45</span>
@@ -99,11 +95,12 @@ export default function LeagueAudit({ data }: { data: League }) {
               </span>
             </p>
           </div>
-        </div>
+        </section>
       </section>
 
+      <div className="ax-grid">
       {story ? (
-        <section className="au-w lg-card" aria-labelledby="lg-weeks-h">
+        <section className="au-w lg-card ax-8" aria-labelledby="lg-weeks-h">
           <p className="au-label">Week by week</p>
           <h2 id="lg-weeks-h">{story.above === story.total ? `Above a coin flip in every one of ${story.total} gameweeks` : `Above a coin flip in ${story.above} of ${story.total} gameweeks`}</h2>
           <p className="lg-cap">
@@ -124,9 +121,7 @@ export default function LeagueAudit({ data }: { data: League }) {
           </p>
         </section>
       ) : null}
-
-      <div className="lg-g2">
-        <section className="au-w lg-card" aria-labelledby="lg-miss-h">
+        <section className="au-w lg-card ax-4" aria-labelledby="lg-miss-h">
           <p className="au-label">How close</p>
           <h2 id="lg-miss-h">How far the score lands from the xScore</h2>
           <p className="lg-cap">Each bar counts starts by how many points the score was above or below.</p>
@@ -157,52 +152,7 @@ export default function LeagueAudit({ data }: { data: League }) {
             </div>
           </dl>
         </section>
-
-        <section className="au-w lg-card" aria-labelledby="lg-keep-h">
-          <p className="au-label">Goalkeepers</p>
-          <h2 id="lg-keep-h">When Sofix says 30%, does it happen 30% of the time?</h2>
-          <p className="lg-cap">The chance of a clean sheet or a penalty save. On the line means honest.</p>
-          <div className="lg-rw">
-            <Calibration bands={data.keeper.bands} max={keeperMax} label="Goalkeepers' chance of a decisive action against how often it happened" unit="of starts" />
-            <dl className="lg-stats col">
-              <div>
-                <dt>said on average</dt>
-                <dd>{(data.keeper.said * 100).toFixed(1)}%</dd>
-              </div>
-              <div>
-                <dt>happened</dt>
-                <dd>{(data.keeper.happened * 100).toFixed(1)}%</dd>
-              </div>
-              <div>
-                <dt>starts</dt>
-                <dd>{count(data.keeper.games)}</dd>
-              </div>
-            </dl>
-          </div>
-        </section>
-      </div>
-
-      <div className="lg-g2">
-        <section className="au-w lg-card" aria-labelledby="lg-start-h">
-          <p className="au-label">Who starts</p>
-          <h2 id="lg-start-h">Sofix&apos;s chance that a player starts, against who started</h2>
-          <p className="lg-cap">His chance from his own form, replayed on {count(data.starts_calibration.games)} games.</p>
-          <div className="lg-rw">
-            <Calibration bands={data.starts_calibration.bands} max={startsMax} label="Sofix's chance that a player starts against how often he started" unit="of games" />
-            <dl className="lg-stats col">
-              <div>
-                <dt>of games right</dt>
-                <dd>{pct(data.starts_calibration.right)}%</dd>
-              </div>
-              <div>
-                <dt>games</dt>
-                <dd>{count(data.starts_calibration.games)}</dd>
-              </div>
-            </dl>
-          </div>
-        </section>
-
-        <section className="au-w lg-card" aria-labelledby="lg-vs-h">
+        <section className="au-w lg-card ax-6" aria-labelledby="lg-vs-h">
           <p className="au-label">Against Sorare&apos;s own number</p>
           <h2 id="lg-vs-h">Landing within 7 points of the score</h2>
           <p className="lg-cap">Share of starts where the number was that close.</p>
@@ -238,11 +188,58 @@ export default function LeagueAudit({ data }: { data: League }) {
             </>
           ) : null}
         </section>
+        <section className="au-w lg-card ax-6" aria-labelledby="lg-keep-h">
+          <p className="au-label">Goalkeepers</p>
+          <h2 id="lg-keep-h">When Sofix says 30%, does it happen 30% of the time?</h2>
+          <p className="lg-cap">The chance of a clean sheet or a penalty save. On the line means honest.</p>
+          <div className="lg-rw">
+            <Calibration bands={data.keeper.bands} max={keeperMax} label="Goalkeepers' chance of a decisive action against how often it happened" unit="of starts" />
+            <dl className="lg-stats col">
+              <div>
+                <dt>said on average</dt>
+                <dd>{(data.keeper.said * 100).toFixed(1)}%</dd>
+              </div>
+              <div>
+                <dt>happened</dt>
+                <dd>{(data.keeper.happened * 100).toFixed(1)}%</dd>
+              </div>
+              <div>
+                <dt>starts</dt>
+                <dd>{count(data.keeper.games)}</dd>
+              </div>
+            </dl>
+          </div>
+        </section>
       </div>
 
       <p className="lg-foot">
         {count(data.starts)} starts over two LaLiga seasons to {asOfLabel(data.asOf)}, each predicted from the weeks before it only (the models are fitted through {asOfLabel(data.through)}).
       </p>
     </>
+  );
+}
+
+/** Who starts, checked (canvas board "7b"): Sofix's chance that a player starts, against who did, on past games. */
+export function StartsCheck({ data }: { data: League }) {
+  const startsMax = scaleMax(data.starts_calibration.bands);
+  return (
+    <section className="au-w lg-card" aria-labelledby="lg-start-h">
+          <p className="au-label">Who starts</p>
+          <h2 id="lg-start-h">Sofix&apos;s chance that a player starts, against who started</h2>
+          <p className="lg-cap">His chance from his own form, replayed on {count(data.starts_calibration.games)} games.</p>
+          <div className="lg-rw">
+            <Calibration bands={data.starts_calibration.bands} max={startsMax} label="Sofix's chance that a player starts against how often he started" unit="of games" />
+            <dl className="lg-stats col">
+              <div>
+                <dt>of games right</dt>
+                <dd>{pct(data.starts_calibration.right)}%</dd>
+              </div>
+              <div>
+                <dt>games</dt>
+                <dd>{count(data.starts_calibration.games)}</dd>
+              </div>
+            </dl>
+          </div>
+    </section>
   );
 }

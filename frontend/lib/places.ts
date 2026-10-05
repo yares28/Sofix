@@ -40,7 +40,7 @@ export const PLACES: Place[] = [
     views: [
       { href: "/audit", label: "xScore" },
       { href: "/audit/starts", label: "Who starts" },
-      { href: "/audit/record", label: "Written down" },
+      { href: "/audit/starts#written", label: "Written down" }, // a section of Who starts (canvas board 7b)
     ],
   },
 ];

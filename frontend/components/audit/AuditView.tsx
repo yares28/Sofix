@@ -12,7 +12,7 @@ import {
 import { SOURCE_NAME, SOURCE_SHORT, type StartSource } from "../../lib/play";
 import type { LeagueAudit as League } from "../../lib/leagueAudit";
 import SourceMark from "../SourceMark";
-import LeagueAudit from "./LeagueAudit";
+import LeagueAudit, { StartsCheck } from "./LeagueAudit";
 
 const NAME: Record<StartSource, string> = { futbolfantasy: "Futbol Fantasy", sorare: "Sorare", sofix: "Sofix" };
 function Progress({ settled, floor }: { settled: number; floor: number }) {
@@ -99,7 +99,7 @@ function Record({ data }: { data: Audit }) {
   );
 }
 
-export type AuditShow = "xscore" | "starts" | "record";
+export type AuditShow = "xscore" | "starts";
 
 export default function AuditView({ data, now, league, show = "xscore" }: { data: Audit | null; now: Date; league: League | null; show?: AuditShow }) {
   if (!data) {
@@ -110,34 +110,48 @@ export default function AuditView({ data, now, league, show = "xscore" }: { data
       </section>
     );
   }
+  const updated = data.generatedAt ? <p className="au-fresh">Updated {freshLabel(data.generatedAt, now)}</p> : null;
+  if (show === "xscore") {
+    return (
+      <>
+        {league ? <LeagueAudit data={league} /> : <h1>Audit</h1>}
+        {updated}
+      </>
+    );
+  }
+  // Who starts, checked (canvas board "7b"): the past games first, then each source live, then what was written down.
+  const right = league ? league.starts_calibration.right : null;
   return (
     <>
-      <header className="au-top">
-        <h1>{show === "starts" ? "Who starts?" : show === "record" ? "Written down" : "Audit"}</h1>
-        <p>
-          {show === "starts"
-            ? "Each source's chance that a player starts, written down before the lock and checked against who started."
-            : show === "record"
-              ? "Every gameweek's games, written down before the lock, and how many have been checked."
-              : "How often the numbers were right, checked against what happened."}
-        </p>
-        {data.generatedAt ? <p className="au-fresh">Updated {freshLabel(data.generatedAt, now)}</p> : null}
-      </header>
-      {show === "xscore" && league ? <LeagueAudit data={league} /> : null}
-      {show === "starts" ? (
-        <section className="au-w au-starts" aria-label="Who starts?">
-          <div className="au-srcs">
-            {SOURCES.map((source) => (
-              <Source key={source} source={source} live={data.starts.live[source]} floor={data.floor} />
-            ))}
-          </div>
-        </section>
-      ) : null}
-      {show === "record" ? (
-        <section className="au-w au-starts" aria-label="Written down">
-          {data.starts.weeks.length ? <Record data={data} /> : <p className="au-sub">Nothing written down yet.</p>}
-        </section>
-      ) : null}
+      <section className="ax-hero">
+        <div className="ax-lead">
+          <h1>Who starts, checked</h1>
+          <p className="ax-sub">Each source&apos;s chance that a player starts, against who did</p>
+          <p className="ax-big">
+            <b>{right === null ? "–" : `${Math.round(right * 100)}%`}</b>
+            <span>right on past games, from Sofix&apos;s form alone</span>
+          </p>
+          {league ? (
+            <ul className="ax-facts">
+              <li><strong>{league.starts_calibration.games.toLocaleString("en-GB")}</strong> games</li>
+            </ul>
+          ) : null}
+          {updated}
+        </div>
+        {league ? <StartsCheck data={league} /> : null}
+      </section>
+      <section className="au-w au-starts" aria-label="Who starts?">
+        <div className="au-srcs">
+          {SOURCES.map((source) => (
+            <Source key={source} source={source} live={data.starts.live[source]} floor={data.floor} />
+          ))}
+        </div>
+      </section>
+      <section className="au-w au-starts" id="written" aria-labelledby="au-written-h">
+        <h2 id="au-written-h">Written down so far</h2>
+        <p className="au-sub">Before each lock; checked a day after the gameweek ends.</p>
+        {data.starts.weeks.length ? <Record data={data} /> : <p className="au-sub">Nothing written down yet.</p>}
+      </section>
     </>
   );
 }

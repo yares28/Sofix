@@ -31,7 +31,7 @@
   --text-sm: 13px;
   --text-base: 14px;
   --text-md: 16px;
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-inter, Inter), "Segoe UI", system-ui, sans-serif;
+  --font-sans: var(--font-geist, Geist), -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 
   color-scheme: light;
 }

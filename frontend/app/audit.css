@@ -98,8 +98,8 @@
 .au-band-text small { display: block; font-size: 11px; }
 .au-bands-key { margin: 10px 0 0; font-size: 12px; color: var(--ink-2); }
 
-.au-record { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line); }
-.au-record table { width: 100%; max-width: 640px; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.au-record { margin: 0; }
+.au-record table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
 .au-record th, .au-record td { padding: 9px 10px; text-align: right; border-bottom: 1px solid var(--line); }
 .au-record thead th .src-mark { margin-right: 6px; }
 .au-record tbody tr:last-child th, .au-record tbody tr:last-child td { border-bottom: 0; }

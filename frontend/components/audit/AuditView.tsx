@@ -66,7 +66,6 @@ function Record({ data }: { data: Audit }) {
   if (data.starts.weeks.length === 0) return null;
   return (
     <div className="au-record">
-      <p className="au-label">Written down so far</p>
       <table>
         <caption className="visually-hidden">Games written down before each lock, and how many have been checked</caption>
         <thead>

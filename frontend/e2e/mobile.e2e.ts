@@ -173,19 +173,20 @@ test("on a phone every text on Lineups, Cards and Players is 10 px or more", asy
   }
 });
 
-test("the Audit page fits a phone: the charts first, one source under another, no sideways scrolling, nothing under 10 px", async ({ page }) => {
-  await page.goto("/audit");
-  await expect(page.locator(".lg-card").first()).toBeVisible();
-  const lastChart = (await page.locator(".lg-card").last().boundingBox())!;
+test("the Audit views fit a phone: one source under another, no sideways scrolling, nothing under 10 px", async ({ page }) => {
+  for (const [path, ready] of [["/audit", ".lg-card"], ["/audit/starts", ".au-src"], ["/audit/record", ".au-w"]] as const) {
+    await page.goto(path);
+    await expect(page.locator(ready).first()).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), path).toBe(true);
+    expect(await smallText(page, 10), path).toEqual([]);
+  }
+  await page.goto("/audit/starts");
   const first = (await page.getByRole("article", { name: "Futbol Fantasy" }).boundingBox())!;
   const second = (await page.getByRole("article", { name: "Sorare" }).boundingBox())!;
-  expect(first.y).toBeGreaterThan(lastChart.y + lastChart.height); // the charts come before the sources
   expect(second.y).toBeGreaterThan(first.y + first.height - 1); // one column
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  expect(await smallText(page, 10)).toEqual([]);
 
   const tabs = page.getByRole("navigation", { name: "Sections" });
   await expect(tabs.getByRole("link", { name: "Audit" })).toHaveAttribute("aria-current", "page");
   const boxes = await tabs.getByRole("link").evaluateAll((links) => links.map((link) => link.getBoundingClientRect().toJSON()));
-  for (const box of boxes) expect(box.right).toBeLessThanOrEqual(390); // seven tabs still fit the bar
+  for (const box of boxes) expect(box.right).toBeLessThanOrEqual(390);
 });

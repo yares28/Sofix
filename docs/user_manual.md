@@ -314,6 +314,10 @@ doubt; hover the mark for the name.
 
 ![Audit: how often the xScore picks the better of two, how close it lands, calibration and what has been written down](images/audit.png)
 
+Audit has three views under the switch below the top bar (since 5 Oct): **xScore** (`/audit`, the charts below), **Who
+starts** (`/audit/starts`, each source's record on who starts) and **Written down** (`/audit/record`, every gameweek's
+games written down before the lock and how many have been checked).
+
 The Audit page checks Sofix's numbers against what happened, as charts (since 4 Oct). The first block is a replay of two LaLiga seasons: every game
 predicted from the weeks before it only (9,190 starts to 20 Sep).
 

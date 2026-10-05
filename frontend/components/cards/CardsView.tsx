@@ -21,6 +21,7 @@ import { SOURCE_NAME, SOURCE_SHORT, type CollectionCard, type Sorare } from "../
 import { Foil } from "../play/bits";
 import CardArt from "./CardArt";
 import useCountUp from "./useCountUp";
+import SeasonIcon from "../SeasonIcon";
 
 const RARITIES: { key: string; label: string }[] = [
   { key: "all", label: "Both" },
@@ -39,6 +40,7 @@ function SeasonMark({ card }: { card: CollectionCard }) {
   return (
     <span className={`s5-season ${card.inSeason ? "in" : "out"}`} title={card.inSeason ? "In season" : "Classic"}>
       <span className="visually-hidden">{card.inSeason ? "In season" : "Classic"}</span>
+      <SeasonIcon inSeason={card.inSeason} size={10} />
       {seasonBadge(card)}
     </span>
   );
@@ -154,6 +156,15 @@ export default function CardsView({ data, now }: { data: Sorare; now: string }) 
             <b>{data.cards.excluded.length}</b> left out
           </span>
         </p>
+        {/* Moved here from the old home's cards tile: without a Rare goalkeeper no Rare lineup can be entered. */}
+        {data.cards.rareGoalkeepers === 0 && (data.cards.byRarity.rare ?? 0) > 0 ? (
+          <p className="s5-warn" role="note">
+            <Foil rarity="rare" />
+            <span>
+              <b>No Rare goalkeeper.</b> Rare competitions stay locked; your {data.cards.byRarity.rare} Rares play in Limited ones.
+            </span>
+          </p>
+        ) : null}
       </section>
 
       <section className="s5-kpis" aria-label="Collection summary">

@@ -54,3 +54,13 @@ test("with reduced motion the cards and search results still show (their rise is
     expect(await page.locator(item).first().evaluate((el) => getComputedStyle(el).opacity), path).toBe("1");
   }
 });
+
+test("every player card grows on hover: the Recap, the Gallery, Players, Play and Lineups", async ({ page }) => {
+  for (const [path, card] of [["/", ".rc-best .rc-art"], ["/cards", ".s5-pc .art"], ["/players", ".s5-res .art"], ["/play", ".pl-mc .art"], ["/lineups?m=22502", ".lu-face"]] as const) {
+    await page.goto(path);
+    const art = page.locator(card).first();
+    await art.scrollIntoViewIfNeeded();
+    await art.hover({ force: path.startsWith("/lineups") }); // on Lineups a link covers the card: hovering it is hovering the card
+    await expect.poll(() => art.evaluate((el) => new DOMMatrix(getComputedStyle(el).transform).a), { message: path }).toBeGreaterThan(1.1);
+  }
+});

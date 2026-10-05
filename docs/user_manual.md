@@ -68,9 +68,14 @@ The Recap is about the week in the top bar (since 5 Oct 2026; design canvas boar
 - **News this week**: your players hurt or banned in the last seven days and those cleared to play after a knock, in Futbol Fantasy's
   words in English with the date and their chance to start. A long-standing injury is not news; the Lineups page keeps every note.
 
-Under these, the Sorare row is kept as it was: **Your Sorare lineups** (what you entered, read through the extension), **Play** (the
-plan's chance of any reward, lineups, cards used, time to the lock), **Team news** (the start-chance bar, starters who might not start,
-what moved since yesterday), **Last gameweek** and **Gallery** (the collection's shape, formerly My cards).
+The header also says whose Sorare account it reads and when it was synced. **Your lineups** opens with what you entered on
+Sorare (read through the extension), then the plan's best lineups. **Team news** sits beside **News this week**: how your
+plan's players look for the round, who might not start and what moved since yesterday, or why Futbol Fantasy has said
+nothing yet. The old Sorare row is gone from the home: the plan and the week just played are on the Sorare page, and the
+collection (with its "No Rare goalkeeper" warning) is in the Gallery.
+
+Every player card grows a little when you point at it (a spring, a shadow and a light sweep). In-season cards and
+competitions carry a star, Classic ones a clock.
 
 Each colour of a number is Sorare's own score band for it: up to 20 red, 21 to 35 orange, 36 to 50 yellow, 51 to 60 lime, 61 to 75
 green, 76 and above cyan.

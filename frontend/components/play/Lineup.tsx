@@ -8,6 +8,7 @@ import SourceMark from "../SourceMark";
 import { Cash, Chevron, Essence, Foil, GROUP_CLASS, MiniCards, RangeBar, RewardChips, Ring, ribbonClass } from "./bits";
 import LineupSheet from "./LineupSheet";
 import SorareImage from "./SorareImage";
+import SeasonIcon from "../SeasonIcon";
 
 const time = (iso: string) =>
   new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(
@@ -40,7 +41,10 @@ export default function Lineup({
       <span className={`pl-edge${lineup.rarity === "rare" ? " rare" : ""}`} aria-hidden="true" />
       <span className="pl-lu-top">
         <span className="nm">{lineup.comp}</span>
-        <span className={`pl-group ${group}`}>{lineup.group}</span>
+        <span className={`pl-group ${group}`}>
+          {lineup.group !== "Room" ? <SeasonIcon inSeason={lineup.group === "In-season"} /> : null}
+          {lineup.group}
+        </span>
         <span className="pl-fmt">{formatOf(lineup)}</span>
         <Chevron className="hm-chev" />
       </span>
@@ -88,7 +92,10 @@ export default function Lineup({
     <>
       <Foil rarity={lineup.rarity} />
       <h2>{lineup.comp}</h2>
-      <span className={`pl-group ${group}`}>{lineup.group}</span>
+      <span className={`pl-group ${group}`}>
+          {lineup.group !== "Room" ? <SeasonIcon inSeason={lineup.group === "In-season"} /> : null}
+          {lineup.group}
+        </span>
       <span className="pl-fmt">{paysNote(lineup)}</span>
       {lineup.expected ? (
         <span className="pl-exp" title={`Copied from ${lineup.expectedFrom}`}>
@@ -156,7 +163,10 @@ function Sheet({ lineup, after, index, hindsight, players }: { lineup: LineupDat
                   <b>{sub.name}</b>
                   <span>
                     {sub.slot === "GK" ? "goalkeeper" : "outfield"} ·{" "}
-                    <span className={`pl-tag${sub.inSeason ? "" : " classic"}`}>{sub.inSeason ? "IN-SEASON" : "CLASSIC"}</span>
+                    <span className={`pl-tag${sub.inSeason ? "" : " classic"}`}>
+                      <SeasonIcon inSeason={sub.inSeason} size={9} />
+                      {sub.inSeason ? "IN-SEASON" : "CLASSIC"}
+                    </span>
                     {after
                       ? joined
                         ? ` · came in for ${replaced?.name ?? "a starter"}`
@@ -293,7 +303,10 @@ function SheetCard({ card, lineup, after, position, match }: { card: PlayCard; l
         </span>
       </div>
       <div className="pl-row">
-        <span className={`pl-tag${card.inSeason ? "" : " classic"}`}>{card.inSeason ? "IN-SEASON" : "CLASSIC"}</span>
+        <span className={`pl-tag${card.inSeason ? "" : " classic"}`}>
+          <SeasonIcon inSeason={card.inSeason} size={9} />
+          {card.inSeason ? "IN-SEASON" : "CLASSIC"}
+        </span>
         <span>
           {after ? (swap && sub ? `↺ ${sub.name}` : "") : <>if plays <b>{Math.round(card.mu)}</b></>}
         </span>

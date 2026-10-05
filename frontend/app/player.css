@@ -121,3 +121,43 @@
   .ms-pick { grid-template-columns: 44px minmax(0, 1fr) 56px; }
   .ms-pick .avg { grid-column: 2 / 4; }
 }
+
+/* ---------- Every player card grows on hover (owner's rule, 5 Oct 2026) ----------
+   One list of the places a Sorare card is drawn, so a new page only adds its selector here. It sits in the last
+   stylesheet (app/layout.tsx imports player.css last) so it wins over each page's own hover. The owner asked for this
+   motion with reduced motion on too, so it is not switched off there: it only runs on hover, never by itself. */
+:is(.rc-art, .s5-pc .art, .s5-res .art, .ms-pick .art, .pl-mc .art, .pl-pc .art, .ap-pc .art, .lu-face, .pd-pic, .ow-card, .hm-nw-face) {
+  --zoom-ease: cubic-bezier(.34, 1.56, .64, 1); /* a spring: it overshoots a touch and settles */
+  transition: transform 420ms var(--zoom-ease), box-shadow 420ms ease, filter 420ms ease;
+  transform-origin: 50% 100%; /* it grows up from its bottom edge, so the name and links under it are never covered */
+  will-change: transform;
+}
+/* A soft light sweeps across the art as it grows. */
+:is(.rc-art, .s5-pc .art, .s5-res .art, .ms-pick .art, .pl-mc .art, .pl-pc .art, .ap-pc .art, .lu-face, .pd-pic, .ow-card, .hm-nw-face)::after {
+  content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none; border-radius: inherit;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .38) 48%, transparent 66%);
+  background-size: 260% 100%; background-position: 130% 0; opacity: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  :is(.rc-art, .s5-pc .art, .s5-res .art, .ms-pick .art, .pl-mc .art, .pl-pc .art, .ap-pc .art, .lu-face, .pd-pic, .ow-card, .hm-nw-face):hover,
+  .lu-card:is(:hover, :focus-within) .lu-face {
+    position: relative; z-index: 5;
+    transform: translateY(-6px) scale(1.16) rotate(-1.2deg);
+    box-shadow: 0 18px 34px rgba(0, 0, 0, .28), 0 4px 10px rgba(0, 0, 0, .18);
+    filter: saturate(1.08) brightness(1.04);
+  }
+  :is(.rc-art, .s5-pc .art, .s5-res .art, .ms-pick .art, .pl-mc .art, .pl-pc .art, .ap-pc .art, .lu-face, .pd-pic, .ow-card, .hm-nw-face):hover::after,
+  .lu-card:is(:hover, :focus-within) .lu-face::after { animation: card-sweep 900ms ease-out; }
+  /* On Lineups a link covers the whole card, so the card's hover grows its picture. */
+  .lu-card:is(:hover, :focus-within) { z-index: 5; }
+  /* The score hexagon and the rank badge stay on top of a grown card. */
+  .rc-hex, .rc-rank { z-index: 6; }
+  /* The card's own tile comes forward too, so the grown card is never under its neighbour. */
+  :has(> :is(.rc-art, .art, .lu-face, .pd-pic, .ow-card, .hm-nw-face):hover) { position: relative; z-index: 5; }
+}
+@keyframes card-sweep { from { opacity: 1; background-position: 130% 0; } to { opacity: 0; background-position: -30% 0; } }
+
+/* Boxes that hid their overflow (rounded tiles, the pitch) let a grown card spill 32 px over their edge instead of cutting it,
+   and the Recap's row of lineup cards, which scrolls sideways, keeps 30 px of headroom above the cards. */
+.hm-tile, .pl-lu, .pl-hero, .lu-pitch, .lu-match { overflow: clip; overflow-clip-margin: 32px; }
+.rc-team { padding-top: 30px; margin-top: -22px; }

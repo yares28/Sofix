@@ -1,6 +1,7 @@
 import type { Group, Lineup, PlayCard } from "../../lib/play";
 import SorareImage from "./SorareImage";
 import { chanceLabel, formatOf, rangeScale, rewardChips } from "../../lib/play";
+import SeasonIcon from "../SeasonIcon";
 
 /** Small shared pieces of the Play page: the icons, the foil chip, the ring, the range bar and the card art. */
 
@@ -138,7 +139,7 @@ export function MiniCards({ lineup, after }: { lineup: Lineup; after: boolean })
           <SorareImage src={entry.pic} fill />
         </span>
         {entry.captain ? <i className="c">C</i> : null}
-        {entry.inSeason ? <i className="is" /> : null}
+        {entry.inSeason ? <i className="is"><SeasonIcon inSeason size={8} /></i> : null}
         {after && !isSub ? (
           entry.actual === null ? (
             <span className="sc dnp">DNP</span>

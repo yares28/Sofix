@@ -1,10 +1,8 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
-import { lastMeta, lastWeek, nextWeek, scoringWeek, type Sorare } from "../lib/play";
-import { noun } from "../lib/words";
-import { MOCK, offline, resetBackend } from "./helpers";
+import { offline, resetBackend } from "./helpers";
 
-// The Home's team news under Sorare (`teamNews` of the gameweek being planned, served by the mock API): how the owner's players
+// The Recap's Team news (`teamNews` of the gameweek being planned, served by the mock API): how the owner's players
 // look, who in his plan might not start, and what moved since yesterday.
 
 test.beforeEach(async ({ page, request }) => {
@@ -93,30 +91,9 @@ test("with nothing to say, Team news shares a row with the tiles beside it inste
   const news = page.getByRole("region", { name: "Team news" });
   const page_ = page.viewportSize()!.width;
   const box = (await news.boundingBox())!;
-  const last = page.locator("section:has(#hm-last)");
+  const beside = (await page.locator(".rc-news").boundingBox())!;
 
   expect(box.width, "narrower than the page's content").toBeLessThan(page_ * 0.5);
-  if (await last.count()) expect((await last.boundingBox())!.y, "on the row of the last gameweek").toBeLessThan(box.y + box.height);
+  expect(beside.y, "on the row of News this week").toBeLessThan(box.y + box.height);
 });
 
-test("every competition in the last gameweek is written whole, above its range, not cut off in a narrow column", async ({ page }) => {
-  await page.goto("/");
-  const names = page.locator(".hm-pva-row .nm");
-  test.skip((await names.count()) === 0, "the mock has no finished plan to show");
-  for (const name of await names.all()) {
-    const fits = await name.evaluate((el) => el.scrollWidth <= el.clientWidth + 1);
-    expect(fits, (await name.textContent()) ?? "").toBe(true);
-  }
-});
-
-test("the home counts lineups in the singular and says which week is still being scored beside the last one", async ({ page, request }) => {
-  const served = (await (await request.get(`${MOCK}/api/sorare`)).json()) as { data: Sorare };
-  const week = nextWeek(served.data);
-  const last = lastWeek(served.data);
-  const scoring = scoringWeek(served.data);
-  await page.goto("/");
-
-  const play = page.locator("section:has(#hm-play)");
-  await expect(play).toContainText(`${week.plans[0]!.lineups.length} ${noun(week.plans[0]!.lineups.length, "lineup")}`);
-  if (last?.plans.length) await expect(page.locator("section:has(#hm-last)")).toContainText(lastMeta(last, scoring));
-});

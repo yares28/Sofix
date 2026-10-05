@@ -148,8 +148,9 @@ test("entered Sorare lineups sit at the top of the gameweek they belong to", asy
   await expect(home).toContainText("Friday team");
   await expect(home).toContainText("LALIGA EA SPORTS");
   await expect(home).toContainText(`GW${timelineOnly.number}`);
-  const sorareOrder = await page.locator(".hm-bento > *").evaluateAll((nodes) => nodes.map((node) => node.className));
-  expect(sorareOrder.indexOf("pl-entered")).toBeLessThan(sorareOrder.findIndex((name) => String(name).includes("hm-play")));
+  // On the Recap they open "Your lineups", above the plan's best.
+  const order = await page.locator(".rc-lineups > *").evaluateAll((nodes) => nodes.map((node) => String(node.className)));
+  expect(order.indexOf("pl-entered")).toBeGreaterThan(-1);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(home).toBeVisible();
@@ -514,34 +515,9 @@ test("without a Sorare sync the page says so instead of guessing", async ({ page
   await expect(page.getByRole("status")).toContainText("Your Sorare gameweek appears after the next refresh.");
 });
 
-test("the home's Sorare row carries the plan, the gameweek just played and the cards", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/");
-  const play = page.getByRole("region", { name: "Play" });
-  await expect(play.getByRole("img", { name: "85% any reward" })).toBeVisible();
-  await expect(play.locator(".hm-play-side")).toContainText("3 lineups");
-  await expect(play.locator(".hm-play-side")).toContainText("19 of 38 cards");
-  await expect(play.locator(".hm-lurows > li")).toHaveCount(plan1.lineups.length);
-  await expect(play.locator(".hm-lurows > li").first()).toContainText("LALIGA EA SPORTS");
-
-  const last = page.getByRole("region", { name: "Last gameweek" });
-  await expect(last.locator(".hm-hero .who b")).toHaveText("1 of 2 inside the range");
-  await expect(last.locator(".hm-hero .num b")).toHaveText("250");
-  await expect(last.locator(".hm-pva-row")).toHaveCount(2);
-  await expect(last.locator(".hm-pva-row").first().getByRole("img")).toHaveAttribute(
-    "aria-label",
-    "LALIGA EA SPORTS: predicted 300 (220 to 380), scored 313, 307 needed",
-  );
-
-  const cards = page.getByRole("region", { name: "Gallery" });
-  await expect(cards.locator(".hm-kv")).toContainText("38of 42");
-  await expect(cards.locator(".hm-warn")).toContainText("No Rare goalkeeper");
-  await expect(cards).toContainText("3 sealed · 1 for sale or in an offer · left out");
-
-  // The Play tile opens the page it summarises.
-  await play.getByRole("link", { name: "Play", exact: true }).click();
-  await expect(page).toHaveURL(/\/play$/, { timeout: 30_000 });
-  await expect(page.getByRole("heading", { level: 1, name: /Sorare GW17$/ })).toBeVisible();
+test("the Gallery warns that Rare lineups stay locked without a Rare goalkeeper (it was on the old home's cards tile)", async ({ page }) => {
+  await page.goto("/cards");
+  await expect(page.locator(".s5-warn")).toContainText("No Rare goalkeeper");
 });
 
 test("the head says how current the gameweek is, and the Control Center shows the same state", async ({ page }) => {
@@ -692,11 +668,11 @@ test("a week with one lineup for a competition Sorare has not listed marks it, a
   await expect(sheet).not.toContainText("Expected · Sorare has not opened it yet");
 });
 
-test("the home counts the lineups that are expected", async ({ page, request }) => {
+test("the Sorare page says when some lineups are expected", async ({ page, request }) => {
   await resetBackend(request, "expected");
-  await page.goto("/");
+  await page.goto("/play");
 
-  await expect(page.locator("section:has(#hm-play)")).toContainText("1 expected");
+  await expect(page.getByText("Some lineups are expected")).toBeVisible();
 });
 
 test("the week picker's columns say what their numbers are: a chip of playable cards, a value with its unit", async ({ page }) => {

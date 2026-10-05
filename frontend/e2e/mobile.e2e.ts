@@ -86,9 +86,9 @@ test("Play fits a phone: the plans, a lineup's sheet and the cards inside it", a
   await expect(sheet).toBeHidden();
 });
 
-test("the phone's Sorare tiles and the gameweek just played fit without sideways scrolling", async ({ page }) => {
+test("the phone's Recap lineups and the gameweek just played fit without sideways scrolling", async ({ page }) => {
   for (const [path, ready] of [
-    ["/", ".hm-play .hm-lurows > li"],
+    ["/", ".rc-lu"],
     ["/play?plan=2", ".pl-lu"],
     ["/play?gw=15&after=1", ".pl-lu .pl-kv b"],
   ] as const) {

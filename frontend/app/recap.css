@@ -146,3 +146,5 @@ main.rc { display: flex; flex-direction: column; gap: 20px; }
 .season-jump a:hover { background: var(--hover); }
 .season-jump a[aria-current]:hover { background: var(--ink); }
 .season-round { scroll-margin-top: 70px; margin-bottom: 16px; }
+/* R8: a 0-100 score drawn in its Sorare band */
+.sc-chip { display: inline-block; padding: 1px 8px; border-radius: 8px; line-height: 1.15; }

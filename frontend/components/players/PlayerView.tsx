@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { scoreColour } from "../../lib/cards";
 import type { PlayingPlayer } from "../../lib/play";
 import type { Identity, NextGame } from "../../lib/playerPage";
 import { gameFactors, shapeBars, sheetGroups, sheetTotal, type Sheet, type Strip, type Window } from "../../lib/playerSheet";
@@ -71,7 +72,7 @@ export default function PlayerView({
             {score !== null ? (
               <>
                 <div>
-                  <span className="pd-x">{score}</span>
+                  <span className="pd-x sc-chip" style={{ background: scoreColour(score).fill, color: scoreColour(score).ink }}>{score}</span>
                   <small>xScore if he starts</small>
                 </div>
                 {typeof planned?.pStart === "number" ? (
@@ -223,7 +224,7 @@ export default function PlayerView({
               <div className="c" key={g.kickoff}>
                 <span className="v">{g.score}</span>
                 <div className="pl" role="img" aria-label={g.low !== null && g.high !== null ? `${g.score}, lands between ${g.low} and ${g.high}` : `${g.score}`}>
-                  <div className="b" style={{ height: `${g.score * 1.5}px` }} />
+                  <div className="b" style={{ height: `${g.score * 1.5}px`, background: scoreColour(g.score).fill }} />
                   {g.low !== null && g.high !== null ? <div className="w" style={{ bottom: `${g.low * 1.5}px`, height: `${(g.high - g.low) * 1.5}px` }} /> : null}
                 </div>
                 <SorareImage src={g.crest} alt="" width={30} height={30} />

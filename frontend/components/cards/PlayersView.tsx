@@ -12,6 +12,7 @@ import {
   squadBar,
   verdict,
   type Position,
+  scoreColour,
 } from "../../lib/cards";
 import { nextWeek, type MarketPlayer, type Sorare } from "../../lib/play";
 import { Foil } from "../play/bits";
@@ -147,11 +148,11 @@ function ResultCard({
       </span>
       <span className="s5-stats">
         <span className="s5-stat">
-          <b>{Math.round(player.average)}</b>
+          <b className="sc-chip" style={{ background: scoreColour(player.average).fill, color: scoreColour(player.average).ink }}>{Math.round(player.average)}</b>
           <span>Last 10 avg</span>
         </span>
         <span className="s5-stat" title={player.projection === null ? dash : undefined}>
-          <b>{player.projection === null ? "—" : Math.round(player.projection)}</b>
+          <b className={player.projection === null ? undefined : "sc-chip"} style={player.projection === null ? undefined : { background: scoreColour(player.projection).fill, color: scoreColour(player.projection).ink }}>{player.projection === null ? "—" : Math.round(player.projection)}</b>
           <span>Projected</span>
         </span>
         <span className="s5-stat">

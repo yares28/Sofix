@@ -231,6 +231,7 @@ export function MissionsGlance({ plans, day, href }: { plans: MissionPlan[]; day
                     <strong>{pct(pick.chance)}</strong>
                     <Link href={`/players/${pick.slug}`}>{pick.name}</Link>
                     <span>{pick.venue === "H" ? "v" : "at"} {pick.opponent}, {formatShortKickoff(pick.kickoff).split(" ")[1]}</span>
+                    <span className="rc-l5">{one.rule.kind === "decisive" ? pct(pick.average.l5) : pick.average.l5.toFixed(1)} last 5</span>
                   </li>
                 ))}
               </ol>

@@ -25,7 +25,7 @@ Control stays behind the status pill. Source of truth: `frontend/lib/places.ts`.
   cash-or-essence chance, other rewards, expected essence, then the rest as chips); Missions (big cards); News this week
   (FF: hurt this week, back this week, your players first, then the league); everything the old home showed stays
   reachable (Last gameweek, plan state, away week, early plan, expected competitions).
-- **R3 Sorare view** (`/play`): hero = lock countdown + plan facts + Apply (Check, Draft, Enter); plan picker; every
+- **R3 Sorare view** (done 5 Oct: lock countdown, lineups after four summed up, missions folded in with last-5 rate) (`/play`): hero = lock countdown + plan facts + Apply (Check, Draft, Enter); plan picker; every
   lineup as a row (cards with xScore, team score, needs, reward ring); Before / After the games / In hindsight; missions
   folded in (big cards, last-5 rate); all current Play features kept (your Sorare lineups and their results, sheets,
   early plan banners, kept weeks, apply).

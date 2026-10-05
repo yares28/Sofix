@@ -5,6 +5,8 @@ import EnteredLineups from "../../components/play/EnteredLineups";
 import PlayView from "../../components/play/PlayView";
 import SiteNav from "../../components/SiteNav";
 import { loadGrid } from "../../lib/api";
+import { loadMissions } from "../../lib/missionsData";
+import { missionsToday } from "../../lib/missionsToday";
 import { plansOf, weekPlan } from "../../lib/play";
 import { loadProjectedWeek, loadSorare, loadSorareWeek } from "../../lib/playData";
 import { loadSystem } from "../../lib/system";
@@ -28,7 +30,7 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
     return typeof value === "string" ? value : undefined;
   };
 
-  const [data, { grid, meta }, system] = await Promise.all([loadSorare(), loadGrid(), loadSystem()]);
+  const [data, { grid, meta }, system, missionsModel] = await Promise.all([loadSorare(), loadGrid(), loadSystem(), loadMissions()]);
   const week = weekContext(grid, data, new Date(), { w: single("w"), gw: single("gw") });
   if (!data) {
     return (
@@ -83,10 +85,14 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
   const offered = Math.max(plansOf(showing, after).length, 1);
   const planIndex = Number.isFinite(requested) ? Math.min(Math.max(requested, 1), offered) - 1 : 0;
 
+  // Today's missions belong to the gameweek being played now, so only that week shows them.
+  const missions = !after && !showing.projected && showing.gameweek.id === data.nextId ? await missionsToday(data, missionsModel, undefined, new Date()) : null;
+
   return (
     <>
       <SiteNav meta={meta} system={system} week={week} />
       <PlayView
+        missions={missions}
         data={data}
         week={showing}
         planIndex={planIndex}

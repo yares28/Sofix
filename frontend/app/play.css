@@ -1840,3 +1840,16 @@
 .pl-start { display: inline-flex; align-items: center; gap: 5px; }
 .pl-start b { font-variant-numeric: tabular-nums; }
 .pl-start svg { flex: none; }
+
+/* ---------- R3: lock countdown, the summed-up lineups, missions ---------- */
+.pl-lock.live { font-weight: 600; color: var(--ink); }
+.pl-lu-main .pl-kv:first-child b { font-size: 36px; }
+.pl-more { margin-top: 14px; border-radius: 18px; background: var(--hover); }
+.pl-more > summary { list-style: none; cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 22px; padding: 16px 20px; font-size: 13px; color: var(--ink-2); }
+.pl-more > summary::-webkit-details-marker { display: none; }
+.pl-more > summary b { color: var(--ink); font-size: 15px; }
+.pl-more > summary strong { color: var(--ink); font-size: 17px; font-variant-numeric: tabular-nums; }
+.pl-more > summary svg { margin-left: auto; }
+.pl-more[open] > summary svg { transform: rotate(180deg); }
+.pl-more > .pl-lus { padding: 0 14px 14px; }
+.pl-main > .rc-missions { margin-top: 28px; }

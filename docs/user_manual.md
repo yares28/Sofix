@@ -161,6 +161,12 @@ definitions apply; the page does not run a separate club model.
 Play shows the latest published plan for the selected Sorare gameweek. It is built from the synced collection,
 competition rules, pre-lock forecasts and reward cutoffs.
 
+The header counts down to the lock ("Locks Wed 14:42, in 47 h"). The plan's first four lineups are drawn in full; any
+more are summed up in one line (how many, their average xScore, the best reward chance among them, the essence they
+are expected to win) that opens into compact rows, each still opening its sheet. While the gameweek is the one being
+played, today's missions sit under the lineups with the cards that fit each (chance, opponent, kick-off and what he
+did over his last 5); the full Missions page is one click away.
+
 At the top, **Your Sorare lineups** shows what the signed-in owner actually put on Sorare for this exact GW. Entered
 lineups and drafts are labelled separately and retain their Sorare competition and card list. This is not Sofix's
 suggested plan: the extension reads the selected Sorare fixture directly, so the block also works for timeline weeks

@@ -163,7 +163,7 @@ test("the gameweek opens on its best plan: the ring, both rewards and every line
   await page.emulateMedia({ reducedMotion: "reduce" }); // the ring fills and the numbers count up
   await page.goto("/play");
   await expect(page.getByRole("heading", { level: 1, name: /Sorare GW17$/ })).toBeVisible();
-  await expect(page.locator(".pl-head .pl-sub")).toContainText("locks");
+  await expect(page.locator(".pl-head .pl-sub")).toContainText(/Locks|Locked/);
 
   const plans = page.getByRole("navigation", { name: "Plan" });
   await expect(plans.getByRole("link")).toHaveCount(planned.plans.length);

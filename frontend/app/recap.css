@@ -136,3 +136,4 @@ main.rc { display: flex; flex-direction: column; gap: 20px; }
   .rc-msn, .rc-news-cols { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) { .rc-head, .rc-card { animation: none; } }
+.rc-l5 { color: var(--ink-2); font-variant-numeric: tabular-nums; }

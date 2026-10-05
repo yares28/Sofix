@@ -1,7 +1,7 @@
 import { absenceText } from "./absence";
 import { formatShortKickoff } from "./grid";
 import { gameweekMatches } from "./matches";
-import type { FfStatus, Lineup, Plan, PlayerGame, PlayingPlayer, StartSource } from "./play";
+import { paidTiers, type FfStatus, type Lineup, type Plan, type PlayerGame, type PlayingPlayer, type StartSource } from "./play";
 import { predictedTable } from "./table";
 import type { FixtureGrid, GridTeam } from "./types";
 
@@ -104,7 +104,7 @@ export function tableAfter(grid: FixtureGrid, column: number): AfterRow[] {
 // ------------------------------------------------------------------------------------------------- the plan
 export type PlanRow = {
   lineup: Lineup;
-  /** Chance of any cash or essence prize, of any other prize (a card), and the essence it should bring. */
+  /** Chance of any cash or essence prize, of any other prize (a card), and what its first level pays, whole (a reward is all or nothing). */
   cashOrEssence: number;
   other: number;
   essence: number;
@@ -116,12 +116,13 @@ export function planRows(plan: Plan): PlanRow[] {
   return plan.lineups
     .map((lineup) => {
       const paid = lineup.tiers.filter((tier) => (tier.cash ?? 0) > 0 || (tier.essence ?? 0) > 0).reduce((sum, tier) => sum + tier.p, 0);
+      const first = paidTiers(lineup).at(-1);
       return {
         lineup,
         cashOrEssence: Math.min(1, paid || Math.max(0, lineup.pReturn - lineup.pCard)),
         other: lineup.pCard,
-        essence: lineup.eEss,
-        cash: lineup.eCash,
+        essence: first?.essence ?? 0,
+        cash: first?.cash ?? 0,
       };
     })
     .sort((a, b) => b.cashOrEssence - a.cashOrEssence || b.lineup.x - a.lineup.x);

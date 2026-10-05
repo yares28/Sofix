@@ -2092,6 +2092,7 @@
                     "cash": 12,
                     "essence": 0,
                     "card": false,
+                    "need": 482,
                     "p": 0.006
                   },
                   {
@@ -2100,6 +2101,7 @@
                     "cash": 0,
                     "essence": 600,
                     "card": false,
+                    "need": 395,
                     "p": 0.08
                   },
                   {
@@ -2108,6 +2110,7 @@
                     "cash": 0,
                     "essence": 250,
                     "card": false,
+                    "need": 311,
                     "p": 0.39
                   }
                 ],

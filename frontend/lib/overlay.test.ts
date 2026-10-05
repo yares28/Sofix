@@ -476,13 +476,13 @@ describe("overlayNumbers", () => {
 });
 
 const starter = (slug: string, pic = `https://assets.sorare.com/card/${slug}/picture/x.png`) => ({ slug, pic }) as PlayCard;
-const lineup = (comp: string, x: number, starters: PlayCard[]) => ({ comp, x, starters }) as Lineup;
+const lineup = (comp: string, x: number, starters: PlayCard[], tiers: Lineup["tiers"] = []) => ({ comp, x, starters, tiers, fee: 0 }) as Lineup;
 
 function week(over: Partial<GameweekPlan> = {}): GameweekPlan {
   const plans = [
     {
       rank: 1, essence: 55.4, cash: 0, pAny: 0.16, rewards: 2, cardsUsed: 9, cardsAvailable: 87,
-      lineups: [lineup("Limited", 199, [starter("a")]), lineup("All Star", 218, ["b", "c", "d", "e", "f", "g"].map((slug) => starter(slug)))],
+      lineups: [lineup("Limited", 199, [starter("a")]), lineup("All Star", 218, ["b", "c", "d", "e", "f", "g"].map((slug) => starter(slug)), [{ essence: 250, p: 0.6 }])],
     },
     { rank: 2, essence: 1, cash: 0, pAny: 0.01, rewards: 1, cardsUsed: 5, cardsAvailable: 87, lineups: [lineup("Other", 1, [])] },
   ] as Plan[];
@@ -504,7 +504,7 @@ describe("overlayPlan", () => {
       // every starter of the plan, the lineup that leads it first (the drawer says how many more the plan uses)
       pics: ["b", "c", "d", "e", "f", "g", "a"].map((slug) => `https://assets.sorare.com/card/${slug}/picture/x.png`),
       pAny: 0.16,
-      essence: 55,
+      likely: "250 essence", // the All Star lineup pays 250 six times in ten: more likely than nothing
       cardsUsed: 9,
       cardsAvailable: 87,
     });

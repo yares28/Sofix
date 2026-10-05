@@ -563,6 +563,7 @@ def lineup_payload(
             )
     else:
         for tier, chance in zip(paying, lineup.tier_probs, strict=False):
+            score = score_at_rank(comp.reference, tier.hi)  # what reaching this tier took in the reference week
             tiers.append(
                 {
                     "lo": tier.lo,
@@ -570,6 +571,7 @@ def lineup_payload(
                     "cash": tier.cash,
                     "essence": tier.essence,
                     "card": tier.card,
+                    "need": round(score) if score else None,
                     "p": round(chance, 4),
                 }
             )
@@ -625,7 +627,7 @@ def plan_payload(
     actual_references: dict[str, dict[int, float]] | None = None,
 ) -> dict[str, Any]:
     order = {"In-season": 0, "Classic": 1, "Room": 2}
-    lineups = sorted(plan.lineups, key=lambda lu: (order[lu.comp.group], -(lu.e_essence + 1000 * lu.e_cash)))
+    lineups = sorted(plan.lineups, key=lambda lu: (order[lu.comp.group], -lu.p_return))
     payload = {
         "rank": rank,
         "essence": round(plan.essence),

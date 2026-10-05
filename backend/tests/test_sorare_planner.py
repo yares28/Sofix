@@ -389,6 +389,20 @@ def test_plans_are_five_different_ways_to_use_the_week():
     assert all(p.chance_of_any() >= p.lineups[0].p_return for p in found)
 
 
+def test_the_best_plan_is_the_one_most_likely_to_be_paid_whatever_it_pays():
+    # A reward is all or nothing (the owner, 5 Oct 2026): a likely 10 essence beats an unlikely 250, though 250 is
+    # worth more on average.
+    cards = squad(5)  # one lineup's worth: the plan has to choose
+    fc = forecasts_for(cards, p=1.0, mu=50.0)
+    likely = in_season_comp(key="likely", tiers=[rules.Tier(1, 1500, essence=10)], reference={1500: 240.0})
+    big = in_season_comp(key="big", tiers=[rules.Tier(1, 1500, essence=250)], reference={1500: 315.0})
+    rng = np.random.default_rng(12)
+    small_one, big_one = (build(c, cards, fc, rng, keep=1)[0] for c in (likely, big))
+    assert small_one.p_return > big_one.p_return and big_one.e_essence > small_one.e_essence
+    found = plans([likely, big], cards, fc, count=2, runs=4, draws=600)
+    assert found[0].lineups[0].comp.key == "likely"
+
+
 # --------------------------------------------------------------------------- the replay of a played gameweek
 def test_the_replay_scores_the_lineup_against_the_scores_that_really_paid():
     lineup, fc = lineup_with_bench()

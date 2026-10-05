@@ -18,7 +18,7 @@ import { bestCards, lockText, planRows, roundBoard, tableAfter, weekNews } from 
 import { readLabel } from "../lib/lineups";
 import { nextWeek, weekPlan } from "../lib/play";
 import { loadSorare } from "../lib/playData";
-import { sorareName, weekContext, weekDates } from "../lib/weeks";
+import { weekContext, weekDates } from "../lib/weeks";
 import { loadSystem } from "../lib/system";
 
 export const metadata: Metadata = { title: "Sofix" };

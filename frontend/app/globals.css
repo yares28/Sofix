@@ -102,7 +102,6 @@ code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-si
 /* ---------- Layout ---------- */
 main { max-width: var(--page-max); margin: 0 auto; padding: 28px 28px 96px; }
 .hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 18px; }
-.hero-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 
 /* ---------- App-wide gameweek selector ---------- */
 .eyebrow { color: var(--ink-2); font-size: 13px; font-weight: 500; margin-bottom: 4px; }
@@ -849,7 +848,6 @@ thead th .tbc-mark { font-weight: 600; }
   .toolbar-controls::-webkit-scrollbar { display: none; }
   .toolbar-controls .legend { margin-left: 0; white-space: nowrap; }
   .toolbar-controls .segmented { flex: none; }
-  .hero-controls { width: 100%; justify-content: space-between; }
   .toggle { padding: 0 10px; }
   .search { padding: 0 10px; min-width: 0; }
 

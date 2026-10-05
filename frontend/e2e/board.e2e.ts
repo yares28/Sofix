@@ -224,7 +224,7 @@ test("the gameweek selector moves every card, the grid, the fixtures and the tab
   const playedAfter = await page.locator(".table-card .list-rows > li").count();
   expect(playedAfter).toBe(grid.teams.length);
 
-  await page.getByRole("group", { name: "View" }).getByRole("button", { name: "Table" }).click();
+  await page.locator(".lens").getByRole("link", { name: "Table" }).click();
   await expect(page.getByRole("heading", { level: 2, name: `Table after GW${past}` })).toBeVisible();
   const games = (await page.locator("table.standings tbody tr td:nth-child(3)").allTextContents()).map(Number);
   expect(Math.max(...games)).toBeLessThanOrEqual(past);
@@ -352,9 +352,7 @@ test("old links from when the board lived at / open its new pages", async ({ pag
 });
 
 test("the Fixtures tab lists the selected gameweek, results included", async ({ page }) => {
-  await page.goto("/difficulty");
-  await page.getByRole("group", { name: "View" }).getByRole("button", { name: "Fixtures" }).click();
-  await expect(page).toHaveURL(/\/fixtures$/); // the tab is the path; switching it doesn't reload
+  await page.goto("/fixtures");
   await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${openingMatchday} fixtures` })).toBeVisible();
   await expect(page.locator(".fixture-row")).toHaveCount(gameweekMatches(grid, column(openingMatchday)).matches.length);
   await expect(page.locator("#fixtures-title").locator("xpath=..")).toContainText(/\d+ matches? · Madrid time/); // kickoffs carry their time zone
@@ -369,7 +367,7 @@ test("the Fixtures tab lists the selected gameweek, results included", async ({ 
 
 test("the Table tab shows the standings and a predicted final table", async ({ page }) => {
   await page.goto("/difficulty");
-  await page.getByRole("group", { name: "View" }).getByRole("button", { name: "Table" }).click();
+  await page.locator(".lens").getByRole("link", { name: "Table" }).click();
   await expect(page.getByRole("heading", { level: 2, name: "LaLiga table" })).toBeVisible();
   const rows = page.locator("table.standings tbody tr");
   await expect(rows).toHaveCount(grid.teams.length);
@@ -600,13 +598,13 @@ test("home: a gameweek the season doesn't have goes back to the home page", asyn
   await expect(page.locator(".rc-head p")).toContainText(`LaLiga round ${openingMatchday}`);
 });
 
-test("the top bar's place and the switch under it follow the board's own tab switches", async ({ page }) => {
+test("the switch under the top bar moves between the Season views", async ({ page }) => {
   await page.goto("/difficulty");
   await expect(page.locator(".nav-links").getByRole("link", { name: "Season" })).toHaveAttribute("aria-current", "page");
   const bar = page.locator(".lens");
   await expect(bar.getByRole("link", { name: "Difficulty" })).toHaveAttribute("aria-current", "page");
-  await page.getByRole("group", { name: "View" }).getByRole("button", { name: "Table" }).click();
-  await expect(page).toHaveURL(/\/table$/);
+  await page.locator(".lens").getByRole("link", { name: "Table" }).click();
+  await expect(page).toHaveURL(/\/table(\?|$)/);
   await expect(bar.getByRole("link", { name: "Table" })).toHaveAttribute("aria-current", "page");
   await page.reload(); // the address is real: a reload lands on the same tab
   await expect(page.getByRole("heading", { level: 2, name: "LaLiga table" })).toBeVisible();
@@ -661,11 +659,11 @@ test("a week with no LaLiga round shows the games your own players play", async 
   await expect(page.locator(".fixture-row")).toHaveCount(0); // no LaLiga round is invented for it
 
   // The same week on the other two tabs: the difficulty we do have, and the table as it stands.
-  await page.getByRole("group", { name: "View" }).getByRole("button", { name: "Difficulty" }).click();
+  await page.goto(page.url().replace("/fixtures", "/difficulty"));
   await expect(page.locator(".ow-rank li").first()).toContainText("xScore");
   await expect(page.locator(".board")).toHaveCount(0);
 
-  await page.getByRole("group", { name: "View" }).getByRole("button", { name: "Table" }).click();
+  await page.goto(page.url().replace("/difficulty", "/table"));
   await expect(page.locator(".ow-note")).toContainText("LaLiga isn't playing this week");
   await expect(page.locator("table.standings tbody tr")).toHaveCount(grid.teams.length);
 });

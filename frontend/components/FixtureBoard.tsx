@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { useViewState } from "../hooks/useViewState";
 import {
-  LENS_COPY, MIDFIELD_ATTACK_WEIGHT, horizonSize, openingColumn, selectedColumn, windowRange, type View, type ViewState,
+  LENS_COPY, MIDFIELD_ATTACK_WEIGHT, horizonSize, openingColumn, selectedColumn, windowRange, type ViewState,
 } from "../lib/grid";
 import type { GameweekPlan } from "../lib/play";
 import { roundBoard, tableAfter } from "../lib/recap";
@@ -14,7 +14,6 @@ import DifficultyGrid from "./DifficultyGrid";
 import FixturesList from "./FixturesList";
 import LeagueTable from "./LeagueTable";
 import Overview from "./Overview";
-import SegmentedControl from "./SegmentedControl";
 
 interface Props {
   grid: FixtureGrid;
@@ -56,21 +55,6 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl, away
         <div>
           <div className="eyebrow">LaLiga · Season {grid.season}</div>
           <h1>{view === "table" ? "Table" : view === "plain" ? "Fixtures" : "Fixtures & Difficulty"}</h1>
-        </div>
-        <div className="hero-controls">
-          <div className="board-tabs">
-            <SegmentedControl<View>
-              label="View"
-              size="lg"
-              value={view}
-              onChange={(next) => patch({ view: next })}
-              options={[
-                { value: "plain", label: "Fixtures" },
-                { value: "fdr", label: "Difficulty" },
-                { value: "table", label: "Table" },
-              ]}
-            />
-          </div>
         </div>
       </section>
 

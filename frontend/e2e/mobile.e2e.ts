@@ -45,7 +45,6 @@ test("the home fits a phone, and the tab bar moves between pages", async ({ page
   await tabs.getByRole("link", { name: "Season" }).click();
   await expect(page).toHaveURL(/\/season$/, { timeout: 30_000 });
   await expect(tabs.getByRole("link", { name: "Season" })).toHaveAttribute("aria-current", "page");
-  await expect(page.locator(".board-tabs")).toBeHidden(); // the tab bar replaces the page's own tabs on phones
 });
 
 test("Overview, Fixtures and Table fit a phone without sideways page scrolling", async ({ page }) => {

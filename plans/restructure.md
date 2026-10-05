@@ -35,7 +35,7 @@ Control stays behind the status pill. Source of truth: `frontend/lib/places.ts`.
   yellow, orange, red), Table with Now / After round N / End of season and title/top four/relegation.
 - **R6 Gallery** (already in place: shelves, three hexagons, next game, start chips): Cards shelves by position with three score hexagons, next game, start chips; Players unchanged inside.
 - **R7 Audit** (done 5 Oct: /audit, /audit/starts, /audit/record): xScore view, Who starts view, Written down.
-- **R8 Look**: Sorare score colours everywhere a 0-100 number appears (`lib/cards.ts` BAND_COLOURS); Geist; white shell
+- **R8 Look** (5 Oct: the board pages' own Fixtures/Difficulty/Table switch removed, the bar under the top bar does it; Geist and an ink theme wait for the owner): Sorare score colours everywhere a 0-100 number appears (`lib/cards.ts` BAND_COLOURS); Geist; white shell
   (ink theme optional, not built unless asked).
 
 Each step: unit tests for new logic, e2e updated, desktop and phone checked, manual updated, one PR.

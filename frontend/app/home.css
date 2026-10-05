@@ -282,7 +282,6 @@ main.hm { max-width: calc(1240px + 56px); }
 }
 @media (max-width: 700px) {
   .nav-links { display: none; }
-  .board-tabs { display: none; } /* the tab bar switches pages on phones */
   main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
   .hm-top { padding: 16px 18px 24px 16px; }
   .hm-roundbar { align-items: flex-start; gap: 10px; }

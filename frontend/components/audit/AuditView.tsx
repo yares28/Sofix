@@ -66,7 +66,6 @@ function Record({ data }: { data: Audit }) {
   if (data.starts.weeks.length === 0) return null;
   return (
     <div className="au-record">
-      <p className="au-label">Written down so far</p>
       <table>
         <caption className="visually-hidden">Games written down before each lock, and how many have been checked</caption>
         <thead>
@@ -100,7 +99,9 @@ function Record({ data }: { data: Audit }) {
   );
 }
 
-export default function AuditView({ data, now, league }: { data: Audit | null; now: Date; league: League | null }) {
+export type AuditShow = "xscore" | "starts" | "record";
+
+export default function AuditView({ data, now, league, show = "xscore" }: { data: Audit | null; now: Date; league: League | null; show?: AuditShow }) {
   if (!data) {
     return (
       <section className="au-w au-empty" role="status">
@@ -112,21 +113,31 @@ export default function AuditView({ data, now, league }: { data: Audit | null; n
   return (
     <>
       <header className="au-top">
-        <h1>Audit</h1>
-        <p>How often the numbers were right, checked against what happened.</p>
+        <h1>{show === "starts" ? "Who starts?" : show === "record" ? "Written down" : "Audit"}</h1>
+        <p>
+          {show === "starts"
+            ? "Each source's chance that a player starts, written down before the lock and checked against who started."
+            : show === "record"
+              ? "Every gameweek's games, written down before the lock, and how many have been checked."
+              : "How often the numbers were right, checked against what happened."}
+        </p>
         {data.generatedAt ? <p className="au-fresh">Updated {freshLabel(data.generatedAt, now)}</p> : null}
       </header>
-      {league ? <LeagueAudit data={league} /> : null}
-      <section className="au-w au-starts" aria-labelledby="au-starts-h">
-        <h2 id="au-starts-h">Who starts?</h2>
-        <p className="au-sub">Each source&apos;s chance that a player starts, written down before the lock and checked against who started.</p>
-        <div className="au-srcs">
-          {SOURCES.map((source) => (
-            <Source key={source} source={source} live={data.starts.live[source]} floor={data.floor} />
-          ))}
-        </div>
-        <Record data={data} />
-      </section>
+      {show === "xscore" && league ? <LeagueAudit data={league} /> : null}
+      {show === "starts" ? (
+        <section className="au-w au-starts" aria-label="Who starts?">
+          <div className="au-srcs">
+            {SOURCES.map((source) => (
+              <Source key={source} source={source} live={data.starts.live[source]} floor={data.floor} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+      {show === "record" ? (
+        <section className="au-w au-starts" aria-label="Written down">
+          {data.starts.weeks.length ? <Record data={data} /> : <p className="au-sub">Nothing written down yet.</p>}
+        </section>
+      ) : null}
     </>
   );
 }

@@ -38,14 +38,13 @@ test("the Control Center fits a phone, with the map drawn as a column", async ({
 
 test("the home fits a phone, and the tab bar moves between pages", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator(".hm-mosaic .m-row").first()).toBeVisible();
+  await expect(page.locator(".rc-mt").first()).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   const tabs = page.getByRole("navigation", { name: "Sections" });
-  await expect(tabs.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
-  await tabs.getByRole("link", { name: "Table" }).click();
-  await expect(page).toHaveURL(/\/table$/, { timeout: 30_000 });
-  await expect(tabs.getByRole("link", { name: "Table" })).toHaveAttribute("aria-current", "page");
-  await expect(page.locator(".board-tabs")).toBeHidden(); // the tab bar replaces the page's own tabs on phones
+  await expect(tabs.getByRole("link", { name: "This week" })).toHaveAttribute("aria-current", "page");
+  await tabs.getByRole("link", { name: "Season" }).click();
+  await expect(page).toHaveURL(/\/season$/, { timeout: 30_000 });
+  await expect(tabs.getByRole("link", { name: "Season" })).toHaveAttribute("aria-current", "page");
 });
 
 test("Overview, Fixtures and Table fit a phone without sideways page scrolling", async ({ page }) => {
@@ -55,6 +54,7 @@ test("Overview, Fixtures and Table fit a phone without sideways page scrolling",
     ["/difficulty?h=next&lens=odds", ".ladder-card .list-rows .next-line"],
     ["/difficulty?h=3", ".ladder-card .list-rows .tile"],
     ["/fixtures", ".fixture-row"],
+    ["/season", ".season-round .fixture-row"],
     ["/table?t=predicted", "table.standings tbody tr"],
   ] as const) {
     await page.goto(path);
@@ -172,19 +172,20 @@ test("on a phone every text on Lineups, Cards and Players is 10 px or more", asy
   }
 });
 
-test("the Audit page fits a phone: the charts first, one source under another, no sideways scrolling, nothing under 10 px", async ({ page }) => {
-  await page.goto("/audit");
-  await expect(page.locator(".lg-card").first()).toBeVisible();
-  const lastChart = (await page.locator(".lg-card").last().boundingBox())!;
+test("the Audit views fit a phone: one source under another, no sideways scrolling, nothing under 10 px", async ({ page }) => {
+  for (const [path, ready] of [["/audit", ".lg-card"], ["/audit/starts", ".au-src"], ["/audit/record", ".au-w"]] as const) {
+    await page.goto(path);
+    await expect(page.locator(ready).first()).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), path).toBe(true);
+    expect(await smallText(page, 10), path).toEqual([]);
+  }
+  await page.goto("/audit/starts");
   const first = (await page.getByRole("article", { name: "Futbol Fantasy" }).boundingBox())!;
   const second = (await page.getByRole("article", { name: "Sorare" }).boundingBox())!;
-  expect(first.y).toBeGreaterThan(lastChart.y + lastChart.height); // the charts come before the sources
   expect(second.y).toBeGreaterThan(first.y + first.height - 1); // one column
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  expect(await smallText(page, 10)).toEqual([]);
 
   const tabs = page.getByRole("navigation", { name: "Sections" });
   await expect(tabs.getByRole("link", { name: "Audit" })).toHaveAttribute("aria-current", "page");
   const boxes = await tabs.getByRole("link").evaluateAll((links) => links.map((link) => link.getBoundingClientRect().toJSON()));
-  for (const box of boxes) expect(box.right).toBeLessThanOrEqual(390); // seven tabs still fit the bar
+  for (const box of boxes) expect(box.right).toBeLessThanOrEqual(390);
 });

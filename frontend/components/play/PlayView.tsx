@@ -13,6 +13,9 @@ import {
   waitingFor,
 } from "../../lib/play";
 import { freshLabel } from "../../lib/fresh";
+import type { MissionPlan } from "../../lib/missions";
+import { lockText } from "../../lib/recap";
+import { MissionsGlance } from "../recap/Recap";
 import { syncState } from "../../lib/sorareStatus";
 import ApplySheet from "./ApplySheet";
 import { Cash, Chevron, Essence, Foil, GROUP_COLOUR } from "./bits";
@@ -40,10 +43,13 @@ export default function PlayView({
   weekId,
   dates,
   title,
+  missions,
 }: {
   data: Sorare;
   week: GameweekPlan;
   planIndex: number;
+  /** Today's missions, folded into the gameweek they are played in (only while it is still ahead). */
+  missions?: { plans: MissionPlan[]; day: string | null } | null;
   after: boolean;
   now: Date;
   /** The week in the address (`?w=`), which the page's own links keep: it names every kind of week, early ones too. */
@@ -119,14 +125,16 @@ export default function PlayView({
             <span>{after ? "what each scored and won" : "open one for the cards, subs and rewards"}</span>
           </div>
           <div className={`pl-lus${sync?.behind ? " behind" : ""}`}>
-            {plan.lineups.map((lineup, index) => (
+            {plan.lineups.slice(0, SHOWN).map((lineup, index) => (
               <Lineup key={`${lineup.key}-${index}`} lineup={lineup} after={after} index={index} hindsight={plan.hindsight === true} players={week.playing.players} />
             ))}
           </div>
+          {plan.lineups.length > SHOWN ? <MoreLineups plan={plan} after={after} players={week.playing.players} behind={sync?.behind === true} /> : null}
         </>
       ) : (
         <Waiting week={week} now={now} />
       )}
+      {missions && !after ? <MissionsGlance plans={missions.plans} day={missions.day} href="/missions" /> : null}
       <Folds week={week} />
     </main>
   );
@@ -173,9 +181,7 @@ function Head({
             {weekday(start)} {dates ?? span(start, end)}
           </span>
           <span className="dot" />
-          <span>
-            {locked ? "locked" : "locks"} {weekday(lock)} {clock(lock)}
-          </span>
+          <span className={`pl-lock${locked ? "" : " live"}`}>{lockText(lock, now)}</span>
           {sync ? (
             <span className={`pl-chip ${sync.state}`}>
               <i />
@@ -203,6 +209,43 @@ function Head({
   );
 }
 
+
+/** Lineups drawn in full; the rest are summed up in one line and open as compact rows. */
+const SHOWN = 4;
+
+function MoreLineups({ plan, after, players, behind }: { plan: Plan; after: boolean; players: GameweekPlan["playing"]["players"]; behind: boolean }) {
+  const rest = plan.lineups.slice(SHOWN);
+  const x = Math.round(rest.reduce((sum, l) => sum + l.x, 0) / rest.length);
+  const best = Math.max(...rest.map((l) => l.pReturn));
+  const essence = rest.reduce((sum, l) => sum + (after && l.actual ? l.actual.essence : l.eEss), 0);
+  return (
+    <details className={`pl-more${behind ? " behind" : ""}`}>
+      <summary>
+        <b>
+          {rest.length} more lineup{rest.length === 1 ? "" : "s"}
+        </b>
+        <span>
+          xScore <strong>{x}</strong> on average
+        </span>
+        {after ? null : (
+          <span>
+            best reward chance <strong>{chanceLabel(best)}</strong>
+          </span>
+        )}
+        <span>
+          {after ? "" : "≈"}
+          <strong>{essenceLabel(essence)}</strong> essence{after ? " won" : ""}
+        </span>
+        <Chevron className="" />
+      </summary>
+      <div className="pl-lus compact">
+        {rest.map((lineup, index) => (
+          <Lineup key={`${lineup.key}-${index}`} lineup={lineup} after={after} index={SHOWN + index} hindsight={plan.hindsight === true} players={players} />
+        ))}
+      </div>
+    </details>
+  );
+}
 
 function PlanSwitch({
   plans,

@@ -66,7 +66,7 @@ export default function SorareTiles({
   );
 }
 
-function PlayTile({ week, now }: { week: GameweekPlan; now: Date }) {
+export function PlayTile({ week, now }: { week: GameweekPlan; now: Date }) {
   const plan = week.plans[0];
   const lock = timeUntil(week.gameweek.lock, now);
   const meta = `Sorare GW${week.gameweek.number} · locks ${weekday(week.gameweek.lock)} ${clock(week.gameweek.lock)}`;
@@ -150,7 +150,7 @@ function PlayTile({ week, now }: { week: GameweekPlan; now: Date }) {
   );
 }
 
-function WaitingTile({ week, now, meta }: { week: GameweekPlan; now: Date; meta: string }) {
+export function WaitingTile({ week, now, meta }: { week: GameweekPlan; now: Date; meta: string }) {
   const until = week.projectionsAt ? timeUntil(week.projectionsAt, now) : null;
   const reason = waitingFor(week, now);
   return (
@@ -220,7 +220,7 @@ function WaitingTile({ week, now, meta }: { week: GameweekPlan; now: Date; meta:
   );
 }
 
-function LastTile({ week, scoring }: { week: GameweekPlan; scoring: { number: number } | null }) {
+export function LastTile({ week, scoring }: { week: GameweekPlan; scoring: { number: number } | null }) {
   const plan = week.plans[0];
   if (!plan) return null;
   const inside = insideRange(plan);
@@ -298,7 +298,7 @@ function CardsTile({ data }: { data: Sorare }) {
   const sealed = data.cards.excluded.filter((card) => card.why === "sealed").length;
   const other = data.cards.excluded.length - sealed;
   return (
-    <HomeTile id="hm-cards" title="My cards" meta={data.user} href="/cards" className="hm-cards" index={5}>
+    <HomeTile id="hm-cards" title="Gallery" meta={data.user} href="/cards" className="hm-cards" index={5}>
       <div className="hm-cards-grid">
         <div>
           <span className="lbl">You can play</span>

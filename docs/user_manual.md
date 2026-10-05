@@ -18,6 +18,9 @@ The week control on the right is app-wide:
 - the target icon returns to the current week;
 - the round status dot distinguishes LaLiga from Sorare-only weeks.
 
+The sun/moon button at the top right of the bar switches between the light and the dark theme. The choice is kept in
+this browser; until one is made, Sofix follows the system's light or dark setting.
+
 A week has one name on every page, in the bar, in the Play title and on Lineups and Home, because the two leagues count their
 weeks differently (LaLiga's round 8 is Sorare's GW21): **LaLiga round 8 · Sorare GW21**; before Sorare opens the week
 **LaLiga round 9 · Sorare not open**; an international break has no LaLiga round, **Sorare GW19 · national teams**.
@@ -48,39 +51,29 @@ Open **Control** from the circular status control, then use **Get the app**:
 The PWA is a windowed shortcut to the same cached app. It is not an offline database; stale/failed source states
 remain visible rather than being invented locally.
 
-## 2. Home — the whole week at a glance
+## 2. Recap (home) — this gameweek at a glance
 
-![Sofix home with LaLiga and Sorare bento cards](images/home.png)
+The Recap is about the week in the top bar (since 5 Oct 2026; design canvas board 1). From the top:
 
-The top strip shows the selected LaLiga gameweek, its playing days and time to the next kickoff. **Best cards** uses
-one fixed Sorare-card ratio and shows xScore. **Your fixtures** draws each match as two crests, home side first, with the side actually playing—club or national
-team—ringed in blue, and the owned players/cards in that match. A rated LaLiga row shows Win and Clean sheet for the
-ringed side, led by that same ringed crest so the percentages are never ambiguous; an outside-LaLiga row
-shows the best owned player's clearly labelled **Play** percentage and xScore because Sofix has no match odds for it.
-Under the strip:
+- **Header**: the Sorare gameweek, its LaLiga round and days, when it locks ("Locks Fri 16:00, in 4 days") and **Open the plan**.
+- **Best cards**: your ten best cards of the week by xScore, all positions together, each with its xScore in a hexagon of Sorare's
+  colour, his first game and his chance to start (whose number it is on hover).
+- **This round**: every match as two rows, home over away, under labelled columns: chance to win (a chip in Sorare's colours), expected
+  goals and clean-sheet chance; draw and both-score beside the pair. The favourite is in bold; a played match shows its score.
+- **Table after round N**: the table once the round is played as expected: points now, points after and places gained or lost.
+- **Your lineups**: the plan's three likeliest-to-pay lineups with their cards (xScore under each, captain marked), team score and its
+  range, the score it needs for a reward, a ring with the chance of cash or essence, the chance of other rewards and the essence to expect;
+  the others as chips. Every lineup is on the Sorare view.
+- **Missions**: today's open missions and the three cards of yours that fit each best, with the chance (the Missions page's numbers).
+- **News this week**: your players hurt or banned in the last seven days and those cleared to play after a knock, in Futbol Fantasy's
+  words in English with the date and their chance to start. A long-standing injury is not news; the Lineups page keeps every note.
 
-- **Fixtures** groups all matches by Madrid date/time and shows the market/model win split.
-- **Difficulty** previews the selected multi-week run and expected points ranking.
-- **Table** shows the current leader and seeded title/relegation probabilities.
-- **Your Sorare lineups** is the first block in the Sorare section. It reads the signed-in owner's entered lineups
-  and drafts for the selected Sorare GW, with competition, lineup name and card art. It is read-only.
-- **Team news** (under Sorare) says how your players look for the round from Futbol Fantasy (FF): one bar (likely to start at
-  70% or more, in doubt from 40%, unlikely, out), which starters of your best plan might not start (under 70%, with their game,
-  lineup and an icon for a doubt or injury), and what moved by 10 points or more since yesterday. A link opens Lineups. Players
-  FF says nothing about are only counted; their number is Sorare's or Sofix's. While FF has told nothing about the week, the
-  tile says why: in a break of national-team games (GW19, say; a few games of other leagues in it do not change that) "GW19 is national-team games.
-Futbol Fantasy covers LaLiga only."
-  and where the next club games are, with how many of your players are in them; in a week of club games, that FF publishes each
-  club's next game about a day after its last one.
-- **Play** summarizes the published Sorare plan, estimated chance of any reward, expected essence/cash and time to lock.
-  While Team news has nothing to list (no round it covers), it takes a quarter of the row beside Last gameweek and My cards instead of a whole row.
-- **Last gameweek** compares pre-lock predictions with the owner's submitted-lineup actuals when scores exist. It is the last
-  gameweek that has finished; when another is being played its number follows ("GW17 · GW18 still scoring"). Each competition's name is
-  written whole on a line of its own with what it won beside it, and its range of expected scores under both.
-- **My cards** shows usable cards, rarity/position shape and the most important constraint.
+Under these, the Sorare row is kept as it was: **Your Sorare lineups** (what you entered, read through the extension), **Play** (the
+plan's chance of any reward, lineups, cards used, time to the lock), **Team news** (the start-chance bar, starters who might not start,
+what moved since yesterday), **Last gameweek** and **Gallery** (the collection's shape, formerly My cards).
 
-Every large card is a link to the detailed page. A missing data block should say why—no fixtures, waiting for Sorare,
-stale data or a failed connection—rather than silently substituting another week.
+Each colour of a number is Sorare's own score band for it: up to 20 red, 21 to 35 orange, 36 to 50 yellow, 51 to 60 lime, 61 to 75
+green, 76 and above cyan.
 
 When a selected Sorare week has no LaLiga round, Home replaces the LaLiga strip/tiles with **No LaLiga this week**
 and lists the owner's actual fixtures, chance to play and xScore. It does not silently show the next league round.
@@ -88,6 +81,10 @@ and lists the owner's actual fixtures, chance to play and xScore. It does not si
 ![Home during a Sorare gameweek with no LaLiga round](images/home-away.png)
 
 ## 3. Fixtures
+
+The LaLiga view (This week → LaLiga) opens on the round as a scoreboard: each match on two rows with each side's
+chance to win, expected goals and clean-sheet chance, plus the draw and both-score chances; beside it, the table
+after the round. The plain list of fixtures and results by day follows.
 
 ![Selected LaLiga gameweek fixture list](images/fixtures.png)
 
@@ -99,6 +96,10 @@ stored forecast stays attached so the result can be reviewed honestly. Changing 
 the difficulty overview and the current-table cutoff together.
 
 ## 4. Difficulty
+
+Season → Fixtures (`/season`) lists every round of the season, fixtures and results by day; a strip of round numbers
+jumps to any round, and the page opens on the round in play. Difficulty colours use Sorare's score bands: cyan for the
+easiest games, then green, yellow, orange and red for the hardest.
 
 ![Difficulty overview, rankings and grid](images/difficulty.png)
 
@@ -147,6 +148,10 @@ are fitted from fair 1X2 plus totals prices; they are implied probabilities, not
 
 ![Current and predicted LaLiga tables](images/table.png)
 
+Season → Table switches between **Now** (played games), **After round N** (played points plus the expected points of
+every game up to the end of the week's round) and **End of season** (the projection to the last round, with title, top
+four and relegation chances); the address keeps the choice (`?t=after`, `?t=predicted`).
+
 The left/current table stops after the selected LaLiga GW. Its ordering applies LaLiga head-to-head only after both
 mutual matches have been played, then goal difference and goals scored. Early in a season, that can differ from a
 site that provisionally uses goal difference for unresolved ties.
@@ -170,6 +175,12 @@ definitions apply; the page does not run a separate club model.
 
 Play shows the latest published plan for the selected Sorare gameweek. It is built from the synced collection,
 competition rules, pre-lock forecasts and reward cutoffs.
+
+The header counts down to the lock ("Locks Wed 14:42, in 47 h"). The plan's first four lineups are drawn in full; any
+more are summed up in one line (how many, their average xScore, the best reward chance among them, the essence they
+are expected to win) that opens into compact rows, each still opening its sheet. While the gameweek is the one being
+played, today's missions sit under the lineups with the cards that fit each (chance, opponent, kick-off and what he
+did over his last 5); the full Missions page is one click away.
 
 At the top, **Your Sorare lineups** shows what the signed-in owner actually put on Sorare for this exact GW. Entered
 lineups and drafts are labelled separately and retain their Sorare competition and card list. This is not Sofix's
@@ -306,6 +317,10 @@ doubt; hover the mark for the name.
 
 ![Audit: how often the xScore picks the better of two, how close it lands, calibration and what has been written down](images/audit.png)
 
+Audit has three views under the switch below the top bar (since 5 Oct): **xScore** (`/audit`, the charts below), **Who
+starts** (`/audit/starts`, each source's record on who starts) and **Written down** (`/audit/record`, every gameweek's
+games written down before the lock and how many have been checked).
+
 The Audit page checks Sofix's numbers against what happened, as charts (since 4 Oct). The first block is a replay of two LaLiga seasons: every game
 predicted from the weeks before it only (9,190 starts to 20 Sep).
 
@@ -345,7 +360,7 @@ the matching Sorare account and an unlocked/non-stale plan.
 Never treat Check or Draft as proof of entry. Read Sorare's returned feedback. If Sofix and Sorare disagree, stop:
 the server's rule verdict wins and the mismatch is a bug to investigate. Sofix never schedules or auto-retries Enter.
 
-## 9. My cards
+## 9. Gallery (Cards)
 
 ![My cards collection page](images/cards.png)
 

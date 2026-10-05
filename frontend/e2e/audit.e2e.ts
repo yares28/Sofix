@@ -42,7 +42,7 @@ test("the league figures draw every chart from the committed replay: weeks, how 
 });
 
 test("each source says where it stands: nothing yet, nothing yet, or waiting for results, never a made-up figure", async ({ page }) => {
-  await page.goto("/audit");
+  await page.goto("/audit/starts");
 
   const ff = page.getByRole("article", { name: "Futbol Fantasy" });
   await expect(ff.getByText("Nothing yet")).toBeVisible();
@@ -59,7 +59,7 @@ test("each source says where it stands: nothing yet, nothing yet, or waiting for
 });
 
 test("the record lists each gameweek written down before its lock", async ({ page }) => {
-  await page.goto("/audit");
+  await page.goto("/audit/record");
 
   const table = page.getByRole("table", { name: /Games written down before each lock/ });
   await expect(table.getByRole("row")).toHaveCount(3); // the head and two gameweeks
@@ -72,12 +72,12 @@ test("the top bar has the page, and marks it when it is open", async ({ page }) 
 
   const link = page.locator(".nav-links").getByRole("link", { name: "Audit" });
   await expect(link).toHaveAttribute("aria-current", "page");
-  await expect(page.locator(".nav-links").getByRole("link", { name: "Table" })).not.toHaveAttribute("aria-current", "page");
+  await expect(page.locator(".nav-links").getByRole("link", { name: "Season" })).not.toHaveAttribute("aria-current", "page");
 });
 
 test("with enough games a source shows its figure, and one under the floor still says too few to tell", async ({ page, request }) => {
   await resetBackend(request, "audit-enough");
-  await page.goto("/audit");
+  await page.goto("/audit/starts");
 
   const ff = page.getByRole("article", { name: "Futbol Fantasy" });
   await expect(ff.locator(".au-src-main.figure")).toHaveText("74%");
@@ -108,4 +108,16 @@ test("no text is smaller than 11 px, nothing scrolls sideways, and the page has 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   const scan = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(scan.violations).toEqual([]);
+});
+
+test("the switch under the top bar moves between xScore, Who starts and Written down", async ({ page }) => {
+  await page.goto("/audit");
+  const lens = page.locator(".lens");
+  await expect(lens.getByRole("link", { name: "xScore" })).toHaveAttribute("aria-current", "page");
+  await lens.getByRole("link", { name: "Who starts" }).click();
+  await expect(page).toHaveURL(/\/audit\/starts/);
+  await expect(page.getByRole("heading", { level: 1, name: "Who starts?" })).toBeVisible();
+  await lens.getByRole("link", { name: "Written down" }).click();
+  await expect(page).toHaveURL(/\/audit\/record/);
+  await expect(page.getByRole("heading", { level: 1, name: "Written down" })).toBeVisible();
 });

@@ -3,16 +3,17 @@
 import { useEffect, useMemo } from "react";
 import { useViewState } from "../hooks/useViewState";
 import {
-  LENS_COPY, MIDFIELD_ATTACK_WEIGHT, horizonSize, openingColumn, selectedColumn, windowRange, type View, type ViewState,
+  LENS_COPY, MIDFIELD_ATTACK_WEIGHT, horizonSize, openingColumn, selectedColumn, windowRange, type ViewState,
 } from "../lib/grid";
 import type { GameweekPlan } from "../lib/play";
+import { roundBoard, tableAfter } from "../lib/recap";
+import { RoundBoard, TableAfter } from "./recap/Recap";
 import type { FixtureGrid, ModelNote } from "../lib/types";
 import AwayWeek from "./AwayWeek";
 import DifficultyGrid from "./DifficultyGrid";
 import FixturesList from "./FixturesList";
 import LeagueTable from "./LeagueTable";
 import Overview from "./Overview";
-import SegmentedControl from "./SegmentedControl";
 
 interface Props {
   grid: FixtureGrid;
@@ -55,21 +56,6 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl, away
           <div className="eyebrow">LaLiga · Season {grid.season}</div>
           <h1>{view === "table" ? "Table" : view === "plain" ? "Fixtures" : "Fixtures & Difficulty"}</h1>
         </div>
-        <div className="hero-controls">
-          <div className="board-tabs">
-            <SegmentedControl<View>
-              label="View"
-              size="lg"
-              value={view}
-              onChange={(next) => patch({ view: next })}
-              options={[
-                { value: "plain", label: "Fixtures" },
-                { value: "fdr", label: "Difficulty" },
-                { value: "table", label: "Table" },
-              ]}
-            />
-          </div>
-        </div>
       </section>
 
       {away ? (
@@ -86,7 +72,18 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl, away
         </>
       ) : (
         <>
-      {view === "plain" && <FixturesList grid={grid} column={column} />}
+      {view === "plain" && (
+        <>
+          {/* The round at a glance: each match as a scoreboard, and the table it leaves behind (plans/restructure.md, R4). */}
+          {grid.matchdays[column] ? (
+            <div className="rc-grid lg-round">
+              <RoundBoard matches={roundBoard(grid, column)} />
+              <TableAfter rows={tableAfter(grid, column)} round={grid.matchdays[column].number} href="/table" />
+            </div>
+          ) : null}
+          <FixturesList grid={grid} column={column} />
+        </>
+      )}
 
       {view === "table" && <LeagueTable grid={grid} through={tableThrough} mode={state.table} onMode={(table) => patch({ table })} />}
 
@@ -152,7 +149,7 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl, away
         </>
       )}
 
-      {view === "table" && state.table === "predicted" && (
+      {view === "table" && state.table !== "current" && (
         <p className="footnote">
           Predictions use the rating model’s win, draw and loss chances for every remaining fixture; postponed games without
           a new date aren’t included. Title, top-4 and relegation chances come from 5,000 simulated seasons.

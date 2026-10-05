@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import PlayersView from "../../components/cards/PlayersView";
-import SorareSubnav from "../../components/cards/SorareSubnav";
 import SiteNav from "../../components/SiteNav";
 import { loadGrid } from "../../lib/api";
 import { loadSorare } from "../../lib/playData";
@@ -29,7 +28,6 @@ export default async function Players({ searchParams }: { searchParams: SearchPa
     <>
       <SiteNav meta={meta} system={system} week={week} />
       <main className="s5-main">
-        <SorareSubnav />
         {ready ? (
           <PlayersView data={data} now={new Date().toISOString()} />
         ) : (

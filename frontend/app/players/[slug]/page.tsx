@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import PlayerView from "../../../components/players/PlayerView";
-import SorareSubnav from "../../../components/cards/SorareSubnav";
 import SiteNav from "../../../components/SiteNav";
 import { loadGrid } from "../../../lib/api";
 import type { GameweekPlan } from "../../../lib/play";
@@ -53,7 +52,6 @@ export default async function PlayerPage({ params, searchParams }: { params: Par
     <>
       <SiteNav meta={meta} system={system} week={week} />
       <main className="s5-main pd">
-        <SorareSubnav />
         <PlayerView
           slug={slug}
           identity={{ ...identity, pos: identity.pos ?? sheet?.pos ?? null }}

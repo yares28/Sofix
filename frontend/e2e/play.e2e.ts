@@ -163,7 +163,7 @@ test("the gameweek opens on its best plan: the ring, both rewards and every line
   await page.emulateMedia({ reducedMotion: "reduce" }); // the ring fills and the numbers count up
   await page.goto("/play");
   await expect(page.getByRole("heading", { level: 1, name: /Sorare GW17$/ })).toBeVisible();
-  await expect(page.locator(".pl-head .pl-sub")).toContainText("locks");
+  await expect(page.locator(".pl-head .pl-sub")).toContainText(/Locks|Locked/);
 
   const plans = page.getByRole("navigation", { name: "Plan" });
   await expect(plans.getByRole("link")).toHaveCount(planned.plans.length);
@@ -533,7 +533,7 @@ test("the home's Sorare row carries the plan, the gameweek just played and the c
     "LALIGA EA SPORTS: predicted 300 (220 to 380), scored 313, 307 needed",
   );
 
-  const cards = page.getByRole("region", { name: "My cards" });
+  const cards = page.getByRole("region", { name: "Gallery" });
   await expect(cards.locator(".hm-kv")).toContainText("38of 42");
   await expect(cards.locator(".hm-warn")).toContainText("No Rare goalkeeper");
   await expect(cards).toContainText("3 sealed · 1 for sale or in an offer · left out");

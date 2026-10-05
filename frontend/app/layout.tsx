@@ -2,9 +2,11 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import type { ReactNode } from "react";
 import { INSTALL_CAPTURE_SCRIPT } from "../lib/install";
+import { THEME_SCRIPT } from "../lib/theme";
 import "./globals.css";
 import "./control-center.css";
 import "./home.css";
+import "./recap.css";
 import "./play.css";
 import "./cards.css";
 import "./lineups.css";
@@ -25,16 +27,20 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#fbfbfd",
-  colorScheme: "light",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fbfbfd" },
+    { media: "(prefers-color-scheme: dark)", color: "#0c0c0e" },
+  ],
+  colorScheme: "light dark",
 };
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head>
         {/* With credentials: the manifest sits behind Vercel's login like every other path (see the route). */}
         <link rel="manifest" href="/manifest.webmanifest" crossOrigin="use-credentials" />
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: INSTALL_CAPTURE_SCRIPT }} />
       </head>
       <body>{children}</body>

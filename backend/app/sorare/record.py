@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 from app.models import SorareForecast
 from app.sorare.forecast import forecasts as build_forecasts
 from app.sorare.publish import ScoresOf, card_games, player_weeks
+from app.sorare.starts import Starts
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,9 @@ def _dt(value: str) -> datetime:
     return datetime.fromisoformat(value).astimezone(UTC)
 
 
-def rows(snapshot: dict[str, Any], which: str = "plan", scores: ScoresOf | None = None) -> list[Row]:
+def rows(
+    snapshot: dict[str, Any], which: str = "plan", scores: ScoresOf | None = None, ff: Starts | None = None
+) -> list[Row]:
     """The numbers this snapshot holds for the gameweek being planned (`plan`) or the one played (`past`).
 
     `scores` is each player's score if he starts worked out from the game (`scores.py`), as the page shows them for the week being planned; a played
@@ -68,6 +71,8 @@ def rows(snapshot: dict[str, Any], which: str = "plan", scores: ScoresOf | None 
         window,
         use_sorare=which == "plan",
         scores=scores if which == "plan" else None,
+        ff=ff if which == "plan" else None,
+        projections=snapshot.get("projections") if which == "plan" else None,
     )
     out = []
     for player, seen in weeks.items():

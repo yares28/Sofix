@@ -115,7 +115,10 @@ def save(db: Session, readings: list[Reading], now: datetime) -> bool:
     """Write the readings down when they changed; whether they did."""
     if readings == load(db):
         return False
-    put(db, KEY, {"readings": [{"at": r.at.isoformat(), "chances": r.chances} for r in readings]}, now)
+    # The same read model holds the start chances frozen at each lock and kickoff (`ff_chances.save`): keep them, change only the readings.
+    row = db.get(ReadModel, KEY)
+    kept = dict(row.payload) if row and isinstance(row.payload, dict) else {}
+    put(db, KEY, {**kept, "readings": [{"at": r.at.isoformat(), "chances": r.chances} for r in readings]}, now)
     return True
 
 

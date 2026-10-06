@@ -344,7 +344,7 @@ def test_a_room_counts_the_entry_fee():
     cards = [card(f"p{i}", POS[i % len(POS)], average=30.0) for i in range(8)]
     fc = forecasts_for(cards, p=1.0, mu=20.0)  # a weak lineup: it will lose the fee
     lineup = build(room_comp(), cards, fc, np.random.default_rng(5), keep=1)[0]
-    assert lineup.e_essence < 0
+    assert lineup.net_essence < 0 <= lineup.e_essence  # what it wins is never negative; the fee is apart
     assert lineup.p_return < 0.5
 
 

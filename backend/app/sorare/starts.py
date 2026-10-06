@@ -34,7 +34,7 @@ from app.models import ReadModel
 from app.services.publish import put
 from app.sorare.forecast import GameStart, PlayerWeek
 from app.sorare.forecast import forecast as build_forecast
-from app.sorare.publish import SETTLE, card_games, player_weeks
+from app.sorare.publish import SETTLE, ScoresOf, card_games, player_weeks
 
 START_KEY = "start_chances"
 SOURCES = ("sorare", "sofix", "futbolfantasy")
@@ -70,13 +70,24 @@ def _dt(value: str) -> datetime:
 
 
 def _planned(
-    snapshot: dict[str, Any], ff: Starts | None
+    snapshot: dict[str, Any], ff: Starts | None, scores: ScoresOf | None = None
 ) -> tuple[dict[str, Any], datetime, dict[str, list[dict[str, Any]]], dict[str, PlayerWeek]]:
-    """The gameweek being planned, its lock, each player's games in it and what is known about each player before it."""
+    """The gameweek being planned, its lock, each player's games in it and what is known about each player before it: the same
+    numbers the page's plans are built on (the game model's score included), so the record scores what the page said."""
     week = snapshot["planGameweek"]
     lock = _dt(week["lock"])
     games = card_games(snapshot["cards"], "plan")
-    weeks = player_weeks(snapshot["cards"], games, snapshot["history"], lock, None, use_sorare=True, ff=ff)
+    weeks = player_weeks(
+        snapshot["cards"],
+        games,
+        snapshot["history"],
+        lock,
+        None,
+        use_sorare=True,
+        ff=ff,
+        scores=scores,
+        projections=snapshot.get("projections"),
+    )
     return week, lock, games, weeks
 
 
@@ -84,10 +95,10 @@ def _round(value: float | None) -> float | None:
     return None if value is None else round(float(value), 3)
 
 
-def notes(snapshot: dict[str, Any], ff: Starts | None = None) -> list[Note]:
+def notes(snapshot: dict[str, Any], ff: Starts | None = None, scores: ScoresOf | None = None) -> list[Note]:
     """For each of the owner's players with a game in the gameweek being planned: the numbers the model had for him (the
     ones the page used, Sorare's own, and how much form he had) and what each of his games is."""
-    week, lock, games, weeks = _planned(snapshot, ff)
+    week, lock, games, weeks = _planned(snapshot, ff, scores)
     out: list[Note] = []
     for player, seen in weeks.items():
         if seen.games <= 0:

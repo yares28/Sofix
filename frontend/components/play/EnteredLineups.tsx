@@ -12,28 +12,38 @@ type Week = { slug: string; number: number; lock?: string };
 type Failure = Exclude<WeekLineupsAnswer, { state: "ok" }>;
 type LoadState =
   | { state: "loading"; lineups: GameweekLineup[] }
-  | { state: "ready"; lineups: GameweekLineup[] }
+  | { state: "ready"; lineups: GameweekLineup[]; at: Date }
   | { state: "unavailable"; lineups: GameweekLineup[]; answer: Failure };
 
 /** Lineups the signed-in manager actually put on Sorare, read from this exact Sorare gameweek. */
 export default function EnteredLineups({ week }: { week: Week }) {
   const [load, setLoad] = useState<LoadState>({ state: "loading", lineups: [] });
+  const [asked, setAsked] = useState(0); // a new ask: Check again, or coming back to this tab
 
   useEffect(() => {
     let current = true;
-    setLoad({ state: "loading", lineups: [] });
+    setLoad((was) => ({ state: "loading", lineups: was.lineups }));
     void runWeekLineups(week.slug).then((answer) => {
       if (!current) return;
       setLoad(
         answer.state === "ok"
-          ? { state: "ready", lineups: answer.lineups }
+          ? { state: "ready", lineups: answer.lineups, at: new Date() }
           : { state: "unavailable", lineups: [], answer },
       );
     });
     return () => {
       current = false;
     };
-  }, [week.slug]);
+  }, [week.slug, asked]);
+
+  // Lineups entered on Sorare in another tab show up when you come back here (Control does the same for the extension).
+  useEffect(() => {
+    const again = () => {
+      if (document.visibilityState === "visible") setAsked((n) => n + 1);
+    };
+    document.addEventListener("visibilitychange", again);
+    return () => document.removeEventListener("visibilitychange", again);
+  }, []);
 
   const now = new Date(); // only read once the lineups are in, which happens in the browser
   const entered = load.lineups.filter((lineup) => !lineup.draft).length;
@@ -49,7 +59,16 @@ export default function EnteredLineups({ week }: { week: Week }) {
         : cannot(load.answer.state)
       : null;
   const rejected = load.state === "unavailable" && load.answer.state === "rejected" ? load.answer.errors.join(" · ") : null;
-  const noLiveLineup = load.state === "unavailable" && ["no-tab", "no-bridge", "signed-out"].includes(load.answer.state);
+  const failure = load.state === "unavailable" ? load.answer.state : null;
+  const reason =
+    failure === "no-tab"
+      ? { title: "No Sorare tab open", says: "Open sorare.com in this Chrome, signed in, then come back: the lineups load by themselves." }
+      : failure === "no-bridge"
+        ? { title: "Sorare's tab isn't answering yet", says: "Reload the sorare.com tab once, then come back here." }
+        : failure === "signed-out"
+          ? { title: "Signed out of Sorare", says: "Sign in on sorare.com, then come back here." }
+          : null;
+  const checked = load.state === "ready" ? new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(load.at) : null;
 
   return (
     <section className="pl-entered" aria-labelledby="entered-lineups-title">
@@ -74,10 +93,14 @@ export default function EnteredLineups({ week }: { week: Week }) {
       ) : load.state === "unavailable" ? (
         <div className="pl-entered-empty" role="status">
           <div>
-            <b>{noLiveLineup ? `No live lineup connected for GW${week.number}` : issue?.title ?? "Sorare lineups are unavailable"}</b>
-            <span>{noLiveLineup ? "Open Sorare while signed in to check this gameweek's live lineups." : rejected ?? issue?.says ?? "Try again after opening your signed-in Sorare tab."}</span>
+            <b>{reason?.title ?? issue?.title ?? "Sorare lineups are unavailable"}</b>
+            <span>{reason?.says ?? rejected ?? issue?.says ?? "Try again after opening your signed-in Sorare tab."}</span>
           </div>
-          {issue?.act ? (
+          {reason || !issue?.act ? (
+            <button type="button" className="pl-entered-again" onClick={() => setAsked((n) => n + 1)}>
+              Check again
+            </button>
+          ) : issue?.act ? (
             <a
               href={issue.act === "Set it up" ? "/control" : "https://sorare.com/football/my-lineups"}
               target={issue.act === "Set it up" ? undefined : "_blank"}
@@ -127,8 +150,8 @@ export default function EnteredLineups({ week }: { week: Week }) {
       ) : (
         <div className="pl-entered-empty">
           <div>
-            <b>No Sorare lineups entered for GW{week.number}</b>
-            <span>Lineups entered in another gameweek stay with that gameweek.</span>
+            <b>None entered yet for GW{week.number}</b>
+            <span>Checked on Sorare at {checked}: you have no lineup or draft in this gameweek.</span>
           </div>
           <a href="https://sorare.com/football/my-lineups" target="_blank" rel="noreferrer">
             Open Sorare

@@ -75,6 +75,35 @@ export type Missions = {
   days: MissionDay[];
 };
 
+/** One side of the Sorare-against-Sofix comparison, on the same starts: how far off on average, which way it leans, how often within 7
+ * points, and how often it rated the better of two starters of one position higher. */
+export type VersusSide = { miss: number | null; lean: number | null; within: number | null; pair: number | null; pairs: number };
+export type VersusFigures = { starts: number; sofixCloser: number | null; sofix: VersusSide; sorare: VersusSide };
+/** Sorare's projection against Sofix's xScore, from the numbers written down before each lock (backend/app/sorare/versus.py). */
+export type Versus = {
+  all: VersusFigures;
+  positions: Record<Line, VersusFigures>;
+  weeks: (VersusFigures & { week: number })[];
+  recorded: number;
+  settled: number;
+};
+const NO_SIDE: VersusSide = { miss: null, lean: null, within: null, pair: null, pairs: 0 };
+const NO_FIGURES: VersusFigures = { starts: 0, sofixCloser: null, sofix: NO_SIDE, sorare: NO_SIDE };
+export const NO_VERSUS: Versus = {
+  all: NO_FIGURES,
+  positions: { GK: NO_FIGURES, DEF: NO_FIGURES, MID: NO_FIGURES, FWD: NO_FIGURES },
+  weeks: [],
+  recorded: 0,
+  settled: 0,
+};
+
+/** Points as the page writes them: "6.4", "+2.1" for a lean, a dash when there is none. */
+export function points(value: number | null, signed = false): string {
+  if (value === null) return "–";
+  const text = Math.abs(value).toFixed(1);
+  return signed ? `${value > 0 ? "+" : value < 0 ? "−" : ""}${text}` : text;
+}
+
 export type Audit = {
   version: number;
   generatedAt: string;
@@ -85,6 +114,7 @@ export type Audit = {
   starts: { replay: { sofix?: SofixReplay } | null; live: Record<StartSource, LiveSource>; weeks: RecordWeek[] };
   rewards: Rewards;
   missions: Missions;
+  versus: Versus;
 };
 
 const NONE: RewardSide = { essence: 0, cash: 0 };
@@ -116,6 +146,8 @@ export function readable(value: unknown): Audit | null {
     rewards: { ...NO_REWARDS, ...(data.rewards ?? {}) },
     // and one published before the missions log has none
     missions: { ...NO_MISSIONS, ...(data.missions ?? {}) },
+    // and one published before Sorare and Sofix were written down side by side has an empty comparison
+    versus: { ...NO_VERSUS, ...(data.versus ?? {}), positions: { ...NO_VERSUS.positions, ...(data.versus?.positions ?? {}) } },
   };
 }
 

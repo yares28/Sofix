@@ -34,7 +34,7 @@ from sqlalchemy.orm import Session
 
 from app.models import ReadModel
 from app.services.publish import put
-from app.sorare import backtest, missions, starts
+from app.sorare import backtest, missions, starts, versus
 from app.sorare.publish import ARCHIVE_PREFIX
 
 AUDIT_KEY = "audit"
@@ -348,6 +348,7 @@ def build(
     now: datetime,
     weeks: list[dict[str, Any]] | None = None,
     mission_logs: list[dict[str, Any]] | None = None,
+    score_records: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """The page: the replay of the past beside the live record, for the xScore and for who starts; and the plans' rewards."""
     return {
@@ -363,6 +364,8 @@ def build(
         },
         "rewards": rewards_record(weeks or []),
         "missions": missions.record(mission_logs or []),
+        # Sorare's projection against Sofix's xScore on the same starts, from the numbers written down before each lock (6 Oct 2026)
+        "versus": versus.figures(score_records or []),
     }
 
 
@@ -373,7 +376,9 @@ def record_of(db: Session) -> dict[str, Any]:
 
 def publish(db: Session, now: datetime) -> dict[str, int]:
     """Write the page, from the start record as it stands and the replay file. Called by the refresh once the record is up to date."""
-    page = build(record_of(db), read_replay(), now, kept_weeks(db), missions.logs_of(db))
+    page = build(
+        record_of(db), read_replay(), now, kept_weeks(db), missions.logs_of(db), [r for _, r in versus.records(db)]
+    )
     put(db, AUDIT_KEY, page, now)
     return {
         "bytes": len(json.dumps(page, separators=(",", ":"))),

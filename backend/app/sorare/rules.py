@@ -41,20 +41,23 @@ def simple_name(league: str, track: str, group: str, fmt: str = "") -> str:
     return name
 
 
-def reward_tiers(ranking: list[dict[str, Any]] | None) -> list[Tier]:
-    """A competition's reward table. XP-only rows stay in the list but pay nothing."""
+def reward_tiers(ranking: list[dict[str, Any]] | None, rarity: str = "limited") -> list[Tier]:
+    """A competition's reward table: cash, essence of the competition's own rarity, a card, and XP (`LIMITED_XP`), which is
+    shown apart and never counts as being paid."""
     tiers = []
     for row in ranking or []:
-        cash, essence, card = 0.0, 0, False
+        cash, essence, card, xp = 0.0, 0, False, 0
         for reward in row.get("rewardConfigs") or []:
             kind = reward.get("__typename")
             if kind == "MonetaryRewardConfig":
-                cash += (reward.get("amount", {}).get("usdCents") or 0) / 100
-            elif kind == "CardShardRewardConfig" and reward.get("rarity") == "limited":
+                cash += ((reward.get("amount") or {}).get("usdCents") or 0) / 100
+            elif kind == "CardShardRewardConfig" and reward.get("rarity") == rarity:
                 essence += int(reward.get("quantity") or 0)
             elif kind == "CardRewardConfig":
                 card = True
-        tiers.append(Tier(int(row["fromRank"]), int(row["toRank"]), cash, essence, card))
+            elif kind == "InGameCurrencyRewardConfig" and str(reward.get("currency") or "").endswith("_XP"):
+                xp += int(reward.get("amount") or 0)
+        tiers.append(Tier(int(row["fromRank"]), int(row["toRank"]), cash, essence, card, xp))
     return sorted(tiers, key=lambda t: t.lo)
 
 
@@ -70,6 +73,7 @@ def competition(payload: dict[str, Any]) -> Competition:
     min_in_season = 4 if "SeasonBonus" in typed else 0
     group = ROOM if (rooms or fee) else (IN_SEASON if min_in_season else CLASSIC)
     league, track = payload["league"], payload["track"]
+    rarity = payload.get("rarity") or payload.get("mainRarityType") or "limited"
 
     slots = payload.get("appearances") or rules.get("appearances") or []
     starters = [SLOT_POSITIONS[s["name"]] for s in slots if not s.get("sub")]
@@ -86,7 +90,7 @@ def competition(payload: dict[str, Any]) -> Competition:
         board_id=payload.get("id") or "",
         name=simple_name(league, track, group, fmt),
         group=group,
-        rarity=payload.get("rarity") or payload.get("mainRarityType") or "limited",
+        rarity=rarity,
         starters=starters,
         subs=subs,
         rarities=frozenset(rules.get("rarities") or ()),
@@ -104,7 +108,7 @@ def competition(payload: dict[str, Any]) -> Competition:
         teams_cap=int(payload.get("teamsCap") or 4),
         fee=fee,
         room_size=int(rooms.get("roomsSize") or 0) or (10 if group == ROOM else 0),
-        tiers=reward_tiers((payload.get("rewardsConfig") or {}).get("ranking")),
+        tiers=reward_tiers((payload.get("rewardsConfig") or {}).get("ranking"), rarity),
         entries=int(payload.get("so5LineupsCount") or 0),
         lock_type=rules.get("lockType") or "",
     )

@@ -167,7 +167,9 @@
 .pl-entered-empty > div { display: flex; flex-direction: column; gap: 2px; }
 .pl-entered-empty b { color: var(--ink); font-size: 13px; font-weight: 650; }
 .pl-entered-empty span { font-size: 12px; }
-.pl-entered-empty a { color: var(--ink); font-size: 12px; font-weight: 650; white-space: nowrap; }
+.pl-entered-empty a,
+.pl-entered-again { color: var(--ink); font-size: 12px; font-weight: 650; white-space: nowrap; }
+.pl-entered-again { padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-family: inherit; cursor: pointer; }
 
 /* ---------- plan switch ---------- */
 .pl-plans {
@@ -1976,4 +1978,114 @@
 @media (max-width: 700px) {
   .pl-bignum b { font-size: 72px; }
   .pl-lu-score .pl-kv b { font-size: 32px; }
+}
+
+/* ---------- the chance of each kind of reward, apart (6 Oct 2026) ---------- */
+.pl-split {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: var(--text-2xs);
+  color: var(--ink-2);
+}
+.pl-sp {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+.pl-sp b {
+  color: var(--ink);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.pl-sp.xp b {
+  color: var(--ink-2);
+}
+
+/* ---------- lineups under 5%, folded ---------- */
+.pl-long > .pl-lus {
+  margin-top: 12px;
+}
+
+/* ---------- the essence filled first ---------- */
+.pl-ess {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-size: var(--text-xs);
+  color: var(--ink-2);
+}
+.pl-ess-l {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.pl-ess ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: ess;
+}
+.pl-ess li {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 4px 3px 10px;
+  border-radius: 999px;
+  background: var(--hover);
+  color: var(--ink);
+  font-weight: 600;
+  counter-increment: ess;
+}
+.pl-ess li > span::before {
+  content: counter(ess) " ";
+  color: var(--ink-2);
+  font-weight: 500;
+}
+.pl-ess li button {
+  min-width: 24px;
+  min-height: 24px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-2);
+  font: inherit;
+  cursor: pointer;
+}
+.pl-ess li button:hover:not(:disabled) {
+  background: var(--surface);
+  color: var(--ink);
+}
+.pl-ess li button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.pl-ess li button:focus-visible,
+.pl-ess-save:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.pl-ess-save {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--on-ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pl-ess-save:disabled {
+  opacity: 0.6;
+  cursor: default;
 }

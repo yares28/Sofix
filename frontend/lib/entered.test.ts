@@ -224,3 +224,45 @@ describe("what a week's lineups won", () => {
     expect(weekWon([lineup(false, { rank: null, essence: 0, cash: 0 })]).final).toBe(false);
   });
 });
+
+describe("answers Sorare words differently", () => {
+  it("reads null lists as none instead of a broken answer, and counts XP", () => {
+    const answer = readWeekLineups({
+      state: "ok",
+      data: {
+        so5: {
+          so5Fixture: {
+            mySo5Lineups: [
+              { id: "L1", name: null, draft: false, confirmable: true, so5Leaderboard: { slug: "b", displayName: "LaLiga" }, so5Rankings: null, so5Appearances: null },
+              {
+                id: "L2",
+                name: "Two",
+                draft: false,
+                confirmable: false,
+                so5Leaderboard: { slug: "c", displayName: "LaLiga" },
+                so5Rankings: [
+                  {
+                    ranking: 2100,
+                    score: 300,
+                    so5Leaderboard: { slug: "c" },
+                    so5Rewards: [{ rewardConfigs: [{ __typename: "InGameCurrencyRewardConfig", amount: 500, currency: "LIMITED_XP" }] }],
+                  },
+                ],
+                so5Appearances: [],
+              },
+            ],
+          },
+        },
+      },
+    });
+    expect(answer.state).toBe("ok");
+    if (answer.state !== "ok") return;
+    expect(answer.lineups[0]).toMatchObject({ id: "L1", result: null, cards: [] });
+    expect(answer.lineups[1]?.result).toMatchObject({ rank: 2100, xp: 500, essence: 0, cash: 0 });
+    expect(resultLine(answer.lineups[1]!.result!)).toBe("Rank 2,100 · 500 XP");
+  });
+
+  it("reads a whole answer that is null as no lineups", () => {
+    expect(readWeekLineups({ state: "ok", data: { so5: null } })).toEqual({ state: "ok", lineups: [] });
+  });
+});

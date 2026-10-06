@@ -177,10 +177,9 @@ test("the gameweek opens on its best plan: the ring, both rewards and every line
   const facts = page.locator(".pl-facts .pl-fact");
   await expect(page.locator(".pl-board-note")).toContainText("3 lineups");
   await expect(facts.nth(0)).toHaveText("85% chance of a reward");
-  // A reward is all or nothing: the most likely result is to win nothing and pay the Room's 300 to enter.
-  await expect(facts.nth(1)).toHaveText("−300 essence most likely · 25% chance");
-  await expect(facts.nth(2)).toContainText("$0 cash most likely");
-  await expect(plans.getByRole("link").first()).toContainText("85% · likely −300 essence");
+  // A reward is all or nothing: the most likely result is to win nothing; a Room's fee is a cost, never taken off a result (6 Oct 2026).
+  await expect(facts.nth(1)).toHaveText("Most likely nothing · 25% chance");
+  await expect(plans.getByRole("link").first()).toContainText("85% · likely nothing");
   await expect(facts.last()).toHaveText("19 of 38 cards used");
   await expect(page.locator(".pl-board .pl-alloc-key li")).toHaveText([
     "LALIGA EA SPORTS7 cards",
@@ -319,7 +318,8 @@ test("a lineup with no bench says why, and a room shows its entry fee", async ({
   await expect(room.locator(".pl-checks").last()).toContainText("Captain +20%"); // a room pays the captain less
   await expect(room.locator(".pl-ladder tbody tr")).toHaveCount(4); // three places paid, then the entry fee
   await expect(room.locator(".pl-ladder tbody tr").last()).toContainText("Entry");
-  await expect(room.locator(".pl-ladder tbody tr").last()).toContainText("−300");
+  await expect(room.locator(".pl-ladder tbody tr").last()).toContainText("300 to enter");
+  await expect(room.locator(".pl-ladder tbody tr").last()).not.toContainText("−");
 });
 
 test("the competitions that can't be entered, and the ones not worth entering, are folded away", async ({ page }) => {

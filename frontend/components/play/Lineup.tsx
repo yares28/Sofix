@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { matchHref, matchOfCard } from "../../lib/links";
 import type { Lineup as LineupData, PlayCard, PlayingPlayer } from "../../lib/play";
-import { cashLabel, chanceLabel, essenceLabel, formatOf, paysNote, startChance } from "../../lib/play";
+import { SCORE_SOURCE_NAME, cardScore, cashLabel, chanceLabel, essenceLabel, essenceName, formatOf, paysNote, startChance } from "../../lib/play";
 import { KindIcon } from "../lineups/Icons";
 import Silhouette from "../Silhouette";
 import SourceMark from "../SourceMark";
-import { Cash, Chevron, Essence, Foil, GROUP_CLASS, MiniCards, RangeBar, RewardChips, Ring, ribbonClass } from "./bits";
+import { Cash, Chevron, Essence, Foil, GROUP_CLASS, MiniCards, RangeBar, RewardChips, RewardSplit, Ring, ribbonClass } from "./bits";
 import LineupSheet from "./LineupSheet";
 import SorareImage from "./SorareImage";
 import SeasonIcon from "../SeasonIcon";
@@ -87,6 +87,7 @@ export default function Lineup({
         </span>
         <span className="pl-lu-foot">
           <RewardChips lineup={lineup} after={after} />
+          {after ? null : <RewardSplit item={lineup} kind={essenceName(lineup.kind)} />}
           <span className="pl-note">{paysNote(lineup)}</span>
         </span>
         <Chevron className="hm-chev" />
@@ -123,9 +124,12 @@ function Sheet({ lineup, after, index, hindsight, players }: { lineup: LineupDat
   const clubs = new Map<string, number>();
   for (const card of lineup.starters) clubs.set(card.club ?? "", (clubs.get(card.club ?? "") ?? 0) + 1);
   const mostFromOneClub = Math.max(...clubs.values());
-  const capBonus = lineup.size === 5 ? 260 : 370;
-  const paid = lineup.tiers.filter((tier) => tier.cash || tier.essence || tier.card || tier.label);
+  // a payload from before the job published each competition's two bonuses keeps the values every competition then had
   const room = lineup.group === "Room";
+  const [clubMax, clubBonus] = lineup.clubBonus ?? (lineup.clubBonus === undefined && !room ? [2, 0.02] : [null, null]);
+  const [capBonus, averageBonus] = lineup.averageBonus ?? (lineup.averageBonus === undefined && !room ? [lineup.size === 5 ? 260 : 370, 0.04] : [null, null]);
+  const paid = lineup.tiers.filter((tier) => tier.cash || tier.essence || tier.card || tier.xp || tier.label);
+  const pct = (value: number) => `+${Math.round(value * 100)}%`;
 
   return (
     <>
@@ -148,6 +152,7 @@ function Sheet({ lineup, after, index, hindsight, players }: { lineup: LineupDat
         </div>
         <div className="pl-lu-foot" style={{ justifyContent: "flex-end" }}>
           <RewardChips lineup={lineup} after={after} />
+          {after ? null : <RewardSplit item={lineup} kind={essenceName(lineup.kind)} />}
         </div>
       </div>
 
@@ -198,13 +203,15 @@ function Sheet({ lineup, after, index, hindsight, players }: { lineup: LineupDat
       <div className="pl-checks">
         {lineup.minInSeason ? <span>{`${inSeason} of ${lineup.size} in-season (${lineup.minInSeason} needed)`}</span> : null}
         {lineup.cap ? <span>{`Average total ${lineup.average} ≤ ${lineup.cap}`}</span> : null}
-        {lineup.group !== "Room" ? (
-          <>
-            <span className={mostFromOneClub <= 2 ? "" : "off"}>Max 2 per club{mostFromOneClub <= 2 ? " · +2%" : ""}</span>
-            <span className={lineup.average <= capBonus ? "" : "off"}>
-              Average total {lineup.average} {lineup.average <= capBonus ? `≤ ${capBonus} · +4%` : `> ${capBonus}`}
-            </span>
-          </>
+        {clubMax !== null && clubBonus !== null ? (
+          <span className={mostFromOneClub <= clubMax ? "" : "off"}>
+            Max {clubMax} per club{mostFromOneClub <= clubMax ? ` · ${pct(clubBonus)}` : ""}
+          </span>
+        ) : null}
+        {capBonus !== null && averageBonus !== null ? (
+          <span className={lineup.average <= capBonus ? "" : "off"}>
+            Average total {lineup.average} {lineup.average <= capBonus ? `≤ ${capBonus} · ${pct(averageBonus)}` : `> ${capBonus}`}
+          </span>
         ) : null}
         <span>Captain +{Math.round(lineup.captainBonus * 100)}%</span>
         {after && lineup.actual?.bonusLost ? <span className="off">A sub came in: the lineup bonuses dropped</span> : null}
@@ -221,10 +228,13 @@ function Sheet({ lineup, after, index, hindsight, players }: { lineup: LineupDat
               const hit =
                 after &&
                 lineup.actual &&
-                ((tier.cash && lineup.actual.cash === tier.cash) || (tier.essence && lineup.actual.essence === tier.essence));
+                ((tier.cash && lineup.actual.cash === tier.cash) ||
+                  (tier.essence && lineup.actual.essence === tier.essence) ||
+                  (tier.xp && !tier.essence && !tier.cash && lineup.actual.xp === tier.xp));
               const rank = tier.lo === tier.hi ? `#${tier.lo}` : `#${tier.lo?.toLocaleString("en-GB")}–${tier.hi?.toLocaleString("en-GB")}`;
               // All or nothing: reaching a level's score pays that level whole, so its chance is the chance of scoring at least that.
               const chance = room ? tier.p : paid.slice(0, i + 1).reduce((sum, level) => sum + level.p, 0);
+              const xpOnly = Boolean(tier.xp) && !tier.cash && !tier.essence && !tier.card;
               return (
                 <tr key={`${index}-${i}`} className={hit ? "hit" : ""}>
                   <td>{tier.label ?? (tier.need ? `${tier.need}+ · ${rank}` : rank)}</td>
@@ -240,6 +250,7 @@ function Sheet({ lineup, after, index, hindsight, players }: { lineup: LineupDat
                       </>
                     ) : null}
                     {tier.card ? "Card" : null}
+                    {xpOnly ? `${tier.xp?.toLocaleString("en-GB")} XP` : null}
                   </td>
                   <td>{chanceLabel(chance)}</td>
                 </tr>
@@ -249,7 +260,7 @@ function Sheet({ lineup, after, index, hindsight, players }: { lineup: LineupDat
               <tr>
                 <td>Entry</td>
                 <td>
-                  <Essence size={12} /> −{lineup.fee}
+                  <Essence size={12} /> {lineup.fee} to enter
                 </td>
                 <td />
               </tr>
@@ -262,7 +273,8 @@ function Sheet({ lineup, after, index, hindsight, players }: { lineup: LineupDat
 }
 
 function SheetCard({ card, lineup, after, position, match }: { card: PlayCard; lineup: LineupData; after: boolean; position: number; match: number | null }) {
-  const value = after ? card.actual : Math.round(card.x);
+  const score = cardScore(card);
+  const value = after ? card.actual : score.value;
   const out = after && card.actual === null;
   const swap = after ? (lineup.actual?.cameIn ?? []).find((entry) => entry.for === card.slug) : undefined;
   const sub = swap ? lineup.subs.find((entry) => entry.slug === swap.sub) : null;
@@ -273,7 +285,7 @@ function SheetCard({ card, lineup, after, position, match }: { card: PlayCard; l
         <Silhouette className="pl-sil" />
         <SorareImage src={card.pic} alt={card.name} fill />
         {card.captain ? <span className="pl-cap">C</span> : null}
-        <span className={`pl-rib ${ribbonClass(after ? card.actual : Math.round(card.x))}`}>
+        <span className={`pl-rib ${ribbonClass(after ? card.actual : score.value)}`}>
           {value === null ? "DNP" : Math.round(value)}
         </span>
       </div>
@@ -318,7 +330,13 @@ function SheetCard({ card, lineup, after, position, match }: { card: PlayCard; l
           {card.inSeason ? "IN-SEASON" : "CLASSIC"}
         </span>
         <span>
-          {after ? (swap && sub ? `↺ ${sub.name}` : "") : <>if plays <b>{Math.round(card.mu)}</b></>}
+          {after ? (
+            swap && sub ? `↺ ${sub.name}` : ""
+          ) : (
+            <span title={card.by ? `${score.words}: ${SCORE_SOURCE_NAME[card.by]}${card.sorare !== undefined && card.by !== "sorare" ? ` · Sorare says ${Math.round(card.sorare)}` : ""}` : score.words}>
+              {score.words} · <b>{card.by === "sofix" ? "SF" : card.by === "sorare" ? "SO" : card.by === "form" ? "L5" : ""}</b>
+            </span>
+          )}
         </span>
       </div>
     </div>

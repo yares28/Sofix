@@ -107,6 +107,12 @@
 .au-record thead th:first-child, .au-record tbody th { text-align: left; }
 .au-record tbody th { font-weight: 600; }
 
+/* ---------- rewards ---------- */
+.au-rw-totals { padding-top: 0; }
+.au-rw-big { margin: 0; font-size: 56px; line-height: 1; font-weight: 700; letter-spacing: -0.045em; color: var(--ink); }
+.au-rw-big span { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink-2); }
+.au-rw-you .au-fresh { margin: 10px 0 0; font-size: 12px; color: var(--ink-2); }
+
 .au-empty h1 { margin: 0; font-size: 34px; font-weight: 700; letter-spacing: -0.035em; }
 .au-empty p { margin: 8px 0 0; color: var(--ink-2); font-size: 14px; }
 

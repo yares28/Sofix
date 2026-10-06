@@ -152,6 +152,19 @@ export function readWeekLineups(response: unknown): WeekLineupsAnswer {
  * What a lineup says while there is nothing to score yet: "Locks in 2 d 3 h" before the lock (the 0 under every card is not a
  * result), "Not started" after the lock until a card has scored. Null once a card has scored, and for a draft.
  */
+/** What a week's entered lineups won (drafts left out), and whether that is final: every lineup ranked, so it will never change. */
+export type WeekWon = { essence: number; cash: number; lineups: number; final: boolean };
+
+export function weekWon(lineups: GameweekLineup[]): WeekWon {
+  const entered = lineups.filter((lineup) => !lineup.draft);
+  return {
+    essence: entered.reduce((sum, lineup) => sum + (lineup.result?.essence ?? 0), 0),
+    cash: Math.round(entered.reduce((sum, lineup) => sum + (lineup.result?.cash ?? 0), 0) * 100) / 100,
+    lineups: entered.length,
+    final: entered.every((lineup) => lineup.result !== null && lineup.result.rank !== null),
+  };
+}
+
 export function pendingLine(lineup: GameweekLineup, lock: string | undefined, now: Date): string | null {
   if (lineup.draft) return null;
   const scored = (lineup.result?.score ?? 0) > 0 || lineup.cards.some((card) => (card.score ?? 0) > 0) || (lineup.result?.rank ?? null) !== null;

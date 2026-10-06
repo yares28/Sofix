@@ -1,3 +1,4 @@
+import RewardsAudit from "./RewardsAudit";
 import { freshLabel } from "../../lib/fresh";
 import {
   bandLabel,
@@ -99,9 +100,22 @@ function Record({ data }: { data: Audit }) {
   );
 }
 
-export type AuditShow = "xscore" | "starts" | "record";
+export type AuditShow = "xscore" | "starts" | "record" | "rewards";
 
-export default function AuditView({ data, now, league, show = "xscore" }: { data: Audit | null; now: Date; league: League | null; show?: AuditShow }) {
+export default function AuditView({
+  data,
+  now,
+  league,
+  show = "xscore",
+  season = [],
+}: {
+  data: Audit | null;
+  now: Date;
+  league: League | null;
+  show?: AuditShow;
+  /** The season's finished Sorare gameweeks, for what you won (Rewards). */
+  season?: { slug: string; number: number }[];
+}) {
   if (!data) {
     return (
       <section className="au-w au-empty" role="status">
@@ -113,13 +127,15 @@ export default function AuditView({ data, now, league, show = "xscore" }: { data
   return (
     <>
       <header className="au-top">
-        <h1>{show === "starts" ? "Who starts?" : show === "record" ? "Written down" : "Audit"}</h1>
+        <h1>{show === "starts" ? "Who starts?" : show === "record" ? "Written down" : show === "rewards" ? "Rewards" : "Audit"}</h1>
         <p>
           {show === "starts"
             ? "Each source's chance that a player starts, written down before the lock and checked against who started."
             : show === "record"
               ? "Every gameweek's games, written down before the lock, and how many have been checked."
-              : "How often the numbers were right, checked against what happened."}
+              : show === "rewards"
+                ? "The essence the plans expected over the season, against what was really won."
+                : "How often the numbers were right, checked against what happened."}
         </p>
         {data.generatedAt ? <p className="au-fresh">Updated {freshLabel(data.generatedAt, now)}</p> : null}
       </header>
@@ -133,6 +149,7 @@ export default function AuditView({ data, now, league, show = "xscore" }: { data
           </div>
         </section>
       ) : null}
+      {show === "rewards" ? <RewardsAudit rewards={data.rewards} floor={data.floor} season={season} /> : null}
       {show === "record" ? (
         <section className="au-w au-starts" aria-label="Written down">
           {data.starts.weeks.length ? <Record data={data} /> : <p className="au-sub">Nothing written down yet.</p>}

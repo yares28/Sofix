@@ -403,3 +403,49 @@ def test_the_local_server_serves_the_published_page_or_builds_it_from_the_record
     db.add(ReadModel(key=audit.AUDIT_KEY, payload={"version": 1, "marker": "published"}, updated_at=NOW))
     db.commit()
     assert client.get("/api/audit").json()["data"]["marker"] == "published"
+
+
+def _kept(number: int, expected: float, won: float, lineups: int = 2, cash: float = 0.0) -> dict[str, Any]:
+    plan = {
+        "rank": 1,
+        "essence": expected,
+        "cash": cash,
+        "lineups": [{}] * lineups,
+        "actual": {"essence": won, "cash": cash / 2},
+    }
+    best = {
+        "rank": 1,
+        "essence": 999,
+        "cash": 0,
+        "lineups": [{}],
+        "actual": {"essence": 999, "cash": 0},
+        "hindsight": True,
+    }
+    return {"gameweek": {"number": number, "slug": f"gw-{number}"}, "plans": [plan, best]}
+
+
+def test_the_rewards_add_up_what_each_plan_expected_and_what_it_won_season_long() -> None:
+    weeks = [_kept(18, 120.4, 250, cash=1.0), _kept(17, 63, 0, lineups=3), {"gameweek": {"number": 19}, "plans": []}]
+    rewards = audit.rewards_record(weeks)
+    assert [w["gameweek"] for w in rewards["weeks"]] == [17, 18]  # oldest first; a week with no played plan is left out
+    assert rewards["expected"] == {
+        "essence": 183,
+        "cash": 1.0,
+    }  # chance x reward, added up: a fraction of a prize per week
+    assert rewards["won"] == {
+        "essence": 250,
+        "cash": 0.5,
+    }  # what the lineups really won, whole rewards; hindsight ignored
+    assert rewards["lineups"] == 5
+
+
+def test_publishing_counts_the_rewards_of_every_kept_week(db, tmp_path, monkeypatch) -> None:  # noqa: F811
+    monkeypatch.setattr(audit, "REPLAY_FILE", tmp_path / "nothing.json")
+    db.add(ReadModel(key="sorare_week:gw-17", payload=_kept(17, 63, 0), updated_at=NOW))
+    db.add(
+        ReadModel(key="sorare_plan:gw-19", payload=_kept(19, 10, 0), updated_at=NOW)
+    )  # a plan at its lock: not played yet
+    db.commit()
+    audit.publish(db, NOW)
+    rewards = db.get(ReadModel, audit.AUDIT_KEY).payload["rewards"]
+    assert [w["gameweek"] for w in rewards["weeks"]] == [17] and rewards["expected"]["essence"] == 63

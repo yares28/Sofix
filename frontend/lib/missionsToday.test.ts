@@ -12,14 +12,14 @@ describe("today's missions for a rarity", () => {
     expect(today).toMatchObject({ rarity: "limited", status: "today", seen: ["limited"], seenAt: "2026-10-06T14:00:00Z" });
   });
 
-  it("never shows an older list as today's: it assumes the Decisive Picker and says when the last list was loaded", async () => {
+  it("never shows an older list as today's: no mission at all, and when the last list was loaded", async () => {
     // What Sofix held on 6 Oct: Sunday's lists, the Limited one without names, the Rare one with three missions.
     const missions: MissionsModel = {
       limited: { missions: [row(""), row("")], seen_at: "2026-10-04T19:07:48Z" },
       rare: { missions: [row("Assist - All Matches"), row("Decisive Picker"), row("Interception - All Matches")], seen_at: "2026-10-04T19:05:52Z" },
     };
     const today = await missionsToday(null, missions, undefined, NOW);
-    expect(today).toMatchObject({ rarity: "limited", status: "stale", seen: [], seenAt: "2026-10-04T19:07:48Z" });
+    expect(today).toMatchObject({ rarity: "limited", status: "stale", seen: [], plans: [], seenAt: "2026-10-04T19:07:48Z" });
     expect((await missionsToday(null, missions, "rare", NOW)).status).toBe("stale");
     expect((await missionsToday(null, null, undefined, NOW)).status).toBe("never");
   });

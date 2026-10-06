@@ -233,7 +233,7 @@ export function MissionsGlance({ plans, day, current, href }: { plans: MissionPl
         <span>{day ? new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${day}T12:00:00Z`)) : "today"}{plans.length ? `, ${plans.length} open` : ""}</span>
         <Link href={href}>Missions ›</Link>
       </div>
-      {current ? null : <p className="rc-none">Today&rsquo;s missions aren&rsquo;t loaded yet: the Decisive Picker is assumed. Load them on the Missions page.</p>}
+      {current ? null : <p className="rc-none">Today&rsquo;s missions aren&rsquo;t loaded yet. Load them on the Missions page.</p>}
       {open.length ? (
         <div className="rc-msn">
           {open.map((one) => (
@@ -255,7 +255,7 @@ export function MissionsGlance({ plans, day, current, href }: { plans: MissionPl
           ))}
         </div>
       ) : (
-        <p className="rc-none">{plans.length ? "None of your cards with a game still to play today fits them." : "No missions on Sorare today."}</p>
+        <p className="rc-none">{plans.length ? "None of your cards with a game still to play today fits them." : current ? "No missions on Sorare today." : null}</p>
       )}
     </section>
   );

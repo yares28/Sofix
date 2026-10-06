@@ -420,9 +420,9 @@ another rarity show under a small switch once the extension has seen their tab. 
 
 **Loading today's missions** (extension 0.3.6, press Reload on it once). Sorare's missions reset every day at 9:00 CET, and each rarity has its own
 (on 6 Oct the Limited tab had only the Decisive Picker, the Rare tab none). The page only uses a list loaded since the last reset. When it has none, it
-loads them by itself as it opens (through your open sorare.com tab, read only), and the **Load today's missions** button does it again on demand: with no
-sorare.com tab open, the button opens one in the background for a moment and closes it. Until today's list is in, the page says so, with when the last
-one was loaded, and ranks your cards for the **Decisive Picker**, which Sorare runs every day. A mission that asks a player to beat his own average is
+loads them by itself as it opens (through your open sorare.com tab, read only), and the **Load today's missions** button does it again on demand. It
+never opens a tab: with no sorare.com tab open it says so. Missions are daily, so until today's list is in the page shows none, only when the last list
+was loaded. A mission that asks a player to beat his own average is
 listed but not ranked yet. On a phone (no extension) the page says to load them from Chrome.
 
 ## 10. Players

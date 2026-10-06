@@ -1,4 +1,4 @@
-import { ASSUMED_MISSION, isToday, plan, type MissionPlan, type MissionsModel } from "./missions";
+import { isToday, plan, type MissionPlan, type MissionsModel } from "./missions";
 import type { Sorare } from "./play";
 import type { Sheets } from "./playerSheet";
 
@@ -6,7 +6,7 @@ export const RARITIES = ["limited", "rare", "super_rare", "unique"] as const;
 
 /**
  * Whether the missions shown are today's: `today` when this rarity's list was loaded since Sorare's last reset (it may hold no mission at all),
- * `stale` when the last one is older, `never` when there is none. Without today's list the page assumes the Decisive Picker, which Sorare runs every day.
+ * `stale` when the last one is older, `never` when there is none. Missions are daily: without today's list there is nothing to show.
  */
 export type MissionsStatus = "today" | "stale" | "never";
 
@@ -38,7 +38,7 @@ export async function missionsToday(
   const own = today(rarity);
   const seenAt = missions?.[rarity]?.seen_at ?? null;
   const status: MissionsStatus = own ? "today" : seenAt ? "stale" : "never";
-  const list = own ?? [ASSUMED_MISSION];
+  const list = own ?? [];
   const players = data ? data.weeks.flatMap((w) => w.playing.players) : [];
   const made = list.length && data ? plan(list, rarity, players, sheets.players, now) : null;
   return { rarity, seen: [...seen], day: made?.day ?? null, plans: made?.plans ?? [], status, seenAt };

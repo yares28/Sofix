@@ -77,39 +77,13 @@ async function sendMissions(rarity, missions, force = false) {
 // The rarities the app ranks missions for. One with no mission today is sent empty, so the app says so instead of showing an older list.
 const MISSION_RARITIES = ["limited", "rare", "super_rare", "unique"];
 
-/** Resolves once the tab has loaded, or after `ms`. */
-function tabLoaded(tabId, ms = 20000) {
-  return new Promise((resolve) => {
-    const timer = setTimeout(done, ms);
-    function done() {
-      clearTimeout(timer);
-      chrome.tabs.onUpdated.removeListener(onUpdated);
-      resolve();
-    }
-    function onUpdated(id, info) {
-      if (id === tabId && info.status === "complete") done();
-    }
-    chrome.tabs.onUpdated.addListener(onUpdated);
-    chrome.tabs.get(tabId).then((tab) => tab.status === "complete" && done(), done);
-  });
-}
-
 /**
  * The app's Load button: today's missions of every rarity, asked of Sorare through your signed-in tab (read only) and sent to the app.
- * With no sorare.com tab open, `open` lets it open one in the background for the question and close it after; without it, it says so.
+ * It never opens a tab: with no sorare.com tab open it says so.
  */
-async function loadMissions(open) {
-  let opened = null;
-  if (!(await sorareTabs()).length) {
-    if (!open) return { ok: true, state: "no-tab" };
-    try {
-      opened = await chrome.tabs.create({ url: "https://sorare.com/", active: false });
-      await tabLoaded(opened.id);
-    } catch {
-      return { ok: true, state: "error" };
-    }
-  }
-  try {
+async function loadMissions() {
+  if (!(await sorareTabs()).length) return { ok: true, state: "no-tab" };
+  {
     const answer = await throughSorare("SofixMissions", {});
     if (answer.state !== "ok") return { ok: true, state: answer.state === "rejected" ? "error" : answer.state };
     if (!answer.data?.currentUser) return { ok: true, state: "signed-out" };
@@ -121,8 +95,6 @@ async function loadMissions(open) {
       loaded[rarity] = mine.length;
     }
     return { ok: true, state: "ok", loaded };
-  } finally {
-    if (opened) chrome.tabs.remove(opened.id).catch(() => {});
   }
 }
 
@@ -495,7 +467,7 @@ chrome.runtime.onMessageExternal.addListener((message, sender, reply) => {
     return true; // reply asynchronously
   }
   if (message?.type === "load-missions") {
-    loadMissions(message.open === true).then(reply);
+    loadMissions().then(reply);
     return true;
   }
   if (message?.type === "sorare" && Object.hasOwn(STEPS, message.step)) {

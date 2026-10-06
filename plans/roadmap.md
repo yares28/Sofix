@@ -508,7 +508,7 @@ the held-out weeks (P9 "The bar").
   **6 Oct, part 1 (extension 0.3.6):** the page showed Sunday's Rare list as Tuesday's (Sorare had 1 mission, Sofix 3): a list now counts only
   if loaded since the 9:00 CET reset, never borrowed from another rarity; the page loads today's missions itself through the extension
   (`SofixMissions`, `currentUser.tasks(periodicity: DAILY)`, read only; your picks and Sorare's verdict come with it) and has a Load button;
-  without today's list it assumes the Decisive Picker; SCORE missions are listed, not ranked. Part 2 (the pick log, Audit · Missions) is next.
+  without today's list it shows none (missions are daily; the Load button never opens a tab); SCORE missions are listed, not ranked. Part 2 (the pick log, Audit · Missions) is next.
 - **10.8 · Self-correcting numbers** (P9). Every Monday each chance is checked in its bands and, where it leans, corrected per position in
   its own refresh, once 100 cases stand behind it; Futbol Fantasy stays the first start source, only its lean is corrected. *Done when*
   the first correction is logged on the Audit page with whether the following weeks agreed.

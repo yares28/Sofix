@@ -30,13 +30,12 @@ test.describe("the daily missions page", () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
   });
 
-  test("never shows an older list as today's: it assumes the Decisive Picker, says when the last list was loaded, and offers no Load button without the extension", async ({ page, request }) => {
+  test("never shows an older list as today's: it shows no mission, says when the last list was loaded, and offers no Load button without the extension", async ({ page, request }) => {
     await resetBackend(request, "missions-stale");
     await page.goto("/missions");
     const root = page.getByTestId("missions-page");
     await expect(root.getByRole("status").filter({ hasText: "aren’t loaded yet" })).toContainText("Last loaded");
-    await expect(root.getByRole("region", { name: "Decisive Picker" })).toBeVisible();
-    await expect(root.getByRole("region", { name: "Interception - All Matches" })).toHaveCount(0);
+    await expect(root.locator(".ms-mission")).toHaveCount(0);
     // This browser has no Sofix extension: it says where loading works instead of showing a button that cannot.
     await expect(root.getByText("Load today’s missions from Chrome with the Sofix extension.")).toBeVisible();
     await expect(root.getByRole("button", { name: /Load today/ })).toHaveCount(0);

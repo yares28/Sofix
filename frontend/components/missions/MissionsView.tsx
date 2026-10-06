@@ -103,8 +103,7 @@ export default function MissionsView({
       <LoadMissions stale={!today} day={missionDay} />
       {today ? null : (
         <p className="ms-stale" role="status">
-          Today&rsquo;s missions aren&rsquo;t loaded yet, so this is the Decisive Picker, which Sorare runs every day.
-          {seenAt ? ` Last loaded ${loadedAt(seenAt)}.` : ""}
+          Today&rsquo;s missions aren&rsquo;t loaded yet.{seenAt ? ` Last loaded ${loadedAt(seenAt)}.` : ""}
         </p>
       )}
       {today && !plans.length ? (

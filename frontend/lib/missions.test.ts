@@ -145,7 +145,7 @@ describe("what the Load button says", () => {
   });
 
   it("says what to do when it could not load", () => {
-    expect(missionsLoadNote({ state: "no-tab", loaded: null })).toMatch(/Open sorare.com/);
+    expect(missionsLoadNote({ state: "no-tab", loaded: null })).toMatch(/No sorare.com tab is open/);
     expect(missionsLoadNote({ state: "signed-out", loaded: null })).toMatch(/Sign in/);
     expect(missionsLoadNote({ state: "error", loaded: null })).toMatch(/didn.t answer/);
     expect(missionsLoadNote(null)).toMatch(/extension didn.t answer/);

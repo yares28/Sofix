@@ -41,18 +41,6 @@ export function isToday(seenAt: string | null | undefined, now: Date): boolean {
   return !Number.isNaN(seen.getTime()) && missionDay(seen) === missionDay(now);
 }
 
-/** The one mission Sorare runs every day: assumed on a day whose missions were not loaded, so there is still something to pick for. */
-export const ASSUMED_MISSION: MissionRow = {
-  id: "assumed-decisive-picker",
-  title: "Decisive Picker",
-  description: "Pick players who get a positive decisive action in today's matches.",
-  mode: "DECISIVE",
-  picks: 3,
-  made: 0,
-  period: "DAILY",
-  state: null,
-};
-
 export const RARITY_NAME: Record<string, string> = { limited: "Limited", rare: "Rare", super_rare: "Super Rare", unique: "Unique" };
 
 /** What the Load button says once the extension answers (`null`: it did not, in time). */
@@ -65,7 +53,7 @@ export function missionsLoadNote(answer: { state: string; loaded: Record<string,
       return `Loaded: ${found.map(([rarity, n]) => `${n} ${RARITY_NAME[rarity] ?? rarity} mission${n === 1 ? "" : "s"}`).join(", ")}.`;
     }
     case "no-tab":
-      return "Open sorare.com in this browser, or press Load.";
+      return "No sorare.com tab is open. Open one in this browser, then press Load.";
     case "signed-out":
       return "Sign in on sorare.com, then press Load.";
     case "no-bridge":

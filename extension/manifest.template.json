@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Sofix",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "Links sorare.com to your Sofix app: your lineups, and your scores drawn on the cards.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtCOvdJzJRiA90k2xBz1f8ADx9jx5iQayYv3SPrmnCraBWXC/EFkRpKgyUvBAYmuicEIkD4Z6C9d+3C6HpcKKew+3HXMFAJVpclm7Vtca2UcxMIYYJ6Mqf/j+fyMsK1RTHKuQbcpoP/HruruMEEiNbDnngXbMn6Xo95bOkrocUA9aHY7Rbm0FVV8wUvtgOaV4dnsKVlUYnG9uCSnt1Dljtc5wyPE0XuT+S9ihTiVvydamD63AIVEQCIMRm2pteOe2n5vmveU2igbnm0JRx5tCEYeEtTW0tWniMVkj31icTdY52Ik0tj8AEicObRgd+CfBaQd86Eig556ZloW/nswxAQIDAQAB",
   "minimum_chrome_version": "120",

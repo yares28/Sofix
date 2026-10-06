@@ -416,6 +416,13 @@ to play **today** (missions are daily and tomorrow's are not known, so no later 
 per start in his last 5, last 8 and two seasons beside it. Each card is suggested for one mission only (the likeliest pairs first). Sofix reads, never picks: you make the picks on Sorare. Missions of
 another rarity show under a small switch once the extension has seen their tab. Not yet: checking the official eleven before a kick-off to flag a benched pick.
 
+**Loading today's missions** (extension 0.3.6, press Reload on it once). Sorare's missions reset every day at 9:00 CET, and each rarity has its own
+(on 6 Oct the Limited tab had only the Decisive Picker, the Rare tab none). The page only uses a list loaded since the last reset. When it has none, it
+loads them by itself as it opens (through your open sorare.com tab, read only), and the **Load today's missions** button does it again on demand: with no
+sorare.com tab open, the button opens one in the background for a moment and closes it. Until today's list is in, the page says so, with when the last
+one was loaded, and ranks your cards for the **Decisive Picker**, which Sorare runs every day. A mission that asks a player to beat his own average is
+listed but not ranked yet. On a phone (no extension) the page says to load them from Chrome.
+
 ## 10. Players
 
 ![LaLiga player search and squad-upgrade comparison](images/players.png)

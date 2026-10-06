@@ -5,6 +5,9 @@ import type { Sheet } from "./playerSheet";
 
 export const MISSIONS_TAG = "missions";
 
+/** One of your picks for a mission, as Sorare lists it: the player, his game, the card's rarity and Sorare's verdict (READY, SUCCESS, FAILURE). */
+export type MissionPick = { player: string; game: string | null; rarity: string | null; status: string | null };
+
 export type MissionRow = {
   id: string;
   title: string;
@@ -14,18 +17,77 @@ export type MissionRow = {
   made: number;
   period: string | null;
   state: string | null;
+  /** The stats the mission counts, when Sorare says (extension 0.3.6). */
+  stats?: string[];
+  /** Your picks with Sorare's verdict (extension 0.3.6). */
+  appearances?: MissionPick[];
 };
 export type MissionsModel = Partial<Record<string, { missions: MissionRow[]; seen_at: string }>>;
 
-/** What a pick has to do for the mission to pay. */
+/**
+ * Sorare's daily missions reset at 9:00 CET, which is 08:00 UTC all year. A mission day runs from one reset to the next and is named by the date it
+ * starts on: at 07:00 UTC on 7 Oct it is still the day of 6 Oct. (Read as 9:00 Madrid time in summer, the reset would come an hour earlier; this way a
+ * list is at worst thought stale for that hour and loaded once more, never kept a day too long.)
+ */
+const RESET_UTC_HOURS = 8;
+export function missionDay(at: Date): string {
+  return new Date(at.getTime() - RESET_UTC_HOURS * 3_600_000).toISOString().slice(0, 10);
+}
+
+/** Whether a list read at `seenAt` is today's missions, not a day before the last reset. */
+export function isToday(seenAt: string | null | undefined, now: Date): boolean {
+  if (!seenAt) return false;
+  const seen = new Date(seenAt);
+  return !Number.isNaN(seen.getTime()) && missionDay(seen) === missionDay(now);
+}
+
+/** The one mission Sorare runs every day: assumed on a day whose missions were not loaded, so there is still something to pick for. */
+export const ASSUMED_MISSION: MissionRow = {
+  id: "assumed-decisive-picker",
+  title: "Decisive Picker",
+  description: "Pick players who get a positive decisive action in today's matches.",
+  mode: "DECISIVE",
+  picks: 3,
+  made: 0,
+  period: "DAILY",
+  state: null,
+};
+
+export const RARITY_NAME: Record<string, string> = { limited: "Limited", rare: "Rare", super_rare: "Super Rare", unique: "Unique" };
+
+/** What the Load button says once the extension answers (`null`: it did not, in time). */
+export function missionsLoadNote(answer: { state: string; loaded: Record<string, number> | null } | null): string {
+  if (!answer) return "The Sofix extension didn’t answer. Try again.";
+  switch (answer.state) {
+    case "ok": {
+      const found = Object.entries(answer.loaded ?? {}).filter(([, n]) => n > 0);
+      if (!found.length) return "Loaded: no missions on Sorare today.";
+      return `Loaded: ${found.map(([rarity, n]) => `${n} ${RARITY_NAME[rarity] ?? rarity} mission${n === 1 ? "" : "s"}`).join(", ")}.`;
+    }
+    case "no-tab":
+      return "Open sorare.com in this browser, or press Load.";
+    case "signed-out":
+      return "Sign in on sorare.com, then press Load.";
+    case "no-bridge":
+      return "Reload your sorare.com tab, then press Load.";
+    case "app-error":
+      return "Sorare answered, but Sofix couldn’t save the missions. Try again in a minute.";
+    default:
+      return "Sorare didn’t answer. Try again in a minute.";
+  }
+}
+
+/** What a pick has to do for the mission to pay. `score` (beat his own average by some points) is not ranked yet. */
 export type Rule =
   | { kind: "decisive"; label: string }
   | { kind: "interception"; atLeast: number; label: string }
   | { kind: "assist"; atLeast: number; label: string }
-  | { kind: "goal"; atLeast: number; label: string };
+  | { kind: "goal"; atLeast: number; label: string }
+  | { kind: "score"; label: string };
 
-/** The rule in the mission's own words: "2+ interceptions", an assist, a goal, or any positive decisive action. */
-export function ruleOf(mission: Pick<MissionRow, "title" | "description">): Rule {
+/** The rule in the mission's own words: "2+ interceptions", an assist, a goal, beating his average, or any positive decisive action. */
+export function ruleOf(mission: Pick<MissionRow, "title" | "description"> & { mode?: MissionRow["mode"] }): Rule {
+  if (mission.mode === "SCORE") return { kind: "score", label: "beat his own average" };
   const text = `${mission.title} ${mission.description}`;
   const count = (word: RegExp) => Number(new RegExp(`(\\d+)\\s*\\+\\s*${word.source}`, "i").exec(text)?.[1] ?? 1);
   if (/interception/i.test(text)) {
@@ -85,6 +147,7 @@ const newest = (sheet: Sheet, n: number) => sheet.last.slice(-n);
 
 /** His chance of the rule in his game that day, and what he did per start over 5, 8 and two seasons; null when nothing can be said (no number for him). */
 export function fit(rule: Rule, player: PlayingPlayer, sheet: Sheet | null): { chance: number; average: Window } | null {
+  if (rule.kind === "score") return null; // not ranked yet: it needs his chance of beating his own average, which no number here gives
   const count = (index: 4 | 5 | 6) => ({
     l5: mean(newest(sheet!, 5).map((r) => r[index])),
     l8: mean(newest(sheet!, 8).map((r) => r[index])),

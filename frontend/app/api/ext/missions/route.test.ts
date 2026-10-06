@@ -37,8 +37,24 @@ describe("POST /api/ext/missions", () => {
     const write = calls.find((c) => c.text.includes("INSERT"))!;
     const saved = JSON.parse(write.values[0] as string);
     expect(saved.rare.seen_at).toBe("2026-10-03T10:00:00Z");
-    expect(saved.limited.missions).toEqual([mission]);
+    expect(saved.limited.missions).toEqual([{ ...mission, stats: [], appearances: [] }]); // an older build sends neither
     expect(typeof saved.limited.seen_at).toBe("string");
+  });
+
+  it("keeps the stats a mission counts and your picks with Sorare's verdict, drops a mission without a name, and keeps a day with none", async () => {
+    const picks = [{ player: "jan-oblak", game: "Game:2", rarity: "limited", status: "SUCCESS" }];
+    await call({ rarity: "limited", missions: [{ ...mission, stats: ["goals"], appearances: picks }, { ...mission, id: "t2", title: "" }] });
+    const saved = JSON.parse(calls.find((c) => c.text.includes("INSERT"))!.values[0] as string);
+    expect(saved.limited.missions).toEqual([{ ...mission, stats: ["goals"], appearances: picks }]);
+
+    calls.length = 0;
+    expect((await call({ rarity: "rare", missions: [] })).status).toBe(200);
+    expect(JSON.parse(calls.find((c) => c.text.includes("INSERT"))!.values[0] as string).rare.missions).toEqual([]);
+
+    calls.length = 0;
+    const tooMany = Array.from({ length: 11 }, () => picks[0]);
+    expect((await call({ rarity: "limited", missions: [{ ...mission, appearances: tooMany }] })).status).toBe(400);
+    expect(calls).toEqual([]);
   });
 
   it("turns away anyone without the token before it reads or writes anything", async () => {

@@ -4,7 +4,8 @@ import MissionsView from "../../components/missions/MissionsView";
 import SiteNav from "../../components/SiteNav";
 import { loadGrid } from "../../lib/api";
 import { loadMissions } from "../../lib/missionsData";
-import { missionsToday } from "../../lib/missionsToday";
+import { missionDay } from "../../lib/missions";
+import { missionsToday, RARITIES } from "../../lib/missionsToday";
 import { loadSorare } from "../../lib/playData";
 import { loadSystem } from "../../lib/system";
 import { weekContext } from "../../lib/weeks";
@@ -29,7 +30,16 @@ export default async function Missions({ searchParams }: { searchParams: SearchP
     <>
       <SiteNav meta={meta} system={system} week={week} />
       <main className="s5-main pd">
-        <MissionsView rarity={today.rarity} seen={today.seen.length > 1 ? today.seen : []} day={today.day} plans={today.plans} seenAt={today.seenAt} now={now.toISOString()} />
+        <MissionsView
+          rarity={today.rarity}
+          tabs={RARITIES.filter((r) => r === today.rarity || today.seen.includes(r))}
+          day={today.day}
+          plans={today.plans}
+          status={today.status}
+          seenAt={today.seenAt}
+          missionDay={missionDay(now)}
+          now={now.toISOString()}
+        />
       </main>
     </>
   );

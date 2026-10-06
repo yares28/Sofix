@@ -224,7 +224,7 @@ export function PlanLineups({ rows, show, href }: { rows: PlanRow[]; show: numbe
 }
 
 // ------------------------------------------------------------------------------------------------- missions
-export function MissionsGlance({ plans, day, href }: { plans: MissionPlan[]; day: string | null; href: string }) {
+export function MissionsGlance({ plans, day, current, href }: { plans: MissionPlan[]; day: string | null; current: boolean; href: string }) {
   const open = plans.filter((one) => one.picks.length);
   return (
     <section className="hm-tile rc-missions" aria-labelledby="rc-ms-h">
@@ -233,6 +233,7 @@ export function MissionsGlance({ plans, day, href }: { plans: MissionPlan[]; day
         <span>{day ? new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${day}T12:00:00Z`)) : "today"}{plans.length ? `, ${plans.length} open` : ""}</span>
         <Link href={href}>Missions ›</Link>
       </div>
+      {current ? null : <p className="rc-none">Today&rsquo;s missions aren&rsquo;t loaded yet: the Decisive Picker is assumed. Load them on the Missions page.</p>}
       {open.length ? (
         <div className="rc-msn">
           {open.map((one) => (
@@ -254,7 +255,7 @@ export function MissionsGlance({ plans, day, href }: { plans: MissionPlan[]; day
           ))}
         </div>
       ) : (
-        <p className="rc-none">{plans.length ? "None of your cards with a game still to play today fits them." : "No missions read yet. Open Sorare's Missions page once with the extension on."}</p>
+        <p className="rc-none">{plans.length ? "None of your cards with a game still to play today fits them." : "No missions on Sorare today."}</p>
       )}
     </section>
   );

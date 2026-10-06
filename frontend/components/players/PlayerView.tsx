@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { scoreColour } from "../../lib/cards";
-import type { PlayingPlayer } from "../../lib/play";
+import type { MarketPlayer, PlayingPlayer } from "../../lib/play";
 import type { Identity, NextGame } from "../../lib/playerPage";
 import { gameFactors, shapeBars, sheetGroups, sheetTotal, type Sheet, type Strip, type Window } from "../../lib/playerSheet";
 import CardArt from "../cards/CardArt";
@@ -27,22 +27,32 @@ export default function PlayerView({
   asOf,
   strips,
   next,
+  league = null,
 }: {
   slug: string;
   identity: Identity;
   planned: PlayingPlayer | null;
+  /** His row of the LaLiga index: every player's start chance and xScore this week, for one who is not in your plans. */
+  league?: MarketPlayer | null;
   sheet: Sheet | null;
   asOf: string;
   strips: Strip[];
   next: NextGame[];
 }) {
   const game = planned?.games[0] ?? null;
+  const theirs = !planned && league?.fixture?.opponent && league.fixture.kickoff ? league : null;
+  const shown = game ?? (theirs?.fixture as { opponent: string; opponentCrest: string | null; venue: "H" | "A"; kickoff: string } | undefined) ?? null;
+  const pStart = planned ? planned.pStart : theirs?.pStart;
   const factors = useMemo(() => gameFactors(game?.odds), [game]);
   const [window, setWindow] = useState<Window>(factors ? "next" : "l10");
   const groups = useMemo(() => (sheet ? sheetGroups(sheet, window, factors) : []), [sheet, window, factors]);
   const total = sheet ? sheetTotal(sheet, window, factors) : 0;
   const shape = planned?.shape ?? null;
-  const score = planned ? Math.round(typeof planned.start === "number" ? planned.start : planned.x) : null;
+  const score = planned
+    ? Math.round(typeof planned.start === "number" ? planned.start : planned.x)
+    : theirs && typeof (theirs.start ?? theirs.mu) === "number"
+      ? Math.round((theirs.start ?? theirs.mu) as number)
+      : null;
   const last10 = sheet ? Math.round(sheet.last.reduce((a, r) => a + r[0], 0) / Math.max(1, sheet.last.length)) : null;
   const bars = useMemo(() => (shape && score !== null ? shapeBars(shape, score) : []), [shape, score]);
   const pickers: [Window, string][] = [...(factors ? ([["next", "Next game"]] as [Window, string][]) : []), ["l10", "Last 10"], ["all", "Two seasons"]];
@@ -55,17 +65,17 @@ export default function PlayerView({
         </span>
         <div className="pd-head">
           <h1>{identity.name}</h1>
-          {game ? (
+          {shown ? (
             <p className="pd-game">
-              <SorareImage src={game.opponentCrest} alt="" width={22} height={22} />
+              <SorareImage src={shown.opponentCrest} alt="" width={22} height={22} />
               <span>
-                {game.venue === "H" ? "v" : "at"} {game.opponent} · {when(game.kickoff)}
+                {shown.venue === "H" ? "v" : "at"} {shown.opponent} · {when(shown.kickoff)}
               </span>
             </p>
           ) : (
             <p className="pd-game">
               {[identity.pos, identity.club].filter(Boolean).join(" · ")}
-              {game === null && planned === null ? " · no game in your plans" : ""}
+              {planned === null ? " · no game this gameweek" : ""}
             </p>
           )}
           <div className="pd-big">
@@ -75,9 +85,9 @@ export default function PlayerView({
                   <span className="pd-x sc-chip" style={{ background: scoreColour(score).fill, color: scoreColour(score).ink }}>{score}</span>
                   <small>xScore if he starts</small>
                 </div>
-                {typeof planned?.pStart === "number" ? (
+                {typeof pStart === "number" ? (
                   <div>
-                    <span className="pd-s">{Math.round(planned.pStart * 100)}%</span>
+                    <span className="pd-s">{Math.round(pStart * 100)}%</span>
                     <small>chance he starts</small>
                   </div>
                 ) : null}

@@ -264,8 +264,9 @@ export function initials(name: string): string {
     .toUpperCase();
 }
 
-/** A euro price the way the search shows it: whole euros with a separator above 100, cents below. */
-export function priceLabel(eur: number): string {
+/** A euro price the way the search shows it: whole euros with a separator above 100, cents below; a dash when Sorare quotes none. */
+export function priceLabel(eur: number | null): string {
+  if (eur === null) return "—";
   return `\u20ac${eur >= 100 ? Math.round(eur).toLocaleString("en-US") : eur.toFixed(2)}`;
 }
 

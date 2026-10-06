@@ -991,6 +991,26 @@ def build_payload(
             scores=scores,
         )
     )
+    # Every LaLiga player, not only yours (S5): the same start chance and xScore, from the squad index the job reads each run. Form
+    # stands on the history the job reads for your players; anyone else's rests on Sorare's odds and projection, Futbol Fantasy
+    # and his games, with the priors for the rest. Yours keep exactly the plan's numbers.
+    league_rows = [{"player": row["player"]} for row in snapshot.get("market") or [] if row.get("player")]
+    league_games = card_games(league_rows, "plan")
+    league_forecasts = build_forecasts(
+        player_weeks(
+            league_rows,
+            league_games,
+            snapshot["history"],
+            _dt(plan_week["lock"]),
+            None,
+            use_sorare=True,
+            ff=ff,
+            scores=scores,
+        )
+    )
+    league_forecasts.update(plan_forecasts)
+    league_games.update(plan_games)
+
     next_gw = gameweek_payload(
         snapshot,
         plan_week,
@@ -1158,7 +1178,7 @@ def build_payload(
         },
         # S5: the whole collection card by card, and the LaLiga players priced right now.
         "collection": collection_out(cards),
-        "market": market_out(snapshot.get("market") or []),
+        "market": market_out(snapshot.get("market") or [], league_forecasts, league_games),
     }
 
 
@@ -1205,13 +1225,30 @@ def collection_out(cards: list[Card]) -> list[dict[str, Any]]:
     ]
 
 
-def market_out(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """The LaLiga price index for the Player search page (S5), one row per player, keyed the app's way."""
+def market_out(
+    rows: list[dict[str, Any]],
+    forecasts: dict[str, Forecast] | None = None,
+    games: dict[str, list[dict[str, Any]]] | None = None,
+) -> list[dict[str, Any]]:
+    """Every LaLiga player for the Players page (S5), keyed the app's way: his price when Sorare quotes one (else None), and for
+    the gameweek being planned his chance of playing and of starting (with whose number it is), his score if he plays, his
+    xScore and his first game. A player without a game this week has no xScore."""
     out: list[dict[str, Any]] = []
     for row in rows:
         eur = row.get("eur")
-        if eur is None:
-            continue
+        forecast = (forecasts or {}).get(row["slug"])
+        listed = (games or {}).get(row["slug"]) or []
+        game = listed[0] if listed else None
+        week: dict[str, Any] = {}
+        if forecast and game:
+            week = {
+                "p": round(forecast.p_play, 3),
+                **_start_of(forecast),
+                "mu": round(forecast.mu, 1),
+                **({"start": round(forecast.start, 1)} if forecast.start is not None else {}),
+                "x": round(_expected(forecast), 1),
+                "fixture": {k: game.get(k) for k in ("opponent", "opponentCrest", "venue", "kickoff")},
+            }
         out.append(
             {
                 "slug": row["slug"],
@@ -1221,8 +1258,9 @@ def market_out(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "crest": row.get("crest"),
                 "average": round(float(row.get("average") or 0.0), 1),
                 "projection": row.get("projection"),
-                "eur": round(float(eur), 2),
+                "eur": round(float(eur), 2) if eur is not None else None,
                 "pic": row.get("pic") or "",
+                **week,
             }
         )
     out.sort(key=lambda p: -p["average"])

@@ -769,3 +769,37 @@ def test_a_week_where_none_of_your_cards_play_says_so() -> None:
     ahead = publish.build_payload(idle, runs=2, draws=200)["weeks"][-1]
     assert ahead["gameweek"]["number"] == 22
     assert ahead["state"] == "none" and ahead["playing"]["cards"] == 0 and ahead["plans"] == []
+
+
+def test_every_laliga_player_gets_a_start_chance_and_an_xscore_not_only_yours() -> None:
+    def row(raw: dict[str, Any], eur: float | None) -> dict[str, Any]:
+        player = raw["player"]
+        return {
+            "slug": player["slug"],
+            "name": player["displayName"],
+            "pos": "FWD",
+            "club": "CLA",
+            "crest": None,
+            "average": 48.0,
+            "projection": 55.0,
+            "eur": eur,
+            "pic": "",
+            "player": player,
+        }
+
+    stranger = card("stranger", "FWD", plays=7000)  # nobody's card: only the squad index knows him
+    snap = snapshot()
+    snap["market"] = [row(stranger, None), row(snap["cards"][10], 12.5)]
+    page = publish.build_payload(snap, runs=4, draws=600)
+    market = {p["slug"]: p for p in page["market"]}
+
+    him = market["stranger"]
+    assert him["eur"] is None  # unpriced, still listed
+    assert him["pStart"] == 0.7 and him["startSource"] == "sorare"
+    assert 0 < him["x"] < him["mu"] and him["fixture"]["opponent"] == "Club Z"
+
+    mine = market["front-one"]
+    planned = next(
+        c for lu in publish.week_of(page)["plans"][0]["lineups"] for c in lu["starters"] if c["player"] == "front-one"
+    )
+    assert mine["x"] == planned["x"] and mine["pStart"] == planned["pStart"]

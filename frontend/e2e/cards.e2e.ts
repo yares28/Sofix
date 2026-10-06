@@ -54,3 +54,24 @@ test("with reduced motion the cards and search results still show (their rise is
     expect(await page.locator(item).first().evaluate((el) => getComputedStyle(el).opacity), path).toBe("1");
   }
 });
+
+test("every LaLiga player has a start chance and an xScore, not only yours, priced or not", async ({ page }) => {
+  await page.goto("/players");
+  const search = page.getByRole("searchbox").or(page.getByRole("textbox")).first();
+
+  await search.fill("Raphinha");
+  const raphinha = page.locator(".s5-res", { hasText: "Raphinha" });
+  await expect(raphinha.locator(".s5-stat", { hasText: "Starts" })).toContainText("85%");
+  await expect(raphinha.locator(".s5-stat", { hasText: "xScore" }).locator("b")).toHaveText("67");
+
+  await search.fill("Unpriced");
+  const kid = page.locator(".s5-res", { hasText: "Unpriced Kid" });
+  await expect(kid.locator(".s5-stat", { hasText: "Starts" })).toContainText("4%");
+  await expect(kid.locator(".s5-stat", { hasText: "Limited price" }).locator("b")).toHaveText("—");
+
+  await page.goto("/players/unpriced-kid");
+  const hero = page.locator(".pd-hero");
+  await expect(hero).toContainText("v Sevilla");
+  await expect(hero).toContainText("xScore if he starts");
+  await expect(hero.locator(".pd-s")).toHaveText("4%");
+});

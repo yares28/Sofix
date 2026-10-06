@@ -59,6 +59,9 @@ export type Tier = {
   cash?: number;
   essence?: number;
   card?: boolean;
+  /** The score that reached this level in the week the chances come from; absent on Rooms and older payloads. */
+  need?: number | null;
+  /** The chance of ending on exactly this level. */
   p: number;
 };
 
@@ -456,8 +459,7 @@ export function formatOf(lineup: Pick<Lineup, "group" | "size" | "subSlots" | "m
 /** Who gets paid in this competition, in a few words. */
 export function paysNote(lineup: Lineup): string {
   if (lineup.group === "Room") return `Top 3 of 10 · ${lineup.fee} to enter`;
-  const paid = lineup.tiers.filter((tier) => tier.cash || tier.essence || tier.card);
-  const last = paid[paid.length - 1];
+  const last = paidTiers(lineup).at(-1);
   if (!last?.hi) return "Rewards by rank";
   const entries = lineup.entries ? ` of ≈${lineup.entries.toLocaleString("en-GB")}` : "";
   return `Top ${last.hi.toLocaleString("en-GB")}${entries} pays`;
@@ -498,7 +500,13 @@ export function waitingFor(gw: GameweekPlan, now: Date): string | null {
   return "The chances need a gameweek like this one that has already been played.";
 }
 
-/** The reward chips a lineup shows: expected essence and cash, or what it actually won. */
+/** A lineup's paid levels, best first. A reward is all or nothing: Sorare pays a lineup one of them, whole, or nothing. */
+export const paidTiers = (lineup: Pick<Lineup, "tiers">): Tier[] => lineup.tiers.filter((tier) => tier.cash || tier.essence || tier.card);
+
+/**
+ * The reward chips a lineup shows: before the games, what its first level pays and the score that reached it ("250 at 320+"),
+ * whose chance is the lineup's reward chance; after them, what it actually won.
+ */
 export function rewardChips(lineup: Lineup, after: boolean): { kind: "essence" | "cash" | "card" | "none"; label: string; won?: boolean }[] {
   if (after && lineup.actual) {
     const { cash, essence, card } = lineup.actual;
@@ -507,11 +515,64 @@ export function rewardChips(lineup: Lineup, after: boolean): { kind: "essence" |
     if (card) return [{ kind: "card", label: "Card", won: true }];
     return [{ kind: "none", label: "No reward" }];
   }
-  const chips: { kind: "essence" | "cash" | "card" | "none"; label: string }[] = [];
-  if (lineup.eEss) chips.push({ kind: "essence", label: `≈${essenceLabel(lineup.eEss)}${lineup.fee ? " net" : ""}` });
-  if (lineup.eCash >= 0.01) chips.push({ kind: "cash", label: `≈${cashLabel(lineup.eCash)}` });
-  if (lineup.pCard >= 0.01) chips.push({ kind: "card", label: `Card ${chanceLabel(lineup.pCard)}` });
-  return chips.length ? chips : [{ kind: "none", label: "No reward expected" }];
+  const first = paidTiers(lineup).at(-1);
+  if (!first) return [{ kind: "none", label: "No reward" }];
+  const chips: { kind: "essence" | "cash" | "card"; label: string }[] = [];
+  if (first.cash) chips.push({ kind: "cash", label: cashLabel(first.cash) });
+  if (first.essence) chips.push({ kind: "essence", label: essenceLabel(first.essence) });
+  if (first.card) chips.push({ kind: "card", label: "Card" });
+  const last = chips[chips.length - 1]!;
+  if (lineup.need && lineup.group !== "Room") last.label += ` at ${lineup.need}+`;
+  return chips;
+}
+
+/** What a plan can end the week with: essence (a Room's fee taken off), cash, cards, and the chance of exactly that. */
+export type Result = { essence: number; cash: number; cards: number; p: number };
+
+/**
+ * The plan's single most likely result for the week. Each lineup is paid one of its levels whole, or nothing (a Room's fee
+ * is paid either way); lineups are taken as independent, as the chance of any reward is. Often "nothing" even when some
+ * reward is likely, because the ways of winning are split over many amounts.
+ */
+export function likelyResult(plan: Pick<Plan, "lineups">): Result {
+  let results = new Map<string, Result>([["0|0|0", { essence: 0, cash: 0, cards: 0, p: 1 }]]);
+  for (const lineup of plan.lineups) {
+    const levels = paidTiers(lineup);
+    const none = Math.max(0, 1 - levels.reduce((sum, tier) => sum + tier.p, 0));
+    const outcomes = [
+      ...levels.map((tier) => ({ essence: tier.essence ?? 0, cash: tier.cash ?? 0, cards: tier.card ? 1 : 0, p: tier.p })),
+      { essence: 0, cash: 0, cards: 0, p: none },
+    ];
+    const next = new Map<string, Result>();
+    for (const so of results.values()) {
+      for (const add of outcomes) {
+        const result = {
+          essence: so.essence + add.essence - lineup.fee,
+          cash: Math.round((so.cash + add.cash) * 100) / 100,
+          cards: so.cards + add.cards,
+          p: so.p * add.p,
+        };
+        const key = `${result.essence}|${result.cash}|${result.cards}`;
+        const seen = next.get(key);
+        next.set(key, seen ? { ...seen, p: seen.p + result.p } : result);
+      }
+    }
+    // ponytail: results a hundred thousand times rarer than the likeliest are dropped so a big plan stays quick; they could
+    // only overtake it by merging by the thousand, which plans of a handful of lineups never do.
+    const top = Math.max(...[...next.values()].map((result) => result.p));
+    results = new Map([...next].filter(([, result]) => result.p >= top * 1e-5));
+  }
+  return [...results.values()].reduce((best, result) => (result.p > best.p ? result : best));
+}
+
+/** A result in words: "nothing", "250 essence", "$2 + 250 essence", "−300 essence", "a card". */
+export function resultLabel(result: Pick<Result, "essence" | "cash" | "cards">): string {
+  const parts = [
+    result.cash ? cashLabel(result.cash) : "",
+    result.essence ? `${essenceLabel(result.essence)} essence` : "",
+    result.cards ? (result.cards === 1 ? "a card" : `${result.cards} cards`) : "",
+  ].filter(Boolean);
+  return parts.length ? parts.join(" + ") : "nothing";
 }
 
 /** The gameweek a page opens on: the one being planned. */

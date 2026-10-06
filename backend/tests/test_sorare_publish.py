@@ -558,6 +558,9 @@ def test_the_plans_use_each_card_once_and_name_their_lineups(payload):
 def test_a_lineup_carries_what_the_app_needs_to_draw_it(payload):
     lineup = publish.week_of(payload)["plans"][0]["lineups"][0]
     assert lineup["need"] and lineup["tiers"]
+    # Each level names the score that reached it in the reference week; the last one is the lineup's own "need".
+    needs = [tier["need"] for tier in lineup["tiers"]]
+    assert needs[-1] == lineup["need"] and needs == sorted(needs, reverse=True)
     # Entering this lineup takes Sorare's id for the leaderboard, which only the job can read (S6), and
     # asking Sorare about it takes the slug.
     assert lineup["boardId"] == f"So5Leaderboard:{lineup['board']}"

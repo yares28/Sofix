@@ -121,7 +121,7 @@ const NUMBERS = {
 };
 
 /** What the app answers for the drawer: the gameweek's plan in a few numbers (lib/overlay.ts, overlayPlan). */
-const PLAN = { state: "ready", week: 17, lineups: 1, x: 417, comp: "All Star", pics: [1, 2, 3, 4, 7].map(picture), pAny: 0.16, essence: 55, cardsUsed: 9, cardsAvailable: 87 };
+const PLAN = { state: "ready", week: 17, lineups: 1, x: 417, comp: "All Star", pics: [1, 2, 3, 4, 7].map(picture), pAny: 0.16, likely: "250 essence", cardsUsed: 9, cardsAvailable: 87 };
 
 type Mode = "ok" | "auth" | "unreachable";
 type Live = Record<string, { at: string; players: Record<string, { p: number; lesion: number }> }>;
@@ -984,7 +984,8 @@ test.describe("the sorare.com overlay", () => {
     await expect(drawer.getByText("417")).toBeVisible();
     await expect(drawer.getByText("xScore · All Star")).toBeVisible();
     await expect(drawer.getByText("16%")).toBeVisible();
-    await expect(drawer.getByText("≈55")).toBeVisible();
+    await expect(drawer.getByText("Most likely")).toBeVisible();
+    await expect(drawer.getByText("250 essence")).toBeVisible(); // what the plan most likely ends with, never an average of rewards
     await expect(drawer.getByText("9 of 87")).toBeVisible();
     // five thumbnails, and "+4" for the other four of the nine cards the plan uses
     const cards = drawer.getByRole("list", { name: /best plan, All Star leading/ });

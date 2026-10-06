@@ -147,7 +147,7 @@
       hero,
       pics,
       line("Reward chance", core.chanceLabel(plan.pAny)),
-      line("Essence expected", `≈${plan.essence}`),
+      line("Most likely", plan.likely || "—"),
       line("Cards used", `${plan.cardsUsed} of ${plan.cardsAvailable}`),
       link("Open Apply in Sofix", path),
       el("p", "note", "Entering still takes three presses in the app."),

@@ -216,9 +216,13 @@ fails the Play page is still published and the run's summary names `audit` under
 
 Seeded beam search (width 120), 3,000 score draws and repeated temperature-weighted whole-week searches enforce slots,
 position/card/player uniqueness, rarity/in-season/club/cap rules, bonuses, captain and substitutes. A substitute is
-used only when protection exceeds sacrificed value. Candidates are ranked by normalized cash + normalized essence and
-filtered until card-set signatures differ by at least 20%; at most five are published. The two reward units remain
-separate and are never converted by an exchange rate.
+used only when protection exceeds sacrificed value. Rewards are all or nothing (a lineup reaching a tier's score gets that
+tier whole), so each step adds the lineup most likely to be paid and candidates are ranked by the chance of any reward;
+normalized cash + normalized essence only breaks ties. They are filtered until card-set signatures differ by at least 20%;
+at most five are published. Each published tier carries the score that reached it in the reference week (`need`). The two
+reward units remain separate and are never converted by an exchange rate. The page shows no chance-weighted average: a
+lineup shows its first tier's reward and score, a plan its most likely result (`likelyResult` in `frontend/lib/play.ts`,
+lineups independent, a Room's fee always paid).
 
 Cutoffs use current tables or comparable past gameweek/room samples. Probabilities use common spread and simplify
 teammate/opponent/shared-lineup correlation; combined “any reward” treats plan misses as independent. They are aids,

@@ -184,9 +184,7 @@ export function RewardChips({ lineup, after }: { lineup: Lineup; after: boolean 
       {rewardChips(lineup, after).map((chip) => (
         <span
           key={`${chip.kind}-${chip.label}`}
-          className={`pl-rw${chip.won ? " won" : ""}${chip.kind === "none" ? " none" : ""}${
-            chip.kind === "essence" && lineup.eEss < 0 && !after ? " neg" : ""
-          }`}
+          className={`pl-rw${chip.won ? " won" : ""}${chip.kind === "none" ? " none" : ""}`}
         >
           {chip.kind === "essence" ? <Essence /> : chip.kind === "cash" ? <Cash /> : null}
           {chip.label}

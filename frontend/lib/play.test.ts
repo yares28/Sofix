@@ -9,10 +9,12 @@ import {
   insideRange,
   lastMeta,
   lastWeek,
+  likelyResult,
   nextWeek,
   paysNote,
   plansOf,
   rangeScale,
+  resultLabel,
   rewardChips,
   scoringWeek,
   startChance,
@@ -199,14 +201,23 @@ describe("what a gameweek is waiting for", () => {
 });
 
 describe("reward chips", () => {
-  it("shows what is expected before the games", () => {
-    const chips = rewardChips(lineup(), false);
-    expect(chips.map((chip) => chip.kind)).toEqual(["essence", "cash"]);
-    expect(chips[0]?.label).toBe("≈260");
+  it("shows the whole reward of the first level and the score that reached it, never an average", () => {
+    expect(rewardChips(lineup(), false)).toEqual([{ kind: "essence", label: "250 at 307+" }]);
+    const both = lineup({ tiers: [{ lo: 1, hi: 100, cash: 2, essence: 250, card: false, p: 0.3 }] });
+    expect(rewardChips(both, false)).toEqual([
+      { kind: "cash", label: "$2" },
+      { kind: "essence", label: "250 at 307+" },
+    ]);
+    expect(rewardChips(lineup({ tiers: [] }), false)).toEqual([{ kind: "none", label: "No reward" }]);
   });
 
-  it("marks a room's entry fee as net", () => {
-    expect(rewardChips(lineup({ group: "Room", fee: 300, eEss: -95, eCash: 0 }), false)[0]?.label).toBe("≈−95 net");
+  it("gives a room the reward of its third place, paid by place rather than by score", () => {
+    const tiers = [
+      { label: "1st", essence: 1300, p: 0.1 },
+      { label: "2nd", essence: 800, p: 0.1 },
+      { label: "3rd", essence: 500, p: 0.1 },
+    ];
+    expect(rewardChips(lineup({ group: "Room", fee: 300, tiers }), false)).toEqual([{ kind: "essence", label: "500" }]);
   });
 
   it("shows what was won after them", () => {
@@ -214,6 +225,39 @@ describe("reward chips", () => {
     expect(rewardChips(won, true)).toEqual([{ kind: "essence", label: "250", won: true }]);
     const nothing = lineup({ actual: { total: 200, cash: 0, essence: 0, card: false, need: 313, bonusLost: false, cameIn: [] } });
     expect(rewardChips(nothing, true)).toEqual([{ kind: "none", label: "No reward" }]);
+  });
+});
+
+describe("the most likely result of a plan", () => {
+  it("adds up the lineups, each paid one level whole or nothing", () => {
+    // each lineup: 250 essence 47%, $10 1%, nothing 52% — one of the two paid is likelier than none or both
+    const result = likelyResult(plan());
+    expect(result).toMatchObject({ essence: 250, cash: 0, cards: 0 });
+    expect(result.p).toBeCloseTo(2 * 0.47 * 0.52, 6);
+    expect(resultLabel(result)).toBe("250 essence");
+  });
+
+  it("is nothing when the ways of winning are split, even if winning something is likelier", () => {
+    const split = lineup({
+      pReturn: 0.6,
+      tiers: [
+        { lo: 1, hi: 10, essence: 500, p: 0.2 },
+        { lo: 11, hi: 100, essence: 250, p: 0.2 },
+        { lo: 101, hi: 1000, essence: 100, p: 0.2 },
+      ],
+    });
+    expect(likelyResult({ lineups: [split] })).toEqual({ essence: 0, cash: 0, cards: 0, p: expect.closeTo(0.4, 6) });
+  });
+
+  it("takes a room's entry fee off whatever happens", () => {
+    const room = lineup({ group: "Room", fee: 300, tiers: [{ label: "3rd", essence: 500, p: 0.3 }] });
+    expect(resultLabel(likelyResult({ lineups: [room] }))).toBe("−300 essence");
+  });
+
+  it("says a result in words", () => {
+    expect(resultLabel({ essence: 250, cash: 2, cards: 0 })).toBe("$2 + 250 essence");
+    expect(resultLabel({ essence: 0, cash: 0, cards: 0 })).toBe("nothing");
+    expect(resultLabel({ essence: 0, cash: 0, cards: 1 })).toBe("a card");
   });
 });
 

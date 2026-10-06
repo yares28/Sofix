@@ -178,8 +178,18 @@ export function LineupRow({ row }: { row: PlanRow }) {
           <b>Cash or essence</b>
           <br />
           Other rewards <b>{pct(row.other)}</b>
-          <br />
-          <b>{Math.round(row.essence)}</b> essence{row.cash >= 0.01 ? <>, <b>${row.cash.toFixed(2)}</b></> : null} expected
+          {row.cash >= 0.01 || row.essence ? (
+            <>
+              <br />
+              Pays {row.cash >= 0.01 ? <b>${row.cash.toFixed(2)}</b> : null}
+              {row.cash >= 0.01 && row.essence ? " and " : null}
+              {row.essence ? (
+                <>
+                  <b>{Math.round(row.essence)}</b> essence
+                </>
+              ) : null}
+            </>
+          ) : null}
         </span>
       </div>
     </div>

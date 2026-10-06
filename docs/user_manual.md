@@ -26,7 +26,7 @@ weeks differently (LaLiga's round 8 is Sorare's GW21): **LaLiga round 8 · Sorar
 **LaLiga round 9 · Sorare not open**; an international break has no LaLiga round, **Sorare GW19 · national teams**.
 
 In the picker each week's chip says how many of your cards play ("88 playable"), and the column on its right always says what its number
-is: "≈9 essence · 3 plans", "250 essence · our plan's replay", "early plan" ("· expected" when its competitions are), "2 cards play".
+is: "48% reward chance · 3 plans", "250 essence · our plan's replay", "early plan" ("· expected" when its competitions are), "2 cards play".
 
 How fresh something is reads the same everywhere (Home, Play, Lineups, Control, the status pill, the sorare.com overlay): how long
 ago and the time it was made in Madrid, **9 h ago (03:33)**; once it is over a day old the day is added, **2 days ago (Tue 03:33)**.
@@ -62,7 +62,7 @@ The Recap is about the week in the top bar (since 5 Oct 2026; design canvas boar
   goals and clean-sheet chance; draw and both-score beside the pair. The favourite is in bold; a played match shows its score.
 - **Table after round N**: the table once the round is played as expected: points now, points after and places gained or lost.
 - **Your lineups**: the plan's three likeliest-to-pay lineups with their cards (xScore under each, captain marked), team score and its
-  range, the score it needs for a reward, a ring with the chance of cash or essence, the chance of other rewards and the essence to expect;
+  range, the score it needs for a reward, a ring with the chance of cash or essence, the chance of other rewards and what its first level pays, whole;
   the others as chips. Every lineup is on the Sorare view.
 - **Missions**: today's open missions and the three cards of yours that fit each best, with the chance (the Missions page's numbers).
 - **News this week**: your players hurt or banned in the last seven days and those cleared to play after a knock, in Futbol Fantasy's
@@ -177,8 +177,8 @@ Play shows the latest published plan for the selected Sorare gameweek. It is bui
 competition rules, pre-lock forecasts and reward cutoffs.
 
 The header counts down to the lock ("Locks Wed 14:42, in 47 h"). The plan's first four lineups are drawn in full; any
-more are summed up in one line (how many, their average xScore, the best reward chance among them, the essence they
-are expected to win) that opens into compact rows, each still opening its sheet. While the gameweek is the one being
+more are summed up in one line (how many, their average xScore, the best reward chance among them, and their most likely
+result) that opens into compact rows, each still opening its sheet. While the gameweek is the one being
 played, today's missions sit under the lineups with the cards that fit each (chance, opponent, kick-off and what he
 did over his last 5); the full Missions page is one click away.
 
@@ -202,15 +202,24 @@ Read each lineup from left to right:
 - **xScore**, which includes the chance of not playing;
 - an expected range, not a guarantee;
 - reward probability and the cutoff evidence behind it;
-- expected essence and expected cash, kept as separate units.
+- what its first level pays and the score that reached it ("250 at 311+").
+
+**A reward is all or nothing.** A lineup that reaches a level gets that level's reward whole; one that does not gets
+nothing. Play never shows a share of a reward. A lineup's sheet lists every level under **Rewards**: the score that reached
+it in the week the chances come from ("311+ · #301–1,500"), what it pays, and the chance of scoring at least that, so the
+first level's chance is the lineup's reward chance. A Room lists its three places instead.
 
 In a lineup's sheet, a card's name opens his match on **Lineups** (Futbol Fantasy's probable elevens and the chance of each player of his
 side). A game Futbol Fantasy has no page for, such as a national-team game, has no link.
 
 The planner enforces the published slots, caps, in-season minimum, club/card/player uniqueness, bonuses and substitute
 rules. A substitute is kept only when its expected protection exceeds the bonus sacrificed by using it. It repeats a
-seeded, slightly randomized whole-gameweek search and returns up to five plans whose card sets are materially different;
-cash and essence are normalized for ranking but remain separate in the UI.
+seeded, slightly randomized whole-gameweek search and returns up to five plans whose card sets are materially different.
+**Plan 1 is the plan most likely to be paid anything**, whatever the size of the reward (your choice, 5 Oct 2026); what a
+plan pays only breaks a tie. A plan's **Essence** and **Cash** are its **most likely result** for the week, with its chance:
+every lineup reaches a level or not, and the likeliest combination is often nothing (or minus a Room's entry fee) even when
+some reward is likely, because the ways of winning are split over many amounts. Cash and essence stay separate.
+**Also open** gives each competition left out its reward chance and its entry fee.
 
 ### xScore
 
@@ -564,7 +573,7 @@ even on a page about another week; and every Celta game showed **No odds**, beca
 The **Sofix** tab on the right edge of Sorare's football pages opens your gameweek, the one the page's address names (the one being
 planned when it names none; a week Sofix holds nothing on says so): what the best plan adds up to,
 a thumbnail of every card of its lineups (the leading lineup first; every card up to ten, else nine and a "+N" for the rest, so the thumbnails and
-the "+N" always add up to the cards the plan uses), the reward chance, the essence expected and how many of your cards it uses.
+the "+N" always add up to the cards the plan uses), the reward chance, the plan's most likely result ("nothing", "250 essence"; extension 0.3.5) and how many of your cards it uses.
 **Open Apply in Sofix** opens the Play page for that gameweek and returns you to the controlled three-step flow;
 lineup write buttons are intentionally not placed over Sorare's browsing UI. The tab is hidden on narrow windows.
 

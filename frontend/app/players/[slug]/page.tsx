@@ -17,7 +17,7 @@ const SLUG = /^[a-z0-9][a-z0-9-]{0,80}$/;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
-  return { title: `${slug.replace(/-/g, " ")} · Sofix` };
+  return { title: `${slug.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")} · Sofix` }; // "Mathew Ryan · Sofix"
 }
 
 /**

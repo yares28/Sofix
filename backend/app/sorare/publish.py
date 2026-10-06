@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import math
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
@@ -1203,6 +1203,14 @@ def collection_out(cards: list[Card]) -> list[dict[str, Any]]:
         }
         for c in cards
     ]
+
+
+def with_card_art(market: list[dict[str, Any]], urls: Mapping[str, str]) -> list[dict[str, Any]]:
+    """Each player of the price index drawn as a real Sorare card (`card_art`), where one is known; else his picture as it was.
+
+    The market's own `pic` is Sorare's cut-out photo; the owner's rule is a card wherever possible (2 Oct 2026).
+    """
+    return [{**row, "pic": urls.get(row["slug"]) or row.get("pic") or ""} for row in market]
 
 
 def market_out(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:

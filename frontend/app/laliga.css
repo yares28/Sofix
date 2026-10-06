@@ -106,5 +106,9 @@ main.ll { max-width: calc(1320px + 56px); padding-bottom: 64px; }
 .df-legend li { display: flex; align-items: center; gap: 8px; }
 .df-legend i { width: 22px; height: 14px; border-radius: 5px; }
 .cell-crest { flex: none; width: 16px; height: 16px; object-fit: contain; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .15)); }
-.cell:has(.cell-crest) { gap: 5px; }
+/* A cell with a crest reads in one line, as on the board: crest, code, then H or A. */
+.cell:has(.cell-crest) { flex-direction: row; gap: 6px; padding: 0 6px; }
+.cell:has(.cell-crest) .venue { display: inline-flex; align-items: center; opacity: .85; }
+.cell:has(.cell-crest) .venue-long { display: none; }
+.cell:has(.cell-crest) .venue-short { display: inline; }
 @media (max-width: 760px) { .df-big b { font-size: 84px; } }

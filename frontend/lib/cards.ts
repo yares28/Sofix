@@ -227,12 +227,21 @@ export function improvers(
   return market.filter((player) => !owned.has(player.slug) && gain(player, bar) > 0);
 }
 
-/** Search results: filtered by position and query, improvers first and owned players last. */
+/** What a player is worth for the money: points he adds over your bar for every €10 of his Limited price (0 when he adds none). */
+export function valuePer10(player: MarketPlayer, bar: Record<Position, number>): number {
+  const g = gain(player, bar);
+  return g > 0 && player.eur > 0 ? Math.round((g / player.eur) * 100) / 10 : 0;
+}
+
+/**
+ * Search results: filtered by position and query, improvers first and owned players last. By "best" the biggest gain leads;
+ * by "value" the most gain for the money (`valuePer10`), so a cheap upgrade can beat an expensive star.
+ */
 export function searchMarket(
   market: MarketPlayer[],
   bar: Record<Position, number>,
   owned: Set<string>,
-  filter: { pos: Position | "all"; query: string },
+  filter: { pos: Position | "all"; query: string; order?: "best" | "value" },
 ): MarketPlayer[] {
   const query = filter.query.trim().toLowerCase();
   return market
@@ -245,7 +254,9 @@ export function searchMarket(
     )
     .sort((a, b) => {
       const own = (owned.has(a.slug) ? 1 : 0) - (owned.has(b.slug) ? 1 : 0);
-      return own || gain(b, bar) - gain(a, bar);
+      if (own) return own;
+      if (filter.order === "value") return valuePer10(b, bar) - valuePer10(a, bar) || gain(b, bar) - gain(a, bar);
+      return gain(b, bar) - gain(a, bar);
     });
 }
 

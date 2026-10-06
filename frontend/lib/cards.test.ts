@@ -13,6 +13,7 @@ import {
   scoreColour,
   seasonBadge,
   searchMarket,
+  valuePer10,
   shelves,
   squadBar,
   stackCounts,
@@ -220,6 +221,17 @@ describe("searchMarket", () => {
   it("sorts improvers first and owned last", () => {
     const rows = searchMarket(market, bar, owned, { pos: "all", query: "" });
     expect(rows.map((p) => p.slug)).toEqual(["fwd", "big", "small", "kept"]);
+  });
+
+  it("by value, ranks improvers by points gained per €10 of price, the rest after", () => {
+    const priced2 = [
+      priced({ slug: "star", name: "Star", pos: "MID", average: 86, eur: 250 }), // +36 for €250: 1.4 a €10
+      priced({ slug: "bargain", name: "Bargain", pos: "MID", average: 58, eur: 10 }), // +8 for €10: 8 a €10
+      priced({ slug: "below", name: "Below", pos: "MID", average: 40, eur: 1 }), // does not improve the team
+    ];
+    const rows = searchMarket(priced2, bar, owned, { pos: "all", query: "", order: "value" });
+    expect(rows.map((p) => p.slug)).toEqual(["bargain", "star", "below"]);
+    expect(valuePer10(priced2[1]!, bar)).toBe(8);
   });
 
   it("filters by position", () => {

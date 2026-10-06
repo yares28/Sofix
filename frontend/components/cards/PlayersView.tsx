@@ -10,6 +10,7 @@ import {
   projectionNote,
   searchMarket,
   squadBar,
+  valuePer10,
   verdict,
   type Position,
   scoreColour,
@@ -27,13 +28,15 @@ export default function PlayersView({ data, now }: { data: Sorare; now: string }
   const collection = useMemo(() => data.collection ?? [], [data.collection]);
   const [query, setQuery] = useState("");
   const [pos, setPos] = useState<Position | "all">("all");
+  // Best: who would improve the team most. Best value: who improves it most for the money.
+  const [order, setOrder] = useState<"best" | "value">("best");
 
   const bar = useMemo(() => squadBar(collection), [collection]);
   const owned = useMemo(() => ownedPlayers(collection), [collection]);
   const upgrades = useMemo(() => improvers(market, bar, owned).length, [market, bar, owned]);
   const results = useMemo(
-    () => searchMarket(market, bar, owned, { pos, query }),
-    [market, bar, owned, pos, query],
+    () => searchMarket(market, bar, owned, { pos, query, order }),
+    [market, bar, owned, pos, query, order],
   );
   const shownImproving = results.filter((player) => verdict(player, bar, owned).kind === "up").length;
   const heroValue = useCountUp(upgrades);
@@ -71,6 +74,14 @@ export default function PlayersView({ data, now }: { data: Sorare; now: string }
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
+        <div className="s5-seg" role="group" aria-label="Order">
+          <button type="button" aria-pressed={order === "best"} onClick={() => setOrder("best")}>
+            Best
+          </button>
+          <button type="button" aria-pressed={order === "value"} onClick={() => setOrder("value")} title="The most improvement for the money: points over your bar per €10">
+            Best value
+          </button>
+        </div>
         <div className="s5-seg" role="group" aria-label="Position">
           <button type="button" aria-pressed={pos === "all"} onClick={() => setPos("all")}>
             All
@@ -95,7 +106,7 @@ export default function PlayersView({ data, now }: { data: Sorare; now: string }
         ) : (
           <>
             {results.slice(0, LIMIT).map((player, index) => (
-              <ResultCard key={player.slug} player={player} index={index} bar={bar} owned={owned} dash={dash} />
+              <ResultCard key={player.slug} player={player} index={index} bar={bar} owned={owned} dash={dash} value={order === "value"} />
             ))}
             {results.length > LIMIT ? (
               <p className="s5-more">
@@ -115,7 +126,9 @@ function ResultCard({
   bar,
   owned,
   dash,
+  value,
 }: {
+  value: boolean;
   player: MarketPlayer;
   index: number;
   bar: Record<Position, number>;
@@ -144,7 +157,7 @@ function ResultCard({
       </span>
       <span className={`s5-gain ${v.kind}`}>
         <b>{v.value}</b>
-        <span>{v.note}</span>
+        <span>{value && v.kind === "up" ? `${valuePer10(player, bar).toFixed(1)} a €10` : v.note}</span>
       </span>
       <span className="s5-stats">
         <span className="s5-stat">

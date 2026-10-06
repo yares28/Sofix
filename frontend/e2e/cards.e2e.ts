@@ -64,3 +64,21 @@ test("every player card grows on hover: the Recap, the Gallery, Players, Play an
     await expect.poll(() => art.evaluate((el) => new DOMMatrix(getComputedStyle(el).transform).a), { message: path }).toBeGreaterThan(1.1);
   }
 });
+
+test("a Gallery card opens the player's page", async ({ page }) => {
+  await page.goto("/cards");
+  const first = page.locator(".s5-pc a.art").first();
+  const href = (await first.getAttribute("href"))!;
+  expect(href).toMatch(/^\/players\/[a-z0-9-]+$/);
+  await first.click();
+  await expect(page).toHaveURL(new RegExp(`${href}$`), { timeout: 30_000 });
+});
+
+test("Players switches between the best and the best value for the money", async ({ page }) => {
+  await page.goto("/players");
+  const order = page.getByRole("group", { name: "Order" });
+  await expect(order.getByRole("button", { name: "Best", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await order.getByRole("button", { name: "Best value" }).click();
+  await expect(order.getByRole("button", { name: "Best value" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".s5-res .s5-gain").first()).toContainText(/a €10$/);
+});

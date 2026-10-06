@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   cardWindows,
@@ -290,14 +291,19 @@ function CardTile({ card, index, stack, anchor, target, next }: { card: Collecti
   const windows = cardWindows(card);
   return (
     <article className={`s5-pc${anchor && target ? " is-target" : ""}`} id={anchor ? cardAnchor(card.player) : undefined} style={{ animationDelay: `${Math.min(index * 20, 360)}ms` }}>
-      <span className="art">
+      {/* The card and the name open his player page. */}
+      <Link className="art" href={`/players/${card.player}`} prefetch={false} aria-label={`${card.name}: open his page`}>
         <CardArt src={card.pic} name={card.name} />
         {stack > 1 ? <span className="dup">×{stack}</span> : null}
         <SeasonMark card={card} />
-      </span>
+      </Link>
       <InfoButton card={card} />
       <span className="nm">
-        <b>{card.name}</b>
+        <b>
+          <Link href={`/players/${card.player}`} prefetch={false}>
+            {card.name}
+          </Link>
+        </b>
       </span>
       <span className="s5-hexrow" role="group" aria-label="Average score by window">
         {windows.map((w) => (

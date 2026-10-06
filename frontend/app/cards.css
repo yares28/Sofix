@@ -208,3 +208,4 @@
   .gl-big b { font-size: 84px; }
   .gl-legend { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+.s5-pc a.art { display: block; } .s5-pc .nm a { color: inherit; text-decoration: none; } .s5-pc .nm a:hover { text-decoration: underline; }

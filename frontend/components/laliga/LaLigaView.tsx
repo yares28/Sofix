@@ -153,7 +153,9 @@ function Game({ game, index }: { game: RoundGame; index: number }) {
         </span>
         <span className="ll-chip" style={band(away.win)}>{pct(away.win)}</span>
       </div>
-      <div className="drawn">Draw {pct(game.draw)}</div>
+      <div className="drawn">
+        Draw {pct(game.draw)} · Both score {pct(game.bothScore)}
+      </div>
       <div className="facts">
         <div>
           <b>{home.xg === null || away.xg === null ? "–" : `${home.xg.toFixed(2)} · ${away.xg.toFixed(2)}`}</b>xG

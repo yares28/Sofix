@@ -769,3 +769,15 @@ def test_a_week_where_none_of_your_cards_play_says_so() -> None:
     ahead = publish.build_payload(idle, runs=2, draws=200)["weeks"][-1]
     assert ahead["gameweek"]["number"] == 22
     assert ahead["state"] == "none" and ahead["playing"]["cards"] == 0 and ahead["plans"] == []
+
+
+def test_market_players_are_drawn_as_their_sorare_card_where_one_is_known():
+    from app.sorare.publish import with_card_art
+
+    market = [
+        {"slug": "pedri", "pic": "https://assets.sorare.com/playerpicture/x.png"},
+        {"slug": "nobody", "pic": "photo.png"},
+    ]
+    out = with_card_art(market, {"pedri": "https://assets.sorare.com/card/pedri.png"})
+    assert out[0]["pic"] == "https://assets.sorare.com/card/pedri.png"
+    assert out[1]["pic"] == "photo.png"  # no card known: the picture stays

@@ -315,6 +315,8 @@ def run(
         ff=lineups.starts if lineups else None,
         scores=scores_of,
     )
+    if art and art.urls:
+        payload["market"] = sorare_publish.with_card_art(payload.get("market") or [], art.urls)
     planned_week = sorare_publish.week_of(payload) or {}
     news, readings = team_news(db, failed, planned_week, fetched)
     if news:

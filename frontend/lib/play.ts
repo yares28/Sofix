@@ -358,7 +358,7 @@ export type CollectionCard = {
   stars?: number | null;
 };
 
-/** One LaLiga player Sorare is quoting a price for, as the Player search page (S5) draws it. */
+/** One LaLiga player, as the Players page (S5) draws it: every player of the league, not only yours. */
 export type MarketPlayer = {
   slug: string;
   name: string;
@@ -367,8 +367,21 @@ export type MarketPlayer = {
   crest: string | null;
   average: number;
   projection: number | null;
-  eur: number;
+  /** His Limited in-season price, or null when Sorare quotes none. */
+  eur: number | null;
   pic: string;
+  /**
+   * The gameweek being planned, worked out the same way as for your cards (absent when he has no game in it, and on older payloads):
+   * his chance of playing and of starting (with whose number it is), his score if he plays and if he starts, his xScore and his first game.
+   */
+  p?: number;
+  pStart?: number;
+  startSource?: StartSource;
+  ffKind?: "out" | "doubt" | "suspended";
+  mu?: number;
+  start?: number;
+  x?: number;
+  fixture?: { opponent: string | null; opponentCrest: string | null; venue: "H" | "A" | null; kickoff: string | null };
 };
 
 export type Sorare = {

@@ -396,11 +396,17 @@ another rarity show under a small switch once the extension has seen their tab. 
 
 ![LaLiga player search and squad-upgrade comparison](images/players.png)
 
-Players is a cached index built from LaLiga club squads during refresh—one competition query plus one query per club.
-Search is local and fast; it does not make a Sorare request per keystroke.
+Players is a cached index of **every LaLiga player** (priced or not), built from LaLiga club squads during refresh—one competition
+query plus one query per club. Search is local and fast; it does not make a Sorare request per keystroke.
 
-**One player's page** (since 4 Oct, `/players/<name>`; click a name in the results). It leads with his game this week for a player of yours: the xScore if he starts and the chance he
-starts, large, and the picture of the game (the same bars as the panel on Sorare, and "Lands between 41 and 80, 8 times in 10"). Below, the **stat sheet** is one table with a
+**Every player gets this week's numbers, not only yours** (since 6 Oct 2026). For the gameweek being planned each row shows his
+**chance to start** (with whose number it is: FF, SO or SF, as on your cards; "Plays" when only a chance of playing is known) and his
+**xScore**, worked out the same way as for your cards: Futbol Fantasy's expected lineup, Sorare's odds and projection, his game and
+its odds. Form from past games is read only for your players; anyone else's rests on those sources and the usual priors. A dash
+means he has no game in the gameweek.
+
+**One player's page** (since 4 Oct, `/players/<name>`; click a name in the results). It leads with his game this week: the xScore if he starts and the chance he
+starts, large (for any LaLiga player), and the picture of the game (the same bars as the panel on Sorare, and "Lands between 41 and 80, 8 times in 10"). Below, the **stat sheet** is one table with a
 picker, **Next game** (when his game is priced), **Last 10** or **Two seasons**: what he does in a start (saves, passes, tackles, chances created...) with the points Sorare gives for each,
 and the total. "Next game" is his two seasons' average moved by the game: more saves against a stronger attack, more chances against a weaker defence (never more than 60% off an average
 game). Beside it, **how he compares** with the others of his position with eight starts or more (one dot each, where he and the middle one are, and "higher than 69%"), and **his last ten
@@ -408,7 +414,8 @@ starts** as bars (green where he had a decisive action), with his clean sheets a
 and the range he lands in). The stat sheet is read from the games Sofix keeps and says "to <date>" (it is updated by hand with `python -m app.jobs.stat_sheets`, not by the refresh);
 a player with fewer than three starts has no sheet.
 
-Each result shows recent average, Sorare projection **if he plays**, cached Limited market value, and the improvement
+Each result shows his chance to start, his xScore, recent average, Sorare projection **if he plays**, cached Limited market value
+(a dash when Sorare quotes none), and the improvement
 against the fifth-best owned card in the same position. “You have him” prevents an owned player being presented as
 a new signing. The price is Sorare's last-synced market valuation, not the lowest current listing and not an offer
 Sofix can execute.

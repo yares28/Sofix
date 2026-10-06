@@ -60,6 +60,7 @@ export default async function PlayerPage({ params, searchParams }: { params: Par
           asOf={sheets.asOf}
           strips={sheet ? strips(sheets, slug) : []}
           next={next}
+          league={market}
         />
       </main>
     </>

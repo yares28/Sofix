@@ -818,3 +818,32 @@ def test_every_laliga_player_gets_a_start_chance_and_an_xscore_not_only_yours() 
         c for lu in publish.week_of(page)["plans"][0]["lineups"] for c in lu["starters"] if c["player"] == "front-one"
     )
     assert mine["x"] == planned["x"] and mine["pStart"] == planned["pStart"]
+
+
+def test_a_player_you_do_not_own_gets_his_form_from_the_league_history() -> None:
+    def market_row(raw: dict[str, Any]) -> dict[str, Any]:
+        p = raw["player"]
+        return {
+            "slug": p["slug"],
+            "name": p["displayName"],
+            "pos": "FWD",
+            "club": "CLA",
+            "crest": None,
+            "average": 48.0,
+            "projection": None,
+            "eur": None,
+            "pic": "",
+            "player": p,
+        }
+
+    stranger = card("stranger", "FWD")
+    # before Sorare publishes its projection and odds, form is what a player's numbers stand on
+    stranger["player"]["nextClassicFixtureProjectedScore"] = None
+    stranger["player"]["nextClassicFixturePlayingStatusOdds"] = None
+    snap = snapshot()
+    snap["market"] = [market_row(stranger)]
+    without = {p["slug"]: p for p in publish.build_payload(snap, runs=4, draws=600)["market"]}["stranger"]
+    games = [_past_game(f"2026-09-{d:02d}T14:00:00+00:00", 80.0, "start") for d in (5, 12, 19, 26)]
+    snap["leagueHistory"] = {"stranger": {"at": "2026-10-07T09:00:00+00:00", "games": games}}
+    with_form = {p["slug"]: p for p in publish.build_payload(snap, runs=4, draws=600)["market"]}["stranger"]
+    assert with_form["x"] != without["x"]  # his four starts at 80 now count

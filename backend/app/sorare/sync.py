@@ -460,6 +460,63 @@ def history(
     return out
 
 
+LEAGUE_BATCH = 40
+"""How many LaLiga players' past games a run reads (one query each, the same as for your cards): about 500 players are covered in a
+dozen runs, without a burst Sorare's per-IP limit would notice."""
+LEAGUE_STALE = timedelta(days=3)  # a reading older than this is read again, so a new game reaches his form
+
+
+def league_batch(
+    market: list[dict[str, Any]],
+    cached: dict[str, Any],
+    skip: set[str],
+    now: datetime,
+    size: int = LEAGUE_BATCH,
+) -> list[str]:
+    """The LaLiga players whose past games this run reads, in the order that matters: never read and playing this week, never read,
+    then the stalest reading. Players in `skip` (yours, read every run anyway) and fresh readings are left out."""
+
+    def at(slug: str) -> datetime | None:
+        stamp = (cached.get(slug) or {}).get("at")
+        return datetime.fromisoformat(stamp) if stamp else None
+
+    wanted = []
+    for row in market:
+        slug = row.get("slug")
+        if not slug or slug in skip:
+            continue
+        read = at(slug)
+        if read is not None and now - read < LEAGUE_STALE:
+            continue
+        plays = bool((row.get("player") or {}).get("plan"))
+        wanted.append((read is not None, not plays, read or now, slug))
+    wanted.sort()
+    return [slug for *_, slug in wanted[:size]]
+
+
+def league_history(
+    client: SorareClient,
+    market: list[dict[str, Any]],
+    cached: dict[str, Any] | None,
+    skip: set[str],
+    before: datetime,
+    now: datetime,
+    size: int = LEAGUE_BATCH,
+) -> dict[str, Any]:
+    """Every LaLiga player's past games, built up a batch a run: `{slug: {"at": when read, "games": rows as history() gives}}`.
+
+    The cache is kept between runs (`sorare_league_history`); a player no longer in LaLiga drops out, and one Sorare would not answer
+    keeps his last reading and is tried again next run.
+    """
+    current = {row["slug"] for row in market if row.get("slug")}
+    out = {slug: entry for slug, entry in (cached or {}).items() if slug in current}
+    batch = league_batch(market, out, skip, now, size)
+    read = history(client, batch, before)
+    for slug, games in read.items():
+        out[slug] = {"at": now.isoformat(), "games": games}
+    return out
+
+
 def cut_offs(client: SorareClient, leaderboard: str, ranks: list[int], entries: int) -> dict[str, float]:
     """The score that finished at each of those ranks — what a reward tier really needed."""
     out: dict[str, float] = {}
@@ -628,6 +685,7 @@ def snapshot(
     replayed: str | None = None,
     ahead: int = 2,
     cached_templates: dict[str, Any] | None = None,
+    cached_league: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """One run's worth of Sorare: the gameweek to plan, the last one played, and everything about both.
 
@@ -706,6 +764,8 @@ def snapshot(
     gaps = past_gaps(past_comps, my_cards, scores, unanswered) if replaying else []
     # Every LaLiga player with his odds and games this week (S5, and his start chance and xScore); empty if the fetch fails
     market = laliga_index(client, fixture=plan_gw["slug"])
+    # Every other LaLiga player's past games, a batch a run, so his form counts too (yours are read in full above)
+    league = league_history(client, market, cached_league, set(scores), datetime.fromisoformat(plan_gw["lock"]), now)
 
     return {
         "fetchedAt": now.isoformat(),
@@ -722,5 +782,6 @@ def snapshot(
         "referenceFor": reference_for,
         "expected": templates,
         "market": market,
+        "leagueHistory": league,
         "calls": client.calls,
     }

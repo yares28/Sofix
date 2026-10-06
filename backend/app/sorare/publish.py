@@ -998,11 +998,13 @@ def build_payload(
     # and his games, with the priors for the rest. Yours keep exactly the plan's numbers.
     league_rows = [{"player": row["player"]} for row in snapshot.get("market") or [] if row.get("player")]
     league_games = card_games(league_rows, "plan")
+    # Past games: what the job has built up for every LaLiga player (`sorare_sync.league_history`), yours read in full this run
+    league_history = {slug: entry.get("games") or [] for slug, entry in (snapshot.get("leagueHistory") or {}).items()}
     league_forecasts = build_forecasts(
         player_weeks(
             league_rows,
             league_games,
-            snapshot["history"],
+            {**league_history, **snapshot["history"]},
             _dt(plan_week["lock"]),
             None,
             use_sorare=True,

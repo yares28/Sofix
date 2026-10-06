@@ -63,6 +63,8 @@ TEMPLATES_KEY = (
     "sorare_templates"  # the finished gameweeks whose LaLiga competitions stand in for the ones Sorare has not opened
 )
 
+LEAGUE_HISTORY_KEY = "sorare_league_history"  # every LaLiga player's past games, built up a batch a run
+
 T = TypeVar("T")
 
 
@@ -73,6 +75,11 @@ def cached_references(db: Session) -> dict[str, Any]:
 
 def cached_templates(db: Session) -> dict[str, Any]:
     row = db.get(ReadModel, TEMPLATES_KEY)
+    return dict(row.payload) if row and isinstance(row.payload, dict) else {}
+
+
+def cached_league(db: Session) -> dict[str, Any]:
+    row = db.get(ReadModel, LEAGUE_HISTORY_KEY)
     return dict(row.payload) if row and isinstance(row.payload, dict) else {}
 
 
@@ -232,6 +239,7 @@ def run(
     started = datetime.now(UTC)
     references = cached_references(db)
     templates = cached_templates(db)
+    league = cached_league(db)
     previous = published(db)
     # A finished gameweek's replay never changes once its scores are final: keep it, and fetch nothing for it.
     kept = sorare_publish.settled_replay(previous)
@@ -248,6 +256,7 @@ def run(
             cached_references=references,
             replayed=replayed,
             cached_templates=templates,
+            cached_league=league,
         )
         # A real Sorare card for every LaLiga player, owned or not: the Lineups page draws everyone as his card. Without it a
         # player is drawn as he was before, so a step that fails costs only that.
@@ -379,6 +388,7 @@ def run(
     if kept_plans:
         summary["frozenPlans"] = kept_plans
     put(db, REFERENCES_KEY, snapshot["references"], now)
+    put(db, LEAGUE_HISTORY_KEY, snapshot.get("leagueHistory") or {}, now)
     if (
         snapshot.get("expected") or {}
     ) != templates:  # a finished week never changes: write only when a new one became the template

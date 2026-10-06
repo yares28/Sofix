@@ -411,7 +411,10 @@ query plus one query per club. Search is local and fast; it does not make a Sora
 **Every player gets this week's numbers, not only yours** (since 6 Oct 2026). For the gameweek being planned each row shows his
 **chance to start** (with whose number it is: FF, SO or SF, as on your cards; "Plays" when only a chance of playing is known) and his
 **xScore**, worked out the same way as for your cards: Futbol Fantasy's expected lineup, Sorare's odds and projection, his game and
-its odds. Form from past games is read only for your players; anyone else's rests on those sources and the usual priors. A dash
+its odds. Past-game form counts for everyone: yours are read in full every refresh, and every other LaLiga player's are read about 40
+players a refresh (players with a game this week first, then the oldest readings, each read again after 3 days) and kept between
+refreshes, so the whole league is covered within about a dozen refreshes. Until a player's games have been read, his numbers rest on
+those sources and the usual priors. A dash
 means he has no game in the gameweek.
 
 **One player's page** (since 4 Oct, `/players/<name>`; click a name in the results). It leads with his game this week: the xScore if he starts and the chance he

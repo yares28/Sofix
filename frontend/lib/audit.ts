@@ -47,6 +47,13 @@ export type LiveSource = Scores & { state: State; recorded: number; settled: num
 export type SofixReplay = Scores & { games: number; always: number };
 export type RecordWeek = { slug: string; lock: string | null; games: number; settled: number; sources: Record<StartSource, number> };
 
+/** Essence and cash, kept apart (never converted). */
+export type RewardSide = { essence: number; cash: number };
+/** One finished gameweek's plan: what it expected (chance x reward, added up) and what its lineups really won. */
+export type RewardWeek = { gameweek: number; slug: string | null; lineups: number; expected: RewardSide; won: RewardSide };
+/** The season so far, from the gameweeks the job kept: each week, and the totals. `lineups` are the cases behind the share. */
+export type Rewards = { weeks: RewardWeek[]; lineups: number; expected: RewardSide; won: RewardSide };
+
 export type Audit = {
   version: number;
   generatedAt: string;
@@ -55,7 +62,11 @@ export type Audit = {
   replay: { builtAt: string | null; from: string | null; to: string | null; players: number } | null;
   xscore: { replay: XscoreReplay | null; live: XscoreLive };
   starts: { replay: { sofix?: SofixReplay } | null; live: Record<StartSource, LiveSource>; weeks: RecordWeek[] };
+  rewards: Rewards;
 };
+
+const NONE: RewardSide = { essence: 0, cash: 0 };
+export const NO_REWARDS: Rewards = { weeks: [], lineups: 0, expected: NONE, won: NONE };
 
 const NOTHING: LiveSource = { state: "none", recorded: 0, settled: 0, right: null, brier: null, mean: null, started: null, buckets: null };
 const NO_LIVE: XscoreLive = { state: "none", floor: 100, noted: 0, marked: 0, pairs: 0, weeks: 0, rate: null, lo: null, hi: null };
@@ -78,7 +89,14 @@ export function readable(value: unknown): Audit | null {
       weeks: data.starts.weeks ?? [],
       live: Object.fromEntries(SOURCES.map((source) => [source, { ...NOTHING, ...(live[source] ?? {}) }])) as Record<StartSource, LiveSource>,
     },
+    // a page published before the rewards were counted has none: an empty season, not an error
+    rewards: { ...NO_REWARDS, ...(data.rewards ?? {}) },
   };
+}
+
+/** What was won as a share of what was expected; null when nothing was expected, so there is nothing to compare with. */
+export function wonShare(won: number, expected: number): number | null {
+  return expected > 0 ? won / expected : null;
 }
 
 // ------------------------------------------------------------------------------------------------------ the figures

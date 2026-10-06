@@ -1,3 +1,4 @@
+import RewardsAudit from "./RewardsAudit";
 import { freshLabel } from "../../lib/fresh";
 import {
   bandLabel,
@@ -99,9 +100,22 @@ function Record({ data }: { data: Audit }) {
   );
 }
 
-export type AuditShow = "xscore" | "starts";
+export type AuditShow = "xscore" | "starts" | "rewards";
 
-export default function AuditView({ data, now, league, show = "xscore" }: { data: Audit | null; now: Date; league: League | null; show?: AuditShow }) {
+export default function AuditView({
+  data,
+  now,
+  league,
+  show = "xscore",
+  season = [],
+}: {
+  data: Audit | null;
+  now: Date;
+  league: League | null;
+  show?: AuditShow;
+  /** The season's finished Sorare gameweeks, for what you won (Rewards). */
+  season?: { slug: string; number: number }[];
+}) {
   if (!data) {
     return (
       <section className="au-w au-empty" role="status">
@@ -116,6 +130,18 @@ export default function AuditView({ data, now, league, show = "xscore" }: { data
       <>
         {league ? <LeagueAudit data={league} /> : <h1>Audit</h1>}
         {updated}
+      </>
+    );
+  }
+  if (show === "rewards") {
+    return (
+      <>
+        <header className="au-top">
+          <h1>Rewards</h1>
+          <p>The essence the plans expected over the season, against what was really won.</p>
+          {updated}
+        </header>
+        <RewardsAudit rewards={data.rewards} floor={data.floor} season={season} />
       </>
     );
   }

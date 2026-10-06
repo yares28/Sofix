@@ -331,9 +331,19 @@ doubt; hover the mark for the name.
 
 ![Audit: how often the xScore picks the better of two, how close it lands, calibration and what has been written down](images/audit.png)
 
-Audit has three views under the switch below the top bar (since 5 Oct): **xScore** (`/audit`, the charts below), **Who
-starts** (`/audit/starts`, each source's record on who starts) and **Written down** (`/audit/record`, every gameweek's
-games written down before the lock and how many have been checked).
+Audit has four views under the switch below the top bar (since 5 Oct): **xScore** (`/audit`, the charts below), **Who
+starts** (`/audit/starts`, each source's record on who starts), **Written down** (`/audit/record`, every gameweek's
+games written down before the lock and how many have been checked) and **Rewards** (`/audit/rewards`, since 6 Oct).
+
+**Rewards** answers "how much essence should I have won, and how much did I?". Play shows a reward as all or nothing; over a
+season the fair yardstick is the expected essence: each lineup's chance of each reward times that reward, added up week by week.
+**Sofix's plans** totals that expected essence (and cash, kept apart) over every finished gameweek the job kept, against what the
+plans' lineups really won, and gives the share won ("80% of the essence they expected was won") once 100 lineups are behind it;
+until then it says "Too few to tell yet" and how many lineups it has. The plan counted is the one Sofix rebuilds for a finished
+week from what was known before its lock. **You** adds up what your own entered lineups won on Sorare, read week by week through the
+extension (a signed-in sorare.com tab is needed; a finished week is remembered in the browser), and sets it against the plans'
+expected essence over the same weeks. **Week by week** lists each kept week: expected, won by the plan, won by you. Weeks before
+25 Sep 2026 (GW17) were not kept, so the season count starts there.
 
 The Audit page checks Sofix's numbers against what happened, as charts (since 4 Oct). The first block is a replay of two LaLiga seasons: every game
 predicted from the weeks before it only (9,190 starts to 20 Sep).

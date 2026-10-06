@@ -3,6 +3,7 @@ import AuditView, { type AuditShow } from "./AuditView";
 import SiteNav from "../SiteNav";
 import { loadGrid } from "../../lib/api";
 import { loadAudit } from "../../lib/auditData";
+import { loadSorare } from "../../lib/playData";
 import type { LeagueAudit } from "../../lib/leagueAudit";
 import { loadSystem } from "../../lib/system";
 
@@ -11,11 +12,17 @@ export default async function AuditPlace({ show }: { show: AuditShow }) {
   await connection(); // "updated 2 h ago" reads the clock
   const [data, { meta }, system] = await Promise.all([loadAudit(), loadGrid(), loadSystem()]);
   const league = (await import("../../lib/data/audit_league.json")).default as unknown as LeagueAudit;
+  // Rewards reads what you won week by week: the season's finished Sorare gameweeks, newest first
+  const sorare = show === "rewards" ? await loadSorare() : null;
+  const season = (sorare?.timeline ?? [])
+    .filter((week) => week.status === "done")
+    .map((week) => ({ slug: week.slug, number: week.number }))
+    .reverse();
   return (
     <>
       <SiteNav meta={meta} system={system} />
       <main className="au">
-        <AuditView data={data} now={new Date()} league={league} show={show} />
+        <AuditView data={data} now={new Date()} league={league} show={show} season={season} />
       </main>
     </>
   );

@@ -127,3 +127,21 @@ test("the switch under the top bar moves between xScore, Who starts and Written 
   await page.goto("/audit/record");
   await expect(page).toHaveURL(/\/audit\/starts#written/);
 });
+
+test("Rewards adds up what the plans expected over the season against what they won, and says too few to tell under the floor", async ({ page }) => {
+  await page.goto("/audit/rewards");
+  await expect(page.getByRole("heading", { level: 1, name: "Rewards" })).toBeVisible();
+
+  const plans = page.getByRole("region", { name: "Sofix's plans" });
+  await expect(plans).toContainText("Too few to tell yet"); // 5 lineups, under the floor of 100: no share is drawn
+  await expect(plans).toContainText("5 of 100");
+  await expect(plans.locator("dd").nth(0)).toHaveText("183"); // expected: chance x reward, added up
+  await expect(plans.locator("dd").nth(1)).toHaveText("250"); // what the plans really won
+
+  const weeks = page.getByRole("region", { name: "Week by week" }).locator("tbody tr");
+  await expect(weeks).toHaveCount(2);
+  await expect(weeks.first()).toHaveText(/GW18\s*120\s*250/); // newest first
+
+  // What you won is read from Sorare through the extension, which this browser does not have: it says so instead of a zero
+  await expect(page.getByRole("region", { name: "You" }).getByRole("status")).toContainText("can't reach the extension");
+});

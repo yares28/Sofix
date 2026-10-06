@@ -232,6 +232,7 @@ describe("searchMarket", () => {
     const rows = searchMarket(priced2, bar, owned, { pos: "all", query: "", order: "value" });
     expect(rows.map((p) => p.slug)).toEqual(["bargain", "star", "below"]);
     expect(valuePer10(priced2[1]!, bar)).toBe(8);
+    expect(valuePer10(priced({ slug: "unpriced", pos: "MID", average: 70, eur: null }), bar)).toBe(0); // no price: not for sale
   });
 
   it("filters by position", () => {

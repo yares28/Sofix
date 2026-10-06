@@ -11,7 +11,7 @@
  */
 
 import type { FixtureGrid, GridMatchday } from "./types";
-import type { GameweekPlan, ProjectedHead, Sorare } from "./play";
+import { chanceLabel, type GameweekPlan, type ProjectedHead, type Sorare } from "./play";
 import { nationalWeek } from "./teamNews";
 
 export type WeekState = "done" | "live" | "next" | "later";
@@ -41,7 +41,8 @@ export type Week = {
   /** What the job knows about it: only ever set for a gameweek it planned. */
   cards: number;
   plans: number;
-  essence: number | null;
+  /** The best plan's chance of any reward, for a week still to play. */
+  chance: number | null;
   /** Essence our own replayed plan would have won — never what the owner actually entered. */
   replay: number | null;
   source: "sorare" | "form" | null;
@@ -90,14 +91,14 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
       // Not on the page: a week the job kept apart still has its headline in the timeline. Only such a week: the
       // numbers an older timeline carries for any other belong to a replay nobody kept.
       const item = timeline.find((entry) => entry.id === id);
-      if (item?.kept !== true) return { cards: 0, plans: 0, essence: null, replay: null, source: null, kept: false, early: false, expected: false, national: false };
-      return { cards: item.playing ?? 0, plans: 0, essence: null, replay: item.won ?? null, source: null, kept: true, early: false, expected: false, national: false };
+      if (item?.kept !== true) return { cards: 0, plans: 0, chance: null, replay: null, source: null, kept: false, early: false, expected: false, national: false };
+      return { cards: item.playing ?? 0, plans: 0, chance: null, replay: item.won ?? null, source: null, kept: true, early: false, expected: false, national: false };
     }
     const best = week.plans[0];
     return {
       cards: week.playing.cards,
       plans: week.plans.length,
-      essence: week.played ? null : (best?.essence ?? null),
+      chance: week.played ? null : (best?.pAny ?? null),
       replay: week.played ? (best?.actual?.essence ?? 0) : null,
       source: week.source,
       kept: true,
@@ -130,7 +131,7 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
       finished: Boolean(round.finished),
       gw: week?.id ?? null,
       number: week?.number ?? null,
-      ...({ cards: 0, plans: 0, essence: null, replay: null, source: null, kept: false, early: false, expected: false, national: false } as Partial<Week>),
+      ...({ cards: 0, plans: 0, chance: null, replay: null, source: null, kept: false, early: false, expected: false, national: false } as Partial<Week>),
       // A round with no Sorare gameweek yet may still have an early plan; a round inside one has the real plan.
       ...(week ? fromSorare(week.id) : earlyOf(early.get(round.number))),
     } as Week);
@@ -151,7 +152,7 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
       number: item.number,
       cards: 0,
       plans: 0,
-      essence: null,
+      chance: null,
       replay: null,
       source: null,
       kept: false,
@@ -269,13 +270,13 @@ export function dayName(iso: string): string {
 
 /**
  * What the right-hand column of the picker says: always a number with what it counts, or a word for the kind of week —
- * "≈9 essence · 3 plans", "250 essence · our plan's replay", "early plan", "2 cards play" — never a bare figure.
+ * "48% reward chance · 3 plans", "250 essence · our plan's replay", "early plan", "2 cards play" — never a bare figure.
  */
 export function weekValue(week: Week): { value: string; note: string } {
   const tag = week.expected ? " · expected" : "";
   // A plan built from form is a guess at a lineup, not at a reward: the honest headline is who actually plays.
-  if (week.essence !== null && week.plans && week.source !== "form") {
-    return { value: `≈${Math.round(week.essence)} essence`, note: `${week.plans} plan${week.plans === 1 ? "" : "s"}${tag}` };
+  if (week.chance !== null && week.plans && week.source !== "form") {
+    return { value: `${chanceLabel(week.chance)} reward chance`, note: `${week.plans} plan${week.plans === 1 ? "" : "s"}${tag}` };
   }
   if (week.replay !== null) return { value: `${Math.round(week.replay)} essence`, note: "our plan's replay" };
   if (week.state === "live") return { value: "live", note: "locked" };

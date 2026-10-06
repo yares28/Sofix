@@ -464,7 +464,8 @@ def make_plan(
             for lineup in cache[comp.key]:
                 worth = value(lineup, cash_norm, essence_norm)
                 if worth > 0 and lineup.p_return >= MIN_CHANCE and (lineup.e_essence > 0 or lineup.e_cash > 0):
-                    options.append((worth, lineup))
+                    # a reward is all or nothing: the lineup most likely to be paid goes first, what it pays breaks a tie
+                    options.append((lineup.p_return + worth / 1000, lineup))
         if not options:
             break
         options.sort(key=lambda o: -o[0])
@@ -495,7 +496,11 @@ def plans(
     seed: int = 11,
     draws: int = DRAWS,
 ) -> list[Plan]:
-    """The best whole-gameweek plans, each different enough from the others to be a real choice."""
+    """The best whole-gameweek plans, each different enough from the others to be a real choice.
+
+    The best is the one most likely to be paid anything (the owner's rule, 5 Oct 2026: a reward is all or nothing, so
+    the chance comes first); what a plan pays only breaks a tie.
+    """
     rng = np.random.default_rng(seed)
     firsts = [lu for comp in comps for lu in build(comp, cards, forecasts, rng, keep=1, draws=draws)]
     cash_norm = max([lu.e_cash for lu in firsts] + [0.01])
@@ -505,7 +510,9 @@ def plans(
         found.append(make_plan(comps, cards, forecasts, rng, cash_norm, essence_norm, 0.35, draws))
     best_cash = max((p.cash for p in found), default=0.0) or 0.01
     best_essence = max((p.essence for p in found), default=0.0) or 1.0
-    ranked = sorted(found, key=lambda p: -(p.cash / best_cash + p.essence / best_essence))
+    ranked = sorted(
+        found, key=lambda p: (-round(p.chance_of_any(), 3), -(p.cash / best_cash + p.essence / best_essence))
+    )
     picked: list[Plan] = []
     for plan in ranked:
         signature = plan.signature()

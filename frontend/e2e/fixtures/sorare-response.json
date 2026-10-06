@@ -2092,6 +2092,7 @@
                     "cash": 12,
                     "essence": 0,
                     "card": false,
+                    "need": 482,
                     "p": 0.006
                   },
                   {
@@ -2100,6 +2101,7 @@
                     "cash": 0,
                     "essence": 600,
                     "card": false,
+                    "need": 395,
                     "p": 0.08
                   },
                   {
@@ -2108,6 +2110,7 @@
                     "cash": 0,
                     "essence": 250,
                     "card": false,
+                    "need": 311,
                     "p": 0.39
                   }
                 ],
@@ -5836,7 +5839,19 @@
         "average": 78,
         "projection": null,
         "eur": 214.01,
-        "pic": "https://assets.sorare.com/card/76864689-f63b-4241-8bbc-075cb8d24067/picture/tinified-a3b62457e3e738214690464aea729fad.png"
+        "pic": "https://assets.sorare.com/card/76864689-f63b-4241-8bbc-075cb8d24067/picture/tinified-a3b62457e3e738214690464aea729fad.png",
+        "p": 0.93,
+        "pStart": 0.85,
+        "startSource": "futbolfantasy",
+        "mu": 72.4,
+        "start": 74.1,
+        "x": 67.3,
+        "fixture": {
+          "opponent": "Sevilla",
+          "opponentCrest": null,
+          "venue": "H",
+          "kickoff": "2026-10-10T19:00:00Z"
+        }
       },
       {
         "slug": "pau-cubarsi-paredes",
@@ -6838,6 +6853,28 @@
         "projection": null,
         "eur": 3.76,
         "pic": "https://assets.sorare.com/card/f42cccd8-eb77-4858-af4b-9fdae7c1bf3b/picture/tinified-d31e18e06bd06b4171c747a9d1ac570e.png"
+      },
+      {
+        "slug": "unpriced-kid",
+        "name": "Unpriced Kid",
+        "pos": "MID",
+        "club": "Barcelona",
+        "crest": null,
+        "average": 0,
+        "projection": null,
+        "eur": null,
+        "pic": "",
+        "p": 0.12,
+        "pStart": 0.04,
+        "startSource": "sorare",
+        "mu": 38,
+        "x": 4.6,
+        "fixture": {
+          "opponent": "Sevilla",
+          "opponentCrest": null,
+          "venue": "H",
+          "kickoff": "2026-10-10T19:00:00Z"
+        }
       }
     ]
   },

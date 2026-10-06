@@ -119,6 +119,7 @@ function Sheet({ lineup, after, index, hindsight, players }: { lineup: LineupDat
   const mostFromOneClub = Math.max(...clubs.values());
   const capBonus = lineup.size === 5 ? 260 : 370;
   const paid = lineup.tiers.filter((tier) => tier.cash || tier.essence || tier.card || tier.label);
+  const room = lineup.group === "Room";
 
   return (
     <>
@@ -203,9 +204,9 @@ function Sheet({ lineup, after, index, hindsight, players }: { lineup: LineupDat
         {after && lineup.actual?.bonusLost ? <span className="off">A sub came in: the lineup bonuses dropped</span> : null}
       </div>
 
-      <details className="pl-ladder" open={lineup.group === "Room"}>
+      <details className="pl-ladder" open={room}>
         <summary>
-          Rewards <span>· the chance of each</span>
+          Rewards <span>{room ? "· the chance of each place" : "· the score each needs, and your chance of reaching it"}</span>
           <Chevron className="" />
         </summary>
         <table>
@@ -215,23 +216,26 @@ function Sheet({ lineup, after, index, hindsight, players }: { lineup: LineupDat
                 after &&
                 lineup.actual &&
                 ((tier.cash && lineup.actual.cash === tier.cash) || (tier.essence && lineup.actual.essence === tier.essence));
+              const rank = tier.lo === tier.hi ? `#${tier.lo}` : `#${tier.lo?.toLocaleString("en-GB")}–${tier.hi?.toLocaleString("en-GB")}`;
+              // All or nothing: reaching a level's score pays that level whole, so its chance is the chance of scoring at least that.
+              const chance = room ? tier.p : paid.slice(0, i + 1).reduce((sum, level) => sum + level.p, 0);
               return (
                 <tr key={`${index}-${i}`} className={hit ? "hit" : ""}>
-                  <td>{tier.label ?? (tier.lo === tier.hi ? `#${tier.lo}` : `#${tier.lo?.toLocaleString("en-GB")}–${tier.hi?.toLocaleString("en-GB")}`)}</td>
+                  <td>{tier.label ?? (tier.need ? `${tier.need}+ · ${rank}` : rank)}</td>
                   <td>
                     {tier.cash ? (
                       <>
-                        <Cash size={12} /> {cashLabel(tier.cash)}
+                        <Cash size={12} /> {cashLabel(tier.cash)}{" "}
                       </>
-                    ) : tier.essence ? (
+                    ) : null}
+                    {tier.essence ? (
                       <>
-                        <Essence size={12} /> {essenceLabel(tier.essence)}
+                        <Essence size={12} /> {essenceLabel(tier.essence)}{" "}
                       </>
-                    ) : (
-                      "Card"
-                    )}
+                    ) : null}
+                    {tier.card ? "Card" : null}
                   </td>
-                  <td>{chanceLabel(tier.p)}</td>
+                  <td>{chanceLabel(chance)}</td>
                 </tr>
               );
             })}

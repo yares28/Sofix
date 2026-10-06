@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { NATIONAL_COMPETITION, clubKey, sideOutlook, type SideOutlook } from "./home";
-import { nextWeek, waitingFor, weekPlan, type FfStatus, type GameweekPlan, type Lineup, type PlayerGame, type PlayingPlayer, type Sorare, type StartSource } from "./play";
+import { likelyResult, nextWeek, resultLabel, waitingFor, weekPlan, type FfStatus, type GameweekPlan, type Lineup, type PlayerGame, type PlayingPlayer, type Sorare, type StartSource } from "./play";
 import type { Bucket, FixtureGrid } from "./types";
 
 /**
@@ -119,9 +119,9 @@ export type OverlayPlan =
       x: number;
       comp: string;
       pics: string[];
-      /** The chance anything pays, the essence expected, and how many of your cards the plan uses. */
+      /** The chance anything pays, the plan's most likely result in words ("nothing", "250 essence"), and how many of your cards it uses. */
       pAny: number;
-      essence: number;
+      likely: string;
       cardsUsed: number;
       cardsAvailable: number;
     }
@@ -153,7 +153,7 @@ export function overlayPlan(gameweek: GameweekPlan, now: Date): OverlayPlan {
     comp: leading?.comp ?? "",
     pics: [...new Set(lineupsByScore(best.lineups).flatMap((lineup) => lineup.starters.map((card) => card.pic)).filter(Boolean))],
     pAny: best.pAny,
-    essence: Math.round(best.essence),
+    likely: resultLabel(likelyResult(best)),
     cardsUsed: best.cardsUsed,
     cardsAvailable: best.cardsAvailable,
   };

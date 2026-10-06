@@ -8,8 +8,10 @@ import {
   insideRange,
   lastMeta,
   lastWeek,
+  likelyResult,
   nextWeek,
   rangeScale,
+  resultLabel,
   scoringWeek,
   timeUntil,
   waitingFor,
@@ -72,6 +74,7 @@ export function PlayTile({ week, now }: { week: GameweekPlan; now: Date }) {
   const meta = `Sorare GW${week.gameweek.number} · locks ${weekday(week.gameweek.lock)} ${clock(week.gameweek.lock)}`;
   if (!plan) return <WaitingTile week={week} now={now} meta={meta} />;
   const parts = allocation(plan);
+  const likely = likelyResult(plan);
   return (
     <HomeTile id="hm-play" title="Play" meta={meta} href="/play" className="hm-play" index={3}>
       <div className="hm-play-grid">
@@ -103,15 +106,15 @@ export function PlayTile({ week, now }: { week: GameweekPlan; now: Date }) {
               <span className="lbl">
                 <Essence /> Essence
               </span>
-              <b>≈{essenceLabel(plan.essence)}</b>
-              <small>expected</small>
+              <b>{essenceLabel(likely.essence)}</b>
+              <small>most likely · {chanceLabel(likely.p)}</small>
             </div>
             <div>
               <span className="lbl">
                 <Cash /> Cash
               </span>
-              <b>≈{cashLabel(plan.cash)}</b>
-              <small>expected</small>
+              <b>{cashLabel(likely.cash)}</b>
+              <small>most likely</small>
             </div>
           </div>
           <div className="hm-alloc" role="img" aria-label="Cards by competition">
@@ -238,7 +241,7 @@ export function LastTile({ week, scoring }: { week: GameweekPlan; scoring: { num
           <b>
             {inside} of {plan.lineups.length} inside the range
           </b>
-          <span>Plan 1 · expected ≈{essenceLabel(plan.essence)} essence</span>
+          <span>Plan 1 · most likely was {resultLabel(likelyResult(plan))}</span>
         </div>
         <div className="num">
           <b>{essenceLabel(plan.actual?.essence ?? 0)}</b>

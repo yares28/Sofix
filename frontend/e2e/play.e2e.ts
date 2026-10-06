@@ -174,8 +174,11 @@ test("the gameweek opens on its best plan: the ring, both rewards and every line
   const hero = page.locator(".pl-hero");
   await expect(hero.getByRole("heading", { level: 2, name: "3 lineups" })).toBeVisible();
   await expect(hero.getByRole("img", { name: "85% any reward" })).toBeVisible();
-  await expect(hero.locator(".pl-pair b").first()).toHaveText("≈571");
-  await expect(hero.locator(".pl-pair b").last()).toHaveText("≈$1.31");
+  // A reward is all or nothing: the most likely result is to win nothing and pay the Room's 300 to enter.
+  await expect(hero.locator(".pl-pair b").first()).toHaveText("−300");
+  await expect(hero.locator(".pl-pair small").first()).toHaveText("most likely · 25% chance");
+  await expect(hero.locator(".pl-pair b").last()).toHaveText("$0");
+  await expect(plans.getByRole("link").first()).toContainText("85% · likely −300 essence");
   await expect(hero.locator(".pl-side")).toContainText("19 of 38 cards used");
   await expect(hero.locator(".pl-alloc-key li")).toHaveText([
     "LALIGA EA SPORTS7 cards",
@@ -190,6 +193,7 @@ test("the gameweek opens on its best plan: the ring, both rewards and every line
   await expect(lineups.first()).toContainText("LALIGA EA SPORTS");
   await expect(lineups.first()).toContainText("5 + 2 subs · 4 in-season");
   await expect(lineups.first()).toContainText("Top 1,500 of ≈4,487 pays");
+  await expect(lineups.first().locator(".pl-rw")).toHaveText("250 at 311+"); // the whole reward of its first level, and the score that reached it
   await expect(lineups.first().locator(".pl-kv b").first()).toHaveText(String(laliga.x));
   await expect(lineups.first().locator(".pl-kv b").nth(1)).toHaveText("48%");
   await expect(lineups.nth(2)).toContainText("Room of 10 · cap 260");
@@ -248,7 +252,8 @@ test("a lineup opens a sheet with its cards, its subs and the rules it keeps", a
 
   await sheet.getByRole("group").filter({ hasText: "Rewards" }).click(); // the reward ladder is folded away
   await expect(sheet.locator(".pl-ladder tbody tr")).toHaveCount(3);
-  await expect(sheet.locator(".pl-ladder tbody tr").last()).toContainText("#301–1,500");
+  await expect(sheet.locator(".pl-ladder tbody tr").last()).toContainText("311+ · #301–1,500");
+  await expect(sheet.locator(".pl-ladder tbody tr").last()).toContainText("48%"); // scoring at least 311: the lineup's reward chance
 
   await sheet.getByRole("button", { name: "Close" }).click();
   await expect(sheet).toBeHidden();
@@ -320,7 +325,7 @@ test("the competitions that can't be entered, and the ones not worth entering, a
   const open = page.locator(".pl-fold").filter({ hasText: "Also open" });
   await expect(open).toContainText("· 1");
   await open.locator("summary").click();
-  await expect(open.locator("li")).toContainText("−212 essence expected · 800 to enter");
+  await expect(open.locator("li")).toContainText("24% reward chance · 800 to enter");
 
   const blocked = page.locator(".pl-fold").filter({ hasText: "Not playable" });
   await expect(blocked).toContainText("· 2");
@@ -349,7 +354,7 @@ test("the gameweek that was played shows what each lineup really scored and won"
   await expect(hero.locator(".pl-side")).toContainText("1 of 2 lineups paid");
   await expect(hero.locator(".pl-side")).toContainText("1 of 2 inside the range");
   await expect(hero.locator(".pl-pair b").first()).toHaveText("250");
-  await expect(hero.locator(".pl-pair small").first()).toHaveText("expected ≈409");
+  await expect(hero.locator(".pl-pair small").first()).toHaveText("most likely was 0");
 
   const first = page.locator(".pl-lu").first();
   await expect(first.locator(".pl-kv b").first()).toHaveText("313");
@@ -684,8 +689,8 @@ test("the week picker's columns say what their numbers are: a chip of playable c
   for (const row of await rows.all()) {
     const chip = row.locator(".wk-cards");
     if (await chip.count()) await expect(chip).toHaveText(/^\d+ playable$/);
-    await expect(row.locator(".val b")).toHaveText(/^(≈\d+ essence|\d+ essence|early plan|live|1 card plays|\d+ cards play|—)$/);
+    await expect(row.locator(".val b")).toHaveText(/^([<>]?\d+% reward chance|\d+ essence|early plan|live|1 card plays|\d+ cards play|—)$/);
   }
-  await expect(page.locator(".wk-panel .wk-week .val b", { hasText: /^≈\d+ essence$/ }).first()).toBeVisible();
+  await expect(page.locator(".wk-panel .wk-week .val b", { hasText: /^[<>]?\d+% reward chance$/ }).first()).toBeVisible();
   await expect(page.locator(".wk-panel").getByText("early plan", { exact: true }).first()).toBeVisible();
 });

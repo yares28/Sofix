@@ -160,7 +160,7 @@ describe("the weeks of a season", () => {
   });
 
   it("carries what the job planned, and marks a replay as ours", () => {
-    expect(weekValue(weeks.find((w) => w.number === 17)!)).toEqual({ value: "≈55 essence", note: "1 plan" });
+    expect(weekValue(weeks.find((w) => w.number === 17)!)).toEqual({ value: "16% reward chance", note: "1 plan" });
     expect(weekValue(weeks.find((w) => w.number === 15)!)).toEqual({ value: "500 essence", note: "our plan's replay" });
     expect(weekValue(weeks.find((w) => w.number === 19)!)).toEqual({ value: "14 cards play", note: "" });
   });
@@ -358,7 +358,7 @@ describe("a week whose competitions Sorare has not opened", () => {
   });
 
   it("says expected beside an early plan too", () => {
-    const early = { ...base, gw: null, essence: null, plans: 1, replay: null, early: true, cards: 14 };
+    const early = { ...base, gw: null, chance: null, plans: 1, replay: null, early: true, cards: 14 };
 
     expect(weekValue(early)).toEqual({ value: "early plan", note: "" });
     expect(weekValue({ ...early, expected: true })).toEqual({ value: "early plan", note: "expected" });

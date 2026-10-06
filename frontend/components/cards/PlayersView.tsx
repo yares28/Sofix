@@ -15,14 +15,15 @@ import {
   type Position,
   scoreColour,
 } from "../../lib/cards";
-import { nextWeek, type MarketPlayer, type Sorare } from "../../lib/play";
+import { chanceLabel, nextWeek, startChance, type MarketPlayer, type Sorare } from "../../lib/play";
 import { Foil } from "../play/bits";
+import SourceMark from "../SourceMark";
 import CardArt from "./CardArt";
 import useCountUp from "./useCountUp";
 
 const LIMIT = 30;
 
-/** Player search: the LaLiga players priced now, led by who would actually improve the squad. */
+/** Player search: every LaLiga player with his start chance and xScore this week, led by who would actually improve the squad. */
 export default function PlayersView({ data, now }: { data: Sorare; now: string }) {
   const market = useMemo(() => data.market ?? [], [data.market]);
   const collection = useMemo(() => data.collection ?? [], [data.collection]);
@@ -53,7 +54,7 @@ export default function PlayersView({ data, now }: { data: Sorare; now: string }
           <i>would improve your team</i>
         </p>
         <p className="s5-bars">
-          <span className="lead">of {market.length} priced now · your bar to beat</span>
+          <span className="lead">of {market.length} LaLiga players · your bar to beat</span>
           {POSITIONS.map((position) => (
             <span className="s5-bar" key={position}>
               {position} <b>{Math.round(bar[position])}</b>
@@ -137,6 +138,7 @@ function ResultCard({
 }) {
   const v = verdict(player, bar, owned);
   const isOwned = owned.has(player.slug);
+  const start = typeof player.pStart === "number" ? startChance({ pStart: player.pStart, startSource: player.startSource, ffKind: player.ffKind }) : null;
   return (
     <article
       className={`s5-res${isOwned ? " owned" : ""}`}
@@ -163,6 +165,26 @@ function ResultCard({
         <span className="s5-stat">
           <b className="sc-chip" style={{ background: scoreColour(player.average).fill, color: scoreColour(player.average).ink }}>{Math.round(player.average)}</b>
           <span>Last 10 avg</span>
+        </span>
+        <span className="s5-stat" title={start ? start.title : player.x === undefined ? "No game this gameweek" : undefined}>
+          <b>
+            {start ? (
+              <>
+                <SourceMark source={start.source} /> {start.percent}%
+              </>
+            ) : typeof player.p === "number" ? (
+              chanceLabel(player.p)
+            ) : (
+              "—"
+            )}
+          </b>
+          <span>{start ? "Starts" : "Plays"}</span>
+        </span>
+        <span className="s5-stat" title={player.x === undefined ? "No game this gameweek" : `${Math.round(player.mu ?? 0)} if he plays`}>
+          <b className={player.x === undefined ? undefined : "sc-chip"} style={player.x === undefined ? undefined : { background: scoreColour(player.x).fill, color: scoreColour(player.x).ink }}>
+            {player.x === undefined ? "—" : Math.round(player.x)}
+          </b>
+          <span>xScore</span>
         </span>
         <span className="s5-stat" title={player.projection === null ? dash : undefined}>
           <b className={player.projection === null ? undefined : "sc-chip"} style={player.projection === null ? undefined : { background: scoreColour(player.projection).fill, color: scoreColour(player.projection).ink }}>{player.projection === null ? "—" : Math.round(player.projection)}</b>

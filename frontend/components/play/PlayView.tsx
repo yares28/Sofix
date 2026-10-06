@@ -8,7 +8,9 @@ import {
   essenceLabel,
   formatOf,
   insideRange,
+  likelyResult,
   plansOf,
+  resultLabel,
   timeUntil,
   waitingFor,
 } from "../../lib/play";
@@ -218,7 +220,7 @@ function MoreLineups({ plan, after, players, behind }: { plan: Plan; after: bool
   const rest = plan.lineups.slice(SHOWN);
   const x = Math.round(rest.reduce((sum, l) => sum + l.x, 0) / rest.length);
   const best = Math.max(...rest.map((l) => l.pReturn));
-  const essence = rest.reduce((sum, l) => sum + (after && l.actual ? l.actual.essence : l.eEss), 0);
+  const won = rest.reduce((sum, l) => sum + (l.actual?.essence ?? 0), 0);
   return (
     <details className={`pl-more${behind ? " behind" : ""}`}>
       <summary>
@@ -233,10 +235,15 @@ function MoreLineups({ plan, after, players, behind }: { plan: Plan; after: bool
             best reward chance <strong>{chanceLabel(best)}</strong>
           </span>
         )}
-        <span>
-          {after ? "" : "≈"}
-          <strong>{essenceLabel(essence)}</strong> essence{after ? " won" : ""}
-        </span>
+        {after ? (
+          <span>
+            <strong>{essenceLabel(won)}</strong> essence won
+          </span>
+        ) : (
+          <span>
+            most likely <strong>{resultLabel(likelyResult({ lineups: rest }))}</strong>
+          </span>
+        )}
         <Chevron className="" />
       </summary>
       <div className="pl-lus compact">
@@ -280,7 +287,7 @@ function PlanSwitch({
               </>
             ) : (
               <>
-                <b>{chanceLabel(plan.pAny)}</b> · ≈{essenceLabel(plan.essence)}
+                <b>{chanceLabel(plan.pAny)}</b> · likely {resultLabel(likelyResult(plan))}
               </>
             )}
           </span>
@@ -306,6 +313,7 @@ function PlanHero({ plan, week, after, now }: { plan: Plan; week: GameweekPlan; 
   }
   const ringValue = after && plan.actual ? plan.actual.paid / Math.max(plan.lineups.length, 1) : plan.pAny;
   const ringLabel = after ? "lineups paid" : "any reward";
+  const likely = likelyResult(plan);
   return (
     <section className="pl-hero" aria-live="polite">
       <div className="pl-id">
@@ -341,14 +349,9 @@ function PlanHero({ plan, week, after, now }: { plan: Plan; week: GameweekPlan; 
                 )}
               </>
             ) : (
-              <>
-                <span>
-                  <b>{plan.rewards.toFixed(1)}</b> rewards expected
-                </span>
-                <span>
-                  <b>{plan.cardsUsed}</b> of {plan.cardsAvailable} cards used
-                </span>
-              </>
+              <span>
+                <b>{plan.cardsUsed}</b> of {plan.cardsAvailable} cards used
+              </span>
             )}
           </div>
         </div>
@@ -360,17 +363,21 @@ function PlanHero({ plan, week, after, now }: { plan: Plan; week: GameweekPlan; 
             <span className="lbl">
               <Essence /> Essence{after ? " won" : ""}
             </span>
-            <b>
-              {after && plan.actual ? essenceLabel(plan.actual.essence) : `≈${essenceLabel(plan.essence)}`}
-            </b>
-            <small>{plan.hindsight ? "the most Sofix found it could have won" : after ? `expected ≈${essenceLabel(plan.essence)}` : "expected"}</small>
+            <b>{essenceLabel(after && plan.actual ? plan.actual.essence : likely.essence)}</b>
+            <small>
+              {plan.hindsight
+                ? "the most Sofix found it could have won"
+                : after
+                  ? `most likely was ${essenceLabel(likely.essence)}`
+                  : `most likely · ${chanceLabel(likely.p)} chance`}
+            </small>
           </div>
           <div className={after ? "won" : ""}>
             <span className="lbl">
               <Cash /> Cash{after ? " won" : ""}
             </span>
-            <b>{after && plan.actual ? cashLabel(plan.actual.cash) : `≈${cashLabel(plan.cash)}`}</b>
-            <small>{plan.hindsight ? "Rooms not counted" : after ? `expected ≈${cashLabel(plan.cash)}` : "expected · never converted"}</small>
+            <b>{cashLabel(after && plan.actual ? plan.actual.cash : likely.cash)}</b>
+            <small>{plan.hindsight ? "Rooms not counted" : after ? `most likely was ${cashLabel(likely.cash)}` : "most likely · never converted"}</small>
           </div>
         </div>
         <div className="pl-actions">
@@ -544,9 +551,8 @@ function Folds({ week }: { week: GameweekPlan }) {
               <li key={option.name}>
                 <Foil rarity="limited" className="sm" />
                 <b>{option.name}</b>
-                <em className={option.eEss >= 0 ? "pos" : "neg"}>
-                  {option.eEss >= 0 ? "+" : ""}
-                  {essenceLabel(option.eEss)} essence expected{option.fee ? ` · ${option.fee} to enter` : ""}
+                <em>
+                  {chanceLabel(option.pReturn)} reward chance{option.fee ? ` · ${option.fee} to enter` : ""}
                 </em>
               </li>
             ))}

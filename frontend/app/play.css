@@ -828,10 +828,6 @@
   color: var(--ink-2);
   font-weight: 500;
 }
-.pl-rw.neg {
-  background: color-mix(in srgb, #e0605b 14%, var(--surface));
-  color: color-mix(in srgb, #e0605b 45%, var(--ink));
-}
 .pl-note {
   margin-left: auto;
   font-size: 12px;
@@ -908,14 +904,6 @@
   color: var(--ink-2);
   font-size: 12px;
   text-align: right;
-}
-.pl-fold li em.neg {
-  color: color-mix(in srgb, #e0605b 45%, var(--ink));
-  font-weight: 600;
-}
-.pl-fold li em.pos {
-  color: var(--good-ink);
-  font-weight: 600;
 }
 .pl-rules {
   margin: 0;

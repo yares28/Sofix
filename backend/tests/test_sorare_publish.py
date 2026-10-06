@@ -558,6 +558,9 @@ def test_the_plans_use_each_card_once_and_name_their_lineups(payload):
 def test_a_lineup_carries_what_the_app_needs_to_draw_it(payload):
     lineup = publish.week_of(payload)["plans"][0]["lineups"][0]
     assert lineup["need"] and lineup["tiers"]
+    # Each level names the score that reached it in the reference week; the last one is the lineup's own "need".
+    needs = [tier["need"] for tier in lineup["tiers"]]
+    assert needs[-1] == lineup["need"] and needs == sorted(needs, reverse=True)
     # Entering this lineup takes Sorare's id for the leaderboard, which only the job can read (S6), and
     # asking Sorare about it takes the slug.
     assert lineup["boardId"] == f"So5Leaderboard:{lineup['board']}"
@@ -781,3 +784,37 @@ def test_market_players_are_drawn_as_their_sorare_card_where_one_is_known():
     out = with_card_art(market, {"pedri": "https://assets.sorare.com/card/pedri.png"})
     assert out[0]["pic"] == "https://assets.sorare.com/card/pedri.png"
     assert out[1]["pic"] == "photo.png"  # no card known: the picture stays
+
+
+def test_every_laliga_player_gets_a_start_chance_and_an_xscore_not_only_yours() -> None:
+    def row(raw: dict[str, Any], eur: float | None) -> dict[str, Any]:
+        player = raw["player"]
+        return {
+            "slug": player["slug"],
+            "name": player["displayName"],
+            "pos": "FWD",
+            "club": "CLA",
+            "crest": None,
+            "average": 48.0,
+            "projection": 55.0,
+            "eur": eur,
+            "pic": "",
+            "player": player,
+        }
+
+    stranger = card("stranger", "FWD", plays=7000)  # nobody's card: only the squad index knows him
+    snap = snapshot()
+    snap["market"] = [row(stranger, None), row(snap["cards"][10], 12.5)]
+    page = publish.build_payload(snap, runs=4, draws=600)
+    market = {p["slug"]: p for p in page["market"]}
+
+    him = market["stranger"]
+    assert him["eur"] is None  # unpriced, still listed
+    assert him["pStart"] == 0.7 and him["startSource"] == "sorare"
+    assert 0 < him["x"] < him["mu"] and him["fixture"]["opponent"] == "Club Z"
+
+    mine = market["front-one"]
+    planned = next(
+        c for lu in publish.week_of(page)["plans"][0]["lineups"] for c in lu["starters"] if c["player"] == "front-one"
+    )
+    assert mine["x"] == planned["x"] and mine["pStart"] == planned["pStart"]

@@ -129,18 +129,23 @@ query($s:String!){ football { competition(slug:$s){ clubs { nodes { slug } } } }
 """
 
 SQUAD = """
-query($s:String!,$a:String){ football { club(slug:$s){ activePlayers(first: 50, after: $a) {
+query($s:String!,$a:String$ARGS){ football { club(slug:$s){ activePlayers(first: 50, after: $a) {
   pageInfo { hasNextPage endCursor }
   nodes {
     slug displayName position pictureUrl avatarPictureUrl
     activeClub { slug name shortName pictureUrl }
     average: averageScore(type: LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
     nextClassicFixtureProjectedScore
+    nextClassicFixturePlayingStatusOdds { starterOddsBasisPoints substituteOddsBasisPoints nonPlayingOddsBasisPoints }
+    activeNationalTeam { slug name }
     commonPlayer(rarity: limited) {
       marketValue(rarity: limited, seasonEligibility: IN_SEASON) { eurCents }
     }
+    $GAMES
   } } } } }
 """
+"""Every LaLiga player, with what the planner needs to give him a start chance and an xScore: Sorare's odds, his projection
+and his games in the gameweek being planned (asked as `plan`, the alias the cards use)."""
 
 
 def _market_price(node: dict[str, Any]) -> float | None:
@@ -155,12 +160,16 @@ def _market_price(node: dict[str, Any]) -> float | None:
         return None
 
 
-def _squad(client: SorareClient, club: str) -> list[dict[str, Any]]:
+def _squad(client: SorareClient, club: str, fixture: str | None = None) -> list[dict[str, Any]]:
     """One club's active players, paged. A club Sorare will not read is skipped, not fatal."""
+    query = SQUAD.replace("$ARGS", ",$plan:String!" if fixture else "").replace(
+        "$GAMES", GAMES_FOR.format(alias="plan") if fixture else ""
+    )
     players: list[dict[str, Any]] = []
     after: str | None = None
     for _ in range(4):  # 50 a page: a squad fits in one, the cap is only a runaway guard
-        page = client.query(SQUAD, {"s": club, "a": after})["football"]["club"]["activePlayers"]
+        variables = {"s": club, "a": after, **({"plan": fixture} if fixture else {})}
+        page = client.query(query, variables)["football"]["club"]["activePlayers"]
         players.extend(page.get("nodes") or [])
         info = page.get("pageInfo") or {}
         after = info.get("endCursor")
@@ -169,8 +178,13 @@ def _squad(client: SorareClient, club: str) -> list[dict[str, Any]]:
     return players
 
 
-def laliga_index(client: SorareClient, competition: str = "laliga-es") -> list[dict[str, Any]]:
-    """Every LaLiga player Sorare is quoting a Limited price for, one row per player, priced players only.
+def laliga_index(
+    client: SorareClient, competition: str = "laliga-es", fixture: str | None = None
+) -> list[dict[str, Any]]:
+    """Every LaLiga player, one row per player, with his Limited price when Sorare quotes one (else `eur` is None).
+
+    With `fixture` (the gameweek being planned) each row also keeps Sorare's player as `player`, games included, so the
+    job can give every LaLiga player a start chance and an xScore, not only the owner's.
 
     One call for the club list, then one call per club. Best-effort: a schema change leaves the index empty,
     and one club that fails is skipped, rather than breaking the whole Sorare step.
@@ -187,7 +201,7 @@ def laliga_index(client: SorareClient, competition: str = "laliga-es") -> list[d
         if not club_slug:
             continue
         try:
-            players = _squad(client, club_slug)
+            players = _squad(client, club_slug, fixture)
         except (SorareError, KeyError, TypeError) as error:
             logger.warning("laliga index skipped %s: %s", club_slug, error)
             continue
@@ -196,8 +210,6 @@ def laliga_index(client: SorareClient, competition: str = "laliga-es") -> list[d
             if not slug or slug in seen:
                 continue
             eur = _market_price(player)
-            if eur is None:
-                continue
             seen.add(slug)
             active = player.get("activeClub") or {}
             rows.append(
@@ -211,6 +223,7 @@ def laliga_index(client: SorareClient, competition: str = "laliga-es") -> list[d
                     "projection": player.get("nextClassicFixtureProjectedScore"),
                     "eur": eur,
                     "pic": player.get("pictureUrl") or player.get("avatarPictureUrl") or "",
+                    **({"player": player} if fixture else {}),
                 }
             )
     return rows
@@ -691,7 +704,8 @@ def snapshot(
         )
 
     gaps = past_gaps(past_comps, my_cards, scores, unanswered) if replaying else []
-    market = laliga_index(client)  # the Player search index (S5); empty if the fetch fails
+    # Every LaLiga player with his odds and games this week (S5, and his start chance and xScore); empty if the fetch fails
+    market = laliga_index(client, fixture=plan_gw["slug"])
 
     return {
         "fetchedAt": now.isoformat(),

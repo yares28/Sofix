@@ -230,7 +230,8 @@ export function improvers(
 /** What a player is worth for the money: points he adds over your bar for every €10 of his Limited price (0 when he adds none). */
 export function valuePer10(player: MarketPlayer, bar: Record<Position, number>): number {
   const g = gain(player, bar);
-  return g > 0 && player.eur > 0 ? Math.round((g / player.eur) * 100) / 10 : 0;
+  // No price (Sorare quotes none): he cannot be bought, so he is worth nothing for the money.
+  return g > 0 && player.eur !== null && player.eur > 0 ? Math.round((g / player.eur) * 100) / 10 : 0;
 }
 
 /**
@@ -275,8 +276,9 @@ export function initials(name: string): string {
     .toUpperCase();
 }
 
-/** A euro price the way the search shows it: whole euros with a separator above 100, cents below. */
-export function priceLabel(eur: number): string {
+/** A euro price the way the search shows it: whole euros with a separator above 100, cents below; a dash when Sorare quotes none. */
+export function priceLabel(eur: number | null): string {
+  if (eur === null) return "—";
   return `\u20ac${eur >= 100 ? Math.round(eur).toLocaleString("en-US") : eur.toFixed(2)}`;
 }
 

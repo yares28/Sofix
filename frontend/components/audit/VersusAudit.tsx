@@ -49,7 +49,7 @@ export default function VersusAudit({ versus, floor, league }: { versus: Versus;
     <>
       <section className="au-w au-vs" aria-labelledby="au-vs-h">
         <p className="ax-big">
-          <b>{enoughAll ? percent(all.sofixCloser) : "–"}</b>
+          {enoughAll ? <b>{percent(all.sofixCloser)}</b> : null}
           <span id="au-vs-h">
             {enoughAll
               ? "of starts, Sofix's number was closer than Sorare's"

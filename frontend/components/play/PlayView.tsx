@@ -206,16 +206,21 @@ export default function PlayView({
           {showSources ? <EssenceOrder saved={data.essenceOrder ?? [...DEFAULT_ESSENCE_ORDER]} kinds={week.playable.map((option) => option.kind)} /> : null}
         </section>
       ) : by === "sorare" && sorareWaiting ? (
-        <section className="pl-state" role="status">
-          <div>
-            <h2>Sorare plan</h2>
-            <p>{sorareWaiting}</p>
-            <p>
-              <Link href={href({ by: "sofix", plan: 0 })} prefetch={false}>
-                See the Sofix plan
+        <section className="pl-board" aria-labelledby="pl-board-title">
+          <div className="pl-board-head">
+            <h2 id="pl-board-title">Sorare plan</h2>
+            <div className="pl-mode" role="group" aria-label="Plan made from">
+              <Link href={href({ by: "sofix", plan: 0 })} scroll={false} prefetch={false}>
+                Sofix
               </Link>
-            </p>
+              <Link href={href({ by: "sorare", plan: 0 })} aria-current="page" scroll={false} prefetch={false}>
+                Sorare
+              </Link>
+            </div>
           </div>
+          <p className="pl-board-note" role="status">
+            {sorareWaiting}
+          </p>
         </section>
       ) : (
         <Waiting week={week} now={now} />

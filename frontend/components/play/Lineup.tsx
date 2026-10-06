@@ -334,7 +334,13 @@ function SheetCard({ card, lineup, after, position, match }: { card: PlayCard; l
             swap && sub ? `↺ ${sub.name}` : ""
           ) : (
             <span title={card.by ? `${score.words}: ${SCORE_SOURCE_NAME[card.by]}${card.sorare !== undefined && card.by !== "sorare" ? ` · Sorare says ${Math.round(card.sorare)}` : ""}` : score.words}>
-              {score.words} · <b>{card.by === "sofix" ? "SF" : card.by === "sorare" ? "SO" : card.by === "form" ? "L5" : ""}</b>
+              {score.words}
+              {card.by ? (
+                <>
+                  {" · "}
+                  <b>{card.by === "sofix" ? "SF" : card.by === "sorare" ? "SO" : "L5"}</b>
+                </>
+              ) : null}
             </span>
           )}
         </span>

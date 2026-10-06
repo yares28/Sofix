@@ -16,6 +16,75 @@ item, what you said and why; the order, the steps and the results live in the ro
 
 ---
 
+## Play deep dive (your message of 6 Oct 2026)
+
+**What you said.** On /play the plan uses Sorare's expected score, not Sofix's xScore; you want to switch between a Sofix plan
+and a Sorare plan, keep both numbers before every lock and see on the Audit who is more precise (the difference, how often each
+is right, how often each plan pays). "Your Sorare lineups" never loads even when you are signed in with sorare.com open; there
+are negative values; you want the chance of XP, essence and cash apart; you want to choose which essence you want most
+(LaLiga gives LaLiga essence, Champion gives Champion essence, All Star gives All Star essence; default LaLiga › Champion › All
+Star) and have Sofix fill those lineups first; the xScore looks outdated; the page has too much on it; plans are wrong.
+
+**Your answers (6 Oct).** Your essence order always first (a lineup under 5% gets no priority). XP shown apart, never counted
+as "paid". Rooms only when they pay back more than the fee on average; the fee is shown as "300 to enter", never as a minus.
+The Sorare plan uses the same start chances as the Sofix plan; only the expected score differs.
+
+**Hard date.** GW21 (LaLiga round 8) locks Fri 9 Oct 14:00 UTC; both numbers and both plans have to be written down before it.
+
+### Broken
+- **B1 · "Your Sorare lineups".** The wiring checks out (extension id, origins, slug, message names). Likely causes, to confirm
+  live: Sorare refuses `SofixFixtureLineups` when the request goes out without your session (depth 8 > 7, complexity 686 > 500
+  for a signed-out caller; `extension/bridge.js:113-126`, `knownEndpoint` :163); the check of the answer refuses `null` for
+  `so5`, `so5Rankings`, `so5Appearances` (`frontend/lib/entered.ts:69-70,100`); any Sorare error throws the data away
+  (`bridge.js:190`). The block says one thing for no tab, no bridge and signed out (`EnteredLineups.tsx:52`) and never retries.
+  No test runs the real question.
+- **B2 · Negative values.** GW21 Plan 1 (live, 6 Oct): "LaLiga · Cap 260" Room first, 34% chance, worth −4 essence, 300 to enter.
+  Rooms come first because the chance of a top-3 place is high (`planner.py:466`); every re-check redraws the dice
+  (`fill_bench`, `planner.py:376-378`) so a Room accepted at +EV drifts negative; the page takes the fee off the result:
+  "−300 essence most likely" (`frontend/lib/play.ts:550`).
+- **B3 · Sorare's number for the wrong week.** The week planned reads `nextClassicFixtureProjectedScore`/`…PlayingStatusOdds`
+  (`publish.py:286-310`): a player's next game, which during GW20 (Nations League 6-9 Oct) is not GW21's. Sorare gives a
+  projection per game before kickoff (`anyGame.playerGameScores.projection`: 94 of 94 players of a 7 Oct game).
+- **B4 · A null in Sorare's starter odds crashes the run** (`publish.py:290`).
+- **B5 · Two writers share the `ff_chances` read model** (`ff_news.KEY`, `ff_chances.KEY`); `ff_news.save` writes only
+  `readings` and can wipe the start chances frozen at the lock.
+
+### Wrong or misleading numbers
+- **N1 · "Sorare's score instead of mine".** Sofix's xScore replaces Sorare's projection only when every game of his week is a
+  LaLiga game it can model (`forecast.py:181-196`, `scores.py:58-71`); otherwise Sorare's, else form. The number under each card
+  is the expected points (chance × score, `Lineup.tsx:265`), while Lineups and Players show "if he starts": Altay 10.5 on /play,
+  48.7 elsewhere. Nothing says whose number a card uses.
+- **N2 · Plan chance too high.** "Chance of a reward" multiplies the lineups as if independent (`planner.py:428`, `play.ts:537`),
+  though the four LaLiga lineups share one cut-off and often the same games (GW21 Plan 1: about 81% from 10 lineups).
+- **N3 · The same lineup shows different numbers** each time it is simulated (new dice every time).
+- **N4 · Rewards left out.** XP rows (`LIMITED_XP`: LaLiga ranks 1,501-3,500, Room places 4-5) are dropped (`rules.py:44-58`);
+  Rare essence counts as 0; a lineup that can only reach a card is never planned. Sorare's reward rows carry no essence type
+  (only rarity, quantity, sharedPool): the kind comes from the competition.
+- **N5 · Cut-offs from one past week**, cached once. To change only once the Audit can measure it.
+- **N6 · Small.** A rotation player's number has no floor (`forecast.py:195`); a card shows `games[0]` in Sorare's order, not by
+  kickoff (`publish.py:477`); the page's bonus rules hard-code +2%, +4%, 260 and 370 (`PlayView.tsx:580`, `Lineup.tsx:126`).
+
+### The Audit cannot compare yet
+The record (`sorare_forecasts`) holds only your players and the blended number; `starts.notes` and `audit._marked` score the
+old formula (`starts.py:79`, `audit.py:250`). Nothing freezes Sofix's own number at the lock, no plan is made per source, and the
+frozen plan `sorare_plan:*` is never scored. Offline, within 7 points: Sorare 33.1%, old Sofix 30.1%, new 30.6% (walk-forward
+rows only are fair; Sofix's model uses Sorare's projection as one input).
+
+### Too much
+`sorare` read model 1.3 MB: GW21's 5 plans 496 KB (each card repeats three pictures and two crests), `market` 439 KB used only
+by Players; Next's cache refuses over 2 MB. On the page: two prose banners, two allocation bars, rules with hard-coded numbers,
+ten lineups a plan with four under 3%. Dead: `SorareTiles`' copy of the lineups block, `liveLine`.
+
+### Outdated xScore: causes
+The label (N1); weeks with a non-LaLiga game fall back to the old formula; refreshes run hours late and Sorare's projections
+(Wed 18:00) wait for the next run; the models were fitted through 30 Sep and are never refit (listed only).
+
+### Later, measured
+Cut-off spread over several comparable weeks (N5) if the Audit's "said 30% → happened" improves with it; a periodic refit of the
+xScore models; per-game odds in a two-game week; U23 with no birth date; the 18-candidate pruning; Hot Streak.
+
+---
+
 ## To do, from your answers of 3 Oct
 
 Items 4 to 9 of my list of 3 Oct. The three faults the live pass found (items 1 to 3) and your two new model issues (13 and 14) have

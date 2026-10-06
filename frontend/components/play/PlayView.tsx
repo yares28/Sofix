@@ -4,10 +4,12 @@ import {
   allocation,
   cashLabel,
   chanceLabel,
+  DEFAULT_ESSENCE_ORDER,
   enterable,
   essenceLabel,
   formatOf,
   insideRange,
+  isLongShot,
   likelyResult,
   plansOf,
   resultLabel,
@@ -20,7 +22,8 @@ import { lockText } from "../../lib/recap";
 import { MissionsGlance } from "../recap/Recap";
 import { syncState } from "../../lib/sorareStatus";
 import ApplySheet from "./ApplySheet";
-import { Cash, Chevron, Essence, Foil, GROUP_COLOUR } from "./bits";
+import { Cash, Chevron, Essence, Foil, GROUP_COLOUR, RewardSplit } from "./bits";
+import EssenceOrder from "./EssenceOrder";
 import EnteredLineups from "./EnteredLineups";
 import Lineup from "./Lineup";
 import SorareImage from "./SorareImage";
@@ -47,6 +50,8 @@ export default function PlayView({
   dates,
   title,
   missions,
+  by = "sofix",
+  sorareWaiting = null,
 }: {
   data: Sorare;
   week: GameweekPlan;
@@ -61,15 +66,21 @@ export default function PlayView({
   dates?: string | null;
   /** The week's name as the picker writes it (`weekName`). */
   title?: string | null;
+  /** Whose expected scores the plans shown stand on: Sofix's xScore, or Sorare's projections (`?by=sorare`). */
+  by?: "sofix" | "sorare";
+  /** With `by` Sorare and no Sorare plan yet: what the page says instead. */
+  sorareWaiting?: string | null;
 }) {
   const id = week.gameweek.id;
   const plans = plansOf(week, after);
   const plan = plans[planIndex];
-  const href = (options: { gw?: string; plan?: number; after?: boolean }) => {
+  const href = (options: { gw?: string; plan?: number; after?: boolean; by?: "sofix" | "sorare" }) => {
     const params = new URLSearchParams();
     const gw = options.gw ?? id;
     if (weekId) params.set("w", weekId);
     else if (gw !== data.nextId) params.set("gw", gw);
+    const source = options.by ?? by;
+    if (source === "sorare") params.set("by", "sorare");
     const index = options.plan ?? planIndex;
     if (index > 0) params.set("plan", String(index + 1));
     const showActual = options.after ?? after;
@@ -80,6 +91,10 @@ export default function PlayView({
 
   const sync = after || week.projected ? null : syncState(data, week, now);
   const showModes = week.played && week.plans.length > 0;
+  // Sofix's plan or Sorare's: only for the week being planned, where both are made (the owner, 6 Oct 2026)
+  const showSources = !after && !week.projected && !week.played && week.gameweek.id === data.nextId;
+  const main = plan ? plan.lineups.filter((lineup) => after || !isLongShot(lineup)) : [];
+  const longShots = plan && !after ? plan.lineups.filter((lineup) => isLongShot(lineup)) : [];
   return (
     <main className="pl-main">
       <section className="pl-top">
@@ -135,7 +150,17 @@ export default function PlayView({
       {plan ? (
         <section className={`pl-board${sync?.behind ? " behind" : ""}`} aria-labelledby="pl-board-title">
           <div className="pl-board-head">
-            <h2 id="pl-board-title">Sofix plan</h2>
+            <h2 id="pl-board-title">{by === "sorare" ? "Sorare plan" : "Sofix plan"}</h2>
+            {showSources ? (
+              <div className="pl-mode" role="group" aria-label="Plan made from">
+                <Link href={href({ by: "sofix", plan: 0 })} aria-current={by === "sofix" ? "page" : undefined} scroll={false} prefetch={false} title="Built on Sofix's xScore">
+                  Sofix
+                </Link>
+                <Link href={href({ by: "sorare", plan: 0 })} aria-current={by === "sorare" ? "page" : undefined} scroll={false} prefetch={false} title="Built on Sorare's projections; the same start chances">
+                  Sorare
+                </Link>
+              </div>
+            ) : null}
             <PlanSwitch plans={plans} planIndex={planIndex} after={after} href={href} />
             <span className="pl-board-note">
               {plan.hindsight
@@ -161,10 +186,41 @@ export default function PlayView({
             <span>{after ? "Won" : "Reward chance"}</span>
           </div>
           <div className="pl-lus">
-            {plan.lineups.map((lineup, index) => (
+            {main.map((lineup, index) => (
               <Lineup key={`${lineup.key}-${index}`} lineup={lineup} after={after} index={index} hindsight={plan.hindsight === true} players={week.playing.players} />
             ))}
           </div>
+          {longShots.length ? (
+            <details className="pl-fold pl-long">
+              <summary>
+                Long shots <span>· {longShots.length} under 5%, with cards nothing else wanted</span>
+                <Chevron className="" />
+              </summary>
+              <div className="pl-lus">
+                {longShots.map((lineup, index) => (
+                  <Lineup key={`${lineup.key}-long-${index}`} lineup={lineup} after={after} index={main.length + index} players={week.playing.players} />
+                ))}
+              </div>
+            </details>
+          ) : null}
+          {showSources ? <EssenceOrder saved={data.essenceOrder ?? [...DEFAULT_ESSENCE_ORDER]} kinds={week.playable.map((option) => option.kind)} /> : null}
+        </section>
+      ) : by === "sorare" && sorareWaiting ? (
+        <section className="pl-board" aria-labelledby="pl-board-title">
+          <div className="pl-board-head">
+            <h2 id="pl-board-title">Sorare plan</h2>
+            <div className="pl-mode" role="group" aria-label="Plan made from">
+              <Link href={href({ by: "sofix", plan: 0 })} scroll={false} prefetch={false}>
+                Sofix
+              </Link>
+              <Link href={href({ by: "sorare", plan: 0 })} aria-current="page" scroll={false} prefetch={false}>
+                Sorare
+              </Link>
+            </div>
+          </div>
+          <p className="pl-board-note" role="status">
+            {sorareWaiting}
+          </p>
         </section>
       ) : (
         <Waiting week={week} now={now} />
@@ -315,11 +371,14 @@ function PlanFacts({ plan, after }: { plan: Plan; after: boolean }) {
             <strong>{chanceLabel(plan.pAny)}</strong> chance of a reward
           </span>
           <span className="pl-fact">
-            <Essence /> <strong>{essenceLabel(likely.essence)}</strong> essence most likely · {chanceLabel(likely.p)} chance
+            Most likely <strong>{resultLabel(likely)}</strong> · {chanceLabel(likely.p)} chance
+            {plan.fees ? <> · {plan.fees.toLocaleString("en-GB")} essence to enter Rooms</> : null}
           </span>
-          <span className="pl-fact">
-            <Cash /> <strong>{cashLabel(likely.cash)}</strong> cash most likely · never converted
-          </span>
+          {plan.pCash !== undefined ? (
+            <span className="pl-fact">
+              <RewardSplit item={plan} />
+            </span>
+          ) : null}
         </>
       )}
       <span className="pl-fact">
@@ -404,11 +463,6 @@ function PlanSwitch({
                 <b>{chanceLabel(plan.pAny)}</b> · likely {resultLabel(likelyResult(plan))}
               </>
             )}
-          </span>
-          <span className="pl-mix" aria-hidden="true">
-            {allocation(plan).map((part) => (
-              <i key={part.group} style={{ flex: part.cards, background: GROUP_COLOUR[part.group] }} />
-            ))}
           </span>
         </Link>
       ))}
@@ -577,7 +631,7 @@ const RULES: [string, string, string][] = [
   [
     "−",
     "A sub costs the lineup its bonuses.",
-    "When one comes in the multi-club (+2%) and cap (+4%) bonuses go, and a sub never gets the captain's.",
+    "When one comes in, the multi-club and cap bonuses go (each lineup's sheet says how much), and a sub never gets the captain's.",
   ],
   [
     "1",
@@ -585,9 +639,14 @@ const RULES: [string, string, string][] = [
     "Every card that can start does; only what is left over goes on a bench, and only when it is worth more than the bonuses it risks.",
   ],
   [
-    "$",
-    "Cash and essence count side by side.",
-    "Plans are ranked on both at once, each against the best any plan reaches this gameweek; one is never turned into the other.",
+    "1",
+    "Your essence first.",
+    "Lineups for the essence you put first are filled first (LaLiga, then Champion, then All Star unless you change it); a lineup under 5% gets no priority.",
+  ],
+  [
+    "%",
+    "A reward is all or nothing.",
+    "Plan 1 is the plan most likely to be paid cash, essence or a card. XP is shown apart and never counts; a Room is played only when it wins back more than its fee on average.",
   ],
 ];
 

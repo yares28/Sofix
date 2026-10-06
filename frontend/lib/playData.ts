@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { database, readModel } from "./db";
-import { SORARE_TAG, type GameweekPlan, type Sorare } from "./play";
+import { SORARE_TAG, type GameweekPlan, type Sorare, type SorarePlans } from "./play";
 
 // Local development and the browser tests have no Neon: they ask the FastAPI stand-in instead.
 const API_BASE = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -91,6 +91,36 @@ export async function loadSorareWeek(slug: string): Promise<GameweekPlan | null>
     return await read();
   } catch (error) {
     console.error(`[sorare] week ${slug} could not be read: ${error instanceof Error ? error.message : "unknown"}`);
+    return null;
+  }
+}
+
+/**
+ * The week being planned again on Sorare's own projections (`read_models` key `sorare_alt:<slug>`), or null when the job has not
+ * written one. Rewritten every run until the lock, so cached as long as the page is and dropped with it.
+ */
+export async function loadSorareAlt(slug: string): Promise<SorarePlans | null> {
+  if (!WEEK_SLUG.test(slug)) return null;
+  const read = unstable_cache(
+    async (): Promise<SorarePlans | null> => {
+      if (database()) {
+        const row = await readModel<SorarePlans>(`sorare_alt:${slug}`);
+        return row?.payload ?? null;
+      }
+      const response = await fetch(`${API_BASE}/api/sorare/alt/${slug}`, { cache: "no-store", signal: AbortSignal.timeout(8000) });
+      if (!response.ok) return null;
+      const body = (await response.json()) as { success?: boolean; data?: SorarePlans };
+      return body?.success ? (body.data ?? null) : null;
+    },
+    ["sorare-alt-v1", slug],
+    { tags: [SORARE_TAG], revalidate: 3600 },
+  );
+  try {
+    const alt = await read();
+    // a cached entry from before a field existed must not break the page (next-cache-survives-deploys)
+    return alt && Array.isArray(alt.plans) ? alt : null;
+  } catch (error) {
+    console.error(`[sorare] Sorare plans for ${slug} could not be read: ${error instanceof Error ? error.message : "unknown"}`);
     return null;
   }
 }

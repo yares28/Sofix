@@ -20,18 +20,20 @@ from app.services.scoring import difficulty_label, difficulty_score, label_bucke
 from app.sorare import expected, projection, rules, xg
 from app.sorare.forecast import GameStart, PlayerWeek
 from app.sorare.forecast import forecasts as build_forecasts
-from app.sorare.model import SORARE_POSITION, Card, Competition, Forecast
+from app.sorare.model import ESSENCE_ORDER, SORARE_POSITION, Card, Competition, Forecast
 from app.sorare.planner import DRAWS, Lineup, Plan, build, fill_bench, plans, replay_rewards, score_at_rank
 from app.sorare.scores import Made
 
 logger = logging.getLogger(__name__)
 
 POSITION_WORDS = {"GK": "goalkeeper", "DEF": "defender", "MID": "midfielder", "FWD": "forward"}
-PAYLOAD_VERSION = 7
+PAYLOAD_VERSION = 8
 """The shape of the published page. A run only keeps a finished gameweek's replay from the payload the app is
 already showing when that payload was built by this same version."""
 LIVE_STATES = {"started", "live"}
 ARCHIVE_PREFIX = "sorare_week:"
+ALT_PREFIX = "sorare_alt:"
+"""The week being planned again on Sorare's own projections (`sorare_alt:<slug>`): the Play page's Sorare plans, read on demand."""
 """A finished gameweek is kept whole under `sorare_week:<its slug>` in `read_models`, apart from the main page."""
 EARLY_DRAWS = 600
 """Simulated weeks per lineup in an early plan: a fifth of a real plan's, which keeps each under a few seconds. It is a first
@@ -262,8 +264,13 @@ def player_weeks(
     use_sorare: bool,
     ff: Callable[[str, list[dict[str, Any]]], list[GameStart]] | None = None,
     scores: ScoresOf | None = None,
+    projections: Mapping[str, Mapping[str, Mapping[str, Any]]] | None = None,
 ) -> dict[str, PlayerWeek]:
     """What is known about each player before the lock (and, for a played gameweek, what he scored).
+
+    `projections` is Sorare's number game by game (`sync.game_projections`): his first game's is his projection. Without it (or for
+    a game it was not read for) Sorare's `nextClassicFixture*` numbers stand in, but only when his next game is this week's: while
+    he still has a game to play in an earlier week, they are that game's.
 
     `ff` answers, for a player and his games in kickoff order, Futbol Fantasy's chance for each game it has one for. It is
     only passed for a week still to come, the one being planned or the early plan of the round it has: it knows each
@@ -283,12 +290,25 @@ def player_weeks(
         # come, not one he missed, so it is no part of his form. DID_NOT_PLAY is the real miss and stays.
         past = [h for h in history.get(slug, []) if _dt(h["date"]) < lock and h.get("status") != "PENDING"]
         past.sort(key=lambda h: h["date"], reverse=True)
-        odds = player.get("nextClassicFixturePlayingStatusOdds") or {}
+        first = min(mine, key=lambda g: g.get("kickoff") or "") if mine else None
+        earlier = (
+            first is not None
+            and bool(first.get("kickoff"))
+            and any(
+                h.get("status") == "PENDING" and _dt(h["date"]) < _dt(first["kickoff"]) for h in history.get(slug, [])
+            )
+        )
+        odds = {} if earlier else (player.get("nextClassicFixturePlayingStatusOdds") or {})
+        sorare_number = player.get("nextClassicFixtureProjectedScore") if use_sorare and not earlier else None
+        if use_sorare and first is not None and projections is not None and first.get("id") in projections:
+            found = projections[first["id"]].get(slug) or {}
+            sorare_number = found.get("score")
         plays = None
         start_odds = None
         if use_sorare and odds:
-            plays = (odds.get("starterOddsBasisPoints", 0) + odds.get("substituteOddsBasisPoints", 0)) / 10000
-            start_odds = odds.get("starterOddsBasisPoints", 0) / 10000
+            starter, sub = odds.get("starterOddsBasisPoints") or 0, odds.get("substituteOddsBasisPoints") or 0
+            plays = (starter + sub) / 10000
+            start_odds = starter / 10000
         actual = None
         if window:
             played = [
@@ -300,14 +320,10 @@ def player_weeks(
         ordered = sorted(mine, key=lambda g: _dt(g["kickoff"])) if ff else mine
         told = ff(slug, ordered) if ff else []
         pos = SORARE_POSITION.get(player.get("position") or "")
-        made = (
-            scores(player, mine, player.get("nextClassicFixtureProjectedScore") if use_sorare else None, past)
-            if scores
-            else Made((), None)
-        )
+        made = scores(player, mine, sorare_number, past) if scores else Made((), None)
         weeks[slug] = PlayerWeek(
             games=len(mine),
-            projection=player.get("nextClassicFixtureProjectedScore") if use_sorare else None,
+            projection=sorare_number,
             plays_odds=plays,
             history=[(h["date"], h["score"] or 0.0, h["played"]) for h in past],
             actual=actual,
@@ -474,7 +490,7 @@ def card_payload(
     games: dict[str, list[dict[str, Any]]],
     extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    game = (games.get(card.player) or [{}])[0]
+    game = min(games.get(card.player) or [{}], key=lambda g: g.get("kickoff") or "")  # his first game, by kickoff
     out: dict[str, Any] = {
         "slug": card.slug,
         "player": card.player,
@@ -492,6 +508,10 @@ def card_payload(
         **_start_of(forecast),
         "mu": round(forecast.mu, 1),
         "x": round(forecast.p_play * forecast.mu, 1),
+        "by": forecast.score_source,
+        **({"sorare": round(forecast.sorare, 1)} if forecast.sorare is not None else {}),
+        **({"start": forecast.start} if forecast.start is not None else {}),
+        **({"on": forecast.on} if forecast.on is not None else {}),
         "average": card.average,
         "actual": forecast.actual,
         "fixture": {
@@ -551,30 +571,16 @@ def lineup_payload(
         third = sorted(comp.reference_rooms, reverse=True)
         need = float(np.percentile(comp.reference_rooms, 100 * (1 - 3 / max(comp.room_size, 4)))) if third else None
     tiers: list[dict[str, Any]] = []
-    if comp.is_room:
-        pay = {t.lo: t.essence for t in comp.tiers}
-        for place, chance in zip((1, 2, 3), lineup.tier_probs, strict=False):
-            tiers.append(
-                {
-                    "label": f"{place}{'st' if place == 1 else 'nd' if place == 2 else 'rd'}",
-                    "essence": pay.get(place, 0),
-                    "p": round(chance, 4),
-                }
-            )
-    else:
-        for tier, chance in zip(paying, lineup.tier_probs, strict=False):
+    for tier, chance in zip(comp.rewarding_tiers, lineup.tier_probs, strict=False):
+        row: dict[str, Any] = {"cash": tier.cash, "essence": tier.essence, "card": tier.card, "p": round(chance, 4)}
+        if tier.xp:
+            row["xp"] = tier.xp
+        if comp.is_room:
+            row["label"] = _place(tier.lo)
+        else:
             score = score_at_rank(comp.reference, tier.hi)  # what reaching this tier took in the reference week
-            tiers.append(
-                {
-                    "lo": tier.lo,
-                    "hi": tier.hi,
-                    "cash": tier.cash,
-                    "essence": tier.essence,
-                    "card": tier.card,
-                    "need": round(score) if score else None,
-                    "p": round(chance, 4),
-                }
-            )
+            row.update({"lo": tier.lo, "hi": tier.hi, "need": round(score) if score else None})
+        tiers.append(row)
     payload = {
         "comp": comp.name,
         "key": comp.key,
@@ -588,11 +594,18 @@ def lineup_payload(
         "minInSeason": comp.min_in_season,
         "cap": comp.cap,
         "captainBonus": comp.captain_bonus,
+        # the two lineup bonuses as Sorare sets them for this competition: (most cards from one club, bonus), (cap on the averages, bonus)
+        "clubBonus": list(comp.club_bonus) if comp.club_bonus else None,
+        "averageBonus": list(comp.average_bonus) if comp.average_bonus else None,
         "entries": comp.entries,
         "x": round(lineup.expected),
         "lo": round(lineup.low),
         "hi": round(lineup.high),
         "pReturn": round(lineup.p_return, 4),
+        "pCash": round(lineup.p_cash, 4),
+        "pEss": round(lineup.p_essence, 4),
+        "pXp": round(lineup.p_xp, 4),
+        "kind": comp.essence_kind,
         "eEss": round(lineup.e_essence),
         "eCash": round(lineup.e_cash, 2),
         "pCard": round(lineup.p_card, 4),
@@ -611,11 +624,16 @@ def lineup_payload(
             "cash": lineup.actual_cash,
             "essence": round(lineup.actual_essence),
             "card": lineup.actual_card,
+            "xp": lineup.actual_xp,
             "need": round(actual_need) if actual_need else None,
             "bonusLost": lineup.bonus_lost,
             "cameIn": [{"sub": sub, "for": starter} for sub, starter in lineup.came_in],
         }
     return payload
+
+
+def _place(place: int) -> str:
+    return f"{place}{ {1: 'st', 2: 'nd', 3: 'rd'}.get(place if place < 20 else place % 10, 'th') }"
 
 
 def plan_payload(
@@ -628,11 +646,25 @@ def plan_payload(
 ) -> dict[str, Any]:
     order = {"In-season": 0, "Classic": 1, "Room": 2}
     lineups = sorted(plan.lineups, key=lambda lu: (order[lu.comp.group], -lu.p_return))
+    out = plan.outcomes
     payload = {
         "rank": rank,
         "essence": round(plan.essence),
         "cash": round(plan.cash, 2),
+        "fees": plan.fees,
         "pAny": round(plan.chance_of_any(), 4),
+        **(
+            {
+                "pCash": round(out.p_cash, 4),
+                "pEss": round(out.p_essence, 4),
+                "pCard": round(out.p_card, 4),
+                "pXp": round(out.p_xp, 4),
+                "byKind": {kind: round(p, 4) for kind, p in out.by_kind.items()},
+                "likely": {**{k: round(v, 2) for k, v in out.likely.items()}, "p": round(out.p_likely, 4)},
+            }
+            if out
+            else {}
+        ),
         "rewards": round(plan.rewards_expected, 2),
         "cardsUsed": plan.cards_used,
         "cardsAvailable": usable,
@@ -711,6 +743,7 @@ def gameweek_payload(
     runs: int = 30,
     draws: int = DRAWS,
     seed: int = 11,
+    order: tuple[str, ...] = ESSENCE_ORDER,
 ) -> dict[str, Any]:
     """One gameweek: who plays, what can be entered, and the plans (replayed when it is already played)."""
     rng = np.random.default_rng(seed)
@@ -733,14 +766,15 @@ def gameweek_payload(
                     "group": comp.group,
                     "rarity": comp.rarity,
                     "fee": comp.fee,
+                    "kind": comp.essence_kind,
                     "size": comp.size,
                     "subs": len(comp.subs),
                     "cap": comp.cap,
                     "max": possible,
                     "entries": comp.entries,
                     "tiers": [
-                        {"lo": t.lo, "hi": t.hi, "cash": t.cash, "essence": t.essence, "card": t.card}
-                        for t in comp.paying_tiers
+                        {"lo": t.lo, "hi": t.hi, "cash": t.cash, "essence": t.essence, "card": t.card, "xp": t.xp}
+                        for t in comp.rewarding_tiers
                     ],
                     **_expected_flags(comp),
                 }
@@ -758,7 +792,7 @@ def gameweek_payload(
                 }
             )
 
-    found = plans(ready, cards, forecasts, count=count, runs=runs, seed=seed, draws=draws) if ready else []
+    found = plans(ready, cards, forecasts, count=count, runs=runs, seed=seed, draws=draws, order=order) if ready else []
     if played:
         for plan in found:
             for lineup in plan.lineups:
@@ -777,7 +811,7 @@ def gameweek_payload(
                     "name": comp.name,
                     "group": comp.group,
                     "fee": comp.fee,
-                    "eEss": round(lineup.e_essence),
+                    "eEss": round(lineup.net_essence),
                     "pReturn": round(lineup.p_return, 4),
                     "x": round(lineup.expected),
                 }
@@ -800,6 +834,12 @@ def gameweek_payload(
             "cards": sum(1 for c in cards if c.player == card.player),
             "p": round(forecasts.get(card.player, Forecast(0, 0)).p_play, 3),
             "x": round(_expected(forecasts.get(card.player)), 1),
+            "by": forecasts.get(card.player, Forecast(0, 0)).score_source,
+            **(
+                {"sorare": round(number, 1)}
+                if (number := forecasts.get(card.player, Forecast(0, 0)).sorare) is not None
+                else {}
+            ),
             "average": card.average,
             "games": _with_chances(games.get(card.player) or [], forecasts.get(card.player)),
             **_split_out(forecasts.get(card.player)),
@@ -807,8 +847,8 @@ def gameweek_payload(
         }
         for card in {c.player: c for c in cards if games.get(c.player)}.values()
     ]
-    order = ["GK", "DEF", "MID", "FWD"]
-    players.sort(key=lambda p: (order.index(str(p["pos"])), str(p["name"])))
+    lines = ["GK", "DEF", "MID", "FWD"]
+    players.sort(key=lambda p: (lines.index(str(p["pos"])), str(p["name"])))
     projections = next(
         (c.get("projectionsAt") for c in snapshot["competitions"].get(week["slug"], []) if c.get("projectionsAt")),
         None,
@@ -959,8 +999,12 @@ def build_payload(
     projected: list[dict[str, Any]] | None = None,
     ff: Callable[[str, list[dict[str, Any]]], list[GameStart]] | None = None,
     scores: ScoresOf | None = None,
+    order: tuple[str, ...] = ESSENCE_ORDER,
 ) -> dict[str, Any]:
     """The whole `sorare` read model, from one snapshot.
+
+    Two parts ride along for the job to write apart, under keys it pops before publishing: `_alt`, the week planned again on
+    Sorare's own projections (`ALT_PREFIX`), and `_record`, both numbers for every LaLiga player of the week (`RECORD_PREFIX`).
 
     `previous` is the payload the app is already showing: when it holds the replay of the same finished
     gameweek, that part is kept as it is instead of being planned again. `ff` is Futbol Fantasy's chance game by game
@@ -981,18 +1025,18 @@ def build_payload(
     plan_comps = with_expected(
         snapshot, read_competitions(snapshot["competitions"].get(plan_week["slug"], []), plan_reference), plan_week
     )
-    plan_forecasts = build_forecasts(
-        player_weeks(
-            snapshot["cards"],
-            plan_games,
-            snapshot["history"],
-            _dt(plan_week["lock"]),
-            None,
-            use_sorare=True,
-            ff=ff,
-            scores=scores,
-        )
+    plan_weeks = player_weeks(
+        snapshot["cards"],
+        plan_games,
+        snapshot["history"],
+        _dt(plan_week["lock"]),
+        None,
+        use_sorare=True,
+        ff=ff,
+        scores=scores,
+        projections=snapshot.get("projections"),
     )
+    plan_forecasts = build_forecasts(plan_weeks)
     # Every LaLiga player, not only yours (S5): the same start chance and xScore, from the squad index the job reads each run. Form
     # stands on the history the job reads for your players; anyone else's rests on Sorare's odds and projection, Futbol Fantasy
     # and his games, with the priors for the rest. Yours keep exactly the plan's numbers.
@@ -1000,17 +1044,24 @@ def build_payload(
     league_games = card_games(league_rows, "plan")
     # Past games: what the job has built up for every LaLiga player (`sorare_sync.league_history`), yours read in full this run
     league_history = {slug: entry.get("games") or [] for slug, entry in (snapshot.get("leagueHistory") or {}).items()}
-    league_forecasts = build_forecasts(
-        player_weeks(
-            league_rows,
-            league_games,
-            {**league_history, **snapshot["history"]},
-            _dt(plan_week["lock"]),
-            None,
-            use_sorare=True,
-            ff=ff,
-            scores=scores,
-        )
+    league_weeks = player_weeks(
+        league_rows,
+        league_games,
+        {**league_history, **snapshot["history"]},
+        _dt(plan_week["lock"]),
+        None,
+        use_sorare=True,
+        ff=ff,
+        scores=scores,
+        projections=snapshot.get("projections"),
+    )
+    league_forecasts = build_forecasts(league_weeks)
+    record = score_record(
+        plan_week,
+        {**league_weeks, **plan_weeks},
+        league_forecasts | plan_forecasts,
+        {**league_games, **plan_games},
+        snapshot,
     )
     league_forecasts.update(plan_forecasts)
     league_games.update(plan_games)
@@ -1026,6 +1077,10 @@ def build_payload(
         xg_rates=xg_rates,
         runs=runs,
         draws=draws,
+        order=order,
+    )
+    alt = sorare_plans(
+        snapshot, plan_week, plan_comps, cards, plan_weeks, plan_games, order=order, runs=runs, draws=draws
     )
 
     last_gw = kept_replay(previous, past_week)
@@ -1183,6 +1238,100 @@ def build_payload(
         # S5: the whole collection card by card, and the LaLiga players priced right now.
         "collection": collection_out(cards),
         "market": market_out(snapshot.get("market") or [], league_forecasts, league_games),
+        "essenceOrder": list(order),
+        "_alt": alt,
+        "_record": record,
+    }
+
+
+RECORD_PREFIX = "score_record:"
+"""Both numbers for every LaLiga player of a week, written each run until its lock and so frozen there (`score_record:<slug>`)."""
+
+
+def sorare_plans(
+    snapshot: dict[str, Any],
+    week: dict[str, Any],
+    comps: list[Competition],
+    cards: list[Card],
+    weeks: dict[str, PlayerWeek],
+    games: dict[str, list[dict[str, Any]]],
+    *,
+    order: tuple[str, ...],
+    runs: int,
+    draws: int,
+) -> dict[str, Any]:
+    """The week being planned again with Sorare's projection as each player's score (his last five games where Sorare has none):
+    the same cards, competitions and chances of starting, only the expected score changes (the owner, 6 Oct 2026). Until Sorare
+    has projected anyone it says so and plans nothing."""
+    projected = sum(1 for w in weeks.values() if w.projection is not None and w.games)
+    out: dict[str, Any] = {
+        "gameweek": {"slug": week["slug"], "number": week["number"], "lock": week["lock"]},
+        "builtAt": snapshot["fetchedAt"],
+        "projected": projected,
+        "players": sum(1 for w in weeks.values() if w.games),
+        "plans": [],
+    }
+    if not projected:
+        return out
+    stripped = {slug: replace(w, game_scores=(), shape=None) for slug, w in weeks.items()}
+    alt = gameweek_payload(
+        snapshot,
+        week,
+        comps,
+        cards,
+        build_forecasts(stripped),
+        games,
+        played=False,
+        runs=runs,
+        draws=draws,
+        order=order,
+    )
+    out["plans"] = alt["plans"]
+    return out
+
+
+def score_record(
+    week: dict[str, Any],
+    weeks: Mapping[str, PlayerWeek],
+    forecasts: Mapping[str, Forecast],
+    games: Mapping[str, list[dict[str, Any]]],
+    snapshot: dict[str, Any],
+) -> dict[str, Any]:
+    """Sorare's projection and Sofix's number for every player with a game in the week, game by game, with the chances: what the
+    Audit scores after the games. Written before the lock only, so what it holds is what each said in time."""
+    projections = snapshot.get("projections") or {}
+    players: dict[str, Any] = {}
+    for slug, w in weeks.items():
+        mine = sorted(games.get(slug) or [], key=lambda g: g.get("kickoff") or "")
+        if not mine:
+            continue
+        f = forecasts.get(slug)
+        listed = []
+        for i, game in enumerate(mine):
+            said = (projections.get(game.get("id")) or {}).get(slug) or {}
+            listed.append(
+                {
+                    "id": game.get("id"),
+                    "kickoff": game.get("kickoff"),
+                    "competition": game.get("competition"),
+                    "sorare": said.get("score", w.projection if i == 0 and not projections else None),
+                    "grade": said.get("grade"),
+                    "sofix": round(w.game_scores[i], 1) if i < len(w.game_scores) else None,
+                }
+            )
+        players[slug] = {
+            "pos": w.pos,
+            "games": listed,
+            "pPlay": round(f.p_play, 3) if f else None,
+            "pStart": round(f.p_start, 3) if f and f.p_start is not None else None,
+            "startSource": f.start_source if f else None,
+            "mu": round(f.mu, 1) if f else None,
+            "by": f.score_source if f else None,
+        }
+    return {
+        "gameweek": {"slug": week["slug"], "number": week["number"], "lock": week["lock"]},
+        "writtenAt": snapshot["fetchedAt"],
+        "players": players,
     }
 
 

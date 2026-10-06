@@ -118,6 +118,7 @@
           so5Rewards { rewardConfigs { __typename
             ... on MonetaryRewardConfig { amount { usdCents } }
             ... on CardShardRewardConfig { rarity quantity }
+            ... on InGameCurrencyRewardConfig { amount currency }
             ... on CardRewardConfig { rarity quality } } } }
         so5Appearances(includeSubs: true) {
           id rarity pictureUrl(derivative: "tinified") score captain player { displayName } anyCard { slug }
@@ -186,8 +187,11 @@
       if (issued && !cookie("csrftoken")) document.cookie = `csrftoken=${encodeURIComponent(issued)}; path=/`;
       if (!response.ok) return { state: "error", status: response.status };
       const body = await response.json();
-      // Sorare answers a refused write with 200 and an errors array: those are its words, and they are kept.
-      if (body && body.errors) return { state: "rejected", errors: body.errors.map((e) => String(e.message || e)) };
+      // Sorare answers a refused write with 200 and an errors array: those are its words, and they are kept. A read that came back with
+      // its data and a complaint about one part keeps the data.
+      if (body && body.errors && !(body.data && Object.values(body.data).some((value) => value !== null))) {
+        return { state: "rejected", errors: body.errors.map((e) => String(e.message || e)) };
+      }
       if (core && body && body.data) learn(core.collectCards(body.data)); // a lineup's cards are worth knowing too
       return { state: "ok", data: (body && body.data) || null };
     } catch {

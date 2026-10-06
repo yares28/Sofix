@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from typing import Any
 
@@ -504,7 +505,17 @@ def test_knowing_how_each_game_was_played_changes_no_plan(payload):
             row["started"], row["mins"] = started, 90 if started else 20
     with_roles = publish.build_payload(roles, runs=4, draws=600)
 
-    assert publish.week_of(with_roles)["plans"] == publish.week_of(payload)["plans"]
+    def planned(page: dict[str, Any]) -> list[dict[str, Any]]:
+        """The plans without each card's own if-he-starts / if-he-comes-on numbers, which the roles are there to change."""
+        plans = json.loads(json.dumps(publish.week_of(page)["plans"]))
+        for plan in plans:
+            for lineup in plan["lineups"]:
+                for card in [*lineup["starters"], *lineup["subs"]]:
+                    card.pop("start", None)
+                    card.pop("on", None)
+        return plans
+
+    assert planned(with_roles) == planned(payload)
     for before, after in zip(
         publish.week_of(payload)["playing"]["players"], publish.week_of(with_roles)["playing"]["players"], strict=True
     ):

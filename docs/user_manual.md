@@ -182,10 +182,22 @@ Play shows the latest published plan for the selected Sorare gameweek. It is bui
 competition rules, pre-lock forecasts and reward cutoffs.
 
 The hero counts down to the lock in large type ("2d 22h until the lock, Fri 9 Oct at 16:00"; after the games, the essence
-won), with the plan's facts under it: chance of a reward, most likely essence and cash, cards used. Beside it, "Your Sorare
-lineups" (what is actually entered) and Apply plan. Below, one "Sofix plan" tile holds the plan switch, where the cards go,
-and **every** lineup as a row: competition, its cards with the xScore under each in Sorare's colours, the team score with
-its range and the score needed, and the reward chance as a dial; each row opens its sheet. While the gameweek is the one being
+won), with the plan's facts under it: chance of a reward, the most likely result, the chance of cash, of essence and of XP apart,
+cards used. Beside it, "Your Sorare lineups" (what is actually entered) and Apply plan. Below, the plan tile holds the
+**Sofix / Sorare** switch, the plan switch, where the cards go, and the lineups as rows: competition, its cards with each
+one's xScore in Sorare's colours, the team score with its range and the score needed, and the reward chance as a dial; each
+row opens its sheet. Lineups under 5% sit folded at the end as **Long shots**: they only use cards nothing else wanted.
+
+**Sofix or Sorare (6 Oct 2026).** For the week being planned there are two sets of plans: **Sofix** builds them on Sofix's
+xScore, **Sorare** on Sorare's own projections (game by game, read for that week's games). Both use the same cards,
+competitions and chances of starting; only the expected score differs, so you can compare them, and the Audit scores both.
+Until Sorare publishes its projections (about two days before the lock) the Sorare view says when they are due.
+
+**Essence first.** Under the lineups, **Essence first** lists the essence the plans fill first: LaLiga, then Champion, then
+All Star unless you change it (↑ ↓, then **Save and replan**, which starts a refresh; the plans follow it about six minutes
+later). Sofix fills the lineups of your first essence first, then the second and the third; inside each, the lineup most
+likely to be paid goes first. A lineup under 5% gets no priority. Plans are then ranked the same way: the best chance of
+being paid by your first essence, then the second, the third, then of anything. While the gameweek is the one being
 played, today's missions sit under the lineups with the cards that fit each (chance, opponent, kick-off and what he
 did over his last 5); the full Missions page is one click away.
 
@@ -206,7 +218,9 @@ Read each lineup from left to right:
 
 - competition and lock state;
 - cards/slots, captain and substitutes;
-- **xScore**, which includes the chance of not playing;
+- each card's **xScore**, the same number as on Lineups and Players: his score if he starts, or if he comes on when he is
+  under 40% to start, with whose number it is (SF Sofix, SO Sorare, L5 his last five); the team score below counts the
+  chance of not playing;
 - an expected range, not a guarantee;
 - reward probability and the cutoff evidence behind it;
 - what its first level pays and the score that reached it ("250 at 311+").
@@ -214,7 +228,10 @@ Read each lineup from left to right:
 **A reward is all or nothing.** A lineup that reaches a level gets that level's reward whole; one that does not gets
 nothing. Play never shows a share of a reward. A lineup's sheet lists every level under **Rewards**: the score that reached
 it in the week the chances come from ("311+ · #301–1,500"), what it pays, and the chance of scoring at least that, so the
-first level's chance is the lineup's reward chance. A Room lists its three places instead.
+first level's chance is the lineup's reward chance. A Room lists its places instead. **XP** levels (500 to 1,000 XP for
+LaLiga ranks 1,501 to 3,500, Room places 4 and 5) are listed and given their own chance, but XP never counts as being paid.
+A Room's entry fee is shown as "300 to enter": it is a cost, never taken off a result, and a Room is only played when it wins
+back more than its fee on average.
 
 In a lineup's sheet, a card's name opens his match on **Lineups** (Futbol Fantasy's probable elevens and the chance of each player of his
 side). A game Futbol Fantasy has no page for, such as a national-team game, has no link.
@@ -222,17 +239,20 @@ side). A game Futbol Fantasy has no page for, such as a national-team game, has 
 The planner enforces the published slots, caps, in-season minimum, club/card/player uniqueness, bonuses and substitute
 rules. A substitute is kept only when its expected protection exceeds the bonus sacrificed by using it. It repeats a
 seeded, slightly randomized whole-gameweek search and returns up to five plans whose card sets are materially different.
-**Plan 1 is the plan most likely to be paid anything**, whatever the size of the reward (your choice, 5 Oct 2026); what a
-plan pays only breaks a tie. A plan's **Essence** and **Cash** are its **most likely result** for the week, with its chance:
-every lineup reaches a level or not, and the likeliest combination is often nothing (or minus a Room's entry fee) even when
+Your essence order comes first, then **the plan most likely to be paid anything** (cash, essence or a card), whatever the
+size of the reward (your choice, 5 Oct 2026); what a plan pays only breaks a tie. The chances come from one simulation of the
+whole plan, so two lineups holding the same players or the same game rise and fall together instead of being counted as if
+apart. A plan's **most likely result** is its likeliest winnings for the week, with its chance; it is often nothing even when
 some reward is likely, because the ways of winning are split over many amounts. Cash and essence stay separate.
 **Also open** gives each competition left out its reward chance and its entry fee.
 
 ### xScore
 
-`xScore = P(plays) × score if playing`. The “if playing” score usually comes from Sorare's projection; starting/sub
-odds supply P(plays) when published. Before those exist, last-five form plus conservative priors is used. The source
-and freshness label matters: “form” is weaker evidence than a recorded Sorare-informed pre-lock forecast.
+A card's xScore is his score if he starts (or comes on, under 40% to start). In the Sofix plan it is Sofix's own number where
+the game model can make one (every game of his week a LaLiga game it knows), else Sorare's projection for that game, else his
+last five games; the card's mark says which. The team score is the expected total: each card's score times its chance of
+playing, with the bonuses. Both numbers, Sorare's and Sofix's, are written down for every LaLiga player before each lock
+(`score_record:<week>`), so the Audit can say who was closer.
 
 ### Predicted vs actual
 

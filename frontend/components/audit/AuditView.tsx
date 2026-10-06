@@ -1,4 +1,5 @@
 import MissionsAudit from "./MissionsAudit";
+import VersusAudit from "./VersusAudit";
 import RewardsAudit from "./RewardsAudit";
 import { freshLabel } from "../../lib/fresh";
 import {
@@ -101,7 +102,7 @@ function Record({ data }: { data: Audit }) {
   );
 }
 
-export type AuditShow = "xscore" | "starts" | "rewards" | "missions";
+export type AuditShow = "xscore" | "starts" | "rewards" | "missions" | "versus";
 
 export default function AuditView({
   data,
@@ -143,6 +144,18 @@ export default function AuditView({
           {updated}
         </header>
         <MissionsAudit missions={data.missions} floor={data.floor} />
+      </>
+    );
+  }
+  if (show === "versus") {
+    return (
+      <>
+        <header className="au-top">
+          <h1>Sorare vs Sofix</h1>
+          <p>Sorare&apos;s projection and Sofix&apos;s xScore, written down before each lock, against what the player scored.</p>
+          {updated}
+        </header>
+        <VersusAudit versus={data.versus} floor={data.floor} league={league} />
       </>
     );
   }

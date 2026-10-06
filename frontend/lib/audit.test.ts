@@ -12,6 +12,8 @@ import {
   SOURCES,
   NO_MISSIONS,
   NO_REWARDS,
+  NO_VERSUS,
+  points,
   wonShare,
   type Audit,
   type LiveSource,
@@ -28,6 +30,7 @@ const page = (over: Partial<Audit> = {}): Audit => ({
   starts: { replay: null, live: { futbolfantasy: none, sorare: none, sofix: none }, weeks: [] },
   rewards: NO_REWARDS,
   missions: NO_MISSIONS,
+  versus: NO_VERSUS,
   ...over,
 });
 
@@ -156,5 +159,20 @@ describe("the rewards", () => {
   it("gives what was won as a share of what was expected, and nothing when nothing was expected", () => {
     expect(wonShare(330, 412)).toBeCloseTo(0.801, 3);
     expect(wonShare(250, 0)).toBeNull();
+  });
+});
+
+describe("Sorare against Sofix", () => {
+  it("reads a page published before the comparison as an empty one", () => {
+    const old = readable({ ...page(), versus: undefined });
+    expect(old?.versus.all.starts).toBe(0);
+    expect(old?.versus.positions.GK.starts).toBe(0);
+  });
+
+  it("writes points with a sign for a lean, a dash for none", () => {
+    expect(points(6.44)).toBe("6.4");
+    expect(points(2.1, true)).toBe("+2.1");
+    expect(points(-1.25, true)).toBe("−1.3");
+    expect(points(null)).toBe("–");
   });
 });

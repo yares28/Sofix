@@ -41,6 +41,7 @@ export const PLACES: Place[] = [
       { href: "/audit", label: "xScore" },
       { href: "/audit/starts", label: "Who starts" },
       { href: "/audit/starts#written", label: "Written down" }, // a section of Who starts (canvas board 7b)
+      { href: "/audit/versus", label: "Sorare vs Sofix" },
       { href: "/audit/rewards", label: "Rewards" },
       { href: "/audit/missions", label: "Missions" },
     ],

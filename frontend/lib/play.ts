@@ -50,7 +50,36 @@ export type PlayCard = {
   pStart?: number;
   startSource?: StartSource;
   ffKind?: "out" | "doubt" | "suspended";
+  /** Whose number `mu` stands on (Sofix's game model, Sorare's projection or his last five), Sorare's own number, and his score if he starts and if he comes on. */
+  by?: ScoreSource;
+  sorare?: number;
+  start?: number;
+  on?: number;
 };
+
+/** Whose expected score a number is: Sofix's game model, Sorare's projection, or his last five games. */
+export type ScoreSource = "sofix" | "sorare" | "form";
+export const SCORE_SOURCE_NAME: Record<ScoreSource, string> = {
+  sofix: "Sofix's xScore",
+  sorare: "Sorare's projection",
+  form: "his last five games",
+};
+
+/** The essence a competition pays, by its league (the owner, 6 Oct 2026). */
+export const ESSENCE_NAME: Record<string, string> = { laliga: "LaLiga", champion: "Champion", all_star: "All Star" };
+export const DEFAULT_ESSENCE_ORDER = ["laliga", "champion", "all_star"] as const;
+export const essenceName = (kind: string | undefined): string =>
+  kind ? (ESSENCE_NAME[kind] ?? kind.split("_").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")) : "";
+
+/**
+ * The one score a card shows, the same as every other page (decision 1, 3 Oct): his score if he starts, or if he comes on when he
+ * is under 40% to start; older payloads fall back to his score if he plays.
+ */
+export function cardScore(card: Pick<PlayCard, "pStart" | "start" | "on" | "mu">): { value: number; words: string } {
+  if (card.pStart !== undefined && card.pStart < 0.4 && card.on !== undefined) return { value: Math.round(card.on), words: "if he comes on" };
+  if (card.start !== undefined) return { value: Math.round(card.start), words: "if he starts" };
+  return { value: Math.round(card.mu), words: "if he plays" };
+}
 
 export type Tier = {
   lo?: number;
@@ -59,6 +88,8 @@ export type Tier = {
   cash?: number;
   essence?: number;
   card?: boolean;
+  /** XP only: shown apart, never counted as being paid. */
+  xp?: number;
   /** The score that reached this level in the week the chances come from; absent on Rooms and older payloads. */
   need?: number | null;
   /** The chance of ending on exactly this level. */
@@ -79,11 +110,19 @@ export type Lineup = {
   minInSeason: number;
   cap: number | null;
   captainBonus: number;
+  /** The two lineup bonuses as Sorare sets them here: [most cards from one club, bonus] and [cap on the averages, bonus]; absent on older payloads. */
+  clubBonus?: [number, number] | null;
+  averageBonus?: [number, number] | null;
   entries: number;
   x: number;
   lo: number;
   hi: number;
   pReturn: number;
+  /** The chance of ending on a level that pays cash, essence, or XP only; the essence it pays (absent on older payloads). */
+  pCash?: number;
+  pEss?: number;
+  pXp?: number;
+  kind?: string;
   eEss: number;
   eCash: number;
   pCard: number;
@@ -101,6 +140,7 @@ export type Lineup = {
     cash: number;
     essence: number;
     card: boolean;
+    xp?: number;
     need: number | null;
     bonusLost: boolean;
     cameIn: { sub: string; for: string }[];
@@ -111,7 +151,16 @@ export type Plan = {
   rank: number;
   essence: number;
   cash: number;
+  /** Essence spent entering Rooms: a cost, never taken off a result. */
+  fees?: number;
   pAny: number;
+  /** From one simulation of the whole plan: the chance of any cash, essence, card or XP only, paid by each essence kind, and the most likely winnings. */
+  pCash?: number;
+  pEss?: number;
+  pCard?: number;
+  pXp?: number;
+  byKind?: Record<string, number>;
+  likely?: { essence: number; cash: number; cards: number; p: number };
   rewards: number;
   cardsUsed: number;
   cardsAvailable: number;
@@ -127,6 +176,7 @@ export type Option = {
   group: Group;
   rarity: string;
   fee: number;
+  kind?: string;
   size: number;
   subs: number;
   cap: number | null;
@@ -245,6 +295,9 @@ export type PlayingPlayer = {
   bench?: number;
   /** His score if he comes on from the bench (plans/xscore.md, P7); payloads published before it do not carry it. */
   on?: number;
+  /** Whose number his expected score stands on, and Sorare's own projection for his first game. */
+  by?: ScoreSource;
+  sorare?: number;
   pStart?: number;
   pOn?: number;
   /** Whose number `pStart` is, and what each of the three says of his first game (Futbol Fantasy's only when it has one). */
@@ -411,6 +464,18 @@ export type Sorare = {
   collection?: CollectionCard[];
   /** LaLiga players priced right now (S5 Player search). Absent until the Sorare job publishes it. */
   market?: MarketPlayer[];
+  /** The essence kinds the plans fill first, as the owner saved them (the default when absent). */
+  essenceOrder?: string[];
+};
+
+/** The week being planned again on Sorare's own projections (`read_models` key `sorare_alt:<slug>`). */
+export type SorarePlans = {
+  gameweek: { slug: string; number: number; lock: string };
+  builtAt: string;
+  /** Players with a Sorare projection, of those with a game: none means Sorare has not published yet. */
+  projected: number;
+  players: number;
+  plans: Plan[];
 };
 
 const DAY = 86_400_000;
@@ -526,7 +591,7 @@ export function rewardChips(lineup: Lineup, after: boolean): { kind: "essence" |
   return chips;
 }
 
-/** What a plan can end the week with: essence (a Room's fee taken off), cash, cards, and the chance of exactly that. */
+/** What a plan can end the week with: essence won, cash, cards, and the chance of exactly that. Entry fees are a cost, shown apart. */
 export type Result = { essence: number; cash: number; cards: number; p: number };
 
 /**
@@ -534,7 +599,8 @@ export type Result = { essence: number; cash: number; cards: number; p: number }
  * is paid either way); lineups are taken as independent, as the chance of any reward is. Often "nothing" even when some
  * reward is likely, because the ways of winning are split over many amounts.
  */
-export function likelyResult(plan: Pick<Plan, "lineups">): Result {
+export function likelyResult(plan: Pick<Plan, "lineups" | "likely">): Result {
+  if (plan.likely) return { essence: plan.likely.essence, cash: plan.likely.cash, cards: plan.likely.cards, p: plan.likely.p };
   let results = new Map<string, Result>([["0|0|0", { essence: 0, cash: 0, cards: 0, p: 1 }]]);
   for (const lineup of plan.lineups) {
     const levels = paidTiers(lineup);
@@ -547,7 +613,7 @@ export function likelyResult(plan: Pick<Plan, "lineups">): Result {
     for (const so of results.values()) {
       for (const add of outcomes) {
         const result = {
-          essence: so.essence + add.essence - lineup.fee,
+          essence: so.essence + add.essence, // winnings only: a Room's fee is a cost, shown apart (the owner, 6 Oct 2026)
           cash: Math.round((so.cash + add.cash) * 100) / 100,
           cards: so.cards + add.cards,
           p: so.p * add.p,
@@ -565,7 +631,7 @@ export function likelyResult(plan: Pick<Plan, "lineups">): Result {
   return [...results.values()].reduce((best, result) => (result.p > best.p ? result : best));
 }
 
-/** A result in words: "nothing", "250 essence", "$2 + 250 essence", "−300 essence", "a card". */
+/** A result in words: "nothing", "250 essence", "$2 + 250 essence", "a card". */
 export function resultLabel(result: Pick<Result, "essence" | "cash" | "cards">): string {
   const parts = [
     result.cash ? cashLabel(result.cash) : "",
@@ -614,3 +680,19 @@ export function weekPlan(data: Sorare, id: string): GameweekPlan | null {
 export function plansOf(week: GameweekPlan, after: boolean): Plan[] {
   return after && week.played && week.hindsight ? [...week.plans, week.hindsight] : week.plans;
 }
+
+/** The chances a plan or lineup is shown with, apart: cash, essence, a card, XP only. Null where the payload predates them. */
+export function rewardSplit(item: { pCash?: number; pEss?: number; pXp?: number; pCard?: number }): { kind: "cash" | "essence" | "card" | "xp"; p: number }[] | null {
+  if (item.pCash === undefined || item.pEss === undefined || item.pXp === undefined) return null;
+  const rows: { kind: "cash" | "essence" | "card" | "xp"; p: number }[] = [
+    { kind: "cash", p: item.pCash },
+    { kind: "essence", p: item.pEss },
+    { kind: "card", p: item.pCard ?? 0 },
+    { kind: "xp", p: item.pXp },
+  ];
+  return rows.filter((row) => row.kind !== "card" || row.p > 0);
+}
+
+/** A lineup the plan only plays with cards nothing else wanted: under 5% to be paid. The page folds these. */
+export const LONG_SHOT = 0.05;
+export const isLongShot = (lineup: Pick<Lineup, "pReturn">): boolean => lineup.pReturn < LONG_SHOT;

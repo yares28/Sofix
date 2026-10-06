@@ -1,6 +1,6 @@
 import type { Group, Lineup, PlayCard } from "../../lib/play";
 import SorareImage from "./SorareImage";
-import { chanceLabel, formatOf, rangeScale, rewardChips } from "../../lib/play";
+import { cardScore, chanceLabel, formatOf, rangeScale, rewardChips, rewardSplit } from "../../lib/play";
 import { scoreColour } from "../../lib/cards";
 import SeasonIcon from "../SeasonIcon";
 
@@ -151,8 +151,8 @@ export function MiniCards({ lineup, after }: { lineup: Lineup; after: boolean })
             </span>
           )
         ) : (
-          <span className="hx" style={{ background: scoreColour(entry.x).fill, color: scoreColour(entry.x).ink }}>
-            {Math.round(entry.x)}
+          <span className="hx" style={{ background: scoreColour(cardScore(entry).value).fill, color: scoreColour(cardScore(entry).value).ink }}>
+            {cardScore(entry).value}
           </span>
         )}
         <span className="nm">{entry.name}</span>
@@ -186,6 +186,24 @@ export function RewardChips({ lineup, after }: { lineup: Lineup; after: boolean 
         </span>
       ))}
     </>
+  );
+}
+
+const SPLIT_WORD = { cash: "Cash", essence: "Essence", card: "Card", xp: "XP" } as const;
+
+/** The chance of each kind of reward, apart: cash, essence, a card, XP only (XP never counts as being paid). Nothing for older payloads. */
+export function RewardSplit({ item, kind }: { item: { pCash?: number; pEss?: number; pXp?: number; pCard?: number }; kind?: string }) {
+  const rows = rewardSplit(item);
+  if (!rows) return null;
+  return (
+    <span className="pl-split">
+      {rows.map((row) => (
+        <span key={row.kind} className={`pl-sp ${row.kind}`} title={row.kind === "xp" ? "XP only: never counted as being paid" : undefined}>
+          {row.kind === "essence" ? <Essence size={12} /> : row.kind === "cash" ? <Cash size={12} /> : null}
+          {row.kind === "essence" && kind ? `${kind} essence` : SPLIT_WORD[row.kind]} <b>{chanceLabel(row.p)}</b>
+        </span>
+      ))}
+    </span>
   );
 }
 

@@ -460,6 +460,47 @@ def history(
     return out
 
 
+GAME_ID = re.compile(r"^Game:[0-9a-f-]{36}$")
+GAME_PROJECTIONS = '{alias}: anyGame(id: "{id}") {{ ... on Game {{ id playerGameScores {{ projection {{ score grade }} anyPlayer {{ slug }} }} }} }}'
+PROJECTION_BATCH = 8  # games per question: about 700 players, well inside the keyed complexity limit
+
+
+def game_projections(client: SorareClient, game_ids: list[str]) -> dict[str, dict[str, dict[str, Any]]]:
+    """Sorare's projection for every player of these games, game by game: `{game id: {player slug: {score, grade}}}`.
+
+    `nextClassicFixtureProjectedScore` is a player's *next* game, which can sit in a week still being played rather than the one
+    being planned; this is the number for the game itself (Sorare publishes it about two days before the lock). A game Sorare has
+    not projected yet answers with no players; a question that fails leaves its games out, and those players fall back.
+    """
+    wanted = sorted({g for g in game_ids if GAME_ID.match(g)})
+    out: dict[str, dict[str, dict[str, Any]]] = {}
+    for i in range(0, len(wanted), PROJECTION_BATCH):
+        batch = wanted[i : i + PROJECTION_BATCH]
+        query = (
+            "query { " + " ".join(GAME_PROJECTIONS.format(alias=f"g{n}", id=gid) for n, gid in enumerate(batch)) + " }"
+        )
+        try:
+            data = client.query(query)
+        except SorareError as exc:
+            logger.warning("sorare: no projections for %d games (%s)", len(batch), exc)
+            continue
+        for n, gid in enumerate(batch):
+            game = data.get(f"g{n}") or {}
+            found = {
+                row["anyPlayer"]["slug"]: {"score": float(proj["score"]), "grade": proj.get("grade")}
+                for row in game.get("playerGameScores") or []
+                if (row.get("anyPlayer") or {}).get("slug")
+                and (proj := row.get("projection") or {}).get("score") is not None
+            }
+            out[gid] = found
+    return out
+
+
+def plan_game_ids(rows: list[dict[str, Any]], alias: str = "plan") -> list[str]:
+    """The games of the planned week, of every player in these rows (your cards, or the LaLiga index)."""
+    return [game["id"] for row in rows for game in (row.get("player") or {}).get(alias) or [] if game.get("id")]
+
+
 LEAGUE_BATCH = 40
 """How many LaLiga players' past games a run reads (one query each, the same as for your cards): about 500 players are covered in a
 dozen runs, without a burst Sorare's per-IP limit would notice."""
@@ -764,6 +805,8 @@ def snapshot(
     gaps = past_gaps(past_comps, my_cards, scores, unanswered) if replaying else []
     # Every LaLiga player with his odds and games this week (S5, and his start chance and xScore); empty if the fetch fails
     market = laliga_index(client, fixture=plan_gw["slug"])
+    # Sorare's projection game by game for the planned week, yours and every LaLiga player's (the record keeps both numbers)
+    projections = game_projections(client, plan_game_ids(my_cards) + plan_game_ids(market))
     # Every other LaLiga player's past games, a batch a run, so his form counts too (yours are read in full above)
     league = league_history(client, market, cached_league, set(scores), datetime.fromisoformat(plan_gw["lock"]), now)
 
@@ -782,6 +825,7 @@ def snapshot(
         "referenceFor": reference_for,
         "expected": templates,
         "market": market,
+        "projections": projections,
         "leagueHistory": league,
         "calls": client.calls,
     }

@@ -226,7 +226,9 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
         mu += 0.56 * sd * both / p_any
     return Forecast(
         p_play=round(p_any, 4),
-        mu=round(mu, 2),
+        mu=round(
+            min(max(mu, 0.0), 100.0), 2
+        ),  # a Sorare score is 0 to 100; a rotation player's blend has no bound of its own
         games=week.games,
         source=source,
         actual=week.actual,
@@ -241,6 +243,8 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
         benched_on=round(split.benched_on, 3),
         shape=shape,
         on_shape=on_shape,
+        score_source="sofix" if week.game_scores else ("sorare" if week.projection is not None else "form"),
+        sorare=week.projection,
     )
 
 

@@ -12,7 +12,7 @@ export type EnteredCard = {
   captain: boolean;
 };
 /** What Sorare says a lineup made: its score, where it ranked, and what it was paid. Rank and rewards come after the games. */
-export type LineupResult = { score: number; rank: number | null; cash: number; essence: number; card: boolean };
+export type LineupResult = { score: number; rank: number | null; cash: number; essence: number; card: boolean; xp?: number };
 export type GameweekLineup = {
   id: string;
   name: string | null;
@@ -45,7 +45,9 @@ const AppearanceSchema = z.object({
 
 const RewardConfigSchema = z.object({
   __typename: z.string().optional(),
-  amount: z.object({ usdCents: z.number().nullable().optional() }).nullable().optional(),
+  // a number (InGameCurrencyRewardConfig: XP) or an object (MonetaryRewardConfig: cents)
+  amount: z.union([z.number(), z.object({ usdCents: z.number().nullable().optional() })]).nullable().optional(),
+  currency: z.string().nullable().optional(),
   rarity: z.string().nullable().optional(),
   quantity: z.number().nullable().optional(),
 });
@@ -66,8 +68,9 @@ const LineupSchema = z.object({
   draft: z.boolean(),
   confirmable: z.boolean().default(false),
   so5Leaderboard: z.object({ slug: z.string(), displayName: z.string() }).nullable().optional(),
-  so5Rankings: z.array(RankingSchema).optional().default([]),
-  so5Appearances: z.array(AppearanceSchema).optional().default([]),
+  // Sorare answers null rather than [] for some lineups (one not yet ranked): read as none, never as a broken answer.
+  so5Rankings: z.array(RankingSchema).nullish().transform((rows) => rows ?? []),
+  so5Appearances: z.array(AppearanceSchema).nullish().transform((rows) => rows ?? []),
 });
 
 type Lineup = z.infer<typeof LineupSchema>;
@@ -84,7 +87,9 @@ function resultOf(lineup: Lineup): LineupResult | null {
   const result: LineupResult = { score: ranking.score, rank: ranking.ranking ?? null, cash: 0, essence: 0, card: false };
   for (const reward of ranking.so5Rewards ?? []) {
     for (const config of reward.rewardConfigs ?? []) {
-      if (config.__typename === "MonetaryRewardConfig") result.cash += (config.amount?.usdCents ?? 0) / 100;
+      const amount = config.amount;
+      if (config.__typename === "MonetaryRewardConfig" && typeof amount === "object") result.cash += (amount?.usdCents ?? 0) / 100;
+      else if (config.__typename === "InGameCurrencyRewardConfig" && typeof amount === "number" && config.currency?.endsWith("_XP")) result.xp = (result.xp ?? 0) + amount;
       else if (config.__typename === "CardShardRewardConfig" && config.rarity === "limited") result.essence += config.quantity ?? 0;
       else if (config.__typename === "CardRewardConfig") result.card = true;
     }
@@ -98,8 +103,8 @@ const ReplySchema = z.discriminatedUnion("state", [
     data: z
       .object({
         so5: z
-          .object({ so5Fixture: z.object({ mySo5Lineups: z.array(LineupSchema).optional().default([]) }).nullable() })
-          .optional(),
+          .object({ so5Fixture: z.object({ mySo5Lineups: z.array(LineupSchema).nullish().transform((rows) => rows ?? []) }).nullable() })
+          .nullish(),
       })
       .nullable(),
   }),
@@ -180,6 +185,7 @@ export function resultLine(result: LineupResult): string {
     result.cash ? cashLabel(result.cash) : null,
     result.essence ? `${essenceLabel(result.essence)} essence` : null,
     result.card ? "a card" : null,
+    result.xp ? `${result.xp.toLocaleString("en-GB")} XP` : null,
   ].filter((part): part is string => part !== null);
   return [`Rank ${result.rank.toLocaleString("en-GB")}`, paid.length ? paid.join(" · ") : "no reward paid"].join(" · ");
 }

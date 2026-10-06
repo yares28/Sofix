@@ -10,7 +10,7 @@ from app.schemas import ApiResponse, FixtureGrid
 from app.services.fixture_grid import build_fixture_grid, grid_meta
 from app.sorare import audit
 from app.sorare.ff_lineups import LINEUPS_KEY
-from app.sorare.publish import AHEAD_PREFIX, ARCHIVE_PREFIX
+from app.sorare.publish import AHEAD_PREFIX, ALT_PREFIX, ARCHIVE_PREFIX
 
 router = APIRouter(prefix="/api")
 
@@ -44,6 +44,15 @@ def sorare_week(slug: str, db: Session = Depends(get_db)):
     row = db.get(ReadModel, f"{ARCHIVE_PREFIX}{slug}")
     if row is None:
         return ApiResponse[dict[str, Any]](success=False, error="Sofix did not keep this gameweek.")
+    return ApiResponse[dict[str, Any]](success=True, data=row.payload)
+
+
+@router.get("/sorare/alt/{slug}", response_model=ApiResponse[dict[str, Any]])
+def sorare_alt(slug: str, db: Session = Depends(get_db)):
+    """The week planned again on Sorare's own projections, by its Sorare slug. Local development only, like /sorare."""
+    row = db.get(ReadModel, f"{ALT_PREFIX}{slug}")
+    if row is None:
+        return ApiResponse[dict[str, Any]](success=False, error="There is no Sorare plan for this gameweek.")
     return ApiResponse[dict[str, Any]](success=True, data=row.payload)
 
 

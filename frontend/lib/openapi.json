@@ -98,6 +98,46 @@
         }
       }
     },
+    "/api/sorare/alt/{slug}": {
+      "get": {
+        "summary": "Sorare Alt",
+        "description": "The week planned again on Sorare's own projections, by its Sorare slug. Local development only, like /sorare.",
+        "operationId": "sorare_alt_api_sorare_alt__slug__get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_dict_str__Any__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/sorare/ahead/{round}": {
       "get": {
         "summary": "Sorare Ahead",

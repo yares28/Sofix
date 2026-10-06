@@ -22,6 +22,10 @@ SLOT_POSITIONS: dict[str, tuple[str, ...]] = {
     "sub_goalkeeper": ("GK",),
     "sub_extra": ("DEF", "MID", "FWD"),
 }
+# The essence a competition pays, by its league (the owner, 6 Oct 2026: LaLiga's competitions pay LaLiga essence, Champion Champion
+# essence, All Star All Star essence). Sorare's reward rows carry only a rarity and an amount, so the competition decides it.
+ESSENCE_KINDS = {"LALIGA EA SPORTS": "laliga", "Champion": "champion", "All Star": "all_star"}
+ESSENCE_ORDER = ("laliga", "champion", "all_star")  # the owner's default: these lineups are filled first, in this order
 IN_SEASON = "In-season"
 CLASSIC = "Classic"
 ROOM = "Room"
@@ -108,6 +112,10 @@ class Forecast:
     # where he lands and what moves the number. `on_shape` is the same for a game he comes on in.
     shape: Any = None
     on_shape: Any = None
+    # Whose number `mu` stands on: "sofix" (the game model, scores.py), "sorare" (its projection) or "form" (his last five), and
+    # Sorare's own number for his first game when it has one. The page says which; the Audit compares the two.
+    score_source: str = "form"
+    sorare: float | None = None
 
 
 @dataclass(frozen=True)
@@ -119,10 +127,16 @@ class Tier:
     cash: float = 0.0
     essence: int = 0
     card: bool = False
+    xp: int = 0  # XP for a card's level: shown apart, never counted as being paid (the owner, 6 Oct 2026)
 
     @property
     def pays(self) -> bool:
         return bool(self.cash or self.essence or self.card)
+
+    @property
+    def rewards(self) -> bool:
+        """Anything at all: a paid level, or XP only."""
+        return self.pays or bool(self.xp)
 
 
 @dataclass
@@ -174,6 +188,18 @@ class Competition:
     @property
     def paying_tiers(self) -> list[Tier]:
         return [t for t in self.tiers if t.pays]
+
+    @property
+    def rewarding_tiers(self) -> list[Tier]:
+        """Every level that gives anything, XP included, best first."""
+        return [t for t in self.tiers if t.rewards]
+
+    @property
+    def essence_kind(self) -> str:
+        league = self.key.split(" | ")[0]
+        return (
+            ESSENCE_KINDS.get(league) or "".join(ch if ch.isalnum() else "_" for ch in league.lower()).strip("_")[:24]
+        )
 
     def allows(self, card: Card, on_day: date | None = None) -> bool:
         if self.rarities and card.rarity not in self.rarities:

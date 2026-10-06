@@ -8,7 +8,7 @@ import { loadGrid } from "../../lib/api";
 import { loadMissions } from "../../lib/missionsData";
 import { missionsToday } from "../../lib/missionsToday";
 import { plansOf, weekPlan } from "../../lib/play";
-import { loadProjectedWeek, loadSorare, loadSorareWeek } from "../../lib/playData";
+import { loadProjectedWeek, loadSorare, loadSorareAlt, loadSorareWeek } from "../../lib/playData";
 import { loadSystem } from "../../lib/system";
 import { noPlan, weekContext, weekDates, weekName } from "../../lib/weeks";
 
@@ -81,8 +81,14 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
   // The week in the bar, when it is the one being shown (a legacy ?gw= can name another): the page then writes it as the bar does.
   const shown = asked && (asked.gw ? asked.gw === showing.gameweek.id : asked.md !== null && asked.md === showing.projected?.round) ? asked : null;
   const after = single("after") === "1" && showing.played;
+  // Sofix's plans or Sorare's (?by=sorare): only the week being planned has both (the owner, 6 Oct 2026)
+  const sorareAsked = single("by") === "sorare" && !after && !showing.projected && !showing.played && showing.gameweek.id === data.nextId;
+  const alt = sorareAsked ? await loadSorareAlt(showing.gameweek.slug) : null;
+  const by = sorareAsked ? "sorare" : "sofix";
+  const view = sorareAsked ? { ...showing, plans: alt?.plans ?? [] } : showing;
+  const sorareWaiting = sorareAsked && !view.plans.length ? sorareNote(alt, showing.projectionsAt) : null;
   const requested = Number(single("plan") ?? 1);
-  const offered = Math.max(plansOf(showing, after).length, 1);
+  const offered = Math.max(plansOf(view, after).length, 1);
   const planIndex = Number.isFinite(requested) ? Math.min(Math.max(requested, 1), offered) - 1 : 0;
 
   // Today's missions belong to the gameweek being played now, so only that week shows them.
@@ -94,7 +100,9 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
       <PlayView
         missions={missions}
         data={data}
-        week={showing}
+        week={view}
+        by={by}
+        sorareWaiting={sorareWaiting}
         planIndex={planIndex}
         after={after}
         now={new Date()}
@@ -104,4 +112,15 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
       />
     </>
   );
+}
+
+/** What the Sorare view says while it has no plan: Sorare has not projected the games yet, or the job has not planned on them yet. */
+function sorareNote(alt: { projected: number; players: number } | null, projectionsAt: string | null): string {
+  const when = projectionsAt
+    ? new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(
+        new Date(projectionsAt),
+      )
+    : null;
+  if (!alt || alt.projected === 0) return `Sorare has not published its projections for these games yet${when ? ` (due ${when})` : ""}. The plan appears with the first refresh after.`;
+  return "Sorare's projections are in; the plan appears with the next refresh.";
 }

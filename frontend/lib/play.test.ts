@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  cardScore,
+  isLongShot,
+  rewardSplit,
   allocation,
   cashLabel,
   chanceLabel,
@@ -249,9 +252,14 @@ describe("the most likely result of a plan", () => {
     expect(likelyResult({ lineups: [split] })).toEqual({ essence: 0, cash: 0, cards: 0, p: expect.closeTo(0.4, 6) });
   });
 
-  it("takes a room's entry fee off whatever happens", () => {
+  it("never takes a room's entry fee off a result: the fee is a cost shown apart (the owner, 6 Oct 2026)", () => {
     const room = lineup({ group: "Room", fee: 300, tiers: [{ label: "3rd", essence: 500, p: 0.3 }] });
-    expect(resultLabel(likelyResult({ lineups: [room] }))).toBe("−300 essence");
+    expect(resultLabel(likelyResult({ lineups: [room] }))).toBe("nothing");
+  });
+
+  it("uses the job's own most likely result when the plan carries one", () => {
+    const plan = { lineups: [lineup()], likely: { essence: 250, cash: 0, cards: 0, p: 0.31 } };
+    expect(likelyResult(plan)).toEqual({ essence: 250, cash: 0, cards: 0, p: 0.31 });
   });
 
   it("says a result in words", () => {
@@ -340,5 +348,26 @@ describe("the start chance on a lineup card", () => {
   it("is nothing for a payload that does not carry it", () => {
     expect(startChance({})).toBeNull();
     expect(startChance({ pStart: 0.5 })).toBeNull();
+  });
+});
+
+describe("one number a card shows, as on every page", () => {
+  it("is his score if he starts, or if he comes on when he is under 40% to start", () => {
+    expect(cardScore({ pStart: 0.9, start: 52.4, on: 40, mu: 50 })).toEqual({ value: 52, words: "if he starts" });
+    expect(cardScore({ pStart: 0.2, start: 52.4, on: 39.6, mu: 50 })).toEqual({ value: 40, words: "if he comes on" });
+    expect(cardScore({ mu: 47.6 })).toEqual({ value: 48, words: "if he plays" });
+  });
+});
+
+describe("the chances shown apart", () => {
+  it("lists cash, essence and XP, and a card only when one is possible", () => {
+    expect(rewardSplit({ pCash: 0.04, pEss: 0.3, pXp: 0.2, pCard: 0 })?.map((row) => row.kind)).toEqual(["cash", "essence", "xp"]);
+    expect(rewardSplit({ pCash: 0, pEss: 0.1, pXp: 0, pCard: 0.02 })?.map((row) => row.kind)).toEqual(["cash", "essence", "card", "xp"]);
+    expect(rewardSplit({})).toBeNull();
+  });
+
+  it("folds a lineup under 5% as a long shot", () => {
+    expect(isLongShot({ pReturn: 0.049 })).toBe(true);
+    expect(isLongShot({ pReturn: 0.05 })).toBe(false);
   });
 });

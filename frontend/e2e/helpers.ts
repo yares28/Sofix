@@ -22,7 +22,7 @@ export const sorare = (recordedSorare as unknown as ApiResponse<Sorare>).data!;
 /** Reset the mock API and make the app drop its cached data (the route the refresh job calls in production). */
 export async function resetBackend(
   request: APIRequestContext,
-  mode: "ok" | "malformed" | "no-sorare" | "no-news-laliga" | "no-news-national" | "expected" | "no-audit" | "audit-enough" = "ok",
+  mode: "ok" | "malformed" | "no-sorare" | "no-news-laliga" | "no-news-national" | "expected" | "no-audit" | "audit-enough" | "missions-stale" = "ok",
 ) {
   await request.post(`${MOCK}/__test/reset`);
   if (mode === "malformed") await request.post(`${MOCK}/__test/mode?mode=malformed`);
@@ -30,6 +30,8 @@ export async function resetBackend(
   // The Audit page that was never written, and the one whose record has enough settled games to give figures.
   if (mode === "no-audit") await request.post(`${MOCK}/__test/mode?audit=missing`);
   if (mode === "audit-enough") await request.post(`${MOCK}/__test/mode?audit=enough`);
+  // Missions last loaded two days ago.
+  if (mode === "missions-stale") await request.post(`${MOCK}/__test/mode?missions=stale`);
   // The planned week with nothing from Futbol Fantasy about it: one of club games, one of national teams only.
   if (mode === "no-news-laliga") await request.post(`${MOCK}/__test/mode?news=laliga`);
   if (mode === "no-news-national") await request.post(`${MOCK}/__test/mode?news=national`);

@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { freshLabel } from "../../lib/fresh";
-import type { MissionPlan, Suggestion } from "../../lib/missions";
+import { RARITY_NAME, type MissionPlan, type Suggestion } from "../../lib/missions";
+import type { MissionsStatus } from "../../lib/missionsToday";
+import LoadMissions from "./LoadMissions";
 import CardArt from "../cards/CardArt";
 
-const RARITY_NAME: Record<string, string> = { limited: "Limited", rare: "Rare", super_rare: "Super Rare", unique: "Unique" };
+const loadedAt = (iso: string): string =>
+  new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "Europe/Madrid" }).format(new Date(iso)).replace(",", "");
 
 const time = (iso: string): string =>
   new Intl.DateTimeFormat("en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "Europe/Madrid" }).format(new Date(iso)).replace(",", "");
@@ -47,7 +50,7 @@ function Mission({ one }: { one: MissionPlan }) {
         {one.reward ? <span className="ms-reward">{one.reward}</span> : null}
       </h2>
       <p className="ms-rule">
-        {one.open > 0 ? `${one.open} to pick: ${one.rule.label}` : "All picked"}
+        {one.rule.kind === "score" ? "Sofix can’t rank this one yet: it asks a player to beat his own average." : one.open > 0 ? `${one.open} to pick: ${one.rule.label}` : "All picked"}
         {one.mission.made > 0 && one.open > 0 ? ` (${one.mission.made} done)` : ""}
       </p>
       {one.picks.length ? (
@@ -56,7 +59,7 @@ function Mission({ one }: { one: MissionPlan }) {
             <Card key={pick.slug} pick={pick} share={share} />
           ))}
         </ol>
-      ) : one.open > 0 ? (
+      ) : one.open > 0 && one.rule.kind !== "score" ? (
         <p className="pd-none">None of your cards with a game still to play today fits this one.</p>
       ) : null}
     </section>
@@ -65,36 +68,31 @@ function Mission({ one }: { one: MissionPlan }) {
 
 export default function MissionsView({
   rarity,
-  seen,
+  tabs,
   day,
   plans,
+  status,
   seenAt,
+  missionDay,
   now,
 }: {
   rarity: string;
-  seen: string[];
+  tabs: string[];
   day: string | null;
   plans: MissionPlan[];
+  status: MissionsStatus;
   seenAt: string | null;
+  missionDay: string;
   now: string;
 }) {
-  if (!plans.length) {
-    return (
-      <section className="pd-card">
-        <h1 className="ms-h1">Daily missions</h1>
-        <p className="pd-none" role="status">
-          Open Sorare&rsquo;s Missions page once with the extension on, and the open missions appear here with the cards that fit them.
-        </p>
-      </section>
-    );
-  }
+  const today = status === "today";
   return (
     <div className="pd-wrap" data-testid="missions-page">
       <div className="ms-head">
         <h1 className="ms-h1">Daily missions{day ? <span className="sub"> · {dayLabel(day)}</span> : null}</h1>
-        {seen.length > 1 ? (
+        {tabs.length > 1 ? (
           <nav className="pd-pick" aria-label="Rarity">
-            {seen.map((r) => (
+            {tabs.map((r) => (
               <Link key={r} href={`/missions?rarity=${r}`} aria-current={r === rarity ? "page" : undefined}>
                 {RARITY_NAME[r] ?? r}
               </Link>
@@ -102,12 +100,24 @@ export default function MissionsView({
           </nav>
         ) : null}
       </div>
+      <LoadMissions stale={!today} day={missionDay} />
+      {today ? null : (
+        <p className="ms-stale" role="status">
+          Today&rsquo;s missions aren&rsquo;t loaded yet, so this is the Decisive Picker, which Sorare runs every day.
+          {seenAt ? ` Last loaded ${loadedAt(seenAt)}.` : ""}
+        </p>
+      )}
+      {today && !plans.length ? (
+        <section className="pd-card">
+          <p className="pd-none">No {RARITY_NAME[rarity] ?? rarity} missions on Sorare today.</p>
+        </section>
+      ) : null}
       {plans.map((one) => (
         <Mission key={one.mission.id} one={one} />
       ))}
       <p className="pd-foot">
-        Your cards with a game still to play today, each in one mission only. 
-        {seenAt ? `Missions read from Sorare ${freshLabel(seenAt, new Date(now))}.` : ""}
+        Your cards with a game still to play today, each in one mission only.{" "}
+        {today && seenAt ? `Missions loaded from Sorare ${freshLabel(seenAt, new Date(now))}.` : ""}
       </p>
     </div>
   );

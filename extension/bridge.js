@@ -125,6 +125,13 @@
       }
     } } }`,
 
+    // Today's daily missions of every rarity, with the picks you made and Sorare's verdict on each. Read only: the app's
+    // Load button asks it, so the Missions page never has to wait for a visit to Sorare's own Missions page.
+    SofixMissions: `query SofixMissions { currentUser { slug tasks(periodicity: DAILY, sport: FOOTBALL) { __typename
+      ... on DecisivePlayerPickerTask { id title description rarity mode maxAppearancesCount periodicity aasmState expired
+        decisiveStats { name }
+        taskAppearances { status rarity anyPlayer { slug } game { id } } } } } }`,
+
     // Sorare's own verdict on a lineup, before anything is written.
     SofixPreviewLineup: `query SofixPreviewLineup($slug: String!, $appearances: [So5AppearanceInput!]!) {
       so5 { so5Leaderboard(slug: $slug) { id

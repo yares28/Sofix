@@ -47,7 +47,19 @@ type Core = {
   DRAWER_CARDS: number;
   benchOnChance: (entry: { pStart?: number; pOn?: number }) => number | null;
   comesOnScore: (entry: { on?: number; bench?: number }) => { score: number; words: string; tab: string };
-  collectMissions: (json: unknown) => { id: string; title: string; description: string; mode: "DECISIVE" | "SCORE"; picks: number; made: number; period: string | null; state: string | null }[];
+  collectMissions: (json: unknown) => {
+    id: string;
+    title: string;
+    description: string;
+    mode: "DECISIVE" | "SCORE";
+    picks: number;
+    made: number;
+    period: string | null;
+    state: string | null;
+    rarity: string | null;
+    stats: string[];
+    appearances: { player: string; game: string | null; rarity: string | null; status: string | null }[];
+  }[];
   missionsRarity: (pathname: unknown) => string | null;
   missionsAsked: (body: unknown) => string | null;
   shapeOf: (entry: Record<string, unknown>, mode: string) => Shape | null;
@@ -638,7 +650,31 @@ describe("the daily missions", () => {
   it("keeps only the pickers, cut down to what the ranking needs, in a steady order", () => {
     const found = core.collectMissions(answer);
     expect(found.map((m) => m.title)).toEqual(["Decisive Picker", "Interception - All Matches"]);
-    expect(found[1]).toEqual({ id: "t2", title: "Interception - All Matches", description: "Pick a player who makes 2+ interceptions in any match", mode: "DECISIVE", picks: 3, made: 1, period: "DAILY", state: "READY" });
+    expect(found[1]).toEqual({
+      id: "t2", title: "Interception - All Matches", description: "Pick a player who makes 2+ interceptions in any match", mode: "DECISIVE", picks: 3, made: 1,
+      period: "DAILY", state: "READY", rarity: null, stats: [], appearances: [],
+    });
+    expect(JSON.stringify(found)).not.toContain("signedSecret");
+  });
+
+  it("reads the app's own question too: every rarity's missions, the stats they count, your picks with Sorare's verdict; not an expired or unnamed one", () => {
+    // The shape `SofixMissions` (extension/bridge.js) got from Sorare on 6 Oct 2026, cut down.
+    const asked = {
+      currentUser: {
+        slug: "yares",
+        tasks: [
+          { __typename: "DecisivePlayerPickerTask", id: "c1", title: "Decisive Player Picker", description: "", rarity: "common", mode: "DECISIVE", maxAppearancesCount: 1, periodicity: "DAILY", aasmState: "READY", expired: false, decisiveStats: [], taskAppearances: [{ status: "READY", rarity: "common", anyPlayer: { slug: "lamine-yamal-nasraoui-ebana" }, game: { id: "Game:1" } }] },
+          { __typename: "DecisivePlayerPickerTask", id: "l1", title: "Decisive Picker", description: "Earn 200 XP for each player you select who gets a positive decisive action in today's matches.", rarity: "limited", mode: "DECISIVE", maxAppearancesCount: 3, periodicity: "DAILY", aasmState: "READY", expired: false, decisiveStats: [{ name: "goals" }, { name: 7 }],
+            taskAppearances: [{ status: "SUCCESS", rarity: "limited", anyPlayer: { slug: "jan-oblak" }, game: { id: "Game:2" }, signedSecret: "x" }, { status: "READY", anyPlayer: null }] },
+          { __typename: "DecisivePlayerPickerTask", id: "old", title: "Assist - All Matches", rarity: "rare", mode: "DECISIVE", maxAppearancesCount: 3, expired: true, taskAppearances: [] },
+          { __typename: "DecisivePlayerPickerTask", id: "blank", title: "", rarity: "limited", mode: "DECISIVE", maxAppearancesCount: 3, taskAppearances: [] },
+          { __typename: "DailyActionTask", id: "d1", title: "Open the app" },
+        ],
+      },
+    };
+    const found = core.collectMissions(asked);
+    expect(found.map((m) => [m.id, m.rarity])).toEqual([["l1", "limited"], ["c1", "common"]]);
+    expect(found[0]).toMatchObject({ picks: 3, made: 2, stats: ["goals"], appearances: [{ player: "jan-oblak", game: "Game:2", rarity: "limited", status: "SUCCESS" }] });
     expect(JSON.stringify(found)).not.toContain("signedSecret");
   });
 

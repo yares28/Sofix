@@ -297,7 +297,7 @@ const server = createServer((req, res) => {
       success: true,
       data: {
         limited: {
-          seen_at: new Date().toISOString(),
+          seen_at: new Date(Date.now() - (state.missions === "stale" ? 2 * 86_400_000 : 0)).toISOString(),
           missions: [
             picker("t1", "Decisive Picker", "Earn 200 XP for each player you select who gets a positive decisive action in today's matches."),
             picker("t2", "Interception - All Matches", "Classic: Pick a player who makes 2+ interceptions in any match and win 50 All-Star Essence per correct choice."),
@@ -394,6 +394,7 @@ const server = createServer((req, res) => {
     state.mode = url.searchParams.get("mode") === "malformed" ? "malformed" : "ok";
     state.sorare = url.searchParams.get("sorare") === "missing" ? "missing" : "ok";
     state.news = url.searchParams.get("news"); // "laliga" or "national": the planned week with no team news
+    state.missions = url.searchParams.get("missions") ?? "ok"; // "stale": the last list was loaded two days ago
     state.audit = url.searchParams.get("audit") ?? "ok"; // "missing": the page was never written; "enough": the record has enough games for figures
     state.run = finishedRun("cli");
     return send(res, 200, { ok: true, mode: state.mode, sorare: state.sorare, news: state.news, audit: state.audit });

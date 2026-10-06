@@ -216,9 +216,23 @@
     return `${of("weekday")} ${of("hour")}:${of("minute")} · ${fixture.venue === "H" ? "v" : "at"} ${fixture.opponent}`;
   }
 
+  /** One of your picks for a mission, as Sorare lists it: the player, his game, the card's rarity and Sorare's verdict (READY, SUCCESS, FAILURE). */
+  function missionPick(node) {
+    const player = node && node.anyPlayer && node.anyPlayer.slug;
+    if (typeof player !== "string" || !player) return null;
+    const game = node.game && node.game.id;
+    return {
+      player: player.slice(0, 120),
+      game: typeof game === "string" ? game.slice(0, 80) : null,
+      rarity: typeof node.rarity === "string" ? node.rarity.toLowerCase().slice(0, 20) : null,
+      status: typeof node.status === "string" ? node.status.slice(0, 20) : null,
+    };
+  }
+
   /**
    * The daily missions a Sorare answer lists: every `DecisivePlayerPickerTask` in it, cut down to what Sofix ranks cards by (its name, the rule in words, its
-   * mode, how many picks, how many were made, the XP or essence it pays in the rule's words). Bounded like `collectCards`. Nothing else of the answer is kept.
+   * mode, how many picks, how many were made, the XP or essence it pays in the rule's words), its rarity, the stats it counts and your picks with Sorare's
+   * verdict, when the answer has them. An expired mission or one without a name is left out. Bounded like `collectCards`. Nothing else of the answer is kept.
    */
   function collectMissions(json, limit = 40000) {
     const found = new Map();
@@ -227,16 +241,22 @@
     while (stack.length && visited++ < limit) {
       const node = stack.pop();
       if (!node || typeof node !== "object") continue;
-      if (!Array.isArray(node) && node.__typename === "DecisivePlayerPickerTask" && typeof node.id === "string" && typeof node.title === "string" && node.title) {
+      if (!Array.isArray(node) && node.__typename === "DecisivePlayerPickerTask" && typeof node.id === "string" && typeof node.title === "string" && node.title && node.expired !== true) {
+        const appearances = Array.isArray(node.taskAppearances) ? node.taskAppearances : [];
         found.set(node.id, {
           id: node.id,
-          title: typeof node.title === "string" ? node.title.slice(0, 80) : "",
+          title: node.title.slice(0, 80),
           description: typeof node.description === "string" ? node.description.slice(0, 300) : "",
           mode: node.mode === "SCORE" ? "SCORE" : "DECISIVE",
           picks: Number.isInteger(node.maxAppearancesCount) ? node.maxAppearancesCount : 3,
-          made: Array.isArray(node.taskAppearances) ? node.taskAppearances.length : 0,
+          made: appearances.length,
           period: typeof node.periodicity === "string" ? node.periodicity : null,
           state: typeof node.aasmState === "string" ? node.aasmState : null,
+          rarity: typeof node.rarity === "string" ? node.rarity.toLowerCase().slice(0, 20) : null,
+          stats: Array.isArray(node.decisiveStats)
+            ? node.decisiveStats.map((stat) => (stat && typeof stat.name === "string" ? stat.name.slice(0, 40) : null)).filter(Boolean).slice(0, 20)
+            : [],
+          appearances: appearances.map(missionPick).filter(Boolean).slice(0, 10),
         });
       }
       for (const value of Array.isArray(node) ? node : Object.values(node)) {

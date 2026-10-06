@@ -23,6 +23,19 @@ const Body = z.object({
         made: z.number().int().min(0).max(10),
         period: z.string().max(20).nullable(),
         state: z.string().max(20).nullable(),
+        // From extension 0.3.6: the stats the mission counts, and your picks with Sorare's verdict. An older build sends neither.
+        stats: z.array(z.string().max(40)).max(20).default([]),
+        appearances: z
+          .array(
+            z.object({
+              player: z.string().min(1).max(120),
+              game: z.string().max(80).nullable(),
+              rarity: z.string().max(20).nullable(),
+              status: z.string().max(20).nullable(),
+            }),
+          )
+          .max(10)
+          .default([]),
       }),
     )
     .max(12),
@@ -38,7 +51,10 @@ export async function POST(request: NextRequest) {
   const rows = (await sql`SELECT payload FROM read_models WHERE key = 'missions'`) as { payload: MissionsModel }[];
   const before = rows[0]?.payload ?? {};
   const now = new Date().toISOString();
-  const next: MissionsModel = { ...before, [parsed.data.rarity]: { missions: parsed.data.missions, seen_at: now } };
+  // A mission without a name cannot be shown or ranked (an earlier build kept two such on 4 Oct): it is left out. An empty list is kept, since
+  // "no mission today" is worth knowing.
+  const named = parsed.data.missions.filter((mission) => mission.title.trim());
+  const next: MissionsModel = { ...before, [parsed.data.rarity]: { missions: named, seen_at: now } };
   await sql`
     INSERT INTO read_models (key, payload, updated_at)
     VALUES ('missions', ${JSON.stringify(next)}::json, now())

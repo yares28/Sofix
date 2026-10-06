@@ -52,12 +52,15 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "checkin") checkIn();
 });
 
-// The daily missions the Missions page of Sorare lists, sent to the app only when they changed (the app ranks your cards for them).
-async function sendMissions(rarity, missions) {
-  const clean = missions.map(({ id, title, description, mode, picks, made, period, state }) => ({ id, title, description, mode, picks, made, period, state }));
+// The daily missions of one rarity, sent to the app only when they changed (the app ranks your cards for them). `force` sends them
+// anyway, so the app learns they were read today even when they are yesterday's again. True when the app has them.
+async function sendMissions(rarity, missions, force = false) {
+  const clean = missions.map(({ id, title, description, mode, picks, made, period, state, stats, appearances }) => ({
+    id, title, description, mode, picks, made, period, state, stats: stats ?? [], appearances: appearances ?? [],
+  }));
   const { missionsSent = {} } = await chrome.storage.local.get("missionsSent");
   const text = JSON.stringify(clean);
-  if (missionsSent[rarity] === text) return;
+  if (!force && missionsSent[rarity] === text) return true;
   try {
     const response = await fetch(`${CONFIG.appUrl}/api/ext/missions`, {
       method: "POST",
@@ -65,8 +68,61 @@ async function sendMissions(rarity, missions) {
       body: JSON.stringify({ rarity, missions: clean }),
     });
     if (response.ok) await chrome.storage.local.set({ missionsSent: { ...missionsSent, [rarity]: text } });
+    return response.ok;
   } catch {
-    // the next visit to the page tries again
+    return false; // the next visit to the page, or the Load button, tries again
+  }
+}
+
+// The rarities the app ranks missions for. One with no mission today is sent empty, so the app says so instead of showing an older list.
+const MISSION_RARITIES = ["limited", "rare", "super_rare", "unique"];
+
+/** Resolves once the tab has loaded, or after `ms`. */
+function tabLoaded(tabId, ms = 20000) {
+  return new Promise((resolve) => {
+    const timer = setTimeout(done, ms);
+    function done() {
+      clearTimeout(timer);
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      resolve();
+    }
+    function onUpdated(id, info) {
+      if (id === tabId && info.status === "complete") done();
+    }
+    chrome.tabs.onUpdated.addListener(onUpdated);
+    chrome.tabs.get(tabId).then((tab) => tab.status === "complete" && done(), done);
+  });
+}
+
+/**
+ * The app's Load button: today's missions of every rarity, asked of Sorare through your signed-in tab (read only) and sent to the app.
+ * With no sorare.com tab open, `open` lets it open one in the background for the question and close it after; without it, it says so.
+ */
+async function loadMissions(open) {
+  let opened = null;
+  if (!(await sorareTabs()).length) {
+    if (!open) return { ok: true, state: "no-tab" };
+    try {
+      opened = await chrome.tabs.create({ url: "https://sorare.com/", active: false });
+      await tabLoaded(opened.id);
+    } catch {
+      return { ok: true, state: "error" };
+    }
+  }
+  try {
+    const answer = await throughSorare("SofixMissions", {});
+    if (answer.state !== "ok") return { ok: true, state: answer.state === "rejected" ? "error" : answer.state };
+    if (!answer.data?.currentUser) return { ok: true, state: "signed-out" };
+    const missions = globalThis.__sofixCore.collectMissions(answer.data);
+    const loaded = {};
+    for (const rarity of MISSION_RARITIES) {
+      const mine = missions.filter((mission) => mission.rarity === rarity);
+      if (!(await sendMissions(rarity, mine, true))) return { ok: true, state: "app-error" };
+      loaded[rarity] = mine.length;
+    }
+    return { ok: true, state: "ok", loaded };
+  } finally {
+    if (opened) chrome.tabs.remove(opened.id).catch(() => {});
   }
 }
 
@@ -85,7 +141,9 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   // From overlay.js and content.js, and only from a sorare.com tab.
   if (!fromSorare(sender)) return;
   if (message?.type === "missions-seen" && typeof message.rarity === "string" && Array.isArray(message.missions)) {
-    sendMissions(message.rarity.slice(0, 20), message.missions.slice(0, 12));
+    // The page's own answer can hold other rarities' missions (the free cards' one): keep the page's own, or those that do not say.
+    const rarity = message.rarity.slice(0, 20);
+    sendMissions(rarity, message.missions.filter((mission) => !mission?.rarity || mission.rarity === rarity).slice(0, 12));
     return;
   }
   if (message?.type === "overlay-numbers") {
@@ -435,6 +493,10 @@ chrome.runtime.onMessageExternal.addListener((message, sender, reply) => {
         reply({ ok: true, version: VERSION, sorareUser: sorareUser ?? null, appReachable: appReachable ?? null }),
       );
     return true; // reply asynchronously
+  }
+  if (message?.type === "load-missions") {
+    loadMissions(message.open === true).then(reply);
+    return true;
   }
   if (message?.type === "sorare" && Object.hasOwn(STEPS, message.step)) {
     const [operation, variables] = STEPS[message.step](message);

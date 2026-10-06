@@ -137,7 +137,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                   <WaitingTile week={plan} now={now} meta={`Sorare GW${plan.gameweek.number}`} />
                 )}
               </section>
-              <MissionsGlance plans={today.plans} day={today.day} href={href("/missions")} />
+              <MissionsGlance plans={today.plans} day={today.day} current={today.status === "today"} href={href("/missions")} />
               <WeekNews hurt={news.hurt} back={news.back} readAt={plan.teamNews?.readAt ? readLabel(plan.teamNews.readAt, now) : null} href={lineupsHref} />
               {/* How the plan's players look for the round, who moved since yesterday, or why Futbol Fantasy has said nothing yet. */}
               <TeamNewsTile week={nextWeek(sorare)} now={now} glance={lineupsGlance(lineups, now)} />

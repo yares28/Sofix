@@ -52,7 +52,7 @@ export default function PlayView({
   week: GameweekPlan;
   planIndex: number;
   /** Today's missions, folded into the gameweek they are played in (only while it is still ahead). */
-  missions?: { plans: MissionPlan[]; day: string | null } | null;
+  missions?: { plans: MissionPlan[]; day: string | null; status: string } | null;
   after: boolean;
   now: Date;
   /** The week in the address (`?w=`), which the page's own links keep: it names every kind of week, early ones too. */
@@ -137,7 +137,7 @@ export default function PlayView({
       ) : (
         <Waiting week={week} now={now} />
       )}
-      {missions && !after ? <MissionsGlance plans={missions.plans} day={missions.day} href="/missions" /> : null}
+      {missions && !after ? <MissionsGlance plans={missions.plans} day={missions.day} current={missions.status === "today"} href="/missions" /> : null}
       <Folds week={week} />
     </main>
   );

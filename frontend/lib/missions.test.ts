@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { atLeast, fit, plan, rewardOf, ruleOf, type MissionRow } from "./missions";
+import { atLeast, fit, isToday, missionDay, missionsLoadNote, plan, rewardOf, ruleOf, type MissionRow } from "./missions";
 import type { PlayingPlayer } from "./play";
 import type { Sheet } from "./playerSheet";
 
@@ -14,6 +14,12 @@ describe("what a mission asks and pays", () => {
     expect(ruleOf(INTERCEPTION)).toEqual({ kind: "interception", atLeast: 2, label: "2+ interceptions" });
     expect(ruleOf(ASSIST)).toEqual({ kind: "assist", atLeast: 1, label: "an assist" });
     expect(ruleOf(row("Goals", "Pick a player who scores 2+ goals"))).toMatchObject({ kind: "goal", atLeast: 2 });
+  });
+  it("calls a mission to beat his own average a score mission, which is not ranked yet", () => {
+    const score = row("Overperform", "Beat his last 15 games' average by 10 points", { mode: "SCORE" });
+    expect(ruleOf(score)).toEqual({ kind: "score", label: "beat his own average" });
+    expect(fit(ruleOf(score), player("a", { shape: { p: 0.9, dec: 70, plain: 40, sdDec: 9, sdPlain: 9, low: 30, high: 80 } }), sheet())).toBeNull();
+    expect(plan([score], "limited", [player("a")], { a: sheet() }, NOW).plans[0]!.picks).toEqual([]);
   });
   it("reads the reward in its own words, or says nothing", () => {
     expect(rewardOf(DECISIVE)).toBe("200 XP");
@@ -107,5 +113,41 @@ describe("who goes to which mission", () => {
     ] });
     const { plans } = plan([INTERCEPTION], "limited", [twoGames, twoGames], { a: sheets.a }, new Date("2026-10-10T07:00:00Z"));
     expect(plans[0]!.picks.map((x) => x.opponent)).toEqual(["Next"]); // once, at the game still to come
+  });
+});
+
+describe("the mission day", () => {
+  it("starts at Sorare's reset, 9:00 CET (08:00 UTC), and is named by the date it starts on", () => {
+    expect(missionDay(new Date("2026-10-07T07:59:00Z"))).toBe("2026-10-06");
+    expect(missionDay(new Date("2026-10-07T08:00:00Z"))).toBe("2026-10-07");
+    expect(missionDay(new Date("2026-10-07T23:30:00Z"))).toBe("2026-10-07");
+    // The same hour in UTC on both sides of the clock change of 25 Oct, so Madrid's summer time moves nothing.
+    expect(missionDay(new Date("2026-10-24T08:00:00Z"))).toBe("2026-10-24");
+    expect(missionDay(new Date("2026-10-26T07:59:00Z"))).toBe("2026-10-25");
+  });
+
+  it("knows a list read before the last reset is not today's", () => {
+    const now = new Date("2026-10-07T10:00:00Z");
+    expect(isToday("2026-10-07T08:30:00Z", now)).toBe(true);
+    expect(isToday("2026-10-07T07:30:00Z", now)).toBe(false); // read before this morning's reset
+    expect(isToday("2026-10-04T19:07:48Z", now)).toBe(false); // what Sofix held on 6 Oct
+    expect(isToday("2026-10-06T21:00:00Z", new Date("2026-10-07T06:00:00Z"))).toBe(true); // last night's, still running before the reset
+    expect(isToday(null, now)).toBe(false);
+    expect(isToday("junk", now)).toBe(false);
+  });
+});
+
+describe("what the Load button says", () => {
+  it("names what it loaded, per rarity, or that Sorare has none today", () => {
+    expect(missionsLoadNote({ state: "ok", loaded: { limited: 1, rare: 0, super_rare: 0, unique: 0 } })).toBe("Loaded: 1 Limited mission.");
+    expect(missionsLoadNote({ state: "ok", loaded: { limited: 2, rare: 3 } })).toBe("Loaded: 2 Limited missions, 3 Rare missions.");
+    expect(missionsLoadNote({ state: "ok", loaded: { limited: 0 } })).toBe("Loaded: no missions on Sorare today.");
+  });
+
+  it("says what to do when it could not load", () => {
+    expect(missionsLoadNote({ state: "no-tab", loaded: null })).toMatch(/Open sorare.com/);
+    expect(missionsLoadNote({ state: "signed-out", loaded: null })).toMatch(/Sign in/);
+    expect(missionsLoadNote({ state: "error", loaded: null })).toMatch(/didn.t answer/);
+    expect(missionsLoadNote(null)).toMatch(/extension didn.t answer/);
   });
 });

@@ -26,6 +26,9 @@ main.rc { display: flex; flex-direction: column; gap: 20px; }
 .rc-grid > * { grid-column: 1 / -1; }
 .rc-grid > .rc-round { grid-column: span 8; }
 .rc-grid > .rc-table { grid-column: span 4; }
+/* Team news with nothing to say yet is one sentence: it sits beside News this week instead of taking a row. */
+.rc-grid > .hm-nw-idle { grid-column: span 4; }
+.rc-grid:has(> .hm-nw-idle) > .rc-news { grid-column: span 8; }
 .rc-th { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .rc-th h2 { margin: 0; font-size: 18px; font-weight: 650; letter-spacing: -0.01em; }
 .rc-th > span { color: var(--ink-2); font-size: 13px; }
@@ -116,7 +119,7 @@ main.rc { display: flex; flex-direction: column; gap: 20px; }
 .rc-tag-dot.back { background: #1f8a3a; }
 
 @media (max-width: 1100px) {
-  .rc-grid > .rc-round, .rc-grid > .rc-table { grid-column: 1 / -1; }
+  .rc-grid > .rc-round, .rc-grid > .rc-table, .rc-grid > .hm-nw-idle, .rc-grid:has(> .hm-nw-idle) > .rc-news { grid-column: 1 / -1; }
   .rc-lu { grid-template-columns: 130px minmax(0, 1fr) 130px; }
   .rc-rew { grid-column: 1 / -1; }
 }

@@ -16,7 +16,7 @@ export default function LensBar() {
     <div className="lens">
       <nav className="lens-seg" aria-label={place.label}>
         {place.views.map((v) => (
-          <Link key={v.href} href={`${v.href}${week}`} aria-current={view === v ? "page" : undefined}>
+          <Link key={v.href} href={v.href.includes("#") ? v.href.replace("#", `${week}#`) : `${v.href}${week}`} aria-current={view === v ? "page" : undefined}>
             {v.label}
           </Link>
         ))}

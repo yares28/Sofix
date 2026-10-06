@@ -1,8 +1,6 @@
-import type { Metadata } from "next";
-import AuditPlace from "../../../components/audit/AuditPlace";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Written down · Audit · Sofix" };
-
+/** Written down is a section of Who starts now (canvas board "7b"); an old link lands on it. */
 export default function Page() {
-  return <AuditPlace show="record" />;
+  redirect("/audit/starts#written");
 }

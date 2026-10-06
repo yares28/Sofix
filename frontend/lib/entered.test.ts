@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { pendingLine, readWeekLineups, resultLine, runWeekLineups, type GameweekLineup } from "./entered";
+import { pendingLine, readWeekLineups, resultLine, runWeekLineups, weekWon, type GameweekLineup } from "./entered";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -208,5 +208,19 @@ describe("reading the signed-in manager's gameweek lineups", () => {
 
     await expect(runWeekLineups("gw-17", 50)).resolves.toEqual({ state: "outdated", version: "0.1.0" });
     expect(sendMessage).toHaveBeenCalledOnce();
+  });
+});
+
+describe("what a week's lineups won", () => {
+  const lineup = (draft: boolean, result: { rank: number | null; essence: number; cash: number } | null) =>
+    ({ id: "x", name: null, draft, confirmable: false, board: null, competition: "c", cards: [], result: result && { score: 300, card: false, ...result } }) as GameweekLineup;
+
+  it("adds up the entered lineups, leaves drafts out, and is final once every lineup is ranked", () => {
+    const won = weekWon([lineup(false, { rank: 900, essence: 250, cash: 2.5 }), lineup(false, { rank: 20000, essence: 0, cash: 0 }), lineup(true, null)]);
+    expect(won).toEqual({ essence: 250, cash: 2.5, lineups: 2, final: true });
+  });
+
+  it("is not final while a lineup still waits for its rank", () => {
+    expect(weekWon([lineup(false, { rank: null, essence: 0, cash: 0 })]).final).toBe(false);
   });
 });

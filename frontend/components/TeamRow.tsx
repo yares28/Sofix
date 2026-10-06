@@ -4,7 +4,7 @@ import Link from "next/link";
 import { memo } from "react";
 import { BUCKET_STRONG, cellBucket, cellLabel, formatTotal, scaleBucket, type RunStats } from "../lib/grid";
 import type { GridMatchday, GridTeam, Lens, LensScale } from "../lib/types";
-import Crest from "./Crest";
+import Crest, { crestSource } from "./Crest";
 import FixtureCell from "./FixtureCell";
 
 interface Props {
@@ -61,6 +61,7 @@ function TeamRow({
               showTbc={!columnTbc[column]}
               cellKey={(cell) => `${team.code}-${cell.fixture_id}`}
               bucketOf={(cell) => cellBucket(cell, lens, scale)}
+              crestOf={(code) => crestSource(teamsByCode.get(code)?.crest_url)}
               labelOf={(cell) =>
                 cellLabel(cell, team.name, matchday, teamsByCode.get(cell.opponent_code)?.name ?? cell.opponent_code, lens)
               }

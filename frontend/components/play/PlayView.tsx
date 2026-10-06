@@ -24,6 +24,7 @@ import { Cash, Chevron, Essence, Foil, GROUP_COLOUR } from "./bits";
 import EnteredLineups from "./EnteredLineups";
 import Lineup from "./Lineup";
 import SorareImage from "./SorareImage";
+import SeasonIcon from "../SeasonIcon";
 
 const madrid = (iso: string, options: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", ...options }).format(new Date(iso));
@@ -482,7 +483,7 @@ export function Waiting({ week, now }: { week: GameweekPlan; now: Date }) {
                 <div className="pl-face" key={player.name}>
                   <span className="av">
                     <SorareImage src={player.avatar} width={52} height={52} />
-                    {player.inSeason ? <i className="is" /> : null}
+                    {player.inSeason ? <i className="is"><SeasonIcon inSeason size={9} /></i> : null}
                   </span>
                   <b>{player.name.split(" ").slice(-1)[0]}</b>
                   <span>{player.games.map((game) => `${game.venue === "H" ? "v" : "@"} ${short(game.opponent)}`).join(" · ")}</span>
@@ -511,7 +512,9 @@ export function Options({ week }: { week: GameweekPlan }) {
             <Foil rarity={option.rarity} className="sm" />
             <span className="nm">
               {option.name}
-              <small>{formatOf({ group: option.group, size: option.size, subSlots: option.subs, minInSeason: 0, cap: option.cap })}</small>
+              <small>
+                {option.group !== "Room" ? <SeasonIcon inSeason={option.group === "In-season"} /> : null}
+                {formatOf({ group: option.group, size: option.size, subSlots: option.subs, minInSeason: 0, cap: option.cap })}</small>
             </span>
             <span className={`fee${option.fee ? "" : " free"}`}>
               {option.fee ? (

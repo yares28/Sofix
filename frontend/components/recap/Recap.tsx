@@ -7,6 +7,7 @@ import type { AfterRow, BestCard, BoardMatch, NewsItem, PlanRow } from "../../li
 import { formatDay, formatShortKickoff } from "../../lib/grid";
 import CardArt from "../cards/CardArt";
 import Crest from "../Crest";
+import SeasonIcon from "../SeasonIcon";
 
 /**
  * The Recap blocks (plans/restructure.md, R2; design canvas board 1). Every number is drawn from the payloads as they
@@ -153,7 +154,11 @@ export function LineupRow({ row }: { row: PlanRow }) {
     <div className="rc-lu">
       <div className="rc-lu-c">
         <b>{lineup.comp}</b>
-        <span>{lineup.rarity === "limited" ? "Limited" : lineup.rarity === "rare" ? "Rare" : lineup.rarity}{lineup.group === "In-season" ? ", in season" : `, ${lineup.size} cards`}</span>
+        <span className="rc-mode">
+          {lineup.group !== "Room" ? <SeasonIcon inSeason={lineup.group === "In-season"} /> : null}
+          {lineup.rarity === "limited" ? "Limited" : lineup.rarity === "rare" ? "Rare" : lineup.rarity}
+          {lineup.group === "In-season" ? ", in season" : `, ${lineup.size} cards`}
+        </span>
         <span>{lineup.entries.toLocaleString("en-GB")} managers</span>
         {lineup.expected ? <span className="rc-tag">Expected</span> : null}
       </div>

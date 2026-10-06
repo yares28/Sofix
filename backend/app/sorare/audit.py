@@ -13,6 +13,11 @@ and the settled scores), which is the live record: it begins empty and fills as 
 lock and, a day after the gameweek, whether he started (`starts.py`). `starts_record` scores each source on its own games. Only Sofix's
 can be replayed on the past, since the others are not kept anywhere once the game is over.
 
+**Rewards.** A reward is all or nothing, so Play never shows chance x reward; over a season it is the right yardstick, though. For each
+finished gameweek the job kept (`sorare_week:<slug>`), the plan Sofix made for it says what it expected (each lineup's chance of each
+reward times that reward, added up) and what its lineups really won (`rewards_record`). Season totals of the two, essence and cash
+apart, say whether Sofix's chances were right; what the owner really won is added on the page, read from Sorare by the extension.
+
 A figure under `FLOOR` cases is not given: the page says "too few to tell" rather than a number that is mostly luck. The page itself
 is one read model (`audit`), written by the refresh after the start record and served as it is.
 """
@@ -30,6 +35,7 @@ from sqlalchemy.orm import Session
 from app.models import ReadModel
 from app.services.publish import put
 from app.sorare import backtest, starts
+from app.sorare.publish import ARCHIVE_PREFIX
 
 AUDIT_KEY = "audit"
 VERSION = 1
@@ -294,8 +300,52 @@ def xscore_record(record: dict[str, Any]) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------------------------------- the page
-def build(record: dict[str, Any], replayed: dict[str, Any] | None, now: datetime) -> dict[str, Any]:
-    """The page: the replay of the past beside the live record, for the xScore and for who starts."""
+def rewards_record(weeks: list[dict[str, Any]]) -> dict[str, Any]:
+    """Each finished gameweek's plan: what it expected (chance x reward, essence and cash) and what its lineups won, oldest first,
+    with season totals. `lineups` counts the cases: the share won is only a figure from `FLOOR` lineups on."""
+    rows: list[dict[str, Any]] = []
+    for week in weeks:
+        plan = next((p for p in week.get("plans") or [] if not p.get("hindsight") and p.get("actual")), None)
+        game = week.get("gameweek") or {}
+        if plan is None or game.get("number") is None:
+            continue
+        rows.append(
+            {
+                "gameweek": int(game["number"]),
+                "slug": game.get("slug"),
+                "lineups": len(plan.get("lineups") or []),
+                "expected": {
+                    "essence": round(float(plan.get("essence") or 0)),
+                    "cash": round(float(plan.get("cash") or 0), 2),
+                },
+                "won": {
+                    "essence": round(float(plan["actual"].get("essence") or 0)),
+                    "cash": round(float(plan["actual"].get("cash") or 0), 2),
+                },
+            }
+        )
+    rows.sort(key=lambda r: r["gameweek"])
+
+    def total(side: str, unit: str) -> float:
+        return round(sum(r[side][unit] for r in rows), 2)
+
+    return {
+        "weeks": rows,
+        "lineups": sum(r["lineups"] for r in rows),
+        "expected": {"essence": total("expected", "essence"), "cash": total("expected", "cash")},
+        "won": {"essence": total("won", "essence"), "cash": total("won", "cash")},
+    }
+
+
+def kept_weeks(db: Session) -> list[dict[str, Any]]:
+    rows = db.query(ReadModel).filter(ReadModel.key.like(f"{ARCHIVE_PREFIX}%")).all()
+    return [dict(row.payload) for row in rows if isinstance(row.payload, dict)]
+
+
+def build(
+    record: dict[str, Any], replayed: dict[str, Any] | None, now: datetime, weeks: list[dict[str, Any]] | None = None
+) -> dict[str, Any]:
+    """The page: the replay of the past beside the live record, for the xScore and for who starts; and the plans' rewards."""
     return {
         "version": VERSION,
         "generatedAt": now.isoformat(),
@@ -307,6 +357,7 @@ def build(record: dict[str, Any], replayed: dict[str, Any] | None, now: datetime
             "live": starts_record(record),
             "weeks": weeks_record(record),
         },
+        "rewards": rewards_record(weeks or []),
     }
 
 
@@ -317,7 +368,7 @@ def record_of(db: Session) -> dict[str, Any]:
 
 def publish(db: Session, now: datetime) -> dict[str, int]:
     """Write the page, from the start record as it stands and the replay file. Called by the refresh once the record is up to date."""
-    page = build(record_of(db), read_replay(), now)
+    page = build(record_of(db), read_replay(), now, kept_weeks(db))
     put(db, AUDIT_KEY, page, now)
     return {
         "bytes": len(json.dumps(page, separators=(",", ":"))),

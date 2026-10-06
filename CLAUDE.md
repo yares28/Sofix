@@ -47,6 +47,27 @@ Use [docs/sorare/design/DESIGN.md](docs/sorare/design/DESIGN.md) and the real
 - Sorare overlay is the dark-context exception but never copies the wordmark.
 - Say fresh/waiting/stale/no odds/not signed in instead of optimistic empty placeholders.
 
+## Skills for Sofix work
+
+Sofix already has a design system, so the design skills serve it; they never replace it. Precedence: AGENTS.md → this file
+→ `docs/sorare/design/DESIGN.md` → skills.
+
+- **UI changes (new or restyled page/component):** load `design-taste-frontend` and `minimalist-ui` for craft (hierarchy,
+  typography, spacing, restrained motion), but keep the white shell, semantic colour, Sorare card/crest rules and the
+  11 px / 10 px text floor above. Ignore any skill rule that conflicts (dark themes, gradients, heavy GSAP motion,
+  generic hero layouts).
+- **Redesigning an existing screen:** `redesign-existing-projects` (audit first, no behavior changes).
+- **Design-system documentation:** `stitch-design-taste` only to extend `docs/sorare/design/DESIGN.md`, not to replace it.
+- **Before calling UI done:** after the desktop + mobile browser journey, run `web-design-guidelines` on the changed files and
+  fix real findings (accessibility, focus, labels, contrast).
+- **All code:** `ponytail` (and `ponytail-review` on non-trivial diffs). Smallest correct change; tests for business rules still required.
+- **Long outputs:** `full-output-enforcement` when a full file or table must be emitted without placeholders.
+- **References:** `awesome-claude-design` (`~/.claude/skills/awesome-claude-design`) for layout/interaction references when
+  extending the design; extract principles, never clone.
+- **Not used for Sofix:** `industrial-brutalist-ui`, `gpt-taste`, `high-end-visual-design`, `brandkit`, `image-to-code`,
+  `imagegen-frontend-web/-mobile`. They target marketing sites, dark/brutalist styles or paid image generation, which
+  clash with the product's identity and the free-first rule. Use only if the owner explicitly asks for a landing page or brand work.
+
 ## Semantics
 
 Routes: `/`, `/play`, `/lineups`, `/fixtures`, `/difficulty`, `/table`, `/audit`, `/cards`, `/players`, `/control`, `/team/[code]`.

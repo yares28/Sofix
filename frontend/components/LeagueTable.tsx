@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo } from "react";
 import { openingColumn, type TableMode } from "../lib/grid";
+import { scoreColour } from "../lib/cards";
 import { currentTable, predictedTable, zone, type Outcome } from "../lib/table";
 import type { FixtureGrid } from "../lib/types";
 import Crest from "./Crest";
@@ -38,6 +39,8 @@ export default function LeagueTable({ grid, through, mode, onMode }: Props) {
     [grid, mode, stop, atEnd],
   );
   const size = current.length;
+  // The bars of the projected table share one scale: the most points any club is expected to end on.
+  const maxPoints = Math.max(...predicted.map((row) => row.projectedPoints), 1);
   const when = gameweek ? `GW${gameweek.number}` : "now";
 
   return (
@@ -97,7 +100,7 @@ export default function LeagueTable({ grid, through, mode, onMode }: Props) {
                 <th scope="col" className="club">Club</th>
                 <th scope="col" className="num"><abbr title="Played">P</abbr></th>
                 <th scope="col" className="num"><abbr title="Points won so far">Pts</abbr></th>
-                <th scope="col" className="num"><abbr title="Games still to play">To play</abbr></th>
+                <th scope="col" className="track-col">Now, and still to come</th>
                 <th scope="col" className="num strong">
                   <abbr title="Expected points: won so far plus what the forecast expects from the games to come">xPts</abbr>
                 </th>
@@ -151,7 +154,12 @@ export default function LeagueTable({ grid, through, mode, onMode }: Props) {
                       <th scope="row" className="club"><ClubLink team={row.team} /></th>
                       <td className="num">{row.played}</td>
                       <td className="num">{row.points}</td>
-                      <td className="num">{row.remaining}</td>
+                      <td className="track-col">
+                        <span className="st-track" role="img" aria-label={`${row.points} points now, ${row.projectedPoints.toFixed(1)} expected after ${row.remaining} more games`}>
+                          <i className="now" style={{ width: `${(row.points / maxPoints) * 100}%` }} />
+                          <i className="come" style={{ width: `${(row.projectedPoints / maxPoints) * 100}%` }} />
+                        </span>
+                      </td>
                       <td className="num strong">{row.projectedPoints.toFixed(1)}</td>
                       <td className="num">{signed(Math.round(row.projectedGoalDifference))}</td>
                       <td className="num"><Chance value={row.title} /></td>
@@ -208,8 +216,12 @@ function ClubLink({ team }: { team: FixtureGrid["teams"][number] }) {
 
 function Chance({ value, bad = false }: { value: number; bad?: boolean }) {
   const strength = Math.min(1, value);
+  const band = !bad && value >= 0.36 ? scoreColour(value * 100) : null;
   return (
-    <span className={`chance ${bad ? "bad" : ""} ${value < 0.005 ? "none" : ""}`} style={{ ["--p" as string]: strength }}>
+    <span
+      className={`chance ${bad ? "bad" : ""} ${value < 0.005 ? "none" : ""} ${band ? "banded" : ""}`}
+      style={{ ["--p" as string]: strength, ...(band ? { background: band.fill, color: band.ink } : {}) }}
+    >
       {value < 0.005 ? "–" : pct(value)}
     </span>
   );

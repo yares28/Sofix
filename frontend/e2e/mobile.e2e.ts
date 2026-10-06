@@ -53,7 +53,7 @@ test("Overview, Fixtures and Table fit a phone without sideways page scrolling",
     ["/difficulty?h=8", ".ladder-card .list-rows > li"],
     ["/difficulty?h=next&lens=odds", ".ladder-card .list-rows .next-line"],
     ["/difficulty?h=3", ".ladder-card .list-rows .tile"],
-    ["/fixtures", ".fixture-row"],
+    ["/fixtures", ".ll-g"],
     ["/season", ".season-round .fixture-row"],
     ["/table?t=predicted", "table.standings tbody tr"],
   ] as const) {
@@ -86,9 +86,9 @@ test("Play fits a phone: the plans, a lineup's sheet and the cards inside it", a
   await expect(sheet).toBeHidden();
 });
 
-test("the phone's Sorare tiles and the gameweek just played fit without sideways scrolling", async ({ page }) => {
+test("the phone's Recap lineups and the gameweek just played fit without sideways scrolling", async ({ page }) => {
   for (const [path, ready] of [
-    ["/", ".hm-play .hm-lurows > li"],
+    ["/", ".rc-lu"],
     ["/play?plan=2", ".pl-lu"],
     ["/play?gw=15&after=1", ".pl-lu .pl-kv b"],
   ] as const) {
@@ -173,7 +173,7 @@ test("on a phone every text on Lineups, Cards and Players is 10 px or more", asy
 });
 
 test("the Audit views fit a phone: one source under another, no sideways scrolling, nothing under 10 px", async ({ page }) => {
-  for (const [path, ready] of [["/audit", ".lg-card"], ["/audit/starts", ".au-src"], ["/audit/record", ".au-w"]] as const) {
+  for (const [path, ready] of [["/audit", ".lg-card"], ["/audit/starts", ".au-src"], ["/audit/record", ".au-w"], ["/audit/rewards", ".au-rw-you"]] as const) {
     await page.goto(path);
     await expect(page.locator(ready).first()).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), path).toBe(true);

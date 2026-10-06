@@ -1841,3 +1841,9 @@
 .pl-more[open] > summary svg { transform: rotate(180deg); }
 .pl-more > .pl-lus { padding: 0 14px 14px; }
 .pl-main > .rc-missions { margin-top: 28px; }
+
+/* ---------- season icons (star: in season, clock: Classic) next to the words they stand for ---------- */
+.season-ic { flex: none; vertical-align: -1px; }
+.pl-group, .pl-tag, .rc-mode, .pl-opts small { display: inline-flex; align-items: center; gap: 4px; }
+.pl-mc .is, .pl-face .is { display: grid; place-items: center; color: #fff; }
+.s5-season { display: inline-flex; gap: 3px; }

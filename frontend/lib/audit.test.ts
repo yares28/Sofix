@@ -10,6 +10,8 @@ import {
   recordLine,
   sourceStory,
   SOURCES,
+  NO_REWARDS,
+  wonShare,
   type Audit,
   type LiveSource,
   type XscoreLive,
@@ -23,6 +25,7 @@ const page = (over: Partial<Audit> = {}): Audit => ({
   replay: null,
   xscore: { replay: null, live: { state: "none", floor: 100, noted: 0, marked: 0, pairs: 0, weeks: 0, rate: null, lo: null, hi: null } },
   starts: { replay: null, live: { futbolfantasy: none, sorare: none, sofix: none }, weeks: [] },
+  rewards: NO_REWARDS,
   ...over,
 });
 
@@ -138,5 +141,18 @@ describe("reading what the job published", () => {
     expect(read.starts.weeks).toEqual([]);
     expect(read.xscore.live.state).toBe("none");
     expect(read.replay).toBeNull();
+  });
+});
+
+describe("the rewards", () => {
+  it("reads a page published before the rewards were counted as an empty season", () => {
+    const old = { ...page() } as Partial<Audit>;
+    delete old.rewards;
+    expect(readable(old)?.rewards).toEqual(NO_REWARDS);
+  });
+
+  it("gives what was won as a share of what was expected, and nothing when nothing was expected", () => {
+    expect(wonShare(330, 412)).toBeCloseTo(0.801, 3);
+    expect(wonShare(250, 0)).toBeNull();
   });
 });

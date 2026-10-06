@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   cardWindows,
@@ -21,6 +22,7 @@ import { SOURCE_NAME, SOURCE_SHORT, type CollectionCard, type Sorare } from "../
 import { Foil } from "../play/bits";
 import CardArt from "./CardArt";
 import useCountUp from "./useCountUp";
+import SeasonIcon from "../SeasonIcon";
 
 const RARITIES: { key: string; label: string }[] = [
   { key: "all", label: "Both" },
@@ -39,6 +41,7 @@ function SeasonMark({ card }: { card: CollectionCard }) {
   return (
     <span className={`s5-season ${card.inSeason ? "in" : "out"}`} title={card.inSeason ? "In season" : "Classic"}>
       <span className="visually-hidden">{card.inSeason ? "In season" : "Classic"}</span>
+      <SeasonIcon inSeason={card.inSeason} size={10} />
       {seasonBadge(card)}
     </span>
   );
@@ -99,12 +102,38 @@ function InfoButton({ card }: { card: CollectionCard }) {
   );
 }
 
+const SHAPE: [string, string][] = [["GK", "Goalkeepers"], ["DEF", "Defenders"], ["MID", "Midfielders"], ["FWD", "Forwards"]];
+
+/** The squad's shape: one strip, a segment per position, in shades of ink. */
+function Shape({ byPosition }: { byPosition: Record<string, Record<string, number>> }) {
+  const counts = SHAPE.map(([key]) => Object.values(byPosition).reduce((total, group) => total + (group[key] ?? 0), 0));
+  const shades = [1, 0.72, 0.46, 0.24];
+  return (
+    <div className="gl-shape" role="img" aria-label={`Cards by position: ${SHAPE.map(([, label], i) => `${counts[i]} ${label.toLowerCase()}`).join(", ")}`}>
+      <div className="gl-strip">
+        {counts.map((count, i) => (
+          <i key={SHAPE[i]![0]} style={{ flex: count, opacity: shades[i], animationDelay: `${i * 0.08}s` }} />
+        ))}
+      </div>
+      <div className="gl-legend">
+        {counts.map((count, i) => (
+          <div key={SHAPE[i]![0]}>
+            <b><em style={{ opacity: shades[i] }} />{count}</b>
+            <span>{SHAPE[i]![1]}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** My cards: the collection led by what he can field, then the shape, then the cards by position. */
 export default function CardsView({ data, now }: { data: Sorare; now: string }) {
   const collection = useMemo(() => data.collection ?? [], [data.collection]);
   const [pos, setPos] = useState<Position | "all">("all");
   const [rarity, setRarity] = useState("all");
   const [season, setSeason] = useState<Season>("all");
+  const [find, setFind] = useState("");
 
   const summary = useMemo(() => collectionSummary(collection), [collection]);
   const next = useMemo(() => nextGames(data.weeks, new Date(now)), [data.weeks, now]);
@@ -118,10 +147,14 @@ export default function CardsView({ data, now }: { data: Sorare; now: string }) 
     return () => window.removeEventListener("hashchange", read);
   }, []);
   const stacks = useMemo(() => stackCounts(collection), [collection]);
-  const groups = useMemo(
-    () => shelves(collection, { pos, rarity, season }),
-    [collection, pos, rarity, season],
-  );
+  const groups = useMemo(() => {
+    const q = find.trim().toLowerCase();
+    const all = shelves(collection, { pos, rarity, season });
+    if (!q) return all;
+    return all
+      .map((group) => ({ ...group, cards: group.cards.filter((card) => `${card.name} ${card.club ?? ""}`.toLowerCase().includes(q)) }))
+      .filter((group) => group.cards.length > 0);
+  }, [collection, pos, rarity, season, find]);
   const shown = groups.reduce((total, group) => total + group.cards.length, 0);
   // a link from another page opens one tile per player: the first card of his that is on the page
   const anchored = useMemo(() => {
@@ -133,56 +166,35 @@ export default function CardsView({ data, now }: { data: Sorare; now: string }) 
 
   return (
     <>
-      <section className="s5-hero">
-        <p className="s5-eyebrow">Your squad</p>
-        <h1>Gallery</h1>
-        <p className="s5-big">
-          <b>{players}</b>
-          <i>players you can field</i>
-        </p>
-        <p className="s5-sub">
-          <span>
-            from <b>{summary.cards}</b> playable cards
-          </span>
-          <span>
-            <b>{summary.duplicates}</b> a duplicate you already have
-          </span>
-          <span>
-            across <b>{summary.clubs}</b> clubs
-          </span>
-          <span>
-            <b>{data.cards.excluded.length}</b> left out
-          </span>
-        </p>
-      </section>
-
-      <section className="s5-kpis" aria-label="Collection summary">
-        <div className="s5-kpi">
-          <b>{summary.cards}</b>
-          <span>playable</span>
-        </div>
-        <div className="s5-kpi">
-          <b>
-            <Foil rarity="limited" />
-            {summary.limited}
-          </b>
-          <span>Limited</span>
-        </div>
-        <div className="s5-kpi">
-          <b>
+      {/* Canvas board "6 · Gallery · Cards": what you can play, the facts as chips, the squad's shape by position. */}
+      <section className="gl-hero">
+        <div className="gl-lead">
+          <h1>Your gallery</h1>
+          <p className="gl-sub">Every Sorare card you hold, as it stands today</p>
+          <p className="gl-big">
+            <b>{data.cards.usable}</b>
+            <span>cards you can play, of {data.cards.total}</span>
+          </p>
+          <ul className="gl-facts" aria-label="Collection summary">
+            <li><Foil rarity="limited" /><strong>{summary.limited}</strong> Limited</li>
+            <li><Foil rarity="rare" /><strong>{summary.rare}</strong> Rare</li>
+            <li><SeasonIcon inSeason /><strong>{summary.inSeason}</strong> in season</li>
+            <li><strong>{players}</strong> players you can field</li>
+            <li><strong>{summary.duplicates}</strong> duplicates · <strong>{summary.clubs}</strong> clubs</li>
+            <li><strong>{summary.average}</strong> average score</li>
+            <li><strong>{data.cards.excluded.length}</strong> left out</li>
+          </ul>
+          {/* Moved here from the old home's cards tile: without a Rare goalkeeper no Rare lineup can be entered. */}
+        {data.cards.rareGoalkeepers === 0 && (data.cards.byRarity.rare ?? 0) > 0 ? (
+          <p className="s5-warn" role="note">
             <Foil rarity="rare" />
-            {summary.rare}
-          </b>
-          <span>Rare</span>
+            <span>
+              <b>No Rare goalkeeper.</b> Rare competitions stay locked; your {data.cards.byRarity.rare} Rares play in Limited ones.
+            </span>
+          </p>
+        ) : null}
         </div>
-        <div className="s5-kpi">
-          <b>{summary.inSeason}</b>
-          <span>in season</span>
-        </div>
-        <div className="s5-kpi">
-          <b>{summary.average}</b>
-          <span>avg score</span>
-        </div>
+        <Shape byPosition={data.cards.byPosition} />
       </section>
 
       <div className="s5-tools">
@@ -220,12 +232,16 @@ export default function CardsView({ data, now }: { data: Sorare; now: string }) 
             </button>
           ))}
         </div>
+        <label className="gl-find">
+          <span>Find</span>
+          <input type="search" value={find} onChange={(e) => setFind(e.target.value)} aria-label="Find a player or club" />
+        </label>
         <span className="s5-count" aria-live="polite">
           {shown} {shown === 1 ? "card" : "cards"}
         </span>
       </div>
       <p className="s5-key">
-        Under each card: his next game, then his chance to start it from Futbol Fantasy (FF), Sorare (SO) and Sofix (SF). The darker one is the
+        Sorted by average score. The hexagons: last 5, last 10 and last 40 games. Under each card: his next game, then his chance to start it from Futbol Fantasy (FF), Sorare (SO) and Sofix (SF). The darker one is the
         one Sofix uses.
       </p>
 
@@ -275,14 +291,19 @@ function CardTile({ card, index, stack, anchor, target, next }: { card: Collecti
   const windows = cardWindows(card);
   return (
     <article className={`s5-pc${anchor && target ? " is-target" : ""}`} id={anchor ? cardAnchor(card.player) : undefined} style={{ animationDelay: `${Math.min(index * 20, 360)}ms` }}>
-      <span className="art">
+      {/* The card and the name open his player page. */}
+      <Link className="art" href={`/players/${card.player}`} prefetch={false} aria-label={`${card.name}: open his page`}>
         <CardArt src={card.pic} name={card.name} />
         {stack > 1 ? <span className="dup">×{stack}</span> : null}
         <SeasonMark card={card} />
-      </span>
+      </Link>
       <InfoButton card={card} />
       <span className="nm">
-        <b>{card.name}</b>
+        <b>
+          <Link href={`/players/${card.player}`} prefetch={false}>
+            {card.name}
+          </Link>
+        </b>
       </span>
       <span className="s5-hexrow" role="group" aria-label="Average score by window">
         {windows.map((w) => (

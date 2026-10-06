@@ -14,6 +14,8 @@ import DifficultyGrid from "./DifficultyGrid";
 import FixturesList from "./FixturesList";
 import LeagueTable from "./LeagueTable";
 import Overview from "./Overview";
+import SeasonHero from "./SeasonHero";
+import DifficultyHero, { DifficultyLegend } from "./DifficultyHero";
 
 interface Props {
   grid: FixtureGrid;
@@ -51,7 +53,9 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl, away
 
   return (
     <>
-      <section className="hero">
+      {view === "table" && !away ? <SeasonHero grid={grid} /> : null}
+      {/* On the table the season hero above replaces this one; hidden, not removed, so the board keeps its layout code in one place. */}
+      <section className="hero" hidden={(view === "table" || view === "fdr") && !away}>
         <div>
           <div className="eyebrow">LaLiga · Season {grid.season}</div>
           <h1>{view === "table" ? "Table" : view === "plain" ? "Fixtures" : "Fixtures & Difficulty"}</h1>
@@ -89,6 +93,24 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl, away
 
       {view === "fdr" && (
         <>
+          {/* Canvas board 5: the kindest run first, then the grid; the overview cards follow so nothing is cut. */}
+          <DifficultyHero grid={grid} start={start} end={end} />
+          <div className="board-stack">
+            <DifficultyGrid
+              grid={grid}
+              start={start}
+              end={end}
+              lens={lens}
+              horizon={horizon}
+              pins={pins}
+              onHorizon={(next) => patch({ horizon: next })}
+              onLens={(next) => patch({ lens: next })}
+              onTogglePin={togglePin}
+            />
+            <DifficultyLegend />
+            <FixturesList grid={grid} column={column} />
+          </div>
+
           <Overview
             grid={grid}
             column={column}
@@ -111,21 +133,6 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl, away
               window.scrollTo({ top: 0 });
             }}
           />
-
-          <div className="board-stack">
-            <DifficultyGrid
-              grid={grid}
-              start={start}
-              end={end}
-              lens={lens}
-              horizon={horizon}
-              pins={pins}
-              onHorizon={(next) => patch({ horizon: next })}
-              onLens={(next) => patch({ lens: next })}
-              onTogglePin={togglePin}
-            />
-            <FixturesList grid={grid} column={column} />
-          </div>
 
           <p className="footnote">
             Every card, the grid and the fixtures start from the selected gameweek. Totals add up game by game: blank weeks

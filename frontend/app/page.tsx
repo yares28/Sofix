@@ -4,18 +4,19 @@ import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import AwayWeek from "../components/AwayWeek";
 import { BestCards, MissionsGlance, PlanLineups, RoundBoard, TableAfter, WeekNews } from "../components/recap/Recap";
-import SorareTiles, { WaitingTile } from "../components/home/SorareTiles";
-import SorareRow from "../components/home/SorareRow";
+import { WaitingTile } from "../components/home/SorareTiles";
+import TeamNewsTile from "../components/home/TeamNewsTile";
+import EnteredLineups from "../components/play/EnteredLineups";
 import SiteNav from "../components/SiteNav";
 import { loadGrid } from "../lib/api";
 import { legacyBoardUrl, openingColumn } from "../lib/grid";
 import { boardHref, dateRange } from "../lib/home";
-import { lineupsGlance } from "../lib/lineups";
-import { loadLineups } from "../lib/lineupsData";
 import { loadMissions } from "../lib/missionsData";
 import { missionsToday } from "../lib/missionsToday";
 import { bestCards, lockText, planRows, roundBoard, tableAfter, weekNews } from "../lib/recap";
-import { readLabel } from "../lib/lineups";
+import { lineupsGlance, readLabel } from "../lib/lineups";
+import { loadLineups } from "../lib/lineupsData";
+import { freshLabel } from "../lib/fresh";
 import { nextWeek, weekPlan } from "../lib/play";
 import { loadSorare } from "../lib/playData";
 import { weekContext, weekDates } from "../lib/weeks";
@@ -101,6 +102,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
               <p>
                 {plan ? `LaLiga round ${md.number} · ` : ""}
                 {dateRange(md.date_from, md.date_to)}
+                {sorare?.generatedAt ? <span className="rc-synced"> · {sorare.user} · synced {freshLabel(sorare.generatedAt, now)}</span> : null}
               </p>
             </div>
             {plan ? (
@@ -127,6 +129,8 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                   <span>Sorare GW{plan.gameweek.number}</span>
                   <Link href={href("/play")}>{rows.length ? `See all ${rows.length}` : "Plan"} ›</Link>
                 </div>
+                {/* What you entered on Sorare comes first (read through the extension), then the plan's best. */}
+                {selectedSorare ? <EnteredLineups week={selectedSorare} /> : null}
                 {rows.length ? (
                   <PlanLineups rows={rows} show={3} href={href("/play")} />
                 ) : (
@@ -135,12 +139,10 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
               </section>
               <MissionsGlance plans={today.plans} day={today.day} href={href("/missions")} />
               <WeekNews hurt={news.hurt} back={news.back} readAt={plan.teamNews?.readAt ? readLabel(plan.teamNews.readAt, now) : null} href={lineupsHref} />
+              {/* How the plan's players look for the round, who moved since yesterday, or why Futbol Fantasy has said nothing yet. */}
+              <TeamNewsTile week={nextWeek(sorare)} now={now} glance={lineupsGlance(lineups, now)} />
             </>
           ) : null}
-        </div>
-        {/* The Sorare row as it was: your entered lineups, the plan, team news, the week just played and the collection. */}
-        <div className={`hm-bento${away ? " hm-away" : ""}`}>
-          {sorare ? <SorareTiles data={sorare} selected={selectedSorare} now={now} glance={lineupsGlance(lineups, now)} /> : <SorareRow />}
         </div>
       </main>
     </>

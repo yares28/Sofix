@@ -55,6 +55,34 @@ test("with reduced motion the cards and search results still show (their rise is
   }
 });
 
+test("every player card grows on hover: the Recap, the Gallery, Players, Play and Lineups", async ({ page }) => {
+  for (const [path, card] of [["/", ".rc-best .rc-art"], ["/cards", ".s5-pc .art"], ["/players", ".s5-res .art"], ["/play", ".pl-mc .art"], ["/lineups?m=22502", ".lu-face"]] as const) {
+    await page.goto(path);
+    const art = page.locator(card).first();
+    await art.scrollIntoViewIfNeeded();
+    await art.hover({ force: path.startsWith("/lineups") }); // on Lineups a link covers the card: hovering it is hovering the card
+    await expect.poll(() => art.evaluate((el) => new DOMMatrix(getComputedStyle(el).transform).a), { message: path }).toBeGreaterThan(1.1);
+  }
+});
+
+test("a Gallery card opens the player's page", async ({ page }) => {
+  await page.goto("/cards");
+  const first = page.locator(".s5-pc a.art").first();
+  const href = (await first.getAttribute("href"))!;
+  expect(href).toMatch(/^\/players\/[a-z0-9-]+$/);
+  await first.click();
+  await expect(page).toHaveURL(new RegExp(`${href}$`), { timeout: 30_000 });
+});
+
+test("Players switches between the best and the best value for the money", async ({ page }) => {
+  await page.goto("/players");
+  const order = page.getByRole("group", { name: "Order" });
+  await expect(order.getByRole("button", { name: "Best", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await order.getByRole("button", { name: "Best value" }).click();
+  await expect(order.getByRole("button", { name: "Best value" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".s5-res .s5-gain").first()).toContainText(/a €10$/);
+});
+
 test("every LaLiga player has a start chance and an xScore, not only yours, priced or not", async ({ page }) => {
   await page.goto("/players");
   const search = page.getByRole("searchbox").or(page.getByRole("textbox")).first();

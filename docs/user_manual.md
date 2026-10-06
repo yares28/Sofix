@@ -68,9 +68,14 @@ The Recap is about the week in the top bar (since 5 Oct 2026; design canvas boar
 - **News this week**: your players hurt or banned in the last seven days and those cleared to play after a knock, in Futbol Fantasy's
   words in English with the date and their chance to start. A long-standing injury is not news; the Lineups page keeps every note.
 
-Under these, the Sorare row is kept as it was: **Your Sorare lineups** (what you entered, read through the extension), **Play** (the
-plan's chance of any reward, lineups, cards used, time to the lock), **Team news** (the start-chance bar, starters who might not start,
-what moved since yesterday), **Last gameweek** and **Gallery** (the collection's shape, formerly My cards).
+The header also says whose Sorare account it reads and when it was synced. **Your lineups** opens with what you entered on
+Sorare (read through the extension), then the plan's best lineups. **Team news** sits beside **News this week**: how your
+plan's players look for the round, who might not start and what moved since yesterday, or why Futbol Fantasy has said
+nothing yet. The old Sorare row is gone from the home: the plan and the week just played are on the Sorare page, and the
+collection (with its "No Rare goalkeeper" warning) is in the Gallery.
+
+Every player card grows a little when you point at it (a spring, a shadow and a light sweep). In-season cards and
+competitions carry a star, Classic ones a clock.
 
 Each colour of a number is Sorare's own score band for it: up to 20 red, 21 to 35 orange, 36 to 50 yellow, 51 to 60 lime, 61 to 75
 green, 76 and above cyan.
@@ -326,9 +331,19 @@ doubt; hover the mark for the name.
 
 ![Audit: how often the xScore picks the better of two, how close it lands, calibration and what has been written down](images/audit.png)
 
-Audit has three views under the switch below the top bar (since 5 Oct): **xScore** (`/audit`, the charts below), **Who
-starts** (`/audit/starts`, each source's record on who starts) and **Written down** (`/audit/record`, every gameweek's
-games written down before the lock and how many have been checked).
+Audit has four views under the switch below the top bar (since 5 Oct): **xScore** (`/audit`, the charts below), **Who
+starts** (`/audit/starts`, each source's record on who starts), **Written down** (`/audit/record`, every gameweek's
+games written down before the lock and how many have been checked) and **Rewards** (`/audit/rewards`, since 6 Oct).
+
+**Rewards** answers "how much essence should I have won, and how much did I?". Play shows a reward as all or nothing; over a
+season the fair yardstick is the expected essence: each lineup's chance of each reward times that reward, added up week by week.
+**Sofix's plans** totals that expected essence (and cash, kept apart) over every finished gameweek the job kept, against what the
+plans' lineups really won, and gives the share won ("80% of the essence they expected was won") once 100 lineups are behind it;
+until then it says "Too few to tell yet" and how many lineups it has. The plan counted is the one Sofix rebuilds for a finished
+week from what was known before its lock. **You** adds up what your own entered lineups won on Sorare, read week by week through the
+extension (a signed-in sorare.com tab is needed; a finished week is remembered in the browser), and sets it against the plans'
+expected essence over the same weeks. **Week by week** lists each kept week: expected, won by the plan, won by you. Weeks before
+25 Sep 2026 (GW17) were not kept, so the season count starts there.
 
 The Audit page checks Sofix's numbers against what happened, as charts (since 4 Oct). The first block is a replay of two LaLiga seasons: every game
 predicted from the weeks before it only (9,190 starts to 20 Sep).
@@ -411,7 +426,10 @@ query plus one query per club. Search is local and fast; it does not make a Sora
 **Every player gets this week's numbers, not only yours** (since 6 Oct 2026). For the gameweek being planned each row shows his
 **chance to start** (with whose number it is: FF, SO or SF, as on your cards; "Plays" when only a chance of playing is known) and his
 **xScore**, worked out the same way as for your cards: Futbol Fantasy's expected lineup, Sorare's odds and projection, his game and
-its odds. Form from past games is read only for your players; anyone else's rests on those sources and the usual priors. A dash
+its odds. Past-game form counts for everyone: yours are read in full every refresh, and every other LaLiga player's are read about 40
+players a refresh (players with a game this week first, then the oldest readings, each read again after 3 days) and kept between
+refreshes, so the whole league is covered within about a dozen refreshes. Until a player's games have been read, his numbers rest on
+those sources and the usual priors. A dash
 means he has no game in the gameweek.
 
 **One player's page** (since 4 Oct, `/players/<name>`; click a name in the results). It leads with his game this week: the xScore if he starts and the chance he

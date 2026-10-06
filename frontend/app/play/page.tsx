@@ -121,6 +121,6 @@ function sorareNote(alt: { projected: number; players: number } | null, projecti
         new Date(projectionsAt),
       )
     : null;
-  if (!alt || alt.projected === 0) return `Sorare has not published its projections for these games yet${when ? ` (due ${when})` : ""}. The plan appears with the first refresh after.`;
+  if (!alt || alt.projected * 2 < alt.players) return `Sorare has not published its projections for these games yet${when ? ` (due ${when})` : ""}. The plan appears with the first refresh after.`;
   return "Sorare's projections are in; the plan appears with the next refresh.";
 }

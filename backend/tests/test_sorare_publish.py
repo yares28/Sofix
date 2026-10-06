@@ -858,3 +858,18 @@ def test_a_player_you_do_not_own_gets_his_form_from_the_league_history() -> None
     snap["leagueHistory"] = {"stranger": {"at": "2026-10-07T09:00:00+00:00", "games": games}}
     with_form = {p["slug"]: p for p in publish.build_payload(snap, runs=4, draws=600)["market"]}["stranger"]
     assert with_form["x"] != without["x"]  # his four starts at 80 now count
+
+
+def test_the_sorare_plans_stand_on_sorares_projections_or_wait_for_them():
+    """The week planned again on Sorare's numbers: built once most players with a game have one, else it waits (6 Oct 2026)."""
+    built = publish.build_payload(snapshot(), runs=4, draws=600)
+    alt, record = built["_alt"], built["_record"]
+    assert alt["gameweek"]["slug"] == publish.week_of(built)["gameweek"]["slug"]
+    assert (len(alt["plans"]) > 0) == (alt["projected"] * 2 >= alt["players"])
+    assert record["players"], "both numbers are written down for every player with a game"
+
+    bare = snapshot()
+    for row in bare["cards"]:
+        row["player"]["nextClassicFixtureProjectedScore"] = None
+    waiting = publish.build_payload(bare, runs=4, draws=600)["_alt"]
+    assert waiting["projected"] == 0 and waiting["plans"] == []

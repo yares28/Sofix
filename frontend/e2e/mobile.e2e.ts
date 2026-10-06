@@ -173,7 +173,7 @@ test("on a phone every text on Lineups, Cards and Players is 10 px or more", asy
 });
 
 test("the Audit views fit a phone: one source under another, no sideways scrolling, nothing under 10 px", async ({ page }) => {
-  for (const [path, ready] of [["/audit", ".lg-card"], ["/audit/starts", ".au-src"], ["/audit/record", ".au-w"], ["/audit/rewards", ".au-rw-you"]] as const) {
+  for (const [path, ready] of [["/audit", ".lg-card"], ["/audit/starts", ".au-src"], ["/audit/record", ".au-w"], ["/audit/rewards", ".au-rw-you"], ["/audit/missions", ".au-ms-days"]] as const) {
     await page.goto(path);
     await expect(page.locator(ready).first()).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), path).toBe(true);

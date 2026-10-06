@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { revalidateTag } from "next/cache";
-import { NextResponse, type NextRequest } from "next/server";
+import { after, NextResponse, type NextRequest } from "next/server";
+import { recordQuietly } from "../../../lib/missionLog";
 import { MISSIONS_TAG } from "../../../lib/missions";
 import { SORARE_TAG } from "../../../lib/play";
 import { GRID_TAG } from "../../../lib/refresh";
@@ -31,5 +32,6 @@ export async function POST(request: NextRequest) {
   revalidateTag(SYSTEM_TAG);
   revalidateTag(SORARE_TAG);
   revalidateTag(MISSIONS_TAG);
+  after(() => recordQuietly()); // after each refresh, so a day is logged even with Chrome closed
   return NextResponse.json({ revalidated: true }, { headers: { "Cache-Control": "no-store" } });
 }

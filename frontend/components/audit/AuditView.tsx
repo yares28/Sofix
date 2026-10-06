@@ -1,3 +1,4 @@
+import MissionsAudit from "./MissionsAudit";
 import RewardsAudit from "./RewardsAudit";
 import { freshLabel } from "../../lib/fresh";
 import {
@@ -100,7 +101,7 @@ function Record({ data }: { data: Audit }) {
   );
 }
 
-export type AuditShow = "xscore" | "starts" | "rewards";
+export type AuditShow = "xscore" | "starts" | "rewards" | "missions";
 
 export default function AuditView({
   data,
@@ -130,6 +131,18 @@ export default function AuditView({
       <>
         {league ? <LeagueAudit data={league} /> : <h1>Audit</h1>}
         {updated}
+      </>
+    );
+  }
+  if (show === "missions") {
+    return (
+      <>
+        <header className="au-top">
+          <h1>Missions</h1>
+          <p>How often Sofix&apos;s mission picks were the best your cards could have done.</p>
+          {updated}
+        </header>
+        <MissionsAudit missions={data.missions} floor={data.floor} />
       </>
     );
   }

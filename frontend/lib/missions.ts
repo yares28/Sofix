@@ -157,6 +157,23 @@ export function fit(rule: Rule, player: PlayingPlayer, sheet: Sheet | null): { c
 const madridDay = (iso: string): string => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(iso));
 
 /**
+ * Your cards of one rarity with a game still to be played today in Madrid (missions are daily and the next ones are not known): each player once, at his
+ * next game, whichever gameweek it belongs to (the one being played now included).
+ */
+export function playingToday(players: PlayingPlayer[], rarity: string, now: Date): { day: string; candidates: { p: PlayingPlayer; game: PlayingPlayer["games"][number] }[] } {
+  const next = new Map<string, { p: PlayingPlayer; game: PlayingPlayer["games"][number] }>();
+  for (const p of players) {
+    if (!p.player || p.rarity !== rarity) continue;
+    const game = [...p.games].sort((a, b) => a.kickoff.localeCompare(b.kickoff)).find((g) => new Date(g.kickoff) > now);
+    const held = next.get(p.player);
+    if (game && (!held || game.kickoff < held.game.kickoff)) next.set(p.player, { p, game });
+  }
+  const day = madridDay(now.toISOString());
+  const candidates = [...next.values()].sort((a, b) => a.game.kickoff.localeCompare(b.game.kickoff)).filter((u) => madridDay(u.game.kickoff) === day);
+  return { day, candidates };
+}
+
+/**
  * The best cards for each mission: of your players with a game still to be played on the day, the ones likeliest to do what it asks, each in one mission only
  * (the likeliest pairs first), as many as it has picks left. The day is today in Madrid; a later day is never offered, because tomorrow's missions are not known. A mission for another rarity than a
  * player's card is not offered to him.
@@ -168,18 +185,7 @@ export function plan(
   sheets: Record<string, Sheet | undefined>,
   now: Date,
 ): { day: string | null; plans: MissionPlan[] } {
-  // Each of his players once, at his next game still to be played, whichever gameweek it belongs to (the one being played now included).
-  const next = new Map<string, { p: PlayingPlayer; game: PlayingPlayer["games"][number] }>();
-  for (const p of players) {
-    if (!p.player || p.rarity !== rarity) continue;
-    const game = [...p.games].sort((a, b) => a.kickoff.localeCompare(b.kickoff)).find((g) => new Date(g.kickoff) > now);
-    const held = next.get(p.player);
-    if (game && (!held || game.kickoff < held.game.kickoff)) next.set(p.player, { p, game });
-  }
-  const upcoming = [...next.values()].sort((a, b) => a.game.kickoff.localeCompare(b.game.kickoff));
-  // Missions are daily and the next ones are not known: today in Madrid, never a later day.
-  const day = madridDay(now.toISOString());
-  const candidates = upcoming.filter((u) => madridDay(u.game.kickoff) === day);
+  const { day, candidates } = playingToday(players, rarity, now);
   const plans: MissionPlan[] = missions.map((mission) => ({ mission, rule: ruleOf(mission), reward: rewardOf(mission), open: Math.max(0, mission.picks - mission.made), picks: [] }));
   const pairs: { plan: MissionPlan; pick: Suggestion }[] = [];
   for (const one of plans) {

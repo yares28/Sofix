@@ -15,6 +15,8 @@ const sql = async (strings: TemplateStringsArray, ...values: unknown[]) => {
 };
 vi.mock("../../../../lib/db", () => ({ database: () => (configured ? sql : null) }));
 vi.mock("next/cache", () => ({ revalidateTag: vi.fn() }));
+vi.mock("../../../../lib/missionLog", () => ({ recordQuietly: vi.fn() }));
+vi.mock("next/server", async (actual) => ({ ...(await actual<typeof import("next/server")>()), after: vi.fn() }));
 
 const { POST } = await import("./route");
 

@@ -113,6 +113,22 @@
 .au-rw-big span { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink-2); }
 .au-rw-you .au-fresh { margin: 10px 0 0; font-size: 12px; color: var(--ink-2); }
 
+/* ---------- missions ---------- */
+.au-ms-days { display: flex; flex-direction: column; gap: 14px; margin: 12px 0 0; padding: 0; list-style: none; }
+.au-ms-days > li { padding: 12px 0 0; border-top: 1px solid var(--line); }
+.au-ms-days > li:first-child { border-top: 0; padding-top: 0; }
+.au-ms-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; font-size: 13px; }
+.au-ms-head span { color: var(--ink-2); }
+.au-ms-head strong { margin-left: auto; font-variant-numeric: tabular-nums; }
+.au-ms-days > li.ok .au-ms-head strong { color: var(--good-ink); }
+.au-ms-cards { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 0; padding: 0; list-style: none; }
+.au-ms-card { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 64px; }
+.au-ms-card .art { position: relative; width: 48px; height: 66px; border-radius: 6px; overflow: hidden; background: var(--track); outline: 2px solid transparent; outline-offset: 1px; }
+.au-ms-card.hit .art { outline-color: var(--good-ink); }
+.au-ms-card.miss .art { opacity: .55; }
+.au-ms-card.left .art { outline: 2px dashed var(--ink-2); }
+.au-ms-card .nm { max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--ink-2); }
+
 .au-empty h1 { margin: 0; font-size: 34px; font-weight: 700; letter-spacing: -0.035em; }
 .au-empty p { margin: 8px 0 0; color: var(--ink-2); font-size: 14px; }
 

@@ -49,6 +49,7 @@ from app.sorare import (
     scores,
     starts,
 )
+from app.sorare import missions as sorare_missions
 from app.sorare import publish as sorare_publish
 from app.sorare import record as sorare_record
 from app.sorare import sync as sorare_sync
@@ -403,7 +404,16 @@ def run(
         False,
     )
     summary.update(record_starts(db, failed, snapshot, lineups, fetched, write=True))
+
     # The Audit page, from the record as it now stands: after this run's own rows and settlements, so it says what they say.
+    # The daily missions' picks of a day ago, marked with what each player did (one Sorare read per game, capped per run).
+    def settle_missions() -> dict[str, int]:
+        with SorareClient() as client:
+            return sorare_missions.settle(db, client, now)
+
+    settled: dict[str, int] = optional(db, failed, "mission picks", settle_missions, {})
+    if settled:
+        summary["missions"] = settled
     audited: dict[str, int] = optional(db, failed, "audit", lambda: audit.publish(db, now), {})
     if audited:
         summary["audit"] = audited

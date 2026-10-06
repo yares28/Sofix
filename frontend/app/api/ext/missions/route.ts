@@ -1,8 +1,9 @@
 import { revalidateTag } from "next/cache";
-import { NextResponse, type NextRequest } from "next/server";
+import { after, NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { database } from "../../../../lib/db";
 import { authorised } from "../../../../lib/extAuth";
+import { recordQuietly } from "../../../../lib/missionLog";
 import { MISSIONS_TAG, type MissionsModel } from "../../../../lib/missions";
 
 // The daily missions the Missions page of Sorare lists, as the extension read them from the signed-in tab (extension/background.js, `sendMissions`).
@@ -60,5 +61,6 @@ export async function POST(request: NextRequest) {
     VALUES ('missions', ${JSON.stringify(next)}::json, now())
     ON CONFLICT (key) DO UPDATE SET payload = EXCLUDED.payload, updated_at = EXCLUDED.updated_at`;
   revalidateTag(MISSIONS_TAG);
+  after(() => recordQuietly(next)); // today's picks into the missions log, with the list just loaded
   return NextResponse.json({ ok: true, seen_at: now }, { headers: { "Cache-Control": "no-store" } });
 }

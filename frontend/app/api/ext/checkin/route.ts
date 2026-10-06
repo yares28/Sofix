@@ -1,8 +1,9 @@
 import { revalidateTag } from "next/cache";
-import { NextResponse, type NextRequest } from "next/server";
+import { after, NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { database } from "../../../../lib/db";
 import { authorised } from "../../../../lib/extAuth";
+import { recordQuietly } from "../../../../lib/missionLog";
 import { SYSTEM_TAG } from "../../../../lib/system";
 
 // The Chrome extension says it is alive and which Sorare account is signed in (extension/background.js).
@@ -28,5 +29,6 @@ export async function POST(request: NextRequest) {
     VALUES ('extension', ${JSON.stringify(payload)}::json, now())
     ON CONFLICT (key) DO UPDATE SET payload = EXCLUDED.payload, updated_at = EXCLUDED.updated_at`;
   revalidateTag(SYSTEM_TAG);
+  after(() => recordQuietly()); // Neon is awake anyway: today's mission picks into the log
   return NextResponse.json({ ok: true, seen_at: payload.seen_at }, { headers: { "Cache-Control": "no-store" } });
 }

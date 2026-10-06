@@ -10,7 +10,7 @@
 .nav-inner { justify-content: flex-start; gap: 30px; }
 .nav-meta { margin-left: auto; }
 .nav-links { display: flex; align-items: center; gap: 22px; }
-.nav-links a { color: var(--ink-2); text-decoration: none; font-size: 13px; font-weight: 500; transition: color .2s; }
+.nav-links a { color: var(--ink-2); text-decoration: none; font-size: 13px; font-weight: 500; white-space: nowrap; transition: color .2s; }
 .nav-links a:hover, .nav-links a[aria-current="page"] { color: var(--ink); }
 .nav-links a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
 .tabbar { display: none; }

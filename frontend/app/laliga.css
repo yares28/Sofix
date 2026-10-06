@@ -7,7 +7,7 @@ main.ll { max-width: calc(1320px + 56px); padding-bottom: 64px; }
 .ll-lead h1 { margin: 0; font-size: 30px; font-weight: 650; letter-spacing: -.02em; }
 .ll-sub { margin: 6px 0 0; color: var(--ink-2); font-size: 15px; }
 .ll-big { display: flex; align-items: flex-end; gap: 16px; margin: 34px 0 0; }
-.ll-big b { font-size: 112px; line-height: .82; font-weight: 650; letter-spacing: -.055em; font-variant-numeric: tabular-nums; }
+.ll-big b { font-size: clamp(72px, 8vw, 112px); line-height: .82; font-weight: 650; letter-spacing: -.055em; font-variant-numeric: tabular-nums; }
 .ll-big span { max-width: 150px; padding-bottom: 4px; font-size: 17px; line-height: 1.3; color: var(--ink-2); }
 .ll-days { display: flex; flex-wrap: wrap; gap: 8px; margin: 28px 0 0; padding: 0; list-style: none; }
 .ll-days li { padding: 7px 14px; border-radius: 999px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); font-size: 13px; color: var(--ink-2); }
@@ -74,7 +74,7 @@ main.ll { max-width: calc(1320px + 56px); padding-bottom: 64px; }
 .st-lead h1 { margin: 0; font-size: 30px; font-weight: 650; letter-spacing: -.02em; }
 .st-sub { margin: 6px 0 0; color: var(--ink-2); font-size: 15px; }
 .st-big { display: flex; align-items: flex-end; gap: 18px; margin: 34px 0 0; }
-.st-big b { font-size: 120px; line-height: .82; font-weight: 650; letter-spacing: -.055em; font-variant-numeric: tabular-nums; }
+.st-big b { font-size: clamp(72px, 8vw, 120px); line-height: .82; font-weight: 650; letter-spacing: -.055em; font-variant-numeric: tabular-nums; }
 .st-big span { max-width: 150px; padding-bottom: 4px; color: var(--ink-2); font-size: 17px; line-height: 1.3; }
 .st-races { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .st-race { padding: 20px; border-radius: 22px; background: var(--surface); box-shadow: var(--shadow-card); animation: ll-rise .8s cubic-bezier(.16, 1, .3, 1) both; }
@@ -89,6 +89,10 @@ main.ll { max-width: calc(1320px + 56px); padding-bottom: 64px; }
 .st-track i { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 5px; background: var(--ink); transform-origin: left; animation: ll-fill 1.1s cubic-bezier(.16, 1, .3, 1) both; }
 .st-track i.come { opacity: .22; }
 .chance.banded { padding: 2px 7px; border-radius: 7px; font-weight: 650; }
+/* The races need room for club names: below a wide screen the hero stacks, the races stay three across. */
+@media (max-width: 1200px) {
+  .st-hero { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+}
 @media (max-width: 900px) {
   .st-hero, .st-races { grid-template-columns: minmax(0, 1fr); }
   .st-big b { font-size: 84px; }
@@ -100,7 +104,7 @@ main.ll { max-width: calc(1320px + 56px); padding-bottom: 64px; }
 .df-hero h1 { margin: 0; font-size: 30px; font-weight: 650; letter-spacing: -.02em; }
 .df-sub { margin: 6px 0 0; color: var(--ink-2); font-size: 15px; }
 .df-big { display: flex; align-items: flex-end; gap: 18px; margin: 30px 0 0; }
-.df-big b { font-size: 120px; line-height: .82; font-weight: 650; letter-spacing: -.055em; font-variant-numeric: tabular-nums; }
+.df-big b { font-size: clamp(72px, 8vw, 120px); line-height: .82; font-weight: 650; letter-spacing: -.055em; font-variant-numeric: tabular-nums; }
 .df-big span { max-width: 170px; padding-bottom: 4px; color: var(--ink-2); font-size: 17px; line-height: 1.3; }
 .df-legend { display: flex; flex-wrap: wrap; gap: 18px; margin: 0; padding: 18px 20px; list-style: none; color: var(--ink-2); font-size: 13px; }
 .df-legend li { display: flex; align-items: center; gap: 8px; }

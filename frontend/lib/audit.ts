@@ -54,6 +54,27 @@ export type RewardWeek = { gameweek: number; slug: string | null; lineups: numbe
 /** The season so far, from the gameweeks the job kept: each week, and the totals. `lineups` are the cases behind the share. */
 export type Rewards = { weeks: RewardWeek[]; lineups: number; expected: RewardSide; won: RewardSide };
 
+/** One player in a mission day of the log: Sofix's pick (`hit`: he did it) or an achiever Sofix left out. */
+export type MissionCard = { slug: string; name: string; pic: string; hit?: boolean };
+/** One mission on one day, scored against the best your cards could have done (`best`: the picks or the achievers, the fewer). */
+export type MissionDay = { day: string; rarity: string; mission: string; loaded: boolean; best: number; got: number; picks: MissionCard[]; missed: MissionCard[]; yours: number | null };
+/** The daily missions log, scored (backend/app/sorare/missions.py `record`): `counted` mission days with at least one achiever, `success` those where
+ * Sofix's picks held as many achievers as the best possible. */
+export type Missions = {
+  counted: number;
+  success: number;
+  caught: number;
+  best: number;
+  nobody: number;
+  pending: number;
+  yours: { counted: number; success: number };
+  byMission: { mission: string; counted: number; success: number }[];
+  said: number | null;
+  happened: number | null;
+  picks: number;
+  days: MissionDay[];
+};
+
 export type Audit = {
   version: number;
   generatedAt: string;
@@ -63,10 +84,12 @@ export type Audit = {
   xscore: { replay: XscoreReplay | null; live: XscoreLive };
   starts: { replay: { sofix?: SofixReplay } | null; live: Record<StartSource, LiveSource>; weeks: RecordWeek[] };
   rewards: Rewards;
+  missions: Missions;
 };
 
 const NONE: RewardSide = { essence: 0, cash: 0 };
 export const NO_REWARDS: Rewards = { weeks: [], lineups: 0, expected: NONE, won: NONE };
+export const NO_MISSIONS: Missions = { counted: 0, success: 0, caught: 0, best: 0, nobody: 0, pending: 0, yours: { counted: 0, success: 0 }, byMission: [], said: null, happened: null, picks: 0, days: [] };
 
 const NOTHING: LiveSource = { state: "none", recorded: 0, settled: 0, right: null, brier: null, mean: null, started: null, buckets: null };
 const NO_LIVE: XscoreLive = { state: "none", floor: 100, noted: 0, marked: 0, pairs: 0, weeks: 0, rate: null, lo: null, hi: null };
@@ -91,6 +114,8 @@ export function readable(value: unknown): Audit | null {
     },
     // a page published before the rewards were counted has none: an empty season, not an error
     rewards: { ...NO_REWARDS, ...(data.rewards ?? {}) },
+    // and one published before the missions log has none
+    missions: { ...NO_MISSIONS, ...(data.missions ?? {}) },
   };
 }
 

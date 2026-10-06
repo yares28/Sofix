@@ -145,3 +145,23 @@ test("Rewards adds up what the plans expected over the season against what they 
   // What you won is read from Sorare through the extension, which this browser does not have: it says so instead of a zero
   await expect(page.getByRole("region", { name: "You" }).getByRole("status")).toContainText("can't reach the extension");
 });
+
+test("Missions says too few to tell under the floor, and lists each day's picks against the cards that did it", async ({ page }) => {
+  await page.goto("/audit/missions");
+  await expect(page.getByRole("heading", { level: 1, name: "Missions" })).toBeVisible();
+  const hero = page.getByRole("region", { name: "Sofix's picks" });
+  await expect(hero.getByRole("heading", { name: "Too few to tell yet" })).toBeVisible();
+  await expect(hero).toContainText("2 of 100");
+  await expect(hero).toContainText("3 of 4"); // achievers caught
+
+  const days = page.getByRole("region", { name: "Day by day" });
+  await expect(days.locator(".au-ms-days > li")).toHaveCount(2);
+  const first = days.locator(".au-ms-days > li").first();
+  await expect(first).toContainText("1 of 3");
+  await expect(first.locator(".au-ms-card.hit")).toHaveCount(1);
+  await expect(first.locator(".au-ms-card.left")).toHaveCount(2); // Güler and Pedri did it and were not picked
+  await expect(days.locator(".au-ms-days > li").nth(1)).toContainText("not loaded");
+
+  await page.getByRole("link", { name: "Missions", exact: true }).first().click();
+  await expect(page).toHaveURL(/\/audit\/missions/);
+});

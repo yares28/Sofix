@@ -10,6 +10,7 @@ import {
   recordLine,
   sourceStory,
   SOURCES,
+  NO_MISSIONS,
   NO_REWARDS,
   wonShare,
   type Audit,
@@ -26,6 +27,7 @@ const page = (over: Partial<Audit> = {}): Audit => ({
   xscore: { replay: null, live: { state: "none", floor: 100, noted: 0, marked: 0, pairs: 0, weeks: 0, rate: null, lo: null, hi: null } },
   starts: { replay: null, live: { futbolfantasy: none, sorare: none, sofix: none }, weeks: [] },
   rewards: NO_REWARDS,
+  missions: NO_MISSIONS,
   ...over,
 });
 

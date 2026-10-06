@@ -335,7 +335,19 @@ doubt; hover the mark for the name.
 
 Audit has four views under the switch below the top bar (since 5 Oct): **xScore** (`/audit`, the charts below), **Who
 starts** (`/audit/starts`, each source's record on who starts), **Written down** (`/audit/record`, every gameweek's
-games written down before the lock and how many have been checked) and **Rewards** (`/audit/rewards`, since 6 Oct).
+games written down before the lock and how many have been checked), **Rewards** (`/audit/rewards`, since 6 Oct) and **Missions**
+(`/audit/missions`, since 6 Oct).
+
+**Missions** answers "were Sofix's mission picks the right ones?". Every day Sofix writes down its picks for the **Decisive Picker**,
+which Sorare runs every day, whether or not you loaded the day's missions; on a day you loaded them, the other missions too. It also
+writes down every card of yours with a game that day, with its chance. A day after the games the refresh reads each game from Sorare
+and marks who did what each mission asks. A mission day is then judged against what your cards could have done: the players who did
+it are the achievers, and the best possible is the mission's picks or the number of achievers, whichever is fewer. The day is a
+success when Sofix's picks hold that many achievers; a day when none of your cards did it is not counted. For example, with ten
+players, picking 1, 2 and 3 when 1, 4 and 5 got a decisive action is a miss. The page leads with the share of mission days that were
+the best possible (from 100 days; until then "Too few to tell yet"), then the achievers caught, your own picks scored the same way by
+Sorare's verdict, the chance given against what happened, and each day with Sofix's picks (did it or not) and the cards that did it
+but were not picked.
 
 **Rewards** answers "how much essence should I have won, and how much did I?". Play shows a reward as all or nothing; over a
 season the fair yardstick is the expected essence: each lineup's chance of each reward times that reward, added up week by week.

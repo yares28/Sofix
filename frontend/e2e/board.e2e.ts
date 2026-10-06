@@ -29,7 +29,8 @@ async function servedWeeks(request: APIRequestContext) {
 
 test("first load shows the overview, then the grid and the fixtures, from the opening gameweek", async ({ page }) => {
   await page.goto("/difficulty");
-  await expect(page.getByRole("heading", { level: 1, name: "Fixtures & Difficulty" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Who has the kindest run" })).toBeVisible();
+  await expect(page.locator(".df-legend li")).toHaveCount(5); // the five colours, under the grid
   await expect(page.locator(".wk-trigger")).toBeVisible(); // the week lives in the bar now, not in the board
   await expect(page.getByRole("article", { name: /^Most points coming: / })).toBeVisible();
   await expect(page.getByRole("article", { name: /^Fewest points coming: / })).toBeVisible();
@@ -353,16 +354,18 @@ test("old links from when the board lived at / open its new pages", async ({ pag
 
 test("the Fixtures tab lists the selected gameweek, results included", async ({ page }) => {
   await page.goto("/fixtures");
-  await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${openingMatchday} fixtures` })).toBeVisible();
-  await expect(page.locator(".fixture-row")).toHaveCount(gameweekMatches(grid, column(openingMatchday)).matches.length);
-  await expect(page.locator("#fixtures-title").locator("xpath=..")).toContainText(/\d+ matches? · Madrid time/); // kickoffs carry their time zone
-  await expect(page.locator(".bento")).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 1, name: `LaLiga round ${openingMatchday}` })).toBeVisible();
+  await expect(page.locator(".ll-g")).toHaveCount(gameweekMatches(grid, column(openingMatchday)).matches.length);
+  await expect(page.locator(".ll-sub")).toContainText("Madrid time"); // kickoffs carry their time zone
+  await expect(page.getByRole("article", { name: "Kindest games" }).locator("li")).toHaveCount(5);
+  await expect(page.getByRole("article", { name: "Clean sheets" }).locator("li")).toHaveCount(5);
+  await expect(page.locator(".rc-table tbody tr")).toHaveCount(grid.teams.length); // the table after the round
   await expect(page.locator(".board")).toHaveCount(0);
 
   // Back into a played gameweek: scores instead of kick-off times.
   await page.goto(`/fixtures?gw=${openingMatchday - 1}`);
-  await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${openingMatchday - 1} fixtures` })).toBeVisible();
-  await expect(page.locator(".fixture-middle.score").first()).toHaveText(/^\d+–\d+$/);
+  await expect(page.getByRole("heading", { level: 1, name: `LaLiga round ${openingMatchday - 1}` })).toBeVisible();
+  await expect(page.locator(".ll-g .when span").first()).toHaveText(/^\d+–\d+$/);
 });
 
 test("the Table tab shows the standings and a predicted final table", async ({ page }) => {
@@ -504,7 +507,7 @@ test("team names open the team page", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1, name: team.name })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Home and away" })).toBeVisible();
   await page.getByRole("link", { name: "← All fixtures" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Fixtures & Difficulty" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Who has the kindest run" })).toBeVisible();
 });
 
 test("an unknown team code is a 404 page", async ({ page }) => {
@@ -576,7 +579,7 @@ test("home: the week in the bar moves to a played gameweek and the round follows
   await expect(page.locator(".rc-head p")).toContainText(`LaLiga round ${past + 1}`);
   await page.locator(".rc-round").getByRole("link", { name: /All games/ }).click();
   await expect(page).toHaveURL(new RegExp(`/fixtures\\?gw=${past + 1}$`), { timeout: 30_000 });
-  await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${past + 1} fixtures` })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: `LaLiga round ${past + 1}` })).toBeVisible();
 });
 
 test("home: a Sorare-only week says LaLiga is away and identifies each player's real fixture", async ({ page, request }) => {
@@ -627,12 +630,14 @@ test("the board has no automatically detectable accessibility violations", async
     ["/difficulty?h=3&lens=odds", ".ladder-card .tile-price"],
     ["/difficulty?h=3&lens=defence&t=predicted", ".table-card .move"],
     [`/difficulty?gw=${openingMatchday - 2}`, ".gw-score"],
-    ["/fixtures", ".fixture-row"],
+    ["/fixtures", ".ll-g"],
     ["/table", "table.standings tbody tr"],
     ["/table?t=predicted", "table.standings.predicted tbody tr"],
   ] as const) {
     await page.goto(path);
     await expect(page.locator(ready).first()).toBeVisible();
+    // Contrast is read at rest: a hero still fading in is lighter than it will be.
+    await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running" || a.effect?.getTiming().iterations === Infinity));
     const scan = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
     expect(
       scan.violations.map((v) => `${path} ${v.id}: ${v.nodes.slice(0, 4).map((n) => `${n.target.join(" ")} (${n.any[0]?.message ?? ""})`).join("; ")}`),

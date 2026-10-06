@@ -53,7 +53,7 @@ test("Overview, Fixtures and Table fit a phone without sideways page scrolling",
     ["/difficulty?h=8", ".ladder-card .list-rows > li"],
     ["/difficulty?h=next&lens=odds", ".ladder-card .list-rows .next-line"],
     ["/difficulty?h=3", ".ladder-card .list-rows .tile"],
-    ["/fixtures", ".fixture-row"],
+    ["/fixtures", ".ll-g"],
     ["/season", ".season-round .fixture-row"],
     ["/table?t=predicted", "table.standings tbody tr"],
   ] as const) {

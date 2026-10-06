@@ -13,7 +13,9 @@ test.describe("the daily missions page", () => {
     await expect(root.getByRole("region", { name: "Interception - All Matches" })).toContainText("2+ interceptions");
     // Missions are daily and only today's are known: with none of the recording's cards playing today, each says so instead of offering another day.
     await expect(root.getByText("None of your cards with a game still to play today fits this one.").first()).toBeVisible();
-    await expect(root).not.toContainText("Tuesday");
+    // ...and never names another day (the heading names today, so the check is for tomorrow, whatever day this runs).
+    const tomorrow = new Intl.DateTimeFormat("en-GB", { weekday: "long", timeZone: "Europe/Madrid" }).format(new Date(Date.now() + 86_400_000));
+    await expect(root).not.toContainText(tomorrow);
   });
 
   test("fits a phone without a sideways scroll", async ({ page }) => {

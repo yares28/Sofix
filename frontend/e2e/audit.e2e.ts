@@ -14,11 +14,10 @@ test.beforeEach(async ({ page, request }) => {
 
 test("the page leads with how often the xScore picks the better of two, per position, now against the old number", async ({ page }) => {
   await page.goto("/audit");
-  await expect(page.getByRole("heading", { level: 1, name: "Audit" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "How often the xScore is right" })).toBeVisible();
+  await expect(page.locator(".ax-big")).toContainText("A coin flip gets 50."); // one number, said against a coin flip
 
-  const section = page.getByRole("region", { name: "How often Sofix picks the player who scored more" });
-  await expect(section).toContainText("A coin flip hits 50 times in 100.");
-  await expect(section).toContainText("One pair, for example"); // what the chart is about, shown with a pair
+  const section = page.getByRole("region", { name: "Pick the better of two" });
   const rows = section.getByRole("list", { name: /How often each position's xScore picks the better of two/ }).getByRole("listitem");
   await expect(rows).toHaveCount(4);
   await expect(rows.nth(0)).toContainText("Goalkeepers");
@@ -36,9 +35,12 @@ test("the league figures draw every chart from the committed replay: weeks, how 
   await expect(close.locator(".lg-hs i.mid")).toHaveCount(4);
   await expect(close).toContainText(league.miss.n.toLocaleString("en-GB"));
   await expect(page.getByRole("region", { name: /When Sofix says 30%/ }).locator(".lg-plot .pt")).not.toHaveCount(0);
-  await expect(page.getByRole("region", { name: /chance that a player starts, against who started/ }).locator(".lg-plot .pt")).not.toHaveCount(0);
   const vs = page.getByRole("list", { name: "Share of starts within 7 points" }).getByRole("listitem");
   await expect(vs).toHaveText([/^Sorare's projection/, /^Sofix before/, /^Sofix now/]);
+
+  // Sofix's chance that a player starts, against who started, leads Who starts (canvas board 7b).
+  await page.goto("/audit/starts");
+  await expect(page.getByRole("region", { name: /chance that a player starts, against who started/ }).locator(".lg-plot .pt")).not.toHaveCount(0);
 });
 
 test("each source says where it stands: nothing yet, nothing yet, or waiting for results, never a made-up figure", async ({ page }) => {
@@ -116,8 +118,12 @@ test("the switch under the top bar moves between xScore, Who starts and Written 
   await expect(lens.getByRole("link", { name: "xScore" })).toHaveAttribute("aria-current", "page");
   await lens.getByRole("link", { name: "Who starts" }).click();
   await expect(page).toHaveURL(/\/audit\/starts/);
-  await expect(page.getByRole("heading", { level: 1, name: "Who starts?" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Who starts, checked" })).toBeVisible();
   await lens.getByRole("link", { name: "Written down" }).click();
-  await expect(page).toHaveURL(/\/audit\/record/);
-  await expect(page.getByRole("heading", { level: 1, name: "Written down" })).toBeVisible();
+  await expect(page).toHaveURL(/\/audit\/starts#written/);
+  await expect(page.getByRole("heading", { level: 2, name: "Written down so far" })).toBeInViewport();
+
+  // An old link to the record page lands on the same section.
+  await page.goto("/audit/record");
+  await expect(page).toHaveURL(/\/audit\/starts#written/);
 });

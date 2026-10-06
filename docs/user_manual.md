@@ -181,9 +181,11 @@ definitions apply; the page does not run a separate club model.
 Play shows the latest published plan for the selected Sorare gameweek. It is built from the synced collection,
 competition rules, pre-lock forecasts and reward cutoffs.
 
-The header counts down to the lock ("Locks Wed 14:42, in 47 h"). The plan's first four lineups are drawn in full; any
-more are summed up in one line (how many, their average xScore, the best reward chance among them, and their most likely
-result) that opens into compact rows, each still opening its sheet. While the gameweek is the one being
+The hero counts down to the lock in large type ("2d 22h until the lock, Fri 9 Oct at 16:00"; after the games, the essence
+won), with the plan's facts under it: chance of a reward, most likely essence and cash, cards used. Beside it, "Your Sorare
+lineups" (what is actually entered) and Apply plan. Below, one "Sofix plan" tile holds the plan switch, where the cards go,
+and **every** lineup as a row: competition, its cards with the xScore under each in Sorare's colours, the team score with
+its range and the score needed, and the reward chance as a dial; each row opens its sheet. While the gameweek is the one being
 played, today's missions sit under the lineups with the cards that fit each (chance, opponent, kick-off and what he
 did over his last 5); the full Missions page is one click away.
 

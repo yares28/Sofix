@@ -36,54 +36,60 @@ export default function Lineup({
   const tone = chance >= 0.5 ? "" : chance >= 0.2 ? "mid" : "low";
   const won = after && lineup.actual ? lineup.actual.essence > 0 || lineup.actual.cash > 0 || lineup.actual.card : false;
 
+  const need = after && lineup.actual ? lineup.actual.need : lineup.need;
+  // One row of the plan, as the canvas draws it: the competition, the cards with their score, the team score, the reward.
   const face = (
     <>
       <span className={`pl-edge${lineup.rarity === "rare" ? " rare" : ""}`} aria-hidden="true" />
-      <span className="pl-lu-top">
+      <span className="pl-lu-c">
+        <span className="rk">{index + 1}</span>
         <span className="nm">{lineup.comp}</span>
-        <span className={`pl-group ${group}`}>
-          {lineup.group !== "Room" ? <SeasonIcon inSeason={lineup.group === "In-season"} /> : null}
-          {lineup.group}
+        <span className="pl-lu-tags">
+          <span className={`pl-group ${group}`}>
+            {lineup.group !== "Room" ? <SeasonIcon inSeason={lineup.group === "In-season"} /> : null}
+            {lineup.group}
+          </span>
+          <span className="pl-fmt">{formatOf(lineup)}</span>
         </span>
-        <span className="pl-fmt">{formatOf(lineup)}</span>
-        <Chevron className="hm-chev" />
+        {lineup.expected ? <span className="pl-exp">Expected · Sorare has not opened it yet</span> : null}
       </span>
-      <span className="pl-lu-main">
-        {after && lineup.actual ? (
-          <>
-            <span className="pl-kv">
-              <b>{lineup.actual.total}</b>
-              <span>{hindsight ? "scored" : `scored · xScore ${lineup.x}`}</span>
-            </span>
-            <span className={`pl-kv${won ? " good" : ""}`}>
-              <b>{lineup.actual.cash ? cashLabel(lineup.actual.cash) : essenceLabel(lineup.actual.essence)}</b>
-              <span>{lineup.actual.cash ? "cash won" : "essence won"}</span>
-            </span>
-          </>
-        ) : (
-          <>
-            <span className="pl-kv">
-              <b>{lineup.x}</b>
-              <span>xScore</span>
-            </span>
-            <span className="pl-kv">
-              <b>{chanceLabel(chance)}</b>
-              <span>reward chance</span>
-            </span>
-          </>
-        )}
-        {hindsight ? null : <RangeBar lineup={lineup} after={after} />}
-      </span>
-      {after ? null : (
-        <span className={`pl-meter ${tone}`.trim()} role="img" aria-label={`${chanceLabel(chance)} chance of a reward`}>
-          <i style={{ width: `${Math.round(chance * 100)}%` }} />
-        </span>
-      )}
-      {lineup.expected ? <span className="pl-exp">Expected · Sorare has not opened it yet</span> : null}
       <MiniCards lineup={lineup} after={after} />
-      <span className="pl-lu-foot">
-        <RewardChips lineup={lineup} after={after} />
-        <span className="pl-note">{paysNote(lineup)}</span>
+      <span className="pl-lu-score">
+        {after && lineup.actual ? (
+          <span className="pl-kv">
+            <b>{lineup.actual.total}</b>
+            <span>{hindsight ? "scored" : `scored · xScore ${lineup.x}`}</span>
+          </span>
+        ) : (
+          <span className="pl-kv">
+            <b>{lineup.x}</b>
+            <span>
+              {lineup.lo} to {lineup.hi}
+            </span>
+          </span>
+        )}
+        {need && !hindsight ? (
+          <span className="need">
+            {lineup.group === "Room" ? "3rd needs" : after ? "needed" : "needs"} <em>{need}</em>
+          </span>
+        ) : null}
+      </span>
+      <span className="pl-lu-rew">
+        <span
+          className={`pl-dial ${after ? (won ? "won" : "low") : tone}`.trim()}
+          style={{ ["--p" as string]: `${Math.round((after ? (won ? 1 : 0) : chance) * 100)}%` }}
+          role="img"
+          aria-label={after ? (won ? "paid" : "no reward") : `${chanceLabel(chance)} chance of a reward`}
+        >
+          <span className="pl-kv">
+            <b>{after ? (won ? "✓" : "–") : chanceLabel(chance)}</b>
+          </span>
+        </span>
+        <span className="pl-lu-foot">
+          <RewardChips lineup={lineup} after={after} />
+          <span className="pl-note">{paysNote(lineup)}</span>
+        </span>
+        <Chevron className="hm-chev" />
       </span>
     </>
   );

@@ -140,8 +140,11 @@ test("entered Sorare lineups sit at the top of the gameweek they belong to", asy
   await expect(lineup.locator(".pl-entered-card .cap")).toHaveCount(1);
   await expect(lineup.locator(".pl-entered-card .sc").first()).toHaveText("40");
 
-  const children = await page.locator(".pl-main > *").evaluateAll((nodes) => nodes.map((node) => node.className));
-  expect(children.indexOf("pl-entered")).toBeLessThan(children.indexOf("pl-plans"));
+  // In the hero, beside the countdown, and above Sofix's plan.
+  const aboveThePlan = await page.locator(".pl-entered").evaluate((node) =>
+    Boolean(node.compareDocumentPosition(document.querySelector(".pl-board")!) & Node.DOCUMENT_POSITION_FOLLOWING),
+  );
+  expect(aboveThePlan).toBe(true);
 
   await page.goto(`/?w=${timelineOnly.id}`);
   const home = page.getByRole("region", { name: "Your Sorare lineups" });
@@ -171,16 +174,15 @@ test("the gameweek opens on its best plan: the ring, both rewards and every line
   await expect(plans.getByRole("link").first()).toHaveAttribute("aria-current", "page");
   await expect(plans.getByRole("link").first()).toContainText("best");
 
-  const hero = page.locator(".pl-hero");
-  await expect(hero.getByRole("heading", { level: 2, name: "3 lineups" })).toBeVisible();
-  await expect(hero.getByRole("img", { name: "85% any reward" })).toBeVisible();
+  const facts = page.locator(".pl-facts .pl-fact");
+  await expect(page.locator(".pl-board-note")).toContainText("3 lineups");
+  await expect(facts.nth(0)).toHaveText("85% chance of a reward");
   // A reward is all or nothing: the most likely result is to win nothing and pay the Room's 300 to enter.
-  await expect(hero.locator(".pl-pair b").first()).toHaveText("−300");
-  await expect(hero.locator(".pl-pair small").first()).toHaveText("most likely · 25% chance");
-  await expect(hero.locator(".pl-pair b").last()).toHaveText("$0");
+  await expect(facts.nth(1)).toHaveText("−300 essence most likely · 25% chance");
+  await expect(facts.nth(2)).toContainText("$0 cash most likely");
   await expect(plans.getByRole("link").first()).toContainText("85% · likely −300 essence");
-  await expect(hero.locator(".pl-side")).toContainText("19 of 38 cards used");
-  await expect(hero.locator(".pl-alloc-key li")).toHaveText([
+  await expect(facts.last()).toHaveText("19 of 38 cards used");
+  await expect(page.locator(".pl-board .pl-alloc-key li")).toHaveText([
     "LALIGA EA SPORTS7 cards",
     "All Star7 cards",
     "Room of 105 cards",
@@ -210,9 +212,9 @@ test("another plan is one click away, and spreads the cards differently", async 
   await plans.getByRole("link", { name: /^Plan 2/ }).click();
   await expect(page).toHaveURL(/\/play\?plan=2$/);
   await expect(plans.getByRole("link", { name: /^Plan 2/ })).toHaveAttribute("aria-current", "page");
-  await expect(page.locator(".pl-hero").getByRole("heading", { level: 2, name: "2 lineups" })).toBeVisible();
+  await expect(page.locator(".pl-board-note")).toContainText("2 lineups");
   await expect(page.locator(".pl-lu")).toHaveCount(2);
-  await expect(page.locator(".pl-hero .pl-alloc-key li")).toHaveText([
+  await expect(page.locator(".pl-board .pl-alloc-key li")).toHaveText([
     "LALIGA EA SPORTS7 cards",
     "All Star7 cards",
     "Not used24 cards",
@@ -349,12 +351,10 @@ test("the gameweek that was played shows what each lineup really scored and won"
 
   await page.getByRole("group", { name: "Show" }).getByRole("link", { name: "After the games" }).click();
   await expect(page).toHaveURL(/after=1$/);
-  const hero = page.locator(".pl-hero");
-  await expect(hero.getByRole("img", { name: "50% lineups paid" })).toBeVisible();
-  await expect(hero.locator(".pl-side")).toContainText("1 of 2 lineups paid");
-  await expect(hero.locator(".pl-side")).toContainText("1 of 2 inside the range");
-  await expect(hero.locator(".pl-pair b").first()).toHaveText("250");
-  await expect(hero.locator(".pl-pair small").first()).toHaveText("most likely was 0");
+  const facts = page.locator(".pl-facts");
+  await expect(facts).toContainText("1 of 2 lineups paid");
+  await expect(facts).toContainText("1 of 2 inside the range");
+  await expect(facts.locator(".pl-fact").nth(2)).toHaveText("250 essence won · most likely was 0");
 
   const first = page.locator(".pl-lu").first();
   await expect(first.locator(".pl-kv b").first()).toHaveText("313");
@@ -449,12 +449,10 @@ test("a week the job kept apart opens as the week that was played, with the best
   await expect(tabs).toHaveCount(3);
   await tabs.last().click();
   await expect(page).toHaveURL(/plan=3/);
-  const hero = page.locator(".pl-hero");
-  await expect(hero.locator(".pl-eyebrow").first()).toHaveText("The best lineups in hindsight");
-  await expect(hero.locator(".pl-side")).toContainText("2 of 2 lineups paid");
-  await expect(hero.locator(".pl-side")).toContainText("knowing every score, with your cards today");
-  await expect(hero.locator(".pl-pair b").first()).toHaveText("500");
-  await expect(hero.locator(".pl-pair small").first()).toHaveText("the most Sofix found it could have won");
+  await expect(page.locator(".pl-board-note")).toHaveText("The best lineups in hindsight, knowing every score, with your cards today");
+  const facts = page.locator(".pl-facts");
+  await expect(facts).toContainText("2 of 2 lineups paid");
+  await expect(facts.locator(".pl-fact").nth(1)).toHaveText("500 essence won · the most Sofix found it could have won");
   const first = page.locator(".pl-lu").first();
   await expect(first).toContainText("scored");
   await expect(first).not.toContainText("xScore");
@@ -471,7 +469,7 @@ test("the week just played on the page has the same best lineups in hindsight", 
   await page.locator(".wk-panel").getByRole("radio", { name: /GW15\b/ }).click();
   await page.getByRole("group", { name: "Show" }).getByRole("link", { name: "After the games" }).click();
   await page.getByRole("navigation", { name: "Plan" }).getByRole("link", { name: /In hindsight/ }).click();
-  await expect(page.locator(".pl-hero .pl-pair b").first()).toHaveText("500");
+  await expect(page.locator(".pl-facts .pl-fact").nth(1)).toContainText("500 essence won");
 });
 
 test("a LaLiga round Sorare has not opened opens as an early plan that says so and cannot be entered", async ({ page, request }) => {
@@ -492,7 +490,7 @@ test("a LaLiga round Sorare has not opened opens as an early plan that says so a
   // One plan, and nothing here reaches Sorare: no Apply, and no lineups of yours to read for a gameweek that does not exist.
   await expect(page.getByRole("button", { name: "Apply plan" })).toHaveCount(0);
   await expect(page.getByRole("region", { name: "Your Sorare lineups" })).toHaveCount(0);
-  await expect(page.locator(".pl-hero")).toBeVisible();
+  await expect(page.locator(".pl-board")).toBeVisible();
   const tabs = page.getByRole("navigation", { name: "Plan" }).getByRole("link");
   await expect(tabs).toHaveCount(1);
 
@@ -646,7 +644,7 @@ test("the early plan of a round Sorare has not opened says its competitions are 
   expect(early, "the mock serves an early plan").toBeTruthy();
   await page.goto(`/play?w=${early!.id}`);
 
-  const note = page.locator(".pl-alert.early");
+  const note = page.locator(".pl-early");
   await expect(note).toContainText("LaLiga competitions Sorare opened for the last finished week like it");
   await expect(note).toContainText("Built on form, so later weeks look alike until Sorare opens them");
   const lineups = page.locator(".pl-lu");

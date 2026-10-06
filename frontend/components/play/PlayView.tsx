@@ -79,9 +79,37 @@ export default function PlayView({
   };
 
   const sync = after || week.projected ? null : syncState(data, week, now);
+  const showModes = week.played && week.plans.length > 0;
   return (
     <main className="pl-main">
-      <Head data={data} week={week} after={after} href={href} now={now} sync={sync} dates={dates ?? null} title={title ?? null} />
+      <section className="pl-top">
+        <div className={`pl-intro${sync?.behind ? " behind" : ""}`}>
+          <Head data={data} week={week} now={now} sync={sync} dates={dates ?? null} title={title ?? null} />
+          <Big week={week} plan={plan} after={after} now={now} />
+          {plan ? <PlanFacts plan={plan} after={after} /> : null}
+        </div>
+        <aside className="pl-onsorare" aria-label="On Sorare">
+          {week.projected ? (
+            <div className="pl-early" role="status">
+              <p className="pl-eyebrow">On Sorare · not open yet</p>
+              <h2>An early plan</h2>
+              <p>
+                {week.projected.expected
+                  ? `Sorare hasn't opened this week. Built from LaLiga's calendar, your cards' form and the LaLiga competitions Sorare opened for the last finished week like it, which it is expected to open again. Built on form, so later weeks look alike until Sorare opens them; it moves as the week gets closer, and nothing here can be entered yet.`
+                  : "Sorare hasn't opened this week, and there is no finished week of its kind to copy its competitions from. Built from LaLiga's calendar and your cards' form; it moves as the week gets closer, and nothing here can be entered yet."}
+              </p>
+            </div>
+          ) : (
+            <EnteredLineups week={week.gameweek} />
+          )}
+          {plan && !after && !week.projected ? (
+            <div className="pl-apply">
+              <ApplySheet lineups={enterable(plan.lineups)} week={week} rank={plan.rank} now={now.toISOString()} />
+              <span>Check, then Draft, then Enter: nothing goes on Sorare until you say so</span>
+            </div>
+          ) : null}
+        </aside>
+      </section>
       {sync?.alert ? (
         <div className={`pl-alert ${sync.state}`} role="status">
           <span aria-hidden="true">{sync.state === "cloudless" ? "!" : "⟳"}</span>
@@ -94,19 +122,6 @@ export default function PlayView({
           </Link>
         </div>
       ) : null}
-      {week.projected ? (
-        <div className="pl-alert early" role="status">
-          <span aria-hidden="true">≈</span>
-          <div>
-            <b>An early plan</b>
-            {week.projected.expected
-              ? `Sorare hasn't opened this week. Built from LaLiga's calendar, your cards' form and the LaLiga competitions Sorare opened for the last finished week like it, which it is expected to open again. Built on form, so later weeks look alike until Sorare opens them; it moves as the week gets closer, and nothing here can be entered yet.`
-              : "Sorare hasn't opened this week, and there is no finished week of its kind to copy its competitions from. Built from LaLiga's calendar and your cards' form; it moves as the week gets closer, and nothing here can be entered yet."}
-          </div>
-        </div>
-      ) : (
-        <EnteredLineups week={week.gameweek} />
-      )}
       {!week.projected && week.playable.some((option) => option.expected) ? (
         <div className="pl-alert early" role="status">
           <span aria-hidden="true">≈</span>
@@ -118,22 +133,39 @@ export default function PlayView({
         </div>
       ) : null}
       {plan ? (
-        <>
-          <PlanSwitch plans={plans} planIndex={planIndex} after={after} href={href} />
-          <div className={sync?.behind ? "behind" : undefined}>
-            <PlanHero plan={plan} week={week} after={after} now={now} />
+        <section className={`pl-board${sync?.behind ? " behind" : ""}`} aria-labelledby="pl-board-title">
+          <div className="pl-board-head">
+            <h2 id="pl-board-title">Sofix plan</h2>
+            <PlanSwitch plans={plans} planIndex={planIndex} after={after} href={href} />
+            <span className="pl-board-note">
+              {plan.hindsight
+                ? "The best lineups in hindsight, knowing every score, with your cards today"
+                : `Plan ${plan.rank} of ${week.plans.length} · ${plan.lineups.length} lineup${plan.lineups.length === 1 ? "" : "s"}${week.projected ? " · early plan" : ""}`}
+            </span>
+            {showModes ? (
+              <div className="pl-mode" role="group" aria-label="Show">
+                <Link href={href({ after: false })} aria-current={after ? undefined : "page"} scroll={false} prefetch={false}>
+                  Before the lock
+                </Link>
+                <Link href={href({ after: true })} aria-current={after ? "page" : undefined} scroll={false} prefetch={false}>
+                  After the games
+                </Link>
+              </div>
+            ) : null}
           </div>
-          <div className="pl-sec">
-            <h2>Lineups</h2>
-            <span>{after ? "what each scored and won" : "open one for the cards, subs and rewards"}</span>
+          <Allocation plan={plan} />
+          <div className="pl-cols" aria-hidden="true">
+            <span>Competition</span>
+            <span>{after ? "Cards, score under each" : "Cards, xScore under each"}</span>
+            <span>Team score</span>
+            <span>{after ? "Won" : "Reward chance"}</span>
           </div>
-          <div className={`pl-lus${sync?.behind ? " behind" : ""}`}>
-            {plan.lineups.slice(0, SHOWN).map((lineup, index) => (
+          <div className="pl-lus">
+            {plan.lineups.map((lineup, index) => (
               <Lineup key={`${lineup.key}-${index}`} lineup={lineup} after={after} index={index} hindsight={plan.hindsight === true} players={week.playing.players} />
             ))}
           </div>
-          {plan.lineups.length > SHOWN ? <MoreLineups plan={plan} after={after} players={week.playing.players} behind={sync?.behind === true} /> : null}
-        </>
+        </section>
       ) : (
         <Waiting week={week} now={now} />
       )}
@@ -146,8 +178,6 @@ export default function PlayView({
 function Head({
   data,
   week,
-  after,
-  href,
   now,
   sync,
   dates,
@@ -155,8 +185,6 @@ function Head({
 }: {
   data: Sorare;
   week: GameweekPlan;
-  after: boolean;
-  href: (options: { gw?: string; plan?: number; after?: boolean }) => string;
   now: Date;
   sync: ReturnType<typeof syncState>;
   dates: string | null;
@@ -173,85 +201,171 @@ function Head({
         : "Sorare · your gameweek";
   return (
     <header className="pl-head">
-      <div>
-        <p className="pl-eyebrow">
-          <Foil rarity="limited" className="sm" />
-          {eyebrow}
-        </p>
-        <h1>{title ?? (week.projected ? week.gameweek.name : `Sorare GW${week.gameweek.number}`)}</h1>
-        <p className="pl-sub">
-          <span>
-            {weekday(start)} {dates ?? span(start, end)}
+      <p className="pl-eyebrow">
+        <Foil rarity="limited" className="sm" />
+        {eyebrow}
+      </p>
+      <h1>{title ?? (week.projected ? week.gameweek.name : `Sorare GW${week.gameweek.number}`)}</h1>
+      <p className="pl-sub">
+        <span>
+          {weekday(start)} {dates ?? span(start, end)}
+        </span>
+        <span className="dot" />
+        <span className={`pl-lock${locked ? "" : " live"}`}>{lockText(lock, now)}</span>
+        {sync ? (
+          <span className={`pl-chip ${sync.state}`}>
+            <i />
+            {sync.chip}
           </span>
-          <span className="dot" />
-          <span className={`pl-lock${locked ? "" : " live"}`}>{lockText(lock, now)}</span>
-          {sync ? (
-            <span className={`pl-chip ${sync.state}`}>
-              <i />
-              {sync.chip}
-            </span>
-          ) : data.generatedAt ? (
-            <>
-              <span className="dot" />
-              <span>updated {freshLabel(data.generatedAt, now)}</span>
-            </>
-          ) : null}
-        </p>
-      </div>
-      {week.played && week.plans.length ? (
-        <div className="pl-mode" role="group" aria-label="Show">
-          <Link href={href({ after: false })} aria-current={after ? undefined : "page"} scroll={false} prefetch={false}>
-            Before the lock
-          </Link>
-          <Link href={href({ after: true })} aria-current={after ? "page" : undefined} scroll={false} prefetch={false}>
-            After the games
-          </Link>
-        </div>
-      ) : null}
+        ) : data.generatedAt ? (
+          <>
+            <span className="dot" />
+            <span>updated {freshLabel(data.generatedAt, now)}</span>
+          </>
+        ) : null}
+      </p>
     </header>
   );
 }
 
-
-/** Lineups drawn in full; the rest are summed up in one line and open as compact rows. */
-const SHOWN = 4;
-
-function MoreLineups({ plan, after, players, behind }: { plan: Plan; after: boolean; players: GameweekPlan["playing"]["players"]; behind: boolean }) {
-  const rest = plan.lineups.slice(SHOWN);
-  const x = Math.round(rest.reduce((sum, l) => sum + l.x, 0) / rest.length);
-  const best = Math.max(...rest.map((l) => l.pReturn));
-  const won = rest.reduce((sum, l) => sum + (l.actual?.essence ?? 0), 0);
-  return (
-    <details className={`pl-more${behind ? " behind" : ""}`}>
-      <summary>
+/** The one big number of the page: the time left to the lock, or once the games are in, what the plan won. */
+function Big({ week, plan, after, now }: { week: GameweekPlan; plan: Plan | undefined; after: boolean; now: Date }) {
+  const lock = week.gameweek.lock;
+  const left = timeUntil(lock, now);
+  if (!left.past) {
+    return (
+      <div className="pl-bignum">
         <b>
-          {rest.length} more lineup{rest.length === 1 ? "" : "s"}
+          {left.days ? (
+            <>
+              {left.days}
+              <small>d</small>
+            </>
+          ) : null}
+          {left.hours}
+          <small>h</small>
+          {left.days ? null : (
+            <>
+              {left.minutes}
+              <small>m</small>
+            </>
+          )}
         </b>
         <span>
-          xScore <strong>{x}</strong> on average
+          until the lock,
+          <br />
+          {weekday(lock)} {day(lock)} {month(lock)} at {clock(lock)}
         </span>
-        {after ? null : (
-          <span>
-            best reward chance <strong>{chanceLabel(best)}</strong>
+      </div>
+    );
+  }
+  if (after && plan?.actual) {
+    return (
+      <div className="pl-bignum">
+        <b>{essenceLabel(plan.actual.essence)}</b>
+        <span>
+          essence won
+          {plan.actual.cash ? (
+            <>
+              <br />
+              and {cashLabel(plan.actual.cash)} in cash
+            </>
+          ) : null}
+        </span>
+      </div>
+    );
+  }
+  return null;
+}
+
+/** What the plan is worth, as the hero's row of facts: before the games its chances, after them what it won. */
+function PlanFacts({ plan, after }: { plan: Plan; after: boolean }) {
+  const likely = likelyResult(plan);
+  const actual = after ? plan.actual : undefined;
+  const n = plan.lineups.length;
+  return (
+    <div className="pl-facts" aria-live="polite">
+      {actual ? (
+        <>
+          <span className="pl-fact">
+            <strong>
+              {actual.paid} of {n}
+            </strong>{" "}
+            lineups paid
           </span>
-        )}
-        {after ? (
-          <span>
-            <strong>{essenceLabel(won)}</strong> essence won
+          {plan.hindsight ? null : (
+            <span className="pl-fact">
+              <strong>
+                {insideRange(plan)} of {n}
+              </strong>{" "}
+              inside the range
+            </span>
+          )}
+          <span className="pl-fact">
+            <Essence /> <strong>{essenceLabel(actual.essence)}</strong> essence won ·{" "}
+            {plan.hindsight ? "the most Sofix found it could have won" : `most likely was ${essenceLabel(likely.essence)}`}
           </span>
-        ) : (
-          <span>
-            most likely <strong>{resultLabel(likelyResult({ lineups: rest }))}</strong>
+          <span className="pl-fact">
+            <Cash /> <strong>{cashLabel(actual.cash)}</strong> cash won · {plan.hindsight ? "Rooms not counted" : `most likely was ${cashLabel(likely.cash)}`}
           </span>
-        )}
-        <Chevron className="" />
-      </summary>
-      <div className="pl-lus compact">
-        {rest.map((lineup, index) => (
-          <Lineup key={`${lineup.key}-${index}`} lineup={lineup} after={after} index={SHOWN + index} hindsight={plan.hindsight === true} players={players} />
+        </>
+      ) : (
+        <>
+          <span className="pl-fact">
+            <strong>{chanceLabel(plan.pAny)}</strong> chance of a reward
+          </span>
+          <span className="pl-fact">
+            <Essence /> <strong>{essenceLabel(likely.essence)}</strong> essence most likely · {chanceLabel(likely.p)} chance
+          </span>
+          <span className="pl-fact">
+            <Cash /> <strong>{cashLabel(likely.cash)}</strong> cash most likely · never converted
+          </span>
+        </>
+      )}
+      <span className="pl-fact">
+        <strong>{plan.cardsUsed}</strong> of {plan.cardsAvailable} cards used
+      </span>
+    </div>
+  );
+}
+
+/** Where the plan's cards go, competition by competition, as one thin bar and its key. */
+function Allocation({ plan }: { plan: Plan }) {
+  const parts = allocation(plan);
+  const counts = new Map<string, { group: string; lineups: number; cards: number }>();
+  for (const lineup of plan.lineups) {
+    const entry = counts.get(lineup.comp) ?? { group: lineup.group, lineups: 0, cards: 0 };
+    entry.lineups += 1;
+    entry.cards += lineup.starters.length + lineup.subs.length;
+    counts.set(lineup.comp, entry);
+  }
+  return (
+    <div className="pl-alloc">
+      <div className="pl-alloc-bar" role="img" aria-label="Cards by competition">
+        {parts.map((part) => (
+          <i key={part.group} style={{ flex: part.cards, background: GROUP_COLOUR[part.group] }} />
         ))}
       </div>
-    </details>
+      <ul className="pl-alloc-key">
+        {[...counts.entries()].map(([name, entry]) => (
+          <li key={name}>
+            <i style={{ background: GROUP_COLOUR[entry.group as keyof typeof GROUP_COLOUR] }} />
+            <b>
+              {name}
+              {entry.lineups > 1 ? ` ×${entry.lineups}` : ""}
+            </b>
+            <span>{entry.cards} cards</span>
+          </li>
+        ))}
+        {plan.cardsAvailable > plan.cardsUsed ? (
+          <li>
+            <i style={{ background: GROUP_COLOUR.Unused }} />
+            <b style={{ fontWeight: 500, color: "var(--ink-2)" }}>Not used</b>
+            <span>{plan.cardsAvailable - plan.cardsUsed} cards</span>
+          </li>
+        ) : null}
+      </ul>
+    </div>
   );
 }
 
@@ -299,156 +413,6 @@ function PlanSwitch({
         </Link>
       ))}
     </nav>
-  );
-}
-
-function PlanHero({ plan, week, after, now }: { plan: Plan; week: GameweekPlan; after: boolean; now: Date }) {
-  const parts = allocation(plan);
-  const counts = new Map<string, { group: string; lineups: number; cards: number }>();
-  for (const lineup of plan.lineups) {
-    const entry = counts.get(lineup.comp) ?? { group: lineup.group, lineups: 0, cards: 0 };
-    entry.lineups += 1;
-    entry.cards += lineup.starters.length + lineup.subs.length;
-    counts.set(lineup.comp, entry);
-  }
-  const ringValue = after && plan.actual ? plan.actual.paid / Math.max(plan.lineups.length, 1) : plan.pAny;
-  const ringLabel = after ? "lineups paid" : "any reward";
-  const likely = likelyResult(plan);
-  return (
-    <section className="pl-hero" aria-live="polite">
-      <div className="pl-id">
-        <p className="pl-eyebrow" style={{ margin: 0 }}>
-          {plan.hindsight ? "The best lineups in hindsight" : `Plan ${plan.rank} of ${week.plans.length}`}
-        </p>
-        <div className="pl-name">
-          <Foil rarity="limited" className="lg" />
-          <h2>
-            {plan.lineups.length} lineup{plan.lineups.length === 1 ? "" : "s"}
-          </h2>
-        </div>
-        <div className="pl-ring-row">
-          <RingBlock value={ringValue} label={ringLabel} />
-          <div className="pl-side">
-            {after && plan.actual ? (
-              <>
-                <span>
-                  <b>
-                    {plan.actual.paid} of {plan.lineups.length}
-                  </b>{" "}
-                  lineups paid
-                </span>
-                {plan.hindsight ? (
-                  <span>knowing every score, with your cards today</span>
-                ) : (
-                  <span>
-                    <b>
-                      {insideRange(plan)} of {plan.lineups.length}
-                    </b>{" "}
-                    inside the range
-                  </span>
-                )}
-              </>
-            ) : (
-              <span>
-                <b>{plan.cardsUsed}</b> of {plan.cardsAvailable} cards used
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="pl-nums">
-        <div className="pl-pair">
-          <div className={after ? "won" : ""}>
-            <span className="lbl">
-              <Essence /> Essence{after ? " won" : ""}
-            </span>
-            <b>{essenceLabel(after && plan.actual ? plan.actual.essence : likely.essence)}</b>
-            <small>
-              {plan.hindsight
-                ? "the most Sofix found it could have won"
-                : after
-                  ? `most likely was ${essenceLabel(likely.essence)}`
-                  : `most likely · ${chanceLabel(likely.p)} chance`}
-            </small>
-          </div>
-          <div className={after ? "won" : ""}>
-            <span className="lbl">
-              <Cash /> Cash{after ? " won" : ""}
-            </span>
-            <b>{cashLabel(after && plan.actual ? plan.actual.cash : likely.cash)}</b>
-            <small>{plan.hindsight ? "Rooms not counted" : after ? `most likely was ${cashLabel(likely.cash)}` : "most likely · never converted"}</small>
-          </div>
-        </div>
-        <div className="pl-actions">
-          {after || week.projected ? null : (
-            <ApplySheet lineups={enterable(plan.lineups)} week={week} rank={plan.rank} now={now.toISOString()} />
-          )}
-        </div>
-      </div>
-
-      <div className="pl-alloc">
-        <span className="pl-subhead">
-          <span>Where your cards go</span>
-          <span>
-            {plan.cardsUsed} / {plan.cardsAvailable}
-          </span>
-        </span>
-        <div className="pl-alloc-bar" role="img" aria-label="Cards by competition">
-          {parts.map((part) => (
-            <i key={part.group} style={{ flex: part.cards, background: GROUP_COLOUR[part.group] }} />
-          ))}
-        </div>
-        <ul className="pl-alloc-key">
-          {[...counts.entries()].map(([name, entry]) => (
-            <li key={name}>
-              <i style={{ background: GROUP_COLOUR[entry.group as keyof typeof GROUP_COLOUR] }} />
-              <b>
-                {name}
-                {entry.lineups > 1 ? ` ×${entry.lineups}` : ""}
-              </b>
-              <span>{entry.cards} cards</span>
-            </li>
-          ))}
-          {plan.cardsAvailable > plan.cardsUsed ? (
-            <li>
-              <i style={{ background: GROUP_COLOUR.Unused }} />
-              <b style={{ fontWeight: 500, color: "var(--ink-2)" }}>Not used</b>
-              <span>{plan.cardsAvailable - plan.cardsUsed} cards</span>
-            </li>
-          ) : null}
-        </ul>
-      </div>
-    </section>
-  );
-}
-
-function RingBlock({ value, label }: { value: number; label: string }) {
-  const circumference = 2 * Math.PI * 50;
-  const tone = value >= 0.5 ? "" : value >= 0.2 ? "mid" : "low";
-  return (
-    <div className={`pl-ring ${tone}`.trim()} role="img" aria-label={`${chanceLabel(value)} ${label}`}>
-      <svg viewBox="0 0 116 116">
-        <circle className="trk" cx="58" cy="58" r="50" fill="none" strokeWidth="10" />
-        <circle
-          className="bar"
-          cx="58"
-          cy="58"
-          r="50"
-          fill="none"
-          strokeWidth="10"
-          strokeDasharray={circumference}
-          strokeDashoffset={circumference * (1 - value)}
-        />
-      </svg>
-      <div className="val">
-        <b>
-          {Math.round(value * 100)}
-          <small>%</small>
-        </b>
-        <span>{label}</span>
-      </div>
-    </div>
   );
 }
 
@@ -578,7 +542,7 @@ function Folds({ week }: { week: GameweekPlan }) {
         </details>
       ) : null}
 
-      <details className="pl-fold" open>
+      <details className="pl-fold">
         <summary>
           How subs and plans work
           <Chevron className="" />

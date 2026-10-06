@@ -1,6 +1,7 @@
 import type { Group, Lineup, PlayCard } from "../../lib/play";
 import SorareImage from "./SorareImage";
 import { chanceLabel, formatOf, rangeScale, rewardChips } from "../../lib/play";
+import { scoreColour } from "../../lib/cards";
 import SeasonIcon from "../SeasonIcon";
 
 /** Small shared pieces of the Play page: the icons, the foil chip, the ring, the range bar and the card art. */
@@ -140,20 +141,21 @@ export function MiniCards({ lineup, after }: { lineup: Lineup; after: boolean })
         </span>
         {entry.captain ? <i className="c">C</i> : null}
         {entry.inSeason ? <i className="is"><SeasonIcon inSeason size={8} /></i> : null}
-        {after && !isSub ? (
-          entry.actual === null ? (
-            <span className="sc dnp">DNP</span>
+        {/* before the games the card's xScore, after them what it scored (a sub only if it came in), in Sorare's band colour */}
+        {after ? (
+          isSub && !joined ? null : entry.actual === null ? (
+            <span className="hx dnp">DNP</span>
           ) : (
-            <span className="sc" style={{ background: scoreColour(entry.actual) }}>
+            <span className="hx" style={{ background: scoreColour(entry.actual).fill, color: scoreColour(entry.actual).ink }}>
               {Math.round(entry.actual)}
             </span>
           )
-        ) : null}
-        {after && joined && entry.actual !== null ? (
-          <span className="sc" style={{ background: "var(--accent, #0071e3)" }}>
-            {Math.round(entry.actual)}
+        ) : (
+          <span className="hx" style={{ background: scoreColour(entry.x).fill, color: scoreColour(entry.x).ink }}>
+            {Math.round(entry.x)}
           </span>
-        ) : null}
+        )}
+        <span className="nm">{entry.name}</span>
       </span>
     );
   };
@@ -169,14 +171,6 @@ export function MiniCards({ lineup, after }: { lineup: Lineup; after: boolean })
       ) : null}
     </div>
   );
-}
-
-function scoreColour(score: number): string {
-  if (score >= 70) return "#2b8a3e";
-  if (score >= 55) return "#37b24d";
-  if (score >= 40) return "#e0b000";
-  if (score >= 25) return "#fd7e14";
-  return "#fa5252";
 }
 
 export function RewardChips({ lineup, after }: { lineup: Lineup; after: boolean }) {

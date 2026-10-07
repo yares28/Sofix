@@ -31,6 +31,13 @@ The Sorare plan uses the same start chances as the Sofix plan; only the expected
 
 **Hard date.** GW21 (LaLiga round 8) locks Fri 9 Oct 14:00 UTC; both numbers and both plans have to be written down before it.
 
+**Status (7 Oct).** Shipped in PRs #62 to #64: B1 (the app wakes a sleeping extension; Check again and Load always there), B2 (Rooms only
+when they pay back the fee, shown as "to enter"), B3 (Sorare's projection per game), B4, B5 (`ff_news` merges), N1 (each card says whose
+number it uses), N2 (one joint simulation per plan), N3 (seeded dice), N4 (XP as its own tier), the Sofix/Sorare plan switch, the essence
+order, and the Audit's Sorare vs Sofix record (`score_record`, `/audit/versus`). **Still open:** the frozen plans scored against the real
+cut-offs, splitting the 439 KB `market` out of the `sorare` read model, and N5. The versus figures need about 100 settled starts
+(from about 11-14 Oct).
+
 ### Broken
 - **B1 · "Your Sorare lineups".** The wiring checks out (extension id, origins, slug, message names). Likely causes, to confirm
   live: Sorare refuses `SofixFixtureLineups` when the request goes out without your session (depth 8 > 7, complexity 686 > 500
@@ -128,7 +135,7 @@ roadmap's batch 9.
 - **Until it ships** I start a refresh by hand before round 8's lock (Fri 9 Oct, 16:00 Madrid) and one after it.
 - **When.** Release 1 (roadmap 9.8), built as the first way.
 
-### D · Pin GitHub's machine version before 19 Oct (item 7, approved 3 Oct)
+### D · Pin GitHub's machine version before 19 Oct (item 7, approved 3 Oct) — *done 7 Oct*
 - **The issue.** The three workflow files say `ubuntu-latest`, which becomes Ubuntu 26 on 19 Oct, so the refresh could break that day.
 - **The fix.** `ubuntu-24.04` in `ci.yml`, `refresh.yml` and `near-lock.yml`. Free.
 - **When.** Release 1 (roadmap 9.9), before 19 Oct.

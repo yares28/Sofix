@@ -355,7 +355,7 @@
   .lu-match-head { padding: 28px 20px 24px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .lu * { transition: none !important; animation: none !important; }
+  .lu *:not(.lu-face) { transition: none !important; animation: none !important; } /* the card zoom stays (player.css) */
 }
 
 /* Lineups' own tones and pitch in the dark theme. */

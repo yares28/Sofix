@@ -15,7 +15,7 @@ concurrency:
 jobs:
   backend:
     name: Backend (ruff, mypy, pytest)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: backend
@@ -57,7 +57,7 @@ jobs:
 
   frontend:
     name: Frontend (eslint, tsc, vitest)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: frontend
@@ -92,7 +92,7 @@ jobs:
 
   e2e:
     name: End-to-end (Playwright, mock API)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: frontend
     timeout-minutes: 20
     defaults:

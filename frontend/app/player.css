@@ -164,8 +164,10 @@
   }
   :is(.rc-art, .s5-pc .art, .s5-res .art, .ms-pick .art, .pl-mc .art, .pl-pc .art, .ap-pc .art, .lu-face, .pd-pic, .ow-card, .hm-nw-face):hover::after,
   .lu-card:is(:hover, :focus-within) .lu-face::after { animation: card-sweep 900ms ease-out; }
-  /* On Lineups a link covers the whole card, so the card's hover grows its picture. */
+  /* On Lineups a link covers the whole card, so the card's hover grows its picture. Its picture fills the card absolutely:
+     the rule above's `relative` would collapse it to nothing; grown, it must not take the link's click. */
   .lu-card:is(:hover, :focus-within) { z-index: 5; }
+  .lu-card:is(:hover, :focus-within) .lu-face, .lu-card .lu-face:hover { position: absolute; pointer-events: none; }
   /* The score hexagon and the rank badge stay on top of a grown card. */
   .rc-hex, .rc-rank { z-index: 6; }
   /* The card's own tile comes forward too, so the grown card is never under its neighbour. */

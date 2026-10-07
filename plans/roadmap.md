@@ -12,7 +12,16 @@ This file merges every plan that still has steps left into one order:
 Those files keep the detail: what you said, the research and the designs. This file gives each step an order, a "done when"
 and a check, so a session can work through it alone and stop only where you have to choose.
 
-## Where things stand (3 Oct)
+## Where things stand (7 Oct)
+
+- **The Play deep fix is on production** (PRs #62 to #64, [TODO.md](../TODO.md) "Play deep dive"): Sofix's and Sorare's plans side by
+  side, your essence order, XP apart, Rooms only when they pay, and the Sorare vs Sofix record on the Audit (figures from about 11-14 Oct).
+  Still open there: the frozen plans scored, the `market` split, the cut-off spread.
+- **Missions:** today's picks, a log of every mission day scored on the Audit (10.7), and Sorare's mission day followed.
+- **Lineups** shows Sofix's and Sorare's start chance for every LaLiga player, not only yours.
+- **9.9 is done:** the three workflows run on `ubuntu-24.04` (7 Oct), ahead of the 19 Oct switch.
+
+## Where things stood (3 Oct)
 
 - **The live pass on your Sorare pages (0.2) is done** (Results): the overlay works, with three faults, fixed in release 0.3.2 (batch 9, merged
   3 Oct: the live Futbol Fantasy read, the Sofix tab's week, Celta's name) together with a real "comes on" score. **You reloaded the extension
@@ -434,7 +443,7 @@ waits for your call; 9.6 to 9.10 are the owner's TODO.md items B, A, C, D and F,
   main folder and run `node extension/scripts/configure.mjs`. *Test first:* `lib/extensionBackground.test.ts`, a newer version on disk
   reloads once and an equal or older one never does. *Done when* a version bump reaches your Chrome without your Reload (from 0.3.3).
 - **9.8 · A refresh near a lock that does not wait for GitHub's clock** (item 6; TODO.md "C"; decision 9). Decided 3 Oct: option 1, the extension and the app start it when you open them in the last three hours before a lock.
-- **9.9 · Pin `ubuntu-24.04`** in `ci.yml`, `refresh.yml` and `near-lock.yml` (item 7, approved). *Done when* CI and one refresh run on
+- **9.9 · Pin `ubuntu-24.04`** (*done 7 Oct*) in `ci.yml`, `refresh.yml` and `near-lock.yml` (item 7, approved). *Done when* CI and one refresh run on
   it, before 19 Oct.
 - **9.10 · Your account only, and "reload" for an old extension** (item 9; TODO.md "F"): steps 7.1 and 7.2, moved here so they ship
   in the same version.

@@ -17,6 +17,19 @@ const player = (extra: Partial<ChancePlayer> = {}): ChancePlayer => ({
 const chances = (players: ChancePlayer[]) => lineupChances([match], players)[match.id]?.[owned.id];
 
 describe("Lineups' source percentages", () => {
+  it("gives every LaLiga player you don't own Sofix's and Sorare's chance through his FF link, after your own cards", () => {
+    const stranger = match.away.rows.flatMap((row) => row.players)[0]!;
+    const market = [
+      { slug: "x", name: "X", pos: "FWD" as const, club: null, crest: null, average: 0, projection: null, eur: null, pic: "",
+        sources: { futbolfantasy: 0.9, sofix: 0.55 }, ffMatch: { id: match.id, url: match.url }, ffPlayer: stranger.id },
+      { slug: "y", name: "Y", pos: "FWD" as const, club: null, crest: null, average: 0, projection: null, eur: null, pic: "",
+        sources: { sofix: 0.1 }, ffMatch: { id: match.id, url: match.url }, ffPlayer: owned.id },
+    ];
+    const all = lineupChances([match], [player()], market)[match.id];
+    expect(all?.[stranger.id]).toEqual({ sofix: 0.55 });
+    expect(all?.[owned.id]).toEqual({ sorare: 0, sofix: 0.64 });
+  });
+
   it("joins the owner's exact LaLiga game, keeps zero and leaves Futbol Fantasy to its own reading", () => {
     expect(chances([player()])).toEqual({ sorare: 0, sofix: 0.64 });
   });

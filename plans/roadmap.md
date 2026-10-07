@@ -16,8 +16,8 @@ and a check, so a session can work through it alone and stop only where you have
 
 Work from the top. Each line points to its full text; "you" items wait for the owner.
 
-0. **Every LaLiga player's past games, read daily in one run** (TODO.md "Forgotten" L): a daily workflow instead of 40 a refresh.
-   Then **G**, the grey countdown on Play (your call), and **R**, the form fallback's red-card ban (small).
+0. **Found 7 Oct in past sessions** (TODO.md "Forgotten"): **G**, the grey countdown on Play (your call), and **R**, the form
+   fallback's red-card ban (small). L, the daily league history, is done (Results).
 1. **9.7 · The extension updates itself** (TODO.md A): no more Reload by hand after the release that brings it (one last Reload).
 2. **9.8 · A refresh near a lock that does not wait for GitHub** (TODO.md C): the extension and the app start it in the last three hours.
 3. **9.6 · The tile's big number follows his start chance** (TODO.md B): under 40% the "comes on" score, with his chance of coming on.
@@ -544,6 +544,15 @@ the held-out weeks (P9 "The bar").
 ---
 
 ## Results
+
+### L · every LaLiga player's past games, read daily · 7 Oct 2026 · done
+
+`69171db`: the League history workflow (05:30 Madrid, or by hand) replaced the 40 players a refresh. First run by hand: 618 of
+618 players read in 6 min 40 s, 598 with their cards, 19 red cards found. After the next refresh every LaLiga player Futbol
+Fantasy links has a Sofix % (0 without one, 71 before), including the seven you named (Vinícius, Renato Veiga, Sergi Cardona,
+Sergio Gómez, Xavi Espart, Yoel Lago, Zaid Romero), and the three players with a red card in their last LaLiga game (Huijsen,
+Orri, Redondo) are at 0%, the same three Futbol Fantasy lists as suspended. Control shows "Every player's past games: 618 of
+618 read …" (checked at 1440 and 375 px).
 
 ### Batch 0 · 2 Oct 2026 · done except 0.1, which needs you (0.2 done 3 Oct)
 

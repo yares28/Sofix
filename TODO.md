@@ -21,7 +21,7 @@ item, what you said and why; the order, the steps and the results live in the ro
 You asked on 7 Oct why the league history reads 40 players a refresh instead of everyone, and to find plans left unfinished.
 Every session since 3 Oct was read for offers and questions left hanging; most were closed later (listed at the end).
 
-**L. Every LaLiga player's past games, read daily in one run.** Your words, 6 Oct 09:51: "plan with me the scraping of the 40
+**L. Every LaLiga player's past games, read daily in one run.** Done 7 Oct (`69171db`, roadmap Results). Your words, 6 Oct 09:51: "plan with me the scraping of the 40
 requests per request ... to a job that does all the requests for all the players ... make it run each day ... so each player has
 its latest game. I don't mind having games loading after the day." The session planned it at 09:52 (a daily workflow at about
 05:30 Madrid, every player in one run, progress saved every 50 players, the refresh no longer writing the history, a line on

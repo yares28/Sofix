@@ -1,4 +1,4 @@
-import { unstable_cache } from "next/cache";
+import { cache } from "./cache";
 import { database, readModel } from "./db";
 import { isDatabasePaused, type ExtensionStatus, type Limits, type RunSummary, type SystemStatus } from "./control";
 
@@ -17,7 +17,7 @@ type ExtensionPayload = { version: string; sorare_user: string | null; seen_at: 
 const iso = (value: string | Date | null) => (value instanceof Date ? value.toISOString() : value);
 
 /** Recent runs, the limits the job published and the extension's last check-in. Cached like the grid. */
-const cachedSystem = unstable_cache(
+const cachedSystem = cache(
   async (): Promise<SystemStatus> => {
     const sql = database()!;
     const [result, system, extension] = await Promise.all([

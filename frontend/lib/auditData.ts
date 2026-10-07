@@ -1,4 +1,4 @@
-import { unstable_cache } from "next/cache";
+import { cache } from "./cache";
 import { AUDIT_KEY, readable, type Audit } from "./audit";
 import { database, readModel } from "./db";
 import { SORARE_TAG } from "./play";
@@ -10,7 +10,7 @@ const API_BASE = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
  * The Audit page's numbers the job published (`read_models` key `audit`): one read, cached for an hour under the `sorare` tag and
  * refreshed when a run ends (POST /api/revalidate), so each refresh shows up.
  */
-const cachedAudit = unstable_cache(
+const cachedAudit = cache(
   async (): Promise<Audit | null> => {
     if (database()) {
       const row = await readModel(AUDIT_KEY);

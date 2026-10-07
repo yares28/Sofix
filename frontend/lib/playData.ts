@@ -1,4 +1,4 @@
-import { unstable_cache } from "next/cache";
+import { cache } from "./cache";
 import { database, readModel } from "./db";
 import { SORARE_TAG, type GameweekPlan, type Sorare, type SorarePlans } from "./play";
 
@@ -10,7 +10,7 @@ const API_BASE = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
  * the chances, the reasons — is computed by the job, so this is one read, cached for an hour under the
  * `sorare` tag and refreshed when a run ends (POST /api/revalidate).
  */
-const cachedSorare = unstable_cache(
+const cachedSorare = cache(
   async (): Promise<Sorare | null> => {
     if (database()) {
       const row = await readModel<Sorare>(SORARE_TAG);
@@ -41,7 +41,7 @@ export async function loadSorare(): Promise<Sorare | null> {
  */
 export async function loadProjectedWeek(round: number): Promise<GameweekPlan | null> {
   if (!Number.isInteger(round) || round < 1 || round > 60) return null;
-  const read = unstable_cache(
+  const read = cache(
     async (): Promise<GameweekPlan | null> => {
       if (database()) {
         const row = await readModel<GameweekPlan>(`sorare_ahead:${round}`);
@@ -73,7 +73,7 @@ const WEEK_SLUG = /^[a-z0-9][a-z0-9-]{0,80}$/;
  */
 export async function loadSorareWeek(slug: string): Promise<GameweekPlan | null> {
   if (!WEEK_SLUG.test(slug)) return null;
-  const read = unstable_cache(
+  const read = cache(
     async (): Promise<GameweekPlan | null> => {
       if (database()) {
         const row = await readModel<GameweekPlan>(`sorare_week:${slug}`);
@@ -101,7 +101,7 @@ export async function loadSorareWeek(slug: string): Promise<GameweekPlan | null>
  */
 export async function loadSorareAlt(slug: string): Promise<SorarePlans | null> {
   if (!WEEK_SLUG.test(slug)) return null;
-  const read = unstable_cache(
+  const read = cache(
     async (): Promise<SorarePlans | null> => {
       if (database()) {
         const row = await readModel<SorarePlans>(`sorare_alt:${slug}`);

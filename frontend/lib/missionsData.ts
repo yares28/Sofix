@@ -1,4 +1,4 @@
-import { unstable_cache } from "next/cache";
+import { cache } from "./cache";
 import { database, readModel } from "./db";
 import { MISSIONS_TAG, type MissionsModel } from "./missions";
 
@@ -6,7 +6,7 @@ import { MISSIONS_TAG, type MissionsModel } from "./missions";
 const API_BASE = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
 
 /** The daily missions the extension last read from the Missions page of Sorare, per rarity (`read_models` key `missions`), or null when it never has. */
-const cached = unstable_cache(
+const cached = cache(
   async (): Promise<MissionsModel | null> => {
     if (database()) {
       const row = await readModel<MissionsModel>("missions");

@@ -1,4 +1,4 @@
-import { unstable_cache } from "next/cache";
+import { cache } from "./cache";
 import { isDatabasePaused } from "./control";
 import { database, readModel } from "./db";
 import { GRID_TAG } from "./refresh";
@@ -43,7 +43,7 @@ function toGrid(json: unknown): { grid: FixtureGrid; meta: GridMeta | null } {
  * Cached for an hour under the fixture-grid tag; the job's revalidate call refreshes it when a run ends.
  * Failures throw, so they are never cached. Shared by every page, so browsing between them costs nothing.
  */
-const cachedGrid = unstable_cache(
+const cachedGrid = cache(
   async (): Promise<{ grid: FixtureGrid; meta: GridMeta | null }> => {
     if (database()) {
       const row = await readModel("grid");

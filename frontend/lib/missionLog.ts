@@ -1,5 +1,5 @@
 import { database } from "./db";
-import { unstable_cache } from "next/cache";
+import { cache } from "./cache";
 import { fit, isToday, missionDay, MISSIONS_TAG, plan, playingToday, ruleOf, type MissionPick, type MissionRow, type MissionsModel, type Rule } from "./missions";
 import { RARITIES } from "./missionsToday";
 import type { PlayingPlayer, Sorare } from "./play";
@@ -210,7 +210,7 @@ export function missionHistory(logs: MonthLog[], rarity: string, names: Map<stri
 const API_BASE = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
 
 /** The last two months of the log, newest first; cached five minutes so a page view does not wake Neon each time. */
-const cachedLog = unstable_cache(
+const cachedLog = cache(
   async (): Promise<MonthLog[]> => {
     const sql = database();
     if (sql) {

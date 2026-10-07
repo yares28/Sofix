@@ -330,6 +330,7 @@ def player_weeks(
             start_odds=start_odds,
             # Only games he played have a role worth recording; a snapshot from before O9 has none.
             starts={h["date"]: bool(h["started"]) for h in past if h["played"] and "started" in h},
+            cups=frozenset(h["date"] for h in past if h.get("competition") not in (None, expected.LALIGA)),
             pos=pos,
             game_ids=[g["id"] for g in ordered] if told else [],
             game_starts=told,

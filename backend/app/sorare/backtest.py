@@ -29,6 +29,7 @@ from typing import Any
 
 import numpy as np
 
+from app.sorare.expected import LALIGA
 from app.sorare.forecast import (
     NATIONAL,
     PRIOR_START_SCORE,
@@ -236,6 +237,7 @@ def _formula(seen: list[_Game], pos: str | None, games: int) -> Prediction:
         history=[(game.raw_date, game.counted, game.played) for game in newest_first],
         starts={game.raw_date: game.started for game in newest_first if game.played},
         pos=pos,
+        cups=frozenset(game.raw_date for game in newest_first if game.competition not in ("", LALIGA)),
     )
     made = forecast(week)
     return {

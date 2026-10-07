@@ -159,3 +159,26 @@ def test_a_week_whose_game_ids_are_unknown_keeps_the_old_path() -> None:
     made = forecast(PlayerWeek(games=1, history=HISTORY, starts=STARTS, pos="MID", game_starts=[ff("g1", 0.1)]))
 
     assert made.per_game == () and made.p_start != 0.1
+
+
+# ---------------------------------------------------------------------------------------------------- Sofix's own chance
+def test_sofixs_own_chance_counts_laliga_games_only() -> None:
+    # Two cup games on the bench since his five LaLiga starts: rotation, not a lost place (owner, 7 Oct 2026).
+    cups = [("2026-09-24", 0.0, False), ("2026-09-27", 0.0, False)]
+    rotated = PlayerWeek(games=1, history=cups + HISTORY, starts=STARTS, pos="MID")
+    marked = PlayerWeek(
+        games=1, history=cups + HISTORY, starts=STARTS, pos="MID", cups=frozenset(d for d, _, _ in cups)
+    )
+
+    assert forecast(rotated).by_source["sofix"] < 0.7, "counted, the cup games pull him down"
+    assert (
+        forecast(marked).by_source["sofix"] == forecast(week()).by_source["sofix"] == pytest.approx(5.8 / 7, abs=1e-3)
+    )
+
+
+def test_no_laliga_game_read_gives_no_sofix_number() -> None:
+    unread = forecast(PlayerWeek(games=1, pos="DEF"))
+    only_cups = forecast(PlayerWeek(games=1, history=HISTORY, starts=STARTS, cups=frozenset(d for d, _, _ in HISTORY)))
+
+    assert "sofix" not in unread.by_source, "the bare prior (40%) is no reading of him"
+    assert "sofix" not in only_cups.by_source

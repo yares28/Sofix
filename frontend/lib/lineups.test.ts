@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  byChance,
   calledUpIn,
   chanceTone,
   crestSource,
@@ -554,5 +555,40 @@ describe("readable", () => {
     expect(old?.art).toEqual({});
     const fresh = readable({ version: 1, matches: [], art: { "5032": "https://assets.sorare.com/card/x/picture/y.png" } });
     expect(fresh?.art["5032"]).toBe("https://assets.sorare.com/card/x/picture/y.png");
+  });
+});
+
+describe("byChance", () => {
+  const pl = (id: string, extra: Record<string, unknown> = {}) => ({ id, name: `P ${id}`, p: 0.5, ...extra }) as LineupSide["alternatives"][number];
+  const sofix: Record<string, number> = { gk: 0.9, d1: 0.69, d2: 0.4, m1: 0.8, b1: 0.69, b2: 0.83, b3: 0.95, bm: 0.99 };
+  const chance = (one: { id: string }) => sofix[one.id] ?? null;
+  const ids = (s: LineupSide) => s.rows.map((row) => row.players.map((one) => one.id));
+
+  it("puts a bench player with a higher chance in the eleven, injured or not, and the starter he replaces first under his slot", () => {
+    const out = byChance(
+      side("A", {
+        rows: [
+          { line: "GK", players: [pl("gk")] },
+          { line: "DEF", players: [pl("d1"), pl("d2", { next: ["b1", "x"] })] },
+          { line: "MID", players: [pl("m1"), pl("m2")] }, // m2 has no Sofix number: he stays
+        ],
+        alternatives: [pl("b1", { pos: "DEF" }), pl("b2", { pos: "DEF", status: { kind: "out" } }), pl("b3", { pos: "FWD" }), pl("bm", { pos: "GK" })],
+      }),
+      chance,
+    );
+    // b2 (83%, out) beats d2 (40%); b1 (69%) ties d1 (69%), so Futbol Fantasy's d1 stays; a 99% keeper beats a 90% one.
+    expect(ids(out)).toEqual([["bm"], ["d1", "b2"], ["m1", "m2"]]);
+    const b2 = out.rows[1]!.players[1]!;
+    expect(b2.status?.kind).toBe("out");
+    expect(b2.next).toEqual(["d2", "b1", "x"]);
+    expect(out.alternatives.map((one) => one.id)).toEqual(["d2", "gk", "b1", "b3"]);
+    expect(out.alternatives.find((one) => one.id === "d2")).toMatchObject({ pos: "DEF", next: undefined });
+  });
+
+  it("changes nothing when no bench player beats a starter of his line", () => {
+    const before = side("A", { rows: [{ line: "DEF", players: [pl("d1")] }], alternatives: [pl("d2", { pos: "DEF" }), pl("b3", { pos: "FWD" })] });
+    const out = byChance(before, chance);
+    expect(ids(out)).toEqual([["d1"]]);
+    expect(out.alternatives).toEqual(before.alternatives);
   });
 });

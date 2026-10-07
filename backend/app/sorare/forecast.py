@@ -79,6 +79,8 @@ class PlayerWeek:
     ] = ()  # his score if he starts in each game, worked out from the game itself (scores.py), kickoff order
     shape: Any = None  # the picture of his first game behind that score (`keeper.Outcome`)
     sub: Any = None  # his position's picture of a substitute (`outfield.SubShape`)
+    # dates in `history` of games outside LaLiga: Sofix's chance of starting leaves them out
+    cups: frozenset[str] = frozenset()
 
 
 def _from_form(history: list[tuple[str, float, bool]]) -> tuple[float, float]:
@@ -106,18 +108,22 @@ def _split(week: PlayerWeek, base_mu: float, plays: float) -> Split:
     His last five games say how he is used: a start, a substitute appearance or a miss. Sorare's starter and
     substitute odds replace that for the chances when it has published them. A regular starter's start score is
     Sorare's projection (which is "if he plays"); for anyone who often comes on it is his own starts, smoothed.
+    The chances count his last five LaLiga games only: a cup or European game is often rotated (owner, 7 Oct 2026).
     """
     last = week.history[:5]
     started = [score for date, score, ok in last if ok and week.starts.get(date) is True]
     came_on = [score for date, score, ok in last if ok and week.starts.get(date) is False]
-    n = len(last)
+    league = [h for h in week.history if h[0] not in week.cups][:5]
+    n = len(league)
     have_odds = week.start_odds is not None and week.plays_odds is not None
     if have_odds:
         p_start = float(week.start_odds or 0.0)
         p_on = max(0.0, float(week.plays_odds or 0.0) - p_start)
     elif week.starts:
-        p_start = (len(started) + 0.8) / (n + 2.0)  # the prior chance of playing, 0.6, split two to one
-        p_on = (len(came_on) + 0.4) / (n + 2.0)
+        league_started = sum(1 for date, _, ok in league if ok and week.starts.get(date) is True)
+        league_on = sum(1 for date, _, ok in league if ok and week.starts.get(date) is False)
+        p_start = (league_started + 0.8) / (n + 2.0)  # the prior chance of playing, 0.6, split two to one
+        p_on = (league_on + 0.4) / (n + 2.0)
     else:  # roles were never recorded for these games: split the chance of playing as the prior does
         p_start, p_on = plays * 2 / 3, plays / 3
 
@@ -168,8 +174,11 @@ def _per_game(week: PlayerWeek, split: Split, plays: float) -> tuple[tuple[GameC
     return tuple(chances), played
 
 
-def _own_start(week: PlayerWeek) -> float:
-    """The app's own chance that he starts, from his form alone: Sorare's projection and odds and Futbol Fantasy taken away."""
+def own_start(week: PlayerWeek) -> float | None:
+    """The app's own chance that he starts, from his LaLiga form alone: Sorare's projection and odds and Futbol Fantasy taken
+    away. None when no LaLiga game of his has been read: the bare prior is no reading of him."""
+    if not any(date not in week.cups for date, _, _ in week.history):
+        return None
     bare = dataclasses.replace(week, projection=None, plays_odds=None, start_odds=None, game_ids=[], game_starts=[])
     plays, mu = _from_form(bare.history)
     return _split(bare, mu, plays).p_start
@@ -203,7 +212,8 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
     per_game: tuple[GameChance, ...] = ()
     has_odds = week.start_odds is not None and week.plays_odds is not None
     start_source = "sorare" if has_odds else "sofix"
-    by_source = {"sofix": round(_own_start(week), 3)}
+    own = own_start(week)
+    by_source: dict[str, float] = {} if own is None else {"sofix": round(own, 3)}
     if week.start_odds is not None:
         by_source["sorare"] = round(week.start_odds, 3)
     if week.game_starts and len(week.game_ids) == week.games:

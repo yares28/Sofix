@@ -22,7 +22,6 @@ give back afterwards (roadmap 1.3, plans/xscore.md P1).
 from __future__ import annotations
 
 import copy
-import dataclasses
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
@@ -32,7 +31,7 @@ from sqlalchemy.orm import Session
 
 from app.models import ReadModel
 from app.services.publish import put
-from app.sorare.forecast import GameStart, PlayerWeek
+from app.sorare.forecast import GameStart, PlayerWeek, own_start
 from app.sorare.forecast import forecast as build_forecast
 from app.sorare.publish import SETTLE, ScoresOf, card_games, player_weeks
 
@@ -149,12 +148,10 @@ def rows(snapshot: dict[str, Any], ff: Starts | None = None) -> list[Row]:
         ordered = sorted(games[player], key=lambda game: _dt(game["kickoff"]))
         if seen.start_odds is not None:
             out.append(Row(player, week["slug"], ordered[0]["id"], "sorare", seen.start_odds, lock))
-        # The app's own chance: Sorare's projection and odds taken away, so what is left is what it makes of his form.
-        alone = build_forecast(
-            dataclasses.replace(seen, projection=None, plays_odds=None, start_odds=None, game_ids=[], game_starts=[])
-        )
-        if alone.p_start is not None:
-            out.extend(Row(player, week["slug"], game["id"], "sofix", alone.p_start, lock) for game in ordered)
+        # The app's own chance: Sorare's projection and odds taken away, so what is left is what it makes of his LaLiga form.
+        alone = own_start(seen)
+        if alone is not None:
+            out.extend(Row(player, week["slug"], game["id"], "sofix", round(alone, 3), lock) for game in ordered)
         for told in seen.game_starts:
             read = told.info.get("startAt")
             out.append(

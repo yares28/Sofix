@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import {
   MAX_AGE_MS,
+  byChance,
   calledUpIn,
   freshness,
   kickoffLabel,
@@ -77,6 +78,9 @@ export default function LineupsView({ data, chances, facts, sections, initial, n
   const when = first && last ? roundDays(first, last) : null;
   const named = section.competition === "laliga" && section.round !== null ? `LaLiga round ${section.round}` : section.label;
   const days = timelineOf(section.matches);
+  // Futbol Fantasy's eleven is its own; with Sorare's or Sofix's number picked, that source's eleven is drawn in the same formation.
+  const values = chances[selected.id] ?? {};
+  const arranged = (side: LineupSide) => (source === "futbolfantasy" ? side : byChance(side, (player) => values[player.id]?.[source] ?? null));
   // On a phone the timeline scrolls sideways: bring the match in view to the middle whenever it changes.
   const scroller = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -155,7 +159,7 @@ export default function LineupsView({ data, chances, facts, sections, initial, n
             Only my players
           </label>
         </div>
-        <ChanceContext.Provider value={{ source, values: chances[selected.id] ?? {}, url: selected.url }}>
+        <ChanceContext.Provider value={{ source, values, url: selected.url }}>
           <fieldset className="lu-switch" aria-label="Team">
             <legend className="visually-hidden">Team</legend>
             <input type="radio" name="lu-side" id="lu-side-home" className="lu-pick lu-pick-home" defaultChecked />
@@ -169,8 +173,8 @@ export default function LineupsView({ data, chances, facts, sections, initial, n
               {selected.away.name}
             </label>
             <div className="lu-teams">
-              <TeamColumn side={selected.home} place="home" round={selected.round} cards={data.cards} art={data.art} look={lookOf(selected.home, clubs)} now={now} />
-              <TeamColumn side={selected.away} place="away" round={selected.round} cards={data.cards} art={data.art} look={lookOf(selected.away, clubs)} now={now} />
+              <TeamColumn side={arranged(selected.home)} place="home" round={selected.round} cards={data.cards} art={data.art} look={lookOf(selected.home, clubs)} now={now} />
+              <TeamColumn side={arranged(selected.away)} place="away" round={selected.round} cards={data.cards} art={data.art} look={lookOf(selected.away, clubs)} now={now} />
             </div>
           </fieldset>
         </ChanceContext.Provider>

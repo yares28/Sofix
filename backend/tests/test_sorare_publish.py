@@ -11,6 +11,7 @@ import pytest
 from app.jobs import sorare as sorare_job
 from app.models import ReadModel
 from app.sorare import publish
+from app.sorare.forecast import GameStart
 from tests.test_pipeline import db  # noqa: F401  (fixture)
 
 PLAN_GW = {
@@ -858,6 +859,14 @@ def test_a_player_you_do_not_own_gets_his_form_from_the_league_history() -> None
     snap["leagueHistory"] = {"stranger": {"at": "2026-10-07T09:00:00+00:00", "games": games}}
     with_form = {p["slug"]: p for p in publish.build_payload(snap, runs=4, draws=600)["market"]}["stranger"]
     assert with_form["x"] != without["x"]  # his four starts at 80 now count
+
+    # Futbol Fantasy's chance for every LaLiga player, linked apart from the owner's cards (7 Oct 2026)
+    def league_ff(player: str, games: list[dict[str, Any]]) -> list[GameStart]:
+        return [GameStart(game=games[0]["id"], p_start=0.8)] if player == "stranger" and games else []
+
+    told = publish.build_payload(snap, runs=4, draws=600, league_ff=league_ff)
+    stranger_now = {p["slug"]: p for p in told["market"]}["stranger"]
+    assert stranger_now["startSource"] == "futbolfantasy" and stranger_now["pStart"] == 0.8
 
 
 def test_the_sorare_plans_stand_on_sorares_projections_or_wait_for_them():

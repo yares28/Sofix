@@ -296,6 +296,24 @@ def run(
     # Futbol Fantasy's expected lineups, before anything is planned: its chance that each player starts each game is what
     # the expected scores, the plans and the captain are built on. Only the gameweek being planned uses it.
     feed, lineups = read_lineups(db, failed, snapshot, fetched, write=not dry_run)
+    # Every LaLiga player linked to Futbol Fantasy's pages too, apart from the owner's cards (whose links the Lineups page marks as his):
+    # every player then gets FF's start chance, not only his (7 Oct 2026). A failure leaves the others on Sorare's odds or their form.
+    league_lineups: ff_use.Lineups | None = (
+        optional(
+            db,
+            failed,
+            "futbol fantasy league links",
+            lambda: ff_use.Lineups(
+                feed,
+                [{"player": row["player"]} for row in snapshot.get("market") or [] if row.get("player")],
+                fetched,
+                ff_link.load_kept(db),
+            ),
+            None,
+        )
+        if feed is not None
+        else None
+    )
     lineups_page = publish_lineups(db, failed, snapshot, feed, lineups, fetched, write=not dry_run, art=art)
     db.rollback()
     # A player's score if he starts is worked out from his game (the football model's numbers and the bookmakers' goals line, scores.py)
@@ -341,6 +359,7 @@ def run(
         ff=lineups.starts if lineups else None,
         scores=scores_of,
         order=order,
+        league_ff=league_lineups.starts if league_lineups else None,
     )
     alt, record = payload.pop("_alt", None), payload.pop("_record", None)
     if art and art.urls:
@@ -370,6 +389,7 @@ def run(
         "sorareProjected": (alt or {}).get("projected"),
         "recorded": len((record or {}).get("players") or {}),
         "essenceOrder": list(order),
+        "leagueFF": len(league_lineups.links.links) if league_lineups else 0,
         "seconds": round((datetime.now(UTC) - started).total_seconds()),
     }
     if snapshot.get("pastGaps"):

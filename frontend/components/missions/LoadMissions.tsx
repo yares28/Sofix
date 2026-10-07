@@ -55,7 +55,6 @@ export default function LoadMissions({ stale, day }: { stale: boolean; day: stri
   }, [day, load, stale]);
 
   if (reach === "asking") return null;
-  if (reach === "none") return <p className="ms-load-note">Load today&rsquo;s missions from Chrome with the Sofix extension.</p>;
   if (reach === "old") return <p className="ms-load-note">Reload the Sofix extension to load missions from here.</p>;
   return (
     <div className="ms-load">
@@ -63,7 +62,7 @@ export default function LoadMissions({ stale, day }: { stale: boolean; day: stri
         {busy ? "Loading…" : "Load today’s missions"}
       </button>
       <p className="ms-load-note" role="status" aria-live="polite">
-        {note}
+        {note ?? (reach === "none" ? "Couldn’t reach the Sofix extension in this browser. Press Load to try again." : null)}
       </p>
     </div>
   );

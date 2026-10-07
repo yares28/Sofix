@@ -43,3 +43,25 @@ describe("extension ping", () => {
     expect(extensionIsLatest("junk")).toBe(false);
   });
 });
+
+describe("an extension Chrome put to sleep", () => {
+  it("is asked again, longer, before the page says it is not there", async () => {
+    let calls = 0;
+    const runtime = {
+      lastError: undefined,
+      sendMessage: (_id: string, _message: unknown, reply: (response: unknown) => void) => {
+        calls += 1;
+        // the first message only wakes it: no answer in time; the second gets one
+        if (calls === 2) setTimeout(() => reply({ ok: true, version: "0.3.7", sorareUser: "Yares", appReachable: true }), 5);
+      },
+    };
+    const before = (globalThis as { chrome?: unknown }).chrome;
+    (globalThis as { chrome?: unknown }).chrome = { runtime };
+    try {
+      expect(await pingExtension(20)).toMatchObject({ version: "0.3.7" });
+      expect(calls).toBe(2);
+    } finally {
+      (globalThis as { chrome?: unknown }).chrome = before;
+    }
+  });
+});

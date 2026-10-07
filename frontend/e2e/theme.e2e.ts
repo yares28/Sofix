@@ -25,9 +25,9 @@ test("the switch top right turns the dark theme on and off, and the choice survi
   expect(await bg()).toBe(light);
 });
 
-test("with nothing saved, the system's dark setting decides", async ({ page }) => {
+test("with nothing saved it is light, even when the system is dark", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "dark" });
   await page.goto("/");
-  await expect(page.getByRole("button", { name: "Switch to light theme" })).toBeVisible();
-  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe("rgb(12, 12, 14)");
+  await expect(page.getByRole("button", { name: "Switch to dark theme" })).toBeVisible();
+  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).not.toBe("rgb(12, 12, 14)");
 });

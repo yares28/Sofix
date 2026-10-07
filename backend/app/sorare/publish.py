@@ -1262,7 +1262,7 @@ def sorare_plans(
 ) -> dict[str, Any]:
     """The week being planned again with Sorare's projection as each player's score (his last five games where Sorare has none):
     the same cards, competitions and chances of starting, only the expected score changes (the owner, 6 Oct 2026). Until Sorare
-    has projected anyone it says so and plans nothing."""
+    has projected most of the players with a game it says so and plans nothing: a "Sorare plan" standing mostly on form would be neither."""
     projected = sum(1 for w in weeks.values() if w.projection is not None and w.games)
     out: dict[str, Any] = {
         "gameweek": {"slug": week["slug"], "number": week["number"], "lock": week["lock"]},
@@ -1271,7 +1271,7 @@ def sorare_plans(
         "players": sum(1 for w in weeks.values() if w.games),
         "plans": [],
     }
-    if not projected:
+    if projected * 2 < out["players"]:
         return out
     stripped = {slug: replace(w, game_scores=(), shape=None) for slug, w in weeks.items()}
     alt = gameweek_payload(

@@ -1000,8 +1000,12 @@ def build_payload(
     ff: Callable[[str, list[dict[str, Any]]], list[GameStart]] | None = None,
     scores: ScoresOf | None = None,
     order: tuple[str, ...] = ESSENCE_ORDER,
+    league_ff: Callable[[str, list[dict[str, Any]]], list[GameStart]] | None = None,
 ) -> dict[str, Any]:
     """The whole `sorare` read model, from one snapshot.
+
+    `league_ff` is Futbol Fantasy's chance game by game for every LaLiga player (linked apart from the owner's cards, so the Lineups
+    page still marks only his); without it the other players' start chance stands on Sorare's odds or their form.
 
     Two parts ride along for the job to write apart, under keys it pops before publishing: `_alt`, the week planned again on
     Sorare's own projections (`ALT_PREFIX`), and `_record`, both numbers for every LaLiga player of the week (`RECORD_PREFIX`).
@@ -1051,7 +1055,7 @@ def build_payload(
         _dt(plan_week["lock"]),
         None,
         use_sorare=True,
-        ff=ff,
+        ff=league_ff or ff,
         scores=scores,
         projections=snapshot.get("projections"),
     )

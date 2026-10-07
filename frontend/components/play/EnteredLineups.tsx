@@ -77,13 +77,21 @@ export default function EnteredLineups({ week }: { week: Week }) {
           <p className="pl-eyebrow">On Sorare · GW{week.number}</p>
           <h2 id="entered-lineups-title">Your Sorare lineups</h2>
         </div>
-        {load.state === "loading" ? (
-          <span className="pl-entered-count looking">Checking Sorare…</span>
-        ) : load.lineups.length ? (
-          <span className="pl-entered-count">
-            {entered} entered{drafts ? ` · ${drafts} draft${drafts === 1 ? "" : "s"}` : ""}
-          </span>
-        ) : null}
+        <span className="pl-entered-side">
+          {load.state === "loading" ? (
+            <span className="pl-entered-count looking">Checking Sorare…</span>
+          ) : load.lineups.length ? (
+            <span className="pl-entered-count">
+              {entered} entered{drafts ? ` · ${drafts} draft${drafts === 1 ? "" : "s"}` : ""}
+            </span>
+          ) : null}
+          {/* asks your open sorare.com tab again; it never opens one */}
+          {load.state === "ready" ? (
+            <button type="button" className="pl-entered-again" onClick={() => setAsked((n) => n + 1)}>
+              Check again
+            </button>
+          ) : null}
+        </span>
       </div>
 
       {load.state === "loading" ? (
@@ -96,11 +104,10 @@ export default function EnteredLineups({ week }: { week: Week }) {
             <b>{reason?.title ?? issue?.title ?? "Sorare lineups are unavailable"}</b>
             <span>{reason?.says ?? rejected ?? issue?.says ?? "Try again after opening your signed-in Sorare tab."}</span>
           </div>
-          {reason || !issue?.act ? (
-            <button type="button" className="pl-entered-again" onClick={() => setAsked((n) => n + 1)}>
-              Check again
-            </button>
-          ) : issue?.act ? (
+          <button type="button" className="pl-entered-again" onClick={() => setAsked((n) => n + 1)}>
+            Check again
+          </button>
+          {!reason && issue?.act ? (
             <a
               href={issue.act === "Set it up" ? "/control" : "https://sorare.com/football/my-lineups"}
               target={issue.act === "Set it up" ? undefined : "_blank"}
@@ -153,9 +160,6 @@ export default function EnteredLineups({ week }: { week: Week }) {
             <b>None entered yet for GW{week.number}</b>
             <span>Checked on Sorare at {checked}: you have no lineup or draft in this gameweek.</span>
           </div>
-          <a href="https://sorare.com/football/my-lineups" target="_blank" rel="noreferrer">
-            Open Sorare
-          </a>
         </div>
       )}
     </section>

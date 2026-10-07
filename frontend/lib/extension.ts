@@ -57,7 +57,13 @@ type ChromeRuntime = {
  * browser (a phone, Safari) simply gets null. Costs nothing on the server.
  */
 export async function pingExtension(timeoutMs = 1500): Promise<ExtensionPing | null> {
-  return parsePing(await askExtension({ type: "ping" }, timeoutMs));
+  // Chrome puts an idle extension to sleep after about 30 s, and the first message only wakes it: one that misses the wait is asked
+  // again, longer, before the page says the extension is not there (7 Oct 2026: "This browser can't reach the extension" while it was).
+  for (const wait of [timeoutMs, timeoutMs * 2]) {
+    const ping = parsePing(await askExtension({ type: "ping" }, wait));
+    if (ping) return ping;
+  }
+  return null;
 }
 
 /** One message to the extension and its answer, or null when this browser has no extension or it did not answer in time. */

@@ -434,6 +434,10 @@ export type MarketPlayer = {
   pStart?: number;
   startSource?: StartSource;
   ffKind?: "out" | "doubt" | "suspended";
+  /** Every source's chance of starting, and his Futbol Fantasy match and id when they are linked (payload 8 on). */
+  sources?: Partial<Record<StartSource, number>>;
+  ffMatch?: { id: number; url: string };
+  ffPlayer?: string;
   mu?: number;
   start?: number;
   x?: number;

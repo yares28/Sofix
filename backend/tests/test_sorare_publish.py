@@ -862,11 +862,15 @@ def test_a_player_you_do_not_own_gets_his_form_from_the_league_history() -> None
 
     # Futbol Fantasy's chance for every LaLiga player, linked apart from the owner's cards (7 Oct 2026)
     def league_ff(player: str, games: list[dict[str, Any]]) -> list[GameStart]:
-        return [GameStart(game=games[0]["id"], p_start=0.8)] if player == "stranger" and games else []
+        info = {"ffMatch": {"id": 7, "url": "u"}, "ffPlayer": "s1"}
+        return [GameStart(game=games[0]["id"], p_start=0.8, info=info)] if player == "stranger" and games else []
 
     told = publish.build_payload(snap, runs=4, draws=600, league_ff=league_ff)
     stranger_now = {p["slug"]: p for p in told["market"]}["stranger"]
     assert stranger_now["startSource"] == "futbolfantasy" and stranger_now["pStart"] == 0.8
+    # Sofix's own chance stays beside FF's, with his FF match and id, for the Lineups page's Sofix and Sorare views
+    assert "sofix" in stranger_now["sources"] and stranger_now["sources"]["futbolfantasy"] == 0.8
+    assert stranger_now["ffMatch"]["id"] == 7 and stranger_now["ffPlayer"] == "s1"
 
 
 def test_the_sorare_plans_stand_on_sorares_projections_or_wait_for_them():

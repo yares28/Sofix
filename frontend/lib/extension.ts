@@ -10,9 +10,9 @@ export const REQUIRED_EXTENSION_VERSION = "0.1.1";
  * Fantasy live and needs one more permission, which only a rebuilt manifest.json carries; 0.3.1 says "×2" on the tile of a
  * player with two games in the gameweek and lists both in his panel; 0.3.2 reads Futbol Fantasy live for real (0.3.0 and 0.3.1 looked for
  * a lowercase attribute the site writes with capitals, so they found no player) and shows the gameweek the page names in its Sofix tab; 0.3.3 draws the picture of his game in the panel (where his score lands, with and without a
- * decisive action, and what moves it in points) and a larger score; 0.3.4 reads the daily missions from Sorare's Missions page (read only) for the app's Missions page; 0.3.5 says the plan's most likely result in its Sofix tab instead of an average of rewards (a reward is all or nothing); 0.3.6 loads today's missions of every rarity, with your picks and Sorare's verdict on each, when the Missions page asks (read only); 0.3.7 keeps a lineup read Sorare answered with a complaint about one part, and reads the XP a lineup won.
+ * decisive action, and what moves it in points) and a larger score; 0.3.4 reads the daily missions from Sorare's Missions page (read only) for the app's Missions page; 0.3.5 says the plan's most likely result in its Sofix tab instead of an average of rewards (a reward is all or nothing); 0.3.6 loads today's missions of every rarity, with your picks and Sorare's verdict on each, when the Missions page asks (read only); 0.3.7 keeps a lineup read Sorare answered with a complaint about one part, and reads the XP a lineup won; 0.3.8 also answers on sofix-livid.vercel.app, the same production app under its other address.
  */
-export const LATEST_EXTENSION_VERSION = "0.3.7";
+export const LATEST_EXTENSION_VERSION = "0.3.8";
 
 /** Chrome manifest versions are numeric dot-separated values; compare them without relying on string ordering. */
 export function extensionAtLeast(version: string, minimum = REQUIRED_EXTENSION_VERSION): boolean {

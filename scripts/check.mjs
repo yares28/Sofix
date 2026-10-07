@@ -99,10 +99,19 @@ function local() {
   }
 }
 
+// The owner's `gh` sign-in when there is one (5,000 calls an hour); without it the public API allows 60.
+let token;
+try {
+  token = execSync("gh auth token", { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+} catch {
+  token = "";
+}
+
 async function github(path) {
-  const r = await fetch(`https://api.github.com/repos/${REPO}/${path}`, { headers: { accept: "application/vnd.github+json" } });
+  const headers = { accept: "application/vnd.github+json", ...(token && { authorization: `Bearer ${token}` }) };
+  const r = await fetch(`https://api.github.com/repos/${REPO}/${path}`, { headers });
   const body = await r.json();
-  if (!r.ok) throw new Error(`GitHub ${r.status}: ${body.message}`); // unauthenticated: 60 calls an hour
+  if (!r.ok) throw new Error(`GitHub ${r.status}: ${body.message}`);
   return body;
 }
 
@@ -125,16 +134,19 @@ async function live() {
   const short = sha.slice(0, 7);
 
   // 1. Vercel deploys every push to main in a minute or two and reports it on the commit.
+  // --no-wait (the session-start hook) looks once: a deploy still running is reported, not waited for.
+  const tries = args.includes("--no-wait") ? 1 : 24;
   let vercel;
-  for (let i = 0; i < 24; i++) {
+  for (let i = 0; i < tries; i++) {
     vercel = (await github(`commits/${sha}/status`)).statuses.find((s) => s.context === "Vercel");
-    if (vercel && vercel.state !== "pending") break;
+    if ((vercel && vercel.state !== "pending") || i === tries - 1) break;
     if (i === 0) console.log(`Waiting for Vercel to deploy ${short}...`);
     await new Promise((done) => setTimeout(done, 15_000));
   }
   const deployed = vercel?.state === "success";
-  console.log(`${deployed ? "ok  " : "FAIL"}  Vercel ${short}: ${vercel ? `${vercel.state}, ${vercel.description}` : "no report after 6 min"}`);
-  if (!deployed) failed.push("Vercel");
+  const building = tries === 1 && (!vercel || vercel.state === "pending");
+  console.log(`${deployed ? "ok  " : building ? "    " : "FAIL"}  Vercel ${short}: ${vercel ? `${vercel.state}, ${vercel.description}` : "no report yet"}`);
+  if (!deployed && !building) failed.push("Vercel");
 
   // 2. Every page answers on production, through the bypass the refresh job uses.
   const pages = await Promise.all(

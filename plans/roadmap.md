@@ -12,6 +12,24 @@ This file merges every plan that still has steps left into one order:
 Those files keep the detail: what you said, the research and the designs. This file gives each step an order, a "done when"
 and a check, so a session can work through it alone and stop only where you have to choose.
 
+## Next up (the one queue: read this first, update it in the same commit when an item ships)
+
+Work from the top. Each line points to its full text; "you" items wait for the owner.
+
+1. **9.7 · The extension updates itself** (TODO.md A): no more Reload by hand after the release that brings it (one last Reload).
+2. **9.8 · A refresh near a lock that does not wait for GitHub** (TODO.md C): the extension and the app start it in the last three hours.
+3. **9.6 · The tile's big number follows his start chance** (TODO.md B): under 40% the "comes on" score, with his chance of coming on.
+4. **9.10 · The overlay answers only for your account; an old extension says "Reload"** (TODO.md F).
+5. **Play deep dive, what is left** (TODO.md "Play deep dive"): the frozen plans scored against the real cut-offs, the 439 KB `market`
+   split out of the `sorare` read model, N5.
+6. **10.6 rest · choosing the starters for the reward** (Batch 10), then **10.7 rest · the official-eleven check** an hour before kick-off.
+7. **10.9 · The next five gameweeks and points per euro**, then **10.10 · parts 6, 7, 9 and 10 of P9**.
+8. **Later · 9.11 · an outside clock for the refresh** (TODO.md C, "Future feature"): needs a free cron-job.org account from you.
+
+Waiting for data, not work: the Audit's Sorare vs Sofix figures (about 100 settled starts, from about 11 to 14 Oct) and 10.8, the
+self-correcting numbers (100 cases per band). Paused by you: 0.1 (your Apply result, TODO.md E), batch 4 (Pro). Yours: the live Apply
+acceptance test (TODO.md "Yours" 1), installing the PWA (3).
+
 ## Where things stand (7 Oct)
 
 - **The Play deep fix is on production** (PRs #62 to #64, [TODO.md](../TODO.md) "Play deep dive"): Sofix's and Sorare's plans side by
@@ -94,21 +112,12 @@ Collected here so the run stops less. My recommendation comes first in each.
 - **One step at a time**, in the order below, broken things first:
   1. Read the code the step names.
   2. Write the test that fails first, make the smallest change and run that test.
-  3. Run the full checks:
-     - backend: `pytest -q`, `ruff check .`, `mypy`
-     - frontend: `npm test`, `npm run typecheck`, `npm run lint`, `npm run e2e`, `npm run design`
+  3. Run `node scripts/check.mjs`, plus the changed page's browser spec and a desktop and phone look for a visible change
+     (AGENTS.md "Shipping").
 - **The calendar comes first on its day.** A dated step in batch 2 that is due today is done before the next step in order.
-- **Commits and merges:**
-  - Commit each step. Use one branch per batch, made from `main`.
-  - If another session has uncommitted changes in the main folder, work in a git worktree.
-  - Push once per batch. Open and merge the PR in your Chrome.
-  - Run the refresh by hand when the backend changed, and wait for Vercel.
-- **Check every step on production:**
-  - desktop in your Chrome
-  - phone width with the mobile e2e project and `npm run design`
-  - Open each changed page and read its status code. Next's data cache survives a deploy, so a new build can be handed an old
-    payload (see #17).
-  - Write the result under Results: date, pass or fail, what was seen.
+- **Ship each step straight to `main`** (since 7 Oct; AGENTS.md "Shipping"): commit, push, `node scripts/check.mjs --live /<page>`,
+  and give the owner the localhost and production links. No pull requests, no waiting for CI; a backend push starts the refresh
+  itself. Write the result under Results (date, pass or fail, what was seen) and move the item off "Next up".
 - **Production Neon is read-only** (`SELECT` only). A schema change is a **Stop**: you apply the migration (AGENTS.md: "manual
   production owner migrate"). A read model is used instead whenever it is enough.
 - **Spend nothing.** No paid service, no new dependency without a reason, and Sorare's and Futbol Fantasy's reads stay inside
@@ -447,6 +456,9 @@ waits for your call; 9.6 to 9.10 are the owner's TODO.md items B, A, C, D and F,
   it, before 19 Oct.
 - **9.10 · Your account only, and "reload" for an old extension** (item 9; TODO.md "F"): steps 7.1 and 7.2, moved here so they ship
   in the same version.
+- **9.11 · An outside clock for the refresh** (future feature, added 7 Oct; TODO.md "C"): a free cron-job.org job calls the app's refresh
+  route on the timetable, so the numbers stay fresh even on days nothing is opened. Needs your free account first. *Done when* a week of
+  runs started on time is seen on the Audit's freshness.
 
 **Release 2 · the bench score** (one refresh)
 
@@ -666,9 +678,8 @@ were merged, your main folder was fast-forwarded to `main`, and production serve
 
 ## To start a run
 
-Work through this file from the first step not marked done in Results, one step at a time, following "How the run works":
+Work through "Next up" from the top, one step at a time, following "How the run works":
 
 1. Look at the calendar first: a dated step due today comes before the next step in order.
-2. Use a branch per batch made from `main`, and a git worktree if another session holds the main folder.
-3. Push and merge once per batch, check on production and write the Results.
-4. Stop only at a **Stop**, or for money, credentials, a destructive action, a migration or a choice that is not settled.
+2. Ship each step to `main` as AGENTS.md "Shipping" says, write the Results and update "Next up".
+3. Stop only at a **Stop**, or for money, credentials, a destructive action, a migration or a choice that is not settled.

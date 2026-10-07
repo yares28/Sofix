@@ -15,11 +15,15 @@ const STEPS = ["sync", "odds", "predict", "sorare", "publish"]; // the steps the
 const COOLDOWN_S = 600;
 
 // The Sorare page counts down to the lock, so the recorded gameweek is moved forward once, at start-up,
-// to sit two days ahead of the machine's clock. Every date in the payload shifts by the same amount, so
-// the gameweek that was played stays played.
+// to lock about two days (1.5 to 2.5) after the machine's clock. Every date in the payload shifts by the same
+// amount, so the gameweek that was played stays played. The shift is a whole number of days, so every
+// kickoff and lock keeps its real time of day: the tests see the same calendar at 19:00 and at 00:30 (a
+// to-the-millisecond shift once moved a round past midnight into the previous gameweek between 00:00 and 02:00 Madrid).
+const DAY = 86_400_000;
+const wholeDays = (ms) => Math.round(ms / DAY) * DAY;
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
 const plannedWeek = sorareFixture.data.weeks.find((week) => week.gameweek.id === sorareFixture.data.nextId);
-const SHIFT = Date.now() + 2 * 86_400_000 - new Date(plannedWeek.gameweek.lock).getTime();
+const SHIFT = wholeDays(Date.now() + 2 * DAY - new Date(plannedWeek.gameweek.lock).getTime());
 const moved = (value) => {
   if (typeof value === "string") return ISO.test(value) ? new Date(new Date(value).getTime() + SHIFT).toISOString() : value;
   if (Array.isArray(value)) return value.map(moved);
@@ -161,7 +165,7 @@ const keptWeeks = new Map(
 // Sorare week so the first kickoff sits two days ahead; each reading is made a few minutes ago and each side's change a day or so ago.
 const lineupsFixture = JSON.parse(readFileSync(new URL("./fixtures/lineups-response.json", import.meta.url), "utf8"));
 const firstKickoff = Math.min(...lineupsFixture.data.matches.map((match) => new Date(match.kickoff).getTime()));
-const LINEUPS_SHIFT = Date.now() + 2 * 86_400_000 - firstKickoff;
+const LINEUPS_SHIFT = wholeDays(Date.now() + 2 * DAY - firstKickoff);
 // What the site really writes beside an injury (the causes, dates and notes of its 1 Oct pages), on the Real Sociedad match, built from today's
 // date so the "return has gone by" case stays true whenever the tests run: began 60 days ago, due back by the end of the month of 45 days ago.
 function spanishInjuries(match) {

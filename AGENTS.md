@@ -101,8 +101,10 @@ nobody waits for, and the owner is the reviewer. A small task should take minute
    the task is about published data, check the read model with one SELECT after the refresh; otherwise move on.
    (localhost:3000 serves the main folder with hot reload: a session in a worktree runs `git pull --ff-only` there after
    its push, when `git status` is clean, so localhost shows the change too.)
-6. **Session start:** `node scripts/check.mjs --live` once. A red CI, a failed refresh or a broken page on `main` is fixed
-   first.
+6. **Session start:** `node scripts/check.mjs --live` once (Claude Code runs it from a session-start hook). A red CI, a
+   failed refresh or a broken page on `main` is fixed first. The next work is "Next up" in [plans/roadmap.md](plans/roadmap.md).
+7. **Broken production:** when a push breaks a page (not 200, or the owner says so), `git revert <commit>` and push that
+   first, so the app is back in about two minutes; then find the cause and ship the fix as a new commit.
 
 Hold the push only when the owner says so; for a schema change until he has migrated production (the migration goes
 first, the code second); and for an extension release until `node extension/scripts/configure.mjs` has rebuilt his

@@ -9,7 +9,7 @@ The phase plan lives in [docs/sorare_plan.md](docs/sorare_plan.md) and the audit
 
 ## Order of work
 
-**Moved to [plans/roadmap.md](plans/roadmap.md) (2 Oct 2026).** It merges every plan with steps left into one order, with a
+**Moved to [plans/roadmap.md](plans/roadmap.md) (2 Oct 2026); its "Next up" list is the one queue of what comes next.** It merges every plan with steps left into one order, with a
 "done when" and a check for each step: T1's xScore plan, the Futbol Fantasy plan's checks, the overlay's live pass, the open
 boxes of S4, S6, S7, S8 and S9, T3 to T7, the review's follow-ups and the small things. This file keeps the full text of each
 item, what you said and why; the order, the steps and the results live in the roadmap.
@@ -134,6 +134,12 @@ roadmap's batch 9.
   The cron minutes also move off the busy :00 and :30 (a small help, not a fix).
 - **Until it ships** I start a refresh by hand before round 8's lock (Fri 9 Oct, 16:00 Madrid) and one after it.
 - **When.** Release 1 (roadmap 9.8), built as the first way.
+- **Future feature, added 7 Oct: the outside clock as well** (the second way above; you chose it as a later addition). A free cron-job.org
+  job calls the app's refresh route on a fixed timetable (the cron times of `refresh.yml`, and every 30 minutes in the three hours before a
+  lock), so the numbers are fresh even on a day you open nothing; the app starts `refresh.yml` exactly as the Refresh button does, so
+  "one refresh at a time" and the ten-minute cooldown still hold. Needs from you: a free cron-job.org account and pasting the job's
+  address once (it carries a secret, so it is never written in the repository or in chat). Needs from me: a route that accepts that
+  secret (or reuse of `/api/refresh` with its token), a note in the manual, and checking a week of runs on the Audit's freshness. Roadmap 9.11.
 
 ### D · Pin GitHub's machine version before 19 Oct (item 7, approved 3 Oct) — *done 7 Oct*
 - **The issue.** The three workflow files say `ubuntu-latest`, which becomes Ubuntu 26 on 19 Oct, so the refresh could break that day.

@@ -129,6 +129,9 @@ h1 { margin: 0; font-size: clamp(28px, 3.2vw, 38px); font-weight: 700; letter-sp
   transition: transform .35s cubic-bezier(.3,.7,.2,1), width .35s cubic-bezier(.3,.7,.2,1);
 }
 .segmented.lg button { padding: 9px 26px; font-size: 14px; }
+.picks-card .segmented { align-self: flex-start; border-radius: 10px; }
+.picks-card .segmented button { padding: 4px 10px; font-size: 12px; border-radius: 7px; }
+.picks-card .segmented .thumb { border-radius: 7px; }
 
 /* ---------- Cards ---------- */
 .card {

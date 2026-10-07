@@ -7,18 +7,24 @@
  *     node scripts/check.mjs --all    both sides, whatever changed
  *     node scripts/check.mjs --live   after a push, or at the start of a session: waits for Vercel to deploy origin/main,
  *                                     opens every page on production, then prints CI's and the last refresh's state
+ *     node scripts/check.mjs --live /lineups /play
+ *                                     the same, then the links to test those pages on localhost and production (the
+ *                                     local dev server is started if it is not running)
  *
  * It fixes what it can (ruff format, the OpenAPI document, the generated API types) and says so: commit those files too.
  * One line per step; a failing step prints the end of its output. Browser tests are not run here: run the changed page's
  * spec (AGENTS.md "Shipping").
  */
-import { execSync, spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { execSync, spawn, spawnSync } from "node:child_process";
+import { existsSync, openSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const REPO = "yares28/Sofix";
+const PROD = "https://sofix-livid.vercel.app"; // the address the owner browses (same app as APP_URL)
+const LOCAL = "http://localhost:3000";
 const PAGES = ["/", "/play", "/lineups", "/fixtures", "/difficulty", "/table", "/audit", "/cards", "/players", "/control", "/team/ATL"];
 const args = process.argv.slice(2);
 const failed = [];
@@ -155,6 +161,33 @@ async function live() {
     console.log(`${state === "failure" ? "FAIL" : "    "}  last refresh (${refresh.event}, ${ago(refresh.created_at)}): ${state}`);
     if (state === "failure") failed.push("refresh");
   }
+
+  // 4. Where the owner tests it: the main folder's dev server (hot reload, real read models) and production.
+  // `/lineups` or `lineups`; Git Bash turns `/lineups` into `C:/Program Files/Git/lineups`, so that prefix is dropped.
+  const changed = args
+    .filter((arg) => !arg.startsWith("--"))
+    .map((arg) => arg.replace(/^[A-Za-z]:\/.*?\/Git(?=\/)/, "").replace(/^(?!\/)/, "/"));
+  if (changed.length) {
+    await devServer();
+    console.log("\nTest it:");
+    for (const page of changed) console.log(`  ${LOCAL}${page}\n  ${PROD}${page}`);
+  }
+}
+
+const answers = (url) => fetch(url, { signal: AbortSignal.timeout(60_000) }).then((r) => r.status < 500, () => false);
+
+/** Starts `npm run dev` in the main folder, detached so it outlives the session, unless localhost:3000 already answers. */
+async function devServer() {
+  if (await answers(`${LOCAL}/`)) return console.log(`ok    localhost:3000 is running`);
+  const log = join(tmpdir(), "sofix-dev.log");
+  const out = openSync(log, "w");
+  spawn("npm run dev", { cwd: join(mainFolder(), "frontend"), shell: true, detached: true, windowsHide: true, stdio: ["ignore", out, out] }).unref();
+  for (let i = 0; i < 30; i++) {
+    await new Promise((done) => setTimeout(done, 2_000));
+    if (await answers(`${LOCAL}/`)) return console.log(`ok    localhost:3000 started (log: ${log})`);
+  }
+  console.log(`FAIL  localhost:3000 did not start in a minute: see ${log}`);
+  failed.push("localhost");
 }
 
 try {

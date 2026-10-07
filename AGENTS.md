@@ -94,9 +94,13 @@ nobody waits for, and the owner is the reviewer. A small task should take minute
    `git push origin main`. Vercel deploys in one to two minutes. A push that touches `backend/app/**` or
    `backend/artifacts/**` also starts the refresh (`refresh.yml`), which republishes the read models: never dispatch it by
    hand for that.
-5. **Confirm:** `node scripts/check.mjs --live` waits for the deploy, opens every page on production (anything but 200
-   fails) and prints CI's and the refresh's state without waiting for them. When the task is about published data, check
-   the read model with one SELECT after the refresh; otherwise move on.
+5. **Confirm and hand over:** `node scripts/check.mjs --live /<changed page> ...` waits for the deploy, opens every page
+   on production (anything but 200 fails), prints CI's and the refresh's state without waiting for them, makes sure the
+   main folder's dev server answers on localhost:3000 (it starts it if not), and prints the changed pages' links on
+   localhost and production. The reply that reports a change ends with those links, so the owner tests it at once. When
+   the task is about published data, check the read model with one SELECT after the refresh; otherwise move on.
+   (localhost:3000 serves the main folder with hot reload: a session in a worktree runs `git pull --ff-only` there after
+   its push, when `git status` is clean, so localhost shows the change too.)
 6. **Session start:** `node scripts/check.mjs --live` once. A red CI, a failed refresh or a broken page on `main` is fixed
    first.
 

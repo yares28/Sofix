@@ -16,8 +16,10 @@ This overrides any global habit of branches, pull requests, CI waits or review s
 2. Work on `main` in the main folder (a parallel session: its own worktree, then `git push origin HEAD:main`).
 3. Before the push: `node scripts/check.mjs`. A visible change also gets its page spec and a 1440 px + 390 px look on the
    local dev server (real data), checked against the design bar below.
-4. Commit, `git push origin main`, then `node scripts/check.mjs --live`. Never wait for CI or the refresh, never open a
-   pull request, never drive GitHub through Chrome to merge.
+4. Commit, `git push origin main`, then `node scripts/check.mjs --live /<changed page> ...`. Never wait for CI or the
+   refresh, never open a pull request, never drive GitHub through Chrome to merge.
+5. End the reply with the "Test it" links the script prints (localhost:3000 and production) for every page that changed,
+   so the owner can try it straight away.
 
 ## Product
 

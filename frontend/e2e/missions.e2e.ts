@@ -23,6 +23,22 @@ test.describe("the daily missions page", () => {
     await expect(root).not.toContainText(tomorrow);
   });
 
+  test("keeps a history of mission days, newest first: Sofix's picks and yours as soon as they are written, the score once the games are checked", async ({ page }) => {
+    await page.goto("/missions");
+    const history = page.getByRole("region", { name: "History" });
+    const days = history.getByRole("listitem").filter({ has: page.locator(".au-ms-head") });
+    await expect(days).toHaveCount(2);
+    // 6 Oct: not checked yet, but both sides are there, and your picks carry Sorare's verdict already.
+    await expect(days.first()).toContainText("Tue 6 Oct");
+    await expect(days.first()).toContainText("Checked a day after the games");
+    await expect(days.first().getByRole("list", { name: "Sofix's picks" })).toContainText("Pedri, waiting for his game");
+    await expect(days.first().getByRole("list", { name: "Your picks" })).toContainText("Jan Oblak, did not");
+    // 5 Oct: checked, Sofix caught one of the three that did it.
+    await expect(days.nth(1)).toContainText("Sofix 1 of 3");
+    await expect(days.nth(1).getByRole("list", { name: "Sofix's picks" })).toContainText("Arda Güler, did it, not picked");
+    await expect(history.getByRole("link", { name: "How often Sofix was right" })).toHaveAttribute("href", "/audit/missions");
+  });
+
   test("fits a phone without a sideways scroll", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/missions");

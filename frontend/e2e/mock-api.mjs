@@ -307,6 +307,42 @@ const server = createServer((req, res) => {
       },
     });
   }
+  if (req.method === "GET" && url.pathname === "/api/missions/log") {
+    // The missions log (`read_models` key `missions_log:YYYY-MM`, frontend/lib/missionLog.ts): 6 Oct written down and not yet checked, with your two
+    // picks already judged by Sorare; 5 Oct checked, Sofix 1 of 3, with two achievers it left out.
+    const cand = (s, n, r) => ({ s, n, pic: "", pos: "MID", g: `Game:${s}`, k: "2026-10-05T19:00:00Z", c: { "Decisive Picker": 0.3 }, ...(r ? { r } : {}) });
+    const did = (yes) => ({ played: true, did: { "Decisive Picker": yes } });
+    const mission = (sofix, yours) => ({ key: "Decisive Picker", description: "", mode: "DECISIVE", rule: { kind: "decisive", label: "a decisive action" }, stats: [], picks: 3, sofix, yours });
+    return send(res, 200, {
+      success: true,
+      data: [
+        {
+          days: {
+            "2026-10-06": {
+              limited: {
+                loaded: true,
+                missions: [mission(["pedri"], [{ player: "jan-oblak", game: null, rarity: "limited", status: "FAILURE" }, { player: "pedri", game: null, rarity: "limited", status: "READY" }])],
+                cands: [cand("pedri", "Pedri")],
+              },
+            },
+            "2026-10-05": {
+              limited: {
+                loaded: false,
+                missions: [mission(["jan-oblak", "unai-simon", "mikel-oyarzabal-ugarte"], [])],
+                cands: [
+                  cand("jan-oblak", "Jan Oblak", did(true)),
+                  cand("unai-simon", "Unai Simón", did(false)),
+                  cand("mikel-oyarzabal-ugarte", "Mikel Oyarzabal", did(false)),
+                  cand("arda-guler", "Arda Güler", did(true)),
+                  cand("pedri", "Pedri", did(true)),
+                ],
+              },
+            },
+          },
+        },
+      ],
+    });
+  }
   if (req.method === "GET" && url.pathname === "/api/lineups") {
     if (state.sorare === "missing") return send(res, 200, { success: false, data: null, error: "Futbol Fantasy's lineups have not been read yet." });
     return send(res, 200, lineupsPayload);

@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import MissionsView from "../../components/missions/MissionsView";
 import SiteNav from "../../components/SiteNav";
 import { loadGrid } from "../../lib/api";
+import { loadMissionLog, missionHistory } from "../../lib/missionLog";
 import { loadMissions } from "../../lib/missionsData";
 import { missionDay } from "../../lib/missions";
 import { missionsToday, RARITIES } from "../../lib/missionsToday";
@@ -22,10 +23,11 @@ export default async function Missions({ searchParams }: { searchParams: SearchP
   await connection(); // "today" and kick-off times read the clock
   const params = await searchParams;
   const single = (key: string) => (typeof params[key] === "string" ? (params[key] as string) : undefined);
-  const [data, missions, { grid, meta }, system] = await Promise.all([loadSorare(), loadMissions(), loadGrid(), loadSystem()]);
+  const [data, missions, { grid, meta }, system, log] = await Promise.all([loadSorare(), loadMissions(), loadGrid(), loadSystem(), loadMissionLog()]);
   const week = weekContext(grid, data, new Date(), { w: single("w"), gw: single("gw") });
   const now = new Date();
   const today = await missionsToday(data, missions, single("rarity"), now);
+  const names = new Map((data?.weeks ?? []).flatMap((w) => w.playing.players).flatMap((p) => (p.player ? [[p.player, { name: p.name, pic: p.pic }] as const] : [])));
   return (
     <>
       <SiteNav meta={meta} system={system} week={week} />
@@ -39,6 +41,7 @@ export default async function Missions({ searchParams }: { searchParams: SearchP
           seenAt={today.seenAt}
           missionDay={missionDay(now)}
           now={now.toISOString()}
+          history={missionHistory(log, today.rarity, names)}
         />
       </main>
     </>

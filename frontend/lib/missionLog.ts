@@ -1,5 +1,6 @@
 import { database } from "./db";
-import { fit, isToday, plan, playingToday, ruleOf, type MissionPick, type MissionRow, type MissionsModel, type Rule } from "./missions";
+import { unstable_cache } from "next/cache";
+import { fit, isToday, missionDay, MISSIONS_TAG, plan, playingToday, ruleOf, type MissionPick, type MissionRow, type MissionsModel, type Rule } from "./missions";
 import { RARITIES } from "./missionsToday";
 import type { PlayingPlayer, Sorare } from "./play";
 import type { Sheet, Sheets } from "./playerSheet";
@@ -124,7 +125,7 @@ export async function recordMissionPicks(data: Sorare | null, missions: Missions
   if (!sql || !data) return false;
   const sheets = ((await import("./data/stat_sheets.json")).default as unknown as Sheets).players;
   const players = data.weeks.flatMap((w) => w.playing.players);
-  const day = playingToday([], "limited", now).day;
+  const day = missionDay(now);
   const key = `${LOG_PREFIX}${day.slice(0, 7)}`;
   const rows = (await sql`SELECT payload FROM read_models WHERE key = ${key}`) as { payload: MonthLog }[];
   const before = rows[0]?.payload ?? { days: {} };
@@ -144,6 +145,94 @@ export async function recordMissionPicks(data: Sorare | null, missions: Missions
     VALUES (${key}, ${JSON.stringify(after)}::json, now())
     ON CONFLICT (key) DO UPDATE SET payload = EXCLUDED.payload, updated_at = EXCLUDED.updated_at`;
   return true;
+}
+
+/** A card in the history: `did` / `didnt` once known (Sorare's verdict on your picks, the refresh's check on Sofix's), `waiting` until then, `void` when
+ * his game was never played or scored. */
+export type HistoryCard = { slug: string; name: string; pic: string; state: "did" | "didnt" | "waiting" | "void" };
+/** One mission on one day of the log, as soon as it is written: Sofix's picks, yours, and once every candidate's game is checked, the cards that did it
+ * and were not picked (`missed`) and Sofix's score against the best possible (`best`: its picks or the achievers, the fewer; 0: nobody could). */
+export type HistoryDay = {
+  day: string;
+  mission: string;
+  loaded: boolean;
+  sofix: HistoryCard[];
+  yours: HistoryCard[];
+  missed: HistoryCard[];
+  score: { got: number; best: number } | null;
+};
+
+/** The missions log of one rarity, newest day first, from the months given (`names`: who a pick of yours is when Sofix had no candidate on him). */
+export function missionHistory(logs: MonthLog[], rarity: string, names: Map<string, { name: string; pic: string }>, limit = 30): HistoryDay[] {
+  const out: HistoryDay[] = [];
+  const entries = logs.flatMap((log) => Object.entries(log.days ?? {})).sort(([a], [b]) => b.localeCompare(a));
+  // a pick of yours on a day Sofix had no candidate for him: his name from another day of the log, else this week's players, else his slug read out
+  const everyone = new Map(names);
+  for (const [, rarities] of entries) for (const entry of Object.values(rarities)) for (const c of entry.cands) everyone.set(c.s, { name: c.n, pic: c.pic });
+  const readable = (slug: string) => slug.replace(/-/g, " ").replace(/\b\w/g, (ch) => ch.toUpperCase());
+  for (const [day, rarities] of entries) {
+    const entry = rarities[rarity];
+    if (!entry) continue;
+    for (const m of entry.missions) {
+      const cands = new Map(entry.cands.filter((c) => m.key in c.c).map((c) => [c.s, c]));
+      const known = (slug: string) => {
+        const c = cands.get(slug);
+        return { slug, name: c?.n ?? everyone.get(slug)?.name ?? readable(slug), pic: c?.pic ?? everyone.get(slug)?.pic ?? "" };
+      };
+      const checked = (slug: string): HistoryCard["state"] => {
+        const r = cands.get(slug)?.r;
+        return !r ? "waiting" : r.void ? "void" : r.did?.[m.key] ? "did" : "didnt";
+      };
+      const yours = m.yours.map((y): HistoryCard => ({
+        ...known(y.player),
+        state: y.status === "SUCCESS" ? "did" : y.status === "FAILURE" ? "didnt" : checked(y.player),
+      }));
+      const sofix = m.sofix.map((s): HistoryCard => ({ ...known(s), state: checked(s) }));
+      if (!sofix.length && !yours.length) continue;
+      const settled = cands.size > 0 && [...cands.values()].every((c) => c.r);
+      const achievers = [...cands.keys()].filter((s) => checked(s) === "did");
+      out.push({
+        day,
+        mission: m.key,
+        loaded: entry.loaded,
+        sofix,
+        yours,
+        missed: settled ? achievers.filter((s) => !m.sofix.includes(s)).map((s) => ({ ...known(s), state: "did" as const })) : [],
+        score: settled ? { got: achievers.filter((s) => m.sofix.includes(s)).length, best: Math.min(m.picks, achievers.length) } : null,
+      });
+    }
+    if (out.length >= limit) break;
+  }
+  return out.slice(0, limit);
+}
+
+// Local development and the browser tests have no Neon: they ask the stand-in API instead.
+const API_BASE = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
+
+/** The last two months of the log, newest first; cached five minutes so a page view does not wake Neon each time. */
+const cachedLog = unstable_cache(
+  async (): Promise<MonthLog[]> => {
+    const sql = database();
+    if (sql) {
+      const rows = (await sql`SELECT payload FROM read_models WHERE key LIKE ${`${LOG_PREFIX}%`} ORDER BY key DESC LIMIT 2`) as { payload: MonthLog }[];
+      return rows.map((row) => row.payload);
+    }
+    const response = await fetch(`${API_BASE}/api/missions/log`, { cache: "no-store", signal: AbortSignal.timeout(8000) });
+    if (!response.ok) return [];
+    const body = (await response.json()) as { data?: MonthLog[] };
+    return body?.data ?? [];
+  },
+  ["missions-log-v1"],
+  { tags: [MISSIONS_TAG], revalidate: 300 },
+);
+
+export async function loadMissionLog(): Promise<MonthLog[]> {
+  try {
+    return (await cachedLog()).filter((log) => log && typeof log.days === "object");
+  } catch (error) {
+    console.error(`[missions-log] could not be read: ${error instanceof Error ? error.message : "unknown"}`);
+    return [];
+  }
 }
 
 /** `recordMissionPicks` with today's data, for a route to run after it answers: a failure here is logged and never reaches the caller. */

@@ -16,6 +16,8 @@ and a check, so a session can work through it alone and stop only where you have
 
 Work from the top. Each line points to its full text; "you" items wait for the owner.
 
+0. **Every LaLiga player's past games, read daily in one run** (TODO.md "Forgotten" L): a daily workflow instead of 40 a refresh.
+   Then **G**, the grey countdown on Play (your call), and **R**, the form fallback's red-card ban (small).
 1. **9.7 · The extension updates itself** (TODO.md A): no more Reload by hand after the release that brings it (one last Reload).
 2. **9.8 · A refresh near a lock that does not wait for GitHub** (TODO.md C): the extension and the app start it in the last three hours.
 3. **9.6 · The tile's big number follows his start chance** (TODO.md B): under 40% the "comes on" score, with his chance of coming on.

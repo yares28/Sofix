@@ -19,8 +19,16 @@ export type Limits = {
   databaseLimitBytes: number;
 };
 export type ExtensionStatus = { version: string; sorareUser: string | null; seenAt: string };
+/** The daily league-history run (`league-history.yml`): how many LaLiga players it read out of the list, and when. */
+export type LeagueHistoryStatus = { players: number; read: number; at: string };
 /** `paused`: Neon's free plan hit a monthly limit, so nothing could be read (see isDatabasePaused). */
-export type SystemStatus = { runs: RunSummary[]; limits: Limits | null; extension: ExtensionStatus | null; paused?: boolean };
+export type SystemStatus = {
+  runs: RunSummary[];
+  limits: Limits | null;
+  extension: ExtensionStatus | null;
+  leagueHistory?: LeagueHistoryStatus | null;
+  paused?: boolean;
+};
 
 export const ODDS_MONTHLY_CREDITS = 500;
 /** A scheduled run counts as done when a schedule-triggered run started this long after its slot. */

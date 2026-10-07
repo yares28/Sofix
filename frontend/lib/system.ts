@@ -1,6 +1,6 @@
 import { cache } from "./cache";
 import { database, readModel } from "./db";
-import { isDatabasePaused, type ExtensionStatus, type Limits, type RunSummary, type SystemStatus } from "./control";
+import { isDatabasePaused, type ExtensionStatus, type LeagueHistoryStatus, type Limits, type RunSummary, type SystemStatus } from "./control";
 
 /** Cache tag for the Control Center's data; revalidated with the grid when a refresh ends. */
 export const SYSTEM_TAG = "system";
@@ -20,10 +20,11 @@ const iso = (value: string | Date | null) => (value instanceof Date ? value.toIS
 const cachedSystem = cache(
   async (): Promise<SystemStatus> => {
     const sql = database()!;
-    const [result, system, extension] = await Promise.all([
+    const [result, system, extension, league] = await Promise.all([
       sql`SELECT id, trigger, status, started_at, finished_at FROM refresh_runs ORDER BY id DESC LIMIT 8`,
       readModel<SystemPayload>("system"),
       readModel<ExtensionPayload>("extension"),
+      readModel<LeagueHistoryStatus>("league_history_status"),
     ]);
     const rows = result as {
       id: number;
@@ -57,7 +58,7 @@ const cachedSystem = cache(
     const ext: ExtensionStatus | null = extension
       ? { version: extension.payload.version, sorareUser: extension.payload.sorare_user, seenAt: extension.payload.seen_at }
       : null;
-    return { runs, limits, extension: ext };
+    return { runs, limits, extension: ext, leagueHistory: league?.payload ?? null };
   },
   ["system-status"],
   { tags: [SYSTEM_TAG], revalidate: 3600 },

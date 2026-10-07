@@ -135,6 +135,12 @@ Outside LaLiga the app shows chance to play and xScore, explicitly not a fabrica
 Cards/Players are latest-sync snapshots. Market value is cached valuation, not a live listing. A double gameweek uses
 Sorare's best-game behavior.
 
+Past games: the refresh reads the owner's players in full; every other LaLiga player's are read once a day by
+`league-history.yml` (`app/jobs/league_history.py`, the last refresh's `market` list, stalest first, saved every 50 players)
+into `sorare_league_history`, with its last run in `league_history_status` for Control. The refresh only reads that model,
+so it never writes back an older copy. With the API key the read carries red cards (`detailedScore`); Sofix's own start
+chance is 0 after a red card in a player's last LaLiga game.
+
 ## 8. xScore
 
 1. Last five with priors estimates P(play) and conditional score (priors 0.60 and 45).
@@ -464,4 +470,4 @@ Schema/runtime: migrations owner-only, dev branch first; unattended schema check
 | Football UI | `frontend/components/Overview.tsx`, `DifficultyGrid.tsx`, `FixtureBoard.tsx` |
 | Sorare UI/Apply | `frontend/components/play/`, `components/cards/`, `lib/apply.ts` |
 | Extension | `extension/background.js`, `core.js`, `bridge.js`, `content.js`, `overlay.js/css`, `drawer.js` |
-| Operations | `.github/workflows/refresh.yml`, `frontend/app/control/`, `frontend/lib/github.ts` |
+| Operations | `.github/workflows/refresh.yml`, `league-history.yml`, `frontend/app/control/`, `frontend/lib/github.ts` |

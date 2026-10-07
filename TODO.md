@@ -16,6 +16,37 @@ item, what you said and why; the order, the steps and the results live in the ro
 
 ---
 
+## Forgotten in past sessions (found 7 Oct 2026)
+
+You asked on 7 Oct why the league history reads 40 players a refresh instead of everyone, and to find plans left unfinished.
+Every session since 3 Oct was read for offers and questions left hanging; most were closed later (listed at the end).
+
+**L. Every LaLiga player's past games, read daily in one run.** Your words, 6 Oct 09:51: "plan with me the scraping of the 40
+requests per request ... to a job that does all the requests for all the players ... make it run each day ... so each player has
+its latest game. I don't mind having games loading after the day." The session planned it at 09:52 (a daily workflow at about
+05:30 Madrid, every player in one run, progress saved every 50 players, the refresh no longer writing the history, a line on
+Control). Your next message, 09:54, began "You know what? I like how it is now", which was about the all-or-nothing rewards;
+the session read it as dropping the daily job and only said so in its last line ("tell me if I misread that"). So the refresh
+kept reading 40 players a run (`LEAGUE_BATCH`, `backend/app/sorare/sync.py`), never-read players in alphabetical order of their
+Sorare slug, which is why Vinícius, Renato Veiga, Sergi Cardona, Sergio Gómez, Xavi Espart, Yoel Lago and Zaid Romero had no
+Sofix % on 7 Oct (178 of 618 never read). The Control line was a question you never answered; the session's advice was yes.
+
+**G. The grey countdown on Play.** On 6 Oct ("This week" redesign) the session asked: when a plan is built before Sorare's
+projections, should the countdown and the hero's facts stay greyed with the plan, or only the projection-based figures? Not
+answered. Today `PlayView.tsx` greys the whole intro (`pl-intro behind`), countdown included.
+
+**R. The plan's own-form start chance does not know a red-card ban.** Since 7 Oct Sofix's own start % is 0 after a red card in his
+last LaLiga game (`own_start`, `forecast.py`), but the form-based chance the plan falls back on when neither Futbol Fantasy nor
+Sorare has a number (`_split`) does not. Futbol Fantasy lists bans for every LaLiga match, so it rarely matters; worth closing
+when the forecast is next touched.
+
+**Closed since (checked 7 Oct):** the `source-map-js` advisory (`40f5288`); the old Sorare row on Home is gone; Missions reads your
+picks (`taskAppearances`) and no longer says "none of your cards" wrongly; a removed Futbol Fantasy match is no failed read and
+old friendlies are no longer re-read (`e0c63bc`, production's failed list is empty); the card-zoom, dead-home and missions-audit
+branches are merged; the merged branches and stashes are gone; extension 0.3.8 is loaded; `gh` is signed in.
+
+---
+
 ## Play deep dive (your message of 6 Oct 2026)
 
 **What you said.** On /play the plan uses Sorare's expected score, not Sofix's xScore; you want to switch between a Sofix plan

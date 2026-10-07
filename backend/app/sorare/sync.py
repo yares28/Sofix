@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -510,60 +511,31 @@ def plan_game_ids(rows: list[dict[str, Any]], alias: str = "plan") -> list[str]:
     return [game["id"] for row in rows for game in (row.get("player") or {}).get(alias) or [] if game.get("id")]
 
 
-LEAGUE_BATCH = 40
-"""How many LaLiga players' past games a run reads (one query each, the same as for your cards): about 500 players are covered in a
-dozen runs, without a burst Sorare's per-IP limit would notice."""
-LEAGUE_STALE = timedelta(days=3)  # a reading older than this is read again, so a new game reaches his form
-
-
-def league_batch(
-    market: list[dict[str, Any]],
-    cached: dict[str, Any],
-    skip: set[str],
-    now: datetime,
-    size: int = LEAGUE_BATCH,
-) -> list[str]:
-    """The LaLiga players whose past games this run reads, in the order that matters: never read and playing this week, never read,
-    then the stalest reading. Players in `skip` (yours, read every run anyway) and fresh readings are left out."""
-
-    def at(slug: str) -> datetime | None:
-        stamp = (cached.get(slug) or {}).get("at")
-        return datetime.fromisoformat(stamp) if stamp else None
-
-    wanted = []
-    for row in market:
-        slug = row.get("slug")
-        if not slug or slug in skip:
-            continue
-        read = at(slug)
-        if read is not None and now - read < LEAGUE_STALE:
-            continue
-        plays = bool((row.get("player") or {}).get("plan"))
-        wanted.append((read is not None, not plays, read or now, slug))
-    wanted.sort()
-    return [slug for *_, slug in wanted[:size]]
+LEAGUE_SAVE_EVERY = 50  # players read between saves: a run cut off midway keeps what it read
 
 
 def league_history(
     client: SorareClient,
-    market: list[dict[str, Any]],
+    slugs: list[str],
     cached: dict[str, Any] | None,
-    skip: set[str],
-    before: datetime,
     now: datetime,
-    size: int = LEAGUE_BATCH,
+    save: Callable[[dict[str, Any]], None],
+    every: int = LEAGUE_SAVE_EVERY,
 ) -> dict[str, Any]:
-    """Every LaLiga player's past games, built up a batch a run: `{slug: {"at": when read, "games": rows as history() gives}}`.
+    """Every LaLiga player's past games, all read in one run (the daily `league-history` workflow, owner's ask of 6 Oct 2026):
+    `{slug: {"at": when read, "games": rows as history() gives}}`.
 
-    The cache is kept between runs (`sorare_league_history`); a player no longer in LaLiga drops out, and one Sorare would not answer
-    keeps his last reading and is tried again next run.
+    The stalest reading goes first and the result is saved every `every` players, so a run Sorare or GitHub cuts off keeps what
+    it read and the next one starts where it stopped. A player Sorare does not answer keeps his last reading; one no longer in
+    LaLiga drops out.
     """
-    current = {row["slug"] for row in market if row.get("slug")}
+    current = set(slugs)
     out = {slug: entry for slug, entry in (cached or {}).items() if slug in current}
-    batch = league_batch(market, out, skip, now, size)
-    read = history(client, batch, before)
-    for slug, games in read.items():
-        out[slug] = {"at": now.isoformat(), "games": games}
+    order = sorted(current, key=lambda slug: ((out.get(slug) or {}).get("at") or "", slug))
+    for start in range(0, len(order), every):
+        for slug, games in history(client, order[start : start + every], now).items():
+            out[slug] = {"at": now.isoformat(), "games": games}
+        save(out)
     return out
 
 
@@ -816,8 +788,9 @@ def snapshot(
     market = laliga_index(client, fixture=plan_gw["slug"])
     # Sorare's projection game by game for the planned week, yours and every LaLiga player's (the record keeps both numbers)
     projections = game_projections(client, plan_game_ids(my_cards) + plan_game_ids(market))
-    # Every other LaLiga player's past games, a batch a run, so his form counts too (yours are read in full above)
-    league = league_history(client, market, cached_league, set(scores), datetime.fromisoformat(plan_gw["lock"]), now)
+    # Every other LaLiga player's past games, so his form counts too (yours are read in full above): only read here, the daily
+    # `league-history` job is the one that fetches and saves them, so a refresh never writes back an older copy.
+    league = cached_league or {}
 
     return {
         "fetchedAt": now.isoformat(),

@@ -69,7 +69,10 @@ TEMPLATES_KEY = (
     "sorare_templates"  # the finished gameweeks whose LaLiga competitions stand in for the ones Sorare has not opened
 )
 
-LEAGUE_HISTORY_KEY = "sorare_league_history"  # every LaLiga player's past games, built up a batch a run
+LEAGUE_HISTORY_KEY = (
+    "sorare_league_history"  # every LaLiga player's past games: the daily job writes it, the refresh reads it
+)
+LEAGUE_STATUS_KEY = "league_history_status"  # the daily job's last run, for Control: players, read, when
 
 T = TypeVar("T")
 
@@ -438,7 +441,6 @@ def run(
     if kept_plans:
         summary["frozenPlans"] = kept_plans
     put(db, REFERENCES_KEY, snapshot["references"], now)
-    put(db, LEAGUE_HISTORY_KEY, snapshot.get("leagueHistory") or {}, now)
     if (
         snapshot.get("expected") or {}
     ) != templates:  # a finished week never changes: write only when a new one became the template

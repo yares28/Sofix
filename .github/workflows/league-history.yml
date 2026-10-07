@@ -1,0 +1,53 @@
+name: League history
+
+# Every LaLiga player's past games, read once a day in one run (owner's ask of 6 Oct 2026), so each player's form has his
+# latest game. Separate from the refresh: it only writes `sorare_league_history` (and its status line on Control), which
+# the refresh only reads. About 620 Sorare queries, paced by the client: four or five minutes with the API key.
+# Cron is UTC: 03:30 is 05:30 Madrid in summer, 04:30 in winter, after the night's late games are scored and before the
+# morning refresh. GitHub often starts scheduled runs late; a late run only means the games arrive later that day.
+on:
+  schedule:
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: league-history
+  cancel-in-progress: false
+
+jobs:
+  league-history:
+    name: Read every LaLiga player's past games
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      APP_ENV: prod
+      POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+      # With the key Sorare allows the heavier query that carries red cards, and a higher rate.
+      SORARE_API_KEY: ${{ secrets.SORARE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+          activate-environment: true
+          enable-cache: true
+          cache-dependency-glob: backend/requirements.lock
+
+      - name: Install locked dependencies
+        run: uv pip sync requirements.lock
+
+      - name: Check secrets
+        run: |
+          test -n "$POSTGRES_URL" || { echo "::error::POSTGRES_URL secret is missing"; exit 1; }
+          test -n "$SORARE_API_KEY" || { echo "::error::SORARE_API_KEY secret is missing"; exit 1; }
+
+      # Progress is saved every 50 players, so a run that is cut off keeps what it read and the next one carries on.
+      - name: Read the league's past games
+        run: python -m app.jobs.league_history

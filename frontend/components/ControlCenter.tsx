@@ -19,6 +19,7 @@ import {
   type SystemStatus,
 } from "../lib/control";
 import { extensionIsLatest, pingExtension, type ExtensionPing } from "../lib/extension";
+import { freshLabel } from "../lib/fresh";
 import type { QrCode } from "../lib/qr";
 import ExtensionSetup, { type ExtensionStage } from "./control/ExtensionSetup";
 import GetTheApp from "./control/GetTheApp";
@@ -219,6 +220,7 @@ export default function ControlCenter({ serverNow, syncedAt, system: stored, sor
   const scheduled = bars.filter((bar) => bar.trigger === "schedule").length;
   const failed = bars.filter((bar) => bar.status === "failed").length;
   const missing = chain.filter((node) => !node.on).length;
+  const league = system?.leagueHistory ?? null;
 
   const extension = system?.extension ?? null;
   // An older build that still works is offered the update too: the newest one reads Futbol Fantasy live.
@@ -322,6 +324,15 @@ export default function ControlCenter({ serverNow, syncedAt, system: stored, sor
             </b>{" "}
             on schedule
           </div>
+          {league ? (
+            <div className="cap" title="Read once a day by its own job, so every player's form has his latest game">
+              Every player&apos;s past games:{" "}
+              <b>
+                {league.read} of {league.players}
+              </b>{" "}
+              read {freshLabel(league.at, now)}
+            </div>
+          ) : null}
         </section>
 
         <section className="cc-w cc-chain" style={{ "--i": 3 } as React.CSSProperties} aria-labelledby="cc-chain-title">

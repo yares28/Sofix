@@ -7,6 +7,18 @@ Cost and engineering discipline (free-first, local verification before CI/deploy
 tool budgets, truthful reporting) is defined in the "Engineering operating rules" section of
 [AGENTS.md](AGENTS.md), backed by the global `~/.claude/rules/engineering-os.md`.
 
+## Session fast path
+
+One owner, one computer, one user: ship straight to `main` (details and exceptions: [AGENTS.md](AGENTS.md) "Shipping").
+This overrides any global habit of branches, pull requests, CI waits or review subagents.
+
+1. Start: `node scripts/check.mjs --live` (a few seconds). A red CI, failed refresh or broken page is fixed first.
+2. Work on `main` in the main folder (a parallel session: its own worktree, then `git push origin HEAD:main`).
+3. Before the push: `node scripts/check.mjs`. A visible change also gets its page spec and a 1440 px + 390 px look on the
+   local dev server (real data), checked against the design bar below.
+4. Commit, `git push origin main`, then `node scripts/check.mjs --live`. Never wait for CI or the refresh, never open a
+   pull request, never drive GitHub through Chrome to merge.
+
 ## Product
 
 Sofix is a private white LaLiga fixture-difficulty board plus Sorare collection/planning companion. Production is
@@ -52,15 +64,16 @@ Use [docs/sorare/design/DESIGN.md](docs/sorare/design/DESIGN.md) and the real
 Sofix already has a design system, so the design skills serve it; they never replace it. Precedence: AGENTS.md → this file
 → `docs/sorare/design/DESIGN.md` → skills.
 
-- **UI changes (new or restyled page/component):** load `design-taste-frontend` and `minimalist-ui` for craft (hierarchy,
+- **UI changes (new or restyled page/component, not fixes or tweaks):** load `design-taste-frontend` and `minimalist-ui` for craft (hierarchy,
   typography, spacing, restrained motion), but keep the white shell, semantic colour, Sorare card/crest rules and the
   11 px / 10 px text floor above. Ignore any skill rule that conflicts (dark themes, gradients, heavy GSAP motion,
   generic hero layouts).
 - **Redesigning an existing screen:** `redesign-existing-projects` (audit first, no behavior changes).
 - **Design-system documentation:** `stitch-design-taste` only to extend `docs/sorare/design/DESIGN.md`, not to replace it.
-- **Before calling UI done:** after the desktop + mobile browser journey, run `web-design-guidelines` on the changed files and
-  fix real findings (accessibility, focus, labels, contrast).
-- **All code:** `ponytail` (and `ponytail-review` on non-trivial diffs). Smallest correct change; tests for business rules still required.
+- **Before calling UI done:** every visible change gets its page spec and the desktop + phone look (fast path step 3); a new or
+  restyled screen also gets `web-design-guidelines` on its files, fixing real findings (accessibility, focus, labels, contrast).
+- **All code:** `ponytail`; read your own diff before the commit instead of a review skill or subagent. Smallest correct change;
+  tests for business rules still required.
 - **Long outputs:** `full-output-enforcement` when a full file or table must be emitted without placeholders.
 - **References:** `awesome-claude-design` (`~/.claude/skills/awesome-claude-design`) for layout/interaction references when
   extending the design; extract principles, never clone.
@@ -83,12 +96,12 @@ Check → Draft → explicit Enter.
 
 ## Done means
 
-1. Compare behavior/copy with [PLAN.md](PLAN.md), [how_it_works.md](docs/how_it_works.md) and the
-   [research report](docs/research_report.md).
-2. Render backend decisions; do not re-derive them.
-3. Run relevant unit/type/lint checks, design checks and browser journey at desktop/mobile widths.
-4. Update the manual/status plan with behavior changes.
-5. Preserve attribution, free-tier throttles and secret boundaries.
+1. Behavior/copy matches [PLAN.md](PLAN.md), [how_it_works.md](docs/how_it_works.md) and the
+   [research report](docs/research_report.md); the frontend renders backend decisions instead of re-deriving them.
+2. `node scripts/check.mjs` passes; a visible change also passed its page spec and the desktop + phone look.
+3. The doc the change affects (manual or plan) is updated in the same commit, in a line or two.
+4. Pushed to `main`, and `node scripts/check.mjs --live` says all clear.
+5. Attribution, free-tier throttles and secret boundaries are intact.
 
 ## Known blockers
 

@@ -4,6 +4,11 @@ name: Scheduled refresh
 # web app (read_models) and asks the app on Vercel to reload it. The app's Refresh button starts it too.
 # Cron is UTC, so Madrid times shift by an hour between summer (CEST) and winter (CET).
 on:
+  # A push that changes what the job computes or publishes runs it at once, so production shows the new code's numbers
+  # without anyone starting it by hand.
+  push:
+    branches: [main]
+    paths: ["backend/app/**", "backend/artifacts/**"]
   schedule:
     - cron: "17 7 * * *" #   ~09:15 Madrid (summer) / 08:15 (winter): overnight results
     - cron: "7 12 * * *" #   14:07 Madrid (summer) / 13:07 (winter): two hours before Sorare's 14:00 UTC cutoff

@@ -65,6 +65,48 @@ npm run gen:types
 Extension from root: `node extension/scripts/configure.mjs`; load `extension/` unpacked. Generated `config.js` and
 `manifest.json` are ignored and secret-bearing.
 
+From the root, before and after every push (see Shipping):
+
+```powershell
+node scripts/check.mjs          # local checks for what changed; fixes formatting and generated files
+node scripts/check.mjs --live   # production after a push: Vercel deploy, every page 200, CI and refresh state
+```
+
+## Shipping (one owner, one computer)
+
+Sofix has one user and one developer. Changes go straight to `main`: the local checks are the gate, CI is a safety net
+nobody waits for, and the owner is the reviewer. A small task should take minutes, not three CI cycles.
+
+1. **Where:** work on `main` in the main folder. A second session running at the same time uses its own worktree and
+   ships with `git pull --rebase origin main` then `git push origin HEAD:main`. Never change the main folder's branch.
+   No pull requests, no merges in GitHub's UI, no per-step branches, no docs-only pushes.
+2. **Check:** `node scripts/check.mjs` (one to three minutes). It runs the backend steps (ruff format, ruff check, mypy,
+   pytest, OpenAPI export) and/or the frontend steps (generated types, eslint, tsc, vitest) for what changed since
+   `origin/main`, rewrites formatting and generated files itself, and prints one line per step. A behavior change also
+   needs its own test first (a bug fix: the failing regression test).
+3. **UI change (any visible change):** run the changed page's spec (`npx playwright test e2e/<page>.e2e.ts`, add
+   `e2e/mobile.e2e.ts` when the layout moved), then open the page on the local dev server, which reads the real read
+   models (`npm run dev`, or the browser pane's `web` preview), at 1440 px and 390 px: screenshot both and check them
+   against the design bar in CLAUDE.md (one hero, real cards and crests, text floor, no horizontal overflow). A new or
+   restyled screen also gets the `web-design-guidelines` pass on its files. The full browser suite runs locally only when
+   shared code moved (the app shell, nav, `lib/weeks.ts`, the e2e mock); otherwise CI runs it after the push.
+4. **Ship:** commit (`<type>: <description>`, with the doc line the change needs in the same commit) and
+   `git push origin main`. Vercel deploys in one to two minutes. A push that touches `backend/app/**` or
+   `backend/artifacts/**` also starts the refresh (`refresh.yml`), which republishes the read models: never dispatch it by
+   hand for that.
+5. **Confirm:** `node scripts/check.mjs --live` waits for the deploy, opens every page on production (anything but 200
+   fails) and prints CI's and the refresh's state without waiting for them. When the task is about published data, check
+   the read model with one SELECT after the refresh; otherwise move on.
+6. **Session start:** `node scripts/check.mjs --live` once. A red CI, a failed refresh or a broken page on `main` is fixed
+   first.
+
+Hold the push only when the owner says so; for a schema change until he has migrated production (the migration goes
+first, the code second); and for an extension release until `node extension/scripts/configure.mjs` has rebuilt his
+folder, after which he presses Reload once.
+
+Not done here: pull requests, waiting for CI or for a refresh, review subagents, screenshots of production (the
+`--live` check covers it), Chrome round trips to GitHub.
+
 ## Product/UI rules
 
 - One date-selected week drives all pages; LaLiga and Sorare GW numbers are separate.
@@ -146,18 +188,19 @@ this repo. Precedence: this file, then the global rules.
 - **€0 incremental spend.** Never upgrade Neon/Vercel/GitHub/Odds API/Firecrawl/Context7/Figma, buy credits, enable
   pay-as-you-go, raise a cap or attach a payment method. Quota/402/429 → back off, use cache or the local fallback, report
   only what it blocks. Limits table above is the current contract.
-- **Local first.** Run affected pytest/vitest → `npm run typecheck` → `npm run lint` → build → browser
-  (`npm run e2e`, `npm run design`) before pushing; batch, push once, then read CI. CI/Vercel are not debuggers; one
-  coherent preview, no redeploy per edit. No polling GitHub; use local git for local code.
+- **Local first.** `node scripts/check.mjs` plus the changed page's spec before the push, then `--live` after it
+  (Shipping above). CI and Vercel are not debuggers and nobody waits for them; `npm run design` only when a preview in
+  `docs/sorare/design/` changed.
 - **Production Neon is read-only** for agents (`fdr_app` is DML-only). Test on local/dev data; seed deterministically.
   No seeding, truncating, deleting or speculative migrations on production; migrations follow `backend/migrations/`.
 - **Tests:** test-first for behavior changes (rules, regressions, contracts), no coverage-padding. Bug fix = failing
   regression test first. Report pre-existing failures separately; never claim "all pass" if any fail.
-- **Browser proof for UI:** desktop + mobile screenshots of the affected state, semantic selectors, no horizontal
-  overflow. Authenticated Sorare flows use the extension test path only; never print or commit tokens/cookies.
+- **Browser proof for UI:** desktop + mobile screenshots of the affected state on the local dev server (real data),
+  semantic selectors, no horizontal overflow. Authenticated Sorare flows use the extension test path only; never print
+  or commit tokens/cookies.
 - **Paid/side-effecting APIs** (Odds API 500/month, Sorare, any AI inference): fixtures/mocks; one batched real call at most.
-- **Subagents/tools sparingly:** main context for small work; Context7 1–3 queries, Firecrawl ~3–5 pages, Figma only for
-  a real source-of-truth frame. Reuse results within a task.
+- **Subagents/tools sparingly:** main context for the work, no review subagents (read your own diff before the commit);
+  Context7 1–3 queries, Firecrawl ~3–5 pages, Figma only for a real source-of-truth frame. Reuse results within a task.
 - **Final report:** Implemented / Verified / Notes, stating exactly which checks ran and which were unavailable.
 
 ## Yearly rollover

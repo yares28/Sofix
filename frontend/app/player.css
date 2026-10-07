@@ -108,6 +108,15 @@
 .pd-pick a { padding: 5px 12px; border-radius: 9px; color: var(--ink-seg); text-decoration: none; }
 .pd-pick a[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); }
 .ms-mission h2 { margin-bottom: 4px; }
+.ms-all { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.ms-all summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.ms-all summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 4px; }
+.ms-all-key { margin: 8px 0 4px; font-size: 12px; color: var(--ink-2); }
+.ms-pick:has(.ms-note) { position: relative; padding-top: 22px; }
+.ms-note { position: absolute; top: 4px; left: 4px; font-size: 11px; font-weight: 600; color: var(--good-ink); }
+.ms-hist-row { display: flex; gap: 12px; align-items: flex-start; margin-top: 10px; }
+.ms-hist-row > span { flex: 0 0 40px; padding-top: 4px; font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.ms-hist-row .au-ms-cards, .ms-hist-row .pd-none { margin: 0; }
 .ms-reward { margin-left: auto; padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, #46c05a 14%, var(--surface)); color: var(--good-ink); font-size: 12px; font-weight: 700; }
 .ms-rule { margin: 0 0 14px; font-size: 13px; color: var(--ink-2); }
 .ms-picks { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }

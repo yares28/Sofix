@@ -127,7 +127,9 @@ export type Suggestion = {
   average: Window;
   cards: number;
 };
-export type MissionPlan = { mission: MissionRow; rule: Rule; reward: string | null; open: number; picks: Suggestion[] };
+/** `all`: every card of yours with a game this mission day that Sofix can rate for it, likeliest first (also those it gave to another mission);
+ * `unrated`: the others with a game, which no number fits (no stat sheet, or a mission that asks him to beat his own average). */
+export type MissionPlan = { mission: MissionRow; rule: Rule; reward: string | null; open: number; picks: Suggestion[]; all: Suggestion[]; unrated: { slug: string; name: string }[] };
 
 const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
 /** The last `n` of his ten recorded starts, newest first as `last` is oldest first. */
@@ -154,11 +156,10 @@ export function fit(rule: Rule, player: PlayingPlayer, sheet: Sheet | null): { c
   return { chance: atLeast(rule.atLeast, season), average: { ...count(index), season } };
 }
 
-const madridDay = (iso: string): string => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(iso));
-
 /**
- * Your cards of one rarity with a game still to be played today in Madrid (missions are daily and the next ones are not known): each player once, at his
- * next game, whichever gameweek it belongs to (the one being played now included).
+ * Your cards of one rarity with a game still to be played this mission day (`missionDay`: Sorare's day runs from one 9:00 CET reset to the next, so a game
+ * at 21:00 belongs to the missions loaded that morning, not to the next day's): each player once, at his next game, whichever gameweek it belongs to (the
+ * one being played now included). Missions are daily and the next ones are not known.
  */
 export function playingToday(players: PlayingPlayer[], rarity: string, now: Date): { day: string; candidates: { p: PlayingPlayer; game: PlayingPlayer["games"][number] }[] } {
   const next = new Map<string, { p: PlayingPlayer; game: PlayingPlayer["games"][number] }>();
@@ -168,8 +169,8 @@ export function playingToday(players: PlayingPlayer[], rarity: string, now: Date
     const held = next.get(p.player);
     if (game && (!held || game.kickoff < held.game.kickoff)) next.set(p.player, { p, game });
   }
-  const day = madridDay(now.toISOString());
-  const candidates = [...next.values()].sort((a, b) => a.game.kickoff.localeCompare(b.game.kickoff)).filter((u) => madridDay(u.game.kickoff) === day);
+  const day = missionDay(now);
+  const candidates = [...next.values()].sort((a, b) => a.game.kickoff.localeCompare(b.game.kickoff)).filter((u) => missionDay(new Date(u.game.kickoff)) === day);
   return { day, candidates };
 }
 
@@ -186,17 +187,20 @@ export function plan(
   now: Date,
 ): { day: string | null; plans: MissionPlan[] } {
   const { day, candidates } = playingToday(players, rarity, now);
-  const plans: MissionPlan[] = missions.map((mission) => ({ mission, rule: ruleOf(mission), reward: rewardOf(mission), open: Math.max(0, mission.picks - mission.made), picks: [] }));
+  const plans: MissionPlan[] = missions.map((mission) => ({ mission, rule: ruleOf(mission), reward: rewardOf(mission), open: Math.max(0, mission.picks - mission.made), picks: [], all: [], unrated: [] }));
   const pairs: { plan: MissionPlan; pick: Suggestion }[] = [];
   for (const one of plans) {
     for (const { p, game } of candidates) {
       const found = fit(one.rule, p, sheets[p.player!] ?? null);
-      if (!found) continue;
-      pairs.push({
-        plan: one,
-        pick: { slug: p.player!, name: p.name, pos: p.pos, pic: p.pic, club: p.club, opponent: game.opponent, venue: game.venue, kickoff: game.kickoff, chance: found.chance, average: found.average, cards: p.cards },
-      });
+      if (!found) {
+        one.unrated.push({ slug: p.player!, name: p.name });
+        continue;
+      }
+      const pick = { slug: p.player!, name: p.name, pos: p.pos, pic: p.pic, club: p.club, opponent: game.opponent, venue: game.venue, kickoff: game.kickoff, chance: found.chance, average: found.average, cards: p.cards };
+      pairs.push({ plan: one, pick });
+      one.all.push(pick);
     }
+    one.all.sort((a, b) => b.chance - a.chance);
   }
   pairs.sort((a, b) => b.pick.chance - a.pick.chance);
   const used = new Set<string>();

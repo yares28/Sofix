@@ -54,7 +54,7 @@ const player = (slug: string, over: Partial<PlayingPlayer> = {}): PlayingPlayer 
   player: slug, name: slug, pos: "DEF", avatar: "", pic: "https://assets.sorare.com/x.png", crest: null, rarity: "limited", club: "Getafe", inSeason: true, cards: 1, p: 0.9, x: 50, average: 50,
   games: [{ kickoff: "2026-10-10T19:00:00Z", competition: "laliga-es", opponent: "Betis", opponentCrest: null, venue: "H" }], ...over,
 });
-const NOW = new Date("2026-10-10T07:00:00Z");
+const NOW = new Date("2026-10-10T10:00:00Z"); // after the 08:00 UTC reset: the mission day of 10 Oct
 
 describe("a card's fit to a mission", () => {
   it("is his chance of a decisive action from the game (or his own rate), with what he did over 5, 8 and two seasons", () => {
@@ -89,6 +89,14 @@ describe("who goes to which mission", () => {
     expect(plans[0]!.picks.map((x) => x.slug)).toEqual(["a", "b"]);
   });
 
+  it("lists every card with a game for each mission, likeliest first, also one given to another mission, and names those no number fits", () => {
+    const { plans } = plan([INTERCEPTION], "limited", [...players, player("d")], sheets, NOW);
+    expect(plans[0]!.all.map((x) => x.slug)).toEqual(["a", "b", "c"]); // all three, though it has picks for fewer when some are made
+    expect(plans[0]!.unrated).toEqual([{ slug: "d", name: "d" }]); // no stat sheet
+    const busy = plan([INTERCEPTION, row("Assist one", "Pick a player who gets an assist", { picks: 1 })], "limited", players, { ...sheets, c: sheet({ season: { interception_won: [0.2, 1], goal_assist: [0.5, 3] } }) }, NOW);
+    expect(busy.plans[0]!.all.map((x) => x.slug)).toContain("c"); // c is the assist mission's pick and still listed here
+  });
+
   it("leaves out the picks already made, a game already started and a card of another rarity", () => {
     const { plans } = plan([row("Done", "Pick 2+ interceptions", { picks: 3, made: 3 })], "limited", players, sheets, NOW);
     expect(plans[0]!.open).toBe(0);
@@ -106,12 +114,23 @@ describe("who goes to which mission", () => {
     expect(plans[0]!.picks).toEqual([]);
   });
 
+  it("follows Sorare's mission day, not the Madrid date: after midnight and before the reset, tonight's games are the next day's missions", () => {
+    // 02:39 Madrid on 7 Oct is still the mission day of 6 Oct: a game that evening is not one of its candidates, and the day is named 6 Oct.
+    const tonight = player("a", { games: [{ kickoff: "2026-10-07T19:00:00Z", competition: "x", opponent: "Tonight", opponentCrest: null, venue: "H" }] });
+    const before = plan([INTERCEPTION], "limited", [tonight], { a: sheets.a }, new Date("2026-10-07T00:39:00Z"));
+    expect(before.day).toBe("2026-10-06");
+    expect(before.plans[0]!.picks).toEqual([]);
+    // ...and a game after midnight still belongs to the day that began at the reset before it.
+    const late = player("a", { games: [{ kickoff: "2026-10-08T01:00:00Z", competition: "x", opponent: "Late", opponentCrest: null, venue: "H" }] });
+    expect(plan([INTERCEPTION], "limited", [late], { a: sheets.a }, new Date("2026-10-07T10:00:00Z")).plans[0]!.picks.map((x) => x.opponent)).toEqual(["Late"]);
+  });
+
   it("counts a player whose gameweek is being played, at his next game still to come (his first one already played)", () => {
     const twoGames = player("a", { games: [
       { kickoff: "2026-10-09T19:00:00Z", competition: "x", opponent: "Old", opponentCrest: null, venue: "H" },
       { kickoff: "2026-10-10T19:00:00Z", competition: "x", opponent: "Next", opponentCrest: null, venue: "H" },
     ] });
-    const { plans } = plan([INTERCEPTION], "limited", [twoGames, twoGames], { a: sheets.a }, new Date("2026-10-10T07:00:00Z"));
+    const { plans } = plan([INTERCEPTION], "limited", [twoGames, twoGames], { a: sheets.a }, NOW);
     expect(plans[0]!.picks.map((x) => x.opponent)).toEqual(["Next"]); // once, at the game still to come
   });
 });

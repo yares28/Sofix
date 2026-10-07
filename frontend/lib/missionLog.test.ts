@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayMissions, DAILY_PICKER, nextDay } from "./missionLog";
+import { dayMissions, DAILY_PICKER, missionHistory, nextDay, type LogCand, type MonthLog } from "./missionLog";
 import type { MissionRow } from "./missions";
 import type { PlayingPlayer } from "./play";
 import type { Sheet } from "./playerSheet";
@@ -69,5 +69,36 @@ describe("a day of the log", () => {
     expect(later.loaded).toBe(true);
     expect(later.missions.map((m) => m.key)).toEqual(["Interception - All Matches", "Decisive Picker"]);
     expect(later.missions[0]!.yours).toEqual(yours);
+  });
+});
+
+describe("the missions history", () => {
+  const cand = (s: string, did?: boolean): LogCand => ({ s, n: s.toUpperCase(), pic: "", pos: "MID", g: "G", k: "2026-10-05T19:00:00Z", c: { Picker: 0.3 }, ...(did === undefined ? {} : { r: { played: true, did: { Picker: did } } }) });
+  const day = (sofix: string[], yours: { player: string; status: string }[], cands: LogCand[]) => ({
+    limited: { loaded: true, cands, missions: [{ key: "Picker", description: "", mode: "DECISIVE" as const, rule: { kind: "decisive" as const, label: "" }, stats: [], picks: 3, sofix, yours: yours.map((y) => ({ ...y, game: null, rarity: "limited" })) }] },
+  });
+  const log: MonthLog = {
+    days: {
+      "2026-10-05": day(["a", "b"], [], [cand("a", true), cand("b", false), cand("c", true)]),
+      "2026-10-06": day(["a"], [{ player: "z", status: "FAILURE" }], [cand("a")]),
+    },
+  };
+
+  it("lists a day as soon as it is written, newest first: Sofix's picks waiting, yours with Sorare's verdict, no score until every game is checked", () => {
+    const [today, before] = missionHistory([log], "limited", new Map([["z", { name: "Zed", pic: "z.png" }]]));
+    expect(today).toMatchObject({ day: "2026-10-06", score: null, missed: [], sofix: [{ slug: "a", state: "waiting" }], yours: [{ name: "Zed", pic: "z.png", state: "didnt" }] });
+    // checked: two did it, Sofix had one of them and left the other out; the best possible is the fewer of its 3 picks and the 2 achievers
+    expect(before).toMatchObject({ day: "2026-10-05", score: { got: 1, best: 2 }, missed: [{ slug: "c", state: "did" }] });
+    expect(before!.sofix.map((c) => c.state)).toEqual(["did", "didnt"]);
+  });
+
+  it("leaves out another rarity and a mission with no pick on either side", () => {
+    expect(missionHistory([log], "rare", new Map())).toEqual([]);
+  });
+
+  it("names a pick of yours Sofix had no candidate for from another day of the log, else reads his slug out", () => {
+    const [today] = missionHistory([{ days: { ...log.days, "2026-10-07": day(["a"], [{ player: "c", status: "READY" }, { player: "jan-oblak", status: "FAILURE" }], [cand("a")]) } }], "limited", new Map());
+    expect(today!.yours.map((c) => c.name)).toEqual(["C", "Jan Oblak"]);
+    expect(missionHistory([{ days: { "2026-10-07": day([], [], []) } }], "limited", new Map())).toEqual([]);
   });
 });

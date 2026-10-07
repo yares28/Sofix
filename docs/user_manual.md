@@ -448,7 +448,10 @@ are ranked for your cards here. Open Sorare's Missions page once with the extens
 rewards, nothing of your account) and sends them to the app. **Missions** then lists each with what it asks and pays, and the cards of yours that fit it best among those with a game still
 to play **today** (missions are daily and tomorrow's are not known, so no later day is offered; Sofix knows the games of the gameweeks it has planned, not always the one being played): the chance of what it asks (a decisive action from the game's picture; "2+ interceptions" or an assist from his season's rate), large, and what he did
 per start in his last 5, last 8 and two seasons beside it. Each card is suggested for one mission only (the likeliest pairs first). Sofix reads, never picks: you make the picks on Sorare. Missions of
-another rarity show under a small switch once the extension has seen their tab. Not yet: checking the official eleven before a kick-off to flag a benched pick.
+another rarity show under a small switch once the extension has seen their tab. Under each mission, **All N of your players with a game still to
+play today** (since 7 Oct) opens every one of them, likeliest first, with the same chance and the mission's own stat over his last 5, last 8 and two
+seasons (share of starts with a decisive action; interceptions, assists or goals per start), and a note when Sofix put him in this mission or another
+one; the players no number fits are named at the end. Not yet: checking the official eleven before a kick-off to flag a benched pick.
 
 **Loading today's missions** (extension 0.3.6, press Reload on it once). Sorare's missions reset every day at 9:00 CET, and each rarity has its own
 (on 6 Oct the Limited tab had only the Decisive Picker, the Rare tab none). The page only uses a list loaded since the last reset. When it has none, it
@@ -456,6 +459,15 @@ loads them by itself as it opens (through your open sorare.com tab, read only), 
 never opens a tab: with no sorare.com tab open it says so. Missions are daily, so until today's list is in the page shows none, only when the last list
 was loaded. A mission that asks a player to beat his own average is
 listed but not ranked yet. On a phone (no extension) the page says to load them from Chrome.
+
+"Today" is Sorare's mission day: it runs from one 9:00 CET reset to the next (since 7 Oct; before that Sofix used the Madrid date, so on a night after
+midnight it took the next evening's games for the missions still open and wrote the day under the wrong date).
+
+**History** (since 7 Oct), under the missions, lists each mission day of the shown rarity, newest first, from the moment Sofix writes its picks down
+(the missions log, below in the Audit): **Sofix**'s picks and **You**r picks side by side. Yours show Sorare's own verdict as soon as Sorare gives it;
+Sofix's wait until the refresh checks their games, about a day after them. Once every game of the day is checked the day shows Sofix's score
+(how many of the cards that did it it caught, against the best possible) and, dashed, the cards of yours that did it and Sofix didn't pick. A day
+whose games had all started before Sofix wrote it down says it had no pick.
 
 ## 10. Players
 

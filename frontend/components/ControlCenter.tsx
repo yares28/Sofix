@@ -24,6 +24,7 @@ import type { QrCode } from "../lib/qr";
 import ExtensionSetup, { type ExtensionStage } from "./control/ExtensionSetup";
 import GetTheApp from "./control/GetTheApp";
 import HowItRuns from "./control/HowItRuns";
+import LeagueButton from "./control/LeagueButton";
 import RefreshSetup from "./control/RefreshSetup";
 import RefreshButton from "./RefreshButton";
 
@@ -331,6 +332,7 @@ export default function ControlCenter({ serverNow, syncedAt, system: stored, sor
                 {league.read} of {league.players}
               </b>{" "}
               read {freshLabel(league.at, now)}
+              {refreshEnabled ? <LeagueButton /> : null}
             </div>
           ) : null}
         </section>

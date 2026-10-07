@@ -7,6 +7,8 @@ import type { RefreshRun, RefreshStatus } from "./types";
  */
 export const COOLDOWN_SECONDS = 10 * 60;
 export const REFRESH_WORKFLOW = "refresh.yml";
+/** Every LaLiga player's past games, daily; Control's "Read now" starts it too. */
+export const LEAGUE_WORKFLOW = "league-history.yml";
 
 export type WorkflowRun = {
   id: number;
@@ -27,7 +29,7 @@ export type DbRun = {
   details: Record<string, { status?: string }> | null;
 };
 
-const ACTIVE = new Set(["queued", "in_progress", "waiting", "requested", "pending"]);
+export const ACTIVE = new Set(["queued", "in_progress", "waiting", "requested", "pending"]);
 
 export function stepsOf(details: DbRun["details"]): RefreshRun["steps"] {
   const steps: RefreshRun["steps"] = {};
@@ -135,20 +137,20 @@ function headers(token: string): HeadersInit {
   };
 }
 
-export async function latestWorkflowRun(token: string): Promise<WorkflowRun | null> {
-  const url = `${apiBase()}/repos/${repo()}/actions/workflows/${REFRESH_WORKFLOW}/runs?per_page=1`;
+export async function latestWorkflowRun(token: string, workflow = REFRESH_WORKFLOW): Promise<WorkflowRun | null> {
+  const url = `${apiBase()}/repos/${repo()}/actions/workflows/${workflow}/runs?per_page=1`;
   const response = await fetch(url, { headers: headers(token), cache: "no-store", signal: AbortSignal.timeout(8000) });
   if (!response.ok) throw new Error(`GitHub answered ${response.status}`);
   const body = (await response.json()) as { workflow_runs?: WorkflowRun[] };
   return body.workflow_runs?.[0] ?? null;
 }
 
-export async function dispatchRefresh(token: string): Promise<boolean> {
-  const url = `${apiBase()}/repos/${repo()}/actions/workflows/${REFRESH_WORKFLOW}/dispatches`;
+export async function dispatchRefresh(token: string, workflow = REFRESH_WORKFLOW): Promise<boolean> {
+  const url = `${apiBase()}/repos/${repo()}/actions/workflows/${workflow}/dispatches`;
   const response = await fetch(url, {
     method: "POST",
     headers: { ...headers(token), "Content-Type": "application/json" },
-    body: JSON.stringify({ ref: "main", inputs: { trigger: "button" } }),
+    body: JSON.stringify(workflow === REFRESH_WORKFLOW ? { ref: "main", inputs: { trigger: "button" } } : { ref: "main" }),
     cache: "no-store",
     signal: AbortSignal.timeout(8000),
   });

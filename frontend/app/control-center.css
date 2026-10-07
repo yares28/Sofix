@@ -392,3 +392,6 @@ main.cc-page { max-width: calc(1240px + 56px); }
   .sr-go { margin-left: 0; width: 100%; text-align: center; }
   .sr-run em.b { display: none; }
 }
+/* The league history line's "Read now" (LeagueButton) */
+.cc-league { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12px; }
+.cc-league .cc-btn { height: 30px; padding: 0 12px; font-size: 12px; }

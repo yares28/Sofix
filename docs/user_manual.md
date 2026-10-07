@@ -488,7 +488,7 @@ query plus one query per club. Search is local and fast; it does not make a Sora
 its odds. Past-game form counts for everyone: yours are read in full every refresh, and every other LaLiga player's are read once a
 day by their own job (**League history** in GitHub's Actions, about 05:30 Madrid, four or five minutes; it can also be started by
 hand there), so each player has his latest game by the morning refresh. Control shows its last run under "Last refreshes"
-("Every player's past games: 618 of 618 read …"). A run that is cut off keeps what it read and the next one carries on. Until a
+("Every player's past games: 618 of 618 read …"), with **Read now** to start it whenever you want. A run that is cut off keeps what it read and the next one carries on. Until a
 player's games have been read, his numbers rest on those sources and the usual priors. A dash
 means he has no game in the gameweek.
 

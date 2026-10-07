@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { useViewState } from "../hooks/useViewState";
 import {
-  LENS_COPY, MIDFIELD_ATTACK_WEIGHT, horizonSize, openingColumn, selectedColumn, windowRange, type ViewState,
+  horizonSize, openingColumn, selectedColumn, windowRange, type ViewState,
 } from "../lib/grid";
 import type { GameweekPlan } from "../lib/play";
 import { roundBoard, tableAfter } from "../lib/recap";
@@ -26,7 +26,7 @@ interface Props {
   away: { plan: GameweekPlan | null; dates: string } | null;
 }
 
-export default function FixtureBoard({ grid, notes, initialView, pinsInUrl, away }: Props) {
+export default function FixtureBoard({ grid, initialView, pinsInUrl, away }: Props) {
   const total = grid.matchdays.length;
   const opening = useMemo(() => openingColumn(grid), [grid]);
   const finished = useMemo(() => grid.matchdays.map((md) => md.finished), [grid]);
@@ -46,10 +46,8 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl, away
   useEffect(() => {
     if (unknownGw) patch({ gw: null });
   }, [unknownGw, patch]);
-  const copy = LENS_COPY[lens];
 
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  const lensNotes = notes.filter((note) => note.lens === null || note.lens === lens);
 
   return (
     <>
@@ -132,26 +130,6 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl, away
               window.scrollTo({ top: 0 });
             }}
           />
-
-          <p className="footnote">
-            Every card, the grid and the fixtures start from the selected gameweek. Totals add up game by game: blank weeks
-            count 0 and double weeks count both games. Picks: forwards by expected goals, defenders and keepers by expected
-            clean sheets, midfielders by both (goals weighted {Math.round(MIDFIELD_ATTACK_WEIGHT * 100)}%). Most and fewest
-            points coming compare expected points per game, which mostly finds the strongest and weakest clubs; softest and
-            hardest schedule compare the window with the club&rsquo;s own level over the rest of its season.
-          </p>
-          <p className="footnote">
-            Odds (Next and Next 3): bookmaker consensus from The Odds API with the margin removed. Win, draw and loss are
-            priced by bookmakers; scoring, clean-sheet, conceding and both-teams-to-score odds are implied by those prices and
-            the over/under 2.5 line. A played game keeps the forecast it carried before kickoff, with the chance the board gave
-            the result in the corner of its tile. {horizon === "next" ? "Match cards use the rating model." : `${copy.hint}.`} Click a club name to open
-            its season, a pick or a pin to keep a club on top of the grid.
-          </p>
-          {(horizon === "next" ? notes : lensNotes).map((note) => (
-            <p key={note.text} className="footnote note">
-              Model note: {note.text}
-            </p>
-          ))}
         </>
       )}
 
@@ -163,10 +141,10 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl, away
       )}
         </>
       )}
-      <p className="footnote attribution">
+      {view !== "fdr" && <p className="footnote attribution">
         Model {grid.model_version ?? "not run yet"}. Fixtures, results and crests: football-data.org. Match history and
         the record at each price: football-data.co.uk. Odds: The Odds API.
-      </p>
+      </p>}
     </>
   );
 }

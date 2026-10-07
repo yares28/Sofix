@@ -1,15 +1,16 @@
 import type { LineupMatch, LineupPlayer } from "./lineups";
 import { sourceChances } from "./nextGame";
-import type { PlayingPlayer, StartSource } from "./play";
+import type { MarketPlayer, PlayingPlayer, StartSource } from "./play";
 
 export type ChancePlayer = Pick<PlayingPlayer, "player" | "club" | "games" | "sources" | "pStart" | "startSource">;
 export type MatchChances = Record<string, Partial<Record<StartSource, number>>>;
 export type LineupChances = Record<string, MatchChances>;
 export const CHANCE_SOURCES: Record<StartSource, string> = { futbolfantasy: "Futbol Fantasy", sorare: "Sorare", sofix: "Sofix" };
 
-/** Join cached forecasts to this match only. The source breakdown belongs to the first game of a week;
+/** Join cached forecasts to this match only; then every other LaLiga player through his Futbol Fantasy link (`market`), so
+ * Sofix's and Sorare's views have a number for players you don't own too. Your own cards' numbers come first. The source breakdown belongs to the first game of a week;
  * later games can only contribute their own published source. FF always comes from the lineup reading. */
-export function lineupChances(matches: LineupMatch[], players: ChancePlayer[]): LineupChances {
+export function lineupChances(matches: LineupMatch[], players: ChancePlayer[], market: MarketPlayer[] = []): LineupChances {
   const result: LineupChances = {};
   for (const forecast of players) {
     const games = [...forecast.games].sort((a, b) => a.kickoff.localeCompare(b.kickoff));
@@ -32,6 +33,13 @@ export function lineupChances(matches: LineupMatch[], players: ChancePlayer[]): 
         }
       }
     });
+  }
+  for (const row of market) {
+    if (!row.ffMatch || !row.ffPlayer || !row.sources) continue;
+    const values = (result[row.ffMatch.id] ??= {})[row.ffPlayer] ??= {};
+    for (const [source, p] of Object.entries(row.sources) as [StartSource, number][]) {
+      if (source !== "futbolfantasy") values[source] ??= p;
+    }
   }
   return result;
 }

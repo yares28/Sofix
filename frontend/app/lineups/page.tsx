@@ -57,7 +57,7 @@ export default async function Lineups({ searchParams }: { searchParams: SearchPa
   const { weeks } = weekContext(grid, sorare, now);
   const round = sections.find((s) => s.competition === "laliga")?.round ?? null;
   const ahead = round !== null && sorare?.projected?.some((one) => one.round === round) ? await loadProjectedWeek(round) : null;
-  const chances = lineupChances(data.matches, [...(sorare?.weeks ?? []), ...(ahead ? [ahead] : [])].flatMap((week) => week.playing.players));
+  const chances = lineupChances(data.matches, [...(sorare?.weeks ?? []), ...(ahead ? [ahead] : [])].flatMap((week) => week.playing.players), sorare?.market ?? []);
   const wanted = typeof params.w === "string" ? weekById(weeks, params.w) : null;
   const wantedPlan = wanted?.gw && sorare ? weekPlan(sorare, wanted.gw) : null;
   const flash = [otherWeekNote(wanted, round, wantedPlan ? nationalWeek(wantedPlan) : false)].filter((line): line is string => line !== null);

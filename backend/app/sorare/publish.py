@@ -1397,7 +1397,8 @@ def market_out(
 ) -> list[dict[str, Any]]:
     """Every LaLiga player for the Players page (S5), keyed the app's way: his price when Sorare quotes one (else None), and for
     the gameweek being planned his chance of playing and of starting (with whose number it is), his score if he plays, his
-    xScore and his first game. A player without a game this week has no xScore."""
+    xScore and his first game. A player without a game this week has no xScore. `sources` holds every source's chance of starting
+    and `ffMatch`/`ffPlayer` his Futbol Fantasy match and id, so the Lineups page can show Sofix's and Sorare's chance for anyone."""
     out: list[dict[str, Any]] = []
     for row in rows:
         eur = row.get("eur")
@@ -1406,9 +1407,12 @@ def market_out(
         game = listed[0] if listed else None
         week: dict[str, Any] = {}
         if forecast and game:
+            info = forecast.per_game[0].info if forecast.per_game else {}
             week = {
                 "p": round(forecast.p_play, 3),
                 **_start_of(forecast),
+                "sources": forecast.by_source,
+                **{k: info[k] for k in ("ffMatch", "ffPlayer") if info.get(k) is not None},
                 "mu": round(forecast.mu, 1),
                 **({"start": round(forecast.start, 1)} if forecast.start is not None else {}),
                 "x": round(_expected(forecast), 1),

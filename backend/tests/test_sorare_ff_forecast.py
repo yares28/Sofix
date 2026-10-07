@@ -182,3 +182,8 @@ def test_no_laliga_game_read_gives_no_sofix_number() -> None:
 
     assert "sofix" not in unread.by_source, "the bare prior (40%) is no reading of him"
     assert "sofix" not in only_cups.by_source
+
+
+def test_a_red_card_puts_sofixs_own_chance_at_zero() -> None:
+    assert forecast(week(banned=True)).by_source["sofix"] == 0.0
+    assert forecast(week()).by_source["sofix"] > 0.8

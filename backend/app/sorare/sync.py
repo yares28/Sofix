@@ -99,6 +99,9 @@ query($p:String!,$from:ISO8601DateTime!,$to:ISO8601DateTime!){ anyPlayer(slug:$p
     anyGame { id date competition { slug } }
     anyPlayerGameStats { playedInGame ... on PlayerGameStats { gameStarted minsPlayed } } } } } } }
 """
+# With his cards: a red card (a second yellow counts as one) bans him from the next game of that competition. Its complexity (about
+# 1,300) is over the keyless limit of 500, so it is only asked with an API key (the scheduled refresh has one).
+HISTORY_CARDS = HISTORY.replace("score scoreStatus", "score scoreStatus detailedScore { stat statValue }")
 
 GAMES = """
 query($s:String!){ so5 { so5Fixture(slug:$s){ games { id competition { slug } } } } }
@@ -430,6 +433,10 @@ def cards(client: SorareClient, user: str, fixtures: dict[str, str]) -> list[dic
         after = page["pageInfo"]["endCursor"]
 
 
+def _sent_off(stats: list[dict[str, Any]] | None) -> bool:
+    return any(one.get("stat") == "red_card" and (one.get("statValue") or 0) > 0 for one in stats or [])
+
+
 def history(
     client: SorareClient, players: list[str], before: datetime, days: int = 70
 ) -> dict[str, list[dict[str, Any]]]:
@@ -437,9 +444,10 @@ def history(
     out: dict[str, list[dict[str, Any]]] = {}
     start = (before - timedelta(days=days)).astimezone(UTC).isoformat()
     end = (before + timedelta(days=8)).astimezone(UTC).isoformat()
+    query = HISTORY_CARDS if getattr(client, "api_key", "") else HISTORY
     for player in players:
         try:
-            data = client.query(HISTORY, {"p": player, "from": start, "to": end})
+            data = client.query(query, {"p": player, "from": start, "to": end})
         except SorareError as exc:
             logger.warning("sorare: no history for %s (%s)", player, exc)
             continue
@@ -454,6 +462,7 @@ def history(
                 "started": bool((row.get("anyPlayerGameStats") or {}).get("gameStarted")),
                 "mins": (row.get("anyPlayerGameStats") or {}).get("minsPlayed"),
                 "status": row["scoreStatus"],
+                **({"red": _sent_off(row["detailedScore"])} if "detailedScore" in row else {}),
             }
             for row in scores
         ]

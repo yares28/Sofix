@@ -320,9 +320,11 @@ FF says so above the next match.
 - **Sources and your players.** Above the pitches, switch between **Futbol Fantasy**, **Sorare** and **Sofix** to see each source's
   chance of starting this match. Futbol Fantasy is selected first. With **Sorare** or **Sofix** picked, that source's eleven is drawn in
   Futbol Fantasy's formation: in each line a bench player with a higher chance takes the slot of the lowest starter, who then stands
-  first under it. Those sources do not know who is injured or banned, so such a player can come in and keeps his mark; a player with no
-  number keeps Futbol Fantasy's place, and a tie keeps its starter. Sofix's chance counts a player's last five LaLiga games only (cup
-  and European games are often rotated), and is a dash until any LaLiga game of his has been read. A dash means that source has no
+  first under it. Futbol Fantasy's news decides who can: a player it has out (injured) or suspended never comes in, a doubt can and
+  keeps his mark; a player with no number keeps Futbol Fantasy's place, and a tie keeps its starter. Sofix's chance counts a player's
+  last five LaLiga games only (cup and European games are often rotated), is 0% after a red card in his last LaLiga game (a second
+  yellow counts; read from Sorare by the scheduled refresh, which has the API key), and is a dash until any LaLiga game of his has
+  been read. A dash means that source has no
   estimate for this player and match. Sorare and Sofix use the saved forecasts for your
   players, including an early plan when available; a different match's number is never substituted. FF percentages link to its match
   page. **Only my players** dims everyone else on the pitch and in the injury lists. Both choices stay selected when you pick another

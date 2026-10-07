@@ -81,6 +81,7 @@ class PlayerWeek:
     sub: Any = None  # his position's picture of a substitute (`outfield.SubShape`)
     # dates in `history` of games outside LaLiga: Sofix's chance of starting leaves them out
     cups: frozenset[str] = frozenset()
+    banned: bool = False  # sent off in his last LaLiga game before this one, a LaLiga game: he misses it
 
 
 def _from_form(history: list[tuple[str, float, bool]]) -> tuple[float, float]:
@@ -176,9 +177,12 @@ def _per_game(week: PlayerWeek, split: Split, plays: float) -> tuple[tuple[GameC
 
 def own_start(week: PlayerWeek) -> float | None:
     """The app's own chance that he starts, from his LaLiga form alone: Sorare's projection and odds and Futbol Fantasy taken
-    away. None when no LaLiga game of his has been read: the bare prior is no reading of him."""
+    away. None when no LaLiga game of his has been read: the bare prior is no reading of him. 0 after a red card in his last
+    LaLiga game: the ban is certain (owner, 7 Oct 2026)."""
     if not any(date not in week.cups for date, _, _ in week.history):
         return None
+    if week.banned:
+        return 0.0
     bare = dataclasses.replace(week, projection=None, plays_odds=None, start_odds=None, game_ids=[], game_starts=[])
     plays, mu = _from_form(bare.history)
     return _split(bare, mu, plays).p_start

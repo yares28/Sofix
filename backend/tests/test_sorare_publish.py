@@ -886,3 +886,23 @@ def test_the_sorare_plans_stand_on_sorares_projections_or_wait_for_them():
         row["player"]["nextClassicFixtureProjectedScore"] = None
     waiting = publish.build_payload(bare, runs=4, draws=600)["_alt"]
     assert waiting["projected"] == 0 and waiting["plans"] == []
+
+
+# ---------------------------------------------------------------------------------------------------- a red card
+def _league(date: str, red: bool | None = None, status: str = "FINAL", comp: str = "laliga-es") -> dict[str, Any]:
+    return {"date": date, "competition": comp, "status": status, **({"red": red} if red is not None else {})}
+
+
+def test_a_red_card_in_his_last_laliga_game_bans_him_from_the_next_one_only() -> None:
+    next_league = {"kickoff": "2026-10-09T19:00:00Z", "competition": "laliga-es"}
+    sent_off = [_league("2026-09-20T18:00:00Z", red=True), _league("2026-09-13T18:00:00Z", red=False)]
+
+    assert publish._banned(sent_off, next_league)
+    assert not publish._banned(sent_off + [_league("2026-09-27T18:00:00Z", status="PENDING")], next_league), (
+        "served in between"
+    )
+    assert not publish._banned(sent_off, {**next_league, "competition": "uefa-champions-league"}), "the ban is LaLiga's"
+    assert not publish._banned(
+        [_league("2026-09-24T18:00:00Z", red=True, comp="copa-del-rey"), *sent_off[1:]], next_league
+    )
+    assert not publish._banned([_league("2026-09-20T18:00:00Z")], next_league), "cards not read: no ban guessed"

@@ -360,9 +360,9 @@ export function slotAlternatives(side: LineupSide): SlotPlacement {
 
 /**
  * The eleven by another source's chance (Sorare's or Sofix's) in Futbol Fantasy's formation (owner, 7 Oct 2026): in each line, a bench
- * player with a higher chance than a starter takes his slot, and the starter goes first under it. Those sources do not know who is
- * injured or banned, so such a player can come in too and keeps his mark. A player without a number stays where Futbol Fantasy put him;
- * a tie keeps Futbol Fantasy's starter.
+ * player with a higher chance than a starter takes his slot, and the starter goes first under it. Futbol Fantasy's news decides who
+ * can: a player it has out (injured) or suspended (a red card, five yellows) never comes in; a doubt can, and keeps his mark. A player
+ * without a number stays where Futbol Fantasy put him; a tie keeps Futbol Fantasy's starter.
  */
 export function byChance(side: LineupSide, chance: (player: LineupPlayer) => number | null): LineupSide {
   const rows = side.rows.map((row) => ({ ...row, players: [...row.players] }));
@@ -372,7 +372,8 @@ export function byChance(side: LineupSide, chance: (player: LineupPlayer) => num
       const slots = rows.flatMap((row, r) => (row.line === line ? row.players.map((player, i) => ({ r, i, p: chance(player) })) : []));
       const worst = slots.reduce<{ r: number; i: number; p: number } | null>((low, one) => (one.p !== null && (low === null || one.p < low.p) ? { ...one, p: one.p } : low), null);
       const best = bench.reduce<{ player: LineupPlayer; p: number } | null>((high, player) => {
-        const p = player.pos === line ? chance(player) : null;
+        const away = player.status?.kind === "out" || player.status?.kind === "suspended";
+        const p = player.pos === line && !away ? chance(player) : null;
         return p !== null && (high === null || p > high.p) ? { player, p } : high;
       }, null);
       if (!worst || !best || best.p <= worst.p) break;

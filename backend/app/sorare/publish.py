@@ -255,6 +255,15 @@ def card_games(rows: list[dict[str, Any]], key: str) -> dict[str, list[dict[str,
     return out
 
 
+def _banned(rows: list[dict[str, Any]], first: dict[str, Any] | None) -> bool:
+    """Whether a red card bans him from his first game of the week: it is a LaLiga game and his last LaLiga game before it ended
+    with him sent off. A LaLiga game still to be played in between (a PENDING row) is the one that serves the ban."""
+    if first is None or first.get("competition") != expected.LALIGA or not first.get("kickoff"):
+        return False
+    before = [h for h in rows if h.get("competition") == expected.LALIGA and _dt(h["date"]) < _dt(first["kickoff"])]
+    return bool(before) and bool(max(before, key=lambda h: _dt(h["date"])).get("red"))
+
+
 def player_weeks(
     rows: list[dict[str, Any]],
     games: dict[str, list[dict[str, Any]]],
@@ -331,6 +340,7 @@ def player_weeks(
             # Only games he played have a role worth recording; a snapshot from before O9 has none.
             starts={h["date"]: bool(h["started"]) for h in past if h["played"] and "started" in h},
             cups=frozenset(h["date"] for h in past if h.get("competition") not in (None, expected.LALIGA)),
+            banned=_banned(history.get(slug, []), first),
             pos=pos,
             game_ids=[g["id"] for g in ordered] if told else [],
             game_starts=told,

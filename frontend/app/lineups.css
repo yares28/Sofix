@@ -364,10 +364,3 @@
   --lu-tone-low-bg: #2a2a2f; --lu-tone-low-fg: #d6d6db; --lu-mine: #3b9bff;
   --lu-pitch-a: #13241a; --lu-pitch-b: #102017; --lu-pitch-line: rgba(255, 255, 255, 0.12);
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .lu {
-    --lu-tone-good-bg: #183a22; --lu-tone-good-fg: #8fe0a0; --lu-tone-mid-bg: #3a2a10; --lu-tone-mid-fg: #ffc46b;
-    --lu-tone-low-bg: #2a2a2f; --lu-tone-low-fg: #d6d6db; --lu-mine: #3b9bff;
-    --lu-pitch-a: #13241a; --lu-pitch-b: #102017; --lu-pitch-line: rgba(255, 255, 255, 0.12);
-  }
-}

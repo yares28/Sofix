@@ -11,7 +11,7 @@ export default function ThemeSwitch() {
     try {
       saved = localStorage.getItem(THEME_KEY);
     } catch {}
-    setTheme(shownTheme(saved, window.matchMedia("(prefers-color-scheme: dark)").matches));
+    setTheme(shownTheme(saved));
   }, []);
 
   const flip = () => {

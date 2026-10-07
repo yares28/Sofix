@@ -1045,7 +1045,7 @@ thead th .tbc-mark { font-weight: 600; }
 
 /* ---------- Dark theme (5 Oct 2026, owner's pick: keep light and dark, switch top right) ----------
    The light values above are the default; the switch writes data-theme on <html> (components/ThemeSwitch.tsx).
-   With no choice saved, the system's setting decides. Sorare's score bands (--fdr*) read on both. */
+   With no choice saved it is light, whatever the system says (owner, 7 Oct). Sorare's score bands (--fdr*) read on both. */
 :root[data-theme="dark"] {
   color-scheme: dark;
   --bg: #0c0c0e; --surface: #18181b; --ink: #f2f2f4; --ink-2: #a3a3a9; --ink-3: #6b6b71; --ink-seg: #a3a3a9;
@@ -1055,16 +1055,4 @@ thead th .tbc-mark { font-weight: 600; }
   --amber-bg: #3a2a10; --amber-ink: #ffc46b;
   --shadow-card: 0 0 0 1px rgba(255,255,255,.06), 0 12px 32px rgba(0,0,0,.4);
   --shadow-lift: 0 0 0 1px rgba(255,255,255,.08), 0 24px 48px rgba(0,0,0,.5);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --bg: #0c0c0e; --surface: #18181b; --ink: #f2f2f4; --ink-2: #a3a3a9; --ink-3: #6b6b71; --ink-seg: #a3a3a9;
-    --line: #2c2c31; --hover: #222226; --on-ink: #0c0c0e; --accent: #3b9bff; --win: #46c05a; --loss: #e0605b;
-    --good: #46c05a; --good-2: #2f8f45; --good-track: #183a22; --good-ink: #8fe0a0;
-    --low: #5a5a60; --low-track: #26262a; --track: #2a2a2f;
-    --amber-bg: #3a2a10; --amber-ink: #ffc46b;
-    --shadow-card: 0 0 0 1px rgba(255,255,255,.06), 0 12px 32px rgba(0,0,0,.4);
-    --shadow-lift: 0 0 0 1px rgba(255,255,255,.08), 0 24px 48px rgba(0,0,0,.5);
-  }
 }

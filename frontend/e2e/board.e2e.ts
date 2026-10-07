@@ -35,7 +35,7 @@ test("first load shows the overview, then the grid and the fixtures, from the op
   await expect(page.getByRole("article", { name: /^Most points coming: / })).toBeVisible();
   await expect(page.getByRole("article", { name: /^Fewest points coming: / })).toBeVisible();
   await expect(page.locator(".run-card")).toHaveCount(2); // the schedule swings sit behind each card's arrow
-  for (const title of [`Gameweek ${openingMatchday}`, "Who to pick", "Expected points", "Table", "Fixture grid", `Gameweek ${openingMatchday} fixtures`]) {
+  for (const title of [`Gameweek ${openingMatchday}`, "Who to pick", "Expected points", "Table", "Fixture grid"]) {
     await expect(page.getByRole("heading", { level: 2, name: title, exact: true })).toBeVisible();
   }
   await expect(page.locator(".run-card .bento-meta").first()).toHaveText(`GW${openingMatchday}–GW${openingMatchday + 4}`);
@@ -216,7 +216,6 @@ test("the gameweek selector moves every card, the grid, the fixtures and the tab
   await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${next}`, exact: true })).toBeVisible();
   await expect(page.locator(".run-card .bento-meta").first()).toHaveText(`GW${next}–GW${next + 4}`);
   await expect(page.locator(".toolbar .range")).toHaveText(`GW${next} – GW${next + 4}`);
-  await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${next} fixtures` })).toBeVisible();
 
   // A played gameweek: its results, and the table as it stood after it.
   await page.goto(`/difficulty?gw=${past}`);

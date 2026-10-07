@@ -108,7 +108,6 @@ export default function FixtureBoard({ grid, notes, initialView, pinsInUrl, away
               onTogglePin={togglePin}
             />
             <DifficultyLegend />
-            <FixturesList grid={grid} column={column} />
           </div>
 
           <Overview

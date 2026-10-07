@@ -107,12 +107,21 @@ try {
   token = "";
 }
 
+// GitHub out of reach (offline, or the 60-an-hour limit without a sign-in) is said once and the rest still runs: null.
+let unreachable = false;
 async function github(path) {
+  if (unreachable) return null;
   const headers = { accept: "application/vnd.github+json", ...(token && { authorization: `Bearer ${token}` }) };
-  const r = await fetch(`https://api.github.com/repos/${REPO}/${path}`, { headers });
-  const body = await r.json();
-  if (!r.ok) throw new Error(`GitHub ${r.status}: ${body.message}`);
-  return body;
+  try {
+    const r = await fetch(`https://api.github.com/repos/${REPO}/${path}`, { headers });
+    const body = await r.json();
+    if (r.ok) return body;
+    throw new Error(`${r.status}: ${body.message?.split(". ")[0]}`);
+  } catch (error) {
+    unreachable = true;
+    console.log(`      GitHub not reachable (${error.message}): deploy, CI and refresh state not read${token ? "" : "; `gh auth login` lifts the limit"}`);
+    return null;
+  }
 }
 
 const ago = (time) => {
@@ -138,15 +147,20 @@ async function live() {
   const tries = args.includes("--no-wait") ? 1 : 24;
   let vercel;
   for (let i = 0; i < tries; i++) {
-    vercel = (await github(`commits/${sha}/status`)).statuses.find((s) => s.context === "Vercel");
+    const status = await github(`commits/${sha}/status`);
+    if (!status) break;
+    vercel = status.statuses.find((s) => s.context === "Vercel");
     if ((vercel && vercel.state !== "pending") || i === tries - 1) break;
     if (i === 0) console.log(`Waiting for Vercel to deploy ${short}...`);
     await new Promise((done) => setTimeout(done, 15_000));
   }
   const deployed = vercel?.state === "success";
+  if (unreachable) console.log(`      Vercel ${short}: unknown, so the pages below may still be the previous deploy`);
+  else {
   const building = tries === 1 && (!vercel || vercel.state === "pending");
   console.log(`${deployed ? "ok  " : building ? "    " : "FAIL"}  Vercel ${short}: ${vercel ? `${vercel.state}, ${vercel.description}` : "no report yet"}`);
   if (!deployed && !building) failed.push("Vercel");
+  }
 
   // 2. Every page answers on production, through the bypass the refresh job uses.
   const pages = await Promise.all(
@@ -160,14 +174,14 @@ async function live() {
   if (broken.length) failed.push("pages");
 
   // 3. CI and the refresh as they stand: read, never waited for.
-  const { check_runs: jobs } = await github(`commits/${sha}/check-runs`);
+  const jobs = (await github(`commits/${sha}/check-runs`))?.check_runs ?? [];
   for (const job of jobs) {
     const state = job.status === "completed" ? job.conclusion : job.status;
     console.log(`${state === "failure" ? "FAIL" : "    "}  CI ${job.name}: ${state}`);
     if (state === "failure") failed.push(`CI ${job.name}`);
   }
-  if (!jobs.length) console.log(`      CI has not started on ${short} yet`);
-  const [refresh] = (await github("actions/workflows/refresh.yml/runs?per_page=1")).workflow_runs;
+  if (!jobs.length && !unreachable) console.log(`      CI has not started on ${short} yet`);
+  const [refresh] = (await github("actions/workflows/refresh.yml/runs?per_page=1"))?.workflow_runs ?? [];
   if (refresh) {
     const state = refresh.status === "completed" ? refresh.conclusion : refresh.status;
     console.log(`${state === "failure" ? "FAIL" : "    "}  last refresh (${refresh.event}, ${ago(refresh.created_at)}): ${state}`);

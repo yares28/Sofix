@@ -152,4 +152,5 @@ the same commit: `docs/user_manual.md`, `docs/how_it_works.md` (the tables, who 
 
 ## Results
 
-Nothing shipped yet.
+- **8 Oct 2026 — plan registered:** `bb029ca` committed this plan with its roadmap and TODO pointers; confirmed on `origin/main`.
+- **8 Oct 2026 — prerequisite CI repair:** the session-start check found all 11 production pages answering 200 and the last refresh successful, but frontend CI failed its runtime dependency audit. The same audit failed locally; Next.js and its matching lint config were updated from 15.5.25 to 15.5.27. The runtime audit now reports no vulnerabilities; `node scripts/check.mjs` passed API generation, eslint, typecheck and Vitest. Data-keeping steps have not started yet.

@@ -500,12 +500,24 @@ Those readings freeze at lock; a missing source leaves its last saved reading in
 
 **One player's page** (since 4 Oct, `/players/<name>`; click a name in the results). It leads with his game this week: the xScore if he starts and the chance he
 starts, large (for any LaLiga player), and the picture of the game (the same bars as the panel on Sorare, and "Lands between 41 and 80, 8 times in 10"). Below, the **stat sheet** is one table with a
-picker, **Next game** (when his game is priced), **Last 10** or **Two seasons**: what he does in a start (saves, passes, tackles, chances created...) with the points Sorare gives for each,
-and the total. "Next game" is his two seasons' average moved by the game: more saves against a stronger attack, more chances against a weaker defence (never more than 60% off an average
+picker, **Next game** (when his game is priced), **Last 10** or **Saved starts**: what he does in a start (saves, passes, tackles, chances created...) with the points Sorare gives for each,
+and the total. "Next game" is his saved-start average moved by the game: more saves against a stronger attack, more chances against a weaker defence (never more than 60% off an average
 game). Beside it, **how he compares** with the others of his position with eight starts or more (one dot each, where he and the middle one are, and "higher than 69%"), and **his last ten
 starts** as bars (green where he had a decisive action), with his clean sheets and penalties saved for a goalkeeper. A player of yours also gets **his next games** (up to five: the xScore
-and the range he lands in). The stat sheet is read from the games Sofix keeps and says "to <date>" (it is updated by hand with `python -m app.jobs.stat_sheets`, not by the refresh);
-a player with fewer than three starts has no sheet.
+and the range he lands in). The daily history job builds the stat sheet from permanently saved games and says "to <date>";
+it needs at least three final starts with complete stats and a known playing side, position and decisive level. An unread stat sheet is not a zero-action game.
+
+**This season** lists every saved game, newest first, with its real home and away sides, competition, appearance, minutes,
+score and cards. Sofix and Sorare forecasts appear beside the result where they were saved before lock. The summary counts
+games played and starts, averages known appearance scores, and checks each forecast's mean miss on known starts only.
+LaLiga yellows are separate from other competitions; four in a cycle says "one away from a ban" only when every saved
+LaLiga game's cards were read. Otherwise the count says "at least". Unread results, minutes, cards and forecasts say so;
+the latest saved game and last reading stay visible when a source stops.
+
+**Injuries and suspensions** keeps Futbol Fantasy's reported spells, with the first and last reading, its reason and a link
+when the player is linked. A spell closes only when a fresh page reports him available; an empty or failed page cannot
+mark him recovered. "Returned by" is when Sofix read his return, rather than a medical date. No saved spell does not mean
+he has never been injured. This history does not change the start chance.
 
 Each result shows his chance to start, his xScore, recent average, Sorare projection **if he plays**, cached Limited market value
 (a dash when Sorare quotes none), and the improvement

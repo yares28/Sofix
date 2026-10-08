@@ -6,7 +6,8 @@ import { loadGrid } from "../../../lib/api";
 import type { GameweekPlan } from "../../../lib/play";
 import { loadProjectedWeek, loadSorare } from "../../../lib/playData";
 import { identityOf, nextGameIn, planPlayer, type NextGame } from "../../../lib/playerPage";
-import { strips, type Sheets } from "../../../lib/playerSheet";
+import { strips } from "../../../lib/playerSheet";
+import { loadPlayerGames, loadPlayerSheets } from "../../../lib/playerGames";
 import { loadSystem } from "../../../lib/system";
 import { weekContext } from "../../../lib/weeks";
 
@@ -22,20 +23,19 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
 /**
  * One player: his game this week (the picture of it, as the panel on Sorare draws it), how he compares with the others of his position, his stat sheet, his
- * last ten starts and, for a player of yours, his next games. The numbers of the game come from the job; the stat sheet from the games export
- * (`python -m app.jobs.stat_sheets`, "to <date>" on the page).
+ * last ten starts and, for a player of yours, his next games. History and absences come from kept rows; stat sheets are published daily from their stats.
  */
 export default async function PlayerPage({ params, searchParams }: { params: Params; searchParams: SearchParams }) {
   const { slug } = await params;
   if (!SLUG.test(slug)) notFound();
   const query = await searchParams;
   const single = (key: string) => (typeof query[key] === "string" ? (query[key] as string) : undefined);
-  const sheets = (await import("../../../lib/data/stat_sheets.json")).default as unknown as Sheets;
+  const [sheets, history, data, { grid, meta }, system] = await Promise.all([loadPlayerSheets(), loadPlayerGames(slug), loadSorare(), loadGrid(), loadSystem()]);
   const sheet = sheets.players[slug] ?? null;
-  const [data, { grid, meta }, system] = await Promise.all([loadSorare(), loadGrid(), loadSystem()]);
   const planned = data ? planPlayer(data, slug) : null;
   const market = data?.market?.find((p) => p.slug === slug) ?? null;
-  if (!sheet && !planned && !market) notFound();
+  const owned = data?.collection?.find(p => p.player === slug) ?? null;
+  if (!sheet && !planned && !market && !owned && !history?.games.length && !history?.absences.length) notFound();
   const week = weekContext(grid, data, new Date(), { w: single("w"), gw: single("gw") });
 
   // His next games: the weeks the job planned that are not played, then the early plans of the rounds Sorare has not opened, up to five.
@@ -48,6 +48,7 @@ export default async function PlayerPage({ params, searchParams }: { params: Par
     .slice(0, 5);
 
   const identity = identityOf(slug, planned, market);
+  if (!planned && !market && owned) Object.assign(identity, { name: owned.name, pos: owned.pos, club: owned.club, pic: owned.pic });
   return (
     <>
       <SiteNav meta={meta} system={system} week={week} />
@@ -61,6 +62,8 @@ export default async function PlayerPage({ params, searchParams }: { params: Par
           strips={sheet ? strips(sheets, slug) : []}
           next={next}
           league={market}
+          history={history}
+          now={new Date().toISOString()}
         />
       </main>
     </>

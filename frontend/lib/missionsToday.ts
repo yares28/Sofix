@@ -1,6 +1,7 @@
 import { isToday, plan, type MissionPlan, type MissionsModel } from "./missions";
 import type { Sorare } from "./play";
 import type { MissionPool } from "./missionsPool";
+import { loadPlayerSheets } from "./playerGames";
 
 export const RARITIES = ["limited", "rare", "super_rare", "unique"] as const;
 
@@ -29,7 +30,7 @@ export async function missionsToday(
   /** When this rarity's list was last loaded, whatever its age. */
   seenAt: string | null;
 }> {
-  const sheets = pool?.sheets ?? { players: {} };
+  const sheets = pool?.sheets ?? await loadPlayerSheets();
   const today = (r: string) => {
     const entry = missions?.[r];
     return entry && isToday(entry.seen_at, now) && (entry.verified || entry.missions.length) ? entry.missions.filter((m) => m.title) : null;

@@ -2,18 +2,74 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.models import ReadModel
+from app.models import PlayerAbsence, PlayerGame, ReadModel
 from app.schemas import ApiResponse, FixtureGrid
 from app.services.fixture_grid import build_fixture_grid, grid_meta
-from app.sorare import audit
+from app.services.timeutil import as_utc
+from app.sorare import audit, ff_link, sheets
 from app.sorare import missions as mission_logs
 from app.sorare.ff_lineups import LINEUPS_KEY
 from app.sorare.publish import AHEAD_PREFIX, ALT_PREFIX, ARCHIVE_PREFIX
 
 router = APIRouter(prefix="/api")
+
+
+@router.get("/player-sheets", response_model=ApiResponse[dict[str, Any]])
+def player_sheets(db: Session = Depends(get_db)):
+    row = db.get(ReadModel, sheets.KEY)
+    return ApiResponse[dict[str, Any]](success=True, data=row.payload if row else {"asOf": "", "players": {}})
+
+
+@router.get("/players/{slug}/games", response_model=ApiResponse[dict[str, Any]])
+def player_history(slug: str, db: Session = Depends(get_db)):
+    """Local counterpart of the web server's two parameterized history queries."""
+    columns = (
+        "game_id",
+        "date",
+        "competition",
+        "home",
+        "away",
+        "status",
+        "score",
+        "played",
+        "started",
+        "mins",
+        "yellow",
+        "red",
+        "sofix_x",
+        "sorare_x",
+        "read_at",
+    )
+
+    def value(row, key):
+        val = getattr(row, key)
+        return as_utc(val).isoformat() if isinstance(val, datetime) else val
+
+    games = [
+        {key: value(row, key) for key in columns}
+        for row in db.scalars(
+            select(PlayerGame)
+            .where(PlayerGame.player == slug, PlayerGame.date <= datetime.now(UTC))
+            .order_by(PlayerGame.date.desc(), PlayerGame.game_id)
+        )
+    ]
+    profile = ff_link.load_kept(db).get(slug, {}).get("slug")
+    absences = [
+        {
+            **{key: value(row, key) for key in ("id", "kind", "cause", "first_seen", "last_seen", "back")},
+            "url": f"https://www.futbolfantasy.com/jugadores/{profile}" if profile else None,
+        }
+        for row in db.scalars(
+            select(PlayerAbsence)
+            .where(PlayerAbsence.player == slug)
+            .order_by(PlayerAbsence.first_seen.desc(), PlayerAbsence.id.desc())
+        )
+    ]
+    return ApiResponse[dict[str, Any]](success=True, data={"games": games, "absences": absences})
 
 
 @router.get("/health")

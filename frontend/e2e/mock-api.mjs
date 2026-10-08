@@ -11,6 +11,8 @@ const GITHUB_TOKEN = process.env.E2E_GITHUB_TOKEN ?? "";
 const GITHUB_POLLS = 3; // status checks before the scripted workflow run completes
 const recorded = JSON.parse(readFileSync(new URL("./fixtures/grid-response.json", import.meta.url), "utf8"));
 const sorareFixture = JSON.parse(readFileSync(new URL("./fixtures/sorare-response.json", import.meta.url), "utf8"));
+// Recorded sheets stand in for the daily player_sheets read model; production never imports the manual export.
+const playerSheets = JSON.parse(readFileSync(new URL("../lib/data/stat_sheets.json", import.meta.url), "utf8"));
 const STEPS = ["sync", "odds", "predict", "sorare", "publish"]; // the steps the job really runs, in order
 const COOLDOWN_S = 600;
 
@@ -292,6 +294,21 @@ const server = createServer((req, res) => {
       return send(res, 200, { success: false, data: null, error: "Sorare has not been synced yet.", meta: null });
     }
     return send(res, 200, idleSorare[state.news] ?? sorare);
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/player-sheets") return send(res, 200, { success: true, data: playerSheets });
+  const playerGames = url.pathname.match(/^\/api\/players\/([a-z0-9-]+)\/games$/);
+  if (req.method === "GET" && playerGames) {
+    const fixture = playerGames[1] === "juan-marcos-foyth";
+    const ago = days => new Date(Date.now() - days * DAY).toISOString();
+    const game = (days, changes = {}) => ({ game_id: `g-${days}`, date: ago(days), competition: "laliga-es", home: "Villarreal", away: "Real Betis", status: "FINAL", score: 60, played: true, started: true, mins: 90, yellow: 2, red: false, sofix_x: 50, sorare_x: 65, read_at: ago(0), ...changes });
+    return send(res, 200, { success: true, data: {
+      games: fixture ? [game(1, { status: "PENDING", played: null, started: null, score: null, yellow: null, red: null }), game(3), game(7, { started: false, mins: 20 }), game(10, { played: false, started: false, mins: 0, score: 0, yellow: 0 })] : [],
+      absences: fixture ? [
+        { id: 2, kind: "doubt", cause: "Knock", first_seen: ago(2), last_seen: ago(0), back: null, url: "https://www.futbolfantasy.com/jugadores/juan-foyth" },
+        { id: 1, kind: "out", cause: "Hamstring", first_seen: ago(30), last_seen: ago(20), back: ago(15), url: "https://www.futbolfantasy.com/jugadores/juan-foyth" },
+      ] : [],
+    } });
   }
 
   if (req.method === "GET" && url.pathname === "/api/missions") {

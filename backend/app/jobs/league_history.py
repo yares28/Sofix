@@ -20,7 +20,7 @@ from app.jobs.sorare import LEAGUE_STATUS_KEY, SORARE_KEY
 from app.logging_config import configure_logging
 from app.models import ReadModel
 from app.services.publish import put
-from app.sorare import player_games
+from app.sorare import player_games, sheets
 from app.sorare.client import SorareClient
 from app.sorare.sync import league_history
 
@@ -56,6 +56,7 @@ def run(db: Session, client: SorareClient, now: datetime) -> dict[str, Any]:
         "at": now.isoformat(),
     }
     put(db, LEAGUE_STATUS_KEY, status, now)
+    put(db, sheets.KEY, sheets.from_kept(db), now)
     return status
 
 

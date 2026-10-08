@@ -11,7 +11,7 @@ in one read model (`futbolfantasy`), so that:
 
 Which matches: every LaLiga match of the round, and the matches of the European and cup competitions that have a club
 the registry knows (Spanish) or a club one of the owner's players is at. A read that fails or runs out of time leaves the
-rest as it was. Nothing here needs a migration: it is one read model.
+rest as it was. The match feed is one read model; freshly read absence reports also extend permanent player_absences spells.
 """
 
 from __future__ import annotations
@@ -211,6 +211,9 @@ def refresh(
     feed.failed = list(reading.failed)
     feed.stopped = reading.stopped
     if write:
+        from app.sorare import player_absences
+
+        player_absences.observe(db, reading.matches, reading.at)
         save(db, feed, now)
     return feed
 

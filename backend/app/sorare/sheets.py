@@ -1,11 +1,7 @@
-"""Each LaLiga player's stat sheet from the games export (plans/xscore.md P9 X5b; roadmap 10.5, the Players page).
+"""Stat sheets from saved starts: published daily as player_sheets, shared by player pages and missions.
 
-For one player: what he does in a start (the average count of each action and the points Sorare gives for it) over his last ten starts and over
-the whole season, his last ten starts as scores against whom (with the interceptions, assists and goals of each, which the daily missions count) and how often a start of his was decisive, and his clean sheets and penalties saved. The export is local (the refresh does not
-read it), so this is written by hand into `frontend/lib/data/stat_sheets.json`, which the Players page reads; the page says "to <date>".
-
-    cd backend
-    python -m app.jobs.stat_sheets [--games data/raw/sorare_games.jsonl] [--write]
+The original export calculation remains reusable for overlap checks and the local export tool. Missing stats or game
+context never become zero-action starts. The whole saved history and the last ten complete starts each have their window.
 """
 
 from __future__ import annotations
@@ -14,7 +10,12 @@ from collections import defaultdict
 from collections.abc import Sequence
 from typing import Any
 
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.models import PlayerGame
 from app.services import team_registry
+from app.services.timeutil import as_utc
 
 LAST = 10  # starts the "last ten" window holds
 MIN_STARTS = 3  # fewer starts and there is no sheet worth drawing
@@ -25,6 +26,64 @@ MISSION_ACTIONS = (
     "goals",
 )  # counted per start in the last ten, for the daily missions
 KEEP = 0.02  # an action he does less often than this per start is left out of the sheet
+KEY = "player_sheets"
+
+
+def from_kept(db: Session) -> dict[str, Any]:
+    """Reuse the export calculation on saved, final starts with known stats and game context."""
+    games = []
+    for row in db.scalars(
+        select(PlayerGame).where(
+            PlayerGame.started.is_(True),
+            PlayerGame.played.is_(True),
+            PlayerGame.score.is_not(None),
+            PlayerGame.status == "FINAL",
+        )
+    ):
+        context = next((stat for stat in row.stats or [] if stat.get("stat") == "_context"), {})
+        if (
+            not row.stats
+            or context.get("pos") not in {"GK", "DEF", "MID", "FWD"}
+            or context.get("venue") not in {"H", "A"}
+            or not context.get("team")
+            or context.get("level") is None
+        ):
+            continue
+        home = context["venue"] == "H"
+        stats = {
+            s["stat"]: [s["statValue"], s["totalScore"]]
+            for s in row.stats
+            if s.get("stat") not in {"_context", "level_score", "mins_played"}
+            and s.get("statValue") is not None
+            and s.get("totalScore") is not None
+        }
+        # A missing points field is not a zero-point action. Wait for a complete reading.
+        if any(
+            s.get("stat") not in {"_context", "level_score", "mins_played"}
+            and s.get("statValue")
+            and s.get("totalScore") is None
+            for s in row.stats
+        ):
+            continue
+        games.append(
+            {
+                "date": as_utc(row.date).isoformat(),
+                "home": {"slug": context["team"] if home else "", "name": row.home},
+                "away": {"slug": "" if home else context["team"], "name": row.away},
+                "players": {
+                    row.player: {
+                        "pos": context["pos"],
+                        "team": context["team"],
+                        "played": True,
+                        "started": True,
+                        "score": row.score,
+                        "level": context["level"],
+                        "stats": stats,
+                    }
+                },
+            }
+        )
+    return sheets_from_games(games)
 
 
 # Two names Sorare writes that the registry does not know.

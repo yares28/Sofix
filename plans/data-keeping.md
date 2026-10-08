@@ -152,6 +152,29 @@ the same commit: `docs/user_manual.md`, `docs/how_it_works.md` (the tables, who 
 
 ## Results
 
+- **8 Oct 2026 - step 4 built locally:** player pages now read permanent games and absence spells through cached,
+  parameterized queries (with local API equivalents). This season shows real sides, competition, appearances, minutes,
+  score bands, cards and saved forecasts; its summary checks forecast misses on known starts and treats unread cards as
+  a lower bound. The daily job publishes `player_sheets` from complete saved starts, replacing the manual JSON runtime
+  imports on player pages and both mission consumers. The Sorare read retains actual position, playing side, venue and
+  decisive level alongside action stats. Fresh FF reports extend one continuous absence spell, including out-to-doubt
+  changes, preserve profile/shirt identity when a row disappears, attach later Sorare links and close only on explicit
+  availability; failed, empty and delayed readings cannot invent a return. This history does not change start chances.
+  Tests failed first, then focused backend tests (27) and UI/mission logic tests (24) passed. The final
+  `node scripts/check.mjs` passed ruff format/check, mypy, the full pytest suite, OpenAPI export, generated types, eslint,
+  typecheck and Vitest. The full browser run passed 192 of 193 tests; its remaining failure was a selector expecting one
+  FF link when two spells had two links. That selector was fixed. A new accessibility check then found invalid definition
+  list markup, also fixed; the final player spec passed all five tests, and all 13 mobile tests passed. Earlier gate runs
+  found import ordering and an optional collection type, fixed before the passing gate. A disposable in-memory SQLite
+  copy of the real 449-game export produced 542 sheets, all exactly matching the export on overlap. Existing published
+  read models were copied with SELECT only for the preview; no production data was written. Foyth, Soria, the owner's
+  Chelsea and Mainz cards, and Starfelt's real FF report were inspected at 1440/390 px with real cards/crests, screenshots,
+  no sideways overflow and no text below the floor. Web interface guidelines review and real-page axe check passed.
+  The abroad pages honestly show no current-season games in this local copy; a single attempted Sorare batch was
+  unavailable without a locally configured key, so fresh outside-LaLiga history was not verified live. Docs updated.
+  No production migration, seed, table-dependent push or live deployment check has run. Owner page check comes next;
+  steps 5-8 remain, with production migration and step 5's production seed still requiring the owner's approval.
+
 - **8 Oct 2026 - step 3 built locally:** the published Audit and local API now join every player's stored games to frozen week metadata. Start counts and the Sofix/Sorare score comparison agree with legacy figures on the tested overlap without double counting; unknown results stay pending and new weeks wait until end + 24 hours. FF's eleven and the same-formation Sorare/Sofix elevens have week/club counts, with ties and absences respected and rates withheld under 100 checked starters. Week metadata is now guarded at lock too. The refresh stops the separate start, projection, versus and mission settle paths; missions use kept stats, with no inferred DNP for missing rows. Tests failed first for the table switch, metadata guard, legacy-only completion, FF positions and API fallback, then passed. Focused backend integration (126 tests), UI logic (21 tests), Audit/mobile Playwright specs (25 tests) passed. The final `node scripts/check.mjs` passed ruff format/check, mypy, the full pytest suite, OpenAPI export, generated types, eslint, typecheck and Vitest. Earlier runs exposed lint issues, two tests still reading the retired start record, and a test renderer type issue; all were fixed before the passing gate. Real-data localhost previews of `/audit`, `/audit/starts` and `/audit/versus` were inspected at 1440 and 390 px, with screenshots, no sideways overflow and no text below the floor; web-design-guidelines review completed. The real published data has no new eleven rows yet, so its honest empty state was inspected; populated evidence and thresholds are tested with fixtures. Docs updated in this commit. No table-dependent push, production migration, seed or live verification has run. Owner page check comes next, then step 4.
 
 - **8 Oct 2026 - step 2 built locally:** every planned player/game keeps FF, Sorare and Sofix start chances, the existing score comparison's two numbers, and FF's eleven membership. Source readings update only before lock, preserve missing sources and actual columns, reject delayed older writes, and never reconstruct an after-lock statement. Sorare's next-game odds are not copied to a second game. The legacy records continue until step 3. Four focused tests failed first, then passed; refresh integration is checked too. `node scripts/check.mjs` passed ruff format/check, mypy, the full pytest suite and OpenAPI export after a payload type annotation fixed the first run's mypy failure. Deployment/live verification remain pending the single production migration.

@@ -175,9 +175,31 @@ week, position and whole-week expected-score metadata; `start_chances` is a read
 
 **Start chances for every player on Lineups.** `lib/lineupChances.ts` joins the owner's forecasts to each match first, then every other LaLiga player through his Futbol Fantasy link in `market`, so Sofix's and Sorare's start chance shows beside Futbol Fantasy's for players he does not own too.
 
-**The Players page (plans/xscore.md P9 X5b).** `/players/<slug>` draws a player's game from the same `shape` the panel uses, and everything else from `frontend/lib/data/stat_sheets.json`, written by hand by `python -m app.jobs.stat_sheets` from the local games export
-(`app.sorare.sheets`: per start, the mean count and the mean points of every action over his last ten starts and over every start of the export; his last ten scores with the opponent's code; his clean sheets and penalties saved). The page's helpers are `lib/playerSheet.ts`
-(the sheet's lines and total, the dots of the comparison, the bars) and `lib/playerPage.ts` (who he is and his next games from the published plans). "Next game" is the sheet's two-seasons mean times `gameFactors`: the goals his side is expected to concede (for saves, clearances, goals conceded) or score (for shots, chances, goals) from Sorare's price over an average game's 1.3, held within 60% either way.
+**The Players page (plans/data-keeping.md step 4).** `/players/<slug>` draws this week's game from the same `shape` as the
+panel. `lib/playerGames.ts` reads parameterized `player_games` and `player_absences` queries, cached for one hour under
+the `sorare` tag. The local FastAPI equivalents are `/api/players/{slug}/games` and `/api/player-sheets`.
+`lib/playerHistory.ts` selects the July-to-June season, counts known appearances and starts, averages known appearance
+scores, sums LaLiga yellows separately, and computes each source's mean absolute miss on final starts with both numbers.
+Unknown cards make the yellow count a lower bound and suppress the one-away claim. Source outages leave stored evidence
+intact; the page reports the newest game and last read and distinguishes missing data from zero.
+
+The daily `league_history` job publishes `player_sheets` using `sheets.from_kept`, which adapts final starts to the original
+`sheets_from_games` calculation. The history query saves actual position, playing team, venue and decisive level in a
+`_context` entry alongside non-zero `detailedScore` actions in `player_games.stats`; missing context or points excludes a
+start rather than making it a zero. The sheet holds action counts/points for all saved complete starts and the last ten,
+their scores/opponents, mission actions, decisive rate, clean sheets and penalties saved. Player pages, `missionLog` and
+`missionsToday` all read this daily model; the manual JSON export is no longer a runtime input. `lib/playerSheet.ts` draws
+the sheet, comparisons and bars; `lib/playerPage.ts` supplies identity and next games. "Next game" moves the saved-start
+mean by `gameFactors`: goals for/against from the existing price over 1.3, clamped to 60% either way.
+
+`player_absences.observe` runs on freshly read FF matches before `ff_feed` commits. It extends a continuous spell, updates
+its reported kind/reason and closes it only on explicit availability. Cached, failed and absent pages do not advance or
+close spells. FF shirt ids identify players; an absence-only profile without a shirt id uses a stable profile hash until
+the id is read, then retains the same spell. Kept FF links attach Sorare slugs, including previously unlinked spells. The
+small `ff_absence_ids` read model remembers profile-to-shirt identities even for players not linked to Sorare, so losing
+the chance row cannot create a second spell. Delayed readings cannot reopen a spell already closed by newer evidence. The
+page translates known reasons with the existing `absenceText` helper and attributes unrecognized wording to FF. Dates
+are observation dates; this history is not an input to start chances.
 
 **Goalkeepers (plans/xscore.md P9 X3, `app.sorare.keeper`).** A keeper's score is a clean sheet or not: a decisive action worth at least 60 (75 on average over two
 seasons) or about 40, falling with the goals his side lets in. So his score if he starts is built from the game, not from his last five games, whose luck is most of what

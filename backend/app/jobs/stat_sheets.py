@@ -1,9 +1,10 @@
-"""Write every LaLiga player's stat sheet for the Players page (plans/xscore.md P9 X5b; roadmap 10.5).
+"""Regenerate the recorded stat-sheet export for local comparisons and browser fixtures.
 
     cd backend
     python -m app.jobs.stat_sheets [--games data/raw/sorare_games.jsonl] [--write]
 
-Reads the local games export (`app.jobs.export_games`) and, with `--write`, writes `frontend/lib/data/stat_sheets.json`. Nothing is sent anywhere.
+Reads the local games export (`app.jobs.export_games`) and, with `--write`, writes `frontend/lib/data/stat_sheets.json`.
+Production pages and missions read the daily player_sheets read model instead. Nothing is sent anywhere.
 """
 
 from __future__ import annotations

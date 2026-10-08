@@ -6,6 +6,7 @@ import type { PlayingPlayer, Sorare } from "./play";
 import type { Sheet } from "./playerSheet";
 import { mergeMissionRecord } from "./missionStore";
 import { applyMissionEdits, type MissionEdits } from "./missionEdits";
+import { loadPlayerSheets } from "./playerGames";
 
 /**
  * The missions log (plans/roadmap.md 10.7, part 2): what Sofix picked for each daily mission, written down before the games, so the Audit can say how often
@@ -163,7 +164,7 @@ export async function recordMissionPicks(data: Sorare | null, missions: Missions
   if (!sql || !data) return false;
   const { loadMissionPool } = await import("./missionsPool");
   const pool = await loadMissionPool();
-  const sheets = pool?.sheets.players ?? {};
+  const sheets = pool?.sheets.players ?? (await loadPlayerSheets()).players;
   const players = pool?.players ?? data.weeks.flatMap((w) => w.playing.players);
   const day = missionDay(now);
   const legacyKey = `${LOG_PREFIX}${day.slice(0, 7)}`;

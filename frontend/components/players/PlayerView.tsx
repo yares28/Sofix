@@ -7,6 +7,8 @@ import type { Identity, NextGame } from "../../lib/playerPage";
 import { gameFactors, shapeBars, sheetGroups, sheetTotal, type Sheet, type Strip, type Window } from "../../lib/playerSheet";
 import CardArt from "../cards/CardArt";
 import SorareImage from "../play/SorareImage";
+import PlayerHistory from "./PlayerHistory";
+import type { PlayerHistory as History } from "../../lib/playerGames";
 
 const POSITION_NAME = { GK: "goalkeepers", DEF: "defenders", MID: "midfielders", FWD: "forwards" } as const;
 
@@ -28,6 +30,8 @@ export default function PlayerView({
   strips,
   next,
   league = null,
+  history,
+  now,
 }: {
   slug: string;
   identity: Identity;
@@ -38,6 +42,8 @@ export default function PlayerView({
   asOf: string;
   strips: Strip[];
   next: NextGame[];
+  history: History | null;
+  now: string;
 }) {
   const game = planned?.games[0] ?? null;
   const theirs = !planned && league?.fixture?.opponent && league.fixture.kickoff ? league : null;
@@ -55,7 +61,7 @@ export default function PlayerView({
       : null;
   const last10 = sheet ? Math.round(sheet.last.reduce((a, r) => a + r[0], 0) / Math.max(1, sheet.last.length)) : null;
   const bars = useMemo(() => (shape && score !== null ? shapeBars(shape, score) : []), [shape, score]);
-  const pickers: [Window, string][] = [...(factors ? ([["next", "Next game"]] as [Window, string][]) : []), ["l10", "Last 10"], ["all", "Two seasons"]];
+  const pickers: [Window, string][] = [...(factors ? ([["next", "Next game"]] as [Window, string][]) : []), ["l10", "Last 10"], ["all", "Saved starts"]];
 
   return (
     <div className="pd-wrap" data-testid="player-page" data-slug={slug}>
@@ -248,7 +254,8 @@ export default function PlayerView({
         </section>
       ) : null}
 
-      {!sheet ? <p className="pd-none">{identity.name} has no starts in the games Sofix has read yet (to {asOfLabel(asOf)}), so there is no stat sheet.</p> : null}
+      {!sheet ? <p className="pd-none">Not enough saved starts with complete stats for a stat sheet yet. At least three are needed.</p> : null}
+      <PlayerHistory history={history} now={now} />
     </div>
   );
 }

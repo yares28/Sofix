@@ -1,5 +1,5 @@
 // The Players page's numbers (plans/xscore.md P9 X5b; roadmap 10.5): a player's stat sheet, how he compares with the others in his position, his last
-// ten starts and the bars of his game. Pure: the page reads `lib/data/stat_sheets.json` (written by `python -m app.jobs.stat_sheets`) and calls these.
+// ten starts and the bars of his game. Pure: the page reads the daily player_sheets model, built from saved games, and calls these.
 
 export type Position = "GK" | "DEF" | "MID" | "FWD";
 /** What one action is worth in a start: its mean count and the mean points Sorare gave for it. */
@@ -14,7 +14,7 @@ export type Sheet = {
   l10: Record<string, Mean>;
   /** His last ten starts, oldest first: the score, the opponent's code, whether it was decisive (1), H or A, then his interceptions, assists and goals in it (the daily missions count them). */
   last: [score: number, opponent: string, decisive: 0 | 1, venue: "H" | "A", interceptions: number, assists: number, goals: number][];
-  /** How often a start of his was decisive over every start of the export. */
+  /** How often a saved start with complete stats was decisive. */
   decAll: number;
   cs: number;
   pens: number;

@@ -1,9 +1,12 @@
 import { expect, test } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
+import { resetBackend, smallText } from "./helpers";
 
-// The first planned player of the recording carries the picture of his game, and his slug has a stat sheet in lib/data/stat_sheets.json.
+// The first planned player of the recording carries the picture of his game and a recorded daily stat sheet.
 const SLUG = "juan-marcos-foyth";
 
 test.describe("one player's page", () => {
+  test.beforeEach(async ({ request }) => { await resetBackend(request); });
   test("shows the picture of his game, the stat sheet with its picker, how he compares and his last starts", async ({ page }) => {
     await page.goto(`/players/${SLUG}`);
     const root = page.getByTestId("player-page");
@@ -15,7 +18,7 @@ test.describe("one player's page", () => {
     // The stat sheet opens on the next game when the game is priced, and one press moves it: one window at a time, never three side by side.
     const picker = root.getByRole("group", { name: "Which games" });
     await expect(picker.getByRole("button", { name: "Last 10" })).toBeVisible();
-    await expect(picker.getByRole("button", { name: "Two seasons" })).toBeVisible();
+    await expect(picker.getByRole("button", { name: "Saved starts" })).toBeVisible();
     await picker.getByRole("button", { name: "Last 10" }).click();
     await expect(picker.getByRole("button", { name: "Last 10" })).toHaveAttribute("aria-pressed", "true");
     await expect(root.locator(".pd-row").first()).toBeVisible();
@@ -25,6 +28,24 @@ test.describe("one player's page", () => {
     await expect(root.locator(".pd-rail")).not.toHaveCount(0);
     await expect(root.getByRole("heading", { name: /His last \d+ starts/ })).toBeVisible();
     await expect(root.locator(".pd-l10 > div")).toHaveCount(10);
+  });
+
+  test("shows saved games, source misses and absence spells without inventing missing results", async ({ page }) => {
+    await page.goto(`/players/${SLUG}`);
+    const history = page.getByRole("region", { name: "This season" });
+    await expect(history).toContainText("one away from a ban");
+    await expect(history).toContainText("Sofix mean miss");
+    await expect(history).toContainText("Sorare mean miss");
+    await expect(history).toContainText("Started");
+    await expect(history).toContainText("Came on");
+    await expect(history).toContainText("Did not play");
+    await expect(history).toContainText("Result not read");
+    await expect(history.locator(".pd-saved-game")).toHaveCount(4);
+    const injuries = page.getByRole("region", { name: "Injuries and suspensions" });
+    await expect(injuries).toContainText("Returned by");
+    await expect(injuries).toContainText("Still reported");
+    await expect(injuries.getByRole("link", { name: "Futbol Fantasy" })).toHaveCount(2);
+    await expect(injuries.getByRole("link", { name: "Futbol Fantasy" }).first()).toHaveAttribute("href", "https://www.futbolfantasy.com/jugadores/juan-foyth");
   });
 
   test("says so for a player nobody knows, and links from the search", async ({ page }) => {
@@ -44,5 +65,12 @@ test.describe("one player's page", () => {
     await expect(page.getByTestId("player-page")).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBeLessThanOrEqual(0);
+    expect(await smallText(page, 10)).toEqual([]);
+  });
+
+  test("the saved sections meet the desktop text floor and have no automatic accessibility violations", async ({ page }) => {
+    await page.goto(`/players/${SLUG}`);
+    expect(await smallText(page, 11)).toEqual([]);
+    expect((await new AxeBuilder({ page }).include("main").analyze()).violations).toEqual([]);
   });
 });

@@ -101,9 +101,12 @@ query($p:String!,$from:ISO8601DateTime!,$to:ISO8601DateTime!,$after:String){ any
     anyGame { id date competition { slug } homeTeam { name } awayTeam { name } }
     anyPlayerGameStats { playedInGame ... on PlayerGameStats { gameStarted minsPlayed } } } } } } }
 """
-# With his cards: a red card (a second yellow counts as one) bans him from the next game of that competition. Its complexity (about
-# 1,300) is over the keyless limit of 500, so it is only asked with an API key (the scheduled refresh has one).
-HISTORY_CARDS = HISTORY.replace("score scoreStatus", "score scoreStatus detailedScore { stat statValue totalScore }")
+# Cards, action stats and game context exceed the keyless complexity limit of 500, so this is asked only with an API key
+# (the scheduled refresh has one). Keyless reads preserve previously saved cards and stats.
+HISTORY_CARDS = HISTORY.replace(
+    "score scoreStatus",
+    "score scoreStatus positionTyped decisiveScore { totalScore } detailedScore { stat statValue totalScore }",
+).replace("gameStarted minsPlayed", "gameStarted minsPlayed anyTeam { slug name }")
 
 GAMES = """
 query($s:String!){ so5 { so5Fixture(slug:$s){ games { id competition { slug } } } } }
@@ -443,6 +446,25 @@ def _yellows(stats: list[dict[str, Any]] | None) -> int:
     return int(sum(one.get("statValue") or 0 for one in stats or [] if one.get("stat") == "yellow_card"))
 
 
+def _sheet_context(row: dict[str, Any]) -> list[dict[str, Any]]:
+    """Keep the game's position, playing side and decisive level alongside its action stats; never infer from his current club."""
+    team = (row.get("anyPlayerGameStats") or {}).get("anyTeam") or {}
+    game = row["anyGame"]
+    venue = next(
+        (
+            code
+            for key, code in (("homeTeam", "H"), ("awayTeam", "A"))
+            if team.get("name") and team["name"] == (game.get(key) or {}).get("name")
+        ),
+        None,
+    )
+    pos = SORARE_POSITION.get(row.get("positionTyped") or "")
+    level = (row.get("decisiveScore") or {}).get("totalScore")
+    if pos is None or not team.get("slug") or venue is None or level is None:
+        return []
+    return [{"stat": "_context", "pos": pos, "team": team["slug"], "venue": venue, "level": level}]
+
+
 def history(
     client: SorareClient,
     players: list[str],
@@ -495,7 +517,8 @@ def history(
                     {
                         "red": _sent_off(row["detailedScore"]),
                         "yellow": _yellows(row["detailedScore"]),
-                        "stats": [one for one in row["detailedScore"] or [] if one.get("statValue")],
+                        "stats": [one for one in row["detailedScore"] or [] if one.get("statValue")]
+                        + _sheet_context(row),
                     }
                     if row.get("detailedScore") is not None
                     else {}

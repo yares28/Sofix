@@ -47,6 +47,27 @@ def test_history_says_whether_he_started_and_for_how_long() -> None:
     assert "gameStarted" in client.queries[0] and "minsPlayed" in client.queries[0]
 
 
+def test_history_keeps_the_games_position_side_and_decisive_level_for_stat_sheets():
+    row = game(
+        "2026-09-26T18:00:00Z",
+        70,
+        {"playedInGame": True, "gameStarted": True, "anyTeam": {"slug": "away", "name": "Away"}},
+    )
+    row.update(
+        positionTyped="Goalkeeper",
+        decisiveScore={"totalScore": 60},
+        detailedScore=[{"stat": "saves", "statValue": 5, "totalScore": 10}],
+    )
+    row["anyGame"].update(homeTeam={"name": "Home"}, awayTeam={"name": "Away"})
+    client = FakeClient([row])
+    client.api_key = "fixture"
+    saved = sync.history(client, ["a"], datetime(2026, 9, 29, tzinfo=UTC))["a"][0]
+    assert {"stat": "_context", "pos": "GK", "team": "away", "venue": "A", "level": 60} in saved["stats"]
+    assert (
+        "positionTyped" in client.queries[0] and "anyTeam" in client.queries[0] and "decisiveScore" in client.queries[0]
+    )
+
+
 def test_cards_are_asked_only_with_an_api_key_and_a_red_card_is_kept() -> None:
     sent_off = {**game("2026-09-20T18:00:00Z", 12.0, {"playedInGame": True, "gameStarted": 1, "minsPlayed": 60})}
     sent_off["detailedScore"] = [{"stat": "yellow_card", "statValue": 0.0}, {"stat": "red_card", "statValue": 1.0}]

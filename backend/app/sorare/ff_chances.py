@@ -42,12 +42,28 @@ def _side(side: dict[str, Any]) -> dict[str, Any]:
     players: dict[str, dict[str, Any]] = {}
     for row in side.get("rows") or []:
         for player in row.get("players") or []:
-            players[str(player["id"])] = {"n": player.get("name"), "p": player.get("p"), "xi": True}
+            players[str(player["id"])] = {
+                "n": player.get("name"),
+                "p": player.get("p"),
+                "xi": True,
+                "line": row.get("line"),
+                "kind": (player.get("status") or {}).get("kind"),
+            }
     for player in side.get("alternatives") or []:
-        players.setdefault(str(player["id"]), {"n": player.get("name"), "p": player.get("p"), "xi": False})
+        players.setdefault(
+            str(player["id"]),
+            {
+                "n": player.get("name"),
+                "p": player.get("p"),
+                "xi": False,
+                "line": player.get("pos"),
+                "kind": (player.get("status") or {}).get("kind"),
+            },
+        )
     return {
         "name": side.get("name"),
         "club": side.get("club"),
+        "crest": side.get("crest"),
         "formation": side.get("formation"),
         "published": bool(side.get("published")),
         "squad": bool(side.get("squad")),

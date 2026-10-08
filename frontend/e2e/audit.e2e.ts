@@ -51,7 +51,7 @@ test("each source says where it stands: nothing yet, nothing yet, or waiting for
   await expect(ff).toContainText("LaLiga");
   const sorare = page.getByRole("article", { name: "Sorare" });
   await expect(sorare.getByText("Nothing yet")).toBeVisible();
-  await expect(sorare).toContainText("Sorare has not given a start chance for any of your players");
+  await expect(sorare).toContainText("Sorare has not given a start chance for any recorded player");
   const sofix = page.getByRole("article", { name: "Sofix" });
   await expect(sofix.getByText("Waiting for results")).toBeVisible();
   await expect(sofix).toContainText("24 games written down before the lock");
@@ -67,6 +67,17 @@ test("the record lists each gameweek written down before its lock", async ({ pag
   await expect(table.getByRole("row")).toHaveCount(3); // the head and two gameweeks
   await expect(table.getByRole("row", { name: /Fri 2 Oct/ })).toContainText("21");
   await expect(table.getByRole("row", { name: /Tue 6 Oct/ })).toContainText("3");
+});
+
+test("predicted elevens wait honestly for stored readings and the live xScore record is visible", async ({ page }) => {
+  await page.goto("/audit/starts");
+  const elevens = page.getByRole("region", { name: "Futbol Fantasy's eleven" });
+  await expect(elevens).toContainText("No predicted elevens kept yet");
+  await expect(elevens.getByRole("table")).toHaveCount(0);
+  expect(await smallText(page, 11)).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.goto("/audit");
+  await expect(page.getByRole("region", { name: "Written before the lock" })).toBeVisible();
 });
 
 test("the top bar has the page, and marks it when it is open", async ({ page }) => {

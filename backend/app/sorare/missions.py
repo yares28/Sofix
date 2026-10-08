@@ -1,8 +1,8 @@
 """The daily missions log, settled and scored (plans/roadmap.md 10.7, part 2).
 
 The app writes down, before the games, what Sofix picked for each daily mission and every card of the owner's that could have been picked, with its
-chance (`missions_day:day:rarity`, with legacy monthly rows retained). A day after each game the refresh reads that game once from Sorare (`fetch_game`: who
-played and every stat he made) and marks, for each candidate, whether he did what each mission asks (`settle`).
+chance (`missions_day:day:rarity`, with legacy monthly rows retained). A day after each game the refresh uses the shared `player_games` results and stats
+to mark whether each candidate did what the mission asks (`settle_kept`). The old game reader remains only for historical compatibility.
 
 `record` then scores Sofix the way the owner asked (6 Oct 2026): a mission is judged against what his cards could have done that day. The players who did
 it are the achievers; the best possible is the mission's picks or the number of achievers, whichever is smaller. A day with no achiever is not counted
@@ -23,7 +23,9 @@ from sqlalchemy import or_, update
 from sqlalchemy.orm import Session
 
 from app.jobs.export_games import fetch_game
-from app.models import ReadModel
+from app.models import PlayerGame, ReadModel
+from app.services.publish import put
+from app.services.timeutil import as_utc
 from app.sorare.publish import GIVE_UP, SETTLE
 
 logger = logging.getLogger(__name__)
@@ -140,6 +142,49 @@ def _card(cand: dict[str, Any], hit: bool | None = None) -> dict[str, Any]:
     if hit is not None:
         out["hit"] = hit
     return out
+
+
+def settle_kept(db: Session, now: datetime) -> dict[str, int]:
+    """Settle only candidates whose own result and stats were read; no additional Sorare calls or inferred DNPs."""
+    months = marked = 0
+    for saved in db.query(ReadModel).filter(ReadModel.key.like(f"{LOG_PREFIX}%")).all():
+        payload = copy.deepcopy(saved.payload)
+        changed = False
+        for rarities in payload.get("days", {}).values():
+            for entry in rarities.values():
+                definitions = {m["key"]: m for m in entry.get("missions", [])}
+                for candidate in entry.get("cands", []):
+                    if "r" in candidate or not candidate.get("g") or now < _when(candidate["k"]) + SETTLE:
+                        continue
+                    row = db.get(PlayerGame, (candidate["s"], candidate["g"]))
+                    if row is None or row.status in (None, "PENDING") or row.played is None:
+                        continue
+                    if row.read_at is None or as_utc(row.read_at) < _when(candidate["k"]):
+                        continue
+                    if row.played and row.stats is None:
+                        continue
+                    game = {
+                        "pos": candidate.get("pos"),
+                        "played": row.played,
+                        "stats": {
+                            one["stat"]: [one.get("statValue"), one.get("totalScore")] for one in row.stats or []
+                        },
+                    }
+                    candidate["r"] = {
+                        "played": row.played,
+                        "did": {
+                            key: bool(row.played)
+                            and did(definitions[key]["rule"], definitions[key].get("stats") or [], game)
+                            for key in candidate.get("c", {})
+                            if key in definitions
+                        },
+                    }
+                    changed = True
+                    marked += 1
+        if changed:
+            put(db, saved.key, payload, now)
+            months += 1
+    return {"candidates": marked, "months": months}
 
 
 def record(logs: list[dict[str, Any]]) -> dict[str, Any]:

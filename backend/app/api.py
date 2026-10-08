@@ -85,11 +85,11 @@ def sorare_ahead(round: int, db: Session = Depends(get_db)):
 
 @router.get("/audit", response_model=ApiResponse[dict[str, Any]])
 def audit_page(db: Session = Depends(get_db)):
-    """The Audit page's numbers: the page the job published, else built from the start record as it stands. Local development only, like /sorare."""
+    """The published Audit, else the same stored-game calculation. Local development only, like /sorare."""
     row = db.get(ReadModel, audit.AUDIT_KEY)
     if row is not None:
         return ApiResponse[dict[str, Any]](success=True, data=row.payload)
-    page = audit.build(audit.record_of(db), audit.read_replay(), datetime.now(UTC))
+    page = audit.from_kept(db, datetime.now(UTC))
     return ApiResponse[dict[str, Any]](success=True, data=page)
 
 

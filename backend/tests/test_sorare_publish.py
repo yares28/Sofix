@@ -620,6 +620,22 @@ def test_the_job_publishes_the_page_and_keeps_the_reference_scores(db, monkeypat
             "generatedAt": snap["fetchedAt"],
             "nextId": "21",
             "lastId": None,
+            "_record": {
+                "gameweek": PLAN_GW,
+                "writtenAt": snap["fetchedAt"],
+                "players": {
+                    "keeper-one": {
+                        "games": [
+                            {
+                                "id": "game-keeper-one",
+                                "kickoff": "2026-10-10T19:00:00+00:00",
+                                "competition": "laliga-es",
+                                "sorare": 55,
+                            }
+                        ]
+                    }
+                },
+            },
             "weeks": [
                 {
                     "gameweek": {"id": "21", "number": 21},

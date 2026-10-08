@@ -1,10 +1,12 @@
 import MissionsAudit from "./MissionsAudit";
+import ElevensAudit from "./ElevensAudit";
 import VersusAudit from "./VersusAudit";
 import RewardsAudit from "./RewardsAudit";
 import { freshLabel } from "../../lib/fresh";
 import {
   bandLabel,
   lockDay,
+  liveLine,
   percent,
   recordLine,
   SOURCES,
@@ -131,6 +133,11 @@ export default function AuditView({
     return (
       <>
         {league ? <LeagueAudit data={league} /> : <h1>Audit</h1>}
+        <section className="au-w au-starts" aria-labelledby="au-live-h">
+          <h2 id="au-live-h">Written before the lock</h2>
+          <p className="au-sub">{liveLine(data.xscore.live)}</p>
+          <p className="au-sub">{data.xscore.live.marked.toLocaleString("en-GB")} of {data.xscore.live.noted.toLocaleString("en-GB")} player gameweeks checked, across every recorded player. Results are checked a day after the week ends.</p>
+        </section>
         {updated}
       </>
     );
@@ -204,6 +211,7 @@ export default function AuditView({
         <p className="au-sub">Before each lock; checked a day after the gameweek ends.</p>
         {data.starts.weeks.length ? <Record data={data} /> : <p className="au-sub">Nothing written down yet.</p>}
       </section>
+      <ElevensAudit data={data.elevens} floor={data.floor} />
     </>
   );
 }

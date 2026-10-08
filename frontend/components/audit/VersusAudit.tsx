@@ -93,7 +93,7 @@ export default function VersusAudit({ versus, floor, league }: { versus: Versus;
               <li key={week.week}>
                 <b>GW{week.week}</b>
                 <span>
-                  {week.starts} starts · Sofix closer in {percent(week.sofixCloser)} · off by {points(week.sofix.miss)} vs {points(week.sorare.miss)}
+                  {week.starts < floor ? `Too few to tell · ${week.starts} of ${floor} starts` : `${week.starts} starts · Sofix closer in ${percent(week.sofixCloser)} · off by ${points(week.sofix.miss)} vs ${points(week.sorare.miss)}`}
                 </span>
               </li>
             ))}

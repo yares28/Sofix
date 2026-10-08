@@ -13,6 +13,7 @@ import {
   NO_MISSIONS,
   NO_REWARDS,
   NO_VERSUS,
+  NO_ELEVENS,
   points,
   wonShare,
   type Audit,
@@ -31,6 +32,7 @@ const page = (over: Partial<Audit> = {}): Audit => ({
   rewards: NO_REWARDS,
   missions: NO_MISSIONS,
   versus: NO_VERSUS,
+  elevens: NO_ELEVENS,
   ...over,
 });
 
@@ -145,7 +147,8 @@ describe("reading what the job published", () => {
     expect(read.floor).toBe(100);
     expect(read.starts.weeks).toEqual([]);
     expect(read.xscore.live.state).toBe("none");
-    expect(read.replay).toBeNull();
+      expect(read.replay).toBeNull();
+      expect(read.elevens).toEqual(NO_ELEVENS);
   });
 });
 

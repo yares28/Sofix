@@ -68,9 +68,9 @@ def test_each_player_is_kept_with_his_chance_whether_in_the_eleven_or_an_alterna
     home = compact["1"]["home"]
     assert home["club"] == "MAL" and home["formation"] == "4-2-3-1" and home["published"] is True
     assert home["players"] == {
-        "10": {"n": "P10", "p": 0.8, "xi": True},
-        "11": {"n": "P11", "p": 0.95, "xi": True},
-        "12": {"n": "P12", "p": 0.3, "xi": False},
+        "10": {"n": "P10", "p": 0.8, "xi": True, "line": "MID", "kind": None},
+        "11": {"n": "P11", "p": 0.95, "xi": True, "line": "MID", "kind": None},
+        "12": {"n": "P12", "p": 0.3, "xi": False, "line": None, "kind": None},
     }
     assert home["absent"] == [["Julen", "out"]]
     assert compact["1"]["round"] == 8 and compact["1"]["kickoff"].startswith("2026-10-09T19")

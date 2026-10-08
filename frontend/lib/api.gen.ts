@@ -178,7 +178,7 @@ export interface paths {
         };
         /**
          * Audit Page
-         * @description The Audit page's numbers: the page the job published, else built from the start record as it stands. Local development only, like /sorare.
+         * @description The published Audit, else the same stored-game calculation. Local development only, like /sorare.
          */
         get: operations["audit_page_api_audit_get"];
         put?: never;

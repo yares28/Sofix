@@ -150,8 +150,8 @@ the same rows (`player_games.save_statements`, from `publish.score_record`). It 
 chance, Sorare's next-game starter odds, the recorded Sofix score and Sorare projection, and FF's actual predicted-eleven
 membership from `lineups`. The score columns retain the existing comparison's score-if-starting meaning; they are compared
 on starts. Later pre-lock reads replace supplied numbers; a failed source never erases one, and no statement is first
-created or changed after lock. Actuals and statements update separate columns. `start_chances` and `score_record:*`
-remain active during the Audit transition.
+created or changed after lock. Actuals and statements update separate columns. `score_record:*` now keeps the frozen
+week, position and whole-week expected-score metadata; `start_chances` is a read-only historical fallback.
 
 ## 8. xScore
 
@@ -171,7 +171,7 @@ remain active during the Audit transition.
 
 **Historical corrections.** Same-origin `POST /api/missions/history` validates slot count, rarity and optimistic revision, strips client verdict/lock claims, and stores overrides under `missions_edit:day:rarity`. Explicit empty picks differ from no override. Restoration and source changes retain provenance. Readers apply edits after merging the ledger, so a refresh cannot erase them. Matching official Sorare verdicts take precedence; an unmatched reported player/game stays pending. The Audit excludes missing/late forecast evidence and updates its visible personal results after a correction without replacing lifetime totals with a truncated window. Import success is returned after history persistence, then relevant caches are invalidated.
 
-**Sofix's plan and Sorare's plan (the Play deep fix, 6 Oct).** Every week is planned twice with the same start chances: once on Sofix's xScore (`sorare`) and once on Sorare's own per-game projection (`sync.game_projections`, written to `sorare_alt:<slug>`, read on demand). Lineups are filled in the owner's essence order first (`sorare_settings`, set from Play through `POST /api/settings`; default LaLiga › Champion › All Star; a lineup under 5% gets no priority); a Room is played only when its expected essence beats the fee; XP is its own tier and never counts as paid. Each lineup's dice are seeded (`planner._seed`) so it shows the same numbers every time, and a plan's chance of a reward comes from one joint simulation (`planner.plan_outcomes`), not from multiplying lineups. Before each lock both numbers are written down for every LaLiga player with a game (`score_record:<week>`); about a day after the week's last game `app.sorare.versus.settle` adds what happened, and `/audit/versus` compares them on starts (under 100 starts: too few to tell).
+**Sofix's plan and Sorare's plan (the Play deep fix, 6 Oct).** Every week is planned twice with the same start chances: once on Sofix's xScore (`sorare`) and once on Sorare's own per-game projection (`sync.game_projections`, written to `sorare_alt:<slug>`, read on demand). Lineups are filled in the owner's essence order first (`sorare_settings`, set from Play through `POST /api/settings`; default LaLiga › Champion › All Star; a lineup under 5% gets no priority); a Room is played only when its expected essence beats the fee; XP is its own tier and never counts as paid. Each lineup's dice are seeded (`planner._seed`) so it shows the same numbers every time, and a plan's chance of a reward comes from one joint simulation (`planner.plan_outcomes`), not from multiplying lineups. Before each lock both numbers are written down for every LaLiga player with a game (`score_record:<week>`); a day after the week ends `player_audit.read` joins the stored results, and `/audit/versus` compares them on starts (under 100 starts: too few to tell).
 
 **Start chances for every player on Lineups.** `lib/lineupChances.ts` joins the owner's forecasts to each match first, then every other LaLiga player through his Futbol Fantasy link in `market`, so Sofix's and Sorare's start chance shows beside Futbol Fantasy's for players he does not own too.
 
@@ -230,13 +230,23 @@ gameweeks. On the 84 players' games from August 2025 it is 66.0% (64.6% to 67.2%
 average scores 66.1%, so the formula adds nothing to the order yet. `--summary` writes the numbers the Audit page shows to
 `backend/data/audit/replay.json` (numbers only, committed, since the history it is made from is the owner's and is not).
 
-**The Audit page** (`/audit`, `app.sorare.audit`, read model `audit`). The refresh writes it right after the start record, so it
-says what the record says: the replay file's numbers (the xScore success rate, and Sofix's chance of starting replayed on the past
+**The Audit page** (`/audit`, `app.sorare.audit`, read model `audit`). `player_audit.read` joins frozen week metadata to
+`player_games` for every indexed and owner player, with legacy settled records as a fallback and no duplicate cases.
+New weeks wait until their end plus 24 hours; older records retain their day-after-last-game boundary. Unknown starts,
+scores or mission stats remain pending. The replay file's numbers (the xScore success rate, and Sofix's chance of starting replayed on the past
 in bands) beside the live record, which begins empty. `starts_record` scores each source (Sorare, Futbol Fantasy, Sofix) on the games
 it had a number for once they are settled; `xscore_record` counts the same pairs on what the model noted before each lock (the
 chance he plays times his score if he plays) against his best game once the gameweek is settled. A figure under `FLOOR` (100 cases)
 is withheld by the job, which sends the counts and no rate, and the page says "too few to tell". The step is optional: if it
 fails the Play page is still published and the run's summary names `audit` under `failed`.
+
+`/audit/versus` compares the two saved conditional scores against the real score on starts (mean miss and how often each
+was closer). `/audit/starts` also counts Futbol Fantasy's predicted eleven and the Sorare/Sofix elevens implied by the same
+position-preserving swaps as `lib/lineups.ts::byChance`: ties keep FF's starter, out/suspended alternatives cannot come in,
+and a historical reading without position data cannot invent an implied eleven. Counts are grouped by week and club;
+rates need 100 checked starters in each group. `ff_chances` retains positions, absence kinds and crests at lock.
+The refresh no longer calls `versus.settle`, `starts.settle`, `record.rows` or `missions.settle`: missions use the stored
+non-zero stats (`missions.settle_kept`). Old records and functions remain for historical compatibility, without new source calls.
 
 ## 9. Optimizer/rewards
 
@@ -256,12 +266,11 @@ not guarantees. `runs` controls repeated randomized searches; the fixed seed kee
 
 ## 10. Replay
 
-Pre-lock player forecasts are retained in `sorare_forecasts`; post-game actuals join without overwriting. Home/Play
+Pre-lock per-game forecasts are retained in `player_games`; the old `sorare_forecasts` rows remain historical. Actuals join without overwriting statements. Home/Play
 compare submitted-lineup actual to original centre/range/reward threshold. Only rows captured before lock qualify for
 fitting; one gameweek is not sufficient evidence.
 
-Two more records are kept for the Audit page and for any fit of the xScore (roadmap 1.2 and 1.3), both as read models, so
-neither needs a migration for the unattended refresh:
+Two read models keep plan and whole-week metadata alongside those per-game rows (roadmap 1.2 and 1.3):
 
 - **The plan as it stood at the lock** (`sorare_plan:<gameweek slug>`, `app.sorare.frozen`). Every run replaces the page,
   so the first run after a lock writes the plan the page held, built by the last run before the lock: the week's lineups
@@ -270,13 +279,11 @@ neither needs a migration for the unattended refresh:
   after the lock is not what was said before the team news and is not kept; pictures, and what could not be entered, are
   left out (`PICTURES`, `LEFT_OUT`) so a week is a fraction of the page. The run's summary names the weeks it kept under
   `frozenPlans`; a dry run says what it would keep.
-- **What the model made of each player** (in `start_chances`, `app.sorare.starts.notes`), beside the three sources' chances
-  and under the same rule (replaced while the week is open, frozen at its lock, never made up afterwards): per player a
-  `model` (Sorare's projection and starter odds, his score if he starts and if he comes on, the chance of each, which source's
-  number the page used, and how much form he had: games, played, started of his last five) and per game an `info` (competition,
-  team, opponent, home or away, kickoff). A day after the week, settling a game also writes what he scored in it (`score`),
-  for how many minutes (`mins`), whether he played, and the game's competition (`comp`). The run's summary counts the players
-  noted under `starts.noted`.
+- **What the model made of each player** (`score_record:<slug>`, `publish.score_record`): position, whole-week `mu` and
+  `pPlay`, chosen start source, game ids, sides, kickoff and FF links. `player_games.save_record` freezes this at the same
+  lock as the source columns. The Audit reconstructs its existing calculation inputs from these and the stored actuals.
+  Old `start_chances` notes and settled cases remain readable. Run summaries count planned players under `recorded` and
+  per-game source rows under `gameStatements`; Control's projection counts now come from the shared game store.
 
 ## 11. Apply and extension
 

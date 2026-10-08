@@ -5,12 +5,13 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
 
-from app.models import PlayerGame
+from app.models import PlayerGame, ReadModel
+from app.services.publish import put
 from app.services.timeutil import as_utc
 
 ACTUAL = ("competition", "home", "away", "status", "score", "played", "started", "mins", "yellow", "red", "stats")
@@ -145,3 +146,45 @@ def save_statements(db: Session, record: dict[str, Any], now: datetime, lineups:
         count += len(rows)
     db.flush()
     return count
+
+
+def save_record(db: Session, record: dict[str, Any], now: datetime, lineups: dict[str, Any] | None = None) -> int:
+    """Keep week/position metadata with the same pre-lock boundary as the per-game statements."""
+    lock = as_utc(datetime.fromisoformat(record["gameweek"]["lock"]))
+    if now >= lock or as_utc(datetime.fromisoformat(record["writtenAt"])) >= lock:
+        return 0
+    count = save_statements(db, record, now, lineups)
+    put(db, f"score_record:{record['gameweek']['slug']}", record, now)
+    return count
+
+
+def moved(db: Session, record: dict[str, Any] | None, now: datetime) -> int:
+    """Players whose known Sorare projection changed while their week was still open."""
+    if not record or now >= as_utc(datetime.fromisoformat(record["gameweek"]["lock"])):
+        return 0
+    previous = {
+        (player, gid): value
+        for player, gid, value in db.execute(
+            select(PlayerGame.player, PlayerGame.game_id, PlayerGame.sorare_x).where(PlayerGame.sorare_x.isnot(None))
+        )
+    }
+    return sum(
+        any(
+            game.get("sorare") is not None
+            and (was := previous.get((player, game["id"]))) is not None
+            and abs(game["sorare"] - was) > 0.5
+            for game in entry.get("games") or []
+        )
+        for player, entry in (record.get("players") or {}).items()
+    )
+
+
+def summary(db: Session) -> dict[str, int]:
+    """Projection status from the common store, without replaying or fetching any games."""
+    rows, projections, scored = db.execute(
+        select(func.count(), func.count(PlayerGame.sorare_x), func.count(PlayerGame.score)).where(
+            PlayerGame.said_at.isnot(None)
+        )
+    ).one()
+    weeks = db.scalar(select(func.count()).select_from(ReadModel).where(ReadModel.key.like("score_record:%")))
+    return {"gameweeks": weeks or 0, "rows": rows, "projections": projections, "scored": scored}

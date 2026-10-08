@@ -49,12 +49,9 @@ from app.sorare import (
     player_games,
     projection,
     scores,
-    starts,
-    versus,
 )
 from app.sorare import missions as sorare_missions
 from app.sorare import publish as sorare_publish
-from app.sorare import record as sorare_record
 from app.sorare import sync as sorare_sync
 from app.sorare.client import SorareClient
 from app.sorare.model import ESSENCE_ORDER
@@ -196,32 +193,6 @@ def team_news(
     readings: list[ff_news.Reading] = optional(db, failed, "team news history", lambda: ff_news.load(db), [])
     news = optional(db, failed, "team news", lambda: ff_news.team_news(week, at, readings), None)
     return news, readings
-
-
-def record_starts(
-    db: Session,
-    failed: dict[str, str],
-    snapshot: dict[str, Any],
-    lineups: ff_use.Lineups | None,
-    now: datetime,
-    *,
-    write: bool,
-    scores: sorare_publish.ScoresOf | None = None,
-) -> dict[str, Any]:
-    """Who says he will start (Sorare, Sofix, Futbol Fantasy), game by game, written down to be scored against what happens.
-
-    A run that is not writing (a dry run) asks and reports but remembers nothing.
-    """
-    if not write:
-        return {}
-    ff = lineups.starts if lineups else None
-    rows: list[starts.Row] = optional(db, failed, "start rows", lambda: starts.rows(snapshot, ff), [])
-    # What the model made of each player and what his games are, beside the chances: what a backtest of the xScore needs.
-    extra: list[starts.Note] = optional(db, failed, "start notes", lambda: starts.notes(snapshot, ff, scores), [])
-    record: dict[str, int] = optional(
-        db, failed, "start record", lambda: {**starts.save(db, rows, now, extra), **starts.settle(db, snapshot)}, {}
-    )
-    return {"starts": record}
 
 
 def sorare_odds(snapshot: dict[str, Any]) -> dict[str, int]:
@@ -419,16 +390,16 @@ def run(
         logger.info("sorare (dry run): %s", summary)
         return {**summary, "dryRun": True}
     now = datetime.now(UTC)
-    # Sorare's projections only exist for a player's next game, so they are written down before they are lost.
-    planned = sorare_record.rows(snapshot, "plan", scores_of, lineups.starts if lineups else None)
-    summary["moved"] = sorare_record.moved(db, planned)
-    summary["kept"] = sorare_record.save(db, planned, now)
-    sorare_record.save(db, sorare_record.rows(snapshot, "past"), now, final=True)
+    summary["moved"] = player_games.moved(db, record, fetched)
+    if record:
+        page = db.get(ReadModel, ff_lineups.LINEUPS_KEY)
+        summary["gameStatements"] = player_games.save_record(db, record, fetched, page.payload if page else None)
+    summary["kept"] = player_games.summary(db)
     payload = sorare_publish.with_status(
         payload,
         where="cloud" if os.environ.get("GITHUB_ACTIONS") == "true" else "pc",
         moved=summary["moved"],
-        kept=sorare_record.summary(db),
+        kept=summary["kept"],
         previous=previous,
     )
     # What the page points at is written before the page, so a week it lists is always there to open. Each early plan is a
@@ -441,12 +412,8 @@ def run(
         put(db, archived[0], archived[1], now)
         summary["archived"] = archived[0]
     # Written each run until the week locks, so what stays is what each said in time: the Sorare plans and both numbers.
-    if alt:
+    if alt and fetched < datetime.fromisoformat(alt["gameweek"]["lock"]):
         put(db, f"{sorare_publish.ALT_PREFIX}{alt['gameweek']['slug']}", alt, now)
-    if record:
-        page = db.get(ReadModel, ff_lineups.LINEUPS_KEY)
-        summary["gameStatements"] = player_games.save_statements(db, record, fetched, page.payload if page else None)
-        put(db, f"{sorare_publish.RECORD_PREFIX}{record['gameweek']['slug']}", record, now)
     put(db, SORARE_KEY, payload, now)
     pool = optional(
         db,
@@ -474,26 +441,11 @@ def run(
         lambda: ff_news.save(db, ff_news.record(readings, ff_news.chances(planned_week), fetched), fetched),
         False,
     )
-    summary.update(record_starts(db, failed, snapshot, lineups, fetched, write=True, scores=scores_of))
-
-    # The Audit page, from the record as it now stands: after this run's own rows and settlements, so it says what they say.
-    # The daily missions' picks of a day ago, marked with what each player did (one Sorare read per game, capped per run).
-    def settle_missions() -> dict[str, int]:
-        with SorareClient() as client:
-            return sorare_missions.settle(db, client, now)
-
-    settled: dict[str, int] = optional(db, failed, "mission picks", settle_missions, {})
+    # All results now come from the shared game store; no separate Sorare settle reads.
+    settled: dict[str, int] = optional(db, failed, "mission picks", lambda: sorare_missions.settle_kept(db, now), {})
     if settled:
         summary["missions"] = settled
 
-    # Both numbers written down before a lock, given what each player really scored a day after the week's last game.
-    def settle_scores() -> dict[str, int]:
-        with SorareClient() as client:
-            return versus.settle(db, client, now)
-
-    scored: dict[str, int] = optional(db, failed, "score record", settle_scores, {})
-    if scored.get("weeks"):
-        summary["scoreRecord"] = scored
     audited: dict[str, int] = optional(db, failed, "audit", lambda: audit.publish(db, now), {})
     if audited:
         summary["audit"] = audited

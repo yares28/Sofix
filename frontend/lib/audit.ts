@@ -97,6 +97,12 @@ export const NO_VERSUS: Versus = {
   settled: 0,
 };
 
+export type ElevenResult = { picked: number; checked: number; started: number; rate: number | null };
+export type ElevenSources = Record<StartSource, ElevenResult>;
+export type Elevens = { all: ElevenSources; weeks: { week: number; sources: ElevenSources }[]; clubs: { club: string; crest: string | null; sources: ElevenSources }[] };
+const NO_ELEVEN: ElevenResult = { picked: 0, checked: 0, started: 0, rate: null };
+export const NO_ELEVENS: Elevens = { all: { futbolfantasy: NO_ELEVEN, sorare: NO_ELEVEN, sofix: NO_ELEVEN }, weeks: [], clubs: [] };
+
 /** Points as the page writes them: "6.4", "+2.1" for a lean, a dash when there is none. */
 export function points(value: number | null, signed = false): string {
   if (value === null) return "–";
@@ -115,6 +121,7 @@ export type Audit = {
   rewards: Rewards;
   missions: Missions;
   versus: Versus;
+  elevens: Elevens;
 };
 
 const NONE: RewardSide = { essence: 0, cash: 0 };
@@ -148,6 +155,7 @@ export function readable(value: unknown): Audit | null {
     missions: { ...NO_MISSIONS, ...(data.missions ?? {}) },
     // and one published before Sorare and Sofix were written down side by side has an empty comparison
     versus: { ...NO_VERSUS, ...(data.versus ?? {}), positions: { ...NO_VERSUS.positions, ...(data.versus?.positions ?? {}) } },
+    elevens: { ...NO_ELEVENS, ...(data.elevens ?? {}) },
   };
 }
 
@@ -195,7 +203,7 @@ const plural = (n: number, one: string, many: string = `${one}s`) => `${n.toLoca
 // ------------------------------------------------------------------------------------------------------ the words
 const WHY_NOTHING: Record<StartSource, string> = {
   futbolfantasy: "It covers LaLiga only: it starts with the first gameweek where you have a LaLiga player",
-  sorare: "Sorare has not given a start chance for any of your players",
+  sorare: "Sorare has not given a start chance for any recorded player",
   sofix: "It is written down before each lock, from the first one",
 };
 

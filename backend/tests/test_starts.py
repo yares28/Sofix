@@ -477,10 +477,16 @@ def test_the_job_writes_each_sources_chance_for_each_game_and_asks_the_site_only
 
     summary = the_job.run(db, "yares", runs=1)
 
-    assert summary["starts"]["written"] >= 3
-    game = game_of(db, "mid-one", "game-mid-one", "gw-plan")
+    from app.sorare import player_audit
+
+    assert summary["gameStatements"] >= 3
+    record = player_audit.read(db, LOCK, 100)[0]
+    game = record["weeks"]["gw-plan"]["players"]["mid-one"]["games"]["game-mid-one"]
     assert set(game) >= {"sorare", "sofix", "futbolfantasy"} and game["futbolfantasy"]["chance"] == 0.7
-    assert "futbolfantasy" not in game_of(db, "front-one", "game-front-one", "gw-plan"), "the site had nothing on him"
+    assert "futbolfantasy" not in record["weeks"]["gw-plan"]["players"]["front-one"]["games"]["game-front-one"], (
+        "the site had nothing on him"
+    )
+    assert db.get(ReadModel, starts.START_KEY) is None, "the old settle path is retired"
 
     the_job.run(db, "yares", runs=1)
     assert site.read == [[501], []], (
@@ -505,8 +511,10 @@ def test_the_job_writes_what_the_model_made_of_each_player_and_what_his_games_we
 
     summary = the_job.run(db, "yares", runs=1)
 
-    assert summary["starts"]["noted"] >= 12  # every fixture player with a game
-    mid = weeks(db)["gw-plan"]["players"]["mid-one"]
+    from app.sorare import player_audit
+
+    assert summary["recorded"] >= 12
+    mid = player_audit.read(db, LOCK, 100)[0]["weeks"]["gw-plan"]["players"]["mid-one"]
     assert (
         mid["model"]["pStart"] == 0.7
         and mid["model"]["startSource"] == "futbolfantasy"
@@ -546,15 +554,19 @@ def test_the_job_keeps_the_plan_it_had_when_the_week_locked_and_only_once(db, mo
 
 
 def test_when_the_site_cannot_be_read_the_page_and_the_other_two_sources_are_still_written(db, the_job) -> None:
+    from app.sorare import player_audit
+
     summary = the_job.run(db, "yares", runs=1)  # the test guard answers with nothing, as a failed read does
 
     assert summary["futbolfantasy"]["matches"] == 0 and summary["futbolfantasy"]["games"] == 0
-    game = game_of(db, "mid-one", "game-mid-one", "gw-plan")
+    game = player_audit.read(db, LOCK, 100)[0]["weeks"]["gw-plan"]["players"]["mid-one"]["games"]["game-mid-one"]
     assert set(game) - {"info"} == {"sorare", "sofix"}  # `info` is what the game was, not a source
     assert "startSource" not in {p["player"]: p for p in page_of(db)["playing"]["players"]}["mid-one"]["games"][0]
 
 
 def test_a_site_that_breaks_costs_its_numbers_never_the_page(db, monkeypatch, the_job) -> None:
+    from app.sorare import player_audit
+
     def boom(*args: Any, **kwargs: Any) -> ffm.Reading:
         raise RuntimeError("the site changed")
 
@@ -564,7 +576,8 @@ def test_a_site_that_breaks_costs_its_numbers_never_the_page(db, monkeypatch, th
 
     assert "RuntimeError" in summary["failed"]["futbol fantasy"]
     assert db.get(ReadModel, the_job.SORARE_KEY) is not None, "the page was published"
-    assert set(game_of(db, "mid-one", "game-mid-one", "gw-plan")) - {"info"} == {"sorare", "sofix"}
+    game = player_audit.read(db, LOCK, 100)[0]["weeks"]["gw-plan"]["players"]["mid-one"]["games"]["game-mid-one"]
+    assert set(game) - {"info"} == {"sorare", "sofix"}
 
 
 def test_a_site_that_breaks_still_leaves_the_last_reading_to_be_used_for_a_day(db, monkeypatch, the_job) -> None:

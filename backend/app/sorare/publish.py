@@ -1294,7 +1294,7 @@ def sorare_plans(
     has projected most of the players with a game it says so and plans nothing: a "Sorare plan" standing mostly on form would be neither."""
     projected = sum(1 for w in weeks.values() if w.projection is not None and w.games)
     out: dict[str, Any] = {
-        "gameweek": {"slug": week["slug"], "number": week["number"], "lock": week["lock"]},
+        "gameweek": {"slug": week["slug"], "number": week["number"], "lock": week["lock"], "end": week.get("end")},
         "builtAt": snapshot["fetchedAt"],
         "projected": projected,
         "players": sum(1 for w in weeks.values() if w.games),
@@ -1370,7 +1370,7 @@ def score_record(
             "by": f.score_source if f else None,
         }
     return {
-        "gameweek": {"slug": week["slug"], "number": week["number"], "lock": week["lock"]},
+        "gameweek": {"slug": week["slug"], "number": week["number"], "lock": week["lock"], "end": week.get("end")},
         "writtenAt": snapshot["fetchedAt"],
         "players": players,
     }

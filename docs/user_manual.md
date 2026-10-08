@@ -400,10 +400,20 @@ These figures are written by hand from the local games export (`python -m app.jo
 cover. A figure with fewer than 100 starts behind it says "Too few to tell". Below them, **Who starts?** gives each of Futbol Fantasy, Sorare and Sofix a column of what has been written down
 before real locks. It says how often the source was right (said 50% or more and he started, or less and he did not), how far its chances were from what happened (the error score: 0 is perfect,
 0.25 is saying 50% every time), and how many of the players it put at 80% or more started. A source shows figures from 100 games. Under that it says "Too few to tell" and how far along it is, or
-"Waiting for results" while the games are written down but not played, or "Nothing yet" with the reason: Sorare has not given a start chance for any of your players, and Futbol Fantasy covers
-LaLiga only, so it joins with the first gameweek that has a LaLiga player of yours. **Written down so far** lists each gameweek: the games written down before its lock, how many have been
+"Waiting for results" while the games are written down but not played, or "Nothing yet" with the reason: Sorare has not given a start chance for any recorded player, and Futbol Fantasy covers
+LaLiga only. **Written down so far** lists each gameweek: the games written down before its lock, how many have been
 checked since, and how many each source gave. (The old headline, 66% on your 84 players, is gone from the page: it measured the old formula on your players only; its method is still in
 [How it is counted](xscore_success_rate.md).)
+
+The live Audit checks every recorded player, including the LaLiga index and your players outside LaLiga, from saved games.
+**Written before the lock** on xScore shows how many player gameweeks have been checked and how often the higher expected
+score picked the better player. **Sorare vs Sofix** compares each saved number with the real score on starts; weekly figures
+also say "Too few to tell" below 100 starts. A new week's results wait until a day after it ends; unread results stay waiting.
+
+**Futbol Fantasy's eleven**, under Who starts, compares how many predicted starters started. Sorare and Sofix reorder the
+same formation using their saved chances; **By gameweek and club** opens the counts for each. Every group needs 100 checked
+starters before showing a percentage. Older readings without positions cannot produce an implied eleven. Until the first
+reading is saved, it says "No predicted elevens kept yet". A failed source stops new readings and keeps the saved evidence.
 
 The Audit page never writes to Sorare. It is rebuilt by each refresh; "The audit appears after the next refresh" means none has
 written it yet.

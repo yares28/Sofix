@@ -241,6 +241,14 @@
 .ax-grid > .lg-card { margin: 0; }
 .ax-8 { grid-column: span 8; } .ax-4 { grid-column: span 4; } .ax-6 { grid-column: span 6; }
 .au-starts { margin-top: 20px; }
+.au-eleven-t { table-layout: fixed; }
+.au-eleven-t th, .au-eleven-t td { overflow-wrap: anywhere; }
+.au-eleven-t .lu-shield { display: inline-flex; vertical-align: middle; margin-right: 6px; }
+.au-eleven-t td small { display: block; margin-top: 4px; font-size: 11px; }
+.au-eleven-more { margin-top: 18px; font-size: 13px; }
+.au-eleven-more summary { cursor: pointer; min-height: 44px; padding: 12px 0; font-weight: 600; }
+.au-eleven-more summary:hover { color: var(--ink); }
+.au-eleven-more summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
 @keyframes ax-rise { from { opacity: 0; transform: translateY(16px); } }
 @media (max-width: 900px) {
   .ax-hero { grid-template-columns: minmax(0, 1fr); }

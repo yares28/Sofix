@@ -34,7 +34,7 @@ from sqlalchemy.orm import Session
 
 from app.models import ReadModel
 from app.services.publish import put
-from app.sorare import backtest, missions, starts, versus
+from app.sorare import backtest, missions, player_audit, starts, versus
 from app.sorare.publish import ARCHIVE_PREFIX
 
 AUDIT_KEY = "audit"
@@ -254,6 +254,8 @@ def _marked(record: dict[str, Any]) -> tuple[list[backtest.Row], int]:
             results = [cell for cell in games.values() if isinstance(cell, dict) and "started" in cell]
             if len(results) < len(games):
                 continue  # a game still to be scored: he is marked when the gameweek is
+            if any(cell.get("played") and cell.get("score") is None for cell in results):
+                continue  # a known start with no score is still waiting for its score
             played = [cell for cell in results if cell.get("played")]
             rows.append(
                 backtest.Row(
@@ -374,11 +376,17 @@ def record_of(db: Session) -> dict[str, Any]:
     return dict(row.payload) if row and isinstance(row.payload, dict) else {}
 
 
+def from_kept(db: Session, now: datetime) -> dict[str, Any]:
+    """Build the Audit from common game rows and pre-lock metadata; also used by the read-only local API fallback."""
+    record, scores, elevens = player_audit.read(db, now, FLOOR)
+    page = build(record, read_replay(), now, kept_weeks(db), missions.logs_of(db), scores)
+    page["elevens"] = elevens
+    return page
+
+
 def publish(db: Session, now: datetime) -> dict[str, int]:
-    """Write the page, from the start record as it stands and the replay file. Called by the refresh once the record is up to date."""
-    page = build(
-        record_of(db), read_replay(), now, kept_weeks(db), missions.logs_of(db), [r for _, r in versus.records(db)]
-    )
+    """Publish after this run's actuals and pre-lock statements have been saved."""
+    page = from_kept(db, now)
     put(db, AUDIT_KEY, page, now)
     return {
         "bytes": len(json.dumps(page, separators=(",", ":"))),

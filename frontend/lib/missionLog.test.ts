@@ -113,3 +113,18 @@ it("an explicit empty appearance list clears old imported choices", () => {
   const before = nextDay(undefined, [m], players, sheets, "limited", MORNING);
   expect(nextDay(before, [{ ...m, appearances: [] }], players, sheets, "limited", MORNING).missions[0]!.yours).toEqual([]);
 });
+
+it("distinguishes confirmed no picks from missing picks and missing forecasts from pending results", () => {
+  const make = (loaded: MissionRow[] | null) => ({ days: { "2026-10-06": { limited: nextDay(undefined, loaded, [], {}, "limited", MORNING) } } });
+  const confirmed = missionHistory([make([row("Picker", "Decisive", { appearances: [] })])], "limited", new Map())[0];
+  expect(confirmed).toMatchObject({ yourPicks: "confirmed-empty", evidence: "not-recorded" });
+  expect(missionHistory([make(null)], "limited", new Map())[0]).toMatchObject({ yourPicks: "unknown", evidence: "not-recorded" });
+  const pending = nextDay(undefined, null, players, sheets, "limited", MORNING);
+  expect(missionHistory([{ days: { "2026-10-06": { limited: pending } } }], "limited", new Map())[0]?.evidence).toBe("pending");
+});
+
+it("does not turn a legacy unknown pick list into a confirmed empty import during a later capture", () => {
+  const before = nextDay(undefined, [row("Picker", "Decisive")], [], {}, "limited", MORNING);
+  const later = nextDay(before, null, [], {}, "limited", new Date("2026-10-06T10:00:00Z"));
+  expect(missionHistory([{ days: { "2026-10-06": { limited: later } } }], "limited", new Map())[0]?.yourPicks).toBe("unknown");
+});

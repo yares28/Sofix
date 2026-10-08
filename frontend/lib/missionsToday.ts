@@ -42,6 +42,6 @@ export async function missionsToday(
   const status: MissionsStatus = own ? "today" : seenAt ? "stale" : "never";
   const list = own ?? [];
   const players = pool?.players ?? (data ? data.weeks.flatMap((w) => w.playing.players) : []);
-  const made = list.length && data ? plan(list, rarity, players, sheets.players, now) : null;
+  const made = list.length ? plan(list, rarity, players, sheets.players, now) : null;
   return { rarity, seen: [...seen], day: made?.day ?? null, plans: made?.plans ?? [], status, seenAt };
 }

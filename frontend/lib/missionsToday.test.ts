@@ -10,6 +10,8 @@ describe("today's missions for a rarity", () => {
     const missions: MissionsModel = { limited: { missions: [row("Decisive Picker")], seen_at: "2026-10-06T14:00:00Z" } };
     const today = await missionsToday(null, missions, undefined, NOW);
     expect(today).toMatchObject({ rarity: "limited", status: "today", seen: ["limited"], seenAt: "2026-10-06T14:00:00Z" });
+    expect(today.plans.map((p) => p.mission.title)).toEqual(["Decisive Picker"]);
+    expect(today.day).toBe("2026-10-06");
   });
 
   it("never shows an older list as today's: no mission at all, and when the last list was loaded", async () => {

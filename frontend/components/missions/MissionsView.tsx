@@ -11,6 +11,7 @@ import LoadMissions from "./LoadMissions";
 import MissionHistory from "./MissionHistory";
 import MissionScouting from "./MissionScouting";
 import CardArt from "../cards/CardArt";
+import { missionWindow } from "../../lib/missionPresentation";
 
 const time = (s: string) => new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" }).format(new Date(s));
 export default function MissionsView({ rarity, tabs, day, plans: original, status, seenAt, retained = [], missionDay, now, history, players, pool, collection }: {
@@ -25,12 +26,14 @@ export default function MissionsView({ rarity, tabs, day, plans: original, statu
   const plans = shortlist.length && pool ? plan(original.map((p) => p.mission), rarity, players.filter((p) => !shortlist.includes(p.card ?? p.player ?? "")), pool.sheets.players, new Date(now)).plans : original;
   const today = status === "today";
   const made = plans.reduce((n, p) => n + p.mission.made, 0), open = plans.reduce((n, p) => n + p.open, 0);
-  const lock = plans.flatMap((p) => p.all.map((s) => s.kickoff)).sort()[0];
+  const window = missionWindow(new Date(now));
+  const lock = players.filter((p) => p.rarity === rarity).flatMap((p) => p.games.map((g) => g.kickoff)).filter((k) => new Date(k) > new Date(now) && new Date(k) >= new Date(window.start) && new Date(k) < new Date(window.end)).sort((a, b) => Date.parse(a) - Date.parse(b))[0];
   return <div className="pd-wrap" data-testid="missions-page">
-    <div className="ms-head"><h1 className="ms-h1">Daily missions{day ? <span className="sub"> · {day}</span> : null}</h1>
+    <div className="ms-head"><h1 className="ms-h1">Daily missions<span className="sub"> · Mission day {day ?? missionDay}</span></h1>
       <nav className="pd-pick" aria-label="Rarity">{tabs.map((r) => <Link key={r} href={`/missions?rarity=${r}`} aria-current={r === rarity ? "page" : undefined}>{RARITY_NAME[r] ?? r}</Link>)}</nav>
     </div>
-    <div className="ms-summary"><span><b>{today ? plans.length : "-"}</b> missions loaded</span><span><b>{today ? made : "-"}</b> your picks</span><span><b>{today ? open : "-"}</b> open slots</span><span>Next recorded lock <b>{lock ? time(lock) : "Not available"}</b></span></div>
+    <p className="ms-window">Fallback game window: {time(window.start)} → {time(window.end)} (Madrid). Sorare’s reset time still needs verification; this is not a confirmed submission deadline.</p>
+    <div className="ms-summary"><span><b>{today ? plans.length : "—"}</b> missions loaded</span><span><b>{today ? made : "—"}</b> your picks</span><span><b>{today ? open : "—"}</b> open slots</span><span>Next recorded kickoff <b>{lock ? time(lock) : "Not available"}</b></span></div>
     <LoadMissions stale={!today} day={missionDay} />
     {!today ? <p className="ms-stale" role="status">Today&rsquo;s missions aren&rsquo;t loaded yet.{seenAt ? ` Last loaded ${time(seenAt)}. The last read does not confirm today's mission list.` : ""}</p> : null}
     {!today && retained.length ? <details className="pd-card"><summary>Last saved mission list{seenAt ? ` · ${time(seenAt)}` : ""}</summary><ul>{retained.map((m) => <li key={m.id}><b>{m.title}</b> — {m.description}<p>{m.appearances?.length ? `Imported selections: ${m.appearances.map((p) => p.player.replaceAll("-", " ")).join(", ")}` : "No selections confirmed in this saved list."}</p></li>)}</ul></details> : null}
@@ -38,6 +41,7 @@ export default function MissionsView({ rarity, tabs, day, plans: original, statu
     {plans.map((one) => <section key={one.mission.id} className="pd-card ms-mission" aria-label={one.mission.title}>
       <h2>{one.mission.title}{one.reward ? <span className="ms-reward">{one.reward}</span> : null}</h2>
       <p className="ms-rule">{one.open ? `${one.open} to pick: ${one.rule.label}` : "All picked"}</p>
+      {one.mission.startDate ? <p className="ms-evidence">Task started {time(one.mission.startDate)} · from Sorare</p> : null}
       <div className="ms-current-grid"><div><h3>Your Sorare picks</h3>{one.mission.appearances?.length ? <ul className="ms-picks">{one.mission.appearances.map((a, i) => {
         const p = players.find((p) => a.card ? p.card === a.card : p.player === a.player); const c = collection.find((c) => a.card ? c.slug === a.card : c.player === a.player);
         return <li className="ms-pick" key={a.id ?? `${a.player}:${i}`}><span className="art" aria-hidden="true"><CardArt src={p?.pic ?? c?.pic ?? ""} name={p?.name ?? c?.name ?? a.player} /></span><span className="who"><b>{p?.name ?? c?.name ?? a.player.replaceAll("-", " ")}</b><span>{a.locked ? "Locked · " : ""}{a.status ?? "Imported"}{a.target !== undefined ? ` · target ${a.target}` : ""}</span></span></li>;

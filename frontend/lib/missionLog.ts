@@ -87,7 +87,7 @@ export function dayMissions(loaded: MissionRow[] | null): MissionRow[] {
   return loaded === null ? [DAILY_PICKER] : loaded.filter((m) => m.title.trim());
 }
 
-const asRow = (m: LogMission): MissionRow => ({ ...m.source, id: m.key, title: m.title ?? m.key, description: m.description, mode: m.mode, picks: m.picks, made: 0, period: m.source?.period ?? "DAILY", state: null, stats: m.stats, appearances: m.yours });
+const asRow = (m: LogMission): MissionRow => ({ ...m.source, id: m.key, title: m.title ?? m.key, description: m.description, mode: m.mode, picks: m.picks, made: 0, period: m.source?.period ?? "DAILY", state: null, stats: m.stats, appearances: m.source?.appearances !== undefined || m.yours.length ? m.yours : undefined });
 
 /**
  * One rarity's log for today, from what it held before (`prev`) and the plans now. A candidate whose game has kicked off is frozen with what was said of
@@ -196,6 +196,8 @@ export type HistoryDay = {
   candidates?: LogCand[];
   reason?: string;
   corrected?: boolean;
+  yourPicks?: "recorded" | "confirmed-empty" | "user-empty" | "unknown";
+  evidence?: "not-recorded" | "pending" | "settled" | "unrated" | "confirmed-empty";
 };
 
 /** The missions log of one rarity, newest day first, from the months given (`names`: who a pick of yours is when Sofix had no candidate on him). */
@@ -211,7 +213,7 @@ export function missionHistory(logs: MonthLog[], rarity: string, names: Map<stri
   for (const [day, rarities] of entries) {
     const entry = rarities[rarity];
     if (!entry) continue;
-    if (!entry.missions.length && entry.loaded) out.push({ day, mission: "No missions — confirmed by Sorare", loaded: true, sofix: [], yours: [], missed: [], score: null, reason: "Verified empty mission list at the last import." });
+    if (!entry.missions.length && entry.loaded) out.push({ day, mission: "No missions — confirmed by Sorare", loaded: true, sofix: [], yours: [], missed: [], score: null, yourPicks: "confirmed-empty", evidence: "confirmed-empty", reason: "Verified empty mission list at the last import." });
     for (const m of entry.missions) {
       const cands = new Map(entry.cands.filter((c) => m.key in c.c).map((c) => [c.s, c]));
       const known = (slug: string) => {
@@ -230,6 +232,7 @@ export function missionHistory(logs: MonthLog[], rarity: string, names: Map<stri
       const sofix = m.sofix.map((s): HistoryCard => ({ ...known(s), state: checked(s) }));
       const settled = cands.size > 0 && [...cands.values()].every((c) => c.r);
       const achievers = [...cands.keys()].filter((s) => checked(s) === "did");
+      const forecastRecorded = sofix.length > 0 && entry.coverage !== "missing" && !entry.cands.some((c) => c.late);
       out.push({
         day,
         mission: m.title ?? m.key,
@@ -237,6 +240,8 @@ export function missionHistory(logs: MonthLog[], rarity: string, names: Map<stri
         source: m,
         candidates: entry.cands,
         corrected: Boolean(m.override),
+        yourPicks: yours.length ? "recorded" : m.override ? "user-empty" : m.source?.appearances ? "confirmed-empty" : "unknown",
+        evidence: !forecastRecorded ? "not-recorded" : !cands.size ? "unrated" : settled ? "settled" : "pending",
         reason: !entry.cands.length ? "No forecast captured before kickoff; eligible cards were not verified." : !sofix.length ? "No supported pre-kickoff recommendation recorded." : undefined,
         loaded: entry.loaded,
         sofix,

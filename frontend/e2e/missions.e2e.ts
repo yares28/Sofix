@@ -7,6 +7,68 @@ test.describe("the daily missions page", () => {
     await resetBackend(request);
   });
 
+  test("recovers after the owner reloads an old extension without hiding the action", async ({ page }) => {
+    await page.addInitScript(() => {
+      let version = "0.3.8";
+      window.addEventListener("test-extension-updated", () => { version = "0.3.9"; });
+      const browser = window as unknown as { chrome: { runtime?: unknown } };
+      browser.chrome ??= {};
+      browser.chrome.runtime = { sendMessage: (_id: string, message: { type: string }, reply: (r: unknown) => void) => reply(message.type === "ping" ? { ok: true, version, sorareUser: null } : { ok: true, state: "ok", loaded: { limited: 3 } }) };
+    });
+    await page.goto("/missions");
+    await expect(page.getByText(/Extension 0.3.8/)).toBeVisible();
+    await expect(page.getByRole("button", { name: /Check extension and load/ })).toBeVisible();
+    await page.evaluate(() => window.dispatchEvent(new Event("test-extension-updated")));
+    await page.getByRole("button", { name: /Check extension and load/ }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Loaded: 3 Limited missions" })).toBeVisible();
+  });
+
+  test("protects a correction when closing the editor or changing its date", async ({ page }) => {
+    await page.goto("/missions");
+    await page.getByRole("button", { name: "Edit my picks" }).first().click();
+    const editor = page.getByRole("group", { name: /Edit picks/ });
+    await editor.getByRole("textbox", { name: "Note (optional)" }).fill("Keep this correction");
+    await page.getByRole("button", { name: "Close editor" }).click();
+    const guard = page.getByRole("alertdialog", { name: "Unsaved correction" });
+    await expect(guard).toBeVisible();
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    await guard.getByRole("button", { name: "Keep editing" }).click();
+    await expect(editor.getByRole("textbox", { name: "Note (optional)" })).toHaveValue("Keep this correction");
+    await page.getByRole("navigation", { name: "Rarity" }).getByRole("link", { name: "Rare", exact: true }).click();
+    await expect(guard).toBeVisible();
+    await guard.getByRole("button", { name: "Keep editing" }).click();
+    await page.getByRole("combobox", { name: "Mission date" }).selectOption("2026-10-05");
+    await expect(guard).toBeVisible();
+    await guard.getByRole("button", { name: "Discard changes" }).click();
+    await expect(editor).toHaveCount(0);
+  });
+
+  test("shows card copies and previews a pasted sold-card link in the phone editor", async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/missions");
+    await page.getByRole("button", { name: "Edit my picks" }).first().click();
+    const editor = page.getByRole("group", { name: /Edit picks/ });
+    await editor.getByRole("button", { name: "I made no picks" }).click();
+    await editor.getByRole("textbox", { name: "Missing or sold card? Paste its Sorare link" }).fill("https://sorare.com/football/cards/jan-oblak-2026-limited-42");
+    await editor.getByRole("button", { name: "Add from Sorare link" }).click();
+    await expect(editor.getByText("2026 · Copy #42")).toBeVisible();
+    await editor.getByRole("button", { name: "Preview changes" }).click();
+    await expect(editor.getByText(/Preview: jan-oblak/)).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    await page.screenshot({ path: testInfo.outputPath("missions-editor-mobile.png"), fullPage: true });
+  });
+
+  test("waits for a current target before presenting scouting estimates", async ({ page, request }) => {
+    await resetBackend(request, "missions-stale");
+    await page.goto("/missions");
+    const scout = page.getByRole("region", { name: "Choose your own picks" });
+    await expect(scout.getByText(/Load today’s missions to compare/)).toBeVisible();
+    await expect(scout.getByRole("searchbox")).toHaveCount(0);
+    await expect(scout).not.toContainText("Target not modeled");
+    await expect(page.getByText(/Fallback game window/)).toBeVisible();
+  });
+
   test("offers scouting and a previewable correction for historical picks", async ({ page }) => {
     await page.goto("/missions");
     await expect(page.getByRole("region", { name: "Choose your own picks" })).toBeVisible();
@@ -88,7 +150,7 @@ test.describe("the daily missions page", () => {
     const sixth = days.filter({ hasText: "Tue 6 Oct" });
     const fifth = days.filter({ hasText: "Mon 5 Oct" });
     // 6 Oct: not checked yet, but both sides are there, and your picks carry Sorare's verdict already.
-    await expect(sixth).toContainText("Incomplete / pending evidence");
+    await expect(sixth).toContainText("Results pending");
     await expect(sixth.getByRole("list", { name: "Sofix's picks" })).toContainText("Pedri, waiting for his game");
     await expect(sixth.getByRole("list", { name: "Your picks" })).toContainText("Jan Oblak, did not");
     // 5 Oct: checked, Sofix caught one of the three that did it.

@@ -32,9 +32,8 @@ export type MissionRow = {
 export type MissionsModel = Partial<Record<string, { missions: MissionRow[]; seen_at: string; requested_at?: string; verified?: boolean }>>;
 
 /**
- * Sorare's daily missions reset at 9:00 CET, which is 08:00 UTC all year. A mission day runs from one reset to the next and is named by the date it
- * starts on: at 07:00 UTC on 7 Oct it is still the day of 6 Oct. (Read as 9:00 Madrid time in summer, the reset would come an hour earlier; this way a
- * list is at worst thought stale for that hour and loaded once more, never kept a day too long.)
+ * Ledger fallback: fixed 08:00 UTC, pending signed-in verification of Sorare's seasonal reset boundary. The UI labels this assumption and shows
+ * imported task start timestamps separately. Keep it aligned with the Python capture job; a Madrid calendar date is not a mission-day key.
  */
 const RESET_UTC_HOURS = 8;
 export function missionDay(at: Date): string {

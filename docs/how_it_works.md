@@ -457,6 +457,13 @@ blind if it used post-lock data.
 
 Schema/runtime: migrations owner-only, dev branch first; unattended schema check only; keep caches to protect Neon.
 
+The data-keeping migration `3ce433a96bed` adds `player_games` (actuals and pre-lock statements), `match_odds`
+(prices per match and source, with optional fixture links), `match_forecasts` (one forecast per fixture), and
+`player_absences` (FF injury/ban spells, optionally linked to a Sorare player). Player-game actuals and statements
+can remain null until read. This is the schema only: writers and page readers follow in
+[the data-keeping plan](../plans/data-keeping.md), after the owner migrates production; existing jobs still use their
+current storage. Nothing is seeded by the migration.
+
 ## 14. Code map
 
 | Concern | Primary code |

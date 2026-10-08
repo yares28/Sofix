@@ -548,6 +548,8 @@ the held-out weeks (P9 "The bar").
 
 ## Results
 
+- **8 Oct — data keeping schema prepared:** [plans/data-keeping.md](data-keeping.md), migration `3ce433a96bed` adds the four history tables; production migration awaits the owner before any schema-dependent code is pushed. Steps 1–8 remain in Next up.
+
 ### L · every LaLiga player's past games, read daily · 7 Oct 2026 · done
 
 `69171db`: the League history workflow (05:30 Madrid, or by hand) replaced the 40 players a refresh. First run by hand: 618 of

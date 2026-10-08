@@ -1,6 +1,19 @@
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint, text
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -171,3 +184,87 @@ class SorareForecast(Base):
     actual: Mapped[float | None] = mapped_column(Float)  # what he scored, once the gameweek is over
     played: Mapped[bool | None] = mapped_column(Boolean)
     __table_args__ = (UniqueConstraint("player", "gameweek", name="uq_sorare_forecasts_player_gameweek"),)
+
+
+class PlayerGame(Base):
+    """One player's game: actuals and independently written pre-lock source statements."""
+
+    __tablename__ = "player_games"
+    player: Mapped[str] = mapped_column(String(100), primary_key=True)
+    game_id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    competition: Mapped[str] = mapped_column(String(100))
+    home: Mapped[str | None] = mapped_column(String(160))
+    away: Mapped[str | None] = mapped_column(String(160))
+    status: Mapped[str | None] = mapped_column(String(32))
+    score: Mapped[float | None] = mapped_column(Float)
+    played: Mapped[bool | None] = mapped_column(Boolean)
+    started: Mapped[bool | None] = mapped_column(Boolean)
+    mins: Mapped[int | None] = mapped_column(Integer)
+    yellow: Mapped[int | None] = mapped_column(Integer)  # NULL means not read, not no cards.
+    red: Mapped[bool | None] = mapped_column(Boolean)
+    stats: Mapped[list[dict] | None] = mapped_column(JSON)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    ff_start: Mapped[float | None] = mapped_column(Float)
+    sorare_start: Mapped[float | None] = mapped_column(Float)
+    sofix_start: Mapped[float | None] = mapped_column(Float)
+    ff_xi: Mapped[bool | None] = mapped_column(Boolean)
+    sofix_x: Mapped[float | None] = mapped_column(Float)
+    sorare_x: Mapped[float | None] = mapped_column(Float)
+    said_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (Index("ix_player_games_player_date", "player", "date"),)
+
+
+class MatchOdds(Base):
+    """Kept LaLiga prices per source, including seasons without stored fixtures."""
+
+    __tablename__ = "match_odds"
+    season: Mapped[str] = mapped_column(String(16), primary_key=True)
+    date: Mapped[date] = mapped_column(Date, primary_key=True)
+    home: Mapped[str] = mapped_column(String(160), primary_key=True)
+    away: Mapped[str] = mapped_column(String(160), primary_key=True)
+    source: Mapped[str] = mapped_column(String(32), primary_key=True)
+    fixture_id: Mapped[int | None] = mapped_column(ForeignKey("fixtures.id"))
+    hg: Mapped[int | None] = mapped_column(Integer)
+    ag: Mapped[int | None] = mapped_column(Integer)
+    odds_h: Mapped[float | None] = mapped_column(Float)
+    odds_d: Mapped[float | None] = mapped_column(Float)
+    odds_a: Mapped[float | None] = mapped_column(Float)
+    odds_pre_h: Mapped[float | None] = mapped_column(Float)
+    odds_pre_d: Mapped[float | None] = mapped_column(Float)
+    odds_pre_a: Mapped[float | None] = mapped_column(Float)
+    over_2_5: Mapped[float | None] = mapped_column(Float)
+    which: Mapped[str] = mapped_column(String(32))
+    read_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class MatchForecast(Base):
+    """One match forecast, updated until kick-off and then frozen by the writer."""
+
+    __tablename__ = "match_forecasts"
+    fixture_id: Mapped[int] = mapped_column(ForeignKey("fixtures.id"), primary_key=True)
+    model_version: Mapped[str] = mapped_column(String(64))
+    p_home: Mapped[float] = mapped_column(Float)
+    p_draw: Mapped[float] = mapped_column(Float)
+    p_away: Mapped[float] = mapped_column(Float)
+    xg_home: Mapped[float] = mapped_column(Float)
+    xg_away: Mapped[float] = mapped_column(Float)
+    frozen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class PlayerAbsence(Base):
+    """One Futbol Fantasy absence spell; linking a Sorare slug may happen later."""
+
+    __tablename__ = "player_absences"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ff_id: Mapped[str] = mapped_column(String(32))
+    player: Mapped[str | None] = mapped_column(String(100))
+    kind: Mapped[str] = mapped_column(String(16))  # out | doubt | suspended
+    cause: Mapped[str | None] = mapped_column(Text)
+    first_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    last_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    back: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        Index("ix_player_absences_ff_id_first_seen", "ff_id", "first_seen"),
+        Index("ix_player_absences_player_first_seen", "player", "first_seen"),
+    )

@@ -55,8 +55,68 @@ def test_upgrade_to_head_builds_the_schema(tmp_path):
         "market_odds",
         "read_models",
         "sorare_forecasts",
+        "player_games",
+        "match_odds",
+        "match_forecasts",
+        "player_absences",
     }
     upgrade_to_head(url)  # idempotent at head
+
+
+def test_kept_data_keys_and_unknown_values(tmp_path):
+    url = f"sqlite:///{(tmp_path / 'kept.db').as_posix()}"
+    upgrade_to_head(url)
+    engine = create_engine(url)
+    schema = inspect(engine)
+    assert schema.get_pk_constraint("player_games")["constrained_columns"] == ["player", "game_id"]
+    assert schema.get_pk_constraint("match_odds")["constrained_columns"] == ["season", "date", "home", "away", "source"]
+    assert schema.get_pk_constraint("match_forecasts")["constrained_columns"] == ["fixture_id"]
+    assert any(index["column_names"] == ["player", "date"] for index in schema.get_indexes("player_games"))
+
+    # A forecast can precede the actual read: unknown cards and stats must stay NULL, not become zero.
+    game = text(
+        "INSERT INTO player_games (player, game_id, date, competition) "
+        "VALUES ('player-a', 'Game:1', '2026-10-08 19:00:00', 'laliga-es')"
+    )
+    with engine.begin() as connection:
+        connection.execute(game)
+        assert connection.execute(text("SELECT yellow, red, stats, read_at, ff_xi FROM player_games")).one() == (
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        # Past matches need no Fixture row; sources coexist rather than replacing one another.
+        connection.execute(
+            text(
+                "INSERT INTO match_odds (season, date, home, away, source, which, read_at) VALUES "
+                "('2025/26', '2025-08-15', 'CEL', 'RMA', 'football-data.co.uk', 'PSCH', '2026-10-08 12:00:00'), "
+                "('2025/26', '2025-08-15', 'CEL', 'RMA', 'the-odds-api', 'the-odds-api', '2026-10-08 12:00:00')"
+            )
+        )
+        assert connection.execute(text("SELECT fixture_id FROM match_odds")).all() == [(None,), (None,)]
+        # An unlinked FF player can have several distinct absence spells.
+        connection.execute(
+            text(
+                "INSERT INTO player_absences (ff_id, kind, first_seen, last_seen) VALUES "
+                "('123', 'out', '2026-09-01 12:00:00', '2026-09-02 12:00:00'), "
+                "('123', 'doubt', '2026-10-01 12:00:00', '2026-10-02 12:00:00')"
+            )
+        )
+        assert connection.execute(text("SELECT player, back FROM player_absences")).all() == [
+            (None, None),
+            (None, None),
+        ]
+    with pytest.raises(IntegrityError), engine.begin() as connection:
+        connection.execute(game)
+    with pytest.raises(IntegrityError), engine.begin() as connection:
+        connection.execute(
+            text(
+                "INSERT INTO match_odds (season, date, home, away, source, which, read_at) VALUES "
+                "('2025/26', '2025-08-15', 'CEL', 'RMA', 'football-data.co.uk', 'AvgCH', '2026-10-08 13:00:00')"
+            )
+        )
 
 
 def test_models_and_migrations_do_not_drift(tmp_path):

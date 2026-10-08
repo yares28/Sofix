@@ -256,12 +256,26 @@ def card_games(rows: list[dict[str, Any]], key: str) -> dict[str, list[dict[str,
 
 
 def _banned(rows: list[dict[str, Any]], first: dict[str, Any] | None) -> bool:
-    """Whether a red card bans him from his first game of the week: it is a LaLiga game and his last LaLiga game before it ended
-    with him sent off. A LaLiga game still to be played in between (a PENDING row) is the one that serves the ban."""
+    """A red or a completed five-yellow cycle bans the next LaLiga game; an intervening game serves it."""
     if first is None or first.get("competition") != expected.LALIGA or not first.get("kickoff"):
         return False
     before = [h for h in rows if h.get("competition") == expected.LALIGA and _dt(h["date"]) < _dt(first["kickoff"])]
-    return bool(before) and bool(max(before, key=lambda h: _dt(h["date"])).get("red"))
+    if not before:
+        return False
+    last = max(before, key=lambda h: _dt(h["date"]))
+    if last.get("red"):
+        return True
+    # RFEF Disciplinary Code, ratified 3 Mar 2026, arts 119.1-2 (five yellows, new cycle after one game),
+    # 119.4 (no cycle ban from the season's last game), 120-121 (second yellow/direct red: at least one game).
+    # https://rfef.es/sites/default/files/2026-03/1283_Codigo_Disciplinario__Futbol__CD_03.03.2026.pdf
+    kickoff = _dt(first["kickoff"])
+    season = datetime(kickoff.year if kickoff.month >= 7 else kickoff.year - 1, 7, 1, tzinfo=UTC)
+    if _dt(last["date"]) < season or not last.get("yellow"):
+        return False
+    total = last.get("seasonYellows")
+    if total is None:
+        total = sum(h.get("yellow") or 0 for h in before if _dt(h["date"]) >= season)
+    return total > 0 and total % 5 == 0
 
 
 def player_weeks(

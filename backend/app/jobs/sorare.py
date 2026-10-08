@@ -46,6 +46,7 @@ from app.sorare import (
     keeper,
     mission_pool,
     outfield,
+    player_games,
     projection,
     scores,
     starts,
@@ -88,9 +89,8 @@ def cached_templates(db: Session) -> dict[str, Any]:
     return dict(row.payload) if row and isinstance(row.payload, dict) else {}
 
 
-def cached_league(db: Session) -> dict[str, Any]:
-    row = db.get(ReadModel, LEAGUE_HISTORY_KEY)
-    return dict(row.payload) if row and isinstance(row.payload, dict) else {}
+def cached_league(db: Session, now: datetime | None = None) -> dict[str, Any]:
+    return player_games.load(db, now=now, days=70)
 
 
 def essence_order(db: Session) -> tuple[str, ...]:
@@ -297,6 +297,15 @@ def run(
     )
     snapshot["understat"] = understat.fetch_leagues(leagues, understat.season_of(started.date()))
     fetched = datetime.fromisoformat(snapshot["fetchedAt"])
+    if not dry_run:
+        player_games.save(db, snapshot["history"], fetched)
+        snapshot["leagueHistory"] = cached_league(db, fetched)
+        # A source outage only stops new reads: the owner's saved games remain available for form and replay.
+        owners = {row["player"]["slug"] for row in snapshot["cards"]}
+        snapshot["history"] = {
+            slug: entry["games"] for slug, entry in snapshot["leagueHistory"].items() if slug in owners
+        }
+        db.rollback()
     # Futbol Fantasy's expected lineups, before anything is planned: its chance that each player starts each game is what
     # the expected scores, the plans and the captain are built on. Only the gameweek being planned uses it.
     feed, lineups = read_lineups(db, failed, snapshot, fetched, write=not dry_run)

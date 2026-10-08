@@ -906,3 +906,14 @@ def test_a_red_card_in_his_last_laliga_game_bans_him_from_the_next_one_only() ->
         [_league("2026-09-24T18:00:00Z", red=True, comp="copa-del-rey"), *sent_off[1:]], next_league
     )
     assert not publish._banned([_league("2026-09-20T18:00:00Z")], next_league), "cards not read: no ban guessed"
+
+
+def test_five_yellows_ban_only_the_next_laliga_game_and_reset_each_season() -> None:
+    first = {"kickoff": "2026-10-09T19:00:00Z", "competition": "laliga-es"}
+    rows = [{**_league(f"2026-09-{day:02d}T18:00:00Z"), "yellow": 1} for day in (1, 6, 13, 20, 27)]
+    assert publish._banned(rows, first)
+    assert not publish._banned(rows[:-1], first)
+    assert not publish._banned(rows + [_league("2026-10-01T18:00:00Z", status="PENDING")], first)
+    assert not publish._banned(rows, {**first, "competition": "uefa-champions-league"})
+    assert not publish._banned(rows, {**first, "kickoff": "2027-08-15T18:00:00Z"})
+    assert publish._banned([{**rows[-1], "seasonYellows": 5}], first), "recent form carries the season total"

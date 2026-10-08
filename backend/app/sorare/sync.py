@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -94,15 +94,16 @@ query($a:String$ARGS){ user(slug:$USER){ cards(first: 10, after: $a, sport: FOOT
 """
 
 HISTORY = """
-query($p:String!,$from:ISO8601DateTime!,$to:ISO8601DateTime!){ anyPlayer(slug:$p){
-  ... on Player { allPlayerGameScores(from:$from, to:$to, first: 40) { nodes {
+query($p:String!,$from:ISO8601DateTime!,$to:ISO8601DateTime!,$after:String){ anyPlayer(slug:$p){
+  ... on Player { allPlayerGameScores(from:$from, to:$to, first: 40, after:$after) {
+    pageInfo { hasNextPage endCursor } nodes {
     score scoreStatus
-    anyGame { id date competition { slug } }
+    anyGame { id date competition { slug } homeTeam { name } awayTeam { name } }
     anyPlayerGameStats { playedInGame ... on PlayerGameStats { gameStarted minsPlayed } } } } } } }
 """
 # With his cards: a red card (a second yellow counts as one) bans him from the next game of that competition. Its complexity (about
 # 1,300) is over the keyless limit of 500, so it is only asked with an API key (the scheduled refresh has one).
-HISTORY_CARDS = HISTORY.replace("score scoreStatus", "score scoreStatus detailedScore { stat statValue }")
+HISTORY_CARDS = HISTORY.replace("score scoreStatus", "score scoreStatus detailedScore { stat statValue totalScore }")
 
 GAMES = """
 query($s:String!){ so5 { so5Fixture(slug:$s){ games { id competition { slug } } } } }
@@ -438,39 +439,65 @@ def _sent_off(stats: list[dict[str, Any]] | None) -> bool:
     return any(one.get("stat") == "red_card" and (one.get("statValue") or 0) > 0 for one in stats or [])
 
 
+def _yellows(stats: list[dict[str, Any]] | None) -> int:
+    return int(sum(one.get("statValue") or 0 for one in stats or [] if one.get("stat") == "yellow_card"))
+
+
 def history(
-    client: SorareClient, players: list[str], before: datetime, days: int = 70
+    client: SorareClient,
+    players: list[str],
+    before: datetime,
+    days: int = 70,
+    *,
+    since: datetime | Mapping[str, datetime] | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     """Every score of these players over the weeks before the gameweek (their form, and a played gameweek's result)."""
     out: dict[str, list[dict[str, Any]]] = {}
-    start = (before - timedelta(days=days)).astimezone(UTC).isoformat()
     end = (before + timedelta(days=8)).astimezone(UTC).isoformat()
     query = HISTORY_CARDS if getattr(client, "api_key", "") else HISTORY
     for player in players:
+        first = since.get(player) if isinstance(since, Mapping) else since
+        start = (first or before - timedelta(days=days)).astimezone(UTC).isoformat()
+        scores: list[dict[str, Any]] = []
+        after: str | None = None
         try:
-            data = client.query(query, {"p": player, "from": start, "to": end})
+            while True:
+                data = client.query(query, {"p": player, "from": start, "to": end, "after": after})
+                page = (data.get("anyPlayer") or {}).get("allPlayerGameScores") or {}
+                if not page:
+                    raise SorareError("no history in the answer")
+                scores.extend(page.get("nodes") or [])
+                info = page.get("pageInfo") or {}
+                if not info.get("hasNextPage"):
+                    break
+                cursor = info.get("endCursor")
+                if not cursor or cursor == after:
+                    raise SorareError("history page did not advance")
+                after = cursor
         except SorareError as exc:
             logger.warning("sorare: no history for %s (%s)", player, exc)
             continue
-        scores = ((data.get("anyPlayer") or {}).get("allPlayerGameScores") or {}).get("nodes") or []
         out[player] = [
             {
                 "date": row["anyGame"]["date"],
                 "competition": row["anyGame"]["competition"]["slug"],
                 "gameId": row["anyGame"]["id"],
+                **({"home": row["anyGame"]["homeTeam"]["name"]} if row["anyGame"].get("homeTeam") else {}),
+                **({"away": row["anyGame"]["awayTeam"]["name"]} if row["anyGame"].get("awayTeam") else {}),
                 "score": row["score"],
-                "played": bool((row.get("anyPlayerGameStats") or {}).get("playedInGame")),
-                "started": bool((row.get("anyPlayerGameStats") or {}).get("gameStarted")),
+                "played": bool(row["anyPlayerGameStats"]["playedInGame"]) if row.get("anyPlayerGameStats") else None,
+                "started": bool(row["anyPlayerGameStats"].get("gameStarted"))
+                if row.get("anyPlayerGameStats")
+                else None,
                 "mins": (row.get("anyPlayerGameStats") or {}).get("minsPlayed"),
                 "status": row["scoreStatus"],
-                **({"red": _sent_off(row["detailedScore"])} if "detailedScore" in row else {}),
                 **(
                     {
-                        "stats": {
-                            s["stat"]: s["statValue"] for s in row["detailedScore"] if s.get("statValue") is not None
-                        }
+                        "red": _sent_off(row["detailedScore"]),
+                        "yellow": _yellows(row["detailedScore"]),
+                        "stats": [one for one in row["detailedScore"] or [] if one.get("statValue")],
                     }
-                    if "detailedScore" in row
+                    if row.get("detailedScore") is not None
                     else {}
                 ),
             }
@@ -530,21 +557,51 @@ def league_history(
     now: datetime,
     save: Callable[[dict[str, Any]], None],
     every: int = LEAGUE_SAVE_EVERY,
+    *,
+    since: datetime | None = None,
 ) -> dict[str, Any]:
-    """Every LaLiga player's past games, all read in one run (the daily `league-history` workflow, owner's ask of 6 Oct 2026):
+    """New games and late corrections, retaining all earlier reads (the daily `league-history` workflow):
     `{slug: {"at": when read, "games": rows as history() gives}}`.
 
     The stalest reading goes first and the result is saved every `every` players, so a run Sorare or GitHub cuts off keeps what
-    it read and the next one starts where it stopped. A player Sorare does not answer keeps his last reading; one no longer in
-    LaLiga drops out.
+    it read and the next one starts where it stopped. The save callback receives only the fresh batch; a source failure
+    never removes old rows. A player's first read starts at the season's first gameweek.
     """
     current = set(slugs)
     out = {slug: entry for slug, entry in (cached or {}).items() if slug in current}
     order = sorted(current, key=lambda slug: ((out.get(slug) or {}).get("at") or "", slug))
+    season = since or datetime(now.year if now.month >= 7 else now.year - 1, 7, 1, tzinfo=UTC)
     for start in range(0, len(order), every):
-        for slug, games in history(client, order[start : start + every], now).items():
-            out[slug] = {"at": now.isoformat(), "games": games}
-        save(out)
+        fresh: dict[str, Any] = {}
+        for slug in order[start : start + every]:
+            previous = (out.get(slug) or {}).get("games") or []
+            dates = [
+                datetime.fromisoformat(g["date"])
+                for g in previous
+                if isinstance(g, dict) and g.get("date") and datetime.fromisoformat(g["date"]) <= now
+            ]
+            since_player = max(dates) - timedelta(days=3) if dates else season
+            # A score that has still not settled must be rechecked even if newer games have arrived.
+            pending = [
+                datetime.fromisoformat(g["date"])
+                for g in previous
+                if isinstance(g, dict)
+                and g.get("status") == "PENDING"
+                and g.get("date")
+                and datetime.fromisoformat(g["date"]) <= now
+            ]
+            if pending:
+                since_player = min(since_player, min(pending) - timedelta(days=3))
+            for player, games in history(client, [slug], now, since=since_player).items():
+                merged = {g["gameId"]: g for g in previous if isinstance(g, dict) and g.get("gameId")}
+                for game in games:
+                    merged[game["gameId"]] = {**merged.get(game["gameId"], {}), **game}
+                fresh[player] = {"at": now.isoformat(), "games": games}
+                out[player] = {
+                    "at": now.isoformat(),
+                    "games": sorted(merged.values(), key=lambda g: g["date"], reverse=True),
+                }
+        save(fresh)
     return out
 
 
@@ -763,7 +820,17 @@ def snapshot(
     }
 
     played_in = tuple(aliases)
-    scores = history(client, history_players(my_cards, played_in), datetime.fromisoformat(plan_gw["lock"]))
+    players = history_players(my_cards, played_in)
+    scores = history(
+        client,
+        players,
+        datetime.fromisoformat(plan_gw["lock"]),
+        since={
+            player: datetime.fromisoformat(weeks[0]["start"])
+            for player in players
+            if player not in (cached_league or {})
+        },
+    )
 
     # Reward chances come from a gameweek that has already been played. The gameweek being planned looks at the
     # last one finished; the replay of a played gameweek may only look at the one before it, and is scored

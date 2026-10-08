@@ -186,4 +186,12 @@ def test_no_laliga_game_read_gives_no_sofix_number() -> None:
 
 def test_a_red_card_puts_sofixs_own_chance_at_zero() -> None:
     assert forecast(week(banned=True)).by_source["sofix"] == 0.0
+
+
+def test_the_plan_form_fallback_cannot_start_or_substitute_a_banned_player() -> None:
+    result = forecast(week(banned=True, start_odds=None, plays_odds=None))
+    assert result.p_start == 0 and result.p_on == 0 and result.p_play == 0
+    next_game = forecast(week(games=2, banned=True))
+    one_game = forecast(week())
+    assert next_game.p_play == one_game.p_play, "one ban does not remove both games of a double week"
     assert forecast(week()).by_source["sofix"] > 0.8

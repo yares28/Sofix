@@ -81,7 +81,7 @@ class PlayerWeek:
     sub: Any = None  # his position's picture of a substitute (`outfield.SubShape`)
     # dates in `history` of games outside LaLiga: Sofix's chance of starting leaves them out
     cups: frozenset[str] = frozenset()
-    banned: bool = False  # sent off in his last LaLiga game before this one, a LaLiga game: he misses it
+    banned: bool = False  # red card or five-yellow cycle: he misses his first LaLiga game
 
 
 def _from_form(history: list[tuple[str, float, bool]]) -> tuple[float, float]:
@@ -127,6 +127,8 @@ def _split(week: PlayerWeek, base_mu: float, plays: float) -> Split:
         p_on = (league_on + 0.4) / (n + 2.0)
     else:  # roles were never recorded for these games: split the chance of playing as the prior does
         p_start, p_on = plays * 2 / 3, plays / 3
+    if week.banned and not have_odds:
+        p_start = p_on = 0.0
 
     share_start = p_start / (p_start + p_on) if p_start + p_on > 0 else 0.0
     if not started or (week.projection is not None and share_start >= REGULAR_STARTER):
@@ -144,6 +146,8 @@ def _split(week: PlayerWeek, base_mu: float, plays: float) -> Split:
         benched_on = p_on_if_benched if benched > 0 else from_form  # with no bench in Sorare's odds, his form says
     else:
         p_on_if_benched = from_form
+    if week.banned and not have_odds:
+        benched_on = p_on_if_benched = 0.0
     score_on = (sum(came_on) + 2 * PRIOR_SUB_SCORE) / (len(came_on) + 2)
     return Split(start, p_on_if_benched * score_on, min(p_start, 1.0), min(p_on, 1.0), benched_on, score_on)
 
@@ -159,11 +163,14 @@ def _per_game(week: PlayerWeek, split: Split, plays: float) -> tuple[tuple[GameC
     sorare = week.start_odds is not None and week.plays_odds is not None
     chances: list[GameChance] = []
     played: list[float] = []
-    for game in week.game_ids:
+    for index, game in enumerate(week.game_ids):
         told = given.get(game)
         if told is None:
-            chances.append(GameChance(game, split.p_start, split.p_on, "sorare" if sorare else "sofix"))
-            played.append(plays)
+            own_split = (
+                _split(dataclasses.replace(week, banned=False), split.start, plays) if week.banned and index else split
+            )
+            chances.append(GameChance(game, own_split.p_start, own_split.p_on, "sorare" if sorare else "sofix"))
+            played.append(0.0 if week.banned and index == 0 and not sorare else plays)
         elif told.out:
             chances.append(GameChance(game, 0.0, 0.0, "futbolfantasy", told.info))
             played.append(0.0)
@@ -177,8 +184,8 @@ def _per_game(week: PlayerWeek, split: Split, plays: float) -> tuple[tuple[GameC
 
 def own_start(week: PlayerWeek) -> float | None:
     """The app's own chance that he starts, from his LaLiga form alone: Sorare's projection and odds and Futbol Fantasy taken
-    away. None when no LaLiga game of his has been read: the bare prior is no reading of him. 0 after a red card in his last
-    LaLiga game: the ban is certain (owner, 7 Oct 2026)."""
+    away. None when no LaLiga game of his has been read: the bare prior is no reading of him. 0 when his first LaLiga game
+    is banned (red or a five-yellow cycle; RFEF rule and citation in publish._banned)."""
     if not any(date not in week.cups for date, _, _ in week.history):
         return None
     if week.banned:
@@ -233,8 +240,9 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
         best = sorted(played, reverse=True)[:2]
         both = best[0] * best[1] if len(best) > 1 else best[0]
     else:
-        p_any = 1 - (1 - plays) ** week.games
-        both = plays * plays
+        available = week.games - int(week.banned and not has_odds)
+        p_any = 1 - (1 - plays) ** available
+        both = plays * plays if available > 1 else 0.0
     # A double gameweek: he has to miss both to score nothing, and the better of the two games counts.
     if week.games > 1 and p_any > 0:
         mu += 0.56 * sd * both / p_any

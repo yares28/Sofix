@@ -35,7 +35,7 @@ Sofix % on 7 Oct (178 of 618 never read). The Control line was a question you ne
 projections, should the countdown and the hero's facts stay greyed with the plan, or only the projection-based figures? Not
 answered. Today `PlayView.tsx` greys the whole intro (`pl-intro behind`), countdown included.
 
-**R. The plan's own-form start chance does not know a red-card ban.** Since 7 Oct Sofix's own start % is 0 after a red card in his
+**R. The plan's own-form start chance does not know a red-card ban.** Built locally in data-keeping step 1 (8 Oct); deployment pending the single production migration. Since 7 Oct Sofix's own start % is 0 after a red card in his
 last LaLiga game (`own_start`, `forecast.py`), but the form-based chance the plan falls back on when neither Futbol Fantasy nor
 Sorare has a number (`_split`) does not. Futbol Fantasy lists bans for every LaLiga match, so it rarely matters; worth closing
 when the forecast is next touched.

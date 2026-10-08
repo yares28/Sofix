@@ -16,7 +16,7 @@ and a check, so a session can work through it alone and stop only where you have
 
 Work from the top. Each line points to its full text; "you" items wait for the owner.
 
-0. **Keep what Sofix reads** ([plans/data-keeping.md](data-keeping.md)): every player's games, your weeks, odds and match forecasts kept for good, then shown on player pages, the Audit, Recap and Control. Starts with the owner's migration.
+0. **Keep what Sofix reads** ([plans/data-keeping.md](data-keeping.md)): every player's games, your weeks, odds and match forecasts kept for good, then shown on player pages, the Audit, Recap and Control. Single schema and step 1 built locally; continuing step 2. Production migration precedes deployment.
 0. **Found 7 Oct in past sessions** (TODO.md "Forgotten"): **G**, the grey countdown on Play (your call), and **R**, the form
    fallback's red-card ban (small). L, the daily league history, is done (Results).
 1. **9.7 · The extension updates itself** (TODO.md A): no more Reload by hand after the release that brings it (one last Reload).
@@ -547,6 +547,8 @@ the held-out weeks (P9 "The bar").
 ---
 
 ## Results
+
+- **8 Oct — data keeping step 1 built locally:** permanent paged/incremental player games, teams, stats and season yellows; owner refresh and daily job share actual-only upserts. Red/five-yellow fallback bans leave a double week's second game available. Test-first regressions and the full local gate pass. One schema migration remains the deployment prerequisite; work continues locally ([details](data-keeping.md#results)).
 
 - **8 Oct — data keeping schema prepared:** [plans/data-keeping.md](data-keeping.md), migration `3ce433a96bed` adds the four history tables; production migration awaits the owner before any schema-dependent code is pushed. Steps 1–8 remain in Next up.
 

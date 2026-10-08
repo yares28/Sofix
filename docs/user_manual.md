@@ -477,12 +477,14 @@ query plus one query per club. Search is local and fast; it does not make a Sora
 **Every player gets this week's numbers, not only yours** (since 6 Oct 2026). For the gameweek being planned each row shows his
 **chance to start** (with whose number it is: FF, SO or SF, as on your cards; "Plays" when only a chance of playing is known) and his
 **xScore**, worked out the same way as for your cards: Futbol Fantasy's expected lineup, Sorare's odds and projection, his game and
-its odds. Past-game form counts for everyone: yours are read in full every refresh, and every other LaLiga player's are read once a
-day by their own job (**League history** in GitHub's Actions, about 05:30 Madrid, four or five minutes; it can also be started by
+its odds. Past-game form counts for everyone: your players are read every refresh, and every LaLiga player plus your players
+elsewhere are read once a day by their own job (**League history** in GitHub's Actions, about 05:30 Madrid; it can also be started by
 hand there), so each player has his latest game by the morning refresh. Control shows its last run under "Last refreshes"
 ("Every player's past games: 618 of 618 read …"), with **Read now** to start it whenever you want. A run that is cut off keeps what it read and the next one carries on. Until a
 player's games have been read, his numbers rest on those sources and the usual priors. A dash
-means he has no game in the gameweek.
+means he has no game in the gameweek. Games already read stay saved when a source fails or a player leaves your collection.
+Later reads add new games and corrections. Without a source's start chance, a red card or fifth LaLiga yellow rules him out
+of his next LaLiga game; a second game in that week is still available.
 
 **One player's page** (since 4 Oct, `/players/<name>`; click a name in the results). It leads with his game this week: the xScore if he starts and the chance he
 starts, large (for any LaLiga player), and the picture of the game (the same bars as the panel on Sorare, and "Lands between 41 and 80, 8 times in 10"). Below, the **stat sheet** is one table with a

@@ -1,8 +1,8 @@
 name: League history
 
-# Every LaLiga player's past games, read once a day in one run (owner's ask of 6 Oct 2026), so each player's form has his
-# latest game. Separate from the refresh: it only writes `sorare_league_history` (and its status line on Control), which
-# the refresh only reads. About 620 Sorare queries, paced by the client: four or five minutes with the API key.
+# Every LaLiga player plus the owner's players elsewhere: new games and late corrections, kept in player_games.
+# The refresh also upserts its owner's fresh games; neither job touches frozen source statements.
+# About 700 players, paced by the client; longer first reads page back to the season's first gameweek.
 # Cron is UTC: 03:30 is 05:30 Madrid in summer, 04:30 in winter, after the night's late games are scored and before the
 # morning refresh. GitHub often starts scheduled runs late; a late run only means the games arrive later that day.
 on:
@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   league-history:
-    name: Read every LaLiga player's past games
+    name: Keep every player's games
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     defaults:

@@ -2,9 +2,8 @@
 
     python -m app.jobs.league_history
 
-The refresh reads your players' games in full every run; this keeps everyone else's in `sorare_league_history`, so each
-player's form (Sofix's start chance, his xScore) has his latest game. The players are the last refresh's LaLiga list
-(`market` in the `sorare` read model). About 620 queries, paced by the client: four or five minutes with the API key.
+Keeps every game in `player_games`, including the owner's players outside LaLiga. The first read starts at the season's
+first gameweek; later reads ask for new games and three days of corrections. Calls are paced by the Sorare client.
 """
 
 from __future__ import annotations
@@ -17,10 +16,11 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
-from app.jobs.sorare import LEAGUE_HISTORY_KEY, LEAGUE_STATUS_KEY, SORARE_KEY, cached_league
+from app.jobs.sorare import LEAGUE_STATUS_KEY, SORARE_KEY
 from app.logging_config import configure_logging
 from app.models import ReadModel
 from app.services.publish import put
+from app.sorare import player_games
 from app.sorare.client import SorareClient
 from app.sorare.sync import league_history
 
@@ -29,11 +29,27 @@ logger = logging.getLogger(__name__)
 
 def run(db: Session, client: SorareClient, now: datetime) -> dict[str, Any]:
     row = db.get(ReadModel, SORARE_KEY)
-    market = (row.payload.get("market") if row and isinstance(row.payload, dict) else None) or []
-    slugs = [entry["slug"] for entry in market if entry.get("slug")]
+    payload = row.payload if row and isinstance(row.payload, dict) else {}
+    slugs = sorted(
+        {entry["slug"] for entry in payload.get("market") or [] if entry.get("slug")}
+        | {entry["player"] for entry in payload.get("collection") or [] if entry.get("player")}
+    )
     if not slugs:
         return {"players": 0, "read": 0, "at": now.isoformat()}
-    league = league_history(client, slugs, cached_league(db), now, lambda out: put(db, LEAGUE_HISTORY_KEY, out, now))
+    kept = player_games.load(db)
+    weeks = payload.get("timeline") or []
+    since = min(
+        (datetime.fromisoformat(w["start"]) for w in weeks if w.get("start")), default=player_games.season_start(now)
+    )
+    db.rollback()  # do not hold a Neon connection while Sorare is being read
+    league = league_history(
+        client,
+        slugs,
+        kept,
+        now,
+        lambda out: player_games.save(db, {slug: entry["games"] for slug, entry in out.items()}, now),
+        since=since,
+    )
     status = {
         "players": len(slugs),
         "read": sum(1 for e in league.values() if e.get("at") == now.isoformat()),

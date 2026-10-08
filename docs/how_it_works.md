@@ -135,11 +135,15 @@ Outside LaLiga the app shows chance to play and xScore, explicitly not a fabrica
 Cards/Players are latest-sync snapshots. Market value is cached valuation, not a live listing. A double gameweek uses
 Sorare's best-game behavior.
 
-Past games: the refresh reads the owner's players in full; every other LaLiga player's are read once a day by
-`league-history.yml` (`app/jobs/league_history.py`, the last refresh's `market` list, stalest first, saved every 50 players)
-into `sorare_league_history`, with its last run in `league_history_status` for Control. The refresh only reads that model,
-so it never writes back an older copy. With the API key the read carries red cards (`detailedScore`); Sofix's own start
-chance is 0 after a red card in a player's last LaLiga game.
+Past games are kept permanently in `player_games`. `league-history.yml` reads the market and the owner's collection,
+including players outside LaLiga, stalest first, saving every 50 players. First reads page back to the season's first
+gameweek; later reads start three days before the newest played game, widening for unsettled scores, through now + eight
+days. The refresh upserts its fresh owner history too. Actual-only upserts preserve frozen statements, unknown cards/stats
+and newer reads. `cached_league` supplies the same 70-day form window with season-long yellow totals; the old
+`sorare_league_history` row is retained but no longer written. Keyed reads keep teams, non-zero stats and scoring points.
+Sofix's own start chance and form fallback exclude the next LaLiga game after a red card or the fifth season yellow
+(RFEF's 3 March 2026 disciplinary code, articles 119–121). A second game in the week remains available; FF/Sorare evidence
+still has priority over this fallback.
 
 ## 8. xScore
 

@@ -9,7 +9,7 @@ import pytest
 
 from app.jobs import league_history as job
 from app.jobs import sorare as sorare_job
-from app.models import ReadModel
+from app.models import PlayerGame, ReadModel
 from app.services.publish import put
 from app.sorare import sync
 from app.sorare.client import SorareError
@@ -67,12 +67,22 @@ def test_a_run_cut_off_midway_has_saved_what_it_read() -> None:
 
 
 def test_the_job_reads_the_refreshs_laliga_list_and_writes_its_status(db) -> None:  # noqa: F811
-    put(db, sorare_job.SORARE_KEY, {"market": [{"slug": "a"}, {"slug": "b"}, {"name": "no slug"}]}, NOW)
+    put(
+        db,
+        sorare_job.SORARE_KEY,
+        {
+            "market": [{"slug": "a"}, {"slug": "b"}, {"name": "no slug"}],
+            "collection": [{"player": "a"}, {"player": "outside-laliga"}],
+            "timeline": [{"start": "2026-08-01T14:00:00Z"}],
+        },
+        NOW,
+    )
 
     status = job.run(db, _Client(broken={"b"}), NOW)  # type: ignore[arg-type]
 
-    assert status == {"players": 2, "read": 1, "at": NOW.isoformat()}
-    assert set(db.get(ReadModel, sorare_job.LEAGUE_HISTORY_KEY).payload) == {"a"}
+    assert status == {"players": 3, "read": 2, "at": NOW.isoformat()}
+    assert {row.player for row in db.query(PlayerGame)} == {"a", "outside-laliga"}
+    assert db.get(ReadModel, sorare_job.LEAGUE_HISTORY_KEY) is None, "the rolling JSON is no longer written"
     assert db.get(ReadModel, sorare_job.LEAGUE_STATUS_KEY).payload == status
 
 
@@ -85,9 +95,44 @@ def test_a_refresh_reads_the_league_history_and_never_writes_it(db, monkeypatch)
     monkeypatch.setattr(sorare_job.settings, "sorare_api_key", "test-key")
     monkeypatch.setattr(sorare_job, "SorareClient", lambda *a, **k: _FakeClient())
     monkeypatch.setattr(sorare_job.sorare_sync, "snapshot", lambda *a, **k: stale)
+    monkeypatch.setattr(sorare_job.understat, "fetch_leagues", lambda *a, **k: {})
 
     sorare_job.run(db, "yares", runs=1)
 
     assert db.get(ReadModel, sorare_job.LEAGUE_HISTORY_KEY).payload == daily, (
         "a refresh never writes back an older copy"
     )
+    assert db.get(PlayerGame, ("keeper-one", "past")).score == 60.0, "the owner's fresh read is kept too"
+
+
+def test_incremental_history_rechecks_corrections_without_losing_older_games() -> None:
+    class Dates(_Client):
+        def __init__(self):
+            super().__init__()
+            self.windows = []
+
+        def query(self, query, variables):
+            self.windows.append(variables.copy())
+            return super().query(query, variables)
+
+    client = Dates()
+    start = datetime(2026, 8, 1, tzinfo=UTC)
+    cached = {
+        "a": {
+            "at": OLD,
+            "games": [
+                {"gameId": "old", "date": "2026-08-01T14:00:00Z", "status": "FINAL"},
+                {"gameId": "g1", "date": "2026-10-05T14:00:00Z", "status": "PENDING"},
+                {"gameId": "future", "date": "2026-10-14T14:00:00Z", "status": "PENDING"},
+            ],
+        }
+    }
+    saved = []
+    out = sync.league_history(client, ["a", "new"], cached, NOW, saved.append, since=start)  # type: ignore[arg-type]
+    asked = {v["p"]: v for v in client.windows}
+    assert asked["new"]["from"] == start.isoformat()
+    assert asked["a"]["from"] == "2026-10-02T14:00:00+00:00", "future rows cannot move the cursor past results"
+    assert asked["a"]["to"] == (NOW + timedelta(days=8)).isoformat()
+    assert {game["gameId"] for game in out["a"]["games"]} == {"old", "g1", "future"}
+    assert next(game for game in out["a"]["games"] if game["gameId"] == "g1")["status"] == "FINAL"
+    assert {game["gameId"] for game in saved[0]["a"]["games"]} == {"g1"}, "save only the fresh batch"

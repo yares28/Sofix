@@ -192,6 +192,13 @@ their scores/opponents, mission actions, decisive rate, clean sheets and penalti
 the sheet, comparisons and bars; `lib/playerPage.ts` supplies identity and next games. "Next game" moves the saved-start
 mean by `gameFactors`: goals for/against from the existing price over 1.3, clamped to 60% either way.
 
+`python -m app.jobs.seed_player_games` validates and counts the local `data/raw/sorare_games.jsonl` export without
+opening a database. After the one production migration and explicit owner approval, `--write` imports missing actuals
+and rebuilds `player_sheets`; `--games <path>` selects another local export. Existing rows with an actual `read_at`
+always win, even if the import runs later. Statement-only rows receive actuals without changing frozen statements;
+repeat imports do not duplicate or replace readings. The import timestamp is its `read_at`. Export projections are
+not pre-lock evidence and are never imported as forecasts. Invalid/truncated lines fail before any database write.
+
 `player_absences.observe` runs on freshly read FF matches before `ff_feed` commits. It extends a continuous spell, updates
 its reported kind/reason and closes it only on explicit availability. Cached, failed and absent pages do not advance or
 close spells. FF shirt ids identify players; an absence-only profile without a shirt id uses a stable profile hash until

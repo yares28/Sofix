@@ -152,6 +152,35 @@ the same commit: `docs/user_manual.md`, `docs/how_it_works.md` (the tables, who 
 
 ## Results
 
+- **9 Oct 2026 - migration execution blocked by automatic approval review:** the owner asked me to handle it while
+  away. I prepared an in-memory, non-echoing credential path to the confirmed production branch, checked default
+  privileges for the DML-only app role, and reran all eight migration tests (including drift), which passed. The
+  automatic approval reviewer rejected the migration/seed command because it requires an explicit migration approval
+  and did not accept "figure it out" as that approval. The command never started; no production write or configuration
+  change ran. Explicit approval for `3ce433a96bed` is pending; the separate seed approval remains valid. Step 6's code
+  paths have been read but its implementation has not started.
+
+- **9 Oct 2026 - production seed approved, not run:** the owner explicitly approved step 5's one-off seed after the
+  single migration. SELECT on Neon's named production branch confirmed revision `fd89c678d11e` and all four new
+  tables absent. The local frontend target agrees on the schema; local backend/root migration settings instead point
+  at another host that fails DNS, so they must not be used unchanged. No database writes, configuration changes,
+  migration, seed or push ran. The reviewed migration `3ce433a96bed` still needs separate owner approval; the seed
+  approval persists and does not need asking again. Steps 6-8 remain.
+
+- **9 Oct 2026 - step 5 built locally:** `app.jobs.seed_player_games` validates the complete local export before
+  connecting and defaults to a count-only dry run. With explicitly approved `--write`, it fills missing actuals and
+  statement-only rows, preserves all existing daily readings regardless of import time, leaves frozen forecasts alone,
+  and rebuilds `player_sheets`. Truncated/invalid lines fail before any write; old export projections are never treated
+  as pre-lock statements. Six new tests failed first, then passed; all 14 focused seed/game/sheet tests passed.
+  `node scripts/check.mjs` passed ruff format/check, mypy, the full pytest suite, OpenAPI export, generated types,
+  eslint, typecheck and Vitest. The real export dry run found 449 games, 1,020 players and 29,094 player-game rows,
+  15 Aug 2025 to 20 Sep 2026 (380 matches in 2025/26, 69 in 2026/27), without opening a database. A disposable
+  in-memory SQLite import kept 24,990 rows from 2025/26 and 4,104 from 2026/27, produced 542 sheets exactly matching
+  the export, and preserved row counts and read timestamps on repeat import. No page code changed; step 4's page
+  specs and desktop/mobile proof remain the page verification. Manual, calculation guide and roadmap updated.
+  No production seed, migration, push or post-push live check ran. Step 5's production write awaits explicit owner
+  approval after the single migration; steps 6-8 remain.
+
 - **8 Oct 2026 - step 4 built locally:** player pages now read permanent games and absence spells through cached,
   parameterized queries (with local API equivalents). This season shows real sides, competition, appearances, minutes,
   score bands, cards and saved forecasts; its summary checks forecast misses on known starts and treats unread cards as

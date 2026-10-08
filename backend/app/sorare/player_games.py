@@ -21,8 +21,8 @@ def season_start(at: datetime) -> datetime:
     return datetime(at.year if at.month >= 7 else at.year - 1, 7, 1, tzinfo=UTC)
 
 
-def save(db: Session, history: dict[str, list[dict[str, Any]]], at: datetime) -> int:
-    """Only write actual columns; a delayed read cannot replace a newer read or frozen source statements."""
+def save(db: Session, history: dict[str, list[dict[str, Any]]], at: datetime, *, only_missing: bool = False) -> int:
+    """Write actuals only; only_missing seeds unrecorded actuals without replacing any daily reading."""
     insert = pg_insert if db.get_bind().dialect.name == "postgresql" else sqlite_insert
     groups: dict[tuple[str, ...], list[dict[str, Any]]] = {}
     unique: dict[tuple[str, str], dict[str, Any]] = {}
@@ -47,7 +47,9 @@ def save(db: Session, history: dict[str, list[dict[str, Any]]], at: datetime) ->
                 statement.on_conflict_do_update(
                     index_elements=[PlayerGame.player, PlayerGame.game_id],
                     set_={key: getattr(statement.excluded, key) for key in columns if key not in ("player", "game_id")},
-                    where=or_(PlayerGame.read_at.is_(None), PlayerGame.read_at <= at),
+                    where=PlayerGame.read_at.is_(None)
+                    if only_missing
+                    else or_(PlayerGame.read_at.is_(None), PlayerGame.read_at <= at),
                 )
             )
     db.commit()

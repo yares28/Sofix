@@ -226,6 +226,11 @@
       game: typeof game === "string" ? game.slice(0, 80) : null,
       rarity: typeof node.rarity === "string" ? node.rarity.toLowerCase().slice(0, 20) : null,
       status: typeof node.status === "string" ? node.status.slice(0, 20) : null,
+      ...(node.anyCard?.slug ? { card: String(node.anyCard.slug).slice(0, 120) } : {}),
+      ...(node.id ? { id: String(node.id).slice(0, 120) } : {}),
+      ...(typeof node.locked === "boolean" ? { locked: node.locked } : {}),
+      ...(typeof node.score === "number" ? { score: node.score } : {}),
+      ...(typeof node.target === "number" ? { target: node.target } : {}),
     };
   }
 
@@ -234,25 +239,31 @@
    * mode, how many picks, how many were made, the XP or essence it pays in the rule's words), its rarity, the stats it counts and your picks with Sorare's
    * verdict, when the answer has them. An expired mission or one without a name is left out. Bounded like `collectCards`. Nothing else of the answer is kept.
    */
-  function collectMissions(json, limit = 40000) {
+  function collectMissions(json, limit = 40000, archived = false) {
     const found = new Map();
     const stack = [json];
     let visited = 0;
     while (stack.length && visited++ < limit) {
       const node = stack.pop();
       if (!node || typeof node !== "object") continue;
-      if (!Array.isArray(node) && node.__typename === "DecisivePlayerPickerTask" && typeof node.id === "string" && typeof node.title === "string" && node.title && node.expired !== true) {
+      if (!Array.isArray(node) && node.__typename === "DecisivePlayerPickerTask" && typeof node.id === "string" && typeof node.title === "string" && node.title && (archived || node.expired !== true)) {
         const appearances = Array.isArray(node.taskAppearances) ? node.taskAppearances : [];
         found.set(node.id, {
           id: node.id,
           title: node.title.slice(0, 80),
-          description: typeof node.description === "string" ? node.description.slice(0, 300) : "",
+          description: typeof node.description === "string" ? node.description.slice(0, 1000) : "",
           mode: node.mode === "SCORE" ? "SCORE" : "DECISIVE",
           picks: Number.isInteger(node.maxAppearancesCount) ? node.maxAppearancesCount : 3,
           made: appearances.length,
           period: typeof node.periodicity === "string" ? node.periodicity : null,
           state: typeof node.aasmState === "string" ? node.aasmState : null,
           rarity: typeof node.rarity === "string" ? node.rarity.toLowerCase().slice(0, 20) : null,
+          ...(node.startDate ? { startDate: String(node.startDate).slice(0, 40) } : {}),
+          ...(node.taskConfigSlug ? { config: String(node.taskConfigSlug).slice(0, 120) } : {}),
+          ...(Array.isArray(node.displayedTypedRules) ? { ruleTypes: node.displayedTypedRules.map((r) => String(r.__typename).slice(0, 80)).slice(0, 20) } : {}),
+          ...(Array.isArray(node.rewardConfigs) ? { rewards: node.rewardConfigs.slice(0, 20).map((r) => ({ type: String(r.__typename).slice(0, 80), ...(typeof r.quantity === "number" ? { amount: r.quantity } : typeof r.amount === "number" ? { amount: r.amount } : {}), label: String(r.title ?? r.description ?? r.flavour?.displayName ?? r.currency ?? "").slice(0, 300) })) } : {}),
+          ...(Array.isArray(node.statThresholds) ? { thresholds: node.statThresholds.slice(0, 20).map((t) => ({ stat: String(t.stat).slice(0, 40), min: Number(t.min) })) } : {}),
+          ...(node.overperform ? { overperform: { by: Number(node.overperform.by), averageType: String(node.overperform.averageType).slice(0, 40) } } : {}),
           stats: Array.isArray(node.decisiveStats)
             ? node.decisiveStats.map((stat) => (stat && typeof stat.name === "string" ? stat.name.slice(0, 40) : null)).filter(Boolean).slice(0, 20)
             : [],

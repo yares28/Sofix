@@ -58,6 +58,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/missions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Missions Page */
+        get: operations["missions_page_api_missions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/missions/pool": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Missions Pool */
+        get: operations["missions_pool_api_missions_pool_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/missions/log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Missions Log */
+        get: operations["missions_log_api_missions_log_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sorare/week/{slug}": {
         parameters: {
             query?: never;
@@ -222,6 +273,18 @@ export interface components {
             data?: {
                 [key: string]: unknown;
             } | null;
+            /** Error */
+            error?: string | null;
+            meta?: components["schemas"]["GridMeta"] | null;
+        };
+        /** ApiResponse[list[dict[str, Any]]] */
+        ApiResponse_list_dict_str__Any___: {
+            /** Success */
+            success: boolean;
+            /** Data */
+            data?: {
+                [key: string]: unknown;
+            }[] | null;
             /** Error */
             error?: string | null;
             meta?: components["schemas"]["GridMeta"] | null;
@@ -582,6 +645,66 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponse_dict_str__Any__"];
+                };
+            };
+        };
+    };
+    missions_page_api_missions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_dict_str__Any__"];
+                };
+            };
+        };
+    };
+    missions_pool_api_missions_pool_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_dict_str__Any__"];
+                };
+            };
+        };
+    };
+    missions_log_api_missions_log_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_list_dict_str__Any___"];
                 };
             };
         };

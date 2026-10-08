@@ -7,11 +7,15 @@ type Call = { text: string; values: unknown[] };
 const calls: Call[] = [];
 let stored: unknown = null;
 let configured = true;
+let owner: string | null = null;
 // A stand-in for Neon's tagged-template client: remembers what was written and answers the one SELECT.
 const sql = async (strings: TemplateStringsArray, ...values: unknown[]) => {
   const text = strings.join("?");
   calls.push({ text, values });
-  return text.includes("SELECT") ? (stored ? [{ payload: stored }] : []) : [];
+  if (text.includes("key = 'sorare'")) return owner ? [{ payload: { user: owner } }] : [];
+  if (text.includes("SELECT")) return stored ? [{ payload: stored }] : [];
+  stored = JSON.parse(values.find((v) => typeof v === "string" && v.startsWith("{")) as string);
+  return [{ key: "missions" }];
 };
 vi.mock("../../../../lib/db", () => ({ database: () => (configured ? sql : null) }));
 vi.mock("next/cache", () => ({ revalidateTag: vi.fn() }));
@@ -29,29 +33,47 @@ beforeEach(() => {
   calls.length = 0;
   stored = null;
   configured = true;
+  owner = null;
 });
 
 describe("POST /api/ext/missions", () => {
+  const batch = () => ({ version: 2, requestedAt: new Date().toISOString(), user: "owner", outcomes: Object.fromEntries(["limited", "rare", "super_rare", "unique"].map((r) => [r, { complete: true, missions: [] as (typeof mission)[] }])) });
+  it("accepts empty only with complete rarity scopes, and rejects the wrong signed-in owner", async () => {
+    const incomplete = batch(); delete incomplete.outcomes.rare;
+    expect((await call(incomplete)).status).toBe(400);
+    expect(stored).toBeNull();
+    owner = "another-owner";
+    expect((await call(batch())).status).toBe(403);
+    expect(stored).toBeNull();
+    owner = "owner";
+    expect((await call(batch())).status).toBe(200);
+    expect(stored).toMatchObject({ limited: { missions: [], verified: true }, rare: { missions: [], verified: true } });
+  });
+  it("does not let an older completed request replace a newer source snapshot", async () => {
+    const newer = batch(); newer.outcomes.limited!.missions = [mission];
+    await call(newer);
+    await call({ ...batch(), requestedAt: new Date(Date.now() - 30_000).toISOString() });
+    expect(stored).toMatchObject({ limited: { missions: [{ id: "t1" }] } });
+  });
   it("keeps the missions of the rarity the extension saw, beside the ones it saw before for another", async () => {
     stored = { rare: { missions: [], seen_at: "2026-10-03T10:00:00Z" } };
     const response = await call({ rarity: "limited", missions: [mission] });
     expect(response.status).toBe(200);
-    const write = calls.find((c) => c.text.includes("INSERT"))!;
-    const saved = JSON.parse(write.values[0] as string);
+    const saved = stored as { rare: { seen_at: string }; limited: { missions: unknown[]; seen_at: string } };
     expect(saved.rare.seen_at).toBe("2026-10-03T10:00:00Z");
-    expect(saved.limited.missions).toEqual([{ ...mission, stats: [], appearances: [] }]); // an older build sends neither
+    expect(saved.limited.missions).toEqual([{ ...mission, stats: [] }]);
     expect(typeof saved.limited.seen_at).toBe("string");
   });
 
-  it("keeps the stats a mission counts and your picks with Sorare's verdict, drops a mission without a name, and keeps a day with none", async () => {
+  it("keeps verdicts, refuses malformed names and does not accept an unverified empty load", async () => {
     const picks = [{ player: "jan-oblak", game: "Game:2", rarity: "limited", status: "SUCCESS" }];
-    await call({ rarity: "limited", missions: [{ ...mission, stats: ["goals"], appearances: picks }, { ...mission, id: "t2", title: "" }] });
-    const saved = JSON.parse(calls.find((c) => c.text.includes("INSERT"))!.values[0] as string);
+    await call({ rarity: "limited", missions: [{ ...mission, stats: ["goals"], appearances: picks }] });
+    const saved = stored as { limited: { missions: unknown[] } };
     expect(saved.limited.missions).toEqual([{ ...mission, stats: ["goals"], appearances: picks }]);
 
     calls.length = 0;
-    expect((await call({ rarity: "rare", missions: [] })).status).toBe(200);
-    expect(JSON.parse(calls.find((c) => c.text.includes("INSERT"))!.values[0] as string).rare.missions).toEqual([]);
+    expect((await call({ rarity: "rare", missions: [] })).status).toBe(400);
+    expect((await call({ rarity: "limited", missions: [{ ...mission, title: "" }] })).status).toBe(400);
 
     calls.length = 0;
     const tooMany = Array.from({ length: 11 }, () => picks[0]);

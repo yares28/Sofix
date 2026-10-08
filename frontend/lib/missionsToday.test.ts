@@ -32,7 +32,7 @@ describe("today's missions for a rarity", () => {
   });
 
   it("keeps a day with no mission as today's, with nothing to pick", async () => {
-    const missions: MissionsModel = { rare: { missions: [], seen_at: "2026-10-06T14:00:00Z" } };
+    const missions: MissionsModel = { rare: { missions: [], seen_at: "2026-10-06T14:00:00Z", verified: true } };
     const today = await missionsToday(null, missions, "rare", NOW);
     expect(today).toMatchObject({ status: "today", plans: [], seen: [] });
   });

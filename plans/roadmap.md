@@ -533,6 +533,8 @@ the held-out weeks (P9 "The bar").
   if loaded since the 9:00 CET reset, never borrowed from another rarity; the page loads today's missions itself through the extension
   (`SofixMissions`, `currentUser.tasks(periodicity: DAILY)`, read only; your picks and Sorare's verdict come with it) and has a Load button;
   without today's list it shows none (missions are daily; the Load button never opens a tab); SCORE missions are listed, not ranked. **Part 2 (6 Oct):** the pick log (`missions_log:YYYY-MM`: the Decisive Picker every day, loaded missions too, every card of yours that day with its chance, frozen at kick-off; written at the extension's check-in, a load and each refresh), settled by the refresh a day after each game (`app/sorare/missions.py`), and Audit · Missions: a mission day is a success when Sofix's picks hold as many achievers as your cards allowed (the owner's rule).
+  **Repair, 9 Oct:** extension 0.3.9 verifies complete task-group imports; a separate active-GW card/game pool and rolling evidence feed suggestions/scouting. Every unloaded date is an explicit Decisive Picker baseline. History retains imported picks even without a forecast, supports separate revisioned corrections/restoration, and reconciles dated archives. See [missions-repair.md](missions-repair.md) for evidence, limits and verification.
+
 - **10.8 · Self-correcting numbers** (P9). Every Monday each chance is checked in its bands and, where it leans, corrected per position in
   its own refresh, once 100 cases stand behind it; Futbol Fantasy stays the first start source, only its lean is corrected. *Done when*
   the first correction is logged on the Audit page with whether the following weeks agreed.

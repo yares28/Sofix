@@ -449,31 +449,23 @@ Excluded cards are folded rather than deleted so the reason remains inspectable.
 
 ## 10a. Missions
 
-Sorare's **daily missions** (the Decisive Picker, the Interception and Assist missions and the like: pick up to three players, earn XP or essence when they do what the mission asks)
-are ranked for your cards here. Open Sorare's Missions page once with the extension on (version 0.3.4, press Reload on it): it reads the open pickers (their names, rules and
-rewards, nothing of your account) and sends them to the app. **Missions** then lists each with what it asks and pays, and the cards of yours that fit it best among those with a game still
-to play **today** (missions are daily and tomorrow's are not known, so no later day is offered; Sofix knows the games of the gameweeks it has planned, not always the one being played): the chance of what it asks (a decisive action from the game's picture; "2+ interceptions" or an assist from his season's rate), large, and what he did
-per start in his last 5, last 8 and two seasons beside it. Each card is suggested for one mission only (the likeliest pairs first). Sofix reads, never picks: you make the picks on Sorare. Missions of
-another rarity show under a small switch once the extension has seen their tab. Under each mission, **All N of your players with a game still to
-play today** (since 7 Oct) opens every one of them, likeliest first, with the same chance and the mission's own stat over his last 5, last 8 and two
-seasons (share of starts with a decisive action; interceptions, assists or goals per start), and a note when Sofix put him in this mission or another
-one; the players no number fits are named at the end. Not yet: checking the official eleven before a kick-off to flag a benched pick.
+**Load today's missions** reads Sorare's open football pickers through your signed-in sorare.com tab, using extension **0.3.9**. Press Reload on the extension once after updating it. Sofix reads the task group used by Sorare's Missions page, separately for each rarity, and saves one verified import. Missing fields, a partial response, a different signed-in account or a failed save are errors; they do not mean Sorare has no missions. The last saved list is kept and dated. Only a complete read can confirm an empty list. A phone can show saved data; importing needs the extension browser.
 
-**Loading today's missions** (extension 0.3.6, press Reload on it once). Sorare's missions reset every day at 9:00 CET, and each rarity has its own
-(on 6 Oct the Limited tab had only the Decisive Picker, the Rare tab none). The page only uses a list loaded since the last reset. When it has none, it
-loads them by itself as it opens (through your open sorare.com tab, read only), and the **Load today's missions** button does it again on demand. It
-never opens a tab: with no sorare.com tab open it says so. Missions are daily, so until today's list is in the page shows none, only when the last list
-was loaded. A mission that asks a player to beat his own average is
-listed but not ranked yet. On a phone (no extension) the page says to load them from Chrome.
+Each current mission shows its own target, reward and slot count, **your imported Sorare picks beside Sofix's suggestions**, including locked selections. Suggestions reserve actual card copies already selected elsewhere. Separate copies can serve different missions; a card in a normal Sorare lineup is not automatically excluded. Reward preference is **Essence first, clues second, XP third**. Sofix never enters your mission picks; make them on Sorare before the relevant kickoff.
 
-"Today" is Sorare's mission day: it runs from one 9:00 CET reset to the next (since 7 Oct; before that Sofix used the Madrid date, so on a night after
-midnight it took the next evening's games for the missions still open and wrote the day under the wrong date).
+The mission inventory is separate from the weekly lineup optimizer. Each refresh includes games from the **active GW**, finished and upcoming GWs, and the owner's cards even when normal lineup rules exclude them. National-team fixtures name the side actually playing. A bounded read of Sorare's pickable cards checks mission-specific eligibility; an unchecked or incomplete result stays unknown. An empty Sofix recommendation is not proof that you have no eligible cards.
 
-**History** (since 7 Oct), under the missions, lists each mission day of the shown rarity, newest first, from the moment Sofix writes its picks down
-(the missions log, below in the Audit): **Sofix**'s picks and **You**r picks side by side. Yours show Sorare's own verdict as soon as Sorare gives it;
-Sofix's wait until the refresh checks their games, about a day after them. Once every game of the day is checked the day shows Sofix's score
-(how many of the cards that did it it caught, against the best possible) and, dashed, the cards of yours that did it and Sofix didn't pick. A day
-whose games had all started before Sofix wrote it down says it had no pick.
+**Choose your own picks**, below the current missions, lets you search and filter cards, sort by estimated chance, target hit rate, relevant stat or kickoff, compare up to three players and keep a local shortlist. Shortlisted cards are reserved while the remaining suggestions are recalculated. The shortlist stays in this browser for that mission day and rarity; it does not enter anything on Sorare or sync to another device.
+
+The panel shows last **5 and 8 scored starts**, with target hits, averages, sample counts and a recent baseline from the existing 70-day history read. It dates the observation cutoff and names the start-chance source, linking to Futbol Fantasy when it supplies the number. Missing evidence stays missing; the old September stat file is not presented as current. Decisive estimates include starting and substitute availability. Other supported stat estimates use an approximate Poisson rate adjusted for the game's playing chance. SCORE and unsupported targets retain their exact rule without an invented probability.
+
+"Today" follows the existing **9:00 CET / 08:00 UTC** reset convention, including matches after midnight before that reset. Historical imports use the source task's start-date calendar day in Madrid, rather than the date you fetched them. The live summer reset boundary still needs comparison with a signed-in Sorare response; Sofix does not silently reinterpret old dates.
+
+**History** lists every date from the first tracked day within the last 30 days, even with no recommendations. An unloaded date assumes only one **Decisive Picker**, as requested, and is labelled as assumed. Imported picks remain visible even if Sofix captured no candidates. Missing pre-kickoff evidence is explained and excluded from accuracy figures; Sofix does not fabricate historical forecasts. Once games are checked, supported entries show Sofix's score against the best possible and the achievers it missed. Sorare's imported SUCCESS/FAILURE verdict on your actual selection wins over later calculated stats.
+
+**Edit my picks** corrects your Sofix history. Add or remove cards from the captured candidates, original imported selections (including sold cards) or current collection; a manually named player remains an unverified user report. Respect the mission's slot limit, add a note, preview, then save. **I made no picks** stores an explicit empty correction. **Restore imported picks** removes your override. Corrections stay separate from the original Sorare import and Sofix's frozen forecast, survive later imports and refreshes, and reject an outdated edit from another session. The Missions Audit shows the correction too.
+
+**Reconcile Sorare history** reads archived pickers from the same task group through the extension, bounded to the last 61 days and 200 dated tasks per rarity. It restores available source selections and verdicts without recreating old forecasts. Undated or unavailable tasks remain unknown and can be corrected manually. The public schema accepts these reads; final parity with your signed-in Sorare account requires reloading the extension and trying an import.
 
 ## 10. Players
 

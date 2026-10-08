@@ -58,6 +58,60 @@
         }
       }
     },
+    "/api/missions": {
+      "get": {
+        "summary": "Missions Page",
+        "operationId": "missions_page_api_missions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_dict_str__Any__"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/missions/pool": {
+      "get": {
+        "summary": "Missions Pool",
+        "operationId": "missions_pool_api_missions_pool_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_dict_str__Any__"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/missions/log": {
+      "get": {
+        "summary": "Missions Log",
+        "operationId": "missions_log_api_missions_log_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_list_dict_str__Any___"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/sorare/week/{slug}": {
       "get": {
         "summary": "Sorare Week",
@@ -444,6 +498,55 @@
           "success"
         ],
         "title": "ApiResponse[dict[str, Any]]"
+      },
+      "ApiResponse_list_dict_str__Any___": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GridMeta"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "success"
+        ],
+        "title": "ApiResponse[list[dict[str, Any]]]"
       },
       "CellMarket": {
         "properties": {

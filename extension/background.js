@@ -55,9 +55,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 // The daily missions of one rarity, sent to the app only when they changed (the app ranks your cards for them). `force` sends them
 // anyway, so the app learns they were read today even when they are yesterday's again. True when the app has them.
 async function sendMissions(rarity, missions, force = false) {
-  const clean = missions.map(({ id, title, description, mode, picks, made, period, state, stats, appearances }) => ({
-    id, title, description, mode, picks, made, period, state, stats: stats ?? [], appearances: appearances ?? [],
-  }));
+  const clean = missions.map(({ rarity: _rarity, ...mission }) => mission);
   const { missionsSent = {} } = await chrome.storage.local.get("missionsSent");
   const text = JSON.stringify(clean);
   if (!force && missionsSent[rarity] === text) return true;
@@ -81,20 +79,56 @@ const MISSION_RARITIES = ["limited", "rare", "super_rare", "unique"];
  * The app's Load button: today's missions of every rarity, asked of Sorare through your signed-in tab (read only) and sent to the app.
  * It never opens a tab: with no sorare.com tab open it says so.
  */
-async function loadMissions() {
+async function loadMissions(history = false) {
   if (!(await sorareTabs()).length) return { ok: true, state: "no-tab" };
   {
-    const answer = await throughSorare("SofixMissions", {});
+    const requestedAt = new Date().toISOString();
+    const answer = await throughSorare("SofixMissions", { archived: history });
     if (answer.state !== "ok") return { ok: true, state: answer.state === "rejected" ? "error" : answer.state };
     if (!answer.data?.currentUser) return { ok: true, state: "signed-out" };
-    const missions = globalThis.__sofixCore.collectMissions(answer.data);
+    const user = answer.data.currentUser;
+    if (typeof user.slug !== "string" || answer.errors?.length) return { ok: true, state: "incomplete" };
+    const outcomes = {};
     const loaded = {};
     for (const rarity of MISSION_RARITIES) {
-      const mine = missions.filter((mission) => mission.rarity === rarity);
-      if (!(await sendMissions(rarity, mine, true))) return { ok: true, state: "app-error" };
+      const tasks = user[rarity]?.myTasks;
+      if (!Array.isArray(tasks) || tasks.length > (history ? 2000 : 100)) return { ok: true, state: "incomplete" };
+      const pickerTasks = tasks.filter((t) => t?.__typename === "DecisivePlayerPickerTask" && (!history || (Number.isFinite(Date.parse(t.startDate)) && Date.parse(t.startDate) >= Date.now() - 61 * 86400000 && Date.parse(t.startDate) <= Date.now())));
+      if (pickerTasks.some((t) => !t.id || !t.title || !Array.isArray(t.taskAppearances) || t.taskAppearances.length > 10)) return { ok: true, state: "incomplete" };
+      const mine = globalThis.__sofixCore.collectMissions(pickerTasks, 40000, history).filter((m) => !m.rarity || m.rarity === rarity);
+      if (mine.some((m) => m.made !== m.appearances.length)) return { ok: true, state: "incomplete" };
+      const expected = pickerTasks.filter((t) => (history || t.expired !== true) && (!t.rarity || t.rarity.toLowerCase() === rarity));
+      if (mine.length !== new Set(expected.map((t) => t.id)).size) return { ok: true, state: "incomplete" };
+      if (mine.length > (history ? 200 : 12)) return { ok: true, state: "incomplete" };
+      outcomes[rarity] = { complete: true, missions: mine };
       loaded[rarity] = mine.length;
     }
-    return { ok: true, state: "ok", loaded };
+    try {
+      if (!history) {
+        const inventory = await fetch(`${CONFIG.appUrl}/api/ext/missions/pool`, { headers: { Authorization: `Bearer ${CONFIG.token}`, "x-vercel-protection-bypass": CONFIG.bypass } }).then((r) => r.ok ? r.json() : null).catch(() => null);
+        const games = Array.isArray(inventory?.games) ? inventory.games.filter((g) => /^Game:[a-f0-9-]{36}$/.test(g)) : [];
+        const tasks = [...new Map(Object.values(outcomes).flatMap((o) => o.missions).map((m) => [m.id, m])).values()];
+        const pairs = tasks.flatMap((m) => games.map((game) => ({ id: m.id, game }))).slice(0, 24);
+        if (pairs.length) {
+          const eligibility = await throughSorare("SofixMissionCards", { pairs });
+          if (eligibility.state === "ok") for (const o of Object.values(outcomes)) for (const m of o.missions) {
+            const cards = {};
+            pairs.forEach((p, i) => {
+              const page = eligibility.data?.currentUser?.[`t${i}`]?.pickableCards;
+              if (p.id === m.id && Array.isArray(page?.nodes) && page.pageInfo?.hasNextPage === false && page.nodes.every((c) => typeof c.slug === "string")) cards[p.game] = page.nodes.map((c) => c.slug);
+            });
+            if (Object.keys(cards).length) m.eligibleCards = cards;
+          }
+        }
+      }
+      const response = await fetch(`${CONFIG.appUrl}/api/ext/missions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${CONFIG.token}`, "x-vercel-protection-bypass": CONFIG.bypass },
+        body: JSON.stringify({ version: 2, requestedAt, user: user.slug, outcomes, history }),
+      });
+      if (!response.ok) return { ok: true, state: "app-error" };
+      return { ok: true, state: "ok", loaded };
+    } catch { return { ok: true, state: "app-error" }; }
   }
 }
 
@@ -466,8 +500,8 @@ chrome.runtime.onMessageExternal.addListener((message, sender, reply) => {
       );
     return true; // reply asynchronously
   }
-  if (message?.type === "load-missions") {
-    loadMissions().then(reply);
+  if (message?.type === "load-missions" || message?.type === "load-mission-history") {
+    loadMissions(message.type === "load-mission-history").then(reply).catch(() => reply({ ok: true, state: "error" }));
     return true;
   }
   if (message?.type === "sorare" && Object.hasOwn(STEPS, message.step)) {

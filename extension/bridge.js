@@ -128,10 +128,20 @@
 
     // Today's daily missions of every rarity, with the picks you made and Sorare's verdict on each. Read only: the app's
     // Load button asks it, so the Missions page never has to wait for a visit to Sorare's own Missions page.
-    SofixMissions: `query SofixMissions { currentUser { slug tasks(periodicity: DAILY, sport: FOOTBALL) { __typename
-      ... on DecisivePlayerPickerTask { id title description rarity mode maxAppearancesCount periodicity aasmState expired
-        decisiveStats { name }
-        taskAppearances { status rarity anyPlayer { slug } game { id } } } } } }`,
+    SofixMissions: `query SofixMissions($archived: Boolean!) { currentUser { slug ${["limited", "rare", "super_rare", "unique"].map((rarity) => `
+      ${rarity}: taskGroup(slug: "play") { myTasks(sport: FOOTBALL, rarity: ${rarity}, includingArchived: $archived) { __typename
+        ... on DecisivePlayerPickerTask { id title description rarity mode maxAppearancesCount periodicity aasmState expired startDate taskConfigSlug
+          decisiveStats { name } statThresholds { stat min } overperform { averageType by } displayedTypedRules { __typename }
+          rewardConfigs { __typename ... on CardShardRewardConfig { quantity rarity flavour { displayName slug } } ... on ExperienceRewardConfig { title description } ... on InGameCurrencyRewardConfig { amount currency } }
+          taskAppearances { id status rarity locked lockedAt score target anyCard { slug } anyPlayer { slug } game { id date } } }
+      } }`).join(" ")} } }`,
+
+    // A bounded, read-only batch; callers cannot supply a GraphQL document or mutation.
+    SofixMissionCards: (variables) => {
+      const pairs = variables?.pairs;
+      if (!Array.isArray(pairs) || pairs.length > 24 || pairs.some((p) => !/^[A-Za-z0-9:_-]{1,120}$/.test(p.id) || !/^Game:[a-f0-9-]{36}$/.test(p.game))) return null;
+      return `query SofixMissionCards { currentUser { ${pairs.map((p, i) => `t${i}: task(id: ${JSON.stringify(p.id)}) { ... on DecisivePlayerPickerTask { pickableCards(gameId: ${JSON.stringify(p.game)}, ownedByMe: true, first: 100) { nodes { slug } pageInfo { hasNextPage } } } }`).join(" ")} } }`;
+    },
 
     // Sorare's own verdict on a lineup, before anything is written.
     SofixPreviewLineup: `query SofixPreviewLineup($slug: String!, $appearances: [So5AppearanceInput!]!) {
@@ -175,18 +185,21 @@
 
   async function ask(operation, variables) {
     if (!Object.hasOwn(OPERATIONS, operation)) return { state: "refused" };
+    const query = typeof OPERATIONS[operation] === "function" ? OPERATIONS[operation](variables) : OPERATIONS[operation];
+    if (!query) return { state: "refused" };
     const target = endpoint || knownEndpoint();
     try {
       const response = await originalFetch(target.url, {
         method: "POST",
         credentials: "include",
         headers: { ...target.headers, "content-type": "application/json" },
-        body: JSON.stringify({ operationName: operation, query: OPERATIONS[operation], variables: variables || {} }),
+        body: JSON.stringify({ operationName: operation, query, variables: operation === "SofixMissionCards" ? {} : variables || {} }),
       });
       const issued = response.headers.get("csrf-token");
       if (issued && !cookie("csrftoken")) document.cookie = `csrftoken=${encodeURIComponent(issued)}; path=/`;
       if (!response.ok) return { state: "error", status: response.status };
       const body = await response.json();
+      if ((operation === "SofixMissions" || operation === "SofixMissionCards") && body?.errors?.length) return { state: "incomplete" };
       // Sorare answers a refused write with 200 and an errors array: those are its words, and they are kept. A read that came back with
       // its data and a complaint about one part keeps the data.
       if (body && body.errors && !(body.data && Object.values(body.data).some((value) => value !== null))) {

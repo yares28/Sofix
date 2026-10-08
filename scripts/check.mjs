@@ -25,7 +25,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const REPO = "yares28/Sofix";
 const PROD = "https://sofix-livid.vercel.app"; // the address the owner browses (same app as APP_URL)
 const LOCAL = "http://localhost:3000";
-const PAGES = ["/", "/play", "/lineups", "/fixtures", "/difficulty", "/table", "/audit", "/cards", "/players", "/control", "/team/ATL"];
+const PAGES = ["/", "/play", "/missions", "/lineups", "/fixtures", "/difficulty", "/table", "/audit", "/audit/missions", "/cards", "/players", "/control", "/team/ATL"];
 const args = process.argv.slice(2);
 const failed = [];
 

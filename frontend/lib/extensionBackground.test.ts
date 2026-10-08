@@ -20,7 +20,7 @@ type Message = Record<string, unknown>;
 type Handler = (message: Message, sender: unknown, reply: (answer: unknown) => void) => unknown;
 type Call = { url: string; init: { headers: Record<string, string>; body: string; credentials?: string; referrerPolicy?: string } };
 
-function load(options: { sorareTab?: boolean } = {}) {
+function load(options: { sorareTab?: boolean; missionData?: unknown } = {}) {
   const session = new Map<string, unknown>();
   const local = new Map<string, unknown>();
   const created: { url: string }[] = [];
@@ -41,7 +41,7 @@ function load(options: { sorareTab?: boolean } = {}) {
     if (message.type === "sofix-ping-4") answer({ ok: true, version: 4 });
     else if (message.type === "ask") {
       asked.push({ operation: String(message.operation), variables: message.variables as Record<string, unknown> });
-      answer({ state: "ok", data: null });
+      answer({ state: "ok", data: options.missionData ?? null });
     } else answer(undefined);
   };
   const chrome = {
@@ -103,6 +103,28 @@ let worker: ReturnType<typeof load>;
 beforeEach(() => {
   vi.useRealTimers();
   worker = load();
+});
+
+describe("mission import completeness", () => {
+  it("does not replace selections with an empty list when an appearance is malformed", async () => {
+    const task = { __typename: "DecisivePlayerPickerTask", id: "task-1", title: "Decisive Picker", mode: "DECISIVE", maxAppearancesCount: 3, taskAppearances: [{}] };
+    const w = load({ sorareTab: true, missionData: { currentUser: { slug: "owner", limited: { myTasks: [task] }, rare: { myTasks: [] }, super_rare: { myTasks: [] }, unique: { myTasks: [] } } } });
+    expect(await w.sendFrom(APP, { type: "load-missions" })).toMatchObject({ state: "incomplete" });
+    expect(w.calls.filter((c) => c.url.endsWith("/missions"))).toHaveLength(0);
+  });
+  it("never uploads empty lists when Sorare omitted the collection", async () => {
+    const w = load({ sorareTab: true, missionData: { currentUser: { slug: "owner" } } });
+    expect(await w.sendFrom(APP, { type: "load-missions" })).toMatchObject({ state: "incomplete" });
+    expect(w.calls.filter((c) => c.url.endsWith("/missions"))).toHaveLength(0);
+  });
+  it("resolves nullable rarity only inside the requested scope and sends one verified envelope", async () => {
+    const task = { __typename: "DecisivePlayerPickerTask", id: "task-1", title: "Decisive Picker", mode: "DECISIVE", maxAppearancesCount: 3, rarity: null, taskAppearances: [] };
+    const w = load({ sorareTab: true, missionData: { currentUser: { slug: "owner", limited: { myTasks: [task] }, rare: { myTasks: [] }, super_rare: { myTasks: [] }, unique: { myTasks: [] } } } });
+    expect(await w.sendFrom(APP, { type: "load-missions" })).toMatchObject({ state: "ok", loaded: { limited: 1 } });
+    const imports = w.calls.filter((c) => c.url.endsWith("/missions"));
+    expect(imports).toHaveLength(1);
+    expect(JSON.parse(imports[0]!.init.body)).toMatchObject({ version: 2, outcomes: { limited: { complete: true, missions: [{ id: "task-1" }] } } });
+  });
 });
 
 const known = (slugs: string[]) => (call: Call) => {

@@ -6,7 +6,7 @@ import type { Sheet } from "./playerSheet";
 export const MISSIONS_TAG = "missions";
 
 /** One of your picks for a mission, as Sorare lists it: the player, his game, the card's rarity and Sorare's verdict (READY, SUCCESS, FAILURE). */
-export type MissionPick = { player: string; game: string | null; rarity: string | null; status: string | null };
+export type MissionPick = { player: string; game: string | null; rarity: string | null; status: string | null; card?: string; id?: string; locked?: boolean; score?: number; target?: number };
 
 export type MissionRow = {
   id: string;
@@ -21,8 +21,15 @@ export type MissionRow = {
   stats?: string[];
   /** Your picks with Sorare's verdict (extension 0.3.6). */
   appearances?: MissionPick[];
+  startDate?: string;
+  config?: string;
+  thresholds?: { stat: string; min: number }[];
+  overperform?: { by: number; averageType: string };
+  ruleTypes?: string[];
+  eligibleCards?: Record<string, string[]>;
+  rewards?: { type: string; amount?: number; label: string }[];
 };
-export type MissionsModel = Partial<Record<string, { missions: MissionRow[]; seen_at: string }>>;
+export type MissionsModel = Partial<Record<string, { missions: MissionRow[]; seen_at: string; requested_at?: string; verified?: boolean }>>;
 
 /**
  * Sorare's daily missions reset at 9:00 CET, which is 08:00 UTC all year. A mission day runs from one reset to the next and is named by the date it
@@ -59,7 +66,9 @@ export function missionsLoadNote(answer: { state: string; loaded: Record<string,
     case "no-bridge":
       return "Reload your sorare.com tab, then press Load.";
     case "app-error":
-      return "Sorare answered, but Sofix couldn’t save the missions. Try again in a minute.";
+      return "Sorare answered, but Sofix couldn't save the missions. Try again in a minute.";
+    case "incomplete":
+      return "Sorare's missions could not be verified. Your saved missions are kept. Reload the Sorare tab, then retry.";
     default:
       return "Sorare didn’t answer. Try again in a minute.";
   }
@@ -71,11 +80,27 @@ export type Rule =
   | { kind: "interception"; atLeast: number; label: string }
   | { kind: "assist"; atLeast: number; label: string }
   | { kind: "goal"; atLeast: number; label: string }
-  | { kind: "score"; label: string };
+  | { kind: "score"; label: string }
+  | { kind: "unsupported"; label: string };
 
 /** The rule in the mission's own words: "2+ interceptions", an assist, a goal, beating his average, or any positive decisive action. */
-export function ruleOf(mission: Pick<MissionRow, "title" | "description"> & { mode?: MissionRow["mode"] }): Rule {
-  if (mission.mode === "SCORE") return { kind: "score", label: "beat his own average" };
+export function ruleOf(mission: Pick<MissionRow, "title" | "description"> & Partial<MissionRow>): Rule {
+  if (mission.mode === "SCORE") return { kind: "score", label: mission.overperform ? `beat ${mission.overperform.averageType} by ${mission.overperform.by} points` : mission.thresholds?.length ? `score ${mission.thresholds[0]!.min}+` : mission.description || "Sorare score target" };
+  if (mission.thresholds?.length) {
+    if (mission.thresholds.length !== 1) return { kind: "unsupported", label: mission.description || "Combined stat target" };
+    const target = mission.thresholds[0]!;
+    const kind = ({ interception_won: "interception", goal_assist: "assist", goals: "goal" } as const)[target.stat as "goals"];
+    if (kind) return { kind, atLeast: target.min, label: `${target.min}+ ${target.stat.replaceAll("_", " ")}` };
+    return { kind: "unsupported", label: mission.description || `Target: ${target.stat}` };
+  }
+  const stats = mission.stats ?? [];
+  if (stats.length) {
+    const kind = stats.length === 1 ? ({ goals: "goal", goal_assist: "assist", interception_won: "interception" } as const)[stats[0] as "goals"] : undefined;
+    if (kind) return { kind, atLeast: 1, label: `1+ ${stats[0]!.replaceAll("_", " ")}` };
+    const standard = ["goals", "goal_assist", "assist_penalty_won", "clearance_off_line", "last_man_tackle", "penalty_save"];
+    if (!standard.every((s) => stats.includes(s)) || stats.some((s) => ![...standard, "clean_sheet_60"].includes(s))) return { kind: "unsupported", label: mission.description || "Custom decisive target" };
+    return { kind: "decisive", label: "a decisive action" };
+  }
   const text = `${mission.title} ${mission.description}`;
   const count = (word: RegExp) => Number(new RegExp(`(\\d+)\\s*\\+\\s*${word.source}`, "i").exec(text)?.[1] ?? 1);
   if (/interception/i.test(text)) {
@@ -90,11 +115,12 @@ export function ruleOf(mission: Pick<MissionRow, "title" | "description"> & { mo
     const atLeast = count(/goals?/);
     return { kind: "goal", atLeast, label: atLeast > 1 ? `${atLeast}+ goals` : "a goal" };
   }
-  return { kind: "decisive", label: "a decisive action" };
+  return /decisive/i.test(text) ? { kind: "decisive", label: "a decisive action" } : { kind: "unsupported", label: mission.description || "Target not rated" };
 }
 
 /** What the mission pays, in its own words ("200 XP", "50 All-Star Essence"), or null when the description names nothing. */
-export function rewardOf(mission: Pick<MissionRow, "description">): string | null {
+export function rewardOf(mission: Pick<MissionRow, "description"> & Partial<MissionRow>): string | null {
+  if (mission.rewards?.length) return mission.rewards.map((r) => `${r.amount ?? ""} ${r.type === "CardShardRewardConfig" ? `${r.label || "Sorare"} Essence` : r.label || r.type.replace("RewardConfig", "")}`.trim()).join(" · ");
   const found = /(\d[\d,]*)\s*(XP|[A-Za-z-]+\s+Essence|Essence)/i.exec(mission.description);
   return found ? `${found[1]} ${found[2]}` : null;
 }
@@ -126,6 +152,14 @@ export type Suggestion = {
   /** What he does per start (a share of starts for a decisive action) over his last 5, last 8 and two seasons. */
   average: Window;
   cards: number;
+  card?: string;
+  game?: string;
+  team?: string | null;
+  competition?: string;
+  pStart?: number;
+  startSource?: string;
+  samples?: { l5: number; l8: number; baseline: number };
+  hits?: Window;
 };
 /** `all`: every card of yours with a game this mission day that Sofix can rate for it, likeliest first (also those it gave to another mission);
  * `unrated`: the others with a game, which no number fits (no stat sheet, or a mission that asks him to beat his own average). */
@@ -137,13 +171,16 @@ const newest = (sheet: Sheet, n: number) => sheet.last.slice(-n);
 
 /** His chance of the rule in his game that day, and what he did per start over 5, 8 and two seasons; null when nothing can be said (no number for him). */
 export function fit(rule: Rule, player: PlayingPlayer, sheet: Sheet | null): { chance: number; average: Window } | null {
-  if (rule.kind === "score") return null; // not ranked yet: it needs his chance of beating his own average, which no number here gives
+  if (rule.kind === "score" || rule.kind === "unsupported") return null;
+  const play = Math.min(1, Math.max(0, player.pStart !== undefined && player.pOn !== undefined ? player.pStart + player.pOn : player.p));
   const count = (index: 4 | 5 | 6) => ({
     l5: mean(newest(sheet!, 5).map((r) => r[index])),
     l8: mean(newest(sheet!, 8).map((r) => r[index])),
   });
   if (rule.kind === "decisive") {
-    const chance = player.shape?.p ?? sheet?.decAll;
+    const conditional = player.shape?.p ?? sheet?.decAll;
+    const chance = conditional === undefined ? undefined : player.pStart !== undefined && player.pOn !== undefined && player.onShape
+      ? player.pStart * conditional + player.pOn * player.onShape.p : play * conditional;
     if (typeof chance !== "number") return null;
     const l5 = sheet ? mean(newest(sheet, 5).map((r) => r[2])) : chance;
     const l8 = sheet ? mean(newest(sheet, 8).map((r) => r[2])) : chance;
@@ -153,7 +190,7 @@ export function fit(rule: Rule, player: PlayingPlayer, sheet: Sheet | null): { c
   const key = rule.kind === "interception" ? "interception_won" : rule.kind === "assist" ? "goal_assist" : "goals";
   const index = rule.kind === "interception" ? 4 : rule.kind === "assist" ? 5 : 6;
   const season = sheet.season[key]?.[0] ?? 0;
-  return { chance: atLeast(rule.atLeast, season), average: { ...count(index), season } };
+  return { chance: play * atLeast(rule.atLeast, season), average: { ...count(index), season } };
 }
 
 /**
@@ -164,10 +201,11 @@ export function fit(rule: Rule, player: PlayingPlayer, sheet: Sheet | null): { c
 export function playingToday(players: PlayingPlayer[], rarity: string, now: Date): { day: string; candidates: { p: PlayingPlayer; game: PlayingPlayer["games"][number] }[] } {
   const next = new Map<string, { p: PlayingPlayer; game: PlayingPlayer["games"][number] }>();
   for (const p of players) {
-    if (!p.player || p.rarity !== rarity) continue;
+    if (!p.player || p.rarity !== rarity || (p as PlayingPlayer & { eligibility?: string }).eligibility) continue;
     const game = [...p.games].sort((a, b) => a.kickoff.localeCompare(b.kickoff)).find((g) => new Date(g.kickoff) > now);
-    const held = next.get(p.player);
-    if (game && (!held || game.kickoff < held.game.kickoff)) next.set(p.player, { p, game });
+    const id = (p as PlayingPlayer & { card?: string }).card ?? p.player;
+    const held = next.get(id);
+    if (game && (!held || game.kickoff < held.game.kickoff)) next.set(id, { p, game });
   }
   const day = missionDay(now);
   const candidates = [...next.values()].sort((a, b) => a.game.kickoff.localeCompare(b.game.kickoff)).filter((u) => missionDay(new Date(u.game.kickoff)) === day);
@@ -191,22 +229,36 @@ export function plan(
   const pairs: { plan: MissionPlan; pick: Suggestion }[] = [];
   for (const one of plans) {
     for (const { p, game } of candidates) {
-      const found = fit(one.rule, p, sheets[p.player!] ?? null);
+      const card = (p as PlayingPlayer & { card?: string }).card;
+      if (one.mission.eligibleCards && game.id && game.id in one.mission.eligibleCards && (!card || !one.mission.eligibleCards[game.id]?.includes(card))) continue;
+      if (one.mission.eligibleCards && (!game.id || !(game.id in one.mission.eligibleCards))) { one.unrated.push({ slug: p.player!, name: `${p.name} (eligibility not checked)` }); continue; }
+      if (one.mission.ruleTypes?.length && !one.mission.eligibleCards) {
+        one.unrated.push({ slug: p.player!, name: `${p.name} (eligibility not checked)` });
+        continue;
+      }
+      const found = fit(one.rule, { ...p, pStart: game.pStart ?? p.pStart, pOn: game.pOn ?? p.pOn }, sheets[p.player!] ?? null);
       if (!found) {
         one.unrated.push({ slug: p.player!, name: p.name });
         continue;
       }
-      const pick = { slug: p.player!, name: p.name, pos: p.pos, pic: p.pic, club: p.club, opponent: game.opponent, venue: game.venue, kickoff: game.kickoff, chance: found.chance, average: found.average, cards: p.cards };
+      const sheet = sheets[p.player!];
+      const index = one.rule.kind === "interception" ? 4 : one.rule.kind === "assist" ? 5 : one.rule.kind === "goal" ? 6 : 2;
+      const threshold = "atLeast" in one.rule ? one.rule.atLeast : 1;
+      const hits = (n: number) => sheet ? mean(newest(sheet, n).map((r) => Number(Number(r[index]) >= threshold))) : 0;
+      const pick = { slug: p.player!, card: (p as PlayingPlayer & { card?: string }).card, game: game.id, team: game.team, competition: game.competition, pStart: game.pStart ?? p.pStart, startSource: game.startSource ?? p.startSource,
+        name: p.name, pos: p.pos, pic: p.pic, club: p.club, opponent: game.opponent, venue: game.venue, kickoff: game.kickoff, chance: found.chance, average: found.average, cards: p.cards,
+        samples: { l5: Math.min(5, sheet?.last.length ?? 0), l8: Math.min(8, sheet?.last.length ?? 0), baseline: sheet?.starts ?? 0 }, hits: { l5: hits(5), l8: hits(8), season: sheet?.decAll ?? 0 } };
       pairs.push({ plan: one, pick });
       one.all.push(pick);
     }
     one.all.sort((a, b) => b.chance - a.chance);
   }
-  pairs.sort((a, b) => b.pick.chance - a.pick.chance);
-  const used = new Set<string>();
+  const priority = (p: MissionPlan) => /essence/i.test(p.reward ?? "") ? 0 : /clue/i.test(p.reward ?? "") ? 1 : /xp|experience/i.test(p.reward ?? "") ? 2 : 3;
+  pairs.sort((a, b) => priority(a.plan) - priority(b.plan) || b.pick.chance - a.pick.chance);
+  const used = new Set<string>(missions.flatMap((m) => (m.appearances ?? []).map((a) => a.card ?? a.player)));
   for (const { plan: one, pick } of pairs) {
-    if (used.has(pick.slug) || one.picks.length >= one.open) continue;
-    used.add(pick.slug);
+    if (used.has(pick.card ?? pick.slug) || used.has(pick.slug) || one.picks.some((p) => p.slug === pick.slug) || one.mission.appearances?.some((p) => p.player === pick.slug) || one.picks.length >= one.open) continue;
+    used.add(pick.card ?? pick.slug);
     one.picks.push(pick);
   }
   return { day, plans };

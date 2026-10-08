@@ -20,9 +20,9 @@ const sheets = { a: sheet(4), b: sheet(3), c: sheet(2), d: sheet(1) };
 const MORNING = new Date("2026-10-06T09:00:00Z");
 
 describe("the day's missions", () => {
-  it("always holds the Decisive Picker, with the loaded ones beside it; a mission to beat an average is not logged", () => {
+  it("assumes only the Decisive Picker when not loaded, otherwise retains exactly the source tasks", () => {
     expect(dayMissions(null).map((m) => m.title)).toEqual(["Decisive Picker"]);
-    expect(dayMissions([INTERCEPTION, row("Over", "Beat it", { mode: "SCORE" })]).map((m) => m.title)).toEqual(["Interception - All Matches", "Decisive Picker"]);
+    expect(dayMissions([INTERCEPTION, row("Over", "Beat it", { mode: "SCORE" })]).map((m) => m.title)).toEqual(["Interception - All Matches", "Over"]);
     // The loaded Decisive Picker is the one kept (its own picks and rule), not a second one.
     expect(dayMissions([row("decisive picker", "Earn 200 XP", { picks: 2 })]).map((m) => [m.title, m.picks])).toEqual([["decisive picker", 2]]);
   });
@@ -32,7 +32,7 @@ describe("a day of the log", () => {
   it("writes every card with a game that day as a candidate with its chance, and Sofix's full choice of picks", () => {
     const day = nextDay(undefined, null, players, sheets, "limited", MORNING);
     expect(day.loaded).toBe(false);
-    expect(day.missions.map((m) => m.key)).toEqual([DAILY_PICKER.title]);
+    expect(day.missions.map((m) => m.key)).toEqual([DAILY_PICKER.id]);
     expect(day.cands.map((c) => c.s)).toEqual(["a", "b", "c", "d"]);
     expect(day.cands[0]).toMatchObject({ n: "A", g: "Game:a", k: "2026-10-06T14:00:00Z" });
     expect(day.missions[0]!.sofix).toEqual(["a", "b", "c"]); // three picks, likeliest first
@@ -41,7 +41,7 @@ describe("a day of the log", () => {
   it("logs a loaded day's missions too, each card in one mission only, ignoring the picks you already made", () => {
     const day = nextDay(undefined, [{ ...INTERCEPTION, made: 3, picks: 1 }], players, sheets, "limited", MORNING);
     expect(day.loaded).toBe(true);
-    expect(day.missions.map((m) => [m.key, m.sofix.length])).toEqual([["Interception - All Matches", 1], ["Decisive Picker", 3]]);
+    expect(day.missions.map((m) => [m.key, m.sofix.length])).toEqual([["Interception - All Matches", 1]]);
     const all = day.missions.flatMap((m) => m.sofix);
     expect(new Set(all).size).toBe(all.length);
   });
@@ -53,7 +53,7 @@ describe("a day of the log", () => {
     const later = nextDay(morning, null, players, better, "limited", new Date("2026-10-06T15:00:00Z"));
     expect(later.missions[0]!.sofix).toEqual(["a", "b", "c"]);
     expect(later.cands.find((c) => c.s === "a")).toEqual(morning.cands.find((c) => c.s === "a"));
-    expect(later.cands.find((c) => c.s === "d")!.c["Decisive Picker"]).toBeGreaterThan(morning.cands.find((c) => c.s === "d")!.c["Decisive Picker"]!);
+    expect(later.cands.find((c) => c.s === "d")!.c[DAILY_PICKER.id]).toBeGreaterThan(morning.cands.find((c) => c.s === "d")!.c[DAILY_PICKER.id]!);
   });
 
   it("drops a pick replaced before its game: only the last choice before kick-off counts", () => {
@@ -67,7 +67,7 @@ describe("a day of the log", () => {
     const morning = nextDay(undefined, [{ ...INTERCEPTION, appearances: yours }], players, sheets, "limited", MORNING);
     const later = nextDay(morning, null, players, sheets, "limited", new Date("2026-10-06T10:00:00Z"));
     expect(later.loaded).toBe(true);
-    expect(later.missions.map((m) => m.key)).toEqual(["Interception - All Matches", "Decisive Picker"]);
+    expect(later.missions.map((m) => m.key)).toEqual(["Interception - All Matches"]);
     expect(later.missions[0]!.yours).toEqual(yours);
   });
 });
@@ -99,6 +99,17 @@ describe("the missions history", () => {
   it("names a pick of yours Sofix had no candidate for from another day of the log, else reads his slug out", () => {
     const [today] = missionHistory([{ days: { ...log.days, "2026-10-07": day(["a"], [{ player: "c", status: "READY" }, { player: "jan-oblak", status: "FAILURE" }], [cand("a")]) } }], "limited", new Map());
     expect(today!.yours.map((c) => c.name)).toEqual(["C", "Jan Oblak"]);
-    expect(missionHistory([{ days: { "2026-10-07": day([], [], []) } }], "limited", new Map())).toEqual([]);
+    expect(missionHistory([{ days: { "2026-10-07": day([], [], []) } }], "limited", new Map())).toMatchObject([{ day: "2026-10-07", score: null, sofix: [], yours: [] }]);
   });
+});
+
+it("keeps SCORE tasks and treats a verified empty collection as empty", () => {
+  expect(dayMissions([row("Score 60", "Reach 60", { mode: "SCORE" })]).map((m) => m.title)).toEqual(["Score 60"]);
+  expect(dayMissions([])).toEqual([]);
+});
+
+it("an explicit empty appearance list clears old imported choices", () => {
+  const m = row("Picker", "A decisive action", { appearances: [{ player: "a", game: "Game:a", rarity: "limited", status: "READY" }] });
+  const before = nextDay(undefined, [m], players, sheets, "limited", MORNING);
+  expect(nextDay(before, [{ ...m, appearances: [] }], players, sheets, "limited", MORNING).missions[0]!.yours).toEqual([]);
 });

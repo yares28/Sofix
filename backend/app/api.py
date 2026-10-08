@@ -9,6 +9,7 @@ from app.models import ReadModel
 from app.schemas import ApiResponse, FixtureGrid
 from app.services.fixture_grid import build_fixture_grid, grid_meta
 from app.sorare import audit
+from app.sorare import missions as mission_logs
 from app.sorare.ff_lineups import LINEUPS_KEY
 from app.sorare.publish import AHEAD_PREFIX, ALT_PREFIX, ARCHIVE_PREFIX
 
@@ -36,6 +37,23 @@ def sorare(db: Session = Depends(get_db)):
     if row is None:
         return ApiResponse[dict[str, Any]](success=False, error="Sorare has not been synced yet.")
     return ApiResponse[dict[str, Any]](success=True, data=row.payload)
+
+
+@router.get("/missions", response_model=ApiResponse[dict[str, Any]])
+def missions_page(db: Session = Depends(get_db)):
+    row = db.get(ReadModel, "missions")
+    return ApiResponse[dict[str, Any]](success=True, data=row.payload if row else {})
+
+
+@router.get("/missions/pool", response_model=ApiResponse[dict[str, Any]])
+def missions_pool(db: Session = Depends(get_db)):
+    row = db.get(ReadModel, "missions_pool")
+    return ApiResponse[dict[str, Any]](success=bool(row), data=row.payload if row else None)
+
+
+@router.get("/missions/log", response_model=ApiResponse[list[dict[str, Any]]])
+def missions_log(db: Session = Depends(get_db)):
+    return ApiResponse[list[dict[str, Any]]](success=True, data=mission_logs.logs_of(db))
 
 
 @router.get("/sorare/week/{slug}", response_model=ApiResponse[dict[str, Any]])

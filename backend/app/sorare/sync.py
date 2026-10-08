@@ -464,6 +464,15 @@ def history(
                 "mins": (row.get("anyPlayerGameStats") or {}).get("minsPlayed"),
                 "status": row["scoreStatus"],
                 **({"red": _sent_off(row["detailedScore"])} if "detailedScore" in row else {}),
+                **(
+                    {
+                        "stats": {
+                            s["stat"]: s["statValue"] for s in row["detailedScore"] if s.get("statValue") is not None
+                        }
+                    }
+                    if "detailedScore" in row
+                    else {}
+                ),
             }
             for row in scores
         ]
@@ -723,9 +732,16 @@ def snapshot(
     past_slug = past_gw["slug"] if past_gw else plan_gw["slug"]
     # One alias per gameweek: the games of all of them come back in the same pages of cards.
     aliases = {"plan": plan_gw["slug"], "past": past_slug}
+    active_gws = [w for w in weeks if datetime.fromisoformat(w["lock"]) <= now <= datetime.fromisoformat(w["end"])]
+    for i, week in enumerate(active_gws):
+        aliases[f"live{i}"] = week["slug"]
     for i, week in enumerate(ahead_gws):
         aliases[f"a{i}"] = week["slug"]
+    mission_mark = client.errors
     my_cards = cards(client, user, aliases)
+    mission_complete = client.errors == mission_mark and all(
+        all(alias in c.get("player", {}) for alias in aliases) for c in my_cards
+    )
     my_leagues = {
         ((c["player"].get("activeClub") or {}).get("domesticLeague") or {}).get("slug")
         for c in my_cards
@@ -746,7 +762,7 @@ def snapshot(
         for i, week in enumerate(ahead_gws)
     }
 
-    played_in = ("plan", "past", *[f"a{i}" for i in range(len(ahead_gws))])
+    played_in = tuple(aliases)
     scores = history(client, history_players(my_cards, played_in), datetime.fromisoformat(plan_gw["lock"]))
 
     # Reward chances come from a gameweek that has already been played. The gameweek being planned looks at the
@@ -799,6 +815,8 @@ def snapshot(
         "planGameweek": plan_gw,
         "pastGameweek": past_gw,
         "aheadGameweeks": ahead_gws,
+        "missionAliases": list(aliases),
+        "missionComplete": mission_complete,
         "pastGaps": gaps,
         "cards": my_cards,
         "competitions": {plan_gw["slug"]: planned, past_slug: past_comps, **ahead_comps},

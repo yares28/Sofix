@@ -311,12 +311,20 @@ const server = createServer((req, res) => {
       },
     });
   }
+  if (req.method === "GET" && url.pathname === "/api/missions/pool") {
+    const day = new Date(Date.now() - 8 * 3_600_000).toISOString().slice(0, 10);
+    const kickoff = new Date(Math.min(Date.now() + 3_600_000, Date.parse(`${day}T08:00:00Z`) + DAY - 60_000)).toISOString();
+    const players = planning.playing.players.filter((p) => p.player).slice(0, 6).map((p, i) => ({ ...p, card: `owned-card-${i}`, rarity: "limited", games: [{ id: `Game:test-${i}`, kickoff, team: "Spain", competition: "international", opponent: "France", opponentCrest: null, venue: "H" }], p: 0.9, pStart: 0.8 }));
+    const sheets = Object.fromEntries(players.map((p, i) => [p.player, { pos: p.pos, team: "", starts: 12, seasonStarts: 12, season: { interception_won: [1 + i / 2, 0], goal_assist: [.2, 0], goals: [.3, 0] }, l10: {}, decAll: .3 + i / 20, cs: 0, pens: 0, last: Array.from({ length: 8 }, (_, n) => [50 + n, "", n % 3 === 0 ? 1 : 0, "H", n % 4, n % 5 === 0 ? 1 : 0, n % 4 === 0 ? 1 : 0]) }]));
+    return send(res, 200, { data: { generatedAt: new Date().toISOString(), players, sheets: { asOf: new Date().toISOString(), players: sheets }, statsWindow: "Last 70 days of scored starts", complete: true } });
+  }
   if (req.method === "GET" && url.pathname === "/api/missions/log") {
     // The missions log (`read_models` key `missions_log:YYYY-MM`, frontend/lib/missionLog.ts): 6 Oct written down and not yet checked, with your two
     // picks already judged by Sorare; 5 Oct checked, Sofix 1 of 3, with two achievers it left out.
     const cand = (s, n, r) => ({ s, n, pic: "", pos: "MID", g: `Game:${s}`, k: "2026-10-05T19:00:00Z", c: { "Decisive Picker": 0.3 }, ...(r ? { r } : {}) });
     const did = (yes) => ({ played: true, did: { "Decisive Picker": yes } });
-    const mission = (sofix, yours) => ({ key: "Decisive Picker", description: "", mode: "DECISIVE", rule: { kind: "decisive", label: "a decisive action" }, stats: [], picks: 3, sofix, yours });
+    const mission = (sofix, yours) => ({ key: "Decisive Picker", description: "", mode: "DECISIVE", rule: { kind: "decisive", label: "a decisive action" }, stats: [], picks: 3, sofix, yours,
+      ...(state.correction === "empty" && yours.length ? { override: { picks: [], note: "I made no picks", revision: 1, at: new Date().toISOString() } } : {}) });
     return send(res, 200, {
       success: true,
       data: [
@@ -435,6 +443,7 @@ const server = createServer((req, res) => {
     state.sorare = url.searchParams.get("sorare") === "missing" ? "missing" : "ok";
     state.news = url.searchParams.get("news"); // "laliga" or "national": the planned week with no team news
     state.missions = url.searchParams.get("missions") ?? "ok"; // "stale": the last list was loaded two days ago
+    state.correction = url.searchParams.get("correction");
     state.audit = url.searchParams.get("audit") ?? "ok"; // "missing": the page was never written; "enough": the record has enough games for figures
     state.run = finishedRun("cli");
     return send(res, 200, { ok: true, mode: state.mode, sorare: state.sorare, news: state.news, audit: state.audit });

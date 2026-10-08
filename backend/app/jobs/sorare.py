@@ -44,6 +44,7 @@ from app.sorare import (
     ff_use,
     frozen,
     keeper,
+    mission_pool,
     outfield,
     projection,
     scores,
@@ -436,6 +437,16 @@ def run(
     if record:
         put(db, f"{sorare_publish.RECORD_PREFIX}{record['gameweek']['slug']}", record, now)
     put(db, SORARE_KEY, payload, now)
+    pool = optional(
+        db,
+        failed,
+        "mission inventory",
+        lambda: mission_pool.build(snapshot, now, ff=lineups.starts if lineups else None, scores=scores_of),
+        None,
+    )
+    if pool is not None:
+        put(db, mission_pool.KEY, pool, now)
+        optional(db, failed, "mission capture", lambda: sorare_missions.capture(db, pool, now), None)
     # The plan the page held when a week locked is kept once, before it is lost to the next run's page (roadmap 1.2).
     kept_plans: list[str] = optional(db, failed, "frozen plan", lambda: frozen.freeze(db, previous, fetched), [])
     if kept_plans:

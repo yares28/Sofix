@@ -1,6 +1,6 @@
 import { isToday, plan, type MissionPlan, type MissionsModel } from "./missions";
 import type { Sorare } from "./play";
-import type { Sheets } from "./playerSheet";
+import type { MissionPool } from "./missionsPool";
 
 export const RARITIES = ["limited", "rare", "super_rare", "unique"] as const;
 
@@ -19,6 +19,7 @@ export async function missionsToday(
   missions: MissionsModel | null,
   asked: string | undefined,
   now: Date,
+  pool?: MissionPool | null,
 ): Promise<{
   rarity: string;
   seen: string[];
@@ -28,10 +29,10 @@ export async function missionsToday(
   /** When this rarity's list was last loaded, whatever its age. */
   seenAt: string | null;
 }> {
-  const sheets = (await import("./data/stat_sheets.json")).default as unknown as Sheets;
+  const sheets = pool?.sheets ?? { players: {} };
   const today = (r: string) => {
     const entry = missions?.[r];
-    return entry && isToday(entry.seen_at, now) ? entry.missions.filter((m) => m.title) : null;
+    return entry && isToday(entry.seen_at, now) && (entry.verified || entry.missions.length) ? entry.missions.filter((m) => m.title) : null;
   };
   const seen = RARITIES.filter((r) => today(r)?.length);
   const rarity = (RARITIES as readonly string[]).includes(asked ?? "") ? (asked as string) : "limited";
@@ -39,7 +40,7 @@ export async function missionsToday(
   const seenAt = missions?.[rarity]?.seen_at ?? null;
   const status: MissionsStatus = own ? "today" : seenAt ? "stale" : "never";
   const list = own ?? [];
-  const players = data ? data.weeks.flatMap((w) => w.playing.players) : [];
+  const players = pool?.players ?? (data ? data.weeks.flatMap((w) => w.playing.players) : []);
   const made = list.length && data ? plan(list, rarity, players, sheets.players, now) : null;
   return { rarity, seen: [...seen], day: made?.day ?? null, plans: made?.plans ?? [], status, seenAt };
 }

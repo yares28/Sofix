@@ -9,7 +9,7 @@ import { missionsLoadNote } from "../../lib/missions";
 type Reach = "asking" | "none" | "old" | "ready";
 
 /** How long a load may take. */
-const LOAD_MS = 25_000;
+const LOAD_MS = 60_000;
 
 /**
  * Loads today's missions from Sorare through the extension (read only): by itself once when the page opens with an older list, and whenever the
@@ -29,9 +29,12 @@ export default function LoadMissions({ stale, day }: { stale: boolean; day: stri
       const answer = parseMissionsLoad(await askExtension({ type: "load-missions" }, LOAD_MS));
       setBusy(false);
       setNote(missionsLoadNote(answer));
-      if (answer?.state === "ok") router.refresh();
+      if (answer?.state === "ok") {
+        try { sessionStorage.setItem(`sofix:missions-auto:${day}`, "1"); } catch { /* no storage */ }
+        router.refresh();
+      }
     },
-    [router],
+    [router, day],
   );
 
   useEffect(() => {
@@ -46,7 +49,6 @@ export default function LoadMissions({ stale, day }: { stale: boolean; day: stri
       const key = `sofix:missions-auto:${day}`;
       try {
         if (sessionStorage.getItem(key)) return;
-        sessionStorage.setItem(key, "1");
       } catch {
         // no storage (a private window): load anyway, this page view only
       }

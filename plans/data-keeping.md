@@ -152,6 +152,16 @@ the same commit: `docs/user_manual.md`, `docs/how_it_works.md` (the tables, who 
 
 ## Results
 
+- **9 Oct 2026 - production migration and seed completed:** after explicit owner approval, applied exactly
+  `3ce433a96bed` on the confirmed production branch and verified all four tables. The approved one-off seed ran with
+  the DML-only app role: 29,094 rows for 1,020 players, including 24,990 rows in 2025/26 and 4,104 in 2026/27;
+  542 stat sheets rebuilt. SELECT confirmed those counts, dates 15 Aug 2025 to 20 Sep 2026 and no invented frozen
+  statements. No configuration files or unrelated data were changed. Rebased on the concurrent missions repair,
+  preserving its daily ledger and imports; two failing-first integration regressions now pass (19 focused tests).
+  `node scripts/check.mjs` passed every backend/frontend check. Fresh real-data player previews at 1440/390 px
+  returned 200 with no horizontal overflow or text below the floor. The full browser suite passed all 197 tests
+  (desktop and phone). The deployment check follows the push. Steps 6-8 remain; no further migration is needed for them.
+
 - **9 Oct 2026 - migration execution blocked by automatic approval review:** the owner asked me to handle it while
   away. I prepared an in-memory, non-echoing credential path to the confirmed production branch, checked default
   privileges for the DML-only app role, and reran all eight migration tests (including drift), which passed. The

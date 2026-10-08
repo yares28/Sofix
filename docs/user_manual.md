@@ -507,9 +507,9 @@ starts** as bars (green where he had a decisive action), with his clean sheets a
 and the range he lands in). The daily history job builds the stat sheet from permanently saved games and says "to <date>";
 it needs at least three final starts with complete stats and a known playing side, position and decisive level. An unread stat sheet is not a zero-action game.
 
-The one-off local export import can add 2025/26 and early 2026/27 to **Saved starts** after owner approval. It preserves
+The approved local export import added 2025/26 and early 2026/27 to **Saved starts** on 9 Oct. It preserves
 the daily job's readings and includes both seasons in the sheet; **This season** still shows only the current season.
-Old export projections do not become saved forecasts. Until that import runs, those older games may be missing.
+Old export projections do not become saved forecasts. Games absent from the export still wait for a source reading.
 
 **This season** lists every saved game, newest first, with its real home and away sides, competition, appearance, minutes,
 score and cards. Sofix and Sorare forecasts appear beside the result where they were saved before lock. The summary counts

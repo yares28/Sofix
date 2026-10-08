@@ -24,7 +24,6 @@ from sqlalchemy.orm import Session
 
 from app.jobs.export_games import fetch_game
 from app.models import PlayerGame, ReadModel
-from app.services.publish import put
 from app.services.timeutil import as_utc
 from app.sorare.publish import GIVE_UP, SETTLE
 
@@ -147,7 +146,15 @@ def _card(cand: dict[str, Any], hit: bool | None = None) -> dict[str, Any]:
 def settle_kept(db: Session, now: datetime) -> dict[str, int]:
     """Settle only candidates whose own result and stats were read; no additional Sorare calls or inferred DNPs."""
     months = marked = 0
-    for saved in db.query(ReadModel).filter(ReadModel.key.like(f"{LOG_PREFIX}%")).all():
+    rows = (
+        db.query(ReadModel)
+        .filter(or_(ReadModel.key.like(f"{LOG_PREFIX}%"), ReadModel.key.like(f"{DAY_PREFIX}%")))
+        .all()
+    )
+    copied_months = {row.key.removeprefix(DAY_PREFIX)[:7] for row in rows if row.key.startswith(DAY_PREFIX)}
+    for saved in rows:
+        if saved.key.startswith(LOG_PREFIX) and saved.key.removeprefix(LOG_PREFIX) in copied_months:
+            continue
         payload = copy.deepcopy(saved.payload)
         changed = False
         for rarities in payload.get("days", {}).values():
@@ -182,8 +189,14 @@ def settle_kept(db: Session, now: datetime) -> dict[str, int]:
                     changed = True
                     marked += 1
         if changed:
-            put(db, saved.key, payload, now)
-            months += 1
+            written = db.execute(
+                update(ReadModel)
+                .where(ReadModel.key == saved.key, ReadModel.updated_at == saved.updated_at)
+                .values(payload=payload, updated_at=now)
+                .execution_options(synchronize_session=False)
+            )
+            months += int(bool(written.rowcount))
+            db.expire(saved)  # preserve concurrent imports; a conflict is retried next refresh
     return {"candidates": marked, "months": months}
 
 

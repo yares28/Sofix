@@ -16,9 +16,9 @@ and a check, so a session can work through it alone and stop only where you have
 
 Work from the top. Each line points to its full text; "you" items wait for the owner.
 
-0. **Keep what Sofix reads** ([plans/data-keeping.md](data-keeping.md)): every player's games, your weeks, odds and match forecasts kept for good, then shown on player pages, the Audit, Recap and Control. Single schema and steps 1-5 built locally; step 5's production seed approved, pending the single production migration. Steps 6-8 remain. Production migration precedes deployment.
-0. **Found 7 Oct in past sessions** (TODO.md "Forgotten"): **G**, the grey countdown on Play (your call), and **R**, the form
-   fallback's red-card ban (small). L, the daily league history, is done (Results).
+0. **Keep what Sofix reads** ([plans/data-keeping.md](data-keeping.md)): steps 1-5 built; the single production migration and approved historical seed completed on 9 Oct. Next: step 6, your finished weeks on Recap, Cards and Audit; then odds/forecasts and Control (7-8).
+0. **Found 7 Oct in past sessions** (TODO.md "Forgotten"): **G**, the grey countdown on Play (your call). R, the form
+   fallback's red-card ban, is fixed by data-keeping step 1. L, the daily league history, is done (Results).
 1. **9.7 · The extension updates itself** (TODO.md A): no more Reload by hand after the release that brings it (one last Reload).
 2. **9.8 · A refresh near a lock that does not wait for GitHub** (TODO.md C): the extension and the app start it in the last three hours.
 3. **9.6 · The tile's big number follows his start chance** (TODO.md B): under 40% the "comes on" score, with his chance of coming on.
@@ -547,6 +547,11 @@ the held-out weeks (P9 "The bar").
 ---
 
 ## Results
+
+- **9 Oct - data keeping steps 1-5:** the owner-approved single migration `3ce433a96bed` and historical seed completed
+  on production (29,094 player-game rows, 1,020 players, 542 sheets). Local gate and real-data desktop/phone player
+  inspection pass; integration with the concurrent daily missions repair is covered by failing-first regressions.
+  [Data-keeping Results](data-keeping.md#results) records the browser and deployment checks. Next is step 6.
 
 - **8 Oct - data keeping step 3 built locally:** Audit and mission results read the common game store; legacy overlap figures match without duplicate cases. FF/Sorare/Sofix predicted elevens are checked by week and club, with the 100-case floor. Local gate, Audit/mobile specs and real-data desktop/phone inspection pass ([details](data-keeping.md#results)). Owner Audit check next; deployment awaits the one migration.
 

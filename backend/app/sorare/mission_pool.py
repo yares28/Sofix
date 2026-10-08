@@ -30,6 +30,13 @@ def rolling_sheets(history: dict[str, Any], positions: dict[str, str], now: date
         )
         if not starts:
             continue
+        # Permanent game rows keep the source's detailed counts and points, plus sheet context.
+        starts = [
+            {**g, "stats": {s["stat"]: s["statValue"] for s in g["stats"] if s.get("statValue") is not None}}
+            if isinstance(g["stats"], list)
+            else g
+            for g in starts
+        ]
 
         def decisive(g: dict[str, Any], player_slug: str = slug) -> int:
             stats = g["stats"]

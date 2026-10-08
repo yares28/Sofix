@@ -85,3 +85,63 @@ def load(db: Session, *, now: datetime | None = None, days: int | None = None) -
     for entry in out.values():
         entry["games"].reverse()
     return out
+
+
+def save_statements(db: Session, record: dict[str, Any], now: datetime, lineups: dict[str, Any] | None = None) -> int:
+    """Keep the latest pre-lock reading; only statement columns are updated, and a failed source keeps its last number."""
+    lock = datetime.fromisoformat(record["gameweek"]["lock"])
+    at = datetime.fromisoformat(record["writtenAt"])
+    if now >= lock or at >= lock:
+        return 0  # never reconstruct something first seen after the lock
+    elevens: dict[tuple[str, str], bool] = {}
+    for match in (lineups or {}).get("matches") or []:
+        for name in ("home", "away"):
+            side = match.get(name) or {}
+            if not side.get("published"):
+                continue
+            for row in side.get("rows") or []:
+                for player in row.get("players") or []:
+                    elevens[str(match["id"]), str(player["id"])] = True
+            for player in side.get("alternatives") or []:
+                elevens.setdefault((str(match["id"]), str(player["id"])), False)
+    insert = pg_insert if db.get_bind().dialect.name == "postgresql" else sqlite_insert
+    groups: dict[tuple[str, ...], list[dict[str, Any]]] = {}
+    for slug, entry in (record.get("players") or {}).items():
+        for game in entry.get("games") or []:
+            if not game.get("id") or not game.get("kickoff") or not game.get("competition"):
+                continue
+            sources = game.get("sources") or {}
+            said = {
+                "ff_start": sources.get("futbolfantasy"),
+                "sorare_start": sources.get("sorare"),
+                "sofix_start": sources.get("sofix"),
+                "sofix_x": game.get("sofix"),
+                "sorare_x": game.get("sorare"),
+                "ff_xi": elevens.get((str((game.get("ffMatch") or {}).get("id")), str(game.get("ffPlayer")))),
+            }
+            values = {key: value for key, value in said.items() if value is not None}
+            columns = (*values, "said_at")
+            values.update(
+                player=slug,
+                game_id=game["id"],
+                date=as_utc(datetime.fromisoformat(game["kickoff"])),
+                competition=game["competition"],
+                home=game.get("home"),
+                away=game.get("away"),
+                said_at=at,
+            )
+            groups.setdefault(columns, []).append(values)
+    count = 0
+    for columns, rows in groups.items():
+        for offset in range(0, len(rows), 100):
+            statement = insert(PlayerGame).values(rows[offset : offset + 100])
+            db.execute(
+                statement.on_conflict_do_update(
+                    index_elements=[PlayerGame.player, PlayerGame.game_id],
+                    set_={key: getattr(statement.excluded, key) for key in columns},
+                    where=or_(PlayerGame.said_at.is_(None), PlayerGame.said_at <= at),
+                )
+            )
+        count += len(rows)
+    db.flush()
+    return count

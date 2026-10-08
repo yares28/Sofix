@@ -18,7 +18,7 @@ import numpy as np
 
 from app.services.scoring import difficulty_label, difficulty_score, label_bucket
 from app.sorare import expected, projection, rules, xg
-from app.sorare.forecast import GameStart, PlayerWeek
+from app.sorare.forecast import GameStart, PlayerWeek, own_start
 from app.sorare.forecast import forecasts as build_forecasts
 from app.sorare.model import ESSENCE_ORDER, SORARE_POSITION, Card, Competition, Forecast
 from app.sorare.planner import DRAWS, Lineup, Plan, build, fill_bench, plans, replay_rewards, score_at_rank
@@ -1335,14 +1335,26 @@ def score_record(
         if not mine:
             continue
         f = forecasts.get(slug)
-        listed = []
+        listed: list[dict[str, Any]] = []
         for i, game in enumerate(mine):
             said = (projections.get(game.get("id")) or {}).get(slug) or {}
+            told = next((one for one in w.game_starts if one.game == game.get("id")), None)
+            alone = own_start(replace(w, banned=False)) if i and w.banned else own_start(w)
+            sources = {"sofix": round(alone, 3)} if alone is not None else {}
+            if i == 0 and w.start_odds is not None:
+                sources["sorare"] = round(w.start_odds, 3)
+            if told:
+                sources["futbolfantasy"] = round(told.p_start, 3)
+            info: dict[str, Any] = {k: told.info[k] for k in ("ffMatch", "ffPlayer") if k in told.info} if told else {}
             listed.append(
                 {
                     "id": game.get("id"),
                     "kickoff": game.get("kickoff"),
                     "competition": game.get("competition"),
+                    "home": game.get("team") if game.get("venue") == "H" else game.get("opponent"),
+                    "away": game.get("opponent") if game.get("venue") == "H" else game.get("team"),
+                    "sources": sources,
+                    **info,
                     "sorare": said.get("score", w.projection if i == 0 and not projections else None),
                     "grade": said.get("grade"),
                     "sofix": round(w.game_scores[i], 1) if i < len(w.game_scores) else None,

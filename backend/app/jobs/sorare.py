@@ -444,6 +444,8 @@ def run(
     if alt:
         put(db, f"{sorare_publish.ALT_PREFIX}{alt['gameweek']['slug']}", alt, now)
     if record:
+        page = db.get(ReadModel, ff_lineups.LINEUPS_KEY)
+        summary["gameStatements"] = player_games.save_statements(db, record, fetched, page.payload if page else None)
         put(db, f"{sorare_publish.RECORD_PREFIX}{record['gameweek']['slug']}", record, now)
     put(db, SORARE_KEY, payload, now)
     pool = optional(

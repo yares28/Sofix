@@ -103,6 +103,8 @@ def test_a_refresh_reads_the_league_history_and_never_writes_it(db, monkeypatch)
         "a refresh never writes back an older copy"
     )
     assert db.get(PlayerGame, ("keeper-one", "past")).score == 60.0, "the owner's fresh read is kept too"
+    statement = db.get(PlayerGame, ("keeper-one", "game-keeper-one"))
+    assert statement.sorare_x == 55.0 and statement.sorare_start == 0.9, "refresh saves the pre-lock statements too"
 
 
 def test_incremental_history_rechecks_corrections_without_losing_older_games() -> None:

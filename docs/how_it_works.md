@@ -145,6 +145,14 @@ Sofix's own start chance and form fallback exclude the next LaLiga game after a 
 (RFEF's 3 March 2026 disciplinary code, articles 119–121). A second game in the week remains available; FF/Sorare evidence
 still has priority over this fallback.
 
+Each refresh also writes the planned week's pre-lock source statements for every indexed player and owner player into
+the same rows (`player_games.save_statements`, from `publish.score_record`). It keeps each game's FF and Sofix start
+chance, Sorare's next-game starter odds, the recorded Sofix score and Sorare projection, and FF's actual predicted-eleven
+membership from `lineups`. The score columns retain the existing comparison's score-if-starting meaning; they are compared
+on starts. Later pre-lock reads replace supplied numbers; a failed source never erases one, and no statement is first
+created or changed after lock. Actuals and statements update separate columns. `start_chances` and `score_record:*`
+remain active during the Audit transition.
+
 ## 8. xScore
 
 1. Last five with priors estimates P(play) and conditional score (priors 0.60 and 45).
@@ -464,9 +472,9 @@ Schema/runtime: migrations owner-only, dev branch first; unattended schema check
 The data-keeping migration `3ce433a96bed` adds `player_games` (actuals and pre-lock statements), `match_odds`
 (prices per match and source, with optional fixture links), `match_forecasts` (one forecast per fixture), and
 `player_absences` (FF injury/ban spells, optionally linked to a Sorare player). Player-game actuals and statements
-can remain null until read. This is the schema only: writers and page readers follow in
-[the data-keeping plan](../plans/data-keeping.md), after the owner migrates production; existing jobs still use their
-current storage. Nothing is seeded by the migration.
+can remain null until read. Game and statement writers are built locally; page readers follow in
+[the data-keeping plan](../plans/data-keeping.md). Production is migrated once before the table-dependent code deploys.
+Nothing is seeded by the migration.
 
 ## 14. Code map
 

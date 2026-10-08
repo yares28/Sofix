@@ -485,6 +485,8 @@ player's games have been read, his numbers rest on those sources and the usual p
 means he has no game in the gameweek. Games already read stay saved when a source fails or a player leaves your collection.
 Later reads add new games and corrections. Without a source's start chance, a red card or fifth LaLiga yellow rules him out
 of his next LaLiga game; a second game in that week is still available.
+The refresh also saves each source's start chance and score before the week locks, including FF's predicted starters.
+Those readings freeze at lock; a missing source leaves its last saved reading in place.
 
 **One player's page** (since 4 Oct, `/players/<name>`; click a name in the results). It leads with his game this week: the xScore if he starts and the chance he
 starts, large (for any LaLiga player), and the picture of the game (the same bars as the panel on Sorare, and "Lands between 41 and 80, 8 times in 10"). Below, the **stat sheet** is one table with a

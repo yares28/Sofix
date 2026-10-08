@@ -828,7 +828,7 @@ def snapshot(
         since={
             player: datetime.fromisoformat(weeks[0]["start"])
             for player in players
-            if player not in (cached_league or {})
+            if not ((cached_league or {}).get(player) or {}).get("at")
         },
     )
 

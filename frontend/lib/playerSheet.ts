@@ -12,8 +12,8 @@ export type Sheet = {
   season: Record<string, Mean>;
   seasonStarts: number;
   l10: Record<string, Mean>;
-  /** His last ten starts, oldest first: the score, the opponent's code, whether it was decisive (1), H or A, then his interceptions, assists and goals in it (the daily missions count them). */
-  last: [score: number, opponent: string, decisive: 0 | 1, venue: "H" | "A", interceptions: number, assists: number, goals: number][];
+  /** His last ten starts, oldest first: score, opponent, decisive (1), H/A, interceptions, assists, goals, then optional mission shot/tackle counts. */
+  last: [score: number, opponent: string, decisive: 0 | 1, venue: "H" | "A", interceptions: number, assists: number, goals: number, shotsOnTarget?: number, tacklesWon?: number][];
   /** How often a saved start with complete stats was decisive. */
   decAll: number;
   cs: number;

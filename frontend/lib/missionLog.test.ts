@@ -128,3 +128,11 @@ it("does not turn a legacy unknown pick list into a confirmed empty import durin
   const later = nextDay(before, null, [], {}, "limited", new Date("2026-10-06T10:00:00Z"));
   expect(missionHistory([{ days: { "2026-10-06": { limited: later } } }], "limited", new Map())[0]?.yourPicks).toBe("unknown");
 });
+
+it("explains a first capture after kickoff instead of calling the mission unsupported", () => {
+  const late = nextDay(undefined, null, players, sheets, "limited", new Date("2026-10-06T22:00:00Z"));
+  const [history] = missionHistory([{ days: { "2026-10-06": { limited: late } } }], "limited", new Map());
+  expect(history?.reason).toMatch(/first seen after kickoff/i);
+  expect(history?.sofix).toEqual([]);
+  expect(history?.score).toBeNull();
+});

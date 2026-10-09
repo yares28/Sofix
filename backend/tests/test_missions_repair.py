@@ -3,9 +3,101 @@ from datetime import UTC, datetime
 from app.models import ReadModel
 from app.sorare import mission_pool, missions
 from app.sorare.mission_pool import rolling_sheets
-from app.sorare.missions import daily_entry
+from app.sorare.missions import _rule, daily_entry, did
 from tests.test_pipeline import db  # noqa: F401
 from tests.test_sorare_publish import snapshot
+
+
+def test_shot_and_tackle_targets_keep_the_imported_threshold_and_settle_the_same_rule():
+    for kind, stat, count, words in [
+        ("shot", "ontarget_scoring_att", 2, "shots on target"),
+        ("tackle", "won_tackle", 3, "tackles"),
+        ("interception", "interception_won", 2, "interceptions"),
+    ]:
+        source = {
+            "title": kind,
+            "description": f"Pick a player with {count}+ {words}",
+            "mode": "DECISIVE",
+            "stats": [stat],
+        }
+        rule = _rule(source)
+        assert rule["kind"] == kind and rule["atLeast"] == count
+        assert did(rule, [stat], {"stats": {stat: [count, 0]}})
+        assert not did(rule, [stat], {"stats": {stat: [count - 1, 0]}})
+        source.update(id=kind, picks=1)
+        pool = {
+            "complete": True,
+            "players": [
+                {
+                    "card": "a-2026-limited-1",
+                    "player": "a",
+                    "name": "A",
+                    "rarity": "limited",
+                    "pos": "MID",
+                    "pic": "",
+                    "p": 1,
+                    "games": [{"id": "g", "kickoff": "2026-10-09T19:00:00Z"}],
+                }
+            ],
+            "sheets": {"players": {"a": {"season": {stat: [count, 0]}}}},
+        }
+        entry = daily_entry(None, [source], pool, "limited", datetime(2026, 10, 9, 12, tzinfo=UTC))
+        assert entry["missions"][0]["sofix"] == ["a"]
+        assert 0 < entry["cands"][0]["c"][kind] < 1
+
+
+def test_rolling_sheet_keeps_shot_and_tackle_counts_for_the_recent_target_samples():
+    data = {
+        "a": [
+            {
+                "date": "2026-10-07T12:00:00Z",
+                "status": "FINAL",
+                "started": True,
+                "played": True,
+                "stats": {"ontarget_scoring_att": 2, "won_tackle": 3},
+            }
+        ]
+    }
+    result = rolling_sheets(data, {"a": "MID"}, datetime(2026, 10, 8, 12, tzinfo=UTC))
+    assert result["players"]["a"]["last"][0][7:] == [2, 3]
+
+
+def test_zero_rate_clue_target_does_not_take_the_only_card_from_a_positive_xp_target():
+    tasks = [
+        {
+            "id": "shots",
+            "title": "Shots",
+            "description": "2+ shots on target for 1 Clue",
+            "mode": "DECISIVE",
+            "stats": ["ontarget_scoring_att"],
+            "picks": 3,
+        },
+        {
+            "id": "tackles",
+            "title": "Tackles",
+            "description": "3+ tackles for 300 XP",
+            "mode": "DECISIVE",
+            "stats": ["won_tackle"],
+            "picks": 3,
+        },
+    ]
+    pool = {
+        "complete": True,
+        "players": [
+            {
+                "player": "a",
+                "name": "A",
+                "rarity": "limited",
+                "pos": "MID",
+                "pic": "",
+                "p": 1,
+                "games": [{"id": "g", "kickoff": "2026-10-09T19:00:00Z"}],
+            }
+        ],
+        "sheets": {"players": {"a": {"season": {"ontarget_scoring_att": [0, 0], "won_tackle": [2, 0]}}}},
+    }
+    result = daily_entry(None, tasks, pool, "limited", datetime(2026, 10, 9, 12, tzinfo=UTC))
+    assert [m["sofix"] for m in result["missions"]] == [[], ["a"]]
 
 
 def test_daily_forecast_keeps_separate_copies_and_uses_single_game_availability():
@@ -128,7 +220,7 @@ def test_rolling_sheets_only_use_scored_starts_before_cutoff():
     }
     sheets = rolling_sheets(rows, {"a": "MID"}, datetime(2026, 10, 8, 12, tzinfo=UTC))
     assert sheets["players"]["a"]["starts"] == 1
-    assert sheets["players"]["a"]["last"][0][4:] == [2, 0, 1]
+    assert sheets["players"]["a"]["last"][0][4:7] == [2, 0, 1]
     assert sheets["players"]["a"]["decAll"] == 1
 
 

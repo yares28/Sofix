@@ -242,7 +242,7 @@ export function missionHistory(logs: MonthLog[], rarity: string, names: Map<stri
         corrected: Boolean(m.override),
         yourPicks: yours.length ? "recorded" : m.override ? "user-empty" : m.source?.appearances ? "confirmed-empty" : "unknown",
         evidence: !forecastRecorded ? "not-recorded" : !cands.size ? "unrated" : settled ? "settled" : "pending",
-        reason: !entry.cands.length ? "No forecast captured before kickoff; eligible cards were not verified." : !sofix.length ? "No supported pre-kickoff recommendation recorded." : undefined,
+        reason: !entry.cands.length ? "No forecast captured before kickoff; eligible cards were not verified." : !sofix.length ? entry.cands.every((c) => c.late) ? "Cards were first seen after kickoff; no pre-kickoff forecast was captured." : m.rule.kind === "unsupported" || m.rule.kind === "score" ? "This target was not rated when the forecast was captured." : "No pre-kickoff picks were recorded from the available evidence." : undefined,
         loaded: entry.loaded,
         sofix,
         yours,

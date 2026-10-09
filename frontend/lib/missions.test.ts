@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { atLeast, fit, isToday, missionDay, missionsLoadNote, plan, rewardOf, ruleOf, type MissionRow } from "./missions";
+import { atLeast, fit, isToday, missionDay, missionsLoadNote, missionValues, plan, rewardOf, ruleOf, type MissionRow } from "./missions";
 import type { PlayingPlayer } from "./play";
 import type { Sheet } from "./playerSheet";
 
@@ -9,6 +9,12 @@ const INTERCEPTION = row("Interception - All Matches", "Classic: Pick a player w
 const ASSIST = row("Assist - All Matches", "Classic: Pick a player who gets an assist in any match and win 50 All-Star Essence per correct choice.");
 
 describe("what a mission asks and pays", () => {
+  it("recognises the imported shot and tackle targets and keeps the count in Sorare's wording", () => {
+    expect(ruleOf(row("Shot - All Matches", "Pick a player who makes 2+ shots on target", { stats: ["ontarget_scoring_att"] }))).toMatchObject({ kind: "shot", atLeast: 2 });
+    expect(ruleOf(row("Tackle - All Matches", "Pick a player who wins 3+ tackles", { stats: ["won_tackle"] }))).toMatchObject({ kind: "tackle", atLeast: 3 });
+    expect(ruleOf({ ...INTERCEPTION, stats: ["interception_won"] })).toMatchObject({ kind: "interception", atLeast: 2 });
+    expect(ruleOf(row("Shots", "2+ shots on target", { thresholds: [{ stat: "ontarget_scoring_att", min: 4 }] }))).toMatchObject({ kind: "shot", atLeast: 4 });
+  });
   it("does not turn a compound or custom decisive target into a generic decisive estimate", () => {
     expect(ruleOf({ ...DECISIVE, thresholds: [{ stat: "goals", min: 1 }, { stat: "goal_assist", min: 1 }] }).kind).toBe("unsupported");
     expect(ruleOf({ ...DECISIVE, stats: ["goals"] })).toMatchObject({ kind: "goal", atLeast: 1 });
@@ -62,6 +68,21 @@ const player = (slug: string, over: Partial<PlayingPlayer> = {}): PlayingPlayer 
 const NOW = new Date("2026-10-10T10:00:00Z"); // after the 08:00 UTC reset: the mission day of 10 Oct
 
 describe("a card's fit to a mission", () => {
+  it("rates shots and tackles from their own stat and does not show decisive history as target hits", () => {
+    const evidence = sheet({ season: { ontarget_scoring_att: [1.5, 0], won_tackle: [2, 0] }, last: [[50, "BET", 1, "H", 0, 0, 0, 2, 3], [50, "BET", 0, "H", 0, 0, 0, 1, 2]] });
+    const shots = ruleOf(row("Shot", "2+ shots on target", { stats: ["ontarget_scoring_att"] }));
+    const tackles = ruleOf(row("Tackle", "3+ tackles", { stats: ["won_tackle"] }));
+    expect(fit(shots, player("a"), evidence)?.chance).toBeCloseTo(0.9 * atLeast(2, 1.5));
+    expect(fit(tackles, player("a"), evidence)?.chance).toBeCloseTo(0.9 * atLeast(3, 2));
+    expect(missionValues(shots, evidence)).toEqual([2, 1]);
+    expect(missionValues(tackles, evidence)).toEqual([3, 2]);
+    expect(missionValues(shots, sheet())).toEqual([]); // old tuples did not capture shots
+  });
+  it("leaves a missing target baseline unrated instead of presenting it as zero", () => {
+    const rule = ruleOf(row("Shot", "2+ shots on target", { stats: ["ontarget_scoring_att"] }));
+    expect(fit(rule, player("a"), sheet())).toBeNull();
+    expect(fit(rule, player("a"), sheet({ season: { ontarget_scoring_att: [0, 0] } }))?.chance).toBe(0);
+  });
   it("uses the next game's playing chance rather than an aggregate across several gameweeks", () => {
     const p = player("a", { p: 0.99, pStart: 0.05, pOn: 0.05 });
     expect(fit({ kind: "goal", atLeast: 1, label: "goal" }, p, sheet({ season: { goals: [1, 0] } }))?.chance).toBeCloseTo(0.1 * (1 - Math.exp(-1)));
@@ -87,6 +108,14 @@ describe("a card's fit to a mission", () => {
 describe("who goes to which mission", () => {
   const sheets = { a: sheet({ season: { interception_won: [3.0, 4] } }), b: sheet({ season: { interception_won: [1.0, 2] } }), c: sheet({ season: { interception_won: [0.2, 1] } }) };
   const players = [player("a"), player("b"), player("c")];
+
+  it("does not reserve a card for a zero-rate clue target over a positive-rate XP target", () => {
+    const shot = row("Shot", "2+ shots on target for 1 Clue", { stats: ["ontarget_scoring_att"], rewards: [{ type: "ClueRewardConfig", amount: 1, label: "Highest Tier Clue" }] });
+    const tackle = row("Tackle", "3+ tackles for 300 XP", { stats: ["won_tackle"] });
+    const { plans } = plan([shot, tackle], "limited", [player("a")], { a: sheet({ season: { ontarget_scoring_att: [0, 0], won_tackle: [2, 0] } }) }, NOW);
+    expect(plans[0]?.picks).toEqual([]);
+    expect(plans[1]?.picks.map((p) => p.slug)).toEqual(["a"]);
+  });
 
   it("gives each card to one mission only, the likeliest pairs first, as many as it has picks left", () => {
     const withAssists = { ...sheets, c: sheet({ season: { interception_won: [0.2, 1], goal_assist: [0.5, 3] } }) };

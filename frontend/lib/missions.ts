@@ -79,8 +79,21 @@ export type Rule =
   | { kind: "interception"; atLeast: number; label: string }
   | { kind: "assist"; atLeast: number; label: string }
   | { kind: "goal"; atLeast: number; label: string }
+  | { kind: "shot"; atLeast: number; label: string }
+  | { kind: "tackle"; atLeast: number; label: string }
   | { kind: "score"; label: string }
   | { kind: "unsupported"; label: string };
+
+const COUNTS = {
+  interception: { stat: "interception_won", words: /interceptions?/, label: "interceptions", index: 4 },
+  assist: { stat: "goal_assist", words: /assists?/, label: "assists", index: 5 },
+  goal: { stat: "goals", words: /goals?/, label: "goals", index: 6 },
+  shot: { stat: "ontarget_scoring_att", words: /shots?\s+on\s+target/, label: "shots on target", index: 7 },
+  tackle: { stat: "won_tackle", words: /tackles?(?:\s+won)?/, label: "tackles won", index: 8 },
+} as const;
+type CountKind = keyof typeof COUNTS;
+const statKind = (stat: string) => (Object.keys(COUNTS) as CountKind[]).find((k) => COUNTS[k].stat === stat);
+const wordCount = (text: string, kind: CountKind) => Number(new RegExp(`(\\d+)\\s*\\+\\s*${COUNTS[kind].words.source}`, "i").exec(text)?.[1] ?? 1);
 
 /** The rule in the mission's own words: "2+ interceptions", an assist, a goal, beating his average, or any positive decisive action. */
 export function ruleOf(mission: Pick<MissionRow, "title" | "description"> & Partial<MissionRow>): Rule {
@@ -88,20 +101,23 @@ export function ruleOf(mission: Pick<MissionRow, "title" | "description"> & Part
   if (mission.thresholds?.length) {
     if (mission.thresholds.length !== 1) return { kind: "unsupported", label: mission.description || "Combined stat target" };
     const target = mission.thresholds[0]!;
-    const kind = ({ interception_won: "interception", goal_assist: "assist", goals: "goal" } as const)[target.stat as "goals"];
-    if (kind) return { kind, atLeast: target.min, label: `${target.min}+ ${target.stat.replaceAll("_", " ")}` };
+    const kind = statKind(target.stat);
+    if (kind) return { kind, atLeast: target.min, label: `${target.min}+ ${COUNTS[kind].label}` };
     return { kind: "unsupported", label: mission.description || `Target: ${target.stat}` };
   }
   const stats = mission.stats ?? [];
   if (stats.length) {
-    const kind = stats.length === 1 ? ({ goals: "goal", goal_assist: "assist", interception_won: "interception" } as const)[stats[0] as "goals"] : undefined;
-    if (kind) return { kind, atLeast: 1, label: `1+ ${stats[0]!.replaceAll("_", " ")}` };
+    const kind = stats.length === 1 ? statKind(stats[0]!) : undefined;
+    if (kind) { const atLeast = wordCount(`${mission.title} ${mission.description}`, kind); return { kind, atLeast, label: `${atLeast}+ ${COUNTS[kind].label}` }; }
     const standard = ["goals", "goal_assist", "assist_penalty_won", "clearance_off_line", "last_man_tackle", "penalty_save"];
     if (!standard.every((s) => stats.includes(s)) || stats.some((s) => ![...standard, "clean_sheet_60"].includes(s))) return { kind: "unsupported", label: mission.description || "Custom decisive target" };
     return { kind: "decisive", label: "a decisive action" };
   }
   const text = `${mission.title} ${mission.description}`;
   const count = (word: RegExp) => Number(new RegExp(`(\\d+)\\s*\\+\\s*${word.source}`, "i").exec(text)?.[1] ?? 1);
+  for (const kind of ["shot", "tackle"] as const) if (new RegExp(COUNTS[kind].words.source, "i").test(text)) {
+    const atLeast = wordCount(text, kind); return { kind, atLeast, label: `${atLeast}+ ${COUNTS[kind].label}` };
+  }
   if (/interception/i.test(text)) {
     const atLeast = count(/interceptions?/);
     return { kind: "interception", atLeast, label: `${atLeast}+ interceptions` };
@@ -168,14 +184,17 @@ const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.l
 /** The last `n` of his ten recorded starts, newest first as `last` is oldest first. */
 const newest = (sheet: Sheet, n: number) => sheet.last.slice(-n);
 
+/** Actual captured target counts, oldest first. Older sheets without these columns stay unknown. */
+export function missionValues(rule: Rule, sheet: Sheet | null | undefined): number[] {
+  if (!sheet || rule.kind === "unsupported") return [];
+  const index = rule.kind === "decisive" ? 2 : rule.kind === "score" ? 0 : COUNTS[rule.kind].index;
+  return sheet.last.map((row) => row[index]).filter((n): n is number => typeof n === "number" && Number.isFinite(n));
+}
+
 /** His chance of the rule in his game that day, and what he did per start over 5, 8 and two seasons; null when nothing can be said (no number for him). */
 export function fit(rule: Rule, player: PlayingPlayer, sheet: Sheet | null): { chance: number; average: Window } | null {
   if (rule.kind === "score" || rule.kind === "unsupported") return null;
   const play = Math.min(1, Math.max(0, player.pStart !== undefined && player.pOn !== undefined ? player.pStart + player.pOn : player.p));
-  const count = (index: 4 | 5 | 6) => ({
-    l5: mean(newest(sheet!, 5).map((r) => r[index])),
-    l8: mean(newest(sheet!, 8).map((r) => r[index])),
-  });
   if (rule.kind === "decisive") {
     const conditional = player.shape?.p ?? sheet?.decAll;
     const chance = conditional === undefined ? undefined : player.pStart !== undefined && player.pOn !== undefined && player.onShape
@@ -186,10 +205,11 @@ export function fit(rule: Rule, player: PlayingPlayer, sheet: Sheet | null): { c
     return { chance, average: { l5, l8, season: sheet ? sheet.decAll : chance } };
   }
   if (!sheet) return null;
-  const key = rule.kind === "interception" ? "interception_won" : rule.kind === "assist" ? "goal_assist" : "goals";
-  const index = rule.kind === "interception" ? 4 : rule.kind === "assist" ? 5 : 6;
-  const season = sheet.season[key]?.[0] ?? 0;
-  return { chance: play * atLeast(rule.atLeast, season), average: { ...count(index), season } };
+  const key = COUNTS[rule.kind].stat;
+  const season = sheet.season[key]?.[0];
+  if (season === undefined || !Number.isFinite(season)) return null;
+  const values = missionValues(rule, sheet);
+  return { chance: play * atLeast(rule.atLeast, season), average: { l5: mean(values.slice(-5)), l8: mean(values.slice(-8)), season } };
 }
 
 /**
@@ -241,13 +261,13 @@ export function plan(
         continue;
       }
       const sheet = sheets[p.player!];
-      const index = one.rule.kind === "interception" ? 4 : one.rule.kind === "assist" ? 5 : one.rule.kind === "goal" ? 6 : 2;
+      const values = missionValues(one.rule, sheet);
       const threshold = "atLeast" in one.rule ? one.rule.atLeast : 1;
-      const hits = (n: number) => sheet ? mean(newest(sheet, n).map((r) => Number(Number(r[index]) >= threshold))) : 0;
+      const hits = (n: number) => mean(values.slice(-n).map((v) => Number(v >= threshold)));
       const pick = { slug: p.player!, card: (p as PlayingPlayer & { card?: string }).card, game: game.id, team: game.team, competition: game.competition, pStart: game.pStart ?? p.pStart, startSource: game.startSource ?? p.startSource,
         name: p.name, pos: p.pos, pic: p.pic, club: p.club, opponent: game.opponent, venue: game.venue, kickoff: game.kickoff, chance: found.chance, average: found.average, cards: p.cards,
-        samples: { l5: Math.min(5, sheet?.last.length ?? 0), l8: Math.min(8, sheet?.last.length ?? 0), baseline: sheet?.starts ?? 0 }, hits: { l5: hits(5), l8: hits(8), season: sheet?.decAll ?? 0 } };
-      pairs.push({ plan: one, pick });
+        samples: { l5: Math.min(5, values.length), l8: Math.min(8, values.length), baseline: sheet?.starts ?? 0 }, hits: { l5: hits(5), l8: hits(8), season: sheet?.decAll ?? 0 } };
+      if (pick.chance > 0) pairs.push({ plan: one, pick });
       one.all.push(pick);
     }
     one.all.sort((a, b) => b.chance - a.chance);

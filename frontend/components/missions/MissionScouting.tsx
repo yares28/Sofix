@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import CardArt from "../cards/CardArt";
-import { fit, missionDay, type MissionPlan } from "../../lib/missions";
+import { fit, missionDay, missionValues, type MissionPlan } from "../../lib/missions";
 import type { MissionPool, MissionPlayer } from "../../lib/missionsPool";
 import { SOURCE_SHORT } from "../../lib/play";
 import { cardCopyLabel, sampleLabel } from "../../lib/missionPresentation";
@@ -29,16 +29,15 @@ export default function MissionScouting({ plans, players, pool, now, rarity, sho
     const eligible = one?.mission.eligibleCards?.[game.id ?? ""];
     const allowed = eligible && p.card ? eligible.includes(p.card) : null;
     const status = p.eligibility ?? (own ? "Already selected" : locked ? "Locked" : allowed === true ? "Eligible on Sorare" : allowed === false ? "Not eligible for this mission" : "Eligibility not checked on Sorare");
-    const index = one?.rule.kind === "interception" ? 4 : one?.rule.kind === "assist" ? 5 : one?.rule.kind === "goal" ? 6 : one?.rule.kind === "score" ? 0 : 2;
     const threshold = !one || one.rule.kind === "unsupported" ? undefined : "atLeast" in one.rule ? one.rule.atLeast : one.rule.kind === "score" ? one.mission.thresholds?.[0]?.min : 1;
-    const window = (n: number) => { const last = sheet?.last.slice(-n) ?? []; return { n: last.length, mean: last.length && one.rule.kind !== "unsupported" ? last.reduce((s, r) => s + Number(r[index]), 0) / last.length : null,
-      hits: threshold === undefined ? null : last.filter((r) => Number(r[index]) >= threshold).length }; };
+    const window = (n: number) => { const last = missionValues(one.rule, sheet).slice(-n); return { n: last.length, mean: last.length ? last.reduce((s, v) => s + v, 0) / last.length : null,
+      hits: threshold === undefined ? null : last.filter((v) => v >= threshold).length }; };
     return [{ id, p, game, sheet, found: allowed === false ? null : found, own, locked, status, allowed, l5: window(5), l8: window(8) }];
   });
   const filtered = rows.filter(({ p, own, locked, allowed }) => p.name.toLowerCase().includes(query.toLowerCase()) && (!position || p.pos === position) && (!availability || (availability === "editable" ? !locked && !own && !p.eligibility && allowed !== false : availability === "selected" ? own : shortlist.includes(p.card ?? p.player ?? ""))));
   filtered.sort((a, b) => sort === "kickoff" ? a.game.kickoff.localeCompare(b.game.kickoff) : sort === "recent" ? (b.l8.hits ?? -1) / (b.l8.n || 1) - (a.l8.hits ?? -1) / (a.l8.n || 1) : sort === "stat" ? (b.l8.mean ?? -1) - (a.l8.mean ?? -1) : (b.found?.chance ?? -1) - (a.found?.chance ?? -1));
   const stats = (w: { n: number; mean: number | null; hits: number | null }) => w.n ? `${w.hits === null ? "Target history unavailable" : `${w.hits}/${w.n} hit target`}${w.mean === null ? "" : ` · ${w.mean.toFixed(1)} mean`}` : "";
-  const recent = (r: typeof rows[number]) => <><span>{sampleLabel(r.l5.n, 5)}{r.l5.n ? `: ${stats(r.l5)}` : ""}</span>{r.l8.n > r.l5.n ? <span>{sampleLabel(r.l8.n, 8)}: {stats(r.l8)}</span> : null}</>;
+  const recent = (r: typeof rows[number]) => <><span>{!r.l5.n && r.sheet?.last.length ? "Recent target counts were not captured." : sampleLabel(r.l5.n, 5)}{r.l5.n ? `: ${stats(r.l5)}` : ""}</span>{r.l8.n > r.l5.n ? <span>{sampleLabel(r.l8.n, 8)}: {stats(r.l8)}</span> : null}</>;
   const copies = (r: typeof rows[number]) => {
     const available = rows.filter((x) => x.p.player === r.p.player && !x.locked && !x.own && !x.p.eligibility);
     const confirmed = available.filter((x) => x.allowed === true).length;

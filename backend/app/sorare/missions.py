@@ -35,7 +35,20 @@ GAMES_PER_RUN = 15  # games read from Sorare in one refresh (two questions each)
 # The positive decisive actions, as `detailedScore` names them (checked in the games export), when a mission does not list its own. A clean sheet is
 # decisive for a goalkeeper only.
 DECISIVE_STATS = ("goals", "goal_assist", "assist_penalty_won", "clearance_off_line", "last_man_tackle", "penalty_save")
-COUNTS = {"interception": "interception_won", "assist": "goal_assist", "goal": "goals"}
+COUNTS = {
+    "interception": "interception_won",
+    "assist": "goal_assist",
+    "goal": "goals",
+    "shot": "ontarget_scoring_att",
+    "tackle": "won_tackle",
+}
+COUNT_WORDS = {
+    "interception": r"interceptions?",
+    "assist": r"assists?",
+    "goal": r"goals?",
+    "shot": r"shots?\s+on\s+target",
+    "tackle": r"tackles?(?:\s+won)?",
+}
 RECENT = 30  # mission days the page lists
 
 
@@ -354,6 +367,11 @@ def mission_day(now: datetime) -> str:
 
 def _rule(m: dict[str, Any]) -> dict[str, Any]:
     text = f"{m['title']} {m['description']}"
+
+    def count(kind: str) -> int:
+        found = re.search(r"(\d+)\s*\+\s*" + COUNT_WORDS[kind], text, re.I)
+        return int(found[1]) if found else 1
+
     if m["mode"] == "SCORE":
         return {"kind": "score", "label": m["description"]}
     targets = m.get("thresholds") or []
@@ -365,9 +383,10 @@ def _rule(m: dict[str, Any]) -> dict[str, Any]:
     stats = m.get("stats") or []
     if stats:
         if len(stats) == 1 and stats[0] in COUNTS.values():
+            kind = next(k for k, v in COUNTS.items() if v == stats[0])
             return {
-                "kind": next(k for k, v in COUNTS.items() if v == stats[0]),
-                "atLeast": 1,
+                "kind": kind,
+                "atLeast": count(kind),
                 "label": m["description"],
             }
         if not all(s in stats for s in DECISIVE_STATS) or any(
@@ -376,9 +395,8 @@ def _rule(m: dict[str, Any]) -> dict[str, Any]:
             return {"kind": "unsupported", "label": m["description"]}
         return {"kind": "decisive", "label": m["description"]}
     for kind in COUNTS:
-        if re.search(kind, text, re.I):
-            count = re.search(r"(\d+)\s*\+\s*" + kind, text, re.I)
-            return {"kind": kind, "atLeast": int(count[1]) if count else 1, "label": m["description"]}
+        if re.search(COUNT_WORDS[kind], text, re.I):
+            return {"kind": kind, "atLeast": count(kind), "label": m["description"]}
     return {"kind": "decisive" if "decisive" in text.lower() else "unsupported", "label": m["description"]}
 
 
@@ -526,7 +544,7 @@ def daily_entry(
             (float(c["c"][m["key"]]), c, m)
             for m in missions
             for c in cands
-            if not c.get("late") and m["key"] in c["c"] and _when(c["k"]) > now
+            if not c.get("late") and m["key"] in c["c"] and c["c"][m["key"]] > 0 and _when(c["k"]) > now
         ],
         key=lambda x: (
             0

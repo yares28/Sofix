@@ -63,7 +63,10 @@ def rolling_sheets(history: dict[str, Any], positions: dict[str, str], now: date
                     "",
                     decisive(g),
                     "H",
-                    *[float(g["stats"].get(k) or 0) for k in ("interception_won", "goal_assist", "goals")],
+                    *[
+                        float(g["stats"].get(k) or 0)
+                        for k in ("interception_won", "goal_assist", "goals", "ontarget_scoring_att", "won_tackle")
+                    ],
                 ]
                 for g in starts[-10:]
             ],

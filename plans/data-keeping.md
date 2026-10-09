@@ -152,6 +152,16 @@ the same commit: `docs/user_manual.md`, `docs/how_it_works.md` (the tables, who 
 
 ## Results
 
+- **9 Oct 2026 - post-deployment source-query repair:** Vercel `58bec09` deployed and all 13 production pages returned
+  200; the refresh workflow completed successfully. Its log and a SELECT nevertheless showed fresh history had not
+  arrived: Sorare rejected `decisiveScore` on `PlayerGameScoreInterface`. The history query now reads football-only
+  fields inside `... on PlayerGameScore`, as the working exporter does. The same log exposed a pre-existing rejection
+  of repeated `anyGame` root fields, even with aliases; projection reads now ask one game at a time through the paced
+  client. Both regressions failed first, then all 14 focused query/history tests passed. One small keyless, read-only
+  live history query was accepted and returned detailed stats and a decisive level. The just-dispatched daily
+  verification run was cancelled to avoid repeating the rejected query; it will be restarted on the fix. Step 6 is
+  in progress locally; its archive/scorer contract tests and new Recap/Cards/Rewards page test pass.
+
 - **9 Oct 2026 - production migration and seed completed:** after explicit owner approval, applied exactly
   `3ce433a96bed` on the confirmed production branch and verified all four tables. The approved one-off seed ran with
   the DML-only app role: 29,094 rows for 1,020 players, including 24,990 rows in 2025/26 and 4,104 in 2026/27;

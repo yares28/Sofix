@@ -105,7 +105,7 @@ query($p:String!,$from:ISO8601DateTime!,$to:ISO8601DateTime!,$after:String){ any
 # (the scheduled refresh has one). Keyless reads preserve previously saved cards and stats.
 HISTORY_CARDS = HISTORY.replace(
     "score scoreStatus",
-    "score scoreStatus positionTyped decisiveScore { totalScore } detailedScore { stat statValue totalScore }",
+    "score scoreStatus positionTyped ... on PlayerGameScore { decisiveScore { totalScore } detailedScore { stat statValue totalScore } }",
 ).replace("gameStarted minsPlayed", "gameStarted minsPlayed anyTeam { slug name }")
 
 GAMES = """
@@ -531,7 +531,7 @@ def history(
 
 GAME_ID = re.compile(r"^Game:[0-9a-f-]{36}$")
 GAME_PROJECTIONS = '{alias}: anyGame(id: "{id}") {{ ... on Game {{ id playerGameScores {{ projection {{ score grade }} anyPlayer {{ slug }} }} }} }}'
-PROJECTION_BATCH = 8  # games per question: about 700 players, well inside the keyed complexity limit
+PROJECTION_BATCH = 1  # federation rejects repeated anyGame root fields, even when aliased; client paces each read
 
 
 def game_projections(client: SorareClient, game_ids: list[str]) -> dict[str, dict[str, dict[str, Any]]]:

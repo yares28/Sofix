@@ -178,6 +178,9 @@ The rolling mission sheets accept detailed saved action counts as well as older 
 
 **Start chances for every player on Lineups.** `lib/lineupChances.ts` joins the owner's forecasts to each match first, then every other LaLiga player through his Futbol Fantasy link in `market`, so Sofix's and Sorare's start chance shows beside Futbol Fantasy's for players he does not own too.
 
+The history query reads decisive levels and detailed stats on the concrete `PlayerGameScore` type. Sorare's federation
+rejects repeated `anyGame` roots even with aliases, so per-game projection reads run sequentially through the paced client.
+
 **The Players page (plans/data-keeping.md step 4).** `/players/<slug>` draws this week's game from the same `shape` as the
 panel. `lib/playerGames.ts` reads parameterized `player_games` and `player_absences` queries, cached for one hour under
 the `sorare` tag. The local FastAPI equivalents are `/api/players/{slug}/games` and `/api/player-sheets`.

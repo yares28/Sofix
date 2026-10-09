@@ -3,16 +3,18 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from io import StringIO
 from pathlib import Path
 from typing import Any
 
+import httpx
 import numpy as np
 import pandas as pd
 from sqlalchemy.orm import Session
 
-from app.backtest.data import MATCH_COLUMNS, normalize_season
+from app.backtest.data import MATCH_COLUMNS, load_history, normalize_season
 from app.backtest.metrics import outcome_index, ranked_probability_score
 from app.models import Fixture, MarketOdds, MatchForecast, MatchOdds, Team
 from app.services.team_registry import by_code, by_history_name
@@ -51,6 +53,25 @@ def cached_history(cache_dir: str) -> pd.DataFrame:
 
 def valid_prices(values: Any) -> bool:
     return all(value is not None and np.isfinite(value) and value > 1 for value in values)
+
+
+def bootstrap_history(
+    db: Session, cache_dir: str, now: datetime, season_start: int, load: Callable[..., pd.DataFrame] = load_history
+) -> bool:
+    """A runner's cache may hold only five seasons. Fetch missing older CSVs once, then reuse them forever."""
+    kept = {
+        int(season.split("/")[0]) for (season,) in db.query(MatchOdds.season).filter(MatchOdds.source == CSV).distinct()
+    }
+    missing = sorted(set(range(2016, season_start - 4)) - kept)
+    if not missing:
+        return True
+    try:
+        history = load(missing, cache_dir, refresh_latest=False)
+        keep_history(db, history, now)
+        return set(missing) <= set(history["season_start"])
+    except (httpx.HTTPError, OSError, ValueError, RuntimeError) as exc:
+        logger.warning("older odds archive unavailable (%s); keeping saved prices", type(exc).__name__)
+        return False
 
 
 def fixture_index(db: Session) -> dict[tuple[str, str, str], list[Fixture]]:

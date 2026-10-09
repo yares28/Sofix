@@ -152,6 +152,13 @@ the same commit: `docs/user_manual.md`, `docs/how_it_works.md` (the tables, who 
 
 ## Results
 
+- **9 Oct 2026 - step 7 deployed, archive coverage follow-up:** `f05e222` deployed; `check.mjs --live /audit` returned
+  All clear, all 13 pages 200, with CI in progress and automatic refresh pending at that snapshot. A later SELECT while
+  the refresh was running confirmed 1,609 price readings and 311 forecasts. It exposed that GitHub's cache held only
+  2022/23 onward, unlike the PC's 2016/17 cache. Missing older CSV seasons are now read once through normal cached
+  ingestion, independently of the model inputs; a source failure leaves predictions and saved prices available. The
+  bootstrap regression failed first, then all 18 focused storage/rollover tests passed. No manual production seed was run.
+
 - **9 Oct 2026 - step 7:** cached and fresh CSV prices/results now persist per match and source, with registry identities
   and the selected price column. Live odds keep their last pre-kick-off reading before deletion. CSV prices still take
   priority; saved rows fill gaps without duplicate games, and a complete CSV outage still allows predictions from saved

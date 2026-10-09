@@ -432,6 +432,7 @@ Forecasts update until kick-off and then stay fixed. Closing CSV prices come fir
 price. Both RPS error scores wait for 100 paired results; lower is better. Missing prices or results stay pending.
 The odds record keeps its own copy of prices and says **Odds up to** the newest saved match date. A source stopping
 only stops new readings; saved prices remain available.
+Older seasons back to 2016/17 are read once if the runner's cache did not already hold them.
 
 The Audit page never writes to Sorare. It is rebuilt by each refresh; "The audit appears after the next refresh" means none has
 written it yet.

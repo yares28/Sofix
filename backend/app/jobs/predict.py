@@ -223,6 +223,7 @@ def predict_upcoming(
             raise
         history_source = "stored matches"
         logger.warning("match history unavailable (%s); using saved matches", type(exc).__name__)
+    archive_complete = history_source == "CSV" and kept_matches.bootstrap_history(db, cache_dir, now, start, load)
     history = merge_recent_results(history, recent_results_frame(db, teams_by_id, season))
 
     upcoming = upcoming_fixtures(db, season, now)
@@ -262,6 +263,7 @@ def predict_upcoming(
         "record_bands": len(record.league),
         "odds_through": record.through,
         "history_source": history_source,
+        "odds_archive_complete": archive_complete,
         "promoted": sorted(promoted),
         **problems,
     }

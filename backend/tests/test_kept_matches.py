@@ -202,3 +202,25 @@ def test_redated_fixture_counts_once_with_its_latest_saved_api_price(seeded):
     seeded.commit()
     recovered = kept_matches.fill_history(seeded, history().iloc[:0])
     assert len(recovered) == 1 and recovered.iloc[0].odds_h == 2.0
+
+
+def test_missing_older_csv_seasons_are_bootstrapped_once_without_changing_model_history(seeded, tmp_path):
+    calls = []
+
+    def load(years, cache_dir, refresh_latest=False):
+        calls.append(list(years))
+        return pd.concat(
+            [history().assign(season_start=year, date=pd.Timestamp(year=year, month=8, day=16)) for year in years]
+        )
+
+    assert kept_matches.bootstrap_history(seeded, str(tmp_path), NOW, 2026, load)
+    assert calls == [list(range(2016, 2022))]
+    assert seeded.query(MatchOdds).count() == 6
+    assert kept_matches.bootstrap_history(seeded, str(tmp_path), NOW, 2026, load)
+    assert len(calls) == 1
+
+    def gone(*args, **kwargs):
+        raise OSError("source unavailable")
+
+    assert not kept_matches.bootstrap_history(seeded, str(tmp_path), NOW, 2027, gone)
+    assert seeded.query(MatchOdds).count() == 6

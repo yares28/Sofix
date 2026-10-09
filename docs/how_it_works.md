@@ -339,7 +339,9 @@ Two read models keep plan and whole-week metadata alongside those per-game rows 
 
 **Permanent match history (data-keeping step 7).** `predict_upcoming` first saves every available cached LaLiga CSV season
 and its newly loaded matches into `match_odds`, including closing/pre-match prices, results and the selected price column.
-Registry codes link clubs; historical clubs without a registry entry retain their source name. CSVs take priority and
+Registry codes link clubs; historical clubs without a registry entry retain their source name. The
+missing older seasons back to 2016/17 are fetched once with ordinary CSV caching, independently of the model's five-season
+input. A failed archive read leaves normal predictions and already saved prices available. CSVs take priority and
 saved rows fill gaps without counting a match twice (UTC/local dates may differ by one day). With no CSV source/cache,
 the job fits from saved results; shots are unavailable in that fallback, so it uses goals. The normal model and five-season
 odds record are unchanged. The run reports its history source and newest priced match; cached network failures retain an

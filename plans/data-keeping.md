@@ -152,6 +152,29 @@ the same commit: `docs/user_manual.md`, `docs/how_it_works.md` (the tables, who 
 
 ## Results
 
+- **9 Oct 2026 - step 8:** one `data_health` model, published by refresh and daily games jobs, now covers all five kept
+  datasets on Control under Last refreshes: game rows/players, priced matches/source, forecasts, absence spells and owner
+  weeks, with dates and last read/save times. Pending game rows, future priced matches and unclosed absence spells are
+  labelled honestly. Recorded failures/fallbacks and partial reads warn without deleting data or exposing raw errors;
+  throttles cannot hide an unresolved odds outage and confirmed returns update absence freshness. The UI validates one
+  cached published payload; missing/malformed health is "Not checked yet", distinct from zero saved rows. No polling,
+  source calls, dependency, migration or direct production write was added. Coverage and return/page regressions failed
+  first; 18 focused backend/publisher tests pass. Real coverage copied by one SELECT showed 30,462 game rows/1,025
+  players, 1,609 price readings, 311 forecasts, 62 absence spells and no owner weeks at that snapshot. Real-data Control
+  screenshots and a locally simulated source failure at 1440/390 px were inspected, with no overflow/small text and
+  whole-section axe passing. Existing tiny Control labels were raised to the text floor; guidelines review completed.
+  Manual, calculation guide, TODO and roadmap updated. The final `node scripts/check.mjs` passed all backend/frontend
+  checks; all 14 Control/mobile browser tests passed. Earlier runs caught and fixed locale-specific date wording in a
+  test and pre-existing small Control labels. Deployment verification follows the push.
+  All eight implementation steps are built; the owner Chrome archive check and growing live Audit samples remain.
+
+- **9 Oct 2026 - archive fix deployed:** `2693e03` deployed; `check.mjs --live /audit` returned All clear, all 13 pages
+  200. Frontend CI succeeded; backend/e2e CI and the automatic refresh were in progress at that snapshot. No CI or
+  refresh wait/poll was used. Missing older CSV seasons are handled by normal ingestion, not a manual production seed.
+  One SELECT after that push confirmed the archive now starts in 2016/17: 3,889 price readings (3,869 CSV plus 20 API),
+  with 311 forecasts. The refresh was still running at that data snapshot; it was not awaited. Final Control proof used
+  these real counts and a separately labelled local source-failure simulation.
+
 - **9 Oct 2026 - step 7 deployed, archive coverage follow-up:** `f05e222` deployed; `check.mjs --live /audit` returned
   All clear, all 13 pages 200, with CI in progress and automatic refresh pending at that snapshot. A later SELECT while
   the refresh was running confirmed 1,609 price readings and 311 forecasts. It exposed that GitHub's cache held only

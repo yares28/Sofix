@@ -27,12 +27,15 @@ import HowItRuns from "./control/HowItRuns";
 import LeagueButton from "./control/LeagueButton";
 import RefreshSetup from "./control/RefreshSetup";
 import RefreshButton from "./RefreshButton";
+import SavedData from "./control/SavedData";
+import type { DataHealth } from "../lib/dataHealth";
 
 export type ControlCenterProps = {
   /** The server's clock at render, so the first paint matches hydration; the browser's clock takes over after. */
   serverNow: string;
   syncedAt: string | null;
   system: SystemStatus | null;
+  health?: DataHealth | null;
   /** The Sorare gameweek, when the job has published one: the panel says whether it is still worth acting on. */
   sorare: Sorare | null;
   refreshEnabled: boolean;
@@ -160,7 +163,7 @@ function ChainLink({ node, next, index }: { node: ChainNode; next?: ChainNode; i
  * The Control Center page: status, today's schedule, the last refreshes, the connection chain and the free limits,
  * then whatever setup is left, installing the app, and how it all runs. Design: docs/sorare/design/S1-foundation.html.
  */
-export default function ControlCenter({ serverNow, syncedAt, system: stored, sorare, refreshEnabled, app, extensionDir, links }: ControlCenterProps) {
+export default function ControlCenter({ serverNow, syncedAt, system: stored, sorare, health = null, refreshEnabled, app, extensionDir, links }: ControlCenterProps) {
   const router = useRouter();
   const [now, setNow] = useState(() => new Date(serverNow));
   const [live, setLive] = useState<ExtensionPing | null>(null);
@@ -336,6 +339,8 @@ export default function ControlCenter({ serverNow, syncedAt, system: stored, sor
             </div>
           ) : null}
         </section>
+
+        <SavedData data={health} now={now} />
 
         <section className="cc-w cc-chain" style={{ "--i": 3 } as React.CSSProperties} aria-labelledby="cc-chain-title">
           <h2 className="cc-label" id="cc-chain-title">

@@ -84,6 +84,8 @@ def test_the_job_reads_the_refreshs_laliga_list_and_writes_its_status(db) -> Non
     assert {row.player for row in db.query(PlayerGame)} == {"a", "outside-laliga"}
     assert db.get(ReadModel, sorare_job.LEAGUE_HISTORY_KEY) is None, "the rolling JSON is no longer written"
     assert db.get(ReadModel, sorare_job.LEAGUE_STATUS_KEY).payload == status
+    health = db.get(ReadModel, "data_health").payload
+    assert next(row for row in health["datasets"] if row["id"] == "games")["warnings"]
 
 
 def test_a_refresh_reads_the_league_history_and_never_writes_it(db, monkeypatch) -> None:  # noqa: F811

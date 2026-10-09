@@ -354,6 +354,17 @@ writes `match_forecasts` until kick-off, rejecting delayed older writes and all 
 finished results to these frozen forecasts and one price per fixture (CSV first), using the canonical H/D/A RPS on identical
 paired cases. Under 100 matches both scores stay null. Football publishing updates this section even if Sorare fails.
 
+**Kept-data health (data-keeping step 8).** `services/data_health.py` publishes one `data_health` read model from the
+refresh's final publish and the daily games job, even if Sorare's refresh step failed. It aggregates counts, distinct
+players, newest past game, source/price column, forecast fixture dates, absence reports/explicit returns and saved owner
+week dates. Counts include statement/pending game rows; last actual read is separate. Absence spells without a return
+are counted as unclosed, not assumed current injuries. Latest recorded source failures, stored/cached history fallbacks,
+incomplete old-season archives, partial daily reads and FF's failed match reads produce fixed warnings without exposing
+raw errors. Throttled odds calls do not clear an unresolved outage; a successful read does. Calendar age alone never
+guesses a source stopped. Control reads this one validated record with the existing one-hour/system-tag cache; the local
+API serves the same published payload. No source calls, polling or uptime monitor are added. Coverage is dated; owner
+weeks archived between jobs appear at the next health publication.
+
 ## 11. Apply and extension
 
 Public key cannot read private future lineups or mutate them. The extension bridges the existing signed-in tab with
@@ -548,9 +559,9 @@ Schema/runtime: migrations owner-only, dev branch first; unattended schema check
 The data-keeping migration `3ce433a96bed` adds `player_games` (actuals and pre-lock statements), `match_odds`
 (prices per match and source, with optional fixture links), `match_forecasts` (one forecast per fixture), and
 `player_absences` (FF injury/ban spells, optionally linked to a Sorare player). Player-game actuals and statements
-can remain null until read. Game and statement writers are built locally; page readers follow in
-[the data-keeping plan](../plans/data-keeping.md). Production is migrated once before the table-dependent code deploys.
-Nothing is seeded by the migration.
+can remain null until read. Migration and the separately approved historical player-game seed completed on 9 Oct 2026;
+the writers and page readers are shipped. Details and verification are in [the data-keeping plan](../plans/data-keeping.md).
+Nothing was seeded by the migration itself; steps 7–8 need no further migration.
 
 ## 14. Code map
 

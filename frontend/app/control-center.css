@@ -86,7 +86,7 @@ main.cc-page { max-width: calc(1240px + 56px); }
 .cc-dial .night { fill: none; stroke: var(--track); stroke-width: 22; }
 .cc-dial .tick { stroke: var(--ink-3); stroke-width: 1.4; stroke-linecap: round; }
 .cc-dial .tick.major { stroke: var(--ink-2); stroke-width: 2; }
-.cc-dial .lbl { font-size: 10px; font-weight: 600; fill: var(--ink-3); text-anchor: middle; dominant-baseline: middle; }
+.cc-dial .lbl { font-size: 11px; font-weight: 600; fill: var(--ink-3); text-anchor: middle; dominant-baseline: middle; }
 .cc-dial .hand { stroke: var(--ink); stroke-width: 2.4; stroke-linecap: round; }
 .cc-dial .hub { fill: var(--ink); }
 .cc-dial .mark.done { fill: var(--good); }
@@ -109,10 +109,24 @@ main.cc-page { max-width: calc(1240px + 56px); }
 .cc-bar.failed i { background: linear-gradient(180deg, #ff9f8f, #c4312a); }
 .cc-bar.next i { background: repeating-linear-gradient(135deg, #e3e5ea 0 5px, #f3f4f7 5px 10px); box-shadow: inset 0 0 0 1.5px #d1d4db; }
 @keyframes cc-grow { from { transform: scaleY(0); } }
-.cc-bar span { font-size: 10px; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.cc-bar em { font-style: normal; font-size: 10px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.cc-bar span { font-size: 11px; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cc-bar em { font-style: normal; font-size: 11px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
 .cc-runs .cap { margin-top: 10px; font-size: 12px; color: var(--ink-2); }
 .cc-runs .cap b { color: var(--ink); }
+
+/* Kept coverage, directly below the refresh history. */
+.cc-data { grid-column: 1 / -1; }
+.cc-data-at { margin: 0 0 12px; font-size: 13px; line-height: 1.5; color: var(--ink-2); }
+.cc-data dl { margin: 0; }
+.cc-data dl > div { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 13px; line-height: 1.5; }
+.cc-data dt { font-weight: 650; }
+.cc-data dd { margin: 0; min-width: 0; color: var(--ink-2); overflow-wrap: anywhere; }
+.cc-data dd > span { display: block; }
+.cc-data-count { color: var(--ink); }
+.cc-data-warning { display: block; margin-top: 4px; color: var(--amber-ink); font-size: 12px; font-weight: 600; }
+@media (max-width: 700px) {
+  .cc-data dl > div { grid-template-columns: 1fr; gap: 3px; }
+}
 
 /* connections */
 .cc-chain { grid-column: span 7; }
@@ -194,7 +208,7 @@ main.cc-page { max-width: calc(1240px + 56px); }
 .cc-browser .s2 .devbar span:first-child { background: var(--accent); color: #fff; }
 .cc-browser .picker { position: absolute; left: 16px; right: 16px; top: 88px; border-radius: 12px; background: var(--surface); box-shadow: 0 0 0 1px rgba(0,0,0,.1), 0 16px 32px rgba(0,0,0,.16); padding: 10px 12px; font-size: 11px; opacity: 0; transform: scale(.96); transition: all .35s var(--ease); }
 .cc-browser .s2 .picker { opacity: 1; transform: none; }
-.cc-browser .picker code { display: block; margin-top: 6px; padding: 6px 8px; border-radius: 7px; background: var(--hover); font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cc-browser .picker code { display: block; margin-top: 6px; padding: 6px 8px; border-radius: 7px; background: var(--hover); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cc-browser .xcard { margin-top: 14px; display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; box-shadow: inset 0 0 0 1px var(--line); opacity: 0; transform: translateY(8px); transition: all .45s var(--ease); }
 .cc-browser .s3 .xcard { opacity: 1; transform: none; }
 .cc-browser .xcard i { width: 34px; height: 34px; border-radius: 10px; background: var(--stripes); flex: none; }
@@ -229,7 +243,7 @@ main.cc-page { max-width: calc(1240px + 56px); }
 .cc-devices .app { width: 100%; height: 100%; border-radius: 7px; background: var(--bg); overflow: hidden; display: grid; grid-template-rows: 16px 1fr; }
 .cc-devices .bar2 { background: var(--surface); box-shadow: inset 0 -1px 0 var(--line); display: flex; align-items: center; gap: 4px; padding: 0 6px; }
 .cc-devices .bar2 i { width: 7px; height: 7px; border-radius: 2px; background: var(--stripes); }
-.cc-devices .bar2 span { font-size: 7px; font-weight: 600; }
+.cc-devices .bar2 span { font-size: 11px; font-weight: 600; }
 /* A tiny bento: a hero with its ring, two small cards, and three rows of difficulty stripes. */
 .cc-devices .content { height: 100%; padding: 6%; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: 1.2fr 1fr 1fr; gap: 5px; min-height: 0; }
 .cc-devices .content div { border-radius: 5px; background: var(--surface); box-shadow: 0 0 0 1px rgba(0,0,0,.04); display: flex; align-items: center; justify-content: center; }
@@ -243,7 +257,7 @@ main.cc-page { max-width: calc(1240px + 56px); }
 .cc-devices .icons { position: absolute; left: 10%; right: 10%; top: 13%; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10% 7%; }
 .cc-devices .icons i { aspect-ratio: 1; border-radius: 7px; background: color-mix(in srgb, var(--surface) 55%, transparent); }
 .cc-devices .icons i.me { background: var(--stripes); box-shadow: 0 4px 10px rgba(0,0,0,.25); position: relative; animation: cc-drop 3.2s var(--ease) infinite; }
-.cc-devices .icons i.me::after { content: "Sofix"; position: absolute; top: 105%; left: 50%; transform: translateX(-50%); font-size: 5px; color: #fff; white-space: nowrap; font-weight: 600; }
+.cc-devices .icons i.me::after { content: "Sofix"; position: absolute; top: 105%; left: 50%; transform: translateX(-50%); font-size: 11px; color: #fff; white-space: nowrap; font-weight: 600; }
 @keyframes cc-drop { 0% { transform: translateY(-60px) scale(.6); opacity: 0; } 22% { transform: translateY(4px) scale(1.08); opacity: 1; } 30%, 88% { transform: none; opacity: 1; } 100% { opacity: 0; } }
 /* Inside the installed app there is nothing to install. */
 @media (display-mode: standalone) { .cc-app-only { display: none; } }

@@ -40,7 +40,7 @@ last LaLiga game (`own_start`, `forecast.py`), but the form-based chance the pla
 Sorare has a number (`_split`) does not. Futbol Fantasy lists bans for every LaLiga match, so it rarely matters; worth closing
 when the forecast is next touched.
 
-**K. Keep what Sofix reads** (8 Oct): your lineups and essence, every player's games, odds, projections, plus audit-all-players, match forecasts, FF's eleven, full stats, injuries, last season, your season, health on Control. Full plan: [plans/data-keeping.md](plans/data-keeping.md).
+**K. Keep what Sofix reads** (8 Oct): items 1–6 and picked upgrades U1, U2, U3, U4, U6, U7, U8, U9 are implemented (9 Oct): your lineups and essence, every player's games, odds, projections, the expanded Audit, match forecasts, FF's eleven, full stats, injuries, last season, your season and health on Control. Owner Chrome archive check remains. Full plan and checks: [plans/data-keeping.md](plans/data-keeping.md).
 
 **Closed since (checked 7 Oct):** the `source-map-js` advisory (`40f5288`); the old Sorare row on Home is gone; Missions reads your
 picks (`taskAppearances`) and no longer says "none of your cards" wrongly; a removed Futbol Fantasy match is no failed read and

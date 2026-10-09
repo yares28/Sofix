@@ -16,7 +16,6 @@ and a check, so a session can work through it alone and stop only where you have
 
 Work from the top. Each line points to its full text; "you" items wait for the owner.
 
-0. **Keep what Sofix reads** ([plans/data-keeping.md](data-keeping.md)): steps 1-7 built; migration and historical seed completed. Odds and match forecasts are kept and checked on Audit. Control's dataset health (8) is next; the owner Chrome archive check remains.
 0. **Found 7 Oct in past sessions** (TODO.md "Forgotten"): **G**, the grey countdown on Play (your call). R, the form
    fallback's red-card ban, is fixed by data-keeping step 1. L, the daily league history, is done (Results).
 1. **9.7 · The extension updates itself** (TODO.md A): no more Reload by hand after the release that brings it (one last Reload).
@@ -32,6 +31,7 @@ Work from the top. Each line points to its full text; "you" items wait for the o
 Waiting for data, not work: the Audit's Sorare vs Sofix figures (about 100 settled starts, from about 11 to 14 Oct) and 10.8, the
 self-correcting numbers (100 cases per band). Paused by you: 0.1 (your Apply result, TODO.md E), batch 4 (Pro). Yours: the live Apply
 acceptance test (TODO.md "Yours" 1), installing the PWA (3).
+Owner check still open for data keeping: open Recap in signed-in Chrome to archive your first final weeks, then see them on Rewards.
 
 ## Where things stand (7 Oct)
 
@@ -547,6 +547,10 @@ the held-out weeks (P9 "The bar").
 ---
 
 ## Results
+
+- **9 Oct - data keeping step 8:** Control shows five dated dataset rows from one published health record, including known
+  source failures and retained counts. All eight implementation steps are complete; migration and seed already ran.
+  The owner Chrome archive check and accumulating 100 paired Audit cases remain. [Verification](data-keeping.md#results).
 
 - **9 Oct - data keeping step 7:** permanent odds with CSV-first recovery, pre-kick-off match forecasts and paired live RPS on Audit, hidden below 100 matches. Real cached 2016/17–2026/27 prices reproduced the odds record exactly after simulated cache loss. See [data-keeping Results](data-keeping.md#results).
 

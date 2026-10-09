@@ -571,6 +571,8 @@ Control is the operational truth for the owner:
 - **All good / failure state** and last-update age;
 - manual **Refresh**, which dispatches the same GitHub workflow as the schedule;
 - next scheduled runs and recent run history;
+- **Saved data**, below Last refreshes: player games and players, odds and their source, match forecasts, absence spells,
+  and your saved weeks, each with coverage and its last read/save date;
 - connection chain: Sorare sign-in → extension → Sofix → cloud jobs;
 - remaining Odds API credits and Neon storage where available;
 - Sorare sync freshness and forecast/replay counts;
@@ -583,6 +585,11 @@ The scheduled times are 07:17, 12:07 and 22:43 UTC daily, plus the two-hours-bef
 the "3–5×" the page shows (read from the schedule itself, `lib/schedule.ts`). The UI converts them to
 Madrid time, so the local hour moves at daylight-saving changes. Manual refresh has a ten-minute cooldown and cannot
 run alongside another refresh. It does not apply migrations.
+
+Saved data is a dated check, not a live monitor. Game rows include pending fixtures; **Latest past game** excludes future
+dates. An absence without a recorded return does not claim the player is still out. Source failures and partial daily
+reads show a warning while keeping the stored coverage. Odds prices can name a future match. Your weeks count only
+weeks already archived from Chrome; a new save appears in coverage after the next refresh or daily games run.
 
 If GitHub/extension setup is missing, Control gives the required owner step. Never paste a token into chat, an issue
 or a committed file.

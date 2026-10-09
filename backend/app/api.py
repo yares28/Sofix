@@ -18,6 +18,12 @@ from app.sorare.publish import AHEAD_PREFIX, ALT_PREFIX, ARCHIVE_PREFIX
 router = APIRouter(prefix="/api")
 
 
+@router.get("/data-health", response_model=ApiResponse[dict[str, Any]])
+def kept_data_health(db: Session = Depends(get_db)):
+    row = db.get(ReadModel, "data_health")
+    return ApiResponse[dict[str, Any]](success=True, data=row.payload if row else None)
+
+
 @router.get("/my-weeks", response_model=ApiResponse[list[dict[str, Any]]])
 def my_weeks(db: Session = Depends(get_db)):
     rows = db.scalars(select(ReadModel).where(ReadModel.key.like("my_week:%")))

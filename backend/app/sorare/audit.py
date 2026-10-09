@@ -382,6 +382,9 @@ def from_kept(db: Session, now: datetime) -> dict[str, Any]:
     page = build(record, read_replay(), now, kept_weeks(db), missions.logs_of(db), scores)
     page["elevens"] = elevens
     page["frozenPlans"] = frozen_scores.read(db, now)
+    from app.services.kept_matches import match_audit
+
+    page["matches"] = match_audit(db, now)
     return page
 
 

@@ -127,7 +127,11 @@ export type Audit = {
   versus: Versus;
   elevens: Elevens;
   frozenPlans: FrozenWeek[];
+  matches?: MatchAudit;
 };
+
+export type MatchAudit = { recorded: number; checked: number; floor: number; sofix: number | null; bookmakers: number | null; oddsThrough: string | null; generatedAt: string };
+export const NO_MATCHES: MatchAudit = { recorded: 0, checked: 0, floor: 100, sofix: null, bookmakers: null, oddsThrough: null, generatedAt: "" };
 
 const NONE: RewardSide = { essence: 0, cash: 0 };
 export const NO_REWARDS: Rewards = { weeks: [], lineups: 0, expected: NONE, won: NONE };
@@ -162,6 +166,7 @@ export function readable(value: unknown): Audit | null {
     versus: { ...NO_VERSUS, ...(data.versus ?? {}), positions: { ...NO_VERSUS.positions, ...(data.versus?.positions ?? {}) } },
     elevens: { ...NO_ELEVENS, ...(data.elevens ?? {}) },
     frozenPlans: data.frozenPlans ?? [],
+    matches: { ...NO_MATCHES, ...(data.matches ?? {}) },
   };
 }
 

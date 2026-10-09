@@ -12,6 +12,15 @@ test.beforeEach(async ({ page, request }) => {
   await offline(page);
 });
 
+test("match forecasts wait for 100 paired results and name the saved odds date", async ({ page }) => {
+  await page.goto("/audit");
+  const section = page.getByRole("region", { name: "Match forecasts, checked" });
+  await expect(section).toContainText("Too few to tell");
+  await expect(section).toContainText("0 of 100 matches checked");
+  await expect(section).toContainText("No odds saved yet");
+  await expect(section.getByRole("table")).toHaveCount(0);
+});
+
 test("saved weeks survive without Chrome on Recap, Cards and Rewards, beside the plan frozen at lock", async ({ page, request }) => {
   const card = sorare.collection![0]!;
   const start = `${new Date().getUTCFullYear()}-08-01T14:00:00Z`;

@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy.orm import sessionmaker
 
 from app.jobs import sync_odds
-from app.models import Fixture, MarketOdds
+from app.models import Fixture, MarketOdds, MatchOdds
 from app.services.fixture_grid import build_fixture_grid
 from app.services.market_odds import (
     MarketLine,
@@ -191,6 +191,9 @@ def test_started_fixtures_lose_their_odds(seeded):
         )
     )
     assert result["removed"] == 1 and seeded.query(MarketOdds).count() == 0
+    saved = seeded.query(MatchOdds).one()
+    assert saved.source == "the-odds-api" and saved.odds_h > 1
+    assert saved.read_at.replace(tzinfo=UTC) == NOW
 
 
 def test_events_that_leave_the_feed_lose_their_odds(seeded):
@@ -198,6 +201,8 @@ def test_events_that_leave_the_feed_lose_their_odds(seeded):
     asyncio.run(sync_odds.main(factory(seeded), transport(payload), NOW, KEY))
     result = asyncio.run(sync_odds.main(factory(seeded), transport([event()]), NOW + timedelta(hours=7), KEY))
     assert result["rows"] == 1 and result["removed"] == 1 and seeded.query(MarketOdds).count() == 1
+    # A bookmaker pulling a future market must not erase what we already read.
+    assert seeded.query(MatchOdds).count() == 2
 
 
 def test_a_market_that_fits_no_match_is_skipped_not_fatal(seeded):

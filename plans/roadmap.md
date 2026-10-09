@@ -16,7 +16,7 @@ and a check, so a session can work through it alone and stop only where you have
 
 Work from the top. Each line points to its full text; "you" items wait for the owner.
 
-0. **Keep what Sofix reads** ([plans/data-keeping.md](data-keeping.md)): steps 1-6 built; the single production migration and approved historical seed completed on 9 Oct. Your final weeks are saved for Recap, Play, Cards and Audit; owner Chrome check next. Then odds/forecasts and Control (7-8).
+0. **Keep what Sofix reads** ([plans/data-keeping.md](data-keeping.md)): steps 1-7 built; migration and historical seed completed. Odds and match forecasts are kept and checked on Audit. Control's dataset health (8) is next; the owner Chrome archive check remains.
 0. **Found 7 Oct in past sessions** (TODO.md "Forgotten"): **G**, the grey countdown on Play (your call). R, the form
    fallback's red-card ban, is fixed by data-keeping step 1. L, the daily league history, is done (Results).
 1. **9.7 · The extension updates itself** (TODO.md A): no more Reload by hand after the release that brings it (one last Reload).
@@ -547,6 +547,8 @@ the held-out weeks (P9 "The bar").
 ---
 
 ## Results
+
+- **9 Oct - data keeping step 7:** permanent odds with CSV-first recovery, pre-kick-off match forecasts and paired live RPS on Audit, hidden below 100 matches. Real cached 2016/17–2026/27 prices reproduced the odds record exactly after simulated cache loss. See [data-keeping Results](data-keeping.md#results).
 
 - **9 Oct - data keeping step 6:** final owner weeks are kept once, a day after their end, and reused on Recap, Play,
   Cards and Rewards without Chrome. Audit scores every plan kept at lock with its saved rules and actual games;

@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 from app.models import ReadModel, RefreshRun
 from app.schemas import ApiResponse, FixtureGrid
 from app.services.fixture_grid import build_fixture_grid, grid_meta
+from app.services.kept_matches import match_audit
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +83,10 @@ def publish_system(db: Session, now: datetime | None = None) -> dict[str, Any]:
 
 def publish_all(db: Session) -> dict[str, Any]:
     now = datetime.now(UTC)
+    # Football results remain publishable even when the Sorare read fails.
+    audit = db.get(ReadModel, "audit")
+    if audit is not None:
+        put(db, "audit", {**audit.payload, "matches": match_audit(db, now)}, audit.updated_at)
     return {"grid": publish_grid(db, now), "system": publish_system(db, now)}
 
 

@@ -337,6 +337,21 @@ Two read models keep plan and whole-week metadata alongside those per-game rows 
   Old `start_chances` notes and settled cases remain readable. Run summaries count planned players under `recorded` and
   per-game source rows under `gameStatements`; Control's projection counts now come from the shared game store.
 
+**Permanent match history (data-keeping step 7).** `predict_upcoming` first saves every available cached LaLiga CSV season
+and its newly loaded matches into `match_odds`, including closing/pre-match prices, results and the selected price column.
+Registry codes link clubs; historical clubs without a registry entry retain their source name. CSVs take priority and
+saved rows fill gaps without counting a match twice (UTC/local dates may differ by one day). With no CSV source/cache,
+the job fits from saved results; shots are unavailable in that fallback, so it uses goals. The normal model and five-season
+odds record are unchanged. The run reports its history source and newest priced match; cached network failures retain an
+outage signal. The Audit dates the saved odds.
+
+Before live odds disappear, `sync_odds` and the prediction job copy only readings fetched before kick-off to `match_odds`
+as margin-free fair decimal prices, including a pulled future market's last reading. Later fixture results supply their
+score without changing the price. Each prediction
+writes `match_forecasts` until kick-off, rejecting delayed older writes and all after-kick-off writes. The Audit joins
+finished results to these frozen forecasts and one price per fixture (CSV first), using the canonical H/D/A RPS on identical
+paired cases. Under 100 matches both scores stay null. Football publishing updates this section even if Sorare fails.
+
 ## 11. Apply and extension
 
 Public key cannot read private future lineups or mutate them. The extension bridges the existing signed-in tab with

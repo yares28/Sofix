@@ -87,6 +87,7 @@ def test_failed_download_falls_back_to_cache(tmp_path):
 
     history = load_history([2026], tmp_path, refresh_latest=True, fetch=fetch)
     assert len(history) == 2 and calls == [(2026, True), (2026, False)]
+    assert history.attrs["source_unavailable"] is True
 
 
 def test_failed_download_without_cache_raises(tmp_path):

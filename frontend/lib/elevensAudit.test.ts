@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import { afterAll, expect, it, vi } from "vitest";
 import ElevensAudit from "../components/audit/ElevensAudit";
 import VersusAudit from "../components/audit/VersusAudit";
+import MatchAudit from "../components/audit/MatchAudit";
 import { NO_ELEVENS, NO_VERSUS, type Elevens } from "./audit";
 
 const { renderToStaticMarkup } = createRequire(import.meta.url)("react-dom/server") as {
@@ -12,6 +13,17 @@ const { renderToStaticMarkup } = createRequire(import.meta.url)("react-dom/serve
 // This repository's Vitest transform uses classic JSX; Next uses its own automatic transform.
 vi.stubGlobal("React", React);
 afterAll(() => vi.unstubAllGlobals());
+
+it("shows paired match RPS only from 100 results, with the saved odds date", () => {
+  const data = { recorded: 130, checked: 100, floor: 100, sofix: .1947, bookmakers: .1886, oddsThrough: "2026-09-20", generatedAt: "" };
+  const html = renderToStaticMarkup(React.createElement(MatchAudit, { data }));
+  expect(html).toContain("0.1947");
+  expect(html).toContain("0.1886");
+  expect(html).toContain("Odds up to 2026-09-20");
+  const small = renderToStaticMarkup(React.createElement(MatchAudit, { data: { ...data, checked: 99 } }));
+  expect(small).toContain("Too few to tell");
+  expect(small).not.toContain("0.1947");
+});
 
 it("shows each eleven's evidence by week and club and hides rates below 100", () => {
   const sources = { ...NO_ELEVENS.all,

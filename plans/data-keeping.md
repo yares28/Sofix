@@ -152,6 +152,22 @@ the same commit: `docs/user_manual.md`, `docs/how_it_works.md` (the tables, who 
 
 ## Results
 
+- **9 Oct 2026 - step 7:** cached and fresh CSV prices/results now persist per match and source, with registry identities
+  and the selected price column. Live odds keep their last pre-kick-off reading before deletion. CSV prices still take
+  priority; saved rows fill gaps without duplicate games, and a complete CSV outage still allows predictions from saved
+  results (goals only when saved shots are unavailable). Cached network fallbacks carry an outage signal. Forecasts update
+  only before kick-off and reject delayed older writes. Audit compares canonical RPS on identical finished matches,
+  withholding both figures below 100 paired results; late API prices are rejected. The Audit dates the saved odds.
+  Storage, outage, freeze, late-price, pulled-market, rescheduled-match and page regressions failed first; all 32 focused
+  storage/odds tests pass. Real local 2016/17–2026/27
+  CSVs saved 3,869 matches (19 Aug 2016–20 Sep 2026) into disposable SQLite; the five-season record matched exactly both
+  with CSV input and with empty input recovered from the table, and repeat storage kept the row count. All 27 Audit/mobile
+  browser tests and all 37 board tests passed. Real-data Audit screenshots at 1440/390 px were inspected: no overflow or small text, whole new
+  section axe passed, interface-guidelines review completed. The first broader gates found import/type issues and a
+  clock-dependent fixture test, fixed before shipping. Manual, calculation guide and roadmap updated. No migration or
+  direct production write was needed. The final `node scripts/check.mjs` passed all backend/frontend checks.
+  Deployment verification follows the push; step 8 remains.
+
 - **9 Oct 2026 - step 6:** final owner weeks now save atomically once to `my_week:<slug>`, after end + 24 hours and
   every entered lineup ranking. Same-origin/Zod checks reject incomplete reads; an explicit empty week is distinct
   from a null/unreadable fixture. Home and Rewards share paced, coalesced extension reads once a day; Home and Play
@@ -170,8 +186,11 @@ the same commit: `docs/user_manual.md`, `docs/how_it_works.md` (the tables, who 
   floor after fixing small existing Play labels and Home crest fallbacks. New Recap/Rewards sections passed axe;
   web interface guidelines review completed. Production has no owner weeks saved yet: real previews showed the
   honest empty state, while the populated case was verified with fixtures. No private production week was invented
-  or posted. Manual, calculation guide and roadmap updated. Step 6 deployment verification follows its push;
-  the owner Chrome check and steps 7-8 remain.
+  or posted. Manual, calculation guide and roadmap updated. Shipped as `4abf1f6`; `check.mjs --live / /cards
+  /audit/rewards /play` returned All clear: Vercel deployed successfully and all 13 production pages answered 200.
+  CI and the automatic refresh were in progress at that snapshot; neither was awaited. Localhost:3000 answered;
+  the inspected worktree preview is on localhost:3001. This post-push result is recorded locally for the next
+  implementation commit, keeping the no-docs-only-push rule. The owner Chrome check and steps 7-8 remain.
 
 - **9 Oct 2026 - source repair deployed:** `d0a47d7` deployed successfully; `check.mjs --live` returned All clear with
   all 13 production pages answering 200. Its automatic refresh `37920838134` succeeded. SELECT found 21 actual

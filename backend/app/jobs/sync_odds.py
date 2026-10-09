@@ -23,6 +23,7 @@ from app.config import settings
 from app.db import SessionLocal
 from app.logging_config import configure_logging
 from app.models import Fixture, MarketOdds, Team
+from app.services.kept_matches import archive_market
 from app.services.market_odds import consensus, fit_goal_rates
 from app.services.team_registry import by_odds_name
 from app.services.timeutil import as_utc
@@ -64,6 +65,7 @@ async def main(
     now = now or datetime.now(UTC)
     db = session_factory()
     try:
+        archive_market(db, now)
         last = db.query(MarketOdds.fetched_at).order_by(MarketOdds.fetched_at.desc()).limit(1).scalar()
         if last is not None and not force and now - as_utc(last) < MIN_INTERVAL:
             hours = (now - as_utc(last)).total_seconds() / 3600
@@ -77,7 +79,7 @@ async def main(
             if client is None:
                 await http.aclose()
 
-        upcoming = db.query(Fixture).filter(Fixture.kickoff_utc > now - timedelta(hours=3)).all()
+        upcoming = db.query(Fixture).filter(Fixture.kickoff_utc > now).all()
         codes = {team.id: team.code or "" for team in db.query(Team).all()}
         written, unmatched = 0, []
         skipped = 0
@@ -114,6 +116,8 @@ async def main(
             written += 1
             written_ids.add(fx.id)
 
+        # Keep fresh readings too: a future market can disappear before kick-off.
+        archive_market(db, now)
         # Everything this sync didn't write is gone from the feed (kicked off, re-dated, market pulled).
         stale = db.query(MarketOdds).filter(MarketOdds.fixture_id.notin_(written_ids or {-1}))
         removed = stale.delete(synchronize_session=False)

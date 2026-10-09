@@ -1,4 +1,5 @@
 import MissionsAudit from "./MissionsAudit";
+import MatchAudit from "./MatchAudit";
 import ElevensAudit from "./ElevensAudit";
 import VersusAudit from "./VersusAudit";
 import RewardsAudit from "./RewardsAudit";
@@ -141,6 +142,7 @@ export default function AuditView({
           <p className="au-sub">{liveLine(data.xscore.live)}</p>
           <p className="au-sub">{data.xscore.live.marked.toLocaleString("en-GB")} of {data.xscore.live.noted.toLocaleString("en-GB")} player gameweeks checked, across every recorded player. Results are checked a day after the week ends.</p>
         </section>
+        <MatchAudit data={data.matches} />
         {updated}
       </>
     );

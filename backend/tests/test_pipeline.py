@@ -328,13 +328,18 @@ def test_replace_predictions_does_not_pile_up(seeded):
     fixtures = seeded.query(Fixture).filter(Fixture.source_fixture_id.in_(["3", "4"])).all()
     teams = {fx.home_team_id for fx in fixtures} | {fx.away_team_id for fx in fixtures}
     names = dict(zip(sorted(teams), ["Strong", "Good", "Mid A", "Weak"], strict=True))
-    now = datetime.now(UTC)
+    now = datetime(2026, 9, 14, tzinfo=UTC)  # before these fixtures kick off
     assert replace_predictions(seeded, fixtures, model, names, now, "dixon-coles-v1+aaaaaaaa") == 4
     assert replace_predictions(seeded, fixtures, model, names, now, "dixon-coles-v1+aaaaaaaa") == 4
     # A retuned model replaces the old version's rows instead of adding a second set.
     assert replace_predictions(seeded, fixtures, model, names, now, "dixon-coles-v1+bbbbbbbb") == 4
     rows = seeded.query(Prediction).filter(Prediction.fixture_id.in_([fx.id for fx in fixtures])).all()
     assert len(rows) == 4 and {r.model_version for r in rows} == {"dixon-coles-v1+bbbbbbbb"}
+    # Neither the forecast nor its current prediction may be rewritten after kick-off.
+    assert replace_predictions(seeded, fixtures, model, names, datetime(2026, 10, 1, tzinfo=UTC), "late") == 0
+    assert {
+        r.model_version for r in seeded.query(Prediction).filter(Prediction.fixture_id.in_([fx.id for fx in fixtures]))
+    } == {"dixon-coles-v1+bbbbbbbb"}
 
 
 def test_upcoming_fixtures_compares_in_utc(seeded):

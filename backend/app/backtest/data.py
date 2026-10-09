@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 MATCH_COLUMNS = [
     "season_start", "date", "home", "away", "hg", "ag", "hst", "ast", "hr", "ar",
-    "odds_h", "odds_d", "odds_a", "odds_pre_h", "odds_pre_d", "odds_pre_a",
+    "odds_h", "odds_d", "odds_a", "odds_pre_h", "odds_pre_d", "odds_pre_a", "odds_which",
 ]  # fmt: skip
 REQUIRED = ["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"]
 # Closing odds: Pinnacle first, market average second. Pre-closing columns are a last resort.
@@ -46,10 +46,13 @@ def _pick_odds(df: pd.DataFrame, preference: list[tuple[str, str, str]], columns
     """All three prices from the first source with a complete, valid set for the match, so the margin
     is removed from one bookmaker's book rather than a mix."""
     odds = pd.DataFrame(np.nan, index=df.index, columns=columns)
+    which = pd.Series("", index=df.index, dtype=object)
     for group in preference:
         candidate = pd.concat([_numeric(df, c) for c in group], axis=1).set_axis(columns, axis=1)
         usable = candidate.notna().all(axis=1) & (candidate > 1).all(axis=1) & odds.isna().all(axis=1)
         odds.loc[usable] = candidate.loc[usable]
+        which.loc[usable] = group[0]
+    odds.attrs["which"] = which
     return odds
 
 
@@ -74,7 +77,9 @@ def normalize_season(raw: pd.DataFrame, season_start: int) -> pd.DataFrame:
             "ar": _numeric(df, "AR"),
         }
     )
-    out[["odds_h", "odds_d", "odds_a"]] = _pick_odds(df, ODDS_PREFERENCE, ["odds_h", "odds_d", "odds_a"])
+    closing = _pick_odds(df, ODDS_PREFERENCE, ["odds_h", "odds_d", "odds_a"])
+    out[["odds_h", "odds_d", "odds_a"]] = closing
+    out["odds_which"] = closing.attrs["which"]
     pre_columns = ["odds_pre_h", "odds_pre_d", "odds_pre_a"]
     out[pre_columns] = _pick_odds(df, PRE_ODDS_PREFERENCE, pre_columns)
 
@@ -99,6 +104,7 @@ def load_history(
     """
     seasons = sorted(season_starts)
     frames = []
+    unavailable = False
     for year in seasons:
         newest = year == seasons[-1]
         try:
@@ -108,12 +114,16 @@ def load_history(
                 logger.info("no football-data.co.uk CSV for %d/%02d yet; using earlier seasons", year, (year + 1) % 100)
                 continue
             raw = _cached_or_raise(year, cache_dir, exc, fetch)
+            unavailable = True
         except httpx.TransportError as exc:
             raw = _cached_or_raise(year, cache_dir, exc, fetch)
+            unavailable = True
         frames.append(normalize_season(raw, year))
     if not frames:
         raise RuntimeError(f"no match history available for seasons {seasons}")
-    return pd.concat(frames, ignore_index=True).sort_values("date", kind="stable", ignore_index=True)
+    history = pd.concat(frames, ignore_index=True).sort_values("date", kind="stable", ignore_index=True)
+    history.attrs["source_unavailable"] = unavailable
+    return history
 
 
 def _cached_or_raise(year: int, cache_dir: Path, exc: Exception, fetch: Callable[..., pd.DataFrame]) -> pd.DataFrame:

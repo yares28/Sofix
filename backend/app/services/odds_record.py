@@ -4,9 +4,8 @@ The board can say what it expects; until now it could not say what usually happe
 is this favoured. Sevilla priced 35-50% has won 24 of 63 such games (38%) while the league wins 43.8% at
 that price - a club that quietly falls short of its billing, which no lens showed.
 
-The record comes from bookmaker closing odds in the cached football-data.co.uk CSVs, for one reason: they
-are the only record of what a club *was* priced at. The app replaces its own predictions every refresh and
-keeps no history of them, so there is nothing else to count.
+The record comes from bookmaker closing odds in football-data.co.uk CSVs, backed by permanent match rows.
+Saved prices fill gaps, including the last pre-kick-off Odds API reading when a CSV has no price.
 
 Two numbers come out of it per fixture:
 
@@ -25,6 +24,9 @@ from dataclasses import asdict, dataclass
 
 import numpy as np
 import pandas as pd
+from sqlalchemy.orm import Session
+
+from app.services.kept_matches import fill_history
 
 BANDS: tuple[tuple[float, float, str], ...] = (
     (0.00, 0.20, "under 20%"),
@@ -81,6 +83,10 @@ class OddsRecord:
     """Every club's win rate by price band, plus the league's, from `matches`."""
 
     def __init__(self, matches: pd.DataFrame) -> None:
+        priced = matches.dropna(subset=["odds_h", "odds_d", "odds_a"])
+        self.through = (
+            pd.Timestamp(priced["date"].max()).date().isoformat() if "date" in priced and not priced.empty else None
+        )
         sides = _sides(matches)
         self.league: dict[str, float] = {}
         self._clubs: dict[tuple[str, str], tuple[int, int]] = {}
@@ -106,7 +112,11 @@ class OddsRecord:
         return Record(band=band, games=games, wins=wins, rate=rate, league=league, edge=shrunk - league)
 
 
-def build_record(matches: pd.DataFrame, season_start: int, seasons: int = SEASONS) -> OddsRecord:
+def build_record(
+    matches: pd.DataFrame, season_start: int, seasons: int = SEASONS, *, db: Session | None = None
+) -> OddsRecord:
     """The record over the last `seasons` seasons of the history frame, current season included."""
-    window = matches[matches["season_start"] > season_start - seasons]
+    if db is not None:
+        matches = fill_history(db, matches)
+    window = matches[(matches["season_start"] > season_start - seasons) & (matches["season_start"] <= season_start)]
     return OddsRecord(window)

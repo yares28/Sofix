@@ -427,6 +427,12 @@ same formation using their saved chances; **By gameweek and club** opens the cou
 starters before showing a percentage. Older readings without positions cannot produce an implied eleven. Until the first
 reading is saved, it says "No predicted elevens kept yet". A failed source stops new readings and keeps the saved evidence.
 
+**Match forecasts, checked**, below xScore, compares Sofix with bookmaker prices on the same finished LaLiga matches.
+Forecasts update until kick-off and then stay fixed. Closing CSV prices come first, then the last available pre-match
+price. Both RPS error scores wait for 100 paired results; lower is better. Missing prices or results stay pending.
+The odds record keeps its own copy of prices and says **Odds up to** the newest saved match date. A source stopping
+only stops new readings; saved prices remain available.
+
 The Audit page never writes to Sorare. It is rebuilt by each refresh; "The audit appears after the next refresh" means none has
 written it yet.
 

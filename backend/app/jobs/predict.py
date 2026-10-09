@@ -13,6 +13,7 @@ import logging
 from collections.abc import Callable
 from datetime import UTC, datetime
 
+import httpx
 import pandas as pd
 from sqlalchemy.orm import Session
 
@@ -22,6 +23,7 @@ from app.db import SessionLocal
 from app.logging_config import configure_logging
 from app.modeling.dixon_coles import DixonColesModel, fit_dixon_coles
 from app.models import Fixture, MarketOdds, Prediction, Team
+from app.services import kept_matches
 from app.services.calibration import CleanSheetCalibration, load_clean_sheet_calibration
 from app.services.market_blend import MarketBlend, load_market_blend
 from app.services.odds_record import OddsRecord, build_record
@@ -126,6 +128,7 @@ def replace_predictions(
     record: OddsRecord | None = None,
 ) -> int:
     """Replace the predictions for these fixtures (any earlier model version) in one transaction."""
+    fixtures = [fx for fx in fixtures if as_utc(fx.kickoff_utc) > now]
     fixture_ids = [fx.id for fx in fixtures]
     db.query(Prediction).filter(Prediction.fixture_id.in_(fixture_ids or [-1])).delete(synchronize_session=False)
     written = 0
@@ -133,6 +136,18 @@ def replace_predictions(
         home_pred, away_pred = predict_both_sides(
             model, names[fx.home_team_id], names[fx.away_team_id], clean_sheets, (markets or {}).get(fx.id), record
         )
+        if home_pred.xg_for is not None and away_pred.xg_for is not None:
+            kept_matches.save_forecast(
+                db,
+                fx,
+                now,
+                version,
+                p_home=home_pred.p_win,
+                p_draw=home_pred.p_draw,
+                p_away=home_pred.p_loss,
+                xg_home=home_pred.xg_for,
+                xg_away=away_pred.xg_for,
+            )
         for team_id, pred in ((fx.home_team_id, home_pred), (fx.away_team_id, away_pred)):
             db.add(
                 Prediction(
@@ -193,7 +208,21 @@ def predict_upcoming(
     teams_by_id = {team.id: team for team in db.query(Team).all()}
     names = history_names(teams_by_id)
 
-    history = load(range(start - HISTORY_SEASONS + 1, start + 1), cache_dir, refresh_latest=True)
+    kept_matches.archive_market(db, now)
+    kept_matches.keep_history(db, kept_matches.cached_history(cache_dir), now)
+    history_source = "CSV"
+    try:
+        history = load(range(start - HISTORY_SEASONS + 1, start + 1), cache_dir, refresh_latest=True)
+        if history.attrs.get("source_unavailable"):
+            history_source = "cached CSV"
+        kept_matches.keep_history(db, history, now)
+    except (httpx.HTTPError, OSError, ValueError, RuntimeError) as exc:
+        history = kept_matches.fill_history(db, pd.DataFrame(columns=kept_matches.MATCH_COLUMNS))
+        history = history[(history["season_start"] > start - HISTORY_SEASONS) & (history["season_start"] <= start)]
+        if history.empty:
+            raise
+        history_source = "stored matches"
+        logger.warning("match history unavailable (%s); using saved matches", type(exc).__name__)
     history = merge_recent_results(history, recent_results_frame(db, teams_by_id, season))
 
     upcoming = upcoming_fixtures(db, season, now)
@@ -217,7 +246,7 @@ def predict_upcoming(
     markets = market_mixes(db, upcoming, blend, now)
     if markets:
         logger.info("blending bookmaker prices into %d fixtures at weight %.2f", len(markets), blend.weight)
-    record = build_record(history, start)
+    record = build_record(history, start, db=db)
     version = model_version(config, clean_sheets)
     written = replace_predictions(db, upcoming, model, names, now, version, clean_sheets, markets, record)
     logger.info("predictions %d for %d upcoming fixtures (model %s)", written, len(upcoming), version)
@@ -231,6 +260,8 @@ def predict_upcoming(
         else [round(clean_sheets.a, 3), round(clean_sheets.b, 3)],
         "market_blended": len(markets),
         "record_bands": len(record.league),
+        "odds_through": record.through,
+        "history_source": history_source,
         "promoted": sorted(promoted),
         **problems,
     }

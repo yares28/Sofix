@@ -52,19 +52,28 @@ function Editor({ day, rarity, collection, saved, onDirty, guard }: { day: Histo
     <p>Changes only your Sofix history. Make actual selections on Sorare. Added cards are user-reported unless ownership was captured that day.</p>
     <p>{source.rule.label} · up to {source.picks} picks</p>
     {dirty ? <p className="ms-draft">Unsaved correction · Preview and save when ready.</p> : null}
-    <ul className="ms-edit-picks">{picks.map((p, i) => { const card = options.get(p.card ?? p.player); return <li key={p.card ?? `${p.player}:${i}`}><span className="art" aria-hidden="true"><CardArt src={card?.pic ?? ""} name={card?.name ?? p.player} /></span><span className="ms-edit-name"><b>{card?.name ?? p.player.replaceAll("-", " ")}</b><span>{cardCopyLabel(p.card)}</span></span><button type="button" onClick={() => { setPicks(picks.filter((_, n) => n !== i)); setPreview(false); }}>Remove {card?.name ?? p.player.replaceAll("-", " ")}</button></li>; })}</ul>
+    <div className="ms-edit-workspace"><div className="ms-edit-selected">
+    <h3>Your picks <span>{picks.length} / {source.picks}</span></h3>
+    <ul className="ms-edit-picks">{picks.map((p, i) => { const card = options.get(p.card ?? p.player); return <li key={p.card ?? `${p.player}:${i}`}><span className="art" aria-hidden="true"><CardArt src={card?.pic ?? ""} name={card?.name ?? p.player} /></span><span className="ms-edit-name"><b>{card?.name ?? p.player.replaceAll("-", " ")}</b><span>{cardCopyLabel(p.card)}</span></span><button type="button" aria-label={`Remove ${card?.name ?? p.player.replaceAll("-", " ")}`} onClick={() => { setPicks(picks.filter((_, n) => n !== i)); setPreview(false); }}>Remove</button></li>; })}</ul>
+    {!picks.length ? <p className="pd-none">No cards selected for this correction.</p> : null}
     <button type="button" onClick={() => { setPicks([]); setPreview(false); }}>I made no picks</button>
+    </div><div className="ms-edit-library"><h3>Add cards</h3>
     <label>Search historical or current cards<input type="search" name="historical-cards" autoComplete="off" value={query} onChange={(e) => setQuery(e.target.value)} /></label>
     <ul className="ms-edit-options">{[...options.values()].filter((p) => p.name.toLowerCase().includes(query.toLowerCase())).slice(0, 20).map((p) => <li key={p.card ?? p.player}>
       <button type="button" disabled={picks.length >= source.picks || picks.some((x) => (x.card ?? x.player) === (p.card ?? p.player))} onClick={() => add(p)}><span className="art" aria-hidden="true"><CardArt src={p.pic} name={p.name} /></span><span className="ms-edit-name"><b>{p.name}</b><span>{cardCopyLabel(p.card)}</span><span>{p.reported ? "Current collection · user-reported for this date" : "Recorded for this date"}</span></span></button>
     </li>)}</ul>
-    <label>Missing or sold card? Paste its Sorare link<input type="url" name="manual-card-url" autoComplete="off" spellCheck={false} value={manual} onChange={(e) => setManual(e.target.value)} placeholder="https://sorare.com/football/cards/…" /></label>
+    <div className="ms-edit-link"><label>Missing or sold card? Paste its Sorare link<input type="url" name="manual-card-url" autoComplete="off" spellCheck={false} value={manual} onChange={(e) => setManual(e.target.value)} placeholder="https://sorare.com/football/cards/…" /></label>
     {manual && !pasted ? <p role="status">Use a Sorare card link of this rarity or a Sorare player link.</p> : null}
     <button type="button" disabled={!pasted || picks.length >= source.picks} onClick={() => { if (pasted) add(pasted); setManual(""); }}>Add from Sorare link</button>
+    </div>
     <details><summary>Advanced: add a player reference</summary><label>Player reference<input name="manual-player" autoComplete="off" spellCheck={false} value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="e.g. jan-oblak…" maxLength={120} /></label><button type="button" disabled={!/^[a-z0-9-]+$/.test(slug) || picks.length >= source.picks} onClick={() => { add({ player: slug, game: null }); setSlug(""); }}>Add user-reported player</button></details>
-    <label>Note (optional)<textarea name="mission-note" maxLength={500} value={note} onChange={(e) => { setNote(e.target.value); setPreview(false); }} /></label>
-    {preview ? <><p className="ms-preview">Preview: {picks.length ? picks.map((p) => options.get(p.card ?? p.player)?.name ?? p.player).join(", ") : "no picks"}</p><button type="button" disabled={busy} onClick={() => void save()}>Save correction</button></> : <button type="button" onClick={() => setPreview(true)}>Preview changes</button>}
+    </div></div>
+    <label>Note (optional)<textarea name="mission-note" rows={2} maxLength={500} value={note} onChange={(e) => { setNote(e.target.value); setPreview(false); }} /></label>
+    {preview ? <p className="ms-preview">Preview: {picks.length ? picks.map((p) => options.get(p.card ?? p.player)?.name ?? p.player).join(", ") : "no picks"}</p> : null}
+    <div className="ms-edit-footer">
+    {preview ? <button className="ms-edit-primary" type="button" disabled={busy} onClick={() => void save()}>Save correction</button> : <button className="ms-edit-primary" type="button" onClick={() => setPreview(true)}>Preview changes</button>}
     {source.override ? <button type="button" disabled={busy} onClick={() => guard(() => void save(true))}>Restore imported picks</button> : null}
+    </div>
     <p role="status">{message}</p>
   </fieldset>;
 }
@@ -92,10 +101,10 @@ export default function MissionHistory({ days, rarity, collection = [], title = 
     return () => { window.removeEventListener("beforeunload", warn); document.removeEventListener("click", navigate, true); };
   }, [guard]);
   const dates = [...new Set(days.map((d) => d.day))];
-  return <section className="pd-card" aria-labelledby={`ms-history-${rarity}`}>
+  return <section className="pd-card ms-history" aria-labelledby={`ms-history-${rarity}`}>
     <dialog ref={dialog} className="ms-discard" role="alertdialog" aria-labelledby={`ms-discard-${rarity}`} onCancel={(e) => { e.preventDefault(); setPending(null); }}><h3 id={`ms-discard-${rarity}`}>Unsaved correction</h3><p>Your changes have not been saved. Keep editing or discard them to continue.</p><div><button className="ms-load-btn" type="button" onClick={() => setPending(null)}>Keep editing</button><button className="ms-secondary" type="button" onClick={() => { dirty.current = false; const action = pending; setPending(null); action?.(); }}>Discard changes</button></div></dialog>
-    <div className="ms-section-head"><h2 id={`ms-history-${rarity}`}>{title}</h2><label>Mission date<select name="history-date" value={date} onChange={(e) => { const next = e.target.value; guard(() => { setDate(next); setEditing(null); }); }}><option value="">Last 30 days</option>{dates.map((d) => <option key={d} value={d}>{shortDay(d)}</option>)}</select></label></div>
-    <button className="ms-secondary" type="button" disabled={recovering} onClick={() => guard(() => { setRecovering(true); void askExtension({ type: "load-mission-history" }, 60_000).then((raw) => { const answer = parseMissionsLoad(raw); setRecovery(answer?.state === "ok" ? "Dated history imports saved. Undated or unavailable tasks remain unknown." : missionsLoadNote(answer)); if (answer?.state === "ok") window.location.reload(); }).finally(() => setRecovering(false)); })}>{recovering ? "Reconciling…" : "Reconcile Sorare history"}</button>
+    <div className="ms-section-head"><h2 id={`ms-history-${rarity}`}>{title}</h2><label>Mission date<select name="history-date" value={date} onChange={(e) => { const next = e.target.value; guard(() => { setDate(next); setEditing(null); }); }}><option value="">Last 30 days</option>{dates.map((d) => <option key={d} value={d}>{shortDay(d)}</option>)}</select></label>
+    <button className="ms-secondary" type="button" disabled={recovering} onClick={() => guard(() => { setRecovering(true); void askExtension({ type: "load-mission-history" }, 60_000).then((raw) => { const answer = parseMissionsLoad(raw); setRecovery(answer?.state === "ok" ? "Dated history imports saved. Undated or unavailable tasks remain unknown." : missionsLoadNote(answer)); if (answer?.state === "ok") window.location.reload(); }).finally(() => setRecovering(false)); })}>{recovering ? "Reconciling…" : "Reconcile Sorare history"}</button></div>
     <p role="status">{recovery}</p>
     {days.length ? <ol className="au-ms-days">{days.filter((d) => !date || d.day === date).map((d) => {
       const id = `${d.day}:${d.key ?? d.mission}`;

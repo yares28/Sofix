@@ -29,13 +29,15 @@ export default function MissionsView({ rarity, tabs, day, plans: original, statu
   const window = missionWindow(new Date(now));
   const lock = players.filter((p) => p.rarity === rarity).flatMap((p) => p.games.map((g) => g.kickoff)).filter((k) => new Date(k) > new Date(now) && new Date(k) >= new Date(window.start) && new Date(k) < new Date(window.end)).sort((a, b) => Date.parse(a) - Date.parse(b))[0];
   return <div className="pd-wrap" data-testid="missions-page">
-    <div className="ms-head"><h1 className="ms-h1">Daily missions<span className="sub"> · Mission day {day ?? missionDay}</span></h1>
+    <section className="pd-card ms-overview" aria-label="Missions overview">
+    <div className="ms-head"><div><h1 className="ms-h1">Daily missions</h1><p className="ms-day">Mission day {day ?? missionDay}</p></div>
       <nav className="pd-pick" aria-label="Rarity">{tabs.map((r) => <Link key={r} href={`/missions?rarity=${r}`} aria-current={r === rarity ? "page" : undefined}>{RARITY_NAME[r] ?? r}</Link>)}</nav>
     </div>
     <p className="ms-window">Fallback game window: {time(window.start)} → {time(window.end)} (Madrid). Sorare’s reset time still needs verification; this is not a confirmed submission deadline.</p>
     <div className="ms-summary"><span><b>{today ? plans.length : "—"}</b> missions loaded</span><span><b>{today ? made : "—"}</b> your picks</span><span><b>{today ? open : "—"}</b> open slots</span><span>Next recorded kickoff <b>{lock ? time(lock) : "Not available"}</b></span></div>
     <LoadMissions stale={!today} day={missionDay} />
     {!today ? <p className="ms-stale" role="status">Today&rsquo;s missions aren&rsquo;t loaded yet.{seenAt ? ` Last loaded ${time(seenAt)}. The last read does not confirm today's mission list.` : ""}</p> : null}
+    </section>
     {!today && retained.length ? <details className="pd-card"><summary>Last saved mission list{seenAt ? ` · ${time(seenAt)}` : ""}</summary><ul>{retained.map((m) => <li key={m.id}><b>{m.title}</b> — {m.description}<p>{m.appearances?.length ? `Imported selections: ${m.appearances.map((p) => p.player.replaceAll("-", " ")).join(", ")}` : "No selections confirmed in this saved list."}</p></li>)}</ul></details> : null}
     {today && !plans.length ? <section className="pd-card"><p className="pd-none">Sorare confirmed no {RARITY_NAME[rarity] ?? rarity} missions in this scope at the last load.</p></section> : null}
     {plans.map((one) => <section key={one.mission.id} className="pd-card ms-mission" aria-label={one.mission.title}>

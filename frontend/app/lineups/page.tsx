@@ -6,9 +6,9 @@ import { loadGrid } from "../../lib/api";
 import { otherWeekNote, pickMatch, sectionsOf } from "../../lib/lineups";
 import { lineupMatchFacts } from "../../lib/lineupMatchFacts";
 import { loadLineups } from "../../lib/lineupsData";
-import { lineupChances } from "../../lib/lineupChances";
+import { lineupChances, recordedChances, recordedGames, type ChanceRecord } from "../../lib/lineupChances";
 import { weekPlan } from "../../lib/play";
-import { loadProjectedWeek, loadSorare } from "../../lib/playData";
+import { loadChanceRecord, loadProjectedWeek, loadSorare } from "../../lib/playData";
 import { loadSystem } from "../../lib/system";
 import { nationalWeek } from "../../lib/teamNews";
 import { weekById, weekContext } from "../../lib/weeks";
@@ -58,6 +58,11 @@ export default async function Lineups({ searchParams }: { searchParams: SearchPa
   const round = sections.find((s) => s.competition === "laliga")?.round ?? null;
   const ahead = round !== null && sorare?.projected?.some((one) => one.round === round) ? await loadProjectedWeek(round) : null;
   const chances = lineupChances(data.matches, [...(sorare?.weeks ?? []), ...(ahead ? [ahead] : [])].flatMap((week) => week.playing.players), sorare?.market ?? []);
+  const relevant = (sorare?.timeline ?? []).filter((w) => data.matches.some((m) => m.kickoff && Date.parse(m.kickoff) >= Date.parse(w.start) && Date.parse(m.kickoff) <= Date.parse(w.end))).slice(-4);
+  const records = (await Promise.all(relevant.map((w) => loadChanceRecord(w.slug)))).filter((r): r is ChanceRecord => r !== null);
+  for (const [match, players] of Object.entries(recordedChances(data.matches, records))) for (const [player, sources] of Object.entries(players)) {
+    (chances[match] ??= {})[player] = { ...sources, ...chances[match]?.[player] };
+  }
   const wanted = typeof params.w === "string" ? weekById(weeks, params.w) : null;
   const wantedPlan = wanted?.gw && sorare ? weekPlan(sorare, wanted.gw) : null;
   const flash = [otherWeekNote(wanted, round, wantedPlan ? nationalWeek(wantedPlan) : false)].filter((line): line is string => line !== null);
@@ -65,7 +70,7 @@ export default async function Lineups({ searchParams }: { searchParams: SearchPa
   return (
     <>
       <SiteNav meta={meta} system={system} />
-      <LineupsView data={data} chances={chances} facts={lineupMatchFacts(data.matches, grid)} sections={sections} initial={selected} now={now} clubs={clubs} flash={flash} gone={gone} />
+      <LineupsView data={data} chances={chances} sorareGames={recordedGames(data.matches, records)} facts={lineupMatchFacts(data.matches, grid)} sections={sections} initial={selected} now={now} clubs={clubs} flash={flash} gone={gone} />
     </>
   );
 }

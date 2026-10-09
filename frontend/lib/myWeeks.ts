@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { GameweekLineup } from "./entered";
+import { weekWon } from "./entered";
 
 export const MY_WEEK_PREFIX = "my_week:";
 export const MY_WEEKS_TAG = "my-weeks";
@@ -30,6 +31,21 @@ export function seasonWeeks(weeks: SavedWeek[], now: Date): SavedWeek[] {
   const year = now.getUTCFullYear() - Number(now.getUTCMonth() < 6);
   const start = Date.UTC(year, 6, 1), end = Date.UTC(year + 1, 6, 1);
   return weeks.filter((week) => Date.parse(week.start) >= start && Date.parse(week.start) < end);
+}
+export function seasonYear(start: string): number {
+  const at = new Date(start);
+  return at.getUTCFullYear() - Number(at.getUTCMonth() < 6);
+}
+export function seasonSummary(weeks: SavedWeek[]) {
+  const entered = [...new Map(weeks.filter((w) => w.lineups.some((l) => !l.draft)).map((w) => [w.slug, w])).values()];
+  return entered.reduce((sum, week) => {
+    const won = weekWon(week.lineups);
+    sum.essence += won.essence; sum.cash = Math.round((sum.cash + won.cash) * 100) / 100;
+    const cards = week.lineups.filter((l) => !l.draft && l.result?.card).length;
+    sum.cards += cards;
+    if (won.essence || won.cash || cards) sum.rewarded.push(week);
+    return sum;
+  }, { played: entered.length, essence: 0, cash: 0, cards: 0, rewarded: [] as SavedWeek[] });
 }
 /** A lineup's full reward is credited as participation to each card, never divided or added across cards. */
 export function cardReturns(weeks: SavedWeek[]): Record<string, CardReturn> {

@@ -7,6 +7,7 @@ import { fillMissionDays, loadMissionLog, missionHistory } from "../../lib/missi
 import { loadMissionPool } from "../../lib/missionsPool";
 import { loadMissions } from "../../lib/missionsData";
 import { missionDay } from "../../lib/missions";
+import { missionPlayers } from "../../lib/missionInventory";
 import { missionsToday, RARITIES } from "../../lib/missionsToday";
 import { loadSorare } from "../../lib/playData";
 import { loadSystem } from "../../lib/system";
@@ -28,7 +29,7 @@ export default async function Missions({ searchParams }: { searchParams: SearchP
   const week = weekContext(grid, data, new Date(), { w: single("w"), gw: single("gw") });
   const now = new Date();
   const today = await missionsToday(data, missions, single("rarity"), now, pool);
-  const players = pool?.players ?? data?.weeks.flatMap((w) => w.playing.players) ?? [];
+  const players = missionPlayers(pool?.players ?? data?.weeks.flatMap((w) => w.playing.players) ?? [], today.plans.map((p) => p.mission), today.rarity);
   const owned = RARITIES.filter((r) => players.some((p) => p.rarity === r) || data?.collection?.some((p) => p.rarity === r));
   const completeLog = fillMissionDays(log, [...new Set([...owned, today.rarity])], now);
   const names = new Map((data?.weeks ?? []).flatMap((w) => w.playing.players).flatMap((p) => (p.player ? [[p.player, { name: p.name, pic: p.pic }] as const] : [])));

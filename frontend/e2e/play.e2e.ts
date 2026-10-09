@@ -619,7 +619,7 @@ test("Apply opens on the first step and does nothing until it is pressed", async
   await expect(sheet.getByRole("link", { name: /Set it up/ })).toHaveAttribute("href", "/control");
   await expect(sheet.getByRole("button", { name: "Check with Sorare" })).toHaveCount(0);
   await expect(sheet.getByRole("button", { name: "Try again" })).toBeEnabled();
-  await expect(sheet.locator(".ap-foot .note")).toHaveText("Nothing has been saved.");
+  await expect(sheet.locator(".ap-foot .note")).toHaveText("Reconnect to Sorare to continue.");
 
   await sheet.getByRole("button", { name: "Close" }).click();
   await expect(sheet).toBeHidden();

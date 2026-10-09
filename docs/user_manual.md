@@ -58,9 +58,10 @@ The Recap is about the week in the top bar (since 5 Oct 2026; design canvas boar
 - **Header**: the Sorare gameweek, its LaLiga round and days, when it locks ("Locks Fri 16:00, in 4 days") and **Open the plan**.
 - **Best cards**: your ten best cards of the week by xScore, all positions together, each with its xScore in a hexagon of Sorare's
   colour, his first game and his chance to start (whose number it is on hover).
-- **Your season**: essence and cash from saved finished weeks, with a week-by-week table. Open Home in Chrome with a
-  signed-in Sorare tab to save missing weeks; it checks once a day. A week waits until a day after its end and every
-  entered lineup has a rank. Once saved, its lineups and rewards also work on your phone without the extension.
+- **Your season**: choose a season to see Limited essence, cash, card rewards and distinct GWs with entered lineups.
+  **Week by week** shows rewarded GWs only; expand one to see its actual essence-winning lineups and captains.
+  Zero-reward GWs still count as played. Open Home in Chrome with a signed-in Sorare tab to save missing finished
+  weeks; failed reads can be retried. Saved lineups and rewards also work on your phone without the extension.
 - **This round**: every match as two rows, home over away, under labelled columns: chance to win (a chip in Sorare's colours), expected
   goals and clean-sheet chance; draw and both-score beside the pair. The favourite is in bold; a played match shows its score.
 - **Table after round N**: the table once the round is played as expected: points now, points after and places gained or lost.
@@ -189,7 +190,8 @@ won), with the plan's facts under it: chance of a reward, the most likely result
 cards used. Beside it, "Your Sorare lineups" (what is actually entered) and Apply plan. Below, the plan tile holds the
 **Sofix / Sorare** switch, the plan switch, where the cards go, and the lineups as rows: competition, its cards with each
 one's xScore in Sorare's colours, the team score with its range and the score needed, and the reward chance as a dial; each
-row opens its sheet. Lineups under 5% sit folded at the end as **Long shots**: they only use cards nothing else wanted.
+row opens its sheet. Lineups under 5% sit under **Long shots**; this opens immediately when they are the only available
+lineups. A locked/live GW retains its recorded pre-lock plan, including on Home, rather than showing the next GW's plan.
 
 **Sofix or Sorare (6 Oct 2026).** For the week being planned there are two sets of plans: **Sofix** builds them on Sofix's
 xScore, **Sorare** on Sorare's own projections (game by game, read for that week's games). Both use the same cards,
@@ -328,8 +330,10 @@ FF says so above the next match.
   last five LaLiga games only (cup and European games are often rotated), is 0% after a red card in his last LaLiga game (a second
   yellow counts; read from Sorare by the scheduled refresh, which has the API key), and is a dash until any LaLiga game of his has
   been read. A dash means that source has no
-  estimate for this player and match. Sorare and Sofix use the saved forecasts for your
-  players, including an early plan when available; a different match's number is never substituted. FF percentages link to its match
+  estimate for this player and match. Sofix also restores the exact match's captured forecast after the planner moves to
+  the next GW. Sorare uses its captured value, or reads the displayed match through your signed-in Sorare tab with
+  extension 0.3.10+. **Read from Sorare** retries an unavailable read; missing values remain dashes and genuine 0% stays 0%.
+  A different match's number is never substituted. FF percentages link to its match
   page. **Only my players** dims everyone else on the pitch and in the injury lists. Both choices stay selected when you pick another
   match. Your players on the pitch, among the alternatives and in the injury list link to their card on **My cards**.
 - **Who could come in for whom.** Under each starter's own card, the names of the alternatives Futbol Fantasy puts in his slot (the order it gives them), with their
@@ -484,11 +488,11 @@ An older extension shows its version, Reload instructions and **Check extension 
 
 Each current mission shows its own target, reward and slot count, **your imported Sorare picks beside Sofix's suggestions**, including locked selections. Suggestions reserve actual card copies already selected elsewhere. Separate copies can serve different missions; a card in a normal Sorare lineup is not automatically excluded. Reward preference is **Essence first, clues second, XP third**. Sofix never enters your mission picks; make them on Sorare before the relevant kickoff.
 
-The mission inventory is separate from the weekly lineup optimizer. Each refresh includes games from the **active GW**, finished and upcoming GWs, and the owner's cards even when normal lineup rules exclude them. National-team fixtures name the side actually playing. A bounded read of Sorare's pickable cards checks mission-specific eligibility; an unchecked or incomplete result stays unknown. An empty Sofix recommendation is not proof that you have no eligible cards.
+The mission inventory is separate from the weekly lineup optimizer. Loading missions discovers each task's actual pickable games and pages through its eligible owned cards in bounded batches, including games absent from Sofix's weekly pool. National-team fixtures name the side actually playing. Suggestions, **Choose your own picks** and **Available players** use the same mission-specific inventory. Eligible cards remain selectable without a forecast; an incomplete check is marked partial rather than shown as zero. An empty recommendation is not proof that you have no eligible cards.
 
 **Choose your own picks**, below the current missions, lets you search and filter cards, sort by estimated chance, target hit rate, relevant stat or kickoff, compare up to three players and keep a local shortlist. Shortlisted cards are reserved while the remaining suggestions are recalculated. The shortlist stays in this browser for that mission day and rarity; it does not enter anything on Sorare or sync to another device.
 
-The panel shows last **5 and 8 scored starts**, with target hits, averages, sample counts and a recent baseline from the existing 70-day history read. It dates the observation cutoff and names the start-chance source, linking to Futbol Fantasy when it supplies the number. Missing evidence stays missing; the old September stat file is not presented as current. Decisive estimates include starting and substitute availability. Other supported stat estimates use an approximate Poisson rate adjusted for the game's playing chance. SCORE and unsupported targets retain their exact rule without an invented probability.
+The panel shows last **5 and 8 scored starts**, with target hits, averages and sample counts. It dates the observation cutoff and names the start-chance source, linking to Futbol Fantasy when it supplies the number. Decisive estimates include starting and substitute availability; supported stat estimates adjust recent rates for the game's playing chance. Score targets and eligible cards without an availability forecast can use **recent hits** when at least five scored games exist. This is historical evidence, not an invented forecast. Unsupported targets keep their exact rule and eligible cards.
 
 Scouting waits for a current mission target and defaults to cards before kickoff, excluding known unavailable cards. A short history says how many scored starts actually exist, and identical short samples are not repeated as both last 5 and last 8. Confirmed eligible copies and copies not checked on Sorare are counted separately.
 
@@ -496,7 +500,7 @@ Count targets include goals, assists, interceptions, **shots on target** and **t
 
 "Today" follows the existing **9:00 CET / 08:00 UTC** reset convention, including matches after midnight before that reset. Historical imports use the source task's start-date calendar day in Madrid, rather than the date you fetched them. The live summer reset boundary still needs comparison with a signed-in Sorare response; Sofix does not silently reinterpret old dates.
 
-**History** lists every date from the first tracked day within the last 30 days, even with no recommendations. An unloaded date assumes only one **Decisive Picker**, as requested, and is labelled as assumed. Imported picks remain visible even if Sofix captured no candidates. Missing pre-kickoff evidence is explained and excluded from accuracy figures; Sofix does not fabricate historical forecasts. Once games are checked, supported entries show Sofix's score against the best possible and the achievers it missed. Sorare's imported SUCCESS/FAILURE verdict on your actual selection wins over later calculated stats.
+**History** uses one card per date, containing all that day's missions with separate picks, results and editing. It lists every date from the first tracked day within the last 30 days, even with no recommendations. An unloaded date assumes only one **Decisive Picker** and is labelled as assumed. Imported picks remain visible without a captured forecast; missing evidence is excluded from accuracy figures. Supported entries show Sofix's score against the best possible and the achievers it missed. Sorare's imported SUCCESS/FAILURE verdict on your selection takes precedence over calculated stats.
 
 **Edit my picks** corrects your Sofix history. Add or remove cards from the captured candidates, original imported selections (including sold cards) or current collection; a manually named player remains an unverified user report. Respect the mission's slot limit, add a note, preview, then save. **I made no picks** stores an explicit empty correction. **Restore imported picks** removes your override. Corrections stay separate from the original Sorare import and Sofix's frozen forecast, survive later imports and refreshes, and reject an outdated edit from another session. The Missions Audit shows the correction too.
 
@@ -599,6 +603,10 @@ or a committed file.
 ### Install or rebuild
 
 The extension is a local Manifest V3 build, not a store listing.
+
+**0.3.10 repairs the production 0.3.9 bridge:** the production address is explicitly allowed, interactive lineup reads
+take priority over season archiving, and task eligibility includes cards missing from the weekly pool. After the folder
+is rebuilt, press **Reload** on Sofix in `chrome://extensions`, reload your Sorare tab, then reload Sofix.
 
 1. In root `.env`, set `APP_URL`, a random `EXTENSION_TOKEN` of at least 32 bytes, and
    `VERCEL_BYPASS_SECRET`.
@@ -753,7 +761,7 @@ the extension that holds the token.
 | Apply says "sorare.com isn't open" | Apply works through your signed-in Sorare tab | Open sorare.com in the same Chrome profile, then press the step again |
 | Apply says "The tab needs a reload" | The sorare.com tab was opened before the extension was loaded, or Sorare's page has not made a call of its own yet | Reload the sorare.com tab, then press the step again |
 | Apply says "You're signed out of Sorare" | Your Sorare session ended | Sign in on sorare.com, come back and press the step again; nothing was saved |
-| Apply says "Sorare didn't answer" or "That didn't go through" | Sorare was slow, or the call failed on the way | Press the step again; nothing was saved |
+| Apply loses the Draft or Enter response | Sorare may have saved the write before the response was lost | Use **Check Sorare status** to read back the lineup before another manual action; Sofix never automatically retries a write |
 | Apply shows Sorare's own words in red (Check or Draft refused) | Sorare's rules refuse that lineup: the cap, a position, an in-season rule | Read what Sorare says and change the lineup; nothing was saved. If Sorare refuses something Sofix's plan said was allowed, that is a bug in Sofix: write down the competition and the words |
 | Control says the extension was "not seen lately", or the overlay's tag says SIGN IN or OFFLINE | Chrome was restarted, or the extension was reloaded while the tabs stayed as they were | Reload Sofix in `chrome://extensions`, reload the sorare.com tab, then open Sofix again |
 | Audit says "Too few to tell" | The source has fewer than 100 checked games, so a figure would be mostly luck | Wait: it fills as gameweeks are played; the counts show how far along it is |

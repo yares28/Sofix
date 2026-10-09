@@ -95,11 +95,19 @@
 }
 
 /* The daily missions (/missions). */
-.ms-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 2fr); gap: 24px; margin: 24px 0; padding: 20px 0; border-block: 1px solid var(--line); font-size: 12px; }
+.ms-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; margin: 24px 0; padding: 20px 0; border-block: 1px solid var(--line); font-size: 12px; }
 .ms-summary span { display: flex; flex-direction: column; gap: 4px; color: var(--ink-2); }
 .ms-summary b { color: var(--ink); font-size: 26px; font-weight: 650; letter-spacing: -.03em; }
 .ms-summary > span:last-child { justify-content: center; }
-.ms-summary > span:last-child b { font-size: 14px; font-weight: 600; letter-spacing: 0; }
+.ms-summary > span:last-child b { font-size: 26px; font-weight: 650; }
+.ms-available { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; color: var(--ink); text-decoration: none; margin-bottom: 16px; }
+.ms-available > span { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.ms-available .art { position: relative; display: block; width: 32px; height: 46px; overflow: hidden; border-radius: 5px; }
+.ms-available:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.ms-history-date { margin: 0 0 16px; font-size: 16px; }
+.ms-history-mission + .ms-history-mission { border-top: 1px solid var(--line); padding-top: 18px; margin-top: 18px; }
+.ms-history-mission > button { margin-top: 12px; }
+.ms-history-mission.ok .au-ms-head strong { color: var(--good-ink); }
 .ms-current-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 .ms-current-grid h3 { font-size: 14px; margin: 16px 0 8px; }
 .ms-current-grid .ms-pick { grid-template-columns: 44px minmax(0, 1fr) 76px; }
@@ -199,7 +207,7 @@
 .ms-hist-row > span { flex: 0 0 52px; padding-top: 4px; font-size: 13px; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
 .ms-hist-row .au-ms-cards, .ms-hist-row .pd-none { margin: 0; }
 .ms-history > [role="status"]:empty, .ms-editor > [role="status"]:empty { display: none; }
-.ms-history > .au-ms-days > li { padding-block: 20px; }
+.ms-history > .au-ms-days > li { padding: 20px; border: 1px solid var(--line); border-radius: 16px; margin-top: 16px; }
 .ms-history > .au-ms-days > li > .ms-secondary { margin-top: 14px; }
 @media (max-width: 600px) {
   .ms-overview { padding: 22px 18px; }

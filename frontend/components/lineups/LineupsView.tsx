@@ -25,7 +25,8 @@ import {
   type Section,
   type TimelineDay,
 } from "../../lib/lineups";
-import { CHANCE_SOURCES, type LineupChances } from "../../lib/lineupChances";
+import { CHANCE_SOURCES, parseSorareChances, type LineupChances, type SorareGameLink } from "../../lib/lineupChances";
+import { askExtension } from "../../lib/extension";
 import type { MatchFacts } from "../../lib/lineupMatchFacts";
 import type { StartSource } from "../../lib/play";
 import { ChanceContext } from "./Chance";
@@ -38,6 +39,7 @@ export type ClubLook = { color: string; crest: string | null };
 type Props = {
   data: LineupsData;
   chances: LineupChances;
+  sorareGames: Record<number, SorareGameLink>;
   facts: Record<number, MatchFacts>;
   sections: Section[];
   /** The match the page opened on: the one the address asked for, else the next to be played. */
@@ -63,8 +65,10 @@ const switchTo = (match: LineupMatch) => (event: MouseEvent<HTMLAnchorElement>) 
 };
 const lookOf = (side: LineupSide, clubs: Record<string, ClubLook>) => (side.club ? clubs[side.club] : undefined);
 
-export default function LineupsView({ data, chances, facts, sections, initial, now, clubs, flash, gone }: Props) {
+export default function LineupsView({ data, chances, sorareGames, facts, sections, initial, now, clubs, flash, gone }: Props) {
   const [source, setSource] = useState<StartSource>("futbolfantasy");
+  const [live, setLive] = useState<LineupChances>({});
+  const [reads, setReads] = useState<Record<number, "reading" | "ready" | "unavailable" | "empty">>({});
   const [onlyMine, setOnlyMine] = useState(false);
   const asked = useSearchParams().get("m");
   const selected = matchAsked(data.matches, asked, initial);
@@ -79,7 +83,17 @@ export default function LineupsView({ data, chances, facts, sections, initial, n
   const named = section.competition === "laliga" && section.round !== null ? `LaLiga round ${section.round}` : section.label;
   const days = timelineOf(section.matches);
   // Futbol Fantasy's eleven is its own; with Sorare's or Sofix's number picked, that source's eleven is drawn in the same formation.
-  const values = chances[selected.id] ?? {};
+  const values = { ...chances[selected.id] };
+  for (const [player, sources] of Object.entries(live[selected.id] ?? {})) values[player] = { ...values[player], ...sources };
+  const readSorare = async () => {
+    const match = selected.id;
+    const link = sorareGames[match];
+    if (!link || reads[match] === "reading") return;
+    setReads((previous) => ({ ...previous, [match]: "reading" }));
+    const found = parseSorareChances(await askExtension({ type: "lineup-chances", game: link.id }, 25_000), link);
+    if (found) setLive((previous) => ({ ...previous, [match]: found }));
+    setReads((previous) => ({ ...previous, [match]: found === null ? "unavailable" : Object.keys(found).length ? "ready" : "empty" }));
+  };
   const arranged = (side: LineupSide) => (source === "futbolfantasy" ? side : byChance(side, (player) => values[player.id]?.[source] ?? null));
   // On a phone the timeline scrolls sideways: bring the match in view to the middle whenever it changes.
   const scroller = useRef<HTMLDivElement>(null);
@@ -149,7 +163,10 @@ export default function LineupsView({ data, chances, facts, sections, initial, n
             <legend className="visually-hidden">Chance to start source</legend>
             {(Object.entries(CHANCE_SOURCES) as [StartSource, string][]).map(([key, name]) => (
               <label key={key}>
-                <input type="radio" name="lu-source" value={key} checked={source === key} onChange={() => setSource(key)} />
+                <input type="radio" name="lu-source" value={key} checked={source === key} onChange={() => {
+                  setSource(key);
+                  if (key === "sorare" && !reads[selected.id]) void readSorare();
+                }} />
                 <span>{name}</span>
               </label>
             ))}
@@ -159,6 +176,12 @@ export default function LineupsView({ data, chances, facts, sections, initial, n
             Only my players
           </label>
         </div>
+        {source === "sorare" && sorareGames[selected.id] ? <div className="lu-sorare-read">
+          {reads[selected.id] === "reading" ? <p role="status">Reading Sorare chances…</p> : reads[selected.id] !== "ready" ? <>
+            <p role="status">{reads[selected.id] === "unavailable" ? "Open a signed-in Sorare tab with extension 0.3.10 or newer." : reads[selected.id] === "empty" ? "Sorare has not published chances for this match." : "Read this match through your Sorare tab."}</p>
+            <button type="button" onClick={() => void readSorare()}>Read from Sorare</button>
+          </> : null}
+        </div> : null}
         <ChanceContext.Provider value={{ source, values, url: selected.url }}>
           <fieldset className="lu-switch" aria-label="Team">
             <legend className="visually-hidden">Team</legend>

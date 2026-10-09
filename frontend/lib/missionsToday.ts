@@ -2,6 +2,7 @@ import { isToday, plan, type MissionPlan, type MissionsModel } from "./missions"
 import type { Sorare } from "./play";
 import type { MissionPool } from "./missionsPool";
 import { loadPlayerSheets } from "./playerGames";
+import { missionPlayers } from "./missionInventory";
 
 export const RARITIES = ["limited", "rare", "super_rare", "unique"] as const;
 
@@ -41,7 +42,7 @@ export async function missionsToday(
   const seenAt = missions?.[rarity]?.seen_at ?? null;
   const status: MissionsStatus = own ? "today" : seenAt ? "stale" : "never";
   const list = own ?? [];
-  const players = pool?.players ?? (data ? data.weeks.flatMap((w) => w.playing.players) : []);
+  const players = missionPlayers(pool?.players ?? (data ? data.weeks.flatMap((w) => w.playing.players) : []), list, rarity);
   const made = list.length ? plan(list, rarity, players, sheets.players, now) : null;
   return { rarity, seen: [...seen], day: made?.day ?? null, plans: made?.plans ?? [], status, seenAt };
 }

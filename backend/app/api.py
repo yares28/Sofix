@@ -13,7 +13,8 @@ from app.services.timeutil import as_utc
 from app.sorare import audit, ff_link, sheets
 from app.sorare import missions as mission_logs
 from app.sorare.ff_lineups import LINEUPS_KEY
-from app.sorare.publish import AHEAD_PREFIX, ALT_PREFIX, ARCHIVE_PREFIX
+from app.sorare.frozen import PLAN_PREFIX
+from app.sorare.publish import AHEAD_PREFIX, ALT_PREFIX, ARCHIVE_PREFIX, RECORD_PREFIX
 
 router = APIRouter(prefix="/api")
 
@@ -142,6 +143,20 @@ def sorare_alt(slug: str, db: Session = Depends(get_db)):
     if row is None:
         return ApiResponse[dict[str, Any]](success=False, error="There is no Sorare plan for this gameweek.")
     return ApiResponse[dict[str, Any]](success=True, data=row.payload)
+
+
+@router.get("/sorare/plan/{slug}", response_model=ApiResponse[dict[str, Any]])
+def sorare_frozen_plan(slug: str, db: Session = Depends(get_db)):
+    """The last pre-lock plan; never recomputed using later team news."""
+    row = db.get(ReadModel, f"{PLAN_PREFIX}{slug}")
+    return ApiResponse[dict[str, Any]](success=row is not None, data=row.payload if row else None)
+
+
+@router.get("/sorare/record/{slug}", response_model=ApiResponse[dict[str, Any]])
+def sorare_chance_record(slug: str, db: Session = Depends(get_db)):
+    """Captured game-specific source chances, retained across the GW lock."""
+    row = db.get(ReadModel, f"{RECORD_PREFIX}{slug}")
+    return ApiResponse[dict[str, Any]](success=row is not None, data=row.payload if row else None)
 
 
 @router.get("/sorare/ahead/{round}", response_model=ApiResponse[dict[str, Any]])

@@ -255,7 +255,7 @@ export function MissionsGlance({ plans, day, current, href }: { plans: MissionPl
           ))}
         </div>
       ) : (
-        <p className="rc-none">{plans.length ? "None of your cards with a game still to play today fits them." : current ? "No missions on Sorare today." : null}</p>
+        <p className="rc-none">{plans.length ? "No ranked suggestions. Review your eligible cards on Missions." : current ? "No missions on Sorare today." : null}</p>
       )}
     </section>
   );

@@ -49,6 +49,7 @@ export default function ApplySheet({
   const [held, setHeld] = useState<Entered[]>([]);
   const [cap, setCap] = useState(0);
   const [draftId, setDraftId] = useState<string | null>(null);
+  const [uncertain, setUncertain] = useState(false);
   const id = useId();
 
   const lineup = lineups[at];
@@ -106,6 +107,7 @@ export default function ApplySheet({
     setVerdict(null);
     setProblem(null);
     setDraftId(null);
+    setUncertain(false);
     void readEntered(lineup);
   }, [open, lineup, stale, readEntered]);
 
@@ -113,17 +115,26 @@ export default function ApplySheet({
 
   const press = async () => {
     setBusy(true);
-    if (stage === 0) {
+    if (uncertain) {
+      const ok = take(await runStep("entered", { slug: lineup.board }));
+      if (ok) {
+        const expected = appearances(lineup).map((a) => a.cardSlug).sort().join(",");
+        const found = ok.entered.find((l) => draftId ? l.id === draftId : !held.some((old) => old.id === l.id) && [...l.cards].sort().join(",") === expected);
+        setHeld(ok.entered); setCap(ok.cap);
+        if (found) { setDraftId(found.id); setStage(found.draft ? 2 : 3); }
+        setUncertain(false);
+      }
+    } else if (stage === 0) {
       const ok = take(await runStep("check", { slug: lineup.board, appearances: appearances(lineup) }));
-      if (ok) setStage(1);
+      if (ok && !broken(ok.rules).length) setStage(1);
     } else if (stage === 1) {
-      const ok = take(
-        await runStep("draft", {
+      const answer = await runStep("draft", {
           boardId: lineup.boardId,
           appearances: appearances(lineup),
           name: `Sofix · plan ${rank}`,
-        }),
-      );
+        });
+      const ok = take(answer);
+      if (answer.state === "timeout" || answer.state === "error") setUncertain(true);
       if (ok?.lineupId) {
         setDraftId(ok.lineupId);
         setStage(2);
@@ -131,7 +142,9 @@ export default function ApplySheet({
         setProblem({ state: "error" }); // saved but unnamed: without an id the next step has nothing to enter
       }
     } else if (stage === 2 && draftId) {
-      const ok = take(await runStep("enter", { lineupIds: [draftId] }));
+      const answer = await runStep("enter", { lineupIds: [draftId] });
+      const ok = take(answer);
+      if (answer.state === "timeout" || answer.state === "error") setUncertain(true);
       if (ok) setStage(3);
     }
     setBusy(false);
@@ -347,8 +360,8 @@ export default function ApplySheet({
               </>
             ) : (
               <>
-                <span className="note">{stuck ? "Nothing has been saved." : action.note}</span>
-                {stale ? null : stuck ? (
+                <span className="note">{uncertain ? "Read the lineup back before retrying." : stuck ? "Reconnect to Sorare to continue." : action.note}</span>
+                {uncertain ? <button type="button" className="ap-go" onClick={press} disabled={busy}>{busy ? "Looking…" : "Check Sorare status"}</button> : stale ? null : stuck ? (
                   // Opening sorare.com or setting the extension up happens in another tab: one press looks again.
                   <button type="button" className="ap-go" onClick={() => void readEntered(lineup)} disabled={busy}>
                     {busy ? "Looking…" : "Try again"}

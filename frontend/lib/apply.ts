@@ -65,7 +65,7 @@ const RuleSchema = z.object({
 });
 
 const LineupSchema = z.object({
-  id: z.string(),
+  id: z.string().min(1),
   name: z.string().nullable().default(null),
   draft: z.boolean(),
   confirmable: z.boolean().default(false),
@@ -120,7 +120,7 @@ const entered = (lineups: z.infer<typeof LineupSchema>[]): Entered[] =>
 const EMPTY: Verdict = { state: "ok", multiplier: null, rules: [], lineupId: null, entered: [], cap: 0 };
 
 /** Read the extension's answer into one shape, whichever step asked. */
-export function readAnswer(response: unknown): Answer {
+export function readAnswer(response: unknown, step?: Step): Answer {
   const parsed = ReplySchema.safeParse(response);
   if (!parsed.success) return { state: "error" };
   const reply = parsed.data;
@@ -135,7 +135,15 @@ export function readAnswer(response: unknown): Answer {
   const write = data?.createOrUpdateSo5Lineup ?? data?.confirmSo5Lineups;
   if (write?.errors.length) return { state: "rejected", errors: write.errors.map((error) => error.message) };
 
-  const saved = data?.createOrUpdateSo5Lineup?.so5Lineup ?? data?.confirmSo5Lineups?.so5Lineups?.[0] ?? null;
+  const saved = step === "draft" ? data?.createOrUpdateSo5Lineup?.so5Lineup
+    : step === "enter" ? data?.confirmSo5Lineups?.so5Lineups?.[0]
+      : data?.createOrUpdateSo5Lineup?.so5Lineup ?? data?.confirmSo5Lineups?.so5Lineups?.[0] ?? null;
+  if (!data || (step === "check" && !board?.previewSo5Lineup) ||
+      (step === "entered" && !board?.mySo5Lineups) ||
+      ((step === "draft" || step === "enter") && !saved) ||
+      (step === "draft" && saved?.draft !== true) ||
+      (step === "enter" && data.confirmSo5Lineups?.so5Lineups?.some((l) => l.draft)) ||
+      (!step && !board?.previewSo5Lineup && !board?.mySo5Lineups && !saved)) return { state: "error" };
   return {
     ...EMPTY,
     multiplier: board?.previewSo5Lineup?.rewardMultiplier ?? null,
@@ -169,9 +177,9 @@ export function cannot(state: Answer["state"]): { title: string; says: string; a
     case "signed-out":
       return { title: "You're signed out of Sorare", says: "Sign in on sorare.com, then come back.", act: "Open sorare.com" };
     case "timeout":
-      return { title: "Sorare didn't answer", says: "Nothing was saved. Try the step again.", act: null };
+      return { title: "Sorare didn't answer", says: "Check Sorare before retrying: the last request may have reached it.", act: null };
     case "error":
-      return { title: "That didn't go through", says: "Nothing was saved. Try the step again.", act: null };
+      return { title: "Sorare's result could not be verified", says: "Check Sorare before retrying the step.", act: null };
     default:
       return null;
   }
@@ -200,7 +208,7 @@ export function runStep(step: Step, input: Record<string, unknown>, timeoutMs = 
       send.call(runtime, EXTENSION_ID, { type: "sorare", step, ...input }, (response) => {
         clearTimeout(timer);
         void runtime.lastError; // reading it keeps Chrome quiet when the extension isn't installed
-        finish(response === undefined ? { state: "no-extension" } : readAnswer(response));
+        finish(response === undefined ? { state: "no-extension" } : readAnswer(response, step));
       });
     } catch {
       clearTimeout(timer);

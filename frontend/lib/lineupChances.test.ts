@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import recorded from "../e2e/fixtures/lineups-response.json";
-import { lineupChances, type ChancePlayer } from "./lineupChances";
+import { lineupChances, recordedChances, recordedGames, parseSorareChances, type ChancePlayer } from "./lineupChances";
 import { readable } from "./lineups";
 import type { PlayerGame } from "./play";
 
@@ -17,6 +17,23 @@ const player = (extra: Partial<ChancePlayer> = {}): ChancePlayer => ({
 const chances = (players: ChancePlayer[]) => lineupChances([match], players)[match.id]?.[owned.id];
 
 describe("Lineups' source percentages", () => {
+  it("links a signed-in source read to the exact recorded game and FF player", () => {
+    const id = "Game:00000000-0000-0000-0000-000000000001";
+    const records = [{ players: { [owned.yours!]: { games: [{ id, kickoff: match.kickoff!, ffMatch: { id: match.id }, ffPlayer: owned.id }] } } }];
+    const linked = recordedGames([match], records)[match.id]!;
+    expect(linked).toEqual({ id, players: { [owned.yours!]: owned.id } });
+    const score = (slug: string, n: number | null) => ({ anyPlayer: { slug }, anyPlayerGameStats: { footballPlayingStatusOdds: n === null ? null : { starterOddsBasisPoints: n } } });
+    const answer = { ok: true, state: "ok", data: { anyGame: { id, playerGameScores: [score(owned.yours!, 0), score("other-player", 9000)] } } };
+    expect(parseSorareChances(answer, linked)).toEqual({ [owned.id]: { sorare: 0 } });
+    expect(parseSorareChances({ ...answer, data: { anyGame: { id: "wrong", playerGameScores: [] } } }, linked)).toBeNull();
+    expect(parseSorareChances({ ...answer, data: { anyGame: { id, playerGameScores: [score(owned.yours!, null), score("other-player", 10001)] } } }, linked)).toEqual({});
+    expect(recordedGames([{ ...match, kickoff: "2000-01-01T00:00:00Z" }], records)).toEqual({});
+  });
+  it("keeps both captured sources after the optimizer moves to another GW, matching exact FF identities", () => {
+    const games = [{ kickoff: match.kickoff!, ffMatch: { id: match.id }, ffPlayer: owned.id, sources: { sofix: 0.7, sorare: 0 } }];
+    expect(recordedChances([match], [{ players: { x: { games } } }])[match.id]?.[owned.id]).toEqual({ sofix: 0.7, sorare: 0 });
+    expect(recordedChances([{ ...match, id: 999 }], [{ players: { x: { games } } }])).toEqual({});
+  });
   it("gives every LaLiga player you don't own Sofix's and Sorare's chance through his FF link, after your own cards", () => {
     const stranger = match.away.rows.flatMap((row) => row.players)[0]!;
     const market = [

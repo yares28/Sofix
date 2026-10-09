@@ -1,7 +1,7 @@
 "use client";
 
 import CardZoom from "../ui/CardZoom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cannot } from "../../lib/apply";
 import { pendingLine, resultLine, type GameweekLineup, type WeekLineupsAnswer } from "../../lib/entered";
 import { readEnteredWeek } from "../../lib/myWeeksClient";
@@ -9,7 +9,7 @@ import { REQUIRED_EXTENSION_VERSION } from "../../lib/extension";
 import { Foil } from "./bits";
 import SorareImage from "./SorareImage";
 
-type Week = { slug: string; number: number; lock?: string };
+type Week = { slug: string; number: number; lock?: string; end?: string };
 type Failure = Exclude<WeekLineupsAnswer, { state: "ok" }>;
 type LoadState =
   | { state: "loading"; lineups: GameweekLineup[] }
@@ -20,22 +20,25 @@ type LoadState =
 export default function EnteredLineups({ week }: { week: Week }) {
   const [load, setLoad] = useState<LoadState>({ state: "loading", lineups: [] });
   const [asked, setAsked] = useState(0); // a new ask: Check again, or coming back to this tab
+  const last = useRef<{ slug: string; lineups: GameweekLineup[] } | null>(null);
 
   useEffect(() => {
     let current = true;
-    setLoad((was) => ({ state: "loading", lineups: was.lineups }));
-    void readEnteredWeek(week.slug).then((answer) => {
+    const previous = last.current?.slug === week.slug ? last.current.lineups : [];
+    setLoad({ state: "loading", lineups: previous });
+    void readEnteredWeek(week.slug, Boolean(week.end && Date.parse(week.end) < Date.now())).then((answer) => {
       if (!current) return;
+      if (answer.state === "ok") last.current = { slug: week.slug, lineups: answer.lineups };
       setLoad(
         answer.state === "ok"
           ? { state: "ready", lineups: answer.lineups, at: new Date(), saved: answer.saved }
-          : { state: "unavailable", lineups: [], answer },
+          : { state: "unavailable", lineups: previous, answer },
       );
     });
     return () => {
       current = false;
     };
-  }, [week.slug, asked]);
+  }, [week.slug, week.end, asked]);
 
   // Lineups entered on Sorare in another tab show up when you come back here (Control does the same for the extension).
   useEffect(() => {
@@ -118,7 +121,8 @@ export default function EnteredLineups({ week }: { week: Week }) {
             </a>
           ) : null}
         </div>
-      ) : load.lineups.length ? (
+      ) : null}
+      {load.lineups.length ? (
         <div className="pl-entered-list">
           {load.lineups.map((lineup) => {
             const pending = pendingLine(lineup, week.lock, now);
@@ -155,14 +159,14 @@ export default function EnteredLineups({ week }: { week: Week }) {
             );
           })}
         </div>
-      ) : (
+      ) : load.state === "ready" ? (
         <div className="pl-entered-empty">
           <div>
             <b>{load.state === "ready" && load.saved ? "No entered lineups" : "None entered yet"} for GW{week.number}</b>
             <span>{load.state === "ready" && load.saved ? "Saved final Sorare read: no entered lineups. Drafts are not saved." : `Checked on Sorare at ${checked}: you have no lineup or draft in this gameweek.`}</span>
           </div>
         </div>
-      )}
+      ) : null}
     </section>
   );
 }

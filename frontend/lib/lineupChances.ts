@@ -1,10 +1,62 @@
 import type { LineupMatch, LineupPlayer } from "./lineups";
+import { z } from "zod";
 import { sourceChances } from "./nextGame";
 import type { MarketPlayer, PlayingPlayer, StartSource } from "./play";
 
 export type ChancePlayer = Pick<PlayingPlayer, "player" | "club" | "games" | "sources" | "pStart" | "startSource">;
 export type MatchChances = Record<string, Partial<Record<StartSource, number>>>;
 export type LineupChances = Record<string, MatchChances>;
+export type ChanceRecord = { players: Record<string, { games: { id?: string; kickoff: string; sources?: Partial<Record<StartSource, number>>; ffMatch?: { id: number }; ffPlayer?: string }[] }> };
+export type SorareGameLink = { id: string; players: Record<string, string> };
+/** Match identity survives independently of whether the public API published Sorare's odds. */
+export function recordedGames(matches: LineupMatch[], records: ChanceRecord[]): Record<number, SorareGameLink> {
+  const links: Record<number, SorareGameLink> = {};
+  for (const record of records) for (const [slug, p] of Object.entries(record.players)) for (const g of p.games) {
+    if (!g.id?.match(/^Game:[0-9a-f-]{36}$/i) || !g.ffMatch || !g.ffPlayer) continue;
+    const match = matches.find((m) => m.id === g.ffMatch!.id);
+    if (!match || (match.kickoff && Date.parse(match.kickoff) !== Date.parse(g.kickoff))) continue;
+    if (![match.home, match.away].some((s) => [...s.rows.flatMap((r) => r.players), ...s.alternatives].some((p) => p.id === g.ffPlayer))) continue;
+    const linked = links[match.id] ??= { id: g.id, players: {} };
+    if (linked.id === g.id) linked.players[slug] = g.ffPlayer;
+  }
+  return links;
+}
+const SorareChancesSchema = z.object({
+  ok: z.literal(true), state: z.literal("ok"), data: z.object({ anyGame: z.object({
+    id: z.string(), playerGameScores: z.array(z.object({
+      anyPlayer: z.object({ slug: z.string() }),
+      anyPlayerGameStats: z.object({ footballPlayingStatusOdds: z.object({ starterOddsBasisPoints: z.number().nullable() }).nullable().optional() }).nullable(),
+    })),
+  }) }),
+});
+export function parseSorareChances(answer: unknown, link: SorareGameLink): MatchChances | null {
+  const result = SorareChancesSchema.safeParse(answer);
+  if (!result.success || result.data.data.anyGame.id !== link.id) return null;
+  const values: MatchChances = {};
+  for (const row of result.data.data.anyGame.playerGameScores) {
+    const player = link.players[row.anyPlayer.slug];
+    const n = row.anyPlayerGameStats?.footballPlayingStatusOdds?.starterOddsBasisPoints;
+    if (player && typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 10_000) values[player] = { sorare: n / 10_000 };
+  }
+  return values;
+}
+/** Captured game statements survive the optimizer switching to its next open week. */
+export function recordedChances(matches: LineupMatch[], records: ChanceRecord[]): LineupChances {
+  const result: LineupChances = {};
+  for (const record of records) for (const p of Object.values(record.players)) for (const g of p.games) {
+    if (!g.ffMatch || !g.ffPlayer || !g.sources) continue;
+    const match = matches.find((m) => m.id === g.ffMatch!.id);
+    if (!match || (match.kickoff && Date.parse(match.kickoff) !== Date.parse(g.kickoff))) continue;
+    const people = [match.home, match.away].flatMap((s) => [...s.rows.flatMap((r) => r.players), ...s.alternatives]);
+    if (!people.some((p) => p.id === g.ffPlayer)) continue;
+    const values = (result[match.id] ??= {})[g.ffPlayer] ??= {};
+    for (const source of ["sofix", "sorare"] as const) {
+      const n = g.sources[source];
+      if (typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 1) values[source] = n;
+    }
+  }
+  return result;
+}
 export const CHANCE_SOURCES: Record<StartSource, string> = { futbolfantasy: "Futbol Fantasy", sorare: "Sorare", sofix: "Sofix" };
 
 /** Join cached forecasts to this match only; then every other LaLiga player through his Futbol Fantasy link (`market`), so

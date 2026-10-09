@@ -191,7 +191,7 @@ export default function PlayView({
             ))}
           </div>
           {longShots.length ? (
-            <details className="pl-fold pl-long">
+            <details className="pl-fold pl-long" open={!main.length}>
               <summary>
                 Long shots <span>· {longShots.length} under 5%, with cards nothing else wanted</span>
                 <Chevron className="" />

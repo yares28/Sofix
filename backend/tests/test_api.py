@@ -121,3 +121,19 @@ def test_futbol_fantasys_lineups_are_served_as_the_job_wrote_them_and_say_so_whe
     db.add(ReadModel(key="lineups", payload={"matches": []}, updated_at=datetime.now(UTC)))
     db.commit()
     assert client.get("/api/lineups").json()["data"] == {"matches": []}
+
+
+def test_locked_plan_and_source_records_are_read_without_reconstruction(db):  # noqa: F811
+    from datetime import UTC, datetime
+
+    from app.models import ReadModel
+
+    app = create_app(Settings(app_env="dev"))
+    app.dependency_overrides[get_db] = lambda: db
+    client = TestClient(app)
+    for kind, prefix in (("plan", "sorare_plan:"), ("record", "score_record:")):
+        assert client.get(f"/api/sorare/{kind}/missing").json()["data"] is None
+        payload = {"captured": kind}
+        db.add(ReadModel(key=f"{prefix}football-9-13-oct-2026", payload=payload, updated_at=datetime.now(UTC)))
+        db.commit()
+        assert client.get(f"/api/sorare/{kind}/football-9-13-oct-2026").json()["data"] == payload

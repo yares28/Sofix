@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import CardArt from "../cards/CardArt";
-import { fit, missionDay, missionValues, type MissionPlan } from "../../lib/missions";
+import { fit, missionCandidates, missionValues, type MissionPlan } from "../../lib/missions";
 import type { MissionPool, MissionPlayer } from "../../lib/missionsPool";
 import { SOURCE_SHORT } from "../../lib/play";
 import { cardCopyLabel, sampleLabel } from "../../lib/missionPresentation";
@@ -17,34 +17,32 @@ export default function MissionScouting({ plans, players, pool, now, rarity, sho
     <p>Load today’s missions to compare your cards against the actual targets.</p>
     <p className="pd-foot">Your saved history is below. Scouting opens when a current mission is available.</p>
   </section>;
-  const unique = new Map<string, MissionPlayer>();
-  for (const p of players) if (p.rarity === rarity) unique.set(p.card ?? p.player ?? p.name, p);
-  const rows = [...unique.entries()].flatMap(([id, p]) => {
-    const game = p.games.find((g) => missionDay(new Date(g.kickoff)) === missionDay(new Date(now)));
-    if (!game) return [];
+  const candidates = missionCandidates(one.mission, rarity, players, new Date(now), plans.flatMap((x) => x.mission.appearances ?? []));
+  const unique = new Map<string, typeof candidates[number]>();
+  for (const c of candidates) {
+    const id = c.p.card ?? c.p.player!;
+    if (!unique.has(id) || (!unique.get(id)!.editable && c.editable)) unique.set(id, c);
+  }
+  const rows = [...unique.entries()].flatMap(([id, { p, game, own, locked, allowed, status, editable }]) => {
     const sheet = pool?.sheets.players[p.player ?? ""];
-    const found = one ? fit(one.rule, { ...p, pStart: game.pStart ?? p.pStart, pOn: game.pOn ?? p.pOn }, sheet ?? null) : null;
-    const own = plans.some((x) => x.mission.appearances?.some((a) => a.card ? a.card === p.card : a.player === p.player));
-    const locked = new Date(game.kickoff) <= new Date(now);
-    const eligible = one?.mission.eligibleCards?.[game.id ?? ""];
-    const allowed = eligible && p.card ? eligible.includes(p.card) : null;
-    const status = p.eligibility ?? (own ? "Already selected" : locked ? "Locked" : allowed === true ? "Eligible on Sorare" : allowed === false ? "Not eligible for this mission" : "Eligibility not checked on Sorare");
-    const threshold = !one || one.rule.kind === "unsupported" ? undefined : "atLeast" in one.rule ? one.rule.atLeast : one.rule.kind === "score" ? one.mission.thresholds?.[0]?.min : 1;
+    const target = one.mission.inventory?.find((c) => c.card === p.card && c.game.id === game.id)?.target;
+    const found = fit(one.rule, { ...p, availabilityKnown: game.availabilityKnown ?? p.availabilityKnown, pStart: game.pStart ?? p.pStart, pOn: game.pOn ?? p.pOn }, sheet ?? null, target);
+    const threshold = one.rule.kind === "unsupported" ? undefined : "atLeast" in one.rule ? one.rule.atLeast : one.rule.kind === "score" ? target : 1;
     const window = (n: number) => { const last = missionValues(one.rule, sheet).slice(-n); return { n: last.length, mean: last.length ? last.reduce((s, v) => s + v, 0) / last.length : null,
       hits: threshold === undefined ? null : last.filter((v) => v >= threshold).length }; };
-    return [{ id, p, game, sheet, found: allowed === false ? null : found, own, locked, status, allowed, l5: window(5), l8: window(8) }];
+    return [{ id, p, game, sheet, found: allowed === false ? null : found, own, locked, status, allowed, editable, l5: window(5), l8: window(8) }];
   });
-  const filtered = rows.filter(({ p, own, locked, allowed }) => p.name.toLowerCase().includes(query.toLowerCase()) && (!position || p.pos === position) && (!availability || (availability === "editable" ? !locked && !own && !p.eligibility && allowed !== false : availability === "selected" ? own : shortlist.includes(p.card ?? p.player ?? ""))));
+  const filtered = rows.filter(({ p, own, editable }) => p.name.toLowerCase().includes(query.toLowerCase()) && (!position || p.pos === position) && (!availability || (availability === "editable" ? editable : availability === "selected" ? own : shortlist.includes(p.card ?? p.player ?? ""))));
   filtered.sort((a, b) => sort === "kickoff" ? a.game.kickoff.localeCompare(b.game.kickoff) : sort === "recent" ? (b.l8.hits ?? -1) / (b.l8.n || 1) - (a.l8.hits ?? -1) / (a.l8.n || 1) : sort === "stat" ? (b.l8.mean ?? -1) - (a.l8.mean ?? -1) : (b.found?.chance ?? -1) - (a.found?.chance ?? -1));
   const stats = (w: { n: number; mean: number | null; hits: number | null }) => w.n ? `${w.hits === null ? "Target history unavailable" : `${w.hits}/${w.n} hit target`}${w.mean === null ? "" : ` · ${w.mean.toFixed(1)} mean`}` : "";
   const recent = (r: typeof rows[number]) => <><span>{!r.l5.n && r.sheet?.last.length ? "Recent target counts were not captured." : sampleLabel(r.l5.n, 5)}{r.l5.n ? `: ${stats(r.l5)}` : ""}</span>{r.l8.n > r.l5.n ? <span>{sampleLabel(r.l8.n, 8)}: {stats(r.l8)}</span> : null}</>;
   const copies = (r: typeof rows[number]) => {
-    const available = rows.filter((x) => x.p.player === r.p.player && !x.locked && !x.own && !x.p.eligibility);
+    const available = rows.filter((x) => x.p.player === r.p.player && x.editable);
     const confirmed = available.filter((x) => x.allowed === true).length;
     const unchecked = available.filter((x) => x.allowed === null).length;
     return `${confirmed} copies confirmed eligible${unchecked ? ` · ${unchecked} not checked on Sorare` : ""}`;
   };
-  return <section className="pd-card ms-scout" aria-labelledby="ms-scout-title">
+  return <section className="pd-card ms-scout" id="mission-scouting" aria-labelledby="ms-scout-title">
     <h2 id="ms-scout-title">Choose your own picks</h2>
     <p>{one ? one.rule.label : "Load missions to see their targets and compare your cards."}</p>
     <div className="ms-filters">
@@ -54,15 +52,16 @@ export default function MissionScouting({ plans, players, pool, now, rarity, sho
       <label>Availability<select value={availability} onChange={(e) => setAvailability(e.target.value)}><option value="">All cards</option><option value="editable">Before kickoff</option><option value="selected">Your selections</option><option value="shortlist">Shortlist</option></select></label>
       <label>Sort by<select value={sort} onChange={(e) => setSort(e.target.value)}><option value="chance">Estimated chance</option><option value="recent">Recent target success</option><option value="stat">Relevant stat</option><option value="kickoff">Kickoff</option></select></label>
     </div>
-    <p className="ms-evidence">{pool ? `${pool.statsWindow}. Observation cutoff ${kickoff(pool.sheets.asOf)}. ${pool.complete ? "Mission game coverage includes the active GW." : "Game coverage is incomplete."}` : "Live mission evidence is not published yet. Weekly player data is incomplete; no current stat claims are made."} Last 5 / 8 count scored starts, with the sample shown.</p>
-    {compared.length ? <div className="ms-compare" aria-label="Player comparison">{rows.filter((r) => compared.includes(r.id)).map((r) => <div key={r.id}><b>{r.p.name}</b><p>{percent(r.found?.chance)} estimated · {percent(r.game.pStart ?? r.p.pStart)} to start</p><div>{recent(r)}</div></div>)}</div> : null}
+    {!pool?.complete || one.mission.eligibilityComplete === false ? <p className="ms-evidence">Coverage is incomplete. Load missions to check the latest eligible cards.</p> : null}
+    {compared.length ? <div className="ms-compare" aria-label="Player comparison">{rows.filter((r) => compared.includes(r.id)).map((r) => <div key={r.id}><b>{r.p.name}</b><p>{percent(r.found?.chance)} {r.found?.historical ? "recent hits" : "estimated"}{r.game.availabilityKnown !== false ? ` · ${percent(r.game.pStart ?? r.p.pStart)} to start` : ""}</p><div>{recent(r)}</div></div>)}</div> : null}
     <ul className="ms-scout-list">{filtered.map((r) => <li key={r.id}>
       <div className="ms-scout-player"><span className="art" aria-hidden="true"><CardArt src={r.p.pic} name={r.p.name} /></span><div><b>{r.p.name}</b><span>{r.p.pos} · {rarity} · {cardCopyLabel(r.p.card)}</span><span>{r.game.team ?? "Playing side not supplied"} {r.game.venue === "H" ? "v" : "at"} {r.game.opponent} · {kickoff(r.game.kickoff)}</span><span>{r.game.competition} · {r.status}</span></div></div>
-      <div><strong>{percent(r.found?.chance)}</strong><span>Estimated mission chance</span><span>{r.game.ffMatch && r.game.startSource === "futbolfantasy" ? <a href={r.game.ffMatch.url} target="_blank" rel="noreferrer">Start: {percent(r.game.pStart ?? r.p.pStart)} · FF</a> : <>Start: {percent(r.game.pStart ?? r.p.pStart)} · {SOURCE_SHORT[r.game.startSource ?? r.p.startSource ?? "sofix"]}{!r.game.startSource && !r.p.startSource ? " (source unavailable)" : ""}</>}</span><span>{copies(r)}</span>{r.game.ffStatus?.kind ? <span>{r.game.ffStatus.kind}{r.game.ffStatus.note ? ` · ${r.game.ffStatus.note}` : ""}</span> : null}</div>
+      <div><strong>{percent(r.found?.chance)}</strong><span>{r.found?.historical ? "Recent target hit rate" : "Estimated mission chance"}</span>{r.game.availabilityKnown !== false ? <span>{r.game.ffMatch && r.game.startSource === "futbolfantasy" ? <a href={r.game.ffMatch.url} target="_blank" rel="noreferrer">Start: {percent(r.game.pStart ?? r.p.pStart)} · FF</a> : <>Start: {percent(r.game.pStart ?? r.p.pStart)} · {SOURCE_SHORT[r.game.startSource ?? r.p.startSource ?? "sofix"]}</>}</span> : null}<span>{copies(r)}</span>{r.game.ffStatus?.kind ? <span>{r.game.ffStatus.kind}{r.game.ffStatus.note ? ` · ${r.game.ffStatus.note}` : ""}</span> : null}</div>
       <div>{recent(r)}<span>Baseline: {r.sheet?.starts ?? 0} scored starts{r.sheet ? ` · ${Math.round(r.sheet.decAll * 100)}% decisive` : ""}</span></div>
-      <div className="ms-scout-actions"><label><input type="checkbox" checked={compared.includes(r.id)} disabled={!compared.includes(r.id) && compared.length >= 3} onChange={() => setCompared(compared.includes(r.id) ? compared.filter((s) => s !== r.id) : [...compared, r.id])} />Compare {r.p.name}</label><button type="button" disabled={r.locked || r.own || Boolean(r.p.eligibility) || r.allowed === false} aria-pressed={shortlist.includes(r.id)} onClick={() => toggle(r.id)}>{shortlist.includes(r.id) ? "Remove from shortlist" : "Shortlist"}</button>{plans.some((p) => p.picks.some((s) => s.slug === r.p.player)) ? <span>Sofix suggested</span> : null}</div>
+      <div className="ms-scout-actions"><label><input type="checkbox" checked={compared.includes(r.id)} disabled={!compared.includes(r.id) && compared.length >= 3} onChange={() => setCompared(compared.includes(r.id) ? compared.filter((s) => s !== r.id) : [...compared, r.id])} />Compare {r.p.name}</label><button type="button" disabled={!r.editable} aria-pressed={shortlist.includes(r.id)} onClick={() => toggle(r.id)}>{shortlist.includes(r.id) ? "Remove from shortlist" : "Shortlist"}</button>{plans.some((p) => p.picks.some((s) => s.card ? s.card === r.p.card : s.slug === r.p.player)) ? <span>Sofix suggested</span> : null}</div>
     </li>)}</ul>
-    {!filtered.length ? <p className="pd-none">No cards found with these filters. Choose All cards to include locked or unavailable copies. This does not confirm you have no eligible cards on Sorare.</p> : null}
-    <p className="pd-foot">Compare up to three. Shortlisting reserves a player locally while recalculating suggestions; nothing is entered on Sorare. Decisive estimates include availability; other stat estimates use a Poisson rate adjusted for playing chance. Score targets have no probability estimate. <a href={`https://sorare.com/football/play/missions/play/${rarity}`} target="_blank" rel="noreferrer">Make your picks on Sorare ↗</a></p>
+    {!filtered.length ? <p className="pd-none">No cards found with these filters. Choose All cards or reload missions.</p> : null}
+    <details className="pd-foot"><summary>About these estimates</summary><p>{pool?.statsWindow ?? "Scored starts"}. Last 5 / 8 show the actual sample. Decisive estimates include playing chance; count targets use a Poisson rate. Recent hit rates describe recorded starts, not the chance of playing today. Shortlisting reserves this copy locally.</p></details>
+    <p className="pd-foot"><a href={`https://sorare.com/football/play/missions/play/${rarity}`} target="_blank" rel="noreferrer">Make your picks on Sorare ↗</a></p>
   </section>;
 }

@@ -1,6 +1,8 @@
 import { cache } from "./cache";
 import { database, readModel } from "./db";
 import { SORARE_TAG, type GameweekPlan, type Sorare, type SorarePlans } from "./play";
+import { restoreFrozenPlan } from "./frozenPlan";
+import type { ChanceRecord } from "./lineupChances";
 
 // Local development and the browser tests have no Neon: they ask the FastAPI stand-in instead.
 const API_BASE = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -65,6 +67,24 @@ export async function loadProjectedWeek(round: number): Promise<GameweekPlan | n
 
 /** A slug from Sorare's own list ("football-25-29-sep-2026"): nothing else is a key the job wrote a week under. */
 const WEEK_SLUG = /^[a-z0-9][a-z0-9-]{0,80}$/;
+
+/** Small supporting records, independently retained when a locked week leaves the optimizer's payload. */
+async function supportingRecord<T>(kind: "plan" | "record", slug: string): Promise<T | null> {
+  if (!WEEK_SLUG.test(slug)) return null;
+  const read = cache(async () => {
+    if (database()) return (await readModel<T>(`${kind === "plan" ? "sorare_plan" : "score_record"}:${slug}`))?.payload ?? null;
+    const response = await fetch(`${API_BASE}/api/sorare/${kind}/${slug}`, { cache: "no-store", signal: AbortSignal.timeout(8000) });
+    if (!response.ok) return null;
+    const body = await response.json() as { success?: boolean; data?: T };
+    return body.success ? body.data ?? null : null;
+  }, [`sorare-${kind}-v1`, slug], { tags: [SORARE_TAG], revalidate: 3600 });
+  try { return await read(); } catch { return null; }
+}
+export async function loadFrozenPlan(slug: string, data: Sorare): Promise<GameweekPlan | null> {
+  const week = await supportingRecord<GameweekPlan>("plan", slug);
+  return week?.playing?.players && Array.isArray(week.plans) ? restoreFrozenPlan(week, data) : null;
+}
+export const loadChanceRecord = (slug: string) => supportingRecord<ChanceRecord>("record", slug);
 
 /**
  * One finished gameweek the job kept whole (`read_models` key `sorare_week:<slug>`), or null when it did not keep

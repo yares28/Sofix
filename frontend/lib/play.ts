@@ -211,6 +211,8 @@ export type GameOdds = {
 };
 
 export type PlayerGame = {
+  /** Imported mission game without a forecast; the card stays selectable without a fabricated play chance. */
+  availabilityKnown?: boolean;
   id?: string;
   kickoff: string;
   competition: string;
@@ -271,6 +273,7 @@ export type FfStatus = {
 };
 
 export type PlayingPlayer = {
+  availabilityKnown?: boolean;
   /** His Sorare slug. Payloads published before the overlay do not carry it, so it may be absent. */
   player?: string;
   name: string;

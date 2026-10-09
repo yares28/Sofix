@@ -126,6 +126,19 @@ test("Apply walks Check, Draft and Enter, and each one is a press of its own", a
   await expect(sheet.getByRole("button", { name: /Enter the competition|Save as a draft/ })).toHaveCount(0);
 });
 
+test("reads Sorare again after an ambiguous draft reply before allowing a write retry", async ({ page }) => {
+  await fakeExtension(page, { entered: NOTHING_ENTERED, check: PREVIEW_OK, draft: { state: "timeout" } });
+  await page.goto("/play");
+  await page.getByRole("button", { name: "Apply plan" }).click();
+  const sheet = page.locator(".ap");
+  await sheet.getByRole("button", { name: "Check with Sorare" }).click();
+  await sheet.getByRole("button", { name: "Save as a draft" }).click();
+  await expect(sheet).not.toContainText("Nothing was saved");
+  await sheet.getByRole("button", { name: "Check Sorare status" }).click();
+  await expect(sheet.getByRole("button", { name: "Save as a draft" })).toBeVisible();
+  expect((await calls(page)).map((c) => c.step)).toEqual(["entered", "check", "draft", "entered"]);
+});
+
 test("Sorare's refusal is shown in Sorare's words, and nothing moves on", async ({ page }) => {
   const rejected = {
     state: "ok",

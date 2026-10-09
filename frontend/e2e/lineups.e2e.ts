@@ -14,6 +14,27 @@ test.beforeEach(async ({ page, request }) => {
   await offline(page);
 });
 
+test("reads Sorare's starting chances for the displayed game through the extension", async ({ page, request }) => {
+  const data = (await (await request.get(`${MOCK}/api/lineups`)).json()).data;
+  const match = data.matches.find((m: { id: number }) => m.id === 22502);
+  const player = match.home.rows.flatMap((r: { players: { id: string; yours?: string }[] }) => r.players).find((p: { yours?: string }) => p.yours);
+  const id = "Game:00000000-0000-0000-0000-000000000001";
+  await request.post(`${MOCK}/__test/my-weeks`, { data: { chanceRecord: { players: { [player.yours]: { games: [{ id, kickoff: match.kickoff, ffMatch: { id: match.id }, ffPlayer: player.id, sources: { sofix: 0.61 } }] } } } } });
+  await page.addInitScript(({ id, slug }) => {
+    Object.defineProperty(window, "chrome", { configurable: true, value: { runtime: { sendMessage(_extension: string, message: { type: string; game: string }, reply: (answer: unknown) => void) {
+      if (message.type === "lineup-chances" && message.game === id) reply({ ok: true, state: "ok", data: { anyGame: { id, playerGameScores: [{ anyPlayer: { slug }, anyPlayerGameStats: { footballPlayingStatusOdds: { starterOddsBasisPoints: 8300 } } }] } } });
+      else reply(null);
+    } } } });
+  }, { id, slug: player.yours });
+  await page.goto("/lineups?m=22502");
+  await page.getByRole("radio", { name: "Sofix", exact: true }).check();
+  const card = page.getByRole("listitem", { name: /^Mikel Oyarzabal,/ });
+  await expect(card.locator(".lu-pct")).toHaveText("61%");
+  await page.getByRole("radio", { name: "Sorare", exact: true }).check();
+  await expect(card.locator(".lu-pct")).toHaveText("83%");
+  await expect(page.getByText("Open a signed-in Sorare tab", { exact: false })).toHaveCount(0);
+});
+
 test("the round's ten matches sit on one timeline, and the page opens on the next one", async ({ page }) => {
   await page.goto("/lineups");
   await expect(page.getByRole("heading", { level: 1, name: "Who starts this round?" })).toBeVisible();

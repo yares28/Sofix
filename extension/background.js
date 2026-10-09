@@ -75,6 +75,78 @@ async function sendMissions(rarity, missions, force = false) {
 // The rarities the app ranks missions for. One with no mission today is sent empty, so the app says so instead of showing an older list.
 const MISSION_RARITIES = ["limited", "rare", "super_rare", "unique"];
 
+/** Discover from the actual task, then page all owned eligible copies. Bounded reads, never a player-by-player loop. */
+async function missionEligibility(outcomes, requestedAt) {
+  const tasks = [...new Map(Object.values(outcomes).flatMap((o) => o.missions).map((m) => [m.id, m])).values()];
+  const deadline = Date.parse(requestedAt) + 35_000;
+  const start = new Date(requestedAt); start.setUTCHours(0, 0, 0, 0);
+  const end = new Date(start.getTime() + 2 * 86400000);
+  const games = new Map();
+  const discovered = new Set();
+  let pending = tasks.map((m) => ({ id: m.id }));
+  for (let page = 0; pending.length && page < 4 && Date.now() < deadline; page++) {
+    const again = [];
+    for (let offset = 0; offset < pending.length && Date.now() < deadline; offset += 12) {
+      const batch = pending.slice(offset, offset + 12);
+      const answer = await throughSorare("SofixMissionGames", { tasks: batch, fromDate: start.toISOString(), toDate: end.toISOString() });
+      if (answer.state !== "ok") return;
+      batch.forEach((t, i) => {
+        const result = answer.data?.currentUser?.[`t${i}`]?.pickableGames;
+        if (!Array.isArray(result?.nodes)) return;
+        const listed = games.get(t.id) ?? new Map();
+        for (const n of result.nodes) if (/^Game:[a-f0-9-]{36}$/.test(n?.game?.id)) listed.set(n.game.id, n.game);
+        games.set(t.id, listed);
+        if (result.pageInfo?.hasNextPage === false) discovered.add(t.id);
+        if (result.pageInfo?.hasNextPage && typeof result.pageInfo.endCursor === "string") again.push({ ...t, after: result.pageInfo.endCursor });
+      });
+    }
+    pending = again;
+  }
+  const pairs = tasks.flatMap((m) => [...(games.get(m.id)?.keys() ?? [])].slice(0, 128).map((game) => ({ id: m.id, game, averageType: m.overperform?.averageType })));
+  const collected = new Map();
+  const completed = new Set();
+  for (let offset = 0; offset < pairs.length && Date.now() < deadline; offset += 24) {
+    let batch = pairs.slice(offset, offset + 24);
+    for (let page = 0; batch.length && page < 5 && Date.now() < deadline; page++) {
+      const answer = await throughSorare("SofixMissionCards", { pairs: batch });
+      if (answer.state !== "ok") break;
+      const again = [];
+      batch.forEach((p, i) => {
+        const result = answer.data?.currentUser?.[`t${i}`]?.pickableCards;
+        if (!Array.isArray(result?.nodes) || result.nodes.some((c) => typeof c.slug !== "string")) return;
+        const key = `${p.id}:${p.game}`;
+        const cards = [...(collected.get(key) ?? []), ...result.nodes];
+        collected.set(key, cards);
+        if (result.pageInfo?.hasNextPage && typeof result.pageInfo.endCursor === "string") {
+          if (cards.length < 500) again.push({ ...p, after: result.pageInfo.endCursor });
+        } else if (result.pageInfo?.hasNextPage === false) {
+          completed.add(key);
+          for (const o of Object.values(outcomes)) for (const m of o.missions) if (m.id === p.id) {
+            (m.eligibleCards ??= {})[p.game] = [...new Set(cards.map((c) => c.slug))];
+            m.inventory ??= [];
+            const game = games.get(p.id)?.get(p.game);
+            for (const c of cards) {
+              const score = c.eligiblePlayerGameScores?.[0];
+              const team = score?.anyPlayerGameStats?.anyTeam;
+              const venue = team?.id === game?.homeTeam?.id ? "H" : team?.id === game?.awayTeam?.id ? "A" : null;
+              if (!venue || !c.anyPlayer?.slug || m.inventory.length >= 1000) continue;
+              const opponent = venue === "H" ? game.awayTeam : game.homeTeam;
+              m.inventory.push({ card: c.slug, player: c.anyPlayer.slug, name: c.anyPlayer.displayName, pic: c.pictureUrl ?? "", pos: ({ Goalkeeper: "GK", Defender: "DEF", Midfielder: "MID", Forward: "FWD" })[c.anyPositions?.[0]] ?? "MID",
+                game: { id: p.game, kickoff: game.date, competition: game.competition?.slug ?? "", team: team.name, teamCrest: team.pictureUrl ?? null, opponent: opponent.name, opponentCrest: opponent.pictureUrl ?? null, venue },
+                ...(m.overperform && typeof score.averageScore === "number" ? { target: score.averageScore + m.overperform.by } : {}) });
+            }
+          }
+        }
+      });
+      batch = again;
+    }
+  }
+  for (const o of Object.values(outcomes)) for (const m of o.missions) {
+    m.eligibilityComplete = discovered.has(m.id) && (games.get(m.id)?.size ?? 0) <= 128 && pairs.filter((p) => p.id === m.id).every((p) => completed.has(`${p.id}:${p.game}`));
+    if (m.eligibilityComplete && !m.eligibleCards) m.eligibleCards = {};
+  }
+}
+
 /**
  * The app's Load button: today's missions of every rarity, asked of Sorare through your signed-in tab (read only) and sent to the app.
  * It never opens a tab: with no sorare.com tab open it says so.
@@ -105,21 +177,7 @@ async function loadMissions(history = false) {
     }
     try {
       if (!history) {
-        const inventory = await fetch(`${CONFIG.appUrl}/api/ext/missions/pool`, { headers: { Authorization: `Bearer ${CONFIG.token}`, "x-vercel-protection-bypass": CONFIG.bypass } }).then((r) => r.ok ? r.json() : null).catch(() => null);
-        const games = Array.isArray(inventory?.games) ? inventory.games.filter((g) => /^Game:[a-f0-9-]{36}$/.test(g)) : [];
-        const tasks = [...new Map(Object.values(outcomes).flatMap((o) => o.missions).map((m) => [m.id, m])).values()];
-        const pairs = tasks.flatMap((m) => games.map((game) => ({ id: m.id, game }))).slice(0, 24);
-        if (pairs.length) {
-          const eligibility = await throughSorare("SofixMissionCards", { pairs });
-          if (eligibility.state === "ok") for (const o of Object.values(outcomes)) for (const m of o.missions) {
-            const cards = {};
-            pairs.forEach((p, i) => {
-              const page = eligibility.data?.currentUser?.[`t${i}`]?.pickableCards;
-              if (p.id === m.id && Array.isArray(page?.nodes) && page.pageInfo?.hasNextPage === false && page.nodes.every((c) => typeof c.slug === "string")) cards[p.game] = page.nodes.map((c) => c.slug);
-            });
-            if (Object.keys(cards).length) m.eligibleCards = cards;
-          }
-        }
+        await missionEligibility(outcomes, requestedAt);
       }
       const response = await fetch(`${CONFIG.appUrl}/api/ext/missions`, {
         method: "POST",
@@ -389,8 +447,8 @@ const revived = new Set();
 
 /** Content scripts do not appear in a tab that was already open. Put them there, or reload the tab once so they do. */
 async function ensureBridge(tabId) {
-  const existing = await askTab(tabId, { type: "sofix-ping-4" }, 500);
-  if (existing?.ok && existing.version === 4) return true;
+  const existing = await askTab(tabId, { type: "sofix-ping-5" }, 500);
+  if (existing?.ok && existing.version === 5) return true;
   try {
     await chrome.scripting.executeScript({ target: { tabId }, files: ["core.js", "bridge.js"], world: "MAIN" });
     await chrome.scripting.executeScript({ target: { tabId }, files: ["core.js", "content.js", "overlay.js", "drawer.js"] });
@@ -417,14 +475,14 @@ async function ensureBridge(tabId) {
       chrome.tabs.onUpdated.addListener(onUpdated);
     });
     for (let i = 0; i < 8; i++) {
-      const answer = await askTab(tabId, { type: "sofix-ping-4" }, 400);
-      if (answer?.ok && answer.version === 4) return true;
+      const answer = await askTab(tabId, { type: "sofix-ping-5" }, 400);
+      if (answer?.ok && answer.version === 5) return true;
       await new Promise((resolve) => setTimeout(resolve, 300));
     }
     return false;
   }
-  const answer = await askTab(tabId, { type: "sofix-ping-4" }, 800);
-  return Boolean(answer?.ok && answer.version === 4);
+  const answer = await askTab(tabId, { type: "sofix-ping-5" }, 800);
+  return Boolean(answer?.ok && answer.version === 5);
 }
 
 async function sorareTabs() {
@@ -470,7 +528,7 @@ async function throughSorare(operation, variables) {
   const [tab] = await sorareTabs();
   if (!tab) return { state: "no-tab" };
   if (!(await ensureBridge(tab.id))) return { state: "no-bridge" };
-  const answer = await askTab(tab.id, { type: "ask", operation, variables }, 20000);
+  const answer = await askTab(tab.id, { type: "sofix-ask-5", operation, variables }, 20000);
   return answer ?? { state: "error" };
 }
 
@@ -482,7 +540,7 @@ function fromApp(url) {
   } catch {
     return false;
   }
-  if (page.origin === CONFIG.appUrl) return true;
+  if (page.origin === CONFIG.appUrl || page.origin === "https://sofix-livid.vercel.app") return true;
   return page.protocol === "http:" && (page.hostname === "localhost" || page.hostname === "127.0.0.1");
 }
 
@@ -502,6 +560,10 @@ chrome.runtime.onMessageExternal.addListener((message, sender, reply) => {
   }
   if (message?.type === "load-missions" || message?.type === "load-mission-history") {
     loadMissions(message.type === "load-mission-history").then(reply).catch(() => reply({ ok: true, state: "error" }));
+    return true;
+  }
+  if (message?.type === "lineup-chances" && typeof message.game === "string" && /^Game:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(message.game)) {
+    throughSorare("SofixLineupChances", { id: message.game }).then((answer) => reply({ ok: true, ...answer })).catch(() => reply({ ok: true, state: "error" }));
     return true;
   }
   if (message?.type === "sorare" && Object.hasOwn(STEPS, message.step)) {

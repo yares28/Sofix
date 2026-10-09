@@ -32,7 +32,11 @@ test("saved weeks survive without Chrome on Recap, Cards and Rewards, beside the
     plans: [{ rank: 1, lineups: [{ competition: "LaLiga", board: "board", expected: 290, score: 301.5, cameIn: [], bonusLost: false }] }] }] } });
   await page.goto("/");
   const season = page.getByRole("region", { name: "Your season" });
-  await expect(season).toContainText("250 essence");
+  await expect(season).toContainText("250 Limited essence");
+  await expect(season).toContainText("1 GW played");
+  await season.getByText("Week by week", { exact: true }).click();
+  await season.getByText("GW17", { exact: true }).click();
+  await expect(season.getByRole("list", { name: "Essence-winning lineup" })).toContainText(card.name);
   await expect(season).toContainText("$2.50");
   await page.goto("/cards");
   const gallery = page.locator(".s5-pc").filter({ has: page.getByRole("link", { name: `${card.name}: open his page`, exact: true }) }).first();

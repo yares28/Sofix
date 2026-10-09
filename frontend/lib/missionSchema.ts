@@ -13,6 +13,9 @@ export const MissionSchema = z.object({
   appearances: z.array(MissionPickSchema).max(10).optional(), startDate: z.string().datetime({ offset: true }).optional(),
   config: z.string().max(120).optional(), thresholds: z.array(z.object({ stat: z.string().max(40), min: z.number().finite() })).max(20).optional(),
   overperform: z.object({ by: z.number().finite(), averageType: z.string().max(40) }).optional(),
-  ruleTypes: z.array(z.string().max(80)).max(20).optional(), eligibleCards: z.record(z.string().max(120), z.array(z.string().max(120)).max(100)).refine((x) => Object.keys(x).length <= 24).optional(),
+  ruleTypes: z.array(z.string().max(80)).max(20).optional(), eligibleCards: z.record(z.string().max(120), z.array(z.string().max(120)).max(500)).refine((x) => Object.keys(x).length <= 128).optional(),
+  eligibilityComplete: z.boolean().optional(),
+  inventory: z.array(z.object({ card: z.string().min(1).max(120).regex(/^[\w-]+$/), player: z.string().min(1).max(120).regex(/^[\w-]+$/), name: z.string().min(1).max(200), pic: z.string().max(2048), pos: z.enum(["GK", "DEF", "MID", "FWD"]), target: z.number().finite().optional(),
+    game: z.object({ id: z.string().max(120), kickoff: z.string().datetime({ offset: true }), competition: z.string().max(120), team: z.string().max(200), teamCrest: z.string().max(2048).nullable().optional(), opponent: z.string().max(200), opponentCrest: z.string().max(2048).nullable(), venue: z.enum(["H", "A"]) }) })).max(1000).optional(),
   rewards: z.array(z.object({ type: z.string().max(80), amount: z.number().finite().optional(), label: z.string().max(300) })).max(20).optional(),
 });

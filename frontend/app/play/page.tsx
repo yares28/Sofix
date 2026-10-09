@@ -8,7 +8,8 @@ import { loadGrid } from "../../lib/api";
 import { loadMissions } from "../../lib/missionsData";
 import { missionsToday } from "../../lib/missionsToday";
 import { plansOf, weekPlan } from "../../lib/play";
-import { loadProjectedWeek, loadSorare, loadSorareAlt, loadSorareWeek } from "../../lib/playData";
+import { loadFrozenPlan, loadProjectedWeek, loadSorare, loadSorareAlt, loadSorareWeek } from "../../lib/playData";
+import { loadMissionPool } from "../../lib/missionsPool";
 import { loadSystem } from "../../lib/system";
 import { noPlan, weekContext, weekDates, weekName } from "../../lib/weeks";
 
@@ -59,7 +60,7 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
   // The page holds the last weeks; a finished one the job kept apart is read from where it was kept.
   const showing = unopened
     ? early
-    : (weekPlan(data, asked?.gw ?? data.nextId) ?? (over && item.kept ? await loadSorareWeek(item.slug) : null));
+    : (weekPlan(data, asked?.gw ?? data.nextId) ?? (over && item?.kept ? await loadSorareWeek(item.slug) : item ? await loadFrozenPlan(item.slug, data) : null));
   // A week Sorare has not opened and no early plan covers, or one the job has not planned: the page says so rather
   // than showing another gameweek under that week's name.
   if (!showing) {
@@ -73,7 +74,7 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
             <p>{said.says}</p>
           </section>
           {/* What you entered and won is readable from Sorare whenever it has the gameweek, whether or not Sofix holds a plan. */}
-          {said.lineups ? <EnteredLineups week={said.lineups} /> : null}
+          {said.lineups ? <EnteredLineups week={{ ...said.lineups, end: item?.end }} /> : null}
         </main>
       </>
     );
@@ -92,7 +93,7 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
   const planIndex = Number.isFinite(requested) ? Math.min(Math.max(requested, 1), offered) - 1 : 0;
 
   // Today's missions belong to the gameweek being played now, so only that week shows them.
-  const missions = !after && !showing.projected && showing.gameweek.id === data.nextId ? await missionsToday(data, missionsModel, undefined, new Date()) : null;
+  const missions = !after && !showing.projected && showing.gameweek.id === data.nextId ? await missionsToday(data, missionsModel, undefined, new Date(), await loadMissionPool()) : null;
 
   return (
     <>

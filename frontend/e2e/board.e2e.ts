@@ -576,9 +576,37 @@ test("home: the week in the bar moves to a played gameweek and the round follows
   // game week can hold two LaLiga rounds, and each is its own week (lib/weeks.ts).
   await expect(picker.getByRole("button", { expanded: false })).toContainText(`LaLiga round ${past + 1}`);
   await expect(page.locator(".rc-head p")).toContainText(`LaLiga round ${past + 1}`);
+  const selectedWeek = new URL(page.url()).searchParams.get("w");
+  expect(selectedWeek).toBeTruthy();
   await page.locator(".rc-round").getByRole("link", { name: /All games/ }).click();
-  await expect(page).toHaveURL(new RegExp(`/fixtures\\?gw=${past + 1}$`), { timeout: 30_000 });
+  await expect(page).toHaveURL(new RegExp(`/fixtures\\?w=${selectedWeek}$`), { timeout: 30_000 });
   await expect(page.getByRole("heading", { level: 1, name: `LaLiga round ${past + 1}` })).toBeVisible();
+});
+
+test("home restores the selected week's frozen plan instead of showing the next GW", async ({ page, request }) => {
+  const served = ((await (await request.get(`${MOCK}/api/sorare`)).json()) as ApiResponse<Sorare>).data!;
+  const { weeks } = await servedWeeks(request);
+  const selected = weeks.find((week) => week.column !== null && week.gw && !served.weeks.some((plan) => plan.gameweek.id === week.gw))!;
+  expect(selected).toBeTruthy();
+  const frozen = structuredClone(served.weeks.find((plan) => plan.plans.length)!);
+  frozen.gameweek = { ...frozen.gameweek, ...served.timeline.find((week) => week.id === selected.gw)! };
+  await request.post(`${MOCK}/__test/my-weeks`, { data: { livePlan: frozen } });
+  await page.goto(`/?w=${selected.id}`);
+  await expect(page.locator(".rc-head h1")).toHaveText(`Gameweek ${selected.number}`);
+  await expect(page.getByRole("link", { name: "Open the plan", exact: true })).toHaveAttribute("href", `/play?w=${selected.id}`);
+  await expect(page.locator(".rc-lineups .rc-th")).toContainText(`Sorare GW${selected.number}`);
+  await expect(page.locator(".rc-lu").first()).toBeVisible();
+});
+
+test("home keeps entered lineups available when the selected GW has no recorded plan", async ({ page, request }) => {
+  const served = ((await (await request.get(`${MOCK}/api/sorare`)).json()) as ApiResponse<Sorare>).data!;
+  const { weeks } = await servedWeeks(request);
+  const selected = weeks.find((week) => week.column !== null && week.gw && !week.kept && !served.weeks.some((plan) => plan.gameweek.id === week.gw))!;
+  expect(selected).toBeTruthy();
+  await page.goto(`/?w=${selected.id}`);
+  await expect(page.locator(".rc-head h1")).toHaveText(`Gameweek ${selected.number}`);
+  await expect(page.getByRole("region", { name: "Your Sorare lineups", exact: true })).toBeVisible();
+  await expect(page.locator(".rc-best")).toHaveCount(0);
 });
 
 test("home: a Sorare-only week says LaLiga is away and identifies each player's real fixture", async ({ page, request }) => {

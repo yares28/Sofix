@@ -358,7 +358,7 @@ const server = createServer((req, res) => {
             "2026-10-05": {
               limited: {
                 loaded: false,
-                missions: [mission(["jan-oblak", "unai-simon", "mikel-oyarzabal-ugarte"], [])],
+                missions: [mission(["jan-oblak", "unai-simon", "mikel-oyarzabal-ugarte"], []), { ...mission([], []), key: "Shots", title: "Shots", rule: { kind: "shot", atLeast: 2, label: "2+ shots on target" } }],
                 cands: [
                   cand("jan-oblak", "Jan Oblak", did(true)),
                   cand("unai-simon", "Unai Simón", did(false)),
@@ -394,6 +394,11 @@ const server = createServer((req, res) => {
   if (req.method === "GET" && keptWeek) {
     const kept = state.sorare === "ok" ? keptWeeks.get(keptWeek[1]) : undefined;
     return send(res, 200, kept ? { success: true, data: kept } : { success: false, data: null, error: "Sofix did not keep this gameweek." });
+  }
+  const supporting = url.pathname.match(/^\/api\/sorare\/(plan|record)\/([a-z0-9-]+)$/);
+  if (req.method === "GET" && supporting) {
+    const kept = supporting[1] === "record" ? state.chanceRecord : state.livePlan;
+    return send(res, 200, { success: Boolean(kept), data: kept ?? null });
   }
 
   if (req.method === "POST" && url.pathname === "/api/admin/refresh") {
@@ -460,7 +465,7 @@ const server = createServer((req, res) => {
   if (req.method === "POST" && url.pathname === "/__test/my-weeks") {
     let body = "";
     req.on("data", (chunk) => { body += chunk; });
-    req.on("end", () => { const input = JSON.parse(body); state.myWeeks = input.weeks; state.frozenPlans = input.frozenPlans; send(res, 200, { ok: true }); });
+    req.on("end", () => { const input = JSON.parse(body); state.myWeeks = input.weeks; state.frozenPlans = input.frozenPlans; state.chanceRecord = input.chanceRecord; state.livePlan = input.livePlan; send(res, 200, { ok: true }); });
     return;
   }
   if (req.method === "POST" && url.pathname === "/__test/mode") {

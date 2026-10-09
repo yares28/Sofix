@@ -20,13 +20,14 @@ type Message = Record<string, unknown>;
 type Handler = (message: Message, sender: unknown, reply: (answer: unknown) => void) => unknown;
 type Call = { url: string; init: { headers: Record<string, string>; body: string; credentials?: string; referrerPolicy?: string } };
 
-function load(options: { sorareTab?: boolean; missionData?: unknown } = {}) {
+function load(options: { sorareTab?: boolean; missionData?: unknown; operationData?: (operation: string, variables: Record<string, unknown>) => unknown } = {}) {
   const session = new Map<string, unknown>();
   const local = new Map<string, unknown>();
   const created: { url: string }[] = [];
   const calls: Call[] = [];
   /** What the page bridge was asked to put to Sorare, when a signed-in sorare.com tab is stood in for. */
   const asked: { operation: string; variables: Record<string, unknown> }[] = [];
+  const tabMessages: Message[] = [];
   let respond: (call: Call) => { ok: boolean; status: number; body?: unknown; text?: string } | "network" = () => ({ ok: true, status: 200, body: { ok: true, cards: {}, players: {} } });
   const store = (map: Map<string, unknown>) => ({
     get: async (keys?: string | string[]) => Object.fromEntries((Array.isArray(keys) ? keys : [keys]).filter((k) => k !== undefined && map.has(k as string)).map((k) => [k, map.get(k as string)])),
@@ -37,11 +38,12 @@ function load(options: { sorareTab?: boolean; missionData?: unknown } = {}) {
   const nothing = { addListener() {}, create() {} };
   // The page bridge in a sorare.com tab: it answers its ping and records each question it is given for Sorare.
   const bridge = (_tab: number, message: Message, answer?: (response: unknown) => void) => {
+    tabMessages.push(message);
     if (!options.sorareTab || !answer) return;
-    if (message.type === "sofix-ping-4") answer({ ok: true, version: 4 });
-    else if (message.type === "ask") {
+    if (message.type === "sofix-ping-5") answer({ ok: true, version: 5 });
+    else if (message.type === "sofix-ask-5") {
       asked.push({ operation: String(message.operation), variables: message.variables as Record<string, unknown> });
-      answer({ state: "ok", data: options.missionData ?? null });
+      answer({ state: "ok", data: options.operationData?.(String(message.operation), message.variables as Record<string, unknown>) ?? options.missionData ?? null });
     } else answer(undefined);
   };
   const chrome = {
@@ -82,6 +84,7 @@ function load(options: { sorareTab?: boolean; missionData?: unknown } = {}) {
     session,
     local,
     asked,
+    tabMessages,
     respondWith: (fn: typeof respond) => void (respond = fn),
     /** A message to the worker, and what it answered (null when it stayed silent). */
     send: (message: Message, sender: unknown = SORARE) =>
@@ -106,6 +109,40 @@ beforeEach(() => {
 });
 
 describe("mission import completeness", () => {
+  it("versions the tab request so an old content listener cannot repeat a draft after extension reload", async () => {
+    const w = load({ sorareTab: true });
+    await w.sendFrom(APP, { type: "sorare", step: "draft", boardId: "board", appearances: [], name: "Plan" });
+    expect(w.tabMessages.find((m) => m.operation === "SofixSaveDraft")?.type).toBe("sofix-ask-5");
+  });
+  it("reads source chances for one validated game through the signed-in tab", async () => {
+    const w = load({ sorareTab: true });
+    const game = "Game:00000000-0000-0000-0000-000000000001";
+    expect(await w.sendFrom(APP, { type: "lineup-chances", game })).toMatchObject({ state: "ok" });
+    expect(w.asked).toEqual([{ operation: "SofixLineupChances", variables: { id: game } }]);
+    expect(await w.sendFrom(APP, { type: "lineup-chances", game: "query { currentUser { slug } }" })).toBeNull();
+    expect(await w.sendFrom("https://sofix.example.evil.test", { type: "lineup-chances", game })).toBeNull();
+  });
+  it("discovers games from Sorare and reads all task/game batches plus subsequent card pages", async () => {
+    const task = { __typename: "DecisivePlayerPickerTask", id: "task-1", title: "Decisive Picker", mode: "DECISIVE", maxAppearancesCount: 3, rarity: "limited", taskAppearances: [] };
+    const games = Array.from({ length: 30 }, (_, i) => ({ game: { id: `Game:00000000-0000-0000-0000-${String(i).padStart(12, "0")}` } }));
+    const w = load({ sorareTab: true, operationData: (operation, v) => {
+      if (operation === "SofixMissions") return { currentUser: { slug: "owner", limited: { myTasks: [task] }, rare: { myTasks: [] }, super_rare: { myTasks: [] }, unique: { myTasks: [] } } };
+      if (operation === "SofixMissionGames") return { currentUser: { t0: { pickableGames: { nodes: games, pageInfo: { hasNextPage: false } } } } };
+      if (operation === "SofixMissionCards") return { currentUser: Object.fromEntries((v.pairs as { after?: string }[]).map((p, i) => [`t${i}`, { pickableCards: { nodes: [{ slug: p.after ? "second-card" : "first-card" }], pageInfo: { hasNextPage: !p.after, endCursor: "page-2" } } }])) };
+      return null;
+    } });
+    await w.sendFrom(APP, { type: "load-missions" });
+    expect(w.asked.some((a) => a.operation === "SofixMissionGames")).toBe(true);
+    const body = JSON.parse(w.calls.find((c) => c.url.endsWith("/missions"))!.init.body);
+    expect(Object.keys(body.outcomes.limited.missions[0].eligibleCards)).toHaveLength(30);
+    expect(Object.values(body.outcomes.limited.missions[0].eligibleCards)[0]).toEqual(["first-card", "second-card"]);
+  });
+  it("answers the production alias allowed by the manifest without allowing lookalike hosts", async () => {
+    const w = load({ sorareTab: true });
+    expect(await w.sendFrom("https://sofix-livid.vercel.app/play", { type: "sorare", step: "week-entered", slug: "football-9-13-oct-2026" })).toMatchObject({ state: "ok" });
+    expect(w.asked).toContainEqual({ operation: "SofixFixtureLineups", variables: { slug: "football-9-13-oct-2026" } });
+    expect(await w.sendFrom("https://sofix-livid.vercel.app.evil.example/play", { type: "sorare", step: "draft" })).toBeNull();
+  });
   it("does not replace selections with an empty list when an appearance is malformed", async () => {
     const task = { __typename: "DecisivePlayerPickerTask", id: "task-1", title: "Decisive Picker", mode: "DECISIVE", maxAppearancesCount: 3, taskAppearances: [{}] };
     const w = load({ sorareTab: true, missionData: { currentUser: { slug: "owner", limited: { myTasks: [task] }, rare: { myTasks: [] }, super_rare: { myTasks: [] }, unique: { myTasks: [] } } } });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { atLeast, fit, isToday, missionDay, missionsLoadNote, missionValues, plan, rewardOf, ruleOf, type MissionRow } from "./missions";
+import { atLeast, fit, isToday, missionCandidates, missionDay, missionsLoadNote, missionValues, plan, rewardOf, ruleOf, type MissionRow } from "./missions";
 import type { PlayingPlayer } from "./play";
 import type { Sheet } from "./playerSheet";
 
@@ -36,6 +36,7 @@ describe("what a mission asks and pays", () => {
     expect(rewardOf(DECISIVE)).toBe("200 XP");
     expect(rewardOf(INTERCEPTION)).toBe("50 All-Star Essence");
     expect(rewardOf(row("x", "Pick a player"))).toBeNull();
+    expect(rewardOf(row("Shot", "", { rewards: [{ type: "InGameCurrencyRewardConfig", amount: 1, label: "LIMITED_BEST_STAR_RANK_CRAFT_CLUE" }] }))).toBe("1 Limited highest-tier clue");
   });
 });
 
@@ -66,6 +67,23 @@ const player = (slug: string, over: Partial<PlayingPlayer> = {}): PlayingPlayer 
   games: [{ kickoff: "2026-10-10T19:00:00Z", competition: "laliga-es", opponent: "Betis", opponentCrest: null, venue: "H" }], ...over,
 });
 const NOW = new Date("2026-10-10T10:00:00Z"); // after the 08:00 UTC reset: the mission day of 10 Oct
+
+it("uses Sorare's mission eligibility over SO5 sale restrictions in both suggestions and scouting", () => {
+  const p = { ...player("a"), card: "a-2026-limited-1", eligibility: "for sale", games: [{ ...player("a").games[0]!, id: "game" }] };
+  const mission = { ...DECISIVE, eligibleCards: { game: [p.card] } };
+  expect(missionCandidates(mission, "limited", [p], NOW)[0]).toMatchObject({ editable: true, allowed: true });
+  expect(plan([mission], "limited", [p], { a: sheet() }, NOW).plans[0]!.picks).toHaveLength(1);
+});
+it("keeps eligible cards without a stat sheet editable and excludes unverified rule eligibility", () => {
+  const p = { ...player("a"), card: "a-card", games: [{ ...player("a").games[0]!, id: "game" }] };
+  expect(missionCandidates({ ...DECISIVE, eligibleCards: { game: [p.card] } }, "limited", [p], NOW)[0]?.editable).toBe(true);
+  expect(missionCandidates({ ...DECISIVE, ruleTypes: ["InSeasonRule"] }, "limited", [p], NOW)[0]?.editable).toBe(false);
+});
+it("ranks an imported score target by recent hits, labelled as history instead of a forecast probability", () => {
+  const found = fit({ kind: "score", label: "Beat average" }, player("a"), sheet(), 45);
+  expect(found).toMatchObject({ chance: 1, historical: true });
+  expect(fit({ kind: "score", label: "Beat average" }, player("a"), sheet(), undefined)).toBeNull();
+});
 
 describe("a card's fit to a mission", () => {
   it("rates shots and tackles from their own stat and does not show decisive history as target hits", () => {

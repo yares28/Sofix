@@ -27,6 +27,13 @@ describe("the lineup Sorare is given", () => {
 });
 
 describe("reading Sorare's answer", () => {
+  it("rejects missing step results instead of treating null data as a passed check", () => {
+    expect(readAnswer({ state: "ok", data: null })).toEqual({ state: "error" });
+    expect(readAnswer({ state: "ok", data: { so5: { so5Leaderboard: { id: "board" } } } }, "check")).toEqual({ state: "error" });
+    const draft = { state: "ok", data: { createOrUpdateSo5Lineup: { errors: [], so5Lineup: { id: "lineup", draft: true } } } };
+    expect(readAnswer(draft, "enter")).toEqual({ state: "error" });
+    expect(readAnswer({ state: "ok", data: { confirmSo5Lineups: { errors: [], so5Lineups: [{ id: "lineup", draft: true }] } } }, "enter")).toEqual({ state: "error" });
+  });
   it("keeps the verdict and the rules of a check", () => {
     const answer = readAnswer({
       state: "ok",
@@ -119,7 +126,8 @@ describe("reading Sorare's answer", () => {
   it("says what to do about it, and never blames the owner for a missing tab", () => {
     expect(cannot("no-tab")).toMatchObject({ act: "Open sorare.com" });
     expect(cannot("no-extension")).toMatchObject({ title: "This browser can't reach the extension", act: "Set it up" });
-    expect(cannot("timeout")?.says).toContain("Nothing was saved");
+    expect(cannot("timeout")?.says).toContain("Check Sorare");
+    expect(cannot("error")?.says).not.toContain("Nothing was saved");
     expect(cannot("ok")).toBeNull();
   });
 });

@@ -10,7 +10,7 @@ test.describe("the daily missions page", () => {
   test("recovers after the owner reloads an old extension without hiding the action", async ({ page }) => {
     await page.addInitScript(() => {
       let version = "0.3.8";
-      window.addEventListener("test-extension-updated", () => { version = "0.3.9"; });
+      window.addEventListener("test-extension-updated", () => { version = "0.3.10"; });
       const browser = window as unknown as { chrome: { runtime?: unknown } };
       browser.chrome ??= {};
       browser.chrome.runtime = { sendMessage: (_id: string, message: { type: string }, reply: (r: unknown) => void) => reply(message.type === "ping" ? { ok: true, version, sorareUser: null } : { ok: true, state: "ok", loaded: { limited: 3 } }) };
@@ -66,6 +66,7 @@ test.describe("the daily missions page", () => {
     await expect(scout.getByText(/Load today’s missions to compare/)).toBeVisible();
     await expect(scout.getByRole("searchbox")).toHaveCount(0);
     await expect(scout).not.toContainText("Target not modeled");
+    await page.getByText("Mission window", { exact: true }).click();
     await expect(page.getByText(/Fallback game window/)).toBeVisible();
   });
 
@@ -149,6 +150,9 @@ test.describe("the daily missions page", () => {
     expect(await days.count()).toBeGreaterThanOrEqual(2);
     const sixth = days.filter({ hasText: "Tue 6 Oct" });
     const fifth = days.filter({ hasText: "Mon 5 Oct" });
+    await expect(fifth).toHaveCount(1);
+    await expect(fifth.locator(".ms-history-mission")).toHaveCount(2);
+    await expect(fifth.locator(".ms-history-date")).toHaveCount(1);
     // 6 Oct: not checked yet, but both sides are there, and your picks carry Sorare's verdict already.
     await expect(sixth).toContainText("Results pending");
     await expect(sixth.getByRole("list", { name: "Sofix's picks" })).toContainText("Pedri, waiting for his game");

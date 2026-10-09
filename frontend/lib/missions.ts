@@ -27,6 +27,8 @@ export type MissionRow = {
   overperform?: { by: number; averageType: string };
   ruleTypes?: string[];
   eligibleCards?: Record<string, string[]>;
+  eligibilityComplete?: boolean;
+  inventory?: { card: string; player: string; name: string; pic: string; pos: PlayingPlayer["pos"]; game: PlayingPlayer["games"][number]; target?: number }[];
   rewards?: { type: string; amount?: number; label: string }[];
 };
 export type MissionsModel = Partial<Record<string, { missions: MissionRow[]; seen_at: string; requested_at?: string; verified?: boolean }>>;
@@ -135,7 +137,11 @@ export function ruleOf(mission: Pick<MissionRow, "title" | "description"> & Part
 
 /** What the mission pays, in its own words ("200 XP", "50 All-Star Essence"), or null when the description names nothing. */
 export function rewardOf(mission: Pick<MissionRow, "description"> & Partial<MissionRow>): string | null {
-  if (mission.rewards?.length) return mission.rewards.map((r) => `${r.amount ?? ""} ${r.type === "CardShardRewardConfig" ? `${r.label || "Sorare"} Essence` : r.label || r.type.replace("RewardConfig", "")}`.trim()).join(" · ");
+  if (mission.rewards?.length) return mission.rewards.map((r) => {
+    const clue = /^(LIMITED|RARE|SUPER_RARE|UNIQUE)_BEST_STAR_RANK_CRAFT_CLUE$/.exec(r.label);
+    const label = clue ? `${RARITY_NAME[clue[1]!.toLowerCase()]} highest-tier clue` : r.label || r.type.replace("RewardConfig", "");
+    return `${r.amount ?? ""} ${r.type === "CardShardRewardConfig" ? `${label || "Sorare"} Essence` : label}`.trim();
+  }).join(" · ");
   const found = /(\d[\d,]*)\s*(XP|[A-Za-z-]+\s+Essence|Essence)/i.exec(mission.description);
   return found ? `${found[1]} ${found[2]}` : null;
 }
@@ -155,6 +161,8 @@ export function atLeast(n: number, rate: number): number {
 
 export type Window = { l5: number; l8: number; season: number };
 export type Suggestion = {
+  historical?: boolean;
+  target?: number;
   slug: string;
   name: string;
   pos: PlayingPlayer["pos"];
@@ -180,6 +188,26 @@ export type Suggestion = {
  * `unrated`: the others with a game, which no number fits (no stat sheet, or a mission that asks him to beat his own average). */
 export type MissionPlan = { mission: MissionRow; rule: Rule; reward: string | null; open: number; picks: Suggestion[]; all: Suggestion[]; unrated: { slug: string; name: string }[] };
 
+/** One inventory for recommendations, scouting and the available-player total. Sorare's task verdict owns eligibility. */
+export function missionCandidates(mission: MissionRow, rarity: string, players: (PlayingPlayer & { card?: string; eligibility?: string | null })[], now: Date, selections: MissionPick[] = mission.appearances ?? []) {
+  const unique = new Map<string, { p: typeof players[number]; game: PlayingPlayer["games"][number] }>();
+  for (const p of players) for (const game of p.games) {
+    if (!p.player || p.rarity !== rarity || (!mission.eligibleCards?.[game.id ?? ""] && missionDay(new Date(game.kickoff)) !== missionDay(now))) continue;
+    unique.set(`${p.card ?? p.player}:${game.id ?? game.kickoff}`, { p, game });
+  }
+  return [...unique.values()].map(({ p, game }) => {
+    const eligible = mission.eligibleCards?.[game.id ?? ""];
+    const allowed = eligible ? Boolean(p.card && eligible.includes(p.card)) : null;
+    const own = selections.some((a) => a.card ? a.card === p.card : a.player === p.player);
+    const locked = Date.parse(game.kickoff) <= now.getTime();
+    const unchecked = allowed === null && Boolean(mission.eligibleCards || mission.ruleTypes?.length);
+    const blocked = allowed !== true && Boolean(p.eligibility);
+    const editable = !own && !locked && allowed !== false && !unchecked && !blocked;
+    const status = own ? "Already selected" : locked ? "Locked" : allowed === false ? "Not eligible for this mission" : blocked ? p.eligibility! : allowed === true ? "Eligible on Sorare" : "Eligibility not checked on Sorare";
+    return { p, game, allowed, own, locked, editable, status };
+  }).sort((a, b) => a.game.kickoff.localeCompare(b.game.kickoff));
+}
+
 const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
 /** The last `n` of his ten recorded starts, newest first as `last` is oldest first. */
 const newest = (sheet: Sheet, n: number) => sheet.last.slice(-n);
@@ -192,8 +220,15 @@ export function missionValues(rule: Rule, sheet: Sheet | null | undefined): numb
 }
 
 /** His chance of the rule in his game that day, and what he did per start over 5, 8 and two seasons; null when nothing can be said (no number for him). */
-export function fit(rule: Rule, player: PlayingPlayer, sheet: Sheet | null): { chance: number; average: Window } | null {
-  if (rule.kind === "score" || rule.kind === "unsupported") return null;
+export function fit(rule: Rule, player: PlayingPlayer, sheet: Sheet | null, target?: number): { chance: number; average: Window; historical?: boolean } | null {
+  if (rule.kind === "unsupported") return null;
+  if (rule.kind === "score" || player.availabilityKnown === false) {
+    const values = missionValues(rule, sheet);
+    const threshold = rule.kind === "score" ? target : "atLeast" in rule ? rule.atLeast : 1;
+    if (threshold === undefined || !Number.isFinite(threshold) || values.length < 5) return null;
+    const hits = values.map((v) => Number(v >= threshold));
+    return { chance: mean(hits), average: { l5: mean(values.slice(-5)), l8: mean(values.slice(-8)), season: mean(values) }, historical: true };
+  }
   const play = Math.min(1, Math.max(0, player.pStart !== undefined && player.pOn !== undefined ? player.pStart + player.pOn : player.p));
   if (rule.kind === "decisive") {
     const conditional = player.shape?.p ?? sheet?.decAll;
@@ -243,11 +278,12 @@ export function plan(
   sheets: Record<string, Sheet | undefined>,
   now: Date,
 ): { day: string | null; plans: MissionPlan[] } {
-  const { day, candidates } = playingToday(players, rarity, now);
+  const day = missionDay(now);
   const plans: MissionPlan[] = missions.map((mission) => ({ mission, rule: ruleOf(mission), reward: rewardOf(mission), open: Math.max(0, mission.picks - mission.made), picks: [], all: [], unrated: [] }));
   const pairs: { plan: MissionPlan; pick: Suggestion }[] = [];
   for (const one of plans) {
-    for (const { p, game } of candidates) {
+    for (const { p, game, editable, own, locked, allowed } of missionCandidates(one.mission, rarity, players, now, missions.flatMap((m) => m.appearances ?? []))) {
+      if (locked || allowed === false || (!editable && !own)) continue;
       const card = (p as PlayingPlayer & { card?: string }).card;
       if (one.mission.eligibleCards && game.id && game.id in one.mission.eligibleCards && (!card || !one.mission.eligibleCards[game.id]?.includes(card))) continue;
       if (one.mission.eligibleCards && (!game.id || !(game.id in one.mission.eligibleCards))) { one.unrated.push({ slug: p.player!, name: `${p.name} (eligibility not checked)` }); continue; }
@@ -255,17 +291,18 @@ export function plan(
         one.unrated.push({ slug: p.player!, name: `${p.name} (eligibility not checked)` });
         continue;
       }
-      const found = fit(one.rule, { ...p, pStart: game.pStart ?? p.pStart, pOn: game.pOn ?? p.pOn }, sheets[p.player!] ?? null);
+      const target = one.mission.inventory?.find((c) => c.card === card && c.game.id === game.id)?.target;
+      const found = fit(one.rule, { ...p, availabilityKnown: game.availabilityKnown ?? p.availabilityKnown, pStart: game.pStart ?? p.pStart, pOn: game.pOn ?? p.pOn }, sheets[p.player!] ?? null, target);
       if (!found) {
         one.unrated.push({ slug: p.player!, name: p.name });
         continue;
       }
       const sheet = sheets[p.player!];
       const values = missionValues(one.rule, sheet);
-      const threshold = "atLeast" in one.rule ? one.rule.atLeast : 1;
+      const threshold = one.rule.kind === "score" ? target ?? Infinity : "atLeast" in one.rule ? one.rule.atLeast : 1;
       const hits = (n: number) => mean(values.slice(-n).map((v) => Number(v >= threshold)));
       const pick = { slug: p.player!, card: (p as PlayingPlayer & { card?: string }).card, game: game.id, team: game.team, competition: game.competition, pStart: game.pStart ?? p.pStart, startSource: game.startSource ?? p.startSource,
-        name: p.name, pos: p.pos, pic: p.pic, club: p.club, opponent: game.opponent, venue: game.venue, kickoff: game.kickoff, chance: found.chance, average: found.average, cards: p.cards,
+        name: p.name, pos: p.pos, pic: p.pic, club: p.club, opponent: game.opponent, venue: game.venue, kickoff: game.kickoff, chance: found.chance, historical: found.historical, target, average: found.average, cards: p.cards,
         samples: { l5: Math.min(5, values.length), l8: Math.min(8, values.length), baseline: sheet?.starts ?? 0 }, hits: { l5: hits(5), l8: hits(8), season: sheet?.decAll ?? 0 } };
       if (pick.chance > 0) pairs.push({ plan: one, pick });
       one.all.push(pick);

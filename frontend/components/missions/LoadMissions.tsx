@@ -67,8 +67,7 @@ export default function LoadMissions({ stale, day }: { stale: boolean; day: stri
     </div>
     {reach === "old" ? <div className="ms-extension-help">
       <p><b>Extension {version}</b> is running. Missions need {MISSIONS_EXTENSION_VERSION} or later.</p>
-      <ol><li>Open <code>chrome://extensions</code> in Chrome and press Reload on Sofix.</li><li>Reload your signed-in Sorare tab, then press <b>Check extension and load</b> above.</li></ol>
-      <p>Still on the older build? Follow the extension setup in <Link href="/control">Control</Link>, then retry. Your saved mission history stays available.</p>
+      <p>Press Reload on Sofix in <code>chrome://extensions</code>, reload Sorare, then try again. <Link href="/control">Extension setup</Link></p>
     </div> : null}
   </>;
 }

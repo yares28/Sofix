@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
         const requested = batch.success ? batch.data.requestedAt : now;
         if ((out[rarity]?.requested_at ?? "") > requested) continue;
         const previous = out[rarity];
-        const missions: MissionRow[] = entry.missions.map((m) => ({ ...previous?.missions.find((p) => p.id === m.id), ...(batch.success ? { eligibleCards: undefined } : {}), ...m }));
+        const missions: MissionRow[] = entry.missions.map((m) => ({ ...previous?.missions.find((p) => p.id === m.id), ...(batch.success ? { eligibleCards: undefined, inventory: undefined, eligibilityComplete: false } : {}), ...m }));
         const sameDay = previous && isToday(previous.seen_at, new Date(now));
         if (!batch.success && sameDay) missions.push(...previous.missions.filter((p) => !missions.some((m) => m.id === p.id)));
         out[rarity] = { missions, seen_at: now, requested_at: requested, verified: batch.success || Boolean(sameDay && previous?.verified) };

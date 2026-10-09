@@ -13,7 +13,7 @@ let lastRead = 0;
 let archiving: Promise<ArchiveResult> | null = null;
 
 async function stored(): Promise<MyWeeks> {
-  const response = await fetch("/api/my-week", { cache: "no-store" });
+  const response = await fetch("/api/my-week", { cache: "no-store", signal: AbortSignal.timeout(8_000) });
   if (!response.ok) throw new Error("Week storage unavailable");
   return response.json() as Promise<MyWeeks>;
 }
@@ -38,9 +38,9 @@ async function save(slug: string, lineups: GameweekLineup[]): Promise<boolean> {
   } catch { return false; }
 }
 /** Finished weeks work on a phone or during a Sorare outage. Live weeks are still re-read on request. */
-export async function readEnteredWeek(slug: string): Promise<EnteredRead> {
+export async function readEnteredWeek(slug: string, useSaved = true): Promise<EnteredRead> {
   let known: MyWeeks | null = null;
-  try { known = await stored(); } catch { /* the live read can still work */ }
+  if (useSaved) try { known = await stored(); } catch { /* the live read can still work */ }
   const saved = known?.weeks.find((week) => week.slug === slug);
   if (saved) return { state: "ok", lineups: saved.lineups, saved: true };
   const answer = await read(slug);
@@ -56,7 +56,6 @@ export function archiveFinishedWeeks(): Promise<ArchiveResult> {
     const today = new Date().toISOString().slice(0, 10);
     try {
       if (window.localStorage.getItem(CHECKED) === today) return known;
-      window.localStorage.setItem(CHECKED, today);
     } catch { /* storage disabled: the in-flight guard still prevents overlapping reads */ }
     let issue: Failure | undefined;
     let unavailable = false;
@@ -71,6 +70,9 @@ export function archiveFinishedWeeks(): Promise<ArchiveResult> {
       }
     }
     try { known = await stored(); } catch { unavailable = true; }
+    if (!issue && !unavailable) {
+      try { window.localStorage.setItem(CHECKED, today); } catch { /* optional cache */ }
+    }
     return { ...known, issue, unavailable };
   })().finally(() => { archiving = null; });
   return archiving;

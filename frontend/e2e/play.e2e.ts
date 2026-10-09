@@ -48,6 +48,17 @@ async function showMonthOf(page: Page, week: Week) {
 
 const gameweek = async (request: APIRequestContext, id: string) => (await playWeeks(request)).find((week) => week.gw === id)!;
 
+test("a saved empty week works without Chrome and does not claim a fresh Sorare read or saved drafts", async ({ page, request }) => {
+  const old = (await playWeeks(request)).find((week) => week.gw && week.state === "done" && !week.kept)!;
+  const info = sorare.timeline.find((week) => week.id === old.gw)!;
+  await request.post(`${MOCK}/__test/my-weeks`, { data: { weeks: [{ ...info, savedAt: info.end, lineups: [] }], frozenPlans: [] } });
+  await page.goto(`/play?w=${old.id}`);
+  const mine = page.getByRole("region", { name: "Your Sorare lineups" });
+  await expect(mine).toContainText("Saved from Sorare");
+  await expect(mine).toContainText("Saved final Sorare read: no entered lineups.");
+  await expect(mine).not.toContainText("Checked on Sorare at");
+});
+
 /** Where Play lands once this week is picked: its own address, whatever the day the mock's clock puts it on. */
 const addressOf = (week: Week) => new RegExp(`/play\\?w=${week.id}$`);
 

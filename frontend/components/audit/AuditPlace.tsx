@@ -10,6 +10,8 @@ import MissionHistory from "../missions/MissionHistory";
 import { fillMissionDays, loadMissionLog, missionHistory } from "../../lib/missionLog";
 import { RARITIES } from "../../lib/missionsToday";
 import { RARITY_NAME } from "../../lib/missions";
+import { myWeeksQuietly } from "../../lib/myWeeksData";
+import { seasonWeeks } from "../../lib/myWeeks";
 
 /** The three Audit views share one page; each has its own address (plans/restructure.md, R7). */
 export default async function AuditPlace({ show }: { show: AuditShow }) {
@@ -26,11 +28,12 @@ export default async function AuditPlace({ show }: { show: AuditShow }) {
     .filter((week) => week.status === "done")
     .map((week) => ({ slug: week.slug, number: week.number }))
     .reverse();
+  const saved = show === "rewards" ? seasonWeeks(await myWeeksQuietly() ?? [], new Date()) : [];
   return (
     <>
       <SiteNav meta={meta} system={system} />
       <main className="au">
-        <AuditView data={data} now={new Date()} league={league} show={show} season={season} />
+        <AuditView data={data} now={new Date()} league={league} show={show} season={season} saved={saved} />
         {show === "missions" ? <div className="pd-wrap">{owned.map((rarity) => <MissionHistory key={rarity} title={`${RARITY_NAME[rarity]} history`} days={missionHistory(logs, rarity, names)} rarity={rarity} collection={sorare?.collection ?? []} />)}</div> : null}
       </main>
     </>

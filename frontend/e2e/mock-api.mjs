@@ -297,6 +297,7 @@ const server = createServer((req, res) => {
   }
 
   if (req.method === "GET" && url.pathname === "/api/player-sheets") return send(res, 200, { success: true, data: playerSheets });
+  if (req.method === "GET" && url.pathname === "/api/my-weeks") return send(res, 200, { success: true, data: state.myWeeks ?? [] });
   const playerGames = url.pathname.match(/^\/api\/players\/([a-z0-9-]+)\/games$/);
   if (req.method === "GET" && playerGames) {
     const fixture = playerGames[1] === "juan-marcos-foyth";
@@ -379,7 +380,8 @@ const server = createServer((req, res) => {
 
   if (req.method === "GET" && url.pathname === "/api/audit") {
     if (state.audit === "missing") return send(res, 200, { success: false, data: null, error: "The audit has not been written yet." });
-    return send(res, 200, auditPayload(state.audit));
+    const body = auditPayload(state.audit);
+    return send(res, 200, { ...body, data: { ...body.data, frozenPlans: state.frozenPlans ?? [] } });
   }
 
   const earlyWeek = url.pathname.match(/^\/api\/sorare\/ahead\/(\d+)$/);
@@ -454,6 +456,12 @@ const server = createServer((req, res) => {
     reset();
     state.run = finishedRun("cli");
     return send(res, 200, { ok: true });
+  }
+  if (req.method === "POST" && url.pathname === "/__test/my-weeks") {
+    let body = "";
+    req.on("data", (chunk) => { body += chunk; });
+    req.on("end", () => { const input = JSON.parse(body); state.myWeeks = input.weeks; state.frozenPlans = input.frozenPlans; send(res, 200, { ok: true }); });
+    return;
   }
   if (req.method === "POST" && url.pathname === "/__test/mode") {
     state.mode = url.searchParams.get("mode") === "malformed" ? "malformed" : "ok";

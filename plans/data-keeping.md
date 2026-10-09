@@ -152,6 +152,36 @@ the same commit: `docs/user_manual.md`, `docs/how_it_works.md` (the tables, who 
 
 ## Results
 
+- **9 Oct 2026 - step 6:** final owner weeks now save atomically once to `my_week:<slug>`, after end + 24 hours and
+  every entered lineup ranking. Same-origin/Zod checks reject incomplete reads; an explicit empty week is distinct
+  from a null/unreadable fixture. Home and Rewards share paced, coalesced extension reads once a day; Home and Play
+  also save final selected-week reads. Saved lineups work without Chrome. Recap adds season/week essence and cash;
+  Cards shows whole-lineup reward participation, explicitly not individual earnings. Rewards reads server weeks
+  before the browser fallback and compares your scores to every exact plan kept at lock. The scorer reuses saved
+  captain, multipliers, lineup bonuses and substitution rules, takes the best score in a double week and leaves
+  missing results/rules pending. A real SELECT exposed Sorare's `DID_NOT_PLAY` status; its regression failed first,
+  then all four scorer tests passed, including contradictory status/appearance and unknown results.
+  Archive, route, scorer and page regressions failed first during implementation. The final local gate passed all
+  backend/frontend checks; the full browser suite passed 202 tests (desktop and phone). After the concurrent
+  missions styling rebase, the local gate and all 24 Audit/Missions page tests passed again. One additional saved-empty
+  Play regression failed first, then passed after removing the misleading fresh-read/draft claim; the gate passed again.
+  Real-data Home, Cards,
+  Rewards and Play were inspected and screenshotted at 1440/390 px, with no horizontal overflow or text below the
+  floor after fixing small existing Play labels and Home crest fallbacks. New Recap/Rewards sections passed axe;
+  web interface guidelines review completed. Production has no owner weeks saved yet: real previews showed the
+  honest empty state, while the populated case was verified with fixtures. No private production week was invented
+  or posted. Manual, calculation guide and roadmap updated. Step 6 deployment verification follows its push;
+  the owner Chrome check and steps 7-8 remain.
+
+- **9 Oct 2026 - source repair deployed:** `d0a47d7` deployed successfully; `check.mjs --live` returned All clear with
+  all 13 production pages answering 200. Its automatic refresh `37920838134` succeeded. SELECT found 21 actual
+  results for frozen-plan games, confirming that new history now arrives; the old finished plan lacks saved lineup
+  bonus rules and correctly stays pending. The pre-repair scheduled daily run failed on the same interface query
+  error. Daily verification was restarted as `37921934991` after the repair refresh finished, avoiding overlapping
+  source readers. It succeeded in 6m38s, reading all 628 requested market/owner players. A SELECT confirmed 30,462
+  stored player-game rows for 1,025 players, zero duplicate player/game keys and zero saved owner weeks. These row
+  counts include pending fixtures; they are not all played results. The daily status reports 628/628 read.
+
 - **9 Oct 2026 - post-deployment source-query repair:** Vercel `58bec09` deployed and all 13 production pages returned
   200; the refresh workflow completed successfully. Its log and a SELECT nevertheless showed fresh history had not
   arrived: Sorare rejected `decisiveScore` on `PlayerGameScoreInterface`. The history query now reads football-only

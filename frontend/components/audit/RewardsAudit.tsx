@@ -3,66 +3,41 @@
 import { useEffect, useState } from "react";
 import { cannot } from "../../lib/apply";
 import { percent, wonShare, type Rewards } from "../../lib/audit";
-import { runWeekLineups, weekWon, type WeekLineupsAnswer, type WeekWon } from "../../lib/entered";
+import { type WeekLineupsAnswer, type WeekWon } from "../../lib/entered";
+import { archiveFinishedWeeks, remembered, wonWeeks } from "../../lib/myWeeksClient";
+import { seasonWeeks, type SavedWeek } from "../../lib/myWeeks";
+import type { FrozenWeek } from "../../lib/audit";
 import { cashLabel, essenceLabel } from "../../lib/play";
 
 type Week = { slug: string; number: number };
 type Failure = Exclude<WeekLineupsAnswer, { state: "ok" }>;
 type Reading = { state: "reading" } | { state: "done" } | { state: "stopped"; answer: Failure };
 
-const CACHE = "sofix:won:v1:";
-/** Answers that mean the extension or the Sorare tab is missing: no other week will do better, so reading stops. */
-const BLOCKING = new Set(["no-extension", "no-tab", "no-bridge", "signed-out", "outdated"]);
-
-function remembered(slug: string): WeekWon | null {
-  try {
-    const raw = window.localStorage.getItem(CACHE + slug);
-    const value = raw ? (JSON.parse(raw) as WeekWon) : null;
-    return value && value.final && typeof value.essence === "number" ? value : null;
-  } catch {
-    return null;
-  }
-}
-
-function remember(slug: string, won: WeekWon): void {
-  if (!won.final) return; // a week still being ranked can change
-  try {
-    window.localStorage.setItem(CACHE + slug, JSON.stringify(won));
-  } catch {
-    /* private window or storage full: it is read again next time */
-  }
-}
-
 /**
  * Audit · Rewards. A reward is all or nothing, so Play never shows chance x reward; over a season it is the yardstick. Sofix's plans: what
  * they expected and what their lineups really won, from the weeks the job kept. You: what your own entered lineups won, read from Sorare
- * through the extension, a week at a time (a finished week is remembered in this browser, since it never changes).
+ * through the extension, a week at a time. Final weeks are saved on the server; old browser readings remain a fallback.
  */
-export default function RewardsAudit({ rewards, floor, season }: { rewards: Rewards; floor: number; season: Week[] }) {
-  const [won, setWon] = useState<Record<string, WeekWon>>({});
+export default function RewardsAudit({ rewards, floor, season, saved = [], frozen = [] }: { rewards: Rewards; floor: number; season: Week[]; saved?: SavedWeek[]; frozen?: FrozenWeek[] }) {
+  const [weeks, setWeeks] = useState(saved);
+  const [won, setWon] = useState<Record<string, WeekWon>>(() => wonWeeks(saved));
+  const [unavailable, setUnavailable] = useState(false);
   const [reading, setReading] = useState<Reading>({ state: season.length ? "reading" : "done" });
 
   useEffect(() => {
     let current = true;
     void (async () => {
-      for (const week of season) {
-        const known = remembered(week.slug);
-        if (known) {
-          if (current) setWon((all) => ({ ...all, [week.slug]: known }));
-          continue;
-        }
-        const answer = await runWeekLineups(week.slug);
-        if (!current) return;
-        if (answer.state === "ok") {
-          const result = weekWon(answer.lineups);
-          remember(week.slug, result);
-          setWon((all) => ({ ...all, [week.slug]: result }));
-        } else if (BLOCKING.has(answer.state)) {
-          setReading({ state: "stopped", answer });
-          return;
-        }
+      const fallback = Object.fromEntries(season.flatMap((week) => { const known = remembered(week.slug); return known ? [[week.slug, known]] : []; }));
+      if (current) setWon((all) => ({ ...fallback, ...all }));
+      const result = await archiveFinishedWeeks();
+      if (!current) return;
+      setUnavailable(result.unavailable === true);
+      if (!result.unavailable) {
+        const kept = seasonWeeks(result.weeks, new Date());
+        setWeeks(kept);
+        setWon((all) => ({ ...all, ...wonWeeks(kept) }));
       }
-      if (current) setReading({ state: "done" });
+      setReading(result.issue ? { state: "stopped", answer: result.issue } : { state: "done" });
     })();
     return () => {
       current = false;
@@ -71,7 +46,8 @@ export default function RewardsAudit({ rewards, floor, season }: { rewards: Rewa
 
   const enough = rewards.lineups >= floor;
   const planShare = wonShare(rewards.won.essence, rewards.expected.essence);
-  const read = season.filter((week) => won[week.slug]);
+  const listed = [...new Map([...season, ...weeks].map((week) => [week.slug, week])).values()];
+  const read = listed.filter((week) => won[week.slug]);
   const yours = read.reduce((sum, week) => sum + (won[week.slug]?.essence ?? 0), 0);
   const yourCash = read.reduce((sum, week) => sum + (won[week.slug]?.cash ?? 0), 0);
   const kept = rewards.weeks.filter((week) => week.slug && won[week.slug]);
@@ -160,12 +136,30 @@ export default function RewardsAudit({ rewards, floor, season }: { rewards: Rewa
         <p className="au-fresh" role="status">
           {reading.state === "reading"
             ? `Reading your lineups from Sorare · ${read.length} of ${season.length} weeks`
+            : unavailable ? "Week storage is temporarily unavailable. Saved weeks and this browser's last readings are kept."
             : issue
               ? `${issue.title}. ${issue.says}`
               : read.length < season.length
-                ? `${season.length - read.length} week${season.length - read.length === 1 ? "" : "s"} Sorare did not answer for`
+                ? `${season.length - read.length} finished week${season.length - read.length === 1 ? "" : "s"} not saved. Open Home in Chrome with your signed-in Sorare tab.`
                 : null}
         </p>
+      </section>
+
+      <section className="au-w" aria-label="Your lineups against the plan at lock">
+        <h2>Your lineups against the plan at lock</h2>
+        <p className="au-sub">Each frozen plan uses its saved cards, captain, bonuses and substitutions, scored from saved games. A double week uses the player&apos;s best score. Unknown results stay pending.</p>
+        <p className="au-sub">Rewards for the frozen plan are unknown without that week&apos;s final cut-offs; an older week&apos;s paying score is not a result.</p>
+        {frozen.length ? frozen.map((week) => <details key={week.slug} open>
+          <summary>GW{week.number} · plan kept before lock</summary>
+          {week.plans.map((plan) => <div className="au-record" key={plan.rank}><table>
+            <caption>GW{week.number} · Plan {plan.rank}</caption>
+            <thead><tr><th scope="col">Competition</th><th scope="col">Expected</th><th scope="col">Plan scored</th><th scope="col">You scored</th></tr></thead>
+            <tbody>{plan.lineups.map((line, i) => {
+              const yours = line.board ? weeks.find((saved) => saved.slug === week.slug)?.lineups.filter((lineup) => lineup.board === line.board).flatMap((lineup) => lineup.result ? [lineup.result.score.toFixed(1)] : []) : [];
+              return <tr key={`${line.board}:${i}`}><th scope="row">{line.competition}</th><td>{line.expected?.toFixed(1) ?? "-"}</td><td>{line.score === null ? "Pending" : line.score.toFixed(1)}</td><td>{yours?.length ? yours.join(" / ") : "Not saved"}</td></tr>;
+            })}</tbody>
+          </table></div>)}
+        </details>) : <p className="au-sub">No finished plan at lock has been scored yet.</p>}
       </section>
 
       {rewards.weeks.length ? (

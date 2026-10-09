@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import league from "../lib/data/audit_league.json";
-import { offline, resetBackend, smallText } from "./helpers";
+import { MOCK, offline, resetBackend, smallText, sorare } from "./helpers";
 
 // The Audit page draws the numbers the job published (e2e/fixtures/audit-response.json: the page of 2 Oct 2026 as backend/app/sorare/audit.py
 // builds it from the committed replay of the past and the start record: Sofix's chance written down for GW19's games, none played yet). Nothing
@@ -10,6 +10,37 @@ import { offline, resetBackend, smallText } from "./helpers";
 test.beforeEach(async ({ page, request }) => {
   await resetBackend(request);
   await offline(page);
+});
+
+test("saved weeks survive without Chrome on Recap, Cards and Rewards, beside the plan frozen at lock", async ({ page, request }) => {
+  const card = sorare.collection![0]!;
+  const start = `${new Date().getUTCFullYear()}-08-01T14:00:00Z`;
+  const saved = { slug: "saved-week", number: 17, start, end: start, savedAt: start,
+    lineups: [{ id: "mine", name: "Mine", competition: "LaLiga", board: "board", draft: false, confirmable: false,
+      cards: [{ slug: card.slug, player: card.player, name: card.name, rarity: card.rarity, picture: card.pic, score: 70, captain: true }],
+      result: { score: 300, rank: 10, essence: 250, cash: 2.5, card: false, xp: 100 } }] };
+  await request.post(`${MOCK}/__test/my-weeks`, { data: { weeks: [saved], frozenPlans: [{ slug: saved.slug, number: 17, end: start, builtAt: start,
+    plans: [{ rank: 1, lineups: [{ competition: "LaLiga", board: "board", expected: 290, score: 301.5, cameIn: [], bonusLost: false }] }] }] } });
+  await page.goto("/");
+  const season = page.getByRole("region", { name: "Your season" });
+  await expect(season).toContainText("250 essence");
+  await expect(season).toContainText("$2.50");
+  await page.goto("/cards");
+  const gallery = page.locator(".s5-pc").filter({ has: page.getByRole("link", { name: `${card.name}: open his page`, exact: true }) }).first();
+  await expect(gallery).toContainText("250 essence");
+  await expect(gallery).toContainText("$2.50");
+  await page.goto("/audit/rewards");
+  await expect(page.getByRole("region", { name: "You", exact: true })).toContainText("250 essence");
+  const frozen = page.getByRole("region", { name: "Your lineups against the plan at lock" });
+  await expect(frozen).toContainText("301.5");
+  await expect(frozen).toContainText("300.0");
+  await expect(frozen).toContainText("Rewards for the frozen plan are unknown");
+  for (const path of ["/", "/cards", "/audit/rewards"]) {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(path);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    expect(await smallText(page, 10)).toEqual([]);
+  }
 });
 
 test("the page leads with how often the xScore picks the better of two, per position, now against the old number", async ({ page }) => {

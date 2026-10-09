@@ -58,6 +58,9 @@ The Recap is about the week in the top bar (since 5 Oct 2026; design canvas boar
 - **Header**: the Sorare gameweek, its LaLiga round and days, when it locks ("Locks Fri 16:00, in 4 days") and **Open the plan**.
 - **Best cards**: your ten best cards of the week by xScore, all positions together, each with its xScore in a hexagon of Sorare's
   colour, his first game and his chance to start (whose number it is on hover).
+- **Your season**: essence and cash from saved finished weeks, with a week-by-week table. Open Home in Chrome with a
+  signed-in Sorare tab to save missing weeks; it checks once a day. A week waits until a day after its end and every
+  entered lineup has a rank. Once saved, its lineups and rewards also work on your phone without the extension.
 - **This round**: every match as two rows, home over away, under labelled columns: chance to win (a chip in Sorare's colours), expected
   goals and clean-sheet chance; draw and both-score beside the pair. The favourite is in bold; a played match shows its score.
 - **Table after round N**: the table once the round is played as expected: points now, points after and places gained or lost.
@@ -381,9 +384,18 @@ season the fair yardstick is the expected essence: each lineup's chance of each 
 plans' lineups really won, and gives the share won ("80% of the essence they expected was won") once 100 lineups are behind it;
 until then it says "Too few to tell yet" and how many lineups it has. The plan counted is the one Sofix rebuilds for a finished
 week from what was known before its lock. **You** adds up what your own entered lineups won on Sorare, read week by week through the
-extension (a signed-in sorare.com tab is needed; a finished week is remembered in the browser), and sets it against the plans'
-expected essence over the same weeks. **Week by week** lists each kept week: expected, won by the plan, won by you. Weeks before
-25 Sep 2026 (GW17) were not kept, so the season count starts there.
+extension (a signed-in sorare.com tab is needed for new reads; final weeks are saved on the server, with older browser readings
+as a fallback), and sets it against the plans'
+expected essence over the same weeks. **Week by week** lists each kept week: expected, won by the plan, won by you. Sofix's
+plan weeks before 25 Sep 2026 (GW17) were not kept; your own saved season can include earlier weeks Sorare returns.
+
+**Your lineups against the plan at lock** is a separate comparison with the exact plans saved before each lock. It shows
+their expected score, their score from saved games, and your saved score in the same competition. It uses the saved
+captain, card bonuses and substitution rules; a double week uses the player's best score. Missing results or older plans
+without saved rules stay pending. Rewards for these frozen plans remain unknown without that week's final cut-offs.
+
+On **Cards**, each card shows the season rewards of the saved lineups it was in. These are whole-lineup rewards, not
+individual earnings: do not add them across cards. No saved entry and temporarily unavailable storage are labelled separately.
 
 The Audit page checks Sofix's numbers against what happened, as charts (since 4 Oct). The first block is a replay of two LaLiga seasons: every game
 predicted from the weeks before it only (9,190 starts to 20 Sep).

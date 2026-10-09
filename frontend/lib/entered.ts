@@ -124,7 +124,10 @@ export function readWeekLineups(response: unknown): WeekLineupsAnswer {
     return { state: reply.state };
   }
 
-  const lineups = reply.data?.so5?.so5Fixture?.mySo5Lineups ?? [];
+  // A null fixture/list is an unreadable week, not evidence of zero entries. Only [] confirms an empty week.
+  const original = response as { data?: { so5?: { so5Fixture?: { mySo5Lineups?: unknown } } } };
+  if (!Array.isArray(original.data?.so5?.so5Fixture?.mySo5Lineups)) return { state: "error" };
+  const lineups = reply.data!.so5!.so5Fixture!.mySo5Lineups;
   return {
     state: "ok",
     lineups: lineups.map((lineup) => ({

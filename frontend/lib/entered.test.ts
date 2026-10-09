@@ -185,8 +185,10 @@ describe("reading the signed-in manager's gameweek lineups", () => {
     });
   });
 
-  it("treats a fixture without lineups as an honest empty gameweek", () => {
-    expect(readWeekLineups({ state: "ok", data: { so5: { so5Fixture: null } } })).toEqual({ state: "ok", lineups: [] });
+  it("requires a complete fixture read before treating a week as empty", () => {
+    expect(readWeekLineups({ state: "ok", data: { so5: { so5Fixture: null } } })).toEqual({ state: "error" });
+    expect(readWeekLineups({ state: "ok", data: { so5: { so5Fixture: { mySo5Lineups: null } } } })).toEqual({ state: "error" });
+    expect(readWeekLineups({ state: "ok", data: { so5: { so5Fixture: { mySo5Lineups: [] } } } })).toEqual({ state: "ok", lineups: [] });
   });
 
   it("keeps extension and Sorare failures distinct", () => {
@@ -262,7 +264,7 @@ describe("answers Sorare words differently", () => {
     expect(resultLine(answer.lineups[1]!.result!)).toBe("Rank 2,100 · 500 XP");
   });
 
-  it("reads a whole answer that is null as no lineups", () => {
-    expect(readWeekLineups({ state: "ok", data: { so5: null } })).toEqual({ state: "ok", lineups: [] });
+  it("leaves a null answer unread instead of recording zero lineups", () => {
+    expect(readWeekLineups({ state: "ok", data: { so5: null } })).toEqual({ state: "error" });
   });
 });

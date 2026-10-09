@@ -181,6 +181,22 @@ The rolling mission sheets accept detailed saved action counts as well as older 
 The history query reads decisive levels and detailed stats on the concrete `PlayerGameScore` type. Sorare's federation
 rejects repeated `anyGame` roots even with aliases, so per-game projection reads run sequentially through the paced client.
 
+**Finished owner weeks (data-keeping step 6).** `POST /api/my-week` requires the same-origin refresh header, validates
+the bounded Zod body against a published week and waits until end + 24 hours with every entered lineup ranked. It stores
+lineups, exact card slugs, known player identities, captain, scores, ranks and rewards in `my_week:<slug>` with
+`ON CONFLICT DO NOTHING`; drafts are excluded and missing player identity stays null. Explicit empty reads can save
+zero entries; a null Sorare fixture/list cannot. GET lists kept and pending weeks. Home and Rewards share a once-daily,
+sequential, coalesced extension read queue; Home and Play's selected-week reads also save final results. Storage failures
+preserve existing weeks and are distinct from an empty season. No extension release or new table is needed.
+
+Home, Play and Rewards read these server records first; Rewards retains the old browser cache as a fallback. Recap's
+season totals keep cash and essence separate. Cards credit each participating card with its lineup's whole reward and
+explicitly prohibit adding these amounts across cards. The season runs from 1 July UTC to the next 1 July.
+`sorare/frozen_scores.py` scores every saved pre-lock plan from `player_games`, using the frozen multipliers and rules
+with the existing planner's captain/substitution calculation. All scheduled games must have known final outcomes;
+the best played score is used for a double week and missing rows never trigger a substitute. Audit publishes these as
+`frozenPlans`, separate from its existing replay/reward aggregate; final frozen-plan rewards are unknown without actual cut-offs.
+
 **The Players page (plans/data-keeping.md step 4).** `/players/<slug>` draws this week's game from the same `shape` as the
 panel. `lib/playerGames.ts` reads parameterized `player_games` and `player_absences` queries, cached for one hour under
 the `sorare` tag. The local FastAPI equivalents are `/api/players/{slug}/games` and `/api/player-sheets`.

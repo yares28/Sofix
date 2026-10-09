@@ -5,6 +5,8 @@ import { loadGrid } from "../../lib/api";
 import { loadSorare } from "../../lib/playData";
 import { loadSystem } from "../../lib/system";
 import { weekContext } from "../../lib/weeks";
+import { myWeeksQuietly } from "../../lib/myWeeksData";
+import { cardReturns, seasonWeeks } from "../../lib/myWeeks";
 
 export const metadata: Metadata = { title: "Gallery · Sofix" };
 
@@ -20,7 +22,7 @@ export default async function Cards({ searchParams }: { searchParams: SearchPara
     const value = params[key];
     return typeof value === "string" ? value : undefined;
   };
-  const [data, { grid, meta }, system] = await Promise.all([loadSorare(), loadGrid(), loadSystem()]);
+  const [data, { grid, meta }, system, saved] = await Promise.all([loadSorare(), loadGrid(), loadSystem(), myWeeksQuietly()]);
   const week = weekContext(grid, data, new Date(), { w: single("w"), gw: single("gw") });
   const ready = data && (data.collection?.length ?? 0) > 0;
 
@@ -29,7 +31,7 @@ export default async function Cards({ searchParams }: { searchParams: SearchPara
       <SiteNav meta={meta} system={system} week={week} />
       <main className="s5-main">
         {ready ? (
-          <CardsView data={data} now={new Date().toISOString()} />
+          <CardsView data={data} now={new Date().toISOString()} returns={saved === null ? null : cardReturns(seasonWeeks(saved, new Date()))} />
         ) : (
           <section className="s5-empty" role="status">
             <h1>Gallery</h1>

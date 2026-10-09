@@ -23,6 +23,8 @@ import { Foil } from "../play/bits";
 import CardArt from "./CardArt";
 import useCountUp from "./useCountUp";
 import SeasonIcon from "../SeasonIcon";
+import type { CardReturn } from "../../lib/myWeeks";
+import { cashLabel, essenceLabel } from "../../lib/play";
 
 const RARITIES: { key: string; label: string }[] = [
   { key: "all", label: "Both" },
@@ -128,7 +130,7 @@ function Shape({ byPosition }: { byPosition: Record<string, Record<string, numbe
 }
 
 /** My cards: the collection led by what he can field, then the shape, then the cards by position. */
-export default function CardsView({ data, now }: { data: Sorare; now: string }) {
+export default function CardsView({ data, now, returns = {} }: { data: Sorare; now: string; returns?: Record<string, CardReturn> | null }) {
   const collection = useMemo(() => data.collection ?? [], [data.collection]);
   const [pos, setPos] = useState<Position | "all">("all");
   const [rarity, setRarity] = useState("all");
@@ -240,6 +242,7 @@ export default function CardsView({ data, now }: { data: Sorare; now: string }) 
           {shown} {shown === 1 ? "card" : "cards"}
         </span>
       </div>
+      <p className="s5-return-note">Saved season rewards belong to the whole lineup. Each card shows the rewards of lineups it was in; do not add them across cards.</p>
       <p className="s5-key">
         Sorted by average score. The hexagons: last 5, last 10 and last 40 games. Under each card: his next game, then his chance to start it from Futbol Fantasy (FF), Sorare (SO) and Sofix (SF). The darker one is the
         one Sofix uses.
@@ -258,7 +261,7 @@ export default function CardsView({ data, now }: { data: Sorare; now: string }) 
             </div>
             <div className="s5-grid">
               {group.cards.map((card, index) => (
-                <CardTile key={card.slug} card={card} index={index} stack={stacks.get(stackKey(card)) ?? 1} anchor={anchored.has(card.slug)} target={target === cardAnchor(card.player)} next={next.get(card.player) ?? next.get(card.name)} />
+                <CardTile key={card.slug} card={card} index={index} stack={stacks.get(stackKey(card)) ?? 1} anchor={anchored.has(card.slug)} target={target === cardAnchor(card.player)} next={next.get(card.player) ?? next.get(card.name)} earned={returns === null ? null : returns[card.slug]} />
               ))}
             </div>
           </section>
@@ -287,7 +290,7 @@ export default function CardsView({ data, now }: { data: Sorare; now: string }) 
   );
 }
 
-function CardTile({ card, index, stack, anchor, target, next }: { card: CollectionCard; index: number; stack: number; anchor: boolean; target: boolean; next: NextGame | undefined }) {
+function CardTile({ card, index, stack, anchor, target, next, earned }: { card: CollectionCard; index: number; stack: number; anchor: boolean; target: boolean; next: NextGame | undefined; earned?: CardReturn | null }) {
   const windows = cardWindows(card);
   return (
     <article className={`s5-pc${anchor && target ? " is-target" : ""}`} id={anchor ? cardAnchor(card.player) : undefined} style={{ animationDelay: `${Math.min(index * 20, 360)}ms` }}>
@@ -315,6 +318,7 @@ function CardTile({ card, index, stack, anchor, target, next }: { card: Collecti
         ))}
       </span>
       <Next next={next} />
+      <span className="s5-return">{earned ? <><b>{essenceLabel(earned.essence)} essence · {cashLabel(earned.cash)}</b><small>In {earned.lineups} saved lineup{earned.lineups === 1 ? "" : "s"}</small></> : earned === null ? "Saved rewards unavailable" : "No saved lineup yet"}</span>
     </article>
   );
 }

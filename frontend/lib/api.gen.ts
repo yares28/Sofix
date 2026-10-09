@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/api/my-weeks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Weeks */
+        get: operations["my_weeks_api_my_weeks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/player-sheets": {
         parameters: {
             query?: never;
@@ -626,6 +643,26 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    my_weeks_api_my_weeks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_list_dict_str__Any___"];
+                };
+            };
+        };
+    };
     player_sheets_api_player_sheets_get: {
         parameters: {
             query?: never;

@@ -3,7 +3,8 @@
 import CardZoom from "../ui/CardZoom";
 import { useEffect, useState } from "react";
 import { cannot } from "../../lib/apply";
-import { pendingLine, resultLine, runWeekLineups, type GameweekLineup, type WeekLineupsAnswer } from "../../lib/entered";
+import { pendingLine, resultLine, type GameweekLineup, type WeekLineupsAnswer } from "../../lib/entered";
+import { readEnteredWeek } from "../../lib/myWeeksClient";
 import { REQUIRED_EXTENSION_VERSION } from "../../lib/extension";
 import { Foil } from "./bits";
 import SorareImage from "./SorareImage";
@@ -12,7 +13,7 @@ type Week = { slug: string; number: number; lock?: string };
 type Failure = Exclude<WeekLineupsAnswer, { state: "ok" }>;
 type LoadState =
   | { state: "loading"; lineups: GameweekLineup[] }
-  | { state: "ready"; lineups: GameweekLineup[]; at: Date }
+  | { state: "ready"; lineups: GameweekLineup[]; at: Date; saved?: boolean }
   | { state: "unavailable"; lineups: GameweekLineup[]; answer: Failure };
 
 /** Lineups the signed-in manager actually put on Sorare, read from this exact Sorare gameweek. */
@@ -23,11 +24,11 @@ export default function EnteredLineups({ week }: { week: Week }) {
   useEffect(() => {
     let current = true;
     setLoad((was) => ({ state: "loading", lineups: was.lineups }));
-    void runWeekLineups(week.slug).then((answer) => {
+    void readEnteredWeek(week.slug).then((answer) => {
       if (!current) return;
       setLoad(
         answer.state === "ok"
-          ? { state: "ready", lineups: answer.lineups, at: new Date() }
+          ? { state: "ready", lineups: answer.lineups, at: new Date(), saved: answer.saved }
           : { state: "unavailable", lineups: [], answer },
       );
     });
@@ -74,7 +75,7 @@ export default function EnteredLineups({ week }: { week: Week }) {
     <section className="pl-entered" aria-labelledby="entered-lineups-title">
       <div className="pl-entered-head">
         <div>
-          <p className="pl-eyebrow">On Sorare · GW{week.number}</p>
+          <p className="pl-eyebrow">{load.state === "ready" && load.saved ? "Saved from Sorare" : "On Sorare"} · GW{week.number}</p>
           <h2 id="entered-lineups-title">Your Sorare lineups</h2>
         </div>
         <span className="pl-entered-side">
@@ -157,8 +158,8 @@ export default function EnteredLineups({ week }: { week: Week }) {
       ) : (
         <div className="pl-entered-empty">
           <div>
-            <b>None entered yet for GW{week.number}</b>
-            <span>Checked on Sorare at {checked}: you have no lineup or draft in this gameweek.</span>
+            <b>{load.state === "ready" && load.saved ? "No entered lineups" : "None entered yet"} for GW{week.number}</b>
+            <span>{load.state === "ready" && load.saved ? "Saved final Sorare read: no entered lineups. Drafts are not saved." : `Checked on Sorare at ${checked}: you have no lineup or draft in this gameweek.`}</span>
           </div>
         </div>
       )}

@@ -33,6 +33,7 @@ const page = (over: Partial<Audit> = {}): Audit => ({
   missions: NO_MISSIONS,
   versus: NO_VERSUS,
   elevens: NO_ELEVENS,
+  frozenPlans: [],
   ...over,
 });
 

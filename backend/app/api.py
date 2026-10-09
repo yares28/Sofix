@@ -18,6 +18,14 @@ from app.sorare.publish import AHEAD_PREFIX, ALT_PREFIX, ARCHIVE_PREFIX
 router = APIRouter(prefix="/api")
 
 
+@router.get("/my-weeks", response_model=ApiResponse[list[dict[str, Any]]])
+def my_weeks(db: Session = Depends(get_db)):
+    rows = db.scalars(select(ReadModel).where(ReadModel.key.like("my_week:%")))
+    return ApiResponse[list[dict[str, Any]]](
+        success=True, data=sorted([row.payload for row in rows], key=lambda week: week.get("end", ""), reverse=True)
+    )
+
+
 @router.get("/player-sheets", response_model=ApiResponse[dict[str, Any]])
 def player_sheets(db: Session = Depends(get_db)):
     row = db.get(ReadModel, sheets.KEY)

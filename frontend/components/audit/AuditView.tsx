@@ -18,6 +18,7 @@ import { SOURCE_NAME, SOURCE_SHORT, type StartSource } from "../../lib/play";
 import type { LeagueAudit as League } from "../../lib/leagueAudit";
 import SourceMark from "../SourceMark";
 import LeagueAudit, { StartsCheck } from "./LeagueAudit";
+import type { SavedWeek } from "../../lib/myWeeks";
 
 const NAME: Record<StartSource, string> = { futbolfantasy: "Futbol Fantasy", sorare: "Sorare", sofix: "Sofix" };
 function Progress({ settled, floor }: { settled: number; floor: number }) {
@@ -112,6 +113,7 @@ export default function AuditView({
   league,
   show = "xscore",
   season = [],
+  saved = [],
 }: {
   data: Audit | null;
   now: Date;
@@ -119,6 +121,7 @@ export default function AuditView({
   show?: AuditShow;
   /** The season's finished Sorare gameweeks, for what you won (Rewards). */
   season?: { slug: string; number: number }[];
+  saved?: SavedWeek[];
 }) {
   if (!data) {
     return (
@@ -174,7 +177,7 @@ export default function AuditView({
           <p>The essence the plans expected over the season, against what was really won.</p>
           {updated}
         </header>
-        <RewardsAudit rewards={data.rewards} floor={data.floor} season={season} />
+        <RewardsAudit rewards={data.rewards} floor={data.floor} season={season} saved={saved} frozen={data.frozenPlans} />
       </>
     );
   }

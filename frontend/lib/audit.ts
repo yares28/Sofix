@@ -53,6 +53,10 @@ export type RewardSide = { essence: number; cash: number };
 export type RewardWeek = { gameweek: number; slug: string | null; lineups: number; expected: RewardSide; won: RewardSide };
 /** The season so far, from the gameweeks the job kept: each week, and the totals. `lineups` are the cases behind the share. */
 export type Rewards = { weeks: RewardWeek[]; lineups: number; expected: RewardSide; won: RewardSide };
+export type FrozenWeek = { slug: string; number: number; end: string; builtAt: string | null; plans: { rank: number; lineups: {
+  competition: string; board: string | null; expected: number | null; score: number | null;
+  cameIn: { sub: string; for: string }[]; bonusLost: boolean;
+}[] }[] };
 
 /** One player in a mission day of the log: Sofix's pick (`hit`: he did it) or an achiever Sofix left out. */
 export type MissionCard = { slug: string; name: string; pic: string; hit?: boolean };
@@ -122,6 +126,7 @@ export type Audit = {
   missions: Missions;
   versus: Versus;
   elevens: Elevens;
+  frozenPlans: FrozenWeek[];
 };
 
 const NONE: RewardSide = { essence: 0, cash: 0 };
@@ -156,6 +161,7 @@ export function readable(value: unknown): Audit | null {
     // and one published before Sorare and Sofix were written down side by side has an empty comparison
     versus: { ...NO_VERSUS, ...(data.versus ?? {}), positions: { ...NO_VERSUS.positions, ...(data.versus?.positions ?? {}) } },
     elevens: { ...NO_ELEVENS, ...(data.elevens ?? {}) },
+    frozenPlans: data.frozenPlans ?? [],
   };
 }
 

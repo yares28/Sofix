@@ -7,6 +7,8 @@ import { BestCards, MissionsGlance, PlanLineups, RoundBoard, TableAfter, WeekNew
 import { WaitingTile } from "../components/home/SorareTiles";
 import TeamNewsTile from "../components/home/TeamNewsTile";
 import EnteredLineups from "../components/play/EnteredLineups";
+import YourSeason from "../components/recap/YourSeason";
+import { myWeeksQuietly } from "../lib/myWeeksData";
 import SiteNav from "../components/SiteNav";
 import { loadGrid } from "../lib/api";
 import { legacyBoardUrl, openingColumn } from "../lib/grid";
@@ -41,12 +43,13 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   const legacy = legacyBoardUrl(params);
   if (legacy) redirect(legacy);
 
-  const [{ grid, meta, error }, system, sorare, lineups, missions] = await Promise.all([
+  const [{ grid, meta, error }, system, sorare, lineups, missions, savedWeeks] = await Promise.all([
     loadGrid(),
     loadSystem(),
     loadSorare(),
     loadLineups(),
     loadMissions(),
+    myWeeksQuietly(),
   ]);
   const opening = grid ? openingColumn(grid) : 0;
   const week = weekContext(grid, sorare, new Date(), {
@@ -115,6 +118,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
         )}
         {plan ? <BestCards cards={bestCards(plan.playing.players)} gw={plan.gameweek.number} /> : null}
         <div className="rc-grid">
+          <YourSeason saved={savedWeeks} now={now.toISOString()} />
           {!away ? (
             <>
               <RoundBoard matches={roundBoard(grid, column)} href={href("/fixtures")} />

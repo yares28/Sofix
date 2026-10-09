@@ -209,7 +209,7 @@
   color: var(--ink);
 }
 .pl-plans .best {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -742,7 +742,7 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   color: #5a3d00;
   background: var(--f-lim);
@@ -796,7 +796,7 @@
 }
 .pl-cards .sl {
   flex: none;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1932,7 +1932,7 @@
 .pl-board .pl-mc { flex: 1 1 0; width: auto; min-width: 0; max-width: 62px; display: flex; flex-direction: column; align-items: center; }
 .pl-board .pl-mc.sub { max-width: 50px; }
 .pl-board .pl-mc .art { border-radius: 7px; }
-.pl-board .pl-mc .c { left: auto; right: -6px; top: -6px; width: 20px; height: 20px; font-size: 10px; }
+.pl-board .pl-mc .c { left: auto; right: -6px; top: -6px; width: 20px; height: 20px; font-size: 11px; }
 .pl-board .pl-mc .is { right: auto; left: -4px; bottom: auto; top: -4px; }
 .pl-mc .hx {
   position: relative; margin-top: -12px; width: 34px; height: 29px; display: grid; place-items: center;

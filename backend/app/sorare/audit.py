@@ -34,7 +34,7 @@ from sqlalchemy.orm import Session
 
 from app.models import ReadModel
 from app.services.publish import put
-from app.sorare import backtest, missions, player_audit, starts, versus
+from app.sorare import backtest, frozen_scores, missions, player_audit, starts, versus
 from app.sorare.publish import ARCHIVE_PREFIX
 
 AUDIT_KEY = "audit"
@@ -381,6 +381,7 @@ def from_kept(db: Session, now: datetime) -> dict[str, Any]:
     record, scores, elevens = player_audit.read(db, now, FLOOR)
     page = build(record, read_replay(), now, kept_weeks(db), missions.logs_of(db), scores)
     page["elevens"] = elevens
+    page["frozenPlans"] = frozen_scores.read(db, now)
     return page
 
 

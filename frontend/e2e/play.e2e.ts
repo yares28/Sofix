@@ -140,6 +140,7 @@ test("entered Sorare lineups sit at the top of the gameweek they belong to", asy
 
   await page.goto("/play");
   const mine = page.getByRole("region", { name: "Your Sorare lineups" });
+  await expect(mine.getByRole("status")).toContainText("Live Sorare read · not archived in Sofix yet.");
   await expect(mine).toContainText("Friday team");
   await expect(mine).toContainText("LALIGA EA SPORTS");
   await expect(mine.getByLabel("7 cards")).toBeVisible();

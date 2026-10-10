@@ -30,3 +30,17 @@ it("reads saved lineups without the extension and never treats a storage failure
   vi.stubGlobal("fetch", vi.fn(async () => new Response("unavailable", { status: 503 })));
   expect((await archiveFinishedWeeks()).unavailable).toBe(true);
 });
+
+it("reports a newly archived final week as saved only after storage accepts it", async () => {
+  const fetcher = vi.fn(async (_url: string, options?: RequestInit) => options?.method === "POST"
+    ? new Response(null, { status: 200 })
+    : new Response(JSON.stringify({ weeks: [], pending: [{ slug: "finished" }] })));
+  vi.stubGlobal("fetch", fetcher);
+  read.mockResolvedValue({ state: "ok", lineups: [] });
+  const { readEnteredWeek } = await import("./myWeeksClient");
+  expect(await readEnteredWeek("finished")).toMatchObject({ state: "ok", saved: true });
+  fetcher.mockImplementation(async (_url: string, options?: RequestInit) => options?.method === "POST"
+    ? new Response(null, { status: 503 })
+    : new Response(JSON.stringify({ weeks: [], pending: [{ slug: "finished" }] })));
+  expect((await readEnteredWeek("finished")).saved).not.toBe(true);
+});

@@ -188,6 +188,23 @@ model/schema edits. Preserve unrelated work. Commits: `<type>: <description>`.
 
 ## Engineering operating rules (free-first)
 
+### Preserve the owner's workflow (required in every session)
+
+- Before implementation, record the requested outcome, coverage and user actions in the task's plan. Read that contract
+  when resuming; an implementation limitation does not change the requirement.
+- Do not substitute manual page visits, extra tabs, repeated clicks, reduced coverage or another source for an automatic
+  feature without first explaining the evidence and alternatives and getting the owner's agreement to that change.
+- Prove a source limitation using its official documentation and a representative read-only request. A null response
+  from one query is evidence about that query, not proof the data is unavailable. Keep a credential-free reproduction.
+- Write acceptance tests for the requested workflow before fixing it. Cover a cold start, the selected GW's coverage,
+  navigation/tab closure, expiry, missing versus zero and source identity where applicable. Test fixtures must not
+  silently assume away the failure being fixed.
+- A unit test, mock browser test, HTTP 200 or one successful player is not whole-feature proof. Before shipping, state
+  what was verified on real data, what remains unverified, and whether the requested acceptance criteria were met.
+  Do not ship a known workflow substitution as a completed fix; discuss unresolved product tradeoffs with the owner.
+- Preserve these rules and the task's evidence in the repository, not only chat memory. The standing direct-to-main
+  shipping permission does not authorize changing the requested user experience.
+
 The general contract is the global `~/.claude/rules/engineering-os.md`; if it is missing, these are the rules that bind
 this repo. Precedence: this file, then the global rules.
 

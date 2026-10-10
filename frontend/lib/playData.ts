@@ -1,8 +1,9 @@
 import { cache } from "./cache";
 import { database, readModel } from "./db";
-import { SORARE_TAG, type GameweekPlan, type Sorare, type SorarePlans } from "./play";
+import { SORARE_TAG, weekPlan, type GameweekPlan, type Sorare, type SorarePlans } from "./play";
 import { restoreFrozenPlan } from "./frozenPlan";
 import type { ChanceRecord } from "./lineupChances";
+import { marketForWeek, type ScoreRecord } from "./playerForecasts";
 
 // Local development and the browser tests have no Neon: they ask the FastAPI stand-in instead.
 const API_BASE = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -85,6 +86,17 @@ export async function loadFrozenPlan(slug: string, data: Sorare): Promise<Gamewe
   return week?.playing?.players && Array.isArray(week.plans) ? restoreFrozenPlan(week, data) : null;
 }
 export const loadChanceRecord = (slug: string) => supportingRecord<ChanceRecord>("record", slug);
+
+/** Restore the selected GW's numbers after it leaves the optimizer. No later week's estimates fill gaps. */
+export async function loadPlayerForecasts(data: Sorare, id: string) {
+  const week = data.timeline.find(w => w.id === id);
+  if (!week) return { plan: null, market: marketForWeek(data.market ?? [], data.nextId, { id, slug: "" }, null, null) };
+  const [plan, record] = await Promise.all([
+    weekPlan(data, id) ?? (week.kept ? loadSorareWeek(week.slug) : loadFrozenPlan(week.slug, data)),
+    supportingRecord<ScoreRecord>("record", week.slug),
+  ]);
+  return { plan, market: marketForWeek(data.market ?? [], data.nextId, week, plan, record) };
+}
 
 /**
  * One finished gameweek the job kept whole (`read_models` key `sorare_week:<slug>`), or null when it did not keep

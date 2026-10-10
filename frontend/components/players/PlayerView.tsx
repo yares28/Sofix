@@ -46,8 +46,9 @@ export default function PlayerView({
   now: string;
 }) {
   const game = planned?.games[0] ?? null;
-  const theirs = !planned && league?.fixture?.opponent && league.fixture.kickoff ? league : null;
-  const shown = game ?? (theirs?.fixture as { opponent: string; opponentCrest: string | null; venue: "H" | "A"; kickoff: string } | undefined) ?? null;
+  const theirs = !planned && league && typeof league.x === "number" ? league : null;
+  const fixture = theirs?.fixture;
+  const shown = game ?? (fixture?.opponent && fixture.kickoff ? { ...fixture, opponent: fixture.opponent, kickoff: fixture.kickoff } : null);
   const pStart = planned ? planned.pStart : theirs?.pStart;
   const factors = useMemo(() => gameFactors(game?.odds), [game]);
   const [window, setWindow] = useState<Window>(factors ? "next" : "l10");
@@ -81,7 +82,7 @@ export default function PlayerView({
           ) : (
             <p className="pd-game">
               {[identity.pos, identity.club].filter(Boolean).join(" · ")}
-              {planned === null ? " · no game this gameweek" : ""}
+              {planned === null && theirs === null ? " · no forecast saved for this GW" : ""}
             </p>
           )}
           <div className="pd-big">
@@ -89,7 +90,7 @@ export default function PlayerView({
               <>
                 <div>
                   <span className="pd-x sc-chip" style={{ background: scoreColour(score).fill, color: scoreColour(score).ink }}>{score}</span>
-                  <small>xScore if he starts</small>
+                  <small>{typeof (planned?.start ?? theirs?.start) === "number" ? "xScore if he starts" : "xScore if he plays"}</small>
                 </div>
                 {typeof pStart === "number" ? (
                   <div>

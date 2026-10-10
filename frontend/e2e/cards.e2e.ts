@@ -100,6 +100,6 @@ test("every LaLiga player has a start chance and an xScore, not only yours, pric
   await page.goto("/players/unpriced-kid");
   const hero = page.locator(".pd-hero");
   await expect(hero).toContainText("v Sevilla");
-  await expect(hero).toContainText("xScore if he starts");
+  await expect(hero).toContainText("xScore if he plays"); // no conditional starting score was published for this player
   await expect(hero.locator(".pd-s")).toHaveText("4%");
 });

@@ -6,7 +6,8 @@ const TOKEN = "t".repeat(48);
 
 const loadSorare = vi.fn<() => Promise<Sorare | null>>();
 const loadSorareWeek = vi.fn<(slug: string) => Promise<unknown>>();
-vi.mock("../../../../lib/playData", () => ({ loadSorare: () => loadSorare(), loadSorareWeek: (slug: string) => loadSorareWeek(slug) }));
+const loadFrozenPlan = vi.fn();
+vi.mock("../../../../lib/playData", () => ({ loadSorare: () => loadSorare(), loadSorareWeek: (slug: string) => loadSorareWeek(slug), loadFrozenPlan: (...args: unknown[]) => loadFrozenPlan(...args) }));
 vi.mock("../../../../lib/api", () => ({ loadGrid: async () => ({ grid: null, meta: null, error: "no grid" }) }));
 
 const { POST } = await import("./route");
@@ -39,9 +40,24 @@ beforeEach(() => {
   process.env.EXTENSION_TOKEN = TOKEN;
   loadSorare.mockReset().mockResolvedValue(payload);
   loadSorareWeek.mockReset().mockResolvedValue(null);
+  loadFrozenPlan.mockReset().mockResolvedValue(null);
 });
 
 describe("POST /api/ext/overlay", () => {
+  it("loads every owned player's frozen live GW when it has left the optimizer, without borrowing the next week", async () => {
+    const slug = "football-9-13-oct-2026";
+    const data = { ...payload, timeline: [{ id: "21", slug, number: 21, status: "live" }] } as unknown as Sorare;
+    loadSorare.mockResolvedValue(data);
+    loadFrozenPlan.mockResolvedValue({ ...payload.weeks[0], builtAt: "2026-10-09T13:47:00Z", gameweek: { id: "21", slug, number: 21, end: "2026-10-13T14:00:00Z" }, plans: [] });
+    const body = await (await call({ cards: [], players: ["unai-simon", "jan-oblak"], fixture: slug })).json();
+    expect(body.week).toBe(21);
+    expect(Object.keys(body.players)).toEqual(["unai-simon", "jan-oblak"]);
+    expect(body.players["unai-simon"].x).toBe(54.5);
+    expect(body.players["unai-simon"].at).toBe("2026-10-09T13:47:00Z");
+    const numbered = await (await call({ cards: [], players: ["unai-simon"], week: "21" })).json();
+    expect(numbered.week).toBe(21);
+    expect(numbered.players["unai-simon"].x).toBe(54.5);
+  });
   it("answers the extension with the numbers for what it asked about, and never stores them", async () => {
     const response = await call({ cards: ["unai-simon-2026-limited-12"], players: [] });
     expect(response.status).toBe(200);

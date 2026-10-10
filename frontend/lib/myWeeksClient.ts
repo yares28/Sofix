@@ -44,7 +44,9 @@ export async function readEnteredWeek(slug: string, useSaved = true): Promise<En
   const saved = known?.weeks.find((week) => week.slug === slug);
   if (saved) return { state: "ok", lineups: saved.lineups, saved: true };
   const answer = await read(slug);
-  if (answer.state === "ok" && known?.pending.some((week) => week.slug === slug)) await save(slug, answer.lineups);
+  if (answer.state === "ok" && known?.pending.some((week) => week.slug === slug)) {
+    return { ...answer, saved: await save(slug, answer.lineups) };
+  }
   return answer;
 }
 /** Shared by Home and Rewards. Reads are sequential, coalesced with selected-week reads, and attempted once per day. */

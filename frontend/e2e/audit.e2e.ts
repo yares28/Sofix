@@ -29,7 +29,9 @@ test("saved weeks survive without Chrome on Recap, Cards and Rewards, beside the
       cards: [{ slug: card.slug, player: card.player, name: card.name, rarity: card.rarity, picture: card.pic, score: 70, captain: true }],
       result: { score: 300, rank: 10, essence: 250, cash: 2.5, card: false, xp: 100 } }] };
   await request.post(`${MOCK}/__test/my-weeks`, { data: { weeks: [saved], frozenPlans: [{ slug: saved.slug, number: 17, end: start, builtAt: start,
-    plans: [{ rank: 1, lineups: [{ competition: "LaLiga", board: "board", expected: 290, score: 301.5, cameIn: [], bonusLost: false }] }] }] } });
+    plans: [{ rank: 1, lineups: [{ competition: "LaLiga", board: "board", expected: 290, score: 301.5, cameIn: [], bonusLost: false },
+      { competition: "Older rules", board: "missing", expected: 200, score: null, reason: "incomplete-plan", cameIn: [], bonusLost: false },
+      { competition: "Waiting", board: "waiting", expected: 210, score: null, cameIn: [], bonusLost: false }] }] }] } });
   await page.goto("/");
   const season = page.getByRole("region", { name: "Your season" });
   await expect(season).toContainText("250 Limited essence");
@@ -47,7 +49,10 @@ test("saved weeks survive without Chrome on Recap, Cards and Rewards, beside the
   const frozen = page.getByRole("region", { name: "Your lineups against the plan at lock" });
   await expect(frozen).toContainText("301.5");
   await expect(frozen).toContainText("300.0");
-  await expect(frozen).toContainText("Rewards for the frozen plan are unknown");
+  await expect(frozen).toContainText("1 entered lineup saved across 1 GW");
+  await expect(frozen.getByRole("row").filter({ hasText: "Older rules" })).toContainText("Rules not saved");
+  await expect(frozen.getByRole("row").filter({ hasText: "Older rules" })).toContainText("No entry");
+  await expect(frozen.getByRole("row").filter({ hasText: "Waiting" })).toContainText("Pending results");
   for (const path of ["/", "/cards", "/audit/rewards"]) {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(path);

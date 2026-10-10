@@ -1,0 +1,11 @@
+---
+description: Preserve the requested workflow and verify actual coverage before shipping
+alwaysApply: true
+---
+
+Read and follow AGENTS.md, especially "Preserve the owner's workflow".
+Read the active task's plan and acceptance criteria when resuming after a context reset.
+Automatic loading must not become manual per-page collection without the owner's agreement.
+Source limitations require official documentation and a credential-free reproducible check.
+Prove the requested user journey and coverage; tests of a workaround are not acceptance.
+Keep unresolved requirements explicit. Do not claim a feature is fixed from one successful example.

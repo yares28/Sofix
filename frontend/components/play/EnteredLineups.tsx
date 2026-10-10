@@ -98,6 +98,8 @@ export default function EnteredLineups({ week }: { week: Week }) {
         </span>
       </div>
 
+      {load.state === "ready" && load.lineups.length ? <p className="pl-entered-storage" role="status">{load.saved ? "Final lineups saved in Sofix." : "Live Sorare read · not archived in Sofix yet."}</p> : null}
+
       {load.state === "loading" ? (
         <div className="pl-entered-wait" aria-live="polite">
           Reading this gameweek from your signed-in Sorare tab.

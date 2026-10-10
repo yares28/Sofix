@@ -13,6 +13,15 @@ const game = (over: Partial<SavedGame> = {}): SavedGame => ({
 beforeEach(() => { vi.resetAllMocks(); });
 
 describe("saved player history", () => {
+  it("normalizes Neon timestamp objects before player history reaches the page", async () => {
+    const date = new Date("2026-10-01T19:00:00Z");
+    const sql = vi.fn().mockResolvedValueOnce([{ ...game(), date, read_at: date }])
+      .mockResolvedValueOnce([{ id: 1, first_seen: date, last_seen: date, back: null }]);
+    vi.mocked(database).mockReturnValue(sql as unknown as NonNullable<ReturnType<typeof database>>);
+    const history = await loadPlayerGames("abdul-mumin");
+    expect(history?.games[0]).toMatchObject({ date: date.toISOString(), read_at: date.toISOString() });
+    expect(history?.absences[0]).toMatchObject({ first_seen: date.toISOString(), last_seen: date.toISOString(), back: null });
+  });
   it("counts this season's appearances, LaLiga yellows and each source's miss on known starts only", () => {
     const summary = seasonSummary([game(), game({ game_id: "2", yellow: 3, score: 70 }), game({ started: false, score: 20, yellow: 0 }), game({ competition: "premier-league-gb", yellow: 2 }), game({ played: false, started: false, score: 0, yellow: 0 }), game({ status: "PENDING", score: 99 }), game({ date: "2026-06-30T19:00:00Z", yellow: 5 })], new Date("2026-10-08"));
     expect(summary).toMatchObject({ games: 4, starts: 3, average: 52.5, yellows: 4, yellowComplete: true, sofix: { n: 3, miss: 40 / 3 }, sorare: { n: 3, miss: 5 } });

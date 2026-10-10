@@ -399,8 +399,10 @@ plan weeks before 25 Sep 2026 (GW17) were not kept; your own saved season can in
 
 **Your lineups against the plan at lock** is a separate comparison with the exact plans saved before each lock. It shows
 their expected score, their score from saved games, and your saved score in the same competition. It uses the saved
-captain, card bonuses and substitution rules; a double week uses the player's best score. Missing results or older plans
-without saved rules stay pending. Rewards for these frozen plans remain unknown without that week's final cut-offs.
+captain, card bonuses and substitution rules; a double week uses the player's best score. Missing results say **Pending results**;
+older plans without scoring rules say **Rules not saved**. **No entry** and **Not saved** distinguish an empty competition from
+a week Sofix has not archived. The heading shows how many entered lineups and GWs are saved. Live Sorare reads are labelled
+**not archived in Sofix yet**; final reads are saved after the GW settles. Rewards need that week's final cut-offs.
 
 On **Cards**, each card shows the season rewards of the saved lineups it was in. These are whole-lineup rewards, not
 individual earnings: do not add them across cards. No saved entry and temporarily unavailable storage are labelled separately.
@@ -527,13 +529,14 @@ elsewhere are read once a day by their own job (**League history** in GitHub's A
 hand there), so each player has his latest game by the morning refresh. Control shows its last run under "Last refreshes"
 ("Every player's past games: 618 of 618 read …"), with **Read now** to start it whenever you want. A run that is cut off keeps what it read and the next one carries on. Until a
 player's games have been read, his numbers rest on those sources and the usual priors. A dash
-means he has no game in the gameweek. Games already read stay saved when a source fails or a player leaves your collection.
+means no forecast is saved for the selected GW. Players and individual player links preserve that GW, including its frozen
+forecasts after the optimizer moves on. Games already read stay saved when a source fails or a player leaves your collection.
 Later reads add new games and corrections. Without a source's start chance, a red card or fifth LaLiga yellow rules him out
 of his next LaLiga game; a second game in that week is still available.
 The refresh also saves each source's start chance and score before the week locks, including FF's predicted starters.
 Those readings freeze at lock; a missing source leaves its last saved reading in place.
 
-**One player's page** (since 4 Oct, `/players/<name>`; click a name in the results). It leads with his game this week: the xScore if he starts and the chance he
+**One player's page** (since 4 Oct, `/players/<name>`; click a name in the results). It leads with his selected GW's game: the xScore if he starts (or if he plays when no starting score was saved) and the chance he
 starts, large (for any LaLiga player), and the picture of the game (the same bars as the panel on Sorare, and "Lands between 41 and 80, 8 times in 10"). Below, the **stat sheet** is one table with a
 picker, **Next game** (when his game is priced), **Last 10** or **Saved starts**: what he does in a start (saves, passes, tackles, chances created...) with the points Sorare gives for each,
 and the total. "Next game" is his saved-start average moved by the game: more saves against a stronger attack, more chances against a weaker defence (never more than 60% off an average

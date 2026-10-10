@@ -284,7 +284,7 @@ export function overlayNumbers(
   }
   const outlook = grid ? sideOutlook(grid) : null;
   // The numbers of a week kept apart are as they stood when it finished, and its plan was a replay, not what you entered.
-  const madeAt = plan === kept ? plan.gameweek.end : sorare.generatedAt;
+  const madeAt = plan.builtAt ?? (plan === kept ? plan.gameweek.end : sorare.generatedAt);
 
   const owners = new Map((sorare.collection ?? []).map((card) => [card.slug, card.player]));
   const playing = new Map<string, PlayingPlayer>();

@@ -4,7 +4,7 @@ import PlayerView from "../../../components/players/PlayerView";
 import SiteNav from "../../../components/SiteNav";
 import { loadGrid } from "../../../lib/api";
 import type { GameweekPlan } from "../../../lib/play";
-import { loadProjectedWeek, loadSorare } from "../../../lib/playData";
+import { loadPlayerForecasts, loadProjectedWeek, loadSorare } from "../../../lib/playData";
 import { identityOf, nextGameIn, planPlayer, type NextGame } from "../../../lib/playerPage";
 import { strips } from "../../../lib/playerSheet";
 import { loadPlayerGames, loadPlayerSheets } from "../../../lib/playerGames";
@@ -32,11 +32,12 @@ export default async function PlayerPage({ params, searchParams }: { params: Par
   const single = (key: string) => (typeof query[key] === "string" ? (query[key] as string) : undefined);
   const [sheets, history, data, { grid, meta }, system] = await Promise.all([loadPlayerSheets(), loadPlayerGames(slug), loadSorare(), loadGrid(), loadSystem()]);
   const sheet = sheets.players[slug] ?? null;
-  const planned = data ? planPlayer(data, slug) : null;
-  const market = data?.market?.find((p) => p.slug === slug) ?? null;
+  const week = weekContext(grid, data, new Date(), { w: single("w"), gw: single("gw") });
+  const forecasts = data && week.current?.gw ? await loadPlayerForecasts(data, week.current.gw) : null;
+  const planned = forecasts?.plan?.playing.players.find(p => p.player === slug) ?? (data ? planPlayer(data, slug, week.current?.gw ?? data.nextId) : null);
+  const market = (forecasts?.market ?? data?.market)?.find((p) => p.slug === slug) ?? null;
   const owned = data?.collection?.find(p => p.player === slug) ?? null;
   if (!sheet && !planned && !market && !owned && !history?.games.length && !history?.absences.length) notFound();
-  const week = weekContext(grid, data, new Date(), { w: single("w"), gw: single("gw") });
 
   // His next games: the weeks the job planned that are not played, then the early plans of the rounds Sorare has not opened, up to five.
   const upcoming: GameweekPlan[] = (data?.weeks ?? []).filter((w) => !w.played && Number(w.gameweek.id) >= Number(data?.nextId));

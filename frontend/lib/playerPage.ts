@@ -7,9 +7,10 @@ export type Identity = { name: string; pos: Position | null; club: string | null
 /** "david-soria-solis" -> "David Soria Solis": only for a player nothing else names (accents are lost). */
 export const nameFromSlug = (slug: string): string => slug.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 
-/** The player in the plan being made, in any gameweek the job planned: the first one that has him with a game. */
-export function planPlayer(data: Sorare, slug: string): PlayingPlayer | null {
+/** The player's forecast in the requested GW; legacy callers may search the published weeks in order. */
+export function planPlayer(data: Sorare, slug: string, weekId?: string): PlayingPlayer | null {
   for (const week of data.weeks) {
+    if (weekId !== undefined && week.gameweek.id !== weekId) continue;
     const found = week.playing.players.find((p) => p.player === slug);
     if (found && found.games.length) return found;
   }

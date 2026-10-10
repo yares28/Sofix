@@ -39,6 +39,7 @@ def _score(
     }
     starters, subs = raw.get("starters") or [], raw.get("subs") or []
     if not starters or any(key not in raw for key in ("captainBonus", "clubBonus", "averageBonus", "minInSeason")):
+        result["reason"] = "incomplete-plan"
         return result
     cards = []
     plays, scores = [], []
@@ -47,9 +48,11 @@ def _score(
             any(key not in card for key in ("slug", "player", "pos", "slot", "inSeason", "average", "mult", "club"))
             or card["pos"] not in POSITIONS
         ):
+            result["reason"] = "incomplete-plan"
             return result
         ids = games.get(card["player"])
         if not ids:
+            result["reason"] = "incomplete-plan"
             return result
         rows = [actuals.get((card["player"], gid)) for gid in ids]
         if any(
@@ -83,6 +86,7 @@ def _score(
         or any(card["slot"] not in (*POSITIONS, "EXT") for card in starters)
         or any(card["slot"] not in ("GK", "OUT") for card in subs)
     ):
+        result["reason"] = "incomplete-plan"
         return result
     comp = _KeptCompetition(
         key=raw.get("key", ""),

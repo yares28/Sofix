@@ -54,6 +54,9 @@ export default function RewardsAudit({ rewards, floor, season, saved = [], froze
   const keptExpected = kept.reduce((sum, week) => sum + week.expected.essence, 0);
   const keptYours = kept.reduce((sum, week) => sum + (won[week.slug as string]?.essence ?? 0), 0);
   const yourShare = wonShare(keptYours, keptExpected);
+  const savedCount = weeks.reduce((total, week) => total + week.lineups.filter(line => !line.draft).length, 0);
+  const playedWeeks = weeks.filter(week => week.lineups.some(line => !line.draft)).length;
+  const comparisons = frozen.filter(week => week.plans.some(plan => plan.lineups.length));
   const issue = reading.state === "stopped" ? (reading.answer.state === "outdated" ? { title: "Reload the Sofix extension", says: "Chrome is running an older version." } : cannot(reading.answer.state)) : null;
 
   return (
@@ -147,16 +150,17 @@ export default function RewardsAudit({ rewards, floor, season, saved = [], froze
 
       <section className="au-w" aria-label="Your lineups against the plan at lock">
         <h2>Your lineups against the plan at lock</h2>
-        <p className="au-sub">Each frozen plan uses its saved cards, captain, bonuses and substitutions, scored from saved games. A double week uses the player&apos;s best score. Unknown results stay pending.</p>
-        <p className="au-sub">Rewards for the frozen plan are unknown without that week&apos;s final cut-offs; an older week&apos;s paying score is not a result.</p>
-        {frozen.length ? frozen.map((week) => <details key={week.slug} open>
+        <p className="au-sub">{savedCount} entered lineup{savedCount === 1 ? "" : "s"} saved across {playedWeeks} GW{playedWeeks === 1 ? "" : "s"}. Plans are scored with their saved rules; rewards need the same GW&apos;s final cut-offs.</p>
+        {comparisons.length ? comparisons.map((week) => <details key={week.slug} open>
           <summary>GW{week.number} · plan kept before lock</summary>
           {week.plans.map((plan) => <div className="au-record" key={plan.rank}><table>
             <caption>GW{week.number} · Plan {plan.rank}</caption>
             <thead><tr><th scope="col">Competition</th><th scope="col">Expected</th><th scope="col">Plan scored</th><th scope="col">You scored</th></tr></thead>
             <tbody>{plan.lineups.map((line, i) => {
-              const yours = line.board ? weeks.find((saved) => saved.slug === week.slug)?.lineups.filter((lineup) => lineup.board === line.board).flatMap((lineup) => lineup.result ? [lineup.result.score.toFixed(1)] : []) : [];
-              return <tr key={`${line.board}:${i}`}><th scope="row">{line.competition}</th><td>{line.expected?.toFixed(1) ?? "-"}</td><td>{line.score === null ? "Pending" : line.score.toFixed(1)}</td><td>{yours?.length ? yours.join(" / ") : "Not saved"}</td></tr>;
+              const entries = line.board ? weeks.find((saved) => saved.slug === week.slug)?.lineups.filter((lineup) => !lineup.draft && lineup.board === line.board) ?? [] : [];
+              const yours = entries.flatMap(lineup => lineup.result ? [lineup.result.score.toFixed(1)] : []);
+              const saved = weeks.some(saved => saved.slug === week.slug);
+              return <tr key={`${line.board}:${i}`}><th scope="row">{line.competition}</th><td>{line.expected?.toFixed(1) ?? "-"}</td><td>{line.reason === "incomplete-plan" ? "Rules not saved" : line.score === null ? "Pending results" : line.score.toFixed(1)}</td><td>{yours.length ? yours.join(" / ") : entries.length ? "Pending results" : saved ? "No entry" : "Not saved"}</td></tr>;
             })}</tbody>
           </table></div>)}
         </details>) : <p className="au-sub">No finished plan at lock has been scored yet.</p>}

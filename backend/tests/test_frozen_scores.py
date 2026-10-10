@@ -137,3 +137,13 @@ def test_waits_a_day_and_does_not_guess_missing_frozen_rules(db):
     del value["plans"][0]["lineups"][0]["starters"][0]["mult"]
     put(db, "sorare_plan:gw", value, NOW)
     assert frozen_scores.read(db, NOW)[0]["plans"][0]["lineups"][0]["score"] is None
+
+
+def test_incomplete_old_plan_is_unscorable_not_a_result_still_pending(db):
+    keep(db)
+    value = deepcopy(frozen())
+    del value["plans"][0]["lineups"][0]["clubBonus"]
+    put(db, "sorare_plan:gw", value, NOW)
+    line = frozen_scores.read(db, NOW)[0]["plans"][0]["lineups"][0]
+    assert line["score"] is None
+    assert line["reason"] == "incomplete-plan"

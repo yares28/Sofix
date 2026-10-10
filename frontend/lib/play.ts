@@ -322,6 +322,8 @@ export type PlayingPlayer = {
 
 export type GameweekPlan = {
   gameweek: { id: string; slug: string; number: number; name: string; start: string; end: string; lock: string };
+  /** Pre-lock forecast time on a frozen plan; absent on the current optimizer payload. */
+  builtAt?: string;
   state: "ready" | "waiting" | "none";
   played: boolean;
   projectionsAt: string | null;

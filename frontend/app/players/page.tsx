@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import PlayersView from "../../components/cards/PlayersView";
 import SiteNav from "../../components/SiteNav";
 import { loadGrid } from "../../lib/api";
-import { loadSorare } from "../../lib/playData";
+import { loadPlayerForecasts, loadSorare } from "../../lib/playData";
 import { loadSystem } from "../../lib/system";
 import { weekContext } from "../../lib/weeks";
 
@@ -22,6 +22,7 @@ export default async function Players({ searchParams }: { searchParams: SearchPa
   };
   const [data, { grid, meta }, system] = await Promise.all([loadSorare(), loadGrid(), loadSystem()]);
   const week = weekContext(grid, data, new Date(), { w: single("w"), gw: single("gw") });
+  const forecasts = data && week.current?.gw ? await loadPlayerForecasts(data, week.current.gw) : null;
   const ready = data && (data.market?.length ?? 0) > 0;
 
   return (
@@ -29,7 +30,7 @@ export default async function Players({ searchParams }: { searchParams: SearchPa
       <SiteNav meta={meta} system={system} week={week} />
       <main className="s5-main">
         {ready ? (
-          <PlayersView data={data} now={new Date().toISOString()} />
+          <PlayersView data={forecasts ? { ...data, market: forecasts.market } : data} now={new Date().toISOString()} weekId={week.current?.id} forecastWeek={week.current?.gw ?? undefined} />
         ) : (
           <section className="s5-empty" role="status">
             <h1>Player search</h1>

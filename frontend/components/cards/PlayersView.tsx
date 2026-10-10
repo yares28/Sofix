@@ -24,7 +24,7 @@ import useCountUp from "./useCountUp";
 const LIMIT = 30;
 
 /** Player search: every LaLiga player with his start chance and xScore this week, led by who would actually improve the squad. */
-export default function PlayersView({ data, now }: { data: Sorare; now: string }) {
+export default function PlayersView({ data, now, weekId, forecastWeek }: { data: Sorare; now: string; weekId?: string; forecastWeek?: string }) {
   const market = useMemo(() => data.market ?? [], [data.market]);
   const collection = useMemo(() => data.collection ?? [], [data.collection]);
   const [query, setQuery] = useState("");
@@ -41,7 +41,7 @@ export default function PlayersView({ data, now }: { data: Sorare; now: string }
   );
   const shownImproving = results.filter((player) => verdict(player, bar, owned).kind === "up").length;
   const heroValue = useCountUp(upgrades);
-  const dash = projectionNote(nextWeek(data).projectionsAt, new Date(now));
+  const dash = forecastWeek && forecastWeek !== data.nextId ? "A dash: no Sorare projection saved for this GW." : projectionNote(nextWeek(data).projectionsAt, new Date(now));
   const shownDash = results.slice(0, LIMIT).some((player) => player.projection === null);
 
   return (
@@ -107,7 +107,7 @@ export default function PlayersView({ data, now }: { data: Sorare; now: string }
         ) : (
           <>
             {results.slice(0, LIMIT).map((player, index) => (
-              <ResultCard key={player.slug} player={player} index={index} bar={bar} owned={owned} dash={dash} value={order === "value"} />
+              <ResultCard key={player.slug} player={player} index={index} bar={bar} owned={owned} dash={dash} value={order === "value"} weekId={weekId} />
             ))}
             {results.length > LIMIT ? (
               <p className="s5-more">
@@ -128,7 +128,9 @@ function ResultCard({
   owned,
   dash,
   value,
+  weekId,
 }: {
+  weekId?: string;
   value: boolean;
   player: MarketPlayer;
   index: number;
@@ -149,7 +151,7 @@ function ResultCard({
       </span>
       <span className="who">
         <b>
-          <Link href={`/players/${player.slug}`} className="s5-who-link">
+          <Link href={`/players/${player.slug}${weekId ? `?w=${encodeURIComponent(weekId)}` : ""}`} className="s5-who-link">
             {player.name}
           </Link>
         </b>
@@ -166,7 +168,7 @@ function ResultCard({
           <b className="sc-chip" style={{ background: scoreColour(player.average).fill, color: scoreColour(player.average).ink }}>{Math.round(player.average)}</b>
           <span>Last 10 avg</span>
         </span>
-        <span className="s5-stat" title={start ? start.title : player.x === undefined ? "No game this gameweek" : undefined}>
+        <span className="s5-stat" title={start ? start.title : player.x === undefined ? "No forecast saved for this GW" : undefined}>
           <b>
             {start ? (
               <>
@@ -180,7 +182,7 @@ function ResultCard({
           </b>
           <span>{start ? "Starts" : "Plays"}</span>
         </span>
-        <span className="s5-stat" title={player.x === undefined ? "No game this gameweek" : `${Math.round(player.mu ?? 0)} if he plays`}>
+        <span className="s5-stat" title={player.x === undefined ? "No forecast saved for this GW" : `${Math.round(player.mu ?? 0)} if he plays`}>
           <b className={player.x === undefined ? undefined : "sc-chip"} style={player.x === undefined ? undefined : { background: scoreColour(player.x).fill, color: scoreColour(player.x).ink }}>
             {player.x === undefined ? "—" : Math.round(player.x)}
           </b>

@@ -55,6 +55,7 @@ export type RewardWeek = { gameweek: number; slug: string | null; lineups: numbe
 export type Rewards = { weeks: RewardWeek[]; lineups: number; expected: RewardSide; won: RewardSide };
 export type FrozenWeek = { slug: string; number: number; end: string; builtAt: string | null; plans: { rank: number; lineups: {
   competition: string; board: string | null; expected: number | null; score: number | null;
+  reason?: "incomplete-plan";
   cameIn: { sub: string; for: string }[]; bonusLost: boolean;
 }[] }[] };
 

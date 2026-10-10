@@ -447,8 +447,8 @@ const revived = new Set();
 
 /** Content scripts do not appear in a tab that was already open. Put them there, or reload the tab once so they do. */
 async function ensureBridge(tabId) {
-  const existing = await askTab(tabId, { type: "sofix-ping-6" }, 500);
-  if (existing?.ok && existing.version === 6) return true;
+  const existing = await askTab(tabId, { type: "sofix-ping-7" }, 500);
+  if (existing?.ok && existing.version === 7) return true;
   try {
     await chrome.scripting.executeScript({ target: { tabId }, files: ["core.js", "bridge.js"], world: "MAIN" });
     await chrome.scripting.executeScript({ target: { tabId }, files: ["core.js", "content.js", "overlay.js", "drawer.js"] });
@@ -475,14 +475,14 @@ async function ensureBridge(tabId) {
       chrome.tabs.onUpdated.addListener(onUpdated);
     });
     for (let i = 0; i < 8; i++) {
-      const answer = await askTab(tabId, { type: "sofix-ping-6" }, 400);
-      if (answer?.ok && answer.version === 6) return true;
+      const answer = await askTab(tabId, { type: "sofix-ping-7" }, 400);
+      if (answer?.ok && answer.version === 7) return true;
       await new Promise((resolve) => setTimeout(resolve, 300));
     }
     return false;
   }
-  const answer = await askTab(tabId, { type: "sofix-ping-6" }, 800);
-  return Boolean(answer?.ok && answer.version === 6);
+  const answer = await askTab(tabId, { type: "sofix-ping-7" }, 800);
+  return Boolean(answer?.ok && answer.version === 7);
 }
 
 async function sorareTabs() {
@@ -528,8 +528,35 @@ async function throughSorare(operation, variables) {
   const [tab] = await sorareTabs();
   if (!tab) return { state: "no-tab" };
   if (!(await ensureBridge(tab.id))) return { state: "no-bridge" };
-  const answer = await askTab(tab.id, { type: "sofix-ask-6", operation, variables }, 20000);
+  const answer = await askTab(tab.id, { type: "sofix-ask-7", operation, variables }, 20000);
   return answer ?? { state: "error" };
+}
+
+/** Native odds may have been read in another open tab. Merge only recent readings for this exact game. */
+async function lineupChances(game) {
+  const tabs = await sorareTabs();
+  if (!tabs.length) return { state: "no-tab" };
+  const answers = await Promise.all(tabs.slice(0, 8).map(async (tab) => {
+    if (!(await ensureBridge(tab.id))) return null;
+    return askTab(tab.id, { type: "sofix-ask-7", operation: "SofixLineupChances", variables: { id: game } }, 2500);
+  }));
+  const players = new Map();
+  const now = Date.now();
+  for (const answer of answers) {
+    const match = answer?.data?.anyGame;
+    if (answer?.state !== "ok" || answer.native !== true || match?.id !== game || !Array.isArray(match.playerGameScores)) continue;
+    for (const row of match.playerGameScores.slice(0, 500)) {
+      const slug = row?.anyPlayer?.slug;
+      const at = row?.observedAt;
+      const odds = row?.anyPlayerGameStats?.footballPlayingStatusOdds;
+      const n = odds?.starterOddsBasisPoints;
+      if (typeof slug !== "string" || !/^[a-z0-9-]{1,160}$/.test(slug) || !Number.isFinite(at) || at > now || now - at >= 15 * 60000) continue;
+      if (odds !== null && !(Number.isInteger(n) && n >= 0 && n <= 10000)) continue;
+      if (!players.has(slug) || players.get(slug).observedAt < at) players.set(slug, row);
+    }
+  }
+  return players.size ? { state: "ok", native: true, data: { anyGame: { id: game, playerGameScores: [...players.values()] } } }
+    : { state: answers.some((answer) => answer?.state === "unseen" || answer?.native === true) ? "unseen" : "no-bridge" };
 }
 
 /** Production is APP_URL. Local dev is this machine, on whatever port Next bound. */
@@ -563,7 +590,7 @@ chrome.runtime.onMessageExternal.addListener((message, sender, reply) => {
     return true;
   }
   if (message?.type === "lineup-chances" && typeof message.game === "string" && /^Game:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(message.game)) {
-    throughSorare("SofixLineupChances", { id: message.game }).then((answer) => reply({ ok: true, ...answer })).catch(() => reply({ ok: true, state: "error" }));
+    lineupChances(message.game).then((answer) => reply({ ok: true, ...answer })).catch(() => reply({ ok: true, state: "error" }));
     return true;
   }
   if (message?.type === "sorare" && Object.hasOwn(STEPS, message.step)) {

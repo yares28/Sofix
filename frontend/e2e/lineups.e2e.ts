@@ -23,7 +23,7 @@ test("reads Sorare's starting chances for the displayed game through the extensi
   await request.post(`${MOCK}/__test/my-weeks`, { data: { chanceRecord: { players: { [player.yours]: { games: [{ id, kickoff: match.kickoff, ffMatch: { id: match.id }, ffPlayer: player.id, sources: { sofix: 0.61 } }] } } } } });
   await page.addInitScript(({ id, slug }) => {
     Object.defineProperty(window, "chrome", { configurable: true, value: { runtime: { sendMessage(_extension: string, message: { type: string; game: string }, reply: (answer: unknown) => void) {
-      if (message.type === "lineup-chances" && message.game === id) reply({ ok: true, state: "ok", data: { anyGame: { id, playerGameScores: [{ anyPlayer: { slug }, anyPlayerGameStats: { footballPlayingStatusOdds: { starterOddsBasisPoints: 8300 } } }] } } });
+      if (message.type === "lineup-chances" && message.game === id) reply({ ok: true, state: "ok", native: true, data: { anyGame: { id, playerGameScores: [{ anyPlayer: { slug }, anyPlayerGameStats: { footballPlayingStatusOdds: { starterOddsBasisPoints: 8300 } } }] } } });
       else reply(null);
     } } } });
   }, { id, slug: player.yours });
@@ -50,12 +50,12 @@ test("reads each selected match once and explains empty, unmatched and partial o
       const g = games.find(g => g.id === message.game)!;
       const retry = calls.filter(id => id === g.id).length;
       const slug = retry === 2 ? "unlinked-player" : g.slug;
-      reply({ ok: true, state: "ok", incomplete: retry === 3, data: { anyGame: { id: g.id, playerGameScores: [{ anyPlayer: { slug }, anyPlayerGameStats: { footballPlayingStatusOdds: retry === 1 ? null : { starterOddsBasisPoints: 8100 } } }] } } });
+      reply({ ok: true, state: "ok", native: true, incomplete: retry === 3, data: { anyGame: { id: g.id, playerGameScores: [{ anyPlayer: { slug }, anyPlayerGameStats: { footballPlayingStatusOdds: retry === 1 ? null : { starterOddsBasisPoints: 8100 } } }] } } });
     } } } });
   }, { games });
   await page.goto(`/lineups?m=${games[0]!.match}`);
   await page.getByRole("radio", { name: "Sorare", exact: true }).check();
-  await expect(page.getByRole("status").filter({ hasText: "Sorare returned no starting odds for 1 player." })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Sorare's page returned no starting chances for this match." })).toBeVisible();
   await page.getByRole("navigation", { name: /^Matches of/ }).getByRole("link").nth(1).click();
   await expect.poll(() => page.evaluate(() => (window as unknown as { chanceReads: string[] }).chanceReads.length)).toBe(2);
   await page.getByRole("button", { name: "Read from Sorare" }).click();
@@ -64,7 +64,7 @@ test("reads each selected match once and explains empty, unmatched and partial o
   await expect(page.getByText("Sorare returned incomplete starting odds. Available values are shown.")).toBeVisible();
   await expect(page.locator(".lu-pct").filter({ hasText: "81%" })).toBeVisible();
   await page.getByRole("navigation", { name: /^Matches of/ }).getByRole("link").first().click();
-  await expect(page.getByText("Sorare returned no starting odds for 1 player.")).toBeVisible();
+  await expect(page.getByText("Sorare's page returned no starting chances for this match.")).toBeVisible();
   expect(await page.evaluate(() => (window as unknown as { chanceReads: string[] }).chanceReads.length)).toBe(4);
 });
 
@@ -73,6 +73,28 @@ test("explains when the selected match has no Sorare identity", async ({ page })
   await page.getByRole("radio", { name: "Sorare", exact: true }).check();
   await expect(page.getByText("This match is not linked to Sorare yet.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Read from Sorare" })).toHaveCount(0);
+});
+
+test("an unseen native match links to Sorare and reads its percentages when the owner returns", async ({ page, request }) => {
+  const data = (await (await request.get(`${MOCK}/api/lineups`)).json()).data as LineupsData;
+  const match = data.matches.find(m => m.id === 22502)!;
+  const player = match.home.rows.flatMap(r => r.players).find(p => p.yours)!;
+  const id = "Game:00000000-0000-0000-0000-000000000001";
+  await request.post(`${MOCK}/__test/my-weeks`, { data: { chanceRecord: { players: { [player.yours!]: { games: [{ id, kickoff: match.kickoff, ffMatch: { id: match.id }, ffPlayer: player.id }] } } } } });
+  await page.addInitScript(({ id, slug }) => {
+    let reads = 0;
+    Object.defineProperty(window, "chrome", { configurable: true, value: { runtime: { sendMessage(_extension: string, message: { type: string }, reply: (answer: unknown) => void) {
+      if (message.type !== "lineup-chances") return reply(null);
+      reply(++reads === 1 ? { ok: true, state: "unseen" } : { ok: true, state: "ok", native: true, data: { anyGame: { id, playerGameScores: [{ anyPlayer: { slug }, anyPlayerGameStats: { footballPlayingStatusOdds: { starterOddsBasisPoints: 8000 } } }] } } });
+    } } } });
+  }, { id, slug: player.yours! });
+  await page.goto("/lineups?m=22502");
+  await page.getByRole("radio", { name: "Sorare", exact: true }).check();
+  await expect(page.getByText("Open this match on Sorare to load its starting chances.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open match on Sorare" })).toHaveAttribute("href", `https://sorare.com/football/players/${player.yours}?game=${encodeURIComponent(id)}`);
+  await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+  await expect(page.getByRole("listitem", { name: /^Mikel Oyarzabal,/ }).locator(".lu-pct")).toHaveText("80%");
+  await expect(page.getByText("Open this match on Sorare to load its starting chances.")).toHaveCount(0);
 });
 
 test("the round's ten matches sit on one timeline, and the page opens on the next one", async ({ page }) => {

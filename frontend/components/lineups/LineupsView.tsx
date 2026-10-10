@@ -67,11 +67,12 @@ const lookOf = (side: LineupSide, clubs: Record<string, ClubLook>) => (side.club
 const READ_MESSAGES = {
   reading: "Reading Sorare chances.",
   ready: "",
+  unseen: "Open this match on Sorare to load its starting chances.",
   "no-players": "Sorare returned no players for this match.",
   unmatched: "Sorare returned odds, but its players could not be matched.",
   incomplete: "Sorare returned incomplete starting odds. Available values are shown.",
   "signed-out": "Sign in to Sorare, then read again.",
-  unavailable: "Open a signed-in Sorare tab with extension 0.3.11 or newer.",
+  unavailable: "Open a Sorare tab with extension 0.3.12 or newer.",
   "rate-limited": "Sorare's request limit was reached. Wait before trying again.",
   error: "Sorare could not return starting odds. Try again.",
 };
@@ -106,17 +107,30 @@ export default function LineupsView({ data, chances, sorareGames, facts, section
     inFlight.current.add(match);
     setReads((previous) => ({ ...previous, [match]: { state: "reading", checked: 0 } }));
     const found = sorareChanceRead(await askExtension({ type: "lineup-chances", game: link.id }, 25_000), link);
-    if (Object.keys(found.values).length) setLive((previous) => ({ ...previous, [match]: { ...previous[match], ...found.values } }));
+    if (["ready", "empty", "unseen"].includes(found.state)) setLive((previous) => ({ ...previous, [match]: found.values }));
+    else if (Object.keys(found.values).length) setLive((previous) => ({ ...previous, [match]: { ...previous[match], ...found.values } }));
     setReads((previous) => ({ ...previous, [match]: found }));
     inFlight.current.delete(match);
   }, [selected.id, link]);
   useEffect(() => {
     if (source === "sorare" && !attempted.current.has(selected.id)) void readSorare();
   }, [source, selected.id, readSorare]);
+  useEffect(() => {
+    if (source !== "sorare") return;
+    const returned = () => { if (document.visibilityState === "visible") void readSorare(); };
+    window.addEventListener("focus", returned);
+    document.addEventListener("visibilitychange", returned);
+    return () => {
+      window.removeEventListener("focus", returned);
+      document.removeEventListener("visibilitychange", returned);
+    };
+  }, [source, readSorare]);
   const read = reads[selected.id];
   const sorareNote = !link ? "This match is not linked to Sorare yet." : read?.state === "empty"
-    ? `Sorare returned no starting odds for ${read.checked} ${read.checked === 1 ? "player" : "players"}.`
+    ? "Sorare's page returned no starting chances for this match."
     : READ_MESSAGES[read?.state ?? "reading"];
+  const sorarePlayer = Object.keys(link?.players ?? {}).find(slug => /^[a-z0-9-]{1,160}$/.test(slug));
+  const sorareUrl = sorarePlayer && link ? `https://sorare.com/football/players/${sorarePlayer}?game=${encodeURIComponent(link.id)}` : null;
   const arranged = (side: LineupSide) => (source === "futbolfantasy" ? side : byChance(side, (player) => values[player.id]?.[source] ?? null));
   // On a phone the timeline scrolls sideways: bring the match in view to the middle whenever it changes.
   const scroller = useRef<HTMLDivElement>(null);
@@ -196,8 +210,9 @@ export default function LineupsView({ data, chances, sorareGames, facts, section
             Only my players
           </label>
         </div>
-        {source === "sorare" && sorareNote ? <div className="lu-sorare-read">
-          <p role="status">{sorareNote}</p>
+        {source === "sorare" && (sorareNote || sorareUrl) ? <div className="lu-sorare-read">
+          {sorareNote ? <p role="status">{sorareNote}</p> : null}
+          {sorareUrl ? <a href={sorareUrl} target="_blank" rel="noreferrer">Open match on Sorare</a> : null}
           {link && read && read.state !== "reading" ? <button type="button" onClick={() => void readSorare()}>Read from Sorare</button> : null}
         </div> : null}
         <ChanceContext.Provider value={{ source, values, url: selected.url }}>

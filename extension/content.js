@@ -3,8 +3,8 @@
 // (bridge.js) and passes the answer back. It starts by asking who is signed in; the rest it does on request,
 // when you press a step of Apply in the app, or when the app pings and the background asks again.
 (() => {
-  if (globalThis.__sofixContent === 6) return;
-  globalThis.__sofixContent = 6;
+  if (globalThis.__sofixContent === 7) return;
+  globalThis.__sofixContent = 7;
 
   let asked = 0;
   let tries = 0;
@@ -19,14 +19,14 @@
         resolve({ state: "timeout" });
       }, timeoutMs);
       const onReply = (event) => {
-        if (event.source !== window || !event.data || event.data.source !== "sofix-bridge-6" || event.data.id !== id) return;
+        if (event.source !== window || !event.data || event.data.source !== "sofix-bridge-7" || event.data.id !== id) return;
         clearTimeout(timer);
         window.removeEventListener("message", onReply);
         const { source, id: _id, type, ...answer } = event.data;
         resolve(answer);
       };
       window.addEventListener("message", onReply);
-      window.postMessage({ source: "sofix-content-6", id, ...message }, location.origin);
+      window.postMessage({ source: "sofix-content-7", id, ...message }, location.origin);
     });
   }
 
@@ -49,14 +49,14 @@
 
   // A GraphQL call of the page's own just landed: ask again, in case the first look was too early.
   window.addEventListener("message", (event) => {
-    if (event.source !== window || !event.data || event.data.source !== "sofix-bridge-6" || event.data.type !== "ready" || known) return;
+    if (event.source !== window || !event.data || event.data.source !== "sofix-bridge-7" || event.data.type !== "ready" || known) return;
     tries = 0;
     whoAmI();
   });
 
   // The page's own missions answer, seen by the bridge: pass the daily missions on, with the rarity of the page they are on. Read only.
   window.addEventListener("message", (event) => {
-    if (event.source !== window || !event.data || event.data.source !== "sofix-bridge-6" || event.data.type !== "missions") return;
+    if (event.source !== window || !event.data || event.data.source !== "sofix-bridge-7" || event.data.type !== "missions") return;
     // The rarity the question asked for; the page's address only when the question did not say.
     const rarity = event.data.rarity || globalThis.__sofixCore?.missionsRarity(location.pathname);
     if (!rarity || !Array.isArray(event.data.missions)) return;
@@ -66,8 +66,8 @@
   // From the background worker: a liveness check, a fresh "who is signed in", or a step the app asked for.
   chrome.runtime.onMessage.addListener((message, sender, reply) => {
     if (sender.id !== chrome.runtime.id) return;
-    if (message?.type === "sofix-ping-6") {
-      reply({ ok: true, version: 6 });
+    if (message?.type === "sofix-ping-7") {
+      reply({ ok: true, version: 7 });
       return;
     }
     if (message?.type === "whoami") {
@@ -77,7 +77,7 @@
       });
       return true;
     }
-    if (message?.type !== "sofix-ask-6") return;
+    if (message?.type !== "sofix-ask-7") return;
     bridge({ type: "ask", operation: message.operation, variables: message.variables }, 20000).then(reply);
     return true;
   });

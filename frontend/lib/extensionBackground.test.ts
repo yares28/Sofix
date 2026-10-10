@@ -20,7 +20,7 @@ type Message = Record<string, unknown>;
 type Handler = (message: Message, sender: unknown, reply: (answer: unknown) => void) => unknown;
 type Call = { url: string; init: { headers: Record<string, string>; body: string; credentials?: string; referrerPolicy?: string } };
 
-function load(options: { sorareTab?: boolean; missionData?: unknown; operationData?: (operation: string, variables: Record<string, unknown>) => unknown } = {}) {
+function load(options: { sorareTab?: boolean; tabs?: { id: number; active: boolean }[]; tabResult?: (tab: number) => unknown; missionData?: unknown; operationData?: (operation: string, variables: Record<string, unknown>) => unknown } = {}) {
   const session = new Map<string, unknown>();
   const local = new Map<string, unknown>();
   const created: { url: string }[] = [];
@@ -40,10 +40,10 @@ function load(options: { sorareTab?: boolean; missionData?: unknown; operationDa
   const bridge = (_tab: number, message: Message, answer?: (response: unknown) => void) => {
     tabMessages.push(message);
     if (!options.sorareTab || !answer) return;
-    if (message.type === "sofix-ping-6") answer({ ok: true, version: 6 });
-    else if (message.type === "sofix-ask-6") {
+    if (message.type === "sofix-ping-7") answer({ ok: true, version: 7 });
+    else if (message.type === "sofix-ask-7") {
       asked.push({ operation: String(message.operation), variables: message.variables as Record<string, unknown> });
-      answer({ state: "ok", data: options.operationData?.(String(message.operation), message.variables as Record<string, unknown>) ?? options.missionData ?? null });
+      answer(options.tabResult?.(_tab) ?? { state: "ok", data: options.operationData?.(String(message.operation), message.variables as Record<string, unknown>) ?? options.missionData ?? null });
     } else answer(undefined);
   };
   const chrome = {
@@ -59,7 +59,7 @@ function load(options: { sorareTab?: boolean; missionData?: unknown; operationDa
     storage: { session: store(session), local: store(local) },
     tabs: {
       create: (options: { url: string }) => created.push(options),
-      query: async () => (options.sorareTab ? [{ id: 7, active: true }] : []),
+      query: async () => options.tabs ?? (options.sorareTab ? [{ id: 7, active: true }] : []),
       sendMessage: bridge,
       reload() {},
       onUpdated: nothing,
@@ -112,15 +112,27 @@ describe("mission import completeness", () => {
   it("versions the tab request so an old content listener cannot repeat a draft after extension reload", async () => {
     const w = load({ sorareTab: true });
     await w.sendFrom(APP, { type: "sorare", step: "draft", boardId: "board", appearances: [], name: "Plan" });
-    expect(w.tabMessages.find((m) => m.operation === "SofixSaveDraft")?.type).toBe("sofix-ask-6");
+    expect(w.tabMessages.find((m) => m.operation === "SofixSaveDraft")?.type).toBe("sofix-ask-7");
   });
   it("reads source chances for one validated game through the signed-in tab", async () => {
-    const w = load({ sorareTab: true });
     const game = "Game:00000000-0000-0000-0000-000000000001";
-    expect(await w.sendFrom(APP, { type: "lineup-chances", game })).toMatchObject({ state: "ok" });
+    const w = load({ sorareTab: true, tabResult: () => ({ state: "unseen" }) });
+    expect(await w.sendFrom(APP, { type: "lineup-chances", game })).toMatchObject({ state: "unseen" });
     expect(w.asked).toEqual([{ operation: "SofixLineupChances", variables: { id: game } }]);
     expect(await w.sendFrom(APP, { type: "lineup-chances", game: "query { currentUser { slug } }" })).toBeNull();
     expect(await w.sendFrom("https://sofix.example.evil.test", { type: "lineup-chances", game })).toBeNull();
+  });
+  it("combines native odds across tabs, taking the newest exact-game reading and rejecting expired rows", async () => {
+    const game = "Game:00000000-0000-0000-0000-000000000001";
+    const row = (slug: string, n: number, observedAt = Date.now()) => ({ anyPlayer: { slug }, observedAt, anyPlayerGameStats: { footballPlayingStatusOdds: { starterOddsBasisPoints: n } } });
+    const w = load({ sorareTab: true, tabs: [{ id: 7, active: true }, { id: 8, active: false }, { id: 9, active: false }], tabResult: tab => ({ state: "ok", native: true, data: { anyGame: {
+      id: tab === 9 ? "wrong-game" : game,
+      playerGameScores: tab === 7 ? [row("one", 3000, Date.now() - 1000), row("old", 8000, Date.now() - 16 * 60_000)] : [row("one", 0), row("two", 8000)],
+    } } }) });
+    const answer = await w.sendFrom(APP, { type: "lineup-chances", game }) as { data: { anyGame: { playerGameScores: ReturnType<typeof row>[] } } };
+    expect(answer.data.anyGame.playerGameScores.map(r => [r.anyPlayer.slug, r.anyPlayerGameStats.footballPlayingStatusOdds.starterOddsBasisPoints])).toEqual([["one", 0], ["two", 8000]]);
+    expect(w.asked).toHaveLength(3);
+    expect(w.calls).toHaveLength(0);
   });
   it("discovers games from Sorare and reads all task/game batches plus subsequent card pages", async () => {
     const task = { __typename: "DecisivePlayerPickerTask", id: "task-1", title: "Decisive Picker", mode: "DECISIVE", maxAppearancesCount: 3, rarity: "limited", taskAppearances: [] };

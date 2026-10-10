@@ -1391,7 +1391,7 @@
 
   // The bridge learned more cards from the page's own answers: cards it could not name a moment ago may be known now.
   const onBridge = guard((event) => {
-    if (event.source !== window || !event.data || !["sofix-bridge-4", "sofix-bridge-5", "sofix-bridge-6"].includes(event.data.source) || event.data.type !== "cards") return;
+    if (event.source !== window || !event.data || !["sofix-bridge-4", "sofix-bridge-5", "sofix-bridge-7"].includes(event.data.source) || event.data.type !== "cards") return;
     for (const record of live) {
       if (record.ident === "new") {
         record.nextTry = 0;

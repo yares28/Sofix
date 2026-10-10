@@ -17,10 +17,15 @@ const player = (extra: Partial<ChancePlayer> = {}): ChancePlayer => ({
 const chances = (players: ChancePlayer[]) => lineupChances([match], players)[match.id]?.[owned.id];
 
 describe("Lineups' source percentages", () => {
+  it("asks for the new extension when an older build answers with its empty custom query", () => {
+    const link = { id: "Game:00000000-0000-0000-0000-000000000001", players: { mine: owned.id } };
+    const legacy = { ok: true, state: "ok", native: undefined, data: { anyGame: { id: link.id, playerGameScores: [] } } };
+    expect(sorareChanceRead(legacy, link)).toMatchObject({ state: "unavailable", values: {} });
+  });
   it("keeps valid odds when another player is malformed and distinguishes an empty read from unmatched odds", () => {
     const link = { id: "Game:00000000-0000-0000-0000-000000000001", players: { mine: owned.id } };
     const row = (slug: string, n: number | null) => ({ anyPlayer: { slug }, anyPlayerGameStats: { footballPlayingStatusOdds: { starterOddsBasisPoints: n } } });
-    const answer = (scores: unknown[], extra = {}) => ({ ok: true, state: "ok", data: { anyGame: { id: link.id, playerGameScores: scores } }, ...extra });
+    const answer = (scores: unknown[], extra = {}) => ({ ok: true, state: "ok", native: true, data: { anyGame: { id: link.id, playerGameScores: scores } }, ...extra });
     expect(sorareChanceRead(answer([null, row("mine", 0)]), link)).toMatchObject({ state: "incomplete", values: { [owned.id]: { sorare: 0 } } });
     expect(sorareChanceRead(answer([row("mine", null)]), link)).toMatchObject({ state: "empty", checked: 1 });
     expect(sorareChanceRead(answer([]), link)).toMatchObject({ state: "no-players", checked: 0 });
@@ -28,6 +33,7 @@ describe("Lineups' source percentages", () => {
     expect(sorareChanceRead(answer([row("mine", 9000)], { incomplete: true }), link)).toMatchObject({ state: "incomplete", values: { [owned.id]: { sorare: 0.9 } } });
     expect(sorareChanceRead(answer([row("mine", 10001)]), link)).toMatchObject({ state: "incomplete" });
     expect(sorareChanceRead({ ok: true, state: "signed-out" }, link)).toMatchObject({ state: "signed-out" });
+    expect(sorareChanceRead({ ok: true, state: "unseen" }, link)).toMatchObject({ state: "unseen", values: {} });
     expect(sorareChanceRead({ ok: true, state: "error", status: 429 }, link)).toMatchObject({ state: "rate-limited" });
     expect(sorareChanceRead({ ok: true, state: "rejected" }, link)).toMatchObject({ state: "error" });
     expect(sorareChanceRead(null, link)).toMatchObject({ state: "unavailable" });
@@ -38,7 +44,7 @@ describe("Lineups' source percentages", () => {
     const linked = recordedGames([match], records)[match.id]!;
     expect(linked).toEqual({ id, players: { [owned.yours!]: owned.id } });
     const score = (slug: string, n: number | null) => ({ anyPlayer: { slug }, anyPlayerGameStats: { footballPlayingStatusOdds: n === null ? null : { starterOddsBasisPoints: n } } });
-    const answer = { ok: true, state: "ok", data: { anyGame: { id, playerGameScores: [score(owned.yours!, 0), score("other-player", 9000)] } } };
+    const answer = { ok: true, state: "ok", native: true, data: { anyGame: { id, playerGameScores: [score(owned.yours!, 0), score("other-player", 9000)] } } };
     expect(sorareChanceRead(answer, linked)).toMatchObject({ state: "ready", values: { [owned.id]: { sorare: 0 } } });
     expect(sorareChanceRead({ ...answer, data: { anyGame: { id: "wrong", playerGameScores: [] } } }, linked)).toMatchObject({ state: "error", values: {} });
     expect(sorareChanceRead({ ...answer, data: { anyGame: { id, playerGameScores: [score(owned.yours!, null), score("other-player", 10001)] } } }, linked)).toMatchObject({ state: "incomplete", values: {} });

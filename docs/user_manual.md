@@ -331,11 +331,12 @@ FF says so above the next match.
   yellow counts; read from Sorare by the scheduled refresh, which has the API key), and is a dash until any LaLiga game of his has
   been read. A dash means that source has no
   estimate for this player and match. Sofix also restores the exact match's captured forecast after the planner moves to
-  the next GW. Sorare uses its captured value, or reads the displayed match through your signed-in Sorare tab with
-  extension 0.3.11+. Each selected match is read once; **Read from Sorare** retries a failed or incomplete read.
-  The message distinguishes a signed-out session, an API failure, missing players, unmatched players and a response with no
-  starting odds. An empty response does not prove Sorare has not published percentages. Valid partial values are retained;
-  missing values remain dashes and genuine 0% stays 0%.
+  the next GW. With extension 0.3.12+, Sorare's chance comes from the native responses its own pages receive:
+  its custom GraphQL queries can return null even while its page displays a percentage. The extension combines readings
+  from up to eight open Sorare tabs, by exact player and game, and keeps them in page memory for 15 minutes.
+  **Open match on Sorare** loads a match not yet read; returning to Sofix reads again automatically.
+  **Read from Sorare** also retries manually. Only players Sorare actually returned have a value; it does not fetch a
+  whole GW automatically. Missing values remain dashes and genuine 0% stays 0%.
   A different match's number is never substituted. FF percentages link to its match
   page. **Only my players** dims everyone else on the pitch and in the injury lists. Both choices stay selected when you pick another
   match. Your players on the pitch, among the alternatives and in the injury list link to their card on **My cards**.

@@ -31,17 +31,19 @@ const SorareScoreSchema = z.object({
   anyPlayerGameStats: z.object({ footballPlayingStatusOdds: z.object({ starterOddsBasisPoints: z.number().int().min(0).max(10_000).nullable() }).nullable() }).nullable(),
 });
 export type SorareChanceRead = {
-  state: "ready" | "empty" | "no-players" | "unmatched" | "incomplete" | "signed-out" | "unavailable" | "rate-limited" | "error";
+  state: "ready" | "empty" | "unseen" | "no-players" | "unmatched" | "incomplete" | "signed-out" | "unavailable" | "rate-limited" | "error";
   values: MatchChances;
   checked: number;
 };
 /** A successful game read is not proof its private odds were available. Never label errors or failed joins as unpublished. */
 export function sorareChanceRead(answer: unknown, link: SorareGameLink): SorareChanceRead {
-  const envelope = z.object({ ok: z.literal(true), state: z.string(), status: z.number().optional() }).safeParse(answer);
+  const envelope = z.object({ ok: z.literal(true), state: z.string(), status: z.number().optional(), native: z.boolean().optional() }).safeParse(answer);
   const empty = { values: {}, checked: 0 };
   if (!envelope.success) return { state: "unavailable", ...empty };
+  if (envelope.data.state === "ok" && envelope.data.native !== true) return { state: "unavailable", ...empty };
   if (envelope.data.status === 429) return { state: "rate-limited", ...empty };
   if (envelope.data.state === "signed-out") return { state: "signed-out", ...empty };
+  if (envelope.data.state === "unseen") return { state: "unseen", ...empty };
   if (["no-tab", "no-bridge", "timeout"].includes(envelope.data.state)) return { state: "unavailable", ...empty };
   const result = SorareChancesSchema.safeParse(answer);
   if (!result.success || result.data.data.anyGame.id !== link.id) return { state: "error", ...empty };

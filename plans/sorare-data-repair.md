@@ -2,6 +2,9 @@
 
 Read this with AGENTS.md when resuming. Release 0.3.12 did not meet the owner's requirement.
 
+The subsequent Missions repair is documented in [mission-comparison-repair.md](mission-comparison-repair.md), including
+the confirmed owner choices, implementation, local verification and remaining source-history limits.
+
 ## Required outcomes
 
 1. **Parked by the owner on 10 October:** selecting Sorare in Sofix loads the selected GW's available starting percentages automatically, without visiting

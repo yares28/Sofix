@@ -419,7 +419,20 @@ def run(
         db,
         failed,
         "mission inventory",
-        lambda: mission_pool.build(snapshot, now, ff=lineups.starts if lineups else None, scores=scores_of),
+        lambda: mission_pool.build(
+            snapshot,
+            now,
+            ff=lineups.starts if lineups else None,
+            scores=scores_of,
+            history={
+                slug: entry["games"]
+                for slug, entry in player_games.load(
+                    db, players={row["player"]["slug"] for row in snapshot["cards"]}
+                ).items()
+            }
+            if not dry_run
+            else snapshot["history"],
+        ),
         None,
     )
     if pool is not None:

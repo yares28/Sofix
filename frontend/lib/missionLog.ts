@@ -1,12 +1,13 @@
 import { database } from "./db";
 import { cache } from "./cache";
-import { isToday, missionDay, MISSIONS_TAG, plan, playingToday, ruleOf, type MissionPick, type MissionRow, type MissionsModel, type Rule } from "./missions";
+import { isToday, missionCandidates, missionDay, MISSIONS_TAG, plan, ruleOf, type MissionPick, type MissionRow, type MissionsModel, type Rule, type Suggestion, type SuggestionMode } from "./missions";
 import { RARITIES } from "./missionsToday";
 import type { PlayingPlayer, Sorare } from "./play";
 import type { Sheet } from "./playerSheet";
 import { mergeMissionRecord } from "./missionStore";
 import { applyMissionEdits, type MissionEdits } from "./missionEdits";
 import { loadPlayerSheets } from "./playerGames";
+import { missionPlayers } from "./missionInventory";
 
 /**
  * The missions log (plans/roadmap.md 10.7, part 2): what Sofix picked for each daily mission, written down before the games, so the Audit can say how often
@@ -44,6 +45,12 @@ export type LogCand = {
   card?: string;
   captured?: string;
   late?: boolean;
+  evidence?: Record<string, Suggestion>;
+  sheet?: Sheet;
+  targets?: Record<string, number>;
+  historyOnly?: string[];
+  match?: PlayingPlayer["games"][number];
+  eligible?: string[];
 };
 export type LogMission = {
   key: string; // source task instance ID, or a legacy title / assumed baseline ID
@@ -60,6 +67,7 @@ export type LogMission = {
   editRevision?: number;
   source?: MissionRow;
   sofixPicks?: MissionPick[];
+  bestPicks?: MissionPick[];
 };
 export type LogRarity = { loaded: boolean; missions: LogMission[]; cands: LogCand[]; coverage?: "snapshot" | "missing"; captured?: string };
 export type MonthLog = { days: Record<string, Record<string, LogRarity>> };
@@ -81,6 +89,12 @@ export function fillMissionDays(logs: MonthLog[], rarities: string[], now: Date)
 }
 
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+
+function aliasCandidate(c: LogCand, before: string, after: string): LogCand {
+  const alias = <T,>(values: Record<string, T> | undefined) => values?.[before] !== undefined ? { ...values, [after]: values[before] } : values;
+  const list = (keys: string[] | undefined) => keys?.includes(before) ? [...new Set([...keys, after])] : keys;
+  return { ...c, c: alias(c.c)!, evidence: alias(c.evidence), targets: alias(c.targets), eligible: list(c.eligible), historyOnly: list(c.historyOnly), ...(c.r ? { r: { ...c.r, did: alias(c.r.did) } } : {}) };
+}
 
 /** Only an unloaded day assumes a baseline. Verified source lists, including SCORE and empty, stay exact. */
 export function dayMissions(loaded: MissionRow[] | null): MissionRow[] {
@@ -107,25 +121,34 @@ export function nextDay(
   const missions = loadedList ? dayMissions(loadedList) : prev?.loaded ? prev.missions.map(asRow) : dayMissions(null);
   const prior = (m: MissionRow) => prev?.missions.find((old) => old.key === m.id || ((!old.title || old.key === DAILY_PICKER.id) && same(old.title ?? old.key, m.title)));
   const frozen = (prev?.cands ?? []).filter((c) => new Date(c.k) <= now).map((c) => {
-    const keys = Object.fromEntries(missions.flatMap((m) => { const old = prior(m); return old && old.key in c.c ? [[m.id, c.c[old.key]!]] : []; }));
-    const did = c.r?.did ? Object.fromEntries(missions.flatMap((m) => { const old = prior(m); return old && old.key in c.r!.did! ? [[m.id, c.r!.did![old.key]!]] : []; })) : null;
-    return { ...c, c: { ...c.c, ...keys }, ...(did ? { r: { ...c.r, did: { ...c.r?.did, ...did } } } : {}) };
+    for (const m of missions) { const old = prior(m); if (old && old.key !== m.id) c = aliasCandidate(c, old.key, m.id); }
+    return c;
   });
-  const frozenSlugs = new Set(frozen.map((c) => c.s));
-  const frozenPicks = (m: MissionRow) => (prior(m)?.sofix ?? []).filter((s) => frozenSlugs.has(s));
-
-  const open = players.filter((p) => !frozenSlugs.has(p.player ?? ""));
-  const { plans } = plan(missions.map((m) => ({ ...m, made: frozenPicks(m).length, appearances: [] })), rarity, open, sheets, now);
+  const matches = (c: LogCand, p: MissionPick) => c.s === p.player && (!p.card || c.card === p.card) && (!p.game || c.g === p.game);
+  const frozenPicks = (m: MissionRow, mode: SuggestionMode): MissionPick[] => {
+    const old = prior(m);
+    const picks = mode === "best" ? old?.bestPicks ?? [] : old?.sofixPicks?.length ? old.sofixPicks : (old?.sofix ?? []).map((player) => ({ player, game: null, rarity, status: null }));
+    return picks.filter((p) => frozen.some((c) => matches(c, p)));
+  };
+  const reserved = missions.flatMap((m) => frozenPicks(m, "plan"));
+  const frozenByMission = (mode: SuggestionMode) => Object.fromEntries(missions.map((m) => [m.id, frozenPicks(m, mode).map((p) => p.player)]));
+  const allocated = plan(missions.map((m) => ({ ...m, picks: Math.max(0, m.picks - frozenPicks(m, "plan").length) })), rarity,
+    players.filter((p) => !reserved.some((r) => r.card ? r.card === (p as { card?: string }).card : r.player === p.player)), sheets, now, "plan", frozenByMission("plan")).plans;
+  const best = plan(missions.map((m) => ({ ...m, picks: Math.max(0, m.picks - frozenPicks(m, "best").length) })), rarity, players, sheets, now, "best", frozenByMission("best")).plans;
+  const plans = plan(missions, rarity, players, sheets, now).plans;
+  const eligible = missions.map((m) => ({ key: m.id, cards: missionCandidates(m, rarity, players, now, []).filter((c) => c.editable) }));
 
   const fresh: LogCand[] = [];
-  for (const { p, game } of playingToday(players, rarity, now).candidates) {
-    if (frozenSlugs.has(p.player!)) continue;
+  for (const p of players.filter((p) => p.rarity === rarity && p.player)) for (const game of p.games) {
+    const card = (p as { card?: string }).card;
+    if (Date.parse(game.kickoff) <= now.getTime() || (missionDay(new Date(game.kickoff)) !== missionDay(now) && !missions.some((m) => m.eligibleCards?.[game.id ?? ""])) || fresh.some((c) => c.s === p.player && c.card === card && c.g === (game.id ?? null))) continue;
     const c: Record<string, number> = {};
+    const evidence: Record<string, Suggestion> = {};
     for (const one of plans) {
-      const found = one.all.find((s) => s.slug === p.player && (!s.card || s.card === (p as { card?: string }).card));
-      if (found) c[one.mission.id] = Math.round(found.chance * 1000) / 1000;
+      const found = one.all.find((s) => s.slug === p.player && s.card === card && s.game === game.id);
+      if (found) { c[one.mission.id] = found.chance; evidence[one.mission.id] = { ...found, form: undefined, captured: now.toISOString() }; }
     }
-    fresh.push({ s: p.player!, n: p.name, pic: p.pic, pos: p.pos, card: (p as { card?: string }).card, g: game.id ?? null, k: game.kickoff, c, captured: now.toISOString() });
+    fresh.push({ s: p.player!, n: p.name, pic: p.pic, pos: p.pos, card: (p as { card?: string }).card, g: game.id ?? null, k: game.kickoff, c, evidence, match: game, eligible: eligible.filter((m) => m.cards.some((c) => c.p.player === p.player && c.p.card === card && c.game.id === game.id)).map((m) => m.key), historyOnly: Object.entries(evidence).filter(([, p]) => p.historical).map(([key]) => key), targets: Object.fromEntries(missions.flatMap((m) => { const target = m.inventory?.find((x) => x.card === card && x.game.id === game.id)?.target; return target === undefined ? [] : [[m.id, target]]; })), sheet: sheets[p.player!], captured: now.toISOString() });
   }
 
   for (const p of players.filter((p) => p.rarity === rarity && p.player)) for (const game of p.games) {
@@ -146,13 +169,33 @@ export function nextDay(
       rule: ruleOf(m),
       stats: m.stats ?? [],
       picks: m.picks,
-      sofix: [...frozenPicks(m), ...plans[i]!.picks.map((pick) => pick.slug)],
-      sofixPicks: [...(prior(m)?.sofixPicks ?? []).filter((p) => frozenSlugs.has(p.player)), ...plans[i]!.picks.map((p) => ({ player: p.slug, card: p.card, game: p.game ?? null, rarity, status: null }))],
+      sofix: [...frozenPicks(m, "plan").map((p) => p.player), ...allocated[i]!.picks.map((pick) => pick.slug)],
+      sofixPicks: [...frozenPicks(m, "plan"), ...allocated[i]!.picks.map((p) => ({ player: p.slug, card: p.card, game: p.game ?? null, rarity, status: null }))],
+      bestPicks: [...frozenPicks(m, "best"), ...best[i]!.picks.map((p) => ({ player: p.slug, card: p.card, game: p.game ?? null, rarity, status: null }))],
       yours: m.appearances ?? prior(m)?.yours ?? [],
       ...(prior(m)?.override ? { override: prior(m)!.override } : {}),
     })),
     cands: [...frozen, ...fresh],
   };
+}
+
+/** Display the full independent choice, retaining captured picks and evidence once their games lock. No writes or backfilled forecasts. */
+export function restoreMissionBenchmark(missions: MissionRow[], previous: LogRarity | undefined, players: PlayingPlayer[], sheets: Record<string, Sheet | undefined>, rarity: string, now: Date, mode: SuggestionMode = "plan") {
+  const recorded = nextDay(previous, missions, players, sheets, rarity, now);
+  return plan(missions, rarity, players, sheets, now, mode).plans.map((one) => {
+    const stored = recorded.missions.find((m) => m.key === one.mission.id);
+    const selection: MissionPick[] = mode === "best" ? stored?.bestPicks ?? [] : stored?.sofixPicks?.length ? stored.sofixPicks : (stored?.sofix ?? []).map((player) => ({ player, game: null, rarity, status: null }));
+    const picks = selection.flatMap((identity): Suggestion[] => {
+      const slug = identity.player;
+      const c = recorded.cands.find((c) => c.s === slug && (!identity?.card || identity.card === c.card) && (!identity?.game || identity.game === c.g) && one.mission.id in c.c);
+      if (!c || c.late) return [];
+      const evidence = c.evidence?.[one.mission.id];
+      const game = c.match ?? players.flatMap((p) => p.player === slug ? p.games : []).find((g) => g.id === c.g);
+      const frozen = Date.parse(c.k) <= now.getTime();
+      return [{ ...(evidence ?? { slug, card: c.card, game: c.g ?? undefined, name: c.n, pic: c.pic, pos: c.pos as PlayingPlayer["pos"], club: null, team: game?.team, opponent: game?.opponent ?? "Match details not saved", venue: game?.venue, kickoff: c.k, chance: c.c[one.mission.id]!, cards: 1, historical: c.historyOnly?.includes(one.mission.id), target: c.targets?.[one.mission.id] }), form: c.sheet?.form ?? evidence?.form, captured: c.captured, frozen }];
+    });
+    return { ...one, picks };
+  });
 }
 
 /**
@@ -173,7 +216,7 @@ export async function recordMissionPicks(data: Sorare | null, missions: Missions
     if (!players.some((p) => p.rarity === rarity) && !data.collection?.some((p) => p.rarity === rarity)) continue;
     const entry = missions?.[rarity];
     const loaded = entry && isToday(entry.seen_at, now) && (entry.verified || entry.missions.length) ? entry.missions : null;
-    await mergeMissionRecord<MonthLog>(`${DAY_PREFIX}${day}:${rarity}`, (before) => ({ days: { [day]: { [rarity]: { ...nextDay(before?.days[day]?.[rarity] ?? rows[0]?.payload.days[day]?.[rarity], loaded, players, sheets, rarity, now), coverage: pool?.complete ? "snapshot" : "missing" } } } }));
+    await mergeMissionRecord<MonthLog>(`${DAY_PREFIX}${day}:${rarity}`, (before) => ({ days: { [day]: { [rarity]: { ...nextDay(before?.days[day]?.[rarity] ?? rows[0]?.payload.days[day]?.[rarity], loaded, missionPlayers(players, loaded ?? [], rarity), sheets, rarity, now), coverage: pool?.complete ? "snapshot" : "missing" } } } }));
   }
   return true;
 }
@@ -197,11 +240,11 @@ export type HistoryDay = {
   reason?: string;
   corrected?: boolean;
   yourPicks?: "recorded" | "confirmed-empty" | "user-empty" | "unknown";
-  evidence?: "not-recorded" | "pending" | "settled" | "unrated" | "confirmed-empty";
+  evidence?: "not-recorded" | "pending" | "settled" | "unrated" | "confirmed-empty" | "incomplete";
 };
 
 /** The missions log of one rarity, newest day first, from the months given (`names`: who a pick of yours is when Sofix had no candidate on him). */
-export function missionHistory(logs: MonthLog[], rarity: string, names: Map<string, { name: string; pic: string }>, limit = 30): HistoryDay[] {
+export function missionHistory(logs: MonthLog[], rarity: string, names: Map<string, { name: string; pic: string }>, limit = 30, mode: SuggestionMode = "plan"): HistoryDay[] {
   const out: HistoryDay[] = [];
   const combined: MonthLog = { days: {} };
   for (const log of logs) for (const [day, rarities] of Object.entries(log.days ?? {})) combined.days[day] = { ...combined.days[day], ...rarities };
@@ -215,24 +258,33 @@ export function missionHistory(logs: MonthLog[], rarity: string, names: Map<stri
     if (!entry) continue;
     if (!entry.missions.length && entry.loaded) out.push({ day, mission: "No missions — confirmed by Sorare", loaded: true, sofix: [], yours: [], missed: [], score: null, yourPicks: "confirmed-empty", evidence: "confirmed-empty", reason: "Verified empty mission list at the last import." });
     for (const m of entry.missions) {
-      const cands = new Map(entry.cands.filter((c) => m.key in c.c).map((c) => [c.s, c]));
+      const identities = mode === "best" ? m.bestPicks ?? [] : m.sofixPicks ?? [];
+      const selection = mode === "best" ? identities.map((p) => p.player) : m.sofix;
+      const eligible = entry.cands.filter((c) => m.key in c.c || c.eligible?.includes(m.key));
+      const cands = new Map(eligible.map((c) => [c.s, c]));
+      for (const p of identities) {
+        const chosen = eligible.find((c) => c.s === p.player && (!p.card || p.card === c.card) && (!p.game || p.game === c.g));
+        if (chosen) cands.set(p.player, chosen); else cands.delete(p.player);
+      }
       const known = (slug: string) => {
         const c = cands.get(slug);
         return { slug, name: c?.n ?? everyone.get(slug)?.name ?? readable(slug), pic: c?.pic ?? everyone.get(slug)?.pic ?? "" };
       };
       const checked = (slug: string): HistoryCard["state"] => {
         const r = cands.get(slug)?.r;
-        return !r ? "waiting" : r.void ? "void" : r.did?.[m.key] ? "did" : "didnt";
+        return !r ? "waiting" : r.void ? "void" : r.did?.[m.key] === undefined ? "waiting" : r.did[m.key] ? "did" : "didnt";
       };
       const yours = (m.override?.picks ?? m.yours).map((y): HistoryCard => {
         const imported = m.override ? m.yours.find((p) => p.player === y.player && p.game === y.game && (p.card ?? null) === (y.card ?? null)) : y;
         const status = imported?.status;
-        return { ...known(y.player), state: status === "SUCCESS" ? "did" : status === "FAILURE" ? "didnt" : !y.game || cands.get(y.player)?.g !== y.game ? "waiting" : checked(y.player) };
+        const actual = entry.cands.find((c) => c.s === y.player && c.g === y.game && (!y.card || c.card === y.card))?.r;
+        return { ...known(y.player), state: status === "SUCCESS" ? "did" : status === "FAILURE" ? "didnt" : !y.game || !actual ? "waiting" : actual.void ? "void" : actual.did?.[m.key] === undefined ? "waiting" : actual.did[m.key] ? "did" : "didnt" };
       });
-      const sofix = m.sofix.map((s): HistoryCard => ({ ...known(s), state: checked(s) }));
-      const settled = cands.size > 0 && [...cands.values()].every((c) => c.r);
-      const achievers = [...cands.keys()].filter((s) => checked(s) === "did");
-      const forecastRecorded = sofix.length > 0 && entry.coverage !== "missing" && !entry.cands.some((c) => c.late);
+      const sofix = selection.map((s): HistoryCard => ({ ...known(s), state: checked(s) }));
+      const settled = eligible.length > 0 && eligible.every((c) => c.r?.void || c.r?.did?.[m.key] !== undefined);
+      const achievers = [...new Set(eligible.filter((c) => !c.r?.void && c.r?.did?.[m.key]).map((c) => c.s))];
+      const caught = new Set(sofix.filter((c) => c.state === "did").map((c) => c.slug));
+      const forecastRecorded = sofix.length > 0 && selection.every((s) => cands.has(s)) && entry.coverage !== "missing" && m.source?.eligibilityComplete !== false && !entry.cands.some((c) => c.late);
       out.push({
         day,
         mission: m.title ?? m.key,
@@ -241,13 +293,13 @@ export function missionHistory(logs: MonthLog[], rarity: string, names: Map<stri
         candidates: entry.cands,
         corrected: Boolean(m.override),
         yourPicks: yours.length ? "recorded" : m.override ? "user-empty" : m.source?.appearances ? "confirmed-empty" : "unknown",
-        evidence: !forecastRecorded ? "not-recorded" : !cands.size ? "unrated" : settled ? "settled" : "pending",
+        evidence: sofix.length > 0 && m.source?.eligibilityComplete === false ? "incomplete" : !forecastRecorded ? "not-recorded" : !cands.size ? "unrated" : settled ? "settled" : "pending",
         reason: !entry.cands.length ? "No forecast captured before kickoff; eligible cards were not verified." : !sofix.length ? entry.cands.every((c) => c.late) ? "Cards were first seen after kickoff; no pre-kickoff forecast was captured." : m.rule.kind === "unsupported" || m.rule.kind === "score" ? "This target was not rated when the forecast was captured." : "No pre-kickoff picks were recorded from the available evidence." : undefined,
         loaded: entry.loaded,
         sofix,
         yours,
-        missed: settled ? achievers.filter((s) => !m.sofix.includes(s)).map((s) => ({ ...known(s), state: "did" as const })) : [],
-        score: settled && sofix.length && entry.coverage !== "missing" && !entry.cands.some((c) => c.late) ? { got: achievers.filter((s) => m.sofix.includes(s)).length, best: Math.min(m.picks, achievers.length) } : null,
+        missed: settled ? achievers.filter((s) => !caught.has(s)).map((s) => ({ ...known(s), state: "did" as const })) : [],
+        score: settled && forecastRecorded ? { got: caught.size, best: Math.min(m.picks, achievers.length) } : null,
       });
     }
   }
@@ -309,7 +361,7 @@ export async function recordHistoricalMissions(outcomes: Record<string, { missio
         const prior = old.missions.find((m) => m.key === task.id || (!m.title && same(m.key, task.title)) || m.key === DAILY_PICKER.id && same(task.title, DAILY_PICKER.title));
         const next: LogMission = { ...prior, key: task.id, aliases: [...new Set([...(prior && prior.key !== task.id ? [prior.key] : []), ...(prior?.aliases ?? [])])], source: task, title: task.title, description: task.description, mode: task.mode, rule: ruleOf(task), stats: task.stats ?? [], picks: task.picks, sofix: prior?.sofix ?? [], yours: task.appearances ?? prior?.yours ?? [] };
         const missions = [...old.missions.filter((m) => m !== prior), next];
-        const cands = old.cands.map((c) => prior && prior.key !== next.key ? { ...c, c: { ...c.c, ...(prior.key in c.c ? { [next.key]: c.c[prior.key]! } : {}) }, ...(c.r?.did ? { r: { ...c.r, did: { ...c.r.did, ...(prior.key in c.r.did ? { [next.key]: c.r.did[prior.key]! } : {}) } } } : {}) } : c);
+        const cands = old.cands.map((c) => prior && prior.key !== next.key ? aliasCandidate(c, prior.key, next.key) : c);
         old = { ...old, loaded: true, missions, cands };
       }
       return { days: { [day]: { [rarity]: old } } };

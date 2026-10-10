@@ -100,8 +100,15 @@
 .ms-summary b { color: var(--ink); font-size: 26px; font-weight: 650; letter-spacing: -.03em; }
 .ms-summary > span:last-child { justify-content: center; }
 .ms-summary > span:last-child b { font-size: 26px; font-weight: 650; }
+.ms-results { display: flex; flex-wrap: wrap; gap: 24px; padding: 20px 0; border-block: 1px solid var(--line); margin: 16px 0; }
+.ms-results > div { display: flex; flex-direction: column; gap: 4px; min-width: 110px; font-size: 12px; color: var(--ink-2); }
+.ms-results b { color: var(--ink); font-size: 26px; font-variant-numeric: tabular-nums; }
+.ms-results p { flex: 1 1 220px; margin: 0; align-self: center; color: var(--ink-2); font-size: 12px; }
+.ms-result-count { font-size: 12px; color: var(--ink-2); }
 .ms-available { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; color: var(--ink); text-decoration: none; margin-bottom: 16px; }
-.ms-available > span { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.ms-available > a { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.ms-available a, .ms-pick .who a, .ms-compare a { color: inherit; text-decoration: none; }
+.ms-available a:hover, .ms-pick .who a:hover, .ms-compare a:hover { text-decoration: underline; }
 .ms-available .art { position: relative; display: block; width: 32px; height: 46px; overflow: hidden; border-radius: 5px; }
 .ms-available:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 .ms-history-date { margin: 0 0 16px; font-size: 16px; }
@@ -113,6 +120,22 @@
 .ms-current-grid .ms-pick { grid-template-columns: 44px minmax(0, 1fr) 76px; }
 .ms-current-grid .chance { white-space: nowrap; }
 .ms-current-grid .chance > span { display: block; font-size: 12px; }
+.ms-mode { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin: 8px 0 20px; }
+.ms-mode [role="group"] { display: flex; gap: 8px; }
+.ms-mode button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.ms-mode p { font-size: 13px; color: var(--ink-2); margin: 0; }
+.ms-form-evidence { font-size: 12px; margin: 10px 0 0; min-width: 0; }
+.ms-form { display: grid; grid-template-columns: repeat(auto-fit,minmax(52px,1fr)); gap: 8px; margin: 8px 0; font-variant-numeric: tabular-nums; }
+.ms-form dt { color: var(--ink-2); font-size: 11px; }
+.ms-form dd { margin: 4px 0 0; color: var(--ink); }
+.ms-form small, .ms-form-table small { display: block; font-size: 11px; color: var(--ink-2); }
+.ms-form-note { font-size: 11px; color: var(--ink-2); line-height: 1.5; margin: 6px 0; }
+.ms-form-table { table-layout: fixed; width: 100%; min-width: 0; border-collapse: collapse; font-size: 11px; margin-top: 12px; }
+.ms-form-table th, .ms-form-table td { padding: 6px 3px; text-align: left; overflow-wrap: anywhere; border-bottom: 1px solid var(--line); font-weight: 400; }
+.ms-form-table th:first-child { width: 28%; }
+.ms-form-table caption { text-align: left; line-height: 1.5; margin-bottom: 8px; }
+.ms-form-evidence summary { cursor: pointer; }
+.ms-pick .who .ms-form-evidence b { font-size: 12px; }
 .ms-section-head { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
 .ms-section-head h2 { margin: 0 auto 0 0; }
 .ms-filters { display: flex; flex-wrap: wrap; gap: 12px; margin: 16px 0; }
@@ -122,7 +145,8 @@
 .ms-filters label:nth-child(2) { flex: 1; }
 .ms-evidence { color: var(--ink-2); font-size: 13px; line-height: 1.6; }
 .ms-scout-list { list-style: none; padding: 0; margin: 16px 0; }
-.ms-scout-list > li { display: grid; grid-template-columns: minmax(240px, 1.5fr) 1fr 1fr minmax(120px,.7fr); gap: 16px; align-items: center; padding: 16px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.ms-scout-list > li { display: grid; grid-template-columns: minmax(220px,1.2fr) minmax(120px,.7fr) minmax(290px,1.5fr) minmax(120px,.7fr); gap: 16px; align-items: start; padding: 16px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.ms-scout-list > li > div { min-width: 0; }
 .ms-scout-list span, .ms-scout-list strong { display: block; margin: 4px 0; }
 .ms-scout-player { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .ms-scout-player .art { position: relative; width: 52px; height: 74px; flex: 0 0 52px; overflow: hidden; border-radius: 6px; background: var(--track); }
@@ -154,6 +178,7 @@
 .ms-edit-options { max-height: 304px; overflow-y: auto; overscroll-behavior: contain; list-style: none; display: grid; grid-template-columns: minmax(0,1fr); gap: 8px; padding: 4px; margin: -4px; }
 .ms-edit-options button { display: flex; gap: 14px; align-items: center; text-align: left; width: 100%; height: 100%; background: var(--surface); border-color: var(--line); }
 .ms-edit-options button:disabled { opacity: .65; background: var(--hover); }
+.ms-edit-options li { display: flex; align-items: center; gap: 12px; }
 .ms-edit-options .art, .ms-edit-picks .art { position: relative; width: 52px; height: 74px; flex: 0 0 52px; overflow: hidden; border-radius: 6px; background: var(--track); }
 .ms-edit-name { min-width: 0; overflow-wrap: anywhere; }
 .ms-edit-name > span { display: block; font-size: 13px; line-height: 1.5; color: var(--ink-2); }

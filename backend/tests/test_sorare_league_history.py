@@ -78,12 +78,20 @@ def test_the_job_reads_the_refreshs_laliga_list_and_writes_its_status(db) -> Non
         NOW,
     )
 
+    put(
+        db,
+        "missions_pool",
+        {"sheets": {"players": {"outside-laliga": {"form": {"seasonFrom": "2026-01-01T00:00:00+00:00"}}}}},
+        NOW,
+    )
     status = job.run(db, _Client(broken={"b"}), NOW)  # type: ignore[arg-type]
 
     assert status == {"players": 3, "read": 2, "at": NOW.isoformat()}
     assert {row.player for row in db.query(PlayerGame)} == {"a", "outside-laliga"}
     assert db.get(ReadModel, sorare_job.LEAGUE_HISTORY_KEY) is None, "the rolling JSON is no longer written"
-    assert db.get(ReadModel, sorare_job.LEAGUE_STATUS_KEY).payload == status
+    saved = db.get(ReadModel, sorare_job.LEAGUE_STATUS_KEY).payload
+    assert {k: saved[k] for k in status} == status
+    assert saved["covered"] == {"outside-laliga": "2026-01-01T00:00:00+00:00"}
     health = db.get(ReadModel, "data_health").payload
     assert next(row for row in health["datasets"] if row["id"] == "games")["warnings"]
 
@@ -140,3 +148,28 @@ def test_incremental_history_rechecks_corrections_without_losing_older_games() -
     assert {game["gameId"] for game in out["a"]["games"]} == {"old", "g1", "future"}
     assert next(game for game in out["a"]["games"] if game["gameId"] == "g1")["status"] == "FINAL"
     assert {game["gameId"] for game in saved[0]["a"]["games"]} == {"g1"}, "save only the fresh batch"
+
+
+def test_club_season_backfill_reuses_the_daily_read_then_resumes_incremental():
+    class Dates(_Client):
+        def __init__(self):
+            super().__init__()
+            self.windows = []
+
+        def query(self, query, variables):
+            self.windows.append(variables.copy())
+            return super().query(query, variables)
+
+    client = Dates()
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+    covered = {}
+    cached = {"a": {"at": OLD, "games": [{"gameId": "g1", "date": "2026-10-05T14:00:00+00:00", "status": "FINAL"}]}}
+    out = sync.league_history(client, ["a"], cached, NOW, lambda _: None, since={"a": start}, covered=covered)
+    assert client.windows[0]["from"] == start.isoformat()
+    assert covered == {"a": start.isoformat()}
+    sync.league_history(client, ["a"], out, NOW, lambda _: None, since={"a": start}, covered=covered)
+    assert client.windows[1]["from"] == "2026-10-02T14:00:00+00:00"
+    client.broken = {"a"}
+    covered.clear()
+    sync.league_history(client, ["a"], out, NOW, lambda _: None, since={"a": start}, covered=covered)
+    assert covered == {}, "a failed or incomplete source page cannot mark the season as covered"

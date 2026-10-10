@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from app.sorare import mission_form
 from app.sorare.forecast import forecasts
 from app.sorare.model import Forecast
 from app.sorare.publish import _split_out, _with_chances, card_games, player_weeks, read_cards
@@ -13,7 +14,12 @@ KEY = "missions_pool"
 DECISIVE = ("goals", "goal_assist", "assist_penalty_won", "clearance_off_line", "last_man_tackle", "penalty_save")
 
 
-def rolling_sheets(history: dict[str, Any], positions: dict[str, str], now: datetime) -> dict[str, Any]:
+def rolling_sheets(
+    history: dict[str, Any], positions: dict[str, str], now: datetime, *, leagues: dict[str, str] | None = None
+) -> dict[str, Any]:
+    # Match the ledger's existing fallback reset. No game from this mission day enters its historical form.
+    day = (now - timedelta(hours=8)).date()
+    before = datetime(day.year, day.month, day.day, 8, tzinfo=UTC)
     players = {}
     for slug, games in history.items():
         starts = sorted(
@@ -24,12 +30,10 @@ def rolling_sheets(history: dict[str, Any], positions: dict[str, str], now: date
                 and g.get("played")
                 and g.get("stats") is not None
                 and g.get("status") != "PENDING"
-                and datetime.fromisoformat(g["date"].replace("Z", "+00:00")) < now
+                and datetime.fromisoformat(g["date"].replace("Z", "+00:00")) < before
             ],
             key=lambda g: g["date"],
         )
-        if not starts:
-            continue
         # Permanent game rows keep the source's detailed counts and points, plus sheet context.
         starts = [
             {**g, "stats": {s["stat"]: s["statValue"] for s in g["stats"] if s.get("statValue") is not None}}
@@ -54,7 +58,8 @@ def rolling_sheets(history: dict[str, Any], positions: dict[str, str], now: date
             "seasonStarts": len(starts),
             "season": means,
             "l10": {},
-            "decAll": sum(decisive(g) for g in starts) / len(starts),
+            "decAll": sum(decisive(g) for g in starts) / len(starts) if starts else 0,
+            "form": mission_form.build(games, positions.get(slug, "MID"), before, league=(leagues or {}).get(slug)),
             "cs": 0,
             "pens": 0,
             "last": [
@@ -65,16 +70,25 @@ def rolling_sheets(history: dict[str, Any], positions: dict[str, str], now: date
                     "H",
                     *[
                         float(g["stats"].get(k) or 0)
-                        for k in ("interception_won", "goal_assist", "goals", "ontarget_scoring_att", "won_tackle")
+                        for k in (
+                            "interception_won",
+                            "goal_assist",
+                            "goals",
+                            "ontarget_scoring_att",
+                            "won_tackle",
+                            "accurate_pass",
+                        )
                     ],
                 ]
                 for g in starts[-10:]
             ],
         }
-    return {"asOf": now.isoformat(), "players": players}
+    return {"asOf": now.isoformat(), "before": before.isoformat(), "players": players}
 
 
-def build(snapshot: dict[str, Any], now: datetime, *, ff: Any = None, scores: Any = None) -> dict[str, Any]:
+def build(
+    snapshot: dict[str, Any], now: datetime, *, ff: Any = None, scores: Any = None, history: Any = None
+) -> dict[str, Any]:
     raw = snapshot["cards"]
     games: dict[str, list[dict[str, Any]]] = {}
     for alias in snapshot.get(
@@ -141,7 +155,16 @@ def build(snapshot: dict[str, Any], now: datetime, *, ff: Any = None, scores: An
         "generatedAt": now.isoformat(),
         "user": snapshot["user"],
         "players": players,
-        "sheets": rolling_sheets(snapshot["history"], {c.player: c.positions[0] for c in cards}, now),
-        "statsWindow": "Last 70 days of scored starts",
+        "sheets": rolling_sheets(
+            history if history is not None else snapshot["history"],
+            {c.player: c.positions[0] for c in cards},
+            now,
+            leagues={
+                r["player"]["slug"]: league
+                for r in raw
+                if (league := (((r["player"].get("activeClub") or {}).get("domesticLeague") or {}).get("slug")))
+            },
+        ),
+        "statsWindow": "Last 5 / 10 appearances and season, before the mission day; starts and substitutes separate",
         "complete": snapshot.get("missionComplete", False),
     }

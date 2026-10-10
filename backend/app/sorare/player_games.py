@@ -56,11 +56,15 @@ def save(db: Session, history: dict[str, list[dict[str, Any]]], at: datetime, *,
     return len(unique)
 
 
-def load(db: Session, *, now: datetime | None = None, days: int | None = None) -> dict[str, Any]:
+def load(
+    db: Session, *, now: datetime | None = None, days: int | None = None, players: set[str] | None = None
+) -> dict[str, Any]:
     """The legacy history shape; the visible form window does not limit permanent storage or yellow totals."""
     at = now or datetime.now(UTC)
     cutoff = at - timedelta(days=days) if days is not None else None
     query = select(PlayerGame).order_by(PlayerGame.date)
+    if players is not None:
+        query = query.where(PlayerGame.player.in_(players))
     if cutoff:
         query = query.where(PlayerGame.date >= cutoff)
     out: dict[str, Any] = {}

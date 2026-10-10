@@ -15,6 +15,11 @@ describe("what a mission asks and pays", () => {
     expect(ruleOf({ ...INTERCEPTION, stats: ["interception_won"] })).toMatchObject({ kind: "interception", atLeast: 2 });
     expect(ruleOf(row("Shots", "2+ shots on target", { thresholds: [{ stat: "ontarget_scoring_att", min: 4 }] }))).toMatchObject({ kind: "shot", atLeast: 4 });
   });
+  it("supports accurate passes with Sorare's actual threshold and profile count", () => {
+    const rule = ruleOf(row("Pass - All Matches", "70+ accurate passes", { stats: ["accurate_pass"] }));
+    expect(rule).toMatchObject({ kind: "pass", atLeast: 70 });
+    expect(fit(rule, player("a"), sheet({ season: { accurate_pass: [75, 0] } }))?.chance).toBeGreaterThan(0);
+  });
   it("does not turn a compound or custom decisive target into a generic decisive estimate", () => {
     expect(ruleOf({ ...DECISIVE, thresholds: [{ stat: "goals", min: 1 }, { stat: "goal_assist", min: 1 }] }).kind).toBe("unsupported");
     expect(ruleOf({ ...DECISIVE, stats: ["goals"] })).toMatchObject({ kind: "goal", atLeast: 1 });
@@ -37,6 +42,9 @@ describe("what a mission asks and pays", () => {
     expect(rewardOf(INTERCEPTION)).toBe("50 All-Star Essence");
     expect(rewardOf(row("x", "Pick a player"))).toBeNull();
     expect(rewardOf(row("Shot", "", { rewards: [{ type: "InGameCurrencyRewardConfig", amount: 1, label: "LIMITED_BEST_STAR_RANK_CRAFT_CLUE" }] }))).toBe("1 Limited highest-tier clue");
+    expect(rewardOf(row("XP", "", { rewards: Array.from({ length: 3 }, () => ({ type: "ExperienceRewardConfig", amount: 200, label: "LIMITED_XP" })) }))).toBe("200 XP");
+    expect(rewardOf(row("Clue", "", { rewards: [{ type: "InGameCurrencyRewardConfig", amount: 1, label: "LIMITED_COUNTRY_CRAFT_CLUE" }] }))).toBe("1 Limited country clue");
+    expect(rewardOf(row("Essence", "", { rewards: [{ type: "CardShardRewardConfig", amount: 50, label: "CardShard" }] }))).toBe("50 Essence");
   });
 });
 
@@ -67,6 +75,13 @@ const player = (slug: string, over: Partial<PlayingPlayer> = {}): PlayingPlayer 
   games: [{ kickoff: "2026-10-10T19:00:00Z", competition: "laliga-es", opponent: "Betis", opponentCrest: null, venue: "H" }], ...over,
 });
 const NOW = new Date("2026-10-10T10:00:00Z"); // after the 08:00 UTC reset: the mission day of 10 Oct
+
+it("offers best cards independently while the mission plan uses each copy once", () => {
+  const missions = [row("a", "a decisive action", { picks: 1 }), row("b", "a decisive action", { picks: 1 })];
+  const players = [player("best", { p: 1 }), player("other", { p: 0.5 })];
+  expect(plan(missions, "limited", players, { best: sheet(), other: sheet() }, NOW, "best").plans.map((p) => p.picks[0]?.slug)).toEqual(["best", "best"]);
+  expect(new Set(plan(missions, "limited", players, { best: sheet(), other: sheet() }, NOW, "plan").plans.flatMap((p) => p.picks.map((c) => c.slug))).size).toBe(2);
+});
 
 it("uses Sorare's mission eligibility over SO5 sale restrictions in both suggestions and scouting", () => {
   const p = { ...player("a"), card: "a-2026-limited-1", eligibility: "for sale", games: [{ ...player("a").games[0]!, id: "game" }] };
@@ -108,8 +123,8 @@ describe("a card's fit to a mission", () => {
   it("is his chance of a decisive action from the game (or his own rate), with what he did over 5, 8 and two seasons", () => {
     const found = fit({ kind: "decisive", label: "" }, player("a", { shape: { p: 0.3, dec: 70, plain: 40, sdDec: 9, sdPlain: 9, low: 30, high: 80 } }), sheet());
     expect(found?.chance).toBeCloseTo(0.27);
-    expect(found?.average.l5).toBeCloseTo(0.2); // one of his last five starts was decisive (the one five starts back is out)
-    expect(found?.average.season).toBe(0.15);
+    expect(found?.average?.l5).toBeCloseTo(0.2); // one of his last five starts was decisive (the one five starts back is out)
+    expect(found?.average?.season).toBe(0.15);
     expect(fit({ kind: "decisive", label: "" }, player("a"), null)).toBeNull();
     expect(fit({ kind: "decisive", label: "" }, player("a"), sheet())?.chance).toBeCloseTo(0.135);
   });
@@ -117,8 +132,8 @@ describe("a card's fit to a mission", () => {
     const rule = ruleOf(INTERCEPTION);
     const found = fit(rule, player("a"), sheet())!;
     expect(found.chance).toBeCloseTo(0.9 * atLeast(2, 2.0), 6);
-    expect(found.average.l5).toBeCloseTo((5 + 6 + 7 + 8 + 9) / 5);
-    expect(found.average.season).toBe(2);
+    expect(found.average?.l5).toBeCloseTo((5 + 6 + 7 + 8 + 9) / 5);
+    expect(found.average?.season).toBe(2);
     expect(fit(rule, player("a"), null)).toBeNull();
   });
 });
@@ -126,6 +141,14 @@ describe("a card's fit to a mission", () => {
 describe("who goes to which mission", () => {
   const sheets = { a: sheet({ season: { interception_won: [3.0, 4] } }), b: sheet({ season: { interception_won: [1.0, 2] } }), c: sheet({ season: { interception_won: [0.2, 1] } }) };
   const players = [player("a"), player("b"), player("c")];
+
+  it("keeps Sofix's full independent benchmark when your Sorare slots are filled", () => {
+    const baseline = plan([INTERCEPTION], "limited", players, sheets, NOW).plans[0]!.picks;
+    const filled = { ...INTERCEPTION, made: 3, appearances: [{ player: "a", game: null, rarity: "limited", status: "READY" }] };
+    const actual = plan([filled], "limited", players, sheets, NOW).plans[0]!;
+    expect(actual.open).toBe(0);
+    expect(actual.picks).toEqual(baseline);
+  });
 
   it("does not reserve a card for a zero-rate clue target over a positive-rate XP target", () => {
     const shot = row("Shot", "2+ shots on target for 1 Clue", { stats: ["ontarget_scoring_att"], rewards: [{ type: "ClueRewardConfig", amount: 1, label: "Highest Tier Clue" }] });
@@ -153,10 +176,10 @@ describe("who goes to which mission", () => {
     expect(busy.plans[0]!.all.map((x) => x.slug)).toContain("c"); // c is the assist mission's pick and still listed here
   });
 
-  it("leaves out the picks already made, a game already started and a card of another rarity", () => {
+  it("keeps a full benchmark after your picks, but excludes games already started and another rarity", () => {
     const { plans } = plan([row("Done", "Pick 2+ interceptions", { picks: 3, made: 3 })], "limited", players, sheets, NOW);
     expect(plans[0]!.open).toBe(0);
-    expect(plans[0]!.picks).toEqual([]);
+    expect(plans[0]!.picks.map((p) => p.slug)).toEqual(["a", "b", "c"]);
     const late = plan([INTERCEPTION], "limited", players, sheets, new Date("2026-10-10T20:00:00Z"));
     expect(late.plans[0]!.picks).toEqual([]);
     const rare = plan([INTERCEPTION], "rare", players, sheets, NOW);

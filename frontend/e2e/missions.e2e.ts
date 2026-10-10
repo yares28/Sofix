@@ -86,14 +86,44 @@ test.describe("the daily missions page", () => {
   test("scouts players, compares evidence and persists a local shortlist", async ({ page }) => {
     await page.goto("/missions");
     const scout = page.getByRole("region", { name: "Choose your own picks" });
+    const benchmark = page.locator(".ms-current-grid > div:last-child .ms-pick .who b");
+    const before = await benchmark.allTextContents();
+    expect(before.length).toBeGreaterThan(0);
     await scout.getByRole("checkbox").first().check();
     await expect(scout.getByLabel("Player comparison")).toBeVisible();
     await scout.getByRole("button", { name: "Shortlist", exact: true }).first().click();
     await expect(scout.getByRole("button", { name: "Remove from shortlist" })).toHaveCount(1);
+    expect(await benchmark.allTextContents()).toEqual(before);
     await page.reload();
     await expect(scout.getByRole("button", { name: "Remove from shortlist" })).toHaveCount(1);
+    expect(await benchmark.allTextContents()).toEqual(before);
     await scout.getByRole("searchbox", { name: "Search players" }).fill("No such player");
     await expect(scout.getByText(/No cards found/)).toBeVisible();
+  });
+
+  test("switches independent best cards and the mission plan, shows dated stats and links card art", async ({ page }) => {
+    await page.goto("/missions");
+    const selection = page.getByRole("group", { name: "Sofix selection", exact: true });
+    await selection.getByRole("button", { name: "Best cards", exact: true }).click();
+    await expect(selection.getByRole("button", { name: "Best cards", exact: true })).toHaveAttribute("aria-pressed", "true");
+    const scout = page.getByRole("region", { name: "Choose your own picks" });
+    const first = scout.locator(".ms-scout-list > li").first();
+    await expect(first).toContainText("Last 10");
+    await expect(first).toContainText("Subs");
+    await expect(first).toContainText("2 DNP");
+    await first.getByText("All recorded stats", { exact: true }).click();
+    await expect(first.getByRole("row", { name: /Accurate passes/ })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+    await expect(first.locator("a.art")).toHaveAttribute("href", /^\/players\//);
+    const history = page.getByRole("region", { name: "History" });
+    await history.getByRole("group", { name: "History benchmark" }).getByRole("button", { name: "Best cards", exact: true }).click();
+    await expect(history).toContainText("Forecast not recorded");
+    await selection.getByRole("button", { name: "Mission plan", exact: true }).click();
+    const names = await page.locator(".ms-current-grid > div:last-child .ms-pick .who > b").allTextContents();
+    expect(new Set(names).size).toBe(names.length);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
   });
 
   test("saves an explicit no-picks correction, shows it after reload and on Audit, then restores the import", async ({ page, request }) => {

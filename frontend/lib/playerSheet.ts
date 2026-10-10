@@ -4,8 +4,15 @@
 export type Position = "GK" | "DEF" | "MID" | "FWD";
 /** What one action is worth in a start: its mean count and the mean points Sorare gave for it. */
 export type Mean = [count: number, points: number];
+export type FormWindow = { n: number; means: Record<string, number>; samples: Record<string, number> };
+export type MissionForm = {
+  before: string; season: string; seasonFrom?: string | null; league?: string | null; dnp: number; missing: number;
+  windows: Record<"l5" | "l10" | "season" | "starts" | "subs", FormWindow>;
+  recent: { game?: string; date: string; started: boolean | null; values: Record<string, number | null> }[];
+};
 
 export type Sheet = {
+  form?: MissionForm;
   pos: Position;
   team: string;
   starts: number;
@@ -13,14 +20,14 @@ export type Sheet = {
   seasonStarts: number;
   l10: Record<string, Mean>;
   /** His last ten starts, oldest first: score, opponent, decisive (1), H/A, interceptions, assists, goals, then optional mission shot/tackle counts. */
-  last: [score: number, opponent: string, decisive: 0 | 1, venue: "H" | "A", interceptions: number, assists: number, goals: number, shotsOnTarget?: number, tacklesWon?: number][];
+  last: [score: number, opponent: string, decisive: 0 | 1, venue: "H" | "A", interceptions: number, assists: number, goals: number, shotsOnTarget?: number, tacklesWon?: number, accuratePasses?: number][];
   /** How often a saved start with complete stats was decisive. */
   decAll: number;
   cs: number;
   pens: number;
 };
 
-export type Sheets = { asOf: string; players: Record<string, Sheet> };
+export type Sheets = { asOf: string; before?: string; players: Record<string, Sheet> };
 
 export type Window = "next" | "l10" | "all";
 
@@ -31,6 +38,7 @@ const GROUPS: { name: string; keys: [string, string][] }[] = [
   { name: "Defending", keys: [["won_tackle", "Tackles won"], ["interception_won", "Interceptions"], ["effective_clearance", "Clearances"], ["outfielder_block", "Blocks"], ["blocked_cross", "Blocked crosses"], ["poss_won", "Possession won"], ["duel_won", "Duels won"], ["duel_lost", "Duels lost"], ["fouls", "Fouls"], ["last_man_tackle", "Last-man tackles"]] },
   { name: "Mistakes and cards", keys: [["error_lead_to_shot", "Errors leading to a shot"], ["error_lead_to_goal", "Errors leading to a goal"], ["yellow_card", "Yellow cards"], ["red_card", "Red cards"]] },
 ];
+export const ACTION_LABELS: Record<string, string> = Object.fromEntries(GROUPS.flatMap((g) => g.keys));
 
 /** The actions his game puts more or less of with the goals his side is expected to concede, and with the goals it is expected to score. */
 const WITH_AGAINST = new Set(["goals_conceded", "saves", "saved_ibox", "dive_save", "good_high_claim", "punches", "effective_clearance", "outfielder_block", "blocked_cross", "duel_won", "duel_lost", "gk_smother"]);

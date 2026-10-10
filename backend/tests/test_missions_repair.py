@@ -13,6 +13,7 @@ def test_shot_and_tackle_targets_keep_the_imported_threshold_and_settle_the_same
         ("shot", "ontarget_scoring_att", 2, "shots on target"),
         ("tackle", "won_tackle", 3, "tackles"),
         ("interception", "interception_won", 2, "interceptions"),
+        ("pass", "accurate_pass", 70, "accurate passes"),
     ]:
         source = {
             "title": kind,
@@ -59,7 +60,7 @@ def test_rolling_sheet_keeps_shot_and_tackle_counts_for_the_recent_target_sample
         ]
     }
     result = rolling_sheets(data, {"a": "MID"}, datetime(2026, 10, 8, 12, tzinfo=UTC))
-    assert result["players"]["a"]["last"][0][7:] == [2, 3]
+    assert result["players"]["a"]["last"][0][7:9] == [2, 3]
 
 
 def test_zero_rate_clue_target_does_not_take_the_only_card_from_a_positive_xp_target():
@@ -98,6 +99,10 @@ def test_zero_rate_clue_target_does_not_take_the_only_card_from_a_positive_xp_ta
     }
     result = daily_entry(None, tasks, pool, "limited", datetime(2026, 10, 9, 12, tzinfo=UTC))
     assert [m["sofix"] for m in result["missions"]] == [[], ["a"]]
+    assert [m["bestPicks"] for m in result["missions"]] == [
+        [{"player": "a", "card": None, "game": "g", "rarity": "limited", "status": None}],
+        [{"player": "a", "card": None, "game": "g", "rarity": "limited", "status": None}],
+    ]
 
 
 def test_daily_forecast_keeps_separate_copies_and_uses_single_game_availability():
@@ -224,6 +229,30 @@ def test_rolling_sheets_only_use_scored_starts_before_cutoff():
     assert sheets["players"]["a"]["decAll"] == 1
 
 
+def test_mission_form_does_not_learn_from_an_earlier_result_on_the_same_mission_day():
+    rows = {
+        "a": [
+            {
+                "date": "2026-10-07T12:00:00Z",
+                "status": "FINAL",
+                "started": True,
+                "played": True,
+                "stats": {"accurate_pass": 30},
+            },
+            {
+                "date": "2026-10-08T09:00:00Z",
+                "status": "FINAL",
+                "started": True,
+                "played": True,
+                "stats": {"accurate_pass": 100},
+            },
+        ]
+    }
+    sheet = rolling_sheets(rows, {"a": "MID"}, datetime(2026, 10, 8, 15, tzinfo=UTC))["players"]["a"]
+    assert sheet["starts"] == 1
+    assert sheet["season"]["accurate_pass"][0] == 30
+
+
 def test_pool_includes_active_gameweek_and_card_identity_without_so5_exclusions():
     data = snapshot()
     data["missionAliases"] = ["plan", "live0"]
@@ -279,3 +308,96 @@ def test_daily_capture_copies_legacy_and_fills_gaps_idempotently(db):  # noqa: F
     assert sorted(days) == ["2026-10-06", "2026-10-07", "2026-10-08"]
     assert days["2026-10-07"]["limited"]["loaded"] is False
     assert days["2026-10-07"]["limited"]["missions"][0]["sofix"] == []
+
+
+def test_capture_keeps_imported_inventory_outside_weekly_games():
+    task = {
+        "id": "shot",
+        "title": "Shots",
+        "description": "2+ shots on target",
+        "mode": "DECISIVE",
+        "picks": 1,
+        "eligibleCards": {"cup": ["copy"]},
+        "inventory": [
+            {
+                "card": "copy",
+                "player": "a",
+                "name": "A",
+                "pos": "MID",
+                "pic": "",
+                "game": {"id": "cup", "kickoff": "2026-10-09T19:00:00Z"},
+            }
+        ],
+    }
+    form = {"recent": [{"started": True, "values": {"ontarget_scoring_att": 3}} for _ in range(5)], "windows": {}}
+    entry = daily_entry(
+        None,
+        [task],
+        {"players": [], "sheets": {"players": {"a": {"form": form}}}, "complete": True},
+        "limited",
+        datetime(2026, 10, 9, 12, tzinfo=UTC),
+    )
+    assert entry["missions"][0]["sofix"] == ["a"]
+    assert entry["cands"][0]["g"] == "cup"
+
+
+def test_frozen_other_copy_cannot_preserve_a_pick_for_an_unlocked_copy():
+    now = datetime(2026, 10, 9, 12, tzinfo=UTC)
+    task = {"id": "goal", "title": "Goals", "description": "1+ goals", "mode": "DECISIVE", "picks": 1}
+    old = {
+        "missions": [
+            {
+                "key": "goal",
+                "title": "Goals",
+                "picks": 1,
+                "rule": {"kind": "goal", "atLeast": 1},
+                "sofix": ["a"],
+                "sofixPicks": [{"player": "a", "card": "future-copy", "game": "future"}],
+                "yours": [],
+            }
+        ],
+        "cands": [{"s": "a", "card": "old-copy", "g": "old", "k": "2026-10-09T10:00:00Z", "c": {"goal": 0.5}}],
+    }
+    pool = {
+        "players": [
+            {
+                "player": "b",
+                "card": "b-copy",
+                "name": "B",
+                "rarity": "limited",
+                "pos": "MID",
+                "pic": "",
+                "p": 1,
+                "games": [{"id": "future", "kickoff": "2026-10-09T19:00:00Z"}],
+            }
+        ],
+        "sheets": {"players": {"b": {"season": {"goals": [2, 0]}}}},
+    }
+    result = daily_entry(old, [task], pool, "limited", now)["missions"][0]
+    assert result["sofix"] == ["b"] and result["sofixPicks"][0]["card"] == "b-copy"
+
+
+def test_structured_essence_reward_has_the_same_plan_priority_as_the_web():
+    now = datetime(2026, 10, 9, 12, tzinfo=UTC)
+    base = {"title": "Goals", "description": "1+ goals", "mode": "DECISIVE", "picks": 1}
+    tasks = [
+        {**base, "id": "xp", "rewards": [{"type": "XpRewardConfig", "label": "XP", "amount": 200}]},
+        {**base, "id": "shards", "rewards": [{"type": "CardShardRewardConfig", "label": "All-Star", "amount": 50}]},
+    ]
+    pool = {
+        "players": [
+            {
+                "player": "a",
+                "card": "copy",
+                "name": "A",
+                "rarity": "limited",
+                "pos": "MID",
+                "pic": "",
+                "p": 1,
+                "games": [{"id": "g", "kickoff": "2026-10-09T19:00:00Z"}],
+            }
+        ],
+        "sheets": {"players": {"a": {"season": {"goals": [2, 0]}}}},
+    }
+    result = daily_entry(None, tasks, pool, "limited", now)
+    assert [m["sofix"] for m in result["missions"]] == [[], ["a"]]

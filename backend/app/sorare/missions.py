@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 from app.jobs.export_games import fetch_game
 from app.models import PlayerGame, ReadModel
 from app.services.timeutil import as_utc
+from app.sorare import mission_form
 from app.sorare.publish import GIVE_UP, SETTLE
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ COUNTS = {
     "goal": "goals",
     "shot": "ontarget_scoring_att",
     "tackle": "won_tackle",
+    "pass": "accurate_pass",
 }
 COUNT_WORDS = {
     "interception": r"interceptions?",
@@ -48,6 +50,7 @@ COUNT_WORDS = {
     "goal": r"goals?",
     "shot": r"shots?\s+on\s+target",
     "tackle": r"tackles?(?:\s+won)?",
+    "pass": r"(?:accurate|completed)\s+passes",
 }
 RECENT = 30  # mission days the page lists
 
@@ -60,14 +63,17 @@ def _stat(row: dict[str, Any], name: str) -> float:
     return float(((row.get("stats") or {}).get(name) or [0])[0] or 0)
 
 
-def did(rule: dict[str, Any], stats: list[str], row: dict[str, Any]) -> bool:
+def did(rule: dict[str, Any], stats: list[str], row: dict[str, Any]) -> bool | None:
     """Whether a player's game (a `fetch_game` row) did what the mission's rule asks."""
     kind = rule.get("kind")
     if kind == "decisive":
-        if any(_stat(row, name) > 0 for name in (stats or DECISIVE_STATS)):
+        names = stats or [*DECISIVE_STATS, *(["clean_sheet_60"] if row.get("pos") == "GK" else [])]
+        if any(_stat(row, name) > 0 for name in names):
             return True
-        return not stats and row.get("pos") == "GK" and _stat(row, "clean_sheet_60") > 0
+        return None if any(name in row.get("stats", {}) and row["stats"][name][0] is None for name in names) else False
     if kind in COUNTS:
+        if COUNTS[kind] in row.get("stats", {}) and row["stats"][COUNTS[kind]][0] is None:
+            return None
         return _stat(row, COUNTS[kind]) >= float(rule.get("atLeast") or 1)
     return False
 
@@ -80,7 +86,9 @@ def settle_log(payload: dict[str, Any], games: dict[str, dict[str, Any] | None],
         for entry in rarities.values():
             missions = {m["key"]: m for m in entry.get("missions", [])}
             for cand in entry.get("cands", []):
-                if "r" in cand:
+                if cand.get("r", {}).get("void") or (
+                    "r" in cand and all(key in cand["r"].get("did", {}) for key in cand.get("c", {}))
+                ):
                     continue
                 kickoff = _when(cand["k"])
                 if now < kickoff + SETTLE:
@@ -104,6 +112,7 @@ def settle_log(payload: dict[str, Any], games: dict[str, dict[str, Any] | None],
                         key: did(missions[key]["rule"], missions[key].get("stats") or [], row)
                         for key in cand.get("c", {})
                         if key in missions
+                        and did(missions[key]["rule"], missions[key].get("stats") or [], row) is not None
                     },
                 }
     return list(dict.fromkeys(wanted))
@@ -174,14 +183,39 @@ def settle_kept(db: Session, now: datetime) -> dict[str, int]:
             for entry in rarities.values():
                 definitions = {m["key"]: m for m in entry.get("missions", [])}
                 for candidate in entry.get("cands", []):
-                    if "r" in candidate or not candidate.get("g") or now < _when(candidate["k"]) + SETTLE:
+                    targets = {}
+                    for key, m in definitions.items():
+                        own = next(
+                            (
+                                p
+                                for p in m.get("yours", [])
+                                if p["player"] == candidate["s"]
+                                and p.get("game") == candidate.get("g")
+                                and (not p.get("card") or p["card"] == candidate.get("card"))
+                            ),
+                            None,
+                        )
+                        rule = m["rule"]
+                        if rule["kind"] == "unsupported" and m.get("source"):
+                            rule = _rule(m["source"])
+                        if (
+                            (key in candidate.get("c", {}) or key in candidate.get("eligible", []) or own)
+                            and key not in candidate.get("r", {}).get("did", {})
+                            and rule["kind"] in ("decisive", *COUNTS, "score")
+                        ):
+                            target = (
+                                own.get("target")
+                                if own and own.get("target") is not None
+                                else candidate.get("targets", {}).get(key)
+                            )
+                            if rule["kind"] != "score" or target is not None:
+                                targets[key] = (rule, target)
+                    if not targets or not candidate.get("g") or now < _when(candidate["k"]) + SETTLE:
                         continue
                     row = db.get(PlayerGame, (candidate["s"], candidate["g"]))
                     if row is None or row.status in (None, "PENDING") or row.played is None:
                         continue
                     if row.read_at is None or as_utc(row.read_at) < _when(candidate["k"]):
-                        continue
-                    if row.played and row.stats is None:
                         continue
                     game = {
                         "pos": candidate.get("pos"),
@@ -190,14 +224,24 @@ def settle_kept(db: Session, now: datetime) -> dict[str, int]:
                             one["stat"]: [one.get("statValue"), one.get("totalScore")] for one in row.stats or []
                         },
                     }
+                    outcomes = dict(candidate.get("r", {}).get("did", {}))
+                    for key, (rule, target) in targets.items():
+                        if rule["kind"] != "score" and row.played and row.stats is None:
+                            continue
+                        if rule["kind"] == "score" and row.played and row.score is None:
+                            continue
+                        outcome = bool(row.played) and (
+                            float(row.score or 0) >= target
+                            if rule["kind"] == "score"
+                            else did(rule, definitions[key].get("stats") or [], game)
+                        )
+                        if outcome is not None:
+                            outcomes[key] = outcome
+                    if outcomes == candidate.get("r", {}).get("did", {}):
+                        continue
                     candidate["r"] = {
                         "played": row.played,
-                        "did": {
-                            key: bool(row.played)
-                            and did(definitions[key]["rule"], definitions[key].get("stats") or [], game)
-                            for key in candidate.get("c", {})
-                            if key in definitions
-                        },
+                        "did": outcomes,
                     }
                     changed = True
                     marked += 1
@@ -226,25 +270,52 @@ def record(logs: list[dict[str, Any]]) -> dict[str, Any]:
             for rarity, entry in rarities.items():
                 for mission in entry.get("missions", []):
                     key = mission["key"]
-                    cands = [c for c in entry.get("cands", []) if key in (c.get("c") or {})]
+                    cands = [
+                        c for c in entry.get("cands", []) if key in (c.get("c") or {}) or key in c.get("eligible", [])
+                    ]
                     if (
                         not cands
                         or any(c.get("late") for c in entry.get("cands", []))
                         or entry.get("coverage") == "missing"
                         or not mission.get("sofix")
+                        or (mission.get("source") or {}).get("eligibilityComplete") is False
                     ):
                         continue
-                    if any("r" not in c for c in cands):
+                    if any(
+                        "r" not in c or (not c["r"].get("void") and key not in c["r"].get("did", {})) for c in cands
+                    ):
                         pending += 1
                         continue
                     live = {c["s"]: c for c in cands if not c["r"].get("void")}
-                    achievers = {s for s, c in live.items() if c["r"].get("did", {}).get(key)}
+
+                    def actual(y: dict[str, Any], rows: list[dict[str, Any]] = cands) -> dict[str, Any] | None:
+                        return next(
+                            (
+                                c
+                                for c in rows
+                                if c["s"] == y["player"]
+                                and (not y.get("game") or c.get("g") == y["game"])
+                                and (not y.get("card") or c.get("card") == y["card"])
+                            ),
+                            None,
+                        )
+
+                    identities = mission.get("sofixPicks") or []
+                    if any(actual(p) is None for p in identities):
+                        continue
+                    for p in identities:
+                        if chosen := actual(p):
+                            live[p["player"]] = chosen
+                    achievers = {c["s"] for c in cands if not c["r"].get("void") and c["r"].get("did", {}).get(key)}
                     if not achievers:
                         nobody += 1
                         continue
                     picks = [s for s in mission.get("sofix", []) if s in live]
                     best = min(int(mission.get("picks") or 3), len(achievers))
-                    got = len(set(picks) & achievers)
+                    caught_players = {
+                        s for s in picks if not live[s]["r"].get("void") and live[s]["r"].get("did", {}).get(key)
+                    }
+                    got = len(caught_players)
                     counted += 1
                     success += got >= best
                     caught += got
@@ -254,8 +325,9 @@ def record(logs: list[dict[str, Any]]) -> dict[str, Any]:
                     row["counted"] += 1
                     row["success"] += got >= best
                     for slug in picks:
-                        said.append(float(live[slug]["c"][key]))
-                        hits += slug in achievers
+                        if key in live[slug]["c"]:
+                            said.append(float(live[slug]["c"][key]))
+                            hits += slug in caught_players
                     mine = (mission.get("override") or {}).get("picks", mission.get("yours") or [])
                     your_got = None
                     manual = mission.get("override")
@@ -283,17 +355,19 @@ def record(logs: list[dict[str, Any]]) -> dict[str, Any]:
 
                     supported = all(
                         verdict(y) in ("SUCCESS", "FAILURE")
-                        or (
-                            y.get("game")
-                            and any(c.get("g") == y["game"] and c["s"] == y["player"] for c in live.values())
-                        )
+                        or (y.get("game") and (a := actual(y)) is not None and not a["r"].get("void"))
                         for y in mine
                     )
                     if (mine or manual) and supported:
                         your_got = sum(
                             1
                             for y in mine
-                            if verdict(y) == "SUCCESS" or (verdict(y) in (None, "READY") and y["player"] in achievers)
+                            if verdict(y) == "SUCCESS"
+                            or (
+                                verdict(y) in (None, "READY")
+                                and (a := actual(y)) is not None
+                                and a["r"].get("did", {}).get(key)
+                            )
                         )
                         yours["counted"] += 1
                         yours["success"] += your_got >= best
@@ -305,8 +379,8 @@ def record(logs: list[dict[str, Any]]) -> dict[str, Any]:
                             "loaded": bool(entry.get("loaded")),
                             "best": best,
                             "got": got,
-                            "picks": [_card(live[s], s in achievers) for s in picks],
-                            "missed": [_card(live[s]) for s in sorted(achievers - set(picks))],
+                            "picks": [_card(live[s], s in caught_players) for s in picks],
+                            "missed": [_card(live[s]) for s in sorted(achievers - caught_players)],
                             "yours": your_got,
                         }
                     )
@@ -400,6 +474,17 @@ def _rule(m: dict[str, Any]) -> dict[str, Any]:
     return {"kind": "decisive" if "decisive" in text.lower() else "unsupported", "label": m["description"]}
 
 
+def _priority(m: dict[str, Any]) -> int:
+    source = m.get("source") or {}
+    rewards = source.get("rewards") or []
+    words = str(rewards).lower() if rewards else source.get("description", "").lower()
+    if "cardshardrewardconfig" in words or "essence" in words:
+        return 0
+    if "clue" in words:
+        return 1
+    return 2 if "xp" in words or "experience" in words else 3
+
+
 def daily_entry(
     previous: dict[str, Any] | None,
     loaded: list[dict[str, Any]] | None,
@@ -467,32 +552,84 @@ def daily_entry(
                 cand["c"][after] = cand["c"][before]
             if before in cand.get("r", {}).get("did", {}):
                 cand["r"]["did"][after] = cand["r"]["did"][before]
+            if before in cand.get("evidence", {}):
+                cand["evidence"][after] = cand["evidence"][before]
+            if before in cand.get("targets", {}):
+                cand["targets"][after] = cand["targets"][before]
+            if before in cand.get("historyOnly", []):
+                cand["historyOnly"] = list(dict.fromkeys([*cand["historyOnly"], after]))
+            if before in cand.get("eligible", []):
+                cand["eligible"] = list(dict.fromkeys([*cand["eligible"], after]))
     frozen_ids = {(c.get("card") or c["s"], c.get("g")) for c in frozen}
     cands = frozen[:]
     sheets = pool.get("sheets", {}).get("players", {})
-    for p in pool.get("players", []):
-        if p["rarity"] != rarity or p.get("eligibility"):
+    players = {p.get("card") or p["player"]: {**p, "games": list(p.get("games", []))} for p in pool.get("players", [])}
+    for m in missions:
+        for card in (m.get("source") or {}).get("inventory", []):
+            if card["card"] not in players:
+                known = next(
+                    (p for p in players.values() if p["player"] == card["player"] and p["rarity"] == rarity), None
+                )
+                players[card["card"]] = {
+                    **(known or {}),
+                    "card": card["card"],
+                    "player": card["player"],
+                    "name": card["name"],
+                    "pos": card["pos"],
+                    "pic": card["pic"],
+                    "rarity": rarity,
+                    "p": (known or {}).get("p", 0),
+                    "games": list((known or {}).get("games", [])),
+                }
+            p = players[card["card"]]
+            if not any(g.get("id") == card["game"].get("id") for g in p["games"]):
+                p["games"].append({**card["game"], "availabilityKnown": False})
+    for p in players.values():
+        if p["rarity"] != rarity:
             continue
         for g in p.get("games", []):
             if (
                 mission_day(_when(g["kickoff"])) != mission_day(now)
-                or (p.get("card") or p["player"], g.get("id")) in frozen_ids
-            ):
+                and not any(g.get("id") in (m.get("source") or {}).get("eligibleCards", {}) for m in missions)
+            ) or (p.get("card") or p["player"], g.get("id")) in frozen_ids:
                 continue
             if any(
                 (c.get("card") or c["s"]) == (p.get("card") or p["player"]) and c.get("g") == g.get("id") for c in cands
             ):
                 continue
             late = _when(g["kickoff"]) <= now
-            chances = {}
+            chances, targets, history_only, eligible = {}, {}, [], []
             for m in missions:
                 source = m.get("source") or {}
                 eligibility = source.get("eligibleCards")
-                if (eligibility is not None and p.get("card") not in eligibility.get(g.get("id"), [])) or (
-                    source.get("ruleTypes") and eligibility is None
+                if (
+                    (eligibility is not None and p.get("card") not in eligibility.get(g.get("id"), []))
+                    or (source.get("ruleTypes") and eligibility is None)
+                    or (eligibility is None and p.get("eligibility"))
                 ):
                     continue
+                eligible.append(m["key"])
+                target = next(
+                    (
+                        c.get("target")
+                        for c in source.get("inventory", [])
+                        if c.get("card") == p.get("card") and c["game"].get("id") == g.get("id")
+                    ),
+                    None,
+                )
+                if target is not None and not late:
+                    targets[m["key"]] = target
                 kind = m["rule"]["kind"]
+                form = sheets.get(p["player"], {}).get("form")
+                if form:
+                    value = mission_form.chance(m["rule"], p, g, form, target)
+                    if value is not None and not late:
+                        chances[m["key"]] = value
+                        if kind == "score" or g.get("availabilityKnown", p.get("availabilityKnown")) is False:
+                            history_only.append(m["key"])
+                        if target is not None:
+                            targets[m["key"]] = target
+                    continue
                 rate = sheets.get(p["player"], {}).get("decAll")
                 if kind == "decisive":
                     conditional = (p.get("shape") or {}).get("p", rate)
@@ -523,20 +660,29 @@ def daily_entry(
                     "g": g.get("id"),
                     "k": g["kickoff"],
                     "c": chances,
+                    "sheet": sheets.get(p["player"]),
+                    "targets": targets,
+                    "historyOnly": history_only,
+                    "match": g,
+                    "eligible": eligible,
                     "captured": now.isoformat(),
                     "late": late,
                 }
             )
     used: set[str] = set()
     for m in missions:
-        frozen_picks = [s for s in m["sofix"] if any(c["s"] == s for c in frozen)]
-        m["sofix"] = frozen_picks
+        m["bestPicks"] = [
+            p for p in m.get("bestPicks", []) if (p.get("card") or p["player"], p.get("game")) in frozen_ids
+        ]
         if "sofixPicks" in m:
             m["sofixPicks"] = [
                 p for p in m["sofixPicks"] if (p.get("card") or p["player"], p.get("game")) in frozen_ids
             ]
+            m["sofix"] = [p["player"] for p in m["sofixPicks"]]
             used.update(p.get("card") or p["player"] for p in m["sofixPicks"])
         else:
+            frozen_picks = [s for s in m["sofix"] if any(c["s"] == s for c in frozen)]
+            m["sofix"] = frozen_picks
             used.update(frozen_picks)
             m["sofixPicks"] = []
     pairs = sorted(
@@ -546,14 +692,7 @@ def daily_entry(
             for c in cands
             if not c.get("late") and m["key"] in c["c"] and c["c"][m["key"]] > 0 and _when(c["k"]) > now
         ],
-        key=lambda x: (
-            0
-            if "essence" in str(x[2].get("source", {})).lower()
-            else 1
-            if "clue" in str(x[2].get("source", {})).lower()
-            else 2,
-            -x[0],
-        ),
+        key=lambda x: (_priority(x[2]), -x[0]),
     )
     for _, cand, m in pairs:
         identity = cand.get("card") or cand["s"]
@@ -568,6 +707,17 @@ def daily_entry(
                 {"player": cand["s"], "card": cand.get("card"), "game": cand.get("g"), "rarity": rarity, "status": None}
             )
             used.add(identity)
+    for m in missions:
+        choices = sorted(
+            [c for c in cands if not c.get("late") and m["key"] in c["c"] and _when(c["k"]) > now],
+            key=lambda c: -c["c"][m["key"]],
+        )
+        for cand in choices:
+            if len(m["bestPicks"]) >= m["picks"] or any(p["player"] == cand["s"] for p in m["bestPicks"]):
+                continue
+            m["bestPicks"].append(
+                {"player": cand["s"], "card": cand.get("card"), "game": cand.get("g"), "rarity": rarity, "status": None}
+            )
     return {
         **old,
         "loaded": loaded is not None or bool(old.get("loaded")),

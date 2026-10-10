@@ -334,7 +334,14 @@ const server = createServer((req, res) => {
     const kickoff = new Date(Math.min(Date.now() + 3_600_000, Date.parse(`${day}T08:00:00Z`) + DAY - 60_000)).toISOString();
     const players = planning.playing.players.filter((p) => p.player).slice(0, 6).map((p, i) => ({ ...p, card: `owned-card-${i}`, rarity: "limited", games: [{ id: `Game:test-${i}`, kickoff, team: "Spain", competition: "international", opponent: "France", opponentCrest: null, venue: "H" }], p: 0.9, pStart: 0.8 }));
     const sheets = Object.fromEntries(players.map((p, i) => [p.player, { pos: p.pos, team: "", starts: 12, seasonStarts: 12, season: { interception_won: [1 + i / 2, 0], goal_assist: [.2, 0], goals: [.3, 0] }, l10: {}, decAll: .3 + i / 20, cs: 0, pens: 0, last: Array.from({ length: 8 }, (_, n) => [50 + n, "", n % 3 === 0 ? 1 : 0, "H", n % 4, n % 5 === 0 ? 1 : 0, n % 4 === 0 ? 1 : 0]) }]));
-    return send(res, 200, { data: { generatedAt: new Date().toISOString(), players, sheets: { asOf: new Date().toISOString(), players: sheets }, statsWindow: "Last 70 days of scored starts", complete: true } });
+    for (const sheet of Object.values(sheets)) {
+      const recent = Array.from({ length: 10 }, (_, n) => ({ date: new Date(Date.now() - (n + 1) * DAY).toISOString(), started: n % 3 !== 0,
+        values: { decisive: n % 3 === 0 ? 1 : 0, interception_won: 1 + n % 3, goal_assist: n % 3 === 0 ? 1 : 0, goals: n % 4 === 0 ? 1 : 0, accurate_pass: 40 + n, ontarget_scoring_att: n % 3, won_tackle: 2, score: 50 + n } }));
+      const window = (rows) => ({ n: rows.length, means: Object.fromEntries(Object.keys(recent[0].values).map(k => [k, rows.reduce((sum, r) => sum + r.values[k], 0) / rows.length])), samples: Object.fromEntries(Object.keys(recent[0].values).map(k => [k, rows.length])) });
+      sheet.form = { before: day + "T08:00:00Z", season: "2026/27", dnp: 2, missing: 0, recent,
+        windows: { l5: window(recent.slice(0, 5)), l10: window(recent), season: window(recent), starts: window(recent.filter(r => r.started)), subs: window(recent.filter(r => !r.started)) } };
+    }
+    return send(res, 200, { data: { generatedAt: new Date().toISOString(), players, sheets: { asOf: new Date().toISOString(), players: sheets }, statsWindow: "Dated appearance form", complete: true } });
   }
   if (req.method === "GET" && url.pathname === "/api/missions/log") {
     // The missions log (`read_models` key `missions_log:YYYY-MM`, frontend/lib/missionLog.ts): 6 Oct written down and not yet checked, with your two

@@ -460,9 +460,19 @@ def _sheet_context(row: dict[str, Any]) -> list[dict[str, Any]]:
     )
     pos = SORARE_POSITION.get(row.get("positionTyped") or "")
     level = (row.get("decisiveScore") or {}).get("totalScore")
+    zeros = sorted(one["stat"] for one in row.get("detailedScore") or [] if one.get("statValue") == 0)
     if pos is None or not team.get("slug") or venue is None or level is None:
-        return []
-    return [{"stat": "_context", "pos": pos, "team": team["slug"], "venue": venue, "level": level}]
+        return [{"stat": "_context", "zeros": zeros}] if zeros else []
+    return [
+        {
+            "stat": "_context",
+            "pos": pos,
+            "team": team["slug"],
+            "venue": venue,
+            "level": level,
+            **({"zeros": zeros} if zeros else {}),
+        }
+    ]
 
 
 def history(
@@ -517,7 +527,7 @@ def history(
                     {
                         "red": _sent_off(row["detailedScore"]),
                         "yellow": _yellows(row["detailedScore"]),
-                        "stats": [one for one in row["detailedScore"] or [] if one.get("statValue")]
+                        "stats": [one for one in row["detailedScore"] or [] if one.get("statValue") != 0]
                         + _sheet_context(row),
                     }
                     if row.get("detailedScore") is not None
@@ -581,7 +591,8 @@ def league_history(
     save: Callable[[dict[str, Any]], None],
     every: int = LEAGUE_SAVE_EVERY,
     *,
-    since: datetime | None = None,
+    since: datetime | Mapping[str, datetime] | None = None,
+    covered: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """New games and late corrections, retaining all earlier reads (the daily `league-history` workflow):
     `{slug: {"at": when read, "games": rows as history() gives}}`.
@@ -593,10 +604,12 @@ def league_history(
     current = set(slugs)
     out = {slug: entry for slug, entry in (cached or {}).items() if slug in current}
     order = sorted(current, key=lambda slug: ((out.get(slug) or {}).get("at") or "", slug))
-    season = since or datetime(now.year if now.month >= 7 else now.year - 1, 7, 1, tzinfo=UTC)
+    default_start = datetime(now.year if now.month >= 7 else now.year - 1, 7, 1, tzinfo=UTC)
     for start in range(0, len(order), every):
         fresh: dict[str, Any] = {}
         for slug in order[start : start + every]:
+            season = (since.get(slug) if isinstance(since, Mapping) else since) or default_start
+            track_coverage = covered is not None and (not isinstance(since, Mapping) or slug in since)
             previous = (out.get(slug) or {}).get("games") or []
             dates = [
                 datetime.fromisoformat(g["date"])
@@ -604,6 +617,13 @@ def league_history(
                 if isinstance(g, dict) and g.get("date") and datetime.fromisoformat(g["date"]) <= now
             ]
             since_player = max(dates) - timedelta(days=3) if dates else season
+            # One wider read through the existing daily reader, then resume the normal correction window.
+            if (
+                track_coverage
+                and covered is not None
+                and (slug not in covered or datetime.fromisoformat(covered[slug]) > season)
+            ):
+                since_player = min(since_player, season)
             # A score that has still not settled must be rechecked even if newer games have arrived.
             pending = [
                 datetime.fromisoformat(g["date"])
@@ -616,6 +636,10 @@ def league_history(
             if pending:
                 since_player = min(since_player, min(pending) - timedelta(days=3))
             for player, games in history(client, [slug], now, since=since_player).items():
+                if track_coverage and covered is not None:
+                    covered[player] = min(
+                        datetime.fromisoformat(covered.get(player, since_player.isoformat())), since_player
+                    ).isoformat()
                 merged = {g["gameId"]: g for g in previous if isinstance(g, dict) and g.get("gameId")}
                 for game in games:
                     merged[game["gameId"]] = {**merged.get(game["gameId"], {}), **game}

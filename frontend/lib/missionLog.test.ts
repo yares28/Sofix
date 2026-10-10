@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayMissions, DAILY_PICKER, missionHistory, nextDay, type LogCand, type MonthLog } from "./missionLog";
+import { dayMissions, DAILY_PICKER, missionHistory, nextDay, restoreMissionBenchmark, type LogCand, type MonthLog } from "./missionLog";
 import type { MissionRow } from "./missions";
 import type { PlayingPlayer } from "./play";
 import type { Sheet } from "./playerSheet";
@@ -18,6 +18,17 @@ const player = (slug: string, kickoff: string): PlayingPlayer => ({
 const players = [player("a", "2026-10-06T14:00:00Z"), player("b", "2026-10-06T14:00:00Z"), player("c", "2026-10-06T14:00:00Z"), player("d", "2026-10-06T19:00:00Z")];
 const sheets = { a: sheet(4), b: sheet(3), c: sheet(2), d: sheet(1) };
 const MORNING = new Date("2026-10-06T09:00:00Z");
+
+it("captures both choices separately and never invents legacy best-card forecasts", () => {
+  const tasks = [{ ...INTERCEPTION, id: "one", picks: 1 }, { ...INTERCEPTION, id: "two", picks: 1 }];
+  const before = nextDay(undefined, tasks, players, sheets, "limited", MORNING);
+  expect(before.missions.map((m) => m.bestPicks?.map((p) => p.player))).toEqual([["a"], ["a"]]);
+  expect(before.missions.map((m) => m.sofix)).toEqual([["a"], ["b"]]);
+  const after = new Date("2026-10-06T22:00:00Z");
+  expect(restoreMissionBenchmark(tasks, before, players, { d: sheet(99) }, "limited", after, "best").map((p) => p.picks.map((c) => c.slug))).toEqual([["a"], ["a"]]);
+  const legacy = { ...before, missions: before.missions.map((m) => ({ ...m, bestPicks: undefined })) };
+  expect(restoreMissionBenchmark(tasks, legacy, players, sheets, "limited", after, "best").every((p) => !p.picks.length)).toBe(true);
+});
 
 describe("the day's missions", () => {
   it("assumes only the Decisive Picker when not loaded, otherwise retains exactly the source tasks", () => {
@@ -60,6 +71,15 @@ describe("a day of the log", () => {
     const morning = nextDay(undefined, null, players, sheets, "limited", MORNING);
     const changed = nextDay(morning, null, players, { ...sheets, d: sheet(9) }, "limited", new Date("2026-10-06T10:00:00Z"));
     expect(changed.missions[0]!.sofix).toEqual(["d", "a", "b"]);
+  });
+
+  it("still displays the frozen benchmark after kickoff without recomputing it from later form", () => {
+    const before = nextDay(undefined, [INTERCEPTION], players, sheets, "limited", MORNING);
+    const shown = restoreMissionBenchmark([INTERCEPTION], before, players, { a: sheet(99) }, "limited", new Date("2026-10-06T22:00:00Z"));
+    expect(shown[0]!.picks.map((p) => p.slug)).toEqual(["a", "b", "c"]);
+    expect(shown[0]!.picks[0]!.average?.season).toBe(4);
+    expect(shown[0]!.picks[0]!.frozen).toBe(true);
+    expect(restoreMissionBenchmark([INTERCEPTION], undefined, players, sheets, "limited", new Date("2026-10-06T22:00:00Z"))[0]!.picks).toEqual([]);
   });
 
   it("keeps a list loaded earlier in the day when a later run has none, and your picks with Sorare's verdict", () => {
@@ -135,4 +155,54 @@ it("explains a first capture after kickoff instead of calling the mission unsupp
   expect(history?.reason).toMatch(/first seen after kickoff/i);
   expect(history?.sofix).toEqual([]);
   expect(history?.score).toBeNull();
+});
+
+it("shows your settled target even when no Sofix forecast was captured for that target", () => {
+  const entry = nextDay(undefined, [INTERCEPTION], players, sheets, "limited", MORNING);
+  entry.missions[0]!.sofix = [];
+  entry.missions[0]!.yours = [{ player: "a", game: "Game:a", rarity: "limited", status: "READY" }];
+  entry.cands[0]!.c = {};
+  entry.cands[0]!.r = { played: true, did: { [INTERCEPTION.id]: true } };
+  const [history] = missionHistory([{ days: { "2026-10-06": { limited: entry } } }], "limited", new Map());
+  expect(history!.yours[0]!.state).toBe("did");
+  expect(history!.score).toBeNull();
+});
+
+it("leaves a target pending when another target has settled on the same player", () => {
+  const entry = nextDay(undefined, [INTERCEPTION], players.slice(0, 1), sheets, "limited", MORNING);
+  entry.cands[0]!.r = { played: true, did: { other: true } };
+  const [history] = missionHistory([{ days: { "2026-10-06": { limited: entry } } }], "limited", new Map());
+  expect(history!.sofix[0]!.state).toBe("waiting");
+  expect(history!.score).toBeNull();
+});
+
+it("includes an eligible achiever without a forecast when judging the best possible result", () => {
+  const entry = nextDay(undefined, [{ ...INTERCEPTION, picks: 1 }], players.slice(0, 2), sheets, "limited", MORNING);
+  entry.cands[0]!.r = { played: true, did: { [INTERCEPTION.id]: false } };
+  entry.cands[1]!.c = {};
+  Object.assign(entry.cands[1]!, { eligible: [INTERCEPTION.id], r: { played: true, did: { [INTERCEPTION.id]: true } } });
+  const [history] = missionHistory([{ days: { "2026-10-06": { limited: entry } } }], "limited", new Map());
+  expect(history!.score).toEqual({ got: 0, best: 1 });
+  expect(history!.missed.map((c) => c.slug)).toEqual(["b"]);
+});
+
+it("preserves historical-rate labels and targets when source task IDs replace legacy names", () => {
+  const entry = nextDay(undefined, [INTERCEPTION], players.slice(0, 1), sheets, "limited", MORNING);
+  Object.assign(entry.cands[0]!, { targets: { [INTERCEPTION.id]: 2 }, historyOnly: [INTERCEPTION.id], eligible: [INTERCEPTION.id] });
+  const renamed = { ...INTERCEPTION, id: "task:real" };
+  entry.missions[0]!.title = undefined;
+  const result = nextDay(entry, [renamed], [], {}, "limited", new Date("2026-10-06T22:00:00Z"));
+  expect(result.cands[0]).toMatchObject({ targets: { "task:real": 2 }, historyOnly: expect.arrayContaining(["task:real"]), eligible: expect.arrayContaining(["task:real"]) });
+});
+
+it("labels incomplete eligibility without claiming the saved forecast is missing", () => {
+  const entry = nextDay(undefined, [{ ...INTERCEPTION, eligibilityComplete: false }], players, sheets, "limited", MORNING);
+  expect(missionHistory([{ days: { "2026-10-06": { limited: entry } } }], "limited", new Map())[0]).toMatchObject({ evidence: "incomplete", score: null });
+});
+
+it("checks the chosen card and game when a player has two settled candidates", () => {
+  const entry = nextDay(undefined, [{ ...INTERCEPTION, picks: 1 }], players.slice(0, 1), sheets, "limited", MORNING);
+  entry.cands[0]!.r = { played: true, did: { [INTERCEPTION.id]: false } };
+  entry.cands.push({ ...entry.cands[0]!, g: "other-game", r: { played: true, did: { [INTERCEPTION.id]: true } } });
+  expect(missionHistory([{ days: { "2026-10-06": { limited: entry } } }], "limited", new Map())[0]).toMatchObject({ score: { got: 0, best: 1 }, sofix: [{ state: "didnt" }] });
 });

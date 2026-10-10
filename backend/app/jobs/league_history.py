@@ -38,25 +38,41 @@ def run(db: Session, client: SorareClient, now: datetime) -> dict[str, Any]:
     if not slugs:
         return {"players": 0, "read": 0, "at": now.isoformat()}
     kept = player_games.load(db)
+    pool_row = db.get(ReadModel, "missions_pool")
+    forms = ((pool_row.payload if pool_row else {}).get("sheets") or {}).get("players", {})
+    previous_status = db.get(ReadModel, LEAGUE_STATUS_KEY)
+    covered = dict((previous_status.payload if previous_status else {}).get("covered") or {})
     weeks = payload.get("timeline") or []
     since = min(
         (datetime.fromisoformat(w["start"]) for w in weeks if w.get("start")), default=player_games.season_start(now)
     )
+    season_starts = {
+        slug: min(since, datetime.fromisoformat(form["seasonFrom"]))
+        for slug, sheet in forms.items()
+        if (form := sheet.get("form") or {}).get("seasonFrom")
+    }
+    status: dict[str, Any] = {"players": len(slugs), "read": 0, "at": now.isoformat()}
+
+    def save_batch(out: dict[str, Any]) -> None:
+        player_games.save(db, {slug: entry["games"] for slug, entry in out.items()}, now)
+        put(db, LEAGUE_STATUS_KEY, {**status, "covered": dict(covered)}, now)
+
     db.rollback()  # do not hold a Neon connection while Sorare is being read
     league = league_history(
         client,
         slugs,
         kept,
         now,
-        lambda out: player_games.save(db, {slug: entry["games"] for slug, entry in out.items()}, now),
-        since=since,
+        save_batch,
+        since=season_starts,
+        covered=covered,
     )
     status = {
         "players": len(slugs),
         "read": sum(1 for e in league.values() if e.get("at") == now.isoformat()),
         "at": now.isoformat(),
     }
-    put(db, LEAGUE_STATUS_KEY, status, now)
+    put(db, LEAGUE_STATUS_KEY, {**status, "covered": covered}, now)
     put(db, sheets.KEY, sheets.from_kept(db), now)
     data_health.publish(db, now)
     return status

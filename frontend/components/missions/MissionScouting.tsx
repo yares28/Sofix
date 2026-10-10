@@ -1,16 +1,19 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
+import MissionFormEvidence from "./MissionFormEvidence";
+import type { LogCand } from "../../lib/missionLog";
 import CardArt from "../cards/CardArt";
 import { fit, missionCandidates, missionValues, type MissionPlan } from "../../lib/missions";
 import type { MissionPool, MissionPlayer } from "../../lib/missionsPool";
 import { SOURCE_SHORT } from "../../lib/play";
-import { cardCopyLabel, sampleLabel } from "../../lib/missionPresentation";
+import { cardCopyLabel } from "../../lib/missionPresentation";
 
 const percent = (n: number | undefined) => n === undefined ? "No estimate" : `${Math.round(n * 100)}%`;
 const kickoff = (s: string) => new Intl.DateTimeFormat("en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" }).format(new Date(s));
-export default function MissionScouting({ plans, players, pool, now, rarity, shortlist, toggle }: { plans: MissionPlan[]; players: MissionPlayer[]; pool: MissionPool | null; now: string; rarity: string; shortlist: string[]; toggle: (s: string) => void }) {
+export default function MissionScouting({ plans, players, pool, now, rarity, shortlist, toggle, captured }: { plans: MissionPlan[]; players: MissionPlayer[]; pool: MissionPool | null; now: string; rarity: string; captured: LogCand[]; shortlist: string[]; toggle: (s: string) => void }) {
   const [mission, setMission] = useState(plans[0]?.mission.id ?? ""); const [query, setQuery] = useState(""); const [position, setPosition] = useState("");
-  const [availability, setAvailability] = useState("editable"); const [sort, setSort] = useState("chance"); const [compared, setCompared] = useState<string[]>([]);
+  const [availability, setAvailability] = useState(""); const [sort, setSort] = useState("chance"); const [compared, setCompared] = useState<string[]>([]);
   const one = plans.find((p) => p.mission.id === mission) ?? plans[0];
   if (!one) return <section className="pd-card ms-scout" aria-labelledby="ms-scout-title">
     <h2 id="ms-scout-title">Choose your own picks</h2>
@@ -23,19 +26,20 @@ export default function MissionScouting({ plans, players, pool, now, rarity, sho
     const id = c.p.card ?? c.p.player!;
     if (!unique.has(id) || (!unique.get(id)!.editable && c.editable)) unique.set(id, c);
   }
-  const rows = [...unique.entries()].flatMap(([id, { p, game, own, locked, allowed, status, editable }]) => {
-    const sheet = pool?.sheets.players[p.player ?? ""];
-    const target = one.mission.inventory?.find((c) => c.card === p.card && c.game.id === game.id)?.target;
-    const found = fit(one.rule, { ...p, availabilityKnown: game.availabilityKnown ?? p.availabilityKnown, pStart: game.pStart ?? p.pStart, pOn: game.pOn ?? p.pOn }, sheet ?? null, target);
+  const rows = [...unique.entries()].flatMap(([id, { p, game: currentGame, own, locked, allowed, status, editable }]) => {
+    const saved = locked ? captured.find((c) => c.s === p.player && c.g === currentGame.id && (!p.card || c.card === p.card) && !c.late) : undefined;
+    const game = locked ? saved?.match ?? { ...currentGame, pStart: undefined, pOn: undefined, startSource: undefined, ffMatch: undefined, availabilityKnown: false } : currentGame;
+    const sheet = locked ? saved?.sheet : pool?.sheets.players[p.player ?? ""];
+    const target = locked ? saved?.targets?.[one.mission.id] ?? saved?.evidence?.[one.mission.id]?.target : one.mission.inventory?.find((c) => c.card === p.card && c.game.id === game.id)?.target;
+    const found = locked ? saved?.evidence?.[one.mission.id] ?? (saved?.c[one.mission.id] !== undefined ? { chance: saved.c[one.mission.id]!, historical: saved.historyOnly?.includes(one.mission.id) } : null) : fit(one.rule, { ...p, availabilityKnown: game.availabilityKnown ?? p.availabilityKnown, pStart: game.pStart ?? p.pStart, pOn: game.pOn ?? p.pOn }, sheet ?? null, target);
     const threshold = one.rule.kind === "unsupported" ? undefined : "atLeast" in one.rule ? one.rule.atLeast : one.rule.kind === "score" ? target : 1;
     const window = (n: number) => { const last = missionValues(one.rule, sheet).slice(-n); return { n: last.length, mean: last.length ? last.reduce((s, v) => s + v, 0) / last.length : null,
       hits: threshold === undefined ? null : last.filter((v) => v >= threshold).length }; };
-    return [{ id, p, game, sheet, found: allowed === false ? null : found, own, locked, status, allowed, editable, l5: window(5), l8: window(8) }];
+    return [{ id, p, game, target, sheet, found: allowed === false ? null : found, own, locked, status, allowed, editable, l5: window(5), l8: window(10) }];
   });
   const filtered = rows.filter(({ p, own, editable }) => p.name.toLowerCase().includes(query.toLowerCase()) && (!position || p.pos === position) && (!availability || (availability === "editable" ? editable : availability === "selected" ? own : shortlist.includes(p.card ?? p.player ?? ""))));
   filtered.sort((a, b) => sort === "kickoff" ? a.game.kickoff.localeCompare(b.game.kickoff) : sort === "recent" ? (b.l8.hits ?? -1) / (b.l8.n || 1) - (a.l8.hits ?? -1) / (a.l8.n || 1) : sort === "stat" ? (b.l8.mean ?? -1) - (a.l8.mean ?? -1) : (b.found?.chance ?? -1) - (a.found?.chance ?? -1));
-  const stats = (w: { n: number; mean: number | null; hits: number | null }) => w.n ? `${w.hits === null ? "Target history unavailable" : `${w.hits}/${w.n} hit target`}${w.mean === null ? "" : ` · ${w.mean.toFixed(1)} mean`}` : "";
-  const recent = (r: typeof rows[number]) => <><span>{!r.l5.n && r.sheet?.last.length ? "Recent target counts were not captured." : sampleLabel(r.l5.n, 5)}{r.l5.n ? `: ${stats(r.l5)}` : ""}</span>{r.l8.n > r.l5.n ? <span>{sampleLabel(r.l8.n, 8)}: {stats(r.l8)}</span> : null}</>;
+  const recent = (r: typeof rows[number], all = false) => <MissionFormEvidence form={r.sheet?.form} rule={one.rule} target={r.target} all={all} />;
   const copies = (r: typeof rows[number]) => {
     const available = rows.filter((x) => x.p.player === r.p.player && x.editable);
     const confirmed = available.filter((x) => x.allowed === true).length;
@@ -53,15 +57,15 @@ export default function MissionScouting({ plans, players, pool, now, rarity, sho
       <label>Sort by<select value={sort} onChange={(e) => setSort(e.target.value)}><option value="chance">Estimated chance</option><option value="recent">Recent target success</option><option value="stat">Relevant stat</option><option value="kickoff">Kickoff</option></select></label>
     </div>
     {!pool?.complete || one.mission.eligibilityComplete === false ? <p className="ms-evidence">Coverage is incomplete. Load missions to check the latest eligible cards.</p> : null}
-    {compared.length ? <div className="ms-compare" aria-label="Player comparison">{rows.filter((r) => compared.includes(r.id)).map((r) => <div key={r.id}><b>{r.p.name}</b><p>{percent(r.found?.chance)} {r.found?.historical ? "recent hits" : "estimated"}{r.game.availabilityKnown !== false ? ` · ${percent(r.game.pStart ?? r.p.pStart)} to start` : ""}</p><div>{recent(r)}</div></div>)}</div> : null}
+    {compared.length ? <div className="ms-compare" aria-label="Player comparison">{rows.filter((r) => compared.includes(r.id)).map((r) => <div key={r.id}><b><Link href={`/players/${r.p.player}`}>{r.p.name}</Link></b><p>{percent(r.found?.chance)} {r.found?.historical ? "recent hits" : "estimated"}{r.game.availabilityKnown !== false ? ` · ${percent(r.game.pStart ?? r.p.pStart)} to start` : ""}</p><div>{recent(r)}</div></div>)}</div> : null}
     <ul className="ms-scout-list">{filtered.map((r) => <li key={r.id}>
-      <div className="ms-scout-player"><span className="art" aria-hidden="true"><CardArt src={r.p.pic} name={r.p.name} /></span><div><b>{r.p.name}</b><span>{r.p.pos} · {rarity} · {cardCopyLabel(r.p.card)}</span><span>{r.game.team ?? "Playing side not supplied"} {r.game.venue === "H" ? "v" : "at"} {r.game.opponent} · {kickoff(r.game.kickoff)}</span><span>{r.game.competition} · {r.status}</span></div></div>
+      <div className="ms-scout-player"><Link className="art" href={`/players/${r.p.player}`} aria-label={`Open ${r.p.name} profile`}><CardArt src={r.p.pic} name={r.p.name} /></Link><div><b>{r.p.name}</b><span>{r.p.pos} · {rarity} · {cardCopyLabel(r.p.card)}</span><span>{r.game.team ?? "Playing side not supplied"} {r.game.venue === "H" ? "v" : "at"} {r.game.opponent} · {kickoff(r.game.kickoff)}</span><span>{r.game.competition} · {r.status}</span></div></div>
       <div><strong>{percent(r.found?.chance)}</strong><span>{r.found?.historical ? "Recent target hit rate" : "Estimated mission chance"}</span>{r.game.availabilityKnown !== false ? <span>{r.game.ffMatch && r.game.startSource === "futbolfantasy" ? <a href={r.game.ffMatch.url} target="_blank" rel="noreferrer">Start: {percent(r.game.pStart ?? r.p.pStart)} · FF</a> : <>Start: {percent(r.game.pStart ?? r.p.pStart)} · {SOURCE_SHORT[r.game.startSource ?? r.p.startSource ?? "sofix"]}</>}</span> : null}<span>{copies(r)}</span>{r.game.ffStatus?.kind ? <span>{r.game.ffStatus.kind}{r.game.ffStatus.note ? ` · ${r.game.ffStatus.note}` : ""}</span> : null}</div>
-      <div>{recent(r)}<span>Baseline: {r.sheet?.starts ?? 0} scored starts{r.sheet ? ` · ${Math.round(r.sheet.decAll * 100)}% decisive` : ""}</span></div>
+      <div>{recent(r, true)}</div>
       <div className="ms-scout-actions"><label><input type="checkbox" checked={compared.includes(r.id)} disabled={!compared.includes(r.id) && compared.length >= 3} onChange={() => setCompared(compared.includes(r.id) ? compared.filter((s) => s !== r.id) : [...compared, r.id])} />Compare {r.p.name}</label><button type="button" disabled={!r.editable} aria-pressed={shortlist.includes(r.id)} onClick={() => toggle(r.id)}>{shortlist.includes(r.id) ? "Remove from shortlist" : "Shortlist"}</button>{plans.some((p) => p.picks.some((s) => s.card ? s.card === r.p.card : s.slug === r.p.player)) ? <span>Sofix suggested</span> : null}</div>
     </li>)}</ul>
     {!filtered.length ? <p className="pd-none">No cards found with these filters. Choose All cards or reload missions.</p> : null}
-    <details className="pd-foot"><summary>About these estimates</summary><p>{pool?.statsWindow ?? "Scored starts"}. Last 5 / 8 show the actual sample. Decisive estimates include playing chance; count targets use a Poisson rate. Recent hit rates describe recorded starts, not the chance of playing today. Shortlisting reserves this copy locally.</p></details>
+    <details className="pd-foot"><summary>About these estimates</summary><p>{pool?.statsWindow ?? "Scored starts"}. Last 5 / 10 use appearances before the mission day, including substitutes. Starts/subs use this season; DNPs are separate. Estimates weight recent starter and substitute rates by playing chance, falling back to that season’s role average. Count targets use a Poisson rate; score targets and unknown playing chances show recent target hits. These are heuristics, not calibrated probabilities. Your shortlist does not change Sofix’s picks.</p></details>
     <p className="pd-foot"><a href={`https://sorare.com/football/play/missions/play/${rarity}`} target="_blank" rel="noreferrer">Make your picks on Sorare ↗</a></p>
   </section>;
 }

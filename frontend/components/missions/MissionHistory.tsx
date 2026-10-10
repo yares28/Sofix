@@ -9,6 +9,7 @@ import { REFRESH_HEADER } from "../../lib/refresh";
 import { askExtension, parseMissionsLoad } from "../../lib/extension";
 import { missionsLoadNote } from "../../lib/missions";
 import { cardCopyLabel, manualMissionPick } from "../../lib/missionPresentation";
+import { missionComparison } from "../../lib/missionComparison";
 
 const shortDay = (d: string) => new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${d}T12:00:00Z`));
 function Editor({ day, rarity, collection, saved, onDirty, guard }: { day: HistoryDay; rarity: string; collection: CollectionCard[]; saved: () => void; onDirty: (dirty: boolean) => void; guard: (action: () => void) => void }) {
@@ -54,13 +55,13 @@ function Editor({ day, rarity, collection, saved, onDirty, guard }: { day: Histo
     {dirty ? <p className="ms-draft">Unsaved correction · Preview and save when ready.</p> : null}
     <div className="ms-edit-workspace"><div className="ms-edit-selected">
     <h3>Your picks <span>{picks.length} / {source.picks}</span></h3>
-    <ul className="ms-edit-picks">{picks.map((p, i) => { const card = options.get(p.card ?? p.player); return <li key={p.card ?? `${p.player}:${i}`}><span className="art" aria-hidden="true"><CardArt src={card?.pic ?? ""} name={card?.name ?? p.player} /></span><span className="ms-edit-name"><b>{card?.name ?? p.player.replaceAll("-", " ")}</b><span>{cardCopyLabel(p.card)}</span></span><button type="button" aria-label={`Remove ${card?.name ?? p.player.replaceAll("-", " ")}`} onClick={() => { setPicks(picks.filter((_, n) => n !== i)); setPreview(false); }}>Remove</button></li>; })}</ul>
+    <ul className="ms-edit-picks">{picks.map((p, i) => { const card = options.get(p.card ?? p.player); return <li key={p.card ?? `${p.player}:${i}`}><Link className="art" href={`/players/${p.player}`} aria-label={`Open ${card?.name ?? p.player} profile`}><CardArt src={card?.pic ?? ""} name={card?.name ?? p.player} /></Link><span className="ms-edit-name"><b>{card?.name ?? p.player.replaceAll("-", " ")}</b><span>{cardCopyLabel(p.card)}</span></span><button type="button" aria-label={`Remove ${card?.name ?? p.player.replaceAll("-", " ")}`} onClick={() => { setPicks(picks.filter((_, n) => n !== i)); setPreview(false); }}>Remove</button></li>; })}</ul>
     {!picks.length ? <p className="pd-none">No cards selected for this correction.</p> : null}
     <button type="button" onClick={() => { setPicks([]); setPreview(false); }}>I made no picks</button>
     </div><div className="ms-edit-library"><h3>Add cards</h3>
     <label>Search historical or current cards<input type="search" name="historical-cards" autoComplete="off" value={query} onChange={(e) => setQuery(e.target.value)} /></label>
     <ul className="ms-edit-options">{[...options.values()].filter((p) => p.name.toLowerCase().includes(query.toLowerCase())).slice(0, 20).map((p) => <li key={p.card ?? p.player}>
-      <button type="button" disabled={picks.length >= source.picks || picks.some((x) => (x.card ?? x.player) === (p.card ?? p.player))} onClick={() => add(p)}><span className="art" aria-hidden="true"><CardArt src={p.pic} name={p.name} /></span><span className="ms-edit-name"><b>{p.name}</b><span>{cardCopyLabel(p.card)}</span><span>{p.reported ? "Current collection · user-reported for this date" : "Recorded for this date"}</span></span></button>
+      <Link className="art" href={`/players/${p.player}`} aria-label={`Open ${p.name} profile`}><CardArt src={p.pic} name={p.name} /></Link><button type="button" aria-label={`Add ${p.name}`} disabled={picks.length >= source.picks || picks.some((x) => (x.card ?? x.player) === (p.card ?? p.player))} onClick={() => add(p)}><span className="ms-edit-name"><b>{p.name}</b><span>{cardCopyLabel(p.card)}</span><span>{p.reported ? "Current collection · user-reported for this date" : "Recorded for this date"}</span></span></button>
     </li>)}</ul>
     <div className="ms-edit-link"><label>Missing or sold card? Paste its Sorare link<input type="url" name="manual-card-url" autoComplete="off" spellCheck={false} value={manual} onChange={(e) => setManual(e.target.value)} placeholder="https://sorare.com/football/cards/…" /></label>
     {manual && !pasted ? <p role="status">Use a Sorare card link of this rarity or a Sorare player link.</p> : null}
@@ -78,7 +79,9 @@ function Editor({ day, rarity, collection, saved, onDirty, guard }: { day: Histo
   </fieldset>;
 }
 
-export default function MissionHistory({ days, rarity, collection = [], title = "History" }: { days: HistoryDay[]; rarity: string; collection?: CollectionCard[]; title?: string }) {
+export default function MissionHistory({ days: plannedDays, bestDays, rarity, collection = [], title = "History" }: { days: HistoryDay[]; bestDays?: HistoryDay[]; rarity: string; collection?: CollectionCard[]; title?: string }) {
+  const [mode, setMode] = useState<"plan" | "best">("plan");
+  const days = mode === "best" && bestDays ? bestDays : plannedDays;
   const [date, setDate] = useState(""); const [editing, setEditing] = useState<string | null>(null);
   const [recovering, setRecovering] = useState(false), [recovery, setRecovery] = useState("");
   const dirty = useRef(false);
@@ -101,18 +104,26 @@ export default function MissionHistory({ days, rarity, collection = [], title = 
     return () => { window.removeEventListener("beforeunload", warn); document.removeEventListener("click", navigate, true); };
   }, [guard]);
   const dates = [...new Set(days.map((d) => d.day))];
+  const comparison = missionComparison(days.filter((d) => !date || d.day === date));
   return <section className="pd-card ms-history" aria-labelledby={`ms-history-${rarity}`}>
     <dialog ref={dialog} className="ms-discard" role="alertdialog" aria-labelledby={`ms-discard-${rarity}`} onCancel={(e) => { e.preventDefault(); setPending(null); }}><h3 id={`ms-discard-${rarity}`}>Unsaved correction</h3><p>Your changes have not been saved. Keep editing or discard them to continue.</p><div><button className="ms-load-btn" type="button" onClick={() => setPending(null)}>Keep editing</button><button className="ms-secondary" type="button" onClick={() => { dirty.current = false; const action = pending; setPending(null); action?.(); }}>Discard changes</button></div></dialog>
     <div className="ms-section-head"><h2 id={`ms-history-${rarity}`}>{title}</h2><label>Mission date<select name="history-date" value={date} onChange={(e) => { const next = e.target.value; guard(() => { setDate(next); setEditing(null); }); }}><option value="">Last 30 days</option>{dates.map((d) => <option key={d} value={d}>{shortDay(d)}</option>)}</select></label>
     <button className="ms-secondary" type="button" disabled={recovering} onClick={() => guard(() => { setRecovering(true); void askExtension({ type: "load-mission-history" }, 60_000).then((raw) => { const answer = parseMissionsLoad(raw); setRecovery(answer?.state === "ok" ? "Dated history imports saved. Undated or unavailable tasks remain unknown." : missionsLoadNote(answer)); if (answer?.state === "ok") window.location.reload(); }).finally(() => setRecovering(false)); })}>{recovering ? "Reconciling…" : "Reconcile Sorare history"}</button></div>
     <p role="status">{recovery}</p>
+    {bestDays ? <div className="ms-mode"><div role="group" aria-label="History benchmark"><button type="button" className="ms-secondary" aria-pressed={mode === "best"} onClick={() => guard(() => { setMode("best"); setEditing(null); })}>Best cards</button><button type="button" className="ms-secondary" aria-pressed={mode === "plan"} onClick={() => guard(() => { setMode("plan"); setEditing(null); })}>Mission plan</button></div><p>Comparing with {mode === "best" ? "independent best cards" : "the unique-card mission plan"}. Only choices saved before kickoff count.</p></div> : null}
+    {title === "History" ? <div className="ms-results" aria-label="You versus Sofix">
+      <div><span>You</span><b>{comparison.counted ? `${Math.round(100 * comparison.yours.success / comparison.counted)}%` : "—"}</b><span>{comparison.yours.success} / {comparison.counted} missions</span></div>
+      <div><span>Sofix</span><b>{comparison.counted ? `${Math.round(100 * comparison.sofix.success / comparison.counted)}%` : "—"}</b><span>{comparison.sofix.success} / {comparison.counted} missions</span></div>
+      <p>Success means matching the best possible result. Same settled missions for both sides; missing forecasts and pending picks are excluded.</p>
+    </div> : null}
     {days.length ? <ol className="au-ms-days">{dates.filter((day) => !date || day === date).map((day) => <li key={day}><h3 className="ms-history-date">{shortDay(day)}</h3>{days.filter((d) => d.day === day).map((d) => {
       const id = `${d.day}:${d.key ?? d.mission}`;
       return <article key={id} className={`ms-history-mission ${d.score?.best && d.score.got >= d.score.best ? "ok" : "short"}`}>
-        <div className="au-ms-head"><b>{d.mission}</b><span>{!d.loaded ? "Assumed Decisive Picker — missions not loaded" : ""}{d.corrected ? "Corrected by you" : ""}</span><strong>{d.score ? `Sofix ${d.score.got} of ${d.score.best}` : d.evidence === "pending" ? "Results pending" : d.evidence === "confirmed-empty" ? "Confirmed empty" : d.evidence === "unrated" ? "Target not rated" : "Forecast not recorded"}</strong></div>
+        <div className="au-ms-head"><b>{d.mission}</b><span>{!d.loaded ? "Assumed Decisive Picker — missions not loaded" : ""}{d.corrected ? "Corrected by you" : ""}</span><strong>{d.score ? `Sofix ${d.score.got} of ${d.score.best}` : d.evidence === "pending" ? "Results pending" : d.evidence === "confirmed-empty" ? "Confirmed empty" : d.evidence === "unrated" ? "Target not rated" : d.evidence === "incomplete" ? "Eligibility incomplete" : "Forecast not recorded"}</strong></div>
         {([ ["Sofix", d.sofix], ["You", d.yours], ["Missed", d.missed] ] as const).filter(([label, cards]) => label !== "Missed" || cards.length).map(([label, cards]) => <div className="ms-hist-row" key={label}><span>{label}</span>{cards.length ? <ul className="au-ms-cards" aria-label={label === "You" ? "Your picks" : label === "Sofix" ? "Sofix's picks" : "Missed achievers"}>{cards.map((c, i) => <li key={`${c.slug}:${i}`} className={`au-ms-card ${c.state === "did" ? "hit" : c.state === "waiting" ? "wait" : "miss"}`}>
-          <span className="art" aria-hidden="true"><CardArt src={c.pic} name={c.name} /></span><span className="nm">{c.name}</span><span className="visually-hidden">, {label === "Missed" ? "did it, not picked" : c.state === "did" ? "did it" : c.state === "didnt" ? "did not" : c.state === "void" ? "game not played" : "waiting for his game"}</span>
+          <Link className="art" href={`/players/${c.slug}`} aria-label={`Open ${c.name} profile`}><CardArt src={c.pic} name={c.name} /></Link><span className="nm">{c.name}</span><span className="visually-hidden">, {label === "Missed" ? "did it, not picked" : c.state === "did" ? "did it" : c.state === "didnt" ? "did not" : c.state === "void" ? "game not played" : "waiting for his game"}</span>
         </li>)}</ul> : <p className="pd-none">{label === "Sofix" ? d.reason ?? "No recommendation recorded." : label === "You" ? d.corrected ? "You recorded no picks." : d.yourPicks === "confirmed-empty" ? "Sorare confirmed no picks at the last import." : "Your picks were not imported or confirmed." : "None recorded."}</p>}</div>)}
+        {d.score && d.yours.length ? <p className="ms-result-count">Target hits: you {d.yours.filter((p) => p.state === "did").length}{d.yours.some((p) => p.state === "waiting") ? " (pending)" : ""} · Sofix {d.score.got} · best possible {d.score.best}</p> : null}
         {d.source?.override?.note ? <p>{d.source.override.note}</p> : null}
         {d.corrected && d.source ? <details><summary>Imported picks (original)</summary><p>{d.source.yours.length ? d.source.yours.map((p) => `${p.player.replaceAll("-", " ")} · ${p.status ?? "pending"}`).join(", ") : "No imported picks."}</p></details> : null}
         {d.source?.override?.sourcePicks && JSON.stringify(d.source.override.sourcePicks.map((p) => [p.player, p.card, p.game])) !== JSON.stringify(d.source.yours.map((p) => [p.player, p.card, p.game])) ? <p role="alert">Sorare&rsquo;s imported selections changed after your correction. Your correction is kept; review it or restore the import.</p> : null}

@@ -125,7 +125,11 @@ def test_history_pages_and_keeps_teams_yellows_and_nonzero_stats() -> None:
     assert len(rows) == 2 and [v["after"] for v in client.asked] == [None, "page-2"]
     assert rows[0]["home"] == "Home" and rows[0]["away"] == "Away"
     assert rows[0]["yellow"] == 1 and rows[0]["red"] is False
-    assert rows[0]["stats"] == [first["detailedScore"][0], first["detailedScore"][2]]
+    assert rows[0]["stats"] == [
+        first["detailedScore"][0],
+        first["detailedScore"][2],
+        {"stat": "_context", "zeros": ["red_card"]},
+    ]
     assert sync._yellows([{"stat": "red_card", "statValue": 1}]) == 0, "a second yellow is red only"
 
 
@@ -170,3 +174,16 @@ def test_unread_roles_and_cards_remain_unknown() -> None:
     row = sync.history(client, ["a"], datetime(2026, 9, 29, tzinfo=UTC))["a"][0]  # type: ignore[arg-type]
     assert row["played"] is None and row["started"] is None
     assert "yellow" not in row and "red" not in row and "stats" not in row
+
+
+def test_history_preserves_unknown_stats_and_zero_action_names_compactly():
+    source = {
+        **game("2026-09-20T18:00:00Z", 50, None),
+        "detailedScore": [
+            {"stat": "accurate_pass", "statValue": None, "totalScore": None},
+            {"stat": "saves", "statValue": 0, "totalScore": 0},
+        ],
+    }
+    row = sync.history(FakeClient([source]), ["a"], datetime(2026, 9, 29, tzinfo=UTC))["a"][0]
+    assert row["stats"][0] == source["detailedScore"][0]
+    assert next(s for s in row["stats"] if s["stat"] == "_context")["zeros"] == ["saves"]

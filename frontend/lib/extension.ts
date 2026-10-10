@@ -12,7 +12,7 @@ export const REQUIRED_EXTENSION_VERSION = "0.1.1";
  * a lowercase attribute the site writes with capitals, so they found no player) and shows the gameweek the page names in its Sofix tab; 0.3.3 draws the picture of his game in the panel (where his score lands, with and without a
  * decisive action, and what moves it in points) and a larger score; 0.3.4 reads daily missions; 0.3.5 shows likely rewards; 0.3.6 imports selections; 0.3.7 retains usable partial lineup reads. 0.3.10 repairs the production alias check left broken in 0.3.9 and discovers/paginates mission eligibility directly from Sorare.
  */
-export const LATEST_EXTENSION_VERSION = "0.3.10";
+export const LATEST_EXTENSION_VERSION = "0.3.11";
 
 /** Chrome manifest versions are numeric dot-separated values; compare them without relying on string ordering. */
 export function extensionAtLeast(version: string, minimum = REQUIRED_EXTENSION_VERSION): boolean {

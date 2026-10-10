@@ -332,7 +332,10 @@ FF says so above the next match.
   been read. A dash means that source has no
   estimate for this player and match. Sofix also restores the exact match's captured forecast after the planner moves to
   the next GW. Sorare uses its captured value, or reads the displayed match through your signed-in Sorare tab with
-  extension 0.3.10+. **Read from Sorare** retries an unavailable read; missing values remain dashes and genuine 0% stays 0%.
+  extension 0.3.11+. Each selected match is read once; **Read from Sorare** retries a failed or incomplete read.
+  The message distinguishes a signed-out session, an API failure, missing players, unmatched players and a response with no
+  starting odds. An empty response does not prove Sorare has not published percentages. Valid partial values are retained;
+  missing values remain dashes and genuine 0% stays 0%.
   A different match's number is never substituted. FF percentages link to its match
   page. **Only my players** dims everyone else on the pitch and in the injury lists. Both choices stay selected when you pick another
   match. Your players on the pitch, among the alternatives and in the injury list link to their card on **My cards**.

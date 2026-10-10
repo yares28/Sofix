@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import {
   MAX_AGE_MS,
@@ -25,7 +25,7 @@ import {
   type Section,
   type TimelineDay,
 } from "../../lib/lineups";
-import { CHANCE_SOURCES, parseSorareChances, type LineupChances, type SorareGameLink } from "../../lib/lineupChances";
+import { CHANCE_SOURCES, sorareChanceRead, type LineupChances, type SorareGameLink, type SorareChanceRead } from "../../lib/lineupChances";
 import { askExtension } from "../../lib/extension";
 import type { MatchFacts } from "../../lib/lineupMatchFacts";
 import type { StartSource } from "../../lib/play";
@@ -64,11 +64,24 @@ const switchTo = (match: LineupMatch) => (event: MouseEvent<HTMLAnchorElement>) 
   window.history.pushState(null, "", matchAddress(window.location.search, match.id));
 };
 const lookOf = (side: LineupSide, clubs: Record<string, ClubLook>) => (side.club ? clubs[side.club] : undefined);
+const READ_MESSAGES = {
+  reading: "Reading Sorare chances.",
+  ready: "",
+  "no-players": "Sorare returned no players for this match.",
+  unmatched: "Sorare returned odds, but its players could not be matched.",
+  incomplete: "Sorare returned incomplete starting odds. Available values are shown.",
+  "signed-out": "Sign in to Sorare, then read again.",
+  unavailable: "Open a signed-in Sorare tab with extension 0.3.11 or newer.",
+  "rate-limited": "Sorare's request limit was reached. Wait before trying again.",
+  error: "Sorare could not return starting odds. Try again.",
+};
 
 export default function LineupsView({ data, chances, sorareGames, facts, sections, initial, now, clubs, flash, gone }: Props) {
   const [source, setSource] = useState<StartSource>("futbolfantasy");
   const [live, setLive] = useState<LineupChances>({});
-  const [reads, setReads] = useState<Record<number, "reading" | "ready" | "unavailable" | "empty">>({});
+  const [reads, setReads] = useState<Record<number, { state: SorareChanceRead["state"] | "reading"; checked: number }>>({});
+  const attempted = useRef(new Set<number>());
+  const inFlight = useRef(new Set<number>());
   const [onlyMine, setOnlyMine] = useState(false);
   const asked = useSearchParams().get("m");
   const selected = matchAsked(data.matches, asked, initial);
@@ -85,15 +98,25 @@ export default function LineupsView({ data, chances, sorareGames, facts, section
   // Futbol Fantasy's eleven is its own; with Sorare's or Sofix's number picked, that source's eleven is drawn in the same formation.
   const values = { ...chances[selected.id] };
   for (const [player, sources] of Object.entries(live[selected.id] ?? {})) values[player] = { ...values[player], ...sources };
-  const readSorare = async () => {
+  const link = sorareGames[selected.id];
+  const readSorare = useCallback(async () => {
     const match = selected.id;
-    const link = sorareGames[match];
-    if (!link || reads[match] === "reading") return;
-    setReads((previous) => ({ ...previous, [match]: "reading" }));
-    const found = parseSorareChances(await askExtension({ type: "lineup-chances", game: link.id }, 25_000), link);
-    if (found) setLive((previous) => ({ ...previous, [match]: found }));
-    setReads((previous) => ({ ...previous, [match]: found === null ? "unavailable" : Object.keys(found).length ? "ready" : "empty" }));
-  };
+    if (!link || inFlight.current.has(match)) return;
+    attempted.current.add(match);
+    inFlight.current.add(match);
+    setReads((previous) => ({ ...previous, [match]: { state: "reading", checked: 0 } }));
+    const found = sorareChanceRead(await askExtension({ type: "lineup-chances", game: link.id }, 25_000), link);
+    if (Object.keys(found.values).length) setLive((previous) => ({ ...previous, [match]: { ...previous[match], ...found.values } }));
+    setReads((previous) => ({ ...previous, [match]: found }));
+    inFlight.current.delete(match);
+  }, [selected.id, link]);
+  useEffect(() => {
+    if (source === "sorare" && !attempted.current.has(selected.id)) void readSorare();
+  }, [source, selected.id, readSorare]);
+  const read = reads[selected.id];
+  const sorareNote = !link ? "This match is not linked to Sorare yet." : read?.state === "empty"
+    ? `Sorare returned no starting odds for ${read.checked} ${read.checked === 1 ? "player" : "players"}.`
+    : READ_MESSAGES[read?.state ?? "reading"];
   const arranged = (side: LineupSide) => (source === "futbolfantasy" ? side : byChance(side, (player) => values[player.id]?.[source] ?? null));
   // On a phone the timeline scrolls sideways: bring the match in view to the middle whenever it changes.
   const scroller = useRef<HTMLDivElement>(null);
@@ -163,10 +186,7 @@ export default function LineupsView({ data, chances, sorareGames, facts, section
             <legend className="visually-hidden">Chance to start source</legend>
             {(Object.entries(CHANCE_SOURCES) as [StartSource, string][]).map(([key, name]) => (
               <label key={key}>
-                <input type="radio" name="lu-source" value={key} checked={source === key} onChange={() => {
-                  setSource(key);
-                  if (key === "sorare" && !reads[selected.id]) void readSorare();
-                }} />
+                <input type="radio" name="lu-source" value={key} checked={source === key} onChange={() => setSource(key)} />
                 <span>{name}</span>
               </label>
             ))}
@@ -176,11 +196,9 @@ export default function LineupsView({ data, chances, sorareGames, facts, section
             Only my players
           </label>
         </div>
-        {source === "sorare" && sorareGames[selected.id] ? <div className="lu-sorare-read">
-          {reads[selected.id] === "reading" ? <p role="status">Reading Sorare chances…</p> : reads[selected.id] !== "ready" ? <>
-            <p role="status">{reads[selected.id] === "unavailable" ? "Open a signed-in Sorare tab with extension 0.3.10 or newer." : reads[selected.id] === "empty" ? "Sorare has not published chances for this match." : "Read this match through your Sorare tab."}</p>
-            <button type="button" onClick={() => void readSorare()}>Read from Sorare</button>
-          </> : null}
+        {source === "sorare" && sorareNote ? <div className="lu-sorare-read">
+          <p role="status">{sorareNote}</p>
+          {link && read && read.state !== "reading" ? <button type="button" onClick={() => void readSorare()}>Read from Sorare</button> : null}
         </div> : null}
         <ChanceContext.Provider value={{ source, values, url: selected.url }}>
           <fieldset className="lu-switch" aria-label="Team">

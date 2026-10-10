@@ -40,8 +40,8 @@ function load(options: { sorareTab?: boolean; missionData?: unknown; operationDa
   const bridge = (_tab: number, message: Message, answer?: (response: unknown) => void) => {
     tabMessages.push(message);
     if (!options.sorareTab || !answer) return;
-    if (message.type === "sofix-ping-5") answer({ ok: true, version: 5 });
-    else if (message.type === "sofix-ask-5") {
+    if (message.type === "sofix-ping-6") answer({ ok: true, version: 6 });
+    else if (message.type === "sofix-ask-6") {
       asked.push({ operation: String(message.operation), variables: message.variables as Record<string, unknown> });
       answer({ state: "ok", data: options.operationData?.(String(message.operation), message.variables as Record<string, unknown>) ?? options.missionData ?? null });
     } else answer(undefined);
@@ -112,7 +112,7 @@ describe("mission import completeness", () => {
   it("versions the tab request so an old content listener cannot repeat a draft after extension reload", async () => {
     const w = load({ sorareTab: true });
     await w.sendFrom(APP, { type: "sorare", step: "draft", boardId: "board", appearances: [], name: "Plan" });
-    expect(w.tabMessages.find((m) => m.operation === "SofixSaveDraft")?.type).toBe("sofix-ask-5");
+    expect(w.tabMessages.find((m) => m.operation === "SofixSaveDraft")?.type).toBe("sofix-ask-6");
   });
   it("reads source chances for one validated game through the signed-in tab", async () => {
     const w = load({ sorareTab: true });

@@ -447,8 +447,8 @@ const revived = new Set();
 
 /** Content scripts do not appear in a tab that was already open. Put them there, or reload the tab once so they do. */
 async function ensureBridge(tabId) {
-  const existing = await askTab(tabId, { type: "sofix-ping-5" }, 500);
-  if (existing?.ok && existing.version === 5) return true;
+  const existing = await askTab(tabId, { type: "sofix-ping-6" }, 500);
+  if (existing?.ok && existing.version === 6) return true;
   try {
     await chrome.scripting.executeScript({ target: { tabId }, files: ["core.js", "bridge.js"], world: "MAIN" });
     await chrome.scripting.executeScript({ target: { tabId }, files: ["core.js", "content.js", "overlay.js", "drawer.js"] });
@@ -475,14 +475,14 @@ async function ensureBridge(tabId) {
       chrome.tabs.onUpdated.addListener(onUpdated);
     });
     for (let i = 0; i < 8; i++) {
-      const answer = await askTab(tabId, { type: "sofix-ping-5" }, 400);
-      if (answer?.ok && answer.version === 5) return true;
+      const answer = await askTab(tabId, { type: "sofix-ping-6" }, 400);
+      if (answer?.ok && answer.version === 6) return true;
       await new Promise((resolve) => setTimeout(resolve, 300));
     }
     return false;
   }
-  const answer = await askTab(tabId, { type: "sofix-ping-5" }, 800);
-  return Boolean(answer?.ok && answer.version === 5);
+  const answer = await askTab(tabId, { type: "sofix-ping-6" }, 800);
+  return Boolean(answer?.ok && answer.version === 6);
 }
 
 async function sorareTabs() {
@@ -528,7 +528,7 @@ async function throughSorare(operation, variables) {
   const [tab] = await sorareTabs();
   if (!tab) return { state: "no-tab" };
   if (!(await ensureBridge(tab.id))) return { state: "no-bridge" };
-  const answer = await askTab(tab.id, { type: "sofix-ask-5", operation, variables }, 20000);
+  const answer = await askTab(tab.id, { type: "sofix-ask-6", operation, variables }, 20000);
   return answer ?? { state: "error" };
 }
 

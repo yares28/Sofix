@@ -9,10 +9,10 @@
 // It also reads the answers the page itself gets, to learn which card each picture on screen is (the overlay,
 // plans/overlay.md O1). What it learns is a small index kept in this closure: nothing stored, nothing sent away.
 (() => {
-  // 5: mission game discovery and pagination. A tab already open must install the new bridge, or that tab
-  // stays invisible. The message source is versioned for the same reason: the old bridge would answer first.
-  if (window.__sofixBridge === 5) return;
-  window.__sofixBridge = 5;
+  // 6: starting-odds session and partial-error reporting. Already-open tabs must install this bridge too.
+  // Version the message source so an older bridge cannot answer first or repeat a write.
+  if (window.__sofixBridge === 6) return;
+  window.__sofixBridge = 6;
 
   const originalFetch = window.fetch;
   let endpoint = null; // { url, headers } of the last GraphQL request Sorare's page made
@@ -43,7 +43,7 @@
     if (!announceTimer) {
       announceTimer = setTimeout(() => {
         announceTimer = 0;
-        window.postMessage({ source: "sofix-bridge-5", type: "cards" }, location.origin);
+        window.postMessage({ source: "sofix-bridge-6", type: "cards" }, location.origin);
       }, 250);
     }
   }
@@ -57,7 +57,7 @@
       const body = await response.clone().json();
       learn(core.collectCards(body));
       const missions = core.collectMissions ? core.collectMissions(body) : [];
-      if (missions.length && asked) window.postMessage({ source: "sofix-bridge-5", type: "missions", missions, rarity: asked }, location.origin);
+      if (missions.length && asked) window.postMessage({ source: "sofix-bridge-6", type: "missions", missions, rarity: asked }, location.origin);
     } catch {
       // a failure of ours must never reach the page
     }
@@ -84,7 +84,7 @@
         const now = Date.now();
         if (now - sawGraphQLAt > 2000) {
           sawGraphQLAt = now;
-          window.postMessage({ source: "sofix-bridge-5", type: "ready" }, location.origin);
+          window.postMessage({ source: "sofix-bridge-6", type: "ready" }, location.origin);
         }
       }
     } catch {
@@ -127,7 +127,7 @@
     } } }`,
 
     // Sorare only publishes these odds inside its products, so read one selected game with the page's session.
-    SofixLineupChances: `query SofixLineupChances($id: ID!) { anyGame(id: $id) { id ... on Game {
+    SofixLineupChances: `query SofixLineupChances($id: ID!) { currentUser { slug } anyGame(id: $id) { id ... on Game {
       playerGameScores { anyPlayer { slug } anyPlayerGameStats { ... on PlayerGameStats {
         footballPlayingStatusOdds { starterOddsBasisPoints }
       } } }
@@ -212,6 +212,7 @@
       if (issued && !cookie("csrftoken")) document.cookie = `csrftoken=${encodeURIComponent(issued)}; path=/`;
       if (!response.ok) return { state: "error", status: response.status };
       const body = await response.json();
+      if (operation === "SofixLineupChances" && body?.data?.currentUser === null) return { state: "signed-out" };
       if (["SofixMissions", "SofixMissionCards", "SofixMissionGames"].includes(operation) && body?.errors?.length) return { state: "incomplete" };
       // Sorare answers a refused write with 200 and an errors array: those are its words, and they are kept. A read that came back with
       // its data and a complaint about one part keeps the data.
@@ -219,7 +220,7 @@
         return { state: "rejected", errors: body.errors.map((e) => String(e.message || e)) };
       }
       if (core && body && body.data) learn(core.collectCards(body.data)); // a lineup's cards are worth knowing too
-      return { state: "ok", data: (body && body.data) || null };
+      return { state: "ok", data: (body && body.data) || null, ...(operation === "SofixLineupChances" && body?.errors?.length ? { incomplete: true } : {}) };
     } catch {
       return { state: "error" };
     }
@@ -253,10 +254,10 @@
   }
 
   window.addEventListener("message", async (event) => {
-    if (event.source !== window || !event.data || event.data.source !== "sofix-content-5") return;
+    if (event.source !== window || !event.data || event.data.source !== "sofix-content-6") return;
     const { type, id, operation, variables, items } = event.data;
     const result =
       type === "whoami" ? await whoAmI() : type === "ask" ? await ask(operation, variables) : type === "identify" ? identify(items) : null;
-    if (result) window.postMessage({ source: "sofix-bridge-5", id, ...result }, location.origin);
+    if (result) window.postMessage({ source: "sofix-bridge-6", id, ...result }, location.origin);
   });
 })();

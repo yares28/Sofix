@@ -22,23 +22,43 @@ export function recordedGames(matches: LineupMatch[], records: ChanceRecord[]): 
   return links;
 }
 const SorareChancesSchema = z.object({
-  ok: z.literal(true), state: z.literal("ok"), data: z.object({ anyGame: z.object({
-    id: z.string(), playerGameScores: z.array(z.object({
-      anyPlayer: z.object({ slug: z.string() }),
-      anyPlayerGameStats: z.object({ footballPlayingStatusOdds: z.object({ starterOddsBasisPoints: z.number().nullable() }).nullable().optional() }).nullable(),
-    })),
+  ok: z.literal(true), state: z.literal("ok"), incomplete: z.boolean().optional(), data: z.object({ anyGame: z.object({
+    id: z.string(), playerGameScores: z.array(z.unknown()),
   }) }),
 });
-export function parseSorareChances(answer: unknown, link: SorareGameLink): MatchChances | null {
+const SorareScoreSchema = z.object({
+  anyPlayer: z.object({ slug: z.string().min(1) }),
+  anyPlayerGameStats: z.object({ footballPlayingStatusOdds: z.object({ starterOddsBasisPoints: z.number().int().min(0).max(10_000).nullable() }).nullable() }).nullable(),
+});
+export type SorareChanceRead = {
+  state: "ready" | "empty" | "no-players" | "unmatched" | "incomplete" | "signed-out" | "unavailable" | "rate-limited" | "error";
+  values: MatchChances;
+  checked: number;
+};
+/** A successful game read is not proof its private odds were available. Never label errors or failed joins as unpublished. */
+export function sorareChanceRead(answer: unknown, link: SorareGameLink): SorareChanceRead {
+  const envelope = z.object({ ok: z.literal(true), state: z.string(), status: z.number().optional() }).safeParse(answer);
+  const empty = { values: {}, checked: 0 };
+  if (!envelope.success) return { state: "unavailable", ...empty };
+  if (envelope.data.status === 429) return { state: "rate-limited", ...empty };
+  if (envelope.data.state === "signed-out") return { state: "signed-out", ...empty };
+  if (["no-tab", "no-bridge", "timeout"].includes(envelope.data.state)) return { state: "unavailable", ...empty };
   const result = SorareChancesSchema.safeParse(answer);
-  if (!result.success || result.data.data.anyGame.id !== link.id) return null;
+  if (!result.success || result.data.data.anyGame.id !== link.id) return { state: "error", ...empty };
   const values: MatchChances = {};
+  let checked = 0, offered = 0, incomplete = result.data.incomplete ?? false;
   for (const row of result.data.data.anyGame.playerGameScores) {
-    const player = link.players[row.anyPlayer.slug];
-    const n = row.anyPlayerGameStats?.footballPlayingStatusOdds?.starterOddsBasisPoints;
-    if (player && typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 10_000) values[player] = { sorare: n / 10_000 };
+    const parsed = SorareScoreSchema.safeParse(row);
+    if (!parsed.success) { incomplete = true; continue; }
+    checked++;
+    const player = link.players[parsed.data.anyPlayer.slug];
+    const n = parsed.data.anyPlayerGameStats?.footballPlayingStatusOdds?.starterOddsBasisPoints;
+    if (typeof n !== "number") continue;
+    offered++;
+    if (player) values[player] = { sorare: n / 10_000 };
   }
-  return values;
+  const state = incomplete ? "incomplete" : Object.keys(values).length ? "ready" : offered ? "unmatched" : checked ? "empty" : "no-players";
+  return { state, values, checked };
 }
 /** Captured game statements survive the optimizer switching to its next open week. */
 export function recordedChances(matches: LineupMatch[], records: ChanceRecord[]): LineupChances {

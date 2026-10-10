@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 import type { Sorare } from "../lib/play";
+import type { LineupsData } from "../lib/lineups";
 import type { ApiResponse } from "../lib/types";
 import { seasonWeeks } from "../lib/weeks";
 import { MOCK, offline, resetBackend, servedGrid, smallText, sorare as served } from "./helpers";
@@ -33,6 +34,45 @@ test("reads Sorare's starting chances for the displayed game through the extensi
   await page.getByRole("radio", { name: "Sorare", exact: true }).check();
   await expect(card.locator(".lu-pct")).toHaveText("83%");
   await expect(page.getByText("Open a signed-in Sorare tab", { exact: false })).toHaveCount(0);
+});
+
+test("reads each selected match once and explains empty, unmatched and partial odds", async ({ page, request }) => {
+  const data = (await (await request.get(`${MOCK}/api/lineups`)).json()).data as LineupsData;
+  const matches = data.matches.slice(0, 2);
+  const games = matches.map((match, i) => ({ id: `Game:00000000-0000-0000-0000-00000000000${i + 1}`, player: match.home.rows[0]!.players[0]!.id, kickoff: match.kickoff!, match: match.id, slug: `player-${i}` }));
+  await request.post(`${MOCK}/__test/my-weeks`, { data: { chanceRecord: { players: Object.fromEntries(games.map(g => [g.slug, { games: [{ id: g.id, kickoff: g.kickoff, ffMatch: { id: g.match }, ffPlayer: g.player }] }])) } } });
+  await page.addInitScript(({ games }) => {
+    const calls: string[] = [];
+    Object.defineProperty(window, "chanceReads", { value: calls });
+    Object.defineProperty(window, "chrome", { configurable: true, value: { runtime: { sendMessage(_extension: string, message: { type: string; game: string }, reply: (answer: unknown) => void) {
+      if (message.type !== "lineup-chances") return reply(null);
+      calls.push(message.game);
+      const g = games.find(g => g.id === message.game)!;
+      const retry = calls.filter(id => id === g.id).length;
+      const slug = retry === 2 ? "unlinked-player" : g.slug;
+      reply({ ok: true, state: "ok", incomplete: retry === 3, data: { anyGame: { id: g.id, playerGameScores: [{ anyPlayer: { slug }, anyPlayerGameStats: { footballPlayingStatusOdds: retry === 1 ? null : { starterOddsBasisPoints: 8100 } } }] } } });
+    } } } });
+  }, { games });
+  await page.goto(`/lineups?m=${games[0]!.match}`);
+  await page.getByRole("radio", { name: "Sorare", exact: true }).check();
+  await expect(page.getByRole("status").filter({ hasText: "Sorare returned no starting odds for 1 player." })).toBeVisible();
+  await page.getByRole("navigation", { name: /^Matches of/ }).getByRole("link").nth(1).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { chanceReads: string[] }).chanceReads.length)).toBe(2);
+  await page.getByRole("button", { name: "Read from Sorare" }).click();
+  await expect(page.getByText("Sorare returned odds, but its players could not be matched.")).toBeVisible();
+  await page.getByRole("button", { name: "Read from Sorare" }).click();
+  await expect(page.getByText("Sorare returned incomplete starting odds. Available values are shown.")).toBeVisible();
+  await expect(page.locator(".lu-pct").filter({ hasText: "81%" })).toBeVisible();
+  await page.getByRole("navigation", { name: /^Matches of/ }).getByRole("link").first().click();
+  await expect(page.getByText("Sorare returned no starting odds for 1 player.")).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { chanceReads: string[] }).chanceReads.length)).toBe(4);
+});
+
+test("explains when the selected match has no Sorare identity", async ({ page }) => {
+  await page.goto("/lineups?m=22502");
+  await page.getByRole("radio", { name: "Sorare", exact: true }).check();
+  await expect(page.getByText("This match is not linked to Sorare yet.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Read from Sorare" })).toHaveCount(0);
 });
 
 test("the round's ten matches sit on one timeline, and the page opens on the next one", async ({ page }) => {

@@ -8,6 +8,54 @@ from tests.test_pipeline import db  # noqa: F401
 from tests.test_sorare_publish import snapshot
 
 
+def test_loaded_mission_choices_survive_refresh_before_kickoff_and_missing_players():
+    now = datetime(2026, 10, 9, 12, tzinfo=UTC)
+    task = {"id": "source-task", "title": "Goals", "description": "1+ goals", "mode": "DECISIVE", "picks": 1}
+    pool = {
+        "complete": True,
+        "players": [
+            {
+                "player": slug,
+                "card": f"{slug}-copy",
+                "name": slug,
+                "rarity": "limited",
+                "pos": "MID",
+                "pic": "",
+                "p": 1,
+                "games": [{"id": f"game-{slug}", "kickoff": "2026-10-09T19:00:00Z"}],
+            }
+            for slug in ("a", "b")
+        ],
+        "sheets": {"players": {"a": {"season": {"goals": [3, 0]}}, "b": {"season": {"goals": [1, 0]}}}},
+    }
+    before = daily_entry(None, [task], pool, "limited", now)
+    assert before["missions"][0]["sofix"] == ["a"]
+    pool["sheets"]["players"]["b"]["season"]["goals"] = [99, 0]
+    changed = daily_entry(before, [task], pool, "limited", now)
+    assert changed["missions"][0]["sofixPicks"] == before["missions"][0]["sofixPicks"]
+    assert changed["missions"][0]["bestPicks"] == before["missions"][0]["bestPicks"]
+    assert changed["cands"] == before["cands"]
+    after = daily_entry(
+        changed,
+        [{**task, "appearances": [{"player": "b", "status": "SUCCESS"}]}],
+        {"players": []},
+        "limited",
+        datetime(2026, 10, 9, 22, tzinfo=UTC),
+    )
+    assert after["missions"][0]["sofix"] == ["a"]
+    assert after["missions"][0]["yours"][0]["status"] == "SUCCESS"
+    different = daily_entry(before, [{**task, "id": "new-source-task"}], pool, "limited", now)
+    assert different["missions"][0]["sofix"] == ["b"]
+
+
+def test_loaded_empty_mission_choice_is_not_filled_by_later_refreshes():
+    now = datetime(2026, 10, 9, 12, tzinfo=UTC)
+    task = {"id": "source-task", "title": "Goals", "description": "1+ goals", "mode": "DECISIVE", "picks": 1}
+    entry = daily_entry(None, [task], {"players": []}, "limited", now)
+    entry["cands"] = [{"s": "a", "g": "g", "k": "2026-10-09T19:00:00Z", "c": {"source-task": 0.9}}]
+    assert daily_entry(entry, [task], {"players": []}, "limited", now)["missions"][0]["sofix"] == []
+
+
 def test_shot_and_tackle_targets_keep_the_imported_threshold_and_settle_the_same_rule():
     for kind, stat, count, words in [
         ("shot", "ontarget_scoring_att", 2, "shots on target"),

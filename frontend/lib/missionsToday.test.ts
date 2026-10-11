@@ -1,4 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+vi.mock("./missionLog", async original => ({ ...await original<typeof import("./missionLog")>(), loadMissionLog: async () => [] }));
+import { nextDay } from "./missionLog";
+import type { PlayingPlayer } from "./play";
+import type { Sheet } from "./playerSheet";
 import type { MissionRow, MissionsModel } from "./missions";
 import { missionsToday } from "./missionsToday";
 
@@ -6,6 +10,18 @@ const row = (title: string, over: Partial<MissionRow> = {}): MissionRow => ({ id
 const NOW = new Date("2026-10-06T15:00:00Z");
 
 describe("today's missions for a rarity", () => {
+  it("Recap restores loaded picks after kickoff and a pool refresh, without borrowing another day or rarity", async () => {
+    const task = row("Decisive Picker", { id: "source-task", picks: 1 });
+    const p: PlayingPlayer = { player: "saved-player", name: "Saved Player", pos: "MID", avatar: "", pic: "", crest: null, rarity: "limited", club: null, inSeason: true, cards: 1, p: 1, x: 50, average: 50, games: [{ id: "selected-game", kickoff: "2026-10-06T14:00:00Z", competition: "laliga-es", opponent: "Betis", opponentCrest: null, venue: "H" }] };
+    const sheet: Sheet = { pos: "MID", team: "x", starts: 30, seasonStarts: 30, season: {}, l10: {}, last: [], decAll: 0.8, cs: 0, pens: 0 };
+    const saved = nextDay(undefined, [task], [p], { "saved-player": sheet }, "limited", new Date("2026-10-06T09:00:00Z"));
+    const source: MissionsModel = { limited: { missions: [task], seen_at: "2026-10-06T09:00:00Z" } };
+    const logs = [{ days: { "2026-10-06": { limited: saved } } }];
+    const today = await missionsToday(null, source, "limited", NOW, null, logs);
+    expect(today.plans[0]!.picks).toMatchObject([{ slug: "saved-player", game: "selected-game", chance: 0.8 }]);
+    expect((await missionsToday(null, source, "rare", NOW, null, logs)).plans).toEqual([]);
+    expect((await missionsToday(null, source, "limited", new Date("2026-10-07T15:00:00Z"), null, logs)).plans).toEqual([]);
+  });
   it("uses the list loaded since this morning's reset, and says it is today's", async () => {
     const missions: MissionsModel = { limited: { missions: [row("Decisive Picker")], seen_at: "2026-10-06T14:00:00Z" } };
     const today = await missionsToday(null, missions, undefined, NOW);

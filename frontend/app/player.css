@@ -119,7 +119,7 @@
 .ms-current-grid h3 { font-size: 14px; margin: 16px 0 8px; }
 .ms-current-grid .ms-pick { grid-template-columns: 44px minmax(0, 1fr) 76px; }
 .ms-current-grid .chance { white-space: nowrap; }
-.ms-current-grid .chance > span { display: block; font-size: 12px; }
+.ms-current-grid .chance > span { display: block; font-size: 12px; white-space: normal; }
 .ms-mode { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin: 8px 0 20px; }
 .ms-mode [role="group"] { display: flex; gap: 8px; }
 .ms-mode button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }

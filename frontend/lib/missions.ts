@@ -6,6 +6,7 @@ import { formRate, formValues, missionMetric, missionThreshold } from "./mission
 export type SuggestionMode = "best" | "plan";
 
 export const MISSIONS_TAG = "missions";
+export const MISSION_RARITIES = ["limited", "rare", "super_rare", "unique"] as const;
 
 /** Preserve supported tiny chances instead of displaying a reserved Essence pick as a zero. */
 export const missionChance = (n: number | undefined) => n === undefined ? "No estimate" : n > 0 && n < 0.01 ? "<1%" : `${Math.round(n * 100)}%`;

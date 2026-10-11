@@ -1,6 +1,6 @@
 import { cache } from "./cache";
 import { database } from "./db";
-import { MY_WEEK_PREFIX, MY_WEEKS_TAG, type SavedWeek } from "./myWeeks";
+import { ENTERED_WEEK_PREFIX, MY_WEEK_PREFIX, MY_WEEKS_TAG, type SavedWeek } from "./myWeeks";
 
 const readWeeks = cache(async (): Promise<SavedWeek[]> => {
   const sql = database();
@@ -16,6 +16,14 @@ const readWeeks = cache(async (): Promise<SavedWeek[]> => {
 export async function loadMyWeeks(): Promise<SavedWeek[]> {
   return readWeeks();
 }
+const readSnapshots = cache(async (): Promise<SavedWeek[]> => {
+  const sql = database();
+  if (!sql) return [];
+  const rows = await sql`SELECT payload FROM read_models WHERE key LIKE ${`${ENTERED_WEEK_PREFIX}%`} ORDER BY payload->>'end' DESC` as { payload: SavedWeek }[];
+  return rows.map(row => row.payload);
+}, ["entered-weeks-v1"], { tags: [MY_WEEKS_TAG], revalidate: 3600 });
+
+export async function loadEnteredSnapshots(): Promise<SavedWeek[]> { return readSnapshots(); }
 /** Page reads retain their other content when storage is temporarily unavailable. */
 export async function myWeeksQuietly(): Promise<SavedWeek[] | null> {
   try { return await loadMyWeeks(); } catch { return null; }

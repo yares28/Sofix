@@ -4,7 +4,7 @@ import CardZoom from "../ui/CardZoom";
 import { useEffect, useRef, useState } from "react";
 import { cannot } from "../../lib/apply";
 import { pendingLine, resultLine, type GameweekLineup, type WeekLineupsAnswer } from "../../lib/entered";
-import { readEnteredWeek } from "../../lib/myWeeksClient";
+import { readEnteredWeek, type EnteredRead } from "../../lib/myWeeksClient";
 import { REQUIRED_EXTENSION_VERSION } from "../../lib/extension";
 import { Foil } from "./bits";
 import SorareImage from "./SorareImage";
@@ -16,7 +16,7 @@ type Week = { slug: string; number: number; lock?: string; end?: string };
 type Failure = Exclude<WeekLineupsAnswer, { state: "ok" }>;
 type LoadState =
   | { state: "loading"; lineups: GameweekLineup[] }
-  | { state: "ready"; lineups: GameweekLineup[]; at: Date; saved?: boolean }
+  | { state: "ready"; lineups: GameweekLineup[]; at: Date; saved?: boolean; archived?: boolean; saving?: boolean; refreshing?: boolean; refreshIssue?: Failure }
   | { state: "unavailable"; lineups: GameweekLineup[]; answer: Failure };
 
 /** Lineups the signed-in manager actually put on Sorare, read from this exact Sorare gameweek. */
@@ -29,15 +29,16 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
     let current = true;
     const previous = last.current?.slug === week.slug ? last.current.lineups : [];
     setLoad({ state: "loading", lineups: previous });
-    void readEnteredWeek(week.slug, Boolean(week.end && Date.parse(week.end) < Date.now())).then((answer) => {
+    const receive = (answer: EnteredRead) => {
       if (!current) return;
       if (answer.state === "ok") last.current = { slug: week.slug, lineups: answer.lineups };
       setLoad(
         answer.state === "ok"
-          ? { state: "ready", lineups: answer.lineups, at: new Date(), saved: answer.saved }
+          ? { state: "ready", lineups: answer.lineups, at: answer.savedAt ? new Date(answer.savedAt) : new Date(), saved: answer.saved, archived: answer.archived, saving: answer.saving, refreshing: answer.refreshing, refreshIssue: answer.refreshIssue }
           : { state: "unavailable", lineups: previous, answer },
       );
-    });
+    };
+    void readEnteredWeek(week.slug, Boolean(week.end && Date.parse(week.end) < Date.now()), receive).then(receive);
     return () => {
       current = false;
     };
@@ -101,7 +102,7 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
         </span>
       </div>
 
-      {load.state === "ready" && load.lineups.length ? <p className="pl-entered-storage" role="status">{load.saved ? "Final lineups saved in Sofix." : "Live Sorare read · not archived in Sofix yet."}</p> : null}
+      {load.state === "ready" ? <p className="pl-entered-storage" role="status">{load.saving ? "Saving your latest lineups…" : load.saved ? load.archived ? "Final lineups saved in Sofix." : "Latest lineups saved in Sofix." : "Saved on this device; Sofix storage is unavailable."}{load.refreshing ? " Checking Sorare in the background…" : load.refreshIssue ? " Sorare is unavailable; showing your last saved read." : ""}</p> : null}
 
       {load.state === "loading" ? (
         <div className="pl-entered-wait" aria-live="polite">
@@ -193,7 +194,7 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
         <div className="pl-entered-empty">
           <div>
             <b>{load.state === "ready" && load.saved ? "No entered lineups" : "None entered yet"} for GW{week.number}</b>
-            <span>{load.state === "ready" && load.saved ? "Saved final Sorare read: no entered lineups. Drafts are not saved." : `Checked on Sorare at ${checked}: you have no lineup or draft in this gameweek.`}</span>
+            <span>{load.state === "ready" && load.saved ? load.archived ? "Saved final Sorare read: no entered lineups. Drafts are not saved." : "Last saved Sorare read: no lineup or draft in this gameweek." : `Checked on Sorare at ${checked}: you have no lineup or draft in this gameweek.`}</span>
           </div>
         </div>
       ) : null}

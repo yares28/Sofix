@@ -7,7 +7,7 @@ const sql = vi.fn(async (strings: TemplateStringsArray, ...values: unknown[]) =>
   const query = strings.join("?");
   if (query.includes("INSERT")) {
     const key = String(values[0]);
-    if (!saved.has(key)) saved.set(key, JSON.parse(String(values[1])));
+    if (!saved.has(key) || query.includes("DO UPDATE")) saved.set(key, JSON.parse(String(values[1])));
     return [];
   }
   if (query.includes("UPDATE")) {
@@ -15,7 +15,7 @@ const sql = vi.fn(async (strings: TemplateStringsArray, ...values: unknown[]) =>
     if (JSON.stringify(saved.get(key!)) === old) saved.set(key!, JSON.parse(updated!));
     return [];
   }
-  return [...saved.values()].map((payload) => ({ payload }));
+  return [...saved.entries()].filter(([key]) => query.includes("LIKE") ? key.startsWith(String(values[0]).replace("%", "")) : key === values[0]).map(([, payload]) => ({ payload }));
 });
 vi.mock("../../../lib/db", () => ({ database: () => sql }));
 vi.mock("../../../lib/playData", () => ({ loadSorare: async () => ({
@@ -38,14 +38,28 @@ it("rejects cross-origin requests and invalid bodies before any write", async ()
   expect((await call({ slug: "../other", lineups: [] })).status).toBe(400);
   expect(saved.size).toBe(0);
 });
-it("waits for a known week to end more than a day ago and every entered lineup to rank", async () => {
+it("saves live snapshots separately and archives only after settlement with every entered lineup ranked", async () => {
   vi.setSystemTime(new Date("2026-10-07T14:00:00Z"));
-  expect((await call()).status).toBe(409);
+  expect((await call()).status).toBe(200);
+  expect(saved.has("my_week:gw-old")).toBe(false);
+  expect(saved.has("entered_week:gw-old")).toBe(true);
   vi.setSystemTime(new Date("2026-10-08T14:00:00Z"));
-  expect((await call({ slug: "gw-live", lineups: [lineup] })).status).toBe(409);
+  expect((await call({ slug: "gw-live", lineups: [lineup] })).status).toBe(200);
   expect((await call({ slug: "unknown", lineups: [lineup] })).status).toBe(400);
-  expect((await call({ slug: "gw-old", lineups: [{ ...lineup, result: { ...lineup.result, rank: null } }] })).status).toBe(409);
-  expect(saved.size).toBe(0);
+  expect((await call({ slug: "gw-old", lineups: [{ ...lineup, result: { ...lineup.result, rank: null } }] })).status).toBe(200);
+  expect(saved.has("my_week:gw-old")).toBe(false);
+  expect((await call()).status).toBe(200);
+  expect(saved.has("my_week:gw-old")).toBe(true);
+});
+
+it("replaces a live snapshot with scores of zero, drafts or a confirmed empty read without adding final rewards", async () => {
+  await call({ slug: "gw-live", lineups: [lineup] });
+  const zero = { ...lineup, result: { ...lineup.result, score: 0, rank: null } };
+  await call({ slug: "gw-live", lineups: [zero, { ...lineup, id: "draft", draft: true, result: null }] });
+  expect(saved.get("entered_week:gw-live")).toMatchObject({ lineups: [{ result: zero.result, cards: [{ player: "player-a" }] }, { id: "draft" }] });
+  expect((await (await GET()).json()).weeks).toEqual([]);
+  await call({ slug: "gw-live", lineups: [] });
+  expect(saved.get("entered_week:gw-live")).toMatchObject({ lineups: [] });
 });
 it("keeps complete lineups once, resolves player identity from the published collection and leaves drafts out", async () => {
   expect((await call({ slug: "gw-old", lineups: [lineup, { ...lineup, id: "draft", draft: true, result: null }] })).status).toBe(200);

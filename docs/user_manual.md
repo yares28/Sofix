@@ -5,7 +5,9 @@ match without opening Sorare. An unannounced or unreadable XI stays empty with i
 legacy references from pre-day stats, labels them **Reconstructed**, and includes their settled results in your comparison.
 When historical eligibility is incomplete, the comparison is provisional against the cards recorded that day;
 the Audit keeps measuring captured forecasts. Mission plans allocate any supported positive chance to Essence first,
-then clues, then XP. Best cards remains independent for each mission.
+then clues, then XP. Best cards remains independent for each mission. Loading missions saves Sofix's choices and their
+chances for that task: Recap, Missions and later refreshes retain them even after the players have played. Further
+Sorare reads update your picks and verdicts without replacing Sofix's saved choices.
 
 **Edition:** 2026-09-28 · **Audience:** the Sofix owner · **Scope:** web app, PWA, Control Center and Chrome extension.
 
@@ -219,8 +221,11 @@ did over his last 5); the full Missions page is one click away.
 Below the Sofix plan, **Your Sorare lineups** shows what the signed-in owner actually put on Sorare for this exact GW. Entered
 lineups and drafts are labelled separately and retain their Sorare competition and card list. This is not Sofix's
 suggested plan: the extension reads the selected Sorare fixture directly, so the block also works for timeline weeks
-that Sofix no longer retains as an optimized plan. A signed-in `sorare.com` tab must be open; otherwise the block says
-which extension/session prerequisite is missing. Lineups from another GW are never carried into the selected one.
+that Sofix no longer retains as an optimized plan. Every successful read is saved, including live scores and drafts.
+Reopening Recap or Play shows that GW's last saved read immediately and checks Sorare in the background. Saved teams
+also work on a phone or with Sorare closed; an unavailable refresh keeps them visible with a status message. A signed-in
+`sorare.com` tab is needed only for a new read. Live snapshots stay separate from final reward archives. Lineups from
+another GW are never carried into the selected one.
 
 Each row compares **xScore** and **Actual**. Matching saved Sofix lineups retain their recorded forecast. Custom lineups
 get an **xScore estimate** using this GW's player forecasts, original slots, captain, bonuses and substitutes, with

@@ -313,6 +313,7 @@ const server = createServer((req, res) => {
   }
 
   if (req.method === "GET" && url.pathname === "/api/missions") {
+    if (state.missionSource) return send(res, 200, { data: state.missionSource });
     // The three pickers of the Limited tab, as the extension reads them from Sorare's Missions page (`collectMissions` in extension/core.js).
     const picker = (id, title, description) => ({ id, title, description, mode: "DECISIVE", picks: 3, made: 0, period: "DAILY", state: "READY" });
     return send(res, 200, {
@@ -330,6 +331,7 @@ const server = createServer((req, res) => {
     });
   }
   if (req.method === "GET" && url.pathname === "/api/missions/pool") {
+    if (state.missionPool) return send(res, 200, { data: state.missionPool });
     const day = new Date(Date.now() - 8 * 3_600_000).toISOString().slice(0, 10);
     const kickoff = new Date(Math.min(Date.now() + 3_600_000, Date.parse(`${day}T08:00:00Z`) + DAY - 60_000)).toISOString();
     const players = planning.playing.players.filter((p) => p.player).slice(0, 6).map((p, i) => ({ ...p, card: `owned-card-${i}`, rarity: "limited", games: [{ id: `Game:test-${i}`, kickoff, team: "Spain", competition: "international", opponent: "France", opponentCrest: null, venue: "H" }], p: 0.9, pStart: 0.8 }));
@@ -344,6 +346,7 @@ const server = createServer((req, res) => {
     return send(res, 200, { data: { generatedAt: new Date().toISOString(), players, sheets: { asOf: new Date().toISOString(), players: sheets }, statsWindow: "Dated appearance form", complete: true } });
   }
   if (req.method === "GET" && url.pathname === "/api/missions/log") {
+    if (state.missionLog) return send(res, 200, { data: state.missionLog });
     // The missions log (`read_models` key `missions_log:YYYY-MM`, frontend/lib/missionLog.ts): 6 Oct written down and not yet checked, with your two
     // picks already judged by Sorare; 5 Oct checked, Sofix 1 of 3, with two achievers it left out.
     const cand = (s, n, r) => ({ s, n, pic: "", pos: "MID", g: `Game:${s}`, k: "2026-10-05T19:00:00Z", c: { "Decisive Picker": 0.3 }, ...(r ? { r } : {}) });
@@ -472,7 +475,7 @@ const server = createServer((req, res) => {
   if (req.method === "POST" && url.pathname === "/__test/my-weeks") {
     let body = "";
     req.on("data", (chunk) => { body += chunk; });
-    req.on("end", () => { const input = JSON.parse(body); state.myWeeks = input.weeks; state.frozenPlans = input.frozenPlans; state.chanceRecord = input.chanceRecord; state.livePlan = input.livePlan; state.playerScores = input.playerScores; state.sorareData = input.sorareData; send(res, 200, { ok: true }); });
+    req.on("end", () => { const input = JSON.parse(body); state.myWeeks = input.weeks; state.frozenPlans = input.frozenPlans; state.chanceRecord = input.chanceRecord; state.livePlan = input.livePlan; state.playerScores = input.playerScores; state.sorareData = input.sorareData; state.missionSource = input.missionSource; state.missionPool = input.missionPool; state.missionLog = input.missionLog; send(res, 200, { ok: true }); });
     return;
   }
   if (req.method === "POST" && url.pathname === "/__test/mode") {

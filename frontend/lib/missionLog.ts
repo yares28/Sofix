@@ -1,7 +1,7 @@
 import { database } from "./db";
 import { cache } from "./cache";
 import { isToday, missionCandidates, missionDay, MISSIONS_TAG, plan, ruleOf, type MissionPick, type MissionRow, type MissionsModel, type Rule, type Suggestion, type SuggestionMode } from "./missions";
-import { RARITIES } from "./missionsToday";
+import { MISSION_RARITIES as RARITIES } from "./missions";
 import type { PlayingPlayer, Sorare } from "./play";
 import type { Sheet } from "./playerSheet";
 import { mergeMissionRecord } from "./missionStore";
@@ -69,7 +69,7 @@ export type LogMission = {
   sofixPicks?: MissionPick[];
   bestPicks?: MissionPick[];
 };
-export type LogRarity = { loaded: boolean; missions: LogMission[]; cands: LogCand[]; coverage?: "snapshot" | "missing"; captured?: string; reconstructed?: boolean; replay?: LogRarity };
+export type LogRarity = { loaded: boolean; missions: LogMission[]; cands: LogCand[]; coverage?: "snapshot" | "missing"; captured?: string; lockedAt?: string; reconstructed?: boolean; replay?: LogRarity };
 export type MonthLog = { days: Record<string, Record<string, LogRarity>> };
 
 /** Owner-approved counterfactual comparison. Audit and all writes still use the original captured record. */
@@ -125,9 +125,8 @@ export function dayMissions(loaded: MissionRow[] | null): MissionRow[] {
 const asRow = (m: LogMission): MissionRow => ({ ...m.source, id: m.key, title: m.title ?? m.key, description: m.description, mode: m.mode, picks: m.picks, made: 0, period: m.source?.period ?? "DAILY", state: null, stats: m.stats, appearances: m.source?.appearances !== undefined || m.yours.length ? m.yours : undefined });
 
 /**
- * One rarity's log for today, from what it held before (`prev`) and the plans now. A candidate whose game has kicked off is frozen with what was said of
- * him, and so is a pick on him; until then the latest run wins, so a pick replaced before its game is dropped. Later runs fill only the slots the frozen
- * picks leave. Sofix's choice is its full one (the mission's picks), whatever you already picked on Sorare.
+ * Loaded task choices and their evidence stay fixed from the first load. Unloaded baseline forecasts still update until kickoff.
+ * Later source reads update the owner's picks and verdicts; new source task IDs receive their own first choice.
  */
 export function nextDay(
   prev: LogRarity | undefined,
@@ -141,7 +140,9 @@ export function nextDay(
   // A list loaded earlier today stays the day's list if a later run has none (the reset falls inside a Madrid day).
   const missions = loadedList ? dayMissions(loadedList) : prev?.loaded ? prev.missions.map(asRow) : dayMissions(null);
   const prior = (m: MissionRow) => prev?.missions.find((old) => old.key === m.id || ((!old.title || old.key === DAILY_PICKER.id) && same(old.title ?? old.key, m.title)));
-  const frozen = (prev?.cands ?? []).filter((c) => new Date(c.k) <= now).map((c) => {
+  const locked = (m: MissionRow) => Boolean(prev?.loaded && prior(m));
+  const frozen = (prev?.cands ?? []).filter((c) => prev?.loaded || new Date(c.k) <= now).map((oldCand) => {
+    let c = { ...oldCand };
     for (const m of missions) { const old = prior(m); if (old && old.key !== m.id) c = aliasCandidate(c, old.key, m.id); }
     return c;
   });
@@ -149,27 +150,35 @@ export function nextDay(
   const frozenPicks = (m: MissionRow, mode: SuggestionMode): MissionPick[] => {
     const old = prior(m);
     const picks = mode === "best" ? old?.bestPicks ?? [] : old?.sofixPicks?.length ? old.sofixPicks : (old?.sofix ?? []).map((player) => ({ player, game: null, rarity, status: null }));
-    return picks.filter((p) => frozen.some((c) => matches(c, p)));
+    return locked(m) ? picks : picks.filter((p) => frozen.some((c) => matches(c, p)));
   };
   const reserved = missions.flatMap((m) => frozenPicks(m, "plan"));
   const frozenByMission = (mode: SuggestionMode) => Object.fromEntries(missions.map((m) => [m.id, frozenPicks(m, mode).map((p) => p.player)]));
-  const allocated = plan(missions.map((m) => ({ ...m, picks: Math.max(0, m.picks - frozenPicks(m, "plan").length) })), rarity,
+  const allocated = plan(missions.map((m) => ({ ...m, picks: locked(m) ? 0 : Math.max(0, m.picks - frozenPicks(m, "plan").length) })), rarity,
     players.filter((p) => !reserved.some((r) => r.card ? r.card === (p as { card?: string }).card : r.player === p.player)), sheets, now, "plan", frozenByMission("plan")).plans;
-  const best = plan(missions.map((m) => ({ ...m, picks: Math.max(0, m.picks - frozenPicks(m, "best").length) })), rarity, players, sheets, now, "best", frozenByMission("best")).plans;
+  const best = plan(missions.map((m) => ({ ...m, picks: locked(m) ? 0 : Math.max(0, m.picks - frozenPicks(m, "best").length) })), rarity, players, sheets, now, "best", frozenByMission("best")).plans;
   const plans = plan(missions, rarity, players, sheets, now).plans;
   const eligible = missions.map((m) => ({ key: m.id, cards: missionCandidates(m, rarity, players, now, []).filter((c) => c.editable) }));
 
   const fresh: LogCand[] = [];
   for (const p of players.filter((p) => p.rarity === rarity && p.player)) for (const game of p.games) {
     const card = (p as { card?: string }).card;
+    const retained = frozen.find(c => c.s === p.player && c.card === card && c.g === (game.id ?? null));
+    if (retained && missions.every(m => locked(m))) continue;
     if (Date.parse(game.kickoff) <= now.getTime() || (missionDay(new Date(game.kickoff)) !== missionDay(now) && !missions.some((m) => m.eligibleCards?.[game.id ?? ""])) || fresh.some((c) => c.s === p.player && c.card === card && c.g === (game.id ?? null))) continue;
     const c: Record<string, number> = {};
     const evidence: Record<string, Suggestion> = {};
     for (const one of plans) {
       const found = one.all.find((s) => s.slug === p.player && s.card === card && s.game === game.id);
-      if (found) { c[one.mission.id] = found.chance; evidence[one.mission.id] = { ...found, form: undefined, captured: now.toISOString() }; }
+      if (found) { c[one.mission.id] = found.chance; evidence[one.mission.id] = { ...found, form: retained ? found.form : undefined, captured: now.toISOString() }; }
     }
-    fresh.push({ s: p.player!, n: p.name, pic: p.pic, pos: p.pos, card: (p as { card?: string }).card, g: game.id ?? null, k: game.kickoff, c, evidence, match: game, eligible: eligible.filter((m) => m.cards.some((c) => c.p.player === p.player && c.p.card === card && c.game.id === game.id)).map((m) => m.key), historyOnly: Object.entries(evidence).filter(([, p]) => p.historical).map(([key]) => key), targets: Object.fromEntries(missions.flatMap((m) => { const target = m.inventory?.find((x) => x.card === card && x.game.id === game.id)?.target; return target === undefined ? [] : [[m.id, target]]; })), sheet: sheets[p.player!], captured: now.toISOString() });
+    if (retained) {
+      // A newly imported task may use the same card/game; add only its evidence.
+      for (const m of missions.filter(m => !locked(m))) {
+        if (c[m.id] !== undefined) retained.c = { ...retained.c, [m.id]: c[m.id]! };
+        if (evidence[m.id]) retained.evidence = { ...retained.evidence, [m.id]: evidence[m.id]! };
+      }
+    } else fresh.push({ s: p.player!, n: p.name, pic: p.pic, pos: p.pos, card: (p as { card?: string }).card, g: game.id ?? null, k: game.kickoff, c, evidence, match: game, eligible: eligible.filter((m) => m.cards.some((c) => c.p.player === p.player && c.p.card === card && c.game.id === game.id)).map((m) => m.key), historyOnly: Object.entries(evidence).filter(([, p]) => p.historical).map(([key]) => key), targets: Object.fromEntries(missions.flatMap((m) => { const target = m.inventory?.find((x) => x.card === card && x.game.id === game.id)?.target; return target === undefined ? [] : [[m.id, target]]; })), sheet: sheets[p.player!], captured: now.toISOString() });
   }
 
   for (const p of players.filter((p) => p.rarity === rarity && p.player)) for (const game of p.games) {
@@ -181,6 +190,7 @@ export function nextDay(
     ...(prev?.replay ? {replay:prev.replay} : {}),
     coverage: "snapshot",
     captured: now.toISOString(),
+    ...(loaded ? { lockedAt: prev?.loaded ? prev.lockedAt ?? prev.captured ?? now.toISOString() : now.toISOString() } : {}),
     missions: missions.map((m, i) => ({
       key: m.id,
       aliases: [...new Set([...(prior(m) && prior(m)!.key !== m.id ? [prior(m)!.key] : []), ...(prior(m)?.aliases ?? [])])],
@@ -201,7 +211,7 @@ export function nextDay(
   };
 }
 
-/** Display the full independent choice, retaining captured picks and evidence once their games lock. No writes or backfilled forecasts. */
+/** Display the saved choice even when its players have left the current game pool. No writes or backfilled forecasts. */
 export function restoreMissionBenchmark(missions: MissionRow[], previous: LogRarity | undefined, players: PlayingPlayer[], sheets: Record<string, Sheet | undefined>, rarity: string, now: Date, mode: SuggestionMode = "plan") {
   previous = previous ? replayedEntry(previous) : previous;
   const recorded = nextDay(previous, missions, players, sheets, rarity, now);
@@ -216,7 +226,7 @@ export function restoreMissionBenchmark(missions: MissionRow[], previous: LogRar
       const currentGame = players.flatMap((p) => p.player === slug ? p.games : []).find((g) => g.id === c.g);
       const game = c.match ? { ...currentGame, ...c.match } : currentGame;
       const frozen = Date.parse(c.k) <= now.getTime();
-      return [{ ...(evidence ?? { slug, card: c.card, game: c.g ?? undefined, name: c.n, pic: c.pic, pos: c.pos as PlayingPlayer["pos"], club: null, team: game?.team, opponent: game?.opponent ?? "Match details not saved", venue: game?.venue, kickoff: c.k, chance: c.c[one.mission.id]!, cards: 1, historical: c.historyOnly?.includes(one.mission.id), target: c.targets?.[one.mission.id] }), form: c.sheet?.form ?? evidence?.form, captured: c.captured, frozen }];
+      return [{ ...(evidence ?? { slug, card: c.card, game: c.g ?? undefined, name: c.n, pic: c.pic, pos: c.pos as PlayingPlayer["pos"], club: null, team: game?.team, opponent: game?.opponent ?? "Match details not saved", venue: game?.venue, kickoff: c.k, chance: c.c[one.mission.id]!, cards: 1, historical: c.historyOnly?.includes(one.mission.id), target: c.targets?.[one.mission.id] }), form: evidence?.form ?? c.sheet?.form, captured: evidence?.captured ?? c.captured, frozen }];
     });
     return { ...one, picks: picks.map(p => ({...p, reconstructed: previous?.reconstructed})) };
   });

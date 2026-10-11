@@ -29,7 +29,7 @@ export default async function Missions({ searchParams }: { searchParams: SearchP
   const [data, missions, { grid, meta }, system, log, pool] = await Promise.all([loadSorare(), loadMissions(), loadGrid(), loadSystem(), loadMissionLog(), loadMissionPool()]);
   const week = weekContext(grid, data, new Date(), { w: single("w"), gw: single("gw") });
   const now = new Date();
-  const today = await missionsToday(data, missions, single("rarity"), now, pool);
+  const today = await missionsToday(data, missions, single("rarity"), now, pool, log);
   const players = missionPlayers(pool?.players ?? data?.weeks.flatMap((w) => w.playing.players) ?? [], today.plans.map((p) => p.mission), today.rarity);
   const previous = log.reduce<import("../../lib/missionLog").LogRarity | undefined>((found, l) => l.days[missionDay(now)]?.[today.rarity] ?? found, undefined);
   const sheets = pool?.sheets.players ?? (await loadPlayerSheets()).players;

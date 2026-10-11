@@ -4,6 +4,7 @@ import { weekWon } from "./entered";
 import { CardMetadata, ScoringSchema } from "./lineupMetadata";
 
 export const MY_WEEK_PREFIX = "my_week:";
+export const ENTERED_WEEK_PREFIX = "entered_week:";
 export const MY_WEEKS_TAG = "my-weeks";
 export const SETTLE_MS = 86_400_000;
 export const WeekSlug = z.string().regex(/^[a-z0-9][a-z0-9-]{0,80}$/);
@@ -22,7 +23,7 @@ export type SavedWeek = {
   lineups: (Omit<GameweekLineup, "cards"> & { cards: (GameweekLineup["cards"][number] & { player: string | null })[] })[];
 };
 export type FinishedWeek = { slug: string; number: number; start: string; end: string };
-export type MyWeeks = { weeks: SavedWeek[]; pending: FinishedWeek[] };
+export type MyWeeks = { weeks: SavedWeek[]; pending: FinishedWeek[]; snapshots?: SavedWeek[] };
 export type CardReturn = { lineups: number; weeks: number; essence: number; cash: number };
 
 export function needsScoring(lineup: GameweekLineup): boolean {

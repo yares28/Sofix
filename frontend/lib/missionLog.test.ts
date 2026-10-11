@@ -19,6 +19,31 @@ const players = [player("a", "2026-10-06T14:00:00Z"), player("b", "2026-10-06T14
 const sheets = { a: sheet(4), b: sheet(3), c: sheet(2), d: sheet(1) };
 const MORNING = new Date("2026-10-06T09:00:00Z");
 
+it("locks loaded mission choices and evidence before kickoff, even when players disappear or form changes", () => {
+  const tasks = [{ ...INTERCEPTION, id: "source-task", picks: 1 }];
+  const before = nextDay(undefined, tasks, players, sheets, "limited", MORNING);
+  expect(before.missions[0]!.sofix).toEqual(["a"]);
+  const changed = nextDay(before, tasks, players, { ...sheets, d: sheet(99) }, "limited", new Date("2026-10-06T10:00:00Z"));
+  expect(changed.missions[0]!.sofixPicks).toEqual(before.missions[0]!.sofixPicks);
+  expect(changed.missions[0]!.bestPicks).toEqual(before.missions[0]!.bestPicks);
+  expect(changed.cands.find(c => c.s === "a")).toEqual(before.cands.find(c => c.s === "a"));
+  const later = new Date("2026-10-06T22:00:00Z");
+  const shown = restoreMissionBenchmark(tasks, changed, [], {}, "limited", later);
+  expect(shown[0]!.picks.map(p => p.slug)).toEqual(["a"]);
+  expect(shown[0]!.picks[0]!.chance).toBe(before.cands.find(c => c.s === "a")!.c["source-task"]);
+  const refreshed = nextDay(changed, [{ ...tasks[0]!, appearances: [{ player: "b", game: "Game:b", rarity: "limited", status: "SUCCESS" }] }], [], {}, "limited", later);
+  expect(refreshed.missions[0]!.sofix).toEqual(["a"]);
+  expect(refreshed.missions[0]!.yours[0]!.status).toBe("SUCCESS");
+  const newTask = nextDay(changed, [{ ...tasks[0]!, id: "different-source-task" }], players, { ...sheets, d: sheet(99) }, "limited", new Date("2026-10-06T10:00:00Z"));
+  expect(newTask.missions[0]!.sofix).toEqual(["d"]);
+});
+
+it("preserves a loaded empty choice instead of backfilling it with later candidates", () => {
+  const tasks = [{ ...INTERCEPTION, picks: 1 }];
+  const before = nextDay(undefined, tasks, [], {}, "limited", MORNING);
+  expect(nextDay(before, tasks, players, sheets, "limited", MORNING).missions[0]!.sofix).toEqual([]);
+});
+
 it("captures both choices separately and never invents legacy best-card forecasts", () => {
   const tasks = [{ ...INTERCEPTION, id: "one", picks: 1 }, { ...INTERCEPTION, id: "two", picks: 1 }];
   const before = nextDay(undefined, tasks, players, sheets, "limited", MORNING);

@@ -1,10 +1,13 @@
 import { expect, test } from "@playwright/test";
 import { currentWeek, seasonWeeks } from "../lib/weeks";
-import type { GameweekPlan, Sorare } from "../lib/play";
+import type { GameweekPlan, PlayingPlayer, Sorare } from "../lib/play";
 import { APP, MOCK, offline, resetBackend, servedGrid } from "./helpers";
 import { E2E_REVALIDATE_SECRET } from "./constants";
+import type { SavedWeek } from "../lib/myWeeks";
+import { missionDay, type MissionRow } from "../lib/missions";
+import { nextDay } from "../lib/missionLog";
 
-test("Recap and Play keep the current GW, compare all entered and best-plan lineups, and retain custom estimates", async ({ page, request }) => {
+test("Recap and Play keep the current GW, compare all entered and best-plan lineups, and retain custom estimates", async ({ page, request, context }) => {
   await resetBackend(request);
   await offline(page);
   const data = (await (await request.get(`${MOCK}/api/sorare`)).json()).data as Sorare;
@@ -27,6 +30,16 @@ test("Recap and Play keep the current GW, compare all entered and best-plan line
   data.weeks = data.weeks.filter(w => w.gameweek.id !== info.id);
   await request.post(`${MOCK}/__test/my-weeks`, { data: { weeks: [], frozenPlans: [], livePlan: forecast, sorareData: data } });
   await request.post(`${APP}/api/revalidate`, { headers: { authorization: `Bearer ${E2E_REVALIDATE_SECRET}` } });
+  const snapshots = new Map<string, SavedWeek>();
+  await context.route("**/api/my-week", async route => {
+    if (route.request().method() === "POST") {
+      const body = route.request().postDataJSON();
+      const week = data.timeline.find(w => w.slug === body.slug)!;
+      snapshots.set(body.slug, { ...week, savedAt: new Date().toISOString(), lineups: body.lineups });
+      return route.fulfill({ json: { ok: true, archived: false } });
+    }
+    return route.fulfill({ json: { weeks: [], pending: [], snapshots: [...snapshots.values()] } });
+  });
   const lineup = best.lineups[0]!;
   await page.addInitScript(({ slug, lineup }) => {
     const root = globalThis as typeof globalThis & { chrome?: { runtime?: { sendMessage?: (id: string, message: Record<string, unknown>, reply: (value: unknown) => void) => void } } };
@@ -62,6 +75,7 @@ test("Recap and Play keep the current GW, compare all entered and best-plan line
   await expect(mine.locator(".pl-entered-expected").last()).toContainText("xScore estimate");
   await expect(mine.locator(".pl-entered-result b").first()).toHaveText("0");
   await expect(mine.locator(".pl-entered-result b").last()).toHaveText("313");
+  await expect(mine).toContainText("Latest lineups saved in Sofix");
   const plan = page.getByRole("region", { name: "Best Sofix plan" });
   await expect(plan.locator(".rc-lu")).toHaveCount(best.lineups.length);
   await expect(plan).toContainText("500 expected essence");
@@ -93,6 +107,58 @@ test("Recap and Play keep the current GW, compare all entered and best-plan line
   await page.goto("/difficulty");
   await expect(page.locator(".wk-trigger")).toContainText(`Sorare GW${info.number}`);
   await expect(page.getByRole("heading", { name: "Your week", exact: true })).toBeVisible();
+
+  // A cold device has no browser cache and no signed-in Sorare tab: server snapshots still render both teams.
+  await page.evaluate(() => localStorage.clear());
+  await page.close();
+  const reopened = await context.newPage();
+  await offline(reopened);
+  const selected = seasonWeeks(await servedGrid(request), data, new Date()).find(w => w.gw === info.id)!;
+  await reopened.goto(`/play?w=${selected.id}`);
+  await expect(reopened.locator(".pl-entered-lineup")).toHaveCount(2);
+  await expect(reopened.locator(".pl-entered")).toContainText("Latest lineups saved in Sofix");
+  await expect(reopened.locator(".pl-entered")).toContainText("showing your last saved read");
+  await reopened.goto(`/?w=${selected.id}`);
+  await expect(reopened.locator(".rc-entered .pl-entered-lineup")).toHaveCount(2);
+});
+
+test("Recap keeps loaded mission picks and their chances after kickoff, reload and navigation", async ({ page, request }) => {
+  await resetBackend(request);
+  await offline(page);
+  const now = new Date();
+  const day = missionDay(now);
+  const captured = new Date(`${day}T08:00:00Z`);
+  const player: PlayingPlayer = { player: "saved-mission-player", name: "Saved mission player", pos: "MID", avatar: "", pic: "", crest: null, rarity: "limited", club: null, inSeason: true, cards: 1, p: 1, x: 50, average: 50,
+    games: [{ id: "captured-mission-game", kickoff: new Date(captured.getTime() + 60_000).toISOString(), competition: "laliga-es", opponent: "Betis", opponentCrest: null, venue: "H" }] };
+  const task: MissionRow = { id: "loaded-source-task", title: "Decisive Picker", description: "Positive decisive action", mode: "DECISIVE", picks: 1, made: 0, period: "DAILY", state: "READY" };
+  const sheet = { pos: player.pos, team: "x", starts: 20, seasonStarts: 20, season: {}, l10: {}, last: [], decAll: 0.8, cs: 0, pens: 0 };
+  const entry = nextDay(undefined, [task], [player], { [player.player!]: sheet }, "limited", captured);
+  expect(entry.missions[0]!.sofix).toEqual([player.player]);
+  await request.post(`${MOCK}/__test/my-weeks`, { data: {
+    missionSource: { limited: { missions: [task], seen_at: captured.toISOString(), verified: true } },
+    missionPool: { generatedAt: now.toISOString(), players: [], sheets: { asOf: now.toISOString(), players: {} }, complete: true },
+    missionLog: [{ days: { [day]: { limited: entry } } }],
+  } });
+  await request.post(`${APP}/api/revalidate`, { headers: { authorization: `Bearer ${E2E_REVALIDATE_SECRET}` } });
+  await page.goto("/");
+  const missions = page.getByRole("region", { name: "Missions", exact: true });
+  await expect(missions.getByRole("link", { name: player.name, exact: true })).toBeVisible();
+  await expect(missions).toContainText("80%");
+  await page.reload();
+  await expect(missions.getByRole("link", { name: player.name, exact: true })).toBeVisible();
+  await page.goto("/missions");
+  await expect(page.locator(".ms-current-grid")).toContainText(player.name);
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.locator(".ms-current-grid .chance").evaluateAll(nodes => nodes.every(node => node.scrollWidth <= node.clientWidth))).toBe(true);
+  }
+  await page.goto("/");
+  await expect(missions).toContainText("80%");
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await missions.screenshot({ path: `../output/playwright/recap-locked-missions-${width}.png` });
+  }
 });
 
 test("a saved custom estimate survives closed Sorare tabs and follows the selected GW", async ({ page, request, context }) => {

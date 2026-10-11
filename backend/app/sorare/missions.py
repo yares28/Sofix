@@ -527,6 +527,46 @@ def daily_entry(
 ) -> dict[str, Any]:
     """Baseline capture without the browser. Imported fields and frozen forecasts survive."""
     old = previous or {}
+    if old.get("loaded"):
+        # A successful source load is the decision point, not kickoff. Refreshes
+        # may update the owner's verdicts, but cannot replace captured choices.
+        previous_missions = {m["key"]: m for m in old["missions"]}
+        source = loaded if loaded is not None else [m.get("source", {"id": m["key"]}) for m in old["missions"]]
+        new_tasks = [m for m in source if m["id"] not in previous_missions]
+        reserved = {
+            p.get("card") or p["player"]
+            for m in old["missions"]
+            if any(s["id"] == m["key"] for s in source)
+            for p in m.get("sofixPicks", [{"player": s} for s in m["sofix"]])
+        }
+        fresh_pool = {
+            **pool,
+            "players": [p for p in pool.get("players", []) if (p.get("card") or p["player"]) not in reserved],
+        }
+        fresh = daily_entry(None, new_tasks, fresh_pool, rarity, now) if new_tasks else {"missions": [], "cands": []}
+        # Independent best-card choices do not share the Sofix allocation.
+        best = daily_entry(None, new_tasks, pool, rarity, now) if new_tasks else fresh
+        by_key = {m["key"]: m for m in fresh["missions"]}
+        best_by_key = {m["key"]: m for m in best["missions"]}
+        kept = []
+        for task in source:
+            prior = previous_missions.get(task["id"])
+            if prior is None:
+                mission = by_key[task["id"]]
+                mission["bestPicks"] = best_by_key[task["id"]]["bestPicks"]
+            else:
+                mission = copy.deepcopy(prior)
+                if "appearances" in task:
+                    mission["yours"] = task["appearances"]
+                if loaded is not None:
+                    mission["source"] = task
+            kept.append(mission)
+        return {
+            **old,
+            "missions": kept,
+            "cands": copy.deepcopy(old.get("cands", [])) + best["cands"],
+            "lockedAt": old.get("lockedAt", old.get("captured", now.isoformat())),
+        }
     assumed = {
         "key": "daily-decisive-picker",
         "title": "Decisive Picker",
@@ -758,6 +798,7 @@ def daily_entry(
         "cands": cands,
         "coverage": "snapshot" if pool.get("complete") else "missing",
         "captured": now.isoformat(),
+        **({"lockedAt": now.isoformat()} if loaded is not None else {}),
     }
 
 

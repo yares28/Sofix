@@ -1,10 +1,11 @@
-import { isToday, plan, type MissionPlan, type MissionsModel } from "./missions";
+import { isToday, missionDay, MISSION_RARITIES, type MissionPlan, type MissionsModel } from "./missions";
+import { loadMissionLog, restoreMissionBenchmark, type LogRarity, type MonthLog } from "./missionLog";
 import type { Sorare } from "./play";
 import type { MissionPool } from "./missionsPool";
 import { loadPlayerSheets } from "./playerGames";
 import { missionPlayers } from "./missionInventory";
 
-export const RARITIES = ["limited", "rare", "super_rare", "unique"] as const;
+export const RARITIES = MISSION_RARITIES;
 
 /**
  * Whether the missions shown are today's: `today` when this rarity's list was loaded since Sorare's last reset (it may hold no mission at all),
@@ -22,6 +23,7 @@ export async function missionsToday(
   asked: string | undefined,
   now: Date,
   pool?: MissionPool | null,
+  logs?: MonthLog[],
 ): Promise<{
   rarity: string;
   seen: string[];
@@ -43,6 +45,8 @@ export async function missionsToday(
   const status: MissionsStatus = own ? "today" : seenAt ? "stale" : "never";
   const list = own ?? [];
   const players = missionPlayers(pool?.players ?? (data ? data.weeks.flatMap((w) => w.playing.players) : []), list, rarity);
-  const made = list.length ? plan(list, rarity, players, sheets.players, now) : null;
-  return { rarity, seen: [...seen], day: made?.day ?? null, plans: made?.plans ?? [], status, seenAt };
+  const day = missionDay(now);
+  const previous = (logs ?? (list.length ? await loadMissionLog() : [])).reduce<LogRarity | undefined>((found, log) => log.days[day]?.[rarity] ?? found, undefined);
+  const plans = list.length ? restoreMissionBenchmark(list, previous, players, sheets.players, rarity, now) : [];
+  return { rarity, seen: [...seen], day: list.length ? day : null, plans, status, seenAt };
 }

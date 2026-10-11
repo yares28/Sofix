@@ -27,13 +27,20 @@ it("makes pre-lock accuracy and its distinct samples readable, without repeating
   expect(renderToStaticMarkup(React.createElement(PrelockAudit, { data: { ...live, rate: null } }))).not.toContain('class="au-result-big">0%');
 });
 
-it("compares large RPS results with the lower source and gap, and treats equal displayed results as tied", () => {
+it("shows understandable error points out of 100, preserves raw RPS and treats rounded values as tied", () => {
   const data = { recorded: 311, checked: 7, floor: 1, sofix: .1082, bookmakers: .0884, oddsThrough: null, generatedAt: "" };
   const draw = (values = data) => renderToStaticMarkup(React.createElement(MatchAudit, { data: values }));
-  expect(draw()).toContain('class="au-result-number">0.1082');
-  expect(draw()).toContain("Bookmakers lower by 0.0198 RPS");
-  expect(draw({ ...data, sofix: 0 })).toContain("Sofix lower by 0.0884 RPS");
+  expect(draw()).toContain('class="au-result-number">10.8');
+  expect(draw()).toContain('class="au-result-number">8.8');
+  expect(draw()).toContain("0 = perfect");
+  expect(draw()).toContain("100 = worst");
+  expect(draw()).toContain("Bookmakers had 2.0 fewer error points");
+  expect(draw()).toContain("Ranked Probability Score");
+  expect(draw()).toContain("0.1082");
+  expect(draw({ ...data, sofix: 0 })).toContain("Sofix had 8.8 fewer error points");
   expect(draw({ ...data, sofix: .08840001 })).toContain("Same error at this precision");
+  expect(draw({ ...data, sofix: .1084, bookmakers: .1082 })).toContain("Same error at this precision");
+  expect(draw({ ...data, sofix: 1 })).toContain('class="au-result-number">100.0');
 });
 
 it("shows paired match RPS from the first result, with the saved odds date", () => {
@@ -45,9 +52,11 @@ it("shows paired match RPS from the first result, with the saved odds date", () 
   const small = renderToStaticMarkup(React.createElement(MatchAudit, { data: { ...data, checked: 1, sofix: 0 } }));
   expect(small).not.toContain("Too few to tell");
   expect(small).toContain("0.0000");
-  expect(small).toContain("1 paired result");
+  expect(small).toContain('class="au-result-number">0.0');
+  expect(small).toContain("1 match compared");
   const missing = renderToStaticMarkup(React.createElement(MatchAudit, { data: { ...data, checked: 6, sofix: null, bookmakers: null } }));
-  expect(missing).toContain("6 paired results");
+  expect(missing).toContain("6 matches compared");
+  expect(missing).not.toContain('class="au-result-number"');
   expect(missing).not.toContain("0.0000");
 });
 

@@ -481,9 +481,12 @@ reading is saved, it says "No predicted elevens kept yet". A failed source stops
 
 **Match forecasts, checked**, below xScore, compares Sofix with bookmaker prices on the same finished LaLiga matches.
 Forecasts update until kick-off and then stay fixed. Closing CSV prices come first, then the last available pre-match
-price. Both RPS error scores appear side by side from the first paired result, with the lower error marked and the absolute
-gap shown. Paired results and saved forecasts are counted separately; **How this is checked** opens the method and saved
-odds date. Missing prices or results stay pending.
+price. Both sources appear side by side from the first compared match, as **forecast error points out of 100**: 0 is
+perfect and 100 is the worst possible error. These points measure the error in the predicted win/draw/loss chances.
+Lower is better; the lower source and gap in points are shown. This is the published Ranked Probability Score (RPS)
+multiplied by 100, rounded to one decimal: 0.1082 becomes 10.8/100. It is not a percentage of correct predictions.
+Compared matches and saved forecasts are counted separately; **How this is checked** opens the method, original RPS
+values and saved odds date. Missing prices or results stay pending.
 The odds record keeps its own copy of prices and says **Odds up to** the newest saved match date. A source stopping
 only stops new readings; saved prices remain available.
 Older seasons back to 2016/17 are read once if the runner's cache did not already hold them.

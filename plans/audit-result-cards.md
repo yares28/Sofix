@@ -40,3 +40,35 @@ inspect 1440/390 screenshots, review Web Interface Guidelines, then ship through
   container queries, readable text and existing reduced-motion behavior. No extra assets or decorative charts.
 - Acceptance criteria met on the published real-data cases; synthetic tests cover zero, missing and tied cases that
   are absent from the current published aggregates. Calculations and source coverage are unchanged.
+
+## Follow-up: understandable match error, 11 October
+
+Requested outcome: replace the unexplained decimal RPS headline with an intuitive match-forecast comparison.
+No extra clicks to understand the result; keep all saved GWs and the same paired matches. Preserve the original
+published statistic, zero/missing behavior and first-result availability.
+
+Visual thesis: the same restrained white card, one-decimal error points out of 100, and proportional comparison bars.
+Content plan: explain what is measured; label 0 as perfect and 100 as worst; compare Sofix and bookmakers; name the
+lower error and gap in points; retain counts and put the raw RPS plus its full name and conversion in details.
+Interaction thesis: existing entrance and native method disclosure; bars convey values without extra animation.
+RPS is multiplied by 100, never inverted or presented as a percentage of correct predictions. The local normalized
+formula in backend/app/backtest/metrics.py divides the sum of two squared cumulative probability gaps by two, so its
+range is 0–1. The display range is therefore 0–100. Ties and gaps use displayed one-decimal error points.
+
+Acceptance tests first: 0.1082 → 10.8/100; 0.0884 → 8.8/100; 2.0-point comparison, both lower-error sources, rounded
+ties, first-result zero, worst score 100 and missing data. Raw RPS remains accessible in details. Run Audit desktop
+and mobile specs and frontend gate; inspect real-data screenshots at 1440/390, review interface guidelines, ship.
+
+Follow-up verification:
+
+- The new regression assertions failed on the old raw-decimal display, then passed on the error-point display.
+  Frontend gate passed: generated types, ESLint, TypeScript and Vitest.
+- Audit desktop/mobile run: 18 passed and one existing history-navigation case missed the All GWs view change;
+  that case passed on an isolated `npx playwright test --last-failed` rerun without code changes. No outstanding failures.
+- Real read-model page at /audit?w=2026-10-09: asserted 10.8/100 and 8.8/100; 7 compared matches and 311 saved
+  forecasts; method disclosure retained original 0.1082/0.0884 and odds date. Screenshots inspected at 1440/390:
+  output/playwright/audit-error-scale-1440.png and audit-error-scale-390.png. No horizontal overflow.
+- Axe WCAG A/AA scans on the real-data card, with details expanded, returned no violations at both widths.
+- Interface-guidelines review: visible scale and units, positive lower-error text plus color, decorative bars hidden
+  from assistive technology, semantic values and native disclosure, theme tokens, tabular digits and existing reduced
+  motion preserved. The numeric statistic is rescaled, not replaced by accuracy; calculations and data are unchanged.

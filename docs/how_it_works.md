@@ -129,7 +129,9 @@ reads only owned players' due matches, one request per match reused for all owne
 multiple `anyGame` roots, even with aliases. The owner chose the existing kickoff times: +3h for the first
 read and +26h for the correction read. Both require Sorare's `Game.statusTyped=played`; its public schema has no
 final-whistle timestamp. `audit_game_checks` retains the first score and successful read timestamps separately from
-the latest score; failed, partial or null responses never imply DNP or erase a known result. Missing reads retry for
+the latest score; failed, partial or null responses never imply DNP or erase a known result.
+`REVIEWING` scores are visible as provisional, and stay provisional after +26h until Sorare marks them final;
+an explicit `DID_NOT_PLAY` status is accepted even without a stats object. Missing reads retry for
 14 days and the UI names expiry. A cold start after +26h still makes two separate reads. The job shares refresh
 concurrency, republishes `audit` and revalidates the app; it never calls football/odds feeds or runs the planner.
 `audit.playerScores` publishes each retained GW's owned-player rows and sampled starter-only average misses, including

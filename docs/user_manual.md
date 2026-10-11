@@ -382,7 +382,8 @@ With no selected date, Audit opens the latest locked GW. Small samples are visib
 it uses; substitutes and DNPs remain in the rows.
 Automatic server checks run every half hour, first at kickoff +3 hours and again at +26 hours (approximately one hour
 and one day after a two-hour match), only once Sorare says finished. GitHub may start late. **Provisional** becomes
-**Rechecked** after the second successful read; a changed score shows the first and corrected values. Missing scores
+**Rechecked** after the second successful final-score read; a score still under review stays provisional and retries.
+A changed score shows the first and corrected values. Missing scores
 stay **Pending**, zero stays zero, and unavailable pre-lock forecasts say **Not saved**. No open browser or Sorare tab
 is needed. Unread games retry within 14 days; expired missing results say so. The 100-case rule still applies to the
 separate longer-term accuracy verdicts below, not these player rows or this early GW summary.

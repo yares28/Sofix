@@ -73,3 +73,9 @@ or their clearly sampled GW summary. Browser tabs may be closed; no manual refre
   marker retries the previous invalid request immediately rather than waiting out its 30-minute failure cooldown.
   No extra direct Sorare development request was made; the automatically triggered production refresh supplies
   the real source verification. Browser behavior is unchanged and the existing 31-test rerun still applies.
+- The corrected automatic run accepted real scores (two persisted player results on its first read), proving the
+  federation fix. Review of the saved official schema also exposed `REVIEWING` and `DID_NOT_PLAY` score statuses:
+  filtering only `FINAL` would hide provisional results and explicit DNPs. A failing regression reproduced that
+  omission. Accept reviewed scores provisionally, accept explicit DNP without requiring stats, and retain Sorare's
+  source status in permanent actual rows. A reviewed score after +26h stays provisional until final; query version 2
+  retries the previous filter immediately. All 13 targeted source/timing/state tests pass.

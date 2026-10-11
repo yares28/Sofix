@@ -25,7 +25,7 @@ RECHECK = timedelta(hours=26)
 RETRY = timedelta(minutes=30)
 WINDOW = timedelta(days=14)
 BATCH = 1  # federation rejects repeated anyGame roots, even with aliases (also sync.PROJECTION_BATCH)
-QUERY_VERSION = 1
+QUERY_VERSION = 2
 QUERY = (
     '{alias}: anyGame(id: "{id}") {{ ... on Game {{ id date statusTyped '
     "playerGameScores {{ score scoreStatus anyPlayer {{ slug }} "
@@ -152,14 +152,18 @@ def run(db: Session, client: SorareClient, now: datetime) -> dict[str, int]:
             for row in game.get("playerGameScores") or []:
                 slug = (row.get("anyPlayer") or {}).get("slug")
                 stats = row.get("anyPlayerGameStats") or {}
+                status = row.get("scoreStatus")
+                played = stats.get("playedInGame")
+                if status == "DID_NOT_PLAY" and played is None:
+                    played = False  # explicit source status; an absent player row still never implies DNP
                 if (
                     not isinstance(slug, str)
                     or slug not in target["players"]
-                    or row.get("scoreStatus") != "FINAL"
-                    or stats.get("playedInGame") is None
+                    or status not in ("FINAL", "REVIEWING", "DID_NOT_PLAY")
+                    or played is None
+                    or (status == "DID_NOT_PLAY" and played is not False)
                 ):
                     continue
-                played = stats["playedInGame"]
                 if played and row.get("score") is None:
                     continue
                 previous = (check.get("scores") or {}).get(slug) or {}
@@ -169,10 +173,11 @@ def run(db: Session, client: SorareClient, now: datetime) -> dict[str, int]:
                     "played": played,
                     "started": stats.get("gameStarted"),
                     "mins": stats.get("minsPlayed"),
+                    "sourceStatus": status,
                     "firstCheckedAt": first_at or now.isoformat(),
                     "checkedAt": now.isoformat(),
                     "recheckedAt": now.isoformat()
-                    if first_at and now >= kickoff + RECHECK
+                    if first_at and now >= kickoff + RECHECK and status != "REVIEWING"
                     else previous.get("recheckedAt"),
                 }
                 history[slug] = [
@@ -182,7 +187,7 @@ def run(db: Session, client: SorareClient, now: datetime) -> dict[str, int]:
                         "competition": target.get("competition") or "unknown",
                         "home": target.get("home"),
                         "away": target.get("away"),
-                        "status": "FINAL",
+                        "status": status,
                         **scores[slug],
                     }
                 ] + history.get(slug, [])
@@ -203,6 +208,8 @@ def run(db: Session, client: SorareClient, now: datetime) -> dict[str, int]:
                     check["recheckedAt"] = now.isoformat()
                 check.setdefault("firstCheckedAt", now.isoformat())
                 check.pop("reason", None)
+                if any(score["sourceStatus"] == "REVIEWING" for score in scores.values()):
+                    check["reason"] = "Sorare is still reviewing scores"
             else:
                 check["reason"] = "Some player scores are still unavailable"
             check["checkedAt"] = now.isoformat()

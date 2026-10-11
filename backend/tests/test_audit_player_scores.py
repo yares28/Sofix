@@ -335,3 +335,39 @@ def test_federation_accepts_one_game_root_per_request_and_retries_the_old_query_
         NOW,
     )
     assert score_checks.run(db, FederationClient(), NOW)["games"] == 2
+
+
+def test_reviewing_scores_are_provisional_and_explicit_dnp_needs_no_stats(db):  # noqa: F811
+    from app.sorare import score_checks
+
+    seed(db)
+    put(db, "audit_game_checks", {"games": {}}, NOW)
+
+    class ReviewingClient(Client):
+        score_status = "REVIEWING"
+
+        def query(self, query):
+            result = super().query(query)
+            row = result["g0"]["playerGameScores"][0]
+            row["scoreStatus"] = self.score_status
+            if self.score_status == "DID_NOT_PLAY":
+                row["anyPlayerGameStats"] = None
+            return result
+
+    client = ReviewingClient()
+    assert score_checks.run(db, client, NOW)["games"] == 1
+    late = NOW + timedelta(hours=22)
+    score_checks.run(db, client, late)
+    row = score_checks.comparison(db, late)["weeks"][0]["rows"][0]
+    assert row["actual"] == 50 and row["state"] == "provisional"
+    assert "review" in row["reason"].lower()
+    client.score_status = "FINAL"
+    client.score = 53
+    score_checks.run(db, client, late + timedelta(minutes=31))
+    row = score_checks.comparison(db, late)["weeks"][0]["rows"][0]
+    assert row["actual"] == 53 and row["state"] == "rechecked" and row["firstScore"] == 50
+    put(db, "audit_game_checks", {"games": {}}, NOW)
+    client.score_status = "DID_NOT_PLAY"
+    score_checks.run(db, client, NOW)
+    row = score_checks.comparison(db, NOW)["weeks"][0]["rows"][0]
+    assert row["played"] is False and row["actual"] is None and row["state"] == "provisional"

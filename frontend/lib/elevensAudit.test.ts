@@ -4,6 +4,7 @@ import { afterAll, expect, it, vi } from "vitest";
 import ElevensAudit from "../components/audit/ElevensAudit";
 import VersusAudit from "../components/audit/VersusAudit";
 import MatchAudit from "../components/audit/MatchAudit";
+import PrelockAudit from "../components/audit/PrelockAudit";
 import { NO_ELEVENS, NO_VERSUS, type Elevens } from "./audit";
 
 const { renderToStaticMarkup } = createRequire(import.meta.url)("react-dom/server") as {
@@ -13,6 +14,27 @@ const { renderToStaticMarkup } = createRequire(import.meta.url)("react-dom/serve
 // This repository's Vitest transform uses classic JSX; Next uses its own automatic transform.
 vi.stubGlobal("React", React);
 afterAll(() => vi.unstubAllGlobals());
+
+it("makes pre-lock accuracy and its distinct samples readable, without repeating a collapsed interval", () => {
+  const live = { state: "enough" as const, floor: 1, noted: 875, marked: 17, pairs: 20, weeks: 1, rate: .65, lo: .65, hi: .65 };
+  const html = renderToStaticMarkup(React.createElement(PrelockAudit, { data: live }));
+  expect(html).toContain('class="au-result-big">65%');
+  expect(html).toContain("of player pairs ranked correctly");
+  expect(html).toContain("Pairs compared");
+  expect(html).toContain("Player GWs checked");
+  expect(html).not.toContain("65% (65%)");
+  expect(renderToStaticMarkup(React.createElement(PrelockAudit, { data: { ...live, floor: 100, pairs: 1, rate: 0, lo: 0, hi: .5 } }))).toContain('class="au-result-big">0%');
+  expect(renderToStaticMarkup(React.createElement(PrelockAudit, { data: { ...live, rate: null } }))).not.toContain('class="au-result-big">0%');
+});
+
+it("compares large RPS results with the lower source and gap, and treats equal displayed results as tied", () => {
+  const data = { recorded: 311, checked: 7, floor: 1, sofix: .1082, bookmakers: .0884, oddsThrough: null, generatedAt: "" };
+  const draw = (values = data) => renderToStaticMarkup(React.createElement(MatchAudit, { data: values }));
+  expect(draw()).toContain('class="au-result-number">0.1082');
+  expect(draw()).toContain("Bookmakers lower by 0.0198 RPS");
+  expect(draw({ ...data, sofix: 0 })).toContain("Sofix lower by 0.0884 RPS");
+  expect(draw({ ...data, sofix: .08840001 })).toContain("Same error at this precision");
+});
 
 it("shows paired match RPS from the first result, with the saved odds date", () => {
   const data = { recorded: 130, checked: 100, floor: 100, sofix: .1947, bookmakers: .1886, oddsThrough: "2026-09-20", generatedAt: "" };

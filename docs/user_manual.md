@@ -469,7 +469,9 @@ checked since, and how many each source gave. (The old headline, 66% on your 84 
 
 The live Audit checks every recorded player, including the LaLiga index and your players outside LaLiga, from saved games.
 **Written before the lock** on xScore shows how many player gameweeks have been checked and how often the higher expected
-score picked the better player, with its confidence interval and sample count from the first comparable pair. **Sorare vs Sofix** compares each saved number with the real score on starts; weekly figures
+score picked the better player, from the first comparable pair. The prominent percentage is followed by separate counts
+of compared pairs, compared GWs and checked player GWs. **How this is checked** opens the method and confidence range.
+**Sorare vs Sofix** compares each saved number with the real score on starts; weekly figures
 also say "Too few to tell" below 100 starts. A new week's results wait until a day after it ends; unread results stay waiting.
 
 **Futbol Fantasy's eleven**, under Who starts, compares how many predicted starters started. Sorare and Sofix reorder the
@@ -479,7 +481,9 @@ reading is saved, it says "No predicted elevens kept yet". A failed source stops
 
 **Match forecasts, checked**, below xScore, compares Sofix with bookmaker prices on the same finished LaLiga matches.
 Forecasts update until kick-off and then stay fixed. Closing CSV prices come first, then the last available pre-match
-price. Both RPS error scores appear from the first paired result, with the sample count; lower is better. Missing prices or results stay pending.
+price. Both RPS error scores appear side by side from the first paired result, with the lower error marked and the absolute
+gap shown. Paired results and saved forecasts are counted separately; **How this is checked** opens the method and saved
+odds date. Missing prices or results stay pending.
 The odds record keeps its own copy of prices and says **Odds up to** the newest saved match date. A source stopping
 only stops new readings; saved prices remain available.
 Older seasons back to 2016/17 are read once if the runner's cache did not already hold them.

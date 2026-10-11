@@ -147,8 +147,32 @@ test("empty match comparisons remain missing rather than zero", async ({ page })
   await page.goto("/audit");
   const section = page.getByRole("region", { name: "Match forecasts, checked" });
   await expect(section).toContainText("No paired results yet");
+  await section.getByText("How this is checked", { exact: true }).click();
   await expect(section).toContainText("No odds saved yet");
 
+});
+
+test("saved result cards lead with accuracy, sample counts and lower error, with methods available on demand", async ({ page, request }) => {
+  await resetBackend(request, "audit-enough");
+  await page.goto("/audit?w=2026-10-09");
+  const prelock = page.getByRole("region", { name: "Written before the lock" });
+  await expect(prelock.locator(".au-result-big")).toHaveText("64%");
+  await expect(prelock).toContainText("of player pairs ranked correctly");
+  await expect(prelock.locator("dl")).toContainText("Pairs compared130");
+  await expect(prelock.locator("dl")).toContainText("GWs compared8");
+  await expect(prelock.locator("dl")).toContainText("Player GWs checked38 / 40");
+  await prelock.getByText("How this is checked", { exact: true }).click();
+  await expect(prelock.getByText(/95% confidence range/)).toBeVisible();
+  await expect(prelock.getByText(/95% confidence range/)).toContainText("58–69%");
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    expect(await smallText(page, width === 390 ? 10 : 11)).toEqual([]);
+    expect((await new AxeBuilder({ page }).include(".au-result").withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
+  }
+  await page.reload();
+  await expect(prelock.locator(".au-result-big")).toHaveText("64%");
+  await expect(prelock.locator("details")).not.toHaveAttribute("open");
 });
 
 test("saved weeks survive without Chrome on Recap, Cards and Rewards, beside the plan frozen at lock", async ({ page, request }) => {

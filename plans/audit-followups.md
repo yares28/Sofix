@@ -27,6 +27,19 @@ Publish through the normal pipeline; no production database writes or manual ref
 
 ## Implementation and evidence
 
+### View explanations follow-up
+
+Owner request: explain Gameweek, All GWs and Summary beside their controls. Keep one short explanation directly
+under the tabs for the selected view; changing tabs updates it, and a cold URL or reopened tab shows the matching
+explanation. Gameweek means individual games in the top-bar GW, All GWs means every retained game grouped by GW,
+and Summary means per-player checked-start averages, total diff and average miss across retained GWs. Keep the
+existing minimalist layout and avoid repeating the summary explanation in the methodology note. Acceptance: each
+tab and a direct/reopened Summary URL show the corresponding text; desktop/mobile checks remain clean.
+The frontend gate passed (API types, eslint, typecheck, Vitest). Real-data previews of all three views showed the
+matching explanation with no horizontal overflow; screenshots at 1440 and 390 px were inspected. The change adds
+only descriptive copy, a screen-reader description and native hover hints; score calculations are unchanged.
+Audit desktop spec and its mobile layout case passed: 18 tests, including all three explanations and reopened Summary URLs.
+
 - Removed the local GW control and its `scoreGw` override; URL tabs retain the top-bar selection. Games sort by known
   actual score, then DNP, then pending. Summaries sort by checked-start average actual.
 - Comparison rows expose the exact frozen game's start-source values and FF match link. Cached older payloads restore

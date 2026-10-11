@@ -15,6 +15,11 @@ const diff = (n: number | null) => n === null ? "—" : `${n > 0 ? "+" : ""}${po
 const when = (iso: string | null) => iso ? new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" }).format(new Date(iso)) : "Date TBC";
 const source = { sofix: "SF", sorare: "SO", form: "L5" };
 const sourceName = { sofix: "Sofix model", sorare: "Sorare projection", form: "Last five games" };
+const viewHelp = {
+  gw: "Each player game in the GW selected above, ranked by actual score.",
+  all: "Every saved player game, grouped by GW and ranked by actual score within each week.",
+  summary: "One row per player across all saved GWs: average scores, total diff and average miss from checked starts.",
+};
 type ScoreWeek = Omit<PlayerScoreWeek, "rows"> & { rows: ScoreGame[] };
 
 function Scores({ x, sorare, actual, difference, actualLabel, by, averages = false }: {
@@ -81,15 +86,16 @@ export default function PlayerScores({ week, number, weeks = [] }: {
   return <section className="au-w au-player-scores" id="player-scores" aria-label="Your players, xScore against actual">
     <div className="au-player-head"><div><p className="au-label">Your players · {mode === "gw" ? number !== null ? `GW${number}` : "Selected week" : "All time"}</p><h2>xScore against actual</h2></div>
       <p aria-live="polite">{stats.checked} of {stats.total} player games checked{mode !== "gw" ? <span>{weeks.length} recorded GWs</span> : null}</p></div>
-    <div className="au-score-controls"><nav aria-label="Player score view">{([["gw", "Gameweek"], ["all", "All GWs"], ["summary", "Summary"]] as const).map(([id, label]) =>
-      <Link key={id} href={url(id)} scroll={false} aria-current={mode === id ? "page" : undefined}>{label}</Link>)}</nav>
+    <div className="au-score-controls"><nav aria-label="Player score view" aria-describedby="player-score-view-help">{([["gw", "Gameweek"], ["all", "All GWs"], ["summary", "Summary"]] as const).map(([id, label]) =>
+      <Link key={id} href={url(id)} scroll={false} title={viewHelp[id]} aria-current={mode === id ? "page" : undefined}>{label}</Link>)}</nav>
     </div>
+    <p className="au-player-note" id="player-score-view-help" aria-live="polite">{viewHelp[mode]}</p>
     {stats.starts > 0 ? <dl className="au-player-summary">
       <div><dt>xScore average miss</dt><dd>{value(stats.xMiss)} <small>pts · {stats.xCases} starts</small></dd></div>
       <div><dt>Sorare average miss</dt><dd>{value(stats.sorareMiss)} <small>pts · {stats.sorareCases} starts</small></dd></div>
       <div><dt>Average diff</dt><dd>{diff(stats.diff)} <small>pts · {stats.xCases} starts</small></dd></div>
     </dl> : <p className="au-player-note">No checked starts yet.</p>}
-    <p className="au-player-note">Diff = actual − xScore. Averages use checked starts; forecast samples can differ.{mode === "summary" ? " Player scores below are averages over their recorded history." : " Substitutes and DNPs stay in the list."}</p>
+    <p className="au-player-note">Diff = actual − xScore. Averages use checked starts; forecast samples can differ.{mode !== "summary" ? " Substitutes and DNPs stay in the list." : ""}</p>
     {mode === "summary" ? playerSummaries(weeks).map(player => <article className="au-score-row" key={player.player} aria-label={`${player.name}, all-time summary`}>
       <Link className="au-score-art" href={`/players/${player.player}`} aria-label={`${player.name}: open his page`}><SorareImage src={player.pic} width={96} height={144} /></Link>
       <div className="au-score-body"><div className="au-score-id"><h3><Link href={`/players/${player.player}`}>{player.name}</Link></h3><p className="au-score-meta">{player.weeks} GWs · {player.stats.checked} of {player.stats.total} games checked</p><p className="au-score-meta">{player.stats.starts} starts · xScore {player.stats.xCases} · Sorare {player.stats.sorareCases}</p></div>

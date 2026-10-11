@@ -30,6 +30,7 @@ test("player comparisons cover every saved GW, an all-time summary and URL-resto
   ] } } });
   await page.goto(`/audit?gw=${live.id}`);
   const section = page.getByRole("region", { name: "Your players, xScore against actual" });
+  await expect(section.locator("#player-score-view-help")).toContainText("the GW selected above");
   for (const name of ["How far the score lands from the xScore", "Landing within 7 points of the score",
     "When Sofix says 30%, does it happen 30% of the time?", "Written before the lock", "Match forecasts, checked"]) {
     const above = await page.getByRole("region", { name, exact: true }).evaluate((element) =>
@@ -41,10 +42,12 @@ test("player comparisons cover every saved GW, an all-time summary and URL-resto
   await expect(section.locator(".au-score-starts").getByRole("link", { name: "0%" })).toHaveAttribute("href", "https://www.futbolfantasy.com/partidos/123");
   await expect(section.getByRole("article").locator(".au-score-art")).toHaveCSS("width", "96px");
   await section.getByRole("link", { name: "All GWs", exact: true }).click();
+  await expect(section.locator("#player-score-view-help")).toContainText("Every saved player game, grouped by GW");
   await expect(section.getByRole("article")).toHaveCount(2);
   await expect(section).toContainText("GW12");
   await expect(section.getByRole("article").last().locator(".au-score-starts")).not.toContainText("70%");
   await section.getByRole("link", { name: "Summary", exact: true }).click();
+  await expect(section.locator("#player-score-view-help")).toContainText("One row per player across all saved GWs");
   await expect(section.getByRole("article")).toHaveCount(1);
   await expect(section.getByRole("article")).toContainText("-15.0");
   await expect(section).toContainText("2 recorded GWs");
@@ -55,6 +58,7 @@ test("player comparisons cover every saved GW, an all-time summary and URL-resto
   await offline(reopened);
   await reopened.goto(url);
   const restored = reopened.getByRole("region", { name: "Your players, xScore against actual" });
+  await expect(restored.locator("#player-score-view-help")).toContainText("average scores, total diff and average miss from checked starts");
   await expect(restored.getByRole("link", { name: "Summary", exact: true })).toHaveAttribute("aria-current", "page");
   await expect(restored.getByRole("article")).toContainText("-15.0");
   await restored.getByRole("link", { name: "Gameweek", exact: true }).click();

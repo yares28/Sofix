@@ -391,8 +391,9 @@ doubt; hover the mark for the name.
 
 **Your players (11 Oct 2026).** On **xScore**, the replay charts, calibration, pre-lock record and match-forecast
 checks come first. Below them, larger Sorare cards and the actual match sides' crests accompany **xScore**, **Sorare**,
-**Actual** and **Diff** (actual minus xScore). **Gameweek** follows the shared selected GW, with a local picker for
-any retained record; with no selected date Audit opens the latest locked GW. A player with two games has two entries,
+**Actual** and **Diff** (actual minus xScore). **Gameweek** follows the GW selected in the top bar;
+with no selected date Audit opens the latest locked GW. A short explanation beneath the tabs describes the selected
+view and changes with it. A player with two games has two entries,
 including national-team games. **All GWs** groups every retained game by GW. **Summary** shows each player's all-time
 averages, signed total diff and average miss, with sample counts. All time covers recorded history only. Averages use
 checked starts; missing forecasts can give different sample counts. Substitutes, DNPs and pending games remain in

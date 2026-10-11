@@ -10,6 +10,7 @@ import { Foil } from "./bits";
 import SorareImage from "./SorareImage";
 import type { GameweekPlan } from "../../lib/play";
 import { enteredScore } from "../../lib/lineupScores";
+import { ComparisonCards, ComparisonScores } from "../recap/LineupComparison";
 
 type Week = { slug: string; number: number; lock?: string; end?: string };
 type Failure = Exclude<WeekLineupsAnswer, { state: "ok" }>;
@@ -19,7 +20,7 @@ type LoadState =
   | { state: "unavailable"; lineups: GameweekLineup[]; answer: Failure };
 
 /** Lineups the signed-in manager actually put on Sorare, read from this exact Sorare gameweek. */
-export default function EnteredLineups({ week, forecast = null }: { week: Week; forecast?: GameweekPlan | null }) {
+export default function EnteredLineups({ week, forecast = null, variant = "play" }: { week: Week; forecast?: GameweekPlan | null; variant?: "play" | "recap" }) {
   const [load, setLoad] = useState<LoadState>({ state: "loading", lineups: [] });
   const [asked, setAsked] = useState(0); // a new ask: Check again, or coming back to this tab
   const last = useRef<{ slug: string; lineups: GameweekLineup[] } | null>(null);
@@ -77,11 +78,11 @@ export default function EnteredLineups({ week, forecast = null }: { week: Week; 
   const checked = load.state === "ready" ? new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(load.at) : null;
 
   return (
-    <section className="pl-entered" aria-labelledby="entered-lineups-title">
+    <section className={variant === "recap" ? "rc-entered" : "pl-entered"} aria-labelledby="entered-lineups-title">
       <div className="pl-entered-head">
         <div>
           <p className="pl-eyebrow">{load.state === "ready" && load.saved ? "Saved from Sorare" : "On Sorare"} · GW{week.number}</p>
-          <h2 id="entered-lineups-title">Your Sorare lineups</h2>
+          {variant === "recap" ? <h3 id="entered-lineups-title">Your Sorare lineups</h3> : <h2 id="entered-lineups-title">Your Sorare lineups</h2>}
         </div>
         <span className="pl-entered-side">
           {load.state === "loading" ? (
@@ -131,6 +132,22 @@ export default function EnteredLineups({ week, forecast = null }: { week: Week; 
           {load.lineups.map((lineup) => {
             const pending = pendingLine(lineup, week.lock, now);
             const expected = enteredScore(lineup, forecast, week.slug);
+            if (variant === "recap") {
+              const options = forecast?.gameweek.slug === week.slug ? forecast.plans.flatMap(p => p.lineups) : [];
+              const known = new Map(options.flatMap(l => [...l.starters, ...l.subs]).map(c => [c.slug, c]));
+              const players = new Map(forecast?.gameweek.slug === week.slug ? forecast.playing.players.map(p => [p.player, p]) : []);
+              const size = lineup.scoring?.slots.filter(s => !s.sub).length ?? options.find(l => l.board === lineup.board)?.starters.length;
+              const cards = [...lineup.cards].sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+              return <article className="rc-lu pl-entered-lineup" key={lineup.id}>
+                <div className="rc-lu-c"><b>{lineup.competition}</b><span>{lineup.name ?? "Untitled lineup"}</span><span>{lineup.draft ? "Draft" : "Entered"} · {cards.length} cards</span></div>
+                <ComparisonCards cards={cards.map((c, i) => ({ ...c, x: known.get(c.slug)?.x ?? (c.player ? players.get(c.player)?.x : null) ?? null, bench: size !== undefined && i >= size }))} />
+                <div className="rc-score">
+                  <ComparisonScores expected={expected.value} estimated={expected.estimated} actual={pending || lineup.draft ? null : lineup.result?.score ?? null} actualLabel={lineup.result?.rank === null ? "Actual so far" : "Actual"} entered />
+                  {expected.value === null ? <span>{forecast ? "Forecast unavailable" : "Not recorded"}</span> : null}
+                </div>
+                <div className="rc-rew"><span>{lineup.draft ? "Draft" : pending ?? (lineup.result ? resultLine(lineup.result) : "Entered")}</span></div>
+              </article>;
+            }
             return (
             <article className="pl-entered-lineup" key={lineup.id}>
               <div className="pl-entered-name">

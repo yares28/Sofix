@@ -25,6 +25,7 @@ import { loadFrozenPlan, loadProjectedWeek, loadSorare, loadSorareWeek } from ".
 import { weekContext, weekDates } from "../lib/weeks";
 import { loadSystem } from "../lib/system";
 import { loadPlanActuals } from "../lib/planScoresData";
+import { withLineupRules } from "../lib/lineupScores";
 
 export const metadata: Metadata = { title: "Sofix" };
 
@@ -93,6 +94,9 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
       : null)
     : week.current?.md ? await loadProjectedWeek(week.current.md) : null : null;
   const best = bestPlan(plan?.plans ?? []);
+  // Finished replay payloads can contain fewer alternatives/cards than the retained pre-lock forecast.
+  const frozen = sorare && selectedSorare ? await loadFrozenPlan(selectedSorare.slug, sorare) : null;
+  const enteredForecast = frozen ? withLineupRules(frozen, plan) : plan;
   const rows = best ? planRows(best) : [];
   const actuals = plan ? await loadPlanActuals(plan) : {};
   const news = plan ? weekNews(plan.playing.players, week.current?.md ?? null, now) : { hurt: [], back: [] };
@@ -139,7 +143,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                   <Link href={href("/play")}>{rows.length ? `See all ${rows.length}` : "Plan"} ›</Link>
                 </div>
                 {/* What you entered on Sorare comes first (read through the extension), then the plan's best. */}
-                {selectedSorare ? <EnteredLineups week={selectedSorare} forecast={plan} /> : null}
+                {selectedSorare ? <EnteredLineups week={selectedSorare} forecast={enteredForecast} variant="recap" /> : null}
                 {rows.length ? (
                   <div className="rc-plan" role="region" aria-label="Best Sofix plan">
                     <div className="rc-th rc-plan-head"><h3>Best Sofix plan</h3><span>{Math.round(best!.essence)} expected essence · {rows.length} lineup{rows.length === 1 ? "" : "s"}</span></div>

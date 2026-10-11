@@ -5,7 +5,18 @@ export type ActualScores = Record<string, { score: number; played: boolean; comp
 export type TeamScore = { value: number | null; complete: boolean };
 type ScoringCard = PlayCard & { positions?: string[] };
 type ScoringLineup = Pick<Lineup, "starters" | "subs" | "captainBonus" | "minInSeason" | "clubBonus" | "averageBonus">;
-const position = (value: string) => ({ goalkeeper: "GK", defender: "DEF", midfielder: "MID", forward: "FWD" })[value.toLowerCase()] ?? value;
+const position = (value: string) => ({ goalkeeper: "GK", defender: "DEF", midfielder: "MID", forward: "FWD", extra: "EXT", outfielder: "OUT" })[value.toLowerCase()] ?? value;
+
+/** Old frozen forecasts omit bonus fields that the same GW's replay retained. Fill only those rules. */
+export function withLineupRules(forecast: GameweekPlan, replay: GameweekPlan | null): GameweekPlan {
+  if (forecast.gameweek.slug !== replay?.gameweek.slug) return forecast;
+  const rules = new Map(replay.plans.flatMap(p => p.lineups).filter(l => "clubBonus" in l && "averageBonus" in l).map(l => [l.board, l]));
+  return { ...forecast, plans: forecast.plans.map(p => ({ ...p, lineups: p.lineups.map(l => {
+    const rule = rules.get(l.board);
+    return rule ? { ...l, clubBonus: l.clubBonus === undefined ? rule.clubBonus : l.clubBonus,
+      averageBonus: l.averageBonus === undefined ? rule.averageBonus : l.averageBonus } : l;
+  }) })) };
+}
 
 /** Same captain, substitution and bonus rules as sorare/planner.py:totals. Unknown starters cannot trigger a swap. */
 function total(lineup: ScoringLineup, scores: ActualScores): number {
@@ -70,7 +81,10 @@ export function enteredScore(entered: GameweekLineup, week: GameweekPlan | null,
   const missing = { value: null, estimated: false };
   if (!week || week.gameweek.slug !== slug || !entered.cards.length) return missing;
   const options = week.plans.flatMap(p => p.lineups).filter(l => l.board === entered.board);
-  const ordered = [...entered.cards].sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+  // Legacy saved responses retain Sorare's appearance order (starters, then bench).
+  // Explicit indices, when supplied, take precedence over that retained order.
+  const legacy = entered.cards.every(c => c.index === undefined);
+  const ordered = entered.cards.map((c, i) => legacy ? { ...c, index: i } : c).sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
   const saved = options.find(l => {
     const cards = [...l.starters, ...l.subs];
     return cards.length === ordered.length && cards.every((c, i) => c.slug === ordered[i]!.slug && !!c.captain === ordered[i]!.captain);
@@ -81,7 +95,7 @@ export function enteredScore(entered: GameweekLineup, week: GameweekPlan | null,
   const rules = entered.scoring;
   if (!template && !rules) return missing;
   if (!rules && template && (!Number.isFinite(template.captainBonus) || !("clubBonus" in template) || !("averageBonus" in template))) return missing;
-  // Original slots are explicit. Never infer starter/bench roles from an unordered old extension response.
+  // A partially indexed response is ambiguous; only complete indices or the intact legacy order are usable.
   if (ordered.some(c => c.index === undefined) || new Set(ordered.map(c => c.index)).size !== ordered.length) return missing;
   const published = new Map(week.plans.flatMap(p => p.lineups.flatMap(l => [...l.starters, ...l.subs])).map(c => [c.slug, c]));
   const boardCards = new Map(options.flatMap(l => [...l.starters, ...l.subs]).map(c => [c.slug, c]));

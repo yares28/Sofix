@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { GameweekLineup } from "./entered";
 import type { GameweekPlan, Lineup, PlayCard } from "./play";
-import { enteredScore, lineupActual } from "./lineupScores";
+import { enteredScore, lineupActual, withLineupRules } from "./lineupScores";
 
 const card = (slug: string, extra: Partial<PlayCard> = {}): PlayCard => ({
   slug, player: slug, name: slug, pos: "DEF", rarity: "limited", inSeason: true, level: 0,
@@ -33,6 +33,27 @@ describe("entered lineup expected score", () => {
     const custom = entered([card("a"), card("b", { captain: true })]);
     expect(enteredScore(custom, week(lineup), "selected")).toEqual({ value: 100, estimated: true });
     expect(enteredScore({ ...custom, board: "other" }, week(lineup), "selected").value).toBeNull();
+  });
+  it("estimates older saved custom teams using their retained appearance order and the same board's saved rules", () => {
+    const lineup = line();
+    const custom = entered([card("a"), card("b", { captain: true })]);
+    custom.cards.forEach(c => { delete c.index; });
+    expect(enteredScore(custom, week(lineup), "selected")).toEqual({ value: 100, estimated: true });
+    expect(enteredScore(custom, week(lineup), "other").value).toBeNull();
+    expect(enteredScore({ ...custom, board: "other" }, week(lineup), "selected").value).toBeNull();
+  });
+  it("fills missing old bonus rules from the same GW and board without replacing original forecasts", () => {
+    const original = week(line({ x: 123, clubBonus: undefined, averageBonus: undefined }));
+    const replay = week(line({ x: 999, clubBonus: [2, 0.02], averageBonus: [260, 0.04] }));
+    const restored = withLineupRules(original, replay);
+    expect(restored.plans[0]!.lineups[0]!.x).toBe(123);
+    expect(restored.plans[0]!.lineups[0]!.clubBonus).toEqual([2, 0.02]);
+    expect(original.plans[0]!.lineups[0]!.clubBonus).toBeUndefined();
+    replay.gameweek.slug = "other";
+    expect(withLineupRules(original, replay)).toBe(original);
+    replay.gameweek.slug = "selected";
+    replay.plans[0]!.lineups[0]!.board = "other";
+    expect(withLineupRules(original, replay).plans[0]!.lineups[0]!.clubBonus).toBeUndefined();
   });
   it("counts a substitute only when an eligible starter does not play; a replacement cancels team bonuses", () => {
     const lineup = line({ x: 100, clubBonus: [2, 0.1], starters: [card("a", { p: 0, x: 0, captain: true }), card("b")], subs: [card("c", { mu: 50, x: 50, slot: "OUT" })] });

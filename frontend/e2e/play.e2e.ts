@@ -164,13 +164,13 @@ test("entered Sorare lineups sit below the plan of the gameweek they belong to",
   await expect(home).toContainText(`GW${timelineOnly.number}`);
   // On the Recap they open "Your lineups", above the plan's best.
   const order = await page.locator(".rc-lineups > *").evaluateAll((nodes) => nodes.map((node) => String(node.className)));
-  expect(order.indexOf("pl-entered")).toBeGreaterThan(-1);
+  expect(order.indexOf("rc-entered")).toBeGreaterThan(-1);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(home).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
-  const cardBox = await home.locator(".pl-entered-card").first().boundingBox();
-  expect(cardBox?.width).toBeLessThanOrEqual(36);
+  const cardBox = await home.locator(".rc-team .rc-art").first().boundingBox();
+  expect(cardBox?.width).toBeLessThanOrEqual(60);
   expect(cardBox?.height).toBeGreaterThan(cardBox?.width ?? 0);
 });
 

@@ -9,6 +9,7 @@ import { formatDay, formatShortKickoff } from "../../lib/grid";
 import CardArt from "../cards/CardArt";
 import Crest from "../Crest";
 import SeasonIcon from "../SeasonIcon";
+import { ComparisonCards, ComparisonScores } from "./LineupComparison";
 
 /**
  * The Recap blocks (plans/restructure.md, R2; design canvas board 1). Every number is drawn from the payloads as they
@@ -164,21 +165,9 @@ export function LineupRow({ row, scores = {} }: { row: PlanRow; scores?: ActualS
         <span>{lineup.entries.toLocaleString("en-GB")} managers</span>
         {lineup.expected ? <span className="rc-tag">Expected</span> : null}
       </div>
-      <ol className="rc-team">
-        {lineup.starters.map((card) => (
-          <li key={card.slug}>
-            <span className={`rc-art ${card.rarity}`}><CardArt src={card.pic} name={card.name} /></span>
-            {card.captain ? <span className="rc-cap" title="Captain">C</span> : null}
-            <span className="rc-hex sm" style={band(card.x)}>{Math.round(card.x)}</span>
-            <span className="rc-nm">{card.name}</span>
-          </li>
-        ))}
-      </ol>
+      <ComparisonCards cards={[...lineup.starters, ...lineup.subs].map((c, i) => ({ ...c, picture: c.pic, captain: !!c.captain, bench: i >= lineup.starters.length }))} />
       <div className="rc-score">
-        <div className="rc-score-pair" role="group" aria-label="Lineup scores">
-          <div><span>xScore</span><b>{Math.round(lineup.x)}</b></div>
-          <div><span>Actual{actual.value !== null && !actual.complete ? " so far" : ""}</span><b>{actual.value === null ? "—" : Math.round(actual.value)}</b></div>
-        </div>
+        <ComparisonScores expected={lineup.x} actual={actual.value} actualLabel={actual.value !== null && !actual.complete ? "Actual so far" : "Actual"} />
         <span>Expected range {Math.round(lineup.lo)} to {Math.round(lineup.hi)}</span>
         {lineup.need !== null ? <span>needs <em>{Math.round(lineup.need)}</em> for a reward</span> : null}
       </div>

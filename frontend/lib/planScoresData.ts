@@ -15,16 +15,20 @@ async function readPlanActuals(week: GameweekPlan): Promise<ActualScores> {
   const read = cache(async () => {
     const sql = database();
     if (!sql) return {};
-    const rows = await sql`SELECT player, game_id, score, played, status FROM player_games WHERE game_id = ANY(${ids}) AND status IN ('FINAL', 'DID_NOT_PLAY')` as {
+    const rows = await sql`SELECT player, game_id, score, played, status FROM player_games WHERE game_id = ANY(${ids}) AND status IN ('FINAL', 'DID_NOT_PLAY', 'REVIEWING', 'LIVE')` as {
       player: string; game_id: string; score: number | null; played: boolean | null; status: string;
     }[];
     const actuals = new Map<string, { score: number; played: boolean; complete: boolean }>();
     for (const p of players) {
       if (!p.player || !p.games.length || p.games.some(g => !g.id)) continue;
       const games = p.games.map(g => rows.find(r => r.player === p.player && r.game_id === g.id));
-      const valid = games.filter(g => g && g.played !== null && !(g.status === "DID_NOT_PLAY" && g.played) && (!g.played || g.score !== null));
+      const valid = games.filter(g => g && (
+        (g.status === "DID_NOT_PLAY" && g.played === false) ||
+        (g.status === "FINAL" && g.played !== null && (!g.played || Number.isFinite(g.score))) ||
+        (["REVIEWING", "LIVE"].includes(g.status) && g.played === true && Number.isFinite(g.score))
+      ));
       const played = valid.filter(g => g?.played && g.score !== null);
-      const complete = valid.length === games.length;
+      const complete = valid.length === games.length && valid.every(g => g!.status === "FINAL" || g!.status === "DID_NOT_PLAY");
       if (played.length) actuals.set(p.player, { score: Math.max(...played.map(g => g!.score!)), played: true, complete });
       else if (complete) actuals.set(p.player, { score: 0, played: false, complete: true });
     }
@@ -34,6 +38,6 @@ async function readPlanActuals(week: GameweekPlan): Promise<ActualScores> {
       if (actual) result[c.slug] = actual;
     }
     return result;
-  }, ["plan-actuals-v1", week.gameweek.slug], { tags: ["sorare"], revalidate: 3600 });
+  }, ["plan-actuals-v2", week.gameweek.slug], { tags: ["sorare"], revalidate: 3600 });
   return read();
 }

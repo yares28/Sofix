@@ -39,3 +39,12 @@ it("leaves failed reads unknown", async () => {
   sql.mockRejectedValue(new Error("unavailable"));
   expect(await loadPlanActuals(week())).toEqual({});
 });
+it("shows reviewing and live scores provisionally without turning an unplayed live game into DNP", async () => {
+  sql.mockResolvedValue([
+    { player: "a", game_id: "g1", score: 40, played: true, status: "REVIEWING" },
+    { player: "a", game_id: "g2", score: 0, played: false, status: "PENDING" },
+    { player: "b", game_id: "g1", score: 0, played: true, status: "LIVE" },
+    { player: "c", game_id: "g3", score: 0, played: false, status: "REVIEWING" },
+  ]);
+  expect(await loadPlanActuals(week())).toEqual({ "card-a": { score: 40, played: true, complete: false }, "card-b": { score: 0, played: true, complete: false } });
+});

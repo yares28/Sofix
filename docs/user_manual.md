@@ -75,6 +75,9 @@ The Recap is about the week in the top bar (since 5 Oct 2026; design canvas boar
 - **Your lineups**: every entered lineup, followed by every lineup of the best Sofix plan. Each compares expected team
   xScore with the actual score; missing scores stay blank, and partial plan results say **Actual so far**. The best plan
   has the highest expected essence. Cards, captain, expected range and reward chances remain visible.
+  Entered teams and Sofix teams share the same comparison rows. Older saved teams use their retained appearance
+  order with that GW's saved forecasts and rules for an estimate. Reviewing/live player results count toward the
+  plan's **Actual so far**; pending games stay unknown until scored or confirmed DNP.
 - **Missions**: today's open missions and the three cards of yours that fit each best, with the chance (the Missions page's numbers).
 - **News this week**: your players hurt or banned in the last seven days and those cleared to play after a knock, in Futbol Fantasy's
   words in English with the date and their chance to start. A long-standing injury is not news; the Lineups page keeps every note.

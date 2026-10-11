@@ -12,6 +12,7 @@ import { loadFrozenPlan, loadProjectedWeek, loadSorare, loadSorareAlt, loadSorar
 import { loadMissionPool } from "../../lib/missionsPool";
 import { loadSystem } from "../../lib/system";
 import { noPlan, weekContext, weekDates, weekName } from "../../lib/weeks";
+import { withLineupRules } from "../../lib/lineupScores";
 
 export const metadata: Metadata = { title: "Play · Sofix" };
 
@@ -89,6 +90,8 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
   const view = sorareAsked ? { ...showing, plans: alt?.plans ?? [] } : showing;
   const sorareWaiting = sorareAsked && !view.plans.length ? sorareNote(alt, showing.projectionsAt) : null;
   const defaultPlan = bestPlan(view.plans);
+  const frozen = showing.projected ? null : await loadFrozenPlan(showing.gameweek.slug, data);
+  const enteredForecast = frozen ? withLineupRules(frozen, showing) : showing;
   const requested = Number(single("plan") ?? (defaultPlan ? view.plans.indexOf(defaultPlan) + 1 : 1));
   const offered = Math.max(plansOf(view, after).length, 1);
   const planIndex = Number.isFinite(requested) ? Math.min(Math.max(requested, 1), offered) - 1 : 0;
@@ -103,7 +106,7 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
         missions={missions}
         data={data}
         week={view}
-        forecast={showing}
+        forecast={enteredForecast}
         by={by}
         sorareWaiting={sorareWaiting}
         planIndex={planIndex}

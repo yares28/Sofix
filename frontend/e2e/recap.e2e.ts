@@ -55,6 +55,9 @@ test("Recap and Play keep the current GW, compare all entered and best-plan line
   await expect(page.getByRole("button", { name: new RegExp(`Sorare GW${info.number} `) })).toBeVisible();
   const mine = page.getByRole("region", { name: "Your Sorare lineups", exact: true });
   await expect(mine.locator(".pl-entered-lineup")).toHaveCount(2);
+  await expect(mine.locator(".rc-lu")).toHaveCount(2);
+  await expect(mine.locator(".rc-team")).toHaveCount(2);
+  await expect(mine.locator(".rc-score-pair")).toHaveCount(2);
   await expect(mine.locator(".pl-entered-expected b").first()).toHaveText(String(Math.round(lineup.x)));
   await expect(mine.locator(".pl-entered-expected").last()).toContainText("xScore estimate");
   await expect(mine.locator(".pl-entered-result b").first()).toHaveText("0");
@@ -100,12 +103,24 @@ test("a saved custom estimate survives closed Sorare tabs and follows the select
   const forecast = structuredClone(data.weeks.find(w => w.gameweek.id === data.nextId)!) as GameweekPlan;
   forecast.gameweek = { ...info, name: `Game Week ${info.number}` };
   const l = forecast.plans[0]!.lineups[0]!;
+  // Production can retain the original forecast without bonus fields and a narrower finished replay.
+  const replay = structuredClone(forecast);
+  replay.plans = [replay.plans[0]!];
+  replay.plans[0]!.lineups[0]!.clubBonus = null;
+  replay.plans[0]!.lineups[0]!.averageBonus = null;
+  data.weeks.push(replay);
   const saved = { slug: info.slug, number: info.number, start: info.start, end: info.end, savedAt: info.end,
     lineups: [{ id: "saved-custom", name: "Custom captain", board: l.board, competition: l.comp, draft: false, confirmable: false,
       scoring: { slots: [...l.starters, ...l.subs].map((c, i) => ({ positions: c.slot === "EXT" || c.slot === "OUT" ? ["DEF", "MID", "FWD"] : [c.pos], sub: i >= l.starters.length })), minInSeason: l.minInSeason, captain: l.captainBonus, season: 0.05, grade: 0.01, scarcity: {}, clubBonus: null, averageBonus: null },
       cards: [...l.starters, ...l.subs].map((c, index) => ({ slug: c.slug, player: c.player, name: c.name, picture: c.pic, rarity: c.rarity, captain: index === (l.starters.findIndex(c => c.captain) === 0 ? 1 : 0), index, score: 0 })),
       result: { score: 0, rank: 10, essence: 0, cash: 0, card: false } }] };
-  await request.post(`${MOCK}/__test/my-weeks`, { data: { weeks: [saved], frozenPlans: [], livePlan: forecast } });
+  // Real old snapshots have neither indices nor the new extension's scoring metadata.
+  const legacySaved = JSON.parse(JSON.stringify(saved)) as typeof saved;
+  legacySaved.lineups.forEach(lineup => {
+    Reflect.deleteProperty(lineup, "scoring");
+    lineup.cards.forEach(card => Reflect.deleteProperty(card, "index"));
+  });
+  await request.post(`${MOCK}/__test/my-weeks`, { data: { weeks: [legacySaved], frozenPlans: [], livePlan: forecast, sorareData: data } });
   await request.post(`${APP}/api/revalidate`, { headers: { authorization: `Bearer ${E2E_REVALIDATE_SECRET}` } });
   const week = seasonWeeks(await servedGrid(request), data, new Date()).find(w => w.gw === info.id)!;
   await page.goto(`/?w=${week.id}`);

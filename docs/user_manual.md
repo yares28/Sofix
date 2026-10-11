@@ -389,18 +389,23 @@ doubt; hover the mark for the name.
 
 ## 7b. Audit — how often the numbers were right
 
-**Your players · selected GW (11 Oct 2026).** At the top of **xScore** and **Sorare vs Sofix**, each owned player's game
-shows the xScore saved before lock (SF Sofix, SO Sorare or L5 form), Sorare's saved projection, actual score and actual
-minus xScore. The shared week picker selects the GW; a player with two games has two rows, including national-team games.
-With no selected date, Audit opens the latest locked GW. Small samples are visible: average miss says how many starts
-it uses; substitutes and DNPs remain in the rows.
+**Your players (11 Oct 2026).** On **xScore**, the replay charts, calibration, pre-lock record and match-forecast
+checks come first. Below them, larger Sorare cards and the actual match sides' crests accompany **xScore**, **Sorare**,
+**Actual** and **Diff** (actual minus xScore). **Gameweek** follows the shared selected GW, with a local picker for
+any retained record; with no selected date Audit opens the latest locked GW. A player with two games has two entries,
+including national-team games. **All GWs** groups every retained game by GW. **Summary** shows each player's all-time
+averages, signed total diff and average miss, with sample counts. All time covers recorded history only. Averages use
+checked starts; missing forecasts can give different sample counts. Substitutes, DNPs and pending games remain in
+the game views. The view and historical GW are kept in the address for reloads or reopening a tab. **Check details**
+holds timing and corrections; **About these checks** explains the schedule and source marks (SF Sofix, SO Sorare,
+L5 form). The same comparison controls are available on **Sorare vs Sofix**.
 Automatic server checks run every half hour, first at kickoff +3 hours and again at +26 hours (approximately one hour
 and one day after a two-hour match), only once Sorare says finished. GitHub may start late. **Provisional** becomes
 **Rechecked** after the second successful final-score read; a score still under review stays provisional and retries.
 A changed score shows the first and corrected values. Missing scores
 stay **Pending**, zero stays zero, and unavailable pre-lock forecasts say **Not saved**. No open browser or Sorare tab
 is needed. Unread games retry within 14 days; expired missing results say so. The 100-case rule still applies to the
-separate longer-term accuracy verdicts below, not these player rows or this early GW summary.
+separate longer-term accuracy verdicts, not these player comparisons or this early GW summary.
 
 ![Audit: how often the xScore picks the better of two, how close it lands, calibration and what has been written down](images/audit.png)
 

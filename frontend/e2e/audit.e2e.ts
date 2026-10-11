@@ -12,6 +12,53 @@ test.beforeEach(async ({ page, request }) => {
   await offline(page);
 });
 
+test("player comparisons cover every saved GW, an all-time summary and URL-restored history; analysis comes first", async ({ page, request, context }) => {
+  const model = (await (await request.get(`${MOCK}/api/sorare`)).json()).data;
+  const live = model.timeline.find((w: { id: string }) => w.id === model.nextId);
+  const card = model.collection[0];
+  const row = { player: card.player, name: card.name, pic: card.pic, pos: card.pos, game: "international",
+    kickoff: live.start, home: "Spain", away: "Denmark", competition: "International", xscore: 50, by: "sofix",
+    sorare: 60, actual: 0, difference: -50, firstScore: 0, played: true, started: true, state: "rechecked",
+    checkedAt: live.start, recheckedAt: live.start, firstDue: live.start, recheckDue: live.end, reason: "" };
+  const summary = { checked: 1, total: 1, rechecked: 1, starts: 1, xCases: 1, xMiss: 50, sorareCases: 1, sorareMiss: 60 };
+  await request.post(`${MOCK}/__test/my-weeks`, { data: { playerScores: { weeks: [
+    { slug: live.slug, number: live.number, rows: [row], summary },
+    { slug: "older-record", number: 12, rows: [{ ...row, actual: 70, difference: 20, by: "form" }], summary },
+  ] } } });
+  await page.goto(`/audit?gw=${live.id}`);
+  const section = page.getByRole("region", { name: "Your players, xScore against actual" });
+  for (const name of ["How far the score lands from the xScore", "Landing within 7 points of the score",
+    "When Sofix says 30%, does it happen 30% of the time?", "Written before the lock", "Match forecasts, checked"]) {
+    const above = await page.getByRole("region", { name, exact: true }).evaluate((element) =>
+      !!(element.compareDocumentPosition(document.querySelector(".au-player-scores")!) & Node.DOCUMENT_POSITION_FOLLOWING));
+    expect(above).toBe(true);
+  }
+  await expect(section.getByRole("article")).toHaveCount(1);
+  await expect(section.getByRole("article").locator(".au-score-art")).toHaveCSS("width", "96px");
+  await section.getByRole("link", { name: "All GWs", exact: true }).click();
+  await expect(section.getByRole("article")).toHaveCount(2);
+  await expect(section).toContainText("GW12");
+  await section.getByRole("link", { name: "Summary", exact: true }).click();
+  await expect(section.getByRole("article")).toHaveCount(1);
+  await expect(section.getByRole("article")).toContainText("-15.0");
+  await expect(section).toContainText("2 recorded GWs");
+  await expect(section.getByRole("article")).toContainText("SF, L5");
+  const url = page.url();
+  await page.close();
+  const reopened = await context.newPage();
+  await offline(reopened);
+  await reopened.goto(url);
+  const restored = reopened.getByRole("region", { name: "Your players, xScore against actual" });
+  await expect(restored.getByRole("link", { name: "Summary", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(restored.getByRole("article")).toContainText("-15.0");
+  await restored.getByRole("link", { name: "Gameweek", exact: true }).click();
+  await restored.getByRole("combobox", { name: "Player gameweek" }).selectOption("older-record");
+  await expect(restored.getByRole("article")).toContainText("70.0");
+  await expect(restored.getByRole("article").getByText("0.0", { exact: true })).toHaveCount(0);
+  await reopened.reload();
+  await expect(restored.getByRole("combobox", { name: "Player gameweek" })).toHaveValue("older-record");
+});
+
 test("your players show saved forecasts, zero, corrections and pending games before 100 starts; selected GW survives navigation and closed tabs", async ({ page, request, context }) => {
   const response = await (await request.get(`${MOCK}/api/sorare`)).json();
   const model = response.data;
@@ -30,11 +77,11 @@ test("your players show saved forecasts, zero, corrections and pending games bef
   await expect(section).toContainText(`GW${live.number}`);
   await expect(section).toContainText("2 of 3 player games checked");
   await expect(section).toContainText("28.5");
-  const zero = section.getByRole("row").filter({ hasText: card.name });
-  await expect(zero.getByRole("cell", { name: "0.0", exact: true })).toBeVisible();
+  const zero = section.getByRole("article").filter({ hasText: card.name });
+  await expect(zero.getByText("0.0", { exact: true })).toBeVisible();
   await expect(zero).toContainText("Provisional");
-  await expect(section.getByRole("row").filter({ hasText: "Corrected player" })).toContainText("50.0 → 53.0");
-  await expect(section.getByRole("row").filter({ hasText: "Pending player" })).toContainText("Pending");
+  await expect(section.getByRole("article").filter({ hasText: "Corrected player" })).toContainText("50.0 → 53.0");
+  await expect(section.getByRole("article").filter({ hasText: "Pending player" })).toContainText("Pending");
   await expect(section).not.toContainText("Too few");
   expect((await new AxeBuilder({ page }).include(".au-player-scores").withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
   for (const width of [1440, 390]) {

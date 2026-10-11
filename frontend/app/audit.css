@@ -3,46 +3,79 @@
    the tokens are the Control Center's (control-center.css), so the page sits in the same family without touching any other page. */
 
 .au { max-width: 1120px; margin: 0 auto; padding: 34px 32px 96px; }
-.au-player-scores { container-type: inline-size; container-name: player-scores; margin-bottom: 36px; }
+/* Owned-player comparisons: art and aligned evidence, with timing disclosed on demand. */
+.au-player-scores { container-type: inline-size; container-name: player-scores; margin-bottom: 36px; scroll-margin-top: 130px; }
 .au-player-head { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; }
 .au-player-head h2 { margin: 0; font-size: 28px; letter-spacing: -.025em; }
 .au-player-head > p { margin: 0; text-align: right; font-size: 13px; line-height: 1.6; }
-.au-player-head > p span { color: var(--ink-2); }
-.au-player-note { color: var(--ink-2); font-size: 12px; line-height: 1.5; max-width: 76ch; }
-.au-player-summary { display: flex; flex-wrap: wrap; gap: 16px 36px; margin: 24px 0; font-variant-numeric: tabular-nums; }
+.au-player-head > p span { display: block; color: var(--ink-2); }
+.au-player-note { color: var(--ink-2); font-size: 12px; line-height: 1.5; max-width: 85ch; }
+.au-score-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 24px; }
+.au-score-controls nav { display: flex; gap: 4px; background: var(--hover); border-radius: 10px; padding: 4px; }
+.au-score-controls a { padding: 10px 16px; border-radius: 7px; text-decoration: none; color: var(--ink-2); font-size: 13px; font-weight: 600; transition: background .15s, color .15s; }
+.au-score-controls a:hover { background: var(--track); color: var(--ink); }
+.au-score-controls a[aria-current] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 4px #0000000d; }
+.au-score-controls label { display: flex; align-items: center; gap: 10px; color: var(--ink-2); font-size: 12px; }
+.au-score-controls select { padding: 10px 28px 10px 12px; min-height: 44px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; max-width: 240px; }
+.au-player-summary { display: flex; flex-wrap: wrap; gap: 18px 38px; margin: 24px 0 12px; font-variant-numeric: tabular-nums; }
 .au-player-summary dt { color: var(--ink-2); font-size: 12px; }
 .au-player-summary dd { margin: 4px 0 0; font-size: 26px; font-weight: 650; }
 .au-player-summary dd small { font-size: 12px; font-weight: 400; color: var(--ink-2); }
-.au-player-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 14px; }
-.au-player-table th, .au-player-table td { border-bottom: 1px solid var(--line); padding: 16px 5px; text-align: right; vertical-align: top; }
-.au-player-table th:first-child { width: 52%; text-align: left; }
-.au-player-table thead th { font-size: 12px; color: var(--ink-2); font-weight: 500; }
-.au-player-table td small { display: block; margin-top: 5px; color: var(--ink-2); font-size: 11px; }
-.au-player-id { display: flex; align-items: flex-start; gap: 12px; font-weight: 400; min-width: 0; }
-.au-player-id img { object-fit: contain; flex: 0 0 36px; }
-.au-player-id > div { min-width: 0; }
-.au-player-id a { color: var(--ink); font-size: 14px; font-weight: 650; text-decoration: none; overflow-wrap: anywhere; }
-.au-player-id a:hover { text-decoration: underline; }
-.au-player-id span { display: block; margin-top: 4px; font-size: 11px; color: var(--ink-2); overflow-wrap: anywhere; }
-.au-player-id .au-player-state { font-weight: 650; color: var(--ink); }
-.au-player-id .au-player-correction { color: var(--ink); }
-.au-player-score { display: inline-block; padding: 3px 5px; border-radius: 5px; font-size: 13px; }
+.au-score-row { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 24px; padding: 24px 0; border-top: 1px solid var(--line); content-visibility: auto; contain-intrinsic-size: auto 194px; }
+.au-score-art { display: block; width: 96px; height: 144px; align-self: start; border-radius: 8px; color: var(--ink-2); font-size: 12px; }
+.au-score-art img { width: 100%; height: 100%; object-fit: contain; transition: transform .18s; }
+.au-score-art:hover img { transform: translateY(-3px); }
+.au-score-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(330px, 1.2fr); gap: 12px 28px; align-content: center; min-width: 0; }
+.au-score-id h3 { font-size: 17px; font-weight: 650; letter-spacing: -.02em; margin: 0 0 10px; overflow-wrap: anywhere; }
+.au-score-id a { color: var(--ink); text-decoration: none; }
+.au-score-id a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.au-score-game { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin: 0; font-size: 12px; line-height: 1.4; }
+.au-score-side { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.au-score-side > img { object-fit: contain; }
+.au-score-side .lu-shield { display: inline-block; position: relative; flex-shrink: 0; }
+.au-score-side .lu-crest { position: absolute; inset: 0; object-fit: contain; }
+.au-score-vs { color: var(--ink-2); font-size: 11px; }
+.au-score-meta { margin: 7px 0 0; color: var(--ink-2); font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.au-score-meta strong { color: var(--ink); font-weight: 550; }
+.au-score-values { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 0; font-variant-numeric: tabular-nums; }
+.au-score-values dt { color: var(--ink-2); font-size: 12px; }
+.au-score-values dd { margin: 7px 0 0; color: var(--ink); font-size: 30px; font-weight: 650; letter-spacing: -.035em; line-height: 1.2; }
+.au-score-values dd b { font: inherit; border-radius: 6px; padding: 1px 5px; margin-left: -5px; }
+.au-score-values small { display: block; margin-top: 7px; font-size: 11px; font-weight: 400; letter-spacing: normal; color: var(--ink-2); line-height: 1.35; }
+.au-score-check, .au-score-total { grid-column: 1 / -1; margin: 0; font-size: 11px; line-height: 1.5; color: var(--ink-2); }
+.au-score-check summary { width: fit-content; cursor: pointer; padding: 6px 0; }
+.au-score-check p { margin: 4px 0; }
+.au-score-method { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 12px; line-height: 1.5; color: var(--ink-2); }
+.au-score-method summary { cursor: pointer; padding: 10px 0; width: fit-content; }
+.au-score-method p { max-width: 80ch; }
+.au-score-week-title { display: flex; align-items: baseline; gap: 12px; margin: 26px 0 16px; font-size: 20px; }
+.au-score-week-title span { font-size: 12px; font-weight: 400; color: var(--ink-2); }
+.au-player-scores :is(a, select, summary):focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+@container player-scores (max-width: 780px) {
+  .au-score-body { grid-template-columns: minmax(0, 1fr); }
+  .au-score-row { gap: 20px; }
+  .au-score-values { max-width: 450px; }
+}
 @container player-scores (max-width: 500px) {
   .au-player-head { display: block; }
-  .au-player-head > p { text-align: left; margin-top: 12px; }
+  .au-player-head > p { text-align: left; margin-top: 10px; }
   .au-player-head h2 { font-size: 24px; }
-  .au-player-table { font-size: 11px; }
-  .au-player-table th, .au-player-table td { padding: 14px 2px; }
-  .au-player-table th:first-child { width: 46%; }
-  .au-player-table thead th { font-size: 10px; }
-  .au-player-id { gap: 6px; }
-  .au-player-id img { width: 26px; height: 40px; flex-basis: 26px; }
-  .au-player-id a { font-size: 12px; }
-  .au-player-id span, .au-player-table td small { font-size: 10px; }
-  .au-player-score { font-size: 11px; padding: 2px 3px; }
-  .au-player-summary { gap: 12px 20px; }
-  .au-player-summary dd { font-size: 23px; }
+  .au-score-controls { align-items: stretch; }
+  .au-score-controls nav { flex: 1; justify-content: space-between; }
+  .au-score-controls a { padding: 10px 11px; }
+  .au-score-controls label { width: 100%; justify-content: space-between; }
+  .au-score-row { grid-template-columns: 80px minmax(0, 1fr); gap: 16px; }
+  .au-score-art { width: 80px; height: 120px; }
+  .au-score-id h3 { font-size: 16px; }
+  .au-score-values { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; }
+  .au-score-values dd { font-size: 27px; }
+  .au-score-values small { margin-top: 4px; }
+  .au-score-game { gap: 4px 6px; }
+  .au-score-meta { font-size: 11px; }
+  .au-player-summary { gap: 14px 24px; }
+  .au-player-summary dd { font-size: 24px; }
 }
+@media (prefers-reduced-motion: reduce) { .au-score-art img, .au-score-controls a { transition: none; } .au-score-art:hover img { transform: none; } }
 .au-top h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spacing: -0.035em; }
 .au-top p { margin: 6px 0 0; color: var(--ink-2); font-size: 14px; }
 .au-top .au-fresh { margin-top: 4px; font-size: 12px; }

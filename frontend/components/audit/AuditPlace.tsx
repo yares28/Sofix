@@ -13,6 +13,7 @@ import { RARITY_NAME } from "../../lib/missions";
 import { myWeeksQuietly } from "../../lib/myWeeksData";
 import { seasonWeeks } from "../../lib/myWeeks";
 import { weekContext } from "../../lib/weeks";
+import { sideKey, withGameCrests } from "../../lib/playerScoreViews";
 
 export type AuditSearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -29,7 +30,20 @@ export default async function AuditPlace({ show, searchParams }: { show: AuditSh
   const latestLocked = [...(sorare?.timeline ?? [])].filter((w) => new Date(w.lock) <= now).sort((a, b) => b.lock.localeCompare(a.lock))[0];
   const week = weekContext(grid, sorare, now, { w: typeof params.w === "string" ? params.w : null, gw: typeof params.gw === "string" ? params.gw : typeof params.w === "string" ? null : latestLocked?.id });
   const selected = sorare?.timeline.find((w) => w.id === week.current?.gw);
-  const playerWeek = data?.playerScores?.weeks.find((w) => w.slug === selected?.slug) ?? null;
+  const games = (sorare?.weeks ?? []).flatMap(w => w.playing.players.flatMap(p => p.games));
+  const crests = new Map<string, string>();
+  for (const team of grid?.teams ?? []) if (team.crest_url) crests.set(sideKey(team.name), team.crest_url);
+  for (const game of games) {
+    if (game.team && game.teamCrest) crests.set(sideKey(game.team), game.teamCrest);
+    if (game.opponent && game.opponentCrest) crests.set(sideKey(game.opponent), game.opponentCrest);
+  }
+  const playerWeeks = (data?.playerScores?.weeks ?? []).map(w => ({ ...w, rows: w.rows.map(row => withGameCrests(row, games, crests)) }));
+  // A retained record can outlive the planning timeline; its address still opens that exact history.
+  const historical = typeof params.scoreGw === "string" ? playerWeeks.find(w => w.slug === params.scoreGw) : null;
+  const playerSlug = historical?.slug ?? selected?.slug ?? "";
+  const playerWeek = playerWeeks.find(w => w.slug === playerSlug) ?? null;
+  const playerChoices = [...playerWeeks.map(w => ({ slug: w.slug, number: w.number, gw: sorare?.timeline.find(t => t.slug === w.slug)?.id })),
+    ...(selected && !playerWeeks.some(w => w.slug === selected.slug) ? [{ slug: selected.slug, number: selected.number, gw: selected.id }] : [])];
   const loadedLog = show === "missions" ? await loadMissionLog() : [];
   const owned = RARITIES.filter((r) => sorare?.collection?.some((c) => c.rarity === r) || loadedLog.some((l) => Object.values(l.days).some((d) => d[r])));
   const logs = show === "missions" ? fillMissionDays(loadedLog, owned, new Date()) : [];
@@ -43,7 +57,7 @@ export default async function AuditPlace({ show, searchParams }: { show: AuditSh
     <>
       <SiteNav meta={meta} system={system} week={show === "xscore" || show === "versus" ? week : undefined} />
       <main className="au">
-        <AuditView data={data} now={new Date()} league={league} show={show} season={season} saved={saved} playerWeek={playerWeek} playerWeekNumber={week.current?.number ?? null} />
+        <AuditView data={data} now={new Date()} league={league} show={show} season={season} saved={saved} playerWeek={playerWeek} playerWeekNumber={historical?.number ?? week.current?.number ?? null} playerWeeks={playerWeeks} playerChoices={playerChoices} playerSlug={playerSlug} />
         {show === "missions" ? <div className="pd-wrap">{owned.map((rarity) => <MissionHistory key={rarity} title={`${RARITY_NAME[rarity]} history`} days={missionHistory(logs, rarity, names)} rarity={rarity} collection={sorare?.collection ?? []} />)}</div> : null}
       </main>
     </>

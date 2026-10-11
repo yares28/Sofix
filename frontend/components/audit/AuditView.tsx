@@ -20,7 +20,7 @@ import type { LeagueAudit as League } from "../../lib/leagueAudit";
 import SourceMark from "../SourceMark";
 import LeagueAudit, { StartsCheck } from "./LeagueAudit";
 import type { SavedWeek } from "../../lib/myWeeks";
-import PlayerScores from "./PlayerScores";
+import PlayerScores, { type ScoreChoice } from "./PlayerScores";
 import type { PlayerScoreWeek } from "../../lib/audit";
 
 const NAME: Record<StartSource, string> = { futbolfantasy: "Futbol Fantasy", sorare: "Sorare", sofix: "Sofix" };
@@ -119,6 +119,9 @@ export default function AuditView({
   saved = [],
   playerWeek = null,
   playerWeekNumber = null,
+  playerWeeks = [],
+  playerChoices = [],
+  playerSlug = "",
 }: {
   data: Audit | null;
   now: Date;
@@ -129,6 +132,9 @@ export default function AuditView({
   saved?: SavedWeek[];
   playerWeek?: PlayerScoreWeek | null;
   playerWeekNumber?: number | null;
+  playerWeeks?: PlayerScoreWeek[];
+  playerChoices?: ScoreChoice[];
+  playerSlug?: string;
 }) {
   if (!data) {
     return (
@@ -142,7 +148,6 @@ export default function AuditView({
   if (show === "xscore") {
     return (
       <>
-        <PlayerScores week={playerWeek} number={playerWeekNumber} />
         {league ? <LeagueAudit data={league} /> : <h1>Audit</h1>}
         <section className="au-w au-starts" aria-labelledby="au-live-h">
           <h2 id="au-live-h">Written before the lock</h2>
@@ -150,6 +155,7 @@ export default function AuditView({
           <p className="au-sub">{data.xscore.live.marked.toLocaleString("en-GB")} of {data.xscore.live.noted.toLocaleString("en-GB")} player gameweeks checked, across every recorded player. Results are checked a day after the week ends.</p>
         </section>
         <MatchAudit data={data.matches} />
+        <PlayerScores week={playerWeek} number={playerWeekNumber} weeks={playerWeeks} choices={playerChoices} selectedSlug={playerSlug} />
         {updated}
       </>
     );
@@ -174,7 +180,7 @@ export default function AuditView({
           <p>Sorare&apos;s projection and Sofix&apos;s xScore, written down before each lock, against what the player scored.</p>
           {updated}
         </header>
-        <PlayerScores week={playerWeek} number={playerWeekNumber} />
+        <PlayerScores week={playerWeek} number={playerWeekNumber} weeks={playerWeeks} choices={playerChoices} selectedSlug={playerSlug} />
         <VersusAudit versus={data.versus} floor={data.floor} league={league} />
       </>
     );

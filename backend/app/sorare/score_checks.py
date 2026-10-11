@@ -171,7 +171,7 @@ def run(db: Session, client: SorareClient, now: datetime) -> dict[str, int]:
                 scores[slug] = {
                     "score": row.get("score"),
                     "played": played,
-                    "started": stats.get("gameStarted"),
+                    "started": bool(stats["gameStarted"]) if stats.get("gameStarted") is not None else None,
                     "mins": stats.get("minsPlayed"),
                     "sourceStatus": status,
                     "firstCheckedAt": first_at or now.isoformat(),
@@ -254,13 +254,15 @@ def comparison(db: Session, now: datetime) -> dict[str, Any]:
                         "away": game.get("away"),
                         "competition": game.get("competition"),
                         "xscore": x,
+                        "sources": (game.get("sources") or {}) if frozen else {},
+                        "ffMatch": game.get("ffMatch") if frozen else None,
                         "by": source,
                         "sorare": game.get("sorare") if frozen else None,
                         "actual": actual,
                         "difference": round(actual - x, 2) if actual is not None and x is not None else None,
                         "firstScore": (check.get("first") or {}).get(slug),
                         "played": did.get("played"),
-                        "started": did.get("started"),
+                        "started": bool(did["started"]) if did.get("started") is not None else None,
                         "state": ("rechecked" if did.get("recheckedAt") or check.get("recheckedAt") else "provisional")
                         if known
                         else "pending",

@@ -14,15 +14,19 @@ const { renderToStaticMarkup } = createRequire(import.meta.url)("react-dom/serve
 vi.stubGlobal("React", React);
 afterAll(() => vi.unstubAllGlobals());
 
-it("shows paired match RPS only from 100 results, with the saved odds date", () => {
+it("shows paired match RPS from the first result, with the saved odds date", () => {
   const data = { recorded: 130, checked: 100, floor: 100, sofix: .1947, bookmakers: .1886, oddsThrough: "2026-09-20", generatedAt: "" };
   const html = renderToStaticMarkup(React.createElement(MatchAudit, { data }));
   expect(html).toContain("0.1947");
   expect(html).toContain("0.1886");
   expect(html).toContain("Odds up to 2026-09-20");
-  const small = renderToStaticMarkup(React.createElement(MatchAudit, { data: { ...data, checked: 99 } }));
-  expect(small).toContain("Too few to tell");
-  expect(small).not.toContain("0.1947");
+  const small = renderToStaticMarkup(React.createElement(MatchAudit, { data: { ...data, checked: 1, sofix: 0 } }));
+  expect(small).not.toContain("Too few to tell");
+  expect(small).toContain("0.0000");
+  expect(small).toContain("1 paired result");
+  const missing = renderToStaticMarkup(React.createElement(MatchAudit, { data: { ...data, checked: 6, sofix: null, bookmakers: null } }));
+  expect(missing).toContain("6 paired results");
+  expect(missing).not.toContain("0.0000");
 });
 
 it("shows each eleven's evidence by week and club and hides rates below 100", () => {

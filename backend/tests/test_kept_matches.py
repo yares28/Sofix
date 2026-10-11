@@ -103,7 +103,7 @@ def test_forecast_updates_before_kickoff_and_never_after(seeded):
     assert seeded.get(MatchForecast, fx.id) is None
 
 
-def test_match_audit_checks_only_paired_pre_kickoff_forecasts_and_hides_small_samples(seeded):
+def test_match_audit_shows_first_paired_pre_kickoff_result(seeded):
     fx = seeded.query(test_pipeline.Fixture).filter_by(source_fixture_id="1").one()
     kept_matches.keep_history(seeded, history(), NOW)
     seeded.add(
@@ -120,7 +120,8 @@ def test_match_audit_checks_only_paired_pre_kickoff_forecasts_and_hides_small_sa
     )
     seeded.commit()
     small = kept_matches.match_audit(seeded, NOW)
-    assert small["checked"] == 1 and small["sofix"] is None and small["bookmakers"] is None
+    assert small["checked"] == 1 and small["sofix"] == pytest.approx(0.1)
+    assert small["bookmakers"] > small["sofix"]
     enough = kept_matches.match_audit(seeded, NOW, floor=1)
     assert enough["sofix"] == pytest.approx(0.1)
     assert enough["bookmakers"] > enough["sofix"]

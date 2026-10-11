@@ -20,7 +20,7 @@ import type { LeagueAudit as League } from "../../lib/leagueAudit";
 import SourceMark from "../SourceMark";
 import LeagueAudit, { StartsCheck } from "./LeagueAudit";
 import type { SavedWeek } from "../../lib/myWeeks";
-import PlayerScores, { type ScoreChoice } from "./PlayerScores";
+import PlayerScores from "./PlayerScores";
 import type { PlayerScoreWeek } from "../../lib/audit";
 
 const NAME: Record<StartSource, string> = { futbolfantasy: "Futbol Fantasy", sorare: "Sorare", sofix: "Sofix" };
@@ -120,8 +120,6 @@ export default function AuditView({
   playerWeek = null,
   playerWeekNumber = null,
   playerWeeks = [],
-  playerChoices = [],
-  playerSlug = "",
 }: {
   data: Audit | null;
   now: Date;
@@ -133,8 +131,6 @@ export default function AuditView({
   playerWeek?: PlayerScoreWeek | null;
   playerWeekNumber?: number | null;
   playerWeeks?: PlayerScoreWeek[];
-  playerChoices?: ScoreChoice[];
-  playerSlug?: string;
 }) {
   if (!data) {
     return (
@@ -155,7 +151,7 @@ export default function AuditView({
           <p className="au-sub">{data.xscore.live.marked.toLocaleString("en-GB")} of {data.xscore.live.noted.toLocaleString("en-GB")} player gameweeks checked, across every recorded player. Results are checked a day after the week ends.</p>
         </section>
         <MatchAudit data={data.matches} />
-        <PlayerScores week={playerWeek} number={playerWeekNumber} weeks={playerWeeks} choices={playerChoices} selectedSlug={playerSlug} />
+        <PlayerScores week={playerWeek} number={playerWeekNumber} weeks={playerWeeks} />
         {updated}
       </>
     );
@@ -180,7 +176,7 @@ export default function AuditView({
           <p>Sorare&apos;s projection and Sofix&apos;s xScore, written down before each lock, against what the player scored.</p>
           {updated}
         </header>
-        <PlayerScores week={playerWeek} number={playerWeekNumber} weeks={playerWeeks} choices={playerChoices} selectedSlug={playerSlug} />
+        <PlayerScores week={playerWeek} number={playerWeekNumber} weeks={playerWeeks} />
         <VersusAudit versus={data.versus} floor={data.floor} league={league} />
       </>
     );

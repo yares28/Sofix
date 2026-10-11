@@ -195,7 +195,7 @@ def save_forecast(db: Session, fx: Fixture, now: datetime, version: str, **value
         setattr(row, name, value)
 
 
-def match_audit(db: Session, now: datetime, floor: int = 100) -> dict[str, Any]:
+def match_audit(db: Session, now: datetime, floor: int = 1) -> dict[str, Any]:
     saved = db.query(MatchOdds).all()
     by_fixture: dict[int, MatchOdds] = {}
     for row in sorted(saved, key=lambda r: (r.source != CSV, -as_utc(r.read_at).timestamp())):

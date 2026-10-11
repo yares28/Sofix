@@ -3,6 +3,7 @@ import { database, readModel } from "./db";
 import { SORARE_TAG, weekPlan, type GameweekPlan, type Sorare, type SorarePlans } from "./play";
 import { restoreFrozenPlan } from "./frozenPlan";
 import type { ChanceRecord } from "./lineupChances";
+import type { SavedStartRecord } from "./playerScoreViews";
 import { marketForWeek, type ScoreRecord } from "./playerForecasts";
 
 // Local development and the browser tests have no Neon: they ask the FastAPI stand-in instead.
@@ -86,6 +87,7 @@ export async function loadFrozenPlan(slug: string, data: Sorare): Promise<Gamewe
   return week?.playing?.players && Array.isArray(week.plans) ? restoreFrozenPlan(week, data) : null;
 }
 export const loadChanceRecord = (slug: string) => supportingRecord<ChanceRecord>("record", slug);
+export const loadAuditStartRecord = (slug: string) => supportingRecord<SavedStartRecord>("record", slug);
 
 /** Restore the selected GW's numbers after it leaves the optimizer. No later week's estimates fill gaps. */
 export async function loadPlayerForecasts(data: Sorare, id: string) {

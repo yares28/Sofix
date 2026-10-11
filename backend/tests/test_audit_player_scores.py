@@ -33,6 +33,7 @@ def seed(db):  # noqa: F811
                         "kickoff": (NOW - timedelta(hours=5)).isoformat(),
                         "home": "Spain",
                         "away": "Denmark",
+                        "sources": {"futbolfantasy": 0.0, "sofix": 0.7, "sorare": 0.8},
                         "sofix": 55,
                         "sorare": 60,
                     },
@@ -79,6 +80,8 @@ def test_owned_rows_and_small_summary_exist_before_gw_end_and_include_every_game
     assert played["name"] == "Player" and played["pic"] == "card.png"
     assert played["home"] == "Spain" and played["away"] == "Denmark"
     assert played["state"] == "provisional" and played["actual"] == 50
+    assert played["sources"] == {"futbolfantasy": 0.0, "sofix": 0.7, "sorare": 0.8}
+    assert pending["sources"] == {}
     assert played["xscore"] == 55 and played["difference"] == -5 and played["sorare"] == 60
     assert pending["state"] == "pending" and pending["actual"] is None and pending["sorare"] is None
     assert week["summary"] == {
@@ -91,6 +94,16 @@ def test_owned_rows_and_small_summary_exist_before_gw_end_and_include_every_game
         "sorareCases": 1,
         "sorareMiss": 10.0,
     }
+
+
+def test_numeric_start_flags_are_boolean_and_missing_stays_unknown(db):  # noqa: F811
+    seed(db)
+    checks = db.get(ReadModel, "audit_game_checks").payload
+    for flag, expected in ((1, True), (0, False), (None, None)):
+        checks["games"][GAME]["scores"]["p"]["started"] = flag
+        put(db, "audit_game_checks", checks, NOW)
+        row = audit.from_kept(db, NOW)["playerScores"]["weeks"][0]["rows"][0]
+        assert row["started"] is expected
 
 
 def test_correction_keeps_the_initial_score_and_frozen_forecast(db):  # noqa: F811
@@ -128,6 +141,7 @@ def test_cold_start_no_forecasts_and_post_lock_numbers_remain_explicit(db):  # n
     put(db, "score_record:gw21", record, NOW)
     row = audit.from_kept(db, NOW)["playerScores"]["weeks"][0]["rows"][0]
     assert row["xscore"] is None and row["sorare"] is None and row["difference"] is None
+    assert row["sources"] == {} and row["ffMatch"] is None
 
 
 class Client:

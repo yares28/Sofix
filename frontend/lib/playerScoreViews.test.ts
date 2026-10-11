@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PlayerScoreRow, PlayerScoreWeek } from "./audit";
-import { scoreStats, playerSummaries, withGameCrests } from "./playerScoreViews";
+import { scoreStats, playerSummaries, withGameCrests, rankScoreGames, savedStartSources, recordedStart } from "./playerScoreViews";
 
 const row: PlayerScoreRow = { player: "p", name: "Player", pic: "", pos: "DEF", game: "g", kickoff: null,
   home: "Spain", away: "Denmark", competition: "International", xscore: 50, sorare: 60, by: "sofix",
@@ -10,6 +10,24 @@ const week = (slug: string, rows: PlayerScoreRow[]): PlayerScoreWeek => ({ slug,
   summary: { checked: 0, total: rows.length, rechecked: 0, starts: 0, xCases: 0, xMiss: null, sorareCases: 0, sorareMiss: null } });
 
 describe("saved player score views", () => {
+  it("reads Sorare's numeric start flags without turning absent evidence into a missed start", () => {
+    expect([1, 0, true, false, null, undefined].map(recordedStart)).toEqual([true, false, true, false, null, null]);
+  });
+  it("ranks known actuals descending, including zero, before DNP and pending; summary follows average actual", () => {
+    const pending = { ...row, name: "Pending", state: "pending" as const, actual: 99 };
+    const dnp = { ...row, name: "DNP", played: false, actual: null };
+    const high = { ...row, player: "high", name: "Highest", actual: 70 };
+    expect(rankScoreGames([pending, dnp, row, high]).map(r => r.name)).toEqual(["Highest", "Player", "DNP", "Pending"]);
+    expect(playerSummaries([week("19", [row, high])]).map(p => p.player)).toEqual(["high", "p"]);
+  });
+  it("restores only the same game's pre-lock source chances, preserving zero and missing", () => {
+    const record = { writtenAt: "2026-10-01T10:00:00Z", gameweek: { slug: "19", lock: "2026-10-02T10:00:00Z" },
+      players: { p: { games: [{ id: "g", kickoff: "", sources: { futbolfantasy: 0, sofix: 0.7 } }, { id: "later", kickoff: "", sources: { sorare: 0.9 } }] } } };
+    expect(savedStartSources(row, "19", record)).toEqual({ futbolfantasy: 0, sofix: 0.7 });
+    expect(savedStartSources(row, "wrong-week", record)).toEqual({});
+    expect(savedStartSources({ ...row, game: "unmatched" }, "19", record)).toEqual({});
+    expect(savedStartSources(row, "19", { ...record, writtenAt: "2026-10-03T10:00:00Z" })).toEqual({});
+  });
   it("counts real zero, separates forecast samples, excludes pending, DNP and substitutes from start averages", () => {
     const stats = scoreStats([row, { ...row, xscore: null, sorare: null, actual: 80 },
       { ...row, state: "pending", actual: 99 }, { ...row, played: false, actual: 0 },

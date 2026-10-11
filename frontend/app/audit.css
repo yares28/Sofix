@@ -15,8 +15,6 @@
 .au-score-controls a { padding: 10px 16px; border-radius: 7px; text-decoration: none; color: var(--ink-2); font-size: 13px; font-weight: 600; transition: background .15s, color .15s; }
 .au-score-controls a:hover { background: var(--track); color: var(--ink); }
 .au-score-controls a[aria-current] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 4px #0000000d; }
-.au-score-controls label { display: flex; align-items: center; gap: 10px; color: var(--ink-2); font-size: 12px; }
-.au-score-controls select { padding: 10px 28px 10px 12px; min-height: 44px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; max-width: 240px; }
 .au-player-summary { display: flex; flex-wrap: wrap; gap: 18px 38px; margin: 24px 0 12px; font-variant-numeric: tabular-nums; }
 .au-player-summary dt { color: var(--ink-2); font-size: 12px; }
 .au-player-summary dd { margin: 4px 0 0; font-size: 26px; font-weight: 650; }
@@ -42,6 +40,11 @@
 .au-score-values dd { margin: 7px 0 0; color: var(--ink); font-size: 30px; font-weight: 650; letter-spacing: -.035em; line-height: 1.2; }
 .au-score-values dd b { font: inherit; border-radius: 6px; padding: 1px 5px; margin-left: -5px; }
 .au-score-values small { display: block; margin-top: 7px; font-size: 11px; font-weight: 400; letter-spacing: normal; color: var(--ink-2); line-height: 1.35; }
+.au-score-starts { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 0; font-variant-numeric: tabular-nums; }
+.au-score-starts dt { font-size: 12px; color: var(--ink-2); }
+.au-score-starts dd { margin: 4px 0 0; font-size: 15px; font-weight: 600; }
+.au-score-starts a { color: var(--ink); text-underline-offset: 3px; }
+.au-score-starts a:hover { color: var(--accent); }
 .au-score-check, .au-score-total { grid-column: 1 / -1; margin: 0; font-size: 11px; line-height: 1.5; color: var(--ink-2); }
 .au-score-check summary { width: fit-content; cursor: pointer; padding: 6px 0; }
 .au-score-check p { margin: 4px 0; }
@@ -63,7 +66,7 @@
   .au-score-controls { align-items: stretch; }
   .au-score-controls nav { flex: 1; justify-content: space-between; }
   .au-score-controls a { padding: 10px 11px; }
-  .au-score-controls label { width: 100%; justify-content: space-between; }
+  .au-score-starts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .au-score-row { grid-template-columns: 80px minmax(0, 1fr); gap: 16px; }
   .au-score-art { width: 80px; height: 120px; }
   .au-score-id h3 { font-size: 16px; }

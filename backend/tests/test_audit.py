@@ -224,14 +224,15 @@ def test_the_live_xscore_is_marked_by_the_same_pairs_as_the_replay_once_there_ar
 
     assert live["state"] == "enough" and live["pairs"] == 7 * 15 and live["weeks"] == 7
     assert live["rate"] == 1.0 and live["lo"] <= 1.0 <= live["hi"]
-    assert live["floor"] == audit.FLOOR
+    assert live["floor"] == 1
 
 
-def test_under_the_floor_the_live_xscore_shows_counts_and_no_rate() -> None:
+def test_live_xscore_shows_stats_from_the_first_comparable_pairs() -> None:
     live = audit.xscore_record(six_weeks_in_order(2))
 
-    assert live["state"] == "few" and live["pairs"] == 30
-    assert live["rate"] is None and live["lo"] is None
+    assert live["state"] == "enough" and live["pairs"] == 30
+    assert live["rate"] == 1.0 and live["lo"] is not None
+    assert live["floor"] == 1
 
 
 def test_the_expected_score_is_the_chance_of_playing_times_his_score_if_he_plays_and_his_gameweek_the_best_game() -> (
@@ -250,7 +251,7 @@ def test_the_expected_score_is_the_chance_of_playing_times_his_score_if_he_plays
 
     live = audit.xscore_record(record)
 
-    assert live["pairs"] == 1 and live["state"] == "few"
+    assert live["pairs"] == 1 and live["state"] == "enough" and live["rate"] == 0.0
     rows = audit.live_rows(record)
     assert {r.player: (r.expected, r.score) for r in rows} == {"a": (40.0, 60.0), "b": (50.0, 50.0)}
 

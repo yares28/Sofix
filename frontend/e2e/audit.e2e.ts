@@ -5,7 +5,7 @@ import { MOCK, offline, resetBackend, smallText, sorare } from "./helpers";
 
 // The Audit page draws the numbers the job published (e2e/fixtures/audit-response.json: the page of 2 Oct 2026 as backend/app/sorare/audit.py
 // builds it from the committed replay of the past and the start record: Sofix's chance written down for GW19's games, none played yet). Nothing
-// here recomputes a figure: the tests check that what the payload says reaches the page, and that a figure under the floor is never drawn.
+// here recomputes a figure: the tests check that what the payload says reaches the page, and that retained statistics and source evidence reach the page without inventing missing values.
 
 test.beforeEach(async ({ page, request }) => {
   await resetBackend(request);
@@ -21,7 +21,10 @@ test("player comparisons cover every saved GW, an all-time summary and URL-resto
     sorare: 60, actual: 0, difference: -50, firstScore: 0, played: true, started: true, state: "rechecked",
     checkedAt: live.start, recheckedAt: live.start, firstDue: live.start, recheckDue: live.end, reason: "" };
   const summary = { checked: 1, total: 1, rechecked: 1, starts: 1, xCases: 1, xMiss: 50, sorareCases: 1, sorareMiss: 60 };
-  await request.post(`${MOCK}/__test/my-weeks`, { data: { playerScores: { weeks: [
+  await request.post(`${MOCK}/__test/my-weeks`, { data: {
+    chanceRecord: { writtenAt: new Date(Date.parse(live.lock) - 3600000).toISOString(), gameweek: { slug: live.slug, lock: live.lock },
+      players: { [card.player]: { games: [{ id: "international", sources: { futbolfantasy: 0, sofix: 0.7 }, ffMatch: { id: 123 } }] } } },
+    playerScores: { weeks: [
     { slug: live.slug, number: live.number, rows: [row], summary },
     { slug: "older-record", number: 12, rows: [{ ...row, actual: 70, difference: 20, by: "form" }], summary },
   ] } } });
@@ -34,10 +37,13 @@ test("player comparisons cover every saved GW, an all-time summary and URL-resto
     expect(above).toBe(true);
   }
   await expect(section.getByRole("article")).toHaveCount(1);
+  await expect(section.locator(".au-score-starts")).toContainText("Sofix start70%");
+  await expect(section.locator(".au-score-starts").getByRole("link", { name: "0%" })).toHaveAttribute("href", "https://www.futbolfantasy.com/partidos/123");
   await expect(section.getByRole("article").locator(".au-score-art")).toHaveCSS("width", "96px");
   await section.getByRole("link", { name: "All GWs", exact: true }).click();
   await expect(section.getByRole("article")).toHaveCount(2);
   await expect(section).toContainText("GW12");
+  await expect(section.getByRole("article").last().locator(".au-score-starts")).not.toContainText("70%");
   await section.getByRole("link", { name: "Summary", exact: true }).click();
   await expect(section.getByRole("article")).toHaveCount(1);
   await expect(section.getByRole("article")).toContainText("-15.0");
@@ -52,11 +58,13 @@ test("player comparisons cover every saved GW, an all-time summary and URL-resto
   await expect(restored.getByRole("link", { name: "Summary", exact: true })).toHaveAttribute("aria-current", "page");
   await expect(restored.getByRole("article")).toContainText("-15.0");
   await restored.getByRole("link", { name: "Gameweek", exact: true }).click();
-  await restored.getByRole("combobox", { name: "Player gameweek" }).selectOption("older-record");
-  await expect(restored.getByRole("article")).toContainText("70.0");
-  await expect(restored.getByRole("article").getByText("0.0", { exact: true })).toHaveCount(0);
+  await expect(restored.getByRole("combobox", { name: "Player gameweek" })).toHaveCount(0);
+  await reopened.goto(`/audit?gw=${live.id}&scoreGw=older-record#player-scores`);
+  await expect(restored.locator(".au-label")).toContainText(`GW${live.number}`);
+  await expect(restored.getByRole("article").getByText("0.0", { exact: true })).toBeVisible();
   await reopened.reload();
-  await expect(restored.getByRole("combobox", { name: "Player gameweek" })).toHaveValue("older-record");
+  await expect(restored.getByRole("article")).toHaveCount(1);
+
 });
 
 test("your players show saved forecasts, zero, corrections and pending games before 100 starts; selected GW survives navigation and closed tabs", async ({ page, request, context }) => {
@@ -66,20 +74,34 @@ test("your players show saved forecasts, zero, corrections and pending games bef
   const card = model.collection[0];
   const base = { player: card.player, name: card.name, pic: card.pic, pos: card.pos, game: "game", kickoff: live.start,
     home: "Spain", away: "Denmark", competition: "International", xscore: 55, by: "sofix", sorare: 60, actual: 0,
-    difference: -55, firstScore: 0, played: true, started: true, state: "provisional", checkedAt: live.start,
+    difference: -55, firstScore: 0, played: true, started: 1, state: "provisional", sources: { futbolfantasy: 0, sofix: 0.7, sorare: 0.8 }, checkedAt: live.start,
+
     recheckedAt: null, firstDue: live.start, recheckDue: live.end, reason: "" };
   await request.post(`${MOCK}/__test/my-weeks`, { data: { playerScores: { weeks: [{ slug: live.slug, number: live.number,
     rows: [base, { ...base, game: "corrected", name: "Corrected player", actual: 53, difference: -2, firstScore: 50, state: "rechecked", recheckedAt: live.start },
+      { ...base, game: "sub", name: "Substitute", started: 0, actual: 10, difference: -45 },
+      { ...base, game: "dnp", name: "DNP player", played: false, started: null, actual: null, difference: null, sources: {} },
       { ...base, game: "missing", name: "Pending player", actual: null, difference: null, sorare: null, state: "pending", checkedAt: null, reason: "Player scores not available yet" }],
-    summary: { checked: 2, total: 3, rechecked: 1, starts: 2, xCases: 2, xMiss: 28.5, sorareCases: 2, sorareMiss: 33.5 } }] } } });
+    summary: { checked: 4, total: 5, rechecked: 1, starts: 2, xCases: 2, xMiss: 28.5, sorareCases: 2, sorareMiss: 33.5 } }] } } });
   await page.goto(`/audit?gw=${live.id}`);
   let section = page.getByRole("region", { name: "Your players, xScore against actual" });
   await expect(section).toContainText(`GW${live.number}`);
-  await expect(section).toContainText("2 of 3 player games checked");
+  await expect(section).toContainText("4 of 5 player games checked");
   await expect(section).toContainText("28.5");
   const zero = section.getByRole("article").filter({ hasText: card.name });
   await expect(zero.getByText("0.0", { exact: true })).toBeVisible();
   await expect(zero).toContainText("Provisional");
+  await expect(zero.locator(".au-score-starts")).toContainText("FF start0%");
+  await expect(zero.locator(".au-score-starts")).toContainText("Sofix start70%");
+  await expect(zero.locator(".au-score-starts")).toContainText("Sorare start80%");
+  await expect(zero.locator(".au-score-starts")).toContainText("Started");
+  await expect(section.getByRole("article").first()).toContainText("Corrected player");
+  await expect(section.getByRole("article").nth(1)).toContainText("Substitute");
+  await expect(section.getByRole("article").nth(2)).toContainText(card.name);
+  await expect(section.getByRole("article").filter({ hasText: "Substitute" }).locator(".au-score-starts")).toContainText("Did not start");
+  await expect(section.getByRole("article").filter({ hasText: "DNP player" }).locator(".au-score-starts")).toContainText("FF start—");
+  await expect(section.getByRole("article").filter({ hasText: "DNP player" }).locator(".au-score-starts")).toContainText("Did not start");
+  await expect(section.getByRole("article").filter({ hasText: "Pending player" }).locator(".au-score-starts")).toContainText("Pending");
   await expect(section.getByRole("article").filter({ hasText: "Corrected player" })).toContainText("50.0 → 53.0");
   await expect(section.getByRole("article").filter({ hasText: "Pending player" })).toContainText("Pending");
   await expect(section).not.toContainText("Too few");
@@ -117,13 +139,12 @@ test("Audit opens the latest locked GW and honours an explicitly selected future
   await expect(section).toContainText(`GW${future.number}`);
 });
 
-test("match forecasts wait for 100 paired results and name the saved odds date", async ({ page }) => {
+test("empty match comparisons remain missing rather than zero", async ({ page }) => {
   await page.goto("/audit");
   const section = page.getByRole("region", { name: "Match forecasts, checked" });
-  await expect(section).toContainText("Too few to tell");
-  await expect(section).toContainText("0 of 100 matches checked");
+  await expect(section).toContainText("No paired results yet");
   await expect(section).toContainText("No odds saved yet");
-  await expect(section.getByRole("table")).toHaveCount(0);
+
 });
 
 test("saved weeks survive without Chrome on Recap, Cards and Rewards, beside the plan frozen at lock", async ({ page, request }) => {
@@ -262,7 +283,6 @@ test("with enough games a source shows its figure, and one under the floor still
 test("before the first refresh that writes it, the page says so instead of drawing empty figures", async ({ page, request }) => {
   await resetBackend(request, "no-audit");
   await page.goto("/audit");
-
   await expect(page.getByRole("status")).toContainText("The audit appears after the next refresh.");
   await expect(page.locator(".lg-card")).toHaveCount(0);
 });
@@ -326,7 +346,6 @@ test("Missions says too few to tell under the floor, and lists each day's picks 
   await expect(first.locator(".au-ms-card.hit")).toHaveCount(1);
   await expect(first.locator(".au-ms-card.left")).toHaveCount(2); // Güler and Pedri did it and were not picked
   await expect(days.locator(".au-ms-days > li").nth(1)).toContainText("not loaded");
-
   await page.getByRole("link", { name: "Missions", exact: true }).first().click();
   await expect(page).toHaveURL(/\/audit\/missions/);
 });

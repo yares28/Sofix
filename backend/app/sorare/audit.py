@@ -282,15 +282,15 @@ def live_rows(record: dict[str, Any]) -> list[backtest.Row]:
 
 def xscore_record(record: dict[str, Any]) -> dict[str, Any]:
     """The same count as the replay's, on what the app really said before each lock: how often the higher expected score went with
-    the higher real one. Under the floor it gives the counts and no rate."""
+    the higher real one. Show descriptive statistics from the first comparable pair."""
     rows, noted = _marked(record)
     found = backtest.pair_accuracy(rows, "live")
     pairs = int(found["pairs"])
-    state = "none" if not noted else "waiting" if not pairs else "few" if pairs < FLOOR else "enough"
+    state = "none" if not noted else "waiting" if not pairs else "enough"
     shown = state == "enough"
     return {
         "state": state,
-        "floor": FLOOR,
+        "floor": 1,
         "noted": noted,
         "marked": len(rows),
         "pairs": pairs,

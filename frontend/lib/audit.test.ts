@@ -105,8 +105,8 @@ describe("the live check of the xScore", () => {
     expect(liveLine(live({ state: "waiting", noted: 1 }))).toBe("1 player was written down before the lock. His gameweek is not played yet.");
   });
 
-  it("says too few to tell until the floor, then gives the share", () => {
-    expect(liveLine(live({ state: "few", pairs: 30 }))).toBe("30 pairs so far: too few to tell. It shows here from 100.");
+  it("shows the share from the first pair, including older few-state payloads", () => {
+    expect(liveLine(live({ state: "few", pairs: 30, rate: 0.6, lo: 0.4, hi: 0.8 }))).toBe("60% (40–80%) on 30 pairs since the first lock.");
     expect(liveLine(live({ state: "enough", pairs: 130, rate: 0.64, lo: 0.58, hi: 0.69 }))).toBe(
       "64% (58–69%) on 130 pairs since the first lock.",
     );

@@ -136,6 +136,8 @@ export type PlayerScoreRow = {
   player: string; name: string; pic: string; pos: string | null; game: string | null;
   kickoff: string | null; home: string | null; away: string | null; competition: string | null;
   xscore: number | null; by: "sofix" | "sorare" | "form" | null; sorare: number | null;
+  sources?: Partial<Record<StartSource, number>>;
+  ffMatch?: { id: number } | null;
   actual: number | null; difference: number | null; firstScore: number | null;
   played: boolean | null; started: boolean | null; state: "pending" | "provisional" | "rechecked";
   checkedAt: string | null; recheckedAt: string | null; firstDue: string | null; recheckDue: string | null; reason: string;
@@ -250,11 +252,12 @@ export function sourceStory(source: StartSource, live: LiveSource, floor: number
 
 /** The one line under the hero about the live record of the xScore. */
 export function liveLine(live: XscoreLive): string {
+  if (live.pairs > 0) return live.rate !== null
+    ? `${percent(live.rate)} (${interval(live.lo, live.hi) ?? "–"}) on ${plural(live.pairs, "pair")} since the first lock.`
+    : `${plural(live.pairs, "pair")} checked. Accuracy awaits the next statistics update.`;
   switch (live.state) {
     case "enough":
       return `${percent(live.rate)} (${interval(live.lo, live.hi) ?? "–"}) on ${plural(live.pairs, "pair")} since the first lock.`;
-    case "few":
-      return `${plural(live.pairs, "pair")} so far: too few to tell. It shows here from ${live.floor}.`;
     case "waiting":
       return live.noted === 1
         ? "1 player was written down before the lock. His gameweek is not played yet."

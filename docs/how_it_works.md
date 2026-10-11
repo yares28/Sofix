@@ -306,8 +306,7 @@ New weeks wait until their end plus 24 hours; older records retain their day-aft
 scores or mission stats remain pending. The replay file's numbers (the xScore success rate, and Sofix's chance of starting replayed on the past
 in bands) beside the live record, which begins empty. `starts_record` scores each source (Sorare, Futbol Fantasy, Sofix) on the games
 it had a number for once they are settled; `xscore_record` counts the same pairs on what the model noted before each lock (the
-chance he plays times his score if he plays) against his best game once the gameweek is settled. A figure under `FLOOR` (100 cases)
-is withheld by the job, which sends the counts and no rate, and the page says "too few to tell". The step is optional: if it
+chance he plays times his score if he plays) against his best game once the gameweek is settled. The live xScore pair rate is published from the first pair, with its interval and count (11 October owner request). The other source verdicts keep their `FLOOR` (100 cases). The step is optional: if it
 fails the Play page is still published and the run's summary names `audit` under `failed`.
 
 `/audit/versus` compares the two saved conditional scores against the real score on starts (mean miss and how often each
@@ -380,7 +379,7 @@ as margin-free fair decimal prices, including a pulled future market's last read
 score without changing the price. Each prediction
 writes `match_forecasts` until kick-off, rejecting delayed older writes and all after-kick-off writes. The Audit joins
 finished results to these frozen forecasts and one price per fixture (CSV first), using the canonical H/D/A RPS on identical
-paired cases. Under 100 matches both scores stay null. Football publishing updates this section even if Sorare fails.
+paired cases. Both scores are published from the first paired match, with the paired count (11 October owner request). Football publishing updates this section even if Sorare fails.
 
 **Kept-data health (data-keeping step 8).** `services/data_health.py` publishes one `data_health` read model from the
 refresh's final publish and the daily games job, even if Sorare's refresh step failed. It aggregates counts, distinct
@@ -607,3 +606,5 @@ Nothing was seeded by the migration itself; steps 7–8 need no further migratio
 | Sorare UI/Apply | `frontend/components/play/`, `components/cards/`, `lib/apply.ts` |
 | Extension | `extension/background.js`, `core.js`, `bridge.js`, `content.js`, `overlay.js/css`, `drawer.js` |
 | Operations | `.github/workflows/refresh.yml`, `league-history.yml`, `frontend/app/control/`, `frontend/lib/github.ts` |
+
+Audit player comparisons follow the top-bar GW and rank confirmed actuals before DNP/pending; summaries rank average actual. Saved per-game `sources` and FF match attribution are exposed only when the record predates the GW lock. Older published rows restore these from the same cached `score_record` and exact player/game. Sorare numeric `gameStarted` flags are normalized to booleans on ingestion and comparison, including cached frontend rows; absent flags remain unknown. See [follow-up contract](../plans/audit-followups.md).

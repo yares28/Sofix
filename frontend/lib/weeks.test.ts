@@ -167,7 +167,7 @@ describe("the weeks of a season", () => {
 
   it("knows which week is live and which is next", () => {
     expect(weeks.find((w) => w.number === 16)!.state).toBe("live");
-    expect(currentWeek(weeks)!.number).toBe(17);
+    expect(currentWeek(weeks)!.number).toBe(16);
     expect(weekById(weeks, "2026-09-25")!.number).toBe(17);
     expect(weekById(weeks, "nope")).toBeNull();
   });
@@ -205,9 +205,13 @@ describe("with nothing synced", () => {
 describe("what the bar shows on a page", () => {
   const context = (asked?: Parameters<typeof weekContext>[3]) => weekContext(grid, sorare, NOW, asked);
 
-  it("opens on the week Sorare is planning", () => {
-    expect(context().current!.number).toBe(17);
-    expect(context().now!.number).toBe(17);
+  it("opens on the live GW until it ends, even while the next GW is being planned", () => {
+    expect(context().current!.number).toBe(16);
+    expect(context().now!.number).toBe(16);
+    expect(weekContext(grid, sorare, new Date("2026-09-25T16:59:59Z")).current!.number).toBe(16);
+    expect(weekContext(grid, sorare, new Date("2026-09-25T17:00:00Z")).current!.number).toBe(17);
+    // nextId can lag a refresh; the clock still recognizes the week that has ended.
+    expect(weekContext(grid, sorare, new Date("2026-09-30T10:00:00Z")).current!.number).toBe(19);
   });
 
   it("follows a week in the address", () => {
@@ -223,7 +227,7 @@ describe("what the bar shows on a page", () => {
   it("gives back the week that was asked for, whatever the page can draw", () => {
     // GW17 has no LaLiga round, and the week you pick is still the week you get: the board says so itself
     // rather than quietly showing another one (components/AwayWeek.tsx).
-    expect(context().current!.number).toBe(17);
+    expect(context({ gw: "17" }).current!.number).toBe(17);
     expect(context().current!.md).toBeNull();
     expect(context({ w: "2026-10-09" }).current!.gw).toBeNull();
   });
@@ -284,7 +288,7 @@ describe("one Sorare game week over two LaLiga rounds", () => {
   it("still shares the one Sorare game week, and its plan, between them", () => {
     expect(weeks.every((w) => w.gw === "21" && w.number === 21)).toBe(true);
     expect(weeks.every((w) => w.cards === 13 && w.plans === 1)).toBe(true);
-    expect(weeks.every((w) => w.state === "next")).toBe(true); // the game week is what Sorare is planning
+    expect(weeks.every((w) => w.state === "live")).toBe(true); // the clock recognizes a week already under way
   });
 
   it("offers both rounds to the board and the game week once to Play", () => {

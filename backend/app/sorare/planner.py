@@ -608,19 +608,18 @@ def make_plan(
                 cache[comp.key] = build(comp, pool, forecasts, rng, draws=draws)
             for lineup in cache[comp.key]:
                 if worth_entering(lineup):
-                    # the owner's essence order first (6 Oct 2026); inside a kind, the lineup most likely to be paid, what it
-                    # pays breaking a tie (5 Oct 2026: a reward is all or nothing)
+                    # Maximize expected essence first (11 Oct); preserve essence-kind priority for equal rewards.
                     options.append(
                         (
                             priority(lineup, order),
-                            lineup.p_return + value(lineup, cash_norm, essence_norm) / 1000,
+                            lineup.e_essence,
                             lineup,
                         )
                     )
         if not options:
             break
-        options.sort(key=lambda o: (o[0], -o[1]))
-        top = [o for o in options if o[0] == options[0][0]][:4]
+        options.sort(key=lambda o: (-o[1], o[0], -o[2].p_return, -value(o[2], cash_norm, essence_norm)))
+        top = options[:4]
         if temperature > 0 and len(top) > 1:
             weights = np.exp(np.array([o[1] for o in top]) / max(temperature * top[0][1], 1e-9))
             picked = top[int(rng.choice(len(top), p=weights / weights.sum()))]
@@ -650,8 +649,8 @@ def plans(
 ) -> list[Plan]:
     """The best whole-gameweek plans, each different enough from the others to be a real choice.
 
-    The best is the one most likely to be paid by the owner's first essence kind, then his second and his third (6 Oct 2026), then
-    the one most likely to be paid anything (5 Oct 2026: a reward is all or nothing); what a plan pays only breaks a tie.
+    The best maximizes expected essence rewards (the owner, 11 Oct 2026). The owner's essence-kind order and
+    reward chance break ties. Cash remains separate and never outweighs a larger essence reward.
     """
     rng = np.random.default_rng(seed)
     firsts = [lu for comp in comps for lu in build(comp, cards, forecasts, rng, keep=1, draws=draws)]
@@ -668,6 +667,7 @@ def plans(
     def key(plan: Plan) -> tuple[float, ...]:
         kinds = (plan.outcomes.by_kind if plan.outcomes else {}) or {}
         return (
+            -plan.essence,
             *(-round(kinds.get(kind, 0.0), 2) for kind in order),
             -round(plan.chance_of_any(), 3),
             -(plan.cash / best_cash + (plan.essence - plan.fees) / best_essence),

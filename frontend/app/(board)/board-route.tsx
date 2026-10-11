@@ -3,7 +3,7 @@ import FixtureBoard from "../../components/FixtureBoard";
 import LaLigaView from "../../components/laliga/LaLigaView";
 import SiteNav from "../../components/SiteNav";
 import { loadGrid } from "../../lib/api";
-import { loadSorare } from "../../lib/playData";
+import { loadFrozenPlan, loadSorare } from "../../lib/playData";
 import { weekPlan } from "../../lib/play";
 import { weekContext, weekDates } from "../../lib/weeks";
 import { loadSystem } from "../../lib/system";
@@ -38,11 +38,15 @@ export async function BoardRoute({ view, searchParams }: { view: View; searchPar
   // still decides which week that is. A week with no round at all stays itself — the board then shows the
   // games the owner's own players play, because there is no LaLiga to show.
   const opening = grid ? (grid.matchdays[openingColumn(grid)]?.number ?? null) : null;
-  const week = weekContext(grid, sorare, new Date(), { w: params.get("w"), md: Number(params.get("gw")) || opening });
+  const now = new Date();
+  const calendar = weekContext(grid, sorare, now, { w: params.get("w"), md: Number(params.get("gw")) || null });
+  const week = !params.has("w") && !params.has("gw") && calendar.now?.state !== "live"
+    ? weekContext(grid, sorare, now, { md: opening }) : calendar;
   const away = week.current && week.current.md === null ? week.current : null;
-  // Only a week that was asked for pins the board: left alone it stays on its own opening gameweek, where the
-  // table still projects the whole season (lib/grid.ts, `state.gw === null`).
-  if (params.has("w") && week.current?.md) params.set("gw", String(week.current.md));
+  const awayInfo = sorare?.timeline.find(w => w.id === away?.gw);
+  const awayPlan = sorare && away?.gw ? weekPlan(sorare, away.gw) ?? (awayInfo ? await loadFrozenPlan(awayInfo.slug, sorare) : null) : null;
+  // Explicit dates and a live round drive the board. Between live windows it keeps its opening LaLiga round.
+  if ((params.has("w") || (week.current?.state === "live" && week.current.md !== opening)) && week.current?.md) params.set("gw", String(week.current.md));
 
   const initialView = grid
     ? { ...DEFAULT_VIEW, ...parseViewState(params, new Set(grid.teams.map((team) => team.code))), view }
@@ -79,7 +83,7 @@ export async function BoardRoute({ view, searchParams }: { view: View; searchPar
             notes={meta?.model_notes ?? []}
             initialView={initialView}
             pinsInUrl={params.has("pins")}
-            away={away ? { plan: (sorare && away.gw && weekPlan(sorare, away.gw)) || null, dates: weekDates(away) } : null}
+            away={away ? { plan: awayPlan, dates: weekDates(away) } : null}
           />
         ) : (
           <section className="card empty-state" role="status">

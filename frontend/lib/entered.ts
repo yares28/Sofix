@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { EXTENSION_ID, extensionAtLeast, pingExtension } from "./extension";
 import { cashLabel, essenceLabel, spanLabel, timeUntil } from "./play";
+import { BoardMetadata, scoringRules, type EnteredScoring } from "./lineupMetadata";
 
 export type EnteredCard = {
   slug: string;
@@ -10,6 +11,13 @@ export type EnteredCard = {
   /** What he scored for this lineup, once Sorare has scored him. */
   score: number | null;
   captain: boolean;
+  index?: number;
+  player?: string | null;
+  positions?: string[];
+  level?: number;
+  inSeason?: boolean;
+  average?: number | null;
+  club?: string | null;
 };
 /** What Sorare says a lineup made: its score, where it ranked, and what it was paid. Rank and rewards come after the games. */
 export type LineupResult = { score: number; rank: number | null; cash: number; essence: number; card: boolean; xp?: number };
@@ -22,6 +30,7 @@ export type GameweekLineup = {
   competition: string;
   result: LineupResult | null;
   cards: EnteredCard[];
+  scoring?: EnteredScoring;
 };
 
 type FailureState = "no-extension" | "no-tab" | "no-bridge" | "signed-out" | "timeout" | "error";
@@ -32,11 +41,15 @@ export type WeekLineupsAnswer =
   | { state: FailureState };
 
 const AppearanceSchema = z.object({
-  anyCard: z.object({ slug: z.string() }).nullable().optional(),
+  anyCard: z.object({ slug: z.string(), inSeasonEligible: z.boolean().optional(), anyTeam: z.object({ name: z.string() }).nullish() }).nullable().optional(),
   // Compatibility with a response from the previous bridge while an already-open tab is being upgraded.
   card: z.object({ slug: z.string() }).nullable().optional(),
   pictureUrl: z.string().nullable().optional(),
-  player: z.object({ displayName: z.string() }).nullable().optional(),
+  player: z.object({ displayName: z.string(), slug: z.string().optional() }).nullable().optional(),
+  index: z.number().int().nullish(),
+  grade: z.number().int().nullish(),
+  positions: z.array(z.string()).nullish(),
+  averageScore: z.number().nullable().optional(),
   rarity: z.string().nullable().optional(),
   // Absent from an extension older than 0.2.2, which did not ask for them.
   score: z.number().nullable().optional(),
@@ -67,7 +80,7 @@ const LineupSchema = z.object({
   name: z.string().nullable().default(null),
   draft: z.boolean(),
   confirmable: z.boolean().default(false),
-  so5Leaderboard: z.object({ slug: z.string(), displayName: z.string() }).nullable().optional(),
+  so5Leaderboard: z.object({ slug: z.string(), displayName: z.string(), ...BoardMetadata }).nullable().optional(),
   // Sorare answers null rather than [] for some lineups (one not yet ranked): read as none, never as a broken answer.
   so5Rankings: z.array(RankingSchema).nullish().transform((rows) => rows ?? []),
   so5Appearances: z.array(AppearanceSchema).nullish().transform((rows) => rows ?? []),
@@ -138,6 +151,7 @@ export function readWeekLineups(response: unknown): WeekLineupsAnswer {
       board: lineup.so5Leaderboard?.slug ?? null,
       competition: lineup.so5Leaderboard?.displayName ?? "Sorare competition",
       result: resultOf(lineup),
+      ...(scoringRules(lineup.so5Leaderboard) ? { scoring: scoringRules(lineup.so5Leaderboard) } : {}),
       cards: lineup.so5Appearances.flatMap((appearance) => {
         const slug = (appearance.anyCard ?? appearance.card)?.slug;
         if (!slug) return [];
@@ -149,6 +163,12 @@ export function readWeekLineups(response: unknown): WeekLineupsAnswer {
             rarity: appearance.rarity ?? null,
             score: appearance.score ?? null,
             captain: appearance.captain === true,
+            ...(appearance.index != null ? {
+              index: appearance.index, player: appearance.player?.slug,
+              level: appearance.grade ?? undefined, positions: appearance.positions ?? undefined,
+              average: appearance.averageScore, inSeason: appearance.anyCard?.inSeasonEligible,
+              club: appearance.anyCard?.anyTeam?.name ?? null,
+            } : {}),
           },
         ];
       }),

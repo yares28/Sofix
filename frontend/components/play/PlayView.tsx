@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { GameweekPlan, Plan, Sorare } from "../../lib/play";
 import {
   allocation,
+  bestPlan,
   cashLabel,
   chanceLabel,
   DEFAULT_ESSENCE_ORDER,
@@ -52,6 +53,7 @@ export default function PlayView({
   missions,
   by = "sofix",
   sorareWaiting = null,
+  forecast,
 }: {
   data: Sorare;
   week: GameweekPlan;
@@ -70,6 +72,7 @@ export default function PlayView({
   by?: "sofix" | "sorare";
   /** With `by` Sorare and no Sorare plan yet: what the page says instead. */
   sorareWaiting?: string | null;
+  forecast?: GameweekPlan;
 }) {
   const id = week.gameweek.id;
   const plans = plansOf(week, after);
@@ -114,9 +117,7 @@ export default function PlayView({
                   : "Sorare hasn't opened this week, and there is no finished week of its kind to copy its competitions from. Built from LaLiga's calendar and your cards' form; it moves as the week gets closer, and nothing here can be entered yet."}
               </p>
             </div>
-          ) : (
-            <EnteredLineups week={week.gameweek} />
-          )}
+          ) : null}
           {plan && !after && !week.projected ? (
             <div className="pl-apply">
               <ApplySheet lineups={enterable(plan.lineups)} week={week} rank={plan.rank} now={now.toISOString()} />
@@ -225,6 +226,7 @@ export default function PlayView({
       ) : (
         <Waiting week={week} now={now} />
       )}
+      {!week.projected ? <EnteredLineups week={week.gameweek} forecast={forecast ?? week} /> : null}
       {missions && !after ? <MissionsGlance plans={missions.plans} day={missions.day} current={missions.status === "today"} href="/missions" /> : null}
       <Folds week={week} />
     </main>
@@ -451,7 +453,7 @@ function PlanSwitch({
         >
           <span className="l1">
             {plan.hindsight ? "In hindsight" : `Plan ${plan.rank}`}
-            {index === 0 && !plan.hindsight ? <span className="best">best</span> : null}
+            {plan === bestPlan(plans.filter(p => !p.hindsight)) && !plan.hindsight ? <span className="best">best</span> : null}
           </span>
           <span className="l2">
             {after && plan.actual ? (
@@ -640,13 +642,13 @@ const RULES: [string, string, string][] = [
   ],
   [
     "1",
-    "Your essence first.",
-    "Lineups for the essence you put first are filled first (LaLiga, then Champion, then All Star unless you change it); a lineup under 5% gets no priority.",
+    "Expected essence first.",
+    "The best plan maximizes expected essence. Your preferred essence order breaks ties between equally rewarding options.",
   ],
   [
     "%",
     "A reward is all or nothing.",
-    "Plan 1 is the plan most likely to be paid cash, essence or a card. XP is shown apart and never counts; a Room is played only when it wins back more than its fee on average.",
+    "Best marks the plan with the highest expected essence. XP is shown apart and never counts; a Room is played only when it wins back more than its fee on average.",
   ],
 ];
 

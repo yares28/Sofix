@@ -293,7 +293,7 @@ const server = createServer((req, res) => {
     if (state.sorare === "missing") {
       return send(res, 200, { success: false, data: null, error: "Sorare has not been synced yet.", meta: null });
     }
-    return send(res, 200, idleSorare[state.news] ?? sorare);
+    return send(res, 200, state.sorareData ? { ...sorare, data: state.sorareData } : idleSorare[state.news] ?? sorare);
   }
 
   if (req.method === "GET" && url.pathname === "/api/player-sheets") return send(res, 200, { success: true, data: playerSheets });
@@ -404,7 +404,7 @@ const server = createServer((req, res) => {
   }
   const supporting = url.pathname.match(/^\/api\/sorare\/(plan|record)\/([a-z0-9-]+)$/);
   if (req.method === "GET" && supporting) {
-    const kept = supporting[1] === "record" ? state.chanceRecord : state.livePlan;
+    const kept = supporting[1] === "record" ? state.chanceRecord : state.livePlan?.gameweek.slug === supporting[2] ? state.livePlan : null;
     return send(res, 200, { success: Boolean(kept), data: kept ?? null });
   }
 
@@ -472,7 +472,7 @@ const server = createServer((req, res) => {
   if (req.method === "POST" && url.pathname === "/__test/my-weeks") {
     let body = "";
     req.on("data", (chunk) => { body += chunk; });
-    req.on("end", () => { const input = JSON.parse(body); state.myWeeks = input.weeks; state.frozenPlans = input.frozenPlans; state.chanceRecord = input.chanceRecord; state.livePlan = input.livePlan; state.playerScores = input.playerScores; send(res, 200, { ok: true }); });
+    req.on("end", () => { const input = JSON.parse(body); state.myWeeks = input.weeks; state.frozenPlans = input.frozenPlans; state.chanceRecord = input.chanceRecord; state.livePlan = input.livePlan; state.playerScores = input.playerScores; state.sorareData = input.sorareData; send(res, 200, { ok: true }); });
     return;
   }
   if (req.method === "POST" && url.pathname === "/__test/mode") {

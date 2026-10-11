@@ -8,6 +8,8 @@ import { readEnteredWeek } from "../../lib/myWeeksClient";
 import { REQUIRED_EXTENSION_VERSION } from "../../lib/extension";
 import { Foil } from "./bits";
 import SorareImage from "./SorareImage";
+import type { GameweekPlan } from "../../lib/play";
+import { enteredScore } from "../../lib/lineupScores";
 
 type Week = { slug: string; number: number; lock?: string; end?: string };
 type Failure = Exclude<WeekLineupsAnswer, { state: "ok" }>;
@@ -17,7 +19,7 @@ type LoadState =
   | { state: "unavailable"; lineups: GameweekLineup[]; answer: Failure };
 
 /** Lineups the signed-in manager actually put on Sorare, read from this exact Sorare gameweek. */
-export default function EnteredLineups({ week }: { week: Week }) {
+export default function EnteredLineups({ week, forecast = null }: { week: Week; forecast?: GameweekPlan | null }) {
   const [load, setLoad] = useState<LoadState>({ state: "loading", lineups: [] });
   const [asked, setAsked] = useState(0); // a new ask: Check again, or coming back to this tab
   const last = useRef<{ slug: string; lineups: GameweekLineup[] } | null>(null);
@@ -128,6 +130,7 @@ export default function EnteredLineups({ week }: { week: Week }) {
         <div className="pl-entered-list">
           {load.lineups.map((lineup) => {
             const pending = pendingLine(lineup, week.lock, now);
+            const expected = enteredScore(lineup, forecast, week.slug);
             return (
             <article className="pl-entered-lineup" key={lineup.id}>
               <div className="pl-entered-name">
@@ -147,16 +150,24 @@ export default function EnteredLineups({ week }: { week: Week }) {
                   </CardZoom>
                 ))}
               </div>
+              <div className="pl-entered-scores" role="group" aria-label="Lineup scores">
+                <span className="pl-entered-expected" title={expected.estimated ? "Estimated from this GW's forecasts, card bonuses, captain and substitutions, with independent playing chances." : "The recorded Sofix forecast for this lineup and GW."}>
+                  <small>xScore{expected.estimated ? " estimate" : ""}</small>
+                  <b>{expected.value === null ? "—" : Math.round(expected.value)}</b>
+                  {expected.value === null ? <small>{forecast ? "Forecast unavailable" : "Not recorded"}</small> : null}
+                </span>
               {lineup.result && !lineup.draft ? (
                 <span className="pl-entered-result">
+                  <small>Actual</small>
                   <b>{pending ? "–" : Math.round(lineup.result.score)}</b>
-                  <small>{pending ?? resultLine(lineup.result)}</small>
+                  <small className="pl-entered-verdict">{pending ?? resultLine(lineup.result)}</small>
                 </span>
               ) : (
                 <span className={`pl-entered-status${lineup.draft ? " draft" : ""}`}>
                   {lineup.draft ? "Draft" : "Entered"} · {lineup.cards.length} cards
                 </span>
               )}
+              </div>
             </article>
             );
           })}

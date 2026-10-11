@@ -690,6 +690,11 @@ export function plansOf(week: GameweekPlan, after: boolean): Plan[] {
   return after && week.played && week.hindsight ? [...week.plans, week.hindsight] : week.plans;
 }
 
+/** Expected essence rewards decide the best plan; equal totals preserve the published order. */
+export function bestPlan(plans: Plan[]): Plan | null {
+  return plans.reduce<Plan | null>((best, plan) => !best || plan.essence > best.essence ? plan : best, null);
+}
+
 /** The chances a plan or lineup is shown with, apart: cash, essence, a card, XP only. Null where the payload predates them. */
 export function rewardSplit(item: { pCash?: number; pEss?: number; pXp?: number; pCard?: number }): { kind: "cash" | "essence" | "card" | "xp"; p: number }[] | null {
   if (item.pCash === undefined || item.pEss === undefined || item.pXp === undefined) return null;

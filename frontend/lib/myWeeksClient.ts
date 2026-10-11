@@ -1,5 +1,5 @@
 import { runWeekLineups, weekWon, type GameweekLineup, type WeekLineupsAnswer, type WeekWon } from "./entered";
-import { type MyWeeks, type SavedWeek } from "./myWeeks";
+import { needsScoring, withScoring, type MyWeeks, type SavedWeek } from "./myWeeks";
 import { REFRESH_HEADER } from "./refresh";
 
 const BLOCKING = new Set(["no-extension", "no-tab", "no-bridge", "signed-out", "outdated"]);
@@ -42,7 +42,17 @@ export async function readEnteredWeek(slug: string, useSaved = true): Promise<En
   let known: MyWeeks | null = null;
   if (useSaved) try { known = await stored(); } catch { /* the live read can still work */ }
   const saved = known?.weeks.find((week) => week.slug === slug);
-  if (saved) return { state: "ok", lineups: saved.lineups, saved: true };
+  if (saved) {
+    let lineups: GameweekLineup[] = saved.lineups;
+    if (lineups.some(needsScoring)) {
+      const answer = await read(slug);
+      if (answer.state === "ok") {
+        lineups = withScoring(lineups, answer.lineups);
+        if (lineups !== saved.lineups) await save(slug, lineups);
+      }
+    }
+    return { state: "ok", lineups, saved: true };
+  }
   const answer = await read(slug);
   if (answer.state === "ok" && known?.pending.some((week) => week.slug === slug)) {
     return { ...answer, saved: await save(slug, answer.lineups) };

@@ -102,6 +102,11 @@ main.rc { display: flex; flex-direction: column; gap: 20px; }
 .rc-score b { display: block; font-size: 44px; line-height: .95; font-weight: 650; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
 .rc-score span { display: block; font-size: 12px; color: var(--ink-2); margin-top: 6px; }
 .rc-score em { font-style: normal; color: var(--ink); font-weight: 600; }
+.rc-score-pair { display: flex; gap: 18px; }
+.rc-score-pair span { margin: 0 0 7px; }
+.rc-score-pair b { font-size: 30px; }
+.rc-plan-head { padding-top: 24px; }
+.rc-plan-head h3 { margin: 0; font-size: 17px; }
 .rc-rew { display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--ink-2); line-height: 1.6; }
 .rc-rew b { color: var(--ink); }
 .rc-ring { position: relative; flex: none; width: 74px; height: 74px; border-radius: 50%; display: grid; place-items: center; }

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { offline, resetBackend, smallText } from "./helpers";
+import { offline, openingMatchday, resetBackend, smallText } from "./helpers";
 
 test.beforeEach(async ({ page, request }) => {
   await resetBackend(request);
@@ -37,14 +37,14 @@ test("the Control Center fits a phone, with the map drawn as a column", async ({
 });
 
 test("the home fits a phone, and the tab bar moves between pages", async ({ page }) => {
-  await page.goto("/");
+  await page.goto(`/?gw=${openingMatchday}`);
   await expect(page.locator(".rc-mt").first()).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   const tabs = page.getByRole("navigation", { name: "Sections" });
   await expect(tabs.getByRole("link", { name: "This week" })).toHaveAttribute("aria-current", "page");
   await tabs.getByRole("link", { name: "Season" }).click();
   await expect(page).toHaveURL(/\/season$/, { timeout: 30_000 });
-  await expect(tabs.getByRole("link", { name: "Season" })).toHaveAttribute("aria-current", "page");
+  await expect(tabs.getByRole("link", { name: "Season" })).toHaveAttribute("aria-current", "page", { timeout: 30_000 });
 });
 
 test("Overview, Fixtures and Table fit a phone without sideways page scrolling", async ({ page }) => {

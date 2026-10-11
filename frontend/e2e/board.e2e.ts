@@ -532,8 +532,8 @@ test("the status pill opens the Control Center: status, install with a QR code, 
 
 test("home (Recap): the gameweek, the best cards, the round as a scoreboard, the table after it and the Sorare blocks", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/");
-  await expect(page.locator(".rc-head h1")).toHaveText(/^Gameweek \d+$/);
+  await page.goto(`/?gw=${openingMatchday}`);
+  await expect(page.locator(".rc-head h1")).toHaveText(`LaLiga round ${openingMatchday}`);
   await expect(page.locator(".rc-head p")).toContainText(`LaLiga round ${openingMatchday}`);
   await expect(page.locator(".rc-pill")).toContainText(/^Locks? /);
   for (const title of ["This round", `Table after round ${openingMatchday}`, "Your lineups", "Missions", "News this week", "Team news"]) {
@@ -594,7 +594,7 @@ test("home restores the selected week's frozen plan instead of showing the next 
   await page.goto(`/?w=${selected.id}`);
   await expect(page.locator(".rc-head h1")).toHaveText(`Gameweek ${selected.number}`);
   await expect(page.getByRole("link", { name: "Open the plan", exact: true })).toHaveAttribute("href", `/play?w=${selected.id}`);
-  await expect(page.locator(".rc-lineups .rc-th")).toContainText(`Sorare GW${selected.number}`);
+  await expect(page.locator(".rc-lineups > .rc-th")).toContainText(`Sorare GW${selected.number}`);
   await expect(page.locator(".rc-lu").first()).toBeVisible();
 });
 
@@ -625,7 +625,7 @@ test("home: a Sorare-only week says LaLiga is away and identifies each player's 
 test("home: a gameweek the season doesn't have goes back to the home page", async ({ page }) => {
   await page.goto("/?gw=99");
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.locator(".rc-head p")).toContainText(`LaLiga round ${openingMatchday}`);
+  await expect(page.locator(".wk-trigger")).toContainText("Sorare GW");
 });
 
 test("the switch under the top bar moves between the Season views", async ({ page }) => {

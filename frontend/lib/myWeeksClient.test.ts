@@ -44,3 +44,15 @@ it("reports a newly archived final week as saved only after storage accepts it",
     : new Response(JSON.stringify({ weeks: [], pending: [{ slug: "finished" }] })));
   expect((await readEnteredWeek("finished")).saved).not.toBe(true);
 });
+it("automatically enriches an older saved custom lineup while retaining its recorded result", async () => {
+  const card = { slug: "c", name: "C", picture: null, rarity: "limited", score: 40, captain: true };
+  const lineup = { id: "l", name: "Saved", draft: false, confirmable: false, competition: "LaLiga", board: "b", cards: [card], result: { score: 60, rank: 10, essence: 250, cash: 0, card: false } };
+  const scoring = { slots: [{ positions: ["Defender"], sub: false }], minInSeason: 0, captain: 0.5, season: 0, grade: 0.01, scarcity: {}, clubBonus: null, averageBonus: null };
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ weeks: [{ slug: "old", lineups: [lineup] }], pending: [] }))));
+  read.mockResolvedValue({ state: "ok", lineups: [{ ...lineup, scoring, result: { ...lineup.result, score: 999 }, cards: [{ ...card, index: 0, player: "p", level: 2, inSeason: true, average: 40, positions: ["Defender"] }] }] });
+  const { readEnteredWeek } = await import("./myWeeksClient");
+  const answer = await readEnteredWeek("old");
+  expect(answer).toMatchObject({ state: "ok", saved: true, lineups: [{ scoring, result: lineup.result, cards: [{ index: 0, player: "p" }] }] });
+  read.mockResolvedValue({ state: "no-tab" });
+  expect(await readEnteredWeek("old")).toMatchObject({ state: "ok", saved: true, lineups: [lineup] });
+});

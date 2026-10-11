@@ -155,6 +155,11 @@
 .pl-entered-result { justify-self: end; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; min-width: 0; }
 .pl-entered-result b { font-size: 20px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .pl-entered-result small { font-size: 11px; color: var(--ink-2); white-space: nowrap; }
+.pl-entered-scores { display: flex; justify-content: flex-end; gap: 20px; min-width: 0; }
+.pl-entered-expected { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.pl-entered-expected b { font-size: 20px; font-weight: 650; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.pl-entered-expected small { font-size: 11px; color: var(--ink-2); }
+.pl-entered-result .pl-entered-verdict { max-width: 240px; white-space: normal; text-align: right; }
 .pl-entered-wait,
 .pl-entered-empty {
   margin-top: 14px;
@@ -1489,8 +1494,8 @@
   .pl-entered-head { align-items: flex-start; }
   .pl-entered-lineup { grid-template-columns: minmax(0, 1fr) auto; gap: 11px 14px; }
   .pl-entered-cards { grid-column: 1 / -1; }
-  .pl-entered-status,
-  .pl-entered-result { grid-column: 2; grid-row: 1; }
+  .pl-entered-status { justify-self: start; }
+  .pl-entered-scores { grid-column: 1 / -1; grid-row: 3; justify-content: flex-start; }
   .pl-entered-empty { align-items: flex-start; flex-direction: column; }
   .pl-plans {
     display: flex;

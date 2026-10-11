@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   cardScore,
+  bestPlan,
   isLongShot,
   rewardSplit,
   allocation,
@@ -95,6 +96,16 @@ const gameweek = (over: Partial<GameweekPlan> = {}): GameweekPlan => ({
   notWorth: [],
   plans: [plan()],
   ...over,
+});
+
+describe("best plan", () => {
+  it("maximizes expected essence, regardless of cash, reward chance or original rank", () => {
+    const first = plan({ rank: 1, essence: 10, cash: 500, pAny: 0.9 });
+    const second = plan({ rank: 2, essence: 12, cash: 0, pAny: 0.1 });
+    expect(bestPlan([first, second])).toBe(second);
+    expect(bestPlan([])).toBeNull();
+    expect(bestPlan([first, { ...first, rank: 3 }])).toBe(first);
+  });
 });
 
 describe("the time to the lock", () => {

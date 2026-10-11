@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { GameweekLineup } from "./entered";
 import { weekWon } from "./entered";
+import { CardMetadata, ScoringSchema } from "./lineupMetadata";
 
 export const MY_WEEK_PREFIX = "my_week:";
 export const MY_WEEKS_TAG = "my-weeks";
@@ -11,8 +12,9 @@ const amount = z.number().finite().min(0).max(1_000_000);
 export const WeekBody = z.object({ slug: WeekSlug, lineups: z.array(z.object({
   id: text, name: z.string().max(200).nullable(), draft: z.boolean(), confirmable: z.boolean(),
   board: text.nullable(), competition: text,
+  scoring: ScoringSchema.optional(),
   result: z.object({ score: amount, rank: z.number().int().positive().nullable(), cash: amount, essence: amount, card: z.boolean(), xp: amount.optional() }).nullable(),
-  cards: z.array(z.object({ slug: text, name: text, picture: z.string().url().max(2048).nullable(), rarity: text.nullable(), score: z.number().finite().min(0).max(1000).nullable(), captain: z.boolean() })).max(15),
+  cards: z.array(z.object({ slug: text, name: text, picture: z.string().url().max(2048).nullable(), rarity: text.nullable(), score: z.number().finite().min(0).max(1000).nullable(), captain: z.boolean(), ...CardMetadata })).max(15),
 })).max(128) });
 
 export type SavedWeek = {
@@ -22,6 +24,26 @@ export type SavedWeek = {
 export type FinishedWeek = { slug: string; number: number; start: string; end: string };
 export type MyWeeks = { weeks: SavedWeek[]; pending: FinishedWeek[] };
 export type CardReturn = { lineups: number; weeks: number; essence: number; cash: number };
+
+export function needsScoring(lineup: GameweekLineup): boolean {
+  return !lineup.scoring || lineup.cards.some(c => c.index === undefined);
+}
+/** Enrich only the same entered team; saved scores, rewards, names and card order remain the original read. */
+export function withScoring(saved: GameweekLineup[], fresh: GameweekLineup[]): GameweekLineup[] {
+  const rows = saved.map(old => {
+    if (!needsScoring(old)) return old;
+    const next = fresh.find(l => l.id === old.id && l.board === old.board && !l.draft);
+    if (!next?.scoring || next.cards.length !== old.cards.length || next.cards.some(c => c.index === undefined) ||
+      new Set(next.cards.map(c => c.index)).size !== next.cards.length ||
+      old.cards.some(c => !next.cards.some(n => n.slug === c.slug && n.captain === c.captain))) return old;
+    return { ...old, scoring: next.scoring, cards: old.cards.map(c => {
+      const n = next.cards.find(n => n.slug === c.slug)!;
+      return { ...c, index: n.index, player: c.player ?? n.player, positions: n.positions ?? c.positions, level: n.level ?? c.level,
+        inSeason: n.inSeason ?? c.inSeason, average: n.average ?? c.average, club: n.club ?? c.club };
+    }) };
+  });
+  return rows.every((row, i) => row === saved[i]) ? saved : rows;
+}
 
 export function finished(end: string, now = Date.now()): boolean {
   const at = Date.parse(end);

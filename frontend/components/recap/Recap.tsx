@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { lineupActual, type ActualScores } from "../../lib/lineupScores";
 import type { CSSProperties } from "react";
 import { scoreColour } from "../../lib/cards";
 import type { MissionPlan } from "../../lib/missions";
@@ -148,8 +149,9 @@ export function Ring({ value }: { value: number }) {
   );
 }
 
-export function LineupRow({ row }: { row: PlanRow }) {
+export function LineupRow({ row, scores = {} }: { row: PlanRow; scores?: ActualScores }) {
   const { lineup } = row;
+  const actual = lineupActual(lineup, scores);
   return (
     <div className="rc-lu">
       <div className="rc-lu-c">
@@ -173,8 +175,11 @@ export function LineupRow({ row }: { row: PlanRow }) {
         ))}
       </ol>
       <div className="rc-score">
-        <b>{Math.round(lineup.x)}</b>
-        <span>team score, {Math.round(lineup.lo)} to {Math.round(lineup.hi)}</span>
+        <div className="rc-score-pair" role="group" aria-label="Lineup scores">
+          <div><span>xScore</span><b>{Math.round(lineup.x)}</b></div>
+          <div><span>Actual{actual.value !== null && !actual.complete ? " so far" : ""}</span><b>{actual.value === null ? "—" : Math.round(actual.value)}</b></div>
+        </div>
+        <span>Expected range {Math.round(lineup.lo)} to {Math.round(lineup.hi)}</span>
         {lineup.need !== null ? <span>needs <em>{Math.round(lineup.need)}</em> for a reward</span> : null}
       </div>
       <div className="rc-rew">
@@ -201,12 +206,12 @@ export function LineupRow({ row }: { row: PlanRow }) {
   );
 }
 
-export function PlanLineups({ rows, show, href }: { rows: PlanRow[]; show: number; href: string }) {
+export function PlanLineups({ rows, show = rows.length, href, scores = {} }: { rows: PlanRow[]; show?: number; href: string; scores?: ActualScores }) {
   const rest = rows.slice(show);
   return (
     <>
       {rows.slice(0, show).map((row, i) => (
-        <LineupRow key={`${row.lineup.key}-${i}`} row={row} />
+        <LineupRow key={`${row.lineup.key}-${i}`} row={row} scores={scores} />
       ))}
       {rest.length ? (
         <div className="rc-rest">

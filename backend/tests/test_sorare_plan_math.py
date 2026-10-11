@@ -70,7 +70,7 @@ def test_a_card_only_level_counts_as_being_paid():
     assert lineup.p_card > 0.5 and worth_entering(lineup)
 
 
-def test_the_owners_essence_order_comes_first():
+def test_expected_essence_comes_before_the_owners_essence_order():
     cards = squad(5)  # one lineup's worth: the plan has to choose
     fc = forecasts_for(cards, p=1.0, mu=50.0)
     laliga = in_season_comp(tiers=[rules.Tier(1, 1500, essence=250)], reference={1500: 255.0})
@@ -79,7 +79,10 @@ def test_the_owners_essence_order_comes_first():
     )
     laliga_one, star_one = (build(c, cards, fc, np.random.default_rng(5), keep=1)[0] for c in (laliga, all_star))
     assert star_one.p_return > laliga_one.p_return > 0.05
-    assert plans([laliga, all_star], cards, fc, count=1, runs=2, draws=600)[0].lineups[0].comp.essence_kind == "laliga"
+    assert star_one.e_essence > laliga_one.e_essence
+    assert (
+        plans([laliga, all_star], cards, fc, count=1, runs=2, draws=600)[0].lineups[0].comp.essence_kind == "all_star"
+    )
     first = plans([laliga, all_star], cards, fc, count=1, runs=2, draws=600, order=("all_star", "laliga"))[0]
     assert first.lineups[0].comp.essence_kind == "all_star"
 

@@ -57,6 +57,19 @@ describe("what a lineup says before its games", () => {
 });
 
 describe("reading the signed-in manager's gameweek lineups", () => {
+  it("retains original slots and bonus rules for estimating a custom lineup, including after archiving", () => {
+    const answer = readWeekLineups({ state: "ok", data: { so5: { so5Fixture: { mySo5Lineups: [{
+      id: "custom", draft: false, so5Leaderboard: { slug: "board", displayName: "LaLiga",
+        rules: { appearances: [{ positions: ["Goalkeeper"], sub: false }] },
+        engineConfiguration: { captain: 0.5, season: 0.05, grade: 0.01, scarcity: { limited: 0 }, sameActiveClub: { number_players_per_club: { max: 2 }, bonus: 0.02 }, averageScores: { max: 260, bonus: 0.04 } },
+        displayedTypedRules: [{ key: "SeasonBonus" }],
+      }, so5Appearances: [{ anyCard: { slug: "c", inSeasonEligible: true, anyTeam: { name: "Celta" } }, player: { slug: "p", displayName: "Player" }, index: 0, grade: 3, positions: ["Goalkeeper"], averageScore: 45, captain: true }],
+    }] } } } });
+    expect(answer).toMatchObject({ state: "ok", lineups: [{
+      scoring: { slots: [{ positions: ["Goalkeeper"], sub: false }], captain: 0.5, minInSeason: 4, clubBonus: [2, 0.02], averageBonus: [260, 0.04] },
+      cards: [{ player: "p", index: 0, level: 3, inSeason: true, average: 45, club: "Celta" }],
+    }] });
+  });
   it("keeps the competition and the exact cards Sorare returned", () => {
     const answer = readWeekLineups({
       state: "ok",

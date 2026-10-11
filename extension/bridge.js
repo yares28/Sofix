@@ -127,7 +127,10 @@
     SofixFixtureLineups: `query SofixFixtureLineups($slug: String!) { so5 { so5Fixture(slug: $slug) {
       id slug gameWeek
       mySo5Lineups(withTraining: false) { id name draft confirmable
-        so5Leaderboard { slug displayName }
+        so5Leaderboard { slug displayName
+          rules { appearances(includeSubs: true) { positions sub } }
+          engineConfiguration { season captain grade scarcity sameActiveClub averageScores }
+          displayedTypedRules { key } }
         so5Rankings { id ranking score so5Leaderboard { slug }
           so5Rewards { rewardConfigs { __typename
             ... on MonetaryRewardConfig { amount { usdCents } }
@@ -135,7 +138,9 @@
             ... on InGameCurrencyRewardConfig { amount currency }
             ... on CardRewardConfig { rarity quality } } } }
         so5Appearances(includeSubs: true) {
-          id rarity pictureUrl(derivative: "tinified") score captain player { displayName } anyCard { slug }
+          id index grade positions averageScore(type: LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
+          rarity pictureUrl(derivative: "tinified") score captain player { slug displayName }
+          anyCard { slug inSeasonEligible anyTeam { name } }
         }
       }
     } } }`,

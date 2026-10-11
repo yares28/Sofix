@@ -11,7 +11,7 @@
  */
 
 import type { FixtureGrid, GridMatchday } from "./types";
-import { chanceLabel, type GameweekPlan, type ProjectedHead, type Sorare } from "./play";
+import { bestPlan, chanceLabel, type GameweekPlan, type ProjectedHead, type Sorare } from "./play";
 import { nationalWeek } from "./teamNews";
 
 export type WeekState = "done" | "live" | "next" | "later";
@@ -94,7 +94,7 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
       if (item?.kept !== true) return { cards: 0, plans: 0, chance: null, replay: null, source: null, kept: false, early: false, expected: false, national: false };
       return { cards: item.playing ?? 0, plans: 0, chance: null, replay: item.won ?? null, source: null, kept: true, early: false, expected: false, national: false };
     }
-    const best = week.plans[0];
+    const best = bestPlan(week.plans);
     return {
       cards: week.playing.cards,
       plans: week.plans.length,
@@ -178,9 +178,9 @@ function earlyOf(head: ProjectedHead | undefined): Partial<Week> {
 }
 
 function stateOf(from: string, to: string, sorare: Sorare | null, gw: string | undefined, now: Date): WeekState {
-  if (gw && sorare && gw === sorare.nextId) return "next";
-  if (at(to) < now.getTime()) return "done";
+  if (at(to) <= now.getTime()) return "done";
   if (at(from) <= now.getTime()) return "live";
+  if (gw && sorare && gw === sorare.nextId) return "next";
   return "later";
 }
 
@@ -190,9 +190,9 @@ export function weekOn(weeks: Week[], instant: Date): Week | null {
   return weeks.find((week) => at(week.from) <= t && t < at(week.to)) ?? [...weeks].reverse().find((week) => at(week.from) <= t) ?? null;
 }
 
-/** The week the app opens on: the one Sorare is planning, or the first that has not finished. */
+/** Stay on the week in progress until its window ends, then advance to the next available week. */
 export function currentWeek(weeks: Week[]): Week | null {
-  return weeks.find((week) => week.state === "next") ?? weeks.find((week) => week.state !== "done") ?? weeks.at(-1) ?? null;
+  return weeks.find((week) => week.state === "live") ?? weeks.find((week) => week.state !== "done") ?? weeks.at(-1) ?? null;
 }
 
 export function weekById(weeks: Week[], id: string | undefined | null): Week | null {

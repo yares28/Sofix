@@ -193,7 +193,7 @@ Primary calendar sources: [Spain](https://inside.fifa.com/associations/ESP/snaps
 
 **Historical corrections.** Same-origin `POST /api/missions/history` validates slot count, rarity and optimistic revision, strips client verdict/lock claims, and stores overrides under `missions_edit:day:rarity`. Explicit empty picks differ from no override. Restoration and source changes retain provenance. Readers apply edits after merging the ledger, so a refresh cannot erase them. Matching official Sorare verdicts take precedence; an unmatched reported player/game stays pending. The Audit excludes missing/late forecast evidence and updates its visible personal results after a correction without replacing lifetime totals with a truncated window. Import success is returned after history persistence, then relevant caches are invalidated.
 
-**Sofix's plan and Sorare's plan (the Play deep fix, 6 Oct).** Every week is planned twice with the same start chances: once on Sofix's xScore (`sorare`) and once on Sorare's own per-game projection (`sync.game_projections`, written to `sorare_alt:<slug>`, read on demand). Lineups are filled in the owner's essence order first (`sorare_settings`, set from Play through `POST /api/settings`; default LaLiga › Champion › All Star; a lineup under 5% gets no priority); a Room is played only when its expected essence beats the fee; XP is its own tier and never counts as paid. Each lineup's dice are seeded (`planner._seed`) so it shows the same numbers every time, and a plan's chance of a reward comes from one joint simulation (`planner.plan_outcomes`), not from multiplying lineups. Before each lock both numbers are written down for every LaLiga player with a game (`score_record:<week>`); a day after the week ends `player_audit.read` joins the stored results, and `/audit/versus` compares them on starts (under 100 starts: too few to tell).
+**Sofix's plan and Sorare's plan (the Play deep fix, 6 Oct).** Every week is planned twice with the same start chances: once on Sofix's xScore (`sorare`) and once on Sorare's own per-game projection (`sync.game_projections`, written to `sorare_alt:<slug>`, read on demand). Lineups and plans prioritize expected essence rewards (11 Oct 2026); the owner's essence preference breaks ties (`sorare_settings`, set from Play through `POST /api/settings`); a Room is played only when its expected essence beats the fee; XP is its own tier and never counts as paid. Each lineup's dice are seeded (`planner._seed`) so it shows the same numbers every time, and a plan's chance of a reward comes from one joint simulation (`planner.plan_outcomes`), not from multiplying lineups. Before each lock both numbers are written down for every LaLiga player with a game (`score_record:<week>`); a day after the week ends `player_audit.read` joins the stored results, and `/audit/versus` compares them on starts (under 100 starts: too few to tell).
 
 **Start chances for every player on Lineups.** `lib/lineupChances.ts` joins the owner's forecasts to each match first, then every other LaLiga player through his Futbol Fantasy link in `market`, so Sofix's and Sorare's start chance shows beside Futbol Fantasy's for players he does not own too.
 
@@ -323,8 +323,8 @@ non-zero stats (`missions.settle_kept`). Old records and functions remain for hi
 Seeded beam search (width 120), 3,000 score draws and repeated temperature-weighted whole-week searches enforce slots,
 position/card/player uniqueness, rarity/in-season/club/cap rules, bonuses, captain and substitutes. A substitute is
 used only when protection exceeds sacrificed value. Rewards are all or nothing (a lineup reaching a tier's score gets that
-tier whole), so each step adds the lineup most likely to be paid and candidates are ranked by the chance of any reward;
-normalized cash + normalized essence only breaks ties. They are filtered until card-set signatures differ by at least 20%;
+tier whole). Each step prioritizes expected essence and whole-plan candidates are ranked by total expected essence
+(11 Oct 2026); preferred essence type and reward chance break ties. They are filtered until card-set signatures differ by at least 20%;
 at most five are published. Each published tier carries the score that reached it in the reference week (`need`). The two
 reward units remain separate and are never converted by an exchange rate. The page shows no chance-weighted average: a
 lineup shows its first tier's reward and score, a plan its most likely result (`likelyResult` in `frontend/lib/play.ts`,
@@ -335,6 +335,16 @@ teammate/opponent/shared-lineup correlation; combined “any reward” treats pl
 not guarantees. `runs` controls repeated randomized searches; the fixed seed keeps identical input reproducible.
 
 ## 10. Replay
+
+Recap displays all entered lineups and all lineups of the best Sofix plan, with expected and actual totals side by side.
+Entered teams matching a saved board/card/slot/captain combination keep the recorded team xScore. Custom teams use
+the selected GW's forecasts and Sorare's original appearance indices, grades and scoring configuration. Up to nine
+cards' independent play/no-play combinations are enumerated, using conditional mean scores and the planner's captain,
+substitution and bonus rules. This separate approximation is labelled **xScore estimate**; absent forecasts stay unknown.
+The extension's existing read-only lineup query supplies the metadata, which is retained in saved-week JSON.
+Plan actuals use one cached read-only `player_games` batch for the exact selected game IDs and player identities, with
+the best score for a double. Unfinished/missing games are not DNPs; a partial team total says **Actual so far**.
+The default week remains live until its UTC end, before `nextId` is considered. Explicit dates still take precedence.
 
 Pre-lock per-game forecasts are retained in `player_games`; the old `sorare_forecasts` rows remain historical. Actuals join without overwriting statements. Home/Play
 compare submitted-lineup actual to original centre/range/reward threshold. Only rows captured before lock qualify for

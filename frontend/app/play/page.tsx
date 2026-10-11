@@ -7,7 +7,7 @@ import SiteNav from "../../components/SiteNav";
 import { loadGrid } from "../../lib/api";
 import { loadMissions } from "../../lib/missionsData";
 import { missionsToday } from "../../lib/missionsToday";
-import { plansOf, weekPlan } from "../../lib/play";
+import { bestPlan, plansOf, weekPlan } from "../../lib/play";
 import { loadFrozenPlan, loadProjectedWeek, loadSorare, loadSorareAlt, loadSorareWeek } from "../../lib/playData";
 import { loadMissionPool } from "../../lib/missionsPool";
 import { loadSystem } from "../../lib/system";
@@ -88,7 +88,8 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
   const by = sorareAsked ? "sorare" : "sofix";
   const view = sorareAsked ? { ...showing, plans: alt?.plans ?? [] } : showing;
   const sorareWaiting = sorareAsked && !view.plans.length ? sorareNote(alt, showing.projectionsAt) : null;
-  const requested = Number(single("plan") ?? 1);
+  const defaultPlan = bestPlan(view.plans);
+  const requested = Number(single("plan") ?? (defaultPlan ? view.plans.indexOf(defaultPlan) + 1 : 1));
   const offered = Math.max(plansOf(view, after).length, 1);
   const planIndex = Number.isFinite(requested) ? Math.min(Math.max(requested, 1), offered) - 1 : 0;
 
@@ -102,6 +103,7 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
         missions={missions}
         data={data}
         week={view}
+        forecast={showing}
         by={by}
         sorareWaiting={sorareWaiting}
         planIndex={planIndex}

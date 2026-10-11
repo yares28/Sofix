@@ -20,10 +20,11 @@ import { bestCards, lockText, planRows, roundBoard, tableAfter, weekNews } from 
 import { lineupsGlance, readLabel } from "../lib/lineups";
 import { loadLineups } from "../lib/lineupsData";
 import { freshLabel } from "../lib/fresh";
-import { nextWeek, weekPlan } from "../lib/play";
-import { loadFrozenPlan, loadSorare, loadSorareWeek } from "../lib/playData";
+import { bestPlan, weekPlan } from "../lib/play";
+import { loadFrozenPlan, loadProjectedWeek, loadSorare, loadSorareWeek } from "../lib/playData";
 import { weekContext, weekDates } from "../lib/weeks";
 import { loadSystem } from "../lib/system";
+import { loadPlanActuals } from "../lib/planScoresData";
 
 export const metadata: Metadata = { title: "Sofix" };
 
@@ -55,7 +56,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   const opening = grid ? openingColumn(grid) : 0;
   const week = weekContext(grid, sorare, new Date(), {
     w: params.get("w"),
-    md: Number(params.get("gw")) || (grid?.matchdays[opening]?.number ?? null),
+    md: Number(params.get("gw")) || null,
   });
   if (!grid) {
     return (
@@ -76,7 +77,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   }
   // A Sorare-only week must not silently show the next LaLiga round underneath it. An explicitly selected one
   // gets the same honest "LaLiga is away" treatment as the board pages.
-  const away = params.has("w") && week.current?.column === null ? week.current : null;
+  const away = week.current?.column === null ? week.current : null;
   const column = week.current?.column ?? opening;
   const href = (path: string) => week.current && (params.has("w") || (path === "/play" && week.current.gw))
     ? `${path}?w=${encodeURIComponent(week.current.id)}` : boardHref(path, grid, column, opening);
@@ -85,13 +86,15 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
       ? (sorare.timeline.find((item) => item.id === week.current?.gw) ?? weekPlan(sorare, week.current.gw)?.gameweek ?? null)
       : null;
   const now = new Date();
-  // The Sorare week of the Recap: the one in the top bar, else the one being planned.
+  // Only the selected week's frozen or early plan supplies Recap's forecasts.
   const plan = sorare ? week.current?.gw
     ? weekPlan(sorare, week.current.gw) ?? (selectedSorare
       ? ("kept" in selectedSorare && selectedSorare.kept ? await loadSorareWeek(selectedSorare.slug) : null) ?? await loadFrozenPlan(selectedSorare.slug, sorare)
       : null)
-    : nextWeek(sorare) : null;
-  const rows = plan?.plans[0] ? planRows(plan.plans[0]) : [];
+    : week.current?.md ? await loadProjectedWeek(week.current.md) : null : null;
+  const best = bestPlan(plan?.plans ?? []);
+  const rows = best ? planRows(best) : [];
+  const actuals = plan ? await loadPlanActuals(plan) : {};
   const news = plan ? weekNews(plan.playing.players, week.current?.md ?? null, now) : { hurt: [], back: [] };
   const today = await missionsToday(sorare, missions, undefined, now, await loadMissionPool());
   const md = grid.matchdays[column]!;
@@ -101,26 +104,23 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
     <>
       <SiteNav meta={meta} system={system} week={week} />
       <main className="hm rc">
-        {away ? (
-          <AwayWeek plan={plan} variant="fixtures" dates={weekDates(away)} />
-        ) : (
-          <header className="rc-head">
-            <div>
-              <h1>{selectedSorare || plan ? `Gameweek ${selectedSorare?.number ?? plan!.gameweek.number}` : `LaLiga round ${md.number}`}</h1>
-              <p>
-                {selectedSorare || plan ? `LaLiga round ${md.number} · ` : ""}
-                {dateRange(md.date_from, md.date_to)}
-                {sorare?.generatedAt ? <span className="rc-synced"> · {sorare.user} · synced {freshLabel(sorare.generatedAt, now)}</span> : null}
-              </p>
+        <header className="rc-head">
+          <div>
+            <h1>{selectedSorare || (plan && !plan.projected) ? `Gameweek ${selectedSorare?.number ?? plan!.gameweek.number}` : `LaLiga round ${md.number}`}</h1>
+            <p>
+              {away ? "LaLiga is away · " : `LaLiga round ${md.number} · `}
+              {away ? weekDates(away) : dateRange(md.date_from, md.date_to)}
+              {sorare?.generatedAt ? <span className="rc-synced"> · {sorare.user} · synced {freshLabel(sorare.generatedAt, now)}</span> : null}
+            </p>
+          </div>
+          {plan ? (
+            <div className="rc-act">
+              <span className="rc-pill">{lockText(plan.gameweek.lock, now)}</span>
+              <Link className="rc-btn" href={href("/play")}>Open the plan</Link>
             </div>
-            {plan ? (
-              <div className="rc-act">
-                <span className="rc-pill">{lockText(plan.gameweek.lock, now)}</span>
-                <Link className="rc-btn" href={href("/play")}>Open the plan</Link>
-              </div>
-            ) : null}
-          </header>
-        )}
+          ) : null}
+        </header>
+        {away ? <AwayWeek plan={plan} variant="fixtures" dates={weekDates(away)} /> : null}
         {plan ? <BestCards cards={bestCards(plan.playing.players)} gw={plan.gameweek.number} /> : null}
         <div className="rc-grid">
           <YourSeason saved={savedWeeks} now={now.toISOString()} />
@@ -135,13 +135,16 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
               <section className="hm-tile rc-lineups" aria-labelledby="rc-lu-h">
                 <div className="rc-th">
                   <h2 id="rc-lu-h">Your lineups</h2>
-                  <span>Sorare GW{selectedSorare?.number ?? plan!.gameweek.number}</span>
+                  <span>{plan?.projected ? "Early Sofix plan" : `Sorare GW${selectedSorare?.number ?? plan!.gameweek.number}`}</span>
                   <Link href={href("/play")}>{rows.length ? `See all ${rows.length}` : "Plan"} ›</Link>
                 </div>
                 {/* What you entered on Sorare comes first (read through the extension), then the plan's best. */}
-                {selectedSorare ? <EnteredLineups week={selectedSorare} /> : null}
+                {selectedSorare ? <EnteredLineups week={selectedSorare} forecast={plan} /> : null}
                 {rows.length ? (
-                  <PlanLineups rows={rows} show={3} href={href("/play")} />
+                  <div className="rc-plan" role="region" aria-label="Best Sofix plan">
+                    <div className="rc-th rc-plan-head"><h3>Best Sofix plan</h3><span>{Math.round(best!.essence)} expected essence · {rows.length} lineup{rows.length === 1 ? "" : "s"}</span></div>
+                    <PlanLineups rows={rows} href={href("/play")} scores={actuals} />
+                  </div>
                 ) : plan ? (
                   <WaitingTile week={plan} now={now} meta={`Sorare GW${plan.gameweek.number}`} />
                 ) : <p className="rc-none">Plan not recorded for this GW.</p>}

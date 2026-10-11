@@ -998,7 +998,7 @@ thead th .tbc-mark { font-weight: 600; }
 .ow-card { position: relative; display: block; width: 46px; aspect-ratio: 320 / 452; border-radius: 6px; overflow: hidden; background: #16181d; box-shadow: 0 1px 2px rgba(0,0,0,.2), 0 3px 8px rgba(0,0,0,.12); }
 .ow-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .ow-card.rare { box-shadow: 0 0 0 1px #d7263d55, 0 1px 2px rgba(0,0,0,.2), 0 3px 8px rgba(0,0,0,.12); }
-.ow-card i { position: absolute; right: 2px; bottom: 2px; min-width: 13px; height: 13px; padding: 0 3px; border-radius: 7px; display: grid; place-items: center; font-style: normal; font-size: 9px; font-weight: 800; background: color-mix(in srgb, var(--surface) 94%, transparent); color: var(--ink); }
+.ow-card i { position: absolute; right: 2px; bottom: 2px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 7px; display: grid; place-items: center; font-style: normal; font-size: 11px; font-weight: 800; background: color-mix(in srgb, var(--surface) 94%, transparent); color: var(--ink); }
 
 .ow .who { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .ow .who b { font-size: var(--text-sm); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

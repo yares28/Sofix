@@ -2,7 +2,7 @@ import { revalidateTag } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
 import { database } from "../../../lib/db";
 import { weekWon } from "../../../lib/entered";
-import { finished, MY_WEEK_PREFIX, MY_WEEKS_TAG, WeekBody, type SavedWeek } from "../../../lib/myWeeks";
+import { finished, MY_WEEK_PREFIX, MY_WEEKS_TAG, WeekBody, withScoring, type SavedWeek } from "../../../lib/myWeeks";
 import { loadMyWeeks } from "../../../lib/myWeeksData";
 import { loadSorare } from "../../../lib/playData";
 import { isSameOriginRequest } from "../../../lib/refresh";
@@ -41,7 +41,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "The lineup read is incomplete." }, { status: 400 });
     const players = new Map((sorare?.collection ?? []).map((card) => [card.slug, card.player]));
     const payload: SavedWeek = { slug, number: week.number, start: week.start, end: week.end, savedAt: new Date().toISOString(),
-      lineups: entered.map((lineup) => ({ ...lineup, cards: lineup.cards.map((card) => ({ ...card, player: players.get(card.slug) ?? null })) })) };
+      lineups: entered.map((lineup) => ({ ...lineup, cards: lineup.cards.map((card) => ({ ...card, player: players.get(card.slug) ?? card.player ?? null })) })) };
+    const key = `${MY_WEEK_PREFIX}${slug}`;
+    const previous = await sql`SELECT payload FROM read_models WHERE key = ${key}` as { payload: SavedWeek }[];
+    if (previous[0]) {
+      const old = previous[0].payload;
+      const enriched = withScoring(old.lineups, payload.lineups);
+      if (enriched !== old.lineups) {
+        const updated = { ...old, lineups: enriched };
+        // Compare-and-swap: concurrent reads cannot overwrite another tab's saved metadata or results.
+        await sql`UPDATE read_models SET payload = ${JSON.stringify(updated)}::jsonb, updated_at = CURRENT_TIMESTAMP WHERE key = ${key} AND payload::jsonb = ${JSON.stringify(old)}::jsonb`;
+      }
+    }
     // The first complete post wins atomically, including two browser tabs saving at once.
     await sql`INSERT INTO read_models (key, payload, updated_at) VALUES (${`${MY_WEEK_PREFIX}${slug}`}, ${JSON.stringify(payload)}::jsonb, CURRENT_TIMESTAMP) ON CONFLICT (key) DO NOTHING`;
     revalidateTag(MY_WEEKS_TAG); revalidateTag("audit");

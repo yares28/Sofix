@@ -10,6 +10,11 @@ const sql = vi.fn(async (strings: TemplateStringsArray, ...values: unknown[]) =>
     if (!saved.has(key)) saved.set(key, JSON.parse(String(values[1])));
     return [];
   }
+  if (query.includes("UPDATE")) {
+    const [updated, key, old] = values.map(String);
+    if (JSON.stringify(saved.get(key!)) === old) saved.set(key!, JSON.parse(updated!));
+    return [];
+  }
   return [...saved.values()].map((payload) => ({ payload }));
 });
 vi.mock("../../../lib/db", () => ({ database: () => sql }));
@@ -58,4 +63,16 @@ it("lists unsaved finished weeks and accepts a complete read of a week with no e
   const body = await (await GET()).json();
   expect(body.pending).toEqual([]);
   expect(body.weeks).toHaveLength(1);
+});
+it("enriches metadata atomically without replacing saved results or accepting a changed team", async () => {
+  await call();
+  const first = structuredClone(saved.get("my_week:gw-old")) as { lineups: typeof lineup[] };
+  const scoring = { slots: [{ positions: ["Defender"], sub: false }], minInSeason: 0, captain: 0.5, season: 0, grade: 0, scarcity: {}, clubBonus: null, averageBonus: null };
+  const enriched = { ...lineup, scoring, result: { ...lineup.result, score: 999 }, cards: [{ ...lineup.cards[0]!, index: 0, level: 2 }] };
+  expect((await call({ slug: "gw-old", lineups: [enriched] })).status).toBe(200);
+  const kept = saved.get("my_week:gw-old") as { lineups: (typeof enriched)[] };
+  expect(kept.lineups[0]!.result).toEqual(first.lineups[0]!.result);
+  expect(kept.lineups[0]!.cards[0]!.index).toBe(0);
+  expect(kept.lineups[0]!.scoring).toEqual(scoring);
+  expect(sql.mock.calls.some(([parts]) => parts.join("").includes("AND payload::jsonb ="))).toBe(true);
 });

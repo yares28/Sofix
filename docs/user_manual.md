@@ -72,15 +72,16 @@ The Recap is about the week in the top bar (since 5 Oct 2026; design canvas boar
 - **This round**: every match as two rows, home over away, under labelled columns: chance to win (a chip in Sorare's colours), expected
   goals and clean-sheet chance; draw and both-score beside the pair. The favourite is in bold; a played match shows its score.
 - **Table after round N**: the table once the round is played as expected: points now, points after and places gained or lost.
-- **Your lineups**: the plan's three likeliest-to-pay lineups with their cards (xScore under each, captain marked), team score and its
-  range, the score it needs for a reward, a ring with the chance of cash or essence, the chance of other rewards and what its first level pays, whole;
-  the others as chips. Every lineup is on the Sorare view.
+- **Your lineups**: every entered lineup, followed by every lineup of the best Sofix plan. Each compares expected team
+  xScore with the actual score; missing scores stay blank, and partial plan results say **Actual so far**. The best plan
+  has the highest expected essence. Cards, captain, expected range and reward chances remain visible.
 - **Missions**: today's open missions and the three cards of yours that fit each best, with the chance (the Missions page's numbers).
 - **News this week**: your players hurt or banned in the last seven days and those cleared to play after a knock, in Futbol Fantasy's
   words in English with the date and their chance to start. A long-standing injury is not news; the Lineups page keeps every note.
 
 The header also says whose Sorare account it reads and when it was synced. **Your lineups** opens with what you entered on
-Sorare (read through the extension), then the plan's best lineups. **Team news** sits beside **News this week**: how your
+Sorare (read through the extension), then all of the best plan's lineups. The app opens on the current GW until its end,
+even while Sorare is already planning the next GW; explicit selected-week links still work. **Team news** sits beside **News this week**: how your
 plan's players look for the round, who might not start and what moved since yesterday, or why Futbol Fantasy has said
 nothing yet. The old Sorare row is gone from the home: the plan and the week just played are on the Sorare page, and the
 collection (with its "No Rare goalkeeper" warning) is in the Gallery.
@@ -194,7 +195,7 @@ competition rules, pre-lock forecasts and reward cutoffs.
 
 The hero counts down to the lock in large type ("2d 22h until the lock, Fri 9 Oct at 16:00"; after the games, the essence
 won), with the plan's facts under it: chance of a reward, the most likely result, the chance of cash, of essence and of XP apart,
-cards used. Beside it, "Your Sorare lineups" (what is actually entered) and Apply plan. Below, the plan tile holds the
+cards used. Beside it sits Apply plan. Below, the plan tile holds the
 **Sofix / Sorare** switch, the plan switch, where the cards go, and the lineups as rows: competition, its cards with each
 one's xScore in Sorare's colours, the team score with its range and the score needed, and the reward chance as a dial; each
 row opens its sheet. Lineups under 5% sit under **Long shots**; this opens immediately when they are the only available
@@ -205,21 +206,26 @@ xScore, **Sorare** on Sorare's own projections (game by game, read for that week
 competitions and chances of starting; only the expected score differs, so you can compare them, and the Audit scores both.
 Until Sorare publishes its projections (about two days before the lock) the Sorare view says when they are due.
 
-**Essence first.** Under the lineups, **Essence first** lists the essence the plans fill first: LaLiga, then Champion, then
+**Essence preference.** Under the lineups, **Essence preference** lists the preferred essence order: LaLiga, then Champion, then
 All Star unless you change it (↑ ↓, then **Save and replan**, which starts a refresh; the plans follow it about six minutes
-later). Sofix fills the lineups of your first essence first, then the second and the third; inside each, the lineup most
-likely to be paid goes first. A lineup under 5% gets no priority. Plans are then ranked the same way: the best chance of
-being paid by your first essence, then the second, the third, then of anything. While the gameweek is the one being
+later). Sofix prioritizes expected essence rewards, with your essence preference and reward chance breaking ties.
+**Best** marks the plan with the highest expected essence and opens by default. While the gameweek is the one being
 played, today's missions sit under the lineups with the cards that fit each (chance, opponent, kick-off and what he
 did over his last 5); the full Missions page is one click away.
 
-At the top, **Your Sorare lineups** shows what the signed-in owner actually put on Sorare for this exact GW. Entered
+Below the Sofix plan, **Your Sorare lineups** shows what the signed-in owner actually put on Sorare for this exact GW. Entered
 lineups and drafts are labelled separately and retain their Sorare competition and card list. This is not Sofix's
 suggested plan: the extension reads the selected Sorare fixture directly, so the block also works for timeline weeks
 that Sofix no longer retains as an optimized plan. A signed-in `sorare.com` tab must be open; otherwise the block says
 which extension/session prerequisite is missing. Lineups from another GW are never carried into the selected one.
 
-Once Sorare has scored a lineup, its row shows the **score** (large), then **where it ranked and what it was paid**
+Each row compares **xScore** and **Actual**. Matching saved Sofix lineups retain their recorded forecast. Custom lineups
+get an **xScore estimate** using this GW's player forecasts, original slots, captain, bonuses and substitutes, with
+independent playing chances. Missing inputs say **Forecast unavailable**, never zero. Custom estimates require extension
+0.3.13 (reload once in `chrome://extensions`). Older saved teams are enriched automatically when opened with Sorare
+available, without changing saved scores or rewards. Saved metadata remains available after the Sorare tab closes.
+
+Once Sorare has scored a lineup, its row shows the **actual score** (large), then **where it ranked and what it was paid**
 ("Rank 1,204 · $2.50 · 250 essence", or "no reward paid" once it is ranked and nothing was), and each card carries its
 own score with a **C** on the captain. Before the lock the row says "Locks in 1 d 3 h" instead of a 0, between the lock and the
 first game it says "Not started", and once the games are on and it has no rank yet it says "Still scoring". This needs the
@@ -251,8 +257,8 @@ side). A game Futbol Fantasy has no page for, such as a national-team game, has 
 The planner enforces the published slots, caps, in-season minimum, club/card/player uniqueness, bonuses and substitute
 rules. A substitute is kept only when its expected protection exceeds the bonus sacrificed by using it. It repeats a
 seeded, slightly randomized whole-gameweek search and returns up to five plans whose card sets are materially different.
-Your essence order comes first, then **the plan most likely to be paid anything** (cash, essence or a card), whatever the
-size of the reward (your choice, 5 Oct 2026); what a plan pays only breaks a tie. The chances come from one simulation of the
+Plans maximize **expected essence rewards** (11 Oct 2026); essence preference and reward chance break ties.
+The chances come from one simulation of the
 whole plan, so two lineups holding the same players or the same game rise and fall together instead of being counted as if
 apart. A plan's **most likely result** is its likeliest winnings for the week, with its chance; it is often nothing even when
 some reward is likely, because the ways of winning are split over many amounts. Cash and essence stay separate.

@@ -6,7 +6,7 @@ import { REFRESH_HEADER } from "../../lib/refresh";
 import { Essence } from "./bits";
 
 /**
- * The essence the plans fill first (the owner, 6 Oct 2026): LaLiga, then Champion, then All Star unless he changes it. Plans are made
+ * Preferred essence breaks ties after expected essence: LaLiga, Champion, All Star unless changed. Plans are made
  * by the job, so saving starts a refresh and the new order shows once it has run.
  */
 export default function EssenceOrder({ saved, kinds }: { saved: string[]; kinds: (string | undefined)[] }) {
@@ -35,9 +35,9 @@ export default function EssenceOrder({ saved, kinds }: { saved: string[]; kinds:
   };
 
   return (
-    <div className="pl-ess" role="group" aria-label="Essence filled first">
+    <div className="pl-ess" role="group" aria-label="Preferred essence order">
       <span className="pl-ess-l">
-        <Essence size={12} /> Essence first
+        <Essence size={12} /> Essence preference
       </span>
       <ol>
         {order.map((kind, i) => (

@@ -134,7 +134,7 @@ async function fakeExtension(page: Page, fixtureSlugs: string[], unscored = fals
   );
 }
 
-test("entered Sorare lineups sit at the top of the gameweek they belong to", async ({ page, request }) => {
+test("entered Sorare lineups sit below the plan of the gameweek they belong to", async ({ page, request }) => {
   const timelineOnly = await timelineOnlyWeek(request);
   await fakeExtension(page, [planned.gameweek.slug, timelineOnly.slug]);
 
@@ -148,15 +148,14 @@ test("entered Sorare lineups sit at the top of the gameweek they belong to", asy
   // What Sorare says it made: the score, where it ranked, what it was paid, and each card's score with the captain marked.
   const lineup = mine.locator(".pl-entered-lineup");
   await expect(lineup.locator(".pl-entered-result b")).toHaveText("313");
-  await expect(lineup.locator(".pl-entered-result small")).toHaveText("Rank 1,204 · $2.50 · 250 essence");
+  await expect(lineup.locator(".pl-entered-verdict")).toHaveText("Rank 1,204 · $2.50 · 250 essence");
   await expect(lineup.locator(".pl-entered-card .cap")).toHaveCount(1);
   await expect(lineup.locator(".pl-entered-card .sc").first()).toHaveText("40");
 
-  // In the hero, beside the countdown, and above Sofix's plan.
-  const aboveThePlan = await page.locator(".pl-entered").evaluate((node) =>
-    Boolean(node.compareDocumentPosition(document.querySelector(".pl-board")!) & Node.DOCUMENT_POSITION_FOLLOWING),
+  const belowThePlan = await page.locator(".pl-entered").evaluate((node) =>
+    Boolean(document.querySelector(".pl-board")!.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING),
   );
-  expect(aboveThePlan).toBe(true);
+  expect(belowThePlan).toBe(true);
 
   await page.goto(`/?w=${timelineOnly.id}`);
   const home = page.getByRole("region", { name: "Your Sorare lineups" });
@@ -433,7 +432,7 @@ test("a gameweek Sofix didn't keep still shows what you entered in it and what i
   await expect(mine).toContainText(`GW${old.number}`);
   await expect(mine).toContainText("Friday team");
   await expect(mine.locator(".pl-entered-result b")).toHaveText("313");
-  await expect(mine.locator(".pl-entered-result small")).toHaveText("Rank 1,204 · $2.50 · 250 essence");
+  await expect(mine.locator(".pl-entered-verdict")).toHaveText("Rank 1,204 · $2.50 · 250 essence");
 
   // Nothing overflows on a phone.
   await page.setViewportSize({ width: 390, height: 844 });
@@ -645,7 +644,7 @@ test("a lineup entered for a week that has not locked says when it locks, not th
   await page.goto("/play");
   const lineup = page.getByRole("region", { name: "Your Sorare lineups" }).locator(".pl-entered-lineup");
 
-  await expect(lineup.locator(".pl-entered-result small")).toHaveText(/^Locks in (\d+ d \d+ h|\d+ h|\d+ min)$/);
+  await expect(lineup.locator(".pl-entered-verdict")).toHaveText(/^Locks in (\d+ d \d+ h|\d+ h|\d+ min)$/);
   await expect(lineup.locator(".pl-entered-result b")).toHaveText("–");
   await expect(lineup.locator(".pl-entered-card .sc")).toHaveCount(0);
   await expect(lineup).not.toContainText("Still scoring");

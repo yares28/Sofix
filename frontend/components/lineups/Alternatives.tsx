@@ -12,7 +12,7 @@ export default function Alternatives({ players, mine, labels }: { players: Lineu
   const view = useContext(ChanceContext);
   if (players.length === 0) return null;
   return (
-    <ul className="lu-alts" aria-label="Alternatives, most likely first">
+    <ul className="lu-alts" aria-label={players.some(p=>p.actual)?"Announced bench":"Alternatives, most likely first"}>
       {players.map((player) => (
         <li key={player.id} className="lu-alt" data-mine={player.yours && mine.has(player.yours) ? "" : undefined} aria-label={describe(player, Boolean(player.yours), false, chanceFor(player, view))} title={player.name}>
           {player.yours && mine.has(player.yours) ? (

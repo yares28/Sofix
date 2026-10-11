@@ -211,6 +211,7 @@ def _side(
         for slug, link in ff_link.link_side(side, art.wanted, today or date.today()).links.items():
             if link.person.ff_id and slug in art.urls:
                 found_art[link.person.ff_id] = art.urls[slug]
+                found_art[f"so:{slug}"] = art.urls[slug]
     rows, formation = pitch(side.xi)
     bench = {p.slug: p.ff_id for p in side.alternatives if p.slug}
     drawn = [

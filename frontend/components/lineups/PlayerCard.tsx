@@ -14,7 +14,7 @@ const RARITY_TEXT: Record<string, string> = { limited: "limited", rare: "rare", 
 
 /** The spoken version of a player's place on the page, for screen readers and the tooltip. */
 export function describe(player: LineupPlayer, owned: boolean, calledUp = false, p = player.p): string {
-  const bits = [player.name, p === null ? "no chance given" : `${chancePercent(p)} to start`];
+  const bits = [player.name, player.actual ? player.actual === "starter" ? "announced starter" : "announced bench" : p === null ? "no chance given" : `${chancePercent(p)} to start`];
   if (player.status?.kind) bits.push(KIND_LABEL[player.status.kind].toLowerCase());
   if (calledUp && player.status?.international) bits.push("called up by his national team");
   if (owned) bits.push("your card");

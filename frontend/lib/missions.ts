@@ -7,6 +7,9 @@ export type SuggestionMode = "best" | "plan";
 
 export const MISSIONS_TAG = "missions";
 
+/** Preserve supported tiny chances instead of displaying a reserved Essence pick as a zero. */
+export const missionChance = (n: number | undefined) => n === undefined ? "No estimate" : n > 0 && n < 0.01 ? "<1%" : `${Math.round(n * 100)}%`;
+
 /** One of your picks for a mission, as Sorare lists it: the player, his game, the card's rarity and Sorare's verdict (READY, SUCCESS, FAILURE). */
 export type MissionPick = { player: string; game: string | null; rarity: string | null; status: string | null; card?: string; id?: string; locked?: boolean; score?: number; target?: number };
 
@@ -166,6 +169,7 @@ export function atLeast(n: number, rate: number): number {
 
 export type Window = { l5: number; l8: number; season: number };
 export type Suggestion = {
+  reconstructed?: boolean;
   form?: Sheet["form"];
   frozen?: boolean;
   captured?: string;

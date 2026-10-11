@@ -27,6 +27,8 @@ export type PlayerStatus = {
 };
 
 export type LineupPlayer = {
+  slug?: string;
+  actual?: "starter" | "bench";
   id: string;
   name: string;
   /** His chance of starting, 0 to 1; null when the page gave none. */

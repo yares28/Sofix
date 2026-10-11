@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { atLeast, fit, isToday, missionCandidates, missionDay, missionsLoadNote, missionValues, plan, rewardOf, ruleOf, type MissionRow } from "./missions";
+import { atLeast, fit, isToday, missionCandidates, missionChance, missionDay, missionsLoadNote, missionValues, plan, rewardOf, ruleOf, type MissionRow } from "./missions";
 import type { PlayingPlayer } from "./play";
 import type { Sheet } from "./playerSheet";
 
@@ -9,6 +9,11 @@ const INTERCEPTION = row("Interception - All Matches", "Classic: Pick a player w
 const ASSIST = row("Assist - All Matches", "Classic: Pick a player who gets an assist in any match and win 50 All-Star Essence per correct choice.");
 
 describe("what a mission asks and pays", () => {
+  it("keeps unknown, zero and a supported positive chance below one percent distinct", () => {
+    expect(missionChance(undefined)).toBe("No estimate");
+    expect(missionChance(0)).toBe("0%");
+    expect(missionChance(0.0001)).toBe("<1%");
+  });
   it("recognises the imported shot and tackle targets and keeps the count in Sorare's wording", () => {
     expect(ruleOf(row("Shot - All Matches", "Pick a player who makes 2+ shots on target", { stats: ["ontarget_scoring_att"] }))).toMatchObject({ kind: "shot", atLeast: 2 });
     expect(ruleOf(row("Tackle - All Matches", "Pick a player who wins 3+ tackles", { stats: ["won_tackle"] }))).toMatchObject({ kind: "tackle", atLeast: 3 });

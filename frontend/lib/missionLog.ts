@@ -69,8 +69,29 @@ export type LogMission = {
   sofixPicks?: MissionPick[];
   bestPicks?: MissionPick[];
 };
-export type LogRarity = { loaded: boolean; missions: LogMission[]; cands: LogCand[]; coverage?: "snapshot" | "missing"; captured?: string };
+export type LogRarity = { loaded: boolean; missions: LogMission[]; cands: LogCand[]; coverage?: "snapshot" | "missing"; captured?: string; reconstructed?: boolean; replay?: LogRarity };
 export type MonthLog = { days: Record<string, Record<string, LogRarity>> };
+
+/** Owner-approved counterfactual comparison. Audit and all writes still use the original captured record. */
+export function displayMissionLog(logs: MonthLog[]): MonthLog[] {
+  return logs.map(log => ({ days: Object.fromEntries(Object.entries(log.days).map(([day, entries]) => [day,
+    Object.fromEntries(Object.entries(entries).map(([rarity, entry]) => [rarity, replayedEntry(entry)])),
+  ])) }));
+}
+
+/** Imports can reconcile legacy task keys between refreshes. Keep the reference attached to that same task. */
+function replayedEntry(entry: LogRarity): LogRarity {
+  if (!entry.replay) return entry;
+  let cands = entry.replay.cands;
+  const missions = entry.missions.map(original => {
+    const reference = entry.replay!.missions.find(m => m.key === original.key || original.aliases?.includes(m.key));
+    if (!reference) return original;
+    if (reference.key !== original.key) cands = cands.map(c => aliasCandidate(c, reference.key, original.key));
+    return { ...reference, key: original.key, aliases: original.aliases, yours: original.yours,
+      override: original.override, editRevision: original.editRevision, source: reference.source ?? original.source };
+  });
+  return { ...entry.replay, missions, cands };
+}
 
 /** Fill missed dates honestly, using only the owner's requested baseline, never backfilled predictions. */
 export function fillMissionDays(logs: MonthLog[], rarities: string[], now: Date): MonthLog[] {
@@ -157,6 +178,7 @@ export function nextDay(
   }
   return {
     loaded,
+    ...(prev?.replay ? {replay:prev.replay} : {}),
     coverage: "snapshot",
     captured: now.toISOString(),
     missions: missions.map((m, i) => ({
@@ -181,6 +203,7 @@ export function nextDay(
 
 /** Display the full independent choice, retaining captured picks and evidence once their games lock. No writes or backfilled forecasts. */
 export function restoreMissionBenchmark(missions: MissionRow[], previous: LogRarity | undefined, players: PlayingPlayer[], sheets: Record<string, Sheet | undefined>, rarity: string, now: Date, mode: SuggestionMode = "plan") {
+  previous = previous ? replayedEntry(previous) : previous;
   const recorded = nextDay(previous, missions, players, sheets, rarity, now);
   return plan(missions, rarity, players, sheets, now, mode).plans.map((one) => {
     const stored = recorded.missions.find((m) => m.key === one.mission.id);
@@ -190,11 +213,12 @@ export function restoreMissionBenchmark(missions: MissionRow[], previous: LogRar
       const c = recorded.cands.find((c) => c.s === slug && (!identity?.card || identity.card === c.card) && (!identity?.game || identity.game === c.g) && one.mission.id in c.c);
       if (!c || c.late) return [];
       const evidence = c.evidence?.[one.mission.id];
-      const game = c.match ?? players.flatMap((p) => p.player === slug ? p.games : []).find((g) => g.id === c.g);
+      const currentGame = players.flatMap((p) => p.player === slug ? p.games : []).find((g) => g.id === c.g);
+      const game = c.match ? { ...currentGame, ...c.match } : currentGame;
       const frozen = Date.parse(c.k) <= now.getTime();
       return [{ ...(evidence ?? { slug, card: c.card, game: c.g ?? undefined, name: c.n, pic: c.pic, pos: c.pos as PlayingPlayer["pos"], club: null, team: game?.team, opponent: game?.opponent ?? "Match details not saved", venue: game?.venue, kickoff: c.k, chance: c.c[one.mission.id]!, cards: 1, historical: c.historyOnly?.includes(one.mission.id), target: c.targets?.[one.mission.id] }), form: c.sheet?.form ?? evidence?.form, captured: c.captured, frozen }];
     });
-    return { ...one, picks };
+    return { ...one, picks: picks.map(p => ({...p, reconstructed: previous?.reconstructed})) };
   });
 }
 
@@ -227,6 +251,8 @@ export type HistoryCard = { slug: string; name: string; pic: string; state: "did
 /** One mission on one day of the log, as soon as it is written: Sofix's picks, yours, and once every candidate's game is checked, the cards that did it
  * and were not picked (`missed`) and Sofix's score against the best possible (`best`: its picks or the achievers, the fewer; 0: nobody could). */
 export type HistoryDay = {
+  reconstructed?: boolean;
+  provisional?: boolean;
   day: string;
   mission: string;
   loaded: boolean;
@@ -284,8 +310,12 @@ export function missionHistory(logs: MonthLog[], rarity: string, names: Map<stri
       const settled = eligible.length > 0 && eligible.every((c) => c.r?.void || c.r?.did?.[m.key] !== undefined);
       const achievers = [...new Set(eligible.filter((c) => !c.r?.void && c.r?.did?.[m.key]).map((c) => c.s))];
       const caught = new Set(sofix.filter((c) => c.state === "did").map((c) => c.slug));
-      const forecastRecorded = sofix.length > 0 && selection.every((s) => cands.has(s)) && entry.coverage !== "missing" && m.source?.eligibilityComplete !== false && !entry.cands.some((c) => c.late);
+      const provisional = Boolean(entry.reconstructed && (entry.coverage === "missing" || m.source?.eligibilityComplete !== true));
+      const complete = entry.coverage !== "missing" && m.source?.eligibilityComplete !== false;
+      const forecastRecorded = sofix.length > 0 && selection.every((s) => cands.has(s)) && (complete || entry.reconstructed) && !entry.cands.some((c) => c.late);
       out.push({
+        reconstructed: entry.reconstructed,
+        provisional,
         day,
         mission: m.title ?? m.key,
         key: m.key,
@@ -293,7 +323,7 @@ export function missionHistory(logs: MonthLog[], rarity: string, names: Map<stri
         candidates: entry.cands,
         corrected: Boolean(m.override),
         yourPicks: yours.length ? "recorded" : m.override ? "user-empty" : m.source?.appearances ? "confirmed-empty" : "unknown",
-        evidence: sofix.length > 0 && m.source?.eligibilityComplete === false ? "incomplete" : !forecastRecorded ? "not-recorded" : !cands.size ? "unrated" : settled ? "settled" : "pending",
+        evidence: sofix.length > 0 && m.source?.eligibilityComplete === false && !entry.reconstructed ? "incomplete" : !forecastRecorded ? "not-recorded" : !cands.size ? "unrated" : settled ? "settled" : "pending",
         reason: !entry.cands.length ? "No forecast captured before kickoff; eligible cards were not verified." : !sofix.length ? entry.cands.every((c) => c.late) ? "Cards were first seen after kickoff; no pre-kickoff forecast was captured." : m.rule.kind === "unsupported" || m.rule.kind === "score" ? "This target was not rated when the forecast was captured." : "No pre-kickoff picks were recorded from the available evidence." : undefined,
         loaded: entry.loaded,
         sofix,

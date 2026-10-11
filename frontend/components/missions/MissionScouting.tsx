@@ -4,12 +4,12 @@ import Link from "next/link";
 import MissionFormEvidence from "./MissionFormEvidence";
 import type { LogCand } from "../../lib/missionLog";
 import CardArt from "../cards/CardArt";
-import { fit, missionCandidates, missionValues, type MissionPlan } from "../../lib/missions";
+import { fit, missionCandidates, missionValues, missionChance, type MissionPlan } from "../../lib/missions";
 import type { MissionPool, MissionPlayer } from "../../lib/missionsPool";
 import { SOURCE_SHORT } from "../../lib/play";
 import { cardCopyLabel } from "../../lib/missionPresentation";
 
-const percent = (n: number | undefined) => n === undefined ? "No estimate" : `${Math.round(n * 100)}%`;
+const percent = missionChance;
 const kickoff = (s: string) => new Intl.DateTimeFormat("en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" }).format(new Date(s));
 export default function MissionScouting({ plans, players, pool, now, rarity, shortlist, toggle, captured }: { plans: MissionPlan[]; players: MissionPlayer[]; pool: MissionPool | null; now: string; rarity: string; captured: LogCand[]; shortlist: string[]; toggle: (s: string) => void }) {
   const [mission, setMission] = useState(plans[0]?.mission.id ?? ""); const [query, setQuery] = useState(""); const [position, setPosition] = useState("");
@@ -28,7 +28,7 @@ export default function MissionScouting({ plans, players, pool, now, rarity, sho
   }
   const rows = [...unique.entries()].flatMap(([id, { p, game: currentGame, own, locked, allowed, status, editable }]) => {
     const saved = locked ? captured.find((c) => c.s === p.player && c.g === currentGame.id && (!p.card || c.card === p.card) && !c.late) : undefined;
-    const game = locked ? saved?.match ?? { ...currentGame, pStart: undefined, pOn: undefined, startSource: undefined, ffMatch: undefined, availabilityKnown: false } : currentGame;
+    const game = locked ? { ...currentGame, pStart: undefined, pOn: undefined, startSource: undefined, ffMatch: undefined, availabilityKnown: false, ...saved?.match } : currentGame;
     const sheet = locked ? saved?.sheet : pool?.sheets.players[p.player ?? ""];
     const target = locked ? saved?.targets?.[one.mission.id] ?? saved?.evidence?.[one.mission.id]?.target : one.mission.inventory?.find((c) => c.card === p.card && c.game.id === game.id)?.target;
     const found = locked ? saved?.evidence?.[one.mission.id] ?? (saved?.c[one.mission.id] !== undefined ? { chance: saved.c[one.mission.id]!, historical: saved.historyOnly?.includes(one.mission.id) } : null) : fit(one.rule, { ...p, availabilityKnown: game.availabilityKnown ?? p.availabilityKnown, pStart: game.pStart ?? p.pStart, pOn: game.pOn ?? p.pOn }, sheet ?? null, target);

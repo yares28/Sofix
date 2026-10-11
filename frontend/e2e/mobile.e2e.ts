@@ -138,8 +138,19 @@ test("Lineups source controls fit a phone and change starter percentages without
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole("radio", { name: "Futbol Fantasy", exact: true }).check();
   await page.getByRole("switch", { name: "Only my players" }).uncheck();
-  await page.getByRole("group", { name: "Chance to start source" }).scrollIntoViewIfNeeded();
+  await page.getByRole("group", { name: "Lineup source" }).scrollIntoViewIfNeeded();
   await page.screenshot({ path: "../output/playwright/lineups-mobile.png", fullPage: true });
+});
+
+test("Actual lineups fit a phone and explain unannounced sides",async({page})=>{
+  await page.route("**/api/lineups/actual?match=*",route=>route.fulfill({json:{state:"ready",data:{game:"g",readAt:new Date().toISOString(),home:{state:"unannounced",rows:[],bench:[],formation:""},away:{state:"unannounced",rows:[],bench:[],formation:""}}}}));
+  await page.goto("/lineups?m=22502");
+  await page.getByRole("radio",{name:"Actual",exact:true}).check();
+  await expect(page.getByText("Starting XI not announced on Sorare.").first()).toBeVisible();
+  await page.locator('label[for="lu-side-away"]').click();
+  await expect(page.getByRole("region",{name:"Deportivo lineup"})).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  expect(await smallText(page,10)).toEqual([]);
 });
 
 test("the home's team news fits a phone: one column, no sideways scrolling", async ({ page }) => {

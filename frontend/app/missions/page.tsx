@@ -3,7 +3,7 @@ import { connection } from "next/server";
 import MissionsView from "../../components/missions/MissionsView";
 import SiteNav from "../../components/SiteNav";
 import { loadGrid } from "../../lib/api";
-import { fillMissionDays, loadMissionLog, missionHistory, restoreMissionBenchmark } from "../../lib/missionLog";
+import { displayMissionLog, fillMissionDays, loadMissionLog, missionHistory, restoreMissionBenchmark } from "../../lib/missionLog";
 import { loadMissionPool } from "../../lib/missionsPool";
 import { loadMissions } from "../../lib/missionsData";
 import { missionDay } from "../../lib/missions";
@@ -36,7 +36,7 @@ export default async function Missions({ searchParams }: { searchParams: SearchP
   const plans = restoreMissionBenchmark(today.plans.map((p) => p.mission), previous, players, sheets, today.rarity, now);
   const bestPlans = restoreMissionBenchmark(today.plans.map((p) => p.mission), previous, players, sheets, today.rarity, now, "best");
   const owned = RARITIES.filter((r) => players.some((p) => p.rarity === r) || data?.collection?.some((p) => p.rarity === r));
-  const completeLog = fillMissionDays(log, [...new Set([...owned, today.rarity])], now);
+  const completeLog = displayMissionLog(fillMissionDays(log, [...new Set([...owned, today.rarity])], now));
   const names = new Map((data?.weeks ?? []).flatMap((w) => w.playing.players).flatMap((p) => (p.player ? [[p.player, { name: p.name, pic: p.pic }] as const] : [])));
   return (
     <>
@@ -48,7 +48,7 @@ export default async function Missions({ searchParams }: { searchParams: SearchP
           day={today.day}
           plans={plans}
           bestPlans={bestPlans}
-          captured={previous?.cands ?? []}
+          captured={completeLog[0]?.days[missionDay(now)]?.[today.rarity]?.cands ?? []}
           status={today.status}
           seenAt={today.seenAt}
           retained={missions?.[today.rarity]?.missions ?? []}

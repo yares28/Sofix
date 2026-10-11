@@ -15,6 +15,30 @@ test.beforeEach(async ({ page, request }) => {
   await offline(page);
 });
 
+test("Actual loads automatically, shows an announced XI and bench, and never carries it to another match", async ({page,request})=>{
+  const data=(await(await request.get(`${MOCK}/api/lineups`)).json()).data as LineupsData;
+  const match=data.matches[0]!;
+  const actual=(side:typeof match.home)=>({state:"announced",formation:side.formation,rows:side.rows.map(r=>({...r,players:r.players.map(p=>({...p,p:null,actual:"starter"}))})),bench:side.alternatives.slice(0,2).map(p=>({...p,p:null,actual:"bench"}))});
+  const calls:string[]=[];
+  await page.route("**/api/lineups/actual?match=*",route=>{const id=new URL(route.request().url()).searchParams.get("match")!;calls.push(id);return route.fulfill({json:id===String(match.id)?{state:"ready",data:{game:"source-game",readAt:new Date().toISOString(),home:actual(match.home),away:actual(match.away)}}:{state:"ready",data:{game:"other-game",readAt:new Date().toISOString(),home:{state:"unannounced",rows:[],bench:[],formation:""},away:{state:"incomplete",rows:[],bench:[],formation:""}}}});});
+  await page.goto(`/lineups?m=${match.id}`);
+  await page.getByRole("radio",{name:"Actual",exact:true}).check();
+  await expect(page.locator(".lu-card")).toHaveCount(22);
+  await expect(page.locator(".lu-pct").first()).toHaveText("Starter");
+  await expect(page.getByRole("list",{name:"Announced bench"}).first()).toBeVisible();
+  await expect(page.locator(".lu-pct").filter({hasText:"%"})).toHaveCount(0);
+  await page.getByRole("navigation",{name:/^Matches of/}).getByRole("link").nth(1).click();
+  await expect(page.getByText("Starting XI not announced on Sorare.")).toBeVisible();
+  await expect(page.getByText("Sorare returned an incomplete starting XI.")).toBeVisible();
+  await expect(page.locator(".lu-card")).toHaveCount(0);
+  await page.getByRole("navigation",{name:/^Matches of/}).getByRole("link").first().click();
+  await expect(page.locator(".lu-card")).toHaveCount(22);
+  expect(calls).toHaveLength(2);
+  await page.clock.setFixedTime(new Date(Date.now()+61_000));
+  await page.evaluate(()=>window.dispatchEvent(new Event("focus")));
+  await expect.poll(()=>calls.length).toBe(3);
+});
+
 test("reads Sorare's starting chances for the displayed game through the extension", async ({ page, request }) => {
   const data = (await (await request.get(`${MOCK}/api/lineups`)).json()).data;
   const match = data.matches.find((m: { id: number }) => m.id === 22502);
@@ -470,7 +494,7 @@ test("percentages switch source, missing estimates stay blank and FF keeps attri
   await expect(page.locator(".lu-card")).toHaveCount(before);
   await page.getByRole("radio", { name: "Futbol Fantasy", exact: true }).check();
   await expect(foyth.locator(".lu-pct")).toHaveText("40%");
-  await page.getByRole("group", { name: "Chance to start source" }).scrollIntoViewIfNeeded();
+  await page.getByRole("group", { name: "Lineup source" }).scrollIntoViewIfNeeded();
   await page.screenshot({ path: "../output/playwright/lineups-desktop.png", fullPage: true });
 });
 

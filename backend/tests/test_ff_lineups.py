@@ -53,6 +53,18 @@ OYARZABAL = row("mikel-oyarzabal-ugarte", "Oyarzabal", "Real Sociedad", "Forward
 BEFORE = datetime(2026, 10, 9, 8, tzinfo=UTC)  # the morning of the round's first game: all ten matches are still ahead
 
 
+def test_actual_lineups_reuse_card_art_by_sorare_identity(real: list[ffm.Match]) -> None:
+    from app.sorare.card_art import Art
+    from app.sorare.ff_link import wanted
+
+    slug = "mikel-oyarzabal-ugarte"
+    person = wanted(OYARZABAL)
+    assert person is not None
+    art = Art(wanted=[person], urls={slug: "https://assets.sorare.com/card.png"})
+    out = built(real, art=art)
+    assert out["art"][f"so:{slug}"] == out["art"]["2675"]
+
+
 # ------------------------------------------------------------------------------------------------- the pitch
 def test_the_eleven_are_read_into_rows_from_their_coordinates(real: list[ffm.Match]) -> None:
     rows, formation = ff_lineups.pitch(sides(real, "Real Sociedad").xi)
@@ -93,7 +105,9 @@ def built(real: list[ffm.Match], cards: list[Card] | None = None, **kw: Any) -> 
     feed = kw.pop("feed", None) or feed_of(real)
     rows = kw.pop("rows", [OYARZABAL])
     lineups = ff_use.Lineups(feed, rows, NOW)
-    return ff_lineups.payload(feed, lineups, cards or [], kw.pop("positions", {}), kw.pop("now", BEFORE))
+    return ff_lineups.payload(
+        feed, lineups, cards or [], kw.pop("positions", {}), kw.pop("now", BEFORE), kw.pop("art", None)
+    )
 
 
 def find(out: dict[str, Any], match_id: int) -> dict[str, Any]:

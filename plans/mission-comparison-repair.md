@@ -2,12 +2,53 @@
 
 Read this with AGENTS.md when resuming. This task follows the owner's Missions request; Sorare starting percentages remain parked.
 
+## Follow-up requested 11 October
+
+- Investigate the owner's real screenshots: the locked Pass mission has no saved picks; legacy best-card references and
+  locked scouting form are empty. Verify publication and captured evidence separately, without fabricating past accuracy.
+- Preserve Essence > clues > XP allocation, reserving a player for an Essence mission with any supported chance above
+  zero, even if another mission has a larger chance (owner confirmed 11 October).
+- Add an Actual option beside FF/Sorare/Sofix on Lineups, automatically showing the announced starting eleven (and
+  supplied bench) for the exact selected match. Check Sorare first, existing APIs next, then other free sources if needed.
+  Unannounced/missing/partial data must never become a guessed official eleven. No extra match-page visits or paid service.
+- Acceptance: real current/legacy mission records, reward conflicts, no retrospective accuracy, announced versus unknown
+  actual lineups, exact match/team/player identity, cold start/navigation, and desktop/phone presentation.
+- Owner clarification: reconstruct what Sofix would have shown from pre-day facts and keep the comparison / success
+  rate. Label these references and include them in Missions' paired comparison once settled; the Audit continues to
+  use genuinely captured forecasts. Preserve original choices separately. When full historical eligibility was not
+  saved, include the requested comparison as provisional against the recorded cards; expose that boundary beside the rate.
+- Read-only evidence: 10 October Limited held 41 candidates but only one dated form, no Best cards selections and no
+  Pass picks. The new pool had 89 dated forms. Replaying kept history yields 37 rated candidates, six with a positive
+  Pass chance, and three Pass picks in both views. No mission-day result enters form.
+- Actual source evidence: [Sorare official lineups](../docs/sorare/actual-lineups-evidence.md).
+
+## Follow-up implementation and verification, 11 October
+
+- Missing legacy references live in a separate `replay` beside the untouched captured record. The refresh builds
+  both selection modes from pre-day history, applies Essence > clues > XP, and settles their exact player/game facts.
+  Own corrections, source-ID reconciliation and later imports preserve that reference and its original eligibility boundary.
+- Dated modern benchmarks are not replaced merely because a new card was first seen after kickoff. Undated or
+  post-kickoff availability values never become pre-game evidence. Unsupported or insufficient samples remain unknown.
+- The reported 10 October Limited records now produce three picks per mission in both modes, with Pass estimates,
+  club-season/start/substitute averages and their samples. Four of 41 candidates still lack usable estimates.
+- Regression tests cover missing Pass/Best references, same-day leakage, reward conflicts, original Audit isolation,
+  settlement/idempotence, import aliases and provisional eligibility. Actual tests cover source identity, malformed or
+  unannounced sheets, no predicted fallback, match navigation, returning after cache expiry, and the public route allowlist.
+- The changed Missions/Lineups specs plus mobile passed 67/67; the final Missions rerun passed 12/12. Real saved read models and full kept history were
+  inspected in Chrome at 1440 and 390 px, with no overflow or browser errors. Actual presentation replays the owner's
+  approved public response; it does not claim another live diagnostic or exhaustive competition/announcement coverage.
+  Local screenshots: `output/missions-final-*-pass-*.png`, `output/missions-repaired-*-form.png`, `output/lineups-actual-*.png`.
+- Manual design review and existing accessibility checks passed; no `web-design-guidelines` skill was available.
+  Authenticated imports/writes were not exercised. No new migration, paid service or manual Sorare page workflow.
+- Final repository gate passed: ruff format/check, mypy, pytest, OpenAPI/type generation, eslint, TypeScript and vitest.
+  The reward regression additionally verifies that Essence reserves a player despite a higher supported goal chance.
+
 ## Required outcome and workflow
 
 - Show Sofix's full best selection beside the owner's picks for every loaded mission. Filling slots, importing picks,
   editing history or adding a local shortlist must not remove or change Sofix's independent benchmark.
-- Keep pre-kickoff choices and their dated form evidence for settlement. Never reconstruct a missing past forecast from
-  today's form or results. Show which picks succeeded, and make the owner's results comparable with Sofix's.
+- Keep pre-kickoff choices and their dated form evidence for settlement. Owner-approved legacy reconstruction uses
+  pre-day facts only, never today's form or that day's results. Show which picks succeeded, and compare with Sofix's.
 - Show the mission's relevant actual Sorare statistic, including accurate passes and shots on target, and recent,
   season, starting and substitute averages with sample sizes. Retain every supplied action for inspection.
 - Card images open player profiles. No extra page visits, tabs or manual data collection to populate the feature.

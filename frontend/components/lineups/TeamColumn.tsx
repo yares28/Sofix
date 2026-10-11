@@ -49,6 +49,7 @@ export default function TeamColumn({
   art,
   look,
   now,
+  actual,
 }: {
   side: LineupSide;
   place: "home" | "away";
@@ -58,13 +59,14 @@ export default function TeamColumn({
   art: Record<string, string>;
   look: ClubLook | undefined;
   now: Date;
+  actual?: "announced"|"unannounced"|"incomplete"|"loading"|"unavailable";
 }) {
   // One short name per player, pitch cards and chips alike: two with the same surname get an initial, whichever list they are in.
   const labels = playerLabels([...side.rows.flatMap((row) => row.players), ...side.alternatives]);
   const mine = new Set(Object.keys(cards));
   // Futbol Fantasy puts who can come in under each starter's own card; a payload from before that was read places them by line.
   const slots = slotAlternatives(side);
-  const { byRow, others, dead } = slots.perSlot ? { byRow: new Map<number, LineupPlayer[]>(), others: slots.rest, dead: slots.dead } : placement(side);
+  const { byRow, others, dead } = actual ? {byRow:new Map<number,LineupPlayer[]>(),others:side.alternatives,dead:[]} : slots.perSlot ? { byRow: new Map<number, LineupPlayer[]>(), others: slots.rest, dead: slots.dead } : placement(side);
   const { news, fit } = splitAbsent(side.absent);
   const rotation = gaugeText(side.rotations, "rotations");
   const predict = statusLine(side.predictability, side.season);
@@ -120,15 +122,15 @@ export default function TeamColumn({
           ))}
           {others.length ? (
             <div className="lu-row lu-others">
-              <span className="lu-others-title">{slots.perSlot ? "Also on the bench" : "Others in the squad"}</span>
+              <span className="lu-others-title">{actual ? "Announced bench" : slots.perSlot ? "Also on the bench" : "Others in the squad"}</span>
               <Alternatives players={others} mine={mine} labels={labels} />
             </div>
           ) : null}
         </div>
       ) : (
         <div className="lu-unpublished" role="status">
-          <b>{side.name} not out yet</b>
-          <span>Futbol Fantasy publishes a lineup about a day after a team plays. SO, then SF, until then.</span>
+          <b>{actual ? side.name : `${side.name} not out yet`}</b>
+          <span>{actual?actual==="unannounced"?"Starting XI not announced on Sorare.":actual==="incomplete"?"Sorare returned an incomplete starting XI.":actual==="loading"?"Reading actual lineup.":"Actual lineup unavailable.":"Futbol Fantasy publishes a lineup about a day after a team plays. SO, then SF, until then."}</span>
         </div>
       )}
 

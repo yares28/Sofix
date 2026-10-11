@@ -9,6 +9,7 @@ export const ChanceContext = createContext<ChanceView>({ source: "futbolfantasy"
 /** Every displayed percentage names its selected source; FF numbers link to the match that supplied them. */
 export default function Chance({ player, small = false, inline = false }: { player: LineupPlayer; small?: boolean; inline?: boolean }) {
   const view = useContext(ChanceContext);
+  if(player.actual)return <span className={inline?"lu-chance-inline":"lu-pct"} data-tone="good">{player.actual==="starter"?"Starter":"Bench"}</span>;
   const p = chanceFor(player, view);
   const title = `${player.name}: ${p === null ? "no estimate for this match" : `${chancePercent(p)} to start`} · ${CHANCE_SOURCES[view.source]}`;
   const props = { className: inline ? "lu-chance-inline" : `lu-pct${small ? " lu-pct-sm" : ""}`, "data-tone": chanceTone(p), title };

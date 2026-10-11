@@ -1,5 +1,12 @@
 # Sofix illustrated user manual
 
+11 October update: Lineups now has **Actual**, which loads Sorare's announced starting XI and bench for the selected
+match without opening Sorare. An unannounced or unreadable XI stays empty with its reason. Missions rebuilds missing
+legacy references from pre-day stats, labels them **Reconstructed**, and includes their settled results in your comparison.
+When historical eligibility is incomplete, the comparison is provisional against the cards recorded that day;
+the Audit keeps measuring captured forecasts. Mission plans allocate any supported positive chance to Essence first,
+then clues, then XP. Best cards remains independent for each mission.
+
 **Edition:** 2026-09-28 · **Audience:** the Sofix owner · **Scope:** web app, PWA, Control Center and Chrome extension.
 
 The screenshots in this manual use the repository's deterministic demo fixture, and the extension shots use a

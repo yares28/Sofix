@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session
 from app.jobs.export_games import fetch_game
 from app.models import PlayerGame, ReadModel
 from app.services.timeutil import as_utc
-from app.sorare import mission_form
+from app.sorare import mission_form, mission_replay, player_games
 from app.sorare.publish import GIVE_UP, SETTLE
 
 logger = logging.getLogger(__name__)
@@ -174,13 +174,46 @@ def settle_kept(db: Session, now: datetime) -> dict[str, int]:
         .all()
     )
     copied_months = {row.key.removeprefix(DAY_PREFIX)[:7] for row in rows if row.key.startswith(DAY_PREFIX)}
+    replay_players = {
+        c["s"]
+        for row in rows
+        for day, rarities in row.payload.get("days", {}).items()
+        if day >= (now - timedelta(days=RECENT)).date().isoformat()
+        for entry in rarities.values()
+        if mission_replay.needed(entry, now)
+        for c in entry.get("cands", [])
+    }
+    history = player_games.load(db, players=replay_players) if replay_players else {}
     for saved in rows:
         if saved.key.startswith(LOG_PREFIX) and saved.key.removeprefix(LOG_PREFIX) in copied_months:
             continue
         payload = copy.deepcopy(saved.payload)
         changed = False
-        for rarities in payload.get("days", {}).values():
-            for entry in rarities.values():
+        for day, rarities in payload.get("days", {}).items():
+            for rarity, original in rarities.items():
+                if day >= (now - timedelta(days=RECENT)).date().isoformat() and mission_replay.needed(original, now):
+                    replay = mission_replay.reconstruct(original, history, rarity, day, now)
+                    # Keep already-settled outcomes when recomputing the pre-day reference.
+                    for c in replay["cands"]:
+                        prior = next(
+                            (
+                                old
+                                for old in original.get("replay", {}).get("cands", [])
+                                if (old["s"], old.get("card"), old.get("g")) == (c["s"], c.get("card"), c.get("g"))
+                            ),
+                            None,
+                        )
+                        if prior and "r" in prior:
+                            c["r"] = prior["r"]
+                    if replay != original.get("replay"):
+                        original["replay"] = replay
+                        changed = True
+            entries = [
+                e
+                for original in rarities.values()
+                for e in ([original, original["replay"]] if original.get("replay") else [original])
+            ]
+            for entry in entries:
                 definitions = {m["key"]: m for m in entry.get("missions", [])}
                 for candidate in entry.get("cands", []):
                     targets = {}

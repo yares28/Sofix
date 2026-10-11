@@ -1,0 +1,270 @@
+{
+  "id": "Game:51889f90-24a2-44dd-8f6e-7933a36736e0",
+  "date": "2026-10-10T19:00:00Z",
+  "statusTyped": "played",
+  "homeTeam": {
+    "slug": "real-madrid-madrid",
+    "name": "Real Madrid"
+  },
+  "awayTeam": {
+    "slug": "villarreal-villarreal",
+    "name": "Villarreal CF"
+  },
+  "homeFormation": {
+    "startingLineupAvailable": true,
+    "startingLineup": [
+      [
+        {
+          "slug": "thibaut-courtois",
+          "displayName": "Thibaut Courtois",
+          "position": "Goalkeeper"
+        }
+      ],
+      [
+        {
+          "slug": "trent-alexander-arnold",
+          "displayName": "Trent Alexander-Arnold",
+          "position": "Defender"
+        },
+        {
+          "slug": "ibrahima-konate",
+          "displayName": "Ibrahima Konaté",
+          "position": "Defender"
+        },
+        {
+          "slug": "antonio-rudiger",
+          "displayName": "Antonio Rüdiger",
+          "position": "Defender"
+        },
+        {
+          "slug": "alvaro-fernandez-carreras",
+          "displayName": "Álvaro Carreras",
+          "position": "Defender"
+        }
+      ],
+      [
+        {
+          "slug": "federico-santiago-valverde-dipetta",
+          "displayName": "Federico Valverde",
+          "position": "Midfielder"
+        },
+        {
+          "slug": "aurelien-tchouameni",
+          "displayName": "Aurélien Tchouaméni",
+          "position": "Midfielder"
+        }
+      ],
+      [
+        {
+          "slug": "arda-guler",
+          "displayName": "Arda Güler",
+          "position": "Midfielder"
+        },
+        {
+          "slug": "jude-bellingham",
+          "displayName": "Jude Bellingham",
+          "position": "Midfielder"
+        },
+        {
+          "slug": "yan-diomande",
+          "displayName": "Yan Diomande",
+          "position": "Forward"
+        }
+      ],
+      [
+        {
+          "slug": "kylian-mbappe-lottin",
+          "displayName": "Kylian Mbappé",
+          "position": "Forward"
+        }
+      ]
+    ],
+    "bench": [
+      {
+        "slug": "bernardo-mota-veiga-de-carvalho-e-silva",
+        "displayName": "Bernardo Silva",
+        "position": "Midfielder"
+      },
+      {
+        "slug": "thiago-pitarch-pinar",
+        "displayName": "Thiago Pitarch",
+        "position": "Midfielder"
+      },
+      {
+        "slug": "brahim-abdelkader-diaz",
+        "displayName": "Brahim",
+        "position": "Forward"
+      },
+      {
+        "slug": "carlos-espi-escrihuela",
+        "displayName": "Carlos Espí",
+        "position": "Forward"
+      },
+      {
+        "slug": "andriy-lunin",
+        "displayName": "Andriy Lunin",
+        "position": "Goalkeeper"
+      },
+      {
+        "slug": "sergio-mestre-sanchez",
+        "displayName": "Sergio Mestre",
+        "position": "Goalkeeper"
+      },
+      {
+        "slug": "endrick-felipe-moreira-de-sousa",
+        "displayName": "Endrick",
+        "position": "Forward"
+      },
+      {
+        "slug": "eduardo-camavinga",
+        "displayName": "Eduardo Camavinga",
+        "position": "Midfielder"
+      },
+      {
+        "slug": "vinicius-jose-paixao-de-oliveira-junior",
+        "displayName": "Vinícius Júnior",
+        "position": "Forward"
+      },
+      {
+        "slug": "denzel-dumfries",
+        "displayName": "Denzel Dumfries",
+        "position": "Defender"
+      },
+      {
+        "slug": "marc-cucurella-saseta",
+        "displayName": "Marc Cucurella",
+        "position": "Defender"
+      }
+    ]
+  },
+  "awayFormation": {
+    "startingLineupAvailable": true,
+    "startingLineup": [
+      [
+        {
+          "slug": "peter-gulacsi",
+          "displayName": "Péter Gulácsi",
+          "position": "Goalkeeper"
+        }
+      ],
+      [
+        {
+          "slug": "alexander-freeman",
+          "displayName": "Alex Freeman",
+          "position": "Defender"
+        },
+        {
+          "slug": "pau-navarro-badenes",
+          "displayName": "Pau Navarro",
+          "position": "Defender"
+        },
+        {
+          "slug": "renato-de-palma-veiga",
+          "displayName": "Renato Veiga",
+          "position": "Defender"
+        },
+        {
+          "slug": "sergi-cardona-bermudez",
+          "displayName": "Sergi Cardona",
+          "position": "Defender"
+        }
+      ],
+      [
+        {
+          "slug": "santiago-comesana-veiga",
+          "displayName": "Santi Comesaña",
+          "position": "Midfielder"
+        },
+        {
+          "slug": "juan-marcos-foyth",
+          "displayName": "Juan Foyth",
+          "position": "Defender"
+        },
+        {
+          "slug": "pape-gueye",
+          "displayName": "Pape Gueye",
+          "position": "Midfielder"
+        }
+      ],
+      [
+        {
+          "slug": "ilias-akhomach-chakkour",
+          "displayName": "Ilias Akhomach",
+          "position": "Forward"
+        },
+        {
+          "slug": "ayoze-perez-gutierrez",
+          "displayName": "Ayoze Pérez",
+          "position": "Forward"
+        },
+        {
+          "slug": "alberto-moleiro-gonzalez",
+          "displayName": "Alberto Moleiro",
+          "position": "Midfielder"
+        }
+      ]
+    ],
+    "bench": [
+      {
+        "slug": "alvaro-santiago-mourino-gonzalez",
+        "displayName": "Santiago Mouriño",
+        "position": "Defender"
+      },
+      {
+        "slug": "logan-costa",
+        "displayName": "Logan Costa",
+        "position": "Defender"
+      },
+      {
+        "slug": "alassane-diatta",
+        "displayName": "Alassane Diatta",
+        "position": "Midfielder"
+      },
+      {
+        "slug": "jose-angel-gaitan-diaz",
+        "displayName": "Joselillo Gaitán",
+        "position": "Forward"
+      },
+      {
+        "slug": "carlos-macia-coves",
+        "displayName": "Carlos Maciá",
+        "position": "Midfielder"
+      },
+      {
+        "slug": "tani-oluwaseyi",
+        "displayName": "Tani Oluwaseyi",
+        "position": "Forward"
+      },
+      {
+        "slug": "luiz-lucio-reis-junior",
+        "displayName": "Luíz Júnior",
+        "position": "Goalkeeper"
+      },
+      {
+        "slug": "georges-mikautadze",
+        "displayName": "Georges Mikautadze",
+        "position": "Forward"
+      },
+      {
+        "slug": "nathan-saliba",
+        "displayName": "Nathan Saliba",
+        "position": "Midfielder"
+      },
+      {
+        "slug": "nizar-el-jmili-ben-hamou",
+        "displayName": "Nizar",
+        "position": "Forward"
+      },
+      {
+        "slug": "gerard-moreno-balaguero",
+        "displayName": "Gerard Moreno",
+        "position": "Forward"
+      },
+      {
+        "slug": "carlos-romero-serrano",
+        "displayName": "Carlos Romero",
+        "position": "Defender"
+      }
+    ]
+  }
+}

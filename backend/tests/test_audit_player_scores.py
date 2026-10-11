@@ -301,3 +301,37 @@ def test_newly_owned_teammate_gets_two_reads_even_when_the_match_was_already_che
     score_checks.run(db, client, late + timedelta(minutes=62))
     rows = score_checks.comparison(db, late)["weeks"][0]["rows"]
     assert next(r for r in rows if r["player"] == "q")["state"] == "rechecked"
+
+
+def test_federation_accepts_one_game_root_per_request_and_retries_the_old_query_version(db):  # noqa: F811
+    import re
+    from copy import deepcopy
+
+    from app.sorare import score_checks
+    from app.sorare.client import SorareError
+
+    seed(db)
+    other = "Game:00000000-0000-0000-0000-000000000002"
+    record = db.get(ReadModel, "score_record:gw21").payload
+    record["players"]["p"]["games"][1] = {**deepcopy(record["players"]["p"]["games"][0]), "id": other}
+    put(db, "score_record:gw21", record, NOW)
+    put(db, "audit_game_checks", {"games": {}}, NOW)
+
+    class FederationClient(Client):
+        def query(self, query):
+            if query.count("anyGame(") > 1:
+                raise SorareError("Repeated anyGame root fields are rejected")
+            result = super().query(query)
+            result["g0"]["id"] = re.search(r'id: "([^"]+)"', query).group(1)
+            return result
+
+    client = FederationClient()
+    assert score_checks.run(db, client, NOW)["games"] == 2
+    assert len(client.calls) == 2
+    put(
+        db,
+        "audit_game_checks",
+        {"games": {GAME: {"lastAttemptAt": NOW.isoformat(), "reason": "Sorare result unavailable"}}},
+        NOW,
+    )
+    assert score_checks.run(db, FederationClient(), NOW)["games"] == 2

@@ -24,6 +24,8 @@ FIRST = timedelta(hours=3)
 RECHECK = timedelta(hours=26)
 RETRY = timedelta(minutes=30)
 WINDOW = timedelta(days=14)
+BATCH = 1  # federation rejects repeated anyGame roots, even with aliases (also sync.PROJECTION_BATCH)
+QUERY_VERSION = 1
 QUERY = (
     '{alias}: anyGame(id: "{id}") {{ ... on Game {{ id date statusTyped '
     "playerGameScores {{ score scoreStatus anyPlayer {{ slug }} "
@@ -116,15 +118,15 @@ def run(db: Session, client: SorareClient, now: datetime) -> dict[str, int]:
             now < kickoff + FIRST
             or now > kickoff + WINDOW
             or rechecked
-            or (last and now < last + RETRY)
+            or (last and check.get("queryVersion") == QUERY_VERSION and now < last + RETRY)
             or (complete and now < kickoff + RECHECK)
         ):
             del wanted[gid]
     db.rollback()  # no open DB transaction while waiting for the source
     read = failed = 0
     ids = sorted(wanted)
-    for offset in range(0, len(ids), versus.BATCH):
-        batch = ids[offset : offset + versus.BATCH]
+    for offset in range(0, len(ids), BATCH):
+        batch = ids[offset : offset + BATCH]
         try:
             answer = client.query(
                 "query { " + " ".join(QUERY.format(alias=f"g{i}", id=gid) for i, gid in enumerate(batch)) + " }"
@@ -135,7 +137,7 @@ def run(db: Session, client: SorareClient, now: datetime) -> dict[str, int]:
         for i, gid in enumerate(batch):
             game, target = answer.get(f"g{i}") or {}, wanted[gid]
             check = checks.setdefault(gid, {})
-            check.update(lastAttemptAt=now.isoformat(), kickoff=target["kickoff"])
+            check.update(lastAttemptAt=now.isoformat(), kickoff=target["kickoff"], queryVersion=QUERY_VERSION)
             if game.get("id") != gid:
                 check["reason"] = "Sorare result unavailable"
                 failed += 1

@@ -60,3 +60,16 @@ or their clearly sampled GW summary. Browser tabs may be closed; no manual refre
   hosted runner does not consume a private-repository minute allowance; no paid service/cap change was made.
 - Main checkout has an unrelated untracked `.codex/config.toml`; preserve it. The worktree's local preview is on
   port 3001. Follow the clean-checkout rule before synchronising the owner's main-folder localhost preview.
+
+## First production publication and source correction
+
+- `d611967` deployed successfully; all 13 standard production pages and both changed Audit routes return 200.
+  The automatic refresh succeeded and published all 84 current-GW rows, but the read-only data check found all
+  11 due matches unavailable with no accepted player result. This is not a completed real-data acceptance pass.
+- Existing `sync.PROJECTION_BATCH = 1` documents the federation's rejection of repeated `anyGame` root fields,
+  including aliases. The new reader had reused the legacy versus batch size of six instead. A regression client
+  enforcing the federation restriction reproduced zero successful reads for two due matches.
+- Corrected to one paced request per unique due match, reused for all owned players in that match. A query-version
+  marker retries the previous invalid request immediately rather than waiting out its 30-minute failure cooldown.
+  No extra direct Sorare development request was made; the automatically triggered production refresh supplies
+  the real source verification. Browser behavior is unchanged and the existing 31-test rerun still applies.

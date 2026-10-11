@@ -125,7 +125,8 @@ Finished fixtures keep pre-kickoff belief and add surprise/performance-gap/verdi
 ## 7. Sorare public sync
 
 **Per-game Audit score checks (11 Oct 2026).** `app.jobs.score_checks`, scheduled half-hourly in `score-checks.yml`,
-reads only owned players' due matches in batches of six. The owner chose the existing kickoff times: +3h for the first
+reads only owned players' due matches, one request per match reused for all owned players: Sorare's federation rejects
+multiple `anyGame` roots, even with aliases. The owner chose the existing kickoff times: +3h for the first
 read and +26h for the correction read. Both require Sorare's `Game.statusTyped=played`; its public schema has no
 final-whistle timestamp. `audit_game_checks` retains the first score and successful read timestamps separately from
 the latest score; failed, partial or null responses never imply DNP or erase a known result. Missing reads retry for

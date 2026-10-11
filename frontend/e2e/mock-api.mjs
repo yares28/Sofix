@@ -388,7 +388,7 @@ const server = createServer((req, res) => {
   if (req.method === "GET" && url.pathname === "/api/audit") {
     if (state.audit === "missing") return send(res, 200, { success: false, data: null, error: "The audit has not been written yet." });
     const body = auditPayload(state.audit);
-    return send(res, 200, { ...body, data: { ...body.data, frozenPlans: state.frozenPlans ?? [] } });
+    return send(res, 200, { ...body, data: { ...body.data, frozenPlans: state.frozenPlans ?? [], playerScores: state.playerScores ?? { weeks: [] } } });
   }
 
   const earlyWeek = url.pathname.match(/^\/api\/sorare\/ahead\/(\d+)$/);
@@ -472,7 +472,7 @@ const server = createServer((req, res) => {
   if (req.method === "POST" && url.pathname === "/__test/my-weeks") {
     let body = "";
     req.on("data", (chunk) => { body += chunk; });
-    req.on("end", () => { const input = JSON.parse(body); state.myWeeks = input.weeks; state.frozenPlans = input.frozenPlans; state.chanceRecord = input.chanceRecord; state.livePlan = input.livePlan; send(res, 200, { ok: true }); });
+    req.on("end", () => { const input = JSON.parse(body); state.myWeeks = input.weeks; state.frozenPlans = input.frozenPlans; state.chanceRecord = input.chanceRecord; state.livePlan = input.livePlan; state.playerScores = input.playerScores; send(res, 200, { ok: true }); });
     return;
   }
   if (req.method === "POST" && url.pathname === "/__test/mode") {

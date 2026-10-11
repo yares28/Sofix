@@ -48,6 +48,7 @@ from app.sorare import (
     outfield,
     player_games,
     projection,
+    score_checks,
     scores,
 )
 from app.sorare import missions as sorare_missions
@@ -241,6 +242,9 @@ def run(
     db.rollback()
     failed: dict[str, str] = {}
     with SorareClient() as client:
+        if not dry_run:
+            no_checks: dict[str, int] = {}
+            optional(db, failed, "score checks", lambda: score_checks.run(db, client, started), no_checks)
         snapshot = sorare_sync.snapshot(
             client,
             user or settings.sorare_user,

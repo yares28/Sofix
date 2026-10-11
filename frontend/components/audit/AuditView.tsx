@@ -20,6 +20,8 @@ import type { LeagueAudit as League } from "../../lib/leagueAudit";
 import SourceMark from "../SourceMark";
 import LeagueAudit, { StartsCheck } from "./LeagueAudit";
 import type { SavedWeek } from "../../lib/myWeeks";
+import PlayerScores from "./PlayerScores";
+import type { PlayerScoreWeek } from "../../lib/audit";
 
 const NAME: Record<StartSource, string> = { futbolfantasy: "Futbol Fantasy", sorare: "Sorare", sofix: "Sofix" };
 function Progress({ settled, floor }: { settled: number; floor: number }) {
@@ -115,6 +117,8 @@ export default function AuditView({
   show = "xscore",
   season = [],
   saved = [],
+  playerWeek = null,
+  playerWeekNumber = null,
 }: {
   data: Audit | null;
   now: Date;
@@ -123,6 +127,8 @@ export default function AuditView({
   /** The season's finished Sorare gameweeks, for what you won (Rewards). */
   season?: { slug: string; number: number }[];
   saved?: SavedWeek[];
+  playerWeek?: PlayerScoreWeek | null;
+  playerWeekNumber?: number | null;
 }) {
   if (!data) {
     return (
@@ -136,6 +142,7 @@ export default function AuditView({
   if (show === "xscore") {
     return (
       <>
+        <PlayerScores week={playerWeek} number={playerWeekNumber} />
         {league ? <LeagueAudit data={league} /> : <h1>Audit</h1>}
         <section className="au-w au-starts" aria-labelledby="au-live-h">
           <h2 id="au-live-h">Written before the lock</h2>
@@ -167,6 +174,7 @@ export default function AuditView({
           <p>Sorare&apos;s projection and Sofix&apos;s xScore, written down before each lock, against what the player scored.</p>
           {updated}
         </header>
+        <PlayerScores week={playerWeek} number={playerWeekNumber} />
         <VersusAudit versus={data.versus} floor={data.floor} league={league} />
       </>
     );

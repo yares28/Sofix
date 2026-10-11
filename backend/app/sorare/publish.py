@@ -1329,6 +1329,7 @@ def score_record(
     """Sorare's projection and Sofix's number for every player with a game in the week, game by game, with the chances: what the
     Audit scores after the games. Written before the lock only, so what it holds is what each said in time."""
     projections = snapshot.get("projections") or {}
+    owned = {row["player"]["slug"]: row for row in snapshot.get("cards") or []}
     players: dict[str, Any] = {}
     for slug, w in weeks.items():
         mine = sorted(games.get(slug) or [], key=lambda g: g.get("kickoff") or "")
@@ -1362,6 +1363,9 @@ def score_record(
             )
         players[slug] = {
             "pos": w.pos,
+            "owned": slug in owned,
+            "name": (owned.get(slug, {}).get("player") or {}).get("displayName"),
+            "pic": owned.get(slug, {}).get("pictureUrl"),
             "games": listed,
             "pPlay": round(f.p_play, 3) if f else None,
             "pStart": round(f.p_start, 3) if f and f.p_start is not None else None,

@@ -3,6 +3,46 @@
    the tokens are the Control Center's (control-center.css), so the page sits in the same family without touching any other page. */
 
 .au { max-width: 1120px; margin: 0 auto; padding: 34px 32px 96px; }
+.au-player-scores { container-type: inline-size; container-name: player-scores; margin-bottom: 36px; }
+.au-player-head { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; }
+.au-player-head h2 { margin: 0; font-size: 28px; letter-spacing: -.025em; }
+.au-player-head > p { margin: 0; text-align: right; font-size: 13px; line-height: 1.6; }
+.au-player-head > p span { color: var(--ink-2); }
+.au-player-note { color: var(--ink-2); font-size: 12px; line-height: 1.5; max-width: 76ch; }
+.au-player-summary { display: flex; flex-wrap: wrap; gap: 16px 36px; margin: 24px 0; font-variant-numeric: tabular-nums; }
+.au-player-summary dt { color: var(--ink-2); font-size: 12px; }
+.au-player-summary dd { margin: 4px 0 0; font-size: 26px; font-weight: 650; }
+.au-player-summary dd small { font-size: 12px; font-weight: 400; color: var(--ink-2); }
+.au-player-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 14px; }
+.au-player-table th, .au-player-table td { border-bottom: 1px solid var(--line); padding: 16px 5px; text-align: right; vertical-align: top; }
+.au-player-table th:first-child { width: 52%; text-align: left; }
+.au-player-table thead th { font-size: 12px; color: var(--ink-2); font-weight: 500; }
+.au-player-table td small { display: block; margin-top: 5px; color: var(--ink-2); font-size: 11px; }
+.au-player-id { display: flex; align-items: flex-start; gap: 12px; font-weight: 400; min-width: 0; }
+.au-player-id img { object-fit: contain; flex: 0 0 36px; }
+.au-player-id > div { min-width: 0; }
+.au-player-id a { color: var(--ink); font-size: 14px; font-weight: 650; text-decoration: none; overflow-wrap: anywhere; }
+.au-player-id a:hover { text-decoration: underline; }
+.au-player-id span { display: block; margin-top: 4px; font-size: 11px; color: var(--ink-2); overflow-wrap: anywhere; }
+.au-player-id .au-player-state { font-weight: 650; color: var(--ink); }
+.au-player-id .au-player-correction { color: var(--ink); }
+.au-player-score { display: inline-block; padding: 3px 5px; border-radius: 5px; font-size: 13px; }
+@container player-scores (max-width: 500px) {
+  .au-player-head { display: block; }
+  .au-player-head > p { text-align: left; margin-top: 12px; }
+  .au-player-head h2 { font-size: 24px; }
+  .au-player-table { font-size: 11px; }
+  .au-player-table th, .au-player-table td { padding: 14px 2px; }
+  .au-player-table th:first-child { width: 46%; }
+  .au-player-table thead th { font-size: 10px; }
+  .au-player-id { gap: 6px; }
+  .au-player-id img { width: 26px; height: 40px; flex-basis: 26px; }
+  .au-player-id a { font-size: 12px; }
+  .au-player-id span, .au-player-table td small { font-size: 10px; }
+  .au-player-score { font-size: 11px; padding: 2px 3px; }
+  .au-player-summary { gap: 12px 20px; }
+  .au-player-summary dd { font-size: 23px; }
+}
 .au-top h1 { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spacing: -0.035em; }
 .au-top p { margin: 6px 0 0; color: var(--ink-2); font-size: 14px; }
 .au-top .au-fresh { margin-top: 4px; font-size: 12px; }

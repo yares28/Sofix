@@ -1,0 +1,42 @@
+name: Check player scores
+
+# Kickoff +3h and +26h, accepted only once Sorare says played. Scheduler delays are visible as check timestamps.
+# Reads only the owner's due games, batched by match; no football, odds or planner calls. Public repository minutes.
+on:
+  schedule:
+    - cron: "11,41 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  scores:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      APP_ENV: prod
+      POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+      SORARE_API_KEY: ${{ secrets.SORARE_API_KEY }}
+      APP_URL: ${{ secrets.APP_URL }}
+      REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
+      VERCEL_BYPASS_SECRET: ${{ secrets.VERCEL_BYPASS_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+          activate-environment: true
+          enable-cache: true
+          cache-dependency-glob: backend/requirements.lock
+      - name: Install locked dependencies
+        run: uv pip sync requirements.lock
+      - name: Read due scores and publish Audit
+        run: python -m app.jobs.score_checks

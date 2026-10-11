@@ -1,0 +1,292 @@
+"""Owned players' automatic post-game score reads, independent of browser sessions and GW settlement.
+
+The owner chose existing kickoff times: +3h for the first read, +26h for the correction read.
+Sorare has no final-whistle timestamp; a result is accepted only when its game is played.
+State lives in one read model with one entry per game, without changing the permanent game's forecast columns.
+"""
+
+from __future__ import annotations
+
+from copy import deepcopy
+from datetime import datetime, timedelta
+from typing import Any
+
+from sqlalchemy.orm import Session
+
+from app.models import ReadModel
+from app.services.publish import put
+from app.services.timeutil import as_utc
+from app.sorare import player_games, versus
+from app.sorare.client import SorareClient, SorareError
+
+KEY = "audit_game_checks"
+FIRST = timedelta(hours=3)
+RECHECK = timedelta(hours=26)
+RETRY = timedelta(minutes=30)
+WINDOW = timedelta(days=14)
+QUERY = (
+    '{alias}: anyGame(id: "{id}") {{ ... on Game {{ id date statusTyped '
+    "playerGameScores {{ score scoreStatus anyPlayer {{ slug }} "
+    "anyPlayerGameStats {{ playedInGame ... on PlayerGameStats {{ gameStarted minsPlayed }} }} }} }} }}"
+)
+
+
+def moment(value: Any) -> datetime | None:
+    try:
+        return as_utc(datetime.fromisoformat(str(value).replace("Z", "+00:00")))
+    except ValueError:
+        return None
+
+
+def kept(db: Session) -> dict[str, Any]:
+    row = db.get(ReadModel, KEY)
+    return deepcopy(row.payload.get("games") or {}) if row else {}
+
+
+def catalog(db: Session) -> list[dict[str, Any]]:
+    """Frozen records, with owner/card identity; a current unrecorded game has explicitly missing forecasts."""
+    row = db.get(ReadModel, "sorare")
+    page = row.payload if row else {}
+    cards = {c["player"]: c for c in reversed(page.get("collection") or []) if c.get("player")}
+    records = {
+        r["gameweek"]["slug"]: deepcopy(r) for _, r in versus.records(db) if (r.get("gameweek") or {}).get("slug")
+    }
+    for week in page.get("weeks") or []:
+        gw = week.get("gameweek") or {}
+        if not gw.get("slug"):
+            continue
+        record = records.setdefault(gw["slug"], {"gameweek": gw, "players": {}})
+        for player in (week.get("playing") or {}).get("players") or []:
+            slug = player.get("player")
+            if slug not in cards or slug in record["players"]:
+                continue
+            record["players"][slug] = {
+                **player,
+                "owned": True,
+                "games": [
+                    {
+                        "id": game.get("id"),
+                        "kickoff": game.get("kickoff"),
+                        "competition": game.get("competition"),
+                        "home": game.get("team") if game.get("venue") == "H" else game.get("opponent"),
+                        "away": game.get("opponent") if game.get("venue") == "H" else game.get("team"),
+                    }
+                    for game in player.get("games") or []
+                ],
+            }
+    out = []
+    for record in records.values():
+        owned = {}
+        for slug, entry in record.get("players", {}).items():
+            if not entry.get("owned") and slug not in cards:
+                continue
+            card = cards.get(slug) or {}
+            owned[slug] = {
+                **entry,
+                "name": entry.get("name") or card.get("name") or slug,
+                "pic": entry.get("pic") or card.get("pic") or "",
+            }
+        if owned:
+            out.append({**record, "players": owned})
+    return sorted(out, key=lambda r: r["gameweek"].get("lock") or "", reverse=True)
+
+
+def run(db: Session, client: SorareClient, now: datetime) -> dict[str, int]:
+    checks = kept(db)
+    wanted: dict[str, dict[str, Any]] = {}
+    for record in catalog(db):
+        for slug, entry in record["players"].items():
+            for game in entry.get("games") or []:
+                gid, kickoff = game.get("id"), moment(game.get("kickoff"))
+                if not gid or not versus.GAME_ID.fullmatch(gid) or not kickoff:
+                    continue
+                target = wanted.setdefault(gid, {**game, "kickoff": kickoff.isoformat(), "players": set()})
+                target["players"].add(slug)
+    # Collect the full owner coverage before deciding a match is complete; newly owned players need their own reads.
+    for gid, target in list(wanted.items()):
+        check = checks.get(gid) or {}
+        kickoff = moment(check.get("kickoff")) or moment(target["kickoff"])
+        assert kickoff is not None
+        target["kickoff"] = kickoff.isoformat()
+        scores = check.get("scores") or {}
+        complete = target["players"] <= scores.keys()
+        rechecked = complete and all(scores[p].get("recheckedAt", check.get("recheckedAt")) for p in target["players"])
+        last = moment(check.get("lastAttemptAt"))
+        if (
+            now < kickoff + FIRST
+            or now > kickoff + WINDOW
+            or rechecked
+            or (last and now < last + RETRY)
+            or (complete and now < kickoff + RECHECK)
+        ):
+            del wanted[gid]
+    db.rollback()  # no open DB transaction while waiting for the source
+    read = failed = 0
+    ids = sorted(wanted)
+    for offset in range(0, len(ids), versus.BATCH):
+        batch = ids[offset : offset + versus.BATCH]
+        try:
+            answer = client.query(
+                "query { " + " ".join(QUERY.format(alias=f"g{i}", id=gid) for i, gid in enumerate(batch)) + " }"
+            )
+        except SorareError:
+            answer = {}
+        history: dict[str, list[dict[str, Any]]] = {}
+        for i, gid in enumerate(batch):
+            game, target = answer.get(f"g{i}") or {}, wanted[gid]
+            check = checks.setdefault(gid, {})
+            check.update(lastAttemptAt=now.isoformat(), kickoff=target["kickoff"])
+            if game.get("id") != gid:
+                check["reason"] = "Sorare result unavailable"
+                failed += 1
+                continue
+            kickoff = moment(game.get("date")) or moment(target["kickoff"])
+            assert kickoff is not None
+            check["kickoff"] = kickoff.isoformat()
+            if game.get("statusTyped") != "played" or now < kickoff + FIRST:
+                check["reason"] = "Game not finished on Sorare"
+                continue
+            scores = {}
+            for row in game.get("playerGameScores") or []:
+                slug = (row.get("anyPlayer") or {}).get("slug")
+                stats = row.get("anyPlayerGameStats") or {}
+                if (
+                    not isinstance(slug, str)
+                    or slug not in target["players"]
+                    or row.get("scoreStatus") != "FINAL"
+                    or stats.get("playedInGame") is None
+                ):
+                    continue
+                played = stats["playedInGame"]
+                if played and row.get("score") is None:
+                    continue
+                previous = (check.get("scores") or {}).get(slug) or {}
+                first_at = previous.get("firstCheckedAt") or (check.get("firstCheckedAt") if previous else None)
+                scores[slug] = {
+                    "score": row.get("score"),
+                    "played": played,
+                    "started": stats.get("gameStarted"),
+                    "mins": stats.get("minsPlayed"),
+                    "firstCheckedAt": first_at or now.isoformat(),
+                    "checkedAt": now.isoformat(),
+                    "recheckedAt": now.isoformat()
+                    if first_at and now >= kickoff + RECHECK
+                    else previous.get("recheckedAt"),
+                }
+                history[slug] = [
+                    {
+                        "gameId": gid,
+                        "date": kickoff.isoformat(),
+                        "competition": target.get("competition") or "unknown",
+                        "home": target.get("home"),
+                        "away": target.get("away"),
+                        "status": "FINAL",
+                        **scores[slug],
+                    }
+                ] + history.get(slug, [])
+            # Missing players remain pending, never inferred to have missed the game. Retry partial responses.
+            if not scores:
+                check["reason"] = "Player scores not available yet"
+                failed += 1
+                continue
+            previous = check.get("scores") or {}
+            check["scores"] = {**previous, **scores}
+            first = check.setdefault("first", {})
+            for slug, score in scores.items():
+                first.setdefault(slug, score["score"])
+            complete = target["players"] <= scores.keys()
+            check.pop("recheckedAt", None)
+            if complete:
+                if all(score.get("recheckedAt") for score in scores.values()):
+                    check["recheckedAt"] = now.isoformat()
+                check.setdefault("firstCheckedAt", now.isoformat())
+                check.pop("reason", None)
+            else:
+                check["reason"] = "Some player scores are still unavailable"
+            check["checkedAt"] = now.isoformat()
+            read += 1
+        if history:
+            player_games.save(db, history, now)
+        put(db, KEY, {"games": checks}, now)
+    return {"games": read, "failed": failed, "pending": len(wanted) - read}
+
+
+def comparison(db: Session, now: datetime) -> dict[str, Any]:
+    checks = kept(db)
+    weeks = []
+    for record in catalog(db):
+        gw = record["gameweek"]
+        written, lock = moment(record.get("writtenAt")), moment(gw.get("lock"))
+        frozen = written is not None and lock is not None and written < lock
+        rows = []
+        for slug, entry in record["players"].items():
+            for game in entry.get("games") or []:
+                check = checks.get(game.get("id")) or {}
+                did = (check.get("scores") or {}).get(slug) or {}
+                actual = did.get("score") if did.get("played") is True else None
+                known = bool(did) and (did.get("played") is False or actual is not None)
+                x = game.get("sofix") if frozen else None
+                source = "sofix" if x is not None else entry.get("by")
+                if x is None and frozen and source == "sorare":
+                    x = game.get("sorare")
+                if x is None and frozen and len(entry.get("games") or []) == 1:
+                    x = entry.get("mu")
+                kickoff = check.get("kickoff") or game.get("kickoff")
+                at = moment(kickoff)
+                rows.append(
+                    {
+                        "player": slug,
+                        "name": entry["name"],
+                        "pic": entry["pic"],
+                        "pos": entry.get("pos"),
+                        "game": game.get("id"),
+                        "kickoff": kickoff,
+                        "home": game.get("home"),
+                        "away": game.get("away"),
+                        "competition": game.get("competition"),
+                        "xscore": x,
+                        "by": source,
+                        "sorare": game.get("sorare") if frozen else None,
+                        "actual": actual,
+                        "difference": round(actual - x, 2) if actual is not None and x is not None else None,
+                        "firstScore": (check.get("first") or {}).get(slug),
+                        "played": did.get("played"),
+                        "started": did.get("started"),
+                        "state": ("rechecked" if did.get("recheckedAt") or check.get("recheckedAt") else "provisional")
+                        if known
+                        else "pending",
+                        "checkedAt": did.get("checkedAt") or check.get("checkedAt"),
+                        "recheckedAt": did.get("recheckedAt") or check.get("recheckedAt"),
+                        "firstDue": (at + FIRST).isoformat() if at else None,
+                        "recheckDue": (at + RECHECK).isoformat() if at else None,
+                        "reason": (
+                            "Automatic check window ended; last known score retained"
+                            if known
+                            else "Score unavailable; automatic check window ended"
+                        )
+                        if at and now > at + WINDOW and not (did.get("recheckedAt") or check.get("recheckedAt"))
+                        else check.get("reason") or ("" if known else "Awaiting automatic score check"),
+                    }
+                )
+        rows.sort(key=lambda r: (r["kickoff"] or "9999", r["name"]))
+        starts = [r for r in rows if r["state"] != "pending" and r["started"] is True and r["actual"] is not None]
+        xs = [abs(r["difference"]) for r in starts if r["difference"] is not None]
+        sos = [abs(r["actual"] - r["sorare"]) for r in starts if r["sorare"] is not None]
+        weeks.append(
+            {
+                "slug": gw["slug"],
+                "number": gw.get("number"),
+                "rows": rows,
+                "summary": {
+                    "checked": sum(r["state"] != "pending" for r in rows),
+                    "total": len(rows),
+                    "rechecked": sum(r["state"] == "rechecked" for r in rows),
+                    "starts": len(starts),
+                    "xCases": len(xs),
+                    "xMiss": round(sum(xs) / len(xs), 2) if xs else None,
+                    "sorareCases": len(sos),
+                    "sorareMiss": round(sum(sos) / len(sos), 2) if sos else None,
+                },
+            }
+        )
+    return {"weeks": weeks}

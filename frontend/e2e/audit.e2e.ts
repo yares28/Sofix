@@ -12,6 +12,64 @@ test.beforeEach(async ({ page, request }) => {
   await offline(page);
 });
 
+test("your players show saved forecasts, zero, corrections and pending games before 100 starts; selected GW survives navigation and closed tabs", async ({ page, request, context }) => {
+  const response = await (await request.get(`${MOCK}/api/sorare`)).json();
+  const model = response.data;
+  const live = model.timeline.find((w: { id: string }) => w.id === model.nextId);
+  const card = model.collection[0];
+  const base = { player: card.player, name: card.name, pic: card.pic, pos: card.pos, game: "game", kickoff: live.start,
+    home: "Spain", away: "Denmark", competition: "International", xscore: 55, by: "sofix", sorare: 60, actual: 0,
+    difference: -55, firstScore: 0, played: true, started: true, state: "provisional", checkedAt: live.start,
+    recheckedAt: null, firstDue: live.start, recheckDue: live.end, reason: "" };
+  await request.post(`${MOCK}/__test/my-weeks`, { data: { playerScores: { weeks: [{ slug: live.slug, number: live.number,
+    rows: [base, { ...base, game: "corrected", name: "Corrected player", actual: 53, difference: -2, firstScore: 50, state: "rechecked", recheckedAt: live.start },
+      { ...base, game: "missing", name: "Pending player", actual: null, difference: null, sorare: null, state: "pending", checkedAt: null, reason: "Player scores not available yet" }],
+    summary: { checked: 2, total: 3, rechecked: 1, starts: 2, xCases: 2, xMiss: 28.5, sorareCases: 2, sorareMiss: 33.5 } }] } } });
+  await page.goto(`/audit?gw=${live.id}`);
+  let section = page.getByRole("region", { name: "Your players, xScore against actual" });
+  await expect(section).toContainText(`GW${live.number}`);
+  await expect(section).toContainText("2 of 3 player games checked");
+  await expect(section).toContainText("28.5");
+  const zero = section.getByRole("row").filter({ hasText: card.name });
+  await expect(zero.getByRole("cell", { name: "0.0", exact: true })).toBeVisible();
+  await expect(zero).toContainText("Provisional");
+  await expect(section.getByRole("row").filter({ hasText: "Corrected player" })).toContainText("50.0 → 53.0");
+  await expect(section.getByRole("row").filter({ hasText: "Pending player" })).toContainText("Pending");
+  await expect(section).not.toContainText("Too few");
+  expect((await new AxeBuilder({ page }).include(".au-player-scores").withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    expect(await smallText(page, width === 390 ? 10 : 11)).toEqual([]);
+  }
+  const url = page.url();
+  await page.close();
+  const reopened = await context.newPage();
+  await offline(reopened);
+  await reopened.goto(url);
+  section = reopened.getByRole("region", { name: "Your players, xScore against actual" });
+  await expect(section).toContainText("50.0 → 53.0");
+  // The shared date selector carries the same week across Audit views.
+  await reopened.goto(`/audit/versus?gw=${live.id}`);
+  await expect(reopened.getByRole("region", { name: "Your players, xScore against actual" })).toContainText("Corrected player");
+  const other = model.timeline.find((w: { slug: string }) => w.slug !== live.slug);
+  await reopened.goto(`/audit?gw=${other.id}`);
+  await expect(reopened.getByRole("region", { name: "Your players, xScore against actual" })).not.toContainText("Corrected player");
+});
+
+test("Audit opens the latest locked GW and honours an explicitly selected future GW", async ({ page, request }) => {
+  const model = (await (await request.get(`${MOCK}/api/sorare`)).json()).data;
+  const locked = model.timeline.filter((w: { lock: string }) => new Date(w.lock).getTime() <= Date.now())
+    .sort((a: { lock: string }, b: { lock: string }) => b.lock.localeCompare(a.lock))[0];
+  expect(locked).toBeTruthy();
+  await page.goto("/audit");
+  const section = page.getByRole("region", { name: "Your players, xScore against actual" });
+  await expect(section).toContainText(`GW${locked.number}`);
+  const future = model.timeline.find((w: { id: string }) => w.id === model.nextId);
+  await page.goto(`/audit?gw=${future.id}`);
+  await expect(section).toContainText(`GW${future.number}`);
+});
+
 test("match forecasts wait for 100 paired results and name the saved odds date", async ({ page }) => {
   await page.goto("/audit");
   const section = page.getByRole("region", { name: "Match forecasts, checked" });

@@ -375,6 +375,18 @@ doubt; hover the mark for the name.
 
 ## 7b. Audit — how often the numbers were right
 
+**Your players · selected GW (11 Oct 2026).** At the top of **xScore** and **Sorare vs Sofix**, each owned player's game
+shows the xScore saved before lock (SF Sofix, SO Sorare or L5 form), Sorare's saved projection, actual score and actual
+minus xScore. The shared week picker selects the GW; a player with two games has two rows, including national-team games.
+With no selected date, Audit opens the latest locked GW. Small samples are visible: average miss says how many starts
+it uses; substitutes and DNPs remain in the rows.
+Automatic server checks run every half hour, first at kickoff +3 hours and again at +26 hours (approximately one hour
+and one day after a two-hour match), only once Sorare says finished. GitHub may start late. **Provisional** becomes
+**Rechecked** after the second successful read; a changed score shows the first and corrected values. Missing scores
+stay **Pending**, zero stays zero, and unavailable pre-lock forecasts say **Not saved**. No open browser or Sorare tab
+is needed. Unread games retry within 14 days; expired missing results say so. The 100-case rule still applies to the
+separate longer-term accuracy verdicts below, not these player rows or this early GW summary.
+
 ![Audit: how often the xScore picks the better of two, how close it lands, calibration and what has been written down](images/audit.png)
 
 Audit has four views under the switch below the top bar (since 5 Oct): **xScore** (`/audit`, the charts below), **Who

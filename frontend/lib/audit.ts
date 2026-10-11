@@ -129,6 +129,20 @@ export type Audit = {
   elevens: Elevens;
   frozenPlans: FrozenWeek[];
   matches?: MatchAudit;
+  playerScores?: { weeks: PlayerScoreWeek[] };
+};
+
+export type PlayerScoreRow = {
+  player: string; name: string; pic: string; pos: string | null; game: string | null;
+  kickoff: string | null; home: string | null; away: string | null; competition: string | null;
+  xscore: number | null; by: "sofix" | "sorare" | "form" | null; sorare: number | null;
+  actual: number | null; difference: number | null; firstScore: number | null;
+  played: boolean | null; started: boolean | null; state: "pending" | "provisional" | "rechecked";
+  checkedAt: string | null; recheckedAt: string | null; firstDue: string | null; recheckDue: string | null; reason: string;
+};
+export type PlayerScoreWeek = {
+  slug: string; number: number | null; rows: PlayerScoreRow[];
+  summary: { checked: number; total: number; rechecked: number; starts: number; xCases: number; xMiss: number | null; sorareCases: number; sorareMiss: number | null };
 };
 
 export type MatchAudit = { recorded: number; checked: number; floor: number; sofix: number | null; bookmakers: number | null; oddsThrough: string | null; generatedAt: string };
@@ -168,6 +182,7 @@ export function readable(value: unknown): Audit | null {
     elevens: { ...NO_ELEVENS, ...(data.elevens ?? {}) },
     frozenPlans: data.frozenPlans ?? [],
     matches: { ...NO_MATCHES, ...(data.matches ?? {}) },
+    playerScores: data.playerScores ?? { weeks: [] },
   };
 }
 

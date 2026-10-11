@@ -124,6 +124,17 @@ Finished fixtures keep pre-kickoff belief and add surprise/performance-gap/verdi
 
 ## 7. Sorare public sync
 
+**Per-game Audit score checks (11 Oct 2026).** `app.jobs.score_checks`, scheduled half-hourly in `score-checks.yml`,
+reads only owned players' due matches in batches of six. The owner chose the existing kickoff times: +3h for the first
+read and +26h for the correction read. Both require Sorare's `Game.statusTyped=played`; its public schema has no
+final-whistle timestamp. `audit_game_checks` retains the first score and successful read timestamps separately from
+the latest score; failed, partial or null responses never imply DNP or erase a known result. Missing reads retry for
+14 days and the UI names expiry. A cold start after +26h still makes two separate reads. The job shares refresh
+concurrency, republishes `audit` and revalidates the app; it never calls football/odds feeds or runs the planner.
+`audit.playerScores` publishes each retained GW's owned-player rows and sampled starter-only average misses, including
+zero scores and non-LaLiga games. The selected week drives these rows; the existing full-record aggregates retain
+their settlement boundary and 100-case floor. See [task evidence](../plans/audit-player-scores.md).
+
 The read-only key fetches Sorare gameweeks/games/cutoffs, leaderboards/rules/rewards, public owner cards/exclusions,
 eligible tracks, player scores/projections/play odds, and the LaLiga squad/market index. References are reused to respect
 rate/complexity/depth limits. Sorare's own games decide eligibility; its GW number is not a LaLiga matchday key.

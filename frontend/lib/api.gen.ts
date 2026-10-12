@@ -457,6 +457,8 @@ export interface components {
             xg_against: number | null;
             /** Both Score */
             both_score?: number | null;
+            /** Xd For */
+            xd_for?: number | null;
         };
         /**
          * CellRecord

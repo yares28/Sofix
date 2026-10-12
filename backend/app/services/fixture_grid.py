@@ -38,6 +38,8 @@ from app.services.postmortem import surprise_of
 from app.services.scoring import LABEL_THRESHOLDS, LABELS, difficulty_label, label_bucket
 from app.services.team_registry import by_code
 from app.services.timeutil import as_utc
+from app.sorare.team_decisives import expected_decisives
+from app.sorare.team_decisives import load as load_decisive_rates
 
 LIVE = {"IN_PLAY", "PAUSED", "LIVE"}
 POSTPONED = {"POSTPONED", "SUSPENDED", "CANCELLED"}
@@ -167,7 +169,9 @@ def cell_review(pred: Prediction | None, result: CellResult | None) -> CellRevie
     )
 
 
-def cell_prediction(pred: Prediction, venue: Venue, strict: bool = True) -> CellPrediction:
+def cell_prediction(
+    pred: Prediction, venue: Venue, strict: bool = True, code: str = "", rates: dict[str, float] | None = None
+) -> CellPrediction:
     """One forecast as the board shows it.
 
     A played game's forecast can be old enough to carry label words the board no longer uses. Its numbers
@@ -192,6 +196,7 @@ def cell_prediction(pred: Prediction, venue: Venue, strict: bool = True) -> Cell
         xg_for=optional(pred.xg_for, 2),
         xg_against=optional(pred.xg_against, 2),
         both_score=optional(both_score, 3) if isinstance(both_score, int | float) else None,
+        xd_for=expected_decisives(pred.xg_for, code, rates or {}),
     )
 
 
@@ -261,6 +266,7 @@ def build_fixture_grid(db: Session) -> FixtureGrid | None:
         )
     current = next((md.number for md in matchdays if not md.finished), None)
 
+    decisive_rates = load_decisive_rates(settings.team_decisives_path)
     cells: dict[int, list[list[GridCell]]] = {team_id: [[] for _ in numbers] for team_id in teams}
     for fx in fixtures:
         if fx.matchday is None:
@@ -292,7 +298,17 @@ def build_fixture_grid(db: Session) -> FixtureGrid | None:
                     review=cell_review(pred, result),
                     # Everything but a postponed game carries a forecast: a played one keeps the last one
                     # made before kickoff, so the board can be checked against what happened.
-                    prediction=cell_prediction(pred, venue, strict=status != "finished") if pred and rated else None,
+                    prediction=(
+                        cell_prediction(
+                            pred,
+                            venue,
+                            strict=status != "finished",
+                            code=team_code(teams[team_id]),
+                            rates=decisive_rates,
+                        )
+                        if pred and rated
+                        else None
+                    ),
                     market=cell_market(odds[fx.id], venue) if fx.id in odds and status == "scheduled" else None,
                     record=cell_record(pred, "record") if rated else None,
                     record_price=cell_record(pred, "record_price") if status == "scheduled" else None,

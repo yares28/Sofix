@@ -865,6 +865,17 @@
               }
             ],
             "title": "Both Score"
+          },
+          "xd_for": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Xd For"
           }
         },
         "type": "object",

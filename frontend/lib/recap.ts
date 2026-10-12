@@ -53,7 +53,7 @@ export function bestCards(players: PlayingPlayer[], count = 10): BestCard[] {
 }
 
 // ----------------------------------------------------------------------------------------------- the round
-export type BoardSide = { team: GridTeam; win: number | null; xg: number | null; cleanSheet: number | null; favourite: boolean };
+export type BoardSide = { team: GridTeam; win: number | null; xg: number | null; xd: number | null; cleanSheet: number | null; favourite: boolean };
 export type BoardMatch = {
   fixtureId: number;
   kickoff: string;
@@ -80,8 +80,8 @@ export function roundBoard(grid: FixtureGrid, column: number): BoardMatch[] {
       confirmed: match.homeCell.date_confirmed,
       status: match.homeCell.status,
       score: result ? `${result.goals_for}-${result.goals_against}` : null,
-      home: { team: match.home, win, xg: h?.xg_for ?? null, cleanSheet: h?.clean_sheet ?? null, favourite: win !== null && loss !== null && win > loss },
-      away: { team: match.away, win: loss, xg: a?.xg_for ?? h?.xg_against ?? null, cleanSheet: a?.clean_sheet ?? null, favourite: win !== null && loss !== null && loss > win },
+      home: { team: match.home, win, xg: h?.xg_for ?? null, xd: h?.xd_for ?? null, cleanSheet: h?.clean_sheet ?? null, favourite: win !== null && loss !== null && win > loss },
+      away: { team: match.away, win: loss, xg: a?.xg_for ?? h?.xg_against ?? null, xd: a?.xd_for ?? null, cleanSheet: a?.clean_sheet ?? null, favourite: win !== null && loss !== null && loss > win },
       draw: h?.probabilities.draw ?? null,
       bothScore: h?.both_score ?? null,
     };

@@ -72,7 +72,8 @@ The Recap is about the week in the top bar (since 5 Oct 2026; design canvas boar
   Zero-reward GWs still count as played. Open Home in Chrome with a signed-in Sorare tab to save missing finished
   weeks; failed reads can be retried. Saved lineups and rewards also work on your phone without the extension.
 - **This round** (and **The N games** on Fixtures, which adds the bookmakers' odds): one row per match. Each side's name carries its
-  own expected goals (xG) and clean-sheet chance under it; between them one bar of win, draw and win (Sorare's colours) with
+  own expected goals (xG), expected decisives (xD: its xG times the club's decisive actions per goal this season, from
+  `backend/artifacts/team_decisives.json`; rebuild with `python -m app.sorare.team_decisives` after the games export) and clean-sheet chance under it; between them one bar of win, draw and win (Sorare's colours) with
   both-score under it. The favourite is in bold; a played match shows its score. On a phone the bar goes first, the sides below.
 - **Table after round N**: the table once the round is played as expected: points now, points after and places gained or lost.
 - **Your lineups**: every entered lineup, followed by every lineup of the best Sofix plan. Each compares expected team

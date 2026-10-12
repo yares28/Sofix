@@ -54,7 +54,7 @@ export function BestCards({ cards, gw }: { cards: BestCard[]; gw: number | null 
 }
 
 // ----------------------------------------------------------------------------------------------- the round
-export type RowSide = { team: GridTeam; win: number | null; xg: number | null; cleanSheet: number | null };
+export type RowSide = { team: GridTeam; win: number | null; xg: number | null; xd: number | null; cleanSheet: number | null };
 
 function RowTeam({ side, favourite, link }: { side: RowSide; favourite: boolean; link: boolean }) {
   const className = favourite ? "rc-tm fav" : "rc-tm";
@@ -75,6 +75,7 @@ function RowStats({ side }: { side: RowSide }) {
   return (
     <span className="rc-sts">
       <span title="Expected goals"><b>{side.xg === null ? "–" : side.xg.toFixed(2)}</b><small>xG</small></span>
+      <span title="Expected decisive actions: goals, assists and the other positive decisive actions"><b>{side.xd === null ? "–" : side.xd.toFixed(1)}</b><small>xD</small></span>
       <span title="Chance of a clean sheet"><b>{pct(side.cleanSheet)}</b><small>clean sheet</small></span>
     </span>
   );

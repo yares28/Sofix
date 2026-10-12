@@ -47,6 +47,9 @@ class CellPrediction(BaseModel):
     xg_for: float | None
     xg_against: float | None
     both_score: float | None = None  # both teams score, from the score matrix
+    xd_for: float | None = (
+        None  # expected decisive actions: xG times the club's decisive actions per goal (sorare/team_decisives.py)
+    )
 
 
 class CellRecord(BaseModel):

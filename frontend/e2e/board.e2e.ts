@@ -546,6 +546,7 @@ test("home (Recap): the gameweek, the best cards, the round as a scoreboard, the
   await expect(first.locator(".rc-win")).toHaveCount(2);
   await expect(first.locator(".rc-sts")).toHaveCount(2);
   await expect(first.locator(".rc-sts").first()).toContainText("xG");
+  await expect(first.locator(".rc-sts").first()).toContainText("xD");
   await expect(first.locator(".rc-sts").first()).toContainText("clean sheet");
   await expect(first.locator(".rc-both")).toContainText("both score");
   await expect(page.locator(".rc-table tbody tr")).toHaveCount(grid.teams.length);

@@ -9,7 +9,7 @@ import type { FixtureGrid, GridTeam } from "./types";
 
 const madridDay = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", weekday: "short" });
 
-export type RoundSide = { team: GridTeam; win: number | null; xg: number | null; cleanSheet: number | null; market: number | null };
+export type RoundSide = { team: GridTeam; win: number | null; xg: number | null; xd: number | null; cleanSheet: number | null; market: number | null };
 export type RoundGame = { fixtureId: number; kickoff: string; confirmed: boolean; score: string | null; home: RoundSide; away: RoundSide; draw: number | null; marketDraw: number | null; bothScore: number | null };
 export type RoundPick = { team: GridTeam; opponent: GridTeam; venue: "H" | "A"; value: number; win: number | null };
 
@@ -37,8 +37,8 @@ export function laligaRound(grid: FixtureGrid, column: number, players: PlayingP
       kickoff: match.kickoff,
       confirmed: match.homeCell.date_confirmed,
       score: result ? `${result.goals_for}–${result.goals_against}` : null,
-      home: { team: match.home, win: h?.probabilities.win ?? null, xg: h?.xg_for ?? null, cleanSheet: h?.clean_sheet ?? null, market: m?.win ?? null },
-      away: { team: match.away, win: a?.probabilities.win ?? null, xg: a?.xg_for ?? null, cleanSheet: a?.clean_sheet ?? null, market: m?.loss ?? null },
+      home: { team: match.home, win: h?.probabilities.win ?? null, xg: h?.xg_for ?? null, xd: h?.xd_for ?? null, cleanSheet: h?.clean_sheet ?? null, market: m?.win ?? null },
+      away: { team: match.away, win: a?.probabilities.win ?? null, xg: a?.xg_for ?? null, xd: a?.xd_for ?? null, cleanSheet: a?.clean_sheet ?? null, market: m?.loss ?? null },
       draw: h?.probabilities.draw ?? null,
       marketDraw: m?.draw ?? null,
       bothScore: h?.both_score ?? m?.both_score ?? null,

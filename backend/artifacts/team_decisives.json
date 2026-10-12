@@ -1,0 +1,133 @@
+{
+  "league": 1.952,
+  "prior_goals": 10.0,
+  "through": "2026-09-20T19:00:00Z",
+  "teams": {
+    "ATH": {
+      "decisives": 91,
+      "goals": 50,
+      "games": 44,
+      "rate": 1.842
+    },
+    "ATL": {
+      "decisives": 135,
+      "goals": 78,
+      "games": 45,
+      "rate": 1.756
+    },
+    "BET": {
+      "decisives": 129,
+      "goals": 68,
+      "games": 45,
+      "rate": 1.904
+    },
+    "CEL": {
+      "decisives": 117,
+      "goals": 61,
+      "games": 45,
+      "rate": 1.923
+    },
+    "ELC": {
+      "decisives": 123,
+      "goals": 60,
+      "games": 45,
+      "rate": 2.036
+    },
+    "ESP": {
+      "decisives": 107,
+      "goals": 53,
+      "games": 45,
+      "rate": 2.008
+    },
+    "FCB": {
+      "decisives": 236,
+      "goals": 126,
+      "games": 45,
+      "rate": 1.879
+    },
+    "GET": {
+      "decisives": 81,
+      "goals": 36,
+      "games": 45,
+      "rate": 2.185
+    },
+    "GIR": {
+      "decisives": 82,
+      "goals": 39,
+      "games": 38,
+      "rate": 2.072
+    },
+    "LEV": {
+      "decisives": 111,
+      "goals": 55,
+      "games": 44,
+      "rate": 2.008
+    },
+    "MAL": {
+      "decisives": 10,
+      "goals": 3,
+      "games": 7,
+      "rate": 2.271
+    },
+    "MLL": {
+      "decisives": 93,
+      "goals": 47,
+      "games": 38,
+      "rate": 1.974
+    },
+    "OSA": {
+      "decisives": 94,
+      "goals": 50,
+      "games": 45,
+      "rate": 1.892
+    },
+    "OVI": {
+      "decisives": 50,
+      "goals": 26,
+      "games": 38,
+      "rate": 1.931
+    },
+    "RAY": {
+      "decisives": 113,
+      "goals": 52,
+      "games": 45,
+      "rate": 2.137
+    },
+    "RMA": {
+      "decisives": 182,
+      "goals": 95,
+      "games": 45,
+      "rate": 1.919
+    },
+    "RSO": {
+      "decisives": 130,
+      "goals": 68,
+      "games": 45,
+      "rate": 1.917
+    },
+    "SAN": {
+      "decisives": 19,
+      "goals": 11,
+      "games": 7,
+      "rate": 1.834
+    },
+    "SEV": {
+      "decisives": 111,
+      "goals": 56,
+      "games": 45,
+      "rate": 1.978
+    },
+    "VAL": {
+      "decisives": 113,
+      "goals": 50,
+      "games": 45,
+      "rate": 2.209
+    },
+    "VIL": {
+      "decisives": 155,
+      "goals": 85,
+      "games": 45,
+      "rate": 1.837
+    }
+  }
+}

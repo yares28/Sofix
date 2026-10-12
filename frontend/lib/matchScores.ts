@@ -56,10 +56,31 @@ export function accuracy(players: LineupPlayer[], scores: MatchScores, source: "
   return { percent: Math.max(0, Math.round(100 - off)), off: Math.round(off), players: gaps.length };
 }
 
-/** A card's number said aloud: the screen reader's line and the tooltip. */
+/** The short name a small number wears next to a card: SF and SO are the app's own short names for the two sources. */
+export const SCORE_TAGS: Record<ScoreView, string> = { actual: "Pts", sofix: "SF", sorare: "SO" };
+
+/**
+ * The numbers that go next to the main one under a card, so what was expected and what happened are read together: both
+ * expected scores next to the real one, the real one next to an expected score. A number nobody gave is left out.
+ */
+export function sideScores(player: LineupPlayer, view: { show: ScoreView; values: MatchScores }): { view: ScoreView; n: number }[] {
+  const one = player.slug ? view.values[player.slug] : undefined;
+  const others: ScoreView[] = view.show === "actual" ? ["sofix", "sorare"] : ["actual"];
+  return others.flatMap((other) => (typeof one?.[other] === "number" ? [{ view: other, n: one[other]! }] : []));
+}
+
+/** The bench of the Scores page: who scored most first; a player who did not play keeps his place after them. */
+export function byScore(players: LineupPlayer[], scores: MatchScores): LineupPlayer[] {
+  const of = (player: LineupPlayer) => (player.slug ? scores[player.slug]?.actual : null) ?? -Infinity;
+  return [...players].sort((a, b) => of(b) - of(a));
+}
+
+const said = (view: ScoreView, n: number) => (view === "actual" ? `scored ${Math.round(n)}` : `${SCORE_VIEWS[view]} expected ${Math.round(n)}`);
+
+/** A card's numbers said aloud: the screen reader's line and the tooltip. */
 export function scoreWords(player: LineupPlayer, view: { show: ScoreView; values: MatchScores }): string {
   const n = player.slug ? (view.values[player.slug]?.[view.show] ?? null) : null;
   const role = player.actual === "bench" ? "bench" : "started";
-  if (view.show === "actual") return `${player.name}, ${role}, ${n === null ? "no score" : `scored ${Math.round(n)}`}`;
-  return `${player.name}, ${role}, ${n === null ? `no ${SCORE_VIEWS[view.show]} number` : `${SCORE_VIEWS[view.show]} expected ${Math.round(n)}`}`;
+  const main = n !== null ? said(view.show, n) : view.show === "actual" ? "no score" : `no ${SCORE_VIEWS[view.show]} number`;
+  return [player.name, role, main, ...sideScores(player, view).map((one) => said(one.view, one.n))].join(", ");
 }

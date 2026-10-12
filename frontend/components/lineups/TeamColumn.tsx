@@ -20,7 +20,7 @@ import { KindIcon, RotationIcon, TargetIcon } from "./Icons";
 import PlayerCard from "./PlayerCard";
 import Shield from "./Shield";
 import type { ClubLook } from "./LineupsView";
-import { accuracy, type MatchScores } from "../../lib/matchScores";
+import { accuracy, byScore, type MatchScores } from "../../lib/matchScores";
 
 const cap = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
@@ -129,7 +129,7 @@ export default function TeamColumn({
               <span className="lu-others-title">{actual ? "Announced bench" : slots.perSlot ? "Also on the bench" : "Others in the squad"}</span>
               {scores ? (
                 <ul className="lu-cards lu-bench" aria-label="Announced bench">
-                  {others.map((player) => (
+                  {byScore(others, scores).map((player) => (
                     <PlayerCard key={player.id} player={player} label={labels[player.id] ?? player.name} line={player.pos ?? "MID"} card={player.yours ? cards[player.yours] : undefined} calledUp={false} art={art[player.id]} />
                   ))}
                 </ul>

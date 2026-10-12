@@ -284,7 +284,7 @@ export default function LineupsView({ scores = false, data, chances, sorareGames
             </div>
           </fieldset>
         </ChanceContext.Provider>
-        {real?<footer className="lu-legend"><span><i className="lu-swatch" aria-hidden="true" />Your card</span></footer>:<Legend calledUp={calledUpIn(selected)} />}
+        {real?<footer className="lu-legend"><span><i className="lu-swatch" aria-hidden="true" />Your card</span>{scores?<><span><i className="lu-key" aria-hidden="true" />Scored</span><span><i className="lu-key" data-kind="said" aria-hidden="true" />Expected: SF Sofix, SO Sorare</span></>:null}</footer>:<Legend calledUp={calledUpIn(selected)} />}
       </article>
     </main>
   );

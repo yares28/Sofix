@@ -1,10 +1,10 @@
 "use client";
 
-import { createContext, useContext } from "react";
+import { createContext, useContext, type CSSProperties } from "react";
 import { CHANCE_SOURCES, chanceFor, chancePercent, type ChanceView } from "../../lib/lineupChances";
 import { chanceTone, type LineupPlayer } from "../../lib/lineups";
 import { scoreColour } from "../../lib/cards";
-import { scoreWords } from "../../lib/matchScores";
+import { SCORE_TAGS, scoreWords, sideScores, type ScoreView } from "../../lib/matchScores";
 
 export const ChanceContext = createContext<ChanceView>({ source: "futbolfantasy", values: {}, url: "" });
 
@@ -13,8 +13,26 @@ export default function Chance({ player, small = false, inline = false }: { play
   const view = useContext(ChanceContext);
   if (view.scores) {
     const n = player.slug ? (view.scores.values[player.slug]?.[view.scores.show] ?? null) : null;
-    const colour = scoreColour(n);
-    return <span className={inline ? "lu-chance-inline" : `lu-pct${small ? " lu-pct-sm" : ""}`} data-tone="none" title={scoreWords(player, view.scores)} style={n === null || inline ? undefined : { background: colour.fill, color: colour.ink }}>{n === null ? "—" : Math.round(n)}</span>;
+    // What he scored is a filled pill; what was expected of him is the same pill outlined, so the two are told apart at a glance.
+    const look = (kind: ScoreView, value: number | null) => ({ "data-kind": kind === "actual" ? "actual" : "said", style: value === null ? undefined : ({ "--c": scoreColour(value).fill, "--k": scoreColour(value).ink } as CSSProperties) });
+    const title = scoreWords(player, view.scores);
+    if (inline) return <span className="lu-chance-inline" data-tone="none" title={title}>{n === null ? "—" : Math.round(n)}</span>;
+    const others = sideScores(player, view.scores);
+    return (
+      <>
+        <span className={`lu-pct${small ? " lu-pct-sm" : ""}`} data-tone="none" title={title} {...look(view.scores.show, n)}>{n === null ? "—" : Math.round(n)}</span>
+        {others.length ? (
+          <span className="lu-sc-more" aria-hidden="true" title={title}>
+            {others.map((one) => (
+              <span key={one.view} className="lu-sc" {...look(one.view, one.n)}>
+                {one.view === "actual" ? null : <i>{SCORE_TAGS[one.view]}</i>}
+                {Math.round(one.n)}
+              </span>
+            ))}
+          </span>
+        ) : null}
+      </>
+    );
   }
   if(player.actual)return <span className={inline?"lu-chance-inline":"lu-pct"} data-tone="good">{player.actual==="starter"?"Starter":"Bench"}</span>;
   const p = chanceFor(player, view);

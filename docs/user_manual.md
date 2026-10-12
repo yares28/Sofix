@@ -265,7 +265,9 @@ In a lineup's sheet, a card's name opens his match on **Lineups** (Futbol Fantas
 side). A game Futbol Fantasy has no page for, such as a national-team game, has no link.
 
 **Scores** (This week) is the same page for games played: the eleven that started, each card with what he scored. **Sofix** and
-**Sorare** swap that for what each expected of him. The bench is drawn as cards too. Under each team, the accuracy of each source is
+**Sorare** swap that for what each expected of him. The other side of the comparison sits in small under the main number: both
+expected scores (SF Sofix, SO Sorare) under the real one, the real one under an expected score. A score is a filled pill, an
+expected score the same pill outlined. The bench is drawn as cards too, whoever scored most first. Under each team, the accuracy of each source is
 100 minus the average gap in points between what it expected and what the players who played scored.
 
 The planner enforces the published slots, caps, in-season minimum, club/card/player uniqueness, bonuses and substitute

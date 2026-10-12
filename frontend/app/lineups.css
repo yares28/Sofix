@@ -219,6 +219,21 @@
 .lu-pct[data-tone="strong"] { background: var(--lu-tone-strong-bg); color: var(--lu-tone-strong-fg); }
 .lu-pct[data-tone="good"] { background: var(--lu-tone-good-bg); color: var(--lu-tone-good-fg); }
 .lu-pct[data-tone="mid"] { background: var(--lu-tone-mid-bg); color: var(--lu-tone-mid-fg); }
+/* Scores page: what he scored is filled with its band colour, what was expected is the same pill outlined in it. The small
+   numbers under the main one are the other side of the comparison (SF, SO, or the score itself). */
+.lu-pct[data-kind="actual"] { background: var(--c, var(--lu-tone-low-bg)); color: var(--k, var(--lu-tone-low-fg)); }
+.lu-pct[data-kind="said"] { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 2px var(--c, var(--lu-tone-low-bg)), 0 0 0 2px #fff; }
+.lu-card:has(.lu-sc-more) { margin-bottom: 38px; }
+.lu-sc-more { position: absolute; left: 50%; bottom: -46px; transform: translateX(-50%); display: flex; }
+/* Two expected scores join into one split pill, so each card's pair reads as one thing and stays clear of its neighbour's. */
+.lu-sc:not(:last-child) { padding-right: 4px; border-radius: 999px 0 0 999px; }
+.lu-sc:not(:first-child) { margin-left: -1.5px; padding-left: 4px; border-radius: 0 999px 999px 0; }
+.lu-sc { display: flex; align-items: center; gap: 3px; height: 18px; padding: 0 6px; border-radius: 999px; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lu-sc i { font-style: normal; font-weight: 600; color: var(--ink-2); }
+.lu-sc[data-kind="actual"] { min-width: 30px; justify-content: center; background: var(--c); color: var(--k); }
+.lu-sc[data-kind="said"] { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--c); }
+.lu-key { display: inline-grid; place-items: center; min-width: 26px; height: 16px; border-radius: 999px; background: #46c05a; }
+.lu-key[data-kind="said"] { background: var(--surface); box-shadow: inset 0 0 0 2px #46c05a; }
 .lu-pct-sm { min-width: 34px; height: 20px; padding: 0 6px; box-shadow: none; font-size: 11.5px; }
 .lu-mark { position: absolute; right: -7px; top: -7px; display: flex; }
 /* Called up by his national team: the country's two letters on a blue pill (not an icon that needs a legend to be read). */
@@ -352,6 +367,11 @@
   .lu-name span { font-size: 10px; }
   .lu-card { margin-bottom: 14px; }
   .lu-card .lu-pct { min-width: 36px; height: 19px; font-size: 11px; bottom: -22px; }
+  .lu-card:has(.lu-sc-more) { margin-bottom: 34px; }
+  .lu-sc-more { bottom: -42px; }
+  .lu-sc { height: 16px; padding: 0 5px; gap: 2px; font-size: 10px; }
+  .lu-sc:not(:last-child) { padding-right: 3px; }
+  .lu-sc:not(:first-child) { padding-left: 3px; }
   .lu-mark { right: -6px; top: -6px; }
   .lu-mark svg { width: 18px; height: 18px; }
   .lu-call { min-width: 22px; height: 20px; font-size: 10px; padding: 0 5px; }

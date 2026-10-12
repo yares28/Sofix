@@ -610,10 +610,10 @@ test("Scores draws the eleven that played with each score, the bench as cards an
     rows: one.rows.map((r) => ({ ...r, players: r.players.map((p) => ({ ...p, slug: slug(p.id), p: null, actual: "starter" })) })),
     bench: one.alternatives.slice(0, 2).map((p) => ({ ...p, slug: slug(p.id), p: null, actual: "bench" })),
   });
-  // every starter scored 60 where Sofix said 50 and Sorare 55; the bench did not play
+  // every starter scored 60 where Sofix said 50 and Sorare 55; of the bench, only the second man came on (and scored 30)
   const scores = Object.fromEntries([match.home, match.away].flatMap((one) => [
     ...one.rows.flatMap((r) => r.players).map((p) => [slug(p.id), { actual: 60, sofix: 50, sorare: 55 }]),
-    ...one.alternatives.slice(0, 2).map((p) => [slug(p.id), { actual: null, sofix: 40, sorare: null }]),
+    ...one.alternatives.slice(0, 2).map((p, i) => [slug(p.id), { actual: i ? 30 : null, sofix: 40, sorare: null }]),
   ]));
   const asked: string[] = [];
   await page.route("**/api/lineups/actual?match=*", (route) => {
@@ -626,13 +626,18 @@ test("Scores draws the eleven that played with each score, the bench as cards an
   await expect(page.locator(".lu-card")).toHaveCount(26); // 22 starters and the two benches of two, all as cards
   await expect(page.locator(".lu-bench .lu-card")).toHaveCount(4);
   await expect(page.locator(".lu-row:not(.lu-others) .lu-pct").first()).toHaveText("60");
-  await expect(page.locator(".lu-bench .lu-pct").first()).toHaveText("—");
+  // both expected scores sit under the real one; on the bench the man who scored comes first
+  await expect(page.locator(".lu-row:not(.lu-others) .lu-card").first().locator(".lu-sc")).toHaveText(["SF50", "SO55"]);
+  await expect(page.locator(".lu-bench").first().locator(".lu-pct")).toHaveText(["30", "—"]);
+  await expect(page.locator(".lu-bench .lu-card").first().locator(".lu-sc")).toHaveText(["SF40"]);
+  expect(await smallText(page, 11)).toEqual([]);
   expect(asked[0]).toBe("1");
   const corner = page.locator(".lu-acc").first();
-  await expect(corner).toContainText("Sofix accuracy90%10 pts off on average · 11 players");
+  await expect(corner).toContainText("Sofix accuracy90%10 pts off on average · 12 players"); // the eleven and the man who came on
   await expect(corner).toContainText("Sorare accuracy95%5 pts off on average · 11 players");
   await page.getByRole("radio", { name: "Sofix", exact: true }).check();
   await expect(page.locator(".lu-row:not(.lu-others) .lu-pct").first()).toHaveText("50");
+  await expect(page.locator(".lu-row:not(.lu-others) .lu-card").first().locator(".lu-sc")).toHaveText(["60"]);
   await expect(page.locator(".lu-bench .lu-pct").first()).toHaveText("40");
   await page.getByRole("radio", { name: "Sorare", exact: true }).check();
   await expect(page.locator(".lu-row:not(.lu-others) .lu-pct").first()).toHaveText("55");

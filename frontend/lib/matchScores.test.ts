@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { LineupPlayer } from "./lineups";
-import { accuracy, readScores, scoreWords, sofixScores } from "./matchScores";
+import { accuracy, byScore, readScores, scoreWords, sideScores, sofixScores } from "./matchScores";
 
 const row = (slug: string, score: number, played: boolean | null, projection: number | null) => ({
   score, projection: projection === null ? null : { score: projection }, anyPlayer: { slug }, anyPlayerGameStats: { playedInGame: played },
@@ -49,8 +49,28 @@ describe("accuracy", () => {
 describe("scoreWords", () => {
   it("names what the badge shows", () => {
     const values = { a: { actual: 63.4, sofix: null, sorare: 50 } };
-    expect(scoreWords(player("a"), { show: "actual", values })).toBe("a, started, scored 63");
-    expect(scoreWords(player("a", "bench"), { show: "sorare", values })).toBe("a, bench, Sorare expected 50");
-    expect(scoreWords(player("a"), { show: "sofix", values })).toBe("a, started, no Sofix number");
+    expect(scoreWords(player("a"), { show: "actual", values })).toBe("a, started, scored 63, Sorare expected 50");
+    expect(scoreWords(player("a", "bench"), { show: "sorare", values })).toBe("a, bench, Sorare expected 50, scored 63");
+    expect(scoreWords(player("a"), { show: "sofix", values })).toBe("a, started, no Sofix number, scored 63");
+  });
+});
+
+describe("sideScores", () => {
+  const values = { a: { actual: 63.4, sofix: 48, sorare: 50 }, b: { actual: null, sofix: 40, sorare: null } };
+  it("puts both expected scores next to the real one, and the real one next to an expected score", () => {
+    expect(sideScores(player("a"), { show: "actual", values })).toEqual([{ view: "sofix", n: 48 }, { view: "sorare", n: 50 }]);
+    expect(sideScores(player("a"), { show: "sofix", values })).toEqual([{ view: "actual", n: 63.4 }]);
+  });
+  it("leaves out a number nobody gave", () => {
+    expect(sideScores(player("b"), { show: "actual", values })).toEqual([{ view: "sofix", n: 40 }]);
+    expect(sideScores(player("b"), { show: "sorare", values })).toEqual([]);
+    expect(sideScores(player("nobody"), { show: "actual", values })).toEqual([]);
+  });
+});
+
+describe("byScore", () => {
+  it("puts who scored most first and keeps those who did not play after them, in their order", () => {
+    const values = { a: { actual: 20, sofix: null, sorare: null }, b: { actual: null, sofix: 90, sorare: null }, c: { actual: 71, sofix: null, sorare: null }, e: { actual: 0, sofix: null, sorare: null } };
+    expect(byScore([player("a"), player("b"), player("c"), player("d"), player("e")], values).map((p) => p.slug)).toEqual(["c", "a", "e", "b", "d"]);
   });
 });

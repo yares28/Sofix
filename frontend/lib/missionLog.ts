@@ -1,4 +1,4 @@
-import { database } from "./db";
+import { database, readModelAt, stamp } from "./db";
 import { cache } from "./cache";
 import { isToday, missionCandidates, missionDay, MISSIONS_TAG, plan, ruleOf, type MissionPick, type MissionRow, type MissionsModel, type Rule, type Suggestion, type SuggestionMode } from "./missions";
 import { MISSION_RARITIES as RARITIES } from "./missions";
@@ -349,23 +349,31 @@ export function missionHistory(logs: MonthLog[], rarity: string, names: Map<stri
 // Local development and the browser tests have no Neon: they ask the stand-in API instead.
 const API_BASE = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
 
-/** The last two months of the log, newest first; cached five minutes so a page view does not wake Neon each time. */
-const cachedLog = cache(
-  async (): Promise<MonthLog[]> => {
-    const sql = database();
-    if (sql) {
-      const rows = (await sql`SELECT key, payload FROM read_models WHERE key LIKE ${`${LOG_PREFIX}%`} OR key LIKE ${`${DAY_PREFIX}%`} OR key LIKE 'missions_edit:%' ORDER BY key DESC LIMIT 500`) as { key: string; payload: MonthLog | MissionEdits }[];
-      const logs = rows.filter((r) => !r.key.startsWith("missions_edit:")).sort((a, b) => Number(a.key.startsWith(DAY_PREFIX)) - Number(b.key.startsWith(DAY_PREFIX))).map((r) => r.payload as MonthLog);
-      return applyMissionEdits(logs, rows.filter((r) => r.key.startsWith("missions_edit:")).map((r) => r.payload as MissionEdits));
-    }
-    const response = await fetch(`${API_BASE}/api/missions/log`, { cache: "no-store", signal: AbortSignal.timeout(8000) });
-    if (!response.ok) return [];
-    const body = (await response.json()) as { data?: MonthLog[] };
-    return body?.data ?? [];
+/** Which log rows exist and when each was written; five minutes, so a page view does not wake Neon each time. */
+const logIndex = cache(
+  async (): Promise<{ key: string; at: string }[]> => {
+    const rows = (await database()!`SELECT key, updated_at FROM read_models WHERE key LIKE ${`${LOG_PREFIX}%`} OR key LIKE ${`${DAY_PREFIX}%`} OR key LIKE 'missions_edit:%' ORDER BY key DESC LIMIT 500`) as { key: string; updated_at: string | Date }[];
+    return rows.map((r) => ({ key: r.key, at: stamp(r.updated_at) }));
   },
-  ["missions-log-v2"],
+  ["missions-log-index-v1"],
   { tags: [MISSIONS_TAG, "sorare"], revalidate: 300 },
 );
+
+/**
+ * The last two months of the log, newest first. Together the rows are over Next's 2 MB cache limit (2.5 MB on 12 Oct 2026),
+ * which made every view download them all from Neon again; each row is now read once per change (readModelAt in lib/db.ts).
+ */
+async function cachedLog(): Promise<MonthLog[]> {
+  if (database()) {
+    const rows = (await Promise.all((await logIndex()).map(async ({ key, at }) => ({ key, payload: (await readModelAt(key, at)) as MonthLog | MissionEdits | null })))).filter((r) => r.payload);
+    const logs = rows.filter((r) => !r.key.startsWith("missions_edit:")).sort((a, b) => Number(a.key.startsWith(DAY_PREFIX)) - Number(b.key.startsWith(DAY_PREFIX))).map((r) => r.payload as MonthLog);
+    return applyMissionEdits(logs, rows.filter((r) => r.key.startsWith("missions_edit:")).map((r) => r.payload as MissionEdits));
+  }
+  const response = await fetch(`${API_BASE}/api/missions/log`, { cache: "no-store", signal: AbortSignal.timeout(8000) });
+  if (!response.ok) return [];
+  const body = (await response.json()) as { data?: MonthLog[] };
+  return body?.data ?? [];
+}
 
 export async function loadMissionLog(): Promise<MonthLog[]> {
   try {

@@ -6,7 +6,10 @@ let edits: MissionEdits | null = null;
 let ledger: MonthLog | null = null;
 const merge = vi.fn(async (key: string, fn: (x: never) => unknown) => key.startsWith("missions_day:") ? (ledger = fn(ledger as never) as MonthLog) : (edits = fn(edits as never) as MissionEdits));
 vi.mock("../../../../lib/missionStore", () => ({ mergeMissionRecord: (...args: [string, (x: MissionEdits | null) => MissionEdits]) => merge(...args) }));
-vi.mock("../../../../lib/db", () => ({ database: () => async () => [{ key: "missions_day:2026-10-06:limited", payload: { days: { "2026-10-06": { limited: { missions: [{ key: "picker", picks: 1 }] } } } } }] }));
+vi.mock("../../../../lib/db", () => {
+  const row = { key: "missions_day:2026-10-06:limited", payload: { days: { "2026-10-06": { limited: { missions: [{ key: "picker", picks: 1 }] } } } } };
+  return { database: () => async () => [row], stamp: String, readModelAt: async () => row.payload };
+});
 vi.mock("next/cache", () => ({ revalidateTag: vi.fn(), unstable_cache: (fn: unknown) => fn }));
 const { POST } = await import("./route");
 const body = { day: "2026-10-06", rarity: "limited", mission: "picker", picks: [{ player: "jan-oblak", card: "oblak-1", game: "g", rarity: "limited", status: "SUCCESS" }], revision: 0, restore: false, note: "My selection" };

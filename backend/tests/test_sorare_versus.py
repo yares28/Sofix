@@ -59,6 +59,10 @@ def test_only_starts_with_both_numbers_are_compared():
     # the man who came on is counted apart, in his own figures
     assert [row["player"] for row in versus.starts_of(done, started=False)] == ["sub"]
     assert versus.figures([done])["subs"]["starts"] == 1 and versus.figures([done])["all"]["starts"] == 1
+    # his score if he comes on, once it is saved, is what a substitute's game is judged against; a start keeps the start number
+    done["players"]["sub"]["games"][0]["sofixOn"] = 28.0
+    done["players"]["starter"]["games"][0]["sofixOn"] = 20.0
+    assert versus.starts_of(done, started=False)[0]["sofix"] == 28.0 and versus.starts_of(done)[0]["sofix"] == 58.0
     rows = versus.starts_of(done)
     assert [row["player"] for row in rows] == ["starter"]
 

@@ -469,8 +469,9 @@ The Audit page checks Sofix's numbers against what happened. Its first view (**x
 (since 13 Oct): each one's success rate in big. Both expected scores are saved before each lock for every player with a game. A number
 that lands within 7 points of what the player scored is a success, anything else is a miss, and every player counts on his own. There
 are two rates for each side: **starters** (the big one) and **substitutes** (players who came on), with the average points off under
-each; the side that was right more often is marked. They show from the first game checked, with no 100-game floor; a week counts a
-day after it ends, and "Waiting for results" shows until the first one does. **Within 7 points, by position** draws both as bars,
+each; the side that was right more often is marked. They show from the first game checked, with no 100-game floor, and a game counts as soon as its score is read (Sorare can still
+correct a score for about a day). A substitute's game is judged against Sofix's score if he comes on, saved from the 13 Oct lock;
+before that, against his start number. **Within 7 points, by position** draws both as bars,
 overall and per position, and **The same games, three ways** lists the share within 7, the points off and which way each leans, for
 starters, each position and substitutes, then week by week. The old **Sorare vs Sofix** tab is this view now (its address lands
 here). The better-of-two figures are gone from the page.

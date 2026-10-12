@@ -310,7 +310,7 @@ chance he plays times his score if he plays) against his best game once the game
 fails the Play page is still published and the run's summary names `audit` under `failed`.
 
 `/audit` leads with the two saved conditional scores against the real score on starts (12 Oct owner request): each side's success rate
-(the share within 7 points, `versus.CLOSE`), starts and games a player came on in apart (`figures()["subs"]`), by position and week, with the miss and the lean, no floor (13 Oct); `/audit/versus` redirects to it. The pair
+(the share within 7 points, `versus.CLOSE`), starts and games a player came on in apart (`figures()["subs"]`), by position and week, with the miss and the lean, no floor (13 Oct). A game counts as soon as its row has a result, without the week's wait the start record keeps; a substitute's Sofix side is `sofixOn` (his score if he comes on, in `score_record` from 13 Oct), else the start number; `/audit/versus` redirects to it. The pair
 rates above are still computed and published but no longer drawn. `/audit/starts` also counts Futbol Fantasy's predicted eleven and the Sorare/Sofix elevens implied by the same
 position-preserving swaps as `lib/lineups.ts::byChance`: ties keep FF's starter, out/suspended alternatives cannot come in,
 and a historical reading without position data cannot invent an implied eleven. Counts are grouped by week and club;

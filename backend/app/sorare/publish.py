@@ -1359,6 +1359,8 @@ def score_record(
                     "sorare": said.get("score", w.projection if i == 0 and not projections else None),
                     "grade": said.get("grade"),
                     "sofix": round(w.game_scores[i], 1) if i < len(w.game_scores) else None,
+                    # his score if he comes on: what a substitute's game is judged against (the owner, 13 Oct 2026)
+                    "sofixOn": f.on if f and f.on else None,
                 }
             )
         players[slug] = {

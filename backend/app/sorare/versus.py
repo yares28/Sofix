@@ -3,9 +3,10 @@
 Before each lock the job writes both numbers down for every LaLiga player with a game in the week (`publish.score_record`, read model
 `score_record:<week>`). A day after the week's last game, `settle` adds what each player really scored, whether he started and his
 minutes, one Sorare read per game. `figures` then compares the two numbers on the games he started: both are a score for a player who
-plays, so a start is the fair ground (a substitute's few minutes or a game he missed would judge the chance of playing instead).
+plays, so a start is the fair ground. The games he came on in are compared apart (`subs`): Sofix's side is then his score if he comes
+on (`sofixOn`, saved from 13 Oct 2026; the start number before that), Sorare's its one projection.
 
-Each figure says how many starts stand behind it; under `audit.FLOOR` the page says too few to tell.
+Each figure says how many games stand behind it and is shown from the first one (the owner, 13 Oct 2026).
 """
 
 from __future__ import annotations
@@ -131,7 +132,7 @@ def starts_of(record: dict[str, Any], started: bool = True) -> list[dict[str, An
                     "week": week,
                     "pos": entry.get("pos"),
                     "sorare": float(game["sorare"]),
-                    "sofix": float(game["sofix"]),
+                    "sofix": float(game["sofix"] if started or game.get("sofixOn") is None else game["sofixOn"]),
                     "actual": float(did["score"]),
                 }
             )

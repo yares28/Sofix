@@ -140,7 +140,10 @@ def test_unknown_and_not_yet_final_week_results_are_not_guessed(db):  # noqa: F8
     row.started = None
     db.commit()
     audit.publish(db, END + timedelta(hours=23))
-    assert db.get(ReadModel, "audit").payload["starts"]["live"]["sofix"]["settled"] == 0
+    early = db.get(ReadModel, "audit").payload
+    assert early["starts"]["live"]["sofix"]["settled"] == 0
+    # Sorare against Sofix does not wait for the week: the one game with a known start counts as soon as it is read
+    assert early["versus"]["all"]["starts"] == 1 and early["versus"]["settled"] == 0
     audit.publish(db, NOW)
     page = db.get(ReadModel, "audit").payload
     assert page["starts"]["live"]["sofix"]["settled"] == 1

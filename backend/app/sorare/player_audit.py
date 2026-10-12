@@ -93,7 +93,7 @@ def read(db: Session, now: datetime, floor: int) -> tuple[dict[str, Any], list[d
                 cell["info"] = {key: game.get(key) for key in ("kickoff", "competition", "home", "away")}
                 row = rows.get((player, game["id"]))
                 if score_record.get("writtenAt") and _dt(score_record["writtenAt"]) >= lock:
-                    game["sofix"], game["sorare"] = None, None
+                    game["sofix"], game["sorare"], game["sofixOn"] = None, None, None
                 if row and row.said_at and as_utc(row.said_at) < lock:
                     for source, column in COLUMNS.items():
                         chance = getattr(row, column)
@@ -108,10 +108,14 @@ def read(db: Session, now: datetime, floor: int) -> tuple[dict[str, Any], list[d
                     game["actual"] = result
                 elif game.get("actual"):
                     cell.update(game["actual"])  # an older settled record is still evidence
+                elif (read := actual(row, True)) is not None:
+                    # Sorare against Sofix counts a game as soon as its score is read (the owner, 13 Oct 2026); the start
+                    # record above still waits for the week, so `cell` is left alone.
+                    game["actual"] = read
         all_games = [
             game for entry in (score_record.get("players") or {}).values() for game in entry.get("games") or []
         ]
-        if all_games and all("actual" in game for game in all_games):
+        if due and all_games and all("actual" in game for game in all_games):
             score_record["settledAt"] = now.isoformat()
     # Older owner-only start records may have no score_record counterpart. Their known games can still finish.
     score_weeks = {(score.get("gameweek") or {}).get("slug") for score in scores}

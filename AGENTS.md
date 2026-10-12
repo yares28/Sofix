@@ -183,6 +183,22 @@ Python/root: `POSTGRES_URL`, owner-only `POSTGRES_MIGRATION_URL`, football/odds/
 `GITHUB_REPO`, `REVALIDATE_SECRET`, `EXTENSION_TOKEN`, optional `EXTENSION_DIR`, crest flag. Never print/commit values.
 
 Neon production uses `fdr_app` DML-only, verify-full TLS. Destructive SQL/branch actions need explicit approval.
+
+### Neon projects (one account, all on the free plan; state of 12 Oct 2026)
+
+| Project | Id | What it is | What to do with it |
+|---|---|---|---|
+| **Sofix** | `odd-darkness-24982497` | **Production since 12 Oct 2026.** GitHub's `POSTGRES_URL` secret and Vercel's `DATABASE_URL` point here (login `fdr_app`); eu-central-1, Postgres 18, one branch | Use it for everything. Watch its "data sent" (5 GB a month, resets on the 1st). Migrations: owner login, `POSTGRES_MIGRATION_URL` in the git-ignored `.env.sofix-neon`. A dev branch can be made here when a migration needs testing |
+| **FDR** | `sparkling-bonus-46807220` | The old production (14 Sep to 12 Oct 2026). Used 4.94 of its 5 GB in October (at 5 GB Neon suspends it until 1 Nov). Holds the same data as the copy below, nothing newer | Nothing reads or writes it. Leave it alone as a spare: from 1 Nov it has a fresh 5 GB and can take over if Sofix runs out (copy the data across first). Never delete it without the owner saying so |
+| **Trakzi** | `orange-waterfall-16223480` | Another app of the owner's, unrelated to this repo | Never touch it from this repo |
+
+- **When a project nears 5 GB sent** (the owner's rule, 12 Oct 2026: stay free, tricks allowed): copy every table out
+  while it still answers, load the copy into the spare or a new free project, repoint the two secrets, push. A new
+  project is built from the migrations plus the copy; the app login is created by SQL (`fdr_app`, rows only).
+- **The copy of 12 Oct 2026:** `backend/data/raw/neon-backup-2026-10-12/` (git-ignored; one Postgres COPY file per
+  table and `manifest.json` with columns, row counts and sequences).
+- **Local files:** `frontend/.env.local` reads Sofix; `frontend/.env.local.fdr` is the old FDR setting, kept for the spare.
+
 Dev binds `127.0.0.1`; no Docker; port 5432 belongs elsewhere; run npm only from `frontend/`; Windows reload may miss
 model/schema edits. Preserve unrelated work. Commits: `<type>: <description>`.
 
@@ -211,6 +227,10 @@ this repo. Precedence: this file, then the global rules.
 - **€0 incremental spend.** Never upgrade Neon/Vercel/GitHub/Odds API/Firecrawl/Context7/Figma, buy credits, enable
   pay-as-you-go, raise a cap or attach a payment method. Quota/402/429 → back off, use cache or the local fallback, report
   only what it blocks. Limits table above is the current contract.
+- **Free comes first, tricks allowed** (owner, 12 Oct 2026; this overrides the global rule against getting around a
+  free tier). When a free allowance runs out, use whatever keeps the app free and running (another free project or
+  resource, a second free service, a workaround) without stopping to ask. Try what the provider's free plan itself
+  allows first, and never lose the owner's data doing it.
 - **Local first.** `node scripts/check.mjs` plus the changed page's spec before the push, then `--live` after it
   (Shipping above). CI and Vercel are not debuggers and nobody waits for them; `npm run design` only when a preview in
   `docs/sorare/design/` changed.

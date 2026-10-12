@@ -120,7 +120,6 @@ export default function LineupsView({ data, chances, sorareGames, sorareKept, fa
   const state = matchState(selected, now);
   const notes = gone !== null && asked === gone ? [...flash, "That match is no longer on Futbol Fantasy. Showing the next one."] : flash;
   const competitions = [...new Map(sections.map((s) => [s.competition, s.competitionName])).entries()];
-  const rounds = sections.filter((s) => s.competition === section.competition);
   const first = section.matches[0]?.kickoff;
   const last = section.matches.at(-1)?.kickoff;
   const when = first && last ? roundDays(first, last) : null;
@@ -220,15 +219,6 @@ export default function LineupsView({ data, chances, sorareGames, sorareKept, fa
               </Link>
             );
           })}
-        </nav>
-      ) : null}
-      {rounds.length > 1 ? (
-        <nav className="lu-tabs" aria-label="Round">
-          {rounds.map((s) => (
-            <Link key={s.key} href={hrefOf(s.matches[0]!)} prefetch={false} onClick={switchTo(s.matches[0]!)} aria-current={s.key === section.key ? "page" : undefined}>
-              {s.round !== null ? `${section.competition === "laliga" ? "Round" : "Matchday"} ${s.round}` : s.label}
-            </Link>
-          ))}
         </nav>
       ) : null}
 

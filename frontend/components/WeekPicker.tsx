@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { byMonth, pageWeeks, weekDates, weekName, weekOn, weekValue, type Page, type Week } from "../lib/weeks";
 
-const BOARD = ["/fixtures", "/difficulty", "/table"];
+const BOARD = ["/fixtures", "/difficulty", "/table", "/lineups"]; // pages that count LaLiga rounds
 
 /**
  * The app's one gameweek control: it picks a **week**, and every page resolves what it holds — the board its
@@ -62,6 +62,7 @@ export default function WeekPicker({ weeks, current, now }: { weeks: Week[]; cur
     // the board opens on the next LaLiga round — so a week you picked has to be said out loud to be kept.
     next.set("w", week.id);
     next.delete("gw"); // the old per-page gameweek; the week replaces it
+    if (pathname === "/lineups") next.delete("m"); // the week names the round: the page opens on its next match
     const query = next.toString();
     router.push(query ? `${pathname}?${query}` : pathname, { scroll: false });
     setOpen(false);

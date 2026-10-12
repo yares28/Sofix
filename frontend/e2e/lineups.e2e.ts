@@ -165,6 +165,15 @@ test("there are no competition tabs when the round has only LaLiga", async ({ pa
   await expect(page.getByRole("navigation", { name: "Round", exact: true })).toHaveCount(0);
 });
 
+test("the top bar's week is the round: it opens on that round's next match and shows no round tabs of its own", async ({ page, request }) => {
+  const round8 = (await weeksOf(request)).find((week) => week.md === 8)!;
+  await page.goto(`/lineups?w=${round8.id}&m=22496`);
+  await expect(page.getByRole("group", { name: "Choose gameweek" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Round", exact: true })).toHaveCount(0);
+  await page.goto(`/lineups?w=${round8.id}`);
+  await expect(page.getByRole("navigation", { name: /^Matches of LaLiga · Round 8/ })).toBeVisible();
+});
+
 test("a match shows both teams' eleven as cards with their chance of starting, and the alternatives under their lines", async ({ page }) => {
   await page.goto("/lineups?m=22502");
   const home = page.getByRole("region", { name: "Real Sociedad lineup" });

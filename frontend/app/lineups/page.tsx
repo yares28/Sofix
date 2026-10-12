@@ -19,8 +19,8 @@ export const metadata: Metadata = { title: "Lineups · Sofix" };
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 /**
- * Lineups: Futbol Fantasy's probable elevens for every match it has published, with your players marked by their cards. It
- * covers each team's next game only, so it is not tied to the week in the top bar. The job reads the site before each plan
+ * Lineups: Futbol Fantasy's probable elevens for every match it has published, with your players marked by their cards. The
+ * top bar's week picks the LaLiga round it shows (Futbol Fantasy holds only the rounds still to play, and the one in progress). The job reads the site before each plan
  * (backend/app/sorare/ff_lineups.py); this page only draws what it kept. Design: docs/sorare/design/lineups.html.
  */
 export default async function Lineups({ searchParams }: { searchParams: SearchParams }) {
@@ -29,14 +29,20 @@ export default async function Lineups({ searchParams }: { searchParams: SearchPa
   const asked = typeof params.m === "string" ? params.m : null;
   const [data, { grid, meta }, system, sorare] = await Promise.all([loadLineups(), loadGrid(), loadSystem(), loadSorare()]);
   const now = new Date();
-
+  // The top bar's week picks the LaLiga round: its first match still to come (the page's own `?m=` wins when it names one).
   const sections = data ? sectionsOf(data) : [];
-  const selected = data ? pickMatch(sections, asked, now) : null;
+  const asking = typeof params.w === "string" ? params.w : null;
+  const { weeks, current: pickedWeek, now: thisWeek } = weekContext(grid, sorare, now, { w: asking });
+  const wanted = asking ? weekById(weeks, asking) : null;
+  const wantedSection = wanted?.md != null ? sections.find((s) => s.competition === "laliga" && s.round === wanted.md) : undefined;
+  const selected = data ? (asked ? null : wantedSection ? pickMatch([wantedSection], null, now) : null) ?? pickMatch(sections, asked, now) : null;
   const section = selected ? sections.find((s) => s.matches.some((m) => m.id === selected.id)) : undefined;
+  // The picker shows the round of the match on the page, whichever way the page was reached.
+  const week = { weeks, now: thisWeek, current: (section?.competition === "laliga" && section.round !== null ? weeks.find((one) => one.md === section.round) : null) ?? pickedWeek };
   if (!data || !selected || !section) {
     return (
       <>
-        <SiteNav meta={meta} system={system} />
+        <SiteNav meta={meta} system={system} week={week} />
         <main className="lu">
           <section className="card empty-state" role="status">
             <h1>Lineups</h1>
@@ -55,7 +61,6 @@ export default async function Lineups({ searchParams }: { searchParams: SearchPa
   );
   // Which Sorare week this round feeds, and why the page may not be the week you came with (`?w=`): it holds each club's next
   // LaLiga game only. A match asked for that is no longer on the site is said so, above the one shown instead.
-  const { weeks } = weekContext(grid, sorare, now);
   const round = sections.find((s) => s.competition === "laliga")?.round ?? null;
   const ahead = round !== null && sorare?.projected?.some((one) => one.round === round) ? await loadProjectedWeek(round) : null;
   const chances = lineupChances(data.matches, [...(sorare?.weeks ?? []), ...(ahead ? [ahead] : [])].flatMap((week) => week.playing.players), sorare?.market ?? []);
@@ -70,13 +75,12 @@ export default async function Lineups({ searchParams }: { searchParams: SearchPa
   for (const [match, players] of Object.entries(savedLineupChances(kept, sorareGames))) for (const [player, sources] of Object.entries(players)) {
     (chances[match] ??= {})[player] = { ...chances[match]?.[player], ...sources };
   }
-  const wanted = typeof params.w === "string" ? weekById(weeks, params.w) : null;
   const wantedPlan = wanted?.gw && sorare ? weekPlan(sorare, wanted.gw) : null;
   const flash = [otherWeekNote(wanted, round, wantedPlan ? nationalWeek(wantedPlan) : false)].filter((line): line is string => line !== null);
   const gone = asked && !data.matches.some((match) => String(match.id) === asked) ? asked : null;
   return (
     <>
-      <SiteNav meta={meta} system={system} />
+      <SiteNav meta={meta} system={system} week={week} />
       <LineupsView data={data} chances={chances} sorareGames={sorareGames} sorareKept={savedCoverage(kept, sorareGames)} facts={lineupMatchFacts(data.matches, grid)} sections={sections} initial={selected} now={now} clubs={clubs} flash={flash} gone={gone} />
     </>
   );

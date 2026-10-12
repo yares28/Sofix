@@ -333,7 +333,7 @@ this round?", then a chip saying how fresh Futbol Fantasy's reading is. Hover or
 chances, Sofix forecast and lineup formations; unavailable bookmaker data is labelled as such. Under the timeline, "Futbol Fantasy · kickoffs in Madrid time"; the Fixtures list says
 "Madrid time" beside its match count for the same reason. Arriving with a week that FF does not cover (a past round, a later one, or a national-team week) adds one line:
 "Futbol Fantasy only has each club's next LaLiga game: round 8. GW19 is national-team games." A match address that is no longer on
-FF says so above the next match. Since 12 Oct 2026 a round stays whole on the page until its last match is twelve hours
+FF says so above the next match. The top bar's week is the round: picking one opens that round's next match, and there are no round tabs of their own. Since 12 Oct 2026 a round stays whole on the page until its last match is twelve hours
 old: the matches already played keep the lineup and chances read last before their kickoff, so Sorare's, Sofix's and FF's
 numbers and **Actual** can be compared for every game of the round. FF's own round page moves to the next round as soon
 as a round starts; Sofix keeps reading the matches of the round still to play from their own pages.

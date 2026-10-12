@@ -261,7 +261,8 @@ def test_a_side_the_site_has_not_published_is_said_so(real: list[ffm.Match]) -> 
 
 def test_a_match_that_ended_hours_ago_is_left_out_and_one_in_play_stays(real: list[ffm.Match]) -> None:
     now = datetime(2026, 10, 12, 12, tzinfo=UTC)
-    early = ffm.Match(**{**real[0].__dict__, "match_id": 1, "kickoff": now - timedelta(hours=14)})
+    # of the round before: a match of the round still on stays with it (test_a_round_stays_whole_...)
+    early = ffm.Match(**{**real[0].__dict__, "match_id": 1, "kickoff": now - timedelta(hours=14), "round_no": 7})
     playing = ffm.Match(**{**real[0].__dict__, "match_id": 2, "kickoff": now - timedelta(hours=1)})
     later = ffm.Match(**{**real[0].__dict__, "match_id": 3, "kickoff": None})
     feed = feed_of([early, playing, later], read_at=now - timedelta(hours=2))
@@ -269,6 +270,18 @@ def test_a_match_that_ended_hours_ago_is_left_out_and_one_in_play_stays(real: li
     out = built([], feed=feed, now=now)
 
     assert [m["id"] for m in out["matches"]] == [2, 3], "kickoff order, the one with no date last"
+
+
+def test_a_round_stays_whole_while_one_of_its_matches_is_still_on(real: list[ffm.Match]) -> None:
+    now = datetime(2026, 10, 12, 12, tzinfo=UTC)  # Monday noon: nine of round 8 are played, the last is tonight
+    out = built(real, now=now)
+
+    assert len(out["matches"]) == 10 and {m["round"] for m in out["matches"]} == {8}
+    assert [m["kickoff"] for m in out["matches"]] == sorted(m["kickoff"] for m in out["matches"])
+    after = built(
+        real, now=datetime(2026, 10, 13, 9, tzinfo=UTC)
+    )  # the last one ended hours ago: the round leaves together
+    assert after["matches"] == []
 
 
 def test_a_match_with_a_score_or_a_phase_instead_of_a_round_says_so() -> None:

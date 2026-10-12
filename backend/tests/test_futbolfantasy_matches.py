@@ -571,3 +571,30 @@ def test_the_alternatives_of_a_slot_survive_storage_as_a_tuple() -> None:
         }
     )
     assert side.xi[0].next == ("mariano-diaz", "ander-guevara") and side.xi[0] == player
+
+
+def test_a_match_the_round_page_no_longer_lists_is_still_read_from_what_is_held() -> None:
+    # 12 Oct 2026: the page listed round 9 while round 8's last match was still to play, so that match was not read for three days.
+    left = "https://www.futbolfantasy.com/partidos/22999-levante-sevilla"
+    site = Site(
+        {
+            LALIGA_ROUND: page("round_laliga_8.html"),
+            left: page("match_real_sociedad_deportivo.html"),
+            MATCH_URL: page("match_real_sociedad_deportivo.html"),
+        }
+    )
+    held = {
+        "laliga": [
+            ffm.RoundMatch(22999, left, "Levante", "Sevilla", "11", "17", None),
+            ffm.RoundMatch(
+                22502, MATCH_URL, "Real Sociedad", "Deportivo", "16", "5", None
+            ),  # still on the page: asked once
+        ]
+    }
+
+    reading = ffm.read_matches(
+        lambda c, item: item.match_id in (22999, 22502), client=site.client(), pause=0, known=held
+    )
+
+    assert site.asked == [LALIGA_ROUND, MATCH_URL, left]
+    assert len(reading.matches) == 2 and reading.failed == []

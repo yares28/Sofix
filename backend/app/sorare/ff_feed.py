@@ -35,7 +35,9 @@ MAX_AGE = timedelta(hours=24)  # a reading older than this is not used
 MIN_GAP = timedelta(
     minutes=25
 )  # a match read this recently is not asked for again: near a lock the runs are 30 minutes apart
-KEEP = timedelta(days=3)  # a match stays this long after its kickoff
+KEEP = timedelta(
+    days=5
+)  # a match stays this long after its kickoff: a round runs Friday to Monday and stays whole on Lineups
 COMPETITIONS = ("laliga", "champions", "europa-league", "copa-del-rey")
 
 Reader = Callable[..., ffm.Reading]
@@ -177,6 +179,26 @@ def _changes(old: Stored | None, new: ffm.Match, now: datetime) -> dict[str, dat
 
 
 # ------------------------------------------------------------------------------------------------------- the run
+def still_to_play(feed: Feed, now: datetime) -> dict[str, list[ffm.RoundMatch]]:
+    """The held matches that have not kicked off, by competition: the reader asks for those the round page no longer lists."""
+    out: dict[str, list[ffm.RoundMatch]] = {}
+    for item in feed.matches.values():
+        match = item.match
+        if match.kickoff is not None and match.kickoff > now and match.score is None:
+            out.setdefault(match.competition, []).append(
+                ffm.RoundMatch(
+                    match.match_id,
+                    match.url,
+                    match.home.name,
+                    match.away.name,
+                    match.home.club_id,
+                    match.away.club_id,
+                    match.kickoff,
+                )
+            )
+    return out
+
+
 def refresh(
     db: Session,
     cards: Iterable[dict[str, Any]],
@@ -194,7 +216,9 @@ def refresh(
     feed = load(db)
     owned = club_names(cards)
     db.rollback()
-    reading = (reader or ffm.read_matches)(wanted(owned, feed, now), COMPETITIONS, now=now)
+    reading = (reader or ffm.read_matches)(
+        wanted(owned, feed, now), COMPETITIONS, now=now, known=still_to_play(feed, now)
+    )
     feed = copy.copy(feed)
     feed.matches = dict(feed.matches)
     for match in reading.matches:

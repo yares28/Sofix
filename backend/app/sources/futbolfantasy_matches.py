@@ -1047,8 +1047,13 @@ def read_matches(
     sleep: Callable[[float], None] = time.sleep,
     now: datetime | None = None,
     include_played: bool = False,
+    known: Mapping[str, Iterable[RoundMatch]] | None = None,
 ) -> Reading:
     """Each competition's round page, then the match pages `wanted` picks from it (never one already played, unless asked).
+
+    `known` are matches still to be played that the caller already holds. The site's round page moves on to the next round
+    as soon as a round starts (seen 12 Oct 2026: round 9 listed while round 8's last match was still to play), so a match
+    it no longer lists is read from `known`, by its own page, or its lineup would stay as it was days before kickoff.
 
     Stops where it is when the budget is spent or `GIVE_UP` pages in a row cannot be read, and says so; what it had by then
     is kept. A page that cannot be read is named in `failed` and leaves no trace in the matches. A match page the site answers
@@ -1068,7 +1073,9 @@ def read_matches(
                     reading.failed.append(f"{round_url(competition)}: not a lineup page")
                 continue
             reading.rounds[competition] = found
-            for item in found.matches:
+            listed = {item.match_id for item in found.matches}
+            left_behind = [item for item in (known or {}).get(competition, ()) if item.match_id not in listed]
+            for item in (*found.matches, *left_behind):
                 if site.stopped:
                     break
                 if (item.score is not None and not include_played) or not wanted(competition, item):

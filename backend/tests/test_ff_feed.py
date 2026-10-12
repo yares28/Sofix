@@ -42,8 +42,9 @@ class Site:
         self.asked: list[tuple[str, int]] = []
         self.calls = 0
 
-    def __call__(self, wanted: Any, competitions: Any, now: datetime | None = None, **_: Any) -> ffm.Reading:
+    def __call__(self, wanted: Any, competitions: Any, now: datetime | None = None, **more: Any) -> ffm.Reading:
         self.calls += 1
+        self.known = more.get("known")
         read = []
         for one in self.matches:
             item = ffm.RoundMatch(
@@ -192,11 +193,28 @@ def test_a_match_that_has_kicked_off_is_no_longer_usable(db: Session, real: list
     assert len(feed.usable(datetime(2026, 10, 12, 20, tzinfo=UTC))) == 0
 
 
-def test_an_old_match_is_dropped_after_three_days(db: Session, real: list[ffm.Match]) -> None:
+def test_an_old_match_is_dropped_after_five_days_so_a_round_stays_whole_until_it_ends(
+    db: Session, real: list[ffm.Match]
+) -> None:
     ff_feed.refresh(db, [], NOW, reader=Site(real))
-    feed = ff_feed.refresh(db, [], datetime(2026, 10, 14, 12, tzinfo=UTC), reader=Site([]))
+    monday = ff_feed.refresh(db, [], datetime(2026, 10, 12, 20, tzinfo=UTC), reader=Site([]))
+    assert len(monday.matches) == 10, "Friday's match is still held while Monday's is being played"
+    later = ff_feed.refresh(db, [], datetime(2026, 10, 16, 11, tzinfo=UTC), reader=Site([]))
 
-    assert sorted(feed.matches) == [22494, 22496, 22499, 22501, 22502], "those from the 9th and 10th are gone"
+    assert sorted(later.matches) == [22494, 22496, 22499, 22501, 22502], "those from the 9th and 10th are gone"
+
+
+def test_the_reader_is_told_which_held_matches_are_still_to_play(db: Session, real: list[ffm.Match]) -> None:
+    ff_feed.refresh(db, [], NOW, reader=Site(real))
+    site = Site([])  # the site's round page has moved on to the next round
+    at = datetime(2026, 10, 11, 13, tzinfo=UTC)
+    ff_feed.refresh(db, [], at, reader=site)
+
+    ahead = sorted(one.match_id for one in real if one.kickoff and one.kickoff > at)
+    assert 0 < len(ahead) < 10 and sorted(item.match_id for item in site.known["laliga"]) == ahead, (
+        "not those that kicked off"
+    )
+    assert {item.url for item in site.known["laliga"]} <= {one.url for one in real}
 
 
 # -------------------------------------------------------------------------------------------- when a lineup changed

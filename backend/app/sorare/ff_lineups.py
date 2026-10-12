@@ -284,11 +284,20 @@ def payload(
     now: datetime,
     art: Art | None = None,
 ) -> dict[str, Any]:
-    """The `lineups` read model: every match held that is still to be played or was played a few hours ago.
+    """The `lineups` read model: every match held that is still to be played or was played a few hours ago, and with it the
+    rest of its round: a round stays whole on the page until its last match is hours old (owner, 12 Oct 2026: "it should show
+    all the games in the round"). A played match keeps the lineup read last before its kickoff.
 
     `art` is Sorare's card picture of each LaLiga player (`card_art`): the page draws a player the owner does not have as a real card.
     """
-    shown = [item for item in feed.matches.values() if item.match.kickoff is None or item.match.kickoff > now - STAYS]
+    current = [item for item in feed.matches.values() if item.match.kickoff is None or item.match.kickoff > now - STAYS]
+    rounds = {(item.match.competition, item.match.round_no) for item in current if item.match.round_no is not None}
+    shown = [
+        item
+        for item in feed.matches.values()
+        if item in current
+        or (item.match.round_no is not None and (item.match.competition, item.match.round_no) in rounds)
+    ]
     shown.sort(key=lambda item: (item.match.kickoff is None, item.match.kickoff or now, item.match.match_id))
     used: dict[str, None] = {}
     found_art: dict[str, str] = {}

@@ -34,7 +34,7 @@ from sqlalchemy.orm import Session
 
 from app.models import ReadModel
 from app.services.publish import put
-from app.sorare import backtest, frozen_scores, missions, player_audit, score_checks, starts, versus
+from app.sorare import backtest, frozen_scores, lineup_audit, missions, player_audit, score_checks, starts, versus
 from app.sorare.publish import ARCHIVE_PREFIX
 
 AUDIT_KEY = "audit"
@@ -316,12 +316,6 @@ def rewards_record(weeks: list[dict[str, Any]]) -> dict[str, Any]:
                 "gameweek": int(game["number"]),
                 "slug": game.get("slug"),
                 "lineups": len(plan.get("lineups") or []),
-                # lineups that won a reward (essence, cash or a card): the Audit's Lineups success rate
-                "paid": sum(
-                    1
-                    for line in plan.get("lineups") or []
-                    if any((line.get("actual") or {}).get(key) for key in ("essence", "cash", "card"))
-                ),
                 "expected": {
                     "essence": round(float(plan.get("essence") or 0)),
                     "cash": round(float(plan.get("cash") or 0), 2),
@@ -382,12 +376,13 @@ def record_of(db: Session) -> dict[str, Any]:
     return dict(row.payload) if row and isinstance(row.payload, dict) else {}
 
 
-def from_kept(db: Session, now: datetime) -> dict[str, Any]:
+def from_kept(db: Session, now: datetime, *, write: bool = False) -> dict[str, Any]:
     """Build the Audit from common game rows and pre-lock metadata; also used by the read-only local API fallback."""
     record, scores, elevens = player_audit.read(db, now, FLOOR)
     page = build(record, read_replay(), now, kept_weeks(db), missions.logs_of(db), scores)
     page["elevens"] = elevens
     page["frozenPlans"] = frozen_scores.read(db, now)
+    page["lineups"] = lineup_audit.read(db, now, write=write)  # only the job keeps a settled week's counts
     page["playerScores"] = score_checks.comparison(db, now)
     from app.services.kept_matches import match_audit
 
@@ -397,7 +392,7 @@ def from_kept(db: Session, now: datetime) -> dict[str, Any]:
 
 def publish(db: Session, now: datetime) -> dict[str, int]:
     """Publish after this run's actuals and pre-lock statements have been saved."""
-    page = from_kept(db, now)
+    page = from_kept(db, now, write=True)
     put(db, AUDIT_KEY, page, now)
     return {
         "bytes": len(json.dumps(page, separators=(",", ":"))),

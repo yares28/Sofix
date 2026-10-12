@@ -7,7 +7,6 @@
           "gameweek": 17,
           "slug": "gw-17",
           "lineups": 3,
-          "paid": 0,
           "expected": {
             "essence": 63,
             "cash": 0
@@ -21,7 +20,6 @@
           "gameweek": 18,
           "slug": "gw-18",
           "lineups": 2,
-          "paid": 2,
           "expected": {
             "essence": 120,
             "cash": 0
@@ -317,6 +315,139 @@
           ],
           "missed": [],
           "yours": null
+        }
+      ]
+    },
+    "lineups": {
+      "band": 15,
+      "plans": {
+        "sofix": [
+          {
+            "rank": 1,
+            "lineups": 10,
+            "scored": 10,
+            "hit": 4,
+            "judged": 10,
+            "won": {
+              "card": 0,
+              "cash": 1,
+              "essence": 3,
+              "xp": 4,
+              "none": 2
+            }
+          },
+          {
+            "rank": 2,
+            "lineups": 10,
+            "scored": 10,
+            "hit": 3,
+            "judged": 10,
+            "won": {
+              "card": 0,
+              "cash": 0,
+              "essence": 2,
+              "xp": 5,
+              "none": 3
+            }
+          }
+        ],
+        "sorare": [
+          {
+            "rank": 1,
+            "lineups": 10,
+            "scored": 10,
+            "hit": 2,
+            "judged": 10,
+            "won": {
+              "card": 0,
+              "cash": 0,
+              "essence": 1,
+              "xp": 6,
+              "none": 3
+            }
+          },
+          {
+            "rank": 2,
+            "lineups": 10,
+            "scored": 8,
+            "hit": 2,
+            "judged": 8,
+            "won": {
+              "card": 0,
+              "cash": 0,
+              "essence": 1,
+              "xp": 4,
+              "none": 3
+            }
+          }
+        ]
+      },
+      "weeks": [
+        {
+          "slug": "gw-18",
+          "number": 18,
+          "end": "2026-10-02T10:00:00+00:00",
+          "final": true,
+          "sofix": [
+            {
+              "rank": 1,
+              "lineups": 10,
+              "scored": 10,
+              "hit": 4,
+              "judged": 10,
+              "won": {
+                "card": 0,
+                "cash": 1,
+                "essence": 3,
+                "xp": 4,
+                "none": 2
+              }
+            },
+            {
+              "rank": 2,
+              "lineups": 10,
+              "scored": 10,
+              "hit": 3,
+              "judged": 10,
+              "won": {
+                "card": 0,
+                "cash": 0,
+                "essence": 2,
+                "xp": 5,
+                "none": 3
+              }
+            }
+          ],
+          "sorare": [
+            {
+              "rank": 1,
+              "lineups": 10,
+              "scored": 10,
+              "hit": 2,
+              "judged": 10,
+              "won": {
+                "card": 0,
+                "cash": 0,
+                "essence": 1,
+                "xp": 6,
+                "none": 3
+              }
+            },
+            {
+              "rank": 2,
+              "lineups": 10,
+              "scored": 8,
+              "hit": 2,
+              "judged": 8,
+              "won": {
+                "card": 0,
+                "cash": 0,
+                "essence": 1,
+                "xp": 4,
+                "none": 3
+              }
+            }
+          ]
         }
       ]
     }

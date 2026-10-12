@@ -340,20 +340,33 @@ test("the switch under the top bar moves between xScore, Who starts and Lineups"
   await expect(page.getByRole("heading", { level: 2, name: "Written down so far" })).toBeInViewport();
 });
 
-test("Lineups gives your lineups and Sofix's each a success rate: how often one won a reward", async ({ page, request }) => {
+test("Lineups judges the saved plans by score and by prize: Sofix and Sorare within 15 points, then what you, Sofix and Sorare won, plan by plan", async ({ page, request }) => {
   const start = `${new Date().getUTCFullYear()}-08-01T14:00:00Z`;
-  const line = (id: string, essence: number) => ({ id, name: id, competition: "LaLiga", board: id, draft: false, confirmable: false, cards: [],
-    result: { score: 300, rank: 10, essence, cash: 0, card: false } });
+  const line = (id: string, result: Record<string, unknown>) => ({ id, name: id, competition: "LaLiga", board: id, draft: false, confirmable: false, cards: [],
+    result: { score: 300, rank: 10, essence: 0, cash: 0, card: false, ...result } });
   await request.post(`${MOCK}/__test/my-weeks`, { data: { weeks: [{ slug: "gw-18", number: 18, start, end: start, savedAt: start,
-    lineups: [line("a", 250), line("b", 0), line("c", 0), line("d", 0)] }] } });
+    lineups: [line("a", { essence: 250 }), line("b", { xp: 500 }), line("c", { xp: 500 }), line("d", {})] }] } });
   await page.goto("/audit/lineups");
   const duo = page.locator(".ax-duo > div");
-  await expect(duo.nth(0)).toContainText("Your lineups");
-  await expect(duo.nth(0).locator(".ax-duo-n")).toHaveText("25%");
-  await expect(duo.nth(0)).toContainText("1 of 4 lineups won a reward");
-  await expect(duo.nth(1).locator(".ax-duo-n")).toHaveText("40%"); // the fixture: 2 of GW18's 2, none of GW17's 3
-  await expect(duo.nth(1)).toContainText("Won more often");
-  await expect(page.getByRole("region", { name: "Week by week" }).getByRole("listitem")).toHaveCount(2);
+  await expect(duo.nth(0)).toContainText("Sofix · best plan");
+  await expect(duo.nth(0).locator(".ax-duo-n")).toHaveText("40%"); // the fixture: 4 of the best plan's 10 lineups within 15
+  await expect(duo.nth(0)).toContainText("4 of 10 lineups within 15");
+  await expect(duo.nth(0)).toContainText("Right more often");
+  await expect(duo.nth(1).locator(".ax-duo-n")).toHaveText("20%");
+  await expect(page.getByRole("region", { name: "Within 15 points, every plan" }).getByRole("listitem")).toHaveCount(2);
+
+  // XP alone is not a win: your one essence lineup of four is 25%, and the two XP lineups are named apart.
+  const won = page.getByRole("region", { name: "What the lineups won" }).getByRole("listitem");
+  await expect(won.nth(0)).toContainText("25%");
+  await expect(won.nth(0)).toContainText("Essence 1 · XP only 2 · Nothing 1");
+  await expect(won.nth(1)).toContainText("40%"); // Sofix's best plan: 1 cash and 3 essence of 10
+  await expect(won.nth(1)).toContainText("Cash 1 · Essence 3 · XP only 4 · Nothing 2");
+  await expect(won.nth(2)).toContainText("10%");
+
+  const plans = page.getByRole("region", { name: "Every plan, both ways" });
+  await expect(plans.locator("tbody tr")).toHaveCount(2);
+  await expect(plans.locator("tbody tr").nth(1)).toContainText("30%"); // plan 2 has its own rate
+  await expect(plans.getByRole("list", { name: "Week by week" })).toContainText("GW18");
   expect(await smallText(page, 11)).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   const scan = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();

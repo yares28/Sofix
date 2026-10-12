@@ -440,18 +440,6 @@ def test_the_rewards_add_up_what_each_plan_expected_and_what_it_won_season_long(
     assert rewards["lineups"] == 5
 
 
-def test_a_week_counts_the_lineups_that_won_a_reward() -> None:
-    week = _kept(18, 120, 250, lineups=0)
-    week["plans"][0]["lineups"] = [
-        {"actual": {"essence": 250, "cash": 0, "card": False}},
-        {"actual": {"essence": 0, "cash": 0, "card": True}},
-        {"actual": {"essence": 0, "cash": 0, "card": False}},
-        {},  # never scored: no reward
-    ]
-    row = audit.rewards_record([week])["weeks"][0]
-    assert (row["paid"], row["lineups"]) == (2, 4)
-
-
 def test_publishing_counts_the_rewards_of_every_kept_week(db, tmp_path, monkeypatch) -> None:  # noqa: F811
     monkeypatch.setattr(audit, "REPLAY_FILE", tmp_path / "nothing.json")
     db.add(ReadModel(key="sorare_week:gw-17", payload=_kept(17, 63, 0), updated_at=NOW))

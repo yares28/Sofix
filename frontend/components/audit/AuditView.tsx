@@ -163,7 +163,7 @@ export default function AuditView({
       </>
     );
   }
-  if (show === "lineups") return <LineupsAudit rewards={data.rewards} saved={saved} updated={updated} />;
+  if (show === "lineups") return <LineupsAudit lineups={data.lineups} saved={saved} updated={updated} />;
   if (show === "rewards") {
     return (
       <>

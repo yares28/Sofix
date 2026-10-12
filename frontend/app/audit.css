@@ -368,3 +368,23 @@
   .au-vs-t { font-size: 12px; }
   .au-vs-t th, .au-vs-t td { padding: 8px 4px; }
 }
+
+/* Audit · Lineups: one bar a side, split by the best prize each lineup won. */
+.au-lu { display: grid; gap: 18px; margin: 20px 0 0; padding: 0; list-style: none; }
+.au-lu li { display: grid; grid-template-columns: 150px minmax(0, 1fr) 96px; gap: 16px; align-items: center; font-size: 14px; font-weight: 600; }
+.au-lu small { display: block; margin-top: 4px; font-size: 12px; font-weight: 400; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.au-lu b { text-align: right; font-size: 26px; font-weight: 650; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.au-lu b small { margin-top: 2px; font-size: 11px; letter-spacing: 0; }
+.au-lu-bar { display: flex; gap: 2px; height: 18px; border-radius: 9px; overflow: hidden; background: var(--track); }
+.au-lu-bar i { min-width: 3px; }
+.au-lu-bar i.card, .au-lu-key i.card { background: #17181c; }
+.au-lu-bar i.cash, .au-lu-key i.cash { background: #1a7a4e; }
+.au-lu-bar i.essence, .au-lu-key i.essence { background: #6bbf95; }
+.au-lu-bar i.xp, .au-lu-key i.xp { background: #9aa0b4; }
+.au-lu-bar i.none, .au-lu-key i.none { background: #dcdce3; }
+.au-lu-key { margin-top: 18px; }
+@media (max-width: 720px) {
+  .au-lu li { grid-template-columns: minmax(0, 1fr) auto; }
+  .au-lu li > span:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
+  .au-lu b { font-size: 22px; }
+}

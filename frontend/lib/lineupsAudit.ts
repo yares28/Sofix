@@ -1,29 +1,24 @@
-import type { Rewards } from "./audit";
+import type { PlanTally, PrizeKind } from "./audit";
 import type { SavedWeek } from "./myWeeks";
 
-/** Lineups that won a reward, out of the lineups that finished. */
-export type Tally = { won: number; of: number };
-export type LineupWeek = { number: number; you: Tally | null; sofix: Tally | null };
+/** A lineup's best prize, best first. A lineup counts once: XP alone is not essence, and essence is not a card. */
+export const PRIZES: PrizeKind[] = ["card", "cash", "essence", "xp", "none"];
+export const PRIZE_NAME: Record<PrizeKind, string> = { card: "Card", cash: "Cash", essence: "Essence", xp: "XP only", none: "Nothing" };
+export type Won = Record<PrizeKind, number>;
 
-export const rate = (tally: Tally | null): number | null => (tally && tally.of ? tally.won / tally.of : null);
-const sum = (tallies: (Tally | null)[]): Tally => tallies.reduce<Tally>((all, t) => (t ? { won: all.won + t.won, of: all.of + t.of } : all), { won: 0, of: 0 });
+export const share = (n: number, of: number): number | null => (of ? n / of : null);
+/** Lineups that won essence or better: the prizes worth having. */
+export const real = (won: Won): number => won.card + won.cash + won.essence;
+export const judged = (won: Won): number => PRIZES.reduce((sum, kind) => sum + won[kind], 0);
+export const NO_PLAN: PlanTally = { rank: 1, lineups: 0, scored: 0, hit: 0, judged: 0, won: { card: 0, cash: 0, essence: 0, xp: 0, none: 0 } };
 
-/**
- * Audit · Lineups: a lineup is a success when it won a reward (essence, cash or a card), all or nothing. Yours are the lineups you
- * entered on Sorare, once ranked; Sofix's are its plan's for each finished week the job kept. Newest week first.
- */
-export function lineupSuccess(saved: SavedWeek[], rewards: Rewards): { you: Tally; sofix: Tally; weeks: LineupWeek[] } {
-  const weeks = new Map<number, LineupWeek>();
-  const row = (number: number) => weeks.get(number) ?? weeks.set(number, { number, you: null, sofix: null }).get(number)!;
-  for (const week of saved) {
-    const final = week.lineups.filter((line) => !line.draft && line.result && line.result.rank !== null);
-    if (!final.length) continue;
-    row(week.number).you = { won: final.filter((line) => line.result!.essence > 0 || line.result!.cash > 0 || line.result!.card).length, of: final.length };
+/** What the lineups you entered on Sorare won, once ranked: each by its best prize. */
+export function yourPrizes(saved: SavedWeek[]): Won {
+  const won: Won = { card: 0, cash: 0, essence: 0, xp: 0, none: 0 };
+  for (const week of saved) for (const line of week.lineups) {
+    const result = line.result;
+    if (line.draft || !result || result.rank === null) continue;
+    won[result.card ? "card" : result.cash > 0 ? "cash" : result.essence > 0 ? "essence" : (result.xp ?? 0) > 0 ? "xp" : "none"]++;
   }
-  for (const week of rewards.weeks) {
-    // A page published before the paid lineups were counted has no figure for the week, not a zero.
-    if (week.paid !== undefined && week.lineups) row(week.gameweek).sofix = { won: week.paid, of: week.lineups };
-  }
-  const rows = [...weeks.values()].sort((a, b) => b.number - a.number);
-  return { you: sum(rows.map((r) => r.you)), sofix: sum(rows.map((r) => r.sofix)), weeks: rows };
+  return won;
 }

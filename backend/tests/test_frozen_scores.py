@@ -147,3 +147,52 @@ def test_incomplete_old_plan_is_unscorable_not_a_result_still_pending(db):
     line = frozen_scores.read(db, NOW)[0]["plans"][0]["lineups"][0]
     assert line["score"] is None
     assert line["reason"] == "incomplete-plan"
+
+
+def test_lineups_audit_judges_sofix_and_sorare_plans_by_score_and_by_prize_and_keeps_a_settled_week(db):
+    from app.sorare import lineup_audit
+
+    keep(db)
+    db.get(PlayerGame, ("b", "g1")).status = "DID_NOT_PLAY"  # the lineup scores 183
+    tiers = [
+        {"lo": 1, "hi": 10, "cash": 5, "essence": 0, "card": False},
+        {"lo": 11, "hi": 100, "cash": 0, "essence": 250, "card": False},
+        {"lo": 101, "hi": 500, "cash": 0, "essence": 0, "card": False, "xp": 500},
+    ]
+    sofix = deepcopy(frozen())
+    sofix["plans"][0]["lineups"][0]["tiers"] = tiers  # expected 150: 33 points off
+    second = deepcopy(sofix["plans"][0])
+    second["rank"] = 2
+    second["lineups"][0]["x"] = 170
+    sofix["plans"].append(second)
+    sorare = {"gameweek": sofix["gameweek"], "plans": [deepcopy(second) | {"rank": 1}]}  # expected 170: within 15
+    put(db, "sorare_plan:gw", sofix, NOW)
+    put(db, "sorare_alt:gw", sorare, NOW)
+    put(db, "sorare_references", {"gw": {"LaLiga | Limited": {"cuts": {"10": 300, "100": 200, "500": 100}}}}, NOW)
+    db.commit()
+
+    got = lineup_audit.read(db, NOW)
+    assert got["band"] == 15
+    best, other = got["plans"]["sofix"]
+    assert (best["rank"], best["scored"], best["hit"]) == (1, 1, 0)
+    assert (other["rank"], other["hit"]) == (2, 1)  # every plan has its own rate
+    assert best["won"] == {"card": 0, "cash": 0, "essence": 0, "xp": 1, "none": 0}  # 183 reaches the XP tier only
+    assert got["plans"]["sorare"][0]["hit"] == 1
+    assert got["weeks"][0]["final"] is True
+
+    # A settled week is kept: the plans are not opened again, so what they said then stays what is counted.
+    db.delete(db.get(ReadModel, "sorare_plan:gw"))
+    put(
+        db, "sorare_plan:other", {"gameweek": {"slug": "other", "number": 21, "end": NOW.isoformat()}, "plans": []}, NOW
+    )
+    db.commit()
+    assert lineup_audit.read(db, NOW)["plans"] == got["plans"]
+
+
+def test_a_prize_cannot_be_said_without_the_scores_that_paid(db):
+    from app.sorare import lineup_audit
+
+    keep(db)
+    tally = lineup_audit.read(db, NOW, write=False)["plans"]["sofix"][0]
+    assert (tally["lineups"], tally["judged"]) == (1, 0)
+    assert db.get(ReadModel, lineup_audit.KEY) is None

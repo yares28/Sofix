@@ -430,8 +430,10 @@ separate longer-term accuracy verdicts, not these player comparisons or this ear
 
 Audit has four views under the switch below the top bar (since 5 Oct): **xScore** (`/audit`, the charts below), **Who
 starts** (`/audit/starts`, each source's record on who starts, with every gameweek's games written down before the lock
-at its foot), **Lineups** (`/audit/lineups`, since 13 Oct: how often a lineup won a reward, essence, cash or a card, for the
-lineups you entered and for Sofix's plan, each on its own and week by week), **Rewards** (`/audit/rewards`, since 6 Oct) and **Missions**
+at its foot), **Lineups** (`/audit/lineups`, since 13 Oct: how often a lineup's real score landed within 15 points of the expected one, for
+Sofix's and Sorare's plans as saved before the lock; then what your lineups, Sofix's and Sorare's won, each lineup counted once
+by its best prize, a card, cash, essence, XP only or nothing, so XP is never counted as a win; the big figures are the best plan,
+and every plan has its own row), **Rewards** (`/audit/rewards`, since 6 Oct) and **Missions**
 (`/audit/missions`, since 6 Oct).
 
 **Missions** answers "were Sofix's mission picks the right ones?". Every day Sofix writes down its picks for the **Decisive Picker**,

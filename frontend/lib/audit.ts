@@ -50,8 +50,7 @@ export type RecordWeek = { slug: string; lock: string | null; games: number; set
 /** Essence and cash, kept apart (never converted). */
 export type RewardSide = { essence: number; cash: number };
 /** One finished gameweek's plan: what it expected (chance x reward, added up) and what its lineups really won. */
-/** `paid`: how many of the plan's lineups won a reward; absent on a page published before it was counted. */
-export type RewardWeek = { gameweek: number; slug: string | null; lineups: number; paid?: number; expected: RewardSide; won: RewardSide };
+export type RewardWeek = { gameweek: number; slug: string | null; lineups: number; expected: RewardSide; won: RewardSide };
 /** The season so far, from the gameweeks the job kept: each week, and the totals. `lineups` are the cases behind the share. */
 export type Rewards = { weeks: RewardWeek[]; lineups: number; expected: RewardSide; won: RewardSide };
 export type FrozenWeek = { slug: string; number: number; end: string; builtAt: string | null; plans: { rank: number; lineups: {
@@ -119,6 +118,15 @@ export function points(value: number | null, signed = false): string {
   return signed ? `${value > 0 ? "+" : value < 0 ? "−" : ""}${text}` : text;
 }
 
+/** A lineup's best prize; it counts once (backend/app/sorare/lineup_audit.py). */
+export type PrizeKind = "card" | "cash" | "essence" | "xp" | "none";
+/** One plan's lineups, judged after the week: `scored` have a real score and `hit` of them landed within the band; `judged` have a known prize. */
+export type PlanTally = { rank: number; lineups: number; scored: number; hit: number; judged: number; won: Record<PrizeKind, number> };
+type BySource = { sofix: PlanTally[]; sorare: PlanTally[] };
+/** The plans saved before each lock, Sofix's and Sorare's: every plan's counts over the season (rank 1 is the best plan), and week by week. */
+export type LineupsAudit = { band: number; plans: BySource; weeks: ({ slug: string; number: number | null; end: string; final: boolean } & BySource)[] };
+export const NO_LINEUPS: LineupsAudit = { band: 15, plans: { sofix: [], sorare: [] }, weeks: [] };
+
 export type Audit = {
   version: number;
   generatedAt: string;
@@ -132,6 +140,7 @@ export type Audit = {
   versus: Versus;
   elevens: Elevens;
   frozenPlans: FrozenWeek[];
+  lineups: LineupsAudit;
   matches?: MatchAudit;
   playerScores?: { weeks: PlayerScoreWeek[] };
 };
@@ -187,6 +196,8 @@ export function readable(value: unknown): Audit | null {
     versus: { ...NO_VERSUS, ...(data.versus ?? {}), positions: { ...NO_VERSUS.positions, ...(data.versus?.positions ?? {}) } },
     elevens: { ...NO_ELEVENS, ...(data.elevens ?? {}) },
     frozenPlans: data.frozenPlans ?? [],
+    // and one published before the saved plans were judged has none
+    lineups: { ...NO_LINEUPS, ...(data.lineups ?? {}) },
     matches: { ...NO_MATCHES, ...(data.matches ?? {}) },
     playerScores: data.playerScores ?? { weeks: [] },
   };

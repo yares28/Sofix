@@ -10,7 +10,7 @@ import {
   sourceStory,
   SOURCES,
   NO_MISSIONS,
-  NO_REWARDS,
+  NO_LINEUPS, NO_REWARDS,
   NO_VERSUS,
   NO_ELEVENS,
   points,
@@ -32,6 +32,7 @@ const page = (over: Partial<Audit> = {}): Audit => ({
   versus: NO_VERSUS,
   elevens: NO_ELEVENS,
   frozenPlans: [],
+  lineups: NO_LINEUPS,
   ...over,
 });
 

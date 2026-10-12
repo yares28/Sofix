@@ -316,6 +316,12 @@ def rewards_record(weeks: list[dict[str, Any]]) -> dict[str, Any]:
                 "gameweek": int(game["number"]),
                 "slug": game.get("slug"),
                 "lineups": len(plan.get("lineups") or []),
+                # lineups that won a reward (essence, cash or a card): the Audit's Lineups success rate
+                "paid": sum(
+                    1
+                    for line in plan.get("lineups") or []
+                    if any((line.get("actual") or {}).get(key) for key in ("essence", "cash", "card"))
+                ),
                 "expected": {
                     "essence": round(float(plan.get("essence") or 0)),
                     "cash": round(float(plan.get("cash") or 0), 2),

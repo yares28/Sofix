@@ -54,7 +54,7 @@ export default async function AuditPlace({ show, searchParams }: { show: AuditSh
     .filter((week) => week.status === "done")
     .map((week) => ({ slug: week.slug, number: week.number }))
     .reverse();
-  const saved = show === "rewards" ? seasonWeeks(await myWeeksQuietly() ?? [], new Date()) : [];
+  const saved = show === "rewards" || show === "lineups" ? seasonWeeks(await myWeeksQuietly() ?? [], new Date()) : [];
   return (
     <>
       <SiteNav meta={meta} system={system} week={show === "xscore" ? week : undefined} />

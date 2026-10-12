@@ -3,6 +3,7 @@ import MatchAudit from "./MatchAudit";
 import ElevensAudit from "./ElevensAudit";
 import VersusAudit from "./VersusAudit";
 import RewardsAudit from "./RewardsAudit";
+import LineupsAudit from "./LineupsAudit";
 import { freshLabel } from "../../lib/fresh";
 import {
   bandLabel,
@@ -107,7 +108,7 @@ function Record({ data }: { data: Audit }) {
   );
 }
 
-export type AuditShow = "xscore" | "starts" | "rewards" | "missions";
+export type AuditShow = "xscore" | "starts" | "lineups" | "rewards" | "missions";
 
 export default function AuditView({
   data,
@@ -162,6 +163,7 @@ export default function AuditView({
       </>
     );
   }
+  if (show === "lineups") return <LineupsAudit rewards={data.rewards} saved={saved} updated={updated} />;
   if (show === "rewards") {
     return (
       <>

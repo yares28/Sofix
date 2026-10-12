@@ -7,6 +7,7 @@
           "gameweek": 17,
           "slug": "gw-17",
           "lineups": 3,
+          "paid": 0,
           "expected": {
             "essence": 63,
             "cash": 0
@@ -20,6 +21,7 @@
           "gameweek": 18,
           "slug": "gw-18",
           "lineups": 2,
+          "paid": 2,
           "expected": {
             "essence": 120,
             "cash": 0

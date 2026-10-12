@@ -429,8 +429,9 @@ separate longer-term accuracy verdicts, not these player comparisons or this ear
 ![Audit: how often the xScore picks the better of two, how close it lands, calibration and what has been written down](images/audit.png)
 
 Audit has four views under the switch below the top bar (since 5 Oct): **xScore** (`/audit`, the charts below), **Who
-starts** (`/audit/starts`, each source's record on who starts), **Written down** (`/audit/record`, every gameweek's
-games written down before the lock and how many have been checked), **Rewards** (`/audit/rewards`, since 6 Oct) and **Missions**
+starts** (`/audit/starts`, each source's record on who starts, with every gameweek's games written down before the lock
+at its foot), **Lineups** (`/audit/lineups`, since 13 Oct: how often a lineup won a reward, essence, cash or a card, for the
+lineups you entered and for Sofix's plan, each on its own and week by week), **Rewards** (`/audit/rewards`, since 6 Oct) and **Missions**
 (`/audit/missions`, since 6 Oct).
 
 **Missions** answers "were Sofix's mission picks the right ones?". Every day Sofix writes down its picks for the **Decisive Picker**,

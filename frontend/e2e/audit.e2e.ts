@@ -323,20 +323,41 @@ test("no text is smaller than 11 px, nothing scrolls sideways, and the page has 
   expect(scan.violations).toEqual([]);
 });
 
-test("the switch under the top bar moves between xScore, Who starts and Written down", async ({ page }) => {
+test("the switch under the top bar moves between xScore, Who starts and Lineups", async ({ page }) => {
   await page.goto("/audit");
   const lens = page.locator(".lens");
   await expect(lens.getByRole("link", { name: "xScore" })).toHaveAttribute("aria-current", "page");
   await lens.getByRole("link", { name: "Who starts" }).click();
   await expect(page).toHaveURL(/\/audit\/starts/);
   await expect(page.getByRole("heading", { level: 1, name: "Who starts, checked" })).toBeVisible();
-  await lens.getByRole("link", { name: "Written down" }).click();
-  await expect(page).toHaveURL(/\/audit\/starts#written/);
-  await expect(page.getByRole("heading", { level: 2, name: "Written down so far" })).toBeInViewport();
+  await lens.getByRole("link", { name: "Lineups" }).click();
+  await expect(page).toHaveURL(/\/audit\/lineups/);
+  await expect(page.getByRole("heading", { level: 1, name: "Lineups" })).toBeVisible();
 
-  // An old link to the record page lands on the same section.
+  // An old link to the record page lands on the section at the foot of Who starts.
   await page.goto("/audit/record");
   await expect(page).toHaveURL(/\/audit\/starts#written/);
+  await expect(page.getByRole("heading", { level: 2, name: "Written down so far" })).toBeInViewport();
+});
+
+test("Lineups gives your lineups and Sofix's each a success rate: how often one won a reward", async ({ page, request }) => {
+  const start = `${new Date().getUTCFullYear()}-08-01T14:00:00Z`;
+  const line = (id: string, essence: number) => ({ id, name: id, competition: "LaLiga", board: id, draft: false, confirmable: false, cards: [],
+    result: { score: 300, rank: 10, essence, cash: 0, card: false } });
+  await request.post(`${MOCK}/__test/my-weeks`, { data: { weeks: [{ slug: "gw-18", number: 18, start, end: start, savedAt: start,
+    lineups: [line("a", 250), line("b", 0), line("c", 0), line("d", 0)] }] } });
+  await page.goto("/audit/lineups");
+  const duo = page.locator(".ax-duo > div");
+  await expect(duo.nth(0)).toContainText("Your lineups");
+  await expect(duo.nth(0).locator(".ax-duo-n")).toHaveText("25%");
+  await expect(duo.nth(0)).toContainText("1 of 4 lineups won a reward");
+  await expect(duo.nth(1).locator(".ax-duo-n")).toHaveText("40%"); // the fixture: 2 of GW18's 2, none of GW17's 3
+  await expect(duo.nth(1)).toContainText("Won more often");
+  await expect(page.getByRole("region", { name: "Week by week" }).getByRole("listitem")).toHaveCount(2);
+  expect(await smallText(page, 11)).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  const scan = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
+  expect(scan.violations).toEqual([]);
 });
 
 test("Rewards adds up what the plans expected over the season against what they won, and says too few to tell under the floor", async ({ page }) => {

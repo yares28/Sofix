@@ -50,7 +50,8 @@ export type RecordWeek = { slug: string; lock: string | null; games: number; set
 /** Essence and cash, kept apart (never converted). */
 export type RewardSide = { essence: number; cash: number };
 /** One finished gameweek's plan: what it expected (chance x reward, added up) and what its lineups really won. */
-export type RewardWeek = { gameweek: number; slug: string | null; lineups: number; expected: RewardSide; won: RewardSide };
+/** `paid`: how many of the plan's lineups won a reward; absent on a page published before it was counted. */
+export type RewardWeek = { gameweek: number; slug: string | null; lineups: number; paid?: number; expected: RewardSide; won: RewardSide };
 /** The season so far, from the gameweeks the job kept: each week, and the totals. `lineups` are the cases behind the share. */
 export type Rewards = { weeks: RewardWeek[]; lineups: number; expected: RewardSide; won: RewardSide };
 export type FrozenWeek = { slug: string; number: number; end: string; builtAt: string | null; plans: { rank: number; lineups: {

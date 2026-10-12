@@ -1,7 +1,5 @@
 // The league figures of the Audit page (plans/xscore.md P9 X5d): the new xScore against what happened, replayed over two LaLiga seasons.
-// `lib/data/audit_league.json` is written by `python -m app.jobs.audit_league`; these helpers only read it, and say "too few to tell" under the floor.
-
-export const FLOOR = 100;
+// `lib/data/audit_league.json` is written by `python -m app.jobs.audit_league`; these helpers only read it.
 
 export type Rate = { rate: number; lo: number | null; hi: number | null; pairs: number; games: number };
 export type Band = { said: number; happened: number; n: number };
@@ -21,25 +19,6 @@ export const POSITION_NAME = { GK: "Goalkeepers", DEF: "Defenders", MID: "Midfie
 
 /** A share as a whole percent, or null when it is not there. */
 export const pct = (v: number | null | undefined): number | null => (typeof v === "number" ? Math.round(v * 100) : null);
-
-/** The part of the 45 to 65 scale a share sits at, 0 to 100: the pair charts run from a little under a coin flip to a little over what the best position reaches. */
-export const PAIR_MIN = 0.45;
-export const PAIR_MAX = 0.65;
-export const alongPairs = (v: number): number => Math.min(100, Math.max(0, ((v - PAIR_MIN) / (PAIR_MAX - PAIR_MIN)) * 100));
-
-/** Whether a figure has enough cases behind it to be drawn. */
-export const enough = (r: Rate | null): r is Rate => !!r && r.games >= FLOOR;
-
-export type WeeklyStory = { total: number; above: number; lowest: number; highest: number };
-/** How many gameweeks beat a coin flip, and the lowest and highest. */
-export function weeklyStory(weeks: LeagueAudit["weeks"]): WeeklyStory | null {
-  if (!weeks.length) return null;
-  const rates = weeks.map((w) => w.rate);
-  return { total: weeks.length, above: rates.filter((r) => r > 0.5).length, lowest: Math.min(...rates), highest: Math.max(...rates) };
-}
-
-/** A bar's height for a weekly share on a 40 to 75 scale, 0 to 100. */
-export const weekHeight = (rate: number): number => Math.min(100, Math.max(4, ((rate - 0.4) / 0.35) * 100));
 
 /** The bars of the miss chart as shares of the tallest, and whether each is one of the four in the middle (the starts within 7 points). */
 export function missBars(miss: LeagueAudit["miss"]): { h: number; middle: boolean }[] {

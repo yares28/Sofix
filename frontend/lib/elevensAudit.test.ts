@@ -4,7 +4,6 @@ import { afterAll, expect, it, vi } from "vitest";
 import ElevensAudit from "../components/audit/ElevensAudit";
 import VersusAudit from "../components/audit/VersusAudit";
 import MatchAudit from "../components/audit/MatchAudit";
-import PrelockAudit from "../components/audit/PrelockAudit";
 import { NO_ELEVENS, NO_VERSUS, type Elevens } from "./audit";
 
 const { renderToStaticMarkup } = createRequire(import.meta.url)("react-dom/server") as {
@@ -15,16 +14,16 @@ const { renderToStaticMarkup } = createRequire(import.meta.url)("react-dom/serve
 vi.stubGlobal("React", React);
 afterAll(() => vi.unstubAllGlobals());
 
-it("makes pre-lock accuracy and its distinct samples readable, without repeating a collapsed interval", () => {
-  const live = { state: "enough" as const, floor: 1, noted: 875, marked: 17, pairs: 20, weeks: 1, rate: .65, lo: .65, hi: .65 };
-  const html = renderToStaticMarkup(React.createElement(PrelockAudit, { data: live }));
-  expect(html).toContain('class="au-result-big">65%');
-  expect(html).toContain("of player pairs ranked correctly");
-  expect(html).toContain("Pairs compared");
-  expect(html).toContain("Player GWs checked");
-  expect(html).not.toContain("65% (65%)");
-  expect(renderToStaticMarkup(React.createElement(PrelockAudit, { data: { ...live, floor: 100, pairs: 1, rate: 0, lo: 0, hi: .5 } }))).toContain('class="au-result-big">0%');
-  expect(renderToStaticMarkup(React.createElement(PrelockAudit, { data: { ...live, rate: null } }))).not.toContain('class="au-result-big">0%');
+it("leads with each side's accuracy on every start, and says too few to tell under the floor", () => {
+  const side = (miss: number) => ({ miss, lean: 1.2, within: 0.3, pair: null, pairs: 0 });
+  const all = { starts: 412, sofixCloser: 0.52, sofix: side(17.2), sorare: side(18.6) };
+  const draw = (floor: number) => renderToStaticMarkup(React.createElement(VersusAudit, { versus: { ...NO_VERSUS, all, recorded: 3, settled: 2 }, floor }));
+  expect(draw(100)).toContain('<dt>Sofix accuracy</dt><dd class="ax-duo-n">83%</dd><dd class="ax-duo-s">17.2 pts off on average</dd><dd class="au-result-best">Closer</dd>');
+  expect(draw(100)).toContain('<dt>Sorare accuracy</dt><dd class="ax-duo-n">81%</dd><dd class="ax-duo-s">18.6 pts off on average</dd></div>');
+  expect(draw(100)).not.toContain("Better of two");
+  expect(draw(500)).toContain('<dd class="ax-duo-n">–</dd><dd class="ax-duo-s">Too few to tell</dd>');
+  expect(draw(500)).not.toContain("83%");
+  expect(renderToStaticMarkup(React.createElement(VersusAudit, { versus: { ...NO_VERSUS, recorded: 2 }, floor: 100 }))).toContain('<dd class="ax-duo-s">Waiting for results</dd>');
 });
 
 it("shows understandable error points out of 100, preserves raw RPS and treats rounded values as tied", () => {
@@ -77,7 +76,7 @@ it("shows each eleven's evidence by week and club and hides rates below 100", ()
 
 it("does not expose a week comparison below the same 100-start floor", () => {
   const versus = { ...NO_VERSUS, weeks: [{ ...NO_VERSUS.all, week: 18, starts: 20, sofixCloser: 0.9 }] };
-  const html = renderToStaticMarkup(React.createElement(VersusAudit, { versus, floor: 100, league: null }));
+  const html = renderToStaticMarkup(React.createElement(VersusAudit, { versus, floor: 100 }));
   expect(html).toContain("20 of 100 starts");
   expect(html).not.toContain("90%");
 });

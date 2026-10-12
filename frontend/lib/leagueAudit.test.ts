@@ -1,34 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { alongPairs, dot, enough, missBars, pct, scaleMax, weekHeight, weeklyStory, type LeagueAudit, type Rate } from "./leagueAudit";
-
-const rate = (games: number): Rate => ({ rate: 0.55, lo: 0.5, hi: 0.6, pairs: 1000, games });
+import { dot, missBars, pct, scaleMax, type LeagueAudit } from "./leagueAudit";
 
 describe("the league figures", () => {
   it("round a share to a whole percent and have nothing for one that is not there", () => {
     expect(pct(0.5417)).toBe(54);
     expect(pct(null)).toBeNull();
     expect(pct(undefined)).toBeNull();
-  });
-
-  it("place a pair share on the 45 to 65 scale and keep it on the chart", () => {
-    expect(alongPairs(0.5)).toBeCloseTo(25);
-    expect(alongPairs(0.55)).toBeCloseTo(50);
-    expect(alongPairs(0.3)).toBe(0);
-    expect(alongPairs(0.9)).toBe(100);
-  });
-
-  it("draw a figure only with 100 cases behind it", () => {
-    expect(enough(rate(99))).toBe(false);
-    expect(enough(rate(100))).toBe(true);
-    expect(enough(null)).toBe(false);
-  });
-
-  it("say how many gameweeks beat a coin flip and the lowest and highest", () => {
-    const weeks = [0.6, 0.52, 0.48, 0.65].map((r, i) => ({ from: `2026-0${i + 1}-01`, rate: r, pairs: 500 }));
-    expect(weeklyStory(weeks)).toEqual({ total: 4, above: 3, lowest: 0.48, highest: 0.65 });
-    expect(weeklyStory([])).toBeNull();
-    expect(weekHeight(0.4)).toBe(4);
-    expect(weekHeight(0.575)).toBeCloseTo(50);
   });
 
   it("mark the four middle bars of the miss chart, the starts within 7 points", () => {

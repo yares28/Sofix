@@ -1,9 +1,8 @@
-import type { Metadata } from "next";
-import AuditPlace, { type AuditSearchParams } from "../../../components/audit/AuditPlace";
+import { redirect } from "next/navigation";
+import type { AuditSearchParams } from "../../../components/audit/AuditPlace";
 
-export const metadata: Metadata = { title: "Sorare vs Sofix · Audit · Sofix" };
-
-/** Audit · Sorare vs Sofix: both expected scores, written down before each lock, against what the player scored. */
-export default function AuditVersusPage({ searchParams }: { searchParams: AuditSearchParams }) {
-  return <AuditPlace show="versus" searchParams={searchParams} />;
+/** Sorare vs Sofix leads the first Audit view now (12 Oct 2026); an old link lands on it with its week. */
+export default async function Page({ searchParams }: { searchParams: AuditSearchParams }) {
+  const query = new URLSearchParams(Object.entries(await searchParams).flatMap(([key, value]) => (typeof value === "string" ? [[key, value]] : []))).toString();
+  redirect(query ? `/audit?${query}` : "/audit");
 }

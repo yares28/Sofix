@@ -31,8 +31,8 @@ test("player comparisons cover every saved GW, an all-time summary and URL-resto
   await page.goto(`/audit?gw=${live.id}`);
   const section = page.getByRole("region", { name: "Your players, xScore against actual" });
   await expect(section.locator("#player-score-view-help")).toContainText("the GW selected above");
-  for (const name of ["How far the score lands from the xScore", "Landing within 7 points of the score",
-    "When Sofix says 30%, does it happen 30% of the time?", "Written before the lock", "Match forecasts, checked"]) {
+  for (const name of ["Accuracy by position", "How far the score lands from the xScore", "Landing within 7 points of the score",
+    "When Sofix says 30%, does it happen 30% of the time?", "Match forecasts, checked"]) {
     const above = await page.getByRole("region", { name, exact: true }).evaluate((element) =>
       !!(element.compareDocumentPosition(document.querySelector(".au-player-scores")!) & Node.DOCUMENT_POSITION_FOLLOWING));
     expect(above).toBe(true);
@@ -152,27 +152,36 @@ test("empty match comparisons remain missing rather than zero", async ({ page })
 
 });
 
-test("saved result cards lead with accuracy, sample counts and lower error, with methods available on demand", async ({ page, request }) => {
+test("the page leads with Sofix's and Sorare's accuracy, each on its own, and draws both by position", async ({ page, request }) => {
   await resetBackend(request, "audit-enough");
   await page.goto("/audit?w=2026-10-09");
-  const prelock = page.getByRole("region", { name: "Written before the lock" });
-  await expect(prelock.locator(".au-result-big")).toHaveText("64%");
-  await expect(prelock).toContainText("of player pairs ranked correctly");
-  await expect(prelock.locator("dl")).toContainText("Pairs compared130");
-  await expect(prelock.locator("dl")).toContainText("GWs compared8");
-  await expect(prelock.locator("dl")).toContainText("Player GWs checked38 / 40");
-  await prelock.getByText("How this is checked", { exact: true }).click();
-  await expect(prelock.getByText(/95% confidence range/)).toBeVisible();
-  await expect(prelock.getByText(/95% confidence range/)).toContainText("58–69%");
+  await expect(page.getByRole("heading", { level: 1, name: "Sofix against Sorare" })).toBeVisible();
+  const duo = page.locator(".ax-duo > div");
+  await expect(duo.nth(0)).toContainText("Sofix accuracy");
+  await expect(duo.nth(0).locator(".ax-duo-n")).toHaveText("83%"); // 100 minus 17.2 points off
+  await expect(duo.nth(0)).toContainText("17.2 pts off on average");
+  await expect(duo.nth(0)).toContainText("Closer");
+  await expect(duo.nth(1)).toContainText("Sorare accuracy");
+  await expect(duo.nth(1).locator(".ax-duo-n")).toHaveText("81%");
+  await expect(duo.nth(1)).not.toContainText("Closer");
+  await expect(page.locator(".ax-facts")).toContainText("412 starts");
+  const rows = page.getByRole("region", { name: "Accuracy by position" }).getByRole("listitem");
+  await expect(rows).toHaveCount(5);
+  await expect(rows.nth(0)).toContainText("All412 starts");
+  await expect(rows.nth(0)).toContainText("Sofix 83%");
+  await expect(rows.nth(0)).toContainText("Sorare 81%");
+  await expect(rows.nth(1)).toContainText("Too few to tell"); // 40 goalkeepers' starts, under the floor
+  await expect(rows.nth(4)).toContainText("Sofix 82%");
+  const detail = page.getByRole("region", { name: "The same starts, three ways" });
+  await expect(detail.getByRole("list", { name: "Week by week" })).toContainText("206 starts · Sofix 83% · Sorare 82%");
+  await expect(detail.getByRole("list", { name: "Week by week" })).toContainText("Too few to tell · 60 of 100 starts");
+  await expect(page.getByText(/better of two|coin flip|pairs/i)).toHaveCount(0); // the pair figures are gone from the page
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     expect(await smallText(page, width === 390 ? 10 : 11)).toEqual([]);
-    expect((await new AxeBuilder({ page }).include(".au-result").withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
+    expect((await new AxeBuilder({ page }).include(".ax-hero").include(".au-vs").include(".au-result").withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
   }
-  await page.reload();
-  await expect(prelock.locator(".au-result-big")).toHaveText("64%");
-  await expect(prelock.locator("details")).not.toHaveAttribute("open");
 });
 
 test("saved weeks survive without Chrome on Recap, Cards and Rewards, beside the plan frozen at lock", async ({ page, request }) => {
@@ -215,24 +224,17 @@ test("saved weeks survive without Chrome on Recap, Cards and Rewards, beside the
   }
 });
 
-test("the page leads with how often the xScore picks the better of two, per position, now against the old number", async ({ page }) => {
+test("under 100 checked starts the two accuracies say too few to tell, never a number", async ({ page }) => {
   await page.goto("/audit");
-  await expect(page.getByRole("heading", { level: 1, name: "How often the xScore is right" })).toBeVisible();
-  await expect(page.locator(".ax-big")).toContainText("A coin flip gets 50."); // one number, said against a coin flip
-
-  const section = page.getByRole("region", { name: "Pick the better of two" });
-  const rows = section.getByRole("list", { name: /How often each position's xScore picks the better of two/ }).getByRole("listitem");
-  await expect(rows).toHaveCount(4);
-  await expect(rows.nth(0)).toContainText("Goalkeepers");
-  await expect(rows.nth(0)).toContainText(`${Math.round(league.positions[0]!.now!.rate * 100)}%`);
-  await expect(rows.nth(3)).toContainText("Forwards");
+  await expect(page.getByRole("heading", { level: 1, name: "Sofix against Sorare" })).toBeVisible();
+  await expect(page.locator(".ax-duo-n")).toHaveText(["–", "–"]);
+  await expect(page.locator(".ax-duo-s")).toHaveText(["Too few to tell", "Too few to tell"]);
+  await expect(page.locator(".ax-facts")).toContainText("0 of 100 starts");
 });
 
-test("the league figures draw every chart from the committed replay: weeks, how close, goalkeepers' chances, who starts, Sorare's number", async ({ page }) => {
+test("the league figures draw every chart from the committed replay: how close, goalkeepers' chances, who starts, Sorare's number", async ({ page }) => {
   await page.goto("/audit");
 
-  const weeks = page.getByRole("region", { name: /gameweeks$/ });
-  await expect(weeks.locator(".lg-wk i")).toHaveCount(league.weeks.length);
   const close = page.getByRole("region", { name: "How far the score lands from the xScore" });
   await expect(close.locator(".lg-hs i")).toHaveCount(28);
   await expect(close.locator(".lg-hs i.mid")).toHaveCount(4);
@@ -272,15 +274,13 @@ test("the record lists each gameweek written down before its lock", async ({ pag
   await expect(table.getByRole("row", { name: /Tue 6 Oct/ })).toContainText("3");
 });
 
-test("predicted elevens wait honestly for stored readings and the live xScore record is visible", async ({ page }) => {
+test("predicted elevens wait honestly for stored readings", async ({ page }) => {
   await page.goto("/audit/starts");
   const elevens = page.getByRole("region", { name: "Futbol Fantasy's eleven" });
   await expect(elevens).toContainText("No predicted elevens kept yet");
   await expect(elevens.getByRole("table")).toHaveCount(0);
   expect(await smallText(page, 11)).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  await page.goto("/audit");
-  await expect(page.getByRole("region", { name: "Written before the lock" })).toBeVisible();
 });
 
 test("the top bar has the page, and marks it when it is open", async ({ page }) => {

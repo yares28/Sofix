@@ -1,4 +1,4 @@
-import { alongPairs, asOfLabel, dot, enough, missBars, pct, POSITION_NAME, scaleMax, weekHeight, weeklyStory, type Band, type LeagueAudit as League } from "../../lib/leagueAudit";
+import { asOfLabel, dot, missBars, pct, scaleMax, type Band, type LeagueAudit as League } from "../../lib/leagueAudit";
 
 const count = (n: number) => n.toLocaleString("en-GB");
 
@@ -21,106 +21,15 @@ function Calibration({ bands, max, label, unit }: { bands: Band[]; max: number; 
   );
 }
 
-/** The share of all pairs, every position together, that the xScore picks right now: the page's one number. */
-function overall(data: League): number | null {
-  const rated = data.positions.flatMap((p) => (enough(p.now) ? [p.now] : []));
-  const pairs = rated.reduce((sum, r) => sum + r.pairs, 0);
-  return pairs ? rated.reduce((sum, r) => sum + r.rate * r.pairs, 0) / pairs : null;
-}
-
-/** Audit · xScore, as the canvas draws it (board "7 · Audit · xScore"): the one number, the four positions against the old number, then the charts. */
+/** Audit · xScore, under the live comparison: two LaLiga seasons replayed (how close, against Sorare's own number, goalkeepers' chances). */
 export default function LeagueAudit({ data }: { data: League }) {
-  const story = weeklyStory(data.weeks);
   const bars = missBars(data.miss);
   const keeperMax = scaleMax(data.keeper.bands);
   const w7 = data.within7;
-  const all = overall(data);
   return (
     <>
-      <section className="ax-hero">
-        <div className="ax-lead">
-          <h1>How often the xScore is right</h1>
-          <p className="ax-sub">Two LaLiga seasons replayed, each game predicted from the weeks before it</p>
-          <p className="ax-big">
-            <b>{all === null ? "–" : `${pct(all)}%`}</b>
-            <span>of the time it picks the better of two players. A coin flip gets 50.</span>
-          </p>
-          <ul className="ax-facts">
-            <li><strong>{count(data.starts)}</strong> starts</li>
-            <li><strong>{data.weeks.length}</strong> gameweeks</li>
-            {data.weeks.length ? <li>{asOfLabel(data.weeks[0]!.from)} to {asOfLabel(data.asOf)}</li> : null}
-          </ul>
-        </div>
-        <section className="au-w lg-card ax-pairs" aria-labelledby="lg-pairs-h">
-          <h2 id="lg-pairs-h">Pick the better of two</h2>
-          <p className="lg-cap">now, against the old number</p>
-          <div className="lg-dum">
-            <div className="lg-scale" aria-hidden="true">
-              <span>45</span>
-              <span style={{ left: "25%" }}>50 · coin flip</span>
-              <span style={{ left: "100%" }}>65</span>
-            </div>
-            <ul className="lg-rows" aria-label="How often each position's xScore picks the better of two, now and before">
-              {data.positions.map((p) => (
-                <li key={p.pos}>
-                  <span>{POSITION_NAME[p.pos]}</span>
-                  {enough(p.now) ? (
-                    <>
-                      <span className="lg-ax" aria-hidden="true">
-                        <i className="coin" />
-                        {enough(p.before) ? (
-                          <i className="link" style={{ left: `${Math.min(alongPairs(p.before.rate), alongPairs(p.now.rate))}%`, width: `${Math.abs(alongPairs(p.now.rate) - alongPairs(p.before.rate))}%` }} />
-                        ) : null}
-                        {enough(p.before) ? <i className="was" style={{ left: `${alongPairs(p.before.rate)}%` }} /> : null}
-                        <i className="now" style={{ left: `${alongPairs(p.now.rate)}%` }} />
-                      </span>
-                      <span className="lg-val">
-                        {pct(p.now.rate)}%<small>{count(p.now.games)} starts</small>
-                      </span>
-                    </>
-                  ) : (
-                    <span className="lg-few">Too few to tell</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-            <p className="lg-key">
-              <span>
-                <i className="now" />
-                now
-              </span>
-              <span>
-                <i className="was" />
-                the old number
-              </span>
-            </p>
-          </div>
-        </section>
-      </section>
-
+      <h2 className="au-label ax-past">Past games, replayed</h2>
       <div className="ax-grid">
-      {story ? (
-        <section className="au-w lg-card ax-8" aria-labelledby="lg-weeks-h">
-          <p className="au-label">Week by week</p>
-          <h2 id="lg-weeks-h">{story.above === story.total ? `Above a coin flip in every one of ${story.total} gameweeks` : `Above a coin flip in ${story.above} of ${story.total} gameweeks`}</h2>
-          <p className="lg-cap">
-            The same figure for each gameweek, all positions together. Lowest {pct(story.lowest)}%, highest {pct(story.highest)}%.
-          </p>
-          <div className="lg-wk" role="img" aria-label={`The share of pairs picked right in each of ${story.total} gameweeks, against a coin flip at 50%`}>
-            {data.weeks.map((w) => (
-              <i key={w.from} title={`${asOfLabel(w.from)}: ${pct(w.rate)}%`} style={{ height: `${weekHeight(w.rate)}%` }} />
-            ))}
-            <b className="line" style={{ bottom: `${weekHeight(0.5)}%` }} />
-            <span className="lab" style={{ bottom: `${weekHeight(0.5)}%` }}>
-              coin flip
-            </span>
-          </div>
-          <p className="lg-x">
-            <span>{asOfLabel(data.weeks[0]!.from)}</span>
-            <span>{asOfLabel(data.weeks[data.weeks.length - 1]!.from)}</span>
-          </p>
-        </section>
-      ) : null}
         <section className="au-w lg-card ax-4" aria-labelledby="lg-miss-h">
           <p className="au-label">How close</p>
           <h2 id="lg-miss-h">How far the score lands from the xScore</h2>
@@ -152,7 +61,7 @@ export default function LeagueAudit({ data }: { data: League }) {
             </div>
           </dl>
         </section>
-        <section className="au-w lg-card ax-6" aria-labelledby="lg-vs-h">
+        <section className="au-w lg-card ax-4" aria-labelledby="lg-vs-h">
           <p className="au-label">Against Sorare&apos;s own number</p>
           <h2 id="lg-vs-h">Landing within 7 points of the score</h2>
           <p className="lg-cap">Share of starts where the number was that close.</p>
@@ -188,7 +97,7 @@ export default function LeagueAudit({ data }: { data: League }) {
             </>
           ) : null}
         </section>
-        <section className="au-w lg-card ax-6" aria-labelledby="lg-keep-h">
+        <section className="au-w lg-card ax-4" aria-labelledby="lg-keep-h">
           <p className="au-label">Goalkeepers</p>
           <h2 id="lg-keep-h">When Sofix says 30%, does it happen 30% of the time?</h2>
           <p className="lg-cap">The chance of a clean sheet or a penalty save. On the line means honest.</p>

@@ -1,6 +1,5 @@
 import MissionsAudit from "./MissionsAudit";
 import MatchAudit from "./MatchAudit";
-import PrelockAudit from "./PrelockAudit";
 import ElevensAudit from "./ElevensAudit";
 import VersusAudit from "./VersusAudit";
 import RewardsAudit from "./RewardsAudit";
@@ -108,7 +107,7 @@ function Record({ data }: { data: Audit }) {
   );
 }
 
-export type AuditShow = "xscore" | "starts" | "rewards" | "missions" | "versus";
+export type AuditShow = "xscore" | "starts" | "rewards" | "missions";
 
 export default function AuditView({
   data,
@@ -144,11 +143,10 @@ export default function AuditView({
   if (show === "xscore") {
     return (
       <>
-        {league ? <LeagueAudit data={league} /> : <h1>Audit</h1>}
-        <PrelockAudit data={data.xscore.live} />
+        <VersusAudit versus={data.versus} floor={data.floor} updated={updated} />
+        {league ? <LeagueAudit data={league} /> : null}
         <MatchAudit data={data.matches} />
         <PlayerScores week={playerWeek} number={playerWeekNumber} weeks={playerWeeks} />
-        {updated}
       </>
     );
   }
@@ -161,19 +159,6 @@ export default function AuditView({
           {updated}
         </header>
         <MissionsAudit missions={data.missions} floor={data.floor} />
-      </>
-    );
-  }
-  if (show === "versus") {
-    return (
-      <>
-        <header className="au-top">
-          <h1>Sorare vs Sofix</h1>
-          <p>Sorare&apos;s projection and Sofix&apos;s xScore, written down before each lock, against what the player scored.</p>
-          {updated}
-        </header>
-        <PlayerScores week={playerWeek} number={playerWeekNumber} weeks={playerWeeks} />
-        <VersusAudit versus={data.versus} floor={data.floor} league={league} />
       </>
     );
   }

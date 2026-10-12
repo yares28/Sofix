@@ -157,6 +157,11 @@ export const NO_MISSIONS: Missions = { counted: 0, success: 0, caught: 0, best: 
 const NOTHING: LiveSource = { state: "none", recorded: 0, settled: 0, right: null, brier: null, mean: null, started: null, buckets: null };
 const NO_LIVE: XscoreLive = { state: "none", floor: 100, noted: 0, marked: 0, pairs: 0, weeks: 0, rate: null, lo: null, hi: null };
 
+/** A number's accuracy on a 0 to 100 score: 100 minus how far off it was on average (the Scores page's figure), never under 0. */
+export function accuracy(miss: number | null): number | null {
+  return miss === null ? null : Math.max(0, Math.round(100 - miss));
+}
+
 /** The payload is the job's own; one that does not look like it is left out rather than drawn wrongly. */
 export function readable(value: unknown): Audit | null {
   if (!value || typeof value !== "object") return null;
@@ -247,23 +252,6 @@ export function sourceStory(source: StartSource, live: LiveSource, floor: number
       return { main: "Waiting for results", sub: `${plural(live.recorded, "game")} written down before the lock` };
     default:
       return { main: "Nothing yet", sub: WHY_NOTHING[source] };
-  }
-}
-
-/** The one line under the hero about the live record of the xScore. */
-export function liveLine(live: XscoreLive): string {
-  if (live.pairs > 0) return live.rate !== null
-    ? `${percent(live.rate)} (${interval(live.lo, live.hi) ?? "–"}) on ${plural(live.pairs, "pair")} since the first lock.`
-    : `${plural(live.pairs, "pair")} checked. Accuracy awaits the next statistics update.`;
-  switch (live.state) {
-    case "enough":
-      return `${percent(live.rate)} (${interval(live.lo, live.hi) ?? "–"}) on ${plural(live.pairs, "pair")} since the first lock.`;
-    case "waiting":
-      return live.noted === 1
-        ? "1 player was written down before the lock. His gameweek is not played yet."
-        : `${live.noted.toLocaleString("en-GB")} players were written down before the lock. Their gameweeks are not played yet.`;
-    default:
-      return "It starts with the first gameweek Sofix writes down before its lock.";
   }
 }
 

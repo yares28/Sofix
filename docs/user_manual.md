@@ -417,7 +417,7 @@ averages, signed total diff and average miss, with sample counts. All time cover
 checked starts; missing forecasts can give different sample counts. Substitutes, DNPs and pending games remain in
 the game views. Gameweek follows the top-bar GW selector; All GWs and Summary retain their view in the address for reloads or reopening a tab. Games rank by actual score (highest first), then DNP and pending; Summary ranks by average actual. Each game shows the pre-lock FF, Sofix and Sorare start chances and whether he started. Missing chances or unknown starts stay marked; FF percentages link to their match. **Check details**
 holds timing and corrections; **About these checks** explains the schedule and source marks (SF Sofix, SO Sorare,
-L5 form). The same comparison controls are available on **Sorare vs Sofix**.
+L5 form).
 Automatic server checks run every half hour, first at kickoff +3 hours and again at +26 hours (approximately one hour
 and one day after a two-hour match), only once Sorare says finished. GitHub may start late. **Provisional** becomes
 **Rechecked** after the second successful final-score read; a score still under review stays provisional and retries.
@@ -465,13 +465,18 @@ a week Sofix has not archived. The heading shows how many entered lineups and GW
 On **Cards**, each card shows the season rewards of the saved lineups it was in. These are whole-lineup rewards, not
 individual earnings: do not add them across cards. No saved entry and temporarily unavailable storage are labelled separately.
 
-The Audit page checks Sofix's numbers against what happened, as charts (since 4 Oct). The first block is a replay of two LaLiga seasons: every game
-predicted from the weeks before it only (9,190 starts to 20 Sep).
+The Audit page checks Sofix's numbers against what happened. Its first view (**xScore**) leads with **Sofix against Sorare**
+(since 12 Oct): two big figures, **Sofix accuracy** and **Sorare accuracy**, each counted on its own. Both expected scores are saved
+before each lock for every player with a game; every game he started with both numbers counts, one player at a time. Accuracy is 100
+minus the average points off, the same figure as on Scores (17.2 points off on average is 83%); the points off sit under each figure
+and the closer of the two is marked. **Accuracy by position** draws both as bars, overall and per position, and **The same starts,
+three ways** lists the points off, how often each landed within 7 points and which way it leans, then week by week. Under 100 checked
+starts a figure says "Too few to tell"; a week counts a day after it ends, and "Waiting for results" shows until the first one does.
+The old **Sorare vs Sofix** tab is this view now (its address lands here). The better-of-two figures are gone from the page.
 
-- **Pick the better of two** leads. Take any two players of one position in the same gameweek; if Sofix gave one a higher xScore and he scored more, that is a hit. A small example pair
-  shows it, and one row per position shows how often it hits **now** (the green dot) against **the old number** (the grey one), with the coin flip (50) marked: goalkeepers 54 against 50,
-  defenders 59 against 54, midfielders 61 against 57, forwards 59 against 55.
-- **Week by week** is the same figure for each of the 46 gameweeks (all positions together), against a coin flip.
+Under it, **Past games, replayed** is a replay of two LaLiga seasons: every game predicted from the weeks before it only (9,190 starts
+to 20 Sep).
+
 - **How close** counts starts by how many points the score landed above or below the xScore; the four green bars in the middle are the starts within 7 points (31%); 63% are within 15.
 - **Goalkeepers** and **Who starts** each plot what Sofix said against how often it happened: a dot on the dashed diagonal is honest.
 - **Against Sorare's own number** sets the share of starts within 7 points of Sorare's projection (33%), of the old number (30%) and of the new one (31%), and the share of goalkeepers' starts inside the range (79%, the aim is 80).
@@ -486,11 +491,7 @@ checked since, and how many each source gave. (The old headline, 66% on your 84 
 [How it is counted](xscore_success_rate.md).)
 
 The live Audit checks every recorded player, including the LaLiga index and your players outside LaLiga, from saved games.
-**Written before the lock** on xScore shows how many player gameweeks have been checked and how often the higher expected
-score picked the better player, from the first comparable pair. The prominent percentage is followed by separate counts
-of compared pairs, compared GWs and checked player GWs. **How this is checked** opens the method and confidence range.
-**Sorare vs Sofix** compares each saved number with the real score on starts; weekly figures
-also say "Too few to tell" below 100 starts. A new week's results wait until a day after it ends; unread results stay waiting.
+A new week's results wait until a day after it ends; unread results stay waiting.
 
 **Futbol Fantasy's eleven**, under Who starts, compares how many predicted starters started. Sorare and Sofix reorder the
 same formation using their saved chances; **By gameweek and club** opens the counts for each. Every group needs 100 checked

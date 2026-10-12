@@ -118,7 +118,7 @@ Not done here: pull requests, waiting for CI or for a refresh, review subagents,
 - One date-selected week drives all pages; LaLiga and Sorare GW numbers are separate.
 - UI says GW/Gameweek, not MD/Matchday. Store UTC, display Madrid; missing kickoff is “Date TBC”.
 - Routes: `/`, `/play`, `/lineups`, `/scores`, `/fixtures`, `/difficulty`, `/table`, `/audit`, `/cards`, `/players`, `/control`, `/team/[code]`.
-  `/audit` is Sofix checked against what happened (backend/app/sorare/audit.py, read model `audit`): the xScore success rate and who
+  `/audit` is Sofix checked against what happened (backend/app/sorare/audit.py, read model `audit`): Sofix's and Sorare's accuracy on the same starts, and who
   starts per source; the job decides what is shown and the page says "too few to tell" under 100 cases.
 - Six lenses: Overall, Attack, Defence, Record, Vs odds, Odds. Backend owns bucket/label/scales.
 - Labels: Very favourite, Favourite, Even, Underdog, Big underdog. Tiles do not show bucket numbers.

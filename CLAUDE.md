@@ -90,7 +90,7 @@ Sofix already has a design system, so the design skills serve it; they never rep
 ## Semantics
 
 Routes: `/`, `/play`, `/lineups`, `/scores`, `/fixtures`, `/difficulty`, `/table`, `/audit`, `/cards`, `/players`, `/control`, `/team/[code]`.
-`/audit` checks Sofix's numbers against what happened (the xScore success rate; who starts, per source) and is not tied to the
+`/audit` checks Sofix's numbers against what happened (Sofix's and Sorare's accuracy on the same starts; who starts, per source) and is not tied to the
 week in the top bar; a figure under 100 cases says "too few to tell" instead of a number.
 One date/week drives the app, while LaLiga and Sorare GW numbers remain distinct. Difficulty lenses are Overall,
 Attack, Defence, Record, Vs odds and Odds. Cards/value are current snapshots; conditional projection differs from

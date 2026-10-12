@@ -39,7 +39,7 @@ export default async function AuditPlace({ show, searchParams }: { show: AuditSh
   }
   const playerWeeks = await Promise.all((data?.playerScores?.weeks ?? []).map(async w => {
     // Cached records restore source evidence while an older audit payload is still being served.
-    const record = (show === "xscore" || show === "versus") && w.rows.some(r => r.sources === undefined) ? await loadAuditStartRecord(w.slug) : null;
+    const record = show === "xscore" && w.rows.some(r => r.sources === undefined) ? await loadAuditStartRecord(w.slug) : null;
     return { ...w, rows: w.rows.map(row => {
       const saved = row.sources === undefined ? savedStartGame(row, w.slug, record) : null;
       return withGameCrests({ ...row, started: recordedStart(row.started), sources: row.sources ?? saved?.sources ?? {}, ffMatch: row.ffMatch ?? saved?.ffMatch ?? null }, games, crests);
@@ -57,7 +57,7 @@ export default async function AuditPlace({ show, searchParams }: { show: AuditSh
   const saved = show === "rewards" ? seasonWeeks(await myWeeksQuietly() ?? [], new Date()) : [];
   return (
     <>
-      <SiteNav meta={meta} system={system} week={show === "xscore" || show === "versus" ? week : undefined} />
+      <SiteNav meta={meta} system={system} week={show === "xscore" ? week : undefined} />
       <main className="au">
         <AuditView data={data} now={new Date()} league={league} show={show} season={season} saved={saved} playerWeek={playerWeek} playerWeekNumber={week.current?.number ?? null} playerWeeks={playerWeeks} />
         {show === "missions" ? <div className="pd-wrap">{owned.map((rarity) => <MissionHistory key={rarity} title={`${RARITY_NAME[rarity]} history`} days={missionHistory(logs, rarity, names)} rarity={rarity} collection={sorare?.collection ?? []} />)}</div> : null}

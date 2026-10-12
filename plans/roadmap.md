@@ -16,6 +16,12 @@ and a check, so a session can work through it alone and stop only where you have
 
 Work from the top. Each line points to its full text; "you" items wait for the owner.
 
+-2. **Neon: keep one free project enough** (AGENTS.md "Neon projects"; memory of 12 Oct): production moved to the project
+   "Sofix" on 12 Oct after FDR used its 5 GB. Still to cut, then measure on the new project's counter: the half-hourly
+   score check (about 1.3 MB each time even when nothing is due) and the stats-heavy history loads of each refresh.
+-1. **Sorare's starting % (A, B, C)** ([sorare-start-chances.md](sorare-start-chances.md)): built and shipped 12 Oct in
+   extension 0.3.14, unproven on real Sorare pages. **You:** reload the extension, press "Read the round on Sorare" on
+   Lineups. Then tick the plan's acceptance boxes from the saved rows, and feed the number to the plans and the Audit.
 0. **Found 7 Oct in past sessions** (TODO.md "Forgotten"): **G**, the grey countdown on Play (your call). R, the form
    fallback's red-card ban, is fixed by data-keeping step 1. L, the daily league history, is done (Results).
 1. **9.7 · The extension updates itself** (TODO.md A): no more Reload by hand after the release that brings it (one last Reload).

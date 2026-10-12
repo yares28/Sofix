@@ -72,6 +72,81 @@ async function sendMissions(rarity, missions, force = false) {
   }
 }
 
+// Sorare's starting chances (plans/sorare-start-chances.md). Sorare gives them only to its own page, so the page bridge passes on what
+// that page loads and the app keeps it: a reading then outlives the tab it was seen in. Read only; nothing is asked of Sorare here.
+const GAME_ID = /^Game:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const PLAYER_SLUG = /^[a-z0-9-]{1,160}$/;
+const ROUND_WAIT_MS = 12000; // how long one match's page gets to answer
+const ROUND_GRACE_MS = 2500; // and how long after its first answer, for the rest of the page's answers
+const roundTabs = new Map(); // tab id -> what "Read the round" waits for from that tab
+const chanceSends = new Set();
+let roundRunning = false;
+
+function cleanChances(rows) {
+  return rows
+    .filter((row) => typeof row?.game === "string" && GAME_ID.test(row.game) && typeof row.player === "string" && PLAYER_SLUG.test(row.player)
+      && Number.isInteger(row.basisPoints) && row.basisPoints >= 0 && row.basisPoints <= 10000)
+    .slice(0, 500)
+    .map(({ game, player, basisPoints }) => ({ game, player, basisPoints }));
+}
+
+async function sendChances(rows) {
+  try {
+    const response = await fetch(`${CONFIG.appUrl}/api/ext/chances`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${CONFIG.token}`, "x-vercel-protection-bypass": CONFIG.bypass },
+      body: JSON.stringify({ version: 1, rows }),
+    });
+    return response.ok;
+  } catch {
+    return false; // the page says a number again after five minutes, and that one is sent
+  }
+}
+
+/**
+ * "Read the round" on the app's Lineups page: each match's Sorare page is opened in a background tab, one at a time, left to load
+ * (its starting chances reach the app through `chances-seen`), and closed. Answers how many players each match's page gave.
+ */
+async function readRound(targets) {
+  if (roundRunning) return { state: "busy" };
+  const { sorareUser = null } = await chrome.storage.local.get("sorareUser");
+  if (!sorareUser) return { state: "signed-out" };
+  roundRunning = true;
+  const read = {};
+  const deadline = Date.now() + 240000;
+  try {
+    for (const { id, player } of targets) {
+      if (Date.now() > deadline) break;
+      let tab;
+      try {
+        tab = await chrome.tabs.create({ url: `https://sorare.com/football/players/${player}?game=${encodeURIComponent(id)}`, active: false });
+      } catch {
+        continue;
+      }
+      const players = new Set();
+      await new Promise((resolve) => {
+        const timer = setTimeout(resolve, ROUND_WAIT_MS);
+        let grace = 0;
+        roundTabs.set(tab.id, (rows, games) => {
+          for (const row of rows) if (row.game === id) players.add(row.player);
+          if (!grace && games.includes(id)) grace = setTimeout(() => { clearTimeout(timer); resolve(); }, ROUND_GRACE_MS);
+        });
+      });
+      roundTabs.delete(tab.id);
+      try {
+        await chrome.tabs.remove(tab.id);
+      } catch {
+        // he closed it himself
+      }
+      read[id] = players.size;
+    }
+    await Promise.allSettled([...chanceSends]);
+  } finally {
+    roundRunning = false;
+  }
+  return { state: "ok", read };
+}
+
 // The rarities the app ranks missions for. One with no mission today is sent empty, so the app says so instead of showing an older list.
 const MISSION_RARITIES = ["limited", "rare", "super_rare", "unique"];
 
@@ -208,6 +283,17 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     // The page's own answer can hold other rarities' missions (the free cards' one): keep the page's own, or those that do not say.
     const rarity = message.rarity.slice(0, 20);
     sendMissions(rarity, message.missions.filter((mission) => !mission?.rarity || mission.rarity === rarity).slice(0, 12));
+    return;
+  }
+  if (message?.type === "chances-seen" && Array.isArray(message.rows)) {
+    const rows = cleanChances(message.rows);
+    const games = Array.isArray(message.games) ? message.games.filter((game) => typeof game === "string").slice(0, 100) : [];
+    roundTabs.get(sender.tab.id)?.(rows, games);
+    if (rows.length) {
+      const sending = sendChances(rows);
+      chanceSends.add(sending);
+      sending.finally(() => chanceSends.delete(sending));
+    }
     return;
   }
   if (message?.type === "overlay-numbers") {
@@ -591,6 +677,11 @@ chrome.runtime.onMessageExternal.addListener((message, sender, reply) => {
   }
   if (message?.type === "lineup-chances" && typeof message.game === "string" && /^Game:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(message.game)) {
     lineupChances(message.game).then((answer) => reply({ ok: true, ...answer })).catch(() => reply({ ok: true, state: "error" }));
+    return true;
+  }
+  if (message?.type === "read-round" && Array.isArray(message.games) && message.games.length && message.games.length <= 40
+    && message.games.every((one) => typeof one?.id === "string" && GAME_ID.test(one.id) && typeof one.player === "string" && PLAYER_SLUG.test(one.player))) {
+    readRound(message.games.map(({ id, player }) => ({ id, player }))).then((answer) => reply({ ok: true, ...answer })).catch(() => reply({ ok: true, state: "error" }));
     return true;
   }
   if (message?.type === "sorare" && Object.hasOwn(STEPS, message.step)) {

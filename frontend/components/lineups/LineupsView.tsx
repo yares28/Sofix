@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -27,6 +27,7 @@ import {
 } from "../../lib/lineups";
 import { CHANCE_SOURCES, sorareChanceRead, type LineupChances, type SorareGameLink, type SorareChanceRead } from "../../lib/lineupChances";
 import { askExtension } from "../../lib/extension";
+import { ago } from "../../lib/sorareStatus";
 import type { MatchFacts } from "../../lib/lineupMatchFacts";
 import type { StartSource } from "../../lib/play";
 import { ChanceContext } from "./Chance";
@@ -41,6 +42,8 @@ type Props = {
   data: LineupsData;
   chances: LineupChances;
   sorareGames: Record<number, SorareGameLink>;
+  /** What is kept of Sorare's starting chances for the matches on this page (plans/sorare-start-chances.md). */
+  sorareKept: { players: number; games: number; at: string | null };
   facts: Record<number, MatchFacts>;
   sections: Section[];
   /** The match the page opened on: the one the address asked for, else the next to be played. */
@@ -78,7 +81,7 @@ const READ_MESSAGES = {
   error: "Sorare could not return starting odds. Try again.",
 };
 
-export default function LineupsView({ data, chances, sorareGames, facts, sections, initial, now, clubs, flash, gone }: Props) {
+export default function LineupsView({ data, chances, sorareGames, sorareKept, facts, sections, initial, now, clubs, flash, gone }: Props) {
   const [source, setSource] = useState<StartSource | "actual">("futbolfantasy");
   const [actuals, setActuals] = useState<Record<number, ActualRead>>({});
   const actualChecked = useRef(new Map<number, number>());
@@ -88,6 +91,8 @@ export default function LineupsView({ data, chances, sorareGames, facts, section
   const attempted = useRef(new Set<number>());
   const inFlight = useRef(new Set<number>());
   const [onlyMine, setOnlyMine] = useState(false);
+  const router = useRouter();
+  const [round, setRound] = useState<{ state: "reading" | "done" | "failed"; note: string } | null>(null);
   const asked = useSearchParams().get("m");
   const selected = matchAsked(data.matches, asked, initial);
   const readActual = useCallback(async () => {
@@ -151,7 +156,27 @@ export default function LineupsView({ data, chances, sorareGames, facts, section
     };
   }, [source, readSorare]);
   const read = reads[selected.id];
-  const sorareNote = !link ? "This match is not linked to Sorare yet." : read?.state === "empty"
+  // Every linked match of the page, opened one after another in a background Sorare tab by the extension; what Sorare's own
+  // page loads there is saved by the app, so the numbers are here after the reload, with no Sorare tab left open.
+  const targets = Object.values(sorareGames).flatMap((one) => {
+    const player = Object.keys(one.players).find((slug) => /^[a-z0-9-]{1,160}$/.test(slug));
+    return player ? [{ id: one.id, player }] : [];
+  }).slice(0, 40);
+  const readRound = async () => {
+    if (round?.state === "reading" || !targets.length) return;
+    setRound({ state: "reading", note: `Reading ${targets.length} ${targets.length === 1 ? "match" : "matches"} on Sorare. Tabs open and close by themselves.` });
+    const answer = (await askExtension({ type: "read-round", games: targets }, 280_000)) as { ok?: boolean; state?: string; read?: Record<string, number> } | null;
+    if (!answer?.ok || answer.state !== "ok" || !answer.read) {
+      setRound({ state: "failed", note: answer?.state === "signed-out" ? "Sign in to Sorare, then read again." : answer?.state === "busy" ? "A read is already running." : "This needs the Sofix extension 0.3.14 or newer in this browser." });
+      return;
+    }
+    const counts = Object.values(answer.read);
+    const players = counts.reduce((sum, n) => sum + n, 0);
+    setRound({ state: "done", note: players ? `Read ${players} players in ${counts.filter((n) => n > 0).length} of ${targets.length} matches.` : "Sorare's pages showed no starting chances. They appear the day before a gameweek starts." });
+    router.refresh();
+  };
+  const keptHere = Object.values(chances[selected.id] ?? {}).some((one) => one.sorare !== undefined);
+  const sorareNote = keptHere && (!read || !["ready", "incomplete", "reading"].includes(read.state)) ? "" : !link ? "This match is not linked to Sorare yet." : read?.state === "empty"
     ? "Sorare's page returned no starting chances for this match."
     : READ_MESSAGES[read?.state ?? "reading"];
   const sorarePlayer = Object.keys(link?.players ?? {}).find(slug => /^[a-z0-9-]{1,160}$/.test(slug));
@@ -235,8 +260,10 @@ export default function LineupsView({ data, chances, sorareGames, facts, section
             Only my players
           </label>
         </div>
-        {source === "sorare" && (sorareNote || sorareUrl) ? <div className="lu-sorare-read">
+        {source === "sorare" && (sorareNote || sorareUrl || targets.length) ? <div className="lu-sorare-read">
           {sorareNote ? <p role="status">{sorareNote}</p> : null}
+          {round ? <p role="status">{round.note}</p> : sorareKept.at ? <p>Saved from Sorare: {sorareKept.players} players in {sorareKept.games} {sorareKept.games === 1 ? "match" : "matches"}, read {ago(new Date(sorareKept.at), now)} ago.</p> : null}
+          {targets.length ? <button type="button" disabled={round?.state === "reading"} onClick={() => void readRound()}>Read the round on Sorare</button> : null}
           {sorareUrl ? <a href={sorareUrl} target="_blank" rel="noreferrer">Open match on Sorare</a> : null}
           {link && read && read.state !== "reading" ? <button type="button" onClick={() => void readSorare()}>Read from Sorare</button> : null}
         </div> : null}

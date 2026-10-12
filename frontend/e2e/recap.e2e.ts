@@ -45,7 +45,7 @@ test("Recap and Play keep the current GW, compare all entered and best-plan line
     const root = globalThis as typeof globalThis & { chrome?: { runtime?: { sendMessage?: (id: string, message: Record<string, unknown>, reply: (value: unknown) => void) => void } } };
     root.chrome ??= {}; root.chrome.runtime ??= {};
     root.chrome.runtime.sendMessage = (_id, message, reply) => {
-      if (message.type === "ping") return reply({ ok: true, version: "0.3.13", sorareUser: "e2e-manager", appReachable: true });
+      if (message.type === "ping") return reply({ ok: true, version: "0.3.14", sorareUser: "e2e-manager", appReachable: true });
       const cards = [...lineup.starters, ...lineup.subs];
       const entered = [false, true].map(custom => ({
         id: custom ? "custom" : "recorded", name: custom ? "Custom captain" : "Recorded lineup", draft: false,

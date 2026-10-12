@@ -63,6 +63,13 @@
     chrome.runtime.sendMessage({ type: "missions-seen", rarity, missions: event.data.missions.slice(0, 12) });
   });
 
+  // Starting chances Sorare's own page just loaded: pass them on to be saved. Read only.
+  window.addEventListener("message", (event) => {
+    if (event.source !== window || !event.data || event.data.source !== "sofix-bridge-7" || event.data.type !== "chances") return;
+    if (!Array.isArray(event.data.rows) || !Array.isArray(event.data.games)) return;
+    chrome.runtime.sendMessage({ type: "chances-seen", rows: event.data.rows.slice(0, 500), games: event.data.games.slice(0, 100) });
+  });
+
   // From the background worker: a liveness check, a fresh "who is signed in", or a step the app asked for.
   chrome.runtime.onMessage.addListener((message, sender, reply) => {
     if (sender.id !== chrome.runtime.id) return;

@@ -7,6 +7,7 @@ import { otherWeekNote, pickMatch, sectionsOf } from "../../lib/lineups";
 import { lineupMatchFacts } from "../../lib/lineupMatchFacts";
 import { loadLineups } from "../../lib/lineupsData";
 import { lineupChances, recordedChances, recordedGames, type ChanceRecord } from "../../lib/lineupChances";
+import { loadSavedChances, savedCoverage, savedLineupChances } from "../../lib/sorareChances";
 import { weekPlan } from "../../lib/play";
 import { loadChanceRecord, loadProjectedWeek, loadSorare } from "../../lib/playData";
 import { loadSystem } from "../../lib/system";
@@ -63,6 +64,12 @@ export default async function Lineups({ searchParams }: { searchParams: SearchPa
   for (const [match, players] of Object.entries(recordedChances(data.matches, records))) for (const [player, sources] of Object.entries(players)) {
     (chances[match] ??= {})[player] = { ...sources, ...chances[match]?.[player] };
   }
+  // Sorare's own number, as the extension read it from Sorare's page and the app kept it: the public API has none.
+  const sorareGames = recordedGames(data.matches, records);
+  const kept = await loadSavedChances(Object.values(sorareGames).map((link) => link.id));
+  for (const [match, players] of Object.entries(savedLineupChances(kept, sorareGames))) for (const [player, sources] of Object.entries(players)) {
+    (chances[match] ??= {})[player] = { ...chances[match]?.[player], ...sources };
+  }
   const wanted = typeof params.w === "string" ? weekById(weeks, params.w) : null;
   const wantedPlan = wanted?.gw && sorare ? weekPlan(sorare, wanted.gw) : null;
   const flash = [otherWeekNote(wanted, round, wantedPlan ? nationalWeek(wantedPlan) : false)].filter((line): line is string => line !== null);
@@ -70,7 +77,7 @@ export default async function Lineups({ searchParams }: { searchParams: SearchPa
   return (
     <>
       <SiteNav meta={meta} system={system} />
-      <LineupsView data={data} chances={chances} sorareGames={recordedGames(data.matches, records)} facts={lineupMatchFacts(data.matches, grid)} sections={sections} initial={selected} now={now} clubs={clubs} flash={flash} gone={gone} />
+      <LineupsView data={data} chances={chances} sorareGames={sorareGames} sorareKept={savedCoverage(kept, sorareGames)} facts={lineupMatchFacts(data.matches, grid)} sections={sections} initial={selected} now={now} clubs={clubs} flash={flash} gone={gone} />
     </>
   );
 }

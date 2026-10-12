@@ -360,6 +360,13 @@ FF says so above the next match.
   **Open match on Sorare** loads a match not yet read; returning to Sofix reads again automatically.
   **Read from Sorare** also retries manually. Only players Sorare actually returned have a value; it does not fetch a
   whole GW automatically. Missing values remain dashes and genuine 0% stays 0%.
+  With extension 0.3.14+ (12 Oct 2026) every percentage Sorare's own page loads in your signed-in tab is also **saved**:
+  it stays on Lineups after the Sorare tab is closed, and the panel says how many players are saved and when they were
+  read. That covers your own cards on the pages where Sorare shows the chance (building a team, the lobby).
+  **Read the round on Sorare** opens each linked match of the page in a background Sorare tab, one at a time, saves what
+  Sorare's page shows and closes the tab (about a minute; you stay on Sofix). Sorare publishes these chances the day
+  before a gameweek starts, so earlier the button finds none. Reload once in `chrome://extensions`, and reload any
+  Sorare tab that was already open. Not yet used by the plans, Home, Play or the Audit.
   A different match's number is never substituted. FF percentages link to its match
   page. **Only my players** dims everyone else on the pitch and in the injury lists. Both choices stay selected when you pick another
   match. Your players on the pitch, among the alternatives and in the injury list link to their card on **My cards**.

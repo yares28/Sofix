@@ -58,12 +58,22 @@
       const body = await response.clone().json();
       learn(core.collectCards(body));
       if (native) {
+        const fresh = []; // a number this tab has not said yet, or not for five minutes
+        const games = new Set();
         for (const row of core.collectStartingOdds(body)) {
           const key = `${row.game}|${row.player}`;
+          const before = startingOdds.get(key);
+          games.add(row.game);
+          if (row.basisPoints !== null && (!before || before.basisPoints !== row.basisPoints || Date.now() - before.observedAt >= 5 * 60000)) {
+            fresh.push({ game: row.game, player: row.player, basisPoints: row.basisPoints });
+          }
           startingOdds.delete(key);
           startingOdds.set(key, { ...row, observedAt: Date.now() });
         }
         while (startingOdds.size > INDEX_MAX) startingOdds.delete(startingOdds.keys().next().value);
+        // Passed on so the app can save it: a reading then outlives this tab (plans/sorare-start-chances.md). `games` names every
+        // game the answer spoke of, also one Sorare has no number for yet, so "Read the round" knows the page has answered.
+        if (games.size) window.postMessage({ source: "sofix-bridge-7", type: "chances", rows: fresh.slice(0, 500), games: [...games].slice(0, 100) }, location.origin);
       }
       const missions = core.collectMissions ? core.collectMissions(body) : [];
       if (missions.length && asked) window.postMessage({ source: "sofix-bridge-7", type: "missions", missions, rarity: asked }, location.origin);

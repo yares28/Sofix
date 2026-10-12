@@ -39,6 +39,7 @@ function bridge() {
   vm.runInContext(source, context);
   return {
     calls,
+    chances: () => JSON.parse(JSON.stringify(replies.filter(r => r.type === "chances"))) as { rows: { game: string; player: string; basisPoints: number }[]; games: string[] }[],
     advance: (ms: number) => { now += ms; },
     async page(data: unknown, url = "https://api.sorare.com/graphql", operationName = "LazyFixtureChartQuery") {
       body = data;
@@ -53,6 +54,22 @@ function bridge() {
 }
 
 describe("Sorare starting odds bridge", () => {
+  it("announces each new or changed native reading, so it is saved beyond this tab", async () => {
+    const b = bridge();
+    await b.page(native());
+    expect(b.chances()).toHaveLength(1);
+    expect(b.chances()[0]?.rows).toEqual([{ game: GAME, player: PLAYER, basisPoints: 8000 }]); // the null game is not a reading
+    expect(b.chances()[0]?.games.sort()).toEqual([GAME, OTHER].sort()); // but Sorare was asked about both
+    await b.page(native());
+    expect(b.chances()[1]?.rows).toEqual([]); // the same number again: nothing new to save
+    await b.page(native(0));
+    expect(b.chances()[2]?.rows).toEqual([{ game: GAME, player: PLAYER, basisPoints: 0 }]); // zero is a number
+    b.advance(6 * 60000);
+    await b.page(native(0));
+    expect(b.chances()[3]?.rows).toHaveLength(1); // still 0% five minutes on: said again, so the saved time moves
+    await b.page(native(), undefined, "SofixLineupChances");
+    expect(b.chances()).toHaveLength(4); // an answer to our own question is never a reading
+  });
   it("reads the native 80% by player and exact game without issuing the empty custom query", async () => {
     const b = bridge();
     await b.page(native());

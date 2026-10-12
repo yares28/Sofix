@@ -23,7 +23,8 @@ type Call = { url: string; init: { headers: Record<string, string>; body: string
 function load(options: { sorareTab?: boolean; tabs?: { id: number; active: boolean }[]; tabResult?: (tab: number) => unknown; missionData?: unknown; operationData?: (operation: string, variables: Record<string, unknown>) => unknown } = {}) {
   const session = new Map<string, unknown>();
   const local = new Map<string, unknown>();
-  const created: { url: string }[] = [];
+  const created: { url: string; active?: boolean }[] = [];
+  const removed: number[] = [];
   const calls: Call[] = [];
   /** What the page bridge was asked to put to Sorare, when a signed-in sorare.com tab is stood in for. */
   const asked: { operation: string; variables: Record<string, unknown> }[] = [];
@@ -58,7 +59,9 @@ function load(options: { sorareTab?: boolean; tabs?: { id: number; active: boole
     alarms: { create() {}, onAlarm: nothing },
     storage: { session: store(session), local: store(local) },
     tabs: {
-      create: (options: { url: string }) => created.push(options),
+      // Answers like Chrome does: the new tab, numbered from 101.
+      create: (options: { url: string; active?: boolean }) => { created.push(options); return Promise.resolve({ id: 100 + created.length }); },
+      remove: async (id: number) => void removed.push(id),
       query: async () => options.tabs ?? (options.sorareTab ? [{ id: 7, active: true }] : []),
       sendMessage: bridge,
       reload() {},
@@ -81,6 +84,7 @@ function load(options: { sorareTab?: boolean; tabs?: { id: number; active: boole
   return {
     calls,
     created,
+    removed,
     session,
     local,
     asked,
@@ -525,5 +529,55 @@ describe("who may ask the extension to do something from a web page (roadmap 7.4
     worker.asked.length = 0;
     await worker.sendFrom(`${APP}/play`, { type: "sorare", step: "enter", ...INPUT, lineupIds: Array.from({ length: 12 }, (_, index) => `lineup-${index}`) });
     expect((worker.asked[0]!.variables.input as { so5LineupIds: string[] }).so5LineupIds).toHaveLength(8);
+  });
+});
+
+describe("Sorare's starting chances, kept beyond the tab (plans/sorare-start-chances.md)", () => {
+  const GAME = "Game:00000000-0000-0000-0000-000000000001";
+  const OTHER = "Game:00000000-0000-0000-0000-000000000002";
+  const from = (tab: number) => ({ id: "sofix", tab: { id: tab }, url: "https://sorare.com/football/players/a" });
+
+  it("sends a page's readings to the app with the extension's token, and nothing that is not a reading", async () => {
+    const w = load();
+    await w.send({ type: "chances-seen", games: [GAME], rows: [
+      { game: GAME, player: "a", basisPoints: 8000 }, { game: GAME, player: "b", basisPoints: 0 },
+      { game: "Game:nope", player: "a", basisPoints: 1 }, { game: GAME, player: "c", basisPoints: null }, { game: GAME, player: "d", basisPoints: 10001 },
+    ] });
+    await vi.waitFor(() => expect(w.calls).toHaveLength(1));
+    expect(w.calls[0]?.url).toBe(`${APP}/api/ext/chances`);
+    expect(w.calls[0]?.init.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+    expect(JSON.parse(w.calls[0]?.init.body ?? "{}")).toEqual({ version: 1, rows: [{ game: GAME, player: "a", basisPoints: 8000 }, { game: GAME, player: "b", basisPoints: 0 }] });
+    await w.send({ type: "chances-seen", games: [GAME], rows: [] }); // Sorare has no number yet: nothing to save
+    await w.send({ type: "chances-seen", games: [GAME], rows: [{ game: GAME, player: "a", basisPoints: 8000 }] }, { id: "sofix", tab: { id: 9 }, url: "https://evil.test/" });
+    expect(w.calls).toHaveLength(1);
+  });
+
+  it("reads a round one background tab at a time, closes each once Sorare's page has answered, and says what each match gave", async () => {
+    vi.useFakeTimers();
+    const w = load();
+    w.local.set("sorareUser", "manager");
+    const answer = w.sendFrom(APP, { type: "read-round", games: [{ id: GAME, player: "a" }, { id: OTHER, player: "b" }] });
+    await vi.advanceTimersByTimeAsync(10);
+    expect(w.created).toEqual([{ url: `https://sorare.com/football/players/a?game=${encodeURIComponent(GAME)}`, active: false }]);
+    await w.send({ type: "chances-seen", games: [GAME, OTHER], rows: [{ game: GAME, player: "a", basisPoints: 8000 }, { game: OTHER, player: "a", basisPoints: 100 }] }, from(101));
+    await w.send({ type: "chances-seen", games: [GAME], rows: [{ game: GAME, player: "z", basisPoints: 0 }] }, from(101));
+    await vi.advanceTimersByTimeAsync(2600); // the grace after the first answer
+    expect(w.removed).toEqual([101]);
+    expect(w.created).toHaveLength(2); // the second match only once the first is closed
+    await vi.advanceTimersByTimeAsync(12100); // its page never answers: it is given up on, and counted as nothing
+    expect(await answer).toEqual({ ok: true, state: "ok", read: { [GAME]: 2, [OTHER]: 0 } });
+    expect(w.removed).toEqual([101, 102]);
+    expect(w.calls.filter((call) => call.url.endsWith("/api/ext/chances"))).toHaveLength(2);
+  });
+
+  it("opens nothing when signed out, for an address that is not the app, or for a list that is not games", async () => {
+    const w = load();
+    expect(await w.sendFrom(APP, { type: "read-round", games: [{ id: GAME, player: "a" }] })).toEqual({ ok: true, state: "signed-out" });
+    w.local.set("sorareUser", "manager");
+    expect(await w.sendFrom("https://sofix.example.evil.test", { type: "read-round", games: [{ id: GAME, player: "a" }] })).toBeNull();
+    expect(await w.sendFrom(APP, { type: "read-round", games: [{ id: GAME, player: "../../settings" }] })).toBeNull();
+    expect(await w.sendFrom(APP, { type: "read-round", games: [{ id: "https://evil.test", player: "a" }] })).toBeNull();
+    expect(await w.sendFrom(APP, { type: "read-round", games: [] })).toBeNull();
+    expect(w.created).toHaveLength(0);
   });
 });

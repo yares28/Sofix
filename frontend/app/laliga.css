@@ -35,24 +35,8 @@ main.ll { max-width: calc(1320px + 56px); padding-bottom: 64px; }
 .ll-cols { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 20px; align-items: start; }
 .ll-cols > .ll-games-tile { grid-column: span 8; }
 .ll-cols > .rc-table { grid-column: span 4; }
-.ll-games { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.ll-g { padding: 16px 18px; border-radius: 18px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); animation: ll-rise .7s cubic-bezier(.16, 1, .3, 1) both; transition: transform .25s cubic-bezier(.34, 1.56, .64, 1), box-shadow .25s; }
-.ll-g:hover { transform: translateY(-3px); box-shadow: inset 0 0 0 1px var(--line), 0 12px 26px rgba(0, 0, 0, .1); }
-.ll-g .when { display: flex; justify-content: space-between; color: var(--ink-2); font-size: 12px; }
-.ll-g .when b { font-weight: 600; }
-.ll-g .vs { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 10px; margin: 14px 0 12px; }
-.ll-g .t { display: flex; align-items: center; gap: 10px; min-width: 0; color: var(--ink); font-size: 15px; font-weight: 600; text-decoration: none; }
-.ll-g .t.r { justify-content: flex-end; }
-.ll-g .t span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ll-g .t:hover span { text-decoration: underline; }
-.ll-g .vs em { color: var(--ink-2); font-size: 12px; font-style: normal; }
-.ll-g .split { display: flex; align-items: center; gap: 6px; }
-.ll-g .bar { display: flex; flex: 1; gap: 2px; height: 8px; overflow: hidden; border-radius: 4px; }
-.ll-g .bar i { display: block; height: 100%; transform-origin: left; animation: ll-fill 1s cubic-bezier(.16, 1, .3, 1) both .35s; }
-.ll-g .drawn { margin-top: 4px; color: var(--ink-2); font-size: 11px; text-align: center; }
-.ll-g .facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
-.ll-g .facts div { color: var(--ink-2); font-size: 12px; line-height: 1.3; }
-.ll-g .facts b { display: block; color: var(--ink); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ll-g { animation: ll-rise .7s cubic-bezier(.16, 1, .3, 1) both; }
+.ll-games .rc-mt:first-child { border-top: 0; padding-top: 4px; }
 
 @keyframes ll-rise { from { opacity: 0; transform: translateY(16px); } }
 @keyframes ll-fill { from { transform: scaleX(0); } }

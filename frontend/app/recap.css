@@ -57,23 +57,30 @@ main.rc { display: flex; flex-direction: column; gap: 20px; }
 .rc-th > a { margin-left: auto; color: var(--ink-2); text-decoration: none; font-size: 13px; font-weight: 600; white-space: nowrap; }
 .rc-none { margin: 0; color: var(--ink-2); font-size: 13px; }
 
-/* This round: each match two rows, every number under its label. */
-.rc-rh, .rc-mt { display: grid; grid-template-columns: 52px minmax(0, 1fr) 60px 136px 136px 112px; column-gap: 16px; align-items: center; }
-.rc-rh { font-size: 11px; color: var(--ink-2); margin-bottom: -6px; }
-.rc-rh span:last-child { text-align: right; }
+/* A match (This round, and the games on Fixtures): each side's name with its own xG and clean sheet under it, the win / draw / win bar between, both-score under the bar. */
 .rc-day { margin: 8px 0 0; font-size: 12px; font-weight: 600; color: var(--ink-2); }
-.rc-mt { grid-template-rows: 32px 32px; padding: 6px 0; border-top: 1px solid var(--line); }
-.rc-mt time { grid-row: span 2; color: var(--ink-2); font-size: 13px; font-variant-numeric: tabular-nums; }
-.rc-ex { grid-row: span 2; grid-column: 6; font-size: 12px; color: var(--ink-2); line-height: 1.7; text-align: right; }
-.rc-ex b { color: var(--ink); font-weight: 600; }
-.rc-tm { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.rc-mt { display: grid; grid-template-columns: 72px minmax(0, 1fr) minmax(210px, 270px) minmax(0, 1fr); column-gap: 20px; align-items: center; padding: 16px 0; border-top: 1px solid var(--line); }
+.rc-when { display: flex; flex-direction: column; gap: 2px; color: var(--ink-2); font-size: 13px; font-variant-numeric: tabular-nums; }
+.rc-when b { color: var(--ink); font-weight: 600; }
+.rc-tm { display: flex; align-items: center; gap: 10px; min-width: 0; text-decoration: none; font-size: 16px; }
 .rc-tm > span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink-2); font-weight: 500; }
 .rc-tm.fav > span:last-child { color: var(--ink); font-weight: 650; }
-.rc-win { margin: 0; justify-self: start; min-width: 46px; }
-.rc-met { display: flex; align-items: center; gap: 10px; }
-.rc-met > span { flex: 1; height: 6px; border-radius: 3px; background: var(--hover); overflow: hidden; }
-.rc-met i { display: block; height: 100%; border-radius: 3px; }
-.rc-met b { width: 40px; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
+a.rc-tm:hover > span:last-child { text-decoration: underline; }
+.rc-side { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.rc-side.home { align-items: flex-end; }
+.rc-side.home .rc-tm, .rc-side.home .rc-sts { flex-direction: row-reverse; }
+.rc-sts { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; font-size: 15px; font-variant-numeric: tabular-nums; }
+.rc-sts b, .rc-both b { font-weight: 650; }
+.rc-sts small, .rc-both small { margin-left: 3px; color: var(--ink-2); font-size: 11px; font-weight: 600; }
+.rc-mid { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.rc-bar { display: flex; gap: 3px; height: 28px; }
+.rc-bar > span { display: flex; align-items: center; min-width: 34px; padding: 0 7px; overflow: hidden; border-radius: 4px; font-size: 13px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.rc-bar > span:first-child { border-radius: 9px 4px 4px 9px; }
+.rc-bar > span:last-child { justify-content: flex-end; border-radius: 4px 9px 9px 4px; }
+.rc-bar > .rc-dr { justify-content: center; background: var(--track); color: var(--ink); font-size: 12px; font-weight: 500; }
+.rc-both { text-align: center; font-size: 15px; font-variant-numeric: tabular-nums; }
+.rc-odds { text-align: center; color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+.rc-odds b { color: var(--ink); font-weight: 600; }
 
 /* Table after the round: narrow. */
 .rc-table table { width: 100%; min-width: 0; table-layout: fixed; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
@@ -166,9 +173,13 @@ main.rc { display: flex; flex-direction: column; gap: 20px; }
   .rc-head h1 { font-size: 28px; }
   .rc-best { display: flex; overflow-x: auto; margin: 0 -16px; padding: 10px 16px 18px; scroll-snap-type: x mandatory; }
   .rc-card { flex: none; width: 108px; scroll-snap-align: start; }
-  .rc-rh, .rc-mt { grid-template-columns: minmax(0, 1fr) 48px 44px 60px; column-gap: 10px; }
-  .rc-mt time, .rc-ex, .rc-rh span:first-child, .rc-rh span:last-child, .rc-met > span { display: none; }
-  .rc-met b { width: auto; flex: 1; }
+  .rc-mt { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "when when" "mid mid" "home away"; gap: 10px 14px; }
+  .rc-when { grid-area: when; flex-direction: row; gap: 10px; }
+  .rc-mid { grid-area: mid; }
+  .rc-side.home { grid-area: home; align-items: flex-start; }
+  .rc-side.away { grid-area: away; align-items: flex-end; }
+  .rc-side.home .rc-tm, .rc-side.home .rc-sts { flex-direction: row; }
+  .rc-side.away .rc-tm, .rc-side.away .rc-sts { flex-direction: row-reverse; }
   .rc-lu { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; }
   .rc-entered .pl-entered-lineup { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; }
   .rc-team { grid-column: 1 / -1; }

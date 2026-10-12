@@ -4,7 +4,7 @@ import { scoreColour } from "../../lib/cards";
 import type { LaLigaRound, RoundGame, RoundPick } from "../../lib/laliga";
 import type { AfterRow } from "../../lib/recap";
 import Crest from "../Crest";
-import { TableAfter } from "../recap/Recap";
+import { MatchRow, TableAfter } from "../recap/Recap";
 
 /**
  * This week · LaLiga, as the canvas draws it (board "3 · This week · LaLiga"): the round's hero (your players this round,
@@ -126,47 +126,29 @@ function Picks({
 
 function Game({ game, index }: { game: RoundGame; index: number }) {
   const { home, away } = game;
-  const label = `${home.team.name} win ${pct(home.win)}, draw ${pct(game.draw)}, ${away.team.name} win ${pct(away.win)}`;
   return (
-    <div className="ll-g" style={{ animationDelay: `${0.24 + index * 0.03}s` }} role="group" aria-label={`${home.team.name} v ${away.team.name}`}>
-      <div className="when">
-        <b>{madrid(game.kickoff, { weekday: "short", day: "numeric", month: "short" })}</b>
-        <span>{game.score ?? (game.confirmed ? madrid(game.kickoff, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }) : "TBC")}</span>
-      </div>
-      <div className="vs">
-        <Link className="t" href={`/team/${home.team.code}`} prefetch={false}>
-          <Crest team={home.team} size={34} />
-          <span>{home.team.name}</span>
-        </Link>
-        <em>v</em>
-        <Link className="t r" href={`/team/${away.team.code}`} prefetch={false}>
-          <span>{away.team.name}</span>
-          <Crest team={away.team} size={34} />
-        </Link>
-      </div>
-      <div className="split" role="img" aria-label={label} title={label}>
-        <span className="ll-chip" style={band(home.win)}>{pct(home.win)}</span>
-        <span className="bar">
-          <i style={{ width: pct(home.win), ...band(home.win) }} />
-          <i style={{ width: pct(game.draw), background: "var(--track)" }} />
-          <i style={{ width: pct(away.win), ...band(away.win) }} />
+    <MatchRow
+      className="ll-g"
+      style={{ animationDelay: `${0.24 + index * 0.03}s` }}
+      label={`${home.team.name} v ${away.team.name}`}
+      linkTeams
+      when={
+        <div className="when rc-when">
+          <b>{madrid(game.kickoff, { weekday: "short", day: "numeric", month: "short" })}</b>
+          <span>{game.score ?? (game.confirmed ? madrid(game.kickoff, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }) : "TBC")}</span>
+        </div>
+      }
+      home={home}
+      away={away}
+      draw={game.draw}
+      bothScore={game.bothScore}
+      extra={
+        <span className="rc-odds">
+          {home.market === null ? "Bookmakers: no odds" : (
+            <>Bookmakers <b>{pct(home.market)}</b> · <b>{pct(game.marketDraw)}</b> · <b>{pct(away.market)}</b></>
+          )}
         </span>
-        <span className="ll-chip" style={band(away.win)}>{pct(away.win)}</span>
-      </div>
-      <div className="drawn">
-        Draw {pct(game.draw)} · Both score {pct(game.bothScore)}
-      </div>
-      <div className="facts">
-        <div>
-          <b>{home.xg === null || away.xg === null ? "–" : `${home.xg.toFixed(2)} · ${away.xg.toFixed(2)}`}</b>xG
-        </div>
-        <div>
-          <b>{`${pct(home.cleanSheet)} · ${pct(away.cleanSheet)}`}</b>Clean sheet
-        </div>
-        <div>
-          <b>{home.market === null ? "no odds" : `${pct(home.market)} · ${pct(away.market)}`}</b>Bookmakers
-        </div>
-      </div>
-    </div>
+      }
+    />
   );
 }

@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { lineupActual, type ActualScores } from "../../lib/lineupScores";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { scoreColour } from "../../lib/cards";
 import type { MissionPlan } from "../../lib/missions";
 import { SOURCE_SHORT, SOURCE_NAME } from "../../lib/play";
 import type { AfterRow, BestCard, BoardMatch, NewsItem, PlanRow } from "../../lib/recap";
+import type { GridTeam } from "../../lib/types";
 import { formatDay, formatShortKickoff } from "../../lib/grid";
 import CardArt from "../cards/CardArt";
 import Crest from "../Crest";
@@ -53,24 +54,74 @@ export function BestCards({ cards, gw }: { cards: BestCard[]; gw: number | null 
 }
 
 // ----------------------------------------------------------------------------------------------- the round
-function Side({ side }: { side: BoardMatch["home"] }) {
-  const xg = side.xg;
-  return (
+export type RowSide = { team: GridTeam; win: number | null; xg: number | null; cleanSheet: number | null };
+
+function RowTeam({ side, favourite, link }: { side: RowSide; favourite: boolean; link: boolean }) {
+  const className = favourite ? "rc-tm fav" : "rc-tm";
+  const inner = (
     <>
-      <span className={side.favourite ? "rc-tm fav" : "rc-tm"}>
-        <Crest team={side.team} size={22} />
-        <span>{side.team.name}</span>
-      </span>
-      <span className="rc-chip rc-win" style={band(side.win === null ? null : side.win * 100)}>{pct(side.win)}</span>
-      <span className="rc-met" title="Expected goals">
-        <span><i style={{ width: `${Math.min(100, ((xg ?? 0) / 2.5) * 100)}%`, background: "var(--ink)" }} /></span>
-        <b>{xg === null ? "–" : xg.toFixed(2)}</b>
-      </span>
-      <span className="rc-met" title="Clean sheet">
-        <span><i style={{ width: `${Math.round((side.cleanSheet ?? 0) * 100)}%`, background: side.cleanSheet === null ? undefined : scoreColour(side.cleanSheet * 100).fill }} /></span>
-        <b>{pct(side.cleanSheet)}</b>
-      </span>
+      <Crest team={side.team} size={26} />
+      <span>{side.team.name}</span>
     </>
+  );
+  return link ? (
+    <Link className={className} href={`/team/${side.team.code}`} prefetch={false}>{inner}</Link>
+  ) : (
+    <span className={className}>{inner}</span>
+  );
+}
+
+function RowStats({ side }: { side: RowSide }) {
+  return (
+    <span className="rc-sts">
+      <span title="Expected goals"><b>{side.xg === null ? "–" : side.xg.toFixed(2)}</b><small>xG</small></span>
+      <span title="Chance of a clean sheet"><b>{pct(side.cleanSheet)}</b><small>clean sheet</small></span>
+    </span>
+  );
+}
+
+const share = (p: number | null): CSSProperties => ({ flex: `${Math.max(p ?? 0.33, 0.01)} 1 0` });
+
+/**
+ * One match as the Recap and the Fixtures page draw it: each side's name with its own xG and clean-sheet chance under it,
+ * the win / draw / win bar between them, and the one number that belongs to both (both teams score) under the bar.
+ */
+export function MatchRow({ className = "", style, label, when, home, away, draw, bothScore, extra, linkTeams = false }: {
+  className?: string;
+  style?: CSSProperties;
+  label: string;
+  when: ReactNode;
+  home: RowSide;
+  away: RowSide;
+  draw: number | null;
+  bothScore: number | null;
+  extra?: ReactNode;
+  linkTeams?: boolean;
+}) {
+  const homeFav = home.win !== null && away.win !== null && home.win > away.win;
+  const awayFav = home.win !== null && away.win !== null && away.win > home.win;
+  const text = `${home.team.name} win ${pct(home.win)}, draw ${pct(draw)}, ${away.team.name} win ${pct(away.win)}`;
+  return (
+    <div className={`rc-mt ${className}`.trim()} style={style} role="group" aria-label={label}>
+      {when}
+      <div className="rc-side home">
+        <RowTeam side={home} favourite={homeFav} link={linkTeams} />
+        <RowStats side={home} />
+      </div>
+      <div className="rc-mid">
+        <div className="rc-bar" role="img" aria-label={text} title={text}>
+          <span className="rc-win" style={{ ...share(home.win), ...band(home.win === null ? null : home.win * 100) }}>{pct(home.win)}</span>
+          <span className="rc-dr" style={share(draw)}>{pct(draw)}</span>
+          <span className="rc-win" style={{ ...share(away.win), ...band(away.win === null ? null : away.win * 100) }}>{pct(away.win)}</span>
+        </div>
+        <span className="rc-both"><b>{pct(bothScore)}</b><small>both score</small></span>
+        {extra}
+      </div>
+      <div className="rc-side away">
+        <RowTeam side={away} favourite={awayFav} link={linkTeams} />
+        <RowStats side={away} />
+      </div>
+    </div>
   );
 }
 
@@ -86,26 +137,22 @@ export function RoundBoard({ matches, href }: { matches: BoardMatch[]; href?: st
     <section className="hm-tile rc-round" aria-labelledby="rc-round-h">
       <div className="rc-th">
         <h2 id="rc-round-h">This round</h2>
-        <span>chance to win, expected goals and clean sheet for each side</span>
+        <span>who is likely to win, and the goals behind it</span>
         {href ? <Link href={href}>All games ›</Link> : null}
-      </div>
-      <div className="rc-rh" aria-hidden="true">
-        <span /><span /><span>Win</span><span>xG</span><span>Clean sheet</span><span>Draw · both score</span>
       </div>
       {days.map((day) => (
         <div key={day.label}>
           <h3 className="rc-day">{day.label}</h3>
           {day.matches.map((m) => (
-            <div className="rc-mt" key={m.fixtureId} aria-label={`${m.home.team.name} v ${m.away.team.name}`}>
-              <time dateTime={m.kickoff}>{m.score ?? (m.confirmed ? formatShortKickoff(m.kickoff).split(" ")[1] : "TBC")}</time>
-              <Side side={m.home} />
-              <span className="rc-ex">
-                Draw <b>{pct(m.draw)}</b>
-                <br />
-                Both score <b>{pct(m.bothScore)}</b>
-              </span>
-              <Side side={m.away} />
-            </div>
+            <MatchRow
+              key={m.fixtureId}
+              label={`${m.home.team.name} v ${m.away.team.name}`}
+              when={<time className="rc-when" dateTime={m.kickoff}>{m.score ?? (m.confirmed ? formatShortKickoff(m.kickoff).split(" ")[1] : "TBC")}</time>}
+              home={m.home}
+              away={m.away}
+              draw={m.draw}
+              bothScore={m.bothScore}
+            />
           ))}
         </div>
       ))}

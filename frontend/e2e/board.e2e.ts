@@ -541,10 +541,13 @@ test("home (Recap): the gameweek, the best cards, the round as a scoreboard, the
   }
   const matches = gameweekMatches(grid, column(openingMatchday)).matches.length;
   await expect(page.locator(".rc-mt")).toHaveCount(matches);
-  // Each side of a match: its win chance, xG and clean sheet, in that order, under labelled columns.
-  await expect(page.locator(".rc-rh")).toContainText("Win");
-  await expect(page.locator(".rc-rh")).toContainText("Clean sheet");
-  await expect(page.locator(".rc-mt").first().locator(".rc-win")).toHaveCount(2);
+  // Each match: both win chances in the bar, each side's own xG and clean sheet under its name, both-score under the bar.
+  const first = page.locator(".rc-mt").first();
+  await expect(first.locator(".rc-win")).toHaveCount(2);
+  await expect(first.locator(".rc-sts")).toHaveCount(2);
+  await expect(first.locator(".rc-sts").first()).toContainText("xG");
+  await expect(first.locator(".rc-sts").first()).toContainText("clean sheet");
+  await expect(first.locator(".rc-both")).toContainText("both score");
   await expect(page.locator(".rc-table tbody tr")).toHaveCount(grid.teams.length);
   // The narrow table keeps its Now and After columns inside its tile (a global min-width once pushed them out).
   expect(await page.locator(".rc-table").evaluate((tile) => tile.querySelector("table")!.getBoundingClientRect().right <= tile.getBoundingClientRect().right + 1)).toBe(true);

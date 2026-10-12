@@ -94,6 +94,15 @@ def load(
     return out
 
 
+def read_times(db: Session, *, now: datetime | None = None, days: int | None = None) -> dict[str, Any]:
+    """`load`'s shape without the games: who has games in the window and when he was last read. A refresh only needs
+    that to tell a new player from a known one, and it is a few kilobytes where `load` is megabytes from Neon."""
+    query = select(PlayerGame.player, func.max(PlayerGame.read_at)).group_by(PlayerGame.player)
+    if days is not None:
+        query = query.where(PlayerGame.date >= (now or datetime.now(UTC)) - timedelta(days=days))
+    return {player: {"at": as_utc(at).isoformat() if at else "", "games": []} for player, at in db.execute(query)}
+
+
 def save_statements(db: Session, record: dict[str, Any], now: datetime, lineups: dict[str, Any] | None = None) -> int:
     """Keep the latest pre-lock reading; only statement columns are updated, and a failed source keeps its last number."""
     lock = datetime.fromisoformat(record["gameweek"]["lock"])

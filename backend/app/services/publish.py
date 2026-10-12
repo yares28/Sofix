@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 import httpx
-from sqlalchemy import text
+from sqlalchemy import text, update
 from sqlalchemy.orm import Session
 
 from app.models import ReadModel, RefreshRun
@@ -31,12 +31,10 @@ NEON_FREE_BYTES = 512 * 1024 * 1024
 
 
 def put(db: Session, key: str, payload: dict[str, Any], now: datetime) -> None:
-    row = db.get(ReadModel, key)
-    if row is None:
+    """Replace one payload without reading the old one first: Neon counts every byte it sends (5 GB a month)."""
+    replaced = db.execute(update(ReadModel).where(ReadModel.key == key).values(payload=payload, updated_at=now))
+    if not replaced.rowcount:  # type: ignore[attr-defined]
         db.add(ReadModel(key=key, payload=payload, updated_at=now))
-    else:
-        row.payload = payload
-        row.updated_at = now
     db.commit()
 
 

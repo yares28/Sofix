@@ -231,7 +231,9 @@ def run(
     started = datetime.now(UTC)
     references = cached_references(db)
     templates = cached_templates(db)
-    league = cached_league(db)
+    # The sync only asks this who has been read before; the games themselves are loaded once, after this run's are saved.
+    # A dry run saves nothing, so it plans on the full history from here.
+    league = cached_league(db) if dry_run else player_games.read_times(db, days=70)
     order = essence_order(db)
     previous = published(db)
     # A finished gameweek's replay never changes once its scores are final: keep it, and fetch nothing for it.

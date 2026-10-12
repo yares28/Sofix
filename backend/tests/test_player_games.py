@@ -1,6 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
-from app.models import PlayerGame
+from app.models import PlayerGame, ReadModel
 from tests.test_pipeline import db  # noqa: F401
 
 NOW = datetime(2026, 10, 8, tzinfo=UTC)
@@ -92,3 +92,25 @@ def test_duplicate_game_across_pages_is_written_once(db):  # noqa: F811
     game = {"gameId": "g1", "date": "2026-10-01T19:00:00Z", "competition": "laliga-es", "score": 50}
     assert player_games.save(db, {"a": [game, {**game, "score": 60}]}, NOW) == 1
     assert db.get(PlayerGame, ("a", "g1")).score == 60
+
+
+def test_read_times_is_load_without_the_games(db):  # noqa: F811
+    from app.services.publish import put
+    from app.sorare import player_games
+
+    old = {"gameId": "old", "date": "2026-07-01T19:00:00Z", "competition": "laliga-es", "status": "FINAL"}
+    new = {"gameId": "new", "date": "2026-10-01T19:00:00Z", "competition": "laliga-es", "status": "FINAL"}
+    player_games.save(db, {"a": [old, new], "b": [old]}, NOW)
+    db.add(PlayerGame(player="c", game_id="new", date=datetime(2026, 10, 1, 19, tzinfo=UTC), competition="laliga-es"))
+    db.commit()
+    for days in (30, None):
+        loaded = player_games.load(db, now=NOW, days=days)
+        assert player_games.read_times(db, now=NOW, days=days) == {
+            player: {"at": entry["at"], "games": []} for player, entry in loaded.items()
+        }
+    assert player_games.read_times(db, now=NOW, days=30)["c"]["at"] == ""  # kept but never read: still a new player
+
+    # put() writes a new key and replaces an old one, without loading the row it replaces
+    put(db, "k", {"n": 1}, NOW)
+    put(db, "k", {"n": 2}, NOW + timedelta(minutes=1))
+    assert db.get(ReadModel, "k").payload == {"n": 2}

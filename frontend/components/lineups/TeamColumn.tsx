@@ -20,6 +20,7 @@ import { KindIcon, RotationIcon, TargetIcon } from "./Icons";
 import PlayerCard from "./PlayerCard";
 import Shield from "./Shield";
 import type { ClubLook } from "./LineupsView";
+import { accuracy, type MatchScores } from "../../lib/matchScores";
 
 const cap = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
@@ -50,6 +51,7 @@ export default function TeamColumn({
   look,
   now,
   actual,
+  scores,
 }: {
   side: LineupSide;
   place: "home" | "away";
@@ -60,6 +62,8 @@ export default function TeamColumn({
   look: ClubLook | undefined;
   now: Date;
   actual?: "announced"|"unannounced"|"incomplete"|"loading"|"unavailable";
+  /** The Scores page: the bench is drawn as cards too, and how close Sofix and Sorare were is said under it. */
+  scores?: MatchScores;
 }) {
   // One short name per player, pitch cards and chips alike: two with the same surname get an initial, whichever list they are in.
   const labels = playerLabels([...side.rows.flatMap((row) => row.players), ...side.alternatives]);
@@ -123,7 +127,15 @@ export default function TeamColumn({
           {others.length ? (
             <div className="lu-row lu-others">
               <span className="lu-others-title">{actual ? "Announced bench" : slots.perSlot ? "Also on the bench" : "Others in the squad"}</span>
-              <Alternatives players={others} mine={mine} labels={labels} />
+              {scores ? (
+                <ul className="lu-cards lu-bench" aria-label="Announced bench">
+                  {others.map((player) => (
+                    <PlayerCard key={player.id} player={player} label={labels[player.id] ?? player.name} line={player.pos ?? "MID"} card={player.yours ? cards[player.yours] : undefined} calledUp={false} art={art[player.id]} />
+                  ))}
+                </ul>
+              ) : (
+                <Alternatives players={others} mine={mine} labels={labels} />
+              )}
             </div>
           ) : null}
         </div>
@@ -133,6 +145,8 @@ export default function TeamColumn({
           <span>{actual?actual==="unannounced"?"Starting XI not announced on Sorare.":actual==="incomplete"?"Sorare returned an incomplete starting XI.":actual==="loading"?"Reading actual lineup.":"Actual lineup unavailable.":"Futbol Fantasy publishes a lineup about a day after a team plays. SO, then SF, until then."}</span>
         </div>
       )}
+
+      {scores && side.published ? <Accuracy side={side} scores={scores} /> : null}
 
       {side.published && side.squad === false ? (
         <p className="lu-note">
@@ -178,6 +192,25 @@ export default function TeamColumn({
         </ul>
       ) : null}
     </section>
+  );
+}
+
+/** The team's stats corner on the Scores page: how close each source's expected scores were to what the players made. */
+function Accuracy({ side, scores }: { side: LineupSide; scores: MatchScores }) {
+  const players = [...side.rows.flatMap((row) => row.players), ...side.alternatives];
+  return (
+    <dl className="lu-acc" aria-label={`${side.name}: how close the expected scores were`}>
+      {(["sofix", "sorare"] as const).map((source) => {
+        const found = accuracy(players, scores, source);
+        return (
+          <div key={source}>
+            <dt>{source === "sofix" ? "Sofix accuracy" : "Sorare accuracy"}</dt>
+            <dd>{found ? `${found.percent}%` : "—"}</dd>
+            <dd className="lu-acc-sub">{found ? `${found.off} pts off on average · ${found.players} ${found.players === 1 ? "player" : "players"}` : "No scores to compare yet"}</dd>
+          </div>
+        );
+      })}
+    </dl>
   );
 }
 

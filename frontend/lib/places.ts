@@ -14,6 +14,7 @@ export const PLACES: Place[] = [
       { href: "/play", label: "Sorare" },
       { href: "/fixtures", label: "LaLiga" },
       { href: "/lineups", label: "Lineups" },
+      { href: "/scores", label: "Scores" },
       { href: "/missions", label: "Missions" },
     ],
   },

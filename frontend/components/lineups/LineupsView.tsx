@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -35,10 +35,13 @@ import { CalledUpMark, ExternalIcon, InfoIcon, KindIcon } from "./Icons";
 import Shield from "./Shield";
 import TeamColumn from "./TeamColumn";
 import { actualSide, type ActualRead } from "../../lib/actualLineups";
+import { SCORE_VIEWS, type ScoreView } from "../../lib/matchScores";
 
 export type ClubLook = { color: string; crest: string | null };
 
 type Props = {
+  /** The Scores page: the eleven that played, with what each player scored or was expected to score. */
+  scores?: boolean;
   data: LineupsData;
   chances: LineupChances;
   sorareGames: Record<number, SorareGameLink>;
@@ -56,7 +59,7 @@ type Props = {
   gone: string | null;
 };
 
-const hrefOf = (match: LineupMatch) => `/lineups?m=${match.id}`;
+const hrefOf = (base: string, match: LineupMatch) => `${base}?m=${match.id}`;
 
 /**
  * A click on a match, a round or a competition changes the match here, from the payload the page already holds, and puts it in the
@@ -65,7 +68,7 @@ const hrefOf = (match: LineupMatch) => `/lineups?m=${match.id}`;
 const switchTo = (match: LineupMatch) => (event: MouseEvent<HTMLAnchorElement>) => {
   if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
   event.preventDefault();
-  window.history.pushState(null, "", matchAddress(window.location.search, match.id));
+  window.history.pushState(null, "", matchAddress(window.location.search, match.id, window.location.pathname));
 };
 const lookOf = (side: LineupSide, clubs: Record<string, ClubLook>) => (side.club ? clubs[side.club] : undefined);
 const READ_MESSAGES = {
@@ -81,8 +84,11 @@ const READ_MESSAGES = {
   error: "Sorare could not return starting odds. Try again.",
 };
 
-export default function LineupsView({ data, chances, sorareGames, sorareKept, facts, sections, initial, now, clubs, flash, gone }: Props) {
-  const [source, setSource] = useState<StartSource | "actual">("futbolfantasy");
+export default function LineupsView({ scores = false, data, chances, sorareGames, sorareKept, facts, sections, initial, now, clubs, flash, gone }: Props) {
+  const [source, setSource] = useState<StartSource | "actual">(scores ? "actual" : "futbolfantasy");
+  // The announced eleven is drawn: always on the Scores page, and under "Actual" on Lineups.
+  const real = scores || source === "actual";
+  const base = usePathname();
   const [actuals, setActuals] = useState<Record<number, ActualRead>>({});
   const actualChecked = useRef(new Map<number, number>());
   const actualFlight = useRef(new Set<number>());
@@ -100,22 +106,22 @@ export default function LineupsView({ data, chances, sorareGames, sorareKept, fa
     if(actualFlight.current.has(id)||Date.now()-(actualChecked.current.get(id)??0)<60_000)return;
     actualFlight.current.add(id);
     try {
-      const response=await fetch(`/api/lineups/actual?match=${id}`,{signal:AbortSignal.timeout(20_000)});
+      const response=await fetch(`/api/lineups/actual?match=${id}${scores?"&scores=1":""}`,{signal:AbortSignal.timeout(20_000)});
       const found:ActualRead=response.ok?await response.json():{state:"unavailable"};
       setActuals(previous=>({...previous,[id]:found}));
     } catch {setActuals(previous=>({...previous,[id]:{state:"unavailable"}}));}
     finally {actualChecked.current.set(id,Date.now());actualFlight.current.delete(id);}
-  },[selected.id]);
+  },[selected.id,scores]);
   useEffect(()=>{
-    if(source!=="actual")return;
+    if(!real)return;
     void readActual();
     const returned=()=>{if(document.visibilityState==="visible")void readActual();};
     window.addEventListener("focus",returned); document.addEventListener("visibilitychange",returned);
     return()=>{window.removeEventListener("focus",returned);document.removeEventListener("visibilitychange",returned);};
-  },[source,readActual]);
+  },[real,readActual]);
   const actual=actuals[selected.id];
   const official=actual?.state==="ready"?actual.data:undefined;
-  const actualNote=!actual?"Reading actual lineups from Sorare.":actual.state==="unmatched"?"This match could not be matched to Sorare's schedule.":actual.state==="rate-limited"?"Sorare's request limit was reached. Try again later.":actual.state==="unavailable"?"Actual lineups could not be read from Sorare.":`Actual lineups · Sorare · checked ${readLabel(official!.readAt,new Date())}`;
+  const actualNote=!actual?"Reading actual lineups from Sorare.":actual.state==="unmatched"?"This match could not be matched to Sorare's schedule.":actual.state==="rate-limited"?"Sorare's request limit was reached. Try again later.":actual.state==="unavailable"?"Actual lineups could not be read from Sorare.":`${scores?"Scores":"Actual lineups"} · Sorare · checked ${readLabel(official!.readAt,new Date())}`;
   const section = sections.find((one) => one.matches.some((match) => match.id === selected.id)) ?? sections[0]!;
   const state = matchState(selected, now);
   const notes = gone !== null && asked === gone ? [...flash, "That match is no longer on Futbol Fantasy. Showing the next one."] : flash;
@@ -142,10 +148,10 @@ export default function LineupsView({ data, chances, sorareGames, sorareKept, fa
     inFlight.current.delete(match);
   }, [selected.id, link]);
   useEffect(() => {
-    if (source === "sorare" && !attempted.current.has(selected.id)) void readSorare();
-  }, [source, selected.id, readSorare]);
+    if (!scores && source === "sorare" && !attempted.current.has(selected.id)) void readSorare();
+  }, [scores, source, selected.id, readSorare]);
   useEffect(() => {
-    if (source !== "sorare") return;
+    if (scores || source !== "sorare") return;
     const returned = () => { if (document.visibilityState === "visible") void readSorare(); };
     window.addEventListener("focus", returned);
     document.addEventListener("visibilitychange", returned);
@@ -153,7 +159,7 @@ export default function LineupsView({ data, chances, sorareGames, sorareKept, fa
       window.removeEventListener("focus", returned);
       document.removeEventListener("visibilitychange", returned);
     };
-  }, [source, readSorare]);
+  }, [scores, source, readSorare]);
   const read = reads[selected.id];
   // Every linked match of the page, opened one after another in a background Sorare tab by the extension; what Sorare's own
   // page loads there is saved by the app, so the numbers are here after the reload, with no Sorare tab left open.
@@ -180,7 +186,9 @@ export default function LineupsView({ data, chances, sorareGames, sorareKept, fa
     : READ_MESSAGES[read?.state ?? "reading"];
   const sorarePlayer = Object.keys(link?.players ?? {}).find(slug => /^[a-z0-9-]{1,160}$/.test(slug));
   const sorareUrl = sorarePlayer && link ? `https://sorare.com/football/players/${sorarePlayer}?game=${encodeURIComponent(link.id)}` : null;
-  const arranged = (side: LineupSide, place:"home"|"away") => source === "actual" ? actualSide(side,official?.[place],data.cards) : source === "futbolfantasy" ? side : byChance(side, (player) => values[player.id]?.[source] ?? null);
+  // The announced eleven comes from Sorare, by slug: a player the match links to Futbol Fantasy keeps the card art kept under that id.
+  const art = real && link ? { ...data.art, ...Object.fromEntries(Object.entries(link.players).flatMap(([slug, ff]) => (data.art[ff] ? [[`so:${slug}`, data.art[ff]]] : []))) } : data.art;
+  const arranged = (side: LineupSide, place:"home"|"away") => real ? actualSide(side,official?.[place],data.cards) : source === "futbolfantasy" ? side : byChance(side, (player) => values[player.id]?.[source] ?? null);
   // On a phone the timeline scrolls sideways: bring the match in view to the middle whenever it changes.
   const scroller = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -197,9 +205,9 @@ export default function LineupsView({ data, chances, sorareGames, sorareKept, fa
           {named}
           {when ? ` · ${when}` : ""}
         </p>
-        <h1>Who starts this round?</h1>
+        <h1>{scores ? "How did they score?" : "Who starts this round?"}</h1>
         <div className="lu-chips">
-          {source==="actual"?<p className="lu-pill" role="status">{actualNote}</p>:<ReadPill data={data} matches={section.matches} now={now} />}
+          {real?<p className="lu-pill" role="status">{actualNote}</p>:<ReadPill data={data} matches={section.matches} now={now} />}
         </div>
       </header>
 
@@ -214,7 +222,7 @@ export default function LineupsView({ data, chances, sorareGames, sorareKept, fa
           {competitions.map(([key, name]) => {
             const target = sections.find((s) => s.competition === key)!.matches[0]!;
             return (
-              <Link key={key} href={hrefOf(target)} prefetch={false} onClick={switchTo(target)} aria-current={key === section.competition ? "page" : undefined}>
+              <Link key={key} href={hrefOf(base, target)} prefetch={false} onClick={switchTo(target)} aria-current={key === section.competition ? "page" : undefined}>
                 {name}
               </Link>
             );
@@ -231,14 +239,14 @@ export default function LineupsView({ data, chances, sorareGames, sorareKept, fa
           </div>
         </div>
       </nav>
-      <p className="lu-source">{source==="actual"?"Kickoffs":"Futbol Fantasy · kickoffs"} in Madrid time</p>
+      <p className="lu-source">{real?"Kickoffs":"Futbol Fantasy · kickoffs"} in Madrid time</p>
 
       <article key={selected.id} className="lu-match" aria-label={`${selected.home.name} against ${selected.away.name}`}>
-        <MatchHead match={selected} state={state} now={now} clubs={clubs} actual={source==="actual"} />
+        <MatchHead match={selected} state={state} now={now} clubs={clubs} actual={real} />
         <div className="lu-controls">
           <fieldset className="lu-chance-sources">
             <legend className="visually-hidden">Lineup source</legend>
-            {(Object.entries({...CHANCE_SOURCES,actual:"Actual"}) as [StartSource|"actual", string][]).map(([key, name]) => (
+            {(Object.entries(scores?SCORE_VIEWS:{...CHANCE_SOURCES,actual:"Actual"}) as [StartSource|"actual", string][]).map(([key, name]) => (
               <label key={key}>
                 <input type="radio" name="lu-source" value={key} checked={source === key} onChange={() => setSource(key)} />
                 <span>{name}</span>
@@ -250,14 +258,14 @@ export default function LineupsView({ data, chances, sorareGames, sorareKept, fa
             Only my players
           </label>
         </div>
-        {source === "sorare" && (sorareNote || sorareUrl || targets.length) ? <div className="lu-sorare-read">
+        {!scores && source === "sorare" && (sorareNote || sorareUrl || targets.length) ? <div className="lu-sorare-read">
           {sorareNote ? <p role="status">{sorareNote}</p> : null}
           {round ? <p role="status">{round.note}</p> : sorareKept.at ? <p>Saved from Sorare: {sorareKept.players} players in {sorareKept.games} {sorareKept.games === 1 ? "match" : "matches"}, read {ago(new Date(sorareKept.at), now)} ago.</p> : null}
           {targets.length ? <button type="button" disabled={round?.state === "reading"} onClick={() => void readRound()}>Read the round on Sorare</button> : null}
           {sorareUrl ? <a href={sorareUrl} target="_blank" rel="noreferrer">Open match on Sorare</a> : null}
           {link && read && read.state !== "reading" ? <button type="button" onClick={() => void readSorare()}>Read from Sorare</button> : null}
         </div> : null}
-        <ChanceContext.Provider value={{ source:source==="actual"?"futbolfantasy":source, values, url: selected.url }}>
+        <ChanceContext.Provider value={{ source:real?"futbolfantasy":source, values, url: selected.url, scores: scores ? { show: source as ScoreView, values: official?.scores ?? {} } : undefined }}>
           <fieldset className="lu-switch" aria-label="Team">
             <legend className="visually-hidden">Team</legend>
             <input type="radio" name="lu-side" id="lu-side-home" className="lu-pick lu-pick-home" defaultChecked />
@@ -271,12 +279,12 @@ export default function LineupsView({ data, chances, sorareGames, sorareKept, fa
               {selected.away.name}
             </label>
             <div className="lu-teams">
-              <TeamColumn side={arranged(selected.home,"home")} place="home" round={selected.round} cards={data.cards} art={data.art} look={lookOf(selected.home, clubs)} now={now} actual={source==="actual"?official?.home.state??(!actual?"loading":"unavailable"):undefined} />
-              <TeamColumn side={arranged(selected.away,"away")} place="away" round={selected.round} cards={data.cards} art={data.art} look={lookOf(selected.away, clubs)} now={now} actual={source==="actual"?official?.away.state??(!actual?"loading":"unavailable"):undefined} />
+              <TeamColumn side={arranged(selected.home,"home")} place="home" round={selected.round} cards={data.cards} art={art} look={lookOf(selected.home, clubs)} now={now} actual={real?official?.home.state??(!actual?"loading":"unavailable"):undefined} scores={scores?official?.scores??{}:undefined} />
+              <TeamColumn side={arranged(selected.away,"away")} place="away" round={selected.round} cards={data.cards} art={art} look={lookOf(selected.away, clubs)} now={now} actual={real?official?.away.state??(!actual?"loading":"unavailable"):undefined} scores={scores?official?.scores??{}:undefined} />
             </div>
           </fieldset>
         </ChanceContext.Provider>
-        {source==="actual"?<footer className="lu-legend"><span><i className="lu-swatch" aria-hidden="true" />Your card</span></footer>:<Legend calledUp={calledUpIn(selected)} />}
+        {real?<footer className="lu-legend"><span><i className="lu-swatch" aria-hidden="true" />Your card</span></footer>:<Legend calledUp={calledUpIn(selected)} />}
       </article>
     </main>
   );
@@ -346,6 +354,7 @@ function Day({ day, selected, now, clubs, facts }: { day: TimelineDay; selected:
 
 /** A game as its two crests, home side first; the club names are in the label and on hover. */
 function Pair({ match, current, now, clubs, facts }: { match: LineupMatch; current: boolean; now: Date; clubs: Record<string, ClubLook>; facts?: MatchFacts }) {
+  const base = usePathname();
   const state = matchState(match, now);
   const when = kickoffLabel(match.kickoff);
   const label = `${match.home.name} against ${match.away.name}, ${state === "started" ? `kicked off at ${when.time}` : when.short}`;
@@ -355,7 +364,7 @@ function Pair({ match, current, now, clubs, facts }: { match: LineupMatch; curre
     setPoint({ left: Math.min(window.innerWidth - 170, Math.max(170, rect.left + rect.width / 2)), top: rect.bottom + 10 });
   };
   return (
-    <Link href={hrefOf(match)} prefetch={false} onClick={switchTo(match)} onMouseEnter={(event) => show(event.currentTarget)} onMouseLeave={() => setPoint(null)} onFocus={(event) => show(event.currentTarget)} onBlur={() => setPoint(null)} className="lu-pair" aria-current={current ? "page" : undefined} aria-label={label} aria-describedby={point ? `lu-pair-tip-${match.id}` : undefined} data-state={state}>
+    <Link href={hrefOf(base, match)} prefetch={false} onClick={switchTo(match)} onMouseEnter={(event) => show(event.currentTarget)} onMouseLeave={() => setPoint(null)} onFocus={(event) => show(event.currentTarget)} onBlur={() => setPoint(null)} className="lu-pair" aria-current={current ? "page" : undefined} aria-label={label} aria-describedby={point ? `lu-pair-tip-${match.id}` : undefined} data-state={state}>
       {[match.home, match.away].map((one, index) => (
         <span key={index} className="lu-disc">
           <Shield crest={lookOf(one, clubs)?.crest ?? one.crest} color={lookOf(one, clubs)?.color} code={shortCode(one)} width={23} />

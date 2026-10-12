@@ -600,3 +600,41 @@ test("every text on a match is 11 px or more", async ({ page }) => {
   await page.waitForTimeout(400);
   expect(await smallText(page, 11)).toEqual([]);
 });
+
+test("Scores draws the eleven that played with each score, the bench as cards and how close Sofix and Sorare were", async ({ page, request }) => {
+  const data = (await (await request.get(`${MOCK}/api/lineups`)).json()).data as LineupsData;
+  const match = data.matches[0]!;
+  const slug = (id: string) => `p-${id}`;
+  const side = (one: typeof match.home) => ({
+    state: "announced", formation: one.formation,
+    rows: one.rows.map((r) => ({ ...r, players: r.players.map((p) => ({ ...p, slug: slug(p.id), p: null, actual: "starter" })) })),
+    bench: one.alternatives.slice(0, 2).map((p) => ({ ...p, slug: slug(p.id), p: null, actual: "bench" })),
+  });
+  // every starter scored 60 where Sofix said 50 and Sorare 55; the bench did not play
+  const scores = Object.fromEntries([match.home, match.away].flatMap((one) => [
+    ...one.rows.flatMap((r) => r.players).map((p) => [slug(p.id), { actual: 60, sofix: 50, sorare: 55 }]),
+    ...one.alternatives.slice(0, 2).map((p) => [slug(p.id), { actual: null, sofix: 40, sorare: null }]),
+  ]));
+  const asked: string[] = [];
+  await page.route("**/api/lineups/actual?match=*", (route) => {
+    asked.push(new URL(route.request().url()).searchParams.get("scores") ?? "");
+    return route.fulfill({ json: { state: "ready", data: { game: "g", readAt: new Date().toISOString(), home: side(match.home), away: side(match.away), scores } } });
+  });
+  await page.goto(`/scores?m=${match.id}`);
+  await expect(page.getByRole("heading", { name: "How did they score?" })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Futbol Fantasy" })).toHaveCount(0);
+  await expect(page.locator(".lu-card")).toHaveCount(26); // 22 starters and the two benches of two, all as cards
+  await expect(page.locator(".lu-bench .lu-card")).toHaveCount(4);
+  await expect(page.locator(".lu-row:not(.lu-others) .lu-pct").first()).toHaveText("60");
+  await expect(page.locator(".lu-bench .lu-pct").first()).toHaveText("—");
+  expect(asked[0]).toBe("1");
+  const corner = page.locator(".lu-acc").first();
+  await expect(corner).toContainText("Sofix accuracy90%10 pts off on average · 11 players");
+  await expect(corner).toContainText("Sorare accuracy95%5 pts off on average · 11 players");
+  await page.getByRole("radio", { name: "Sofix", exact: true }).check();
+  await expect(page.locator(".lu-row:not(.lu-others) .lu-pct").first()).toHaveText("50");
+  await expect(page.locator(".lu-bench .lu-pct").first()).toHaveText("40");
+  await page.getByRole("radio", { name: "Sorare", exact: true }).check();
+  await expect(page.locator(".lu-row:not(.lu-others) .lu-pct").first()).toHaveText("55");
+  await expect(page.getByRole("navigation", { name: /^Matches of/ }).getByRole("link").first()).toHaveAttribute("href", /^\/scores\?m=/);
+});

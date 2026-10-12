@@ -1,13 +1,15 @@
 import { z } from "zod";
 import type { Line, LineupMatch, LineupPlayer, LineupSide, OwnedCard } from "./lineups";
+import { readScores, type MatchScores } from "./matchScores";
 
 const Player = z.object({slug:z.string().regex(/^[a-z0-9-]{1,160}$/),displayName:z.string().min(1),position:z.enum(["Goalkeeper","Defender","Midfielder","Forward"])});
 const Formation = z.object({startingLineupAvailable:z.boolean(),startingLineup:z.array(z.array(Player)),bench:z.array(Player)});
 const Team = z.object({slug:z.string(),name:z.string()});
 export const GameIdentity = z.object({id:z.string().regex(/^Game:[0-9a-f-]{36}$/i),date:z.string(),homeTeam:Team,awayTeam:Team});
-const Game = GameIdentity.extend({homeFormation:Formation,awayFormation:Formation});
+const Game = GameIdentity.extend({homeFormation:Formation,awayFormation:Formation,playerGameScores:z.array(z.unknown()).optional()});
 export type ActualSide = {state:"announced"|"unannounced"|"incomplete";rows:LineupSide["rows"];bench:LineupPlayer[];formation:string};
-export type ActualLineup = {game:string;readAt:string;home:ActualSide;away:ActualSide};
+/** `scores` is there when the read asked for them (the Scores page): every player of the game, by Sorare slug. */
+export type ActualLineup = {game:string;readAt:string;home:ActualSide;away:ActualSide;scores?:MatchScores};
 export type ActualRead = {state:"ready";data:ActualLineup}|{state:"unavailable"|"unmatched"|"rate-limited"};
 const position:Record<string,Line>={Goalkeeper:"GK",Defender:"DEF",Midfielder:"MID",Forward:"FWD"};
 const names:Record<string,string[]>={ATH:["Athletic Club","Athletic Bilbao"],ATL:["Atletico Madrid","Atletico de Madrid"],CEL:["Celta","Celta Vigo","RC Celta de Vigo"],DEP:["Deportivo","Deportivo La Coruna","RC Deportivo de La Coruna"],RMA:["Real Madrid"],RSO:["Real Sociedad"],OVI:["Real Oviedo","Oviedo"],SAN:["Racing Santander","Racing","Real Racing Club de Santander"],ALA:["Alaves","Deportivo Alaves"],ESP:["Espanyol","RCD Espanyol de Barcelona"],MLL:["Mallorca","RCD Mallorca"],RAY:["Rayo Vallecano"],BET:["Betis","Real Betis Balompie","Real Betis"],OSA:["Osasuna","CA Osasuna"]};
@@ -31,7 +33,7 @@ export function readActualGame(value:unknown,match:LineupMatch,readAt:string):Ac
   // A person cannot belong to both match sheets, even if both individual elevens have eleven names.
   const h=new Set([...home.rows.flatMap(r=>r.players),...home.bench].map(p=>p.id));
   if([...away.rows.flatMap(r=>r.players),...away.bench].some(p=>h.has(p.id)))return null;
-  return {game:g.id,readAt,home,away};
+  return {game:g.id,readAt,home,away,...(g.playerGameScores?{scores:readScores(g.playerGameScores)}:{})};
 }
 export function actualSide(base:LineupSide,actual:ActualSide|undefined,cards:Record<string,OwnedCard>):LineupSide{
   const mine=(p:LineupPlayer)=>({...p,yours:p.slug&&cards[p.slug]?p.slug:undefined});

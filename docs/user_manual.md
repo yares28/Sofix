@@ -264,6 +264,10 @@ back more than its fee on average.
 In a lineup's sheet, a card's name opens his match on **Lineups** (Futbol Fantasy's probable elevens and the chance of each player of his
 side). A game Futbol Fantasy has no page for, such as a national-team game, has no link.
 
+**Scores** (This week) is the same page for games played: the eleven that started, each card with what he scored. **Sofix** and
+**Sorare** swap that for what each expected of him. The bench is drawn as cards too. Under each team, the accuracy of each source is
+100 minus the average gap in points between what it expected and what the players who played scored.
+
 The planner enforces the published slots, caps, in-season minimum, club/card/player uniqueness, bonuses and substitute
 rules. A substitute is kept only when its expected protection exceeds the bonus sacrificed by using it. It repeats a
 seeded, slightly randomized whole-gameweek search and returns up to five plans whose card sets are materially different.

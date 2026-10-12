@@ -14,6 +14,8 @@ export const FORMATION_QUERY=`query ActualLineup($id:ID!){anyGame(id:$id){... on
   homeFormation{startingLineupAvailable startingLineup{slug displayName position} bench{slug displayName position}}
   awayFormation{startingLineupAvailable startingLineup{slug displayName position} bench{slug displayName position}}
 }}}`;
+/** The same read with what each player scored and what Sorare expected of him: one request more per match, only for the Scores page. */
+export const SCORES_QUERY=FORMATION_QUERY.replace("}}}","  playerGameScores{score projection{score} anyPlayer{slug} anyPlayerGameStats{playedInGame}}}}}");
 class Limited extends Error {}
 async function query(query:string,variables:Record<string,string>,seconds:number):Promise<unknown>{
   const response=await fetch(API,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({query,variables}),
@@ -28,14 +30,14 @@ const Index=z.object({football:z.object({competition:z.object({futureGames:z.obj
 const readIndex=cache(async(slug:string)=>Index.parse(await query(INDEX_QUERY,{slug},3600)),["actual-games-v1"],{revalidate:3600});
 // One minute around announcement: an hour-long negative cache would hide a newly announced XI.
 // No polling, auth, extension or extra page visits. Reads happen on selection/navigation or return to the page.
-export async function loadActualLineup(match:LineupMatch):Promise<ActualRead>{
+export async function loadActualLineup(match:LineupMatch,scores=false):Promise<ActualRead>{
   const slug=COMPETITIONS[match.competition]; if(!slug||!match.kickoff)return {state:"unmatched"};
   try{
     const c=(await readIndex(slug)).football.competition;
     const identities=[...c.futureGames.nodes,...c.pastGames.nodes].flatMap(value=>{const parsed=GameIdentity.safeParse(value);return parsed.success?[parsed.data]:[];});
     const games=[...new Map(identities.map(g=>[g.id,g])).values()].filter(g=>sameGame(g,match));
     if(games.length!==1)return {state:"unmatched"};
-    const body=await query(FORMATION_QUERY,{id:games[0]!.id},60) as {anyGame?:unknown};
+    const body=await query(scores?SCORES_QUERY:FORMATION_QUERY,{id:games[0]!.id},60) as {anyGame?:unknown};
     const data=readActualGame(body.anyGame,match,new Date().toISOString());
     return data?{state:"ready",data}:{state:"unavailable"};
   }catch(error){return {state:error instanceof Limited?"rate-limited":"unavailable"};}

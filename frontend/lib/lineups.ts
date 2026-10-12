@@ -164,10 +164,10 @@ export function pickMatch(sections: Section[], asked: string | null, now: Date):
 }
 
 /** The address of a match: `?m=` set to its id, whatever else the address says kept. */
-export function matchAddress(search: string, id: number): string {
+export function matchAddress(search: string, id: number, path = "/lineups"): string {
   const params = new URLSearchParams(search);
   params.set("m", String(id));
-  return `/lineups?${params.toString()}`;
+  return `${path}?${params.toString()}`;
 }
 
 /** The match an address asks for among those the page holds, else the one the page opened on. */

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { loadLineups } from "../../../../lib/lineupsData";
 import { loadActualLineup } from "../../../../lib/actualLineupsData";
+import { sofixScores } from "../../../../lib/matchScores";
+import { loadSofixRecord, loadSorare } from "../../../../lib/playData";
 
 /** Public facts for a match already on Sofix; no caller-supplied source URL, query or game ID. */
 export async function GET(request:NextRequest){
@@ -8,5 +10,14 @@ export async function GET(request:NextRequest){
   if(!id||!/^\d{1,10}$/.test(id))return NextResponse.json({state:"unmatched"},{status:400});
   const data=await loadLineups(),match=data?.matches.find(m=>String(m.id)===id);
   if(!match)return NextResponse.json({state:"unmatched"},{status:404});
-  return NextResponse.json(await loadActualLineup(match),{headers:{"cache-control":"private, max-age=60"}});
+  const scores=request.nextUrl.searchParams.get("scores")==="1";
+  const read=await loadActualLineup(match,scores);
+  // The Scores page: Sofix's number for each player comes from what the job wrote down before the lock of the week the match is in.
+  if(scores&&read.state==="ready"&&read.data.scores&&match.kickoff){
+    const at=Date.parse(match.kickoff);
+    const weeks=((await loadSorare())?.timeline??[]).filter(w=>at>=Date.parse(w.start)&&at<=Date.parse(w.end)).slice(-2);
+    const records=(await Promise.all(weeks.map(w=>loadSofixRecord(w.slug)))).flatMap(r=>r?[r]:[]);
+    for(const [slug,said] of Object.entries(sofixScores(records,read.data.game)))if(read.data.scores[slug])read.data.scores[slug].sofix=said;
+  }
+  return NextResponse.json(read,{headers:{"cache-control":"private, max-age=60"}});
 }

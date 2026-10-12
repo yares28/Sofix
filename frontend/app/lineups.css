@@ -233,6 +233,13 @@
 }
 .lu-alt[data-mine] { box-shadow: 0 0 0 2px var(--lu-mine); }
 .lu-others { gap: 10px; }
+/* Scores page: the bench as cards, and each team's stats corner under it. */
+.lu-bench { flex-wrap: wrap; row-gap: 26px; padding-bottom: 12px; }
+.lu-acc { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0 0; }
+.lu-acc div { padding: 12px 14px; border: 1px solid var(--line, #ececf0); border-radius: 14px; background: var(--surface); }
+.lu-acc dt { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-2); }
+.lu-acc dd { margin: 4px 0 0; font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); }
+.lu-acc dd.lu-acc-sub { margin-top: 2px; font-size: 12px; font-weight: 500; color: var(--ink-2); }
 .lu-others-title { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-2); }
 
 /* ---------- injuries and suspensions ---------- */

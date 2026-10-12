@@ -3,12 +3,19 @@
 import { createContext, useContext } from "react";
 import { CHANCE_SOURCES, chanceFor, chancePercent, type ChanceView } from "../../lib/lineupChances";
 import { chanceTone, type LineupPlayer } from "../../lib/lineups";
+import { scoreColour } from "../../lib/cards";
+import { scoreWords } from "../../lib/matchScores";
 
 export const ChanceContext = createContext<ChanceView>({ source: "futbolfantasy", values: {}, url: "" });
 
 /** Every displayed percentage names its selected source; FF numbers link to the match that supplied them. */
 export default function Chance({ player, small = false, inline = false }: { player: LineupPlayer; small?: boolean; inline?: boolean }) {
   const view = useContext(ChanceContext);
+  if (view.scores) {
+    const n = player.slug ? (view.scores.values[player.slug]?.[view.scores.show] ?? null) : null;
+    const colour = scoreColour(n);
+    return <span className={inline ? "lu-chance-inline" : `lu-pct${small ? " lu-pct-sm" : ""}`} data-tone="none" title={scoreWords(player, view.scores)} style={n === null || inline ? undefined : { background: colour.fill, color: colour.ink }}>{n === null ? "—" : Math.round(n)}</span>;
+  }
   if(player.actual)return <span className={inline?"lu-chance-inline":"lu-pct"} data-tone="good">{player.actual==="starter"?"Starter":"Bench"}</span>;
   const p = chanceFor(player, view);
   const title = `${player.name}: ${p === null ? "no estimate for this match" : `${chancePercent(p)} to start`} · ${CHANCE_SOURCES[view.source]}`;

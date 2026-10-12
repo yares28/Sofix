@@ -2,6 +2,7 @@ import type { LineupMatch, LineupPlayer } from "./lineups";
 import { z } from "zod";
 import { sourceChances } from "./nextGame";
 import type { MarketPlayer, PlayingPlayer, StartSource } from "./play";
+import type { MatchScores, ScoreView } from "./matchScores";
 
 export type ChancePlayer = Pick<PlayingPlayer, "player" | "club" | "games" | "sources" | "pStart" | "startSource">;
 export type MatchChances = Record<string, Partial<Record<StartSource, number>>>;
@@ -118,7 +119,8 @@ export function lineupChances(matches: LineupMatch[], players: ChancePlayer[], m
   return result;
 }
 
-export type ChanceView = { source: StartSource; values: MatchChances; url: string };
+/** `scores` is set on the Scores page: the badge is then a score (what he made, or what a source expected), not a chance. */
+export type ChanceView = { source: StartSource; values: MatchChances; url: string; scores?: { show: ScoreView; values: MatchScores } };
 
 export function chanceFor(player: LineupPlayer, view: ChanceView): number | null {
   return view.source === "futbolfantasy" ? player.p : view.values[player.id]?.[view.source] ?? null;

@@ -5,6 +5,7 @@ import Silhouette from "../Silhouette";
 import FacePhoto from "./FacePhoto";
 import { type Line, type LineupPlayer, type OwnedCard } from "../../lib/lineups";
 import { chanceFor, chancePercent } from "../../lib/lineupChances";
+import { scoreWords } from "../../lib/matchScores";
 import Chance, { ChanceContext } from "./Chance";
 import { cardHref } from "../../lib/links";
 import { CalledUpIcon, CalledUpMark, KindIcon, KIND_LABEL } from "./Icons";
@@ -55,7 +56,7 @@ export default function PlayerCard({
   const kind = player.status?.kind;
   const mark = kind ? <KindIcon kind={kind} ring /> : calledUp && player.status?.international ? player.status.nat ? <CalledUpMark code={player.status.nat} /> : <CalledUpIcon ring /> : null;
   return (
-    <li className="lu-card" data-rarity={rarity} data-art={pic ? "" : undefined} data-mine={card ? "" : undefined} data-out={kind === "out" || kind === "suspended" ? "" : undefined} aria-label={describe(player, Boolean(card), calledUp, chanceFor(player, view))} title={card ? `${player.name} · your ${RARITY_TEXT[rarity] ?? ""} card`.replace("  ", " ") : player.name}>
+    <li className="lu-card" data-rarity={rarity} data-art={pic ? "" : undefined} data-mine={card ? "" : undefined} data-out={kind === "out" || kind === "suspended" ? "" : undefined} aria-label={view.scores ? `${scoreWords(player, view.scores)}${card ? ", your card" : ""}` : describe(player, Boolean(card), calledUp, chanceFor(player, view))} title={card ? `${player.name} · your ${RARITY_TEXT[rarity] ?? ""} card`.replace("  ", " ") : player.name}>
       <div className="lu-face">
         {pic ? (
           <CardArt

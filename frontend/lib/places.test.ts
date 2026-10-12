@@ -8,6 +8,7 @@ describe("placeOf and viewOf", () => {
       ["/play", "This week", "Sorare"],
       ["/fixtures", "This week", "LaLiga"],
       ["/lineups", "This week", "Lineups"],
+      ["/scores", "This week", "Scores"],
       ["/missions", "This week", "Missions"],
       ["/season", "Season", "Fixtures"],
       ["/difficulty", "Season", "Difficulty"],

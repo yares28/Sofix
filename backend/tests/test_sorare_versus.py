@@ -55,7 +55,11 @@ def test_only_starts_with_both_numbers_are_compared():
             "unknown": {"score": 70.0, "played": True, "started": True, "mins": 90},
         }
     }
-    rows = versus.starts_of(versus.settled(week, found, datetime(2026, 10, 12, tzinfo=UTC)))
+    done = versus.settled(week, found, datetime(2026, 10, 12, tzinfo=UTC))
+    # the man who came on is counted apart, in his own figures
+    assert [row["player"] for row in versus.starts_of(done, started=False)] == ["sub"]
+    assert versus.figures([done])["subs"]["starts"] == 1 and versus.figures([done])["all"]["starts"] == 1
+    rows = versus.starts_of(done)
     assert [row["player"] for row in rows] == ["starter"]
 
 

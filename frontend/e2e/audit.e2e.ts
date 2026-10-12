@@ -31,7 +31,7 @@ test("player comparisons cover every saved GW, an all-time summary and URL-resto
   await page.goto(`/audit?gw=${live.id}`);
   const section = page.getByRole("region", { name: "Your players, xScore against actual" });
   await expect(section.locator("#player-score-view-help")).toContainText("the GW selected above");
-  for (const name of ["Accuracy by position", "How far the score lands from the xScore", "Landing within 7 points of the score",
+  for (const name of ["Within 7 points, by position", "How far the score lands from the xScore", "Landing within 7 points of the score",
     "When Sofix says 30%, does it happen 30% of the time?", "Match forecasts, checked"]) {
     const above = await page.getByRole("region", { name, exact: true }).evaluate((element) =>
       !!(element.compareDocumentPosition(document.querySelector(".au-player-scores")!) & Node.DOCUMENT_POSITION_FOLLOWING));
@@ -152,30 +152,29 @@ test("empty match comparisons remain missing rather than zero", async ({ page })
 
 });
 
-test("the page leads with Sofix's and Sorare's accuracy, each on its own, and draws both by position", async ({ page, request }) => {
+test("the page leads with Sofix's and Sorare's success rate within 7 points, starters and substitutes apart, and draws both by position", async ({ page, request }) => {
   await resetBackend(request, "audit-enough");
   await page.goto("/audit?w=2026-10-09");
   await expect(page.getByRole("heading", { level: 1, name: "Sofix against Sorare" })).toBeVisible();
   const duo = page.locator(".ax-duo > div");
-  await expect(duo.nth(0)).toContainText("Sofix accuracy");
-  await expect(duo.nth(0).locator(".ax-duo-n")).toHaveText("83%"); // 100 minus 17.2 points off
-  await expect(duo.nth(0)).toContainText("17.2 pts off on average");
-  await expect(duo.nth(0)).toContainText("Closer");
-  await expect(duo.nth(1)).toContainText("Sorare accuracy");
-  await expect(duo.nth(1).locator(".ax-duo-n")).toHaveText("81%");
-  await expect(duo.nth(1)).not.toContainText("Closer");
+  await expect(duo.nth(0)).toContainText("Sofix · starters");
+  await expect(duo.nth(0).locator(".ax-duo-n")).toHaveText("31%"); // within 7 points of the score
+  await expect(duo.nth(0)).toContainText("Right more often");
+  await expect(duo.nth(0).locator(".ax-duo-m")).toHaveText("Sofix · substitutes42%");
+  await expect(duo.nth(1).locator(".ax-duo-n")).toHaveText("29%");
+  await expect(duo.nth(1).locator(".ax-duo-m")).toHaveText("Sorare · substitutes20%");
+  await expect(duo.nth(1)).not.toContainText("Right more often");
   await expect(page.locator(".ax-facts")).toContainText("412 starts");
-  const rows = page.getByRole("region", { name: "Accuracy by position" }).getByRole("listitem");
+  await expect(page.locator(".ax-facts")).toContainText("96 came on");
+  const rows = page.getByRole("region", { name: "Within 7 points, by position" }).getByRole("listitem");
   await expect(rows).toHaveCount(5);
   await expect(rows.nth(0)).toContainText("All412 starts");
-  await expect(rows.nth(0)).toContainText("Sofix 83%");
-  await expect(rows.nth(0)).toContainText("Sorare 81%");
-  await expect(rows.nth(1)).toContainText("Too few to tell"); // 40 goalkeepers' starts, under the floor
-  await expect(rows.nth(4)).toContainText("Sofix 82%");
-  const detail = page.getByRole("region", { name: "The same starts, three ways" });
-  await expect(detail.getByRole("list", { name: "Week by week" })).toContainText("206 starts · Sofix 83% · Sorare 82%");
-  await expect(detail.getByRole("list", { name: "Week by week" })).toContainText("Too few to tell · 60 of 100 starts");
-  await expect(page.getByText(/better of two|coin flip|pairs/i)).toHaveCount(0); // the pair figures are gone from the page
+  await expect(rows.nth(0)).toContainText("Sofix 31%");
+  await expect(rows.nth(1)).toContainText("Sorare 29%"); // 40 goalkeepers' starts: shown, no floor
+  const detail = page.getByRole("region", { name: "The same games, three ways" });
+  await expect(detail.getByRole("row", { name: /Substitutes/ })).toContainText("96 games");
+  await expect(detail.getByRole("list", { name: "Week by week" })).toContainText("60 starts · within 7: Sofix 31%, Sorare 29%");
+  await expect(page.locator(".ax-hero, .au-vs").getByText(/too few to tell|better of two|coin flip/i)).toHaveCount(0);
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -224,12 +223,11 @@ test("saved weeks survive without Chrome on Recap, Cards and Rewards, beside the
   }
 });
 
-test("under 100 checked starts the two accuracies say too few to tell, never a number", async ({ page }) => {
+test("before any game is checked the success rates are a dash, never a made-up number", async ({ page }) => {
   await page.goto("/audit");
   await expect(page.getByRole("heading", { level: 1, name: "Sofix against Sorare" })).toBeVisible();
   await expect(page.locator(".ax-duo-n")).toHaveText(["–", "–"]);
-  await expect(page.locator(".ax-duo-s")).toHaveText(["Too few to tell", "Too few to tell"]);
-  await expect(page.locator(".ax-facts")).toContainText("0 of 100 starts");
+  await expect(page.locator(".ax-duo-s").first()).toHaveText("Nothing checked yet");
 });
 
 test("the league figures draw every chart from the committed replay: how close, goalkeepers' chances, who starts, Sorare's number", async ({ page }) => {

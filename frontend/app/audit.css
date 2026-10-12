@@ -319,13 +319,14 @@
 .ax-duo dt { font-size: 14px; font-weight: 600; }
 .ax-duo dd { margin: 0; }
 .ax-duo .ax-duo-n { margin-top: 12px; font-size: clamp(52px, 5.4vw, 76px); line-height: .9; font-weight: 650; letter-spacing: -.05em; font-variant-numeric: tabular-nums; }
+.ax-duo .ax-duo-m { margin-top: 18px; font-size: 13px; font-weight: 600; }
+.ax-duo .ax-duo-m b { display: block; margin-top: 4px; font-size: 34px; line-height: 1; font-weight: 650; letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
 .ax-duo .ax-duo-s { margin-top: 12px; color: var(--ink-2); font-size: 13px; font-variant-numeric: tabular-nums; }
 .ax-duo .au-result-best { margin-top: 5px; }
 .ax-two li { grid-template-columns: 124px minmax(0, 1fr); row-gap: 5px; }
 .ax-two li > span:first-child { grid-row: span 2; }
 .ax-two small { display: block; font-size: 11px; font-weight: 400; color: var(--ink-2); }
 .ax-two-row { display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 12px; align-items: center; }
-.ax-few { grid-row: span 2; font-size: 13px; font-weight: 400; color: var(--ink-2); }
 .ax-past { margin: 28px 0 12px; }
 .ax-facts { display: flex; flex-wrap: wrap; gap: 8px; margin: 26px 0 0; padding: 0; list-style: none; }
 .ax-facts li { padding: 7px 14px; border-radius: 999px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink-2); font-size: 13px; }

@@ -238,11 +238,12 @@ function auditPayload(kind) {
     });
     Object.assign(data.starts.live.sofix, { state: "few", recorded: 64, settled: 40 });
     Object.assign(data.xscore.live, { state: "enough", noted: 40, marked: 38, pairs: 130, weeks: 8, rate: 0.64, lo: 0.58, hi: 0.69 });
-    // Sorare against Sofix: enough starts overall and for three positions; goalkeepers and the newest week stay under the floor
+    // Sorare against Sofix: starts overall, by position and week, and the substitutes apart
     const side = (miss, lean, within) => ({ miss, lean, within, pair: null, pairs: 0 });
     const figures = (starts, sofix, sorare) => ({ starts, sofixCloser: 0.52, sofix: side(sofix, 1.2, 0.31), sorare: side(sorare, -0.8, 0.29) });
     data.versus = {
       all: figures(412, 17.2, 18.6),
+      subs: { ...figures(96, 14.1, 21.3), sofix: side(14.1, 3.4, 0.42), sorare: side(21.3, 9.8, 0.2) },
       positions: { GK: figures(40, 15, 16), DEF: figures(140, 16.4, 17.9), MID: figures(132, 17.9, 19.4), FWD: figures(100, 18.3, 19.1) },
       weeks: [{ week: 20, ...figures(206, 17, 18.4) }, { week: 21, ...figures(60, 17.4, 18.8) }],
       recorded: 3,

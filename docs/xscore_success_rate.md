@@ -1,7 +1,7 @@
 # The xScore success rate
 
 > Since 12 Oct 2026 the Audit page no longer shows this figure (owner: a pair says nothing about one player). It leads with
-> Sofix's and Sorare's accuracy on every start instead ([user manual](user_manual.md)). The job still computes what is below.
+> Sofix's and Sorare's share within 7 points, player by player, instead ([user manual](user_manual.md)). The job still computes what is below.
 
 **66%.** Take two of your players in the same position and the same gameweek. The one the xScore rated higher scored more
 in 66 of every 100 such pairs. A coin flip gets 50. The honest range is 65% to 67%.

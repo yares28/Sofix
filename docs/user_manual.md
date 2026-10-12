@@ -466,13 +466,14 @@ On **Cards**, each card shows the season rewards of the saved lineups it was in.
 individual earnings: do not add them across cards. No saved entry and temporarily unavailable storage are labelled separately.
 
 The Audit page checks Sofix's numbers against what happened. Its first view (**xScore**) leads with **Sofix against Sorare**
-(since 12 Oct): two big figures, **Sofix accuracy** and **Sorare accuracy**, each counted on its own. Both expected scores are saved
-before each lock for every player with a game; every game he started with both numbers counts, one player at a time. Accuracy is 100
-minus the average points off, the same figure as on Scores (17.2 points off on average is 83%); the points off sit under each figure
-and the closer of the two is marked. **Accuracy by position** draws both as bars, overall and per position, and **The same starts,
-three ways** lists the points off, how often each landed within 7 points and which way it leans, then week by week. Under 100 checked
-starts a figure says "Too few to tell"; a week counts a day after it ends, and "Waiting for results" shows until the first one does.
-The old **Sorare vs Sofix** tab is this view now (its address lands here). The better-of-two figures are gone from the page.
+(since 13 Oct): each one's success rate in big. Both expected scores are saved before each lock for every player with a game. A number
+that lands within 7 points of what the player scored is a success, anything else is a miss, and every player counts on his own. There
+are two rates for each side: **starters** (the big one) and **substitutes** (players who came on), with the average points off under
+each; the side that was right more often is marked. They show from the first game checked, with no 100-game floor; a week counts a
+day after it ends, and "Waiting for results" shows until the first one does. **Within 7 points, by position** draws both as bars,
+overall and per position, and **The same games, three ways** lists the share within 7, the points off and which way each leans, for
+starters, each position and substitutes, then week by week. The old **Sorare vs Sofix** tab is this view now (its address lands
+here). The better-of-two figures are gone from the page.
 
 Under it, **Past games, replayed** is a replay of two LaLiga seasons: every game predicted from the weeks before it only (9,190 starts
 to 20 Sep).

@@ -309,8 +309,8 @@ it had a number for once they are settled; `xscore_record` counts the same pairs
 chance he plays times his score if he plays) against his best game once the gameweek is settled. The live xScore pair rate is published from the first pair, with its interval and count (11 October owner request). The other source verdicts keep their `FLOOR` (100 cases). The step is optional: if it
 fails the Play page is still published and the run's summary names `audit` under `failed`.
 
-`/audit` leads with the two saved conditional scores against the real score on starts (12 Oct owner request): each side's accuracy
-(100 minus its mean miss), by position and week, with the miss, the share within 7 and the lean; `/audit/versus` redirects to it. The pair
+`/audit` leads with the two saved conditional scores against the real score on starts (12 Oct owner request): each side's success rate
+(the share within 7 points, `versus.CLOSE`), starts and games a player came on in apart (`figures()["subs"]`), by position and week, with the miss and the lean, no floor (13 Oct); `/audit/versus` redirects to it. The pair
 rates above are still computed and published but no longer drawn. `/audit/starts` also counts Futbol Fantasy's predicted eleven and the Sorare/Sofix elevens implied by the same
 position-preserving swaps as `lib/lineups.ts::byChance`: ties keep FF's starter, out/suspended alternatives cannot come in,
 and a historical reading without position data cannot invent an implied eleven. Counts are grouped by week and club;

@@ -14,16 +14,17 @@ const { renderToStaticMarkup } = createRequire(import.meta.url)("react-dom/serve
 vi.stubGlobal("React", React);
 afterAll(() => vi.unstubAllGlobals());
 
-it("leads with each side's accuracy on every start, and says too few to tell under the floor", () => {
-  const side = (miss: number) => ({ miss, lean: 1.2, within: 0.3, pair: null, pairs: 0 });
-  const all = { starts: 412, sofixCloser: 0.52, sofix: side(17.2), sorare: side(18.6) };
-  const draw = (floor: number) => renderToStaticMarkup(React.createElement(VersusAudit, { versus: { ...NO_VERSUS, all, recorded: 3, settled: 2 }, floor }));
-  expect(draw(100)).toContain('<dt>Sofix accuracy</dt><dd class="ax-duo-n">83%</dd><dd class="ax-duo-s">17.2 pts off on average</dd><dd class="au-result-best">Closer</dd>');
-  expect(draw(100)).toContain('<dt>Sorare accuracy</dt><dd class="ax-duo-n">81%</dd><dd class="ax-duo-s">18.6 pts off on average</dd></div>');
-  expect(draw(100)).not.toContain("Better of two");
-  expect(draw(500)).toContain('<dd class="ax-duo-n">–</dd><dd class="ax-duo-s">Too few to tell</dd>');
-  expect(draw(500)).not.toContain("83%");
-  expect(renderToStaticMarkup(React.createElement(VersusAudit, { versus: { ...NO_VERSUS, recorded: 2 }, floor: 100 }))).toContain('<dd class="ax-duo-s">Waiting for results</dd>');
+it("leads with each side's share within 7 points, starters and substitutes apart, from the first game", () => {
+  const side = (miss: number, within: number) => ({ miss, lean: 1.2, within, pair: null, pairs: 0 });
+  const all = { starts: 12, sofixCloser: 0.52, sofix: side(17.2, 0.31), sorare: side(18.6, 0.29) };
+  const subs = { starts: 3, sofixCloser: null, sofix: side(14.1, 0.42), sorare: side(21.3, 0.2) };
+  const html = renderToStaticMarkup(React.createElement(VersusAudit, { versus: { ...NO_VERSUS, all, subs, recorded: 3, settled: 2 } }));
+  expect(html).toContain('<dt>Sofix · starters</dt><dd class="ax-duo-n">31%</dd><dd class="ax-duo-s">17.2 pts off on average</dd><dd class="au-result-best">Right more often</dd><dd class="ax-duo-m">Sofix · substitutes<b>42%</b></dd><dd class="ax-duo-s">14.1 pts off on average</dd>');
+  expect(html).toContain('<dt>Sorare · starters</dt><dd class="ax-duo-n">29%</dd>');
+  expect(html).toContain("Sorare · substitutes<b>20%</b>");
+  expect(html).not.toContain("Too few to tell"); // 12 starts: shown regardless, no floor
+  expect(html).not.toContain("Better of two");
+  expect(renderToStaticMarkup(React.createElement(VersusAudit, { versus: { ...NO_VERSUS, recorded: 2 } }))).toContain('<dd class="ax-duo-n">–</dd><dd class="ax-duo-s">Waiting for results</dd>');
 });
 
 it("shows understandable error points out of 100, preserves raw RPS and treats rounded values as tied", () => {
@@ -74,9 +75,9 @@ it("shows each eleven's evidence by week and club and hides rates below 100", ()
   expect(html).toContain("ATL");
 });
 
-it("does not expose a week comparison below the same 100-start floor", () => {
-  const versus = { ...NO_VERSUS, weeks: [{ ...NO_VERSUS.all, week: 18, starts: 20, sofixCloser: 0.9 }] };
-  const html = renderToStaticMarkup(React.createElement(VersusAudit, { versus, floor: 100 }));
-  expect(html).toContain("20 of 100 starts");
-  expect(html).not.toContain("90%");
+it("shows a week's comparison whatever its size", () => {
+  const side = { miss: 10, lean: 0, within: 0.4, pair: null, pairs: 0 };
+  const versus = { ...NO_VERSUS, weeks: [{ ...NO_VERSUS.all, week: 18, starts: 20, sofix: side, sorare: { ...side, within: 0.25 } }] };
+  const html = renderToStaticMarkup(React.createElement(VersusAudit, { versus }));
+  expect(html).toContain("20 starts · within 7: Sofix 40%, Sorare 25%");
 });

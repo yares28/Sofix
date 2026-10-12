@@ -111,14 +111,17 @@ def settle(db: Session, client: SorareClient, now: datetime) -> dict[str, int]:
 
 
 # --------------------------------------------------------------------------- figures
-def starts_of(record: dict[str, Any]) -> list[dict[str, Any]]:
-    """Every settled game a player started with both numbers written down before the lock: (week, pos, sorare, sofix, actual)."""
+def starts_of(record: dict[str, Any], started: bool = True) -> list[dict[str, Any]]:
+    """Every settled game a player started (or, with `started` false, came on in) with both numbers written down before the lock:
+    (week, pos, sorare, sofix, actual)."""
     week = (record.get("gameweek") or {}).get("number")
     out = []
     for slug, entry in (record.get("players") or {}).items():
         for game in entry.get("games") or []:
             did = game.get("actual") or {}
-            if not did.get("started") or did.get("score") is None:
+            if bool(did.get("started")) is not started or did.get("score") is None:
+                continue
+            if not started and not did.get("played"):
                 continue
             if game.get("sorare") is None or game.get("sofix") is None:
                 continue
@@ -188,6 +191,8 @@ def figures(all_records: list[dict[str, Any]]) -> dict[str, Any]:
         "weeks": [
             {"week": week, **compare(found)} for week, found in sorted(by_week.items(), key=lambda item: item[0] or 0)
         ],
+        # the games a player came on in, counted apart: both numbers are for a start, so a substitute's score judges them differently
+        "subs": compare([row for record in all_records for row in starts_of(record, started=False)]),
         "recorded": len(all_records),
         "settled": sum(1 for record in all_records if record.get("settledAt")),
     }

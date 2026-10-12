@@ -3,7 +3,6 @@ import {
   bandLabel,
   docUrl,
   interval,
-  accuracy,
   lockDay,
   percent,
   readable,
@@ -95,13 +94,6 @@ describe("what each source says for itself", () => {
   });
 });
 
-describe("accuracy", () => {
-  it("is 100 minus the average points off, never under 0, and nothing without a miss", () => {
-    expect(accuracy(17.2)).toBe(83);
-    expect(accuracy(120)).toBe(0);
-    expect(accuracy(null)).toBeNull();
-  });
-});
 
 describe("the record", () => {
   it("counts what was written down and what has been checked", () => {

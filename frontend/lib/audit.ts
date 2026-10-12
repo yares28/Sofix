@@ -87,6 +87,8 @@ export type VersusFigures = { starts: number; sofixCloser: number | null; sofix:
 /** Sorare's projection against Sofix's xScore, from the numbers written down before each lock (backend/app/sorare/versus.py). */
 export type Versus = {
   all: VersusFigures;
+  /** The games a player came on in, counted apart from the starts. */
+  subs: VersusFigures;
   positions: Record<Line, VersusFigures>;
   weeks: (VersusFigures & { week: number })[];
   recorded: number;
@@ -96,6 +98,7 @@ const NO_SIDE: VersusSide = { miss: null, lean: null, within: null, pair: null, 
 const NO_FIGURES: VersusFigures = { starts: 0, sofixCloser: null, sofix: NO_SIDE, sorare: NO_SIDE };
 export const NO_VERSUS: Versus = {
   all: NO_FIGURES,
+  subs: NO_FIGURES,
   positions: { GK: NO_FIGURES, DEF: NO_FIGURES, MID: NO_FIGURES, FWD: NO_FIGURES },
   weeks: [],
   recorded: 0,
@@ -156,11 +159,6 @@ export const NO_MISSIONS: Missions = { counted: 0, success: 0, caught: 0, best: 
 
 const NOTHING: LiveSource = { state: "none", recorded: 0, settled: 0, right: null, brier: null, mean: null, started: null, buckets: null };
 const NO_LIVE: XscoreLive = { state: "none", floor: 100, noted: 0, marked: 0, pairs: 0, weeks: 0, rate: null, lo: null, hi: null };
-
-/** A number's accuracy on a 0 to 100 score: 100 minus how far off it was on average (the Scores page's figure), never under 0. */
-export function accuracy(miss: number | null): number | null {
-  return miss === null ? null : Math.max(0, Math.round(100 - miss));
-}
 
 /** The payload is the job's own; one that does not look like it is left out rather than drawn wrongly. */
 export function readable(value: unknown): Audit | null {

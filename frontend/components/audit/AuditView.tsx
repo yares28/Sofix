@@ -143,7 +143,7 @@ export default function AuditView({
   if (show === "xscore") {
     return (
       <>
-        <VersusAudit versus={data.versus} floor={data.floor} updated={updated} />
+        <VersusAudit versus={data.versus} updated={updated} />
         {league ? <LeagueAudit data={league} /> : null}
         <MatchAudit data={data.matches} />
         <PlayerScores week={playerWeek} number={playerWeekNumber} weeks={playerWeeks} />

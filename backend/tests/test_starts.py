@@ -392,7 +392,7 @@ class _Client:
 
     def query(self, text: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
         if "nodes { slug }" in text:
-            return {"football": {"competition": {"clubs": {"nodes": [{"slug": "club-a"}] if self.roster else []}}}}
+            return {"football": {"competition": {"teams": {"nodes": [{"slug": "club-a"}] if self.roster else []}}}}
         if "activePlayers" in text:
             return {"football": {"club": {"activePlayers": {"pageInfo": {"hasNextPage": False}, "nodes": self.roster}}}}
         slugs = re.findall(r'(p\d+): allCards\(playerSlugs: \["([a-z0-9-]+)"\]', text)

@@ -111,7 +111,7 @@ def _at(value: Any) -> datetime | None:
 def _roster(client: SorareClient, competition: str) -> dict[str, dict[str, Any]]:
     """Every active player of every club of the competition: name, birthday, place and the names of his club."""
     out: dict[str, dict[str, Any]] = {}
-    for club in client.query(CLUBS, {"s": competition})["football"]["competition"]["clubs"]["nodes"]:
+    for club in client.query(CLUBS, {"s": competition})["football"]["competition"]["teams"]["nodes"]:
         slug = club.get("slug")
         if not slug:
             continue

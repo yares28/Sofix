@@ -44,8 +44,8 @@ class FakeSorare:
 
     def query(self, text: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
         self.asked.append(text)
-        if "clubs" in text and "nodes { slug }" in text:
-            return {"football": {"competition": {"clubs": {"nodes": [{"slug": club} for club in self.squads]}}}}
+        if "teams" in text and "nodes { slug }" in text:
+            return {"football": {"competition": {"teams": {"nodes": [{"slug": club} for club in self.squads]}}}}
         if "activePlayers" in text:
             club = (variables or {}).get("s")
             return {

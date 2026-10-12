@@ -24,7 +24,7 @@ def test_prices_are_euros_and_a_club_that_fails_is_skipped() -> None:
     client = _Client(
         {
             "clubs": {
-                "football": {"competition": {"clubs": {"nodes": [{"slug": "barcelona-barcelona"}, {"slug": "broken"}]}}}
+                "football": {"competition": {"teams": {"nodes": [{"slug": "barcelona-barcelona"}, {"slug": "broken"}]}}}
             },
             "barcelona-barcelona": {
                 "football": {

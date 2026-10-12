@@ -133,7 +133,7 @@ query($s:String!){ so5 { so5Leaderboard(slug:$s){ so5RankingsPaginated(page:0, p
 # search, so browsing is free and instant on the page. Sorare will not return activePlayers on the clubs
 # list, and a Limited in-season price is eurCents on MonetaryAmount (there is no `eur` field).
 CLUBS = """
-query($s:String!){ football { competition(slug:$s){ clubs { nodes { slug } } } } }
+query($s:String!){ football { competition(slug:$s){ teams { nodes { slug } } } } }
 """
 
 SQUAD = """
@@ -198,7 +198,7 @@ def laliga_index(
     and one club that fails is skipped, rather than breaking the whole Sorare step.
     """
     try:
-        clubs = client.query(CLUBS, {"s": competition})["football"]["competition"]["clubs"]["nodes"]
+        clubs = client.query(CLUBS, {"s": competition})["football"]["competition"]["teams"]["nodes"]
     except (SorareError, KeyError, TypeError) as error:
         logger.warning("laliga index unavailable, player search will be empty: %s", error)
         return []

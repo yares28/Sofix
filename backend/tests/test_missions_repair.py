@@ -449,3 +449,34 @@ def test_structured_essence_reward_has_the_same_plan_priority_as_the_web():
     }
     result = daily_entry(None, tasks, pool, "limited", now)
     assert [m["sofix"] for m in result["missions"]] == [[], ["a"]]
+
+
+def test_a_mission_limited_to_a_named_competition_is_rated_without_sorares_eligibility_list():
+    """13 Oct 2026: "Big Chance Missed - Champions League" had nobody to suggest, its one rule being the competition it names."""
+    now = datetime(2026, 10, 13, 12, tzinfo=UTC)
+
+    def player(slug: str, competition: str) -> dict:
+        game = {"id": f"g-{slug}", "kickoff": "2026-10-13T19:00:00Z", "competition": competition}
+        base = {"card": f"{slug}-1", "player": slug, "name": slug, "rarity": "limited", "pos": "FWD", "pic": ""}
+        return {**base, "p": 0.9, "pStart": 0.8, "pOn": 0.1, "games": [game]}
+
+    pool = {
+        "complete": True,
+        "players": [player("ucl", "uefa-champions-league"), player("uel", "uefa-europa-league")],
+        "sheets": {"players": {slug: {"season": {"big_chance_missed": [1, 0]}} for slug in ("ucl", "uel")}},
+    }
+    mission = {
+        "id": "miss",
+        "title": "Big Chance Missed - Champions League",
+        "description": "Pick a player who misses 1+ big chance in today's Champions League matches.",
+        "mode": "DECISIVE",
+        "picks": 3,
+        "stats": ["big_chance_missed"],
+        "ruleTypes": ["So5CompetitionsRule"],
+    }
+    entry = daily_entry(None, [mission], pool, "limited", now)
+    assert entry["missions"][0]["rule"]["kind"] == "miss" and entry["missions"][0]["sofix"] == ["ucl"]
+
+    # a rule it cannot tell from the words still waits for Sorare's own list
+    other = daily_entry(None, [{**mission, "ruleTypes": ["So5CompetitionsRule", "So5AgeRule"]}], pool, "limited", now)
+    assert other["missions"][0]["sofix"] == []

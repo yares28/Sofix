@@ -509,6 +509,25 @@ def _rule(m: dict[str, Any]) -> dict[str, Any]:
     return {"kind": "decisive" if "decisive" in text.lower() else "unsupported", "label": m["description"]}
 
 
+# ponytail: the competition is read from the mission's words, for the few it has named so far; Sorare's rule payload (the
+# extension's eligibility read) is the full answer and wins whenever it was loaded.
+COMPETITION_WORDS = {
+    "champions league": "uefa-champions-league",
+    "europa league": "uefa-europa-league",
+    "conference league": "uefa-europa-conference-league",
+    "laliga": "laliga-es",
+    "la liga": "laliga-es",
+}
+
+
+def _named_competitions(m: dict[str, Any]) -> set[str]:
+    """The competitions a mission is limited to when that is its only rule and its words name them; empty when it cannot be told."""
+    if (m.get("source") or {}).get("ruleTypes") != ["So5CompetitionsRule"]:
+        return set()
+    text = f"{m.get('title', '')} {m.get('description', '')}".lower()
+    return {slug for words, slug in COMPETITION_WORDS.items() if words in text}
+
+
 def _priority(m: dict[str, Any]) -> int:
     source = m.get("source") or {}
     rewards = source.get("rewards") or []
@@ -677,7 +696,13 @@ def daily_entry(
             for m in missions:
                 source = m.get("source") or {}
                 eligibility = source.get("eligibleCards")
-                if (
+                named = _named_competitions(m) if eligibility is None else None
+                if named:
+                    # Sorare's own list of who may be picked was not loaded, and the one rule is the competition the mission names:
+                    # his game says whether he fits (13 Oct 2026, "Big Chance Missed - Champions League" had nobody to suggest).
+                    if g.get("competition") not in named:
+                        continue
+                elif (
                     (eligibility is not None and p.get("card") not in eligibility.get(g.get("id"), []))
                     or (source.get("ruleTypes") and eligibility is None)
                     or (eligibility is None and p.get("eligibility"))

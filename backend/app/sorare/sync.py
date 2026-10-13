@@ -763,6 +763,9 @@ def pick_reference(done: list[dict[str, Any]], target: dict[str, Any], spread: f
     return close[-1] if close else None
 
 
+REFERENCE_LOOK_BACK = 5  # finished gameweeks searched for a competition the reference week did not hold
+
+
 def reference_scores(
     client: SorareClient,
     fixture: str,
@@ -899,6 +902,27 @@ def snapshot(
         references[latest["slug"]] = reference_scores(
             client, latest["slug"], latest["number"], planned, references.get(latest["slug"])
         )
+        # A free competition that week did not hold (a European week's own): the latest finished week that did hold it says what
+        # it took, and the entry keeps that week's name. Rooms are left out: sampling them costs many calls.
+        have = references[latest["slug"]]
+        lacking = [
+            c
+            for c in planned
+            if not c.get("skipped")
+            and not c.get("roomsConfig")
+            and not (c.get("format") or {}).get("entryItem")
+            and f"{c['league']} | {c['track']}" not in have
+        ]
+        for week in reversed([g for g in done if g["slug"] != latest["slug"]][-REFERENCE_LOOK_BACK:]):
+            if not lacking:
+                break
+            found = reference_scores(client, week["slug"], week["number"], lacking, references.get(week["slug"]))
+            references[week["slug"]] = found
+            for comp in list(lacking):
+                key = f"{comp['league']} | {comp['track']}"
+                if key in found:
+                    have[key] = found[key]
+                    lacking.remove(comp)
     if past_gw and past_comps:
         mark = client.errors
         earlier = [g for g in done if g["end"] < past_gw["start"]]

@@ -559,7 +559,7 @@ the held-out weeks (P9 "The bar").
 
 - **13 Oct - lineup building (lineups-and-xscore.md Phase 1):** no plan enters an All Star lineup or a fee-paying Room, Champion essence first; start chances moved to
   what happened from 100 settled games per run of chances (shown on the Audit); no starter under 30% to play; a player's own league counts for his start chance.
-  GW21 replanned: fees 0, best plan 651 essence expected against 574 before, no keeper under 30% in any lineup. Phases 2 to 6 wait for the owner's go.
+  GW21 replanned: fees 0, best plan 651 essence expected and no fees (the frozen plan said 1,056 before 600 in fees, 456 net), no keeper under 30% in any lineup. Phases 2 to 6 wait for the owner's go.
 
 - **9 Oct - data keeping step 8:** Control shows five dated dataset rows from one published health record, including known
   source failures and retained counts. All eight implementation steps are complete; migration and seed already ran.

@@ -150,3 +150,13 @@ def test_no_starter_is_under_30_percent_to_play_and_his_lineup_is_not_made_witho
     assert spare in starters and keeper not in starters, "a surer keeper is picked over a better one who will not play"
     fc[keeper.player] = Forecast(p_play=0.3, mu=60.0, games=1)
     assert keeper in best_starters(comp, cards, fc, keep=1)[0], "30% is still allowed"
+
+
+def test_a_competitions_strongest_lineup_is_made_first_and_the_next_is_built_from_what_is_left():
+    # GW21 Champion: the stars were spread over lineups that all fell short. One lineup gets every strong card.
+    strong, weak = squad(5), [replace(c, slug=c.slug + "-w", player=c.player + "-w") for c in squad(5)]
+    fc = {**forecasts_for(strong, p=0.95, mu=70.0), **forecasts_for(weak, p=0.95, mu=40.0)}
+    comp = in_season_comp(tiers=[rules.Tier(1, 1500, essence=250)], reference={1500: 250.0})
+    first, second = plans([comp], [*weak, *strong], fc, count=1, runs=3, draws=600)[0].lineups[:2]
+    assert {c.slug for c in first.starters} == {c.slug for c in strong}
+    assert first.expected > second.expected and first.p_return > second.p_return

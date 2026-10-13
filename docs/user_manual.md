@@ -400,7 +400,8 @@ as a round starts; Sofix keeps reading the matches of the round still to play fr
   the week being planned as well). Everyone Sorare's page named for the game gets his number, the other club's players too:
   they are tied to the people on the page by name, and a player whose name the two sites spell differently stays a dash.
   In the Europa League, Futbol Fantasy's lineup and percentages come from the club's own page of that competition when the
-  match page has none yet; its Champions League pages give an eleven with no percentages, so there the number is Sorare's or Sofix's.
+  match page has none yet; its Champions League pages give an eleven with no percentages: a player in that eleven counts as **80%** (your rule,
+  13 Oct 2026), an alternative with no number keeps none and uses Sorare's or Sofix's.
   A different match's number is never substituted. FF percentages link to its match
   page. **Only my players** dims everyone else on the pitch and in the injury lists. Both choices stay selected when you pick another
   match. Your players on the pitch, among the alternatives and in the injury list link to their card on **My cards**.

@@ -7,6 +7,7 @@ matches of Real Sociedad's team page). A test here that fails after a fixture is
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, date, datetime
 from pathlib import Path
 
@@ -671,3 +672,18 @@ def test_a_club_whose_match_page_has_its_eleven_is_not_asked_for_its_team_page()
     )
 
     assert site.asked == [CHAMPIONS_ROUND] and reading.teams_read == []
+
+
+def test_a_player_in_the_eleven_with_no_number_counts_as_eighty_percent() -> None:
+    """The owner, 13 Oct 2026: "no number means 80%". The Champions League pages draw the eleven with every percentage blank."""
+    blank = re.sub(r'data-probabilidad="[^"]*"', 'data-probabilidad=""', page("team_europa_real_sociedad.html"))
+    xi, alternatives = ffm.parse_team_lineup(blank)
+
+    assert [player.chance for player in xi] == [ffm.NO_NUMBER] * 11 and ffm.NO_NUMBER == 0.8
+    assert [player.chance for player in alternatives] == [None] * 4, "an alternative with no number keeps none"
+    played = ffm.parse_match(
+        page("match_played_champions.html"), "https://www.futbolfantasy.com/partidos/24118-liverpool-atletico"
+    )
+    assert played is not None and all(player.chance is None for player in played.home.xi), (
+        "a played match says Titular there, not a chance"
+    )

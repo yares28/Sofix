@@ -611,6 +611,11 @@ def _icon_count(shirt: Node, icon: str) -> int | None:
     return None
 
 
+# The owner, 13 Oct 2026: "no number means 80%". The site draws a Champions League eleven without percentages; a player it puts in
+# the eleven and gives no number counts as this. An alternative with no number keeps none.
+NO_NUMBER = 0.8
+
+
 def _player(block: Node, modals: dict[str, tuple[str | None, str | None]]) -> Player | None:
     found = re.search(r"jugador_(\d+)", block.get("class") or "")
     shirt = _find(block, "a", "camiseta")
@@ -637,11 +642,15 @@ def _player(block: Node, modals: dict[str, tuple[str | None, str | None]]) -> Pl
     x = _percent_position(block.get("data-onceff-x")) if eleven else None
     y = _percent_position(block.get("data-onceff-y")) if eleven else None
     lesion = _int(shirt.get("data-lesion"))
+    said = shirt.get("data-probabilidad")
+    chance = _chance(said)
+    if eleven and not (said or "").strip():  # blank, not the "Titular" a played match writes there
+        chance = NO_NUMBER
     return Player(
         ff_id=found.group(1),
         name=name,
         slug=slug,
-        chance=_chance(shirt.get("data-probabilidad")),
+        chance=chance,
         lesion=lesion if lesion is not None else -1,
         international=shirt.get("data-internacional") == "1",
         suspended=shirt.get("data-sancionado") == "1",

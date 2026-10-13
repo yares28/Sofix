@@ -8,7 +8,7 @@ from dataclasses import replace
 import numpy as np
 
 from app.sorare import rules
-from app.sorare.model import Card
+from app.sorare.model import ESSENCE_ORDER, Card
 from app.sorare.planner import Lineup, Plan, build, evaluate, plan_outcomes, plans, worth_entering
 from tests.test_sorare_planner import card, forecasts_for, in_season_comp, room_comp, squad
 
@@ -74,17 +74,38 @@ def test_expected_essence_comes_before_the_owners_essence_order():
     cards = squad(5)  # one lineup's worth: the plan has to choose
     fc = forecasts_for(cards, p=1.0, mu=50.0)
     laliga = in_season_comp(tiers=[rules.Tier(1, 1500, essence=250)], reference={1500: 255.0})
-    all_star = in_season_comp(
-        key="All Star | Limited", tiers=[rules.Tier(1, 1500, essence=250)], reference={1500: 235.0}, leagues=None
+    champion = in_season_comp(
+        key="Champion | Limited", tiers=[rules.Tier(1, 1500, essence=250)], reference={1500: 235.0}, leagues=None
     )
-    laliga_one, star_one = (build(c, cards, fc, np.random.default_rng(5), keep=1)[0] for c in (laliga, all_star))
-    assert star_one.p_return > laliga_one.p_return > 0.05
-    assert star_one.e_essence > laliga_one.e_essence
+    laliga_one, champ_one = (build(c, cards, fc, np.random.default_rng(5), keep=1)[0] for c in (laliga, champion))
+    assert champ_one.p_return > laliga_one.p_return > 0.05
+    assert champ_one.e_essence > laliga_one.e_essence
     assert (
-        plans([laliga, all_star], cards, fc, count=1, runs=2, draws=600)[0].lineups[0].comp.essence_kind == "all_star"
+        plans([laliga, champion], cards, fc, count=1, runs=2, draws=600)[0].lineups[0].comp.essence_kind == "champion"
     )
-    first = plans([laliga, all_star], cards, fc, count=1, runs=2, draws=600, order=("all_star", "laliga"))[0]
-    assert first.lineups[0].comp.essence_kind == "all_star"
+    first = plans([laliga, champion], cards, fc, count=1, runs=2, draws=600, order=("champion", "laliga"))[0]
+    assert first.lineups[0].comp.essence_kind == "champion"
+
+
+def test_champion_essence_is_ranked_first_by_default():
+    assert ESSENCE_ORDER[0] == "champion"
+
+
+def test_all_star_and_rooms_with_a_fee_are_never_in_a_plan_however_good_they_look():
+    # The owner, 13 Oct 2026: All Star and Cap 260 burn essence; his cards go to Champion, the in-season lineups and Pro.
+    cards = squad(5)
+    fc = forecasts_for(cards, p=1.0, mu=60.0)
+    tiers, ref = [rules.Tier(1, 1500, essence=2500)], {1500: 200.0}
+    laliga = in_season_comp(tiers=[rules.Tier(1, 1500, essence=250)], reference={1500: 255.0})
+    star = in_season_comp(key="All Star | Limited", tiers=tiers, reference=ref, leagues=None)
+    room = room_comp(tiers=[rules.Tier(1, 3, essence=5000)], reference_rooms=[100.0] * 10)
+    assert worth_entering(build(laliga, cards, fc, np.random.default_rng(8), keep=1)[0])
+    assert not worth_entering(build(star, cards, fc, np.random.default_rng(8), keep=1)[0])
+    rich = build(room, cards, fc, np.random.default_rng(8), keep=1)[0]
+    assert rich.net_essence > 0 and not worth_entering(rich)  # it would pay, and still is not entered
+    found = plans([laliga, star, room], cards, fc, count=2, runs=2, draws=600)
+    assert {lu.comp.key for p in found for lu in p.lineups} == {laliga.key}
+    assert all(p.fees == 0 for p in found)
 
 
 def test_one_simulation_for_a_plan_does_not_count_the_same_players_twice():

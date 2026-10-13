@@ -25,7 +25,11 @@ SLOT_POSITIONS: dict[str, tuple[str, ...]] = {
 # The essence a competition pays, by its league (the owner, 6 Oct 2026: LaLiga's competitions pay LaLiga essence, Champion Champion
 # essence, All Star All Star essence). Sorare's reward rows carry only a rarity and an amount, so the competition decides it.
 ESSENCE_KINDS = {"LALIGA EA SPORTS": "laliga", "Champion": "champion", "All Star": "all_star"}
-ESSENCE_ORDER = ("laliga", "champion", "all_star")  # the owner's default: these lineups are filled first, in this order
+ESSENCE_ORDER = (
+    "champion",
+    "laliga",
+    "all_star",
+)  # the owner's default (13 Oct 2026: Champion first): ties go in this order
 IN_SEASON = "In-season"
 CLASSIC = "Classic"
 ROOM = "Room"

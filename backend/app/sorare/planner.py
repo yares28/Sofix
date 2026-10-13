@@ -568,12 +568,18 @@ def value(lineup: Lineup, cash_norm: float, essence_norm: float) -> float:
     return lineup.e_cash / cash_norm + lineup.net_essence / essence_norm
 
 
+NEVER_ENTER = frozenset({"all_star"})  # essence kinds that are never entered
+
+
+def enterable(comp: Competition) -> bool:
+    """The owner, 13 Oct 2026: All Star and Cap 260 burn essence, so no lineup of an All Star competition and none of a Room that
+    charges a fee goes in any plan. Those cards go to Champion, the in-season lineups and Pro levels."""
+    return comp.essence_kind not in NEVER_ENTER and not comp.fee
+
+
 def worth_entering(lineup: Lineup) -> bool:
-    """A lineup goes in a plan when it has a real chance of being paid, and a Room only when it wins back more than its fee on
-    average (the owner, 6 Oct 2026: never a Room that loses essence)."""
-    if lineup.p_return < MIN_CHANCE:
-        return False
-    return not lineup.comp.is_room or lineup.net_essence > 0
+    """A lineup goes in a plan when its competition may be entered and it has a real chance of being paid."""
+    return enterable(lineup.comp) and lineup.p_return >= MIN_CHANCE
 
 
 def priority(lineup: Lineup, order: tuple[str, ...]) -> int:
@@ -652,6 +658,7 @@ def plans(
     The best maximizes expected essence rewards (the owner, 11 Oct 2026). The owner's essence-kind order and
     reward chance break ties. Cash remains separate and never outweighs a larger essence reward.
     """
+    comps = [comp for comp in comps if enterable(comp)]
     rng = np.random.default_rng(seed)
     firsts = [lu for comp in comps for lu in build(comp, cards, forecasts, rng, keep=1, draws=draws)]
     cash_norm = max([lu.e_cash for lu in firsts] + [0.01])

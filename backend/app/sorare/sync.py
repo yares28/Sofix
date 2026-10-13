@@ -763,7 +763,7 @@ def pick_reference(done: list[dict[str, Any]], target: dict[str, Any], spread: f
     return close[-1] if close else None
 
 
-REFERENCE_LOOK_BACK = 5  # finished gameweeks searched for a competition the reference week did not hold
+REFERENCE_LOOK_BACK = 10  # finished gameweeks searched for a competition the reference week did not hold
 
 
 def reference_scores(

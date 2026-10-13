@@ -307,7 +307,8 @@ export function sourceStory(source: StartSource, live: LiveSource, floor: number
 const COMPETITION_NAME: Record<string, string> = {
   "laliga-es": "LaLiga", "segunda-division-es": "Segunda", "copa-del-rey": "Copa del Rey", "uefa-champions-league": "Champions League",
   "uefa-europa-league": "Europa League", "uefa-europa-conference-league": "Conference League", "uefa-nations-league": "Nations League",
-  "premier-league-gb-eng": "Premier League", "bundesliga-de": "Bundesliga",
+  "premier-league-gb-eng": "Premier League", "bundesliga-de": "Bundesliga", "2-bundesliga": "2. Bundesliga", "serie-a-it": "Serie A",
+  "k-league-1": "K League 1", "1-hnl": "Croatia HNL", "superliga-argentina-de-futbol": "Argentina",
 };
 /** Sorare's competition slug as a name: the ones the owner plays by their own, any other from its words. */
 export const competitionName = (slug: string): string =>

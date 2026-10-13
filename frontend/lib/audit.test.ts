@@ -86,7 +86,7 @@ describe("what each source says for itself", () => {
     expect(competitionStory({ competition: "laliga-es", recorded: 150, settled: 120, right: 0.74, brier: 0.18 }, 100)).toBe("74% right · 120 games");
     expect(competitionStory({ competition: "uefa-europa-league", recorded: 30, settled: 12, right: null, brier: null }, 100)).toBe("12 of 100 checked");
     expect(competitionStory({ competition: "uefa-champions-league", recorded: 9, settled: 0, right: null, brier: null }, 100)).toBe("9 games waiting");
-    expect([competitionName("uefa-champions-league"), competitionName("k-league-1"), competitionName("superliga-argentina-de-futbol")]).toEqual(["Champions League", "League 1", "Superliga Argentina Futbol"]);
+    expect([competitionName("uefa-champions-league"), competitionName("serie-a-it"), competitionName("eredivisie-nl")]).toEqual(["Champions League", "Serie A", "Eredivisie"]);
   });
 
   it("says it is waiting for the games when they were written down but not played", () => {

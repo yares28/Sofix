@@ -26,7 +26,7 @@ import logging
 import re
 import time
 from collections.abc import Callable, Iterable, Iterator, Mapping
-from dataclasses import dataclass, field, fields, is_dataclass
+from dataclasses import dataclass, field, fields, is_dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 from html.parser import HTMLParser
 from typing import Any
@@ -194,6 +194,7 @@ class Reading:
     failed: list[str] = field(default_factory=list)  # addresses not read, each with a short reason
     stopped: str | None = None  # why it stopped early, if it did
     gone: list[int] = field(default_factory=list)  # matches the site answered 404 for: no longer there, not a failure
+    teams_read: list[str] = field(default_factory=list)  # "competition:club number" of each team page asked for
 
 
 # ------------------------------------------------------------------------------------------------------ storing them
@@ -808,8 +809,11 @@ def _side(
     )
 
 
-def parse_match(html: str, url: str | None = None) -> Match | None:
-    """One match page: the header, both probable elevens, the alternatives, the injuries and suspensions."""
+def parse_match(html: str, url: str | None = None, empty: bool = False) -> Match | None:
+    """One match page: the header, both probable elevens, the alternatives, the injuries and suspensions.
+
+    `empty` keeps a page that has no eleven on it yet: its header still says which match it is (`read_matches` fills a side
+    of it from the club's team page)."""
     root = parse_html(html)
     header = _find(root, "header", "encabezado-partido")
     if header is None:
@@ -837,7 +841,7 @@ def parse_match(html: str, url: str | None = None) -> Match | None:
     modals = _modals(root)
     home = _side(root, "home", *teams["home"], modals)
     away = _side(root, "away", *teams["away"], modals)
-    if not home.xi and not away.xi:
+    if not home.xi and not away.xi and not empty:
         return None  # a page with no eleven on it is not a lineup page
     return Match(
         match_id=int(match_id.group(1)),
@@ -885,6 +889,31 @@ def parse_upcoming(html: str, today: date | None = None) -> list[Upcoming]:
             )
         )
     return out
+
+
+def parse_team_lineup(html: str) -> tuple[tuple[Player, ...], tuple[Player, ...]]:
+    """The probable eleven and the alternatives a competition's team page draws for the club's next game in it.
+
+    In Europe the site publishes a club's lineup here, with its percentages, before the match page has any (seen 13 Oct 2026:
+    Real Sociedad's Europa League eleven two days before the game, its match page still empty)."""
+    root = parse_html(html)
+    modals = _modals(root)
+    xi: list[Player] = []
+    alternatives: list[Player] = []
+    for block in _find_all(root, "div", "camiseta-wrapper"):
+        if block.get("data-onceff") not in ("titular", "suplente"):
+            continue
+        player = _player(block, modals)
+        if player is not None:
+            (xi if block.get("data-onceff") == "titular" else alternatives).append(player)
+    return tuple(xi), tuple(alternatives)
+
+
+def team_url(competition: str, slug: str) -> str:
+    return f"{BASE}/{COMPETITIONS[competition][0]}/equipos/{slug}"
+
+
+TEAM_AHEAD = timedelta(days=8)  # a team page's lineup is for the club's next game in the competition: one this close
 
 
 # ---------------------------------------------------------------------------------------------------------- reading
@@ -1008,11 +1037,14 @@ class _Polite:
         self.requests = 0
         self.stopped: str | None = None
         self.gone: set[str] = set()  # pages asked with `may_be_gone` that the site answered 404 for
+        self.pages: dict[str, str] = {}  # what was read, so a page wanted twice in one read is asked for once
 
     def get(self, url: str, may_be_gone: bool = False) -> str | None:
         """The page, or None. A 404 for a page that `may_be_gone` is the site answering that it no longer has it: it is put
         in `gone`, is no failure, and does not count towards giving up. Any other trouble, or a 404 for any other page
         (a round or a squad page that moved is a redesign), is a failure named in `failed`."""
+        if url in self.pages:
+            return self.pages[url]
         if self.clock() - self.started >= self.budget:
             self.stopped = self.stopped or "out of time"
             return None
@@ -1034,6 +1066,7 @@ class _Polite:
                 self.stopped = f"{self.failures} pages in a row could not be read"
             return None
         self.failures = 0
+        self.pages[url] = text
         return text
 
 
@@ -1048,12 +1081,19 @@ def read_matches(
     now: datetime | None = None,
     include_played: bool = False,
     known: Mapping[str, Iterable[RoundMatch]] | None = None,
+    teams: Mapping[str, str] | None = None,
+    team_due: Callable[[str, str], bool] | None = None,
 ) -> Reading:
     """Each competition's round page, then the match pages `wanted` picks from it (never one already played, unless asked).
 
     `known` are matches still to be played that the caller already holds. The site's round page moves on to the next round
     as soon as a round starts (seen 12 Oct 2026: round 9 listed while round 8's last match was still to play), so a match
     it no longer lists is read from `known`, by its own page, or its lineup would stay as it was days before kickoff.
+
+    `teams` are the clubs whose team pages may be asked ({club number: its address's name}; LaLiga's). Outside LaLiga the round
+    page can sit on a matchday already played and a match page can have no eleven yet, while the club's own page of that
+    competition has its next eleven with the percentages: a club with no match still to play read with an eleven gets its
+    team page read (when `team_due` says so), and that eleven becomes its side of its next match there.
 
     Stops where it is when the budget is spent or `GIVE_UP` pages in a row cannot be read, and says so; what it had by then
     is kept. A page that cannot be read is named in `failed` and leaves no trace in the matches. A match page the site answers
@@ -1097,6 +1137,14 @@ def read_matches(
                         reading.failed.append(f"{item.url}: not a lineup page")
                     continue
                 reading.matches.append(match)
+            if competition != "laliga" and teams and not site.stopped:
+                listed_clubs = {
+                    club
+                    for item in (*found.matches, *(known or {}).get(competition, ()))
+                    for club in (item.home_id, item.away_id)
+                    if club is not None and club in teams
+                }
+                _from_team_pages(site, reading, competition, sorted(listed_clubs), teams, wanted, team_due)
     finally:
         if client is None:
             http.close()
@@ -1104,6 +1152,73 @@ def read_matches(
     if reading.stopped:
         logger.warning("futbolfantasy: stopped early (%s), %d match(es) read", reading.stopped, len(reading.matches))
     return reading
+
+
+def _from_team_pages(
+    site: _Polite,
+    reading: Reading,
+    competition: str,
+    clubs: list[str],
+    teams: Mapping[str, str],
+    wanted: Callable[[str, RoundMatch], bool],
+    team_due: Callable[[str, str], bool] | None,
+) -> None:
+    """Each of these clubs' next match in the competition, its side taken from the club's team page, unless the match pages
+    already gave the club an eleven for a game still to come."""
+    for club in clubs:
+        if site.stopped:
+            return
+        if any(
+            match.competition == competition
+            and match.kickoff is not None
+            and match.kickoff > reading.at
+            and any(side.club_id == club and side.xi for side in (match.home, match.away))
+            for match in reading.matches
+        ) or (team_due is not None and not team_due(competition, club)):
+            continue
+        url = team_url(competition, teams[club])
+        page = site.get(url)
+        reading.teams_read.append(f"{competition}:{club}")
+        if page is None:
+            continue
+        try:
+            coming = next(
+                (
+                    one
+                    for one in parse_upcoming(page, reading.at.date())
+                    if competition_of(one.competition)[0] == competition
+                    and one.kickoff is not None
+                    and reading.at < one.kickoff <= reading.at + TEAM_AHEAD
+                ),
+                None,
+            )
+            xi, alternatives = parse_team_lineup(page)
+        except Exception as error:  # a page of a shape nobody expected costs that club, never the rest of the read
+            logger.exception("futbolfantasy: %s could not be parsed", url)
+            reading.failed.append(f"{url}: could not be parsed ({type(error).__name__})")
+            continue
+        if coming is None or not xi:
+            continue
+        address = coming.url if coming.url.startswith("http") else f"{BASE}{coming.url}"
+        match = next((one for one in reading.matches if one.match_id == coming.match_id), None)
+        if match is None:
+            item = RoundMatch(
+                coming.match_id, address, coming.home, coming.away, coming.home_id, coming.away_id, coming.kickoff
+            )
+            if not wanted(competition, item):
+                continue
+            match_page = site.get(address, may_be_gone=True)
+            match = parse_match(match_page, address, empty=True) if match_page is not None else None
+            if match is None:
+                continue
+        role = "home" if match.home.club_id == club else "away" if match.away.club_id == club else None
+        if role is None:
+            continue
+        side = replace(getattr(match, role), xi=xi, alternatives=alternatives)
+        filled = replace(match, **{role: side})
+        reading.matches[:] = [one for one in reading.matches if one.match_id != match.match_id] + [filled]
+        # the match page with no eleven on it was named as unreadable above: it has been read after all
+        reading.failed[:] = [line for line in reading.failed if not line.startswith(f"{address}: not a lineup page")]
 
 
 SQUAD_BUDGET = 90.0  # seconds for all the squad pages: twenty clubs, two seconds apart, once a week

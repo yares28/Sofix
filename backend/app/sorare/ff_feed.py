@@ -38,6 +38,7 @@ MIN_GAP = timedelta(
 KEEP = timedelta(
     days=5
 )  # a match stays this long after its kickoff: a round runs Friday to Monday and stays whole on Lineups
+TEAM_GAP = timedelta(hours=3)  # a club's team page (1 to 2 MB) is not asked again sooner than this
 COMPETITIONS = ("laliga", "champions", "europa-league", "copa-del-rey")
 
 Reader = Callable[..., ffm.Reading]
@@ -59,6 +60,9 @@ class Feed:
     failed: list[str] = field(default_factory=list)
     stopped: str | None = None
     fresh: int = 0  # matches read the last time it was asked
+    team_read: dict[str, datetime] = field(
+        default_factory=dict
+    )  # "competition:club number" -> its team page last asked
 
     def usable(self, now: datetime) -> list[Stored]:
         """The matches whose reading is under a day old and whose kickoff is still ahead."""
@@ -85,6 +89,7 @@ def load(db: Session) -> Feed:
         read_at=_dt(payload.get("readAt")), failed=list(payload.get("failed") or []), stopped=payload.get("stopped")
     )
     feed.fresh = int(payload.get("fresh") or 0)
+    feed.team_read = {key: moment for key, raw in (payload.get("teamRead") or {}).items() if (moment := _dt(raw))}
     if payload.get("version") != VERSION:
         return feed
     for key, item in (payload.get("matches") or {}).items():
@@ -110,6 +115,7 @@ def save(db: Session, feed: Feed, now: datetime) -> None:
             "fresh": feed.fresh,
             "failed": feed.failed,
             "stopped": feed.stopped,
+            "teamRead": {key: moment.isoformat() for key, moment in feed.team_read.items()},
             "matches": {
                 str(match_id): {
                     "readAt": item.read_at.isoformat(),
@@ -155,6 +161,16 @@ def wanted(owned: list[tuple[str, ...]], feed: Feed, now: datetime) -> Callable[
         )
 
     return pick
+
+
+def team_pages(feed: Feed) -> dict[str, str]:
+    """The clubs whose team pages may be asked, {club number: its address's name}: LaLiga's, as the matches held name them."""
+    out: dict[str, str] = {}
+    for item in feed.matches.values():
+        for side in (item.match.home, item.match.away):
+            if side.club_id and side.slug and ff_link.club_of(side.club_id, side.name) is not None:
+                out[side.club_id] = side.slug
+    return out
 
 
 def _lineup(side: ffm.Side) -> tuple[tuple[str, float, bool], ...]:
@@ -216,11 +232,18 @@ def refresh(
     feed = load(db)
     owned = club_names(cards)
     db.rollback()
+    asked = dict(feed.team_read)
     reading = (reader or ffm.read_matches)(
-        wanted(owned, feed, now), COMPETITIONS, now=now, known=still_to_play(feed, now)
+        wanted(owned, feed, now),
+        COMPETITIONS,
+        now=now,
+        known=still_to_play(feed, now),
+        teams=team_pages(feed),
+        team_due=lambda competition, club: now - asked.get(f"{competition}:{club}", now - TEAM_GAP) >= TEAM_GAP,
     )
     feed = copy.copy(feed)
     feed.matches = dict(feed.matches)
+    feed.team_read = {**asked, **dict.fromkeys(getattr(reading, "teams_read", ()), now)}
     for match in reading.matches:
         feed.matches[match.match_id] = Stored(
             match, reading.at, _changes(feed.matches.get(match.match_id), match, reading.at)

@@ -43,7 +43,9 @@ export type XscoreLive = {
 };
 
 export type Scores = { right: number | null; brier: number | null; mean: number | null; started: number | null; buckets: Band[] | null };
-export type LiveSource = Scores & { state: State; recorded: number; settled: number };
+/** One competition's share of a source's record: how many games it gave a number for, how many are checked, and how right it was once there are enough. */
+export type CompetitionLine = { competition: string; recorded: number; settled: number; right: number | null; brier: number | null };
+export type LiveSource = Scores & { state: State; recorded: number; settled: number; byCompetition?: CompetitionLine[] };
 export type SofixReplay = Scores & { games: number; always: number };
 export type RecordWeek = { slug: string; lock: string | null; games: number; settled: number; sources: Record<StartSource, number> };
 
@@ -300,6 +302,22 @@ export function sourceStory(source: StartSource, live: LiveSource, floor: number
     default:
       return { main: "Nothing yet", sub: WHY_NOTHING[source] };
   }
+}
+
+const COMPETITION_NAME: Record<string, string> = {
+  "laliga-es": "LaLiga", "segunda-division-es": "Segunda", "copa-del-rey": "Copa del Rey", "uefa-champions-league": "Champions League",
+  "uefa-europa-league": "Europa League", "uefa-europa-conference-league": "Conference League", "uefa-nations-league": "Nations League",
+  "premier-league-gb-eng": "Premier League", "bundesliga-de": "Bundesliga",
+};
+/** Sorare's competition slug as a name: the ones the owner plays by their own, any other from its words. */
+export const competitionName = (slug: string): string =>
+  COMPETITION_NAME[slug] ?? slug.split("-").filter((word) => word.length > 2 || /\d/.test(word)).map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+
+/** A source in one competition, in the page's words: the share right once enough games are checked, else how far it is. */
+export function competitionStory(line: CompetitionLine, floor: number): string {
+  if (line.right !== null) return `${percent(line.right)} right · ${plural(line.settled, "game")}`;
+  if (line.settled === 0) return `${plural(line.recorded, "game")} waiting`;
+  return `${line.settled.toLocaleString("en-GB")} of ${floor} checked`;
 }
 
 /** A gameweek of the record: how many games were written down before its lock and how many have been checked since. */

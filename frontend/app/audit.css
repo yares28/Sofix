@@ -183,6 +183,9 @@
 .au-src-more div { display: flex; justify-content: space-between; gap: 12px; }
 .au-src-more dt { color: var(--ink-2); }
 .au-src-more dd { margin: 0; font-weight: 650; font-variant-numeric: tabular-nums; }
+.au-src-more + .au-src-comps { margin-top: 0; }
+.au-src-comps { border-top: 1px solid var(--line); margin-top: 14px; }
+.au-src-comps dd { font-weight: 550; text-align: right; }
 
 .au-replay { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 18px 48px; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line); }
 .au-replay-big { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0; font-size: 15px; color: var(--ink-2); }

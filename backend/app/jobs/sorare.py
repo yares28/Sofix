@@ -22,7 +22,7 @@ import json
 import logging
 import os
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, TypeVar
 
 from sqlalchemy.orm import Session
@@ -180,6 +180,34 @@ def sorare_links(
     return out
 
 
+TIES_KEY = (
+    "lineup_ties"  # {match id: {"id": Sorare's game, "players": {...}, "at": when last seen}}: small, read each run
+)
+TIES_KEPT = timedelta(days=10)
+
+
+def remembered_ties(
+    db: Session, fresh: dict[int, dict[str, Any]], at: datetime, *, write: bool
+) -> dict[int, dict[str, Any]]:
+    """This run's ties with the ones kept from earlier runs. A run only sees the games of the gameweeks it reads, so a match
+    tied while its week was being planned would lose its tie (or all but the owner's players) once the week locks."""
+    row = db.get(ReadModel, TIES_KEY)
+    kept = row.payload if row and isinstance(row.payload, dict) else {}
+    out: dict[int, dict[str, Any]] = {}
+    for key, old in kept.items():
+        seen = old.get("at") if isinstance(old, dict) else None
+        if seen and datetime.fromisoformat(seen) > at - TIES_KEPT and old.get("id"):
+            out[int(key)] = old
+    for match, tie in fresh.items():
+        old = out.get(match)
+        players = {**(old["players"] if old and old["id"] == tie["id"] else {}), **tie["players"]}
+        out[match] = {"id": tie["id"], "players": players, "at": at.isoformat()}
+    if write:
+        put(db, TIES_KEY, {str(match): tie for match, tie in out.items()}, at)
+    db.rollback()
+    return out
+
+
 def publish_lineups(
     db: Session,
     failed: dict[str, str],
@@ -206,7 +234,7 @@ def publish_lineups(
         db.rollback()  # the squad pages are read over a minute or more, and Neon closes a connection left inside a transaction
         memory, squads = ff_lineups.read_squads(memory, feed, at)
         memory = ff_lineups.Memory(ff_lineups.remember(memory.positions, feed, lineups), memory.squads)
-        links = sorare_links(snapshot, lineups, league)
+        links = remembered_ties(db, sorare_links(snapshot, lineups, league), at, write=write)
         page = ff_lineups.payload(feed, lineups, cards, memory.positions, at, art, links)
         if write:
             ff_lineups.save_memory(db, memory, at)

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { cache } from "./cache";
 import { database } from "./db";
 import type { LineupChances, SorareGameLink } from "./lineupChances";
+import type { LineupMatch } from "./lineups";
 
 /**
  * Sorare's starting chances as the extension read them from Sorare's own page (plans/sorare-start-chances.md). The public
@@ -65,6 +66,46 @@ export async function loadSavedChances(games: string[]): Promise<SavedChances> {
   } catch {
     return {};
   }
+}
+
+const words = (text: string) => text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+
+/**
+ * The Sorare players of one game the job did not tie to a person on the page, tied by name: the job only knows the owner's
+ * cards and LaLiga's squads, and Sorare's page reads every player of the game (the owner, 13 Oct 2026: "it should work for all
+ * players in that match"). A person is tied when every word of his name is in one Sorare slug and in no other ("Matheus Cunha" in
+ * `matheus-santos-carneiro-da-cunha`), else when his surname is; two people or two slugs that could be each other are left untied.
+ */
+export function nameLinks(people: { id: string; name: string }[], slugs: string[], known: Record<string, string>): Record<string, string> {
+  const taken = new Set(Object.values(known));
+  const open = people.filter((one) => !taken.has(one.id));
+  const free = slugs.filter((slug) => !(slug in known)).map((slug) => ({ slug, words: new Set(words(slug)) }));
+  const out: Record<string, string> = {};
+  const pair = (fits: (name: string[], slug: Set<string>) => boolean) => {
+    const left = open.filter((one) => !Object.values(out).includes(one.id));
+    const slugsLeft = free.filter((one) => !(one.slug in out));
+    for (const person of left) {
+      const name = words(person.name);
+      const found = slugsLeft.filter((one) => fits(name, one.words));
+      if (found.length !== 1) continue;
+      const rivals = left.filter((other) => fits(words(other.name), found[0]!.words));
+      if (rivals.length === 1) out[found[0]!.slug] = person.id;
+    }
+  };
+  pair((name, slug) => name.length > 0 && name.every((word) => slug.has(word)));
+  pair((name, slug) => { const last = name.at(-1) ?? ""; return last.length >= 4 && slug.has(last); });
+  return out;
+}
+
+/** Each match's tie to Sorare with the players its kept readings name added by name (`nameLinks`). */
+export function withNames(links: Record<number, SorareGameLink>, matches: LineupMatch[], saved: SavedChances): Record<number, SorareGameLink> {
+  const out: Record<number, SorareGameLink> = {};
+  for (const [id, link] of Object.entries(links)) {
+    const match = matches.find((one) => String(one.id) === id);
+    const people = match ? [match.home, match.away].flatMap((side) => [...side.rows.flatMap((row) => row.players), ...side.alternatives]) : [];
+    out[Number(id)] = { ...link, players: { ...nameLinks(people, Object.keys(saved[link.id] ?? {}), link.players), ...link.players } };
+  }
+  return out;
 }
 
 /** Kept readings as the Lineups page's Sorare view: by Futbol Fantasy match and player, through each match's Sorare link. */

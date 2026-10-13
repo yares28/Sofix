@@ -207,3 +207,23 @@ def test_a_match_in_a_later_gameweek_gets_its_reading_at_that_gameweeks_lock_bef
 
     match = kept(db)["matches"]["1"]
     assert match["gw"] == "gw-next" and match["atLock"]["home"]["players"]["10"]["p"] == 0.55
+
+
+def test_a_tie_to_sorare_is_remembered_after_its_week_is_no_longer_read(db: Any) -> None:
+    """13 Oct 2026: a match tied while its week was planned lost everyone but the owner's players once the week locked."""
+    from app.jobs import sorare as job
+
+    monday = LOCK - timedelta(days=1)
+    planned = {7: {"id": "Game:a", "players": {"mine": "1", "other": "2"}}}
+    assert job.remembered_ties(db, planned, monday, write=True)[7]["players"] == {"mine": "1", "other": "2"}
+
+    after = job.remembered_ties(db, {7: {"id": "Game:a", "players": {"mine": "1"}}}, LOCK, write=True)
+    assert after[7]["players"] == {"mine": "1", "other": "2"} and after[7]["at"] == LOCK.isoformat()
+    assert job.remembered_ties(db, {}, LOCK + timedelta(hours=1), write=True)[7]["id"] == "Game:a"
+    assert job.remembered_ties(db, {}, LOCK + timedelta(days=11), write=True) == {}, (
+        "forgotten ten days after it was last seen"
+    )
+    moved = job.remembered_ties(
+        db, {7: {"id": "Game:b", "players": {"x": "9"}}}, LOCK + timedelta(days=12), write=False
+    )
+    assert moved[7]["players"] == {"x": "9"}

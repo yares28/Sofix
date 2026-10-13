@@ -450,3 +450,33 @@ def test_publishing_counts_the_rewards_of_every_kept_week(db, tmp_path, monkeypa
     audit.publish(db, NOW)
     rewards = db.get(ReadModel, audit.AUDIT_KEY).payload["rewards"]
     assert [w["gameweek"] for w in rewards["weeks"]] == [17] and rewards["expected"]["essence"] == 63
+
+
+def test_each_source_is_scored_competition_by_competition():
+    """13 Oct 2026: a source right in LaLiga may be blind in Europe, so each competition has its own line."""
+    liga = {
+        f"l{i}": {"comp": "laliga-es", "sofix": {"chance": 0.8}, "futbolfantasy": {"chance": 0.9}, "started": True}
+        for i in range(audit.FLOOR)
+    }
+    europe = {
+        "e1": {"comp": "uefa-europa-league", "sofix": {"chance": 0.8}, "started": False},
+        "e2": {"info": {"competition": "uefa-europa-league"}, "sofix": {"chance": 0.6}},
+    }
+    live = audit.starts_record(record_of({"gw": {"p": {"games": {**liga, **europe}}}}))
+
+    sofix = {line["competition"]: line for line in live["sofix"]["byCompetition"]}
+    assert sofix["laliga-es"] == {
+        "competition": "laliga-es",
+        "recorded": audit.FLOOR,
+        "settled": audit.FLOOR,
+        "right": 1.0,
+        "brier": 0.04,
+    }
+    assert sofix["uefa-europa-league"] == {
+        "competition": "uefa-europa-league",
+        "recorded": 2,
+        "settled": 1,
+        "right": None,
+        "brier": None,
+    }, "under the floor a competition shows its counts only"
+    assert [line["competition"] for line in live["futbolfantasy"]["byCompetition"]] == ["laliga-es"]

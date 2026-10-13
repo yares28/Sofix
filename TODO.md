@@ -41,6 +41,18 @@ with nothing kept says so instead of showing another week.
 
 ---
 
+**M4. Futbol Fantasy in Europe, and the audit by competition.** "You can find lineups for FF in champions league here
+https://www.futbolfantasy.com/champions/equipos/atletico and for europa league here https://www.futbolfantasy.com/europa-league/equipos/real-sociedad.
+When doing the accuracy audit, separate accuracy by competition for all of them." Read on 13 Oct: the Europa League team page has the eleven
+with percentages (Remiro 90%, Oyarzabal 80%) while its round page still listed matchday 1 and the match page had no eleven, so nothing of the
+Europa League was read; the Champions League team and match pages (Atlético, Real Madrid, Villarreal) have an eleven and `data-probabilidad=""`
+for every player. Done: team pages are read in Europe; the Audit splits each source by competition. Open: what a place in a Champions League
+eleven without a percentage is worth as a start chance (needs settled games to measure, not a guess).
+
+**M5. Sorare's % for everyone in the match.** "working only on my players, it should work for all players in that match". Done 13 Oct: tied by name.
+
+---
+
 ## Forgotten in past sessions (found 7 Oct 2026)
 
 You asked on 7 Oct why the league history reads 40 players a refresh instead of everyone, and to find plans left unfinished.

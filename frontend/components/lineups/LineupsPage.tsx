@@ -6,7 +6,7 @@ import { daysOf, pickMatch, sectionsOf, weekLineups, weekSpan } from "../../lib/
 import { lineupMatchFacts } from "../../lib/lineupMatchFacts";
 import { loadKeptDays, loadLineups } from "../../lib/lineupsData";
 import { lineupChances, recordedChances, recordedGames, type ChanceRecord, type SorareGameLink } from "../../lib/lineupChances";
-import { loadSavedChances, savedCoverage, savedLineupChances } from "../../lib/sorareChances";
+import { loadSavedChances, savedCoverage, savedLineupChances, withNames } from "../../lib/sorareChances";
 import { weekPlan } from "../../lib/play";
 import { loadChanceRecord, loadProjectedWeek, loadSorare } from "../../lib/playData";
 import { loadSystem } from "../../lib/system";
@@ -86,8 +86,10 @@ export default async function LineupsPage({ searchParams, scores = false }: { se
   }
   // Sorare's own number, as the extension read it from Sorare's page and the app kept it: the public API has none.
   // Which Sorare game a match is: the job ties them and writes it with the match; an older match has only what the start record held.
-  const sorareGames: Record<number, SorareGameLink> = { ...recordedGames(data.matches, records), ...Object.fromEntries(data.matches.flatMap((match) => (match.sorare ? [[match.id, match.sorare]] : []))) };
-  const kept = scores ? {} : await loadSavedChances(Object.values(sorareGames).map((link) => link.id));
+  const tied: Record<number, SorareGameLink> = { ...recordedGames(data.matches, records), ...Object.fromEntries(data.matches.flatMap((match) => (match.sorare ? [[match.id, match.sorare]] : []))) };
+  const kept = scores ? {} : await loadSavedChances(Object.values(tied).map((link) => link.id));
+  // Everyone else Sorare's page named for the game is tied by name, so both elevens get a number, not only the owner's players.
+  const sorareGames = withNames(tied, data.matches, kept);
   for (const [match, players] of Object.entries(savedLineupChances(kept, sorareGames))) for (const [player, sources] of Object.entries(players)) {
     (chances[match] ??= {})[player] = { ...chances[match]?.[player], ...sources };
   }

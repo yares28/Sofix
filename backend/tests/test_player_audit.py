@@ -116,7 +116,13 @@ def test_table_results_match_legacy_figures_on_the_overlap_without_double_counti
         entry["games"][0]["actual"] = {"started": True, "played": True, "score": 51 + i / 10, "mins": 90}
     audit.publish(db, NOW)
     page = db.get(ReadModel, "audit").payload
-    assert page["starts"]["live"] == audit.starts_record(legacy)
+
+    # the table knows each game's competition and the oldest record does not: the split by competition is the one difference
+    def figures(live):
+        return {source: {k: v for k, v in found.items() if k != "byCompetition"} for source, found in live.items()}
+
+    assert figures(page["starts"]["live"]) == figures(audit.starts_record(legacy))
+    assert all(found["byCompetition"] == [] for found in audit.starts_record(legacy).values())
     assert page["versus"]["all"] == versus.figures([old_scores])["all"]
     assert page["starts"]["weeks"][0]["games"] == 2
 

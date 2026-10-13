@@ -598,3 +598,76 @@ def test_a_match_the_round_page_no_longer_lists_is_still_read_from_what_is_held(
 
     assert site.asked == [LALIGA_ROUND, MATCH_URL, left]
     assert len(reading.matches) == 2 and reading.failed == []
+
+
+# ------------------------------------------------------------------------------------------- a club's own page, in Europe
+EUROPA_ROUND = "https://www.futbolfantasy.com/europa-league/posibles-alineaciones"
+EUROPA_TEAM = "https://www.futbolfantasy.com/europa-league/equipos/real-sociedad"
+EUROPA_MATCH = "https://www.futbolfantasy.com/partidos/24278-union-saint-gilloise-real-sociedad"
+BEFORE_EUROPA = datetime(2026, 10, 13, 16, tzinfo=UTC)  # the day the pages were saved: two days before the game
+
+
+def test_a_team_page_gives_its_next_eleven_with_the_percentages() -> None:
+    xi, alternatives = ffm.parse_team_lineup(page("team_europa_real_sociedad.html"))
+
+    assert len(xi) == 11 and len(alternatives) == 4  # the page as saved, cut to the eleven and four alternatives
+    chances = {player.name: player.chance for player in (*xi, *alternatives)}
+    assert (chances["Álex Remiro"], chances["Mikel Oyarzabal"], chances["Takefusa Kubo"]) == (0.9, 0.8, 0.4)
+    assert next(player for player in xi if player.name == "Álex Remiro").goalkeeper
+
+
+def test_in_europe_a_club_with_no_eleven_on_a_match_page_is_read_from_its_team_page() -> None:
+    """13 Oct 2026: the Europa League round page still listed matchday 1 and Real Sociedad's match page had no eleven, so nothing of the
+    Europa League was read, while the club's own page had the eleven and its percentages."""
+    site = Site(
+        {
+            EUROPA_ROUND: page("round_champions_1.html"),  # a round already played: nothing on it to read
+            EUROPA_TEAM: page("team_europa_real_sociedad.html"),
+            EUROPA_MATCH: page("match_europa_no_eleven.html"),
+        }
+    )
+    asked: list[tuple[str, str]] = []
+
+    def due(competition: str, club: str) -> bool:
+        asked.append((competition, club))
+        return True
+
+    reading = ffm.read_matches(
+        lambda competition, item: item.match_id == 24278,
+        competitions=["europa-league"],
+        client=site.client(),
+        pause=0,
+        now=BEFORE_EUROPA,
+        known={
+            "europa-league": [
+                ffm.RoundMatch(24278, EUROPA_MATCH, "Union Saint-Gilloise", "Real Sociedad", "727", "16", None)
+            ]
+        },
+        teams={"16": "real-sociedad", "1": "athletic"},
+        team_due=due,
+    )
+
+    assert site.asked == [EUROPA_ROUND, EUROPA_MATCH, EUROPA_TEAM], (
+        "the match page is asked for once, a club not in it never"
+    )
+    assert asked == [("europa-league", "16")] and reading.teams_read == ["europa-league:16"] and reading.failed == []
+    (match,) = reading.matches
+    assert (match.match_id, match.competition, match.round_no) == (24278, "europa-league", 2)
+    assert match.kickoff == datetime(2026, 10, 15, 16, 45, tzinfo=UTC)
+    assert len(match.away.xi) == 11 and not match.home.xi, "only the club whose page it is gets an eleven"
+    assert {player.name: player.chance for player in match.away.xi}["Mikel Oyarzabal"] == 0.8
+
+
+def test_a_club_whose_match_page_has_its_eleven_is_not_asked_for_its_team_page() -> None:
+    site = Site({CHAMPIONS_ROUND: page("round_champions_1.html")})
+
+    reading = ffm.read_matches(
+        lambda competition, item: False,
+        competitions=["champions"],
+        client=site.client(),
+        pause=0,
+        teams={"16": "real-sociedad"},
+        team_due=lambda competition, club: False,
+    )
+
+    assert site.asked == [CHAMPIONS_ROUND] and reading.teams_read == []

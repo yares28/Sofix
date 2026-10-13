@@ -568,6 +568,10 @@ the held-out weeks (P9 "The bar").
   `python -m app.jobs.lineup_backtest` replays them on two seasons. Replay (1,000 pools): xScore 314, nothing beats it, keeper-with-defender
   and three-from-one-club are 7 to 9 points worse. Strategy lineups appear from the next refresh before a lock; the page fills as weeks finish.
 
+- **13 Oct - Europe and everyone's Sorare % (TODO.md M4, M5):** on Lineups every player Sorare's page named for a game is tied by name
+  (`nameLinks`), ties are remembered across runs (`lineup_ties`); the Europa League is read from each Spanish club's team page when the round
+  page is stale or the match page has no eleven (`_from_team_pages`, at most every 3 h a club); Futbol Fantasy's Champions League pages carry
+  no percentages (checked on the team and match pages); Audit > Who starts lists each source competition by competition.
 - **13 Oct - Lineups, Scores and a mission (TODO.md M1 to M3):** a "Big Chance Missed" mission is a counted stat and gets its picks; the job ties every
   Futbol Fantasy match to its Sorare game and players (`sorare` on each match), so Sorare's saved start % and "Read the round on Sorare" show
   without the planned week's record; every match is kept by its day (`lineups_day:<date>`, merged inside Postgres), the week picked decides the

@@ -205,15 +205,25 @@ def starts_record(record: dict[str, Any]) -> dict[str, dict[str, Any]]:
     """How each source did on the games it had a number for, once they were settled; a source under the floor shows its counts only."""
     recorded = dict.fromkeys(SOURCES, 0)
     said: dict[str, list[tuple[float, bool]]] = {source: [] for source in SOURCES}
+    # The same, competition by competition (the owner, 13 Oct 2026): a source right in LaLiga may be blind in Europe. A game says
+    # its competition once settled (`comp`) and before that in what was written down about it; the oldest entries name none.
+    written: dict[str, dict[str, int]] = {source: {} for source in SOURCES}
+    told: dict[str, dict[str, list[tuple[float, bool]]]] = {source: {} for source in SOURCES}
     for week in (record.get("weeks") or {}).values():
         for entry in (week.get("players") or {}).values():
             for cell in _cells(entry):
+                competition = cell.get("comp") or (cell.get("info") or {}).get("competition")
                 for source in SOURCES:
                     if source not in cell:
                         continue
                     recorded[source] += 1
+                    if competition:
+                        written[source][competition] = written[source].get(competition, 0) + 1
                     if "started" in cell:
-                        said[source].append((float(cell[source]["chance"]), bool(cell["started"])))
+                        pair = (float(cell[source]["chance"]), bool(cell["started"]))
+                        said[source].append(pair)
+                        if competition:
+                            told[source].setdefault(competition, []).append(pair)
     out: dict[str, dict[str, Any]] = {}
     for source in SOURCES:
         state = _state(recorded[source], len(said[source]))
@@ -222,7 +232,27 @@ def starts_record(record: dict[str, Any]) -> dict[str, dict[str, Any]]:
             if state == "enough"
             else {"right": None, "brier": None, "mean": None, "started": None, "buckets": None}
         )
-        out[source] = {"state": state, "recorded": recorded[source], "settled": len(said[source]), **shown}
+        competitions = []
+        for competition, count in sorted(written[source].items(), key=lambda item: (-item[1], item[0])):
+            pairs = told[source].get(competition, [])
+            enough = _state(count, len(pairs)) == "enough"
+            scored = _scores(pairs) if enough else None
+            competitions.append(
+                {
+                    "competition": competition,
+                    "recorded": count,
+                    "settled": len(pairs),
+                    "right": scored["right"] if scored else None,
+                    "brier": scored["brier"] if scored else None,
+                }
+            )
+        out[source] = {
+            "state": state,
+            "recorded": recorded[source],
+            "settled": len(said[source]),
+            **shown,
+            "byCompetition": competitions,
+        }
     return out
 
 

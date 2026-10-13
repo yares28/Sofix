@@ -13,6 +13,8 @@ import {
   recordLine,
   SOURCES,
   sourceStory,
+  competitionName,
+  competitionStory,
   type Audit,
   type LiveSource,
   type StartFix,
@@ -67,6 +69,16 @@ function Source({ source, live, floor }: { source: StartSource; live: LiveSource
             <dt>Error score</dt>
             <dd>{live.brier === null ? "–" : live.brier.toFixed(2)}</dd>
           </div>
+        </dl>
+      ) : null}
+      {live.byCompetition?.length ? (
+        <dl className="au-src-more au-src-comps" aria-label={`${NAME[source]} by competition`}>
+          {live.byCompetition.map((line) => (
+            <div key={line.competition}>
+              <dt>{competitionName(line.competition)}</dt>
+              <dd>{competitionStory(line, floor)}</dd>
+            </div>
+          ))}
         </dl>
       ) : null}
     </article>

@@ -1,0 +1,81 @@
+<!doctype html><html><body>
+<header class="encabezado encabezado-partido p-0 py-2 mb-0 p-lg-2 col-12">
+            <a href="javascript:void(0)" class="btn-ver-comentarios-top btn-scroll-to-comments">
+        <span class="comment-icon"><i class="far fa-comment-dots"></i></span>
+    </a>
+            <div class="fecha">
+        <img src="//static.futbolfantasy.com/uploads/images/cabecera/europaleague.png" class="align-text-top" height="14" /> <strong>Europa League 2026/27 - Jornada 2</strong>
+    </div>
+        <div class="fecha">
+        Jueves, 15 de octubre del 2026 a las 18:45h
+            </div>
+    <div class="resultado row my-2 px-4">
+        <div class="equipo local col-3 col-lg-5">
+                        <div class="row">
+                <div class="nombre col-12 col-lg-10 px-0 order-1 order-lg-0 pr-1">Union Saint-Gilloise</div>
+                <div class="escudo col-12 col-lg-2 px-0 order-0 order-lg-1"><img src="//static.futbolfantasy.com/uploads/images/equipos/escudom/727.png" class="escudo-727" /></div>
+            </div>
+                    </div>
+        <div class="col-6 col-lg-2">
+            <div class="local score">                -
+            </div>
+            <div class="visitante score">                -
+            </div>
+        </div>
+        <div class="equipo visitante col-3 col-lg-5">
+            <a class="text-decoration-none" href="https://www.futbolfantasy.com/laliga/equipos/real-sociedad">            <div class="row">
+                <div class="escudo col-12 col-lg-2 px-0"><img src="//static.futbolfantasy.com/uploads/images/equipos/escudom/16.png" class="escudo-16" /></div>
+                <div class="nombre col-12 col-lg-10 px-0 pl-1">Real Sociedad</div>
+            </div>
+            </a>        </div>
+    </div>
+                        <script>
+        function getMinute(){
+            var now = new Date();
+            var hora = new Date('');
+            var parte = 0;
+            var diffMs = (now - hora); // milliseconds between now & Christmas
+            var diffMins = Math.round(((diffMs % 86400000) % 3600000) / 60000); // minutes
+            switch(parte){
+                case 1:
+                    diffMins = "Directo " + diffMins + "'";
+                break;
+                case 2:
+                    diffMins = "Descanso";
+                break;
+                case 3:
+                    diffMins = diffMins + 45;
+                    diffMins = "Directo " + diffMins + "'";
+                break;
+                case 4:
+                    diffMins = "Finalizado";
+                break;
+                case 5:
+                    diffMins = diffMins + 90;
+                    diffMins = "Directo " + diffMins + "'";
+                break;
+                case 6:
+                    diffMins = "Final 1a parte de la prórroga";
+                break;
+                case 7:
+                    diffMins = diffMins + 105;
+                    diffMins = "Directo " + diffMins + "'";
+                break;
+                case 8:
+                    diffMins = "Final 2a parte de la prórroga";
+                break;
+                case 9:
+                    diffMins = "Penaltis";
+                break;
+                case 10:
+                    diffMins = "Final";
+                break;
+            }
+            $('.minuto_directo').addClass('ml-1').html(" " + diffMins);
+        }
+        document.addEventListener("DOMContentLoaded", function(event) {
+            getMinute();
+        });
+    </script>
+</header>
+</body></html>

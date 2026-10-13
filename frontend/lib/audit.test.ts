@@ -8,6 +8,8 @@ import {
   readable,
   recordLine,
   sourceStory,
+  competitionName,
+  competitionStory,
   SOURCES,
   NO_MISSIONS,
   NO_LINEUPS, NO_STRATEGIES, NO_REWARDS,
@@ -80,6 +82,11 @@ describe("what each source says for itself", () => {
   it("says too few to tell, with how far along it is, instead of a number", () => {
     const live: LiveSource = { ...none, state: "few", recorded: 30, settled: 12 };
     expect(sourceStory("sofix", live, 100)).toEqual({ main: "Too few to tell", sub: "12 of 100 games checked" });
+    // each competition on its own (13 Oct 2026): a figure only once it has enough games
+    expect(competitionStory({ competition: "laliga-es", recorded: 150, settled: 120, right: 0.74, brier: 0.18 }, 100)).toBe("74% right · 120 games");
+    expect(competitionStory({ competition: "uefa-europa-league", recorded: 30, settled: 12, right: null, brier: null }, 100)).toBe("12 of 100 checked");
+    expect(competitionStory({ competition: "uefa-champions-league", recorded: 9, settled: 0, right: null, brier: null }, 100)).toBe("9 games waiting");
+    expect([competitionName("uefa-champions-league"), competitionName("k-league-1"), competitionName("superliga-argentina-de-futbol")]).toEqual(["Champions League", "League 1", "Superliga Argentina Futbol"]);
   });
 
   it("says it is waiting for the games when they were written down but not played", () => {

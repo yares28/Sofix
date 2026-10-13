@@ -104,6 +104,14 @@ def _from_form(history: list[tuple[str, float, bool]]) -> tuple[float, float]:
     return plays, mu
 
 
+def _on_from_form(week: PlayerWeek) -> float:
+    """Of the games he does not start, how often he still plays, from his last five (a short record leans on his position's norm)."""
+    last = week.history[:5]
+    came_on = sum(1 for date, _, ok in last if ok and week.starts.get(date) is False)
+    not_started = came_on + sum(1 for _, _, ok in last if not ok)
+    return (came_on + 2 * PRIOR_ON.get(week.pos or "", PRIOR_ON_OUTFIELD)) / (not_started + 2.0)
+
+
 class Split(NamedTuple):
     start: float  # his score if he starts
     bench: float  # the old "benched" number: the chance he comes on if benched x what a substitute scores
@@ -148,9 +156,7 @@ def _split(week: PlayerWeek, base_mu: float, plays: float) -> Split:
     else:
         start = (sum(started) + 2 * PRIOR_START_SCORE) / (len(started) + 2)
 
-    not_started = len(came_on) + sum(1 for _, _, ok in last if not ok)
-    prior = PRIOR_ON.get(week.pos or "", PRIOR_ON_OUTFIELD)
-    from_form = (len(came_on) + 2 * prior) / (not_started + 2.0)
+    from_form = _on_from_form(week)
     benched_on = from_form
     if have_odds:  # of the games he does not start, how many he still plays
         benched = 1.0 - p_start
@@ -210,6 +216,11 @@ def own_start(week: PlayerWeek) -> float | None:
 def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
     if week.games <= 0:
         return Forecast(p_play=0.0, mu=PRIOR_SCORE, games=0, source="no game", actual=week.actual)
+    if week.start_odds is not None and week.plays_odds is None:
+        # Sorare's page gives the starter chance alone (the extension's reading, `starts.seen_on_sorare`): of the games he does
+        # not start, his form says how often he comes on.
+        on = (1 - week.start_odds) * _on_from_form(week)
+        week = dataclasses.replace(week, plays_odds=min(1.0, week.start_odds + on))
     plays, mu = _from_form(week.history)
     source = "form"
     if week.projection is not None:

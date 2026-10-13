@@ -851,6 +851,14 @@ def snapshot(
         for c in my_cards
         if c["player"].get("activeClub")
     }
+    # A European week's own competitions (European Champions, European Contenders) are for whoever plays in them: a card's
+    # games say so, his club's domestic league does not (13 Oct 2026: both were dropped as "no cards in this league").
+    my_leagues |= {
+        (game.get("competition") or {}).get("slug")
+        for c in my_cards
+        for alias in aliases
+        for game in c["player"].get(alias) or []
+    }
     my_leagues.discard(None)
     planned = competitions(client, plan_gw["slug"], my_leagues)  # type: ignore[arg-type]
     # A finished gameweek's replay never changes, so when the app already holds it nothing is fetched for it.

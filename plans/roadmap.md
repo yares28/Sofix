@@ -569,6 +569,10 @@ the held-out weeks (P9 "The bar").
   `python -m app.jobs.lineup_backtest` replays them on two seasons. Replay (1,000 pools): xScore 314, nothing beats it, keeper-with-defender
   and three-from-one-club are 7 to 9 points worse. Strategy lineups appear from the next refresh before a lock; the page fills as weeks finish.
 
+- **13 Oct - GW22 plan (the owner's four points):** Sorare's European competitions are read (they were dropped as "no cards in this league":
+  a card's games now say what he plays in, `Card.plays_in`); a free competition is filled with every team the cards make, after the teams
+  with a real chance have their cards and substitutes; Sorare's starting chance as the extension saved it (`sorare_chances:<game>`, 76 games
+  on 13 Oct) is the `sorare` source of the forecast, the plans and the start record. `tests/test_sorare_gw22.py`.
 - **13 Oct - lineup building (lineups-and-xscore.md Phase 1):** no plan enters a fee-paying Room, an All Star lineup is built last (from the cards left), essence order LaLiga, Champion, All Star; start chances moved to
   what happened from 100 settled games per run of chances (shown on the Audit); no starter under 30% to play; a player's own league counts for his start chance.
   GW21 replanned: fees 0, best plan 651 essence expected and no fees (the frozen plan said 1,056 before 600 in fees, 456 net), no keeper under 30% in any lineup. Phases 2 to 6 wait for the owner's go.

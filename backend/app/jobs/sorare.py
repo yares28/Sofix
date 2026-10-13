@@ -51,6 +51,7 @@ from app.sorare import (
     score_checks,
     scores,
     start_fixes,
+    starts,
 )
 from app.sorare import missions as sorare_missions
 from app.sorare import publish as sorare_publish
@@ -203,11 +204,18 @@ def team_news(
     return news, readings
 
 
+def _has_start(row: dict[str, Any], seen: dict[str, dict[str, Any]]) -> bool:
+    player = row["player"]
+    return bool(player.get("nextClassicFixturePlayingStatusOdds")) or any(
+        player["slug"] in (seen.get(game.get("id") or "") or {}) for game in player.get("plan") or []
+    )
+
+
 def sorare_odds(snapshot: dict[str, Any]) -> dict[str, int]:
     """How many of the owner's players with a game in the gameweek being planned have Sorare's starter odds: the record
     held none in its first 30 rows, so this says every run whether Sorare's number is ever the fallback in practice."""
     players = {
-        row["player"]["slug"]: bool(row["player"].get("nextClassicFixturePlayingStatusOdds"))
+        row["player"]["slug"]: _has_start(row, snapshot.get("sorareStarts") or {})
         for row in snapshot["cards"]
         if row["player"].get("plan")
     }
@@ -280,6 +288,12 @@ def run(
         }
     )
     snapshot["understat"] = understat.fetch_leagues(leagues, understat.season_of(started.date()))
+    # Sorare's starting chances as its page showed them in the owner's browser: the public API gives none (13 Oct 2026).
+    no_readings: dict[str, dict[str, Any]] = {}
+    snapshot["sorareStarts"] = optional(
+        db, failed, "sorare start chances", lambda: starts.seen_on_sorare(db, started), no_readings
+    )
+    db.rollback()
     fetched = datetime.fromisoformat(snapshot["fetchedAt"])
     if not dry_run:
         player_games.save(db, snapshot["history"], fetched)

@@ -73,6 +73,7 @@ def rows(
         scores=scores if which == "plan" else None,
         ff=ff if which == "plan" else None,
         projections=snapshot.get("projections") if which == "plan" else None,
+        seen=snapshot.get("sorareStarts") if which == "plan" else None,
     )
     out = []
     for player, seen in weeks.items():

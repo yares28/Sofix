@@ -45,6 +45,9 @@ class Card:
     average: float  # Sorare's last-ten-played average, the number every cap and cap bonus counts
     birth_day: str | None = None
     league: str | None = None
+    plays_in: frozenset[str] = (
+        frozenset()
+    )  # the competitions of his games in the gameweek being planned (`publish.in_week`)
     club: str | None = None
     club_name: str | None = None
     club_crest: str | None = None
@@ -204,7 +207,7 @@ class Competition:
     def allows(self, card: Card, on_day: date | None = None) -> bool:
         if self.rarities and card.rarity not in self.rarities:
             return False
-        if self.leagues is not None and card.league not in self.leagues:
+        if self.leagues is not None and card.league not in self.leagues and not (card.plays_in & self.leagues):
             return False
         if self.age_max is not None:
             day = date.fromisoformat(self.age_on) if self.age_on else (on_day or date.today())

@@ -24,9 +24,10 @@ from __future__ import annotations
 import copy
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import ReadModel
@@ -86,6 +87,7 @@ def _planned(
         ff=ff,
         scores=scores,
         projections=snapshot.get("projections"),
+        seen=snapshot.get("sorareStarts"),
     )
     return week, lock, games, weeks
 
@@ -157,6 +159,20 @@ def rows(snapshot: dict[str, Any], ff: Starts | None = None) -> list[Row]:
             said = told.p_start if told.said is None else told.said  # what the site said, not what was made of it
             out.append(Row(player, week["slug"], told.game, "futbolfantasy", said, lock, _dt(read) if read else None))
     return out
+
+
+SEEN_PREFIX = "sorare_chances:"  # one row per game, written by the app when the extension reads Sorare's page (lib/sorareChances.ts)
+
+
+def seen_on_sorare(db: Session, now: datetime, days: int = 10) -> dict[str, dict[str, Any]]:
+    """Sorare's starting chances as its own page showed them in the owner's browser: game id, then player, then
+    [basis points, seen at in epoch seconds]. Only the games read lately: about 1 KB a game."""
+    rows = db.execute(
+        select(ReadModel.key, ReadModel.payload).where(
+            ReadModel.key.like(f"{SEEN_PREFIX}%"), ReadModel.updated_at >= now - timedelta(days=days)
+        )
+    )
+    return {key.removeprefix(SEEN_PREFIX): dict((payload or {}).get("players") or {}) for key, payload in rows}
 
 
 def _load(db: Session) -> dict[str, Any]:

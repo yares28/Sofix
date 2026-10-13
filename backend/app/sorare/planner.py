@@ -37,7 +37,7 @@ SCORE_SD = 17.6
 
 DRAWS = 3000
 BEAM = 120
-MIN_CHANCE = 0.005  # under half a percent a lineup is not worth the cards, even where entry is free
+MIN_CHANCE = 0.005  # under half a percent a lineup waits: it is built from the cards and substitutes the others left
 PRIORITY_FLOOR = (
     0.05  # under 5% a lineup of a preferred essence gets no priority: it only takes cards nothing else wants
 )
@@ -593,9 +593,9 @@ def enterable(comp: Competition) -> bool:
     return not comp.fee
 
 
-def worth_entering(lineup: Lineup) -> bool:
-    """A lineup goes in a plan when its competition may be entered and it has a real chance of being paid."""
-    return enterable(lineup.comp) and lineup.p_return >= MIN_CHANCE
+def worth_entering(lineup: Lineup, floor: float = MIN_CHANCE) -> bool:
+    """A lineup goes in a plan when its competition may be entered and it has a real chance of being paid (`floor` 0: any chance)."""
+    return enterable(lineup.comp) and lineup.p_return >= floor
 
 
 def priority(lineup: Lineup, order: tuple[str, ...]) -> int:
@@ -623,6 +623,8 @@ def make_plan(
     entered: dict[str, int] = {}
     chosen: list[Lineup] = []
     cache: dict[str, list[Lineup]] = {}
+    floor = MIN_CHANCE
+    long_from: int | None = None
     while True:
         options: list[tuple[int, float, Lineup]] = []
         for comp in comps:
@@ -633,7 +635,7 @@ def make_plan(
                     comp, pool, forecasts, rng, draws=draws, view=view, rule=rule_for(comp) if rule_for else None
                 )
             for lineup in cache[comp.key]:
-                if worth_entering(lineup):
+                if worth_entering(lineup, floor):
                     # Maximize expected essence first (11 Oct); preserve essence-kind priority for equal rewards.
                     options.append(
                         (
@@ -643,7 +645,14 @@ def make_plan(
                         )
                     )
         if not options:
-            break
+            if long_from is not None:
+                break
+            # Every lineup with a real chance has its cards, and now its substitutes. What is left then fills each free competition,
+            # whatever the chance (the owner, 13 Oct 2026: "if it costs nothing then just add it. What if it hits that 0.1%?").
+            pool = fill_bench(chosen, pool, forecasts, rng, draws=draws)
+            long_from, floor = len(chosen), 0.0
+            cache.clear()
+            continue
         # An All Star lineup is built last (13 Oct): only when no other competition can take the cards left.
         options = [o for o in options if o[2].comp.essence_kind not in LAST] or options
         options.sort(key=lambda o: (-o[1], o[0], -o[2].p_return, -value(o[2], cash_norm, essence_norm)))
@@ -661,7 +670,7 @@ def make_plan(
         for key in list(cache):
             if key == lineup.comp.key or any(c.slug in taken for lu in cache[key] for c in lu.cards):
                 del cache[key]
-    fill_bench(chosen, pool, forecasts, rng, draws=draws)
+    fill_bench(chosen[long_from:], pool, forecasts, rng, draws=draws)
     return Plan(chosen)
 
 

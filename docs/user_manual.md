@@ -205,7 +205,10 @@ won), with the plan's facts under it: chance of a reward, the most likely result
 cards used. Beside it sits Apply plan. Below, the plan tile holds the
 **Sofix / Sorare / strategy** switch, the plan switch, where the cards go, and the lineups as rows: competition, its cards with each
 one's xScore in Sorare's colours, the team score with its range and the score needed, and the reward chance as a dial; each
-row opens its sheet. Lineups under 5% sit under **Long shots**; this opens immediately when they are the only available
+row opens its sheet. A free competition is filled with every team your cards can make, however small the chance (13 Oct 2026): the teams with a real
+chance take their cards and substitutes first. In a European week Sorare's own competitions (European Champions, European
+Contenders) are planned too, for the players with a game in them. A player's start chance is Futbol Fantasy's, else the one
+Sorare's page showed in your browser (the extension saves it), else Sofix's from his form. Lineups under 5% sit under **Long shots**; this opens immediately when they are the only available
 lineups. A locked/live GW retains its recorded pre-lock plan, including on Home, rather than showing the next GW's plan.
 
 **Sofix or Sorare (6 Oct 2026).** For the week being planned there are two sets of plans: **Sofix** builds them on Sofix's

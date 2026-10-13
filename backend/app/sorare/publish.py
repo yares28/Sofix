@@ -288,12 +288,16 @@ def player_weeks(
     ff: Callable[[str, list[dict[str, Any]]], list[GameStart]] | None = None,
     scores: ScoresOf | None = None,
     projections: Mapping[str, Mapping[str, Mapping[str, Any]]] | None = None,
+    seen: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> dict[str, PlayerWeek]:
     """What is known about each player before the lock (and, for a played gameweek, what he scored).
 
     `projections` is Sorare's number game by game (`sync.game_projections`): his first game's is his projection. Without it (or for
     a game it was not read for) Sorare's `nextClassicFixture*` numbers stand in, but only when his next game is this week's: while
     he still has a game to play in an earlier week, they are that game's.
+
+    `seen` is Sorare's starting chance as its own page showed it (`starts.seen_on_sorare`: game, then player, then basis points and
+    when it was seen): the public API answers null for it, so this is Sorare's number in practice. Only a reading from before the lock.
 
     `ff` answers, for a player and his games in kickoff order, Futbol Fantasy's chance for each game it has one for. It is
     only passed for a week still to come, the one being planned or the early plan of the round it has: it knows each
@@ -332,6 +336,10 @@ def player_weeks(
             starter, sub = odds.get("starterOddsBasisPoints") or 0, odds.get("substituteOddsBasisPoints") or 0
             plays = (starter + sub) / 10000
             start_odds = starter / 10000
+        elif use_sorare and first is not None and seen:
+            reading = (seen.get(first.get("id") or "") or {}).get(slug)
+            if reading and reading[1] < lock.timestamp():
+                start_odds = reading[0] / 10000  # the starter chance alone: `forecast` splits the rest by his form
         actual = None
         if window:
             played = [
@@ -377,7 +385,11 @@ def read_competitions(
     for payload in raw:
         if payload.get("skipped") or not payload.get("appearances"):
             continue
-        comp = rules.competition(payload)
+        try:
+            comp = rules.competition(payload)
+        except (KeyError, TypeError, ValueError) as exc:  # a shape never seen: left out, the week is still planned
+            logger.warning("sorare: could not read the rules of %s (%r)", payload.get("slug"), exc)
+            continue
         reference = references.get(comp.key) or {}
         comp.reference = {int(k): float(v) for k, v in (reference.get("cuts") or {}).items()}
         comp.reference_rooms = [float(v) for v in (reference.get("rooms") or [])]
@@ -430,6 +442,15 @@ def with_expected(snapshot: dict[str, Any], comps: list[Competition], week: dict
     if official_laliga(comps):
         return comps
     return [*comps, *expected_competitions(snapshot, int(week.get("laliga") or 0))]
+
+
+def in_week(cards: list[Card], games: dict[str, list[dict[str, Any]]]) -> list[Card]:
+    """Your cards with the competitions each one plays in this gameweek: a competition made of one of them (European Champions is
+    the Champions League) takes the players who have a game in it, whatever their club's own league."""
+    return [
+        replace(c, plays_in=frozenset(g["competition"] for g in games.get(c.player, []) if g.get("competition")))
+        for c in cards
+    ]
 
 
 def why_not(comp: Competition, cards: list[Card], forecasts: dict[str, Forecast]) -> str:
@@ -777,6 +798,7 @@ def gameweek_payload(
         slug: replace(f, links=tuple((g["id"], g["venue"]) for g in games.get(slug, []) if g.get("venue")))
         for slug, f in forecasts.items()
     }
+    cards = in_week(cards, games)
     with_reference = [c for c in comps if c.reference or c.reference_rooms]
     playable: list[dict[str, Any]] = []
     blocked: list[dict[str, Any]] = []
@@ -1064,6 +1086,7 @@ def build_payload(
         ff=ff,
         scores=scores,
         projections=snapshot.get("projections"),
+        seen=snapshot.get("sorareStarts"),
     )
     plan_forecasts = build_forecasts(plan_weeks)
     # Every LaLiga player, not only yours (S5): the same start chance and xScore, from the squad index the job reads each run. Form
@@ -1083,6 +1106,7 @@ def build_payload(
         ff=league_ff or ff,
         scores=scores,
         projections=snapshot.get("projections"),
+        seen=snapshot.get("sorareStarts"),
     )
     league_forecasts = build_forecasts(league_weeks)
     record = score_record(
@@ -1332,6 +1356,7 @@ def lens_plans(
         slug: replace(f, links=tuple((g["id"], g["venue"]) for g in games.get(slug, []) if g.get("venue")))
         for slug, f in forecasts.items()
     }
+    cards = in_week(cards, games)
     ready = [c for c in comps if (c.reference or c.reference_rooms) and lineups_possible(c, cards, forecasts)]
     out: dict[str, dict[str, Any]] = {}
     for key in LENSES:
@@ -1400,6 +1425,7 @@ def strategy_plans(
         slug: replace(f, links=tuple((g["id"], g["venue"]) for g in games.get(slug, []) if g.get("venue")))
         for slug, f in forecasts.items()
     }
+    cards = in_week(cards, games)
     ready = [
         c for c in comps if enterable(c) and not c.is_room and c.reference and lineups_possible(c, cards, forecasts)
     ]

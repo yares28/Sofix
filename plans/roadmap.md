@@ -16,6 +16,11 @@ and a check, so a session can work through it alone and stop only where you have
 
 Work from the top. Each line points to its full text; "you" items wait for the owner.
 
+L1. **Lineup building** ([lineups-and-xscore.md](lineups-and-xscore.md) Phase 1): no All Star / Cap 260 fee lineups, start chances corrected
+   from the record (X8), no dead slots, best lineup of each competition first, start chance outside LaLiga.
+L2. **Strategy lab, saved every gameweek** (same plan, Phase 2), then **Audit Lineups week rows open to a comparison** (Phase 3),
+   **Audit xScore: a fair yardstick** (Phase 4), **research kept only if the replay says so** (Phase 5), **Pro levels** (Phase 6).
+
 -2. **Neon: keep one free project enough** (AGENTS.md "Neon projects"; memory of 12 Oct): production moved to the project
    "Sofix" on 12 Oct after FDR used its 5 GB. Still to cut, then measure on the new project's counter: the half-hourly
    score check (about 1.3 MB each time even when nothing is due) and the stats-heavy history loads of each refresh.

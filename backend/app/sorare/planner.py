@@ -40,6 +40,9 @@ MIN_CHANCE = 0.005  # under half a percent a lineup is not worth the cards, even
 PRIORITY_FLOOR = (
     0.05  # under 5% a lineup of a preferred essence gets no priority: it only takes cards nothing else wants
 )
+MIN_PLAY = (
+    0.30  # a starter who will probably not play is a zero in the lineup (GW21: keepers at 5 to 20%): he is never picked
+)
 CANDIDATES_PER_SLOT = 18
 CAPTAIN_CANDIDATES = 3  # starters with the best expected points that are tried as captain
 CAPTAIN_DRAWS = 600  # simulated gameweeks for each try
@@ -315,7 +318,9 @@ def best_starters(
     beam: int = BEAM,
 ) -> list[list[Card]]:
     """Beam search over the starting slots: the highest expected points under every rule."""
-    playable = [c for c in pool if comp.allows(c) and forecasts.get(c.player) and forecasts[c.player].p_play > 0]
+    playable = [
+        c for c in pool if comp.allows(c) and forecasts.get(c.player) and forecasts[c.player].p_play >= MIN_PLAY
+    ]
     if len(playable) < comp.size:
         return []
     value = {c.slug: forecasts[c.player].p_play * forecasts[c.player].mu * comp.multiplier(c) for c in playable}

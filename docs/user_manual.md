@@ -260,6 +260,8 @@ first level's chance is the lineup's reward chance. A Room lists its places inst
 LaLiga ranks 1,501 to 3,500, Room places 4 and 5) are listed and given their own chance, but XP never counts as being paid.
 A Room's entry fee is shown as "300 to enter", but no plan enters a Room that charges a fee, and none enters an All Star
 lineup (13 Oct): they burn essence, so those cards go to Champion and the in-season lineups; they are listed under "not worth it".
+No lineup starts a player who is under 30% likely to play (13 Oct): a keeper at 5 to 20% is a zero the lineup cannot make up, so his cards
+are left for other lineups or the bench.
 
 In a lineup's sheet, a card's name opens his match on **Lineups** (Futbol Fantasy's probable elevens and the chance of each player of his
 side). A game Futbol Fantasy has no page for, such as a national-team game, has no link.

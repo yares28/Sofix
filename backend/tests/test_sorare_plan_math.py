@@ -8,8 +8,8 @@ from dataclasses import replace
 import numpy as np
 
 from app.sorare import rules
-from app.sorare.model import ESSENCE_ORDER, Card
-from app.sorare.planner import Lineup, Plan, build, evaluate, plan_outcomes, plans, worth_entering
+from app.sorare.model import ESSENCE_ORDER, Card, Forecast
+from app.sorare.planner import Lineup, Plan, best_starters, build, evaluate, plan_outcomes, plans, worth_entering
 from tests.test_sorare_planner import card, forecasts_for, in_season_comp, room_comp, squad
 
 
@@ -132,3 +132,21 @@ def test_the_most_likely_result_never_takes_a_fee_off():
     lineup = build(room_comp(), cards, fc, np.random.default_rng(7), keep=1)[0]
     out = plan_outcomes(Plan([lineup]), fc)
     assert out.likely["essence"] >= 0 and 0 < out.p_likely <= 1
+
+
+def test_no_starter_is_under_30_percent_to_play_and_his_lineup_is_not_made_without_a_better_one():
+    # GW21: three All Star lineups held a keeper at 5 to 20%; all scored 0 and none could reach the 434 they needed.
+    cards = squad(5)
+    fc = forecasts_for(cards, p=0.9, mu=50.0)
+    keeper = next(c for c in cards if c.positions[0] == "GK")
+    fc[keeper.player] = Forecast(p_play=0.2, mu=60.0, games=1)
+    comp = in_season_comp()
+    assert best_starters(comp, cards, fc) == [], (
+        "the only keeper will probably not play: no lineup, the cards are freed"
+    )
+    spare = card("spare-keeper", "GK")
+    fc[spare.player] = Forecast(p_play=0.9, mu=40.0, games=1)
+    [starters] = best_starters(comp, [*cards, spare], fc, keep=1)
+    assert spare in starters and keeper not in starters, "a surer keeper is picked over a better one who will not play"
+    fc[keeper.player] = Forecast(p_play=0.3, mu=60.0, games=1)
+    assert keeper in best_starters(comp, cards, fc, keep=1)[0], "30% is still allowed"

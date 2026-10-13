@@ -7,8 +7,8 @@ import SiteNav from "../../components/SiteNav";
 import { loadGrid } from "../../lib/api";
 import { loadMissions } from "../../lib/missionsData";
 import { missionsToday } from "../../lib/missionsToday";
-import { bestPlan, plansOf, weekPlan } from "../../lib/play";
-import { loadFrozenPlan, loadProjectedWeek, loadSorare, loadSorareAlt, loadSorareWeek } from "../../lib/playData";
+import { bestPlan, lensKey, plansOf, weekPlan, type PlanBy } from "../../lib/play";
+import { loadFrozenPlan, loadProjectedWeek, loadSorare, loadSorareAlt, loadSorareLens, loadSorareWeek } from "../../lib/playData";
 import { loadMissionPool } from "../../lib/missionsPool";
 import { loadSystem } from "../../lib/system";
 import { noPlan, weekContext, weekDates, weekName } from "../../lib/weeks";
@@ -83,12 +83,14 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
   // The week in the bar, when it is the one being shown (a legacy ?gw= can name another): the page then writes it as the bar does.
   const shown = asked && (asked.gw ? asked.gw === showing.gameweek.id : asked.md !== null && asked.md === showing.projected?.round) ? asked : null;
   const after = single("after") === "1" && showing.played;
-  // Sofix's plans or Sorare's (?by=sorare): only the week being planned has both (the owner, 6 Oct 2026)
-  const sorareAsked = single("by") === "sorare" && !after && !showing.projected && !showing.played && showing.gameweek.id === data.nextId;
-  const alt = sorareAsked ? await loadSorareAlt(showing.gameweek.slug) : null;
-  const by = sorareAsked ? "sorare" : "sofix";
-  const view = sorareAsked ? { ...showing, plans: alt?.plans ?? [] } : showing;
-  const sorareWaiting = sorareAsked && !view.plans.length ? sorareNote(alt, showing.projectionsAt) : null;
+  // Sofix's plans, Sorare's (?by=sorare) or a strategy's (?by=ceiling and the like): only the week being planned has them all (the owner, 6 and 13 Oct 2026)
+  const switchable = !after && !showing.projected && !showing.played && showing.gameweek.id === data.nextId;
+  const sorareAsked = single("by") === "sorare" && switchable;
+  const lens = switchable ? lensKey(single("by")) : null;
+  const alt = sorareAsked ? await loadSorareAlt(showing.gameweek.slug) : lens ? await loadSorareLens(showing.gameweek.slug, lens) : null;
+  const by: PlanBy = sorareAsked ? "sorare" : (lens ?? "sofix");
+  const view = sorareAsked || lens ? { ...showing, plans: alt?.plans ?? [] } : showing;
+  const sorareWaiting = sorareAsked && !view.plans.length ? sorareNote(alt, showing.projectionsAt) : lens && !view.plans.length ? "This strategy's plan appears with the next refresh before the lock." : null;
   const defaultPlan = bestPlan(view.plans);
   const frozen = showing.projected ? null : await loadFrozenPlan(showing.gameweek.slug, data);
   const enteredForecast = frozen ? withLineupRules(frozen, showing) : showing;

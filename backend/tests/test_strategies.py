@@ -106,3 +106,19 @@ def test_the_ceiling_the_usual_score_and_the_likely_scorers_move_the_number_and_
     assert "sorare" not in {s.key for s, _ in made}  # no Sorare numbers yet: that strategy waits
     lineups = [lu for _, lus in made for lu in lus]
     assert lineups and all(lu.expected > 0 and lu.high >= lu.low for lu in lineups)
+
+
+def test_a_whole_plan_can_be_picked_a_strategys_way_and_still_be_priced_on_the_real_numbers():
+    from app.sorare.planner import plans
+
+    cards = [*_pool(), card("def-c", "DEF", club="club-c")]
+    real = forecasts_for(cards, p=1.0, mu=50.0)
+    comp = in_season_comp(club_bonus=None, average_bonus=None, min_in_season=0, teams_cap=1)
+    stack = strategies.BY_KEY["club-stack"]
+    found = plans([comp], cards, real, count=1, runs=2, draws=400, rule_for=stack.rule_for(real))
+    clubs = [c.club for c in found[0].lineups[0].starters]
+    assert max(clubs.count(club) for club in set(clubs)) >= 3
+    # picked on the ceiling, priced on the real numbers: the lineup's expected score does not take the ceiling's higher ones
+    high = {p: replace(f, mu=95.0) for p, f in real.items()}
+    lifted = plans([comp], cards, real, count=1, runs=2, draws=400, view=high)[0].lineups[0]
+    assert lifted.expected < 400  # five cards at 50 with bonuses, not at 95

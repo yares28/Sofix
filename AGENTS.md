@@ -41,6 +41,7 @@ From `backend/` (Python 3.11 venv `.venv`):
 .venv\Scripts\python -m app.jobs.refresh
 .venv\Scripts\python -m app.jobs.refresh --skip-migrations
 .venv\Scripts\python -m app.jobs.backtest
+.venv\Scripts\python -m app.jobs.lineup_backtest --pools 600   # judge a way of picking lineups; see docs/backtesting.md
 .venv\Scripts\python -m app.migrate
 .venv\Scripts\alembic revision --autogenerate -m "what changed"
 .venv\Scripts\python -m pytest -q

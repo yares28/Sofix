@@ -14,7 +14,7 @@ from app.sorare import audit, ff_link, sheets
 from app.sorare import missions as mission_logs
 from app.sorare.ff_lineups import LINEUPS_KEY
 from app.sorare.frozen import PLAN_PREFIX
-from app.sorare.publish import AHEAD_PREFIX, ALT_PREFIX, ARCHIVE_PREFIX, RECORD_PREFIX
+from app.sorare.publish import AHEAD_PREFIX, ALT_PREFIX, ARCHIVE_PREFIX, LENS_PREFIX, RECORD_PREFIX
 
 router = APIRouter(prefix="/api")
 
@@ -142,6 +142,15 @@ def sorare_alt(slug: str, db: Session = Depends(get_db)):
     row = db.get(ReadModel, f"{ALT_PREFIX}{slug}")
     if row is None:
         return ApiResponse[dict[str, Any]](success=False, error="There is no Sorare plan for this gameweek.")
+    return ApiResponse[dict[str, Any]](success=True, data=row.payload)
+
+
+@router.get("/sorare/lens/{slug}/{key}", response_model=ApiResponse[dict[str, Any]])
+def sorare_lens(slug: str, key: str, db: Session = Depends(get_db)):
+    """The week planned again a strategy's way, by its Sorare slug and the strategy's key. Local development only, like /sorare."""
+    row = db.get(ReadModel, f"{LENS_PREFIX}{slug}:{key}")
+    if row is None:
+        return ApiResponse[dict[str, Any]](success=False, error="There is no plan of that strategy for this gameweek.")
     return ApiResponse[dict[str, Any]](success=True, data=row.payload)
 
 

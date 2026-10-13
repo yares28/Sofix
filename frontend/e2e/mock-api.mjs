@@ -417,6 +417,14 @@ const server = createServer((req, res) => {
     const kept = state.sorare === "ok" ? keptWeeks.get(keptWeek[1]) : undefined;
     return send(res, 200, kept ? { success: true, data: kept } : { success: false, data: null, error: "Sofix did not keep this gameweek." });
   }
+  // The week planned again a strategy's way (`read_models` key `sorare_lens:<slug>:<strategy>`): the planned week's best plan, under the strategy's name.
+  const lens = url.pathname.match(/^\/api\/sorare\/lens\/([a-z0-9-]+)\/([a-z-]+)$/);
+  if (req.method === "GET" && lens) {
+    const { slug, number, lock, end } = planning.gameweek;
+    return send(res, 200, state.sorare === "ok" && lens[1] === slug
+      ? { success: true, data: { gameweek: { slug, number, lock, end }, builtAt: new Date().toISOString(), label: lens[2], plans: planning.plans.slice(0, 1) } }
+      : { success: false, data: null, error: "There is no plan of that strategy for this gameweek." });
+  }
   const supporting = url.pathname.match(/^\/api\/sorare\/(plan|record)\/([a-z0-9-]+)$/);
   if (req.method === "GET" && supporting) {
     const kept = supporting[1] === "record" ? state.chanceRecord : state.livePlan?.gameweek.slug === supporting[2] ? state.livePlan : null;

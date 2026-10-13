@@ -140,6 +140,17 @@ class Strategy:
     rule: Callable[[Competition, Mapping[str, Forecast]], Rule] | None = None
     source: str = "sofix"  # "sorare": the players' numbers are Sorare's own projections
 
+    def rule_for(self, numbers: Mapping[str, Forecast]) -> Callable[[Competition], Rule] | None:
+        """The rule as a plan's search wants it: a competition in, its rule out (None for a strategy with no rule)."""
+        make = self.rule
+        if make is None:
+            return None
+
+        def for_comp(comp: Competition) -> Rule:
+            return make(comp, numbers)
+
+        return for_comp
+
 
 STRATEGIES = (
     Strategy("xscore", "xScore", "The best xScore in every slot, captain the best xScore (what Sofix plans on)."),

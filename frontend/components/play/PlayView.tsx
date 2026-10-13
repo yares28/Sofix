@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { GameweekPlan, Plan, Sorare } from "../../lib/play";
+import type { GameweekPlan, Plan, PlanBy, Sorare } from "../../lib/play";
 import {
   allocation,
   bestPlan,
@@ -11,6 +11,7 @@ import {
   formatOf,
   insideRange,
   isLongShot,
+  LENSES,
   likelyResult,
   plansOf,
   resultLabel,
@@ -69,7 +70,7 @@ export default function PlayView({
   /** The week's name as the picker writes it (`weekName`). */
   title?: string | null;
   /** Whose expected scores the plans shown stand on: Sofix's xScore, or Sorare's projections (`?by=sorare`). */
-  by?: "sofix" | "sorare";
+  by?: PlanBy;
   /** With `by` Sorare and no Sorare plan yet: what the page says instead. */
   sorareWaiting?: string | null;
   forecast?: GameweekPlan;
@@ -77,13 +78,13 @@ export default function PlayView({
   const id = week.gameweek.id;
   const plans = plansOf(week, after);
   const plan = plans[planIndex];
-  const href = (options: { gw?: string; plan?: number; after?: boolean; by?: "sofix" | "sorare" }) => {
+  const href = (options: { gw?: string; plan?: number; after?: boolean; by?: PlanBy }) => {
     const params = new URLSearchParams();
     const gw = options.gw ?? id;
     if (weekId) params.set("w", weekId);
     else if (gw !== data.nextId) params.set("gw", gw);
     const source = options.by ?? by;
-    if (source === "sorare") params.set("by", "sorare");
+    if (source !== "sofix") params.set("by", source);
     const index = options.plan ?? planIndex;
     if (index > 0) params.set("plan", String(index + 1));
     const showActual = options.after ?? after;
@@ -151,17 +152,8 @@ export default function PlayView({
       {plan ? (
         <section className={`pl-board${sync?.behind ? " behind" : ""}`} aria-labelledby="pl-board-title">
           <div className="pl-board-head">
-            <h2 id="pl-board-title">{by === "sorare" ? "Sorare plan" : "Sofix plan"}</h2>
-            {showSources ? (
-              <div className="pl-mode" role="group" aria-label="Plan made from">
-                <Link href={href({ by: "sofix", plan: 0 })} aria-current={by === "sofix" ? "page" : undefined} scroll={false} prefetch={false} title="Built on Sofix's xScore">
-                  Sofix
-                </Link>
-                <Link href={href({ by: "sorare", plan: 0 })} aria-current={by === "sorare" ? "page" : undefined} scroll={false} prefetch={false} title="Built on Sorare's projections; the same start chances">
-                  Sorare
-                </Link>
-              </div>
-            ) : null}
+            <h2 id="pl-board-title">{planTitle(by)}</h2>
+            {showSources ? <PlanSources by={by} href={href} /> : null}
             <PlanSwitch plans={plans} planIndex={planIndex} after={after} href={href} />
             <span className="pl-board-note">
               {plan.hindsight
@@ -209,15 +201,8 @@ export default function PlayView({
       ) : by === "sorare" && sorareWaiting ? (
         <section className="pl-board" aria-labelledby="pl-board-title">
           <div className="pl-board-head">
-            <h2 id="pl-board-title">Sorare plan</h2>
-            <div className="pl-mode" role="group" aria-label="Plan made from">
-              <Link href={href({ by: "sofix", plan: 0 })} scroll={false} prefetch={false}>
-                Sofix
-              </Link>
-              <Link href={href({ by: "sorare", plan: 0 })} aria-current="page" scroll={false} prefetch={false}>
-                Sorare
-              </Link>
-            </div>
+            <h2 id="pl-board-title">{planTitle(by)}</h2>
+            <PlanSources by={by} href={href} />
           </div>
           <p className="pl-board-note" role="status">
             {sorareWaiting}
@@ -334,6 +319,27 @@ function Big({ week, plan, after, now }: { week: GameweekPlan; plan: Plan | unde
     );
   }
   return null;
+}
+
+const planTitle = (by: PlanBy): string =>
+  by === "sorare" ? "Sorare plan" : by === "sofix" ? "Sofix plan" : `${LENSES.find((lens) => lens.key === by)?.label ?? "Strategy"} plan`;
+
+/** Whose way of picking the plan follows: Sofix's xScore, Sorare's projections, or one of the strategies (the owner, 13 Oct 2026). */
+function PlanSources({ by, href }: { by: PlanBy; href: (options: { plan?: number; by?: PlanBy }) => string }) {
+  const options: { key: PlanBy; label: string; title: string }[] = [
+    { key: "sofix", label: "Sofix", title: "Built on Sofix's xScore" },
+    { key: "sorare", label: "Sorare", title: "Built on Sorare's projections; the same start chances" },
+    ...LENSES.map((lens) => ({ key: lens.key as PlanBy, label: lens.label, title: lens.title })),
+  ];
+  return (
+    <div className="pl-mode" role="group" aria-label="Plan made from">
+      {options.map((option) => (
+        <Link key={option.key} href={href({ by: option.key, plan: 0 })} aria-current={by === option.key ? "page" : undefined} scroll={false} prefetch={false} title={option.title}>
+          {option.label}
+        </Link>
+      ))}
+    </div>
+  );
 }
 
 /** What the plan is worth, as the hero's row of facts: before the games its chances, after them what it won. */

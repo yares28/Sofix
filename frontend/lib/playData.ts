@@ -160,3 +160,32 @@ export async function loadSorareAlt(slug: string): Promise<SorarePlans | null> {
     return null;
   }
 }
+
+/**
+ * The week planned again a strategy's way (`read_models` key `sorare_lens:<slug>:<strategy>`), or null when the job has not written one.
+ * Rewritten every run until the lock, so cached as long as the page is.
+ */
+export async function loadSorareLens(slug: string, key: string): Promise<SorarePlans | null> {
+  if (!WEEK_SLUG.test(slug) || !/^[a-z-]+$/.test(key)) return null;
+  const read = cache(
+    async (): Promise<SorarePlans | null> => {
+      if (database()) {
+        const row = await readModel<SorarePlans>(`sorare_lens:${slug}:${key}`);
+        return row?.payload ?? null;
+      }
+      const response = await fetch(`${API_BASE}/api/sorare/lens/${slug}/${key}`, { cache: "no-store", signal: AbortSignal.timeout(8000) });
+      if (!response.ok) return null;
+      const body = (await response.json()) as { success?: boolean; data?: SorarePlans };
+      return body?.success ? (body.data ?? null) : null;
+    },
+    ["sorare-lens-v1", slug, key],
+    { tags: [SORARE_TAG], revalidate: 3600 },
+  );
+  try {
+    const lens = await read();
+    return lens && Array.isArray(lens.plans) ? lens : null;
+  } catch (error) {
+    console.error(`[sorare] ${key} plans for ${slug} could not be read: ${error instanceof Error ? error.message : "unknown"}`);
+    return null;
+  }
+}

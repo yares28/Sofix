@@ -231,6 +231,23 @@ test("another plan is one click away, and spreads the cards differently", async 
   ]);
 });
 
+test("the plan can be switched to a strategy's way of picking, and back", async ({ page }) => {
+  await page.goto("/play");
+  const sources = page.getByRole("group", { name: "Plan made from" });
+  await expect(page.getByRole("heading", { level: 2, name: "Sofix plan" })).toBeVisible();
+  await expect(sources.getByRole("link")).toHaveText(["Sofix", "Sorare", "Keeper with defender", "3 from 1 club", "Highest ceiling"]);
+  await sources.getByRole("link", { name: "Highest ceiling" }).click();
+  await expect(page).toHaveURL(/by=ceiling/);
+  await expect(page.getByRole("heading", { level: 2, name: "Highest ceiling plan" })).toBeVisible();
+  await expect(sources.getByRole("link", { name: "Highest ceiling" })).toHaveAttribute("aria-current", "page");
+  await expect(page.locator(".pl-lus .pl-lu, .pl-lus > *").first()).toBeVisible(); // its lineups are drawn like any plan's
+  await sources.getByRole("link", { name: "3 from 1 club" }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "3 from 1 club plan" })).toBeVisible();
+  await sources.getByRole("link", { name: "Sofix", exact: true }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "Sofix plan" })).toBeVisible();
+  await expect(page).not.toHaveURL(/by=/);
+});
+
 test("a card in a lineup sheet opens his match on Lineups", async ({ page }) => {
   await page.goto("/play");
   await page.locator(".pl-lu").first().click();

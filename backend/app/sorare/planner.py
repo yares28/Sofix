@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import math
 import zlib
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -296,7 +296,7 @@ def replay_rewards(lineup: Lineup, forecasts: dict[str, Forecast], reference: di
 
 
 # --------------------------------------------------------------------------- building lineups
-def _slot_candidates(comp: Competition, pool: list[Card], forecasts: dict[str, Forecast]) -> dict[int, list[Card]]:
+def _slot_candidates(comp: Competition, pool: list[Card], forecasts: Mapping[str, Forecast]) -> dict[int, list[Card]]:
     value = {c.slug: forecasts[c.player].p_play * forecasts[c.player].mu * comp.multiplier(c) for c in pool}
     out: dict[int, list[Card]] = {}
     for i, slot in enumerate(comp.starters):
@@ -314,7 +314,7 @@ def _slot_candidates(comp: Competition, pool: list[Card], forecasts: dict[str, F
 def best_starters(
     comp: Competition,
     pool: list[Card],
-    forecasts: dict[str, Forecast],
+    forecasts: Mapping[str, Forecast],
     keep: int = 3,
     beam: int = BEAM,
     rule: Callable[[list[Card | None]], bool] | None = None,
@@ -396,10 +396,15 @@ def build(
     rng: np.random.Generator,
     keep: int = 2,
     draws: int = DRAWS,
+    view: Mapping[str, Forecast] | None = None,
+    rule: Callable[[list[Card | None]], bool] | None = None,
 ) -> list[Lineup]:
-    """The best lineups this competition can take from the pool — starters only; benches come later."""
+    """The best lineups this competition can take from the pool — starters only; benches come later.
+
+    `view` and `rule` are a strategy's way of picking (`strategies.py`): the starters are chosen on the players' numbers in `view` and
+    under `rule`, then every lineup is priced on the real `forecasts`."""
     out = []
-    for starters in best_starters(comp, pool, forecasts, keep=keep):
+    for starters in best_starters(comp, pool, view if view is not None else forecasts, keep=keep, rule=rule):
         lineup = Lineup(
             comp=comp,
             starters=list(starters),
@@ -611,6 +616,8 @@ def make_plan(
     temperature: float = 0.0,
     draws: int = DRAWS,
     order: tuple[str, ...] = ESSENCE_ORDER,
+    view: Mapping[str, Forecast] | None = None,
+    rule_for: Callable[[Competition], Callable[[list[Card | None]], bool] | None] | None = None,
 ) -> Plan:
     pool = list(cards)
     entered: dict[str, int] = {}
@@ -622,7 +629,9 @@ def make_plan(
             if entered.get(comp.key, 0) >= comp.teams_cap:
                 continue
             if comp.key not in cache:
-                cache[comp.key] = build(comp, pool, forecasts, rng, draws=draws)
+                cache[comp.key] = build(
+                    comp, pool, forecasts, rng, draws=draws, view=view, rule=rule_for(comp) if rule_for else None
+                )
             for lineup in cache[comp.key]:
                 if worth_entering(lineup):
                     # Maximize expected essence first (11 Oct); preserve essence-kind priority for equal rewards.
@@ -665,6 +674,8 @@ def plans(
     seed: int = 11,
     draws: int = DRAWS,
     order: tuple[str, ...] = ESSENCE_ORDER,
+    view: Mapping[str, Forecast] | None = None,
+    rule_for: Callable[[Competition], Callable[[list[Card | None]], bool] | None] | None = None,
 ) -> list[Plan]:
     """The best whole-gameweek plans, each different enough from the others to be a real choice.
 
@@ -673,12 +684,20 @@ def plans(
     """
     comps = [comp for comp in comps if enterable(comp)]
     rng = np.random.default_rng(seed)
-    firsts = [lu for comp in comps for lu in build(comp, cards, forecasts, rng, keep=1, draws=draws)]
+    firsts = [
+        lu
+        for comp in comps
+        for lu in build(
+            comp, cards, forecasts, rng, keep=1, draws=draws, view=view, rule=rule_for(comp) if rule_for else None
+        )
+    ]
     cash_norm = max([lu.e_cash for lu in firsts] + [0.01])
     essence_norm = max([lu.net_essence for lu in firsts] + [1.0])
-    found = [make_plan(comps, cards, forecasts, rng, cash_norm, essence_norm, 0.0, draws, order)]
+    found = [make_plan(comps, cards, forecasts, rng, cash_norm, essence_norm, 0.0, draws, order, view, rule_for)]
     for _ in range(runs):
-        found.append(make_plan(comps, cards, forecasts, rng, cash_norm, essence_norm, 0.35, draws, order))
+        found.append(
+            make_plan(comps, cards, forecasts, rng, cash_norm, essence_norm, 0.35, draws, order, view, rule_for)
+        )
     for plan in found:
         plan.outcomes = plan_outcomes(plan, forecasts, order, draws)
     best_cash = max((p.cash for p in found), default=0.0) or 0.01

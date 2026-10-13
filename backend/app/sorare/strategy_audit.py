@@ -10,7 +10,7 @@ competition (the replay the archive keeps, `sorare_week:<slug>`) and, where a ra
 or on luck. The lineups of one leaderboard are put side by side, with the strategies each one happens to fit (yours is a mix of them).
 
 A week's counts are kept in a read model of their own once they cannot change, so a refresh only opens the lineups of a week still being
-settled (the same reason as `lineup_audit`). A week is picked up by the first refresh a day after it ends: the page needs nothing else.
+settled (the same reason as `lineup_audit`). A week is picked up by the first refresh after its games are in, as provisional (its scores can still move while Sorare reviews them); it is final a day after it ends.
 """
 
 from __future__ import annotations
@@ -284,7 +284,10 @@ def week_of(
         board["rows"].sort(key=lambda r: (r["who"] != "you", -r["score"], r["who"] != "sofix"))
     week.out["boards"] = [b for b in week.boards.values() if b["rows"]]
     end = as_utc(datetime.fromisoformat(info["end"]))
-    week.out["final"] = (bool(reference) and week.settled and bool(week.best)) or now > end + GIVE_UP
+    # Scored as soon as the games are in, but only final once Sorare's review window has passed (scores can still move until then).
+    week.out["final"] = now > end + SETTLE and (
+        (bool(reference) and week.settled and bool(week.best)) or now > end + GIVE_UP
+    )
     return week.out
 
 
@@ -302,7 +305,7 @@ def read(db: Session, now: datetime, *, write: bool = True) -> dict[str, Any]:
     for slug in sorted(slugs):
         lab, frozen = _body(db, f"{STRATEGY_PREFIX}{slug}"), _body(db, f"{PLAN_PREFIX}{slug}")
         end = ((lab or frozen).get("gameweek") or {}).get("end")
-        if not end or now <= as_utc(datetime.fromisoformat(end)) + SETTLE:
+        if not end or now <= as_utc(datetime.fromisoformat(end)):
             continue
         loaded = loaded or kept_results(db)
         weeks[slug] = week_of(db, slug, lab, frozen, now, *loaded)

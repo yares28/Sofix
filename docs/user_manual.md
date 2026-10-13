@@ -203,7 +203,7 @@ competition rules, pre-lock forecasts and reward cutoffs.
 The hero counts down to the lock in large type ("2d 22h until the lock, Fri 9 Oct at 16:00"; after the games, the essence
 won), with the plan's facts under it: chance of a reward, the most likely result, the chance of cash, of essence and of XP apart,
 cards used. Beside it sits Apply plan. Below, the plan tile holds the
-**Sofix / Sorare** switch, the plan switch, where the cards go, and the lineups as rows: competition, its cards with each
+**Sofix / Sorare / strategy** switch, the plan switch, where the cards go, and the lineups as rows: competition, its cards with each
 one's xScore in Sorare's colours, the team score with its range and the score needed, and the reward chance as a dial; each
 row opens its sheet. Lineups under 5% sit under **Long shots**; this opens immediately when they are the only available
 lineups. A locked/live GW retains its recorded pre-lock plan, including on Home, rather than showing the next GW's plan.
@@ -212,6 +212,14 @@ lineups. A locked/live GW retains its recorded pre-lock plan, including on Home,
 xScore, **Sorare** on Sorare's own projections (game by game, read for that week's games). Both use the same cards,
 competitions and chances of starting; only the expected score differs, so you can compare them, and the Audit scores both.
 Until Sorare publishes its projections (about two days before the lock) the Sorare view says when they are due.
+
+**Strategies on Play (13 Oct 2026).** Beside Sofix and Sorare, three more buttons plan the same week another way: **Keeper with defender**
+(each lineup has a defender of the keeper's own club: nothing, or win big), **3 from 1 club**, and **Highest ceiling** (each player at the
+top of his range). The same cards, competitions and chances of starting; the starters are chosen the strategy's way, and every lineup is
+then priced on Sofix's own numbers, so its team score, range and reward chance mean the same as in the Sofix plan. Each has one plan, made
+by a lighter search, written down with each refresh until the lock. They are a second look, not a recommendation: the replay
+([backtesting](backtesting.md)) finds none of them beating the Sofix plan on points, and Audit > Strategies scores them against what
+really happens.
 
 **Essence preference.** Under the lineups, **Essence preference** lists the preferred essence order: LaLiga, then Champion, then
 All Star unless you change it (↑ ↓, then **Save and replan**, which starts a refresh; the plans follow it about six minutes
@@ -452,7 +460,7 @@ Open a week (here and on **Lineups**) to see each competition with your lineup f
 and what each scored. Your lineup says which strategies it happens to fit (yours is a mix: for example a keeper with a defender of his
 club, or three from one club), and each of Sofix's and the strategies' lineups gets a plain verdict from the range written down before
 the lock: lucky (above the top), a good week, as expected, or a poor week, naming the cards that scored above their own range. No bench is
-filled for the strategy lineups, and none is entered for you. `python -m app.jobs.lineup_backtest` replays the ways on past games.
+filled for the strategy lineups, and none is entered for you. `python -m app.jobs.lineup_backtest` replays the ways on past games (how to run and read it: [docs/backtesting.md](backtesting.md)).
 
 **Missions** answers "were Sofix's mission picks the right ones?". Every day Sofix writes down its picks for the **Decisive Picker**,
 which Sorare runs every day, whether or not you loaded the day's missions; on a day you loaded them, the other missions too. It also

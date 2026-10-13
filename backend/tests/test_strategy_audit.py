@@ -141,12 +141,16 @@ def test_a_lineup_fits_the_strategies_it_happens_to_follow():
     assert strategy_audit.fits(stack, fixtures) == ["keeper-defender", "club-stack"]
 
 
-def test_a_week_still_being_played_or_without_the_best_in_hindsight_is_not_final(db):
+def test_a_week_is_scored_when_its_games_are_in_but_final_only_a_day_later_and_with_the_best_in_hindsight(db):
     keep(db)
     put(db, "strategy_plans:gw", lab(), NOW)
     put(db, "sorare_references", {"gw": {"LaLiga | Limited": {"cuts": {"10": 300, "100": 200, "500": 100}}}}, NOW)
     db.commit()
-    assert strategy_audit.read(db, END + timedelta(hours=23), write=False)["weeks"] == []  # scores can still move
+    assert (
+        strategy_audit.read(db, END - timedelta(hours=1), write=False)["weeks"] == []
+    )  # the week is still being played
+    soon = strategy_audit.read(db, END + timedelta(hours=1), write=False)["weeks"]
+    assert [w["final"] for w in soon] == [False]  # scored at once, but its scores can still move for a day
     got = strategy_audit.read(db, NOW, write=False)
     assert got["weeks"][0]["final"] is False and got["strategies"][0]["best"] == 0.0
     assert db.get(ReadModel, strategy_audit.KEY) is None

@@ -108,7 +108,7 @@ def read(db: Session, now: datetime, *, write: bool = True) -> dict[str, Any]:
         if not info.get("end"):
             continue
         end = as_utc(datetime.fromisoformat(info["end"]))
-        if now <= end + SETTLE:
+        if now <= end:
             continue
         if actuals is None:
             actuals, references = kept_results(db)
@@ -131,7 +131,7 @@ def read(db: Session, now: datetime, *, write: bool = True) -> dict[str, Any]:
                 tally, settled = plan_tally(raw, games, actuals, reference)
                 week[source].append({"rank": raw.get("rank", i + 1), **tally})
                 week["final"] = week["final"] and settled
-        week["final"] = week["final"] or now > end + GIVE_UP
+        week["final"] = (week["final"] and now > end + SETTLE) or now > end + GIVE_UP
         weeks[slug] = week
     if write and weeks != (kept.get("weeks") or {}):
         put(db, KEY, {"weeks": weeks}, now)

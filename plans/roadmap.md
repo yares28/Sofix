@@ -556,6 +556,10 @@ the held-out weeks (P9 "The bar").
 
 ## Results
 
+- **13 Oct - Play strategies, sooner scoring, backtesting guide:** Play's plan switch now has Keeper with defender, 3 from 1 club and Highest
+  ceiling beside Sofix and Sorare (`sorare_lens:<slug>:<strategy>`, one lighter plan each); Audit > Strategies and Lineups score a week as soon as
+  its games are in (provisional for a day: "still being checked"), not a day later; `docs/backtesting.md` explains every replay and how to read it.
+
 - **13 Oct - Audit week comparison (lineups-and-xscore.md Phase 3):** every week row on Audit > Strategies and Audit > Lineups opens to each
   competition with your lineup first, then Sofix's best plan and every strategy, with the cards, what each scored and the strategies yours
   fits. Strategies is always shown (no "too few to tell"). Sofix's and your own lineups join the table from GW21; strategy lineups from GW22.

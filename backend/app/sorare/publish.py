@@ -1125,6 +1125,13 @@ def build_payload(
     except Exception:  # the lab is a side record: a failure in it must never cost the page its plans
         logger.exception("strategy lab failed")
         lab = None
+    try:
+        lenses: dict[str, dict[str, Any]] | None = lens_plans(
+            plan_week, snapshot, plan_comps, cards, plan_forecasts, plan_games, order=order, runs=runs, draws=draws
+        )
+    except Exception:  # the same: a strategy plan is a second look and may not cost the page its own
+        logger.exception("strategy plans failed")
+        lenses = None
 
     last_gw = kept_replay(previous, past_week)
     if past_week and not last_gw:
@@ -1285,6 +1292,7 @@ def build_payload(
         "_alt": alt,
         "_record": record,
         "_strategies": lab,
+        "_lenses": lenses,
     }
 
 
@@ -1295,6 +1303,62 @@ RECORD_PREFIX = "score_record:"
 def stripped_forecasts(weeks: Mapping[str, PlayerWeek]) -> dict[str, Forecast]:
     """Every player's score as Sorare's projection (his last five games where Sorare has none): the same chances, another number."""
     return build_forecasts({slug: replace(w, game_scores=(), shape=None) for slug, w in weeks.items()})
+
+
+LENS_PREFIX = "sorare_lens:"
+"""The week planned again with a strategy's way of picking (`sorare_lens:<slug>:<strategy>`): the Play page's strategy plans, read on demand."""
+LENSES = (
+    "keeper-defender",
+    "club-stack",
+    "ceiling",
+)  # the strategies the Play page offers beside Sofix's own and Sorare's
+
+
+def lens_plans(
+    week: dict[str, Any],
+    snapshot: dict[str, Any],
+    comps: list[Competition],
+    cards: list[Card],
+    forecasts: dict[str, Forecast],
+    games: dict[str, list[dict[str, Any]]],
+    *,
+    order: tuple[str, ...],
+    runs: int,
+    draws: int,
+) -> dict[str, dict[str, Any]]:
+    """For each Play strategy, the week's best whole plan when its lineups are picked that strategy's way (starters chosen under its numbers
+    and rule, every lineup priced on Sofix's own). One plan each and few searches: they are a second look, not the plan."""
+    forecasts = {
+        slug: replace(f, links=tuple((g["id"], g["venue"]) for g in games.get(slug, []) if g.get("venue")))
+        for slug, f in forecasts.items()
+    }
+    ready = [c for c in comps if (c.reference or c.reference_rooms) and lineups_possible(c, cards, forecasts)]
+    out: dict[str, dict[str, Any]] = {}
+    for key in LENSES:
+        strategy = strategies.BY_KEY[key]
+        view = strategy.numbers(forecasts, games)
+        found = (
+            plans(
+                ready,
+                cards,
+                forecasts,
+                count=1,
+                runs=max(4, runs // 4),
+                draws=draws,
+                order=order,
+                view=view,
+                rule_for=strategy.rule_for(view),
+            )
+            if ready
+            else []
+        )
+        out[key] = {
+            "gameweek": {"slug": week["slug"], "number": week["number"], "lock": week["lock"], "end": week.get("end")},
+            "builtAt": snapshot["fetchedAt"],
+            "label": strategy.label,
+            "plans": [plan_payload(plan, i + 1, forecasts, games, len(cards)) for i, plan in enumerate(found)],
+        }
+    return out
 
 
 STRATEGY_PREFIX = "strategy_plans:"

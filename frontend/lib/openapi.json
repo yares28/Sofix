@@ -286,6 +286,55 @@
         }
       }
     },
+    "/api/sorare/lens/{slug}/{key}": {
+      "get": {
+        "summary": "Sorare Lens",
+        "description": "The week planned again a strategy's way, by its Sorare slug and the strategy's key. Local development only, like /sorare.",
+        "operationId": "sorare_lens_api_sorare_lens__slug___key__get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_dict_str__Any__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/sorare/plan/{slug}": {
       "get": {
         "summary": "Sorare Frozen Plan",

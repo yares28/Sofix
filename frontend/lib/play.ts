@@ -477,6 +477,15 @@ export type Sorare = {
   essenceOrder?: string[];
 };
 
+/** Whose way of picking the plan shown follows: Sofix's own xScore, Sorare's projections, or one of the strategies (backend/app/sorare/strategies.py). */
+export const LENSES = [
+  { key: "keeper-defender", label: "Keeper with defender", title: "A defender of the keeper's own club: nothing, or win big" },
+  { key: "club-stack", label: "3 from 1 club", title: "Three players of one club in each lineup" },
+  { key: "ceiling", label: "Highest ceiling", title: "Each player at the top of his range, not the middle" },
+] as const;
+export type PlanBy = "sofix" | "sorare" | (typeof LENSES)[number]["key"];
+export const lensKey = (value: string | undefined): (typeof LENSES)[number]["key"] | null => LENSES.find((lens) => lens.key === value)?.key ?? null;
+
 /** The week being planned again on Sorare's own projections (`read_models` key `sorare_alt:<slug>`). */
 export type SorarePlans = {
   gameweek: { slug: string; number: number; lock: string };

@@ -920,6 +920,21 @@ def test_the_strategy_lab_writes_each_strategys_lineups_with_what_scoring_them_l
     assert {c["player"] for c in line["starters"]} <= set(lab["games"])
 
 
+def test_each_play_strategy_has_its_own_plan_picked_its_way_and_priced_on_the_real_numbers():
+    """The Play page's strategy plans (13 Oct 2026): keeper with his defender, three from one club and the highest ceiling."""
+    built = publish.build_payload(snapshot(), runs=4, draws=600)
+    lenses = built["_lenses"]
+    assert set(lenses) == {"keeper-defender", "club-stack", "ceiling"}
+    for lens in lenses.values():
+        assert lens["gameweek"]["slug"] == publish.week_of(built)["gameweek"]["slug"]
+        assert len(lens["plans"]) <= 1 and all(plan["lineups"] for plan in lens["plans"])
+    plan = lenses["ceiling"]["plans"][0]
+    assert {"pAny", "essence", "lineups", "cardsUsed"} <= plan.keys()
+    assert all(
+        lu["x"] > 0 and lu["lo"] <= lu["hi"] for lu in plan["lineups"]
+    )  # priced on Sofix's numbers, not the ceiling's
+
+
 # ---------------------------------------------------------------------------------------------------- a red card
 def _league(date: str, red: bool | None = None, status: str = "FINAL", comp: str = "laliga-es") -> dict[str, Any]:
     return {"date": date, "competition": comp, "status": status, **({"red": red} if red is not None else {})}

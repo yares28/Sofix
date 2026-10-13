@@ -15,6 +15,7 @@ Anything else gives no entry for that game, and the forecast falls back to Sorar
 
 from __future__ import annotations
 
+import dataclasses
 from collections.abc import Iterable, Mapping
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
@@ -23,6 +24,7 @@ from app.services import team_registry
 from app.sorare import ff_link
 from app.sorare.ff_feed import Feed, Stored
 from app.sorare.forecast import GameStart
+from app.sorare.start_fixes import StartFixes
 from app.sources.futbolfantasy_matches import AVAILABLE, DOUBT, OUT
 
 if TYPE_CHECKING:
@@ -62,6 +64,13 @@ def status(person: ff_link.Person) -> dict[str, Any] | None:
     return out or None
 
 
+def corrected(told: GameStart, fixes: StartFixes | None) -> GameStart:
+    """The chance the record says it should be (start_fixes.py), the site's own kept in `said`. Out is out: never moved."""
+    if fixes is None or told.out:
+        return told
+    return dataclasses.replace(told, p_start=fixes.apply("futbolfantasy", told.p_start), said=told.p_start)
+
+
 class Lineups:
     """What Futbol Fantasy says about each of the owner's players, game by game, at `now`."""
 
@@ -72,8 +81,10 @@ class Lineups:
         now: datetime,
         kept: Mapping[str, Mapping[str, Any]] | None = None,
         overrides: Mapping[str, str] | None = None,
+        fixes: StartFixes | None = None,
     ) -> None:
         self.now = now
+        self.fixes = fixes
         self.usable: list[Stored] = feed.usable(now)
         wanted = {w.slug: w for row in cards if (w := ff_link.wanted(row))}
         self.wanted = wanted  # the owner's players as the linking knows them: the page names the ones it could not link
@@ -107,7 +118,7 @@ class Lineups:
                 continue
             told = self._told(game["id"], person, self._stored[match.match_id], side.club_id)
             if told is not None:
-                out.append(told)
+                out.append(corrected(told, self.fixes))
         return out
 
     def covers(self, round_: Round) -> bool:

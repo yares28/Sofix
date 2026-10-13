@@ -1345,7 +1345,7 @@ def score_record(
             if i == 0 and w.start_odds is not None:
                 sources["sorare"] = round(w.start_odds, 3)
             if told:
-                sources["futbolfantasy"] = round(told.p_start, 3)
+                sources["futbolfantasy"] = round(told.p_start if told.said is None else told.said, 3)
             info: dict[str, Any] = {k: told.info[k] for k in ("ffMatch", "ffPlayer") if k in told.info} if told else {}
             listed.append(
                 {

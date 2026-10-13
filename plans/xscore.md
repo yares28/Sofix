@@ -764,7 +764,7 @@ coin. The model can give the weight; it cannot call the toss.
    sheet on the Players page, the next five gameweeks, the daily missions and the Audit's new figures. The tile keeps one big number.
 6. X6 · lineups and the captain on the real spread (its own refresh: the reward chances change).
 7. X7 · daily missions, with the official elevens.
-8. X8 · self-correcting numbers, from the first band with 100 cases.
+8. X8 · self-correcting numbers, from the first band with 100 cases. **Start chances done 13 Oct 2026** (`start_fixes.py`, lineups-and-xscore.md Phase 1): bands of 5 points per source, thin neighbours pooled to 100, applied to Futbol Fantasy's number; the score corrections are still to do.
 9. X9 · the next five gameweeks, with points per euro on the Cards page.
 10. X10 · parts 6, 7, 9 and 10, one at a time.
 

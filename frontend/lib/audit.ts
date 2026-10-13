@@ -127,6 +127,9 @@ type BySource = { sofix: PlanTally[]; sorare: PlanTally[] };
 export type LineupsAudit = { band: number; plans: BySource; weeks: ({ slug: string; number: number | null; end: string; final: boolean } & BySource)[] };
 export const NO_LINEUPS: LineupsAudit = { band: 15, plans: { sofix: [], sorare: [] }, weeks: [] };
 
+/** What a source said against how often the players started, for a run of its chances; "used" once it holds 100 settled games (start_fixes.py). */
+export type StartFix = { from: number; to: number; said: number; was: number; n: number; used: boolean };
+
 export type Audit = {
   version: number;
   generatedAt: string;
@@ -143,6 +146,7 @@ export type Audit = {
   lineups: LineupsAudit;
   matches?: MatchAudit;
   playerScores?: { weeks: PlayerScoreWeek[] };
+  startFixes?: Partial<Record<StartSource, StartFix[]>>;
 };
 
 export type PlayerScoreRow = {
@@ -200,6 +204,7 @@ export function readable(value: unknown): Audit | null {
     lineups: { ...NO_LINEUPS, ...(data.lineups ?? {}) },
     matches: { ...NO_MATCHES, ...(data.matches ?? {}) },
     playerScores: data.playerScores ?? { weeks: [] },
+    startFixes: data.startFixes ?? {},
   };
 }
 

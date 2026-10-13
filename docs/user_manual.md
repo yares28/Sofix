@@ -498,6 +498,10 @@ checked since, and how many each source gave. (The old headline, 66% on your 84 
 The live Audit checks every recorded player, including the LaLiga index and your players outside LaLiga, from saved games.
 A new week's results wait until a day after it ends; unread results stay waiting.
 
+**Start chances, corrected from the record**, under Who starts, lists each source's chances against how often those players really started.
+A run of chances with 100 settled games is moved to what happened before the plans are made (Futbol Fantasy's 70% really started 86% in GW21);
+thinner runs are left as they were and say how many games are still to come. The record keeps what each source said, not the corrected number.
+
 **Futbol Fantasy's eleven**, under Who starts, compares how many predicted starters started. Sorare and Sofix reorder the
 same formation using their saved chances; **By gameweek and club** opens the counts for each. Every group needs 100 checked
 starters before showing a percentage. Older readings without positions cannot produce an implied eleven. Until the first

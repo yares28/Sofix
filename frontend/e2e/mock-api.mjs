@@ -237,6 +237,7 @@ function auditPayload(kind) {
       buckets: [band(0, 0.2, 30, 0.1, 0.12), band(0.2, 0.5, 20, 0.35, 0.4), band(0.5, 0.8, 30, 0.65, 0.7), band(0.8, 1, 40, 0.9, 0.88)],
     });
     Object.assign(data.starts.live.sofix, { state: "few", recorded: 64, settled: 40 });
+    data.startFixes = { futbolfantasy: [{ from: 0.5, to: 0.9, said: 0.68, was: 0.73, n: 238, used: true }, { from: 0.95, to: 0.95, said: 0.95, was: 1, n: 12, used: false }] };
     Object.assign(data.xscore.live, { state: "enough", noted: 40, marked: 38, pairs: 130, weeks: 8, rate: 0.64, lo: 0.58, hi: 0.69 });
     // Sorare against Sofix: starts overall, by position and week, and the substitutes apart
     const side = (miss, lean, within) => ({ miss, lean, within, pair: null, pairs: 0 });

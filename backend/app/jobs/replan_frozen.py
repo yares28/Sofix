@@ -1,6 +1,6 @@
 """Replan a frozen gameweek with today's planner, to see what a change to lineup building does.
 
-    python -m app.jobs.replan_frozen [gameweek slug]        (default: the newest frozen week)
+    python -m app.jobs.replan_frozen [gameweek slug] [--raw]    (default: the newest frozen week; --raw leaves the start chances uncorrected)
 
 Reads the plan kept at the lock (`sorare_plan:<slug>`) and the owner's cards from the `sorare` read model, rebuilds the
 competitions, cards and forecasts from them, and plans the week again. Read only, prints only. The rebuild is close, not
@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 from app.db import SessionLocal
 from app.logging_config import configure_logging
 from app.models import ReadModel
-from app.sorare import frozen, planner
+from app.sorare import frozen, planner, start_fixes
 from app.sorare.model import ESSENCE_ORDER, Card, Competition, Forecast, Tier
 
 SLOTS = {"GK": ("GK",), "DEF": ("DEF",), "MID": ("MID",), "FWD": ("FWD",), "EXT": ("DEF", "MID", "FWD")}
@@ -60,7 +60,7 @@ def _comp(lines: list[dict[str, Any]]) -> Competition:
 
 
 def rebuild(
-    week: dict[str, Any], collection: list[dict[str, Any]]
+    week: dict[str, Any], collection: list[dict[str, Any]], fixes: start_fixes.StartFixes | None = None
 ) -> tuple[list[Competition], list[Card], dict[str, Forecast]]:
     by_key: dict[str, list[dict[str, Any]]] = {}
     for plan in week["plans"]:
@@ -71,6 +71,10 @@ def rebuild(
     forecasts: dict[str, Forecast] = {}
     for player, p in people.items():
         chance = float(p["p"])
+        if fixes is not None and p.get("startSource") == "futbolfantasy" and len(p["games"]) == 1:
+            moved = fixes.apply("futbolfantasy", float(p["pStart"]))  # the chance of playing follows the start chance
+            chance = min(1.0, moved + (1 - moved) * float(p.get("benchedOn") or 0.0))
+            p = {**p, "x": float(p["x"]) * chance / max(float(p["p"]), 1e-9)}
         forecasts[player] = Forecast(
             p_play=chance,
             mu=round(float(p["x"]) / chance, 2) if chance > 0 else 0.0,
@@ -109,13 +113,14 @@ def forecasts_p(card: Card) -> float:
     return _FORECASTS[card.player].p_play
 
 
-def replan(db: Session, slug: str | None, count: int = 5) -> list[planner.Plan]:
+def replan(db: Session, slug: str | None, count: int = 5, with_fixes: bool = True) -> list[planner.Plan]:
     if slug is None:
         keys = list(db.scalars(select(ReadModel.key).where(ReadModel.key.like(f"{frozen.PLAN_PREFIX}%"))))
         slug = max(keys, key=lambda k: db.get(ReadModel, k).payload["gameweek"]["end"]).removeprefix(frozen.PLAN_PREFIX)
     week = db.get(ReadModel, f"{frozen.PLAN_PREFIX}{slug}").payload
     collection = db.get(ReadModel, "sorare").payload["collection"]
-    comps, cards, forecasts = rebuild(week, collection)
+    fixes = start_fixes.load(db) if with_fixes else None
+    comps, cards, forecasts = rebuild(week, collection, fixes)
     _FORECASTS.update(forecasts)
     print(f"{slug}: {len(cards)} cards, {len(comps)} competitions, {len(forecasts)} players")
     return planner.plans(comps, cards, forecasts, count=count, order=ESSENCE_ORDER)
@@ -124,7 +129,7 @@ def replan(db: Session, slug: str | None, count: int = 5) -> list[planner.Plan]:
 def main(argv: list[str] | None = None) -> int:
     configure_logging()
     with SessionLocal() as db:
-        for i, plan in enumerate(replan(db, (argv or [None])[0]), 1):
+        for i, plan in enumerate(replan(db, (argv or [None])[0], with_fixes="--raw" not in (argv or [])), 1):
             print(f"plan {i}: {show(plan)}")
     return 0
 

@@ -154,9 +154,8 @@ def rows(snapshot: dict[str, Any], ff: Starts | None = None) -> list[Row]:
             out.extend(Row(player, week["slug"], game["id"], "sofix", round(alone, 3), lock) for game in ordered)
         for told in seen.game_starts:
             read = told.info.get("startAt")
-            out.append(
-                Row(player, week["slug"], told.game, "futbolfantasy", told.p_start, lock, _dt(read) if read else None)
-            )
+            said = told.p_start if told.said is None else told.said  # what the site said, not what was made of it
+            out.append(Row(player, week["slug"], told.game, "futbolfantasy", said, lock, _dt(read) if read else None))
     return out
 
 

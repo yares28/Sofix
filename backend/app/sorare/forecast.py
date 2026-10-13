@@ -58,6 +58,7 @@ class GameStart:
     info: dict[str, Any] = field(
         default_factory=dict
     )  # for the page, carried untouched: when it was read, status, link
+    said: float | None = None  # what the site said when `p_start` was corrected from the record (start_fixes.py)
 
 
 @dataclass
@@ -232,7 +233,8 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
         p_start, p_on = per_game[0].p_start, per_game[0].p_on
         start_source = per_game[0].source
         if start_source == "futbolfantasy":
-            by_source["futbolfantasy"] = round(p_start, 3)
+            first = next((told for told in week.game_starts if told.game == per_game[0].game), None)
+            by_source["futbolfantasy"] = round(first.said if first and first.said is not None else p_start, 3)
         p_any = 1.0
         for chance in played:
             p_any *= 1 - chance

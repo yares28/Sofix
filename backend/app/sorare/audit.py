@@ -34,7 +34,17 @@ from sqlalchemy.orm import Session
 
 from app.models import ReadModel
 from app.services.publish import put
-from app.sorare import backtest, frozen_scores, lineup_audit, missions, player_audit, score_checks, starts, versus
+from app.sorare import (
+    backtest,
+    frozen_scores,
+    lineup_audit,
+    missions,
+    player_audit,
+    score_checks,
+    start_fixes,
+    starts,
+    versus,
+)
 from app.sorare.publish import ARCHIVE_PREFIX
 
 AUDIT_KEY = "audit"
@@ -384,6 +394,9 @@ def from_kept(db: Session, now: datetime, *, write: bool = False) -> dict[str, A
     page["frozenPlans"] = frozen_scores.read(db, now)
     page["lineups"] = lineup_audit.read(db, now, write=write)  # only the job keeps a settled week's counts
     page["playerScores"] = score_checks.comparison(db, now)
+    page["startFixes"] = start_fixes.StartFixes(
+        start_fixes.cases(db)
+    ).table()  # what each source said against what happened (X8)
     from app.services.kept_matches import match_audit
 
     page["matches"] = match_audit(db, now)

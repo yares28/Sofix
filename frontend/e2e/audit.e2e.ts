@@ -304,6 +304,12 @@ test("with enough games a source shows its figure, and one under the floor still
   await expect(sofix.getByText("Too few to tell")).toBeVisible();
   await expect(sofix).toContainText("40 of 100 games checked");
   await expect(sofix.locator(".au-src-main.figure")).toHaveCount(0);
+
+  // the start chances moved to what happened: a run with 100 games is used, a thinner one says how many are still to come
+  const fixes = page.getByRole("region", { name: "Start chances, corrected from the record" });
+  await expect(fixes.getByRole("row", { name: /50% to 90%/ })).toContainText("73%");
+  await expect(fixes.getByRole("row", { name: /50% to 90%/ })).toContainText("Yes");
+  await expect(fixes.getByRole("row", { name: /95%/ })).toContainText("Not yet (88 to go)");
 });
 
 test("before the first refresh that writes it, the page says so instead of drawing empty figures", async ({ page, request }) => {

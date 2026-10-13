@@ -14,6 +14,7 @@ import {
   sourceStory,
   type Audit,
   type LiveSource,
+  type StartFix,
 } from "../../lib/audit";
 import { SOURCE_NAME, SOURCE_SHORT, type StartSource } from "../../lib/play";
 import type { LeagueAudit as League } from "../../lib/leagueAudit";
@@ -68,6 +69,43 @@ function Source({ source, live, floor }: { source: StartSource; live: LiveSource
         </dl>
       ) : null}
     </article>
+  );
+}
+
+/** Said against happened, per source: the runs of chances that hold 100 settled games are moved to what happened before the plans are made. */
+function Fixes({ fixes, floor }: { fixes: Partial<Record<StartSource, StartFix[]>>; floor: number }) {
+  const rows = SOURCES.flatMap((source) => (fixes[source] ?? []).map((fix) => ({ source, fix })));
+  if (rows.length === 0) return null;
+  return (
+    <section className="au-w au-starts" aria-labelledby="au-fixes-h">
+      <h2 id="au-fixes-h">Start chances, corrected from the record</h2>
+      <p className="au-sub">A run of chances with {floor} settled games is moved to how often those players really started; thinner runs are left as they were.</p>
+      <div className="au-record">
+        <table>
+          <caption className="visually-hidden">Each source&apos;s chances against how often the players started</caption>
+          <thead>
+            <tr>
+              <th scope="col">Source</th>
+              <th scope="col">Said</th>
+              <th scope="col">Started</th>
+              <th scope="col">Games</th>
+              <th scope="col">Used</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ source, fix }) => (
+              <tr key={`${source}-${fix.from}`}>
+                <th scope="row"><SourceMark source={source} /> {NAME[source]}</th>
+                <td>{fix.from === fix.to ? percent(fix.from) : `${percent(fix.from)} to ${percent(fix.to)}`}</td>
+                <td>{percent(fix.was)}</td>
+                <td>{fix.n}</td>
+                <td>{fix.used ? "Yes" : `Not yet (${floor - fix.n} to go)`}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 
@@ -204,6 +242,7 @@ export default function AuditView({
           ))}
         </div>
       </section>
+      <Fixes fixes={data.startFixes ?? {}} floor={data.floor} />
       <section className="au-w au-starts" id="written" aria-labelledby="au-written-h">
         <h2 id="au-written-h">Written down so far</h2>
         <p className="au-sub">Before each lock; checked a day after the gameweek ends.</p>

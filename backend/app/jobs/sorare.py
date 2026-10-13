@@ -50,6 +50,7 @@ from app.sorare import (
     projection,
     score_checks,
     scores,
+    start_fixes,
 )
 from app.sorare import missions as sorare_missions
 from app.sorare import publish as sorare_publish
@@ -121,7 +122,13 @@ def optional(db: Session, failed: dict[str, str], step: str, work: Callable[[], 
 
 
 def read_lineups(
-    db: Session, failed: dict[str, str], snapshot: dict[str, Any], fetched: datetime, *, write: bool
+    db: Session,
+    failed: dict[str, str],
+    snapshot: dict[str, Any],
+    fetched: datetime,
+    *,
+    write: bool,
+    fixes: start_fixes.StartFixes | None = None,
 ) -> tuple[ff_feed.Feed | None, ff_use.Lineups | None]:
     """Futbol Fantasy's match pages, read now (what could not be read keeps its last reading for a day), and each of the
     owner's players linked to the people on them. A read that breaks outright falls back to what was kept."""
@@ -134,7 +141,7 @@ def read_lineups(
         return None, None
 
     def link() -> ff_use.Lineups:
-        lineups = ff_use.Lineups(feed, snapshot["cards"], fetched, ff_link.load_kept(db))
+        lineups = ff_use.Lineups(feed, snapshot["cards"], fetched, ff_link.load_kept(db), fixes=fixes)
         if write:
             ff_link.save_kept(db, lineups.links.links, fetched)
         return lineups
@@ -285,7 +292,9 @@ def run(
         db.rollback()
     # Futbol Fantasy's expected lineups, before anything is planned: its chance that each player starts each game is what
     # the expected scores, the plans and the captain are built on. Only the gameweek being planned uses it.
-    feed, lineups = read_lineups(db, failed, snapshot, fetched, write=not dry_run)
+    # Each source's start chances moved to what the record says happened, band by band, from 100 settled cases (plans/xscore.md X8).
+    fixes = optional(db, failed, "start chance corrections", lambda: start_fixes.load(db), None)
+    feed, lineups = read_lineups(db, failed, snapshot, fetched, write=not dry_run, fixes=fixes)
     # Every LaLiga player linked to Futbol Fantasy's pages too, apart from the owner's cards (whose links the Lineups page marks as his):
     # every player then gets FF's start chance, not only his (7 Oct 2026). A failure leaves the others on Sorare's odds or their form.
     league_lineups: ff_use.Lineups | None = (
@@ -298,6 +307,7 @@ def run(
                 [{"player": row["player"]} for row in snapshot.get("market") or [] if row.get("player")],
                 fetched,
                 ff_link.load_kept(db),
+                fixes=fixes,
             ),
             None,
         )

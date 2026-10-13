@@ -262,6 +262,8 @@ A Room's entry fee is shown as "300 to enter", but no plan enters a Room that ch
 lineup (13 Oct): they burn essence, so those cards go to Champion and the in-season lineups; they are listed under "not worth it".
 No lineup starts a player who is under 30% likely to play (13 Oct): a keeper at 5 to 20% is a zero the lineup cannot make up, so his cards
 are left for other lineups or the bench.
+A player outside LaLiga (Bundesliga, Premier League, Segunda) has his own league's games counted for "will he start?": a regular is no
+longer left at the 40% a player with no record gets.
 
 In a lineup's sheet, a card's name opens his match on **Lineups** (Futbol Fantasy's probable elevens and the chance of each player of his
 side). A game Futbol Fantasy has no page for, such as a national-team game, has no link.

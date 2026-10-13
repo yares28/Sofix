@@ -69,9 +69,25 @@ def rebuild(
     comps = [_comp(lines) for lines in by_key.values()]
     people = {p["player"]: p for p in week["playing"]["players"]}
     forecasts: dict[str, Forecast] = {}
+    cards_by_player = {c["player"]: c for c in collection}
     for player, p in people.items():
         chance = float(p["p"])
-        if fixes is not None and p.get("startSource") == "futbolfantasy" and len(p["games"]) == 1:
+        if (
+            fixes is not None
+            and p.get("startSource") == "sofix"
+            and len(p["games"]) == 1
+            and p["games"][0]["competition"] != "laliga-es"
+        ):
+            # His own league's games count since 13 Oct: the 0.4 prior is replaced by his last five (the card's "started" share, as the model reads them).
+            five = next(
+                (w.get("started") for w in cards_by_player.get(player, {}).get("scores", []) if w["window"] == "L5"),
+                None,
+            )
+            if five is not None and abs(float(p["pStart"]) - 0.4) < 1e-9:
+                mine = (round(float(five) / 20) + 0.8) / 7.0
+                chance = min(1.0, mine + (1 - mine) * float(p.get("benchedOn") or 0.0))
+                p = {**p, "x": float(p["x"]) * chance / max(float(p["p"]), 1e-9)}
+        elif fixes is not None and p.get("startSource") == "futbolfantasy" and len(p["games"]) == 1:
             moved = fixes.apply("futbolfantasy", float(p["pStart"]))  # the chance of playing follows the start chance
             chance = min(1.0, moved + (1 - moved) * float(p.get("benchedOn") or 0.0))
             p = {**p, "x": float(p["x"]) * chance / max(float(p["p"]), 1e-9)}

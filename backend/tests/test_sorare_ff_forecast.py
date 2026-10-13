@@ -6,6 +6,8 @@ expected score, the plans and the captain move with it; it never changes his sco
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from app.sorare.forecast import GameStart, PlayerWeek, forecast
@@ -195,3 +197,47 @@ def test_the_plan_form_fallback_cannot_start_or_substitute_a_banned_player() -> 
     one_game = forecast(week())
     assert next_game.p_play == one_game.p_play, "one ban does not remove both games of a double week"
     assert forecast(week()).by_source["sofix"] > 0.8
+
+
+# --------------------------------------------------------------------------- a player's own league, not only LaLiga
+def _past(*rows: tuple[str, str, bool]) -> list[dict]:
+    """(date, competition, started) newest first."""
+    return [{"date": d, "competition": c, "score": 50.0, "played": True, "started": s} for d, c, s in rows]
+
+
+def test_a_players_own_league_is_never_a_cup_whatever_it_is():
+    from app.sorare.forecast import cup_dates
+
+    bundesliga = _past(
+        ("2026-10-04", "bundesliga-de", True),
+        ("2026-10-01", "champions-league", False),
+        ("2026-09-27", "bundesliga-de", True),
+        ("2026-09-20", "bundesliga-de", True),
+    )
+    assert cup_dates(bundesliga) == {"2026-10-01"}
+    laliga = _past(
+        ("2026-10-04", "laliga-es", True), ("2026-10-01", "copa-del-rey", False), ("2026-09-27", "laliga-es", True)
+    )
+    assert cup_dates(laliga) == {"2026-10-01"}, "a LaLiga player is judged as before"
+    assert cup_dates(
+        _past(("2026-10-04", "international-friendlies", True), ("2026-09-27", "bundesliga-de", True))
+    ) == {"2026-10-04"}, "a national game is never his league"
+    assert cup_dates([]) == frozenset()
+
+
+def test_a_bundesliga_regular_is_not_left_at_the_40_percent_prior():
+    from app.sorare.forecast import cup_dates
+
+    past = _past(*[(f"2026-09-{day:02d}", "bundesliga-de", True) for day in (28, 21, 14, 7, 1)])
+    week = PlayerWeek(
+        games=1,
+        projection=55.0,
+        pos="MID",
+        history=[(h["date"], h["score"], h["played"]) for h in past],
+        starts={h["date"]: h["started"] for h in past},
+        cups=cup_dates(past),
+    )
+    assert forecast(week).p_start > 0.8
+    assert forecast(replace(week, cups=frozenset(h["date"] for h in past))).p_start == pytest.approx(0.4), (
+        "the old answer"
+    )

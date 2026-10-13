@@ -85,6 +85,17 @@ class PlayerWeek:
     banned: bool = False  # red card or five-yellow cycle: he misses his first LaLiga game
 
 
+def cup_dates(past: list[dict[str, Any]]) -> frozenset[str]:
+    """The dates of his games outside his own league, newest first in `past`: the chance he starts is read from his league games
+    only, since a cup or European game is often rotated (7 Oct 2026). His league is LaLiga when he has played in it lately, else the
+    competition he played most of his last ten games in (a Bundesliga regular is not a player with no league games, 13 Oct 2026);
+    a national game is never his league. With none, every game with a competition counts as a cup, as before."""
+    recent = [h.get("competition") for h in past[:10]]
+    own = [c for c in recent if c and c not in NATIONAL]
+    home = "laliga-es" if "laliga-es" in own else max(own, key=own.count, default=None)
+    return frozenset(h["date"] for h in past if h.get("competition") not in (None, home))
+
+
 def _from_form(history: list[tuple[str, float, bool]]) -> tuple[float, float]:
     last = history[:5]
     played = [score for _, score, ok in last if ok]

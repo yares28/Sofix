@@ -18,7 +18,7 @@ import numpy as np
 
 from app.services.scoring import difficulty_label, difficulty_score, label_bucket
 from app.sorare import expected, projection, rules, xg
-from app.sorare.forecast import GameStart, PlayerWeek, own_start
+from app.sorare.forecast import GameStart, PlayerWeek, cup_dates, own_start
 from app.sorare.forecast import forecasts as build_forecasts
 from app.sorare.model import ESSENCE_ORDER, SORARE_POSITION, Card, Competition, Forecast
 from app.sorare.planner import DRAWS, Lineup, Plan, build, fill_bench, plans, replay_rewards, score_at_rank
@@ -353,7 +353,7 @@ def player_weeks(
             start_odds=start_odds,
             # Only games he played have a role worth recording; a snapshot from before O9 has none.
             starts={h["date"]: bool(h["started"]) for h in past if h["played"] and "started" in h},
-            cups=frozenset(h["date"] for h in past if h.get("competition") not in (None, expected.LALIGA)),
+            cups=cup_dates(past),
             banned=_banned(history.get(slug, []), first),
             pos=pos,
             game_ids=[g["id"] for g in ordered] if told else [],

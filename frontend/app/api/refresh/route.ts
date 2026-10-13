@@ -2,6 +2,7 @@ import { revalidateTag } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
 import { database } from "../../../lib/db";
 import { dispatchRefresh, latestWorkflowRun, toRefreshStatus, type DbRun } from "../../../lib/github";
+import { fetchNextLock, shouldRefreshNearLock } from "../../../lib/nearLock";
 import { GRID_TAG, isSameOriginRequest } from "../../../lib/refresh";
 import { SYSTEM_TAG } from "../../../lib/system";
 import type { ApiResponse, RefreshStatus } from "../../../lib/types";
@@ -48,7 +49,15 @@ export async function POST(request: NextRequest) {
   const token = process.env.GITHUB_TOKEN;
   if (!token) return failure(503, "Refresh is not configured.");
   try {
-    const { status } = await currentStatus(token);
+    const { workflow, status } = await currentStatus(token);
+    if (request.nextUrl.searchParams.get("near") === "1") {
+      // Opened Sofix: start a refresh only in the last three hours before a lock, when none started in the last 25 minutes.
+      const lock = await fetchNextLock(Date.now()).catch(() => null);
+      const lastStart = workflow ? Date.parse(workflow.created_at) : null;
+      if (!shouldRefreshNearLock(lock, Date.now(), lastStart) || status.run?.status === "running") {
+        return reply(200, { success: true, data: status, error: null });
+      }
+    }
     if (status.run?.status === "running") return reply(409, { success: false, data: status, error: "A refresh is already running." });
     if (status.retry_after > 0) return reply(429, { success: false, data: status, error: "Refreshed a moment ago." });
     if (!(await dispatchRefresh(token))) return failure(502, "GitHub did not start the refresh.");

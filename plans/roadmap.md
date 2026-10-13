@@ -27,7 +27,7 @@ L2. **Audit xScore: a fair yardstick** ([lineups-and-xscore.md](lineups-and-xsco
 0. **Found 7 Oct in past sessions** (TODO.md "Forgotten"): **G**, the grey countdown on Play (your call). R, the form
    fallback's red-card ban, is fixed by data-keeping step 1. L, the daily league history, is done (Results).
 1. **9.7 · The extension updates itself** (TODO.md A): no more Reload by hand after the release that brings it (one last Reload).
-2. **9.8 · A refresh near a lock that does not wait for GitHub** (TODO.md C): the extension and the app start it in the last three hours.
+2. **9.8 · A refresh near a lock that does not wait for GitHub** (TODO.md C): *the app half shipped 13 Oct* (opening Sofix in the last three hours starts it, `lib/nearLock.ts`). Left: the extension half, when you open sorare.com.
 3. **9.6 · The tile's big number follows his start chance** (TODO.md B): under 40% the "comes on" score, with his chance of coming on.
 4. **9.10 · The overlay answers only for your account; an old extension says "Reload"** (TODO.md F).
 5. **Play deep dive, what is left** (TODO.md "Play deep dive"): the frozen plans scored against the real cut-offs, the 439 KB `market`
@@ -462,7 +462,7 @@ waits for your call; 9.6 to 9.10 are the owner's TODO.md items B, A, C, D and F,
   permission) and calls `chrome.runtime.reload()` when the version on disk is newer than the one running. After a merge I pull your
   main folder and run `node extension/scripts/configure.mjs`. *Test first:* `lib/extensionBackground.test.ts`, a newer version on disk
   reloads once and an equal or older one never does. *Done when* a version bump reaches your Chrome without your Reload (from 0.3.3).
-- **9.8 · A refresh near a lock that does not wait for GitHub's clock** (item 6; TODO.md "C"; decision 9). Decided 3 Oct: option 1, the extension and the app start it when you open them in the last three hours before a lock.
+- **9.8 · A refresh near a lock that does not wait for GitHub's clock** (item 6; TODO.md "C"; decision 9). Decided 3 Oct: option 1, the extension and the app start it when you open them in the last three hours before a lock. *App half done 13 Oct:* `NearLockRefresh` in the layout asks `POST /api/refresh?near=1` at most every 10 min; the route reads Sorare's next lock and starts the refresh only inside the window and 25 min after the last start. Extension half still to do.
 - **9.9 · Pin `ubuntu-24.04`** (*done 7 Oct*) in `ci.yml`, `refresh.yml` and `near-lock.yml` (item 7, approved). *Done when* CI and one refresh run on
   it, before 19 Oct.
 - **9.10 · Your account only, and "reload" for an old extension** (item 9; TODO.md "F"): steps 7.1 and 7.2, moved here so they ship

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import type { ReactNode } from "react";
+import NearLockRefresh from "../components/NearLockRefresh";
 import { INSTALL_CAPTURE_SCRIPT } from "../lib/install";
 import { THEME_SCRIPT } from "../lib/theme";
 import "./globals.css";
@@ -41,7 +42,10 @@ export default function Layout({ children }: { children: ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: INSTALL_CAPTURE_SCRIPT }} />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <NearLockRefresh />
+      </body>
     </html>
   );
 }

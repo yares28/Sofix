@@ -16,9 +16,7 @@ and a check, so a session can work through it alone and stop only where you have
 
 Work from the top. Each line points to its full text; "you" items wait for the owner.
 
-L1. **Lineup building** ([lineups-and-xscore.md](lineups-and-xscore.md) Phase 1): no All Star / Cap 260 fee lineups, start chances corrected
-   from the record (X8), no dead slots, best lineup of each competition first, start chance outside LaLiga.
-L2. **Strategy lab, saved every gameweek** (same plan, Phase 2), then **Audit Lineups week rows open to a comparison** (Phase 3),
+L2. **Strategy lab, saved every gameweek** ([lineups-and-xscore.md](lineups-and-xscore.md) Phase 2), then **Audit Lineups week rows open to a comparison** (Phase 3),
    **Audit xScore: a fair yardstick** (Phase 4), **research kept only if the replay says so** (Phase 5), **Pro levels** (Phase 6).
 
 -2. **Neon: keep one free project enough** (AGENTS.md "Neon projects"; memory of 12 Oct): production moved to the project
@@ -558,6 +556,10 @@ the held-out weeks (P9 "The bar").
 ---
 
 ## Results
+
+- **13 Oct - lineup building (lineups-and-xscore.md Phase 1):** no plan enters an All Star lineup or a fee-paying Room, Champion essence first; start chances moved to
+  what happened from 100 settled games per run of chances (shown on the Audit); no starter under 30% to play; a player's own league counts for his start chance.
+  GW21 replanned: fees 0, best plan 651 essence expected against 574 before, no keeper under 30% in any lineup. Phases 2 to 6 wait for the owner's go.
 
 - **9 Oct - data keeping step 8:** Control shows five dated dataset rows from one published health record, including known
   source failures and retained counts. All eight implementation steps are complete; migration and seed already ran.

@@ -15,11 +15,13 @@ none of these knows has no place, and the page lists him apart.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Any
 
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.models import ReadModel
@@ -276,29 +278,21 @@ def _best_cards(cards: Sequence[Card]) -> dict[str, Card]:
     return best
 
 
-def payload(
-    feed: Feed,
+SorareLinks = Mapping[
+    int, Mapping[str, Any]
+]  # match id -> {"id": Sorare's game, "players": {Sorare slug: his id on the site}}
+
+
+def _entries(
+    shown: Sequence[Stored],
     lineups: ff_use.Lineups | None,
     cards: Sequence[Card],
     positions: Mapping[str, str],
     now: datetime,
-    art: Art | None = None,
-) -> dict[str, Any]:
-    """The `lineups` read model: every match held that is still to be played or was played a few hours ago, and with it the
-    rest of its round: a round stays whole on the page until its last match is hours old (owner, 12 Oct 2026: "it should show
-    all the games in the round"). A played match keeps the lineup read last before its kickoff.
-
-    `art` is Sorare's card picture of each LaLiga player (`card_art`): the page draws a player the owner does not have as a real card.
-    """
-    current = [item for item in feed.matches.values() if item.match.kickoff is None or item.match.kickoff > now - STAYS]
-    rounds = {(item.match.competition, item.match.round_no) for item in current if item.match.round_no is not None}
-    shown = [
-        item
-        for item in feed.matches.values()
-        if item in current
-        or (item.match.round_no is not None and (item.match.competition, item.match.round_no) in rounds)
-    ]
-    shown.sort(key=lambda item: (item.match.kickoff is None, item.match.kickoff or now, item.match.match_id))
+    art: Art | None,
+    sorare: SorareLinks | None,
+) -> tuple[list[dict[str, Any]], dict[str, str], dict[str, Any]]:
+    """These matches as the page draws them, the card pictures they use and the owner's cards in them."""
     used: dict[str, None] = {}
     found_art: dict[str, str] = {}
     matches = []
@@ -318,8 +312,125 @@ def payload(
         }
         if match.round_no is None and match.round_label:
             entry["phase"] = match.round_label
+        if sorare and match.match_id in sorare:
+            entry["sorare"] = sorare[match.match_id]
         matches.append(entry)
     owned = _best_cards(cards)
+    mine = {
+        slug: {
+            "name": owned[slug].name,
+            "rarity": owned[slug].rarity,
+            "pic": owned[slug].picture,
+            "pos": owned[slug].positions[0],
+            "club": owned[slug].club_name,
+        }
+        for slug in used
+        if slug in owned
+    }
+    return matches, found_art, mine
+
+
+DAY_PREFIX = (
+    "lineups_day:"  # one row per day of kickoffs: what the page shows of a week once the site has dropped its matches
+)
+
+
+def kept_days(
+    feed: Feed,
+    lineups: ff_use.Lineups | None,
+    cards: Sequence[Card],
+    positions: Mapping[str, str],
+    now: datetime,
+    art: Art | None = None,
+    sorare: SorareLinks | None = None,
+) -> dict[str, dict[str, Any]]:
+    """Every match held, by the day of its kickoff (UTC), so a week can be shown after the site has moved on (the owner, 13 Oct
+    2026: "They should be saved"). `matches` are the ones the page still shows, written over what is kept; `old` are played
+    ones the store still holds, written only where nothing is kept (they fill in a week from before this existed)."""
+    days: dict[str, list[Stored]] = {}
+    for item in feed.matches.values():
+        if item.match.kickoff is not None:
+            days.setdefault(item.match.kickoff.date().isoformat(), []).append(item)
+    out: dict[str, dict[str, Any]] = {}
+    for day, items in days.items():
+        entries, found_art, mine = _entries(items, lineups, cards, positions, now, art, sorare)
+        fresh = {m.match.match_id for m in items if m.match.kickoff is not None and m.match.kickoff > now - STAYS}
+        out[day] = {
+            "version": VERSION,
+            "matches": {str(e["id"]): e for e in entries if e["id"] in fresh},
+            "old": {str(e["id"]): e for e in entries if e["id"] not in fresh},
+            "art": found_art,
+            "cards": mine,
+        }
+    return out
+
+
+_MERGE_DAY = text(
+    """
+    INSERT INTO read_models (key, payload, updated_at) VALUES (:key, CAST(:payload AS json), :now)
+    ON CONFLICT (key) DO UPDATE SET updated_at = EXCLUDED.updated_at, payload = jsonb_build_object(
+      'version', EXCLUDED.payload::jsonb -> 'version',
+      'matches', (EXCLUDED.payload::jsonb -> 'old') || COALESCE(read_models.payload::jsonb -> 'matches', '{}'::jsonb)
+                 || (EXCLUDED.payload::jsonb -> 'matches'),
+      'art', COALESCE(read_models.payload::jsonb -> 'art', '{}'::jsonb) || (EXCLUDED.payload::jsonb -> 'art'),
+      'cards', COALESCE(read_models.payload::jsonb -> 'cards', '{}'::jsonb) || (EXCLUDED.payload::jsonb -> 'cards')
+    )::json
+    """
+)
+
+
+def merged_day(kept: Mapping[str, Any], fresh: Mapping[str, Any]) -> dict[str, Any]:
+    """What `_MERGE_DAY` does inside Postgres: a kept match is replaced by a fresh one, and never by an old one."""
+    return {
+        "version": fresh["version"],
+        "matches": {**fresh["old"], **(kept.get("matches") or {}), **fresh["matches"]},
+        "art": {**(kept.get("art") or {}), **fresh["art"]},
+        "cards": {**(kept.get("cards") or {}), **fresh["cards"]},
+    }
+
+
+def save_days(db: Session, days: Mapping[str, Mapping[str, Any]], now: datetime) -> int:
+    """Add each day's matches to what is kept. On Postgres the merge runs inside the database, so nothing kept is downloaded
+    to be written back (Neon counts every byte it sends); elsewhere (the tests' SQLite) it is done here."""
+    for day, fresh in days.items():
+        key = f"{DAY_PREFIX}{day}"
+        if db.get_bind().dialect.name == "postgresql":
+            db.execute(_MERGE_DAY, {"key": key, "payload": json.dumps(fresh), "now": now})
+            continue
+        row = db.get(ReadModel, key)
+        if row:
+            row.payload, row.updated_at = merged_day(row.payload, fresh), now
+        else:
+            db.add(ReadModel(key=key, payload=merged_day({}, fresh), updated_at=now))
+    db.commit()
+    return len(days)
+
+
+def payload(
+    feed: Feed,
+    lineups: ff_use.Lineups | None,
+    cards: Sequence[Card],
+    positions: Mapping[str, str],
+    now: datetime,
+    art: Art | None = None,
+    sorare: SorareLinks | None = None,
+) -> dict[str, Any]:
+    """The `lineups` read model: every match held that is still to be played or was played a few hours ago, and with it the
+    rest of its round: a round stays whole on the page until its last match is hours old (owner, 12 Oct 2026: "it should show
+    all the games in the round"). A played match keeps the lineup read last before its kickoff.
+
+    `art` is Sorare's card picture of each LaLiga player (`card_art`): the page draws a player the owner does not have as a real card.
+    """
+    current = [item for item in feed.matches.values() if item.match.kickoff is None or item.match.kickoff > now - STAYS]
+    rounds = {(item.match.competition, item.match.round_no) for item in current if item.match.round_no is not None}
+    shown = [
+        item
+        for item in feed.matches.values()
+        if item in current
+        or (item.match.round_no is not None and (item.match.competition, item.match.round_no) in rounds)
+    ]
+    shown.sort(key=lambda item: (item.match.kickoff is None, item.match.kickoff or now, item.match.match_id))
+    matches, found_art, mine = _entries(shown, lineups, cards, positions, now, art, sorare)
     return {
         "version": VERSION,
         "generatedAt": now.isoformat(),
@@ -328,15 +439,5 @@ def payload(
         "stopped": feed.stopped,
         "matches": matches,
         "art": found_art,
-        "cards": {
-            slug: {
-                "name": owned[slug].name,
-                "rarity": owned[slug].rarity,
-                "pic": owned[slug].picture,
-                "pos": owned[slug].positions[0],
-                "club": owned[slug].club_name,
-            }
-            for slug in used
-            if slug in owned
-        },
+        "cards": mine,
     }

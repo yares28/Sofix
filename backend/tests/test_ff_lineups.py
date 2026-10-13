@@ -490,3 +490,43 @@ def test_a_bench_player_can_be_next_in_line_in_more_than_one_slot(real: list[ffm
     shown = {p["id"]: p for r in home["rows"] for p in r["players"]}
 
     assert [shown[p.ff_id].get("next") for p in source.xi[:3]] == [[bench.ff_id]] * 3
+
+
+# ------------------------------------------------------------------------------------- tied to Sorare, kept by day
+def test_a_match_is_tied_to_its_sorare_game_with_or_without_a_percentage(real: list[ffm.Match]) -> None:
+    """13 Oct 2026: Lineups had no Sorare number and no button, the tie came only from a player the site gave a percentage."""
+    feed = feed_of(real)
+    lineups = ff_use.Lineups(feed, [OYARZABAL], NOW)
+    kickoff = next(m for m in real if m.match_id == 22502).kickoff
+    assert kickoff is not None
+    game = {"id": "Game:a", "team": "Real Sociedad", "opponent": "Deportivo", "kickoff": kickoff.isoformat()}
+
+    assert [(g, m) for g, m, _ in lineups.joins("mikel-oyarzabal-ugarte", [game])] == [("Game:a", 22502)]
+    assert lineups.joins("mikel-oyarzabal-ugarte", [{**game, "opponent": "Osasuna"}]) == []
+    assert lineups.joins("nobody", [game]) == []
+
+    links = {22502: {"id": "Game:a", "players": {"mikel-oyarzabal-ugarte": "x"}}}
+    out = ff_lineups.payload(feed, lineups, [], {}, BEFORE, None, links)
+    assert find(out, 22502)["sorare"] == links[22502] and "sorare" not in find(out, 22501)
+
+
+def test_every_match_is_kept_by_its_day_and_a_played_one_never_replaces_what_is_kept(
+    real: list[ffm.Match],
+    db: Session,  # noqa: F811
+) -> None:
+    feed = feed_of(real)
+    days = ff_lineups.kept_days(feed, None, [], {}, BEFORE)
+    assert sum(len(day["matches"]) for day in days.values()) == 10 and not any(day["old"] for day in days.values())
+    day = next(d for d, held in days.items() if "22502" in held["matches"])
+    assert ff_lineups.save_days(db, days, BEFORE) == len(days)
+    kept = db.get(ff_lineups.ReadModel, f"{ff_lineups.DAY_PREFIX}{day}").payload
+    assert kept["matches"]["22502"]["id"] == 22502 and "old" not in kept
+
+    # Days later the store still holds the match: it is "old" now, and what was kept before its kickoff stays.
+    marked = {**kept, "matches": {**kept["matches"], "22502": {**kept["matches"]["22502"], "readAt": "kept"}}}
+    db.get(ff_lineups.ReadModel, f"{ff_lineups.DAY_PREFIX}{day}").payload = marked
+    db.commit()
+    later = ff_lineups.kept_days(feed, None, [], {}, BEFORE + timedelta(days=4))
+    assert "22502" in later[day]["old"] and not later[day]["matches"]
+    ff_lineups.save_days(db, later, BEFORE + timedelta(days=4))
+    assert db.get(ff_lineups.ReadModel, f"{ff_lineups.DAY_PREFIX}{day}").payload["matches"]["22502"]["readAt"] == "kept"

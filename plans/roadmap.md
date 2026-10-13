@@ -568,6 +568,10 @@ the held-out weeks (P9 "The bar").
   `python -m app.jobs.lineup_backtest` replays them on two seasons. Replay (1,000 pools): xScore 314, nothing beats it, keeper-with-defender
   and three-from-one-club are 7 to 9 points worse. Strategy lineups appear from the next refresh before a lock; the page fills as weeks finish.
 
+- **13 Oct - Lineups, Scores and a mission (TODO.md M1 to M3):** a "Big Chance Missed" mission is a counted stat and gets its picks; the job ties every
+  Futbol Fantasy match to its Sorare game and players (`sorare` on each match), so Sorare's saved start % and "Read the round on Sorare" show
+  without the planned week's record; every match is kept by its day (`lineups_day:<date>`, merged inside Postgres), the week picked decides the
+  games on Lineups and Scores, and the picker offers every week there.
 - **13 Oct - GW22 plan (the owner's four points):** Sorare's European competitions are read (they were dropped as "no cards in this league":
   a card's games now say what he plays in, `Card.plays_in`); a free competition is filled with every team the cards make, after the teams
   with a real chance have their cards and substitutes; Sorare's starting chance as the extension saved it (`sorare_chances:<game>`, 76 games

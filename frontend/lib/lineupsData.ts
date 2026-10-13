@@ -1,6 +1,6 @@
 import { cache } from "./cache";
-import { database, readModel } from "./db";
-import { LINEUPS_KEY, readable, type LineupsData } from "./lineups";
+import { database, readModel, readModelAt, stamp } from "./db";
+import { DAY_PREFIX, LINEUPS_KEY, readable, type KeptLineups, type LineupMatch, type LineupsData } from "./lineups";
 import { SORARE_TAG } from "./play";
 
 // Local development and the browser tests have no Neon: they ask the FastAPI stand-in instead.
@@ -24,6 +24,32 @@ const cachedLineups = cache(
   ["lineups-v1"],
   { tags: [SORARE_TAG], revalidate: 3600 },
 );
+
+/**
+ * The matches kept for these days (`lineups_day:<date>`, backend `ff_lineups.kept_days`): what a week shows once the site has dropped
+ * its matches. One small query for the write times; each day's payload is downloaded once per change (`readModelAt`). Nothing
+ * without a database (local development on the stand-in API, the browser tests).
+ */
+export async function loadKeptDays(days: string[]): Promise<KeptLineups> {
+  const out: KeptLineups = { matches: [], cards: {}, art: {} };
+  const sql = database();
+  const keys = [...new Set(days.filter((day) => /^\d{4}-\d{2}-\d{2}$/.test(day)))].map((day) => DAY_PREFIX + day);
+  if (!sql || !keys.length) return out;
+  try {
+    const rows = (await sql`SELECT key, updated_at FROM read_models WHERE key = ANY(${keys})`) as { key: string; updated_at: string | Date }[];
+    for (const row of rows) {
+      // A day's first write holds its played matches under `old` (the merge that folds them in runs from the second write on).
+      const day = (await readModelAt(row.key, stamp(row.updated_at))) as { matches?: Record<string, LineupMatch>; old?: Record<string, LineupMatch>; cards?: KeptLineups["cards"]; art?: KeptLineups["art"] } | null;
+      if (!day) continue;
+      out.matches.push(...Object.values({ ...day.old, ...day.matches }));
+      Object.assign(out.cards, day.cards);
+      Object.assign(out.art, day.art);
+    }
+  } catch (error) {
+    console.error(`[lineups] kept days could not be read: ${error instanceof Error ? error.message : "unknown"}`);
+  }
+  return out;
+}
 
 /** Null while the site has never been read (no key yet, or the first run has not happened). */
 export async function loadLineups(): Promise<LineupsData | null> {

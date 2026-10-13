@@ -4,7 +4,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { byMonth, pageWeeks, weekDates, weekName, weekOn, weekValue, type Page, type Week } from "../lib/weeks";
 
-const BOARD = ["/fixtures", "/difficulty", "/table", "/lineups", "/scores"]; // pages that count LaLiga rounds
+// Pages that count LaLiga rounds. Lineups and Scores show a week's own games, a European midweek's too, so they offer every week.
+const BOARD = ["/fixtures", "/difficulty", "/table"];
 
 /**
  * The app's one gameweek control: it picks a **week**, and every page resolves what it holds — the board its

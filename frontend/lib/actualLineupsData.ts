@@ -31,13 +31,19 @@ const readIndex=cache(async(slug:string)=>Index.parse(await query(INDEX_QUERY,{s
 // One minute around announcement: an hour-long negative cache would hide a newly announced XI.
 // No polling, auth, extension or extra page visits. Reads happen on selection/navigation or return to the page.
 export async function loadActualLineup(match:LineupMatch,scores=false):Promise<ActualRead>{
-  const slug=COMPETITIONS[match.competition]; if(!slug||!match.kickoff)return {state:"unmatched"};
+  const slug=COMPETITIONS[match.competition]; if(!match.kickoff||(!slug&&!match.sorare))return {state:"unmatched"};
   try{
-    const c=(await readIndex(slug)).football.competition;
-    const identities=[...c.futureGames.nodes,...c.pastGames.nodes].flatMap(value=>{const parsed=GameIdentity.safeParse(value);return parsed.success?[parsed.data]:[];});
-    const games=[...new Map(identities.map(g=>[g.id,g])).values()].filter(g=>sameGame(g,match));
-    if(games.length!==1)return {state:"unmatched"};
-    const body=await query(scores?SCORES_QUERY:FORMATION_QUERY,{id:games[0]!.id},60) as {anyGame?:unknown};
+    // The job's own tie to Sorare's game comes first: the competition's index holds only its 20 games either side of today, so a
+    // week played a while ago, or a busy European matchday, is not in it.
+    let id=match.sorare?.id;
+    if(!id){
+      const c=(await readIndex(slug!)).football.competition;
+      const identities=[...c.futureGames.nodes,...c.pastGames.nodes].flatMap(value=>{const parsed=GameIdentity.safeParse(value);return parsed.success?[parsed.data]:[];});
+      const games=[...new Map(identities.map(g=>[g.id,g])).values()].filter(g=>sameGame(g,match));
+      if(games.length!==1)return {state:"unmatched"};
+      id=games[0]!.id;
+    }
+    const body=await query(scores?SCORES_QUERY:FORMATION_QUERY,{id},60) as {anyGame?:unknown};
     const data=readActualGame(body.anyGame,match,new Date().toISOString());
     return data?{state:"ready",data}:{state:"unavailable"};
   }catch(error){return {state:error instanceof Limited?"rate-limited":"unavailable"};}

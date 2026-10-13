@@ -106,12 +106,12 @@ export default function LineupsView({ scores = false, data, chances, sorareGames
     if(actualFlight.current.has(id)||Date.now()-(actualChecked.current.get(id)??0)<60_000)return;
     actualFlight.current.add(id);
     try {
-      const response=await fetch(`/api/lineups/actual?match=${id}${scores?"&scores=1":""}`,{signal:AbortSignal.timeout(20_000)});
+      const response=await fetch(`/api/lineups/actual?match=${id}${scores?"&scores=1":""}${selected.kickoff?`&day=${selected.kickoff.slice(0,10)}`:""}`,{signal:AbortSignal.timeout(20_000)});
       const found:ActualRead=response.ok?await response.json():{state:"unavailable"};
       setActuals(previous=>({...previous,[id]:found}));
     } catch {setActuals(previous=>({...previous,[id]:{state:"unavailable"}}));}
     finally {actualChecked.current.set(id,Date.now());actualFlight.current.delete(id);}
-  },[selected.id,scores]);
+  },[selected.id,selected.kickoff,scores]);
   useEffect(()=>{
     if(!real)return;
     void readActual();

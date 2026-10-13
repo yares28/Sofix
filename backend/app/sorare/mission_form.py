@@ -8,8 +8,16 @@ from app.services.timeutil import as_utc
 from app.sorare.mission_seasons import season as club_season
 
 DECISIVE = ("goals", "goal_assist", "assist_penalty_won", "clearance_off_line", "last_man_tackle", "penalty_save")
-COUNTS = ("interception_won", "goal_assist", "goals", "ontarget_scoring_att", "won_tackle", "accurate_pass")
-METRICS = dict(zip(("interception", "assist", "goal", "shot", "tackle", "pass"), COUNTS, strict=True))
+COUNTS = (
+    "interception_won",
+    "goal_assist",
+    "goals",
+    "ontarget_scoring_att",
+    "won_tackle",
+    "accurate_pass",
+    "big_chance_missed",
+)
+METRICS = dict(zip(("interception", "assist", "goal", "shot", "tackle", "pass", "miss"), COUNTS, strict=True))
 
 
 def chance(

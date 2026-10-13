@@ -10,7 +10,9 @@ import {
   kickoffLabel,
   lineupsGlance,
   matchState,
-  otherWeekNote,
+  daysOf,
+  weekLineups,
+  weekSpan,
   matchAddress,
   matchAsked,
   pickMatch,
@@ -205,17 +207,25 @@ describe("which week the page is for", () => {
     expect(sorareLine(open, undefined, NOW)).toMatchObject({ text: "Sorare GW21", open: false });
   });
 
-  it("says why the page shows round 8 when it was opened for another week", () => {
-    const ask = (md: number | null, number: number | null) => otherWeekNote({ md, number }, 8, false);
-    const base = "Futbol Fantasy only has each club's next LaLiga game: round 8.";
+  it("a week is its own days: a round's whole days, a Sorare week from lock to end, kept and listed matches together", () => {
+    // 13 Oct 2026: GW22 (a European midweek) showed LaLiga round 9, and a past week showed nothing of its own.
+    const gw22 = weekSpan({ from: "2026-10-13T14:00:00Z", to: "2026-10-16T13:59:00Z", md: null });
+    const round8 = weekSpan({ from: "2026-10-09T19:00:00Z", to: "2026-10-12T19:00:00Z", md: 8 });
+    expect(daysOf(gw22)).toEqual(["2026-10-13", "2026-10-14", "2026-10-15", "2026-10-16"]);
+    expect(daysOf(round8)).toEqual(["2026-10-09", "2026-10-10", "2026-10-11", "2026-10-12"]);
+    const at = (id: number, kickoff: string, readAt = "live") => ({ id, kickoff, readAt }) as unknown as LineupMatch;
+    const live = { ...readable({ version: 1, matches: [at(1, "2026-10-13T19:00:00Z"), at(2, "2026-10-16T19:00:00Z")] })!, cards: { a: {} as never } };
+    const kept = { matches: [at(1, "2026-10-13T19:00:00Z", "kept"), at(3, "2026-10-12T12:00:00Z", "kept")], cards: { b: {} as never }, art: { x: "y" } };
 
-    expect(otherWeekNote(null, 8, false)).toBeNull();
-    expect(ask(8, null)).toBeNull();
-    expect(ask(6, null)).toBe(`${base} Round 6 has been played.`);
-    expect(ask(9, null)).toBe(`${base} Round 9 comes after it.`);
-    expect(ask(null, 19)).toBe(`${base} Sorare GW19 has no LaLiga round.`);
-    expect(otherWeekNote({ md: null, number: 19 }, 8, true)).toBe(`${base} Sorare GW19 is national-team games.`);
-    expect(otherWeekNote({ md: 6, number: null }, null, false)).toBeNull();
+    const week = weekLineups(live, kept, gw22)!;
+    expect(week.matches.map((m) => [m.id, m.readAt])).toEqual([[1, "live"]]); // round 9's Friday game is the next week's
+    expect(Object.keys(week.cards)).toEqual(["b", "a"]);
+    expect(weekLineups(live, kept, round8)!.matches.map((m) => m.id)).toEqual([3]); // the morning game of the round's last day too
+    expect(weekLineups(null, kept, round8)!.matches).toHaveLength(1);
+    expect(weekLineups(live, { matches: [], cards: {}, art: {} }, round8)).toBeNull();
+    // a round's game moved off the calendar's days is still that round's
+    const moved = { ...at(4, "2026-10-21T19:00:00Z"), competition: "laliga", round: 8 } as LineupMatch;
+    expect(weekLineups({ ...live, matches: [moved] }, kept, round8, 8)!.matches.map((m) => m.id)).toEqual([3, 4]);
   });
 });
 

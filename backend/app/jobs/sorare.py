@@ -150,6 +150,36 @@ def read_lineups(
     return feed, optional(db, failed, "futbol fantasy links", link, None)
 
 
+GAME_ALIASES = (
+    "plan",
+    "past",
+    "live0",
+    "live1",
+    "a0",
+    "a1",
+    "a2",
+)  # the gameweeks a run reads each player's games for (`sync.snapshot`)
+
+
+def sorare_links(
+    snapshot: dict[str, Any], lineups: ff_use.Lineups | None, league: ff_use.Lineups | None
+) -> dict[int, dict[str, Any]]:
+    """Which Sorare game each Futbol Fantasy match is, and who is who in it: Lineups shows Sorare's number (and reads it with one
+    button) only for a match tied this way. The owner's cards first, then every LaLiga player the squad index holds."""
+    out: dict[int, dict[str, Any]] = {}
+    market = [{"player": row["player"]} for row in snapshot.get("market") or [] if row.get("player")]
+    for rows, held in ((snapshot["cards"], lineups), (market, league)):
+        if held is None:
+            continue
+        for alias in GAME_ALIASES:
+            for slug, games in sorare_publish.card_games(rows, alias).items():
+                for game, match, person in held.joins(slug, games):
+                    entry = out.setdefault(match, {"id": game, "players": {}})
+                    if entry["id"] == game:
+                        entry["players"].setdefault(slug, person)
+    return out
+
+
 def publish_lineups(
     db: Session,
     failed: dict[str, str],
@@ -160,6 +190,7 @@ def publish_lineups(
     *,
     write: bool,
     art: card_art.Art | None = None,
+    league: ff_use.Lineups | None = None,
 ) -> dict[str, Any]:
     """The Lineups page's data, written as soon as the site has been read: it does not wait for the plans, which take minutes.
 
@@ -175,10 +206,21 @@ def publish_lineups(
         db.rollback()  # the squad pages are read over a minute or more, and Neon closes a connection left inside a transaction
         memory, squads = ff_lineups.read_squads(memory, feed, at)
         memory = ff_lineups.Memory(ff_lineups.remember(memory.positions, feed, lineups), memory.squads)
-        page = ff_lineups.payload(feed, lineups, cards, memory.positions, at, art)
+        links = sorare_links(snapshot, lineups, league)
+        page = ff_lineups.payload(feed, lineups, cards, memory.positions, at, art, links)
         if write:
             ff_lineups.save_memory(db, memory, at)
             put(db, ff_lineups.LINEUPS_KEY, page, at)
+            # Each match is also kept by its day, for the weeks the site no longer lists; a failure leaves only that out.
+            optional(
+                db,
+                failed,
+                "lineups kept by day",
+                lambda: ff_lineups.save_days(
+                    db, ff_lineups.kept_days(feed, lineups, cards, memory.positions, at, art, links), at
+                ),
+                0,
+            )
         out: dict[str, Any] = {"matches": len(page["matches"]), "bytes": len(json.dumps(page, separators=(",", ":")))}
         if write:
             # Every player's chance, kept at the lock and before the kick-off (roadmap 10.2b); a failure leaves it out, not the page.
@@ -328,7 +370,9 @@ def run(
         if feed is not None
         else None
     )
-    lineups_page = publish_lineups(db, failed, snapshot, feed, lineups, fetched, write=not dry_run, art=art)
+    lineups_page = publish_lineups(
+        db, failed, snapshot, feed, lineups, fetched, write=not dry_run, art=art, league=league_lineups
+    )
     db.rollback()
     # A player's score if he starts is worked out from his game (the football model's numbers and the bookmakers' goals line, scores.py)
     # instead of only his last five games. A step that fails, or a game it cannot tell, leaves that player's number as it was.

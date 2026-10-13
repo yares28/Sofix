@@ -121,6 +121,27 @@ class Lineups:
                 out.append(corrected(told, self.fixes))
         return out
 
+    def joins(self, player: str, games: list[dict[str, Any]]) -> list[tuple[str, int, str]]:
+        """Which Futbol Fantasy match and person each of these games of his is: (Sorare game id, match id, his id on the site).
+
+        Only who is who: any match held counts, played or not, with a percentage or without (a Champions League page gives an
+        eleven and none), so the Lineups page can show another source's number beside the same man (13 Oct 2026)."""
+        link = self.links.links.get(player)
+        if link is None:
+            return []
+        held = [item.match for item in self._all]
+        out: list[tuple[str, int, str]] = []
+        for game in games:
+            found = ff_link.match_of_game(
+                game.get("team") or "", game.get("opponent") or "", _dt(game["kickoff"]), held
+            )
+            if found is None:
+                continue
+            person = ff_link.find_person(found[1], link)
+            if person is not None and person.ff_id:
+                out.append((game["id"], found[0].match_id, person.ff_id))
+        return out
+
     def covers(self, round_: Round) -> bool:
         """Whether the site holds a match of this LaLiga round: it has each club's next game, so one round at a time.
 

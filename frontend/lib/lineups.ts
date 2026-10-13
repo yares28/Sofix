@@ -83,6 +83,8 @@ export type LineupMatch = {
   readAt: string;
   home: LineupSide;
   away: LineupSide;
+  /** The Sorare game this match is and who is who in it (Sorare slug to his id here), when the job could tie them: what Sorare's own number is shown through. */
+  sorare?: { id: string; players: Record<string, string> };
 };
 
 /** The owner's card for a player drawn on the page: the rarest he has. */
@@ -107,6 +109,45 @@ export function readable(value: unknown): LineupsData | null {
   const data = value as Partial<LineupsData>;
   if (data.version !== 1 || !Array.isArray(data.matches)) return null;
   return { cards: {}, art: {}, failed: [], stopped: null, readAt: null, generatedAt: "", ...data } as LineupsData;
+}
+
+// ------------------------------------------------------------------------------------------------------ the week
+/** One row per day of kickoffs (UTC), kept by the job after the site has dropped a match: `read_models` key `lineups_day:<date>`. */
+export const DAY_PREFIX = "lineups_day:";
+export type KeptLineups = Pick<LineupsData, "matches" | "cards" | "art">;
+const DAY_MS = 86_400_000;
+
+/** The moments a week covers on Lineups and Scores: a LaLiga round's own days whole, else the Sorare game week from lock to end. */
+export function weekSpan(week: Pick<Week, "from" | "to" | "md">): { from: number; to: number } {
+  const from = Date.parse(week.from), to = Date.parse(week.to);
+  if (week.md === null) return { from, to };
+  return { from: Math.floor(from / DAY_MS) * DAY_MS, to: Math.floor(to / DAY_MS) * DAY_MS + DAY_MS - 1 };
+}
+
+/** Each day (UTC, `2026-10-13`) a span touches: the kept rows to read for it. Never more than a fortnight. */
+export function daysOf(span: { from: number; to: number }): string[] {
+  const out: string[] = [];
+  for (let t = Math.floor(span.from / DAY_MS) * DAY_MS; t <= span.to && out.length < 14; t += DAY_MS) out.push(new Date(t).toISOString().slice(0, 10));
+  return out;
+}
+
+/**
+ * The matches of one week: what was kept of its days and what the site lists now (the fresher reading of a match wins). A week that
+ * is a LaLiga round (`md`) holds that round's matches whatever day they are played: a game moved off the calendar's days is still its round's.
+ */
+export function weekLineups(live: LineupsData | null, kept: KeptLineups, span: { from: number; to: number }, md: number | null = null): LineupsData | null {
+  const byId = new Map<number, LineupMatch>();
+  for (const match of [...kept.matches, ...(live?.matches ?? [])]) {
+    const when = match.kickoff ? Date.parse(match.kickoff) : NaN;
+    if ((when >= span.from && when <= span.to) || (md !== null && match.competition === "laliga" && match.round === md)) byId.set(match.id, match);
+  }
+  if (!byId.size) return null;
+  return {
+    version: 1, generatedAt: live?.generatedAt ?? "", readAt: live?.readAt ?? null, failed: live?.failed ?? [], stopped: live?.stopped ?? null,
+    matches: [...byId.values()],
+    cards: { ...kept.cards, ...live?.cards },
+    art: { ...kept.art, ...live?.art },
+  };
 }
 
 // ------------------------------------------------------------------------------------------------------ the matches
@@ -276,17 +317,6 @@ export function sorareLine(
   if (!lock) return { text: name, href, open: false };
   const locked = new Date(lock) <= now;
   return { text: locked ? `${name} · locked` : `${name} · locks ${kickoffLabel(lock).short}`, href, open: !locked };
-}
-
-/**
- * The one line shown when the page was opened for a week it does not cover (`?w=`): it holds each club's next LaLiga game and
- * nothing else, so a week that is past, later, or a national-team week gets the round it does hold and what that week is.
- */
-export function otherWeekNote(asked: Pick<Week, "md" | "number"> | null, round: number | null, nationalGames: boolean): string | null {
-  if (!asked || round === null || asked.md === round) return null;
-  const base = `Futbol Fantasy only has each club's next LaLiga game: round ${round}.`;
-  if (asked.md !== null) return `${base} Round ${asked.md} ${asked.md < round ? "has been played" : "comes after it"}.`;
-  return `${base} Sorare GW${asked.number} ${nationalGames ? "is national-team games" : "has no LaLiga round"}.`;
 }
 
 export type LineupsGlance = { round: number; yours: number };

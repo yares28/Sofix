@@ -145,6 +145,7 @@ def _step(monkeypatch: Any, built: dict[str, Any]) -> Any:
     monkeypatch.setattr(job.ff_lineups, "read_squads", lambda memory, feed, at: (memory, None))
     monkeypatch.setattr(job.ff_lineups, "remember", lambda positions, feed, lineups: {})
     monkeypatch.setattr(job.ff_lineups, "payload", lambda *args, **kwargs: built)
+    monkeypatch.setattr(job.ff_lineups, "kept_days", lambda *args, **kwargs: {})
     monkeypatch.setattr(job.ff_lineups, "save_memory", lambda db, memory, at: None)
     return job
 

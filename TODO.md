@@ -16,6 +16,31 @@ item, what you said and why; the order, the steps and the results live in the ro
 
 ---
 
+## Lineups, Scores and a mission (you, 13 Oct 2026, after the GW22 plan fixes)
+
+Your words, in order; broken things first. Each is checked on your pages before the next.
+
+**M1. "Big Chance Missed - Champions League" has no suggestion.** "shows 'No pre-kickoff recommendation recorded from the available
+evidence.' for that one mission." Cause (read from `missions_day:2026-10-13:limited`): the mission counts one stat, `big_chance_missed`,
+and the rule reader only knows six counted stats (`COUNTS` in `backend/app/sorare/missions.py`, `mission_form.py`, `frontend/lib/missions.ts`),
+so it is marked `unsupported` and gets no chance. Fix: a seventh counted stat.
+
+**M2. Sorare's starting % is not on Lineups, and the button is gone.** "starting chances still don't show up in lineups page. I had a
+button that checked sorare starting % before, where did that go? We couldn't fetch sorare starting % so this was a solution." Cause: the
+button and the kept numbers only show for a match tied to a Sorare game, and that tie came only from the start record of the week being
+planned, and only for a player Futbol Fantasy gave a percentage. Champions League pages give an eleven and no percentage, and LaLiga round 9
+was not the planned week, so nothing was tied: no numbers, no button. Fix: the job ties every Futbol Fantasy match to its Sorare game and
+its players itself and writes it with the match (`sorare` on each match of `lineups`).
+
+**M3. The week picker does not move Lineups and Scores, and GW22 shows the wrong round.** "I switch the Gw to the GW21 but scores and
+lineups page didn't change to show that GW scores and lineups. They should be saved. It only works for GW 22 where its bugged and there are
+laliga players for the wrong gw, the gw22 should only have the games on the dates of Gw22." Cause: the page holds only what Futbol Fantasy
+lists now (a match leaves 12 hours after its kickoff, `STAYS`), and a week with no LaLiga round still to play falls back to the next match
+with every round beside it. Fix: every match is kept by its day (`lineups_day:<date>`), the week picked decides the days shown, and a week
+with nothing kept says so instead of showing another week.
+
+---
+
 ## Forgotten in past sessions (found 7 Oct 2026)
 
 You asked on 7 Oct why the league history reads 40 players a refresh instead of everyone, and to find plans left unfinished.

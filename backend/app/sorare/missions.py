@@ -43,6 +43,7 @@ COUNTS = {
     "shot": "ontarget_scoring_att",
     "tackle": "won_tackle",
     "pass": "accurate_pass",
+    "miss": "big_chance_missed",  # "Big Chance Missed" (13 Oct 2026): a pick pays when he misses one
 }
 COUNT_WORDS = {
     "interception": r"interceptions?",
@@ -51,6 +52,7 @@ COUNT_WORDS = {
     "shot": r"shots?\s+on\s+target",
     "tackle": r"tackles?(?:\s+won)?",
     "pass": r"(?:accurate|completed)\s+passes",
+    "miss": r"big\s+chances?(?!\s+created)",
 }
 RECENT = 30  # mission days the page lists
 

@@ -318,11 +318,12 @@ test("the header names the LaLiga round and its days without a speculative Sorar
   await expect(page.getByText(/Futbol Fantasy .* kickoffs in Madrid time/)).toBeVisible();
 });
 
-test("arriving for a week that is past says Futbol Fantasy only has the next round", async ({ page, request }) => {
+test("a past week with nothing kept says so instead of showing another week's round", async ({ page, request }) => {
   const past = (await weeksOf(request)).find((week) => week.md !== null && week.md < 8 && week.state === "done")!;
   await page.goto(`/lineups?w=${past.id}`);
 
-  await expect(page.getByRole("status").filter({ hasText: "only has each club's next LaLiga game: round 8." })).toContainText(`Round ${past.md} has been played.`);
+  await expect(page.getByRole("status")).toContainText("No lineups were kept for this week.");
+  await expect(page.getByRole("navigation", { name: /^Matches of/ })).toHaveCount(0);
 });
 
 test("arriving for a national-team week says what that week is", async ({ page, request }) => {
@@ -330,7 +331,8 @@ test("arriving for a national-team week says what that week is", async ({ page, 
   const national = (await weeksOf(request)).find((week) => week.number === 19 && week.md === null)!;
   await page.goto(`/lineups?w=${national.id}`);
 
-  await expect(page.getByRole("status").filter({ hasText: "only has each club's next LaLiga game: round 8." })).toContainText("GW19 is national-team games.");
+  await expect(page.getByRole("status")).toContainText("GW19 is national-team games");
+  await expect(page.getByRole("navigation", { name: /^Matches of/ })).toHaveCount(0);
 });
 
 test("the round's own week adds no line", async ({ page, request }) => {

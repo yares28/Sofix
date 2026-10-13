@@ -126,3 +126,27 @@ def test_your_own_picks_are_scored_the_same_way_by_sorares_verdict():
     assert figures["success"] == 0  # Sofix got 1 of a best of 2
     assert figures["yours"] == {"counted": 1, "success": 0}
     assert figures["said"] == 0.3 and figures["happened"] == 0.5
+
+
+def test_a_big_chance_missed_mission_is_a_counted_stat():
+    """13 Oct 2026: "Big Chance Missed - Champions League" was unsupported, so it had no suggestion."""
+    from app.sorare import mission_form
+    from app.sorare.missions import _rule
+
+    mission = {
+        "title": "Big Chance Missed - Champions League",
+        "description": "Classic: Pick a player who misses 1+ big chance in today's Champions League matches.",
+        "mode": "DECISIVE",
+        "stats": ["big_chance_missed"],
+    }
+    rule = _rule(mission)
+    assert rule["kind"] == "miss" and rule["atLeast"] == 1
+    assert did(rule, mission["stats"], {"stats": {"big_chance_missed": [1, 0]}}) is True
+    assert did(rule, mission["stats"], {"stats": {}}) is False
+    assert _rule({**mission, "stats": ["big_chance_created"]})["kind"] == "unsupported"
+    start = {"started": True, "values": {"big_chance_missed": 1.0}}
+    form = {
+        "recent": [start, start],
+        "windows": {"starts": {"means": {}}, "subs": {"means": {"big_chance_missed": 0.0}}},
+    }
+    assert 0.5 < mission_form.chance(rule, {}, {"pStart": 0.9, "pOn": 0.1}, form) < 0.6  # 0.9 x (1 - e^-1)

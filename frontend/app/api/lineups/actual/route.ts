@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { loadLineups } from "../../../../lib/lineupsData";
+import { loadKeptDays, loadLineups } from "../../../../lib/lineupsData";
 import { loadActualLineup } from "../../../../lib/actualLineupsData";
 import { sofixScores } from "../../../../lib/matchScores";
 import { loadSofixRecord, loadSorare } from "../../../../lib/playData";
@@ -8,7 +8,9 @@ import { loadSofixRecord, loadSorare } from "../../../../lib/playData";
 export async function GET(request:NextRequest){
   const id=request.nextUrl.searchParams.get("match");
   if(!id||!/^\d{1,10}$/.test(id))return NextResponse.json({state:"unmatched"},{status:400});
-  const data=await loadLineups(),match=data?.matches.find(m=>String(m.id)===id);
+  // A match the site no longer lists is found in the day kept for it (`day`, its kickoff's date: only ever a key of ours).
+  const day=request.nextUrl.searchParams.get("day");
+  const match=(await loadLineups())?.matches.find(m=>String(m.id)===id)??(day?(await loadKeptDays([day])).matches.find(m=>String(m.id)===id):undefined);
   if(!match)return NextResponse.json({state:"unmatched"},{status:404});
   const scores=request.nextUrl.searchParams.get("scores")==="1";
   const read=await loadActualLineup(match,scores);

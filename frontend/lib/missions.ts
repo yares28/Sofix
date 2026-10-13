@@ -90,6 +90,7 @@ export type Rule =
   | { kind: "shot"; atLeast: number; label: string }
   | { kind: "tackle"; atLeast: number; label: string }
   | { kind: "pass"; atLeast: number; label: string }
+  | { kind: "miss"; atLeast: number; label: string }
   | { kind: "score"; label: string }
   | { kind: "unsupported"; label: string };
 
@@ -100,6 +101,8 @@ const COUNTS = {
   shot: { stat: "ontarget_scoring_att", words: /shots?\s+on\s+target/, label: "shots on target", index: 7 },
   tackle: { stat: "won_tackle", words: /tackles?(?:\s+won)?/, label: "tackles won", index: 8 },
   pass: { stat: "accurate_pass", words: /(?:accurate|completed)\s+passes/, label: "accurate passes", index: 9 },
+  // No column in the old ten-start sheet: his dated form holds it.
+  miss: { stat: "big_chance_missed", words: /big\s+chances?(?!\s+created)/, label: "big chances missed", index: null },
 } as const;
 type CountKind = keyof typeof COUNTS;
 const statKind = (stat: string) => (Object.keys(COUNTS) as CountKind[]).find((k) => COUNTS[k].stat === stat);
@@ -230,6 +233,7 @@ export function missionValues(rule: Rule, sheet: Sheet | null | undefined): numb
   if (!sheet || rule.kind === "unsupported") return [];
   if (sheet.form) return formValues(sheet.form, missionMetric(rule)!).reverse();
   const index = rule.kind === "decisive" ? 2 : rule.kind === "score" ? 0 : COUNTS[rule.kind].index;
+  if (index === null) return [];
   return sheet.last.map((row) => row[index]).filter((n): n is number => typeof n === "number" && Number.isFinite(n));
 }
 

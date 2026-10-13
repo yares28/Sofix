@@ -353,9 +353,13 @@ Ctrl or Cmd opens the match in a new tab as a link does.
 The header is centred: "LaLiga round 8 · Fri 9 – Mon 12 Oct" (the days are the first and last kickoff, Madrid time), the question "Who starts
 this round?", then a chip saying how fresh Futbol Fantasy's reading is. Hover or focus a match on the timeline for its saved bookmaker
 chances, Sofix forecast and lineup formations; unavailable bookmaker data is labelled as such. Under the timeline, "Futbol Fantasy · kickoffs in Madrid time"; the Fixtures list says
-"Madrid time" beside its match count for the same reason. Arriving with a week that FF does not cover (a past round, a later one, or a national-team week) adds one line:
-"Futbol Fantasy only has each club's next LaLiga game: round 8. GW19 is national-team games." A match address that is no longer on
-FF says so above the next match. The top bar's week is the round: picking one opens that round's next match, and there are no round tabs of their own. Since 12 Oct 2026 a round stays whole on the page until its last match is twelve hours
+"Madrid time" beside its match count for the same reason. **The top bar's week decides the games on the page** (13 Oct 2026), on Lineups
+and on Scores: a LaLiga round's week is that round, a Sorare week with no round (a European midweek) is the games played between its
+lock and its end, and nothing of another week is drawn beside them. Every match is kept by its day once read, so a past week shows the
+lineups and chances read last before each kickoff, and Scores what each player then scored; a week from before 9 Oct 2026 says "No
+lineups were kept for this week.", a national-team week says so, and a week FF has not published says that. The picker offers every
+week here, not only LaLiga rounds. A match address that is no longer on
+FF says so above the next match. There are no round tabs of their own. Since 12 Oct 2026 a round stays whole on the page until its last match is twelve hours
 old: the matches already played keep the lineup and chances read last before their kickoff, so Sorare's, Sofix's and FF's
 numbers and **Actual** can be compared for every game of the round. FF's own round page moves to the next round as soon
 as a round starts; Sofix keeps reading the matches of the round still to play from their own pages.
@@ -391,7 +395,9 @@ as a round starts; Sofix keeps reading the matches of the round still to play fr
   **Read the round on Sorare** opens each linked match of the page in a background Sorare tab, one at a time, saves what
   Sorare's page shows and closes the tab (about a minute; you stay on Sofix). Sorare publishes these chances the day
   before a gameweek starts, so earlier the button finds none. Reload once in `chrome://extensions`, and reload any
-  Sorare tab that was already open. Not yet used by the plans, Home, Play or the Audit.
+  Sorare tab that was already open. Since 13 Oct 2026 the plans use the saved number too, and the button and the saved
+  numbers show for every match the job could tie to its Sorare game (a Champions League match and a round that is not
+  the week being planned as well); for a club outside LaLiga only the players Sofix knows on Sorare get a number.
   A different match's number is never substituted. FF percentages link to its match
   page. **Only my players** dims everyone else on the pitch and in the injury lists. Both choices stay selected when you pick another
   match. Your players on the pitch, among the alternatives and in the injury list link to their card on **My cards**.
@@ -610,7 +616,7 @@ Decisive and count estimates use the most recent ten appearances split by playin
 
 Scouting opens on **All cards**, including locked and already selected cards for comparison. **Before kickoff** filters to editable copies. Locked cards use their captured form; an older record without it says so. Unsupported targets retain their original rule and eligible inventory.
 
-Count targets include goals, assists, interceptions, **shots on target**, **tackles won** and **accurate passes**. The imported threshold drives both estimation and settlement. Saved picks and form freeze at kickoff. Historical records without a best-cards reference or dated form remain explicitly unrecorded; new form never fills a missing past forecast.
+Count targets include goals, assists, interceptions, **shots on target**, **tackles won**, **accurate passes** and, since 13 Oct 2026, **big chances missed**. The imported threshold drives both estimation and settlement. Saved picks and form freeze at kickoff. Historical records without a best-cards reference or dated form remain explicitly unrecorded; new form never fills a missing past forecast.
 
 "Today" follows the existing **9:00 CET / 08:00 UTC** reset convention, including matches after midnight before that reset. Historical imports use the source task's start-date calendar day in Madrid, rather than the date you fetched them. The live summer reset boundary still needs comparison with a signed-in Sorare response; Sofix does not silently reinterpret old dates.
 

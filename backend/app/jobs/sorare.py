@@ -362,6 +362,7 @@ def run(
         league_ff=league_lineups.starts if league_lineups else None,
     )
     alt, record = payload.pop("_alt", None), payload.pop("_record", None)
+    lab = payload.pop("_strategies", None)
     if art and art.urls:
         payload["market"] = sorare_publish.with_card_art(payload.get("market") or [], art.urls)
     planned_week = sorare_publish.week_of(payload) or {}
@@ -430,6 +431,10 @@ def run(
     # Written each run until the week locks, so what stays is what each said in time: the Sorare plans and both numbers.
     if alt and fetched < datetime.fromisoformat(alt["gameweek"]["lock"]):
         put(db, f"{sorare_publish.ALT_PREFIX}{alt['gameweek']['slug']}", alt, now)
+    # The strategy lab's lineups the same way: what each strategy said in time, scored after the games (strategy_audit.py).
+    if lab and lab["strategies"] and fetched < datetime.fromisoformat(lab["gameweek"]["lock"]):
+        put(db, f"{sorare_publish.STRATEGY_PREFIX}{lab['gameweek']['slug']}", lab, now)
+        summary["strategies"] = {s["key"]: len(s["lineups"]) for s in lab["strategies"]}
     put(db, SORARE_KEY, payload, now)
     pool = optional(
         db,

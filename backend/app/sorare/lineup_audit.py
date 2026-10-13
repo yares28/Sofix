@@ -78,6 +78,17 @@ def plan_tally(
     return tally, settled
 
 
+def kept_results(db: Session) -> tuple[dict[tuple[str, str], Any], dict[str, Any]]:
+    """Every game's kept result by (player, game), and the scores that paid each week."""
+    rows = db.scalars(
+        select(PlayerGame).options(
+            load_only(PlayerGame.player, PlayerGame.game_id, PlayerGame.status, PlayerGame.played, PlayerGame.score)
+        )
+    )
+    row = db.get(ReadModel, REFERENCES_KEY)
+    return {(r.player, r.game_id): r for r in rows}, dict(row.payload) if row and isinstance(row.payload, dict) else {}
+
+
 def read(db: Session, now: datetime, *, write: bool = True) -> dict[str, Any]:
     kept_row = db.get(ReadModel, KEY)
     kept: dict[str, Any] = dict(kept_row.payload) if kept_row and isinstance(kept_row.payload, dict) else {}
@@ -100,16 +111,7 @@ def read(db: Session, now: datetime, *, write: bool = True) -> dict[str, Any]:
         if now <= end + SETTLE:
             continue
         if actuals is None:
-            rows = db.scalars(
-                select(PlayerGame).options(
-                    load_only(
-                        PlayerGame.player, PlayerGame.game_id, PlayerGame.status, PlayerGame.played, PlayerGame.score
-                    )
-                )
-            )
-            actuals = {(row.player, row.game_id): row for row in rows}
-            row = db.get(ReadModel, REFERENCES_KEY)
-            references = dict(row.payload) if row and isinstance(row.payload, dict) else {}
+            actuals, references = kept_results(db)
         games = {
             p["player"]: [g["id"] for g in p.get("games") or [] if g.get("id")]
             for p in (plan.get("playing") or {}).get("players") or []

@@ -17,11 +17,11 @@ from typing import Any
 import numpy as np
 
 from app.services.scoring import difficulty_label, difficulty_score, label_bucket
-from app.sorare import expected, projection, rules, xg
+from app.sorare import expected, projection, rules, strategies, xg
 from app.sorare.forecast import GameStart, PlayerWeek, cup_dates, own_start
 from app.sorare.forecast import forecasts as build_forecasts
 from app.sorare.model import ESSENCE_ORDER, SORARE_POSITION, Card, Competition, Forecast
-from app.sorare.planner import DRAWS, Lineup, Plan, build, fill_bench, plans, replay_rewards, score_at_rank
+from app.sorare.planner import DRAWS, Lineup, Plan, build, enterable, fill_bench, plans, replay_rewards, score_at_rank
 from app.sorare.scores import Made
 
 logger = logging.getLogger(__name__)
@@ -1111,6 +1111,20 @@ def build_payload(
     alt = sorare_plans(
         snapshot, plan_week, plan_comps, cards, plan_weeks, plan_games, order=order, runs=runs, draws=draws
     )
+    projected_enough = alt["projected"] * 2 >= alt["players"]
+    try:
+        lab: dict[str, Any] | None = strategy_plans(
+            plan_week,
+            snapshot,
+            plan_comps,
+            cards,
+            plan_forecasts,
+            plan_games,
+            stripped_forecasts(plan_weeks) if projected_enough else None,
+        )
+    except Exception:  # the lab is a side record: a failure in it must never cost the page its plans
+        logger.exception("strategy lab failed")
+        lab = None
 
     last_gw = kept_replay(previous, past_week)
     if past_week and not last_gw:
@@ -1270,11 +1284,82 @@ def build_payload(
         "essenceOrder": list(order),
         "_alt": alt,
         "_record": record,
+        "_strategies": lab,
     }
 
 
 RECORD_PREFIX = "score_record:"
 """Both numbers for every LaLiga player of a week, written each run until its lock and so frozen there (`score_record:<slug>`)."""
+
+
+def stripped_forecasts(weeks: Mapping[str, PlayerWeek]) -> dict[str, Forecast]:
+    """Every player's score as Sorare's projection (his last five games where Sorare has none): the same chances, another number."""
+    return build_forecasts({slug: replace(w, game_scores=(), shape=None) for slug, w in weeks.items()})
+
+
+STRATEGY_PREFIX = "strategy_plans:"
+"""The strategy lab's lineups for the week being planned (`strategy_plans:<slug>`), written each run until the lock."""
+KEEP_LINEUP = (
+    "comp", "key", "board", "group", "rarity", "minInSeason", "captainBonus", "clubBonus", "averageBonus", "x", "lo", "hi", "pReturn", "tiers",
+)  # fmt: skip
+KEEP_CARD = (
+    "slug",
+    "player",
+    "name",
+    "pos",
+    "slot",
+    "captain",
+    "inSeason",
+    "level",
+    "average",
+    "mult",
+    "club",
+    "rarity",
+    "mu",
+    "p",
+    "x",
+)
+
+
+def strategy_plans(
+    week: dict[str, Any],
+    snapshot: dict[str, Any],
+    comps: list[Competition],
+    cards: list[Card],
+    forecasts: dict[str, Forecast],
+    games: dict[str, list[dict[str, Any]]],
+    sorare: dict[str, Forecast] | None,
+) -> dict[str, Any]:
+    """Each strategy's best lineup for every competition that can be entered, the numbers a lineup needs to be scored later and no
+    more (no pictures, no bench): what `strategy_audit` judges once the games are played."""
+    forecasts = {
+        slug: replace(f, links=tuple((g["id"], g["venue"]) for g in games.get(slug, []) if g.get("venue")))
+        for slug, f in forecasts.items()
+    }
+    ready = [
+        c for c in comps if enterable(c) and not c.is_room and c.reference and lineups_possible(c, cards, forecasts)
+    ]
+    out: dict[str, Any] = {
+        "gameweek": {"slug": week["slug"], "number": week["number"], "lock": week["lock"], "end": week.get("end")},
+        "builtAt": snapshot["fetchedAt"],
+        "strategies": [],
+    }
+    used: set[str] = set()
+    for strategy, lineups in strategies.week(ready, cards, forecasts, games, sorare):
+        rows = []
+        for lineup in lineups:
+            row = lineup_payload(lineup, forecasts, games)
+            rows.append(
+                {
+                    **{k: row[k] for k in KEEP_LINEUP if k in row},
+                    "starters": [{k: c[k] for k in KEEP_CARD if k in c} for c in row["starters"]],
+                    "subs": [],
+                }
+            )
+            used |= {c.player for c in lineup.cards}
+        out["strategies"].append({"key": strategy.key, "label": strategy.label, "note": strategy.note, "lineups": rows})
+    out["games"] = {p: [g["id"] for g in games.get(p) or [] if g.get("id")] for p in sorted(used)}
+    return out
 
 
 def sorare_plans(
@@ -1302,13 +1387,12 @@ def sorare_plans(
     }
     if projected * 2 < out["players"]:
         return out
-    stripped = {slug: replace(w, game_scores=(), shape=None) for slug, w in weeks.items()}
     alt = gameweek_payload(
         snapshot,
         week,
         comps,
         cards,
-        build_forecasts(stripped),
+        stripped_forecasts(weeks),
         games,
         played=False,
         runs=runs,

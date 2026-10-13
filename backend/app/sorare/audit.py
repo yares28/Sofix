@@ -43,6 +43,7 @@ from app.sorare import (
     score_checks,
     start_fixes,
     starts,
+    strategy_audit,
     versus,
 )
 from app.sorare.publish import ARCHIVE_PREFIX
@@ -393,6 +394,7 @@ def from_kept(db: Session, now: datetime, *, write: bool = False) -> dict[str, A
     page["elevens"] = elevens
     page["frozenPlans"] = frozen_scores.read(db, now)
     page["lineups"] = lineup_audit.read(db, now, write=write)  # only the job keeps a settled week's counts
+    page["strategies"] = strategy_audit.read(db, now, write=write)  # the strategy lab's lineups, scored (Phase 2)
     page["playerScores"] = score_checks.comparison(db, now)
     page["startFixes"] = start_fixes.StartFixes(
         start_fixes.cases(db)

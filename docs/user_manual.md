@@ -433,13 +433,23 @@ separate longer-term accuracy verdicts, not these player comparisons or this ear
 
 ![Audit: how often the xScore picks the better of two, how close it lands, calibration and what has been written down](images/audit.png)
 
-Audit has four views under the switch below the top bar (since 5 Oct): **xScore** (`/audit`, the charts below), **Who
+Audit has six views under the switch below the top bar (since 5 Oct): **xScore** (`/audit`, the charts below), **Who
 starts** (`/audit/starts`, each source's record on who starts, with every gameweek's games written down before the lock
 at its foot), **Lineups** (`/audit/lineups`, since 13 Oct: how often a lineup's real score landed within 15 points of the expected one, for
 Sofix's and Sorare's plans as saved before the lock; then what your lineups, Sofix's and Sorare's won, each lineup counted once
 by its best prize, a card, cash, essence, XP only or nothing, so XP is never counted as a win; the big figures are the best plan,
-and every plan has its own row), **Rewards** (`/audit/rewards`, since 6 Oct) and **Missions**
+and every plan has its own row), **Strategies** (`/audit/strategies`, since 13 Oct), **Rewards** (`/audit/rewards`, since 6 Oct) and **Missions**
 (`/audit/missions`, since 6 Oct).
+
+**Strategies** compares ten ways of building a lineup from your cards. Before each lock Sofix writes down, for every competition it
+can enter, the best lineup of each way: the best xScore in every slot; Sorare's own projection instead; the keeper with a defender of
+his own club ("nothing or win big"); three players of one club; no attacker playing against his own keeper; the likely scorers; the
+highest ceiling; the usual score; only players 90% or more likely to play; and only favourites. A day after the week the lineups
+are scored the way a real one is. The page shows each way's points a lineup, how much of the best lineup in hindsight it got, how often
+it won essence or better and how often nothing, with the lineups you entered beside them. With under four weeks it says "too few to
+tell". Each lineup gets a plain verdict from the range written down for it before the lock: lucky (above the top), a good week,
+as expected, or a poor week, naming the cards that scored above their own range. No bench is filled for these lineups, and the
+ways are never entered for you. `python -m app.jobs.lineup_backtest` replays the same ways on two seasons of games.
 
 **Missions** answers "were Sofix's mission picks the right ones?". Every day Sofix writes down its picks for the **Decisive Picker**,
 which Sorare runs every day, whether or not you loaded the day's missions; on a day you loaded them, the other missions too. It also

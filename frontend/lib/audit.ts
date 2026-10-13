@@ -127,6 +127,23 @@ type BySource = { sofix: PlanTally[]; sorare: PlanTally[] };
 export type LineupsAudit = { band: number; plans: BySource; weeks: ({ slug: string; number: number | null; end: string; final: boolean } & BySource)[] };
 export const NO_LINEUPS: LineupsAudit = { band: 15, plans: { sofix: [], sorare: [] }, weeks: [] };
 
+/** Was a lineup's score built on the numbers or on luck: against the range saved before the lock (backend/app/sorare/frozen_scores.py). */
+export type Verdict = "lucky" | "good" | "expected" | "poor";
+/** One strategy's lineups (or yours) over a week or the season, scored after the games (backend/app/sorare/strategy_audit.py). */
+export type StrategyTally = {
+  lineups: number; scored: number; points: number;
+  /** The best lineup in hindsight for the same competitions, and what those lineups scored: the share of the best is `pointsVs` over `best`. */
+  best: number; pointsVs: number; against: number;
+  judged: number; won: Record<PrizeKind, number>; verdicts: Record<Verdict, number>;
+};
+export type StrategyRow = StrategyTally & { key: string; label: string; note: string; weeks: number };
+export type StrategyLine = { strategy: string; comp: string | null; score: number; x: number | null; lo: number | null; hi: number | null; verdict: Verdict | null; beat: string[]; won: PrizeKind | null };
+export type StrategyWeek = { slug: string; number: number | null; end: string; final: boolean; strategies: Record<string, StrategyTally>; you: StrategyTally | null; lines: StrategyLine[] };
+/** Each strategy's lineups written down before every lock, scored: the season's sums, yours beside them, and week by week (newest first). */
+export type StrategiesAudit = { strategies: StrategyRow[]; you: StrategyTally & { weeks: number }; weeks: StrategyWeek[] };
+export const NO_TALLY: StrategyTally = { lineups: 0, scored: 0, points: 0, best: 0, pointsVs: 0, against: 0, judged: 0, won: { card: 0, cash: 0, essence: 0, xp: 0, none: 0 }, verdicts: { lucky: 0, good: 0, expected: 0, poor: 0 } };
+export const NO_STRATEGIES: StrategiesAudit = { strategies: [], you: { ...NO_TALLY, weeks: 0 }, weeks: [] };
+
 /** What a source said against how often the players started, for a run of its chances; "used" once it holds 100 settled games (start_fixes.py). */
 export type StartFix = { from: number; to: number; said: number; was: number; n: number; used: boolean };
 
@@ -144,6 +161,7 @@ export type Audit = {
   elevens: Elevens;
   frozenPlans: FrozenWeek[];
   lineups: LineupsAudit;
+  strategies: StrategiesAudit;
   matches?: MatchAudit;
   playerScores?: { weeks: PlayerScoreWeek[] };
   startFixes?: Partial<Record<StartSource, StartFix[]>>;
@@ -202,6 +220,8 @@ export function readable(value: unknown): Audit | null {
     frozenPlans: data.frozenPlans ?? [],
     // and one published before the saved plans were judged has none
     lineups: { ...NO_LINEUPS, ...(data.lineups ?? {}) },
+    // and one published before the strategy lab has none
+    strategies: { ...NO_STRATEGIES, ...(data.strategies ?? {}) },
     matches: { ...NO_MATCHES, ...(data.matches ?? {}) },
     playerScores: data.playerScores ?? { weeks: [] },
     startFixes: data.startFixes ?? {},

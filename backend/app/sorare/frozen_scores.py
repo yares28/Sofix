@@ -14,8 +14,10 @@ from app.models import PlayerGame, ReadModel
 from app.services.timeutil import as_utc
 from app.sorare.frozen import PLAN_PREFIX
 from app.sorare.model import POSITIONS, Card, Competition
-from app.sorare.planner import Lineup, totals
+from app.sorare.planner import SCORE_SD, Lineup, totals
 from app.sorare.publish import SETTLE
+
+RANGE_Z = 1.28  # the top of the range that holds 8 in 10 scores, in standard deviations
 
 
 @dataclass
@@ -106,7 +108,33 @@ def _score(
     result["score"] = round(float(totals(lineup, np.array([plays]), np.array([scores]), record=True)[0]), 2)
     result["cameIn"] = [{"sub": sub, "for": starter} for sub, starter in lineup.came_in]
     result["bonusLost"] = lineup.bonus_lost
+    result["verdict"] = verdict(
+        result["score"],
+        raw,
+        [(c.get("name") or c["player"], plays[i], scores[i], c.get("mu")) for i, c in enumerate(starters)],
+    )
     return result
+
+
+def verdict(
+    score: float, raw: dict[str, Any], cards: list[tuple[str, bool, float, float | None]]
+) -> dict[str, Any] | None:
+    """Was the score built on the numbers or on luck? Against the range saved before the lock (`lo` to `hi`, 8 weeks in 10 land
+    inside it): above the top is "lucky", in the upper half of it "good", inside it "expected", under it "poor". The cards named
+    are the ones that scored above the top of their own range (`mu` plus 1.28 standard deviations, the planner's usual one)."""
+    x, low, high = raw.get("x"), raw.get("lo"), raw.get("hi")
+    if x is None or low is None or high is None:
+        return None
+    if score > high:
+        label = "lucky"
+    elif score > x + (high - x) / 2:
+        label = "good"
+    elif score >= low:
+        label = "expected"
+    else:
+        label = "poor"
+    beat = [name for name, played, got, mu in cards if played and mu is not None and got > mu + RANGE_Z * SCORE_SD]
+    return {"label": label, "beat": beat}
 
 
 def read(db: Session, now: datetime) -> list[dict[str, Any]]:

@@ -450,6 +450,274 @@
           ]
         }
       ]
+    },
+    "strategies": {
+      "strategies": [
+        {
+          "key": "xscore",
+          "label": "xScore",
+          "note": "The best xScore in every slot.",
+          "weeks": 2,
+          "lineups": 8,
+          "scored": 8,
+          "points": 2400,
+          "best": 3200,
+          "pointsVs": 2400,
+          "against": 8,
+          "judged": 8,
+          "won": {
+            "card": 0,
+            "cash": 0,
+            "essence": 3,
+            "xp": 3,
+            "none": 2
+          },
+          "verdicts": {
+            "lucky": 1,
+            "good": 2,
+            "expected": 4,
+            "poor": 1
+          }
+        },
+        {
+          "key": "ceiling",
+          "label": "Highest ceiling",
+          "note": "Each player at the top of his range.",
+          "weeks": 2,
+          "lineups": 8,
+          "scored": 8,
+          "points": 2600,
+          "best": 3200,
+          "pointsVs": 2600,
+          "against": 8,
+          "judged": 8,
+          "won": {
+            "card": 0,
+            "cash": 0,
+            "essence": 4,
+            "xp": 2,
+            "none": 2
+          },
+          "verdicts": {
+            "lucky": 2,
+            "good": 1,
+            "expected": 4,
+            "poor": 1
+          }
+        }
+      ],
+      "you": {
+        "lineups": 7,
+        "scored": 7,
+        "points": 1960,
+        "best": 0,
+        "pointsVs": 0,
+        "against": 0,
+        "judged": 7,
+        "won": {
+          "card": 0,
+          "cash": 0,
+          "essence": 2,
+          "xp": 2,
+          "none": 3
+        },
+        "verdicts": {
+          "lucky": 0,
+          "good": 0,
+          "expected": 0,
+          "poor": 0
+        },
+        "weeks": 2
+      },
+      "weeks": [
+        {
+          "slug": "gw-21",
+          "number": 21,
+          "end": "2026-10-12T21:00:00Z",
+          "final": true,
+          "strategies": {
+            "xscore": {
+              "lineups": 4,
+              "scored": 4,
+              "points": 1400,
+              "best": 1700,
+              "pointsVs": 1400,
+              "against": 4,
+              "judged": 4,
+              "won": {
+                "card": 0,
+                "cash": 0,
+                "essence": 2,
+                "xp": 1,
+                "none": 1
+              },
+              "verdicts": {
+                "lucky": 1,
+                "good": 1,
+                "expected": 2,
+                "poor": 0
+              }
+            },
+            "ceiling": {
+              "lineups": 4,
+              "scored": 4,
+              "points": 1300,
+              "best": 1700,
+              "pointsVs": 1300,
+              "against": 4,
+              "judged": 4,
+              "won": {
+                "card": 0,
+                "cash": 0,
+                "essence": 1,
+                "xp": 2,
+                "none": 1
+              },
+              "verdicts": {
+                "lucky": 1,
+                "good": 0,
+                "expected": 2,
+                "poor": 1
+              }
+            }
+          },
+          "you": {
+            "lineups": 4,
+            "scored": 4,
+            "points": 1100,
+            "best": 0,
+            "pointsVs": 0,
+            "against": 0,
+            "judged": 4,
+            "won": {
+              "card": 0,
+              "cash": 0,
+              "essence": 1,
+              "xp": 1,
+              "none": 2
+            },
+            "verdicts": {
+              "lucky": 0,
+              "good": 0,
+              "expected": 0,
+              "poor": 0
+            }
+          },
+          "lines": [
+            {
+              "strategy": "xscore",
+              "comp": "LaLiga",
+              "score": 451,
+              "x": 263,
+              "lo": 182,
+              "hi": 342,
+              "verdict": "lucky",
+              "beat": [
+                "Chust",
+                "Isco"
+              ],
+              "won": "essence"
+            },
+            {
+              "strategy": "xscore",
+              "comp": "Champion",
+              "score": 310,
+              "x": 330,
+              "lo": 250,
+              "hi": 410,
+              "verdict": "expected",
+              "beat": [],
+              "won": "xp"
+            },
+            {
+              "strategy": "ceiling",
+              "comp": "LaLiga",
+              "score": 380,
+              "x": 300,
+              "lo": 220,
+              "hi": 380,
+              "verdict": "good",
+              "beat": [],
+              "won": "essence"
+            }
+          ]
+        },
+        {
+          "slug": "gw-20",
+          "number": 20,
+          "end": "2026-10-05T21:00:00Z",
+          "final": true,
+          "strategies": {
+            "xscore": {
+              "lineups": 4,
+              "scored": 4,
+              "points": 1000,
+              "best": 1500,
+              "pointsVs": 1000,
+              "against": 4,
+              "judged": 4,
+              "won": {
+                "card": 0,
+                "cash": 0,
+                "essence": 1,
+                "xp": 2,
+                "none": 1
+              },
+              "verdicts": {
+                "lucky": 0,
+                "good": 1,
+                "expected": 2,
+                "poor": 1
+              }
+            },
+            "ceiling": {
+              "lineups": 4,
+              "scored": 4,
+              "points": 1300,
+              "best": 1500,
+              "pointsVs": 1300,
+              "against": 4,
+              "judged": 4,
+              "won": {
+                "card": 0,
+                "cash": 0,
+                "essence": 3,
+                "xp": 0,
+                "none": 1
+              },
+              "verdicts": {
+                "lucky": 1,
+                "good": 1,
+                "expected": 2,
+                "poor": 0
+              }
+            }
+          },
+          "you": {
+            "lineups": 3,
+            "scored": 3,
+            "points": 860,
+            "best": 0,
+            "pointsVs": 0,
+            "against": 0,
+            "judged": 3,
+            "won": {
+              "card": 0,
+              "cash": 0,
+              "essence": 1,
+              "xp": 1,
+              "none": 1
+            },
+            "verdicts": {
+              "lucky": 0,
+              "good": 0,
+              "expected": 0,
+              "poor": 0
+            }
+          },
+          "lines": []
+        }
+      ]
     }
   }
 }

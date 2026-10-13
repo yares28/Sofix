@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import math
 import zlib
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -316,8 +317,12 @@ def best_starters(
     forecasts: dict[str, Forecast],
     keep: int = 3,
     beam: int = BEAM,
+    rule: Callable[[list[Card | None]], bool] | None = None,
 ) -> list[list[Card]]:
-    """Beam search over the starting slots: the highest expected points under every rule."""
+    """Beam search over the starting slots: the highest expected points under every rule.
+
+    `rule` is one more: it is asked about every partly filled lineup (None for a slot still open) and says whether it can still be
+    completed in a way the rule allows (the strategy lab's constraints, `strategies.py`)."""
     playable = [
         c for c in pool if comp.allows(c) and forecasts.get(c.player) and forecasts[c.player].p_play >= MIN_PLAY
     ]
@@ -346,6 +351,8 @@ def best_starters(
                     continue
                 picked: list[Card | None] = list(chosen)
                 picked[i] = card
+                if rule is not None and not rule(picked):
+                    continue
                 nxt.append((score + value[card.slug], picked, total_avg, seasons))
         nxt.sort(key=lambda b: -b[0])
         seen: set[frozenset[str]] = set()

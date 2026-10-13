@@ -360,6 +360,8 @@
 .au-vs-t tbody th { font-weight: 600; }
 .au-vs-t .w { font-weight: 700; color: var(--ink); }
 .au-vs-t td { color: var(--ink-2); }
+.au-st-scroll { overflow-x: auto; }
+.au-st-scroll .au-vs-t { min-width: 560px; }
 .au-vs-sep { margin: 0 6px; color: var(--ink-3); }
 .au-vs-few { color: var(--ink-2); font-size: 12px; }
 .au-vs-weeks { margin: 16px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 12px; color: var(--ink-2); }

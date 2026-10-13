@@ -346,6 +346,9 @@ class Walked:
     score: float
     proj: float | None
     said: float
+    shape: Outcome | None = (
+        None  # the picture behind `said` (chance of a decisive action, the plain score, the range): the strategy replay uses it
+    )
 
 
 def walk_forward(starts: Sequence[OutfieldStart], min_train: int = MIN_STARTS) -> list[Walked]:
@@ -362,16 +365,7 @@ def walk_forward(starts: Sequence[OutfieldStart], min_train: int = MIN_STARTS) -
             model = fit(trained, pos) if len(trained) >= min_train else None
             if model is None:
                 continue
-            out += [
-                Walked(
-                    week,
-                    s.date,
-                    s.player,
-                    pos,
-                    s.score,
-                    s.proj,
-                    model.predict(s.numbers, s.home, s.own_dec, s.own_score, s.proj),
-                )
-                for s in by_week[week]
-            ]
+            for s in by_week[week]:
+                shape = model.outcome(s.numbers, s.home, s.own_dec, s.own_score, s.proj)
+                out.append(Walked(week, s.date, s.player, pos, s.score, s.proj, shape.start, shape))
     return out

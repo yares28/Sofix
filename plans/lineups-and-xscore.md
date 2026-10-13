@@ -66,6 +66,16 @@ SELECTs, `backend/data/raw/sorare_games.jsonl`, two seasons replayed week by wee
 
 ## Phase 2 · Strategy lab, saved every gameweek
 
+**Done 13 Oct 2026** (`strategies.py`, `strategy_audit.py`, `app/jobs/lineup_backtest.py`, `/audit/strategies`). As built: each strategy is
+`planner.best_starters` with the players' numbers moved or one more `rule`; one best lineup per competition per strategy (not a whole plan,
+so the same card may sit in several), no bench, priced with Sofix's own numbers; saved as `strategy_plans:<slug>` each run until the lock;
+scored by `frozen_scores._score`, which now also gives each lineup a verdict (`lucky`, `good`, `expected`, `poor`, and the cards that
+beat their own range). Not built: the verdict for your own lineups (no range was saved before the lock for them). Replay, 1,000 pools of 30
+starters on the two seasons (random lineup 269 points; best in hindsight 418): xScore 314.2, Highest ceiling 314.4, Likely scorers 314.4
+(the same, within noise), No attacker against the keeper 314.2, Sorare's projection 309.0, Usual score 307.6, Keeper with his
+defender 307.4 (718 pools had one), Three from one club 305.7. Nothing beats the xScore; the keeper-and-defender and club-stack lineups
+are 7 to 9 points worse on average, with a wider spread (their "great" rate is lower, not higher).
+
 1. **Replay job** `backend/app/jobs/lineup_backtest.py` (new, prints only): the random-pool test on
    `sorare_games.jsonl`, reusing `outfield.fit`, `keeper.walk_forward`, `gamedata.load_joined`. Every planner
    change is judged here before it ships.

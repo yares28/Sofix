@@ -904,6 +904,22 @@ def test_the_sorare_plans_stand_on_sorares_projections_or_wait_for_them():
     assert waiting["projected"] == 0 and waiting["plans"] == []
 
 
+def test_the_strategy_lab_writes_each_strategys_lineups_with_what_scoring_them_later_needs():
+    """Phase 2 (13 Oct 2026): every strategy's best lineup per competition, no pictures, no bench, with the games to score it by."""
+    lab = publish.build_payload(snapshot(), runs=4, draws=600)["_strategies"]
+    assert (
+        lab["gameweek"]["slug"]
+        == publish.week_of(publish.build_payload(snapshot(), runs=4, draws=600))["gameweek"]["slug"]
+    )
+    by_key = {s["key"]: s for s in lab["strategies"]}
+    assert "xscore" in by_key and by_key["xscore"]["lineups"]
+    line = by_key["xscore"]["lineups"][0]
+    assert {"key", "board", "x", "lo", "hi", "tiers", "captainBonus", "clubBonus", "averageBonus"} <= line.keys()
+    assert line["subs"] == [] and all("pic" not in c and "fixture" not in c for c in line["starters"])
+    assert sum(c["captain"] for c in line["starters"]) == 1
+    assert {c["player"] for c in line["starters"]} <= set(lab["games"])
+
+
 # ---------------------------------------------------------------------------------------------------- a red card
 def _league(date: str, red: bool | None = None, status: str = "FINAL", comp: str = "laliga-es") -> dict[str, Any]:
     return {"date": date, "competition": comp, "status": status, **({"red": red} if red is not None else {})}

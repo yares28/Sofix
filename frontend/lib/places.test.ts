@@ -18,6 +18,7 @@ describe("placeOf and viewOf", () => {
       ["/players/arda-guler", "Gallery", "Players"],
       ["/audit", "Audit", "xScore"],
       ["/audit/starts", "Audit", "Who starts"],
+      ["/audit/strategies", "Audit", "Strategies"],
       ["/audit/rewards", "Audit", "Rewards"],
       ["/audit/missions", "Audit", "Missions"],
       ["/control", null, null],

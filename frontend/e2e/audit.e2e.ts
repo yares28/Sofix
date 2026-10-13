@@ -415,3 +415,31 @@ test("Missions says too few to tell under the floor, and lists each day's picks 
   await page.getByRole("link", { name: "Missions", exact: true }).first().click();
   await expect(page).toHaveURL(/\/audit\/missions/);
 });
+
+test("Strategies scores each way of building a lineup beside yours, and says whether a big score was the numbers or luck", async ({ page }) => {
+  await page.goto("/audit/strategies");
+  await expect(page.getByRole("heading", { level: 1, name: "Strategies" })).toBeVisible();
+  const duo = page.locator(".ax-duo > div");
+  await expect(duo.nth(0)).toContainText("Highest ceiling · most points"); // 2,600 over 8 lineups against xScore's 2,400
+  await expect(duo.nth(0).locator(".ax-duo-n")).toHaveText("325");
+  await expect(duo.nth(1)).toContainText("You · entered");
+  await expect(duo.nth(1).locator(".ax-duo-n")).toHaveText("280");
+  await expect(page.getByText("Only 2 weeks so far: too few to tell which strategy is better.")).toBeVisible();
+
+  const table = page.getByRole("region", { name: "How each one did" }).locator("tbody tr");
+  await expect(table).toHaveCount(3); // two strategies and you
+  await expect(table.nth(0)).toContainText("75%"); // of the best in hindsight: 2,400 of 3,200
+  await expect(table.nth(0)).toContainText("38%"); // essence or better: 3 of 8
+  await expect(table.nth(0)).toContainText("1 of 8"); // lucky weeks
+
+  const luck = page.getByRole("region", { name: /Built on the numbers, or on luck/ });
+  await expect(luck).toContainText("451 points, expected 263 (182–342)");
+  await expect(luck).toContainText("Lucky: above the top of its range");
+  await expect(luck).toContainText("Chust and Isco scored above their own range");
+  await expect(page.getByRole("list", { name: "Week by week" }).getByRole("listitem")).toHaveCount(2);
+
+  expect(await smallText(page, 11)).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  const scan = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
+  expect(scan.violations).toEqual([]);
+});

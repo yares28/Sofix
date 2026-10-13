@@ -42,6 +42,7 @@ export const PLACES: Place[] = [
       { href: "/audit", label: "xScore" },
       { href: "/audit/starts", label: "Who starts" },
       { href: "/audit/lineups", label: "Lineups" },
+      { href: "/audit/strategies", label: "Strategies" },
       { href: "/audit/rewards", label: "Rewards" },
       { href: "/audit/missions", label: "Missions" },
     ],

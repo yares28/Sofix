@@ -16,7 +16,7 @@ and a check, so a session can work through it alone and stop only where you have
 
 Work from the top. Each line points to its full text; "you" items wait for the owner.
 
-L2. **Strategy lab, saved every gameweek** ([lineups-and-xscore.md](lineups-and-xscore.md) Phase 2), then **Audit Lineups week rows open to a comparison** (Phase 3),
+L2. **Audit Lineups week rows open to a comparison** ([lineups-and-xscore.md](lineups-and-xscore.md) Phase 3),
    **Audit xScore: a fair yardstick** (Phase 4), **research kept only if the replay says so** (Phase 5), **Pro levels** (Phase 6).
 
 -2. **Neon: keep one free project enough** (AGENTS.md "Neon projects"; memory of 12 Oct): production moved to the project
@@ -556,6 +556,11 @@ the held-out weeks (P9 "The bar").
 ---
 
 ## Results
+
+- **13 Oct - strategy lab (lineups-and-xscore.md Phase 2):** ten ways of building a lineup are written down before each lock and scored after
+  the games on Audit > Strategies, beside your own lineups, the best lineup in hindsight and a plain "numbers or luck" verdict;
+  `python -m app.jobs.lineup_backtest` replays them on two seasons. Replay (1,000 pools): xScore 314, nothing beats it, keeper-with-defender
+  and three-from-one-club are 7 to 9 points worse. Strategy lineups appear from the next refresh before a lock; the page fills as weeks finish.
 
 - **13 Oct - lineup building (lineups-and-xscore.md Phase 1):** no plan enters a fee-paying Room, an All Star lineup is built last (from the cards left), essence order LaLiga, Champion, All Star; start chances moved to
   what happened from 100 settled games per run of chances (shown on the Audit); no starter under 30% to play; a player's own league counts for his start chance.

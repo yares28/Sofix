@@ -362,6 +362,27 @@
 .au-vs-t td { color: var(--ink-2); }
 .au-st-scroll { overflow-x: auto; }
 .au-st-scroll .au-vs-t { min-width: 560px; }
+.au-st-weeks { margin: 16px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.au-st-weeks summary, .au-vs-weeks summary { cursor: pointer; padding: 8px 0; font-size: 13px; color: var(--ink-2); display: flex; gap: 8px; align-items: baseline; }
+.au-st-weeks summary b, .au-vs-weeks summary b { color: var(--ink); }
+.au-st-weeks li, .au-vs-weeks li { border-bottom: 1px solid var(--line); }
+.au-cmp { display: grid; gap: 22px; padding: 6px 0 18px; }
+.au-cmp h3 { margin: 0 0 8px; font-size: 15px; letter-spacing: -0.01em; }
+.au-cmp-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 14px; }
+.au-cmp-row { padding: 12px 14px; border-radius: 12px; background: var(--hover); }
+.au-cmp-row.you { background: var(--surface); box-shadow: 0 0 0 1.5px var(--ink); }
+.au-cmp-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.au-cmp-head b { font-size: 14px; }
+.au-cmp-n { font-size: 24px; font-weight: 650; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.au-cmp-head small, .au-cmp-fits { font-size: 12px; color: var(--ink-2); }
+.au-cmp-fits { margin: 4px 0 0; }
+.au-cd { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 12px 8px; }
+.au-cd li { position: relative; width: 64px; display: flex; flex-direction: column; align-items: center; }
+.au-cd li.bench { opacity: .72; }
+.au-cd-art { display: block; width: 100%; aspect-ratio: 5 / 8; border-radius: 8px; overflow: hidden; background: var(--track); }
+.au-cd-cap { position: absolute; top: -6px; right: -4px; z-index: 2; width: 20px; height: 20px; border-radius: 50%; background: var(--ink); color: var(--on-ink); font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+.au-cd-score { position: relative; z-index: 1; margin-top: -12px; min-width: 34px; padding: 3px 0; border-radius: 8px; text-align: center; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.au-cd-name { margin-top: 3px; max-width: 100%; font-size: 11px; line-height: 1.2; text-align: center; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .au-vs-sep { margin: 0 6px; color: var(--ink-3); }
 .au-vs-few { color: var(--ink-2); font-size: 12px; }
 .au-vs-weeks { margin: 16px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 12px; color: var(--ink-2); }

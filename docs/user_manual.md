@@ -441,15 +441,18 @@ by its best prize, a card, cash, essence, XP only or nothing, so XP is never cou
 and every plan has its own row), **Strategies** (`/audit/strategies`, since 13 Oct), **Rewards** (`/audit/rewards`, since 6 Oct) and **Missions**
 (`/audit/missions`, since 6 Oct).
 
-**Strategies** compares ten ways of building a lineup from your cards. Before each lock Sofix writes down, for every competition it
-can enter, the best lineup of each way: the best xScore in every slot; Sorare's own projection instead; the keeper with a defender of
-his own club ("nothing or win big"); three players of one club; no attacker playing against his own keeper; the likely scorers; the
-highest ceiling; the usual score; only players 90% or more likely to play; and only favourites. A day after the week the lineups
-are scored the way a real one is. The page shows each way's points a lineup, how much of the best lineup in hindsight it got, how often
-it won essence or better and how often nothing, with the lineups you entered beside them. With under four weeks it says "too few to
-tell". Each lineup gets a plain verdict from the range written down for it before the lock: lucky (above the top), a good week,
-as expected, or a poor week, naming the cards that scored above their own range. No bench is filled for these lineups, and the
-ways are never entered for you. `python -m app.jobs.lineup_backtest` replays the same ways on two seasons of games.
+**Strategies** compares ten ways of building a lineup from your cards, with Sofix's best plan and your own lineups beside them. Before
+each lock Sofix writes down, for every competition it can enter, the best lineup of each way: the best xScore in every slot; Sorare's own
+projection instead; the keeper with a defender of his own club ("nothing or win big"); three players of one club; no attacker playing
+against his own keeper; the likely scorers; the highest ceiling; the usual score; only players 90% or more likely to play; and only
+favourites. A day after a gameweek ends, the first refresh scores them the way a real lineup is scored and adds the week: the page is
+always shown, with dashes until the first week is in, and it never waits for a number of weeks. It shows each way's points a lineup, how
+much of the best lineup in hindsight it got, how often it won essence or better, how often nothing, and how often its score was lucky.
+Open a week (here and on **Lineups**) to see each competition with your lineup first, then Sofix's and every strategy's, with the cards
+and what each scored. Your lineup says which strategies it happens to fit (yours is a mix: for example a keeper with a defender of his
+club, or three from one club), and each of Sofix's and the strategies' lineups gets a plain verdict from the range written down before
+the lock: lucky (above the top), a good week, as expected, or a poor week, naming the cards that scored above their own range. No bench is
+filled for the strategy lineups, and none is entered for you. `python -m app.jobs.lineup_backtest` replays the ways on past games.
 
 **Missions** answers "were Sofix's mission picks the right ones?". Every day Sofix writes down its picks for the **Decisive Picker**,
 which Sorare runs every day, whether or not you loaded the day's missions; on a day you loaded them, the other missions too. It also

@@ -104,6 +104,10 @@ are 7 to 9 points worse on average, with a wider spread (their "great" rate is l
 
 ## Phase 3 · Audit, Lineups: week rows open to a comparison
 
+**Done 13 Oct 2026**, with the strategies in it (owner's request): `strategy_audit.py` scores Sofix's best plan, the strategy lab and your entered
+lineups (`my_week` / `entered_week`) per leaderboard (matched by board slug); `WeekComparison.tsx` draws them on Audit > Strategies and
+Audit > Lineups. Not done: cards of Sofix's and the strategies' lineups use the art of your collection, so a card you no longer own shows initials.
+
 On /audit/lineups (`frontend/components/audit/LineupsAudit.tsx`), each week row opens to a per-competition
 comparison: the owner's entered lineups from the saved weeks (`SavedWeek.lineups`: competition, board,
 `result.score`, `result.essence`/`cash`/`card`) beside Sofix's frozen plan lineups for the same board

@@ -156,6 +156,7 @@ export default function AuditView({
   show = "xscore",
   season = [],
   saved = [],
+  pics = {},
   playerWeek = null,
   playerWeekNumber = null,
   playerWeeks = [],
@@ -167,6 +168,8 @@ export default function AuditView({
   /** The season's finished Sorare gameweeks, for what you won (Rewards). */
   season?: { slug: string; number: number }[];
   saved?: SavedWeek[];
+  /** Sorare's card art by card slug: your collection and the cards of your saved lineups. */
+  pics?: Record<string, string>;
   playerWeek?: PlayerScoreWeek | null;
   playerWeekNumber?: number | null;
   playerWeeks?: PlayerScoreWeek[];
@@ -202,8 +205,8 @@ export default function AuditView({
       </>
     );
   }
-  if (show === "lineups") return <LineupsAudit lineups={data.lineups} saved={saved} updated={updated} />;
-  if (show === "strategies") return <StrategiesAudit strategies={data.strategies} updated={updated} />;
+  if (show === "lineups") return <LineupsAudit lineups={data.lineups} saved={saved} updated={updated} weeks={data.strategies.weeks} pics={pics} />;
+  if (show === "strategies") return <StrategiesAudit strategies={data.strategies} pics={pics} updated={updated} />;
   if (show === "rewards") {
     return (
       <>

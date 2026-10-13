@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import { percent, type LineupsAudit as Lineups, type PlanTally } from "../../lib/audit";
 import { judged, NO_PLAN, PRIZE_NAME, PRIZES, real, share, yourPrizes, type Won } from "../../lib/lineupsAudit";
 import type { SavedWeek } from "../../lib/myWeeks";
+import type { StrategyWeek } from "../../lib/audit";
+import WeekComparison from "./WeekComparison";
 
 const SIDES = [["sofix", "Sofix", "now"], ["sorare", "Sorare", "sorare"]] as const;
 const plural = (n: number) => `${n.toLocaleString("en-GB")} lineup${n === 1 ? "" : "s"}`;
@@ -36,7 +38,7 @@ function Prizes({ name, note, won }: { name: string; note: string; won: Won }) {
  * expected for it, for Sofix's and Sorare's plans as saved before the lock. The prize: what each lineup won, yours, Sofix's and Sorare's,
  * by its best prize, because XP is not essence. The big figures are each side's best plan; every plan has its own row.
  */
-export default function LineupsAudit({ lineups, saved, updated = null }: { lineups: Lineups; saved: SavedWeek[]; updated?: ReactNode }) {
+export default function LineupsAudit({ lineups, saved, updated = null, weeks = [], pics = {} }: { lineups: Lineups; saved: SavedWeek[]; updated?: ReactNode; weeks?: StrategyWeek[]; pics?: Record<string, string> }) {
   const best = { sofix: lineups.plans.sofix[0] ?? NO_PLAN, sorare: lineups.plans.sorare[0] ?? NO_PLAN };
   const closer = higher(hit(best.sofix), hit(best.sorare));
   const ranks = [...new Set([...lineups.plans.sofix, ...lineups.plans.sorare].map((plan) => plan.rank))].sort((a, b) => a - b);
@@ -171,13 +173,26 @@ export default function LineupsAudit({ lineups, saved, updated = null }: { lineu
           <ol className="au-vs-weeks" aria-label="Week by week">
             {lineups.weeks.map((week) => {
               const [a, b] = [week.sofix[0] ?? NO_PLAN, week.sorare[0] ?? NO_PLAN];
-              return (
-                <li key={week.slug}>
+              const line = (
+                <>
                   <b>GW{week.number}</b>
                   <span>
                     best plans · within {lineups.band}: Sofix {a.hit}/{a.scored}, Sorare {b.hit}/{b.scored} · essence or better: Sofix {real(a.won)}/{a.judged}, Sorare {real(b.won)}/{b.judged}
                     {week.final ? "" : " · still being checked"}
                   </span>
+                </>
+              );
+              const compare = weeks.find((w) => w.slug === week.slug);
+              return (
+                <li key={week.slug}>
+                  {compare ? (
+                    <details>
+                      <summary>{line}</summary>
+                      <WeekComparison boards={compare.boards} pics={pics} />
+                    </details>
+                  ) : (
+                    line
+                  )}
                 </li>
               );
             })}

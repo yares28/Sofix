@@ -416,7 +416,7 @@ test("Missions says too few to tell under the floor, and lists each day's picks 
   await expect(page).toHaveURL(/\/audit\/missions/);
 });
 
-test("Strategies scores each way of building a lineup beside yours, and says whether a big score was the numbers or luck", async ({ page }) => {
+test("Strategies shows every strategy beside Sofix and you, and each week opens to the lineups side by side", async ({ page }) => {
   await page.goto("/audit/strategies");
   await expect(page.getByRole("heading", { level: 1, name: "Strategies" })).toBeVisible();
   const duo = page.locator(".ax-duo > div");
@@ -424,22 +424,38 @@ test("Strategies scores each way of building a lineup beside yours, and says whe
   await expect(duo.nth(0).locator(".ax-duo-n")).toHaveText("325");
   await expect(duo.nth(1)).toContainText("You · entered");
   await expect(duo.nth(1).locator(".ax-duo-n")).toHaveText("280");
-  await expect(page.getByText("Only 2 weeks so far: too few to tell which strategy is better.")).toBeVisible();
+  await expect(page.getByText("Each gameweek is added a day after it ends")).toBeVisible();
+  await expect(page.getByText("too few to tell")).toHaveCount(0); // shown whatever the number of weeks
 
-  const table = page.getByRole("region", { name: "How each one did" }).locator("tbody tr");
-  await expect(table).toHaveCount(3); // two strategies and you
+  const table = page.getByRole("group", { name: /Strategies table/ }).locator("tbody tr");
+  await expect(table).toHaveCount(4); // two strategies, Sofix's plan and you
   await expect(table.nth(0)).toContainText("75%"); // of the best in hindsight: 2,400 of 3,200
   await expect(table.nth(0)).toContainText("38%"); // essence or better: 3 of 8
-  await expect(table.nth(0)).toContainText("1 of 8"); // lucky weeks
+  await expect(table.nth(0)).toContainText("1 of 8"); // lucky
+  await expect(table.nth(3)).toContainText("You");
+  await expect(table.nth(3)).toContainText("70%"); // of the best in hindsight: 1,960 of 2,800
 
-  const luck = page.getByRole("region", { name: /Built on the numbers, or on luck/ });
-  await expect(luck).toContainText("451 points, expected 263 (182–342)");
-  await expect(luck).toContainText("Lucky: above the top of its range");
-  await expect(luck).toContainText("Chust and Isco scored above their own range");
-  await expect(page.getByRole("list", { name: "Week by week" }).getByRole("listitem")).toHaveCount(2);
+  const weeks = page.getByRole("list", { name: "Week by week" }).getByRole("listitem");
+  await expect(weeks).toHaveCount(2);
+  await expect(weeks.nth(0)).toContainText("You 275 · Sofix 300 · xScore 350 · Highest ceiling 325");
+  await weeks.nth(0).locator("summary").click();
+  const laliga = page.getByRole("region", { name: "LaLiga" });
+  await expect(laliga.getByRole("listitem").filter({ hasText: "Fits: Keeper with his defender · Three from one club" })).toHaveCount(1); // yours is a mix
+  await expect(laliga).toContainText("451points · expected 263 (182–342) · Essence · Lucky");
+  await expect(laliga).toContainText("Chust and Isco scored above their own range");
+  await expect(laliga.locator(".au-cmp-row").first()).toContainText("You"); // yours first
+  await expect(laliga.locator(".au-cmp-row.you")).toContainText("rank 412");
+  await expect(page.getByRole("region", { name: "Champion" }).locator(".au-cmp-row")).toHaveCount(2);
 
   expect(await smallText(page, 11)).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   const scan = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(scan.violations).toEqual([]);
+});
+
+test("Lineups week rows open to the comparison of your lineups, Sofix's and the strategies'", async ({ page }) => {
+  await page.goto("/audit/lineups");
+  const week = page.getByRole("list", { name: "Week by week" }).getByRole("listitem").first();
+  await week.locator("summary").click();
+  await expect(page.getByRole("region", { name: "LaLiga" })).toContainText("Fits: Keeper with his defender");
 });

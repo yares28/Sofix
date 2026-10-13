@@ -16,8 +16,7 @@ and a check, so a session can work through it alone and stop only where you have
 
 Work from the top. Each line points to its full text; "you" items wait for the owner.
 
-L2. **Audit Lineups week rows open to a comparison** ([lineups-and-xscore.md](lineups-and-xscore.md) Phase 3),
-   **Audit xScore: a fair yardstick** (Phase 4), **research kept only if the replay says so** (Phase 5), **Pro levels** (Phase 6).
+L2. **Audit xScore: a fair yardstick** ([lineups-and-xscore.md](lineups-and-xscore.md) Phase 4), **research kept only if the replay says so** (Phase 5), **Pro levels** (Phase 6).
 
 -2. **Neon: keep one free project enough** (AGENTS.md "Neon projects"; memory of 12 Oct): production moved to the project
    "Sofix" on 12 Oct after FDR used its 5 GB. Still to cut, then measure on the new project's counter: the half-hourly
@@ -556,6 +555,10 @@ the held-out weeks (P9 "The bar").
 ---
 
 ## Results
+
+- **13 Oct - Audit week comparison (lineups-and-xscore.md Phase 3):** every week row on Audit > Strategies and Audit > Lineups opens to each
+  competition with your lineup first, then Sofix's best plan and every strategy, with the cards, what each scored and the strategies yours
+  fits. Strategies is always shown (no "too few to tell"). Sofix's and your own lineups join the table from GW21; strategy lineups from GW22.
 
 - **13 Oct - strategy lab (lineups-and-xscore.md Phase 2):** ten ways of building a lineup are written down before each lock and scored after
   the games on Audit > Strategies, beside your own lineups, the best lineup in hindsight and a plain "numbers or luck" verdict;

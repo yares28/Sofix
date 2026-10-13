@@ -55,11 +55,18 @@ export default async function AuditPlace({ show, searchParams }: { show: AuditSh
     .map((week) => ({ slug: week.slug, number: week.number }))
     .reverse();
   const saved = show === "rewards" || show === "lineups" ? seasonWeeks(await myWeeksQuietly() ?? [], new Date()) : [];
+  // Card art for the week comparison: the collection's, then the pictures your saved lineups kept for cards no longer in it.
+  const pics: Record<string, string> = {};
+  if (show === "lineups" || show === "strategies") {
+    for (const card of sorare?.collection ?? []) if (card.pic) pics[card.slug] = card.pic;
+    for (const week of show === "strategies" ? seasonWeeks(await myWeeksQuietly() ?? [], new Date()) : saved)
+      for (const lineup of week.lineups) for (const card of lineup.cards) if (card.picture && !pics[card.slug]) pics[card.slug] = card.picture;
+  }
   return (
     <>
       <SiteNav meta={meta} system={system} week={show === "xscore" ? week : undefined} />
       <main className="au">
-        <AuditView data={data} now={new Date()} league={league} show={show} season={season} saved={saved} playerWeek={playerWeek} playerWeekNumber={week.current?.number ?? null} playerWeeks={playerWeeks} />
+        <AuditView data={data} now={new Date()} league={league} show={show} season={season} saved={saved} pics={pics} playerWeek={playerWeek} playerWeekNumber={week.current?.number ?? null} playerWeeks={playerWeeks} />
         {show === "missions" ? <div className="pd-wrap">{owned.map((rarity) => <MissionHistory key={rarity} title={`${RARITY_NAME[rarity]} history`} days={missionHistory(logs, rarity, names)} rarity={rarity} collection={sorare?.collection ?? []} />)}</div> : null}
       </main>
     </>

@@ -384,6 +384,72 @@
       },
       "weeks": [
         {
+          "slug": "gw-21",
+          "number": 21,
+          "end": "2026-10-12T21:00:00Z",
+          "final": true,
+          "sofix": [
+            {
+              "rank": 1,
+              "lineups": 10,
+              "scored": 10,
+              "hit": 4,
+              "judged": 10,
+              "won": {
+                "card": 0,
+                "cash": 1,
+                "essence": 3,
+                "xp": 4,
+                "none": 2
+              }
+            },
+            {
+              "rank": 2,
+              "lineups": 10,
+              "scored": 10,
+              "hit": 3,
+              "judged": 10,
+              "won": {
+                "card": 0,
+                "cash": 0,
+                "essence": 2,
+                "xp": 5,
+                "none": 3
+              }
+            }
+          ],
+          "sorare": [
+            {
+              "rank": 1,
+              "lineups": 10,
+              "scored": 10,
+              "hit": 2,
+              "judged": 10,
+              "won": {
+                "card": 0,
+                "cash": 0,
+                "essence": 1,
+                "xp": 6,
+                "none": 3
+              }
+            },
+            {
+              "rank": 2,
+              "lineups": 10,
+              "scored": 8,
+              "hit": 2,
+              "judged": 8,
+              "won": {
+                "card": 0,
+                "cash": 0,
+                "essence": 1,
+                "xp": 4,
+                "none": 3
+              }
+            }
+          ]
+        },
+        {
           "slug": "gw-18",
           "number": 18,
           "end": "2026-10-02T10:00:00+00:00",
@@ -506,13 +572,36 @@
           }
         }
       ],
+      "sofix": {
+        "lineups": 8,
+        "scored": 8,
+        "points": 2200,
+        "best": 3200,
+        "pointsVs": 2200,
+        "against": 8,
+        "judged": 8,
+        "won": {
+          "card": 0,
+          "cash": 0,
+          "essence": 2,
+          "xp": 3,
+          "none": 3
+        },
+        "verdicts": {
+          "lucky": 0,
+          "good": 2,
+          "expected": 5,
+          "poor": 1
+        },
+        "weeks": 2
+      },
       "you": {
         "lineups": 7,
         "scored": 7,
         "points": 1960,
-        "best": 0,
-        "pointsVs": 0,
-        "against": 0,
+        "best": 2800,
+        "pointsVs": 1960,
+        "against": 7,
         "judged": 7,
         "won": {
           "card": 0,
@@ -581,13 +670,35 @@
               }
             }
           },
+          "sofix": {
+            "lineups": 4,
+            "scored": 4,
+            "points": 1200,
+            "best": 1700,
+            "pointsVs": 1200,
+            "against": 4,
+            "judged": 4,
+            "won": {
+              "card": 0,
+              "cash": 0,
+              "essence": 1,
+              "xp": 1,
+              "none": 2
+            },
+            "verdicts": {
+              "lucky": 0,
+              "good": 1,
+              "expected": 3,
+              "poor": 0
+            }
+          },
           "you": {
             "lineups": 4,
             "scored": 4,
             "points": 1100,
-            "best": 0,
-            "pointsVs": 0,
-            "against": 0,
+            "best": 1700,
+            "pointsVs": 1100,
+            "against": 4,
             "judged": 4,
             "won": {
               "card": 0,
@@ -603,42 +714,223 @@
               "poor": 0
             }
           },
-          "lines": [
+          "boards": [
             {
-              "strategy": "xscore",
+              "board": "gw-21-laliga",
               "comp": "LaLiga",
-              "score": 451,
-              "x": 263,
-              "lo": 182,
-              "hi": 342,
-              "verdict": "lucky",
-              "beat": [
-                "Chust",
-                "Isco"
-              ],
-              "won": "essence"
+              "key": "LALIGA EA SPORTS | Limited",
+              "rows": [
+                {
+                  "who": "you",
+                  "label": "You",
+                  "score": 359,
+                  "x": null,
+                  "lo": null,
+                  "hi": null,
+                  "verdict": null,
+                  "beat": [],
+                  "won": "essence",
+                  "rank": 412,
+                  "fits": [
+                    "keeper-defender",
+                    "club-stack"
+                  ],
+                  "cards": [
+                    {
+                      "slug": "k1",
+                      "player": "k1",
+                      "name": "Remiro",
+                      "pos": "GK",
+                      "club": "Real Sociedad",
+                      "score": 61,
+                      "played": true,
+                      "captain": true,
+                      "sub": false
+                    },
+                    {
+                      "slug": "d1",
+                      "player": "d1",
+                      "name": "Zubeldia",
+                      "pos": "DEF",
+                      "club": "Real Sociedad",
+                      "score": 48,
+                      "played": true,
+                      "captain": false,
+                      "sub": false
+                    },
+                    {
+                      "slug": "m1",
+                      "player": "m1",
+                      "name": "Guler",
+                      "pos": "MID",
+                      "club": "Real Madrid",
+                      "score": 55,
+                      "played": true,
+                      "captain": false,
+                      "sub": false
+                    },
+                    {
+                      "slug": "s1",
+                      "player": "s1",
+                      "name": "Sub One",
+                      "pos": "GK",
+                      "club": "Betis",
+                      "score": null,
+                      "played": false,
+                      "captain": false,
+                      "sub": true
+                    }
+                  ]
+                },
+                {
+                  "who": "xscore",
+                  "label": "xScore",
+                  "score": 451,
+                  "x": 263,
+                  "lo": 182,
+                  "hi": 342,
+                  "verdict": "lucky",
+                  "beat": [
+                    "Chust",
+                    "Isco"
+                  ],
+                  "won": "essence",
+                  "fits": [
+                    "no-clash"
+                  ],
+                  "cards": [
+                    {
+                      "slug": "k2",
+                      "player": "k2",
+                      "name": "Oblak",
+                      "pos": "GK",
+                      "club": "Atletico",
+                      "score": 70,
+                      "played": true,
+                      "captain": false,
+                      "sub": false
+                    },
+                    {
+                      "slug": "d2",
+                      "player": "d2",
+                      "name": "Chust",
+                      "pos": "DEF",
+                      "club": "Cadiz",
+                      "score": 100,
+                      "played": true,
+                      "captain": true,
+                      "sub": false
+                    },
+                    {
+                      "slug": "m2",
+                      "player": "m2",
+                      "name": "Isco",
+                      "pos": "MID",
+                      "club": "Betis",
+                      "score": 92,
+                      "played": true,
+                      "captain": false,
+                      "sub": false
+                    }
+                  ]
+                },
+                {
+                  "who": "ceiling",
+                  "label": "Highest ceiling",
+                  "score": 380,
+                  "x": 300,
+                  "lo": 220,
+                  "hi": 380,
+                  "verdict": "good",
+                  "beat": [],
+                  "won": "essence",
+                  "fits": [],
+                  "cards": [
+                    {
+                      "slug": "k3",
+                      "player": "k3",
+                      "name": "Courtois",
+                      "pos": "GK",
+                      "club": "Real Madrid",
+                      "score": 66,
+                      "played": true,
+                      "captain": false,
+                      "sub": false
+                    },
+                    {
+                      "slug": "d3",
+                      "player": "d3",
+                      "name": "Gaya",
+                      "pos": "DEF",
+                      "club": "Valencia",
+                      "score": 51,
+                      "played": true,
+                      "captain": false,
+                      "sub": false
+                    }
+                  ]
+                }
+              ]
             },
             {
-              "strategy": "xscore",
+              "board": "gw-21-champion",
               "comp": "Champion",
-              "score": 310,
-              "x": 330,
-              "lo": 250,
-              "hi": 410,
-              "verdict": "expected",
-              "beat": [],
-              "won": "xp"
-            },
-            {
-              "strategy": "ceiling",
-              "comp": "LaLiga",
-              "score": 380,
-              "x": 300,
-              "lo": 220,
-              "hi": 380,
-              "verdict": "good",
-              "beat": [],
-              "won": "essence"
+              "key": "Champion | Limited",
+              "rows": [
+                {
+                  "who": "you",
+                  "label": "You",
+                  "score": 599,
+                  "x": null,
+                  "lo": null,
+                  "hi": null,
+                  "verdict": null,
+                  "beat": [],
+                  "won": "none",
+                  "rank": 195,
+                  "fits": [],
+                  "cards": [
+                    {
+                      "slug": "k4",
+                      "player": "k4",
+                      "name": "Courtois",
+                      "pos": "GK",
+                      "club": "Real Madrid",
+                      "score": 88,
+                      "played": true,
+                      "captain": true,
+                      "sub": false
+                    }
+                  ]
+                },
+                {
+                  "who": "xscore",
+                  "label": "xScore",
+                  "score": 310,
+                  "x": 330,
+                  "lo": 250,
+                  "hi": 410,
+                  "verdict": "expected",
+                  "beat": [],
+                  "won": "xp",
+                  "fits": [
+                    "no-clash"
+                  ],
+                  "cards": [
+                    {
+                      "slug": "k5",
+                      "player": "k5",
+                      "name": "Yuri",
+                      "pos": "GK",
+                      "club": "Alaves",
+                      "score": 40,
+                      "played": true,
+                      "captain": false,
+                      "sub": false
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
@@ -693,13 +985,35 @@
               }
             }
           },
+          "sofix": {
+            "lineups": 4,
+            "scored": 4,
+            "points": 1000,
+            "best": 1500,
+            "pointsVs": 1000,
+            "against": 4,
+            "judged": 4,
+            "won": {
+              "card": 0,
+              "cash": 0,
+              "essence": 1,
+              "xp": 1,
+              "none": 2
+            },
+            "verdicts": {
+              "lucky": 0,
+              "good": 0,
+              "expected": 3,
+              "poor": 1
+            }
+          },
           "you": {
             "lineups": 3,
             "scored": 3,
             "points": 860,
-            "best": 0,
-            "pointsVs": 0,
-            "against": 0,
+            "best": 1100,
+            "pointsVs": 860,
+            "against": 3,
             "judged": 3,
             "won": {
               "card": 0,
@@ -715,7 +1029,7 @@
               "poor": 0
             }
           },
-          "lines": []
+          "boards": []
         }
       ]
     }

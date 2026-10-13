@@ -29,7 +29,10 @@ class _KeptCompetition(Competition):
 
 
 def _score(
-    raw: dict[str, Any], games: dict[str, list[str]], actuals: dict[tuple[str, str], PlayerGame]
+    raw: dict[str, Any],
+    games: dict[str, list[str]],
+    actuals: dict[tuple[str, str], PlayerGame],
+    with_cards: bool = False,
 ) -> dict[str, Any]:
     result = {
         "competition": raw.get("comp"),
@@ -108,6 +111,21 @@ def _score(
     result["score"] = round(float(totals(lineup, np.array([plays]), np.array([scores]), record=True)[0]), 2)
     result["cameIn"] = [{"sub": sub, "for": starter} for sub, starter in lineup.came_in]
     result["bonusLost"] = lineup.bonus_lost
+    if with_cards:  # what each card really scored, for the comparison on the Audit
+        result["cards"] = [
+            {
+                "slug": c["slug"],
+                "player": c["player"],
+                "name": c.get("name") or c["player"],
+                "pos": c["pos"],
+                "club": c["club"],
+                "score": round(scores[i], 2),
+                "played": plays[i],
+                "captain": bool(c.get("captain")),
+                "sub": i >= len(starters),
+            }
+            for i, c in enumerate([*starters, *subs])
+        ]
     result["verdict"] = verdict(
         result["score"],
         raw,

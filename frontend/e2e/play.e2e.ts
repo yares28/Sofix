@@ -149,8 +149,8 @@ test("entered Sorare lineups sit below the plan of the gameweek they belong to",
   const lineup = mine.locator(".pl-entered-lineup");
   await expect(lineup.locator(".pl-entered-result b")).toHaveText("313");
   await expect(lineup.locator(".pl-entered-verdict")).toHaveText("Rank 1,204 · $2.50 · 250 essence");
-  await expect(lineup.locator(".pl-entered-card .cap")).toHaveCount(1);
-  await expect(lineup.locator(".pl-entered-card .sc").first()).toHaveText("40");
+  await expect(lineup.locator(".pl-entered-card .c")).toHaveCount(1);
+  await expect(lineup.locator(".pl-entered-card .hx.scored").first()).toHaveText("40");
 
   const belowThePlan = await page.locator(".pl-entered").evaluate((node) =>
     Boolean(document.querySelector(".pl-board")!.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING),
@@ -662,8 +662,9 @@ test("a lineup entered for a week that has not locked says when it locks, not th
   const lineup = page.getByRole("region", { name: "Your Sorare lineups" }).locator(".pl-entered-lineup");
 
   await expect(lineup.locator(".pl-entered-verdict")).toHaveText(/^Locks in (\d+ d \d+ h|\d+ h|\d+ min)$/);
-  await expect(lineup.locator(".pl-entered-result b")).toHaveText("–");
-  await expect(lineup.locator(".pl-entered-card .sc")).toHaveCount(0);
+  // Before the lock it reads like the plan: the xScore, and no score yet for the team or any card.
+  await expect(lineup.locator(".pl-entered-result")).toHaveCount(0);
+  await expect(lineup.locator(".pl-entered-card .hx.scored")).toHaveCount(0);
   await expect(lineup).not.toContainText("Still scoring");
 });
 

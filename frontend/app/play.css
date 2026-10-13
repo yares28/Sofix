@@ -99,42 +99,13 @@
   white-space: nowrap;
 }
 .pl-entered-count.looking { background: var(--hover); color: var(--ink-2); }
-.pl-entered-list { display: grid; gap: 8px; margin-top: 16px; }
-.pl-entered-lineup {
-  display: grid;
-  grid-template-columns: minmax(190px, 0.8fr) minmax(220px, 1.5fr) auto;
-  align-items: center;
-  gap: 18px;
-  min-width: 0;
-  padding: 11px 12px;
-  border-radius: 16px;
-  background: var(--hover);
-}
-.pl-entered-name { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.pl-entered-name > span { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
-.pl-entered-name b,
-.pl-entered-name small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pl-entered-name b { font-size: 14px; font-weight: 650; }
-.pl-entered-name small { font-size: 11px; color: var(--ink-2); }
-.pl-entered-cards { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; min-width: 0; }
-.pl-entered-card {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 34px;
-  aspect-ratio: 320 / 452;
-  flex: none;
-  overflow: hidden;
-  border-radius: 6px;
-  background: var(--track);
-  color: var(--ink-2);
-  font-size: 11px;
-  font-weight: 700;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14), 0 3px 8px rgba(0, 0, 0, 0.08);
-}
+/* Each lineup is drawn as a row of the Sofix plan (the grid and the cards are the plan's own rules, further down). */
+.pl-entered-list { margin-top: 6px; }
+.pl-entered .pl-entered-lineup { align-items: center; min-width: 0; padding: 18px 0; border-bottom: 1px solid var(--line); }
+.pl-entered .pl-entered-lineup:last-child { border-bottom: 0; }
+.pl-entered-card .art { display: grid; place-items: center; color: var(--ink-2); font-size: 11px; font-weight: 700; }
 .pl-entered-status {
-  justify-self: end;
-  padding: 5px 9px;
+  padding: 3px 9px;
   border-radius: 999px;
   background: #d3f2e1;
   color: var(--good-ink);
@@ -143,23 +114,7 @@
   white-space: nowrap;
 }
 .pl-entered-status.draft { background: color-mix(in srgb, #ff9f0a 14%, var(--surface)); color: color-mix(in srgb, #ff9f0a 45%, var(--ink)); }
-/* What Sorare says the lineup made: the score first, then where it ranked and what it was paid. */
-.pl-entered-card .cap {
-  position: absolute; left: 2px; top: 2px; display: grid; place-items: center; width: 12px; height: 12px;
-  border-radius: 50%; background: var(--surface); color: #111; font-size: 8px; font-style: normal; font-weight: 800; line-height: 1;
-}
-.pl-entered-card .sc {
-  position: absolute; left: 0; right: 0; bottom: 0; padding: 1px 0; background: rgba(12, 12, 14, 0.78);
-  color: #fff; font-size: 9px; font-weight: 700; line-height: 1.2; text-align: center; font-variant-numeric: tabular-nums;
-}
-.pl-entered-result { justify-self: end; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; min-width: 0; }
-.pl-entered-result b { font-size: 20px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
-.pl-entered-result small { font-size: 11px; color: var(--ink-2); white-space: nowrap; }
-.pl-entered-scores { display: flex; justify-content: flex-end; gap: 20px; min-width: 0; }
-.pl-entered-expected { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
-.pl-entered-expected b { font-size: 20px; font-weight: 650; line-height: 1.1; font-variant-numeric: tabular-nums; }
-.pl-entered-expected small { font-size: 11px; color: var(--ink-2); }
-.pl-entered-result .pl-entered-verdict { max-width: 240px; white-space: normal; text-align: right; }
+.pl-lu-score .need b { color: var(--ink); font-weight: 600; }
 .pl-entered-wait,
 .pl-entered-empty {
   margin-top: 14px;
@@ -1493,10 +1448,6 @@
   }
   .pl-entered { padding: 18px 16px; border-radius: 22px; }
   .pl-entered-head { align-items: flex-start; }
-  .pl-entered-lineup { grid-template-columns: minmax(0, 1fr) auto; gap: 11px 14px; }
-  .pl-entered-cards { grid-column: 1 / -1; }
-  .pl-entered-status { justify-self: start; }
-  .pl-entered-scores { grid-column: 1 / -1; grid-row: 3; justify-content: flex-start; }
   .pl-entered-empty { align-items: flex-start; flex-direction: column; }
   .pl-plans {
     display: flex;
@@ -1886,8 +1837,6 @@
   box-shadow: var(--shadow-card, 0 0 0 1px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.02), 0 12px 32px rgba(0, 0, 0, 0.05));
 }
 .pl-onsorare .pl-entered { margin: 0; padding: 0; background: none; box-shadow: none; border-radius: 0; }
-.pl-onsorare .pl-entered-lineup { grid-template-columns: minmax(0, 1fr) auto; }
-.pl-onsorare .pl-entered-cards { grid-column: 1 / -1; grid-row: 2; }
 .pl-early h2 { margin: 0; font-size: 18px; font-weight: 650; }
 .pl-early p:last-child { margin: 8px 0 0; font-size: 13px; color: var(--ink-2); line-height: 1.5; }
 .pl-apply { margin-top: 18px; display: flex; flex-direction: column; gap: 8px; }
@@ -1913,7 +1862,8 @@
 .pl-board .pl-alloc-key b { font-weight: 600; }
 
 .pl-cols,
-.pl-board .pl-lu {
+.pl-board .pl-lu,
+.pl-entered .pl-entered-lineup {
   display: grid;
   grid-template-columns: 160px minmax(0, 1fr) 140px 290px;
   gap: 28px;
@@ -1935,12 +1885,12 @@
 .pl-lu-c .nm { font-size: 16px; font-weight: 650; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pl-lu-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; max-width: 100%; }
 .pl-lu-tags .pl-fmt { white-space: normal; }
-.pl-board .pl-cards { gap: 8px; align-items: flex-start; min-width: 0; padding: 8px 4px 2px; }
-.pl-board .pl-mc { flex: 1 1 0; width: auto; min-width: 0; max-width: 62px; display: flex; flex-direction: column; align-items: center; }
-.pl-board .pl-mc.sub { max-width: 50px; }
-.pl-board .pl-mc .art { border-radius: 7px; }
-.pl-board .pl-mc .c { left: auto; right: -6px; top: -6px; width: 20px; height: 20px; font-size: 11px; }
-.pl-board .pl-mc .is { right: auto; left: -4px; bottom: auto; top: -4px; }
+:is(.pl-board, .pl-entered) .pl-cards { gap: 8px; align-items: flex-start; min-width: 0; padding: 8px 4px 2px; }
+:is(.pl-board, .pl-entered) .pl-mc { flex: 1 1 0; width: auto; min-width: 0; max-width: 62px; display: flex; flex-direction: column; align-items: center; }
+:is(.pl-board, .pl-entered) .pl-mc.sub { max-width: 50px; }
+:is(.pl-board, .pl-entered) .pl-mc .art { border-radius: 7px; }
+:is(.pl-board, .pl-entered) .pl-mc .c { left: auto; right: -6px; top: -6px; width: 20px; height: 20px; font-size: 11px; }
+:is(.pl-board, .pl-entered) .pl-mc .is { right: auto; left: -4px; bottom: auto; top: -4px; }
 .pl-mc .hx {
   position: relative; margin-top: -12px; width: 34px; height: 29px; display: grid; place-items: center;
   clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
@@ -1949,8 +1899,8 @@
 .pl-mc.sub .hx { width: 28px; height: 24px; font-size: 11px; }
 .pl-mc .hx.dnp { background: var(--track); color: var(--ink-2); font-size: 10px; }
 .pl-mc .nm { margin-top: 3px; max-width: 100%; font-size: 11px; font-weight: 550; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pl-board .pl-cards .div { margin: 6px 2px 30px; }
-.pl-board .pl-cards .sl { align-self: center; margin-bottom: 28px; }
+:is(.pl-board, .pl-entered) .pl-cards .div { margin: 6px 2px 30px; }
+:is(.pl-board, .pl-entered) .pl-cards .sl { align-self: center; margin-bottom: 28px; }
 .pl-lu-score .pl-kv b { font-size: 40px; line-height: 0.95; letter-spacing: -0.04em; }
 .pl-lu-score .need { display: block; margin-top: 4px; font-size: 12px; color: var(--ink-2); }
 .pl-lu-score .need em { font-style: normal; color: var(--ink); font-weight: 600; }
@@ -1969,14 +1919,14 @@
 .pl-board .pl-lu:hover .pl-dial::after { background: var(--hover); }
 
 @media (max-width: 1100px) {
-  .pl-cols, .pl-board .pl-lu { grid-template-columns: 140px minmax(0, 1fr) 110px 230px; gap: 18px; }
+  .pl-cols, .pl-board .pl-lu, .pl-entered .pl-entered-lineup { grid-template-columns: 140px minmax(0, 1fr) 110px 230px; gap: 18px; }
 }
 @media (max-width: 900px) {
   .pl-top { grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .pl-cols { display: none; }
   .pl-board { padding: 18px 16px 4px; }
-  .pl-board .pl-lu { grid-template-columns: minmax(0, 1fr) auto; gap: 12px 14px; }
-  .pl-board .pl-lu .pl-cards { grid-column: 1 / -1; grid-row: 2; }
+  .pl-board .pl-lu, .pl-entered .pl-entered-lineup { grid-template-columns: minmax(0, 1fr) auto; gap: 12px 14px; }
+  :is(.pl-board .pl-lu, .pl-entered-lineup) .pl-cards { grid-column: 1 / -1; grid-row: 2; }
   .pl-lu-rew { grid-column: 1 / -1; }
   .pl-board .pl-mc + .pl-mc { margin-left: 0; }
   .pl-board-head .pl-mode { margin-left: 0; }

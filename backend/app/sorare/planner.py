@@ -573,13 +573,12 @@ def value(lineup: Lineup, cash_norm: float, essence_norm: float) -> float:
     return lineup.e_cash / cash_norm + lineup.net_essence / essence_norm
 
 
-NEVER_ENTER = frozenset({"all_star"})  # essence kinds that are never entered
+LAST = frozenset({"all_star"})  # essence kinds that are built after every other competition has taken its cards
 
 
 def enterable(comp: Competition) -> bool:
-    """The owner, 13 Oct 2026: All Star and Cap 260 burn essence, so no lineup of an All Star competition and none of a Room that
-    charges a fee goes in any plan. Those cards go to Champion, the in-season lineups and Pro levels."""
-    return comp.essence_kind not in NEVER_ENTER and not comp.fee
+    """The owner, 13 Oct 2026: a Room that charges a fee (All Star Cap 260) goes in no plan. An All Star lineup may: it is built last."""
+    return not comp.fee
 
 
 def worth_entering(lineup: Lineup) -> bool:
@@ -629,6 +628,8 @@ def make_plan(
                     )
         if not options:
             break
+        # An All Star lineup is built last (13 Oct): only when no other competition can take the cards left.
+        options = [o for o in options if o[2].comp.essence_kind not in LAST] or options
         options.sort(key=lambda o: (-o[1], o[0], -o[2].p_return, -value(o[2], cash_norm, essence_norm)))
         top = options[:4]
         if temperature > 0 and len(top) > 1:

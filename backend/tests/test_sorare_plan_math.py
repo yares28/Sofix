@@ -87,25 +87,26 @@ def test_expected_essence_comes_before_the_owners_essence_order():
     assert first.lineups[0].comp.essence_kind == "champion"
 
 
-def test_champion_essence_is_ranked_first_by_default():
-    assert ESSENCE_ORDER[0] == "champion"
+def test_the_default_essence_order_is_laliga_then_champion_then_all_star():
+    assert ESSENCE_ORDER == ("laliga", "champion", "all_star")
 
 
-def test_all_star_and_rooms_with_a_fee_are_never_in_a_plan_however_good_they_look():
-    # The owner, 13 Oct 2026: All Star and Cap 260 burn essence; his cards go to Champion, the in-season lineups and Pro.
-    cards = squad(5)
-    fc = forecasts_for(cards, p=1.0, mu=60.0)
+def test_an_all_star_lineup_is_built_last_however_good_it_looks_and_a_room_with_a_fee_never():
+    # The owner, 13 Oct 2026: All Star is built last (alone, it is entered); a Room that charges a fee (Cap 260) never is.
+    fc_for = lambda cards: forecasts_for(cards, p=1.0, mu=60.0)  # noqa: E731
     tiers, ref = [rules.Tier(1, 1500, essence=2500)], {1500: 200.0}
-    laliga = in_season_comp(tiers=[rules.Tier(1, 1500, essence=250)], reference={1500: 255.0})
+    laliga = in_season_comp(tiers=[rules.Tier(1, 1500, essence=250)], reference={1500: 255.0}, teams_cap=1)
     star = in_season_comp(key="All Star | Limited", tiers=tiers, reference=ref, leagues=None)
     room = room_comp(tiers=[rules.Tier(1, 3, essence=5000)], reference_rooms=[100.0] * 10)
-    assert worth_entering(build(laliga, cards, fc, np.random.default_rng(8), keep=1)[0])
-    assert not worth_entering(build(star, cards, fc, np.random.default_rng(8), keep=1)[0])
-    rich = build(room, cards, fc, np.random.default_rng(8), keep=1)[0]
-    assert rich.net_essence > 0 and not worth_entering(rich)  # it would pay, and still is not entered
-    found = plans([laliga, star, room], cards, fc, count=2, runs=2, draws=600)
+    one = squad(5)  # one lineup's worth: LaLiga takes it though All Star pays ten times more
+    found = plans([laliga, star, room], one, fc_for(one), count=2, runs=2, draws=600)
     assert {lu.comp.key for p in found for lu in p.lineups} == {laliga.key}
     assert all(p.fees == 0 for p in found)
+    two = squad(10)  # a second lineup's worth is left over: All Star gets it, after LaLiga
+    best = plans([laliga, star, room], two, fc_for(two), count=1, runs=2, draws=600)[0]
+    assert [lu.comp.key for lu in best.lineups] == [laliga.key, star.key]
+    alone = plans([star], one, fc_for(one), count=1, runs=2, draws=600)[0]
+    assert [lu.comp.key for lu in alone.lineups] == [star.key]
 
 
 def test_one_simulation_for_a_plan_does_not_count_the_same_players_twice():

@@ -557,7 +557,7 @@ the held-out weeks (P9 "The bar").
 
 ## Results
 
-- **13 Oct - lineup building (lineups-and-xscore.md Phase 1):** no plan enters an All Star lineup or a fee-paying Room, Champion essence first; start chances moved to
+- **13 Oct - lineup building (lineups-and-xscore.md Phase 1):** no plan enters a fee-paying Room, an All Star lineup is built last (from the cards left), essence order LaLiga, Champion, All Star; start chances moved to
   what happened from 100 settled games per run of chances (shown on the Audit); no starter under 30% to play; a player's own league counts for his start chance.
   GW21 replanned: fees 0, best plan 651 essence expected and no fees (the frozen plan said 1,056 before 600 in fees, 456 net), no keeper under 30% in any lineup. Phases 2 to 6 wait for the owner's go.
 

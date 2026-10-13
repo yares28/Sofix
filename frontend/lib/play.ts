@@ -67,7 +67,7 @@ export const SCORE_SOURCE_NAME: Record<ScoreSource, string> = {
 
 /** The essence a competition pays, by its league (the owner, 6 Oct 2026). */
 export const ESSENCE_NAME: Record<string, string> = { laliga: "LaLiga", champion: "Champion", all_star: "All Star" };
-export const DEFAULT_ESSENCE_ORDER = ["champion", "laliga", "all_star"] as const;
+export const DEFAULT_ESSENCE_ORDER = ["laliga", "champion", "all_star"] as const;
 export const essenceName = (kind: string | undefined): string =>
   kind ? (ESSENCE_NAME[kind] ?? kind.split("_").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")) : "";
 

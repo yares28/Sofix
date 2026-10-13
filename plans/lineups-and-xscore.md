@@ -38,16 +38,17 @@ SELECTs, `backend/data/raw/sorare_games.jsonl`, two seasons replayed week by wee
 
 **The owner's rules (13 Oct 2026):**
 - The xScore is for building lineups. One number per player; two numbers judged after the game is cheating.
-- All Star and Cap 260 cost 300 essence to enter and burn essence: do not enter them. All Star's essence type
-  is not worth it; prefer Champion essence. Use those cards to hit **Pro levels** instead (GW21: 2 lineups
-  tried, 1 hit, 500 essence).
+- Cap 260 (a Room with a 300 essence fee) is never entered. All Star is **not banned**: its lineup is built
+  **last**, from the cards the other competitions left (and entered when it is all there is). Essence order:
+  **LaLiga, Champion, All Star** (he never asked for Champion first). Spare cards can go to **Pro levels**
+  (GW21: 2 lineups tried, 1 hit, 500 essence). Corrected 13 Oct after Phase 1 shipped the stricter reading.
 - Keep strategy comparisons in the Audit, every gameweek, including his own: keeper with his own defender
   ("nothing or win big").
 - Say whether a big lineup score was built on data or a fluke.
 
 ## Phase 1 · Lineup building (ship first)
 
-1. **Board preferences.** No fee-paying All Star or Cap 260 lineup in any plan; Champion essence ranked first.
+1. **Board preferences.** No fee-paying Room (Cap 260); All Star built last; essence order LaLiga, Champion, All Star.
    `backend/app/sorare/planner.py` (`worth_entering`, `priority`, `PRIORITY_FLOOR`) and where the essence
    order is set (`rules.py` / `publish.py`). Check: GW21's frozen pool replanned has no All Star/Cap lineup
    and fees 0; the freed cards land in Champion and in-season lineups.

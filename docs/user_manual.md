@@ -213,7 +213,7 @@ xScore, **Sorare** on Sorare's own projections (game by game, read for that week
 competitions and chances of starting; only the expected score differs, so you can compare them, and the Audit scores both.
 Until Sorare publishes its projections (about two days before the lock) the Sorare view says when they are due.
 
-**Essence preference.** Under the lineups, **Essence preference** lists the preferred essence order: Champion, then LaLiga, then
+**Essence preference.** Under the lineups, **Essence preference** lists the preferred essence order: LaLiga, then Champion, then
 All Star unless you change it (↑ ↓, then **Save and replan**, which starts a refresh; the plans follow it about six minutes
 later). Sofix prioritizes expected essence rewards, with your essence preference and reward chance breaking ties.
 **Best** marks the plan with the highest expected essence and opens by default. While the gameweek is the one being
@@ -258,8 +258,9 @@ nothing. Play never shows a share of a reward. A lineup's sheet lists every leve
 it in the week the chances come from ("311+ · #301–1,500"), what it pays, and the chance of scoring at least that, so the
 first level's chance is the lineup's reward chance. A Room lists its places instead. **XP** levels (500 to 1,000 XP for
 LaLiga ranks 1,501 to 3,500, Room places 4 and 5) are listed and given their own chance, but XP never counts as being paid.
-A Room's entry fee is shown as "300 to enter", but no plan enters a Room that charges a fee, and none enters an All Star
-lineup (13 Oct): they burn essence, so those cards go to Champion and the in-season lineups; they are listed under "not worth it".
+A Room's entry fee is shown as "300 to enter", but no plan enters a Room that charges a fee (All Star Cap 260, 13 Oct). An All
+Star lineup is built last: it only gets the cards LaLiga and Champion could not use, and where it is the only competition open it is
+entered all the same.
 No lineup starts a player who is under 30% likely to play (13 Oct): a keeper at 5 to 20% is a zero the lineup cannot make up, so his cards
 are left for other lineups or the bench.
 A player outside LaLiga (Bundesliga, Premier League, Segunda) has his own league's games counted for "will he start?": a regular is no

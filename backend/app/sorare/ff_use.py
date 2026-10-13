@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import dataclasses
 from collections.abc import Iterable, Mapping
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from app.services import team_registry
@@ -32,6 +32,7 @@ if TYPE_CHECKING:
 
 _LESION = {OUT: "out", DOUBT: "doubt", AVAILABLE: "available"}
 _NOT_PLAYING = ("out", "suspended")
+SAME_KICKOFF = timedelta(hours=3)  # two sites' times for one game, when only one of its clubs can be told
 
 
 def _dt(value: str) -> datetime:
@@ -132,11 +133,21 @@ class Lineups:
         held = [item.match for item in self._all]
         out: list[tuple[str, int, str]] = []
         for game in games:
-            found = ff_link.match_of_game(
-                game.get("team") or "", game.get("opponent") or "", _dt(game["kickoff"]), held
-            )
+            team, kickoff = game.get("team") or "", _dt(game["kickoff"])
+            found = ff_link.match_of_game(team, game.get("opponent") or "", kickoff, held)
             if found is None:
-                continue
+                # A foreign opponent is named differently on the two sites ("Man United", "Manchester United") and the registry
+                # holds LaLiga's clubs only: his own club's one match at that hour is the game.
+                own = [
+                    (match, side)
+                    for match in held
+                    if match.kickoff is not None and abs(match.kickoff - kickoff) <= SAME_KICKOFF
+                    for side in (match.home, match.away)
+                    if ff_link.same_club([team], side)
+                ]
+                if len(own) != 1:
+                    continue
+                found = own[0]
             person = ff_link.find_person(found[1], link)
             if person is not None and person.ff_id:
                 out.append((game["id"], found[0].match_id, person.ff_id))

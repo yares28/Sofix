@@ -502,7 +502,12 @@ def test_a_match_is_tied_to_its_sorare_game_with_or_without_a_percentage(real: l
     game = {"id": "Game:a", "team": "Real Sociedad", "opponent": "Deportivo", "kickoff": kickoff.isoformat()}
 
     assert [(g, m) for g, m, _ in lineups.joins("mikel-oyarzabal-ugarte", [game])] == [("Game:a", 22502)]
-    assert lineups.joins("mikel-oyarzabal-ugarte", [{**game, "opponent": "Osasuna"}]) == []
+    # an opponent the two sites name differently (a foreign club): his own club's one match at that hour is the game
+    assert [m for _, m, _ in lineups.joins("mikel-oyarzabal-ugarte", [{**game, "opponent": "Dépor La Coruña"}])] == [
+        22502
+    ]
+    late = {**game, "opponent": "Somebody", "kickoff": (kickoff + timedelta(days=1)).isoformat()}
+    assert lineups.joins("mikel-oyarzabal-ugarte", [late]) == []
     assert lineups.joins("nobody", [game]) == []
 
     links = {22502: {"id": "Game:a", "players": {"mikel-oyarzabal-ugarte": "x"}}}

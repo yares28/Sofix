@@ -593,10 +593,26 @@ async function readOpenSession() {
   return { state: "unknown" };
 }
 
+// Asks the app to start a refresh when a lock is under three hours away (the app decides; roadmap 9.8). At most every 10 minutes.
+async function nearLock() {
+  const { lastNearLock = 0 } = await chrome.storage.local.get("lastNearLock");
+  if (Date.now() - lastNearLock < 10 * 60_000) return;
+  await chrome.storage.local.set({ lastNearLock: Date.now() });
+  try {
+    await fetch(`${CONFIG.appUrl}/api/ext/near-lock`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${CONFIG.token}`, "x-vercel-protection-bypass": CONFIG.bypass },
+    });
+  } catch {
+    // offline: the next sorare.com visit asks again
+  }
+}
+
 async function refreshSession() {
   try {
     const found = await readOpenSession();
     if (found.state !== "signed-in" && found.state !== "signed-out") return found.state;
+    nearLock(); // a sorare.com tab is open
     const user = found.state === "signed-in" ? found.user || null : null;
     const { sorareUser = null } = await chrome.storage.local.get(["sorareUser"]);
     if (sorareUser !== user) {

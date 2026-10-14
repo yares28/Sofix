@@ -388,6 +388,7 @@ def player_weeks(
             game_scores=tuple(o.start for o in made.outcomes),
             shape=made.outcomes[0] if made.outcomes else None,
             sub=made.sub,
+            game_dec=tuple(o.p_decisive for o in made.outcomes),
             dec=own_decisive(past, pos),
         )
     return weeks

@@ -55,7 +55,7 @@ export type PlayCard = {
   sorare?: number;
   start?: number;
   on?: number;
-  /** His expected decisive actions in his first game (the lineup's xD is its starters' added up). */
+  /** His expected decisive actions in his better game of the week (the lineup's xD is its starters' added up). */
   xd?: number;
 };
 
@@ -315,7 +315,7 @@ export type PlayingPlayer = {
   /** The picture behind his score if he starts, and if he comes on (plans/xscore.md, X5a): the chance of a decisive action, the score with and without one, where he lands 8 times in 10, what moves it. */
   shape?: Shape;
   onShape?: Shape;
-  /** His expected decisive actions in his first game: from the game when Sofix works it out, else from his own record of starts. */
+  /** His expected decisive actions in his better game of the week: from the game when Sofix works it out, else from his own record of starts. */
   xd?: number;
   /**
    * His xG in one game he starts, for an average game of his side, from Understat's season so far (plans/overlay.md, O11):

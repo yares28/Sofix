@@ -133,11 +133,15 @@ def test_a_lineups_xd_counts_each_starters_chance_of_a_decisive_action_or_is_mis
     sub = SubShape(0.1, 20.0, 10.0, 10.0, 50)
     # his game worked out: its own chance if he starts, his position's if he comes on, each by its chance
     odds = {"games": 1, "plays_odds": 1.0, "start_odds": 0.5, "sub": sub}
-    worked = forecast(PlayerWeek(**odds, game_scores=(46.0,), shape=shape, dec=0.9))
+    worked = forecast(PlayerWeek(**odds, game_scores=(46.0,), shape=shape, game_dec=(0.4,), dec=0.9))
     assert worked.xd == 0.25  # 0.5 x 0.4 + 0.5 x 0.1
     # a game outside the model (a European night): his own record stands in, so no player is left without a number
     assert forecast(PlayerWeek(**odds, dec=0.2)).xd == 0.15  # 0.5 x 0.2 + 0.5 x 0.1
     assert forecast(PlayerWeek(**odds)).xd is None
+    # two games in the week: the better game's, as Sorare keeps his better score (never both added up)
+    two = {**odds, "games": 2, "game_scores": (46.0, 50.0), "shape": shape}
+    assert forecast(PlayerWeek(**two, game_dec=(0.4, 0.6))).xd == 0.35  # 0.5 x 0.6 + 0.5 x 0.1
+    assert forecast(PlayerWeek(**{**odds, "games": 2}, dec=0.2)).xd == 0.15
 
     start = {"played": True, "started": True}
     past = [

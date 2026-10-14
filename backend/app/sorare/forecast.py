@@ -80,6 +80,7 @@ class PlayerWeek:
     ] = ()  # his score if he starts in each game, worked out from the game itself (scores.py), kickoff order
     shape: Any = None  # the picture of his first game behind that score (`keeper.Outcome`)
     sub: Any = None  # his position's picture of a substitute (`outfield.SubShape`)
+    game_dec: tuple[float, ...] = ()  # the chance of a decisive action if he starts, for each game of `game_scores`
     # how often his own starts brought a decisive action (`publish.own_decisive`): his xD when no game of his is worked out
     dec: float | None = None
     # dates in `history` of games outside LaLiga: Sofix's chance of starting leaves them out
@@ -272,10 +273,12 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
     # A double gameweek: he has to miss both to score nothing, and the better of the two games counts.
     if week.games > 1 and p_any > 0:
         mu += 0.56 * sd * both / p_any
-    # Expected decisives, first game: the game's own chance when it is worked out, else his record; a substitute's is his position's.
-    if_start = shape.p_decisive if shape is not None else week.dec
+    # Expected decisives: each game's own chance when it is worked out, else his record; a substitute's is his position's. With two
+    # games in the week it is the better game's, as Sorare keeps his better score (the owner, 14 Oct 2026).
+    if_starts = week.game_dec if shape is not None else (() if week.dec is None else (week.dec,) * week.games)
     if_on = week.sub.p if week.sub is not None else 0.0
-    xd = None if if_start is None else round(p_start * if_start + p_on * if_on, 3)
+    starts = [(c.p_start, c.p_on) for c in per_game] or [(p_start, p_on)] * len(if_starts)
+    xd = max((round(ps * dec + po * if_on, 3) for (ps, po), dec in zip(starts, if_starts, strict=False)), default=None)
     return Forecast(
         xd=xd,
         p_play=round(p_any, 4),

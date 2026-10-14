@@ -45,9 +45,13 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
   }, [week.slug, week.end, asked]);
 
   // Lineups entered on Sorare in another tab show up when you come back here (Control does the same for the extension).
+  // Only after a minute away: some windows (the desktop app's browser pane) flip visibility every second, and each ask
+  // reads the saved weeks from Neon, whose free plan counts every byte (14 Oct 2026: ~1 MB a second from one open tab).
   useEffect(() => {
+    let hiddenAt = 0;
     const again = () => {
-      if (document.visibilityState === "visible") setAsked((n) => n + 1);
+      if (document.visibilityState === "hidden") hiddenAt = Date.now();
+      else if (hiddenAt && Date.now() - hiddenAt >= 60_000) setAsked((n) => n + 1);
     };
     document.addEventListener("visibilitychange", again);
     return () => document.removeEventListener("visibilitychange", again);

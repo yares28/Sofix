@@ -37,7 +37,7 @@ def run(db: Session, client: SorareClient, now: datetime) -> dict[str, Any]:
     )
     if not slugs:
         return {"players": 0, "read": 0, "at": now.isoformat()}
-    kept = player_games.load(db)
+    kept = player_games.known(db)
     pool_row = db.get(ReadModel, "missions_pool")
     forms = ((pool_row.payload if pool_row else {}).get("sheets") or {}).get("players", {})
     previous_status = db.get(ReadModel, LEAGUE_STATUS_KEY)

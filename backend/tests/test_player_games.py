@@ -114,3 +114,34 @@ def test_read_times_is_load_without_the_games(db):  # noqa: F811
     put(db, "k", {"n": 1}, NOW)
     put(db, "k", {"n": 2}, NOW + timedelta(minutes=1))
     assert db.get(ReadModel, "k").payload == {"n": 2}
+
+
+def test_known_holds_what_the_league_read_needs_from_load(db):  # noqa: F811
+    from app.sorare import player_games
+
+    games = [
+        {
+            "gameId": "g1",
+            "date": "2026-08-01T19:00:00Z",
+            "competition": "laliga-es",
+            "status": "FINAL",
+            "score": 50,
+            "played": True,
+            "started": True,
+            "mins": 90,
+            "stats": [{"stat": "goals", "statValue": 1, "totalScore": 25}],
+        },
+        {
+            "gameId": "g2",
+            "date": "2026-10-05T19:00:00Z",
+            "competition": "laliga-es",
+            "status": "PENDING",
+            "score": None,
+        },
+    ]
+    player_games.save(db, {"a": games}, NOW)
+    full, light = player_games.load(db), player_games.known(db)
+    assert light["a"]["at"] == full["a"]["at"]
+    assert light["a"]["games"] == [
+        {key: game[key] for key in ("gameId", "date", "status")} for game in full["a"]["games"]
+    ]

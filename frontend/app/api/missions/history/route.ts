@@ -22,8 +22,9 @@ export async function POST(request: NextRequest) {
   let mission = log?.payload.days[input.day]?.[input.rarity]?.missions.find((m) => m.key === input.mission);
   if (!mission && input.mission === DAILY_PICKER.id) {
     const logs = await loadMissionLog();
-    const owner = await sql`SELECT payload FROM read_models WHERE key = 'sorare'` as { payload: { collection?: { rarity: string }[] } }[];
-    const owned = logs.some((l) => Object.values(l.days).some((d) => d[input.rarity])) || owner[0]?.payload.collection?.some((c) => c.rarity === input.rarity);
+    // Only the answer, not the 0.9 MB collection: Neon's free plan counts every byte it sends.
+    const owner = await sql`SELECT EXISTS (SELECT 1 FROM read_models, json_array_elements(payload->'collection') AS c WHERE key = 'sorare' AND c->>'rarity' = ${input.rarity}) AS owned` as { owned: boolean }[];
+    const owned = logs.some((l) => Object.values(l.days).some((d) => d[input.rarity])) || owner[0]?.owned;
     const baseline = owned ? fillMissionDays(logs, [input.rarity], new Date())[0]?.days[input.day]?.[input.rarity] : undefined;
     if (baseline?.missions.some((m) => m.key === input.mission)) {
       const saved = await mergeMissionRecord<MonthLog>(`${DAY_PREFIX}${input.day}:${input.rarity}`, (before) => before ?? { days: { [input.day]: { [input.rarity]: baseline } } });

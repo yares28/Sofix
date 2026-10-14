@@ -1,12 +1,13 @@
-"""Keep production on whichever of the two free Neon projects still has room (owner's ask, 14 Oct 2026).
+"""Keep production on whichever free Neon project still has room (owner's ask, 14 Oct 2026).
 
     python -m app.jobs.neon_switch          # pick the live project
     python -m app.jobs.neon_switch --move   # the refresh job: also move when the live one nears its limit
 
-POSTGRES_URL and POSTGRES_URL_SPARE point at the two projects (Sofix and FDR); both hold the same tables. The live one is
-the one whose `read_models` was written last, the same rule the app uses (frontend/lib/db.ts), so nothing has to be
-stored about which is live. With --move and NEON_API_KEY, when the live project has sent LIMIT_BYTES this month and the
-other has not, every table is copied across first and the other one becomes live. The live URL goes to $GITHUB_ENV as
+POSTGRES_URL and POSTGRES_URL_SPARE (one or more URLs, separated by spaces or new lines) point at the projects (Sofix,
+FDR, Sofix B); all hold the same tables. The live one is the one whose `read_models` was written last, the same rule the
+app uses (frontend/lib/db.ts), so nothing has to be stored about which is live. With --move and NEON_API_KEY, when the
+live project has sent LIMIT_BYTES this month, every table is copied to the answering project that has sent the least
+(under the limit) and that one becomes live. The live URL goes to $GITHUB_ENV as
 POSTGRES_URL for the next steps. Only the app login (rows only) is needed: sequences are moved on with nextval.
 """
 
@@ -58,8 +59,12 @@ def pick(stamps: list[float | None]) -> int | None:
     return max(answering, key=lambda i: stamps[i] or 0.0) if answering else None
 
 
-def should_move(sent_live: int | None, sent_other: int | None, limit: int = LIMIT_BYTES) -> bool:
-    return sent_live is not None and sent_other is not None and sent_live >= limit > sent_other
+def move_to(live: int, sent: list[int | None], stamps: list[float | None], limit: int = LIMIT_BYTES) -> int | None:
+    """The project to move to: none while the live one is under the limit, else the answering one that sent least."""
+    if (sent[live] or 0) < limit:
+        return None
+    room = [i for i, b in enumerate(sent) if i != live and b is not None and b < limit and stamps[i] is not None]
+    return min(room, key=lambda i: sent[i] or 0) if room else None
 
 
 def sent_bytes(urls: list[str], key: str) -> list[int | None]:
@@ -159,29 +164,28 @@ def main() -> int:
     )
     args = parser.parse_args()
     configure_logging()
-    urls = [u for u in (os.environ.get("POSTGRES_URL", ""), os.environ.get("POSTGRES_URL_SPARE", "")) if u]
+    urls = [u for u in [os.environ.get("POSTGRES_URL", ""), *os.environ.get("POSTGRES_URL_SPARE", "").split()] if u]
     if not urls:
         logger.error("POSTGRES_URL is not set")
         return 1
-    stamps = [last_write(url) if len(urls) > 1 else 0.0 for url in urls]
+    stamps: list[float | None] = [last_write(url) for url in urls] if len(urls) > 1 else [0.0]
     live = pick(stamps)
     if live is None:
-        logger.error("neither Neon project answers (both out of quota until the 1st?)")
+        logger.error("no Neon project answers (all out of quota until the 1st?)")
         return 1
-    other = 1 - live if len(urls) > 1 else None
     key = os.environ.get("NEON_API_KEY", "")
-    if args.move and key and other is not None and stamps[other] is not None:
-        sent = sent_bytes(urls, key)
-        if should_move(sent[live], sent[other]):
+    if args.move and key and len(urls) > 1:
+        target = move_to(live, sent_bytes(urls, key), stamps)
+        if target is not None:
             # ponytail: a job writing to the old project during the copy loses that write; jobs run minutes apart.
             logger.info(
-                "moving to %s: %s has sent its %d GB",
-                endpoint_id(urls[other]),
+                "moving to %s: %s has sent %d GB",
+                endpoint_id(urls[target]),
                 endpoint_id(urls[live]),
                 LIMIT_BYTES // 1024**3,
             )
-            copy_all(urls[live], urls[other])
-            live = other
+            copy_all(urls[live], urls[target])
+            live = target
     logger.info("live project: %s", endpoint_id(urls[live]))
     if path := os.environ.get("GITHUB_ENV"):
         with open(path, "a", encoding="utf-8") as env:

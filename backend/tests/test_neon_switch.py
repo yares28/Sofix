@@ -1,4 +1,4 @@
-from app.jobs.neon_switch import LIMIT_BYTES, endpoint_id, pick, should_move, table_order
+from app.jobs.neon_switch import LIMIT_BYTES, endpoint_id, move_to, pick, table_order
 
 GB = 1024**3
 
@@ -15,11 +15,12 @@ def test_live_project_is_the_one_written_last_among_those_answering() -> None:
     assert pick([None, None]) is None
 
 
-def test_moves_only_when_live_is_near_the_limit_and_the_other_has_room() -> None:
-    assert should_move(int(4.2 * GB), int(1 * GB))
-    assert not should_move(int(3.9 * GB), int(1 * GB))
-    assert not should_move(int(4.2 * GB), int(4.5 * GB))  # both full: stay
-    assert not should_move(int(4.2 * GB), None)  # other's usage unknown: stay
+def test_moves_at_the_limit_to_the_answering_project_that_sent_least() -> None:
+    up = [1.0, 1.0, 1.0]
+    assert move_to(0, [int(3.9 * GB), GB, GB], up) is None  # under the limit: stay
+    assert move_to(0, [int(4.2 * GB), int(3 * GB), int(0.5 * GB)], up) == 2
+    assert move_to(0, [int(4.2 * GB), int(3 * GB), int(0.5 * GB)], [1.0, 1.0, None]) == 1  # least-used one is down
+    assert move_to(1, [int(5.2 * GB), int(4.5 * GB), None], up) is None  # nowhere with room, or usage unknown
     assert LIMIT_BYTES < 5 * GB
 
 

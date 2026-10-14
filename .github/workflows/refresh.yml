@@ -35,14 +35,34 @@ on:
 
 permissions:
   contents: read
+  actions: read # the push gate below lists this workflow's recent runs
 
 concurrency:
   group: refresh
   cancel-in-progress: false
 
 jobs:
+  # A refresh reads ~28 MB from Neon, whose free plan sends 5 GB a month. 28 of 42 runs on 12-14 Oct 2026 came from pushes,
+  # so a push refreshes only when no run started in the last 3 hours; the schedule and the app's button are unchanged.
+  gate:
+    runs-on: ubuntu-24.04
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" != "push" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          since=$(date -u -d '3 hours ago' +%Y-%m-%dT%H:%M:%SZ)
+          recent=$(gh api "repos/${{ github.repository }}/actions/workflows/refresh.yml/runs?created=>$since&per_page=20"             --jq "[.workflow_runs[] | select(.id != ${{ github.run_id }})] | length")
+          if [ "$recent" = "0" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else
+            echo "::notice::A refresh ran in the last 3 hours; this push waits for the next one."; echo "run=false" >> "$GITHUB_OUTPUT"; fi
+
   refresh:
     name: Refresh data
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     defaults:

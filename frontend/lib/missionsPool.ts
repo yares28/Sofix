@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { cache } from "./cache";
-import { database, stamp } from "./db";
+import { database, keptInDev, stamp } from "./db";
 import { MISSIONS_TAG } from "./missions";
 import type { PlayingPlayer } from "./play";
 import type { Sheet, Sheets } from "./playerSheet";
@@ -13,15 +13,14 @@ export type MissionPool = { generatedAt: string; players: MissionPlayer[]; sheet
 // under the pool's write time (see readModelAt in lib/db.ts).
 const SHEET_PARTS = 4;
 const poolPart = unstable_cache(
-  async (part: number, updatedAt: string): Promise<unknown> => {
-    void updatedAt;
+  async (part: number, updatedAt: string): Promise<unknown> => keptInDev(`missions_pool#${part}@${updatedAt}`, async () => {
     const sql = database()!;
     const rows = (part < 0
       ? await sql`SELECT payload::jsonb #- '{sheets,players}' AS part FROM read_models WHERE key = 'missions_pool'`
       : await sql`SELECT COALESCE(jsonb_object_agg(e.key, e.value), '{}'::jsonb) AS part FROM read_models, jsonb_each(payload::jsonb #> '{sheets,players}') AS e
           WHERE read_models.key = 'missions_pool' AND abs(hashtext(e.key)) % ${SHEET_PARTS} = ${part}`) as { part: unknown }[];
     return rows[0]?.part ?? null;
-  },
+  }),
   ["mission-pool-part-v1"],
   { revalidate: 86400 },
 );

@@ -24,8 +24,8 @@ export async function POST(request: NextRequest) {
   if (batch.success && (Date.parse(batch.data.requestedAt) > Date.now() + 60_000 || Date.parse(batch.data.requestedAt) < Date.now() - 120_000))
     return NextResponse.json({ ok: false, error: "Expired import; retry." }, { status: 409 });
   if (batch.success) {
-    const rows = await sql`SELECT payload FROM read_models WHERE key = 'sorare'` as { payload: { user?: string } }[];
-    if (rows[0]?.payload.user && rows[0].payload.user.toLowerCase() !== batch.data.user.toLowerCase())
+    const rows = await sql`SELECT payload->>'user' AS user FROM read_models WHERE key = 'sorare'` as { user: string | null }[];
+    if (rows[0]?.user && rows[0].user.toLowerCase() !== batch.data.user.toLowerCase())
       return NextResponse.json({ ok: false, error: "This Sorare account is not the Sofix owner." }, { status: 403 });
   }
   try {

@@ -900,7 +900,7 @@ the extension that holds the token.
 | Control says the extension was "not seen lately", or the overlay's tag says SIGN IN or OFFLINE | Chrome was restarted, or the extension was reloaded while the tabs stayed as they were | Reload Sofix in `chrome://extensions`, reload the sorare.com tab, then open Sofix again |
 | Audit says "Too few to tell" | The source has fewer than 100 checked games, so a figure would be mostly luck | Wait: it fills as gameweeks are played; the counts show how far along it is |
 | Audit says "The audit appears after the next refresh" | No refresh has written the Audit page yet | Run a refresh from Control |
-| Database paused | Both free Neon projects (Sofix and FDR) used their monthly 5 GB; normally the app moves to the other project at 4 GB on its own (AGENTS.md "Neon projects") | Wait for the 1st; avoid repeated DB monitors |
+| Database paused | Every free Neon project (Sofix, FDR, Sofix B) used its monthly 5 GB; normally the app moves to another project at 4 GB on its own (AGENTS.md "Neon projects") | Wait for the 1st; avoid repeated DB monitors |
 | Refresh failed at a step | Source/schema/job error; older payload may still be visible | Inspect Control/GitHub run before trusting freshness |
 | Date TBC | Kickoff unassigned | Do not infer midnight or local date |
 

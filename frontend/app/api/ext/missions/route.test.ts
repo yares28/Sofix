@@ -12,7 +12,7 @@ let owner: string | null = null;
 const sql = async (strings: TemplateStringsArray, ...values: unknown[]) => {
   const text = strings.join("?");
   calls.push({ text, values });
-  if (text.includes("key = 'sorare'")) return owner ? [{ payload: { user: owner } }] : [];
+  if (text.includes("key = 'sorare'")) return owner ? [{ user: owner }] : [];
   if (text.includes("SELECT")) return stored ? [{ payload: stored }] : [];
   stored = JSON.parse(values.find((v) => typeof v === "string" && v.startsWith("{")) as string);
   return [{ key: "missions" }];

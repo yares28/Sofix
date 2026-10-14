@@ -94,6 +94,19 @@ def load(
     return out
 
 
+def known(db: Session) -> dict[str, Any]:
+    """`load`'s shape with only what the daily league read needs from each game (id, date, status): about a tenth of the
+    bytes `load` pulls from Neon, whose free plan sends 5 GB a month."""
+    out: dict[str, Any] = {}
+    query = select(PlayerGame.player, PlayerGame.game_id, PlayerGame.date, PlayerGame.status, PlayerGame.read_at)
+    for player, game_id, date, status, read_at in db.execute(query.order_by(PlayerGame.date.desc())):
+        entry = out.setdefault(player, {"at": "", "games": []})
+        if read_at:
+            entry["at"] = max(entry["at"], as_utc(read_at).isoformat())
+        entry["games"].append({"gameId": game_id, "date": as_utc(date).isoformat(), "status": status})
+    return out
+
+
 def read_times(db: Session, *, now: datetime | None = None, days: int | None = None) -> dict[str, Any]:
     """`load`'s shape without the games: who has games in the window and when he was last read. A refresh only needs
     that to tell a new player from a known one, and it is a few kilobytes where `load` is megabytes from Neon."""

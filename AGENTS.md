@@ -201,40 +201,53 @@ Neon production uses `fdr_app` DML-only, verify-full TLS. Destructive SQL/branch
 
 ### Neon projects (one account, all on the free plan; state of 14 Oct 2026)
 
-Two free projects take turns as production, automatically (owner's ask, 14 Oct 2026). Each sends 5 GB a month, then
-Neon refuses every query with HTTP 402 "exceeded the quota" until the 1st.
+Free projects take turns as production, automatically (owner's ask, 14 Oct 2026). Each sends 5 GB a month, then Neon
+refuses every query with HTTP 402 "exceeded the quota" until the 1st.
 
-| Project | Id | Endpoint (in its URL) | Setting names |
+| Project | Id | Endpoint (in its URL) | Where its URL lives |
 |---|---|---|---|
-| **Sofix** | `odd-darkness-24982497` | `ep-cold-cloud-b9akf8sh` (`c-7`) | GitHub `POSTGRES_URL`, Vercel `DATABASE_URL`; owner login in the git-ignored `.env.sofix-neon` |
-| **FDR** | `sparkling-bonus-46807220` | `ep-jolly-sun-b1a0xc1l` (`c-5`) | GitHub `POSTGRES_URL_SPARE`, Vercel `DATABASE_URL_SPARE` |
+| **Sofix** | `odd-darkness-24982497` | `ep-cold-cloud-b9akf8sh` (`c-7`) | GitHub `POSTGRES_URL`, Vercel `DATABASE_URL`; owner login in `.env.sofix-neon` |
+| **FDR** | `sparkling-bonus-46807220` | `ep-jolly-sun-b1a0xc1l` (`c-5`) | first URL of GitHub `POSTGRES_URL_SPARE` / Vercel `DATABASE_URL_SPARE` |
+| **Sofix B** | `square-poetry-39931505` | `ep-morning-paper-baxx0rh5` (`c-8`) | second URL of the same two spare settings; owner and app login in `.env.sofix-b-neon` |
 | **Trakzi** | `orange-waterfall-16223480` | | Another app of the owner's: never touch it from this repo |
 
-Both are eu-central-1, Postgres 18, same tables, login `fdr_app` (rows only). Never delete either without the owner.
+All are eu-central-1, Postgres 18, same tables, app login `fdr_app` (rows only). Never delete one without the owner.
+The spare settings hold one or more URLs separated by spaces; `.env.neon-spares` (git-ignored) has both current values.
+GitHub also needs `NEON_API_KEY` (an organization key) for the move.
 
 - **Which one is live:** the one whose `read_models` was written last. The app (`frontend/lib/db.ts`) and the jobs
   (`backend/app/jobs/neon_switch.py`, first step of the refresh, league-history and score-checks workflows) use the same
-  rule, so nothing stores the choice. A query refused for quota goes to the other project at once.
-- **The move:** the refresh runs `neon_switch --move`. With `NEON_API_KEY` it reads each project's data sent this month;
-  when the live one has sent 4 GB and the other has not, it copies every table across (refuses if `alembic_version`
-  differs), marks the target written last (`read_models` key `neon_live`) and the run carries on there. On the 1st both
-  reset and the live one stays live until it reaches 4 GB again.
-- **Migrations:** apply them to both projects (owner login of each), or the move refuses.
-- **Setup the owner does once** (secrets are his): GitHub secrets `POSTGRES_URL_SPARE` (FDR's `fdr_app` URL, as
-  `postgresql+psycopg://...`) and `NEON_API_KEY` (Neon console, Account settings, API keys; free); Vercel env
-  `DATABASE_URL_SPARE` (FDR's `fdr_app` URL, as `postgresql://...`). Without them everything runs on `POSTGRES_URL` /
-  `DATABASE_URL` alone, as before.
-- **Local:** `frontend/.env.local` has `DATABASE_URL` (Sofix) and `DATABASE_URL_SPARE` (FDR), so localhost switches
-  too. `frontend/.env.local.sofix` and `.env.local.fdr` keep each project's single setting. After the live project
-  changes, a dev server can keep serving cached "database is paused" pages: delete `frontend/.next` and restart it.
-- **Check usage:** Neon's `describe_project` (`data_transfer_bytes`; the counter lags by hours) or a `select 1`.
-- **History:** FDR was production 14 Sep to 12 Oct; Sofix took over 12 Oct from a copy
-  (`backend/data/raw/neon-backup-2026-10-12/`, git-ignored COPY files plus `manifest.json`). On 14 Oct Sofix ran out
-  after two days (7.16 GB sent) and could not be copied out; FDR (5.23 GB sent, still answering) became live with the
-  12 Oct data. What burned Sofix: the jobs (~28 MB a refresh, ~7 a day) plus local real-data dev servers: a fresh
-  `NEXT_DIST_DIR` (e.g. `.next-recap`) downloads every payload again, and two dev servers sharing `.next` corrupt each
-  other's cache, so the 2 MB `sorare` payload was re-read on every request. Run one real-data dev server at a time,
-  with its own dist dir; measure performance on mock data.
+  rule, so nothing stores the choice. A query refused for quota goes to the next project at once.
+- **The move:** the refresh runs `neon_switch --move`. When the live project has sent 4 GB this month it copies every table
+  to the answering project that has sent least (refuses if `alembic_version` differs), marks it written last (`read_models`
+  key `neon_live`) and the run carries on there. On the 1st all reset.
+- **Adding a project:** create it (same region), apply the migrations with its owner login, create `fdr_app` with the
+  same grants as FDR (`SELECT, INSERT, UPDATE, DELETE` on tables, `SELECT, USAGE` on sequences, matching default
+  privileges), append its `fdr_app` URL to both spare settings. The next move fills it.
+- **Migrations:** apply them to every project, or the move refuses.
+- **Local:** `frontend/.env.local` has `DATABASE_URL` (Sofix) and `DATABASE_URL_SPARE` (FDR, Sofix B).
+- **Check usage:** Neon's `describe_project` (`data_transfer_bytes`; it lags by hours) or a `select 1`.
+
+**What burned Sofix (7.16 GB in 12-14 Oct 2026), measured on 14 Oct:** about 0.3 GB came from the jobs; almost all the
+rest came from localhost.
+1. `npm run dev` skips Next's cache whenever the browser sends `Cache-Control: no-cache`, which every
+   `fetch(..., { cache: "no-store" })` and every hard reload does, and `lib/cache.ts` turns it off in dev on purpose. So each
+   such request downloaded its payloads again: `/api/my-week` pulled the 0.83 MB `sorare` payload plus 0.1 MB of weeks.
+2. `EnteredLineups` asked again on every `visibilitychange`, and the desktop app's browser pane flips visibility about
+   once a second, so one open Home or Play tab called `/api/my-week` every second: about 1 MB a second, ~3 GB an hour.
+3. 28 of the 42 refreshes (~28 MB each) were started by pushes, and league-history read the whole `player_games`
+   table (23 MB) every day.
+
+Fixed the same day: payloads in dev are kept on disk by key and write time (`keptInDev` in `lib/db.ts`, under
+`node_modules/.cache/sofix-neon`), so a no-cache request, a deleted `.next` or a new `NEXT_DIST_DIR` no longer downloads
+them again; saved weeks go through `readModelAt`; `EnteredLineups` re-asks only after a minute away; the two extension
+routes read one field of `sorare` instead of all of it; a push starts a refresh only if none started in the last
+3 hours; league-history reads a light index (`player_games.known`). The dev server logs every Neon read over 50 kB
+(`[neon] ... MB`), so a new leak shows in the terminal at once. Per day now: ~0.15-0.2 GB of jobs plus page views.
+
+History: FDR was production 14 Sep to 12 Oct; Sofix took over 12 Oct from a copy
+(`backend/data/raw/neon-backup-2026-10-12/`, git-ignored); on 14 Oct Sofix ran out, FDR (still answering at 5.23 GB)
+became live, and Sofix B was made and filled from FDR as the next one.
 
 Dev binds `127.0.0.1`; no Docker; port 5432 belongs elsewhere; run npm only from `frontend/`; Windows reload may miss
 model/schema edits. Preserve unrelated work. Commits: `<type>: <description>`.

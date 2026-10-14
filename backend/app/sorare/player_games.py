@@ -70,6 +70,39 @@ def _stats_of(db: Session, names: tuple[str, ...] | None) -> Any:
     ).label("stats")
 
 
+# A played FINAL game's `_context` zero names before this game's date: the first such game to name one keeps it.
+_EARLIER_ZEROS = (
+    "SELECT ARRAY(SELECT ez FROM player_games AS e, json_array_elements(e.stats) AS es,"
+    " json_array_elements_text(es->'zeros') AS ez WHERE e.player = player_games.player AND e.status = 'FINAL'"
+    " AND e.played AND e.date < player_games.date AND json_typeof(e.stats) = 'array' AND es->>'stat' = '_context'"
+    " AND json_typeof(es->'zeros') = 'array') AS a OFFSET 0"
+)
+# `{stat: value}` in the detailed score's order, `_context` holding only its new zero names: lean_stats' list, smaller.
+_LEAN_SQL = (
+    "CASE WHEN json_typeof(player_games.stats) = 'array' THEN (SELECT COALESCE(json_object_agg(s->>'stat',"
+    " CASE WHEN s->>'stat' = '_context' THEN (SELECT COALESCE(json_agg(z), '[]'::json) FROM"
+    f" ({_EARLIER_ZEROS}) AS earlier, json_array_elements_text(s->'zeros') AS z WHERE z <> ALL(earlier.a))"
+    " ELSE s->'statValue' END ORDER BY i), '{}'::json) FROM json_array_elements(player_games.stats)"
+    " WITH ORDINALITY AS t(s, i) WHERE s->>'stat' IS NOT NULL"
+    " AND (s->>'stat' <> '_context' OR json_typeof(s->'zeros') = 'array')) END"
+)
+
+
+def lean_stats(stats: list[dict[str, Any]], earlier: dict[str, datetime], date: datetime) -> list[dict[str, Any]]:
+    """What the readers of a game's detailed score use (mission_form, mission_pool, publish.own_decisive): each entry's name
+    and value, and of `_context` only the zero names no played FINAL game before `date` had (`earlier`: name: its first date).
+    mission_form only takes the union of those names over such games, which the first game to have each still gives."""
+    out = []
+    for s in stats:
+        if s.get("stat") is None:
+            continue
+        if s["stat"] != "_context":
+            out.append({"stat": s["stat"], "statValue": s.get("statValue")})
+        elif isinstance(s.get("zeros"), list):
+            out.append({"stat": "_context", "zeros": [z for z in s["zeros"] if not earlier.get(z, date) < date]})
+    return out
+
+
 def load(
     db: Session,
     *,
@@ -77,14 +110,26 @@ def load(
     days: int | None = None,
     players: set[str] | None = None,
     stats: tuple[str, ...] | None = None,
+    lean: bool = False,
 ) -> dict[str, Any]:
     """The legacy history shape; the visible form window does not limit permanent storage or yellow totals.
 
-    `stats` keeps only those entries of each game's detailed score (None keeps them all)."""
+    `stats` keeps only those entries of each game's detailed score (None keeps them all). `lean` keeps each detailed score as
+    `lean_stats` makes it: on Postgres Neon then sends a third of the bytes (the owner's games, read whole by the missions)."""
     at = now or datetime.now(UTC)
     cutoff = at - timedelta(days=days) if days is not None else None
     columns = [getattr(PlayerGame, key) for key in ("player", "game_id", "date", "read_at", *ACTUAL) if key != "stats"]
-    query = select(*columns, _stats_of(db, stats)).order_by(PlayerGame.date)
+    postgres = db.get_bind().dialect.name == "postgresql"
+    if lean and postgres:
+        columns += [
+            literal_column(
+                "CASE WHEN json_typeof(player_games.stats) = 'array' THEN NULL ELSE player_games.stats END", JSON
+            ).label("stats"),
+            literal_column(_LEAN_SQL, JSON).label("lean"),
+        ]
+    else:
+        columns.append(_stats_of(db, stats))
+    query = select(*columns).order_by(PlayerGame.date)
     if players is not None:
         query = query.where(PlayerGame.player.in_(players))
     if cutoff:
@@ -104,11 +149,26 @@ def load(
             earlier = earlier.where(PlayerGame.player.in_(players))
         for player, yellow in db.execute(earlier.group_by(PlayerGame.player)):
             totals[player, season.year] = yellow
+    zeros: dict[str, dict[str, datetime]] = {}  # lean elsewhere: each player's zero names, first played FINAL date
     for row in db.execute(query):
         date = as_utc(row.date)
         game = {key: value for key in ACTUAL if (value := getattr(row, key)) is not None}
         if stats is not None and isinstance(game.get("stats"), list):
             game["stats"] = [entry for entry in game["stats"] if entry.get("stat") in stats]
+        if lean and postgres and row.lean is not None:
+            game["stats"] = [
+                {"stat": key, "zeros": value} if key == "_context" else {"stat": key, "statValue": value}
+                for key, value in row.lean.items()
+            ]
+        elif lean and isinstance(game.get("stats"), list):
+            seen = zeros.setdefault(row.player, {})
+            whole = game["stats"]
+            game["stats"] = lean_stats(whole, seen, date)
+            if row.status == "FINAL" and row.played:
+                for s in whole:
+                    if s.get("stat") == "_context" and isinstance(s.get("zeros"), list):
+                        for name in s["zeros"]:
+                            seen.setdefault(name, date)
         game.update(gameId=row.game_id, date=date.isoformat(), score=row.score, played=row.played, mins=row.mins)
         if row.competition == "laliga-es":
             key = row.player, season_start(date).year

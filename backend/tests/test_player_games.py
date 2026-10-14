@@ -197,3 +197,71 @@ def test_a_window_and_a_stats_subset_give_the_same_games_as_a_full_read(db):  # 
             assert {k: v for k, v in kept.items() if k != "stats"} == {k: v for k, v in whole.items() if k != "stats"}
             assert (None if kept.get("stats") is None else [s["stat"] for s in kept["stats"]]) == names
     assert player_games.listed(db, {"a", "b", "c"}) == list(full)
+
+
+def test_a_lean_read_gives_the_missions_and_decisive_rates_the_same_numbers(db):  # noqa: F811
+    from app.sorare import player_games
+    from app.sorare.mission_pool import rolling_sheets
+    from app.sorare.publish import own_decisive
+
+    def game(gid: str, date: str, zeros: list[str] | None, **kw) -> dict:
+        context = {"stat": "_context", "team": "Club", "pos": "GK", "level": 2.0, "venue": "H"}
+        stats = [
+            {"stat": "goals", "statValue": kw.pop("goals", 0), "totalScore": 0.0},
+            {"stat": "accurate_pass", "statValue": 21.0, "totalScore": 2.1},
+            {"stat": "clean_sheet_60", "statValue": 1.0, "totalScore": 10.0},
+            {"stat": "unread", "statValue": None, "totalScore": None},
+            {**context, **({"zeros": zeros} if zeros is not None else {})},
+        ]
+        return {
+            "gameId": gid,
+            "date": date,
+            "competition": "laliga-es",
+            "status": "FINAL",
+            "played": True,
+            "started": True,
+            "score": 50,
+            "mins": 90,
+            "stats": stats,
+            **kw,
+        }
+
+    player_games.save(
+        db,
+        {
+            "a": [
+                game("p1", "2026-05-01T19:00:00Z", ["won_tackle"]),  # last season: still names a key
+                game("p2", "2026-08-20T19:00:00Z", ["won_tackle", "big_chance_missed"], goals=1),
+                game("pend", "2026-08-24T19:00:00Z", ["only_pending"], status="PENDING"),
+                game("dnp", "2026-08-25T19:00:00Z", ["only_unplayed"], played=False, started=False),
+                game("s1", "2026-09-01T19:00:00Z", ["same_day"], started=False),  # same date: both keep the name
+                game("s2", "2026-09-01T19:00:00Z", ["same_day", "only_unplayed"]),
+                game("bare", "2026-09-10T19:00:00Z", None),
+                game("today", "2026-10-08T12:00:00Z", ["after_the_mission_day"]),
+                {**game("none", "2026-09-20T19:00:00Z", None), "stats": None},
+            ],
+            "b": [game("b1", "2026-09-15T19:00:00Z", ["won_tackle"], goals=2)],
+        },
+        NOW,
+    )
+    full = player_games.load(db, players={"a", "b"})
+    lean = player_games.load(db, players={"a", "b"}, lean=True)
+    assert [g["gameId"] for g in lean["a"]["games"]] == [g["gameId"] for g in full["a"]["games"]]
+    zeros = {
+        g["gameId"]: [s.get("zeros") for s in g.get("stats") or [] if s["stat"] == "_context"]
+        for g in lean["a"]["games"]
+    }
+    assert zeros["p2"] == [["big_chance_missed"]] and zeros["s2"] == [["same_day", "only_unplayed"]]
+    assert zeros["bare"] == [] and "totalScore" not in str(lean)
+
+    def history(read: dict) -> dict:
+        return {slug: entry["games"] for slug, entry in read.items()}
+
+    at = NOW + timedelta(hours=10)
+    for positions in ({"a": "GK", "b": "MID"}, {"a": "FWD", "b": "GK"}):
+        leagues = {"a": "laliga-es", "b": "laliga-es"}
+        assert rolling_sheets(history(lean), positions, at, leagues=leagues) == rolling_sheets(
+            history(full), positions, at, leagues=leagues
+        )
+        for slug, pos in positions.items():
+            assert own_decisive(lean[slug]["games"], pos) == own_decisive(full[slug]["games"], pos)

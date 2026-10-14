@@ -421,7 +421,8 @@ def run(
     if not dry_run:
         player_games.save(db, snapshot["history"], fetched)
         # Every game of the owner's players, read once: their last 70 days are the plans' history, all of it the missions'.
-        mine = player_games.load(db, players=owners)
+        # Lean: only the detailed-score parts those readers use (`player_games.lean_stats`), a third of the bytes.
+        mine = player_games.load(db, players=owners, lean=True)
         # Everyone else's form needs only his decisive actions out of each game's detailed score (`publish.own_decisive`).
         snapshot["leagueHistory"] = player_games.load(
             db, now=fetched, days=70, stats=(*sorare_publish.DECISIVE_STATS, "clean_sheet_60")

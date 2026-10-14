@@ -66,13 +66,29 @@ def _page(db: Session) -> dict[str, Any]:
     return row.payload if row else {}
 
 
+# Each score record with only the players `catalog` keeps (owned, or among the cards), in their order.
+_RECORDS_SQL = text(
+    "SELECT (SELECT json_object_agg(k, CASE WHEN k = 'players' AND json_typeof(v) = 'object' THEN"
+    " (SELECT COALESCE(json_object_agg(pk, pv ORDER BY pi), '{}'::json) FROM json_each(v) WITH ORDINALITY AS q(pk, pv, pi)"
+    " WHERE pv->>'owned' = 'true' OR pk = ANY(CAST(:cards AS text[]))) ELSE v END ORDER BY i)"
+    " FROM json_each(r.payload) WITH ORDINALITY AS t(k, v, i))"
+    " FROM read_models AS r WHERE r.key LIKE 'score_record:%' AND json_typeof(r.payload) = 'object'"
+)
+
+
+def _records(db: Session, cards: dict[str, Any]) -> list[dict[str, Any]]:
+    """The score records as `catalog` uses them: on Postgres without the other players (~0.1 of their 0.8 MB)."""
+    if db.get_bind().dialect.name == "postgresql":
+        found = db.execute(_RECORDS_SQL, {"cards": list(cards)}).scalars()
+        return [r for r in found if isinstance(r, dict)]
+    return [r for _, r in versus.records(db)]
+
+
 def catalog(db: Session) -> list[dict[str, Any]]:
     """Frozen records, with owner/card identity; a current unrecorded game has explicitly missing forecasts."""
     page = _page(db)
     cards = {c["player"]: c for c in reversed(page.get("collection") or []) if c.get("player")}
-    records = {
-        r["gameweek"]["slug"]: deepcopy(r) for _, r in versus.records(db) if (r.get("gameweek") or {}).get("slug")
-    }
+    records = {r["gameweek"]["slug"]: deepcopy(r) for r in _records(db, cards) if (r.get("gameweek") or {}).get("slug")}
     for week in page.get("weeks") or []:
         gw = week.get("gameweek") or {}
         if not gw.get("slug"):

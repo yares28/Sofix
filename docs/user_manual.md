@@ -211,9 +211,10 @@ competition rules, pre-lock forecasts and reward cutoffs.
 The hero counts down to the lock in large type ("2d 22h until the lock, Fri 9 Oct at 16:00"; after the games, the essence
 won), with the plan's facts under it: chance of a reward, the most likely result, the chance of cash, of essence and of XP apart,
 cards used. Beside it sits Apply plan. Below, the plan tile holds the
-**Sofix / Sorare / strategy** switch, the plan switch, where the cards go, and the lineups as rows: competition, its cards with each
-one's xScore in Sorare's colours, the team score with its range and the score needed, and the reward chance as a dial; each
-row opens its sheet. A free competition is filled with every team your cards can make, however small the chance (13 Oct 2026): the teams with a real
+**Sofix / Sorare / strategy** switch, the plan switch, where the cards go, and the lineups as the same rows as the Recap (14 Oct
+2026): competition with its kind and format, its cards with each one's xScore in Sorare's colours (its score after the games),
+xScore, actual and xD, and one reward chance (Paid or No reward after the games); each row, and its **i**, opens its sheet with the
+range, the score needed and every reward level. A free competition is filled with every team your cards can make, however small the chance (13 Oct 2026): the teams with a real
 chance take their cards and substitutes first. In a European week Sorare's own competitions (European Champions, European
 Contenders) are planned too, for the players with a game in them. A player's start chance is Futbol Fantasy's, else the one
 Sorare's page showed in your browser (the extension saves it), else Sofix's from his form. Lineups under 5% sit under **Long shots**; this opens immediately when they are the only available

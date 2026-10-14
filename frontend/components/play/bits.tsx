@@ -1,8 +1,5 @@
-import type { Group, Lineup, PlayCard } from "../../lib/play";
-import SorareImage from "./SorareImage";
-import { cardScore, chanceLabel, formatOf, rangeScale, rewardChips, rewardSplit } from "../../lib/play";
-import { scoreColour } from "../../lib/cards";
-import SeasonIcon from "../SeasonIcon";
+import type { Group, Lineup } from "../../lib/play";
+import { chanceLabel, formatOf, rangeScale, rewardChips, rewardSplit } from "../../lib/play";
 
 /** Small shared pieces of the Play page: the icons, the foil chip, the ring, the range bar and the card art. */
 
@@ -123,55 +120,6 @@ export function RangeBar({ lineup, after }: { lineup: Lineup; after: boolean }) 
 
 const ribbon = (score: number | null) =>
   score === null ? "s0" : score >= 70 ? "s9" : score >= 55 ? "s7" : score >= 40 ? "s5" : score >= 25 ? "s3" : "s1";
-
-/** The lineup itself: every card, the captain marked, in-season dotted, substitutes after a divider. */
-export function MiniCards({ lineup, after }: { lineup: Lineup; after: boolean }) {
-  const cameIn = new Set((lineup.actual?.cameIn ?? []).map((swap) => swap.sub));
-  const card = (entry: PlayCard, isSub: boolean) => {
-    const out = after && entry.actual === null && !isSub;
-    const joined = isSub && cameIn.has(entry.slug);
-    return (
-      <span
-        key={entry.slug}
-        className={`pl-mc${isSub ? " sub" : ""}${entry.captain ? " captain" : ""}${out ? " out" : ""}${joined ? " in" : ""}`}
-        title={`${entry.name}${entry.captain ? " · captain" : ""}${entry.inSeason ? " · in-season" : ""}`}
-      >
-        <span className="art">
-          <SorareImage src={entry.pic} fill />
-        </span>
-        {entry.captain ? <i className="c">C</i> : null}
-        {entry.inSeason ? <i className="is"><SeasonIcon inSeason size={8} /></i> : null}
-        {/* before the games the card's xScore, after them what it scored (a sub only if it came in), in Sorare's band colour */}
-        {after ? (
-          isSub && !joined ? null : entry.actual === null ? (
-            <span className="hx dnp">DNP</span>
-          ) : (
-            <span className="hx" style={{ background: scoreColour(entry.actual).fill, color: scoreColour(entry.actual).ink }}>
-              {Math.round(entry.actual)}
-            </span>
-          )
-        ) : (
-          <span className="hx" style={{ background: scoreColour(cardScore(entry).value).fill, color: scoreColour(cardScore(entry).value).ink }}>
-            {cardScore(entry).value}
-          </span>
-        )}
-        <span className="nm">{entry.name}</span>
-      </span>
-    );
-  };
-  return (
-    <div className="pl-cards" aria-hidden="true">
-      {lineup.starters.map((entry) => card(entry, false))}
-      {lineup.subs.length ? (
-        <>
-          <span className="div" />
-          <span className="sl">Subs</span>
-          {lineup.subs.map((entry) => card(entry, true))}
-        </>
-      ) : null}
-    </div>
-  );
-}
 
 export function RewardChips({ lineup, after }: { lineup: Lineup; after: boolean }) {
   return (

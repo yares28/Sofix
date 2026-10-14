@@ -1862,7 +1862,6 @@
 .pl-board .pl-alloc-key b { font-weight: 600; }
 
 .pl-cols,
-.pl-board .pl-lu,
 .pl-entered .pl-entered-lineup {
   display: grid;
   grid-template-columns: 160px minmax(0, 1fr) 140px 290px;
@@ -1870,11 +1869,8 @@
 }
 .pl-cols { padding: 14px 0 10px; font-size: 12px; color: var(--ink-2); border-bottom: 1px solid var(--line); }
 .pl-board .pl-lus { display: block; }
-.pl-board .pl-lu {
-  width: 100%; align-items: center; padding: 18px 0; border-radius: 0; background: none; box-shadow: none;
-  border-bottom: 1px solid var(--line); overflow: visible; transition: background 0.2s;
-}
-.pl-board .pl-lu:last-child { border-bottom: 0; }
+/* a plan row is the Recap's lineup row (recap.css .rc-lu); the button around it only opens the sheet */
+.pl-board .pl-lu { display: block; width: 100%; padding: 0; border-radius: 0; background: none; box-shadow: none; overflow: visible; transition: background 0.2s; }
 .pl-board .pl-lu:hover { transform: none; box-shadow: none; background: var(--hover); }
 .pl-board .pl-edge { display: none; }
 .pl-lu-c { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
@@ -1916,17 +1912,16 @@
 .pl-dial.won { background: conic-gradient(var(--good, #1f7a4f) 0 var(--p), var(--track) 0); }
 .pl-dial .pl-kv { position: relative; z-index: 1; }
 .pl-dial .pl-kv b { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; }
-.pl-board .pl-lu:hover .pl-dial::after { background: var(--hover); }
 
 @media (max-width: 1100px) {
-  .pl-cols, .pl-board .pl-lu, .pl-entered .pl-entered-lineup { grid-template-columns: 140px minmax(0, 1fr) 110px 230px; gap: 18px; }
+  .pl-cols, .pl-entered .pl-entered-lineup { grid-template-columns: 140px minmax(0, 1fr) 110px 230px; gap: 18px; }
 }
 @media (max-width: 900px) {
   .pl-top { grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .pl-cols { display: none; }
   .pl-board { padding: 18px 16px 4px; }
-  .pl-board .pl-lu, .pl-entered .pl-entered-lineup { grid-template-columns: minmax(0, 1fr) auto; gap: 12px 14px; }
-  :is(.pl-board .pl-lu, .pl-entered-lineup) .pl-cards { grid-column: 1 / -1; grid-row: 2; }
+  .pl-entered .pl-entered-lineup { grid-template-columns: minmax(0, 1fr) auto; gap: 12px 14px; }
+  .pl-entered-lineup .pl-cards { grid-column: 1 / -1; grid-row: 2; }
   .pl-lu-rew { grid-column: 1 / -1; }
   .pl-board .pl-mc + .pl-mc { margin-left: 0; }
   .pl-board-head .pl-mode { margin-left: 0; }

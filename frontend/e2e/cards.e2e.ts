@@ -56,7 +56,7 @@ test("with reduced motion the cards and search results still show (their rise is
 });
 
 test("every player card grows on hover: the Recap, the Gallery, Players, Play and Lineups", async ({ page }) => {
-  for (const [path, card] of [["/", ".rc-best .rc-art"], ["/cards", ".s5-pc .art"], ["/players", ".s5-res .art"], ["/play", ".pl-mc .art"], ["/lineups?m=22502", ".lu-face"]] as const) {
+  for (const [path, card] of [["/", ".rc-best .rc-art"], ["/cards", ".s5-pc .art"], ["/players", ".s5-res .art"], ["/play", ".pl-lu .rc-art"], ["/lineups?m=22502", ".lu-face"]] as const) {
     await page.goto(path);
     const art = page.locator(card).first();
     await art.scrollIntoViewIfNeeded();

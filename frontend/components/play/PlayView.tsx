@@ -172,12 +172,6 @@ export default function PlayView({
             ) : null}
           </div>
           <Allocation plan={plan} />
-          <div className="pl-cols" aria-hidden="true">
-            <span>Competition</span>
-            <span>{after ? "Cards, score under each" : "Cards, xScore under each"}</span>
-            <span>Team score</span>
-            <span>{after ? "Won" : "Reward chance"}</span>
-          </div>
           <div className="pl-lus">
             {main.map((lineup, index) => (
               <Lineup key={`${lineup.key}-${index}`} lineup={lineup} after={after} index={index} hindsight={plan.hindsight === true} players={week.playing.players} />

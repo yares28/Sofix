@@ -90,7 +90,7 @@ test("the phone's Recap lineups and the gameweek just played fit without sideway
   for (const [path, ready] of [
     ["/", ".rc-lu"],
     ["/play?plan=2", ".pl-lu"],
-    ["/play?gw=15&after=1", ".pl-lu .pl-kv b"],
+    ["/play?gw=15&after=1", ".pl-lu .rc-score-pair b"],
   ] as const) {
     await page.goto(path);
     await expect(page.locator(ready).first()).toBeVisible();

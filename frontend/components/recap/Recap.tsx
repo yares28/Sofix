@@ -204,6 +204,13 @@ function tierPays(tier: Tier): string {
   return [parts.join(" + ") || "No reward", where].filter(Boolean).join(", ");
 }
 
+export const InfoIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+    <circle cx="9" cy="5" r="1.2" fill="currentColor" />
+    <path d="M9 8.2v5.2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+);
+
 /** Everything behind the row's one reward chance: each kind of reward, each level with the score it took, and the lineup's fine print. */
 function RewardInfo({ row }: { row: PlanRow }) {
   const { lineup } = row;
@@ -216,10 +223,7 @@ function RewardInfo({ row }: { row: PlanRow }) {
   return (
     <>
       <button type="button" className="rc-info-btn" popoverTarget={id} aria-label={`All reward chances, ${lineup.comp}`}>
-        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-          <circle cx="9" cy="5" r="1.2" fill="currentColor" />
-          <path d="M9 8.2v5.2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
+        <InfoIcon />
       </button>
       <div id={id} popover="auto" className="rc-info" role="group" aria-label={`Reward chances, ${lineup.comp}`}>
         <dl className="rc-kinds">

@@ -5,7 +5,9 @@ import { SCORE_SOURCE_NAME, cardScore, cashLabel, chanceLabel, essenceLabel, ess
 import { KindIcon } from "../lineups/Icons";
 import Silhouette from "../Silhouette";
 import SourceMark from "../SourceMark";
-import { Cash, Chevron, Essence, Foil, GROUP_CLASS, MiniCards, RangeBar, RewardChips, RewardSplit, Ring, ribbonClass } from "./bits";
+import { ComparisonCards, ComparisonScores } from "../recap/LineupComparison";
+import { InfoIcon } from "../recap/Recap";
+import { Cash, Chevron, Essence, Foil, GROUP_CLASS, RangeBar, RewardChips, RewardSplit, Ring, ribbonClass } from "./bits";
 import LineupSheet from "./LineupSheet";
 import SorareImage from "./SorareImage";
 import SeasonIcon from "../SeasonIcon";
@@ -33,66 +35,47 @@ export default function Lineup({
 }) {
   const group = GROUP_CLASS[lineup.group];
   const chance = lineup.pReturn;
-  const tone = chance >= 0.5 ? "" : chance >= 0.2 ? "mid" : "low";
   const won = after && lineup.actual ? lineup.actual.essence > 0 || lineup.actual.cash > 0 || lineup.actual.card : false;
 
-  const need = after && lineup.actual ? lineup.actual.need : lineup.need;
-  // One row of the plan, as the canvas draws it: the competition, the cards with their score, the team score, the reward.
+  // One row of the plan, drawn as the Recap draws it: the competition, the cards with their score, the team score, the
+  // one reward chance. The row opens the sheet, which holds the range, the reward ladder and the rules.
+  const cameIn = new Set((lineup.actual?.cameIn ?? []).map((swap) => swap.sub));
+  const cardValue = (card: PlayCard, sub: boolean) => (!after ? cardScore(card).value : sub && !cameIn.has(card.slug) ? null : card.actual);
   const face = (
-    <>
-      <span className={`pl-edge${lineup.rarity === "rare" ? " rare" : ""}`} aria-hidden="true" />
-      <span className="pl-lu-c">
-        <span className="rk">{index + 1}</span>
-        <span className="nm">{lineup.comp}</span>
-        <span className="pl-lu-tags">
-          <span className={`pl-group ${group}`}>
-            {lineup.group !== "Room" ? <SeasonIcon inSeason={lineup.group === "In-season"} /> : null}
-            {lineup.group}
-          </span>
-          <span className="pl-fmt">{formatOf(lineup)}</span>
+    <div className="rc-lu">
+      <div className="rc-lu-c">
+        <b>{lineup.comp}</b>
+        <span className={`pl-group ${group}`}>
+          {lineup.group !== "Room" ? <SeasonIcon inSeason={lineup.group === "In-season"} /> : null}
+          {lineup.group}
         </span>
-        {lineup.expected ? <span className="pl-exp">Expected · Sorare has not opened it yet</span> : null}
-      </span>
-      <MiniCards lineup={lineup} after={after} />
-      <span className="pl-lu-score">
-        {after && lineup.actual ? (
-          <span className="pl-kv">
-            <b>{lineup.actual.total}</b>
-            <span>{hindsight ? "scored" : `scored · xScore ${lineup.x}`}</span>
-          </span>
-        ) : (
-          <span className="pl-kv">
-            <b>{lineup.x}</b>
-            <span>
-              {lineup.lo} to {lineup.hi}
-            </span>
-          </span>
-        )}
-        {need && !hindsight ? (
-          <span className="need">
-            {lineup.group === "Room" ? "3rd needs" : after ? "needed" : "needs"} <em>{need}</em>
-          </span>
-        ) : null}
-      </span>
-      <span className="pl-lu-rew">
-        <span
-          className={`pl-dial ${after ? (won ? "won" : "low") : tone}`.trim()}
-          style={{ ["--p" as string]: `${Math.round((after ? (won ? 1 : 0) : chance) * 100)}%` }}
-          role="img"
-          aria-label={after ? (won ? "paid" : "no reward") : `${chanceLabel(chance)} chance of a reward`}
-        >
-          <span className="pl-kv">
-            <b>{after ? (won ? "✓" : "–") : chanceLabel(chance)}</b>
-          </span>
+        <span>{formatOf(lineup)}</span>
+        {lineup.expected ? <span className="rc-tag">Expected · Sorare has not opened it yet</span> : null}
+      </div>
+      <ComparisonCards
+        cards={[...lineup.starters, ...lineup.subs].map((card, i) => {
+          const bench = i >= lineup.starters.length;
+          return { slug: card.slug, name: card.name, picture: card.pic ?? null, rarity: lineup.rarity, captain: !!card.captain, bench, x: cardValue(card, bench), xd: card.xd };
+        })}
+      />
+      <div className="rc-score">
+        <ComparisonScores
+          expected={hindsight ? undefined : lineup.x}
+          actual={after && lineup.actual ? lineup.actual.total : null}
+          actualLabel={hindsight ? "Scored" : "Actual"}
+          xd={lineup.xd ?? null}
+        />
+      </div>
+      <div className="rc-rew">
+        <div className="rc-any" title={after ? undefined : "The chance of any cash, essence or card"}>
+          <b>{after ? (won ? "✓" : "–") : chanceLabel(chance)}</b>
+          <span>{after ? (won ? "Paid" : "No reward") : "Reward"}</span>
+        </div>
+        <span className="rc-info-btn" aria-hidden="true">
+          <InfoIcon />
         </span>
-        <span className="pl-lu-foot">
-          <RewardChips lineup={lineup} after={after} />
-          {after ? null : <RewardSplit item={lineup} kind={essenceName(lineup.kind)} />}
-          <span className="pl-note">{paysNote(lineup)}</span>
-        </span>
-        <Chevron className="hm-chev" />
-      </span>
-    </>
+      </div>
+    </div>
   );
 
   const head = (

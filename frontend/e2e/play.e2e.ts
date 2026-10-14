@@ -199,21 +199,24 @@ test("the gameweek opens on its best plan: the ring, both rewards and every line
     "Not used19 cards",
   ]);
 
-  // One card per lineup, each with its own xScore and chance.
+  // One row per lineup, drawn as the Recap draws it: its xScore and its one reward chance.
   const lineups = page.locator(".pl-lu");
   await expect(lineups).toHaveCount(plan1.lineups.length);
   await expect(lineups.first()).toContainText("LALIGA EA SPORTS");
   await expect(lineups.first()).toContainText("5 + 2 subs · 4 in-season");
-  await expect(lineups.first()).toContainText("Top 1,500 of ≈4,487 pays");
-  await expect(lineups.first().locator(".pl-rw")).toHaveText("250 at 311+"); // the whole reward of its first level, and the score that reached it
-  await expect(lineups.first().locator(".pl-kv b").first()).toHaveText(String(laliga.x));
-  await expect(lineups.first().locator(".pl-kv b").nth(1)).toHaveText("48%");
+  await expect(lineups.first().locator(".rc-score-pair b").first()).toHaveText(String(Math.round(laliga.x)));
+  await expect(lineups.first().locator(".rc-any b")).toHaveText("48%");
   await expect(lineups.nth(2)).toContainText("Room of 10 · cap 260");
-  await expect(lineups.nth(2)).toContainText("Top 3 of 10 · 300 to enter");
 
   await expect(page.getByRole("group", { name: "Show" })).toHaveCount(0); // nothing has been played yet
   const scan = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(scan.violations.map((v) => `${v.id}: ${v.nodes.slice(0, 4).map((n) => n.target.join(" ")).join("; ")}`)).toEqual([]);
+
+  // What it pays and the score each level needs live in its sheet.
+  await lineups.first().click();
+  const sheet = page.getByRole("dialog", { name: "LALIGA EA SPORTS lineup" });
+  await expect(sheet).toContainText("Top 1,500 of ≈4,487 pays");
+  await expect(sheet.locator(".pl-rw")).toHaveText("250 at 311+"); // the whole reward of its first level, and the score that reached it
 });
 
 test("another plan is one click away, and spreads the cards differently", async ({ page }) => {
@@ -385,10 +388,10 @@ test("the gameweek that was played shows what each lineup really scored and won"
   await expect(facts.locator(".pl-fact").nth(2)).toHaveText("250 essence won · most likely was 0");
 
   const first = page.locator(".pl-lu").first();
-  await expect(first.locator(".pl-kv b").first()).toHaveText("313");
-  await expect(first).toContainText("scored · xScore 300");
-  await expect(first).toContainText("250"); // the essence it won
-  await expect(page.locator(".pl-lu").nth(1)).toContainText("No reward");
+  await expect(first.locator(".rc-score-pair b").first()).toHaveText("300"); // its xScore, then what it scored
+  await expect(first.locator(".rc-score-pair b").nth(1)).toHaveText("313");
+  await expect(first.locator(".rc-any")).toContainText("Paid");
+  await expect(page.locator(".pl-lu").nth(1).locator(".rc-any")).toContainText("No reward");
 });
 
 test("after the games, a sub that came in is shown with what it cost", async ({ page }) => {
@@ -482,7 +485,7 @@ test("a week the job kept apart opens as the week that was played, with the best
   await expect(facts).toContainText("2 of 2 lineups paid");
   await expect(facts.locator(".pl-fact").nth(1)).toHaveText("500 essence won · the most Sofix found it could have won");
   const first = page.locator(".pl-lu").first();
-  await expect(first).toContainText("scored");
+  await expect(first).toContainText("Scored");
   await expect(first).not.toContainText("xScore");
 
   // Before the lock there is no hindsight: it is not what the plan was.

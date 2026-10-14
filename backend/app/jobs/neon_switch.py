@@ -68,12 +68,13 @@ def move_to(live: int, sent: list[int | None], stamps: list[float | None], limit
     return min(room, key=lambda i: sent[i] or 0) if room else None
 
 
-def sent_bytes(urls: list[str], key: str) -> list[int | None]:
+def sent_bytes(urls: list[str], key: str) -> tuple[list[int | None], str | None]:
     """Data each project sent this month, from Neon's API (matched by the endpoint in its URL). None where it is unknown:
     a failing API only means no move this run, never a failed job. An organization key sees the projects directly; a
-    personal key sees them through its organizations."""
+    personal key sees them through its organizations. The note says why the usage is missing, for neon_status."""
     wanted = {endpoint_id(url): i for i, url in enumerate(urls)}
     out: list[int | None] = [None] * len(urls)
+    note: str | None = None
     try:
         with httpx.Client(base_url=NEON_API, headers={"Authorization": f"Bearer {key}"}, timeout=20) as api:
             projects = api.get("/projects").raise_for_status().json()["projects"]
@@ -92,10 +93,12 @@ def sent_bytes(urls: list[str], key: str) -> list[int | None]:
                         logger.info("%s (%s): %.2f GB sent this month", project["name"], endpoint["id"], sent / 1024**3)
     except (httpx.HTTPError, KeyError, ValueError) as error:
         status = error.response.status_code if isinstance(error, httpx.HTTPStatusError) else type(error).__name__
-        logger.warning("Neon's API did not give the usage (%s): no move this run; check NEON_API_KEY", status)
-    if not any(sent is not None for sent in out):
-        logger.warning("NEON_API_KEY sees none of these projects: no move this run")
-    return out
+        note = f"Neon's API answered {status}: check NEON_API_KEY"
+    if note is None and not any(sent is not None for sent in out):
+        note = "NEON_API_KEY sees none of these projects: make it an organization key for all projects"
+    if note:
+        logger.warning("%s; no move this run", note)
+    return out, note
 
 
 def table_order(tables: list[str], references: list[tuple[str, str]]) -> list[str]:
@@ -215,7 +218,8 @@ def main() -> int:
         return 1
     key = os.environ.get("NEON_API_KEY", "")
     if args.move and len(urls) > 1:
-        sent: list[int | None] = sent_bytes(urls, key) if key else [None] * len(urls)
+        unknown: list[int | None] = [None] * len(urls)
+        sent, note = sent_bytes(urls, key) if key else (unknown, "NEON_API_KEY is not set")
         target = move_to(live, sent, stamps)
         if target is not None:
             # ponytail: a job writing to the old project during the copy loses that write; jobs run minutes apart.
@@ -227,7 +231,7 @@ def main() -> int:
             )
             copy_all(urls[live], urls[target])
             live = target
-        write_status(urls, live, stamps, sent, None if key else "NEON_API_KEY is not set")
+        write_status(urls, live, stamps, sent, note)
     logger.info("live project: %s", endpoint_id(urls[live]))
     if path := os.environ.get("GITHUB_ENV"):
         with open(path, "a", encoding="utf-8") as env:

@@ -53,6 +53,8 @@ jobs:
       # App role (DML only). The owner/migration URL is deliberately not a secret here:
       # migrations are applied by hand with `python -m app.migrate`, never unattended.
       POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+      POSTGRES_URL_SPARE: ${{ secrets.POSTGRES_URL_SPARE }} # the other free Neon project (app/jobs/neon_switch.py)
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }} # reads each project's data sent; without it the move never starts
       FOOTBALL_DATA_ORG_TOKEN: ${{ secrets.FOOTBALL_DATA_ORG_TOKEN }}
       ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }} # optional; the odds step is skipped without it (and throttled to 6 h)
       # Sorare's public API (read-only). Without it the Sorare step is skipped.
@@ -76,6 +78,10 @@ jobs:
 
       - name: Install locked dependencies
         run: uv pip sync requirements.lock
+
+      # Two free Neon projects take turns: the one written last is live, and it moves at 4 GB sent.
+      - name: Pick the live Neon project
+        run: python -m app.jobs.neon_switch --move
 
       # football-data.co.uk CSVs: past seasons never change, the current one is re-checked with a conditional GET.
       - name: Restore history cache

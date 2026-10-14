@@ -199,30 +199,42 @@ Python/root: `POSTGRES_URL`, owner-only `POSTGRES_MIGRATION_URL`, football/odds/
 
 Neon production uses `fdr_app` DML-only, verify-full TLS. Destructive SQL/branch actions need explicit approval.
 
-### Neon projects (one account, all on the free plan; state of 12 Oct 2026)
+### Neon projects (one account, all on the free plan; state of 14 Oct 2026)
 
-| Project | Id | What it is | What to do with it |
+Two free projects take turns as production, automatically (owner's ask, 14 Oct 2026). Each sends 5 GB a month, then
+Neon refuses every query with HTTP 402 "exceeded the quota" until the 1st.
+
+| Project | Id | Endpoint (in its URL) | Setting names |
 |---|---|---|---|
-| **Sofix** | `odd-darkness-24982497` | **Production since 12 Oct 2026.** GitHub's `POSTGRES_URL` secret and Vercel's `DATABASE_URL` point here (login `fdr_app`); eu-central-1, Postgres 18, one branch | Use it for everything. Watch its "data sent" (5 GB a month, resets on the 1st). Migrations: owner login, `POSTGRES_MIGRATION_URL` in the git-ignored `.env.sofix-neon`. A dev branch can be made here when a migration needs testing |
-| **FDR** | `sparkling-bonus-46807220` | The old production (14 Sep to 12 Oct 2026). Used 5.23 GB in October and still answered on 14 Oct (local dev reads it while Sofix is out, see below). Holds the same data as the copy below, nothing newer | Nothing reads or writes it. Leave it alone as a spare: from 1 Nov it has a fresh 5 GB and can take over if Sofix runs out (copy the data across first). Never delete it without the owner saying so |
-| **Trakzi** | `orange-waterfall-16223480` | Another app of the owner's, unrelated to this repo | Never touch it from this repo |
+| **Sofix** | `odd-darkness-24982497` | `ep-cold-cloud-b9akf8sh` (`c-7`) | GitHub `POSTGRES_URL`, Vercel `DATABASE_URL`; owner login in the git-ignored `.env.sofix-neon` |
+| **FDR** | `sparkling-bonus-46807220` | `ep-jolly-sun-b1a0xc1l` (`c-5`) | GitHub `POSTGRES_URL_SPARE`, Vercel `DATABASE_URL_SPARE` |
+| **Trakzi** | `orange-waterfall-16223480` | | Another app of the owner's: never touch it from this repo |
 
-- **When a project nears 5 GB sent** (the owner's rule, 12 Oct 2026: stay free, tricks allowed): copy every table out
-  while it still answers, load the copy into the spare or a new free project, repoint the two secrets, push. A new
-  project is built from the migrations plus the copy; the app login is created by SQL (`fdr_app`, rows only).
-- **The copy of 12 Oct 2026:** `backend/data/raw/neon-backup-2026-10-12/` (git-ignored; one Postgres COPY file per
-  table and `manifest.json` with columns, row counts and sequences).
-- **Local files:** `frontend/.env.local.sofix` is the Sofix setting (host `ep-cold-cloud-b9akf8sh`, `c-7`, same as
-  `.env.sofix-neon`); `frontend/.env.local.fdr` is FDR (host `ep-jolly-sun-b1a0xc1l`, `c-5`). `frontend/.env.local` is a
-  copy of whichever one answers; to switch, copy the other over it, delete `frontend/.next` and restart the dev server
-  (Next's cache otherwise keeps serving the "database is paused" page).
-- **14 Oct 2026: Sofix ran out after two days.** It had sent 7.16 GB since 12 Oct and every query now gets HTTP 402
-  ("exceeded the quota") until 1 Nov. FDR shows 5.23 GB sent for October but still answers, so local dev reads FDR
-  for now (data as of the 12 Oct copy; nothing writes there). Check a project with Neon's `describe_project`
-  (`data_transfer_bytes`) or a `select 1`: 402 means it is out. What burned it: the jobs (~28 MB a refresh,
-  ~7 a day) plus local real-data dev servers. A fresh `NEXT_DIST_DIR` (e.g. `.next-recap`) downloads every payload
-  again, and two dev servers sharing `.next` corrupt each other's cache, so the 2 MB `sorare` payload was re-read on
-  every request. Run one real-data dev server at a time, with its own dist dir; measure performance on mock data.
+Both are eu-central-1, Postgres 18, same tables, login `fdr_app` (rows only). Never delete either without the owner.
+
+- **Which one is live:** the one whose `read_models` was written last. The app (`frontend/lib/db.ts`) and the jobs
+  (`backend/app/jobs/neon_switch.py`, first step of the refresh, league-history and score-checks workflows) use the same
+  rule, so nothing stores the choice. A query refused for quota goes to the other project at once.
+- **The move:** the refresh runs `neon_switch --move`. With `NEON_API_KEY` it reads each project's data sent this month;
+  when the live one has sent 4 GB and the other has not, it copies every table across (refuses if `alembic_version`
+  differs), marks the target written last (`read_models` key `neon_live`) and the run carries on there. On the 1st both
+  reset and the live one stays live until it reaches 4 GB again.
+- **Migrations:** apply them to both projects (owner login of each), or the move refuses.
+- **Setup the owner does once** (secrets are his): GitHub secrets `POSTGRES_URL_SPARE` (FDR's `fdr_app` URL, as
+  `postgresql+psycopg://...`) and `NEON_API_KEY` (Neon console, Account settings, API keys; free); Vercel env
+  `DATABASE_URL_SPARE` (FDR's `fdr_app` URL, as `postgresql://...`). Without them everything runs on `POSTGRES_URL` /
+  `DATABASE_URL` alone, as before.
+- **Local:** `frontend/.env.local` has `DATABASE_URL` (Sofix) and `DATABASE_URL_SPARE` (FDR), so localhost switches
+  too. `frontend/.env.local.sofix` and `.env.local.fdr` keep each project's single setting. After the live project
+  changes, a dev server can keep serving cached "database is paused" pages: delete `frontend/.next` and restart it.
+- **Check usage:** Neon's `describe_project` (`data_transfer_bytes`; the counter lags by hours) or a `select 1`.
+- **History:** FDR was production 14 Sep to 12 Oct; Sofix took over 12 Oct from a copy
+  (`backend/data/raw/neon-backup-2026-10-12/`, git-ignored COPY files plus `manifest.json`). On 14 Oct Sofix ran out
+  after two days (7.16 GB sent) and could not be copied out; FDR (5.23 GB sent, still answering) became live with the
+  12 Oct data. What burned Sofix: the jobs (~28 MB a refresh, ~7 a day) plus local real-data dev servers: a fresh
+  `NEXT_DIST_DIR` (e.g. `.next-recap`) downloads every payload again, and two dev servers sharing `.next` corrupt each
+  other's cache, so the 2 MB `sorare` payload was re-read on every request. Run one real-data dev server at a time,
+  with its own dist dir; measure performance on mock data.
 
 Dev binds `127.0.0.1`; no Docker; port 5432 belongs elsewhere; run npm only from `frontend/`; Windows reload may miss
 model/schema edits. Preserve unrelated work. Commits: `<type>: <description>`.

@@ -28,6 +28,7 @@ jobs:
     env:
       APP_ENV: prod
       POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+      POSTGRES_URL_SPARE: ${{ secrets.POSTGRES_URL_SPARE }} # the other free Neon project (app/jobs/neon_switch.py)
       # With the key Sorare allows the heavier query that carries red cards, and a higher rate.
       SORARE_API_KEY: ${{ secrets.SORARE_API_KEY }}
     steps:
@@ -42,6 +43,10 @@ jobs:
 
       - name: Install locked dependencies
         run: uv pip sync requirements.lock
+
+      # Two free Neon projects take turns: the one written last is live.
+      - name: Pick the live Neon project
+        run: python -m app.jobs.neon_switch
 
       - name: Check secrets
         run: |

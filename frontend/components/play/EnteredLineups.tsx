@@ -1,16 +1,13 @@
 "use client";
 
-import CardZoom from "../ui/CardZoom";
 import { useEffect, useRef, useState } from "react";
 import { cannot } from "../../lib/apply";
 import { pendingLine, resultLine, type GameweekLineup, type WeekLineupsAnswer } from "../../lib/entered";
 import { readEnteredWeek, type EnteredRead } from "../../lib/myWeeksClient";
 import { REQUIRED_EXTENSION_VERSION } from "../../lib/extension";
-import SorareImage from "./SorareImage";
 import { chanceLabel, type GameweekPlan } from "../../lib/play";
 import { enteredScore } from "../../lib/lineupScores";
 import { ComparisonCards, ComparisonScores } from "../recap/LineupComparison";
-import { scoreColour } from "../../lib/cards";
 
 type Week = { slug: string; number: number; lock?: string; end?: string };
 type Failure = Exclude<WeekLineupsAnswer, { state: "ok" }>;
@@ -134,14 +131,6 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
       ) : null}
       {load.lineups.length ? (
         <div className="pl-entered-list">
-          {variant === "play" ? (
-            <div className="pl-cols" aria-hidden="true">
-              <span>Competition</span>
-              <span>Cards, score or xScore under each</span>
-              <span>Team score</span>
-              <span>Result</span>
-            </div>
-          ) : null}
           {load.lineups.map((lineup) => {
             const pending = pendingLine(lineup, week.lock, now);
             const expected = enteredScore(lineup, forecast, week.slug);
@@ -152,110 +141,28 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
             const cards = [...lineup.cards].sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
               .map((c, i) => ({ ...c, x: known.get(c.slug)?.x ?? (c.player ? players.get(c.player)?.x : null) ?? null,
                 xd: known.get(c.slug)?.xd ?? (c.player ? players.get(c.player)?.xd : null) ?? null, bench: size !== undefined && i >= size }));
-            if (variant === "recap") {
-              return <article className="rc-lu pl-entered-lineup" key={lineup.id}>
+            // The same row as the Recap draws it, on the home page and on Play.
+            const live = !week.end || Date.parse(week.end) > now.getTime();
+            const result = lineup.draft || pending ? null : lineup.result;
+            return <article className="rc-lu pl-entered-lineup" key={lineup.id}>
                 <div className="rc-lu-c"><b>{lineup.competition}</b><span>{lineup.name ?? "Untitled lineup"}</span><span>{lineup.draft ? "Draft" : "Entered"} · {cards.length} cards</span></div>
-                <ComparisonCards cards={cards} />
+                {/* while the games are on, a card with no points yet keeps its xScore */}
+                <ComparisonCards cards={cards.map((c) => (result && (c.score || !live) ? { ...c, x: c.score ?? null, scored: true } : c))} />
                 <div className="rc-score">
                   <ComparisonScores expected={expected.value} estimated={expected.estimated} actual={pending || lineup.draft ? null : lineup.result?.score ?? null} actualLabel={lineup.result?.rank === null ? "Actual so far" : "Actual"} entered />
                   {expected.value === null ? <span>{forecast ? "Forecast unavailable" : "Not recorded"}</span> : null}
                 </div>
                 <div className="rc-rew">
                   {/* the same one chance as a plan lineup, until the week is over and the result says it */}
-                  {expected.chance !== undefined && (!week.end || Date.parse(week.end) > now.getTime()) ? (
+                  {expected.chance !== undefined && live ? (
                     <div className="rc-any" title={`The chance of any cash, essence or card${expected.estimated ? ", estimated from this GW's forecasts" : ""}`}>
                       <b>{chanceLabel(expected.chance)}</b>
                       <span>Reward</span>
                     </div>
                   ) : null}
-                  <span>{lineup.draft ? "Draft" : pending ?? (lineup.result ? resultLine(lineup.result) : "Entered")}</span>
+                  <span className="pl-entered-verdict">{lineup.draft ? "Draft" : pending ?? (lineup.result ? resultLine(lineup.result) : "Entered")}</span>
                 </div>
               </article>;
-            }
-            // The same row as a lineup of the Sofix plan: competition, cards with a number under each, team score, result.
-            const result = lineup.draft || pending ? null : lineup.result;
-            // While the games are on, a card that has no points yet keeps its xScore, and nothing is called won or lost.
-            const live = !week.end || Date.parse(week.end) > now.getTime();
-            const won = result ? result.cash > 0 || result.essence > 0 || result.card : false;
-            const xLabel = `xScore${expected.estimated ? " estimate" : ""}`;
-            const xTitle = expected.estimated ? "Estimated from this GW's forecasts, card bonuses, captain and substitutions, with independent playing chances." : "The recorded Sofix forecast for this lineup and GW.";
-            const mini = (card: (typeof cards)[number]) => {
-              const scored = Boolean(result) && (Boolean(card.score) || !live);
-              const value = scored ? card.score : card.x;
-              return (
-                <span className={`pl-mc pl-entered-card${card.bench ? " sub" : ""}${card.captain ? " captain" : ""}`} key={card.slug}>
-                  <CardZoom className="art" aria-label={card.name}>
-                    <SorareImage src={card.picture ?? undefined} alt={card.name} fill />
-                    {!card.picture ? card.name.slice(0, 1).toUpperCase() : null}
-                  </CardZoom>
-                  {card.captain ? <i className="c" title="Captain">C</i> : null}
-                  {value === null ? null : (
-                    <span className={`hx${scored ? " scored" : ""}`} style={{ background: scoreColour(value).fill, color: scoreColour(value).ink }}>{Math.round(value)}</span>
-                  )}
-                  <span className="nm">{card.name}</span>
-                </span>
-              );
-            };
-            return (
-            <article className="pl-entered-lineup" key={lineup.id}>
-              <div className="pl-lu-c">
-                <span className="nm">{lineup.competition}</span>
-                <span className="pl-fmt">{lineup.name ?? "Untitled lineup"}</span>
-                <span className="pl-lu-tags">
-                  <span className={`pl-entered-status${lineup.draft ? " draft" : ""}`}>{lineup.draft ? "Draft" : "Entered"}</span>
-                  <span className="pl-fmt">{cards.length} cards</span>
-                </span>
-              </div>
-              <div className="pl-cards" aria-label={`${cards.length} cards`}>
-                {cards.filter((card) => !card.bench).map(mini)}
-                {cards.some((card) => card.bench) ? (
-                  <>
-                    <span className="div" />
-                    <span className="sl">Subs</span>
-                    {cards.filter((card) => card.bench).map(mini)}
-                  </>
-                ) : null}
-              </div>
-              <div className="pl-lu-score" role="group" aria-label="Lineup scores">
-                {result ? (
-                  <>
-                    <span className="pl-kv pl-entered-result">
-                      <b>{Math.round(result.score)}</b>
-                      <span>{result.rank === null ? "scored so far" : "scored"}</span>
-                    </span>
-                    <span className="need pl-entered-expected" title={xTitle}>
-                      {xLabel} <b>{expected.value === null ? "–" : Math.round(expected.value)}</b>
-                    </span>
-                  </>
-                ) : (
-                  <span className="pl-kv pl-entered-expected" title={xTitle}>
-                    <b>{expected.value === null ? "–" : Math.round(expected.value)}</b>
-                    <span>{expected.value === null ? (forecast ? "Forecast unavailable" : "Not recorded") : xLabel}</span>
-                  </span>
-                )}
-              </div>
-              <div className="pl-lu-rew">
-                {result && result.rank !== null && !live ? (
-                  <span className={`pl-dial ${won ? "won" : "low"}`} style={{ ["--p" as string]: won ? "100%" : "0%" }} aria-hidden="true">
-                    <span className="pl-kv"><b>{won ? "✓" : "–"}</b></span>
-                  </span>
-                ) : expected.chance !== undefined && live ? (
-                  // the same dial as a lineup of the Sofix plan, until the week is over and the result says it
-                  <span
-                    className={`pl-dial ${expected.chance >= 0.5 ? "" : expected.chance >= 0.2 ? "mid" : "low"}`.trim()}
-                    style={{ ["--p" as string]: `${Math.round(expected.chance * 100)}%` }}
-                    role="img"
-                    aria-label={`${chanceLabel(expected.chance)} chance of a reward${expected.estimated ? ", estimated" : ""}`}
-                  >
-                    <span className="pl-kv"><b>{chanceLabel(expected.chance)}</b></span>
-                  </span>
-                ) : null}
-                <span className="pl-lu-foot">
-                  {lineup.draft ? <span className="pl-note">Not entered on Sorare yet</span> : <span className="pl-note pl-entered-verdict">{pending ?? (lineup.result ? resultLine(lineup.result) : "Entered")}</span>}
-                </span>
-              </div>
-            </article>
-            );
           })}
         </div>
       ) : load.state === "ready" ? (

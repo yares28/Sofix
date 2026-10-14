@@ -144,13 +144,13 @@ test("entered Sorare lineups sit below the plan of the gameweek they belong to",
   await expect(mine).toContainText("Friday team");
   await expect(mine).toContainText("LALIGA EA SPORTS");
   await expect(mine.getByLabel("7 cards")).toBeVisible();
-  await expect(mine.getByRole("img")).toHaveCount(7);
+  await expect(mine.locator(".rc-art img")).toHaveCount(7);
   // What Sorare says it made: the score, where it ranked, what it was paid, and each card's score with the captain marked.
   const lineup = mine.locator(".pl-entered-lineup");
   await expect(lineup.locator(".pl-entered-result b")).toHaveText("313");
   await expect(lineup.locator(".pl-entered-verdict")).toHaveText("Rank 1,204 · $2.50 · 250 essence");
-  await expect(lineup.locator(".pl-entered-card .c")).toHaveCount(1);
-  await expect(lineup.locator(".pl-entered-card .hx.scored").first()).toHaveText("40");
+  await expect(lineup.locator(".rc-cap")).toHaveCount(1);
+  await expect(lineup.locator(".rc-hex.scored").first()).toHaveText("40");
 
   const belowThePlan = await page.locator(".pl-entered").evaluate((node) =>
     Boolean(document.querySelector(".pl-board")!.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING),
@@ -666,8 +666,8 @@ test("a lineup entered for a week that has not locked says when it locks, not th
 
   await expect(lineup.locator(".pl-entered-verdict")).toHaveText(/^Locks in (\d+ d \d+ h|\d+ h|\d+ min)$/);
   // Before the lock it reads like the plan: the xScore, and no score yet for the team or any card.
-  await expect(lineup.locator(".pl-entered-result")).toHaveCount(0);
-  await expect(lineup.locator(".pl-entered-card .hx.scored")).toHaveCount(0);
+  await expect(lineup.locator(".pl-entered-result b")).toHaveText("-");
+  await expect(lineup.locator(".rc-hex.scored")).toHaveCount(0);
   await expect(lineup).not.toContainText("Still scoring");
 });
 

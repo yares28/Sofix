@@ -241,8 +241,9 @@ played, today's missions sit under the lineups with the cards that fit each (cha
 did over his last 5); the full Missions page is one click away.
 
 Below the Sofix plan, **Your Sorare lineups** shows what the signed-in owner actually put on Sorare for this exact GW. Entered
-lineups and drafts are labelled separately and retain their Sorare competition and card list. Each one is drawn as a row
-of the Sofix plan: the cards with their xScore under each (their score once they have points), the team score, the result. This is not Sofix's
+lineups and drafts are labelled separately and retain their Sorare competition and card list. Each one is drawn as the Recap's
+row (14 Oct 2026): the cards with their xScore under each (their score once they have points), xScore and actual, the reward
+chance while the week is on, the result. This is not Sofix's
 suggested plan: the extension reads the selected Sorare fixture directly, so the block also works for timeline weeks
 that Sofix no longer retains as an optimized plan. Every successful read is saved, including live scores and drafts.
 Reopening Recap or Play shows that GW's last saved read immediately and checks Sorare in the background. Saved teams

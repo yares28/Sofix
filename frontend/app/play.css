@@ -99,21 +99,8 @@
   white-space: nowrap;
 }
 .pl-entered-count.looking { background: var(--hover); color: var(--ink-2); }
-/* Each lineup is drawn as a row of the Sofix plan (the grid and the cards are the plan's own rules, further down). */
+/* Each lineup is drawn as the Recap's row (recap.css .rc-lu). */
 .pl-entered-list { margin-top: 6px; }
-.pl-entered .pl-entered-lineup { align-items: center; min-width: 0; padding: 18px 0; border-bottom: 1px solid var(--line); }
-.pl-entered .pl-entered-lineup:last-child { border-bottom: 0; }
-.pl-entered-card .art { display: grid; place-items: center; color: var(--ink-2); font-size: 11px; font-weight: 700; }
-.pl-entered-status {
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: #d3f2e1;
-  color: var(--good-ink);
-  font-size: 11px;
-  font-weight: 650;
-  white-space: nowrap;
-}
-.pl-entered-status.draft { background: color-mix(in srgb, #ff9f0a 14%, var(--surface)); color: color-mix(in srgb, #ff9f0a 45%, var(--ink)); }
 .pl-lu-score .need b { color: var(--ink); font-weight: 600; }
 .pl-entered-wait,
 .pl-entered-empty {
@@ -1861,13 +1848,6 @@
 .pl-board .pl-alloc-key li { display: inline-flex; gap: 6px; font-size: 12px; }
 .pl-board .pl-alloc-key b { font-weight: 600; }
 
-.pl-cols,
-.pl-entered .pl-entered-lineup {
-  display: grid;
-  grid-template-columns: 160px minmax(0, 1fr) 140px 290px;
-  gap: 28px;
-}
-.pl-cols { padding: 14px 0 10px; font-size: 12px; color: var(--ink-2); border-bottom: 1px solid var(--line); }
 .pl-board .pl-lus { display: block; }
 /* a plan row is the Recap's lineup row (recap.css .rc-lu); the button around it only opens the sheet */
 .pl-board .pl-lu { display: block; width: 100%; padding: 0; border-radius: 0; background: none; box-shadow: none; overflow: visible; transition: background 0.2s; }
@@ -1913,15 +1893,9 @@
 .pl-dial .pl-kv { position: relative; z-index: 1; }
 .pl-dial .pl-kv b { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; }
 
-@media (max-width: 1100px) {
-  .pl-cols, .pl-entered .pl-entered-lineup { grid-template-columns: 140px minmax(0, 1fr) 110px 230px; gap: 18px; }
-}
 @media (max-width: 900px) {
   .pl-top { grid-template-columns: minmax(0, 1fr); gap: 24px; }
-  .pl-cols { display: none; }
   .pl-board { padding: 18px 16px 4px; }
-  .pl-entered .pl-entered-lineup { grid-template-columns: minmax(0, 1fr) auto; gap: 12px 14px; }
-  .pl-entered-lineup .pl-cards { grid-column: 1 / -1; grid-row: 2; }
   .pl-lu-rew { grid-column: 1 / -1; }
   .pl-board .pl-mc + .pl-mc { margin-left: 0; }
   .pl-board-head .pl-mode { margin-left: 0; }

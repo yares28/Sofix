@@ -17,6 +17,7 @@ from typing import Any
 import numpy as np
 
 from app.services.scoring import difficulty_label, difficulty_score, label_bucket
+from app.services.timeutil import Laps
 from app.sorare import expected, projection, rules, strategies, xg
 from app.sorare.forecast import GameStart, PlayerWeek, cup_dates, own_start
 from app.sorare.forecast import forecasts as build_forecasts
@@ -1094,6 +1095,7 @@ def build_payload(
     score if he starts out from his games, for the week being planned and those after it (a played week's replay keeps what was known then).
     """
     now = _dt(snapshot["fetchedAt"])
+    laps = Laps()  # where the planning time goes, for the job's summary (`_laps`)
     cards, left_out = read_cards(snapshot["cards"])
     plan_week = snapshot["planGameweek"]
     past_week = snapshot.get("pastGameweek")
@@ -1149,6 +1151,7 @@ def build_payload(
     )
     league_forecasts.update(plan_forecasts)
     league_games.update(plan_games)
+    laps("forecasts")
 
     next_gw = gameweek_payload(
         snapshot,
@@ -1163,9 +1166,11 @@ def build_payload(
         draws=draws,
         order=order,
     )
+    laps("plan")
     alt = sorare_plans(
         snapshot, plan_week, plan_comps, cards, plan_weeks, plan_games, order=order, runs=runs, draws=draws
     )
+    laps("sorare plans")
     projected_enough = alt["projected"] * 2 >= alt["players"]
     try:
         lab: dict[str, Any] | None = strategy_plans(
@@ -1180,6 +1185,7 @@ def build_payload(
     except Exception:  # the lab is a side record: a failure in it must never cost the page its plans
         logger.exception("strategy lab failed")
         lab = None
+    laps("strategy lab")
     try:
         lenses: dict[str, dict[str, Any]] | None = lens_plans(
             plan_week, snapshot, plan_comps, cards, plan_forecasts, plan_games, order=order, runs=runs, draws=draws
@@ -1187,6 +1193,7 @@ def build_payload(
     except Exception:  # the same: a strategy plan is a second look and may not cost the page its own
         logger.exception("strategy plans failed")
         lenses = None
+    laps("strategy plans")
 
     last_gw = kept_replay(previous, past_week)
     if past_week and not last_gw:
@@ -1229,6 +1236,7 @@ def build_payload(
         )
         # Whether Sorare answered everything this week was built from; if not, it is rebuilt next run, not kept as final.
         last_gw["complete"] = not snapshot.get("pastGaps")
+    laps("replay")
 
     # The gameweeks after the next one: Sorare has opened them and the cards are known, but it publishes a
     # projection only for a player's next fixture, so these stand on form and the payload says so.
@@ -1272,6 +1280,7 @@ def build_payload(
             )
         )
 
+    laps("weeks ahead")
     timeline = []
     keep = {
         plan_week["slug"],
@@ -1348,6 +1357,7 @@ def build_payload(
         "_record": record,
         "_strategies": lab,
         "_lenses": lenses,
+        "_laps": laps,
     }
 
 

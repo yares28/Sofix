@@ -17,6 +17,7 @@ from collections.abc import Callable, Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from app.services.timeutil import Laps
 from app.sorare import expected
 from app.sorare.client import SorareClient, SorareError
 from app.sorare.model import SORARE_POSITION
@@ -831,11 +832,22 @@ def snapshot(
     never changes.
     """
     now = now or datetime.now(UTC)
+    # Where a run's time and Sorare questions go, part by part (15 Oct 2026: the step had tripled to 776 questions).
+    laps, counted = Laps(), client.calls
+    calls_by: dict[str, int] = {}
+
+    def lap(part: str) -> None:
+        nonlocal counted
+        laps(part)
+        calls_by[part] = calls_by.get(part, 0) + client.calls - counted
+        counted = client.calls
+
     weeks = gameweeks(client, now=now)
     picked = pick_gameweeks(weeks, now, ahead=ahead)
     plan_gw, past_gw, ahead_gws = picked["plan"], picked["past"], picked["ahead"]
     for week in recent_weeks(weeks, now):  # how much football each gameweek holds, to compare like with like
         week["games"], week["laliga"] = games_summary(client, week["slug"])
+    lap("gameweeks")
     past_slug = past_gw["slug"] if past_gw else plan_gw["slug"]
     # One alias per gameweek: the games of all of them come back in the same pages of cards.
     aliases = {"plan": plan_gw["slug"], "past": past_slug}
@@ -846,6 +858,7 @@ def snapshot(
         aliases[f"a{i}"] = week["slug"]
     mission_mark = client.errors
     my_cards = cards(client, user, aliases)
+    lap("cards")
     mission_complete = client.errors == mission_mark and all(
         all(alias in c.get("player", {}) for alias in aliases) for c in my_cards
     )
@@ -876,6 +889,7 @@ def snapshot(
         else []
         for i, week in enumerate(ahead_gws)
     }
+    lap("competitions")
 
     played_in = tuple(aliases)
     players = history_players(my_cards, played_in)
@@ -889,6 +903,7 @@ def snapshot(
             if not ((cached_league or {}).get(player) or {}).get("at")
         },
     )
+    lap("history")
 
     # Reward chances come from a gameweek that has already been played. The gameweek being planned looks at the
     # last one finished; the replay of a played gameweek may only look at the one before it, and is scored
@@ -923,6 +938,7 @@ def snapshot(
                 if key in found:
                     have[key] = found[key]
                     lacking.remove(comp)
+    lap("references")
     if past_gw and past_comps:
         mark = client.errors
         earlier = [g for g in done if g["end"] < past_gw["start"]]
@@ -937,6 +953,7 @@ def snapshot(
             client, past_gw["slug"], past_gw["number"], past_comps, references.get(past_gw["slug"])
         )
         unanswered += client.errors - mark
+    lap("past references")
 
     # The LaLiga competitions of the latest finished week of each kind, to plan the weeks Sorare has not opened them for.
     templates = expected_templates(client, done, now, my_leagues, cached_templates)  # type: ignore[arg-type]
@@ -944,12 +961,15 @@ def snapshot(
         references[template["slug"]] = reference_scores(
             client, template["slug"], template["number"], template["competitions"], references.get(template["slug"])
         )
+    lap("templates")
 
     gaps = past_gaps(past_comps, my_cards, scores, unanswered) if replaying else []
     # Every LaLiga player with his odds and games this week (S5, and his start chance and xScore); empty if the fetch fails
     market = laliga_index(client, fixture=plan_gw["slug"])
+    lap("laliga index")
     # Sorare's projection game by game for the planned week, yours and every LaLiga player's (the record keeps both numbers)
     projections = game_projections(client, plan_game_ids(my_cards) + plan_game_ids(market))
+    lap("projections")
     # Every other LaLiga player's past games, so his form counts too (yours are read in full above): only read here, the daily
     # `league-history` job is the one that fetches and saves them, so a refresh never writes back an older copy.
     league = cached_league or {}
@@ -974,4 +994,5 @@ def snapshot(
         "projections": projections,
         "leagueHistory": league,
         "calls": client.calls,
+        "parts": {part: {"calls": calls_by[part], "seconds": laps[part]} for part in laps},
     }

@@ -32,6 +32,7 @@ from app.db import SessionLocal
 from app.logging_config import configure_logging
 from app.models import ReadModel
 from app.services.publish import notify_app, put
+from app.services.timeutil import Laps
 from app.sorare import (
     audit,
     card_art,
@@ -314,6 +315,7 @@ def run(
         logger.info("sorare: no API key, step skipped")
         return {"skipped": "no SORARE_API_KEY"}
     started = datetime.now(UTC)
+    laps = Laps()  # where the step's time goes, part by part, kept in the run's summary
     references = cached_references(db)
     templates = cached_templates(db)
     # The sync only asks this who has been read before; the games themselves are loaded once, after this run's are saved.
@@ -327,11 +329,13 @@ def run(
     # Sorare and the planner take a few minutes; Neon closes a connection that sits inside an open
     # transaction, so the session is let go here and picked up again to write the result.
     db.rollback()
+    laps("cached reads")
     failed: dict[str, str] = {}
     with SorareClient() as client:
         if not dry_run:
             no_checks: dict[str, int] = {}
             optional(db, failed, "score checks", lambda: score_checks.run(db, client, started), no_checks)
+        laps("score checks")
         snapshot = sorare_sync.snapshot(
             client,
             user or settings.sorare_user,
@@ -341,6 +345,7 @@ def run(
             cached_templates=templates,
             cached_league=league,
         )
+        laps("sorare")
         # A real Sorare card for every LaLiga player, owned or not: the Lineups page draws everyone as his card. Without it a
         # player is drawn as he was before, so a step that fails costs only that.
         art: card_art.Art | None = optional(
@@ -348,6 +353,7 @@ def run(
         )
     if art is None:
         art = optional(db, failed, "card art (kept)", lambda: card_art.load(db), None)
+    laps("card art")
     # Understat's xG for the midfielders and forwards, for the leagues the owner has players in: one request each, and a
     # league that cannot be read is left out, so its players simply show no xG.
     leagues = sorted(
@@ -358,6 +364,7 @@ def run(
         }
     )
     snapshot["understat"] = understat.fetch_leagues(leagues, understat.season_of(started.date()))
+    laps("understat")
     # Sorare's starting chances as its page showed them in the owner's browser: the public API gives none (13 Oct 2026).
     no_readings: dict[str, dict[str, Any]] = {}
     snapshot["sorareStarts"] = optional(
@@ -374,11 +381,13 @@ def run(
             slug: entry["games"] for slug, entry in snapshot["leagueHistory"].items() if slug in owners
         }
         db.rollback()
+    laps("games saved")
     # Futbol Fantasy's expected lineups, before anything is planned: its chance that each player starts each game is what
     # the expected scores, the plans and the captain are built on. Only the gameweek being planned uses it.
     # Each source's start chances moved to what the record says happened, band by band, from 100 settled cases (plans/xscore.md X8).
     fixes = optional(db, failed, "start chance corrections", lambda: start_fixes.load(db), None)
     feed, lineups = read_lineups(db, failed, snapshot, fetched, write=not dry_run, fixes=fixes)
+    laps("futbol fantasy")
     # Every LaLiga player linked to Futbol Fantasy's pages too, apart from the owner's cards (whose links the Lineups page marks as his):
     # every player then gets FF's start chance, not only his (7 Oct 2026). A failure leaves the others on Sorare's odds or their form.
     league_lineups: ff_use.Lineups | None = (
@@ -402,6 +411,7 @@ def run(
         db, failed, snapshot, feed, lineups, fetched, write=not dry_run, art=art, league=league_lineups
     )
     db.rollback()
+    laps("lineups page")
     # A player's score if he starts is worked out from his game (the football model's numbers and the bookmakers' goals line, scores.py)
     # instead of only his last five games. A step that fails, or a game it cannot tell, leaves that player's number as it was.
     scores_of: sorare_publish.ScoresOf | None = optional(
@@ -414,6 +424,7 @@ def run(
         None,
     )
     db.rollback()
+    laps("game scores")
     # Every LaLiga round Sorare has not opened a gameweek for is planned early, from the calendar the app already holds. A
     # run plans only the few that are missing or stale, so it stays well inside its time; the rest keep their last plan.
     # If planning fails the page keeps the list of early weeks it had.
@@ -434,6 +445,7 @@ def run(
         ),
         None,
     )
+    laps("early plans")
     early_weeks = made.weeks if made else []
     fresh_weeks = made.fresh if made else []
     heads = sorare_publish.projected_heads(early_weeks) if made else list(previous.get("projected") or [])
@@ -450,12 +462,15 @@ def run(
     alt, record = payload.pop("_alt", None), payload.pop("_record", None)
     lab = payload.pop("_strategies", None)
     lenses = payload.pop("_lenses", None)
+    laps("plans")
+    payload_laps = payload.pop("_laps", {})
     if art and art.urls:
         payload["market"] = sorare_publish.with_card_art(payload.get("market") or [], art.urls)
     planned_week = sorare_publish.week_of(payload) or {}
     news, readings = team_news(db, failed, planned_week, fetched)
     if news:
         planned_week["teamNews"] = news  # the Home's team news belongs to the week the site's numbers are about
+    laps("team news")
     size = len(json.dumps(payload, separators=(",", ":")))
     summary: dict[str, Any] = {
         "gameweek": planned_week.get("gameweek", {}).get("number"),
@@ -483,7 +498,9 @@ def run(
     if snapshot.get("pastGaps"):
         # Sorare did not answer everything the week just played was built from: it is not made final, and is rebuilt next run.
         summary["pastGaps"] = snapshot["pastGaps"]
+    summary["parts"] = {"sync": snapshot.get("parts"), "plans": payload_laps}
     if dry_run:
+        summary["parts"]["step"] = laps
         would: list[str] = optional(
             db, failed, "frozen plan", lambda: frozen.freeze(db, previous, fetched, write=False), []
         )
@@ -527,6 +544,7 @@ def run(
         put(db, f"{sorare_publish.STRATEGY_PREFIX}{lab['gameweek']['slug']}", lab, now)
         summary["strategies"] = {s["key"]: len(s["lineups"]) for s in lab["strategies"]}
     put(db, SORARE_KEY, payload, now)
+    laps("writes")
     pool = optional(
         db,
         failed,
@@ -551,6 +569,7 @@ def run(
         put(db, mission_pool.KEY, pool, now)
         optional(db, failed, "mission capture", lambda: sorare_missions.capture(db, pool, now), None)
     # The plan the page held when a week locked is kept once, before it is lost to the next run's page (roadmap 1.2).
+    laps("missions")
     kept_plans: list[str] = optional(db, failed, "frozen plan", lambda: frozen.freeze(db, previous, fetched), [])
     if kept_plans:
         summary["frozenPlans"] = kept_plans
@@ -570,10 +589,13 @@ def run(
     settled: dict[str, int] = optional(db, failed, "mission picks", lambda: sorare_missions.settle_kept(db, now), {})
     if settled:
         summary["missions"] = settled
+    laps("frozen, references, news, settle")
 
     audited: dict[str, int] = optional(db, failed, "audit", lambda: audit.publish(db, now), {})
     if audited:
         summary["audit"] = audited
+    laps("audit")
+    summary["parts"]["step"] = laps
     if failed:
         summary["failed"] = failed
     if standalone:

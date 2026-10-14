@@ -127,7 +127,7 @@ export const stamp = (at: string | Date): string => (at instanceof Date ? at.toI
  * One payload as written at `updatedAt`, kept in Next's cache under that time. Neon's free plan counts every byte it sends
  * (5 GB a month, then the database is suspended), so a payload is downloaded once per change: not once per page view, per
  * refresh or per localhost reload. The time is part of the cache key, so this is never stale and is safe under `npm run dev`.
- * Next does not cache an item over 2 MB (about 1.6 MB of JSON): read a bigger payload in pieces, as lib/missionsPool.ts does.
+ * Next does not cache an item over 2 MB (about 1.6 MB of JSON): read a bigger payload in pieces, as lib/missionsPool.ts and loadSorare (lib/playData.ts) do.
  */
 export const readModelAt = unstable_cache(
   async (key: string, updatedAt: string): Promise<unknown> =>

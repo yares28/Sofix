@@ -82,7 +82,9 @@ The Recap is about the week in the top bar (since 5 Oct 2026; design canvas boar
   the actual score, xD (the starters expected to bring a decisive action; a dash until every starter's game is worked out)
   and one reward chance. Its round **i** button opens the rest: the chance of XP, essence, cash and a card apart, every
   reward level with the score it took and its chance, the expected range, the managers entered and the format.
-  Entered teams and Sofix teams share the same comparison rows. Older saved teams use their retained appearance
+  Entered teams and Sofix teams share the same comparison rows. Until the week ends an entered team also shows its
+  reward chance: the plan's own when it is a plan lineup, else an estimate of reaching the score the lowest paid level
+  took (none for a Room). Older saved teams use their retained appearance
   order with that GW's saved forecasts and rules for an estimate. Reviewing/live player results count toward the
   plan's **Actual so far**; pending games stay unknown until scored or confirmed DNP.
 - **Missions**: today's open missions and the three cards of yours that fit each best, with the chance (the Missions page's numbers).

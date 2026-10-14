@@ -7,7 +7,7 @@ import { pendingLine, resultLine, type GameweekLineup, type WeekLineupsAnswer } 
 import { readEnteredWeek, type EnteredRead } from "../../lib/myWeeksClient";
 import { REQUIRED_EXTENSION_VERSION } from "../../lib/extension";
 import SorareImage from "./SorareImage";
-import type { GameweekPlan } from "../../lib/play";
+import { chanceLabel, type GameweekPlan } from "../../lib/play";
 import { enteredScore } from "../../lib/lineupScores";
 import { ComparisonCards, ComparisonScores } from "../recap/LineupComparison";
 import { scoreColour } from "../../lib/cards";
@@ -155,7 +155,16 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
                   <ComparisonScores expected={expected.value} estimated={expected.estimated} actual={pending || lineup.draft ? null : lineup.result?.score ?? null} actualLabel={lineup.result?.rank === null ? "Actual so far" : "Actual"} entered />
                   {expected.value === null ? <span>{forecast ? "Forecast unavailable" : "Not recorded"}</span> : null}
                 </div>
-                <div className="rc-rew"><span>{lineup.draft ? "Draft" : pending ?? (lineup.result ? resultLine(lineup.result) : "Entered")}</span></div>
+                <div className="rc-rew">
+                  {/* the same one chance as a plan lineup, until the week is over and the result says it */}
+                  {expected.chance !== undefined && (!week.end || Date.parse(week.end) > now.getTime()) ? (
+                    <div className="rc-any" title={`The chance of any cash, essence or card${expected.estimated ? ", estimated from this GW's forecasts" : ""}`}>
+                      <b>{chanceLabel(expected.chance)}</b>
+                      <span>Reward</span>
+                    </div>
+                  ) : null}
+                  <span>{lineup.draft ? "Draft" : pending ?? (lineup.result ? resultLine(lineup.result) : "Entered")}</span>
+                </div>
               </article>;
             }
             // The same row as a lineup of the Sofix plan: competition, cards with a number under each, team score, result.

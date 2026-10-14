@@ -72,6 +72,14 @@ describe("entered lineup expected score", () => {
     selected.playing.players[0]!.x = 40; selected.playing.players[0]!.p = 0.8;
     expect(enteredScore(custom, selected, "selected").value).toBeCloseTo(62.8);
   });
+  it("gives a plan lineup the plan's reward chance, and a custom one its chance of the score the lowest paid level took", () => {
+    const lineup = line({ pReturn: 0.31, need: 100 });
+    expect(enteredScore(entered(lineup.starters), week(lineup), "selected").chance).toBe(0.31);
+    const custom = entered([card("a"), card("b", { captain: true })]);
+    expect(enteredScore(custom, week(lineup), "selected").chance).toBeCloseTo(0.5); // expects exactly the 100 it needs
+    expect(enteredScore(custom, week(line({ need: 160 })), "selected").chance).toBeLessThan(0.05);
+    expect(enteredScore(custom, week(line({ need: 100, group: "Room" })), "selected").chance).toBeUndefined();
+  });
   it("never borrows card multipliers from another competition", () => {
     const selected = week(line());
     selected.plans[0]!.lineups.push(line({ board: "other", starters: [card("foreign", { mult: 2 })] }));

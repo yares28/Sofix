@@ -126,6 +126,7 @@ a.rc-tm:hover > span:last-child { text-decoration: underline; }
 .rc-lu > .rc-rew { grid-area: rew; }
 .rc-rew { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding-left: 20px; border-left: 1px solid var(--line); font-size: 13px; color: var(--ink-2); line-height: 1.4; }
 .rc-rew b { color: var(--ink); }
+.pl-entered-lineup .rc-rew { flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: 6px; }
 .rc-any { display: flex; flex-direction: column; gap: 8px; }
 .rc-any b { font-size: 28px; font-weight: 650; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
 .rc-info-btn { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: var(--surface); color: var(--ink); cursor: pointer; transition: background .15s; }

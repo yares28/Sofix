@@ -60,9 +60,10 @@ export function lineupActual(lineup: Lineup, scores: ActualScores): TeamScore {
 /** Custom teams use independent playing chances and conditional means, enumerated exactly (at most 9 cards).
  * Saved optimizer totals retain their seeded simulation, including its score distribution and correlations.
  */
-function expectation(lineup: ScoringLineup): number {
+function expectation(lineup: ScoringLineup, need?: number | null): { value: number; chance?: number } {
   const cards = [...lineup.starters, ...lineup.subs];
   let value = 0;
+  let chance = 0;
   for (let mask = 0; mask < 2 ** cards.length; mask++) {
     const scores: ActualScores = {};
     let probability = 1;
@@ -71,13 +72,35 @@ function expectation(lineup: ScoringLineup): number {
       probability *= played ? c.p : 1 - c.p;
       scores[c.slug] = { played, score: c.mu };
     });
-    if (probability) value += probability * total(lineup, scores);
+    if (!probability) continue;
+    const mean = total(lineup, scores);
+    value += probability * mean;
+    if (!need) continue;
+    // With who plays fixed the total is a weighted sum of the scores: each card's weight is the total when only he scores 1.
+    const weights = cards.filter(c => scores[c.slug]!.played).map(c =>
+      total(lineup, Object.fromEntries(cards.map(o => [o.slug, { played: scores[o.slug]!.played, score: o === c ? 1 : 0 }]))));
+    const sd = SCORE_SD * Math.hypot(...weights);
+    chance += probability * (sd ? 1 - bell((need - mean) / sd) : Number(mean >= need));
   }
-  return value;
+  return need ? { value, chance } : { value };
+}
+
+/** planner.py's SCORE_SD.
+ * ponytail: independent, unclipped bell scores; the planner also ties one game's players together. Publish it from the backend if the gap shows. */
+const SCORE_SD = 17.6;
+/** The standard bell curve's share below z (Abramowitz and Stegun 26.2.17, within 1e-7). */
+function bell(z: number): number {
+  const t = 1 / (1 + 0.2316419 * Math.abs(z));
+  const tail = Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI) * t * (0.31938153 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+  return z >= 0 ? 1 - tail : tail;
 }
 
 /** Only this GW supplies forecasts: an absent player never borrows a later week's score or becomes a zero. */
-export function enteredScore(entered: GameweekLineup, week: GameweekPlan | null, slug: string): { value: number | null; estimated: boolean } {
+export function enteredScore(entered: GameweekLineup, week: GameweekPlan | null, slug: string): {
+  value: number | null; estimated: boolean;
+  /** The chance of any cash, essence or card: the plan's own for a plan lineup, else against the score the lowest paid level took. Absent when unknown. */
+  chance?: number;
+} {
   const missing = { value: null, estimated: false };
   if (!week || week.gameweek.slug !== slug || !entered.cards.length) return missing;
   const options = week.plans.flatMap(p => p.lineups).filter(l => l.board === entered.board);
@@ -89,7 +112,7 @@ export function enteredScore(entered: GameweekLineup, week: GameweekPlan | null,
     const cards = [...l.starters, ...l.subs];
     return cards.length === ordered.length && cards.every((c, i) => c.slug === ordered[i]!.slug && !!c.captain === ordered[i]!.captain);
   });
-  if (saved) return { value: saved.x, estimated: false };
+  if (saved) return { value: saved.x, estimated: false, chance: saved.pReturn };
 
   const template = options[0];
   const rules = entered.scoring;
@@ -137,5 +160,6 @@ export function enteredScore(entered: GameweekLineup, week: GameweekPlan | null,
   const custom: ScoringLineup = { captainBonus: rules?.captain ?? template!.captainBonus,
     minInSeason: rules?.minInSeason ?? template!.minInSeason, clubBonus: rules ? rules.clubBonus : template!.clubBonus,
     averageBonus: rules ? rules.averageBonus : template!.averageBonus, starters, subs };
-  return { value: expectation(custom), estimated: true };
+  // A Room's place depends on nine other teams, not on one score to reach.
+  return { ...expectation(custom, template?.group === "Room" ? null : template?.need), estimated: true };
 }

@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import JSON, func, literal_column, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
@@ -56,13 +56,35 @@ def save(db: Session, history: dict[str, list[dict[str, Any]]], at: datetime, *,
     return len(unique)
 
 
+def _stats_of(db: Session, names: tuple[str, ...] | None) -> Any:
+    """The `stats` column, or on Postgres only its entries named `names`: Neon then sends a few of a game's ~25 entries
+    (they are 4.8 MB of the league's 70 days). Elsewhere `load` drops the rest itself, so both give the same games."""
+    if names is None or db.get_bind().dialect.name != "postgresql":
+        return PlayerGame.stats
+    wanted = ", ".join(f"'{name}'" for name in names)  # our own constants, never input
+    return literal_column(
+        "CASE WHEN json_typeof(player_games.stats) = 'array' THEN COALESCE((SELECT json_agg(s) FROM"
+        f" json_array_elements(player_games.stats) AS s WHERE s->>'stat' IN ({wanted})), '[]'::json)"
+        " ELSE player_games.stats END",
+        JSON,
+    ).label("stats")
+
+
 def load(
-    db: Session, *, now: datetime | None = None, days: int | None = None, players: set[str] | None = None
+    db: Session,
+    *,
+    now: datetime | None = None,
+    days: int | None = None,
+    players: set[str] | None = None,
+    stats: tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
-    """The legacy history shape; the visible form window does not limit permanent storage or yellow totals."""
+    """The legacy history shape; the visible form window does not limit permanent storage or yellow totals.
+
+    `stats` keeps only those entries of each game's detailed score (None keeps them all)."""
     at = now or datetime.now(UTC)
     cutoff = at - timedelta(days=days) if days is not None else None
-    query = select(PlayerGame).order_by(PlayerGame.date)
+    columns = [getattr(PlayerGame, key) for key in ("player", "game_id", "date", "read_at", *ACTUAL) if key != "stats"]
+    query = select(*columns, _stats_of(db, stats)).order_by(PlayerGame.date)
     if players is not None:
         query = query.where(PlayerGame.player.in_(players))
     if cutoff:
@@ -70,16 +92,23 @@ def load(
     out: dict[str, Any] = {}
     totals: dict[tuple[str, int], int] = {}
     if cutoff:
-        for player, date, yellow in db.execute(
-            select(PlayerGame.player, PlayerGame.date, PlayerGame.yellow).where(
-                PlayerGame.competition == "laliga-es", PlayerGame.date < cutoff, PlayerGame.yellow.isnot(None)
-            )
-        ):
-            key = player, season_start(as_utc(date)).year
-            totals[key] = totals.get(key, 0) + yellow
-    for row in db.scalars(query):
+        # Only the yellows of the cutoff's own season can add to a game inside the window, summed by Postgres.
+        season = season_start(cutoff)
+        earlier = select(PlayerGame.player, func.sum(PlayerGame.yellow)).where(
+            PlayerGame.competition == "laliga-es",
+            PlayerGame.date >= season,
+            PlayerGame.date < cutoff,
+            PlayerGame.yellow.isnot(None),
+        )
+        if players is not None:
+            earlier = earlier.where(PlayerGame.player.in_(players))
+        for player, yellow in db.execute(earlier.group_by(PlayerGame.player)):
+            totals[player, season.year] = yellow
+    for row in db.execute(query):
         date = as_utc(row.date)
         game = {key: value for key in ACTUAL if (value := getattr(row, key)) is not None}
+        if stats is not None and isinstance(game.get("stats"), list):
+            game["stats"] = [entry for entry in game["stats"] if entry.get("stat") in stats]
         game.update(gameId=row.game_id, date=date.isoformat(), score=row.score, played=row.played, mins=row.mins)
         if row.competition == "laliga-es":
             key = row.player, season_start(date).year
@@ -92,6 +121,12 @@ def load(
     for entry in out.values():
         entry["games"].reverse()
     return out
+
+
+def listed(db: Session, players: set[str]) -> list[str]:
+    """Which of these players have any row, in the order `load(players=...)` lists them (by his first game)."""
+    query = select(PlayerGame.player).where(PlayerGame.player.in_(players)).group_by(PlayerGame.player)
+    return list(db.scalars(query.order_by(func.min(PlayerGame.date))))
 
 
 def known(db: Session) -> dict[str, Any]:

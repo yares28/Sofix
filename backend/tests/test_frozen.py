@@ -171,3 +171,34 @@ def test_no_page_yet_or_a_page_of_another_shape_keeps_nothing(db) -> None:
     assert frozen.freeze(db, {}, AFTER) == []
     assert frozen.freeze(db, {"generatedAt": "not a date", "weeks": [week()]}, AFTER) == []
     assert frozen.freeze(db, {"generatedAt": BUILT.isoformat(), "weeks": [{"gameweek": {}}]}, AFTER) == []
+
+
+def test_the_run_reads_only_the_weeks_of_the_page_it_uses(db):
+    """`published` leaves the market and every week the run never opens in Neon, and the run decides the same with it."""
+    from app.jobs import sorare as job
+    from app.sorare import publish
+
+    last = week("gw-last", LOCK - timedelta(days=7), played=True)
+    last["gameweek"] |= {"id": "20", "end": (BUILT - timedelta(days=2)).isoformat()}
+    ahead = week("gw-ahead", LOCK + timedelta(days=4))
+    ahead["gameweek"]["id"] = "22"
+    full = {
+        **page([last, week(), ahead]),
+        "version": publish.PAYLOAD_VERSION,
+        "lastId": "20",
+        "timeline": [{"slug": "gw-last", "kept": True}],
+        "projected": [{"round": 9}],
+        "status": {"lastCloudAt": BUILT.isoformat()},
+        "market": [{"player": {"slug": "x"}}] * 50,
+        "collection": [{"player": "mid-one"}],
+    }
+    db.add(ReadModel(key=job.SORARE_KEY, payload=full, updated_at=BUILT))
+    db.commit()
+    for now, frozen_now in ((LOCK - timedelta(minutes=5), []), (AFTER, ["gw-plan"])):
+        previous = job.published(db, now)
+        assert publish.settled_replay(previous) == publish.settled_replay(full) == last
+        assert frozen.freeze(db, previous, now, write=False) == frozen.freeze(db, full, now, write=False) == frozen_now
+        assert {k: previous[k] for k in job.PUBLISHED_HEAD} == {k: full[k] for k in job.PUBLISHED_HEAD}
+        assert "market" not in previous and "collection" not in previous
+        assert previous["weeks"][2] == {"gameweek": ahead["gameweek"], "played": False}
+    assert previous["weeks"][1] == week()

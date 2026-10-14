@@ -15,13 +15,13 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session, load_only
+from sqlalchemy.orm import Session
 
-from app.models import PlayerGame, ReadModel
+from app.models import ReadModel
 from app.services.publish import put
 from app.services.timeutil import as_utc
 from app.sorare.frozen import PLAN_PREFIX
-from app.sorare.frozen_scores import _score
+from app.sorare.frozen_scores import _score, games_of, results
 from app.sorare.planner import score_at_rank
 from app.sorare.publish import ALT_PREFIX, SETTLE
 
@@ -78,15 +78,10 @@ def plan_tally(
     return tally, settled
 
 
-def kept_results(db: Session) -> tuple[dict[tuple[str, str], Any], dict[str, Any]]:
-    """Every game's kept result by (player, game), and the scores that paid each week."""
-    rows = db.scalars(
-        select(PlayerGame).options(
-            load_only(PlayerGame.player, PlayerGame.game_id, PlayerGame.status, PlayerGame.played, PlayerGame.score)
-        )
-    )
+def kept_references(db: Session) -> dict[str, Any]:
+    """The scores that paid each week."""
     row = db.get(ReadModel, REFERENCES_KEY)
-    return {(r.player, r.game_id): r for r in rows}, dict(row.payload) if row and isinstance(row.payload, dict) else {}
+    return dict(row.payload) if row and isinstance(row.payload, dict) else {}
 
 
 def read(db: Session, now: datetime, *, write: bool = True) -> dict[str, Any]:
@@ -99,7 +94,6 @@ def read(db: Session, now: datetime, *, write: bool = True) -> dict[str, Any]:
         for key in db.scalars(select(ReadModel.key).where(ReadModel.key.like(f"{PLAN_PREFIX}%")))
         if key.removeprefix(PLAN_PREFIX) not in weeks
     ]
-    actuals: dict[tuple[str, str], Any] | None = None
     references: dict[str, Any] | None = None
     for slug in slugs:
         plan_row = db.get(ReadModel, f"{PLAN_PREFIX}{slug}")
@@ -110,13 +104,11 @@ def read(db: Session, now: datetime, *, write: bool = True) -> dict[str, Any]:
         end = as_utc(datetime.fromisoformat(info["end"]))
         if now <= end:
             continue
-        if actuals is None:
-            actuals, references = kept_results(db)
-        games = {
-            p["player"]: [g["id"] for g in p.get("games") or [] if g.get("id")]
-            for p in (plan.get("playing") or {}).get("players") or []
-        }
-        reference = (references or {}).get(slug) or {}
+        if references is None:
+            references = kept_references(db)
+        games = games_of(plan)
+        actuals = results(db, games)
+        reference = references.get(slug) or {}
         week: dict[str, Any] = {
             "slug": slug,
             "number": info.get("number"),

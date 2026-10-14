@@ -25,6 +25,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any, TypeVar
 
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -103,10 +104,53 @@ def essence_order(db: Session) -> tuple[str, ...]:
     return ESSENCE_ORDER
 
 
-def published(db: Session) -> dict[str, Any]:
-    """What the app is showing now: its replay of the last gameweek can be kept instead of rebuilt."""
-    row = db.get(ReadModel, SORARE_KEY)
-    return dict(row.payload) if row and isinstance(row.payload, dict) else {}
+PUBLISHED_HEAD = ("version", "generatedAt", "nextId", "lastId", "timeline", "projected", "status")
+WEEK_HEAD = ("gameweek", "played", "complete")
+_HEAD_SQL = text(
+    "SELECT json_build_object("
+    + ", ".join(f"'{key}', p->'{key}'" for key in PUBLISHED_HEAD)
+    + ", 'weeks', (SELECT json_agg(json_build_object("
+    + ", ".join(f"'{key}', w->'{key}'" for key in WEEK_HEAD)
+    + ") ORDER BY i) FROM json_array_elements(p->'weeks') WITH ORDINALITY AS t(w, i)))"
+    " FROM (SELECT payload AS p FROM read_models WHERE key = :key) AS s"
+)
+_WEEK_SQL = text("SELECT payload->'weeks'->CAST(:i AS integer) FROM read_models WHERE key = :key")
+
+
+def published(db: Session, now: datetime) -> dict[str, Any]:
+    """What the app is showing now, as far as this run uses it: its replay of the last gameweek can be kept instead of
+    rebuilt, and a week that locked since it was built has its plan kept (`frozen.freeze`, with this same `now`).
+
+    Every other week is only its `gameweek`, `played` and `complete`, and the market and collection stay in Neon: about
+    2 MB the run never used. On Postgres the rest is never sent; elsewhere (the tests' SQLite) it is dropped here."""
+    if db.get_bind().dialect.name == "postgresql":
+        found = db.execute(_HEAD_SQL, {"key": SORARE_KEY}).scalar()
+        if not isinstance(found, dict):
+            return {}
+        head = {key: value for key, value in found.items() if value is not None}
+        head["weeks"] = [{k: v for k, v in week.items() if v is not None} for week in head.get("weeks") or []]
+
+        def week(i: int) -> Any:
+            return db.execute(_WEEK_SQL, {"key": SORARE_KEY, "i": i}).scalar()
+    else:
+        row = db.get(ReadModel, SORARE_KEY)
+        if not row or not isinstance(row.payload, dict):
+            return {}
+        payload = row.payload
+        head = {key: payload[key] for key in PUBLISHED_HEAD if key in payload}
+        head["weeks"] = [{k: w[k] for k in WEEK_HEAD if k in w} for w in payload.get("weeks") or []]
+
+        def week(i: int) -> Any:
+            return payload["weeks"][i]
+
+    built = frozen._dt(head.get("generatedAt"))
+    last = sorare_publish.settled_replay(head)
+    for i, stub in enumerate(head["weeks"]):
+        lock = frozen._dt((stub.get("gameweek") or {}).get("lock"))
+        locked = built is not None and lock is not None and not stub.get("played") and built < lock <= now
+        if stub is last or locked:
+            head["weeks"][i] = week(i)
+    return head
 
 
 def optional(db: Session, failed: dict[str, str], step: str, work: Callable[[], T], fallback: T) -> T:
@@ -322,7 +366,7 @@ def run(
     # A dry run saves nothing, so it plans on the full history from here.
     league = cached_league(db) if dry_run else player_games.read_times(db, days=70)
     order = essence_order(db)
-    previous = published(db)
+    previous = published(db, started)
     # A finished gameweek's replay never changes once its scores are final: keep it, and fetch nothing for it.
     kept = sorare_publish.settled_replay(previous)
     replayed = kept["gameweek"]["slug"] if kept else None
@@ -372,13 +416,22 @@ def run(
     )
     db.rollback()
     fetched = datetime.fromisoformat(snapshot["fetchedAt"])
+    owners = {row["player"]["slug"] for row in snapshot["cards"]}
+    mine: dict[str, Any] = {}
     if not dry_run:
         player_games.save(db, snapshot["history"], fetched)
-        snapshot["leagueHistory"] = cached_league(db, fetched)
+        # Every game of the owner's players, read once: their last 70 days are the plans' history, all of it the missions'.
+        mine = player_games.load(db, players=owners)
+        # Everyone else's form needs only his decisive actions out of each game's detailed score (`publish.own_decisive`).
+        snapshot["leagueHistory"] = player_games.load(
+            db, now=fetched, days=70, stats=(*sorare_publish.DECISIVE_STATS, "clean_sheet_60")
+        )
         # A source outage only stops new reads: the owner's saved games remain available for form and replay.
-        owners = {row["player"]["slug"] for row in snapshot["cards"]}
+        cutoff = fetched - timedelta(days=70)
         snapshot["history"] = {
-            slug: entry["games"] for slug, entry in snapshot["leagueHistory"].items() if slug in owners
+            slug: games
+            for slug, entry in mine.items()
+            if (games := [g for g in entry["games"] if datetime.fromisoformat(g["date"]) >= cutoff])
         }
         db.rollback()
     laps("games saved")
@@ -554,12 +607,9 @@ def run(
             now,
             ff=lineups.starts if lineups else None,
             scores=scores_of,
-            history={
-                slug: entry["games"]
-                for slug, entry in player_games.load(
-                    db, players={row["player"]["slug"] for row in snapshot["cards"]}
-                ).items()
-            }
+            # The games read after this run's were saved: what the run has written since is only statements, which the
+            # missions leave out, but a player whose only rows they are is still listed (with no games), as before.
+            history={slug: (mine.get(slug) or {}).get("games") or [] for slug in player_games.listed(db, owners)}
             if not dry_run
             else snapshot["history"],
         ),

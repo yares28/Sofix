@@ -145,3 +145,55 @@ def test_known_holds_what_the_league_read_needs_from_load(db):  # noqa: F811
     assert light["a"]["games"] == [
         {key: game[key] for key in ("gameId", "date", "status")} for game in full["a"]["games"]
     ]
+
+
+def test_a_window_and_a_stats_subset_give_the_same_games_as_a_full_read(db):  # noqa: F811
+    from app.sorare import player_games
+
+    def game(gid: str, date: str, yellow: int | None, stats: list | None) -> dict:
+        return {
+            "gameId": gid,
+            "date": date,
+            "competition": "laliga-es",
+            "status": "FINAL",
+            "played": True,
+            "started": True,
+            "score": 50,
+            "yellow": yellow,
+            "stats": stats,
+        }
+
+    stats = [
+        {"stat": "goals", "statValue": 1},
+        {"stat": "fouls", "statValue": 2},
+        {"stat": "clean_sheet_60", "statValue": 0},
+    ]
+    player_games.save(
+        db,
+        {
+            "a": [
+                game("old", "2026-05-01T19:00:00Z", 3, stats),  # last season: never counts
+                game("early", "2026-07-20T19:00:00Z", 2, stats),  # this season, before the window
+                game("none", "2026-07-25T19:00:00Z", None, None),  # cards not read: adds nothing
+                game("in1", "2026-09-20T19:00:00Z", 1, stats),
+                game("in2", "2026-10-05T19:00:00Z", 0, None),
+            ],
+            "b": [game("b1", "2026-10-01T19:00:00Z", 1, stats)],
+        },
+        NOW,
+    )
+    full = player_games.load(db)
+    window = player_games.load(db, now=NOW, days=70)
+    cutoff = NOW - timedelta(days=70)
+    for player, entry in window.items():
+        assert entry["games"] == [g for g in full[player]["games"] if datetime.fromisoformat(g["date"]) >= cutoff]
+    assert [g["seasonYellows"] for g in window["a"]["games"]] == [3, 3]
+    assert player_games.load(db, now=NOW, days=70, players={"a"})["a"] == window["a"]
+
+    slim = player_games.load(db, now=NOW, days=70, stats=("goals", "clean_sheet_60"))
+    for player, entry in window.items():
+        for kept, whole in zip(slim[player]["games"], entry["games"], strict=True):
+            names = None if whole.get("stats") is None else ["goals", "clean_sheet_60"]
+            assert {k: v for k, v in kept.items() if k != "stats"} == {k: v for k, v in whole.items() if k != "stats"}
+            assert (None if kept.get("stats") is None else [s["stat"] for s in kept["stats"]]) == names
+    assert player_games.listed(db, {"a", "b", "c"}) == list(full)

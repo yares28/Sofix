@@ -155,25 +155,45 @@ def verdict(
     return {"label": label, "beat": beat}
 
 
+def games_of(week: dict[str, Any]) -> dict[str, list[str]]:
+    """Each player's games in a kept week, the ones `_score` looks up."""
+    return {
+        p["player"]: [g["id"] for g in p.get("games") or [] if g.get("id")]
+        for p in (week.get("playing") or {}).get("players") or []
+    }
+
+
+def results(db: Session, games: dict[str, list[str]]) -> dict[tuple[str, str], PlayerGame]:
+    """The kept result of these players' games, by (player, game): only what `_score` will look up, where reading every kept
+    game would have Neon send ~31,000 rows (2.6 MB) on each call."""
+    ids = {gid for listed in games.values() for gid in listed}
+    if not ids:
+        return {}
+    rows = db.scalars(
+        select(PlayerGame)
+        .options(
+            load_only(PlayerGame.player, PlayerGame.game_id, PlayerGame.status, PlayerGame.played, PlayerGame.score)
+        )
+        .where(PlayerGame.player.in_(set(games)), PlayerGame.game_id.in_(ids))
+    )
+    return {(row.player, row.game_id): row for row in rows}
+
+
 def read(db: Session, now: datetime) -> list[dict[str, Any]]:
     kept = [row.payload for row in db.scalars(select(ReadModel).where(ReadModel.key.like(f"{PLAN_PREFIX}%")))]
-    actuals = {
-        (row.player, row.game_id): row
-        for row in db.scalars(
-            select(PlayerGame).options(
-                load_only(PlayerGame.player, PlayerGame.game_id, PlayerGame.status, PlayerGame.played, PlayerGame.score)
-            )
-        )
-    }
+    settled = [
+        (week, games_of(week))
+        for week in kept
+        if (end := (week.get("gameweek") or {}).get("end")) and now > as_utc(datetime.fromisoformat(end)) + SETTLE
+    ]
+    every: dict[str, list[str]] = {}
+    for _, games in settled:
+        for player, ids in games.items():
+            every.setdefault(player, []).extend(ids)
+    actuals = results(db, every)
     weeks = []
-    for week in kept:
-        info = week.get("gameweek") or {}
-        if not info.get("end") or now <= as_utc(datetime.fromisoformat(info["end"])) + SETTLE:
-            continue
-        games = {
-            p["player"]: [g["id"] for g in p.get("games") or [] if g.get("id")]
-            for p in (week.get("playing") or {}).get("players") or []
-        }
+    for week, games in settled:
+        info = week["gameweek"]
         weeks.append(
             {
                 "slug": info["slug"],

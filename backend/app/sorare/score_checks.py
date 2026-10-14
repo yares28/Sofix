@@ -11,6 +11,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 from typing import Any
 
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.models import ReadModel
@@ -45,10 +46,29 @@ def kept(db: Session) -> dict[str, Any]:
     return deepcopy(row.payload.get("games") or {}) if row else {}
 
 
+_PAGE_SQL = text(
+    "SELECT json_build_object("
+    "'collection', (SELECT json_agg(json_build_object('player', c->'player', 'name', c->'name', 'pic', c->'pic')"
+    " ORDER BY i) FROM json_array_elements(p->'collection') WITH ORDINALITY AS t(c, i)),"
+    " 'weeks', (SELECT json_agg(json_build_object('gameweek', w->'gameweek', 'playing',"
+    " json_build_object('players', w->'playing'->'players')) ORDER BY i)"
+    " FROM json_array_elements(p->'weeks') WITH ORDINALITY AS t(w, i)))"
+    " FROM (SELECT payload AS p FROM read_models WHERE key = 'sorare') AS s"
+)
+
+
+def _page(db: Session) -> dict[str, Any]:
+    """The Sorare page's parts `catalog` reads: on Postgres only those (~0.4 of its 2 MB), elsewhere all of it."""
+    if db.get_bind().dialect.name == "postgresql":
+        found = db.execute(_PAGE_SQL).scalar()
+        return found if isinstance(found, dict) else {}
+    row = db.get(ReadModel, "sorare")
+    return row.payload if row else {}
+
+
 def catalog(db: Session) -> list[dict[str, Any]]:
     """Frozen records, with owner/card identity; a current unrecorded game has explicitly missing forecasts."""
-    row = db.get(ReadModel, "sorare")
-    page = row.payload if row else {}
+    page = _page(db)
     cards = {c["player"]: c for c in reversed(page.get("collection") or []) if c.get("player")}
     records = {
         r["gameweek"]["slug"]: deepcopy(r) for _, r in versus.records(db) if (r.get("gameweek") or {}).get("slug")

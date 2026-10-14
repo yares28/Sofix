@@ -26,8 +26,8 @@ from app.services.publish import put
 from app.services.timeutil import as_utc
 from app.sorare import strategies
 from app.sorare.frozen import PLAN_PREFIX
-from app.sorare.frozen_scores import _score
-from app.sorare.lineup_audit import GIVE_UP, KINDS, kept_results, prize
+from app.sorare.frozen_scores import _score, results
+from app.sorare.lineup_audit import GIVE_UP, KINDS, kept_references, prize
 from app.sorare.publish import ARCHIVE_PREFIX, SETTLE, STRATEGY_PREFIX
 
 KEY = "strategy_audit"
@@ -262,13 +262,13 @@ def week_of(
     lab: dict[str, Any],
     frozen: dict[str, Any],
     now: datetime,
-    actuals: Any,
     references: dict[str, Any],
 ) -> dict[str, Any]:
     info = (lab or frozen).get("gameweek") or {}
     players = (frozen.get("playing") or {}).get("players") or []
     games: dict[str, list[str]] = {p["player"]: [g["id"] for g in p.get("games") or [] if g.get("id")] for p in players}
     games = {**(lab.get("games") or {}), **games}
+    actuals = results(db, games)
     fixtures = {p["player"]: {"games": p.get("games") or [], "p": p.get("p")} for p in players} or None
     reference = references.get(slug) or {}
     week = _Week(db, slug, info, fixtures)
@@ -301,14 +301,14 @@ def read(db: Session, now: datetime, *, write: bool = True) -> dict[str, Any]:
     keys = set(db.scalars(select(ReadModel.key).where(ReadModel.key.like(f"{STRATEGY_PREFIX}%"))))
     keys |= set(db.scalars(select(ReadModel.key).where(ReadModel.key.like(f"{PLAN_PREFIX}%"))))
     slugs = {k.removeprefix(STRATEGY_PREFIX).removeprefix(PLAN_PREFIX) for k in keys} - set(weeks)
-    loaded: tuple[Any, dict[str, Any]] | None = None
+    references: dict[str, Any] | None = None
     for slug in sorted(slugs):
         lab, frozen = _body(db, f"{STRATEGY_PREFIX}{slug}"), _body(db, f"{PLAN_PREFIX}{slug}")
         end = ((lab or frozen).get("gameweek") or {}).get("end")
         if not end or now <= as_utc(datetime.fromisoformat(end)):
             continue
-        loaded = loaded or kept_results(db)
-        weeks[slug] = week_of(db, slug, lab, frozen, now, *loaded)
+        references = kept_references(db) if references is None else references
+        weeks[slug] = week_of(db, slug, lab, frozen, now, references)
     if write and weeks != (kept.get("weeks") or {}):
         put(db, KEY, {"version": VERSION, "weeks": weeks}, now)
     return page(list(weeks.values()))

@@ -1,5 +1,6 @@
+import { unstable_cache } from "next/cache";
 import { cache } from "./cache";
-import { database, readModel } from "./db";
+import { database, keptInDev, readModel, stamp } from "./db";
 import { SORARE_TAG, weekPlan, type GameweekPlan, type Sorare, type SorarePlans } from "./play";
 import { restoreFrozenPlan } from "./frozenPlan";
 import type { ChanceRecord } from "./lineupChances";
@@ -10,30 +11,53 @@ import { marketForWeek, type ScoreRecord } from "./playerForecasts";
 // Local development and the browser tests have no Neon: they ask the FastAPI stand-in instead.
 const API_BASE = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
 
+// The model is over Next's 2 MB cache limit in one piece (2.1 MB on 14 Oct 2026; Vercel has the same limit), which made every
+// view of Home and Play download it from Neon again. Read as the model without weeks and market, the market, and each week,
+// every piece kept under the model's write time (see readModelAt in lib/db.ts).
+const sorarePart = unstable_cache(
+  async (part: number, updatedAt: string): Promise<unknown> => keptInDev(`sorare#${part}@${updatedAt}`, async () => {
+    const sql = database()!;
+    const rows = (part === -2
+      ? await sql`SELECT payload::jsonb - 'weeks' - 'market' AS part, json_array_length(payload->'weeks') AS weeks FROM read_models WHERE key = 'sorare'`
+      : part === -1
+        ? await sql`SELECT payload->'market' AS part FROM read_models WHERE key = 'sorare'`
+        : await sql`SELECT payload->'weeks'->${part}::int AS part FROM read_models WHERE key = 'sorare'`) as { part: unknown; weeks?: number }[];
+    const row = rows[0];
+    return part === -2 ? (row ? { head: row.part, weeks: row.weeks ?? 0 } : null) : (row?.part ?? null);
+  }),
+  ["sorare-part-v1"],
+  { revalidate: 86400 },
+);
+
+/** When the model was last written; an hour under the `sorare` tag, which a run's end drops (POST /api/revalidate). */
+const sorareWrittenAt = cache(async (): Promise<string | null> => {
+  const rows = (await database()!`SELECT updated_at FROM read_models WHERE key = 'sorare'`) as { updated_at: string | Date }[];
+  return rows[0] ? stamp(rows[0].updated_at) : null;
+}, ["sorare-written-v1"], { tags: [SORARE_TAG], revalidate: 3600 });
+
 /**
  * The Sorare gameweek the job published (`read_models` key `sorare`). Everything on the page — the plans,
- * the chances, the reasons — is computed by the job, so this is one read, cached for an hour under the
- * `sorare` tag and refreshed when a run ends (POST /api/revalidate).
+ * the chances, the reasons — is computed by the job, so this only reads it, downloaded once per write.
  */
-const cachedSorare = cache(
-  async (): Promise<Sorare | null> => {
-    if (database()) {
-      const row = await readModel<Sorare>(SORARE_TAG);
-      return row?.payload ?? null;
-    }
-    const response = await fetch(`${API_BASE}/api/sorare`, { cache: "no-store", signal: AbortSignal.timeout(8000) });
-    if (!response.ok) return null;
-    const body = (await response.json()) as { success?: boolean; data?: Sorare };
-    return body?.data ?? null;
-  },
-  ["sorare-v1"],
-  { tags: [SORARE_TAG], revalidate: 3600 },
-);
+async function readSorare(): Promise<Sorare | null> {
+  if (database()) {
+    const at = await sorareWrittenAt();
+    if (!at) return null;
+    const top = (await sorarePart(-2, at)) as { head: Omit<Sorare, "weeks" | "market">; weeks: number } | null;
+    if (!top) return null;
+    const [market, ...weeks] = await Promise.all([-1, ...Array.from({ length: top.weeks }, (_, i) => i)].map((part) => sorarePart(part, at)));
+    return { ...top.head, market: market ?? undefined, weeks } as Sorare;
+  }
+  const response = await fetch(`${API_BASE}/api/sorare`, { cache: "no-store", signal: AbortSignal.timeout(8000) });
+  if (!response.ok) return null;
+  const body = (await response.json()) as { success?: boolean; data?: Sorare };
+  return body?.data ?? null;
+}
 
 /** Null while Sorare has never been synced (no key yet, or the first run hasn't happened). */
 export async function loadSorare(): Promise<Sorare | null> {
   try {
-    return await cachedSorare();
+    return await readSorare();
   } catch (error) {
     console.error(`[sorare] could not be read: ${error instanceof Error ? error.message : "unknown"}`);
     return null;

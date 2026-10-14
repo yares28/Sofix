@@ -119,7 +119,7 @@ export default function MissionHistory({ days: plannedDays, bestDays, rarity, co
       <div><span className="mx-tag sfx">Sofix</span><b>{comparison.counted ? `${Math.round(100 * comparison.sofix.success / comparison.counted)}%` : "—"}</b><span>{comparison.sofix.success} / {comparison.counted} missions</span></div>
       <details><summary>How this is counted</summary><p>Success means matching the best possible result. Same settled missions for both sides; missing references and pending picks are excluded. {reconstructed ? `${reconstructed} reconstructed missions included. ` : ""}{provisional ? `${provisional} are provisional: best result among recorded cards; full Sorare eligibility was not saved.` : ""}</p></details>
     </div> : null}
-    {days.length ? <ol className="au-ms-days">{dates.filter((day) => !date || day === date).map((day) => <li key={day}><h3 className="ms-history-date">{shortDay(day)}</h3>{days.filter((d) => d.day === day).map((d) => {
+    {days.length ? <ol className="au-ms-days">{dates.filter((day) => !date || day === date).map((day) => { const missions = days.filter((d) => d.day === day); return <li key={day}><details className="ms-history-day" open={Boolean(date)}><summary><h3 className="ms-history-date">{shortDay(day)}</h3><span>{missions.length} {missions.length === 1 ? "mission" : "missions"}</span></summary>{missions.map((d) => {
       const id = `${d.day}:${d.key ?? d.mission}`;
       return <article key={id} className={`ms-history-mission ${d.score?.best && d.score.got >= d.score.best ? "ok" : "short"}`}>
         <div className="au-ms-head"><b>{d.mission}</b><span>{!d.loaded ? "Assumed Decisive Picker - missions not loaded" : ""}{d.corrected ? "Corrected by you" : ""}{d.reconstructed ? d.provisional ? "Reconstructed · recorded cards only" : "Reconstructed from pre-day stats" : ""}</span><strong>{d.score ? `Sofix ${d.score.got} of ${d.score.best}` : d.evidence === "pending" ? "Results pending" : d.evidence === "confirmed-empty" ? "Confirmed empty" : d.evidence === "unrated" ? "Target not rated" : d.evidence === "incomplete" ? "Eligibility incomplete" : "Forecast not recorded"}</strong></div>
@@ -133,7 +133,7 @@ export default function MissionHistory({ days: plannedDays, bestDays, rarity, co
         {d.source ? <button className="mx-btn" type="button" onClick={() => guard(() => setEditing(editing === id ? null : id))}>{editing === id ? "Close editor" : "Edit my picks"}</button> : null}
         {editing === id && d.source ? <Editor key={`${id}:${d.source.editRevision}`} day={d} rarity={rarity} collection={collection} onDirty={onDirty} guard={guard} saved={() => window.location.reload()} /> : null}
       </article>;
-    })}</li>)}</ol> : <p className="pd-none">No mission record yet.</p>}
+    })}</details></li>; })}</ol> : <p className="pd-none">No mission record yet.</p>}
     <p className="mx-fine-note">Imported Sorare verdicts take precedence over later calculated results. {days.some(d => d.reconstructed) ? "Reconstructed results are included here and labelled; the Audit uses only forecasts actually saved before kickoff." : "Only forecasts saved before kickoff count."} <Link href="/audit/missions">How often Sofix was right</Link></p>
   </section>;
 }

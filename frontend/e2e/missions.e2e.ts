@@ -13,6 +13,9 @@ async function sofixNames(page: Page): Promise<string[]> {
   return names;
 }
 
+/** History days start closed: open the newest one. */
+const openFirstDay = (page: Page) => page.getByRole("region", { name: "History" }).locator(".ms-history-day > summary").first().click();
+
 test.describe("the daily missions page", () => {
   test.beforeEach(async ({ request }) => {
     await resetBackend(request);
@@ -36,6 +39,7 @@ test.describe("the daily missions page", () => {
 
   test("protects a correction when closing the editor or changing its date", async ({ page }) => {
     await page.goto("/missions");
+    await openFirstDay(page);
     await page.getByRole("button", { name: "Edit my picks" }).first().click();
     const editor = page.getByRole("group", { name: /Edit picks/ });
     await editor.getByRole("textbox", { name: "Note (optional)" }).fill("Keep this correction");
@@ -57,6 +61,7 @@ test.describe("the daily missions page", () => {
   test("shows card copies and previews a pasted sold-card link in the phone editor", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/missions");
+    await openFirstDay(page);
     await page.getByRole("button", { name: "Edit my picks" }).first().click();
     const editor = page.getByRole("group", { name: /Edit picks/ });
     await editor.getByRole("button", { name: "I made no picks" }).click();
@@ -85,6 +90,7 @@ test.describe("the daily missions page", () => {
     await page.goto("/missions");
     await expect(page.getByRole("region", { name: "Your cards" })).toBeVisible();
     await expect(page.getByRole("searchbox", { name: "Search players" })).toBeVisible();
+    await openFirstDay(page);
     await page.getByRole("button", { name: "Edit my picks" }).first().click();
     const editor = page.getByRole("group", { name: /Edit picks/ }).first();
     await expect(editor.getByText(/Changes only your Sofix history/)).toBeVisible();
@@ -147,6 +153,7 @@ test.describe("the daily missions page", () => {
     });
     await page.goto("/missions");
     const sixth = page.getByRole("region", { name: "History" }).locator(".au-ms-days > li").filter({ hasText: "Tue 6 Oct" });
+    await sixth.locator(".ms-history-day > summary").click();
     await sixth.getByRole("button", { name: "Edit my picks" }).click();
     await sixth.getByRole("button", { name: "I made no picks" }).click();
     await sixth.getByRole("button", { name: "Preview changes" }).click();
@@ -159,9 +166,11 @@ test.describe("the daily missions page", () => {
     const missing = page.getByRole("region", { name: "Limited history" }).locator(".au-ms-days > li").filter({ hasText: "Wed 7 Oct" });
     await expect(missing).toContainText("Assumed Decisive Picker");
     await page.goto("/missions");
+    await sixth.locator(".ms-history-day > summary").click();
     await sixth.getByRole("button", { name: "Edit my picks" }).click();
     await sixth.getByRole("button", { name: "Restore imported picks" }).click();
     await expect(sixth).not.toContainText("Corrected by you");
+    await sixth.locator(".ms-history-day > summary").click();
     await expect(sixth.getByRole("list", { name: "Your picks" })).toContainText("Jan Oblak");
   });
 
@@ -197,6 +206,11 @@ test.describe("the daily missions page", () => {
     await expect(fifth).toHaveCount(1);
     await expect(fifth.locator(".ms-history-mission")).toHaveCount(2);
     await expect(fifth.locator(".ms-history-date")).toHaveCount(1);
+    // Every day starts closed, its date and mission count only; clicking the date opens its picks.
+    await expect(fifth.getByRole("list", { name: "Your picks" }).first()).toBeHidden();
+    await expect(fifth.locator(".ms-history-day > summary")).toContainText("2 missions");
+    await fifth.locator(".ms-history-day > summary").click();
+    await sixth.locator(".ms-history-day > summary").click();
     // 6 Oct: not checked yet, but both sides are there, and your picks carry Sorare's verdict already.
     await expect(sixth).toContainText("Results pending");
     await expect(sixth.getByRole("list", { name: "Sofix's picks" })).toContainText("Pedri, waiting for his game");

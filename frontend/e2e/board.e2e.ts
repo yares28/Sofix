@@ -622,8 +622,11 @@ test("home: a Sorare-only week says LaLiga is away and identifies each player's 
   await expect(page.locator(".wk-trigger")).toContainText(`Sorare GW${planned.number}`);
   await expect(page.getByRole("heading", { level: 2, name: "No LaLiga this week" })).toBeVisible();
   await expect(page.locator(".hm-top")).toHaveCount(0);
-  await expect(page.locator(".ow-games li").first()).toContainText(/\d+%\s*play/);
-  await expect(page.locator(".ow-games li").first()).toContainText(/xScore/);
+  // The recap sums the week up instead of listing every game; the list lives on Fixtures.
+  await expect(page.locator(".ow-sum")).toContainText(/\d+ games? · \d+ of your players/);
+  await expect(page.locator(".ow-games")).toHaveCount(0);
+  await page.locator(".ow-sum").getByRole("link", { name: "Every game ›" }).click();
+  await expect(page.locator(".ow-games li").first()).toContainText(/\d+%\s*play/, { timeout: 30_000 });
 });
 
 test("home: a gameweek the season doesn't have goes back to the home page", async ({ page }) => {

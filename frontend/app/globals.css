@@ -986,6 +986,24 @@ thead th .tbc-mark { font-weight: 600; }
 .ow-comps { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .ow-comps span { padding: 6px 12px; border-radius: 999px; background: var(--hover); font-size: var(--text-xs); font-weight: 650; color: var(--ink-2); white-space: nowrap; }
 
+/* Recap: the week in one strip. */
+.ow-sum { display: flex; align-items: center; flex-wrap: wrap; gap: 14px 32px; padding: 18px 24px; }
+.ow-sum h2 { margin: 0 0 2px; font-size: var(--text-xs); font-weight: 650; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-2); }
+.ow-sum p { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.ow-sum p b { font-variant-numeric: tabular-nums; }
+.ow-sum .ow-comps { flex: 1; justify-content: flex-start; }
+.ow-sum .ow-comps span { font-weight: 500; color: var(--ink); }
+.ow-days { display: flex; align-items: flex-end; gap: 6px; height: 48px; }
+.ow-days span { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; color: var(--ink-2); }
+.ow-days i { display: block; width: 14px; border-radius: 3px; background: var(--accent); }
+.ow-sum > a { font-size: var(--text-sm); font-weight: 600; white-space: nowrap; }
+@media (max-width: 640px) {
+  .ow-sum { padding: 16px; }
+  .ow-sum > div:first-child, .ow-sum .ow-comps { flex: 1 1 100%; }
+  .ow-sum p { font-size: 19px; }
+  .ow-days { display: none; }
+}
+
 .ow-day + .ow-day { margin-top: 18px; }
 .ow-day h3 { margin: 0 0 8px; font-size: var(--text-xs); font-weight: 650; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-2); }
 .ow-games, .ow-rank { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }

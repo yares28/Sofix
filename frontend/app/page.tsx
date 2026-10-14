@@ -124,7 +124,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
             </div>
           ) : null}
         </header>
-        {away ? <AwayWeek plan={plan} variant="fixtures" dates={weekDates(away)} /> : null}
+        {away ? <AwayWeek plan={plan} variant="recap" dates={weekDates(away)} href={href("/fixtures")} /> : null}
         {plan ? <BestCards cards={bestCards(plan.playing.players)} gw={plan.gameweek.number} /> : null}
         <div className="rc-grid">
           <YourSeason saved={savedWeeks} now={now.toISOString()} />

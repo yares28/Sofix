@@ -107,7 +107,8 @@ Each colour of a number is Sorare's own score band for it: up to 20 red, 21 to 3
 green, 76 and above cyan.
 
 When a selected Sorare week has no LaLiga round, Home replaces the LaLiga strip/tiles with **No LaLiga this week**
-and lists the owner's actual fixtures, chance to play and xScore. It does not silently show the next league round.
+(one strip: how many games your players have, per competition and per day, and an **Every game** link to the
+full list on Fixtures; 14 Oct 2026). It does not silently show the next league round.
 
 ![Home during a Sorare gameweek with no LaLiga round](images/home-away.png)
 

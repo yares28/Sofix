@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { GameweekPlan, PlayerGame, PlayingPlayer } from "../lib/play";
 import { dayName } from "../lib/weeks";
 import SorareImage from "./play/SorareImage";
@@ -43,10 +44,12 @@ export default function AwayWeek({
   plan,
   variant,
   dates,
+  href,
 }: {
   plan: GameweekPlan | null;
-  variant: "fixtures" | "difficulty";
+  variant: "fixtures" | "difficulty" | "recap";
   dates: string;
+  href?: string;
 }) {
   const players = plan?.playing.players ?? [];
 
@@ -61,6 +64,45 @@ export default function AwayWeek({
 
   const games = rows(players);
   const competitions = [...new Set(games.map((row) => row.game.competition))].map(competitionName);
+
+  if (variant === "recap") {
+    // The recap sums the week up; every game, day by day, lives on Fixtures.
+    const perComp = new Map<string, number>();
+    const perDay = new Map<string, number>();
+    for (const { game } of games) {
+      const name = competitionName(game.competition);
+      perComp.set(name, (perComp.get(name) ?? 0) + 1);
+      const day = dayName(game.kickoff).slice(0, 3);
+      perDay.set(day, (perDay.get(day) ?? 0) + 1);
+    }
+    const busiest = Math.max(...perDay.values());
+    return (
+      <section className="card ow ow-sum" aria-labelledby="away-t">
+        <div>
+          <h2 id="away-t">No LaLiga this week</h2>
+          <p>
+            <b>{games.length}</b> {games.length === 1 ? "game" : "games"} · <b>{players.length}</b> of your players
+          </p>
+        </div>
+        <div className="ow-comps">
+          {[...perComp].sort((a, b) => b[1] - a[1]).map(([name, n]) => (
+            <span key={name}>
+              <b>{n}</b> {name}
+            </span>
+          ))}
+        </div>
+        <div className="ow-days" role="img" aria-label={`Games per day: ${[...perDay].map(([day, n]) => `${day} ${n}`).join(", ")}`}>
+          {[...perDay].map(([day, n]) => (
+            <span key={day}>
+              <i style={{ height: `${Math.round(6 + (n / busiest) * 26)}px` }} />
+              {day}
+            </span>
+          ))}
+        </div>
+        {href ? <Link href={href}>Every game ›</Link> : null}
+      </section>
+    );
+  }
 
   if (variant === "difficulty") {
     const ranked = [...players].sort((a, b) => b.x - a.x);

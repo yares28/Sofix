@@ -64,7 +64,7 @@ jobs:
     needs: gate
     if: needs.gate.outputs.run == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30 # was 15; runs grew from ~6 to 11-15 min from 13 Oct 2026 (Sorare step), public repo: minutes are free
+    timeout-minutes: 15 # runs take ~8 min (14 Oct 2026, after the planner stopped re-simulating the same lineups)
     defaults:
       run:
         working-directory: backend

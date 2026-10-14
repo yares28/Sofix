@@ -7,6 +7,13 @@ export function missionWindow(now: Date) {
   return { day, start: start.toISOString(), end: new Date(start.getTime() + 86_400_000).toISOString() };
 }
 
+/** A mission's reward split for its ticket stub: "50 Essence · 350 Essence" becomes 50 · 350 over Essence. */
+export function rewardStub(reward: string | null): { num: string; unit: string } | null {
+  const parts = (reward ?? "").split(" · ").map((r) => /^([\d,]+)\s+(.+)$/.exec(r.trim()));
+  if (!reward || parts.some((p) => !p)) return reward ? { num: reward, unit: "" } : null;
+  return { num: parts.map((p) => p![1]).join(" · "), unit: [...new Set(parts.map((p) => p![2]))].join(" · ") };
+}
+
 export function sampleLabel(n: number, requested: number): string {
   return !n ? "No scored starts" : n < requested ? `Only ${n} scored start${n === 1 ? "" : "s"} available` : `Last ${n} scored starts`;
 }

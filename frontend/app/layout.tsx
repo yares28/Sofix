@@ -13,6 +13,7 @@ import "./play.css";
 import "./cards.css";
 import "./lineups.css";
 import "./audit.css";
+import "./missions.css";
 import "./player.css";
 
 // Self-hosted at build time by next/font (no request to Google from the browser, so the CSP stays 'self').

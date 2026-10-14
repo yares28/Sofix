@@ -159,10 +159,10 @@ test("Recap keeps loaded mission picks and their chances after kickoff, reload a
   await page.reload();
   await expect(missions.getByRole("link", { name: player.name, exact: true })).toBeVisible();
   await page.goto("/missions");
-  await expect(page.locator(".ms-current-grid")).toContainText(player.name);
+  await expect(page.locator(".mx-picks")).toContainText(player.name);
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
-    expect(await page.locator(".ms-current-grid .chance").evaluateAll(nodes => nodes.every(node => node.scrollWidth <= node.clientWidth))).toBe(true);
+    expect(await page.locator(".mx-picks .mx-cv").evaluateAll(nodes => nodes.every(node => node.scrollWidth <= node.clientWidth))).toBe(true);
   }
   await page.goto("/");
   await expect(missions).toContainText("80%");

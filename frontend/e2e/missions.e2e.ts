@@ -1,6 +1,17 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { MOCK, resetBackend, smallText } from "./helpers";
+
+/** Sofix's suggestions across every open mission: each ticket decides which mission the picks beneath it are for. */
+async function sofixNames(page: Page): Promise<string[]> {
+  const tickets = page.getByRole("group", { name: "Today's missions" }).getByRole("button");
+  const names: string[] = [];
+  for (let i = 0; i < await tickets.count(); i++) {
+    await tickets.nth(i).click();
+    names.push(...await page.locator(".mx-picks ol.mx-trio .nm").allTextContents());
+  }
+  return names;
+}
 
 test.describe("the daily missions page", () => {
   test.beforeEach(async ({ request }) => {
@@ -62,7 +73,7 @@ test.describe("the daily missions page", () => {
   test("waits for a current target before presenting scouting estimates", async ({ page, request }) => {
     await resetBackend(request, "missions-stale");
     await page.goto("/missions");
-    const scout = page.getByRole("region", { name: "Choose your own picks" });
+    const scout = page.getByRole("region", { name: "Your cards" });
     await expect(scout.getByText(/Load today’s missions to compare/)).toBeVisible();
     await expect(scout.getByRole("searchbox")).toHaveCount(0);
     await expect(scout).not.toContainText("Target not modeled");
@@ -72,7 +83,7 @@ test.describe("the daily missions page", () => {
 
   test("offers scouting and a previewable correction for historical picks", async ({ page }) => {
     await page.goto("/missions");
-    await expect(page.getByRole("region", { name: "Choose your own picks" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Your cards" })).toBeVisible();
     await expect(page.getByRole("searchbox", { name: "Search players" })).toBeVisible();
     await page.getByRole("button", { name: "Edit my picks" }).first().click();
     const editor = page.getByRole("group", { name: /Edit picks/ }).first();
@@ -85,18 +96,17 @@ test.describe("the daily missions page", () => {
 
   test("scouts players, compares evidence and persists a local shortlist", async ({ page }) => {
     await page.goto("/missions");
-    const scout = page.getByRole("region", { name: "Choose your own picks" });
-    const benchmark = page.locator(".ms-current-grid > div:last-child .ms-pick .who b");
-    const before = await benchmark.allTextContents();
+    const scout = page.getByRole("region", { name: "Your cards" });
+    const before = await sofixNames(page);
     expect(before.length).toBeGreaterThan(0);
     await scout.getByRole("checkbox").first().check();
     await expect(scout.getByLabel("Player comparison")).toBeVisible();
-    await scout.getByRole("button", { name: "Shortlist", exact: true }).first().click();
-    await expect(scout.getByRole("button", { name: "Remove from shortlist" })).toHaveCount(1);
-    expect(await benchmark.allTextContents()).toEqual(before);
+    await scout.getByRole("button", { name: /^Shortlist:/ }).first().click();
+    await expect(scout.getByRole("button", { name: /^Remove from shortlist/ })).toHaveCount(1);
+    expect(await sofixNames(page)).toEqual(before);
     await page.reload();
-    await expect(scout.getByRole("button", { name: "Remove from shortlist" })).toHaveCount(1);
-    expect(await benchmark.allTextContents()).toEqual(before);
+    await expect(scout.getByRole("button", { name: /^Remove from shortlist/ })).toHaveCount(1);
+    expect(await sofixNames(page)).toEqual(before);
     await scout.getByRole("searchbox", { name: "Search players" }).fill("No such player");
     await expect(scout.getByText(/No cards found/)).toBeVisible();
   });
@@ -106,20 +116,21 @@ test.describe("the daily missions page", () => {
     const selection = page.getByRole("group", { name: "Sofix selection", exact: true });
     await selection.getByRole("button", { name: "Best cards", exact: true }).click();
     await expect(selection.getByRole("button", { name: "Best cards", exact: true })).toHaveAttribute("aria-pressed", "true");
-    const scout = page.getByRole("region", { name: "Choose your own picks" });
-    const first = scout.locator(".ms-scout-list > li").first();
+    const scout = page.getByRole("region", { name: "Your cards" });
+    const first = scout.locator(".mx-rows > li").first();
+    await first.getByRole("button", { name: /^All stats/ }).click();
     await expect(first).toContainText("Last 10");
     await expect(first).toContainText("Subs");
     await expect(first).toContainText("2 DNP");
     await first.getByText("All recorded stats", { exact: true }).click();
     await expect(first.getByRole("row", { name: /Accurate passes/ })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
-    await expect(first.locator("a.art")).toHaveAttribute("href", /^\/players\//);
+    await expect(first.locator("a.mx-art")).toHaveAttribute("href", /^\/players\//);
     const history = page.getByRole("region", { name: "History" });
     await history.getByRole("group", { name: "History benchmark" }).getByRole("button", { name: "Best cards", exact: true }).click();
     await expect(history).toContainText("Forecast not recorded");
-    await selection.getByRole("button", { name: "Mission plan", exact: true }).click();
-    const names = await page.locator(".ms-current-grid > div:last-child .ms-pick .who > b").allTextContents();
+    await selection.getByRole("button", { name: "Each card once", exact: true }).click();
+    const names = await sofixNames(page);
     expect(new Set(names).size).toBe(names.length);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page.setViewportSize({ width: 390, height: 844 });
@@ -158,14 +169,17 @@ test.describe("the daily missions page", () => {
     await page.goto("/missions");
     const root = page.getByTestId("missions-page");
     await expect(root).toBeVisible();
-    await expect(root.getByRole("heading", { name: /Daily missions/ })).toBeVisible();
+    await expect(root.getByRole("heading", { name: "Missions", exact: true })).toBeVisible();
+    // One ticket per open mission; the one pressed decides the picks and the table beneath it.
     for (const name of ["Decisive Picker", "Interception - All Matches", "Assist - All Matches"]) {
+      await root.getByRole("button", { name: new RegExp(name) }).click();
       await expect(root.getByRole("region", { name })).toBeVisible();
     }
-    await expect(root.getByRole("region", { name: "Decisive Picker" })).toContainText("200 XP");
-    await expect(root.getByRole("region", { name: "Interception - All Matches" })).toContainText("2+ interceptions");
+    await expect(root.getByRole("button", { name: /Decisive Picker/ })).toContainText("200 XP");
+    await expect(root.getByRole("button", { name: /Interception - All Matches/ })).toContainText("2+ interceptions");
     // Missions are daily and only today's are known: with none of the recording's cards playing today, each says so instead of offering another day.
-    await expect(root.getByRole("region", { name: "Choose your own picks" })).toContainText("Spain v France");
+    await root.getByRole("button", { name: /^All stats/ }).first().click();
+    await expect(root.getByRole("region", { name: "Your cards" })).toContainText("Spain v France");
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath("missions-populated-desktop.png"), fullPage: true });
     // ...and never names another day (the heading names today, so the check is for tomorrow, whatever day this runs).
@@ -206,7 +220,7 @@ test.describe("the daily missions page", () => {
     await page.goto("/missions");
     const root = page.getByTestId("missions-page");
     await expect(root.getByRole("status").filter({ hasText: "aren’t loaded yet" })).toContainText("Last loaded");
-    await expect(root.locator(".ms-mission")).toHaveCount(0);
+    await expect(root.locator(".mx-picks")).toHaveCount(0);
     // This browser has no Sofix extension: it says so and keeps Load, so a sleeping extension can be asked again.
     await expect(root.getByText("Couldn’t reach the Sofix extension in this browser. Press Load to try again.")).toBeVisible();
     await expect(root.getByRole("button", { name: /Load today/ })).toBeVisible();

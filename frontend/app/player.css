@@ -95,35 +95,7 @@
 }
 
 /* The daily missions (/missions). */
-.ms-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; margin: 24px 0; padding: 20px 0; border-block: 1px solid var(--line); font-size: 12px; }
-.ms-summary span { display: flex; flex-direction: column; gap: 4px; color: var(--ink-2); }
-.ms-summary b { color: var(--ink); font-size: 26px; font-weight: 650; letter-spacing: -.03em; }
-.ms-summary > span:last-child { justify-content: center; }
-.ms-summary > span:last-child b { font-size: 26px; font-weight: 650; }
-.ms-results { display: flex; flex-wrap: wrap; gap: 24px; padding: 20px 0; border-block: 1px solid var(--line); margin: 16px 0; }
-.ms-results > div { display: flex; flex-direction: column; gap: 4px; min-width: 110px; font-size: 12px; color: var(--ink-2); }
-.ms-results b { color: var(--ink); font-size: 26px; font-variant-numeric: tabular-nums; }
-.ms-results p { flex: 1 1 220px; margin: 0; align-self: center; color: var(--ink-2); font-size: 12px; }
 .ms-result-count { font-size: 12px; color: var(--ink-2); }
-.ms-available { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; color: var(--ink); text-decoration: none; margin-bottom: 16px; }
-.ms-available > a { display: flex; align-items: center; gap: 8px; font-size: 13px; }
-.ms-available a, .ms-pick .who a, .ms-compare a { color: inherit; text-decoration: none; }
-.ms-available a:hover, .ms-pick .who a:hover, .ms-compare a:hover { text-decoration: underline; }
-.ms-available .art { position: relative; display: block; width: 32px; height: 46px; overflow: hidden; border-radius: 5px; }
-.ms-available:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
-.ms-history-date { margin: 0 0 16px; font-size: 16px; }
-.ms-history-mission + .ms-history-mission { border-top: 1px solid var(--line); padding-top: 18px; margin-top: 18px; }
-.ms-history-mission > button { margin-top: 12px; }
-.ms-history-mission.ok .au-ms-head strong { color: var(--good-ink); }
-.ms-current-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-.ms-current-grid h3 { font-size: 14px; margin: 16px 0 8px; }
-.ms-current-grid .ms-pick { grid-template-columns: 44px minmax(0, 1fr) 76px; }
-.ms-current-grid .chance { white-space: nowrap; }
-.ms-current-grid .chance > span { display: block; font-size: 12px; white-space: normal; }
-.ms-mode { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin: 8px 0 20px; }
-.ms-mode [role="group"] { display: flex; gap: 8px; }
-.ms-mode button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
-.ms-mode p { font-size: 13px; color: var(--ink-2); margin: 0; }
 .ms-form-evidence { font-size: 12px; margin: 10px 0 0; min-width: 0; }
 .ms-form { display: grid; grid-template-columns: repeat(auto-fit,minmax(52px,1fr)); gap: 8px; margin: 8px 0; font-variant-numeric: tabular-nums; }
 .ms-form dt { color: var(--ink-2); font-size: 11px; }
@@ -135,28 +107,13 @@
 .ms-form-table th:first-child { width: 28%; }
 .ms-form-table caption { text-align: left; line-height: 1.5; margin-bottom: 8px; }
 .ms-form-evidence summary { cursor: pointer; }
-.ms-pick .who .ms-form-evidence b { font-size: 12px; }
 .ms-section-head { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
 .ms-section-head h2 { margin: 0 auto 0 0; }
-.ms-filters { display: flex; flex-wrap: wrap; gap: 12px; margin: 16px 0; }
-.ms-filters label, .ms-section-head label, .ms-editor label { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--ink-2); }
-.ms-filters input, .ms-filters select, .ms-section-head select, .ms-editor input, .ms-editor textarea { border: 1px solid transparent; padding: 11px 12px; border-radius: 12px; background: var(--hover); color: var(--ink); font: inherit; min-width: 0; max-width: 100%; }
+.ms-section-head label, .ms-editor label { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.ms-section-head select, .ms-editor input, .ms-editor textarea { border: 1px solid transparent; padding: 11px 12px; border-radius: 12px; background: var(--hover); color: var(--ink); font: inherit; min-width: 0; max-width: 100%; }
+.ms-editor button { border: 1px solid transparent; border-radius: 12px; padding: 10px 14px; min-height: 42px; background: var(--hover); color: var(--ink); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.ms-editor button:disabled { opacity: .5; cursor: default; }
 .ms-editor textarea { resize: vertical; }
-.ms-filters label:nth-child(2) { flex: 1; }
-.ms-evidence { color: var(--ink-2); font-size: 13px; line-height: 1.6; }
-.ms-scout-list { list-style: none; padding: 0; margin: 16px 0; }
-.ms-scout-list > li { display: grid; grid-template-columns: minmax(220px,1.2fr) minmax(120px,.7fr) minmax(290px,1.5fr) minmax(120px,.7fr); gap: 16px; align-items: start; padding: 16px 0; border-top: 1px solid var(--line); font-size: 13px; }
-.ms-scout-list > li > div { min-width: 0; }
-.ms-scout-list span, .ms-scout-list strong { display: block; margin: 4px 0; }
-.ms-scout-player { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.ms-scout-player .art { position: relative; width: 52px; height: 74px; flex: 0 0 52px; overflow: hidden; border-radius: 6px; background: var(--track); }
-.ms-scout-player span { overflow-wrap: anywhere; }
-.ms-scout-actions { display: flex; flex-direction: column; gap: 8px; }
-.ms-scout-actions label { display: flex; gap: 6px; align-items: center; }
-.ms-scout button, .ms-editor button, .ms-secondary { border: 1px solid transparent; border-radius: 12px; padding: 10px 14px; min-height: 42px; background: var(--hover); color: var(--ink); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
-.ms-scout button[aria-pressed="true"] { border-color: var(--ink); font-weight: 600; }
-.ms-scout button:disabled, .ms-editor button:disabled { opacity: .5; cursor: default; }
-.ms-compare { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 20px; padding: 20px; background: var(--hover); border-radius: 16px; font-size: 14px; }
 .ms-editor { margin: 24px 0 8px; padding: 24px; border: 1px solid var(--line); border-radius: 22px; font-size: 14px; display: grid; gap: 16px; min-width: 0; }
 .ms-editor legend { padding: 0 8px; font-size: 13px; font-weight: 600; }
 .ms-editor p { margin: 0; line-height: 1.6; }
@@ -192,7 +149,6 @@
 .ms-discard::backdrop { background: rgba(0,0,0,.3); }
 .ms-discard > div { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
 .ms-discard h3 { margin-top: 0; }
-.ms-compare span { display: block; }
 .ms-edit-picks { padding: 0; margin: 0; list-style: none; }
 .ms-edit-picks li { display: flex; align-items: center; gap: 14px; justify-content: space-between; padding: 12px 0; border-top: 1px solid var(--line); }
 .ms-edit-picks li:first-child { border-top: 0; padding-top: 0; }
@@ -201,17 +157,9 @@
   .ms-edit-picks li button { grid-column: 2; justify-self: start; }
 }
 .ms-preview { padding: 14px 16px; border-radius: 12px; background: var(--hover); }
-.ms-editor :focus-visible, .ms-scout :focus-visible, .ms-secondary:focus-visible, .ms-section-head select:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.ms-editor button:hover:not(:disabled), .ms-scout button:hover:not(:disabled), .ms-secondary:hover:not(:disabled) { border-color: var(--ink-3); }
-.ms-scout button, .ms-editor button, .ms-secondary { touch-action: manipulation; }
-.ms-current-grid > div, .ms-hist-row > * { min-width: 0; overflow-wrap: anywhere; }
-.ms-scout strong, .ms-summary b { font-variant-numeric: tabular-nums; }
-@media (max-width: 1199px) { .ms-current-grid, .ms-edit-workspace { grid-template-columns: 1fr; } .ms-scout-list > li { grid-template-columns: 1.5fr 1fr; } }
-@media (max-width: 600px) { .ms-scout-list > li { grid-template-columns: 1fr; } .ms-filters { display: grid; grid-template-columns: 1fr 1fr; } .ms-filters label:first-child, .ms-filters label:nth-child(2) { grid-column: 1 / -1; } .ms-scout-list > li > div { min-width: 0; } }
-.ms-overview { padding: 30px 32px; }
-.ms-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.ms-h1 { margin: 0; font-size: 24px; font-weight: 650; letter-spacing: -.025em; }
-.ms-day { margin: 6px 0 0; color: var(--ink-2); font-size: 13px; }
+.ms-editor :focus-visible, .ms-section-head select:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.ms-editor button:hover:not(:disabled) { border-color: var(--ink-3); }
+@media (max-width: 1199px) { .ms-edit-workspace { grid-template-columns: 1fr; } }
 .ms-load { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 12px 0 0; }
 .ms-load-btn { border: 0; border-radius: 12px; min-height: 40px; padding: 0 18px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--on-ink); }
 .ms-load-btn:disabled { opacity: .6; cursor: progress; }
@@ -221,49 +169,13 @@
 .ms-stale { margin: 12px 0 0; padding: 10px 14px; border-radius: 12px; background: color-mix(in srgb, #ff9f0a 14%, var(--surface)); color: var(--ink); font-size: 14px; }
 .pd-pick a { padding: 5px 12px; border-radius: 9px; color: var(--ink-seg); text-decoration: none; }
 .pd-pick a[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); }
-.ms-mission h2 { margin-bottom: 4px; }
-.ms-all { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
-.ms-all summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-2); }
-.ms-all summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 4px; }
-.ms-all-key { margin: 8px 0 4px; font-size: 12px; color: var(--ink-2); }
-.ms-pick:has(.ms-note) { position: relative; padding-top: 22px; }
-.ms-note { position: absolute; top: 4px; left: 4px; font-size: 11px; font-weight: 600; color: var(--good-ink); }
-.ms-hist-row { display: flex; gap: 12px; align-items: flex-start; margin-top: 10px; }
-.ms-hist-row > span { flex: 0 0 52px; padding-top: 4px; font-size: 13px; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
-.ms-hist-row .au-ms-cards, .ms-hist-row .pd-none { margin: 0; }
 .ms-history > [role="status"]:empty, .ms-editor > [role="status"]:empty { display: none; }
-.ms-history > .au-ms-days > li { padding: 20px; border: 1px solid var(--line); border-radius: 16px; margin-top: 16px; }
-.ms-history > .au-ms-days > li > .ms-secondary { margin-top: 14px; }
 @media (max-width: 600px) {
-  .ms-overview { padding: 22px 18px; }
-  .ms-summary { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; }
-  .ms-summary > span:last-child { grid-column: 1 / -1; }
   .ms-editor { padding: 16px; }
   .ms-edit-workspace { gap: 28px; }
   .ms-section-head { gap: 12px; }
   .ms-section-head h2 { flex-basis: 100%; }
 }
-.ms-reward { margin-left: auto; padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, #46c05a 14%, var(--surface)); color: var(--good-ink); font-size: 12px; font-weight: 700; }
-.ms-rule { margin: 0 0 14px; font-size: 13px; color: var(--ink-2); }
-.ms-picks { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
-.ms-pick { display: grid; grid-template-columns: 44px minmax(0, 1.4fr) auto 64px; gap: 14px; align-items: center; padding: 8px 4px; border-top: 1px solid #f0f0f4; }
-.ms-pick:first-child { border-top: 0; }
-.ms-pick .art { position: relative; width: 44px; height: 62px; border-radius: 6px; overflow: hidden; background: var(--track); }
-.ms-pick .who { min-width: 0; display: flex; flex-direction: column; }
-.ms-pick .who b { font-size: 15px; }
-.ms-pick .who b a { color: inherit; text-decoration: none; }
-.ms-pick .who b a:hover { text-decoration: underline; }
-.ms-pick .who > span { font-size: 12px; color: var(--ink-2); }
-.ms-pick .avg { display: flex; gap: 14px; font-size: 11px; color: var(--ink-2); }
-.ms-pick .avg span { display: flex; flex-direction: column; align-items: center; }
-.ms-pick .avg b { font-size: 15px; color: var(--ink); font-variant-numeric: tabular-nums; }
-.ms-pick .chance { text-align: right; }
-.ms-pick .chance b { font-size: 28px; font-weight: 800; color: var(--good-ink); font-variant-numeric: tabular-nums; }
-@media (max-width: 640px) {
-  .ms-pick { grid-template-columns: 44px minmax(0, 1fr) 56px; }
-  .ms-pick .avg { grid-column: 2 / 4; }
-}
-
 .pd-history-summary { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; margin: 0 0 24px; }
 .pd-history-summary dt, .pd-history-summary small, .pd-saved-game small { font-size: 12px; color: var(--ink-2); }
 .pd-history-summary dd { margin: 6px 0; font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; }
@@ -302,27 +214,27 @@
    One list of the places a Sorare card is drawn, so a new page only adds its selector here. It sits in the last
    stylesheet (app/layout.tsx imports player.css last) so it wins over each page's own hover. The owner asked for this
    motion with reduced motion on too, so it is not switched off there: it only runs on hover, never by itself. */
-:is(.rc-art, .s5-pc .art, .s5-res .art, .ms-pick .art, .pl-mc .art, .pl-pc .art, .ap-pc .art, .lu-face, .pd-pic, .ow-card, .hm-nw-face) {
+:is(.rc-art, .s5-pc .art, .s5-res .art, .mx-art, .pl-mc .art, .pl-pc .art, .ap-pc .art, .lu-face, .pd-pic, .ow-card, .hm-nw-face) {
   --zoom-ease: cubic-bezier(.34, 1.56, .64, 1); /* a spring: it overshoots a touch and settles */
   transition: transform 420ms var(--zoom-ease), box-shadow 420ms ease, filter 420ms ease;
   transform-origin: 50% 100%; /* it grows up from its bottom edge, so the name and links under it are never covered */
   will-change: transform;
 }
 /* A soft light sweeps across the art as it grows. */
-:is(.rc-art, .s5-pc .art, .s5-res .art, .ms-pick .art, .pl-mc .art, .pl-pc .art, .ap-pc .art, .lu-face, .pd-pic, .ow-card, .hm-nw-face)::after {
+:is(.rc-art, .s5-pc .art, .s5-res .art, .mx-art, .pl-mc .art, .pl-pc .art, .ap-pc .art, .lu-face, .pd-pic, .ow-card, .hm-nw-face)::after {
   content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none; border-radius: inherit;
   background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .38) 48%, transparent 66%);
   background-size: 260% 100%; background-position: 130% 0; opacity: 0;
 }
 @media (hover: hover) and (pointer: fine) {
-  :is(.rc-art, .s5-pc .art, .s5-res .art, .ms-pick .art, .pl-mc .art, .pl-pc .art, .ap-pc .art, .lu-face, .pd-pic, .ow-card, .hm-nw-face):hover,
+  :is(.rc-art, .s5-pc .art, .s5-res .art, .mx-art, .pl-mc .art, .pl-pc .art, .ap-pc .art, .lu-face, .pd-pic, .ow-card, .hm-nw-face):hover,
   .lu-card:is(:hover, :focus-within) .lu-face {
     position: relative; z-index: 5;
     transform: translateY(-6px) scale(1.16) rotate(-1.2deg);
     box-shadow: 0 18px 34px rgba(0, 0, 0, .28), 0 4px 10px rgba(0, 0, 0, .18);
     filter: saturate(1.08) brightness(1.04);
   }
-  :is(.rc-art, .s5-pc .art, .s5-res .art, .ms-pick .art, .pl-mc .art, .pl-pc .art, .ap-pc .art, .lu-face, .pd-pic, .ow-card, .hm-nw-face):hover::after,
+  :is(.rc-art, .s5-pc .art, .s5-res .art, .mx-art, .pl-mc .art, .pl-pc .art, .ap-pc .art, .lu-face, .pd-pic, .ow-card, .hm-nw-face):hover::after,
   .lu-card:is(:hover, :focus-within) .lu-face::after { animation: card-sweep 900ms ease-out; }
   /* On Lineups a link covers the whole card, so the card's hover grows its picture. Its picture fills the card absolutely:
      the rule above's `relative` would collapse it to nothing; grown, it must not take the link's click. */

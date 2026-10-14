@@ -219,6 +219,11 @@ test.describe("the daily missions page", () => {
     await expect(fifth).toContainText("Sofix 1 of 3");
     await expect(fifth.getByRole("list", { name: "Missed achievers" })).toContainText("Arda Güler, did it, not picked");
     await expect(history.getByRole("link", { name: "How often Sofix was right" })).toHaveAttribute("href", "/audit/missions");
+    // All time, every kept day. None of the recording's days is settled with your picks recorded, so neither side claims a number.
+    const score = history.locator(".ms-score");
+    await expect(score).toContainText(/All time · since/);
+    await expect(score.locator(".ms-score-side.sfx")).toContainText("No settled missions yet");
+    await expect(score.locator(".ms-score-side.you b")).toHaveText("—");
   });
 
   test("fits a phone without a sideways scroll", async ({ page }, testInfo) => {

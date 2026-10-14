@@ -10,7 +10,7 @@ import type { MissionPlayer, MissionPool } from "../../lib/missionsPool";
 import type { Sheet } from "../../lib/playerSheet";
 import { lastGames } from "../../lib/missionColumns";
 import LoadMissions from "./LoadMissions";
-import MissionHistory from "./MissionHistory";
+import MissionHistory, { type AllTime } from "./MissionHistory";
 import MissionScouting from "./MissionScouting";
 import CardArt from "../cards/CardArt";
 import Dots from "./Dots";
@@ -20,9 +20,9 @@ const time = (s: string) => new Intl.DateTimeFormat("en-GB", { weekday: "short",
 const at = (s: string) => new Intl.DateTimeFormat("en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" }).format(new Date(s));
 const SOFIX_NOTE = (p: Suggestion) => p.reconstructed ? "reconstructed" : p.frozen ? "saved before kickoff" : p.historical ? "recent hits" : "estimated";
 
-export default function MissionsView({ rarity, tabs, day, plans: original, bestPlans, captured, bestHistory, status, seenAt, retained = [], missionDay, now, history, players, pool, collection }: {
+export default function MissionsView({ rarity, tabs, day, plans: original, bestPlans, captured, bestHistory, allTime, status, seenAt, retained = [], missionDay, now, history, players, pool, collection }: {
   bestPlans: MissionPlan[]; bestHistory: HistoryDay[]; captured: LogCand[];
-  rarity: string; tabs: string[]; day: string | null; plans: MissionPlan[]; status: MissionsStatus; seenAt: string | null; missionDay: string; now: string; history: HistoryDay[];
+  rarity: string; tabs: string[]; day: string | null; plans: MissionPlan[]; status: MissionsStatus; seenAt: string | null; missionDay: string; now: string; history: HistoryDay[]; allTime?: AllTime;
   players: MissionPlayer[]; pool: MissionPool | null; collection: CollectionCard[];
   retained?: MissionRow[];
 }) {
@@ -99,7 +99,7 @@ export default function MissionsView({ rarity, tabs, day, plans: original, bestP
     </> : null}
 
     <MissionScouting one={one} plans={plans} players={players} pool={pool} now={now} rarity={rarity} shortlist={shortlist} toggle={toggle} captured={captured} />
-    <MissionHistory days={history} bestDays={bestHistory} rarity={rarity} collection={collection} />
+    <MissionHistory days={history} bestDays={bestHistory} allTime={allTime} rarity={rarity} collection={collection} />
     <details className="mx-fine"><summary>Mission window</summary><p>Fallback game window: {time(window.start)} → {time(window.end)} (Madrid). Sorare eligibility takes precedence; its reset time still needs verification.</p></details>
   </div>;
 }

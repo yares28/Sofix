@@ -8,6 +8,7 @@ import { loadMissionPool } from "../../lib/missionsPool";
 import { loadMissions } from "../../lib/missionsData";
 import { missionDay } from "../../lib/missions";
 import { missionPlayers } from "../../lib/missionInventory";
+import { missionComparison } from "../../lib/missionComparison";
 import { missionsToday, RARITIES } from "../../lib/missionsToday";
 import { loadSorare } from "../../lib/playData";
 import { loadSystem } from "../../lib/system";
@@ -38,6 +39,9 @@ export default async function Missions({ searchParams }: { searchParams: SearchP
   const owned = RARITIES.filter((r) => players.some((p) => p.rarity === r) || data?.collection?.some((p) => p.rarity === r));
   const completeLog = displayMissionLog(fillMissionDays(log, [...new Set([...owned, today.rarity])], now));
   const names = new Map((data?.weeks ?? []).flatMap((w) => w.playing.players).flatMap((p) => (p.player ? [[p.player, { name: p.name, pic: p.pic }] as const] : [])));
+  // Every mission day ever kept, not only the 30 the list shows: the all-time You and Sofix figures.
+  const everDays = missionHistory(completeLog, today.rarity, names, Infinity);
+  const allTime = { plan: missionComparison(everDays), best: missionComparison(missionHistory(completeLog, today.rarity, names, Infinity, "best")), since: everDays.at(-1)?.day ?? null };
   return (
     <>
       <SiteNav meta={meta} system={system} week={week} />
@@ -56,6 +60,7 @@ export default async function Missions({ searchParams }: { searchParams: SearchP
           now={now.toISOString()}
           history={missionHistory(completeLog, today.rarity, names)}
           bestHistory={missionHistory(completeLog, today.rarity, names, 30, "best")}
+          allTime={allTime}
           players={players}
           pool={pool}
           collection={data?.collection ?? []}

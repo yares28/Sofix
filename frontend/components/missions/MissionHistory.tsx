@@ -9,7 +9,7 @@ import { REFRESH_HEADER } from "../../lib/refresh";
 import { askExtension, parseMissionsLoad } from "../../lib/extension";
 import { missionsLoadNote } from "../../lib/missions";
 import { cardCopyLabel, manualMissionPick } from "../../lib/missionPresentation";
-import { missionComparison } from "../../lib/missionComparison";
+import { missionComparison, type MissionComparison } from "../../lib/missionComparison";
 
 const shortDay = (d: string) => new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${d}T12:00:00Z`));
 function Editor({ day, rarity, collection, saved, onDirty, guard }: { day: HistoryDay; rarity: string; collection: CollectionCard[]; saved: () => void; onDirty: (dirty: boolean) => void; guard: (action: () => void) => void }) {
@@ -79,7 +79,23 @@ function Editor({ day, rarity, collection, saved, onDirty, guard }: { day: Histo
   </fieldset>;
 }
 
-export default function MissionHistory({ days: plannedDays, bestDays, rarity, collection = [], title = "History" }: { days: HistoryDay[]; bestDays?: HistoryDay[]; rarity: string; collection?: CollectionCard[]; title?: string }) {
+/** You against Sofix over every mission day ever kept, for each way Sofix picks; `since` is the first kept day. */
+export type AllTime = { plan: MissionComparison; best: MissionComparison; since: string | null };
+const pct = (n: number, of: number) => (of ? `${Math.round((100 * n) / of)}%` : "—");
+
+function Side({ who, side, counted }: { who: "You" | "Sofix"; side: MissionComparison["yours"]; counted: number }) {
+  return <div className={`ms-score-side ${who === "You" ? "you" : "sfx"}`}>
+    <span className={`mx-tag ${who === "You" ? "you" : "sfx"}`}>{who}</span>
+    <b>{pct(side.hits, side.picks)}</b>
+    <span className="mx-meter" aria-hidden="true"><i style={{ width: side.picks ? `${(100 * side.hits) / side.picks}%` : 0 }} /></span>
+    {side.picks ? <>
+      <span className="sub">of picks did it · {side.hits} of {side.picks}</span>
+      <span className="sub">Best possible result in {side.success} of {counted} {counted === 1 ? "mission" : "missions"} ({pct(side.success, counted)})</span>
+    </> : <span className="sub">No settled missions yet</span>}
+  </div>;
+}
+
+export default function MissionHistory({ days: plannedDays, bestDays, allTime, rarity, collection = [], title = "History" }: { days: HistoryDay[]; bestDays?: HistoryDay[]; allTime?: AllTime; rarity: string; collection?: CollectionCard[]; title?: string }) {
   const [mode, setMode] = useState<"plan" | "best">("plan");
   const days = mode === "best" && bestDays ? bestDays : plannedDays;
   const [date, setDate] = useState(""); const [editing, setEditing] = useState<string | null>(null);
@@ -108,16 +124,20 @@ export default function MissionHistory({ days: plannedDays, bestDays, rarity, co
   const comparison = missionComparison(shownDays);
   const reconstructed = missionComparison(shownDays.filter(d => d.reconstructed)).counted;
   const provisional = missionComparison(shownDays.filter(d => d.provisional)).counted;
+  const ever = allTime, overall = ever ? ever[mode] : missionComparison(days);
   return <section className="mx-card ms-history" aria-labelledby={`ms-history-${rarity}`}>
     <dialog ref={dialog} className="ms-discard" role="alertdialog" aria-labelledby={`ms-discard-${rarity}`} onCancel={(e) => { e.preventDefault(); setPending(null); }}><h3 id={`ms-discard-${rarity}`}>Unsaved correction</h3><p>Your changes have not been saved. Keep editing or discard them to continue.</p><div><button className="mx-btn ink" type="button" onClick={() => setPending(null)}>Keep editing</button><button className="mx-btn" type="button" onClick={() => { dirty.current = false; const action = pending; setPending(null); action?.(); }}>Discard changes</button></div></dialog>
     <div className="ms-section-head"><h2 id={`ms-history-${rarity}`} className="mx-h2">{title}</h2><label>Mission date<select name="history-date" value={date} onChange={(e) => { const next = e.target.value; guard(() => { setDate(next); setEditing(null); }); }}><option value="">Last 30 days</option>{dates.map((d) => <option key={d} value={d}>{shortDay(d)}</option>)}</select></label>
     <button className="mx-btn" type="button" disabled={recovering} onClick={() => guard(() => { setRecovering(true); void askExtension({ type: "load-mission-history" }, 60_000).then((raw) => { const answer = parseMissionsLoad(raw); setRecovery(answer?.state === "ok" ? "Dated history imports saved. Undated or unavailable tasks remain unknown." : missionsLoadNote(answer)); if (answer?.state === "ok") window.location.reload(); }).finally(() => setRecovering(false)); })}>{recovering ? "Reconciling…" : "Reconcile Sorare history"}</button></div>
-    <p role="status">{recovery}</p>
-    {bestDays ? <div className="mx-seg sm" role="group" aria-label="History benchmark" title={`Comparing with ${mode === "best" ? "independent best cards" : "the unique-card mission plan"}. Saved forecasts and labelled pre-day reconstructions are compared separately from the Audit.`}><button type="button" aria-pressed={mode === "plan"} onClick={() => guard(() => { setMode("plan"); setEditing(null); })}>Each card once</button><button type="button" aria-pressed={mode === "best"} onClick={() => guard(() => { setMode("best"); setEditing(null); })}>Best cards</button></div> : null}
-    {title === "History" ? <div className="ms-results" aria-label="You versus Sofix">
-      <div><span className="mx-tag you">You</span><b>{comparison.counted ? `${Math.round(100 * comparison.yours.success / comparison.counted)}%` : "—"}</b><span>{comparison.yours.success} / {comparison.counted} missions</span></div>
-      <div><span className="mx-tag sfx">Sofix</span><b>{comparison.counted ? `${Math.round(100 * comparison.sofix.success / comparison.counted)}%` : "—"}</b><span>{comparison.sofix.success} / {comparison.counted} missions</span></div>
-      <details><summary>How this is counted</summary><p>Success means matching the best possible result. Same settled missions for both sides; missing references and pending picks are excluded. {reconstructed ? `${reconstructed} reconstructed missions included. ` : ""}{provisional ? `${provisional} are provisional: best result among recorded cards; full Sorare eligibility was not saved.` : ""}</p></details>
+    <p role="status" className="ms-head-note">{recovery}</p>
+    {title === "History" ? <div className="ms-score" aria-label="You versus Sofix">
+      <div className="ms-score-top">
+        <span className="mx-eyebrow">All time{ever?.since ? ` · since ${shortDay(ever.since)}` : ""}</span>
+        {bestDays ? <div className="mx-seg sm" role="group" aria-label="History benchmark" title={`Comparing with ${mode === "best" ? "independent best cards" : "the unique-card mission plan"}. Saved forecasts and labelled pre-day reconstructions are compared separately from the Audit.`}><button type="button" aria-pressed={mode === "plan"} onClick={() => guard(() => { setMode("plan"); setEditing(null); })}>Each card once</button><button type="button" aria-pressed={mode === "best"} onClick={() => guard(() => { setMode("best"); setEditing(null); })}>Best cards</button></div> : null}
+      </div>
+      <div className="ms-score-sides"><Side who="You" side={overall.yours} counted={overall.counted} /><Side who="Sofix" side={overall.sofix} counted={overall.counted} /></div>
+      <p className="sub ms-score-range">{date ? shortDay(date) : "Last 30 days"}: picks that did it, you {pct(comparison.yours.hits, comparison.yours.picks)} · Sofix {pct(comparison.sofix.hits, comparison.sofix.picks)} · {comparison.counted} {comparison.counted === 1 ? "mission" : "missions"} settled</p>
+      <details><summary>How this is counted</summary><p>The big number is the share of picks whose player did what the mission asked. The best possible result means catching as many as the best cards could. Same settled missions for both sides; missing references and pending picks are excluded. {reconstructed ? `${reconstructed} reconstructed missions included. ` : ""}{provisional ? `${provisional} are provisional: best result among recorded cards; full Sorare eligibility was not saved.` : ""}</p></details>
     </div> : null}
     {days.length ? <ol className="au-ms-days">{dates.filter((day) => !date || day === date).map((day) => { const missions = days.filter((d) => d.day === day); return <li key={day}><details className="ms-history-day" open={Boolean(date)}><summary><h3 className="ms-history-date">{shortDay(day)}</h3><span>{missions.length} {missions.length === 1 ? "mission" : "missions"}</span></summary>{missions.map((d) => {
       const id = `${d.day}:${d.key ?? d.mission}`;

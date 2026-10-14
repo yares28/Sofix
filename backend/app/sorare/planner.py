@@ -24,6 +24,7 @@ from __future__ import annotations
 import math
 import zlib
 from collections.abc import Callable, Mapping
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -264,17 +265,41 @@ def _rewards(lineup: Lineup, scores: np.ndarray, rng: np.random.Generator) -> No
     lineup.e_essence = sum(p * t.essence for p, t in pairs)
 
 
+EVALUATED = ("expected", "low", "high", "p_return", "p_xp", "p_cash", "p_essence", "p_card", "e_cash", "e_essence")
+# A search's lineups already priced, while `plans` runs: {(competition, forecasts, draws, captain, starters, bench): the numbers}. The
+# same lineup is met again and again across a search's runs and benches (85% of the asks on 14 Oct 2026), and always draws the same
+# weeks, so it is simulated once. Keyed by the objects' ids, which stay valid because `plans` holds them for as long as the memo lives.
+_evaluated: ContextVar[dict[tuple[object, ...], tuple[object, ...]] | None] = ContextVar("evaluated", default=None)
+
+
 def evaluate(
     lineup: Lineup, forecasts: dict[str, Forecast], rng: np.random.Generator | None = None, draws: int = DRAWS
 ) -> Lineup:
     """Fill in a lineup's expected score, its range and what it can be expected to win.
 
     Without `rng` the simulated weeks are the lineup's own (`_seed`): the same lineup always gets the same numbers."""
+    memo = _evaluated.get() if rng is None else None
+    key = (
+        id(lineup.comp),
+        id(forecasts),
+        draws,
+        lineup.captain,
+        tuple(c.slug for c in lineup.starters),
+        tuple(c.slug if c else None for c in lineup.subs),
+    )
+    if memo is not None and key in memo:
+        *numbers, probs = memo[key]
+        for name, number in zip(EVALUATED, numbers, strict=True):
+            setattr(lineup, name, number)
+        lineup.tier_probs = list(probs)  # type: ignore[call-overload]
+        return lineup
     rng = rng if rng is not None else np.random.default_rng(_seed(lineup.comp, lineup.starters))
     scores = simulate(lineup, forecasts, rng, draws)
     lineup.expected = float(scores.mean())
     lineup.low, lineup.high = (float(v) for v in np.percentile(scores, [10, 90]))
     _rewards(lineup, scores, rng)
+    if memo is not None:
+        memo[key] = (*(getattr(lineup, name) for name in EVALUATED), tuple(lineup.tier_probs))
     return lineup
 
 
@@ -428,39 +453,56 @@ def fill_bench(
     might not play, but the moment he comes in the lineup loses its multi-club and cap bonuses.
     """
     free = list(pool)
-    improving = True
-    while improving and free:
-        improving = False
-        best: tuple[float, Lineup, int, Card] | None = None
-        # the same simulated gameweeks for "with him" and "without him" (`_seed`), so a difference is really his
-        for lineup in lineups:
-            evaluate(lineup, forecasts, draws=draws)
-            comp = lineup.comp
-            for slot, taken in enumerate(lineup.subs):
-                if taken is not None:
-                    continue
-                for card in free:
-                    if card.positions[0] not in comp.subs[slot] or not comp.allows(card):
-                        continue
-                    if card.player in {c.player for c in lineup.cards}:
-                        continue
-                    if forecasts.get(card.player) is None or forecasts[card.player].p_play <= 0:
-                        continue
-                    trial = Lineup(comp=comp, starters=lineup.starters, subs=list(lineup.subs), captain=lineup.captain)
-                    trial.subs[slot] = card
-                    if not any(_can_replace(trial, slot, i) for i in range(comp.size)):
-                        continue  # he could never come in (position, or the in-season rule)
-                    evaluate(trial, forecasts, draws=draws)
-                    gain = (trial.p_return - lineup.p_return) + (trial.expected - lineup.expected) / 1000
-                    if gain > 0.0005 and (best is None or gain > best[0]):
-                        best = (gain, lineup, slot, card)
-        if best:
-            _, lineup, slot, card = best
-            lineup.subs[slot] = card
-            evaluate(lineup, forecasts, draws=draws)
-            free = [c for c in free if c.slug != card.slug]
-            improving = True
+    # A lineup's best substitute only changes when its own bench does or when that card goes to another bench: `evaluate` draws the
+    # same weeks for the same starters (`_seed`), so the other lineups are not simulated again each round (14 Oct 2026: asking
+    # every lineup again after every substitute was most of the refresh's planning time).
+    bests: dict[int, tuple[float, int, Card] | None] = {}
+    while free:
+        best: tuple[float, int, int, Card] | None = None
+        for i, lineup in enumerate(lineups):
+            if i not in bests:
+                bests[i] = _best_sub(lineup, free, forecasts, draws)
+            found = bests[i]
+            if found and (best is None or found[0] > best[0]):
+                best = (found[0], i, found[1], found[2])
+        if best is None:
+            break
+        _, i, slot, card = best
+        lineup = lineups[i]
+        lineup.subs[slot] = card
+        evaluate(lineup, forecasts, draws=draws)
+        free = [c for c in free if c.slug != card.slug]
+        bests = {j: b for j, b in bests.items() if j != i and (b is None or b[2].slug != card.slug)}
     return free
+
+
+def _best_sub(
+    lineup: Lineup, free: list[Card], forecasts: dict[str, Forecast], draws: int
+) -> tuple[float, int, Card] | None:
+    """The substitute who adds the most to this lineup (gain, slot, card), the first of equals; none when no one adds value."""
+    # the same simulated gameweeks for "with him" and "without him" (`_seed`), so a difference is really his
+    evaluate(lineup, forecasts, draws=draws)
+    comp = lineup.comp
+    best: tuple[float, int, Card] | None = None
+    for slot, taken in enumerate(lineup.subs):
+        if taken is not None:
+            continue
+        for card in free:
+            if card.positions[0] not in comp.subs[slot] or not comp.allows(card):
+                continue
+            if card.player in {c.player for c in lineup.cards}:
+                continue
+            if forecasts.get(card.player) is None or forecasts[card.player].p_play <= 0:
+                continue
+            trial = Lineup(comp=comp, starters=lineup.starters, subs=list(lineup.subs), captain=lineup.captain)
+            trial.subs[slot] = card
+            if not any(_can_replace(trial, slot, i) for i in range(comp.size)):
+                continue  # he could never come in (position, or the in-season rule)
+            evaluate(trial, forecasts, draws=draws)
+            gain = (trial.p_return - lineup.p_return) + (trial.expected - lineup.expected) / 1000
+            if gain > 0.0005 and (best is None or gain > best[0]):
+                best = (gain, slot, card)
+    return best
 
 
 # --------------------------------------------------------------------------- whole gameweek
@@ -691,6 +733,25 @@ def plans(
     The best maximizes expected essence rewards (the owner, 11 Oct 2026). The owner's essence-kind order and
     reward chance break ties. Cash remains separate and never outweighs a larger essence reward.
     """
+    token = _evaluated.set({})
+    try:
+        return _plans(comps, cards, forecasts, count, runs, seed, draws, order, view, rule_for)
+    finally:
+        _evaluated.reset(token)
+
+
+def _plans(
+    comps: list[Competition],
+    cards: list[Card],
+    forecasts: dict[str, Forecast],
+    count: int,
+    runs: int,
+    seed: int,
+    draws: int,
+    order: tuple[str, ...],
+    view: Mapping[str, Forecast] | None,
+    rule_for: Callable[[Competition], Callable[[list[Card | None]], bool] | None] | None,
+) -> list[Plan]:
     comps = [comp for comp in comps if enterable(comp)]
     rng = np.random.default_rng(seed)
     firsts = [

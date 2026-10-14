@@ -188,6 +188,8 @@ async function live() {
     if (state === "failure") failed.push("refresh");
   }
 
+  await neonProjects();
+
   // 4. Where the owner tests it: the main folder's dev server (hot reload, real read models) and production.
   // `/lineups` or `lineups`; Git Bash turns `/lineups` into `C:/Program Files/Git/lineups`, so that prefix is dropped.
   const changed = args
@@ -197,6 +199,53 @@ async function live() {
     await devServer();
     console.log("\nTest it:");
     for (const page of changed) console.log(`  ${LOCAL}${page}\n  ${PROD}${page}`);
+  }
+}
+
+// The free Neon projects that take turns (AGENTS.md "Neon projects"): the live one is the one written last.
+const NEON_NAMES = { "ep-cold-cloud-b9akf8sh": "Sofix", "ep-jolly-sun-b1a0xc1l": "FDR", "ep-morning-paper-baxx0rh5": "Sofix B" };
+
+/** One line: which project is live and which are out of quota, from frontend/.env.local's URLs (a one-row query each). */
+async function neonProjects() {
+  const file = fromMainFolder("frontend/.env.local");
+  const env = file ? readFileSync(file, "utf8") : "";
+  const value = (name) => env.match(new RegExp(`^${name}=(.*)$`, "m"))?.[1]?.trim() ?? "";
+  const urls = [value("DATABASE_URL"), ...value("DATABASE_URL_SPARE").split(/\s+/)].filter(Boolean);
+  if (!urls.length) return console.log("      Neon: frontend/.env.local has no DATABASE_URL");
+  const states = await Promise.all(
+    urls.map(async (url) => {
+      const host = new URL(url).hostname;
+      const name = NEON_NAMES[host.split(".")[0].replace(/-pooler$/, "")] ?? host.split(".")[0];
+      try {
+        const r = await fetch(`https://${host}/sql`, {
+          method: "POST",
+          headers: { "Neon-Connection-String": url, "Content-Type": "application/json" },
+          body: JSON.stringify({ query: "SELECT max(updated_at) AS at, (SELECT payload FROM read_models WHERE key = 'neon_status') AS status FROM read_models", params: [] }),
+          signal: AbortSignal.timeout(20_000),
+        });
+        const body = await r.json().catch(() => ({}));
+        if (!r.ok) return { name, out: /quota/i.test(JSON.stringify(body)) ? "out of quota" : `HTTP ${r.status}` };
+        return { name, at: body.rows?.[0]?.at ?? "", status: body.rows?.[0]?.status ?? null };
+      } catch {
+        return { name, out: "unreachable" };
+      }
+    }),
+  );
+  const up = states.filter((s) => s.out === undefined).sort((a, b) => String(b.at).localeCompare(String(a.at)));
+  const down = states.filter((s) => s.out !== undefined).map((s) => `${s.name} ${s.out}`);
+  const live = up[0];
+  console.log(
+    `${live ? "ok  " : "FAIL"}  Neon: ${live ? `live ${live.name} (written ${live.at ? ago(live.at) : "never"})` : "no project answers"}` +
+      `${up.length > 1 ? `; spare ${up.slice(1).map((s) => s.name).join(", ")}` : ""}${down.length ? `; ${down.join(", ")}` : ""}`,
+  );
+  if (!live) failed.push("Neon");
+  // What the last refresh read from Neon's API (backend/app/jobs/neon_switch.py writes `neon_status` into the live project).
+  const status = typeof live?.status === "string" ? JSON.parse(live.status) : live?.status;
+  if (status) {
+    const gb = (bytes) => (bytes === null ? "?" : `${(bytes / 1024 ** 3).toFixed(1)} GB`);
+    const sent = status.projects.map((p) => `${NEON_NAMES[p.endpoint] ?? p.endpoint} ${gb(p.sentBytes)}`).join(", ");
+    console.log(`${status.note ? "FAIL" : "    "}  Neon sent this month (moves at ${gb(status.limitBytes)}): ${sent}${status.note ? ` (${status.note})` : ""}`);
+    if (status.note) failed.push("Neon usage");
   }
 }
 

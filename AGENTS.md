@@ -158,7 +158,8 @@ they show. So, in every page:
 
 ## Data/schema/cache
 
-- `models.py` → autogenerate → review → Neon dev migrate/test → manual production owner migrate. Never `create_all` Neon.
+- `models.py` → autogenerate → review → Neon dev migrate/test → manual owner migrate on **every** production project
+  (Sofix, FDR, Sofix B: "Neon projects" below; a project left behind blocks the automatic move). Never `create_all` Neon.
 - Unattended jobs use `--skip-migrations` and DML-only app role.
 - Replace current rows/read models; append only intentional run/replay history.
 - One refresh at a time; ten-minute button cooldown.
@@ -194,7 +195,8 @@ Weather/Open-Meteo is removed. Transfermarkt scraping is prohibited.
 ## Secrets/gotchas
 
 Python/root: `POSTGRES_URL`, owner-only `POSTGRES_MIGRATION_URL`, football/odds/Sorare keys, `SORARE_USER`, `APP_URL`,
-`REVALIDATE_SECRET`, `VERCEL_BYPASS_SECRET`, local `REFRESH_TOKEN`. Vercel: `DATABASE_URL`, `GITHUB_TOKEN`, optional
+`REVALIDATE_SECRET`, `VERCEL_BYPASS_SECRET`, local `REFRESH_TOKEN`. GitHub also: `POSTGRES_URL_SPARE` (space-separated
+URLs of the other Neon projects) and `NEON_API_KEY`. Vercel: `DATABASE_URL`, `DATABASE_URL_SPARE`, `GITHUB_TOKEN`, optional
 `GITHUB_REPO`, `REVALIDATE_SECRET`, `EXTENSION_TOKEN`, optional `EXTENSION_DIR`, crest flag. Never print/commit values.
 
 Neon production uses `fdr_app` DML-only, verify-full TLS. Destructive SQL/branch actions need explicit approval.
@@ -211,6 +213,16 @@ refuses every query with HTTP 402 "exceeded the quota" until the 1st.
 | **Sofix B** | `square-poetry-39931505` | `ep-morning-paper-baxx0rh5` (`c-8`) | second URL of the same two spare settings; owner and app login in `.env.sofix-b-neon` |
 | **Trakzi** | `orange-waterfall-16223480` | | Another app of the owner's: never touch it from this repo |
 
+**Rules for every session** (the first look is `node scripts/check.mjs --live`: its "Neon" lines say which project is live,
+which are out of quota, and what each has sent this month):
+- Never point anything at one project by hand: code reads through `database()` (`frontend/lib/db.ts`), jobs get
+  `POSTGRES_URL` from the "Pick the live Neon project" step. A project answering 402 is normal, not a bug to fix.
+- New page reads go through `readModel`/`readModelAt`, never `SELECT payload` in a loader or a polled route; anything
+  that runs on focus, visibility or a timer must be throttled to minutes. Watch the dev server's `[neon] ... MB` lines.
+- One real-data dev server at a time. Load scripts, Playwright against real data or perf loops run on mock data.
+- `read_models` keys `neon_live` and `neon_status` belong to the switch: never delete or reuse them.
+- Never delete, reset or upgrade a project, create one, or change the spare settings without the owner.
+
 All are eu-central-1, Postgres 18, same tables, app login `fdr_app` (rows only). Never delete one without the owner.
 The spare settings hold one or more URLs separated by spaces; `.env.neon-spares` (git-ignored) has both current values.
 GitHub also needs `NEON_API_KEY` (an organization key) for the move.
@@ -226,7 +238,9 @@ GitHub also needs `NEON_API_KEY` (an organization key) for the move.
   privileges), append its `fdr_app` URL to both spare settings. The next move fills it.
 - **Migrations:** apply them to every project, or the move refuses.
 - **Local:** `frontend/.env.local` has `DATABASE_URL` (Sofix) and `DATABASE_URL_SPARE` (FDR, Sofix B).
-- **Check usage:** Neon's `describe_project` (`data_transfer_bytes`; it lags by hours) or a `select 1`.
+- **Check usage:** `node scripts/check.mjs --live` prints what the last refresh read from Neon's API (`read_models` key
+  `neon_status` in the live project; FAIL with a note when `NEON_API_KEY` gave nothing, which means no move can happen),
+  or Neon's `describe_project` (`data_transfer_bytes`; it lags by hours).
 
 **What burned Sofix (7.16 GB in 12-14 Oct 2026), measured on 14 Oct:** about 0.3 GB came from the jobs; almost all the
 rest came from localhost.
@@ -286,6 +300,8 @@ this repo. Precedence: this file, then the global rules.
   `docs/sorare/design/` changed.
 - **Production Neon is read-only** for agents (`fdr_app` is DML-only). Test on local/dev data; seed deterministically.
   No seeding, truncating, deleting or speculative migrations on production; migrations follow `backend/migrations/`.
+  The one exception is the automatic move between Neon projects (`neon_switch.py`), which copies every table; never
+  run it, delete a project or edit the spare settings by hand without the owner ("Neon projects").
 - **Tests:** test-first for behavior changes (rules, regressions, contracts), no coverage-padding. Bug fix = failing
   regression test first. Report pre-existing failures separately; never claim "all pass" if any fail.
 - **Browser proof for UI:** desktop + mobile screenshots of the affected state on the local dev server (real data),

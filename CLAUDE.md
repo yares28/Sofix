@@ -25,6 +25,15 @@ This overrides any global habit of branches, pull requests, CI waits or review s
    the app is back in about two minutes; then find the cause and ship the fix as a new commit.
 7. Shipped an item from "Next up": move it to the roadmap's Results and off the list, in the same commit.
 
+## Database (Neon): read before touching data, dev servers or scripts
+
+Free Neon projects (Sofix, FDR, Sofix B) take turns as production; each may send 5 GB a month, then refuses every query
+(HTTP 402) until the 1st. The app and the jobs always use the project written last and move to another at 4 GB on their
+own. Sofix ran out in two days on 14 Oct 2026 because an open localhost tab re-read ~1 MB a second. So: read
+[AGENTS.md](AGENTS.md) "Neon projects" first; the session-start check's "Neon" lines say which project is live; a 402
+from one project is expected; new reads go through `readModel`/`readModelAt`; never poll or refetch on focus without a
+minutes-long throttle; one real-data dev server at a time; never create, delete or repoint a project without the owner.
+
 ## Product
 
 Sofix is a private white LaLiga fixture-difficulty board plus Sorare collection/planning companion. Production is

@@ -14,6 +14,7 @@ POSTGRES_URL for the next steps. Only the app login (rows only) is needed: seque
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import os
 import sys
@@ -68,18 +69,32 @@ def move_to(live: int, sent: list[int | None], stamps: list[float | None], limit
 
 
 def sent_bytes(urls: list[str], key: str) -> list[int | None]:
-    """Data each project sent this month, from Neon's API (matched by the endpoint in its URL)."""
+    """Data each project sent this month, from Neon's API (matched by the endpoint in its URL). None where it is unknown:
+    a failing API only means no move this run, never a failed job. An organization key sees the projects directly; a
+    personal key sees them through its organizations."""
     wanted = {endpoint_id(url): i for i, url in enumerate(urls)}
     out: list[int | None] = [None] * len(urls)
-    with httpx.Client(base_url=NEON_API, headers={"Authorization": f"Bearer {key}"}, timeout=20) as api:
-        for project in api.get("/projects").raise_for_status().json()["projects"]:
-            endpoints = api.get(f"/projects/{project['id']}/endpoints").raise_for_status().json()["endpoints"]
-            for endpoint in endpoints:
-                if endpoint["id"] in wanted:
-                    detail = api.get(f"/projects/{project['id']}").raise_for_status().json()["project"]
-                    sent = int(detail.get("data_transfer_bytes") or 0)
-                    out[wanted[endpoint["id"]]] = sent
-                    logger.info("%s (%s): %.2f GB sent this month", project["name"], endpoint["id"], sent / 1024**3)
+    try:
+        with httpx.Client(base_url=NEON_API, headers={"Authorization": f"Bearer {key}"}, timeout=20) as api:
+            projects = api.get("/projects").raise_for_status().json()["projects"]
+            if not projects:
+                orgs = api.get("/users/me/organizations")
+                for org in orgs.json().get("organizations", []) if orgs.is_success else []:
+                    found = api.get("/projects", params={"org_id": org["id"]}).raise_for_status().json()["projects"]
+                    projects += found
+            for project in projects:
+                endpoints = api.get(f"/projects/{project['id']}/endpoints").raise_for_status().json()["endpoints"]
+                for endpoint in endpoints:
+                    if endpoint["id"] in wanted:
+                        detail = api.get(f"/projects/{project['id']}").raise_for_status().json()["project"]
+                        sent = int(detail.get("data_transfer_bytes") or 0)
+                        out[wanted[endpoint["id"]]] = sent
+                        logger.info("%s (%s): %.2f GB sent this month", project["name"], endpoint["id"], sent / 1024**3)
+    except (httpx.HTTPError, KeyError, ValueError) as error:
+        status = error.response.status_code if isinstance(error, httpx.HTTPStatusError) else type(error).__name__
+        logger.warning("Neon's API did not give the usage (%s): no move this run; check NEON_API_KEY", status)
+    if not any(sent is not None for sent in out):
+        logger.warning("NEON_API_KEY sees none of these projects: no move this run")
     return out
 
 
@@ -157,6 +172,31 @@ def advance_sequence(conn: psycopg.Connection, table: str) -> None:
         conn.execute("SELECT max(nextval(%s)) FROM generate_series(1, %s)", (seq[0], behind))
 
 
+STATUS_KEY = "neon_status"
+
+
+def write_status(
+    urls: list[str], live: int, stamps: list[float | None], sent: list[int | None], note: str | None
+) -> None:
+    """What the refresh saw, kept in the live project for `node scripts/check.mjs --live` (every session's first look)."""
+    projects = [
+        {"endpoint": endpoint_id(url), "answers": stamps[i] is not None, "sentBytes": sent[i]}
+        for i, url in enumerate(urls)
+    ]
+    if note is None and all(p["sentBytes"] is None for p in projects):
+        note = "NEON_API_KEY did not give the usage"
+    payload = {"live": endpoint_id(urls[live]), "projects": projects, "limitBytes": LIMIT_BYTES, "note": note}
+    try:
+        with psycopg.connect(dsn(urls[live]), connect_timeout=15) as conn:
+            conn.execute(
+                "INSERT INTO read_models (key, payload, updated_at) VALUES (%s, %s, now()) "
+                "ON CONFLICT (key) DO UPDATE SET payload = EXCLUDED.payload, updated_at = now()",
+                (STATUS_KEY, json.dumps(payload)),
+            )
+    except psycopg.Error as error:
+        logger.warning("could not keep the Neon status: %s", str(error).splitlines()[0][:120])
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -174,8 +214,9 @@ def main() -> int:
         logger.error("no Neon project answers (all out of quota until the 1st?)")
         return 1
     key = os.environ.get("NEON_API_KEY", "")
-    if args.move and key and len(urls) > 1:
-        target = move_to(live, sent_bytes(urls, key), stamps)
+    if args.move and len(urls) > 1:
+        sent: list[int | None] = sent_bytes(urls, key) if key else [None] * len(urls)
+        target = move_to(live, sent, stamps)
         if target is not None:
             # ponytail: a job writing to the old project during the copy loses that write; jobs run minutes apart.
             logger.info(
@@ -186,6 +227,7 @@ def main() -> int:
             )
             copy_all(urls[live], urls[target])
             live = target
+        write_status(urls, live, stamps, sent, None if key else "NEON_API_KEY is not set")
     logger.info("live project: %s", endpoint_id(urls[live]))
     if path := os.environ.get("GITHUB_ENV"):
         with open(path, "a", encoding="utf-8") as env:

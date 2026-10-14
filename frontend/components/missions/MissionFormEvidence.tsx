@@ -4,13 +4,13 @@ import { formValues, missionMetric, missionThreshold } from "../../lib/missionFo
 import type { Rule } from "../../lib/missions";
 
 const WINDOWS = [["l5", "Last 5"], ["l10", "Last 10"], ["season", "Season"], ["starts", "Starts"], ["subs", "Subs"]] as const;
-const LABELS: Record<string, string> = { ...ACTION_LABELS, decisive: "Decisive games", score: "Sorare score", minutes: "Minutes", mins_played: "Minutes (stat)", clean_sheet_60: "Clean sheets (60+ min)" };
+const LABELS: Record<string, string> = { ...ACTION_LABELS, decisive: "Decisive games", booked: "Booked games", score: "Sorare score", minutes: "Minutes", mins_played: "Minutes (stat)", clean_sheet_60: "Clean sheets (60+ min)" };
 export default function MissionFormEvidence({ form, rule, target, all = false }: { form?: MissionForm; rule: Rule; target?: number; all?: boolean }) {
   if (!form) return <p className="ms-form-note">Dated appearance form not saved.</p>;
   const metric = missionMetric(rule), threshold = missionThreshold(rule, target);
   const value = (key: string, window: typeof WINDOWS[number][0]) => {
     const w = form.windows[window], n = w.samples[key] ?? 0, mean = w.means[key];
-    return mean === undefined || !n ? <>&mdash;</> : <>{key === "decisive" ? `${Math.round(100 * mean)}%` : mean.toFixed(1)} <small>n={n}</small></>;
+    return mean === undefined || !n ? <>&mdash;</> : <>{key === "decisive" || key === "booked" ? `${Math.round(100 * mean)}%` : mean.toFixed(1)} <small>n={n}</small></>;
   };
   const hits = (n: number) => {
     const vs = metric ? formValues(form, metric, n) : [];

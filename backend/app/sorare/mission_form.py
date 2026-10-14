@@ -24,7 +24,7 @@ def chance(
     rule: dict[str, Any], p: dict[str, Any], game: dict[str, Any], form: dict[str, Any], target: float | None = None
 ) -> float | None:
     kind = rule["kind"]
-    key = "decisive" if kind == "decisive" else "score" if kind == "score" else METRICS.get(kind)
+    key = kind if kind in ("decisive", "booked", "score") else METRICS.get(kind)
     if key is None:
         return None
     values = [g["values"][key] for g in form["recent"] if g["values"].get(key) is not None]
@@ -37,7 +37,7 @@ def chance(
         return sum(ns) / len(ns) if ns else form["windows"]["starts" if started else "subs"]["means"].get(key)
 
     def tail(lam: float) -> float:
-        if kind == "decisive":
+        if kind in ("decisive", "booked"):
             return lam
         term = below = math.exp(-max(0, lam))
         for n in range(1, math.ceil(threshold)):
@@ -68,7 +68,7 @@ def build(games: list[dict[str, Any]], pos: str, before: datetime, *, league: st
     cycle = club_season(league, before)
     since = cycle[0] if cycle else None
     current = [g for g in past if since is not None and as_utc(datetime.fromisoformat(g["date"])) >= since]
-    keys = set(COUNTS) | {"decisive", "score", "minutes"}
+    keys = set(COUNTS) | {"decisive", "booked", "score", "minutes"}
 
     def values(g: dict[str, Any]) -> dict[str, float | None]:
         raw = g.get("stats")
@@ -85,6 +85,15 @@ def build(games: list[dict[str, Any]], pos: str, before: datetime, *, league: st
             decisive = (*DECISIVE, "clean_sheet_60") if pos == "GK" else DECISIVE
             positive = any((out.get(k) or 0) > 0 for k in decisive)
             out["decisive"] = float(positive) if positive or all(out.get(k, 0) is not None for k in decisive) else None
+            # A yellow or a red card; the game's own `yellow`/`red` (kept from the same detailed score) when there.
+            out["booked"] = float(
+                bool(
+                    g.get("yellow")
+                    or g.get("red")
+                    or (out.get("yellow_card") or 0) > 0
+                    or (out.get("red_card") or 0) > 0
+                )
+            )
             keys.update(out)
         out.update(score=g.get("score"), minutes=g.get("mins"))
         return out

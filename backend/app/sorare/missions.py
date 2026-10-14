@@ -54,6 +54,8 @@ COUNT_WORDS = {
     "pass": r"(?:accurate|completed)\s+passes",
     "miss": r"big\s+chances?(?!\s+created)",
 }
+# "Discipline" (14 Oct 2026): a pick pays when he is booked, a yellow or a red card. Rated like a decisive action: a share of his games.
+BOOKED_STATS = ("yellow_card", "red_card")
 RECENT = 30  # mission days the page lists
 
 
@@ -73,6 +75,14 @@ def did(rule: dict[str, Any], stats: list[str], row: dict[str, Any]) -> bool | N
         if any(_stat(row, name) > 0 for name in names):
             return True
         return None if any(name in row.get("stats", {}) and row["stats"][name][0] is None for name in names) else False
+    if kind == "booked":
+        if any(_stat(row, name) > 0 for name in BOOKED_STATS):
+            return True
+        return (
+            None
+            if any(name in row.get("stats", {}) and row["stats"][name][0] is None for name in BOOKED_STATS)
+            else False
+        )
     if kind in COUNTS:
         if COUNTS[kind] in row.get("stats", {}) and row["stats"][COUNTS[kind]][0] is None:
             return None
@@ -236,7 +246,7 @@ def settle_kept(db: Session, now: datetime) -> dict[str, int]:
                         if (
                             (key in candidate.get("c", {}) or key in candidate.get("eligible", []) or own)
                             and key not in candidate.get("r", {}).get("did", {})
-                            and rule["kind"] in ("decisive", *COUNTS, "score")
+                            and rule["kind"] in ("decisive", "booked", *COUNTS, "score")
                         ):
                             target = (
                                 own.get("target")
@@ -491,6 +501,8 @@ def _rule(m: dict[str, Any]) -> dict[str, Any]:
         return {"kind": kind, "atLeast": targets[0]["min"], "label": m["description"]}
     stats = m.get("stats") or []
     if stats:
+        if "yellow_card" in stats and set(stats) <= set(BOOKED_STATS):
+            return {"kind": "booked", "label": m["description"]}
         if len(stats) == 1 and stats[0] in COUNTS.values():
             kind = next(k for k, v in COUNTS.items() if v == stats[0])
             return {
@@ -503,6 +515,8 @@ def _rule(m: dict[str, Any]) -> dict[str, Any]:
         ):
             return {"kind": "unsupported", "label": m["description"]}
         return {"kind": "decisive", "label": m["description"]}
+    if re.search(r"yellow\s+cards?", text, re.I):
+        return {"kind": "booked", "label": m["description"]}
     for kind in COUNTS:
         if re.search(COUNT_WORDS[kind], text, re.I):
             return {"kind": kind, "atLeast": count(kind), "label": m["description"]}

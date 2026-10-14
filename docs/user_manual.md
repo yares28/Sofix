@@ -631,7 +631,7 @@ Decisive and count estimates use the most recent ten appearances split by playin
 
 The table opens on **All**, including locked and already selected cards for comparison. **Before kickoff** filters to editable copies. Locked cards use their captured form; an older record without it says so. Unsupported targets retain their original rule and eligible inventory.
 
-Count targets include goals, assists, interceptions, **shots on target**, **tackles won**, **accurate passes** and, since 13 Oct 2026, **big chances missed**. The imported threshold drives both estimation and settlement. Saved picks and form freeze at kickoff. Historical records without a best-cards reference or dated form remain explicitly unrecorded; new form never fills a missing past forecast.
+Count targets include goals, assists, interceptions, **shots on target**, **tackles won**, **accurate passes** and, since 13 Oct 2026, **big chances missed**. A **Discipline** mission (a yellow or a red card, 14 Oct 2026) is rated like a decisive one: the share of his recent games in which he was booked. The imported threshold drives both estimation and settlement. Saved picks and form freeze at kickoff. Historical records without a best-cards reference or dated form remain explicitly unrecorded; new form never fills a missing past forecast.
 
 "Today" follows the existing **9:00 CET / 08:00 UTC** reset convention, including matches after midnight before that reset. Historical imports use the source task's start-date calendar day in Madrid, rather than the date you fetched them. The live summer reset boundary still needs comparison with a signed-in Sorare response; Sofix does not silently reinterpret old dates.
 

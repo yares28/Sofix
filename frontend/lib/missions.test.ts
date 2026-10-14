@@ -21,6 +21,10 @@ describe("what a mission asks and pays", () => {
     // 13 Oct 2026: this one had no suggestion, its stat was not one the reader knew
     const missed = row("Big Chance Missed - Champions League", "Classic: Pick a player who misses 1+ big chance in today's Champions League matches and win 50 All-Star Essence per correct choice.");
     expect(ruleOf({ ...missed, stats: ["big_chance_missed"] })).toEqual({ kind: "miss", atLeast: 1, label: "1+ big chances missed" });
+    // 14 Oct 2026: "Discipline" counts two stats, a yellow or a red card
+    const booked = row("Discipline - Champions League", "Classic: Pick a player who receives 1+ yellow card or 1 red card in today's Champions League matches.");
+    expect(ruleOf({ ...booked, stats: ["yellow_card", "red_card"] })).toMatchObject({ kind: "booked" });
+    expect(ruleOf(booked)).toMatchObject({ kind: "booked" });
     expect(ruleOf(row("Shots", "2+ shots on target", { thresholds: [{ stat: "ontarget_scoring_att", min: 4 }] }))).toMatchObject({ kind: "shot", atLeast: 4 });
   });
   it("supports accurate passes with Sorare's actual threshold and profile count", () => {

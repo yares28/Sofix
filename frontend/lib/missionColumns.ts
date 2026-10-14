@@ -30,6 +30,7 @@ const RELATED: Record<Rule["kind"], readonly [Related, Related, Related]> = {
   goal: [SHOTS, BOX, ASSISTS],
   shot: [GOALS, BOX, ["big_chance_missed", "Chances missed"]],
   miss: [SHOTS, BOX, GOALS],
+  booked: [["fouls", "Fouls"], WINS, MINUTES],
   pass: [MINUTES, ["missed_pass", "Passes missed"], ASSISTS],
   score: [MINUTES, ["decisive", "Decisive", true], GOALS],
   unsupported: [GOALS, ASSISTS, MINUTES],

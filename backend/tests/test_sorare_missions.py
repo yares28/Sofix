@@ -150,3 +150,38 @@ def test_a_big_chance_missed_mission_is_a_counted_stat():
         "windows": {"starts": {"means": {}}, "subs": {"means": {"big_chance_missed": 0.0}}},
     }
     assert 0.5 < mission_form.chance(rule, {}, {"pStart": 0.9, "pOn": 0.1}, form) < 0.6  # 0.9 x (1 - e^-1)
+
+
+def test_a_discipline_mission_pays_on_a_yellow_or_a_red_card():
+    """14 Oct 2026: "Discipline - Champions League" (yellow_card or red_card) was unsupported, so it had no suggestion."""
+    from app.sorare import mission_form
+    from app.sorare.missions import _rule
+
+    mission = {
+        "title": "Discipline - Champions League",
+        "description": "Classic: Pick a player who receives 1+ yellow card or 1 red card in today's Champions League matches.",
+        "mode": "DECISIVE",
+        "stats": ["yellow_card", "red_card"],
+    }
+    rule = _rule(mission)
+    assert rule["kind"] == "booked"
+    assert did(rule, mission["stats"], row(yellow_card=1)) is True
+    assert did(rule, mission["stats"], row(red_card=1)) is True
+    assert did(rule, mission["stats"], row(fouls=3)) is False
+    assert _rule({**mission, "stats": []})["kind"] == "booked"  # from its words alone
+    games = [
+        {
+            "gameId": f"g{i}",
+            "date": f"2026-10-0{i}T19:00:00+00:00",
+            "status": "FINAL",
+            "played": True,
+            "started": True,
+            "stats": [],
+            "yellow": int(i % 2 == 0),
+            "red": False,
+        }
+        for i in range(1, 5)
+    ]
+    form = mission_form.build(games, "MID", datetime(2026, 10, 10, tzinfo=UTC))
+    assert [g["values"]["booked"] for g in form["recent"]] == [1.0, 0.0, 1.0, 0.0]
+    assert mission_form.chance(rule, {}, {"pStart": 1.0, "pOn": 0.0}, form) == 0.5  # booked in two of his four starts

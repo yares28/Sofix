@@ -91,6 +91,7 @@ export type Rule =
   | { kind: "tackle"; atLeast: number; label: string }
   | { kind: "pass"; atLeast: number; label: string }
   | { kind: "miss"; atLeast: number; label: string }
+  | { kind: "booked"; label: string }
   | { kind: "score"; label: string }
   | { kind: "unsupported"; label: string };
 
@@ -106,6 +107,8 @@ const COUNTS = {
 } as const;
 type CountKind = keyof typeof COUNTS;
 const statKind = (stat: string) => (Object.keys(COUNTS) as CountKind[]).find((k) => COUNTS[k].stat === stat);
+/** "Discipline": a yellow or a red card, rated like a decisive action (a share of his games). */
+const BOOKED: Rule = { kind: "booked", label: "a yellow or red card" };
 const wordCount = (text: string, kind: CountKind) => Number(new RegExp(`(\\d+)\\s*\\+\\s*${COUNTS[kind].words.source}`, "i").exec(text)?.[1] ?? 1);
 
 /** The rule in the mission's own words: "2+ interceptions", an assist, a goal, beating his average, or any positive decisive action. */
@@ -120,6 +123,7 @@ export function ruleOf(mission: Pick<MissionRow, "title" | "description"> & Part
   }
   const stats = mission.stats ?? [];
   if (stats.length) {
+    if (stats.includes("yellow_card") && stats.every((s) => s === "yellow_card" || s === "red_card")) return BOOKED;
     const kind = stats.length === 1 ? statKind(stats[0]!) : undefined;
     if (kind) { const atLeast = wordCount(`${mission.title} ${mission.description}`, kind); return { kind, atLeast, label: `${atLeast}+ ${COUNTS[kind].label}` }; }
     const standard = ["goals", "goal_assist", "assist_penalty_won", "clearance_off_line", "last_man_tackle", "penalty_save"];
@@ -127,6 +131,7 @@ export function ruleOf(mission: Pick<MissionRow, "title" | "description"> & Part
     return { kind: "decisive", label: "a decisive action" };
   }
   const text = `${mission.title} ${mission.description}`;
+  if (/yellow\s+cards?/i.test(text)) return BOOKED;
   const count = (word: RegExp) => Number(new RegExp(`(\\d+)\\s*\\+\\s*${word.source}`, "i").exec(text)?.[1] ?? 1);
   for (const kind of ["shot", "tackle", "pass"] as const) if (new RegExp(COUNTS[kind].words.source, "i").test(text)) {
     const atLeast = wordCount(text, kind); return { kind, atLeast, label: `${atLeast}+ ${COUNTS[kind].label}` };
@@ -232,7 +237,7 @@ const newest = (sheet: Sheet, n: number) => sheet.last.slice(-n);
 export function missionValues(rule: Rule, sheet: Sheet | null | undefined): number[] {
   if (!sheet || rule.kind === "unsupported") return [];
   if (sheet.form) return formValues(sheet.form, missionMetric(rule)!).reverse();
-  const index = rule.kind === "decisive" ? 2 : rule.kind === "score" ? 0 : COUNTS[rule.kind].index;
+  const index = rule.kind === "decisive" ? 2 : rule.kind === "score" ? 0 : rule.kind === "booked" ? null : COUNTS[rule.kind].index;
   if (index === null) return [];
   return sheet.last.map((row) => row[index]).filter((n): n is number => typeof n === "number" && Number.isFinite(n));
 }
@@ -250,7 +255,7 @@ export function fit(rule: Rule, player: PlayingPlayer, sheet: Sheet | null, targ
       return { chance: mean(values.map((v) => Number(v >= threshold))), average, historical: true };
     }
     const start = formRate(form, key, true), sub = formRate(form, key, false);
-    const tail = (rate: number) => rule.kind === "decisive" ? rate : atLeast("atLeast" in rule ? rule.atLeast : 1, rate);
+    const tail = (rate: number) => rule.kind === "decisive" || rule.kind === "booked" ? rate : atLeast("atLeast" in rule ? rule.atLeast : 1, rate);
     if (player.pStart !== undefined && player.pOn !== undefined) {
       if (player.pStart > 0 && start === undefined || player.pOn > 0 && sub === undefined) return null;
       return { chance: Math.min(1, player.pStart * tail(start ?? 0) + player.pOn * tail(sub ?? 0)), average };
@@ -275,7 +280,7 @@ export function fit(rule: Rule, player: PlayingPlayer, sheet: Sheet | null, targ
     const l8 = sheet ? mean(newest(sheet, 8).map((r) => r[2])) : chance;
     return { chance, average: { l5, l8, season: sheet ? sheet.decAll : chance } };
   }
-  if (!sheet) return null;
+  if (!sheet || rule.kind === "booked") return null;
   const key = COUNTS[rule.kind].stat;
   const season = sheet.season[key]?.[0];
   if (season === undefined || !Number.isFinite(season)) return null;

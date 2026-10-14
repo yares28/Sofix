@@ -55,6 +55,8 @@ export type PlayCard = {
   sorare?: number;
   start?: number;
   on?: number;
+  /** His expected decisive actions in his first game (the lineup's xD is its starters' added up). */
+  xd?: number;
 };
 
 /** Whose expected score a number is: Sofix's game model, Sorare's projection, or his last five games. */
@@ -313,6 +315,8 @@ export type PlayingPlayer = {
   /** The picture behind his score if he starts, and if he comes on (plans/xscore.md, X5a): the chance of a decisive action, the score with and without one, where he lands 8 times in 10, what moves it. */
   shape?: Shape;
   onShape?: Shape;
+  /** His expected decisive actions in his first game: from the game when Sofix works it out, else from his own record of starts. */
+  xd?: number;
   /**
    * His xG in one game he starts, for an average game of his side, from Understat's season so far (plans/overlay.md, O11):
    * non-penalty and penalty parts, and his team's own average xG per game to scale the game by. Only a midfielder or

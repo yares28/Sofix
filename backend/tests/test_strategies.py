@@ -125,15 +125,36 @@ def test_a_whole_plan_can_be_picked_a_strategys_way_and_still_be_priced_on_the_r
 
 
 def test_a_lineups_xd_counts_each_starters_chance_of_a_decisive_action_or_is_missing_when_one_game_is_not_worked_out():
-    from app.sorare.publish import lineup_xd
+    from app.sorare.forecast import PlayerWeek, forecast
+    from app.sorare.outfield import SubShape
+    from app.sorare.publish import lineup_xd, own_decisive
 
     shape = Outcome(0.3, 0.4, 70.0, 30.0, 46.0, 25.0, 80.0)
-    on = replace(shape, p_decisive=0.1)
+    sub = SubShape(0.1, 20.0, 10.0, 10.0, 50)
+    # his game worked out: its own chance if he starts, his position's if he comes on, each by its chance
+    odds = {"games": 1, "plays_odds": 1.0, "start_odds": 0.5, "sub": sub}
+    worked = forecast(PlayerWeek(**odds, game_scores=(46.0,), shape=shape, dec=0.9))
+    assert worked.xd == 0.25  # 0.5 x 0.4 + 0.5 x 0.1
+    # a game outside the model (a European night): his own record stands in, so no player is left without a number
+    assert forecast(PlayerWeek(**odds, dec=0.2)).xd == 0.15  # 0.5 x 0.2 + 0.5 x 0.1
+    assert forecast(PlayerWeek(**odds)).xd is None
+
+    start = {"played": True, "started": True}
+    past = [
+        {**start, "stats": [{"stat": "goals", "statValue": 1}]},
+        {**start, "stats": [{"stat": "clean_sheet_60", "statValue": 1}]},
+        {**start},  # no detailed score kept: it cannot tell
+        {"played": True, "started": False, "stats": [{"stat": "goals", "statValue": 2}]},
+    ]
+    assert own_decisive(past, "FWD") == (1 + 8 * 0.12) / 10
+    assert own_decisive(past, "GK") == (2 + 8 * 0.26) / 10  # a keeper's clean sheet counts
+    assert own_decisive([], "MID") == 0.12
+
     starters = [card("a", "MID"), card("b", "FWD")]
     fc = {
-        starters[0].player: Forecast(p_play=1.0, mu=46.0, p_start=0.5, p_on=0.5, shape=shape, on_shape=on),
-        starters[1].player: Forecast(p_play=1.0, mu=46.0, p_start=1.0, shape=shape),
+        starters[0].player: Forecast(p_play=1.0, mu=46.0, xd=0.25),
+        starters[1].player: Forecast(p_play=1.0, mu=46.0, xd=0.4),
     }
-    assert lineup_xd(starters, fc) == 0.7  # 0.5 x 0.4 + 0.5 x 0.1, and 1.0 x 0.4
-    fc[starters[1].player] = Forecast(p_play=1.0, mu=46.0, p_start=1.0)
+    assert lineup_xd(starters, fc) == 0.7  # 0.25 + 0.4 is 0.65, shown to one decimal
+    fc[starters[1].player] = Forecast(p_play=1.0, mu=46.0)
     assert lineup_xd(starters, fc) is None

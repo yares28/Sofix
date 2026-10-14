@@ -577,7 +577,8 @@ def test_a_lineup_carries_what_the_app_needs_to_draw_it(payload):
     # asking Sorare about it takes the slug.
     assert lineup["boardId"] == f"So5Leaderboard:{lineup['board']}"
     assert 0 <= lineup["pReturn"] <= 1
-    assert lineup["xd"] is None or lineup["xd"] >= 0  # a number only when every starter's game is worked out
+    assert lineup["xd"] >= 0  # every starter has an xD: his game's when it is worked out, else his own record's
+    assert all("xd" in card for card in lineup["starters"])
     card = lineup["starters"][0]
     assert card["pic"].startswith("https://assets.sorare.com/")
     assert card["fixture"]["opponent"] and card["fixture"]["venue"] in {"H", "A"}

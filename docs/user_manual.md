@@ -79,7 +79,8 @@ The Recap is about the week in the top bar (since 5 Oct 2026; design canvas boar
 - **Your lineups**: every entered lineup, followed by every lineup of the best Sofix plan. Each compares expected team
   xScore with the actual score; missing scores stay blank, and partial plan results say **Actual so far**. The best plan
   has the highest expected essence. A plan row is the cards (larger, the captain marked, the bench after a divider), xScore,
-  the actual score, xD (the starters expected to bring a decisive action; a dash until every starter's game is worked out)
+  the actual score, xD (the starters expected to bring a decisive action: each one's chance from his game when Sofix works it
+  out, else from how often his own starts brought one, so every lineup of every plan has a number)
   and one reward chance. Its round **i** button opens the rest: the chance of XP, essence, cash and a card apart, every
   reward level with the score it took and its chance, the expected range, the managers entered and the format.
   Entered teams and Sofix teams share the same comparison rows. Until the week ends an entered team also shows its

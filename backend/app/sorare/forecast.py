@@ -80,6 +80,8 @@ class PlayerWeek:
     ] = ()  # his score if he starts in each game, worked out from the game itself (scores.py), kickoff order
     shape: Any = None  # the picture of his first game behind that score (`keeper.Outcome`)
     sub: Any = None  # his position's picture of a substitute (`outfield.SubShape`)
+    # how often his own starts brought a decisive action (`publish.own_decisive`): his xD when no game of his is worked out
+    dec: float | None = None
     # dates in `history` of games outside LaLiga: Sofix's chance of starting leaves them out
     cups: frozenset[str] = frozenset()
     banned: bool = False  # red card or five-yellow cycle: he misses his first LaLiga game
@@ -270,7 +272,12 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
     # A double gameweek: he has to miss both to score nothing, and the better of the two games counts.
     if week.games > 1 and p_any > 0:
         mu += 0.56 * sd * both / p_any
+    # Expected decisives, first game: the game's own chance when it is worked out, else his record; a substitute's is his position's.
+    if_start = shape.p_decisive if shape is not None else week.dec
+    if_on = week.sub.p if week.sub is not None else 0.0
+    xd = None if if_start is None else round(p_start * if_start + p_on * if_on, 3)
     return Forecast(
+        xd=xd,
         p_play=round(p_any, 4),
         mu=round(
             min(max(mu, 0.0), 100.0), 2

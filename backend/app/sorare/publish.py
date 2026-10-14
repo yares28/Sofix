@@ -17,7 +17,7 @@ from typing import Any
 import numpy as np
 
 from app.services.scoring import difficulty_label, difficulty_score, label_bucket
-from app.sorare import expected, projection, rules, strategies, xg
+from app.sorare import expected, outfield, projection, rules, strategies, xg
 from app.sorare.forecast import GameStart, PlayerWeek, cup_dates, own_start
 from app.sorare.forecast import forecasts as build_forecasts
 from app.sorare.model import ESSENCE_ORDER, SORARE_POSITION, Card, Competition, Forecast
@@ -278,6 +278,29 @@ def _banned(rows: list[dict[str, Any]], first: dict[str, Any] | None) -> bool:
     return total > 0 and total % 5 == 0
 
 
+DECISIVE_STATS = ("goals", "goal_assist", "assist_penalty_won", "clearance_off_line", "last_man_tackle", "penalty_save")
+# A start with no record behind it: an outfielder's is outfield.PRIOR_DECISIVE; a keeper's is the typical game of the fitted keeper
+# model (artifacts/keeper_score.json: a 23% clean sheet, plus a 3.5% decisive save without one).
+PRIOR_KEEPER_DECISIVE = 0.26
+
+
+def own_decisive(past: list[dict[str, Any]], pos: str | None) -> float:
+    """How often his starts brought a decisive action (a keeper's clean sheet counts, as in mission_pool), pulled towards the norm
+    while he has few. Only starts whose detailed score was kept can tell."""
+    hits = starts = 0
+    for h in past:
+        if not (h.get("played") and h.get("started")) or h.get("stats") is None:
+            continue
+        raw = h["stats"]
+        stats = {s["stat"]: s.get("statValue") for s in raw} if isinstance(raw, list) else raw
+        starts += 1
+        hits += any(float(stats.get(s) or 0) > 0 for s in DECISIVE_STATS) or (
+            pos == "GK" and float(stats.get("clean_sheet_60") or 0) > 0
+        )
+    prior = PRIOR_KEEPER_DECISIVE if pos == "GK" else outfield.PRIOR_DECISIVE
+    return (hits + outfield.PRIOR_GAMES * prior) / (starts + outfield.PRIOR_GAMES)
+
+
 def player_weeks(
     rows: list[dict[str, Any]],
     games: dict[str, list[dict[str, Any]]],
@@ -369,6 +392,7 @@ def player_weeks(
             game_scores=tuple(o.start for o in made.outcomes),
             shape=made.outcomes[0] if made.outcomes else None,
             sub=made.sub,
+            dec=own_decisive(past, pos),
         )
     return weeks
 
@@ -555,6 +579,7 @@ def card_payload(
         "mu": round(forecast.mu, 1),
         "x": round(forecast.p_play * forecast.mu, 1),
         "by": forecast.score_source,
+        **({"xd": round(forecast.xd, 2)} if forecast.xd is not None else {}),
         **({"sorare": round(forecast.sorare, 1)} if forecast.sorare is not None else {}),
         **({"start": forecast.start} if forecast.start is not None else {}),
         **({"on": forecast.on} if forecast.on is not None else {}),
@@ -578,18 +603,10 @@ def card_payload(
 
 
 def lineup_xd(starters: list[Card], forecasts: dict[str, Forecast]) -> float | None:
-    """The starters expected to bring a decisive action, counted across the lineup: each one's chance of one if he starts and if he
-    comes on, weighed by the chance of each. None unless every starter's game has been worked out: a sum over some of them would
-    read as a low number, not a missing one."""
-    total = 0.0
-    for card in starters:
-        forecast = forecasts[card.player]
-        if forecast.shape is None:
-            return None
-        total += (forecast.p_start or 0.0) * forecast.shape.p_decisive
-        if forecast.on_shape is not None:
-            total += (forecast.p_on or 0.0) * forecast.on_shape.p_decisive
-    return round(total, 1) if starters else None
+    """The starters expected to bring a decisive action, counted across the lineup: each one's own xD (`Forecast.xd`). None when a
+    starter has none: a sum over some of them would read as a low number, not a missing one."""
+    each = [forecasts[card.player].xd for card in starters]
+    return round(sum(x for x in each if x is not None), 1) if each and None not in each else None
 
 
 def lineup_payload(
@@ -898,6 +915,7 @@ def gameweek_payload(
             "p": round(forecasts.get(card.player, Forecast(0, 0)).p_play, 3),
             "x": round(_expected(forecasts.get(card.player)), 1),
             "by": forecasts.get(card.player, Forecast(0, 0)).score_source,
+            **({"xd": round(xd, 2)} if (xd := forecasts.get(card.player, Forecast(0, 0)).xd) is not None else {}),
             **(
                 {"sorare": round(number, 1)}
                 if (number := forecasts.get(card.player, Forecast(0, 0)).sorare) is not None
@@ -1405,7 +1423,7 @@ def lens_plans(
 STRATEGY_PREFIX = "strategy_plans:"
 """The strategy lab's lineups for the week being planned (`strategy_plans:<slug>`), written each run until the lock."""
 KEEP_LINEUP = (
-    "comp", "key", "board", "group", "rarity", "minInSeason", "captainBonus", "clubBonus", "averageBonus", "x", "lo", "hi", "pReturn", "tiers",
+    "comp", "key", "board", "group", "rarity", "minInSeason", "captainBonus", "clubBonus", "averageBonus", "x", "lo", "hi", "xd", "pReturn", "tiers",
 )  # fmt: skip
 KEEP_CARD = (
     "slug",
@@ -1423,6 +1441,7 @@ KEEP_CARD = (
     "mu",
     "p",
     "x",
+    "xd",
 )
 
 

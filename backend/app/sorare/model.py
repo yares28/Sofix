@@ -113,6 +113,8 @@ class Forecast:
     links: tuple[tuple[str, str], ...] = ()
     # The picture of his first game, for the overlay only (`keeper.Outcome`): the chance of a decisive action, the score with and without one,
     # where he lands and what moves the number. `on_shape` is the same for a game he comes on in.
+    # Expected decisive actions in his first game: the chance of one if he starts and if he comes on, each by its chance. None with no record at all.
+    xd: float | None = None
     shape: Any = None
     on_shape: Any = None
     # Whose number `mu` stands on: "sofix" (the game model, scores.py), "sorare" (its projection) or "form" (his last five), and

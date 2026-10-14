@@ -4,7 +4,7 @@ import { scaleBucket } from "../lib/grid";
 import { gameweekMatches } from "../lib/matches";
 import type { Sorare } from "../lib/play";
 import type { ApiResponse } from "../lib/types";
-import { seasonWeeks, weekOn } from "../lib/weeks";
+import { currentWeek, seasonWeeks, weekOn } from "../lib/weeks";
 import { E2E_PORT } from "./constants";
 import { grid, MOCK, offline, openingMatchday, resetBackend, servedGrid, sorare, teamRows } from "./helpers";
 
@@ -716,14 +716,16 @@ test("Control says how often the board refreshes from the real schedule, and the
   await expect(facts).not.toContainText("2×");
 });
 
-test("Season's Fixtures lists every round, and its round numbers jump to each one", async ({ page }) => {
+test("Season's Fixtures shows the round of the week you're in, and its round numbers switch to any other", async ({ page, request }) => {
+  const { weeks } = await servedWeeks(request);
+  const opening = currentWeek(weeks)?.md ?? openingMatchday;
   await page.goto("/season");
-  await expect(page.getByRole("heading", { level: 1, name: "All fixtures" })).toBeVisible();
-  await expect(page.locator(".season-round")).toHaveCount(grid.matchdays.length);
-  await expect(page.locator(`#round-${openingMatchday}`)).toBeInViewport(); // it opens on the round in play
+  await expect(page.getByRole("heading", { level: 1, name: "Fixtures" })).toBeVisible();
+  await expect(page.locator(".season-round")).toHaveCount(1);
+  await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${opening} fixtures` })).toBeVisible();
   await expect(page.locator(".lens").getByRole("link", { name: "Fixtures" })).toHaveAttribute("aria-current", "page");
   const last = grid.matchdays[grid.matchdays.length - 1]!.number;
   await page.getByRole("navigation", { name: "Rounds" }).getByRole("link", { name: String(last), exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`#round-${last}$`));
-  await expect(page.locator(`#round-${last}`)).toBeInViewport();
+  await expect(page).toHaveURL(new RegExp(`md=${last}$`));
+  await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${last} fixtures` })).toBeVisible();
 });

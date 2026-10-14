@@ -1,22 +1,26 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { connection } from "next/server";
 import FixturesList from "../../../components/FixturesList";
-import ScrollToRound from "../../../components/ScrollToRound";
 import SiteNav from "../../../components/SiteNav";
 import { loadGrid } from "../../../lib/api";
 import { openingColumn } from "../../../lib/grid";
 import { loadSorare } from "../../../lib/playData";
 import { loadSystem } from "../../../lib/system";
 import { weekContext } from "../../../lib/weeks";
+import type { SearchParams } from "../board-route";
 
 export const metadata: Metadata = { title: "Season fixtures · Sofix" };
 
-/** Every round of the season, fixtures and results by day, with the round in play first in reach (plans/restructure.md, R5). */
-export default async function Season() {
+/** The fixtures of the round in the week the top bar holds (the week you're in by default); the chips step through every other round. */
+export default async function Season({ searchParams }: { searchParams: SearchParams }) {
   await connection();
-  const [{ grid, meta, error }, system, sorare] = await Promise.all([loadGrid(), loadSystem(), loadSorare()]);
-  const week = weekContext(grid, sorare, new Date(), {});
-  const opening = grid ? openingColumn(grid) : 0;
+  const [{ grid, meta, error }, params, system, sorare] = await Promise.all([loadGrid(), searchParams, loadSystem(), loadSorare()]);
+  const one = (key: string) => (typeof params[key] === "string" ? (params[key] as string) : null);
+  const md = Number(one("md")) || null;
+  const week = weekContext(grid, sorare, new Date(), { w: one("w"), md });
+  const picked = grid ? grid.matchdays.findIndex((round) => round.number === week.current?.md) : -1;
+  const shown = picked >= 0 ? picked : grid ? openingColumn(grid) : 0; // a week with no LaLiga round opens on the round in play
   return (
     <>
       <SiteNav meta={meta} system={system} week={week} />
@@ -24,25 +28,20 @@ export default async function Season() {
         <section className="hero">
           <div>
             <div className="eyebrow">LaLiga · Season {grid?.season ?? ""}</div>
-            <h1>All fixtures</h1>
+            <h1>Fixtures</h1>
           </div>
         </section>
         {grid ? (
           <>
             <nav className="season-jump" aria-label="Rounds">
-              {grid.matchdays.map((md, index) => (
-                <a key={md.number} href={`#round-${md.number}`} aria-current={index === opening ? "true" : undefined} className={md.finished ? "done" : undefined}>
-                  {md.number}
-                </a>
+              {grid.matchdays.map((round, index) => (
+                <Link key={round.number} href={`/season?md=${round.number}`} aria-current={index === shown ? "true" : undefined} className={round.finished ? "done" : undefined}>
+                  {round.number}
+                </Link>
               ))}
             </nav>
-            {grid.matchdays[opening] ? <ScrollToRound id={`round-${grid.matchdays[opening].number}`} /> : null}
-            <div className="season-rounds">
-              {grid.matchdays.map((md, index) => (
-                <div key={md.number} id={`round-${md.number}`} className="season-round">
-                  <FixturesList grid={grid} column={index} />
-                </div>
-              ))}
+            <div className="season-round">
+              <FixturesList grid={grid} column={shown} />
             </div>
           </>
         ) : (

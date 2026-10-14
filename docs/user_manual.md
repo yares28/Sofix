@@ -129,8 +129,8 @@ the difficulty overview and the current-table cutoff together.
 
 ## 4. Difficulty
 
-Season → Fixtures (`/season`) lists every round of the season, fixtures and results by day; a strip of round numbers
-jumps to any round, and the page opens on the round in play. Difficulty colours use Sorare's score bands: cyan for the
+Season → Fixtures (`/season`) shows the fixtures and results of the round in the week picked in the top bar (the week
+you're in by default); a strip of round numbers switches to any other round. Difficulty colours use Sorare's score bands: cyan for the
 easiest games, then green, yellow, orange and red for the hardest.
 
 ![Difficulty overview, rankings and grid](images/difficulty.png)

@@ -18,6 +18,7 @@ import json
 import logging
 import os
 import sys
+from typing import Any
 from urllib.parse import urlsplit
 
 import httpx
@@ -68,7 +69,9 @@ def move_to(live: int, sent: list[int | None], stamps: list[float | None], limit
     return min(room, key=lambda i: sent[i] or 0) if room else None
 
 
-def sent_bytes(urls: list[str], key: str) -> tuple[list[int | None], str | None]:
+def sent_bytes(
+    urls: list[str], key: str, transport: httpx.BaseTransport | None = None
+) -> tuple[list[int | None], str | None]:
     """Data each project sent this month, from Neon's API (matched by the endpoint in its URL). None where it is unknown:
     a failing API only means no move this run, never a failed job. An organization key sees the projects directly; a
     personal key sees them through its organizations. The note says why the usage is missing, for neon_status."""
@@ -76,13 +79,16 @@ def sent_bytes(urls: list[str], key: str) -> tuple[list[int | None], str | None]
     out: list[int | None] = [None] * len(urls)
     note: str | None = None
     try:
-        with httpx.Client(base_url=NEON_API, headers={"Authorization": f"Bearer {key}"}, timeout=20) as api:
-            projects = api.get("/projects").raise_for_status().json()["projects"]
-            if not projects:
-                orgs = api.get("/users/me/organizations")
-                for org in orgs.json().get("organizations", []) if orgs.is_success else []:
-                    found = api.get("/projects", params={"org_id": org["id"]}).raise_for_status().json()["projects"]
-                    projects += found
+        with httpx.Client(
+            base_url=NEON_API, headers={"Authorization": f"Bearer {key}"}, timeout=20, transport=transport
+        ) as api:
+            # A personal key must name the organization (Neon answers 400 without it, 14 Oct 2026); an organization
+            # key cannot list the user's organizations and lists its projects directly.
+            orgs = api.get("/users/me/organizations")
+            ids = [org["id"] for org in orgs.json().get("organizations", [])] if orgs.is_success else []
+            projects: list[dict[str, Any]] = []
+            for params in [{"org_id": org_id} for org_id in ids] or [{}]:
+                projects += api.get("/projects", params=params).raise_for_status().json()["projects"]
             for project in projects:
                 endpoints = api.get(f"/projects/{project['id']}/endpoints").raise_for_status().json()["endpoints"]
                 for endpoint in endpoints:

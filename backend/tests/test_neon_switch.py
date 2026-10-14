@@ -1,4 +1,6 @@
-from app.jobs.neon_switch import LIMIT_BYTES, endpoint_id, move_to, pick, table_order
+import httpx
+
+from app.jobs.neon_switch import LIMIT_BYTES, endpoint_id, move_to, pick, sent_bytes, table_order
 
 GB = 1024**3
 
@@ -30,3 +32,32 @@ def test_tables_load_parents_first() -> None:
     for child, parent in refs:
         assert order.index(parent) < order.index(child)
     assert sorted(order) == sorted(["predictions", "fixtures", "teams", "stadiums", "competitions", "read_models"])
+
+
+def fake_neon(personal: bool) -> httpx.MockTransport:
+    """Neon's API as seen with a personal key (must name the organization) or an organization key."""
+
+    def answer(request: httpx.Request) -> httpx.Response:
+        path, org = request.url.path.removeprefix("/api/v2"), request.url.params.get("org_id")
+        if path == "/users/me/organizations":
+            return httpx.Response(200, json={"organizations": [{"id": "org-1"}]}) if personal else httpx.Response(403)
+        if path == "/projects":
+            if personal and org != "org-1":
+                return httpx.Response(400, json={"message": "org_id is required"})
+            return httpx.Response(200, json={"projects": [{"id": "p-b", "name": "Sofix B"}]})
+        if path == "/projects/p-b/endpoints":
+            return httpx.Response(200, json={"endpoints": [{"id": "ep-morning-paper-baxx0rh5"}]})
+        if path == "/projects/p-b":
+            return httpx.Response(200, json={"project": {"data_transfer_bytes": 3 * GB}})
+        return httpx.Response(404)
+
+    return httpx.MockTransport(answer)
+
+
+def test_usage_is_read_with_a_personal_or_an_organization_key() -> None:
+    urls = [
+        "postgresql://u:p@ep-dead-1-pooler.c-7.x.neon.tech/db",
+        "postgresql://u:p@ep-morning-paper-baxx0rh5-pooler.c-8.x.neon.tech/db",
+    ]
+    for personal in (True, False):
+        assert sent_bytes(urls, "key", transport=fake_neon(personal)) == ([None, 3 * GB], None)

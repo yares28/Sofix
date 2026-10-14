@@ -98,6 +98,12 @@ export default function PlayerView({
                     <small>chance he starts</small>
                   </div>
                 ) : null}
+                {typeof planned?.xd === "number" ? (
+                  <div title="His expected decisive actions in this game: goals, assists and the other decisive actions">
+                    <span className="pd-s">{planned.xd.toFixed(2)}</span>
+                    <small>xD, expected decisives</small>
+                  </div>
+                ) : null}
               </>
             ) : last10 !== null ? (
               <div>

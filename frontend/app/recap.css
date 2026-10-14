@@ -107,6 +107,7 @@ a.rc-tm:hover > span:last-child { text-decoration: underline; }
 .rc-team li:not(.bench) + li.bench::before { content: ""; position: absolute; left: -13px; top: 0; bottom: 16px; width: 1px; background: var(--line); }
 .rc-team .rc-hex.sm { margin-top: -15px; width: 42px; height: 36px; font-size: 15px; }
 .rc-team .rc-art { border-radius: 8px; }
+.rc-cxd { margin-top: 3px; font-size: 11px; line-height: 1.2; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .rc-cap { position: absolute; top: -7px; right: -7px; z-index: 2; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: var(--on-ink); font-size: 11px; font-weight: 700; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--surface); }
 .rc-lu > .rc-score { grid-area: score; }
 .rc-score b { display: block; font-size: 52px; line-height: .9; font-weight: 700; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }

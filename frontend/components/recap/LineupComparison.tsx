@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { scoreColour } from "../../lib/cards";
 import CardArt from "../cards/CardArt";
 
-export type ComparisonCard = { slug: string; name: string; picture: string | null; rarity: string | null; captain: boolean; x: number | null; bench?: boolean };
+export type ComparisonCard = { slug: string; name: string; picture: string | null; rarity: string | null; captain: boolean; x: number | null; bench?: boolean; xd?: number | null };
 
 /** Shared by entered teams and Sofix teams so both sides of the comparison read alike. */
 export function ComparisonCards({ cards }: { cards: ComparisonCard[] }) {
@@ -15,6 +15,7 @@ export function ComparisonCards({ cards }: { cards: ComparisonCard[] }) {
         <span className={`rc-art ${card.rarity ?? "limited"}`}><CardArt src={card.picture} name={card.name} /></span>
         {card.captain ? <span className="rc-cap" title="Captain">C</span> : null}
         <span className="rc-hex sm" style={style} title="Player xScore">{card.x === null ? "-" : Math.round(card.x)}</span>
+        {typeof card.xd === "number" ? <span className="rc-cxd" title="His expected decisive actions">{card.xd.toFixed(2)} xD</span> : null}
         <span className="visually-hidden">{card.name}{card.bench ? ", bench" : ""}</span>
       </li>;
     })}

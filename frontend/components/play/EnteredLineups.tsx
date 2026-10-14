@@ -146,7 +146,8 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
             const players = new Map(forecast?.gameweek.slug === week.slug ? forecast.playing.players.map(p => [p.player, p]) : []);
             const size = lineup.scoring?.slots.filter(s => !s.sub).length ?? options.find(l => l.board === lineup.board)?.starters.length;
             const cards = [...lineup.cards].sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
-              .map((c, i) => ({ ...c, x: known.get(c.slug)?.x ?? (c.player ? players.get(c.player)?.x : null) ?? null, bench: size !== undefined && i >= size }));
+              .map((c, i) => ({ ...c, x: known.get(c.slug)?.x ?? (c.player ? players.get(c.player)?.x : null) ?? null,
+                xd: known.get(c.slug)?.xd ?? (c.player ? players.get(c.player)?.xd : null) ?? null, bench: size !== undefined && i >= size }));
             if (variant === "recap") {
               return <article className="rc-lu pl-entered-lineup" key={lineup.id}>
                 <div className="rc-lu-c"><b>{lineup.competition}</b><span>{lineup.name ?? "Untitled lineup"}</span><span>{lineup.draft ? "Draft" : "Entered"} · {cards.length} cards</span></div>
@@ -233,6 +234,16 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
                 {result && result.rank !== null && !live ? (
                   <span className={`pl-dial ${won ? "won" : "low"}`} style={{ ["--p" as string]: won ? "100%" : "0%" }} aria-hidden="true">
                     <span className="pl-kv"><b>{won ? "✓" : "–"}</b></span>
+                  </span>
+                ) : expected.chance !== undefined && live ? (
+                  // the same dial as a lineup of the Sofix plan, until the week is over and the result says it
+                  <span
+                    className={`pl-dial ${expected.chance >= 0.5 ? "" : expected.chance >= 0.2 ? "mid" : "low"}`.trim()}
+                    style={{ ["--p" as string]: `${Math.round(expected.chance * 100)}%` }}
+                    role="img"
+                    aria-label={`${chanceLabel(expected.chance)} chance of a reward${expected.estimated ? ", estimated" : ""}`}
+                  >
+                    <span className="pl-kv"><b>{chanceLabel(expected.chance)}</b></span>
                   </span>
                 ) : null}
                 <span className="pl-lu-foot">

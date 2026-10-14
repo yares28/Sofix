@@ -80,12 +80,13 @@ The Recap is about the week in the top bar (since 5 Oct 2026; design canvas boar
   xScore with the actual score; missing scores stay blank, and partial plan results say **Actual so far**. The best plan
   has the highest expected essence. A plan row is the cards (larger, the captain marked, the bench after a divider), xScore,
   the actual score, xD (the starters expected to bring a decisive action: each one's chance from his game when Sofix works it
-  out, else from how often his own starts brought one, so every lineup of every plan has a number)
+  out, else his real record: how often his own read starts brought one, nothing added; a player with no read start has none and the
+  lineup then shows a dash). Each card shows its own xD under its xScore, and a player's page shows his next to his start chance
   and one reward chance. Its round **i** button opens the rest: the chance of XP, essence, cash and a card apart, every
   reward level with the score it took and its chance, the expected range, the managers entered and the format.
   Entered teams and Sofix teams share the same comparison rows. Until the week ends an entered team also shows its
   reward chance: the plan's own when it is a plan lineup, else an estimate of reaching the score the lowest paid level
-  took (none for a Room). Older saved teams use their retained appearance
+  took (none for a Room); Play's entered rows show the same chance as a dial. Older saved teams use their retained appearance
   order with that GW's saved forecasts and rules for an estimate. Reviewing/live player results count toward the
   plan's **Actual so far**; pending games stay unknown until scored or confirmed DNP.
 - **Missions**: today's open missions and the three cards of yours that fit each best, with the chance (the Missions page's numbers).

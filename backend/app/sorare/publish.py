@@ -17,7 +17,7 @@ from typing import Any
 import numpy as np
 
 from app.services.scoring import difficulty_label, difficulty_score, label_bucket
-from app.sorare import expected, outfield, projection, rules, strategies, xg
+from app.sorare import expected, projection, rules, strategies, xg
 from app.sorare.forecast import GameStart, PlayerWeek, cup_dates, own_start
 from app.sorare.forecast import forecasts as build_forecasts
 from app.sorare.model import ESSENCE_ORDER, SORARE_POSITION, Card, Competition, Forecast
@@ -279,14 +279,11 @@ def _banned(rows: list[dict[str, Any]], first: dict[str, Any] | None) -> bool:
 
 
 DECISIVE_STATS = ("goals", "goal_assist", "assist_penalty_won", "clearance_off_line", "last_man_tackle", "penalty_save")
-# A start with no record behind it: an outfielder's is outfield.PRIOR_DECISIVE; a keeper's is the typical game of the fitted keeper
-# model (artifacts/keeper_score.json: a 23% clean sheet, plus a 3.5% decisive save without one).
-PRIOR_KEEPER_DECISIVE = 0.26
 
 
-def own_decisive(past: list[dict[str, Any]], pos: str | None) -> float:
-    """How often his starts brought a decisive action (a keeper's clean sheet counts, as in mission_pool), pulled towards the norm
-    while he has few. Only starts whose detailed score was kept can tell."""
+def own_decisive(past: list[dict[str, Any]], pos: str | None) -> float | None:
+    """How often his starts brought a decisive action (a keeper's clean sheet counts, as in mission_pool): his real record, with
+    nothing added. None when no start of his has its detailed score: no number is better than a made-up one (the owner, 14 Oct 2026)."""
     hits = starts = 0
     for h in past:
         if not (h.get("played") and h.get("started")) or h.get("stats") is None:
@@ -297,8 +294,7 @@ def own_decisive(past: list[dict[str, Any]], pos: str | None) -> float:
         hits += any(float(stats.get(s) or 0) > 0 for s in DECISIVE_STATS) or (
             pos == "GK" and float(stats.get("clean_sheet_60") or 0) > 0
         )
-    prior = PRIOR_KEEPER_DECISIVE if pos == "GK" else outfield.PRIOR_DECISIVE
-    return (hits + outfield.PRIOR_GAMES * prior) / (starts + outfield.PRIOR_GAMES)
+    return hits / starts if starts else None
 
 
 def player_weeks(

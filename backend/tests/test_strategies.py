@@ -146,9 +146,9 @@ def test_a_lineups_xd_counts_each_starters_chance_of_a_decisive_action_or_is_mis
         {**start},  # no detailed score kept: it cannot tell
         {"played": True, "started": False, "stats": [{"stat": "goals", "statValue": 2}]},
     ]
-    assert own_decisive(past, "FWD") == (1 + 8 * 0.12) / 10
-    assert own_decisive(past, "GK") == (2 + 8 * 0.26) / 10  # a keeper's clean sheet counts
-    assert own_decisive([], "MID") == 0.12
+    assert own_decisive(past, "FWD") == 0.5  # his real record: one of his two read starts, nothing added
+    assert own_decisive(past, "GK") == 1.0  # a keeper's clean sheet counts
+    assert own_decisive([], "MID") is None  # no start read: no number, never a made-up one
 
     starters = [card("a", "MID"), card("b", "FWD")]
     fc = {

@@ -122,3 +122,18 @@ def test_a_whole_plan_can_be_picked_a_strategys_way_and_still_be_priced_on_the_r
     high = {p: replace(f, mu=95.0) for p, f in real.items()}
     lifted = plans([comp], cards, real, count=1, runs=2, draws=400, view=high)[0].lineups[0]
     assert lifted.expected < 400  # five cards at 50 with bonuses, not at 95
+
+
+def test_a_lineups_xd_counts_each_starters_chance_of_a_decisive_action_or_is_missing_when_one_game_is_not_worked_out():
+    from app.sorare.publish import lineup_xd
+
+    shape = Outcome(0.3, 0.4, 70.0, 30.0, 46.0, 25.0, 80.0)
+    on = replace(shape, p_decisive=0.1)
+    starters = [card("a", "MID"), card("b", "FWD")]
+    fc = {
+        starters[0].player: Forecast(p_play=1.0, mu=46.0, p_start=0.5, p_on=0.5, shape=shape, on_shape=on),
+        starters[1].player: Forecast(p_play=1.0, mu=46.0, p_start=1.0, shape=shape),
+    }
+    assert lineup_xd(starters, fc) == 0.7  # 0.5 x 0.4 + 0.5 x 0.1, and 1.0 x 0.4
+    fc[starters[1].player] = Forecast(p_play=1.0, mu=46.0, p_start=1.0)
+    assert lineup_xd(starters, fc) is None

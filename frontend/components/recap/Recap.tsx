@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { lineupActual, type ActualScores } from "../../lib/lineupScores";
-import type { CSSProperties, ReactNode } from "react";
+import { useId, type CSSProperties, type ReactNode } from "react";
 import { scoreColour } from "../../lib/cards";
 import type { MissionPlan } from "../../lib/missions";
-import { SOURCE_SHORT, SOURCE_NAME } from "../../lib/play";
+import { SOURCE_SHORT, SOURCE_NAME, cashLabel, chanceLabel, essenceLabel, rewardSplit, type Tier } from "../../lib/play";
 import type { AfterRow, BestCard, BoardMatch, NewsItem, PlanRow } from "../../lib/recap";
 import type { GridTeam } from "../../lib/types";
 import { formatDay, formatShortKickoff } from "../../lib/grid";
@@ -190,11 +190,74 @@ export function TableAfter({ rows, round, href }: { rows: AfterRow[]; round: num
 }
 
 // --------------------------------------------------------------------------------------------- your lineups
-export function Ring({ value }: { value: number }) {
+const KIND_WORD = { xp: "XP", essence: "Essence", cash: "Cash", card: "Card" } as const;
+
+/** What one reward level hands out, in the owner's words: "$5", "250 essence", "Card", "100 XP". */
+function tierPays(tier: Tier): string {
+  const parts = [
+    tier.cash ? cashLabel(tier.cash) : null,
+    tier.essence ? `${essenceLabel(tier.essence)} essence` : null,
+    tier.card ? "Card" : null,
+    tier.xp ? `${tier.xp} XP` : null,
+  ].filter(Boolean);
+  const where = tier.label ?? (tier.card && tier.hi ? `top ${tier.hi.toLocaleString("en-GB")}` : null);
+  return [parts.join(" + ") || "No reward", where].filter(Boolean).join(", ");
+}
+
+/** Everything behind the row's one reward chance: each kind of reward, each level with the score it took, and the lineup's fine print. */
+function RewardInfo({ row }: { row: PlanRow }) {
+  const { lineup } = row;
+  const id = useId();
+  const order = ["xp", "essence", "cash", "card"] as const;
+  const split = rewardSplit(lineup);
+  const kinds = split
+    ? order.map((kind) => ({ label: KIND_WORD[kind], p: split.find((one) => one.kind === kind)?.p ?? 0 }))
+    : [{ label: "Cash or essence", p: row.cashOrEssence }, { label: "Card", p: row.other }];
   return (
-    <span className="rc-ring" style={{ background: `conic-gradient(var(--ink) 0 ${value * 100}%, var(--track) 0)` }}>
-      <b>{pct(value)}</b>
-    </span>
+    <>
+      <button type="button" className="rc-info-btn" popoverTarget={id} aria-label={`All reward chances, ${lineup.comp}`}>
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+          <circle cx="9" cy="5" r="1.2" fill="currentColor" />
+          <path d="M9 8.2v5.2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      </button>
+      <div id={id} popover="auto" className="rc-info" role="group" aria-label={`Reward chances, ${lineup.comp}`}>
+        <dl className="rc-kinds">
+          {kinds.map((kind) => (
+            <div key={kind.label} className={kind.p ? undefined : "none"}>
+              <dt>{kind.label}</dt>
+              <dd>{chanceLabel(kind.p)}</dd>
+            </div>
+          ))}
+        </dl>
+        {lineup.tiers.length ? (
+          <table>
+            <thead>
+              <tr><th scope="col">Reward</th><th scope="col">Needs</th><th scope="col">Chance</th></tr>
+            </thead>
+            <tbody>
+              {[...lineup.tiers].reverse().map((tier, i) => (
+                <tr key={i} className={tier.p ? undefined : "none"}>
+                  <th scope="row">{tierPays(tier)}</th>
+                  <td>{tier.need ?? "–"}</td>
+                  <td>{chanceLabel(tier.p)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : null}
+        <p>
+          Expected range {Math.round(lineup.lo)} to {Math.round(lineup.hi)}
+          <br />
+          {lineup.entries.toLocaleString("en-GB")} managers ·{" "}
+          <span className="rc-mode">
+            {lineup.group !== "Room" ? <SeasonIcon inSeason={lineup.group === "In-season"} /> : null}
+            {lineup.rarity === "limited" ? "Limited" : lineup.rarity === "rare" ? "Rare" : lineup.rarity}
+            {lineup.group === "In-season" ? ", in season" : `, ${lineup.size} cards`}
+          </span>
+        </p>
+      </div>
+    </>
   );
 }
 
@@ -205,39 +268,18 @@ export function LineupRow({ row, scores = {} }: { row: PlanRow; scores?: ActualS
     <div className="rc-lu">
       <div className="rc-lu-c">
         <b>{lineup.comp}</b>
-        <span className="rc-mode">
-          {lineup.group !== "Room" ? <SeasonIcon inSeason={lineup.group === "In-season"} /> : null}
-          {lineup.rarity === "limited" ? "Limited" : lineup.rarity === "rare" ? "Rare" : lineup.rarity}
-          {lineup.group === "In-season" ? ", in season" : `, ${lineup.size} cards`}
-        </span>
-        <span>{lineup.entries.toLocaleString("en-GB")} managers</span>
         {lineup.expected ? <span className="rc-tag">Expected</span> : null}
       </div>
       <ComparisonCards cards={[...lineup.starters, ...lineup.subs].map((c, i) => ({ ...c, picture: c.pic, captain: !!c.captain, bench: i >= lineup.starters.length }))} />
       <div className="rc-score">
-        <ComparisonScores expected={lineup.x} actual={actual.value} actualLabel={actual.value !== null && !actual.complete ? "Actual so far" : "Actual"} />
-        <span>Expected range {Math.round(lineup.lo)} to {Math.round(lineup.hi)}</span>
-        {lineup.need !== null ? <span>needs <em>{Math.round(lineup.need)}</em> for a reward</span> : null}
+        <ComparisonScores expected={lineup.x} actual={actual.value} actualLabel={actual.value !== null && !actual.complete ? "Actual so far" : "Actual"} xd={lineup.xd ?? null} />
       </div>
       <div className="rc-rew">
-        <Ring value={row.cashOrEssence} />
-        <span>
-          <b>Cash or essence</b>
-          <br />
-          Other rewards <b>{pct(row.other)}</b>
-          {row.cash >= 0.01 || row.essence ? (
-            <>
-              <br />
-              Pays {row.cash >= 0.01 ? <b>${row.cash.toFixed(2)}</b> : null}
-              {row.cash >= 0.01 && row.essence ? " and " : null}
-              {row.essence ? (
-                <>
-                  <b>{Math.round(row.essence)}</b> essence
-                </>
-              ) : null}
-            </>
-          ) : null}
-        </span>
+        <div className="rc-any" title="The chance of any cash, essence or card">
+          <b>{chanceLabel(lineup.pReturn)}</b>
+          <span>Reward</span>
+        </div>
+        <RewardInfo row={row} />
       </div>
     </div>
   );

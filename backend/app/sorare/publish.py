@@ -577,6 +577,21 @@ def card_payload(
     return out
 
 
+def lineup_xd(starters: list[Card], forecasts: dict[str, Forecast]) -> float | None:
+    """The starters expected to bring a decisive action, counted across the lineup: each one's chance of one if he starts and if he
+    comes on, weighed by the chance of each. None unless every starter's game has been worked out: a sum over some of them would
+    read as a low number, not a missing one."""
+    total = 0.0
+    for card in starters:
+        forecast = forecasts[card.player]
+        if forecast.shape is None:
+            return None
+        total += (forecast.p_start or 0.0) * forecast.shape.p_decisive
+        if forecast.on_shape is not None:
+            total += (forecast.p_on or 0.0) * forecast.on_shape.p_decisive
+    return round(total, 1) if starters else None
+
+
 def lineup_payload(
     lineup: Lineup,
     forecasts: dict[str, Forecast],
@@ -647,6 +662,7 @@ def lineup_payload(
         "x": round(lineup.expected),
         "lo": round(lineup.low),
         "hi": round(lineup.high),
+        "xd": lineup_xd(lineup.starters, forecasts),
         "pReturn": round(lineup.p_return, 4),
         "pCash": round(lineup.p_cash, 4),
         "pEss": round(lineup.p_essence, 4),

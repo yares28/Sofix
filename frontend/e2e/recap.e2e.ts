@@ -80,6 +80,18 @@ test("Recap and Play keep the current GW, compare all entered and best-plan line
   await expect(plan.locator(".rc-lu")).toHaveCount(best.lineups.length);
   await expect(plan).toContainText("500 expected essence");
   await expect(plan.locator(".rc-score-pair").first()).toContainText("Actual0");
+  // A row is the cards, three scores and one reward chance; the rest opens from its info button and closes on Escape.
+  await expect(plan.locator(".rc-score-pair .rc-xd").first()).toContainText("xD");
+  await expect(plan.locator(".rc-any b").first()).toHaveText(/%$/);
+  const panel = plan.locator(".rc-info").first();
+  await expect(panel).toBeHidden();
+  await plan.getByRole("button", { name: /^All reward chances/ }).first().click();
+  await expect(panel).toBeVisible();
+  await expect(panel).toContainText("Expected range");
+  await expect(panel).toContainText("managers");
+  await expect(panel.locator("tbody tr")).toHaveCount(best.lineups[0]!.tiers.length);
+  await page.keyboard.press("Escape");
+  await expect(panel).toBeHidden();
   await expect(plan.locator(".rc-rest")).toHaveCount(0);
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });

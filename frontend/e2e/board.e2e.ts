@@ -556,7 +556,7 @@ test("home (Recap): the gameweek, the best cards, the round as a scoreboard, the
   expect(await best.count()).toBeGreaterThan(0);
   expect(await best.count()).toBeLessThanOrEqual(10);
   await expect(best.first().locator(".rc-hex")).toHaveText(/^\d+$/);
-  await expect(page.locator(".rc-lu").first().locator(".rc-ring")).toContainText("%");
+  await expect(page.locator(".rc-lu").first().locator(".rc-any b")).toContainText("%");
   const scan = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(scan.violations.map((v) => `${v.id}: ${v.nodes.slice(0, 4).map((n) => n.target.join(" ")).join("; ")}`)).toEqual([]);
 

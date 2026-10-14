@@ -117,6 +117,8 @@ export type Lineup = {
   x: number;
   lo: number;
   hi: number;
+  /** The starters expected to bring a decisive action; null when a starter's game is not worked out, absent on older payloads. */
+  xd?: number | null;
   pReturn: number;
   /** The chance of ending on a level that pays cash, essence, or XP only; the essence it pays (absent on older payloads). */
   pCash?: number;

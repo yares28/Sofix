@@ -78,7 +78,10 @@ The Recap is about the week in the top bar (since 5 Oct 2026; design canvas boar
 - **Table after round N**: the table once the round is played as expected: points now, points after and places gained or lost.
 - **Your lineups**: every entered lineup, followed by every lineup of the best Sofix plan. Each compares expected team
   xScore with the actual score; missing scores stay blank, and partial plan results say **Actual so far**. The best plan
-  has the highest expected essence. Cards, captain, expected range and reward chances remain visible.
+  has the highest expected essence. A plan row is the cards (larger, the captain marked, the bench after a divider), xScore,
+  the actual score, xD (the starters expected to bring a decisive action; a dash until every starter's game is worked out)
+  and one reward chance. Its round **i** button opens the rest: the chance of XP, essence, cash and a card apart, every
+  reward level with the score it took and its chance, the expected range, the managers entered and the format.
   Entered teams and Sofix teams share the same comparison rows. Older saved teams use their retained appearance
   order with that GW's saved forecasts and rules for an estimate. Reviewing/live player results count toward the
   plan's **Actual so far**; pending games stay unknown until scored or confirmed DNP.

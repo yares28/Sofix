@@ -11,7 +11,8 @@
 .nav-meta { margin-left: auto; }
 .nav-links { display: flex; align-items: center; gap: 22px; }
 .nav-links a { color: var(--ink-2); text-decoration: none; font-size: 13px; font-weight: 500; white-space: nowrap; transition: color .2s; }
-.nav-links a:hover, .nav-links a[aria-current="page"] { color: var(--ink); }
+.nav-links a:hover, .nav-links a[aria-current="page"], .nav-links a:has(.link-pending) { color: var(--ink); }
+.nav-links:has(.link-pending) a[aria-current="page"]:not(:has(.link-pending)) { color: var(--ink-2); } /* a tap shows at once (LinkPending) */
 .nav-links a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
 .tabbar { display: none; }
 
@@ -175,8 +176,10 @@ main.hm { max-width: calc(1240px + 56px); }
     backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-top: 1px solid rgba(0,0,0,.06);
   }
   .tabbar a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 0; border-radius: 12px; font-size: 10px; font-weight: 600; color: var(--ink-2); text-decoration: none; }
-  .tabbar a[aria-current="page"] { color: var(--ink); }
-  .tabbar a[aria-current="page"] svg { color: var(--accent); }
+  .tabbar a[aria-current="page"], .tabbar a:has(.link-pending) { color: var(--ink); }
+  .tabbar a[aria-current="page"] svg, .tabbar a:has(.link-pending) svg { color: var(--accent); }
+  .tabbar:has(.link-pending) a[aria-current="page"]:not(:has(.link-pending)) { color: var(--ink-2); }
+  .tabbar:has(.link-pending) a[aria-current="page"]:not(:has(.link-pending)) svg { color: inherit; }
   .tabbar a:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 }
 @media (prefers-reduced-motion: reduce) {

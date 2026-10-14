@@ -132,6 +132,20 @@ Not done here: pull requests, waiting for CI or for a refresh, review subagents,
 - Page is fluid to 1600 px; below 1200 ranking/table stack; preserve named container queries.
 - Keep semantic controls, focus, reduced motion and text alternatives; lint allows zero warnings.
 
+## Pages
+
+A click renders the whole page on the server, per request, and the old page stays until all of it has arrived: on 14 Oct
+2026 that was 0.4-1.5 s on production with nothing shown, because pages read one thing after another and read far more than
+they show. So, in every page:
+
+- Start every read in one `Promise.all` at the top; a read that needs another's result starts as soon as it has it, together
+  with the others. Never `await` a read in a loop.
+- Read only what the page shows: today's missions come from `loadMissionLogDay`, not the whole history; a Neon query a view
+  makes goes through `cache()`.
+- Links between pages live in the bars (`NavLinks`, `LensBar`, `TabBar`); their `LinkPending` lights the tapped one at once.
+  Do not add `loading.tsx` for that: React holds the page back up to 300 ms after a loading screen (Play arrived 540 ms later).
+- Check a change by clicking to the page on `next build && next start`, not only by reloading it.
+
 ## Sorare safety
 
 - Public GraphQL is read-only; never add password/login handling.

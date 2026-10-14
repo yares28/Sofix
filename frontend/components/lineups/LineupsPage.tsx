@@ -77,10 +77,12 @@ export default async function LineupsPage({ searchParams, scores = false }: { se
   // Which Sorare week this round feeds, and why the page may not be the week you came with (`?w=`): it holds each club's next
   // LaLiga game only. A match asked for that is no longer on the site is said so, above the one shown instead.
   const round = sections.find((s) => s.competition === "laliga")?.round ?? null;
-  const ahead = round !== null && sorare?.projected?.some((one) => one.round === round) ? await loadProjectedWeek(round) : null;
-  const chances = lineupChances(data.matches, [...(sorare?.weeks ?? []), ...(ahead ? [ahead] : [])].flatMap((week) => week.playing.players), sorare?.market ?? []);
   const relevant = (sorare?.timeline ?? []).filter((w) => data.matches.some((m) => m.kickoff && Date.parse(m.kickoff) >= Date.parse(w.start) && Date.parse(m.kickoff) <= Date.parse(w.end))).slice(-4);
-  const records = (await Promise.all(relevant.map((w) => loadChanceRecord(w.slug)))).filter((r): r is ChanceRecord => r !== null);
+  const [ahead, records] = await Promise.all([
+    round !== null && sorare?.projected?.some((one) => one.round === round) ? loadProjectedWeek(round) : null,
+    Promise.all(relevant.map((w) => loadChanceRecord(w.slug))).then((all) => all.filter((r): r is ChanceRecord => r !== null)),
+  ]);
+  const chances = lineupChances(data.matches, [...(sorare?.weeks ?? []), ...(ahead ? [ahead] : [])].flatMap((week) => week.playing.players), sorare?.market ?? []);
   for (const [match, players] of Object.entries(recordedChances(data.matches, records))) for (const [player, sources] of Object.entries(players)) {
     (chances[match] ??= {})[player] = { ...sources, ...chances[match]?.[player] };
   }

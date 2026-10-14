@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-vi.mock("./missionLog", async original => ({ ...await original<typeof import("./missionLog")>(), loadMissionLog: async () => [] }));
+vi.mock("./missionLog", async original => ({ ...await original<typeof import("./missionLog")>(), loadMissionLogDay: async () => [] }));
 import { nextDay } from "./missionLog";
 import type { PlayingPlayer } from "./play";
 import type { Sheet } from "./playerSheet";

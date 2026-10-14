@@ -46,13 +46,15 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   const legacy = legacyBoardUrl(params);
   if (legacy) redirect(legacy);
 
-  const [{ grid, meta, error }, system, sorare, lineups, missions, savedWeeks] = await Promise.all([
+  // Reads start together: each one waiting for the one before made every view slower (AGENTS.md "Pages").
+  const [{ grid, meta, error }, system, sorare, lineups, missions, savedWeeks, pool] = await Promise.all([
     loadGrid(),
     loadSystem(),
     loadSorare(),
     loadLineups(),
     loadMissions(),
     myWeeksQuietly(),
+    loadMissionPool(),
   ]);
   const opening = grid ? openingColumn(grid) : 0;
   const week = weekContext(grid, sorare, new Date(), {
@@ -87,20 +89,20 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
       ? (sorare.timeline.find((item) => item.id === week.current?.gw) ?? weekPlan(sorare, week.current.gw)?.gameweek ?? null)
       : null;
   const now = new Date();
+  const frozenRead = sorare && selectedSorare ? loadFrozenPlan(selectedSorare.slug, sorare) : null;
   // Only the selected week's frozen or early plan supplies Recap's forecasts.
   const plan = sorare ? week.current?.gw
     ? weekPlan(sorare, week.current.gw) ?? (selectedSorare
-      ? ("kept" in selectedSorare && selectedSorare.kept ? await loadSorareWeek(selectedSorare.slug) : null) ?? await loadFrozenPlan(selectedSorare.slug, sorare)
+      ? ("kept" in selectedSorare && selectedSorare.kept ? await loadSorareWeek(selectedSorare.slug) : null) ?? await frozenRead
       : null)
     : week.current?.md ? await loadProjectedWeek(week.current.md) : null : null;
   const best = bestPlan(plan?.plans ?? []);
   // Finished replay payloads can contain fewer alternatives/cards than the retained pre-lock forecast.
-  const frozen = sorare && selectedSorare ? await loadFrozenPlan(selectedSorare.slug, sorare) : null;
+  const frozen = await frozenRead;
   const enteredForecast = frozen ? withLineupRules(frozen, plan) : plan;
   const rows = best ? planRows(best) : [];
-  const actuals = plan ? await loadPlanActuals(plan) : {};
+  const [actuals, today] = await Promise.all([plan ? loadPlanActuals(plan) : {}, missionsToday(sorare, missions, undefined, now, pool)]);
   const news = plan ? weekNews(plan.playing.players, week.current?.md ?? null, now) : { hurt: [], back: [] };
-  const today = await missionsToday(sorare, missions, undefined, now, await loadMissionPool());
   const md = grid.matchdays[column]!;
   const lineupsHref = href("/lineups");
 

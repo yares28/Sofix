@@ -25,21 +25,31 @@ const cachedLineups = cache(
   { tags: [SORARE_TAG], revalidate: 3600 },
 );
 
+/** Which of these days were kept and when each was written. The job that writes them clears the `sorare` tag when it ends. */
+const keptIndex = cache(
+  async (keys: string[]): Promise<{ key: string; at: string }[]> => {
+    const rows = (await database()!`SELECT key, updated_at FROM read_models WHERE key = ANY(${keys})`) as { key: string; updated_at: string | Date }[];
+    return rows.map((row) => ({ key: row.key, at: stamp(row.updated_at) }));
+  },
+  ["lineups-kept-index-v1"],
+  { tags: [SORARE_TAG], revalidate: 3600 },
+);
+
 /**
  * The matches kept for these days (`lineups_day:<date>`, backend `ff_lineups.kept_days`): what a week shows once the site has dropped
- * its matches. One small query for the write times; each day's payload is downloaded once per change (`readModelAt`). Nothing
- * without a database (local development on the stand-in API, the browser tests).
+ * its matches. The write times are cached like the lineups; each day's payload is downloaded once per change (`readModelAt`), all
+ * days at once. Nothing without a database (local development on the stand-in API, the browser tests).
  */
 export async function loadKeptDays(days: string[]): Promise<KeptLineups> {
   const out: KeptLineups = { matches: [], cards: {}, art: {} };
-  const sql = database();
   const keys = [...new Set(days.filter((day) => /^\d{4}-\d{2}-\d{2}$/.test(day)))].map((day) => DAY_PREFIX + day);
-  if (!sql || !keys.length) return out;
+  if (!database() || !keys.length) return out;
   try {
-    const rows = (await sql`SELECT key, updated_at FROM read_models WHERE key = ANY(${keys})`) as { key: string; updated_at: string | Date }[];
-    for (const row of rows) {
+    const rows = await keptIndex(keys);
+    const read = await Promise.all(rows.map((row) => readModelAt(row.key, row.at)));
+    for (const payload of read) {
       // A day's first write holds its played matches under `old` (the merge that folds them in runs from the second write on).
-      const day = (await readModelAt(row.key, stamp(row.updated_at))) as { matches?: Record<string, LineupMatch>; old?: Record<string, LineupMatch>; cards?: KeptLineups["cards"]; art?: KeptLineups["art"] } | null;
+      const day = payload as { matches?: Record<string, LineupMatch>; old?: Record<string, LineupMatch>; cards?: KeptLineups["cards"]; art?: KeptLineups["art"] } | null;
       if (!day) continue;
       out.matches.push(...Object.values({ ...day.old, ...day.matches }));
       Object.assign(out.cards, day.cards);

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useWeekSuffix } from "../lib/navWeek";
+import LinkPending from "./LinkPending";
 import { PLACES, placeOf } from "../lib/places";
 
 const ICONS: Record<string, React.ReactNode> = {
@@ -66,6 +67,7 @@ export default function TabBar() {
             {ICONS[tab.href]}
           </svg>
           {tab.label}
+          <LinkPending />
         </Link>
       ))}
     </nav>

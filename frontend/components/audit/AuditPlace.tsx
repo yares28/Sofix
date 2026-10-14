@@ -20,10 +20,16 @@ export type AuditSearchParams = Promise<Record<string, string | string[] | undef
 /** The three Audit views share one page; each has its own address (plans/restructure.md, R7). */
 export default async function AuditPlace({ show, searchParams }: { show: AuditShow; searchParams?: AuditSearchParams }) {
   await connection(); // "updated 2 h ago" reads the clock
-  const [data, { grid, meta }, system] = await Promise.all([loadAudit(), loadGrid(), loadSystem()]);
-  const league = (await import("../../lib/data/audit_league.json")).default as unknown as LeagueAudit;
-  // Rewards reads what you won week by week: the season's finished Sorare gameweeks, newest first
-  const sorare = await loadSorare();
+  // Everything the view needs is read at once: one wait, not one after another.
+  const [data, { grid, meta }, system, league, sorare, loadedLog, myWeeks] = await Promise.all([
+    loadAudit(),
+    loadGrid(),
+    loadSystem(),
+    import("../../lib/data/audit_league.json").then((m) => m.default as unknown as LeagueAudit),
+    loadSorare(), // Rewards reads what you won week by week: the season's finished Sorare gameweeks, newest first
+    show === "missions" ? loadMissionLog() : [],
+    show === "rewards" || show === "lineups" || show === "strategies" ? myWeeksQuietly() : null,
+  ]);
   const params = await searchParams ?? {};
   const now = new Date();
   // Without a selected date, Audit opens the latest locked GW; planning defaults to the next open GW.
@@ -46,7 +52,6 @@ export default async function AuditPlace({ show, searchParams }: { show: AuditSh
     }) };
   }));
   const playerWeek = playerWeeks.find(w => w.slug === selected?.slug) ?? null;
-  const loadedLog = show === "missions" ? await loadMissionLog() : [];
   const owned = RARITIES.filter((r) => sorare?.collection?.some((c) => c.rarity === r) || loadedLog.some((l) => Object.values(l.days).some((d) => d[r])));
   const logs = show === "missions" ? fillMissionDays(loadedLog, owned, new Date()) : [];
   const names = new Map((sorare?.collection ?? []).map((c) => [c.player, { name: c.name, pic: c.pic }]));
@@ -54,12 +59,12 @@ export default async function AuditPlace({ show, searchParams }: { show: AuditSh
     .filter((week) => week.status === "done")
     .map((week) => ({ slug: week.slug, number: week.number }))
     .reverse();
-  const saved = show === "rewards" || show === "lineups" ? seasonWeeks(await myWeeksQuietly() ?? [], new Date()) : [];
+  const saved = show === "rewards" || show === "lineups" ? seasonWeeks(myWeeks ?? [], new Date()) : [];
   // Card art for the week comparison: the collection's, then the pictures your saved lineups kept for cards no longer in it.
   const pics: Record<string, string> = {};
   if (show === "lineups" || show === "strategies") {
     for (const card of sorare?.collection ?? []) if (card.pic) pics[card.slug] = card.pic;
-    for (const week of show === "strategies" ? seasonWeeks(await myWeeksQuietly() ?? [], new Date()) : saved)
+    for (const week of show === "strategies" ? seasonWeeks(myWeeks ?? [], new Date()) : saved)
       for (const lineup of week.lineups) for (const card of lineup.cards) if (card.picture && !pics[card.slug]) pics[card.slug] = card.picture;
   }
   return (

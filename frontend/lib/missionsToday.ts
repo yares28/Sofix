@@ -1,5 +1,5 @@
 import { isToday, missionDay, MISSION_RARITIES, type MissionPlan, type MissionsModel } from "./missions";
-import { loadMissionLog, restoreMissionBenchmark, type LogRarity, type MonthLog } from "./missionLog";
+import { loadMissionLogDay, restoreMissionBenchmark, type LogRarity, type MonthLog } from "./missionLog";
 import type { Sorare } from "./play";
 import type { MissionPool } from "./missionsPool";
 import { loadPlayerSheets } from "./playerGames";
@@ -46,7 +46,7 @@ export async function missionsToday(
   const list = own ?? [];
   const players = missionPlayers(pool?.players ?? (data ? data.weeks.flatMap((w) => w.playing.players) : []), list, rarity);
   const day = missionDay(now);
-  const previous = (logs ?? (list.length ? await loadMissionLog() : [])).reduce<LogRarity | undefined>((found, log) => log.days[day]?.[rarity] ?? found, undefined);
+  const previous = (logs ?? (list.length ? await loadMissionLogDay(day) : [])).reduce<LogRarity | undefined>((found, log) => log.days[day]?.[rarity] ?? found, undefined);
   const plans = list.length ? restoreMissionBenchmark(list, previous, players, sheets.players, rarity, now) : [];
   return { rarity, seen: [...seen], day: list.length ? day : null, plans, status, seenAt };
 }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useWeekSuffix } from "../lib/navWeek";
+import LinkPending from "./LinkPending";
 import { PLACES, placeOf } from "../lib/places";
 
 /**
@@ -18,6 +19,7 @@ export default function NavLinks() {
       {PLACES.map((place) => (
         <Link key={place.label} href={`${place.href}${week}`} aria-current={current === place ? "page" : undefined}>
           {place.label}
+          <LinkPending />
         </Link>
       ))}
     </div>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useWeekSuffix } from "../lib/navWeek";
+import LinkPending from "./LinkPending";
 import { placeOf, viewOf } from "../lib/places";
 
 /** The page-wide switch under the top bar: the views of the current place. Hidden where a place has one view. */
@@ -18,6 +19,7 @@ export default function LensBar() {
         {place.views.map((v) => (
           <Link key={v.href} href={v.href.includes("#") ? v.href.replace("#", `${week}#`) : `${v.href}${week}`} aria-current={view === v ? "page" : undefined}>
             {v.label}
+            <LinkPending />
           </Link>
         ))}
       </nav>

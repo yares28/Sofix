@@ -363,9 +363,9 @@ const logIndex = cache(
  * The last two months of the log, newest first. Together the rows are over Next's 2 MB cache limit (2.5 MB on 12 Oct 2026),
  * which made every view download them all from Neon again; each row is now read once per change (readModelAt in lib/db.ts).
  */
-async function cachedLog(): Promise<MonthLog[]> {
+async function cachedLog(keep: (key: string) => boolean = () => true): Promise<MonthLog[]> {
   if (database()) {
-    const rows = (await Promise.all((await logIndex()).map(async ({ key, at }) => ({ key, payload: (await readModelAt(key, at)) as MonthLog | MissionEdits | null })))).filter((r) => r.payload);
+    const rows = (await Promise.all((await logIndex()).filter(({ key }) => keep(key)).map(async ({ key, at }) => ({ key, payload: (await readModelAt(key, at)) as MonthLog | MissionEdits | null })))).filter((r) => r.payload);
     const logs = rows.filter((r) => !r.key.startsWith("missions_edit:")).sort((a, b) => Number(a.key.startsWith(DAY_PREFIX)) - Number(b.key.startsWith(DAY_PREFIX))).map((r) => r.payload as MonthLog);
     return applyMissionEdits(logs, rows.filter((r) => r.key.startsWith("missions_edit:")).map((r) => r.payload as MissionEdits));
   }
@@ -375,9 +375,17 @@ async function cachedLog(): Promise<MonthLog[]> {
   return body?.data ?? [];
 }
 
-export async function loadMissionLog(): Promise<MonthLog[]> {
+/**
+ * The log rows that can hold `day` (YYYY-MM-DD): its day rows, its month's older log and the edits. Home and Play only need
+ * today's entry; reading the whole history for it (92 rows, 3 MB on 14 Oct 2026) held up every view of both pages.
+ */
+export function loadMissionLogDay(day: string): Promise<MonthLog[]> {
+  return loadMissionLog((key) => key.startsWith(`${DAY_PREFIX}${day}:`) || key === `${LOG_PREFIX}${day.slice(0, 7)}` || key.startsWith("missions_edit:"));
+}
+
+export async function loadMissionLog(keep?: (key: string) => boolean): Promise<MonthLog[]> {
   try {
-    return (await cachedLog()).filter((log) => log && typeof log.days === "object");
+    return (await cachedLog(keep)).filter((log) => log && typeof log.days === "object");
   } catch (error) {
     console.error(`[missions-log] could not be read: ${error instanceof Error ? error.message : "unknown"}`);
     return [];

@@ -32,7 +32,8 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
     return typeof value === "string" ? value : undefined;
   };
 
-  const [data, { grid, meta }, system, missionsModel] = await Promise.all([loadSorare(), loadGrid(), loadSystem(), loadMissions()]);
+  // Reads start together: each one waiting for the one before made every view slower (AGENTS.md "Pages").
+  const [data, { grid, meta }, system, missionsModel, pool] = await Promise.all([loadSorare(), loadGrid(), loadSystem(), loadMissions(), loadMissionPool()]);
   const week = weekContext(grid, data, new Date(), { w: single("w"), gw: single("gw") });
   if (!data) {
     return (
@@ -87,19 +88,20 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
   const switchable = !after && !showing.projected && !showing.played && showing.gameweek.id === data.nextId;
   const sorareAsked = single("by") === "sorare" && switchable;
   const lens = switchable ? lensKey(single("by")) : null;
-  const alt = sorareAsked ? await loadSorareAlt(showing.gameweek.slug) : lens ? await loadSorareLens(showing.gameweek.slug, lens) : null;
+  const today = !after && !showing.projected && showing.gameweek.id === data.nextId; // today's missions belong to the week played now
+  const [alt, frozen, missions] = await Promise.all([
+    sorareAsked ? loadSorareAlt(showing.gameweek.slug) : lens ? loadSorareLens(showing.gameweek.slug, lens) : null,
+    showing.projected ? null : loadFrozenPlan(showing.gameweek.slug, data),
+    today ? missionsToday(data, missionsModel, undefined, new Date(), pool) : null,
+  ]);
   const by: PlanBy = sorareAsked ? "sorare" : (lens ?? "sofix");
   const view = sorareAsked || lens ? { ...showing, plans: alt?.plans ?? [] } : showing;
   const sorareWaiting = sorareAsked && !view.plans.length ? sorareNote(alt, showing.projectionsAt) : lens && !view.plans.length ? "This strategy's plan appears with the next refresh before the lock." : null;
   const defaultPlan = bestPlan(view.plans);
-  const frozen = showing.projected ? null : await loadFrozenPlan(showing.gameweek.slug, data);
   const enteredForecast = frozen ? withLineupRules(frozen, showing) : showing;
   const requested = Number(single("plan") ?? (defaultPlan ? view.plans.indexOf(defaultPlan) + 1 : 1));
   const offered = Math.max(plansOf(view, after).length, 1);
   const planIndex = Number.isFinite(requested) ? Math.min(Math.max(requested, 1), offered) - 1 : 0;
-
-  // Today's missions belong to the gameweek being played now, so only that week shows them.
-  const missions = !after && !showing.projected && showing.gameweek.id === data.nextId ? await missionsToday(data, missionsModel, undefined, new Date(), await loadMissionPool()) : null;
 
   return (
     <>

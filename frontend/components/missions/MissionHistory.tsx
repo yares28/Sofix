@@ -9,7 +9,7 @@ import { REFRESH_HEADER } from "../../lib/refresh";
 import { askExtension, parseMissionsLoad } from "../../lib/extension";
 import { missionsLoadNote } from "../../lib/missions";
 import { cardCopyLabel, manualMissionPick } from "../../lib/missionPresentation";
-import { missionComparison, type MissionComparison } from "../../lib/missionComparison";
+import { missionHits, type MissionHits } from "../../lib/missionComparison";
 
 const shortDay = (d: string) => new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${d}T12:00:00Z`));
 function Editor({ day, rarity, collection, saved, onDirty, guard }: { day: HistoryDay; rarity: string; collection: CollectionCard[]; saved: () => void; onDirty: (dirty: boolean) => void; guard: (action: () => void) => void }) {
@@ -80,18 +80,15 @@ function Editor({ day, rarity, collection, saved, onDirty, guard }: { day: Histo
 }
 
 /** You against Sofix over every mission day ever kept, for each way Sofix picks; `since` is the first kept day. */
-export type AllTime = { plan: MissionComparison; best: MissionComparison; since: string | null };
-const pct = (n: number, of: number) => (of ? `${Math.round((100 * n) / of)}%` : "—");
+export type AllTime = { plan: MissionHits; best: MissionHits; since: string | null };
 
-function Side({ who, side, counted }: { who: "You" | "Sofix"; side: MissionComparison["yours"]; counted: number }) {
+function Side({ who, side }: { who: "You" | "Sofix"; side: MissionHits["yours"] }) {
+  const share = side.missions ? side.hits / side.missions : 0;
   return <div className={`ms-score-side ${who === "You" ? "you" : "sfx"}`}>
     <span className={`mx-tag ${who === "You" ? "you" : "sfx"}`}>{who}</span>
-    <b>{pct(side.hits, side.picks)}</b>
-    <span className="mx-meter" aria-hidden="true"><i style={{ width: side.picks ? `${(100 * side.hits) / side.picks}%` : 0 }} /></span>
-    {side.picks ? <>
-      <span className="sub">of picks did it · {side.hits} of {side.picks}</span>
-      <span className="sub">Best possible result in {side.success} of {counted} {counted === 1 ? "mission" : "missions"} ({pct(side.success, counted)})</span>
-    </> : <span className="sub">No settled missions yet</span>}
+    <p className="ms-score-n"><b>{side.missions ? `${side.hits}/${side.missions}` : "—"}</b>{side.missions ? <span>{Math.round(100 * share)}%</span> : null}</p>
+    <span className="mx-meter" aria-hidden="true"><i style={{ width: `${100 * share}%` }} /></span>
+    <span className="sub">{side.missions ? `${side.hits} ${side.hits === 1 ? "hit" : "hits"} in ${side.missions} ${side.missions === 1 ? "mission" : "missions"}` : "No settled missions yet"}</span>
   </div>;
 }
 
@@ -120,11 +117,7 @@ export default function MissionHistory({ days: plannedDays, bestDays, allTime, r
     return () => { window.removeEventListener("beforeunload", warn); document.removeEventListener("click", navigate, true); };
   }, [guard]);
   const dates = [...new Set(days.map((d) => d.day))];
-  const shownDays = days.filter((d) => !date || d.day === date);
-  const comparison = missionComparison(shownDays);
-  const reconstructed = missionComparison(shownDays.filter(d => d.reconstructed)).counted;
-  const provisional = missionComparison(shownDays.filter(d => d.provisional)).counted;
-  const ever = allTime, overall = ever ? ever[mode] : missionComparison(days);
+  const ever = allTime, overall = ever ? ever[mode] : missionHits(days);
   return <section className="mx-card ms-history" aria-labelledby={`ms-history-${rarity}`}>
     <dialog ref={dialog} className="ms-discard" role="alertdialog" aria-labelledby={`ms-discard-${rarity}`} onCancel={(e) => { e.preventDefault(); setPending(null); }}><h3 id={`ms-discard-${rarity}`}>Unsaved correction</h3><p>Your changes have not been saved. Keep editing or discard them to continue.</p><div><button className="mx-btn ink" type="button" onClick={() => setPending(null)}>Keep editing</button><button className="mx-btn" type="button" onClick={() => { dirty.current = false; const action = pending; setPending(null); action?.(); }}>Discard changes</button></div></dialog>
     <div className="ms-section-head"><h2 id={`ms-history-${rarity}`} className="mx-h2">{title}</h2><label>Mission date<select name="history-date" value={date} onChange={(e) => { const next = e.target.value; guard(() => { setDate(next); setEditing(null); }); }}><option value="">Last 30 days</option>{dates.map((d) => <option key={d} value={d}>{shortDay(d)}</option>)}</select></label>
@@ -135,9 +128,8 @@ export default function MissionHistory({ days: plannedDays, bestDays, allTime, r
         <span className="mx-eyebrow">All time{ever?.since ? ` · since ${shortDay(ever.since)}` : ""}</span>
         {bestDays ? <div className="mx-seg sm" role="group" aria-label="History benchmark" title={`Comparing with ${mode === "best" ? "independent best cards" : "the unique-card mission plan"}. Saved forecasts and labelled pre-day reconstructions are compared separately from the Audit.`}><button type="button" aria-pressed={mode === "plan"} onClick={() => guard(() => { setMode("plan"); setEditing(null); })}>Each card once</button><button type="button" aria-pressed={mode === "best"} onClick={() => guard(() => { setMode("best"); setEditing(null); })}>Best cards</button></div> : null}
       </div>
-      <div className="ms-score-sides"><Side who="You" side={overall.yours} counted={overall.counted} /><Side who="Sofix" side={overall.sofix} counted={overall.counted} /></div>
-      <p className="sub ms-score-range">{date ? shortDay(date) : "Last 30 days"}: picks that did it, you {pct(comparison.yours.hits, comparison.yours.picks)} · Sofix {pct(comparison.sofix.hits, comparison.sofix.picks)} · {comparison.counted} {comparison.counted === 1 ? "mission" : "missions"} settled</p>
-      <details><summary>How this is counted</summary><p>The big number is the share of picks whose player did what the mission asked. The best possible result means catching as many as the best cards could. Same settled missions for both sides; missing references and pending picks are excluded. {reconstructed ? `${reconstructed} reconstructed missions included. ` : ""}{provisional ? `${provisional} are provisional: best result among recorded cards; full Sorare eligibility was not saved.` : ""}</p></details>
+      <div className="ms-score-sides"><Side who="You" side={overall.yours} /><Side who="Sofix" side={overall.sofix} /></div>
+      <details><summary>How this is counted</summary><p>Each mission of each day counts once. It is a hit when at least one of the picks did what the mission asked. A side is counted only in the missions it picked for: a mission where Sofix had no pick still counts for you, and the other way round. A mission waits until every pick&rsquo;s game is checked; a game that was never played is left out.</p></details>
     </div> : null}
     {days.length ? <ol className="au-ms-days">{dates.filter((day) => !date || day === date).map((day) => { const missions = days.filter((d) => d.day === day); return <li key={day}><details className="ms-history-day" open={Boolean(date)}><summary><h3 className="ms-history-date">{shortDay(day)}</h3><span>{missions.length} {missions.length === 1 ? "mission" : "missions"}</span></summary>{missions.map((d) => {
       const id = `${d.day}:${d.key ?? d.mission}`;

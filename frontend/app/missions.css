@@ -153,11 +153,12 @@
 .ms-score-sides { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .ms-score-side { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 16px 18px; border-radius: 16px; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, .04); }
 .ms-score-side .mx-tag { align-self: flex-start; margin: 0 0 4px; }
-.ms-score-side b { font-size: 40px; font-weight: 650; letter-spacing: -.045em; line-height: 1; }
+.ms-score-n { display: flex; align-items: baseline; gap: 10px; }
+.ms-score-n b { font-size: 40px; font-weight: 650; letter-spacing: -.045em; line-height: 1; }
+.ms-score-n span { font-size: 15px; font-weight: 600; color: var(--ink-2); }
 .ms-score-side .mx-meter { margin: 6px 0 4px; }
 .ms-score-side.sfx .mx-meter > i { background: var(--accent); }
 .ms-score-side .sub { line-height: 1.45; }
-.ms-score .ms-score-range { padding-inline: 4px; }
 .ms-score details { padding-inline: 4px; font-size: 12px; color: var(--ink-2); }
 .ms-score summary { cursor: pointer; width: fit-content; }
 .ms-score summary:hover { color: var(--ink); }
@@ -165,7 +166,7 @@
 @media (max-width: 760px) {
   .ms-score { margin-inline: 4px; padding: 12px; }
   .ms-score-side { padding: 12px; }
-  .ms-score-side b { font-size: 32px; }
+  .ms-score-n b { font-size: 32px; }
 }
 .ms-history .au-ms-days { gap: 0; margin: 0; }
 .ms-history .au-ms-days > li, .ms-history > .au-ms-days > li { padding: 14px 12px; border: 0; border-top: 1px solid var(--line); border-radius: 0; margin: 0; }

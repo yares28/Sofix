@@ -219,11 +219,13 @@ test.describe("the daily missions page", () => {
     await expect(fifth).toContainText("Sofix 1 of 3");
     await expect(fifth.getByRole("list", { name: "Missed achievers" })).toContainText("Arda Güler, did it, not picked");
     await expect(history.getByRole("link", { name: "How often Sofix was right" })).toHaveAttribute("href", "/audit/missions");
-    // All time, every kept day. None of the recording's days is settled with your picks recorded, so neither side claims a number.
+    // All time, hits in missions, each mission counted for the side that picked in it: 5 Oct is Sofix's one settled mission, a hit (Pedri's 6 Oct game is not checked yet).
     const score = history.locator(".ms-score");
     await expect(score).toContainText(/All time · since/);
-    await expect(score.locator(".ms-score-side.sfx")).toContainText("No settled missions yet");
-    await expect(score.locator(".ms-score-side.you b")).toHaveText("—");
+    await expect(score.locator(".ms-score-side.sfx b")).toHaveText("1/1");
+    await expect(score.locator(".ms-score-side.sfx")).toContainText("1 hit in 1 mission");
+    // ...while none of yours is fully checked yet: you show no number instead of borrowing Sofix's missions.
+    await expect(score.locator(".ms-score-side.you")).toContainText("No settled missions yet");
   });
 
   test("fits a phone without a sideways scroll", async ({ page }, testInfo) => {

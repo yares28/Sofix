@@ -104,6 +104,16 @@ class CellMarket(BaseModel):
     fetched_at: datetime
 
 
+class CellOpening(BaseModel):
+    """This side's chances for the game as the pre-season model had them (services/opening_projection.py)."""
+
+    win: float
+    draw: float
+    loss: float
+    xg_for: float
+    xg_against: float
+
+
 class GridCell(BaseModel):
     fixture_id: int
     opponent_code: str
@@ -119,6 +129,7 @@ class GridCell(BaseModel):
     # Banded by the win chance this board shows; and by the bookmakers' price where there is one.
     record: CellRecord | None = None
     record_price: CellRecord | None = None
+    opening: CellOpening | None = None  # null when the committed projection is missing or from another season
 
 
 class GridTeam(BaseModel):

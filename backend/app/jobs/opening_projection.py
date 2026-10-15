@@ -96,7 +96,7 @@ def main(argv: list[str] | None = None) -> int:
     path = settings.opening_projection_path
     if args.check:
         saved = load_opening_projection(path, projection.season)
-        if saved is None or saved.positions != projection.positions:
+        if saved is None or (saved.positions, saved.fixtures) != (projection.positions, projection.fixtures):
             print(f"{path} is out of date: run python -m app.jobs.opening_projection", file=sys.stderr)
             return 1
         return 0

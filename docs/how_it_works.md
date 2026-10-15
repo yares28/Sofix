@@ -118,7 +118,11 @@ per-game value so doubles do not win automatically. Next is match cards; Next 3/
 
 Current standings stop after selected GW. Head-to-head applies only after both mutual matches, then GD/goals. Predicted
 table fixes played points and runs seeded remaining-fixture simulations; identical input means identical percentages.
-The opening projection is a fixed preseason artifact.
+The opening projection is a fixed preseason artifact; since 15 Oct 2026 it also keeps each game's pre-season
+win/draw/loss and goals, published on every grid cell as `opening` (the Table's Predicted view). The Table's Expected
+view prices every game at today's strength: today's forecasts fit `log xG = base + home + attack − defence` almost
+exactly, so `frontend/lib/standings.ts` reads each club's attack and defence back from them and prices played games
+with independent Poisson goals (within 0.3 points of the official chances on 15 Oct data).
 
 Finished fixtures keep pre-kickoff belief and add surprise/performance-gap/verdict. Results never rewrite the forecast.
 

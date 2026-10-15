@@ -836,6 +836,40 @@
         "title": "CellMarket",
         "description": "Bookmaker consensus for this team's side of the fixture, as fair probabilities (margin removed).\nResult from win/draw/loss prices; goal markets from the goal rates that reproduce the prices."
       },
+      "CellOpening": {
+        "properties": {
+          "win": {
+            "type": "number",
+            "title": "Win"
+          },
+          "draw": {
+            "type": "number",
+            "title": "Draw"
+          },
+          "loss": {
+            "type": "number",
+            "title": "Loss"
+          },
+          "xg_for": {
+            "type": "number",
+            "title": "Xg For"
+          },
+          "xg_against": {
+            "type": "number",
+            "title": "Xg Against"
+          }
+        },
+        "type": "object",
+        "required": [
+          "win",
+          "draw",
+          "loss",
+          "xg_for",
+          "xg_against"
+        ],
+        "title": "CellOpening",
+        "description": "This side's chances for the game as the pre-season model had them (services/opening_projection.py)."
+      },
       "CellPrediction": {
         "properties": {
           "difficulty": {
@@ -1188,6 +1222,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/CellRecord"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "opening": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CellOpening"
               },
               {
                 "type": "null"

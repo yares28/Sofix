@@ -452,6 +452,22 @@ export interface components {
              */
             fetched_at: string;
         };
+        /**
+         * CellOpening
+         * @description This side's chances for the game as the pre-season model had them (services/opening_projection.py).
+         */
+        CellOpening: {
+            /** Win */
+            win: number;
+            /** Draw */
+            draw: number;
+            /** Loss */
+            loss: number;
+            /** Xg For */
+            xg_for: number;
+            /** Xg Against */
+            xg_against: number;
+        };
         /** CellPrediction */
         CellPrediction: {
             /** Difficulty */
@@ -576,6 +592,7 @@ export interface components {
             market?: components["schemas"]["CellMarket"] | null;
             record?: components["schemas"]["CellRecord"] | null;
             record_price?: components["schemas"]["CellRecord"] | null;
+            opening?: components["schemas"]["CellOpening"] | null;
         };
         /** GridMatchday */
         GridMatchday: {

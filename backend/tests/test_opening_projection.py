@@ -66,6 +66,22 @@ def test_lines_the_path_up_with_the_gameweek_columns_the_grid_serves():
     assert result.path("STR", [1, 99]) is None  # a gameweek it doesn't cover
 
 
+def test_keeps_each_games_preseason_chances_from_either_side():
+    result = projection()
+    home = result.odds("STR", "WEA", "H")
+    away = result.odds("WEA", "STR", "A")
+    assert home is not None and away is not None
+    assert home.win + home.draw + home.loss == pytest.approx(1, abs=0.002)
+    assert home.win > home.loss  # the strong side at home
+    # The same game seen from the other side: chances and goals swap round.
+    assert (away.win, away.draw, away.loss) == (home.loss, home.draw, home.win)
+    assert (away.xg_for, away.xg_against) == (home.xg_against, home.xg_for)
+    # Expected points add up to the season total the projection ranks by.
+    total = sum(3 * o.win + o.draw for o in (result.odds("STR", c, v) for c in ("MID", "WEA") for v in "HA") if o)
+    assert total == pytest.approx(result.points["STR"], abs=0.01)
+    assert result.odds("STR", "XXX", "H") is None
+
+
 def test_round_trips_through_the_artifact(tmp_path):
     path = tmp_path / "opening.json"
     original = projection()
@@ -78,6 +94,7 @@ def test_round_trips_through_the_artifact(tmp_path):
         original.model_version,
     )
     assert saved.positions == original.positions and saved.matchdays == original.matchdays
+    assert saved.fixtures == original.fixtures
     for code, points in original.points.items():
         assert saved.points[code] == pytest.approx(points, abs=0.005)  # the file keeps two decimals
     assert load_opening_projection(path, "2025/26") is None  # last season's file is not this season's

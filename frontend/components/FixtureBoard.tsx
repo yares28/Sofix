@@ -68,7 +68,11 @@ export default function FixtureBoard({ grid, initialView, pinsInUrl, away }: Pro
               <p className="ow-note" role="status">
                 LaLiga isn&apos;t playing this week — the table is as it stands.
               </p>
-              <LeagueTable grid={grid} through={tableThrough} mode={state.table} onMode={(table) => patch({ table })} />
+              <LeagueTable
+                grid={grid} through={tableThrough} mode={state.table} onMode={(table) => patch({ table })}
+                standing={state.standing} onStanding={(standing) => patch({ standing })}
+                split={state.split} onSplit={(split) => patch({ split })}
+              />
             </>
           )}
         </>
@@ -87,7 +91,11 @@ export default function FixtureBoard({ grid, initialView, pinsInUrl, away }: Pro
         </>
       )}
 
-      {view === "table" && <LeagueTable grid={grid} through={tableThrough} mode={state.table} onMode={(table) => patch({ table })} />}
+      {view === "table" && <LeagueTable
+                grid={grid} through={tableThrough} mode={state.table} onMode={(table) => patch({ table })}
+                standing={state.standing} onStanding={(standing) => patch({ standing })}
+                split={state.split} onSplit={(split) => patch({ split })}
+              />}
 
       {view === "fdr" && (
         <>

@@ -196,6 +196,10 @@ describe("planning helpers", () => {
     expect(serializeViewState(table)).toBe("t=predicted"); // the tab is the path now: /table
     expect(VIEW_PATH[table.view]).toBe("/table");
     expect({ ...DEFAULT_VIEW, ...parseViewState(new URLSearchParams("view=table&t=predicted"), known) }).toEqual(table);
+    const expectedHome = { ...table, standing: "expected" as const, split: "home" as const };
+    expect(serializeViewState(expectedHome)).toBe("t=predicted&tm=expected&v=home");
+    expect({ ...DEFAULT_VIEW, ...parseViewState(new URLSearchParams("view=table&t=predicted&tm=expected&v=home"), known) }).toEqual(expectedHome);
+    expect(parseViewState(new URLSearchParams("tm=bogus&v=both"), known)).toEqual({});
     expect(parseViewState(new URLSearchParams("h=next"), known)).toEqual({ horizon: "next" });
     expect(parseViewState(new URLSearchParams("view=next"), known)).toEqual({ view: "fdr", horizon: "next" });
     expect(horizonSize("next", 38)).toBe(1);

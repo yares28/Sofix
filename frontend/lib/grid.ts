@@ -451,6 +451,8 @@ export const VIEW_PATH: Record<View, string> = { plain: "/fixtures", fdr: "/diff
 export type Horizon = "next" | "3" | "5" | "8" | "all"; // "next" = one gameweek as match cards
 /** Now (played games), after the week's round, or the end of the season (plans/restructure.md, R5). */
 export type TableMode = "current" | "after" | "predicted";
+import type { StandingMode, Split } from "./standings";
+export type { StandingMode, Split };
 export const HORIZON_VALUES: readonly Horizon[] = ["next", "3", "5", "8", "all"];
 const LENSES = Object.keys(LENS_COPY) as Lens[];
 export const MAX_PINS = 6;
@@ -468,10 +470,12 @@ export interface ViewState {
   gw: number | null; // the app-wide gameweek every tab and card starts from; null = the opening gameweek
   pins: string[];
   table: TableMode;
+  standing: StandingMode; // the Table page's Actual / Expected / Predicted
+  split: Split; // and its Total / Home / Away
 }
 
 export const DEFAULT_VIEW: ViewState = {
-  view: "fdr", lens: "overall", horizon: "5", gw: null, pins: [], table: "current",
+  view: "fdr", lens: "overall", horizon: "5", gw: null, pins: [], table: "current", standing: "actual", split: "total",
 };
 
 /** Read ?view=&lens=&h=&gw=&pins=&t= leniently: anything unknown falls back to the default. */
@@ -482,6 +486,10 @@ export function parseViewState(params: URLSearchParams, knownCodes: ReadonlySet<
   if (view === "next") Object.assign(state, { view: "fdr", horizon: "next" }); // links from before "Next" moved
   const table = params.get("t");
   if (table === "predicted" || table === "after") state.table = table;
+  const standing = params.get("tm");
+  if (standing === "expected" || standing === "predicted") state.standing = standing;
+  const split = params.get("v");
+  if (split === "home" || split === "away") state.split = split;
   const lens = params.get("lens");
   if (lens && (LENSES as readonly string[]).includes(lens)) state.lens = lens as Lens;
   const horizon = params.get("h");
@@ -493,7 +501,7 @@ export function parseViewState(params: URLSearchParams, knownCodes: ReadonlySet<
 }
 
 /** Query keys that only ever meant the board, from when it lived at "/" (the home page reads just ?gw=). */
-const BOARD_KEYS = ["view", "lens", "h", "pins", "t", "board", "from"];
+const BOARD_KEYS = ["view", "lens", "h", "pins", "t", "tm", "v", "board", "from"];
 
 /**
  * Where an old board link ("/?view=table&t=predicted", "/?h=next", "/?from=6") lives now, or null when the
@@ -606,6 +614,8 @@ export function serializeViewState(state: ViewState): string {
   if (state.gw !== null) params.set("gw", String(state.gw));
   if (state.pins.length) params.set("pins", state.pins.join(","));
   if (state.table !== DEFAULT_VIEW.table) params.set("t", state.table);
+  if (state.standing !== DEFAULT_VIEW.standing) params.set("tm", state.standing);
+  if (state.split !== DEFAULT_VIEW.split) params.set("v", state.split);
   return params.toString();
 }
 

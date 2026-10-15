@@ -69,6 +69,10 @@ const CellSchema = z.object({
     .nullish(),
   record: RecordSchema,
   record_price: RecordSchema,
+  // The game as the pre-season model had it (the Table's Predicted view). Absent from payloads published before it.
+  opening: z
+    .object({ win: probability, draw: probability, loss: probability, xg_for: z.number().min(0), xg_against: z.number().min(0) })
+    .nullish(),
 });
 
 const LensScaleSchema = z.object({ cuts: z.array(z.number()).length(4), higher_is_easier: z.boolean() });

@@ -192,7 +192,8 @@ test("the table card switches to the predicted table and opens the full table", 
   const points = (await card.locator(".list-rows .list-num").allTextContents()).map(Number);
   expect(points).toEqual([...points].sort((a, b) => b - a));
   await card.getByRole("button", { name: "Full table" }).click();
-  await expect(page.getByRole("heading", { level: 2, name: "Predicted final table" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "LaLiga table" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Chances to" }).getByRole("button", { name: "Season end" })).toHaveAttribute("aria-pressed", "true");
 });
 
 test("the grid's lens and horizon are kept in the URL", async ({ page }) => {
@@ -348,7 +349,7 @@ test("old links from when the board lived at / open its new pages", async ({ pag
   await expect(page.locator(".toolbar .range")).toHaveText(`GW${openingMatchday + 2} – GW${openingMatchday + 6}`);
   await page.goto("/?view=table&t=predicted");
   await expect(page).toHaveURL(/\/table\?t=predicted$/);
-  await expect(page.getByRole("heading", { level: 2, name: "Predicted final table" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "LaLiga table" })).toBeVisible();
 });
 
 test("the Fixtures tab lists the selected gameweek, results included", async ({ page }) => {
@@ -367,51 +368,68 @@ test("the Fixtures tab lists the selected gameweek, results included", async ({ 
   await expect(page.locator(".ll-g .when span").first()).toHaveText(/^\d+–\d+$/);
 });
 
-test("the Table tab shows the standings and a predicted final table", async ({ page }) => {
+test("the Table tab reads the season three ways, by venue, with chances and each club's next game", async ({ page }) => {
   await page.goto("/difficulty");
   await page.locator(".lens").getByRole("link", { name: "Table" }).click();
   await expect(page.getByRole("heading", { level: 2, name: "LaLiga table" })).toBeVisible();
   const rows = page.locator("table.standings tbody tr");
   await expect(rows).toHaveCount(grid.teams.length);
-  const points = (await page.locator("table.standings tbody td.strong").allTextContents()).map(Number);
+  const column = async (name: string) => {
+    const index = (await page.locator("table.standings thead tr:last-child th").allTextContents()).indexOf(name);
+    return page.locator(`table.standings tbody tr > :nth-child(${index + 1})`).allTextContents();
+  };
+  const points = (await column("Pts")).map(Number);
   expect(points).toEqual([...points].sort((a, b) => b - a));
+  // Every club's next game names an opponent and its difficulty.
+  expect((await column("Next")).every((text) => grid.teams.some((team) => text.includes(team.name)))).toBe(true);
+  expect((await column("FDR")).every((text) => /^\d+/.test(text))).toBe(true);
+  const actualTitle = await column("Title");
 
-  await page.getByRole("group", { name: "Table" }).getByRole("button", { name: "End of season" }).click();
-  await expect(page).toHaveURL(/t=predicted/);
-  await expect(page.getByRole("heading", { level: 2, name: "Predicted final table" })).toBeVisible();
-  await expect(page.locator("table.standings.predicted tbody tr")).toHaveCount(grid.teams.length);
-  const projected = (await page.locator("table.standings.predicted tbody td.strong").allTextContents()).map(Number);
-  expect(projected).toEqual([...projected].sort((a, b) => b - a));
-  const now = (await page.locator("table.standings.predicted tbody tr td:nth-child(4)").allTextContents()).map(Number); // Pts won so far
-  projected.forEach((value, i) => expect(value).toBeGreaterThanOrEqual(now[i]!));
+  // Expected: ranked by its own points, and its chances are not the real table's.
+  const which = page.getByRole("group", { name: "Which table" });
+  await which.getByRole("button", { name: "Expected" }).click();
+  await expect(page).toHaveURL(/tm=expected/);
+  await expect(page.getByRole("heading", { level: 2, name: "Expected table" })).toBeVisible();
+  const expected = (await column("xPts")).map(Number);
+  expect(expected).toEqual([...expected].sort((a, b) => b - a));
+  expect(await column("Title")).not.toEqual(actualTitle);
 
+  // Predicted: the season before a ball was kicked, from the committed projection.
+  await which.getByRole("button", { name: "Predicted" }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "Predicted table" })).toBeVisible();
+  const predicted = (await column("xPts")).map(Number);
+  expect(predicted).toEqual([...predicted].sort((a, b) => b - a));
+  expect(predicted).not.toEqual(expected);
   await page.reload();
-  await expect(page.getByRole("heading", { level: 2, name: "Predicted final table" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Predicted table" })).toBeVisible();
 
-  // After the round in play: the projection stops at the end of that round.
-  await page.getByRole("group", { name: "Table" }).getByRole("button", { name: `After round ${openingMatchday}` }).click();
+  // Home only: about half the season's points, and the switch stays in the link.
+  await page.getByRole("group", { name: "Games counted" }).getByRole("button", { name: "Home" }).click();
+  await expect(page).toHaveURL(/v=home/);
+  await expect(page.getByRole("heading", { level: 2, name: /Predicted table · home games/ })).toBeVisible();
+  const home = (await column("xPts")).map(Number);
+  expect(Math.max(...home)).toBeLessThan(Math.max(...predicted));
+
+  // The chances can stop at the end of the round in play.
+  await page.getByRole("group", { name: "Chances to" }).getByRole("button", { name: `After GW${openingMatchday}` }).click();
   await expect(page).toHaveURL(/t=after/);
-  await expect(page.getByRole("heading", { level: 2, name: `Projected table after GW${openingMatchday}` })).toBeVisible();
+  await expect(page.locator(".lt-group").first()).toHaveText(`Chances after GW${openingMatchday}`);
 });
 
 test("the Table tab walks back and forward a gameweek at a time, and charts the season", async ({ page }) => {
   const past = openingMatchday - 2; // fully played
   await page.goto("/table");
-  // Both modes share one skeleton: the same columns, so nothing shifts when the toggle flips.
-  const headers = () => page.locator("table.standings thead th");
-  const width = async () => (await page.locator("table.standings thead th").first().boundingBox())!.width;
-  await expect(headers()).toHaveCount(10);
+  // Every reading shares one skeleton: the same columns, so nothing shifts when the switch flips.
+  const headers = () => page.locator("table.standings thead tr:last-child th");
+  const width = async () => (await headers().first().boundingBox())!.width;
+  await expect(headers()).toHaveText(["#", "Club", "P", "W", "D", "L", "Goals", "GD", "Pts", "Form", "xPts", "xGD", "Title", "UCL", "UEL", "UECLQ", "REL", "Next", "FDR"]);
   const currentWidth = await width();
-  await page.getByRole("group", { name: "Table" }).getByRole("button", { name: "End of season" }).click();
-  await expect(headers()).toHaveCount(10);
+  await page.getByRole("group", { name: "Which table" }).getByRole("button", { name: "Expected" }).click();
+  await expect(headers()).toHaveCount(19);
   expect(await width()).toBeCloseTo(currentWidth, 0);
-  await expect(headers().nth(5)).toHaveText("xPts");
-  await expect(headers().nth(6)).toHaveText("xGD");
 
-  // Stepping back stops the projection at that gameweek.
-  await page.goto(`/table?t=after&gw=${past}`);
-  await expect(page.getByRole("heading", { level: 2, name: `Projected table after GW${past}` })).toBeVisible();
-  await page.getByRole("group", { name: "Table" }).getByRole("button", { name: "Now" }).click();
+  // Stepping back shows the real table as it stood then.
+  await page.goto(`/table?gw=${past}`);
   await expect(page.getByRole("heading", { level: 2, name: `Table after GW${past}` })).toBeVisible();
 
   // The chart: Europe by default, one solid and one dashed line per club shown, and the crest at the end.
@@ -443,7 +461,7 @@ test("the Table tab walks back and forward a gameweek at a time, and charts the 
 
   // The (i) button holds the zone and prediction switches, and the key the heading used to carry.
   await expect(page.locator(".progression .insight-meta")).toHaveCount(0);
-  const zonesDrawn = () => chart.locator("rect[opacity='0.07']");
+  const zonesDrawn = () => chart.locator("rect[fill^='url(#zone-']");
   await expect(zonesDrawn()).toHaveCount(4);
   await expect(chart.locator("path[stroke-dasharray='1 5']")).toHaveCount(6);
   await page.getByRole("button", { name: "Chart options" }).click();
@@ -666,7 +684,7 @@ test("the board has no automatically detectable accessibility violations", async
     [`/difficulty?gw=${openingMatchday - 2}`, ".gw-score"],
     ["/fixtures", ".ll-g"],
     ["/table", "table.standings tbody tr"],
-    ["/table?t=predicted", "table.standings.predicted tbody tr"],
+    ["/table?tm=predicted", "table.standings.predicted tbody tr"],
   ] as const) {
     await page.goto(path);
     await expect(page.locator(ready).first()).toBeVisible();

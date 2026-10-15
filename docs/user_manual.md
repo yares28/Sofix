@@ -181,9 +181,14 @@ are fitted from fair 1X2 plus totals prices; they are implied probabilities, not
 
 ![Current and predicted LaLiga tables](images/table.png)
 
-Season → Table switches between **Now** (played games), **After round N** (played points plus the expected points of
-every game up to the end of the week's round) and **End of season** (the projection to the last round, with title, top
-four and relegation chances); the address keeps the choice (`?t=after`, `?t=predicted`).
+Season → Table has three switches, all kept in the address. **Actual / Expected / Predicted** (`?tm=`): Actual is the
+real table, its chances adding the games left at today's forecasts to the points won; Expected plays every game,
+played or not, at the strength the model gives each club today (it is refitted after every result, so a club that
+loses eight in a row drops and climbs back when it wins); Predicted is the same at the strength the model gave each
+club before the season, saved once and never changed. **Total / Home / Away** (`?v=`) counts only those games in the
+table and xPts; the chances stay those of the full league table. **Season end / After GW N** (`?t=after`) stops the
+chances at the week's round. Each row shows xPts, xGD and the chances of the title, UCL (top four), UEL (fifth), UECLQ
+(sixth, the Conference League play-off) and relegation, then the club's next game with its difficulty (FDR).
 
 The left/current table stops after the selected LaLiga GW. Its ordering applies LaLiga head-to-head only after both
 mutual matches have been played, then goal difference and goals scored. Early in a season, that can differ from a

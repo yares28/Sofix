@@ -38,9 +38,9 @@ const LINE = "#e8e8ed";
 
 // The same zone colours the table uses (globals.css .zone-*), as flat fills behind the lines.
 const ZONES = [
-  { from: 1, to: 4, fill: "#0071e3", label: "Champions League" },
-  { from: 5, to: 5, fill: "#f29d38", label: "Europa League" },
-  { from: 6, to: 6, fill: "#34c759", label: "Conference League" },
+  { from: 1, to: 4, fill: "#0071e3", label: "Champions League", short: "UCL" },
+  { from: 5, to: 5, fill: "#f29d38", label: "Europa League", short: "UEL" },
+  { from: 6, to: 6, fill: "#34c759", label: "Conference League", short: "UECL" },
 ] as const;
 const RELEGATION = "#c4312a";
 const PICKER_WIDTH = 260; // keep in step with .club-picker-panel in globals.css
@@ -48,7 +48,7 @@ const PICKER_WIDTH = 260; // keep in step with .club-picker-panel in globals.css
 const THEME = {
   text: { fontSize: 11, fill: INK_2, fontFamily: "inherit" },
   axis: { ticks: { line: { stroke: "transparent" }, text: { fontSize: 11, fill: INK_2 } } },
-  grid: { line: { stroke: LINE, strokeWidth: 1 } },
+  grid: { line: { stroke: LINE, strokeWidth: 1, strokeDasharray: "2 4" } },
   crosshair: { line: { stroke: INK_2, strokeWidth: 1, strokeOpacity: 0.4, strokeDasharray: "3 3" } },
 };
 
@@ -185,7 +185,7 @@ export default function TableProgression({ grid, through }: { grid: FixtureGrid;
               data={series}
               theme={THEME}
               colors={(serie) => serie.color}
-              margin={{ top: 14, right: 64, bottom: 34, left: 30 }}
+              margin={{ top: 28, right: 64, bottom: 36, left: 32 }}
               xScale={{ type: "linear", min: fromGw, max: toGw }}
               yScale={{ type: "linear", min: 1, max: size, reverse: true }}
               curve="monotoneX"
@@ -403,12 +403,30 @@ function Zones({ yScale, innerWidth, size }: LayerProps & { size: number }) {
     const bottom = yScale((to + 0.5) as never);
     return { y: Math.min(top, bottom), height: Math.abs(bottom - top) };
   };
-  const bands = [...ZONES.map((band) => ({ ...band })), { from: size - 2, to: size, fill: "#c4312a", label: "Relegation" }];
+  const bands = [
+    ...ZONES.map((band) => ({ ...band })),
+    { from: size - 2, to: size, fill: RELEGATION, label: "Relegation", short: "REL" },
+  ];
   return (
     <g>
+      <defs>
+        {bands.map((band) => (
+          <linearGradient key={band.label} id={`zone-${band.short}`} x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0" stopColor={band.fill} stopOpacity={0.13} />
+            <stop offset="1" stopColor={band.fill} stopOpacity={0.03} />
+          </linearGradient>
+        ))}
+      </defs>
       {bands.map((band) => {
         const { y, height } = row(band.from, band.to);
-        return <rect key={band.label} x={0} y={y} width={innerWidth} height={height} fill={band.fill} opacity={0.07} />;
+        return (
+          <g key={band.label}>
+            <rect x={0} y={y} width={innerWidth} height={height} rx={6} fill={`url(#zone-${band.short})`} />
+            <text x={8} y={y + height / 2} textAnchor="start" dominantBaseline="central" fontSize={11} fontWeight={650} fill={band.fill} opacity={0.75}>
+              {band.short}
+            </text>
+          </g>
+        );
       })}
     </g>
   );
@@ -436,8 +454,11 @@ function NowMarker({
       )}
       {inside(gameweek) && (
         <g>
-          <line x1={xScale(gameweek as never)} x2={xScale(gameweek as never)} y1={0} y2={innerHeight} stroke={INK_2} strokeWidth={1} strokeDasharray="3 3" opacity={0.55} />
-          <text x={xScale(gameweek as never) + 4} y={10} fontSize={10} fill={INK_2}>played to here</text>
+          <line x1={xScale(gameweek as never)} x2={xScale(gameweek as never)} y1={0} y2={innerHeight} stroke="#1d1d1f" strokeWidth={1} strokeDasharray="3 3" opacity={0.35} />
+          <g transform={`translate(${xScale(gameweek as never)}, -14)`}>
+            <rect x={-30} y={-9} width={60} height={18} rx={9} fill="#1d1d1f" />
+            <text textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={600} fill="#fff">played</text>
+          </g>
         </g>
       )}
     </g>
@@ -449,9 +470,10 @@ function Lines({ series, lineGenerator }: LayerProps) {
   const lit = series.filter((serie) => !serie.dim).length;
   const width = lit > 16 ? 1.8 : 2.4;
   return (
-    <g>
+    <g className="pl-lines">
       {series.map((serie) => (
         <path
+          className={serie.dim || serie.phase === "opening" ? undefined : "pl-lit"}
           key={String(serie.id)}
           d={lineGenerator(serie.data.map((datum) => datum.position)) ?? undefined}
           fill="none"
@@ -510,7 +532,7 @@ function Crests({ series, clubs, innerHeight }: LayerProps & { clubs: Map<string
               <path d={`M${x},${y}L${x + 7},${labelY}`} stroke={club.team.color} strokeWidth={1} fill="none" opacity={0.5} />
             )}
             <g transform={`translate(${x + 14}, ${labelY})`}>
-              <circle r={size / 2 + 2.5} fill="#fff" stroke={LINE} />
+              <circle r={size / 2 + 3} fill="#fff" stroke={LINE} className="pl-disc" />
               {src ? (
                 <image href={src} x={-size / 2} y={-size / 2} width={size} height={size} preserveAspectRatio="xMidYMid meet" />
               ) : (

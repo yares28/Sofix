@@ -49,6 +49,14 @@ describe("GridResponseSchema", () => {
     expect(GridResponseSchema.safeParse({ success: false, data: null, error: "No fixtures yet.", meta: null }).success).toBe(true);
   });
 
+  it("keeps each game's pre-season chances, which the Table's Predicted view reads", () => {
+    const p = payload();
+    const opening = { win: 0.61, draw: 0.22, loss: 0.17, xg_for: 1.9, xg_against: 0.9 };
+    Object.assign(p.data.teams[0]!.cells[0]![0]!, { opening });
+    const parsed = GridResponseSchema.parse(p);
+    expect(parsed.data?.teams[0]?.cells[0]?.[0]?.opening).toEqual(opening);
+  });
+
   it.each([
     ["an out-of-range bucket", (p: ReturnType<typeof payload>) => { p.data.teams[0]!.cells[0]![0]!.prediction.bucket = 7; }],
     ["a crest from another host", (p: ReturnType<typeof payload>) => { p.data.teams[0]!.crest_url = "https://evil.example/x.png"; }],

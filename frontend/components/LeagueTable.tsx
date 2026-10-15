@@ -2,11 +2,12 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useMemo } from "react";
-import { openingColumn, type TableMode } from "../lib/grid";
+import { useLayoutEffect, useMemo, useRef } from "react";
+import { formatDay, formatShortKickoff, openingColumn, type TableMode } from "../lib/grid";
 import { scoreColour } from "../lib/cards";
-import { currentTable, predictedTable, zone, type Outcome } from "../lib/table";
-import type { FixtureGrid } from "../lib/types";
+import { hasPredicted, nextGame, standings, type Split, type StandingMode, type StandingRow } from "../lib/standings";
+import { zone, type Outcome } from "../lib/table";
+import type { FixtureGrid, GridTeam } from "../lib/types";
 import Crest from "./Crest";
 import SegmentedControl from "./SegmentedControl";
 // The chart pulls in a charting library: only the Table tab should pay for it, and only in the browser.
@@ -17,157 +18,139 @@ const TableProgression = dynamic(() => import("./TableProgression"), {
 
 interface Props {
   grid: FixtureGrid;
-  through: number | null; // a gameweek picked by hand: results up to it, projection stopped there. null = all
-  mode: TableMode;
+  through: number | null; // a gameweek picked by hand: the real table up to it. null = every result
+  mode: TableMode; // "after" stops the chances at the week's round; anything else runs to the season's end
   onMode: (mode: TableMode) => void;
+  standing: StandingMode;
+  onStanding: (standing: StandingMode) => void;
+  split: Split;
+  onSplit: (split: Split) => void;
 }
 
 const OUTCOME_WORD: Record<Outcome, string> = { W: "won", D: "drew", L: "lost" };
 const pct = (value: number) => (value >= 0.995 ? ">99%" : value > 0 && value < 0.005 ? "<1%" : `${Math.round(value * 100)}%`);
 
-export default function LeagueTable({ grid, through, mode, onMode }: Props) {
+const TITLES: Record<StandingMode, string> = { actual: "LaLiga table", expected: "Expected table", predicted: "Predicted table" };
+const SUBTITLES: Record<StandingMode, string> = {
+  actual: "Points won so far. The chances add the games left at today's forecasts, over 5,000 played-out seasons.",
+  expected: "Every game, played or not, at the strength the model gives each club today. It moves with form.",
+  predicted: "The model's season before a ball was kicked. It never changes.",
+};
+const SPLIT_WORD: Record<Split, string> = { total: "", home: " · home games", away: " · away games" };
+
+export default function LeagueTable({ grid, through, mode, onMode, standing, onStanding, split, onSplit }: Props) {
   const last = grid.matchdays.length - 1;
-  // "After" projects to the end of the week's round (the one picked, else the one in play); "End of season" to the last.
   const round = through ?? openingColumn(grid);
-  const stop = mode === "after" ? round : mode === "predicted" ? null : through;
-  const atEnd = stop === null || stop >= last;
-  const gameweek = stop === null ? undefined : grid.matchdays[stop];
-  const current = useMemo(() => currentTable(grid, through ?? undefined), [grid, through]);
-  // Only simulate when a projected table is actually shown (5,000 seasons ≈ tens of ms).
-  const predicted = useMemo(
-    () => (mode !== "current" ? predictedTable(grid, atEnd ? {} : { through: stop }) : []),
-    [grid, mode, stop, atEnd],
-  );
-  const size = current.length;
-  // The bars of the projected table share one scale: the most points any club is expected to end on.
-  const maxPoints = Math.max(...predicted.map((row) => row.projectedPoints), 1);
-  const when = gameweek ? `GW${gameweek.number}` : "now";
+  const afterRound = mode === "after" && round < last;
+  const stop = afterRound ? round : null;
+  const predictedReady = useMemo(() => hasPredicted(grid), [grid]);
+  const shown: StandingMode = standing === "predicted" && !predictedReady ? "actual" : standing;
+  const rows = useMemo(() => standings(grid, { mode: shown, split, through, stop }), [grid, shown, split, through, stop]);
+  const teams = useMemo(() => new Map(grid.teams.map((team) => [team.code, team])), [grid]);
+  const size = rows.length;
+  const maxPoints = Math.max(...rows.map((row) => Math.max(row.xPts, row.points)), 1);
+  const gameweek = through === null ? undefined : grid.matchdays[through];
+  const roundNumber = grid.matchdays[round]?.number;
+  const by = afterRound ? `after GW${roundNumber}` : "at the end of the season";
+  const body = useReorder(rows.map((row) => row.team.code).join());
 
   return (
-    <section className="card league" aria-labelledby="table-title">
-      <header className="section-head">
-        <div>
+    <section className="card league lt" aria-labelledby="table-title">
+      <header className="lt-head">
+        <div className="lt-title">
           <h2 id="table-title">
-            {mode === "current" ? tableTitle(gameweek) : atEnd ? "Predicted final table" : `Projected table after ${when}`}
+            {shown === "actual" ? tableTitle(gameweek) : TITLES[shown]}
+            <span className="lt-split">{SPLIT_WORD[split]}</span>
           </h2>
-          <div className="insight-meta">
-            {mode === "current"
-              ? `${gameweek ? `Games played up to ${when}` : "Played games only"}. Ties: head-to-head once both games are played, then goal difference, then goals.`
-              : `Points won so far plus expected points from every fixture ${atEnd ? "still to play" : `up to ${when}`}. Chances from 5,000 simulated seasons. The gameweek arrows at the top walk it forward.`}
-          </div>
+          <p className="insight-meta">
+            {standing === "predicted" && !predictedReady
+              ? "The pre-season prediction arrives with the next data refresh. Showing the real table until then."
+              : SUBTITLES[shown]}
+          </p>
         </div>
-        <SegmentedControl<TableMode>
-          label="Table"
-          value={mode}
-          onChange={onMode}
-          options={[
-            { value: "current", label: "Now" },
-            ...(round < last ? [{ value: "after" as const, label: `After round ${grid.matchdays[round]?.number}` }] : []),
-            { value: "predicted", label: "End of season" },
-          ]}
-        />
+        <div className="lt-controls">
+          <SegmentedControl<StandingMode>
+            label="Which table"
+            value={standing}
+            onChange={onStanding}
+            options={[
+              { value: "actual", label: "Actual" },
+              { value: "expected", label: "Expected" },
+              { value: "predicted", label: "Predicted" },
+            ]}
+          />
+          <SegmentedControl<Split>
+            label="Games counted"
+            value={split}
+            onChange={onSplit}
+            options={[
+              { value: "total", label: "Total" },
+              { value: "home", label: "Home" },
+              { value: "away", label: "Away" },
+            ]}
+          />
+          {round < last && (
+            <SegmentedControl<TableMode>
+              label="Chances to"
+              value={afterRound ? "after" : "current"}
+              onChange={onMode}
+              options={[
+                { value: "current", label: "Season end" },
+                { value: "after", label: `After GW${roundNumber}` },
+              ]}
+            />
+          )}
+        </div>
       </header>
 
       <div className="table-scroll">
-        {/* Both modes share this skeleton, so nothing shifts when the toggle flips. */}
-        <table className={`standings ${mode === "current" ? "current" : "predicted"}`}>
+        <table className={`standings lt-table ${shown}`}>
           <caption className="visually-hidden">
-            {mode === "current" ? `LaLiga ${grid.season} standings from played games` : `Projected LaLiga ${grid.season} table`}
+            {`${TITLES[shown]}, LaLiga ${grid.season}${SPLIT_WORD[split]}, with each club's chances ${by} and its next game`}
           </caption>
-          <colgroup>
-            <col className="col-pos" />
-            <col className="col-club" />
-            <col span={7} className="col-num" />
-            <col className="col-last" />
-          </colgroup>
           <thead>
-            {mode === "current" ? (
-              <tr>
-                <th scope="col" className="num pos">#</th>
-                <th scope="col" className="club">Club</th>
-                <th scope="col" className="num"><abbr title="Played">P</abbr></th>
-                <th scope="col" className="num"><abbr title="Won">W</abbr></th>
-                <th scope="col" className="num"><abbr title="Drawn">D</abbr></th>
-                <th scope="col" className="num"><abbr title="Lost">L</abbr></th>
-                <th scope="col" className="num wide"><abbr title="Goals for and against">Goals</abbr></th>
-                <th scope="col" className="num"><abbr title="Goal difference">GD</abbr></th>
-                <th scope="col" className="num strong"><abbr title="Points">Pts</abbr></th>
-                <th scope="col" className="form-col">Form</th>
-              </tr>
-            ) : (
-              <tr>
-                <th scope="col" className="num pos">#</th>
-                <th scope="col" className="club">Club</th>
-                <th scope="col" className="num"><abbr title="Played">P</abbr></th>
-                <th scope="col" className="num"><abbr title="Points won so far">Pts</abbr></th>
-                <th scope="col" className="track-col">Now, and still to come</th>
-                <th scope="col" className="num strong">
-                  <abbr title="Expected points: won so far plus what the forecast expects from the games to come">xPts</abbr>
-                </th>
-                <th scope="col" className="num"><abbr title="Expected goal difference, from expected goals">xGD</abbr></th>
-                <th scope="col" className="num">
-                  <abbr title={atEnd ? "Chance of finishing first" : `Chance of leading after ${when}`}>1st</abbr>
-                </th>
-                <th scope="col" className="num">
-                  <abbr title={atEnd ? "Chance of finishing in the top four" : `Chance of being in the top four after ${when}`}>Top 4</abbr>
-                </th>
-                <th scope="col" className="num">
-                  <abbr title={atEnd ? "Chance of being relegated" : `Chance of being in the bottom three after ${when}`}>Down</abbr>
-                </th>
-              </tr>
-            )}
+            <tr className="lt-groups" aria-hidden="true">
+              <th colSpan={10} />
+              <th colSpan={7} className="lt-group">Chances {by}</th>
+              <th colSpan={2} className="lt-group">Next game</th>
+            </tr>
+            <tr>
+              <th scope="col" className="num pos">#</th>
+              <th scope="col" className="club">Club</th>
+              <th scope="col" className="num"><abbr title="Played">P</abbr></th>
+              <th scope="col" className="num"><abbr title="Won">W</abbr></th>
+              <th scope="col" className="num"><abbr title="Drawn">D</abbr></th>
+              <th scope="col" className="num"><abbr title="Lost">L</abbr></th>
+              <th scope="col" className="num wide"><abbr title="Goals for and against">Goals</abbr></th>
+              <th scope="col" className="num"><abbr title="Goal difference">GD</abbr></th>
+              <th scope="col" className="num strong"><abbr title="Points">Pts</abbr></th>
+              <th scope="col" className="form-col">Form</th>
+              <th scope="col" className="num xpts lt-start">
+                <abbr title={`Expected points ${by}${SPLIT_WORD[split] ? `, ${split} games only` : ""}`}>xPts</abbr>
+              </th>
+              <th scope="col" className="num"><abbr title="Expected goal difference">xGD</abbr></th>
+              <th scope="col" className="num"><abbr title={`Chance of finishing first ${by}`}>Title</abbr></th>
+              <th scope="col" className="num"><abbr title={`Chance of a Champions League place (top four) ${by}`}>UCL</abbr></th>
+              <th scope="col" className="num"><abbr title={`Chance of the Europa League place (fifth) ${by}`}>UEL</abbr></th>
+              <th scope="col" className="num"><abbr title={`Chance of the Conference League play-off place (sixth) ${by}`}>UECLQ</abbr></th>
+              <th scope="col" className="num"><abbr title={`Chance of relegation (bottom three) ${by}`}>REL</abbr></th>
+              <th scope="col" className="next-col lt-start">Next</th>
+              <th scope="col" className="num"><abbr title="Fixture difficulty of the next game: lower is kinder">FDR</abbr></th>
+            </tr>
           </thead>
-          <tbody>
-            {mode === "current"
-              ? current.map((row) => {
-                  const z = zone(row.position, size);
-                  return (
-                    <tr key={row.team.code} className={z?.className}>
-                      <Position position={row.position} zoneLabel={z?.label} />
-                      <th scope="row" className="club"><ClubLink team={row.team} /></th>
-                      <td className="num">{row.played}</td>
-                      <td className="num">{row.won}</td>
-                      <td className="num">{row.drawn}</td>
-                      <td className="num">{row.lost}</td>
-                      <td className="num wide">{row.goalsFor}–{row.goalsAgainst}</td>
-                      <td className="num">{signed(row.goalDifference)}</td>
-                      <td className="num strong">{row.points}</td>
-                      <td className="form-col">
-                        <span className="form">
-                          {row.form.map((outcome, i) => (
-                            <span key={i} className={`form-chip ${outcome}`} aria-hidden="true">{outcome}</span>
-                          ))}
-                          <span className="visually-hidden">
-                            Last {row.form.length}: {row.form.map((o) => OUTCOME_WORD[o]).join(", ") || "no games"}
-                          </span>
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })
-              : predicted.map((row) => {
-                  const z = zone(row.position, size);
-                  const move = row.currentPosition - row.position;
-                  return (
-                    <tr key={row.team.code} className={z?.className}>
-                      <Position position={row.position} zoneLabel={z?.label} move={move} from={row.currentPosition} />
-                      <th scope="row" className="club"><ClubLink team={row.team} /></th>
-                      <td className="num">{row.played}</td>
-                      <td className="num">{row.points}</td>
-                      <td className="track-col">
-                        <span className="st-track" role="img" aria-label={`${row.points} points now, ${row.projectedPoints.toFixed(1)} expected after ${row.remaining} more games`}>
-                          <i className="now" style={{ width: `${(row.points / maxPoints) * 100}%` }} />
-                          <i className="come" style={{ width: `${(row.projectedPoints / maxPoints) * 100}%` }} />
-                        </span>
-                      </td>
-                      <td className="num strong">{row.projectedPoints.toFixed(1)}</td>
-                      <td className="num">{signed(Math.round(row.projectedGoalDifference))}</td>
-                      <td className="num"><Chance value={row.title} /></td>
-                      <td className="num"><Chance value={row.top4} /></td>
-                      <td className="num"><Chance value={row.relegation} bad /></td>
-                    </tr>
-                  );
-                })}
+          <tbody ref={body}>
+            {rows.map((row, i) => (
+              <Row
+                key={row.team.code}
+                row={row}
+                size={size}
+                index={i}
+                moves={shown !== "actual"}
+                maxPoints={maxPoints}
+                banked={shown === "actual"}
+                teams={teams}
+              />
+            ))}
           </tbody>
         </table>
       </div>
@@ -175,7 +158,7 @@ export default function LeagueTable({ grid, through, mode, onMode }: Props) {
       <ul className="zone-key" aria-label="Table colours">
         <li className="zone-ucl">Champions League</li>
         <li className="zone-uel">Europa League</li>
-        <li className="zone-uecl">Conference League</li>
+        <li className="zone-uecl">Conference League play-off</li>
         <li className="zone-rel">Relegation</li>
       </ul>
 
@@ -184,12 +167,119 @@ export default function LeagueTable({ grid, through, mode, onMode }: Props) {
   );
 }
 
+function Row({
+  row, size, index, moves, maxPoints, banked, teams,
+}: {
+  row: StandingRow;
+  size: number;
+  index: number;
+  moves: boolean;
+  maxPoints: number;
+  banked: boolean;
+  teams: Map<string, GridTeam>;
+}) {
+  const z = zone(row.position, size);
+  const move = row.actualPosition - row.position;
+  const next = nextGame(row.team);
+  const opponent = next ? teams.get(next.opponent_code) : undefined;
+  return (
+    <tr data-code={row.team.code} className={z?.className} style={{ ["--i" as string]: index }}>
+      <Position position={row.position} zoneLabel={z?.label} move={moves ? move : undefined} from={row.actualPosition} />
+      <th scope="row" className="club"><ClubLink team={row.team} /></th>
+      <td className="num">{row.played}</td>
+      <td className="num">{row.won}</td>
+      <td className="num">{row.drawn}</td>
+      <td className="num">{row.lost}</td>
+      <td className="num wide">{row.goalsFor}–{row.goalsAgainst}</td>
+      <td className="num">{signed(row.goalDifference)}</td>
+      <td className="num strong">{row.points}</td>
+      <td className="form-col">
+        <span className="form">
+          {row.form.map((outcome, i) => (
+            <span key={i} className={`form-chip ${outcome}`} aria-hidden="true">{outcome}</span>
+          ))}
+          <span className="visually-hidden">
+            Last {row.form.length}: {row.form.map((o) => OUTCOME_WORD[o]).join(", ") || "no games"}
+          </span>
+        </span>
+      </td>
+      <td className="num xpts lt-start">
+        <span className="lt-xpts">
+          <span className="st-track" aria-hidden="true">
+            {banked && <i className="now" style={{ width: `${(row.points / maxPoints) * 100}%` }} />}
+            <i className="come" style={{ width: `${(row.xPts / maxPoints) * 100}%` }} />
+          </span>
+          <b>{row.xPts.toFixed(1)}</b>
+        </span>
+      </td>
+      <td className="num">{signed(Math.round(row.xGD))}</td>
+      <td className="num"><Chance value={row.title} /></td>
+      <td className="num"><Chance value={row.ucl} /></td>
+      <td className="num"><Chance value={row.uel} /></td>
+      <td className="num"><Chance value={row.uecl} /></td>
+      <td className="num"><Chance value={row.rel} bad /></td>
+      <td className="next-col lt-start">
+        {next && opponent ? (
+          <Link href={`/team/${opponent.code}`} prefetch={false} className="lt-next">
+            <Crest team={opponent} size={20} />
+            <span className="lt-next-text">
+              <span className="lt-next-name">
+                <span className={`lt-venue ${next.venue}`} aria-hidden="true">{next.venue}</span>
+                <span className="visually-hidden">{next.venue === "H" ? "at home to" : "away to"}</span>
+                {opponent.name}
+              </span>
+              <small>{next.date_confirmed ? `${formatShortKickoff(next.kickoff_utc)} · ${formatDay(next.kickoff_utc)}` : `${formatDay(next.kickoff_utc)} · Date TBC`}</small>
+            </span>
+          </Link>
+        ) : (
+          <span className="muted">Season over</span>
+        )}
+      </td>
+      <td className="num">
+        {next?.prediction ? (
+          <span className={`difficulty-chip lt-fdr f${next.prediction.bucket}`} title={next.prediction.label}>
+            {Math.round(next.prediction.difficulty)}
+            <span className="visually-hidden">, {next.prediction.label}</span>
+          </span>
+        ) : (
+          <span className="muted">–</span>
+        )}
+      </td>
+    </tr>
+  );
+}
+
+/**
+ * Rows glide to their new place when the table is re-ranked (another reading, split or gameweek), so the eye can
+ * follow a club. FLIP: measure before, measure after, animate the difference. Nothing moves under reduced motion.
+ */
+function useReorder(order: string) {
+  const ref = useRef<HTMLTableSectionElement>(null);
+  const tops = useRef(new Map<string, number>());
+  useLayoutEffect(() => {
+    const rows = [...(ref.current?.querySelectorAll<HTMLTableRowElement>("tr[data-code]") ?? [])];
+    const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    for (const row of rows) {
+      const code = row.dataset.code!;
+      const before = tops.current.get(code);
+      const now = row.offsetTop;
+      tops.current.set(code, now);
+      if (still || before === undefined || before === now) continue;
+      row.animate([{ transform: `translateY(${before - now}px)` }, { transform: "none" }], {
+        duration: 420,
+        easing: "cubic-bezier(.2,.8,.2,1)",
+      });
+    }
+  }, [order]);
+  return ref;
+}
+
 /** "Table after GW5" for a past gameweek that's done; "LaLiga table" otherwise. */
 export function tableTitle(gameweek: { number: number; finished: boolean } | undefined): string {
   return gameweek?.finished ? `Table after GW${gameweek.number}` : "LaLiga table";
 }
 
-/** The same cell in both modes, so the first column never changes width: the badge is simply empty in Current. */
+/** The badge is empty in Actual; elsewhere it says how far the club is from its real place. */
 function Position({ position, zoneLabel, move, from }: { position: number; zoneLabel?: string; move?: number; from?: number }) {
   return (
     <td className="num pos">
@@ -198,14 +288,14 @@ function Position({ position, zoneLabel, move, from }: { position: number; zoneL
         {move === undefined ? "" : move > 0 ? `▲${move}` : move < 0 ? `▼${-move}` : ""}
       </span>
       {move !== undefined && (
-        <span className="visually-hidden">{move ? `, ${Math.abs(move)} ${move > 0 ? "up" : "down"} from ${from}` : ", same as now"}</span>
+        <span className="visually-hidden">{move ? `, ${Math.abs(move)} ${move > 0 ? "above" : "below"} its real place, ${from}` : ", same as its real place"}</span>
       )}
       {zoneLabel && <span className="visually-hidden">, {zoneLabel}</span>}
     </td>
   );
 }
 
-function ClubLink({ team }: { team: FixtureGrid["teams"][number] }) {
+function ClubLink({ team }: { team: GridTeam }) {
   return (
     <Link href={`/team/${team.code}`} prefetch={false} className="club-link">
       <Crest team={team} size={22} />

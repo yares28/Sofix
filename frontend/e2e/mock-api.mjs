@@ -37,7 +37,28 @@ const sorare = { ...sorareFixture, data: moved(sorareFixture.data) };
 // planned week holds no round, and rounds 8 and 9 lie beyond Sorare's weeks (their early plans). With the grid left
 // where it was recorded, the Sorare weeks slid one day a day onto those rounds, and on 3 Oct 2026 the tests built on
 // that broke.
-const grid = { ...recorded, data: moved(recorded.data) };
+// The recording predates each game's pre-season chances (`opening`): added from the committed projection, as
+// services/fixture_grid.py does, so the Table's Predicted view has them.
+const projection = JSON.parse(readFileSync(new URL("../../backend/artifacts/opening_projection.json", import.meta.url), "utf8"));
+const withOpening = (data) => ({
+  ...data,
+  teams: data.teams.map((team) => ({
+    ...team,
+    cells: team.cells.map((column) => column.map((cell) => {
+      const home = cell.venue === "H";
+      const odds = projection.fixtures[home ? `${team.code}-${cell.opponent_code}` : `${cell.opponent_code}-${team.code}`];
+      if (!odds) return cell;
+      const [win, draw, loss, goalsHome, goalsAway] = odds;
+      return {
+        ...cell,
+        opening: home
+          ? { win, draw, loss, xg_for: goalsHome, xg_against: goalsAway }
+          : { win: loss, draw, loss: win, xg_for: goalsAway, xg_against: goalsHome },
+      };
+    })),
+  })),
+});
+const grid = { ...recorded, data: withOpening(moved(recorded.data)) };
 
 // Two LaLiga rounds Sorare has not opened get an early plan the job kept apart (`read_models` key `sorare_ahead:<round>`):
 // the week being planned, built again as an early plan for that round, with one plan.

@@ -13,6 +13,7 @@ from app.config import settings
 from app.models import Fixture, MarketOdds, Prediction, RefreshRun, Team
 from app.schemas import (
     CellMarket,
+    CellOpening,
     CellPrediction,
     CellRecord,
     CellResult,
@@ -33,7 +34,7 @@ from app.schemas import (
 from app.services.crests import safe_crest_url
 from app.services.market_odds import MarketLine, team_market
 from app.services.model_notes import MODEL_NOTES
-from app.services.opening_projection import load_opening_projection
+from app.services.opening_projection import OpeningProjection, load_opening_projection
 from app.services.postmortem import surprise_of
 from app.services.scoring import LABEL_THRESHOLDS, LABELS, difficulty_label, label_bucket
 from app.services.team_registry import by_code
@@ -169,6 +170,12 @@ def cell_review(pred: Prediction | None, result: CellResult | None) -> CellRevie
     )
 
 
+def opening_odds(opening: OpeningProjection | None, team: Team, opponent: Team, venue: Venue) -> CellOpening | None:
+    """The game as the pre-season model had it, for the Table's Predicted view."""
+    odds = opening.odds(team_code(team), team_code(opponent), venue) if opening else None
+    return CellOpening(**vars(odds)) if odds else None
+
+
 def cell_prediction(
     pred: Prediction, venue: Venue, strict: bool = True, code: str = "", rates: dict[str, float] | None = None
 ) -> CellPrediction:
@@ -267,6 +274,7 @@ def build_fixture_grid(db: Session) -> FixtureGrid | None:
     current = next((md.number for md in matchdays if not md.finished), None)
 
     decisive_rates = load_decisive_rates(settings.team_decisives_path)
+    opening = load_opening_projection(settings.opening_projection_path, season)
     cells: dict[int, list[list[GridCell]]] = {team_id: [[] for _ in numbers] for team_id in teams}
     for fx in fixtures:
         if fx.matchday is None:
@@ -312,10 +320,10 @@ def build_fixture_grid(db: Session) -> FixtureGrid | None:
                     market=cell_market(odds[fx.id], venue) if fx.id in odds and status == "scheduled" else None,
                     record=cell_record(pred, "record") if rated else None,
                     record_price=cell_record(pred, "record_price") if status == "scheduled" else None,
+                    opening=opening_odds(opening, teams[team_id], teams[opponent_id], venue),
                 )
             )
 
-    opening = load_opening_projection(settings.opening_projection_path, season)
     grid_teams = []
     for team_id, team in teams.items():
         if not any(cells[team_id]):

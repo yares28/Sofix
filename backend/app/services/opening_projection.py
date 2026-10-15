@@ -4,7 +4,8 @@ The board shows where a club is and where it is heading. Neither answers "is thi
 thought in August?", because the live model is re-fitted every refresh and has long since absorbed the
 results. This is the missing baseline: the same model, fitted only on matches played *before* the season's
 first kickoff, run over all 380 fixtures, and turned into the position each club would hold after every
-gameweek if every game went exactly to expectation.
+gameweek if every game went exactly to expectation. Each game's chances are kept too, for the Table's
+Predicted view (frontend/lib/standings.ts).
 
 It never changes within a season - the history before the cutoff is fixed - so it is built once by
 `python -m app.jobs.opening_projection`, written to `backend/artifacts/opening_projection.json` and
@@ -36,6 +37,17 @@ class OpeningFixture:
 
 
 @dataclass(frozen=True)
+class OpeningOdds:
+    """One side's pre-season chances for one game."""
+
+    win: float
+    draw: float
+    loss: float
+    xg_for: float
+    xg_against: float
+
+
+@dataclass(frozen=True)
 class OpeningProjection:
     """Projected position per club, one entry per matchday, from the pre-season fit."""
 
@@ -45,6 +57,19 @@ class OpeningProjection:
     positions: dict[str, list[int]]  # club code -> position after each matchday, in matchday order
     matchdays: list[int]
     points: dict[str, float]  # projected points over the whole season
+    # "HOME-AWAY" club codes -> home win, draw, away win, home goals, away goals, as the pre-season model had them
+    fixtures: dict[str, tuple[float, float, float, float, float]]
+
+    def odds(self, code: str, opponent: str, venue: str) -> OpeningOdds | None:
+        """One club's pre-season chances for a game, from its own side."""
+        home, away = (code, opponent) if venue == "H" else (opponent, code)
+        stored = self.fixtures.get(f"{home}-{away}")
+        if stored is None:
+            return None
+        win, draw, loss, goals_home, goals_away = stored
+        if venue == "H":
+            return OpeningOdds(win=win, draw=draw, loss=loss, xg_for=goals_home, xg_against=goals_away)
+        return OpeningOdds(win=loss, draw=draw, loss=win, xg_for=goals_away, xg_against=goals_home)
 
     def path(self, code: str, matchday_numbers: list[int]) -> list[int] | None:
         """The club's positions lined up with the gameweek columns the grid is serving."""
@@ -63,6 +88,7 @@ class OpeningProjection:
             "matchdays": self.matchdays,
             "positions": self.positions,
             "points": {code: round(value, 2) for code, value in self.points.items()},
+            "fixtures": {key: list(values) for key, values in self.fixtures.items()},
         }
 
 
@@ -86,7 +112,16 @@ def build_opening_projection(
     goals = dict.fromkeys(clubs, 0.0)  # expected goal difference, the tiebreak
 
     by_matchday: dict[int, list[tuple[str, str, float, float, float, float]]] = {}
+    chances: dict[str, tuple[float, float, float, float, float]] = {}
     for fixture, (_, row) in zip(fixtures, rows.iterrows(), strict=True):
+        if fixture.home in codes and fixture.away in codes:
+            chances[f"{codes[fixture.home]}-{codes[fixture.away]}"] = (
+                round(float(row["p_h"]), 4),
+                round(float(row["p_d"]), 4),
+                round(float(row["p_a"]), 4),
+                round(float(row["lam_h"]), 3),
+                round(float(row["lam_a"]), 3),
+            )
         home_points = float(expected_points(row["p_h"], row["p_d"]))
         away_points = float(expected_points(row["p_a"], row["p_d"]))
         margin = float(row["lam_h"]) - float(row["lam_a"])
@@ -115,6 +150,7 @@ def build_opening_projection(
         positions=positions,
         matchdays=matchdays,
         points={codes[club]: points[club] for club in clubs if club in codes},
+        fixtures=chances,
     )
 
 
@@ -134,6 +170,10 @@ def load_opening_projection(path: str | Path, season: str | None = None) -> Open
             positions={code: [int(value) for value in path_] for code, path_ in saved["positions"].items()},
             matchdays=[int(number) for number in saved["matchdays"]],
             points={code: float(value) for code, value in saved.get("points", {}).items()},
+            fixtures={
+                key: (float(a), float(b), float(c), float(d), float(e))
+                for key, (a, b, c, d, e) in saved.get("fixtures", {}).items()
+            },
         )
     except (KeyError, TypeError, ValueError):
         return None

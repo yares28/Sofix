@@ -534,8 +534,8 @@ const revived = new Set();
 
 /** Content scripts do not appear in a tab that was already open. Put them there, or reload the tab once so they do. */
 async function ensureBridge(tabId) {
-  const existing = await askTab(tabId, { type: "sofix-ping-8" }, 500);
-  if (existing?.ok && existing.version === 8) return true;
+  const existing = await askTab(tabId, { type: "sofix-ping-9" }, 500);
+  if (existing?.ok && existing.version === 9) return true;
   try {
     await chrome.scripting.executeScript({ target: { tabId }, files: ["core.js", "bridge.js"], world: "MAIN" });
     await chrome.scripting.executeScript({ target: { tabId }, files: ["core.js", "content.js", "overlay.js", "drawer.js"] });
@@ -562,14 +562,14 @@ async function ensureBridge(tabId) {
       chrome.tabs.onUpdated.addListener(onUpdated);
     });
     for (let i = 0; i < 8; i++) {
-      const answer = await askTab(tabId, { type: "sofix-ping-8" }, 400);
-      if (answer?.ok && answer.version === 8) return true;
+      const answer = await askTab(tabId, { type: "sofix-ping-9" }, 400);
+      if (answer?.ok && answer.version === 9) return true;
       await new Promise((resolve) => setTimeout(resolve, 300));
     }
     return false;
   }
-  const answer = await askTab(tabId, { type: "sofix-ping-8" }, 800);
-  return Boolean(answer?.ok && answer.version === 8);
+  const answer = await askTab(tabId, { type: "sofix-ping-9" }, 800);
+  return Boolean(answer?.ok && answer.version === 9);
 }
 
 async function sorareTabs() {
@@ -631,7 +631,7 @@ async function throughSorare(operation, variables) {
   const [tab] = await sorareTabs();
   if (!tab) return { state: "no-tab" };
   if (!(await ensureBridge(tab.id))) return { state: "no-bridge" };
-  const answer = await askTab(tab.id, { type: "sofix-ask-8", operation, variables }, 20000);
+  const answer = await askTab(tab.id, { type: "sofix-ask-9", operation, variables }, 20000);
   return answer ?? { state: "error" };
 }
 
@@ -641,7 +641,7 @@ async function lineupChances(game) {
   if (!tabs.length) return { state: "no-tab" };
   const answers = await Promise.all(tabs.slice(0, 8).map(async (tab) => {
     if (!(await ensureBridge(tab.id))) return null;
-    return askTab(tab.id, { type: "sofix-ask-8", operation: "SofixLineupChances", variables: { id: game } }, 2500);
+    return askTab(tab.id, { type: "sofix-ask-9", operation: "SofixLineupChances", variables: { id: game } }, 2500);
   }));
   const players = new Map();
   const now = Date.now();

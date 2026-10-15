@@ -293,14 +293,23 @@ describe("your Pro lineups", () => {
     state: "ok",
     data: { currentUser: { boards: [{ title: "Pro Limited", steps: [
       { __typename: "CareerProStep", level: 3, target: 280, myLineups: [lineup("in", "2026-10-17T14:00:00Z", 301), lineup("out", "2026-10-10T14:00:00Z"), {}] },
+      // what Sorare answers for a Pro lineup: a task lineup, each card with its own game
+      { __typename: "CareerProStep", level: 4, target: 320, myLineups: [{ __typename: "TaskLineup", id: "task", draft: false, confirmable: false, aasmState: "FAILED", score: 290.5,
+        taskAppearances: [
+          { index: 1, captain: false, rarity: "limited", score: 50, pictureUrl: "https://x/b.png", anyCard: { slug: "card-b" }, player: { slug: "b", displayName: "B" }, game: { date: "2026-10-18T19:00:00Z" } },
+          { index: 0, captain: true, rarity: "limited", score: 70, pictureUrl: null, anyCard: { slug: "card-c" }, player: { slug: "c", displayName: "C" }, game: { date: "2026-10-17T16:00:00Z" } },
+        ] }] },
       { __typename: "CareerStep", level: 1, target: 100, myLineups: [lineup("career", "2026-10-17T14:00:00Z")] },
     ] }] } },
   };
 
   it("keeps the Pro lineups whose matchday starts in the gameweek, with their step", () => {
     const { lineups: rows, note } = readProLineups(reply, "2026-10-16T00:00:00Z", "2026-10-20T00:00:00Z");
-    expect(rows.map((row) => row.id)).toEqual(["in"]);
+    expect(rows.map((row) => row.id)).toEqual(["in", "task"]);
     expect(note).toBeNull();
+    expect(rows[1]).toMatchObject({ competition: "Pro Limited", result: { score: 290.5, rank: null }, pro: { level: 4, target: 320, state: "FAILED" },
+      cards: [{ slug: "card-b", name: "B", score: 50 }, { slug: "card-c", captain: true, index: 0, player: "c" }] });
+    expect(proLine(rows[1]!.pro!, 290.5)).toBe("Step 4 · needs 320 · missed");
     expect(rows[0]).toMatchObject({ competition: "Pro Limited", pro: { level: 3, target: 280 }, cards: [{ slug: "card-a", captain: true }] });
     expect(proLine(rows[0]!.pro!, rows[0]!.result?.score ?? null)).toBe("Step 3 · needs 280 · cleared");
     expect(proLine({ level: 1, target: 200 }, null)).toBe("Step 1 · needs 200");
@@ -316,13 +325,17 @@ describe("your Pro lineups", () => {
     expect(note({ state: "refused" })).toBe("Pro lineups not read: reload your sorare.com tab once.");
     expect(note({ state: "rejected", errors: ["Query too deep"] })).toBe('Pro lineups not read: Sorare says "Query too deep".');
     expect(note({ state: "ok", data: null })).toBe("Pro lineups could not be read this time.");
-    expect(note(reply, "2026-11-01", "2026-11-05")).toBe("No Pro lineup in this GW (2 on your Pro boards in other weeks).");
+    expect(note(reply, "2026-11-01", "2026-11-05")).toBe("No Pro lineup in this GW (3 on your Pro boards in other weeks).");
+    expect(note({ state: "ok", data: { currentUser: { boards: [
+      { title: "Pro", so5Competition: { displayName: "Conference League" }, steps: [{ __typename: "CareerProStep", level: 1, target: 200, myLineups: [] }] },
+      { title: "Career", steps: [{ __typename: "CareerStep", level: 1, target: 100, myLineups: [] }] },
+    ] } } })).toBe("No Pro lineup on your Pro boards (Conference League).");
     expect(note({ state: "ok", data: { currentUser: { boards: [] } } })).toBe("Sorare lists no Pro board for you.");
   });
 
   it("adds them to the gameweek's lineups, and an extension without Pro changes nothing", async () => {
     const fixture = { state: "ok", data: { so5: { so5Fixture: { startDate: "2026-10-16T00:00:00Z", endDate: "2026-10-20T00:00:00Z", mySo5Lineups: [] } } } };
-    for (const [answer, ids] of [[reply, ["in"]], [null, []]] as const) {
+    for (const [answer, ids] of [[reply, ["in", "task"]], [null, []]] as const) {
       vi.stubGlobal("chrome", { runtime: { sendMessage: (_id: string, message: { type: string; step?: string }, send: (value: unknown) => void) =>
         send(message.type === "ping" ? { ok: true, version: "0.3.16", sorareUser: "Yares", appReachable: true } : message.step === "week-entered" ? fixture : answer) } });
       const read = await runWeekLineups("gw-22", 200);

@@ -116,3 +116,20 @@ describe("Sorare starting odds bridge", () => {
     expect(await b.read(GAME, "UntrustedQuery")).toMatchObject({ state: "refused" });
   });
 });
+
+describe("a bridge injected again into an open tab", () => {
+  it("takes over: only the newest one answers, so an extension update reaches a sorare.com tab left open", async () => {
+    const listeners: ((event: unknown) => Promise<void>)[] = [];
+    const replies: Record<string, unknown>[] = [];
+    const window = {
+      fetch: async () => ({ ok: true, headers: new Headers({ "content-type": "application/json" }), json: async () => ({ data: { currentUser: { slug: "yares", nickname: "Yares" } } }) }),
+      addEventListener: (_name: string, callback: (event: unknown) => Promise<void>) => { listeners.push(callback); },
+      postMessage: (answer: Record<string, unknown>) => replies.push(answer),
+    };
+    const context = vm.createContext({ window, Headers, URL, Date, setTimeout, clearTimeout, location: { origin: "https://sorare.com", href: "https://sorare.com/" }, document: { cookie: "", documentElement: { getAttribute: () => null } } });
+    vm.runInContext(source, context);
+    vm.runInContext(source, context); // the extension reloaded and put its bridge in again
+    for (const listener of listeners) await listener({ source: window, data: { source: "sofix-content-9", type: "whoami", id: "who" } });
+    expect(replies.filter((r) => r.id === "who")).toEqual([{ source: "sofix-bridge-9", id: "who", state: "signed-in", user: "Yares" }]);
+  });
+});

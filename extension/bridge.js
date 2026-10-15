@@ -9,10 +9,14 @@
 // It also reads the answers the page itself gets, to learn which card each picture on screen is (the overlay,
 // plans/overlay.md O1). What it learns is a small index kept in this closure: nothing stored, nothing sent away.
 (() => {
+  // 9: the newest bridge takes over a tab left open across an update (8 skipped itself and kept its old questions).
   // 8: reads your Pro lineups. 7: starting odds come from native page responses; custom queries silently receive null.
-  // Version the message source so an older bridge cannot answer first or repeat a write.
-  if (window.__sofixBridge === 8) return;
-  window.__sofixBridge = 8;
+  // Version the message source so an older bridge cannot answer first or repeat a write. Within version 9 and later, only
+  // the bridge injected last speaks: an earlier one in the same tab passes everything through and answers nothing.
+  const ME = Math.random().toString(36).slice(2);
+  window.__sofixBridge = 9;
+  window.__sofixBridgeId = ME;
+  const current = () => window.__sofixBridgeId === ME;
 
   const originalFetch = window.fetch;
   let endpoint = null; // { url, headers } of the last GraphQL request Sorare's page made
@@ -44,7 +48,8 @@
     if (!announceTimer) {
       announceTimer = setTimeout(() => {
         announceTimer = 0;
-        window.postMessage({ source: "sofix-bridge-8", type: "cards" }, location.origin);
+        if (!current()) return;
+        window.postMessage({ source: "sofix-bridge-9", type: "cards" }, location.origin);
       }, 250);
     }
   }
@@ -52,6 +57,7 @@
   /** Read a copy of an answer the page asked for. Never touches the answer the page receives. */
   async function readAnswer(response, asked, native) {
     try {
+      if (!current()) return;
       if (!core || !response || !response.ok) return;
       if (!/json/i.test(response.headers.get("content-type") || "")) return;
       if (Number(response.headers.get("content-length") || 0) > 8000000) return;
@@ -73,10 +79,10 @@
         while (startingOdds.size > INDEX_MAX) startingOdds.delete(startingOdds.keys().next().value);
         // Passed on so the app can save it: a reading then outlives this tab (plans/sorare-start-chances.md). `games` names every
         // game the answer spoke of, also one Sorare has no number for yet, so "Read the round" knows the page has answered.
-        if (games.size) window.postMessage({ source: "sofix-bridge-8", type: "chances", rows: fresh.slice(0, 500), games: [...games].slice(0, 100) }, location.origin);
+        if (games.size) window.postMessage({ source: "sofix-bridge-9", type: "chances", rows: fresh.slice(0, 500), games: [...games].slice(0, 100) }, location.origin);
       }
       const missions = core.collectMissions ? core.collectMissions(body) : [];
-      if (missions.length && asked) window.postMessage({ source: "sofix-bridge-8", type: "missions", missions, rarity: asked }, location.origin);
+      if (missions.length && asked) window.postMessage({ source: "sofix-bridge-9", type: "missions", missions, rarity: asked }, location.origin);
     } catch {
       // a failure of ours must never reach the page
     }
@@ -91,6 +97,7 @@
   }
 
   window.fetch = function sofixFetch(input, init) {
+    if (!current()) return originalFetch.apply(this, arguments);
     let graphql = false;
     let asked = null;
     let native = false;
@@ -108,7 +115,7 @@
         const now = Date.now();
         if (now - sawGraphQLAt > 2000) {
           sawGraphQLAt = now;
-          window.postMessage({ source: "sofix-bridge-8", type: "ready" }, location.origin);
+          window.postMessage({ source: "sofix-bridge-9", type: "ready" }, location.origin);
         }
       }
     } catch {
@@ -158,11 +165,17 @@
     } } }`,
 
     // Your Pro lineups: Pro plays per league matchday, outside the gameweek above, so its lineups sit on the steps of
-    // your Pro boards. Read only; the app keeps those whose matchday falls in the gameweek it shows.
-    SofixProLineups: `query SofixProLineups { currentUser { boards(mode: CAREER, sport: FOOTBALL, engaged: true) {
-      id title
+    // every Pro board (LaLiga's and the others). A Pro lineup is a task lineup: its cards each carry their own game.
+    // Read only; the app keeps those whose first game falls in the gameweek it shows.
+    SofixProLineups: `query SofixProLineups { currentUser { boards(mode: CAREER, sport: FOOTBALL) {
+      id title ... on CareerBoard { configSlug so5Competition { displayName } }
       steps { __typename level target state
-        myLineups { ... on So5Lineup { ${LINEUP} so5Fixture { slug startDate } } } } } } }`,
+        myLineups { __typename
+          ... on TaskLineup { id draft confirmable aasmState score
+            taskAppearances { id index captain rarity positions score pictureUrl(derivative: "tinified")
+              averageScore(type: LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
+              anyCard { slug inSeasonEligible anyTeam { name } } player { slug displayName } game { date } } }
+          ... on So5Lineup { ${LINEUP} so5Fixture { slug startDate } } } } } } }`,
 
     // Today's daily missions of every rarity, with the picks you made and Sorare's verdict on each. Read only: the app's
     // Load button asks it, so the Missions page never has to wait for a visit to Sorare's own Missions page.
@@ -295,10 +308,10 @@
   }
 
   window.addEventListener("message", async (event) => {
-    if (event.source !== window || !event.data || event.data.source !== "sofix-content-8") return;
+    if (!current() || event.source !== window || !event.data || event.data.source !== "sofix-content-9") return;
     const { type, id, operation, variables, items } = event.data;
     const result =
       type === "whoami" ? await whoAmI() : type === "ask" ? await ask(operation, variables) : type === "identify" ? identify(items) : null;
-    if (result) window.postMessage({ source: "sofix-bridge-8", id, ...result }, location.origin);
+    if (result) window.postMessage({ source: "sofix-bridge-9", id, ...result }, location.origin);
   });
 })();

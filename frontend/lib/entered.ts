@@ -32,7 +32,7 @@ export type GameweekLineup = {
   cards: EnteredCard[];
   scoring?: EnteredScoring;
   /** A Pro lineup: the step it plays for and the score that step needs. */
-  pro?: { level: number; target: number };
+  pro?: { level: number; target: number; state?: string };
 };
 
 type FailureState = "no-extension" | "no-tab" | "no-bridge" | "signed-out" | "timeout" | "error";
@@ -134,11 +134,34 @@ const ProReplySchema = z.object({
   state: z.literal("ok"),
   data: z.object({ currentUser: z.object({ boards: z.array(z.object({
     title: z.string().nullish(),
+    configSlug: z.string().nullish(),
+    so5Competition: z.object({ displayName: z.string() }).nullish(),
     steps: z.array(z.object({
       __typename: z.string(), level: z.number(), target: z.number(),
       myLineups: z.array(z.unknown()),
     })),
   })) }) }),
+});
+// A Pro lineup as Sorare keeps it: a task lineup, whose cards each carry their own game.
+const TaskLineupSchema = z.object({
+  __typename: z.literal("TaskLineup"),
+  id: z.string(),
+  draft: z.boolean(),
+  confirmable: z.boolean().default(false),
+  aasmState: z.string(),
+  score: z.number().nullish(),
+  taskAppearances: z.array(z.object({
+    index: z.number().int().nullish(),
+    captain: z.boolean().nullish(),
+    rarity: z.string().nullish(),
+    positions: z.array(z.string()).nullish(),
+    score: z.number().nullish(),
+    pictureUrl: z.string().nullish(),
+    averageScore: z.number().nullish(),
+    anyCard: z.object({ slug: z.string(), inSeasonEligible: z.boolean().optional(), anyTeam: z.object({ name: z.string() }).nullish() }).nullish(),
+    player: z.object({ slug: z.string(), displayName: z.string() }).nullish(),
+    game: z.object({ date: z.string() }).nullish(),
+  })),
 });
 // read one by one: a lineup that is not a plain one (Sorare answers {}) or reads oddly is left out, not the whole list
 const ProLineupSchema = LineupSchema.extend({ so5Fixture: z.object({ startDate: z.string() }) });
@@ -146,7 +169,7 @@ const ProLineupSchema = LineupSchema.extend({ so5Fixture: z.object({ startDate: 
 /** Why no Pro lineup shows, in a sentence, from the extension's answer. */
 function proUnread(response: unknown): string {
   const state = (response as { state?: unknown } | null)?.state;
-  if (response == null) return "Pro lineups need the Sofix extension 0.3.17: press Reload in chrome://extensions.";
+  if (response == null) return "Pro lineups need the Sofix extension 0.3.18: press Reload in chrome://extensions.";
   if (state === "refused" || state === "unknown") return "Pro lineups not read: reload your sorare.com tab once.";
   const errors = (response as { errors?: unknown }).errors;
   if (state === "rejected" && Array.isArray(errors) && errors.length) return `Pro lineups not read: Sorare says "${String(errors[0]).slice(0, 160)}".`;
@@ -163,23 +186,44 @@ export function readProLineups(response: unknown, start: string, end: string): {
   const from = Date.parse(start);
   const to = Date.parse(end);
   let found = 0;
-  const lineups = parsed.data.data.currentUser.boards.flatMap((board) => board.steps
-    .filter((step) => step.__typename === "CareerProStep")
-    .flatMap((step) => step.myLineups.flatMap((raw) => {
+  const boards = parsed.data.data.currentUser.boards.filter((board) => board.steps.some((step) => step.__typename === "CareerProStep"));
+  const lineups = boards.flatMap((board): GameweekLineup[] => {
+    const name = board.so5Competition?.displayName ?? board.title ?? "Pro";
+    const competition = /\bpro\b/i.test(name) ? name : `Pro · ${name}`;
+    return board.steps.filter((step) => step.__typename === "CareerProStep").flatMap((step) => step.myLineups.flatMap((raw): GameweekLineup[] => {
+      const pro = { level: step.level, target: step.target };
+      const task = TaskLineupSchema.safeParse(raw);
+      if (task.success) {
+        found += 1;
+        const lineup = task.data;
+        const dates = lineup.taskAppearances.flatMap((a) => (a.game ? [Date.parse(a.game.date)] : [])).filter(Number.isFinite);
+        const at = dates.length ? Math.min(...dates) : NaN;
+        if (!(at >= from && at < to)) return [];
+        const scored = typeof lineup.score === "number" && (lineup.score > 0 || ["SUCCESSFUL", "FAILED"].includes(lineup.aasmState));
+        return [{
+          id: lineup.id, name: null, draft: lineup.draft, confirmable: lineup.confirmable, board: board.configSlug ?? null, competition,
+          result: scored ? { score: lineup.score!, rank: null, cash: 0, essence: 0, card: false } : null,
+          pro: { ...pro, state: lineup.aasmState },
+          cards: lineup.taskAppearances.flatMap((a) => a.anyCard ? [{
+            slug: a.anyCard.slug, name: a.player?.displayName ?? a.anyCard.slug, picture: a.pictureUrl ?? null, rarity: a.rarity ?? null,
+            score: a.score ?? null, captain: a.captain === true,
+            ...(a.index != null ? { index: a.index, player: a.player?.slug, positions: a.positions ?? undefined, average: a.averageScore,
+              inSeason: a.anyCard.inSeasonEligible, club: a.anyCard.anyTeam?.name ?? null } : {}),
+          }] : []),
+        }];
+      }
       const read = ProLineupSchema.safeParse(raw);
       if (!read.success) return [];
       found += 1;
-      const lineup = read.data;
-      const at = Date.parse(lineup.so5Fixture.startDate);
+      const at = Date.parse(read.data.so5Fixture.startDate);
       if (!(at >= from && at < to)) return [];
-      const row = toLineup(lineup);
-      const title = board.title ?? row.competition;
-      return [{ ...row, competition: /\bpro\b/i.test(title) ? title : `Pro · ${title}`, pro: { level: step.level, target: step.target } }];
-    })));
-  const boards = parsed.data.data.currentUser.boards.filter((board) => board.steps.some((step) => step.__typename === "CareerProStep")).length;
+      return [{ ...toLineup(read.data), competition, pro }];
+    }));
+  });
+  const names = boards.map((board) => board.so5Competition?.displayName ?? board.title ?? "Pro").join(", ");
   const note = lineups.length ? null
     : found ? `No Pro lineup in this GW (${found} on your Pro boards in other weeks).`
-    : boards ? `No Pro lineup on your ${boards} Pro board${boards === 1 ? "" : "s"}.` : "Sorare lists no Pro board for you.";
+    : boards.length ? `No Pro lineup on your Pro boards (${names}).` : "Sorare lists no Pro board for you.";
   return { lineups, note };
 }
 
@@ -236,8 +280,9 @@ export function readWeekLineups(response: unknown): WeekLineupsAnswer & { span?:
 }
 
 /** "Step 3 · needs 280", and "cleared" once Sorare's score reaches it. */
-export function proLine(pro: { level: number; target: number }, score: number | null): string {
-  return `Step ${pro.level} · needs ${pro.target}${score !== null && score >= pro.target ? " · cleared" : ""}`;
+export function proLine(pro: { level: number; target: number; state?: string }, score: number | null): string {
+  const cleared = pro.state === "SUCCESSFUL" || (pro.state !== "FAILED" && score !== null && score >= pro.target);
+  return `Step ${pro.level} · needs ${pro.target}${cleared ? " · cleared" : pro.state === "FAILED" ? " · missed" : ""}`;
 }
 
 /**

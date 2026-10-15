@@ -83,11 +83,9 @@ async function fakeExtension(page: Page, fixtureSlugs: string[], unscored = fals
         }
         if (message.step === "pro-entered") {
           // one Pro lineup on step 3 of a board, its matchday inside any gameweek asked for
-          reply(pro ? { state: "ok", data: { currentUser: { boards: [{ title: "Pro Limited", steps: [{ __typename: "CareerProStep", level: 3, target: 280, myLineups: [{
-            id: "pro-1", name: "Saturday Pro", draft: false, confirmable: false, so5Leaderboard: { slug: "pro-laliga", displayName: "Pro LaLiga" },
-            so5Rankings: [{ id: "rank-p", ranking: null, score: 301.2, so5Leaderboard: { slug: "pro-laliga" } }],
-            so5Appearances: cards.slice(0, 5).map((card, index) => ({ anyCard: { slug: card.slug }, pictureUrl: card.pic, player: { displayName: card.name }, rarity: card.rarity, score: 60, captain: index === 0 })),
-            so5Fixture: { startDate: "2000-01-01T00:00:00Z" },
+          reply(pro ? { state: "ok", data: { currentUser: { boards: [{ title: "Pro", so5Competition: { displayName: "Conference League" }, steps: [{ __typename: "CareerProStep", level: 3, target: 280, myLineups: [{
+            __typename: "TaskLineup", id: "pro-1", draft: false, confirmable: false, aasmState: "SUCCESSFUL", score: 301.2,
+            taskAppearances: cards.slice(0, 5).map((card, index) => ({ index, anyCard: { slug: card.slug }, pictureUrl: card.pic, player: { slug: card.slug, displayName: card.name }, rarity: card.rarity, score: 60, captain: index === 0, game: { date: "2000-01-02T00:00:00Z" } })),
           }] }] }] } } } : null);
           return;
         }
@@ -165,8 +163,7 @@ test("entered Sorare lineups sit below the plan of the gameweek they belong to",
   await expect(lineup.locator(".rc-hex.scored").first()).toHaveText("40");
   // Your Pro lineup sits with them: the board, its step and the target, cleared once Sorare's score reaches it.
   const pro = mine.locator(".pl-entered-lineup").nth(1);
-  await expect(pro).toContainText("Pro Limited");
-  await expect(pro).toContainText("Saturday Pro");
+  await expect(pro).toContainText("Pro · Conference League");
   await expect(pro.locator(".pl-entered-verdict")).toHaveText("Step 3 · needs 280 · cleared");
 
   const belowThePlan = await page.locator(".pl-entered").evaluate((node) =>

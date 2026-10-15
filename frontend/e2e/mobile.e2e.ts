@@ -54,7 +54,7 @@ test("Overview, Fixtures and Table fit a phone without sideways page scrolling",
     ["/difficulty?h=next&lens=odds", ".ladder-card .list-rows .next-line"],
     ["/difficulty?h=3", ".ladder-card .list-rows .tile"],
     ["/fixtures", ".ll-g"],
-    ["/season", ".season-round .fixture-row"],
+    [`/season?md=${openingMatchday}`, ".season-round .fixture-row"],
     ["/table?t=predicted", "table.standings tbody tr"],
   ] as const) {
     await page.goto(path);

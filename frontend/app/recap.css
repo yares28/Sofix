@@ -220,5 +220,13 @@ a.rc-tm:hover > span:last-child { text-decoration: underline; }
 .season-jump a:hover { background: var(--hover); }
 .season-jump a[aria-current]:hover { background: var(--ink); }
 .season-round { scroll-margin-top: 70px; margin-bottom: 16px; }
+.fixture-comp { display: flex; justify-content: center; align-items: center; gap: 8px; margin: -4px 0 8px; font-size: var(--text-xs); color: var(--ink-2); }
+.comp-tag { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; background: var(--hover); color: var(--ink); font-size: 11px; font-weight: 600; }
+.comp-tag::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--dot, var(--ink-2)); }
+.comp-laliga { --dot: #ff4b44; }
+.comp-champions { --dot: #2f5bea; }
+.comp-europa { --dot: #f28c18; }
+.comp-conference { --dot: #1fae6b; }
+.crest-none { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--hover); }
 /* R8: a 0-100 score drawn in its Sorare band */
 .sc-chip { display: inline-block; width: fit-content; padding: 1px 8px; border-radius: 8px; line-height: 1.15; }

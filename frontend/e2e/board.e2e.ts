@@ -4,9 +4,9 @@ import { scaleBucket } from "../lib/grid";
 import { gameweekMatches } from "../lib/matches";
 import type { Sorare } from "../lib/play";
 import type { ApiResponse } from "../lib/types";
-import { currentWeek, seasonWeeks, weekOn } from "../lib/weeks";
-import { E2E_PORT } from "./constants";
-import { grid, MOCK, offline, openingMatchday, resetBackend, servedGrid, sorare, teamRows } from "./helpers";
+import { seasonWeeks, weekOn } from "../lib/weeks";
+import { E2E_PORT, E2E_REVALIDATE_SECRET } from "./constants";
+import { APP, grid, MOCK, offline, openingMatchday, resetBackend, servedGrid, sorare, teamRows } from "./helpers";
 
 test.beforeEach(async ({ page, request }) => {
   await resetBackend(request);
@@ -716,16 +716,38 @@ test("Control says how often the board refreshes from the real schedule, and the
   await expect(facts).not.toContainText("2×");
 });
 
-test("Season's Fixtures shows the round of the week you're in, and its round numbers switch to any other", async ({ page, request }) => {
-  const { weeks } = await servedWeeks(request);
-  const opening = currentWeek(weeks)?.md ?? openingMatchday;
-  await page.goto("/season");
-  await expect(page.getByRole("heading", { level: 1, name: "Fixtures" })).toBeVisible();
-  await expect(page.locator(".season-round")).toHaveCount(1);
-  await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${opening} fixtures` })).toBeVisible();
-  await expect(page.locator(".lens").getByRole("link", { name: "Fixtures" })).toHaveAttribute("aria-current", "page");
+test("Season's Fixtures shows the week's own LaLiga round, labelled, and its round numbers switch to any other", async ({ page }) => {
   const last = grid.matchdays[grid.matchdays.length - 1]!.number;
+  await page.goto(`/season?md=${openingMatchday}`);
+  await expect(page.getByRole("heading", { level: 1, name: "Fixtures" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: `LaLiga · Gameweek ${openingMatchday} fixtures` })).toBeVisible();
+  await expect(page.locator(".season-round")).toHaveCount(1);
+  await expect(page.locator(".lens").getByRole("link", { name: "Fixtures" })).toHaveAttribute("aria-current", "page");
   await page.getByRole("navigation", { name: "Rounds" }).getByRole("link", { name: String(last), exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`md=${last}$`));
-  await expect(page.getByRole("heading", { level: 2, name: `Gameweek ${last} fixtures` })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: `LaLiga · Gameweek ${last} fixtures` })).toBeVisible();
+});
+
+test("a Sorare week with no LaLiga round shows its European games of your players' clubs, never the next week's round", async ({ page, request }) => {
+  const { planned } = await servedWeeks(request);
+  expect(planned.md).toBeNull(); // the recording's planned week holds no round, like GW22 in October
+  const data = ((await (await request.get(`${MOCK}/api/sorare`)).json()) as ApiResponse<Sorare>).data!;
+  const week = data.weeks.find((one) => one.gameweek.id === planned.gw)!;
+  const kickoff = new Date(new Date(planned.from).getTime() + 86_400_000).toISOString();
+  const [a, b, c] = week.playing.players;
+  const cl = { kickoff, competition: "uefa-champions-league", opponentCrest: null };
+  a!.games.push({ ...cl, team: "Villarreal", opponent: "Napoli", venue: "H" });
+  b!.games.push({ ...cl, team: "Napoli", opponent: "Villarreal", venue: "A" }); // both clubs hold one of yours: one row
+  c!.games.push({ ...cl, kickoff: new Date(new Date(kickoff).getTime() + 7_200_000).toISOString(), competition: "uefa-europa-league", team: "Celta de Vigo", opponent: "Juventus", venue: "A" });
+  await request.post(`${MOCK}/__test/my-weeks`, { data: { weeks: [], frozenPlans: [], sorareData: data } });
+  await request.post(`${APP}/api/revalidate`, { headers: { authorization: `Bearer ${E2E_REVALIDATE_SECRET}` } });
+
+  await page.goto(`/season?w=${planned.id}`);
+  await expect(page.getByRole("heading", { level: 2, name: "In Europe" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: /^LaLiga ·/ })).toHaveCount(0);
+  const rows = page.locator(".fixtures .fixture-row");
+  await expect(rows).toHaveCount(2);
+  await expect(rows.nth(0)).toHaveAttribute("aria-label", /^Champions League: Villarreal v Napoli, kick-off/);
+  await expect(rows.nth(1)).toHaveAttribute("aria-label", /^Europa League: Juventus v Celta de Vigo, kick-off/);
+  await expect(page.locator(".fixture-comp").first()).toContainText("2 of your players");
 });

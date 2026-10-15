@@ -7,6 +7,8 @@ import Crest from "./Crest";
 interface Props {
   grid: FixtureGrid;
   column: number; // the app-wide gameweek
+  /** Season → Fixtures labels every row with its competition, beside the European games. */
+  tag?: string;
 }
 
 const MADRID = "Europe/Madrid";
@@ -15,7 +17,7 @@ const dayTitle = new Intl.DateTimeFormat("en-GB", { timeZone: MADRID, weekday: "
 const time = new Intl.DateTimeFormat("en-GB", { timeZone: MADRID, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 
 /** A plain list of one gameweek's fixtures and results, grouped by day (Madrid time). */
-export default function FixturesList({ grid, column }: Props) {
+export default function FixturesList({ grid, column, tag }: Props) {
   const gameweek = grid.matchdays[column];
   if (!gameweek) return null;
   const { matches, notPlaying } = gameweekMatches(grid, column);
@@ -36,7 +38,9 @@ export default function FixturesList({ grid, column }: Props) {
     <section className="card fixtures" aria-labelledby="fixtures-title">
       <header className="section-head">
         <div>
-          <h2 id="fixtures-title">Gameweek {gameweek.number} fixtures</h2>
+          <h2 id="fixtures-title">
+            {tag ? `${tag} · ` : ""}Gameweek {gameweek.number} fixtures
+          </h2>
           <div className="insight-meta">
             {matches.length} {matches.length === 1 ? "match" : "matches"} · Madrid time
             {notPlaying.length > 0 && ` · no game: ${notPlaying.map((t) => t.name).join(", ")}`}
@@ -51,6 +55,11 @@ export default function FixturesList({ grid, column }: Props) {
             {group.matches.map((match) => (
               <li key={match.fixtureId}>
                 <FixtureRow match={match} />
+                {tag ? (
+                  <div className="fixture-comp" aria-hidden="true">
+                    <span className="comp-tag comp-laliga">{tag}</span>
+                  </div>
+                ) : null}
               </li>
             ))}
           </ul>

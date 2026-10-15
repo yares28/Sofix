@@ -1,0 +1,46 @@
+# Plan a locked gameweek again as of its lock, dry run (scripts/replan_week.py). Writes nothing; each plan is a notice.
+name: Re-plan a locked week
+
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/replan.yml", "scripts/replan_week.py"]
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: Sorare gameweek slug
+        default: football-13-16-oct-2026
+      lock:
+        description: Its lock (ISO time, UTC)
+        default: "2026-10-13T14:00:00Z"
+
+permissions:
+  contents: read
+
+jobs:
+  replan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      APP_ENV: prod
+      POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+      POSTGRES_URL_SPARE: ${{ secrets.POSTGRES_URL_SPARE }}
+      SORARE_API_KEY: ${{ secrets.SORARE_API_KEY }}
+      SORARE_USER: ${{ vars.SORARE_USER || 'yares' }}
+      SLUG: ${{ inputs.slug || 'football-13-16-oct-2026' }}
+      LOCK: ${{ inputs.lock || '2026-10-13T14:00:00Z' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+          activate-environment: true
+          enable-cache: true
+          cache-dependency-glob: backend/requirements.lock
+      - run: uv pip sync requirements.lock
+      # Points POSTGRES_URL at the live project; no --move, so nothing is copied.
+      - run: python -m app.jobs.neon_switch
+      - run: python ../scripts/replan_week.py "$SLUG" "$LOCK"

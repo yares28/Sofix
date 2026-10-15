@@ -223,7 +223,6 @@ a.rc-tm:hover > span:last-child { text-decoration: underline; }
 .fixture-comp { display: flex; justify-content: center; align-items: center; gap: 8px; margin: -4px 0 8px; font-size: var(--text-xs); color: var(--ink-2); }
 .comp-tag { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; background: var(--hover); color: var(--ink); font-size: 11px; font-weight: 600; }
 .comp-tag::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--dot, var(--ink-2)); }
-.comp-laliga { --dot: #ff4b44; }
 .comp-champions { --dot: #2f5bea; }
 .comp-europa { --dot: #f28c18; }
 .comp-conference { --dot: #1fae6b; }

@@ -7,7 +7,7 @@ import Crest from "./Crest";
 interface Props {
   grid: FixtureGrid;
   column: number; // the app-wide gameweek
-  /** Season → Fixtures labels every row with its competition, beside the European games. */
+  /** Season → Fixtures names the competition in the heading, beside the European games. */
   tag?: string;
 }
 
@@ -55,11 +55,6 @@ export default function FixturesList({ grid, column, tag }: Props) {
             {group.matches.map((match) => (
               <li key={match.fixtureId}>
                 <FixtureRow match={match} />
-                {tag ? (
-                  <div className="fixture-comp" aria-hidden="true">
-                    <span className="comp-tag comp-laliga">{tag}</span>
-                  </div>
-                ) : null}
               </li>
             ))}
           </ul>

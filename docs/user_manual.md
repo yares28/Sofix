@@ -130,7 +130,7 @@ the difficulty overview and the current-table cutoff together.
 ## 4. Difficulty
 
 Season → Fixtures (`/season`) shows the week picked in the top bar (the week you're in by default): its LaLiga round, if it
-has one, and the Champions, Europa and Conference League games of clubs holding one of your players, each match tagged
+has one, and the Champions, Europa and Conference League games of clubs holding one of your players, each European match tagged
 with its competition. A week with no round shows no round; a strip of round numbers switches to any round. Difficulty colours use Sorare's score bands: cyan for the
 easiest games, then green, yellow, orange and red for the hardest.
 

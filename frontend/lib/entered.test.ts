@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { pendingLine, readWeekLineups, resultLine, runWeekLineups, weekWon, type GameweekLineup } from "./entered";
+import { pendingLine, proLine, readProLineups, readWeekLineups, resultLine, runWeekLineups, weekWon, type GameweekLineup } from "./entered";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -279,5 +279,48 @@ describe("answers Sorare words differently", () => {
 
   it("leaves a null answer unread instead of recording zero lineups", () => {
     expect(readWeekLineups({ state: "ok", data: { so5: null } })).toEqual({ state: "error" });
+  });
+});
+
+describe("your Pro lineups", () => {
+  const lineup = (id: string, startDate: string, score: number | null = null) => ({
+    id, name: null, draft: false, confirmable: false, so5Leaderboard: { slug: `pro-${id}`, displayName: "Pro LaLiga" },
+    so5Rankings: score === null ? [] : [{ ranking: null, score, so5Leaderboard: { slug: `pro-${id}` } }],
+    so5Appearances: [{ anyCard: { slug: "card-a" }, player: { displayName: "A" }, score: 60, captain: true }],
+    so5Fixture: { startDate },
+  });
+  const reply = {
+    state: "ok",
+    data: { currentUser: { boards: [{ title: "Pro Limited", steps: [
+      { __typename: "CareerProStep", level: 3, target: 280, myLineups: [lineup("in", "2026-10-17T14:00:00Z", 301), lineup("out", "2026-10-10T14:00:00Z"), {}] },
+      { __typename: "CareerStep", level: 1, target: 100, myLineups: [lineup("career", "2026-10-17T14:00:00Z")] },
+    ] }] } },
+  };
+
+  it("keeps the Pro lineups whose matchday starts in the gameweek, with their step", () => {
+    const rows = readProLineups(reply, "2026-10-16T00:00:00Z", "2026-10-20T00:00:00Z");
+    expect(rows.map((row) => row.id)).toEqual(["in"]);
+    expect(rows[0]).toMatchObject({ competition: "Pro Limited", pro: { level: 3, target: 280 }, cards: [{ slug: "card-a", captain: true }] });
+    expect(proLine(rows[0]!.pro!, rows[0]!.result?.score ?? null)).toBe("Step 3 · needs 280 · cleared");
+    expect(proLine({ level: 1, target: 200 }, null)).toBe("Step 1 · needs 200");
+  });
+
+  it("reads anything else as no Pro lineup", () => {
+    for (const answer of [null, undefined, { state: "refused" }, { state: "ok", data: null }]) expect(readProLineups(answer, "2026-10-16", "2026-10-20")).toEqual([]);
+  });
+
+  it("adds them to the gameweek's lineups, and an extension without Pro changes nothing", async () => {
+    const fixture = { state: "ok", data: { so5: { so5Fixture: { startDate: "2026-10-16T00:00:00Z", endDate: "2026-10-20T00:00:00Z", mySo5Lineups: [] } } } };
+    for (const [answer, ids] of [[reply, ["in"]], [null, []]] as const) {
+      vi.stubGlobal("chrome", { runtime: { sendMessage: (_id: string, message: { type: string; step?: string }, send: (value: unknown) => void) =>
+        send(message.type === "ping" ? { ok: true, version: "0.3.16", sorareUser: "Yares", appReachable: true } : message.step === "week-entered" ? fixture : answer) } });
+      const read = await runWeekLineups("gw-22", 200);
+      expect(read.state === "ok" && read.lineups.map((row) => row.id)).toEqual(ids);
+    }
+  });
+
+  it("never holds a week open for its rank", () => {
+    const pro = { id: "p", name: null, draft: false, confirmable: false, board: null, competition: "Pro", cards: [], result: null, pro: { level: 1, target: 200 } } as GameweekLineup;
+    expect(weekWon([pro]).final).toBe(true);
   });
 });

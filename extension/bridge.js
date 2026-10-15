@@ -122,21 +122,8 @@
 
   // The only questions this bridge will ask Sorare. It is not a general proxy: an operation that is not in
   // here is refused, whoever sends the message.
-  const OPERATIONS = {
-    SofixWhoAmI: "query SofixWhoAmI { currentUser { slug nickname } }",
-
-    // What is already entered in this competition, and whether more may be.
-    SofixMyLineups: `query SofixMyLineups($slug: String!) { so5 { so5Leaderboard(slug: $slug) {
-      id slug teamsCap
-      mySo5Lineups { id name draft confirmable deletable rewardMultiplier
-        so5Appearances(includeSubs: true) { id anyCard { slug } } } } } }`,
-
-    // Every lineup the signed-in manager put in one exact gameweek, with what it scored, where it ranked and what it
-    // was paid. This is deliberately fixture-level: it also finds competitions that Sofix did not include in one of
-    // its own optimized plans, and it works for a gameweek played long ago. Read only.
-    SofixFixtureLineups: `query SofixFixtureLineups($slug: String!) { so5 { so5Fixture(slug: $slug) {
-      id slug gameWeek
-      mySo5Lineups(withTraining: false) { id name draft confirmable
+  // One entered lineup as the app draws it, in a gameweek or on a Pro step.
+  const LINEUP = `id name draft confirmable
         so5Leaderboard { slug displayName
           rules { appearances(includeSubs: true) { positions sub } }
           engineConfiguration { season captain grade scarcity sameActiveClub averageScores }
@@ -151,9 +138,31 @@
           id index grade positions averageScore(type: LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
           rarity pictureUrl(derivative: "tinified") score captain player { slug displayName }
           anyCard { slug inSeasonEligible anyTeam { name } }
-        }
-      }
+        }`;
+
+  const OPERATIONS = {
+    SofixWhoAmI: "query SofixWhoAmI { currentUser { slug nickname } }",
+
+    // What is already entered in this competition, and whether more may be.
+    SofixMyLineups: `query SofixMyLineups($slug: String!) { so5 { so5Leaderboard(slug: $slug) {
+      id slug teamsCap
+      mySo5Lineups { id name draft confirmable deletable rewardMultiplier
+        so5Appearances(includeSubs: true) { id anyCard { slug } } } } } }`,
+
+    // Every lineup the signed-in manager put in one exact gameweek, with what it scored, where it ranked and what it
+    // was paid. This is deliberately fixture-level: it also finds competitions that Sofix did not include in one of
+    // its own optimized plans, and it works for a gameweek played long ago. Read only.
+    SofixFixtureLineups: `query SofixFixtureLineups($slug: String!) { so5 { so5Fixture(slug: $slug) {
+      id slug gameWeek startDate endDate
+      mySo5Lineups(withTraining: false) { ${LINEUP} }
     } } }`,
+
+    // Your Pro lineups: Pro plays per league matchday, outside the gameweek above, so its lineups sit on the steps of
+    // your Pro boards. Read only; the app keeps those whose matchday falls in the gameweek it shows.
+    SofixProLineups: `query SofixProLineups { currentUser { boards(mode: CAREER, sport: FOOTBALL, engaged: true) {
+      id title
+      steps { __typename level target state
+        myLineups { ... on So5Lineup { ${LINEUP} so5Fixture { slug startDate } } } } } } }`,
 
     // Today's daily missions of every rarity, with the picks you made and Sorare's verdict on each. Read only: the app's
     // Load button asks it, so the Missions page never has to wait for a visit to Sorare's own Missions page.

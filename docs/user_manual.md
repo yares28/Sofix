@@ -256,7 +256,9 @@ lineups and drafts are labelled separately and retain their Sorare competition a
 row (14 Oct 2026): the cards with their xScore under each (their score once they have points), xScore and actual, the reward
 chance while the week is on, the result. This is not Sofix's
 suggested plan: the extension reads the selected Sorare fixture directly, so the block also works for timeline weeks
-that Sofix no longer retains as an optimized plan. Every successful read is saved, including live scores and drafts.
+that Sofix no longer retains as an optimized plan. Your Pro lineups sit with them (extension 0.3.16, 15 Oct 2026): each one whose
+matchday starts inside the GW, named after its Pro board, with "Step 3 · needs 280" (and "cleared" once Sorare's score reaches it)
+in place of a rank. They are only read; the plan still leaves Pro out ([plans/pro.md](../plans/pro.md)). Every successful read is saved, including live scores and drafts.
 Reopening Recap or Play shows that GW's last saved read immediately and checks Sorare in the background. Saved teams
 also work on a phone or with Sorare closed; an unavailable refresh keeps them visible with a status message. A signed-in
 `sorare.com` tab is needed only for a new read. Live snapshots stay separate from final reward archives. Lineups from

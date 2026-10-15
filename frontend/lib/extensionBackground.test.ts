@@ -496,6 +496,7 @@ describe("who may ask the extension to do something from a web page (roadmap 7.4
     const question: Record<string, string> = {
       entered: "SofixMyLineups",
       "week-entered": "SofixFixtureLineups",
+      "pro-entered": "SofixProLineups",
       check: "SofixPreviewLineup",
       draft: "SofixSaveDraft",
       enter: "SofixConfirmLineups",

@@ -14,6 +14,7 @@ export const WeekBody = z.object({ slug: WeekSlug, lineups: z.array(z.object({
   id: text, name: z.string().max(200).nullable(), draft: z.boolean(), confirmable: z.boolean(),
   board: text.nullable(), competition: text,
   scoring: ScoringSchema.optional(),
+  pro: z.object({ level: z.number().int().min(0).max(100), target: amount }).optional(),
   result: z.object({ score: amount, rank: z.number().int().positive().nullable(), cash: amount, essence: amount, card: z.boolean(), xp: amount.optional() }).nullable(),
   cards: z.array(z.object({ slug: text, name: text, picture: z.string().url().max(2048).nullable(), rarity: text.nullable(), score: z.number().finite().min(0).max(1000).nullable(), captain: z.boolean(), ...CardMetadata })).max(15),
 })).max(128) });

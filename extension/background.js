@@ -487,6 +487,7 @@ async function overlayPlan(fixture = null) {
 const STEPS = {
   entered: (input) => ["SofixMyLineups", { slug: input.slug }],
   "week-entered": (input) => ["SofixFixtureLineups", { slug: String(input.slug || "").slice(0, 120) }],
+  "pro-entered": () => ["SofixProLineups", {}],
   check: (input) => ["SofixPreviewLineup", { slug: input.slug, appearances: appearances(input) }],
   draft: (input) => [
     "SofixSaveDraft",

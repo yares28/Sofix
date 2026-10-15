@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cannot } from "../../lib/apply";
-import { pendingLine, resultLine, type GameweekLineup, type WeekLineupsAnswer } from "../../lib/entered";
+import { pendingLine, proLine, resultLine, type GameweekLineup, type WeekLineupsAnswer } from "../../lib/entered";
 import { readEnteredWeek, type EnteredRead } from "../../lib/myWeeksClient";
 import { REQUIRED_EXTENSION_VERSION } from "../../lib/extension";
 import { chanceLabel, type GameweekPlan } from "../../lib/play";
@@ -160,7 +160,7 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
                       <span>Reward</span>
                     </div>
                   ) : null}
-                  <span className="pl-entered-verdict">{lineup.draft ? "Draft" : pending ?? (lineup.result ? resultLine(lineup.result) : "Entered")}</span>
+                  <span className="pl-entered-verdict">{lineup.draft ? "Draft" : lineup.pro ? proLine(lineup.pro, lineup.result?.score ?? null) : pending ?? (lineup.result ? resultLine(lineup.result) : "Entered")}</span>
                 </div>
               </article>;
           })}

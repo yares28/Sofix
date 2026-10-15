@@ -67,10 +67,10 @@ const addressOf = (week: Week) => new RegExp(`/play\\?w=${week.id}$`);
  * what it was paid, for exactly these gameweeks. Any other gameweek has no lineups. `unscored` is the same lineup before any game: score 0
  * everywhere and no rank yet.
  */
-async function fakeExtension(page: Page, fixtureSlugs: string[], unscored = false) {
+async function fakeExtension(page: Page, fixtureSlugs: string[], unscored = false, pro = false) {
   const cards = sorare.collection!.slice(0, 7);
   await page.addInitScript(
-    ({ fixtureSlugs, cards, unscored }) => {
+    ({ fixtureSlugs, cards, unscored, pro }) => {
       const root = globalThis as typeof globalThis & {
         chrome?: { runtime?: { sendMessage?: (id: string, message: Record<string, unknown>, reply: (value: unknown) => void) => void } };
       };
@@ -81,6 +81,16 @@ async function fakeExtension(page: Page, fixtureSlugs: string[], unscored = fals
           reply({ ok: true, version: "0.2.2", sorareUser: "e2e-manager", appReachable: true });
           return;
         }
+        if (message.step === "pro-entered") {
+          // one Pro lineup on step 3 of a board, its matchday inside any gameweek asked for
+          reply(pro ? { state: "ok", data: { currentUser: { boards: [{ title: "Pro Limited", steps: [{ __typename: "CareerProStep", level: 3, target: 280, myLineups: [{
+            id: "pro-1", name: "Saturday Pro", draft: false, confirmable: false, so5Leaderboard: { slug: "pro-laliga", displayName: "Pro LaLiga" },
+            so5Rankings: [{ id: "rank-p", ranking: null, score: 301.2, so5Leaderboard: { slug: "pro-laliga" } }],
+            so5Appearances: cards.slice(0, 5).map((card, index) => ({ anyCard: { slug: card.slug }, pictureUrl: card.pic, player: { displayName: card.name }, rarity: card.rarity, score: 60, captain: index === 0 })),
+            so5Fixture: { startDate: "2000-01-01T00:00:00Z" },
+          }] }] }] } } } : null);
+          return;
+        }
         const entered = message.step === "week-entered" && fixtureSlugs.includes(String(message.slug));
         reply({
           state: "ok",
@@ -88,6 +98,8 @@ async function fakeExtension(page: Page, fixtureSlugs: string[], unscored = fals
             so5: {
               so5Fixture: entered
                 ? {
+                    startDate: "2000-01-01T00:00:00Z",
+                    endDate: "2100-01-01T00:00:00Z",
                     mySo5Lineups: [
                       {
                         id: "mine-1",
@@ -130,13 +142,13 @@ async function fakeExtension(page: Page, fixtureSlugs: string[], unscored = fals
         });
       };
     },
-    { fixtureSlugs, cards, unscored },
+    { fixtureSlugs, cards, unscored, pro },
   );
 }
 
 test("entered Sorare lineups sit below the plan of the gameweek they belong to", async ({ page, request }) => {
   const timelineOnly = await timelineOnlyWeek(request);
-  await fakeExtension(page, [planned.gameweek.slug, timelineOnly.slug]);
+  await fakeExtension(page, [planned.gameweek.slug, timelineOnly.slug], false, true);
 
   await page.goto("/play");
   const mine = page.getByRole("region", { name: "Your Sorare lineups" });
@@ -144,13 +156,18 @@ test("entered Sorare lineups sit below the plan of the gameweek they belong to",
   await expect(mine).toContainText("Friday team");
   await expect(mine).toContainText("LALIGA EA SPORTS");
   await expect(mine.getByLabel("7 cards")).toBeVisible();
-  await expect(mine.locator(".rc-art img")).toHaveCount(7);
+  await expect(mine.locator(".pl-entered-lineup").first().locator(".rc-art img")).toHaveCount(7);
   // What Sorare says it made: the score, where it ranked, what it was paid, and each card's score with the captain marked.
-  const lineup = mine.locator(".pl-entered-lineup");
+  const lineup = mine.locator(".pl-entered-lineup").first();
   await expect(lineup.locator(".pl-entered-result b")).toHaveText("313");
   await expect(lineup.locator(".pl-entered-verdict")).toHaveText("Rank 1,204 · $2.50 · 250 essence");
   await expect(lineup.locator(".rc-cap")).toHaveCount(1);
   await expect(lineup.locator(".rc-hex.scored").first()).toHaveText("40");
+  // Your Pro lineup sits with them: the board, its step and the target, cleared once Sorare's score reaches it.
+  const pro = mine.locator(".pl-entered-lineup").nth(1);
+  await expect(pro).toContainText("Pro Limited");
+  await expect(pro).toContainText("Saturday Pro");
+  await expect(pro.locator(".pl-entered-verdict")).toHaveText("Step 3 · needs 280 · cleared");
 
   const belowThePlan = await page.locator(".pl-entered").evaluate((node) =>
     Boolean(document.querySelector(".pl-board")!.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING),

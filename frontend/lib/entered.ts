@@ -31,6 +31,8 @@ export type GameweekLineup = {
   result: LineupResult | null;
   cards: EnteredCard[];
   scoring?: EnteredScoring;
+  /** A Pro lineup: the step it plays for and the score that step needs. */
+  pro?: { level: number; target: number };
 };
 
 type FailureState = "no-extension" | "no-tab" | "no-bridge" | "signed-out" | "timeout" | "error";
@@ -116,7 +118,10 @@ const ReplySchema = z.discriminatedUnion("state", [
     data: z
       .object({
         so5: z
-          .object({ so5Fixture: z.object({ mySo5Lineups: z.array(LineupSchema).nullish().transform((rows) => rows ?? []) }).nullable() })
+          .object({ so5Fixture: z.object({
+            startDate: z.string().optional(), endDate: z.string().optional(),
+            mySo5Lineups: z.array(LineupSchema).nullish().transform((rows) => rows ?? []),
+          }).nullable() })
           .nullish(),
       })
       .nullable(),
@@ -125,8 +130,77 @@ const ReplySchema = z.discriminatedUnion("state", [
   z.object({ state: z.enum(["no-tab", "no-bridge", "signed-out", "refused", "unknown", "timeout", "error"]) }),
 ]);
 
+const ProReplySchema = z.object({
+  state: z.literal("ok"),
+  data: z.object({ currentUser: z.object({ boards: z.array(z.object({
+    title: z.string().nullish(),
+    steps: z.array(z.object({
+      __typename: z.string(), level: z.number(), target: z.number(),
+      myLineups: z.array(z.unknown()),
+    })),
+  })) }) }),
+});
+// read one by one: a lineup that is not a plain one (Sorare answers {}) or reads oddly is left out, not the whole list
+const ProLineupSchema = LineupSchema.extend({ so5Fixture: z.object({ startDate: z.string() }) });
+
+/**
+ * Your Pro lineups whose matchday starts inside the gameweek [start, end): Pro plays per league matchday, outside the gameweek's
+ * own fixture. Anything unreadable is no Pro lineup, so a failed read never hides the gameweek's other lineups.
+ */
+export function readProLineups(response: unknown, start: string, end: string): GameweekLineup[] {
+  const parsed = ProReplySchema.safeParse(response);
+  if (!parsed.success) return [];
+  const from = Date.parse(start);
+  const to = Date.parse(end);
+  return parsed.data.data.currentUser.boards.flatMap((board) => board.steps
+    .filter((step) => step.__typename === "CareerProStep")
+    .flatMap((step) => step.myLineups.flatMap((raw) => {
+      const read = ProLineupSchema.safeParse(raw);
+      if (!read.success) return [];
+      const lineup = read.data;
+      const at = Date.parse(lineup.so5Fixture.startDate);
+      if (!(at >= from && at < to)) return [];
+      const row = toLineup(lineup);
+      const title = board.title ?? row.competition;
+      return [{ ...row, competition: /\bpro\b/i.test(title) ? title : `Pro · ${title}`, pro: { level: step.level, target: step.target } }];
+    })));
+}
+
+function toLineup(lineup: Lineup): GameweekLineup {
+  return {
+    id: lineup.id,
+    name: lineup.name,
+    draft: lineup.draft,
+    confirmable: lineup.confirmable,
+    board: lineup.so5Leaderboard?.slug ?? null,
+    competition: lineup.so5Leaderboard?.displayName ?? "Sorare competition",
+    result: resultOf(lineup),
+    ...(scoringRules(lineup.so5Leaderboard) ? { scoring: scoringRules(lineup.so5Leaderboard) } : {}),
+    cards: lineup.so5Appearances.flatMap((appearance) => {
+      const slug = (appearance.anyCard ?? appearance.card)?.slug;
+      if (!slug) return [];
+      return [
+        {
+          slug,
+          name: appearance.player?.displayName ?? slug,
+          picture: appearance.pictureUrl ?? null,
+          rarity: appearance.rarity ?? null,
+          score: appearance.score ?? null,
+          captain: appearance.captain === true,
+          ...(appearance.index != null ? {
+            index: appearance.index, player: appearance.player?.slug,
+            level: appearance.grade ?? undefined, positions: appearance.positions ?? undefined,
+            average: appearance.averageScore, inSeason: appearance.anyCard?.inSeasonEligible,
+            club: appearance.anyCard?.anyTeam?.name ?? null,
+          } : {}),
+        },
+      ];
+    }),
+  };
+}
+
 /** Turn the gameweek-level response into the small, display-only shape the UI needs. */
-export function readWeekLineups(response: unknown): WeekLineupsAnswer {
+export function readWeekLineups(response: unknown): WeekLineupsAnswer & { span?: { start: string; end: string } } {
   const parsed = ReplySchema.safeParse(response);
   if (!parsed.success) return { state: "error" };
   const reply = parsed.data;
@@ -140,40 +214,13 @@ export function readWeekLineups(response: unknown): WeekLineupsAnswer {
   // A null fixture/list is an unreadable week, not evidence of zero entries. Only [] confirms an empty week.
   const original = response as { data?: { so5?: { so5Fixture?: { mySo5Lineups?: unknown } } } };
   if (!Array.isArray(original.data?.so5?.so5Fixture?.mySo5Lineups)) return { state: "error" };
-  const lineups = reply.data!.so5!.so5Fixture!.mySo5Lineups;
-  return {
-    state: "ok",
-    lineups: lineups.map((lineup) => ({
-      id: lineup.id,
-      name: lineup.name,
-      draft: lineup.draft,
-      confirmable: lineup.confirmable,
-      board: lineup.so5Leaderboard?.slug ?? null,
-      competition: lineup.so5Leaderboard?.displayName ?? "Sorare competition",
-      result: resultOf(lineup),
-      ...(scoringRules(lineup.so5Leaderboard) ? { scoring: scoringRules(lineup.so5Leaderboard) } : {}),
-      cards: lineup.so5Appearances.flatMap((appearance) => {
-        const slug = (appearance.anyCard ?? appearance.card)?.slug;
-        if (!slug) return [];
-        return [
-          {
-            slug,
-            name: appearance.player?.displayName ?? slug,
-            picture: appearance.pictureUrl ?? null,
-            rarity: appearance.rarity ?? null,
-            score: appearance.score ?? null,
-            captain: appearance.captain === true,
-            ...(appearance.index != null ? {
-              index: appearance.index, player: appearance.player?.slug,
-              level: appearance.grade ?? undefined, positions: appearance.positions ?? undefined,
-              average: appearance.averageScore, inSeason: appearance.anyCard?.inSeasonEligible,
-              club: appearance.anyCard?.anyTeam?.name ?? null,
-            } : {}),
-          },
-        ];
-      }),
-    })),
-  };
+  const fixture = reply.data!.so5!.so5Fixture!;
+  return { state: "ok", lineups: fixture.mySo5Lineups.map(toLineup), ...(fixture.startDate && fixture.endDate ? { span: { start: fixture.startDate, end: fixture.endDate } } : {}) };
+}
+
+/** "Step 3 · needs 280", and "cleared" once Sorare's score reaches it. */
+export function proLine(pro: { level: number; target: number }, score: number | null): string {
+  return `Step ${pro.level} · needs ${pro.target}${score !== null && score >= pro.target ? " · cleared" : ""}`;
 }
 
 /**
@@ -189,7 +236,8 @@ export function weekWon(lineups: GameweekLineup[]): WeekWon {
     essence: entered.reduce((sum, lineup) => sum + (lineup.result?.essence ?? 0), 0),
     cash: Math.round(entered.reduce((sum, lineup) => sum + (lineup.result?.cash ?? 0), 0) * 100) / 100,
     lineups: entered.length,
-    final: entered.every((lineup) => lineup.result !== null && lineup.result.rank !== null),
+    // a Pro lineup plays for a target, not a rank: it never holds the week open
+    final: entered.every((lineup) => lineup.pro || (lineup.result !== null && lineup.result.rank !== null)),
   };
 }
 
@@ -227,23 +275,29 @@ export async function runWeekLineups(slug: string, timeoutMs = 25_000): Promise<
   const runtime = (globalThis as { chrome?: { runtime?: ChromeRuntime } }).chrome?.runtime;
   const send = runtime?.sendMessage;
   if (!runtime || !send) return { state: "no-extension" };
-  return new Promise((resolve) => {
+  const ask = (message: unknown) => new Promise<unknown>((resolve) => {
     let done = false;
-    const finish = (answer: WeekLineupsAnswer) => {
+    const finish = (response: unknown) => {
       if (done) return;
       done = true;
-      resolve(answer);
+      resolve(response);
     };
     const timer = setTimeout(() => finish({ state: "timeout" }), timeoutMs);
     try {
-      send.call(runtime, EXTENSION_ID, { type: "sorare", step: "week-entered", slug }, (response) => {
+      send.call(runtime, EXTENSION_ID, message, (response) => {
         clearTimeout(timer);
         void runtime.lastError;
-        finish(response === undefined ? { state: "no-extension" } : readWeekLineups(response));
+        finish(response === undefined ? { state: "no-extension" } : response);
       });
     } catch {
       clearTimeout(timer);
       finish({ state: "no-extension" });
     }
   });
+  const response = await ask({ type: "sorare", step: "week-entered", slug });
+  const { span, ...answer } = readWeekLineups(response);
+  if (answer.state !== "ok" || !span) return answer;
+  // Pro is a separate read; an extension without it, or a refusal, leaves the gameweek's own lineups as they are.
+  const pro = readProLineups(await ask({ type: "sorare", step: "pro-entered" }), span.start, span.end);
+  return { state: "ok", lineups: [...answer.lineups, ...pro] };
 }

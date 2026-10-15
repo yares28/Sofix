@@ -828,7 +828,7 @@
 .pl-fold[open] summary svg {
   transform: rotate(90deg);
 }
-.pl-fold ul {
+.pl-fold > ul {
   margin: 0;
   padding: 0 20px 14px;
   list-style: none;
@@ -836,7 +836,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 2px 28px;
 }
-.pl-fold li {
+.pl-fold > ul > li {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -845,11 +845,11 @@
   box-shadow: inset 0 -1px 0 var(--line, var(--line));
   min-width: 0;
 }
-.pl-fold li b {
+.pl-fold > ul > li b {
   font-weight: 600;
   white-space: nowrap;
 }
-.pl-fold li em {
+.pl-fold > ul > li em {
   margin-left: auto;
   font-style: normal;
   color: var(--ink-2);
@@ -1517,7 +1517,7 @@
   .pl-cards .div {
     margin: 6px 2px 0 6px;
   }
-  .pl-fold ul,
+  .pl-fold > ul,
   .pl-rules {
     grid-template-columns: 1fr;
   }
@@ -1932,7 +1932,7 @@
 
 /* ---------- lineups under 5%, folded ---------- */
 .pl-long > .pl-lus {
-  margin-top: 12px;
+  padding: 0 20px 8px;
 }
 
 /* ---------- the essence filled first ---------- */

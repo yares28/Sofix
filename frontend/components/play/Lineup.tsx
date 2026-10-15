@@ -7,6 +7,7 @@ import Silhouette from "../Silhouette";
 import SourceMark from "../SourceMark";
 import { ComparisonCards, ComparisonScores } from "../recap/LineupComparison";
 import { InfoIcon } from "../recap/Recap";
+import { lineupActual, type ActualScores } from "../../lib/lineupScores";
 import { Cash, Chevron, Essence, Foil, GROUP_CLASS, RangeBar, RewardChips, RewardSplit, Ring, ribbonClass } from "./bits";
 import LineupSheet from "./LineupSheet";
 import SorareImage from "./SorareImage";
@@ -24,6 +25,7 @@ export default function Lineup({
   index,
   hindsight = false,
   players = [],
+  scores = {},
 }: {
   lineup: LineupData;
   after: boolean;
@@ -32,6 +34,8 @@ export default function Lineup({
   hindsight?: boolean;
   /** The week's playing players, whose games name the Lineups match each card opens. */
   players?: PlayingPlayer[];
+  /** The scores in so far of a week being played, by card (lib/planScoresData.ts). */
+  scores?: ActualScores;
 }) {
   const group = GROUP_CLASS[lineup.group];
   const chance = lineup.pReturn;
@@ -40,6 +44,8 @@ export default function Lineup({
   // One row of the plan, drawn as the Recap draws it: the competition, the cards with their score, the team score, the
   // one reward chance. The row opens the sheet, which holds the range, the reward ladder and the rules.
   const cameIn = new Set((lineup.actual?.cameIn ?? []).map((swap) => swap.sub));
+  // While the week is on, a card whose game is over shows what he scored and the team its score so far, as your entered lineups do.
+  const live = !after && !lineup.actual ? lineupActual(lineup, scores) : null;
   const cardValue = (card: PlayCard, sub: boolean) => (!after ? cardScore(card).value : sub && !cameIn.has(card.slug) ? null : card.actual);
   const face = (
     <div className="rc-lu">
@@ -55,14 +61,16 @@ export default function Lineup({
       <ComparisonCards
         cards={[...lineup.starters, ...lineup.subs].map((card, i) => {
           const bench = i >= lineup.starters.length;
-          return { slug: card.slug, name: card.name, picture: card.pic ?? null, rarity: lineup.rarity, captain: !!card.captain, bench, x: cardValue(card, bench), xd: card.xd };
+          const got = live ? scores[card.slug] : undefined;
+          return { slug: card.slug, name: card.name, picture: card.pic ?? null, rarity: lineup.rarity, captain: !!card.captain, bench, xd: card.xd,
+            ...(got ? { x: got.played ? got.score : 0, scored: true } : { x: cardValue(card, bench) }) };
         })}
       />
       <div className="rc-score">
         <ComparisonScores
           expected={hindsight ? undefined : lineup.x}
-          actual={after && lineup.actual ? lineup.actual.total : null}
-          actualLabel={hindsight ? "Scored" : "Actual"}
+          actual={after && lineup.actual ? lineup.actual.total : (live?.value ?? null)}
+          actualLabel={hindsight ? "Scored" : live?.value != null && !live.complete ? "Actual so far" : "Actual"}
           xd={lineup.xd ?? null}
         />
       </div>

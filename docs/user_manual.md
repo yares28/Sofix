@@ -223,7 +223,8 @@ won), with the plan's facts under it: chance of a reward, the most likely result
 cards used. Beside it sits Apply plan. Below, the plan tile holds the
 **Sofix / Sorare / strategy** switch, the plan switch, where the cards go, and the lineups as the same rows as the Recap (14 Oct
 2026): competition with its kind and format, its cards with each one's xScore in Sorare's colours (its score after the games),
-xScore, actual and xD, and one reward chance (Paid or No reward after the games); each row, and its **i**, opens its sheet with the
+xScore, actual and xD, and one reward chance (Paid or No reward after the games); once the week has locked, each card shows
+his score as soon as his game is in and the lineup its **Actual so far**, as your entered lineups do (15 Oct 2026); each row, and its **i**, opens its sheet with the
 range, the score needed and every reward level. A free competition is filled with every team your cards can make, however small the chance (13 Oct 2026): the teams with a real
 chance take their cards and substitutes first. In a European week Sorare's own competitions (European Champions, European
 Contenders) are planned too, for the players with a game in them. A player's start chance is Futbol Fantasy's, else the one

@@ -20,6 +20,7 @@ import {
 } from "../../lib/play";
 import { freshLabel } from "../../lib/fresh";
 import type { MissionPlan } from "../../lib/missions";
+import type { ActualScores } from "../../lib/lineupScores";
 import { lockText } from "../../lib/recap";
 import { MissionsGlance } from "../recap/Recap";
 import { syncState } from "../../lib/sorareStatus";
@@ -55,6 +56,7 @@ export default function PlayView({
   by = "sofix",
   sorareWaiting = null,
   forecast,
+  scores,
 }: {
   data: Sorare;
   week: GameweekPlan;
@@ -74,6 +76,8 @@ export default function PlayView({
   /** With `by` Sorare and no Sorare plan yet: what the page says instead. */
   sorareWaiting?: string | null;
   forecast?: GameweekPlan;
+  /** A week being played: each card's score once his game is in, so the lineups show their score so far. */
+  scores?: ActualScores;
 }) {
   const id = week.gameweek.id;
   const plans = plansOf(week, after);
@@ -174,7 +178,7 @@ export default function PlayView({
           <Allocation plan={plan} />
           <div className="pl-lus">
             {main.map((lineup, index) => (
-              <Lineup key={`${lineup.key}-${index}`} lineup={lineup} after={after} index={index} hindsight={plan.hindsight === true} players={week.playing.players} />
+              <Lineup key={`${lineup.key}-${index}`} lineup={lineup} after={after} index={index} hindsight={plan.hindsight === true} players={week.playing.players} scores={scores} />
             ))}
           </div>
           {longShots.length ? (
@@ -185,7 +189,7 @@ export default function PlayView({
               </summary>
               <div className="pl-lus">
                 {longShots.map((lineup, index) => (
-                  <Lineup key={`${lineup.key}-long-${index}`} lineup={lineup} after={after} index={main.length + index} players={week.playing.players} />
+                  <Lineup key={`${lineup.key}-long-${index}`} lineup={lineup} after={after} index={main.length + index} players={week.playing.players} scores={scores} />
                 ))}
               </div>
             </details>

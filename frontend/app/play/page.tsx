@@ -13,6 +13,7 @@ import { loadMissionPool } from "../../lib/missionsPool";
 import { loadSystem } from "../../lib/system";
 import { noPlan, weekContext, weekDates, weekName } from "../../lib/weeks";
 import { withLineupRules } from "../../lib/lineupScores";
+import { loadPlanActuals } from "../../lib/planScoresData";
 
 export const metadata: Metadata = { title: "Play · Sofix" };
 
@@ -89,10 +90,13 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
   const sorareAsked = single("by") === "sorare" && switchable;
   const lens = switchable ? lensKey(single("by")) : null;
   const today = !after && !showing.projected && showing.gameweek.id === data.nextId; // today's missions belong to the week played now
-  const [alt, frozen, missions] = await Promise.all([
+  // A locked week still being played: each card's score as his game comes in, the same cached read the home page makes.
+  const playing = !after && !showing.projected && !showing.played && Date.parse(showing.gameweek.lock) <= Date.now();
+  const [alt, frozen, missions, scores] = await Promise.all([
     sorareAsked ? loadSorareAlt(showing.gameweek.slug) : lens ? loadSorareLens(showing.gameweek.slug, lens) : null,
     showing.projected ? null : loadFrozenPlan(showing.gameweek.slug, data),
     today ? missionsToday(data, missionsModel, undefined, new Date(), pool) : null,
+    playing ? loadPlanActuals(showing) : undefined,
   ]);
   const by: PlanBy = sorareAsked ? "sorare" : (lens ?? "sofix");
   const view = sorareAsked || lens ? { ...showing, plans: alt?.plans ?? [] } : showing;
@@ -111,6 +115,7 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
         data={data}
         week={view}
         forecast={enteredForecast}
+        scores={scores}
         by={by}
         sorareWaiting={sorareWaiting}
         planIndex={planIndex}

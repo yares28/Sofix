@@ -13,7 +13,7 @@ type Week = { slug: string; number: number; lock?: string; end?: string };
 type Failure = Exclude<WeekLineupsAnswer, { state: "ok" }>;
 type LoadState =
   | { state: "loading"; lineups: GameweekLineup[] }
-  | { state: "ready"; lineups: GameweekLineup[]; at: Date; saved?: boolean; archived?: boolean; saving?: boolean; refreshing?: boolean; refreshIssue?: Failure }
+  | { state: "ready"; lineups: GameweekLineup[]; at: Date; saved?: boolean; archived?: boolean; saving?: boolean; refreshing?: boolean; refreshIssue?: Failure; proNote?: string }
   | { state: "unavailable"; lineups: GameweekLineup[]; answer: Failure };
 
 /** Lineups the signed-in manager actually put on Sorare, read from this exact Sorare gameweek. */
@@ -31,7 +31,7 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
       if (answer.state === "ok") last.current = { slug: week.slug, lineups: answer.lineups };
       setLoad(
         answer.state === "ok"
-          ? { state: "ready", lineups: answer.lineups, at: answer.savedAt ? new Date(answer.savedAt) : new Date(), saved: answer.saved, archived: answer.archived, saving: answer.saving, refreshing: answer.refreshing, refreshIssue: answer.refreshIssue }
+          ? { state: "ready", lineups: answer.lineups, at: answer.savedAt ? new Date(answer.savedAt) : new Date(), saved: answer.saved, archived: answer.archived, saving: answer.saving, refreshing: answer.refreshing, refreshIssue: answer.refreshIssue, proNote: answer.proNote }
           : { state: "unavailable", lineups: previous, answer },
       );
     };
@@ -103,7 +103,7 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
         </span>
       </div>
 
-      {load.state === "ready" ? <p className="pl-entered-storage" role="status">{load.saving ? "Saving your latest lineups…" : load.saved ? load.archived ? "Final lineups saved in Sofix." : "Latest lineups saved in Sofix." : "Saved on this device; Sofix storage is unavailable."}{load.refreshing ? " Checking Sorare in the background…" : load.refreshIssue ? " Sorare is unavailable; showing your last saved read." : ""}</p> : null}
+      {load.state === "ready" ? <p className="pl-entered-storage" role="status">{load.saving ? "Saving your latest lineups…" : load.saved ? load.archived ? "Final lineups saved in Sofix." : "Latest lineups saved in Sofix." : "Saved on this device; Sofix storage is unavailable."}{load.refreshing ? " Checking Sorare in the background…" : load.refreshIssue ? " Sorare is unavailable; showing your last saved read." : ""}{load.proNote ? ` ${load.proNote}` : ""}</p> : null}
 
       {load.state === "loading" ? (
         <div className="pl-entered-wait" aria-live="polite">

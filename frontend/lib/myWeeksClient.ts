@@ -64,7 +64,7 @@ export async function readEnteredWeek(slug: string, useSaved = true, onUpdate?: 
     if (answer.state !== "ok") return previous ? { ...previous, refreshing: false, refreshIssue: answer } : answer;
     const lineups = previous?.archived ? withScoring(previous.lineups, answer.lineups) : answer.lineups;
     const at = previous?.archived ? previous.savedAt : new Date().toISOString();
-    const value = cacheRead(slug, { state: "ok", lineups, saved: Boolean(previous?.archived), archived: previous?.archived ?? false, savedAt: at, saving: true });
+    const value = cacheRead(slug, { state: "ok", lineups, saved: Boolean(previous?.archived), archived: previous?.archived ?? false, savedAt: at, saving: true, proNote: answer.proNote });
     onUpdate?.(value);
     let archived = Boolean(previous?.archived);
     const accepted = await save(slug, lineups, final => { archived ||= final; });

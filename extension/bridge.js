@@ -9,10 +9,10 @@
 // It also reads the answers the page itself gets, to learn which card each picture on screen is (the overlay,
 // plans/overlay.md O1). What it learns is a small index kept in this closure: nothing stored, nothing sent away.
 (() => {
-  // 7: starting odds come from native page responses; custom queries silently receive null.
+  // 8: reads your Pro lineups. 7: starting odds come from native page responses; custom queries silently receive null.
   // Version the message source so an older bridge cannot answer first or repeat a write.
-  if (window.__sofixBridge === 7) return;
-  window.__sofixBridge = 7;
+  if (window.__sofixBridge === 8) return;
+  window.__sofixBridge = 8;
 
   const originalFetch = window.fetch;
   let endpoint = null; // { url, headers } of the last GraphQL request Sorare's page made
@@ -44,7 +44,7 @@
     if (!announceTimer) {
       announceTimer = setTimeout(() => {
         announceTimer = 0;
-        window.postMessage({ source: "sofix-bridge-7", type: "cards" }, location.origin);
+        window.postMessage({ source: "sofix-bridge-8", type: "cards" }, location.origin);
       }, 250);
     }
   }
@@ -73,10 +73,10 @@
         while (startingOdds.size > INDEX_MAX) startingOdds.delete(startingOdds.keys().next().value);
         // Passed on so the app can save it: a reading then outlives this tab (plans/sorare-start-chances.md). `games` names every
         // game the answer spoke of, also one Sorare has no number for yet, so "Read the round" knows the page has answered.
-        if (games.size) window.postMessage({ source: "sofix-bridge-7", type: "chances", rows: fresh.slice(0, 500), games: [...games].slice(0, 100) }, location.origin);
+        if (games.size) window.postMessage({ source: "sofix-bridge-8", type: "chances", rows: fresh.slice(0, 500), games: [...games].slice(0, 100) }, location.origin);
       }
       const missions = core.collectMissions ? core.collectMissions(body) : [];
-      if (missions.length && asked) window.postMessage({ source: "sofix-bridge-7", type: "missions", missions, rarity: asked }, location.origin);
+      if (missions.length && asked) window.postMessage({ source: "sofix-bridge-8", type: "missions", missions, rarity: asked }, location.origin);
     } catch {
       // a failure of ours must never reach the page
     }
@@ -108,7 +108,7 @@
         const now = Date.now();
         if (now - sawGraphQLAt > 2000) {
           sawGraphQLAt = now;
-          window.postMessage({ source: "sofix-bridge-7", type: "ready" }, location.origin);
+          window.postMessage({ source: "sofix-bridge-8", type: "ready" }, location.origin);
         }
       }
     } catch {
@@ -295,10 +295,10 @@
   }
 
   window.addEventListener("message", async (event) => {
-    if (event.source !== window || !event.data || event.data.source !== "sofix-content-7") return;
+    if (event.source !== window || !event.data || event.data.source !== "sofix-content-8") return;
     const { type, id, operation, variables, items } = event.data;
     const result =
       type === "whoami" ? await whoAmI() : type === "ask" ? await ask(operation, variables) : type === "identify" ? identify(items) : null;
-    if (result) window.postMessage({ source: "sofix-bridge-7", id, ...result }, location.origin);
+    if (result) window.postMessage({ source: "sofix-bridge-8", id, ...result }, location.origin);
   });
 })();

@@ -298,15 +298,26 @@ describe("your Pro lineups", () => {
   };
 
   it("keeps the Pro lineups whose matchday starts in the gameweek, with their step", () => {
-    const rows = readProLineups(reply, "2026-10-16T00:00:00Z", "2026-10-20T00:00:00Z");
+    const { lineups: rows, note } = readProLineups(reply, "2026-10-16T00:00:00Z", "2026-10-20T00:00:00Z");
     expect(rows.map((row) => row.id)).toEqual(["in"]);
+    expect(note).toBeNull();
     expect(rows[0]).toMatchObject({ competition: "Pro Limited", pro: { level: 3, target: 280 }, cards: [{ slug: "card-a", captain: true }] });
     expect(proLine(rows[0]!.pro!, rows[0]!.result?.score ?? null)).toBe("Step 3 · needs 280 · cleared");
     expect(proLine({ level: 1, target: 200 }, null)).toBe("Step 1 · needs 200");
   });
 
-  it("reads anything else as no Pro lineup", () => {
-    for (const answer of [null, undefined, { state: "refused" }, { state: "ok", data: null }]) expect(readProLineups(answer, "2026-10-16", "2026-10-20")).toEqual([]);
+  it("says why none shows: an old extension, an old Sorare tab, Sorare's refusal, or none in this week", () => {
+    const note = (answer: unknown, start = "2026-10-16", end = "2026-10-20") => {
+      const read = readProLineups(answer, start, end);
+      expect(read.lineups).toEqual([]);
+      return read.note;
+    };
+    expect(note(null)).toContain("Reload in chrome://extensions");
+    expect(note({ state: "refused" })).toBe("Pro lineups not read: reload your sorare.com tab once.");
+    expect(note({ state: "rejected", errors: ["Query too deep"] })).toBe('Pro lineups not read: Sorare says "Query too deep".');
+    expect(note({ state: "ok", data: null })).toBe("Pro lineups could not be read this time.");
+    expect(note(reply, "2026-11-01", "2026-11-05")).toBe("No Pro lineup in this GW (2 on your Pro boards in other weeks).");
+    expect(note({ state: "ok", data: { currentUser: { boards: [] } } })).toBe("Sorare lists no Pro board for you.");
   });
 
   it("adds them to the gameweek's lineups, and an extension without Pro changes nothing", async () => {

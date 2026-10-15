@@ -37,7 +37,7 @@ export type GameweekLineup = {
 
 type FailureState = "no-extension" | "no-tab" | "no-bridge" | "signed-out" | "timeout" | "error";
 export type WeekLineupsAnswer =
-  | { state: "ok"; lineups: GameweekLineup[] }
+  | { state: "ok"; lineups: GameweekLineup[]; proNote?: string }
   | { state: "rejected"; errors: string[] }
   | { state: "outdated"; version: string }
   | { state: FailureState };
@@ -143,20 +143,32 @@ const ProReplySchema = z.object({
 // read one by one: a lineup that is not a plain one (Sorare answers {}) or reads oddly is left out, not the whole list
 const ProLineupSchema = LineupSchema.extend({ so5Fixture: z.object({ startDate: z.string() }) });
 
+/** Why no Pro lineup shows, in a sentence, from the extension's answer. */
+function proUnread(response: unknown): string {
+  const state = (response as { state?: unknown } | null)?.state;
+  if (response == null) return "Pro lineups need the Sofix extension 0.3.17: press Reload in chrome://extensions.";
+  if (state === "refused" || state === "unknown") return "Pro lineups not read: reload your sorare.com tab once.";
+  const errors = (response as { errors?: unknown }).errors;
+  if (state === "rejected" && Array.isArray(errors) && errors.length) return `Pro lineups not read: Sorare says "${String(errors[0]).slice(0, 160)}".`;
+  return "Pro lineups could not be read this time.";
+}
+
 /**
  * Your Pro lineups whose matchday starts inside the gameweek [start, end): Pro plays per league matchday, outside the gameweek's
- * own fixture. Anything unreadable is no Pro lineup, so a failed read never hides the gameweek's other lineups.
+ * own fixture. A failed read never hides the gameweek's other lineups; `note` says why none shows.
  */
-export function readProLineups(response: unknown, start: string, end: string): GameweekLineup[] {
+export function readProLineups(response: unknown, start: string, end: string): { lineups: GameweekLineup[]; note: string | null } {
   const parsed = ProReplySchema.safeParse(response);
-  if (!parsed.success) return [];
+  if (!parsed.success) return { lineups: [], note: proUnread(response) };
   const from = Date.parse(start);
   const to = Date.parse(end);
-  return parsed.data.data.currentUser.boards.flatMap((board) => board.steps
+  let found = 0;
+  const lineups = parsed.data.data.currentUser.boards.flatMap((board) => board.steps
     .filter((step) => step.__typename === "CareerProStep")
     .flatMap((step) => step.myLineups.flatMap((raw) => {
       const read = ProLineupSchema.safeParse(raw);
       if (!read.success) return [];
+      found += 1;
       const lineup = read.data;
       const at = Date.parse(lineup.so5Fixture.startDate);
       if (!(at >= from && at < to)) return [];
@@ -164,6 +176,11 @@ export function readProLineups(response: unknown, start: string, end: string): G
       const title = board.title ?? row.competition;
       return [{ ...row, competition: /\bpro\b/i.test(title) ? title : `Pro · ${title}`, pro: { level: step.level, target: step.target } }];
     })));
+  const boards = parsed.data.data.currentUser.boards.filter((board) => board.steps.some((step) => step.__typename === "CareerProStep")).length;
+  const note = lineups.length ? null
+    : found ? `No Pro lineup in this GW (${found} on your Pro boards in other weeks).`
+    : boards ? `No Pro lineup on your ${boards} Pro board${boards === 1 ? "" : "s"}.` : "Sorare lists no Pro board for you.";
+  return { lineups, note };
 }
 
 function toLineup(lineup: Lineup): GameweekLineup {
@@ -299,5 +316,5 @@ export async function runWeekLineups(slug: string, timeoutMs = 25_000): Promise<
   if (answer.state !== "ok" || !span) return answer;
   // Pro is a separate read; an extension without it, or a refusal, leaves the gameweek's own lineups as they are.
   const pro = readProLineups(await ask({ type: "sorare", step: "pro-entered" }), span.start, span.end);
-  return { state: "ok", lineups: [...answer.lineups, ...pro] };
+  return { state: "ok", lineups: [...answer.lineups, ...pro.lineups], ...(pro.note ? { proNote: pro.note } : {}) };
 }

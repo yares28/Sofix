@@ -19,7 +19,7 @@ const TableProgression = dynamic(() => import("./TableProgression"), {
 interface Props {
   grid: FixtureGrid;
   through: number | null; // a gameweek picked by hand: the real table up to it. null = every result
-  mode: TableMode; // "after" stops the chances at the week's round; anything else runs to the season's end
+  mode: TableMode; // Predicted only: "after" stops the chances at the week's round; anything else runs to the season's end
   onMode: (mode: TableMode) => void;
   standing: StandingMode;
   onStanding: (standing: StandingMode) => void;
@@ -32,7 +32,7 @@ const pct = (value: number) => (value >= 0.995 ? ">99%" : value > 0 && value < 0
 
 const TITLES: Record<StandingMode, string> = { actual: "LaLiga table", expected: "Expected table", predicted: "Predicted table" };
 const SUBTITLES: Record<StandingMode, string> = {
-  actual: "Points won so far. The chances add the games left at today's forecasts, over 5,000 played-out seasons.",
+  actual: "Points won so far.",
   expected: "Every game, played or not, at the strength the model gives each club today. It moves with form.",
   predicted: "The model's season before a ball was kicked. It never changes.",
 };
@@ -41,10 +41,12 @@ const SPLIT_WORD: Record<Split, string> = { total: "", home: " · home games", a
 export default function LeagueTable({ grid, through, mode, onMode, standing, onStanding, split, onSplit }: Props) {
   const last = grid.matchdays.length - 1;
   const round = through ?? openingColumn(grid);
-  const afterRound = mode === "after" && round < last;
-  const stop = afterRound ? round : null;
   const predictedReady = useMemo(() => hasPredicted(grid), [grid]);
   const shown: StandingMode = standing === "predicted" && !predictedReady ? "actual" : standing;
+  const chances = shown !== "actual"; // the real table carries no forecasts
+  // Only the pre-season prediction stops at a gameweek: the expected table is already today's form, after the last round.
+  const afterRound = shown === "predicted" && mode === "after" && round < last;
+  const stop = afterRound ? round : null;
   const rows = useMemo(() => standings(grid, { mode: shown, split, through, stop }), [grid, shown, split, through, stop]);
   const teams = useMemo(() => new Map(grid.teams.map((team) => [team.code, team])), [grid]);
   const size = rows.length;
@@ -89,7 +91,7 @@ export default function LeagueTable({ grid, through, mode, onMode, standing, onS
               { value: "away", label: "Away" },
             ]}
           />
-          {round < last && (
+          {shown === "predicted" && round < last && (
             <SegmentedControl<TableMode>
               label="Chances to"
               value={afterRound ? "after" : "current"}
@@ -106,12 +108,13 @@ export default function LeagueTable({ grid, through, mode, onMode, standing, onS
       <div className="table-scroll">
         <table className={`standings lt-table ${shown}`}>
           <caption className="visually-hidden">
-            {`${TITLES[shown]}, LaLiga ${grid.season}${SPLIT_WORD[split]}, with each club's chances ${by} and its next game`}
+            {`${TITLES[shown]}, LaLiga ${grid.season}${SPLIT_WORD[split]}, with ${chances ? `each club's chances ${by}, ` : ""}its decisive actions per game and its next game`}
           </caption>
           <thead>
             <tr className="lt-groups" aria-hidden="true">
               <th colSpan={10} />
-              <th colSpan={7} className="lt-group">Chances {by}</th>
+              {chances && <th colSpan={7} className="lt-group">Chances {by}</th>}
+              <th colSpan={3} className="lt-group">xD per game</th>
               <th colSpan={2} className="lt-group">Next game</th>
             </tr>
             <tr>
@@ -125,15 +128,22 @@ export default function LeagueTable({ grid, through, mode, onMode, standing, onS
               <th scope="col" className="num"><abbr title="Goal difference">GD</abbr></th>
               <th scope="col" className="num strong"><abbr title="Points">Pts</abbr></th>
               <th scope="col" className="form-col">Form</th>
-              <th scope="col" className="num xpts lt-start">
-                <abbr title={`Expected points ${by}${SPLIT_WORD[split] ? `, ${split} games only` : ""}`}>xPts</abbr>
-              </th>
-              <th scope="col" className="num"><abbr title="Expected goal difference">xGD</abbr></th>
-              <th scope="col" className="num"><abbr title={`Chance of finishing first ${by}`}>Title</abbr></th>
-              <th scope="col" className="num"><abbr title={`Chance of a Champions League place (top four) ${by}`}>UCL</abbr></th>
-              <th scope="col" className="num"><abbr title={`Chance of the Europa League place (fifth) ${by}`}>UEL</abbr></th>
-              <th scope="col" className="num"><abbr title={`Chance of the Conference League play-off place (sixth) ${by}`}>UECLQ</abbr></th>
-              <th scope="col" className="num"><abbr title={`Chance of relegation (bottom three) ${by}`}>REL</abbr></th>
+              {chances && (
+                <>
+                  <th scope="col" className="num xpts lt-start">
+                    <abbr title={`Expected points ${by}${SPLIT_WORD[split] ? `, ${split} games only` : ""}`}>xPts</abbr>
+                  </th>
+                  <th scope="col" className="num"><abbr title="Expected goal difference">xGD</abbr></th>
+                  <th scope="col" className="num"><abbr title={`Chance of finishing first ${by}`}>Title</abbr></th>
+                  <th scope="col" className="num"><abbr title={`Chance of a Champions League place (top four) ${by}`}>UCL</abbr></th>
+                  <th scope="col" className="num"><abbr title={`Chance of the Europa League place (fifth) ${by}`}>UEL</abbr></th>
+                  <th scope="col" className="num"><abbr title={`Chance of the Conference League play-off place (sixth) ${by}`}>UECLQ</abbr></th>
+                  <th scope="col" className="num"><abbr title={`Chance of relegation (bottom three) ${by}`}>REL</abbr></th>
+                </>
+              )}
+              <th scope="col" className="num lt-start"><abbr title={`${XD_TITLE}. Attack: goals, assists, penalties won`}>Att</abbr></th>
+              <th scope="col" className="num"><abbr title={`${XD_TITLE}. Defence: clearances off the line, last-man tackles`}>Def</abbr></th>
+              <th scope="col" className="num"><abbr title={`${XD_TITLE}. Keeper: penalties saved, clean sheets`}>GK</abbr></th>
               <th scope="col" className="next-col lt-start">Next</th>
               <th scope="col" className="num"><abbr title="Fixture difficulty of the next game: lower is kinder">FDR</abbr></th>
             </tr>
@@ -147,7 +157,7 @@ export default function LeagueTable({ grid, through, mode, onMode, standing, onS
                 index={i}
                 moves={shown !== "actual"}
                 maxPoints={maxPoints}
-                banked={shown === "actual"}
+                chances={chances}
                 teams={teams}
               />
             ))}
@@ -168,14 +178,14 @@ export default function LeagueTable({ grid, through, mode, onMode, standing, onS
 }
 
 function Row({
-  row, size, index, moves, maxPoints, banked, teams,
+  row, size, index, moves, maxPoints, chances, teams,
 }: {
   row: StandingRow;
   size: number;
   index: number;
   moves: boolean;
   maxPoints: number;
-  banked: boolean;
+  chances: boolean;
   teams: Map<string, GridTeam>;
 }) {
   const z = zone(row.position, size);
@@ -203,33 +213,35 @@ function Row({
           </span>
         </span>
       </td>
-      <td className="num xpts lt-start">
-        <span className="lt-xpts">
-          <span className="st-track" aria-hidden="true">
-            {banked && <i className="now" style={{ width: `${(row.points / maxPoints) * 100}%` }} />}
-            <i className="come" style={{ width: `${(row.xPts / maxPoints) * 100}%` }} />
-          </span>
-          <b>{row.xPts.toFixed(1)}</b>
-        </span>
-      </td>
-      <td className="num">{signed(Math.round(row.xGD))}</td>
-      <td className="num"><Chance value={row.title} /></td>
-      <td className="num"><Chance value={row.ucl} /></td>
-      <td className="num"><Chance value={row.uel} /></td>
-      <td className="num"><Chance value={row.uecl} /></td>
-      <td className="num"><Chance value={row.rel} bad /></td>
+      {chances && (
+        <>
+          <td className="num xpts lt-start">
+            <span className="lt-xpts">
+              <span className="st-track" aria-hidden="true">
+                <i className="come" style={{ width: `${(row.xPts / maxPoints) * 100}%` }} />
+              </span>
+              <b>{row.xPts.toFixed(1)}</b>
+            </span>
+          </td>
+          <td className="num">{signed(Math.round(row.xGD))}</td>
+          <td className="num"><Chance value={row.title} /></td>
+          <td className="num"><Chance value={row.ucl} /></td>
+          <td className="num"><Chance value={row.uel} /></td>
+          <td className="num"><Chance value={row.uecl} /></td>
+          <td className="num"><Chance value={row.rel} bad /></td>
+        </>
+      )}
+      <Decisives value={row.team.decisives} />
       <td className="next-col lt-start">
         {next && opponent ? (
-          <Link href={`/team/${opponent.code}`} prefetch={false} className="lt-next">
-            <Crest team={opponent} size={20} />
-            <span className="lt-next-text">
-              <span className="lt-next-name">
-                <span className={`lt-venue ${next.venue}`} aria-hidden="true">{next.venue}</span>
-                <span className="visually-hidden">{next.venue === "H" ? "at home to" : "away to"}</span>
-                {opponent.name}
-              </span>
-              <small>{next.date_confirmed ? `${formatShortKickoff(next.kickoff_utc)} · ${formatDay(next.kickoff_utc)}` : `${formatDay(next.kickoff_utc)} · Date TBC`}</small>
-            </span>
+          <Link
+            href={`/team/${opponent.code}`}
+            prefetch={false}
+            className="lt-next"
+            title={opponent.name}
+            aria-label={`${next.venue === "H" ? "At home to" : "Away to"} ${opponent.name}, ${next.date_confirmed ? `${formatShortKickoff(next.kickoff_utc)} ${formatDay(next.kickoff_utc)}` : `${formatDay(next.kickoff_utc)}, date to be confirmed`}`}
+          >
+            <Crest team={opponent} size={22} />
           </Link>
         ) : (
           <span className="muted">Season over</span>
@@ -314,6 +326,21 @@ function Chance({ value, bad = false }: { value: number; bad?: boolean }) {
     >
       {value < 0.005 ? "–" : pct(value)}
     </span>
+  );
+}
+
+const XD_TITLE = "Decisive actions per game in Sorare's stats of every LaLiga game it has, whatever the split";
+
+/** A club's decisive actions per game in Sorare's stats, by kind; a dash when Sorare's file does not have the club. */
+function Decisives({ value }: { value: GridTeam["decisives"] }) {
+  return (
+    <>
+      {[value?.attack, value?.defence, value?.keeper].map((n, i) => (
+        <td key={i} className={`num${i === 0 ? " lt-start" : ""}`} title={value ? `Over ${value.games} games` : "No Sorare stats for this club"}>
+          {n === undefined ? <span className="muted">–</span> : n.toFixed(2)}
+        </td>
+      ))}
+    </>
   );
 }
 

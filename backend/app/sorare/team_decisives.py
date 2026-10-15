@@ -27,26 +27,37 @@ from app.sorare.gamedata import DEFAULT_GAMES, read_games
 DECISIVE_STATS = ("goals", "goal_assist", "assist_penalty_won", "clearance_off_line", "last_man_tackle", "penalty_save")
 BACKEND = Path(__file__).resolve().parents[2]
 DEFAULT_OUT = BACKEND / "artifacts" / "team_decisives.json"
+# The same actions by kind, for the Table's per-game columns. A clean sheet is decisive only for a keeper who played an hour
+# (Sorare's rule), so it counts in "keeper" alone and stays out of the xD rate, which follows goals.
+GROUPS = {
+    "attack": ("goals", "goal_assist", "assist_penalty_won"),
+    "defence": ("clearance_off_line", "last_man_tackle"),
+    "keeper": ("penalty_save",),
+}
+KEEPER_ONLY = ("clean_sheet_60",)
 PRIOR_GOALS = 10.0  # a club's own goals count this many times more than the league's rate until it has scored this many
 
 
 def build(games: list[dict[str, Any]]) -> dict[str, Any]:
     """Each club's decisive actions and goals over these games, its rate, and the league's."""
-    totals: dict[str, dict[str, float]] = defaultdict(lambda: {"decisives": 0.0, "goals": 0.0, "games": 0.0})
+    totals: dict[str, dict[str, float]] = defaultdict(
+        lambda: {"decisives": 0.0, "goals": 0.0, "games": 0.0, **{group: 0.0 for group in GROUPS}}
+    )
     for game in games:
         for side, goals in (("home", game.get("homeGoals")), ("away", game.get("awayGoals"))):
             info = by_odds_name(game[side]["name"])
             if info is None or goals is None:
                 continue
-            decisives = sum(
-                float(player["stats"][stat][0])
-                for player in game["players"].values()
-                if player.get("team") == game[side]["slug"]
-                for stat in DECISIVE_STATS
-                if stat in player.get("stats", {})
-            )
+            players = [p for p in game["players"].values() if p.get("team") == game[side]["slug"]]
+
+            def count(stats: tuple[str, ...], players: list[dict[str, Any]] = players) -> float:
+                return sum(float(p["stats"][stat][0]) for p in players for stat in stats if stat in p.get("stats", {}))
+
             row = totals[info.code]
-            row["decisives"] += decisives
+            row["decisives"] += count(DECISIVE_STATS)
+            for group, stats in GROUPS.items():
+                row[group] += count(stats)
+            row["keeper"] += count(KEEPER_ONLY, [p for p in players if p.get("pos") == "GK"])
             row["goals"] += goals
             row["games"] += 1
     goals_all = sum(row["goals"] for row in totals.values())
@@ -57,6 +68,7 @@ def build(games: list[dict[str, Any]]) -> dict[str, Any]:
             "goals": int(row["goals"]),
             "games": int(row["games"]),
             "rate": round((row["decisives"] + PRIOR_GOALS * league) / (row["goals"] + PRIOR_GOALS), 3),
+            **{group: int(row[group]) for group in GROUPS},
         }
         for code, row in sorted(totals.items())
     }
@@ -75,6 +87,20 @@ def load(path: str) -> dict[str, float]:
     if data.get("league"):
         rates["*"] = float(data["league"])
     return rates
+
+
+@lru_cache(maxsize=4)
+def load_groups(path: str) -> dict[str, dict[str, float]]:
+    """Club code -> games and decisive actions per game by kind (attack, defence, keeper). A club without them is left out."""
+    try:
+        data = json.loads(Path(path).read_text("utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return {
+        code: {"games": row["games"], **{group: round(row[group] / row["games"], 2) for group in GROUPS}}
+        for code, row in data.get("teams", {}).items()
+        if row.get("games") and all(group in row for group in GROUPS)
+    }
 
 
 def expected_decisives(xg: float | None, code: str, rates: dict[str, float]) -> float | None:

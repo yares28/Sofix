@@ -98,6 +98,9 @@ export const FixtureGridSchema = z.object({
       crest_url: z.string().startsWith("https://crests.football-data.org/").nullable(),
       cells: z.array(z.array(CellSchema)),
       opening: z.array(z.number().int().min(1).max(30)).nullish(), // pre-season projected position per gameweek
+      decisives: z // decisive actions per game by kind, from Sorare's game stats
+        .object({ games: z.number().int().min(1), attack: z.number().min(0), defence: z.number().min(0), keeper: z.number().min(0) })
+        .nullish(),
     }),
   ),
 }) satisfies z.ZodType<FixtureGrid>;

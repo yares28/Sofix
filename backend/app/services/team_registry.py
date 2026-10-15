@@ -26,7 +26,15 @@ class TeamInfo:
 
 TEAMS: tuple[TeamInfo, ...] = (
     TeamInfo(
-        "ALA", "Alavés", "Alaves", "#0761af", "Mendizorrotza", 42.8372, -2.6880, ("Deportivo Alaves",), ff_id="28"
+        "ALA",
+        "Alavés",
+        "Alaves",
+        "#0761af",
+        "Mendizorrotza",
+        42.8372,
+        -2.6880,
+        ("Deportivo Alaves", "D. Alaves"),
+        ff_id="28",
     ),
     TeamInfo(
         "ATH", "Athletic Club", "Ath Bilbao", "#ee2523", "San Mamés", 43.2641, -2.9494, ("Athletic Bilbao",), ff_id="1"
@@ -65,7 +73,7 @@ TEAMS: tuple[TeamInfo, ...] = (
         "Riazor",
         43.3687,
         -8.4174,
-        ("Deportivo La Coruna", "RC Deportivo"),
+        ("Deportivo La Coruna", "RC Deportivo", "Real Club Deportivo de La Coruna"),
         ff_id="6",
     ),
     TeamInfo("ELC", "Elche", "Elche", "#05642c", "Martínez Valero", 38.2670, -0.6627, ff_id="21"),

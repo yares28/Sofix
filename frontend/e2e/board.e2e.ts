@@ -193,7 +193,7 @@ test("the table card switches to the predicted table and opens the full table", 
   expect(points).toEqual([...points].sort((a, b) => b - a));
   await card.getByRole("button", { name: "Full table" }).click();
   await expect(page.getByRole("heading", { level: 2, name: "LaLiga table" })).toBeVisible();
-  await expect(page.getByRole("group", { name: "Chances to" }).getByRole("button", { name: "Season end" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("group", { name: "Chances to" })).toHaveCount(0); // the real table has no chances to stop
 });
 
 test("the grid's lens and horizon are kept in the URL", async ({ page }) => {
@@ -380,19 +380,21 @@ test("the Table tab reads the season three ways, by venue, with chances and each
   };
   const points = (await column("Pts")).map(Number);
   expect(points).toEqual([...points].sort((a, b) => b - a));
-  // Every club's next game names an opponent and its difficulty.
-  expect((await column("Next")).every((text) => grid.teams.some((team) => text.includes(team.name)))).toBe(true);
+  // Every club's next game is the opponent's crest alone, named for screen readers, with its difficulty.
+  const next = await rows.locator(".next-col a").evaluateAll((links) => links.map((a) => ({ label: a.getAttribute("aria-label") ?? "", text: a.textContent ?? "" })));
+  expect(next.every(({ label, text }) => !/\d|\b[HA]\b/.test(text) && grid.teams.some((team) => label.includes(team.name) && !text.includes(team.name)))).toBe(true);
   expect((await column("FDR")).every((text) => /^\d+/.test(text))).toBe(true);
-  const actualTitle = await column("Title");
+  // Decisive actions per game by kind, read from Sorare's stats.
+  expect((await column("Att")).every((text) => /^\d\.\d\d$/.test(text))).toBe(true);
 
-  // Expected: ranked by its own points, and its chances are not the real table's.
+  // Expected: ranked by its own points, with chances to the season's end and no gameweek stop.
   const which = page.getByRole("group", { name: "Which table" });
   await which.getByRole("button", { name: "Expected" }).click();
   await expect(page).toHaveURL(/tm=expected/);
   await expect(page.getByRole("heading", { level: 2, name: "Expected table" })).toBeVisible();
   const expected = (await column("xPts")).map(Number);
   expect(expected).toEqual([...expected].sort((a, b) => b - a));
-  expect(await column("Title")).not.toEqual(actualTitle);
+  await expect(page.getByRole("group", { name: "Chances to" })).toHaveCount(0);
 
   // Predicted: the season before a ball was kicked, from the committed projection.
   await which.getByRole("button", { name: "Predicted" }).click();
@@ -419,14 +421,13 @@ test("the Table tab reads the season three ways, by venue, with chances and each
 test("the Table tab walks back and forward a gameweek at a time, and charts the season", async ({ page }) => {
   const past = openingMatchday - 2; // fully played
   await page.goto("/table");
-  // Every reading shares one skeleton: the same columns, so nothing shifts when the switch flips.
+  // The real table carries no forecasts; Expected adds its points and chances.
   const headers = () => page.locator("table.standings thead tr:last-child th");
-  const width = async () => (await headers().first().boundingBox())!.width;
-  await expect(headers()).toHaveText(["#", "Club", "P", "W", "D", "L", "Goals", "GD", "Pts", "Form", "xPts", "xGD", "Title", "UCL", "UEL", "UECLQ", "REL", "Next", "FDR"]);
-  const currentWidth = await width();
+  const table = ["#", "Club", "P", "W", "D", "L", "Goals", "GD", "Pts", "Form"];
+  const after = ["Att", "Def", "GK", "Next", "FDR"];
+  await expect(headers()).toHaveText([...table, ...after]);
   await page.getByRole("group", { name: "Which table" }).getByRole("button", { name: "Expected" }).click();
-  await expect(headers()).toHaveCount(19);
-  expect(await width()).toBeCloseTo(currentWidth, 0);
+  await expect(headers()).toHaveText([...table, "xPts", "xGD", "Title", "UCL", "UEL", "UECLQ", "REL", ...after]);
 
   // Stepping back shows the real table as it stood then.
   await page.goto(`/table?gw=${past}`);

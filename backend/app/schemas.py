@@ -132,6 +132,15 @@ class GridCell(BaseModel):
     opening: CellOpening | None = None  # null when the committed projection is missing or from another season
 
 
+class TeamDecisives(BaseModel):
+    """A club's positive decisive actions per game by kind, from Sorare's game stats (sorare/team_decisives.py)."""
+
+    games: int
+    attack: float  # goals, assists, penalties won
+    defence: float  # clearances off the line, last-man tackles
+    keeper: float  # penalties saved, a keeper's clean sheet
+
+
 class GridTeam(BaseModel):
     code: str
     name: str
@@ -141,6 +150,7 @@ class GridTeam(BaseModel):
     # Where the pre-season model had this club after each gameweek, one entry per matchday column
     # (services/opening_projection.py). Null when the committed projection is missing or from another season.
     opening: list[int] | None = None
+    decisives: TeamDecisives | None = None  # null when the committed file does not know the club
 
 
 class GridMatchday(BaseModel):

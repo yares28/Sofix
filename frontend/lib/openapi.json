@@ -1373,6 +1373,16 @@
               }
             ],
             "title": "Opening"
+          },
+          "decisives": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TeamDecisives"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -1615,6 +1625,35 @@
           "retry_after"
         ],
         "title": "RefreshStatus"
+      },
+      "TeamDecisives": {
+        "properties": {
+          "games": {
+            "type": "integer",
+            "title": "Games"
+          },
+          "attack": {
+            "type": "number",
+            "title": "Attack"
+          },
+          "defence": {
+            "type": "number",
+            "title": "Defence"
+          },
+          "keeper": {
+            "type": "number",
+            "title": "Keeper"
+          }
+        },
+        "type": "object",
+        "required": [
+          "games",
+          "attack",
+          "defence",
+          "keeper"
+        ],
+        "title": "TeamDecisives",
+        "description": "A club's positive decisive actions per game by kind, from Sorare's game stats (sorare/team_decisives.py)."
       },
       "ValidationError": {
         "properties": {

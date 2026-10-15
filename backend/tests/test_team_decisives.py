@@ -35,7 +35,11 @@ def test_rate_counts_only_positive_decisive_actions_and_pulls_toward_the_league(
         ),
     ]
     result = td.build(games)
-    assert result["teams"]["FCB"] | {"rate": 0} == {"decisives": 3, "goals": 2, "games": 1, "rate": 0}
+    assert {k: result["teams"]["FCB"][k] for k in ("decisives", "goals", "games")} == {
+        "decisives": 3,
+        "goals": 2,
+        "games": 1,
+    }
     assert result["teams"]["GET"]["decisives"] == 2  # a goal and a penalty saved; conceded goals do not count
     assert result["league"] == round(5 / 3, 3)
     # Barcelona's own 1.5 per goal, pulled a little toward the league's 1.667 by the prior.
@@ -50,3 +54,26 @@ def test_xd_is_xg_times_the_rate_with_the_league_for_an_unknown_club(tmp_path: P
     assert td.expected_decisives(1.5, "XYZ", rates) == 2.85
     assert td.expected_decisives(None, "FCB", rates) is None
     assert td.expected_decisives(1.5, "FCB", td.load(str(tmp_path / "missing.json"))) is None
+
+
+def test_decisives_per_game_split_into_attack_defence_and_keeper(tmp_path: Path) -> None:
+    home = {"goals": [1, 0], "assist_penalty_won": [1, 0], "last_man_tackle": [1, 0]}
+    first = game(1, 0, home, {})
+    first["players"]["k"] = {
+        "team": "barcelona-barcelona",
+        "pos": "GK",
+        "stats": {"clean_sheet_60": [1, 0], "penalty_save": [1, 0]},
+    }
+    first["players"]["d"] = {
+        "team": "barcelona-barcelona",
+        "pos": "DEF",
+        "stats": {"clean_sheet_60": [1, 0]},
+    }  # not decisive
+    result = td.build([first, game(0, 0, {}, {})])
+    row = result["teams"]["FCB"]
+    assert (row["attack"], row["defence"], row["keeper"], row["games"]) == (2, 1, 2, 2)
+    assert row["decisives"] == 4  # the xD rate still leaves clean sheets out
+    path = tmp_path / "decisives.json"
+    path.write_text(json.dumps(result))
+    assert td.load_groups(str(path))["FCB"] == {"games": 2, "attack": 1.0, "defence": 0.5, "keeper": 1.0}
+    assert td.load_groups(str(tmp_path / "missing.json")) == {}

@@ -29,6 +29,7 @@ from app.schemas import (
     LensScales,
     Outcome,
     Prob,
+    TeamDecisives,
     Venue,
 )
 from app.services.crests import safe_crest_url
@@ -41,6 +42,7 @@ from app.services.team_registry import by_code
 from app.services.timeutil import as_utc
 from app.sorare.team_decisives import expected_decisives
 from app.sorare.team_decisives import load as load_decisive_rates
+from app.sorare.team_decisives import load_groups as load_decisive_groups
 
 LIVE = {"IN_PLAY", "PAUSED", "LIVE"}
 POSTPONED = {"POSTPONED", "SUSPENDED", "CANCELLED"}
@@ -274,6 +276,7 @@ def build_fixture_grid(db: Session) -> FixtureGrid | None:
     current = next((md.number for md in matchdays if not md.finished), None)
 
     decisive_rates = load_decisive_rates(settings.team_decisives_path)
+    decisive_groups = load_decisive_groups(settings.team_decisives_path)
     opening = load_opening_projection(settings.opening_projection_path, season)
     cells: dict[int, list[list[GridCell]]] = {team_id: [[] for _ in numbers] for team_id in teams}
     for fx in fixtures:
@@ -337,6 +340,9 @@ def build_fixture_grid(db: Session) -> FixtureGrid | None:
                 crest_url=safe_crest_url(team.crest_url),  # re-checked on the way out, in case of old rows
                 cells=cells[team_id],
                 opening=opening.path(team_code(team), numbers) if opening else None,
+                decisives=TeamDecisives.model_validate(groups)
+                if (groups := decisive_groups.get(team_code(team)))
+                else None,
             )
         )
     grid_teams.sort(key=lambda t: t.name)

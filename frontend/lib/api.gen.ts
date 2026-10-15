@@ -637,6 +637,7 @@ export interface components {
             cells: components["schemas"]["GridCell"][][];
             /** Opening */
             opening?: number[] | null;
+            decisives?: components["schemas"]["TeamDecisives"] | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -716,6 +717,20 @@ export interface components {
             run: components["schemas"]["RefreshRunOut"] | null;
             /** Retry After */
             retry_after: number;
+        };
+        /**
+         * TeamDecisives
+         * @description A club's positive decisive actions per game by kind, from Sorare's game stats (sorare/team_decisives.py).
+         */
+        TeamDecisives: {
+            /** Games */
+            games: number;
+            /** Attack */
+            attack: number;
+            /** Defence */
+            defence: number;
+            /** Keeper */
+            keeper: number;
         };
         /** ValidationError */
         ValidationError: {

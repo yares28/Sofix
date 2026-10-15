@@ -100,13 +100,13 @@ main.ll { max-width: calc(1320px + 56px); padding-bottom: 64px; }
 .lt-table th, .lt-table td,
 .lt-table tbody tr:first-child td, .lt-table tbody tr:first-child th,
 .lt-table tbody tr:last-child td, .lt-table tbody tr:last-child th { padding-top: 9px; padding-bottom: 9px; }
-.lt-table .num { width: 40px; padding-left: 5px; padding-right: 5px; }
+.lt-table .num { width: 40px; padding-left: 5px; padding-right: 5px; white-space: nowrap; }
 .lt-table .num.wide { width: 58px; }
 .lt-table .pos { width: 58px; }
 .lt-table .club { min-width: 170px; }
 .lt-table .form-col { width: 118px; }
 .lt-table .xpts { width: 128px; }
-.lt-table .next-col { min-width: 168px; text-align: left; }
+.lt-table .next-col { text-align: left; }
 .lt-table tbody tr { animation: ll-rise .55s cubic-bezier(.16, 1, .3, 1) both; animation-delay: calc(var(--i, 0) * 18ms); transition: background-color .2s; }
 .lt-table tbody tr:hover td, .lt-table tbody tr:hover th { background: var(--hover); }
 .lt-table tbody tr:hover .club-name { color: var(--accent); }
@@ -118,13 +118,7 @@ main.ll { max-width: calc(1320px + 56px); padding-bottom: 64px; }
 .lt-xpts .st-track { height: 8px; }
 .lt-table.expected .lt-xpts .come, .lt-table.predicted .lt-xpts .come { opacity: .8; background: var(--accent); }
 .lt-next { display: inline-flex; align-items: center; gap: 9px; color: inherit; text-decoration: none; border-radius: 8px; }
-.lt-next:hover .lt-next-name { text-decoration: underline; text-underline-offset: 3px; }
 .lt-next:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.lt-next-text { display: grid; line-height: 1.2; }
-.lt-next-name { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; white-space: nowrap; }
-.lt-next small { color: var(--ink-2); font-size: 11px; white-space: nowrap; }
-.lt-venue { display: inline-grid; place-items: center; width: 17px; height: 17px; border-radius: 5px; font-size: 11px; font-weight: 700; background: var(--ink); color: var(--on-ink); }
-.lt-venue.A { background: var(--track); color: var(--ink); }
 .lt-fdr { min-width: 30px; padding: 3px 7px; border-radius: 7px; font-size: 12px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
 .lt .muted { color: var(--ink-2); }
 /* A phone scrolls the table sideways with the place and the club pinned, so a row never loses its name. */

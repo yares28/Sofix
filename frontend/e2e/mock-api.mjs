@@ -40,10 +40,18 @@ const sorare = { ...sorareFixture, data: moved(sorareFixture.data) };
 // The recording predates each game's pre-season chances (`opening`): added from the committed projection, as
 // services/fixture_grid.py does, so the Table's Predicted view has them.
 const projection = JSON.parse(readFileSync(new URL("../../backend/artifacts/opening_projection.json", import.meta.url), "utf8"));
+// Decisive actions per game by kind, likewise from the committed file (sorare/team_decisives.py load_groups).
+const decisives = JSON.parse(readFileSync(new URL("../../backend/artifacts/team_decisives.json", import.meta.url), "utf8")).teams;
+const groups = (code) => {
+  const row = decisives[code];
+  const per = (n) => Math.round((n / row.games) * 100) / 100;
+  return row ? { games: row.games, attack: per(row.attack), defence: per(row.defence), keeper: per(row.keeper) } : null;
+};
 const withOpening = (data) => ({
   ...data,
   teams: data.teams.map((team) => ({
     ...team,
+    decisives: groups(team.code),
     cells: team.cells.map((column) => column.map((cell) => {
       const home = cell.venue === "H";
       const odds = projection.fixtures[home ? `${team.code}-${cell.opponent_code}` : `${cell.opponent_code}-${team.code}`];

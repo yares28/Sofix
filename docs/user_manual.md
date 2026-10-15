@@ -182,13 +182,17 @@ are fitted from fair 1X2 plus totals prices; they are implied probabilities, not
 ![Current and predicted LaLiga tables](images/table.png)
 
 Season → Table has three switches, all kept in the address. **Actual / Expected / Predicted** (`?tm=`): Actual is the
-real table, its chances adding the games left at today's forecasts to the points won; Expected plays every game,
+real table alone, with no forecasts; Expected plays every game,
 played or not, at the strength the model gives each club today (it is refitted after every result, so a club that
 loses eight in a row drops and climbs back when it wins); Predicted is the same at the strength the model gave each
 club before the season, saved once and never changed. **Total / Home / Away** (`?v=`) counts only those games in the
-table and xPts; the chances stay those of the full league table. **Season end / After GW N** (`?t=after`) stops the
-chances at the week's round. Each row shows xPts, xGD and the chances of the title, UCL (top four), UEL (fifth), UECLQ
-(sixth, the Conference League play-off) and relegation, then the club's next game with its difficulty (FDR).
+table and xPts; the chances stay those of the full league table. **Season end / After GW N** (`?t=after`, Predicted
+only) stops the chances at the week's round. Expected and Predicted show xPts, xGD and the chances of the title, UCL
+(top four), UEL (fifth), UECLQ (sixth, the Conference League play-off) and relegation. Every reading then shows
+**xD per game**: the club's positive decisive actions per game in Sorare's stats of every LaLiga game it has (all
+games, whatever the split) by kind: **Att** goals, assists, penalties won; **Def** clearances off the line, last-man
+tackles; **GK** penalties saved and the keeper's clean sheets (an hour played). Last comes the next opponent's crest
+(name, venue and kickoff on hover and for screen readers) with its difficulty (FDR).
 
 The left/current table stops after the selected LaLiga GW. Its ordering applies LaLiga head-to-head only after both
 mutual matches have been played, then goal difference and goals scored. Early in a season, that can differ from a

@@ -106,15 +106,19 @@ main.ll { max-width: calc(1320px + 56px); padding-bottom: 64px; }
 .lt-table .club { min-width: 170px; }
 .lt-table .form-col { width: 118px; }
 .lt-table .xpts { width: 128px; }
-.lt-table .next-col { text-align: left; }
+.lt-table .next-col { width: 44px; }
+/* Every value sits in the middle of its cell, under a centred heading; only the club name reads from the left. */
+.lt-table.standings th, .lt-table.standings td, .lt-table.standings thead th.form-col { text-align: center; }
+.lt-table.standings th.club { text-align: left; }
 .lt-table tbody tr { animation: ll-rise .55s cubic-bezier(.16, 1, .3, 1) both; animation-delay: calc(var(--i, 0) * 18ms); transition: background-color .2s; }
 .lt-table tbody tr:hover td, .lt-table tbody tr:hover th { background: var(--hover); }
 .lt-table tbody tr:hover .club-name { color: var(--accent); }
 /* The zone bar grows out of the row's edge, and the position cell keeps its badge without shifting. */
 .lt-table tr[class*="zone-"] .pos::before { width: 3px; top: 9px; bottom: 9px; }
 .lt-table .pos .move { min-width: 26px; }
+.lt-table.actual .pos .move { display: none; } /* Actual has no badge: the place alone, centred */
 .lt-xpts { display: grid; grid-template-columns: minmax(0, 1fr) 38px; align-items: center; gap: 8px; }
-.lt-xpts b { font-weight: 700; text-align: right; }
+.lt-xpts b { font-weight: 700; text-align: center; }
 .lt-xpts .st-track { height: 8px; }
 .lt-table.expected .lt-xpts .come, .lt-table.predicted .lt-xpts .come { opacity: .8; background: var(--accent); }
 .lt-next { display: inline-flex; align-items: center; gap: 9px; color: inherit; text-decoration: none; border-radius: 8px; }

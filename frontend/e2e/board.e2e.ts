@@ -426,6 +426,9 @@ test("the Table tab walks back and forward a gameweek at a time, and charts the 
   const table = ["#", "Club", "P", "W", "D", "L", "Goals", "GD", "Pts", "Form"];
   const after = ["Att", "Def", "GK", "Next", "FDR"];
   await expect(headers()).toHaveText([...table, ...after]);
+  // The first and last rows sit like every other: no padding of their own pushes the place off centre.
+  const pads = await page.locator("table.standings tbody .pos").evaluateAll((cells) => cells.map((c) => getComputedStyle(c).paddingLeft + getComputedStyle(c).textAlign));
+  expect(new Set(pads).size).toBe(1);
   await page.getByRole("group", { name: "Which table" }).getByRole("button", { name: "Expected" }).click();
   await expect(headers()).toHaveText([...table, "xPts", "xGD", "Title", "UCL", "UEL", "UECLQ", "REL", ...after]);
 

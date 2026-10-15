@@ -44,6 +44,7 @@ export default function LeagueTable({ grid, through, mode, onMode, standing, onS
   const predictedReady = useMemo(() => hasPredicted(grid), [grid]);
   const shown: StandingMode = standing === "predicted" && !predictedReady ? "actual" : standing;
   const chances = shown !== "actual"; // the real table carries no forecasts
+  const xdReady = grid.teams.some((team) => team.decisives); // an older payload, from before the field, has none
   // Only the pre-season prediction stops at a gameweek: the expected table is already today's form, after the last round.
   const afterRound = shown === "predicted" && mode === "after" && round < last;
   const stop = afterRound ? round : null;
@@ -68,6 +69,7 @@ export default function LeagueTable({ grid, through, mode, onMode, standing, onS
             {standing === "predicted" && !predictedReady
               ? "The pre-season prediction arrives with the next data refresh. Showing the real table until then."
               : SUBTITLES[shown]}
+            {!xdReady && " The xD per game arrives with the next data refresh."}
           </p>
         </div>
         <div className="lt-controls">

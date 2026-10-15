@@ -36,8 +36,8 @@ jobs:
       SORARE_USER: ${{ vars.SORARE_USER || 'yares' }}
       SLUG: ${{ inputs.slug || 'football-13-16-oct-2026' }}
       LOCK: ${{ inputs.lock || '2026-10-13T14:00:00Z' }}
-      # The owner said yes for GW22 (15 Oct 2026): this push keeps it; the next commit sets it back to false.
-      KEEP: ${{ github.event_name == 'push' && 'true' || inputs.keep }}
+      # Only a manual run with `keep` writes (GW22 was kept this way on 15 Oct 2026, with the owner's yes).
+      KEEP: ${{ inputs.keep || false }}
       APP_URL: ${{ secrets.APP_URL }}
       REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
       VERCEL_BYPASS_SECRET: ${{ secrets.VERCEL_BYPASS_SECRET }}

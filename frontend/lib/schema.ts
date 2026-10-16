@@ -19,6 +19,7 @@ const PredictionSchema = z.object({
   xg_for: z.number().min(0).nullable(),
   xg_against: z.number().min(0).nullable(),
   both_score: probability.nullish(),
+  xd_for: z.number().min(0).nullish(),
 });
 
 const RecordSchema = z

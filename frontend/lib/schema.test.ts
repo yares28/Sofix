@@ -57,6 +57,12 @@ describe("GridResponseSchema", () => {
     expect(parsed.data?.teams[0]?.cells[0]?.[0]?.opening).toEqual(opening);
   });
 
+  it("keeps each forecast's xD, which the match rows show beside xG", () => {
+    const p = payload();
+    Object.assign(p.data.teams[0]!.cells[0]![0]!.prediction, { xd_for: 4.09 });
+    expect(GridResponseSchema.parse(p).data?.teams[0]?.cells[0]?.[0]?.prediction?.xd_for).toBe(4.09);
+  });
+
   it.each([
     ["an out-of-range bucket", (p: ReturnType<typeof payload>) => { p.data.teams[0]!.cells[0]![0]!.prediction.bucket = 7; }],
     ["a crest from another host", (p: ReturnType<typeof payload>) => { p.data.teams[0]!.crest_url = "https://evil.example/x.png"; }],

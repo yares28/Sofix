@@ -2,23 +2,37 @@ import type { CSSProperties } from "react";
 import { scoreColour } from "../../lib/cards";
 import CardArt from "../cards/CardArt";
 
-export type ComparisonCard = { slug: string; name: string; picture: string | null; rarity: string | null; captain: boolean; x: number | null; bench?: boolean; xd?: number | null;
-  /** x is what he scored, not his xScore. */
-  scored?: boolean };
+export type ComparisonCard = { slug: string; name: string; picture: string | null; rarity: string | null; captain: boolean; bench?: boolean; xd?: number | null;
+  /** What he scored on Sorare; null until he has. */
+  score: number | null;
+  /** His xScore; left out for a lineup built knowing the scores. */
+  x?: number | null;
+  /** Why there is no score: "Not played yet", "Did not play", ... */
+  why?: string };
+
+const fill = (value: number | null): CSSProperties => value === null ? { background: "var(--track)", color: "var(--ink-2)" }
+  : { background: scoreColour(value).fill, color: scoreColour(value).ink };
 
 /** Shared by entered teams and Sofix teams so both sides of the comparison read alike. */
 export function ComparisonCards({ cards }: { cards: ComparisonCard[] }) {
   return <ol className="rc-team" aria-label={`${cards.length} cards`}>
     {cards.map(card => {
-      const style: CSSProperties = card.x === null ? { background: "var(--track)", color: "var(--ink-2)" }
-        : { background: scoreColour(card.x).fill, color: scoreColour(card.x).ink };
+      const x = card.x ?? null;
       // The card's own art names him; the name and the bench are still said for a pointer and a screen reader.
       return <li key={card.slug} className={card.bench ? "bench" : undefined} title={card.bench ? `${card.name}, bench` : card.name}>
         <span className={`rc-art ${card.rarity ?? "limited"}`}><CardArt src={card.picture} name={card.name} /></span>
         {card.captain ? <span className="rc-cap" title="Captain">C</span> : null}
-        <span className={`rc-hex sm${card.scored ? " scored" : ""}`} style={style} title={card.scored ? "His score" : "Player xScore"}>{card.x === null ? "-" : Math.round(card.x)}</span>
+        {/* filled: what he scored; outlined: his xScore, so the two never read alike */}
+        <span className="rc-hexes">
+          <span className={`rc-hex sm${card.score === null ? "" : " scored"}`} style={fill(card.score)} title={card.score === null ? (card.why ?? "No score yet") : "His score"}>
+            {card.score === null ? "-" : Math.round(card.score)}
+          </span>
+          {card.x === undefined ? null : <span className="rc-xs" style={{ ["--band" as string]: x === null ? "var(--line)" : scoreColour(x).fill }} title="His xScore">
+            <span>{x === null ? "-" : Math.round(x)}</span>
+          </span>}
+        </span>
         {typeof card.xd === "number" ? <span className="rc-cxd" title="His expected decisive actions">{card.xd.toFixed(2)} xD</span> : null}
-        <span className="visually-hidden">{card.name}{card.bench ? ", bench" : ""}</span>
+        <span className="visually-hidden">{card.name}{card.bench ? ", bench" : ""}{card.score === null ? `, ${card.why ?? "no score yet"}` : `, scored ${Math.round(card.score)}`}{x === null ? "" : `, xScore ${Math.round(x)}`}</span>
       </li>;
     })}
   </ol>;

@@ -274,7 +274,12 @@ export function LineupRow({ row, scores = {} }: { row: PlanRow; scores?: ActualS
         <b>{lineup.comp}</b>
         {lineup.expected ? <span className="rc-tag">Expected</span> : null}
       </div>
-      <ComparisonCards cards={[...lineup.starters, ...lineup.subs].map((c, i) => ({ ...c, picture: c.pic, captain: !!c.captain, bench: i >= lineup.starters.length }))} />
+      <ComparisonCards cards={[...lineup.starters, ...lineup.subs].map((c, i) => {
+        const got = scores[c.slug];
+        return { slug: c.slug, name: c.name, picture: c.pic, rarity: c.rarity, captain: !!c.captain, bench: i >= lineup.starters.length, xd: c.xd, x: c.x,
+          score: lineup.actual ? c.actual : got?.played ? got.score : null,
+          why: (lineup.actual ? c.actual === null : got && !got.played) ? "Did not play" : "Not played yet" };
+      })} />
       <div className="rc-score">
         <ComparisonScores expected={lineup.x} actual={actual.value} actualLabel={actual.value !== null && !actual.complete ? "Actual so far" : "Actual"} xd={lineup.xd ?? null} />
       </div>

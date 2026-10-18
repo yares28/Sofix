@@ -161,6 +161,9 @@ test("entered Sorare lineups sit below the plan of the gameweek they belong to",
   await expect(lineup.locator(".pl-entered-verdict")).toHaveText("Rank 1,204 · $2.50 · 250 essence");
   await expect(lineup.locator(".rc-cap")).toHaveCount(1);
   await expect(lineup.locator(".rc-hex.scored").first()).toHaveText("40");
+  // Beside each score, apart from it, the card's xScore.
+  await expect(lineup.locator(".rc-xs")).toHaveCount(7);
+  await expect(lineup.locator(".rc-xs").first()).toHaveAttribute("title", "His xScore");
   // Your Pro lineup sits with them: the board, its step and the target, cleared once Sorare's score reaches it.
   const pro = mine.locator(".pl-entered-lineup").nth(1);
   await expect(pro).toContainText("Pro · Conference League");
@@ -404,6 +407,9 @@ test("the gameweek that was played shows what each lineup really scored and won"
   const first = page.locator(".pl-lu").first();
   await expect(first.locator(".rc-score-pair b").first()).toHaveText("300"); // its xScore, then what it scored
   await expect(first.locator(".rc-score-pair b").nth(1)).toHaveText("313");
+  // Each card: what he scored in the filled hexagon, his xScore in the outlined one beside it.
+  await expect(first.locator(".rc-hex.scored").first()).toHaveText(/^\d+$/);
+  await expect(first.locator(".rc-xs").first()).toHaveText(/^\d+$/);
   await expect(first.locator(".rc-any")).toContainText("Paid");
   await expect(page.locator(".pl-lu").nth(1).locator(".rc-any")).toContainText("No reward");
 });
@@ -682,6 +688,10 @@ test("a lineup entered for a week that has not locked says when it locks, not th
   // Before the lock it reads like the plan: the xScore, and no score yet for the team or any card.
   await expect(lineup.locator(".pl-entered-result b")).toHaveText("-");
   await expect(lineup.locator(".rc-hex.scored")).toHaveCount(0);
+  // No card has played: every score hexagon is a "-", and the xScore stays in its own hexagon beside it.
+  for (const hex of await lineup.locator(".rc-hex").all()) await expect(hex).toHaveText("-");
+  await expect(lineup.locator(".rc-hex").first()).toHaveAttribute("title", "Not played yet");
+  await expect(lineup.locator(".rc-xs")).toHaveCount(7);
   await expect(lineup).not.toContainText("Still scoring");
 });
 

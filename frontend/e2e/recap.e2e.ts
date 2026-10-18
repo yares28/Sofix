@@ -76,7 +76,12 @@ test("Recap and Play keep the current GW, compare all entered and best-plan line
   await expect(mine.locator(".pl-entered-result b").first()).toHaveText("0");
   await expect(mine.locator(".pl-entered-result b").last()).toHaveText("313");
   await expect(mine).toContainText("Latest lineups saved in Sofix");
+  // Sorare's 0 before the games is not a score: the hexagon says "-", and the card's xScore has its own hexagon beside it.
+  const first = mine.locator(".pl-entered-lineup").first();
+  await expect(first.locator(".rc-hex").first()).toHaveText("-");
+  await expect(first.locator(".rc-xs").first()).toHaveText(String(Math.round(lineup.starters[0]!.x)));
   const plan = page.getByRole("region", { name: "Best Sofix plan" });
+  await expect(plan.locator(".rc-lu").first().locator(".rc-xs").first()).toHaveText(String(Math.round(lineup.starters[0]!.x)));
   await expect(plan.locator(".rc-lu")).toHaveCount(best.lineups.length);
   await expect(plan).toContainText("500 expected essence");
   await expect(plan.locator(".rc-score-pair").first()).toContainText("Actual0");

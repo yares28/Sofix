@@ -105,7 +105,11 @@ a.rc-tm:hover > span:last-child { text-decoration: underline; }
 .rc-team li { position: relative; flex: 1 1 0; min-width: 48px; max-width: 80px; display: flex; flex-direction: column; align-items: center; }
 .rc-team li:not(.bench) + li.bench { margin-left: 17px; }
 .rc-team li:not(.bench) + li.bench::before { content: ""; position: absolute; left: -13px; top: 0; bottom: 16px; width: 1px; background: var(--line); }
-.rc-team .rc-hex.sm { margin-top: -15px; width: 42px; height: 36px; font-size: 15px; }
+.rc-hexes { position: relative; z-index: 1; margin-top: -15px; display: flex; align-items: center; }
+.rc-team .rc-hex.sm { margin-top: 0; width: 42px; height: 36px; font-size: 15px; }
+.rc-xs { position: relative; margin-left: -6px; width: 26px; height: 23px; display: grid; place-items: center; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); background: var(--band); color: var(--ink); font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rc-xs::before { content: ""; position: absolute; inset: 2.5px; clip-path: inherit; background: var(--surface); }
+.rc-xs > span { position: relative; }
 .rc-team .rc-art { border-radius: 8px; }
 .rc-cxd { margin-top: 3px; font-size: 11px; line-height: 1.2; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .rc-cap { position: absolute; top: -7px; right: -7px; z-index: 2; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: var(--on-ink); font-size: 11px; font-weight: 700; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--surface); }
@@ -203,6 +207,8 @@ a.rc-tm:hover > span:last-child { text-decoration: underline; }
   .rc-team li { flex: 0 0 calc((100% - 32px) / 5); max-width: none; min-width: 0; }
   .rc-team li:not(.bench) + li.bench { margin-left: 0; }
   .rc-team li:not(.bench) + li.bench::before { display: none; }
+  .rc-team .rc-hex.sm { width: 38px; height: 33px; font-size: 14px; }
+  .rc-xs { margin-left: -5px; width: 24px; height: 21px; }
   .rc-score b { font-size: 34px; }
   .rc-score span { font-size: 11px; }
   .rc-score-pair { gap: 14px; }

@@ -78,7 +78,9 @@ The Recap is about the week in the top bar (since 5 Oct 2026; design canvas boar
 - **Table after round N**: the table once the round is played as expected: points now, points after and places gained or lost.
 - **Your lineups**: every entered lineup, followed by every lineup of the best Sofix plan. Each compares expected team
   xScore with the actual score; missing scores stay blank, and partial plan results say **Actual so far**. The best plan
-  has the highest expected essence. A plan row is the cards (larger, the captain marked, the bench after a divider), xScore,
+  has the highest expected essence. Under each card the filled hexagon is what he scored on Sorare, a grey "-" until he has
+  played (or when he did not; the hover says which), and the small outlined hexagon beside it is his xScore, on Home and Play alike.
+  A plan row is the cards (larger, the captain marked, the bench after a divider), xScore,
   the actual score, xD (the starters expected to bring a decisive action: each one's chance from his game when Sofix works it
   out, else his real record: how often his own read starts brought one, nothing added; a player with no read start has none and the
   lineup then shows a dash; with two games in the week it is his better game's, never both added up). Each card shows its own xD under its xScore, and a player's page shows his next to his start chance

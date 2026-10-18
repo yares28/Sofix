@@ -146,8 +146,9 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
             const result = lineup.draft || pending ? null : lineup.result;
             return <article className="rc-lu pl-entered-lineup" key={lineup.id}>
                 <div className="rc-lu-c"><b>{lineup.competition}</b><span>{lineup.name ?? "Untitled lineup"}</span><span>{lineup.draft ? "Draft" : "Entered"} · {cards.length} cards</span></div>
-                {/* while the games are on, a card with no points yet keeps its xScore */}
-                <ComparisonCards cards={cards.map((c) => (result && (c.score || !live) ? { ...c, x: c.score ?? null, scored: true } : c))} />
+                {/* Sorare gives a card 0 until his game is in, and 0 to one who did not play */}
+                <ComparisonCards cards={cards.map((c) => ({ ...c, score: result && c.score ? c.score : null,
+                  why: result && !live ? "Did not play" : "Not played yet" }))} />
                 <div className="rc-score">
                   <ComparisonScores expected={expected.value} estimated={expected.estimated} actual={pending || lineup.draft ? null : lineup.result?.score ?? null} actualLabel={lineup.result?.rank === null ? "Actual so far" : "Actual"} entered />
                   {expected.value === null ? <span>{forecast ? "Forecast unavailable" : "Not recorded"}</span> : null}

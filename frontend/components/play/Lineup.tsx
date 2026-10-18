@@ -46,7 +46,6 @@ export default function Lineup({
   const cameIn = new Set((lineup.actual?.cameIn ?? []).map((swap) => swap.sub));
   // While the week is on, a card whose game is over shows what he scored and the team its score so far, as your entered lineups do.
   const live = !after && !lineup.actual ? lineupActual(lineup, scores) : null;
-  const cardValue = (card: PlayCard, sub: boolean) => (!after ? cardScore(card).value : sub && !cameIn.has(card.slug) ? null : card.actual);
   const face = (
     <div className="rc-lu">
       <div className="rc-lu-c">
@@ -62,8 +61,11 @@ export default function Lineup({
         cards={[...lineup.starters, ...lineup.subs].map((card, i) => {
           const bench = i >= lineup.starters.length;
           const got = live ? scores[card.slug] : undefined;
+          const stayedOut = after && bench && !cameIn.has(card.slug);
+          const score = after ? (stayedOut ? null : card.actual) : got?.played ? got.score : null;
           return { slug: card.slug, name: card.name, picture: card.pic ?? null, rarity: lineup.rarity, captain: !!card.captain, bench, xd: card.xd,
-            ...(got ? { x: got.played ? got.score : 0, scored: true } : { x: cardValue(card, bench) }) };
+            x: hindsight ? undefined : cardScore(card).value, score,
+            why: stayedOut ? "Stayed on the bench" : (after ? card.actual === null : got && !got.played) ? "Did not play" : "Not played yet" };
         })}
       />
       <div className="rc-score">

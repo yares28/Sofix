@@ -8,7 +8,7 @@ import { database, readModel } from "./db";
 
 const game = (over: Partial<SavedGame> = {}): SavedGame => ({
   game_id: "g", date: "2026-09-01T19:00:00Z", competition: "laliga-es", home: "Home", away: "Away", status: "FINAL",
-  played: true, started: true, mins: 90, score: 60, yellow: 1, red: false, sofix_x: 50, sorare_x: 65, read_at: "2026-10-08T10:00:00Z", ...over,
+  played: true, started: true, mins: 90, score: 60, yellow: 1, red: false, sofix_x: 50, sorare_x: 65, ff_start: null, read_at: "2026-10-08T10:00:00Z", ...over,
 });
 beforeEach(() => { vi.resetAllMocks(); });
 
@@ -25,6 +25,11 @@ describe("saved player history", () => {
   it("counts this season's appearances, LaLiga yellows and each source's miss on known starts only", () => {
     const summary = seasonSummary([game(), game({ game_id: "2", yellow: 3, score: 70 }), game({ started: false, score: 20, yellow: 0 }), game({ competition: "premier-league-gb", yellow: 2 }), game({ played: false, started: false, score: 0, yellow: 0 }), game({ status: "PENDING", score: 99 }), game({ date: "2026-06-30T19:00:00Z", yellow: 5 })], new Date("2026-10-08"));
     expect(summary).toMatchObject({ games: 4, starts: 3, average: 52.5, yellows: 4, yellowComplete: true, sofix: { n: 3, miss: 40 / 3 }, sorare: { n: 3, miss: 5 } });
+  });
+  it("counts how often FF called his start right: a start at 50% or more, no start below it, only games with FF's number and a known start", () => {
+    const summary = seasonSummary([game({ ff_start: 0.95 }), game({ ff_start: 0.7, started: false }), game({ ff_start: 0.3, started: false }), game({ ff_start: 0.95, started: null }), game({ ff_start: 0.95, status: "PENDING" }), game()], new Date("2026-10-08"));
+    expect(summary.ff).toEqual({ right: 2, n: 3 });
+    expect(seasonSummary([game()], new Date("2026-10-08")).ff).toBeNull();
   });
   it("does not turn missing scores, starts or cards into zero or ban claims", () => {
     const summary = seasonSummary([game({ score: null, started: null, played: null, yellow: null }), game({ sofix_x: null, sorare_x: null })], new Date("2026-10-08"));

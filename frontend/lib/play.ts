@@ -237,6 +237,8 @@ export type PlayerGame = {
   startSource?: StartSource;
   /** When Futbol Fantasy's number was read (ISO), what its page says of him, its match page, his id there, and when that team's lineup last changed. */
   startAt?: string;
+  /** Futbol Fantasy's own start chance, shown on the page while `pStart` holds it corrected from the record (start_fixes.py). */
+  ffSaid?: number;
   ffStatus?: FfStatus;
   ffMatch?: { id: number; url: string };
   ffPlayer?: string;

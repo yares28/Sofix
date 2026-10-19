@@ -271,3 +271,14 @@ main.hm { max-width: calc(1240px + 56px); }
 .theme-switch { width: 32px; height: 32px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--ink-2); cursor: pointer; transition: background .2s, color .2s; }
 .theme-switch:hover { background: var(--hover); color: var(--ink); }
 .theme-switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.nav-search { position: relative; }
+.nav-search-pop { position: absolute; top: calc(100% + 8px); right: 0; z-index: 50; width: min(320px, calc(100vw - 32px)); padding: 8px; border-radius: 16px; background: var(--surface); box-shadow: 0 12px 32px rgba(0, 0, 0, .14), 0 0 0 1px var(--line); }
+.nav-search-pop input { width: 100%; height: 36px; padding: 0 12px; border: 0; border-radius: 10px; background: var(--hover); color: var(--ink); font-size: 14px; }
+.nav-search-pop input:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+.nav-search-pop ul { margin: 6px 0 0; padding: 0; list-style: none; }
+.nav-search-pop li { border-radius: 10px; }
+.nav-search-pop li a { display: flex; align-items: center; gap: 10px; padding: 6px 8px; color: var(--ink); font-size: 13px; text-decoration: none; }
+.nav-search-pop li[aria-selected="true"] { background: var(--hover); }
+.nav-search-pop li .art { flex: none; width: 24px; overflow: hidden; border-radius: 3px; line-height: 0; }
+.nav-search-pop li small { display: block; color: var(--ink-2); font-size: 11px; }
+.nav-search-pop p { margin: 8px; color: var(--ink-2); font-size: 13px; }

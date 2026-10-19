@@ -24,11 +24,12 @@ export default function PlayerHistory({ history, now }: { history: History | nul
           <div><dt>Average score</dt><dd>{summary.average === null ? "—" : summary.average.toFixed(1)} <small>{summary.scored} scored games</small></dd></div>
           <div><dt>LaLiga yellows</dt><dd>{summary.yellowComplete ? "" : "At least "}{summary.yellows}{summary.yellowComplete && summary.yellows % 5 === 4 ? <small>one away from a ban</small> : !summary.yellowComplete ? <small>Some cards not read</small> : null}</dd></div>
           {([ ["Sofix", summary.sofix], ["Sorare", summary.sorare] ] as const).map(([name, value]) => <div key={name}><dt>{name} mean miss</dt><dd>{value ? value.miss.toFixed(1) : "—"}<small>{value ? `${value.n} checked starts` : "No checked starts yet"}</small></dd></div>)}
+          <div title="FF is right when it gave him 50% or more and he started, or under 50% and he did not"><dt>FF start calls</dt><dd>{summary.ff ? `${summary.ff.right}/${summary.ff.n}` : "—"}<small>{summary.ff ? "times FF called his start right" : "No FF number saved yet"}</small></dd></div>
         </dl>
         <ol className="pd-saved-games" data-long={games.length > 50 ? "true" : undefined}>
           {games.map(g => <li className="pd-saved-game" key={g.game_id}>
             <div className="pd-history-fixture"><small><time dateTime={g.date}>{day(g.date)}</time> · {competition(g.competition)}</small><b>{g.home ?? "Home side not read"} v {g.away ?? "Away side not read"}</b></div>
-            <div className="pd-history-appearance"><span>{g.status !== "FINAL" || g.played === null ? "Result not read" : g.started === true ? "Started" : g.played === false ? "Did not play" : g.started === false ? "Came on" : "Start not read"}</span><small>{g.mins === null ? "Minutes not read" : `${g.mins} min`}{g.yellow ? ` · ${g.yellow} yellow` : ""}{g.red ? " · Red card" : ""}{g.yellow === null || g.red === null ? " · Cards not read" : ""}</small></div>
+            <div className="pd-history-appearance"><span>{g.status !== "FINAL" || g.played === null ? "Result not read" : g.started === true ? "Started" : g.played === false ? "Did not play" : g.started === false ? "Came on" : "Start not read"}</span><small>{g.mins === null ? "Minutes not read" : `${g.mins} min`}{g.yellow ? ` · ${g.yellow} yellow` : ""}{g.red ? " · Red card" : ""}{g.ff_start != null ? ` · FF said ${Math.round(g.ff_start * 100)}%` : ""}{g.yellow === null || g.red === null ? " · Cards not read" : ""}</small></div>
             <div className="pd-history-scores"><Score value={g.status === "FINAL" ? g.score : null} label="Real" /><Score value={g.sofix_x} label="Sofix" /><Score value={g.sorare_x} label="Sorare" /></div>
           </li>)}
         </ol>

@@ -100,3 +100,25 @@ test.describe("one player's page", () => {
     expect((await new AxeBuilder({ page }).include("main").analyze()).violations).toEqual([]);
   });
 });
+
+test("the top bar's search finds a player by name, accents ignored, and opens his page", async ({ page, request }) => {
+  await resetBackend(request);
+  const served = (await (await request.get(`${MOCK}/api/sorare`)).json()).data as Sorare;
+  const one = served.market!.find(row => row.slug === "raphael-dias-belloli")!;
+  await page.goto("/");
+  await page.getByRole("button", { name: "Search players" }).click();
+  const box = page.getByRole("combobox", { name: "Player name" });
+  await expect(box).toBeFocused();
+  await box.fill(one.name.split(" ")[0]!.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase());
+  await expect(page.getByRole("option", { name: new RegExp(one.name) })).toBeVisible();
+  await page.getByRole("option", { name: new RegExp(one.name) }).click();
+  await expect(page).toHaveURL(new RegExp(`/players/${one.slug}$`));
+});
+
+test("his page says how often Futbol Fantasy called his start right, and what it said each game", async ({ page, request }) => {
+  await resetBackend(request);
+  await page.goto(`/players/${SLUG}`);
+  const calls = page.getByRole("term").filter({ hasText: "FF start calls" }).locator("..");
+  await expect(calls).toContainText("times FF called his start right");
+  await expect(page.getByText(/FF said 95%/).first()).toBeVisible();
+});

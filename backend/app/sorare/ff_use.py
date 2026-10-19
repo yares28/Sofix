@@ -69,7 +69,12 @@ def corrected(told: GameStart, fixes: StartFixes | None) -> GameStart:
     """The chance the record says it should be (start_fixes.py), the site's own kept in `said`. Out is out: never moved."""
     if fixes is None or told.out:
         return told
-    return dataclasses.replace(told, p_start=fixes.apply("futbolfantasy", told.p_start), said=told.p_start)
+    return dataclasses.replace(
+        told,
+        p_start=fixes.apply("futbolfantasy", told.p_start),
+        said=told.p_start,
+        info={**told.info, "ffSaid": told.p_start},
+    )
 
 
 class Lineups:

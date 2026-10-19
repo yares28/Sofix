@@ -34,7 +34,7 @@ export default function MissionScouting({ one, plans, players, pool, now, rarity
   const related = relatedStats(one.rule);
   const rows = [...unique.entries()].map(([id, { p, game: currentGame, own, locked, allowed, status, editable }]) => {
     const saved = locked ? captured.find((c) => c.s === p.player && c.g === currentGame.id && (!p.card || c.card === p.card) && !c.late) : undefined;
-    const game = locked ? { ...currentGame, pStart: undefined, pOn: undefined, startSource: undefined, ffMatch: undefined, availabilityKnown: false, ...saved?.match } : currentGame;
+    const game = locked ? { ...currentGame, pStart: undefined, pOn: undefined, ffSaid: undefined, startSource: undefined, ffMatch: undefined, availabilityKnown: false, ...saved?.match } : currentGame;
     const sheet = locked ? saved?.sheet : pool?.sheets.players[p.player ?? ""];
     const target = locked ? saved?.targets?.[one.mission.id] ?? saved?.evidence?.[one.mission.id]?.target : one.mission.inventory?.find((c) => c.card === p.card && c.game.id === game.id)?.target;
     const found = locked ? saved?.evidence?.[one.mission.id] ?? (saved?.c[one.mission.id] !== undefined ? { chance: saved.c[one.mission.id]!, historical: saved.historyOnly?.includes(one.mission.id) } : null) : fit(one.rule, { ...p, availabilityKnown: game.availabilityKnown ?? p.availabilityKnown, pStart: game.pStart ?? p.pStart, pOn: game.pOn ?? p.pOn }, sheet ?? null, target);
@@ -42,7 +42,8 @@ export default function MissionScouting({ one, plans, players, pool, now, rarity
     return { id, p, game, target, sheet, found: allowed === false ? null : found, own, locked, status, allowed, editable, games, rate: games.length ? games.filter((g) => g.hit).length / games.length : -1 };
   });
   const filtered = rows.filter(({ p, own, editable }) => p.name.toLowerCase().includes(query.toLowerCase()) && (!position || p.pos === position) && (!availability || (availability === "editable" ? editable : availability === "selected" ? own : shortlist.includes(p.card ?? p.player ?? ""))));
-  const startOf = (r: typeof rows[number]) => r.game.availabilityKnown === false ? undefined : r.game.pStart ?? r.p.pStart;
+  // FF's own number is shown; the chance is worked out from it corrected by the record (start_fixes.py).
+  const startOf = (r: typeof rows[number]) => r.game.availabilityKnown === false ? undefined : r.game.ffSaid ?? r.game.pStart ?? r.p.pStart;
   filtered.sort((a, b) => sort === "kickoff" ? a.game.kickoff.localeCompare(b.game.kickoff) : sort === "recent" ? b.rate - a.rate || recentMean(b.sheet?.form, one.rule) - recentMean(a.sheet?.form, one.rule) : sort === "start" ? (startOf(b) ?? -1) - (startOf(a) ?? -1) : (b.found?.chance ?? -1) - (a.found?.chance ?? -1));
   const copies = (r: typeof rows[number]) => {
     const available = rows.filter((x) => x.p.player === r.p.player && x.editable);
@@ -64,7 +65,7 @@ export default function MissionScouting({ one, plans, players, pool, now, rarity
         <input type="search" name="scout-player" placeholder="Search" autoComplete="off" value={query} onChange={(e) => setQuery(e.target.value)} /></label>
     </div>
     {compared.length ? <div className="mx-compare" aria-label="Player comparison">{rows.filter((r) => compared.includes(r.id)).map((r) => <div key={r.id}><b><Link href={`/players/${r.p.player}`}>{r.p.name}</Link></b>
-      <span>{percent(r.found?.chance)} {r.found?.historical ? "recent hits" : "estimated"}{r.game.availabilityKnown !== false ? ` · ${percent(r.game.pStart ?? r.p.pStart)} to start` : ""}</span><Dots games={r.games} small /></div>)}</div> : null}
+      <span>{percent(r.found?.chance)} {r.found?.historical ? "recent hits" : "estimated"}{r.game.availabilityKnown !== false ? ` · ${percent(startOf(r))} to start` : ""}</span><Dots games={r.games} small /></div>)}</div> : null}
     <div className="mx-scroll"><div className="mx-table">
       <div className="mx-line mx-th" role="group" aria-label="Sort by">
         <span>Card</span>
@@ -98,7 +99,7 @@ export default function MissionScouting({ one, plans, players, pool, now, rarity
           </div>
           {isOpen ? <div className="mx-more" id={`mx-more-${i}`}>
             <p className="sub">{r.game.team ?? "Playing side not supplied"} {r.game.venue === "H" ? "v" : "at"} {r.game.opponent} · {r.game.competition} · {r.status} · {copies(r)}
-              {r.game.availabilityKnown !== false ? <> · {r.game.ffMatch && r.game.startSource === "futbolfantasy" ? <a href={r.game.ffMatch.url} target="_blank" rel="noreferrer">Start: {percent(r.game.pStart ?? r.p.pStart)} · FF</a> : `Start: ${percent(r.game.pStart ?? r.p.pStart)} · ${SOURCE_SHORT[r.game.startSource ?? r.p.startSource ?? "sofix"]}`}</> : null}
+              {r.game.availabilityKnown !== false ? <> · {r.game.ffMatch && r.game.startSource === "futbolfantasy" ? <a href={r.game.ffMatch.url} target="_blank" rel="noreferrer">Start: {percent(startOf(r))} · FF</a> : `Start: ${percent(startOf(r))} · ${SOURCE_SHORT[r.game.startSource ?? r.p.startSource ?? "sofix"]}`}</> : null}
               {r.game.ffStatus?.kind ? ` · ${r.game.ffStatus.kind}${r.game.ffStatus.note ? ` · ${r.game.ffStatus.note}` : ""}` : null}</p>
             <MissionFormEvidence form={form} rule={one.rule} target={r.target} all />
           </div> : null}

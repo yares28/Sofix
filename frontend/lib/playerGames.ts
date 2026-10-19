@@ -23,7 +23,7 @@ export async function loadPlayerGames(slug: string): Promise<PlayerHistory | nul
   const read = cache(async (): Promise<PlayerHistory | null> => {
     const sql = database();
     if (!sql) return local<PlayerHistory>(`players/${slug}/games`);
-    const games = await sql`SELECT game_id, date, competition, home, away, status, score, played, started, mins, yellow, red, sofix_x, sorare_x, read_at
+    const games = await sql`SELECT game_id, date, competition, home, away, status, score, played, started, mins, yellow, red, sofix_x, sorare_x, ff_start, read_at
       FROM player_games WHERE player = ${slug} AND date <= CURRENT_TIMESTAMP ORDER BY date DESC, game_id` as DatabaseGame[];
     const absences = await sql`SELECT id, kind, cause, first_seen, last_seen, back,
       (SELECT CASE WHEN payload->'links'->${slug}->>'slug' IS NOT NULL THEN 'https://www.futbolfantasy.com/jugadores/' || (payload->'links'->${slug}->>'slug') END FROM read_models WHERE key = 'ff_links') AS url
@@ -32,7 +32,7 @@ export async function loadPlayerGames(slug: string): Promise<PlayerHistory | nul
       games: games.map(game => ({ ...game, date: iso(game.date), read_at: game.read_at === null ? null : iso(game.read_at) })),
       absences: absences.map(absence => ({ ...absence, first_seen: iso(absence.first_seen), last_seen: iso(absence.last_seen), back: absence.back === null ? null : iso(absence.back) })),
     };
-  }, ["player-games-v2", slug], { tags: [SORARE_TAG], revalidate: 3600 });
+  }, ["player-games-v3", slug], { tags: [SORARE_TAG], revalidate: 3600 });
   try { return await read(); } catch { return null; }
 }
 

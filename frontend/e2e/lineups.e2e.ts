@@ -387,23 +387,16 @@ test("the compact ownership switch dims others and the removed summary stays abs
   await expect(page.locator(".lu-card:not([data-mine])").first()).toHaveCSS("opacity", "1");
 });
 
-test("a player of yours opens his card on Cards, from the pitch and the alternatives", async ({ page }) => {
+test("every card on the pitch opens his player page; the alternatives of yours still open your card on Cards", async ({ page }) => {
   await page.goto("/lineups?m=22498");
-  const owned = new Set(served.collection!.map((card) => card.player));
-  const hrefs = await page.locator(".lu-go").evaluateAll((links) => links.map((link) => link.getAttribute("href")!));
-  const href = hrefs.find((one) => owned.has(one.replace("/cards#p-", "")))!;
-  // the pitch and the chips under it link the same way
-  await expect(page.locator(".lu-card[data-mine] a.lu-go").first()).toHaveAttribute("href", /^\/cards#p-/);
-  await expect(page.locator(".lu-card:not([data-mine]) a.lu-go")).toHaveCount(0);
+  const owned = served.collection!.map((card) => card.player);
+  const hrefs = await page.locator(".lu-card a.lu-go").evaluateAll((links) => links.map((link) => link.getAttribute("href")!));
+  expect(hrefs.length).toBeGreaterThan(0);
+  expect(hrefs.every((href) => href.startsWith("/players/"))).toBe(true);
   await expect(page.locator(".lu-alt[data-mine] a.lu-alt-go").first()).toHaveAttribute("href", /^\/cards#p-/);
-
+  const href = hrefs.find((one) => owned.includes(one.replace("/players/", "")))!;
   await page.locator(`a.lu-go[href="${href}"]`).first().click();
   await expect(page).toHaveURL(new RegExp(`${href}$`));
-  const tile = page.locator(`#${href.split("#")[1]}`);
-  await expect(tile).toBeInViewport();
-  // the page was reached by a client navigation, where the browser never sets :target: the tile is marked all the same
-  await expect(tile).toHaveClass(/is-target/);
-  await expect(tile.locator(".art")).toHaveCSS("box-shadow", /rgb\(0, 113, 227\)/);
 });
 
 test("switching match answers from the page: no new request, the address follows, and Back returns", async ({ page }) => {
@@ -478,9 +471,8 @@ test("every player is drawn as his Sorare card, yours with the ring, the others 
     await expect(card).toHaveAttribute("data-rarity", "limited");
     await expect(card.locator("img").first()).toHaveAttribute("src", /assets\.sorare\.com\/card\/e2e-\d+\//);
   }
-  // yours keep the ring and are the only ones that link to a card of yours
-  await expect(page.locator(".lu-card[data-mine] a.lu-go").first()).toHaveAttribute("href", /^\/cards#p-/);
-  await expect(others.locator("a.lu-go")).toHaveCount(0);
+  // every card, yours or not, opens his player page
+  await expect(others.locator("a.lu-go").first()).toHaveAttribute("href", /^\/players\//);
 });
 
 test("a match with no card art keeps the face and the silhouette for the players it has none of", async ({ page }) => {

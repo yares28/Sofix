@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cardAnchor, cardHref, matchHref, matchOfCard, matchOfPlayer } from "./links";
+import { cardAnchor, cardHref, matchHref, playerHref, matchOfCard, matchOfPlayer } from "./links";
 import type { PlayerGame } from "./play";
 
 const game = (kickoff: string, ffMatch?: { id: number; url: string }) => ({ kickoff, ffMatch }) as unknown as PlayerGame;
@@ -10,6 +10,11 @@ describe("where a link goes", () => {
     expect(cardAnchor("pau-cubarsi")).toBe("p-pau-cubarsi");
     expect(cardHref("pau-cubarsi")).toBe("/cards#p-pau-cubarsi");
     expect(matchHref(22495)).toBe("/lineups?m=22495");
+  });
+  it("opens his page from his own slug or from a card of his", () => {
+    expect(playerHref("david-soria")).toBe("/players/david-soria");
+    expect(playerHref("david-soria-2026-limited-401")).toBe("/players/david-soria");
+    expect(playerHref("pedri-2025-super_rare-3")).toBe("/players/pedri");
   });
 });
 

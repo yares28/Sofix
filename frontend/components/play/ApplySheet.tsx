@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import Link from "next/link";
+import { playerHref } from "../../lib/links";
 import { appearances, broken, cannot, runStep, type Answer, type Entered, type Verdict } from "../../lib/apply";
 import { chanceLabel, essenceLabel, type GameweekPlan, type Lineup } from "../../lib/play";
 import { Foil } from "./bits";
@@ -271,11 +273,11 @@ export default function ApplySheet({
           <div className="ap-cards">
             {cards.map(({ card, sub }, index) => (
               <div key={card.slug} className={`ap-pc${sub ? " sub" : ""}`} style={{ "--i": index } as React.CSSProperties}>
-                <span className="art">
+                <Link className="art" href={playerHref(card.player ?? card.slug)} aria-label={`${card.name}: open his page`}>
                   <SorareImage src={card.pic} alt="" fill />
                   <span className="rib">{card.x}</span>
                   {card.captain ? <span className="cap-mark">C</span> : null}
-                </span>
+                </Link>
                 <span className="who">
                   <b>{card.name}</b>
                   <span>

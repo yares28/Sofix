@@ -7,6 +7,7 @@ import { SOURCE_SHORT, SOURCE_NAME, cashLabel, chanceLabel, essenceLabel, reward
 import type { AfterRow, BestCard, BoardMatch, NewsItem, PlanRow } from "../../lib/recap";
 import type { GridTeam } from "../../lib/types";
 import { formatDay, formatShortKickoff } from "../../lib/grid";
+import { playerHref } from "../../lib/links";
 import CardArt from "../cards/CardArt";
 import Crest from "../Crest";
 import SeasonIcon from "../SeasonIcon";
@@ -31,10 +32,10 @@ export function BestCards({ cards, gw }: { cards: BestCard[]; gw: number | null 
     <section className="rc-best" aria-label={`Your best cards${gw ? `, Sorare GW${gw}` : ""}, by xScore`}>
       {cards.map((card, i) => (
         <figure className="rc-card" key={card.name} style={{ animationDelay: `${i * 45}ms` }}>
-          <span className={`rc-art ${card.rarity}`}>
+          <Link className={`rc-art ${card.rarity}`} href={playerHref(card.player)} aria-label={`${card.name}: open his page`}>
             <CardArt src={card.pic} name={card.name} />
             <span className="rc-rank" aria-hidden="true">{i + 1}</span>
-          </span>
+          </Link>
           <span className="rc-hex" style={band(card.x)} title={`xScore ${card.x.toFixed(1)}`}>
             {Math.round(card.x)}
           </span>
@@ -277,7 +278,7 @@ export function LineupRow({ row, scores = {} }: { row: PlanRow; scores?: ActualS
       <ComparisonCards cards={[...lineup.starters, ...lineup.subs].map((c, i) => {
         const got = scores[c.slug];
         const score = lineup.actual ? c.actual : got?.played ? got.score : null;
-        return { slug: c.slug, name: c.name, picture: c.pic, rarity: c.rarity, captain: !!c.captain, bench: i >= lineup.starters.length, xd: c.xd, x: c.x,
+        return { slug: c.slug, player: c.player, name: c.name, picture: c.pic, rarity: c.rarity, captain: !!c.captain, bench: i >= lineup.starters.length, xd: c.xd, x: c.x,
           score, total: cardTotal(score, c, lineup.captainBonus),
           why: (lineup.actual ? c.actual === null : got && !got.played) ? "Did not play" : "Not played yet" };
       })} />
@@ -337,7 +338,7 @@ export function MissionsGlance({ plans, day, current, href }: { plans: MissionPl
               <ol>
                 {one.picks.slice(0, 3).map((pick) => (
                   <li key={pick.slug}>
-                    <span className="rc-art"><CardArt src={pick.pic} name={pick.name} /></span>
+                    <Link className="rc-art" href={playerHref(pick.slug)} tabIndex={-1} aria-hidden="true"><CardArt src={pick.pic} name={pick.name} /></Link>
                     <strong>{pct(pick.chance)}</strong>
                     <Link href={`/players/${pick.slug}`}>{pick.name}</Link>
                     <span>{pick.venue === "H" ? "v" : "at"} {pick.opponent}, {formatShortKickoff(pick.kickoff).split(" ")[1]}</span>
@@ -360,10 +361,10 @@ function NewsCard({ item }: { item: NewsItem }) {
   const tone = item.kind === "out" || item.kind === "suspended" ? "out" : item.kind === "doubt" ? "doubt" : "back";
   return (
     <li className="rc-nw">
-      <span className={`rc-art ${item.rarity}`}>
+      <Link className={`rc-art ${item.rarity}`} href={playerHref(item.player)} aria-label={`${item.name}: open his page`}>
         <CardArt src={item.pic} name={item.name} />
         <span className={`rc-tag-dot ${tone}`} aria-hidden="true">{tone === "back" ? "✓" : tone === "out" ? "+" : "?"}</span>
-      </span>
+      </Link>
       <span>
         <b>{item.name}</b>
         {item.cause ? <span>{item.cause}</span> : null}

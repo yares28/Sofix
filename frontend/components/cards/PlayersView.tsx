@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { playerHref } from "../../lib/links";
 import { useMemo, useState } from "react";
 import {
   improvers,
@@ -146,9 +147,9 @@ function ResultCard({
       className={`s5-res${isOwned ? " owned" : ""}`}
       style={{ animationDelay: `${Math.min(index * 18, 380)}ms` }}
     >
-      <span className="art">
+      <Link className="art" href={playerHref(player.slug)} aria-label={`${player.name}: open his page`}>
         <CardArt src={player.pic} name={player.name} />
-      </span>
+      </Link>
       <span className="who">
         <b>
           <Link href={`/players/${player.slug}${weekId ? `?w=${encodeURIComponent(weekId)}` : ""}`} className="s5-who-link">

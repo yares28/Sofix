@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { playerHref } from "../lib/links";
 import type { GameweekPlan, PlayerGame, PlayingPlayer } from "../lib/play";
 import { dayName } from "../lib/weeks";
 import SorareImage from "./play/SorareImage";
@@ -247,10 +248,10 @@ function AwayHead({
 
 function Card({ player }: { player: PlayingPlayer }) {
   return (
-    <span className={`ow-card ${player.rarity === "rare" ? "rare" : "limited"}`}>
+    <Link className={`ow-card ${player.rarity === "rare" ? "rare" : "limited"}`} href={playerHref(player.player ?? player.name)} aria-label={`${player.name}: open his page`}>
       <SorareImage src={player.pic} alt="" fill />
       {player.cards > 1 ? <i>{player.cards}</i> : null}
-    </span>
+    </Link>
   );
 }
 

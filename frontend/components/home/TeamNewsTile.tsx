@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { playerHref } from "../../lib/links";
 import { readLabel, type LineupsGlance } from "../../lib/lineups";
 import type { GameweekPlan, NewsGame, NewsMove, NewsRisk } from "../../lib/play";
 import { gameLine, idleNote, lockChip, movedWhy, shares, sinceLabel, splitLabel } from "../../lib/teamNews";
@@ -15,11 +16,11 @@ const FACES: Record<string, string> = {
 };
 const BAND_TEXT = { likely: "likely · 70%+", doubtful: "in doubt · 40–69%", unlikely: "unlikely", out: "out" } as const;
 
-function Face({ pic, rarity }: { pic: string; rarity: string }) {
+function Face({ pic, rarity, player, name }: { pic: string; rarity: string; player: string; name: string }) {
   return (
-    <span className="hm-nw-face" style={{ background: FACES[rarity] ?? FACES.common }}>
+    <Link className="hm-nw-face" href={playerHref(player)} aria-label={`${name}: open his page`} style={{ background: FACES[rarity] ?? FACES.common }}>
       <SorareImage src={pic} fill />
-    </span>
+    </Link>
   );
 }
 
@@ -149,7 +150,7 @@ const gameOf = (game: NewsGame) => gameLine(game);
 function Risk({ row }: { row: NewsRisk }) {
   return (
     <li className="hm-nw-row">
-      <Face pic={row.pic} rarity={row.rarity} />
+      <Face pic={row.pic} rarity={row.rarity} player={row.player} name={row.name} />
       <span className="hm-nw-who">
         <b>{row.name}</b>
         <span>

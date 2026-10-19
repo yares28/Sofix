@@ -12,6 +12,7 @@ import type { FixtureGrid, GridTeam } from "./types";
 
 // ------------------------------------------------------------------------------------------------- best cards
 export type BestCard = {
+  player: string;
   name: string;
   pic: string;
   rarity: string;
@@ -40,6 +41,7 @@ export function bestCards(players: PlayingPlayer[], count = 10): BestCard[] {
       const game = firstGame(player);
       const start = game?.pStart ?? player.pStart ?? null;
       return {
+        player: player.player ?? player.name,
         name: player.name,
         pic: player.pic,
         rarity: player.rarity,
@@ -130,6 +132,7 @@ export function planRows(plan: Plan): PlanRow[] {
 
 // ------------------------------------------------------------------------------------------------- the news
 export type NewsItem = {
+  player: string;
   name: string;
   pic: string;
   rarity: string;
@@ -162,6 +165,7 @@ export function weekNews(players: PlayingPlayer[], round: number | null, now: Da
     const ago = daysSince(status.since);
     const words = absenceText({ name: player.name, kind: status.kind, cause: status.cause, since: status.since, note: status.note }, round, now);
     const item: NewsItem = {
+      player: player.player ?? player.name,
       name: player.name,
       pic: player.pic,
       rarity: player.rarity,

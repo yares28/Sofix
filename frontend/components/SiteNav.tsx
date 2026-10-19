@@ -3,6 +3,7 @@ import type { SystemStatus } from "../lib/control";
 import type { GridMeta } from "../lib/types";
 import type { Week } from "../lib/weeks";
 import NavLinks from "./NavLinks";
+import PlayerSearch from "./PlayerSearch";
 import StatusPill from "./StatusPill";
 import LensBar from "./LensBar";
 import TabBar from "./TabBar";
@@ -30,6 +31,7 @@ export default function SiteNav({ meta, system, current, week }: Props) {
           <div className="nav-meta">
             {week ? <WeekPicker weeks={week.weeks} current={week.current} now={week.now} /> : null}
             <StatusPill syncedAt={meta?.last_synced_at ?? meta?.last_predicted_at ?? null} system={system} current={current === "control"} />
+            <PlayerSearch />
             <ThemeSwitch />
           </div>
         </div>

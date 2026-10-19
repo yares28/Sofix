@@ -3,6 +3,8 @@ import type { PlayCard, PlayingPlayer } from "./play";
 /** The id of a player's tile on the Cards page, which his link there names. */
 export const cardAnchor = (player: string) => `p-${player}`;
 export const cardHref = (player: string) => `/cards#${cardAnchor(player)}`;
+/** His player page, from his slug or from a card's (`david-soria-2026-limited-401`). */
+export const playerHref = (slug: string) => `/players/${slug.replace(/-\d{4}-(?:limited|rare|super[-_]?rare|unique|common)-\d+$/, "")}`;
 export const matchHref = (match: number) => `/lineups?m=${match}`;
 
 type Playing = Pick<PlayingPlayer, "name" | "games"> & { player?: string };

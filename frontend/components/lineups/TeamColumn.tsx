@@ -68,6 +68,8 @@ export default function TeamColumn({
   // One short name per player, pitch cards and chips alike: two with the same surname get an initial, whichever list they are in.
   const labels = playerLabels([...side.rows.flatMap((row) => row.players), ...side.alternatives]);
   const mine = new Set(Object.keys(cards));
+  // The job keys each card both by his Futbol Fantasy id and as "so:<his Sorare slug>": the shared picture names his Sorare page.
+  const sorareSlug = new Map(Object.entries(art).flatMap(([key, url]) => (key.startsWith("so:") ? [[url, key.slice(3)] as const] : [])));
   // Futbol Fantasy puts who can come in under each starter's own card; a payload from before that was read places them by line.
   const slots = slotAlternatives(side);
   const { byRow, others, dead } = actual ? {byRow:new Map<number,LineupPlayer[]>(),others:side.alternatives,dead:[]} : slots.perSlot ? { byRow: new Map<number, LineupPlayer[]>(), others: slots.rest, dead: slots.dead } : placement(side);
@@ -115,6 +117,7 @@ export default function TeamColumn({
                     card={player.yours ? cards[player.yours] : undefined}
                     calledUp={squadOut(side)}
                     art={art[player.id]}
+                    slug={player.slug ?? player.yours ?? sorareSlug.get(art[player.id] ?? "")}
                     next={slots.bySlot.get(player.id)}
                     labels={labels}
                     mine={mine}
@@ -130,7 +133,7 @@ export default function TeamColumn({
               {scores ? (
                 <ul className="lu-cards lu-bench" aria-label="Announced bench">
                   {byScore(others, scores).map((player) => (
-                    <PlayerCard key={player.id} player={player} label={labels[player.id] ?? player.name} line={player.pos ?? "MID"} card={player.yours ? cards[player.yours] : undefined} calledUp={false} art={art[player.id]} />
+                    <PlayerCard key={player.id} player={player} label={labels[player.id] ?? player.name} line={player.pos ?? "MID"} card={player.yours ? cards[player.yours] : undefined} calledUp={false} art={art[player.id]} slug={player.slug ?? player.yours ?? sorareSlug.get(art[player.id] ?? "")} />
                   ))}
                 </ul>
               ) : (

@@ -1,4 +1,6 @@
 import type { CSSProperties } from "react";
+import Link from "next/link";
+import { playerHref } from "../../lib/links";
 import type { Board, BoardCard, BoardRow, Verdict } from "../../lib/audit";
 import { scoreColour } from "../../lib/cards";
 import { PRIZE_NAME } from "../../lib/lineupsAudit";
@@ -24,9 +26,9 @@ function Cards({ cards, pics }: { cards: BoardCard[]; pics: Record<string, strin
           card.score === null || !card.played ? { background: "var(--track)", color: "var(--ink-2)" } : { background: scoreColour(card.score).fill, color: scoreColour(card.score).ink };
         return (
           <li key={card.slug} className={card.sub ? "bench" : undefined}>
-            <span className="au-cd-art">
+            <Link className="au-cd-art" href={playerHref(card.player)} aria-label={`${card.name}: open his page`}>
               <CardArt src={pics[card.slug] ?? null} name={card.name} />
-            </span>
+            </Link>
             {card.captain ? <span className="au-cd-cap" title="Captain">C</span> : null}
             <span className="au-cd-score" style={tint} title={card.played ? "What he scored" : "Did not play"}>
               {card.score === null || !card.played ? "–" : Math.round(card.score)}

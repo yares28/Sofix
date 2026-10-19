@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { matchHref, matchOfCard } from "../../lib/links";
+import { matchHref, matchOfCard, playerHref } from "../../lib/links";
 import type { Lineup as LineupData, PlayCard, PlayingPlayer } from "../../lib/play";
 import { SCORE_SOURCE_NAME, cardScore, cashLabel, chanceLabel, essenceLabel, essenceName, formatOf, paysNote, startChance } from "../../lib/play";
 import { KindIcon } from "../lineups/Icons";
@@ -58,6 +58,7 @@ export default function Lineup({
         {lineup.expected ? <span className="rc-tag">Expected · Sorare has not opened it yet</span> : null}
       </div>
       <ComparisonCards
+        linked={false}
         cards={[...lineup.starters, ...lineup.subs].map((card, i) => {
           const bench = i >= lineup.starters.length;
           const got = live ? scores[card.slug] : undefined;
@@ -274,14 +275,14 @@ function SheetCard({ card, lineup, after, position, match }: { card: PlayCard; l
   const start = after ? null : startChance(card);
   return (
     <div className={`pl-pc${out ? " out" : ""}`} style={{ ["--i" as string]: String(position) }}>
-      <div className="art">
+      <Link className="art" href={playerHref(card.player ?? card.slug)} aria-label={`${card.name}: open his page`}>
         <Silhouette className="pl-sil" />
-        <SorareImage src={card.pic} alt={card.name} fill />
+        <SorareImage src={card.pic} alt="" fill />
         {card.captain ? <span className="pl-cap">C</span> : null}
         <span className={`pl-rib ${ribbonClass(after ? card.actual : score.value)}`}>
           {value === null ? "DNP" : Math.round(value)}
         </span>
-      </div>
+      </Link>
       <div className="pl-who">
         <b>
           {match === null ? (

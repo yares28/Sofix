@@ -235,7 +235,7 @@ const lineupsPayload = (() => {
   for (const [place, mapping] of Object.entries(next)) for (const one of slots[place].rows.flatMap((row) => row.players)) if (mapping[one.id]) one.next = mapping[one.id];
   // A real Sorare card for each player of Alavés–Atlético the owner does not have (the job's `art`, by Futbol Fantasy id); the other matches have none.
   data.art = {};
-  for (const side of [slots.home, slots.away]) for (const one of [...side.rows.flatMap((row) => row.players), ...side.alternatives]) if (!one.yours) data.art[one.id] = `https://assets.sorare.com/card/e2e-${one.id}/picture/card.png`;
+  for (const side of [slots.home, slots.away]) for (const one of [...side.rows.flatMap((row) => row.players), ...side.alternatives]) if (!one.yours) data.art[one.id] = data.art[`so:e2e-${one.id}`] = `https://assets.sorare.com/card/e2e-${one.id}/picture/card.png`;
   const sociedad = data.matches.find((match) => match.id === 22502);
   spanishInjuries(sociedad);
   calledUp(sociedad);
@@ -343,7 +343,7 @@ const server = createServer((req, res) => {
   if (req.method === "GET" && playerGames) {
     const fixture = playerGames[1] === "juan-marcos-foyth";
     const ago = days => new Date(Date.now() - days * DAY).toISOString();
-    const game = (days, changes = {}) => ({ game_id: `g-${days}`, date: ago(days), competition: "laliga-es", home: "Villarreal", away: "Real Betis", status: "FINAL", score: 60, played: true, started: true, mins: 90, yellow: 2, red: false, sofix_x: 50, sorare_x: 65, read_at: ago(0), ...changes });
+    const game = (days, changes = {}) => ({ game_id: `g-${days}`, date: ago(days), competition: "laliga-es", home: "Villarreal", away: "Real Betis", status: "FINAL", score: 60, played: true, started: true, mins: 90, yellow: 2, red: false, sofix_x: 50, sorare_x: 65, ff_start: 0.95, read_at: ago(0), ...changes });
     return send(res, 200, { success: true, data: {
       games: fixture ? [game(1, { status: "PENDING", played: null, started: null, score: null, yellow: null, red: null }), game(3), game(7, { started: false, mins: 20 }), game(10, { played: false, started: false, mins: 0, score: 0, yellow: 0 })] : [],
       absences: fixture ? [

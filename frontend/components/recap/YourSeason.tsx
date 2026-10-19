@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { cannot } from "../../lib/apply";
+import { playerHref } from "../../lib/links";
 import { weekWon } from "../../lib/entered";
 import { seasonSummary, seasonYear, type SavedWeek } from "../../lib/myWeeks";
 import { archiveFinishedWeeks } from "../../lib/myWeeksClient";
@@ -38,7 +39,7 @@ export default function YourSeason({ saved, now }: { saved: SavedWeek[] | null; 
       const winners = week.lineups.filter((l) => !l.draft && (l.result?.essence ?? 0) > 0);
       return <li key={week.slug}><details><summary><b>GW{week.number}</b><span>{essenceLabel(won.essence)} essence{won.cash ? ` · ${cashLabel(won.cash)}` : ""}{week.lineups.some((l) => !l.draft && l.result?.card) ? " · Card reward" : ""}</span></summary>
         {winners.map((lineup) => <article className="rc-winner" key={lineup.id}><div><b>{lineup.competition}</b><span>{essenceLabel(lineup.result!.essence)} essence · {Math.round(lineup.result!.score)} pts{lineup.result!.rank ? ` · #${lineup.result!.rank}` : ""}</span></div>
-          <ul aria-label="Essence-winning lineup">{lineup.cards.map((c) => <li key={c.slug}><span className="art"><CardArt src={c.picture ?? ""} name={c.name} /></span><span>{c.name}{c.captain ? " · Captain" : ""}</span></li>)}</ul>
+          <ul aria-label="Essence-winning lineup">{lineup.cards.map((c) => <li key={c.slug}><Link className="art" href={playerHref(c.player ?? c.slug)} aria-label={`${c.name}: open his page`}><CardArt src={c.picture ?? ""} name={c.name} /></Link><span>{c.name}{c.captain ? " · Captain" : ""}</span></li>)}</ul>
         </article>)}
         {year === seasonYear(now) ? <Link href={`/play?gw=${week.number}`}>Open GW{week.number} &gt;</Link> : null}
       </details></li>;

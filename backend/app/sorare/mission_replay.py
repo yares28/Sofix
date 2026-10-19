@@ -29,7 +29,11 @@ def reconstruct(entry: dict[str, Any], history: dict[str, Any], rarity: str, day
                 >= datetime.fromisoformat(cand["k"].replace("Z", "+00:00"))
             )
         ):
-            game = {k: v for k, v in game.items() if k not in ("pStart", "pOn", "sources", "startSource", "ffMatch")}
+            game = {
+                k: v
+                for k, v in game.items()
+                if k not in ("pStart", "pOn", "sources", "startSource", "ffMatch", "ffSaid")
+            }
             game["availabilityKnown"] = False
         games = history.get(cand["s"], {}).get("games", [])
         domestic = SUMMER | CALENDAR | JAPAN

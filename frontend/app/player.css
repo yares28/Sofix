@@ -176,7 +176,7 @@
   .ms-section-head { gap: 12px; }
   .ms-section-head h2 { flex-basis: 100%; }
 }
-.pd-history-summary { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; margin: 0 0 24px; }
+.pd-history-summary { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 16px; margin: 0 0 24px; }
 .pd-history-summary dt, .pd-history-summary small, .pd-saved-game small { font-size: 12px; color: var(--ink-2); }
 .pd-history-summary dd { margin: 6px 0; font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; }
 .pd-history-summary dd small { display: block; font-weight: 400; margin-top: 4px; }

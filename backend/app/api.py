@@ -57,6 +57,7 @@ def player_history(slug: str, db: Session = Depends(get_db)):
         "red",
         "sofix_x",
         "sorare_x",
+        "ff_start",
         "read_at",
     )
 

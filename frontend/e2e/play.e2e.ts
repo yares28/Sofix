@@ -272,7 +272,7 @@ test("a card in a lineup sheet opens his match on Lineups", async ({ page }) => 
   await page.goto("/play");
   await page.locator(".pl-lu").first().click();
   const sheet = page.getByRole("dialog", { name: "LALIGA EA SPORTS lineup" });
-  const link = sheet.locator(".pl-pc").first().getByRole("link", { name: "Unai Simón" });
+  const link = sheet.locator(".pl-pc").first().getByRole("link", { name: "Unai Simón", exact: true });
   const href = (await link.getAttribute("href"))!;
   expect(href).toMatch(/^\/lineups\?m=\d+$/);
 

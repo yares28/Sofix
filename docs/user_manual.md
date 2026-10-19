@@ -28,7 +28,8 @@ The week control on the right is app-wide:
 - the round status dot distinguishes LaLiga from Sorare-only weeks.
 
 The sun/moon button at the top right of the bar switches between the light and the dark theme. The choice is kept in
-this browser; until one is made, Sofix follows the system's light or dark setting.
+this browser; until one is made, Sofix follows the system's light or dark setting. The magnifier beside it searches players by
+name (accents ignored) and opens his page. Every Sorare card drawn anywhere in the app opens that player's page too.
 
 A week has one name on every page, in the bar, in the Play title and on Lineups and Home, because the two leagues count their
 weeks differently (LaLiga's round 8 is Sorare's GW21): **LaLiga round 8 · Sorare GW21**; before Sorare opens the week
@@ -638,7 +639,7 @@ Each open mission is a **ticket** (reward, rule, picks made, open slots, lock ti
 
 The mission inventory is separate from the weekly lineup optimizer. Loading missions discovers each task's actual pickable games and pages through its eligible owned cards in bounded batches, including games absent from Sofix's weekly pool. National-team fixtures name the side actually playing. Suggestions and **Your cards** use the same mission-specific inventory. Eligible cards remain selectable without a forecast; an incomplete check is marked partial rather than shown as zero. An empty recommendation is not proof that you have no eligible cards.
 
-**Your cards**, below the picks, is one table row per card for the chosen mission: his card with a dark person mark if you picked it and a small Sofix square if Sofix did, his opponent's crest (hover for the game and kickoff), chance to start and come on, his last ten games, how often he hit the target when he started and when he came on, three related per-game stats that change with the mission (goals, assists and clean sheets for a decisive action; tackles and ball wins for interceptions, and so on) and Sofix's chance (a player who has not come on lately but has at most a 10% chance of coming on is counted on his starts only, instead of showing a dash). Filter by All / Before kickoff / Yours / Shortlist and by position, search by name, sort by game, start, last 10 or chance (the header buttons), compare up to three players and keep a local shortlist. Shortlisting does not change Sofix's independent benchmark. The shortlist stays in this browser for that mission day and rarity; it does not enter anything on Sorare or sync to another device.
+**Your cards**, below the picks, is one table row per card for the chosen mission: his card (FF's own start number in the Start column, even when Sofix works the chance out from it corrected by the record) with a dark person mark if you picked it and a small Sofix square if Sofix did, his opponent's crest (hover for the game and kickoff), chance to start and come on, his last ten games, how often he hit the target when he started and when he came on, three related per-game stats that change with the mission (goals, assists and clean sheets for a decisive action; tackles and ball wins for interceptions, and so on) and Sofix's chance (a player who has not come on lately but has at most a 10% chance of coming on is counted on his starts only, instead of showing a dash). Filter by All / Before kickoff / Yours / Shortlist and by position, search by name, sort by game, start, last 10 or chance (the header buttons), compare up to three players and keep a local shortlist. Shortlisting does not change Sofix's independent benchmark. The shortlist stays in this browser for that mission day and rarity; it does not enter anything on Sorare or sync to another device.
 
 The arrow at the end of a row opens the card's **last 5 and 10 appearances before the mission day**, the **current season**, and that season's **starts / substitute appearances** separately. Season follows the current club’s domestic league, including calendar-year leagues and Japan’s 2026 transition. Each average shows its actual recorded sample; missing early-season games fill through the daily history read. DNPs and appearances with missing stats are counted separately; a missing reading is never a zero. **All recorded stats** expands every supplied Sorare action, including accurate passes and shots on target. Clicking card art opens the player's Sofix profile.
 
@@ -697,7 +698,8 @@ Old export projections do not become saved forecasts. Games absent from the expo
 
 **This season** lists every saved game, newest first, with its real home and away sides, competition, appearance, minutes,
 score and cards. Sofix and Sorare forecasts appear beside the result where they were saved before lock. The summary counts
-games played and starts, averages known appearance scores, and checks each forecast's mean miss on known starts only.
+games played and starts, averages known appearance scores, and checks each forecast's mean miss on known starts only. **FF start calls** counts how often Futbol Fantasy called his start right
+(50% or more and he started, under 50% and he did not), and each game shows what FF said.
 LaLiga yellows are separate from other competitions; four in a cycle says "one away from a ban" only when every saved
 LaLiga game's cards were read. Otherwise the count says "at least". Unread results, minutes, cards and forecasts say so;
 the latest saved game and last reading stay visible when a source stops.

@@ -1,5 +1,7 @@
 import { percent, type MissionCard, type Missions } from "../../lib/audit";
 import { RARITY_NAME } from "../../lib/missions";
+import Link from "next/link";
+import { playerHref } from "../../lib/links";
 import CardArt from "../cards/CardArt";
 
 const dayLabel = (day: string): string =>
@@ -9,9 +11,9 @@ function Card({ card, tone }: { card: MissionCard; tone: "hit" | "miss" | "left"
   const said = tone === "hit" ? "did it" : tone === "miss" ? "did not" : "did it, not picked";
   return (
     <li className={`au-ms-card ${tone}`} title={`${card.name}: ${said}`}>
-      <span className="art" aria-hidden="true">
+      <Link className="art" href={playerHref(card.slug)} aria-label={`${card.name}: open his page`}>
         <CardArt src={card.pic} name={card.name} />
-      </span>
+      </Link>
       <span className="nm">{card.name}</span>
       <span className="visually-hidden">, {said}</span>
     </li>

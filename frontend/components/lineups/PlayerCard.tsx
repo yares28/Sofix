@@ -33,6 +33,7 @@ export default function PlayerCard({
   card,
   calledUp,
   art,
+  slug,
   next = [],
   labels = {},
   mine = new Set<string>(),
@@ -45,6 +46,8 @@ export default function PlayerCard({
   calledUp: boolean;
   /** A real Sorare card of him when he is not one of yours, from the job: every player is drawn as his card wherever Sorare has one. */
   art?: string;
+  /** His Sorare slug, when known: the card opens his player page. */
+  slug?: string;
   /** Who can come in for him in his slot, in the page's order: their names go under his card (Futbol Fantasy draws it so). */
   next?: LineupPlayer[];
   labels?: Record<string, string>;
@@ -112,7 +115,7 @@ export default function PlayerCard({
           })}
         </ul>
       ) : null}
-      {card && player.yours ? <Link className="lu-go" href={cardHref(player.yours)} aria-label={`${player.name}: open your card`} title={`${player.name}: open your card`} /> : null}
+      {slug ? <Link className="lu-go" href={`/players/${slug}`} aria-label={`${player.name}: open his page`} title={`${player.name}: open his page`} /> : null}
     </li>
   );
 }

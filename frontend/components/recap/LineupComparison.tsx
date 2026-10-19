@@ -1,8 +1,10 @@
 import type { CSSProperties } from "react";
+import Link from "next/link";
+import { playerHref } from "../../lib/links";
 import { scoreColour } from "../../lib/cards";
 import CardArt from "../cards/CardArt";
 
-export type ComparisonCard = { slug: string; name: string; picture: string | null; rarity: string | null; captain: boolean; bench?: boolean; xd?: number | null;
+export type ComparisonCard = { slug: string; player?: string | null; name: string; picture: string | null; rarity: string | null; captain: boolean; bench?: boolean; xd?: number | null;
   /** What he scored on Sorare; null until he has. */
   score: number | null;
   /** His xScore; left out for a lineup built knowing the scores. */
@@ -16,7 +18,8 @@ const fill = (value: number | null): CSSProperties => value === null ? { backgro
   : { background: scoreColour(value).fill, color: scoreColour(value).ink };
 
 /** Shared by entered teams and Sofix teams so both sides of the comparison read alike. */
-export function ComparisonCards({ cards }: { cards: ComparisonCard[] }) {
+/** `linked`: each card opens his page; off where the whole row is already a button (Play, whose sheet links each card). */
+export function ComparisonCards({ cards, linked = true }: { cards: ComparisonCard[]; linked?: boolean }) {
   return <ol className="rc-team" aria-label={`${cards.length} cards`}>
     {cards.map(card => {
       const x = card.x ?? null;
@@ -25,7 +28,7 @@ export function ComparisonCards({ cards }: { cards: ComparisonCard[] }) {
       // The card's own art names him; the name and the bench are still said for a pointer and a screen reader.
       // Hovered (a tap on a phone), his hexagons open into a honeycomb that adds the total and his xD.
       return <li key={card.slug} className={card.bench ? "bench" : undefined} title={card.bench ? `${card.name}, bench` : card.name}>
-        <span className={`rc-art ${card.rarity ?? "limited"}`}><CardArt src={card.picture} name={card.name} /></span>
+        {linked ? <Link className={`rc-art ${card.rarity ?? "limited"}`} href={playerHref(card.player ?? card.slug)} aria-label={`${card.name}: open his page`}><CardArt src={card.picture} name={card.name} /></Link> : <span className={`rc-art ${card.rarity ?? "limited"}`}><CardArt src={card.picture} name={card.name} /></span>}
         {card.captain ? <span className="rc-cap" title="Captain">C</span> : null}
         {/* what he scored, then his xScore in a smaller hexagon tucked beside it */}
         <span className="rc-hexes">

@@ -763,7 +763,9 @@ test("the Sorare page says when some lineups are expected", async ({ page, reque
   await expect(page.getByText("Some lineups are expected")).toBeVisible();
 });
 
-test("the week picker's columns say what their numbers are: a chip of playable cards, a value with its unit", async ({ page }) => {
+test("the week picker's columns say what their numbers are: a chip of playable cards, a value with its unit", async ({ page, request }) => {
+  const early = (await playWeeks(request)).find((week) => !week.gw && week.early);
+  expect(early, "the mock serves an early plan").toBeTruthy();
   await page.goto("/play");
   await page.locator(".wk-trigger").click();
   const rows = page.locator(".wk-panel .wk-week");
@@ -775,5 +777,7 @@ test("the week picker's columns say what their numbers are: a chip of playable c
     await expect(row.locator(".val b")).toHaveText(/^([<>]?\d+% reward chance|\d+ essence|early plan|live|1 card plays|\d+ cards play|—)$/);
   }
   await expect(page.locator(".wk-panel .wk-week .val b", { hasText: /^[<>]?\d+% reward chance$/ }).first()).toBeVisible();
+  // The picker opens on the current week's month; the early plans come later, in whichever month that is today.
+  await showMonthOf(page, early!);
   await expect(page.locator(".wk-panel").getByText("early plan", { exact: true }).first()).toBeVisible();
 });

@@ -9,6 +9,11 @@
 /* ---------- top bar links (PC) and tab bar (phones) ---------- */
 .nav-inner { justify-content: flex-start; gap: 30px; }
 .nav-meta { margin-left: auto; }
+/* A long week ("LaLiga round 3 · Sorare GW13") with Android/Linux's wider fonts pushed the bar 3 px past a 390 px phone. */
+@media (max-width: 700px) {
+  .nav-inner { gap: 12px; }
+  .nav-meta { gap: 6px; min-width: 0; }
+}
 .nav-links { display: flex; align-items: center; gap: 22px; }
 .nav-links a { color: var(--ink-2); text-decoration: none; font-size: 13px; font-weight: 500; white-space: nowrap; transition: color .2s; }
 .nav-links a:hover, .nav-links a[aria-current="page"], .nav-links a:has(.link-pending) { color: var(--ink); }

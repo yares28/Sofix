@@ -7,6 +7,7 @@ const lineup = (extra: Partial<Lineup>) => ({ comp: "LaLiga Pro", pReturn: 0.31,
 describe("Pro lineups", () => {
   it("name the step, its target and the prize with the Rare boost", () => {
     expect(proStep(pro)).toBe("Step 1 · needs 360 · $6.25");
+    expect(paysNote(lineup({ pro, group: "In-season" }))).toBe("Reach 360 to clear step 1");
   });
   it("say where the same cards are worth more, cash counted in essence", () => {
     const versus = { comp: "LaLiga Arena", pReturn: 0.12, eEss: 30, eCash: 0, worth: 30 };

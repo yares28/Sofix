@@ -630,8 +630,9 @@ Search by player or club, filter position/rarity and change sort; those choices 
 Excluded cards are folded rather than deleted so the reason remains inspectable.
 
 **Stats** (`/stats`, the Gallery's third view) ranks the current LaLiga players by their mean count of one Sorare action per start,
-over every saved start of the last two seasons (the daily stat sheets). Pick a group, then an action (every action the sheets hold is
-offered); the first five stand on a podium and ranks 6 to 50 follow as cards. **Starts** (3+, 10+, 20+, default 10+) leaves out players
+over every saved start of the last two seasons (the daily stat sheets). The page reads as a sentence, "Most Goals per start": press the
+stat to open a palette of every action the sheets hold (type to narrow it), or step with the arrows. The first five stand on a staircase,
+1st on the left, each step as tall as his number against the leader's; ranks 6 to 50 follow as a wall of cards. Each stat group has its colour. **Starts** (3+, 10+, 20+, default 10+) leaves out players
 with fewer saved starts, so four lucky games do not lead a list.
 
 ## 10a. Missions

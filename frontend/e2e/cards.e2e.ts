@@ -104,29 +104,38 @@ test("every LaLiga player has a start chance and an xScore, not only yours, pric
   await expect(hero.locator(".pd-s")).toHaveText("4%");
 });
 
-test("Stats ranks LaLiga players by their mean per start: the first five on a podium, the next ones under it, and a new stat or starts filter reranks", async ({ page }) => {
+test("Stats ranks LaLiga players by their mean per start: the first five on a staircase, 1st on the left, the next ones as a wall of cards", async ({ page }) => {
   await page.goto("/stats");
   await expect(page.getByRole("link", { name: "Stats", exact: true })).toBeVisible();
-  const podium = page.locator(".st-podium li");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Goals per start");
+  const podium = page.locator(".sx-podium li");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Most Goals per start");
   await expect(podium).toHaveCount(5);
-  await expect(podium.first().locator(".st-name")).toHaveText("Raphinha");
-  await expect(podium.first().locator(".st-value")).toHaveText("0.92");
-  await expect(page.locator(".st-list li").first().locator(".st-rank")).toHaveText("6");
-  expect(await page.locator(".st-list li").count()).toBeLessThanOrEqual(45);
+  await expect(podium.first()).toHaveAttribute("data-rank", "1");
+  await expect(podium.first().locator(".sx-name")).toHaveText("Raphinha");
+  await expect(podium.first().locator(".sx-value")).toHaveText("0.92");
+  // 1st stands left of 2nd, on the taller step
+  const [one, two] = [await podium.nth(0).locator(".sx-plinth").boundingBox(), await podium.nth(1).locator(".sx-plinth").boundingBox()];
+  expect(one!.x).toBeLessThan(two!.x);
+  expect(one!.height).toBeGreaterThan(two!.height);
+  await expect(page.locator(".sx-list li").first().locator(".sx-rank")).toHaveText("6");
+  expect(await page.locator(".sx-list li").count()).toBeLessThanOrEqual(45);
 
-  await page.getByRole("group", { name: "Stat group" }).getByRole("button", { name: "Passing", exact: true }).click();
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Accurate passes per start");
-  await expect(podium.first().locator(".st-name")).toHaveText("Pau Cubarsí");
-  await page.getByRole("group", { name: "Stat", exact: true }).getByRole("button", { name: "Missed passes", exact: true }).click();
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Missed passes per start");
+  // the stat word opens a palette of every stat; typing narrows it
+  await page.getByRole("button", { name: "Goals", exact: true }).click();
+  const palette = page.getByRole("dialog", { name: "Choose a stat" });
+  await palette.getByRole("searchbox", { name: "Find a stat" }).fill("accurate p");
+  await palette.getByRole("button", { name: "Accurate passes", exact: true }).click();
+  await expect(palette).toBeHidden();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Most Accurate passes per start");
+  await expect(podium.first().locator(".sx-name")).toHaveText("Pau Cubarsí");
+  await page.getByRole("button", { name: "Next stat" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Most Accurate long balls per start");
 
-  // every podium value is at least the next one, and so is the list's first against the podium's last
-  const values = (await page.locator(".st-podium .st-value, .st-list .st-value").allInnerTexts()).map(Number);
+  const values = (await page.locator(".sx-podium .sx-value, .sx-list .sx-value").allInnerTexts()).map(Number);
   expect(values).toEqual([...values].sort((a, b) => b - a));
-  const fewer = await page.locator(".st-list li").count();
+  const fewer = await page.locator(".sx-list li").count();
   await page.getByRole("button", { name: "3+", exact: true }).click();
-  expect(await page.locator(".st-list li").count()).toBeGreaterThanOrEqual(fewer);
+  expect(await page.locator(".sx-list li").count()).toBeGreaterThanOrEqual(fewer);
 
   await podium.first().getByRole("link").first().click();
   await expect(page).toHaveURL(/\/players\/[a-z0-9-]+$/);
@@ -135,15 +144,15 @@ test("Stats ranks LaLiga players by their mean per start: the first five on a po
 test("Stats keeps the text floor and fits a phone", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/stats");
-  await expect(page.locator(".st-podium li")).toHaveCount(5);
+  await expect(page.locator(".sx-podium li")).toHaveCount(5);
   expect(await smallText(page, 10)).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
 test("Stats keeps the chosen stat and starts in the address", async ({ page }) => {
   await page.goto("/stats?stat=accurate_pass&min=20");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Accurate passes per start");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Most Accurate passes per start");
   await expect(page.getByRole("button", { name: "20+", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("group", { name: "Stat group" }).getByRole("button", { name: "Defending", exact: true }).click();
-  await expect(page).toHaveURL(/stat=won_tackle&min=20$/);
+  await page.getByRole("button", { name: "Previous stat" }).click();
+  await expect(page).toHaveURL(/stat=assist_penalty_won&min=20$/);
 });

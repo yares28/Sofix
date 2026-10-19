@@ -251,8 +251,18 @@ really happens.
 
 **Essence preference.** Under the lineups, **Essence preference** lists the preferred essence order: LaLiga, then Champion, then
 All Star unless you change it (↑ ↓, then **Save and replan**, which starts a refresh; the plans follow it about six minutes
-later). Sofix prioritizes expected essence rewards, with your essence preference and reward chance breaking ties.
-**Best** marks the plan with the highest expected essence and opens by default. While the gameweek is the one being
+later). Sofix prioritizes the expected reward, essence plus cash with $1 counted as 300 essence (20 Oct 2026: $5 beats 1,000
+essence, 2,000 essence beats $5), with your essence preference and reward chance breaking ties.
+**Best** marks the plan with the highest expected reward and opens by default.
+
+**Pro in the plan (20 Oct 2026).** Your Pro boards (steps, targets, prizes) are read from Sorare's public API each refresh, no
+extension needed. The step each league's board stands on is a competition of its own: the league Arena's slots, four in-season
+cards and season, level and captain bonuses, without substitutes, Multi-Club or the Cap, one lineup, paid all or nothing when the
+lineup reaches the step's target, the prize raised by Sorare's Rare Reward Bonus. The planner gives each lineup's cards to Pro or
+the Arena, whichever is worth more. A Pro lineup reads "Step 1 · needs 360 · $5"; every Pro and Arena lineup says where the same
+five are worth more ("Worth more here than in LaLiga Arena", or "Worth more in LaLiga Pro"); the sheet gives both chances and
+the **Pro board**, the steps ahead with this lineup's chance of each target. Limits: only this week's step is valued (the next
+ones only shown), one try a week, only boards of a league with an Arena that week. Apply leaves Pro out: enter it on Sorare. While the gameweek is the one being
 played, today's missions sit under the lineups with the cards that fit each (chance, opponent, kick-off and what he
 did over his last 5); the full Missions page is one click away.
 
@@ -263,7 +273,7 @@ chance while the week is on, the result. This is not Sofix's
 suggested plan: the extension reads the selected Sorare fixture directly, so the block also works for timeline weeks
 that Sofix no longer retains as an optimized plan. Your Pro lineups sit with them (extension 0.3.18, 15 Oct 2026, every Pro board, LaLiga or not; if none shows, the line above the lineups says why): each one whose
 matchday starts inside the GW, named after its Pro board, with "Step 3 · needs 280" (and "cleared" once Sorare's score reaches it)
-in place of a rank. They are only read; the plan still leaves Pro out ([plans/pro.md](../plans/pro.md)). Every successful read is saved, including live scores and drafts.
+in place of a rank. They are only read here; the plan's own Pro lineup is above ([plans/pro.md](../plans/pro.md)). Every successful read is saved, including live scores and drafts.
 Reopening Recap or Play shows that GW's last saved read immediately and checks Sorare in the background. Saved teams
 also work on a phone or with Sorare closed; an unavailable refresh keeps them visible with a status message. A signed-in
 `sorare.com` tab is needed only for a new read. Live snapshots stay separate from final reward archives. Lineups from
@@ -318,11 +328,12 @@ expected score the same pill outlined. The bench is drawn as cards too, whoever 
 The planner enforces the published slots, caps, in-season minimum, club/card/player uniqueness, bonuses and substitute
 rules. A substitute is kept only when its expected protection exceeds the bonus sacrificed by using it. It repeats a
 seeded, slightly randomized whole-gameweek search and returns up to five plans whose card sets are materially different.
-Plans maximize **expected essence rewards** (11 Oct 2026); essence preference and reward chance break ties.
+Plans maximize the **expected reward**, essence plus cash at $1 = 300 essence (20 Oct 2026; essence alone from 11 Oct);
+essence preference and reward chance break ties.
 The chances come from one simulation of the
 whole plan, so two lineups holding the same players or the same game rise and fall together instead of being counted as if
 apart. A plan's **most likely result** is its likeliest winnings for the week, with its chance; it is often nothing even when
-some reward is likely, because the ways of winning are split over many amounts. Cash and essence stay separate.
+some reward is likely, because the ways of winning are split over many amounts. Cash and essence are shown apart.
 **Also open** gives each competition left out its reward chance and its entry fee.
 
 ### xScore

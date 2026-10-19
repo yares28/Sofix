@@ -12,6 +12,7 @@ import CardArt from "../cards/CardArt";
 import Crest from "../Crest";
 import SeasonIcon from "../SeasonIcon";
 import { ComparisonCards, ComparisonScores } from "./LineupComparison";
+import { ProTags } from "../play/Pro";
 
 /**
  * The Recap blocks (plans/restructure.md, R2; design canvas board 1). Every number is drawn from the payloads as they
@@ -274,6 +275,7 @@ export function LineupRow({ row, scores = {} }: { row: PlanRow; scores?: ActualS
       <div className="rc-lu-c">
         <b>{lineup.comp}</b>
         {lineup.expected ? <span className="rc-tag">Expected</span> : null}
+        <ProTags lineup={lineup} />
       </div>
       <ComparisonCards cards={[...lineup.starters, ...lineup.subs].map((c, i) => {
         const got = scores[c.slug];

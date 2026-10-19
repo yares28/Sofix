@@ -7,8 +7,13 @@ into account whether it's even possible to reach the next step and fight for the
 This file holds steps 4.1 (research) and 4.2 (what Sorare has that Sofix doesn't) of [roadmap.md](roadmap.md), written
 2 Oct 2026. **Step 4.3 is a Stop: you read this and choose the scope.** Nothing here has been built.
 
-**Paused by you on 2 Oct 2026.** Steps 4.1 and 4.2 are done and stay here as the record; 4.3 to 4.7 wait until you say to go on. Nothing
-in the other batches depends on Pro.
+**Resumed and shipped 20 Oct 2026 (scope a + b).** Your answers: show the step and its chance (a) and let the planner move cards
+between Pro and the Arena (b); any rarity the board allows (Limited and Rare); a new look on Play and Recap, built in place.
+How cash meets essence: $1 = 300 essence ("$5 is better than 500 and than 1000 essence, but ... 2000 then prefer essence").
+Built: `backend/app/sorare/pro.py` (boards read from the public API: `user(slug).boards(mode: CAREER)` needs no session,
+`myCurrentStep` does), the planner's `worth` and `boost`, the step tag, the Pro-or-Arena verdict and the Pro board in the lineup
+sheet. LaLiga's board on 20 Oct: 320 (500 essence, claimed), 360 ($5, failed once), 380 ($10), 420 ($50), 440 ($300), 470
+($1,500), 550 ($8,000). Not built: (c) Apply for Pro; the value of later steps; lives left (needs the session).
 
 ## 4.1 · What Pro is
 

@@ -334,8 +334,8 @@ the head of the batch then under way.
 
 ## Batch 4 · T3, Pro in the best plan
 
-**Paused by you on 2 Oct 2026.** 4.1 and 4.2 are done ([pro.md](pro.md)); 4.3 to 4.7 wait until you say to go on, and a run skips this
-batch. Nothing in the other batches depends on it.
+**Shipped 20 Oct 2026, scope a + b** ([pro.md](pro.md)): Pro steps are planned against the Arena, cash at $1 = 300 essence; Play
+and Recap show the step, the verdict and the board. Left: Apply for Pro (c), the value of later steps.
 
 - **4.1 · Research (read-only).**
   - **From Sorare's help centre:** how Pro works:

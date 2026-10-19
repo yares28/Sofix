@@ -2303,7 +2303,15 @@
                 ],
                 "average": 244,
                 "boardId": "So5Leaderboard:laliga-ea-sports-limited",
-                "board": "laliga-ea-sports-limited"
+                "board": "laliga-ea-sports-limited",
+                "worth": 289,
+                "versus": {
+                  "comp": "LaLiga Pro",
+                  "pReturn": 0.22,
+                  "eEss": 0,
+                  "eCash": 1.1,
+                  "worth": 330
+                }
               },
               {
                 "comp": "All Star",
@@ -2732,7 +2740,7 @@
             "cash": 1.31,
             "pAny": 0.71,
             "rewards": 1.1,
-            "cardsUsed": 14,
+            "cardsUsed": 19,
             "cardsAvailable": 38,
             "lineups": [
               {
@@ -2972,6 +2980,217 @@
                 "average": 244,
                 "boardId": "So5Leaderboard:laliga-ea-sports-limited",
                 "board": "laliga-ea-sports-limited"
+              },
+              {
+                "comp": "LaLiga Pro",
+                "key": "LALIGA EA SPORTS | Pro",
+                "group": "In-season",
+                "fee": 0,
+                "rarity": "limited",
+                "size": 5,
+                "subSlots": 0,
+                "minInSeason": 4,
+                "cap": null,
+                "captainBonus": 0.5,
+                "entries": 0,
+                "x": 308,
+                "lo": 224,
+                "hi": 386,
+                "pReturn": 0.31,
+                "eEss": 0,
+                "eCash": 1.55,
+                "pCard": 0,
+                "need": 360,
+                "needFrom": "Step 1",
+                "tiers": [
+                  {
+                    "cash": 5,
+                    "essence": 0,
+                    "card": false,
+                    "p": 0.31,
+                    "lo": 1,
+                    "hi": 1,
+                    "need": 360
+                  }
+                ],
+                "starters": [
+                  {
+                    "slug": "unai-simon-2026",
+                    "name": "Unai Simón",
+                    "pos": "GK",
+                    "rarity": "limited",
+                    "inSeason": true,
+                    "level": 3,
+                    "pic": "https://assets.sorare.com/card/football/unai-simon-2026/picture.png",
+                    "avatar": "https://assets.sorare.com/player/football/unai-simon/avatar.png",
+                    "club": "Athletic Club",
+                    "crest": "https://assets.sorare.com/club/athletic-club/logo.png",
+                    "mult": 1.08,
+                    "p": 0.94,
+                    "mu": 58,
+                    "x": 54.5,
+                    "average": 55,
+                    "actual": null,
+                    "fixture": {
+                      "opponent": "Getafe CF",
+                      "opponentCrest": "https://assets.sorare.com/club/getafe-cf/logo.png",
+                      "venue": "H",
+                      "kickoff": "2026-09-26T16:30:00+00:00",
+                      "games": 1
+                    },
+                    "slot": "Goalkeeper"
+                  },
+                  {
+                    "slug": "pau-cubarsi-2026",
+                    "name": "Pau Cubarsí",
+                    "pos": "DEF",
+                    "rarity": "limited",
+                    "inSeason": true,
+                    "level": 3,
+                    "pic": "https://assets.sorare.com/card/football/pau-cubarsi-2026/picture.png",
+                    "avatar": "https://assets.sorare.com/player/football/pau-cubarsi/avatar.png",
+                    "club": "FC Barcelona",
+                    "crest": "https://assets.sorare.com/club/fc-barcelona/logo.png",
+                    "mult": 1.08,
+                    "p": 0.88,
+                    "mu": 61,
+                    "x": 53.7,
+                    "average": 57,
+                    "actual": null,
+                    "fixture": {
+                      "opponent": "RC Celta",
+                      "opponentCrest": "https://assets.sorare.com/club/rc-celta/logo.png",
+                      "venue": "A",
+                      "kickoff": "2026-09-26T19:00:00+00:00",
+                      "games": 1
+                    },
+                    "slot": "Defender"
+                  },
+                  {
+                    "slug": "pedri-2026",
+                    "name": "Pedri",
+                    "pos": "MID",
+                    "rarity": "limited",
+                    "inSeason": true,
+                    "level": 3,
+                    "pic": "https://assets.sorare.com/card/football/pedri-2026/picture.png",
+                    "avatar": "https://assets.sorare.com/player/football/pedri/avatar.png",
+                    "club": "FC Barcelona",
+                    "crest": "https://assets.sorare.com/club/fc-barcelona/logo.png",
+                    "mult": 1.08,
+                    "p": 0.9,
+                    "mu": 68,
+                    "x": 61.2,
+                    "average": 64,
+                    "actual": null,
+                    "fixture": {
+                      "opponent": "RC Celta",
+                      "opponentCrest": "https://assets.sorare.com/club/rc-celta/logo.png",
+                      "venue": "A",
+                      "kickoff": "2026-09-26T19:00:00+00:00",
+                      "games": 1
+                    },
+                    "slot": "Midfielder",
+                    "captain": true
+                  },
+                  {
+                    "slug": "julian-alvarez-2026",
+                    "name": "Julián Álvarez",
+                    "pos": "FWD",
+                    "rarity": "limited",
+                    "inSeason": true,
+                    "level": 3,
+                    "pic": "https://assets.sorare.com/card/football/julian-alvarez-2026/picture.png",
+                    "avatar": "https://assets.sorare.com/player/football/julian-alvarez/avatar.png",
+                    "club": "Atlético de Madrid",
+                    "crest": "https://assets.sorare.com/club/atletico-madrid/logo.png",
+                    "mult": 1.08,
+                    "p": 0.93,
+                    "mu": 66,
+                    "x": 61.4,
+                    "average": 62,
+                    "actual": null,
+                    "fixture": {
+                      "opponent": "Rayo Vallecano",
+                      "opponentCrest": "https://assets.sorare.com/club/rayo-vallecano/logo.png",
+                      "venue": "H",
+                      "kickoff": "2026-09-27T14:00:00+00:00",
+                      "games": 1
+                    },
+                    "slot": "Forward"
+                  },
+                  {
+                    "slug": "takefusa-kubo-2026",
+                    "name": "Takefusa Kubo",
+                    "pos": "MID",
+                    "rarity": "limited",
+                    "inSeason": true,
+                    "level": 3,
+                    "pic": "https://assets.sorare.com/card/football/takefusa-kubo-2026/picture.png",
+                    "avatar": "https://assets.sorare.com/player/football/takefusa-kubo/avatar.png",
+                    "club": "Real Sociedad",
+                    "crest": "https://assets.sorare.com/club/real-sociedad/logo.png",
+                    "mult": 1.08,
+                    "p": 0.85,
+                    "mu": 59,
+                    "x": 50.2,
+                    "average": 54,
+                    "actual": null,
+                    "fixture": {
+                      "opponent": "Levante UD",
+                      "opponentCrest": "https://assets.sorare.com/club/levante-ud/logo.png",
+                      "venue": "A",
+                      "kickoff": "2026-09-27T16:15:00+00:00",
+                      "games": 1
+                    },
+                    "slot": "Extra"
+                  }
+                ],
+                "subs": [],
+                "average": 244,
+                "boardId": "",
+                "board": "football-pro-27-spain",
+                "clubBonus": null,
+                "averageBonus": null,
+                "pCash": 0.31,
+                "pEss": 0,
+                "pXp": 0,
+                "worth": 465,
+                "pro": {
+                  "level": 1,
+                  "target": 360,
+                  "boost": 1,
+                  "ladder": [
+                    {
+                      "level": 1,
+                      "target": 360,
+                      "cash": 5,
+                      "essence": 0,
+                      "p": 0.31
+                    },
+                    {
+                      "level": 2,
+                      "target": 380,
+                      "cash": 10,
+                      "essence": 0,
+                      "p": 0.18
+                    },
+                    {
+                      "level": 3,
+                      "target": 420,
+                      "cash": 50,
+                      "essence": 0,
+                      "p": 0.04
+                    }
+                  ]
+                },
+                "versus": {
+                  "comp": "LaLiga Arena",
+                  "pReturn": 0.12,
+                  "eEss": 30,
+                  "eCash": 0,
+                  "worth": 30
+                }
               },
               {
                 "comp": "All Star",

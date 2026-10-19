@@ -139,6 +139,12 @@ export type Lineup = {
   starters: PlayCard[];
   subs: PlayCard[];
   average: number;
+  /** What it is expected to win, in essence, $1 counted as 300 (the owner, 20 Oct 2026); absent on older payloads. */
+  worth?: number;
+  /** A Pro lineup: the step it plays for, the Rare prize boost, and its chance of each target still ahead on the board. */
+  pro?: { level: number; target: number; boost: number; ladder: { level: number; target: number; cash: number; essence: number; p: number }[] };
+  /** The same starters in the other mode (Pro against the league's Arena). */
+  versus?: { comp: string; pReturn: number; eEss: number; eCash: number; worth: number };
   actual?: {
     total: number;
     cash: number;
@@ -193,7 +199,7 @@ export type Option = {
 };
 
 export type Blocked = { name: string; rarity: string; group: Group; why: string; expected?: boolean };
-export type AlsoOpen = { name: string; group: Group; fee: number; eEss: number; pReturn: number; x: number };
+export type AlsoOpen = { name: string; group: Group; fee: number; eEss: number; eCash?: number; pReturn: number; x: number };
 
 /**
  * Sorare's own odds for the side the player is on, as the job published them: fractions (0.56 = 56%), and the
@@ -550,6 +556,7 @@ export function formatOf(lineup: Pick<Lineup, "group" | "size" | "subSlots" | "m
 /** Who gets paid in this competition, in a few words. */
 export function paysNote(lineup: Lineup): string {
   if (lineup.group === "Room") return `Top 3 of 10 · ${lineup.fee} to enter`;
+  if (lineup.pro) return `Reach ${lineup.pro.target} to clear step ${lineup.pro.level}`;
   const last = paidTiers(lineup).at(-1);
   if (!last?.hi) return "Rewards by rank";
   const entries = lineup.entries ? ` of ≈${lineup.entries.toLocaleString("en-GB")}` : "";
@@ -683,7 +690,23 @@ export function lastWeek(data: Sorare): GameweekPlan | null {
 }
 
 /** The lineups of a plan Sorare lists, which are the ones that can be entered: an expected competition has nothing to enter yet. */
-export const enterable = (lineups: Lineup[]): Lineup[] => lineups.filter((lineup) => !lineup.expected);
+/** Lineups Apply can enter: not a competition Sorare has yet to open, and not Pro, which is entered on Sorare's own Pro board. */
+export const enterable = (lineups: Lineup[]): Lineup[] => lineups.filter((lineup) => !lineup.expected && !lineup.pro);
+
+/** "Step 1 · needs 360 · $5": the step a Pro lineup plays for and its prize. */
+export function proStep(pro: NonNullable<Lineup["pro"]>): string {
+  const prize = pro.ladder[0];
+  const pays = prize ? [prize.cash ? cashLabel(prize.cash * pro.boost) : "", prize.essence ? `${essenceLabel(prize.essence * pro.boost)} essence` : ""].filter(Boolean).join(" + ") : "";
+  return `Step ${pro.level} · needs ${pro.target}${pays ? ` · ${pays}` : ""}`;
+}
+
+/** Where the same cards are worth more, Pro or the Arena, cash counted as essence; null without both numbers. */
+export function proVerdict(lineup: Lineup): { here: boolean; line: string } | null {
+  const other = lineup.versus;
+  if (!other || lineup.worth === undefined) return null;
+  const here = lineup.worth >= other.worth;
+  return { here, line: here ? `Worth more here than in ${other.comp}` : `Worth more in ${other.comp}` };
+}
 
 /** The gameweek being played right now: its games are on, so it is not yet the last one and its scores are still coming in. */
 export function scoringWeek(data: Sorare): TimelineWeek | null {

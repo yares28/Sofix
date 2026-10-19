@@ -30,7 +30,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from app.sorare import links
-from app.sorare.model import ESSENCE_ORDER, Card, Competition, Forecast
+from app.sorare.model import CASH_IN_ESSENCE, ESSENCE_ORDER, Card, Competition, Forecast
 
 SCORE_SD = 17.6
 """How far a player's real score lands from his forecast, in points (measured on the owner's players,
@@ -250,6 +250,21 @@ def landed(lineup: Lineup, scores: np.ndarray, rng: np.random.Generator) -> np.n
     return out
 
 
+def boost(lineup: Lineup) -> float:
+    """Pro's Rare Reward Bonus: the prize grows with each Rare (or better) starter, more for the captain. 1 everywhere else."""
+    rates = lineup.comp.reward_boosts
+    out = 1.0
+    for i, card in enumerate(lineup.starters):
+        if card.rarity in rates:
+            out += rates[card.rarity][(0 if card.in_season else 2) + (i == lineup.captain)]
+    return out
+
+
+def worth(lineup: Lineup) -> float:
+    """What a lineup is expected to win, in essence: its essence plus its cash at `CASH_IN_ESSENCE` (the owner, 20 Oct 2026)."""
+    return lineup.e_essence + CASH_IN_ESSENCE * lineup.e_cash
+
+
 def _rewards(lineup: Lineup, scores: np.ndarray, rng: np.random.Generator) -> None:
     tiers = lineup.comp.rewarding_tiers
     where = landed(lineup, scores, rng)
@@ -261,8 +276,9 @@ def _rewards(lineup: Lineup, scores: np.ndarray, rng: np.random.Generator) -> No
     lineup.p_cash = sum(p for p, t in pairs if t.cash)
     lineup.p_essence = sum(p for p, t in pairs if t.essence)
     lineup.p_card = sum(p for p, t in pairs if t.card)
-    lineup.e_cash = sum(p * t.cash for p, t in pairs)
-    lineup.e_essence = sum(p * t.essence for p, t in pairs)
+    more = boost(lineup)
+    lineup.e_cash = more * sum(p * t.cash for p, t in pairs)
+    lineup.e_essence = more * sum(p * t.essence for p, t in pairs)
 
 
 EVALUATED = ("expected", "low", "high", "p_return", "p_xp", "p_cash", "p_essence", "p_card", "e_cash", "e_essence")
@@ -590,6 +606,7 @@ def plan_outcomes(
         total = totals(lineup, plays[:, cols], scores[:, cols])
         tiers = lineup.comp.rewarding_tiers
         where = landed(lineup, total, np.random.default_rng(_seed(lineup.comp, lineup.starters)))
+        more = boost(lineup)
         won = np.zeros(draws, dtype=bool)
         for k, tier in enumerate(tiers):
             hit = where == k
@@ -597,8 +614,8 @@ def plan_outcomes(
                 won |= hit
             else:
                 xp |= hit
-            cash += hit * tier.cash
-            essence += hit * tier.essence
+            cash += hit * tier.cash * more
+            essence += hit * tier.essence * more
             cards += hit * tier.card
             has["cash"] |= hit & bool(tier.cash)
             has["essence"] |= hit & bool(tier.essence)
@@ -678,14 +695,8 @@ def make_plan(
                 )
             for lineup in cache[comp.key]:
                 if worth_entering(lineup, floor):
-                    # Maximize expected essence first (11 Oct); preserve essence-kind priority for equal rewards.
-                    options.append(
-                        (
-                            priority(lineup, order),
-                            lineup.e_essence,
-                            lineup,
-                        )
-                    )
+                    # The most expected reward first, cash counted in essence (20 Oct); essence-kind priority breaks ties.
+                    options.append((priority(lineup, order), worth(lineup), lineup))
         if not options:
             if long_from is not None:
                 break
@@ -730,8 +741,8 @@ def plans(
 ) -> list[Plan]:
     """The best whole-gameweek plans, each different enough from the others to be a real choice.
 
-    The best maximizes expected essence rewards (the owner, 11 Oct 2026). The owner's essence-kind order and
-    reward chance break ties. Cash remains separate and never outweighs a larger essence reward.
+    The best maximizes the expected reward, essence plus cash at `CASH_IN_ESSENCE` (the owner, 20 Oct 2026; essence alone
+    from 11 Oct). The owner's essence-kind order and reward chance break ties.
     """
     token = _evaluated.set({})
     try:
@@ -776,7 +787,7 @@ def _plans(
     def key(plan: Plan) -> tuple[float, ...]:
         kinds = (plan.outcomes.by_kind if plan.outcomes else {}) or {}
         return (
-            -plan.essence,
+            -(plan.essence + CASH_IN_ESSENCE * plan.cash),
             *(-round(kinds.get(kind, 0.0), 2) for kind in order),
             -round(plan.chance_of_any(), 3),
             -(plan.cash / best_cash + (plan.essence - plan.fees) / best_essence),

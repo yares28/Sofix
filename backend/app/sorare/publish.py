@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import math
+import zlib
 from collections.abc import Callable, Mapping
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
@@ -18,11 +19,25 @@ import numpy as np
 
 from app.services.scoring import difficulty_label, difficulty_score, label_bucket
 from app.services.timeutil import Laps
-from app.sorare import expected, projection, rules, strategies, xg
+from app.sorare import expected, pro, projection, rules, strategies, xg
 from app.sorare.forecast import GameStart, PlayerWeek, cup_dates, own_start
 from app.sorare.forecast import forecasts as build_forecasts
 from app.sorare.model import ESSENCE_ORDER, SORARE_POSITION, Card, Competition, Forecast
-from app.sorare.planner import DRAWS, Lineup, Plan, build, enterable, fill_bench, plans, replay_rewards, score_at_rank
+from app.sorare.planner import (
+    DRAWS,
+    Lineup,
+    Plan,
+    boost,
+    build,
+    enterable,
+    evaluate,
+    fill_bench,
+    plans,
+    replay_rewards,
+    score_at_rank,
+    simulate,
+    worth,
+)
 from app.sorare.scores import Made
 
 logger = logging.getLogger(__name__)
@@ -612,6 +627,7 @@ def lineup_payload(
     forecasts: dict[str, Forecast],
     games: dict[str, list[dict[str, Any]]],
     actual_reference: dict[int, float] | None = None,
+    twin: Competition | None = None,
 ) -> dict[str, Any]:
     comp = lineup.comp
     came_in = {starter: sub for sub, starter in lineup.came_in}
@@ -692,8 +708,31 @@ def lineup_payload(
         "starters": starters,
         "subs": subs,
         "average": round(sum(c.average for c in lineup.starters)),
+        "worth": round(worth(lineup)),
         **_expected_flags(comp),
     }
+    if comp.pro_steps:
+        # how far up the board this lineup's score reaches: its chance of each target still ahead (only the first is played for)
+        scores = simulate(lineup, forecasts, np.random.default_rng(zlib.crc32(comp.key.encode())))
+        payload["pro"] = {
+            "level": comp.pro_steps[0][0],
+            "target": comp.pro_steps[0][1],
+            "boost": round(boost(lineup), 2),
+            "ladder": [
+                {"level": lv, "target": t, "cash": c, "essence": e, "p": round(float((scores >= t).mean()), 4)}
+                for lv, t, c, e in comp.pro_steps
+            ],
+        }
+    if twin is not None and all(twin.allows(c) for c in lineup.starters):
+        # the same five cards in the other mode (Pro against the league's Arena), so each lineup says where it is worth more
+        other = evaluate(Lineup(twin, list(lineup.starters), [None] * len(twin.subs), lineup.captain), forecasts)
+        payload["versus"] = {
+            "comp": twin.name,
+            "pReturn": round(other.p_return, 4),
+            "eEss": round(other.e_essence),
+            "eCash": round(other.e_cash, 2),
+            "worth": round(worth(other)),
+        }
     if lineup.actual is not None:
         actual_need = score_at_rank(actual_reference or {}, paying[-1].hi) if paying and actual_reference else None
         payload["actual"] = {
@@ -720,6 +759,7 @@ def plan_payload(
     games: dict[str, list[dict[str, Any]]],
     usable: int,
     actual_references: dict[str, dict[int, float]] | None = None,
+    twins: Mapping[str, Competition] | None = None,
 ) -> dict[str, Any]:
     order = {"In-season": 0, "Classic": 1, "Room": 2}
     lineups = sorted(plan.lineups, key=lambda lu: (order[lu.comp.group], -lu.p_return))
@@ -745,7 +785,12 @@ def plan_payload(
         "rewards": round(plan.rewards_expected, 2),
         "cardsUsed": plan.cards_used,
         "cardsAvailable": usable,
-        "lineups": [lineup_payload(lu, forecasts, games, (actual_references or {}).get(lu.comp.key)) for lu in lineups],
+        "lineups": [
+            lineup_payload(
+                lu, forecasts, games, (actual_references or {}).get(lu.comp.key), (twins or {}).get(lu.comp.key)
+            )
+            for lu in lineups
+        ],
     }
     if any(lu.actual is not None for lu in plan.lineups):
         payload["actual"] = {
@@ -890,6 +935,7 @@ def gameweek_payload(
                     "group": comp.group,
                     "fee": comp.fee,
                     "eEss": round(lineup.net_essence),
+                    "eCash": round(lineup.e_cash, 2),
                     "pReturn": round(lineup.p_return, 4),
                     "x": round(lineup.expected),
                 }
@@ -953,7 +999,9 @@ def gameweek_payload(
         "blocked": blocked,
         "notWorth": not_worth,
         "plans": [
-            plan_payload(plan, i + 1, forecasts, games, len(cards), actual_references if played else None)
+            plan_payload(
+                plan, i + 1, forecasts, games, len(cards), actual_references if played else None, pro.twins(comps)
+            )
             for i, plan in enumerate(found)
         ],
     }
@@ -1109,6 +1157,7 @@ def build_payload(
     plan_comps = with_expected(
         snapshot, read_competitions(snapshot["competitions"].get(plan_week["slug"], []), plan_reference), plan_week
     )
+    plan_comps += pro.competitions(snapshot.get("pro"), plan_comps)
     plan_weeks = player_weeks(
         snapshot["cards"],
         plan_games,

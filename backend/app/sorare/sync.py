@@ -18,7 +18,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from app.services.timeutil import Laps
-from app.sorare import expected
+from app.sorare import expected, pro
 from app.sorare.client import SorareClient, SorareError
 from app.sorare.model import SORARE_POSITION
 
@@ -970,6 +970,8 @@ def snapshot(
     # Sorare's projection game by game for the planned week, yours and every LaLiga player's (the record keeps both numbers)
     projections = game_projections(client, plan_game_ids(my_cards) + plan_game_ids(market))
     lap("projections")
+    pro_boards = pro.boards(client, user)  # your Pro steps and prizes: public, one call
+    lap("pro")
     # Every other LaLiga player's past games, so his form counts too (yours are read in full above): only read here, the daily
     # `league-history` job is the one that fetches and saves them, so a refresh never writes back an older copy.
     league = cached_league or {}
@@ -992,6 +994,7 @@ def snapshot(
         "expected": templates,
         "market": market,
         "projections": projections,
+        "pro": pro_boards,
         "leagueHistory": league,
         "calls": client.calls,
         "parts": {part: {"calls": calls_by[part], "seconds": laps[part]} for part in laps},

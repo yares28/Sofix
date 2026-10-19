@@ -2016,3 +2016,20 @@
   opacity: 0.6;
   cursor: default;
 }
+
+/* Pro (a Pro lineup's sheet): the Pro-or-Arena sums and the board's steps ahead */
+.pl-pro-vs {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.pl-ladder tr.now td {
+  font-weight: 600;
+}
+.pl-pro-note {
+  margin: 0;
+  padding: 10px 20px 8px;
+  font-size: 12px;
+  color: var(--ink-2);
+}

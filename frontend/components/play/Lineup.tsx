@@ -10,6 +10,7 @@ import { InfoIcon } from "../recap/Recap";
 import { cardTotal, lineupActual, type ActualScores } from "../../lib/lineupScores";
 import { Cash, Chevron, Essence, Foil, GROUP_CLASS, RangeBar, RewardChips, RewardSplit, Ring, ribbonClass } from "./bits";
 import LineupSheet from "./LineupSheet";
+import { ProSheet, ProTags } from "./Pro";
 import SorareImage from "./SorareImage";
 import SeasonIcon from "../SeasonIcon";
 
@@ -56,6 +57,7 @@ export default function Lineup({
         </span>
         <span>{formatOf(lineup)}</span>
         {lineup.expected ? <span className="rc-tag">Expected · Sorare has not opened it yet</span> : null}
+        <ProTags lineup={lineup} />
       </div>
       <ComparisonCards
         linked={false}
@@ -211,6 +213,9 @@ function Sheet({ lineup, after, index, hindsight, players }: { lineup: LineupDat
         {after && lineup.actual?.bonusLost ? <span className="off">A sub came in: the lineup bonuses dropped</span> : null}
       </div>
 
+      <ProSheet lineup={lineup} />
+
+      {lineup.pro ? null : (
       <details className="pl-ladder" open={room}>
         <summary>
           Rewards <span>{room ? "· the chance of each place" : "· the score each needs, and your chance of reaching it"}</span>
@@ -262,6 +267,7 @@ function Sheet({ lineup, after, index, hindsight, players }: { lineup: LineupDat
           </tbody>
         </table>
       </details>
+      )}
     </>
   );
 }

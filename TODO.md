@@ -277,7 +277,7 @@ Not buildable now. Each starts again when its data exists, and I ask you first.
   Wed 7 Oct, round 8 the first figures from Wed 14 Oct. The page fills what it has by itself.
 - **The frozen plan, scored** (item 12, roadmap 5.3 and 5.4): whether "30% reward chance" came true about 30% of the time. It needs the plan
   frozen at GW21's lock to have been played: from Wed 14 Oct.
-- **T3 · Pro** (paused by you on 2 Oct; [plans/pro.md](plans/pro.md)).
+- **T3 · Pro**: a + b shipped 20 Oct ([plans/pro.md](plans/pro.md)); Apply for Pro (c) left.
 
 ---
 

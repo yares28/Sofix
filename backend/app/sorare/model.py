@@ -26,6 +26,9 @@ SLOT_POSITIONS: dict[str, tuple[str, ...]] = {
 # essence, All Star All Star essence). Sorare's reward rows carry only a rarity and an amount, so the competition decides it.
 ESSENCE_KINDS = {"LALIGA EA SPORTS": "laliga", "Champion": "champion", "All Star": "all_star"}
 ESSENCE_ORDER = ("laliga", "champion", "all_star")  # the owner's default (13 Oct 2026: LaLiga, Champion, All Star last)
+CASH_IN_ESSENCE = 300.0
+"""What $1 is worth in essence when a plan weighs one against the other (the owner, 20 Oct 2026: "$5 is better than 500 and than
+1000 essence, but more essence like 2000 then prefer essence", so $1 sits between 200 and 400)."""
 IN_SEASON = "In-season"
 CLASSIC = "Classic"
 ROOM = "Room"
@@ -182,6 +185,10 @@ class Competition:
         False  # Sorare has not opened it: copied from a finished gameweek (`expected_from`), cannot be entered
     )
     expected_from: str = ""  # "GW15"
+    # Pro (Sorare's Hot Streaks, `pro.py`): the step this lineup plays for and those after it, (level, target, cash, essence), and the
+    # Rare Reward Bonus by card rarity: (in-season, in-season captain, classic, classic captain), added to the prize
+    pro_steps: tuple[tuple[int, int, float, int], ...] = ()
+    reward_boosts: dict[str, tuple[float, float, float, float]] = field(default_factory=dict)
 
     @property
     def is_room(self) -> bool:

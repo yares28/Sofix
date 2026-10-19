@@ -242,12 +242,13 @@ test("another plan is one click away, and spreads the cards differently", async 
   await plans.getByRole("link", { name: /^Plan 2/ }).click();
   await expect(page).toHaveURL(/\/play\?plan=2$/);
   await expect(plans.getByRole("link", { name: /^Plan 2/ })).toHaveAttribute("aria-current", "page");
-  await expect(page.locator(".pl-board-note")).toContainText("2 lineups");
-  await expect(page.locator(".pl-lu")).toHaveCount(2);
+  await expect(page.locator(".pl-board-note")).toContainText("3 lineups");
+  await expect(page.locator(".pl-lu")).toHaveCount(3);
   await expect(page.locator(".pl-board .pl-alloc-key li")).toHaveText([
     "LALIGA EA SPORTS7 cards",
+    "LaLiga Pro5 cards",
     "All Star7 cards",
-    "Not used24 cards",
+    "Not used19 cards",
   ]);
 });
 
@@ -349,6 +350,34 @@ test("a lineup card says his chance of starting with whose number it is, as a ma
   await expect(cards.nth(1).locator(".pl-start").getByRole("img", { name: "SO" })).toBeVisible();
   await expect(cards.nth(2).locator(".pl-start").getByRole("img", { name: "SF" })).toBeVisible();
   await expect(cards.nth(3)).toContainText("plays"); // a card the payload says nothing about keeps what it had
+});
+
+test("a Pro lineup shows its step, the board ahead and where the cards are worth more, and Apply leaves it out", async ({ page }) => {
+  await page.goto("/play");
+  // the Arena lineup of the best plan says its five would be worth more in Pro
+  await expect(page.locator(".pl-lu").first()).toContainText("Worth more in LaLiga Pro");
+  await page.getByRole("navigation", { name: "Plan" }).getByRole("link").nth(1).click(); // the plan holding the Pro lineup
+  const row = page.locator(".pl-lu", { hasText: "LaLiga Pro" }).filter({ hasText: "Step 1" });
+  await expect(row).toContainText("LaLiga Pro");
+  await expect(row).toContainText("Step 1 · needs 360 · $5");
+  await expect(row).toContainText("Worth more here than in LaLiga Arena");
+
+  await row.click();
+  const sheet = page.getByRole("dialog", { name: "LaLiga Pro lineup" });
+  await expect(sheet.locator(".pl-pro-vs")).toContainText("Here: 31% chance of a reward. The same five in LaLiga Arena: 12%.");
+  await expect(sheet.locator(".pl-pro-vs")).toContainText("465 here and 30 there");
+  const steps = sheet.locator(".pl-ladder tbody tr");
+  await expect(steps).toHaveCount(3);
+  await expect(steps.first()).toContainText("Step 1 · 360+ · this week");
+  await expect(steps.first()).toContainText("31%");
+  await expect(steps.last()).toContainText("$50");
+  await expect(sheet).toContainText("Apply leaves Pro out");
+  await sheet.getByRole("button", { name: "Close" }).click();
+
+  // Apply's lineup list only holds what it can enter: the Pro lineup is not offered
+  await page.getByRole("button", { name: "Apply plan" }).click();
+  await expect(page.locator(".ap")).toBeVisible();
+  await expect(page.locator(".ap")).not.toContainText("LaLiga Pro");
 });
 
 test("a lineup with no bench says why, and a room shows its entry fee", async ({ page }) => {

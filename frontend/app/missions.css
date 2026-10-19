@@ -101,8 +101,9 @@
 
 /* the table of your cards */
 .mx-scout { padding-inline: 12px; }
-.mx-table { --cols: minmax(190px, 1.5fr) 104px 74px 176px 56px 56px repeat(3, 72px) 84px 116px; }
-.mx-line { display: grid; grid-template-columns: var(--cols); column-gap: 10px; align-items: center; padding: 5px 12px; min-height: 66px; border-radius: 14px; }
+.mx-scroll { overflow-x: auto; }
+.mx-table { min-width: 1106px; --cols: minmax(140px, 1.5fr) 104px 74px 176px 56px 56px repeat(3, 72px) 84px 116px; }
+.mx-line { display: grid; grid-template-columns: var(--cols); column-gap: 6px; align-items: center; padding: 5px 12px; min-height: 66px; border-radius: 14px; }
 .mx-rows > li:hover > .mx-line, .mx-rows > li.open > .mx-line { background: var(--hover); }
 .mx-th { min-height: 0; padding-block: 8px 6px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); }
 .mx-th button { all: unset; box-sizing: border-box; cursor: pointer; text-transform: inherit; }
@@ -190,10 +191,6 @@
 .ms-history-mission > .mx-btn { margin-top: 12px; }
 .ms-history > .mx-fine-note { margin: 14px 12px 0; text-align: left; }
 
-@media (max-width: 1180px) {
-  .mx-scroll { overflow-x: auto; }
-  .mx-table { min-width: 1120px; }
-}
 @media (max-width: 760px) {
   .mx { gap: 16px; }
   .mx-title h1 { font-size: 27px; }

@@ -207,7 +207,7 @@ def test_idle_run_reads_only_the_due_time_until_a_game_falls_due_or_the_plans_ch
     assert calls == []  # nothing due before kickoff + 3h: the big payloads stay unread
     assert score_checks.run(db, Client(), kickoff + timedelta(hours=3))["games"] == 1
     assert calls == [1]
-    put(db, "sorare", {"collection": [{"player": "p", "name": "Player", "pic": "card.png"}]}, NOW + timedelta(hours=1))
+    put(db, "sorare", {"collection": [{"player": "p", "name": "Player", "pic": "new.png"}]}, NOW + timedelta(hours=1))
     score_checks.run(db, Client(), kickoff + timedelta(hours=3, minutes=1))
     assert calls == [1, 1]  # a new plan is read in full at once
 

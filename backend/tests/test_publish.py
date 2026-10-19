@@ -28,7 +28,17 @@ def test_publishing_again_replaces_the_row(seeded):  # noqa: F811
 
     rows = seeded.query(ReadModel).filter_by(key=publish.GRID_KEY).all()
     assert len(rows) == 1
-    assert rows[0].updated_at.day == 2
+
+
+def test_an_unchanged_payload_keeps_its_write_time_so_pages_do_not_download_it_again(db):  # noqa: F811
+    first, later = datetime(2026, 9, 1, tzinfo=UTC), datetime(2026, 9, 2, tzinfo=UTC)
+    publish.put(db, "page", {"rows": [1, 2], "name": "x"}, first)
+    publish.put(db, "page", {"rows": [1, 2], "name": "x"}, later)
+    assert db.get(ReadModel, "page").updated_at.day == 1
+    publish.put(db, "page", {"rows": [1, 2, 3], "name": "x"}, later)
+    db.expire_all()
+    row = db.get(ReadModel, "page")
+    assert row.updated_at.day == 2 and row.payload["rows"] == [1, 2, 3]
 
 
 def test_an_empty_database_publishes_a_clear_error(db):  # noqa: F811

@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 import httpx
-from sqlalchemy import text, update
+from sqlalchemy import Text, cast, text, update
 from sqlalchemy.orm import Session
 
 from app.models import ReadModel, RefreshRun
@@ -31,9 +31,17 @@ NEON_FREE_BYTES = 512 * 1024 * 1024
 
 
 def put(db: Session, key: str, payload: dict[str, Any], now: datetime) -> None:
-    """Replace one payload without reading the old one first: Neon counts every byte it sends (5 GB a month)."""
-    replaced = db.execute(update(ReadModel).where(ReadModel.key == key).values(payload=payload, updated_at=now))
-    if not replaced.rowcount:  # type: ignore[attr-defined]
+    """Replace one payload without reading the old one first: Neon counts every byte it sends (5 GB a month).
+
+    An unchanged payload keeps its row and write time, compared inside the database: the web app keys its cache on the
+    write time, so a rewrite of the same content would make every page download it again.
+    """
+    replaced = db.execute(
+        update(ReadModel)
+        .where(ReadModel.key == key, cast(ReadModel.payload, Text) != json.dumps(payload))
+        .values(payload=payload, updated_at=now)
+    )
+    if not replaced.rowcount and db.query(ReadModel.key).filter(ReadModel.key == key).first() is None:  # type: ignore[attr-defined]
         db.add(ReadModel(key=key, payload=payload, updated_at=now))
     db.commit()
 

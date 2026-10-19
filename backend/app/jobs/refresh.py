@@ -35,7 +35,7 @@ from typing import Any
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import settings
-from app.db import SessionLocal, database_target
+from app.db import SessionLocal, database_target, neon_bytes
 from app.jobs import predict, seed_and_sync, sorare, sync_odds
 from app.logging_config import configure_logging
 from app.migrate import ensure_schema_current, upgrade_to_head
@@ -83,7 +83,7 @@ def run_steps(db: Session, run: RefreshRun, steps: Sequence[Step]) -> bool:
         run.step = name
         db.commit()
         logger.info("step %s: starting", name)
-        started = time.perf_counter()
+        started, sent = time.perf_counter(), neon_bytes()
         try:
             result = step()
         except Exception as exc:  # isolate: record and carry on with the next step
@@ -99,8 +99,11 @@ def run_steps(db: Session, run: RefreshRun, steps: Sequence[Step]) -> bool:
                 "status": "succeeded",
                 "seconds": round(time.perf_counter() - started, 2),
                 "result": summarize(result),
+                "neonMB": round((neon_bytes() - sent) / 1e6, 2),  # what Neon sent this step (5 GB a month free)
             }
-            logger.info("step %s: done in %.1fs", name, details[name]["seconds"])
+            logger.info(
+                "step %s: done in %.1fs, Neon sent %.1f MB", name, details[name]["seconds"], details[name]["neonMB"]
+            )
         run.details = dict(details)  # new object so SQLAlchemy sees the change
         db.commit()
     return all_ok

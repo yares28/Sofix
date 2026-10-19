@@ -1,6 +1,10 @@
+import atexit
+import json
+import logging
 from typing import Any
 
 import certifi
+import psycopg
 from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
@@ -8,6 +12,7 @@ from sqlalchemy.orm import DeclarativeBase, sessionmaker
 from app.config import settings
 
 NEON_HOST_SUFFIX = ".neon.tech"
+logger = logging.getLogger(__name__)
 
 
 def database_target(url: str) -> str:
@@ -37,7 +42,48 @@ def engine_options(url: str) -> dict[str, Any]:
     }
 
 
-engine = create_engine(settings.postgres_url, pool_pre_ping=True, **engine_options(settings.postgres_url))
+def _size(value: Any) -> int:
+    if isinstance(value, dict | list):
+        return len(json.dumps(value, default=str))
+    return 0 if value is None else len(str(value))
+
+
+class CountingCursor(psycopg.Cursor[Any]):
+    """Adds up roughly how many bytes Neon sends this process (its free plan sends 5 GB a month): `neon_bytes()`."""
+
+    total = 0
+
+    def _count(self, rows: Any) -> Any:
+        for row in rows:
+            CountingCursor.total += sum(_size(v) for v in row)
+        return rows
+
+    def fetchone(self) -> Any:
+        row = super().fetchone()
+        if row is not None:
+            self._count([row])
+        return row
+
+    def fetchmany(self, size: int = 0) -> Any:
+        return self._count(super().fetchmany(size))
+
+    def fetchall(self) -> Any:
+        return self._count(super().fetchall())
+
+
+def neon_bytes() -> int:
+    return CountingCursor.total
+
+
+def _options(url: str) -> dict[str, Any]:
+    options = engine_options(url)
+    if not url.startswith("sqlite"):
+        options["connect_args"] = {**options["connect_args"], "cursor_factory": CountingCursor}
+        atexit.register(lambda: logger.info("Neon sent this job about %.1f MB", neon_bytes() / 1e6))
+    return options
+
+
+engine = create_engine(settings.postgres_url, pool_pre_ping=True, **_options(settings.postgres_url))
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 

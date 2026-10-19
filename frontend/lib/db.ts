@@ -58,7 +58,7 @@ const live: Sql = async (strings, ...values) => {
     if (!sql) continue;
     try {
       const rows = await sql(strings, ...values);
-      if (process.env.NODE_ENV === "development") countBytes(strings, values, rows);
+      countBytes(strings, values, rows);
       return rows;
     } catch (error) {
       if (!(error instanceof Error) || !isDatabasePaused(error.message)) throw error;
@@ -69,12 +69,16 @@ const live: Sql = async (strings, ...values) => {
   throw lastError;
 };
 
-/** Dev only: Neon's free plan counts every byte sent, so the dev server logs each read over 50 kB and its running total. */
-let devBytes = 0;
+/**
+ * Neon's free plan counts every byte sent, so every server (dev, and Vercel's functions: their runtime logs) logs each read
+ * over 50 kB, the dev server or Vercel region it came from, and its running total.
+ */
+let servedBytes = 0;
+const SERVER = process.env.NODE_ENV === "development" ? "dev" : `vercel ${process.env.VERCEL_REGION ?? "?"}`;
 function countBytes(strings: TemplateStringsArray, values: unknown[], rows: unknown): void {
   const size = JSON.stringify(rows).length;
-  devBytes += size;
-  if (size > 50_000) console.warn(`[neon] ${(size / 1e6).toFixed(2)} MB: ${strings.join("?").replace(/\s+/g, " ").slice(0, 70)} [${String(values[0] ?? "").slice(0, 40)}] (this server: ${(devBytes / 1e6).toFixed(1)} MB)`);
+  servedBytes += size;
+  if (size > 50_000) console.warn(`[neon] ${SERVER} ${(size / 1e6).toFixed(2)} MB: ${strings.join("?").replace(/\s+/g, " ").slice(0, 70)} [${String(values[0] ?? "").slice(0, 40)}] (this server: ${(servedBytes / 1e6).toFixed(1)} MB)`);
 }
 
 export function database(): Sql | null {

@@ -22,14 +22,12 @@ export function ComparisonCards({ cards }: { cards: ComparisonCard[] }) {
       return <li key={card.slug} className={card.bench ? "bench" : undefined} title={card.bench ? `${card.name}, bench` : card.name}>
         <span className={`rc-art ${card.rarity ?? "limited"}`}><CardArt src={card.picture} name={card.name} /></span>
         {card.captain ? <span className="rc-cap" title="Captain">C</span> : null}
-        {/* filled: what he scored; outlined: his xScore, so the two never read alike */}
+        {/* what he scored, then his xScore in a smaller hexagon tucked beside it */}
         <span className="rc-hexes">
           <span className={`rc-hex sm${card.score === null ? "" : " scored"}`} style={fill(card.score)} title={card.score === null ? (card.why ?? "No score yet") : "His score"}>
             {card.score === null ? "-" : Math.round(card.score)}
           </span>
-          {card.x === undefined ? null : <span className="rc-xs" style={{ ["--band" as string]: x === null ? "var(--line)" : scoreColour(x).fill }} title="His xScore">
-            <span>{x === null ? "-" : Math.round(x)}</span>
-          </span>}
+          {card.x === undefined ? null : <span className="rc-xs" style={fill(x)} title="His xScore">{x === null ? "-" : Math.round(x)}</span>}
         </span>
         {typeof card.xd === "number" ? <span className="rc-cxd" title="His expected decisive actions">{card.xd.toFixed(2)} xD</span> : null}
         <span className="visually-hidden">{card.name}{card.bench ? ", bench" : ""}{card.score === null ? `, ${card.why ?? "no score yet"}` : `, scored ${Math.round(card.score)}`}{x === null ? "" : `, xScore ${Math.round(x)}`}</span>

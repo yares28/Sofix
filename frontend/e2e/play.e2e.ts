@@ -407,7 +407,7 @@ test("the gameweek that was played shows what each lineup really scored and won"
   const first = page.locator(".pl-lu").first();
   await expect(first.locator(".rc-score-pair b").first()).toHaveText("300"); // its xScore, then what it scored
   await expect(first.locator(".rc-score-pair b").nth(1)).toHaveText("313");
-  // Each card: what he scored in the filled hexagon, his xScore in the outlined one beside it.
+  // Each card: what he scored in the big hexagon, his xScore in the small one beside it.
   await expect(first.locator(".rc-hex.scored").first()).toHaveText(/^\d+$/);
   await expect(first.locator(".rc-xs").first()).toHaveText(/^\d+$/);
   await expect(first.locator(".rc-any")).toContainText("Paid");

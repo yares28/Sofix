@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session, load_only
 
 from app.models import PlayerGame, ReadModel
 from app.services.timeutil import as_utc
-from app.sorare import ff_chances, starts, versus
+from app.sorare import ff_chances, games_mirror, starts, versus
 from app.sorare.publish import SETTLE
 
 COLUMNS = {"futbolfantasy": "ff_start", "sorare": "sorare_start", "sofix": "sofix_start"}
@@ -42,7 +42,7 @@ def read(db: Session, now: datetime, floor: int) -> tuple[dict[str, Any], list[d
     scores = [copy.deepcopy(r) for _, r in versus.records(db)]
     rows = {
         (row.player, row.game_id): row
-        for row in db.scalars(
+        for row in games_mirror.view(db).scalars(  # every game's columns but stats: from the jobs' copy (~5 MB less)
             select(PlayerGame).options(
                 load_only(
                     PlayerGame.player,

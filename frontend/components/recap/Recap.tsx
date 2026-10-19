@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { lineupActual, type ActualScores } from "../../lib/lineupScores";
+import { cardTotal, lineupActual, type ActualScores } from "../../lib/lineupScores";
 import { useId, type CSSProperties, type ReactNode } from "react";
 import { scoreColour } from "../../lib/cards";
 import type { MissionPlan } from "../../lib/missions";
@@ -276,8 +276,9 @@ export function LineupRow({ row, scores = {} }: { row: PlanRow; scores?: ActualS
       </div>
       <ComparisonCards cards={[...lineup.starters, ...lineup.subs].map((c, i) => {
         const got = scores[c.slug];
+        const score = lineup.actual ? c.actual : got?.played ? got.score : null;
         return { slug: c.slug, name: c.name, picture: c.pic, rarity: c.rarity, captain: !!c.captain, bench: i >= lineup.starters.length, xd: c.xd, x: c.x,
-          score: lineup.actual ? c.actual : got?.played ? got.score : null,
+          score, total: cardTotal(score, c, lineup.captainBonus),
           why: (lineup.actual ? c.actual === null : got && !got.played) ? "Did not play" : "Not played yet" };
       })} />
       <div className="rc-score">

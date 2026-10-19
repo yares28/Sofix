@@ -152,7 +152,8 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
                 <ComparisonCards cards={cards.map((c) => {
                   const total = result && c.score ? c.score : null;
                   const own = total !== null && c.player && forecast?.gameweek.slug === week.slug ? scores[playerKey(c.player)] : undefined;
-                  return { ...c, score: own?.played ? own.score : total, total: own?.played ? total : undefined,
+                  // without his own score in Sofix, the hexagon shows Sorare's total; the honeycomb still opens on it
+                  return { ...c, score: own?.played ? own.score : total, total,
                   why: result && !live ? "Did not play" : "Not played yet" };
                 })} />
                 <div className="rc-score">

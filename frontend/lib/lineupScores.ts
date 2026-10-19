@@ -4,6 +4,9 @@ import type { GameweekPlan, Lineup, PlayCard } from "./play";
 export type ActualScores = Record<string, { score: number; played: boolean; complete?: boolean }>;
 /** A player's own score sits in the same map under this key, beside his cards' (a Sorare card score adds its bonuses). */
 export const playerKey = (player: string) => `player:${player}`;
+/** A card's score as Sorare counts it: his own score with the card's bonus and, for the captain, the captain's. */
+export const cardTotal = (score: number | null, card: Pick<PlayCard, "mult" | "captain">, captainBonus: number) =>
+  score === null || !Number.isFinite(card.mult) ? null : score * (card.mult + (card.captain && Number.isFinite(captainBonus) ? captainBonus : 0));
 export type TeamScore = { value: number | null; complete: boolean };
 type ScoringCard = PlayCard & { positions?: string[] };
 type ScoringLineup = Pick<Lineup, "starters" | "subs" | "captainBonus" | "minInSeason" | "clubBonus" | "averageBonus">;

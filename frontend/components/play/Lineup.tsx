@@ -7,7 +7,7 @@ import Silhouette from "../Silhouette";
 import SourceMark from "../SourceMark";
 import { ComparisonCards, ComparisonScores } from "../recap/LineupComparison";
 import { InfoIcon } from "../recap/Recap";
-import { lineupActual, type ActualScores } from "../../lib/lineupScores";
+import { cardTotal, lineupActual, type ActualScores } from "../../lib/lineupScores";
 import { Cash, Chevron, Essence, Foil, GROUP_CLASS, RangeBar, RewardChips, RewardSplit, Ring, ribbonClass } from "./bits";
 import LineupSheet from "./LineupSheet";
 import SorareImage from "./SorareImage";
@@ -64,7 +64,7 @@ export default function Lineup({
           const stayedOut = after && bench && !cameIn.has(card.slug);
           const score = after ? (stayedOut ? null : card.actual) : got?.played ? got.score : null;
           return { slug: card.slug, name: card.name, picture: card.pic ?? null, rarity: lineup.rarity, captain: !!card.captain, bench, xd: card.xd,
-            x: hindsight ? undefined : cardScore(card).value, score,
+            x: hindsight ? undefined : cardScore(card).value, score, total: cardTotal(score, card, lineup.captainBonus),
             why: stayedOut ? "Stayed on the bench" : (after ? card.actual === null : got && !got.played) ? "Did not play" : "Not played yet" };
         })}
       />

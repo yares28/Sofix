@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.models import PlayerGame, ReadModel
 from app.services.publish import put
 from app.services.timeutil import as_utc
+from app.sorare import games_mirror
 
 ACTUAL = ("competition", "home", "away", "status", "score", "played", "started", "mins", "yellow", "red", "stats")
 
@@ -116,6 +117,7 @@ def load(
 
     `stats` keeps only those entries of each game's detailed score (None keeps them all). `lean` keeps each detailed score as
     `lean_stats` makes it: on Postgres Neon then sends a third of the bytes (the owner's games, read whole by the missions)."""
+    db = games_mirror.view(db)
     at = now or datetime.now(UTC)
     cutoff = at - timedelta(days=days) if days is not None else None
     columns = [getattr(PlayerGame, key) for key in ("player", "game_id", "date", "read_at", *ACTUAL) if key != "stats"]
@@ -185,13 +187,17 @@ def load(
 
 def listed(db: Session, players: set[str]) -> list[str]:
     """Which of these players have any row, in the order `load(players=...)` lists them (by his first game)."""
+    db = games_mirror.view(db)
     query = select(PlayerGame.player).where(PlayerGame.player.in_(players)).group_by(PlayerGame.player)
-    return list(db.scalars(query.order_by(func.min(PlayerGame.date))))
+    return list(
+        db.scalars(query.order_by(func.min(PlayerGame.date), PlayerGame.player))
+    )  # ties by name: same order everywhere
 
 
 def known(db: Session) -> dict[str, Any]:
     """`load`'s shape with only what the daily league read needs from each game (id, date, status): about a tenth of the
     bytes `load` pulls from Neon, whose free plan sends 5 GB a month."""
+    db = games_mirror.view(db)
     out: dict[str, Any] = {}
     query = select(PlayerGame.player, PlayerGame.game_id, PlayerGame.date, PlayerGame.status, PlayerGame.read_at)
     for player, game_id, date, status, read_at in db.execute(query.order_by(PlayerGame.date.desc())):
@@ -205,6 +211,7 @@ def known(db: Session) -> dict[str, Any]:
 def read_times(db: Session, *, now: datetime | None = None, days: int | None = None) -> dict[str, Any]:
     """`load`'s shape without the games: who has games in the window and when he was last read. A refresh only needs
     that to tell a new player from a known one, and it is a few kilobytes where `load` is megabytes from Neon."""
+    db = games_mirror.view(db)
     query = select(PlayerGame.player, func.max(PlayerGame.read_at)).group_by(PlayerGame.player)
     if days is not None:
         query = query.where(PlayerGame.date >= (now or datetime.now(UTC)) - timedelta(days=days))

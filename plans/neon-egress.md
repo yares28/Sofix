@@ -13,21 +13,23 @@ Four projects are now in turn (Sofix, FDR, Sofix B, Sofix C); the first three ra
 
 ## The four steps, in order
 
-### Step 0 · Count bytes per reader (1 day)
+### Step 0 · Count bytes per reader (1 day) · built 20 Oct (074bd30), the day's totals still to collect
 Log the size of every Neon read, tagged by who read it (refresh step, score check, Vercel page, dev server), to confirm
 the split above before and after each step. Done when: one day's totals per reader are in this file.
 
-### Step 3 · Do not rewrite a block that has not changed
+### Step 3 · Do not rewrite a block that has not changed · done 20 Oct (074bd30)
 `put` (`backend/app/services/publish.py`, the one write path) compares a hash of the new payload with the stored one
 (kept in a small column, not by reading the payload) and skips the write when equal. Pages then re-download only blocks
-that really changed. Needs one migration (a `hash` column on `read_models`) on every project. Done when: a refresh that
+that really changed. Built without a migration: the comparison runs inside the database. Blocks that carry their own build time
+(`sorare`, `missions_pool`, `lineups`, `sorare_ahead`) still change every refresh, because their pages show it. Done when: a refresh that
 changes nothing leaves every `updated_at` as it was (test), and the daily count of rewritten blocks drops.
 
-### Step 2 · The jobs keep the game history in GitHub's cache
+### Step 2 · The jobs keep the game history in GitHub's cache · done 20 Oct
 The refresh, league-history and replan workflows restore a copy of `player_games` from `actions/cache` (free, 10 GB per
-repo, kept 7 days after last use), ask Neon only for rows changed since the copy (a `changed_at` column, set on every
-insert and update; migration on every project), and save the merged copy for the next run. A missing or corrupt copy
-falls back to today's full read. Done when: a refresh reads under 3 MB from Neon instead of ~28 MB, with the same plans
+repo, kept 7 days after last use), ask Neon for one fingerprint per player (~55 kB; no migration) and fetch only players whose rows changed,
+and save the merged copy for the next run. A missing or corrupt copy
+falls back to today's full read. Measured on Sofix B: five history reads sent 0.27 MB through the copy instead of 5.9 MB, results identical; filling
+the copy once costs ~23 MB. Done when: a refresh reads under 3 MB from Neon instead of ~28 MB, with the same plans
 (the replay tests and one refresh compared block by block against the previous one).
 
 ### Step 1 · Page blocks move to Cloudflare R2

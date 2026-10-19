@@ -74,6 +74,7 @@ jobs:
       # migrations are applied by hand with `python -m app.migrate`, never unattended.
       POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
       POSTGRES_URL_SPARE: ${{ secrets.POSTGRES_URL_SPARE }} # the other free Neon project (app/jobs/neon_switch.py)
+      PLAYER_GAMES_MIRROR: .cache/player_games.sqlite # see "Restore the game history copy"
       NEON_API_KEY: ${{ secrets.NEON_API_KEY }} # reads each project's data sent; without it the move never starts
       FOOTBALL_DATA_ORG_TOKEN: ${{ secrets.FOOTBALL_DATA_ORG_TOKEN }}
       ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }} # optional; the odds step is skipped without it (and throttled to 6 h)
@@ -103,6 +104,14 @@ jobs:
       - name: Pick the live Neon project
         run: python -m app.jobs.neon_switch --move
 
+      # A copy of the game history kept between runs (app/sorare/games_mirror.py): Neon sends only the players that changed.
+      - name: Restore the game history copy
+        uses: actions/cache/restore@v4
+        with:
+          path: backend/.cache/player_games.sqlite
+          key: player-games-${{ github.run_id }}
+          restore-keys: player-games-
+
       # football-data.co.uk CSVs: past seasons never change, the current one is re-checked with a conditional GET.
       - name: Restore history cache
         uses: actions/cache@v4
@@ -129,3 +138,10 @@ jobs:
             exit 0
           fi
           exit "$code"
+
+      - name: Keep the game history copy
+        if: always() && hashFiles('backend/.cache/player_games.sqlite') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: backend/.cache/player_games.sqlite
+          key: player-games-${{ github.run_id }}-${{ github.run_attempt }}

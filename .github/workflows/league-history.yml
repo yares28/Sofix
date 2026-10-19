@@ -29,6 +29,7 @@ jobs:
       APP_ENV: prod
       POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
       POSTGRES_URL_SPARE: ${{ secrets.POSTGRES_URL_SPARE }} # the other free Neon project (app/jobs/neon_switch.py)
+      PLAYER_GAMES_MIRROR: .cache/player_games.sqlite # see "Restore the game history copy"
       # With the key Sorare allows the heavier query that carries red cards, and a higher rate.
       SORARE_API_KEY: ${{ secrets.SORARE_API_KEY }}
     steps:
@@ -48,6 +49,14 @@ jobs:
       - name: Pick the live Neon project
         run: python -m app.jobs.neon_switch
 
+      # A copy of the game history kept between runs (app/sorare/games_mirror.py): Neon sends only the players that changed.
+      - name: Restore the game history copy
+        uses: actions/cache/restore@v4
+        with:
+          path: backend/.cache/player_games.sqlite
+          key: player-games-${{ github.run_id }}
+          restore-keys: player-games-
+
       - name: Check secrets
         run: |
           test -n "$POSTGRES_URL" || { echo "::error::POSTGRES_URL secret is missing"; exit 1; }
@@ -56,3 +65,10 @@ jobs:
       # Progress is saved every 50 players, so a run that is cut off keeps what it read and the next one carries on.
       - name: Read the league's past games
         run: python -m app.jobs.league_history
+
+      - name: Keep the game history copy
+        if: always() && hashFiles('backend/.cache/player_games.sqlite') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: backend/.cache/player_games.sqlite
+          key: player-games-${{ github.run_id }}-${{ github.run_attempt }}

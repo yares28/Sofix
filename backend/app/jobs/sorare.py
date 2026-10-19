@@ -647,6 +647,7 @@ def run(
         summary["audit"] = audited
     laps("audit")
     summary["parts"]["step"] = laps
+    summary["parts"]["neonMB"] = laps.neon
     if failed:
         summary["failed"] = failed
     if standalone:

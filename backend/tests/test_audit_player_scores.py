@@ -192,6 +192,26 @@ def test_scheduled_read_checks_at_kickoff_plus_three_then_26_hours_without_tabs(
     assert audit.from_kept(db, kickoff + timedelta(hours=26))["playerScores"]["weeks"][0]["rows"][0]["difference"] == -2
 
 
+def test_idle_run_reads_only_the_due_time_until_a_game_falls_due_or_the_plans_change(db, monkeypatch):  # noqa: F811
+    from app.sorare import score_checks
+
+    seed(db)
+    db.delete(db.get(ReadModel, "audit_game_checks"))
+    db.commit()
+    kickoff = NOW - timedelta(hours=5)
+    score_checks.run(db, Client(), kickoff + timedelta(hours=1))
+    real = score_checks.catalog
+    calls = []
+    monkeypatch.setattr(score_checks, "catalog", lambda db: calls.append(1) or real(db))
+    assert score_checks.run(db, Client(), kickoff + timedelta(hours=2))["games"] == 0
+    assert calls == []  # nothing due before kickoff + 3h: the big payloads stay unread
+    assert score_checks.run(db, Client(), kickoff + timedelta(hours=3))["games"] == 1
+    assert calls == [1]
+    put(db, "sorare", {"collection": [{"player": "p", "name": "Player", "pic": "card.png"}]}, NOW + timedelta(hours=1))
+    score_checks.run(db, Client(), kickoff + timedelta(hours=3, minutes=1))
+    assert calls == [1, 1]  # a new plan is read in full at once
+
+
 def test_failed_correction_or_unfinished_game_does_not_mark_rechecked_or_erase_score(db):  # noqa: F811
     from app.sorare import score_checks
 
@@ -348,6 +368,8 @@ def test_federation_accepts_one_game_root_per_request_and_retries_the_old_query_
         {"games": {GAME: {"lastAttemptAt": NOW.isoformat(), "reason": "Sorare result unavailable"}}},
         NOW,
     )
+    db.delete(db.get(ReadModel, score_checks.DUE_KEY))  # the old query version's code kept no due time
+    db.commit()
     assert score_checks.run(db, FederationClient(), NOW)["games"] == 2
 
 

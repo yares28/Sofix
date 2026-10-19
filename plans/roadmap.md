@@ -18,9 +18,10 @@ Work from the top. Each line points to its full text; "you" items wait for the o
 
 L2. **Audit xScore: a fair yardstick** ([lineups-and-xscore.md](lineups-and-xscore.md) Phase 4), **research kept only if the replay says so** (Phase 5), **Pro levels** (Phase 6).
 
--2. **Neon: keep one free project enough** (AGENTS.md "Neon projects"; memory of 12 Oct): production moved to the project
-   "Sofix" on 12 Oct after FDR used its 5 GB. Still to cut, then measure on the new project's counter: the half-hourly
-   score check (about 1.3 MB each time even when nothing is due) and the stats-heavy history loads of each refresh.
+-2. **Neon: keep one free project enough** (AGENTS.md "Neon projects"): Sofix B burned ~750 MB a day from 14 to 19 Oct, so
+   Sofix C was added on 19 Oct and the half-hourly score check now reads only its due time when nothing is due
+   (`audit_game_checks_due`). Still to cut, then measure: the stats-heavy history loads of each refresh, and find what
+   else reads ~500 MB a day (the jobs measured ~260 MB).
 -1. **Sorare's starting % (A, B, C)** ([sorare-start-chances.md](sorare-start-chances.md)): built and shipped 12 Oct in
    extension 0.3.14, unproven on real Sorare pages. **You:** reload the extension, press "Read the round on Sorare" on
    Lineups. Then tick the plan's acceptance boxes from the saved rows, and feed the number to the plans and the Audit.

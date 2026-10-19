@@ -211,6 +211,7 @@ refuses every query with HTTP 402 "exceeded the quota" until the 1st.
 | **Sofix** | `odd-darkness-24982497` | `ep-cold-cloud-b9akf8sh` (`c-7`) | GitHub `POSTGRES_URL`, Vercel `DATABASE_URL`; owner login in `.env.sofix-neon` |
 | **FDR** | `sparkling-bonus-46807220` | `ep-jolly-sun-b1a0xc1l` (`c-5`) | first URL of GitHub `POSTGRES_URL_SPARE` / Vercel `DATABASE_URL_SPARE` |
 | **Sofix B** | `square-poetry-39931505` | `ep-morning-paper-baxx0rh5` (`c-8`) | second URL of the same two spare settings; owner and app login in `.env.sofix-b-neon` |
+| **Sofix C** | `spring-brook-75590503` | `ep-mute-wind-bao6tz8d` (`c-8`) | third URL of the spare settings (19 Oct 2026); owner and app login in `.env.sofix-c-neon` |
 | **Trakzi** | `orange-waterfall-16223480` | | Another app of the owner's: never touch it from this repo |
 
 **Rules for every session** (the first look is `node scripts/check.mjs --live`: its "Neon" lines say which project is live,
@@ -237,7 +238,7 @@ GitHub also needs `NEON_API_KEY` (an organization key) for the move.
   same grants as FDR (`SELECT, INSERT, UPDATE, DELETE` on tables, `SELECT, USAGE` on sequences, matching default
   privileges), append its `fdr_app` URL to both spare settings. The next move fills it.
 - **Migrations:** apply them to every project, or the move refuses.
-- **Local:** `frontend/.env.local` has `DATABASE_URL` (Sofix) and `DATABASE_URL_SPARE` (FDR, Sofix B).
+- **Local:** `frontend/.env.local` has `DATABASE_URL` (Sofix) and `DATABASE_URL_SPARE` (FDR, Sofix B, Sofix C).
 - **Check usage:** `node scripts/check.mjs --live` prints what the last refresh read from Neon's API (`read_models` key
   `neon_status` in the live project; FAIL with a note when `NEON_API_KEY` gave nothing, which means no move can happen),
   or Neon's `describe_project` (`data_transfer_bytes`; it lags by hours).

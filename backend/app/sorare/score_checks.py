@@ -129,9 +129,28 @@ def catalog(db: Session) -> list[dict[str, Any]]:
     return sorted(out, key=lambda r: r["gameweek"].get("lock") or "", reverse=True)
 
 
+# When the next game falls due, and the write times of what decided it: an idle half-hourly run reads only this (~200 bytes)
+# instead of the ~1 MB `catalog` and `kept` read (Neon's free plan sends 5 GB a month).
+DUE_KEY = "audit_game_checks_due"
+_INPUTS_SQL = text(
+    "SELECT max(updated_at) FROM read_models WHERE key IN ('sorare', :checks) OR key LIKE 'score_record:%'"
+).bindparams(checks=KEY)
+
+
+def _inputs(db: Session) -> str:
+    return str(db.execute(_INPUTS_SQL).scalar())
+
+
 def run(db: Session, client: SorareClient, now: datetime) -> dict[str, int]:
+    due = db.get(ReadModel, DUE_KEY)
+    seen = dict(due.payload) if due else {}
+    if seen.get("inputs") == _inputs(db) and seen.get("version") == QUERY_VERSION:
+        at = moment(seen["at"]) if seen.get("at") else None
+        if at is None or now < at:
+            return {"games": 0, "failed": 0, "pending": 0}
     checks = kept(db)
     wanted: dict[str, dict[str, Any]] = {}
+    soonest: datetime | None = None
     for record in catalog(db):
         for slug, entry in record["players"].items():
             for game in entry.get("games") or []:
@@ -150,6 +169,13 @@ def run(db: Session, client: SorareClient, now: datetime) -> dict[str, int]:
         complete = target["players"] <= scores.keys()
         rechecked = complete and all(scores[p].get("recheckedAt", check.get("recheckedAt")) for p in target["players"])
         last = moment(check.get("lastAttemptAt"))
+        ready = max(
+            [kickoff + FIRST]
+            + ([last + RETRY] if last and check.get("queryVersion") == QUERY_VERSION else [])
+            + ([kickoff + RECHECK] if complete else [])
+        )
+        if not rechecked and now < ready <= kickoff + WINDOW:
+            soonest = min(soonest or ready, ready)
         if (
             now < kickoff + FIRST
             or now > kickoff + WINDOW
@@ -253,6 +279,11 @@ def run(db: Session, client: SorareClient, now: datetime) -> dict[str, int]:
         if history:
             player_games.save(db, history, now)
         put(db, KEY, {"games": checks}, now)
+    if wanted:  # every game asked for now may be asked again after RETRY
+        soonest = min(soonest or now + RETRY, now + RETRY)
+    nxt = {"at": soonest.isoformat() if soonest else None, "inputs": _inputs(db), "version": QUERY_VERSION}
+    if nxt != seen:
+        put(db, DUE_KEY, nxt, now)
     return {"games": read, "failed": failed, "pending": len(wanted) - read}
 
 

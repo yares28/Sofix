@@ -46,6 +46,10 @@ def _engine(path: str) -> Engine:
                     " (player TEXT, game_id TEXT, hash TEXT NOT NULL, PRIMARY KEY (player, game_id))"
                 )
             )
+            # Page blocks the jobs re-read (app/services/kept_blocks.py), in the same cached file.
+            conn.execute(
+                text("CREATE TABLE IF NOT EXISTS kept_blocks (key TEXT PRIMARY KEY, stamp TEXT, payload TEXT)")
+            )
             conn.execute(text("SELECT count(*) FROM player_games")).scalar()
     except Exception:  # a broken cached file: start again from an empty one
         logger.warning("games mirror unreadable, rebuilding it from Neon")

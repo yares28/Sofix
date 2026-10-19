@@ -21,9 +21,11 @@ from typing import Any
 
 from sqlalchemy import or_, update
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.util import identity_key
 
 from app.jobs.export_games import fetch_game
 from app.models import PlayerGame, ReadModel
+from app.services import kept_blocks
 from app.services.timeutil import as_utc
 from app.sorare import mission_form, mission_replay, player_games
 from app.sorare.publish import GIVE_UP, SETTLE
@@ -180,11 +182,7 @@ def _card(cand: dict[str, Any], hit: bool | None = None) -> dict[str, Any]:
 def settle_kept(db: Session, now: datetime) -> dict[str, int]:
     """Settle only candidates whose own result and stats were read; no additional Sorare calls or inferred DNPs."""
     months = marked = 0
-    rows = (
-        db.query(ReadModel)
-        .filter(or_(ReadModel.key.like(f"{LOG_PREFIX}%"), ReadModel.key.like(f"{DAY_PREFIX}%")))
-        .all()
-    )
+    rows = kept_blocks.rows(db, LOG_PREFIX, DAY_PREFIX)
     copied_months = {row.key.removeprefix(DAY_PREFIX)[:7] for row in rows if row.key.startswith(DAY_PREFIX)}
     replay_players = {
         c["s"]
@@ -298,7 +296,9 @@ def settle_kept(db: Session, now: datetime) -> dict[str, int]:
                 .execution_options(synchronize_session=False)
             )
             months += int(bool(written.rowcount))
-            db.expire(saved)  # preserve concurrent imports; a conflict is retried next refresh
+            # preserve concurrent imports; a conflict is retried next refresh
+            if (loaded := db.identity_map.get(identity_key(ReadModel, saved.key))) is not None:
+                db.expire(loaded)
     return {"candidates": marked, "months": months}
 
 
@@ -446,12 +446,8 @@ def record(logs: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def logs_of(db: Session, include_edits: bool = True) -> list[dict[str, Any]]:
-    rows = (
-        db.query(ReadModel)
-        .filter(or_(ReadModel.key.like(f"{LOG_PREFIX}%"), ReadModel.key.like(f"{DAY_PREFIX}%")))
-        .all()
-    )
+def logs_of(db: Session, include_edits: bool = True, rows: list[kept_blocks.Row] | None = None) -> list[dict[str, Any]]:
+    rows = kept_blocks.rows(db, LOG_PREFIX, DAY_PREFIX) if rows is None else rows
     combined: dict[str, Any] = {"days": {}}
     for row in sorted(rows, key=lambda r: r.key.startswith(DAY_PREFIX)):
         if isinstance(row.payload, dict):
@@ -845,7 +841,9 @@ def daily_entry(
 
 def capture(db: Session, pool: dict[str, Any], now: datetime) -> dict[str, int]:
     """Idempotent legacy copy, gap ledger and daily capture; no new external reads."""
-    logs = logs_of(db, include_edits=False)[0]["days"]
+    saved = kept_blocks.rows(db, LOG_PREFIX, DAY_PREFIX)
+    logs = logs_of(db, include_edits=False, rows=saved)[0]["days"]
+    by_key = {row.key: row for row in saved}
     today = mission_day(now)
     start = min([today, *logs.keys()])
     first = max(start, (now - timedelta(days=60)).date().isoformat())
@@ -859,7 +857,7 @@ def capture(db: Session, pool: dict[str, Any], now: datetime) -> dict[str, int]:
     while day <= today:
         for rarity in rarities:
             key = f"{DAY_PREFIX}{day}:{rarity}"
-            stored = db.get(ReadModel, key)
+            stored = by_key.get(key)
             prior = copy.deepcopy(stored.payload["days"][day][rarity]) if stored else logs.get(day, {}).get(rarity)
             if stored and day < today:
                 continue

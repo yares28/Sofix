@@ -1,7 +1,7 @@
 // The Gallery's Stats view: who does the most of one action per start. Pure: the page reads the daily player_sheets model
 // (lib/playerSheet.ts) and the Sorare market (each player's card and crest), and the view ranks what these give it.
 import { ACTION_LABELS, type Position, type Sheets } from "./playerSheet";
-import type { MarketPlayer } from "./play";
+import type { CollectionCard, MarketPlayer } from "./play";
 
 /** Sorare's actions, grouped as the selector shows them. Labels the stat sheet already has are reused. */
 const GROUPS: { name: string; keys: string[] }[] = [
@@ -23,18 +23,30 @@ const MORE_LABELS: Record<string, string> = {
 /** A key with no label of its own still shows, by its words ("big_chance_lost" → "Big chance lost"). */
 export const statLabel = (key: string): string => ACTION_LABELS[key] ?? MORE_LABELS[key] ?? (key.charAt(0).toUpperCase() + key.slice(1)).replace(/_/g, " ");
 
-/** One ranked player: his card, crest and starts, and his mean count per start of every action he does. */
-export type StatPlayer = { slug: string; name: string; club: string | null; crest: string | null; pic: string; pos: Position; starts: number; stats: Record<string, number> };
+/** One ranked player: his card (yours when you own one), crest and starts, and his mean count per start of every action he does. */
+export type StatPlayer = { slug: string; name: string; club: string | null; crest: string | null; pic: string; mine: boolean; pos: Position; starts: number; stats: Record<string, number> };
 export type StatGroup = { name: string; stats: { key: string; label: string }[] };
 
-/** Every current LaLiga player (the market) that has a stat sheet; a sheet of a player who left the league is left out. */
-export function statPlayers(sheets: Sheets, market: MarketPlayer[]): StatPlayer[] {
+const RARITY = ["unique", "super_rare", "rare", "limited"];
+const rank = (card: CollectionCard) => (RARITY.indexOf(card.rarity) + 1 || 9) * 2 + (card.inSeason ? 0 : 1);
+
+/**
+ * Every current LaLiga player (the market) that has a stat sheet; a sheet of a player who left the league is left out. A player
+ * you own is drawn as your own card, the rarest (in-season first).
+ */
+export function statPlayers(sheets: Sheets, market: MarketPlayer[], collection: CollectionCard[] = []): StatPlayer[] {
+  const yours = new Map<string, CollectionCard>();
+  for (const card of collection) {
+    const held = yours.get(card.player);
+    if (!held || rank(card) < rank(held)) yours.set(card.player, card);
+  }
   const out: StatPlayer[] = [];
   for (const player of market) {
     const sheet = sheets.players[player.slug];
     if (!sheet) continue;
     const stats = Object.fromEntries(Object.entries(sheet.season).map(([key, [count]]) => [key, count]));
-    out.push({ slug: player.slug, name: player.name, club: player.club, crest: player.crest, pic: player.pic, pos: sheet.pos, starts: sheet.seasonStarts, stats });
+    const card = yours.get(player.slug);
+    out.push({ slug: player.slug, name: player.name, club: player.club, crest: player.crest, pic: card?.pic ?? player.pic, mine: !!card, pos: sheet.pos, starts: sheet.seasonStarts, stats });
   }
   return out;
 }
@@ -49,13 +61,22 @@ export function statGroups(players: StatPlayer[]): StatGroup[] {
     .filter((group) => group.stats.length > 0);
 }
 
+/** Who is ranked: players with at least `minStarts` starts, of one position or all. */
+const field = (players: StatPlayer[], minStarts: number, pos?: Position) => players.filter((player) => player.starts >= minStarts && (!pos || player.pos === pos));
+
 /** The players with at least `minStarts` starts and a number for the action, highest mean first (more starts first on a tie). */
-export function leaders(players: StatPlayer[], key: string, minStarts: number, limit = 50): (StatPlayer & { value: number })[] {
-  return players
-    .filter((player) => player.starts >= minStarts && player.stats[key] !== undefined)
+export function leaders(players: StatPlayer[], key: string, minStarts: number, pos?: Position, limit = 50): (StatPlayer & { value: number })[] {
+  return field(players, minStarts, pos)
+    .filter((player) => player.stats[key] !== undefined)
     .map((player) => ({ ...player, value: player.stats[key]! }))
     .sort((a, b) => b.value - a.value || b.starts - a.starts || a.name.localeCompare(b.name))
     .slice(0, limit);
+}
+
+/** How many players are ranked and their average per start; a player with no number for the action did it (next to) never, so counts as none. */
+export function fieldAverage(players: StatPlayer[], key: string, minStarts: number, pos?: Position): { players: number; mean: number } {
+  const ranked = field(players, minStarts, pos);
+  return { players: ranked.length, mean: ranked.reduce((sum, player) => sum + (player.stats[key] ?? 0), 0) / (ranked.length || 1) };
 }
 
 /** A mean as the page prints it: two decimals under ten (0.92 goals), one above (84.5 passes). */

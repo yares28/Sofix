@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { leaders, statGroups, statLabel, statPlayers, statValue } from "./statLeaders";
+import { fieldAverage, leaders, statGroups, statLabel, statPlayers, statValue } from "./statLeaders";
 import type { Sheet, Sheets } from "./playerSheet";
 import type { MarketPlayer } from "./play";
 
@@ -15,7 +15,10 @@ const sheets: Sheets = {
     gone: sheet(40, { goals: [2, 60] }),
   },
 };
-const players = statPlayers(sheets, [market("a"), market("b"), market("c")]);
+const players = statPlayers(sheets, [market("a"), market("b"), { ...market("c"), pos: "MID" }], [
+  { slug: "c-limited", player: "c", name: "C", pos: "FWD", rarity: "limited", inSeason: true, level: 1, average: 50, club: null, pic: "https://assets.sorare.com/c-limited.png" },
+  { slug: "c-rare", player: "c", name: "C", pos: "FWD", rarity: "rare", inSeason: true, level: 1, average: 50, club: null, pic: "https://assets.sorare.com/c-rare.png" },
+]);
 
 describe("stat leaders", () => {
   it("ranks current LaLiga players by their mean per start, highest first, more starts first on a tie", () => {
@@ -24,6 +27,16 @@ describe("stat leaders", () => {
   it("leaves out players under the starts asked for and those with no number for the action", () => {
     expect(leaders(players, "goals", 10).map((p) => p.slug)).toEqual(["c", "a"]);
     expect(leaders(players, "accurate_pass", 3).map((p) => p.slug)).toEqual(["a"]);
+  });
+  it("draws a player you own as your rarest card", () => {
+    expect(players.map((p) => [p.slug, p.mine, p.pic.split("/").pop()])).toEqual([["a", false, "a.png"], ["b", false, "b.png"], ["c", true, "c-rare.png"]]);
+  });
+  it("narrows to one position and averages the field with a missing action counted as none", () => {
+    sheets.players.c!.pos = "MID";
+    const mixed = statPlayers(sheets, [market("a"), market("c")]);
+    expect(leaders(mixed, "goals", 3, "FWD").map((p) => p.slug)).toEqual(["a"]);
+    expect(fieldAverage(mixed, "accurate_pass", 10)).toEqual({ players: 2, mean: 10 });
+    expect(fieldAverage(mixed, "goals", 10, "MID")).toEqual({ players: 1, mean: 0.9 });
   });
   it("offers only the actions some player has, an unknown one under Other by its words", () => {
     expect(statGroups(players)).toEqual([

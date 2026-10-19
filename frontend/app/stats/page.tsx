@@ -21,14 +21,14 @@ export default async function Stats({ searchParams }: { searchParams: SearchPara
   };
   const [data, { grid, meta }, system, sheets] = await Promise.all([loadSorare(), loadGrid(), loadSystem(), loadPlayerSheets()]);
   const week = weekContext(grid, data, new Date(), { w: single("w"), gw: single("gw") });
-  const players = statPlayers(sheets, data?.market ?? []);
+  const players = statPlayers(sheets, data?.market ?? [], data?.collection ?? []);
 
   return (
     <>
       <SiteNav meta={meta} system={system} week={week} />
       <main className="s5-main">
         {players.length ? (
-          <StatsView players={players} initial={{ stat: single("stat"), min: single("min") }} />
+          <StatsView players={players} initial={{ stat: single("stat"), min: single("min"), pos: single("pos") }} />
         ) : (
           <section className="s5-empty" role="status">
             <h1>Stat leaders</h1>

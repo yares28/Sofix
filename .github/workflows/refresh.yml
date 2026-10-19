@@ -74,6 +74,11 @@ jobs:
       # migrations are applied by hand with `python -m app.migrate`, never unattended.
       POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
       POSTGRES_URL_SPARE: ${{ secrets.POSTGRES_URL_SPARE }} # the other free Neon project (app/jobs/neon_switch.py)
+      # Cloudflare R2: page blocks for the web app, free to send (backend/app/services/r2.py); skipped when unset.
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
       PLAYER_GAMES_MIRROR: .cache/player_games.sqlite # see "Restore the game history copy"
       NEON_API_KEY: ${{ secrets.NEON_API_KEY }} # reads each project's data sent; without it the move never starts
       FOOTBALL_DATA_ORG_TOKEN: ${{ secrets.FOOTBALL_DATA_ORG_TOKEN }}

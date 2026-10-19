@@ -138,3 +138,13 @@ def test_the_publishing_run_counts_as_the_last_sync(seeded):  # noqa: F811
     body = ApiResponse[FixtureGrid].model_validate(seeded.get(ReadModel, publish.GRID_KEY).payload)
     assert body.meta is not None
     assert body.meta.last_synced_at == datetime(2026, 9, 21, 15, 20, 53, tzinfo=UTC)
+
+
+def test_only_a_written_block_goes_to_r2_for_the_web_app(db, monkeypatch):  # noqa: F811
+    sent = []
+    monkeypatch.setattr(publish.r2, "put_block", lambda key, payload, at: sent.append((key, payload, at.day)))
+    first, later = datetime(2026, 9, 1, tzinfo=UTC), datetime(2026, 9, 2, tzinfo=UTC)
+    publish.put(db, "page", {"a": 1}, first)
+    publish.put(db, "page", {"a": 1}, later)  # unchanged: R2 already holds it
+    publish.put(db, "page", {"a": 2}, later)
+    assert sent == [("page", {"a": 1}, 1), ("page", {"a": 2}, 2)]

@@ -32,6 +32,11 @@ jobs:
       APP_ENV: prod
       POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
       POSTGRES_URL_SPARE: ${{ secrets.POSTGRES_URL_SPARE }}
+      # Cloudflare R2: page blocks for the web app, free to send (backend/app/services/r2.py); skipped when unset.
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
       SORARE_API_KEY: ${{ secrets.SORARE_API_KEY }}
       SORARE_USER: ${{ vars.SORARE_USER || 'yares' }}
       SLUG: ${{ inputs.slug || 'football-13-16-oct-2026' }}

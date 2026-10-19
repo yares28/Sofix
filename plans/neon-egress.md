@@ -32,7 +32,9 @@ falls back to today's full read. Measured on Sofix B: five history reads sent 0.
 the copy once costs ~23 MB. Done when: a refresh reads under 3 MB from Neon instead of ~28 MB, with the same plans
 (the replay tests and one refresh compared block by block against the previous one).
 
-### Step 1 · Page blocks move to Cloudflare R2
+### Step 1 · Page blocks move to Cloudflare R2 · built 20 Oct: both tokens tested, all 2,763 blocks copied, the web app's
+reads checked against Neon (identical content, an older version refused). Still to do: once Neon's counter shows the drop,
+stop keeping payloads in Neon; the jobs' own reads of blocks still go to Neon.
 - **Why R2:** sending data out is free with no limit; the free plan allows 10 GB stored, 1 million writes and 10 million
   reads a month. We need ~30 MB stored, ~13,000 writes and a few thousand reads a month: under 2% of each.
   **Vercel Blob was checked and does not fit:** Hobby allows 2,000 uploads a month (we make ~12,000) and, past any limit,

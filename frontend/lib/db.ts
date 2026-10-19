@@ -4,6 +4,7 @@ import { mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises"
 import path from "node:path";
 import { unstable_cache } from "next/cache";
 import { isDatabasePaused } from "./control";
+import { blockFromR2 } from "./r2";
 import { GRID_TAG } from "./refresh";
 
 /**
@@ -136,6 +137,8 @@ export const stamp = (at: string | Date): string => (at instanceof Date ? at.toI
 export const readModelAt = unstable_cache(
   async (key: string, updatedAt: string): Promise<unknown> =>
     keptInDev(`${key}@${updatedAt}`, async () => {
+      const fromR2 = await blockFromR2(key, updatedAt); // free to send; Neon only when R2 lacks this version
+      if (fromR2 !== undefined) return fromR2;
       const rows = (await database()!`SELECT payload FROM read_models WHERE key = ${key}`) as { payload: unknown }[];
       return rows[0]?.payload ?? null;
     }),

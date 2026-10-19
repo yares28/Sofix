@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { cache } from "./cache";
 import { database, keptInDev, readModel, stamp } from "./db";
+import { blockFromR2 } from "./r2";
 import { SORARE_TAG, weekPlan, type GameweekPlan, type Sorare, type SorarePlans } from "./play";
 import { restoreFrozenPlan } from "./frozenPlan";
 import type { ChanceRecord } from "./lineupChances";
@@ -16,6 +17,11 @@ const API_BASE = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
 // every piece kept under the model's write time (see readModelAt in lib/db.ts).
 const sorarePart = unstable_cache(
   async (part: number, updatedAt: string): Promise<unknown> => keptInDev(`sorare#${part}@${updatedAt}`, async () => {
+    const whole = (await blockFromR2("sorare", updatedAt)) as (Sorare & { market?: unknown }) | undefined;
+    if (whole) {
+      const { weeks, market, ...head } = whole;
+      return part === -2 ? { head, weeks: weeks.length } : part === -1 ? (market ?? null) : (weeks[part] ?? null);
+    }
     const sql = database()!;
     const rows = (part === -2
       ? await sql`SELECT payload::jsonb - 'weeks' - 'market' AS part, json_array_length(payload->'weeks') AS weeks FROM read_models WHERE key = 'sorare'`

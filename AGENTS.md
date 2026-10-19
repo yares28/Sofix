@@ -242,6 +242,11 @@ GitHub also needs `NEON_API_KEY` (an organization key) for the move.
   one (its write time stays, so pages do not download it again); the refresh and league-history jobs read game history
   from a copy kept in GitHub's cache (`PLAYER_GAMES_MIRROR`, `app/sorare/games_mirror.py`), fetching only changed players;
   each refresh step records `neonMB`, each job logs its total, and Vercel logs `[neon]` reads over 50 kB.
+- **Page blocks on Cloudflare R2 (20 Oct 2026):** `put` also stores each written block as `blocks/<key>.json` =
+  {updatedAt, payload} in the private bucket `sofix-pages` (`backend/app/services/r2.py`); the web app reads it there
+  first (`frontend/lib/r2.ts`) and falls back to Neon when R2 lacks the version Neon names (a failed upload, or a block
+  written another way). Settings `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`: GitHub has the
+  read-write token, Vercel the read token; values in the git-ignored `.env.r2`. Neon still keeps every payload.
 - **Local:** `frontend/.env.local` has `DATABASE_URL` (Sofix) and `DATABASE_URL_SPARE` (FDR, Sofix B, Sofix C).
 - **Check usage:** `node scripts/check.mjs --live` prints what the last refresh read from Neon's API (`read_models` key
   `neon_status` in the live project; FAIL with a note when `NEON_API_KEY` gave nothing, which means no move can happen),

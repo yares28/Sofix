@@ -29,6 +29,11 @@ jobs:
       APP_ENV: prod
       POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
       POSTGRES_URL_SPARE: ${{ secrets.POSTGRES_URL_SPARE }} # the other free Neon project (app/jobs/neon_switch.py)
+      # Cloudflare R2: page blocks for the web app, free to send (backend/app/services/r2.py); skipped when unset.
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
       PLAYER_GAMES_MIRROR: .cache/player_games.sqlite # see "Restore the game history copy"
       # With the key Sorare allows the heavier query that carries red cards, and a higher rate.
       SORARE_API_KEY: ${{ secrets.SORARE_API_KEY }}

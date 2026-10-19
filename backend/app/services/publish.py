@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 
 from app.models import ReadModel, RefreshRun
 from app.schemas import ApiResponse, FixtureGrid
-from app.services import data_health
+from app.services import data_health, r2
 from app.services.fixture_grid import build_fixture_grid, grid_meta
 from app.services.kept_matches import match_audit
 
@@ -41,9 +41,13 @@ def put(db: Session, key: str, payload: dict[str, Any], now: datetime) -> None:
         .where(ReadModel.key == key, cast(ReadModel.payload, Text) != json.dumps(payload))
         .values(payload=payload, updated_at=now)
     )
-    if not replaced.rowcount and db.query(ReadModel.key).filter(ReadModel.key == key).first() is None:  # type: ignore[attr-defined]
+    written = bool(replaced.rowcount)  # type: ignore[attr-defined]
+    if not written and db.query(ReadModel.key).filter(ReadModel.key == key).first() is None:
         db.add(ReadModel(key=key, payload=payload, updated_at=now))
+        written = True
     db.commit()
+    if written:  # the web app reads it from R2 (free to send), Neon being the fallback
+        r2.put_block(key, payload, now)
 
 
 def publish_grid(db: Session, now: datetime | None = None) -> dict[str, int]:

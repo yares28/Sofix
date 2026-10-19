@@ -2,6 +2,8 @@ import type { GameweekLineup } from "./entered";
 import type { GameweekPlan, Lineup, PlayCard } from "./play";
 
 export type ActualScores = Record<string, { score: number; played: boolean; complete?: boolean }>;
+/** A player's own score sits in the same map under this key, beside his cards' (a Sorare card score adds its bonuses). */
+export const playerKey = (player: string) => `player:${player}`;
 export type TeamScore = { value: number | null; complete: boolean };
 type ScoringCard = PlayCard & { positions?: string[] };
 type ScoringLineup = Pick<Lineup, "starters" | "subs" | "captainBonus" | "minInSeason" | "clubBonus" | "averageBonus">;

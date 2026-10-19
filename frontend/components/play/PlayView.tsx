@@ -209,7 +209,7 @@ export default function PlayView({
       ) : (
         <Waiting week={week} now={now} />
       )}
-      {!week.projected ? <EnteredLineups week={week.gameweek} forecast={forecast ?? week} /> : null}
+      {!week.projected ? <EnteredLineups week={week.gameweek} forecast={forecast ?? week} scores={scores} /> : null}
       {missions && !after ? <MissionsGlance plans={missions.plans} day={missions.day} current={missions.status === "today"} href="/missions" /> : null}
       <Folds week={week} />
     </main>

@@ -6,7 +6,7 @@ import { pendingLine, proLine, resultLine, type GameweekLineup, type WeekLineups
 import { readEnteredWeek, type EnteredRead } from "../../lib/myWeeksClient";
 import { REQUIRED_EXTENSION_VERSION } from "../../lib/extension";
 import { chanceLabel, type GameweekPlan } from "../../lib/play";
-import { enteredScore } from "../../lib/lineupScores";
+import { enteredScore, playerKey, type ActualScores } from "../../lib/lineupScores";
 import { ComparisonCards, ComparisonScores } from "../recap/LineupComparison";
 
 type Week = { slug: string; number: number; lock?: string; end?: string };
@@ -17,7 +17,8 @@ type LoadState =
   | { state: "unavailable"; lineups: GameweekLineup[]; answer: Failure };
 
 /** Lineups the signed-in manager actually put on Sorare, read from this exact Sorare gameweek. */
-export default function EnteredLineups({ week, forecast = null, variant = "play" }: { week: Week; forecast?: GameweekPlan | null; variant?: "play" | "recap" }) {
+/** `scores`: the week's own player scores (lib/planScoresData.ts), so a card shows his score apart from its bonuses. */
+export default function EnteredLineups({ week, forecast = null, variant = "play", scores = {} }: { week: Week; forecast?: GameweekPlan | null; variant?: "play" | "recap"; scores?: ActualScores }) {
   const [load, setLoad] = useState<LoadState>({ state: "loading", lineups: [] });
   const [asked, setAsked] = useState(0); // a new ask: Check again, or coming back to this tab
   const last = useRef<{ slug: string; lineups: GameweekLineup[] } | null>(null);
@@ -147,8 +148,13 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
             return <article className="rc-lu pl-entered-lineup" key={lineup.id}>
                 <div className="rc-lu-c"><b>{lineup.competition}</b><span>{lineup.name ?? "Untitled lineup"}</span><span>{lineup.draft ? "Draft" : "Entered"} · {cards.length} cards</span></div>
                 {/* Sorare gives a card 0 until his game is in, and 0 to one who did not play */}
-                <ComparisonCards cards={cards.map((c) => ({ ...c, score: result && c.score ? c.score : null,
-                  why: result && !live ? "Did not play" : "Not played yet" }))} />
+                {/* Sorare's card score counts the card's bonus and the captain's: his own score shows, that total on hover */}
+                <ComparisonCards cards={cards.map((c) => {
+                  const total = result && c.score ? c.score : null;
+                  const own = total !== null && c.player && forecast?.gameweek.slug === week.slug ? scores[playerKey(c.player)] : undefined;
+                  return { ...c, score: own?.played ? own.score : total, total: own?.played ? total : undefined,
+                  why: result && !live ? "Did not play" : "Not played yet" };
+                })} />
                 <div className="rc-score">
                   <ComparisonScores expected={expected.value} estimated={expected.estimated} actual={pending || lineup.draft ? null : lineup.result?.score ?? null} actualLabel={lineup.result?.rank === null ? "Actual so far" : "Actual"} entered />
                   {expected.value === null ? <span>{forecast ? "Forecast unavailable" : "Not recorded"}</span> : null}

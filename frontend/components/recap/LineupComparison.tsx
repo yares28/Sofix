@@ -7,6 +7,8 @@ export type ComparisonCard = { slug: string; name: string; picture: string | nul
   score: number | null;
   /** His xScore; left out for a lineup built knowing the scores. */
   x?: number | null;
+  /** His card's score with its bonuses (the card's, the captain's), when `score` is his own; shown on hover. */
+  total?: number | null;
   /** Why there is no score: "Not played yet", "Did not play", ... */
   why?: string };
 
@@ -18,19 +20,23 @@ export function ComparisonCards({ cards }: { cards: ComparisonCard[] }) {
   return <ol className="rc-team" aria-label={`${cards.length} cards`}>
     {cards.map(card => {
       const x = card.x ?? null;
+      const total = card.total ?? null;
+      const xd = typeof card.xd === "number" ? card.xd : null;
       // The card's own art names him; the name and the bench are still said for a pointer and a screen reader.
+      // Hovered (a tap on a phone), his hexagons open into a honeycomb that adds the total and his xD.
       return <li key={card.slug} className={card.bench ? "bench" : undefined} title={card.bench ? `${card.name}, bench` : card.name}>
         <span className={`rc-art ${card.rarity ?? "limited"}`}><CardArt src={card.picture} name={card.name} /></span>
         {card.captain ? <span className="rc-cap" title="Captain">C</span> : null}
         {/* what he scored, then his xScore in a smaller hexagon tucked beside it */}
         <span className="rc-hexes">
-          <span className={`rc-hex sm${card.score === null ? "" : " scored"}`} style={fill(card.score)} title={card.score === null ? (card.why ?? "No score yet") : "His score"}>
+          {total === null ? null : <span className="rc-cell rc-cell-total" style={fill(total)} aria-hidden="true"><b>{Math.round(total)}</b><small>total</small></span>}
+          {xd === null ? null : <span className="rc-cell rc-cell-xd" aria-hidden="true"><b>{xd.toFixed(2)}</b><small>xD</small></span>}
+          <span className={`rc-hex sm${card.score === null ? "" : " scored"}`} style={fill(card.score)} title={card.score === null ? (card.why ?? "No score yet") : total === null ? "His score" : "His score, before bonuses"}>
             {card.score === null ? "-" : Math.round(card.score)}
           </span>
           {card.x === undefined ? null : <span className="rc-xs" style={fill(x)} title="His xScore">{x === null ? "-" : Math.round(x)}</span>}
         </span>
-        {typeof card.xd === "number" ? <span className="rc-cxd" title="His expected decisive actions">{card.xd.toFixed(2)} xD</span> : null}
-        <span className="visually-hidden">{card.name}{card.bench ? ", bench" : ""}{card.score === null ? `, ${card.why ?? "no score yet"}` : `, scored ${Math.round(card.score)}`}{x === null ? "" : `, xScore ${Math.round(x)}`}</span>
+        <span className="visually-hidden">{card.name}{card.bench ? ", bench" : ""}{card.score === null ? `, ${card.why ?? "no score yet"}` : `, scored ${Math.round(card.score)}`}{total === null ? "" : `, ${Math.round(total)} with bonuses`}{x === null ? "" : `, xScore ${Math.round(x)}`}{xd === null ? "" : `, ${xd.toFixed(2)} xD`}</span>
       </li>;
     })}
   </ol>;

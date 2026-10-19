@@ -228,14 +228,14 @@
 }
 @media (hover: hover) and (pointer: fine) {
   :is(.rc-art, .s5-pc .art, .s5-res .art, .mx-art, .pl-mc .art, .pl-pc .art, .ap-pc .art, .lu-face, .pd-pic, .ow-card, .hm-nw-face):hover,
-  .lu-card:is(:hover, :focus-within) .lu-face {
+  .lu-card:is(:hover, :focus-within) .lu-face, .rc-team li:is(:hover, :focus-within) > .rc-art {
     position: relative; z-index: 5;
     transform: translateY(-6px) scale(1.16) rotate(-1.2deg);
     box-shadow: 0 18px 34px rgba(0, 0, 0, .28), 0 4px 10px rgba(0, 0, 0, .18);
     filter: saturate(1.08) brightness(1.04);
   }
   :is(.rc-art, .s5-pc .art, .s5-res .art, .mx-art, .pl-mc .art, .pl-pc .art, .ap-pc .art, .lu-face, .pd-pic, .ow-card, .hm-nw-face):hover::after,
-  .lu-card:is(:hover, :focus-within) .lu-face::after { animation: card-sweep 900ms ease-out; }
+  .lu-card:is(:hover, :focus-within) .lu-face::after, .rc-team li:is(:hover, :focus-within) > .rc-art::after { animation: card-sweep 900ms ease-out; }
   /* On Lineups a link covers the whole card, so the card's hover grows its picture. Its picture fills the card absolutely:
      the rule above's `relative` would collapse it to nothing; grown, it must not take the link's click. */
   .lu-card:is(:hover, :focus-within) { z-index: 5; }
@@ -243,7 +243,10 @@
   /* The score hexagon and the rank badge stay on top of a grown card, and the hexagons grow with it. */
   .rc-hex, .rc-rank, .rc-hexes { z-index: 6; }
   :is(.rc-hex, .rc-hexes) { transition: transform 420ms cubic-bezier(.34, 1.56, .64, 1); }
-  :has(> .rc-art:hover) > :is(.rc-hex, .rc-hexes) { transform: translateY(-6px) scale(1.2); }
+  :has(> .rc-art:hover) > .rc-hex { transform: translateY(-6px) scale(1.2); }
+  /* A lineup card's hexagons rise with it, and open into the honeycomb (recap.css), over the cards beside it. */
+  .rc-team li:is(:hover, :focus-within) { z-index: 5; }
+  .rc-team li:is(:hover, :focus-within) > .rc-hexes { transform: translateY(-6px) scale(1.08); }
   /* The card's own tile comes forward too, so the grown card is never under its neighbour. */
   :has(> :is(.rc-art, .art, .lu-face, .pd-pic, .ow-card, .hm-nw-face):hover) { position: relative; z-index: 5; }
 }

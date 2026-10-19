@@ -1,7 +1,7 @@
 import { cache } from "./cache";
 import { database } from "./db";
 import type { GameweekPlan } from "./play";
-import type { ActualScores } from "./lineupScores";
+import { playerKey, type ActualScores } from "./lineupScores";
 
 /** One cached, read-only batch for the selected GW. A missing game never becomes a DNP. */
 export async function loadPlanActuals(week: GameweekPlan): Promise<ActualScores> {
@@ -37,7 +37,8 @@ async function readPlanActuals(week: GameweekPlan): Promise<ActualScores> {
       const actual = c.player ? actuals.get(c.player) : null;
       if (actual) result[c.slug] = actual;
     }
+    for (const [player, actual] of actuals) result[playerKey(player)] = actual;
     return result;
-  }, ["plan-actuals-v2", week.gameweek.slug], { tags: ["sorare"], revalidate: 3600 });
+  }, ["plan-actuals-v3", week.gameweek.slug], { tags: ["sorare"], revalidate: 3600 });
   return read();
 }

@@ -145,7 +145,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                   <Link href={href("/play")}>{rows.length ? `See all ${rows.length}` : "Plan"} ›</Link>
                 </div>
                 {/* What you entered on Sorare comes first (read through the extension), then the plan's best. */}
-                {selectedSorare ? <EnteredLineups week={selectedSorare} forecast={enteredForecast} variant="recap" /> : null}
+                {selectedSorare ? <EnteredLineups week={selectedSorare} forecast={enteredForecast} variant="recap" scores={actuals} /> : null}
                 {rows.length ? (
                   <div className="rc-plan" role="region" aria-label="Best Sofix plan">
                     <div className="rc-th rc-plan-head"><h3>Best Sofix plan</h3><span>{Math.round(best!.essence)} expected essence · {rows.length} lineup{rows.length === 1 ? "" : "s"}</span></div>

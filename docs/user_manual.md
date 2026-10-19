@@ -79,7 +79,9 @@ The Recap is about the week in the top bar (since 5 Oct 2026; design canvas boar
 - **Your lineups**: every entered lineup, followed by every lineup of the best Sofix plan. Each compares expected team
   xScore with the actual score; missing scores stay blank, and partial plan results say **Actual so far**. The best plan
   has the highest expected essence. Under each card the big hexagon is what he scored on Sorare, a grey "-" until he has
-  played (or when he did not; the hover says which), and the small hexagon beside it is his xScore, both in their score colour and both growing with the card on hover, on Home and Play alike.
+  played (or when he did not; the hover says which), and the small hexagon beside it is his xScore, on Home and Play alike. The big
+  hexagon is his own score, before the card's and the captain's bonuses. Hover a card (tap it on a phone) and the hexagons open into a
+  honeycomb: the card's total with those bonuses (your entered lineups, once his own score is in), his xD, his score and his xScore.
   A plan row is the cards (larger, the captain marked, the bench after a divider), xScore,
   the actual score, xD (the starters expected to bring a decisive action: each one's chance from his game when Sofix works it
   out, else his real record: how often his own read starts brought one, nothing added; a player with no read start has none and the

@@ -15,6 +15,8 @@ const week = () => ({ gameweek: { slug: "selected" }, playing: { players: [
   { slug: "card-a", player: "a" }, { slug: "card-b", player: "b" },
   { slug: "card-c", player: "c" }, { slug: "card-d", player: "d" },
 ], subs: [] }] }] }) as unknown as GameweekPlan;
+// Each player's own score rides along under "player:<slug>" (lineupScores.playerKey).
+const withPlayers = (cards: Record<string, unknown>) => ({ ...cards, ...Object.fromEntries(Object.entries(cards).map(([slug, v]) => [`player:${slug.slice(5)}`, v])) });
 beforeEach(() => { sql.mockReset(); });
 it("joins the selected GW's exact player/game identities, takes the best double score and preserves real zero", async () => {
   sql.mockResolvedValue([
@@ -23,7 +25,7 @@ it("joins the selected GW's exact player/game identities, takes the best double 
     { player: "b", game_id: "g1", score: 0, played: true, status: "FINAL" },
     { player: "c", game_id: "different-week", score: 90, played: true, status: "FINAL" },
   ]);
-  expect(await loadPlanActuals(week())).toEqual({ "card-a": { score: 70, played: true, complete: true }, "card-b": { score: 0, played: true, complete: true } });
+  expect(await loadPlanActuals(week())).toEqual(withPlayers({ "card-a": { score: 70, played: true, complete: true }, "card-b": { score: 0, played: true, complete: true } }));
   expect(sql).toHaveBeenCalledTimes(1);
   expect(sql.mock.calls[0]![1]).toEqual(["g1", "g2", "g3"]);
 });
@@ -33,7 +35,7 @@ it("keeps partial doubles, distinguishes confirmed DNP from missing, and rejects
     { player: "b", game_id: "g1", score: null, played: false, status: "DID_NOT_PLAY" },
     { player: "c", game_id: "g3", score: 90, played: true, status: "DID_NOT_PLAY" },
   ]);
-  expect(await loadPlanActuals(week())).toEqual({ "card-a": { score: 40, played: true, complete: false }, "card-b": { score: 0, played: false, complete: true } });
+  expect(await loadPlanActuals(week())).toEqual(withPlayers({ "card-a": { score: 40, played: true, complete: false }, "card-b": { score: 0, played: false, complete: true } }));
 });
 it("leaves failed reads unknown", async () => {
   sql.mockRejectedValue(new Error("unavailable"));
@@ -46,5 +48,5 @@ it("shows reviewing and live scores provisionally without turning an unplayed li
     { player: "b", game_id: "g1", score: 0, played: true, status: "LIVE" },
     { player: "c", game_id: "g3", score: 0, played: false, status: "REVIEWING" },
   ]);
-  expect(await loadPlanActuals(week())).toEqual({ "card-a": { score: 40, played: true, complete: false }, "card-b": { score: 0, played: true, complete: false } });
+  expect(await loadPlanActuals(week())).toEqual(withPlayers({ "card-a": { score: 40, played: true, complete: false }, "card-b": { score: 0, played: true, complete: false } }));
 });

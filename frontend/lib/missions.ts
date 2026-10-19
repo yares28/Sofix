@@ -242,6 +242,9 @@ export function missionValues(rule: Rule, sheet: Sheet | null | undefined): numb
   return sheet.last.map((row) => row[index]).filter((n): n is number => typeof n === "number" && Number.isFinite(n));
 }
 
+/** A chance of coming on at or below this, with no recent sub appearance, counts his starts only (Ramon Terrats: 87% start, 3% on). */
+const SMALL_ON = 0.1;
+
 /** His chance of the rule in his game that day, and what he did per start over 5, 8 and two seasons; null when nothing can be said (no number for him). */
 export function fit(rule: Rule, player: PlayingPlayer, sheet: Sheet | null, target?: number): { chance: number; average?: Window; historical?: boolean } | null {
   if (rule.kind === "unsupported") return null;
@@ -257,7 +260,8 @@ export function fit(rule: Rule, player: PlayingPlayer, sheet: Sheet | null, targ
     const start = formRate(form, key, true), sub = formRate(form, key, false);
     const tail = (rate: number) => rule.kind === "decisive" || rule.kind === "booked" ? rate : atLeast("atLeast" in rule ? rule.atLeast : 1, rate);
     if (player.pStart !== undefined && player.pOn !== undefined) {
-      if (player.pStart > 0 && start === undefined || player.pOn > 0 && sub === undefined) return null;
+      // No recent sub appearance and a small chance of coming on: count his starts only rather than blank the whole chance.
+      if (player.pStart > 0 && start === undefined || player.pOn > SMALL_ON && sub === undefined) return null;
       return { chance: Math.min(1, player.pStart * tail(start ?? 0) + player.pOn * tail(sub ?? 0)), average };
     }
     if (!values.length) return null;

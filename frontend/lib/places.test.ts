@@ -16,6 +16,7 @@ describe("placeOf and viewOf", () => {
       ["/team/FCB", "Season", null],
       ["/cards", "Gallery", "Cards"],
       ["/players/arda-guler", "Gallery", "Players"],
+      ["/stats", "Gallery", "Stats"],
       ["/audit", "Audit", "xScore"],
       ["/audit/starts", "Audit", "Who starts"],
       ["/audit/strategies", "Audit", "Strategies"],

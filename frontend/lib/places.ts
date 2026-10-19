@@ -33,6 +33,7 @@ export const PLACES: Place[] = [
     views: [
       { href: "/cards", label: "Cards" },
       { href: "/players", label: "Players" },
+      { href: "/stats", label: "Stats" },
     ],
   },
   {

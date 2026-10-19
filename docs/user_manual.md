@@ -629,6 +629,11 @@ Lineups is outlined here.
 Search by player or club, filter position/rarity and change sort; those choices are URL state and can be bookmarked.
 Excluded cards are folded rather than deleted so the reason remains inspectable.
 
+**Stats** (`/stats`, the Gallery's third view) ranks the current LaLiga players by their mean count of one Sorare action per start,
+over every saved start of the last two seasons (the daily stat sheets). Pick a group, then an action (every action the sheets hold is
+offered); the first five stand on a podium and ranks 6 to 50 follow as cards. **Starts** (3+, 10+, 20+, default 10+) leaves out players
+with fewer saved starts, so four lucky games do not lead a list.
+
 ## 10a. Missions
 
 **Load today's missions** reads Sorare's open football pickers through your signed-in sorare.com tab, using extension **0.3.9**. Press Reload on the extension once after updating it. Sofix reads the task group used by Sorare's Missions page, separately for each rarity, and saves one verified import. Missing fields, a partial response, a different signed-in account or a failed save are errors; they do not mean Sorare has no missions. The last saved list is kept and dated. Only a complete read can confirm an empty list. A phone can show saved data; importing needs the extension browser.

@@ -47,6 +47,10 @@
 .mx-tag { display: inline-block; margin-left: 6px; padding: 3px 7px; border-radius: 999px; background: var(--hover); color: var(--ink-2); font-size: 11px; font-weight: 600; line-height: 1; white-space: nowrap; vertical-align: 1px; }
 .mx-tag.you { background: var(--ink); color: var(--on-ink); }
 .mx-tag.sfx { background: color-mix(in srgb, var(--accent) 14%, var(--surface)); color: color-mix(in srgb, var(--accent) 70%, var(--ink)); }
+.mx-mark { display: inline-grid; place-items: center; width: 16px; height: 16px; margin-left: 6px; border-radius: 50%; vertical-align: -2px; }
+.mx-mark.you { background: var(--ink); color: var(--on-ink); }
+.mx-mark.sfx { border-radius: 5px; background: conic-gradient(from 200deg, var(--fdr1-bg), var(--fdr2-bg), var(--fdr3-bg), var(--fdr4-bg), var(--fdr5-bg), var(--fdr1-bg)); }
+.mx-shield { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--track); color: var(--ink); font-size: 11px; font-weight: 600; }
 .mx-tag.miss { background: var(--amber-bg, #fff3d6); color: var(--amber-ink, #7a4d00); }
 .mx-bar, .mx-zh { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .mx-zh { justify-content: space-between; min-height: 30px; margin-bottom: 12px; padding: 0 6px; }
@@ -102,7 +106,7 @@
 /* the table of your cards */
 .mx-scout { padding-inline: 12px; }
 .mx-scroll { overflow-x: auto; }
-.mx-table { min-width: 1106px; --cols: minmax(140px, 1.5fr) 104px 74px 176px 56px 56px repeat(3, 72px) 84px 116px; }
+.mx-table { min-width: 1042px; --cols: minmax(140px, 1.5fr) 40px 74px 176px 56px 56px repeat(3, 72px) 84px 116px; }
 .mx-line { display: grid; grid-template-columns: var(--cols); column-gap: 6px; align-items: center; padding: 5px 12px; min-height: 66px; border-radius: 14px; }
 .mx-rows > li:hover > .mx-line, .mx-rows > li.open > .mx-line { background: var(--hover); }
 .mx-th { min-height: 0; padding-block: 8px 6px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); }
@@ -115,7 +119,7 @@
 .mx-line .who .mx-art { width: 34px; filter: drop-shadow(0 3px 5px rgba(0, 0, 0, .2)); }
 .mx-line .who > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .mx-line .who b { font-size: 14px; font-weight: 600; }
-.mx-line .game { display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
+.mx-line .game { display: flex; align-items: center; }
 .mx-line .start b, .mx-line .ch b { display: block; margin-bottom: 5px; font-size: 13px; font-weight: 600; }
 .mx-line .start .sub { display: block; margin-top: 4px; font-size: 11px; }
 .mx-line .l10 { display: flex; align-items: center; gap: 9px; }

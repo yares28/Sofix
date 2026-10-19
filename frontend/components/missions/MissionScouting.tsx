@@ -8,7 +8,7 @@ import CardArt from "../cards/CardArt";
 import { fit, missionCandidates, missionChance, type MissionPlan } from "../../lib/missions";
 import type { MissionPool, MissionPlayer } from "../../lib/missionsPool";
 import { SOURCE_SHORT } from "../../lib/play";
-import { cardCopyLabel } from "../../lib/missionPresentation";
+import SorareImage from "../play/SorareImage";
 import { lastGames, perGame, recentMean, relatedStats, roleHits } from "../../lib/missionColumns";
 
 const percent = missionChance;
@@ -82,9 +82,8 @@ export default function MissionScouting({ one, plans, players, pool, now, rarity
         return <li key={r.id} className={isOpen ? "open" : undefined}>
           <div className="mx-line">
             <div className="who"><Link className="mx-art" href={`/players/${r.p.player}`} aria-label={`Open ${r.p.name} profile`}><CardArt src={r.p.pic} name={r.p.name} /></Link>
-              <div><b>{r.p.name}{r.own ? <span className="mx-tag you">You</span> : null}{suggested ? <span className="mx-tag sfx">Sofix</span> : null}{r.locked ? <span className="mx-tag">Locked</span> : null}{r.allowed === false ? <span className="mx-tag">Not eligible</span> : null}</b>
-                <span className="sub">{r.p.pos} · {cardCopyLabel(r.p.card)}</span></div></div>
-            <div className="game"><span>v {r.game.opponent}</span><span className="sub">{kickoff(r.game.kickoff)}</span></div>
+              <div><b>{r.p.name}{r.own ? <span className="mx-mark you" role="img" aria-label="Your pick" title="Your pick"><svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="5" /><path d="M3 22a9 9 0 0 1 18 0Z" /></svg></span> : null}{suggested ? <span className="mx-mark sfx" role="img" aria-label="Sofix's pick" title="Sofix's pick" /> : null}{r.locked ? <span className="mx-tag">Locked</span> : null}{r.allowed === false ? <span className="mx-tag">Not eligible</span> : null}</b></div></div>
+            <div className="game" role="img" aria-label={`${r.game.venue === "A" ? "at" : "v"} ${r.game.opponent}, ${kickoff(r.game.kickoff)}`} title={`${r.game.venue === "A" ? "at" : "v"} ${r.game.opponent} · ${kickoff(r.game.kickoff)}`}>{r.game.opponentCrest ? <SorareImage src={r.game.opponentCrest} width={24} height={24} /> : <span className="mx-shield">{r.game.opponent.slice(0, 3).toUpperCase()}</span>}</div>
             <div className="start"><b>{share(start)}</b>{start !== undefined ? <><i className="mx-meter"><i style={{ width: `${Math.round(100 * start)}%` }} /></i><span className="sub">on {share(r.game.pOn ?? r.p.pOn)}</span></> : <span className="sub">not known</span>}</div>
             <div className="l10"><Dots games={r.games} /><span><b>{r.games.length ? `${r.games.filter((g) => g.hit).length}/${r.games.length}` : "–"}</b></span></div>
             <div className="c a1" data-l="Started"><span className="visually-hidden">Started </span>{roleHits(r.games, true)}</div>

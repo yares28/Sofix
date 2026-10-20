@@ -81,7 +81,10 @@ lineup, Pro first, around players who start. Every line below is marked with whe
 
 ## 5 · When the elevens appear (measured)
 
-_Filled from the watch on 20 Oct 2026._
+Two Champions League games kicking off 16:45 UTC on 20 Oct 2026 (Fenerbahçe–Slavia, Sabah–Dortmund), polled every 2 min on the
+public API: still unannounced at 15:45:00 UTC, all four elevens (22 players each game) announced at 15:47:00 UTC. So the elevens
+appeared between 60 and 58 minutes before kickoff, for both games together. One evening, two games: a later check should repeat it
+on a LaLiga matchday.
 
 ## 6 · Open: the owner's choices (no default taken)
 

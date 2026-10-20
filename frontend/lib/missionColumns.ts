@@ -18,20 +18,21 @@ export function roleHits(games: Played[], started: boolean): string {
   return of.length ? `${of.filter((g) => g.hit).length}/${of.length}` : "–";
 }
 
-/** The three stats, per game, that sit beside the one the mission counts (stat key, column title, shown as a share of games). */
+/** Three stats per game: the one the mission counts first (the owner looked for it, 20 Oct 2026), then two beside it (stat key, column title, shown as a share of games). */
 export type Related = readonly [key: string, label: string, share?: true];
 const GOALS: Related = ["goals", "Goals"], ASSISTS: Related = ["goal_assist", "Assists"], SHOTS: Related = ["ontarget_scoring_att", "On target"], BOX: Related = ["pen_area_entries", "Box entries"];
+const TACKLES: Related = ["won_tackle", "Tackles won"], INTERCEPTIONS: Related = ["interception_won", "Interceptions"];
 const WINS: Related = ["duel_won", "Duels won"], BALL: Related = ["poss_won", "Ball wins"], MINUTES: Related = ["mins_played", "Minutes"];
 const RELATED: Record<Rule["kind"], readonly [Related, Related, Related]> = {
   decisive: [GOALS, ASSISTS, ["clean_sheet_60", "Clean sheet", true]],
-  interception: [["won_tackle", "Tackles won"], BALL, WINS],
-  tackle: [["interception_won", "Interceptions"], BALL, WINS],
-  assist: [["big_chance_created", "Chances made"], BOX, GOALS],
-  goal: [SHOTS, BOX, ASSISTS],
-  shot: [GOALS, BOX, ["big_chance_missed", "Chances missed"]],
-  miss: [SHOTS, BOX, GOALS],
+  interception: [INTERCEPTIONS, TACKLES, BALL],
+  tackle: [TACKLES, INTERCEPTIONS, BALL],
+  assist: [ASSISTS, ["big_chance_created", "Chances made"], BOX],
+  goal: [GOALS, SHOTS, BOX],
+  shot: [SHOTS, GOALS, BOX],
+  miss: [["big_chance_missed", "Chances missed"], SHOTS, BOX],
   booked: [["fouls", "Fouls"], WINS, MINUTES],
-  pass: [MINUTES, ["missed_pass", "Passes missed"], ASSISTS],
+  pass: [["accurate_pass", "Accurate passes"], ["missed_pass", "Passes missed"], MINUTES],
   score: [MINUTES, ["decisive", "Decisive", true], GOALS],
   unsupported: [GOALS, ASSISTS, MINUTES],
 };

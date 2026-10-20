@@ -31,7 +31,8 @@ it("picks the stats that sit beside the counted one and prints them per game", (
   expect(perGame(form, ["goal_assist", "Assists"])).toBe("0");
   expect(perGame(form, ["saves", "Saves"])).toBe("–");
   expect(perGame(undefined, goals)).toBe("–");
-  expect(relatedStats({ kind: "interception", atLeast: 2, label: "" }).map(([key]) => key)).toEqual(["won_tackle", "poss_won", "duel_won"]);
+  expect(relatedStats({ kind: "interception", atLeast: 2, label: "" }).map(([key]) => key)).toEqual(["interception_won", "won_tackle", "poss_won"]);
+  expect(relatedStats({ kind: "tackle", atLeast: 3, label: "" })[0]).toEqual(["won_tackle", "Tackles won"]); // the counted stat leads
 });
 
 it("splits a reward into the number and the unit for a ticket", () => {

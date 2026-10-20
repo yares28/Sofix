@@ -291,7 +291,8 @@ another GW are never carried into the selected one.
 
 Each row compares **xScore** and **Actual**. Matching saved Sofix lineups retain their recorded forecast. Custom lineups
 get an **xScore estimate** using this GW's player forecasts, original slots, captain, bonuses and substitutes, with
-independent playing chances. Missing inputs say **Forecast unavailable**, never zero. Custom estimates require extension
+independent playing chances. A Pro lineup (Sorare sends no bonus rules for it) prices each card with that board's
+in-season and level bonuses, so cards Sofix placed on another board still count. Missing inputs say **Forecast unavailable**, never zero. Custom estimates require extension
 0.3.13 (reload once in `chrome://extensions`). Older saved teams are enriched automatically when opened with Sorare
 available, without changing saved scores or rewards. Saved metadata remains available after the Sorare tab closes.
 

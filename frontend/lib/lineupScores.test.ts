@@ -86,6 +86,14 @@ describe("entered lineup expected score", () => {
     const custom = entered([card("a"), card("foreign", { captain: true })]);
     expect(enteredScore(custom, selected, "selected").value).toBeNull();
   });
+  it("works out a card's multiplier from the board's own bonuses when the plan picked it elsewhere (Pro sends no rules)", () => {
+    const selected = week(line({ bonuses: { season: 0.05, grade: 0.01, scarcity: {} } }));
+    selected.plans[0]!.lineups.push(line({ board: "other", starters: [card("elsewhere", { level: 3, inSeason: true, mult: 9 })] }));
+    const custom = entered([card("a", { captain: true }), card("elsewhere")]);
+    expect(enteredScore(custom, selected, "selected").value).toBeCloseTo(40 * 1.5 + 40 * 1.08);
+    delete selected.plans[0]!.lineups[0]!.bonuses;
+    expect(enteredScore(custom, selected, "selected").value).toBeNull();
+  });
   it("respects all of a custom substitute's eligible positions", () => {
     const lineup = line({ starters: [card("a", { p: 0, x: 0, captain: true }), card("b")], subs: [card("c", { pos: "MID", slot: "OUT" })] });
     const custom = entered([...lineup.starters, ...lineup.subs].map(c => ({ ...c, captain: c.slug === "b" })));

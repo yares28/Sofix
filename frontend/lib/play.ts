@@ -115,6 +115,8 @@ export type Lineup = {
   /** The two lineup bonuses as Sorare sets them here: [most cards from one club, bonus] and [cap on the averages, bonus]; absent on older payloads. */
   clubBonus?: [number, number] | null;
   averageBonus?: [number, number] | null;
+  /** A card's bonuses here (in-season, per level, per rarity), to price a card the plan did not pick for this board; absent on older payloads. */
+  bonuses?: { season: number; grade: number; scarcity: Record<string, number> };
   entries: number;
   x: number;
   lo: number;

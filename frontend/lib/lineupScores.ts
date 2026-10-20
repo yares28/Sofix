@@ -144,7 +144,10 @@ export function enteredScore(entered: GameweekLineup, week: GameweekPlan | null,
     if (!["GK", "DEF", "MID", "FWD"].includes(pos)) return missing;
     if (!known && (enteredCard.level === undefined || enteredCard.inSeason === undefined || enteredCard.average == null)) return missing;
     const inSeason = enteredCard.inSeason ?? known!.inSeason;
-    const mult = rules ? 1 + (inSeason ? rules.season : 0) + rules.grade * (enteredCard.level ?? known!.level) + (rules.scarcity[enteredCard.rarity ?? ""] ?? 0) : boardCards.get(enteredCard.slug)?.mult;
+    // Without Sorare's rules (Pro sends none), the board's plan prices the card: its own mult there, else the board's bonuses.
+    const own = rules ?? template?.bonuses;
+    const priced = own ? 1 + (inSeason ? own.season : 0) + own.grade * (enteredCard.level ?? known!.level) + (own.scarcity[enteredCard.rarity ?? ""] ?? 0) : undefined;
+    const mult = rules ? priced : boardCards.get(enteredCard.slug)?.mult ?? priced;
     if (mult === undefined) return missing;
     const positions = slot.positions.map(position);
     if (!positions.length || positions.some(p => !["GK", "DEF", "MID", "FWD", "EXT", "OUT"].includes(p))) return missing;

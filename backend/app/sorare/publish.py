@@ -686,6 +686,8 @@ def lineup_payload(
         "minInSeason": comp.min_in_season,
         "cap": comp.cap,
         "captainBonus": comp.captain_bonus,
+        # a card's own bonuses here, so the app can price a card you entered that the plan did not pick (Pro sends no rules)
+        "bonuses": {"season": comp.season_bonus, "grade": comp.level_bonus, "scarcity": comp.scarcity_bonus},
         # the two lineup bonuses as Sorare sets them for this competition: (most cards from one club, bonus), (cap on the averages, bonus)
         "clubBonus": list(comp.club_bonus) if comp.club_bonus else None,
         "averageBonus": list(comp.average_bonus) if comp.average_bonus else None,

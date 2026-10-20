@@ -180,8 +180,8 @@ async function missionEligibility(outcomes, requestedAt) {
   const pairs = tasks.flatMap((m) => [...(games.get(m.id)?.keys() ?? [])].slice(0, 128).map((game) => ({ id: m.id, game, averageType: m.overperform?.averageType })));
   const collected = new Map();
   const completed = new Set();
-  for (let offset = 0; offset < pairs.length && Date.now() < deadline; offset += 24) {
-    let batch = pairs.slice(offset, offset + 24);
+  for (let offset = 0; offset < pairs.length && Date.now() < deadline; offset += 12) { // 24 pairs cost ~41,000 of the 30,000 complexity Sorare allows a query (20 Oct 2026)
+    let batch = pairs.slice(offset, offset + 12);
     for (let page = 0; batch.length && page < 5 && Date.now() < deadline; page++) {
       const answer = await throughSorare("SofixMissionCards", { pairs: batch });
       if (answer.state !== "ok") break;

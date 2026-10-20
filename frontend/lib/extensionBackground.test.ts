@@ -152,6 +152,8 @@ describe("mission import completeness", () => {
     const body = JSON.parse(w.calls.find((c) => c.url.endsWith("/missions"))!.init.body);
     expect(Object.keys(body.outcomes.limited.missions[0].eligibleCards)).toHaveLength(30);
     expect(Object.values(body.outcomes.limited.missions[0].eligibleCards)[0]).toEqual(["first-card", "second-card"]);
+    // Sorare refuses a query over 30,000 complexity; 24 pairs cost ~41,000 (20 Oct 2026).
+    expect(Math.max(...w.asked.filter((a) => a.operation === "SofixMissionCards").map((a) => (a.variables.pairs as unknown[]).length))).toBeLessThanOrEqual(12);
   });
   it("answers the production alias allowed by the manifest without allowing lookalike hosts", async () => {
     const w = load({ sorareTab: true });

@@ -552,7 +552,7 @@
         for (const x of xs) {
           if (x < 0 || y < 0 || x >= innerWidth || y >= innerHeight) continue;
           for (const el of document.elementsFromPoint(x, y)) {
-            if (el === media || el.contains(media) || media.contains(el) || el.closest("[data-sfx],[data-sfx-drawer]")) continue;
+            if (el === media || el.contains(media) || media.contains(el) || el.closest("[data-sfx],[data-sfx-dock]")) continue;
             const r = el.getBoundingClientRect();
             if (r.width * r.height > rect.width * rect.height * 0.25) continue; // a backdrop, not a chip
             lowest = Math.max(lowest, r.bottom);
@@ -1258,8 +1258,38 @@
       }
     }
     if (again) schedule();
+    showGuide();
     report();
   }
+
+  // -- Guide me (dock.js) ------------------------------------------------------------------------------------------
+  // The dock names the card to pick next (or to take out of a mission); it is ringed here, on Sorare's own picture, and pressing it
+  // moves the dock to the next one. Nothing is picked for you: the ring only shows where to press.
+
+  const guided = (record, guide) =>
+    Boolean(guide) && ((guide.card && record.cardSlug === guide.card) || (guide.player && record.playerSlug === guide.player));
+
+  function showGuide() {
+    const guide = globalThis.__sofixGuide;
+    for (const record of live) {
+      const role = guided(record, guide) ? guide.role : null;
+      if (role) record.media.setAttribute("data-sfx-guide", role === "out" ? "out" : "pick");
+      else if (record.media.hasAttribute("data-sfx-guide")) record.media.removeAttribute("data-sfx-guide");
+    }
+  }
+
+  const onGuidePress = guard((event) => {
+    const guide = globalThis.__sofixGuide;
+    if (!guide || typeof guide.advance !== "function") return;
+    for (const record of live) {
+      if (!record.media.hasAttribute("data-sfx-guide")) continue;
+      const rect = record.media.getBoundingClientRect();
+      if (event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom) {
+        setTimeout(guide.advance, 250); // after Sorare has taken the press
+        return;
+      }
+    }
+  });
 
   // -- the loop --------------------------------------------------------------------------------------------------
 
@@ -1356,6 +1386,8 @@
     mutations.observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ["src", "srcset", "poster", "alt"] });
     window.addEventListener("message", onBridge);
     window.addEventListener("popstate", schedule); // back and forward change the address: the gameweek it names may have too
+    window.addEventListener("sofix-guide", schedule);
+    document.addEventListener("pointerup", onGuidePress, true);
     liveTimer = setInterval(guard(() => wantLive(true)), LIVE_POLL_MS);
     schedule();
   }
@@ -1369,6 +1401,9 @@
     mutations = visibility = resizing = null;
     window.removeEventListener("message", onBridge);
     window.removeEventListener("popstate", schedule);
+    window.removeEventListener("sofix-guide", schedule);
+    document.removeEventListener("pointerup", onGuidePress, true);
+    document.querySelectorAll("[data-sfx-guide]").forEach((el) => el.removeAttribute("data-sfx-guide"));
     if (frame) cancelAnimationFrame(frame);
     frame = 0;
     clearTimeout(askTimer);

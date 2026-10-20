@@ -10,6 +10,13 @@ Sofix's numbers, drawn on Sorare's own pages. Written 2026-09-29.
 
 This file keeps the design and the build record.
 
+**Built 20 Oct 2026 (O15, extension 0.4.0): the dock replaces the drawer.** The owner chose direction A, made small ("A′ · Small dock"
+on the canvas https://claude.ai/artifact/Vr3mGM98NneFsXXkAo1kRh): a corner pill (gameweek, lock, mission-swap badge) opening a 400 px panel
+with Lineups and Missions tabs. `extension/dock.js` (was `drawer.js`); the app adds `rows` and `lock` to the plan and, when asked
+(`missions: true`), today's missions summed up (`dockMissions` in `lib/overlay.ts`, from the same `missionsToday` as the Missions page).
+Apply runs from the dock in the asking tab (`dock-step`: entered, check, draft, enter only), one press per step; Guide me rings the next
+card through `data-sfx-guide` on the picture (overlay.js). Mission picks are guided, not saved: no Sorare call for them is known.
+
 **Built 2 Oct 2026 (roadmap 1.4, extension 0.3.1): "×2" on the tile, both games in the panel.** A player with more than one game in
 the gameweek has `fixtures` in the app's answer (`lib/overlay.ts`, kickoff order); the tile hangs a small **×2** off its lower corner
 (full tiles only) and its name says "2 games this week, best score chosen"; the panel lists the games under the three numbers

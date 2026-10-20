@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { clubKey } from "./home";
-import { OVERLAY_CAP, OverlayRequest, overlayNumbers, overlayPlan } from "./overlay";
+import { dockMissions, OVERLAY_CAP, OverlayRequest, overlayNumbers, overlayPlan } from "./overlay";
+import type { MissionPlan, Suggestion } from "./missions";
 import type { GameOdds, GameweekPlan, Lineup, PlayCard, PlayerGame, PlayingPlayer, Plan, Sorare } from "./play";
 import type { FixtureGrid, GridCell } from "./types";
 import recordedGrid from "../e2e/fixtures/grid-response.json";
@@ -495,7 +496,7 @@ function week(over: Partial<GameweekPlan> = {}): GameweekPlan {
 
 describe("overlayPlan", () => {
   it("summarises the best plan of the gameweek: what it adds up to, the lineup that leads it, and what it uses", () => {
-    expect(overlayPlan(week(), NOW)).toEqual({
+    expect(overlayPlan(week(), NOW)).toMatchObject({
       state: "ready",
       week: 17,
       lineups: 2,
@@ -510,6 +511,34 @@ describe("overlayPlan", () => {
     });
   });
 
+  it("lists every lineup for the dock, likeliest to pay first, with its cards, scores, captain and what entering it takes", () => {
+    const card = (slug: string, start: number, kickoff: string, captain = false) =>
+      ({ slug, name: slug.toUpperCase(), pic: `p/${slug}`, start, mu: start, captain, pos: "DEF", fixture: { kickoff } }) as PlayCard;
+    const rows = overlayPlan(week({ plans: [{
+      rank: 1, essence: 0, cash: 0, pAny: 0.3, rewards: 0, cardsUsed: 3, cardsAvailable: 9,
+      lineups: [
+        { comp: "LaLiga Pro", board: "b1", boardId: "B1", x: 253.4, need: 320, pReturn: 0.14, eEss: 72.6, starters: [card("ryan", 48.8, "2026-10-21T18:00:00Z", true)], subs: [], tiers: [] },
+        { comp: "European Champions", board: "b2", boardId: "B2", x: 408, need: 465, pReturn: 0.2, eEss: 32, starters: [card("courtois", 52, "2026-10-21T19:00:00Z"), card("grimaldo", 57, "2026-10-20T19:00:00Z", true)], subs: [card("isco", 49, "2026-10-21T19:00:00Z")], tiers: [] },
+        { comp: "Not open yet", board: "b3", boardId: "B3", x: 1, need: null, pReturn: 0.9, eEss: 0, expected: true, starters: [], subs: [], tiers: [] },
+      ] as unknown as Lineup[],
+    }] as Plan[], gameweek: { id: "24", slug: "gw-24", number: 24, name: "Game Week 24", start: "", end: "", lock: "2026-10-20T14:00:00Z" } }), NOW);
+    expect(rows).toMatchObject({ lock: "2026-10-20T14:00:00Z" });
+    if (rows.state !== "ready") throw new Error("expected a plan");
+    expect(rows.rows!.map((row) => row.comp)).toEqual(["European Champions", "LaLiga Pro"]); // a competition Sorare has not opened is left out
+    expect(rows.rows![0]).toMatchObject({ board: "b2", boardId: "B2", when: "Tue–Wed", x: 408, need: 465, p: 0.2, ess: 32 });
+    expect(rows.rows![0]!.cards).toEqual([
+      { slug: "courtois", name: "COURTOIS", pic: "p/courtois", s: 52, captain: false, sub: false, slot: "DEF" },
+      { slug: "grimaldo", name: "GRIMALDO", pic: "p/grimaldo", s: 57, captain: true, sub: false, slot: "DEF" },
+      { slug: "isco", name: "ISCO", pic: "p/isco", s: 49, captain: false, sub: true, slot: "SUB" },
+    ]);
+    expect(rows.rows![0]!.appearances).toEqual([
+      { cardSlug: "courtois", captain: false, index: 0 },
+      { cardSlug: "grimaldo", captain: true, index: 1 },
+      { cardSlug: "isco", captain: false, index: 2 },
+    ]);
+    expect(rows.rows![1]).toMatchObject({ when: "Wed", x: 253, ess: 73 });
+  });
+
   it("says what a gameweek without a plan is waiting for, in the app's own words", () => {
     const waiting = overlayPlan(week({ state: "waiting", plans: [], projectionsAt: "2026-10-09T00:00:00Z" }), NOW);
     expect(waiting).toEqual({ state: "waiting", week: 17, note: "Sorare publishes its projections for these games first." });
@@ -522,5 +551,27 @@ describe("overlayPlan", () => {
     expect(asked.plan).toMatchObject({ state: "none", week: 17 });
     expect(overlayNumbers(data, grid, ask({}), NOW).plan).toBeUndefined();
     expect(overlayNumbers(data, grid, ask({ plan: true, week: "18" }), NOW).plan).toMatchObject({ week: 18 });
+  });
+});
+
+describe("dockMissions", () => {
+  const one = (slug: string, chance: number, noEstimate = false) => ({ slug, name: slug, pic: `p/${slug}`, chance, noEstimate }) as Suggestion;
+  const plan = (yours: string[], picks: Suggestion[], all: Suggestion[]) =>
+    ({ mission: { id: "t1", title: "Decisive Picker", picks: 3, appearances: yours.map((player) => ({ player })) }, reward: "200 XP", picks, all }) as unknown as MissionPlan;
+
+  it("pairs a pick of yours Sofix would not make with Sofix's likelier one, and keeps the picks you share", () => {
+    const all = [one("moreno", 0.45), one("oblak", 0.44), one("mittelstadt", 0.39), one("akhomach", 0.29)];
+    const answer = dockMissions({ status: "today", seenAt: "2026-10-20T08:42:00Z", rarity: "limited", plans: [plan(["moreno", "akhomach", "oblak"], [all[0]!, all[1]!, all[2]!], all)] });
+    expect(answer.missions[0]).toMatchObject({ title: "Decisive Picker", reward: "200 XP", picks: 3 });
+    expect(answer.missions[0]!.swaps).toEqual([{ out: { slug: "akhomach", name: "akhomach", pic: "p/akhomach", chance: 0.29 }, in: { slug: "mittelstadt", name: "mittelstadt", pic: "p/mittelstadt", chance: 0.39 } }]);
+  });
+
+  it("proposes no swap to a card Sofix has no number for, nor to a less likely one, and shows nothing for a list that is not today's", () => {
+    const all = [one("a", 0.1), one("b", 0.3), one("c", 0, true)];
+    expect(dockMissions({ status: "today", seenAt: null, rarity: "limited", plans: [plan(["b"], [all[0]!], all)] }).missions[0]!.swaps).toEqual([]);
+    const blank = dockMissions({ status: "today", seenAt: null, rarity: "limited", plans: [plan(["a"], [all[2]!], all)] }).missions[0]!;
+    expect(blank.swaps).toEqual([]);
+    expect(blank.sofix[0]!.chance).toBeNull(); // "No estimate", never 0%
+    expect(dockMissions({ status: "stale", seenAt: null, rarity: "limited", plans: [plan(["a"], [all[1]!], all)] }).missions).toEqual([]);
   });
 });

@@ -14,8 +14,10 @@ export const REQUIRED_EXTENSION_VERSION = "0.1.1";
   0.3.14 saves the starting chances Sorare's own page loads and reads a whole round on request (plans/sorare-start-chances.md).
  0.3.15 asks the app to start a refresh when a lock is under three hours away, while a sorare.com tab is open (roadmap 9.8).
  0.3.16 also reads your Pro lineups, read only, so Play shows them with the gameweek's other lineups; 0.3.17 replaces the page bridge of a sorare.com tab left open across the update (version 8), so that read reaches it; 0.3.18 reads Pro lineups as Sorare keeps them (task lineups) on every Pro board, and from now on the newest bridge takes over an open tab by itself (version 9); 0.3.19 asks Sorare for mission eligibility by bare task and game ids, the only form it accepts since Oct 2026 (without it no restricted mission got a pick); 0.3.20 asks for eligible cards 12 pairs at a time, under Sorare's query complexity limit (24 were refused, so no mission had eligibility).
+ 0.4.0 replaces the drawer with the dock: a corner pill and a small panel of the plan's lineups and today's missions, Apply's three steps
+ run from Sorare itself, and Guide me (plans/overlay.md, O15).
  */
-export const LATEST_EXTENSION_VERSION = "0.3.20";
+export const LATEST_EXTENSION_VERSION = "0.4.0";
 
 /** Chrome manifest versions are numeric dot-separated values; compare them without relying on string ordering. */
 export function extensionAtLeast(version: string, minimum = REQUIRED_EXTENSION_VERSION): boolean {

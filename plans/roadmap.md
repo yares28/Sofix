@@ -556,6 +556,11 @@ the held-out weeks (P9 "The bar").
 
 ## Results
 
+**20 Oct 2026 · The dock on sorare.com (T4, batch 6.1 and 6.2; extension 0.4.0).** The drawer is replaced by a corner pill and a 400 px
+panel: the plan's lineups (Enter in three presses from Sorare, Guide me) and today's missions (the swap Sofix would make, guided on
+Sorare's missions page). Checked: unit tests for the app's rows and mission summary, the worker's `dock-step` and the helpers; 37 overlay
+browser tests at desktop width with axe. Waits for your Reload and a live look on your own pages; batch 6.3 to 6.6 stay open.
+
 - **13 Oct - Play strategies, sooner scoring, backtesting guide:** Play's plan switch now has Keeper with defender, 3 from 1 club and Highest
   ceiling beside Sofix and Sorare (`sorare_lens:<slug>:<strategy>`, one lighter plan each); Audit > Strategies and Lineups score a week as soon as
   its games are in (provisional for a day: "still being checked"), not a day later; `docs/backtesting.md` explains every replay and how to read it.

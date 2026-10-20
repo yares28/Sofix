@@ -1,7 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { loadGrid } from "../../../../lib/api";
 import { authorised } from "../../../../lib/extAuth";
-import { OverlayRequest, overlayNumbers } from "../../../../lib/overlay";
+import { dockMissions, OverlayRequest, overlayNumbers } from "../../../../lib/overlay";
+import { loadMissions } from "../../../../lib/missionsData";
+import { loadMissionPool } from "../../../../lib/missionsPool";
+import { missionsToday } from "../../../../lib/missionsToday";
 import { weekPlan } from "../../../../lib/play";
 import { loadFrozenPlan, loadSorare, loadSorareWeek } from "../../../../lib/playData";
 
@@ -27,5 +30,10 @@ export async function POST(request: NextRequest) {
   const frozen = named?.status === "live" && !weekPlan(sorare, named.id) ? await loadFrozenPlan(named.slug, sorare) : null;
   const data = frozen ? { ...sorare, weeks: [...sorare.weeks, frozen] } : sorare;
 
-  return NextResponse.json({ ok: true, ...overlayNumbers(data, loaded.grid, parsed.data, new Date(), archived) }, { headers: NO_STORE });
+  // Today's missions only when the dock asks (its Missions tab): the same cached reads and picks as the Missions page.
+  const now = new Date();
+  const missions = parsed.data.missions
+    ? dockMissions(await missionsToday(sorare, await loadMissions(), undefined, now, await loadMissionPool()))
+    : undefined;
+  return NextResponse.json({ ok: true, ...overlayNumbers(data, loaded.grid, parsed.data, now, archived), ...(missions ? { missions } : {}) }, { headers: NO_STORE });
 }

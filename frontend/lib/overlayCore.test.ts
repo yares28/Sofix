@@ -43,8 +43,11 @@ type Core = {
     sources?: Record<string, number>;
     laliga?: boolean;
   }) => { source: string; label: string; value: number | null; shown: boolean; at: string | null; note: string | null }[];
-  drawerCards: (plan: { pics?: unknown[]; cardsUsed?: number }) => { pics: string[]; more: number };
-  DRAWER_CARDS: number;
+  sorarePic: (url: unknown) => string;
+  lockLabel: (iso: unknown, now?: number) => { text: string; soon: boolean };
+  swapCount: (missions: unknown) => number;
+  stepAnswer: (response: unknown, step: string) => { state: string; broken?: string[]; lineupId?: string | null; entered?: { id: string; draft: boolean; cards: string[] }[]; errors?: string[] };
+  alreadyEntered: (entered: { draft: boolean; cards: string[] }[], cards: string[]) => boolean;
   benchOnChance: (entry: { pStart?: number; pOn?: number }) => number | null;
   comesOnScore: (entry: { on?: number; bench?: number }) => { score: number; words: string; tab: string };
   collectMissions: (json: unknown) => {
@@ -461,26 +464,49 @@ describe("the list of sources", () => {
 });
 
 
-describe("the cards of the plan in the drawer", () => {
-  const pic = (n: number) => `https://assets.sorare.com/card/${n}/picture/x.png`;
-
-  it("shows every card, and says how many more the plan uses when the lineup shows fewer", () => {
-    expect(core.drawerCards({ pics: [1, 2, 3, 4, 5].map(pic), cardsUsed: 9 })).toEqual({ pics: [1, 2, 3, 4, 5].map(pic), more: 4 });
-    expect(core.drawerCards({ pics: [1, 2, 3].map(pic), cardsUsed: 3 })).toEqual({ pics: [1, 2, 3].map(pic), more: 0 });
+describe("the dock", () => {
+  it("draws only Sorare's own pictures", () => {
+    expect(core.sorarePic("https://assets.sorare.com/card/x/picture/a.png")).toBe("https://assets.sorare.com/card/x/picture/a.png");
+    expect(core.sorarePic("https://evil.example/a.png")).toBe("");
+    expect(core.sorarePic(7)).toBe("");
   });
 
-  it("keeps a place for the \"+N\" when there are more cards than the drawer has room for", () => {
-    const many = Array.from({ length: 14 }, (_, n) => pic(n));
-    const shown = core.drawerCards({ pics: many, cardsUsed: 14 });
-    expect(shown.pics).toEqual(many.slice(0, core.DRAWER_CARDS - 1));
-    expect(shown.more).toBe(14 - (core.DRAWER_CARDS - 1));
+  it("says when the gameweek locks in Madrid time, the minutes in its last hour, and Locked after", () => {
+    const lock = "2026-10-20T14:00:00Z";
+    expect(core.lockLabel(lock, Date.parse("2026-10-20T08:00:00Z"))).toEqual({ text: "Locks 16:00", soon: false });
+    expect(core.lockLabel(lock, Date.parse("2026-10-20T13:18:00Z"))).toEqual({ text: "Locks in 42 min", soon: true });
+    expect(core.lockLabel(lock, Date.parse("2026-10-20T14:00:00Z"))).toEqual({ text: "Locked", soon: false });
+    expect(core.lockLabel("2026-10-23T14:00:00Z", Date.parse("2026-10-20T08:00:00Z")).text).toBe("Locks Fri 16:00");
+    expect(core.lockLabel(undefined)).toEqual({ text: "", soon: false });
   });
 
-  it("draws nothing it should not: only Sorare's own pictures, and no \"+N\" from a count that is lower", () => {
-    expect(core.drawerCards({ pics: [pic(1), "https://evil.example/x.png", 7], cardsUsed: 2 })).toEqual({ pics: [pic(1)], more: 1 });
-    expect(core.drawerCards({ pics: [pic(1), pic(2)], cardsUsed: 1 }).more).toBe(0);
-    expect(core.drawerCards({ pics: [pic(1)] })).toEqual({ pics: [pic(1)], more: 0 });
-    expect(core.drawerCards({})).toEqual({ pics: [], more: 0 });
+  it("counts the mission swaps for the pill's badge", () => {
+    expect(core.swapCount({ missions: [{ swaps: [1] }, { swaps: [] }, { swaps: [1, 2] }] })).toBe(3);
+    expect(core.swapCount(null)).toBe(0);
+  });
+
+  it("takes a step for done only when Sorare's answer proves it", () => {
+    const lineup = (id: string, draft: boolean) => ({ id, draft, so5Appearances: [{ anyCard: { slug: "a" } }, { card: { slug: "b" } }] });
+    expect(core.stepAnswer({ state: "ok", data: { so5: { so5Leaderboard: { previewSo5Lineup: { feedbackRules: [{ state: "INVALID", message: "Too many cards from one club", ruleName: "x" }, { state: "VALID", ruleName: "y" }] } } } } }, "check"))
+      .toMatchObject({ state: "ok", broken: ["Too many cards from one club"] });
+    expect(core.stepAnswer({ state: "ok", data: { createOrUpdateSo5Lineup: { errors: [], so5Lineup: lineup("L1", true) } } }, "draft")).toMatchObject({ state: "ok", lineupId: "L1" });
+    // A "draft" that came back entered, or an entry that came back a draft, is not what was asked: never a success.
+    expect(core.stepAnswer({ state: "ok", data: { createOrUpdateSo5Lineup: { errors: [], so5Lineup: lineup("L1", false) } } }, "draft").state).toBe("error");
+    expect(core.stepAnswer({ state: "ok", data: { confirmSo5Lineups: { errors: [], so5Lineups: [lineup("L1", true)] } } }, "enter").state).toBe("error");
+    expect(core.stepAnswer({ state: "ok", data: { confirmSo5Lineups: { errors: [], so5Lineups: [lineup("L1", false)] } } }, "enter")).toMatchObject({ state: "ok", lineupId: "L1" });
+    expect(core.stepAnswer({ state: "ok", data: { confirmSo5Lineups: { errors: [{ message: "Locked" }], so5Lineups: null } } }, "enter")).toEqual({ state: "rejected", errors: ["Locked"] });
+    expect(core.stepAnswer({ state: "ok", data: null }, "check").state).toBe("error");
+    expect(core.stepAnswer({ state: "unknown" }, "check").state).toBe("no-bridge");
+    expect(core.stepAnswer({ state: "timeout" }, "enter").state).toBe("timeout");
+    expect(core.stepAnswer(undefined, "enter").state).toBe("error");
+    const held = core.stepAnswer({ state: "ok", data: { so5: { so5Leaderboard: { mySo5Lineups: [lineup("L1", false)] } } } }, "entered");
+    expect(held.entered).toEqual([{ id: "L1", draft: false, cards: ["a", "b"] }]);
+  });
+
+  it("knows a lineup Sorare already holds entered, whatever the order of its cards, and not one held only as a draft", () => {
+    expect(core.alreadyEntered([{ draft: false, cards: ["a", "b"] }], ["b", "a"])).toBe(true);
+    expect(core.alreadyEntered([{ draft: true, cards: ["a", "b"] }], ["a", "b"])).toBe(false);
+    expect(core.alreadyEntered([{ draft: false, cards: ["a", "c"] }], ["a", "b"])).toBe(false);
   });
 });
 

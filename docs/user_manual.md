@@ -889,14 +889,29 @@ writes with capitals), so the panel never said "FF live" and kept the last refre
 even on a page about another week; and every Celta game showed **No odds**, because Sorare's "Celta de Vigo" did not match the board's
 "Celta". Reload Sofix in `chrome://extensions` (Control says "update" until you do); the Celta fix is in the app and needs no reload.
 
-### Plan drawer
+### The dock (extension 0.4.0, 20 Oct 2026)
 
-The **Sofix** tab on the right edge of Sorare's football pages opens your gameweek, the one the page's address names (the one being
-planned when it names none; a week Sofix holds nothing on says so): what the best plan adds up to,
-a thumbnail of every card of its lineups (the leading lineup first; every card up to ten, else nine and a "+N" for the rest, so the thumbnails and
-the "+N" always add up to the cards the plan uses), the reward chance, the plan's most likely result ("nothing", "250 essence"; extension 0.3.5) and how many of your cards it uses.
-**Open Apply in Sofix** opens the Play page for that gameweek and returns you to the controlled three-step flow;
-lineup write buttons are intentionally not placed over Sorare's browsing UI. The tab is hidden on narrow windows.
+A small pill in the bottom-right corner of Sorare's football pages says the gameweek and when it locks ("GW24 · Locks 16:00"; in
+the last hour "Locks in 42 min", in yellow), and carries a yellow badge when Sofix would swap a mission pick. Pressed, it opens a
+400 px panel above it with two tabs; nothing else on Sorare's page is covered or dimmed. The week is the one the page's address names
+(the one being planned when it names none; a week Sofix holds nothing on says so).
+
+- **Lineups**: the chance of any reward and the essence expected, then one row per lineup of the best plan, likeliest to pay first
+  (three of its cards, its expected score against the score that pays, the days it plays, its chance). A row opens to every card with
+  the score it is expected to make and the captain, and two buttons:
+  - **Enter** runs Apply from Sorare itself, one press per step: **Check** (Sorare's verdict; it first reads whether that lineup is
+    already entered and stops if it is), **Save as a draft**, **Enter it now**. **Enter all N** at the bottom does the same for every
+    lineup, still one press per step. A lineup Sorare refuses stops there with Sorare's words; a step whose answer cannot be verified
+    says to check Sorare before pressing again.
+  - **Guide me** is for entering by hand: the pill becomes the guide ("Pick Olasagasti · MID", 4 of 5, Skip) and the card to pick is
+    ringed in green on Sorare's own list; pressing it moves to the next one. Nothing is picked for you.
+  - The ⋯ button holds the rest: the cards used, and plans 2 and 3 (they open in Sofix).
+- **Missions**: today's missions as Sofix's Missions page has them (loaded on their own when Sorare's missions page opens): each
+  mission's reward, how many you picked and "As Sofix" or the swap Sofix would make, with both chances (your Akhomach 29% → its
+  Mittelstädt 39%). **Swap** takes you to Sorare's missions page and guides it: the card to take out is ringed in yellow, then the one to
+  pick in green. Sofix does not save mission picks itself (it knows no Sorare call for that yet).
+
+The switch "Scores on sorare.com" turns the dock off with the tiles. It is hidden on narrow windows.
 
 ### Which gameweek a page is about
 

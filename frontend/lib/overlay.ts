@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { NATIONAL_COMPETITION, clubKey, sideOutlook, type SideOutlook } from "./home";
-import { likelyResult, nextWeek, resultLabel, waitingFor, weekPlan, type FfStatus, type GameweekPlan, type Lineup, type PlayerGame, type PlayingPlayer, type Sorare, type StartSource } from "./play";
+import { cardScore, likelyResult, nextWeek, resultLabel, waitingFor, weekPlan, type FfStatus, type GameweekPlan, type Lineup, type PlayerGame, type PlayingPlayer, type Sorare, type StartSource } from "./play";
+import { appearances, type Appearance } from "./apply";
+import type { MissionPlan } from "./missions";
+import type { MissionsStatus } from "./missionsToday";
 import type { Bucket, FixtureGrid } from "./types";
 
 /**
@@ -22,8 +25,10 @@ export const OverlayRequest = z
     week: z.string().regex(/^\d{1,4}$/).optional(),
     cards: z.array(slug),
     players: z.array(slug),
-    /** Also answer with the gameweek's plan: the drawer asks for it when it is opened, never with the cards. */
+    /** Also answer with the gameweek's plan: the dock asks for it, never with the cards. */
     plan: z.boolean().optional(),
+    /** Also answer with today's missions (the dock's Missions tab), never with the cards. */
+    missions: z.boolean().optional(),
     /**
      * The Sorare gameweek the page's address names ("football-25-29-sep-2026"), when it names one: the cards on it are
      * about that gameweek, so it is that gameweek's numbers that are answered. Without it, the one being planned.
@@ -109,7 +114,7 @@ export type OverlayEntry = {
 
 export type OverlayFixture = { opponent: string; venue: "H" | "A"; kickoff: string; competition: string };
 
-/** The gameweek's plan in a few numbers, for the drawer: what the best plan adds up to and what it uses. */
+/** The gameweek's plan for the dock: what the best plan adds up to, what it uses, and each of its lineups. */
 export type OverlayPlan =
   | {
       state: "ready";
@@ -124,8 +129,31 @@ export type OverlayPlan =
       likely: string;
       cardsUsed: number;
       cardsAvailable: number;
+      /** When the gameweek locks (ISO), and each lineup of the best plan for the dock, likeliest to pay first. */
+      lock?: string;
+      rows?: DockRow[];
     }
   | { state: "waiting" | "none"; week: number; note: string };
+
+/** One lineup of the best plan as the dock lists it, with what entering it on Sorare takes (`board`, `boardId`, `appearances`). */
+export type DockRow = {
+  comp: string;
+  board: string;
+  boardId: string;
+  /** The days its games are played on, Madrid time ("Wed", "Tue–Thu"). */
+  when: string;
+  x: number;
+  need: number | null;
+  p: number;
+  ess: number;
+  cards: { slug: string; name: string; pic: string; s: number; captain: boolean; sub: boolean; slot: string }[];
+  appearances: Appearance[];
+};
+
+/** Today's missions for the dock: what you picked, what Sofix would pick and the swaps between the two. */
+export type DockPick = { slug: string; name: string; pic: string; chance: number | null };
+export type DockMission = { id: string; title: string; reward: string | null; picks: number; yours: DockPick[]; sofix: DockPick[]; swaps: { out: DockPick; in: DockPick }[] };
+export type DockMissions = { status: MissionsStatus; seenAt: string | null; rarity: string; missions: DockMission[] };
 
 export type OverlayAnswer = {
   /** The Sorare gameweek these numbers are for. */
@@ -133,6 +161,7 @@ export type OverlayAnswer = {
   cards: Record<string, OverlayEntry>;
   players: Record<string, OverlayEntry>;
   plan?: OverlayPlan;
+  missions?: DockMissions;
 };
 
 /** The plan's lineups, the one expected to score most first. */
@@ -156,7 +185,54 @@ export function overlayPlan(gameweek: GameweekPlan, now: Date): OverlayPlan {
     likely: resultLabel(likelyResult(best)),
     cardsUsed: best.cardsUsed,
     cardsAvailable: best.cardsAvailable,
+    lock: gameweek.gameweek.lock,
+    rows: [...best.lineups].filter((lineup) => !lineup.expected).sort((a, b) => (b.pReturn ?? 0) - (a.pReturn ?? 0)).map(dockRow),
   };
+}
+
+const DAY = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", weekday: "short" });
+
+function dockRow(given: Lineup): DockRow {
+  const lineup = { ...given, starters: given.starters ?? [], subs: given.subs ?? [] }; // an older payload may lack a list
+  const kickoffs = lineup.starters.flatMap((card) => (card.fixture?.kickoff ? [Date.parse(card.fixture.kickoff)] : [])).sort((a, b) => a - b);
+  const days = kickoffs.length ? [DAY.format(kickoffs[0]!), DAY.format(kickoffs[kickoffs.length - 1]!)] : [];
+  const card = (one: Lineup["starters"][number], sub: boolean) => ({ slug: one.slug, name: one.name, pic: one.pic, s: cardScore(one).value, captain: one.captain === true, sub, slot: sub ? "SUB" : (one.slot ?? one.pos) });
+  return {
+    comp: lineup.comp,
+    board: lineup.board,
+    boardId: lineup.boardId,
+    when: days[0] === days[1] ? (days[0] ?? "") : days.join("–"),
+    x: Math.round(lineup.x),
+    need: lineup.need ?? null,
+    p: lineup.pReturn ?? 0,
+    ess: Math.round(lineup.eEss ?? 0),
+    cards: [...lineup.starters.map((one) => card(one, false)), ...lineup.subs.map((one) => card(one, true))],
+    appearances: appearances(lineup),
+  };
+}
+
+/**
+ * Today's missions in the few words the dock shows. Your picks and Sofix's carry the chance Sofix gives each (none for a card it has no
+ * number for); a swap pairs a pick of yours Sofix would not make with one of Sofix's you have not made, only when Sofix's is the likelier.
+ */
+export function dockMissions(today: { status: MissionsStatus; seenAt: string | null; rarity: string; plans: MissionPlan[] }): DockMissions {
+  const missions = today.status !== "today" ? [] : today.plans.map((plan): DockMission => {
+    const known = new Map(plan.all.map((one) => [one.slug, one]));
+    const pick = (slug: string): DockPick => {
+      const one = known.get(slug) ?? plan.picks.find((p) => p.slug === slug);
+      return { slug, name: one?.name ?? slug, pic: one?.pic ?? "", chance: one && !one.noEstimate ? one.chance : null };
+    };
+    const yours = (plan.mission.appearances ?? []).map((a) => pick(a.player));
+    const sofix = plan.picks.map((p) => pick(p.slug));
+    const out = yours.filter((y) => !sofix.some((s) => s.slug === y.slug));
+    const add = sofix.filter((s) => !yours.some((y) => y.slug === s.slug));
+    const swaps = out.flatMap((one, i) => {
+      const better = add[i];
+      return better && better.chance !== null && (one.chance === null || better.chance > one.chance) ? [{ out: one, in: better }] : [];
+    });
+    return { id: plan.mission.id, title: plan.mission.title, reward: plan.reward, picks: plan.mission.picks, yours, sofix, swaps };
+  });
+  return { status: today.status, seenAt: today.seenAt, rarity: today.rarity, missions };
 }
 
 /** The board only models LaLiga. Sorare names it "laliga-es"; "laliga-2" and every cup are other competitions. */
@@ -278,7 +354,7 @@ export function overlayNumbers(
     : ((request.week ? weekPlan(sorare, request.week) : null) ?? nextWeek(sorare));
   if (!plan) {
     const week = named?.number ?? 0;
-    // The drawer asked for this week's plan: say there is none in words, not nothing (it read nothing as "Sofix is not reachable").
+    // The dock asked for this week's plan: say there is none in words, not nothing (it read nothing as "Sofix is not reachable").
     const note = { state: "none" as const, week, note: "Sofix holds nothing on this gameweek." };
     return { week, cards: {}, players: {}, ...(request.plan ? { plan: note } : {}) };
   }

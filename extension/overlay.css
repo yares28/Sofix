@@ -387,3 +387,9 @@
   .sfx-ribs, .sfx-odds, .sfx-tile, .sfx-panel, .sfx-big, .sfx-skel > i { animation: none !important; }
   .sfx-sources-toggle svg { transition: none; }
 }
+
+/* Guide me (dock.js): the card to pick next, and one to take out of a mission. On the picture itself, so nothing moves. */
+[data-sfx-guide="pick"] { outline: 3px solid #5cc58d !important; outline-offset: -3px !important; filter: drop-shadow(0 0 14px rgba(92, 197, 141, .75)) !important; animation: sfx-guide 2.2s ease-in-out infinite; }
+[data-sfx-guide="out"] { outline: 3px solid #f0ce1d !important; outline-offset: -3px !important; filter: grayscale(.5) drop-shadow(0 0 12px rgba(240, 206, 29, .6)) !important; }
+@keyframes sfx-guide { 50% { filter: drop-shadow(0 0 26px rgba(92, 197, 141, .95)); } }
+@media (prefers-reduced-motion: reduce) { [data-sfx-guide="pick"] { animation: none; } }

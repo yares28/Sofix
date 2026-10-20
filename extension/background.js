@@ -301,7 +301,13 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     return true;
   }
   if (message?.type === "overlay-plan") {
-    overlayPlan(fixtureOf(message.fixture)).then(reply);
+    overlayPlan(fixtureOf(message.fixture), message.missions === true).then(reply);
+    return true;
+  }
+  // The dock's Apply, pressed on sorare.com itself: one step per press, run in the tab that asked, never chained here.
+  if (message?.type === "dock-step" && DOCK_STEPS.has(message.step)) {
+    const [operation, variables] = STEPS[message.step](message);
+    throughSorare(operation, variables, sender.tab.id).then((answer) => reply({ ok: true, step: message.step, ...answer }));
     return true;
   }
   if (message?.type === "ff-live") {
@@ -468,18 +474,23 @@ async function ffRead(wanted) {
 }
 
 /**
- * The gameweek's plan, for the drawer: the one the page's address names, or the one being planned when it names none. Asked for
- * only when the drawer is opened, and kept as long as the numbers, one answer per gameweek (a page about GW21 once showed GW20's).
+ * The gameweek's plan (and with `missions`, today's missions), for the dock: the one the page's address names, or the one being planned when it names none. Asked for
+ * only by the dock, and kept as long as the numbers, one answer per gameweek (a page about GW21 once showed GW20's).
  */
-async function overlayPlan(fixture = null) {
-  const key = `ov:plan:${fixture || "now"}`;
+async function overlayPlan(fixture = null, missions = false) {
+  const key = `ov:plan:${fixture || "now"}${missions ? ":m" : ""}`;
   const held = (await chrome.storage.session.get(key))[key];
-  if (held && Date.now() - held.at < OVERLAY_TTL_MS) return { state: "ok", plan: held.plan };
-  const answer = await askApp({ cards: [], players: [], plan: true, ...(fixture ? { fixture } : {}) });
+  if (held && Date.now() - held.at < (missions ? DOCK_TTL_MS : OVERLAY_TTL_MS)) return { state: "ok", plan: held.plan, missions: held.missions ?? null };
+  const answer = await askApp({ cards: [], players: [], plan: true, ...(missions ? { missions: true } : {}), ...(fixture ? { fixture } : {}) });
   if (!answer.body?.plan) return { state: answer.state ?? "unreachable" };
-  await chrome.storage.session.set({ [key]: { at: Date.now(), plan: answer.body.plan } });
-  return { state: "ok", plan: answer.body.plan };
+  await chrome.storage.session.set({ [key]: { at: Date.now(), plan: answer.body.plan, missions: answer.body.missions ?? null } });
+  return { state: "ok", plan: answer.body.plan, missions: answer.body.missions ?? null };
 }
+
+// The dock's numbers are asked once per page and again after two minutes at most: picks and entries change during the day.
+const DOCK_TTL_MS = 2 * 60 * 1000;
+// What the dock may run through your session: Apply's steps, nothing else (the Pro and gameweek reads stay the app's).
+const DOCK_STEPS = new Set(["entered", "check", "draft", "enter"]);
 
 // The fixed things the app may ask Sorare through your session, and the shape of each. The app names a step,
 // never a query: nothing outside this table can be asked, and the two that write are separate steps so that
@@ -538,7 +549,7 @@ async function ensureBridge(tabId) {
   if (existing?.ok && existing.version === 9) return true;
   try {
     await chrome.scripting.executeScript({ target: { tabId }, files: ["core.js", "bridge.js"], world: "MAIN" });
-    await chrome.scripting.executeScript({ target: { tabId }, files: ["core.js", "content.js", "overlay.js", "drawer.js"] });
+    await chrome.scripting.executeScript({ target: { tabId }, files: ["core.js", "content.js", "overlay.js", "dock.js"] });
     await chrome.scripting.insertCSS({ target: { tabId }, files: ["overlay.css"] });
   } catch {
     // The loaded manifest may not have "scripting" yet. Reloading the tab lets its content scripts start.
@@ -627,8 +638,8 @@ async function refreshSession() {
 }
 
 /** Your Sorare session only exists in a sorare.com tab: without one open, no step can run. */
-async function throughSorare(operation, variables) {
-  const [tab] = await sorareTabs();
+async function throughSorare(operation, variables, tabId = null) {
+  const [tab] = tabId ? [{ id: tabId }] : await sorareTabs();
   if (!tab) return { state: "no-tab" };
   if (!(await ensureBridge(tab.id))) return { state: "no-bridge" };
   const answer = await askTab(tab.id, { type: "sofix-ask-9", operation, variables }, 20000);

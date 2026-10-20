@@ -291,13 +291,13 @@ describe("the overlay's numbers", () => {
   });
 });
 
-describe("the drawer's plan", () => {
+describe("the dock's plan and missions", () => {
   const plan = { state: "ready", week: 17, x: 417 };
 
   it("asks for the plan once and keeps it", async () => {
     worker.respondWith(() => ({ ok: true, status: 200, body: { ok: true, week: 17, cards: {}, players: {}, plan } }));
-    expect(await worker.send({ type: "overlay-plan" })).toEqual({ state: "ok", plan });
-    expect(await worker.send({ type: "overlay-plan" })).toEqual({ state: "ok", plan });
+    expect(await worker.send({ type: "overlay-plan" })).toEqual({ state: "ok", plan, missions: null });
+    expect(await worker.send({ type: "overlay-plan" })).toEqual({ state: "ok", plan, missions: null });
     expect(worker.calls).toHaveLength(1);
     expect(worker.body(worker.calls[0]!)).toEqual({ cards: [], players: [], plan: true });
   });
@@ -320,6 +320,15 @@ describe("the drawer's plan", () => {
     for (const fixture of ["../../x", "football-", "soccer-18-22-sep-2026", 7, {}]) await worker.send({ type: "overlay-plan", fixture });
     expect(worker.calls).toHaveLength(1); // all five were the page of no named week, answered once
     expect(worker.body(worker.calls[0]!)).toEqual({ cards: [], players: [], plan: true });
+  });
+
+  it("asks for today's missions with the plan when the dock wants them, and keeps that answer apart", async () => {
+    const missions = { status: "today", seenAt: null, rarity: "limited", missions: [] };
+    worker.respondWith(() => ({ ok: true, status: 200, body: { ok: true, week: 17, cards: {}, players: {}, plan, missions } }));
+    expect(await worker.send({ type: "overlay-plan", missions: true })).toEqual({ state: "ok", plan, missions });
+    expect(worker.body(worker.calls[0]!)).toEqual({ cards: [], players: [], plan: true, missions: true });
+    await worker.send({ type: "overlay-plan", missions: true });
+    expect(worker.calls).toHaveLength(1);
   });
 
   it("does not invent a plan the app did not send, and tells a refused token from an app that is away", async () => {
@@ -532,6 +541,30 @@ describe("who may ask the extension to do something from a web page (roadmap 7.4
     worker.asked.length = 0;
     await worker.sendFrom(`${APP}/play`, { type: "sorare", step: "enter", ...INPUT, lineupIds: Array.from({ length: 12 }, (_, index) => `lineup-${index}`) });
     expect((worker.asked[0]!.variables.input as { so5LineupIds: string[] }).so5LineupIds).toHaveLength(8);
+  });
+});
+
+describe("Apply from the dock on sorare.com", () => {
+  const INPUT = { slug: "board", boardId: "Board:1", appearances: [{ cardSlug: "a-card", captain: true, index: 0 }], lineupIds: ["lineup-1"] };
+
+  it("runs Apply's steps in the tab that asked, one per message, and nothing else", async () => {
+    worker = load({ sorareTab: true });
+    const question: Record<string, string> = { entered: "SofixMyLineups", check: "SofixPreviewLineup", draft: "SofixSaveDraft", enter: "SofixConfirmLineups" };
+    for (const [step, operation] of Object.entries(question)) {
+      worker.asked.length = 0;
+      expect(await worker.send({ type: "dock-step", step, ...INPUT }), step).toMatchObject({ ok: true, step, state: "ok" });
+      expect(worker.asked.map((one) => one.operation), step).toEqual([operation]);
+    }
+    for (const step of ["week-entered", "pro-entered", "whoami", "SofixConfirmLineups", "__proto__", ""]) {
+      expect(await worker.send({ type: "dock-step", step, ...INPUT }), step).toBeNull();
+    }
+  });
+
+  it("takes no step from a page that is not sorare.com, nor from outside a tab", async () => {
+    worker = load({ sorareTab: true });
+    expect(await worker.send({ type: "dock-step", step: "enter", ...INPUT }, { id: "sofix", tab: { id: 7 }, url: "https://evil.example/" })).toBeNull();
+    expect(await worker.send({ type: "dock-step", step: "enter", ...INPUT }, { id: "sofix", url: "https://sorare.com/" })).toBeNull();
+    expect(worker.asked).toEqual([]);
   });
 });
 

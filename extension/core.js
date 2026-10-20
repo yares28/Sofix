@@ -325,18 +325,66 @@
     return found ? found[1].toLowerCase() : null;
   }
 
-  /** The most cards the drawer draws for the plan: two rows of five. */
-  const DRAWER_CARDS = 10;
+  // -- The dock (extension/dock.js) ---------------------------------------------------------------------------------------
+
+  /** A picture the dock may draw: Sorare's own, nothing else (the app's answer is data, never a place to load from). */
+  const sorarePic = (url) => (typeof url === "string" && url.startsWith("https://assets.sorare.com/") ? url : "");
+
+  /** The lock in the pill's words: "Locks 16:00", "Locks in 42 min" in its last hour, "Locked" after. Madrid time, as Sorare shows it to you. */
+  function lockLabel(iso, now = Date.now()) {
+    const at = typeof iso === "string" ? Date.parse(iso) : NaN;
+    if (!Number.isFinite(at)) return { text: "", soon: false };
+    const left = at - now;
+    if (left <= 0) return { text: "Locked", soon: false };
+    if (left < 60 * 60 * 1000) return { text: `Locks in ${Math.max(1, Math.round(left / 60000))} min`, soon: true };
+    const time = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(at);
+    const day = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", weekday: "short" });
+    return { text: day.format(at) === day.format(now) ? `Locks ${time}` : `Locks ${day.format(at)} ${time}`, soon: false };
+  }
+
+  /** How many mission swaps Sofix would make today: the pill's badge. */
+  function swapCount(missions) {
+    const list = missions && Array.isArray(missions.missions) ? missions.missions : [];
+    return list.reduce((sum, one) => sum + (Array.isArray(one && one.swaps) ? one.swaps.length : 0), 0);
+  }
 
   /**
-   * The cards of the plan as the drawer draws them: Sorare's own pictures only, every one when they fit, else the first nine
-   * and a place for the rest; `more` is how many cards the plan uses that no thumbnail stands for ("+4").
+   * Sorare's answer to one Apply step from the dock, read as lib/apply.ts reads it for the app: `ok` with the rules it broke (in its own
+   * words), the lineup it saved and those it holds; `rejected` with its words; or why the step could not run. Anything that does not prove
+   * the step happened is an `error`, so a press is never taken for a success it was not.
    */
-  function drawerCards(plan) {
-    const urls = (plan && Array.isArray(plan.pics) ? plan.pics : []).filter((url) => typeof url === "string" && url.startsWith("https://assets.sorare.com/"));
-    const pics = urls.length > DRAWER_CARDS ? urls.slice(0, DRAWER_CARDS - 1) : urls;
-    const used = plan && Number.isFinite(plan.cardsUsed) ? plan.cardsUsed : pics.length;
-    return { pics, more: Math.max(0, used - pics.length) };
+  function stepAnswer(response, step) {
+    if (!response || typeof response !== "object") return { state: "error" };
+    if (response.state === "rejected") return { state: "rejected", errors: (Array.isArray(response.errors) ? response.errors : []).map(String).slice(0, 4) };
+    if (response.state !== "ok") return { state: response.state === "unknown" ? "no-bridge" : ["no-tab", "no-bridge", "timeout"].includes(response.state) ? response.state : "error" };
+    const data = response.data && typeof response.data === "object" ? response.data : null;
+    const board = data && data.so5 && data.so5.so5Leaderboard;
+    const write = data && (data.createOrUpdateSo5Lineup || data.confirmSo5Lineups);
+    if (write && Array.isArray(write.errors) && write.errors.length) return { state: "rejected", errors: write.errors.map((e) => String(e && e.message)).slice(0, 4) };
+    const confirmed = data && data.confirmSo5Lineups && Array.isArray(data.confirmSo5Lineups.so5Lineups) ? data.confirmSo5Lineups.so5Lineups : null;
+    const saved = step === "draft" ? data && data.createOrUpdateSo5Lineup && data.createOrUpdateSo5Lineup.so5Lineup : step === "enter" ? confirmed && confirmed[0] : null;
+    const proven =
+      step === "check" ? Boolean(board && board.previewSo5Lineup)
+        : step === "entered" ? Boolean(board && Array.isArray(board.mySo5Lineups))
+          : step === "draft" ? Boolean(saved && saved.id && saved.draft === true)
+            : step === "enter" ? Boolean(saved && saved.id && confirmed.every((one) => one && one.draft === false))
+              : false;
+    if (!proven) return { state: "error" };
+    const rules = (board && board.previewSo5Lineup && Array.isArray(board.previewSo5Lineup.feedbackRules) ? board.previewSo5Lineup.feedbackRules : [])
+      .filter((rule) => rule && rule.state === "INVALID")
+      .map((rule) => String(rule.message || rule.ruleName));
+    const entered = (board && Array.isArray(board.mySo5Lineups) ? board.mySo5Lineups : []).map((one) => ({
+      id: String(one.id),
+      draft: one.draft === true,
+      cards: (Array.isArray(one.so5Appearances) ? one.so5Appearances : []).map((slot) => (slot && (slot.anyCard || slot.card) || {}).slug).filter(Boolean),
+    }));
+    return { state: "ok", broken: rules, lineupId: saved ? String(saved.id) : null, entered };
+  }
+
+  /** Whether Sorare already holds this lineup entered (the same cards, not a draft): entering it again would spend a second slot. */
+  function alreadyEntered(entered, cardSlugs) {
+    const want = [...cardSlugs].sort().join(",");
+    return (entered || []).some((one) => !one.draft && [...one.cards].sort().join(",") === want);
   }
 
   // -- Futbol Fantasy, read in the browser (plans/futbolfantasy.md, S7) ---------------------------------------------------
@@ -526,7 +574,7 @@
 
   root.__sofixCore = {
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, collectStartingOdds, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
-    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, statusNote, clockLabel, sourceRows, drawerCards, DRAWER_CARDS, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, shapeOf, shapeBars, shapeLabels, whyRows, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
+    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, shapeOf, shapeBars, shapeLabels, whyRows, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
     isPickHeading, fixtureOf, gamesCount, fixtureLine, collectMissions, missionsRarity, missionsAsked,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;

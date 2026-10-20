@@ -35,11 +35,16 @@ from app.sorare.publish import in_week, lineup_payload
 
 KEY = "pro_rebuild"
 
+# The week comes from the `sorare` read model while it is being planned, else from the plan kept at its lock (`sorare_plan:<slug>`):
+# a locked week's Pro lineups can still change until their first kickoff, which is when "Load from Sorare" matters most.
 _READ = text(
-    "SELECT (p->'collection')::text,"
-    " (SELECT (w->'playing'->'players')::text FROM json_array_elements(p->'weeks') w WHERE w->'gameweek'->>'slug' = :slug),"
-    " (SELECT (pl->'lineups')::text FROM json_array_elements(p->'weeks') w, json_array_elements(w->'plans') pl"
-    "  WHERE w->'gameweek'->>'slug' = :slug AND (pl->>'rank')::int = :rank)"
+    "WITH kept AS (SELECT payload AS k FROM read_models WHERE key = 'sorare_plan:' || :slug)"
+    " SELECT (p->'collection')::text,"
+    " COALESCE((SELECT (w->'playing'->'players')::text FROM json_array_elements(p->'weeks') w WHERE w->'gameweek'->>'slug' = :slug),"
+    "  (SELECT (k->'playing'->'players')::text FROM kept)),"
+    " COALESCE((SELECT (pl->'lineups')::text FROM json_array_elements(p->'weeks') w, json_array_elements(w->'plans') pl"
+    "  WHERE w->'gameweek'->>'slug' = :slug AND (pl->>'rank')::int = :rank),"
+    "  (SELECT (pl->'lineups')::text FROM kept, json_array_elements(k->'plans') pl WHERE (pl->>'rank')::int = :rank))"
     " FROM (SELECT payload AS p FROM read_models WHERE key = 'sorare') s"
 )
 

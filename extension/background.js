@@ -301,7 +301,11 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     return true;
   }
   if (message?.type === "overlay-plan") {
-    overlayPlan(fixtureOf(message.fixture), message.missions === true).then(reply);
+    overlayPlan(fixtureOf(message.fixture), message.missions === true, message.fresh === true).then(reply);
+    return true;
+  }
+  if (message?.type === "pro-rebuild") {
+    proRebuild(message.week, message.plan).then(reply);
     return true;
   }
   // The dock's Apply, pressed on sorare.com itself: one step per press, run in the tab that asked, never chained here.
@@ -477,14 +481,29 @@ async function ffRead(wanted) {
  * The gameweek's plan (and with `missions`, today's missions), for the dock: the one the page's address names, or the one being planned when it names none. Asked for
  * only by the dock, and kept as long as the numbers, one answer per gameweek (a page about GW21 once showed GW20's).
  */
-async function overlayPlan(fixture = null, missions = false) {
+async function overlayPlan(fixture = null, missions = false, fresh = false) {
   const key = `ov:plan:${fixture || "now"}${missions ? ":m" : ""}`;
   const held = (await chrome.storage.session.get(key))[key];
-  if (held && Date.now() - held.at < (missions ? DOCK_TTL_MS : OVERLAY_TTL_MS)) return { state: "ok", plan: held.plan, missions: held.missions ?? null };
+  if (!fresh && held && Date.now() - held.at < (missions ? DOCK_TTL_MS : OVERLAY_TTL_MS)) return { state: "ok", plan: held.plan, missions: held.missions ?? null };
   const answer = await askApp({ cards: [], players: [], plan: true, ...(missions ? { missions: true } : {}), ...(fixture ? { fixture } : {}) });
   if (!answer.body?.plan) return { state: answer.state ?? "unreachable" };
   await chrome.storage.session.set({ [key]: { at: Date.now(), plan: answer.body.plan, missions: answer.body.missions ?? null } });
   return { state: "ok", plan: answer.body.plan, missions: answer.body.missions ?? null };
+}
+
+/** The dock's "Load from Sorare": starts the app's Pro rebuild on the announced elevens, as Play's button does. One press, one request. */
+async function proRebuild(week, plan) {
+  try {
+    const response = await fetch(`${CONFIG.appUrl}/api/pro-rebuild`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${CONFIG.token}`, "x-vercel-protection-bypass": CONFIG.bypass },
+      body: JSON.stringify({ week: String(week || "").slice(0, 120), plan: Number(plan) || 1 }),
+    });
+    const body = await response.json().catch(() => null);
+    return body && typeof body.success === "boolean" ? body : { success: false, data: null, error: `Sofix answered HTTP ${response.status}.` };
+  } catch {
+    return { success: false, data: null, error: "Sofix is not reachable." };
+  }
 }
 
 // The dock's numbers are asked once per page and again after two minutes at most: picks and entries change during the day.

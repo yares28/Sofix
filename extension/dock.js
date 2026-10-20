@@ -204,11 +204,11 @@
   /** The gameweek the page's address names ("" when it names none): the plan shown is that week's, as the tiles are. */
   const weekHere = () => core.fixtureOf(location.href) || "";
 
-  async function load(force = false) {
+  async function load(force = false, fresh = false) {
     const week = weekHere();
     if (loading || (!force && loadedAt && loadedFor === week && Date.now() - loadedAt < STALE_MS)) return;
     loading = true;
-    const answer = await send({ type: "overlay-plan", missions: true, ...(week ? { fixture: week } : {}) });
+    const answer = await send({ type: "overlay-plan", missions: true, ...(fresh ? { fresh: true } : {}), ...(week ? { fixture: week } : {}) });
     loading = false;
     if (week !== weekHere()) return load(); // the page moved to another gameweek while this was out
     if (answer && answer.state === "ok") {
@@ -227,7 +227,12 @@
 
   // -- after the lock: what your lineups have scored ---------------------------------------------------------------
 
-  const locked = () => Boolean(ready() && core.lockLabel(ready().lock).text === "Locked");
+  /** The week being played, its Pro lineups before their first kickoff (the app's `proPlan`): they lock at that kickoff, not the week's lock. */
+  const proMode = () => Boolean(ready() && ready().pro);
+  const lockOf = (plan) => (plan ? (plan.pro ? plan.pro.starts : plan.lock) : null);
+  const locked = () => Boolean(ready() && core.lockLabel(lockOf(ready())).text === "Locked");
+  /** What the dock's Enter covers: Pro is entered on Sorare's own Pro board (Guide me), never by Apply's steps. */
+  const enterRows = () => rows().filter((row) => !row.pro);
   /** The starters at risk across the plan's lineups: the alarm. None once the gameweek is locked, since nothing can be changed then. */
   const alarmCount = () => (locked() ? 0 : rows().reduce((sum, row) => sum + (Array.isArray(row.alarms) ? row.alarms.length : 0), 0));
 
@@ -428,7 +433,7 @@
       return node;
     }
     const plan = data && data.plan;
-    const lock = core.lockLabel(plan && plan.lock);
+    const lock = core.lockLabel(lockOf(plan));
     const alarms = alarmCount();
     const scored = liveHere();
     const node = el("div", alarms ? "pill alarm" : lock.soon ? "pill soon" : "pill");
@@ -475,7 +480,7 @@
     const plan = data && data.plan;
     const node = el("div", "head");
     node.append(el("i", "mark"), el("b", "", tab === "missions" ? "Missions" : plan && plan.week ? `GW${plan.week}` : "Sofix"));
-    const lock = core.lockLabel(plan && plan.lock);
+    const lock = core.lockLabel(lockOf(plan));
     if (tab === "lineups" && lock.text) node.append(el("span", lock.soon ? "chip warn" : "chip", lock.text));
     const tabs = el("div", "tabs");
     tabs.setAttribute("role", "tablist");
@@ -575,11 +580,12 @@
       for (const alarm of alarms) more.append(alarmNode(row, alarm));
       if (row.rebuilt && !locked()) more.append(rebuiltNode(row));
       if (state.note && (state.failed || state.stage > 0)) more.append(el("p", state.failed ? "note bad" : "note", state.note));
-      const next = nextPress([row]);
+      const next = row.pro ? null : nextPress([row]);
       const two = el("div", "two");
-      if (next) two.append(button(next.stage === 2 ? "btn warn sm" : "btn go sm", busy ? "Asking Sorare…" : pressLabel(next, false), () => press([row])));
+      if (row.pro) two.style.gridTemplateColumns = "1fr"; // Pro: Guide me only (Load from Sorare sits at the bottom, for every Pro lineup)
+      else if (next) two.append(button(next.stage === 2 ? "btn warn sm" : "btn go sm", busy ? "Asking Sorare…" : pressLabel(next, false), () => press([row])));
       else two.append(button("btn ghost sm", state.failed ? "Try again" : "Entered", () => { applied.delete(row.board); render(); }));
-      two.firstChild.disabled = busy;
+      if (!row.pro) two.firstChild.disabled = busy;
       two.append(button("btn ghost sm", "Guide me", () => guideLineup(row)));
       more.append(two);
       if (next && next.stage > 0) more.append(stepsNode(next.stage));
@@ -587,6 +593,37 @@
     }
     return item;
   }
+
+  // -- Load from Sorare (Play's button, from here): the announced elevens read and the Pro lineups rebuilt on them ---------------
+
+  let rebuilding = { busy: false, said: "" };
+
+  /** One press: the app reads the elevens and starts the rebuild (about a minute); the dock reads its plan again once, no polling. */
+  async function rebuildPro() {
+    const plan = ready();
+    if (!plan || rebuilding.busy) return;
+    rebuilding = { busy: true, said: "Reading the elevens on Sorare…" };
+    render();
+    const answer = await send({ type: "pro-rebuild", week: plan.fixture, plan: plan.pro ? plan.pro.rank : 1 });
+    if (!answer || !answer.success) {
+      rebuilding = { busy: false, said: (answer && answer.error) || "Sofix could not start the rebuild." };
+      return render();
+    }
+    const d = answer.data;
+    rebuilding = { busy: true, said: `${d.games} eleven${d.games === 1 ? "" : "s"} out: ${d.starters} of your players start, ${d.bench} on the bench. Rebuilding, about a minute…` };
+    render();
+    setTimeout(async () => {
+      rebuilding = { busy: false, said: "" };
+      openRow = -1;
+      await load(true, true); // past the background's two-minute copy: the rebuild is new
+    }, 75_000);
+  }
+
+  const rebuildButton = (className) => {
+    const node = button(className, rebuilding.busy ? "Loading…" : "Load from Sorare", rebuildPro, "Load from Sorare: rebuild your Pro lineups on the announced elevens");
+    node.disabled = rebuilding.busy;
+    return node;
+  };
 
   function lineupsView() {
     const plan = ready();
@@ -600,19 +637,29 @@
     const list = rows();
     const essence = list.reduce((sum, row) => sum + (row.ess || 0), 0);
     const scored = liveHere();
-    const nodes = [scored && scored.lineups
+    const nodes = [proMode()
+      ? hero(String(list.length), "", `Pro lineup${list.length === 1 ? "" : "s"} still open`, "Teams are out about an hour before kickoff")
+      : scored && scored.lineups
       ? hero(String(scored.total), "", `points so far · ${scored.lineups} entered`, `${Math.round((plan.pAny || 0) * 100)}% any reward, before the games`)
       : hero(String(Math.round((plan.pAny || 0) * 100)), "%", "any reward", essence ? `${essence} essence expected` : "")];
     const ul = el("ul", "list");
     list.forEach((row, index) => ul.append(lineupRow(row, index, index === 0 && list.length > 1)));
     nodes.push(ul);
-    const next = nextPress(list);
+    const arena = enterRows();
+    const next = nextPress(arena);
     const foot = el("div", "foot");
-    if (next) foot.append(button(next.stage === 2 ? "btn warn" : "btn go", busy ? "Asking Sorare…" : pressLabel(next, true), () => press(list)));
-    else foot.append(button("btn ghost", list.some((row) => stateOf(row).failed) ? "Some were stopped: open them" : "All entered", () => {}));
-    foot.querySelector("button").disabled = busy || !next;
+    if (proMode() || !arena.length) foot.append(rebuildButton("btn go"));
+    else {
+      foot.append(button(next && next.stage === 2 ? "btn warn" : next ? "btn go" : "btn ghost", busy ? "Asking Sorare…" : next ? pressLabel(next, true) : arena.some((row) => stateOf(row).failed) ? "Some were stopped: open them" : "All entered", () => press(arena)));
+      foot.querySelector("button").disabled = busy || !next;
+    }
     foot.append(button("icon", "⋯", () => { menu = !menu; render(); }, "More: other plans and cards used"));
     nodes.push(foot);
+    if (rebuilding.said) {
+      const said = el("p", "note", rebuilding.said);
+      said.setAttribute("role", "status");
+      nodes.push(said);
+    }
     if (next && next.stage > 0) nodes.push(stepsNode(next.stage));
     if (menu) {
       const box = el("div", "menu in");

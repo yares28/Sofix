@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { clubKey } from "./home";
-import { dockMissions, OVERLAY_CAP, OverlayRequest, overlayNumbers, overlayPlan } from "./overlay";
+import { dockMissions, OVERLAY_CAP, OverlayRequest, overlayNumbers, overlayPlan, proPlan } from "./overlay";
 import type { MissionPlan, Suggestion } from "./missions";
 import type { GameOdds, GameweekPlan, Lineup, PlayCard, PlayerGame, PlayingPlayer, Plan, Sorare } from "./play";
 import type { FixtureGrid, GridCell } from "./types";
@@ -590,6 +590,33 @@ describe("overlayPlan", () => {
     expect(asked.plan).toMatchObject({ state: "none", week: 17 });
     expect(overlayNumbers(data, grid, ask({}), NOW).plan).toBeUndefined();
     expect(overlayNumbers(data, grid, ask({ plan: true, week: "18" }), NOW).plan).toMatchObject({ week: 18 });
+  });
+});
+
+describe("proPlan: the week being played, its Pro lineups before their first kickoff", () => {
+  const card = (slug: string, kickoff: string) => ({ slug, name: slug, pic: `p/${slug}`, start: 40, mu: 40, pos: "MID", fixture: { kickoff } }) as PlayCard;
+  const pro = { level: 0, target: 320, boost: 1, ladder: [] };
+  const playing = (now: string) => proPlan(week({ plans: [{
+    rank: 1, essence: 0, cash: 0, pAny: 0.3, rewards: 0, cardsUsed: 3, cardsAvailable: 9,
+    lineups: [
+      { comp: "European Champions", board: "arena", boardId: "A", x: 400, pReturn: 0.5, starters: [card("a", "2026-10-21T19:00:00Z")], subs: [], tiers: [] },
+      { comp: "Europa Contenders Pro", board: "late", boardId: "L", x: 250, pReturn: 0.2, pro, starters: [card("b", "2026-10-21T19:00:00Z")], subs: [], tiers: [] },
+      { comp: "European Champions Pro", board: "early", boardId: "E", x: 260, pReturn: 0.3, pro, starters: [card("c", "2026-10-20T19:00:00Z"), card("d", "2026-10-21T19:00:00Z")], subs: [], tiers: [] },
+    ] as unknown as Lineup[],
+  }] as Plan[] }), new Date(now));
+
+  it("lists only Pro lineups nobody has kicked off in, the soonest first, and says when the first starts", () => {
+    const plan = playing("2026-10-20T18:00:00Z");
+    if (plan?.state !== "ready") throw new Error("expected Pro lineups");
+    expect(plan.rows!.map((row) => row.board)).toEqual(["early", "late"]); // the Arena lineup is locked: left out
+    expect(plan.rows![0]).toMatchObject({ pro: true, starts: "2026-10-20T19:00:00.000Z" });
+    expect(plan.pro).toEqual({ starts: "2026-10-20T19:00:00.000Z", rank: 1 });
+  });
+
+  it("drops a Pro lineup once one of its players has kicked off, and is null when none is left", () => {
+    const plan = playing("2026-10-20T19:30:00Z");
+    expect(plan?.state === "ready" && plan.rows!.map((row) => row.board)).toEqual(["late"]);
+    expect(playing("2026-10-21T19:00:00Z")).toBeNull();
   });
 });
 

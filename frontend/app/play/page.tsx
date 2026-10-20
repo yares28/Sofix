@@ -92,7 +92,8 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
   const today = !after && !showing.projected && showing.gameweek.id === data.nextId; // today's missions belong to the week played now
   // A locked week still being played: each card's score as his game comes in, the same cached read the home page makes.
   const playing = !after && !showing.projected && !showing.played && Date.parse(showing.gameweek.lock) <= Date.now();
-  const rebuildable = switchable && !sorareAsked && !lens;
+  // Load from Sorare: the week being planned, and a locked one still being played, whose Pro lineups change until their first kickoff
+  const rebuildable = (switchable && !sorareAsked && !lens) || playing;
   const [alt, frozen, missions, scores, rebuild] = await Promise.all([
     sorareAsked ? loadSorareAlt(showing.gameweek.slug) : lens ? loadSorareLens(showing.gameweek.slug, lens) : null,
     showing.projected ? null : loadFrozenPlan(showing.gameweek.slug, data),

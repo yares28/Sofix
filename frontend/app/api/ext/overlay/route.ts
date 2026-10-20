@@ -1,11 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { loadGrid } from "../../../../lib/api";
 import { authorised } from "../../../../lib/extAuth";
-import { dockMissions, OverlayRequest, overlayNumbers, withRebuild } from "../../../../lib/overlay";
+import { dockMissions, OverlayRequest, overlayNumbers, proPlan, withRebuild } from "../../../../lib/overlay";
 import { loadMissions } from "../../../../lib/missionsData";
 import { loadMissionPool } from "../../../../lib/missionsPool";
 import { missionsToday } from "../../../../lib/missionsToday";
-import { weekPlan } from "../../../../lib/play";
+import { scoringWeek, weekPlan } from "../../../../lib/play";
 import { loadFrozenPlan, loadProRebuild, loadSorare, loadSorareWeek } from "../../../../lib/playData";
 
 // The numbers the Chrome extension draws on sorare.com's cards (extension/overlay.js). Which cards a page shows
@@ -36,9 +36,16 @@ export async function POST(request: NextRequest) {
     ? dockMissions(await missionsToday(sorare, await loadMissions(), undefined, now, await loadMissionPool()))
     : undefined;
   const numbers = overlayNumbers(data, loaded.grid, parsed.data, now, archived);
-  // Pro rebuilt on the announced elevens, for Guide me (plans/load-from-sorare.md): only for the week being planned
-  const planned = weekPlan(sorare, sorare.nextId);
-  const rebuild = numbers.plan?.state === "ready" && planned && numbers.plan.fixture === planned.gameweek.slug ? await loadProRebuild(planned.gameweek.slug) : null;
-  const plan = numbers.plan && planned?.plans[0] ? withRebuild(numbers.plan, rebuild, planned.plans[0].rank) : numbers.plan;
+  // The dock, on a page naming no gameweek or the one being played: while that week has Pro lineups before their first kickoff,
+  // those come first (they are the only lineups still open); else the week asked for, or the one being planned.
+  const scoring = parsed.data.plan && !parsed.data.week ? scoringWeek(sorare) : null;
+  const live = scoring && (!parsed.data.fixture || parsed.data.fixture === scoring.slug) ? scoring : null;
+  const playing = live ? (weekPlan(sorare, live.id) ?? await loadFrozenPlan(live.slug, sorare)) : null;
+  const pro = playing ? proPlan(playing, now) : null;
+  // Pro rebuilt on the announced elevens, for Guide me (plans/load-from-sorare.md)
+  const planned = pro ? playing : weekPlan(sorare, sorare.nextId);
+  const shown = pro ?? numbers.plan;
+  const rebuild = shown?.state === "ready" && planned && shown.fixture === planned.gameweek.slug ? await loadProRebuild(planned.gameweek.slug) : null;
+  const plan = shown && planned?.plans[0] ? withRebuild(shown, rebuild, planned.plans[0].rank) : shown;
   return NextResponse.json({ ok: true, ...numbers, ...(plan ? { plan } : {}), ...(missions ? { missions } : {}) }, { headers: NO_STORE });
 }

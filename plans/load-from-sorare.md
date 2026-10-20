@@ -3,6 +3,9 @@
 The owner's idea: one button in Sofix that loads what Sorare knows now (announced elevens, starting chances, missions) and rebuilds a
 lineup, Pro first, around players who start. Every line below is marked with where it was checked. Step 1 of section 7 is built
 (20 Oct 2026: `backend/app/jobs/pro_rebuild.py`, `pro-rebuild.yml`, `/api/pro-rebuild`, Play's Pro lineups, the dock); steps 2 to 4 are not.
+Same day, the owner: the dock showed next week's plan, not tonight's Pro. Now the rebuild also takes a locked week still being played
+(the job reads its kept plan, `sorare_plan:<slug>`), and the dock shows that week's Pro lineups before their first kickoff, with Load
+from Sorare (extension 0.4.3).
 
 ## 1 · Checked: what exists and what Sorare gives
 

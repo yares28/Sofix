@@ -206,6 +206,7 @@ async function openPage(
           return { state: "ok", plan: config.plan, missions: config.missions };
         }
         if (message.type === "dock-step") return config.steps[(message as unknown as { step: string }).step];
+        if (message.type === "pro-rebuild") return { success: true, data: { games: 2, starters: 4, bench: 1 }, error: null };
         if (message.type !== "overlay-numbers") return undefined;
         if (config.mode !== "ok") return { state: config.mode };
         const out = { state: "ok", cards: {} as Record<string, unknown>, players: {} as Record<string, unknown> };
@@ -1008,7 +1009,7 @@ test.describe("the sorare.com overlay", () => {
     await openPage(page);
     await expect(pill(page)).toHaveAttribute("aria-expanded", "false");
     await expect(page.locator("[data-sfx-dock]")).toContainText("GW17");
-    await expect(page.locator("[data-sfx-dock]")).toContainText(/Locks \d\d:\d\d/);
+    await expect(page.locator("[data-sfx-dock]")).toContainText(/Locks (\w{3} )?\d\d:\d\d/);
     await expect(page.getByLabel("1 mission swap to make")).toBeVisible(); // the badge: something to do on the Missions tab
 
     await pill(page).click();
@@ -1038,6 +1039,24 @@ test.describe("the sorare.com overlay", () => {
 
     await page.keyboard.press("Escape");
     await expect(dock(page)).toBeHidden();
+  });
+
+  test("during a week being played it shows the Pro lineups not kicked off yet, with Load from Sorare, and never enters them", async ({ page }) => {
+    const starts = new Date(Date.now() + 2 * 3600_000).toISOString();
+    const pro = { ...row("European Champions Pro", "ecp", 262, 320, 0.3, 0, PICKS.slice(0, 5).map((p, i) => ({ slug: p.card, pic: p.pic, name: `Pick ${p.n}`, s: p.x, slot: ["GK", "DEF", "MID", "FWD", "EXT"][i]! })), PICKS[0]!.card), pro: true, starts };
+    await openPage(page, { plan: { ...PLAN, week: 24, fixture: "football-20-23-oct-2026", lock: new Date(Date.now() - 4 * 3600_000).toISOString(), pro: { starts, rank: 1 }, rows: [pro] } });
+    await expect(page.locator("[data-sfx-dock]")).toContainText("GW24");
+    await expect(page.locator("[data-sfx-dock]")).toContainText(/Locks (\w{3} )?\d\d:\d\d/); // the first Pro kickoff, not the week's lock (passed)
+    await pill(page).click();
+    await expect(dock(page).getByText("Pro lineup still open")).toBeVisible();
+    await expect(dock(page).getByRole("listitem")).toHaveCount(1);
+    await expect(dock(page).getByRole("button", { name: /^Enter/ })).toHaveCount(0); // Pro is entered on Sorare's Pro board
+
+    await dock(page).getByRole("button", { name: /^Load from Sorare/ }).last().click();
+    await expect(dock(page).getByRole("status")).toContainText("2 elevens out: 4 of your players start, 1 on the bench");
+    const sent = (await probe(page)).sent.filter((message) => message.type === "pro-rebuild");
+    expect(sent).toEqual([{ type: "pro-rebuild", week: "football-20-23-oct-2026", plan: 1 }]);
+    expect(await dockSteps(page)).toEqual([]); // nothing is run through Sorare
   });
 
   test("enters the plan from Sorare's own page in three presses, Check, Draft and Enter, one step each and never chained", async ({ page }) => {

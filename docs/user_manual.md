@@ -271,7 +271,8 @@ lineup, reads the announced elevens of the games in the next three hours (no ext
 Pro lineups on them in about a minute: an announced starter starts, a benched player only fills a slot no starter of yours fits or if
 his chance of coming on times his score if he does is at least the best starter's; anyone else does not play. The rebuild sits under
 Sofix's lineup, "Rebuilt at 18:12", with the swaps named ("Pedri not in the eleven → Gavi"); the plan is never replaced. To enter
-it, open that row in the dock on sorare.com and press **Guide me · rebuilt** (extension 0.4.2). While the gameweek is the one being
+it, open that row in the dock on sorare.com and press **Guide me · rebuilt** (extension 0.4.2). It also works on a locked gameweek
+still being played, for a Pro lineup none of whose players has kicked off, and from the dock (0.4.3). While the gameweek is the one being
 played, today's missions sit under the lineups with the cards that fit each (chance, opponent, kick-off and what he
 did over his last 5); the full Missions page is one click away.
 
@@ -908,7 +909,10 @@ even on a page about another week; and every Celta game showed **No odds**, beca
 A small pill in the bottom-right corner of Sorare's football pages says the gameweek and when it locks ("GW24 · Locks 16:00"; in
 the last hour "Locks in 42 min", in yellow), and carries a yellow badge when Sofix would swap a mission pick. Pressed, it opens a
 400 px panel above it with two tabs; nothing else on Sorare's page is covered or dimmed. The week is the one the page's address names
-(the one being planned when it names none; a week Sofix holds nothing on says so).
+(the one being planned when it names none; a week Sofix holds nothing on says so). **Pro tonight (0.4.3):** while the gameweek being
+played has Pro lineups none of whose players has kicked off, the dock shows those instead (on a page naming no week or that week),
+the soonest first, the pill saying when the first kicks off ("GW24 · Locks 21:00"), with **Load from Sorare** to rebuild them on the
+announced elevens and Guide me to enter one. Enter never covers Pro: it is entered on Sorare's Pro board.
 
 - **Lineups**: the chance of any reward and the essence expected, then one row per lineup of the best plan, likeliest to pay first
   (three of its cards, its expected score against the score that pays, the days it plays, its chance). A row opens to every card with

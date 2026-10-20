@@ -1,11 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { readElevens } from "../../../lib/actualLineupsData";
 import { PRO_REBUILD_WORKFLOW, dispatchRefresh } from "../../../lib/github";
-import { loadSorare } from "../../../lib/playData";
+import { authorised } from "../../../lib/extAuth";
+import { loadFrozenPlan, loadSorare } from "../../../lib/playData";
 import { isSameOriginRequest } from "../../../lib/refresh";
 
 // Play's "Load from Sorare" (plans/load-from-sorare.md, step 1): reads the announced elevens of the games about to start from
 // Sorare's public API (cached 60 s) and starts pro-rebuild.yml with your players in them. Only when pressed; no extension needed.
+// The week being planned or a locked one still being played (its Pro lineups change until their first kickoff); the dock asks too.
 export const dynamic = "force-dynamic";
 
 const AHEAD_MS = 3 * 3600_000; // elevens come out about an hour before kickoff; later games have none yet
@@ -14,13 +16,14 @@ type Reply = { success: boolean; data: { games: number; starters: number; bench:
 const reply = (status: number, body: Reply) => NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } });
 
 export async function POST(request: NextRequest) {
-  if (!isSameOriginRequest(request.headers)) return reply(403, { success: false, data: null, error: "Forbidden." });
+  if (!isSameOriginRequest(request.headers) && !authorised(request)) return reply(403, { success: false, data: null, error: "Forbidden." });
   const token = process.env.GITHUB_TOKEN;
   if (!token) return reply(503, { success: false, data: null, error: "Rebuild is not configured." });
   const body = (await request.json().catch(() => null)) as { week?: unknown; plan?: unknown } | null;
   const slug = typeof body?.week === "string" ? body.week : "";
   const plan = Number(body?.plan);
-  const week = (await loadSorare())?.weeks.find((w) => w.gameweek.slug === slug);
+  const sorare = await loadSorare();
+  const week = sorare?.weeks.find((w) => w.gameweek.slug === slug) ?? (sorare ? await loadFrozenPlan(slug, sorare) : null);
   if (!week || !Number.isInteger(plan) || plan < 1) return reply(400, { success: false, data: null, error: "Unknown week." });
   const now = Date.now();
   const mine = new Set(week.playing.players.map((p) => p.player).filter((p): p is string => !!p));

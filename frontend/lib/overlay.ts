@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { NATIONAL_COMPETITION, clubKey, sideOutlook, type SideOutlook } from "./home";
-import { cardScore, likelyResult, nextWeek, resultLabel, waitingFor, weekPlan, type FfStatus, type GameweekPlan, type Lineup, type PlayerGame, type PlayingPlayer, type Sorare, type StartSource } from "./play";
+import { cardScore, likelyResult, nextWeek, proOpen, resultLabel, waitingFor, weekPlan, type FfStatus, type GameweekPlan, type Lineup, type PlayerGame, type PlayingPlayer, type Sorare, type StartSource } from "./play";
 import { appearances, type Appearance } from "./apply";
 import type { MissionPlan } from "./missions";
 import type { MissionsStatus } from "./missionsToday";
@@ -134,6 +134,8 @@ export type OverlayPlan =
       /** The gameweek's address on Sorare ("football-19-23-oct-2026"): what the dock reads your entered lineups by. */
       fixture?: string;
       rows?: DockRow[];
+      /** Set when these are the Pro lineups of the week being played that have not kicked off yet (`proPlan`): the first kickoff. */
+      pro?: { starts: string | null; rank: number };
     }
   | { state: "waiting" | "none"; week: number; note: string };
 
@@ -152,6 +154,9 @@ export type DockRow = {
   appearances: Appearance[];
   /** The starters whose game is still ahead and who are unlikely to start, each with the player of yours Sofix would put in (the dock's alarm). */
   alarms?: DockAlarm[];
+  /** A Pro lineup (entered on Sorare's Pro board, open until `starts`, its first kickoff, ISO). */
+  pro?: boolean;
+  starts?: string | null;
   /** A Pro lineup rebuilt on the announced elevens (Play's "Load from Sorare"): its cards for Guide me, and the swaps named. */
   rebuilt?: { at: string; cards: DockRow["cards"]; swaps: { out: string; in: string; why: string }[] };
 };
@@ -215,6 +220,18 @@ export function overlayPlan(gameweek: GameweekPlan, now: Date): OverlayPlan {
   };
 }
 
+/**
+ * The dock during a gameweek being played: its Pro lineups whose first player has not kicked off, the only lineups still open to a
+ * change (the owner, 20 Oct 2026: "show pro mode games that are going to get played"). Null when there is none.
+ */
+export function proPlan(gameweek: GameweekPlan, now: Date): OverlayPlan | null {
+  const open = new Set((gameweek.plans[0]?.lineups ?? []).filter((lineup) => proOpen(lineup, now)).map((lineup) => lineup.board));
+  const plan = open.size ? overlayPlan(gameweek, now) : null;
+  if (plan?.state !== "ready") return null;
+  const rows = (plan.rows ?? []).filter((row) => open.has(row.board)).sort((a, b) => (a.starts ?? "").localeCompare(b.starts ?? ""));
+  return { ...plan, rows, pro: { starts: rows[0]?.starts ?? null, rank: gameweek.plans[0]!.rank } };
+}
+
 /** Under this chance of starting (or injured, or suspended) a starter sets the alarm off. The owner has not named a figure: 50% until he does. */
 export const ALARM_BELOW = 0.5;
 /** A replacement must be at least this likely to start: a swap that only trades one doubt for another is not offered. */
@@ -275,6 +292,7 @@ function dockRow(given: Lineup, alarms: DockAlarm[] = []): DockRow {
     ess: Math.round(lineup.eEss ?? 0),
     cards: [...lineup.starters.map((one) => card(one, false)), ...lineup.subs.map((one) => card(one, true))],
     appearances: appearances(lineup),
+    ...(lineup.pro ? { pro: true, starts: kickoffs.length ? new Date(kickoffs[0]!).toISOString() : null } : {}),
     ...(alarms.length ? { alarms } : {}),
   };
 }

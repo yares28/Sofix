@@ -691,6 +691,9 @@ export function lastWeek(data: Sorare): GameweekPlan | null {
 
 /** The lineups of a plan Sorare lists, which are the ones that can be entered: an expected competition has nothing to enter yet. */
 /** Lineups Apply can enter: not a competition Sorare has yet to open, and not Pro, which is entered on Sorare's own Pro board. */
+/** A Pro lineup can be entered or changed on Sorare until its first player kicks off (Sorare's "Anytime Entry"). */
+export const proOpen = (lineup: Lineup, now: Date): boolean =>
+  lineup.pro != null && !(lineup.starters ?? []).some((card) => card.fixture?.kickoff && Date.parse(card.fixture.kickoff) <= now.getTime());
 export const enterable = (lineups: Lineup[]): Lineup[] => lineups.filter((lineup) => !lineup.expected && !lineup.pro);
 
 /** "Step 1 · needs 360 · $5": the step a Pro lineup plays for and its prize. */

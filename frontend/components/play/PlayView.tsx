@@ -14,6 +14,7 @@ import {
   LENSES,
   likelyResult,
   plansOf,
+  proOpen,
   resultLabel,
   timeUntil,
   waitingFor,
@@ -187,7 +188,7 @@ export default function PlayView({
             {main.map((lineup, index) => [
               <Lineup key={`${lineup.key}-${index}`} lineup={lineup} after={after} index={index} hindsight={plan.hindsight === true} players={week.playing.players} scores={scores} />,
               // Pro can be entered until its first kickoff: rebuilt on the announced elevens, beside Sofix's lineup
-              lineup.pro && rebuildable ? (
+              rebuildable && proOpen(lineup, now) ? (
                 <ProRebuild key={`${lineup.key}-rebuild`} comp={lineup.comp} week={week.gameweek.slug} plan={plan.rank} rebuild={rebuild} players={week.playing.players} />
               ) : null,
             ])}

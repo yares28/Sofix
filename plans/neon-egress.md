@@ -32,6 +32,12 @@ falls back to today's full read. Measured on Sofix B: five history reads sent 0.
 the copy once costs ~23 MB. Done when: a refresh reads under 3 MB from Neon instead of ~28 MB, with the same plans
 (the replay tests and one refresh compared block by block against the previous one).
 
+### Step 4 · The jobs' own re-reads (measured 20 Oct, refresh 164)
+The Sorare step sent 57 MB: missions 21.6, audit 15.6, frozen/references/news/settle 6.8, early plans 5.1, games saved 4.9.
+All 102 `missions_day` rows (6.3 MB) were read three times a refresh; `app/services/kept_blocks.py` now keeps them (and
+any block a job re-reads) in the cached SQLite file and fetches only rows whose write time moved: a repeat costs 0.01 MB.
+Next: what else the audit reads (~9 MB).
+
 ### Step 1 · Page blocks move to Cloudflare R2 · built 20 Oct: both tokens tested, all 2,763 blocks copied, the web app's
 reads checked against Neon (identical content, an older version refused). Still to do: once Neon's counter shows the drop,
 stop keeping payloads in Neon; the jobs' own reads of blocks still go to Neon.

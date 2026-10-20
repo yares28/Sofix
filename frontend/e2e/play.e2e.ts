@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 import { nextWeek, type Sorare } from "../lib/play";
 import type { ApiResponse } from "../lib/types";
-import { byMonth, pageWeeks, seasonWeeks, type Week } from "../lib/weeks";
+import { pageWeeks, seasonWeeks, type Week } from "../lib/weeks";
 import { MOCK, offline, resetBackend, servedGrid, sorare } from "./helpers";
 
 // The Play page draws the Sorare gameweek the job publishes (e2e/fixtures/sorare-response.json, served by
@@ -36,14 +36,6 @@ async function timelineOnlyWeek(request: APIRequestContext) {
 async function playWeeks(request: APIRequestContext): Promise<Week[]> {
   const served = ((await (await request.get(`${MOCK}/api/sorare`)).json()) as ApiResponse<Sorare>).data!;
   return pageWeeks(seasonWeeks(await servedGrid(request), served, new Date()), "play");
-}
-
-/**
- * The week panel shows one month at a time and opens on the week you are on. The mock moves the recorded
- * gameweek to two days after today, so near a month's end the week a test wants sits in the other month.
- */
-async function showMonthOf(page: Page, week: Week) {
-  await page.locator(".wk-months").getByRole("button", { name: byMonth([week])[0]!.label, exact: true }).click();
 }
 
 const gameweek = async (request: APIRequestContext, id: string) => (await playWeeks(request)).find((week) => week.gw === id)!;
@@ -420,13 +412,11 @@ test("the competitions that can't be entered, and the ones not worth entering, a
 test("the gameweek that was played shows what each lineup really scored and won", async ({ page, request }) => {
   // The week picker in the top bar is the only gameweek control there is.
   await page.goto("/play");
-  await page.locator(".wk-trigger").click();
-  // Which LaLiga round sits inside Sorare GW15, and which month holds it, depends on the shift the mock applies
-  // at start-up, so naming either would make this true only on the day it was written. Play counts in Sorare
-  // game weeks and the panel lists each of them once (lib/weeks.ts, pageWeeks), so the number addresses it.
+  // Which LaLiga round sits inside Sorare GW15 depends on the shift the mock applies at start-up, so naming it would
+  // make this true only on the day it was written. Play counts in Sorare game weeks and the strip lists each of them
+  // once (lib/weeks.ts, pageWeeks), so the number addresses it.
   const week15 = await gameweek(request, "15");
-  await showMonthOf(page, week15);
-  await page.locator(".wk-panel").getByRole("radio", { name: /GW15\b/ }).click();
+  await page.locator(".wk-strip").getByRole("radio", { name: /GW15\b/ }).click();
   await expect(page).toHaveURL(addressOf(week15)); // the week's own address, which carries a suffix when a day is claimed twice
   await expect(page.getByRole("heading", { level: 1, name: /Sorare GW15$/ })).toBeVisible();
   await expect(page.locator(".pl-eyebrow").first()).toContainText("Sorare · played");
@@ -467,11 +457,7 @@ test("Play lists the weeks Sorare hasn't opened yet, and their page says so", as
   // A LaLiga round far ahead: no Sorare game week covers it yet, and it was missing from Play's picker.
   const later = (await playWeeks(request)).filter((week) => !week.gw && week.md !== null).at(-1)!;
   await page.goto("/play");
-  await page.locator(".wk-trigger").click();
-  await showMonthOf(page, later);
-  const row = page.locator(".wk-panel").getByRole("radio", { name: new RegExp(`^LaLiga round ${later.md}\\b`) });
-  await expect(row).toContainText("Sorare opens later");
-  await row.click();
+  await page.locator(".wk-strip").getByRole("radio", { name: new RegExp(`^LaLiga round ${later.md} · Sorare not open,`) }).click();
   await expect(page).toHaveURL(new RegExp(`/play\\?w=${later.id}$`));
   await expect(page.getByRole("heading", { level: 1, name: new RegExp(`^LaLiga round ${later.md} · Sorare not open$`) })).toBeVisible();
   await expect(page.locator(".empty-state")).toContainText("Sorare hasn't opened this week.");
@@ -485,11 +471,7 @@ test("every gameweek of the season is in Play's picker, and one Sofix didn't kee
   const old = notKept[0]!;
 
   await page.goto("/play");
-  await page.locator(".wk-trigger").click();
-  await showMonthOf(page, old);
-  const row = page.locator(".wk-panel").getByRole("radio", { name: new RegExp(`Sorare GW${old.number}\\b`) });
-  await expect(row).toContainText("not recorded");
-  await row.click();
+  await page.locator(".wk-strip").getByRole("radio", { name: new RegExp(`Sorare GW${old.number}\\b`) }).click();
   await expect(page).toHaveURL(new RegExp(`/play\\?w=${old.id}$`));
   await expect(page.getByRole("heading", { level: 1, name: new RegExp(`Sorare GW${old.number}$`) })).toBeVisible();
   await expect(page.locator(".empty-state")).toContainText("Sofix didn't keep the plans for this gameweek");
@@ -518,11 +500,7 @@ test("a week the job kept apart opens as the week that was played, with the best
   const weeks = await playWeeks(request);
   const kept = weeks.find((week) => week.kept && week.gw !== sorare.lastId && week.state === "done")!; // GW14: kept, not on the page
   await page.goto("/play");
-  await page.locator(".wk-trigger").click();
-  await showMonthOf(page, kept);
-  const row = page.locator(".wk-panel").getByRole("radio", { name: new RegExp(`Sorare GW${kept.number}\\b`) });
-  await expect(row).toContainText("our plan's replay"); // its headline comes from the timeline, not "not recorded"
-  await row.click();
+  await page.locator(".wk-strip").getByRole("radio", { name: new RegExp(`Sorare GW${kept.number}\\b`) }).click();
 
   await expect(page.getByRole("heading", { level: 1, name: new RegExp(`Sorare GW${kept.number}$`) })).toBeVisible();
   await expect(page.locator(".pl-eyebrow").first()).toContainText("Sorare · played");
@@ -547,11 +525,9 @@ test("a week the job kept apart opens as the week that was played, with the best
   await expect(page.getByRole("navigation", { name: "Plan" }).getByRole("link")).toHaveCount(2);
 });
 
-test("the week just played on the page has the same best lineups in hindsight", async ({ page, request }) => {
+test("the week just played on the page has the same best lineups in hindsight", async ({ page }) => {
   await page.goto("/play");
-  await page.locator(".wk-trigger").click();
-  await showMonthOf(page, await gameweek(request, "15"));
-  await page.locator(".wk-panel").getByRole("radio", { name: /GW15\b/ }).click();
+  await page.locator(".wk-strip").getByRole("radio", { name: /GW15\b/ }).click();
   await page.getByRole("group", { name: "Show" }).getByRole("link", { name: "After the games" }).click();
   await page.getByRole("navigation", { name: "Plan" }).getByRole("link", { name: /In hindsight/ }).click();
   await expect(page.locator(".pl-facts .pl-fact").nth(1)).toContainText("500 essence won");
@@ -560,11 +536,7 @@ test("the week just played on the page has the same best lineups in hindsight", 
 test("a LaLiga round Sorare has not opened opens as an early plan that says so and cannot be entered", async ({ page, request }) => {
   const early = (await playWeeks(request)).find((week) => week.early)!; // MD8: the job made it an early plan
   await page.goto("/play");
-  await page.locator(".wk-trigger").click();
-  await showMonthOf(page, early);
-  const row = page.locator(".wk-panel").getByRole("radio", { name: new RegExp(`^LaLiga round ${early.md}\\b`) });
-  await expect(row).toContainText("early plan");
-  await row.click();
+  await page.locator(".wk-strip").getByRole("radio", { name: new RegExp(`^LaLiga round ${early.md}\\b`) }).click();
 
   await expect(page.getByRole("heading", { level: 1, name: new RegExp(`^LaLiga round ${early.md} · `) })).toBeVisible();
   await expect(page.locator(".pl-eyebrow").first()).toContainText("Sorare · not open yet");
@@ -627,30 +599,24 @@ test("the head says how current the gameweek is, and the Control Center shows th
   await expect(panel.getByRole("img")).toHaveAttribute("aria-label", /scheduled runs before the gameweek locks/);
 });
 
-test("the week in the bar moves the whole app, a month at a time", async ({ page, request }) => {
+test("the week in the bar moves the whole app, one strip with no menu to open", async ({ page, request }) => {
   await page.goto("/play");
-  const trigger = page.locator(".wk-trigger");
-  await expect(trigger).toContainText("GW17"); // the gameweek being planned
+  const shown = page.locator('.wk-chip[aria-checked="true"]');
+  await expect(shown).toContainText("GW17"); // the gameweek being planned, with its dates
+  await expect(shown.locator(".wk-when")).toBeVisible();
+  const strip = page.locator(".wk-strip");
+  // Every week of the season is in the strip, Play's own once each; the week shown sits in view.
+  expect(await strip.getByRole("radio").count()).toBe((await playWeeks(request)).length);
+  await expect(shown).toBeInViewport();
 
-  await trigger.click();
-  const panel = page.locator(".wk-panel");
-  // It opens on the month of the week you are on, with that week checked.
-  await expect(panel.getByRole("radio", { name: /Sorare GW17\b/ })).toHaveAttribute("aria-checked", "true");
-  // A month at a time, so a whole season stays one screen.
-  await expect(panel.locator(".wk-months button").first()).toBeVisible();
-  await expect(panel.locator(".wk-foot")).toContainText("open on Sorare");
-
-  // Which LaLiga round sits inside Sorare GW15, and which month holds it, depends on the shift the mock applies
-  // at start-up, so naming either would make this true only on the day it was written. Play counts in Sorare
-  // game weeks and the panel lists each of them once (lib/weeks.ts, pageWeeks), so the number addresses it.
+  // Which LaLiga round sits inside Sorare GW15 depends on the shift the mock applies at start-up, so naming it would
+  // make this true only on the day it was written. Play counts in Sorare game weeks and the strip lists each of them
+  // once (lib/weeks.ts, pageWeeks), so the number addresses it.
   const week15 = await gameweek(request, "15");
-  await showMonthOf(page, week15);
-  const played = panel.getByRole("radio", { name: /GW15\b/ });
-  await expect(played).toContainText("our plan's replay");
-  await played.click();
+  await strip.getByRole("radio", { name: /GW15\b/ }).click();
   await expect(page).toHaveURL(addressOf(week15));
   await expect(page.getByRole("heading", { level: 1, name: /Sorare GW15$/ })).toBeVisible();
-  await expect(trigger).toContainText("GW15");
+  await expect(shown).toContainText("GW15");
 
   // The same week, carried to another page by the address alone. Each page counts in its own gameweeks and
   // shows its own days: Play the whole Sorare game week, the board the LaLiga round inside it — which can be
@@ -660,10 +626,10 @@ test("the week in the bar moves the whole app, a month at a time", async ({ page
   const week = new URL(page.url()).searchParams.get("w")!;
   await page.goto(`/difficulty?w=${week}`);
   if (week15.md !== null) {
-    await expect(page.locator(".wk-trigger b")).toHaveText(`LaLiga round ${week15.md} · Sorare GW15`);
+    await expect(page.locator('.wk-chip[aria-checked="true"]')).toHaveAttribute("aria-label", new RegExp(`^LaLiga round ${week15.md} · Sorare GW15,`));
     await expect(page.locator(".toolbar .range")).toContainText(`GW${week15.md}`); // the board followed the week
   } else {
-    await expect(page.locator(".wk-trigger b")).toHaveText("Sorare GW15"); // no round of ours to name it by
+    await expect(page.locator('.wk-chip[aria-checked="true"]')).toHaveAttribute("aria-label", /^Sorare GW15,/); // no round of ours to name it by
     await expect(page.locator(".toolbar")).toHaveCount(0); // and no round invented to draw (it says LaLiga is away)
   }
   // Which days each page prints for it is covered where the rule lives (lib/weeks.test.ts).
@@ -701,7 +667,7 @@ test("Apply opens on the first step and does nothing until it is pressed", async
 
 test("the days in Play's header are the ones the week picker shows, for a planned week and an early one", async ({ page, request }) => {
   const header = page.locator(".pl-head .pl-sub span").first();
-  const dates = async () => (await page.locator(".wk-trigger .wk-when").innerText()).trim();
+  const dates = async () => (await page.locator('.wk-chip[aria-checked="true"]').locator(".wk-when").innerText()).trim();
 
   await page.goto("/play");
   await expect(header).toContainText(await dates());
@@ -766,25 +732,6 @@ test("the Sorare page says when some lineups are expected", async ({ page, reque
   await page.goto("/play");
 
   await expect(page.getByText("Some lineups are expected")).toBeVisible();
-});
-
-test("the week picker's columns say what their numbers are: a chip of playable cards, a value with its unit", async ({ page, request }) => {
-  const early = (await playWeeks(request)).find((week) => !week.gw && week.early);
-  expect(early, "the mock serves an early plan").toBeTruthy();
-  await page.goto("/play");
-  await page.locator(".wk-trigger").click();
-  const rows = page.locator(".wk-panel .wk-week");
-  expect(await rows.count()).toBeGreaterThan(1);
-
-  for (const row of await rows.all()) {
-    const chip = row.locator(".wk-cards");
-    if (await chip.count()) await expect(chip).toHaveText(/^\d+ playable$/);
-    await expect(row.locator(".val b")).toHaveText(/^([<>]?\d+% reward chance|\d+ essence|early plan|live|1 card plays|\d+ cards play|—)$/);
-  }
-  await expect(page.locator(".wk-panel .wk-week .val b", { hasText: /^[<>]?\d+% reward chance$/ }).first()).toBeVisible();
-  // The picker opens on the current week's month; the early plans come later, in whichever month that is today.
-  await showMonthOf(page, early!);
-  await expect(page.locator(".wk-panel").getByText("early plan", { exact: true }).first()).toBeVisible();
 });
 
 test("a Pro lineup offers Load from Sorare beside it, and says when no elevens are out yet", async ({ page }) => {

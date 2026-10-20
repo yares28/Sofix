@@ -4,7 +4,7 @@ import { scaleBucket } from "../lib/grid";
 import { gameweekMatches } from "../lib/matches";
 import type { Sorare } from "../lib/play";
 import type { ApiResponse } from "../lib/types";
-import { seasonWeeks, weekOn } from "../lib/weeks";
+import { currentWeek, seasonWeeks } from "../lib/weeks";
 import { E2E_PORT, E2E_REVALIDATE_SECRET } from "./constants";
 import { APP, grid, MOCK, offline, openingMatchday, resetBackend, servedGrid, sorare, teamRows } from "./helpers";
 
@@ -24,14 +24,14 @@ async function servedWeeks(request: APIRequestContext) {
   const served = ((await (await request.get(`${MOCK}/api/sorare`)).json()) as ApiResponse<Sorare>).data!;
   const now = new Date();
   const weeks = seasonWeeks(await servedGrid(request), served, now);
-  return { weeks, planned: weeks.find((week) => week.gw === served.nextId)!, today: weekOn(weeks, now)! };
+  return { weeks, planned: weeks.find((week) => week.gw === served.nextId)!, today: currentWeek(weeks)! };
 }
 
 test("first load shows the overview, then the grid and the fixtures, from the opening gameweek", async ({ page }) => {
   await page.goto("/difficulty");
   await expect(page.getByRole("heading", { level: 1, name: "Who has the kindest run" })).toBeVisible();
   await expect(page.locator(".df-legend li")).toHaveCount(5); // the five colours, under the grid
-  await expect(page.locator(".wk-trigger")).toBeVisible(); // the week lives in the bar now, not in the board
+  await expect(page.locator(".wk-strip")).toBeVisible(); // the week lives in the bar now, not in the board
   await expect(page.getByRole("article", { name: /^Most points coming: / })).toBeVisible();
   await expect(page.getByRole("article", { name: /^Fewest points coming: / })).toBeVisible();
   await expect(page.locator(".run-card")).toHaveCount(2); // the schedule swings sit behind each card's arrow
@@ -230,7 +230,7 @@ test("the gameweek selector moves every card, the grid, the fixtures and the tab
   const games = (await page.locator("table.standings tbody tr td:nth-child(3)").allTextContents()).map(Number);
   expect(Math.max(...games)).toBeLessThanOrEqual(past);
 
-  // Today sits beside the picker, not in its menu, and opens the week the clock is in.
+  // Today sits beside the strip and opens the week the app opens on: the one being played until its games are over.
   const { planned, today } = await servedWeeks(request);
   await page.getByRole("button", { name: "Today" }).click();
   await expect(page).toHaveURL(new RegExp(`[?&]w=${today.id}(&|$)`));
@@ -600,7 +600,7 @@ test("home: the week in the bar moves to a played gameweek and the round follows
   await page.getByRole("button", { name: "Next gameweek" }).click();
   // The bar has to show the round that was picked before the blocks are asked to follow it: one Sorare
   // game week can hold two LaLiga rounds, and each is its own week (lib/weeks.ts).
-  await expect(picker.getByRole("button", { expanded: false })).toContainText(`LaLiga round ${past + 1}`);
+  await expect(picker.getByRole("radio", { checked: true })).toHaveAttribute("aria-label", new RegExp(`^LaLiga round ${past + 1}\\b`));
   await expect(page.locator(".rc-head p")).toContainText(`LaLiga round ${past + 1}`);
   const selectedWeek = new URL(page.url()).searchParams.get("w");
   expect(selectedWeek).toBeTruthy();
@@ -641,7 +641,7 @@ test("home: a Sorare-only week says LaLiga is away and identifies each player's 
   await page.goto(`/?w=${weeks[weeks.indexOf(planned) + 1]!.id}`);
   await page.getByRole("button", { name: "Previous gameweek" }).click();
 
-  await expect(page.locator(".wk-trigger")).toContainText(`Sorare GW${planned.number}`);
+  await expect(page.locator('.wk-chip[aria-checked="true"]')).toHaveAttribute("aria-label", new RegExp(`Sorare GW${planned.number}\\b`));
   await expect(page.getByRole("heading", { level: 2, name: "No LaLiga this week" })).toBeVisible();
   await expect(page.locator(".hm-top")).toHaveCount(0);
   // The recap sums the week up instead of listing every game; the list lives on Fixtures.
@@ -654,7 +654,7 @@ test("home: a Sorare-only week says LaLiga is away and identifies each player's 
 test("home: a gameweek the season doesn't have goes back to the home page", async ({ page }) => {
   await page.goto("/?gw=99");
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.locator(".wk-trigger")).toContainText("Sorare GW");
+  await expect(page.locator('.wk-chip[aria-checked="true"]')).toHaveAttribute("aria-label", /Sorare GW/);
 });
 
 test("the switch under the top bar moves between the Season views", async ({ page }) => {
@@ -706,8 +706,7 @@ test("a week with no LaLiga round shows the games your own players play", async 
   // and travels to the board in the address, the way the top bar's links carry it.
   const planned = sorare.weeks.find((week) => week.gameweek.id === sorare.nextId)!.gameweek.number;
   await page.goto("/play");
-  await page.locator(".wk-trigger").click();
-  await page.locator(".wk-panel").getByRole("radio", { name: new RegExp(String.raw`GW${planned}\b`) }).click();
+  await page.locator(".wk-strip").getByRole("radio", { name: new RegExp(String.raw`GW${planned}\b`) }).click();
   await expect(page).toHaveURL(/\/play\?w=\d{4}-\d{2}-\d{2}$/);
   await page.locator(".lens").getByRole("link", { name: "LaLiga" }).click();
   await expect(page).toHaveURL(/\/fixtures\?w=\d{4}-\d{2}-\d{2}$/);

@@ -31,6 +31,11 @@ export type Week = {
    */
   span: { from: string; to: string; through?: string } | null;
   state: WeekState;
+  /**
+   * Its games are all played: from 00:00 Madrid the day after its last game (a week with no LaLiga round: the day its
+   * window closes). Sorare may keep the week open to the next lock, Tuesday 16:00, but the app opens on the next one.
+   */
+  over: boolean;
   /** The LaLiga round inside this week, and its column in the grid. */
   md: number | null;
   column: number | null;
@@ -126,6 +131,7 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
       to,
       span,
       state: stateOf(span?.from ?? from, span?.to ?? to, sorare, week?.id, now),
+      over: now.getTime() >= madridMidnight(to, 1),
       md: round.number,
       column: (grid?.matchdays ?? []).indexOf(round),
       finished: Boolean(round.finished),
@@ -145,6 +151,7 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
       to: item.end,
       span: { from: item.start, to: item.end },
       state: stateOf(item.start, item.end, sorare, item.id, now),
+      over: now.getTime() >= madridMidnight(item.end, 0),
       md: null,
       column: null,
       finished: at(item.end) < now.getTime(),
@@ -190,9 +197,20 @@ export function weekOn(weeks: Week[], instant: Date): Week | null {
   return weeks.find((week) => at(week.from) <= t && t < at(week.to)) ?? [...weeks].reverse().find((week) => at(week.from) <= t) ?? null;
 }
 
-/** Stay on the week in progress until its window ends, then advance to the next available week. */
+const madridDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid", year: "numeric", month: "2-digit", day: "2-digit" });
+const madridHour = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", hour: "2-digit", hourCycle: "h23" });
+
+/** 00:00 Madrid that starts the day of this instant, `days` later (1: the next day). Madrid is UTC+1 or UTC+2. */
+function madridMidnight(iso: string, days: number): number {
+  const [y, m, d] = madridDay.format(new Date(iso)).split("-").map(Number);
+  const utc = Date.UTC(y!, m! - 1, d! + days);
+  return [utc - 7_200_000, utc - 3_600_000].find((t) => madridHour.format(t) === "00") ?? utc - 3_600_000;
+}
+
+/** Stay on the week in progress until its games are over, then advance to the next week. */
 export function currentWeek(weeks: Week[]): Week | null {
-  return weeks.find((week) => week.state === "live") ?? weeks.find((week) => week.state !== "done") ?? weeks.at(-1) ?? null;
+  const open = weeks.filter((week) => !week.over);
+  return open.find((week) => week.state === "live") ?? open.find((week) => week.state !== "done") ?? weeks.at(-1) ?? null;
 }
 
 export function weekById(weeks: Week[], id: string | undefined | null): Week | null {

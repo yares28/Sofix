@@ -205,13 +205,23 @@ describe("with nothing synced", () => {
 describe("what the bar shows on a page", () => {
   const context = (asked?: Parameters<typeof weekContext>[3]) => weekContext(grid, sorare, NOW, asked);
 
-  it("opens on the live GW until it ends, even while the next GW is being planned", () => {
+  it("opens on the live GW until its games are over, even while the next GW is being planned", () => {
     expect(context().current!.number).toBe(16);
     expect(context().now!.number).toBe(16);
-    expect(weekContext(grid, sorare, new Date("2026-09-25T16:59:59Z")).current!.number).toBe(16);
+    // GW16 has no LaLiga round and runs to Friday 19:00 Madrid: the app moves on at that Friday's 00:00, Madrid time.
+    expect(weekContext(grid, sorare, new Date("2026-09-24T21:59:59Z")).current!.number).toBe(16);
+    expect(weekContext(grid, sorare, new Date("2026-09-24T22:00:00Z")).current!.number).toBe(17);
     expect(weekContext(grid, sorare, new Date("2026-09-25T17:00:00Z")).current!.number).toBe(17);
     // nextId can lag a refresh; the clock still recognizes the week that has ended.
     expect(weekContext(grid, sorare, new Date("2026-09-30T10:00:00Z")).current!.number).toBe(19);
+  });
+
+  it("moves on at midnight after a round's last game, though Sorare's week runs to the next lock", () => {
+    // MD7's last game is Sunday 20 Sep (21:00 Madrid); its Sorare week GW15 stays open to Tuesday 19:00.
+    expect(weekContext(grid, sorare, new Date("2026-09-20T21:59:59Z")).current!.md).toBe(7);
+    const monday = weekContext(grid, sorare, new Date("2026-09-20T22:00:00Z"));
+    expect(monday.current!.number).toBe(16);
+    expect(monday.weeks.find((w) => w.md === 7)!.state).toBe("live"); // still Sorare's open week, only no longer the default
   });
 
   it("follows a week in the address", () => {

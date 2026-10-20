@@ -65,7 +65,7 @@ test("Recap and Play keep the current GW, compare all entered and best-plan line
   }, { slug: info.slug, lineup });
 
   await page.goto("/");
-  await expect(page.getByRole("button", { name: new RegExp(`Sorare GW${info.number} `) })).toBeVisible();
+  await expect(page.getByRole("radio", { name: new RegExp(`Sorare GW${info.number},`), checked: true })).toBeVisible();
   const mine = page.getByRole("region", { name: "Your Sorare lineups", exact: true });
   await expect(mine.locator(".pl-entered-lineup")).toHaveCount(2);
   await expect(mine.locator(".rc-lu")).toHaveCount(2);
@@ -122,7 +122,7 @@ test("Recap and Play keep the current GW, compare all entered and best-plan line
   await expect(mine.locator(".pl-entered-lineup")).toHaveCount(0);
   await expect(mine).not.toContainText("Custom captain");
   await page.goto("/difficulty");
-  await expect(page.locator(".wk-trigger")).toContainText(`Sorare GW${info.number}`);
+  await expect(page.locator('.wk-chip[aria-checked="true"]')).toHaveAttribute("aria-label", new RegExp(`Sorare GW${info.number}\\b`));
   await expect(page.getByRole("heading", { name: "Your week", exact: true })).toBeVisible();
 
   // A cold device has no browser cache and no signed-in Sorare tab: server snapshots still render both teams.

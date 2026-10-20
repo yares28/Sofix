@@ -20,12 +20,17 @@ prices or standings. Live pages always show their own sync/freshness state.
 Open Sofix in Chrome or Edge. The app is private and protected by the deployment login. Use the header to move
 between Play, Lineups, Fixtures, Difficulty, Table, Audit, Cards and Players. The Sofix wordmark returns home.
 
-The week control on the right is app-wide:
+The week control on the right is app-wide, a strip with no menu to open: the week shown, **GW24 20–23 Oct** (on a phone just
+**GW24**), with its neighbours as numbers either side (grey played, blue the next one, **R12** a LaLiga round Sorare has not opened).
+Click a number to go there; swipe or scroll the strip for the rest of the season; hover a number for its full name and dates.
 
 - left/right arrows move one available week;
-- the centre opens the week picker;
-- the target icon returns to the current week;
-- the round status dot distinguishes LaLiga from Sorare-only weeks.
+- the target icon returns to the week the app opens on;
+- the dot beside the week shown is green while it is being played, blue when it is the next one.
+
+The app opens on the week being played until its games are over: at 00:00 Madrid the day after its last game it moves to the next
+one, even though Sorare keeps the week open to the next lock (a round ending Monday hands over on Tuesday at 00:00, not at the
+Tuesday 16:00 lock). A Sorare-only week (Europe, national teams) hands over at 00:00 on the day its window closes.
 
 The sun/moon button at the top right of the bar switches between the light and the dark theme. The choice is kept in
 this browser; until one is made, Sofix follows the system's light or dark setting. The magnifier beside it searches players by
@@ -34,9 +39,6 @@ name (accents ignored) and opens his page. Every Sorare card drawn anywhere in t
 A week has one name on every page, in the bar, in the Play title and on Lineups and Home, because the two leagues count their
 weeks differently (LaLiga's round 8 is Sorare's GW21): **LaLiga round 8 · Sorare GW21**; before Sorare opens the week
 **LaLiga round 9 · Sorare not open**; an international break has no LaLiga round, **Sorare GW19 · national teams**.
-
-In the picker each week's chip says how many of your cards play ("88 playable"), and the column on its right always says what its number
-is: "48% reward chance · 3 plans", "250 essence · our plan's replay", "early plan" ("· expected" when its competitions are), "2 cards play".
 
 How fresh something is reads the same everywhere (Home, Play, Lineups, Control, the status pill, the sorare.com overlay): how long
 ago and the time it was made in Madrid, **9 h ago (03:33)**; once it is over a day old the day is added, **2 days ago (Tue 03:33)**.
@@ -380,12 +382,12 @@ later weeks look alike until Sorare opens them.
 A gameweek Sorare **has** opened can still lack its LaLiga competitions for a while. Then the same expected competitions are added
 beside the official ones: the plan shares your cards across both, each expected lineup says "Expected · Sorare has not opened it
 yet", a banner above the plan says which finished week they were copied from, and Apply leaves them out (Check, Draft and Enter only
-work for competitions Sorare lists). The Home says how many lineups are expected and the week picker adds "expected" beside the plan.
+work for competitions Sorare lists). The Home says how many lineups are expected.
 The day Sorare lists the real competitions, the next refresh shows only those.
 
 Every gameweek is **kept** once its scores are final (a day after it ends, and once everything it was built from could
-be read from Sorare) and stays in the picker with its replay and hindsight, however old. A week played before Sofix started
-keeping them is marked **not recorded**; it still opens, to the lineups you entered and what they won, read from Sorare.
+be read from Sorare) and stays in the week strip with its replay and hindsight, however old. A week played before Sofix started
+keeping them says **not recorded** on its page; it still opens, to the lineups you entered and what they won, read from Sorare.
 
 A week Sofix holds no plan for says why, and still shows your lineups for it: one being played is locked, so there is
 nothing left to plan; one further off than the next three Sorare gameweeks gets its plan once it is one of them.

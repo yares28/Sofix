@@ -549,13 +549,13 @@ describe("Apply from the dock on sorare.com", () => {
 
   it("runs Apply's steps in the tab that asked, one per message, and nothing else", async () => {
     worker = load({ sorareTab: true });
-    const question: Record<string, string> = { entered: "SofixMyLineups", check: "SofixPreviewLineup", draft: "SofixSaveDraft", enter: "SofixConfirmLineups" };
+    const question: Record<string, string> = { entered: "SofixMyLineups", check: "SofixPreviewLineup", draft: "SofixSaveDraft", enter: "SofixConfirmLineups", "week-entered": "SofixFixtureLineups" };
     for (const [step, operation] of Object.entries(question)) {
       worker.asked.length = 0;
       expect(await worker.send({ type: "dock-step", step, ...INPUT }), step).toMatchObject({ ok: true, step, state: "ok" });
       expect(worker.asked.map((one) => one.operation), step).toEqual([operation]);
     }
-    for (const step of ["week-entered", "pro-entered", "whoami", "SofixConfirmLineups", "__proto__", ""]) {
+    for (const step of ["pro-entered", "whoami", "SofixConfirmLineups", "__proto__", ""]) {
       expect(await worker.send({ type: "dock-step", step, ...INPUT }), step).toBeNull();
     }
   });

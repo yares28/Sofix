@@ -556,6 +556,13 @@ the held-out weeks (P9 "The bar").
 
 ## Results
 
+**20 Oct 2026 · The dock's alarm, live score and lineup-page total (extension 0.4.1; plans/overlay.md O16 to O18).** A starter unlikely to
+start turns the pill red and offers the swap (the app picks it); after the lock the pill and rows show what your entered lineups have
+scored; on Sorare's lineup page the pill adds up the slots and compares them with the plan. Checked: unit tests (alarm rows, live
+scores, the page's address and slot sum), the worker's new read-only step, 40 overlay browser tests, and Sorare's lineup page looked at
+read only in your Chrome (slot and pick buttons, no captain on that page). Not seen: the new pill on a real page (needs your Reload), a
+filled bench card's width, the plan's board slug against the page's address. The 50% alarm figure is an assumption.
+
 **20 Oct 2026 · The dock on sorare.com (T4, batch 6.1 and 6.2; extension 0.4.0).** The drawer is replaced by a corner pill and a 400 px
 panel: the plan's lineups (Enter in three presses from Sorare, Guide me) and today's missions (the swap Sofix would make, guided on
 Sorare's missions page). Checked: unit tests for the app's rows and mission summary, the worker's `dock-step` and the helpers; 37 overlay

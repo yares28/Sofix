@@ -539,6 +539,45 @@ describe("overlayPlan", () => {
     expect(rows.rows![1]).toMatchObject({ when: "Wed", x: 253, ess: 73 });
   });
 
+  describe("the alarm: a starter unlikely to start, and who would take his place", () => {
+    const future = "2026-10-21T18:00:00Z";
+    const mate = (slug: string, pos: PlayingPlayer["pos"], pStart: number, extra: Partial<PlayingPlayer> = {}) =>
+      player({ player: slug, name: slug.toUpperCase(), pos, pic: `p/${slug}`, pStart, pOn: 0.1, start: 50, bench: 10, x: 40, games: [game({ kickoff: future })], ...extra });
+    const inLineup = (slug: string) => ({ slug: `c-${slug}`, player: slug, name: slug.toUpperCase(), pic: `p/${slug}`, pos: "MID", fixture: { kickoff: future }, start: 50, mu: 50 }) as unknown as PlayCard;
+    const rows = (players: PlayingPlayer[], starters: PlayCard[]) => {
+      const answer = overlayPlan(week({ playing: { cards: players.length, players }, plans: [{
+        rank: 1, essence: 0, cash: 0, pAny: 0.3, rewards: 0, cardsUsed: starters.length, cardsAvailable: 9,
+        lineups: [{ comp: "LaLiga Pro", board: "b1", boardId: "B1", x: 200, need: 300, pReturn: 0.2, eEss: 0, starters, subs: [], tiers: [] }] as unknown as Lineup[],
+      }] as Plan[] }), NOW);
+      if (answer.state !== "ready") throw new Error("expected a plan");
+      return answer.rows![0]!;
+    };
+
+    it("names the doubtful starter and offers the likeliest player of yours in his position who is in no lineup", () => {
+      const row = rows(
+        [mate("pedri", "MID", 0.22), mate("gavi", "MID", 0.9), mate("olmo", "MID", 0.75), mate("rodri", "MID", 0.95, { player: "rodri" }), mate("ryan", "GK", 0.99)],
+        [inLineup("pedri"), inLineup("rodri")],
+      );
+      expect(row.alarms).toEqual([
+        { out: { slug: "c-pedri", name: "PEDRI", pic: "p/pedri", pStart: 0.22, why: "" }, in: { slug: "gavi", name: "GAVI", pic: "p/gavi", pStart: 0.9, s: 50 } },
+      ]); // Rodri is already in the plan, Olmo is less likely than Gavi, Ryan plays another position
+    });
+
+    it("is silent for a likely starter, for a game that has started and for a bare lineup", () => {
+      expect(rows([mate("pedri", "MID", 0.8)], [inLineup("pedri")]).alarms).toBeUndefined();
+      expect(rows([mate("pedri", "MID", 0.1, { games: [game({ kickoff: "2026-10-08T10:00:00Z" })] })], [inLineup("pedri")]).alarms).toBeUndefined();
+      expect(rows([], [inLineup("pedri")]).alarms).toBeUndefined();
+    });
+
+    it("sounds for an injured starter even at a high number, and says so; no replacement when nobody is likely enough", () => {
+      const row = rows(
+        [mate("pedri", "MID", 0.9, { games: [game({ kickoff: future, pStart: 0.9, pOn: 0.05, startSource: "futbolfantasy", ffStatus: { kind: "out" } })] }), mate("gavi", "MID", 0.4)],
+        [inLineup("pedri")],
+      );
+      expect(row.alarms).toEqual([{ out: { slug: "c-pedri", name: "PEDRI", pic: "p/pedri", pStart: 0.9, why: "injured" }, in: null }]);
+    });
+  });
+
   it("says what a gameweek without a plan is waiting for, in the app's own words", () => {
     const waiting = overlayPlan(week({ state: "waiting", plans: [], projectionsAt: "2026-10-09T00:00:00Z" }), NOW);
     expect(waiting).toEqual({ state: "waiting", week: 17, note: "Sorare publishes its projections for these games first." });

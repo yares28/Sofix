@@ -889,7 +889,16 @@ writes with capitals), so the panel never said "FF live" and kept the last refre
 even on a page about another week; and every Celta game showed **No odds**, because Sorare's "Celta de Vigo" did not match the board's
 "Celta". Reload Sofix in `chrome://extensions` (Control says "update" until you do); the Celta fix is in the app and needs no reload.
 
-### The dock (extension 0.4.0, 20 Oct 2026)
+### The dock (extension 0.4.0, 20 Oct 2026; 0.4.1 adds the three things below)
+
+- **Alarm (0.4.1):** the pill turns red with a count when a starter of the plan, whose game is still ahead, is under 50% to start (or
+  injured or suspended). The lineup's row says "N at risk" and, opened, shows who would take his place: a player of yours in the same
+  position, in no lineup of the plan, at least 70% to start. **Swap** guides it on Sorare's lineup page. It watches Sofix's plan, not
+  lineups you built by hand, and goes quiet at the lock.
+- **Live score (0.4.1):** after the lock the pill shows the points your entered lineups have so far; each row says "191 of 260 · so far"
+  and "70 to go" or "Reached". Read from Sorare through your tab, at most every two minutes while the panel is open.
+- **Lineup page (0.4.1):** on Sorare's page where you pick the cards, the pill adds up Sofix's score for the cards in the slots and, once
+  all are in, says "+6 vs plan" or "−4 vs plan" against the plan's lineup in that competition. Cards only: that page has no captain.
 
 A small pill in the bottom-right corner of Sorare's football pages says the gameweek and when it locks ("GW24 · Locks 16:00"; in
 the last hour "Locks in 42 min", in yellow), and carries a yellow badge when Sofix would swap a mission pick. Pressed, it opens a

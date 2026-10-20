@@ -16,8 +16,10 @@ export const REQUIRED_EXTENSION_VERSION = "0.1.1";
  0.3.16 also reads your Pro lineups, read only, so Play shows them with the gameweek's other lineups; 0.3.17 replaces the page bridge of a sorare.com tab left open across the update (version 8), so that read reaches it; 0.3.18 reads Pro lineups as Sorare keeps them (task lineups) on every Pro board, and from now on the newest bridge takes over an open tab by itself (version 9); 0.3.19 asks Sorare for mission eligibility by bare task and game ids, the only form it accepts since Oct 2026 (without it no restricted mission got a pick); 0.3.20 asks for eligible cards 12 pairs at a time, under Sorare's query complexity limit (24 were refused, so no mission had eligibility).
  0.4.0 replaces the drawer with the dock: a corner pill and a small panel of the plan's lineups and today's missions, Apply's three steps
  run from Sorare itself, and Guide me (plans/overlay.md, O15).
+ 0.4.1 adds the dock's alarm (a starter unlikely to start, and who would take his place), your lineups' live score after the lock, and the
+ total of the cards in a lineup you are building on Sorare against the plan's (plans/overlay.md, O16 to O18).
  */
-export const LATEST_EXTENSION_VERSION = "0.4.0";
+export const LATEST_EXTENSION_VERSION = "0.4.1";
 
 /** Chrome manifest versions are numeric dot-separated values; compare them without relying on string ordering. */
 export function extensionAtLeast(version: string, minimum = REQUIRED_EXTENSION_VERSION): boolean {

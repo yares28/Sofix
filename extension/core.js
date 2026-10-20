@@ -381,6 +381,57 @@
     return { state: "ok", broken: rules, lineupId: saved ? String(saved.id) : null, entered };
   }
 
+  /**
+   * What your entered lineups of a gameweek have scored so far, from Sorare's answer to the dock's read of them: the sum of the
+   * entered ones (drafts are no entry) and, per competition, the best of them. `null` when the answer is not a gameweek's lineups,
+   * so a failed read is never shown as a score of 0. A lineup Sorare has not scored yet counts for nothing.
+   */
+  function liveScores(response) {
+    if (!response || response.state !== "ok") return null;
+    const fixture = response.data && response.data.so5 && response.data.so5.so5Fixture;
+    if (!fixture || !Array.isArray(fixture.mySo5Lineups)) return null;
+    const byBoard = {};
+    let total = 0;
+    let lineups = 0;
+    for (const lineup of fixture.mySo5Lineups) {
+      if (!lineup || lineup.draft !== false) continue;
+      const board = lineup.so5Leaderboard && lineup.so5Leaderboard.slug;
+      const ranks = Array.isArray(lineup.so5Rankings) ? lineup.so5Rankings : [];
+      const rank = ranks.find((one) => one && one.so5Leaderboard && one.so5Leaderboard.slug === board) || ranks[0];
+      if (!board || !rank || typeof rank.score !== "number") continue;
+      total += rank.score;
+      lineups += 1;
+      byBoard[board] = Math.max(byBoard[board] === undefined ? -Infinity : byBoard[board], rank.score); // ponytail: the best of several entries in one competition
+    }
+    return { total: Math.round(total), lineups, byBoard };
+  }
+
+  // -- Sorare's lineup page (checked on the page itself, 20 Oct 2026) -------------------------------------------------------
+  // A slot is a button labelled "Select <player>" once a card is in it and "Select DEF", "Select MID"... while it is empty. The
+  // cards to pick from sit under "Pick <player>". The captain is not chosen on this page, so a total here is the cards' scores alone.
+
+  /** The competition a lineup page is about, from its address ("/football/play/classic/compose/<slug>"), or null. */
+  function composeBoard(pathname) {
+    const found = /^\/football\/play\/(?:classic\/)?compose\/([a-z0-9_-]{1,120})\/?$/i.exec(String(pathname || ""));
+    return found ? found[1].toLowerCase() : null;
+  }
+
+  /**
+   * What the cards in a lineup page's slots add up to, from `{ label, width, score }` per slot button: the button's label without "Select ",
+   * its width in pixels and the score on Sofix's tile in it (NaN when it has none yet). Empty slots (a position's name) and the small
+   * bench boxes (under 90 px; unconfirmed for a filled bench card) are left out, as is a card whose tile has not arrived.
+   */
+  function composeSum(items) {
+    let n = 0;
+    let total = 0;
+    for (const one of Array.isArray(items) ? items : []) {
+      if (!one || /^(GK|DEF|MID|FWD|EX|SUB|GK SUB)$/.test(String(one.label).trim()) || !(one.width >= 90) || !Number.isFinite(one.score)) continue;
+      n += 1;
+      total += one.score;
+    }
+    return { n, total };
+  }
+
   /** Whether Sorare already holds this lineup entered (the same cards, not a draft): entering it again would spend a second slot. */
   function alreadyEntered(entered, cardSlugs) {
     const want = [...cardSlugs].sort().join(",");
@@ -574,7 +625,7 @@
 
   root.__sofixCore = {
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, collectStartingOdds, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
-    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, shapeOf, shapeBars, shapeLabels, whyRows, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
+    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, shapeOf, shapeBars, shapeLabels, whyRows, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
     isPickHeading, fixtureOf, gamesCount, fixtureLine, collectMissions, missionsRarity, missionsAsked,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;

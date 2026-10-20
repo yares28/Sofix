@@ -161,7 +161,7 @@ const OLD_WEEK = "football-18-22-sep-2026";
 
 async function openPage(
   page: Page,
-  options: { mode?: Mode; overlay?: boolean; delay?: number; viewport?: { width: number; height: number }; query?: string; live?: Live } = {},
+  options: { mode?: Mode; overlay?: boolean; delay?: number; viewport?: { width: number; height: number }; query?: string; live?: Live; plan?: unknown; steps?: Record<string, unknown> } = {},
 ) {
   const mode = options.mode ?? "ok";
   if (options.viewport) await page.setViewportSize(options.viewport);
@@ -232,7 +232,7 @@ async function openPage(
         },
       };
     },
-    { mode, overlay: options.overlay ?? true, numbers: NUMBERS, plan: PLAN, missions: MISSIONS, steps: SORARE_STEPS, delay: options.delay ?? 15, thisWeek: THIS_WEEK, live: options.live ?? {} },
+    { mode, overlay: options.overlay ?? true, numbers: NUMBERS, plan: options.plan ?? PLAN, missions: MISSIONS, steps: options.steps ?? SORARE_STEPS, delay: options.delay ?? 15, thisWeek: THIS_WEEK, live: options.live ?? {} },
   );
   for (const file of ["core.js", "bridge.js", "content.js", "overlay.js", "dock.js"]) await page.addInitScript({ path: path.join(EXTENSION, file) });
 
@@ -1087,6 +1087,73 @@ test.describe("the sorare.com overlay", () => {
     await guide.getByRole("button", { name: "Stop guiding" }).click();
     await expect(guide).toHaveCount(0);
     await expect(page.locator("[data-sfx-guide]")).toHaveCount(0);
+  });
+
+  test("the alarm turns the pill red when a starter is unlikely to start, and Swap guides the change on Sorare's page", async ({ page }) => {
+    const alarm = { out: { slug: PICKS[1]!.card, name: "Pick 2", pic: PICKS[1]!.pic, pStart: 0.22, why: "" }, in: { slug: "gavi", name: "Gavi", pic: picture(41), pStart: 0.9, s: 52 } };
+    await openPage(page, { plan: { ...PLAN, rows: [{ ...PLAN.rows[0]!, alarms: [alarm] }, PLAN.rows[1]!] } });
+    await expect(page.getByLabel("1 starter unlikely to start")).toBeVisible();
+    await pill(page).click();
+    const first = dock(page).getByRole("listitem").nth(0);
+    await expect(first).toContainText("1 at risk");
+    await first.getByRole("button", { name: /All Star/ }).click();
+    await expect(dock(page).getByText("22%")).toBeVisible();
+    await dock(page).getByRole("button", { name: "Swap Pick 2 for Gavi in All Star" }).click();
+    const guide = page.locator("[data-sfx-dock]").getByRole("status");
+    await expect(guide).toContainText("Take out Pick 2");
+    await expect(guide).toContainText("All Star · 1 of 2");
+  });
+
+  test("after the lock the pill shows what your entered lineups have scored, read once and again every two minutes at most", async ({ page }) => {
+    const fixture = { so5: { so5Fixture: { mySo5Lineups: [
+      { id: "L1", draft: false, so5Leaderboard: { slug: "all-star" }, so5Rankings: [{ score: 190.6, so5Leaderboard: { slug: "all-star" } }] },
+      { id: "L2", draft: false, so5Leaderboard: { slug: "limited" }, so5Rankings: [{ score: 310, so5Leaderboard: { slug: "limited" } }] },
+    ] } } };
+    await openPage(page, {
+      plan: { ...PLAN, fixture: THIS_WEEK, lock: new Date(Date.now() - 3600_000).toISOString(), rows: [{ ...PLAN.rows[0]!, alarms: [{ out: { slug: "x", name: "X", pic: "", pStart: 0.1, why: "" }, in: null }] }, PLAN.rows[1]!] },
+      steps: { ...SORARE_STEPS, "week-entered": { state: "ok", data: fixture } },
+    });
+    await expect(page.getByLabel("501 points so far in 2 entered lineups")).toBeVisible();
+    await expect(page.getByLabel(/starter.* unlikely to start/)).toHaveCount(0); // nothing can be changed after the lock
+    await pill(page).click();
+    await expect(dock(page).getByText("points so far")).toBeVisible();
+    const lines = dock(page).getByRole("listitem");
+    await expect(lines.nth(0)).toContainText("191 of 260 · so far");
+    await expect(lines.nth(0)).toContainText("70 to go");
+    await expect(lines.nth(1)).toContainText("Reached");
+    expect((await dockSteps(page)).filter((step) => step === "week-entered")).toHaveLength(1);
+  });
+
+  test("on a lineup page the pill adds up the cards in the slots and compares them with the plan once the lineup is whole", async ({ page }) => {
+    await openPage(page);
+    await expect(pill(page)).toBeVisible();
+    // Sorare's lineup page, as it is: a slot is a button "Select <player>" (a position's name while empty) with Sofix's tile inside.
+    await page.evaluate(() => {
+      history.pushState({}, "", "/football/play/classic/compose/all-star");
+      const slot = (label: string, score: string) => {
+        const button = document.createElement("button");
+        button.setAttribute("aria-label", `Select ${label}`);
+        button.style.cssText = "position:fixed;left:20px;top:20px;width:120px;height:160px";
+        if (score) { const tile = document.createElement("b"); tile.className = "sfx-score"; tile.textContent = score; button.append(tile); }
+        button.dataset.slot = label;
+        document.body.append(button);
+      };
+      slot("Pick One", "60"); slot("Pick Two", "55"); slot("DEF", ""); // two cards in, one empty slot
+    });
+    await expect(page.getByLabel(/^115 points expected from 2 cards, captain not counted; Sofix's plan has /)).toBeVisible();
+    await expect(page.locator("[data-sfx-dock]")).toContainText("2 of 5"); // the plan's lineup has five starters: no comparison yet
+    await page.evaluate(() => {
+      for (const [label, score] of [["Pick Three", "50"], ["Pick Four", "50"], ["Pick Five", "50"]] as const) {
+        const button = document.createElement("button");
+        button.setAttribute("aria-label", `Select ${label}`);
+        button.style.cssText = "position:fixed;left:20px;top:200px;width:120px;height:160px";
+        button.innerHTML = `<b class="sfx-score">${score}</b>`;
+        document.body.append(button);
+      }
+    });
+    await expect(page.locator("[data-sfx-dock]")).toContainText("vs plan");
+    await page.evaluate(() => history.pushState({}, "", "/football/play"));
+    await expect(page.getByLabel(/points expected from/)).toHaveCount(0); // gone with the lineup page
   });
 
   test("the Missions tab shows today's swap, and Swap guides it on Sorare's missions page", async ({ page }) => {

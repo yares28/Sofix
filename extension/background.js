@@ -489,8 +489,9 @@ async function overlayPlan(fixture = null, missions = false) {
 
 // The dock's numbers are asked once per page and again after two minutes at most: picks and entries change during the day.
 const DOCK_TTL_MS = 2 * 60 * 1000;
-// What the dock may run through your session: Apply's steps, nothing else (the Pro and gameweek reads stay the app's).
-const DOCK_STEPS = new Set(["entered", "check", "draft", "enter"]);
+// What the dock may run through your session: Apply's steps and the one read of your entered lineups' live scores, nothing else
+// (the Pro read and the app's own copies of the gameweek stay the app's).
+const DOCK_STEPS = new Set(["entered", "check", "draft", "enter", "week-entered"]);
 
 // The fixed things the app may ask Sorare through your session, and the shape of each. The app names a step,
 // never a query: nothing outside this table can be asked, and the two that write are separate steps so that

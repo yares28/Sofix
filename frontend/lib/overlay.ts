@@ -131,6 +131,8 @@ export type OverlayPlan =
       cardsAvailable: number;
       /** When the gameweek locks (ISO), and each lineup of the best plan for the dock, likeliest to pay first. */
       lock?: string;
+      /** The gameweek's address on Sorare ("football-19-23-oct-2026"): what the dock reads your entered lineups by. */
+      fixture?: string;
       rows?: DockRow[];
     }
   | { state: "waiting" | "none"; week: number; note: string };
@@ -148,6 +150,14 @@ export type DockRow = {
   ess: number;
   cards: { slug: string; name: string; pic: string; s: number; captain: boolean; sub: boolean; slot: string }[];
   appearances: Appearance[];
+  /** The starters whose game is still ahead and who are unlikely to start, each with the player of yours Sofix would put in (the dock's alarm). */
+  alarms?: DockAlarm[];
+};
+
+/** A starter at risk: `out` is his card in the lineup; `in` is a player of yours (a player slug, as Guide me finds a card by it) not in the plan, likelier to start. */
+export type DockAlarm = {
+  out: { slug: string; name: string; pic: string; pStart: number | null; why: string };
+  in: { slug: string; name: string; pic: string; pStart: number; s: number } | null;
 };
 
 /** Today's missions for the dock: what you picked, what Sofix would pick and the swaps between the two. */
@@ -186,13 +196,56 @@ export function overlayPlan(gameweek: GameweekPlan, now: Date): OverlayPlan {
     cardsUsed: best.cardsUsed,
     cardsAvailable: best.cardsAvailable,
     lock: gameweek.gameweek.lock,
-    rows: [...best.lineups].filter((lineup) => !lineup.expected).sort((a, b) => (b.pReturn ?? 0) - (a.pReturn ?? 0)).map(dockRow),
+    fixture: gameweek.gameweek.slug,
+    rows: [...best.lineups].filter((lineup) => !lineup.expected).sort((a, b) => (b.pReturn ?? 0) - (a.pReturn ?? 0)).map((lineup) => dockRow(lineup, alarmsOf(gameweek, best.lineups, lineup, now))),
   };
+}
+
+/** Under this chance of starting (or injured, or suspended) a starter sets the alarm off. The owner has not named a figure: 50% until he does. */
+export const ALARM_BELOW = 0.5;
+/** A replacement must be at least this likely to start: a swap that only trades one doubt for another is not offered. */
+const REPLACEMENT_AT = 0.7;
+
+/**
+ * The starters of one lineup whose game is still ahead and who are unlikely to start, and for each the player of yours, not in any
+ * lineup of the plan, who plays the same position and is likeliest to start (his score if he starts breaks a tie). The numbers are the
+ * ones the cards already show; a game that has kicked off is never an alarm, since nothing can be changed then.
+ */
+function alarmsOf(gameweek: GameweekPlan, lineups: Lineup[], lineup: Lineup, now: Date): DockAlarm[] {
+  const playing = new Map<string, PlayingPlayer>();
+  for (const player of gameweek.playing.players) if (player.player) playing.set(player.player, player);
+  const named = new Set(gameweek.playing.players.map((player) => player.name));
+  const used = new Set(lineups.flatMap((one) => [...(one.starters ?? []), ...(one.subs ?? [])]).flatMap((card) => [card.player ?? "", card.name]));
+  const readOf = (player: PlayingPlayer) => entryFor(player, null, now, "", undefined);
+  const unwell = (kind: FfStatus["kind"] | undefined) => kind === "out" || kind === "suspended";
+  const taken = new Set<string>();
+  return (lineup.starters ?? []).flatMap((card): DockAlarm[] => {
+    const player = card.player ? playing.get(card.player) : gameweek.playing.players.find((one) => one.name === card.name && named.has(card.name));
+    if (!player) return [];
+    const now1 = readOf(player);
+    if (now1.over || now1.pStart === undefined) return [];
+    const kind = now1.ffStatus?.kind;
+    if (now1.pStart >= ALARM_BELOW && !unwell(kind)) return [];
+    const pool = gameweek.playing.players
+      .filter((one) => one.pos === player.pos && one.player && !used.has(one.player) && !used.has(one.name) && !taken.has(one.player))
+      .flatMap((one) => {
+        const read = readOf(one);
+        return read.over || read.pStart === undefined || read.pStart < REPLACEMENT_AT || unwell(read.ffStatus?.kind) ? [] : [{ one, read }];
+      })
+      .sort((a, b) => b.read.pStart! - a.read.pStart! || (b.read.start ?? b.read.x) - (a.read.start ?? a.read.x));
+    const pick = pool[0];
+    if (pick) taken.add(pick.one.player!);
+    const why = kind === "out" ? "injured" : kind === "suspended" ? "suspended" : kind === "doubt" ? "a doubt" : "";
+    return [{
+      out: { slug: card.slug, name: card.name, pic: card.pic, pStart: now1.pStart, why },
+      in: pick ? { slug: pick.one.player!, name: pick.one.name, pic: pick.one.pic, pStart: pick.read.pStart!, s: Math.round(pick.read.start ?? pick.read.x) } : null,
+    }];
+  });
 }
 
 const DAY = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", weekday: "short" });
 
-function dockRow(given: Lineup): DockRow {
+function dockRow(given: Lineup, alarms: DockAlarm[] = []): DockRow {
   const lineup = { ...given, starters: given.starters ?? [], subs: given.subs ?? [] }; // an older payload may lack a list
   const kickoffs = lineup.starters.flatMap((card) => (card.fixture?.kickoff ? [Date.parse(card.fixture.kickoff)] : [])).sort((a, b) => a - b);
   const days = kickoffs.length ? [DAY.format(kickoffs[0]!), DAY.format(kickoffs[kickoffs.length - 1]!)] : [];
@@ -208,6 +261,7 @@ function dockRow(given: Lineup): DockRow {
     ess: Math.round(lineup.eEss ?? 0),
     cards: [...lineup.starters.map((one) => card(one, false)), ...lineup.subs.map((one) => card(one, true))],
     appearances: appearances(lineup),
+    ...(alarms.length ? { alarms } : {}),
   };
 }
 

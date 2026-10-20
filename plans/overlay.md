@@ -893,3 +893,15 @@ because it is the one negotiating with someone else's live DOM.
 
 **Not in this plan:** anything that writes to Sorare from the overlay. Apply stays Check -> Draft -> Enter in
 the app, three separate presses. The overlay reads and draws, nothing else.
+
+## O16 to O18 · the dock's alarm, live score and lineup-page total (20 Oct 2026, built, unpushed)
+
+- **O16 Alarm.** `lib/overlay.ts` `alarmsOf`: a starter of the plan whose game is ahead and who is under 50% to start (or out, or suspended) is an alarm; the
+  swap is the player of yours, in no plan lineup, same position, at least 70% to start, likeliest first. The dock turns the pill red and Swap runs Guide me.
+  Plan lineups only (not hand-built ones); silent after the lock. The 50% is an assumption until the owner names a figure.
+- **O17 Live.** After the lock the dock reads `week-entered` (now an allowed dock step, read only) once on load and every 2 minutes while open;
+  `core.liveScores` sums entered, scored lineups. A failed read shows nothing, never 0.
+- **O18 Lineup page.** Checked on sorare.com 20 Oct 2026: a slot is `button[aria-label="Select <player>"]` (a position's name while empty), the cards to pick
+  from are `[aria-label="Pick <player>"]`, the captain is not chosen on that page. The pill adds the slots' tile scores (cards alone) and, once the lineup is
+  whole, compares them with the plan's starters in the same competition (the address's slug is the board slug: assumed, not yet seen against real data).
+  A filled bench card is assumed to stay under 90 px wide; unconfirmed.

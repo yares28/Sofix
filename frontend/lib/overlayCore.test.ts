@@ -47,6 +47,9 @@ type Core = {
   lockLabel: (iso: unknown, now?: number) => { text: string; soon: boolean };
   swapCount: (missions: unknown) => number;
   stepAnswer: (response: unknown, step: string) => { state: string; broken?: string[]; lineupId?: string | null; entered?: { id: string; draft: boolean; cards: string[] }[]; errors?: string[] };
+  liveScores: (response: unknown) => { total: number; lineups: number; byBoard: Record<string, number> } | null;
+  composeBoard: (pathname: unknown) => string | null;
+  composeSum: (items: unknown) => { n: number; total: number };
   alreadyEntered: (entered: { draft: boolean; cards: string[] }[], cards: string[]) => boolean;
   benchOnChance: (entry: { pStart?: number; pOn?: number }) => number | null;
   comesOnScore: (entry: { on?: number; bench?: number }) => { score: number; words: string; tab: string };
@@ -501,6 +504,36 @@ describe("the dock", () => {
     expect(core.stepAnswer(undefined, "enter").state).toBe("error");
     const held = core.stepAnswer({ state: "ok", data: { so5: { so5Leaderboard: { mySo5Lineups: [lineup("L1", false)] } } } }, "entered");
     expect(held.entered).toEqual([{ id: "L1", draft: false, cards: ["a", "b"] }]);
+  });
+
+  it("adds up what the entered lineups have scored: drafts and unscored lineups count for nothing, a failed read is not a score of 0", () => {
+    const lineup = (board: string, draft: boolean, score: number | null) => ({
+      id: board, draft, so5Leaderboard: { slug: board }, so5Rankings: score === null ? [] : [{ score, so5Leaderboard: { slug: board } }],
+    });
+    const answer = (lineups: unknown[]) => ({ state: "ok", data: { so5: { so5Fixture: { mySo5Lineups: lineups } } } });
+    expect(core.liveScores(answer([lineup("pro", false, 251.4), lineup("star", false, 180), lineup("star", false, 200.2), lineup("draft", true, 99), lineup("later", false, null)])))
+      .toEqual({ total: 632, lineups: 3, byBoard: { pro: 251.4, star: 200.2 } });
+    expect(core.liveScores(answer([]))).toEqual({ total: 0, lineups: 0, byBoard: {} });
+    expect(core.liveScores({ state: "timeout" })).toBeNull();
+    expect(core.liveScores({ state: "ok", data: { so5: { so5Fixture: null } } })).toBeNull();
+    expect(core.liveScores(undefined)).toBeNull();
+  });
+
+  it("names the competition of Sorare's lineup page from its address, and nothing else", () => {
+    const slug = "football-23-27-oct-2026-seasonal-spain-in_season_spain_limited";
+    expect(core.composeBoard(`/football/play/classic/compose/${slug}`)).toBe(slug);
+    expect(core.composeBoard(`/football/play/compose/${slug}/`)).toBe(slug);
+    expect(core.composeBoard(`/football/play/boards/arena/cash/football-23-27-oct-2026/${slug}/lineups`)).toBeNull();
+    expect(core.composeBoard("/football/missions/play/limited")).toBeNull();
+    expect(core.composeBoard(undefined)).toBeNull();
+  });
+
+  it("adds up the cards in a lineup page's slots: empty slots, small bench boxes and cards without a score yet count for nothing", () => {
+    const slot = (label: string, width: number, score: number) => ({ label, width, score });
+    expect(core.composeSum([slot("Jan Oblak", 154, 53), slot("DEF", 150, NaN), slot("Marc Bartra", 150, 58), slot("GK SUB", 50, 40), slot("Late Tile", 150, NaN), slot("MID", 150, 12)]))
+      .toEqual({ n: 2, total: 111 }); // the DEF/MID labels are empty slots, whatever number sits near them
+    expect(core.composeSum([])).toEqual({ n: 0, total: 0 });
+    expect(core.composeSum(null)).toEqual({ n: 0, total: 0 });
   });
 
   it("knows a lineup Sorare already holds entered, whatever the order of its cards, and not one held only as a draft", () => {

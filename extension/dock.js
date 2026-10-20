@@ -36,6 +36,10 @@
       box-shadow: 0 16px 44px rgba(0, 0, 0, .55), inset 0 0 0 1px rgba(255, 255, 255, .09); font-weight: 700;
     }
     .pill.soon { box-shadow: 0 16px 44px rgba(0, 0, 0, .55), inset 0 0 0 1px rgba(240, 206, 29, .6); }
+    .pill.alarm { box-shadow: 0 16px 44px rgba(0, 0, 0, .55), inset 0 0 0 1px rgba(255, 90, 90, .7); }
+    .pill .live { font-size: 20px; line-height: 1; }
+    .badge.bad { background: #ff5a5a; color: #fff; }
+    .row.alarm { background: linear-gradient(90deg, rgba(255, 90, 90, .12), var(--row) 70%); box-shadow: inset 0 0 0 1px rgba(255, 90, 90, .45); }
     .pill .when { font-size: 12px; color: var(--t2); font-weight: 600; }
     .pill.soon .when { color: var(--warn); }
     .badge { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: var(--warn); color: #0e0e0e; font-size: 11px; font-weight: 800; }
@@ -108,6 +112,7 @@
     .menu a { color: #8fe3b4; font-weight: 700; text-decoration: none; }
     .swap { display: grid; grid-template-columns: 30px auto 14px 30px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px; margin: 0 8px 8px; border-radius: 10px; background: rgba(240, 206, 29, .1); }
     .swap img { width: 30px; border-radius: 4px; display: block; }
+    .swap.bad { background: rgba(255, 90, 90, .1); }
     .swap .was { filter: grayscale(.7); opacity: .7; }
     .pc { font-size: 17px; }
     .say { margin: 0; font-size: 14px; font-weight: 600; }
@@ -129,6 +134,10 @@
   let loadedFor = "";
   let loading = false;
   let busy = false;
+  let live = null; // after the lock: { at, total, lineups, byBoard } from core.liveScores, or null (nothing read, or a read that failed)
+  let liveFor = ""; // the gameweek `live` is about
+  let liveBusy = false;
+  let liveTimer = 0;
   let guide = null; // { title, steps: [{ card?, player?, role, text, pic }], at }
   const applied = new Map(); // board slug -> { stage 0 check, 1 draft, 2 enter, 3 entered; lineupId; note; failed }
 
@@ -209,11 +218,78 @@
     }
     data = answer || { state: "unreachable" };
     render();
+    loadLive();
   }
 
   const ready = () => data && data.state === "ok" && data.plan && data.plan.state === "ready" ? data.plan : null;
   const rows = () => (ready() && Array.isArray(ready().rows) ? ready().rows : []);
   const missions = () => (data && data.missions && Array.isArray(data.missions.missions) ? data.missions : null);
+
+  // -- after the lock: what your lineups have scored ---------------------------------------------------------------
+
+  const locked = () => Boolean(ready() && core.lockLabel(ready().lock).text === "Locked");
+  /** The starters at risk across the plan's lineups: the alarm. None once the gameweek is locked, since nothing can be changed then. */
+  const alarmCount = () => (locked() ? 0 : rows().reduce((sum, row) => sum + (Array.isArray(row.alarms) ? row.alarms.length : 0), 0));
+
+  /** Reads your entered lineups' scores from Sorare through this tab (read only), at most every two minutes, and only after the lock. */
+  async function loadLive(force = false) {
+    const plan = ready();
+    if (!plan || !plan.fixture || !locked() || liveBusy) return;
+    if (!force && live && liveFor === plan.fixture && Date.now() - live.at < STALE_MS) return;
+    liveBusy = true;
+    const answer = await send({ type: "dock-step", step: "week-entered", slug: plan.fixture });
+    liveBusy = false;
+    const scores = core.liveScores(answer);
+    if (scores && ready() && ready().fixture === plan.fixture) {
+      live = { at: Date.now(), ...scores };
+      liveFor = plan.fixture;
+      render();
+    }
+  }
+
+  const liveHere = () => (live && ready() && liveFor === ready().fixture && locked() ? live : null);
+
+  // -- while you build a lineup on Sorare's own page ------------------------------------------------------------------
+
+  let compose = null; // { n, total } the cards in the lineup page's slots and their scores added up, or null off that page
+  let composeWatch = null;
+  let composeTimer = 0;
+
+  /** The lineup page's slot buttons, read as they are: nothing is asked of Sorare or of the app, and nothing is written. */
+  function readCompose() {
+    composeTimer = 0;
+    let next = null;
+    if (core.composeBoard(location.pathname)) {
+      const items = [...document.querySelectorAll('button[aria-label^="Select "]')].map((slot) => {
+        const said = (slot.querySelector(".sfx-score") || {}).textContent;
+        return { label: (slot.getAttribute("aria-label") || "").slice(7), width: slot.getBoundingClientRect().width, score: said ? Number(said) : NaN };
+      });
+      next = core.composeSum(items);
+    }
+    if ((next && next.n) === (compose && compose.n) && (next && next.total) === (compose && compose.total)) return;
+    compose = next && next.n ? next : null;
+    render();
+  }
+
+  const scheduleCompose = () => {
+    if (!composeTimer) composeTimer = setTimeout(readCompose, 300);
+  };
+
+  /** What the plan has in the same competition, its starters' scores added up the same way (cards alone, no captain): the like-for-like figure. */
+  function planSum() {
+    const board = core.composeBoard(location.pathname);
+    const row = board ? rows().find((one) => one.board === board) : null;
+    if (!row) return null;
+    const starters = row.cards.filter((card) => !card.sub);
+    return { size: starters.length, total: starters.reduce((sum, card) => sum + card.s, 0) };
+  }
+
+  /** While the panel is open after the lock, the scores are read again every two minutes; closed, they are read when the page opens. */
+  function watchLive() {
+    clearInterval(liveTimer);
+    liveTimer = 0;
+    if (open && locked()) liveTimer = setInterval(() => loadLive(true), STALE_MS);
+  }
 
   // -- Apply, from here --------------------------------------------------------------------------------------------
 
@@ -353,9 +429,35 @@
     }
     const plan = data && data.plan;
     const lock = core.lockLabel(plan && plan.lock);
-    const node = el("div", lock.soon ? "pill soon" : "pill");
+    const alarms = alarmCount();
+    const scored = liveHere();
+    const node = el("div", alarms ? "pill alarm" : lock.soon ? "pill soon" : "pill");
     node.append(el("i", "mark"), el("span", "", plan && plan.week ? `GW${plan.week}` : "Sofix"));
-    if (lock.text) node.append(el("span", "when", lock.text));
+    const building = compose && !guide ? compose : null;
+    if (building) {
+      const plan1 = planSum();
+      const gap = plan1 ? Math.round(building.total - plan1.total) : null;
+      const sum = el("span", "live num", String(Math.round(building.total)));
+      const said = `${Math.round(building.total)} points expected from ${building.n} card${building.n === 1 ? "" : "s"}, captain not counted${plan1 ? `; Sofix's plan has ${Math.round(plan1.total)} in this competition` : ""}`;
+      sum.setAttribute("aria-label", said);
+      node.append(sum);
+      if (plan1) {
+        // a lineup still being filled is not compared: three cards would always trail the plan's five
+        const whole = building.n >= plan1.size;
+        const tag = el("span", !whole ? "chip" : gap >= 0 ? "chip mint" : "chip warn", !whole ? `${building.n} of ${plan1.size}` : `${gap > 0 ? "+" : gap < 0 ? "−" : "±"}${Math.abs(gap)} vs plan`);
+        tag.title = said;
+        node.append(tag);
+      }
+    } else if (scored && scored.lineups) {
+      const total = el("span", "live num", String(scored.total));
+      total.setAttribute("aria-label", `${scored.total} points so far in ${scored.lineups} entered lineup${scored.lineups === 1 ? "" : "s"}`);
+      node.append(total);
+    } else if (lock.text) node.append(el("span", "when", lock.text));
+    if (alarms) {
+      const bad = el("span", "badge bad", String(alarms));
+      bad.setAttribute("aria-label", `${alarms} starter${alarms === 1 ? "" : "s"} unlikely to start`);
+      node.append(bad);
+    }
     const swaps = core.swapCount(missions());
     if (!open && swaps) {
       const badge = el("span", "badge", String(swaps));
@@ -402,17 +504,51 @@
     return node;
   }
 
+  /** A starter unlikely to start, and the player of yours Sofix would put in (the app decides; this only draws it and offers Guide me). */
+  function alarmNode(row, alarm) {
+    const box = el("div", "swap bad in");
+    const why = alarm.out.why || (typeof alarm.out.pStart === "number" ? `${Math.round(alarm.out.pStart * 100)}% to start` : "unlikely to start");
+    if (!alarm.in) {
+      const note = el("p", "note bad", `${alarm.out.name}: ${why}. None of your other players in his position is likely enough to start.`);
+      note.style.gridColumn = "1 / -1";
+      box.style.display = "block";
+      box.append(note);
+      return box;
+    }
+    box.append(img(alarm.out.pic, "was", `${alarm.out.name}, ${why}`), el("span", "pc num", typeof alarm.out.pStart === "number" ? `${Math.round(alarm.out.pStart * 100)}%` : "–"), el("span", "note", "→"), img(alarm.in.pic, "", alarm.in.name));
+    const who = el("div");
+    who.style.minWidth = "0";
+    const chance = el("span", "pc num", `${Math.round(alarm.in.pStart * 100)}% · ${alarm.in.s}`);
+    chance.style.color = "#8fe3b4";
+    who.append(el("div", "name", alarm.in.name), chance);
+    box.append(who, button("btn warn sm", "Swap", () => guideAlarm(row, alarm), `Swap ${alarm.out.name} for ${alarm.in.name} in ${row.comp}`));
+    return box;
+  }
+
+  function guideAlarm(row, alarm) {
+    startGuide(row.comp, [
+      { card: alarm.out.slug, role: "out", pic: alarm.out.pic, text: `Take out ${alarm.out.name}` },
+      { player: alarm.in.slug, role: "pick", pic: alarm.in.pic, text: `Pick ${alarm.in.name}` },
+    ]);
+  }
+
   function lineupRow(row, index, best) {
     const state = stateOf(row);
-    const item = el("li", `row${best ? " best" : ""}${openRow === index ? " open" : ""}`);
+    const alarms = locked() ? [] : Array.isArray(row.alarms) ? row.alarms : [];
+    const scored = liveHere();
+    const soFar = scored && typeof scored.byBoard[row.board] === "number" ? scored.byBoard[row.board] : null;
+    const item = el("li", `row${alarms.length ? " alarm" : best ? " best" : ""}${openRow === index ? " open" : ""}`);
     const line = button("line", "", () => { openRow = openRow === index ? -1 : index; render(); });
     line.setAttribute("aria-expanded", String(openRow === index));
     const text = el("div");
     text.style.minWidth = "0";
     const sub = el("div", "sub");
-    sub.append(el("span", "num", String(row.x)), document.createTextNode(row.need ? ` of ${row.need}` : " expected"), document.createTextNode(row.when ? ` · ${row.when}` : ""));
+    if (soFar !== null) sub.append(el("span", "num", String(Math.round(soFar))), document.createTextNode(row.need ? ` of ${row.need} · so far` : " so far"), document.createTextNode(` · expected ${row.x}`));
+    else sub.append(el("span", "num", String(row.x)), document.createTextNode(row.need ? ` of ${row.need}` : " expected"), document.createTextNode(row.when ? ` · ${row.when}` : ""));
     text.append(el("div", "name", row.comp), sub);
-    const chip = state.failed ? el("span", "chip bad", "Stopped") : state.stage === 3 ? el("span", "chip mint", "Entered") : state.stage > 0 ? el("span", "chip warn", state.note) : el("span", best ? "chip mint" : "chip", core.chanceLabel(row.p));
+    const chip = soFar !== null && row.need ? (soFar >= row.need ? el("span", "chip mint", "Reached") : el("span", "chip", `${Math.ceil(row.need - soFar)} to go`))
+      : alarms.length ? el("span", "chip bad", `${alarms.length} at risk`)
+        : state.failed ? el("span", "chip bad", "Stopped") : state.stage === 3 ? el("span", "chip mint", "Entered") : state.stage > 0 ? el("span", "chip warn", state.note) : el("span", best ? "chip mint" : "chip", core.chanceLabel(row.p));
     line.append(fan(row.cards.filter((card) => !card.sub).map((card) => card.pic)), text, chip, el("span", "chev", "›"));
     item.append(line);
     if (openRow === index) {
@@ -426,6 +562,7 @@
         cards.append(li);
       }
       more.append(cards);
+      for (const alarm of alarms) more.append(alarmNode(row, alarm));
       if (state.note && (state.failed || state.stage > 0)) more.append(el("p", state.failed ? "note bad" : "note", state.note));
       const next = nextPress([row]);
       const two = el("div", "two");
@@ -451,7 +588,10 @@
     }
     const list = rows();
     const essence = list.reduce((sum, row) => sum + (row.ess || 0), 0);
-    const nodes = [hero(String(Math.round((plan.pAny || 0) * 100)), "%", "any reward", essence ? `${essence} essence expected` : "")];
+    const scored = liveHere();
+    const nodes = [scored && scored.lineups
+      ? hero(String(scored.total), "", `points so far · ${scored.lineups} entered`, `${Math.round((plan.pAny || 0) * 100)}% any reward, before the games`)
+      : hero(String(Math.round((plan.pAny || 0) * 100)), "%", "any reward", essence ? `${essence} essence expected` : "")];
     const ul = el("ul", "list");
     list.forEach((row, index) => ul.append(lineupRow(row, index, index === 0 && list.length > 1)));
     nodes.push(ul);
@@ -557,7 +697,8 @@
   function setOpen(next) {
     open = next;
     menu = false;
-    if (open) load();
+    if (open) { load(); loadLive(); }
+    watchLive();
     render();
   }
 
@@ -577,6 +718,7 @@
       return;
     }
     load(); // the pill says the week the page is about, and its badge today's swaps
+    scheduleCompose();
   }
 
   function setup() {
@@ -598,6 +740,8 @@
     }
     publish();
     document.addEventListener("keydown", onKey, true);
+    composeWatch = new MutationObserver(scheduleCompose);
+    composeWatch.observe(document.body, { childList: true, subtree: true, characterData: true });
     if (globalThis.navigation) globalThis.navigation.addEventListener("navigatesuccess", place);
     window.addEventListener("popstate", place);
     render();
@@ -611,6 +755,16 @@
     if (host) host.remove();
     host = dock = null;
     open = false;
+    clearInterval(liveTimer);
+    liveTimer = 0;
+    if (composeWatch) composeWatch.disconnect();
+    composeWatch = null;
+    clearTimeout(composeTimer);
+    composeTimer = 0;
+    compose = null;
+    live = null;
+    liveFor = "";
+    liveBusy = false;
     guide = null;
     globalThis.__sofixGuide = null;
     window.dispatchEvent(new Event("sofix-guide"));

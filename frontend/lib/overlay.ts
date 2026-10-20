@@ -152,7 +152,21 @@ export type DockRow = {
   appearances: Appearance[];
   /** The starters whose game is still ahead and who are unlikely to start, each with the player of yours Sofix would put in (the dock's alarm). */
   alarms?: DockAlarm[];
+  /** A Pro lineup rebuilt on the announced elevens (Play's "Load from Sorare"): its cards for Guide me, and the swaps named. */
+  rebuilt?: { at: string; cards: DockRow["cards"]; swaps: { out: string; in: string; why: string }[] };
 };
+
+/** Each Pro row of the dock's plan with its rebuild, when the rebuild was made from that plan. */
+export function withRebuild(plan: OverlayPlan, rebuild: { plan: number; at: string; lineups: (Lineup & { swaps: { out: string; in: string; why: string }[] })[] } | null, rank: number): OverlayPlan {
+  if (plan.state !== "ready" || !plan.rows || !rebuild || rebuild.plan !== rank) return plan;
+  return {
+    ...plan,
+    rows: plan.rows.map((row) => {
+      const lineup = rebuild.lineups.find((one) => one.board === row.board);
+      return lineup ? { ...row, rebuilt: { at: rebuild.at, cards: dockRow(lineup).cards, swaps: lineup.swaps } } : row;
+    }),
+  };
+}
 
 /** A starter at risk: `out` is his card in the lineup; `in` is a player of yours (a player slug, as Guide me finds a card by it) not in the plan, likelier to start. */
 export type DockAlarm = {

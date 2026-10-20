@@ -556,6 +556,14 @@ the held-out weeks (P9 "The bar").
 
 ## Results
 
+**20 Oct 2026 · Load from Sorare, step 1: Pro rebuilt on the announced elevens ([load-from-sorare.md](load-from-sorare.md); extension
+0.4.2).** Play's Pro lineups get a "Load from Sorare" button: the app reads the elevens (Sorare's public API, 60 s cache) and starts
+`pro-rebuild.yml`, which rebuilds the plan's Pro lineups from the saved forecasts with the bench rule and publishes `pro_rebuild`, shown
+under Sofix's lineup with the swaps; the dock's Guide me rings its cards. Checked: tests for the bench rule, the elevens mapping and the
+swaps, a read-only run of the rebuild on GW24's real data (191 KB from Neon; the boards need the job's Sorare key), the Play spec, and the
+page at 1440 and 390 px. Not yet seen: a real run (its Neon bytes and seconds are printed and kept in `pro_rebuild.run`), and Guide me on
+Sorare (needs your Reload).
+
 **20 Oct 2026 · The dock's alarm, live score and lineup-page total (extension 0.4.1; plans/overlay.md O16 to O18).** A starter unlikely to
 start turns the pill red and offers the swap (the app picks it); after the lock the pill and rows show what your entered lineups have
 scored; on Sorare's lineup page the pill adds up the slots and compares them with the plan. Checked: unit tests (alarm rows, live

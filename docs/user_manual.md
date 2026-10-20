@@ -266,7 +266,12 @@ lineup's cards to Pro or elsewhere, whichever is worth more. A Pro lineup reads 
 Thu 18:30–19:00 · enter once the teams are out"; Pro and Arena lineups say where the same five are worth more ("Worth more here
 than in LaLiga Arena", or "Worth more in LaLiga Pro"); the sheet gives the chance all five start, both chances, and the **Pro
 board**, the steps ahead with this lineup's chance of each target if all five start. Limits: only this week's step is valued (the
-next ones only shown), one try a week. Apply leaves Pro out: enter it on Sorare. While the gameweek is the one being
+next ones only shown), one try a week. Apply leaves Pro out: enter it on Sorare. **Load from Sorare** (20 Oct 2026), under each Pro
+lineup, reads the announced elevens of the games in the next three hours (no extension, works from a phone) and rebuilds the plan's
+Pro lineups on them in about a minute: an announced starter starts, a benched player only fills a slot no starter of yours fits or if
+his chance of coming on times his score if he does is at least the best starter's; anyone else does not play. The rebuild sits under
+Sofix's lineup, "Rebuilt at 18:12", with the swaps named ("Pedri not in the eleven → Gavi"); the plan is never replaced. To enter
+it, open that row in the dock on sorare.com and press **Guide me · rebuilt** (extension 0.4.2). While the gameweek is the one being
 played, today's missions sit under the lineups with the cards that fit each (chance, opponent, kick-off and what he
 did over his last 5); the full Missions page is one click away.
 

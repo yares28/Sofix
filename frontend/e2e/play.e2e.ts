@@ -786,3 +786,16 @@ test("the week picker's columns say what their numbers are: a chip of playable c
   await showMonthOf(page, early!);
   await expect(page.locator(".wk-panel").getByText("early plan", { exact: true }).first()).toBeVisible();
 });
+
+test("a Pro lineup offers Load from Sorare beside it, and says when no elevens are out yet", async ({ page }) => {
+  await page.route("**/api/pro-rebuild", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ success: false, data: { games: 0, starters: 0, bench: 0 }, error: "No elevens are out yet for the next games: Sorare shows them about an hour before kickoff." }) }),
+  );
+  await page.goto("/play");
+  await page.getByRole("navigation", { name: "Plan" }).getByRole("link").nth(1).click(); // the plan holding the Pro lineup
+  const rebuild = page.locator(".pl-rebuild").first();
+  await expect(rebuild).toContainText("Teams out? Rebuild this lineup on who actually starts.");
+  await rebuild.getByRole("button", { name: "Load from Sorare" }).click();
+  await expect(rebuild.getByRole("status")).toContainText("No elevens are out yet");
+  await expect(page.locator(".pl-lu", { hasText: "LaLiga Pro" }).first()).toBeVisible(); // Sofix's lineup stays
+});

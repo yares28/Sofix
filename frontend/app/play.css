@@ -2033,3 +2033,51 @@
   font-size: 12px;
   color: var(--ink-2);
 }
+
+/* Pro rebuilt on the announced elevens ("Load from Sorare"), beside Sofix's Pro lineup */
+.pl-rebuild {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 12px 14px;
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+}
+.pl-rebuild-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.pl-rebuild-bar b {
+  color: var(--ink);
+}
+.pl-rebuild-btn {
+  flex: none;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--on-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pl-rebuild-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.pl-rebuild-btn:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+.pl-rebuild-said,
+.pl-rebuild-swaps {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}

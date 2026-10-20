@@ -1,12 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { loadGrid } from "../../../../lib/api";
 import { authorised } from "../../../../lib/extAuth";
-import { dockMissions, OverlayRequest, overlayNumbers } from "../../../../lib/overlay";
+import { dockMissions, OverlayRequest, overlayNumbers, withRebuild } from "../../../../lib/overlay";
 import { loadMissions } from "../../../../lib/missionsData";
 import { loadMissionPool } from "../../../../lib/missionsPool";
 import { missionsToday } from "../../../../lib/missionsToday";
 import { weekPlan } from "../../../../lib/play";
-import { loadFrozenPlan, loadSorare, loadSorareWeek } from "../../../../lib/playData";
+import { loadFrozenPlan, loadProRebuild, loadSorare, loadSorareWeek } from "../../../../lib/playData";
 
 // The numbers the Chrome extension draws on sorare.com's cards (extension/overlay.js). Which cards a page shows
 // is only ever sent here, to your own app; nothing goes to a third party. It reads the read models the app
@@ -35,5 +35,10 @@ export async function POST(request: NextRequest) {
   const missions = parsed.data.missions
     ? dockMissions(await missionsToday(sorare, await loadMissions(), undefined, now, await loadMissionPool()))
     : undefined;
-  return NextResponse.json({ ok: true, ...overlayNumbers(data, loaded.grid, parsed.data, now, archived), ...(missions ? { missions } : {}) }, { headers: NO_STORE });
+  const numbers = overlayNumbers(data, loaded.grid, parsed.data, now, archived);
+  // Pro rebuilt on the announced elevens, for Guide me (plans/load-from-sorare.md): only for the week being planned
+  const planned = weekPlan(sorare, sorare.nextId);
+  const rebuild = numbers.plan?.state === "ready" && planned && numbers.plan.fixture === planned.gameweek.slug ? await loadProRebuild(planned.gameweek.slug) : null;
+  const plan = numbers.plan && planned?.plans[0] ? withRebuild(numbers.plan, rebuild, planned.plans[0].rank) : numbers.plan;
+  return NextResponse.json({ ok: true, ...numbers, ...(plan ? { plan } : {}), ...(missions ? { missions } : {}) }, { headers: NO_STORE });
 }

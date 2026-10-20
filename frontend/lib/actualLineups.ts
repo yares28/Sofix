@@ -40,3 +40,15 @@ export function actualSide(base:LineupSide,actual:ActualSide|undefined,cards:Rec
   return {...base,coach:null,rotations:null,predictability:null,season:null,squad:null,absent:[],unlinked:[],
     published:actual?.state==="announced",formation:actual?.formation??"",rows:actual?.rows.map(r=>({...r,players:r.players.map(mine)}))??[],alternatives:actual?.bench.map(mine)??[]};
 }
+/** Who starts and who sits on the bench in the games whose elevens Sorare has announced, by Sorare player slug (Pro's "Load from Sorare"). */
+export function elevensOf(values:unknown[]):{games:string[];starters:string[];bench:string[]}{
+  const out={games:[] as string[],starters:[] as string[],bench:[] as string[]};
+  for(const value of values){
+    const parsed=Game.safeParse(value); if(!parsed.success)continue;
+    const sides=[sideOf(parsed.data.homeFormation),sideOf(parsed.data.awayFormation)].filter(s=>s.state==="announced");
+    if(!sides.length)continue;
+    out.games.push(parsed.data.id);
+    for(const side of sides){out.starters.push(...side.rows.flatMap(r=>r.players.map(p=>p.slug!)));out.bench.push(...side.bench.map(p=>p.slug!));}
+  }
+  return out;
+}

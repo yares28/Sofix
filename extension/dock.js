@@ -525,6 +525,16 @@
     return box;
   }
 
+  /** A Pro lineup rebuilt on the announced elevens (Play's "Load from Sorare"): the swaps, and Guide me through its five cards. */
+  function rebuiltNode(row) {
+    const box = el("div", "menu in");
+    const at = new Date(row.rebuilt.at).toLocaleTimeString("en-GB", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit" });
+    const swaps = row.rebuilt.swaps.map((s) => `${s.out} ${s.why} → ${s.in}`).join(" · ") || "Same five: they all start.";
+    box.append(el("b", "", `Rebuilt at ${at} on the elevens`), el("span", "", swaps),
+      button("btn go sm", "Guide me · rebuilt", () => guideLineup({ comp: `${row.comp} · rebuilt`, cards: row.rebuilt.cards }), `Guide me through ${row.comp} rebuilt on the announced elevens`));
+    return box;
+  }
+
   function guideAlarm(row, alarm) {
     startGuide(row.comp, [
       { card: alarm.out.slug, role: "out", pic: alarm.out.pic, text: `Take out ${alarm.out.name}` },
@@ -563,6 +573,7 @@
       }
       more.append(cards);
       for (const alarm of alarms) more.append(alarmNode(row, alarm));
+      if (row.rebuilt && !locked()) more.append(rebuiltNode(row));
       if (state.note && (state.failed || state.stage > 0)) more.append(el("p", state.failed ? "note bad" : "note", state.note));
       const next = nextPress([row]);
       const two = el("div", "two");

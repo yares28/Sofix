@@ -29,6 +29,8 @@ import { Cash, Chevron, Essence, Foil, GROUP_COLOUR, RewardSplit } from "./bits"
 import EssenceOrder from "./EssenceOrder";
 import EnteredLineups from "./EnteredLineups";
 import Lineup from "./Lineup";
+import ProRebuild from "./ProRebuild";
+import type { ProRebuild as Rebuild } from "../../lib/playData";
 import SorareImage from "./SorareImage";
 import SeasonIcon from "../SeasonIcon";
 
@@ -57,7 +59,12 @@ export default function PlayView({
   sorareWaiting = null,
   forecast,
   scores,
+  rebuild = null,
+  rebuildable = false,
 }: {
+  /** Pro lineups rebuilt on the announced elevens, and whether this view offers "Load from Sorare" (the week being played, Sofix's plans). */
+  rebuild?: Rebuild | null;
+  rebuildable?: boolean;
   data: Sorare;
   week: GameweekPlan;
   planIndex: number;
@@ -177,9 +184,13 @@ export default function PlayView({
           </div>
           <Allocation plan={plan} />
           <div className="pl-lus">
-            {main.map((lineup, index) => (
-              <Lineup key={`${lineup.key}-${index}`} lineup={lineup} after={after} index={index} hindsight={plan.hindsight === true} players={week.playing.players} scores={scores} />
-            ))}
+            {main.map((lineup, index) => [
+              <Lineup key={`${lineup.key}-${index}`} lineup={lineup} after={after} index={index} hindsight={plan.hindsight === true} players={week.playing.players} scores={scores} />,
+              // Pro can be entered until its first kickoff: rebuilt on the announced elevens, beside Sofix's lineup
+              lineup.pro && rebuildable ? (
+                <ProRebuild key={`${lineup.key}-rebuild`} comp={lineup.comp} week={week.gameweek.slug} plan={plan.rank} rebuild={rebuild} players={week.playing.players} />
+              ) : null,
+            ])}
           </div>
           {longShots.length ? (
             <details className="pl-fold pl-long" open={!main.length}>

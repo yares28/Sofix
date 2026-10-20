@@ -18,8 +18,9 @@ export const REQUIRED_EXTENSION_VERSION = "0.1.1";
  run from Sorare itself, and Guide me (plans/overlay.md, O15).
  0.4.1 adds the dock's alarm (a starter unlikely to start, and who would take his place), your lineups' live score after the lock, and the
  total of the cards in a lineup you are building on Sorare against the plan's (plans/overlay.md, O16 to O18).
+ 0.4.2 adds Guide me for a Pro lineup rebuilt on the announced elevens (plans/load-from-sorare.md, step 1).
  */
-export const LATEST_EXTENSION_VERSION = "0.4.1";
+export const LATEST_EXTENSION_VERSION = "0.4.2";
 
 /** Chrome manifest versions are numeric dot-separated values; compare them without relying on string ordering. */
 export function extensionAtLeast(version: string, minimum = REQUIRED_EXTENSION_VERSION): boolean {

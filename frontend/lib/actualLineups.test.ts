@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { actualSide, readActualGame, sameTeam } from "./actualLineups";
+import { actualSide, elevensOf, readActualGame, sameTeam } from "./actualLineups";
 import type { LineupMatch, LineupSide } from "./lineups";
 import recorded from "./fixtures/actual-lineup-response.json";
 const player = (n: number) => ({ slug: `p-${n}`, displayName: `Player ${n}`, position: n === 0 ? "Goalkeeper" : "Defender" });
@@ -37,4 +37,12 @@ it("rejects another kickoff, reversed teams, duplicate or cross-team players, an
   const g=game(); g.homeFormation.startingLineup[1]![0]=player(0);
   expect(readActualGame(g,match,"")?.home.state).toBe("incomplete");
   expect(sameTeam({name:"Athletic Bilbao",slug:"athletic-club-bilbao"},{name:"Athletic Club",club:"ATH"} as LineupSide)).toBe(true);
+});
+it("maps announced elevens to starters and bench by Sorare slug, leaving out a side not announced yet",()=>{
+  const g=game(); g.awayFormation.startingLineupAvailable=false;
+  const out=elevensOf([g,{nonsense:true}]);
+  expect(out.games).toEqual([g.id]);
+  expect(out.starters).toHaveLength(11); expect(out.starters).toContain("p-0");
+  expect(out.bench).toEqual(["p-11"]);
+  expect(out.starters.some(s=>s.startsWith("away-"))).toBe(false);
 });

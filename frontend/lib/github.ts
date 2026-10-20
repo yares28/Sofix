@@ -145,12 +145,15 @@ export async function latestWorkflowRun(token: string, workflow = REFRESH_WORKFL
   return body.workflow_runs?.[0] ?? null;
 }
 
-export async function dispatchRefresh(token: string, workflow = REFRESH_WORKFLOW): Promise<boolean> {
+/** Play's "Load from Sorare": the Pro lineups rebuilt on the announced elevens (pro-rebuild.yml). */
+export const PRO_REBUILD_WORKFLOW = "pro-rebuild.yml";
+
+export async function dispatchRefresh(token: string, workflow = REFRESH_WORKFLOW, inputs?: Record<string, string>): Promise<boolean> {
   const url = `${apiBase()}/repos/${repo()}/actions/workflows/${workflow}/dispatches`;
   const response = await fetch(url, {
     method: "POST",
     headers: { ...headers(token), "Content-Type": "application/json" },
-    body: JSON.stringify(workflow === REFRESH_WORKFLOW ? { ref: "main", inputs: { trigger: "button" } } : { ref: "main" }),
+    body: JSON.stringify(workflow === REFRESH_WORKFLOW ? { ref: "main", inputs: { trigger: "button" } } : { ref: "main", ...(inputs ? { inputs } : {}) }),
     cache: "no-store",
     signal: AbortSignal.timeout(8000),
   });

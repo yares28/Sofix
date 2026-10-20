@@ -1,0 +1,61 @@
+# Rebuild the plan's Pro lineups on the announced elevens (backend/app/jobs/pro_rebuild.py); Play's "Load from Sorare" starts it.
+name: Pro rebuild
+
+on:
+  workflow_dispatch:
+    inputs:
+      week:
+        description: Sorare gameweek slug
+        required: true
+      plan:
+        description: Plan rank shown on Play
+        default: "1"
+      starters:
+        description: Announced starters (player slugs, comma separated)
+        default: ""
+      bench:
+        description: Announced bench players (player slugs, comma separated)
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pro-rebuild
+  cancel-in-progress: true
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      APP_ENV: prod
+      POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+      POSTGRES_URL_SPARE: ${{ secrets.POSTGRES_URL_SPARE }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      SORARE_API_KEY: ${{ secrets.SORARE_API_KEY }}
+      SORARE_USER: ${{ vars.SORARE_USER || 'yares' }}
+      APP_URL: ${{ secrets.APP_URL }}
+      REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
+      VERCEL_BYPASS_SECRET: ${{ secrets.VERCEL_BYPASS_SECRET }}
+      WEEK: ${{ inputs.week }}
+      PLAN: ${{ inputs.plan }}
+      STARTERS: ${{ inputs.starters }}
+      BENCH: ${{ inputs.bench }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+          activate-environment: true
+          enable-cache: true
+          cache-dependency-glob: backend/requirements.lock
+      - run: uv pip sync requirements.lock
+      - run: python -m app.jobs.neon_switch
+      - run: python -m app.jobs.pro_rebuild "$WEEK" "$PLAN" "$STARTERS" "$BENCH"

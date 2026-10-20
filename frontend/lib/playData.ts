@@ -2,7 +2,7 @@ import { unstable_cache } from "next/cache";
 import { cache } from "./cache";
 import { database, keptInDev, readModel, stamp } from "./db";
 import { blockFromR2 } from "./r2";
-import { SORARE_TAG, weekPlan, type GameweekPlan, type Sorare, type SorarePlans } from "./play";
+import { SORARE_TAG, weekPlan, type GameweekPlan, type Lineup as PlayLineup, type Sorare, type SorarePlans } from "./play";
 import { restoreFrozenPlan } from "./frozenPlan";
 import type { ChanceRecord } from "./lineupChances";
 import type { SofixRecord } from "./matchScores";
@@ -216,6 +216,25 @@ export async function loadSorareLens(slug: string, key: string): Promise<SorareP
     return lens && Array.isArray(lens.plans) ? lens : null;
   } catch (error) {
     console.error(`[sorare] ${key} plans for ${slug} could not be read: ${error instanceof Error ? error.message : "unknown"}`);
+    return null;
+  }
+}
+
+/** Pro lineups rebuilt on the announced elevens (`read_models` key `pro_rebuild`, written by pro-rebuild.yml), or null. */
+export type ProRebuild = {
+  week: string;
+  plan: number;
+  at: string;
+  lineups: (PlayLineup & { swaps: { out: string; in: string; why: string }[] })[];
+  missing: { comp: string; why: string }[];
+};
+export async function loadProRebuild(slug: string): Promise<ProRebuild | null> {
+  if (!database()) return null;
+  try {
+    const read = cache(async () => (await readModel<ProRebuild>("pro_rebuild"))?.payload ?? null, ["pro-rebuild-v1"], { tags: [SORARE_TAG], revalidate: 3600 });
+    const got = await read();
+    return got && got.week === slug && Array.isArray(got.lineups) ? got : null;
+  } catch {
     return null;
   }
 }

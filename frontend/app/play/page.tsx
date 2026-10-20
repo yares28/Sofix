@@ -8,7 +8,7 @@ import { loadGrid } from "../../lib/api";
 import { loadMissions } from "../../lib/missionsData";
 import { missionsToday } from "../../lib/missionsToday";
 import { bestPlan, lensKey, plansOf, weekPlan, type PlanBy } from "../../lib/play";
-import { loadFrozenPlan, loadProjectedWeek, loadSorare, loadSorareAlt, loadSorareLens, loadSorareWeek } from "../../lib/playData";
+import { loadFrozenPlan, loadProRebuild, loadProjectedWeek, loadSorare, loadSorareAlt, loadSorareLens, loadSorareWeek } from "../../lib/playData";
 import { loadMissionPool } from "../../lib/missionsPool";
 import { loadSystem } from "../../lib/system";
 import { noPlan, weekContext, weekDates, weekName } from "../../lib/weeks";
@@ -92,11 +92,13 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
   const today = !after && !showing.projected && showing.gameweek.id === data.nextId; // today's missions belong to the week played now
   // A locked week still being played: each card's score as his game comes in, the same cached read the home page makes.
   const playing = !after && !showing.projected && !showing.played && Date.parse(showing.gameweek.lock) <= Date.now();
-  const [alt, frozen, missions, scores] = await Promise.all([
+  const rebuildable = switchable && !sorareAsked && !lens;
+  const [alt, frozen, missions, scores, rebuild] = await Promise.all([
     sorareAsked ? loadSorareAlt(showing.gameweek.slug) : lens ? loadSorareLens(showing.gameweek.slug, lens) : null,
     showing.projected ? null : loadFrozenPlan(showing.gameweek.slug, data),
     today ? missionsToday(data, missionsModel, undefined, new Date(), pool) : null,
     playing ? loadPlanActuals(showing) : undefined,
+    rebuildable ? loadProRebuild(showing.gameweek.slug) : null,
   ]);
   const by: PlanBy = sorareAsked ? "sorare" : (lens ?? "sofix");
   const view = sorareAsked || lens ? { ...showing, plans: alt?.plans ?? [] } : showing;
@@ -116,6 +118,8 @@ export default async function Play({ searchParams }: { searchParams: SearchParam
         week={view}
         forecast={enteredForecast}
         scores={scores}
+        rebuild={rebuild}
+        rebuildable={rebuildable}
         by={by}
         sorareWaiting={sorareWaiting}
         planIndex={planIndex}

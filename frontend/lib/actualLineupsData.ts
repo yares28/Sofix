@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { cache } from "./cache";
-import { GameIdentity, readActualGame, sameGame, type ActualRead } from "./actualLineups";
+import { GameIdentity, elevensOf, readActualGame, sameGame, type ActualRead } from "./actualLineups";
 import type { LineupMatch } from "./lineups";
 
 const API="https://api.sorare.com/graphql";
@@ -47,4 +47,9 @@ export async function loadActualLineup(match:LineupMatch,scores=false):Promise<A
     const data=readActualGame(body.anyGame,match,new Date().toISOString());
     return data?{state:"ready",data}:{state:"unavailable"};
   }catch(error){return {state:error instanceof Limited?"rate-limited":"unavailable"};}
+}
+/** The announced elevens of these Sorare games (one cached request each, 60 s); a game not read or not announced is left out. */
+export async function readElevens(ids:string[]){
+  const bodies=await Promise.all(ids.map(id=>query(FORMATION_QUERY,{id},60).then(b=>(b as {anyGame?:unknown}).anyGame,()=>null)));
+  return elevensOf(bodies);
 }

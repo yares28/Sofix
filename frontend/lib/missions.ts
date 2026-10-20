@@ -193,6 +193,8 @@ export type Suggestion = {
   venue?: "H" | "A";
   kickoff: string;
   chance: number;
+  /** No number fits him (no stat sheet): a filler for an open slot, shown without a chance, never as 0%. */
+  noEstimate?: boolean;
   /** What he does per start (a share of starts for a decisive action) over his last 5, last 8 and two seasons. */
   average?: Window;
   cards: number;
@@ -205,7 +207,7 @@ export type Suggestion = {
   samples?: { l5: number; l8: number; baseline: number };
   hits?: Window;
 };
-/** `all`: every card of yours with a game this mission day that Sofix can rate for it, likeliest first (also those it gave to another mission);
+/** `all`: every eligible card of yours with a game this mission day, likeliest first, those with no estimate last (also those it gave to another mission);
  * `unrated`: the others with a game, which no number fits (no stat sheet, or a mission that asks him to beat his own average). */
 export type MissionPlan = { mission: MissionRow; rule: Rule; reward: string | null; open: number; picks: Suggestion[]; all: Suggestion[]; unrated: { slug: string; name: string }[] };
 
@@ -340,27 +342,26 @@ export function plan(
       }
       const target = one.mission.inventory?.find((c) => c.card === card && c.game.id === game.id)?.target;
       const found = fit(one.rule, { ...p, availabilityKnown: game.availabilityKnown ?? p.availabilityKnown, pStart: game.pStart ?? p.pStart, pOn: game.pOn ?? p.pOn }, sheets[p.player!] ?? null, target);
-      if (!found) {
-        one.unrated.push({ slug: p.player!, name: p.name });
-        continue;
-      }
+      if (!found) one.unrated.push({ slug: p.player!, name: p.name });
       const sheet = sheets[p.player!];
       const values = missionValues(one.rule, sheet);
       const threshold = one.rule.kind === "score" ? target ?? Infinity : "atLeast" in one.rule ? one.rule.atLeast : 1;
       const hits = (n: number) => mean(values.slice(-n).map((v) => Number(v >= threshold)));
       const pick = { slug: p.player!, card: (p as PlayingPlayer & { card?: string }).card, game: game.id, team: game.team, competition: game.competition, pStart: game.pStart ?? p.pStart, startSource: game.startSource ?? p.startSource,
-        name: p.name, pos: p.pos, pic: p.pic, club: p.club, opponent: game.opponent, venue: game.venue, kickoff: game.kickoff, chance: found.chance, historical: found.historical, target, average: found.average, cards: p.cards,
+        name: p.name, pos: p.pos, pic: p.pic, club: p.club, opponent: game.opponent, venue: game.venue, kickoff: game.kickoff, chance: found?.chance ?? 0, ...(found ? {} : { noEstimate: true }), historical: found?.historical, target, average: found?.average, cards: p.cards,
         form: sheet?.form,
         samples: { l5: Math.min(5, values.length), l8: Math.min(8, values.length), baseline: sheet?.starts ?? 0 }, hits: { l5: hits(5), l8: hits(8), season: sheet?.decAll ?? 0 } };
-      if (pick.chance > 0 || mode === "best") pairs.push({ plan: one, pick });
+      if (found && (pick.chance > 0 || mode === "best")) pairs.push({ plan: one, pick });
       one.all.push(pick);
     }
-    one.all.sort((a, b) => b.chance - a.chance);
+    one.all.sort((a, b) => Number(Boolean(a.noEstimate)) - Number(Boolean(b.noEstimate)) || b.chance - a.chance);
   }
   const priority = (p: MissionPlan) => /essence/i.test(p.reward ?? "") ? 0 : /clue/i.test(p.reward ?? "") ? 1 : /xp|experience/i.test(p.reward ?? "") ? 2 : 3;
   pairs.sort((a, b) => priority(a.plan) - priority(b.plan) || b.pick.chance - a.pick.chance);
   const used = new Set<string>();
-  for (const { plan: one, pick } of pairs) {
+  // Then every slot still open takes an eligible card even at 0% or with no estimate: a pick can come off, an empty slot cannot (owner, 20 Oct 2026).
+  const fill = plans.slice().sort((a, b) => priority(a) - priority(b)).flatMap((one) => one.all.map((pick) => ({ plan: one, pick })));
+  for (const { plan: one, pick } of [...pairs, ...fill]) {
     if (mode === "plan" && (used.has(pick.card ?? pick.slug) || used.has(pick.slug)) || reserved[one.mission.id]?.includes(pick.slug) || one.picks.some((p) => p.slug === pick.slug) || one.picks.length >= one.mission.picks) continue;
     used.add(pick.card ?? pick.slug);
     one.picks.push(pick);

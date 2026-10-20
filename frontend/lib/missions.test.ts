@@ -43,11 +43,11 @@ describe("what a mission asks and pays", () => {
     expect(ruleOf(ASSIST)).toEqual({ kind: "assist", atLeast: 1, label: "an assist" });
     expect(ruleOf(row("Goals", "Pick a player who scores 2+ goals"))).toMatchObject({ kind: "goal", atLeast: 2 });
   });
-  it("calls a mission to beat his own average a score mission, which is not ranked yet", () => {
+  it("calls a mission to beat his own average a score mission, which is not ranked yet but still gets your card", () => {
     const score = row("Overperform", "Beat his last 15 games' average by 10 points", { mode: "SCORE" });
     expect(ruleOf(score)).toEqual({ kind: "score", label: score.description });
     expect(fit(ruleOf(score), player("a", { shape: { p: 0.9, dec: 70, plain: 40, sdDec: 9, sdPlain: 9, low: 30, high: 80 } }), sheet())).toBeNull();
-    expect(plan([score], "limited", [player("a")], { a: sheet() }, NOW).plans[0]!.picks).toEqual([]);
+    expect(plan([score], "limited", [player("a")], { a: sheet() }, NOW).plans[0]!.picks.map((p) => [p.slug, p.noEstimate])).toEqual([["a", true]]);
   });
   it("reads the reward in its own words, or says nothing", () => {
     expect(rewardOf(DECISIVE)).toBe("200 XP");
@@ -182,10 +182,20 @@ describe("who goes to which mission", () => {
 
   it("lists every card with a game for each mission, likeliest first, also one given to another mission, and names those no number fits", () => {
     const { plans } = plan([INTERCEPTION], "limited", [...players, player("d")], sheets, NOW);
-    expect(plans[0]!.all.map((x) => x.slug)).toEqual(["a", "b", "c"]); // all three, though it has picks for fewer when some are made
+    expect(plans[0]!.all.map((x) => x.slug)).toEqual(["a", "b", "c", "d"]); // all of them, though it has picks for fewer when some are made; d last, with no estimate
+    expect(plans[0]!.all.at(-1)!.noEstimate).toBe(true);
     expect(plans[0]!.unrated).toEqual([{ slug: "d", name: "d" }]); // no stat sheet
     const busy = plan([INTERCEPTION, row("Assist one", "Pick a player who gets an assist", { picks: 1 })], "limited", players, { ...sheets, c: sheet({ season: { interception_won: [0.2, 1], goal_assist: [0.5, 3] } }) }, NOW);
     expect(busy.plans[0]!.all.map((x) => x.slug)).toContain("c"); // c is the assist mission's pick and still listed here
+  });
+
+  it("fills every open slot, long shots last, and never with a card another mission rates above 0% (owner, 20 Oct 2026)", () => {
+    const tackle = row("Tackle", "Pick a player who wins 3+ tackles and win 50 All-Star Essence", { picks: 3 });
+    const assist = row("Assist one", "Pick a player who gets an assist and win 200 XP", { picks: 2 });
+    const { plans } = plan([tackle, assist], "limited", [...players, player("d")], { ...sheets, c: sheet({ season: { goal_assist: [0.5, 3] } }) }, NOW);
+    expect(plans[0]!.picks).toHaveLength(3);
+    expect(plans[1]!.picks.map((p) => p.slug)).toContain("c"); // c's only chance is the assist: the essence mission fills its slots with others
+    expect(plans[0]!.picks.map((p) => p.slug)).not.toContain("c");
   });
 
   it("keeps a full benchmark after your picks, but excludes games already started and another rarity", () => {

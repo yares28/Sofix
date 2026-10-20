@@ -67,8 +67,6 @@ export type LogMission = {
   editRevision?: number;
   source?: MissionRow;
   sofixPicks?: MissionPick[];
-  /** Sofix's choice was made knowing which cards Sorare allows (always, for a mission with no club or competition rule). */
-  checked?: boolean;
   bestPicks?: MissionPick[];
 };
 export type LogRarity = { loaded: boolean; missions: LogMission[]; cands: LogCand[]; coverage?: "snapshot" | "missing"; captured?: string; lockedAt?: string; reconstructed?: boolean; replay?: LogRarity };
@@ -142,9 +140,8 @@ export function nextDay(
   // A list loaded earlier today stays the day's list if a later run has none (the reset falls inside a Madrid day).
   const missions = loadedList ? dayMissions(loadedList) : prev?.loaded ? prev.missions.map(asRow) : dayMissions(null);
   const prior = (m: MissionRow) => prev?.missions.find((old) => old.key === m.id || ((!old.title || old.key === DAILY_PICKER.id) && same(old.title ?? old.key, m.title)));
-  // An empty choice made before Sorare said which cards a restricted mission takes was no choice: plan it again (20 Oct 2026).
-  const unchecked = (old: LogMission | undefined) => Boolean(old?.source?.ruleTypes?.length && !old.sofix.length && old.checked !== true);
-  const locked = (m: MissionRow) => Boolean(prev?.loaded && prior(m) && !unchecked(prior(m)));
+  // A loaded choice is kept; a mission with slots still open is planned again for them, since a long shot beats an empty slot (owner, 20 Oct 2026).
+  const locked = (m: MissionRow) => Boolean(prev?.loaded && prior(m) && prior(m)!.sofix.length >= m.picks);
   const frozen = (prev?.cands ?? []).filter((c) => prev?.loaded || new Date(c.k) <= now).map((oldCand) => {
     let c = { ...oldCand };
     for (const m of missions) { const old = prior(m); if (old && old.key !== m.id) c = aliasCandidate(c, old.key, m.id); }
@@ -200,7 +197,6 @@ export function nextDay(
       aliases: [...new Set([...(prior(m) && prior(m)!.key !== m.id ? [prior(m)!.key] : []), ...(prior(m)?.aliases ?? [])])],
       title: m.title,
       source: m,
-      checked: !m.ruleTypes?.length || Boolean(m.eligibleCards),
       description: m.description,
       mode: m.mode,
       rule: ruleOf(m),

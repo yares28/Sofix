@@ -38,10 +38,11 @@ it("locks loaded mission choices and evidence before kickoff, even when players 
   expect(newTask.missions[0]!.sofix).toEqual(["d"]);
 });
 
-it("preserves a loaded empty choice instead of backfilling it with later candidates", () => {
-  const tasks = [{ ...INTERCEPTION, picks: 1 }];
-  const before = nextDay(undefined, tasks, [], {}, "limited", MORNING);
-  expect(nextDay(before, tasks, players, sheets, "limited", MORNING).missions[0]!.sofix).toEqual([]);
+it("fills a loaded choice's open slots with cards still to play, keeping what it already picked (owner, 20 Oct 2026)", () => {
+  const tasks = [{ ...INTERCEPTION, picks: 2 }];
+  const before = nextDay(undefined, tasks, [players[3]!], sheets, "limited", MORNING);
+  expect(before.missions[0]!.sofix).toEqual(["d"]);
+  expect(nextDay(before, tasks, players, sheets, "limited", MORNING).missions[0]!.sofix).toEqual(["d", "a"]);
 });
 
 it("plans a restricted mission again once Sorare's eligibility arrives, instead of keeping the empty choice made without it", () => {
@@ -50,8 +51,7 @@ it("plans a restricted mission again once Sorare's eligibility arrives, instead 
   const before = nextDay(undefined, [task], owned, sheets, "limited", MORNING);
   expect(before.missions[0]!.sofix).toEqual([]);
   const checked = { ...task, eligibleCards: Object.fromEntries(owned.map((p) => [p.games[0]!.id!, [p.card]])) };
-  // 20 Oct 2026: a record written before this fix already holds the eligibility in its source but the empty choice.
-  const written = { ...before, missions: [{ ...before.missions[0]!, checked: undefined, source: checked }] };
+  const written = { ...before, missions: [{ ...before.missions[0]!, source: checked }] }; // the eligibility arrived after the empty choice was saved
   const after = nextDay(written, [checked], owned, sheets, "limited", new Date("2026-10-06T10:00:00Z"));
   expect(after.missions[0]!.sofix).toEqual(["a"]);
   expect(nextDay(after, [checked], owned, { ...sheets, d: sheet(99) }, "limited", new Date("2026-10-06T11:00:00Z")).missions[0]!.sofix).toEqual(["a"]);

@@ -18,7 +18,7 @@ import { missionWindow, rewardStub } from "../../lib/missionPresentation";
 
 const time = (s: string) => new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" }).format(new Date(s));
 const at = (s: string) => new Intl.DateTimeFormat("en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" }).format(new Date(s));
-const SOFIX_NOTE = (p: Suggestion) => p.reconstructed ? "reconstructed" : p.frozen ? "saved before kickoff" : p.historical ? "recent hits" : "estimated";
+const SOFIX_NOTE = (p: Suggestion) => p.noEstimate ? "fills an open slot" : p.reconstructed ? "reconstructed" : p.frozen ? "saved before kickoff" : p.historical ? "recent hits" : "estimated";
 
 export default function MissionsView({ rarity, tabs, day, plans: original, bestPlans, captured, bestHistory, allTime, status, seenAt, retained = [], missionDay, now, history, players, pool, collection }: {
   bestPlans: MissionPlan[]; bestHistory: HistoryDay[]; captured: LogCand[];
@@ -46,7 +46,7 @@ export default function MissionsView({ rarity, tabs, day, plans: original, bestP
     const p = players.find((p) => a.card ? p.card === a.card : p.player === a.player), c = collection.find((c) => a.card ? c.slug === a.card : c.player === a.player);
     const s = one!.all.find((s) => a.card ? s.card === a.card : s.slug === a.player);
     const name = p?.name ?? c?.name ?? a.player.replaceAll("-", " "), games = lastGames(s?.form ?? sheetOf(a.player)?.form, one!.rule, a.target ?? s?.target);
-    return { id: a.id ?? `${a.player}:${i}`, slug: a.player, name, pic: p?.pic ?? c?.pic ?? "", games, big: s ? missionChance(s.chance) : games.length ? hitsOf(games) : "–", small: s ? hitsOf(games) : "no estimate",
+    return { id: a.id ?? `${a.player}:${i}`, slug: a.player, name, pic: p?.pic ?? c?.pic ?? "", games, big: s ? missionChance(s.noEstimate ? undefined : s.chance) : games.length ? hitsOf(games) : "–", small: s ? hitsOf(games) : "no estimate",
       note: `${a.locked ? "Locked · " : ""}${a.status ?? "Imported"}${a.target !== undefined ? ` · target ${a.target}` : ""}` };
   });
 
@@ -89,7 +89,7 @@ export default function MissionsView({ rarity, tabs, day, plans: original, bestP
             </div></div>
           {one.picks.length ? <ol className="mx-trio">{one.picks.map((p) => <li key={p.card ?? p.slug}>
             <Link className="mx-art" href={`/players/${p.slug}`} aria-label={`Open ${p.name} profile`}><CardArt src={p.pic} name={p.name} /></Link>
-            <b className="nm">{p.name}</b><span className="mx-cv"><b>{missionChance(p.chance)}</b><span>{SOFIX_NOTE(p)}</span></span>
+            <b className="nm">{p.name}</b><span className="mx-cv"><b>{missionChance(p.noEstimate ? undefined : p.chance)}</b><span>{SOFIX_NOTE(p)}</span></span>
             <Dots games={lastGames(p.form, one.rule, p.target)} small />
             <span className="note">{p.venue ? `${p.venue === "H" ? "v" : "at"} ${p.opponent}` : p.opponent} · {at(p.kickoff)}{p.target !== undefined ? ` · target ${p.target.toFixed(1)}` : ""}</span>
           </li>)}</ol> : <p className="pd-none">{one.all.some((p) => p.chance > 0) ? "Cards reserved for another Sofix mission. Review them below." : "No pre-kickoff recommendation recorded from the available evidence."}</p>}

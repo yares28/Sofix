@@ -44,6 +44,19 @@ it("preserves a loaded empty choice instead of backfilling it with later candida
   expect(nextDay(before, tasks, players, sheets, "limited", MORNING).missions[0]!.sofix).toEqual([]);
 });
 
+it("plans a restricted mission again once Sorare's eligibility arrives, instead of keeping the empty choice made without it", () => {
+  const owned = players.map((p) => ({ ...p, card: `${p.player}-card` }));
+  const task = { ...INTERCEPTION, picks: 1, ruleTypes: ["So5CompetitionsRule"] };
+  const before = nextDay(undefined, [task], owned, sheets, "limited", MORNING);
+  expect(before.missions[0]!.sofix).toEqual([]);
+  const checked = { ...task, eligibleCards: Object.fromEntries(owned.map((p) => [p.games[0]!.id!, [p.card]])) };
+  // 20 Oct 2026: a record written before this fix already holds the eligibility in its source but the empty choice.
+  const written = { ...before, missions: [{ ...before.missions[0]!, checked: undefined, source: checked }] };
+  const after = nextDay(written, [checked], owned, sheets, "limited", new Date("2026-10-06T10:00:00Z"));
+  expect(after.missions[0]!.sofix).toEqual(["a"]);
+  expect(nextDay(after, [checked], owned, { ...sheets, d: sheet(99) }, "limited", new Date("2026-10-06T11:00:00Z")).missions[0]!.sofix).toEqual(["a"]);
+});
+
 it("captures both choices separately and never invents legacy best-card forecasts", () => {
   const tasks = [{ ...INTERCEPTION, id: "one", picks: 1 }, { ...INTERCEPTION, id: "two", picks: 1 }];
   const before = nextDay(undefined, tasks, players, sheets, "limited", MORNING);

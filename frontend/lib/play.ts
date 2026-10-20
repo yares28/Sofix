@@ -142,7 +142,7 @@ export type Lineup = {
   /** What it is expected to win, in essence, $1 counted as 300 (the owner, 20 Oct 2026); absent on older payloads. */
   worth?: number;
   /** A Pro lineup: the step it plays for, the Rare prize boost, and its chance of each target still ahead on the board. */
-  pro?: { level: number; target: number; boost: number; ladder: { level: number; target: number; cash: number; essence: number; p: number }[] };
+  pro?: { level: number; target: number; boost: number; allStart?: number; from?: string | null; to?: string | null; ladder: { level: number; target: number; cash: number; essence: number; p: number }[] };
   /** The same starters in the other mode (Pro against the league's Arena). */
   versus?: { comp: string; pReturn: number; eEss: number; eCash: number; worth: number };
   actual?: {

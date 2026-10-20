@@ -256,13 +256,17 @@ essence, 2,000 essence beats $5), with your essence preference and reward chance
 **Best** marks the plan with the highest expected reward and opens by default.
 
 **Pro in the plan (20 Oct 2026).** Your Pro boards (steps, targets, prizes) are read from Sorare's public API each refresh, no
-extension needed. The step each league's board stands on is a competition of its own: the league Arena's slots, four in-season
-cards and season, level and captain bonuses, without substitutes, Multi-Club or the Cap, one lineup, paid all or nothing when the
-lineup reaches the step's target, the prize raised by Sorare's Rare Reward Bonus. The planner gives each lineup's cards to Pro or
-the Arena, whichever is worth more. A Pro lineup reads "Step 1 · needs 360 · $5"; every Pro and Arena lineup says where the same
-five are worth more ("Worth more here than in LaLiga Arena", or "Worth more in LaLiga Pro"); the sheet gives both chances and
-the **Pro board**, the steps ahead with this lineup's chance of each target. Limits: only this week's step is valued (the next
-ones only shown), one try a week, only boards of a league with an Arena that week. Apply leaves Pro out: enter it on Sorare. While the gameweek is the one being
+extension needed. Every board (each league's, Europe's, Contenders) is the competition its current step is, from that step's own
+rules: the competitions its players come from, the rarities, the slots, four in-season cards where it gives the season bonus, the
+level and captain bonuses; no substitutes, one lineup, paid all or nothing when the lineup reaches the target, the prize raised by
+Sorare's Rare Reward Bonus. A board with a rule Sofix cannot check (the Inferno boards' card editions) is left out. A lineup that
+misses its target sends the board back to step 0 (20 Oct 2026), so a Pro lineup is built from games that all start within an hour
+(20 Oct 2026): every teamsheet is out before its first kickoff, and it is entered only if all five start. The planner gives each
+lineup's cards to Pro or elsewhere, whichever is worth more. A Pro lineup reads "Step 0 · needs 320 · 500 essence" and "Games
+Thu 18:30–19:00 · enter once the teams are out"; Pro and Arena lineups say where the same five are worth more ("Worth more here
+than in LaLiga Arena", or "Worth more in LaLiga Pro"); the sheet gives the chance all five start, both chances, and the **Pro
+board**, the steps ahead with this lineup's chance of each target if all five start. Limits: only this week's step is valued (the
+next ones only shown), one try a week. Apply leaves Pro out: enter it on Sorare. While the gameweek is the one being
 played, today's missions sit under the lineups with the cards that fit each (chance, opponent, kick-off and what he
 did over his last 5); the full Missions page is one click away.
 

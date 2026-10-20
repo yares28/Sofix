@@ -15,6 +15,11 @@ Built: `backend/app/sorare/pro.py` (boards read from the public API: `user(slug)
 sheet. LaLiga's board on 20 Oct: 320 (500 essence, claimed), 360 ($5, failed once), 380 ($10), 420 ($50), 440 ($300), 470
 ($1,500), 550 ($8,000). Not built: (c) Apply for Pro; the value of later steps; lives left (needs the session).
 
+**20 Oct, second pass (your answers):** a missed target resets the board to step 0 (LaLiga is back on 320 for 500 essence); every
+board is planned from its current step's own rules (`displayedTypedRules`: Competitions, Scarcity, Appearances, SeasonBonus), so
+Europe's, Contenders' and every league's count, the Inferno boards (a card-edition rule) excepted; a Pro lineup's games all start
+within an hour (`pro.WINDOW`), so it is entered after the teamsheets and only if all five start.
+
 ## 4.1 · What Pro is
 
 **Source.** Sorare's own help centre, read through its public Zendesk API (`https://sorare.zendesk.com/api/v2/help_center/en-us/articles/<id>.json`),

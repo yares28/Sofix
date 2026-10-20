@@ -713,11 +713,17 @@ def lineup_payload(
     }
     if comp.pro_steps:
         # how far up the board this lineup's score reaches: its chance of each target still ahead (only the first is played for)
-        scores = simulate(lineup, forecasts, np.random.default_rng(zlib.crc32(comp.key.encode())))
+        # It is entered once the teamsheets are out, and only if all five start: the chance they do, then each target's chance if so.
+        starting = {c.player: replace(forecasts[c.player], p_play=1.0) for c in lineup.starters}
+        scores = simulate(lineup, {**forecasts, **starting}, np.random.default_rng(zlib.crc32(comp.key.encode())))
+        times = sorted(t for c in lineup.starters if (t := pro.kickoff(c, comp, games)) is not None)
         payload["pro"] = {
             "level": comp.pro_steps[0][0],
             "target": comp.pro_steps[0][1],
             "boost": round(boost(lineup), 2),
+            "allStart": round(math.prod(forecasts[c.player].p_play for c in lineup.starters), 4),
+            "from": times[0].isoformat() if times else None,
+            "to": times[-1].isoformat() if times else None,
             "ladder": [
                 {"level": lv, "target": t, "cash": c, "essence": e, "p": round(float((scores >= t).mean()), 4)}
                 for lv, t, c, e in comp.pro_steps
@@ -915,7 +921,12 @@ def gameweek_payload(
                 }
             )
 
-    found = plans(ready, cards, forecasts, count=count, runs=runs, seed=seed, draws=draws, order=order) if ready else []
+    rule_for = pro.rules_for(games)  # a Pro lineup's games start within an hour of each other
+    found = (
+        plans(ready, cards, forecasts, count=count, runs=runs, seed=seed, draws=draws, order=order, rule_for=rule_for)
+        if ready
+        else []
+    )
     if played:
         for plan in found:
             for lineup in plan.lineups:
@@ -926,7 +937,7 @@ def gameweek_payload(
     for comp in ready:
         if comp.key in in_plans:
             continue
-        best = build(comp, cards, forecasts, rng, keep=1, draws=draws)
+        best = build(comp, cards, forecasts, rng, keep=1, draws=draws, rule=rule_for(comp))
         if best:
             lineup = best[0]
             not_worth.append(
@@ -1157,7 +1168,7 @@ def build_payload(
     plan_comps = with_expected(
         snapshot, read_competitions(snapshot["competitions"].get(plan_week["slug"], []), plan_reference), plan_week
     )
-    plan_comps += pro.competitions(snapshot.get("pro"), plan_comps)
+    plan_comps += pro.competitions(snapshot.get("pro"))
     plan_weeks = player_weeks(
         snapshot["cards"],
         plan_games,
@@ -1462,7 +1473,7 @@ def lens_plans(
                 draws=draws,
                 order=order,
                 view=view,
-                rule_for=strategy.rule_for(view),
+                rule_for=pro.rules_for(games, strategy.rule_for(view)),
             )
             if ready
             else []
@@ -1518,7 +1529,9 @@ def strategy_plans(
     }
     cards = in_week(cards, games)
     ready = [
-        c for c in comps if enterable(c) and not c.is_room and c.reference and lineups_possible(c, cards, forecasts)
+        c
+        for c in comps
+        if enterable(c) and not c.is_room and not c.pro_steps and c.reference and lineups_possible(c, cards, forecasts)
     ]
     out: dict[str, Any] = {
         "gameweek": {"slug": week["slug"], "number": week["number"], "lock": week["lock"], "end": week.get("end")},

@@ -357,20 +357,25 @@ test("a Pro lineup shows its step, the board ahead and where the cards are worth
   // the Arena lineup of the best plan says its five would be worth more in Pro
   await expect(page.locator(".pl-lu").first()).toContainText("Worth more in LaLiga Pro");
   await page.getByRole("navigation", { name: "Plan" }).getByRole("link").nth(1).click(); // the plan holding the Pro lineup
-  const row = page.locator(".pl-lu", { hasText: "LaLiga Pro" }).filter({ hasText: "Step 1" });
+  const row = page.locator(".pl-lu", { hasText: "LaLiga Pro" }).filter({ hasText: "Step 0" });
   await expect(row).toContainText("LaLiga Pro");
-  await expect(row).toContainText("Step 1 · needs 360 · $5");
+  await expect(row).toContainText("Step 0 · needs 320 · 500 essence");
+  // its games start within the hour: it is entered once the teamsheets are out
+  await expect(row).toContainText(/Games \w{3} \d\d:\d\d–\d\d:\d\d · enter once the teams are out/);
   await expect(row).toContainText("Worth more here than in LaLiga Arena");
 
   await row.click();
   const sheet = page.getByRole("dialog", { name: "LaLiga Pro lineup" });
-  await expect(sheet.locator(".pl-pro-vs")).toContainText("Here: 31% chance of a reward. The same five in LaLiga Arena: 12%.");
-  await expect(sheet.locator(".pl-pro-vs")).toContainText("465 here and 30 there");
+  await expect(sheet.locator(".pl-pro-vs").first()).toContainText("only if all five start (62% chance they do)");
+  await expect(sheet.locator(".pl-pro-vs").first()).toContainText("sends the board back to step 0");
+  await expect(sheet.locator(".pl-pro-vs").last()).toContainText("Here: 30% chance of a reward. The same five in LaLiga Arena: 12%.");
+  await expect(sheet.locator(".pl-pro-vs").last()).toContainText("150 here and 30 there");
   const steps = sheet.locator(".pl-ladder tbody tr");
   await expect(steps).toHaveCount(3);
-  await expect(steps.first()).toContainText("Step 1 · 360+ · this week");
-  await expect(steps.first()).toContainText("31%");
-  await expect(steps.last()).toContainText("$50");
+  await expect(steps.first()).toContainText("Step 0 · 320+ · this week");
+  await expect(steps.first()).toContainText("500");
+  await expect(steps.first()).toContainText("48%"); // if all five start
+  await expect(steps.last()).toContainText("$10");
   await expect(sheet).toContainText("Apply leaves Pro out");
   await sheet.getByRole("button", { name: "Close" }).click();
 

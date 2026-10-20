@@ -24,7 +24,9 @@ def chance(
     rule: dict[str, Any], p: dict[str, Any], game: dict[str, Any], form: dict[str, Any], target: float | None = None
 ) -> float | None:
     kind = rule["kind"]
-    key = kind if kind in ("decisive", "booked", "score") else METRICS.get(kind)
+    key = (
+        kind if kind in ("decisive", "booked", "score") else rule.get("stat") if kind == "count" else METRICS.get(kind)
+    )
     if key is None:
         return None
     values = [g["values"][key] for g in form["recent"] if g["values"].get(key) is not None]

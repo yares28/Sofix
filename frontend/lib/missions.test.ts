@@ -271,3 +271,14 @@ describe("what the Load button says", () => {
     expect(missionsLoadNote(null)).toMatch(/extension didn.t answer/);
   });
 });
+
+it("rates a mission on a stat Sofix has no name for from Sorare's own key, and leads its table with that stat (20 Oct 2026)", async () => {
+  const { relatedStats } = await import("./missionColumns");
+  const clearances = { id: "c", title: "Clearances", description: "Pick a player who makes 2+ clearances", mode: "DECISIVE" as const, picks: 1, made: 0, period: null, state: null, stats: [] };
+  const rule = ruleOf({ ...clearances, thresholds: [{ stat: "effective_clearance", min: 2 }] });
+  expect(rule).toEqual({ kind: "count", stat: "effective_clearance", atLeast: 2, label: "2+ effective clearances" });
+  expect(ruleOf({ ...clearances, stats: ["effective_clearance"] })).toMatchObject({ kind: "count", atLeast: 2 });
+  const found = fit(rule, player("a", { p: 1 }), sheet({ season: { effective_clearance: [2, 3] } }));
+  expect(found?.chance).toBeCloseTo(atLeast(2, 2), 5);
+  expect(relatedStats(rule)[0]).toEqual(["effective_clearance", "Effective clearances"]);
+});

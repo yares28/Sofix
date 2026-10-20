@@ -143,13 +143,34 @@ def test_a_big_chance_missed_mission_is_a_counted_stat():
     assert rule["kind"] == "miss" and rule["atLeast"] == 1
     assert did(rule, mission["stats"], {"stats": {"big_chance_missed": [1, 0]}}) is True
     assert did(rule, mission["stats"], {"stats": {}}) is False
-    assert _rule({**mission, "stats": ["big_chance_created"]})["kind"] == "unsupported"
+    assert (
+        _rule({**mission, "stats": ["big_chance_created"]})["kind"] == "count"
+    )  # a stat with no name is counted by its key
     start = {"started": True, "values": {"big_chance_missed": 1.0}}
     form = {
         "recent": [start, start],
         "windows": {"starts": {"means": {}}, "subs": {"means": {"big_chance_missed": 0.0}}},
     }
     assert 0.5 < mission_form.chance(rule, {}, {"pStart": 0.9, "pOn": 0.1}, form) < 0.6  # 0.9 x (1 - e^-1)
+
+
+def test_a_mission_on_a_stat_sofix_has_no_name_for_is_rated_and_judged_by_sorares_key():
+    """20 Oct 2026: a new kind of mission no longer waits for code: Sorare's own stat key and target are enough."""
+    from app.sorare import mission_form
+    from app.sorare.missions import _rule
+
+    mission = {"title": "Clearances", "description": "Pick a player who makes 2+ clearances.", "mode": "DECISIVE"}
+    rule = _rule({**mission, "thresholds": [{"stat": "effective_clearance", "min": 2}]})
+    assert rule == {"kind": "count", "stat": "effective_clearance", "atLeast": 2, "label": mission["description"]}
+    assert _rule({**mission, "stats": ["effective_clearance"]})["atLeast"] == 2  # the target read from "2+"
+    assert did(rule, [], {"stats": {"effective_clearance": [3, 0]}}) is True
+    assert did(rule, [], {"stats": {"effective_clearance": [1, 0]}}) is False
+    start = {"started": True, "values": {"effective_clearance": 2.0}}
+    form = {
+        "recent": [start, start],
+        "windows": {"starts": {"means": {}}, "subs": {"means": {"effective_clearance": 0.0}}},
+    }
+    assert 0.5 < mission_form.chance(rule, {}, {"pStart": 1.0, "pOn": 0.0}, form) < 0.65  # 1 - 3e^-2
 
 
 def test_a_discipline_mission_pays_on_a_yellow_or_a_red_card():

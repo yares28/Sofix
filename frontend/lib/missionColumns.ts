@@ -23,7 +23,7 @@ export type Related = readonly [key: string, label: string, share?: true];
 const GOALS: Related = ["goals", "Goals"], ASSISTS: Related = ["goal_assist", "Assists"], SHOTS: Related = ["ontarget_scoring_att", "On target"], BOX: Related = ["pen_area_entries", "Box entries"];
 const TACKLES: Related = ["won_tackle", "Tackles won"], INTERCEPTIONS: Related = ["interception_won", "Interceptions"];
 const WINS: Related = ["duel_won", "Duels won"], BALL: Related = ["poss_won", "Ball wins"], MINUTES: Related = ["mins_played", "Minutes"];
-const RELATED: Record<Rule["kind"], readonly [Related, Related, Related]> = {
+const RELATED: Record<Exclude<Rule["kind"], "count">, readonly [Related, Related, Related]> = {
   decisive: [GOALS, ASSISTS, ["clean_sheet_60", "Clean sheet", true]],
   interception: [INTERCEPTIONS, TACKLES, BALL],
   tackle: [TACKLES, INTERCEPTIONS, BALL],
@@ -36,7 +36,8 @@ const RELATED: Record<Rule["kind"], readonly [Related, Related, Related]> = {
   score: [MINUTES, ["decisive", "Decisive", true], GOALS],
   unsupported: [GOALS, ASSISTS, MINUTES],
 };
-export const relatedStats = (rule: Rule) => RELATED[rule.kind];
+export const relatedStats = (rule: Rule): readonly [Related, Related, Related] =>
+  rule.kind === "count" ? [[rule.stat, rule.label.replace(/^\d+\+ /, "").replace(/^./, (c) => c.toUpperCase())], MINUTES, BALL] : RELATED[rule.kind];
 
 /** His average per game over his last ten appearances, ready to print; a dash when the stat was not recorded. */
 export function perGame(form: MissionForm | undefined, [key, , share]: Related): string {

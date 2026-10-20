@@ -91,6 +91,8 @@ export type Rule =
   | { kind: "tackle"; atLeast: number; label: string }
   | { kind: "pass"; atLeast: number; label: string }
   | { kind: "miss"; atLeast: number; label: string }
+  /** A stat Sofix has no name for, counted by Sorare's own key (20 Oct 2026): a new kind of mission needs no code. */
+  | { kind: "count"; stat: string; atLeast: number; label: string }
   | { kind: "booked"; label: string }
   | { kind: "score"; label: string }
   | { kind: "unsupported"; label: string };
@@ -107,8 +109,12 @@ const COUNTS = {
 } as const;
 type CountKind = keyof typeof COUNTS;
 const statKind = (stat: string) => (Object.keys(COUNTS) as CountKind[]).find((k) => COUNTS[k].stat === stat);
+const DECISIVE_STATS = ["goals", "goal_assist", "assist_penalty_won", "clearance_off_line", "last_man_tackle", "penalty_save"];
 /** "Discipline": a yellow or a red card, rated like a decisive action (a share of his games). */
 const BOOKED: Rule = { kind: "booked", label: "a yellow or red card" };
+/** "effective_clearance" → "effective clearances": Sorare's key in plain words. */
+const statWords = (stat: string) => `${stat.replaceAll("_", " ")}${stat.endsWith("s") ? "" : "s"}`;
+const counted = (stat: string, atLeast: number): Rule => ({ kind: "count", stat, atLeast, label: `${atLeast}+ ${statWords(stat)}` });
 const wordCount = (text: string, kind: CountKind) => Number(new RegExp(`(\\d+)\\s*\\+\\s*${COUNTS[kind].words.source}`, "i").exec(text)?.[1] ?? 1);
 
 /** The rule in the mission's own words: "2+ interceptions", an assist, a goal, beating his average, or any positive decisive action. */
@@ -119,14 +125,15 @@ export function ruleOf(mission: Pick<MissionRow, "title" | "description"> & Part
     const target = mission.thresholds[0]!;
     const kind = statKind(target.stat);
     if (kind) return { kind, atLeast: target.min, label: `${target.min}+ ${COUNTS[kind].label}` };
-    return { kind: "unsupported", label: mission.description || `Target: ${target.stat}` };
+    return counted(target.stat, target.min);
   }
   const stats = mission.stats ?? [];
   if (stats.length) {
     if (stats.includes("yellow_card") && stats.every((s) => s === "yellow_card" || s === "red_card")) return BOOKED;
     const kind = stats.length === 1 ? statKind(stats[0]!) : undefined;
     if (kind) { const atLeast = wordCount(`${mission.title} ${mission.description}`, kind); return { kind, atLeast, label: `${atLeast}+ ${COUNTS[kind].label}` }; }
-    const standard = ["goals", "goal_assist", "assist_penalty_won", "clearance_off_line", "last_man_tackle", "penalty_save"];
+    if (stats.length === 1 && ![...DECISIVE_STATS, "clean_sheet_60"].includes(stats[0]!)) return counted(stats[0]!, Number(/(\d+)\s*\+/.exec(`${mission.title} ${mission.description}`)?.[1] ?? 1));
+    const standard = DECISIVE_STATS;
     if (!standard.every((s) => stats.includes(s)) || stats.some((s) => ![...standard, "clean_sheet_60"].includes(s))) return { kind: "unsupported", label: mission.description || "Custom decisive target" };
     return { kind: "decisive", label: "a decisive action" };
   }
@@ -239,7 +246,7 @@ const newest = (sheet: Sheet, n: number) => sheet.last.slice(-n);
 export function missionValues(rule: Rule, sheet: Sheet | null | undefined): number[] {
   if (!sheet || rule.kind === "unsupported") return [];
   if (sheet.form) return formValues(sheet.form, missionMetric(rule)!).reverse();
-  const index = rule.kind === "decisive" ? 2 : rule.kind === "score" ? 0 : rule.kind === "booked" ? null : COUNTS[rule.kind].index;
+  const index = rule.kind === "decisive" ? 2 : rule.kind === "score" ? 0 : rule.kind === "booked" || rule.kind === "count" ? null : COUNTS[rule.kind].index;
   if (index === null) return [];
   return sheet.last.map((row) => row[index]).filter((n): n is number => typeof n === "number" && Number.isFinite(n));
 }
@@ -287,7 +294,7 @@ export function fit(rule: Rule, player: PlayingPlayer, sheet: Sheet | null, targ
     return { chance, average: { l5, l8, season: sheet ? sheet.decAll : chance } };
   }
   if (!sheet || rule.kind === "booked") return null;
-  const key = COUNTS[rule.kind].stat;
+  const key = rule.kind === "count" ? rule.stat : COUNTS[rule.kind].stat;
   const season = sheet.season[key]?.[0];
   if (season === undefined || !Number.isFinite(season)) return null;
   const values = missionValues(rule, sheet);

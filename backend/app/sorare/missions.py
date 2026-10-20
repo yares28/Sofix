@@ -69,6 +69,11 @@ def _stat(row: dict[str, Any], name: str) -> float:
     return float(((row.get("stats") or {}).get(name) or [0])[0] or 0)
 
 
+def counted(rule: dict[str, Any]) -> str | None:
+    """The stat a counting rule counts: a named kind's, or Sorare's own key for a stat Sofix has no name for (`count`, 20 Oct 2026)."""
+    return rule.get("stat") if rule.get("kind") == "count" else COUNTS.get(rule.get("kind") or "")
+
+
 def did(rule: dict[str, Any], stats: list[str], row: dict[str, Any]) -> bool | None:
     """Whether a player's game (a `fetch_game` row) did what the mission's rule asks."""
     kind = rule.get("kind")
@@ -85,10 +90,10 @@ def did(rule: dict[str, Any], stats: list[str], row: dict[str, Any]) -> bool | N
             if any(name in row.get("stats", {}) and row["stats"][name][0] is None for name in BOOKED_STATS)
             else False
         )
-    if kind in COUNTS:
-        if COUNTS[kind] in row.get("stats", {}) and row["stats"][COUNTS[kind]][0] is None:
+    if stat := counted(rule):
+        if stat in row.get("stats", {}) and row["stats"][stat][0] is None:
             return None
-        return _stat(row, COUNTS[kind]) >= float(rule.get("atLeast") or 1)
+        return _stat(row, stat) >= float(rule.get("atLeast") or 1)
     return False
 
 
@@ -244,7 +249,7 @@ def settle_kept(db: Session, now: datetime) -> dict[str, int]:
                         if (
                             (key in candidate.get("c", {}) or key in candidate.get("eligible", []) or own)
                             and key not in candidate.get("r", {}).get("did", {})
-                            and rule["kind"] in ("decisive", "booked", *COUNTS, "score")
+                            and (rule["kind"] in ("decisive", "booked", "score") or counted(rule))
                         ):
                             target = (
                                 own.get("target")
@@ -493,7 +498,14 @@ def _rule(m: dict[str, Any]) -> dict[str, Any]:
     if targets:
         if len(targets) != 1:
             return {"kind": "unsupported", "label": m["description"]}
-        kind = next((k for k, stat in COUNTS.items() if stat == targets[0]["stat"]), "unsupported")
+        kind = next((k for k, stat in COUNTS.items() if stat == targets[0]["stat"]), None)
+        if kind is None:
+            return {
+                "kind": "count",
+                "stat": targets[0]["stat"],
+                "atLeast": targets[0]["min"],
+                "label": m["description"],
+            }
         return {"kind": kind, "atLeast": targets[0]["min"], "label": m["description"]}
     stats = m.get("stats") or []
     if stats:
@@ -504,6 +516,14 @@ def _rule(m: dict[str, Any]) -> dict[str, Any]:
             return {
                 "kind": kind,
                 "atLeast": count(kind),
+                "label": m["description"],
+            }
+        if len(stats) == 1 and stats[0] not in (*DECISIVE_STATS, "clean_sheet_60"):
+            found = re.search(r"(\d+)\s*\+", text)
+            return {
+                "kind": "count",
+                "stat": stats[0],
+                "atLeast": int(found[1]) if found else 1,
                 "label": m["description"],
             }
         if not all(s in stats for s in DECISIVE_STATS) or any(
@@ -751,8 +771,8 @@ def daily_entry(
                             else p["p"] * conditional
                         )
                         chances[m["key"]] = round(chance, 3)
-                elif kind in COUNTS and not late:
-                    value = sheets.get(p["player"], {}).get("season", {}).get(COUNTS[kind])
+                elif (stat := counted(m["rule"])) and not late:
+                    value = sheets.get(p["player"], {}).get("season", {}).get(stat)
                     if value:
                         n, lam = int(m["rule"].get("atLeast", 1)), float(value[0])
                         start, on = g.get("pStart", p.get("pStart")), g.get("pOn", p.get("pOn"))

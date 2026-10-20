@@ -143,6 +143,9 @@ export type Lineup = {
   worth?: number;
   /** A Pro lineup: the step it plays for, the Rare prize boost, and its chance of each target still ahead on the board. */
   pro?: { level: number; target: number; boost: number; allStart?: number; from?: string | null; to?: string | null; ladder: { level: number; target: number; cash: number; essence: number; p: number }[] };
+  /** For each starter, the players of yours who could take his slot in this competition on Sorare, best first (the job checks its rules:
+   * competition, rarity, in-season cards, cap, Pro's hour). Absent on plans made before 20 Oct 2026 and on played weeks. */
+  alts?: string[][];
   /** The same starters in the other mode (Pro against the league's Arena). */
   versus?: { comp: string; pReturn: number; eEss: number; eCash: number; worth: number };
   actual?: {

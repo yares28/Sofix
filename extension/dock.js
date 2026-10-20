@@ -514,7 +514,11 @@
     const box = el("div", "swap bad in");
     const why = alarm.out.why || (typeof alarm.out.pStart === "number" ? `${Math.round(alarm.out.pStart * 100)}% to start` : "unlikely to start");
     if (!alarm.in) {
-      const note = el("p", "note bad", `${alarm.out.name}: ${why}. None of your other players in his position is likely enough to start.`);
+      // Only players who can play in this competition are ever offered (the job lists them); without that list, nobody is.
+      const then = alarm.none === "none" ? `None of your players who can play in ${row.comp} is likely enough to start.`
+        : row.pro ? "Once the teams are out, about an hour before kickoff, Load from Sorare rebuilds this lineup on who starts."
+          : `Sofix will name who can replace him in ${row.comp} after the next refresh.`;
+      const note = el("p", "note bad", `${alarm.out.name}: ${why}. ${then}`);
       note.style.gridColumn = "1 / -1";
       box.style.display = "block";
       box.append(note);

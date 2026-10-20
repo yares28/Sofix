@@ -544,23 +544,29 @@ describe("overlayPlan", () => {
     const mate = (slug: string, pos: PlayingPlayer["pos"], pStart: number, extra: Partial<PlayingPlayer> = {}) =>
       player({ player: slug, name: slug.toUpperCase(), pos, pic: `p/${slug}`, pStart, pOn: 0.1, start: 50, bench: 10, x: 40, games: [game({ kickoff: future })], ...extra });
     const inLineup = (slug: string) => ({ slug: `c-${slug}`, player: slug, name: slug.toUpperCase(), pic: `p/${slug}`, pos: "MID", fixture: { kickoff: future }, start: 50, mu: 50 }) as unknown as PlayCard;
-    const rows = (players: PlayingPlayer[], starters: PlayCard[]) => {
+    const rows = (players: PlayingPlayer[], starters: PlayCard[], alts: string[][] | null = starters.map(() => [])) => {
       const answer = overlayPlan(week({ playing: { cards: players.length, players }, plans: [{
         rank: 1, essence: 0, cash: 0, pAny: 0.3, rewards: 0, cardsUsed: starters.length, cardsAvailable: 9,
-        lineups: [{ comp: "LaLiga Pro", board: "b1", boardId: "B1", x: 200, need: 300, pReturn: 0.2, eEss: 0, starters, subs: [], tiers: [] }] as unknown as Lineup[],
+        lineups: [{ comp: "LaLiga Pro", board: "b1", boardId: "B1", x: 200, need: 300, pReturn: 0.2, eEss: 0, starters, subs: [], tiers: [], ...(alts ? { alts } : {}) }] as unknown as Lineup[],
       }] as Plan[] }), NOW);
       if (answer.state !== "ready") throw new Error("expected a plan");
       return answer.rows![0]!;
     };
 
-    it("names the doubtful starter and offers the likeliest player of yours in his position who is in no lineup", () => {
+    it("names the doubtful starter and offers the likeliest of the players the job says can take his slot in this competition", () => {
       const row = rows(
-        [mate("pedri", "MID", 0.22), mate("gavi", "MID", 0.9), mate("olmo", "MID", 0.75), mate("rodri", "MID", 0.95, { player: "rodri" }), mate("ryan", "GK", 0.99)],
+        [mate("pedri", "MID", 0.22), mate("gavi", "MID", 0.9), mate("olmo", "MID", 0.75), mate("rodri", "MID", 0.95, { player: "rodri" }), mate("navarro", "MID", 0.99)],
         [inLineup("pedri"), inLineup("rodri")],
+        [["olmo", "gavi", "rodri"], []],
       );
       expect(row.alarms).toEqual([
         { out: { slug: "c-pedri", name: "PEDRI", pic: "p/pedri", pStart: 0.22, why: "" }, in: { slug: "gavi", name: "GAVI", pic: "p/gavi", pStart: 0.9, s: 50 } },
-      ]); // Rodri is already in the plan, Olmo is less likely than Gavi, Ryan plays another position
+      ]); // Navarro is likelier but cannot play in this competition, Rodri is already in the plan, Olmo is less likely than Gavi
+    });
+
+    it("offers nobody when the plan does not say who can play in this competition, rather than a guess", () => {
+      const row = rows([mate("pedri", "MID", 0.22), mate("gavi", "MID", 0.9)], [inLineup("pedri")], null);
+      expect(row.alarms).toEqual([{ out: { slug: "c-pedri", name: "PEDRI", pic: "p/pedri", pStart: 0.22, why: "" }, in: null, none: "unknown" }]);
     });
 
     it("is silent for a likely starter, for a game that has started and for a bare lineup", () => {
@@ -573,8 +579,9 @@ describe("overlayPlan", () => {
       const row = rows(
         [mate("pedri", "MID", 0.9, { games: [game({ kickoff: future, pStart: 0.9, pOn: 0.05, startSource: "futbolfantasy", ffStatus: { kind: "out" } })] }), mate("gavi", "MID", 0.4)],
         [inLineup("pedri")],
+        [["gavi"]],
       );
-      expect(row.alarms).toEqual([{ out: { slug: "c-pedri", name: "PEDRI", pic: "p/pedri", pStart: 0.9, why: "injured" }, in: null }]);
+      expect(row.alarms).toEqual([{ out: { slug: "c-pedri", name: "PEDRI", pic: "p/pedri", pStart: 0.9, why: "injured" }, in: null, none: "none" }]);
     });
   });
 

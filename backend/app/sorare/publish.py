@@ -758,6 +758,50 @@ def _place(place: int) -> str:
     return f"{place}{ {1: 'st', 2: 'nd', 3: 'rd'}.get(place if place < 20 else place % 10, 'th') }"
 
 
+SWAP_OPTIONS = 5
+
+
+def swap_options(
+    lineup: Lineup,
+    lineups: list[Lineup],
+    cards: list[Card],
+    forecasts: Mapping[str, Forecast],
+    rule: Callable[[list[Card | None]], bool] | None = None,
+) -> list[list[str]]:
+    """For each starter, the players of yours who could take his slot in this lineup on Sorare, best expected score first: a card the
+    competition allows, in that slot's positions, in no lineup of the plan, and the lineup still keeping its rules (in-season cards,
+    cap, a Pro lineup's games within the hour). The dock's alarm picks among them the likeliest to start; it never guesses its own."""
+    comp = lineup.comp
+    used = {c.slug for lu in lineups for c in [*lu.starters, *lu.subs] if c is not None}
+    here = {c.player for c in lineup.starters}
+    out: list[list[str]] = []
+    for i in range(len(lineup.starters)):
+        ranked: list[tuple[float, str]] = []
+        for card in cards:
+            f = forecasts.get(card.player)
+            if (
+                card.slug in used
+                or card.player in here
+                or not f
+                or f.p_play <= 0
+                or card.positions[0] not in comp.starters[i]
+            ):
+                continue
+            picked: list[Card | None] = [*lineup.starters[:i], card, *lineup.starters[i + 1 :]]
+            if not comp.allows(card) or (
+                comp.min_in_season and sum(1 for c in picked if c and c.in_season) < comp.min_in_season
+            ):
+                continue
+            if (comp.cap is not None and sum(c.average for c in picked if c) > comp.cap) or (
+                rule is not None and not rule(picked)
+            ):
+                continue
+            ranked.append((f.p_play * f.mu * comp.multiplier(card), card.player))
+        players = list(dict.fromkeys(player for _, player in sorted(ranked, reverse=True)))
+        out.append(players[:SWAP_OPTIONS])
+    return out
+
+
 def plan_payload(
     plan: Plan,
     rank: int,
@@ -766,6 +810,8 @@ def plan_payload(
     usable: int,
     actual_references: dict[str, dict[int, float]] | None = None,
     twins: Mapping[str, Competition] | None = None,
+    cards: list[Card] | None = None,
+    rule_for: Callable[[Competition], Callable[[list[Card | None]], bool] | None] | None = None,
 ) -> dict[str, Any]:
     order = {"In-season": 0, "Classic": 1, "Room": 2}
     lineups = sorted(plan.lineups, key=lambda lu: (order[lu.comp.group], -lu.p_return))
@@ -792,9 +838,17 @@ def plan_payload(
         "cardsUsed": plan.cards_used,
         "cardsAvailable": usable,
         "lineups": [
-            lineup_payload(
-                lu, forecasts, games, (actual_references or {}).get(lu.comp.key), (twins or {}).get(lu.comp.key)
-            )
+            {
+                **lineup_payload(
+                    lu, forecasts, games, (actual_references or {}).get(lu.comp.key), (twins or {}).get(lu.comp.key)
+                ),
+                # who could replace each starter, within the competition's rules (the dock's alarm), when the cards are known
+                **(
+                    {"alts": swap_options(lu, plan.lineups, cards, forecasts, rule_for(lu.comp) if rule_for else None)}
+                    if cards is not None
+                    else {}
+                ),
+            }
             for lu in lineups
         ],
     }
@@ -1011,7 +1065,15 @@ def gameweek_payload(
         "notWorth": not_worth,
         "plans": [
             plan_payload(
-                plan, i + 1, forecasts, games, len(cards), actual_references if played else None, pro.twins(comps)
+                plan,
+                i + 1,
+                forecasts,
+                games,
+                len(cards),
+                actual_references if played else None,
+                pro.twins(comps),
+                None if played else cards,
+                rule_for,
             )
             for i, plan in enumerate(found)
         ],

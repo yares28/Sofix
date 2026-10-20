@@ -177,6 +177,9 @@ export function withRebuild(plan: OverlayPlan, rebuild: { plan: number; at: stri
 export type DockAlarm = {
   out: { slug: string; name: string; pic: string; pStart: number | null; why: string };
   in: { slug: string; name: string; pic: string; pStart: number; s: number } | null;
+  /** Why there is no `in`: none of the players who can play in this competition is likely enough ("none"), or the plan does not say
+   * who can (a plan made before the job listed them, "unknown"); then nothing is offered rather than a guess. */
+  none?: "none" | "unknown";
 };
 
 /** Today's missions for the dock: what you picked, what Sofix would pick and the swaps between the two. */
@@ -238,9 +241,10 @@ export const ALARM_BELOW = 0.5;
 const REPLACEMENT_AT = 0.7;
 
 /**
- * The starters of one lineup whose game is still ahead and who are unlikely to start, and for each the player of yours, not in any
- * lineup of the plan, who plays the same position and is likeliest to start (his score if he starts breaks a tie). The numbers are the
- * ones the cards already show; a game that has kicked off is never an alarm, since nothing can be changed then.
+ * The starters of one lineup whose game is still ahead and who are unlikely to start, and for each the player of yours likeliest to
+ * start (his score if he starts breaks a tie) among those the job says can take that slot in this competition (`alts`: its rules, and
+ * in no lineup of the plan). The numbers are the ones the cards already show; a game that has kicked off is never an alarm, since
+ * nothing can be changed then.
  */
 function alarmsOf(gameweek: GameweekPlan, lineups: Lineup[], lineup: Lineup, now: Date): DockAlarm[] {
   const playing = new Map<string, PlayingPlayer>();
@@ -250,15 +254,17 @@ function alarmsOf(gameweek: GameweekPlan, lineups: Lineup[], lineup: Lineup, now
   const readOf = (player: PlayingPlayer) => entryFor(player, null, now, "", undefined);
   const unwell = (kind: FfStatus["kind"] | undefined) => kind === "out" || kind === "suspended";
   const taken = new Set<string>();
-  return (lineup.starters ?? []).flatMap((card): DockAlarm[] => {
+  return (lineup.starters ?? []).flatMap((card, index): DockAlarm[] => {
     const player = card.player ? playing.get(card.player) : gameweek.playing.players.find((one) => one.name === card.name && named.has(card.name));
     if (!player) return [];
     const now1 = readOf(player);
     if (now1.over || now1.pStart === undefined) return [];
     const kind = now1.ffStatus?.kind;
     if (now1.pStart >= ALARM_BELOW && !unwell(kind)) return [];
-    const pool = gameweek.playing.players
-      .filter((one) => one.pos === player.pos && one.player && !used.has(one.player) && !used.has(one.name) && !taken.has(one.player))
+    const fits = lineup.alts?.[index];
+    const pool = (fits ?? [])
+      .flatMap((slug) => playing.get(slug) ?? [])
+      .filter((one) => !used.has(one.player!) && !taken.has(one.player!))
       .flatMap((one) => {
         const read = readOf(one);
         return read.over || read.pStart === undefined || read.pStart < REPLACEMENT_AT || unwell(read.ffStatus?.kind) ? [] : [{ one, read }];
@@ -270,6 +276,7 @@ function alarmsOf(gameweek: GameweekPlan, lineups: Lineup[], lineup: Lineup, now
     return [{
       out: { slug: card.slug, name: card.name, pic: card.pic, pStart: now1.pStart, why },
       in: pick ? { slug: pick.one.player!, name: pick.one.name, pic: pick.one.pic, pStart: pick.read.pStart!, s: Math.round(pick.read.start ?? pick.read.x) } : null,
+      ...(pick ? {} : { none: fits ? ("none" as const) : ("unknown" as const) }),
     }];
   });
 }

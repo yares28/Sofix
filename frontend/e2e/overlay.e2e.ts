@@ -1043,7 +1043,9 @@ test.describe("the sorare.com overlay", () => {
 
   test("during a week being played it shows the Pro lineups not kicked off yet, with Load from Sorare, and never enters them", async ({ page }) => {
     const starts = new Date(Date.now() + 2 * 3600_000).toISOString();
-    const pro = { ...row("European Champions Pro", "ecp", 262, 320, 0.3, 0, PICKS.slice(0, 5).map((p, i) => ({ slug: p.card, pic: p.pic, name: `Pick ${p.n}`, s: p.x, slot: ["GK", "DEF", "MID", "FWD", "EXT"][i]! })), PICKS[0]!.card), pro: true, starts };
+    const pro = { ...row("European Champions Pro", "ecp", 262, 320, 0.3, 0, PICKS.slice(0, 5).map((p, i) => ({ slug: p.card, pic: p.pic, name: `Pick ${p.n}`, s: p.x, slot: ["GK", "DEF", "MID", "FWD", "EXT"][i]! })), PICKS[0]!.card), pro: true, starts,
+      // a plan saved before the job listed who can play in each competition: no swap is guessed, Load from Sorare is named instead
+      alarms: [{ out: { slug: PICKS[1]!.card, name: "Pick 2", pic: PICKS[1]!.pic, pStart: 0.44, why: "" }, in: null, none: "unknown" }] };
     await openPage(page, { plan: { ...PLAN, week: 24, fixture: "football-20-23-oct-2026", lock: new Date(Date.now() - 4 * 3600_000).toISOString(), pro: { starts, rank: 1 }, rows: [pro] } });
     await expect(page.locator("[data-sfx-dock]")).toContainText("GW24");
     await expect(page.locator("[data-sfx-dock]")).toContainText(/Locks (\w{3} )?\d\d:\d\d/); // the first Pro kickoff, not the week's lock (passed)
@@ -1057,6 +1059,9 @@ test.describe("the sorare.com overlay", () => {
     const sent = (await probe(page)).sent.filter((message) => message.type === "pro-rebuild");
     expect(sent).toEqual([{ type: "pro-rebuild", week: "football-20-23-oct-2026", plan: 1 }]);
     expect(await dockSteps(page)).toEqual([]); // nothing is run through Sorare
+    await dock(page).getByRole("button", { name: /European Champions Pro/ }).click();
+    await expect(dock(page).getByText("Once the teams are out, about an hour before kickoff, Load from Sorare rebuilds this lineup on who starts.")).toBeVisible();
+    await expect(dock(page).getByRole("button", { name: /^Swap/ })).toHaveCount(0);
   });
 
   test("enters the plan from Sorare's own page in three presses, Check, Draft and Enter, one step each and never chained", async ({ page }) => {

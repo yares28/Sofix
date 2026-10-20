@@ -898,8 +898,10 @@ even on a page about another week; and every Celta game showed **No odds**, beca
 ### The dock (extension 0.4.0, 20 Oct 2026; 0.4.1 adds the three things below)
 
 - **Alarm (0.4.1):** the pill turns red with a count when a starter of the plan, whose game is still ahead, is under 50% to start (or
-  injured or suspended). The lineup's row says "N at risk" and, opened, shows who would take his place: a player of yours in the same
-  position, in no lineup of the plan, at least 70% to start. **Swap** guides it on Sorare's lineup page. It watches Sofix's plan, not
+  injured or suspended). The lineup's row says "N at risk" and, opened, shows who would take his place: a player of yours at least 70%
+  to start, chosen only among those the job lists as able to take that slot in that competition (its leagues, rarity, in-season
+  cards, cap, a Pro lineup's hour; in no lineup of the plan; 0.4.4). A plan made before that list says so instead of guessing, and a
+  Pro lineup points to Load from Sorare. **Swap** guides it on Sorare's lineup page. It watches Sofix's plan, not
   lineups you built by hand, and goes quiet at the lock.
 - **Live score (0.4.1):** after the lock the pill shows the points your entered lineups have so far; each row says "191 of 260 · so far"
   and "70 to go" or "Reached". Read from Sorare through your tab, at most every two minutes while the panel is open.

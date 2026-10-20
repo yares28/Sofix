@@ -577,6 +577,9 @@ def test_a_lineup_carries_what_the_app_needs_to_draw_it(payload):
     # asking Sorare about it takes the slug.
     assert lineup["boardId"] == f"So5Leaderboard:{lineup['board']}"
     assert 0 <= lineup["pReturn"] <= 1
+    # who could take each starter's slot in this competition (the dock's alarm): one list per starter, none of them in the lineup
+    assert len(lineup["alts"]) == len(lineup["starters"])
+    assert not {c["player"] for c in lineup["starters"]} & {p for alts in lineup["alts"] for p in alts}
     # a starter's xD is his game's when it is worked out, else his own record's; the lineup has one only when every starter does
     assert (lineup["xd"] is None) == any("xd" not in card for card in lineup["starters"])
     card = lineup["starters"][0]

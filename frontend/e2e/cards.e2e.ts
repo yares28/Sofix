@@ -170,3 +170,42 @@ test("Stats keeps the chosen stat and starts in the address", async ({ page }) =
   await page.getByRole("button", { name: "Previous stat" }).click();
   await expect(page).toHaveURL(/stat=assist_penalty_won&min=20$/);
 });
+
+test("Prices says how far the gallery is up or down, stands each bought card on what it cost, and keeps the cards not bought apart", async ({ page }) => {
+  // the mock API prices the recorded collection: every fifth card not bought (e2e/mock-api.mjs)
+  const notBought = cards.filter((_, i) => i % 5 === 4).length;
+  await page.goto("/prices");
+  await expect(page.getByRole("link", { name: "Prices", exact: true })).toHaveAttribute("aria-current", "page");
+  // the headline counts up to the whole gallery's gain or loss on what was paid
+  const signed = (texts: string[]) => texts.map((t) => Number(t.replace(/\s|up|down/g, "").replace(/^−/, "-").replace(/[+€]/g, "")));
+  const total = signed(await page.locator(".px-wall").first().locator(".px-badge").allInnerTexts()).reduce((a, b) => a + b, 0);
+  await expect(async () => {
+    expect(Math.abs(signed([await page.locator(".px-total").innerText()])[0]! - total)).toBeLessThan(0.1);
+  }).toPass();
+  await expect(page.locator(".px-total")).toHaveText(total > 0 ? /^up \+€\d+\.\d\d$/ : /^down −€\d+\.\d\d$/);
+  await expect(page.locator(".px-tide li")).toHaveCount(cards.length - notBought);
+  // a gain stands above the line, a loss hangs below it
+  const up = page.locator(".px-tide li.up").first();
+  const down = page.locator(".px-tide li.down").first();
+  const line = (await page.locator(".px-tide ol").boundingBox())!;
+  expect((await up.locator(".px-bar").boundingBox())!.y).toBeLessThan(line.y + line.height / 2);
+  expect((await down.locator(".px-bar").boundingBox())!.y).toBeGreaterThanOrEqual(line.y + line.height / 2 - 2);
+  // the wall follows the chosen order
+  const badges = () => page.locator(".px-wall").first().locator(".px-badge").allInnerTexts();
+  const euros = (texts: string[]) => texts.map((t) => Number(t.replace("\u2212", "-").replace(/[+€]/g, "")));
+  expect(euros(await badges())).toEqual([...euros(await badges())].sort((a, b) => b - a));
+  await page.getByLabel("Order").selectOption("loss");
+  expect(euros(await badges())[0]).toBeLessThan(0);
+  await expect(page.getByRole("heading", { name: /Not bought/ })).toBeVisible();
+  await expect(page.locator(".px-wall").nth(1).locator(".px-tile")).toHaveCount(notBought);
+  await page.waitForTimeout(900);
+  expect(await smallText(page, 11)).toEqual([]);
+  if (process.env.SHOT_DIR) await page.screenshot({ path: `${process.env.SHOT_DIR}/prices-1440.png`, fullPage: true });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/prices");
+  await page.waitForTimeout(900);
+  expect(await smallText(page, 10)).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  if (process.env.SHOT_DIR) await page.screenshot({ path: `${process.env.SHOT_DIR}/prices-390.png`, fullPage: true });
+});

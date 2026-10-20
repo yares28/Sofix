@@ -5,6 +5,7 @@ import {
   duplicateCounts,
   gain,
   improvers,
+  isUpgrade,
   initials,
   ownedPlayers,
   priceLabel,
@@ -46,6 +47,7 @@ const priced = (over: Partial<MarketPlayer> = {}): MarketPlayer => ({
   average: 60,
   projection: 55,
   eur: 42.5,
+  pStart: 0.9,
   pic: "https://assets.sorare.com/card/y/picture.png",
   ...over,
 });
@@ -204,6 +206,15 @@ describe("gain, verdict and improvers", () => {
       priced({ slug: "low", pos: "FWD", average: 40 }), // below bar
     ];
     expect(improvers(market, bar, owned).map((p) => p.slug)).toEqual(["up"]);
+  });
+
+  it("is no upgrade unless he is at least 70% to start (or plays, when no start chance is known)", () => {
+    const bench = priced({ slug: "bench", pos: "FWD", average: 70, pStart: 0.69 });
+    expect(verdict(bench, bar, owned)).toEqual({ kind: "flat", value: "+19", note: "starts 69%" });
+    expect(improvers([bench, priced({ slug: "sure", pos: "FWD", average: 70, pStart: 0.7 })], bar, owned).map((p) => p.slug)).toEqual(["sure"]);
+    expect(isUpgrade(priced({ pos: "FWD", average: 70, pStart: undefined, p: 0.8 }), bar, owned)).toBe(true);
+    expect(isUpgrade(priced({ pos: "FWD", average: 70, pStart: undefined }), bar, owned)).toBe(false);
+    expect(valuePer10(bench, bar)).toBe(0);
   });
 });
 

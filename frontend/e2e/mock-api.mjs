@@ -86,6 +86,11 @@ const planning = sorare.data.weeks.find((week) => week.gameweek.id === sorare.da
   { pStart: 0.7, startSource: "sorare", sources: { sorare: 0.7, sofix: 0.6 } },
   { pStart: 0.6, startSource: "sofix", sources: { sofix: 0.6 } },
 ].forEach((extra, index) => Object.assign(planning.playing.players[index], { player: sorare.data.collection[index].player }, extra));
+// What each card cost and is worth now, as the job publishes them (`sync.card_prices`): every fifth card was not bought, the rest gain or lose.
+sorare.data.collection.forEach((card, index) => {
+  const paid = index % 5 === 4 ? null : 4 + ((index * 7) % 31);
+  Object.assign(card, { paid, value: Math.round((paid ?? 6) * (0.55 + ((index * 13) % 10) / 10) * 100) / 100, since: "2026-09-01T10:00:00Z" });
+});
 // The first of them carries the picture of his game the panel and the Players page draw (`shape`, `onShape`).
 Object.assign(planning.playing.players[0], {
   start: 52,

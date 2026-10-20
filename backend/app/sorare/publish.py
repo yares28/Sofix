@@ -1474,7 +1474,7 @@ def build_payload(
             "rareGoalkeepers": sum(1 for c in cards if c.rarity == "rare" and c.positions[0] == "GK"),
         },
         # S5: the whole collection card by card, and the LaLiga players priced right now.
-        "collection": collection_out(cards),
+        "collection": collection_out(cards, snapshot.get("prices") or {}),
         "market": market_out(snapshot.get("market") or [], league_forecasts, league_games),
         "essenceOrder": list(order),
         "_alt": alt,
@@ -1737,13 +1737,15 @@ def _started(appeared: Any, window: int) -> float | None:
     return None if appeared is None else round(100 * float(appeared) / window, 1)
 
 
-def collection_out(cards: list[Card]) -> list[dict[str, Any]]:
+def collection_out(cards: list[Card], prices: Mapping[str, Mapping[str, Any]] | None = None) -> list[dict[str, Any]]:
     """Every usable card, in the shape the My cards page (S5) draws. The page groups and sorts them itself.
 
     L5 and L40 are Sorare's average scores over those windows; L10 is the last-ten-played average the rest of
     the app already uses. `started` is the share of games in that window he actually played. `stars` is his
-    gameplay tier (Star, Icon, and the rest).
+    gameplay tier (Star, Icon, and the rest). `paid`, `value` and `since` are the Prices page's: what you paid in euros
+    (None when you did not buy it), what Sorare values it at now, and when it became yours (`sync.card_prices`).
     """
+    prices = prices or {}
     return [
         {
             "slug": c.slug,
@@ -1762,6 +1764,7 @@ def collection_out(cards: list[Card]) -> list[dict[str, Any]]:
                 {"window": "L40", "score": c.l40, "started": c.started40},
             ],
             "stars": c.stars,
+            **({k: prices[c.slug].get(k) for k in ("paid", "value", "since")} if c.slug in prices else {}),
         }
         for c in cards
     ]

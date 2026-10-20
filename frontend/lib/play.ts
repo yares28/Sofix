@@ -436,6 +436,10 @@ export type CollectionCard = {
   scores?: CardScore[];
   /** The player's Sorare star tier, 0–5 (the "Icon" row shows 5). Null when the job hasn't got it yet. */
   stars?: number | null;
+  /** The Prices page's (absent on older payloads): what you paid in euros (null when you did not buy it), Sorare's value now, since when it is yours. */
+  paid?: number | null;
+  value?: number | null;
+  since?: string | null;
 };
 
 /** One LaLiga player, as the Players page (S5) draws it: every player of the league, not only yours. */

@@ -96,3 +96,41 @@ def test_prices_are_euros_and_a_club_that_fails_is_skipped() -> None:
 def test_a_broken_club_list_leaves_the_index_empty() -> None:
     client = _Client({"clubs": SorareError("schema")})
     assert laliga_index(client) == []
+
+
+def test_card_prices_keep_what_you_paid_and_the_value_for_the_cards_own_rarity_and_season() -> None:
+    from app.sorare.publish import collection_out
+    from app.sorare.sync import card_prices
+
+    class Prices:
+        api_key = ""
+
+        def query(self, query: str, variables: dict | None = None) -> dict:
+            if "broken" in (variables or {})["s"]:
+                raise SorareError("no answer")
+            history = [
+                {"from": "2026-08-01T00:00:00Z", "user": {"slug": "someone"}, "amounts": {"eurCents": 900}},
+                {"from": "2026-08-26T21:57:01Z", "user": {"slug": "yares"}, "amounts": {"eurCents": 1909}},
+            ]
+            values = {"limited_IN_SEASON": {"eurCents": 1277}, "rare_CLASSIC": {"eurCents": 191}}
+            return {
+                "anyCards": [
+                    {"slug": "bought", "ownershipHistory": history, "anyPlayer": {"commonPlayer": values}},
+                    {
+                        "slug": "crafted",
+                        "ownershipHistory": [{"from": "x", "user": {"slug": "yares"}, "amounts": None}],
+                        "anyPlayer": {"commonPlayer": values},
+                    },
+                ]
+            }
+
+    rows = [
+        {"slug": "bought", "rarityTyped": "limited", "inSeasonEligible": True},
+        {"slug": "crafted", "rarityTyped": "rare", "inSeasonEligible": False},
+    ]
+    prices = card_prices(Prices(), "yares", rows)  # type: ignore[arg-type]
+    assert prices["bought"] == {"paid": 19.09, "value": 12.77, "since": "2026-08-26T21:57:01Z"}
+    assert prices["crafted"] == {"paid": None, "value": 1.91, "since": "x"}
+    # a batch Sorare does not answer is left out, never fatal
+    assert card_prices(Prices(), "yares", [{"slug": "broken", "rarityTyped": "limited"}]) == {}  # type: ignore[arg-type]
+    assert collection_out([], prices) == []

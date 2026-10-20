@@ -439,6 +439,48 @@ def cards(client: SorareClient, user: str, fixtures: dict[str, str]) -> list[dic
         after = page["pageInfo"]["endCursor"]
 
 
+_VALUE = "{r}_{s}: marketValue(rarity: {r}, seasonEligibility: {s}) {{ eurCents }}"
+PRICES = (
+    "query($s:[String!]!){ anyCards(slugs: $s) { slug ownershipHistory { from user { slug } amounts { eurCents } } "
+    "anyPlayer { ... on Player { commonPlayer(rarity: limited) { "
+    + " ".join(_VALUE.format(r=r, s=s) for r in ("limited", "rare") for s in ("IN_SEASON", "CLASSIC"))
+    + " } } } } }"
+)
+"""Sorare refuses one root field twice in a query, so a batch is one `anyCards`; a card's value is its player's market value
+for its own rarity and season, all four asked and the right one kept."""
+PRICE_BATCH = (7, 100)
+"""Cards a batch, without and with an API key: a card costs Sorare about 62 of the 500 (keyless) or 30000 a query allows."""
+
+
+def card_prices(client: SorareClient, user: str, rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """What you paid for each card and what Sorare values it at now (its player's market value for that rarity and season),
+    in euros, by card slug. `paid` is None for a card you did not buy (crafted, won, minted). Best-effort: a batch Sorare will
+    not answer is left out, never fatal."""
+    out: dict[str, dict[str, Any]] = {}
+    cards = [r for r in rows if r.get("slug") and r.get("rarityTyped") in ("limited", "rare")]
+    size = PRICE_BATCH[1] if getattr(client, "api_key", "") else PRICE_BATCH[0]
+    for start in range(0, len(cards), size):
+        batch = cards[start : start + size]
+        try:
+            found = client.query(PRICES, {"s": [r["slug"] for r in batch]}).get("anyCards") or []
+        except SorareError as error:
+            logger.warning("card prices skipped a batch: %s", error)
+            continue
+        by_slug = {c.get("slug"): c for c in found if isinstance(c, dict)}
+        for row in batch:
+            card = by_slug.get(row["slug"]) or {}
+            mine = [o for o in card.get("ownershipHistory") or [] if (o.get("user") or {}).get("slug") == user]
+            paid = (mine[-1].get("amounts") or {}).get("eurCents") if mine else None
+            key = f"{row['rarityTyped']}_{'IN_SEASON' if row.get('inSeasonEligible') else 'CLASSIC'}"
+            value = (((card.get("anyPlayer") or {}).get("commonPlayer") or {}).get(key) or {}).get("eurCents")
+            out[row["slug"]] = {
+                "paid": paid / 100 if isinstance(paid, int | float) else None,
+                "value": value / 100 if isinstance(value, int | float) else None,
+                "since": mine[-1].get("from") if mine else None,
+            }
+    return out
+
+
 def _sent_off(stats: list[dict[str, Any]] | None) -> bool:
     return any(one.get("stat") == "red_card" and (one.get("statValue") or 0) > 0 for one in stats or [])
 
@@ -972,6 +1014,8 @@ def snapshot(
     lap("projections")
     pro_boards = pro.boards(client, user)  # your Pro steps and prizes: public, one call
     lap("pro")
+    prices = card_prices(client, user, my_cards)  # Prices page: what you paid and what each card is worth now
+    lap("prices")
     # Every other LaLiga player's past games, so his form counts too (yours are read in full above): only read here, the daily
     # `league-history` job is the one that fetches and saves them, so a refresh never writes back an older copy.
     league = cached_league or {}
@@ -995,6 +1039,7 @@ def snapshot(
         "market": market,
         "projections": projections,
         "pro": pro_boards,
+        "prices": prices,
         "leagueHistory": league,
         "calls": client.calls,
         "parts": {part: {"calls": calls_by[part], "seconds": laps[part]} for part in laps},

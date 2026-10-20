@@ -147,6 +147,8 @@
           anyCard { slug inSeasonEligible anyTeam { name } }
         }`;
 
+  // Sorare's task(id:) and gameId arguments take the bare UUID since Oct 2026 ("Tasks::Task:…" answers "TaskConfig(id=) not found").
+  const bare = (id) => String(id).replace(/^.*:/, "");
   const OPERATIONS = {
     SofixWhoAmI: "query SofixWhoAmI { currentUser { slug nickname } }",
 
@@ -191,13 +193,13 @@
     SofixMissionGames: (variables) => {
       const tasks = variables?.tasks;
       if (!Array.isArray(tasks) || !tasks.length || tasks.length > 12 || tasks.some((t) => !/^[A-Za-z0-9:_-]{1,120}$/.test(t.id) || (t.after !== undefined && (typeof t.after !== "string" || t.after.length > 500))) || !Number.isFinite(Date.parse(variables.fromDate)) || !Number.isFinite(Date.parse(variables.toDate))) return null;
-      return `query SofixMissionGames { currentUser { ${tasks.map((t, i) => `t${i}: task(id: ${JSON.stringify(t.id)}) { ... on DecisivePlayerPickerTask { pickableGames(first: 100, after: ${JSON.stringify(t.after ?? null)}, fromDate: ${JSON.stringify(variables.fromDate)}, toDate: ${JSON.stringify(variables.toDate)}) { nodes { game { id date competition { slug } homeTeam { id name pictureUrl } awayTeam { id name pictureUrl } } } pageInfo { hasNextPage endCursor } } } }`).join(" ")} } }`;
+      return `query SofixMissionGames { currentUser { ${tasks.map((t, i) => `t${i}: task(id: ${JSON.stringify(bare(t.id))}) { ... on DecisivePlayerPickerTask { pickableGames(first: 100, after: ${JSON.stringify(t.after ?? null)}, fromDate: ${JSON.stringify(variables.fromDate)}, toDate: ${JSON.stringify(variables.toDate)}) { nodes { game { id date competition { slug } homeTeam { id name pictureUrl } awayTeam { id name pictureUrl } } } pageInfo { hasNextPage endCursor } } } }`).join(" ")} } }`;
     },
     SofixMissionCards: (variables) => {
       const pairs = variables?.pairs;
       if (!Array.isArray(pairs) || !pairs.length || pairs.length > 24 || pairs.some((p) => !/^[A-Za-z0-9:_-]{1,120}$/.test(p.id) || !/^Game:[a-f0-9-]{36}$/.test(p.game) || (p.after !== undefined && (typeof p.after !== "string" || p.after.length > 500)))) return null;
       const averages = /^(LAST_(FIVE|FIFTEEN|FORTY)|LAST_TEN_PLAYED)_(SO5_AVERAGE_SCORE|AVERAGE_ALL_AROUND_SCORE|AVERAGE_DECISIVE_SCORE)$|^SEASON_AVERAGE_SCORE$/;
-      return `query SofixMissionCards { currentUser { ${pairs.map((p, i) => `t${i}: task(id: ${JSON.stringify(p.id)}) { ... on DecisivePlayerPickerTask { pickableCards(gameId: ${JSON.stringify(p.game)}, ownedByMe: true, first: 100, after: ${JSON.stringify(p.after ?? null)}) { nodes { slug pictureUrl anyPositions anyPlayer { slug displayName } eligiblePlayerGameScores(gameId: ${JSON.stringify(p.game)}, taskId: ${JSON.stringify(p.id)}) { anyPlayerGameStats { anyTeam { id name pictureUrl } } ${averages.test(p.averageType ?? "") ? `averageScore(type: ${p.averageType})` : ""} } } pageInfo { hasNextPage endCursor } } } }`).join(" ")} } }`;
+      return `query SofixMissionCards { currentUser { ${pairs.map((p, i) => `t${i}: task(id: ${JSON.stringify(bare(p.id))}) { ... on DecisivePlayerPickerTask { pickableCards(gameId: ${JSON.stringify(bare(p.game))}, ownedByMe: true, first: 100, after: ${JSON.stringify(p.after ?? null)}) { nodes { slug pictureUrl anyPositions anyPlayer { slug displayName } eligiblePlayerGameScores(gameId: ${JSON.stringify(bare(p.game))}, taskId: ${JSON.stringify(p.id)}) { anyPlayerGameStats { anyTeam { id name pictureUrl } } ${averages.test(p.averageType ?? "") ? `averageScore(type: ${p.averageType})` : ""} } } pageInfo { hasNextPage endCursor } } } }`).join(" ")} } }`;
     },
 
     // Sorare's own verdict on a lineup, before anything is written.

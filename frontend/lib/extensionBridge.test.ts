@@ -46,8 +46,8 @@ function bridge() {
       await window.fetch(url, { body: JSON.stringify({ operationName }), method: "POST" } as { body: string });
       await new Promise(resolve => setTimeout(resolve, 0));
     },
-    async read(id = GAME, operation = "SofixLineupChances") {
-      await listener!({ source: window, data: { source: `sofix-content-${context.window.__sofixBridge}`, type: "ask", id: "read", operation, variables: { id } } });
+    async read(id = GAME, operation = "SofixLineupChances", variables: unknown = { id }) {
+      await listener!({ source: window, data: { source: `sofix-content-${context.window.__sofixBridge}`, type: "ask", id: "read", operation, variables } });
       return JSON.parse(JSON.stringify(replies.findLast(r => r.id === "read")));
     },
   };
@@ -131,5 +131,20 @@ describe("a bridge injected again into an open tab", () => {
     vm.runInContext(source, context); // the extension reloaded and put its bridge in again
     for (const listener of listeners) await listener({ source: window, data: { source: "sofix-content-9", type: "whoami", id: "who" } });
     expect(replies.filter((r) => r.id === "who")).toEqual([{ source: "sofix-bridge-9", id: "who", state: "signed-in", user: "Yares" }]);
+  });
+});
+
+describe("mission eligibility queries", () => {
+  // 20 Oct 2026: Sorare answered "Tasks::TaskConfig(id=) not found" to task(id: "Tasks::Task:…") and "Game(id=Game:…) not found" to gameId: "Game:…".
+  it("send Sorare the bare task and game UUIDs", async () => {
+    const b = bridge();
+    const task = "Tasks::Task:6d26bb60-ae46-9c46-391b-6b2a6b95d399";
+    await b.read(GAME, "SofixMissionGames", { tasks: [{ id: task }], fromDate: "2026-10-20T00:00:00Z", toDate: "2026-10-22T00:00:00Z" });
+    await b.read(GAME, "SofixMissionCards", { pairs: [{ id: task, game: GAME }] });
+    const [games, cards] = b.calls.slice(-2).map((c) => (c as { query: string }).query);
+    expect(games).toContain('task(id: "6d26bb60-ae46-9c46-391b-6b2a6b95d399")');
+    expect(cards).toContain('task(id: "6d26bb60-ae46-9c46-391b-6b2a6b95d399")');
+    expect(cards).toContain(`pickableCards(gameId: "${GAME.slice(5)}"`);
+    expect(cards).not.toContain(`"${GAME}"`);
   });
 });

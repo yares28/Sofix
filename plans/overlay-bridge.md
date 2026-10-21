@@ -13,7 +13,7 @@ Cheapest first; each step reuses the one before it. One step per commit, each sh
 |---|---|---|---|---|
 | 0 | The red backend CI (ruff, mypy, pytest on 81eaf48) | Small | — | done 21 Oct (certifi advisory) |
 | 1 | B1 · O5 · start % on the lineups you entered | Small | — | done 21 Oct, extension 0.4.8, seen on his Lineups page |
-| 2 | B2 · O4 · worth now, in your gallery | Small | — | to do |
+| 2 | B2 · O4 · worth now, in your gallery | Small | — | done 21 Oct, extension 0.4.11, seen on his gallery: 20 of 20 cards, total = Prices (€298.56, paid €444.51 for 86) |
 | 3 | B3 · O3 · Sofix's line on a LaLiga player page | Medium | — | to do |
 | 4 | B4 · O9 · market switch: LaLiga starters only | Small | B3 | to do |
 | 5 | B5 · D5 · search any player from the dock | Medium | B3 | to do |
@@ -83,6 +83,11 @@ Cheapest first; each step reuses the one before it. One step per commit, each sh
     venue, label and bucket colour. The label shows, never a bucket number (AGENTS.md).
   - `overlay.js` reads the slug from the address and draws the strip in the hero.
 - **Risks:** a player outside LaLiga gets no strip (nothing, never zeros). No extra Neon reads: the route already reads `market`.
+- **Measured 21 Oct on Lamine Yamal's page:** a 450 px hero; the breadcrumb row (Follow, Add to) at its top; the name block placed
+  absolutely from 238 px to the hero's foot, its content pushed down. The band between them is empty, so the strip hangs from the
+  name block (`bottom: 100%`), aligned with the name. Built as `overlayProfile()` (lib/overlay.ts), read as /players/<slug> reads him
+  for the top bar's week (`weekContext`, `loadPlayerForecasts`, both cached), asked with `profile: <slug>`; `nextFive()` in lib/home.ts.
+  The `overlayNumbers` fallback for players you don't own moves to B4, the first step that draws their tiles.
 - **Done when:** Yamal (yours) and a LaLiga player you don't own both show the strip, and the numbers match /players.
 
 ## B4 · O9 · market switch

@@ -12,7 +12,7 @@ Cheapest first; each step reuses the one before it. One step per commit, each sh
 | # | Step | Effort | Depends on | Status |
 |---|---|---|---|---|
 | 0 | The red backend CI (ruff, mypy, pytest on 81eaf48) | Small | — | done 21 Oct (certifi advisory) |
-| 1 | B1 · O5 · start % on the lineups you entered | Small | — | done 21 Oct, extension 0.4.6 |
+| 1 | B1 · O5 · start % on the lineups you entered | Small | — | done 21 Oct, extension 0.4.8, seen on his Lineups page |
 | 2 | B2 · O4 · worth now, in your gallery | Small | — | to do |
 | 3 | B3 · O3 · Sofix's line on a LaLiga player page | Medium | — | to do |
 | 4 | B4 · O9 · market switch: LaLiga starters only | Small | B3 | to do |

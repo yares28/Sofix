@@ -252,3 +252,31 @@ export function lifeAdvice(today: { chance: number; step: StepInfo; days: number
   if (today.step.lives <= 1 && today.step.big) return { play: false, why: `Last life on a big reward: hold for a better day${note}.`, better };
   return { play: false, why: `A later day gives a better chance at this step: hold the life${note}.`, better };
 }
+
+/** Each slot's draw odds as Sorare publishes them: player slug → chance (0 to 1). */
+export type PackOdds = Record<string, Record<string, number>[]>;
+
+/**
+ * The players you would get that you do not have yet, on average, from one pack: for each player, the chance at least one slot draws
+ * him (1 − the product of each slot missing him), summed over the players you lack. Duplicates of yours add nothing to a lineup.
+ */
+export function newPlayers(slots: Record<string, number>[], owned: Set<string>): number {
+  const miss = new Map<string, number>();
+  for (const slot of slots) for (const [player, p] of Object.entries(slot)) if (!owned.has(player)) miss.set(player, (miss.get(player) ?? 1) * (1 - p));
+  let total = 0;
+  for (const m of miss.values()) total += 1 - m;
+  return total;
+}
+
+export type PackPick = { slug: string; title: string; league: string | null; price: number; currency: string; cards: number; fresh: number; affordable: boolean };
+
+/**
+ * Every pack with its expected new players, best first; packs whose odds were not read are left out. One best pick across essence and
+ * gems: the pack you can afford now with the most new players a pack (each currency buys only packs, so a pack is what it is worth).
+ */
+export function rankPacks(packs: Omit<PackPick, "fresh" | "affordable">[], odds: PackOdds, owned: Set<string>, wallet: { gems: number | null; essence: number | null }): PackPick[] {
+  const can = (p: { currency: string; price: number }) => (p.currency === "COMMON_GEM" ? (wallet.gems ?? 0) : p.currency === "COMMON_ESSENCE" ? (wallet.essence ?? 0) : 0) >= p.price;
+  return packs.filter((p) => odds[p.slug]?.length)
+    .map((p) => ({ ...p, fresh: newPlayers(odds[p.slug]!, owned), affordable: can(p) }))
+    .sort((a, b) => Number(b.affordable) - Number(a.affordable) || b.fresh - a.fresh);
+}

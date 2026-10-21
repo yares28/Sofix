@@ -289,6 +289,14 @@
       return `query SofixArcadeProjections { anyGame(id: ${JSON.stringify(variables.game)}) { ... on Game { id playerGameScores { projection { score } anyPlayer { slug } } } } }`;
     },
 
+    // Arcade step 5: Sorare's published draw odds of the current step's packs, two slots a question (Sorare's size cap).
+    SofixArcadePackOdds: (variables) => {
+      const slots = variables?.slots;
+      if (!Array.isArray(slots) || !slots.length || slots.length > 2 || slots.some((i) => !Number.isInteger(i) || i < 0 || i > 9)) return null;
+      return `query SofixArcadePackOdds { currentUser { setBoard(mode: CAREER, sport: FOOTBALL) { myCurrentStep { ... on CareerStep { cardPacks { slug cardsCount
+        ${slots.map((i) => `s${i}: slotGameplayTierOdds(slotIndex: ${i}) { playerOdds { probabilityBasisPoint player { slug } } }`).join(" ")} } } } } } }`;
+    },
+
     // Sorare's own verdict on a lineup, before anything is written.
     SofixPreviewLineup: `query SofixPreviewLineup($slug: String!, $appearances: [So5AppearanceInput!]!) {
       so5 { so5Leaderboard(slug: $slug) { id

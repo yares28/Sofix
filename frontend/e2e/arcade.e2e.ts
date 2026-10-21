@@ -23,6 +23,10 @@ const ANSWERS: Record<string, unknown> = {
       setBoard: { id: "b", title: "Board", configSlug: "football-glitch-chapter-1", myCurrentStep: { id: "Tasks::Task:bf7e7356-70a2-4ff6-864f-112fa18e2bef", level: 2 }, steps: [
         { id: "s1", level: 1, target: 260, state: "CLAIMED", rewardConfigs: [{ __typename: "CardShardRewardConfig", rarity: "common", quantity: 5000 }] },
         { id: "Tasks::Task:bf7e7356-70a2-4ff6-864f-112fa18e2bef", level: 2, target: 300, state: "PLAYABLE", maxLineupsCount: 4, remainingLineupsCount: 3, lockedLineupsCount: 1, pendingLineupsCount: 0,
+          cardPacks: [
+            { slug: "bronze", title: "Bronze", effectivePrice: 1000, currency: "COMMON_ESSENCE", cardsCount: 1, canPurchase: true, competition: null },
+            { slug: "silver", title: "Silver", effectivePrice: 10, currency: "COMMON_GEM", cardsCount: 1, canPurchase: true, competition: null },
+          ],
           rewardConfigs: [{ __typename: "InGameCurrencyRewardConfig", amount: 10, currency: "COMMON_GEM" }] },
       ] },
     },
@@ -37,6 +41,10 @@ const ANSWERS: Record<string, unknown> = {
   // Step 3: one card per club is asked for its club bonus; past scores; the game's projections (Player One has none: his average stands in).
   "arcade-bonuses": { currentUser: { setBoard: { b0: [{ key: "collection", bonusBasisPoints: 400 }] } } },
   "arcade-past": { players: SQUAD.map(([, player]) => ({ slug: player, playerGameScores: [50, 60, 70].map((score) => ({ score, anyPlayerGameStats: { minsPlayed: 90 } })) })) },
+  "arcade-pack-odds": { currentUser: { setBoard: { myCurrentStep: { cardPacks: [
+    { slug: "bronze", cardsCount: 1, s0: [{ playerOdds: [{ probabilityBasisPoint: 5000, player: { slug: "p" } }, { probabilityBasisPoint: 5000, player: { slug: "new" } }] }] },
+    { slug: "silver", cardsCount: 1, s0: [{ playerOdds: [{ probabilityBasisPoint: 10000, player: { slug: "new" } }] }] },
+  ] } } } },
   "arcade-projections": { anyGame: { id: GAME, playerGameScores: SQUAD.slice(1).map(([, player]) => ({ projection: { score: 60 }, anyPlayer: { slug: player } })) } },
 };
 
@@ -47,7 +55,7 @@ test.beforeEach(async ({ page, request }) => {
 
 const withExtension = (page: Page) => page.addInitScript((answers) => {
   Object.defineProperty(window, "chrome", { configurable: true, value: { runtime: { sendMessage(_id: string, message: { type: string; step?: string }, reply: (answer: unknown) => void) {
-    if (message.type === "ping") return reply({ ok: true, version: "0.4.12", sorareUser: "owner", appReachable: true });
+    if (message.type === "ping") return reply({ ok: true, version: "0.4.14", sorareUser: "owner", appReachable: true });
     if (message.type === "read-arcade") return reply({ ok: true, state: "ok", players: 1, games: 1 });
     reply({ ok: true, state: "ok", step: message.step, data: answers[message.step ?? ""] });
   } } } });
@@ -141,4 +149,14 @@ test("Pick a day plans the day's lineups at the step they land on, no card twice
     await page.locator(".arc-plan").screenshot({ path: `${process.env.ARCADE_PLAN_SHOT}-day-390.png` });
     expect(await smallText(page, 10)).toEqual([]);
   }
+});
+
+test("Packs: on a click, the pack you can afford with the most players you do not have yet, on Sorare's odds", async ({ page }) => {
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await withExtension(page);
+  await page.goto("/arcade");
+  await page.getByRole("button", { name: "Work out the best pack" }).click();
+  // Silver always gives "new" (1.0); Bronze gives him half the time (0.5) and needs 1,000 essence, of 3,200.
+  await expect(page.locator(".arc-best")).toContainText("Open Silver (10 gems): 1.0 players you do not have yet");
+  await expect(page.locator(".arc-table tbody tr")).toHaveCount(2);
 });

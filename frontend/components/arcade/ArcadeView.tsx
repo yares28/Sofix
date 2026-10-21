@@ -6,6 +6,7 @@ import {
   type Arcade, type ArcadeCard, type ArcadeChances, type ArcadeExtras, type ArcadeGame, type ArcadeLaLiga, type ArcadeRead, type ArcadeStep, type ArcadeWalk,
 } from "../../lib/arcade";
 import type { Outlook } from "../../lib/arcadePlan";
+import ArcadePacks from "./ArcadePacks";
 import ArcadePlanner, { Prediction, StartLabel } from "./ArcadePlanner";
 
 const PAGE_SIZE = 48;
@@ -222,7 +223,8 @@ function Loaded({ arcade, unread, laliga }: { arcade: Arcade; unread: string[]; 
               <li key={m.id}>
                 <strong>{m.title ?? m.kind}</strong>
                 {m.description ? <span>{m.description}</span> : null}
-                <span>{m.rewards.join(" + ") || "—"}</span>
+                <span>{m.rewards.filter((r) => !r.endsWith(" gems")).join(" + ") || "—"}</span>
+                <span>gems: {m.rewards.find((r) => r.endsWith(" gems"))?.replace(" gems", "") ?? "—"}</span>
                 {m.progress !== null && m.target !== null ? <span>{m.progress} of {m.target}</span> : null}
                 {m.picks !== null ? <span>{m.picks}{m.maxPicks !== null ? ` of ${m.maxPicks}` : ""} picked</span> : null}
               </li>
@@ -257,6 +259,7 @@ function Loaded({ arcade, unread, laliga }: { arcade: Arcade; unread: string[]; 
           : extras.unread.length ? `Not read this time: ${extras.unread.join(", ")}.` : null}
       </p>
       {ready ? <ArcadePlanner arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} /> : null}
+      <ArcadePacks arcade={arcade} />
       <Cards cards={arcade.cards} games={arcade.games} chances={chances} outlooks={outlooks} />
     </>
   );

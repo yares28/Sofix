@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { outlookOf, parseBonuses, parsePast, parseProjections, type ArcadeCard, type ArcadeGame } from "./arcade";
-import { bestLineup, bigReward, chanceOf, lifeAdvice, likelyRange, planDay, predicted, simulate, type Lineup, type Outlook } from "./arcadePlan";
+import { outlookOf, parseBonuses, parsePackOdds, parsePast, parseProjections, type ArcadeCard, type ArcadeGame } from "./arcade";
+import { bestLineup, bigReward, chanceOf, lifeAdvice, likelyRange, newPlayers, planDay, predicted, rankPacks, simulate, type Lineup, type Outlook } from "./arcadePlan";
 
 const GAME: ArcadeGame = { id: "Game:1", kickoff: "2026-10-24T14:00:00Z", status: "scheduled", competition: { slug: "laliga-es", name: "LaLiga" }, home: { slug: "home", name: "Home" }, away: { slug: "away", name: "Away" } };
 const card = (player: string, positions: string[], bonus: number | null = 1): ArcadeCard => ({
@@ -149,5 +149,30 @@ describe("when to spend a life", () => {
     expect(bigReward(["30 gems"])).toBe(true);
     expect(bigReward(["€100", "1,000 Limited essence"])).toBe(true);
     expect(bigReward(["10 gems"])).toBe(false);
+  });
+});
+
+describe("the best pack", () => {
+  it("counts the players you do not have yet, each once even when two slots can draw him", () => {
+    const slot = { mine: 0.5, a: 0.25, b: 0.25 };
+    expect(newPlayers([slot], new Set(["mine"]))).toBeCloseTo(0.5);
+    expect(newPlayers([slot, slot], new Set(["mine"]))).toBeCloseTo(2 * (1 - 0.75 * 0.75));
+  });
+  it("puts the packs you can afford first, then the most new players; a pack with no odds read is left out", () => {
+    const packs = [
+      { slug: "gold", title: "Gold", league: null, price: 50, currency: "COMMON_GEM", cards: 5 },
+      { slug: "silver", title: "Silver", league: null, price: 10, currency: "COMMON_GEM", cards: 5 },
+      { slug: "bronze", title: "Bronze", league: null, price: 1000, currency: "COMMON_ESSENCE", cards: 5 },
+      { slug: "none", title: "None", league: null, price: 1, currency: "COMMON_GEM", cards: 1 },
+    ];
+    const odds = { gold: [{ x: 1 }, { y: 1 }], silver: [{ x: 0.5, mine: 0.5 }], bronze: [{ x: 1 }] };
+    const ranked = rankPacks(packs, odds, new Set(["mine"]), { gems: 20, essence: 1500 });
+    expect(ranked.map((p) => [p.slug, p.affordable])).toEqual([["bronze", true], ["silver", true], ["gold", false]]);
+  });
+  it("reads Sorare's odds two slots a question, adding a player's tiers up", () => {
+    const answer = (slots: number[]) => ({ currentUser: { setBoard: { myCurrentStep: { cardPacks: [{ slug: "p", cardsCount: 3, ...Object.fromEntries(slots.map((i) => [`s${i}`, [
+      { playerOdds: [{ probabilityBasisPoint: 2500, player: { slug: "a" } }] }, { playerOdds: [{ probabilityBasisPoint: 7500, player: { slug: "b" } }] },
+    ]])) }] } } } });
+    expect(parsePackOdds([answer([0, 1]), answer([2])])).toEqual({ p: [{ a: 0.25, b: 0.75 }, { a: 0.25, b: 0.75 }, { a: 0.25, b: 0.75 }] });
   });
 });

@@ -2,7 +2,7 @@
 
 Status: **research and design only, nothing built.** Upgrades U1–U6 added and the owner's answers recorded 21 Oct (bottom of this file). **Step 1 shipped 21 Oct**:
 `/arcade` reads the board, cards, gems, essence and common missions (extension 0.4.5). **Step 2 shipped 21 Oct**: each card shows Sorare's start % for its next games (extension 0.4.9). **Step 3 shipped 21 Oct** (extension 0.4.12): predicted
-score per card and Pick teams. **Step 4 shipped 21 Oct**: Pick a day; next is step 5.
+score per card and Pick teams. **Step 4 shipped 21 Oct**: Pick a day. **Step 5 shipped 21 Oct** (extension 0.4.14): best pack; next is step 6.
 Design canvas: https://claude.ai/artifact/NcPHzXynH6oHiVLeTg3BFG (private, sample numbers, real common-card art).
 
 ## What the owner asked (20 Oct 2026)
@@ -127,6 +127,17 @@ the edition is added the same way, to be checked on his first lineup with a Shin
   lineup is not compared and the page says so.
 - Projections, past scores and club bonuses are kept 30 minutes in the browser: on 21 Oct a few reads in a row (about 100 questions
   each) made Sorare answer 429, and the read now stops at the first 429 and says so.
+
+## Step 5, packs and missions (shipped 21 Oct 2026, extension 0.4.14)
+
+- His step's packs, read 21 Oct: Bronze 1,000 essence (5 cards, one per league), Bronze Live Today 1,000 essence (3), Goalkeeper Pack
+  Bronze 1,000 essence (1), Silver 10 gems (5, per league), Silver Live Today 10 gems (3), Gold 50 gems (5, per league).
+- Odds: `CareerStep.cardPacks.slotGameplayTierOdds(slotIndex)`, every player's chance per slot (about 1,000 players a slot; two slots
+  a question is Sorare's size limit, about 2 MB). Read on a click ("Work out the best pack"), never on a visit.
+- A pack's worth = the players it would give him that he does not have yet, on average (each player counted once across slots).
+  Essence and gems only buy packs, so one best pick: the pack he can afford now that gives the most new players.
+- Missions: the daily Missions > Common panel as Sorare gives it, with a gems column; a mission without a gem amount shows a dash.
+  On 21 Oct the panel held two LaLiga Common streaks (essence) and no Decisive Picker.
 
 ## Not confirmed (guides only, or not found)
 

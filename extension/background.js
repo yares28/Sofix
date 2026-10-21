@@ -621,6 +621,7 @@ const STEPS = {
   "arcade-bonuses": (input) => ["SofixArcadeBonuses", { cards: Array.isArray(input.cards) ? input.cards.slice(0, 50) : [] }],
   "arcade-past": (input) => ["SofixArcadePast", { players: Array.isArray(input.players) ? input.players.slice(0, 50) : [] }],
   "arcade-projections": (input) => ["SofixArcadeProjections", { game: String(input.game ?? "").slice(0, 60) }],
+  "arcade-pack-odds": (input) => ["SofixArcadePackOdds", { slots: Array.isArray(input.slots) ? input.slots.slice(0, 2) : [] }],
   check: (input) => ["SofixPreviewLineup", { slug: input.slug, appearances: appearances(input) }],
   draft: (input) => [
     "SofixSaveDraft",

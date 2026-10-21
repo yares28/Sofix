@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { askExtension, extensionAtLeast, pingExtension } from "./extension";
 import { REFRESH_HEADER } from "./refresh";
-import type { Outlook, StartSource } from "./arcadePlan";
+import type { Outlook, PackOdds, StartSource } from "./arcadePlan";
 
 /**
  * Arcade, step 1 (plans/set.md): your set board, common cards, gems, essence and common missions, read from your signed-in
@@ -637,4 +637,45 @@ export function outlookOf(card: ArcadeCard, game: ArcadeGame, extras: ArcadeExtr
     bonus: (card.bonus !== null && card.bonus > 1 ? card.bonus - 1 : 0) + (club ?? 0),
     club,
   };
+}
+
+/** Arcade step 5 reads the published pack odds through this extension. */
+export const ARCADE_PACKS_VERSION = "0.4.14";
+const PackOddsAnswer = z.object({ currentUser: z.object({ setBoard: z.object({ myCurrentStep: z.object({ cardPacks: z.array(z.record(s, z.unknown())).nullish() }).nullable() }).nullable() }).nullable() });
+const SlotOdds = z.array(z.object({ playerOdds: z.array(z.object({ probabilityBasisPoint: n, player: z.object({ slug: s }) })) }));
+
+/** Merges Sorare's answers (two slots each) into each pack's slots: player → chance. Exported for the tests. */
+export function parsePackOdds(answers: unknown[]): PackOdds {
+  const out: PackOdds = {};
+  for (const answer of answers) {
+    const parsed = PackOddsAnswer.safeParse(answer);
+    for (const pack of (parsed.success ? parsed.data.currentUser?.setBoard?.myCurrentStep?.cardPacks : null) ?? []) {
+      const slug = typeof pack.slug === "string" ? pack.slug : null;
+      if (!slug) continue;
+      for (const [key, value] of Object.entries(pack)) {
+        const index = /^s(\d)$/.exec(key)?.[1];
+        const tiers = SlotOdds.safeParse(value);
+        if (index === undefined || !tiers.success || !tiers.data.length) continue;
+        const slot: Record<string, number> = {};
+        for (const tier of tiers.data) for (const o of tier.playerOdds) slot[o.player.slug] = (slot[o.player.slug] ?? 0) + o.probabilityBasisPoint / 10_000;
+        (out[slug] ??= [])[Number(index)] = slot;
+      }
+    }
+  }
+  for (const slug of Object.keys(out)) out[slug] = out[slug]!.filter(Boolean);
+  return out;
+}
+
+/** "Work out the best pack": the current step's packs' odds, a few large answers (about 2 MB each), on a click only. */
+export async function readPackOdds(slots: number): Promise<PackOdds | "outdated" | null> {
+  const extension = await pingExtension();
+  if (!extension) return null;
+  if (!extensionAtLeast(extension.version, ARCADE_PACKS_VERSION)) return "outdated";
+  const answers: unknown[] = [];
+  for (let i = 0; i < Math.min(slots, 10); i += 2) {
+    const answer = Answer.safeParse(await askExtension({ type: "sorare", step: "arcade-pack-odds", slots: i + 1 < slots ? [i, i + 1] : [i] }, 60_000));
+    if (!answer.success || answer.data.state !== "ok") break;
+    answers.push(answer.data.data);
+  }
+  return answers.length ? parsePackOdds(answers) : null;
 }

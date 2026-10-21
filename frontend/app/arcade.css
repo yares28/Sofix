@@ -51,10 +51,10 @@
 .arc-chance b { color: var(--ink); font-weight: 600; }
 .arc-chance i { font-style: normal; color: var(--ink-3); }
 .arc-nogame { font-size: 11px; color: var(--ink-3); }
-.arc-read { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 24px 0 0; padding: 14px 18px; background: var(--surface); box-shadow: var(--shadow-card); border-radius: 16px; font-size: var(--text-sm); }
-.arc-read p { margin: 0; flex: 1 1 260px; }
-.arc-read button { font: inherit; border: 0; border-radius: 999px; padding: 9px 16px; min-height: 40px; background: var(--ink); color: var(--on-ink); cursor: pointer; }
-.arc-read button:disabled { opacity: 0.6; cursor: default; }
+.arc-read, .arc-read-box { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 24px 0 0; padding: 14px 18px; background: var(--surface); box-shadow: var(--shadow-card); border-radius: 16px; font-size: var(--text-sm); }
+.arc-read p, .arc-read-box p { margin: 0; flex: 1 1 260px; }
+.arc-read button, .arc-read-box button { font: inherit; border: 0; border-radius: 999px; padding: 9px 16px; min-height: 40px; background: var(--ink); color: var(--on-ink); cursor: pointer; }
+.arc-read button:disabled, .arc-read-box button:disabled { opacity: 0.6; cursor: default; }
 .arc-read .arc-read-note { flex-basis: 100%; color: var(--ink-2); }
 @media (max-width: 600px) { .arc-chance, .arc-nogame { font-size: 10px; } }
 /* Step 3: predictions and Pick teams */
@@ -112,3 +112,12 @@
 .arc-warn, .arc-sub { margin: 0; font-size: var(--text-sm); }
 .arc-warn { color: var(--amber-ink, #8a5a00); }
 .arc-sub { color: var(--ink-2); }
+/* Step 5: packs */
+.arc-packs h2 { font-size: var(--text-md); margin: 24px 0 10px; }
+.arc-best { margin: 0 0 10px; font-size: var(--text-base); }
+.arc-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); background: var(--surface); box-shadow: var(--shadow-card); border-radius: 16px; overflow: hidden; }
+.arc-table th, .arc-table td { text-align: left; padding: 8px 12px; border-top: 1px solid var(--line); }
+.arc-table th { border-top: 0; color: var(--ink-2); font-weight: 500; font-size: var(--text-xs); }
+.arc-table td:nth-child(n+3), .arc-table th:nth-child(n+3) { text-align: right; font-variant-numeric: tabular-nums; }
+.arc-table tr.is-off td { color: var(--ink-3); }
+.arc-packs .arc-read-box { margin-top: 0; }

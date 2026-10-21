@@ -88,7 +88,9 @@
       if (!node || typeof node !== "object") continue;
       if (node.errors?.length) continue;
       const scoped = Object.hasOwn(node, "anyPlayerGameStats") || typeof node.slug === "string";
-      const person = node.__typename === "Player" ? node : scoped ? (node.anyPlayer ?? node.player) : null;
+      // A lineup slot (Lineups page, 21 Oct 2026) names its player on its card; the start % sits in its scores, which name only the game.
+      const slotPlayer = !scoped && node.anyCard && typeof node.anyCard === "object" ? node.anyCard.anyPlayer : null;
+      const person = node.__typename === "Player" ? node : scoped ? (node.anyPlayer ?? node.player) : slotPlayer;
       const player = person ? (slug(person.slug) ? person.slug : null) : inheritedPlayer;
       const match = gameId(node.id) ? node : (Object.hasOwn(node, "anyPlayerGameStats") || Object.hasOwn(node, "footballPlayingStatusOdds")) ? (node.anyGame ?? node.game) : null;
       const game = match ? (gameId(match.id) ? match.id : null) : inheritedGame;

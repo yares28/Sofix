@@ -13,6 +13,7 @@ type Core = {
   cardImageKey: (value: unknown) => string | null;
   isAvatarArt: (value: unknown) => boolean;
   normalizeCardName: (alt: unknown) => string;
+  collectStartingOdds: (json: unknown) => { game: string; player: string; basisPoints: number | null }[];
   collectCards: (json: unknown, limit?: number) => { key: string; cardSlug: string | null; playerSlug: string | null; name: string | null }[];
   surfaceOf: (width: number, height: number, round?: boolean) => "full" | "compact" | "skip";
   scoreLevel: (score: number | null) => "veryLow" | "low" | "mediumLow" | "medium" | "mediumHigh" | "high" | null;
@@ -422,6 +423,31 @@ describe("the start row", () => {
     // Sorare's number as the page received it wins over Sofix's copy: Mojica's SO was missing from Sofix's answer (21 Oct).
     expect(core.startDisagreement(ff(0.8), 0.4)).toEqual({ sofix: 0.8, sorare: 0.4 });
     expect(core.startDisagreement(ff(0.8, 0.4), 0.7)).toBeNull();
+  });
+
+  it("reads Sorare's own start % off a game's answer and off a lineup slot on the Lineups page", () => {
+    const GAME = "Game:6db6314b-e913-4760-84e3-5ab27e9c226f";
+    const odds = (n: number) => ({ footballPlayingStatusOdds: { starterOddsBasisPoints: n } });
+    // A game's own answer: each score names its player.
+    expect(core.collectStartingOdds({ data: { anyGame: { id: GAME, playerGameScores: [{ anyPlayer: { slug: "a" }, anyPlayerGameStats: odds(3000) }] } } })).toEqual([
+      { game: GAME, player: "a", basisPoints: 3000 },
+    ]);
+    // /football/lineups/pro on 21 Oct 2026: the slot names the player, its score one level down names only the game.
+    const lineup = {
+      data: { currentUser: { board: { myCurrentStep: { myLineups: [{ taskAppearances: [
+        { anyCard: { slug: "johan-andres-mojica-palacio-2026-limited-219", anyPlayer: { slug: "johan-andres-mojica-palacio" } },
+          eligiblePlayerGameScores: [{ id: "So5Score:1", anyGame: { id: GAME }, anyPlayerGameStats: { id: "s", ...odds(4000) } }] },
+        { anyCard: { slug: "david-soria-solis-2026-limited-1", anyPlayer: { slug: "david-soria-solis" } },
+          eligiblePlayerGameScores: [{ id: "So5Score:2", anyGame: { id: GAME }, anyPlayerGameStats: { id: "t", ...odds(9000) } }] },
+      ] }] } } } },
+    };
+    expect(core.collectStartingOdds(lineup)).toEqual(
+      expect.arrayContaining([
+        { game: GAME, player: "johan-andres-mojica-palacio", basisPoints: 4000 },
+        { game: GAME, player: "david-soria-solis", basisPoints: 9000 },
+      ]),
+    );
+    expect(core.collectStartingOdds(lineup)).toHaveLength(2);
   });
 
   it("says on hover that the number is Sofix's, and when Sorare disagrees", () => {

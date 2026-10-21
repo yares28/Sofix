@@ -14,7 +14,7 @@ Cheapest first; each step reuses the one before it. One step per commit, each sh
 | 0 | The red backend CI (ruff, mypy, pytest on 81eaf48) | Small | — | done 21 Oct (certifi advisory) |
 | 1 | B1 · O5 · start % on the lineups you entered | Small | — | done 21 Oct, extension 0.4.8, seen on his Lineups page |
 | 2 | B2 · O4 · worth now, in your gallery | Small | — | done 21 Oct, extension 0.4.11, seen on his gallery: 20 of 20 cards, total = Prices (€298.56, paid €444.51 for 86) |
-| 3 | B3 · O3 · Sofix's line on a LaLiga player page | Medium | — | to do |
+| 3 | B3 · O3 · Sofix's line on a LaLiga player page | Medium | — | done 21 Oct, extension 0.4.13, seen on Oblak's page (yours, in European Champions Pro); Yamal and Raphinha answer as /players (68, 88%) |
 | 4 | B4 · O9 · market switch: LaLiga starters only | Small | B3 | to do |
 | 5 | B5 · D5 · search any player from the dock | Medium | B3 | to do |
 | 6 | B6 · D9 · compare two players in the dock | Medium | B3, B5 | to do |

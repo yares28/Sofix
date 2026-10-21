@@ -69,6 +69,20 @@ query($from:ISO8601DateTime!,$to:ISO8601DateTime!){
  }}
 }
 """
+CLUB_QUERY = """
+query($club:String!,$from:ISO8601DateTime!,$to:ISO8601DateTime!){football{club(slug:$club){
+ games(first:50,startDate:$from,endDate:$to){nodes{
+ id date competition{slug} statusTyped homeGoals awayGoals homeTeam{slug name} awayTeam{slug name}
+ } pageInfo{hasNextPage}}
+}}}
+"""
+PLAYER_GAMES_QUERY = """
+query($player:String!,$from:ISO8601DateTime!,$to:ISO8601DateTime!){anyPlayer(slug:$player){... on Player{
+ allPlayerGameScores(from:$from,to:$to,first:40){nodes{anyGame{
+ id date competition{slug} ... on Game{statusTyped homeGoals awayGoals homeTeam{slug name} awayTeam{slug name}}
+ }} pageInfo{hasNextPage}}
+}}}
+"""
 WINDOW_QUERY = """
 query($after:String){so5{so5Fixtures(first:50,after:$after,eventType:CLASSIC,sport:FOOTBALL){
  nodes{slug startDate endDate cutOffDate} pageInfo{hasNextPage endCursor}
@@ -155,7 +169,7 @@ def game_list(client: Any, code: str) -> list[dict[str, Any]]:
 
 
 def reconcile(
-    client: Any, code: str, games: list[dict[str, Any]], calendar: pd.DataFrame
+    client: Any, code: str, games: list[dict[str, Any]], calendar: pd.DataFrame, *, sources: Path | None = None
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Reconcile the provider's paged index with the complete independent fixture denominator.
 
@@ -197,8 +211,8 @@ def reconcile(
             result = client.query(
                 DATE_QUERY,
                 {
-                    "from": (day - pd.Timedelta(days=1)).isoformat() + "Z",
-                    "to": (day + pd.Timedelta(days=2)).isoformat() + "Z",
+                    "from": (day - pd.Timedelta(hours=12)).isoformat() + "Z",
+                    "to": (day + pd.Timedelta(hours=36)).isoformat() + "Z",
                 },
             )
             for competition in result.get("competitionGames") or []:
@@ -212,7 +226,100 @@ def reconcile(
                         recovered.append({"id": game["id"], "date": game["date"], "status": game.get("statusTyped")})
         except (SorareError, ValueError, KeyError, TypeError) as error:
             errors.append(str(error)[:400])
+    # A replay can be absent from the competition feed. Verify the actual club's
+    # calendar as a second source path, preserving its response as a reproduction.
+    club_checks = []
+    for index in sorted(missing.copy()):
+        row = calendar.loc[index]
+        club_slugs = {
+            g[side]["slug"]
+            for g in identities.values()
+            for side in ("homeTeam", "awayTeam")
+            if g[side].get("slug") and club_name(g[side], known) == row["home"]
+        }
+        if len(club_slugs) != 1:
+            continue
+        day = row["date"]
+        variables = {
+            "club": next(iter(club_slugs)),
+            "from": (day - pd.Timedelta(hours=12)).isoformat() + "Z",
+            "to": (day + pd.Timedelta(hours=36)).isoformat() + "Z",
+        }
+        try:
+            page = client.query(CLUB_QUERY, variables)["football"]["club"]["games"]
+            club_checks.append(
+                {"variables": variables, "games": page.get("nodes") or [], "pageInfo": page.get("pageInfo")}
+            )
+            if (page.get("pageInfo") or {}).get("hasNextPage"):
+                raise ValueError("Club reconciliation exceeded its bounded page")
+            for game in page.get("nodes") or []:
+                if (game.get("competition") or {}).get("slug") != LEAGUES[code]:
+                    continue
+                candidates = matching(game)
+                if len(candidates) == 1 and candidates[0] in missing:
+                    identities[game["id"]] = game
+                    missing.remove(candidates[0])
+                    recovered.append({"id": game["id"], "date": game["date"], "status": game.get("statusTyped")})
+        except (SorareError, ValueError, KeyError, TypeError) as error:
+            errors.append(str(error)[:400])
+    player_checks = []
+    if missing and sources is not None:
+        retained = [json.loads(p.read_text("utf-8")) for p in sources.glob("*.json")]
+        retained = [r for r in retained if isinstance(r, dict) and r.get("raw") and r.get("players")]
+        for index in sorted(missing.copy()):
+            row = calendar.loc[index]
+            day = row["date"]
+            # Choose the nearest preceding starter at each club by role/date, never
+            # by score. At most two bounded history reads for a missing fixture.
+            for label in (row["home"], row["away"]):
+                options = []
+                for saved in retained:
+                    raw = saved["raw"]
+                    at = pd.Timestamp(when(raw["date"]).date())
+                    if not day - pd.Timedelta(days=30) <= at < day:
+                        continue
+                    for side in ("homeTeam", "awayTeam"):
+                        if club_name(raw[side], known) != label:
+                            continue
+                        for player in saved["players"]:
+                            if (
+                                player.get("pos") == "GK"
+                                and player.get("started") is True
+                                and player.get("team") == raw[side]["slug"]
+                            ):
+                                options.append((at, player["slug"]))
+                if not options:
+                    continue
+                variables = {
+                    "player": max(options)[1],
+                    "from": (day - pd.Timedelta(hours=12)).isoformat() + "Z",
+                    "to": (day + pd.Timedelta(hours=36)).isoformat() + "Z",
+                }
+                try:
+                    page = client.query(PLAYER_GAMES_QUERY, variables)["anyPlayer"]["allPlayerGameScores"]
+                    candidates_games = [node["anyGame"] for node in page.get("nodes") or [] if node.get("anyGame")]
+                    player_checks.append(
+                        {"variables": variables, "games": candidates_games, "pageInfo": page.get("pageInfo")}
+                    )
+                    if (page.get("pageInfo") or {}).get("hasNextPage"):
+                        raise ValueError("Player history reconciliation exceeded its page")
+                    for game in candidates_games:
+                        if (game.get("competition") or {}).get("slug") != LEAGUES[code]:
+                            continue
+                        candidates = matching(game)
+                        if len(candidates) == 1 and candidates[0] in missing:
+                            identities[game["id"]] = game
+                            missing.remove(candidates[0])
+                            recovered.append(
+                                {"id": game["id"], "date": game["date"], "status": game.get("statusTyped")}
+                            )
+                except (SorareError, ValueError, KeyError, TypeError) as error:
+                    errors.append(str(error)[:400])
+                if index not in missing:
+                    break
     audit = {
+        "playerChecks": player_checks,
+        "clubChecks": club_checks,
         "missingBefore": before,
         "missingAfter": len(missing),
         "recovered": recovered,
@@ -331,7 +438,7 @@ def main() -> int:
                 ],
                 ignore_index=True,
             )
-            games, audit = reconcile(client, args.league, games, calendar)
+            games, audit = reconcile(client, args.league, games, calendar, sources=folder)
             spans = windows(client)
             (folder / "windows.json").write_text(json.dumps(spans), encoding="utf-8")
             (folder / "index-reconciliation.json").write_text(json.dumps(audit, indent=2), encoding="utf-8")

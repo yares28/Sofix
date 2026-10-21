@@ -635,6 +635,8 @@ export interface components {
         GridTeam: {
             /** Source Id */
             source_id?: number | null;
+            /** History Name */
+            history_name?: string | null;
             /** Code */
             code: string;
             /** Name */

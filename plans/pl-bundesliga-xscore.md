@@ -34,3 +34,14 @@ Owner request, 21 October 2026: after the shipped FDR boards, work on xScore for
 - [ ] Automatic collection and consistent player surfaces implemented.
 - [ ] Required local checks, browser proof and model-specific evidence complete.
 - [ ] Ship, verify publication and record exact remaining limits.
+
+- Run 39672518092 retained all 918 BL1 games and 1,132 PL games. PL date reconciliation was rejected by the source’s 172,800-second range limit; regression reproduced the three-day request and now caps it at 48 hours. Cached whole-game reads are reused on the next unattended run. No partial-cohort metrics were opened.
+
+- Bundesliga complete alignment: 918 source games, 917 eligible after the predeclared Union Berlin/Bochum administrative exclusion, 0 source issues/missing fixtures. Frozen 2025/26 holdout (6,732 starts) passed: model RMSE 17.8814 vs form 18.7538; difference 95% whole-week interval [-1.0587, -0.6837]. No-FDR ablation RMSE 18.2925; difference interval [-0.5801, -0.2423]. Every position improved; within-7 and ordering improved. This remains conditional-on-start retrospective evidence, not future blind validation. No runtime model enabled yet.
+- Added the exact CSV club key to foreign FDR team metadata for deterministic model joins; generated API types and runtime parsing include it. No schema migration or visible UI change. Validation reports retain source/history/identity fingerprints and the candidate embeds its complete evidence; nonfinite metrics fail closed.
+
+- Run 39676655886 recovered eight PL index gaps via the corrected date query, retaining 1,139 games. Bournemouth/Luton (13 March 2024) is still absent; the official Premier League calendar confirms that replay date (https://www.premierleague.com/en/news/3885238). The official Sorare schema also supports a club calendar bounded by start/end date; a test-first fallback now retains its response to distinguish an index gap from actual score unavailability. The denominator and frozen model gates remain unchanged.
+
+- Run 39677470366: the documented Bournemouth club calendar also returned an empty, fully paged result for the replay window. That proves those two index paths omit it, not that authentic scores do not exist. The next bounded fallback follows a preceding actual starting goalkeeper’s player-game history, chosen by club/role/date rather than score, and retains both request variables and game identities. No holdout gate or denominator has changed.
+
+- Automatic per-club index scaffolding tests now cover all 20/18 squads, stable transfer deduplication, partial failure retaining identity with expired forecasts, and truncated pagination. The source workflow separately retains a complete current-squad preflight artifact (no production publication) so current coverage can be verified while historical alignment is resolved. No new user action is required.

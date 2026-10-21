@@ -144,6 +144,7 @@ class TeamDecisives(BaseModel):
 
 class GridTeam(BaseModel):
     source_id: int | None = None  # stable football-data.org club identity; code is its display abbreviation
+    history_name: str | None = None  # exact CSV club key used by this league's fitted football model
     code: str
     name: str
     color: str

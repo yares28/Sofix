@@ -57,6 +57,15 @@ jobs:
           retention-days: 7
       - name: Collect null-preserving completed seasons
         run: python -m app.research.league_xscore_data --league ${{ matrix.league }} --use-index --seconds 2700
+      - name: Verify complete current squads without publishing
+        if: always()
+        run: python -m app.sorare.foreign_coverage --league ${{ matrix.league }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: current-squads-${{ matrix.league }}
+          path: backend/data/raw/league-xscore-current/${{ matrix.league }}.json
+          retention-days: 7
       - uses: actions/cache/save@v4
         if: always()
         with:

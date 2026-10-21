@@ -20,7 +20,7 @@ from app.research.league_xscore_data import PROTOCOL, validate_game, when
 from app.research.league_xscore_identity import club_name
 from app.services.league_fdr import LEAGUES, REFERENCE
 from app.sorare import keeper, outfield
-from app.sources.football_data_co_uk import fetch_season_csv
+from app.sources.football_data_co_uk import cached_path, fetch_season_csv
 
 POSITIONS = ("GK", "DEF", "MID", "FWD")
 ADMIN = {("2024-12-14", "Union Berlin", "Bochum"), ("2022-03-18", "Bochum", "M'gladbach")}
@@ -283,16 +283,24 @@ def release_reasons(result: dict[str, Any]) -> list[str]:
     reasons = []
     if not result["coverageComplete"]:
         reasons.append("Source/score/version/fixture coverage is incomplete")
-    if result["versusForm"]["hi"] >= 0:
+    if not np.isfinite(result["versusForm"]["hi"]) or result["versusForm"]["hi"] >= 0:
         reasons.append("RMSE improvement over form is not established")
-    if result["versusAblation"]["hi"] >= 0:
+    if not np.isfinite(result["versusAblation"]["hi"]) or result["versusAblation"]["hi"] >= 0:
         reasons.append("FDR adds no established RMSE improvement over player history")
     for pos in POSITIONS:
         p = result["positions"].get(pos, {})
-        if p.get("cases", 0) < 100 or p.get("rmse", float("inf")) > p.get("formRmse", 0):
+        if (
+            p.get("cases", 0) < 100
+            or not np.isfinite(p.get("rmse", float("inf")))
+            or p.get("rmse", float("inf")) > p.get("formRmse", 0)
+        ):
             reasons.append(f"{pos}: too few cases or a position RMSE loss")
     for name in ("within7", "pairs"):
-        if result["model"][name] < result["form"][name]:
+        if (
+            not np.isfinite(result["model"][name])
+            or not np.isfinite(result["form"][name])
+            or result["model"][name] < result["form"][name]
+        ):
             reasons.append(f"{name}: loss versus form")
     return reasons
 
@@ -397,6 +405,29 @@ def evaluate(rows: list[dict[str, Any]], coverage: dict[str, Any]) -> tuple[dict
     return result, artifact
 
 
+def fingerprints(folder: Path, history_files: list[Path]) -> dict[str, str]:
+    """Bind the report to retained source bytes, CSVs and literal identity rules."""
+
+    def digest(paths: list[Path]) -> str:
+        h = hashlib.sha256()
+        for path in sorted(paths):
+            h.update(path.name.encode())
+            h.update(hashlib.sha256(path.read_bytes()).digest())
+        return h.hexdigest()
+
+    derived = {"alignment.json", "validation.json", "candidate.json"}
+    return {
+        "sourceSha256": digest([p for p in folder.glob("*.json") if p.name not in derived]),
+        "historySha256": digest(history_files),
+        "identitySha256": digest(
+            [
+                Path(__file__).with_name("league_xscore_identity.py"),
+                Path(__file__).parents[1] / "services/league_fdr.py",
+            ]
+        ),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--league", choices=LEAGUES, required=True)
@@ -417,7 +448,11 @@ def main() -> int:
     (folder / "alignment.json").write_text(json.dumps(coverage, indent=2), encoding="utf-8")
     if not rows or not coverage["complete"]:
         raise ValueError("Incomplete source alignment; inspect alignment.json. Holdout metrics remain unopened")
+    evidence = fingerprints(folder, [cached_path(y, args.cache, division) for y in range(2021, 2026)])
     result, artifact = evaluate(rows, coverage)
+    result.update(evidence)
+    result["competition"] = args.league
+    artifact["evidence"] = result
     (folder / "validation.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     (folder / "candidate.json").write_text(json.dumps(artifact, indent=2), encoding="utf-8")
     print(json.dumps(result, indent=2))

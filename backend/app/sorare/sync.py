@@ -169,21 +169,33 @@ def _market_price(node: dict[str, Any]) -> float | None:
         return None
 
 
-def _squad(client: SorareClient, club: str, fixture: str | None = None) -> list[dict[str, Any]]:
+def _squad(
+    client: SorareClient, club: str, fixture: str | None = None, *, strict: bool = False
+) -> list[dict[str, Any]]:
     """One club's active players, paged. A club Sorare will not read is skipped, not fatal."""
     query = SQUAD.replace("$ARGS", ",$plan:String!" if fixture else "").replace(
         "$GAMES", GAMES_FOR.format(alias="plan") if fixture else ""
     )
     players: list[dict[str, Any]] = []
     after: str | None = None
+    cursors: set[str] = set()
+    complete = False
     for _ in range(4):  # 50 a page: a squad fits in one, the cap is only a runaway guard
         variables = {"s": club, "a": after, **({"plan": fixture} if fixture else {})}
         page = client.query(query, variables)["football"]["club"]["activePlayers"]
         players.extend(page.get("nodes") or [])
         info = page.get("pageInfo") or {}
         after = info.get("endCursor")
-        if not info.get("hasNextPage") or not after:
+        if not info.get("hasNextPage"):
+            complete = True
             break
+        if strict and (not after or after in cursors):
+            raise SorareError("Squad cursor did not advance")
+        if not after:
+            break
+        cursors.add(after)
+    if strict and not complete:
+        raise SorareError("Squad page budget exhausted")
     return players
 
 

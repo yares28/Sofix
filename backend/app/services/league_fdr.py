@@ -270,6 +270,7 @@ def build_league_grid(
         GridTeam(
             code=codes[ident],
             source_id=ident,
+            history_name=names[ident],
             name=ref.shortName or ref.name,
             color="#596579",
             crest_url=safe_crest_url(ref.crest),

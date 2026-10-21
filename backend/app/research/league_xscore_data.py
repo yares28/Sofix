@@ -15,8 +15,14 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
+
+from app.backtest.data import normalize_season
+from app.research.league_xscore_identity import club_name
+from app.services.league_fdr import LEAGUES as FOOTBALL_LEAGUES
 from app.sorare.client import SorareClient, SorareError
 from app.sorare.model import SORARE_POSITION
+from app.sources.football_data_co_uk import fetch_season_csv
 
 LEAGUES = {"PL": "premier-league-gb-eng", "BL1": "bundesliga-de"}
 START = datetime(2023, 7, 1, tzinfo=UTC)
@@ -51,11 +57,18 @@ fragment XScoreGame on Game {
  homeFormation {startingLineupAvailable startingLineup {slug} bench {slug}}
  awayFormation {startingLineupAvailable startingLineup {slug} bench {slug}}
  playerGameScores { score scoreStatus scoringVersion positionTyped anyPlayer {slug}
-   anyPlayerGameStats {playedInGame ... on PlayerGameStats {gameStarted minsPlayed anyTeam {slug}}}
+   anyPlayerGameStats {playedInGame ... on PlayerGameStats {gameStarted minsPlayed cleanSheet60 goalsConceded anyTeam {slug}}}
    ... on PlayerGameScore {decisiveScore {totalScore}} }
 }
 """
 GAME_QUERY = "query($id:ID!){anyGame(id:$id){...XScoreGame}}" + GAME_FIELDS
+DATE_QUERY = """
+query($from:ISO8601DateTime!,$to:ISO8601DateTime!){
+ competitionGames(fromDate:$from,toDate:$to,sport:FOOTBALL){competition{slug} games{
+ id date ... on Game {statusTyped homeGoals awayGoals homeTeam{slug name} awayTeam{slug name}}
+ }}
+}
+"""
 WINDOW_QUERY = """
 query($after:String){so5{so5Fixtures(first:50,after:$after,eventType:CLASSIC,sport:FOOTBALL){
  nodes{slug startDate endDate cutOffDate} pageInfo{hasNextPage endCursor}
@@ -91,6 +104,7 @@ def when(value: str) -> datetime:
 
 def player(raw: dict[str, Any]) -> dict[str, Any]:
     stats = raw.get("anyPlayerGameStats") or {}
+    started = stats.get("gameStarted")
     return {
         "slug": (raw.get("anyPlayer") or {}).get("slug"),
         "pos": SORARE_POSITION.get(raw.get("positionTyped") or ""),
@@ -100,8 +114,10 @@ def player(raw: dict[str, Any]) -> dict[str, Any]:
         "ver": raw.get("scoringVersion"),
         "level": (raw.get("decisiveScore") or {}).get("totalScore"),
         "played": stats.get("playedInGame"),
-        "started": stats.get("gameStarted"),
+        "started": bool(started) if started in (0, 1) else None,
         "mins": stats.get("minsPlayed"),
+        "cleanSheet60": stats.get("cleanSheet60"),
+        "goalsConceded": stats.get("goalsConceded"),
     }
 
 
@@ -138,15 +154,86 @@ def game_list(client: Any, code: str) -> list[dict[str, Any]]:
     raise ValueError("Source list exceeded the page budget")
 
 
+def reconcile(
+    client: Any, code: str, games: list[dict[str, Any]], calendar: pd.DataFrame
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Reconcile the provider's paged index with the complete independent fixture denominator.
+
+    A missing index entry is looked up through Sorare's date feed, never fabricated from
+    a club's score or guessed from a player's name. Only exact competition/pair/date joins.
+    """
+    known = set(calendar["home"]) | set(calendar["away"])
+    identities = {game["id"]: game for game in games}
+
+    def matching(game: dict[str, Any]) -> list[int]:
+        home, away = club_name(game["homeTeam"], known), club_name(game["awayTeam"], known)
+        day = pd.Timestamp(when(game["date"]).date())
+        return list(
+            calendar.index[
+                (calendar["home"] == home)
+                & (calendar["away"] == away)
+                & ((calendar["date"] - day).abs() <= pd.Timedelta(days=1))
+            ]
+        )
+
+    covered = set()
+    errors = []
+    for game in games:
+        try:
+            candidates = matching(game)
+            if len(candidates) == 1:
+                covered.add(candidates[0])
+        except (ValueError, KeyError) as error:
+            errors.append(str(error))
+    missing = set(calendar.index) - covered
+    before = len(missing)
+    recovered = []
+    # At most twenty date windows; a broadly broken mapping must be repaired, not hammered.
+    days = sorted({calendar.loc[index, "date"] for index in missing})
+    if len(days) > 20:
+        raise ValueError(f"{len(days)} missing date windows; audit literal club identities first")
+    for day in days:
+        try:
+            result = client.query(
+                DATE_QUERY,
+                {
+                    "from": (day - pd.Timedelta(days=1)).isoformat() + "Z",
+                    "to": (day + pd.Timedelta(days=2)).isoformat() + "Z",
+                },
+            )
+            for competition in result.get("competitionGames") or []:
+                if (competition.get("competition") or {}).get("slug") != LEAGUES[code]:
+                    continue
+                for game in competition.get("games") or []:
+                    candidates = matching(game)
+                    if len(candidates) == 1 and candidates[0] in missing:
+                        identities[game["id"]] = game
+                        missing.remove(candidates[0])
+                        recovered.append({"id": game["id"], "date": game["date"], "status": game.get("statusTyped")})
+        except (SorareError, ValueError, KeyError, TypeError) as error:
+            errors.append(str(error)[:400])
+    audit = {
+        "missingBefore": before,
+        "missingAfter": len(missing),
+        "recovered": recovered,
+        "errors": errors,
+        "missingFixtures": [
+            {"date": str(calendar.loc[i, "date"]), "home": calendar.loc[i, "home"], "away": calendar.loc[i, "away"]}
+            for i in sorted(missing)
+        ],
+    }
+    return sorted(identities.values(), key=lambda game: (game["date"], game["id"])), audit
+
+
 def validate_game(code: str, expected: dict[str, Any], raw: dict[str, Any], at: datetime) -> dict[str, Any]:
     if raw.get("id") != expected["id"] or (raw.get("competition") or {}).get("slug") != LEAGUES[code]:
         raise ValueError("Source game identity or competition mismatch")
-    if raw.get("statusTyped") != "played" or when(raw["date"]) != when(expected["date"]):
-        raise ValueError("Source game date/status changed; re-enumerate before evaluating")
+    if when(raw["date"]) != when(expected["date"]):
+        raise ValueError("Source game date changed; re-enumerate before evaluating")
     people = [player(row) for row in raw.get("playerGameScores") or []]
     if any(not p["slug"] for p in people) or len({p["slug"] for p in people}) != len(people):
         raise ValueError("Missing or duplicate player identity")
-    return {"readAt": at.isoformat(), "competition": code, "raw": raw, "players": people}
+    return {"schemaVersion": 2, "readAt": at.isoformat(), "competition": code, "raw": raw, "players": people}
 
 
 def collect(
@@ -174,9 +261,10 @@ def collect(
         path = folder / (hashlib.sha256(ident.encode()).hexdigest() + ".json")
         if path.exists():
             saved = json.loads(path.read_text("utf-8"))
-            validate_game(code, game, saved["raw"], when(saved["readAt"]))
-            completed.append(ident)
-            continue
+            if saved.get("schemaVersion") == 2:
+                validate_game(code, game, saved["raw"], when(saved["readAt"]))
+                completed.append(ident)
+                continue
         pending.append(game)
     if limit is not None:
         pending = pending[:limit]
@@ -221,17 +309,45 @@ def main() -> int:
     parser.add_argument("--out", type=Path, default=Path("data/raw/league-xscore"))
     parser.add_argument("--limit", type=int)
     parser.add_argument("--seconds", type=float, default=2700)
+    parser.add_argument("--cache", type=Path, default=Path("data/raw/football-data-co-uk"))
+    parser.add_argument(
+        "--use-index", action="store_true", help="reuse the source index already reconciled by this run's sample step"
+    )
     args = parser.parse_args()
-    with SorareClient(pause=0.5) as client:
+    with SorareClient(pause=0.75) as client:
         if not client.api_key:
             raise RuntimeError("Collector requires the existing configured Sorare read-only key")
-        games = game_list(client, args.league)
-        spans = windows(client)
         folder = args.out / args.league
         folder.mkdir(parents=True, exist_ok=True)
-        (folder / "windows.json").write_text(json.dumps(spans), encoding="utf-8")
+        if args.use_index:
+            games = json.loads((folder / "games.json").read_text("utf-8"))
+            audit = json.loads((folder / "index-reconciliation.json").read_text("utf-8"))
+        else:
+            games = game_list(client, args.league)
+            calendar = pd.concat(
+                [
+                    normalize_season(fetch_season_csv(year, args.cache, FOOTBALL_LEAGUES[args.league][1]), year)
+                    for year in (2023, 2024, 2025)
+                ],
+                ignore_index=True,
+            )
+            games, audit = reconcile(client, args.league, games, calendar)
+            spans = windows(client)
+            (folder / "windows.json").write_text(json.dumps(spans), encoding="utf-8")
+            (folder / "index-reconciliation.json").write_text(json.dumps(audit, indent=2), encoding="utf-8")
         result = collect(client, args.league, games, args.out, limit=args.limit, seconds=args.seconds)
+        if args.limit:
+            for game in games:
+                path = folder / (hashlib.sha256(game["id"].encode()).hexdigest() + ".json")
+                if path.exists():
+                    saved = json.loads(path.read_text("utf-8"))
+                    if saved.get("schemaVersion") == 2:
+                        (folder / "sample.json").write_text(json.dumps(saved), encoding="utf-8")
+                        break
         result["sourceCalls"] = client.calls
+        if audit["missingAfter"]:
+            result["complete"] = False
+        (folder / "coverage.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     print(json.dumps(result))
     return 0 if result["complete"] else 1
 

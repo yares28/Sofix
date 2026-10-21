@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 50
     strategy:
       fail-fast: false
-      max-parallel: 1 # one paced Sorare reader, under the shared account allowance
+      max-parallel: 2 # at .75 s per reader, both together stay below 200 requests/minute
       matrix:
         league: [PL, BL1]
     defaults:
@@ -43,8 +43,20 @@ jobs:
           path: backend/data/raw/league-xscore/${{ matrix.league }}
           key: league-xscore-v1-${{ matrix.league }}-${{ github.run_id }}
           restore-keys: league-xscore-v1-${{ matrix.league }}-
+      - name: Retain one representative source game before the full read
+        run: |
+          set +e
+          python -m app.research.league_xscore_data --league ${{ matrix.league }} --limit 1
+          code=$?
+          # Exit 1 is the expected incomplete-cohort result for a one-game sample.
+          if [ "$code" -gt 1 ]; then exit "$code"; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: source-sample-${{ matrix.league }}
+          path: backend/data/raw/league-xscore/${{ matrix.league }}/sample.json
+          retention-days: 7
       - name: Collect null-preserving completed seasons
-        run: python -m app.research.league_xscore_data --league ${{ matrix.league }} --seconds 2700
+        run: python -m app.research.league_xscore_data --league ${{ matrix.league }} --use-index --seconds 2700
       - uses: actions/cache/save@v4
         if: always()
         with:

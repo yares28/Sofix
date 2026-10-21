@@ -22,6 +22,10 @@ def test_null_scores_and_roles_are_not_zero_or_dnp():
     raw["anyPlayerGameStats"] = {"playedInGame": True, "gameStarted": True, "minsPlayed": 90, "anyTeam": {"slug": "a"}}
     row = data.player(raw)
     assert row["score"] == 0 and row["started"] is True and row["team"] == "a"
+    raw["anyPlayerGameStats"]["gameStarted"] = 1
+    assert data.player(raw)["started"] is True
+    raw["anyPlayerGameStats"]["gameStarted"] = None
+    assert data.player(raw)["started"] is None
 
 
 def test_complete_list_is_scoped_and_pages_without_duplicates():
@@ -98,6 +102,44 @@ def test_actual_sorare_windows_preserve_their_cutoff_not_a_weekday_guess():
         query=lambda *args: {"so5": {"so5Fixtures": {"nodes": [row], "pageInfo": {"hasNextPage": False}}}}
     )
     assert data.windows(client) == [row]
+
+
+def test_missing_fixtures_are_reconciled_from_a_date_feed_without_cross_league_matches():
+    import pandas as pd
+
+    table = pd.DataFrame(
+        {
+            "date": pd.to_datetime(["2025-08-02", "2025-08-03"]),
+            "home": ["Arsenal", "Arsenal"],
+            "away": ["Chelsea", "Fulham"],
+        }
+    )
+
+    def game(ident, date, away):
+        return {
+            "id": ident,
+            "date": date,
+            "statusTyped": "played",
+            "homeTeam": {"name": "Arsenal FC"},
+            "awayTeam": {"name": away},
+        }
+
+    first = game("one", "2025-08-02T12:00:00Z", "Chelsea FC")
+    missing = game("two", "2025-08-03T12:00:00Z", "Fulham FC")
+    calls = []
+
+    def query(text, variables):
+        calls.append(variables)
+        return {
+            "competitionGames": [
+                {"competition": {"slug": "bundesliga-de"}, "games": [{**missing, "id": "wrong"}]},
+                {"competition": {"slug": "premier-league-gb-eng"}, "games": [missing]},
+            ]
+        }
+
+    rows, audit = data.reconcile(SimpleNamespace(query=query), "PL", [first], table)
+    assert [r["id"] for r in rows] == ["one", "two"] and len(calls) == 1
+    assert audit["missingBefore"] == 1 and audit["missingAfter"] == 0
 
 
 def test_stopped_collection_resumes_without_reading_completed_games(tmp_path):

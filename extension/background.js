@@ -147,6 +147,65 @@ async function readRound(targets) {
   return { state: "ok", read };
 }
 
+/**
+ * "Read Arcade's start %" on the app's Arcade page (plans/set.md, step 2): your set board's compose page is opened in a tab,
+ * each position is opened and its bench scrolled to the end, so Sorare's page loads every card's start %, which reaches the app
+ * through `chances-seen` like any other. A tab in the background may not load more cards on scroll; then it is brought forward
+ * for the walk and the tab you were on is given back. Answers how many players and games gave a number.
+ */
+async function readArcade(config, step, from = null) {
+  if (roundRunning) return { state: "busy" };
+  const { sorareUser = null } = await chrome.storage.local.get("sorareUser");
+  if (!sorareUser) return { state: "signed-out" };
+  roundRunning = true;
+  const players = new Set();
+  const games = new Set();
+  let tab;
+  try {
+    // Next to the Arcade tab, in its window: a tab opened in another window stays hidden behind it.
+    const place = from ? { windowId: from.windowId, index: from.index + 1 } : {};
+    tab = await chrome.tabs.create({ url: `https://sorare.com/football/play/boards/pro/${config}/${step}/compose-team`, active: false, ...place });
+    roundTabs.set(tab.id, (rows) => {
+      for (const row of rows) {
+        players.add(row.player);
+        games.add(row.game);
+      }
+    });
+    if (!(await waitForPage(tab.id))) return { state: "no-page" };
+    let walk = await askTab(tab.id, { type: "sofix-arcade-walk-9" }, 200000);
+    if (walk?.state === "hidden") {
+      await chrome.tabs.update(tab.id, { active: true });
+      if (from) await chrome.windows.update(from.windowId, { focused: true }).catch(() => {});
+      walk = await askTab(tab.id, { type: "sofix-arcade-walk-9", waitVisible: true }, 200000);
+    }
+    await Promise.allSettled([...chanceSends]);
+    return { state: walk?.state === "ok" ? "ok" : walk?.state ?? "error", players: players.size, games: games.size, cards: walk?.cards ?? null };
+  } catch {
+    return { state: "error" };
+  } finally {
+    roundRunning = false;
+    if (tab) {
+      roundTabs.delete(tab.id);
+      try {
+        await chrome.tabs.remove(tab.id);
+      } catch {
+        // he closed it himself
+      }
+    }
+    if (from) chrome.tabs.update(from.id, { active: true }).catch(() => {});
+  }
+}
+
+/** Until a tab's content script answers (its page has loaded), at most 20 s. */
+async function waitForPage(tabId) {
+  for (let i = 0; i < 40; i++) {
+    const answer = await askTab(tabId, { type: "sofix-ping-9" }, 400);
+    if (answer?.ok) return true;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  return false;
+}
+
 // The rarities the app ranks missions for. One with no mission today is sent empty, so the app says so instead of showing an older list.
 const MISSION_RARITIES = ["limited", "rare", "super_rare", "unique"];
 
@@ -523,6 +582,11 @@ const STEPS = {
   "arcade-lineups": () => ["SofixArcadeLineups", {}],
   "arcade-missions": () => ["SofixArcadeMissions", {}],
   "arcade-cards": (input) => ["SofixArcadeCards", { after: typeof input.after === "string" ? input.after.slice(0, 500) : null }],
+  "arcade-games": (input) => ["SofixArcadeGames", {
+    after: typeof input.after === "string" ? input.after.slice(0, 500) : null,
+    fromDate: String(input.fromDate ?? "").slice(0, 40),
+    toDate: String(input.toDate ?? "").slice(0, 40),
+  }],
   check: (input) => ["SofixPreviewLineup", { slug: input.slug, appearances: appearances(input) }],
   draft: (input) => [
     "SofixSaveDraft",
@@ -734,6 +798,11 @@ chrome.runtime.onMessageExternal.addListener((message, sender, reply) => {
   if (message?.type === "read-round" && Array.isArray(message.games) && message.games.length && message.games.length <= 40
     && message.games.every((one) => typeof one?.id === "string" && GAME_ID.test(one.id) && typeof one.player === "string" && PLAYER_SLUG.test(one.player))) {
     readRound(message.games.map(({ id, player }) => ({ id, player }))).then((answer) => reply({ ok: true, ...answer })).catch(() => reply({ ok: true, state: "error" }));
+    return true;
+  }
+  if (message?.type === "read-arcade" && typeof message.config === "string" && /^[a-z0-9-]{1,80}$/.test(message.config)
+    && typeof message.step === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(message.step)) {
+    readArcade(message.config, message.step, sender.tab?.id != null ? { id: sender.tab.id, windowId: sender.tab.windowId, index: sender.tab.index } : null).then((answer) => reply({ ok: true, ...answer })).catch(() => reply({ ok: true, state: "error" }));
     return true;
   }
   if (message?.type === "sorare" && Object.hasOwn(STEPS, message.step)) {

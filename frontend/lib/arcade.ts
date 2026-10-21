@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { askExtension, extensionAtLeast, pingExtension } from "./extension";
+import { REFRESH_HEADER } from "./refresh";
 
 /**
  * Arcade, step 1 (plans/set.md): your set board, common cards, gems, essence and common missions, read from your signed-in
@@ -7,12 +8,15 @@ import { askExtension, extensionAtLeast, pingExtension } from "./extension";
  */
 export const ARCADE_EXTENSION_VERSION = "0.4.5";
 const MAX_CARD_PAGES = 40; // 100 cards a page
+const MAX_GAME_PAGES = 10; // 50 games a page
 
 export type ArcadeCard = {
   slug: string;
   player: string;
   name: string;
   team: string | null;
+  /** The club's Sorare slug, which ties the card to its games (`games`). */
+  teamSlug: string | null;
   teamPicture: string | null;
   /** The club's league as Sorare names it; null for a national team or when Sorare gives none. */
   league: { slug: string; name: string } | null;
@@ -58,12 +62,32 @@ export type ArcadeMission = {
   progress: number | null;
   target: number | null;
 };
+/** A game the set board can be played on (`CareerBoard.pickableGames`). */
+export type ArcadeGame = {
+  id: string;
+  kickoff: string;
+  status: string;
+  competition: { slug: string; name: string };
+  home: { slug: string; name: string } | null;
+  away: { slug: string; name: string } | null;
+};
 export type Arcade = {
   set: { slug: string; name: string; start: string | null; end: string | null; leagues: { slug: string; name: string }[] };
   gems: number | null;
   essence: number | null;
   /** `current` is the number (1 = first) of the step you are on; null when Sorare names none. */
-  board: { id: string; title: string | null; end: string | null; current: number | null; restartable: boolean | null; steps: ArcadeStep[] } | null;
+  board: {
+    id: string;
+    /** Sorare's board config, which names its compose page (`/football/play/boards/pro/<config>/<step>/compose-team`). */
+    config: string | null;
+    title: string | null;
+    end: string | null;
+    current: number | null;
+    restartable: boolean | null;
+    steps: ArcadeStep[];
+  } | null;
+  /** The board's games from now to the set's end; null when Sorare did not answer for them. */
+  games: ArcadeGame[] | null;
   cards: ArcadeCard[];
   /** Common cards of other sets, which Arcade on the current set leaves out. */
   otherSetCards: number;
@@ -104,6 +128,7 @@ const ArcadeData = z.object({
       id: s,
       title: opt(s),
       endDate: opt(s),
+      configSlug: opt(s),
       restartable: opt(z.boolean()),
       myCurrentStep: opt(z.object({ id: s, level: n })),
       steps: z.array(z.object({
@@ -186,7 +211,7 @@ const CardsPage = z.object({
         cardSet: opt(z.object({ slug: s })),
         skinEdition: opt(z.object({ bonus: opt(n), skinName: opt(s), variantName: opt(s) })),
         anyPlayer: z.object({ slug: s, displayName: s }),
-        anyTeam: opt(z.object({ name: opt(s), pictureUrl: opt(s), domesticLeague: opt(z.object({ slug: s, displayName: s })) })),
+        anyTeam: opt(z.object({ slug: opt(s), name: opt(s), pictureUrl: opt(s), domesticLeague: opt(z.object({ slug: s, displayName: s })) })),
       })),
       pageInfo: z.object({ hasNextPage: z.boolean(), endCursor: opt(s) }),
     }),
@@ -196,6 +221,48 @@ type CardsPage = z.infer<typeof CardsPage>;
 
 /** Sorare's edition multiplier as a bonus: 1.05 → "+5%". Standard (1) and unknown give null. */
 export const bonusLabel = (bonus: number | null) => (bonus !== null && bonus > 1 ? `+${Math.round((bonus - 1) * 100)}%` : null);
+
+const Team = z.object({ slug: s, name: s }).nullish();
+const GamesPage = z.object({
+  currentUser: z.object({
+    setBoard: z.object({
+      pickableGames: z.object({
+        nodes: z.array(z.object({
+          game: z.object({ id: s, date: s, statusTyped: s, competition: z.object({ slug: s, displayName: s }), homeTeam: Team, awayTeam: Team }),
+        })),
+        pageInfo: z.object({ hasNextPage: z.boolean(), endCursor: opt(s) }),
+      }).nullish(),
+    }).nullable(),
+  }).nullable(),
+});
+
+/** The board's games from Sorare's pages of answers, once each, by kick-off. Null when no page could be read. */
+export function parseGames(pages: unknown[]): ArcadeGame[] | null {
+  const games = new Map<string, ArcadeGame>();
+  let read = false;
+  for (const page of pages) {
+    const parsed = GamesPage.safeParse(page);
+    const nodes = parsed.success ? parsed.data.currentUser?.setBoard?.pickableGames?.nodes : null;
+    if (!nodes) continue;
+    read = true;
+    for (const { game } of nodes) {
+      games.set(game.id, {
+        id: game.id,
+        kickoff: game.date,
+        status: game.statusTyped,
+        competition: { slug: game.competition.slug, name: game.competition.displayName },
+        home: game.homeTeam ? { slug: game.homeTeam.slug, name: game.homeTeam.name } : null,
+        away: game.awayTeam ? { slug: game.awayTeam.slug, name: game.awayTeam.name } : null,
+      });
+    }
+  }
+  return read ? [...games.values()].sort((a, b) => a.kickoff.localeCompare(b.kickoff)) : null;
+}
+
+/** A card's games on the board: those its club plays, by kick-off. */
+export function gamesOf(card: Pick<ArcadeCard, "teamSlug">, games: ArcadeGame[]): ArcadeGame[] {
+  return card.teamSlug ? games.filter((g) => g.home?.slug === card.teamSlug || g.away?.slug === card.teamSlug) : [];
+}
 
 const thousands = (value: number) => value.toLocaleString("en-GB");
 
@@ -227,7 +294,7 @@ export function rewardLabel(reward: Reward): string {
 }
 
 /** Sorare's four answers turned into one model. Null when the main read is not usable (signed out, or a shape we do not know). */
-export function parseArcade(arcade: unknown, lineups: unknown, missions: unknown, cardPages: unknown[]): Arcade | null {
+export function parseArcade(arcade: unknown, lineups: unknown, missions: unknown, cardPages: unknown[], gamePages: unknown[] = []): Arcade | null {
   const main = ArcadeData.safeParse(arcade);
   if (!main.success || !main.data.currentUser || !main.data.cardSet.currentSet) return null;
   const set = main.data.cardSet.currentSet;
@@ -300,6 +367,7 @@ export function parseArcade(arcade: unknown, lineups: unknown, missions: unknown
         player: card.anyPlayer.slug,
         name: card.anyPlayer.displayName,
         team: card.anyTeam?.name ?? null,
+        teamSlug: card.anyTeam?.slug ?? null,
         teamPicture: card.anyTeam?.pictureUrl ?? null,
         league: card.anyTeam?.domesticLeague ? { slug: card.anyTeam.domesticLeague.slug, name: card.anyTeam.domesticLeague.displayName } : null,
         positions: card.anyPositions,
@@ -331,7 +399,8 @@ export function parseArcade(arcade: unknown, lineups: unknown, missions: unknown
     set: { slug: set.slug, name: set.name, start: set.startDate ?? null, end: set.endDate ?? null, leagues: set.availableCompetitions.map((c) => ({ slug: c.slug, name: c.displayName })) },
     gems: user.gems.find((g) => g.currency === "COMMON_GEM")?.amount ?? null,
     essence: user.essence.find((e) => e.rarity === "common" && e.cardSet?.slug === set.slug)?.cardShardsCount ?? null,
-    board: board ? { id: board.id, title: board.title ?? null, end: board.endDate ?? null, current: steps.find((step) => step.id === board.myCurrentStep?.id)?.number ?? null, restartable: board.restartable ?? null, steps } : null,
+    board: board ? { id: board.id, config: board.configSlug ?? null, title: board.title ?? null, end: board.endDate ?? null, current: steps.find((step) => step.id === board.myCurrentStep?.id)?.number ?? null, restartable: board.restartable ?? null, steps } : null,
+    games: parseGames(gamePages),
     cards: cards.sort((a, b) => a.name.localeCompare(b.name)),
     otherSetCards,
     cardsCut,
@@ -379,9 +448,62 @@ export async function readArcade(timeoutMs = 25_000): Promise<ArcadeRead> {
     after = endCursor;
   }
 
-  const arcade = parseArcade(main.data, "data" in lineups ? lineups.data : null, "data" in missions ? missions.data : null, pages);
+  // The board's games, from now to the set's end (no end: a week).
+  const end = z.object({ cardSet: z.object({ currentSet: z.object({ endDate: opt(s) }).nullable() }) }).safeParse(main.data);
+  const until = (end.success && end.data.cardSet.currentSet?.endDate) || new Date(Date.now() + 7 * 86_400_000).toISOString();
+  const gamePages: unknown[] = [];
+  let gamesFailed: string | null = null;
+  let cursor: string | null = null;
+  for (let i = 0; i < MAX_GAME_PAGES; i++) {
+    const page = await ask("arcade-games", { after: cursor, fromDate: new Date().toISOString(), toDate: until });
+    if ("failed" in page) {
+      gamesFailed = page.failed ?? "no answer";
+      break;
+    }
+    gamePages.push(page.data);
+    const info = GamesPage.safeParse(page.data);
+    const more = info.success ? info.data.currentUser?.setBoard?.pickableGames?.pageInfo : null;
+    if (!more?.hasNextPage || !more.endCursor) break;
+    cursor = more.endCursor;
+  }
+
+  const arcade = parseArcade(main.data, "data" in lineups ? lineups.data : null, "data" in missions ? missions.data : null, pages, gamePages);
   if (!arcade) return { state: "unreadable" };
   // A part Sorare refused is said, never shown as "none".
   const unread = [["your lineups", lineups], ["today's missions", missions]].flatMap(([label, part]) => (typeof part === "object" && "failed" in part ? [`${label} (${part.failed})`] : []));
+  if (gamesFailed) unread.push(`the board's games (${gamesFailed})`);
   return { state: "ok", arcade, unread: unread as string[] };
+}
+
+/** Sorare's start % as saved for these games: game id, then player slug, then [basis points, seen at in epoch seconds]. */
+export type ArcadeChances = Record<string, Record<string, [number, number]>>;
+const Saved = z.object({ chances: z.record(s, z.record(s, z.tuple([n, n]))) });
+
+/** The saved readings of the board's games (one small read; `null` when the app could not answer). */
+export async function loadArcadeChances(games: string[]): Promise<ArcadeChances | null> {
+  if (!games.length) return {};
+  try {
+    const response = await fetch("/api/arcade/chances", { method: "POST", headers: { "content-type": "application/json", [REFRESH_HEADER]: "1" }, body: JSON.stringify({ games: games.slice(0, 300) }) });
+    const parsed = Saved.safeParse(await response.json());
+    return response.ok && parsed.success ? parsed.data.chances : null;
+  } catch {
+    return null;
+  }
+}
+
+/** One card's start % in one game, as Sorare gave it; null when Sorare has not shown one. */
+export function chanceOf(chances: ArcadeChances | null, game: string, player: string): { percent: number; seenAt: number } | null {
+  const reading = chances?.[game]?.[player];
+  return reading ? { percent: Math.round(reading[0] / 100), seenAt: reading[1] } : null;
+}
+
+export type ArcadeWalk = { state: string; players: number | null; games: number | null };
+
+/** "Read Arcade's start %": the extension walks the board's compose page; a few minutes at most. */
+export async function walkArcade(config: string, stepId: string): Promise<ArcadeWalk> {
+  const step = stepId.replace(/^.*:/, "");
+  const answer = z.object({ ok: z.literal(true), state: s, players: n.optional(), games: n.optional() })
+    .safeParse(await askExtension({ type: "read-arcade", config, step }, 240_000));
+  if (!answer.success) return { state: "no-answer", players: null, games: null };
+  return { state: answer.data.state, players: answer.data.players ?? null, games: answer.data.games ?? null };
 }

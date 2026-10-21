@@ -47,3 +47,13 @@
 .arc-missions li { display: flex; flex-wrap: wrap; gap: 4px 0; }
 .arc-missions > p { font-size: var(--text-sm); color: var(--ink-2); }
 @media (max-width: 700px) { .arc-main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); } } /* room for the phone tab bar */
+.arc-chance { font-size: 11px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.arc-chance b { color: var(--ink); font-weight: 600; }
+.arc-chance i { font-style: normal; color: var(--ink-3); }
+.arc-nogame { font-size: 11px; color: var(--ink-3); }
+.arc-read { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 24px 0 0; padding: 14px 18px; background: var(--surface); box-shadow: var(--shadow-card); border-radius: 16px; font-size: var(--text-sm); }
+.arc-read p { margin: 0; flex: 1 1 260px; }
+.arc-read button { font: inherit; border: 0; border-radius: 999px; padding: 9px 16px; min-height: 40px; background: var(--ink); color: var(--on-ink); cursor: pointer; }
+.arc-read button:disabled { opacity: 0.6; cursor: default; }
+.arc-read .arc-read-note { flex-basis: 100%; color: var(--ink-2); }
+@media (max-width: 600px) { .arc-chance, .arc-nogame { font-size: 10px; } }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bonusLabel, parseArcade, rewardLabel } from "./arcade";
+import { bonusLabel, chanceOf, gamesOf, parseArcade, parseGames, rewardLabel } from "./arcade";
 
 const main = {
   cardSet: { currentSet: { slug: "glitch", name: "HyperGlitch", startDate: "2026-09-08T08:30:00Z", endDate: "2026-10-27T16:00:00Z", availableCompetitions: [{ slug: "laliga-es", displayName: "LALIGA EA Sports" }] } },
@@ -82,5 +82,31 @@ describe("arcade read", () => {
   it("says when the card read stopped early, and refuses a signed-out answer", () => {
     expect(parseArcade(main, null, null, [page([["a", "glitch"]], true)])?.cardsCut).toBe(true);
     expect(parseArcade({ ...main, currentUser: null }, null, null, [])).toBeNull();
+  });
+});
+
+describe("arcade games and start %", () => {
+  const game = (id: string, date: string, home: string, away: string) => ({ game: { id, date, statusTyped: "scheduled", competition: { slug: "c", displayName: "C" }, homeTeam: { slug: home, name: home }, awayTeam: { slug: away, name: away } } });
+  const page = (nodes: unknown[]) => ({ currentUser: { setBoard: { pickableGames: { nodes, pageInfo: { hasNextPage: false, endCursor: null } } } } });
+
+  it("keeps each game once, by kick-off, and ties a card to its club's games only", () => {
+    const games = parseGames([page([game("g2", "2026-10-24T19:00:00Z", "rma", "fcb"), game("g1", "2026-10-22T19:00:00Z", "lil", "rma")]), page([game("g2", "2026-10-24T19:00:00Z", "rma", "fcb")])]);
+    expect(games?.map((g) => g.id)).toEqual(["g1", "g2"]);
+    expect(gamesOf({ teamSlug: "rma" }, games ?? []).map((g) => g.id)).toEqual(["g1", "g2"]);
+    expect(gamesOf({ teamSlug: "fcb" }, games ?? []).map((g) => g.id)).toEqual(["g2"]);
+    expect(gamesOf({ teamSlug: null }, games ?? [])).toEqual([]);
+  });
+
+  it("says when Sorare gave no games instead of an empty week", () => {
+    expect(parseGames([null, { errors: [] }])).toBeNull();
+    expect(parseGames([page([])])).toEqual([]);
+  });
+
+  it("reads a start % per game and player, keeps 0%, and has none where Sorare showed none", () => {
+    const chances = { g1: { courtois: [9000, 1] as [number, number], lunin: [0, 2] as [number, number] } };
+    expect(chanceOf(chances, "g1", "courtois")).toEqual({ percent: 90, seenAt: 1 });
+    expect(chanceOf(chances, "g1", "lunin")).toEqual({ percent: 0, seenAt: 2 });
+    expect(chanceOf(chances, "g2", "courtois")).toBeNull();
+    expect(chanceOf(null, "g1", "courtois")).toBeNull();
   });
 });

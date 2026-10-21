@@ -258,6 +258,17 @@
         pageInfo { hasNextPage endCursor } } } }`;
     },
 
+    // The games your set board can be played on (plans/set.md, step 2): each card's next game, found by its club.
+    SofixArcadeGames: (variables) => {
+      const after = variables?.after ?? null;
+      if (after !== null && (typeof after !== "string" || after.length > 500)) return null;
+      if (!Number.isFinite(Date.parse(variables?.fromDate)) || !Number.isFinite(Date.parse(variables?.toDate))) return null;
+      return `query SofixArcadeGames { currentUser { setBoard(mode: CAREER, sport: FOOTBALL) { ... on CareerBoard {
+        pickableGames(first: 50, after: ${JSON.stringify(after)}, fromDate: ${JSON.stringify(variables.fromDate)}, toDate: ${JSON.stringify(variables.toDate)}) {
+          nodes { id totalCount game { id date statusTyped competition { slug displayName } homeTeam { slug name } awayTeam { slug name } } }
+          pageInfo { hasNextPage endCursor } } } } } }`;
+    },
+
     // Sorare's own verdict on a lineup, before anything is written.
     SofixPreviewLineup: `query SofixPreviewLineup($slug: String!, $appearances: [So5AppearanceInput!]!) {
       so5 { so5Leaderboard(slug: $slug) { id

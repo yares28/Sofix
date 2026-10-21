@@ -1,13 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ARCADE_EXTENSION_VERSION, bonusLabel, readArcade, type Arcade, type ArcadeCard, type ArcadeRead, type ArcadeStep } from "../../lib/arcade";
+import {
+  ARCADE_EXTENSION_VERSION, bonusLabel, chanceOf, gamesOf, loadArcadeChances, readArcade, walkArcade,
+  type Arcade, type ArcadeCard, type ArcadeChances, type ArcadeGame, type ArcadeRead, type ArcadeStep, type ArcadeWalk,
+} from "../../lib/arcade";
 
 const PAGE_SIZE = 48;
 const madrid = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString("en-GB", { timeZone: "Europe/Madrid", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
 const count = (value: number | null) => (value === null ? "—" : value.toLocaleString("en-GB"));
 const POSITIONS = ["Goalkeeper", "Defender", "Midfielder", "Forward"];
+const kickoff = (iso: string) => new Date(iso).toLocaleString("en-GB", { timeZone: "Europe/Madrid", weekday: "short", hour: "2-digit", minute: "2-digit" });
+const opponent = (game: ArcadeGame, club: string | null) => (game.home?.slug === club ? `v ${game.away?.name ?? "?"}` : `at ${game.home?.name ?? "?"}`);
 
 const WHY: Record<Exclude<ArcadeRead["state"], "ok" | "outdated" | "failed">, string> = {
   "no-extension": "This browser can't reach the Sofix extension. Open Arcade in the Chrome that has it.",
@@ -35,7 +40,27 @@ function StepRow({ step, current }: { step: ArcadeStep; current: boolean }) {
   );
 }
 
-function Cards({ cards }: { cards: ArcadeCard[] }) {
+/** A card's next games with Sorare's start % for each, as saved; "no start % yet" where Sorare has shown none. */
+function CardGames({ card, games, chances }: { card: ArcadeCard; games: ArcadeGame[] | null; chances: ArcadeChances | null }) {
+  if (games === null) return null;
+  const mine = gamesOf(card, games).slice(0, 2);
+  if (!mine.length) return <span className="arc-nogame">No game before the set ends</span>;
+  return (
+    <>
+      {mine.map((game) => {
+        const chance = chanceOf(chances, game.id, card.player);
+        return (
+          <span key={game.id} className="arc-chance" title={`${game.home?.name ?? "?"} v ${game.away?.name ?? "?"} · ${game.competition.name}`}>
+            {chance ? <b>{chance.percent}%</b> : <i>no start % yet</i>} · {kickoff(game.kickoff)} {opponent(game, card.teamSlug)}
+          </span>
+        );
+      })}
+    </>
+  );
+}
+
+function Cards({ cards, games, chances }: { cards: ArcadeCard[]; games: ArcadeGame[] | null; chances: ArcadeChances | null }) {
+  const [sort, setSort] = useState<"name" | "start">("name");
   const [query, setQuery] = useState("");
   const [league, setLeague] = useState("");
   const [position, setPosition] = useState("");
@@ -52,9 +77,17 @@ function Cards({ cards }: { cards: ArcadeCard[] }) {
       && (!position || c.positions.includes(position))
       && (!edition || (c.edition ?? "Standard") === edition));
   }, [cards, query, league, position, edition]);
+  const ordered = useMemo(() => {
+    if (sort === "name" || !games) return shown;
+    const start = (c: ArcadeCard) => {
+      const next = gamesOf(c, games)[0];
+      return next ? chanceOf(chances, next.id, c.player)?.percent ?? -1 : -2;
+    };
+    return [...shown].sort((a, b) => start(b) - start(a) || a.name.localeCompare(b.name));
+  }, [shown, sort, games, chances]);
   const pages = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
   const at = Math.min(page, pages - 1);
-  const slice = shown.slice(at * PAGE_SIZE, (at + 1) * PAGE_SIZE);
+  const slice = ordered.slice(at * PAGE_SIZE, (at + 1) * PAGE_SIZE);
   const reset = <T,>(set: (value: T) => void) => (value: T) => { set(value); setPage(0); };
 
   return (
@@ -74,6 +107,10 @@ function Cards({ cards }: { cards: ArcadeCard[] }) {
           <option value="">All editions</option>
           {editions.map((e) => <option key={e} value={e}>{e}</option>)}
         </select>
+        <select aria-label="Sort" value={sort} onChange={(e) => reset(setSort)(e.target.value === "start" ? "start" : "name")}>
+          <option value="name">By name</option>
+          <option value="start">By start % (next game)</option>
+        </select>
       </div>
       <p className="arc-count" role="status">
         {shown.length ? `${(at * PAGE_SIZE + 1).toLocaleString("en-GB")}–${(at * PAGE_SIZE + slice.length).toLocaleString("en-GB")} of ${shown.length.toLocaleString("en-GB")}` : "No card matches"}
@@ -90,6 +127,7 @@ function Cards({ cards }: { cards: ArcadeCard[] }) {
               <figcaption>
                 <span className="arc-card-name">{card.name}</span>
                 {bonus ? <span className="arc-bonus">{card.edition} {bonus}</span> : null}
+                <CardGames card={card} games={games} chances={chances} />
               </figcaption>
             </figure>
           );
@@ -106,8 +144,41 @@ function Cards({ cards }: { cards: ArcadeCard[] }) {
   );
 }
 
+const WALKED: Record<string, string> = {
+  busy: "Sofix is already reading Sorare in another tab; try again in a minute.",
+  "signed-out": "Sorare says no one is signed in. Sign in on sorare.com, then read again.",
+  "no-page": "Sorare's Arcade lineup page did not open; nothing was read.",
+  hidden: "Sorare's page stayed in the background and loaded nothing; keep Chrome in front and read again.",
+  partial: "Sorare's page took too long; what it showed was saved.",
+  "no-answer": "The extension did not answer.",
+  error: "Reading Sorare's page failed; nothing more was saved.",
+};
+
 function Loaded({ arcade, unread }: { arcade: Arcade; unread: string[] }) {
   const current = arcade.board?.current ?? null;
+  const [chances, setChances] = useState<ArcadeChances | null>(null);
+  const [walking, setWalking] = useState(false);
+  const [walked, setWalked] = useState<ArcadeWalk | null>(null);
+  const gameIds = useMemo(() => {
+    const clubs = new Set(arcade.cards.map((c) => c.teamSlug));
+    return (arcade.games ?? []).filter((g) => clubs.has(g.home?.slug ?? null) || clubs.has(g.away?.slug ?? null)).map((g) => g.id);
+  }, [arcade]);
+  const refresh = useCallback(async () => setChances(await loadArcadeChances(gameIds)), [gameIds]);
+  useEffect(() => { void refresh(); }, [refresh]); // once per read; never on a timer
+  const step = arcade.board?.steps.find((s) => s.number === current) ?? arcade.board?.steps[0] ?? null;
+  const read = async () => {
+    if (!arcade.board?.config || !step) return;
+    setWalking(true);
+    setWalked(null);
+    const answer = await walkArcade(arcade.board.config, step.id);
+    setWalked(answer);
+    await refresh();
+    setWalking(false);
+  };
+  // How far ahead Sorare has given numbers: it shows a start % only near a game, so later games read "no start % yet".
+  const lastRead = (arcade.games ?? []).filter((g) => Object.keys(chances?.[g.id] ?? {}).length).map((g) => g.kickoff).sort().at(-1) ?? null;
+  const later = lastRead ? (arcade.games ?? []).filter((g) => g.kickoff.slice(0, 10) > lastRead.slice(0, 10)).length : 0;
+  const withChance = arcade.cards.filter((c) => (arcade.games ? gamesOf(c, arcade.games) : []).some((g) => chanceOf(chances, g.id, c.player))).length;
   return (
     <>
       <header className="arc-hero">
@@ -143,7 +214,28 @@ function Loaded({ arcade, unread }: { arcade: Arcade; unread: string[] }) {
           </ul>
         ) : <p>Sorare has no common mission for you today.</p>}
       </section>
-      <Cards cards={arcade.cards} />
+      <section className="arc-read" aria-label="Sorare's start %">
+        <p>
+          {arcade.games === null ? "Sorare did not give the board's games, so start % cannot be matched to cards."
+            : chances === null ? "Saved start % could not be read."
+            : `Sorare's start % for ${withChance.toLocaleString("en-GB")} of ${arcade.cards.length.toLocaleString("en-GB")} cards, across ${arcade.games.length} games before the set ends.`}
+        </p>
+        {lastRead && later ? (
+          <p className="arc-read-note">
+            Sorare has given start % for games up to {new Date(lastRead).toLocaleDateString("en-GB", { timeZone: "Europe/Madrid", weekday: "long" })}; the {later} later games get theirs closer to kick-off, so read again then.
+          </p>
+        ) : null}
+        <button type="button" onClick={() => void read()} disabled={walking || !arcade.board?.config || !step}>
+          {walking ? "Reading Sorare's Arcade page…" : "Read Arcade's start %"}
+        </button>
+        {walking ? <p className="arc-read-note">Sorare&apos;s Arcade lineup page opens in a tab for about a minute, then closes. Nothing is picked or saved on Sorare.</p> : null}
+        {walked ? (
+          <p className="arc-read-note" role="status">
+            {walked.state === "ok" ? `Read ${walked.players ?? 0} players in ${walked.games ?? 0} games.` : WALKED[walked.state] ?? `Stopped: ${walked.state}.`}
+          </p>
+        ) : null}
+      </section>
+      <Cards cards={arcade.cards} games={arcade.games} chances={chances} />
     </>
   );
 }

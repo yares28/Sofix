@@ -84,10 +84,52 @@
       });
       return true;
     }
+    if (message?.type === "sofix-arcade-walk-9") {
+      walkArcade(Boolean(message.waitVisible)).then(reply, () => reply({ state: "error" }));
+      return true;
+    }
     if (message?.type !== "sofix-ask-9") return;
     bridge({ type: "ask", operation: message.operation, variables: message.variables }, 20000).then(reply);
     return true;
   });
+
+  /**
+   * Arcade's compose page, for "Read Arcade's start %": open each position and scroll its bench until no more cards come, so
+   * Sorare's page loads (and the bridge passes on) every card's start %. Only clicks Sorare's own "Select GK/DEF/MID/FWD"
+   * buttons and scrolls; never picks a card or saves a lineup. A hidden tab may not load on scroll: it says so first.
+   */
+  async function walkArcade(waitVisible = false) {
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    for (let i = 0; i < 20 && !document.querySelector('button[aria-label="Select GK"]'); i++) await sleep(500);
+    if (!document.querySelector('button[aria-label="Select GK"]')) return { state: "no-page" };
+    // Just brought forward: the page notices it is visible a moment later.
+    for (let i = 0; waitVisible && i < 24 && document.visibilityState === "hidden"; i++) await sleep(250);
+    if (document.visibilityState === "hidden") return { state: "hidden" };
+    const shown = () => document.querySelectorAll("img[alt]").length;
+    const scrollAll = () => {
+      window.scrollTo(0, document.body.scrollHeight);
+      for (const el of document.querySelectorAll("*")) {
+        if (el.scrollHeight > el.clientHeight + 20 && /(auto|scroll)/.test(getComputedStyle(el).overflowY)) el.scrollTop = el.scrollHeight;
+      }
+    };
+    const cards = {};
+    const deadline = Date.now() + 180000;
+    for (const position of ["GK", "DEF", "MID", "FWD"]) {
+      document.querySelector(`button[aria-label="Select ${position}"]`)?.click();
+      await sleep(3000);
+      let still = 0;
+      let last = shown();
+      while (still < 2 && Date.now() < deadline) {
+        scrollAll();
+        await sleep(1500);
+        const now = shown();
+        still = now === last ? still + 1 : 0;
+        last = now;
+      }
+      cards[position] = last;
+    }
+    return { state: Date.now() < deadline ? "ok" : "partial", cards };
+  }
 
   setTimeout(whoAmI, 1000);
 })();

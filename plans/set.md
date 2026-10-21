@@ -1,7 +1,7 @@
 # SET page (Sorare Arcade): research and plan, 20 Oct 2026
 
 Status: **research and design only, nothing built.** Upgrades U1–U6 added and the owner's answers recorded 21 Oct (bottom of this file). **Step 1 shipped 21 Oct**:
-`/arcade` reads the board, cards, gems, essence and common missions (extension 0.4.5); next is step 2.
+`/arcade` reads the board, cards, gems, essence and common missions (extension 0.4.5). **Step 2 shipped 21 Oct**: each card shows Sorare's start % for its next games (extension 0.4.9); next is step 3.
 Design canvas: https://claude.ai/artifact/NcPHzXynH6oHiVLeTg3BFG (private, sample numbers, real common-card art).
 
 ## What the owner asked (20 Oct 2026)
@@ -83,6 +83,12 @@ them as `sorare_chances:<game>` with the time seen. Each other position loads wh
 - Cost: about 1 KB per game read; Arcade adds a few dozen games a week. No new job, no polling.
 
 Owner, 21 Oct: **yes to the 2b button**; **Ligue 1 stays out of the expansion** (Arcade uses Sorare's % for it).
+
+**Shipped 21 Oct (extension 0.4.9).** Seen on his account: the board has 84 games to the set's end; after his first press of
+the button the saved rows held Sorare's % for 27 of the 46 games of Wed and Thu (388 player readings, 144 from that walk) and
+none for Friday on. Sorare's compose page gives a % only for a card's next game close to kick-off, so later games say "no
+start % yet" and the page says how far ahead Sorare has given numbers ("read again then"). The tab opens beside the Arcade
+tab; Chrome must be in front for Sorare's bench to load more cards on scroll (a covered window loads nothing and says so).
 
 Acceptance (his machine): after 2b, every card whose game Sorare gives a % shows it on `/arcade` with the Sorare tab
 closed; a 0% shows as 0%; a card in two games this week shows each game's own number; the saved rows match the tiles.

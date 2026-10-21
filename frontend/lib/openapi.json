@@ -1387,6 +1387,17 @@
             ],
             "title": "Source Id"
           },
+          "history_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "History Name"
+          },
           "code": {
             "type": "string",
             "title": "Code"

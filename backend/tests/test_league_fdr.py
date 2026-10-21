@@ -77,6 +77,7 @@ def test_cold_start_entire_league_has_two_sided_fdr(code, size):
     assert all(c.prediction and c.market is None and c.prediction.xd_for is None for c in cells)
     assert all(t.decisives is None and t.opening is None for t in grid.teams)
     assert all(t.code.startswith("C") and len(t.code) == 3 and t.source_id is not None for t in grid.teams)
+    assert all(t.history_name == t.name for t in grid.teams)
     assert body.meta and body.meta.last_predicted_at == NOW
 
 

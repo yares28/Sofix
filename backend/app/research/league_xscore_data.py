@@ -197,8 +197,8 @@ def reconcile(
             result = client.query(
                 DATE_QUERY,
                 {
-                    "from": (day - pd.Timedelta(days=1)).isoformat() + "Z",
-                    "to": (day + pd.Timedelta(days=2)).isoformat() + "Z",
+                    "from": (day - pd.Timedelta(hours=12)).isoformat() + "Z",
+                    "to": (day + pd.Timedelta(hours=36)).isoformat() + "Z",
                 },
             )
             for competition in result.get("competitionGames") or []:

@@ -130,6 +130,7 @@ def test_missing_fixtures_are_reconciled_from_a_date_feed_without_cross_league_m
 
     def query(text, variables):
         calls.append(variables)
+        assert (data.when(variables["to"]) - data.when(variables["from"])).total_seconds() <= 172800
         return {
             "competitionGames": [
                 {"competition": {"slug": "bundesliga-de"}, "games": [{**missing, "id": "wrong"}]},

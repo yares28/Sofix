@@ -65,6 +65,8 @@ def test_release_rejects_partial_cohort_and_each_failed_metric():
     result["coverageComplete"] = True
     result["versusAblation"]["hi"] = 0.01
     assert "FDR" in " ".join(v.release_reasons(result))
+    result["versusAblation"]["hi"] = float("nan")
+    assert v.release_reasons(result)
 
 
 def test_ambiguous_or_unknown_team_mapping_never_fuzzy_matches():
@@ -173,3 +175,17 @@ def test_keeper_clean_sheet_uses_his_playing_period_not_the_final_team_score(mon
     assert coverage["complete"] and rows[0]["clean"] is True
     assert v.clean_label({"mins": 44, "cleanSheet60": None, "goalsConceded": 0}) is False
     assert v.clean_label({"mins": 90, "cleanSheet60": None, "goalsConceded": None}) is None
+
+
+def test_evidence_fingerprints_change_with_source_history_and_identity(tmp_path):
+    source = tmp_path / "PL"
+    source.mkdir()
+    (source / "game.json").write_text('{"score": 0}')
+    csv = tmp_path / "history.csv"
+    csv.write_text("Home,Away\nA,B\n")
+    first = v.fingerprints(source, [csv])
+    assert len(first["sourceSha256"]) == 64 and len(first["identitySha256"]) == 64
+    (source / "game.json").write_text('{"score": null}')
+    assert v.fingerprints(source, [csv])["sourceSha256"] != first["sourceSha256"]
+    csv.write_text("Home,Away\nB,A\n")
+    assert v.fingerprints(source, [csv])["historySha256"] != first["historySha256"]

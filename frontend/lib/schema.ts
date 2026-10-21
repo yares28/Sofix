@@ -96,6 +96,7 @@ export const FixtureGridSchema = z.object({
     z.object({
       code: z.string().regex(/^(?:[A-Z0-9]{3}|FD[0-9]{1,6})$/),
       source_id: z.number().int().positive().nullish(),
+      history_name: z.string().min(1).nullish(),
       name: z.string().min(1),
       color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
       crest_url: z.string().startsWith("https://crests.football-data.org/").nullable(),

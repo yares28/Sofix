@@ -165,7 +165,7 @@ describe("the best pack", () => {
       { slug: "bronze", title: "Bronze", league: null, price: 1000, currency: "COMMON_ESSENCE", cards: 5 },
       { slug: "none", title: "None", league: null, price: 1, currency: "COMMON_GEM", cards: 1 },
     ];
-    const odds = { gold: [{ x: 1 }, { y: 1 }], silver: [{ x: 0.5, mine: 0.5 }], bronze: [{ x: 1 }] };
+    const odds: Record<string, Record<string, number>[]> = { gold: [{ x: 1 }, { y: 1 }], silver: [{ x: 0.5, mine: 0.5 }], bronze: [{ x: 1 }] };
     const ranked = rankPacks(packs, odds, new Set(["mine"]), { gems: 20, essence: 1500 });
     expect(ranked.map((p) => [p.slug, p.affordable])).toEqual([["bronze", true], ["silver", true], ["gold", false]]);
   });

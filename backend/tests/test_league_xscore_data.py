@@ -74,15 +74,16 @@ def test_wrong_game_or_competition_cannot_be_cached():
         data.validate_game("PL", {"id": "wanted"}, raw, datetime.now(UTC))
 
 
-def test_batch_is_one_request_with_distinct_game_id_variables():
+def test_game_reader_never_duplicates_the_root_field_sorare_rejects():
     calls = []
 
     def query(text, variables):
         calls.append((text, variables))
-        return {f"g{i}": {"id": ident} for i, ident in enumerate(variables.values())}
+        assert text.count("anyGame(") == 1, "Sorare rejects repeated roots even with aliases"
+        return {"anyGame": {"id": variables["id"]}}
 
     got = data.fetch_games(SimpleNamespace(query=query), [{"id": str(i)} for i in range(10)])
-    assert len(calls) == 1 and len(got) == 10 and calls[0][1]["id9"] == "9"
+    assert len(calls) == 10 and len(got) == 10 and calls[-1][1]["id"] == "9"
     assert "scoringVersion" in calls[0][0] and "scoreStatus" in calls[0][0]
 
 

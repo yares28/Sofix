@@ -21,7 +21,7 @@ from app.sorare.model import SORARE_POSITION
 LEAGUES = {"PL": "premier-league-gb-eng", "BL1": "bundesliga-de"}
 START = datetime(2023, 7, 1, tzinfo=UTC)
 END = datetime(2026, 7, 1, tzinfo=UTC)
-PROTOCOL = {
+PROTOCOL: dict[str, Any] = {
     "version": 1,
     "trainSeasons": [2023, 2024],
     "holdoutSeason": 2025,
@@ -106,14 +106,8 @@ def player(raw: dict[str, Any]) -> dict[str, Any]:
 
 
 def fetch_games(client: Any, games: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """At most ten games per key-backed query; never a per-player query loop."""
-    if len(games) == 1:
-        return [client.query(GAME_QUERY, {"id": games[0]["id"]})["anyGame"]]
-    variables = {f"id{i}": g["id"] for i, g in enumerate(games)}
-    declarations = ",".join(f"${key}:ID!" for key in variables)
-    fields = " ".join(f"g{i}:anyGame(id:$id{i}){{...XScoreGame}}" for i in range(len(games)))
-    result = client.query(f"query({declarations}){{{fields}}}" + GAME_FIELDS, variables)
-    return [result[f"g{i}"] for i in range(len(games))]
+    """Federation rejects repeated anyGame roots; read each game once, never each player."""
+    return [client.query(GAME_QUERY, {"id": game["id"]})["anyGame"] for game in games]
 
 
 def game_list(client: Any, code: str) -> list[dict[str, Any]]:
@@ -186,10 +180,10 @@ def collect(
         pending.append(game)
     if limit is not None:
         pending = pending[:limit]
-    for offset in range(0, len(pending), 10):
+    for offset in range(len(pending)):
         if time.monotonic() - started > seconds:
             break
-        batch = pending[offset : offset + 10]
+        batch = pending[offset : offset + 1]
         try:
             raw_games = fetch_games(client, batch)
             rows = [
@@ -206,7 +200,8 @@ def collect(
             path.write_text(json.dumps(row, separators=(",", ":")), encoding="utf-8")
             completed.append(ident)
             calls += 1
-        print(f"{code}: kept {len(completed)}/{len(expected)} authentic game responses", flush=True)
+        if offset % 25 == 0 or offset == len(pending) - 1:
+            print(f"{code}: kept {len(completed)}/{len(expected)} authentic game responses", flush=True)
     result = {
         "competition": code,
         "expected": len(expected),

@@ -18,7 +18,7 @@ Owner authorization, 21 October 2026: implement FDR for Premier League and Bunde
 - [x] Backend workflow and cross-league isolation tests fail before implementation, then pass.
 - [x] Board/team routing and week persistence pass; desktop/mobile mock screenshots inspected. Real published-block screenshots follow automatic publication.
 - [x] Run node scripts/check.mjs and relevant browser suite; inspect own diff.
-- [ ] Commit and ship under AGENTS.md when checks pass; verify blocks after automatic refresh.
+- [x] Commit and ship under AGENTS.md when checks pass; verify blocks after automatic refresh.
 
 ## Session evidence
 
@@ -36,3 +36,14 @@ The final local check passed all backend/frontend gates, including the new boots
 Final production-build navigation: league switch with different GW numbers for the same date, reload, table, team in a separate tab and back, and player search passed. All 15 mobile cases passed after the toolbar fix. An overlapping browser run erased the desktop run's trace during teardown (an artifact-path ENOENT); browser runs must use separate output directories or run sequentially. A final sequential league check follows integration with main.
 
 Rebased cleanly onto 21b6ffe. The sequential post-integration browser run passed all four selected cases, including both league boards and the strict phone-width check. The final complete local gate was rerun after integration.
+
+## Shipped and verified, 21 October
+
+- Feature commit c9a1e2e is on main and deployed to https://sofix-livid.vercel.app. The automatic Vercel deployment was missing initially; the existing project was deployed with the authenticated CLI, without changing settings or plans. The subsequent live check reports Vercel success and all 15 production pages HTTP 200.
+- Automatic refresh run 39629396814 succeeded. The bootstrap used the configured source and published PL at 15:51:38 UTC and BL1 at 15:51:47 UTC; no manual workflow dispatch or local source token was needed.
+- One bounded successful SELECT through the app's normal failover confirmed PL 20 clubs / 38 rounds and BL1 18 / 34, both model +0d8bec30. Publication guards also require the complete 380 / 306 fixture pairs.
+- Real published boards were inspected locally at 1440 and 390 px: Arsenal/Aston Villa/Bournemouth and Köln/Augsburg/Bayern, correct crests and no horizontal overflow. Screenshots are in ignored frontend/output/playwright/*-real-*.png. A mock production-test cache was cleared before that proof; the real-data script rejects mock club names.
+- Direct production HTML checks confirmed the selected PL/BL1 picker and real club data, both HTTP 200. Backend/frontend CI passed; the full browser CI was still running at handover. Local checks, build, 15 mobile cases, production-build navigation and the final four browser cases passed as recorded above.
+- The main folder contains unrelated uncommitted changes and was preserved. The checked worktree's local production preview runs at http://localhost:3218. These final evidence-only documentation updates are retained locally for the next code shipment, respecting the no-docs-only-push rule.
+
+FDR delivery acceptance is met. xScore, live Odds/Vs odds, retrospective preseason projections and the broader cups/European expansion are outside this release, as recorded in the contract and validation notes.

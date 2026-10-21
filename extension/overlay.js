@@ -138,6 +138,7 @@
         record.cardSlug = hit.cardSlug || null;
         record.playerSlug = hit.playerSlug || null;
         record.ident = "done";
+        oddsDue = true;
       } else if (linked) {
         record.cardSlug = linked;
         record.playerSlug = null;
@@ -147,6 +148,26 @@
       }
     }
     schedule();
+  }
+
+  // Sorare's own start chance as the page itself received it (the badge at a card's foot), by player. The bridge keeps it per game
+  // and answers only for a player with one game on the page. Asked again whenever the page has answered something new.
+  const pageOdds = new Map();
+  let oddsDue = true;
+  async function readOdds() {
+    const players = [...new Set([...live].map((r) => r.playerSlug).filter(Boolean))];
+    if (!oddsDue || !players.length) return;
+    oddsDue = false;
+    const answer = await askBridge({ type: "odds", players: players.slice(0, 200) }, 3000);
+    if (!answer || answer.state !== "ok" || !answer.odds) return;
+    let changed = false;
+    for (const [slug, p] of Object.entries(answer.odds)) {
+      if (typeof p === "number" && pageOdds.get(slug) !== p) {
+        pageOdds.set(slug, p);
+        changed = true;
+      }
+    }
+    if (changed) schedule();
   }
 
   // -- the numbers -----------------------------------------------------------------------------------------------
@@ -342,8 +363,8 @@
     return dot;
   }
 
-  /** Everything the tile and the panel say about one answer, worked out once. */
-  function facts(entry) {
+  /** Everything the tile and the panel say about one answer, worked out once. `onPage`: Sorare's own start chance, from the page. */
+  function facts(entry, onPage) {
     const split = typeof entry.start === "number" && typeof entry.bench === "number";
     const startChance = core.startChance(entry);
     return {
@@ -358,6 +379,8 @@
       driver: core.driverOf(entry.pos),
       xg: typeof entry.xg === "number" ? entry.xg : null,
       games: core.gamesCount(entry),
+      apart: core.startDisagreement(entry, onPage),
+      title: core.startTitle(entry, onPage),
     };
   }
 
@@ -373,6 +396,7 @@
     }
     const from = f.source ? ` (${core.SOURCE_SHORT[f.source]})` : "";
     said.push(f.doubt ? `He starts only ${core.chanceLabel(f.startChance)} of the time${from}.` : `He starts ${core.chanceLabel(f.startChance)} of the time${from}.`);
+    if (f.apart) said.push(`Sorare says ${core.chanceLabel(f.apart.sorare)}: they disagree.`);
     return [...said, ...more].join(" ");
   }
 
@@ -457,7 +481,7 @@
   }
 
   function buildTile(record, tier, size, entry, rank) {
-    const f = facts(entry);
+    const f = facts(entry, record.playerSlug ? pageOdds.get(record.playerSlug) : undefined);
     const stale = core.staleness(entry, now());
     const plan = planFor(record, entry);
     const scoreColour = stale ? STALE_INK : colour(core.scoreLevel(f.score));
@@ -469,7 +493,7 @@
     if (stale) more.push(stale.kind === "over" ? "His game has started, so these numbers are about a game no longer ahead." : `These numbers are ${stale.hours} h old.`);
     const label = describe(f, more);
     const shownRank = tier === "full" ? rank || 0 : 0;
-    const sig = [size, f.score, f.split, f.startChance, f.tone, f.source, entry.live && entry.startAt, f.driver, f.xg, entry.pos, f.game && `${f.game.difficulty}:${f.game.bucket}`, scoreColour, driveColour, stale && stale.kind, plan && `${plan.lineup}:${plan.captain}`, shownRank, tier === "full" && f.games].join("|");
+    const sig = [size, f.score, f.split, f.startChance, f.tone, f.source, f.title, entry.live && entry.startAt, f.driver, f.xg, entry.pos, f.game && `${f.game.difficulty}:${f.game.bucket}`, scoreColour, driveColour, stale && stale.kind, plan && `${plan.lineup}:${plan.captain}`, shownRank, tier === "full" && f.games].join("|");
     const marks = [...(plan ? [mark(plan.captain)] : []), ...(shownRank ? [rankBadge(shownRank)] : []), ...(tier === "full" && f.games > 1 ? [gamesBadge(f.games)] : [])];
     const staleClass = stale ? " sfx-tile--stale" : "";
 
@@ -482,7 +506,7 @@
       return { sig, node: tile, marks, label, interactive: false };
     }
 
-    const tile = node("button", `sfx-tile${f.doubt ? " sfx-tile--doubt" : ""}${staleClass}`);
+    const tile = node("button", `sfx-tile${f.doubt ? " sfx-tile--doubt" : ""}${f.apart && !stale ? " sfx-tile--apart" : ""}${staleClass}`);
     tile.type = "button"; // the one thing on the card that answers the pointer: it opens the panel and nothing else
     tile.setAttribute("aria-label", label);
     tile.setAttribute("aria-haspopup", "dialog");
@@ -517,6 +541,7 @@
       // Amber when he is in doubt, red when he will not start.
       const starts = node("span", `sfx-starts${f.tone === "doubt" ? " sfx-doubt" : ""}${f.tone === "out" ? " sfx-out" : ""}`);
       starts.setAttribute("aria-hidden", "true");
+      starts.title = f.title; // the number is Sofix's (the owner, 21 Oct 2026); the tile's label says the same to a screen reader
       const chance = node("b");
       chance.append(core.chanceLabel(f.startChance).replace("%", ""), node("small", "", "%"));
       starts.append(f.source ? sourceDot(f.source) : shirt(""), chance);
@@ -1321,6 +1346,7 @@
       discover();
     }
     identify().catch(() => {}); // asks the bridge; its answer draws on a later pass
+    readOdds().catch(() => {});
     wantNumbers();
     paint();
   }
@@ -1419,6 +1445,7 @@
     lastReport = "";
     clearTimeout(reportTimer);
     reportTimer = 0;
+    pageOdds.clear();
     closePanel(false);
     document.querySelectorAll("[data-sfx]").forEach((el) => el.remove());
     document.querySelectorAll(".sfx-room").forEach((el) => el.classList.remove("sfx-room"));
@@ -1427,6 +1454,7 @@
   // The bridge learned more cards from the page's own answers: cards it could not name a moment ago may be known now.
   const onBridge = guard((event) => {
     if (event.source !== window || !event.data || !["sofix-bridge-4", "sofix-bridge-5", "sofix-bridge-7", "sofix-bridge-8", "sofix-bridge-9"].includes(event.data.source) || event.data.type !== "cards") return;
+    oddsDue = true;
     for (const record of live) {
       if (record.ident === "new") {
         record.nextTry = 0;

@@ -45,6 +45,13 @@ const IDENTITY = {
       ...EXTRA_CARDS,
       // Card 6 is never named by an answer: the page's own link (?card=…) is all that says which card it is.
     ],
+    // Sorare's own start chance for Messi, as the page receives it (the badge at a card's foot): Sofix's answer has no SO for him.
+    games: [
+      {
+        id: "Game:22222222-bbbb-4bbb-8bbb-000000000001",
+        playerGameScores: [{ anyPlayer: { slug: "lionel-messi" }, anyPlayerGameStats: { footballPlayingStatusOdds: { starterOddsBasisPoints: 3000 } } }],
+      },
+    ],
   },
 };
 
@@ -81,6 +88,7 @@ const NUMBERS = {
     // A forward at a club Understat does not cover, with a priced game: he has odds but no xG.
     "kai-havertz": {
       x: 55.1, p: 0.85, average: 58, pos: "FWD", at: ELEVEN_HOURS_AGO, start: 58.4, bench: 9.1, pStart: 0.8, pOn: 0.05,
+      sources: { sorare: 0.35 }, // Sofix 80%, Sorare 35%: they disagree on whether he starts (B1)
       game: { win: 0.52, cleanSheet: 0.31, difficulty: 38.7, bucket: 2, label: "Favourite", source: "model" },
     },
     ...Object.fromEntries(
@@ -302,7 +310,7 @@ test.describe("the sorare.com overlay", () => {
     // A forward: his xG, not the difficulty, and the score painted for a 64.
     expect(await text(page, "abroad")).toEqual(["64", "xG", "0.38", "82%"]);
     await expect(tileOf(page, "abroad")).toHaveCSS("--sfx-c", "#25ed36");
-    await expect(tileOf(page, "abroad")).toHaveAttribute("aria-label", "Sofix: 64 if he starts. Expected goals 0.38. He starts 82% of the time (SF).");
+    await expect(tileOf(page, "abroad")).toHaveAttribute("aria-label", "Sofix: 64 if he starts. Expected goals 0.38. He starts 82% of the time (SF). Sorare says 30%: they disagree.");
 
     // A defender Futbol Fantasy calls a doubt, at 31%: his score if he starts is still shown, with an amber row that says so.
     expect(await text(page, "doubtful")).toEqual(["53", "FDR", "58", "31%"]);
@@ -315,7 +323,7 @@ test.describe("the sorare.com overlay", () => {
     // A forward Understat cannot name (his club is in another league), though his game is priced: it is his xG that is
     // missing, so that is what it says (the odds row under Sorare's bar still has the game's odds).
     expect(await text(page, "noxg")).toEqual(["58", "No xG", "80%"]);
-    await expect(tileOf(page, "noxg")).toHaveAttribute("aria-label", "Sofix: 58 if he starts. No xG: expected goals are not available for this player. He starts 80% of the time.");
+    await expect(tileOf(page, "noxg")).toHaveAttribute("aria-label", "Sofix: 58 if he starts. No xG: expected goals are not available for this player. He starts 80% of the time. Sorare says 35%: they disagree.");
 
     // A midfielder whose game nobody has priced either: the score, and the plain words, never an invented number.
     expect(await text(page, "linked")).toEqual(["62", "No xG", "90%"]);
@@ -573,6 +581,17 @@ test.describe("the sorare.com overlay", () => {
     // Whose number it is is a mark, not a word: FF a filled dot, SO a ring, SF a dashed ring.
     await expect(big.locator(".sfx-src--sorare")).toHaveCount(1);
     await expect((await seen("abroad")).locator(".sfx-src--sofix")).toHaveCount(1);
+    // Hover says the number is Sofix's; a mint ring only where Sofix and Sorare disagree (one 40% or less, the other 60% or more).
+    await expect(big.locator(".sfx-starts")).toHaveAttribute("title", "Sofix: 88% to start (from Sorare's starter odds)");
+    await expect(big).not.toHaveClass(/sfx-tile--apart/);
+    const apart = await seen("noxg");
+    await expect(apart).toHaveClass(/sfx-tile--apart/);
+    await expect(apart.locator(".sfx-starts")).toHaveAttribute("title", "Sofix: 80% to start. Sorare says 35%: they disagree");
+    await expect(doubtful).not.toHaveClass(/sfx-tile--apart/); // FF 31% against SO 40%: both say no
+    // Sorare's number as the page itself received it counts too, when Sofix's answer has none: Messi 82% against the page's 30%.
+    const abroad = await seen("abroad");
+    await expect(abroad).toHaveClass(/sfx-tile--apart/);
+    await expect(abroad.locator(".sfx-starts")).toHaveAttribute("title", "Sofix: 82% to start (from his form). Sorare says 30%: they disagree");
     // A small lineup tile has no room for it, and a number that no longer holds does not say who will start.
     await expect((await seen("slot-a")).locator(".sfx-starts")).toHaveCount(0);
     await expect((await seen("over")).locator(".sfx-tile--stale, .sfx-drive")).toHaveCount(1);
@@ -752,9 +771,9 @@ test.describe("the sorare.com overlay", () => {
     await expect(panel(page).locator(".sfx-big")).toContainText("if benched");
     await expect(panel(page).locator(".sfx-big strong")).toHaveText("15");
 
-    // Nothing it sends is a step that writes to Sorare.
+    // Nothing it sends is a step that writes to Sorare (chances-seen hands Sorare's own readings to Sofix, read only).
     const kinds = new Set((await probe(page)).sent.map((message) => message.type));
-    expect([...kinds].filter((kind) => !["overlay-numbers", "overlay-plan", "overlay-stats", "open-app", "sorare-user", "ff-live"].includes(kind))).toEqual([]);
+    expect([...kinds].filter((kind) => !["overlay-numbers", "overlay-plan", "overlay-stats", "open-app", "sorare-user", "ff-live", "chances-seen"].includes(kind))).toEqual([]);
   });
 
   test("says what the site says is wrong with him only when it does, and keeps who says it behind one button", async ({ page }) => {

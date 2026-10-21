@@ -11,8 +11,8 @@ Cheapest first; each step reuses the one before it. One step per commit, each sh
 
 | # | Step | Effort | Depends on | Status |
 |---|---|---|---|---|
-| 0 | The red backend CI (ruff, mypy, pytest on 81eaf48) | Small | — | to do |
-| 1 | B1 · O5 · start % on the lineups you entered | Small | — | to do |
+| 0 | The red backend CI (ruff, mypy, pytest on 81eaf48) | Small | — | done 21 Oct (certifi advisory) |
+| 1 | B1 · O5 · start % on the lineups you entered | Small | — | done 21 Oct, extension 0.4.6 |
 | 2 | B2 · O4 · worth now, in your gallery | Small | — | to do |
 | 3 | B3 · O3 · Sofix's line on a LaLiga player page | Medium | — | to do |
 | 4 | B4 · O9 · market switch: LaLiga starters only | Small | B3 | to do |
@@ -50,8 +50,9 @@ Cheapest first; each step reuses the one before it. One step per commit, each sh
   one is at 40% or less and the other at 60% or more** (the owner, 21 Oct: one thinks he won't start, the other thinks he will).
 - **Code:** `overlay.js` only: the compact tile gets the start row on lineups pages. `DISAGREE_LOW = 0.4` and `DISAGREE_HIGH = 0.6` in
   `core.js` beside `DOUBTFUL`, compared on `pStart` against `sources.sorare` (no outline when Sorare has no number).
-- **To measure first:** which tile size the lineups page's cards get on his signed-in page, and where Sorare's own % badge sits (the
-  row must never cover it).
+- **Measured 21 Oct on his `/football/lineups/pro`:** every card there already gets the full tile with its start row, top-left;
+  Sorare's own % is a badge at the card's foot, so nothing covers it. So B1 shipped as the hover title and the mint ring only
+  (`startDisagreement`, `startTitle` in core.js); compact tiles stay as they are.
 - **Done when:** on his signed-in lineups page every owned card shows its %, three match /lineups exactly, and one disagreement wears
   the outline.
 

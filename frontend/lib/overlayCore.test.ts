@@ -33,6 +33,8 @@ type Core = {
   OUT_CHANCE: number;
   SOURCE_SHORT: Record<string, string>;
   startTone: (entry: { p: number; pStart?: number; ffStatus?: { kind?: string } }) => "out" | "doubt" | "ok";
+  startDisagreement: (entry: { p: number; pStart?: number; startSource?: string; sources?: Record<string, number> }, onPage?: number) => { sofix: number; sorare: number } | null;
+  startTitle: (entry: { p: number; pStart?: number; startSource?: string; sources?: Record<string, number> }, onPage?: number) => string;
   statusNote: (entry: { ffStatus?: { kind?: string; cause?: string; since?: string } }) => { kind: string; text: string } | null;
   clockLabel: (iso: unknown) => string | null;
   sourceRows: (entry: {
@@ -405,6 +407,31 @@ describe("the start row", () => {
 
   it("names the source by two letters", () => {
     expect(core.SOURCE_SHORT).toEqual({ futbolfantasy: "FF", sorare: "SO", sofix: "SF" });
+  });
+
+  // The owner, 21 Oct 2026: one thinks he won't start (40% or less), the other thinks he will (60% or more).
+  it("flags Sofix and Sorare disagreeing only when one says no and the other yes", () => {
+    const ff = (pStart: number, sorare?: number) => ({ p: pStart, pStart, startSource: "futbolfantasy", sources: (sorare === undefined ? {} : { sorare }) as Record<string, number> });
+    expect(core.startDisagreement(ff(0.8, 0.4))).toEqual({ sofix: 0.8, sorare: 0.4 }); // Mojica on 21 Oct
+    expect(core.startDisagreement(ff(0.4, 0.6))).toEqual({ sofix: 0.4, sorare: 0.6 });
+    expect(core.startDisagreement(ff(0.5, 0.8))).toBeNull(); // 50% is neither a no nor a yes
+    expect(core.startDisagreement(ff(0.41, 0.9))).toBeNull();
+    expect(core.startDisagreement(ff(0.9, 0.95))).toBeNull();
+    expect(core.startDisagreement(ff(0.9))).toBeNull(); // Sorare has no number
+    expect(core.startDisagreement({ p: 0.2, pStart: 0.2, startSource: "sorare", sources: { sorare: 0.2 } })).toBeNull();
+    // Sorare's number as the page received it wins over Sofix's copy: Mojica's SO was missing from Sofix's answer (21 Oct).
+    expect(core.startDisagreement(ff(0.8), 0.4)).toEqual({ sofix: 0.8, sorare: 0.4 });
+    expect(core.startDisagreement(ff(0.8, 0.4), 0.7)).toBeNull();
+  });
+
+  it("says on hover that the number is Sofix's, and when Sorare disagrees", () => {
+    expect(core.startTitle({ p: 0.8, pStart: 0.8, startSource: "futbolfantasy", sources: { sorare: 0.7 } })).toBe(
+      "Sofix: 80% to start (from Futbol Fantasy's expected lineup)",
+    );
+    expect(core.startTitle({ p: 0.8, pStart: 0.8, startSource: "futbolfantasy", sources: { sorare: 0.4 } })).toBe(
+      "Sofix: 80% to start (from Futbol Fantasy's expected lineup). Sorare says 40%: they disagree",
+    );
+    expect(core.startTitle({ p: 0.55, pStart: 0.55 })).toBe("Sofix: 55% to start");
   });
 });
 

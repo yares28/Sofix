@@ -185,6 +185,36 @@
     return "ok";
   }
 
+  /** Sofix and Sorare disagree when one has him at this or less to start and the other at DISAGREE_HIGH or more (the owner, 21 Oct 2026). */
+  const DISAGREE_LOW = 0.4;
+  const DISAGREE_HIGH = 0.6;
+
+  /**
+   * Sofix's start chance and Sorare's own when one says he won't start and the other that he will; null otherwise, or when Sorare has
+   * no number. `onPage` is Sorare's number as the page itself received it (the badge at the card's foot); it wins over the copy in
+   * Sofix's answer, which can be missing or older.
+   */
+  function startDisagreement(entry, onPage) {
+    const sorare = typeof onPage === "number" ? onPage : entry.sources && entry.sources.sorare;
+    if (typeof sorare !== "number" || entry.startSource === "sorare") return null;
+    const sofix = startChance(entry);
+    const no = (p) => p <= DISAGREE_LOW;
+    const yes = (p) => p >= DISAGREE_HIGH;
+    return (no(sofix) && yes(sorare)) || (no(sorare) && yes(sofix)) ? { sofix, sorare } : null;
+  }
+
+  const SOURCE_FROM = { futbolfantasy: "Futbol Fantasy's expected lineup", sorare: "Sorare's starter odds", sofix: "his form" };
+
+  /** The start row's hover: that the number is Sofix's, whose number it stands on, and Sorare's when the two disagree. */
+  function startTitle(entry, onPage) {
+    const from = SOURCE_FROM[entry.startSource];
+    const apart = startDisagreement(entry, onPage);
+    return (
+      `Sofix: ${chanceLabel(startChance(entry))} to start${from ? ` (from ${from})` : ""}` +
+      (apart ? `. Sorare says ${chanceLabel(apart.sorare)}: they disagree` : "")
+    );
+  }
+
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const STATUS_WORD = { out: "Out", doubt: "Doubt", suspended: "Suspended" };
 
@@ -625,7 +655,7 @@
 
   root.__sofixCore = {
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, collectStartingOdds, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
-    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, shapeOf, shapeBars, shapeLabels, whyRows, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
+    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, shapeOf, shapeBars, shapeLabels, whyRows, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
     isPickHeading, fixtureOf, gamesCount, fixtureLine, collectMissions, missionsRarity, missionsAsked,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;

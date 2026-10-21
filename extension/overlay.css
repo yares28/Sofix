@@ -60,6 +60,8 @@
   animation: sfx-in 0.3s cubic-bezier(0.3, 0.7, 0.2, 1) both;
 }
 .sfx-tile:focus-visible, .sfx-tag:focus-visible { outline: 2px solid var(--sfx-white); outline-offset: 2px; }
+/* Sofix and Sorare disagree on whether he starts (one 40% or less, the other 60% or more): a mint ring, the start row says why on hover. */
+.sfx-tile--apart { box-shadow: 0 0 0 1.5px #6ee7b7, 0 0 10px -1px rgba(110, 231, 183, 0.7), 0 6px 16px -6px rgba(0, 0, 0, 0.75); }
 
 /* Sorare's own five colours, easiest to hardest: the tile's top edge, and the same stripe on the odds row and panel. */
 .sfx-stripe { display: flex; height: 2px; flex: none; }

@@ -44,7 +44,11 @@
     }
     while (cards.size > INDEX_MAX) cards.delete(cards.keys().next().value);
     if (byName.size > INDEX_MAX) byName.clear();
-    // Tell the overlay there is more to look up, once per burst of answers.
+    announce();
+  }
+
+  /** Tell the overlay there is more to look up, once per burst of answers. */
+  function announce() {
     if (!announceTimer) {
       announceTimer = setTimeout(() => {
         announceTimer = 0;
@@ -79,6 +83,7 @@
         while (startingOdds.size > INDEX_MAX) startingOdds.delete(startingOdds.keys().next().value);
         // Passed on so the app can save it: a reading then outlives this tab (plans/sorare-start-chances.md). `games` names every
         // game the answer spoke of, also one Sorare has no number for yet, so "Read the round" knows the page has answered.
+        if (games.size) announce(); // the overlay asks for Sorare's own numbers again (`odds`)
         if (games.size) window.postMessage({ source: "sofix-bridge-9", type: "chances", rows: fresh.slice(0, 500), games: [...games].slice(0, 100) }, location.origin);
       }
       const missions = core.collectMissions ? core.collectMissions(body) : [];
@@ -360,11 +365,32 @@
     return { state: "ok", found, known: cards.size };
   }
 
+  /**
+   * Sorare's own start chance for each of `players`, as this tab's answers carried it in the last 15 minutes (the badge at a card's
+   * foot). Only a player with one game among them is answered: with two, which one a tile is about is not known here.
+   */
+  function odds(players) {
+    const wanted = new Set(Array.isArray(players) ? players.slice(0, 200) : []);
+    const games = new Map(); // player -> game -> basis points
+    for (const [key, row] of startingOdds) {
+      if (Date.now() - row.observedAt >= 15 * 60000) { startingOdds.delete(key); continue; }
+      if (!wanted.has(row.player)) continue;
+      if (!games.has(row.player)) games.set(row.player, new Map());
+      games.get(row.player).set(row.game, row.basisPoints);
+    }
+    const found = {};
+    for (const [player, byGame] of games) {
+      const [only] = byGame.values();
+      if (byGame.size === 1 && only !== null) found[player] = only / 10000;
+    }
+    return { state: "ok", odds: found };
+  }
+
   window.addEventListener("message", async (event) => {
     if (!current() || event.source !== window || !event.data || event.data.source !== "sofix-content-9") return;
-    const { type, id, operation, variables, items } = event.data;
+    const { type, id, operation, variables, items, players } = event.data;
     const result =
-      type === "whoami" ? await whoAmI() : type === "ask" ? await ask(operation, variables) : type === "identify" ? identify(items) : null;
+      type === "whoami" ? await whoAmI() : type === "ask" ? await ask(operation, variables) : type === "identify" ? identify(items) : type === "odds" ? odds(players) : null;
     if (result) window.postMessage({ source: "sofix-bridge-9", id, ...result }, location.origin);
   });
 })();

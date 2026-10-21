@@ -872,7 +872,9 @@ it writes to Sorare.
 - **His chance of starting** is the bottom row of every full tile ("90%") with a mark for whose it is: FF's expected lineup where
   it has him, else Sorare's odds, else the app's own. It is quiet while he probably starts, **amber in doubt** (FF calls him a
   doubt, or he is under 50%) and **red when he will not start** (injured, banned, or under 15%). A tile greyed as "Started" or
-  "Old" has none, and a small lineup tile has no room for it.
+  "Old" has none, and a small lineup tile has no room for it. Hovering the row says it is Sofix's number and whose it stands on.
+  **A mint ring** round the tile means Sofix and Sorare disagree on whether he starts: one says 40% or less, the other 60% or more
+  (Sorare's own % is the badge at the card's foot on your Lineups page).
 - **Live FF reads.** While a sorare.com page is open with the overlay on, the extension reads the Futbol Fantasy match pages of
   the games its cards are about, at most once every ten minutes each, and redraws the tile and panel when a chance changed (the
   panel then says "FF live 2 min ago"). The plan's ticks, xScore and #1 to #3 ranks stay as the last run made them. Version 0.3.0

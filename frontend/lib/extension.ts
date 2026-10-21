@@ -21,8 +21,9 @@ export const REQUIRED_EXTENSION_VERSION = "0.1.1";
  0.4.2 adds Guide me for a Pro lineup rebuilt on the announced elevens (plans/load-from-sorare.md, step 1).
  0.4.3: during a gameweek being played the dock shows its Pro lineups not yet kicked off, with Load from Sorare; Enter leaves Pro out.
  0.4.4: the alarm offers only players who can play in that lineup's competition (the job lists them), never a guess.
+ 0.4.5 reads your Arcade board, common cards, gems, essence and common missions for the Arcade page (plans/set.md, step 1).
  */
-export const LATEST_EXTENSION_VERSION = "0.4.4";
+export const LATEST_EXTENSION_VERSION = "0.4.5";
 
 /** Chrome manifest versions are numeric dot-separated values; compare them without relying on string ordering. */
 export function extensionAtLeast(version: string, minimum = REQUIRED_EXTENSION_VERSION): boolean {

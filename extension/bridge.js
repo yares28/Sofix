@@ -147,6 +147,14 @@
           anyCard { slug inSeasonEligible anyTeam { name } }
         }`;
 
+  // What a step or a mission pays, as the Arcade reads take it.
+  const REWARDS = `__typename
+    ... on MonetaryRewardConfig { amount { eurCents usdCents referenceCurrency } }
+    ... on CardShardRewardConfig { rarity quantity cardSet { slug } }
+    ... on InGameCurrencyRewardConfig { amount currency }
+    ... on CardRewardConfig { rarity quality }
+    ... on CardPacksRewardConfig { cardPack { slug title } }`;
+
   // Sorare's task(id:) and gameId arguments take the bare UUID since Oct 2026 ("Tasks::Task:…" answers "TaskConfig(id=) not found").
   const bare = (id) => String(id).replace(/^.*:/, "");
   const OPERATIONS = {
@@ -200,6 +208,49 @@
       if (!Array.isArray(pairs) || !pairs.length || pairs.length > 12 || pairs.some((p) => !/^[A-Za-z0-9:_-]{1,120}$/.test(p.id) || !/^Game:[a-f0-9-]{36}$/.test(p.game) || (p.after !== undefined && (typeof p.after !== "string" || p.after.length > 500)))) return null;
       const averages = /^(LAST_(FIVE|FIFTEEN|FORTY)|LAST_TEN_PLAYED)_(SO5_AVERAGE_SCORE|AVERAGE_ALL_AROUND_SCORE|AVERAGE_DECISIVE_SCORE)$|^SEASON_AVERAGE_SCORE$/;
       return `query SofixMissionCards { currentUser { ${pairs.map((p, i) => `t${i}: task(id: ${JSON.stringify(bare(p.id))}) { ... on DecisivePlayerPickerTask { pickableCards(gameId: ${JSON.stringify(bare(p.game))}, ownedByMe: true, first: 100, after: ${JSON.stringify(p.after ?? null)}) { nodes { slug pictureUrl anyPositions anyPlayer { slug displayName } eligiblePlayerGameScores(gameId: ${JSON.stringify(bare(p.game))}, taskId: ${JSON.stringify(p.id)}) { anyPlayerGameStats { anyTeam { id name pictureUrl } } ${averages.test(p.averageType ?? "") ? `averageScore(type: ${p.averageType})` : ""} } } pageInfo { hasNextPage endCursor } } } }`).join(" ")} } }`;
+    },
+
+    // Arcade (plans/set.md, step 1): the current set, your common gems and essence, and your set board with each step's target,
+    // reward, lives and packs. Read only, like the three below; split in four so each stays a small question for Sorare.
+    SofixArcade: `query SofixArcade { cardSet { currentSet { slug name startDate endDate availableCompetitions { slug displayName } } }
+      currentUser { slug
+        gems: inGameCurrencyBalances(inGameCurrencies: [COMMON_GEM], sport: FOOTBALL) { currency amount cap }
+        essence: cardShardsChests(rarities: [common], sport: FOOTBALL) { rarity cardShardsCount maxCardShardsCount cardSet { slug } }
+        setBoard(mode: CAREER, sport: FOOTBALL) { __typename id title endDate
+          ... on CareerBoard { configSlug rarities restartable so5Competition { slug displayName } }
+          myCurrentStep { id level }
+          steps { __typename id level target originalTarget state
+            engineConfiguration { captain collection sameActiveClub activeClubs specialEditionCard specialEditionCards }
+            rewardConfigs { ${REWARDS} }
+            ... on CareerStep { title maxLineupsCount remainingLineupsCount lockedLineupsCount pendingLineupsCount
+              cardPacks { slug title price effectivePrice currency cardsCount canPurchase competition { slug } } } } } } }`,
+
+    // The lineups on each step of your set board: which are live, locked, cancelled, and what each card scored.
+    SofixArcadeLineups: `query SofixArcadeLineups { currentUser { setBoard(mode: CAREER, sport: FOOTBALL) { id
+      steps { id level myLineups { __typename
+        ... on TaskLineup { id draft aasmState score cancelledAt forfeitable hasLiveGames updatable
+          taskAppearances { id index captain positions score locked bonus
+            anyCard { slug } player { slug displayName } game { id date } } } } } } } }`,
+
+    // Today's common-card missions (Sorare's Missions > Common panel: the Decisive Picker when there is one, and the streaks), with
+    // their rewards, your picks and your progress.
+    SofixArcadeMissions: `query SofixArcadeMissions { currentUser { taskGroup(slug: "play") {
+      myTasks(sport: FOOTBALL, rarity: common, includingArchived: false) { __typename
+        ... on DecisivePlayerPickerTask { id title description mode maxAppearancesCount periodicity aasmState expired startDate taskConfigSlug
+          decisiveStats { name } statThresholds { stat min }
+          rewardConfigs { ${REWARDS} }
+          taskAppearances { id status locked score target anyCard { slug } anyPlayer { slug } game { id date } } }
+        ... on ThresholdsStreakTask { id title description progress target expired rewardConfigs { ${REWARDS} } } } } } }`,
+
+    // Your common cards, 100 at a time; the app keeps the current set's.
+    SofixArcadeCards: (variables) => {
+      const after = variables?.after ?? null;
+      if (after !== null && (typeof after !== "string" || after.length > 500)) return null;
+      return `query SofixArcadeCards { currentUser { cards(rarities: [common], sport: FOOTBALL, first: 100, after: ${JSON.stringify(after)}) {
+        nodes { slug pictureUrl cardEditionName anyPositions cardSet { slug }
+          skinEdition { bonus skinName variantName }
+          anyPlayer { slug displayName } anyTeam { slug name pictureUrl ... on Club { domesticLeague { slug displayName } } } }
+        pageInfo { hasNextPage endCursor } } } }`;
     },
 
     // Sorare's own verdict on a lineup, before anything is written.

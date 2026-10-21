@@ -1,0 +1,49 @@
+/* Arcade (plans/set.md, step 1): the read, shown plainly. Scoped to .arc-main. */
+.arc-main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; color: var(--ink); }
+.arc-hero h1, .arc-empty h1 { font-size: 34px; letter-spacing: -0.02em; margin: 4px 0 16px; }
+.arc-kicker { margin: 0; font-size: var(--text-sm); color: var(--ink-2); }
+.arc-wallet { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 20px; }
+.arc-wallet div { background: var(--surface); box-shadow: var(--shadow-card); border-radius: 16px; padding: 12px 18px; min-width: 120px; }
+.arc-wallet dt { font-size: var(--text-xs); color: var(--ink-2); }
+.arc-wallet dd { margin: 2px 0 0; font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.arc-note { font-size: var(--text-sm); color: var(--amber-ink, #8a5a00); background: var(--amber-bg, #fff5e0); border-radius: 12px; padding: 10px 14px; }
+.arc-steps { list-style: none; margin: 0 0 24px; padding: 0; display: grid; gap: 8px; }
+.arc-step { display: grid; grid-template-columns: 40px 1fr auto; gap: 12px; align-items: center; background: var(--surface); box-shadow: var(--shadow-card); border-radius: 16px; padding: 12px 16px; }
+.arc-step.is-current { outline: 2px solid var(--accent); }
+.arc-step[data-state="CLAIMED"], .arc-step[data-state="CLAIMABLE"] { opacity: 0.7; }
+.arc-level { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--hover); font-weight: 600; }
+.arc-step-main { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.arc-step-main s { color: var(--ink-3); font-size: var(--text-sm); }
+.arc-reward { color: var(--ink-2); font-size: var(--text-base); }
+.arc-step-side { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: var(--text-xs); color: var(--ink-2); text-align: right; }
+.arc-state { text-transform: capitalize; color: var(--ink); font-weight: 500; }
+.arc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.arc-card { margin: 0; text-align: center; }
+.arc-card img, .arc-card-blank { width: 100%; height: auto; aspect-ratio: 120 / 194; border-radius: 10px; display: block; }
+.arc-card-blank { display: grid; place-items: center; background: var(--hover); font-size: var(--text-xs); padding: 8px; }
+.arc-card figcaption { font-size: 11px; color: var(--ink-2); margin-top: 4px; }
+.arc-missions h2 { font-size: var(--text-md); }
+.arc-missions ul { list-style: none; padding: 0; display: grid; gap: 6px; font-size: var(--text-sm); }
+.arc-missions span { color: var(--ink-2); margin-left: 8px; }
+.arc-empty { background: var(--surface); box-shadow: var(--shadow-card); border-radius: var(--radius); padding: 32px; text-align: center; }
+.arc-again { margin-top: 16px; border: 0; border-radius: 999px; padding: 10px 18px; background: var(--ink); color: var(--on-ink); font: inherit; cursor: pointer; }
+.arc-again:disabled { opacity: 0.6; cursor: default; }
+@media (max-width: 600px) {
+  .arc-step { grid-template-columns: 32px 1fr; }
+  .arc-step-side { grid-column: 1 / -1; align-items: flex-start; text-align: left; }
+  .arc-card figcaption { font-size: 10px; }
+}
+.arc-cards h2, .arc-missions h2 { font-size: var(--text-md); margin: 24px 0 10px; }
+.arc-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.arc-filters input, .arc-filters select { font: inherit; font-size: var(--text-base); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; min-height: 40px; }
+.arc-filters input { flex: 1 1 200px; }
+.arc-count { font-size: var(--text-sm); color: var(--ink-2); margin: 10px 0; }
+.arc-card figcaption { display: flex; flex-direction: column; gap: 1px; }
+.arc-card-name { color: var(--ink); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.arc-bonus { color: var(--accent); }
+.arc-pager { display: flex; align-items: center; justify-content: center; gap: 12px; font-size: var(--text-sm); }
+.arc-pager button { font: inherit; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 8px 16px; min-height: 40px; cursor: pointer; }
+.arc-pager button:disabled { opacity: 0.4; cursor: default; }
+.arc-missions li { display: flex; flex-wrap: wrap; gap: 4px 0; }
+.arc-missions > p { font-size: var(--text-sm); color: var(--ink-2); }
+@media (max-width: 700px) { .arc-main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); } } /* room for the phone tab bar */

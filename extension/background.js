@@ -519,6 +519,10 @@ const STEPS = {
   entered: (input) => ["SofixMyLineups", { slug: input.slug }],
   "week-entered": (input) => ["SofixFixtureLineups", { slug: String(input.slug || "").slice(0, 120) }],
   "pro-entered": () => ["SofixProLineups", {}],
+  arcade: () => ["SofixArcade", {}],
+  "arcade-lineups": () => ["SofixArcadeLineups", {}],
+  "arcade-missions": () => ["SofixArcadeMissions", {}],
+  "arcade-cards": (input) => ["SofixArcadeCards", { after: typeof input.after === "string" ? input.after.slice(0, 500) : null }],
   check: (input) => ["SofixPreviewLineup", { slug: input.slug, appearances: appearances(input) }],
   draft: (input) => [
     "SofixSaveDraft",

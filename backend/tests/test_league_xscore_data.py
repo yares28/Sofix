@@ -207,3 +207,51 @@ def test_missing_date_feed_game_is_checked_on_its_club_calendar():
     rows, audit = data.reconcile(SimpleNamespace(query=query), "PL", [base], table)
     assert audit["missingAfter"] == 0 and len(rows) == 2
     assert audit["clubChecks"][0]["games"][0]["id"] == "replay"
+
+
+def test_player_history_can_recover_a_fixture_omitted_by_calendar_feeds(tmp_path):
+    import json
+
+    import pandas as pd
+
+    game = {
+        "id": "prior",
+        "date": "2024-03-09T15:00:00Z",
+        "homeTeam": {"name": "AFC Bournemouth", "slug": "bournemouth"},
+        "awayTeam": {"name": "Sheffield United FC", "slug": "sheffield"},
+    }
+    saved = {
+        "raw": game,
+        "players": [{"slug": "authentic-keeper", "pos": "GK", "started": True, "team": "bournemouth"}],
+    }
+    (tmp_path / "prior.json").write_text(json.dumps(saved))
+    replay = {
+        **game,
+        "id": "replay",
+        "date": "2024-03-13T19:30:00Z",
+        "awayTeam": {"name": "Luton Town FC", "slug": "luton"},
+        "competition": {"slug": "premier-league-gb-eng"},
+    }
+    table = pd.DataFrame(
+        {
+            "date": pd.to_datetime(["2024-03-09", "2024-03-13"]),
+            "home": ["Bournemouth", "Bournemouth"],
+            "away": ["Sheffield United", "Luton"],
+        }
+    )
+
+    def query(text, variables):
+        if "competitionGames" in text:
+            return {"competitionGames": []}
+        if "anyPlayer" in text:
+            assert variables["player"] == "authentic-keeper"
+            return {
+                "anyPlayer": {
+                    "allPlayerGameScores": {"nodes": [{"anyGame": replay}], "pageInfo": {"hasNextPage": False}}
+                }
+            }
+        return {"football": {"club": {"games": {"nodes": [], "pageInfo": {"hasNextPage": False}}}}}
+
+    found, audit = data.reconcile(SimpleNamespace(query=query), "PL", [game], table, sources=tmp_path)
+    assert len(found) == 2 and audit["missingAfter"] == 0
+    assert audit["playerChecks"][0]["games"][0]["id"] == "replay"

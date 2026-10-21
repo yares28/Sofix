@@ -710,19 +710,27 @@ The editor shows card images, years and copy numbers where recorded. Your picks 
 ## 10b. Arcade — Sorare's free common-card board
 
 **Arcade** in the top bar (and the phone's bottom bar) climbs Sorare's free board with your current set's commons. Everything is
-read in your browser from your signed-in Sorare tab (extension 0.4.14 or later); nothing is entered or cancelled on Sorare.
+read in your browser from your signed-in Sorare tab (extension 0.4.15 or later; no page opens); nothing is entered or cancelled on Sorare.
 
-- **The top** says the step you are on and its target, your gems, essence and cards, and the board's six steps with lives left.
-- **Your lineups on Sorare**: each lineup you entered while it plays, its points, its chance left, **Dead** when even its cards' best
-  scores cannot reach the target, and **Cut losses** when cancelling it (a life, as a miss) helps the next planned lineup more.
-- **Plan · Pick a day**: the climb to the set's end. On top, your chance to clear each step by then; below, every day left with how
-  many lineups to play on which step, or **Hold** to keep lives for a better day (losing a step's last life sends you back to step 1, but
-  rewards won stay won). It plans past a step whose lives are all waiting, and past a cleared step you have not claimed yet. A day's
-  lineups come in the order they settle, each at the step it lands on, no card twice. **Pick teams**: choose games, Sofix builds the lineup with the best chance at the step you aim at.
+- **Your climb · Pick a day**: the big number is your chance to clear the highest step within reach before the set ends, with its
+  prize and your lives. **The tower** gives every step's chance and the day the plan reaches it; **Departures** lists the chosen day's
+  lineups in the order they settle (time, step, games, chance); **On deck** shows one with its five cards. The day strip says, for every
+  day left, how many lineups to play on which step, or **Hold** to keep lives for a better day (losing a step's last life sends you back
+  to step 1; rewards won stay won). It plans past a step whose lives are all waiting, and past a cleared step you have not claimed.
+- **Pick teams**: games as tickets with Sofix's difficulty for both clubs; **Easiest games** picks those where one of your clubs is
+  favourite on Sofix's board. The best five stand on a pitch, and **Where it lands** gives the chance at every step.
+- **Your lineups on Sorare**: each lineup you entered, as a race to the target: points so far, what its cards still to play add at
+  their best, **Dead** when that cannot reach the target, and **Cut losses** when cancelling it (a life, as a miss) helps the next lineup more.
 - A card's number = Sorare's projection (else his average when he plays) × his start % × Sorare's bonuses (edition + club + captain),
-  with the range he scored in 6 of his last 10 games he played. "No start % yet" cards count as starting.
-- **Read Arcade's start %** saves Sorare's start % from its own lineup page. **Work out the best pack** reads Sorare's odds and names
-  the pack you can afford that gives the most players you do not have yet. Missions show Sorare's daily Common panel.
+  with the range he scored in 6 of his last 10 games he played. "No start % yet" cards count as starting. A LaLiga, Premier League or
+  Bundesliga game shows **Sofix's difficulty** for the card's club (1 easiest), with the clean-sheet chance for keepers and defenders
+  and expected goals for the others. It is shown, not added to the card's number.
+- **Start %** come from your open Sorare tab for every day to the set's end, kept 30 minutes (**Read start % again**). Your cards are
+  kept in this browser and read again only when Sorare's count changes (a pack opened).
+- **Packs**: **Work out the best pack** reads Sorare's odds and opens on the pack you can afford that gives the most players you do not
+  have yet, with every pack's count. **Missions**: Sorare's daily Common panel with a progress ring. A streak ("Score 400+ in the LaLiga
+  Common competition") gets your best five from this week's games and its chance; a Decisive Picker ranks your cards playing that day
+  by start % × how often each did the counted actions in his last 10 games ("too few games to tell" under 3).
 
 ## 10. Players
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { readArcadeLineups, type Arcade, type ArcadeLineup } from "../../lib/arcade";
 import { bigReward, cutLosses, liveLineup, madridDate, planDay, type Outlook } from "../../lib/arcadePlan";
 import { madridTime, pct, pts } from "./ArcadePlanner";
@@ -39,6 +39,7 @@ export default function ArcadeLive({ arcade, outlooks, captainBonus }: { arcade:
     const card = lineup.cards.find((c) => c.slug === slug);
     return card?.game ? outlooks.get(card.game)?.find((o) => o.card.slug === slug) ?? null : null;
   }, [outlooks]);
+  const pictures = useMemo(() => new Map(arcade.cards.flatMap((c) => (c.picture ? [[c.slug, c.picture] as const] : []))), [arcade.cards]);
   const busy = useMemo(() => new Set(open.flatMap(({ lineup }) => lineup.cards.flatMap((c) => (c.slug ? [c.slug] : [])))), [open]);
   const infos = useMemo(() => steps.map((s) => ({ number: s.number, target: s.target, lives: s.lineups?.remaining ?? 4, big: bigReward(s.rewards) })), [steps]);
 
@@ -50,8 +51,8 @@ export default function ArcadeLive({ arcade, outlooks, captainBonus }: { arcade:
         <button type="button" className="arc-small" onClick={() => void refresh()} disabled={state === "reading"}>{state === "reading" ? "Reading…" : "Refresh scores"}</button>
       </div>
       {state === "failed" ? <p className="arc-note" role="status">Sorare did not answer; the scores below are from the last read.</p> : null}
-      <ul className="arc-live-list">
-        {open.map(({ step, lineup }) => {
+      <ul className="arc-races">
+        {open.map(({ step, lineup }, index) => {
           const verdict = liveLineup(lineup.cards, step.target, find(lineup), now);
           const toPlay = verdict.cards.filter((c) => c.state === "to play" && c.outlook);
           // What its cards still to play would add to the next planned lineup of their day if this one were cancelled.
@@ -66,22 +67,46 @@ export default function ArcadeLive({ arcade, outlooks, captainBonus }: { arcade:
             gain = Math.max(0, withCards - without);
           }
           const cut = cutLosses(verdict, gain, lineup.forfeitable);
+          // The race: points so far, what the cards still able to score add at their best, and the target as the finish line.
+          const reach = Number.isFinite(verdict.ceiling) ? verdict.ceiling : verdict.now + Math.max(0, step.target - verdict.now);
+          const scale = Math.max(step.target, reach, verdict.now) * 1.12;
+          const at = (v: number) => `${Math.min(100, (v / scale) * 100)}%`;
           return (
-            <li key={lineup.id} className={verdict.dead ? "is-dead" : undefined}>
-              <p className="arc-when">
-                <b>Step {step.number}</b> · {pts(verdict.now)} of {step.target} pts
-                {verdict.dead ? <b className="arc-dead">Dead: even at their best its cards cannot reach {step.target}</b> : <span>{pct(verdict.chance)} chance left{Number.isFinite(verdict.ceiling) ? ` · at most ${pts(verdict.ceiling)}` : ""}</span>}
-              </p>
-              <ol className="arc-live-cards">
-                {verdict.cards.map((c, i) => (
-                  <li key={c.slug ?? i} data-state={c.state}>
-                    <span>{c.name}</span>
-                    <span>{c.state === "to play" ? `to play${c.outlook ? ` · ${madridTime(c.outlook.game.kickoff)}` : ""}` : `${pts(c.points)} pts${c.state === "live" ? " · live" : ""}`}</span>
-                  </li>
-                ))}
-              </ol>
-              {cut ? <p className="arc-warn"><b>Cut losses:</b> cancel it on Sorare (costs a life, as a miss would). Its cards still to play raise the next lineup&apos;s chance by {pct(gain)}, more than the {pct(verdict.chance)} this one has left.</p> : null}
-              {verdict.dead && !lineup.forfeitable ? <p className="arc-sub">Sorare no longer lets it be cancelled.</p> : null}
+            <li key={lineup.id} className={`arc-race${verdict.dead ? " is-dead" : ""}`} style={{ "--i": index } as CSSProperties}>
+              <div className="arc-race-hero">
+                <small>Step {step.number} · {step.target} pts</small>
+                {verdict.dead ? <b className="is-dead">Dead</b> : <b>{pct(verdict.chance)}</b>}
+                <span>{verdict.dead ? `Even at their best its cards cannot reach ${step.target}.` : `chance left · ${pts(verdict.now)} of ${step.target}${Number.isFinite(verdict.ceiling) ? `, at most ${pts(verdict.ceiling)}` : ""}`}</span>
+              </div>
+              <div>
+                <div className="arc-track" role="img" aria-label={`${pts(verdict.now)} scored of ${step.target}${Number.isFinite(verdict.ceiling) ? `, at most ${pts(verdict.ceiling)}` : ""}`}>
+                  <span className="arc-track-run" style={{ width: at(verdict.now) }} />
+                  {Number.isFinite(verdict.ceiling) ? <span className="arc-track-fuel" style={{ left: at(verdict.now), width: `calc(${at(verdict.ceiling)} - ${at(verdict.now)})` }} /> : null}
+                  {verdict.dead ? <span className="arc-track-gap" style={{ left: at(verdict.ceiling), width: `calc(${at(step.target)} - ${at(verdict.ceiling)})` }} /> : null}
+                  <span className="arc-track-finish" style={{ left: at(step.target) }} />
+                </div>
+                <p className="arc-track-legend"><span><b>{pts(verdict.now)}</b> scored</span>{Number.isFinite(verdict.ceiling) ? <span><b>+{pts(verdict.ceiling - verdict.now)}</b> at their best</span> : <span>some cards have no past scores yet</span>}<span>finish <b>{step.target}</b></span></p>
+                <ol className="arc-race-cards">
+                  {verdict.cards.map((c, i) => {
+                    const picture = c.outlook?.card.picture ?? pictures.get(c.slug ?? "") ?? null;
+                    return (
+                      <li key={c.slug ?? i} data-state={c.state} className={c.state === "played" && c.points === 0 ? "is-zero" : undefined}>
+                        <span>
+                          {picture
+                            // eslint-disable-next-line @next/next/no-img-element -- Sorare's card art, as on the other pages
+                            ? <img src={picture} alt={c.name} width={72} height={116} loading="lazy" />
+                            : null}
+                          <b>{c.state === "to play" ? "–" : pts(c.points)}</b>
+                        </span>
+                        <span className="arc-card-name">{c.name}</span>
+                        <span>{c.state === "to play" ? (c.outlook ? `plays ${madridTime(c.outlook.game.kickoff)}` : "to play") : c.state === "live" ? "live" : c.points === 0 ? "did not score" : "played"}</span>
+                      </li>
+                    );
+                  })}
+                </ol>
+                {cut ? <p className="arc-advice"><b>Cut losses: cancel it on Sorare</b> (costs a life, as a miss would). Its cards still to play raise the next lineup&apos;s chance by {pct(gain)}, more than the {pct(verdict.chance)} this one has left.</p> : null}
+                {verdict.dead && !lineup.forfeitable ? <p className="arc-sub">Sorare no longer lets it be cancelled.</p> : null}
+              </div>
             </li>
           );
         })}

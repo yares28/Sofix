@@ -30,6 +30,10 @@
   const cards = new Map(); // key -> { cardSlug, playerSlug, name }
   const byName = new Map(); // normalised name -> playerSlug, or null when two players share the name
   const startingOdds = new Map(); // exact game/player -> native reading; this tab only, expires in 15 minutes
+  // Sorare gives start % only to its own registered questions (seen 21 Oct 2026: the Arcade compose page's bench is asked by id, and the
+  // same id with other dates and positions answers with every card's start % days ahead). The id seen on 21 Oct; a newer one replaces it.
+  const BENCH = "SeriesComposeBenchQuery";
+  let benchExtensions = { clientLibrary: { name: "@apollo/client", version: "4.2.11" }, operationId: "React/30aff0273a9cbb5ee2480754e2f972ea151f6ba3e94d56c59263132b81cba22e" };
   let announceTimer = 0;
 
   function learn(found) {
@@ -114,6 +118,11 @@
         try {
           const body = JSON.parse(init?.body);
           native = typeof body?.operationName === "string" && !body.operationName.startsWith("Sofix");
+          // Sorare's compose page names its bench question by a registered id, not by its text; keep the newest id seen.
+          const id = body?.extensions?.operationId;
+          if (body?.operationName === BENCH && typeof id === "string" && /^React\/[0-9a-f]{40,64}$/.test(id)) {
+            benchExtensions = { clientLibrary: body.extensions.clientLibrary, operationId: id };
+          }
         } catch { /* an unreadable request body must not break the page */ }
         asked = core && core.missionsAsked ? core.missionsAsked(init && init.body) : null;
         endpoint = { url: new URL(url, location.href).href, headers: plainHeaders((init && init.headers) || (input && input.headers)) };
@@ -252,6 +261,7 @@
       const after = variables?.after ?? null;
       if (after !== null && (typeof after !== "string" || after.length > 500)) return null;
       return `query SofixArcadeCards { currentUser { cards(rarities: [common], sport: FOOTBALL, first: 100, after: ${JSON.stringify(after)}) {
+        totalCount
         nodes { slug pictureUrl cardEditionName anyPositions cardSet { slug }
           skinEdition { bonus skinName variantName }
           anyPlayer { slug displayName } anyTeam { slug name pictureUrl ... on Club { domesticLeague { slug displayName } } } }
@@ -265,7 +275,7 @@
       if (!Number.isFinite(Date.parse(variables?.fromDate)) || !Number.isFinite(Date.parse(variables?.toDate))) return null;
       return `query SofixArcadeGames { currentUser { setBoard(mode: CAREER, sport: FOOTBALL) { ... on CareerBoard {
         pickableGames(first: 50, after: ${JSON.stringify(after)}, fromDate: ${JSON.stringify(variables.fromDate)}, toDate: ${JSON.stringify(variables.toDate)}) {
-          nodes { id totalCount game { id date statusTyped competition { slug displayName } homeTeam { slug name } awayTeam { slug name } } }
+          nodes { id totalCount game { id date statusTyped competition { slug displayName } homeTeam { slug name pictureUrl } awayTeam { slug name pictureUrl } } }
           pageInfo { hasNextPage endCursor } } } } } }`;
     },
 
@@ -282,6 +292,13 @@
       if (!Array.isArray(players) || !players.length || players.length > 50 || players.some((p) => typeof p !== "string" || !/^[a-z0-9-]{1,120}$/.test(p))) return null;
       return `query SofixArcadePast { players(slugs: ${JSON.stringify(players)}) { slug ... on Player {
         playerGameScores(last: 15) { score anyGame { date } anyPlayerGameStats { ... on PlayerGameStats { minsPlayed } } } } } }`;
+    },
+    // A Decisive Picker's candidates: what each did in his last 10 games (Sorare's detailed score), up to 20 players a question.
+    SofixArcadeDecisive: (variables) => {
+      const players = variables?.players;
+      if (!Array.isArray(players) || !players.length || players.length > 20 || players.some((p) => typeof p !== "string" || !/^[a-z0-9-]{1,120}$/.test(p))) return null;
+      return `query SofixArcadeDecisive { players(slugs: ${JSON.stringify(players)}) { slug ... on Player {
+        playerGameScores(last: 10) { anyPlayerGameStats { ... on PlayerGameStats { minsPlayed } } ... on PlayerGameScore { detailedScore { stat statValue } } } } } }`;
     },
     // One game's Sorare projections ("if he plays"), which Sorare publishes about two days before kick-off.
     SofixArcadeProjections: (variables) => {
@@ -337,6 +354,42 @@
     return { url: KNOWN, headers };
   }
 
+  /**
+   * Arcade's start %, read like Sorare's compose page reads its bench: one position, one date window, 30 of your common cards a page,
+   * best first. Read only. It goes through the page's own fetch (as a native question) so what it shows is saved like any page reading.
+   */
+  async function arcadeBench(v) {
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+    const positions = ["Goalkeeper", "Defender", "Midfielder", "Forward"];
+    if (!uuid.test(v?.task ?? "") || !positions.includes(v?.position) || !Number.isFinite(Date.parse(v?.minDate)) || !Number.isFinite(Date.parse(v?.maxDate))
+      || (v.after !== null && (typeof v.after !== "string" || v.after.length > 500))) return { state: "refused" };
+    const body = {
+      operationName: BENCH,
+      variables: {
+        pageSize: 50, isAndroidApp: false, isIosApp: false, withCollectionPredictions: false, taskId: v.task, sport: "FOOTBALL", isMarket: false,
+        offerRarity: "common", googlePlayStoreCountryCode: null, after: v.after,
+        filters: {
+          query: "", includeUnavailablePlayers: true, includeUsed: true, includePostExpiration: false, sortType: { type: "PROJECTED_GRADE", direction: "DESC" },
+          rarities: ["common"], lastTenPlayedSo5AverageScore: { min: 0, max: 100 }, gamesDate: { minDate: v.minDate, maxDate: v.maxDate },
+          positions: [v.position], selectedObjectIds: [],
+        },
+      },
+      extensions: benchExtensions,
+    };
+    const target = endpoint || knownEndpoint();
+    try {
+      const response = await window.fetch(target.url, { method: "POST", credentials: "include", headers: { ...target.headers, "content-type": "application/json" }, body: JSON.stringify(body) });
+      if (!response.ok) return { state: "error", status: response.status };
+      const answer = await response.json();
+      const bench = answer?.data?.currentUser?.task?.myFilteredBench;
+      if (!bench) return { state: "rejected", errors: (answer?.errors ?? []).map((e) => String(e?.message ?? e)).slice(0, 3) };
+      const rows = core ? core.collectStartingOdds(answer).filter((r) => r.basisPoints !== null).slice(0, 200) : [];
+      return { state: "ok", data: { cards: bench.nodes?.length ?? 0, after: bench.pageInfo?.hasNextPage ? bench.pageInfo.endCursor : null, rows } };
+    } catch {
+      return { state: "error" };
+    }
+  }
+
   async function ask(operation, variables) {
     if (operation === "SofixLineupChances") {
       const id = variables?.id;
@@ -349,6 +402,7 @@
       }
       return rows.length ? { state: "ok", native: true, data: { anyGame: { id, playerGameScores: rows } } } : { state: "unseen" };
     }
+    if (operation === "SofixArcadeBench") return arcadeBench(variables);
     if (!Object.hasOwn(OPERATIONS, operation)) return { state: "refused" };
     const query = typeof OPERATIONS[operation] === "function" ? OPERATIONS[operation](variables) : OPERATIONS[operation];
     if (!query) return { state: "refused" };

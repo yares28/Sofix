@@ -1,8 +1,7 @@
 # SET page (Sorare Arcade): research and plan, 20 Oct 2026
 
-Status: **built, but short of this plan and the canvas; being redone (owner, 21 Oct evening; TODO.md "Arcade is not what was planned").**
-Redone so far: the climb plan (step 4 below). Still to do: start % without a tab, cards kept between visits, mission picks, the
-canvas look. Upgrades U1–U6 added and the owner's answers recorded 21 Oct (bottom of this file). **Step 1 shipped 21 Oct**:
+Status: **redone after the owner's review of 21 Oct evening (TODO.md "Arcade is not what was planned"); checklist at "Redo, 22 Oct"
+below.** Upgrades U1–U6 added and the owner's answers recorded 21 Oct (bottom of this file). **Step 1 shipped 21 Oct**:
 `/arcade` reads the board, cards, gems, essence and common missions (extension 0.4.5). **Step 2 shipped 21 Oct**: each card shows Sorare's start % for its next games (extension 0.4.9). **Step 3 shipped 21 Oct** (extension 0.4.12): predicted
 score per card and Pick teams. **Step 4 shipped 21 Oct**: Pick a day. **Step 5 shipped 21 Oct** (extension 0.4.14): best pack. **Step 6 shipped 21 Oct**: live lineups, dead and cut losses. **Step 7 shipped 21 Oct**: Arcade in the top bar, white and Night, manual and roadmap.
 Design canvas: https://claude.ai/artifact/NcPHzXynH6oHiVLeTg3BFG (private, sample numbers, real common-card art).
@@ -163,6 +162,35 @@ First version:
 - Chance left: the cards still to play simulated as in a plan, the live ones as they stand. **Cut losses** (cancel on Sorare, a life)
   only while Sorare lets it be cancelled (`forfeitable`) and its cards still to play raise the next planned lineup of their day by more
   than this one's chance left. Seen 21 Oct on his waiting step-1 lineup: 0 of 260, 40% chance left, at most 517.
+
+## Redo, 22 Oct 2026 (owner: "climb fast, a good plan, less friction"; extension 0.4.15)
+
+Each line: built, cut (and why), or not seen yet.
+
+- **Climb plan** (step 4 above): built and seen on his board (hold Thu, Fri 1, Sat 2, Sun 4 on step 4, Mon step 5).
+- **Start % without a tab**: built. Sorare gives start % only to its registered questions: its compose page asks
+  `SeriesComposeBenchQuery` by id (`React/30aff…`), no query text. The bridge replays that id with each position and a day's window (30
+  cards a page, best first, 2 pages); seen 21 Oct from his tab: 30 of 30 forwards with a number, Yamal 90% for Sunday's Clásico. A newer
+  id seen on Sorare's page replaces the stored one; if Sorare refuses it, the old tab walk stays as the fallback button. **Not seen** through
+  the extension itself until he reloads 0.4.15.
+- **Cards kept between visits**: built. Each visit reads the first page and Sorare's `totalCount` (1,309 commons, all sets); unchanged =
+  the kept pages; a pack opened changes the count and everything is read again. Needs 0.4.15 (older builds send no count: full read).
+- **Mission picks**: built. Streak ("Score N+ in the LaLiga Common competition"): best five from that league's games of the next 5 days,
+  target from Sorare's words, no captain counted (not confirmed for that competition); seen on his account: 400+ 16%, 360+ 38%. Decisive
+  Picker: his cards playing that day by start % × his own share of played games with a counted action (last 10, Sorare's detailed
+  score; none under 3 games). **Not seen** on his account (no Decisive Picker today); browser-tested on sample data.
+- **FDR link** (owner, 22 Oct): built. Arcade games are matched to the LaLiga, Premier League and Bundesliga boards by league, kick-off (±20
+  min) and club names; each card shows its club's band, clean-sheet chance (keepers, defenders) or expected goals (others); tickets show
+  both bands and **Easiest games** picks those where one of his clubs is favourite. Shown, not folded into points (no model was checked for
+  that). Ligue 1 and European games have no board. Seen on his cards: 26 fixtures matched across the three leagues.
+- **Canvas look**: built in the white shell and Night: headline chance, the tower, departures (flip digits, crests), on deck (ring and
+  cards), tickets with stamp and bands, pitch and "where it lands", the live race (run, at-their-best, gap, finish), the pack lab (foil
+  pack, bars), mission rings and Decisive Picker cards. **Cut**: the canvas's dark arcade palette (the owner chose white + Night), "Use it
+  for step 3" and "Show the retry" (Sofix never enters lineups, answer 14), the pack's mission-gem odds and slot-by-slot bars (collection
+  missions are out, answer 9; one bar of new players per pack instead), "This life is gone, 3 left" (lives are in the headline).
+- **Edge cases**: a postponed or cancelled game is marked on its card (answer 11); between sets the page says no set is running (U2).
+- **Not built**: U4's one Neon write when a lineup's result is final (the live view reads the tab only; nothing needs the record yet).
+- **Speed**: the plan and mission picks are worked out once the start % read is done; about 3 s once in development (half in production).
 
 ## Not confirmed (guides only, or not found)
 

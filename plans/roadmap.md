@@ -20,9 +20,9 @@ Next owner request, 21 Oct: build Premier League/Bundesliga xScore, waiting for 
 
 Work from the top. Each line points to its full text; "you" items wait for the owner.
 
-AR. **Arcade, as planned** (TODO.md "Arcade is not what was planned", [set.md](set.md); the set ends 27 Oct 17:00): ~~the climb
-   plan~~ (21 Oct), then start % without a tab, cards kept between visits (new pack cards picked up), mission picks (Decisive
-   Picker, LaLiga Common streaks), the canvas look in white and Night. Each checked on his account before the next.
+AR. **Arcade, as planned** (TODO.md "Arcade is not what was planned", [set.md](set.md) "Redo, 22 Oct"; the set ends 27 Oct 17:00):
+   all built (climb plan, start % without a tab, cards kept, mission picks, FDR link, canvas look). **You:** Reload the extension (0.4.15)
+   so start % without a tab and kept cards can be seen on your account; then this line moves to Results.
 
 OB. **The overlay as a bridge** ([overlay-bridge.md](overlay-bridge.md), first by the owner, 21 Oct): fix the red backend CI, then
    B1 start % on your entered lineups, B2 worth now in your gallery, B3 Sofix's line on a player page, B4 the market's "LaLiga starters"

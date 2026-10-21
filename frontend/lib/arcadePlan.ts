@@ -78,6 +78,7 @@ function random(seed: number) {
 
 export const RUNS = 2000;
 const PLAN_RUNS = 400; // the climb's look-ahead compares days; 400 games are enough for that and keep the page responsive
+const PLAN_SHORTLIST = 15; // and the 15 likeliest lineups by expected points, not 60
 
 /**
  * The lineup's total over RUNS simulated games, low to high. Each card starts with his chance (none: he starts), and then scores one of
@@ -121,7 +122,7 @@ const SHORTLIST = 60; // lineups simulated
  * The lineup with the best chance to reach the target (points above it earn nothing): GK, DEF, MID, FWD and one more outfield card, one
  * card per player, from the outlooks given. Only cards Sofix can score are used. Null when a slot cannot be filled.
  */
-export function bestLineup(outlooks: Outlook[], target: number, captainBonus: number, runs = RUNS): Lineup | null {
+export function bestLineup(outlooks: Outlook[], target: number, captainBonus: number, runs = RUNS, shortlist = SHORTLIST): Lineup | null {
   // One outlook per player: his best card for his earliest game among those given.
   const byPlayer = new Map<string, Outlook>();
   for (const o of outlooks) {
@@ -150,7 +151,7 @@ export function bestLineup(outlooks: Outlook[], target: number, captainBonus: nu
   combos.sort((a, b) => b.expected - a.expected);
 
   let best: { picks: LineupPick[]; totals: number[]; expected: number; chance: number } | null = null;
-  for (const combo of combos.slice(0, SHORTLIST)) {
+  for (const combo of combos.slice(0, shortlist)) {
     // The captain worth trying: the two who add the most.
     const gains = combo.picks.map((o, i) => ({ i, gain: predicted(o, true, captainBonus)! - predicted(o)! })).sort((a, b) => b.gain - a.gain).slice(0, 2);
     for (const { i } of gains) {
@@ -262,7 +263,7 @@ export function climb(days: [string, Outlook[]][], steps: StepInfo[], start: Cli
       const used = new Set<string>();
       const built: Lineup[] = [];
       for (let k = 0; k < 4; k++) {
-        const lineup = bestLineup(pools[i]!.list.filter((o) => !used.has(o.card.slug)), target(start.step), captainBonus, PLAN_RUNS);
+        const lineup = bestLineup(pools[i]!.list.filter((o) => !used.has(o.card.slug)), target(start.step), captainBonus, PLAN_RUNS, PLAN_SHORTLIST);
         if (!lineup) break;
         built.push(lineup);
         lineup.picks.forEach((p) => used.add(p.outlook.card.slug));
@@ -419,3 +420,28 @@ export function liveLineup(cards: { slug: string | null; name: string | null; sc
 
 /** Cut losses = cancel (it costs the life a miss would): only when its cards still to play add more to another planned lineup than it has left. */
 export const cutLosses = (verdict: Pick<LiveVerdict, "chance">, gain: number, cancellable: boolean) => cancellable && gain > verdict.chance;
+
+/** The decisive actions a Decisive Picker counts when Sorare names none (as Sorare's detailed score names them). */
+export const DECISIVE_STATS = ["goals", "goal_assist", "assist_penalty_won", "clearance_off_line", "last_man_tackle", "penalty_save"];
+
+/** His share of games he played (minutes > 0) with one of the counted actions; null under 3 such games (no made-up rate). */
+export function decisiveRate(games: { mins: number; stats: string[] }[], counted: string[]): number | null {
+  const played = games.filter((g) => g.mins > 0);
+  if (played.length < 3) return null;
+  const want = new Set(counted.length ? counted : DECISIVE_STATS);
+  return played.filter((g) => g.stats.some((s) => want.has(s))).length / played.length;
+}
+
+export type DecisivePick = { outlook: Outlook; rate: number | null; chance: number | null };
+/** A Decisive Picker's candidates, best first: his chance = his start % (none: counted as starting) × his own decisive rate. */
+export function rankDecisive(candidates: { outlook: Outlook; rate: number | null }[]): DecisivePick[] {
+  return candidates
+    .map((c) => ({ ...c, chance: c.rate === null ? null : (c.outlook.start ?? 1) * c.rate }))
+    .sort((a, b) => (b.chance ?? -1) - (a.chance ?? -1) || (predicted(b.outlook) ?? 0) - (predicted(a.outlook) ?? 0));
+}
+
+/** A streak mission's points target, from Sorare's own words ("Score 400+ in …"); null when it names none. */
+export const streakTarget = (description: string | null) => {
+  const found = /(\d[\d,]*)\s*\+/.exec(description ?? "");
+  return found ? Number(found[1]!.replace(/,/g, "")) : null;
+};

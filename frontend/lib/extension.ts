@@ -31,8 +31,9 @@ export const REQUIRED_EXTENSION_VERSION = "0.1.1";
  0.4.12: Arcade reads each card's club bonus, his past scores and Sorare's projections, for predicted scores and lineups (plans/set.md, step 3).
  0.4.13: on a LaLiga player's Sorare page, a strip above his name with his score, start %, next five and the verdict (plans/overlay-bridge.md, B3).
  0.4.14: Arcade reads the published odds of the step's packs, for the best pack to open (plans/set.md, step 5).
+ 0.4.15: Arcade reads Sorare's start % for every day to the set's end from your open Sorare tab, with Sorare's own bench question; no page opens.
  */
-export const LATEST_EXTENSION_VERSION = "0.4.14";
+export const LATEST_EXTENSION_VERSION = "0.4.15";
 
 /** Chrome manifest versions are numeric dot-separated values; compare them without relying on string ordering. */
 export function extensionAtLeast(version: string, minimum = REQUIRED_EXTENSION_VERSION): boolean {

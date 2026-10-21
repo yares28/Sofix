@@ -22,7 +22,7 @@ const ANSWERS: Record<string, unknown> = {
       essence: [{ rarity: "common", cardShardsCount: 3200, cardSet: { slug: "glitch" } }],
       setBoard: { id: "b", title: "Board", configSlug: "football-glitch-chapter-1", myCurrentStep: { id: "Tasks::Task:bf7e7356-70a2-4ff6-864f-112fa18e2bef", level: 2 }, steps: [
         { id: "s1", level: 1, target: 260, state: "CLAIMED", rewardConfigs: [{ __typename: "CardShardRewardConfig", rarity: "common", quantity: 5000 }] },
-        { id: "Tasks::Task:bf7e7356-70a2-4ff6-864f-112fa18e2bef", level: 2, target: 300, state: "PLAYABLE", maxLineupsCount: 4, remainingLineupsCount: 3, lockedLineupsCount: 1, pendingLineupsCount: 0,
+        { id: "Tasks::Task:bf7e7356-70a2-4ff6-864f-112fa18e2bef", level: 2, target: 300, state: "PLAYABLE", engineConfiguration: { captain: 0.5 }, maxLineupsCount: 4, remainingLineupsCount: 3, lockedLineupsCount: 1, pendingLineupsCount: 0,
           cardPacks: [
             { slug: "bronze", title: "Bronze", effectivePrice: 1000, currency: "COMMON_ESSENCE", cardsCount: 1, canPurchase: true, competition: null },
             { slug: "silver", title: "Silver", effectivePrice: 10, currency: "COMMON_GEM", cardsCount: 1, canPurchase: true, competition: null },
@@ -53,22 +53,22 @@ test.beforeEach(async ({ page, request }) => {
   await offline(page);
 });
 
-const withExtension = (page: Page, answers: Record<string, unknown> = ANSWERS) => page.addInitScript((answers) => {
+const withExtension = (page: Page, answers: Record<string, unknown> = ANSWERS, version = "0.4.14") => page.addInitScript(([answers, version]) => {
   Object.defineProperty(window, "chrome", { configurable: true, value: { runtime: { sendMessage(_id: string, message: { type: string; step?: string }, reply: (answer: unknown) => void) {
-    if (message.type === "ping") return reply({ ok: true, version: "0.4.14", sorareUser: "owner", appReachable: true });
+    if (message.type === "ping") return reply({ ok: true, version, sorareUser: "owner", appReachable: true });
     if (message.type === "read-arcade") return reply({ ok: true, state: "ok", players: 1, games: 1 });
     reply({ ok: true, state: "ok", step: message.step, data: answers[message.step ?? ""] });
   } } } });
-}, answers);
+}, [answers, version] as const);
 
 test("Arcade shows the step you are on, its target, reward and lineups left, your gems, essence and set cards", async ({ page }) => {
   await withExtension(page);
   await page.goto("/arcade");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Step 2 of 2 · 300 pts");
-  const step = page.locator(".arc-step.is-current");
-  await expect(step).toContainText("300 pts");
+  const step = page.locator(".arc-floor.is-current"); // the tower, once predictions are read
+  await expect(step).toContainText("300");
   await expect(step).toContainText("10 gems");
-  await expect(step).toContainText("3 of 4 lineups left");
+  await expect(page.locator(".arc-headline")).toContainText("3 lives on step 2");
   await expect(page.locator(".arc-wallet")).toContainText("3,200");
   await expect(page.locator(".arc-grid .arc-card-name").first()).toHaveText("Defender Three");
   expect(await smallText(page, 11)).toEqual([]);
@@ -117,13 +117,17 @@ test("each card shows its predicted score, and Pick teams builds the best lineup
   await page.getByRole("searchbox", { name: "Search player or club" }).fill("player one");
   await expect(page.locator(".arc-grid .arc-pred b")).toHaveText("34");
   await page.getByRole("group", { name: "Plan by" }).getByRole("button", { name: "Pick teams" }).click();
-  const lineup = page.locator(".arc-lineup li");
+  await expect(page.locator(".arc-pitch li")).toHaveCount(5); // the five on the pitch
+  await expect(page.locator(".arc-scale-tick.is-aim")).toContainText("Step 2");
+  await page.getByText("Each card's numbers").click();
+  const lineup = page.locator(".arc-detail .arc-lineup li");
   await expect(lineup).toHaveCount(5);
-  await expect(page.locator(".arc-lineup .arc-slot")).toHaveText([/^Goalkeeper/, /^Defender/, /^Midfielder/, /^Forward/, /^Extra/]);
-  await expect(page.locator(".arc-lineup .arc-captain")).toHaveCount(1);
+  await expect(page.locator(".arc-detail .arc-lineup .arc-slot")).toHaveText([/^Goalkeeper/, /^Defender/, /^Midfielder/, /^Forward/, /^Extra/]);
+  await expect(page.locator(".arc-detail .arc-lineup .arc-captain")).toHaveCount(1);
   await expect(lineup.filter({ hasText: "Keeper Two" })).toContainText("no start % yet");
   await expect(page.locator(".arc-chances li.is-aim")).toContainText("Step 2 · 300");
   if (process.env.ARCADE_PLAN_SHOT) {
+    await page.emulateMedia({ reducedMotion: "reduce" }); // still pictures, not mid-animation
     await page.locator(".arc-plan").screenshot({ path: `${process.env.ARCADE_PLAN_SHOT}-1440.png` });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.locator(".arc-plan").screenshot({ path: `${process.env.ARCADE_PLAN_SHOT}-390.png` });
@@ -138,13 +142,16 @@ test("Pick a day plans the day's lineups at the step they land on, no card twice
   await withExtension(page);
   await page.goto("/arcade");
   await expect(page.getByRole("group", { name: "Plan by" }).getByRole("button", { name: "Pick a day" })).toHaveAttribute("aria-pressed", "true");
-  const schedule = page.locator(".arc-schedule > li");
-  await expect(schedule).toHaveCount(1); // six cards make one lineup
-  await expect(schedule).toContainText("Lineup 1 · step 2 (300 pts)");
-  await expect(page.locator(".arc-advice")).toContainText("Play 1 lineup on step 2");
-  await expect(page.locator(".arc-climb")).toContainText("Step 2");
+  const departures = page.locator(".arc-dep-rows li");
+  await expect(departures).toHaveCount(1); // six cards make one lineup
+  await expect(departures).toContainText("Lineup 1");
+  await expect(departures).toContainText("Step 2");
+  await expect(page.locator(".arc-departures .arc-advice")).toContainText("Play 1 lineup on step 2");
+  await expect(page.locator(".arc-headline")).toContainText("step 2");
+  await expect(page.locator(".arc-deck .arc-lineup li")).toHaveCount(5); // on deck: its five cards
   expect(await smallText(page, 11)).toEqual([]);
   if (process.env.ARCADE_PLAN_SHOT) {
+    await page.emulateMedia({ reducedMotion: "reduce" }); // still pictures, not mid-animation
     for (const theme of ["light", "dark"]) {
       await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), theme);
       await page.setViewportSize({ width: 1440, height: 900 });
@@ -163,8 +170,10 @@ test("Packs: on a click, the pack you can afford with the most players you do no
   await page.goto("/arcade");
   await page.getByRole("button", { name: "Work out the best pack" }).click();
   // Silver always gives "new" (1.0); Bronze gives him half the time (0.5) and needs 1,000 essence, of 3,200.
-  await expect(page.locator(".arc-best")).toContainText("Open Silver (10 gems): 1.0 players you do not have yet");
-  await expect(page.locator(".arc-table tbody tr")).toHaveCount(2);
+  await expect(page.locator(".arc-open")).toContainText("Open next");
+  await expect(page.locator(".arc-open")).toContainText("Silver");
+  await expect(page.locator(".arc-open")).toContainText("1.0 players you do not have yet, on Sorare's odds, for 10 gems");
+  await expect(page.locator(".arc-packs-list li")).toHaveCount(2);
 });
 
 test("a lineup on Sorare that cannot reach its target says it is dead, and cut losses when its cards help the next lineup more", async ({ page }) => {
@@ -182,9 +191,48 @@ test("a lineup on Sorare that cannot reach its target says it is dead, and cut l
       taskAppearances: [appearance("c2", "gk", "Keeper Two", 10, yesterday), appearance("c3", "d", "Defender Three", 0, KICKOFF), appearance("c4", "m", "Midfielder Four", 0, KICKOFF), appearance("c5", "m2", "Midfielder Five", 0, KICKOFF), appearance("c6", "f2", "Forward Six", 0, KICKOFF)] }] }] } } },
   });
   await page.goto("/arcade");
-  const live = page.locator(".arc-live-list > li");
-  await expect(live).toContainText("10 of 300 pts");
-  await expect(live).toContainText("Dead: even at their best its cards cannot reach 300");
-  await expect(live).toContainText("Cut losses:");
+  const live = page.locator(".arc-race");
+  await expect(live).toContainText("Dead");
+  await expect(live).toContainText("Even at their best its cards cannot reach 300");
+  await expect(live).toContainText("10 scored");
+  await expect(live).toContainText("Cut losses");
   await expect(page.locator(".arc-plan")).toContainText("cannot fill a lineup from your free cards"); // his cards in that lineup are not planned again
+});
+
+test("with extension 0.4.15 Sorare's start % come from the open Sorare tab, every day, without opening a page", async ({ page }) => {
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await withExtension(page, { ...ANSWERS, "arcade-bench": { cards: 1, after: null, rows: [{ game: GAME, player: "p", basisPoints: 8500 }] } }, "0.4.15");
+  await page.goto("/arcade");
+  await expect(page.locator(".arc-read")).toContainText("Read from your Sorare tab");
+  await expect(page.getByRole("button", { name: "Read start % again" })).toBeVisible();
+  await page.getByRole("searchbox", { name: "Search player or club" }).fill("player one");
+  await expect(page.locator(".arc-grid .arc-chance")).toContainText("85% start");
+});
+
+test("a LaLiga streak mission gets Sofix's best five for its target, and a Decisive Picker your cards by start % × their own record", async ({ page }) => {
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  const g = (mins: number, goals: number) => ({ anyPlayerGameStats: { minsPlayed: mins }, detailedScore: goals ? [{ stat: "goals", statValue: goals }] : [] });
+  await withExtension(page, {
+    ...ANSWERS,
+    "arcade-missions": { currentUser: { taskGroup: { myTasks: [
+      { __typename: "ThresholdsStreakTask", id: "t1", title: "LALIGA EA SPORTS Common", description: "Score 300+ in the LALIGA EA SPORTS Common competition", progress: 2, target: 5, expired: false, rewardConfigs: [] },
+      { __typename: "DecisivePlayerPickerTask", id: "t2", title: "Decisive Picker", description: "Pick 2 players to score or assist", maxAppearancesCount: 2, expired: false, startDate: KICKOFF, decisiveStats: [{ name: "goals" }], taskAppearances: [], rewardConfigs: [] },
+    ] } } },
+    // Player One scored in 2 of his 4 games, Forward Six in 1 of 4; the others never, and Keeper Two has played too few games to tell.
+    "arcade-decisive": { players: [
+      { slug: "p", playerGameScores: [g(90, 1), g(90, 0), g(90, 1), g(80, 0)] },
+      { slug: "f2", playerGameScores: [g(90, 1), g(90, 0), g(90, 0), g(90, 0)] },
+      { slug: "gk", playerGameScores: [g(90, 0)] },
+    ] },
+  });
+  await page.goto("/arcade");
+  const missions = page.locator(".arc-missions");
+  await expect(missions).toContainText("Your best five for it");
+  await expect(missions).toContainText("to reach 300");
+  await expect(missions.locator(".arc-mring").first()).toHaveAttribute("aria-label", "2 of 5");
+  const picks = missions.locator(".arc-picks li.is-pick");
+  await expect(picks).toHaveCount(2);
+  await expect(picks.first()).toContainText("Player One");
+  await expect(picks.first()).toContainText("did it in 50% of his games");
+  await expect(missions.locator(".arc-picks")).toContainText("too few games to tell");
 });

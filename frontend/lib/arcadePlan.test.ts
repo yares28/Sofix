@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { outlookOf, parseBonuses, parsePackOdds, parsePast, parseProjections, type ArcadeCard, type ArcadeGame } from "./arcade";
-import { bestLineup, bigReward, chanceOf, climb, cutLosses, lifeAdvice, likelyRange, liveLineup, newPlayers, planDay, predicted, rankPacks, simulate, type Lineup, type Outlook } from "./arcadePlan";
+import { bestLineup, bigReward, chanceOf, climb, cutLosses, decisiveRate, rankDecisive, streakTarget, lifeAdvice, likelyRange, liveLineup, newPlayers, planDay, predicted, rankPacks, simulate, type Lineup, type Outlook } from "./arcadePlan";
 
-const GAME: ArcadeGame = { id: "Game:1", kickoff: "2026-10-24T14:00:00Z", status: "scheduled", competition: { slug: "laliga-es", name: "LaLiga" }, home: { slug: "home", name: "Home" }, away: { slug: "away", name: "Away" } };
+const GAME: ArcadeGame = { id: "Game:1", kickoff: "2026-10-24T14:00:00Z", status: "scheduled", competition: { slug: "laliga-es", name: "LaLiga" }, home: { slug: "home", name: "Home", crest: null }, away: { slug: "away", name: "Away", crest: null } };
 const card = (player: string, positions: string[], bonus: number | null = 1): ArcadeCard => ({
   slug: `${player}-card`, player, name: player, team: "Home", teamSlug: "home", teamPicture: null, league: null, positions, picture: null, edition: null, bonus,
 });
@@ -226,5 +226,22 @@ describe("a lineup while it plays", () => {
     expect(cutLosses({ chance: 0.1 }, 0.2, true)).toBe(true);
     expect(cutLosses({ chance: 0.3 }, 0.2, true)).toBe(false);
     expect(cutLosses({ chance: 0 }, 0.2, false)).toBe(false);
+  });
+});
+
+describe("missions", () => {
+  it("rates a player on his own played games, never under 3, and ranks by start % × that rate", () => {
+    const g = (mins: number, ...stats: string[]) => ({ mins, stats });
+    expect(decisiveRate([g(90, "goals"), g(90), g(0, "goals"), g(80, "goal_assist")], [])).toBeCloseTo(2 / 3);
+    expect(decisiveRate([g(90, "goals"), g(90)], [])).toBeNull();
+    expect(decisiveRate([g(90, "won_tackle"), g(90), g(90, "goals")], ["won_tackle"])).toBeCloseTo(1 / 3);
+    const a = outlook("a", ["Forward"], 50, 0.5), b = outlook("b", ["Forward"], 50, 1), c = outlook("c", ["Forward"], 50, 1);
+    expect(rankDecisive([{ outlook: a, rate: 0.6 }, { outlook: b, rate: 0.4 }, { outlook: c, rate: null }]).map((p) => [p.outlook.card.player, p.chance])).toEqual([["b", 0.4], ["a", 0.3], ["c", null]]);
+  });
+
+  it("reads a streak's target from Sorare's words", () => {
+    expect(streakTarget("Score 400+ in the LALIGA EA SPORTS Common competition")).toBe(400);
+    expect(streakTarget("Score 1,200+ points")).toBe(1200);
+    expect(streakTarget("Win a game")).toBeNull();
   });
 });

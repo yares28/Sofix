@@ -63,6 +63,10 @@ export type ArcadeMission = {
   /** A streak's progress towards its target (e.g. 2 of 5); null for another kind. */
   progress: number | null;
   target: number | null;
+  /** A Decisive Picker's counted stats (Sorare's names, e.g. goals, goal_assist), its day, and the players already picked. */
+  stats: string[];
+  start: string | null;
+  picked: string[];
 };
 /** A game the set board can be played on (`CareerBoard.pickableGames`). */
 export type ArcadeGame = {
@@ -70,8 +74,9 @@ export type ArcadeGame = {
   kickoff: string;
   status: string;
   competition: { slug: string; name: string };
-  home: { slug: string; name: string } | null;
-  away: { slug: string; name: string } | null;
+  /** Sorare's crest (extension 0.4.15); null before, when a card of the club gives one instead. */
+  home: { slug: string; name: string; crest: string | null } | null;
+  away: { slug: string; name: string; crest: string | null } | null;
 };
 export type Arcade = {
   set: { slug: string; name: string; start: string | null; end: string | null; leagues: { slug: string; name: string }[] };
@@ -198,6 +203,8 @@ const MissionsData = z.object({
         target: opt(n),
         rewardConfigs: opt(z.array(Reward)),
         taskAppearances: opt(z.array(z.unknown())),
+        decisiveStats: opt(z.array(z.object({ name: s }))),
+        startDate: opt(s),
       })),
     }).nullable(),
   }).nullable(),
@@ -217,15 +224,37 @@ const CardsPage = z.object({
         anyTeam: opt(z.object({ slug: opt(s), name: opt(s), pictureUrl: opt(s), domesticLeague: opt(z.object({ slug: s, displayName: s })) })),
       })),
       pageInfo: z.object({ hasNextPage: z.boolean(), endCursor: opt(s) }),
+      /** All your commons, every set (extension 0.4.15): unchanged with an unchanged first page means the kept pages still hold. */
+      totalCount: opt(n),
     }),
   }).nullable(),
 });
 type CardsPage = z.infer<typeof CardsPage>;
 
+const CARDS_KEY = "sofix-arcade-cards";
+type KeptCards = { user: string; total: number; first: string[]; pages: unknown[] };
+/** The card pages kept from the last read, when Sorare's count and first page say nothing changed (a pack opened changes the count). */
+export function keptCards(kept: KeptCards | null, user: string, firstPage: unknown): unknown[] | null {
+  const page = CardsPage.safeParse(firstPage);
+  const cards = page.success ? page.data.currentUser?.cards : null;
+  if (!kept || !cards || cards.totalCount == null || kept.user !== user || kept.total !== cards.totalCount) return null;
+  const first = cards.nodes.map((c) => c.slug);
+  return first.length === kept.first.length && first.every((slug, i) => slug === kept.first[i]) ? kept.pages : null;
+}
+function keepCards(user: string, pages: unknown[]) {
+  const page = CardsPage.safeParse(pages[0]);
+  const cards = page.success ? page.data.currentUser?.cards : null;
+  if (!cards || cards.totalCount == null) return;
+  try { localStorage.setItem(CARDS_KEY, JSON.stringify({ user, total: cards.totalCount, first: cards.nodes.map((c) => c.slug), pages } satisfies KeptCards)); } catch { /* full or blocked: read next time */ }
+}
+function readKeptCards(): KeptCards | null {
+  try { return JSON.parse(localStorage.getItem(CARDS_KEY) ?? "null") as KeptCards | null; } catch { return null; }
+}
+
 /** Sorare's edition multiplier as a bonus: 1.05 → "+5%". Standard (1) and unknown give null. */
 export const bonusLabel = (bonus: number | null) => (bonus !== null && bonus > 1 ? `+${Math.round((bonus - 1) * 100)}%` : null);
 
-const Team = z.object({ slug: s, name: s }).nullish();
+const Team = z.object({ slug: s, name: s, pictureUrl: opt(s) }).nullish();
 const GamesPage = z.object({
   currentUser: z.object({
     setBoard: z.object({
@@ -254,8 +283,8 @@ export function parseGames(pages: unknown[]): ArcadeGame[] | null {
         kickoff: game.date,
         status: game.statusTyped,
         competition: { slug: game.competition.slug, name: game.competition.displayName },
-        home: game.homeTeam ? { slug: game.homeTeam.slug, name: game.homeTeam.name } : null,
-        away: game.awayTeam ? { slug: game.awayTeam.slug, name: game.awayTeam.name } : null,
+        home: game.homeTeam ? { slug: game.homeTeam.slug, name: game.homeTeam.name, crest: game.homeTeam.pictureUrl ?? null } : null,
+        away: game.awayTeam ? { slug: game.awayTeam.slug, name: game.awayTeam.name, crest: game.awayTeam.pictureUrl ?? null } : null,
       });
     }
   }
@@ -404,6 +433,9 @@ export function parseArcade(arcade: unknown, lineups: unknown, missions: unknown
       maxPicks: t.maxAppearancesCount ?? null,
       progress: t.progress ?? null,
       target: t.target ?? null,
+      stats: (t.decisiveStats ?? []).map((d) => d.name),
+      start: t.startDate ?? null,
+      picked: (t.taskAppearances ?? []).flatMap((a) => { const p = z.object({ anyPlayer: z.object({ slug: s }) }).safeParse(a); return p.success ? [p.data.anyPlayer.slug] : []; }),
     }));
 
   return {
@@ -421,7 +453,7 @@ export function parseArcade(arcade: unknown, lineups: unknown, missions: unknown
 
 export type ArcadeRead =
   | { state: "ok"; arcade: Arcade; unread: string[] }
-  | { state: "no-extension" | "signed-out" | "no-tab" | "unreadable" }
+  | { state: "no-extension" | "signed-out" | "no-tab" | "unreadable" | "no-set" }
   | { state: "outdated"; version: string }
   | { state: "failed"; detail: string };
 
@@ -446,16 +478,23 @@ export async function readArcade(timeoutMs = 25_000): Promise<ArcadeRead> {
   const user = z.object({ currentUser: z.unknown() }).safeParse(main.data);
   if (user.success && user.data.currentUser === null) return { state: "signed-out" };
   const [lineups, missions] = await Promise.all([ask("arcade-lineups"), ask("arcade-missions")]);
-  const pages: unknown[] = [];
+  const me = z.object({ currentUser: z.object({ slug: s }) }).safeParse(main.data);
+  const slug = me.success ? me.data.currentUser.slug : "";
+  // Your cards: the first page and Sorare's count each visit; the rest is read again only when they changed (a pack opened).
+  let pages: unknown[] = [];
   let after: string | null = null;
   for (let i = 0; i < MAX_CARD_PAGES; i++) {
     const page = await ask("arcade-cards", { after });
     if ("failed" in page) return { state: "failed", detail: `cards: ${page.failed}` };
+    if (i === 0) {
+      const kept = keptCards(readKeptCards(), slug, page.data);
+      if (kept) { pages = kept; break; }
+    }
     pages.push(page.data);
     const info = CardsPage.safeParse(page.data);
     if (!info.success || !info.data.currentUser) break;
     const { hasNextPage, endCursor } = info.data.currentUser.cards.pageInfo;
-    if (!hasNextPage || !endCursor) break;
+    if (!hasNextPage || !endCursor) { keepCards(slug, pages); break; }
     after = endCursor;
   }
 
@@ -479,7 +518,9 @@ export async function readArcade(timeoutMs = 25_000): Promise<ArcadeRead> {
   }
 
   const arcade = parseArcade(main.data, "data" in lineups ? lineups.data : null, "data" in missions ? missions.data : null, pages, gamePages);
-  if (!arcade) return { state: "unreadable" };
+  // Between two sets Sorare names no current set (plans/set.md U2): say so, not "unreadable".
+  const between = z.object({ cardSet: z.object({ currentSet: z.null() }) }).safeParse(main.data);
+  if (!arcade) return { state: between.success ? "no-set" : "unreadable" };
   // A part Sorare refused is said, never shown as "none".
   const unread = [["your lineups", lineups], ["today's missions", missions]].flatMap(([label, part]) => (typeof part === "object" && "failed" in part ? [`${label} (${part.failed})`] : []));
   if (gamesFailed) unread.push(`the board's games (${gamesFailed})`);
@@ -517,6 +558,56 @@ export async function walkArcade(config: string, stepId: string): Promise<Arcade
     .safeParse(await askExtension({ type: "read-arcade", config, step }, 240_000));
   if (!answer.success) return { state: "no-answer", players: null, games: null };
   return { state: answer.data.state, players: answer.data.players ?? null, games: answer.data.games ?? null };
+}
+
+/** Start % without a tab: the extension that replays Sorare's own bench question (21 Oct 2026). */
+export const ARCADE_BENCH_VERSION = "0.4.15";
+const BENCH_PAGES = 2; // 30 cards a page, best first: the cards a plan would pick
+const BENCH_KEEP_MS = 30 * 60_000;
+const BenchAnswer = z.object({ ok: z.literal(true), state: s, data: z.object({ cards: n, after: s.nullable(), rows: z.array(z.object({ game: s, player: s, basisPoints: n })) }).optional() });
+export type ArcadeBench = { state: "ok" | "outdated" | "no-extension" | "refused"; chances: ArcadeChances; at: number };
+
+/**
+ * Sorare's start % for your best cards in every game to the set's end, asked from your open Sorare tab with the question Sorare's own
+ * compose page asks (no page opens). Day by day, each position, the best 60 cards. Kept 30 minutes in this browser; Sorare's readings are
+ * also saved by the extension like any page reading. "refused" means Sorare no longer knows the question: the tab walk still works.
+ */
+export async function readArcadeBench(stepId: string, until: string | null, force = false, now = Date.now()): Promise<ArcadeBench> {
+  const key = `sofix-arcade-bench:${stepId}`;
+  if (!force) {
+    try {
+      const kept = JSON.parse(localStorage.getItem(key) ?? "null") as ArcadeBench | null;
+      if (kept && now - kept.at < BENCH_KEEP_MS) return kept;
+    } catch { /* no storage: read */ }
+  }
+  const extension = await pingExtension();
+  if (!extension) return { state: "no-extension", chances: {}, at: now };
+  if (!extensionAtLeast(extension.version, ARCADE_BENCH_VERSION)) return { state: "outdated", chances: {}, at: now };
+  const task = stepId.replace(/^.*:/, "");
+  const end = Math.min(Date.parse(until ?? "") || now + 7 * 86_400_000, now + 7 * 86_400_000);
+  const chances: ArcadeChances = {};
+  let refused = 0;
+  let asked = 0;
+  for (let from = now; from < end; from += 86_400_000) {
+    const span = { minDate: new Date(from).toISOString(), maxDate: new Date(Math.min(from + 86_400_000, end)).toISOString() };
+    await Promise.all(["Goalkeeper", "Defender", "Midfielder", "Forward"].map(async (position) => {
+      let after: string | null = null;
+      for (let page = 0; page < BENCH_PAGES; page++) {
+        asked += 1;
+        const answer = BenchAnswer.safeParse(await askExtension({ type: "sorare", step: "arcade-bench", task, position, ...span, after }, 30_000));
+        if (!answer.success || answer.data.state !== "ok" || !answer.data.data) {
+          if (answer.success && answer.data.state === "rejected") refused += 1;
+          return;
+        }
+        for (const row of answer.data.data.rows) (chances[row.game] ??= {})[row.player] = [row.basisPoints, now];
+        after = answer.data.data.after;
+        if (!after) return;
+      }
+    }));
+  }
+  const read: ArcadeBench = { state: refused && refused >= asked / 2 ? "refused" : "ok", chances, at: now };
+  try { if (read.state === "ok") localStorage.setItem(key, JSON.stringify(read)); } catch { /* full or blocked: fine */ }
+  return read;
 }
 
 /** Step 3's reads need the extension that asks Sorare for club bonuses, past scores and projections. */
@@ -694,4 +785,28 @@ export async function readPackOdds(slots: number): Promise<PackOdds | "outdated"
 export async function readArcadeLineups(): Promise<Map<string, ArcadeLineup[]> | null> {
   const answer = Answer.safeParse(await askExtension({ type: "sorare", step: "arcade-lineups" }, 25_000));
   return answer.success && answer.data.state === "ok" ? parseLineups(answer.data.data) : null;
+}
+
+const DecisiveAnswer = z.object({ players: z.array(z.object({ slug: s, playerGameScores: z.array(z.object({
+  anyPlayerGameStats: opt(z.object({ minsPlayed: opt(n) })), detailedScore: opt(z.array(z.object({ stat: s, statValue: n }))),
+}).nullable()).nullish() })) });
+
+/** A Decisive Picker's candidates' last 10 games: minutes and the actions he made (stat value > 0). Exported for the tests. */
+export function parseDecisive(answer: unknown): Record<string, { mins: number; stats: string[] }[]> {
+  const parsed = DecisiveAnswer.safeParse(answer);
+  if (!parsed.success) return {};
+  return Object.fromEntries(parsed.data.players.map((p) => [p.slug, (p.playerGameScores ?? []).flatMap((g) => (g ? [{
+    mins: g.anyPlayerGameStats?.minsPlayed ?? 0, stats: (g.detailedScore ?? []).filter((d) => d.statValue > 0).map((d) => d.stat),
+  }] : []))]));
+}
+
+/** Read through your Sorare tab, 20 players a question; null when Sorare did not answer. */
+export async function readDecisive(players: string[]): Promise<Record<string, { mins: number; stats: string[] }[]> | null> {
+  const out: Record<string, { mins: number; stats: string[] }[]> = {};
+  for (let i = 0; i < Math.min(players.length, 40); i += 20) {
+    const answer = Answer.safeParse(await askExtension({ type: "sorare", step: "arcade-decisive", players: players.slice(i, i + 20) }, 25_000));
+    if (!answer.success || answer.data.state !== "ok") return Object.keys(out).length ? out : null;
+    Object.assign(out, parseDecisive(answer.data.data));
+  }
+  return out;
 }

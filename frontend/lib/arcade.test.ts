@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bonusLabel, chanceOf, gamesOf, parseArcade, parseGames, rewardLabel } from "./arcade";
+import { bonusLabel, chanceOf, gamesOf, keptCards, parseArcade, parseGames, rewardLabel } from "./arcade";
 
 const main = {
   cardSet: { currentSet: { slug: "glitch", name: "HyperGlitch", startDate: "2026-09-08T08:30:00Z", endDate: "2026-10-27T16:00:00Z", availableCompetitions: [{ slug: "laliga-es", displayName: "LALIGA EA Sports" }] } },
@@ -108,5 +108,20 @@ describe("arcade games and start %", () => {
     expect(chanceOf(chances, "g1", "lunin")).toEqual({ percent: 0, seenAt: 2 });
     expect(chanceOf(chances, "g2", "courtois")).toBeNull();
     expect(chanceOf(null, "g1", "courtois")).toBeNull();
+  });
+});
+
+describe("cards kept between visits", () => {
+  const page = (total: number | undefined, slugs: string[]) => ({ currentUser: { cards: { totalCount: total, pageInfo: { hasNextPage: false, endCursor: null },
+    nodes: slugs.map((slug) => ({ slug, anyPositions: ["Forward"], anyPlayer: { slug, displayName: slug } })) } } });
+  const kept = { user: "yares", total: 3, first: ["a", "b", "c"], pages: ["p1", "p2"] };
+
+  it("reuses the kept pages only when Sorare's count and first page are unchanged, for the same account", () => {
+    expect(keptCards(kept, "yares", page(3, ["a", "b", "c"]))).toEqual(["p1", "p2"]);
+    expect(keptCards(kept, "yares", page(4, ["d", "a", "b", "c"]))).toBeNull(); // a pack opened
+    expect(keptCards(kept, "yares", page(3, ["a", "c", "b"]))).toBeNull();
+    expect(keptCards(kept, "other", page(3, ["a", "b", "c"]))).toBeNull();
+    expect(keptCards(kept, "yares", page(undefined, ["a", "b", "c"]))).toBeNull(); // an extension that does not send the count
+    expect(keptCards(null, "yares", page(3, ["a", "b", "c"]))).toBeNull();
   });
 });

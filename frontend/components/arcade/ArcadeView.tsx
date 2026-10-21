@@ -2,13 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ARCADE_EXTENSION_VERSION, ARCADE_PLAN_VERSION, bonusLabel, chanceOf, gamesOf, loadArcadeChances, outlookOf, readArcade, readArcadeExtras, walkArcade,
-  type Arcade, type ArcadeCard, type ArcadeChances, type ArcadeExtras, type ArcadeGame, type ArcadeLaLiga, type ArcadeRead, type ArcadeStep, type ArcadeWalk,
+  ARCADE_BENCH_VERSION, ARCADE_EXTENSION_VERSION, ARCADE_PLAN_VERSION, bonusLabel, chanceOf, gamesOf, loadArcadeChances, outlookOf, readArcade, readArcadeBench, readArcadeExtras, walkArcade,
+  type Arcade, type ArcadeBench, type ArcadeCard, type ArcadeChances, type ArcadeExtras, type ArcadeGame, type ArcadeLaLiga, type ArcadeRead, type ArcadeStep, type ArcadeWalk,
 } from "../../lib/arcade";
 import type { Outlook } from "../../lib/arcadePlan";
+import { matchFixture, type FdrFixture } from "../../lib/arcadeFdr";
 import ArcadeLive from "./ArcadeLive";
+import { FdrChip, FdrContext } from "./Fdr";
+import ArcadeMissions from "./ArcadeMissions";
 import ArcadePacks from "./ArcadePacks";
-import ArcadePlanner, { Prediction, StartLabel } from "./ArcadePlanner";
+import ArcadePlanner, { climbStep, Prediction, StartLabel } from "./ArcadePlanner";
 
 const PAGE_SIZE = 48;
 const madrid = (iso: string | null) =>
@@ -23,6 +26,7 @@ const WHY: Record<Exclude<ArcadeRead["state"], "ok" | "outdated" | "failed">, st
   "no-tab": "Open sorare.com in a tab of this Chrome, signed in, then read again.",
   "signed-out": "Sorare says no one is signed in on the open tab. Sign in there, then read again.",
   unreadable: "Sorare answered in a shape Sofix does not know yet, so nothing is shown rather than a wrong number.",
+  "no-set": "No Arcade set is running on Sorare right now. The next one shows here as soon as Sorare opens it.",
 };
 
 function StepRow({ step, current }: { step: ArcadeStep; current: boolean }) {
@@ -54,7 +58,7 @@ function CardGames({ card, games, outlooks }: { card: ArcadeCard; games: ArcadeG
         return (
           <span key={game.id} className="arc-chance" title={`${game.home?.name ?? "?"} v ${game.away?.name ?? "?"} · ${game.competition.name}`}>
             {i === 0 && outlook ? <><Prediction outlook={outlook} /><br /></> : null}
-            {outlook ? <StartLabel outlook={outlook} /> : <i>no start % yet</i>} · {kickoff(game.kickoff)} {opponent(game, card.teamSlug)}
+            {outlook ? <StartLabel outlook={outlook} /> : <i>no start % yet</i>} · {kickoff(game.kickoff)} {opponent(game, card.teamSlug)} <FdrChip game={game.id} home={game.home?.slug === card.teamSlug} position={card.positions[0]} />
           </span>
         );
       })}
@@ -157,7 +161,9 @@ const WALKED: Record<string, string> = {
   error: "Reading Sorare's page failed; nothing more was saved.",
 };
 
-function Loaded({ arcade, unread, laliga }: { arcade: Arcade; unread: string[]; laliga: ArcadeLaLiga }) {
+function Loaded({ arcade, unread, laliga, fdr }: { arcade: Arcade; unread: string[]; laliga: ArcadeLaLiga; fdr: FdrFixture[] }) {
+  // Each game of a league with a Sofix board, matched to the board's fixture (kick-off and clubs).
+  const boards = useMemo(() => new Map((arcade.games ?? []).flatMap((g) => { const f = matchFixture(g, fdr); return f ? [[g.id, f] as const] : []; })), [arcade.games, fdr]);
   const current = arcade.board?.current ?? null;
   const [chances, setChances] = useState<ArcadeChances | null>(null);
   const [walking, setWalking] = useState(false);
@@ -166,7 +172,22 @@ function Loaded({ arcade, unread, laliga }: { arcade: Arcade; unread: string[]; 
     const clubs = new Set(arcade.cards.map((c) => c.teamSlug));
     return (arcade.games ?? []).filter((g) => clubs.has(g.home?.slug ?? null) || clubs.has(g.away?.slug ?? null)).map((g) => g.id);
   }, [arcade]);
-  const refresh = useCallback(async () => setChances(await loadArcadeChances(gameIds)), [gameIds]);
+  const [bench, setBench] = useState<ArcadeBench | "reading" | null>(null);
+  const benchStep = arcade.board?.steps.find((s) => s.number === climbStep(arcade)) ?? null;
+  const refresh = useCallback(async (force = false) => {
+    const saved = await loadArcadeChances(gameIds);
+    setChances(saved);
+    if (!benchStep) return;
+    setBench("reading");
+    const read = await readArcadeBench(benchStep.id, arcade.set.end, force);
+    setBench(read);
+    // Sorare's newest readings over the saved ones, game by game.
+    if (Object.keys(read.chances).length) setChances((now) => {
+      const out: ArcadeChances = { ...(now ?? {}) };
+      for (const [game, players] of Object.entries(read.chances)) out[game] = { ...(out[game] ?? {}), ...players };
+      return out;
+    });
+  }, [gameIds, benchStep, arcade.set.end]);
   useEffect(() => { void refresh(); }, [refresh]); // once per read; never on a timer
   const [extras, setExtras] = useState<ArcadeExtras | null | "reading">("reading");
   useEffect(() => { void readArcadeExtras(arcade).then(setExtras); }, [arcade]); // once per read
@@ -180,6 +201,9 @@ function Loaded({ arcade, unread, laliga }: { arcade: Arcade; unread: string[]; 
     }
     return out;
   }, [arcade, ready, chances, laliga]);
+  // The plan and the mission picks are worked out once the start % read is done, not again for every answer on the way.
+  const [planOutlooks, setPlanOutlooks] = useState<Map<string, Outlook[]> | null>(null);
+  useEffect(() => { if (bench !== "reading" && (bench !== null || !benchStep)) setPlanOutlooks(outlooks); }, [outlooks, bench, benchStep]);
   const captainBonus = arcade.board?.steps.find((s) => s.number === current)?.captain ?? arcade.board?.steps[0]?.captain ?? 0;
   const step = arcade.board?.steps.find((s) => s.number === current) ?? arcade.board?.steps[0] ?? null;
   const read = async () => {
@@ -196,7 +220,7 @@ function Loaded({ arcade, unread, laliga }: { arcade: Arcade; unread: string[]; 
   const later = lastRead ? (arcade.games ?? []).filter((g) => g.kickoff.slice(0, 10) > lastRead.slice(0, 10)).length : 0;
   const withChance = arcade.cards.filter((c) => (arcade.games ? gamesOf(c, arcade.games) : []).some((g) => chanceOf(chances, g.id, c.player))).length;
   return (
-    <>
+    <FdrContext.Provider value={boards}>
       <header className="arc-hero">
         <p className="arc-kicker">{arcade.set.name} · ends {madrid(arcade.set.end)}</p>
         <div className="arc-hero-top">
@@ -207,7 +231,8 @@ function Loaded({ arcade, unread, laliga }: { arcade: Arcade; unread: string[]; 
             <div><dt>{arcade.set.name} commons</dt><dd>{arcade.cards.length.toLocaleString("en-GB")}{arcade.cardsCut ? "+" : ""}</dd></div>
           </dl>
         </div>
-        {arcade.board ? (
+        {/* The tower in the plan shows the steps once predictions are read; until then, the plain ladder. */}
+        {arcade.board ? (ready ? null : 
           <ol className="arc-steps" aria-label="Your board">
             {arcade.board.steps.map((s) => <StepRow key={s.id} step={s} current={s.number === current} />)}
           </ol>
@@ -220,7 +245,7 @@ function Loaded({ arcade, unread, laliga }: { arcade: Arcade; unread: string[]; 
           : extras.unread.length ? `Not read this time: ${extras.unread.join(", ")}.` : null}
       </p>
       {ready ? <ArcadeLive arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} /> : null}
-      {ready ? <ArcadePlanner arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} /> : null}
+      {ready && planOutlooks ? <ArcadePlanner arcade={arcade} outlooks={planOutlooks} captainBonus={captainBonus} /> : ready ? <p className="arc-read-state" role="status">Planning the climb once Sorare&apos;s start % are in…</p> : null}
       <section className="arc-read" aria-label="Sorare's start %">
         <p>
           {arcade.games === null ? "Sorare did not give the board's games, so start % cannot be matched to cards."
@@ -232,9 +257,16 @@ function Loaded({ arcade, unread, laliga }: { arcade: Arcade; unread: string[]; 
             Sorare has given start % for games up to {new Date(lastRead).toLocaleDateString("en-GB", { timeZone: "Europe/Madrid", weekday: "long" })}; the {later} later games get theirs closer to kick-off, so read again then.
           </p>
         ) : null}
-        <button type="button" onClick={() => void read()} disabled={walking || !arcade.board?.config || !step}>
-          {walking ? "Reading Sorare's Arcade page…" : "Read Arcade's start %"}
-        </button>
+        {bench === "reading" ? <p className="arc-read-note" role="status">Reading Sorare&apos;s start % from your Sorare tab, every day to the set&apos;s end…</p>
+          : bench && bench.state === "ok" ? <p className="arc-read-note">Read from your Sorare tab at {new Date(bench.at).toLocaleTimeString("en-GB", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit" })}; nothing opened.</p>
+          : bench && bench.state === "outdated" ? <p className="arc-read-note">Start % without opening a page needs extension {ARCADE_BENCH_VERSION}: reload it on chrome://extensions.</p> : null}
+        {bench && bench !== "reading" && bench.state === "ok" ? (
+          <button type="button" className="arc-small" onClick={() => void refresh(true)}>Read start % again</button>
+        ) : (
+          <button type="button" onClick={() => void read()} disabled={walking || bench === "reading" || !arcade.board?.config || !step}>
+            {walking ? "Reading Sorare's Arcade page…" : "Read Arcade's start % (opens Sorare's page)"}
+          </button>
+        )}
         {walking ? <p className="arc-read-note">Sorare&apos;s Arcade lineup page opens in a tab for about a minute, then closes. Nothing is picked or saved on Sorare.</p> : null}
         {walked ? (
           <p className="arc-read-note" role="status">
@@ -243,30 +275,14 @@ function Loaded({ arcade, unread, laliga }: { arcade: Arcade; unread: string[]; 
         ) : null}
       </section>
       <ArcadePacks arcade={arcade} />
-      <section aria-labelledby="arc-missions-title" className="arc-missions">
-        <h2 id="arc-missions-title">Today&apos;s common missions</h2>
-        {arcade.missions.length ? (
-          <ul>
-            {arcade.missions.map((m) => (
-              <li key={m.id}>
-                <strong>{m.title ?? m.kind}</strong>
-                {m.description ? <span>{m.description}</span> : null}
-                <span>{m.rewards.filter((r) => !r.endsWith(" gems")).join(" + ") || "—"}</span>
-                <span>gems: {m.rewards.find((r) => r.endsWith(" gems"))?.replace(" gems", "") ?? "—"}</span>
-                {m.progress !== null && m.target !== null ? <span>{m.progress} of {m.target}</span> : null}
-                {m.picks !== null ? <span>{m.picks}{m.maxPicks !== null ? ` of ${m.maxPicks}` : ""} picked</span> : null}
-              </li>
-            ))}
-          </ul>
-        ) : <p>Sorare has no common mission for you today.</p>}
-      </section>
+      <ArcadeMissions arcade={arcade} outlooks={ready ? planOutlooks : null} />
       <Cards cards={arcade.cards} games={arcade.games} chances={chances} outlooks={outlooks} />
-    </>
+    </FdrContext.Provider>
   );
 }
 
 /** Arcade, step 1: everything Sofix can read of your set board, shown as Sorare gives it, so it can be checked against Sorare's screen. */
-export default function ArcadeView({ laliga }: { laliga: ArcadeLaLiga }) {
+export default function ArcadeView({ laliga, fdr = [] }: { laliga: ArcadeLaLiga; fdr?: FdrFixture[] }) {
   const [read, setRead] = useState<ArcadeRead | null>(null);
   const [busy, setBusy] = useState(false);
   const load = useCallback(async () => {
@@ -278,7 +294,7 @@ export default function ArcadeView({ laliga }: { laliga: ArcadeLaLiga }) {
 
   return (
     <main className="arc-main" aria-busy={busy}>
-      {read?.state === "ok" ? <Loaded arcade={read.arcade} unread={read.unread} laliga={laliga} /> : (
+      {read?.state === "ok" ? <Loaded arcade={read.arcade} unread={read.unread} laliga={laliga} fdr={fdr} /> : (
         <section className="arc-empty" role="status">
           <h1>Arcade</h1>
           <p>

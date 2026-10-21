@@ -1,0 +1,58 @@
+name: Validate league xScore data
+
+# Collection/evaluation only: no Neon settings, no model publication and no Sorare writes.
+on:
+  push:
+    branches: [main]
+    paths: ["backend/app/research/league_xscore_data.py", ".github/workflows/league-xscore.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: league-xscore-validation
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    name: Collect ${{ matrix.league }} authentic outcomes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      max-parallel: 1 # one paced Sorare reader, under the shared account allowance
+      matrix:
+        league: [PL, BL1]
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      SORARE_API_KEY: ${{ secrets.SORARE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+          activate-environment: true
+          enable-cache: true
+          cache-dependency-glob: backend/requirements.lock
+      - run: uv pip sync requirements.lock
+      - uses: actions/cache/restore@v4
+        with:
+          path: backend/data/raw/league-xscore/${{ matrix.league }}
+          key: league-xscore-v1-${{ matrix.league }}-${{ github.run_id }}
+          restore-keys: league-xscore-v1-${{ matrix.league }}-
+      - name: Collect null-preserving completed seasons
+        run: python -m app.research.league_xscore_data --league ${{ matrix.league }} --seconds 2700
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: backend/data/raw/league-xscore/${{ matrix.league }}
+          key: league-xscore-v1-${{ matrix.league }}-${{ github.run_id }}-${{ github.run_attempt }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: league-xscore-${{ matrix.league }}
+          path: backend/data/raw/league-xscore/
+          retention-days: 7

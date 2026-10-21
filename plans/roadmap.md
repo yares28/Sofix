@@ -16,6 +16,8 @@ and a check, so a session can work through it alone and stop only where you have
 
 Owner priority, 21 Oct: Premier League and Bundesliga regular-league FDR is implemented in [pl-bundesliga-fdr.md](pl-bundesliga-fdr.md), with independent models, full-season boards and automatic collection. Their xScore is deferred. The broader multi-competition research remains separate; this release does not enable cups or European FDR.
 
+Next owner request, 21 Oct: build Premier League/Bundesliga xScore, waiting for independently validated FDR-based models rather than releasing the history/Sorare fallback. [pl-bundesliga-xscore.md](pl-bundesliga-xscore.md) records the full-coverage contract, frozen evaluation and evidence. Collection and validation do not enable a live model.
+
 Work from the top. Each line points to its full text; "you" items wait for the owner.
 
 OB. **The overlay as a bridge** ([overlay-bridge.md](overlay-bridge.md), first by the owner, 21 Oct): fix the red backend CI, then

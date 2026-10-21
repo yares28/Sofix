@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { PlayingPlayer } from "../../lib/play";
 import type { ProRebuild as Rebuild } from "../../lib/playData";
+import { REFRESH_HEADER } from "../../lib/refresh";
 import Lineup from "./Lineup";
 
 const clock = (iso: string) =>
@@ -23,7 +24,7 @@ export default function ProRebuild({ comp, week, plan, rebuild, players }: { com
   async function load() {
     setState({ busy: true, said: "Reading the elevens on Sorare…" });
     try {
-      const response = await fetch("/api/pro-rebuild", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ week, plan }) });
+      const response = await fetch("/api/pro-rebuild", { method: "POST", headers: { "content-type": "application/json", [REFRESH_HEADER]: "1" }, body: JSON.stringify({ week, plan }) });
       const body = (await response.json()) as { success: boolean; data: { games: number; starters: number; bench: number } | null; error: string | null };
       if (!body.success) return setState({ busy: false, said: body.error ?? "The rebuild did not start." });
       const d = body.data!;

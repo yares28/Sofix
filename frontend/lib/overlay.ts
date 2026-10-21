@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { NATIONAL_COMPETITION, clubKey, sideOutlook, type SideOutlook } from "./home";
-import { cardScore, likelyResult, nextWeek, proOpen, resultLabel, waitingFor, weekPlan, type FfStatus, type GameweekPlan, type Lineup, type PlayerGame, type PlayingPlayer, type Sorare, type StartSource } from "./play";
+import { NATIONAL_COMPETITION, clubKey, nextFive, sideOutlook, type NextGameCell, type SideOutlook } from "./home";
+import { squadBar, verdict, type Verdict } from "./cards";
+import { cardScore, likelyResult, nextWeek, proOpen, resultLabel, waitingFor, weekPlan, type FfStatus, type GameweekPlan, type Lineup, type MarketPlayer, type PlayerGame, type PlayingPlayer, type Sorare, type StartSource } from "./play";
 import { appearances, type Appearance } from "./apply";
 import type { MissionPlan } from "./missions";
 import type { MissionsStatus } from "./missionsToday";
@@ -32,6 +33,8 @@ export const OverlayRequest = z
     missions: z.boolean().optional(),
     /** Also answer with what each card of the gallery cost and is worth now (your gallery page, plans/overlay-bridge.md B2). */
     worth: z.boolean().optional(),
+    /** Also answer with Sofix's line on this one player (his Sorare player page, plans/overlay-bridge.md B3). */
+    profile: slug.optional(),
     /**
      * The Sorare gameweek the page's address names ("football-25-29-sep-2026"), when it names one: the cards on it are
      * about that gameweek, so it is that gameweek's numbers that are answered. Without it, the one being planned.
@@ -507,4 +510,62 @@ export function overlayNumbers(
     if (entry) players[playerSlug] = entry;
   }
   return { week: plan.gameweek.number, cards, players, ...(request.plan ? { plan: overlayPlan(plan, now) } : {}) };
+}
+
+/** Sofix's line on one LaLiga player's Sorare page (plans/overlay-bridge.md, B3), with the numbers his /players page shows. */
+export type OverlayProfile = {
+  name: string;
+  /** His score if he starts (if he plays, when `ifStarts` is false); null when Sofix has none for the week. */
+  score: number | null;
+  ifStarts: boolean;
+  pStart: number | null;
+  startSource?: StartSource;
+  sources: Partial<Record<StartSource, number>>;
+  yours: boolean;
+  /** The lineups of the best plan his cards are in. */
+  inPlan: string[];
+  verdict: Verdict | null;
+  next: NextGameCell[];
+  at: string;
+};
+
+/**
+ * `planned`, `market` and `plan` are what /players/<slug> reads for the week in the top bar, so the two say the same. Null outside
+ * LaLiga (his club is not on the board) or when Sofix holds nothing on him: the page then draws nothing, never zeros.
+ */
+export function overlayProfile(
+  sorare: Sorare,
+  grid: FixtureGrid | null,
+  slug: string,
+  read: { plan: GameweekPlan | null; planned: PlayingPlayer | null; market: MarketPlayer | null },
+  now: Date,
+): OverlayProfile | null {
+  const { planned, market, plan } = read;
+  const club = planned?.club ?? market?.club;
+  const next = grid && club ? nextFive(grid, club, now) : null;
+  if (!next || !(planned ?? market)) return null;
+  // As PlayerView: your planned player's own numbers, else his row of the LaLiga index when it has the week's xScore.
+  const theirs = !planned && market && typeof market.x === "number" ? market : null;
+  const start = planned?.start ?? theirs?.start;
+  const score = planned ? Math.round(planned.start ?? planned.x) : theirs && typeof (theirs.start ?? theirs.mu) === "number" ? Math.round((theirs.start ?? theirs.mu)!) : null;
+  const collection = sorare.collection ?? [];
+  const owned = new Set(collection.map((card) => card.player));
+  const mine = new Set(collection.filter((card) => card.player === slug).map((card) => card.slug));
+  const inPlan = (plan?.plans[0]?.lineups ?? [])
+    .filter((lineup) => [...(lineup.starters ?? []), ...(lineup.subs ?? [])].some((card) => mine.has(card.slug)))
+    .map((lineup) => lineup.comp);
+  const source = planned ?? theirs;
+  return {
+    name: (planned ?? market)!.name,
+    score,
+    ifStarts: typeof start === "number",
+    pStart: typeof source?.pStart === "number" ? source.pStart : null,
+    ...(source?.startSource ? { startSource: source.startSource } : {}),
+    sources: source?.sources ?? {},
+    yours: owned.has(slug),
+    inPlan,
+    verdict: market ? verdict(market, squadBar(collection), owned) : null,
+    next,
+    at: plan?.builtAt ?? sorare.generatedAt,
+  };
 }

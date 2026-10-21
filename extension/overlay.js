@@ -1286,8 +1286,9 @@
     if (again) schedule();
     try {
       placeWorthBox();
+      placeStrip();
     } catch {
-      // the box is a nicety: a page it does not fit keeps everything else
+      // the box and the strip are niceties: a page they do not fit keeps everything else
     }
     showGuide();
     report();
@@ -1405,6 +1406,110 @@
     worthBox = box;
   }
 
+  // -- a player's page (plans/overlay-bridge.md, B3) -----------------------------------------------------------------
+  // On a LaLiga player's Sorare page (and its tabs), one strip in the empty band above his name: his score if he starts, his start %
+  // with each source, his club's next five in the board's colours, and whether he is yours or what he would add. The numbers are his
+  // /players page's. A player Sofix holds nothing on (outside LaLiga) gets nothing. Asked once per player, again at most once a minute.
+
+  let profileFor = null;
+  let profile;
+  let profileAskedAt = 0;
+  let strip = null;
+
+  function wantProfile() {
+    const slug = core.playerPageOf(location.pathname);
+    if (!slug || (slug === profileFor && (profile !== undefined || now() - profileAskedAt < 60000))) return;
+    profileFor = slug;
+    profile = undefined;
+    profileAskedAt = now();
+    try {
+      chrome.runtime.sendMessage({ type: "overlay-profile", slug }, (reply) => {
+        if (chrome.runtime.lastError || !reply || reply.state !== "ok" || profileFor !== slug) {
+          void chrome.runtime.lastError;
+          return;
+        }
+        profile = reply.profile || null;
+        schedule();
+      });
+    } catch {
+      // the extension was reloaded under this page: nothing to draw
+    }
+  }
+
+  /** Sorare's name block: the absolutely placed box holding the page's h1, inside the hero (21 Oct 2026: 4 levels above the h1). */
+  function locateNameBlock() {
+    let el = document.querySelector("h1");
+    for (let level = 0; el && level < 6; level += 1) {
+      el = el.parentElement;
+      if (el && getComputedStyle(el).position === "absolute") return el;
+    }
+    return null;
+  }
+
+  const kickoffLabel = (iso) => {
+    const at = new Date(iso);
+    return Number.isNaN(at.getTime()) ? "" : at.toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  };
+
+  function placeStrip() {
+    const slug = core.playerPageOf(location.pathname);
+    if (!slug || slug !== profileFor || !profile) {
+      if (strip) strip.remove();
+      strip = null;
+      return;
+    }
+    if (strip && strip.isConnected && strip.dataset.slug === slug) return;
+    const block = locateNameBlock();
+    if (!block) return;
+    if (strip) strip.remove();
+    const p = profile;
+    const box = node("div", "sfx-strip");
+    box.setAttribute("data-sfx", "");
+    box.dataset.slug = slug;
+    box.setAttribute("role", "group");
+    box.setAttribute("aria-label", `Sofix on ${p.name}`);
+
+    const top = node("div", "sfx-strip-row");
+    top.append(node("span", "sfx-cap", "SOFIX"));
+    if (typeof p.score === "number") {
+      const score = node("b", "sfx-strip-score", String(p.score));
+      score.style.setProperty("--sfx-c", colour(core.scoreLevel(p.score)));
+      top.append(score, node("span", "sfx-strip-if", p.ifStarts ? "if he starts" : "if he plays"));
+    }
+    if (typeof p.pStart === "number") {
+      const starts = node("span", "sfx-strip-starts", `${core.chanceLabel(p.pStart)} to start`);
+      top.append(starts);
+      for (const row of core.sourceRows(p)) top.append(node("span", `sfx-strip-src${row.shown ? " sfx-strip-src--shown" : ""}`, `${row.label} ${row.value === null ? "–" : core.chanceLabel(row.value)}`));
+    }
+    const said = core.verdictLine(p);
+    if (said) top.append(node("span", `sfx-strip-verdict sfx-strip-verdict--${said.tone}`, said.text));
+    box.append(top);
+
+    if (p.next.length) {
+      const games = node("div", "sfx-strip-row sfx-strip-games");
+      for (const g of p.next) {
+        const chip = node("span", "sfx-strip-game");
+        const level = core.fdrLevel(g.bucket);
+        if (level) chip.style.setProperty("--sfx-d", colour(level));
+        chip.title = `${g.opponent}, ${g.venue === "H" ? "at home" : "away"}${g.label ? ` · ${g.label}` : ""} · ${kickoffLabel(g.kickoff)}`;
+        if (g.crest) {
+          const img = node("img");
+          img.src = g.crest;
+          img.alt = "";
+          img.width = 14;
+          img.height = 14;
+          chip.append(img);
+        }
+        chip.append(node("b", "", g.code), node("span", "sfx-strip-venue", g.venue === "H" ? "v" : "@"), node("span", "sfx-strip-label", g.label || "no odds"));
+        games.append(chip);
+      }
+      box.append(games);
+    }
+    box.title = `Sofix's numbers, as on its Players page (refresh of ${new Date(p.at).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })})`;
+    block.prepend(box);
+    strip = box;
+  }
+
   // -- Guide me (dock.js) ------------------------------------------------------------------------------------------
   // The dock names the card to pick next (or to take out of a mission); it is ringed here, on Sorare's own picture, and pressing it
   // moves the dock to the next one. Nothing is picked for you: the ring only shows where to press.
@@ -1466,6 +1571,7 @@
     identify().catch(() => {}); // asks the bridge; its answer draws on a later pass
     readOdds().catch(() => {});
     wantWorth();
+    wantProfile();
     wantNumbers();
     paint();
   }
@@ -1566,6 +1672,7 @@
     reportTimer = 0;
     pageOdds.clear();
     worthBox = null;
+    strip = null;
     closePanel(false);
     document.querySelectorAll("[data-sfx]").forEach((el) => el.remove());
     document.querySelectorAll(".sfx-room").forEach((el) => el.classList.remove("sfx-room"));

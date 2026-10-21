@@ -363,6 +363,10 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     overlayWorth().then(reply);
     return true;
   }
+  if (message?.type === "overlay-profile" && typeof message.slug === "string" && /^[a-z0-9][a-z0-9-]{0,80}$/.test(message.slug)) {
+    overlayProfile(message.slug).then(reply);
+    return true;
+  }
   if (message?.type === "overlay-plan") {
     overlayPlan(fixtureOf(message.fixture), message.missions === true, message.fresh === true).then(reply);
     return true;
@@ -553,6 +557,18 @@ async function overlayWorth() {
   if (!answer.body?.worth) return { state: answer.state ?? "unreachable" };
   await chrome.storage.session.set({ [key]: { at: Date.now(), worth: answer.body.worth } });
   return { state: "ok", worth: answer.body.worth };
+}
+
+/** Sofix's line on one player's Sorare page (plans/overlay-bridge.md, B3): kept as long as the cards' numbers. */
+async function overlayProfile(slug) {
+  const key = `ov:profile:${slug}`;
+  const held = (await chrome.storage.session.get(key))[key];
+  if (held && Date.now() - held.at < OVERLAY_TTL_MS) return { state: "ok", profile: held.profile };
+  const answer = await askApp({ cards: [], players: [], profile: slug });
+  if (!answer.body) return { state: answer.state ?? "unreachable" };
+  const profile = answer.body.profile ?? null;
+  await chrome.storage.session.set({ [key]: { at: Date.now(), profile } });
+  return { state: "ok", profile };
 }
 
 async function overlayPlan(fixture = null, missions = false, fresh = false) {

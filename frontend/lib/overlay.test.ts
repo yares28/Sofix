@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { clubKey } from "./home";
-import { dockMissions, OVERLAY_CAP, OverlayRequest, overlayNumbers, overlayPlan, overlayWorth, proPlan } from "./overlay";
+import { dockMissions, OVERLAY_CAP, OverlayRequest, overlayNumbers, overlayPlan, overlayProfile, overlayWorth, proPlan } from "./overlay";
 import { prices } from "./prices";
 import type { MissionPlan, Suggestion } from "./missions";
-import type { GameOdds, GameweekPlan, Lineup, PlayCard, PlayerGame, PlayingPlayer, Plan, Sorare } from "./play";
+import type { GameOdds, GameweekPlan, Lineup, MarketPlayer, PlayCard, PlayerGame, PlayingPlayer, Plan, Sorare } from "./play";
 import type { FixtureGrid, GridCell } from "./types";
 import recordedGrid from "../e2e/fixtures/grid-response.json";
 
@@ -671,5 +671,53 @@ describe("overlayWorth: what each card of your gallery cost and is worth now (B2
   it("is asked for apart from the cards, and only answered when asked", () => {
     expect(ask({ worth: true }).worth).toBe(true);
     expect(overlayNumbers(data, grid, ask(), NOW)).not.toHaveProperty("worth");
+  });
+});
+
+describe("overlayProfile: Sofix's line on a LaLiga player's Sorare page (B3)", () => {
+  const market = (over: Partial<MarketPlayer> = {}): MarketPlayer => ({
+    slug: "pedri", name: "Pedri", pos: "MID", club: "FC Barcelona", crest: null, average: 70, projection: 60, eur: 41.5, pic: "",
+    p: 0.92, pStart: 0.85, startSource: "futbolfantasy", sources: { futbolfantasy: 0.85, sorare: 0.8 }, start: 63.4, mu: 58, x: 55,
+    ...over,
+  });
+  const simon = player({ start: 57.6, pStart: 0.9, startSource: "futbolfantasy", sources: { futbolfantasy: 0.9, sorare: 0.88 } });
+  const best = { rank: 1, lineups: [lineup("Arena · Limited", 60, [starter("unai-simon-2026-limited-12")]), lineup("Champion", 50, [starter("someone-else")])] } as unknown as Plan;
+  const data = sorare([simon], { market: [market(), market({ slug: "unai-simon", name: "Unai Simón", pos: "GK", club: "Athletic Club" })] });
+  const plan = { ...data.weeks[0]!, plans: [best] };
+
+  it("for one of yours in the plan: his score if he starts, start % with each source, yours, the lineups he is in", () => {
+    const profile = overlayProfile(data, grid, "unai-simon", { plan, planned: simon, market: data.market![1]! }, NOW);
+    expect(profile).toMatchObject({
+      name: "Unai Simón", score: 58, ifStarts: true, pStart: 0.9, startSource: "futbolfantasy",
+      sources: { futbolfantasy: 0.9, sorare: 0.88 }, yours: true, inPlan: ["Arena · Limited"],
+    });
+    expect(profile?.verdict).toMatchObject({ kind: "own" });
+    expect(profile?.next).toHaveLength(5);
+  });
+
+  it("for a LaLiga player you don't own: the Players page's numbers, and the upgrade verdict on your squad", () => {
+    const profile = overlayProfile(data, grid, "pedri", { plan, planned: null, market: data.market![0]! }, NOW);
+    expect(profile).toMatchObject({ name: "Pedri", score: 63, ifStarts: true, pStart: 0.85, yours: false, inPlan: [] });
+    expect(profile?.verdict).toEqual({ kind: "up", value: "+70", note: "on your MID" }); // no midfielder of yours: the bar is 0
+  });
+
+  it("his club's next five games from the board, with their label and colour band, soonest first", () => {
+    const next = overlayProfile(data, grid, "pedri", { plan, planned: null, market: data.market![0]! }, NOW)!.next;
+    expect(next.map((g) => [g.opponent, g.venue, g.label, g.bucket])).toEqual([
+      ["Getafe", "H", "Very favourite", 1], ["Real Betis", "A", "Favourite", 2], ["Real Madrid", "H", "Favourite", 2],
+      ["Alavés", "H", "Very favourite", 1], ["Atlético Madrid", "A", "Favourite", 2],
+    ]);
+    expect(next[0]!.kickoff).toBe("2026-10-10T16:30:00Z");
+  });
+
+  it("says nothing for a player outside LaLiga, or one Sofix holds nothing on: never zeros", () => {
+    expect(overlayProfile(data, grid, "pedri", { plan, planned: null, market: market({ club: "Bayern München" }) }, NOW)).toBeNull();
+    expect(overlayProfile(data, grid, "nobody", { plan, planned: null, market: null }, NOW)).toBeNull();
+    expect(overlayProfile(data, null, "pedri", { plan, planned: null, market: data.market![0]! }, NOW)).toBeNull();
+  });
+
+  it("is asked for by one player's slug, apart from the cards", () => {
+    expect(ask({ profile: "lamine-yamal-nasraoui-ebana" }).profile).toBe("lamine-yamal-nasraoui-ebana");
+    expect(() => ask({ profile: "Not a slug!" })).toThrow();
   });
 });

@@ -24,6 +24,27 @@ const WORTH = {
   cards: { "unai-simon-2026-limited-12": [3.02, 3.4], "pau-cubarsi-2026-rare-3": [null, 2.1], "lionel-messi-2026-limited-77": [5, 4] }, // Havertz: Sorare values him at nothing
 };
 
+// A player's Sorare page (B3): Sofix's line on him, as the app answers it (lib/overlay.ts, overlayProfile). Oblak is outside the answer.
+const PLAYER = readFileSync(path.join(__dirname, "fixtures", "sorare-player.html"), "utf8");
+const crest = (n: number) => `https://crests.football-data.org/${n}.png`;
+const PROFILES = {
+  pedri: {
+    name: "Pedri", score: 63, ifStarts: true, pStart: 0.85, startSource: "futbolfantasy", sources: { futbolfantasy: 0.85, sorare: 0.8 },
+    yours: false, inPlan: [], verdict: { kind: "up", value: "+6", note: "on your MID" }, at: "2026-10-21T06:00:00Z",
+    next: [
+      { opponent: "Getafe", code: "GET", crest: crest(82), venue: "H", kickoff: "2026-10-24T16:30:00Z", label: "Very favourite", bucket: 1 },
+      { opponent: "Real Betis", code: "BET", crest: crest(90), venue: "A", kickoff: "2026-11-01T16:30:00Z", label: "Favourite", bucket: 2 },
+      { opponent: "Real Madrid", code: "RMA", crest: crest(86), venue: "H", kickoff: "2026-11-08T20:00:00Z", label: "Underdog", bucket: 4 },
+      { opponent: "Alavés", code: "ALA", crest: crest(263), venue: "H", kickoff: "2026-11-22T15:15:00Z", label: "Very favourite", bucket: 1 },
+      { opponent: "Atlético Madrid", code: "ATL", crest: null, venue: "A", kickoff: "2026-11-29T20:00:00Z", label: "Even", bucket: 3 },
+    ],
+  },
+  "unai-simon": {
+    name: "Unai Simón", score: 58, ifStarts: true, pStart: 0.9, startSource: "futbolfantasy", sources: { futbolfantasy: 0.9 },
+    yours: true, inPlan: ["Arena · Limited"], verdict: { kind: "own", value: "In your squad", note: "you have him" }, at: "2026-10-21T06:00:00Z", next: [],
+  },
+};
+
 const uuid = (n: number) => `11111111-aaaa-4aaa-8aaa-00000000000${n}`;
 const picture = (n: number) => `https://assets.sorare.com/card/${uuid(n)}/picture/tinified-x.png`;
 
@@ -184,6 +205,8 @@ async function openPage(
   // The page answers at its address whatever the query is, as Sorare's does.
   const pageUrl = options.url ?? PAGE_URL;
   await page.route((url) => url.origin + url.pathname === pageUrl, (route) => route.fulfill({ contentType: "text/html", body: options.html ?? FIXTURE }));
+  await page.route("https://crests.football-data.org/**", (route) =>
+    route.fulfill({ contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#d33"/></svg>' }));
   await page.route("https://assets.sorare.com/**", (route) => {
     if (/\.webm/.test(route.request().url())) return route.fulfill({ status: 200, contentType: "video/webm", body: "" });
     const art =
@@ -221,6 +244,10 @@ async function openPage(
           if (message.fixture && message.fixture !== config.thisWeek) return { state: "ok", plan: { state: "none", week: 0, note: "Sofix holds nothing on this gameweek." }, missions: config.missions };
           return { state: "ok", plan: config.plan, missions: config.missions };
         }
+        if (message.type === "overlay-profile") {
+          if (config.mode !== "ok") return { state: config.mode };
+          return { state: "ok", profile: (config.profiles as Record<string, unknown>)[(message as unknown as { slug: string }).slug] ?? null };
+        }
         if (message.type === "overlay-worth") return config.mode === "ok" ? { state: "ok", worth: config.worth } : { state: config.mode };
         if (message.type === "dock-step") return config.steps[(message as unknown as { step: string }).step];
         if (message.type === "pro-rebuild") return { success: true, data: { games: 2, starters: 4, bench: 1 }, error: null };
@@ -250,7 +277,7 @@ async function openPage(
         },
       };
     },
-    { mode, overlay: options.overlay ?? true, numbers: NUMBERS, plan: options.plan ?? PLAN, missions: MISSIONS, steps: options.steps ?? SORARE_STEPS, delay: options.delay ?? 15, thisWeek: THIS_WEEK, live: options.live ?? {}, worth: WORTH },
+    { mode, overlay: options.overlay ?? true, numbers: NUMBERS, plan: options.plan ?? PLAN, missions: MISSIONS, steps: options.steps ?? SORARE_STEPS, delay: options.delay ?? 15, thisWeek: THIS_WEEK, live: options.live ?? {}, worth: WORTH, profiles: PROFILES },
   );
   for (const file of ["core.js", "bridge.js", "content.js", "overlay.js", "dock.js"]) await page.addInitScript({ path: path.join(EXTENSION, file) });
 
@@ -1288,6 +1315,44 @@ test.describe("the sorare.com overlay", () => {
     await expect(page.locator("body")).toHaveAttribute("data-answered", "yes");
     await page.waitForTimeout(600);
     await expect(page.locator(".sfx-worth, .sfx-worthbox")).toHaveCount(0);
+  });
+
+  test("on a LaLiga player's page, says above his name his score if he starts, his start % by source, his next five and the verdict", async ({ page }, testInfo) => {
+    await openPage(page, { url: "https://sorare.com/football/players/pedri/fixtures", html: PLAYER });
+    const strip = page.getByRole("group", { name: "Sofix on Pedri" });
+    await expect(strip).toBeVisible();
+    await expect(strip.locator(".sfx-strip-score")).toHaveText("63");
+    await expect(strip.locator(".sfx-strip-score")).toHaveCSS("--sfx-c", /./);
+    await expect(strip.locator(".sfx-strip-starts")).toHaveText("85% to start");
+    await expect(strip.locator(".sfx-strip-src")).toHaveText(["FF 85%", "SO 80%", "SF –"]);
+    await expect(strip.locator(".sfx-strip-verdict")).toHaveText("Upgrade +6 on your MID");
+    // The next five in the board's colours, each with its label (never a bucket number) and the opponent's crest where there is one.
+    const games = strip.locator(".sfx-strip-game");
+    await expect(games).toHaveCount(5);
+    await expect(games.first()).toHaveText("GETvVery favourite");
+    await expect(games.nth(1)).toHaveText("BET@Favourite");
+    await expect(games.first()).toHaveAttribute("title", /^Getafe, at home · Very favourite · /);
+    await expect(games.first().locator("img")).toHaveAttribute("src", crest(82));
+    await expect(games.nth(4).locator("img")).toHaveCount(0); // no crest: the code alone
+    // In Sorare's empty band above his name: under the breadcrumb row, never over the name or the Follow button.
+    const [s, h1, crumbs] = [await box(page, ".sfx-strip"), await box(page, "h1"), await box(page, ".crumbs")];
+    expect(s.bottom).toBeLessThanOrEqual(h1.top);
+    expect(s.top).toBeGreaterThanOrEqual(crumbs.bottom);
+    expect(Math.abs(s.left - h1.left)).toBeLessThan(1);
+    expect((await new AxeBuilder({ page }).include(".sfx-strip").analyze()).violations).toEqual([]);
+    await page.screenshot({ path: testInfo.outputPath("overlay-player.png") });
+  });
+
+  test("on your own player's page, says he is yours and the lineups he is in", async ({ page }) => {
+    await openPage(page, { url: "https://sorare.com/football/players/unai-simon", html: PLAYER.replaceAll("Pedri", "Unai Simón") });
+    await expect(page.locator(".sfx-strip-verdict")).toHaveText("Yours · in Arena · Limited");
+  });
+
+  test("on a player Sofix holds nothing on (outside LaLiga), draws nothing", async ({ page }) => {
+    await openPage(page, { url: "https://sorare.com/football/players/jan-oblak", html: PLAYER });
+    await expect.poll(async () => (await probe(page)).sent.some((m) => (m as { type: string }).type === "overlay-profile")).toBe(true);
+    await page.waitForTimeout(300);
+    await expect(page.locator(".sfx-strip")).toHaveCount(0);
   });
 
   test("is accessible, on desktop and on a phone", async ({ page }, testInfo) => {

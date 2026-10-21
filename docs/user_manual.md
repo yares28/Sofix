@@ -879,6 +879,9 @@ it writes to Sorare.
   ago": what it is worth now and how far that is up or down on what you paid ("now €3.40 ▲13%", or "not bought" for a crafted or won
   card). The toolbar row adds the bought cards' total ("BOUGHT, NOW €312 · paid €268 for 30 cards · ▲ €44 · +16%"), the same figures as
   Prices. Values are Sorare's at Sofix's last refresh (the hover says when). Someone else's gallery gets nothing.
+- **A player's page.** On a LaLiga player's Sorare page (any of its tabs), a strip above his name: his score if he starts, his chance
+  to start with each source (FF, SO, SF), his club's next five games in the board's colours, and "Yours · in Arena" or what he would
+  add to your squad ("Upgrade +6 on your MID"). The numbers are his Players page's. A player outside LaLiga gets nothing.
 - **Live FF reads.** While a sorare.com page is open with the overlay on, the extension reads the Futbol Fantasy match pages of
   the games its cards are about, at most once every ten minutes each, and redraws the tile and panel when a chance changed (the
   panel then says "FF live 2 min ago"). The plan's ticks, xScore and #1 to #3 ranks stay as the last run made them. Version 0.3.0

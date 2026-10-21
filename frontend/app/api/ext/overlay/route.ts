@@ -1,12 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { loadGrid } from "../../../../lib/api";
 import { authorised } from "../../../../lib/extAuth";
-import { dockMissions, OverlayRequest, overlayNumbers, overlayWorth, proPlan, withRebuild } from "../../../../lib/overlay";
+import { dockMissions, OverlayRequest, overlayNumbers, overlayProfile, overlayWorth, proPlan, withRebuild } from "../../../../lib/overlay";
 import { loadMissions } from "../../../../lib/missionsData";
 import { loadMissionPool } from "../../../../lib/missionsPool";
 import { missionsToday } from "../../../../lib/missionsToday";
 import { scoringWeek, weekPlan } from "../../../../lib/play";
-import { loadFrozenPlan, loadProRebuild, loadSorare, loadSorareWeek } from "../../../../lib/playData";
+import { loadFrozenPlan, loadPlayerForecasts, loadProRebuild, loadSorare, loadSorareWeek } from "../../../../lib/playData";
+import { planPlayer } from "../../../../lib/playerPage";
+import { weekContext } from "../../../../lib/weeks";
 
 // The numbers the Chrome extension draws on sorare.com's cards (extension/overlay.js). Which cards a page shows
 // is only ever sent here, to your own app; nothing goes to a third party. It reads the read models the app
@@ -48,5 +50,18 @@ export async function POST(request: NextRequest) {
   const rebuild = shown?.state === "ready" && planned && shown.fixture === planned.gameweek.slug ? await loadProRebuild(planned.gameweek.slug) : null;
   const plan = shown && planned?.plans[0] ? withRebuild(shown, rebuild, planned.plans[0].rank) : shown;
   const worth = parsed.data.worth ? overlayWorth(sorare) : undefined; // your gallery's prices, from the same cached read
-  return NextResponse.json({ ok: true, ...numbers, ...(plan ? { plan } : {}), ...(missions ? { missions } : {}), ...(worth ? { worth } : {}) }, { headers: NO_STORE });
+  // A player's Sorare page: read as /players/<slug> reads him for the week in the top bar (cached reads), so the two agree.
+  let profile = null;
+  if (parsed.data.profile) {
+    const slug = parsed.data.profile;
+    const week = weekContext(loaded.grid, sorare, now);
+    const forecasts = week.current?.gw ? await loadPlayerForecasts(sorare, week.current.gw) : null;
+    const planned = forecasts?.plan?.playing.players.find((p) => p.player === slug) ?? planPlayer(sorare, slug, week.current?.gw ?? sorare.nextId);
+    const market = (forecasts?.market ?? sorare.market)?.find((p) => p.slug === slug) ?? null;
+    profile = overlayProfile(sorare, loaded.grid, slug, { plan: forecasts?.plan ?? weekPlan(sorare, sorare.nextId), planned, market }, now);
+  }
+  return NextResponse.json(
+    { ok: true, ...numbers, ...(plan ? { plan } : {}), ...(missions ? { missions } : {}), ...(worth ? { worth } : {}), ...(parsed.data.profile ? { profile } : {}) },
+    { headers: NO_STORE },
+  );
 }

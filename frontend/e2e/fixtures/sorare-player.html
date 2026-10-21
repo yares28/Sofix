@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pedri – Player Profile • Sorare</title>
+<style>
+/* A stand-in for a Sorare player page (/football/players/<slug>, measured 21 Oct 2026 on Lamine Yamal's): a 450 px hero with the
+   breadcrumb row at its top, and the name block placed absolutely from 238 px to the hero's foot, its content pushed to the bottom. */
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: #0e0e0e; color: #fff; font: 14px/1.4 -apple-system, "Segoe UI", sans-serif; }
+main { padding: 0 24px; }
+.hero { position: relative; height: 450px; overflow: hidden; border-radius: 0 0 8px 8px; background: linear-gradient(120deg, #4a0f2b, #a3155a); }
+.crumbs { position: absolute; top: 16px; left: 0; right: 0; height: 40px; display: flex; justify-content: space-between; align-items: center; padding: 0 24px; font-size: 12px; font-weight: 700; }
+.crumbs button { height: 32px; padding: 0 14px; border: 0; border-radius: 16px; background: #fff; color: #0e0e0e; font-weight: 700; }
+.name { position: absolute; top: 238px; bottom: 0; left: 0; right: 0; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; }
+.name > div { padding: 0 24px 24px; }
+h1 { margin: 0; font-size: 72px; line-height: 88px; text-transform: uppercase; }
+.facts { display: flex; gap: 24px; height: 48px; align-items: center; color: #dcdce2; }
+nav { display: flex; gap: 24px; height: 48px; align-items: center; }
+nav a { color: #fff; text-decoration: none; }
+</style>
+</head>
+<body>
+<main>
+<div class="hero" id="hero">
+  <div class="crumbs"><span>FOOTBALL · PLAYERS · PEDRI</span><button type="button">Follow</button></div>
+  <div class="name" id="namebox">
+    <div>
+      <div><h1>Pedri</h1><div>#5 · MID · You own x1 card</div></div>
+      <div class="facts"><span>ESP</span><span>23 yo</span><span>Midfielder</span><span>Barcelona</span><span>LALIGA EA SPORTS</span></div>
+    </div>
+  </div>
+</div>
+<nav><a href="/football/players/pedri">Performance</a><a href="/football/players/pedri/fixtures">Fixtures</a><a href="/football/players/pedri/history">History</a></nav>
+</main>
+</body>
+</html>

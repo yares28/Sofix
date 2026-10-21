@@ -226,6 +226,20 @@
     return found ? found[1].toLowerCase() : null;
   }
 
+  /** A player's Sorare page or one of its tabs (/football/players/<slug>/fixtures, …): his slug, else null. */
+  function playerPageOf(pathname) {
+    const found = /^\/football\/players\/([a-z0-9][a-z0-9-]{0,80})(?:\/[a-z-]+){0,2}\/?$/.exec(String(pathname || ""));
+    return found ? found[1] : null;
+  }
+
+  /** The strip's last word on him: yours and the plan's lineups he is in, or what he would add to your squad (the Players page's verdict). */
+  function verdictLine(profile) {
+    if (profile.yours) return { text: profile.inPlan.length ? `Yours · in ${profile.inPlan.join(", ")}` : "Yours · not in the plan", tone: "own" };
+    const v = profile.verdict;
+    if (!v) return null;
+    return v.kind === "up" ? { text: `Upgrade ${v.value} ${v.note}`, tone: "up" } : { text: `${v.value} · ${v.note}`, tone: "flat" };
+  }
+
   const euros = (amount) => `€${amount.toFixed(2)}`;
   const tone = (amount) => (amount > 0.005 ? "up" : amount < -0.005 ? "down" : "flat"); // the Prices page's own cut-off
 
@@ -686,7 +700,7 @@
 
   root.__sofixCore = {
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, collectStartingOdds, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
-    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, galleryOf, worthLine, worthTotal, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, shapeOf, shapeBars, shapeLabels, whyRows, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
+    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, galleryOf, playerPageOf, verdictLine, worthLine, worthTotal, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, shapeOf, shapeBars, shapeLabels, whyRows, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
     isPickHeading, fixtureOf, gamesCount, fixtureLine, collectMissions, missionsRarity, missionsAsked,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;

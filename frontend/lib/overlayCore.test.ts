@@ -14,6 +14,8 @@ type Core = {
   isAvatarArt: (value: unknown) => boolean;
   normalizeCardName: (alt: unknown) => string;
   galleryOf: (pathname: unknown) => string | null;
+  playerPageOf: (pathname: unknown) => string | null;
+  verdictLine: (profile: { yours: boolean; inPlan: string[]; verdict: { kind: string; value: string; note: string } | null }) => { text: string; tone: "own" | "up" | "flat" } | null;
   worthLine: (paid: number | null, value: number) => { now: string; change: string; tone: "up" | "down" | "flat" | "free" };
   worthTotal: (w: { paid: number; worth: number; profit: number; bought: number }) => { now: string; paid: string; change: string; tone: "up" | "down" | "flat" };
   collectStartingOdds: (json: unknown) => { game: string; player: string; basisPoints: number | null; status?: string }[];
@@ -840,5 +842,25 @@ describe("your gallery's prices (B2)", () => {
     expect(core.worthTotal({ paid: 268, worth: 312, profit: 44, bought: 30 })).toEqual({ now: "€312.00", paid: "paid €268.00 for 30 cards", change: "▲ €44.00 · +16%", tone: "up" });
     expect(core.worthTotal({ paid: 100, worth: 90.5, profit: -9.5, bought: 4 })).toEqual({ now: "€90.50", paid: "paid €100.00 for 4 cards", change: "▼ €9.50 · −10%", tone: "down" });
     expect(core.worthTotal({ paid: 0, worth: 0, profit: 0, bought: 0 }).change).toBe("€0.00");
+  });
+});
+
+describe("a player's Sorare page (B3)", () => {
+  it("knows a player page and its tabs from the address, and nothing else", () => {
+    expect(core.playerPageOf("/football/players/lamine-yamal-nasraoui-ebana")).toBe("lamine-yamal-nasraoui-ebana");
+    for (const tab of ["fixtures", "history", "watchlists", "cards", "cards/sales-history"]) expect(core.playerPageOf(`/football/players/pedri/${tab}`)).toBe("pedri");
+    expect(core.playerPageOf("/football/players")).toBeNull();
+    expect(core.playerPageOf("/football/my-club/yares/cards/limited")).toBeNull();
+    expect(core.playerPageOf("/nba/players/lebron-james")).toBeNull();
+  });
+
+  it("says whether he is yours and in the plan, or what he would add to your squad", () => {
+    const own = { kind: "own", value: "In your squad", note: "you have him" };
+    expect(core.verdictLine({ yours: true, inPlan: ["Arena · Limited", "Champion"], verdict: own })).toEqual({ text: "Yours · in Arena · Limited, Champion", tone: "own" });
+    expect(core.verdictLine({ yours: true, inPlan: [], verdict: own })).toEqual({ text: "Yours · not in the plan", tone: "own" });
+    expect(core.verdictLine({ yours: false, inPlan: [], verdict: { kind: "up", value: "+6", note: "on your MID" } })).toEqual({ text: "Upgrade +6 on your MID", tone: "up" });
+    expect(core.verdictLine({ yours: false, inPlan: [], verdict: { kind: "flat", value: "+4", note: "starts 55%" } })).toEqual({ text: "+4 · starts 55%", tone: "flat" });
+    expect(core.verdictLine({ yours: false, inPlan: [], verdict: { kind: "flat", value: "level", note: "vs your GK" } })).toEqual({ text: "level · vs your GK", tone: "flat" });
+    expect(core.verdictLine({ yours: false, inPlan: [], verdict: null })).toBeNull();
   });
 });

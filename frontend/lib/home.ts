@@ -90,3 +90,23 @@ export function sideOutlook(grid: FixtureGrid): Map<string, SideOutlook> {
 export function boardHref(path: string, grid: FixtureGrid, column: number, opening: number): string {
   return column === opening ? path : `${path}?gw=${grid.matchdays[column]!.number}`;
 }
+
+export type NextGameCell = { opponent: string; code: string; crest: string | null; venue: "H" | "A"; kickoff: string; label: string | null; bucket: Bucket | null };
+
+/** A club's next five games on the board, soonest first, with the board's label and colour band; null when the club is not on it (not LaLiga). */
+export function nextFive(grid: FixtureGrid, club: string, now: Date): NextGameCell[] | null {
+  const key = clubKey(club);
+  const team = grid.teams.find((one) => clubKey(one.name) === key);
+  if (!team) return null;
+  const byCode = new Map(grid.teams.map((one) => [one.code, one]));
+  const at = now.toISOString();
+  return team.cells
+    .flat()
+    .filter((cell) => cell.status === "scheduled" && cell.kickoff_utc > at && byCode.has(cell.opponent_code))
+    .sort((a, b) => a.kickoff_utc.localeCompare(b.kickoff_utc))
+    .slice(0, 5)
+    .map((cell) => {
+      const opponent = byCode.get(cell.opponent_code)!;
+      return { opponent: opponent.name, code: opponent.code, crest: opponent.crest_url, venue: cell.venue, kickoff: cell.kickoff_utc, label: cell.prediction?.label ?? null, bucket: cell.prediction?.bucket ?? null };
+    });
+}

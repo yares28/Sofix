@@ -29,7 +29,7 @@ h1 { margin: 0 0 12px; font-size: 20px; }
   <div><button type="button">New</button></div>
   <div class="chips"><button type="button">All</button><button type="button">Reveal</button></div>
 </div>
-<div class="grid">
+<div class="grid" id="grid">
   <div class="slot" id="g-simon">
     <div class="card"><img alt="Unai Simón - limited" src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-000000000001/picture/tinified-aaa1.png"></div>
     <div class="col"><div class="price">€3.02 0.0014 ETH</div><div class="ago"><div>Bought 2 days ago</div></div></div>
@@ -50,7 +50,14 @@ setTimeout(function () {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ operationName: "LineupQuery", query: "query LineupQuery { cards { slug } }" }),
-  }).then(function (r) { return r.json(); }).then(function () { document.body.dataset.answered = "yes"; });
+  }).then(function (r) { return r.json(); }).then(function () {
+    // Drawn after the answer, as Sorare does: a picture no answer names, so only his name is known (another card of his was in the
+    // answer), and the card's own link says which card it is.
+    document.getElementById("grid").insertAdjacentHTML("beforeend", '<div class="slot" id="g-messi">'
+      + '<a class="card" href="/football/my-club/yares/cards/limited?card=lionel-messi-2026-limited-77"><img alt="Lionel Messi - limited" src="https://assets.sorare.com/card/11111111-aaaa-4aaa-8aaa-000000000009/picture/tinified-aaa9.png"></a>'
+      + '<div class="col"><div class="price">€5.00 0.0021 ETH</div><div class="ago"><div>Bought 9 days ago</div></div></div></div>');
+    document.body.dataset.answered = "yes";
+  });
 }, 250);
 </script>
 </body>

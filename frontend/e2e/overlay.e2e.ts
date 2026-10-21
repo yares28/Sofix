@@ -21,7 +21,7 @@ const GALLERY = readFileSync(path.join(__dirname, "fixtures", "sorare-gallery.ht
 const MY_GALLERY = "https://sorare.com/football/my-club/yares/cards/limited";
 const WORTH = {
   user: "yares", at: "2026-10-21T06:00:00Z", paid: 268, worth: 312, profit: 44, bought: 30,
-  cards: { "unai-simon-2026-limited-12": [3.02, 3.4], "pau-cubarsi-2026-rare-3": [null, 2.1] }, // Havertz: Sorare values him at nothing
+  cards: { "unai-simon-2026-limited-12": [3.02, 3.4], "pau-cubarsi-2026-rare-3": [null, 2.1], "lionel-messi-2026-limited-77": [5, 4] }, // Havertz: Sorare values him at nothing
 };
 
 const uuid = (n: number) => `11111111-aaaa-4aaa-8aaa-00000000000${n}`;
@@ -1272,6 +1272,7 @@ test.describe("the sorare.com overlay", () => {
     await expect(line("g-simon")).toHaveText("now €3.40▲13%");
     await expect(line("g-cubarsi")).toHaveText("now €2.10not bought");
     await expect(line("g-havertz")).toHaveCount(0); // a card Sorare does not value shows nothing
+    await expect(line("g-messi")).toHaveText("now €4.00▼20%"); // known only by his name: the card's own link says which card
     // Right under Sorare's own row, and the hover says it is Sorare's value at Sofix's refresh, with what was paid.
     await expect(page.locator("#g-simon .ago + .sfx-worth")).toHaveCount(1);
     await expect(line("g-simon")).toHaveAttribute("title", /^Sorare's value at Sofix's refresh of .+; you paid €3\.02$/);

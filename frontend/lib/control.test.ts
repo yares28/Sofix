@@ -205,7 +205,7 @@ describe("connection chain", () => {
     expect(chainOf(system([], { extension: { ...LINKED, version: "0.4.7" } }), NOW)[1]).toMatchObject({ on: true, sub: "v0.4.7 · update" });
     expect(chainOf(system([], { extension: { ...LINKED, version: "0.4.8" } }), NOW)[1]).toMatchObject({ on: true, sub: "v0.4.8 · update" });
     expect(chainOf(system([], { extension: { ...LINKED, version: "0.4.9" } }), NOW)[1]).toMatchObject({ on: true, sub: "v0.4.9 · update" });
-    expect(chainOf(system([], { extension: { ...LINKED, version: "0.4.10" } }), NOW)[1]).toMatchObject({ on: true, sub: "v0.4.10" });
+    expect(chainOf(system([], { extension: { ...LINKED, version: "0.4.11" } }), NOW)[1]).toMatchObject({ on: true, sub: "v0.4.11" });
   });
 
   it("does not call an old but recently seen extension linked", () => {

@@ -31,7 +31,7 @@ describe("extension ping", () => {
   });
 
   it("knows the newest build, which older ones still work without (they lack the live Futbol Fantasy reads, the two-game mark)", () => {
-    expect(LATEST_EXTENSION_VERSION).toBe("0.4.10");
+    expect(LATEST_EXTENSION_VERSION).toBe("0.4.11");
     expect(extensionIsLatest("0.2.3")).toBe(false);
     expect(extensionIsLatest("0.3.0")).toBe(false);
     expect(extensionIsLatest("0.3.1")).toBe(false);
@@ -56,7 +56,7 @@ describe("extension ping", () => {
     expect(extensionIsLatest("0.4.7")).toBe(false);
     expect(extensionIsLatest("0.4.8")).toBe(false);
     expect(extensionIsLatest("0.4.9")).toBe(false);
-    expect(extensionIsLatest("0.4.10")).toBe(true);
+    expect(extensionIsLatest("0.4.11")).toBe(true);
     expect(extensionIsLatest("junk")).toBe(false);
   });
 });

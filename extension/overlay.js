@@ -133,9 +133,9 @@
     const found = answer && answer.state === "ok" && answer.found ? answer.found : {};
     for (const record of due) {
       const hit = found[record.key];
-      const linked = hit && (hit.cardSlug || hit.playerSlug) ? null : slugFromLink(record.media);
+      const linked = hit && hit.cardSlug ? null : slugFromLink(record.media);
       if (hit && (hit.cardSlug || hit.playerSlug)) {
-        record.cardSlug = hit.cardSlug || null;
+        record.cardSlug = hit.cardSlug || linked; // known by name only: the card's own link still says which card it is
         record.playerSlug = hit.playerSlug || null;
         record.ident = "done";
         oddsDue = true;

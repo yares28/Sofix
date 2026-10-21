@@ -171,3 +171,39 @@ def test_stopped_collection_resumes_without_reading_completed_games(tmp_path):
     assert first["complete"] is False and calls == ["0"]
     second = data.collect(client, "PL", expected, tmp_path)
     assert second["complete"] is True and calls == ["0", "1", "2"]
+
+
+def test_missing_date_feed_game_is_checked_on_its_club_calendar():
+    import pandas as pd
+
+    table = pd.DataFrame(
+        {
+            "date": pd.to_datetime(["2024-03-09", "2024-03-13"]),
+            "home": ["Bournemouth", "Bournemouth"],
+            "away": ["Sheffield United", "Luton"],
+        }
+    )
+    base = {
+        "id": "known",
+        "date": "2024-03-09T15:00:00Z",
+        "statusTyped": "played",
+        "homeTeam": {"slug": "bournemouth-bournemouth", "name": "AFC Bournemouth"},
+        "awayTeam": {"slug": "sheffield", "name": "Sheffield United FC"},
+    }
+    replay = {
+        **base,
+        "id": "replay",
+        "date": "2024-03-13T19:30:00Z",
+        "awayTeam": {"slug": "luton", "name": "Luton Town FC"},
+        "competition": {"slug": "premier-league-gb-eng"},
+    }
+
+    def query(text, variables):
+        if "competitionGames" in text:
+            return {"competitionGames": []}
+        assert variables["club"] == "bournemouth-bournemouth"
+        return {"football": {"club": {"games": {"nodes": [replay], "pageInfo": {"hasNextPage": False}}}}}
+
+    rows, audit = data.reconcile(SimpleNamespace(query=query), "PL", [base], table)
+    assert audit["missingAfter"] == 0 and len(rows) == 2
+    assert audit["clubChecks"][0]["games"][0]["id"] == "replay"

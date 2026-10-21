@@ -69,6 +69,13 @@ query($from:ISO8601DateTime!,$to:ISO8601DateTime!){
  }}
 }
 """
+CLUB_QUERY = """
+query($club:String!,$from:ISO8601DateTime!,$to:ISO8601DateTime!){football{club(slug:$club){
+ games(first:50,startDate:$from,endDate:$to){nodes{
+ id date competition{slug} statusTyped homeGoals awayGoals homeTeam{slug name} awayTeam{slug name}
+ } pageInfo{hasNextPage}}
+}}}
+"""
 WINDOW_QUERY = """
 query($after:String){so5{so5Fixtures(first:50,after:$after,eventType:CLASSIC,sport:FOOTBALL){
  nodes{slug startDate endDate cutOffDate} pageInfo{hasNextPage endCursor}
@@ -212,7 +219,44 @@ def reconcile(
                         recovered.append({"id": game["id"], "date": game["date"], "status": game.get("statusTyped")})
         except (SorareError, ValueError, KeyError, TypeError) as error:
             errors.append(str(error)[:400])
+    # A replay can be absent from the competition feed. Verify the actual club's
+    # calendar as a second source path, preserving its response as a reproduction.
+    club_checks = []
+    for index in sorted(missing.copy()):
+        row = calendar.loc[index]
+        club_slugs = {
+            g[side]["slug"]
+            for g in identities.values()
+            for side in ("homeTeam", "awayTeam")
+            if g[side].get("slug") and club_name(g[side], known) == row["home"]
+        }
+        if len(club_slugs) != 1:
+            continue
+        day = row["date"]
+        variables = {
+            "club": next(iter(club_slugs)),
+            "from": (day - pd.Timedelta(hours=12)).isoformat() + "Z",
+            "to": (day + pd.Timedelta(hours=36)).isoformat() + "Z",
+        }
+        try:
+            page = client.query(CLUB_QUERY, variables)["football"]["club"]["games"]
+            club_checks.append(
+                {"variables": variables, "games": page.get("nodes") or [], "pageInfo": page.get("pageInfo")}
+            )
+            if (page.get("pageInfo") or {}).get("hasNextPage"):
+                raise ValueError("Club reconciliation exceeded its bounded page")
+            for game in page.get("nodes") or []:
+                if (game.get("competition") or {}).get("slug") != LEAGUES[code]:
+                    continue
+                candidates = matching(game)
+                if len(candidates) == 1 and candidates[0] in missing:
+                    identities[game["id"]] = game
+                    missing.remove(candidates[0])
+                    recovered.append({"id": game["id"], "date": game["date"], "status": game.get("statusTyped")})
+        except (SorareError, ValueError, KeyError, TypeError) as error:
+            errors.append(str(error)[:400])
     audit = {
+        "clubChecks": club_checks,
         "missingBefore": before,
         "missingAfter": len(missing),
         "recovered": recovered,

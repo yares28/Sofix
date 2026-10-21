@@ -1,0 +1,365 @@
+{
+  "keeper": {
+    "cs": [
+      -0.09984797134110628,
+      0.9000053926463943
+    ],
+    "p_save": 0.035181236673773986,
+    "dec": [
+      73.3249211356467,
+      0.0
+    ],
+    "dec0": 73.3249211356467,
+    "plain": [
+      36.87430918124025,
+      0.8650639233924152,
+      0.0
+    ],
+    "plain0": [
+      36.87430918124025,
+      0.8650639233924152
+    ],
+    "spread_dec": [
+      -12.604921135646705,
+      -10.624921135646701,
+      -8.784921135646707,
+      -7.104921135646702,
+      -6.024921135646707,
+      -5.024921135646707,
+      -4.024921135646707,
+      -3.444921135646705,
+      -1.5849211356466975,
+      -0.72492113564671,
+      0.27507886435329,
+      1.4750788643532928,
+      2.475078864353293,
+      3.3750788643532985,
+      4.975078864353293,
+      6.575078864353301,
+      8.895078864353286,
+      11.215078864353297,
+      14.77507886435329
+    ],
+    "spread_plain": [
+      -21.851602549104744,
+      -15.61112926775324,
+      -12.228534958804353,
+      -9.079781809425063,
+      -6.909977525236265,
+      -5.0473815754257885,
+      -3.6096550122932274,
+      -2.1987447512161085,
+      -0.8934326692653484,
+      0.27519522332459445,
+      1.485467727487518,
+      2.9976041084874088,
+      4.342799048053168,
+      5.929955680779872,
+      7.8271621282613,
+      9.2979044629104,
+      11.88079519720694,
+      14.754465472916756,
+      19.621294784206107
+    ],
+    "starts": 1222,
+    "through": "2025-06-30",
+    "typical": [
+      0.230935537929958,
+      1.613743793795854
+    ]
+  },
+  "outfield": {
+    "DEF": {
+      "pos": "DEF",
+      "bare": [
+        5.468793608228309,
+        17.22817259231345,
+        3.8327231147299985,
+        -1.923064432793858,
+        -1.5792284271728547,
+        -1.7404458959357958,
+        0.7956104236992221
+      ],
+      "proj": [
+        5.468793608228309,
+        17.22817259231345,
+        3.8327231147299985,
+        -1.923064432793858,
+        -1.5792284271728547,
+        -1.7404458959357958,
+        0.7956104236992221,
+        0.0
+      ],
+      "starts": 5268,
+      "through": "2025-06-30",
+      "chance": [
+        -3.7280094713188174,
+        0.14924774462449616,
+        0.20783243338215304,
+        0.07149002532535363,
+        -0.17199850661337535,
+        0.4241388952144906,
+        0.0284611208046598
+      ],
+      "gap": 31.878007056509922,
+      "sd": [
+        15.58534874813228,
+        20.310737686663554
+      ],
+      "means": [
+        0.22975826919656878,
+        1.5923311260980164,
+        1.6192149189107459,
+        0.5001898253606681,
+        0.18463088110580236,
+        46.56796190955823
+      ]
+    },
+    "MID": {
+      "pos": "MID",
+      "bare": [
+        0.04336224755930234,
+        5.175436608450997,
+        5.817166332217225,
+        -0.6328132731606416,
+        0.4399363265588713,
+        -0.9756317651808702,
+        0.8504574061214654
+      ],
+      "proj": [
+        0.04336224755930234,
+        5.175436608450997,
+        5.817166332217225,
+        -0.6328132731606416,
+        0.4399363265588713,
+        -0.9756317651808702,
+        0.8504574061214654,
+        0.0
+      ],
+      "starts": 4132,
+      "through": "2025-06-30",
+      "chance": [
+        -2.088550658333219,
+        -0.306822672739008,
+        0.3408026221118241,
+        -0.11381612183294752,
+        0.05796471055607449,
+        2.195147015412735,
+        -0.00161356307661785
+      ],
+      "gap": 31.99429501981004,
+      "sd": [
+        14.173126651668353,
+        14.655454546199815
+      ],
+      "means": [
+        0.22950798049492954,
+        1.6110974682974941,
+        1.6231182838624425,
+        0.4978218780251694,
+        0.18155460330262946,
+        46.98834823153958
+      ]
+    },
+    "FWD": {
+      "pos": "FWD",
+      "bare": [
+        -9.974621859803252,
+        -15.136000784825136,
+        5.365831462365967,
+        -3.4867909313721763,
+        -0.26497787860405503,
+        -21.952781824645513,
+        1.3860904312743925
+      ],
+      "proj": [
+        -9.974621859803252,
+        -15.136000784825136,
+        5.365831462365967,
+        -3.4867909313721763,
+        -0.26497787860405503,
+        -21.952781824645513,
+        1.3860904312743925,
+        0.0
+      ],
+      "starts": 2820,
+      "through": "2025-06-30",
+      "chance": [
+        -3.2320255365223476,
+        -1.3292702758755868,
+        0.49288932054364964,
+        -0.3614802206104913,
+        -0.18489680807753073,
+        0.4581138094827512,
+        0.05538342494253354
+      ],
+      "gap": 33.19771239042405,
+      "sd": [
+        12.628710856323703,
+        9.801840351048707
+      ],
+      "means": [
+        0.23522650211755702,
+        1.6576220031545268,
+        1.589787311504942,
+        0.5028368794326241,
+        0.20783989322572022,
+        47.38704933546561
+      ]
+    }
+  },
+  "trainingThrough": "2025-06-30",
+  "validated": true,
+  "clubs": {
+    "werder-bremen-bremen": "Werder Bremen",
+    "bayern-munchen-munchen": "Bayern Munich",
+    "hoffenheim-sinsheim": "Hoffenheim",
+    "freiburg-freiburg-im-breisgau": "Freiburg",
+    "wolfsburg-wolfsburg": "Wolfsburg",
+    "heidenheim-heidenheim-an-der-brenz": "Heidenheim",
+    "augsburg-augsburg": "Augsburg",
+    "borussia-m-gladbach-monchengladbach": "M'gladbach",
+    "bayer-leverkusen-leverkusen": "Leverkusen",
+    "rb-leipzig-leipzig": "RB Leipzig",
+    "stuttgart-stuttgart": "Stuttgart",
+    "bochum-bochum": "Bochum",
+    "borussia-dortmund-dortmund": "Dortmund",
+    "koln-koln": "FC Koln",
+    "union-berlin-berlin": "Union Berlin",
+    "mainz-05-mainz": "Mainz",
+    "eintracht-frankfurt-frankfurt-am-main": "Ein Frankfurt",
+    "darmstadt-98-darmstadt": "Darmstadt",
+    "holstein-kiel-kiel": "Holstein Kiel",
+    "st-pauli-hamburg": "St Pauli",
+    "hamburger-sv-hamburg": "Hamburg"
+  },
+  "protocol": {
+    "version": 1,
+    "trainSeasons": [
+      2023,
+      2024
+    ],
+    "holdoutSeason": 2025,
+    "scoringVersion": 7,
+    "candidate": "existing keeper/outfield architectures, independently fitted, no Sorare projection",
+    "football": "independent fixed reference, xi=.001 ridge=1 promoted=0 spread=1.10, fit strictly before Sorare lock",
+    "baseline": "own last five starts with two starts of prior at 51; league position mean also reported",
+    "ablation": "independently fitted same player-history model with FDR inputs removed; FDR must also improve this comparator",
+    "primary": "RMSE on authentic version-7 starts, same cases; paired whole-Sorare-week bootstrap 95% CI",
+    "releaseGate": "both leagues independently: >=100 holdout starts per position, RMSE difference CI upper <0 against form and no-FDR ablation, no position RMSE loss, no loss in within-7 or pair ordering",
+    "secondary": [
+      "within7",
+      "same-position within-game ranking",
+      "per-position RMSE",
+      "coverage"
+    ],
+    "bootstrapSeed": 20261021,
+    "bootstrapDraws": 2000,
+    "claim": "retrospective held-out validation, never freshly blind or proof of pre-lock historical availability",
+    "noPromotion": "collector/evaluation never enables a production model; separately inspect outcome/coverage gates first"
+  },
+  "evidence": {
+    "protocol": {
+      "version": 1,
+      "trainSeasons": [
+        2023,
+        2024
+      ],
+      "holdoutSeason": 2025,
+      "scoringVersion": 7,
+      "candidate": "existing keeper/outfield architectures, independently fitted, no Sorare projection",
+      "football": "independent fixed reference, xi=.001 ridge=1 promoted=0 spread=1.10, fit strictly before Sorare lock",
+      "baseline": "own last five starts with two starts of prior at 51; league position mean also reported",
+      "ablation": "independently fitted same player-history model with FDR inputs removed; FDR must also improve this comparator",
+      "primary": "RMSE on authentic version-7 starts, same cases; paired whole-Sorare-week bootstrap 95% CI",
+      "releaseGate": "both leagues independently: >=100 holdout starts per position, RMSE difference CI upper <0 against form and no-FDR ablation, no position RMSE loss, no loss in within-7 or pair ordering",
+      "secondary": [
+        "within7",
+        "same-position within-game ranking",
+        "per-position RMSE",
+        "coverage"
+      ],
+      "bootstrapSeed": 20261021,
+      "bootstrapDraws": 2000,
+      "claim": "retrospective held-out validation, never freshly blind or proof of pre-lock historical availability",
+      "noPromotion": "collector/evaluation never enables a production model; separately inspect outcome/coverage gates first"
+    },
+    "runnerSha256": "76e1a37fcba4f659a911e6b34a97b5c1c799b32ced31a6c478ef652a1d8849ad",
+    "caseSha256": "fea033fc2168b700c973b5fd0604b4d894b2bee285498aab4278a9e2c93ecdb5",
+    "footballConfig": {
+      "xi": 0.001,
+      "goals_weight": 0.7,
+      "ridge": 1.0,
+      "promoted_prior": 0.0,
+      "window_days": 730,
+      "max_goals": 10,
+      "spread": 1.1
+    },
+    "coverageComplete": true,
+    "cases": 6732,
+    "model": {
+      "rmse": 17.881397386999392,
+      "mae": 14.415732136715702,
+      "within7": 0.2731729055258467,
+      "pairs": 0.5964182344428365
+    },
+    "form": {
+      "rmse": 18.753817986773548,
+      "mae": 15.171459949636422,
+      "within7": 0.2647058823529412,
+      "pairs": 0.5614016952656605
+    },
+    "ablation": {
+      "rmse": 18.292520856248625,
+      "mae": 14.787457198209264,
+      "within7": 0.2648544266191325,
+      "pairs": 0.568353318172421
+    },
+    "positionMean": {
+      "rmse": 18.767021518604658,
+      "mae": 15.27896734291011,
+      "within7": 0.24554367201426025,
+      "pairs": 0.5
+    },
+    "versusForm": {
+      "difference": -0.8724205997741556,
+      "lo": -1.0587121007750104,
+      "hi": -0.6837104877826424,
+      "weeks": 36
+    },
+    "versusAblation": {
+      "difference": -0.41112346924923315,
+      "lo": -0.5800557069770764,
+      "hi": -0.24226800139835789,
+      "weeks": 36
+    },
+    "positions": {
+      "GK": {
+        "cases": 612,
+        "rmse": 18.81968680707141,
+        "formRmse": 19.877536562274564
+      },
+      "DEF": {
+        "cases": 2528,
+        "rmse": 19.333390879477864,
+        "formRmse": 20.415973656334376
+      },
+      "MID": {
+        "cases": 2156,
+        "rmse": 16.23088665753181,
+        "formRmse": 16.816120634570165
+      },
+      "FWD": {
+        "cases": 1436,
+        "rmse": 17.160240785711448,
+        "formRmse": 17.94631685205625
+      }
+    },
+    "rejectedBecause": [],
+    "passed": true,
+    "sourceSha256": "88d15822ac98a56cacb0d98f2c868f418c7679bbe8d8bed1b53735264ff66b49",
+    "historySha256": "2ca3e7cfca3efae4bc35aa3c9373d52729e40c97cfebbf430f810a2a0b3d9699",
+    "identitySha256": "75536bd0584906449ae51e9a2a886b4fe618ae3fb864e0ab443f8c7a7ab0e716",
+    "competition": "BL1"
+  }
+}

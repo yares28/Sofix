@@ -64,7 +64,11 @@ Cheapest first; each step reuses the one before it. One step per commit, each sh
 - **Code:** the endpoint adds `paid` and `value` to an owned card's entry. `overlay.js` draws the line when the address is a gallery. The
   total reuses `prices()`. The hover gives the refresh time (`sorare.generatedAt`): the value is Sorare's from the last refresh, not a
   live listing. A card Sorare does not value shows nothing.
-- **To measure first:** where Sorare's "Bought" line sits under a card on his own gallery (public galleries don't show it).
+- **Measured 21 Oct on his `/football/my-club/yares/cards/limited`** ("Show details" on): under each card a column of Sorare's price
+  row ("€3.02 0.0014 ETH") and its "Bought 2 days ago" / "Crafted 5 days ago" row; our pill goes right after that row. The toolbar row
+  (32 px: "All / Reveal" left, sort right) takes the total as one compact glass line, not the board's two-line box. The app answers
+  `worth: true` with `overlayWorth()` (whole collection, cards by slug); `sorare.user` is the account slug ("yares"), matched to the
+  gallery's address.
 - **Done when:** five cards' figures and the total match /prices.
 
 ## B3 · O3 · the player page strip

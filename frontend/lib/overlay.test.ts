@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { clubKey } from "./home";
-import { dockMissions, OVERLAY_CAP, OverlayRequest, overlayNumbers, overlayPlan, proPlan } from "./overlay";
+import { dockMissions, OVERLAY_CAP, OverlayRequest, overlayNumbers, overlayPlan, overlayWorth, proPlan } from "./overlay";
+import { prices } from "./prices";
 import type { MissionPlan, Suggestion } from "./missions";
 import type { GameOdds, GameweekPlan, Lineup, PlayCard, PlayerGame, PlayingPlayer, Plan, Sorare } from "./play";
 import type { FixtureGrid, GridCell } from "./types";
@@ -646,5 +647,29 @@ describe("dockMissions", () => {
     expect(blank.swaps).toEqual([]);
     expect(blank.sofix[0]!.chance).toBeNull(); // "No estimate", never 0%
     expect(dockMissions({ status: "stale", seenAt: null, rarity: "limited", plans: [plan(["a"], [all[1]!], all)] }).missions).toEqual([]);
+  });
+});
+
+describe("overlayWorth: what each card of your gallery cost and is worth now (B2)", () => {
+  const card = (slug: string, paid: number | null, value: number | null) =>
+    ({ slug, player: slug, name: slug, pos: "FWD", rarity: "limited", inSeason: true, level: 1, average: 50, club: null, pic: "", paid, value }) as const;
+  const collection = [card("bought-up", 3.02, 3.4), card("bought-down", 5.69, 4.2), card("crafted", null, 2.1), card("won", 0, 4.8), card("unvalued", 7, null)];
+  const data = sorare([], { user: "yares", generatedAt: "2026-10-21T06:00:00Z", collection: [...collection] });
+
+  it("answers every valued card by its slug: what you paid (null when you did not buy it) and its worth now", () => {
+    const worth = overlayWorth(data);
+    expect(worth.user).toBe("yares");
+    expect(worth.at).toBe("2026-10-21T06:00:00Z");
+    expect(worth.cards).toEqual({ "bought-up": [3.02, 3.4], "bought-down": [5.69, 4.2], crafted: [null, 2.1], won: [null, 4.8] });
+  });
+
+  it("totals the bought cards exactly as the Prices page does", () => {
+    const p = prices([...collection]);
+    expect(overlayWorth(data)).toMatchObject({ paid: p.paid, worth: p.worth, profit: p.profit, bought: p.bought.length });
+  });
+
+  it("is asked for apart from the cards, and only answered when asked", () => {
+    expect(ask({ worth: true }).worth).toBe(true);
+    expect(overlayNumbers(data, grid, ask(), NOW)).not.toHaveProperty("worth");
   });
 });

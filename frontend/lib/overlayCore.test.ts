@@ -13,6 +13,9 @@ type Core = {
   cardImageKey: (value: unknown) => string | null;
   isAvatarArt: (value: unknown) => boolean;
   normalizeCardName: (alt: unknown) => string;
+  galleryOf: (pathname: unknown) => string | null;
+  worthLine: (paid: number | null, value: number) => { now: string; change: string; tone: "up" | "down" | "flat" | "free" };
+  worthTotal: (w: { paid: number; worth: number; profit: number; bought: number }) => { now: string; paid: string; change: string; tone: "up" | "down" | "flat" };
   collectStartingOdds: (json: unknown) => { game: string; player: string; basisPoints: number | null; status?: string }[];
   collectCards: (json: unknown, limit?: number) => { key: string; cardSlug: string | null; playerSlug: string | null; name: string | null }[];
   surfaceOf: (width: number, height: number, round?: boolean) => "full" | "compact" | "skip";
@@ -814,5 +817,28 @@ describe("the daily missions", () => {
     expect(core.missionsAsked(JSON.stringify({ operationName: "Other", variables: { rarity: "rare" } }))).toBeNull();
     expect(core.missionsAsked("not json")).toBeNull();
     expect(core.missionsAsked(undefined)).toBeNull();
+  });
+});
+
+describe("your gallery's prices (B2)", () => {
+  it("knows a gallery and whose it is from the address", () => {
+    expect(core.galleryOf("/football/my-club/yares/cards/limited")).toBe("yares");
+    expect(core.galleryOf("/football/my-club/yares/cards")).toBe("yares");
+    expect(core.galleryOf("/football/my-club/yares")).toBeNull(); // the club page, not the gallery
+    expect(core.galleryOf("/football/my-club/yares/collections")).toBeNull();
+    expect(core.galleryOf("/football/players/jan-oblak/cards")).toBeNull();
+  });
+
+  it("writes each card's line like the board: worth now, then up or down on what you paid, or 'not bought'", () => {
+    expect(core.worthLine(3.02, 3.4)).toEqual({ now: "now €3.40", change: "▲13%", tone: "up" });
+    expect(core.worthLine(5.69, 4.2)).toEqual({ now: "now €4.20", change: "▼26%", tone: "down" });
+    expect(core.worthLine(4, 4)).toEqual({ now: "now €4.00", change: "level", tone: "flat" });
+    expect(core.worthLine(null, 2.1)).toEqual({ now: "now €2.10", change: "not bought", tone: "free" });
+  });
+
+  it("totals the bought cards as Prices does: worth now, what was paid, the difference", () => {
+    expect(core.worthTotal({ paid: 268, worth: 312, profit: 44, bought: 30 })).toEqual({ now: "€312.00", paid: "paid €268.00 for 30 cards", change: "▲ €44.00 · +16%", tone: "up" });
+    expect(core.worthTotal({ paid: 100, worth: 90.5, profit: -9.5, bought: 4 })).toEqual({ now: "€90.50", paid: "paid €100.00 for 4 cards", change: "▼ €9.50 · −10%", tone: "down" });
+    expect(core.worthTotal({ paid: 0, worth: 0, profit: 0, bought: 0 }).change).toBe("€0.00");
   });
 });

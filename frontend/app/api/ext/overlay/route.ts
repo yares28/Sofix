@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { loadGrid } from "../../../../lib/api";
 import { authorised } from "../../../../lib/extAuth";
-import { dockMissions, OverlayRequest, overlayNumbers, proPlan, withRebuild } from "../../../../lib/overlay";
+import { dockMissions, OverlayRequest, overlayNumbers, overlayWorth, proPlan, withRebuild } from "../../../../lib/overlay";
 import { loadMissions } from "../../../../lib/missionsData";
 import { loadMissionPool } from "../../../../lib/missionsPool";
 import { missionsToday } from "../../../../lib/missionsToday";
@@ -47,5 +47,6 @@ export async function POST(request: NextRequest) {
   const shown = pro ?? numbers.plan;
   const rebuild = shown?.state === "ready" && planned && shown.fixture === planned.gameweek.slug ? await loadProRebuild(planned.gameweek.slug) : null;
   const plan = shown && planned?.plans[0] ? withRebuild(shown, rebuild, planned.plans[0].rank) : shown;
-  return NextResponse.json({ ok: true, ...numbers, ...(plan ? { plan } : {}), ...(missions ? { missions } : {}) }, { headers: NO_STORE });
+  const worth = parsed.data.worth ? overlayWorth(sorare) : undefined; // your gallery's prices, from the same cached read
+  return NextResponse.json({ ok: true, ...numbers, ...(plan ? { plan } : {}), ...(missions ? { missions } : {}), ...(worth ? { worth } : {}) }, { headers: NO_STORE });
 }

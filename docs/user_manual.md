@@ -875,6 +875,10 @@ it writes to Sorare.
   "Old" has none, and a small lineup tile has no room for it. Hovering the row says it is Sofix's number and whose it stands on.
   **A mint ring** round the tile means Sofix and Sorare disagree on whether he starts: one says 40% or less, the other 60% or more
   (Sorare's own % is the badge at the card's foot on your Lineups page).
+- **Your gallery's prices.** On your own gallery (with Sorare's "Show details" on), each card gets a line under Sorare's "Bought 2 days
+  ago": what it is worth now and how far that is up or down on what you paid ("now €3.40 ▲13%", or "not bought" for a crafted or won
+  card). The toolbar row adds the bought cards' total ("BOUGHT, NOW €312 · paid €268 for 30 cards · ▲ €44 · +16%"), the same figures as
+  Prices. Values are Sorare's at Sofix's last refresh (the hover says when). Someone else's gallery gets nothing.
 - **Live FF reads.** While a sorare.com page is open with the overlay on, the extension reads the Futbol Fantasy match pages of
   the games its cards are about, at most once every ten minutes each, and redraws the tile and panel when a chance changed (the
   panel then says "FF live 2 min ago"). The plan's ticks, xScore and #1 to #3 ranks stay as the last run made them. Version 0.3.0

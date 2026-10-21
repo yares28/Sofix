@@ -220,6 +220,32 @@
     );
   }
 
+  /** Whose gallery a page is ("/football/my-club/yares/cards/limited" -> "yares"), or null when it is not a gallery. */
+  function galleryOf(pathname) {
+    const found = /^\/football\/my-club\/([a-z0-9][a-z0-9_-]{0,80})\/cards(?:\/[a-z_]+)?\/?$/i.exec(String(pathname || ""));
+    return found ? found[1].toLowerCase() : null;
+  }
+
+  const euros = (amount) => `€${amount.toFixed(2)}`;
+  const tone = (amount) => (amount > 0.005 ? "up" : amount < -0.005 ? "down" : "flat"); // the Prices page's own cut-off
+
+  /** A gallery card's line: its worth now, and how far that is up or down on what you paid ("not bought" for a crafted or won card). */
+  function worthLine(paid, value) {
+    const now = `now ${euros(value)}`;
+    if (paid === null) return { now, change: "not bought", tone: "free" };
+    const t = tone(value - paid);
+    const percent = Math.round((Math.abs(value - paid) / paid) * 100);
+    return { now, change: t === "up" ? `▲${percent}%` : t === "down" ? `▼${percent}%` : "level", tone: t };
+  }
+
+  /** The gallery's box: the bought cards' worth now, what they cost, and the difference, as the Prices page says them. */
+  function worthTotal(w) {
+    const t = tone(w.profit);
+    const percent = w.paid > 0 ? Math.round((Math.abs(w.profit) / w.paid) * 100) : 0;
+    const change = t === "flat" ? euros(0) : `${t === "up" ? "▲" : "▼"} ${euros(Math.abs(w.profit))} · ${t === "up" ? "+" : "−"}${percent}%`;
+    return { now: euros(w.worth), paid: `paid ${euros(w.paid)} for ${w.bought} card${w.bought === 1 ? "" : "s"}`, change, tone: t };
+  }
+
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const STATUS_WORD = { out: "Out", doubt: "Doubt", suspended: "Suspended" };
 
@@ -660,7 +686,7 @@
 
   root.__sofixCore = {
     CARD_SELECTOR, cardImageKey, isAvatarArt, normalizeCardName, collectCards, collectStartingOdds, surfaceOf, scoreLevel, SCORE_FALLBACK, SCORE_INK,
-    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, shapeOf, shapeBars, shapeLabels, whyRows, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
+    chanceLabel, ffPlayersOf, liveSplit, DOUBTFUL, OUT_CHANCE, SOURCE_SHORT, startTone, startDisagreement, startTitle, galleryOf, worthLine, worthTotal, statusNote, clockLabel, sourceRows, sorarePic, lockLabel, swapCount, stepAnswer, liveScores, composeBoard, composeSum, alreadyEntered, STRIPE, fdrLevel, driverOf, startChance, benchOnChance, comesOnScore, shapeOf, shapeBars, shapeLabels, whyRows, agoLabel, freshLabel, STALE_HOURS, staleness, topThree,
     isPickHeading, fixtureOf, gamesCount, fixtureLine, collectMissions, missionsRarity, missionsAsked,
   };
   if (typeof module === "object" && module && module.exports) module.exports = root.__sofixCore;

@@ -16,6 +16,13 @@ import { expect, test, type Page } from "@playwright/test";
 const EXTENSION = path.join(__dirname, "..", "..", "extension");
 const FIXTURE = readFileSync(path.join(__dirname, "fixtures", "sorare-cards.html"), "utf8");
 const PAGE_URL = "https://sorare.com/football/e2e/cards";
+// Your gallery (B2): the overlay draws prices only on the gallery of the account Sofix reads ("yares").
+const GALLERY = readFileSync(path.join(__dirname, "fixtures", "sorare-gallery.html"), "utf8");
+const MY_GALLERY = "https://sorare.com/football/my-club/yares/cards/limited";
+const WORTH = {
+  user: "yares", at: "2026-10-21T06:00:00Z", paid: 268, worth: 312, profit: 44, bought: 30,
+  cards: { "unai-simon-2026-limited-12": [3.02, 3.4], "pau-cubarsi-2026-rare-3": [null, 2.1] }, // Havertz: Sorare values him at nothing
+};
 
 const uuid = (n: number) => `11111111-aaaa-4aaa-8aaa-00000000000${n}`;
 const picture = (n: number) => `https://assets.sorare.com/card/${uuid(n)}/picture/tinified-x.png`;
@@ -169,13 +176,14 @@ const OLD_WEEK = "football-18-22-sep-2026";
 
 async function openPage(
   page: Page,
-  options: { mode?: Mode; overlay?: boolean; delay?: number; viewport?: { width: number; height: number }; query?: string; live?: Live; plan?: unknown; steps?: Record<string, unknown> } = {},
+  options: { mode?: Mode; overlay?: boolean; delay?: number; viewport?: { width: number; height: number }; query?: string; live?: Live; plan?: unknown; steps?: Record<string, unknown>; url?: string; html?: string } = {},
 ) {
   const mode = options.mode ?? "ok";
   if (options.viewport) await page.setViewportSize(options.viewport);
 
   // The page answers at its address whatever the query is, as Sorare's does.
-  await page.route((url) => url.origin + url.pathname === PAGE_URL, (route) => route.fulfill({ contentType: "text/html", body: FIXTURE }));
+  const pageUrl = options.url ?? PAGE_URL;
+  await page.route((url) => url.origin + url.pathname === pageUrl, (route) => route.fulfill({ contentType: "text/html", body: options.html ?? FIXTURE }));
   await page.route("https://assets.sorare.com/**", (route) => {
     if (/\.webm/.test(route.request().url())) return route.fulfill({ status: 200, contentType: "video/webm", body: "" });
     const art =
@@ -213,6 +221,7 @@ async function openPage(
           if (message.fixture && message.fixture !== config.thisWeek) return { state: "ok", plan: { state: "none", week: 0, note: "Sofix holds nothing on this gameweek." }, missions: config.missions };
           return { state: "ok", plan: config.plan, missions: config.missions };
         }
+        if (message.type === "overlay-worth") return config.mode === "ok" ? { state: "ok", worth: config.worth } : { state: config.mode };
         if (message.type === "dock-step") return config.steps[(message as unknown as { step: string }).step];
         if (message.type === "pro-rebuild") return { success: true, data: { games: 2, starters: 4, bench: 1 }, error: null };
         if (message.type !== "overlay-numbers") return undefined;
@@ -241,11 +250,11 @@ async function openPage(
         },
       };
     },
-    { mode, overlay: options.overlay ?? true, numbers: NUMBERS, plan: options.plan ?? PLAN, missions: MISSIONS, steps: options.steps ?? SORARE_STEPS, delay: options.delay ?? 15, thisWeek: THIS_WEEK, live: options.live ?? {} },
+    { mode, overlay: options.overlay ?? true, numbers: NUMBERS, plan: options.plan ?? PLAN, missions: MISSIONS, steps: options.steps ?? SORARE_STEPS, delay: options.delay ?? 15, thisWeek: THIS_WEEK, live: options.live ?? {}, worth: WORTH },
   );
   for (const file of ["core.js", "bridge.js", "content.js", "overlay.js", "dock.js"]) await page.addInitScript({ path: path.join(EXTENSION, file) });
 
-  await page.goto(PAGE_URL + (options.query ?? ""));
+  await page.goto(pageUrl + (options.query ?? ""));
   await page.addStyleTag({ path: path.join(EXTENSION, "overlay.css") });
 }
 
@@ -1255,6 +1264,29 @@ test.describe("the sorare.com overlay", () => {
 
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(pill(page)).toBeHidden();
+  });
+
+  test("on your gallery, says under Sorare's Bought line what each card is worth now, and totals the bought cards", async ({ page }, testInfo) => {
+    await openPage(page, { url: MY_GALLERY, html: GALLERY });
+    const line = (id: string) => page.locator(`#${id} .sfx-worth`);
+    await expect(line("g-simon")).toHaveText("now €3.40▲13%");
+    await expect(line("g-cubarsi")).toHaveText("now €2.10not bought");
+    await expect(line("g-havertz")).toHaveCount(0); // a card Sorare does not value shows nothing
+    // Right under Sorare's own row, and the hover says it is Sorare's value at Sofix's refresh, with what was paid.
+    await expect(page.locator("#g-simon .ago + .sfx-worth")).toHaveCount(1);
+    await expect(line("g-simon")).toHaveAttribute("title", /^Sorare's value at Sofix's refresh of .+; you paid €3\.02$/);
+    // The bought cards' total sits in the toolbar row, between Sorare's chips and its sort, as the Prices page says it.
+    const box = page.locator("#toolbar > .sfx-worthbox");
+    await expect(box).toHaveText("BOUGHT, NOW€312.00paid €268.00 for 30 cards▲ €44.00 · +16%");
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    await page.screenshot({ path: testInfo.outputPath("overlay-gallery.png") });
+  });
+
+  test("on someone else's gallery, draws no prices at all", async ({ page }) => {
+    await openPage(page, { url: "https://sorare.com/football/my-club/gabssg/cards/limited", html: GALLERY });
+    await expect(page.locator("body")).toHaveAttribute("data-answered", "yes");
+    await page.waitForTimeout(600);
+    await expect(page.locator(".sfx-worth, .sfx-worthbox")).toHaveCount(0);
   });
 
   test("is accessible, on desktop and on a phone", async ({ page }, testInfo) => {

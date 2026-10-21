@@ -5,6 +5,7 @@ import { appearances, type Appearance } from "./apply";
 import type { MissionPlan } from "./missions";
 import type { MissionsStatus } from "./missionsToday";
 import type { Bucket, FixtureGrid } from "./types";
+import { prices } from "./prices";
 
 /**
  * What the sorare.com overlay draws on a card (extension/overlay.js): the numbers Sofix already has for the
@@ -29,6 +30,8 @@ export const OverlayRequest = z
     plan: z.boolean().optional(),
     /** Also answer with today's missions (the dock's Missions tab), never with the cards. */
     missions: z.boolean().optional(),
+    /** Also answer with what each card of the gallery cost and is worth now (your gallery page, plans/overlay-bridge.md B2). */
+    worth: z.boolean().optional(),
     /**
      * The Sorare gameweek the page's address names ("football-25-29-sep-2026"), when it names one: the cards on it are
      * about that gameweek, so it is that gameweek's numbers that are answered. Without it, the one being planned.
@@ -186,6 +189,23 @@ export type DockAlarm = {
 export type DockPick = { slug: string; name: string; pic: string; chance: number | null };
 export type DockMission = { id: string; title: string; reward: string | null; picks: number; yours: DockPick[]; sofix: DockPick[]; swaps: { out: DockPick; in: DockPick }[] };
 export type DockMissions = { status: MissionsStatus; seenAt: string | null; rarity: string; missions: DockMission[] };
+
+/**
+ * Your gallery's prices for the overlay (plans/overlay-bridge.md, B2): each valued card by its slug, [what you paid, its worth now]
+ * (paid null for a card you did not buy, crafted or won), the bought cards' totals as the Prices page has them, whose gallery it is
+ * (the Sorare account the job reads) and when Sorare's values were read. A card Sorare does not value is left out.
+ */
+export type OverlayWorth = { user: string; at: string; paid: number; worth: number; profit: number; bought: number; cards: Record<string, [number | null, number]> };
+
+export function overlayWorth(sorare: Sorare): OverlayWorth {
+  const collection = sorare.collection ?? [];
+  const p = prices(collection);
+  const cards: OverlayWorth["cards"] = {};
+  for (const card of collection) {
+    if (typeof card.value === "number") cards[card.slug] = [typeof card.paid === "number" && card.paid > 0 ? card.paid : null, card.value];
+  }
+  return { user: sorare.user, at: sorare.generatedAt, paid: p.paid, worth: p.worth, profit: p.profit, bought: p.bought.length, cards };
+}
 
 export type OverlayAnswer = {
   /** The Sorare gameweek these numbers are for. */

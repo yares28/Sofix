@@ -1278,13 +1278,131 @@
       try {
         if (placeTile(read)) again = true;
         if (placeOdds(read)) again = true;
+        placeWorth(read);
       } catch {
         // one card that will not take a tile must not stop the others
       }
     }
     if (again) schedule();
+    try {
+      placeWorthBox();
+    } catch {
+      // the box is a nicety: a page it does not fit keeps everything else
+    }
     showGuide();
     report();
+  }
+
+  // -- your gallery's prices (plans/overlay-bridge.md, B2) ----------------------------------------------------------
+  // On your own gallery (its address names the Sorare account Sofix reads), a line under Sorare's "Bought 2 days ago" row: what the
+  // card is worth now and how far that is up or down on what you paid; and the bought cards' total, as the Prices page has it, in the
+  // toolbar row. Someone else's gallery gets nothing. Nothing is asked for until a gallery is open, then at most once a minute.
+
+  let worth = null;
+  let worthAskedAt = 0;
+  let worthBox = null;
+  let toolbarAt = 0;
+
+  const myGallery = () => {
+    const owner = core.galleryOf(location.pathname);
+    return Boolean(owner && worth && owner === String(worth.user || "").toLowerCase());
+  };
+
+  function wantWorth() {
+    if (!core.galleryOf(location.pathname) || worth || now() - worthAskedAt < 60000) return;
+    worthAskedAt = now();
+    try {
+      chrome.runtime.sendMessage({ type: "overlay-worth" }, (reply) => {
+        if (chrome.runtime.lastError || !reply || reply.state !== "ok" || !reply.worth) {
+          void chrome.runtime.lastError;
+          return;
+        }
+        worth = reply.worth;
+        schedule();
+      });
+    } catch {
+      // the extension was reloaded under this page: nothing to draw
+    }
+  }
+
+  const refreshed = () => {
+    const at = worth && new Date(worth.at);
+    return at && !Number.isNaN(at.getTime()) ? at.toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "the last refresh";
+  };
+
+  const AGO = /^[A-Z][a-z]+ .{1,30} ago$/;
+  /** Sorare's "Bought 2 days ago" / "Crafted 5 days ago" row under a card, found by what it says inside the card's own block. */
+  function locateAgo(media) {
+    const width = media.getBoundingClientRect().width;
+    let scope = media.parentElement;
+    // On his gallery (21 Oct 2026) the row is 7 levels above the picture, in a block as wide as the card.
+    for (let level = 0; level < 10 && scope && scope !== document.body; level += 1, scope = scope.parentElement) {
+      if (scope.querySelectorAll(core.CARD_SELECTOR).length > 2 || scope.getBoundingClientRect().width > width * 1.5) return null; // past this card's own block
+      for (const el of scope.querySelectorAll("div, span, p")) {
+        if (el.children.length || el.closest("[data-sfx]") || !AGO.test(el.textContent.trim())) continue;
+        return el.parentElement;
+      }
+    }
+    return null;
+  }
+
+  function removeWorth(record) {
+    if (record.worthEl) record.worthEl.remove();
+    record.worthEl = null;
+    record.worthSig = "";
+  }
+
+  function placeWorth(read) {
+    const { record } = read;
+    const said = myGallery() && record.cardSlug ? worth.cards[record.cardSlug] : null;
+    if (!said) return removeWorth(record);
+    if (!record.worthRow || !record.worthRow.isConnected) record.worthRow = locateAgo(record.media);
+    const row = record.worthRow;
+    if (!row) return removeWorth(record);
+    const [paid, value] = said;
+    const line = core.worthLine(paid, value);
+    const sig = `${line.now}|${line.change}|${worth.at}`;
+    if (record.worthEl && record.worthEl.isConnected && record.worthEl.previousElementSibling === row && record.worthSig === sig) return;
+    removeWorth(record);
+    const el = node("span", "sfx-worth");
+    el.setAttribute("data-sfx", "");
+    el.title = `Sorare's value at Sofix's refresh of ${refreshed()}${paid === null ? "" : `; you paid €${paid.toFixed(2)}`}`;
+    el.append(node("span", "", line.now), node("b", `sfx-worth--${line.tone}`, line.change));
+    row.after(el);
+    record.worthEl = el;
+    record.worthSig = sig;
+  }
+
+  /** The row that holds Sorare's "All / Reveal" and its sort: the box sits between them. Looked for at most once a second. */
+  function locateToolbar() {
+    if (now() - toolbarAt < 1000) return null;
+    toolbarAt = now();
+    const reveal = [...document.querySelectorAll("button, a, div, span")].find((el) => el.children.length <= 2 && el.textContent.trim() === "Reveal" && !el.closest("[data-sfx]"));
+    for (let row = reveal && reveal.parentElement, level = 0; row && row !== document.body && level < 6; row = row.parentElement, level += 1) {
+      const style = getComputedStyle(row);
+      if (style.display === "flex" && style.justifyContent === "space-between" && row.children.length >= 2) return row;
+    }
+    return null;
+  }
+
+  function placeWorthBox() {
+    if (!myGallery()) {
+      if (worthBox) worthBox.remove();
+      worthBox = null;
+      return;
+    }
+    if (worthBox && worthBox.isConnected) return;
+    const row = locateToolbar();
+    if (!row) return;
+    const t = core.worthTotal(worth);
+    const box = node("div", "sfx-worthbox");
+    box.setAttribute("data-sfx", "");
+    box.setAttribute("role", "group");
+    box.setAttribute("aria-label", `Your bought cards are worth ${t.now} now; ${t.paid}; ${t.change}`);
+    box.title = `As on Sofix's Prices page; Sorare's values at Sofix's refresh of ${refreshed()}`;
+    box.append(node("span", "sfx-cap", "BOUGHT, NOW"), node("b", "sfx-worthbox-now", t.now), node("span", "", t.paid), node("b", `sfx-worth--${t.tone}`, t.change));
+    row.children[0].after(box);
+    worthBox = box;
   }
 
   // -- Guide me (dock.js) ------------------------------------------------------------------------------------------
@@ -1347,6 +1465,7 @@
     }
     identify().catch(() => {}); // asks the bridge; its answer draws on a later pass
     readOdds().catch(() => {});
+    wantWorth();
     wantNumbers();
     paint();
   }
@@ -1446,6 +1565,7 @@
     clearTimeout(reportTimer);
     reportTimer = 0;
     pageOdds.clear();
+    worthBox = null;
     closePanel(false);
     document.querySelectorAll("[data-sfx]").forEach((el) => el.remove());
     document.querySelectorAll(".sfx-room").forEach((el) => el.classList.remove("sfx-room"));

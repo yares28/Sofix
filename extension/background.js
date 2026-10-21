@@ -359,6 +359,10 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     overlayNumbers(message.cards, message.players, fixtureOf(message.fixture)).then(reply);
     return true;
   }
+  if (message?.type === "overlay-worth") {
+    overlayWorth().then(reply);
+    return true;
+  }
   if (message?.type === "overlay-plan") {
     overlayPlan(fixtureOf(message.fixture), message.missions === true, message.fresh === true).then(reply);
     return true;
@@ -540,6 +544,17 @@ async function ffRead(wanted) {
  * The gameweek's plan (and with `missions`, today's missions), for the dock: the one the page's address names, or the one being planned when it names none. Asked for
  * only by the dock, and kept as long as the numbers, one answer per gameweek (a page about GW21 once showed GW20's).
  */
+/** Your gallery's prices (plans/overlay-bridge.md, B2): one ask, kept for this browser session as long as the other numbers. */
+async function overlayWorth() {
+  const key = "ov:worth";
+  const held = (await chrome.storage.session.get(key))[key];
+  if (held && Date.now() - held.at < OVERLAY_TTL_MS) return { state: "ok", worth: held.worth };
+  const answer = await askApp({ cards: [], players: [], worth: true });
+  if (!answer.body?.worth) return { state: answer.state ?? "unreachable" };
+  await chrome.storage.session.set({ [key]: { at: Date.now(), worth: answer.body.worth } });
+  return { state: "ok", worth: answer.body.worth };
+}
+
 async function overlayPlan(fixture = null, missions = false, fresh = false) {
   const key = `ov:plan:${fixture || "now"}${missions ? ":m" : ""}`;
   const held = (await chrome.storage.session.get(key))[key];

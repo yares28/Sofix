@@ -238,7 +238,7 @@ def test_skip_migrations_checks_the_schema_and_records_why_it_stopped(session_fa
     assert run.status == "failed" and run.error.startswith("schema check failed: RuntimeError: database is at abc")
 
 
-def test_failed_predict_keeps_the_previous_predictions(session_factory):
+def test_failed_predict_keeps_the_previous_predictions(session_factory, tmp_path):
     """A step that raises mid-way leaves the last good predictions in place (nothing half-replaced)."""
     from app.jobs import predict
     from app.jobs.seed_and_sync import sync
@@ -273,7 +273,9 @@ def test_failed_predict_keeps_the_previous_predictions(session_factory):
     def step():
         db = session_factory()
         try:
-            return predict.predict_upcoming(db, datetime.now(UTC), load=offline)
+            return predict.predict_upcoming(
+                db, datetime.now(UTC), cache_dir=str(tmp_path), load=offline
+            )  # no saved CSVs either
         finally:
             db.close()
 

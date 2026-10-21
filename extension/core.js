@@ -79,12 +79,12 @@
   function collectStartingOdds(json, limit = 40000) {
     if (!json || json.errors?.length) return [];
     const found = [];
-    const stack = [{ node: json, player: null, game: null }];
+    const stack = [{ node: json, player: null, game: null, status: null }];
     const gameId = (id) => typeof id === "string" && /^Game:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     const slug = (s) => typeof s === "string" && /^[a-z0-9-]{1,160}$/.test(s);
     let visited = 0;
     while (stack.length && visited++ < limit) {
-      const { node, player: inheritedPlayer, game: inheritedGame } = stack.pop();
+      const { node, player: inheritedPlayer, game: inheritedGame, status: inheritedStatus } = stack.pop();
       if (!node || typeof node !== "object") continue;
       if (node.errors?.length) continue;
       const scoped = Object.hasOwn(node, "anyPlayerGameStats") || typeof node.slug === "string";
@@ -94,15 +94,18 @@
       const player = person ? (slug(person.slug) ? person.slug : null) : inheritedPlayer;
       const match = gameId(node.id) ? node : (Object.hasOwn(node, "anyPlayerGameStats") || Object.hasOwn(node, "footballPlayingStatusOdds")) ? (node.anyGame ?? node.game) : null;
       const game = match ? (gameId(match.id) ? match.id : null) : inheritedGame;
+      // "scheduled" or "played" when the answer says (the Lineups page does): after kickoff Sorare's number says what happened.
+      const said = match && (match.statusTyped ?? match.status);
+      const status = match ? (typeof said === "string" ? said.toLowerCase() : null) : inheritedStatus;
       if (player && game && Object.hasOwn(node, "footballPlayingStatusOdds")) {
         const odds = node.footballPlayingStatusOdds;
         const n = odds?.starterOddsBasisPoints;
         if (odds === null || n === null || (Number.isInteger(n) && n >= 0 && n <= 10000)) {
-          found.push({ game, player, basisPoints: n ?? null });
+          found.push({ game, player, basisPoints: n ?? null, ...(status ? { status } : {}) });
         }
       }
       for (const [key, child] of Object.entries(node)) {
-        if (child && typeof child === "object") stack.push({ node: child, player: ["anyPlayer", "player"].includes(key) ? (slug(child.slug) ? child.slug : null) : player, game });
+        if (child && typeof child === "object") stack.push({ node: child, player: ["anyPlayer", "player"].includes(key) ? (slug(child.slug) ? child.slug : null) : player, game, status });
       }
     }
     return found;

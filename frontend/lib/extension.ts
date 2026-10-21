@@ -24,8 +24,9 @@ export const REQUIRED_EXTENSION_VERSION = "0.1.1";
  0.4.5 reads your Arcade board, common cards, gems, essence and common missions for the Arcade page (plans/set.md, step 1).
  0.4.6: a start % says on hover that it is Sofix's, and a mint ring marks a player Sofix and Sorare disagree on (plans/overlay-bridge.md, B1).
  0.4.7 reads Sorare's own start % on the Lineups page too (a lineup slot names the player on its card), so the ring shows there.
+ 0.4.8: no ring for a game already started or played, where Sorare's % says what happened instead of what it expects.
  */
-export const LATEST_EXTENSION_VERSION = "0.4.7";
+export const LATEST_EXTENSION_VERSION = "0.4.8";
 
 /** Chrome manifest versions are numeric dot-separated values; compare them without relying on string ordering. */
 export function extensionAtLeast(version: string, minimum = REQUIRED_EXTENSION_VERSION): boolean {

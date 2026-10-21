@@ -13,7 +13,7 @@ type Core = {
   cardImageKey: (value: unknown) => string | null;
   isAvatarArt: (value: unknown) => boolean;
   normalizeCardName: (alt: unknown) => string;
-  collectStartingOdds: (json: unknown) => { game: string; player: string; basisPoints: number | null }[];
+  collectStartingOdds: (json: unknown) => { game: string; player: string; basisPoints: number | null; status?: string }[];
   collectCards: (json: unknown, limit?: number) => { key: string; cardSlug: string | null; playerSlug: string | null; name: string | null }[];
   surfaceOf: (width: number, height: number, round?: boolean) => "full" | "compact" | "skip";
   scoreLevel: (score: number | null) => "veryLow" | "low" | "mediumLow" | "medium" | "mediumHigh" | "high" | null;
@@ -427,6 +427,7 @@ describe("the start row", () => {
 
   it("reads Sorare's own start % off a game's answer and off a lineup slot on the Lineups page", () => {
     const GAME = "Game:6db6314b-e913-4760-84e3-5ab27e9c226f";
+    const PLAYED = "Game:6db6314b-e913-4760-84e3-5ab27e9c2270";
     const odds = (n: number) => ({ footballPlayingStatusOdds: { starterOddsBasisPoints: n } });
     // A game's own answer: each score names its player.
     expect(core.collectStartingOdds({ data: { anyGame: { id: GAME, playerGameScores: [{ anyPlayer: { slug: "a" }, anyPlayerGameStats: odds(3000) }] } } })).toEqual([
@@ -436,15 +437,16 @@ describe("the start row", () => {
     const lineup = {
       data: { currentUser: { board: { myCurrentStep: { myLineups: [{ taskAppearances: [
         { anyCard: { slug: "johan-andres-mojica-palacio-2026-limited-219", anyPlayer: { slug: "johan-andres-mojica-palacio" } },
-          eligiblePlayerGameScores: [{ id: "So5Score:1", anyGame: { id: GAME }, anyPlayerGameStats: { id: "s", ...odds(4000) } }] },
+          eligiblePlayerGameScores: [{ id: "So5Score:1", anyGame: { id: GAME, statusTyped: "scheduled" }, anyPlayerGameStats: { id: "s", ...odds(4000) } }] },
         { anyCard: { slug: "david-soria-solis-2026-limited-1", anyPlayer: { slug: "david-soria-solis" } },
-          eligiblePlayerGameScores: [{ id: "So5Score:2", anyGame: { id: GAME }, anyPlayerGameStats: { id: "t", ...odds(9000) } }] },
+          eligiblePlayerGameScores: [{ id: "So5Score:2", anyGame: { id: PLAYED, statusTyped: "played" }, anyPlayerGameStats: { id: "t", ...odds(0) } }] },
       ] }] } } } },
     };
     expect(core.collectStartingOdds(lineup)).toEqual(
       expect.arrayContaining([
-        { game: GAME, player: "johan-andres-mojica-palacio", basisPoints: 4000 },
-        { game: GAME, player: "david-soria-solis", basisPoints: 9000 },
+        { game: GAME, player: "johan-andres-mojica-palacio", basisPoints: 4000, status: "scheduled" },
+        // A game already played says what happened (0%: he did not start); the bridge leaves it out of the ring.
+        { game: PLAYED, player: "david-soria-solis", basisPoints: 0, status: "played" },
       ]),
     );
     expect(core.collectStartingOdds(lineup)).toHaveLength(2);

@@ -367,14 +367,15 @@
 
   /**
    * Sorare's own start chance for each of `players`, as this tab's answers carried it in the last 15 minutes (the badge at a card's
-   * foot). Only a player with one game among them is answered: with two, which one a tile is about is not known here.
+   * foot). Only a player with one game among them is answered: with two, which one a tile is about is not known here. A game the
+   * answer calls started or played is left out: Sorare's number then says what happened, not what it expects.
    */
   function odds(players) {
     const wanted = new Set(Array.isArray(players) ? players.slice(0, 200) : []);
     const games = new Map(); // player -> game -> basis points
     for (const [key, row] of startingOdds) {
       if (Date.now() - row.observedAt >= 15 * 60000) { startingOdds.delete(key); continue; }
-      if (!wanted.has(row.player)) continue;
+      if (!wanted.has(row.player) || (row.status && row.status !== "scheduled")) continue;
       if (!games.has(row.player)) games.set(row.player, new Map());
       games.get(row.player).set(row.game, row.basisPoints);
     }

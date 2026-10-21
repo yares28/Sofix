@@ -47,6 +47,46 @@ sits in the live one; 7. an original look that shows the steps and the predictio
 Not saved anywhere: the page reads this in the browser each visit (Neon rules), so there is no `set` read model.
 Pack odds (`slotGameplayTierOdds`, one call per pack slot) are read in step 5, where they are used.
 
+## Step 2, start chances: plan with the multi-competition expansion (21 Oct 2026)
+
+**Where the expansion stands.** `plans/multi-competition-expansion.md` lives only in the Codex worktree
+`~/.codex/worktrees/7e4a` (uncommitted, baseline `b023591`). It is research: no model approved, no app work authorised,
+8 to 12 focused weeks for six competitions (LaLiga, PL, Bundesliga, CL, EL, Conference) plus cups. Its start-% part is
+P6 (P6.2 "attach lineup evidence to canonical matches", P6.4 "generalize forecasts carefully") and research tasks R2/R4
+("timestamped pre-lock start evidence" for every competition). None of it is built. **Ligue 1 is not in its scope**, and
+it has no Sorare start evidence outside LaLiga (R0.7: zero timestamped paired forecasts for the new leagues).
+
+**What Arcade needs is already there in Sorare.** Seen 21 Oct on his Arcade step 1 compose page
+(`/football/play/boards/pro/football-glitch-chapter-1/<step>/compose-team`): every card tile carries Sorare's start %,
+and the page's own answer holds it per game and player. The goalkeeper bench alone gave 23 players in 20 games, all
+with a number, and the games are each club's **next game in any competition** (Real Madrid–Leipzig CL, LASK–Real
+Sociedad Conference, Lille–Galatasaray, Stuttgart–Marseille), not only its league. The extension's reader
+(`collectStartingOdds`, plan A of [sorare-start-chances.md](sorare-start-chances.md)) already picks these up and saves
+them as `sorare_chances:<game>` with the time seen. Each other position loads when its tab on the page is opened.
+
+**So step 2 does not wait for the expansion, and it feeds it:**
+
+- 2a. **Board games.** Add `CareerBoard.pickableGames(fromDate, toDate)` (game, kick-off, which of his cards play) to
+  the Arcade read: the page then knows each card's next game. Query checked against the schema before use.
+- 2b. **Read Arcade's start %**, one button on `/arcade` (the same deal as "Read the round", plan C): the extension opens
+  the current step's compose page in a background tab, opens each position (GK, DEF, MID, FWD), lets Sorare's page
+  load, and closes it. What it shows is saved through A. His own visits to that page save it too, with no click.
+- 2c. **Show it.** `/arcade` reads the saved rows only for the games in 2a (one small bounded read, never polled) and
+  puts Sorare's % on each card. A card without one says "no start % yet". LaLiga cards also show Futbol Fantasy's and
+  Sofix's, as Lineups does.
+- 2d. **No Sofix number outside LaLiga.** Sofix's own start % is fitted on LaLiga only (expansion P6.4 is what would
+  widen it, after validation), so for Premier League, Bundesliga, Ligue 1 and European games Arcade uses Sorare's %
+  and nothing else. Never a made-up rate.
+- 2e. **For the expansion.** The saved rows are per canonical Sorare game and player with the time they were seen,
+  which is the timestamped pre-lock start evidence R2/R4 ask for, now for PL, Bundesliga, Ligue 1 and every European
+  game Arcade cards play. The Audit's "who starts" already scores the Sorare source once games settle.
+- Cost: about 1 KB per game read; Arcade adds a few dozen games a week. No new job, no polling.
+
+Owner, 21 Oct: **yes to the 2b button**; **Ligue 1 stays out of the expansion** (Arcade uses Sorare's % for it).
+
+Acceptance (his machine): after 2b, every card whose game Sorare gives a % shows it on `/arcade` with the Sorare tab
+closed; a 0% shows as 0%; a card in two games this week shows each game's own number; the saved rows match the tiles.
+
 ## Not confirmed (guides only, or not found)
 
 - Step targets 260 / 300 / 360 / 400 / 440 and step 6 **460 or 480** (two guides disagree). The extension can read the real ones.

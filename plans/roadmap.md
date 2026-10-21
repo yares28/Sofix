@@ -16,6 +16,10 @@ and a check, so a session can work through it alone and stop only where you have
 
 Work from the top. Each line points to its full text; "you" items wait for the owner.
 
+OB. **The overlay as a bridge** ([overlay-bridge.md](overlay-bridge.md), first by the owner, 21 Oct): fix the red backend CI, then
+   B1 start % on your entered lineups, B2 worth now in your gallery, B3 Sofix's line on a player page, B4 the market's "LaLiga starters"
+   switch, B5 search and B6 compare in the dock, B7 free competitions not entered yet; one extension release and Reload at the end.
+
 L2. **Audit xScore: a fair yardstick** ([lineups-and-xscore.md](lineups-and-xscore.md) Phase 4), **research kept only if the replay says so** (Phase 5), **Pro levels** (Phase 6).
 
 -2. **Neon: keep one free project enough** (AGENTS.md "Neon projects"): Sofix B burned ~750 MB a day from 14 to 19 Oct, so

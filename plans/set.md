@@ -2,7 +2,7 @@
 
 Status: **research and design only, nothing built.** Upgrades U1–U6 added and the owner's answers recorded 21 Oct (bottom of this file). **Step 1 shipped 21 Oct**:
 `/arcade` reads the board, cards, gems, essence and common missions (extension 0.4.5). **Step 2 shipped 21 Oct**: each card shows Sorare's start % for its next games (extension 0.4.9). **Step 3 shipped 21 Oct** (extension 0.4.12): predicted
-score per card and Pick teams. **Step 4 shipped 21 Oct**: Pick a day. **Step 5 shipped 21 Oct** (extension 0.4.14): best pack; next is step 6.
+score per card and Pick teams. **Step 4 shipped 21 Oct**: Pick a day. **Step 5 shipped 21 Oct** (extension 0.4.14): best pack. **Step 6 shipped 21 Oct**: live lineups, dead and cut losses; next is step 7.
 Design canvas: https://claude.ai/artifact/NcPHzXynH6oHiVLeTg3BFG (private, sample numbers, real common-card art).
 
 ## What the owner asked (20 Oct 2026)
@@ -138,6 +138,18 @@ the edition is added the same way, to be checked on his first lineup with a Shin
   Essence and gems only buy packs, so one best pick: the pack he can afford now that gives the most new players.
 - Missions: the daily Missions > Common panel as Sorare gives it, with a gems column; a mission without a gem amount shows a dash.
   On 21 Oct the panel held two LaLiga Common streaks (essence) and no Decisive Picker.
+
+## Step 6, live (shipped 21 Oct 2026)
+
+- "Your lineups on Sorare": every entered lineup not cancelled and not finished, read through his tab (`SofixArcadeLineups`, one
+  small question), refreshed by a button and every 2 minutes only while one of its games is live and the page is in front. Never Neon.
+- A card has played 115 minutes after kick-off, is live before that, else still to play (Sorare's lineup read has no game status).
+  Points = his score × Sorare's multiplier for that card (`TaskAppearance.bonus`, captain and club included).
+- Ceiling = points so far + each card still able to score at his best of his last 15 played games × his multiplier. **Dead** when the
+  ceiling misses the target; a card still to play with no past games leaves the ceiling open (never called dead on a guess).
+- Chance left: the cards still to play simulated as in a plan, the live ones as they stand. **Cut losses** (cancel on Sorare, a life)
+  only while Sorare lets it be cancelled (`forfeitable`) and its cards still to play raise the next planned lineup of their day by more
+  than this one's chance left. Seen 21 Oct on his waiting step-1 lineup: 0 of 260, 40% chance left, at most 517.
 
 ## Not confirmed (guides only, or not found)
 

@@ -6,6 +6,7 @@ import {
   type Arcade, type ArcadeCard, type ArcadeChances, type ArcadeExtras, type ArcadeGame, type ArcadeLaLiga, type ArcadeRead, type ArcadeStep, type ArcadeWalk,
 } from "../../lib/arcade";
 import type { Outlook } from "../../lib/arcadePlan";
+import ArcadeLive from "./ArcadeLive";
 import ArcadePacks from "./ArcadePacks";
 import ArcadePlanner, { Prediction, StartLabel } from "./ArcadePlanner";
 
@@ -258,6 +259,7 @@ function Loaded({ arcade, unread, laliga }: { arcade: Arcade; unread: string[]; 
           : extras === null ? `Predictions need extension ${ARCADE_PLAN_VERSION}: reload it on chrome://extensions. Until then cards are scored on nothing.`
           : extras.unread.length ? `Not read this time: ${extras.unread.join(", ")}.` : null}
       </p>
+      {ready ? <ArcadeLive arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} /> : null}
       {ready ? <ArcadePlanner arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} /> : null}
       <ArcadePacks arcade={arcade} />
       <Cards cards={arcade.cards} games={arcade.games} chances={chances} outlooks={outlooks} />

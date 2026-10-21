@@ -27,7 +27,8 @@ export type ArcadeCard = {
   /** Sorare's edition multiplier (SkinEdition.bonus): 1 for Standard, 1.05 for +5%; null when it gives none. */
   bonus: number | null;
 };
-export type ArcadeAppearance = { slug: string | null; player: string | null; name: string | null; captain: boolean; score: number | null; locked: boolean; kickoff: string | null };
+/** A card in an entered lineup. `bonus` is Sorare's multiplier for it (1.52 for a captain with a +2% club); `game` its game id. */
+export type ArcadeAppearance = { slug: string | null; player: string | null; name: string | null; captain: boolean; score: number | null; locked: boolean; kickoff: string | null; bonus: number | null; game: string | null };
 export type ArcadeLineup = { id: string; state: string; score: number | null; cancelled: boolean; live: boolean; updatable: boolean; forfeitable: boolean; draft: boolean; cards: ArcadeAppearance[] };
 export type ArcadePack = { slug: string; title: string; price: number; currency: string; cards: number; canBuy: boolean; league: string | null };
 export type ArcadeStep = {
@@ -157,7 +158,8 @@ const Appearance = z.object({
   locked: z.boolean(),
   anyCard: opt(z.object({ slug: s })),
   player: opt(z.object({ slug: s, displayName: s })),
-  game: opt(z.object({ date: opt(s) })),
+  bonus: opt(n),
+  game: opt(z.object({ id: opt(s), date: opt(s) })),
 });
 const LineupsData = z.object({
   currentUser: z.object({
@@ -294,13 +296,8 @@ export function rewardLabel(reward: Reward): string {
   }
 }
 
-/** Sorare's four answers turned into one model. Null when the main read is not usable (signed out, or a shape we do not know). */
-export function parseArcade(arcade: unknown, lineups: unknown, missions: unknown, cardPages: unknown[], gamePages: unknown[] = []): Arcade | null {
-  const main = ArcadeData.safeParse(arcade);
-  if (!main.success || !main.data.currentUser || !main.data.cardSet.currentSet) return null;
-  const set = main.data.cardSet.currentSet;
-  const user = main.data.currentUser;
-
+/** Your lineups on each step, by step id, from Sorare's answer to SofixArcadeLineups (exported for the live refresh). */
+export function parseLineups(lineups: unknown): Map<string, ArcadeLineup[]> {
   const lineupsByStep = new Map<string, ArcadeLineup[]>();
   const readLineups = LineupsData.safeParse(lineups);
   for (const step of readLineups.success ? readLineups.data.currentUser?.setBoard?.steps ?? [] : []) {
@@ -321,9 +318,22 @@ export function parseArcade(arcade: unknown, lineups: unknown, missions: unknown
         score: a.score ?? null,
         locked: a.locked,
         kickoff: a.game?.date ?? null,
+        bonus: a.bonus ?? null,
+        game: a.game?.id ?? null,
       })),
     })));
   }
+  return lineupsByStep;
+}
+
+/** Sorare's four answers turned into one model. Null when the main read is not usable (signed out, or a shape we do not know). */
+export function parseArcade(arcade: unknown, lineups: unknown, missions: unknown, cardPages: unknown[], gamePages: unknown[] = []): Arcade | null {
+  const main = ArcadeData.safeParse(arcade);
+  if (!main.success || !main.data.currentUser || !main.data.cardSet.currentSet) return null;
+  const set = main.data.cardSet.currentSet;
+  const user = main.data.currentUser;
+
+  const lineupsByStep = parseLineups(lineups);
 
   const board = user.setBoard;
   const steps: ArcadeStep[] = [...(board?.steps ?? [])].sort((a, b) => a.level - b.level).map((step, index) => ({
@@ -678,4 +688,10 @@ export async function readPackOdds(slots: number): Promise<PackOdds | "outdated"
     answers.push(answer.data.data);
   }
   return answers.length ? parsePackOdds(answers) : null;
+}
+
+/** Live: your lineups again, from your Sorare tab (one small question). Null when Sorare did not answer. */
+export async function readArcadeLineups(): Promise<Map<string, ArcadeLineup[]> | null> {
+  const answer = Answer.safeParse(await askExtension({ type: "sorare", step: "arcade-lineups" }, 25_000));
+  return answer.success && answer.data.state === "ok" ? parseLineups(answer.data.data) : null;
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { outlookOf, parseBonuses, parsePackOdds, parsePast, parseProjections, type ArcadeCard, type ArcadeGame } from "./arcade";
-import { bestLineup, bigReward, chanceOf, lifeAdvice, likelyRange, newPlayers, planDay, predicted, rankPacks, simulate, type Lineup, type Outlook } from "./arcadePlan";
+import { bestLineup, bigReward, chanceOf, cutLosses, lifeAdvice, likelyRange, liveLineup, newPlayers, planDay, predicted, rankPacks, simulate, type Lineup, type Outlook } from "./arcadePlan";
 
 const GAME: ArcadeGame = { id: "Game:1", kickoff: "2026-10-24T14:00:00Z", status: "scheduled", competition: { slug: "laliga-es", name: "LaLiga" }, home: { slug: "home", name: "Home" }, away: { slug: "away", name: "Away" } };
 const card = (player: string, positions: string[], bonus: number | null = 1): ArcadeCard => ({
@@ -174,5 +174,34 @@ describe("the best pack", () => {
       { playerOdds: [{ probabilityBasisPoint: 2500, player: { slug: "a" } }] }, { playerOdds: [{ probabilityBasisPoint: 7500, player: { slug: "b" } }] },
     ]])) }] } } } });
     expect(parsePackOdds([answer([0, 1]), answer([2])])).toEqual({ p: [{ a: 0.25, b: 0.75 }, { a: 0.25, b: 0.75 }, { a: 0.25, b: 0.75 }] });
+  });
+});
+
+describe("a lineup while it plays", () => {
+  const NOW = Date.parse("2026-10-24T18:00:00Z");
+  const played = "2026-10-24T14:00:00Z", playing = "2026-10-24T17:30:00Z", later = "2026-10-24T20:00:00Z";
+  const known = (slug: string | null) => (slug ? outlook(slug, ["Forward"], 50, 1, [40, 50, 60]) : null);
+  const card = (slug: string, score: number | null, kickoff: string, bonus = 1) => ({ slug, name: slug, score, kickoff, bonus });
+
+  it("counts played and live cards with Sorare's multiplier, and the rest at their best past score for the ceiling", () => {
+    const v = liveLineup([card("a", 50, played, 1.5), card("b", 20, playing), card("c", null, later)], 200, known, NOW);
+    expect(v.cards.map((c) => c.state)).toEqual(["played", "live", "to play"]);
+    expect(v.now).toBe(95);
+    expect(v.ceiling).toBe(95 + 40 + 60);
+    expect(v.dead).toBe(true);
+    expect(v.chance).toBe(0);
+  });
+  it("is alive while the ceiling reaches the target, with the chance its cards still to play bring", () => {
+    const v = liveLineup([card("a", 50, played), card("c", null, later)], 100, known, NOW);
+    expect(v.dead).toBe(false);
+    expect(v.chance).toBeCloseTo(2 / 3, 1); // he needs 50 of 40 / 50 / 60
+  });
+  it("never calls a lineup dead when a card still to play has no past games", () => {
+    expect(liveLineup([card("a", 10, played), card("x", null, later)], 400, () => null, NOW).dead).toBe(false);
+  });
+  it("suggests cutting losses only when cancelling is allowed and the other lineup gains more than this one has left", () => {
+    expect(cutLosses({ chance: 0.1 }, 0.2, true)).toBe(true);
+    expect(cutLosses({ chance: 0.3 }, 0.2, true)).toBe(false);
+    expect(cutLosses({ chance: 0 }, 0.2, false)).toBe(false);
   });
 });

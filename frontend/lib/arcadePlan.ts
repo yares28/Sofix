@@ -280,3 +280,35 @@ export function rankPacks(packs: Omit<PackPick, "fresh" | "affordable">[], odds:
     .map((p) => ({ ...p, fresh: newPlayers(odds[p.slug]!, owned), affordable: can(p) }))
     .sort((a, b) => Number(b.affordable) - Number(a.affordable) || b.fresh - a.fresh);
 }
+
+/** A game lasts about 115 minutes: after that its card has played (Sorare counts the score 5 minutes later). */
+const GAME_MS = 115 * 60_000;
+export type LiveCard = { slug: string | null; name: string; state: "played" | "live" | "to play"; points: number; best: number | null; outlook: Outlook | null; bonus: number };
+export type LiveVerdict = { cards: LiveCard[]; now: number; ceiling: number; dead: boolean; chance: number };
+
+/**
+ * An entered lineup while it plays. Points so far = each played or live card's score × Sorare's multiplier for it. Its ceiling adds, for
+ * every card still able to score, his best score of his last games he played (his own record, never a guess); with no record the
+ * ceiling stays open. Dead when even the ceiling misses the target. Chance left: the cards still to play simulated as for a plan
+ * (start % and past games), the live ones counted as they stand.
+ */
+export function liveLineup(cards: { slug: string | null; name: string | null; score: number | null; kickoff: string | null; bonus: number | null }[], target: number, outlookOf: (slug: string | null) => Outlook | null, now: number): LiveVerdict {
+  const live: LiveCard[] = cards.map((c) => {
+    const start = c.kickoff ? Date.parse(c.kickoff) : NaN;
+    const state = !Number.isFinite(start) || now < start ? "to play" : now < start + GAME_MS ? "live" : "played";
+    const bonus = c.bonus ?? 1;
+    const outlook = outlookOf(c.slug);
+    const past = outlook?.past ?? [];
+    return { slug: c.slug, name: c.name ?? "?", state, points: state === "to play" ? 0 : (c.score ?? 0) * bonus, best: past.length ? Math.max(...past) * bonus : null, outlook, bonus };
+  });
+  const sum = live.reduce((total, c) => total + c.points, 0);
+  const open = live.some((c) => c.state !== "played" && c.best === null);
+  const ceiling = open ? Infinity : sum + live.reduce((total, c) => total + (c.state === "played" ? 0 : Math.max(0, c.best! - c.points)), 0);
+  const dead = ceiling < target;
+  const toPlay = live.filter((c) => c.state === "to play" && c.outlook);
+  const totals = toPlay.length ? simulate(toPlay.map((c) => ({ outlook: { ...c.outlook!, bonus: c.bonus - 1 }, captain: false })), 0) : [0];
+  return { cards: live, now: sum, ceiling, dead, chance: dead ? 0 : chanceOf(totals, target - sum) };
+}
+
+/** Cut losses = cancel (it costs the life a miss would): only when its cards still to play add more to another planned lineup than it has left. */
+export const cutLosses = (verdict: Pick<LiveVerdict, "chance">, gain: number, cancellable: boolean) => cancellable && gain > verdict.chance;

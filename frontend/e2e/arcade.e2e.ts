@@ -53,13 +53,13 @@ test.beforeEach(async ({ page, request }) => {
   await offline(page);
 });
 
-const withExtension = (page: Page) => page.addInitScript((answers) => {
+const withExtension = (page: Page, answers: Record<string, unknown> = ANSWERS) => page.addInitScript((answers) => {
   Object.defineProperty(window, "chrome", { configurable: true, value: { runtime: { sendMessage(_id: string, message: { type: string; step?: string }, reply: (answer: unknown) => void) {
     if (message.type === "ping") return reply({ ok: true, version: "0.4.14", sorareUser: "owner", appReachable: true });
     if (message.type === "read-arcade") return reply({ ok: true, state: "ok", players: 1, games: 1 });
     reply({ ok: true, state: "ok", step: message.step, data: answers[message.step ?? ""] });
   } } } });
-}, ANSWERS);
+}, answers);
 
 test("Arcade shows the step you are on, its target, reward and lineups left, your gems, essence and set cards", async ({ page }) => {
   await withExtension(page);
@@ -159,4 +159,26 @@ test("Packs: on a click, the pack you can afford with the most players you do no
   // Silver always gives "new" (1.0); Bronze gives him half the time (0.5) and needs 1,000 essence, of 3,200.
   await expect(page.locator(".arc-best")).toContainText("Open Silver (10 gems): 1.0 players you do not have yet");
   await expect(page.locator(".arc-table tbody tr")).toHaveCount(2);
+});
+
+test("a lineup on Sorare that cannot reach its target says it is dead, and cut losses when its cards help the next lineup more", async ({ page }) => {
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  const yesterday = new Date(Date.now() - 86_400_000).toISOString();
+  const appearance = (slug: string, player: string, name: string, score: number, date: string) => ({ captain: false, score, locked: date === yesterday, bonus: 1, anyCard: { slug }, player: { slug: player, displayName: name }, game: { id: date === yesterday ? "Game:00000000-0000-0000-0000-000000000000" : GAME, date } });
+  const cards = ANSWERS["arcade-cards"] as { currentUser: { cards: { nodes: Record<string, unknown>[] } } };
+  await withExtension(page, {
+    ...ANSWERS,
+    // One more goalkeeper, free: with the lineup's cards still to play he makes the next lineup possible.
+    "arcade-cards": { currentUser: { cards: { ...cards.currentUser.cards, nodes: [...cards.currentUser.cards.nodes, { slug: "c7", pictureUrl: null, anyPositions: ["Goalkeeper"], cardSet: { slug: "glitch" }, skinEdition: { bonus: 1, skinName: "Standard" }, anyPlayer: { slug: "gk2", displayName: "Keeper Seven" }, anyTeam: { slug: "club", name: "Club" } }] } } },
+    "arcade-past": { players: [...SQUAD.map(([, player]) => player), "gk2"].map((slug) => ({ slug, playerGameScores: [50, 60, 70].map((score) => ({ score, anyPlayerGameStats: { minsPlayed: 90 } })) })) },
+    "arcade-lineups": { currentUser: { setBoard: { steps: [{ id: "Tasks::Task:bf7e7356-70a2-4ff6-864f-112fa18e2bef", myLineups: [{ __typename: "TaskLineup", id: "l1", draft: false, aasmState: "READY", score: 10, forfeitable: true, hasLiveGames: false, updatable: false,
+      // The keeper played (10 pts); four still to play, each at most 70 (his best): 10 + 280 = 290, short of 300.
+      taskAppearances: [appearance("c2", "gk", "Keeper Two", 10, yesterday), appearance("c3", "d", "Defender Three", 0, KICKOFF), appearance("c4", "m", "Midfielder Four", 0, KICKOFF), appearance("c5", "m2", "Midfielder Five", 0, KICKOFF), appearance("c6", "f2", "Forward Six", 0, KICKOFF)] }] }] } } },
+  });
+  await page.goto("/arcade");
+  const live = page.locator(".arc-live-list > li");
+  await expect(live).toContainText("10 of 300 pts");
+  await expect(live).toContainText("Dead: even at their best its cards cannot reach 300");
+  await expect(live).toContainText("Cut losses:");
+  await expect(page.locator(".arc-plan")).toContainText("cannot fill a lineup from your free cards"); // his cards in that lineup are not planned again
 });

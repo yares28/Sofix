@@ -121,3 +121,16 @@
 .arc-table td:nth-child(n+3), .arc-table th:nth-child(n+3) { text-align: right; font-variant-numeric: tabular-nums; }
 .arc-table tr.is-off td { color: var(--ink-3); }
 .arc-packs .arc-read-box { margin-top: 0; }
+/* Step 6: live */
+.arc-live { margin-top: 24px; }
+.arc-live h2 { font-size: var(--text-md); margin: 0; }
+.arc-small { font: inherit; font-size: var(--text-sm); border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 6px 14px; min-height: 36px; cursor: pointer; }
+.arc-small:disabled { opacity: 0.6; cursor: default; }
+.arc-live-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.arc-live-list > li { background: var(--surface); box-shadow: var(--shadow-card); border-radius: 16px; padding: 14px 16px; display: grid; gap: 8px; }
+.arc-live-list > li.is-dead { outline: 2px solid var(--amber-ink, #8a5a00); }
+.arc-dead { color: var(--amber-ink, #8a5a00); }
+.arc-live-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 16px; font-size: var(--text-sm); }
+.arc-live-cards li { display: flex; justify-content: space-between; gap: 8px; color: var(--ink); }
+.arc-live-cards li span:last-child { color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.arc-live-cards li[data-state="live"] span:last-child { color: var(--accent); font-weight: 600; }

@@ -701,6 +701,21 @@ The editor shows card images, years and copy numbers where recorded. Your picks 
 
 **Reconcile Sorare history** reads archived pickers from the same task group through the extension, bounded to the last 61 days and 200 dated tasks per rarity. It restores available source selections and verdicts without recreating old forecasts. Undated or unavailable tasks remain unknown and can be corrected manually. The public schema accepts these reads; final parity with your signed-in Sorare account requires reloading the extension and trying an import.
 
+## 10b. Arcade — Sorare's free common-card board
+
+**Arcade** in the top bar (and the phone's bottom bar) climbs Sorare's free board with your current set's commons. Everything is
+read in your browser from your signed-in Sorare tab (extension 0.4.14 or later); nothing is entered or cancelled on Sorare.
+
+- **The top** says the step you are on and its target, your gems, essence and cards, and the board's six steps with lives left.
+- **Your lineups on Sorare**: each lineup you entered while it plays, its points, its chance left, **Dead** when even its cards' best
+  scores cannot reach the target, and **Cut losses** when cancelling it (a life, as a miss) helps the next planned lineup more.
+- **Plan · Pick a day**: the day's lineups in the order they settle, each at the step it lands on, no card twice, and **Play today**
+  or **Hold** for a better day. **Pick teams**: choose games, Sofix builds the lineup with the best chance at the step you aim at.
+- A card's number = Sorare's projection (else his average when he plays) × his start % × Sorare's bonuses (edition + club + captain),
+  with the range he scored in 6 of his last 10 games he played. "No start % yet" cards count as starting.
+- **Read Arcade's start %** saves Sorare's start % from its own lineup page. **Work out the best pack** reads Sorare's odds and names
+  the pack you can afford that gives the most players you do not have yet. Missions show Sorare's daily Common panel.
+
 ## 10. Players
 
 ![LaLiga player search and squad-upgrade comparison](images/players.png)

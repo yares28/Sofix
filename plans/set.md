@@ -2,7 +2,7 @@
 
 Status: **research and design only, nothing built.** Upgrades U1–U6 added and the owner's answers recorded 21 Oct (bottom of this file). **Step 1 shipped 21 Oct**:
 `/arcade` reads the board, cards, gems, essence and common missions (extension 0.4.5). **Step 2 shipped 21 Oct**: each card shows Sorare's start % for its next games (extension 0.4.9). **Step 3 shipped 21 Oct** (extension 0.4.12): predicted
-score per card and Pick teams. **Step 4 shipped 21 Oct**: Pick a day. **Step 5 shipped 21 Oct** (extension 0.4.14): best pack. **Step 6 shipped 21 Oct**: live lineups, dead and cut losses; next is step 7.
+score per card and Pick teams. **Step 4 shipped 21 Oct**: Pick a day. **Step 5 shipped 21 Oct** (extension 0.4.14): best pack. **Step 6 shipped 21 Oct**: live lineups, dead and cut losses. **Step 7 shipped 21 Oct**: Arcade in the top bar, white and Night, manual and roadmap.
 Design canvas: https://claude.ai/artifact/NcPHzXynH6oHiVLeTg3BFG (private, sample numbers, real common-card art).
 
 ## What the owner asked (20 Oct 2026)

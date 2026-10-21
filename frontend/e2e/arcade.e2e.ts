@@ -64,7 +64,7 @@ const withExtension = (page: Page, answers: Record<string, unknown> = ANSWERS) =
 test("Arcade shows the step you are on, its target, reward and lineups left, your gems, essence and set cards", async ({ page }) => {
   await withExtension(page);
   await page.goto("/arcade");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Step 2 of 2");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Step 2 of 2 · 300 pts");
   const step = page.locator(".arc-step.is-current");
   await expect(step).toContainText("300 pts");
   await expect(step).toContainText("10 gems");
@@ -144,10 +144,15 @@ test("Pick a day plans the day's lineups at the step they land on, no card twice
   await expect(page.locator(".arc-advice")).toContainText("Play today.");
   expect(await smallText(page, 11)).toEqual([]);
   if (process.env.ARCADE_PLAN_SHOT) {
-    await page.locator(".arc-plan").screenshot({ path: `${process.env.ARCADE_PLAN_SHOT}-day-1440.png` });
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.locator(".arc-plan").screenshot({ path: `${process.env.ARCADE_PLAN_SHOT}-day-390.png` });
-    expect(await smallText(page, 10)).toEqual([]);
+    for (const theme of ["light", "dark"]) {
+      await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), theme);
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.screenshot({ path: `${process.env.ARCADE_PLAN_SHOT}-${theme}-1440.png`, fullPage: true });
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.screenshot({ path: `${process.env.ARCADE_PLAN_SHOT}-${theme}-390.png`, fullPage: true });
+      expect(await smallText(page, 10)).toEqual([]);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+    }
   }
 });
 

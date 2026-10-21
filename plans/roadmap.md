@@ -560,6 +560,14 @@ the held-out weeks (P9 "The bar").
 
 ## Results
 
+**21 Oct 2026 · Arcade, steps 3 to 7 ([set.md](set.md); extension 0.4.12 and 0.4.14).** `/arcade` predicts each common card's score
+(projection or form × start % × Sorare's added bonuses, club bonus read per club), plans a day's lineups in settle order at the step each
+lands on with the play-or-hold rule, builds the best lineup from games you pick, follows your entered lineups live (dead, cut losses), works
+out the best pack from Sorare's odds, and sits in the top bar as Arcade, in white and Night. Checked: 27 unit tests for the rules, 8
+browser tests, the page at 1440 and 390 px in both themes, and on your account: predictions and Pick a day (three step-1 lineups, 64 to
+76%), your waiting lineup live (40% left). Not seen: the best pack on your account (needs the 0.4.14 Reload), a dead lineup or cut losses
+on a real game, and an edition bonus inside a real lineup (Sorare's adding is confirmed for club + captain only).
+
 **20 Oct 2026 · Load from Sorare, step 1: Pro rebuilt on the announced elevens ([load-from-sorare.md](load-from-sorare.md); extension
 0.4.2).** Play's Pro lineups get a "Load from Sorare" button: the app reads the elevens (Sorare's public API, 60 s cache) and starts
 `pro-rebuild.yml`, which rebuilds the plan's Pro lineups from the saved forecasts with the bench rule and publishes `pro_rebuild`, shown

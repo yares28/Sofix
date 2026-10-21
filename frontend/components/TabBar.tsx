@@ -42,6 +42,7 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="M8.5 15h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </>
   ),
+  "/arcade": <path d="M3.5 18.5h4v-4h4v-4h4v-4h3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />,
   "/audit": (
     <>
       <circle cx="11" cy="11" r="7.5" fill="none" stroke="currentColor" strokeWidth="1.8" />

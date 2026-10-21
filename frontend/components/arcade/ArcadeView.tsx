@@ -27,19 +27,17 @@ const WHY: Record<Exclude<ArcadeRead["state"], "ok" | "outdated" | "failed">, st
 
 function StepRow({ step, current }: { step: ArcadeStep; current: boolean }) {
   const lineups = step.lineups;
+  const done = step.state === "CLAIMED" || step.state === "CLAIMABLE";
   return (
-    <li className={`arc-step${current ? " is-current" : ""}`} data-state={step.state}>
-      <span className="arc-level">{step.number}</span>
-      <div className="arc-step-main">
-        <strong>{step.target.toLocaleString("en-GB")} pts</strong>
-        {step.originalTarget !== null && step.originalTarget !== step.target ? <s>{step.originalTarget}</s> : null}
-        <span className="arc-reward">{step.rewards.length ? step.rewards.join(" + ") : "no reward"}</span>
-      </div>
-      <div className="arc-step-side">
-        <span className="arc-state">{step.state.toLowerCase().replaceAll("_", " ")}</span>
-        {lineups ? <span>{lineups.remaining} of {lineups.max} lineups left · {lineups.pending} waiting · {lineups.locked} locked</span> : null}
-        {step.entered.length ? <span>{step.entered.length} lineup{step.entered.length > 1 ? "s" : ""} entered</span> : null}
-      </div>
+    <li className={`arc-step${current ? " is-current" : ""}${done ? " is-done" : ""}`} data-state={step.state} aria-current={current ? "step" : undefined}>
+      <span className="arc-level">{done ? "✓" : step.number}</span>
+      <strong>{step.target.toLocaleString("en-GB")} pts{step.originalTarget !== null && step.originalTarget !== step.target ? <s> {step.originalTarget}</s> : null}</strong>
+      <span className="arc-reward">{step.rewards.length ? step.rewards.join(" + ") : "no reward"}</span>
+      {current && lineups ? (
+        <span className="arc-lives">
+          <span aria-hidden="true">{"●".repeat(lineups.remaining)}{"○".repeat(Math.max(0, lineups.max - lineups.remaining))}</span> {lineups.remaining} of {lineups.max} lineups left{lineups.pending ? ` · ${lineups.pending} waiting` : ""}
+        </span>
+      ) : null}
     </li>
   );
 }
@@ -201,38 +199,28 @@ function Loaded({ arcade, unread, laliga }: { arcade: Arcade; unread: string[]; 
     <>
       <header className="arc-hero">
         <p className="arc-kicker">{arcade.set.name} · ends {madrid(arcade.set.end)}</p>
-        <h1>{current === null ? "No step started" : `Step ${current}`}{arcade.board ? ` of ${arcade.board.steps.length}` : ""}</h1>
-        <dl className="arc-wallet">
-          <div><dt>Gems</dt><dd>{count(arcade.gems)}</dd></div>
-          <div><dt>Essence</dt><dd>{count(arcade.essence)}</dd></div>
-          <div><dt>{arcade.set.name} commons</dt><dd>{arcade.cards.length.toLocaleString("en-GB")}{arcade.cardsCut ? "+" : ""}</dd></div>
-        </dl>
+        <div className="arc-hero-top">
+          <h1>{current === null ? "No step started" : `Step ${current}`}{arcade.board ? ` of ${arcade.board.steps.length}` : ""}{step && current !== null ? <span> · {step.target.toLocaleString("en-GB")} pts</span> : null}</h1>
+          <dl className="arc-wallet">
+            <div><dt>Gems</dt><dd>{count(arcade.gems)}</dd></div>
+            <div><dt>Essence</dt><dd>{count(arcade.essence)}</dd></div>
+            <div><dt>{arcade.set.name} commons</dt><dd>{arcade.cards.length.toLocaleString("en-GB")}{arcade.cardsCut ? "+" : ""}</dd></div>
+          </dl>
+        </div>
+        {arcade.board ? (
+          <ol className="arc-steps" aria-label="Your board">
+            {arcade.board.steps.map((s) => <StepRow key={s.id} step={s} current={s.number === current} />)}
+          </ol>
+        ) : <p className="arc-note">Sorare has no set board for this account yet.</p>}
       </header>
       {unread.length ? <p className="arc-note" role="status">Not read this time: {unread.join(", ")}.</p> : null}
-      {arcade.board ? (
-        <section aria-label="Your board">
-          <ol className="arc-steps">
-            {arcade.board.steps.map((step) => <StepRow key={step.id} step={step} current={step.number === current} />)}
-          </ol>
-        </section>
-      ) : <p className="arc-note">Sorare has no set board for this account yet.</p>}
-      <section aria-labelledby="arc-missions-title" className="arc-missions">
-        <h2 id="arc-missions-title">Today&apos;s common missions</h2>
-        {arcade.missions.length ? (
-          <ul>
-            {arcade.missions.map((m) => (
-              <li key={m.id}>
-                <strong>{m.title ?? m.kind}</strong>
-                {m.description ? <span>{m.description}</span> : null}
-                <span>{m.rewards.filter((r) => !r.endsWith(" gems")).join(" + ") || "—"}</span>
-                <span>gems: {m.rewards.find((r) => r.endsWith(" gems"))?.replace(" gems", "") ?? "—"}</span>
-                {m.progress !== null && m.target !== null ? <span>{m.progress} of {m.target}</span> : null}
-                {m.picks !== null ? <span>{m.picks}{m.maxPicks !== null ? ` of ${m.maxPicks}` : ""} picked</span> : null}
-              </li>
-            ))}
-          </ul>
-        ) : <p>Sorare has no common mission for you today.</p>}
-      </section>
+      <p className="arc-read-state" role="status">
+        {extras === "reading" ? "Reading projections, past scores and club bonuses from Sorare…"
+          : extras === null ? `Predictions need extension ${ARCADE_PLAN_VERSION}: reload it on chrome://extensions. Until then cards are scored on nothing.`
+          : extras.unread.length ? `Not read this time: ${extras.unread.join(", ")}.` : null}
+      </p>
+      {ready ? <ArcadeLive arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} /> : null}
+      {ready ? <ArcadePlanner arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} /> : null}
       <section className="arc-read" aria-label="Sorare's start %">
         <p>
           {arcade.games === null ? "Sorare did not give the board's games, so start % cannot be matched to cards."
@@ -254,14 +242,24 @@ function Loaded({ arcade, unread, laliga }: { arcade: Arcade; unread: string[]; 
           </p>
         ) : null}
       </section>
-      <p className="arc-read-state" role="status">
-        {extras === "reading" ? "Reading projections, past scores and club bonuses from Sorare…"
-          : extras === null ? `Predictions need extension ${ARCADE_PLAN_VERSION}: reload it on chrome://extensions. Until then cards are scored on nothing.`
-          : extras.unread.length ? `Not read this time: ${extras.unread.join(", ")}.` : null}
-      </p>
-      {ready ? <ArcadeLive arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} /> : null}
-      {ready ? <ArcadePlanner arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} /> : null}
       <ArcadePacks arcade={arcade} />
+      <section aria-labelledby="arc-missions-title" className="arc-missions">
+        <h2 id="arc-missions-title">Today&apos;s common missions</h2>
+        {arcade.missions.length ? (
+          <ul>
+            {arcade.missions.map((m) => (
+              <li key={m.id}>
+                <strong>{m.title ?? m.kind}</strong>
+                {m.description ? <span>{m.description}</span> : null}
+                <span>{m.rewards.filter((r) => !r.endsWith(" gems")).join(" + ") || "—"}</span>
+                <span>gems: {m.rewards.find((r) => r.endsWith(" gems"))?.replace(" gems", "") ?? "—"}</span>
+                {m.progress !== null && m.target !== null ? <span>{m.progress} of {m.target}</span> : null}
+                {m.picks !== null ? <span>{m.picks}{m.maxPicks !== null ? ` of ${m.maxPicks}` : ""} picked</span> : null}
+              </li>
+            ))}
+          </ul>
+        ) : <p>Sorare has no common mission for you today.</p>}
+      </section>
       <Cards cards={arcade.cards} games={arcade.games} chances={chances} outlooks={outlooks} />
     </>
   );

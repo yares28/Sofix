@@ -49,6 +49,8 @@ export const PLACES: Place[] = [
       { href: "/audit/missions", label: "Missions" },
     ],
   },
+  // Sorare's free common-card board (plans/set.md); the owner named it Arcade (21 Oct 2026).
+  { label: "Arcade", href: "/arcade", views: [{ href: "/arcade", label: "Arcade" }] },
 ];
 
 const owns = (view: View, path: string) => (view.href === "/" ? path === "/" : path === view.href || path.startsWith(`${view.href}/`));

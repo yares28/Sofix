@@ -108,6 +108,7 @@ test("each card shows its predicted score, and Pick teams builds the best lineup
   // Player One: no projection, so his played average (60) × 50% start × (1 + 10% Holo + 4% club) = 34.
   await page.getByRole("searchbox", { name: "Search player or club" }).fill("player one");
   await expect(page.locator(".arc-grid .arc-pred b")).toHaveText("34");
+  await page.getByRole("group", { name: "Plan by" }).getByRole("button", { name: "Pick teams" }).click();
   const lineup = page.locator(".arc-lineup li");
   await expect(lineup).toHaveCount(5);
   await expect(page.locator(".arc-lineup .arc-slot")).toHaveText([/^Goalkeeper/, /^Defender/, /^Midfielder/, /^Forward/, /^Extra/]);
@@ -122,4 +123,22 @@ test("each card shows its predicted score, and Pick teams builds the best lineup
   }
   await page.getByRole("group", { name: "Games to pick from" }).getByRole("button").click(); // unpick the only game
   await expect(page.locator(".arc-plan")).toContainText("Pick at least one game.");
+});
+
+test("Pick a day plans the day's lineups at the step they land on, no card twice, and says whether to spend a life", async ({ page }) => {
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  await withExtension(page);
+  await page.goto("/arcade");
+  await expect(page.getByRole("group", { name: "Plan by" }).getByRole("button", { name: "Pick a day" })).toHaveAttribute("aria-pressed", "true");
+  const schedule = page.locator(".arc-schedule > li");
+  await expect(schedule).toHaveCount(1); // six cards make one lineup
+  await expect(schedule).toContainText("Lineup 1 · step 2 (300 pts)");
+  await expect(page.locator(".arc-advice")).toContainText("Play today.");
+  expect(await smallText(page, 11)).toEqual([]);
+  if (process.env.ARCADE_PLAN_SHOT) {
+    await page.locator(".arc-plan").screenshot({ path: `${process.env.ARCADE_PLAN_SHOT}-day-1440.png` });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.locator(".arc-plan").screenshot({ path: `${process.env.ARCADE_PLAN_SHOT}-day-390.png` });
+    expect(await smallText(page, 10)).toEqual([]);
+  }
 });

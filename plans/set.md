@@ -2,7 +2,7 @@
 
 Status: **research and design only, nothing built.** Upgrades U1–U6 added and the owner's answers recorded 21 Oct (bottom of this file). **Step 1 shipped 21 Oct**:
 `/arcade` reads the board, cards, gems, essence and common missions (extension 0.4.5). **Step 2 shipped 21 Oct**: each card shows Sorare's start % for its next games (extension 0.4.9). **Step 3 shipped 21 Oct** (extension 0.4.12): predicted
-score per card and Pick teams; next is step 4.
+score per card and Pick teams. **Step 4 shipped 21 Oct**: Pick a day; next is step 5.
 Design canvas: https://claude.ai/artifact/NcPHzXynH6oHiVLeTg3BFG (private, sample numbers, real common-card art).
 
 ## What the owner asked (20 Oct 2026)
@@ -113,6 +113,20 @@ the edition is added the same way, to be checked on his first lineup with a Shin
   simulates the 60 best by expected score with the two best captains each, and keeps the best chance at the step aimed at.
 - Past scores and projections are read through his tab (signed in: 50 players a question; the public API caps keyless questions at
   about 9 players). Nothing is saved; read once per visit.
+
+## Step 4, Pick a day (shipped 21 Oct 2026)
+
+- Up to the lives left on the step (Sorare's `remainingLineupsCount`, at most 4), lineups are built one after another from the day's
+  games, each from the cards no other uses, then put in the order they settle (last kick-off + 2 h: a game plus Sorare's 5 minutes).
+- Each is aimed at the step it lands on: one step up for every earlier lineup more likely than not to clear that settles before its
+  first game. One whose first game starts before an earlier lineup on its step settles says it is lost if that one clears; the later
+  one on a step says it retries if the earlier one misses.
+- Cards already in a lineup on Sorare that is not finished (not cancelled, a card not locked, or a game live) are left out. A second
+  card of the same player may still play (seen 21 Oct: he owns two Courtois; one waits in his step-1 lineup).
+- Play or hold: the decided rule, against each later day's best lineup at the same step; a later day with no start % for most of its
+  lineup is not compared and the page says so.
+- Projections, past scores and club bonuses are kept 30 minutes in the browser: on 21 Oct a few reads in a row (about 100 questions
+  each) made Sorare answer 429, and the read now stops at the first 429 and says so.
 
 ## Not confirmed (guides only, or not found)
 

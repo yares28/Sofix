@@ -168,3 +168,87 @@ export function bestLineup(outlooks: Outlook[], target: number, captainBonus: nu
 /** A game ends about 115 minutes after kick-off, and Sorare counts the score 5 minutes later. */
 export const SETTLES_AFTER_MS = 120 * 60_000;
 export const settlesAt = (lineup: Pick<Lineup, "last">) => new Date(Date.parse(lineup.last) + SETTLES_AFTER_MS).toISOString();
+
+/** The Madrid date of a kick-off ("2026-10-24"): a day runs until its last game, and none of the set's leagues plays past midnight. */
+export const madridDate = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Europe/Madrid" });
+
+export type StepInfo = { number: number; target: number; lives: number; big: boolean };
+export type Planned = {
+  lineup: Lineup;
+  /** The step it is aimed at, and its chance there. */
+  step: number;
+  chance: number;
+  settles: string;
+  /** An earlier lineup that may clear the step after this one has locked: if it does, this one is lost. */
+  lostIf: number | null;
+  /** An earlier lineup whose miss this one retries (same step) and whose clear moves it on. */
+  after: number | null;
+};
+
+/** A step's big reward: 30 gems or more, or money (owner: hold the last life of those unless today is the best chance left). */
+export const bigReward = (rewards: string[]) => rewards.some((r) => r.startsWith("€") || r.startsWith("$") || (/^([\d,]+) gems$/.test(r) && Number(r.replace(/\D/g, "")) >= 30));
+
+/**
+ * "Pick a day": up to the lives left, lineups from the day's games, no card in two, in the order they settle. Each is aimed at the step it
+ * will be on: the next step after each earlier lineup that is more likely than not to clear and settles before this one's first game
+ * (a waiting lineup moves on only while none of its cards has played); one that locks first is marked lost if that earlier one clears.
+ */
+export function planDay(outlooks: Outlook[], steps: StepInfo[], current: number, captainBonus: number, busy: Set<string> = new Set()): Planned[] {
+  const stepOf = (n: number) => steps.find((s) => s.number === n) ?? steps.at(-1)!;
+  const lives = Math.min(4, stepOf(current).lives);
+  const used = new Set(busy);
+  const free = () => outlooks.filter((o) => !used.has(o.card.slug));
+  const built: Lineup[] = [];
+  for (let i = 0; i < lives; i++) {
+    const lineup = bestLineup(free(), stepOf(current).target, captainBonus);
+    if (!lineup) break;
+    built.push(lineup);
+    lineup.picks.forEach((p) => used.add(p.outlook.card.slug));
+  }
+  built.sort((a, b) => a.last.localeCompare(b.last) || a.first.localeCompare(b.first));
+
+  const plan: Planned[] = [];
+  for (const [k, original] of built.entries()) {
+    let step = current;
+    let lostIf: number | null = null;
+    for (const [j, earlier] of plan.entries()) {
+      if (earlier.step !== step) continue;
+      if (Date.parse(earlier.settles) > Date.parse(original.first)) lostIf ??= j; // locked before it settles: lost if it clears
+      else if (earlier.chance >= 0.5) step = Math.min(step + 1, steps.at(-1)!.number);
+    }
+    // The last earlier lineup on the same step: if it misses, this one is the retry.
+    const sameStep = plan.flatMap((p, j) => (p.step === step ? [j] : []));
+    const after = sameStep.length ? sameStep.at(-1)! : null;
+    // Re-aim it at its own step from the same cards, unless an earlier lineup locks it out.
+    let lineup = original;
+    if (step !== current) {
+      const others = new Set([...busy, ...built.filter((_, i) => i !== k).flatMap((l) => l.picks.map((p) => p.outlook.card.slug))]);
+      lineup = bestLineup(outlooks.filter((o) => !others.has(o.card.slug) && Date.parse(o.game.kickoff) >= Date.parse(original.first)), stepOf(step).target, captainBonus) ?? original;
+    }
+    plan.push({ lineup, step, chance: chanceOf(lineup.totals, stepOf(step).target), settles: settlesAt(lineup), lostIf, after });
+  }
+  return plan;
+}
+
+export type Advice = { play: boolean; why: string; better: { day: string; chance: number } | null };
+
+/**
+ * When to spend a life (plans/set.md, Rules decided). Step 1: always play. From step 2: play unless a later day before the set ends gives a
+ * better chance at that step; play anyway when the days left are fewer than the steps still to climb. A big reward's last life: hold
+ * unless today is the best chance left. Later days whose lineup has no start % for most cards are not compared: Sorare has not said yet.
+ */
+export function lifeAdvice(today: { chance: number; step: StepInfo; days: number; stepsLeft: number }, later: { day: string; lineup: Lineup | null }[]): Advice {
+  const compared = later.flatMap(({ day, lineup }) => {
+    if (!lineup) return [];
+    const known = lineup.picks.filter((p) => p.outlook.start !== null).length;
+    return known * 2 >= lineup.picks.length ? [{ day, chance: chanceOf(lineup.totals, today.step.target) }] : [];
+  });
+  const better = compared.filter((d) => d.chance > today.chance).sort((a, b) => b.chance - a.chance)[0] ?? null;
+  if (today.step.number === 1) return { play: true, why: "Step 1 has nothing to lose: play the best lineup.", better: null };
+  if (today.days < today.stepsLeft) return { play: true, why: "Fewer days left than steps to climb: play.", better };
+  const unknown = later.length - compared.length;
+  const note = unknown ? ` (${unknown} later day${unknown > 1 ? "s have" : " has"} no start % yet, so not compared)` : "";
+  if (!better) return { play: true, why: `No later day gives a better chance at this step${note}.`, better: null };
+  if (today.step.lives <= 1 && today.step.big) return { play: false, why: `Last life on a big reward: hold for a better day${note}.`, better };
+  return { play: false, why: `A later day gives a better chance at this step: hold the life${note}.`, better };
+}

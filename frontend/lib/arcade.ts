@@ -513,6 +513,7 @@ export async function walkArcade(config: string, stepId: string): Promise<Arcade
 export const ARCADE_PLAN_VERSION = "0.4.12";
 /** Sorare publishes projections about two days ahead; asking further ahead returns nothing. */
 const PROJECTION_DAYS = 3;
+const EXTRAS_KEEP_MS = 30 * 60_000;
 const MAX_PROJECTION_GAMES = 60;
 
 /** What Sofix knows of a LaLiga player's next game (the Lineups numbers), keyed by Sorare slug. */
@@ -558,8 +559,18 @@ export function parseProjections(answer: unknown): Record<string, number> | null
 export async function readArcadeExtras(arcade: Arcade, now = new Date()): Promise<ArcadeExtras | null> {
   const extension = await pingExtension();
   if (!extension || !extensionAtLeast(extension.version, ARCADE_PLAN_VERSION)) return null;
+  // About 100 questions to Sorare: kept 30 minutes in this browser, so reloading the page does not ask them again (Sorare answered
+  // 429 on 21 Oct after a few reads in a row).
+  const key = `sofix-arcade-extras:${arcade.set.slug}`;
+  try {
+    const kept = JSON.parse(localStorage.getItem(key) ?? "null") as { at: number; extras: ArcadeExtras } | null;
+    if (kept && now.getTime() - kept.at < EXTRAS_KEEP_MS && !kept.extras.unread.length) return kept.extras;
+  } catch { /* no storage: read */ }
+  let slowed = false;
   const ask = async (step: string, extra: Record<string, unknown>) => {
+    if (slowed) return undefined;
     const answer = Answer.safeParse(await askExtension({ type: "sorare", step, ...extra }, 25_000));
+    if (answer.success && answer.data.status === 429) slowed = true; // stop at once: Sorare asked to slow down
     return answer.success && answer.data.state === "ok" ? answer.data.data : undefined;
   };
   const unread: string[] = [];
@@ -587,13 +598,17 @@ export async function readArcadeExtras(arcade: Arcade, now = new Date()): Promis
 
   const projections: Record<string, Record<string, number>> = {};
   const horizon = now.getTime() + PROJECTION_DAYS * 86_400_000;
-  const near = (arcade.games ?? []).filter((g) => Date.parse(g.kickoff) > now.getTime() && Date.parse(g.kickoff) < horizon).slice(0, MAX_PROJECTION_GAMES);
+  const near = (arcade.games ?? []).filter((g) => Date.parse(g.kickoff) > now.getTime() && Date.parse(g.kickoff) < horizon
+    && (perClub.has(g.home?.slug ?? "") || perClub.has(g.away?.slug ?? ""))).slice(0, MAX_PROJECTION_GAMES);
   for (const game of near) {
     const read = parseProjections(await ask("arcade-projections", { game: game.id }));
     if (read) projections[game.id] = read;
   }
   if (Object.keys(projections).length < near.length) unread.push(`projections of ${near.length - Object.keys(projections).length} games`);
-  return { club, past, projections, unread };
+  if (slowed) unread.unshift("Sorare asked Sofix to slow down, so read again in a few minutes");
+  const extras = { club, past, projections, unread };
+  try { localStorage.setItem(key, JSON.stringify({ at: now.getTime(), extras })); } catch { /* full or blocked: fine */ }
+  return extras;
 }
 
 /**

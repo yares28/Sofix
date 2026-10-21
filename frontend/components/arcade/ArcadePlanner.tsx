@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { Arcade, ArcadeGame, ArcadeStep } from "../../lib/arcade";
-import { bestLineup, chanceOf, likelyRange, predicted, type Lineup, type Outlook, type StartSource } from "../../lib/arcadePlan";
+import { bestLineup, bigReward, chanceOf, lifeAdvice, likelyRange, madridDate, planDay, predicted, type Lineup, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
 
 const SOURCE: Record<StartSource, string> = { sorare: "Sorare", futbolfantasy: "Futbol Fantasy", sofix: "Sofix" };
 const SLOT: Record<string, string> = { GK: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward", EXTRA: "Extra" };
@@ -25,7 +25,7 @@ export function Prediction({ outlook, captain = false, captainBonus = 0 }: { out
   if (value === null) return <span className="arc-pred is-none">no projection yet</span>;
   return (
     <span className="arc-pred" title={`${outlook.scoreSource === "sorare" ? "Sorare's projection" : "his average when he plays (Sorare has no projection yet)"} × start % × Sorare's bonus${range ? `; he scored ${pts(range[0])}–${pts(range[1])} in 6 of 10 recent games he played` : ""}`}>
-      <b>{pts(value)}</b> pts{range ? <small> · {pts(range[0])}–{pts(range[1])}</small> : null}
+      <b>{pts(value)}</b> pts{range ? <small> · {pts(range[0])}–{pts(range[1])} if he plays</small> : null}
     </span>
   );
 }
@@ -116,11 +116,84 @@ function PickTeams({ arcade, outlooks, captainBonus, aimDefault }: { arcade: Arc
   );
 }
 
+/** Each step's target, lives left (Sorare's count for a started step, else the full 4) and whether its reward is big. */
+function stepInfos(arcade: Arcade): StepInfo[] {
+  return (arcade.board?.steps ?? []).map((s) => ({ number: s.number, target: s.target, lives: s.lineups?.remaining ?? s.lineups?.max ?? 4, big: bigReward(s.rewards) }));
+}
+
+/** Cards in a lineup on Sorare still waiting or playing (not cancelled, a card not locked yet or a game live): no plan uses them again. */
+const busyCards = (arcade: Arcade) => new Set((arcade.board?.steps ?? []).flatMap((s) => s.entered.filter((l) => !l.cancelled && (l.live || l.cards.some((c) => !c.locked))).flatMap((l) => l.cards.flatMap((c) => (c.slug ? [c.slug] : [])))));
+
+/** "Pick a day": the lineups for the day's games, in the order they settle, each at the step it lands on, with when to spend a life. */
+function PickDay({ arcade, outlooks, captainBonus, now }: { arcade: Arcade; outlooks: Map<string, Outlook[]>; captainBonus: number; now: number }) {
+  const steps = useMemo(() => stepInfos(arcade), [arcade]);
+  const current = arcade.board?.current ?? 1;
+  const byDay = useMemo(() => {
+    const out = new Map<string, Outlook[]>();
+    for (const game of arcade.games ?? []) {
+      if (Date.parse(game.kickoff) <= now) continue;
+      const day = madridDate(game.kickoff);
+      out.set(day, [...(out.get(day) ?? []), ...(outlooks.get(game.id) ?? [])]);
+    }
+    return [...out.entries()].filter(([, list]) => list.length);
+  }, [arcade.games, outlooks, now]);
+  const [day, setDay] = useState<string | null>(null);
+  const chosen = day ?? byDay[0]?.[0] ?? null;
+  const busy = useMemo(() => busyCards(arcade), [arcade]);
+  const waiting = arcade.board?.steps.find((s) => s.number === current)?.entered.filter((l) => !l.cancelled && (l.live || l.cards.some((c) => !c.locked))).length ?? 0;
+  const plan = useMemo(() => (chosen ? planDay(byDay.find(([d]) => d === chosen)?.[1] ?? [], steps, current, captainBonus, busy) : []), [chosen, byDay, steps, current, captainBonus, busy]);
+  const advice = useMemo(() => {
+    const first = plan[0];
+    const step = first ? steps.find((s) => s.number === first.step) : undefined;
+    if (!first || !step) return null;
+    const index = byDay.findIndex(([d]) => d === chosen);
+    const later = byDay.slice(index + 1).map(([d, list]) => ({ day: madridDay(`${d}T12:00:00Z`), lineup: bestLineup(list.filter((o) => !busy.has(o.card.slug)), step.target, captainBonus) }));
+    return lifeAdvice({ chance: first.chance, step, days: byDay.length - index, stepsLeft: steps.length - current + 1 }, later);
+  }, [plan, steps, byDay, chosen, busy, captainBonus, current]);
+
+  if (!byDay.length) return <p className="arc-note">No game of your cards is left before the set ends.</p>;
+  return (
+    <div className="arc-pick">
+      <div className="arc-days" role="group" aria-label="Day">
+        {byDay.map(([d]) => <button key={d} type="button" aria-pressed={d === chosen} onClick={() => setDay(d)}>{madridDay(`${d}T12:00:00Z`)}</button>)}
+      </div>
+      {advice ? <p className={`arc-advice${advice.play ? " is-play" : ""}`} role="status"><b>{advice.play ? "Play today." : `Hold: ${advice.better ? `${advice.better.day} gives ${pct(advice.better.chance)}` : "a later day is better"}.`}</b> {advice.why}</p> : null}
+      {waiting ? <p className="arc-warn">You already have {waiting} lineup{waiting > 1 ? "s" : ""} waiting on step {current}: if one clears it, a planned lineup whose first game has started by then is lost; one not started moves on.</p> : null}
+      {plan.length ? (
+        <ol className="arc-schedule">
+          {plan.map((p, i) => (
+            <li key={i}>
+              <p className="arc-when">
+                <b>{madridTime(p.lineup.first)}</b> Lineup {i + 1} · step {p.step} ({steps.find((s) => s.number === p.step)?.target} pts) · <b>{pct(p.chance)}</b>
+                <span>settles about {madridTime(p.settles)}</span>
+              </p>
+              {p.lostIf !== null ? <p className="arc-warn">Its first game starts before Lineup {p.lostIf + 1} settles: if Lineup {p.lostIf + 1} clears step {p.step}, this one is lost.</p> : null}
+              {p.after !== null && p.lostIf === null ? <p className="arc-sub">If Lineup {p.after + 1} misses, this one retries step {p.step}.</p> : null}
+              {p.step > current && p.lostIf === null ? <p className="arc-sub">Moves on to step {p.step} if the lineups before it clear before its first game.</p> : null}
+              <LineupCards lineup={p.lineup} captainBonus={captainBonus} />
+            </li>
+          ))}
+        </ol>
+      ) : <p className="arc-note">That day&apos;s games cannot fill a lineup from your free cards.</p>}
+    </div>
+  );
+}
+
 export default function ArcadePlanner({ arcade, outlooks, captainBonus }: { arcade: Arcade; outlooks: Map<string, Outlook[]>; captainBonus: number }) {
+  const [mode, setMode] = useState<"day" | "teams">("day");
+  const [now] = useState(() => Date.now());
   return (
     <section className="arc-plan" aria-labelledby="arc-plan-title">
-      <h2 id="arc-plan-title">Pick teams</h2>
-      <PickTeams arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} aimDefault={arcade.board?.current ?? 1} />
+      <div className="arc-plan-head">
+        <h2 id="arc-plan-title">Plan</h2>
+        <div className="arc-modes" role="group" aria-label="Plan by">
+          <button type="button" aria-pressed={mode === "day"} onClick={() => setMode("day")}>Pick a day</button>
+          <button type="button" aria-pressed={mode === "teams"} onClick={() => setMode("teams")}>Pick teams</button>
+        </div>
+      </div>
+      {mode === "day"
+        ? <PickDay arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} now={now} />
+        : <PickTeams arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} aimDefault={arcade.board?.current ?? 1} />}
     </section>
   );
 }

@@ -95,3 +95,20 @@
   .arc-lineup li { font-size: 10px; }
   .arc-chances li { grid-template-columns: 96px 1fr 40px; }
 }
+/* Step 4: Pick a day */
+.arc-plan-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.arc-plan-head h2 { margin: 0; }
+.arc-modes, .arc-days { display: flex; flex-wrap: wrap; gap: 6px; }
+.arc-modes button, .arc-days button { font: inherit; font-size: var(--text-sm); color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; min-height: 36px; cursor: pointer; }
+.arc-modes button[aria-pressed="true"], .arc-days button[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+.arc-advice { margin: 0; font-size: var(--text-sm); color: var(--ink-2); padding: 10px 14px; border-radius: 12px; background: var(--amber-bg, #fff5e0); }
+.arc-advice.is-play { background: var(--hover); }
+.arc-advice b { color: var(--ink); }
+.arc-schedule { list-style: none; margin: 0; padding: 0; display: grid; gap: 20px; }
+.arc-schedule > li { display: grid; gap: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+.arc-schedule > li:first-child { border-top: 0; padding-top: 0; }
+.arc-when { margin: 0; font-size: var(--text-base); display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.arc-when span { color: var(--ink-2); font-size: var(--text-sm); }
+.arc-warn, .arc-sub { margin: 0; font-size: var(--text-sm); }
+.arc-warn { color: var(--amber-ink, #8a5a00); }
+.arc-sub { color: var(--ink-2); }

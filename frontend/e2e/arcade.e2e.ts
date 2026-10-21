@@ -141,7 +141,8 @@ test("Pick a day plans the day's lineups at the step they land on, no card twice
   const schedule = page.locator(".arc-schedule > li");
   await expect(schedule).toHaveCount(1); // six cards make one lineup
   await expect(schedule).toContainText("Lineup 1 · step 2 (300 pts)");
-  await expect(page.locator(".arc-advice")).toContainText("Play today.");
+  await expect(page.locator(".arc-advice")).toContainText("Play 1 lineup on step 2");
+  await expect(page.locator(".arc-climb")).toContainText("Step 2");
   expect(await smallText(page, 11)).toEqual([]);
   if (process.env.ARCADE_PLAN_SHOT) {
     for (const theme of ["light", "dark"]) {

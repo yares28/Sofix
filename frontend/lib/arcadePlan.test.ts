@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { outlookOf, parseBonuses, parsePackOdds, parsePast, parseProjections, type ArcadeCard, type ArcadeGame } from "./arcade";
-import { bestLineup, bigReward, chanceOf, cutLosses, lifeAdvice, likelyRange, liveLineup, newPlayers, planDay, predicted, rankPacks, simulate, type Lineup, type Outlook } from "./arcadePlan";
+import { bestLineup, bigReward, chanceOf, climb, cutLosses, lifeAdvice, likelyRange, liveLineup, newPlayers, planDay, predicted, rankPacks, simulate, type Lineup, type Outlook } from "./arcadePlan";
 
 const GAME: ArcadeGame = { id: "Game:1", kickoff: "2026-10-24T14:00:00Z", status: "scheduled", competition: { slug: "laliga-es", name: "LaLiga" }, home: { slug: "home", name: "Home" }, away: { slug: "away", name: "Away" } };
 const card = (player: string, positions: string[], bonus: number | null = 1): ArcadeCard => ({
@@ -122,6 +122,29 @@ describe("Pick a day", () => {
     const pool = [...squad(at("G1", "2026-10-24T12:00:00Z"), "a", 70), ...squad(at("G2", "2026-10-24T18:00:00Z"), "b", 60)];
     expect(planDay(pool, steps.map((s) => ({ ...s, lives: 1 })), 2, 0.5)).toHaveLength(1);
     expect(planDay(pool, steps, 2, 0.5, new Set(["a0-card"])).flatMap((p) => p.lineup.picks.map((x) => x.outlook.card.slug))).not.toContain("a0-card");
+  });
+
+  it("plans past a step whose lives are all waiting, and climbs across days from where the day before leaves it", () => {
+    const days: [string, Outlook[]][] = [
+      ["2026-10-24", squad(at("G1", "2026-10-24T12:00:00Z"), "a", 80)],
+      ["2026-10-25", squad(at("G2", "2026-10-25T12:00:00Z"), "b", 80)],
+    ];
+    // Step 2's lives are all waiting; one settles Saturday evening, so Saturday's noon game is too early and Sunday plays step 3.
+    const after = climb(days, steps, { step: 3, lives: 4, notBefore: Date.parse("2026-10-24T20:00:00Z"), held: [] }, 0.5);
+    expect(after.days.map((d) => [d.day, d.step, d.play])).toEqual([["2026-10-25", 3, 1]]);
+    const fromOne = climb(days, steps, { step: 1, lives: 4, notBefore: null, held: [] }, 0.5);
+    expect(fromOne.days.map((d) => [d.step, d.play])).toEqual([[1, 1], [2, 1]]);
+    expect(fromOne.odds[2]).toBeGreaterThan(0.9);
+    expect(fromOne.odds[3] ?? 0).toBe(0);
+  });
+
+  it("holds lives on a weak day for a stronger one, and holds a running lineup's cards until it settles", () => {
+    const days: [string, Outlook[]][] = [["2026-10-24", squad(at("G1", "2026-10-24T12:00:00Z"), "a", 30)], ["2026-10-25", squad(at("G2", "2026-10-25T12:00:00Z"), "b", 80)]];
+    const path = climb(days, steps, { step: 3, lives: 1, notBefore: null, held: [] }, 0.5);
+    expect(path.days.map((d) => [d.step, d.play])).toEqual([[3, 0], [3, 1]]);
+    expect(path.odds[3]).toBeGreaterThan(0.9);
+    const held = [{ card: "a0-card", until: Date.parse("2026-10-24T13:00:00Z") }];
+    expect(climb(days.slice(0, 1), steps, { step: 1, lives: 4, notBefore: null, held }, 0.5).days[0]!.play).toBe(0); // no goalkeeper left
   });
 });
 

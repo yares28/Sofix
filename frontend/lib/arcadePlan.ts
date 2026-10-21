@@ -77,6 +77,7 @@ function random(seed: number) {
 }
 
 export const RUNS = 2000;
+const PLAN_RUNS = 400; // the climb's look-ahead compares days; 400 games are enough for that and keep the page responsive
 
 /**
  * The lineup's total over RUNS simulated games, low to high. Each card starts with his chance (none: he starts), and then scores one of
@@ -120,7 +121,7 @@ const SHORTLIST = 60; // lineups simulated
  * The lineup with the best chance to reach the target (points above it earn nothing): GK, DEF, MID, FWD and one more outfield card, one
  * card per player, from the outlooks given. Only cards Sofix can score are used. Null when a slot cannot be filled.
  */
-export function bestLineup(outlooks: Outlook[], target: number, captainBonus: number): Lineup | null {
+export function bestLineup(outlooks: Outlook[], target: number, captainBonus: number, runs = RUNS): Lineup | null {
   // One outlook per player: his best card for his earliest game among those given.
   const byPlayer = new Map<string, Outlook>();
   for (const o of outlooks) {
@@ -154,7 +155,7 @@ export function bestLineup(outlooks: Outlook[], target: number, captainBonus: nu
     const gains = combo.picks.map((o, i) => ({ i, gain: predicted(o, true, captainBonus)! - predicted(o)! })).sort((a, b) => b.gain - a.gain).slice(0, 2);
     for (const { i } of gains) {
       const picks = combo.picks.map((outlook, j) => ({ slot: SLOTS[j]!, outlook, captain: i === j }));
-      const totals = simulate(picks, captainBonus);
+      const totals = simulate(picks, captainBonus, runs);
       const chance = chanceOf(totals, target);
       const expected = picks.reduce((sum, p) => sum + predicted(p.outlook, p.captain, captainBonus)!, 0);
       if (!best || chance > best.chance + 1e-9 || (Math.abs(chance - best.chance) < 1e-9 && expected > best.expected)) best = { picks, totals, expected, chance };
@@ -228,6 +229,112 @@ export function planDay(outlooks: Outlook[], steps: StepInfo[], current: number,
     plan.push({ lineup, step, chance: chanceOf(lineup.totals, stepOf(step).target), settles: settlesAt(lineup), lostIf, after });
   }
   return plan;
+}
+
+/** Where the climb starts: the step and its lives, from when (a waiting lineup must settle first), and cards held until a time. */
+export type ClimbStart = { step: number; lives: number; notBefore: number | null; held: { card: string; until: number }[]; /** The highest step already cleared (default: the one below `step`). */ best?: number };
+/** One day of the climb: the step and lives it starts with on the likely path, how many lineups to play, and the chance one clears. */
+export type ClimbDay = { day: string; step: number; lives: number; play: number; clear: number; /** Lineups the day's free cards can make. */ can: number; /** The day's cards free to play (held ones left out): planDay builds the lineups shown. */ list: Outlook[] };
+export type Climb = { days: ClimbDay[]; /** Chance to clear each step by the set's end, playing as planned: step number → 0 to 1. */ odds: Record<number, number> };
+
+/**
+ * The climb to the set's end (owner: climb as high as possible before the set ends). Each day offers up to 4 lineups at a step, built
+ * from that day's games with no card twice. For every day, step and lives, Sofix chooses how many to play by looking ahead to the set's
+ * end: a clear moves up a step with fresh lives; a miss costs a life; the last life lost sends the climb back to step 1 (Sorare's rule),
+ * but a reward already won stays won, so what counts is the highest step cleared. Cards in a lineup still running are held until it settles.
+ */
+export function climb(days: [string, Outlook[]][], steps: StepInfo[], start: ClimbStart, captainBonus: number): Climb {
+  const last = steps.at(-1)?.number ?? 1;
+  const fresh = (n: number) => Math.min(4, steps.find((s) => s.number === n)?.lives ?? 4) || 4;
+  const pools = days.map(([day, all]) => {
+    const list = start.notBefore === null ? all : all.filter((o) => Date.parse(o.game.kickoff) >= start.notBefore!);
+    const opens = list.length ? Math.min(...list.map((o) => Date.parse(o.game.kickoff))) : 0;
+    const busy = new Set(start.held.filter((h) => h.until > opens).map((h) => h.card));
+    return { day, list: list.filter((o) => !busy.has(o.card.slug)) };
+  });
+
+  // A day's 4 best lineups, no card twice, built once (aimed at the start's step) and read at any step's target: what one more life
+  // buys that day, strongest first. Fewer simulated games than a shown lineup: this compares days, it is not the number shown.
+  const target = (n: number) => steps.find((s) => s.number === n)?.target ?? 0;
+  const lineups = new Map<number, Lineup[]>();
+  const offer = (i: number, n: number) => {
+    if (!lineups.has(i)) {
+      const used = new Set<string>();
+      const built: Lineup[] = [];
+      for (let k = 0; k < 4; k++) {
+        const lineup = bestLineup(pools[i]!.list.filter((o) => !used.has(o.card.slug)), target(start.step), captainBonus, PLAN_RUNS);
+        if (!lineup) break;
+        built.push(lineup);
+        lineup.picks.forEach((p) => used.add(p.outlook.card.slug));
+      }
+      lineups.set(i, built);
+    }
+    return lineups.get(i)!.map((l) => chanceOf(l.totals, target(n))).sort((a, b) => b - a);
+  };
+
+  // Best expected highest step cleared from day i, on step n with `lives`, `best` already cleared; and how many to play.
+  const memo = new Map<string, { value: number; play: number; clear: number }>();
+  const value = (i: number, n: number, lives: number, best: number): { value: number; play: number; clear: number } => {
+    if (i >= pools.length || n > last) return { value: best, play: 0, clear: 0 };
+    const key = `${i}:${n}:${lives}:${best}`;
+    const known = memo.get(key);
+    if (known) return known;
+    let choice = { value: value(i + 1, n, lives, best).value, play: 0, clear: 0 };
+    const chances = pools[i]!.list.length ? offer(i, n) : [];
+    let miss = 1;
+    for (let k = 1; k <= Math.min(lives, chances.length); k++) {
+      miss *= 1 - chances[k - 1]!;
+      const clear = 1 - miss;
+      const up = value(i + 1, n + 1, fresh(n + 1), Math.max(best, n)).value;
+      const down = lives - k > 0 ? value(i + 1, n, lives - k, best).value : value(i + 1, 1, 4, best).value;
+      const v = clear * up + (1 - clear) * down;
+      if (v > choice.value + 1e-9) choice = { value: v, play: k, clear };
+    }
+    memo.set(key, choice);
+    return choice;
+  };
+
+  // Chance to clear each step: every path of the plan, weighted.
+  const odds: Record<number, number> = {};
+  let states = new Map<string, { n: number; lives: number; best: number; p: number }>([["s", { n: start.step, lives: start.lives, best: start.best ?? start.step - 1, p: 1 }]]);
+  for (let i = 0; i < pools.length; i++) {
+    const next = new Map<string, { n: number; lives: number; best: number; p: number }>();
+    const add = (n: number, lives: number, best: number, p: number) => {
+      const key = `${n}:${lives}:${best}`;
+      next.set(key, { n, lives, best, p: (next.get(key)?.p ?? 0) + p });
+    };
+    for (const s of states.values()) {
+      const { play, clear } = s.n > last ? { play: 0, clear: 0 } : value(i, s.n, s.lives, s.best);
+      if (!play) { add(s.n, s.lives, s.best, s.p); continue; }
+      add(s.n + 1, fresh(s.n + 1), Math.max(s.best, s.n), s.p * clear);
+      if (s.lives - play > 0) add(s.n, s.lives - play, s.best, s.p * (1 - clear));
+      else add(1, 4, s.best, s.p * (1 - clear));
+    }
+    states = next;
+  }
+  for (const s of states.values()) for (let n = 1; n <= s.best; n++) odds[n] = (odds[n] ?? 0) + s.p;
+
+  // The likely path, day by day: a day whose lineups more likely than not clear moves it up.
+  const out: ClimbDay[] = [];
+  let n = start.step;
+  let lives = start.lives;
+  let best = start.best ?? start.step - 1;
+  for (const [i, { day, list }] of pools.entries()) {
+    if (n > last || !list.length) continue;
+    const { play, clear } = value(i, n, lives, best);
+    const can = offer(i, n).length;
+    out.push({ day, step: n, lives, play, clear, can, list });
+    if (!play) continue;
+    if (clear >= 0.5) {
+      best = Math.max(best, n);
+      n += 1;
+      lives = fresh(n);
+    } else if ((lives -= play) <= 0) {
+      n = 1;
+      lives = 4;
+    }
+  }
+  return { days: out, odds };
 }
 
 export type Advice = { play: boolean; why: string; better: { day: string; chance: number } | null };

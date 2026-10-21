@@ -84,6 +84,11 @@
 .arc-modes, .arc-days { display: flex; flex-wrap: wrap; gap: 6px; }
 .arc-modes button, .arc-days button { font: inherit; font-size: var(--text-sm); color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; min-height: 36px; cursor: pointer; }
 .arc-modes button[aria-pressed="true"], .arc-days button[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+.arc-climb p { margin: 0 0 8px; color: var(--ink-2); font-size: var(--text-sm); }
+.arc-climb ul { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.arc-climb li { display: grid; gap: 2px; min-width: 88px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface, transparent); }
+.arc-climb li span, .arc-climb li small { color: var(--ink-2); font-size: var(--text-xs, 12px); }
+.arc-climb li b { color: var(--ink); font-size: 24px; font-variant-numeric: tabular-nums; }
 .arc-advice { margin: 0; font-size: var(--text-sm); color: var(--ink-2); padding: 10px 14px; border-radius: 12px; background: var(--amber-bg, #fff5e0); }
 .arc-advice.is-play { background: var(--hover); }
 .arc-advice b { color: var(--ink); }

@@ -1,6 +1,8 @@
 # SET page (Sorare Arcade): research and plan, 20 Oct 2026
 
-Status: **research and design only, nothing built.** Upgrades U1–U6 added and the owner's answers recorded 21 Oct (bottom of this file). **Step 1 shipped 21 Oct**:
+Status: **built, but short of this plan and the canvas; being redone (owner, 21 Oct evening; TODO.md "Arcade is not what was planned").**
+Redone so far: the climb plan (step 4 below). Still to do: start % without a tab, cards kept between visits, mission picks, the
+canvas look. Upgrades U1–U6 added and the owner's answers recorded 21 Oct (bottom of this file). **Step 1 shipped 21 Oct**:
 `/arcade` reads the board, cards, gems, essence and common missions (extension 0.4.5). **Step 2 shipped 21 Oct**: each card shows Sorare's start % for its next games (extension 0.4.9). **Step 3 shipped 21 Oct** (extension 0.4.12): predicted
 score per card and Pick teams. **Step 4 shipped 21 Oct**: Pick a day. **Step 5 shipped 21 Oct** (extension 0.4.14): best pack. **Step 6 shipped 21 Oct**: live lineups, dead and cut losses. **Step 7 shipped 21 Oct**: Arcade in the top bar, white and Night, manual and roadmap.
 Design canvas: https://claude.ai/artifact/NcPHzXynH6oHiVLeTg3BFG (private, sample numbers, real common-card art).
@@ -114,7 +116,18 @@ the edition is added the same way, to be checked on his first lineup with a Shin
 - Past scores and projections are read through his tab (signed in: 50 players a question; the public API caps keyless questions at
   about 9 players). Nothing is saved; read once per visit.
 
-## Step 4, Pick a day (shipped 21 Oct 2026)
+## Step 4, Pick a day (shipped 21 Oct 2026; redone as the climb, 21 Oct evening)
+
+**Redone.** The first version planned only the current step's lives for one day: with step 2's 4 lives all waiting it planned
+nothing. Now `climb` (lib/arcadePlan.ts) looks ahead to the set's end: each day offers its 4 best lineups (no card twice, cards in a
+running lineup held until it settles); for every day, step and lives it picks how many to play to maximise the highest step cleared
+(a clear = next step with fresh lives, a miss = a life, the last life lost = step 1; rewards won stay won). The page shows the chance
+to clear each step and, per day, play N or hold. With all lives waiting it plans from when the first settles as if it clears, mixed
+with the climb from step 1 by their real chance; a cleared, unclaimed step counts as done. Seen 21 Oct 23:15 on his board (step 2
+cleared): hold Thu (European games), Fri 1, Sat 2, Sun 4 on step 4, Mon step 5; step 3 99%, step 4 69%, step 5 5%. The look-ahead
+uses 400 simulated games a lineup and builds only the chosen day's lineups: about 1 s per data load instead of 30 s.
+
+First version:
 
 - Up to the lives left on the step (Sorare's `remainingLineupsCount`, at most 4), lineups are built one after another from the day's
   games, each from the cards no other uses, then put in the order they settle (last kick-off + 2 h: a game plus Sorare's 5 minutes).

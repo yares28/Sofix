@@ -18,6 +18,10 @@ Owner priority, 21 Oct: Premier League and Bundesliga regular-league FDR is impl
 
 Work from the top. Each line points to its full text; "you" items wait for the owner.
 
+AR. **Arcade, as planned** (TODO.md "Arcade is not what was planned", [set.md](set.md); the set ends 27 Oct 17:00): ~~the climb
+   plan~~ (21 Oct), then start % without a tab, cards kept between visits (new pack cards picked up), mission picks (Decisive
+   Picker, LaLiga Common streaks), the canvas look in white and Night. Each checked on his account before the next.
+
 OB. **The overlay as a bridge** ([overlay-bridge.md](overlay-bridge.md), first by the owner, 21 Oct): fix the red backend CI, then
    B1 start % on your entered lineups, B2 worth now in your gallery, B3 Sofix's line on a player page, B4 the market's "LaLiga starters"
    switch, B5 search and B6 compare in the dock, B7 free competitions not entered yet; one extension release and Reload at the end.
@@ -567,8 +571,11 @@ the held-out weeks (P9 "The bar").
 lands on with the play-or-hold rule, builds the best lineup from games you pick, follows your entered lineups live (dead, cut losses), works
 out the best pack from Sorare's odds, and sits in the top bar as Arcade, in white and Night. Checked: 27 unit tests for the rules, 8
 browser tests, the page at 1440 and 390 px in both themes, and on your account: predictions and Pick a day (three step-1 lineups, 64 to
-76%), your waiting lineup live (40% left). Not seen: the best pack on your account (needs the 0.4.14 Reload), a dead lineup or cut losses
-on a real game, and an edition bonus inside a real lineup (Sorare's adding is confirmed for club + captain only).
+76%), your waiting lineup live (40% left), and (21 Oct evening) the best pack: Gold · Ligue 1, 3.6 new players, of 15 packs. Not seen: a
+dead lineup or cut losses on a real game, and an edition bonus inside a real lineup (Sorare's adding is confirmed for club + captain only).
+**Owner, the same evening: short of the plan and the canvas** (TODO.md); "AR" in Next up redoes it. **Climb plan (21 Oct, AR first
+item):** Pick a day now plans every day left, play N or hold, with the chance to clear each step; it had planned nothing with step 2's
+lives all waiting. Seen on his board: step 3 99%, step 4 69%, step 5 5%. 29 unit tests, 8 browser tests, 1440 and 390 px in both themes.
 
 **20 Oct 2026 · Load from Sorare, step 1: Pro rebuilt on the announced elevens ([load-from-sorare.md](load-from-sorare.md); extension
 0.4.2).** Play's Pro lineups get a "Load from Sorare" button: the app reads the elevens (Sorare's public API, 60 s cache) and starts

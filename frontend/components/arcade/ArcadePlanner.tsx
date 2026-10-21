@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Arcade, ArcadeGame, ArcadeStep } from "../../lib/arcade";
-import { bestLineup, bigReward, chanceOf, lifeAdvice, likelyRange, madridDate, planDay, predicted, type Lineup, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
+import type { Arcade, ArcadeGame, ArcadeLineup, ArcadeStep } from "../../lib/arcade";
+import { bestLineup, bigReward, chanceOf, climb, likelyRange, liveLineup, madridDate, planDay, predicted, SETTLES_AFTER_MS, type Lineup, type Outlook, type StartSource, type StepInfo } from "../../lib/arcadePlan";
 
 const SOURCE: Record<StartSource, string> = { sorare: "Sorare", futbolfantasy: "Futbol Fantasy", sofix: "Sofix" };
 const SLOT: Record<string, string> = { GK: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward", EXTRA: "Extra" };
@@ -121,13 +121,40 @@ function stepInfos(arcade: Arcade): StepInfo[] {
   return (arcade.board?.steps ?? []).map((s) => ({ number: s.number, target: s.target, lives: s.lineups?.remaining ?? s.lineups?.max ?? 4, big: bigReward(s.rewards) }));
 }
 
-/** Cards in a lineup on Sorare still waiting or playing (not cancelled, a card not locked yet or a game live): no plan uses them again. */
-const busyCards = (arcade: Arcade) => new Set((arcade.board?.steps ?? []).flatMap((s) => s.entered.filter((l) => !l.cancelled && (l.live || l.cards.some((c) => !c.locked))).flatMap((l) => l.cards.flatMap((c) => (c.slug ? [c.slug] : [])))));
+/** A lineup on Sorare still waiting or playing: not cancelled, not a draft, a card not locked yet or a game live. */
+const running = (l: ArcadeLineup) => !l.cancelled && !l.draft && (l.live || l.cards.some((c) => !c.locked));
+/** When a lineup on Sorare settles: its last game's kick-off plus the time Sorare takes to count it. */
+const settlesOf = (l: ArcadeLineup) => Math.max(0, ...l.cards.map((c) => (c.kickoff ? Date.parse(c.kickoff) : 0))) + SETTLES_AFTER_MS;
 
-/** "Pick a day": the lineups for the day's games, in the order they settle, each at the step it lands on, with when to spend a life. */
+/**
+ * Where the climb starts. With lives left on the current step, there and now. With none left but lineups waiting, the plan goes on as if
+ * the first to settle clears it: the next step from then, its lives less the waiting lineups that have not started by then (they move
+ * on with you, owner's answer 8). Cards in a running lineup are held until it settles.
+ */
+function climbStart(arcade: Arcade, steps: StepInfo[], current: number) {
+  const step = arcade.board?.steps.find((s) => s.number === current);
+  const waiting = (step?.entered ?? []).filter(running);
+  const held = (arcade.board?.steps ?? []).flatMap((s) => s.entered.filter(running).flatMap((l) => l.cards.flatMap((c) => (c.slug ? [{ card: c.slug, until: settlesOf(l) }] : []))));
+  const lives = steps.find((s) => s.number === current)?.lives ?? 4;
+  if (lives > 0 || !waiting.length || current >= (steps.at(-1)?.number ?? 1)) return { start: { step: current, lives, notBefore: null, held }, waiting, after: null };
+  const first = waiting.reduce((a, b) => (settlesOf(a) <= settlesOf(b) ? a : b));
+  const at = settlesOf(first);
+  const movingOn = waiting.filter((l) => l !== first && l.cards.every((c) => !c.kickoff || Date.parse(c.kickoff) > at)).length;
+  return { start: { step: current + 1, lives: Math.max(0, 4 - movingOn), notBefore: at, held }, waiting, after: { at, movingOn } };
+}
+
+/** The step the climb is on: Sorare's current step, or the next one once it is cleared (Sorare keeps naming it until its reward is claimed). */
+export function climbStep(arcade: Arcade): number {
+  const steps = arcade.board?.steps ?? [];
+  const current = arcade.board?.current ?? 1;
+  const cleared = ["CLAIMABLE", "CLAIMED"].includes(steps.find((s) => s.number === current)?.state ?? "");
+  return cleared && steps.some((s) => s.number === current + 1) ? current + 1 : current;
+}
+
+/** "Pick a day": the climb to the set's end, day by day; each day's lineups in the order they settle, at the step each lands on. */
 function PickDay({ arcade, outlooks, captainBonus, now }: { arcade: Arcade; outlooks: Map<string, Outlook[]>; captainBonus: number; now: number }) {
   const steps = useMemo(() => stepInfos(arcade), [arcade]);
-  const current = arcade.board?.current ?? 1;
+  const current = climbStep(arcade);
   const byDay = useMemo(() => {
     const out = new Map<string, Outlook[]>();
     for (const game of arcade.games ?? []) {
@@ -135,30 +162,66 @@ function PickDay({ arcade, outlooks, captainBonus, now }: { arcade: Arcade; outl
       const day = madridDate(game.kickoff);
       out.set(day, [...(out.get(day) ?? []), ...(outlooks.get(game.id) ?? [])]);
     }
-    return [...out.entries()].filter(([, list]) => list.length);
+    return [...out.entries()].filter(([, list]) => list.length).sort(([a], [b]) => a.localeCompare(b));
   }, [arcade.games, outlooks, now]);
+  const { start, waiting, after } = useMemo(() => climbStart(arcade, steps, current), [arcade, steps, current]);
+  const path = useMemo(() => climb(byDay, steps, start, captainBonus), [byDay, steps, start, captainBonus]);
+  // With step `current`'s lives all waiting: the chance one of them clears it, and the climb from step 1 if none does.
+  const clears = useMemo(() => {
+    if (!after) return null;
+    const target = steps.find((s) => s.number === current)?.target ?? 0;
+    const miss = waiting.reduce((m, l) => {
+      const outlookOf = (slug: string | null) => {
+        const game = l.cards.find((c) => c.slug === slug)?.game;
+        return game ? outlooks.get(game)?.find((o) => o.card.slug === slug) ?? null : null;
+      };
+      return m * (1 - liveLineup(l.cards, target, outlookOf, now).chance);
+    }, 1);
+    const allSettled = Math.max(...waiting.map(settlesOf));
+    const fallback = climb(byDay, steps, { step: 1, lives: 4, notBefore: allSettled, held: start.held, best: current - 1 }, captainBonus);
+    return { chance: 1 - miss, fallback };
+  }, [after, waiting, steps, current, outlooks, now, byDay, start.held, captainBonus]);
+  const odds = useMemo(() => {
+    if (!clears) return path.odds;
+    const out: Record<number, number> = { [current]: clears.chance + (1 - clears.chance) * (clears.fallback.odds[current] ?? 0) };
+    for (const s of steps) if (s.number > current) out[s.number] = clears.chance * (path.odds[s.number] ?? 0) + (1 - clears.chance) * (clears.fallback.odds[s.number] ?? 0);
+    return out;
+  }, [clears, path.odds, steps, current]);
   const [day, setDay] = useState<string | null>(null);
-  const chosen = day ?? byDay[0]?.[0] ?? null;
-  const busy = useMemo(() => busyCards(arcade), [arcade]);
-  const waiting = arcade.board?.steps.find((s) => s.number === current)?.entered.filter((l) => !l.cancelled && (l.live || l.cards.some((c) => !c.locked))).length ?? 0;
-  const plan = useMemo(() => (chosen ? planDay(byDay.find(([d]) => d === chosen)?.[1] ?? [], steps, current, captainBonus, busy) : []), [chosen, byDay, steps, current, captainBonus, busy]);
-  const advice = useMemo(() => {
-    const first = plan[0];
-    const step = first ? steps.find((s) => s.number === first.step) : undefined;
-    if (!first || !step) return null;
-    const index = byDay.findIndex(([d]) => d === chosen);
-    const later = byDay.slice(index + 1).map(([d, list]) => ({ day: madridDay(`${d}T12:00:00Z`), lineup: bestLineup(list.filter((o) => !busy.has(o.card.slug)), step.target, captainBonus) }));
-    return lifeAdvice({ chance: first.chance, step, days: byDay.length - index, stepsLeft: steps.length - current + 1 }, later);
-  }, [plan, steps, byDay, chosen, busy, captainBonus, current]);
+  const chosen = path.days.find((d) => d.day === day) ?? path.days[0] ?? null;
+  // Only the chosen day's lineups are built: the climb compares days without them.
+  const plan = useMemo(() => (chosen?.play ? planDay(chosen.list, steps.map((s) => (s.number === chosen.step ? { ...s, lives: chosen.play } : s)), chosen.step, captainBonus) : []), [chosen, steps, captainBonus]);
+  const ahead = steps.filter((s) => s.number >= current && (odds[s.number] ?? 0) >= 0.005);
 
   if (!byDay.length) return <p className="arc-note">No game of your cards is left before the set ends.</p>;
   return (
     <div className="arc-pick">
-      <div className="arc-days" role="group" aria-label="Day">
-        {byDay.map(([d]) => <button key={d} type="button" aria-pressed={d === chosen} onClick={() => setDay(d)}>{madridDay(`${d}T12:00:00Z`)}</button>)}
+      <div className="arc-climb" role="status">
+        <p>Playing this plan, your chance to clear each step before the set ends:</p>
+        <ul>
+          {ahead.length ? ahead.map((s) => <li key={s.number}><span>Step {s.number}</span><b>{pct(odds[s.number]!)}</b><small>{steps.find((x) => x.number === s.number)?.target} pts</small></li>)
+            : <li><span>Step {current}</span><b>0%</b><small>no lineup with a chance</small></li>}
+        </ul>
       </div>
-      {advice ? <p className={`arc-advice${advice.play ? " is-play" : ""}`} role="status"><b>{advice.play ? "Play today." : `Hold: ${advice.better ? `${advice.better.day} gives ${pct(advice.better.chance)}` : "a later day is better"}.`}</b> {advice.why}</p> : null}
-      {waiting ? <p className="arc-warn">You already have {waiting} lineup{waiting > 1 ? "s" : ""} waiting on step {current}: if one clears it, a planned lineup whose first game has started by then is lost; one not started moves on.</p> : null}
+      {after ? (
+        <p className="arc-warn">
+          Step {current} has no lives left: your {waiting.length} lineups there are waiting{clears ? `, ${pct(clears.chance)} that one clears it` : ""}. The days below start when the first settles (about {madridDay(new Date(after.at).toISOString())} {madridTime(new Date(after.at).toISOString())}),
+          as if it clears: step {current + 1}{after.movingOn ? `, with ${after.movingOn} of your waiting lineups moving on with you` : ""}. If all {waiting.length} miss, you are back on step 1; the chances above count both.
+        </p>
+      ) : waiting.length ? <p className="arc-warn">You already have {waiting.length} lineup{waiting.length > 1 ? "s" : ""} waiting on step {current}: if one clears it, a planned lineup whose first game has started by then is lost; one not started moves on.</p> : null}
+      <div className="arc-days" role="group" aria-label="Day">
+        {path.days.map((d) => <button key={d.day} type="button" aria-pressed={d === chosen} onClick={() => setDay(d.day)}>{madridDay(`${d.day}T12:00:00Z`)} · {d.play ? `step ${d.step}, play ${d.play}` : "hold"}</button>)}
+      </div>
+      {chosen ? (
+        <p className={`arc-advice${chosen.play ? " is-play" : ""}`}>
+          <b>{chosen.play ? `Play ${chosen.play} lineup${chosen.play > 1 ? "s" : ""} on step ${chosen.step}: ${pct(plan.length ? 1 - plan.filter((p) => p.step === chosen.step).reduce((m, p) => m * (1 - p.chance), 1) : chosen.clear)} that one clears it.` : `Hold: keep your ${chosen.lives} ${chosen.lives === 1 ? "life" : "lives"} on step ${chosen.step}.`}</b>
+          {" "}{chosen.play ? (chosen.play < chosen.lives ? `The other ${chosen.lives - chosen.play} wait for a better day.` : "")
+            : !chosen.can ? "That day's games cannot fill a lineup from your free cards."
+            : chosen === path.days.at(-1) ? "No lineup that day has a real chance; a miss costs a life, and losing the last sends you back to step 1."
+            : "Later days give a better chance with your cards; a miss here costs a life, and losing the last sends you back to step 1."}
+          {" "}This day starts on step {chosen.step} with {chosen.lives} {chosen.lives === 1 ? "life" : "lives"}{chosen === path.days[0] ? "" : ", if the days before go as planned"}.
+        </p>
+      ) : null}
       {plan.length ? (
         <ol className="arc-schedule">
           {plan.map((p, i) => (
@@ -174,7 +237,7 @@ function PickDay({ arcade, outlooks, captainBonus, now }: { arcade: Arcade; outl
             </li>
           ))}
         </ol>
-      ) : <p className="arc-note">That day&apos;s games cannot fill a lineup from your free cards.</p>}
+      ) : chosen?.play === 0 ? null : <p className="arc-note">That day&apos;s games cannot fill a lineup from your free cards.</p>}
     </div>
   );
 }
@@ -193,7 +256,7 @@ export default function ArcadePlanner({ arcade, outlooks, captainBonus }: { arca
       </div>
       {mode === "day"
         ? <PickDay arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} now={now} />
-        : <PickTeams arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} aimDefault={arcade.board?.current ?? 1} />}
+        : <PickTeams arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} aimDefault={climbStep(arcade)} />}
     </section>
   );
 }

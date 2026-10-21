@@ -16,6 +16,29 @@ item, what you said and why; the order, the steps and the results live in the ro
 
 ---
 
+## Arcade is not what was planned (you, 21 Oct 2026, evening)
+
+Your words: "I feel its not how its supposed to be", "I told you that i need to climb fast, i need a good plan, there is only 4 days
+left!", "the less user friction the better", "Why does it feel like you did the minimum possible to get a pass?". Found on review
+(plans/set.md and the design canvas against the shipped page):
+
+1. **Broken: no plan once a step's lives are used.** Step 2 had 0 of 4 left (4 waiting), so Pick a day planned nothing and said the
+   day "cannot fill a lineup". It must plan the climb past the current step: if a waiting lineup clears, step 3 with 4 lives from
+   when it settles; if all miss, back to step 1. And across days, not one day at a time, so the plan reaches as high as possible
+   before the set ends.
+2. **Start % without a visible tab.** "Read Arcade's start %" opens Sorare's compose page in a tab. Try asking Sorare the page's own
+   question from your Sorare tab so nothing opens; keep the tab only if Sorare refuses.
+3. **Every visit re-reads all 1,295 cards.** Keep them in this browser; re-read only what changes. Cards from packs you open must
+   show up (ask Sorare for your card count and newest cards each visit, read the new ones).
+4. **Missions give no player to pick.** The plan and canvas had Decisive Picker picks; never built. Today's two LaLiga Common
+   streaks ("Score 400+") need Sofix's best five for that competition.
+5. **The page ignores the canvas** (https://claude.ai/artifact/NcPHzXynH6oHiVLeTg3BFG): tower and departures board, tickets and
+   pitch, live race with Dead, pack lab with mission rings. Build it, in white and Night.
+6. **Reported ready when it was not.** Cuts were not said. Rule now: plan and canvas checked line by line, used in your real state,
+   every cut named.
+
+---
+
 ## Lineups, Scores and a mission (you, 13 Oct 2026, after the GW22 plan fixes)
 
 Your words, in order; broken things first. Each is checked on your pages before the next.

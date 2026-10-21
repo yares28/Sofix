@@ -31,7 +31,7 @@ const team = (code: string, cells: GridCell[], opening?: number[]): GridTeam => 
 
 /** Two clubs, three gameweeks: one played, two to come. */
 const makeGrid = (finished: boolean[]): FixtureGrid => ({
-  season: "2026/27", current_matchday: 2, model_version: null,
+  competition: "PD", season: "2026/27", current_matchday: 2, model_version: null,
   lens_scales: { overall: scale, attack: scale, defence: scale, odds: scale, record: scale, market_record: scale },
   matchdays: finished.map((done, i) => ({
     number: i + 1, date_from: "2026-08-20T00:00:00Z", date_to: "2026-08-22T00:00:00Z", finished: done,

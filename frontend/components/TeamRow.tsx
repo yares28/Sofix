@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "./FootballLink";
 import { memo } from "react";
 import { BUCKET_STRONG, cellBucket, cellLabel, formatTotal, scaleBucket, type RunStats } from "../lib/grid";
 import type { GridMatchday, GridTeam, Lens, LensScale } from "../lib/types";

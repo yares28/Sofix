@@ -115,6 +115,7 @@ class CellOpening(BaseModel):
 
 
 class GridCell(BaseModel):
+    forecast_at: datetime | None = None
     fixture_id: int
     opponent_code: str
     venue: Venue
@@ -142,6 +143,7 @@ class TeamDecisives(BaseModel):
 
 
 class GridTeam(BaseModel):
+    source_id: int | None = None  # stable football-data.org club identity; code is its display abbreviation
     code: str
     name: str
     color: str
@@ -203,6 +205,7 @@ class RefreshStatus(BaseModel):
 
 
 class FixtureGrid(BaseModel):
+    competition: Literal["PD", "PL", "BL1"] = "PD"
     season: str
     current_matchday: int | None
     model_version: str | None

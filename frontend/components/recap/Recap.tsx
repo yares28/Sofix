@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "../FootballLink";
 import { cardTotal, lineupActual, type ActualScores } from "../../lib/lineupScores";
 import { useId, type CSSProperties, type ReactNode } from "react";
 import { scoreColour } from "../../lib/cards";

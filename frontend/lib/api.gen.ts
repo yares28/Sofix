@@ -549,6 +549,12 @@ export interface components {
         };
         /** FixtureGrid */
         FixtureGrid: {
+            /**
+             * Competition
+             * @default PD
+             * @enum {string}
+             */
+            competition: "PD" | "PL" | "BL1";
             /** Season */
             season: string;
             /** Current Matchday */
@@ -563,6 +569,8 @@ export interface components {
         };
         /** GridCell */
         GridCell: {
+            /** Forecast At */
+            forecast_at?: string | null;
             /** Fixture Id */
             fixture_id: number;
             /** Opponent Code */
@@ -625,6 +633,8 @@ export interface components {
         };
         /** GridTeam */
         GridTeam: {
+            /** Source Id */
+            source_id?: number | null;
             /** Code */
             code: string;
             /** Name */
@@ -867,7 +877,9 @@ export interface operations {
     };
     fixture_grid_api_fixture_grid_get: {
         parameters: {
-            query?: never;
+            query?: {
+                competition?: "PD" | "PL" | "BL1";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -881,6 +893,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponse_FixtureGrid_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

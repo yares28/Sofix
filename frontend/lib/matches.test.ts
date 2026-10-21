@@ -14,7 +14,7 @@ const team = (code: string, cells: GridCell[][]): GridTeam => ({ code, name: `Te
 const scale = { cuts: [1, 2, 3, 4], higher_is_easier: false };
 
 const grid: FixtureGrid = {
-  season: "2026/27", current_matchday: 1, model_version: null,
+  competition: "PD", season: "2026/27", current_matchday: 1, model_version: null,
   lens_scales: { overall: scale, attack: scale, defence: scale, odds: scale, record: scale, market_record: scale },
   matchdays: [{ number: 1, date_from: "2026-09-19T14:00:00Z", date_to: "2026-09-21T19:00:00Z", finished: false }],
   teams: [

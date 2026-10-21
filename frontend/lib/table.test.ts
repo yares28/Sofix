@@ -29,12 +29,26 @@ const team = (code: string, cells: GridCell[]): GridTeam => ({
 });
 
 const makeGrid = (teams: GridTeam[]): FixtureGrid => ({
-  season: "2026/27", current_matchday: 1, model_version: null,
+  competition: "PD", season: "2026/27", current_matchday: 1, model_version: null,
   lens_scales: { overall: scale, attack: scale, defence: scale, odds: scale, record: scale, market_record: scale },
   matchdays: [], teams,
 });
 
 describe("currentTable", () => {
+  it.each(["PL", "BL1"] as const)("%s shares unresolved table positions", competition => {
+    const grid = { ...makeGrid([team("AAA", []), team("BBB", [])]), competition };
+    expect(currentTable(grid).map(row => row.position)).toEqual([1, 1]);
+  });
+  it.each(["PL", "BL1"] as const)("%s uses overall goal difference before head-to-head", competition => {
+    const grid = makeGrid([
+      team("AAA", [played("BBB", "H", 1, 0, 1), played("BBB", "A", 1, 0, 2), played("CCC", "H", 0, 1, 3)]),
+      team("BBB", [played("AAA", "A", 0, 1, 1), played("AAA", "H", 0, 1, 2), played("CCC", "H", 7, 0, 3), played("CCC", "A", 3, 0, 4)]),
+      team("CCC", [played("AAA", "A", 1, 0, 3), played("BBB", "A", 0, 7, 3), played("BBB", "H", 0, 3, 4)]),
+    ]);
+    grid.competition = competition;
+    const rows = currentTable(grid);
+    expect(rows.find(r => r.team.code === "BBB")!.position).toBeLessThan(rows.find(r => r.team.code === "AAA")!.position);
+  });
   it("counts results, goal difference, points and the last five results", () => {
     const grid = makeGrid([
       team("AAA", [played("BBB", "H", 3, 1, 1), played("CCC", "A", 0, 0, 8)]),

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "./FootballLink";
 import { useState } from "react";
 import { cellBucket, type RunStats } from "../lib/grid";
 import type { FixtureGrid, GridTeam } from "../lib/types";

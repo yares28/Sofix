@@ -1,4 +1,5 @@
 import type { FixtureGrid, GridCell, GridTeam } from "./types";
+import { competitionOf, type Competition } from "./competitions";
 
 export type Outcome = "W" | "D" | "L";
 
@@ -19,6 +20,7 @@ export interface StandingRow {
 const POINTS: Record<Outcome, number> = { W: 3, D: 1, L: 0 };
 
 interface Played {
+  venue: "H" | "A";
   opponent: string;
   goalsFor: number;
   goalsAgainst: number;
@@ -32,6 +34,7 @@ function playedGames(team: GridTeam, through: number): Played[] {
     .flat()
     .filter((cell): cell is GridCell & { result: NonNullable<GridCell["result"]> } => cell.status === "finished" && cell.result !== null)
     .map((cell) => ({
+      venue: cell.venue,
       opponent: cell.opponent_code,
       goalsFor: cell.result.goals_for,
       goalsAgainst: cell.result.goals_against,
@@ -68,9 +71,13 @@ export function currentTable(grid: FixtureGrid, through = Number.POSITIVE_INFINI
     };
   });
 
-  const byPoints = new Map<number, typeof rows>();
-  for (const row of rows) byPoints.set(row.points, [...(byPoints.get(row.points) ?? []), row]);
-  const headToHead = new Map<string, { points: number; goalDifference: number } | null>();
+  const competition = competitionOf(grid.competition);
+  const byPoints = new Map<string, typeof rows>();
+  for (const row of rows) {
+    const key = competition === "PD" ? String(row.points) : `${row.points}:${row.goalDifference}:${row.goalsFor}`;
+    byPoints.set(key, [...(byPoints.get(key) ?? []), row]);
+  }
+  const headToHead = new Map<string, { points: number; goalDifference: number; awayGoals: number } | null>();
   for (const tied of byPoints.values()) {
     if (tied.length < 2) continue;
     const codes = new Set(tied.map((r) => r.team.code));
@@ -78,7 +85,7 @@ export function currentTable(grid: FixtureGrid, through = Number.POSITIVE_INFINI
     const scheduled = tied.map((r) => r.team.cells.flat().filter((c) => codes.has(c.opponent_code)).length);
     const allPlayed = tied.every((r, i) => games.get(r.team.code)!.filter((g) => codes.has(g.opponent)).length === scheduled[i]);
     for (const row of tied) {
-      if (!allPlayed || scheduled.some((n) => n === 0)) {
+      if (!allPlayed || scheduled.some((n) => n === 0 || (competition !== "PD" && n < 2 * (codes.size - 1)))) {
         headToHead.set(row.team.code, null);
         continue;
       }
@@ -86,26 +93,47 @@ export function currentTable(grid: FixtureGrid, through = Number.POSITIVE_INFINI
       headToHead.set(row.team.code, {
         points: mini.reduce((s, g) => s + POINTS[g.outcome], 0),
         goalDifference: mini.reduce((s, g) => s + g.goalsFor - g.goalsAgainst, 0),
+        awayGoals: mini.reduce((s, g) => s + (g.venue === "A" ? g.goalsFor : 0), 0),
       });
     }
   }
 
-  return rows
-    .sort((a, b) => {
+  const compare = (a: typeof rows[number], b: typeof rows[number]): number => {
       if (b.points !== a.points) return b.points - a.points;
+      if (competition !== "PD") {
+        const overall = b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor;
+        if (overall) return overall;
+      }
       const ha = headToHead.get(a.team.code);
       const hb = headToHead.get(b.team.code);
-      if (ha && hb) {
-        if (hb.points !== ha.points) return hb.points - ha.points;
-        if (hb.goalDifference !== ha.goalDifference) return hb.goalDifference - ha.goalDifference;
+      const finalPremierLeague = competition !== "PL" || (grid.matchdays.length > 0 && through >= grid.matchdays.length - 1 && grid.teams.every(t => t.cells.flat().every(c => c.status === "finished" && c.result)));
+      if (ha && hb && finalPremierLeague) {
+        if (competition !== "BL1" && hb.points !== ha.points) return hb.points - ha.points;
+        if (competition !== "PL" && hb.goalDifference !== ha.goalDifference) return hb.goalDifference - ha.goalDifference;
+        if (competition !== "PD" && hb.awayGoals !== ha.awayGoals) return hb.awayGoals - ha.awayGoals;
+        if (competition === "BL1") {
+          const awayGoals = (code: string) => games.get(code)!.filter(g => g.venue === "A").reduce((sum, g) => sum + g.goalsFor, 0);
+          if (awayGoals(b.team.code) !== awayGoals(a.team.code)) return awayGoals(b.team.code) - awayGoals(a.team.code);
+        }
       }
-      return b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor || a.team.name.localeCompare(b.team.name);
-    })
-    .map((row, i) => ({ ...row, position: i + 1 }));
+      return b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor;
+  };
+  const sorted = rows.sort((a, b) => compare(a, b) || a.team.name.localeCompare(b.team.name));
+  let position = 1;
+  return sorted.map((row, i) => {
+    if (competition === "PD" || i === 0 || compare(sorted[i - 1]!, row) !== 0) position = i + 1;
+    return { ...row, position };
+  });
 }
 
 // LaLiga 2026/27 places: 1–4 Champions League, 5 Europa League, 6 Conference League play-off, 18–20 relegation.
-export function zone(position: number, size: number): { className: string; label: string } | null {
+export function zone(position: number, size: number, competition: Competition = "PD"): { className: string; label: string } | null {
+  if (competition !== "PD") {
+    if (position <= 4) return { className: "zone-ucl", label: "Top four" };
+    if (competition === "BL1" && position === size - 2) return { className: "zone-uecl", label: "Relegation play-off" };
+    if (position > size - (competition === "BL1" ? 2 : 3)) return { className: "zone-rel", label: "Relegation" };
+    return null;
+  }
   if (position <= 4) return { className: "zone-ucl", label: "Champions League" };
   if (position === 5) return { className: "zone-uel", label: "Europa League" };
   if (position === 6) return { className: "zone-uecl", label: "Conference League" };
@@ -157,7 +185,7 @@ export function mulberry32(seed: number): () => number {
  * walks the projection forward one gameweek at a time.
  */
 export function predictedTable(grid: FixtureGrid, options: PredictOptions = {}): PredictedRow[] {
-  const { simulations = 5000, seed = 2026, relegated = 3, through } = options;
+  const { simulations = 5000, seed = 2026, relegated = grid.competition === "BL1" ? 2 : 3, through } = options;
   const current = currentTable(grid, through);
   const index = new Map(current.map((row, i) => [row.team.code, i]));
   const expected = current.map(() => 0);

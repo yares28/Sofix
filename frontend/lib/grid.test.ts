@@ -141,7 +141,7 @@ describe("planning helpers", () => {
 
   it("opens on the first matchday with fewer than half its games done", () => {
     const grid: FixtureGrid = {
-      season: "2026/27", current_matchday: 1, model_version: null,
+      competition: "PD", season: "2026/27", current_matchday: 1, model_version: null,
       lens_scales: { overall: OVERALL, attack: ATTACK, defence: ATTACK, odds: ATTACK, record: ATTACK, market_record: ATTACK },
       matchdays: [md(1), md(2), md(3)],
       teams: [

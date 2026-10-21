@@ -140,7 +140,7 @@ export default function DifficultyGrid({ grid, start, end, lens, horizon, pins, 
           {/* Handlers are delegated to the tile buttons inside (see useTileTooltip). */}
           <table {...tableHandlers}>
             <caption className="visually-hidden">
-              LaLiga fixtures by team, {columns.length ? `gameweeks ${columns[0]!.number} to ${columns[columns.length - 1]!.number}` : "no gameweeks"}
+              League fixtures by team, {columns.length ? `gameweeks ${columns[0]!.number} to ${columns[columns.length - 1]!.number}` : "no gameweeks"}
               {`, rated with the ${copy.label.toLowerCase()} lens from 1 (${copy.easy.toLowerCase()}) to 5 (${copy.hard.toLowerCase()})`}.
               {pins.length ? " Pinned teams are listed first." : ""} Use the arrow keys to move between fixtures.
             </caption>

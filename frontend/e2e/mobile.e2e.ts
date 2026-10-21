@@ -1,6 +1,27 @@
 import { expect, test } from "@playwright/test";
 import { offline, openingMatchday, resetBackend, smallText } from "./helpers";
 
+test("Premier League and Bundesliga FDR fit the phone", async ({ page }) => {
+  for (const [league, size] of [["PL",20],["BL1",18]] as const) {
+    await page.goto(`/difficulty?league=${league}`);
+    await expect(page.getByRole("combobox", { name: "Competition" })).toHaveValue(league);
+    await expect(page.locator("#grid table tbody tr")).toHaveCount(size);
+    await expect(page.getByRole("combobox", { name: "Competition" })).toBeEnabled();
+    const bounds = await page.evaluate(() => {
+      const escaped = [...document.querySelectorAll("body *")].filter(e => {
+        if (e.getBoundingClientRect().right <= 395) return false;
+        for (let p=e.parentElement;p && p!==document.body;p=p.parentElement) {
+          if (["hidden","auto","scroll","clip"].includes(getComputedStyle(p).overflowX)) return false;
+        }
+        return true;
+      });
+      return { width: document.documentElement.scrollWidth, inner: window.innerWidth, offenders:escaped.slice(0,15).map(e=>({tag:e.tagName,class:e.className,right:e.getBoundingClientRect().right,width:e.getBoundingClientRect().width,position:getComputedStyle(e).position})) };
+    });
+    expect(bounds.width, JSON.stringify(bounds)).toBeLessThanOrEqual(390);
+    await page.screenshot({ path: `output/playwright/${league}-mobile.png`, fullPage: true });
+  }
+});
+
 test.beforeEach(async ({ page, request }) => {
   await resetBackend(request);
   await offline(page);

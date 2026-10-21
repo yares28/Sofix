@@ -1,0 +1,35 @@
+import { expect, test } from "@playwright/test";
+
+test("full PL and Bundesliga boards, date navigation and reload", async ({ page, context }) => {
+  await page.goto("/difficulty?league=PL");
+  await expect(page.getByRole("combobox", { name: "Competition" })).toHaveValue("PL");
+  await expect(page.locator("#grid table tbody tr")).toHaveCount(20);
+  const premierRound = await page.getByRole("radio", { checked: true }).getAttribute("aria-label");
+  await page.screenshot({ path: "output/playwright/pl-desktop.png", fullPage: true });
+  await page.getByRole("combobox", { name: "Competition" }).selectOption("BL1");
+  await expect(page).toHaveURL(/league=BL1/);
+  await expect(page.locator("#grid table tbody tr")).toHaveCount(18);
+  const germanRound = await page.getByRole("radio", { checked: true }).getAttribute("aria-label");
+  expect(germanRound?.match(/GW\d+/)?.[0]).not.toBe(premierRound?.match(/GW\d+/)?.[0]);
+  const selectedDate = new URL(page.url()).searchParams.get("w");
+  expect(selectedDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  await page.screenshot({ path: "output/playwright/bl-desktop.png", fullPage: true });
+  await page.reload();
+  await expect(page.getByRole("combobox", { name: "Competition" })).toHaveValue("BL1");
+  await page.getByRole("link", { name: "Table", exact: true }).first().click();
+  await expect(page).toHaveURL(/league=BL1/);
+  await expect(page.locator(".lt-table tbody tr")).toHaveCount(18);
+  const savedTeam = await page.locator(".club-link").first().getAttribute("href");
+  const separate = await context.newPage();
+  await separate.goto(savedTeam!);
+  await expect(separate.locator(".team-hero")).toContainText("Bundesliga");
+  expect(new URL(separate.url()).searchParams.get("w")).toBe(selectedDate);
+  await separate.close();
+  await page.locator(".club-link").first().click();
+  await expect(page).toHaveURL(/team\/G\d{2}.*league=BL1/, { timeout: 30_000 });
+  await expect(page.locator(".team-hero")).toContainText("Bundesliga");
+  await page.getByRole("link", { name: /All fixtures/ }).click();
+  await expect(page.getByRole("combobox", { name: "Competition" })).toHaveValue("BL1");
+  await page.goto("/difficulty?league=PL&w=2027-12-01");
+  await expect(page.getByRole("status")).toContainText("No Premier League fixtures");
+});

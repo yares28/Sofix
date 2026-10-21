@@ -10,7 +10,8 @@ import { weekPlan } from "../../../lib/play";
 import { loadFrozenPlan, loadSorare } from "../../../lib/playData";
 import { loadSystem } from "../../../lib/system";
 import { weekContext, weekDates } from "../../../lib/weeks";
-import type { SearchParams } from "../board-route";
+import { BoardRoute, type SearchParams } from "../board-route";
+import CompetitionPicker from "../../../components/CompetitionPicker";
 
 export const metadata: Metadata = { title: "Season fixtures · Sofix" };
 
@@ -20,6 +21,8 @@ export const metadata: Metadata = { title: "Season fixtures · Sofix" };
  * round: never the next week's. The chips step through every round.
  */
 export default async function Season({ searchParams }: { searchParams: SearchParams }) {
+  const requested = await searchParams;
+  if (requested.league !== undefined) return BoardRoute({ view: "plain", searchParams });
   await connection();
   const [{ grid, meta, error }, params, system, sorare] = await Promise.all([loadGrid(), searchParams, loadSystem(), loadSorare()]);
   const one = (key: string) => (typeof params[key] === "string" ? (params[key] as string) : null);
@@ -33,6 +36,7 @@ export default async function Season({ searchParams }: { searchParams: SearchPar
     <>
       <SiteNav meta={meta} system={system} week={week} />
       <main>
+        <CompetitionPicker competition="PD" week={week.current?.id} through={week.current?.to} />
         <section className="hero">
           <div>
             <div className="eyebrow">LaLiga & Europe · {current ? weekDates(current) : `Season ${grid?.season ?? ""}`}</div>

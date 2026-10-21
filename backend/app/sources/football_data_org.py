@@ -36,6 +36,7 @@ class FullTime(BaseModel):
 
 class Score(BaseModel):
     model_config = ConfigDict(extra="ignore")
+    duration: str | None = None
     fullTime: FullTime = FullTime()
 
 

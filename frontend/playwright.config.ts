@@ -1,6 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 import { E2E_GITHUB_TOKEN, E2E_PORT, E2E_REFRESH_TOKEN, E2E_REVALIDATE_SECRET, MOCK_PORT } from "./e2e/constants";
 
+const production = process.env.E2E_PRODUCTION === "1";
+
 // End-to-end tests run the real Next.js app against e2e/mock-api.mjs (recorded grid, scripted refresh):
 // no Neon, no football-data.org, deterministic data.
 
@@ -30,7 +32,9 @@ export default defineConfig({
       reuseExistingServer: false,
     },
     {
-      command: `node e2e/prepare.mjs && npx next dev -H 127.0.0.1 -p ${E2E_PORT}`,
+      command: production
+        ? `npx next start -H 127.0.0.1 -p ${E2E_PORT}`
+        : `node e2e/prepare.mjs && npx next dev -H 127.0.0.1 -p ${E2E_PORT}`,
       url: `http://127.0.0.1:${E2E_PORT}/api/refresh`, // answers 403 quickly once the server is up
       env: {
         API_BASE_URL: `http://127.0.0.1:${MOCK_PORT}`,
@@ -42,7 +46,7 @@ export default defineConfig({
         REVALIDATE_SECRET: E2E_REVALIDATE_SECRET,
         // Empty on purpose: overrides any DATABASE_URL in .env.local, so tests never reach Neon.
         DATABASE_URL: "",
-        NEXT_DIST_DIR: ".next-e2e", // separate from the dev server's .next
+        NEXT_DIST_DIR: production ? ".next" : ".next-e2e", // separate from the dev server's .next
         NEXT_TELEMETRY_DISABLED: "1",
       },
       timeout: 180_000,

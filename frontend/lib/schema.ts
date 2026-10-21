@@ -79,6 +79,7 @@ const CellSchema = z.object({
 const LensScaleSchema = z.object({ cuts: z.array(z.number()).length(4), higher_is_easier: z.boolean() });
 
 export const FixtureGridSchema = z.object({
+  competition: z.enum(["PD", "PL", "BL1"]).default("PD"),
   season: z.string(),
   current_matchday: z.number().int().nullable(),
   model_version: z.string().nullable(),
@@ -93,7 +94,8 @@ export const FixtureGridSchema = z.object({
   matchdays: z.array(z.object({ number: z.number().int(), date_from: isoDate, date_to: isoDate, finished: z.boolean() })),
   teams: z.array(
     z.object({
-      code: z.string().regex(/^[A-Z0-9]{3}$/),
+      code: z.string().regex(/^(?:[A-Z0-9]{3}|FD[0-9]{1,6})$/),
+      source_id: z.number().int().positive().nullish(),
       name: z.string().min(1),
       color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
       crest_url: z.string().startsWith("https://crests.football-data.org/").nullable(),

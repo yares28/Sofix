@@ -22,8 +22,8 @@ import "./arcade.css";
 const geist = Geist({ subsets: ["latin"], display: "swap", variable: "--font-geist" });
 
 export const metadata: Metadata = {
-  title: "Sofix — LaLiga fixture difficulty",
-  description: "Every LaLiga run of games, rated at a glance: difficulty, expected points and planning tools.",
+  title: "Sofix - Fixture difficulty",
+  description: "LaLiga, Premier League and Bundesliga fixtures: difficulty, expected points and planning tools.",
   applicationName: "Sofix",
   robots: { index: false, follow: false }, // personal board
   // Installed from the browser (Chrome "Install", iPhone "Add to Home Screen"): opens in its own window.

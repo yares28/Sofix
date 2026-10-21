@@ -14,6 +14,8 @@ and a check, so a session can work through it alone and stop only where you have
 
 ## Next up (the one queue: read this first, update it in the same commit when an item ships)
 
+Owner priority, 21 Oct: Premier League and Bundesliga regular-league FDR is implemented in [pl-bundesliga-fdr.md](pl-bundesliga-fdr.md), with independent models, full-season boards and automatic collection. Their xScore is deferred. The broader multi-competition research remains separate; this release does not enable cups or European FDR.
+
 Work from the top. Each line points to its full text; "you" items wait for the owner.
 
 OB. **The overlay as a bridge** ([overlay-bridge.md](overlay-bridge.md), first by the owner, 21 Oct): fix the red backend CI, then

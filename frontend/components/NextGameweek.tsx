@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "./FootballLink";
 import { decimalOdds, formatDay, formatKickoff } from "../lib/grid";
 import { gameweekMatches, matchOutlook, type Match } from "../lib/matches";
 import type { CellPrediction, FixtureGrid, GridTeam } from "../lib/types";

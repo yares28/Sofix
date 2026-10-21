@@ -119,6 +119,23 @@
       "get": {
         "summary": "Fixture Grid",
         "operationId": "fixture_grid_api_fixture_grid_get",
+        "parameters": [
+          {
+            "name": "competition",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "PD",
+                "PL",
+                "BL1"
+              ],
+              "type": "string",
+              "default": "PD",
+              "title": "Competition"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -126,6 +143,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResponse_FixtureGrid_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1072,6 +1099,16 @@
       },
       "FixtureGrid": {
         "properties": {
+          "competition": {
+            "type": "string",
+            "enum": [
+              "PD",
+              "PL",
+              "BL1"
+            ],
+            "title": "Competition",
+            "default": "PD"
+          },
           "season": {
             "type": "string",
             "title": "Season"
@@ -1129,6 +1166,18 @@
       },
       "GridCell": {
         "properties": {
+          "forecast_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forecast At"
+          },
           "fixture_id": {
             "type": "integer",
             "title": "Fixture Id"
@@ -1327,6 +1376,17 @@
       },
       "GridTeam": {
         "properties": {
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
           "code": {
             "type": "string",
             "title": "Code"

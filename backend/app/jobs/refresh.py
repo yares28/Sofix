@@ -36,7 +36,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import settings
 from app.db import SessionLocal, database_target, neon_bytes
-from app.jobs import predict, seed_and_sync, sorare, sync_odds
+from app.jobs import league_fdr, predict, seed_and_sync, sorare, sync_odds
 from app.logging_config import configure_logging
 from app.migrate import ensure_schema_current, upgrade_to_head
 from app.models import RUNNING, RefreshRun
@@ -63,6 +63,8 @@ def default_steps() -> list[Step]:
         # freshest ones. The odds call is throttled to 6 h either way, so this costs no extra credits.
         ("odds", lambda: asyncio.run(sync_odds.main())),
         ("predict", predict.main),
+        ("fdr_pl", lambda: league_fdr.run("PL")),
+        ("fdr_bl", lambda: league_fdr.run("BL1")),
     ]
 
 

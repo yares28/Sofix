@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "./FootballLink";
 import { Fragment, useState, type CSSProperties } from "react";
 import {
   LENS_COPY, PRICE_OPTIONS, cellBucket, decimalOdds, formatTotal, marketLabels, marketLines, playedValue, type Horizon, type PriceOption, type RunStats,

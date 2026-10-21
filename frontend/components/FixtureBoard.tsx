@@ -16,6 +16,7 @@ import LeagueTable from "./LeagueTable";
 import Overview from "./Overview";
 import SeasonHero from "./SeasonHero";
 import DifficultyHero, { DifficultyLegend } from "./DifficultyHero";
+import { leagueName } from "../lib/competitions";
 
 interface Props {
   grid: FixtureGrid;
@@ -32,7 +33,7 @@ export default function FixtureBoard({ grid, initialView, pinsInUrl, away }: Pro
   const finished = useMemo(() => grid.matchdays.map((md) => md.finished), [grid]);
   const knownCodes = useMemo(() => new Set(grid.teams.map((team) => team.code)), [grid]);
 
-  const { state, patch, togglePin } = useViewState(initialView, pinsInUrl, knownCodes);
+  const { state, patch, togglePin } = useViewState(initialView, pinsInUrl, knownCodes, grid.competition);
   const { view, lens, horizon, pins } = state;
 
   // One week drives every tab: the picker in the bar sets it, and the board opens on the round inside it.
@@ -55,7 +56,7 @@ export default function FixtureBoard({ grid, initialView, pinsInUrl, away }: Pro
       {/* On the table the season hero above replaces this one; hidden, not removed, so the board keeps its layout code in one place. */}
       <section className="hero" hidden={(view === "table" || view === "fdr") && !away}>
         <div>
-          <div className="eyebrow">LaLiga · Season {grid.season}</div>
+          <div className="eyebrow">{leagueName(grid)} · Season {grid.season}</div>
           <h1>{view === "table" ? "Table" : view === "plain" ? "Fixtures" : "Fixtures & Difficulty"}</h1>
         </div>
       </section>

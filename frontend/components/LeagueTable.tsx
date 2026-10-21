@@ -1,13 +1,14 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Link from "next/link";
+import Link from "./FootballLink";
 import { useLayoutEffect, useMemo, useRef } from "react";
 import { formatDay, formatShortKickoff, openingColumn, type TableMode } from "../lib/grid";
 import { scoreColour } from "../lib/cards";
 import { hasPredicted, nextGame, standings, type Split, type StandingMode, type StandingRow } from "../lib/standings";
 import { zone, type Outcome } from "../lib/table";
 import type { FixtureGrid, GridTeam } from "../lib/types";
+import { competitionOf, leagueName, type Competition } from "../lib/competitions";
 import Crest from "./Crest";
 import SegmentedControl from "./SegmentedControl";
 // The chart pulls in a charting library: only the Table tab should pay for it, and only in the browser.
@@ -62,7 +63,7 @@ export default function LeagueTable({ grid, through, mode, onMode, standing, onS
       <header className="lt-head">
         <div className="lt-title">
           <h2 id="table-title">
-            {shown === "actual" ? tableTitle(gameweek) : TITLES[shown]}
+            {shown === "actual" ? tableTitle(gameweek).replace("LaLiga", leagueName(grid)) : TITLES[shown]}
             <span className="lt-split">{SPLIT_WORD[split]}</span>
           </h2>
           <p className="insight-meta">
@@ -110,7 +111,7 @@ export default function LeagueTable({ grid, through, mode, onMode, standing, onS
       <div className="table-scroll">
         <table className={`standings lt-table ${shown}`}>
           <caption className="visually-hidden">
-            {`${TITLES[shown]}, LaLiga ${grid.season}${SPLIT_WORD[split]}, with ${chances ? `each club's chances ${by}, ` : ""}its decisive actions per game and its next game`}
+            {`${TITLES[shown].replace("LaLiga", leagueName(grid))}, ${leagueName(grid)} ${grid.season}${SPLIT_WORD[split]}, with ${chances ? `each club's chances ${by}, ` : ""}its next game`}
           </caption>
           <thead>
             <tr className="lt-groups" aria-hidden="true">
@@ -137,10 +138,10 @@ export default function LeagueTable({ grid, through, mode, onMode, standing, onS
                   </th>
                   <th scope="col" className="num"><abbr title="Expected goal difference">xGD</abbr></th>
                   <th scope="col" className="num"><abbr title={`Chance of finishing first ${by}`}>Title</abbr></th>
-                  <th scope="col" className="num"><abbr title={`Chance of a Champions League place (top four) ${by}`}>UCL</abbr></th>
-                  <th scope="col" className="num"><abbr title={`Chance of the Europa League place (fifth) ${by}`}>UEL</abbr></th>
-                  <th scope="col" className="num"><abbr title={`Chance of the Conference League play-off place (sixth) ${by}`}>UECLQ</abbr></th>
-                  <th scope="col" className="num"><abbr title={`Chance of relegation (bottom three) ${by}`}>REL</abbr></th>
+                  <th scope="col" className="num"><abbr title={`Chance of finishing in the top four ${by}`}>{competitionOf(grid.competition) === "PD" ? "UCL" : "Top 4"}</abbr></th>
+                  <th scope="col" className="num"><abbr title={`Chance of finishing fifth ${by}`}>{competitionOf(grid.competition) === "PD" ? "UEL" : "5th"}</abbr></th>
+                  <th scope="col" className="num"><abbr title={`Chance of finishing sixth ${by}`}>{competitionOf(grid.competition) === "PD" ? "UECLQ" : "6th"}</abbr></th>
+                  <th scope="col" className="num"><abbr title={`Chance of direct relegation (bottom ${grid.competition === "BL1" ? "two" : "three"}) ${by}`}>REL</abbr></th>
                 </>
               )}
               <th scope="col" className="num lt-start"><abbr title={`${XD_TITLE}. Attack: goals, assists, penalties won`}>Att</abbr></th>
@@ -161,6 +162,7 @@ export default function LeagueTable({ grid, through, mode, onMode, standing, onS
                 maxPoints={maxPoints}
                 chances={chances}
                 teams={teams}
+                competition={competitionOf(grid.competition)}
               />
             ))}
           </tbody>
@@ -168,9 +170,9 @@ export default function LeagueTable({ grid, through, mode, onMode, standing, onS
       </div>
 
       <ul className="zone-key" aria-label="Table colours">
-        <li className="zone-ucl">Champions League</li>
-        <li className="zone-uel">Europa League</li>
-        <li className="zone-uecl">Conference League play-off</li>
+        <li className="zone-ucl">{grid.competition && grid.competition !== "PD" ? "Top four" : "Champions League"}</li>
+        {(!grid.competition || grid.competition === "PD") && <><li className="zone-uel">Europa League</li><li className="zone-uecl">Conference League play-off</li></>}
+        {grid.competition === "BL1" && <li className="zone-uecl">Relegation play-off</li>}
         <li className="zone-rel">Relegation</li>
       </ul>
 
@@ -180,7 +182,7 @@ export default function LeagueTable({ grid, through, mode, onMode, standing, onS
 }
 
 function Row({
-  row, size, index, moves, maxPoints, chances, teams,
+  row, size, index, moves, maxPoints, chances, teams, competition,
 }: {
   row: StandingRow;
   size: number;
@@ -189,8 +191,9 @@ function Row({
   maxPoints: number;
   chances: boolean;
   teams: Map<string, GridTeam>;
+  competition: Competition;
 }) {
-  const z = zone(row.position, size);
+  const z = zone(row.position, size, competition);
   const move = row.actualPosition - row.position;
   const next = nextGame(row.team);
   const opponent = next ? teams.get(next.opponent_code) : undefined;

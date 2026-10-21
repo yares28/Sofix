@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "./FootballLink";
 import { formatDay } from "../lib/grid";
 import { gameweekMatches, type Match } from "../lib/matches";
 import type { FixtureGrid, GridTeam } from "../lib/types";

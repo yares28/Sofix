@@ -150,3 +150,56 @@ jobs:
         with:
           path: backend/.cache/player_games.sqlite
           key: player-games-${{ github.run_id }}-${{ github.run_attempt }}
+
+  # A new league must not stay empty until tonight because another refresh just ran.
+  # This path only initializes missing blocks; subsequent pushes skip without source calls.
+  # Workflow concurrency and the existing database refresh lock still allow one writer.
+  fdr-bootstrap:
+    name: Initialize missing league FDR
+    needs: gate
+    if: github.event_name == 'push' && needs.gate.outputs.run != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      APP_ENV: prod
+      POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+      POSTGRES_URL_SPARE: ${{ secrets.POSTGRES_URL_SPARE }}
+      FOOTBALL_DATA_ORG_TOKEN: ${{ secrets.FOOTBALL_DATA_ORG_TOKEN }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      APP_URL: ${{ secrets.APP_URL }}
+      REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
+      VERCEL_BYPASS_SECRET: ${{ secrets.VERCEL_BYPASS_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+          activate-environment: true
+          enable-cache: true
+          cache-dependency-glob: backend/requirements.lock
+      - name: Install locked dependencies
+        run: uv pip sync requirements.lock
+      - name: Pick the live Neon project
+        run: python -m app.jobs.neon_switch
+      - name: Restore history cache
+        uses: actions/cache@v4
+        with:
+          path: backend/data/raw
+          key: football-data-co-uk-bootstrap-${{ github.run_id }}
+          restore-keys: football-data-co-uk-
+      - name: Initialize missing blocks under the refresh lock
+        run: |
+          set +e
+          python -m app.jobs.league_fdr --bootstrap
+          code=$?
+          if [ "$code" -eq 2 ]; then
+            echo "::notice::Another refresh is running; the next refresh will publish the leagues."
+            exit 0
+          fi
+          exit "$code"

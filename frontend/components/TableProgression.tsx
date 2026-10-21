@@ -3,6 +3,7 @@
 import { ResponsiveLine, type LineCustomSvgLayerProps, type SliceTooltipProps } from "@nivo/line";
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { seasonProgression, type ClubProgression } from "../lib/progression";
+import { competitionOf, type Competition } from "../lib/competitions";
 import { zone } from "../lib/table";
 import type { FixtureGrid } from "../lib/types";
 import { Chevron } from "./Chevron";
@@ -174,7 +175,7 @@ export default function TableProgression({ grid, through }: { grid: FixtureGrid;
         </div>
       </header>
 
-      {focus && <FocusNote club={focus} size={size} lastPlayed={lastPlayed} />}
+      {focus && <FocusNote club={focus} size={size} lastPlayed={lastPlayed} competition={competitionOf(grid.competition)} />}
 
       <div className="progression-frame">
         {/* A region that scrolls must be reachable by keyboard (axe scrollable-region-focusable). */}
@@ -200,7 +201,7 @@ export default function TableProgression({ grid, through }: { grid: FixtureGrid;
               enableSlices="x"
               sliceTooltip={(props) => <SliceCard {...props} clubs={byCode} lastPlayed={lastPlayed} gameweeks={gameweeks} />}
               layers={[
-                ...(zones ? [(layer: LayerProps) => <Zones key="zones" {...layer} size={size} />] : []),
+                ...(zones ? [(layer: LayerProps) => <Zones key="zones" {...layer} size={size} competition={competitionOf(grid.competition)} />] : []),
                 "grid",
                 "axes",
                 (layer) => <Band key="band" {...layer} focus={focus} from={fromGw} to={toGw} />,
@@ -214,6 +215,7 @@ export default function TableProgression({ grid, through }: { grid: FixtureGrid;
           </div>
         </div>
         <ChartOptions
+          competition={competitionOf(grid.competition)}
           zones={zones}
           onZones={setZones}
           prediction={prediction}
@@ -334,8 +336,9 @@ function ClubPicker({
 
 /** The (i) button in the chart's corner: what to draw, and what each line means. */
 function ChartOptions({
-  zones, onZones, prediction, onPrediction, hasPrediction,
+  zones, onZones, prediction, onPrediction, hasPrediction, competition,
 }: {
+  competition: Competition;
   zones: boolean;
   onZones: (on: boolean) => void;
   prediction: boolean;
@@ -354,7 +357,7 @@ function ChartOptions({
           <label className="option-row">
             <input type="checkbox" checked={zones} onChange={(event) => onZones(event.target.checked)} />
             <span>
-              Champions League, Europe and relegation
+              {competition === "PD" ? "Champions League, Europe and relegation" : "Top four and relegation places"}
               <span className="option-swatches" aria-hidden="true">
                 {ZONES.map((band) => <i key={band.label} style={{ background: band.fill }} />)}
                 <i style={{ background: RELEGATION }} />
@@ -397,15 +400,16 @@ function ChartOptions({
 type LayerProps = LineCustomSvgLayerProps<Serie>;
 
 /** European places and the drop, shaded behind everything else. */
-function Zones({ yScale, innerWidth, size }: LayerProps & { size: number }) {
+function Zones({ yScale, innerWidth, size, competition }: LayerProps & { size: number; competition: Competition }) {
   const row = (from: number, to: number) => {
     const top = yScale((from - 0.5) as never);
     const bottom = yScale((to + 0.5) as never);
     return { y: Math.min(top, bottom), height: Math.abs(bottom - top) };
   };
   const bands = [
-    ...ZONES.map((band) => ({ ...band })),
-    { from: size - 2, to: size, fill: RELEGATION, label: "Relegation", short: "REL" },
+    ...(competition === "PD" ? ZONES.map((band) => ({ ...band })) : [{ from: 1, to: 4, fill: "#0071e3", label: "Top four", short: "TOP4" }]),
+    ...(competition === "BL1" ? [{ from: size - 2, to: size - 2, fill: "#f29d38", label: "Relegation play-off", short: "PO" }] : []),
+    { from: size - (competition === "BL1" ? 1 : 2), to: size, fill: RELEGATION, label: "Relegation", short: "REL" },
   ];
   return (
     <g>
@@ -596,10 +600,10 @@ function SliceCard({
   );
 }
 
-function FocusNote({ club, size, lastPlayed }: { club: ClubProgression; size: number; lastPlayed: number }) {
+function FocusNote({ club, size, lastPlayed, competition }: { club: ClubProgression; size: number; lastPlayed: number; competition: Competition }) {
   const end = club.path[club.path.length - 1];
   const move = club.now === null ? 0 : club.now - club.end;
-  const place = zone(club.end, size);
+  const place = zone(club.end, size, competition);
   return (
     <p className="progression-focus">
       <b>{club.team.name}</b>{" "}

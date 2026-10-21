@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { pageWeeks, weekDates, weekName, type Page, type Week } from "../lib/weeks";
+import { COMPETITIONS, type Competition } from "../lib/competitions";
 
 // Pages that count LaLiga rounds. Lineups and Scores show a week's own games, a European midweek's too, so they offer every week.
 const BOARD = ["/fixtures", "/difficulty", "/table"];
@@ -16,7 +17,7 @@ const short = (week: Week) => (week.number !== null ? `GW${week.number}` : `R${w
  * neighbours as numbers, and the rest of the season a swipe or an arrow away. Design: the "B2" board of the Sofix
  * week picker canvas.
  */
-export default function WeekPicker({ weeks, current, now }: { weeks: Week[]; current: Week | null; now: Week | null }) {
+export default function WeekPicker({ weeks, current, now, competition = "PD" }: { weeks: Week[]; current: Week | null; now: Week | null; competition?: Competition }) {
   const router = useRouter();
   const pathname = usePathname();
   const strip = useRef<HTMLDivElement>(null);
@@ -47,6 +48,8 @@ export default function WeekPicker({ weeks, current, now }: { weeks: Week[]; cur
     // Always written, even for the week the app is on: each page has its own idea of "no week asked for" —
     // the board opens on the next LaLiga round — so a week you picked has to be said out loud to be kept.
     next.set("w", week.id);
+    if (competition !== "PD" || next.has("league")) next.set("end", week.to.slice(0, 10));
+    else next.delete("end");
     next.delete("gw"); // the old per-page gameweek; the week replaces it
     if (pathname === "/lineups" || pathname === "/scores") next.delete("m"); // the week names the round: the page opens on its next match
     const query = next.toString();
@@ -70,7 +73,7 @@ export default function WeekPicker({ weeks, current, now }: { weeks: Week[]; cur
         <div className="wk-strip" ref={strip} role="radiogroup" aria-label="Week">
           {shown.map((week) => {
             const on = week.id === current.id;
-            const name = `${weekName(week)}, ${weekDates(week, page)}`;
+            const name = `${competition === "PD" ? weekName(week) : `${COMPETITIONS[competition]} GW${week.md ?? "–"}`}, ${weekDates(week, page)}`;
             return (
               <button
                 key={week.id}

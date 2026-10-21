@@ -11,6 +11,11 @@ import { useSearchParams } from "next/navigation";
  * (hooks/useViewState.ts).
  */
 export function useWeekSuffix(): string {
-  const week = useSearchParams().get("w");
-  return week ? `?w=${encodeURIComponent(week)}` : "";
+  const search = useSearchParams();
+  const params = new URLSearchParams();
+  for (const key of ["w", "end", "league"]) {
+    const value = search.get(key);
+    if (value) params.set(key, value);
+  }
+  return params.size ? `?${params}` : "";
 }

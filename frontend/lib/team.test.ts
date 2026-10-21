@@ -22,7 +22,7 @@ const team = {
   cells: [[played("H", 3, 1)], [played("A", 1, 1)], [], [upcoming("H", 2.2, 30), upcoming("A", 1.6, 50)], [upcoming("A", 1.2, 60)]],
 };
 const grid: FixtureGrid = {
-  season: "2026/27", current_matchday: 3, model_version: null,
+  competition: "PD", season: "2026/27", current_matchday: 3, model_version: null,
   lens_scales: {
     overall: { cuts: [1, 2, 3, 4], higher_is_easier: false },
     attack: { cuts: [4, 3, 2, 1], higher_is_easier: true },

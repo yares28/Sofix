@@ -11,6 +11,8 @@ import { DEFAULT_VIEW, openingColumn, parseViewState, selectedColumn, type View 
 import { dateRange } from "../../lib/home";
 import { laligaRound } from "../../lib/laliga";
 import { tableAfter } from "../../lib/recap";
+import CompetitionPicker from "../../components/CompetitionPicker";
+import { competitionOf, COMPETITIONS, leagueColumn, validDay } from "../../lib/competitions";
 
 export type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -23,10 +25,10 @@ const TITLES: Record<View, string> = { plain: "Fixtures", fdr: "Fixtures & Diffi
 export async function BoardRoute({ view, searchParams }: { view: View; searchParams: SearchParams }) {
   await connection(); // render per request (from the cache), never prerender at build time when the API may be down
   const [{ grid, meta, error }, rawParams, system, sorare] = await Promise.all([
-    loadGrid(),
+    searchParams.then(p => loadGrid(competitionOf(p.league))),
     searchParams,
     loadSystem(),
-    loadSorare(),
+    searchParams.then(p => competitionOf(p.league) === "PD" ? loadSorare() : null),
   ]);
 
   // View state from the URL is applied on the server, so a shared link renders the right view with no flash.
@@ -34,14 +36,51 @@ export async function BoardRoute({ view, searchParams }: { view: View; searchPar
   for (const [key, value] of Object.entries(rawParams)) {
     if (typeof value === "string") params.set(key, value);
   }
+  const competition = competitionOf(rawParams.league);
+  if (competition !== "PD") {
+    const requested = params.get("w");
+    const column = grid && requested ? leagueColumn(grid.matchdays, requested, params.get("end") ?? undefined) : null;
+    const blank = Boolean(grid && requested && column === null);
+    const md = column !== null ? grid?.matchdays[column]?.number : null;
+    const week = weekContext(grid, null, new Date(), { md: md ?? null });
+    if (blank && week.current && validDay(requested)) {
+      const end = params.get("end");
+      week.current = { ...week.current, id: requested, from: `${requested}T00:00:00Z`, to: `${validDay(end) ? end : requested}T23:59:59Z`, md: null, column: null };
+    }
+    if (md) params.set("gw", String(md));
+    else if (week.current?.md) params.set("gw", String(week.current.md));
+    const initial = grid ? { ...DEFAULT_VIEW, ...parseViewState(params, new Set(grid.teams.map(t => t.code))), view } : { ...DEFAULT_VIEW, view };
+    return <>
+      <SiteNav meta={meta} system={system} week={week} competition={competition} />
+      <main>
+        <CompetitionPicker competition={competition} week={requested ?? week.current?.id} through={week.current?.to} />
+        <p className="footnote">{COMPETITIONS[competition]} · {grid?.season ?? "Awaiting refresh"}. Independently fitted reference model; clean-sheet chances are uncalibrated. Player xScore is not included.</p>
+        {!grid ? <section className="card empty-state" role="status"><h1>{TITLES[view]}</h1><p>{error}</p></section> : blank ?
+          <section className="card empty-state" role="status"><h1>{TITLES[view]}</h1><p>No {COMPETITIONS[competition]} fixtures in the selected week.</p></section> :
+          <FixtureBoard key={competition} grid={grid} notes={meta?.model_notes ?? []} initialView={initial} pinsInUrl={params.has("pins")} away={null} />}
+      </main>
+    </>;
+  }
   // One week drives the whole app: the board opens on the LaLiga round inside it, and an older ?gw= link
   // still decides which week that is. A week with no round at all stays itself — the board then shows the
   // games the owner's own players play, because there is no LaLiga to show.
   const opening = grid ? (grid.matchdays[openingColumn(grid)]?.number ?? null) : null;
   const now = new Date();
-  const calendar = weekContext(grid, sorare, now, { w: params.get("w"), md: Number(params.get("gw")) || null });
+  const askedDate = params.get("w");
+  const sharedColumn = grid && askedDate && params.has("league") ? leagueColumn(grid.matchdays, askedDate, params.get("end") ?? undefined) : null;
+  const calendar = weekContext(grid, sorare, now, { w: params.get("w"), md: (sharedColumn !== null ? grid?.matchdays[sharedColumn]?.number : null) ?? (Number(params.get("gw")) || null) });
   const week = !params.has("w") && !params.has("gw") && calendar.now?.state !== "live"
     ? weekContext(grid, sorare, now, { md: opening }) : calendar;
+  if (grid && askedDate && params.has("league") && sharedColumn === null) {
+    if (week.current && validDay(askedDate)) {
+      const end = params.get("end");
+      week.current = { ...week.current, id: askedDate, from: `${askedDate}T00:00:00Z`, to: `${validDay(end) ? end : askedDate}T23:59:59Z`, md: null, column: null };
+    }
+    return <><SiteNav meta={meta} system={system} week={week} /><main>
+      <CompetitionPicker competition="PD" week={askedDate} through={week.current?.to} />
+      <section className="card empty-state" role="status"><h1>{TITLES[view]}</h1><p>No LaLiga fixtures in the selected week.</p></section>
+    </main></>;
+  }
   const away = week.current && week.current.md === null ? week.current : null;
   const awayInfo = sorare?.timeline.find(w => w.id === away?.gw);
   const awayPlan = sorare && away?.gw ? weekPlan(sorare, away.gw) ?? (awayInfo ? await loadFrozenPlan(awayInfo.slug, sorare) : null) : null;
@@ -62,6 +101,7 @@ export async function BoardRoute({ view, searchParams }: { view: View; searchPar
       return (
         <>
           <SiteNav meta={meta} system={system} week={week} />
+          <div className="competition-container"><CompetitionPicker competition="PD" week={week.current?.id} through={week.current?.to} /></div>
           <LaLigaView
             round={laligaRound(grid, column, players)}
             number={md.number}
@@ -77,6 +117,7 @@ export async function BoardRoute({ view, searchParams }: { view: View; searchPar
     <>
       <SiteNav meta={meta} system={system} week={week} />
       <main>
+        <CompetitionPicker competition="PD" week={week.current?.id} through={week.current?.to} />
         {grid ? (
           <FixtureBoard
             grid={grid}

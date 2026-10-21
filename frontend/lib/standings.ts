@@ -227,7 +227,7 @@ export function standings(grid: FixtureGrid, options: StandingOptions): Standing
       if (place < 4) odds.ucl[club]! += 1;
       if (place === 4) odds.uel[club]! += 1;
       if (place === 5) odds.uecl[club]! += 1;
-      if (place >= n - 3) odds.rel[club]! += 1;
+      if (place >= n - (grid.competition === "BL1" ? 2 : 3)) odds.rel[club]! += 1;
     });
   }
   const share = (count: number) => (simulations ? count / simulations : 0);

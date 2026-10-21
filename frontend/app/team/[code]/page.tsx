@@ -8,18 +8,20 @@ import TeamSeason from "../../../components/TeamSeason";
 import { loadGrid } from "../../../lib/api";
 import { loadSystem } from "../../../lib/system";
 import { findTeam } from "../../../lib/team";
+import { competitionOf, leagueName } from "../../../lib/competitions";
 
 type Params = Promise<{ code: string }>;
+type Search = Promise<Record<string, string | string[] | undefined>>;
 
-export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
-  const [{ code }, { grid }] = await Promise.all([params, loadGrid()]);
+export async function generateMetadata({ params, searchParams }: { params: Params; searchParams: Search }): Promise<Metadata> {
+  const [{ code }, { grid }] = await Promise.all([params, searchParams.then(p => loadGrid(competitionOf(p.league)))]);
   const team = grid ? findTeam(grid, code) : null;
   return { title: team ? `${team.name} fixtures · Sofix` : "Team · Sofix" };
 }
 
-export default async function TeamPage({ params }: { params: Params }) {
+export default async function TeamPage({ params, searchParams }: { params: Params; searchParams: Search }) {
   await connection();
-  const [{ code }, { grid, meta, error }, system] = await Promise.all([params, loadGrid(), loadSystem()]);
+  const [{ code }, { grid, meta, error }, system, search] = await Promise.all([params, searchParams.then(p => loadGrid(competitionOf(p.league))), loadSystem(), searchParams]);
 
   if (!grid) {
     return (
@@ -34,20 +36,20 @@ export default async function TeamPage({ params }: { params: Params }) {
       </>
     );
   }
-  const team = /^[A-Za-z0-9]{3}$/.test(code) ? findTeam(grid, code) : null;
+  const team = /^(?:[A-Za-z0-9]{3}|FD[0-9]{1,6})$/.test(code) ? findTeam(grid, code) : null;
   if (!team) notFound();
 
   return (
     <>
       <SiteNav meta={meta} system={system} />
       <main className="team-page">
-        <Link href="/difficulty" className="back-link">
+        <Link href={`/difficulty?${new URLSearchParams(Object.entries(search).filter((entry): entry is [string, string] => typeof entry[1] === "string"))}`} className="back-link">
           ← All fixtures
         </Link>
         <section className="team-hero">
           <Crest team={team} size={52} />
           <div>
-            <div className="eyebrow">LaLiga · Season {grid.season}</div>
+            <div className="eyebrow">{leagueName(grid)} · Season {grid.season}</div>
             <h1>{team.name}</h1>
           </div>
         </section>

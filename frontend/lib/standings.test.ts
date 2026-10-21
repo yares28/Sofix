@@ -47,7 +47,7 @@ function makeGrid({ now, august, results }: Season): FixtureGrid {
   );
   const teams: GridTeam[] = CODES.map((code, i) => ({ code, name: `Team ${code}`, color: "#123456", crest_url: null, cells: cells[i]! }));
   return {
-    season: "2026/27", current_matchday: 3, model_version: null,
+    competition: "PD", season: "2026/27", current_matchday: 3, model_version: null,
     lens_scales: { overall: scale, attack: scale, defence: scale, odds: scale, record: scale, market_record: scale },
     matchdays: ROUNDS.map((_, r) => ({ number: r + 1, date_from: "2026-09-01T00:00:00Z", date_to: "2026-09-02T00:00:00Z", finished: r < 2 })),
     teams,

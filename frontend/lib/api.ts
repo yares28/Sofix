@@ -4,6 +4,7 @@ import { database, readModel } from "./db";
 import { GRID_TAG } from "./refresh";
 import { GridResponseSchema } from "./schema";
 import type { FixtureGrid, GridMeta } from "./types";
+import type { Competition } from "./competitions";
 
 // Server-only: pages fetch on the server, so the API address never needs to reach the browser.
 // Local development only; production reads Neon (DATABASE_URL).
@@ -44,26 +45,30 @@ function toGrid(json: unknown): { grid: FixtureGrid; meta: GridMeta | null } {
  * Failures throw, so they are never cached. Shared by every page, so browsing between them costs nothing.
  */
 const cachedGrid = cache(
-  async (): Promise<{ grid: FixtureGrid; meta: GridMeta | null }> => {
+  async (competition: Competition): Promise<{ grid: FixtureGrid; meta: GridMeta | null }> => {
     if (database()) {
-      const row = await readModel("grid");
+      const row = await readModel(competition === "PD" ? "grid" : `grid:${competition}`);
       if (!row) throw new GridUnavailable(MESSAGES.empty);
-      return toGrid(row.payload);
+      const result = toGrid(row.payload);
+      if ((result.grid.competition ?? "PD") !== competition) throw new GridUnavailable(MESSAGES.malformed);
+      return result;
     }
-    const response = await fetch(`${API_BASE}/api/fixture-grid`, { cache: "no-store", signal: AbortSignal.timeout(8000) });
+    const response = await fetch(`${API_BASE}/api/fixture-grid${competition === "PD" ? "" : `?competition=${competition}`}`, { cache: "no-store", signal: AbortSignal.timeout(8000) });
     if (!response.ok) {
       console.error(`[fixture-grid] API answered ${response.status}`);
       throw new GridUnavailable(MESSAGES.unavailable);
     }
-    return toGrid(await response.json());
+    const result = toGrid(await response.json());
+    if ((result.grid.competition ?? "PD") !== competition) throw new GridUnavailable(MESSAGES.malformed);
+    return result;
   },
   ["fixture-grid"],
   { tags: [GRID_TAG], revalidate: 3600 },
 );
 
-export async function loadGrid(): Promise<Loaded> {
+export async function loadGrid(competition: Competition = "PD"): Promise<Loaded> {
   try {
-    const { grid, meta } = await cachedGrid();
+    const { grid, meta } = await cachedGrid(competition);
     return { grid, meta, error: null };
   } catch (error) {
     if (!(error instanceof GridUnavailable)) {

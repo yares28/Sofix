@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import Link from "./FootballLink";
 import { useMemo } from "react";
 import type { TableMode } from "../lib/grid";
+import { competitionOf } from "../lib/competitions";
 import { currentTable, predictedTable, zone, type Outcome } from "../lib/table";
 import type { FixtureGrid, GridTeam } from "../lib/types";
 import { CardLink } from "./CardLink";
@@ -80,7 +81,7 @@ export default function TableCard({ grid, through, mode, onMode, onOpenTable }: 
       </div>
       <ol className="list-rows">
         {rows.map((row) => {
-          const z = zone(row.position, rows.length);
+          const z = zone(row.position, rows.length, competitionOf(grid.competition));
           return (
             <li key={row.team.code} className={`table-row ${z?.className ?? ""}`}>
               <span className="list-rank zone-mark" aria-hidden="true">{row.position}</span>

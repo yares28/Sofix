@@ -10,19 +10,20 @@ const OLD_PINS_KEY = "fixturediff:pins"; // before the Sofix rename; read once s
  * Board settings that belong in a shareable link (view, lens, horizon, window, pins, played).
  * The server renders the link's state; pins fall back to this browser's saved ones when the link has none.
  */
-export function useViewState(initial: ViewState, pinsInUrl: boolean, knownCodes: ReadonlySet<string>) {
+export function useViewState(initial: ViewState, pinsInUrl: boolean, knownCodes: ReadonlySet<string>, competition = "PD") {
   const [state, setState] = useState<ViewState>(initial);
+  const pinsKey = competition === "PD" ? PINS_KEY : `${PINS_KEY}:${competition}`;
 
   // Read after hydration: the server can't see localStorage, and rendering it earlier would mismatch.
   useEffect(() => {
     if (pinsInUrl) return;
     try {
-      const saved = parsePins(window.localStorage.getItem(PINS_KEY) ?? window.localStorage.getItem(OLD_PINS_KEY), knownCodes);
+      const saved = parsePins(window.localStorage.getItem(pinsKey) ?? (competition === "PD" ? window.localStorage.getItem(OLD_PINS_KEY) : null), knownCodes);
       if (saved.length) setState((current) => ({ ...current, pins: saved }));
     } catch {
       // storage unavailable (private mode): pins just don't persist
     }
-  }, [pinsInUrl, knownCodes]);
+  }, [pinsInUrl, knownCodes, pinsKey, competition]);
 
   // The header's week picker navigates, and the server comes back with the gameweek that week holds: the board
   // follows it. Everything else in the state is the board's own and survives the week change.
@@ -44,18 +45,24 @@ export function useViewState(initial: ViewState, pinsInUrl: boolean, knownCodes:
     // The board writes its own view into the address, and must not throw away what it does not own: the
     // app-wide week (`?w=`) is set by the picker in the top bar and belongs to every page.
     const week = new URLSearchParams(window.location.search).get("w");
+    const league = new URLSearchParams(window.location.search).get("league");
     const own = serializeViewState(state);
-    const query = week ? `w=${encodeURIComponent(week)}${own ? `&${own}` : ""}` : own;
+    const shared = new URLSearchParams();
+    if (week) shared.set("w", week);
+    if (league) shared.set("league", league);
+    const end = new URLSearchParams(window.location.search).get("end");
+    if (end) shared.set("end", end);
+    const query = [shared.toString(), own].filter(Boolean).join("&");
     const path = VIEW_PATH[state.view];
     // null, not window.history.state: Next.js skips syncing its router for calls that carry its own state, and the
     // top bar's links (usePathname) must follow the tab.
     window.history.replaceState(null, "", query ? `${path}?${query}` : path);
     try {
-      window.localStorage.setItem(PINS_KEY, state.pins.join(","));
+      window.localStorage.setItem(pinsKey, state.pins.join(","));
     } catch {
       // ignore
     }
-  }, [state]);
+  }, [state, pinsKey]);
 
   const patch = useCallback((next: Partial<ViewState>) => setState((current) => ({ ...current, ...next })), []);
   const togglePin = useCallback(

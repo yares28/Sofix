@@ -9,8 +9,10 @@ import LensBar from "./LensBar";
 import TabBar from "./TabBar";
 import ThemeSwitch from "./ThemeSwitch";
 import WeekPicker from "./WeekPicker";
+import type { Competition } from "../lib/competitions";
 
 type Props = {
+  competition?: Competition;
   meta: GridMeta | null;
   system: SystemStatus | null;
   current?: "control";
@@ -18,7 +20,7 @@ type Props = {
   week?: { weeks: Week[]; current: Week | null; now: Week | null };
 };
 
-export default function SiteNav({ meta, system, current, week }: Props) {
+export default function SiteNav({ meta, system, current, week, competition }: Props) {
   return (
     <>
       <nav className="nav">
@@ -29,7 +31,7 @@ export default function SiteNav({ meta, system, current, week }: Props) {
           </Link>
           <NavLinks />
           <div className="nav-meta">
-            {week ? <WeekPicker weeks={week.weeks} current={week.current} now={week.now} /> : null}
+            {week ? <WeekPicker weeks={week.weeks} current={week.current} now={week.now} competition={competition} /> : null}
             <StatusPill syncedAt={meta?.last_synced_at ?? meta?.last_predicted_at ?? null} system={system} current={current === "control"} />
             <PlayerSearch />
             <ThemeSwitch />

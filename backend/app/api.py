@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
@@ -95,7 +95,14 @@ def health():
 
 
 @router.get("/fixture-grid", response_model=ApiResponse[FixtureGrid])
-def fixture_grid(db: Session = Depends(get_db)):
+def fixture_grid(competition: Literal["PD", "PL", "BL1"] = "PD", db: Session = Depends(get_db)):
+    if competition != "PD":
+        row = db.get(ReadModel, f"grid:{competition}")
+        return (
+            ApiResponse[FixtureGrid].model_validate(row.payload)
+            if row
+            else ApiResponse[FixtureGrid](success=False, error="No fixtures yet.")
+        )
     grid = build_fixture_grid(db)
     if grid is None:
         return ApiResponse[FixtureGrid](success=False, error="No fixtures yet.")

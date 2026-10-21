@@ -1,3 +1,8 @@
+.competition-container { max-width: 1600px; margin: 0 auto; padding: 0 24px; }
+.competition-picker { display: flex; align-items: center; gap: 12px; padding: 18px 0; }
+.competition-picker label { font-size: 14px; color: var(--ink-2); }
+.competition-picker select { max-width: 100%; min-height: 42px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--ink); padding: 8px 32px 8px 12px; font: inherit; font-size: 15px; }
+.competition-picker select:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 :root {
   --bg: #fbfbfd;
   --surface: #ffffff;
@@ -499,7 +504,7 @@ h1 { margin: 0; font-size: clamp(28px, 3.2vw, 38px); font-weight: 700; letter-sp
 .toolbar .search { grid-column: 2; justify-self: end; }
 .toolbar .toolbar-controls { grid-column: 1 / -1; grid-row: 2; }
 .toolbar-nav { display: flex; align-items: center; }
-.toolbar-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; flex: 1; }
+.toolbar-controls { position: relative; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; flex: 1; }
 .toolbar-controls .legend { margin-left: auto; }
 .venue-short { display: none; }
 .search {
@@ -855,9 +860,10 @@ thead th .tbc-mark { font-weight: 600; }
   .table-row .zone-mark::before { left: -8px; }
 
   /* Toolbar: stepper + search, then one scrolling row of controls. */
-  .toolbar { gap: 10px; padding: 12px; }
+  .toolbar { gap: 10px; padding: 12px; grid-template-columns: minmax(0, 1fr) auto; }
   .search { width: auto; justify-self: stretch; }
   .toolbar-controls {
+    min-width: 0;
     flex-wrap: nowrap; overflow-x: auto; gap: 8px;
     margin: 0 -12px; padding: 2px 12px; scrollbar-width: none;
   }

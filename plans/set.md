@@ -1,7 +1,8 @@
 # SET page (Sorare Arcade): research and plan, 20 Oct 2026
 
 Status: **research and design only, nothing built.** Upgrades U1–U6 added and the owner's answers recorded 21 Oct (bottom of this file). **Step 1 shipped 21 Oct**:
-`/arcade` reads the board, cards, gems, essence and common missions (extension 0.4.5). **Step 2 shipped 21 Oct**: each card shows Sorare's start % for its next games (extension 0.4.9); next is step 3.
+`/arcade` reads the board, cards, gems, essence and common missions (extension 0.4.5). **Step 2 shipped 21 Oct**: each card shows Sorare's start % for its next games (extension 0.4.9). **Step 3 shipped 21 Oct** (extension 0.4.12): predicted
+score per card and Pick teams; next is step 4.
 Design canvas: https://claude.ai/artifact/NcPHzXynH6oHiVLeTg3BFG (private, sample numbers, real common-card art).
 
 ## What the owner asked (20 Oct 2026)
@@ -92,6 +93,26 @@ tab; Chrome must be in front for Sorare's bench to load more cards on scroll (a 
 
 Acceptance (his machine): after 2b, every card whose game Sorare gives a % shows it on `/arcade` with the Sorare tab
 closed; a 0% shows as 0%; a card in two games this week shows each game's own number; the saved rows match the tiles.
+
+## Step 3, predicted score and Pick teams (shipped 21 Oct 2026, extension 0.4.12)
+
+Read on his account 21 Oct before building: the club bonus is `CareerBoard.bonuses(cardSlug)` (`So5CollectionBonus`, 2% to 5%),
+the same for every card of a club, so one card per club is asked (two questions). Sorare **adds** its bonuses: his waiting
+lineup's captain (Kimmich, club +2%) shows `TaskAppearance.bonus` 1.52 = 1 + 0.50 + 0.02, the others 1.05 (club +5%). So a card
+counts × (1 + edition + club + captain). An edition bonus inside a lineup was not seen yet (his one lineup has only Standard cards);
+the edition is added the same way, to be checked on his first lineup with a Shiny card.
+
+- **Score if he plays**: Sorare's projection for that game (`anyGame.playerGameScores.projection`, published about two days
+  ahead, read for the next 3 days' games), else his own average of his last 15 games he played (minutes > 0).
+- **Start %**: LaLiga game = the number Lineups uses (Futbol Fantasy, Sorare or Sofix, `market.pStart`) when Sofix's game is the
+  same kick-off; any other game = Sorare's saved reading; none = "no start % yet", counted as starting (answer 10).
+- **Likely range**: 20th to 80th percentile of his own played games × his bonus (6 games in 10); none under 3 games.
+- **Chance at a step**: 2,000 simulated games with a fixed seed: each card starts with his chance, then scores one of his own past
+  games scaled to his score if he plays; the lineup's chance = the share at or over the target.
+- **Pick teams**: the games he picks; Sofix tries the 6 best cards per slot (10 for the extra outfield card), one card per player,
+  simulates the 60 best by expected score with the two best captains each, and keeps the best chance at the step aimed at.
+- Past scores and projections are read through his tab (signed in: 50 players a question; the public API caps keyless questions at
+  about 9 players). Nothing is saved; read once per visit.
 
 ## Not confirmed (guides only, or not found)
 

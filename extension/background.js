@@ -602,6 +602,9 @@ const STEPS = {
     fromDate: String(input.fromDate ?? "").slice(0, 40),
     toDate: String(input.toDate ?? "").slice(0, 40),
   }],
+  "arcade-bonuses": (input) => ["SofixArcadeBonuses", { cards: Array.isArray(input.cards) ? input.cards.slice(0, 50) : [] }],
+  "arcade-past": (input) => ["SofixArcadePast", { players: Array.isArray(input.players) ? input.players.slice(0, 50) : [] }],
+  "arcade-projections": (input) => ["SofixArcadeProjections", { game: String(input.game ?? "").slice(0, 60) }],
   check: (input) => ["SofixPreviewLineup", { slug: input.slug, appearances: appearances(input) }],
   draft: (input) => [
     "SofixSaveDraft",

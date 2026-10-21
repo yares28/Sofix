@@ -269,6 +269,26 @@
           pageInfo { hasNextPage endCursor } } } } } }`;
     },
 
+    // Arcade step 3 (plans/set.md): the club collection bonus Sorare gives each card on your set board, up to 50 cards a question.
+    SofixArcadeBonuses: (variables) => {
+      const cards = variables?.cards;
+      if (!Array.isArray(cards) || !cards.length || cards.length > 50 || cards.some((c) => typeof c !== "string" || !/^[a-z0-9-]{1,160}$/.test(c))) return null;
+      return `query SofixArcadeBonuses { currentUser { setBoard(mode: CAREER, sport: FOOTBALL) { ... on CareerBoard {
+        ${cards.map((c, i) => `b${i}: bonuses(cardSlug: ${JSON.stringify(c)}) { key bonusBasisPoints }`).join(" ")} } } } }`;
+    },
+    // Up to 50 players' last 15 games: what each scored and the minutes he played (his likely range).
+    SofixArcadePast: (variables) => {
+      const players = variables?.players;
+      if (!Array.isArray(players) || !players.length || players.length > 50 || players.some((p) => typeof p !== "string" || !/^[a-z0-9-]{1,120}$/.test(p))) return null;
+      return `query SofixArcadePast { players(slugs: ${JSON.stringify(players)}) { slug ... on Player {
+        playerGameScores(last: 15) { score anyGame { date } anyPlayerGameStats { ... on PlayerGameStats { minsPlayed } } } } } }`;
+    },
+    // One game's Sorare projections ("if he plays"), which Sorare publishes about two days before kick-off.
+    SofixArcadeProjections: (variables) => {
+      if (typeof variables?.game !== "string" || !/^Game:[0-9a-f-]{36}$/i.test(variables.game)) return null;
+      return `query SofixArcadeProjections { anyGame(id: ${JSON.stringify(variables.game)}) { ... on Game { id playerGameScores { projection { score } anyPlayer { slug } } } } }`;
+    },
+
     // Sorare's own verdict on a lineup, before anything is written.
     SofixPreviewLineup: `query SofixPreviewLineup($slug: String!, $appearances: [So5AppearanceInput!]!) {
       so5 { so5Leaderboard(slug: $slug) { id

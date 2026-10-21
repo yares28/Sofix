@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { askExtension, extensionAtLeast, pingExtension } from "./extension";
 import { REFRESH_HEADER } from "./refresh";
+import type { Outlook, StartSource } from "./arcadePlan";
 
 /**
  * Arcade, step 1 (plans/set.md): your set board, common cards, gems, essence and common missions, read from your signed-in
@@ -506,4 +507,119 @@ export async function walkArcade(config: string, stepId: string): Promise<Arcade
     .safeParse(await askExtension({ type: "read-arcade", config, step }, 240_000));
   if (!answer.success) return { state: "no-answer", players: null, games: null };
   return { state: answer.data.state, players: answer.data.players ?? null, games: answer.data.games ?? null };
+}
+
+/** Step 3's reads need the extension that asks Sorare for club bonuses, past scores and projections. */
+export const ARCADE_PLAN_VERSION = "0.4.12";
+/** Sorare publishes projections about two days ahead; asking further ahead returns nothing. */
+const PROJECTION_DAYS = 3;
+const MAX_PROJECTION_GAMES = 60;
+
+/** What Sofix knows of a LaLiga player's next game (the Lineups numbers), keyed by Sorare slug. */
+export type ArcadeLaLiga = Record<string, { kickoff: string | null; p: number | null; source: StartSource | null; sources: Partial<Record<StartSource, number>> }>;
+export type ArcadeExtras = {
+  /** The club bonus Sorare gives a card of each club, by club slug (0.04 for +4%). */
+  club: Record<string, number>;
+  /** Each player's scores in his last games he played (minutes > 0), newest first. */
+  past: Record<string, number[]>;
+  /** Sorare's projection by game, then player. A game asked that Sorare has not projected is an empty record. */
+  projections: Record<string, Record<string, number>>;
+  unread: string[];
+};
+
+const BonusAnswer = z.object({ currentUser: z.object({ setBoard: z.record(s, z.unknown()).nullable() }).nullable() });
+const BonusList = z.array(z.object({ key: s, bonusBasisPoints: n }));
+const PastAnswer = z.object({ players: z.array(z.object({ slug: s, playerGameScores: z.array(z.object({ score: n, anyPlayerGameStats: opt(z.object({ minsPlayed: opt(n) })) }).nullable()).nullish() })) });
+const ProjectionAnswer = z.object({ anyGame: z.object({ id: s, playerGameScores: z.array(z.object({ projection: opt(z.object({ score: n })), anyPlayer: z.object({ slug: s }) })) }).nullable() });
+
+/** Sorare's answers to the three step-3 questions, as plain numbers (exported for the tests). */
+export function parseBonuses(answer: unknown, cards: string[]): Record<string, number> {
+  const parsed = BonusAnswer.safeParse(answer);
+  const board = parsed.success ? parsed.data.currentUser?.setBoard : null;
+  const out: Record<string, number> = {};
+  cards.forEach((card, i) => {
+    const list = BonusList.safeParse(board?.[`b${i}`]);
+    if (list.success) out[card] = list.data.filter((b) => b.key === "collection").reduce((sum, b) => sum + b.bonusBasisPoints, 0) / 10_000;
+  });
+  return out;
+}
+export function parsePast(answer: unknown): Record<string, number[]> {
+  const parsed = PastAnswer.safeParse(answer);
+  if (!parsed.success) return {};
+  return Object.fromEntries(parsed.data.players.map((p) => [p.slug, (p.playerGameScores ?? []).flatMap((g) => (g && (g.anyPlayerGameStats?.minsPlayed ?? 0) > 0 ? [g.score] : []))]));
+}
+export function parseProjections(answer: unknown): Record<string, number> | null {
+  const parsed = ProjectionAnswer.safeParse(answer);
+  if (!parsed.success || !parsed.data.anyGame) return null;
+  return Object.fromEntries(parsed.data.anyGame.playerGameScores.flatMap((r) => (r.projection ? [[r.anyPlayer.slug, r.projection.score]] : [])));
+}
+
+/** Club bonuses, past scores and the next days' projections, from your Sorare tab. Read once per visit, never polled. */
+export async function readArcadeExtras(arcade: Arcade, now = new Date()): Promise<ArcadeExtras | null> {
+  const extension = await pingExtension();
+  if (!extension || !extensionAtLeast(extension.version, ARCADE_PLAN_VERSION)) return null;
+  const ask = async (step: string, extra: Record<string, unknown>) => {
+    const answer = Answer.safeParse(await askExtension({ type: "sorare", step, ...extra }, 25_000));
+    return answer.success && answer.data.state === "ok" ? answer.data.data : undefined;
+  };
+  const unread: string[] = [];
+  const chunks = <T,>(list: T[], size: number) => Array.from({ length: Math.ceil(list.length / size) }, (_, i) => list.slice(i * size, (i + 1) * size));
+
+  // The club bonus is the club's (seen 21 Oct: every card of a club had the same), so one card per club is asked.
+  const perClub = new Map<string, string>();
+  for (const card of arcade.cards) if (card.teamSlug && !perClub.has(card.teamSlug)) perClub.set(card.teamSlug, card.slug);
+  const club: Record<string, number> = {};
+  for (const batch of chunks([...perClub.entries()], 50)) {
+    const read = parseBonuses(await ask("arcade-bonuses", { cards: batch.map(([, c]) => c) }), batch.map(([, c]) => c));
+    for (const [team, card] of batch) if (read[card] !== undefined) club[team] = read[card]!;
+  }
+  if (Object.keys(club).length < perClub.size) unread.push(`club bonus for ${perClub.size - Object.keys(club).length} clubs`);
+
+  const past: Record<string, number[]> = {};
+  const players = [...new Set(arcade.cards.map((c) => c.player))];
+  let pastMissing = 0;
+  for (const batch of chunks(players, 50)) {
+    const read = parsePast(await ask("arcade-past", { players: batch }));
+    pastMissing += batch.filter((p) => !read[p]).length;
+    Object.assign(past, read);
+  }
+  if (pastMissing) unread.push(`past scores of ${pastMissing} players`);
+
+  const projections: Record<string, Record<string, number>> = {};
+  const horizon = now.getTime() + PROJECTION_DAYS * 86_400_000;
+  const near = (arcade.games ?? []).filter((g) => Date.parse(g.kickoff) > now.getTime() && Date.parse(g.kickoff) < horizon).slice(0, MAX_PROJECTION_GAMES);
+  for (const game of near) {
+    const read = parseProjections(await ask("arcade-projections", { game: game.id }));
+    if (read) projections[game.id] = read;
+  }
+  if (Object.keys(projections).length < near.length) unread.push(`projections of ${near.length - Object.keys(projections).length} games`);
+  return { club, past, projections, unread };
+}
+
+/**
+ * A card's outlook in one game. Start %: for a LaLiga game the number Lineups uses (when Sofix's game is this one), else Sorare's as saved.
+ * Score if he plays: Sorare's projection, else his own average of the games he played. Nothing is filled in where no source has a number.
+ */
+export function outlookOf(card: ArcadeCard, game: ArcadeGame, extras: ArcadeExtras | null, chances: ArcadeChances | null, laliga: ArcadeLaLiga): Outlook {
+  const past = extras?.past[card.player] ?? [];
+  const projection = extras?.projections[game.id]?.[card.player];
+  const form = past.length ? past.reduce((a, b) => a + b, 0) / past.length : null;
+  const sofix = laliga[card.player];
+  const sameGame = sofix && sofix.kickoff && Date.parse(sofix.kickoff) === Date.parse(game.kickoff);
+  const saved = chanceOf(chances, game.id, card.player);
+  const [start, startSource]: [number | null, StartSource | null] = sameGame && sofix.p !== null && sofix.source
+    ? [sofix.p, sofix.source]
+    : saved ? [saved.percent / 100, "sorare"] : [null, null];
+  const club = card.teamSlug ? extras?.club[card.teamSlug] ?? null : null;
+  return {
+    card,
+    game,
+    score: projection ?? form,
+    scoreSource: projection !== undefined ? "sorare" : form !== null ? "form" : null,
+    start,
+    startSource,
+    past,
+    bonus: (card.bonus !== null && card.bonus > 1 ? card.bonus - 1 : 0) + (club ?? 0),
+    club,
+  };
 }

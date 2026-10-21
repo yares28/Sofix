@@ -57,3 +57,41 @@
 .arc-read button:disabled { opacity: 0.6; cursor: default; }
 .arc-read .arc-read-note { flex-basis: 100%; color: var(--ink-2); }
 @media (max-width: 600px) { .arc-chance, .arc-nogame { font-size: 10px; } }
+/* Step 3: predictions and Pick teams */
+.arc-pred { color: var(--ink-2); }
+.arc-pred b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.arc-pred small { font-size: inherit; color: var(--ink-3); }
+.arc-pred.is-none, .arc-nostart { font-style: normal; color: var(--ink-3); }
+.arc-read-state { font-size: var(--text-sm); color: var(--ink-2); margin: 12px 0 0; }
+.arc-read-state:empty { display: none; }
+.arc-plan { margin-top: 24px; }
+.arc-plan h2 { font-size: var(--text-md); margin: 0 0 10px; }
+.arc-pick { background: var(--surface); box-shadow: var(--shadow-card); border-radius: 20px; padding: 16px; display: grid; gap: 14px; }
+.arc-aim { display: flex; align-items: center; gap: 8px; font-size: var(--text-sm); color: var(--ink-2); }
+.arc-aim select { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; min-height: 40px; }
+.arc-games { display: grid; gap: 8px; max-height: 260px; overflow-y: auto; padding-right: 4px; }
+.arc-day { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.arc-day-name { flex-basis: 100%; font-size: var(--text-xs); color: var(--ink-2); font-weight: 600; }
+.arc-day button { font: inherit; font-size: var(--text-sm); color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; min-height: 36px; cursor: pointer; transition: background-color 120ms, color 120ms; }
+.arc-day button[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+.arc-lineup { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 150px)); justify-content: center; gap: 16px; }
+.arc-lineup li { display: flex; flex-direction: column; gap: 2px; font-size: 11px; text-align: center; min-width: 0; }
+.arc-lineup img, .arc-lineup .arc-card-blank { width: 100%; height: auto; aspect-ratio: 120 / 194; border-radius: 10px; }
+.arc-slot { font-size: var(--text-xs); color: var(--ink-2); display: flex; justify-content: center; gap: 6px; align-items: center; }
+.arc-captain { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); color: var(--on-ink); font-size: 11px; }
+.arc-lineup .arc-pred { font-size: var(--text-sm); }
+.arc-meta { color: var(--ink-2); }
+.arc-chances p { margin: 0 0 8px; font-size: var(--text-base); }
+.arc-chances b { font-variant-numeric: tabular-nums; }
+.arc-chances ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.arc-chances li { display: grid; grid-template-columns: 120px 1fr 44px; gap: 10px; align-items: center; font-size: var(--text-sm); color: var(--ink-2); }
+.arc-chances li.is-aim { color: var(--ink); font-weight: 600; }
+.arc-chances li b { text-align: right; color: var(--ink); }
+.arc-bar { height: 8px; border-radius: 999px; background: var(--hover); overflow: hidden; }
+.arc-bar span { display: block; height: 100%; background: var(--accent); border-radius: inherit; transition: width 300ms ease; }
+@media (prefers-reduced-motion: reduce) { .arc-bar span, .arc-day button { transition: none; } }
+@media (max-width: 600px) {
+  .arc-lineup { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .arc-lineup li { font-size: 10px; }
+  .arc-chances li { grid-template-columns: 96px 1fr 40px; }
+}

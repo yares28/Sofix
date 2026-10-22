@@ -88,3 +88,9 @@ def test_pending_scores_are_revisited_even_after_the_correction_window(monkeypat
     _, state = h.collect(client, "PL", NOW, {})
     h.collect(client, "PL", NOW, state)
     assert len(calls) == 2
+
+
+def test_current_ligue_1_troyes_identity_matches_its_real_csv_label():
+    from app.research.league_xscore_identity import club_name
+
+    assert club_name({"name": "ESTAC Troyes", "slug": "troyes-troyes"}, {"Troyes", "Le Mans"}) == "Troyes"

@@ -5,6 +5,7 @@ from typing import Any
 from app.services.league_fdr import HISTORY_ALIASES
 
 ALIASES = {
+    "ESTAC Troyes": "Troyes",
     "Burnley FC": "Burnley",
     "Leicester City FC": "Leicester",
     "Luton Town FC": "Luton",

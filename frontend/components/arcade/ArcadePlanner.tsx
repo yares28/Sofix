@@ -312,7 +312,7 @@ function PickDay({ arcade, outlooks, captainBonus, now, end }: { arcade: Arcade;
   const outcomes = useMemo(() => (chosen?.play ? ([true, false] as const).map((cleared) => ({ cleared, days: path.after(chosen, cleared) })) : []), [chosen, path]);
   const follow = (cleared: boolean, days: ClimbDay[]) => {
     const upTo = shown.slice(0, shown.indexOf(chosen!) + 1);
-    setBranch({ of: path, days: [...upTo, ...days], label: `${cleared ? "if" : "if all miss on"} ${legDays(chosen!)}` });
+    setBranch({ of: path, days: [...upTo, ...days], label: `if ${chosen!.play > 1 ? (cleared ? "one clears" : "all miss") : cleared ? "it clears" : "it misses"} on ${legDays(chosen!)}` });
     const next = days.find((d) => d.play) ?? days[0];
     if (next) { setDay(next.day); setDeck(0); }
   };

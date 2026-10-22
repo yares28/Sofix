@@ -66,9 +66,15 @@ async function readSorare(includeMarket = true): Promise<Sorare | null> {
  * his next game. Downloaded once per write (readModel); empty without a database or before the job has written it.
  */
 export async function loadLeagueMarket(code: "PL" | "BL1"): Promise<MarketPlayer[]> {
+  if (!database()) return [];
+  // Cached until the job publishes again (the overlay asks many times a minute while a Sorare page scrolls).
+  const read = cache(
+    async (): Promise<MarketPlayer[]> => (await readModel<{ market?: MarketPlayer[] }>(`players:${code}`))?.payload.market ?? [],
+    ["league-market-v1", code],
+    { tags: [SORARE_TAG], revalidate: 3600 },
+  );
   try {
-    if (!database()) return [];
-    return (await readModel<{ market?: MarketPlayer[] }>(`players:${code}`))?.payload.market ?? [];
+    return await read();
   } catch (error) {
     console.error(`[sorare] ${code} players could not be read: ${error instanceof Error ? error.message : "unknown"}`);
     return [];

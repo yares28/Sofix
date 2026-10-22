@@ -864,7 +864,9 @@ and only then press **Reload** and reload the `sorare.com` tab.
 
 ### Cards on sorare.com
 
-On Sorare's football pages Sofix draws a small dark-glass **tile** inside the top-left corner of each card it can name.
+On Sorare's football pages Sofix draws a small dark-glass **tile** inside the top-left corner of each card it can name: your
+cards, and since 22 Oct any LaLiga, Premier League or Bundesliga player Sofix rates (Arcade commons included), with Sofix's xScore,
+chance to play and that league's difficulty for the week being planned.
 The big number is the score he is expected to score **if he starts** (a small shirt marks it), painted in Sorare's own
 colour for that score. Under it is one thing that drives the score, chosen by position:
 

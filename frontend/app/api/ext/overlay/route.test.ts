@@ -7,7 +7,7 @@ const TOKEN = "t".repeat(48);
 const loadSorare = vi.fn<() => Promise<Sorare | null>>();
 const loadSorareWeek = vi.fn<(slug: string) => Promise<unknown>>();
 const loadFrozenPlan = vi.fn();
-vi.mock("../../../../lib/playData", () => ({ loadSorare: () => loadSorare(), loadSorareWeek: (slug: string) => loadSorareWeek(slug), loadFrozenPlan: (...args: unknown[]) => loadFrozenPlan(...args) }));
+vi.mock("../../../../lib/playData", () => ({ loadSorare: () => loadSorare(), loadSorareWeek: (slug: string) => loadSorareWeek(slug), loadFrozenPlan: (...args: unknown[]) => loadFrozenPlan(...args), loadLeagueMarket: async () => [] }));
 vi.mock("../../../../lib/api", () => ({ loadGrid: async () => ({ grid: null, meta: null, error: "no grid" }) }));
 
 const { POST } = await import("./route");

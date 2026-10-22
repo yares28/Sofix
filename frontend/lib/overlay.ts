@@ -445,6 +445,25 @@ function entryFor(
   };
 }
 
+/** A player Sofix rates but your plan does not hold: his market row (xScore, chance to play) and his league's board for the game. */
+function marketEntry(row: MarketPlayer, boards: Map<string, SideOutlook>[], now: Date, at: string): OverlayEntry | null {
+  const f = row.fixture as (MarketPlayer["fixture"] & { team?: string | null; competition?: string | null }) | undefined;
+  if (row.x === undefined || row.p === undefined || !f?.kickoff) return null;
+  const side = f.team ?? row.club;
+  const key = side && f.opponent && f.venue ? `${clubKey(side)}|${f.venue}|${clubKey(f.opponent)}` : null;
+  const board = key ? boards.map((b) => b.get(key)).find((b) => b && b.win !== null && b.difficulty !== null && b.bucket !== null && b.label !== null) : undefined;
+  return {
+    x: row.x,
+    p: row.p,
+    average: row.average,
+    pos: row.pos,
+    laliga: LALIGA.test(f.competition ?? ""),
+    at,
+    game: board ? { win: board.win, cleanSheet: board.cleanSheet, goalsFor: board.xgFor, difficulty: board.difficulty!, bucket: board.bucket!, label: board.label!, source: "model" } : null,
+    ...(Date.parse(f.kickoff) <= now.getTime() ? { over: true as const } : {}),
+  };
+}
+
 /**
  * The numbers for the cards and players asked about. A card of yours answers with its player's numbers (xScore
  * belongs to the player, not the copy), and so does the player's own slug, which is how a card you do not own
@@ -460,6 +479,8 @@ export function overlayNumbers(
   request: OverlayRequest,
   now: Date,
   archived: GameweekPlan | null = null,
+  /** Every LaLiga, Premier League and Bundesliga player Sofix rates (not only yours) and those leagues' boards. */
+  others: { market: MarketPlayer[]; grids: (FixtureGrid | null)[] } = { market: [], grids: [] },
 ): OverlayAnswer {
   const named = request.fixture ? sorare.timeline.find((item) => item.slug === request.fixture) : undefined;
   const kept = named && archived && archived.gameweek.slug === named.slug ? archived : null;
@@ -491,11 +512,17 @@ export function overlayNumbers(
     }
   }
 
+  // Anyone else in the three leagues (an Arcade common, a player you do not hold): Sofix's market numbers for the week being planned.
+  const market = plan === nextWeek(sorare) ? new Map(others.market.map((row) => [row.slug, row])) : new Map<string, MarketPlayer>();
+  const boards = others.grids.flatMap((g) => (g ? [sideOutlook(g)] : []));
   const entries = new Map<string, OverlayEntry | null>();
   const forPlayer = (playerSlug: string | undefined): OverlayEntry | null => {
     const player = playerSlug ? playing.get(playerSlug) : undefined;
-    if (!playerSlug || !player) return null;
-    if (!entries.has(playerSlug)) entries.set(playerSlug, entryFor(player, outlook, now, madeAt, inPlan.get(playerSlug)));
+    if (!playerSlug) return null;
+    if (!entries.has(playerSlug)) {
+      const row = market.get(playerSlug);
+      entries.set(playerSlug, player ? entryFor(player, outlook, now, madeAt, inPlan.get(playerSlug)) : row ? marketEntry(row, boards, now, sorare.generatedAt) : null);
+    }
     return entries.get(playerSlug) ?? null;
   };
 

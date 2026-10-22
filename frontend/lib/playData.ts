@@ -2,7 +2,7 @@ import { unstable_cache } from "next/cache";
 import { cache } from "./cache";
 import { database, keptInDev, readModel, stamp } from "./db";
 import { blockFromR2 } from "./r2";
-import { SORARE_TAG, weekPlan, type GameweekPlan, type Lineup as PlayLineup, type Sorare, type SorarePlans } from "./play";
+import { SORARE_TAG, weekPlan, type GameweekPlan, type Lineup as PlayLineup, type MarketPlayer, type Sorare, type SorarePlans } from "./play";
 import { restoreFrozenPlan } from "./frozenPlan";
 import type { ChanceRecord } from "./lineupChances";
 import type { SofixRecord } from "./matchScores";
@@ -58,6 +58,20 @@ async function readSorare(): Promise<Sorare | null> {
   if (!response.ok) return null;
   const body = (await response.json()) as { success?: boolean; data?: Sorare };
   return body?.data ?? null;
+}
+
+/**
+ * Sofix's numbers for every Premier League or Bundesliga player (`read_models` key `players:<code>`, about 0.6 MB): start % and xScore for
+ * his next game. Downloaded once per write (readModel); empty without a database or before the job has written it.
+ */
+export async function loadLeagueMarket(code: "PL" | "BL1"): Promise<MarketPlayer[]> {
+  try {
+    if (!database()) return [];
+    return (await readModel<{ market?: MarketPlayer[] }>(`players:${code}`))?.payload.market ?? [];
+  } catch (error) {
+    console.error(`[sorare] ${code} players could not be read: ${error instanceof Error ? error.message : "unknown"}`);
+    return [];
+  }
 }
 
 /** Null while Sorare has never been synced (no key yet, or the first run hasn't happened). */

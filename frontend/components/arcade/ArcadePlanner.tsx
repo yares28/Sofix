@@ -12,6 +12,9 @@ export const madridTime = (iso: string) => new Date(iso).toLocaleTimeString("en-
 export const pct = (x: number) => `${Math.round(x * 100)}%`;
 export const pts = (x: number) => Math.round(x).toLocaleString("en-GB");
 const dayOf = (day: string) => madridDay(`${day}T12:00:00Z`);
+const weekday = (day: string) => dayOf(day).split(" ")[0]!;
+/** A leg's days: "Thu" or "Thu–Fri". */
+const legDays = (leg: { day: string; to: string }) => (leg.to === leg.day ? weekday(leg.day) : `${weekday(leg.day)}–${weekday(leg.to)}`);
 
 /** A card's start % with whose it is, or "no start % yet". */
 export function StartLabel({ outlook }: { outlook: Outlook }) {
@@ -26,7 +29,7 @@ export function Prediction({ outlook, captain = false, captainBonus = 0 }: { out
   const range = likelyRange(outlook, captain, captainBonus);
   if (value === null) return <span className="arc-pred is-none">no projection yet</span>;
   return (
-    <span className="arc-pred" title={`${outlook.scoreSource === "sorare" ? "Sorare's projection" : "his average when he plays (Sorare has no projection yet)"} × start % × Sorare's bonus${range ? `; he scored ${pts(range[0])}–${pts(range[1])} in 6 of 10 recent games he played` : ""}`}>
+    <span className="arc-pred" title={`${outlook.scoreSource === "sofix" ? "Sofix's xScore" : outlook.scoreSource === "sorare" ? "Sorare's projection" : "his average when he plays (Sorare has no projection yet)"} × start % × Sorare's bonus${range ? `; he scored ${pts(range[0])}–${pts(range[1])} in 6 of 10 recent games he played` : ""}`}>
       <b>{pts(value)}</b> pts{range ? <small> · {pts(range[0])}–{pts(range[1])} if he plays</small> : null}
     </span>
   );
@@ -307,7 +310,8 @@ function PickDay({ arcade, outlooks, captainBonus, now, end }: { arcade: Arcade;
   const ahead = boardSteps.filter((s) => s.number >= current);
   const headline = [...ahead].reverse().find((s) => (odds[s.number] ?? 0) >= 0.25) ?? ahead[0] ?? null;
   const lives = start.step === current ? start.lives : 0;
-  const reachedOn = (n: number) => path.days.find((d) => d.step === n && d.play)?.day ?? null;
+  // Each step's own leg on the likely path: its days and the lineup planned for it.
+  const legOf = (n: number) => path.days.find((d) => d.step === n && d.play) ?? null;
   const dayClear = chosen && plan.length ? 1 - plan.filter((p) => p.step === chosen.step).reduce((m, p) => m * (1 - p.chance), 1) : chosen?.clear ?? 0;
 
   if (!byDay.length) return <p className="arc-note">No game of your cards is left before the set ends.</p>;
@@ -329,7 +333,7 @@ function PickDay({ arcade, outlooks, captainBonus, now, end }: { arcade: Arcade;
         </p>
       ) : waiting.length ? <p className="arc-warn">You already have {waiting.length} lineup{waiting.length > 1 ? "s" : ""} waiting on step {current}: if one clears it, a planned lineup whose first game has started by then is lost; one not started moves on.</p> : null}
       <div className="arc-days" role="group" aria-label="Day">
-        {path.days.map((d) => <button key={d.day} type="button" aria-pressed={d === chosen} onClick={() => { setDay(d.day); setDeck(0); }}>{dayOf(d.day)} · {d.play ? `step ${d.step}, play ${d.play}` : "hold"}</button>)}
+        {path.days.map((d) => <button key={d.day} type="button" aria-pressed={d === chosen} onClick={() => { setDay(d.day); setDeck(0); }}>{d.to === d.day ? dayOf(d.day) : legDays(d)} · {d.play ? `step ${d.step}, play ${d.play}` : "hold"}</button>)}
       </div>
       <div className="arc-climb-grid">
         <section className="arc-tower" aria-labelledby="arc-tower-title">
@@ -337,8 +341,8 @@ function PickDay({ arcade, outlooks, captainBonus, now, end }: { arcade: Arcade;
           <ol>
             {[...boardSteps].reverse().map((s) => {
               const done = s.number < current || s.state === "CLAIMED" || s.state === "CLAIMABLE";
-              const fan = onDeck && onDeck.step === s.number ? onDeck.lineup.picks : [];
-              const when = reachedOn(s.number);
+              const leg = done ? null : legOf(s.number);
+              const fan = onDeck && onDeck.step === s.number ? onDeck.lineup.picks : leg?.lineups[0]?.picks ?? [];
               return (
                 <li key={s.id} className={`arc-floor${s.number === current ? " is-current" : ""}${done ? " is-done" : ""}`} aria-current={s.number === current ? "step" : undefined}>
                   <span className="arc-floor-level">Step {s.number}</span>
@@ -350,7 +354,7 @@ function PickDay({ arcade, outlooks, captainBonus, now, end }: { arcade: Arcade;
                       ? <img key={p.outlook.card.slug} src={p.outlook.card.picture} alt={p.outlook.card.name} width={40} height={65} loading="lazy" />
                       : null))}
                   </span>
-                  <span className="arc-floor-odds">{done ? <b>✓</b> : <b>{pct(odds[s.number] ?? 0)}</b>}<small>{done ? "cleared" : when ? `${dayOf(when).split(" ")[0]}` : (odds[s.number] ?? 0) > 0 ? "later" : "out of reach"}</small></span>
+                  <span className="arc-floor-odds">{done ? <b>✓</b> : <b>{pct(odds[s.number] ?? 0)}</b>}<small>{done ? "cleared" : leg ? legDays(leg) : (odds[s.number] ?? 0) > 0 ? "later" : "out of reach"}</small></span>
                 </li>
               );
             })}
@@ -359,7 +363,7 @@ function PickDay({ arcade, outlooks, captainBonus, now, end }: { arcade: Arcade;
         <div className="arc-side">
           <section className="arc-departures" aria-labelledby="arc-dep-title">
             <div className="arc-dep-head">
-              <h3 id="arc-dep-title">Departures · {chosen ? dayOf(chosen.day) : ""}</h3>
+              <h3 id="arc-dep-title">Departures · {chosen ? (chosen.to === chosen.day ? dayOf(chosen.day) : legDays(chosen)) : ""}</h3>
               <span>each in the order it settles</span>
             </div>
             {chosen && chosen.play ? (
@@ -387,7 +391,7 @@ function PickDay({ arcade, outlooks, captainBonus, now, end }: { arcade: Arcade;
                   : !chosen.can ? "That day's games cannot fill a lineup from your free cards."
                   : chosen === path.days.at(-1) ? "No lineup that day has a real chance; a miss costs a life, and losing the last sends you back to step 1."
                   : "Later days give a better chance with your cards; a miss here costs a life, and losing the last sends you back to step 1."}
-                {" "}This day starts on step {chosen.step} with {chosen.lives} {chosen.lives === 1 ? "life" : "lives"}{chosen === path.days[0] ? "" : ", if the days before go as planned"}.
+                {" "}{chosen.to === chosen.day ? "This day" : `${legDays(chosen)} (lineups take games from these days)`} starts on step {chosen.step} with {chosen.lives} {chosen.lives === 1 ? "life" : "lives"}{chosen === path.days[0] ? "" : ", if the days before go as planned; a miss there means the plan is rebuilt from where you are"}.
               </p>
             ) : null}
           </section>
@@ -395,7 +399,7 @@ function PickDay({ arcade, outlooks, captainBonus, now, end }: { arcade: Arcade;
             <section className="arc-deck" aria-labelledby="arc-deck-title">
               <Ring lineup={onDeck.lineup} target={steps.find((s) => s.number === onDeck.step)?.target ?? 0} />
               <div className="arc-deck-body">
-                <h3 id="arc-deck-title">Lineup {Math.min(deck, plan.length - 1) + 1} boards {dayOf(chosen!.day).split(" ")[0]} {madridTime(onDeck.lineup.first)}</h3>
+                <h3 id="arc-deck-title">Lineup {Math.min(deck, plan.length - 1) + 1} boards {weekday(madridDate(onDeck.lineup.first))} {madridTime(onDeck.lineup.first)}</h3>
                 <p className="arc-sub">Step {onDeck.step} · settles about {madridTime(onDeck.settles)}</p>
                 {onDeck.lostIf !== null ? <p className="arc-warn">Its first game starts before Lineup {onDeck.lostIf + 1} settles: if Lineup {onDeck.lostIf + 1} clears step {onDeck.step}, this one is lost.</p> : null}
                 {onDeck.after !== null && onDeck.lostIf === null ? <p className="arc-sub">If Lineup {onDeck.after + 1} misses, this one retries step {onDeck.step}.</p> : null}

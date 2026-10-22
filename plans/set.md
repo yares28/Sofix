@@ -169,6 +169,11 @@ First version:
 Each line: built, cut (and why), or not seen yet.
 
 - **Climb plan** (step 4 above): built and seen on his board (hold Thu, Fri 1, Sat 2, Sun 4 on step 4, Mon step 5).
+  **Redone 22 Oct** (owner: "jumps straight to Saturday… makes me lose 2 days"): one day's games could not fill five slots on Thursday
+  (European games) or Friday, so both were held. A lineup now takes games from up to 3 days in a row (`SPAN`); the next leg starts the
+  day after. Each step on the likely path keeps its own lineup (tower fan, days). PL, Bundesliga and LaLiga cards are scored with
+  Sofix's xScore and start % (`players:PL`, `players:BL1`, the Sorare market) for the same kick-off. 0.8 s on a 1,300-card test board
+  (3.6 s when lineups were aimed at each step's target: cut, see the `ponytail:` note). **Not seen** on his board yet.
 - **Start % without a tab**: built. Sorare gives start % only to its registered questions: its compose page asks
   `SeriesComposeBenchQuery` by id (`React/30aff…`), no query text. The bridge replays that id with each position and a day's window (30
   cards a page, best first, 2 pages); seen 21 Oct from his tab: 30 of 30 forwards with a number, Yamal 90% for Sunday's Clásico. A newer

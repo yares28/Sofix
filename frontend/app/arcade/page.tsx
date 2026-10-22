@@ -5,7 +5,7 @@ import SiteNav from "../../components/SiteNav";
 import { loadGrid } from "../../lib/api";
 import type { ArcadeLaLiga } from "../../lib/arcade";
 import { boardFixtures, type FdrFixture } from "../../lib/arcadeFdr";
-import { loadSorare } from "../../lib/playData";
+import { loadLeagueMarket, loadSorare } from "../../lib/playData";
 import { loadSystem } from "../../lib/system";
 
 export const metadata: Metadata = { title: "Arcade · Sofix" };
@@ -15,10 +15,12 @@ const FDR_DAYS = 8; // the set's days left, at most
 /** Arcade (plans/set.md): your free common-card board. Your board is read in your browser from your Sorare tab; LaLiga start % is Sofix's. */
 export default async function ArcadePage() {
   await connection(); // per request, like the other pages: a build-time render has no data to read
-  const [{ grid, meta }, pl, bl, system, sorare] = await Promise.all([loadGrid(), loadGrid("PL"), loadGrid("BL1"), loadSystem(), loadSorare()]);
-  // The start % Lineups uses for each LaLiga player's next game (cached per write of the Sorare model, like Lineups).
-  const laliga: ArcadeLaLiga = Object.fromEntries((sorare?.market ?? []).map((p) => [p.slug, {
-    kickoff: p.fixture?.kickoff ?? null, p: p.pStart ?? null, source: p.startSource ?? null, sources: p.sources ?? {},
+  const [{ grid, meta }, pl, bl, system, sorare, plPlayers, blPlayers] = await Promise.all([
+    loadGrid(), loadGrid("PL"), loadGrid("BL1"), loadSystem(), loadSorare(), loadLeagueMarket("PL"), loadLeagueMarket("BL1"),
+  ]);
+  // Sofix's start % and xScore for each LaLiga, Premier League and Bundesliga player's next game (cached per write, like Lineups).
+  const laliga: ArcadeLaLiga = Object.fromEntries([...(sorare?.market ?? []), ...plPlayers, ...blPlayers].map((p) => [p.slug, {
+    kickoff: p.fixture?.kickoff ?? null, p: p.pStart ?? null, source: p.startSource ?? null, sources: p.sources ?? {}, mu: p.mu ?? null,
   }]));
   // The three boards' coming fixtures, both sides rated: a few dozen rows, matched to Arcade's games in the browser.
   const now = Date.now();

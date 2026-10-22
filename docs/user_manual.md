@@ -713,15 +713,19 @@ The editor shows card images, years and copy numbers where recorded. Your picks 
 read in your browser from your signed-in Sorare tab (extension 0.4.15 or later; no page opens); nothing is entered or cancelled on Sorare.
 
 - **Your climb · Pick a day**: the big number is your chance to clear the highest step within reach before the set ends, with its
-  prize and your lives. **The tower** gives every step's chance and the day the plan reaches it; **Departures** lists the chosen day's
-  lineups in the order they settle (time, step, games, chance); **On deck** shows one with its five cards. The day strip says, for every
-  day left, how many lineups to play on which step, or **Hold** to keep lives for a better day (losing a step's last life sends you back
-  to step 1; rewards won stay won). It plans past a step whose lives are all waiting, and past a cleared step you have not claimed.
+  prize and your lives. **The tower** gives every step's chance, the days the plan plays it and the cards of its lineup (every step,
+  not only yours); **Departures** lists the chosen days' lineups in the order they settle (time, step, games, chance); **On deck** shows
+  one with its five cards. A lineup may take games from up to 3 days in a row, so a thin day (Thursday's European games, Friday's few
+  league games) joins the next instead of being skipped. The strip says, for every day or span left, how many lineups to play on which
+  step, or **Hold** to keep lives for a better day (losing a step's last life sends you back to step 1; rewards won stay won). It plans
+  past a step whose lives are all waiting, and past a cleared step you have not claimed. A miss is not planned around in advance: read
+  again once it settles and the plan is rebuilt from where you are.
 - **Pick teams**: games as tickets with Sofix's difficulty for both clubs; **Easiest games** picks those where one of your clubs is
   favourite on Sofix's board. The best five stand on a pitch, and **Where it lands** gives the chance at every step.
 - **Your lineups on Sorare**: each lineup you entered, as a race to the target: points so far, what its cards still to play add at
   their best, **Dead** when that cannot reach the target, and **Cut losses** when cancelling it (a life, as a miss) helps the next lineup more.
-- A card's number = Sorare's projection (else his average when he plays) × his start % × Sorare's bonuses (edition + club + captain),
+- A card's number = Sofix's xScore for a LaLiga, Premier League or Bundesliga game (else Sorare's projection, else his average when he
+  plays) × his start % (Sofix's in those three leagues) × Sorare's bonuses (edition + club + captain),
   with the range he scored in 6 of his last 10 games he played. "No start % yet" cards count as starting. A LaLiga, Premier League or
   Bundesliga game shows **Sofix's difficulty** for the card's club (1 easiest), with the clean-sheet chance for keepers and defenders
   and expected goals for the others. It is shown, not added to the card's number.

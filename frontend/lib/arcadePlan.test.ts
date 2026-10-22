@@ -96,6 +96,12 @@ describe("a card's outlook", () => {
     expect(outlookOf(card("a", ["Forward"]), GAME, extras, { "Game:1": { a: [6000, 0] } }, {})).toMatchObject({ start: 0.6, startSource: "sorare" });
     expect(outlookOf(card("a", ["Forward"]), GAME, extras, null, {})).toMatchObject({ start: null, startSource: null });
   });
+  it("scores a LaLiga, Premier League or Bundesliga card with Sofix's xScore for the same game, else Sorare's projection", () => {
+    const sofix = { a: { kickoff: GAME.kickoff, p: 0.9, source: "sofix" as const, sources: {}, mu: 62 } };
+    expect(outlookOf(card("a", ["Forward"]), GAME, extras, null, sofix)).toMatchObject({ score: 62, scoreSource: "sofix" });
+    const otherGame = { a: { ...sofix.a, kickoff: "2026-10-28T20:00:00Z" } };
+    expect(outlookOf(card("a", ["Forward"]), GAME, extras, null, otherGame)).toMatchObject({ score: 55, scoreSource: "sorare" });
+  });
 });
 
 describe("Pick a day", () => {
@@ -136,6 +142,24 @@ describe("Pick a day", () => {
     expect(fromOne.days.map((d) => [d.step, d.play])).toEqual([[1, 1], [2, 1]]);
     expect(fromOne.odds[2]).toBeGreaterThan(0.9);
     expect(fromOne.odds[3] ?? 0).toBe(0);
+  });
+
+  it("builds a lineup across days when no single day fills one, so Thursday's European games and Friday's league games are not skipped", () => {
+    const thu = at("UEL", "2026-10-22T19:00:00Z");
+    const fri = at("FRI", "2026-10-23T19:00:00Z");
+    const pick = (game: ArcadeGame, p: string, positions: string[], score: number): Outlook => ({ ...outlook(p, positions, score, 1), card: { ...card(p, positions), slug: `${p}-card` }, game });
+    const days: [string, Outlook[]][] = [
+      ["2026-10-22", [pick(thu, "k", ["Goalkeeper"], 80), pick(thu, "d", ["Defender"], 80)]],
+      ["2026-10-23", [pick(fri, "m", ["Midfielder"], 80), pick(fri, "f", ["Forward"], 80), pick(fri, "x", ["Midfielder"], 80)]],
+      ["2026-10-24", squad(at("SAT", "2026-10-24T14:00:00Z"), "s", 80)],
+      ["2026-10-25", squad(at("SUN", "2026-10-25T14:00:00Z"), "u", 80)],
+    ];
+    const path = climb(days, steps.map((s) => ({ ...s, lives: 1 })), { step: 1, lives: 1, notBefore: null, held: [] }, 0.5);
+    expect(path.days.map((d) => [d.day, d.to, d.step, d.play])).toEqual([["2026-10-22", "2026-10-23", 1, 1], ["2026-10-24", "2026-10-24", 2, 1], ["2026-10-25", "2026-10-25", 3, 1]]);
+    expect(path.odds[3]).toBeGreaterThan(0.9); // one step a day from Thursday: step 3 by Sunday
+    // Every step on the way has its own lineup, not only the step you are on.
+    expect(path.days.map((d) => d.lineups.length)).toEqual([1, 1, 1]);
+    expect(path.days[0]!.lineups[0]!.picks.map((p) => p.outlook.game.id).sort()).toEqual(["FRI", "FRI", "FRI", "UEL", "UEL"]);
   });
 
   it("holds lives on a weak day for a stronger one, and holds a running lineup's cards until it settles", () => {

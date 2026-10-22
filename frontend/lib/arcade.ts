@@ -645,7 +645,7 @@ const EXTRAS_KEEP_MS = 6 * 3_600_000;
 const MAX_PROJECTION_GAMES = 60;
 
 /** What Sofix knows of a LaLiga player's next game (the Lineups numbers), keyed by Sorare slug. */
-export type ArcadeLaLiga = Record<string, { kickoff: string | null; p: number | null; source: StartSource | null; sources: Partial<Record<StartSource, number>> }>;
+export type ArcadeLaLiga = Record<string, { kickoff: string | null; p: number | null; source: StartSource | null; sources: Partial<Record<StartSource, number>>; /** Sofix's xScore if he plays. */ mu?: number | null }>;
 export type ArcadeExtras = {
   /** The club bonus Sorare gives a card of each club, by club slug (0.04 for +4%). */
   club: Record<string, number>;
@@ -740,8 +740,9 @@ export async function readArcadeExtras(arcade: Arcade, now = new Date()): Promis
 }
 
 /**
- * A card's outlook in one game. Start %: for a LaLiga game the number Lineups uses (when Sofix's game is this one), else Sorare's as saved.
- * Score if he plays: Sorare's projection, else his own average of the games he played. Nothing is filled in where no source has a number.
+ * A card's outlook in one game. Start %: for a LaLiga, Premier League or Bundesliga game Sofix's number (when Sofix's game is this one),
+ * else Sorare's as saved. Score if he plays: Sofix's xScore for that game (each league's model passed its own check), else Sorare's
+ * projection, else his own average of the games he played. Nothing is filled in where no source has a number.
  */
 export function outlookOf(card: ArcadeCard, game: ArcadeGame, extras: ArcadeExtras | null, chances: ArcadeChances | null, laliga: ArcadeLaLiga): Outlook {
   const past = extras?.past[card.player] ?? [];
@@ -754,11 +755,12 @@ export function outlookOf(card: ArcadeCard, game: ArcadeGame, extras: ArcadeExtr
     ? [sofix.p, sofix.source]
     : saved ? [saved.percent / 100, "sorare"] : [null, null];
   const club = card.teamSlug ? extras?.club[card.teamSlug] ?? null : null;
+  const xscore = sameGame && sofix.mu != null ? sofix.mu : null;
   return {
     card,
     game,
-    score: projection ?? form,
-    scoreSource: projection !== undefined ? "sorare" : form !== null ? "form" : null,
+    score: xscore ?? projection ?? form,
+    scoreSource: xscore !== null ? "sofix" : projection !== undefined ? "sorare" : form !== null ? "form" : null,
     start,
     startSource,
     past,

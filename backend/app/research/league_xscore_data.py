@@ -24,7 +24,8 @@ from app.sorare.client import SorareClient, SorareError
 from app.sorare.model import SORARE_POSITION
 from app.sources.football_data_co_uk import fetch_season_csv
 
-LEAGUES = {"PL": "premier-league-gb-eng", "BL1": "bundesliga-de"}
+LEAGUES = {"PL": "premier-league-gb-eng", "BL1": "bundesliga-de", "FL1": "ligue-1-fr"}
+DIVISIONS = {**{code: league[1] for code, league in FOOTBALL_LEAGUES.items()}, "FL1": "F1"}
 START = datetime(2023, 7, 1, tzinfo=UTC)
 END = datetime(2026, 7, 1, tzinfo=UTC)
 PROTOCOL: dict[str, Any] = {
@@ -143,7 +144,7 @@ def fetch_games(client: Any, games: list[dict[str, Any]]) -> list[dict[str, Any]
 def game_list(client: Any, code: str, *, start: datetime = START, end: datetime = END) -> list[dict[str, Any]]:
     league = LEAGUES.get(code)
     if not league:
-        raise ValueError("Only PL and BL1 are authorized")
+        raise ValueError("Only the requested foreign leagues are authorized")
     after = None
     cursors: set[str] = set()
     found: dict[str, dict[str, Any]] = {}
@@ -431,9 +432,10 @@ def main() -> int:
             audit = json.loads((folder / "index-reconciliation.json").read_text("utf-8"))
         else:
             games = game_list(client, args.league)
+            (folder / "source-index.json").write_text(json.dumps(games), encoding="utf-8")
             calendar = pd.concat(
                 [
-                    normalize_season(fetch_season_csv(year, args.cache, FOOTBALL_LEAGUES[args.league][1]), year)
+                    normalize_season(fetch_season_csv(year, args.cache, DIVISIONS[args.league]), year)
                     for year in (2023, 2024, 2025)
                 ],
                 ignore_index=True,

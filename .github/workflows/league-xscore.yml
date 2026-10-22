@@ -6,6 +6,12 @@ on:
     branches: [main]
     paths: ["backend/app/research/league_xscore_data.py", ".github/workflows/league-xscore.yml"]
   workflow_dispatch:
+    inputs:
+      league:
+        description: League to collect without enabling a model
+        type: choice
+        options: [FL1, PL, BL1]
+        default: FL1
 
 permissions:
   contents: read
@@ -23,11 +29,12 @@ jobs:
       fail-fast: false
       max-parallel: 2 # at .75 s per reader, both together stay below 200 requests/minute
       matrix:
-        league: [PL, BL1]
+        league: ${{ fromJSON(format('["{0}"]', inputs.league || 'FL1')) }}
     defaults:
       run:
         working-directory: backend
     env:
+      FOOTBALL_DATA_ORG_TOKEN: ${{ secrets.FOOTBALL_DATA_ORG_TOKEN }}
       SORARE_API_KEY: ${{ secrets.SORARE_API_KEY }}
     steps:
       - uses: actions/checkout@v4
@@ -43,6 +50,22 @@ jobs:
           path: backend/data/raw/league-xscore/${{ matrix.league }}
           key: league-xscore-v1-${{ matrix.league }}-${{ github.run_id }}
           restore-keys: league-xscore-v1-${{ matrix.league }}-
+      - name: Verify Ligue 1 current fixtures without publishing
+        if: matrix.league == 'FL1'
+        run: |
+          python - <<'PY'
+          import asyncio, json
+          from pathlib import Path
+          from app.sources.football_data_org import FootballDataOrg
+          payload = asyncio.run(FootballDataOrg().matches(competition="FL1"))
+          matches = payload.get("matches") or []
+          clubs = {m[s]["id"] for m in matches for s in ("homeTeam", "awayTeam")}
+          assert payload["competition"]["code"] == "FL1" and len(clubs) == 18 and len(matches) == 306
+          folder = Path("data/raw/league-xscore")
+          folder.mkdir(parents=True, exist_ok=True)
+          (folder / "FL1-fixtures.json").write_text(json.dumps(payload), encoding="utf-8")
+          print("Ligue 1 configured fixture feed: 18 clubs, 306 fixtures")
+          PY
       - name: Retain one representative source game before the full read
         run: |
           set +e

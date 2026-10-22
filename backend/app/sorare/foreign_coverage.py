@@ -13,7 +13,7 @@ from app.sorare import sync
 from app.sorare.client import SorareClient, SorareError
 from app.sorare.model import SORARE_POSITION
 
-SIZES = {"PL": 20, "BL1": 18}
+SIZES = {"PL": 20, "BL1": 18, "FL1": 18}
 
 
 def expired(row: dict[str, Any]) -> dict[str, Any]:

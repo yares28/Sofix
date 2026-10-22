@@ -9,7 +9,7 @@ from app.sorare.client import SorareError
 NOW = datetime(2026, 10, 21, tzinfo=UTC)
 
 
-@pytest.mark.parametrize("code,size", [("PL", 20), ("BL1", 18)])
+@pytest.mark.parametrize("code,size", [("PL", 20), ("BL1", 18), ("FL1", 18)])
 def test_cold_start_covers_every_club_and_deduplicates_transfers(monkeypatch, code, size):
     clubs = [{"slug": f"club-{i}"} for i in range(size)]
     client = SimpleNamespace(query=lambda *args: {"football": {"competition": {"teams": {"nodes": clubs}}}})

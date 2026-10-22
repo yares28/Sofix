@@ -255,3 +255,23 @@ def test_player_history_can_recover_a_fixture_omitted_by_calendar_feeds(tmp_path
     found, audit = data.reconcile(SimpleNamespace(query=query), "PL", [game], table, sources=tmp_path)
     assert len(found) == 2 and audit["missingAfter"] == 0
     assert audit["playerChecks"][0]["games"][0]["id"] == "replay"
+
+
+def test_ligue_1_source_scope_keeps_the_frozen_existing_protocol():
+    import hashlib
+    import json
+
+    assert data.LEAGUES["FL1"] == "ligue-1-fr"
+    assert data.DIVISIONS["FL1"] == "F1"
+    assert (
+        hashlib.sha256(json.dumps(data.PROTOCOL, sort_keys=True).encode()).hexdigest()
+        == "0a13ebb7293c87950cf1b5181e3e5f943b15b5392ac02d357b45f47d46804c00"
+    )
+    calls = []
+
+    def query(text, variables):
+        calls.append(variables)
+        return {"football": {"competition": {"pastGames": {"nodes": [], "pageInfo": {"hasNextPage": False}}}}}
+
+    assert data.game_list(SimpleNamespace(query=query), "FL1") == []
+    assert calls[0]["league"] == "ligue-1-fr"

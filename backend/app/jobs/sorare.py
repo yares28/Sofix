@@ -23,6 +23,7 @@ import logging
 import os
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
+from functools import partial
 from typing import Any, TypeVar
 
 from sqlalchemy import text
@@ -32,6 +33,7 @@ from app.config import settings
 from app.db import SessionLocal
 from app.logging_config import configure_logging
 from app.models import ReadModel
+from app.services import kept_blocks
 from app.services.publish import notify_app, put
 from app.services.timeutil import Laps
 from app.sorare import (
@@ -44,6 +46,9 @@ from app.sorare import (
     ff_link,
     ff_news,
     ff_use,
+    foreign_coverage,
+    foreign_history,
+    foreign_scores,
     frozen,
     keeper,
     mission_pool,
@@ -367,6 +372,16 @@ def run(
     league = cached_league(db) if dry_run else player_games.read_times(db, days=70)
     order = essence_order(db)
     previous = published(db, started)
+    foreign_kept = {
+        r.key: r.payload for r in kept_blocks.rows(db, "grid:", "league_squads:", "league_games:", "player_index")
+    }
+    foreign_grids = {c: (foreign_kept.get(f"grid:{c}") or {}).get("data") or {} for c in ("PL", "BL1")}
+    foreign_models = {
+        c: m
+        for c in ("PL", "BL1")
+        if (m := foreign_scores.load(c)) is not None
+        and foreign_grids[c].get("model_version") == foreign_scores.expected_version(c)
+    }
     # A finished gameweek's replay never changes once its scores are final: keep it, and fetch nothing for it.
     kept = sorare_publish.settled_replay(previous)
     replayed = kept["gameweek"]["slug"] if kept else None
@@ -380,6 +395,30 @@ def run(
             no_checks: dict[str, int] = {}
             optional(db, failed, "score checks", lambda: score_checks.run(db, client, started), no_checks)
         laps("score checks")
+        foreign_states = {}
+        for code in foreign_models:
+            prior = foreign_kept.get(f"league_games:{code}") or {}
+            empty_history: dict[str, list[dict[str, Any]]] = {}
+            current, state = optional(
+                db,
+                failed,
+                f"{code} game history",
+                partial(foreign_history.collect, client, code, started, prior),
+                (empty_history, prior),
+            )
+            foreign_states[code] = state
+            if not dry_run:
+                player_games.save(db, current, started)
+                put(db, f"league_games:{code}", state, started)
+            db.rollback()
+        foreign_kwargs: dict[str, Any] = (
+            {
+                "foreign_codes": tuple(foreign_models),
+                "foreign_indexes": {c: foreign_kept.get(f"league_squads:{c}") or {} for c in foreign_models},
+            }
+            if foreign_models
+            else {}
+        )
         snapshot = sorare_sync.snapshot(
             client,
             user or settings.sorare_user,
@@ -388,7 +427,13 @@ def run(
             replayed=replayed,
             cached_templates=templates,
             cached_league=league,
+            **foreign_kwargs,
         )
+        snapshot["scoreModels"] = {c: foreign_scores.version(c) for c in foreign_models}
+        if not dry_run:
+            for code, index in (snapshot.get("foreign") or {}).items():
+                put(db, f"league_squads:{code}", index, started)
+            db.rollback()
         laps("sorare")
         # A real Sorare card for every LaLiga player, owned or not: the Lineups page draws everyone as his card. Without it a
         # player is drawn as he was before, so a step that fails costs only that.
@@ -472,8 +517,18 @@ def run(
         db,
         failed,
         "game scores",
-        lambda: scores.scores_for(
-            keeper.load(), outfield.load(), keeper.numbers_for(db, fetched), outfield.load_subs()
+        lambda: (
+            foreign_scores.scores_for(
+                foreign_models,
+                foreign_grids,
+                scores.scores_for(
+                    keeper.load(), outfield.load(), keeper.numbers_for(db, fetched), outfield.load_subs()
+                ),
+            )
+            if foreign_models
+            else scores.scores_for(
+                keeper.load(), outfield.load(), keeper.numbers_for(db, fetched), outfield.load_subs()
+            )
         ),
         None,
     )
@@ -513,6 +568,7 @@ def run(
         order=order,
         league_ff=league_lineups.starts if league_lineups else None,
     )
+    foreign_markets = payload.pop("_foreignMarkets", {})
     alt, record = payload.pop("_alt", None), payload.pop("_record", None)
     lab = payload.pop("_strategies", None)
     lenses = payload.pop("_lenses", None)
@@ -538,6 +594,14 @@ def run(
         "planned": [w["projected"]["round"] for w in fresh_weeks],
         "calls": snapshot["calls"],
         "bytes": size,
+        "foreignPlayers": {
+            c: {"players": len(m["market"]), "complete": m["complete"], "bytes": len(json.dumps(m).encode())}
+            for c, m in foreign_markets.items()
+        },
+        "foreignHistory": {
+            c: {"games": len(s.get("games") or {}), "complete": s.get("complete"), "errors": s.get("errors")}
+            for c, s in foreign_states.items()
+        },
         "futbolfantasy": lineups_summary(feed, lineups, planned_week),
         "lineupsPage": lineups_page,
         "teamNews": {"players": news["players"], "atRisk": news["atRisk"]["total"]} if news else None,
@@ -597,6 +661,8 @@ def run(
     if lab and lab["strategies"] and fetched < datetime.fromisoformat(lab["gameweek"]["lock"]):
         put(db, f"{sorare_publish.STRATEGY_PREFIX}{lab['gameweek']['slug']}", lab, now)
         summary["strategies"] = {s["key"]: len(s["lineups"]) for s in lab["strategies"]}
+    for key, block in foreign_coverage.blocks(foreign_markets, foreign_kept.get("player_index")).items():
+        put(db, key, block, now)
     put(db, SORARE_KEY, payload, now)
     laps("writes")
     pool = optional(

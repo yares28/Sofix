@@ -613,3 +613,8 @@ Nothing was seeded by the migration itself; steps 7–8 need no further migratio
 | Operations | `.github/workflows/refresh.yml`, `league-history.yml`, `frontend/app/control/`, `frontend/lib/github.ts` |
 
 Audit player comparisons follow the top-bar GW and rank confirmed actuals before DNP/pending; summaries rank average actual. Saved per-game `sources` and FF match attribution are exposed only when the record predates the GW lock. Older published rows restore these from the same cached `score_record` and exact player/game. Sorare numeric `gameStarted` flags are normalized to booleans on ingestion and comparison, including cached frontend rows; absent flags remain unknown. See [follow-up contract](../plans/audit-followups.md).
+
+
+## Premier League and Bundesliga player scores
+
+PL and Bundesliga use independently fitted FDR-based goalkeeper and outfield models, with no retrospective Sorare projection as an input. Each passed complete 2025/26 conditional-on-start testing against recent form and a no-FDR ablation; the documented PL training cohort excludes one unavailable replay. See [the validation report](pl-bundesliga-xscore-validation.md) for exact coverage, uncertainty and the pre-test protocol amendment. Playing chances retain their existing source hierarchy; xScore remains heuristic until prospective S4 evidence passes.

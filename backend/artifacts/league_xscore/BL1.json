@@ -234,7 +234,7 @@
     "hamburger-sv-hamburg": "Hamburg"
   },
   "protocol": {
-    "version": 1,
+    "version": 2,
     "trainSeasons": [
       2023,
       2024
@@ -256,11 +256,12 @@
     "bootstrapSeed": 20261021,
     "bootstrapDraws": 2000,
     "claim": "retrospective held-out validation, never freshly blind or proof of pre-lock historical availability",
-    "noPromotion": "collector/evaluation never enables a production model; separately inspect outcome/coverage gates first"
+    "noPromotion": "collector/evaluation never enables a production model; separately inspect outcome/coverage gates first",
+    "trainingSourceAmendment": "Frozen before PL holdout metrics: exclude only Bournemouth-Luton 2024-03-13 from player-outcome training, after competition, club and both preceding starting goalkeepers' fully paged histories omit it. Retain its real result in football-model history. No holdout or current-squad exclusions; candidate, comparators and accuracy gates unchanged. BL1 cohort unchanged."
   },
   "evidence": {
     "protocol": {
-      "version": 1,
+      "version": 2,
       "trainSeasons": [
         2023,
         2024
@@ -282,9 +283,10 @@
       "bootstrapSeed": 20261021,
       "bootstrapDraws": 2000,
       "claim": "retrospective held-out validation, never freshly blind or proof of pre-lock historical availability",
-      "noPromotion": "collector/evaluation never enables a production model; separately inspect outcome/coverage gates first"
+      "noPromotion": "collector/evaluation never enables a production model; separately inspect outcome/coverage gates first",
+      "trainingSourceAmendment": "Frozen before PL holdout metrics: exclude only Bournemouth-Luton 2024-03-13 from player-outcome training, after competition, club and both preceding starting goalkeepers' fully paged histories omit it. Retain its real result in football-model history. No holdout or current-squad exclusions; candidate, comparators and accuracy gates unchanged. BL1 cohort unchanged."
     },
-    "runnerSha256": "76e1a37fcba4f659a911e6b34a97b5c1c799b32ced31a6c478ef652a1d8849ad",
+    "runnerSha256": "82d9731adc18d258dda9197e015412e11a0b5dd70d7269f63e9f3a168cb9cdcd",
     "caseSha256": "fea033fc2168b700c973b5fd0604b4d894b2bee285498aab4278a9e2c93ecdb5",
     "footballConfig": {
       "xi": 0.001,
@@ -296,6 +298,42 @@
       "spread": 1.1
     },
     "coverageComplete": true,
+    "coverage": {
+      "rawCalendarGames": 918,
+      "trainingSourceExclusions": [],
+      "expectedGames": 917,
+      "sourceGames": 918,
+      "joinedGames": 917,
+      "excludedAdministrative": [
+        "Game:a891bdb9-b30a-4067-835b-1b58f778a01d"
+      ],
+      "issues": [],
+      "missingCsv": [],
+      "clubs": {
+        "werder-bremen-bremen": "Werder Bremen",
+        "bayern-munchen-munchen": "Bayern Munich",
+        "hoffenheim-sinsheim": "Hoffenheim",
+        "freiburg-freiburg-im-breisgau": "Freiburg",
+        "wolfsburg-wolfsburg": "Wolfsburg",
+        "heidenheim-heidenheim-an-der-brenz": "Heidenheim",
+        "augsburg-augsburg": "Augsburg",
+        "borussia-m-gladbach-monchengladbach": "M'gladbach",
+        "bayer-leverkusen-leverkusen": "Leverkusen",
+        "rb-leipzig-leipzig": "RB Leipzig",
+        "stuttgart-stuttgart": "Stuttgart",
+        "bochum-bochum": "Bochum",
+        "borussia-dortmund-dortmund": "Dortmund",
+        "koln-koln": "FC Koln",
+        "union-berlin-berlin": "Union Berlin",
+        "mainz-05-mainz": "Mainz",
+        "eintracht-frankfurt-frankfurt-am-main": "Ein Frankfurt",
+        "darmstadt-98-darmstadt": "Darmstadt",
+        "holstein-kiel-kiel": "Holstein Kiel",
+        "st-pauli-hamburg": "St Pauli",
+        "hamburger-sv-hamburg": "Hamburg"
+      },
+      "complete": true
+    },
     "cases": 6732,
     "model": {
       "rmse": 17.881397386999392,

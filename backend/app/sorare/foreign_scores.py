@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 import dataclasses
+import hashlib
 import json
 import math
 from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
-from app.research.league_xscore_data import LEAGUES, PROTOCOL, when
+from app.research.league_xscore_data import LEAGUES, when
 from app.research.league_xscore_identity import club_name
-from app.research.league_xscore_validation import release_reasons
+from app.research.league_xscore_validation import EVALUATION_PROTOCOL, release_reasons
 from app.services.league_fdr import REFERENCE
 from app.services.rating_predictions import model_version
 from app.sorare import keeper, outfield
@@ -32,6 +33,10 @@ def expected_version(code: str) -> str:
     return f"{code}:{model_version(REFERENCE)}"
 
 
+def version(code: str) -> str:
+    return f"{code}:xscore-v2+{hashlib.sha256((ROOT / f'{code}.json').read_bytes()).hexdigest()[:8]}"
+
+
 def load(code: str, root: Path = ROOT) -> Models | None:
     path = root / f"{code}.json"
     if code not in LEAGUES or not path.exists():
@@ -42,8 +47,8 @@ def load(code: str, root: Path = ROOT) -> Models | None:
         if (
             raw.get("validated") is not True
             or evidence.get("passed") is not True
-            or raw.get("protocol") != PROTOCOL
-            or evidence.get("protocol") != PROTOCOL
+            or raw.get("protocol") != EVALUATION_PROTOCOL
+            or evidence.get("protocol") != EVALUATION_PROTOCOL
             or evidence.get("competition") != code
             or release_reasons(evidence)
             or evidence.get("footballConfig") != dataclasses.asdict(REFERENCE)

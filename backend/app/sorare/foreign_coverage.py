@@ -95,6 +95,30 @@ def collect_index(
     }
 
 
+def shard(slug: str) -> str:
+    return f"{sum(ord(c) for c in slug) % 16:x}"
+
+
+def blocks(markets: dict[str, dict[str, Any]], previous: dict[str, Any] | None = None) -> dict[str, dict[str, Any]]:
+    out = {}
+    directory = {p["slug"]: p for p in (previous or {}).get("players") or [] if p.get("league") not in markets}
+    for code, market in markets.items():
+        out[f"players:{code}"] = market
+        for bucket in "0123456789abcdef":
+            out[f"players:{code}:{bucket}"] = {
+                **market,
+                "market": [p for p in market["market"] if shard(p["slug"]) == bucket],
+            }
+        for player in market["market"]:
+            directory[player["slug"]] = {k: player.get(k) for k in ("slug", "name", "club", "pic")} | {"league": code}
+    if markets:
+        out["player_index"] = {"players": sorted(directory.values(), key=lambda p: p["slug"])}
+    for key, block in out.items():
+        if len(json.dumps(block, separators=(",", ":")).encode()) >= 1_600_000:
+            raise ValueError(f"{key} exceeds its cache budget")
+    return out
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--league", choices=LEAGUES, required=True)

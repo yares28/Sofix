@@ -73,3 +73,23 @@ def test_strict_squad_rejects_truncated_pagination():
     client = SimpleNamespace(query=lambda *args: {"football": {"club": {"activePlayers": page}}})
     with pytest.raises((ValueError, SorareError), match="cursor|page"):
         f.sync._squad(client, "club", "gw", strict=True)
+
+
+def test_blocks_keep_player_details_small_and_forecasts_bound_to_their_own_week():
+    market = {
+        "PL": {
+            "competition": "PL",
+            "weekId": "22",
+            "market": [
+                {"slug": f"player-{i}", "name": str(i), "club": "Arsenal", "pic": "", "x": 0} for i in range(619)
+            ],
+        }
+    }
+    blocks = f.blocks(market)
+    assert blocks["players:PL"]["weekId"] == "22"
+    directory = blocks["player_index"]["players"]
+    assert len(directory) == 619 and directory[0]["league"] == "PL"
+    shard = blocks[f"players:PL:{sum(map(ord, 'player-0')) % 16:x}"]
+    assert shard["market"][0]["x"] == 0 and shard["weekId"] == "22"
+    assert max(len(b["market"]) for k, b in blocks.items() if k.startswith("players:PL:")) < 60
+    assert sum(len(b["market"]) for k, b in blocks.items() if k.startswith("players:PL:")) == 619

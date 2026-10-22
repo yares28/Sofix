@@ -189,3 +189,42 @@ def test_evidence_fingerprints_change_with_source_history_and_identity(tmp_path)
     assert v.fingerprints(source, [csv])["sourceSha256"] != first["sourceSha256"]
     csv.write_text("Home,Away\nB,A\n")
     assert v.fingerprints(source, [csv])["historySha256"] != first["historySha256"]
+
+
+def test_only_the_documented_training_gap_with_complete_source_receipts_is_allowed():
+    from copy import deepcopy
+
+    audit = {
+        "missingAfter": 1,
+        "errors": [],
+        "missingFixtures": [{"date": "2024-03-13 00:00:00", "home": "Bournemouth", "away": "Luton"}],
+        "clubChecks": [
+            {
+                "variables": {
+                    "club": "afc-bournemouth-bournemouth-dorset",
+                    "from": "2024-03-12T12:00:00Z",
+                    "to": "2024-03-14T12:00:00Z",
+                },
+                "games": [],
+                "pageInfo": {"hasNextPage": False},
+            }
+        ],
+        "playerChecks": [
+            {
+                "variables": {"player": p, "from": "2024-03-12T12:00:00Z", "to": "2024-03-14T12:00:00Z"},
+                "games": [],
+                "pageInfo": {"hasNextPage": False},
+            }
+            for p in ("norberto-murara-neto", "thomas-kaminski")
+        ],
+    }
+    assert v.documented_training_gap(audit)
+    changed = deepcopy(audit)
+    changed["missingFixtures"][0]["date"] = "2025-08-01"
+    assert not v.documented_training_gap(changed)
+    changed = deepcopy(audit)
+    changed["playerChecks"].pop()
+    assert not v.documented_training_gap(changed)
+    changed = deepcopy(audit)
+    changed["playerChecks"][0]["games"] = [{"id": "found"}]
+    assert not v.documented_training_gap(changed)

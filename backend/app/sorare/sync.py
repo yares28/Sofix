@@ -142,7 +142,7 @@ query($s:String!,$a:String$ARGS){ football { club(slug:$s){ activePlayers(first:
   pageInfo { hasNextPage endCursor }
   nodes {
     slug displayName position pictureUrl avatarPictureUrl
-    activeClub { slug name shortName pictureUrl }
+    activeClub { slug name shortName pictureUrl domesticLeague { slug } }
     average: averageScore(type: LAST_TEN_PLAYED_SO5_AVERAGE_SCORE)
     nextClassicFixtureProjectedScore
     nextClassicFixturePlayingStatusOdds { starterOddsBasisPoints substituteOddsBasisPoints nonPlayingOddsBasisPoints }
@@ -879,6 +879,8 @@ def snapshot(
     ahead: int = 2,
     cached_templates: dict[str, Any] | None = None,
     cached_league: dict[str, Any] | None = None,
+    foreign_codes: tuple[str, ...] = (),
+    foreign_indexes: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """One run's worth of Sorare: the gameweek to plan, the last one played, and everything about both.
 
@@ -1021,8 +1023,22 @@ def snapshot(
     # Every LaLiga player with his odds and games this week (S5, and his start chance and xScore); empty if the fetch fails
     market = laliga_index(client, fixture=plan_gw["slug"])
     lap("laliga index")
+    foreign = {}
+    if foreign_codes:
+        from app.sorare import foreign_coverage
+
+        foreign = {
+            code: foreign_coverage.collect_index(client, code, plan_gw["slug"], now, (foreign_indexes or {}).get(code))
+            for code in foreign_codes
+        }
+        lap("foreign indexes")
     # Sorare's projection game by game for the planned week, yours and every LaLiga player's (the record keeps both numbers)
-    projections = game_projections(client, plan_game_ids(my_cards) + plan_game_ids(market))
+    projections = game_projections(
+        client,
+        plan_game_ids(my_cards)
+        + plan_game_ids(market)
+        + [ident for index in foreign.values() for ident in plan_game_ids(foreign_coverage.rows(index))],
+    )
     lap("projections")
     pro_boards = pro.boards(client, user)  # your Pro steps and prizes: public, one call
     lap("pro")
@@ -1049,6 +1065,7 @@ def snapshot(
         "referenceFor": reference_for,
         "expected": templates,
         "market": market,
+        "foreign": foreign,
         "projections": projections,
         "pro": pro_boards,
         "prices": prices,

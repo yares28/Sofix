@@ -25,6 +25,38 @@ from app.sources.football_data_co_uk import cached_path, fetch_season_csv
 POSITIONS = ("GK", "DEF", "MID", "FWD")
 ADMIN = {("2024-12-14", "Union Berlin", "Bochum"), ("2022-03-18", "Bochum", "M'gladbach")}
 
+TRAINING_GAP = ("2024-03-13", "Bournemouth", "Luton")
+EVALUATION_PROTOCOL = {
+    **PROTOCOL,
+    "version": 2,
+    "trainingSourceAmendment": "Frozen before PL holdout metrics: exclude only Bournemouth-Luton 2024-03-13 from player-outcome training, after competition, club and both preceding starting goalkeepers' fully paged histories omit it. Retain its real result in football-model history. No holdout or current-squad exclusions; candidate, comparators and accuracy gates unchanged. BL1 cohort unchanged.",
+}
+
+
+def documented_training_gap(audit: dict[str, Any]) -> bool:
+    if audit.get("missingAfter") != 1 or audit.get("errors") or len(audit.get("missingFixtures") or []) != 1:
+        return False
+    gap = audit["missingFixtures"][0]
+    if (str(gap.get("date", ""))[:10], gap.get("home"), gap.get("away")) != TRAINING_GAP:
+        return False
+
+    def empty(check: dict[str, Any]) -> bool:
+        variables = check.get("variables") or {}
+        return (
+            check.get("games") == []
+            and (check.get("pageInfo") or {}).get("hasNextPage") is False
+            and variables.get("from") == "2024-03-12T12:00:00Z"
+            and variables.get("to") == "2024-03-14T12:00:00Z"
+        )
+
+    clubs = [
+        c
+        for c in audit.get("clubChecks") or []
+        if empty(c) and c["variables"].get("club") == "afc-bournemouth-bournemouth-dorset"
+    ]
+    players = {c["variables"].get("player") for c in audit.get("playerChecks") or [] if empty(c)}
+    return bool(clubs) and players == {"norberto-murara-neto", "thomas-kaminski"}
+
 
 def window_for(date: str, windows: list[dict[str, str]]) -> tuple[str, datetime]:
     at = when(date)
@@ -53,8 +85,20 @@ def load_games(root: Path, code: str) -> tuple[list[dict[str, Any]], list[dict[s
     folder = root / code
     coverage = json.loads((folder / "coverage.json").read_text("utf-8"))
     protocol_hash = hashlib.sha256(json.dumps(PROTOCOL, sort_keys=True).encode()).hexdigest()
-    if not coverage.get("complete") or coverage.get("protocolSha256") != protocol_hash:
-        raise ValueError("Incomplete collection or changed frozen protocol")
+    audit = (
+        json.loads((folder / "index-reconciliation.json").read_text("utf-8"))
+        if (folder / "index-reconciliation.json").exists()
+        else {}
+    )
+    exception = (
+        code == "PL"
+        and documented_training_gap(audit)
+        and coverage.get("expected") == 1139
+        and coverage.get("saved") == 1139
+        and not coverage.get("failed")
+    )
+    if (not coverage.get("complete") and not exception) or coverage.get("protocolSha256") != protocol_hash:
+        raise ValueError("Incomplete collection or changed frozen collection protocol")
     expected = json.loads((folder / "games.json").read_text("utf-8"))
     games = []
     for fixture in expected:
@@ -161,6 +205,21 @@ def prepare(
         except (ValueError, KeyError, TypeError) as error:
             issues.append({"game": raw.get("id"), "reason": str(error)})
     wanted = history[history["season_start"].isin([2023, 2024, 2025])]
+    expected_raw = len(wanted)
+    training_exclusions = []
+    if code == "PL":
+        day, home, away = TRAINING_GAP
+        omitted = (wanted["date"] == pd.Timestamp(day)) & (wanted["home"] == home) & (wanted["away"] == away)
+        if omitted.any():
+            training_exclusions = [
+                {
+                    "date": day,
+                    "home": home,
+                    "away": away,
+                    "reason": "No game returned by four documented source paths; training only, protocol v2",
+                }
+            ]
+            wanted = wanted[~omitted]
     if code == "BL1":
         for day, home, away in ADMIN:
             wanted = wanted[
@@ -172,6 +231,8 @@ def prepare(
     missing = wanted.loc[~wanted.index.isin(used), ["date", "home", "away"]].copy()
     missing["date"] = missing["date"].astype(str)
     coverage = {
+        "rawCalendarGames": expected_raw,
+        "trainingSourceExclusions": training_exclusions,
         "expectedGames": len(wanted),
         "sourceGames": len(games),
         "joinedGames": len(joined),
@@ -369,13 +430,14 @@ def evaluate(rows: list[dict[str, Any]], coverage: dict[str, Any]) -> tuple[dict
     form = np.array([r["baseline"] for r in testing])
     weeks = [r["week"] for r in testing]
     result = {
-        "protocol": PROTOCOL,
+        "protocol": EVALUATION_PROTOCOL,
         "runnerSha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "caseSha256": hashlib.sha256(
             json.dumps([(r["game"], r["player"], r["pos"], r["score"]) for r in testing], sort_keys=True).encode()
         ).hexdigest(),
         "footballConfig": dataclasses.asdict(REFERENCE),
         "coverageComplete": coverage["complete"],
+        "coverage": coverage,
         "cases": len(testing),
         "model": metrics(testing, model),
         "form": metrics(testing, form),
@@ -400,7 +462,7 @@ def evaluate(rows: list[dict[str, Any]], coverage: dict[str, Any]) -> tuple[dict
         "trainingThrough": "2025-06-30",
         "validated": result["passed"],
         "clubs": coverage["clubs"],
-        "protocol": PROTOCOL,
+        "protocol": EVALUATION_PROTOCOL,
     }
     return result, artifact
 

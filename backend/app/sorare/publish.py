@@ -260,6 +260,10 @@ def card_games(rows: list[dict[str, Any]], key: str) -> dict[str, list[dict[str,
                     "kickoff": game["date"],
                     "competition": game["competition"]["slug"],
                     "team": team.get("shortName") or team["name"],
+                    "teamName": team["name"],
+                    "teamSlug": team["slug"],
+                    "opponentName": other["name"],
+                    "opponentSlug": other["slug"],
                     "teamCrest": team.get("pictureUrl"),
                     "opponent": other.get("shortName") or other["name"],
                     "opponentCrest": other.get("pictureUrl"),
@@ -386,7 +390,11 @@ def player_weeks(
         ordered = sorted(mine, key=lambda g: _dt(g["kickoff"])) if ff else mine
         told = ff(slug, ordered) if ff else []
         pos = SORARE_POSITION.get(player.get("position") or "")
-        made = scores(player, mine, sorare_number, past) if scores else Made((), None)
+        made = (
+            scores(player, [{**g, "forecastBefore": lock.isoformat()} for g in mine], sorare_number, past)
+            if scores
+            else Made((), None)
+        )
         weeks[slug] = PlayerWeek(
             games=len(mine),
             projection=sorare_number,
@@ -395,8 +403,8 @@ def player_weeks(
             actual=actual,
             start_odds=start_odds,
             # Only games he played have a role worth recording; a snapshot from before O9 has none.
-            starts={h["date"]: bool(h["started"]) for h in past if h["played"] and "started" in h},
-            cups=cup_dates(past),
+            starts={h["date"]: bool(h["started"]) for h in past if h["played"] and h.get("started") is not None},
+            cups=cup_dates(past, ((player.get("activeClub") or {}).get("domesticLeague") or {}).get("slug")),
             banned=_banned(history.get(slug, []), first),
             pos=pos,
             game_ids=[g["id"] for g in ordered] if told else [],
@@ -1249,7 +1257,14 @@ def build_payload(
     # Every LaLiga player, not only yours (S5): the same start chance and xScore, from the squad index the job reads each run. Form
     # stands on the history the job reads for your players; anyone else's rests on Sorare's odds and projection, Futbol Fantasy
     # and his games, with the priors for the rest. Yours keep exactly the plan's numbers.
-    league_rows = [{"player": row["player"]} for row in snapshot.get("market") or [] if row.get("player")]
+    from app.sorare.foreign_coverage import rows as indexed_players
+
+    foreign_rows = {code: indexed_players(index) for code, index in (snapshot.get("foreign") or {}).items()}
+    league_rows = [
+        {"player": row["player"]}
+        for row in [*(snapshot.get("market") or []), *(p for players in foreign_rows.values() for p in players)]
+        if row.get("player")
+    ]
     league_games = card_games(league_rows, "plan")
     # Past games: what the job has built up for every LaLiga player (`sorare_sync.league_history`), yours read in full this run
     league_history = {slug: entry.get("games") or [] for slug, entry in (snapshot.get("leagueHistory") or {}).items()}
@@ -1477,6 +1492,18 @@ def build_payload(
         "collection": collection_out(cards, snapshot.get("prices") or {}),
         "market": market_out(snapshot.get("market") or [], league_forecasts, league_games),
         "essenceOrder": list(order),
+        "_foreignMarkets": {
+            code: {
+                "competition": code,
+                "weekId": next_gw["gameweek"]["id"],
+                "week": plan_week["slug"],
+                "generatedAt": snapshot["fetchedAt"],
+                "complete": (snapshot.get("foreign") or {})[code].get("complete", False),
+                "modelVersion": (snapshot.get("scoreModels") or {}).get(code),
+                "market": market_out(rows, league_forecasts, league_games),
+            }
+            for code, rows in foreign_rows.items()
+        },
         "_alt": alt,
         "_record": record,
         "_strategies": lab,
@@ -1694,11 +1721,16 @@ def score_record(
                     "id": game.get("id"),
                     "kickoff": game.get("kickoff"),
                     "competition": game.get("competition"),
+                    "team": game.get("team"),
+                    "teamCrest": game.get("teamCrest"),
+                    "opponent": game.get("opponent"),
+                    "opponentCrest": game.get("opponentCrest"),
+                    "venue": game.get("venue"),
                     "home": game.get("team") if game.get("venue") == "H" else game.get("opponent"),
                     "away": game.get("opponent") if game.get("venue") == "H" else game.get("team"),
                     "sources": sources,
                     **info,
-                    "sorare": said.get("score", w.projection if i == 0 and not projections else None),
+                    "sorare": said.get("score", w.projection if i == 0 else None),
                     "grade": said.get("grade"),
                     "sofix": round(w.game_scores[i], 1) if i < len(w.game_scores) else None,
                     # his score if he comes on: what a substitute's game is judged against (the owner, 13 Oct 2026)
@@ -1720,6 +1752,7 @@ def score_record(
     return {
         "gameweek": {"slug": week["slug"], "number": week["number"], "lock": week["lock"], "end": week.get("end")},
         "writtenAt": snapshot["fetchedAt"],
+        "scoreModels": snapshot.get("scoreModels") or {},
         "players": players,
     }
 
@@ -1804,7 +1837,10 @@ def market_out(
                 "mu": round(forecast.mu, 1),
                 **({"start": round(forecast.start, 1)} if forecast.start is not None else {}),
                 "x": round(_expected(forecast), 1),
-                "fixture": {k: game.get(k) for k in ("opponent", "opponentCrest", "venue", "kickoff")},
+                "fixture": {
+                    k: game.get(k)
+                    for k in ("team", "teamCrest", "competition", "opponent", "opponentCrest", "venue", "kickoff")
+                },
             }
         out.append(
             {
@@ -1813,14 +1849,14 @@ def market_out(
                 "pos": row["pos"],
                 "club": row.get("club"),
                 "crest": row.get("crest"),
-                "average": round(float(row.get("average") or 0.0), 1),
+                "average": round(float(row["average"]), 1) if row.get("average") is not None else None,
                 "projection": row.get("projection"),
                 "eur": round(float(eur), 2) if eur is not None else None,
                 "pic": row.get("pic") or "",
                 **week,
             }
         )
-    out.sort(key=lambda p: -p["average"])
+    out.sort(key=lambda p: -(p["average"] if p["average"] is not None else -1))
     return out
 
 

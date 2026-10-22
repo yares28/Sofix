@@ -1,0 +1,416 @@
+{
+  "keeper": {
+    "cs": [
+      -0.34571139670695544,
+      0.864848070504231
+    ],
+    "p_save": 0.026981450252951095,
+    "dec": [
+      74.48846153846154,
+      0.0
+    ],
+    "dec0": 74.48846153846154,
+    "plain": [
+      39.542213549477175,
+      -0.4677498982948128,
+      0.0
+    ],
+    "plain0": [
+      39.542213549477175,
+      -0.4677498982948128
+    ],
+    "spread_dec": [
+      -14.473461538461535,
+      -11.428461538461534,
+      -9.498461538461536,
+      -8.388461538461542,
+      -7.188461538461539,
+      -6.188461538461539,
+      -4.988461538461536,
+      -3.368461538461538,
+      -2.2534615384615355,
+      -1.4384615384615387,
+      -0.08846153846153015,
+      1.2915384615384609,
+      3.1115384615384585,
+      4.521538461538463,
+      6.136538461538461,
+      7.891538461538469,
+      11.011538461538464,
+      13.381538461538467,
+      17.981538461538456
+    ],
+    "spread_plain": [
+      -22.758785987778623,
+      -15.80490359544629,
+      -11.925784297584148,
+      -9.582007307234829,
+      -7.439837991314239,
+      -5.462590317604649,
+      -3.575492929766431,
+      -2.1482999318056453,
+      -0.9338299827674084,
+      0.3869483342307696,
+      2.0884196324514916,
+      3.2731604263977,
+      5.162260035666282,
+      6.806006413807177,
+      8.232777684850618,
+      10.041366272771516,
+      12.212845639276631,
+      14.663304011178308,
+      19.47773160385761
+    ],
+    "starts": 1518,
+    "through": "2025-06-30",
+    "typical": [
+      0.2556660967133414,
+      1.4988660134281016
+    ]
+  },
+  "outfield": {
+    "DEF": {
+      "pos": "DEF",
+      "bare": [
+        16.955779069678453,
+        13.801620340314825,
+        4.687546411937434,
+        -2.2532111601199185,
+        0.3867860789572091,
+        -4.4527990053403865,
+        0.5487750970305559
+      ],
+      "proj": [
+        16.955779069678453,
+        13.801620340314825,
+        4.687546411937434,
+        -2.2532111601199185,
+        0.3867860789572091,
+        -4.4527990053403865,
+        0.5487750970305559,
+        0.0
+      ],
+      "starts": 6231,
+      "through": "2025-06-30",
+      "chance": [
+        -2.6606592438698002,
+        -0.103761833250182,
+        0.14771611714191524,
+        -0.03887009385471288,
+        -0.005021510661861336,
+        0.35280640209066266,
+        0.012651457161416786
+      ],
+      "gap": 32.463262266585666,
+      "sd": [
+        15.875147096919273,
+        19.99948869393295
+      ],
+      "means": [
+        0.2536278551602766,
+        1.4819810265557134,
+        1.5094135256795835,
+        0.495105119563473,
+        0.18667758354293607,
+        46.80339536768258
+      ]
+    },
+    "MID": {
+      "pos": "MID",
+      "bare": [
+        4.658536722079736,
+        12.932968552136197,
+        3.314758677700104,
+        -1.8732808873820939,
+        0.501784522122748,
+        2.1325702007460063,
+        0.8447280046624597
+      ],
+      "proj": [
+        4.658536722079736,
+        12.932968552136197,
+        3.314758677700104,
+        -1.8732808873820939,
+        0.501784522122748,
+        2.1325702007460063,
+        0.8447280046624597,
+        0.0
+      ],
+      "starts": 5015,
+      "through": "2025-06-30",
+      "chance": [
+        -2.36886261899679,
+        -0.48908462097516736,
+        0.28333508010219366,
+        -0.402482800093916,
+        0.023399624890809014,
+        2.429804556335405,
+        0.014947650148755121
+      ],
+      "gap": 32.20564288296525,
+      "sd": [
+        14.245957639620656,
+        14.790543819463435
+      ],
+      "means": [
+        0.2536203771107835,
+        1.4989629376695828,
+        1.510135043552094,
+        0.4993020937188435,
+        0.18793701168868124,
+        47.61971684313625
+      ]
+    },
+    "FWD": {
+      "pos": "FWD",
+      "bare": [
+        0.5446408226409982,
+        5.3621521308024045,
+        3.7554942062889567,
+        -2.6109643706279155,
+        1.0503914869038795,
+        -17.137525277247548,
+        1.0672775458516877
+      ],
+      "proj": [
+        0.5446408226409982,
+        5.3621521308024045,
+        3.7554942062889567,
+        -2.6109643706279155,
+        1.0503914869038795,
+        -17.137525277247548,
+        1.0672775458516877,
+        0.0
+      ],
+      "starts": 3934,
+      "through": "2025-06-30",
+      "chance": [
+        -0.6359092241844935,
+        -0.14142721144634465,
+        0.29264300714787633,
+        -0.38207590906142513,
+        0.04394476774142988,
+        2.077449435583945,
+        -0.006847588834458426
+      ],
+      "gap": 32.354980268041714,
+      "sd": [
+        12.495963522129616,
+        10.4049828064944
+      ],
+      "means": [
+        0.2615022855603114,
+        1.5254863179860063,
+        1.4677943980466028,
+        0.5086426029486528,
+        0.21981579310925492,
+        47.89642891508304
+      ]
+    }
+  },
+  "trainingThrough": "2025-06-30",
+  "validated": true,
+  "clubs": {
+    "burnley-burnley-lancashire": "Burnley",
+    "manchester-city-manchester": "Man City",
+    "arsenal-london": "Arsenal",
+    "nottingham-forest-nottingham": "Nott'm Forest",
+    "afc-bournemouth-bournemouth-dorset": "Bournemouth",
+    "west-ham-united-london": "West Ham",
+    "everton-liverpool": "Everton",
+    "fulham-london": "Fulham",
+    "brighton-hove-albion-brighton-east-sussex": "Brighton",
+    "luton-town-luton-bedfordshire": "Luton",
+    "sheffield-united-sheffield": "Sheffield United",
+    "crystal-palace-london": "Crystal Palace",
+    "newcastle-united-newcastle-upon-tyne": "Newcastle",
+    "aston-villa-birmingham": "Aston Villa",
+    "brentford-brentford-middlesex": "Brentford",
+    "tottenham-hotspur-london": "Tottenham",
+    "chelsea-london": "Chelsea",
+    "liverpool-liverpool": "Liverpool",
+    "manchester-united-manchester": "Man United",
+    "wolverhampton-wanderers-wolverhampton": "Wolves",
+    "ipswich-town-ipswich-suffolk": "Ipswich",
+    "southampton-southampton-hampshire": "Southampton",
+    "leicester-city-leicester": "Leicester",
+    "sunderland-sunderland": "Sunderland",
+    "leeds-united-leeds-west-yorkshire": "Leeds"
+  },
+  "protocol": {
+    "version": 2,
+    "trainSeasons": [
+      2023,
+      2024
+    ],
+    "holdoutSeason": 2025,
+    "scoringVersion": 7,
+    "candidate": "existing keeper/outfield architectures, independently fitted, no Sorare projection",
+    "football": "independent fixed reference, xi=.001 ridge=1 promoted=0 spread=1.10, fit strictly before Sorare lock",
+    "baseline": "own last five starts with two starts of prior at 51; league position mean also reported",
+    "ablation": "independently fitted same player-history model with FDR inputs removed; FDR must also improve this comparator",
+    "primary": "RMSE on authentic version-7 starts, same cases; paired whole-Sorare-week bootstrap 95% CI",
+    "releaseGate": "both leagues independently: >=100 holdout starts per position, RMSE difference CI upper <0 against form and no-FDR ablation, no position RMSE loss, no loss in within-7 or pair ordering",
+    "secondary": [
+      "within7",
+      "same-position within-game ranking",
+      "per-position RMSE",
+      "coverage"
+    ],
+    "bootstrapSeed": 20261021,
+    "bootstrapDraws": 2000,
+    "claim": "retrospective held-out validation, never freshly blind or proof of pre-lock historical availability",
+    "noPromotion": "collector/evaluation never enables a production model; separately inspect outcome/coverage gates first",
+    "trainingSourceAmendment": "Frozen before PL holdout metrics: exclude only Bournemouth-Luton 2024-03-13 from player-outcome training, after competition, club and both preceding starting goalkeepers' fully paged histories omit it. Retain its real result in football-model history. No holdout or current-squad exclusions; candidate, comparators and accuracy gates unchanged. BL1 cohort unchanged."
+  },
+  "evidence": {
+    "protocol": {
+      "version": 2,
+      "trainSeasons": [
+        2023,
+        2024
+      ],
+      "holdoutSeason": 2025,
+      "scoringVersion": 7,
+      "candidate": "existing keeper/outfield architectures, independently fitted, no Sorare projection",
+      "football": "independent fixed reference, xi=.001 ridge=1 promoted=0 spread=1.10, fit strictly before Sorare lock",
+      "baseline": "own last five starts with two starts of prior at 51; league position mean also reported",
+      "ablation": "independently fitted same player-history model with FDR inputs removed; FDR must also improve this comparator",
+      "primary": "RMSE on authentic version-7 starts, same cases; paired whole-Sorare-week bootstrap 95% CI",
+      "releaseGate": "both leagues independently: >=100 holdout starts per position, RMSE difference CI upper <0 against form and no-FDR ablation, no position RMSE loss, no loss in within-7 or pair ordering",
+      "secondary": [
+        "within7",
+        "same-position within-game ranking",
+        "per-position RMSE",
+        "coverage"
+      ],
+      "bootstrapSeed": 20261021,
+      "bootstrapDraws": 2000,
+      "claim": "retrospective held-out validation, never freshly blind or proof of pre-lock historical availability",
+      "noPromotion": "collector/evaluation never enables a production model; separately inspect outcome/coverage gates first",
+      "trainingSourceAmendment": "Frozen before PL holdout metrics: exclude only Bournemouth-Luton 2024-03-13 from player-outcome training, after competition, club and both preceding starting goalkeepers' fully paged histories omit it. Retain its real result in football-model history. No holdout or current-squad exclusions; candidate, comparators and accuracy gates unchanged. BL1 cohort unchanged."
+    },
+    "runnerSha256": "82d9731adc18d258dda9197e015412e11a0b5dd70d7269f63e9f3a168cb9cdcd",
+    "caseSha256": "c03fce9b641e0c38668e70f703e7b5d2db8e0d1107cb00c46b0c5cbedd29a2df",
+    "footballConfig": {
+      "xi": 0.001,
+      "goals_weight": 0.7,
+      "ridge": 1.0,
+      "promoted_prior": 0.0,
+      "window_days": 730,
+      "max_goals": 10,
+      "spread": 1.1
+    },
+    "coverageComplete": true,
+    "coverage": {
+      "rawCalendarGames": 1140,
+      "trainingSourceExclusions": [
+        {
+          "date": "2024-03-13",
+          "home": "Bournemouth",
+          "away": "Luton",
+          "reason": "No game returned by four documented source paths; training only, protocol v2"
+        }
+      ],
+      "expectedGames": 1139,
+      "sourceGames": 1139,
+      "joinedGames": 1139,
+      "excludedAdministrative": [],
+      "issues": [],
+      "missingCsv": [],
+      "clubs": {
+        "burnley-burnley-lancashire": "Burnley",
+        "manchester-city-manchester": "Man City",
+        "arsenal-london": "Arsenal",
+        "nottingham-forest-nottingham": "Nott'm Forest",
+        "afc-bournemouth-bournemouth-dorset": "Bournemouth",
+        "west-ham-united-london": "West Ham",
+        "everton-liverpool": "Everton",
+        "fulham-london": "Fulham",
+        "brighton-hove-albion-brighton-east-sussex": "Brighton",
+        "luton-town-luton-bedfordshire": "Luton",
+        "sheffield-united-sheffield": "Sheffield United",
+        "crystal-palace-london": "Crystal Palace",
+        "newcastle-united-newcastle-upon-tyne": "Newcastle",
+        "aston-villa-birmingham": "Aston Villa",
+        "brentford-brentford-middlesex": "Brentford",
+        "tottenham-hotspur-london": "Tottenham",
+        "chelsea-london": "Chelsea",
+        "liverpool-liverpool": "Liverpool",
+        "manchester-united-manchester": "Man United",
+        "wolverhampton-wanderers-wolverhampton": "Wolves",
+        "ipswich-town-ipswich-suffolk": "Ipswich",
+        "southampton-southampton-hampshire": "Southampton",
+        "leicester-city-leicester": "Leicester",
+        "sunderland-sunderland": "Sunderland",
+        "leeds-united-leeds-west-yorkshire": "Leeds"
+      },
+      "complete": true
+    },
+    "cases": 8360,
+    "model": {
+      "rmse": 17.45513601817283,
+      "mae": 14.091946244168614,
+      "within7": 0.27595693779904307,
+      "pairs": 0.5875813913639479
+    },
+    "form": {
+      "rmse": 18.381931632400356,
+      "mae": 14.785783247892457,
+      "within7": 0.2748803827751196,
+      "pairs": 0.5513408156271419
+    },
+    "ablation": {
+      "rmse": 17.763486357889743,
+      "mae": 14.342640349791692,
+      "within7": 0.27392344497607657,
+      "pairs": 0.5669122686771761
+    },
+    "positionMean": {
+      "rmse": 18.122834366387185,
+      "mae": 14.766290639916479,
+      "within7": 0.25023923444976076,
+      "pairs": 0.5
+    },
+    "versusForm": {
+      "difference": -0.926795614227526,
+      "lo": -1.064625970078853,
+      "hi": -0.7923095995580964,
+      "weeks": 42
+    },
+    "versusAblation": {
+      "difference": -0.30835033971691317,
+      "lo": -0.42185004734399073,
+      "hi": -0.196691411863158,
+      "weeks": 42
+    },
+    "positions": {
+      "GK": {
+        "cases": 760,
+        "rmse": 19.049021653640178,
+        "formRmse": 20.28146530893601
+      },
+      "DEF": {
+        "cases": 3174,
+        "rmse": 18.554006211539058,
+        "formRmse": 19.6799129232021
+      },
+      "MID": {
+        "cases": 2443,
+        "rmse": 16.107146626805772,
+        "formRmse": 16.842231981039674
+      },
+      "FWD": {
+        "cases": 1983,
+        "rmse": 16.576608532227706,
+        "formRmse": 17.247839761782004
+      }
+    },
+    "rejectedBecause": [],
+    "passed": true,
+    "sourceSha256": "9365b43302c21970c9f86dc1e1af580e5d563ee6995d893d8268a3a804d5da3c",
+    "historySha256": "dcea844645fabc218aa79394610831f097174502f0a0817b59594cfaa6453b9e",
+    "identitySha256": "75536bd0584906449ae51e9a2a886b4fe618ae3fb864e0ab443f8c7a7ab0e716",
+    "competition": "PL"
+  }
+}

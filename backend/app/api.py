@@ -118,6 +118,26 @@ def sorare(db: Session = Depends(get_db)):
     return ApiResponse[dict[str, Any]](success=True, data=row.payload)
 
 
+@router.get("/sorare/player-index", response_model=ApiResponse[dict[str, Any]])
+def sorare_player_index(db: Session = Depends(get_db)):
+    row = db.get(ReadModel, "player_index")
+    return ApiResponse[dict[str, Any]](success=row is not None, data=row.payload if row else None)
+
+
+@router.get("/sorare/players/{code}", response_model=ApiResponse[dict[str, Any]])
+def sorare_league_players(code: Literal["PL", "BL1"], db: Session = Depends(get_db)):
+    row = db.get(ReadModel, f"players:{code}")
+    return ApiResponse[dict[str, Any]](success=row is not None, data=row.payload if row else None)
+
+
+@router.get("/sorare/players/{code}/{bucket}", response_model=ApiResponse[dict[str, Any]])
+def sorare_player_shard(code: Literal["PL", "BL1"], bucket: str, db: Session = Depends(get_db)):
+    if len(bucket) != 1 or bucket not in "0123456789abcdef":
+        return ApiResponse[dict[str, Any]](success=False, error="Invalid player bucket")
+    row = db.get(ReadModel, f"players:{code}:{bucket}")
+    return ApiResponse[dict[str, Any]](success=row is not None, data=row.payload if row else None)
+
+
 @router.get("/missions", response_model=ApiResponse[dict[str, Any]])
 def missions_page(db: Session = Depends(get_db)):
     row = db.get(ReadModel, "missions")

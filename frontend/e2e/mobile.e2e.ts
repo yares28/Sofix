@@ -63,8 +63,11 @@ test("the home fits a phone, and the tab bar moves between pages", async ({ page
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   const tabs = page.getByRole("navigation", { name: "Sections" });
   await expect(tabs.getByRole("link", { name: "This week" })).toHaveAttribute("aria-current", "page");
-  await tabs.getByRole("link", { name: "Season" }).click();
-  await expect(page).toHaveURL(/\/season$/, { timeout: 30_000 });
+  const season = tabs.getByRole("link", { name: "Season" });
+  const href = await season.getAttribute("href");
+  expect(href).toMatch(/^\/season\?w=\d{4}-\d{2}-\d{2}/);
+  await season.click();
+  await expect(page).toHaveURL(new URL(href!, page.url()).toString(), { timeout: 30_000 });
   await expect(tabs.getByRole("link", { name: "Season" })).toHaveAttribute("aria-current", "page", { timeout: 30_000 });
 });
 

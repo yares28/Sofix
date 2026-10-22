@@ -15,7 +15,7 @@ transparent and reproducible. Nothing enters a lineup without explicit owner pre
 
 ## Premier League / Bundesliga FDR extension (21 October 2026)
 
-The football board adds independently fitted Premier League and Bundesliga regular-season FDR, fixtures, tables and team details. LaLiga remains the default. New league blocks are independent of LaLiga/Sorare; their player xScore is deferred. Clean-sheet probabilities are raw, live Odds/Vs odds are unavailable for these leagues, and no preseason baseline is reconstructed after kickoff. See [delivery plan](plans/pl-bundesliga-fdr.md) and [verification/limits](docs/pl-bundesliga-fdr-validation.md).
+The football board adds independently fitted Premier League and Bundesliga regular-season FDR, fixtures, tables and team details. LaLiga remains the default. New league blocks are independent of LaLiga/Sorare; their independently validated player xScore is now published. Clean-sheet probabilities are raw, live Odds/Vs odds are unavailable for these leagues, and no preseason baseline is reconstructed after kickoff. See [delivery plan](plans/pl-bundesliga-fdr.md) and [verification/limits](docs/pl-bundesliga-fdr-validation.md).
 
 ## Current scope
 

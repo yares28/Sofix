@@ -27,3 +27,13 @@ The frozen candidate passed: RMSE 17.8570 versus recent form 18.7283 and no-FDR 
 Full evidence, source/history/identity/runner/case fingerprints, protocol and fitted coefficients are retained in `backend/artifacts/league_xscore/FL1.json`; private raw receipts remain in the resumable Actions cache and seven-day artifacts (runs 39826539575 / 39829438939). No raw archive enters Neon. The current all-club preflight contains 520 football players from all 18 squads, with no errors.
 
 This is retrospective score validation conditional on starting, with documented training exclusions. It does not establish fresh prospective/blind accuracy, starting chances or lineup rewards. Current forecasts require the actual playing sides and matching pre-lock FL1 FDR; missing context uses its honestly named source.
+
+## Published workflow verification
+
+Automatic repair run 39833653692 verified all 63 recent Ligue 1 matches with no history errors, all 18 squads and 520 players. The current GW publishes 520 Sofix forecasts, model `FL1:xscore-v3+1f44818c`, in a 497,489-byte block. Real desktop/phone index, cold bookmark, reload, global search, selected-GW retention and closing the index tab passed; Cristian Casseres Jr. shows conditional score 70 against Troyes and seven actual prior starts.
+
+The shared record grew to 1,855,423 bytes. Pages cache a small header and four stable player partitions under its write time, then reconstruct without caching an oversized entry. R2 remains first; the real local Neon fallback downloaded four approximately 0.43 MB pieces once across both viewports, without dropping players, sources, missing values or zeroes. This changes no predictions or persisted schema.
+
+Final acceptance also exposed and corrected old `?gw=` bookmark navigation: the server-resolved date now travels through the navigation bars, so changing to Table preserves the selected week. Explicit dates retain priority. Three isolated repeats and real production-build desktop/phone navigation passed; the original timing-dependent browser failure is retained in the delivery plan.
+
+Local backend/frontend gates and final production build passed. Shared browser verification: 264 cases passed in the final full run; its remaining phone assertion expected the old date-dropping URL. The corrected assertion requires the selected date, and the entire phone suite passed 15/15 without retries. The legacy-board regression separately passed three consecutive runs. An initial full feature suite had already passed 265/265.

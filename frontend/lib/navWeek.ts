@@ -10,12 +10,17 @@ import { useSearchParams } from "next/navigation";
  * Next's search params carry it; the board's own `history.replaceState` only has to leave it alone
  * (hooks/useViewState.ts).
  */
-export function useWeekSuffix(): string {
-  const search = useSearchParams();
+export function weekSuffix(search: Pick<URLSearchParams, "get">, resolvedWeek?: string): string {
   const params = new URLSearchParams();
-  for (const key of ["w", "end", "league"]) {
+  const day = search.get("w") || (search.get("gw") ? resolvedWeek : null);
+  if (day) params.set("w", day);
+  for (const key of ["end", "league"]) {
     const value = search.get(key);
     if (value) params.set(key, value);
   }
   return params.size ? `?${params}` : "";
+}
+
+export function useWeekSuffix(resolvedWeek?: string): string {
+  return weekSuffix(useSearchParams(), resolvedWeek);
 }

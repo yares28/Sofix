@@ -226,6 +226,7 @@ test("the gameweek selector moves every card, the grid, the fixtures and the tab
   expect(playedAfter).toBe(grid.teams.length);
 
   await page.locator(".lens").getByRole("link", { name: "Table" }).click();
+  await expect(page).toHaveURL(/\/table(?:\?|$)/);
   await expect(page.getByRole("heading", { level: 2, name: `Table after GW${past}` })).toBeVisible();
   const games = (await page.locator("table.standings tbody tr td:nth-child(3)").allTextContents()).map(Number);
   expect(Math.max(...games)).toBeLessThanOrEqual(past);

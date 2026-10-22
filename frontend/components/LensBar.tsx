@@ -8,10 +8,10 @@ import LinkPending from "./LinkPending";
 import { placeOf, viewOf } from "../lib/places";
 
 /** The page-wide switch under the top bar: the views of the current place. Hidden where a place has one view. */
-export default function LensBar() {
+export default function LensBar({ weekId }: { weekId?: string }) {
   const path = usePathname();
   const competition = competitionOf(useSearchParams().get("league"));
-  const week = useWeekSuffix();
+  const week = useWeekSuffix(weekId);
   const place = placeOf(path);
   if (!place || place.views.length < 2) return null;
   const view = viewOf(place, path);

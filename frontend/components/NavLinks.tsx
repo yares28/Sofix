@@ -10,9 +10,9 @@ import { PLACES, placeOf } from "../lib/places";
  * The four places in the top bar (PC). Client-side so it follows the board's own tab switches, which rewrite the
  * path without a navigation (hooks/useViewState.ts); usePathname picks those up.
  */
-export default function NavLinks() {
+export default function NavLinks({ weekId }: { weekId?: string }) {
   const path = usePathname();
-  const week = useWeekSuffix(); // the week you picked comes with you
+  const week = useWeekSuffix(weekId); // the week you picked comes with you
   const current = placeOf(path);
   return (
     <div className="nav-links">

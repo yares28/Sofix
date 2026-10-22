@@ -8,6 +8,7 @@ import type { ChanceRecord } from "./lineupChances";
 import type { SofixRecord } from "./matchScores";
 import type { SavedStartRecord } from "./playerScoreViews";
 import { marketForWeek, type ScoreRecord } from "./playerForecasts";
+import { loadScoreRecord } from "./scoreRecordData";
 
 // Local development and the browser tests have no Neon: they ask the FastAPI stand-in instead.
 const API_BASE = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -125,6 +126,9 @@ const WEEK_SLUG = /^[a-z0-9][a-z0-9-]{0,80}$/;
 /** Small supporting records, independently retained when a locked week leaves the optimizer's payload. */
 async function supportingRecord<T>(kind: "plan" | "record", slug: string): Promise<T | null> {
   if (!WEEK_SLUG.test(slug)) return null;
+  if (kind === "record" && database()) {
+    try { return await loadScoreRecord<T>(slug); } catch { return null; }
+  }
   const read = cache(async () => {
     if (database()) return (await readModel<T>(`${kind === "plan" ? "sorare_plan" : "score_record"}:${slug}`))?.payload ?? null;
     const response = await fetch(`${API_BASE}/api/sorare/${kind}/${slug}`, { cache: "no-store", signal: AbortSignal.timeout(8000) });

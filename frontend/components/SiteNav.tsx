@@ -29,7 +29,7 @@ export default function SiteNav({ meta, system, current, week, competition }: Pr
             <div className="brand-mark" />
             <span className="brand-name">Sofix</span>
           </Link>
-          <NavLinks />
+          <NavLinks weekId={week?.current?.id} />
           <div className="nav-meta">
             {week ? <WeekPicker weeks={week.weeks} current={week.current} now={week.now} competition={competition} /> : null}
             <StatusPill syncedAt={meta?.last_synced_at ?? meta?.last_predicted_at ?? null} system={system} current={current === "control"} />
@@ -38,8 +38,8 @@ export default function SiteNav({ meta, system, current, week, competition }: Pr
           </div>
         </div>
       </nav>
-      <LensBar />
-      <TabBar />
+      <LensBar weekId={week?.current?.id} />
+      <TabBar weekId={week?.current?.id} />
     </>
   );
 }

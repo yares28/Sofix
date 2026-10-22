@@ -725,10 +725,10 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later; 
   favourite on Sofix's board. The best five stand on a pitch, and **Where it lands** gives the chance at every step.
 - **Your lineups on Sorare**: each lineup you entered, as a race to the target: points so far, what its cards still to play add at
   their best, **Dead** when that cannot reach the target, and **Cut losses** when cancelling it (a life, as a miss) helps the next lineup more.
-- A card's number = Sofix's xScore for a LaLiga, Premier League or Bundesliga game (else Sorare's projection, else his average when he
+- A card's number = Sofix's xScore for a LaLiga, Premier League, Bundesliga or Ligue 1 game (else Sorare's projection, else his average when he
   plays) × his start % (Sofix's in those three leagues) × Sorare's bonuses (edition + club + captain),
-  with the range he scored in 6 of his last 10 games he played. "No start % yet" cards count as starting. A LaLiga, Premier League or
-  Bundesliga game shows **Sofix's difficulty** for the card's club (1 easiest), with the clean-sheet chance for keepers and defenders
+  with the range he scored in 6 of his last 10 games he played. "No start % yet" cards count as starting. A LaLiga, Premier League, Bundesliga or
+  Ligue 1 game shows **Sofix's difficulty** for the card's club (1 easiest), with the clean-sheet chance for keepers and defenders
   and expected goals for the others. It is shown, not added to the card's number.
 - **Start %** come from your open Sorare tab for every day to the set's end, kept 6 hours (**Read start % again**) and saved, so the
   newest saved reading shows on any visit. Your cards are kept in this browser and read again only when Sorare's count changes (a pack
@@ -743,7 +743,7 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later; 
 
 ![LaLiga player search and squad-upgrade comparison](images/players.png)
 
-Use **Competition** on Players to choose LaLiga, Premier League or Bundesliga; the calendar week stays selected. The top-bar search finds players across all three leagues, and a player bookmark opens directly without visiting the league first. All 20 Premier League and 18 Bundesliga squads are collected automatically during refresh, including players you do not own. Their recent history is collected by match and reused between runs. A failed squad read retains identities and expires its forecasts; a forecast older than 24 hours is hidden unless the exact selected GW has a saved record.
+Use **Competition** on Players to choose LaLiga, Premier League, Bundesliga or Ligue 1; the calendar week stays selected. The top-bar search finds players across all four leagues, and a player bookmark opens directly without visiting the league first. All 20 Premier League, 18 Bundesliga and 18 Ligue 1 squads are collected automatically during refresh, including players you do not own. Their recent history is collected by match and reused between runs. A failed squad read retains identities and expires its forecasts; a forecast older than 24 hours is hidden unless the exact selected GW has a saved record.
 
 Premier League and Bundesliga use separate Sofix models, validated on the complete 2025/26 held-out starter cohorts against recent form and a no-FDR ablation. This validates scores conditional on starting retrospectively; start chances and future blind accuracy remain separate. The [validation report](pl-bundesliga-xscore-validation.md) records the gates and the single missing PL training replay. A missing FDR context, cup or national-team game uses the displayed Form/Sorare source, never LaLiga's learned model or invented match odds. The fixture names the actual playing side. Missing averages and forecasts show a dash; genuine zero remains zero.
 
@@ -867,7 +867,7 @@ and only then press **Reload** and reload the `sorare.com` tab.
 ### Cards on sorare.com
 
 On Sorare's football pages Sofix draws a small dark-glass **tile** inside the top-left corner of each card it can name: your
-cards, and since 22 Oct any LaLiga, Premier League or Bundesliga player Sofix rates (Arcade commons included), with Sofix's xScore,
+cards, and since 22 Oct any LaLiga, Premier League, Bundesliga or Ligue 1 player Sofix rates (Arcade commons included), with Sofix's xScore,
 chance to play and that league's difficulty for the week being planned.
 The big number is the score he is expected to score **if he starts** (a small shirt marks it), painted in Sorare's own
 colour for that score. Under it is one thing that drives the score, chosen by position:

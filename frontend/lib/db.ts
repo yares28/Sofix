@@ -6,6 +6,7 @@ import { unstable_cache } from "next/cache";
 import { isDatabasePaused } from "./control";
 import { blockFromR2 } from "./r2";
 import { GRID_TAG } from "./refresh";
+import { scoreRecordPart } from "./scoreRecordParts";
 
 /**
  * Server-only access to Neon over HTTP (no pool, no socket: fine for serverless functions).
@@ -135,10 +136,18 @@ export const stamp = (at: string | Date): string => (at instanceof Date ? at.toI
  * Next does not cache an item over 2 MB (about 1.6 MB of JSON): read a bigger payload in pieces, as lib/missionsPool.ts and loadSorare (lib/playData.ts) do.
  */
 export const readModelAt = unstable_cache(
-  async (key: string, updatedAt: string): Promise<unknown> =>
-    keptInDev(`${key}@${updatedAt}`, async () => {
+  async (key: string, updatedAt: string, playersPart?: number): Promise<unknown> =>
+    keptInDev(`${key}${playersPart === undefined ? "" : `#players${playersPart}`}@${updatedAt}`, async () => {
+      if (playersPart !== undefined && (!key.startsWith("score_record:") || !Number.isInteger(playersPart) || playersPart < -1 || playersPart > 3)) throw new Error("Invalid score record part");
       const fromR2 = await blockFromR2(key, updatedAt); // free to send; Neon only when R2 lacks this version
-      if (fromR2 !== undefined) return fromR2;
+      if (fromR2 !== undefined) return playersPart === undefined ? fromR2 : scoreRecordPart(fromR2, playersPart);
+      if (playersPart !== undefined) {
+        const sql = database()!;
+        const rows = (playersPart === -1
+          ? await sql`SELECT payload::jsonb - 'players' AS payload FROM read_models WHERE key = ${key}`
+          : await sql`SELECT coalesce(jsonb_object_agg(p.key, p.value), '{}'::jsonb) AS payload FROM read_models r CROSS JOIN LATERAL jsonb_each(r.payload::jsonb->'players') p WHERE r.key = ${key} AND get_byte(decode(md5(p.key), 'hex'), 0) % 4 = ${playersPart}`) as { payload: unknown }[];
+        return rows[0]?.payload ?? null;
+      }
       const rows = (await database()!`SELECT payload FROM read_models WHERE key = ${key}`) as { payload: unknown }[];
       return rows[0]?.payload ?? null;
     }),

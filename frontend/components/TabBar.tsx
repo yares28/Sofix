@@ -57,9 +57,9 @@ const TABS = PLACES.map((place) => ({ href: place.href, label: place.label }));
  * Phones: the four places along the bottom, like an app (the installed app has no browser bar). Rendered outside the
  * top bar on purpose: its backdrop-filter would trap a fixed element inside it.
  */
-export default function TabBar() {
+export default function TabBar({ weekId }: { weekId?: string }) {
   const path = usePathname();
-  const week = useWeekSuffix(); // the week you picked comes with you
+  const week = useWeekSuffix(weekId); // the week you picked comes with you
   return (
     <nav className="tabbar" aria-label="Sections">
       {TABS.map((tab) => (

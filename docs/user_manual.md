@@ -725,8 +725,9 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later; 
   with the range he scored in 6 of his last 10 games he played. "No start % yet" cards count as starting. A LaLiga, Premier League or
   Bundesliga game shows **Sofix's difficulty** for the card's club (1 easiest), with the clean-sheet chance for keepers and defenders
   and expected goals for the others. It is shown, not added to the card's number.
-- **Start %** come from your open Sorare tab for every day to the set's end, kept 30 minutes (**Read start % again**). Your cards are
-  kept in this browser and read again only when Sorare's count changes (a pack opened).
+- **Start %** come from your open Sorare tab for every day to the set's end, kept 6 hours (**Read start % again**) and saved, so the
+  newest saved reading shows on any visit. Your cards are kept in this browser and read again only when Sorare's count changes (a pack
+  opened). The page opens on your last read board, dated, while Sorare is asked what changed; if Sorare cannot be read, it stays and says why.
 - **Packs**: **Work out the best pack** reads Sorare's odds and opens on the pack you can afford that gives the most players you do not
   have yet, with every pack's count. **Missions**: Sorare's daily Common panel with a progress ring. A streak ("Score 400+ in the LaLiga
   Common competition") gets your best five from this week's games and its chance; a Decisive Picker ranks your cards playing that day

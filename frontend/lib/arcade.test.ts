@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bonusLabel, chanceOf, gamesOf, keptCards, parseArcade, parseGames, rewardLabel } from "./arcade";
+import { bonusLabel, chanceOf, gamesOf, keptCards, newerChances, parseArcade, parseGames, rewardLabel, usableArcade, type Arcade } from "./arcade";
 
 const main = {
   cardSet: { currentSet: { slug: "glitch", name: "HyperGlitch", startDate: "2026-09-08T08:30:00Z", endDate: "2026-10-27T16:00:00Z", availableCompetitions: [{ slug: "laliga-es", displayName: "LALIGA EA Sports" }] } },
@@ -123,5 +123,19 @@ describe("cards kept between visits", () => {
     expect(keptCards(kept, "other", page(3, ["a", "b", "c"]))).toBeNull();
     expect(keptCards(kept, "yares", page(undefined, ["a", "b", "c"]))).toBeNull(); // an extension that does not send the count
     expect(keptCards(null, "yares", page(3, ["a", "b", "c"]))).toBeNull();
+  });
+
+  it("shows the last read board on the next visit until its set ends", () => {
+    const arcade = { set: { end: "2026-10-27T16:00:00Z" } } as unknown as Arcade;
+    const kept = { at: Date.parse("2026-10-21T20:00:00Z"), arcade, unread: [] };
+    expect(usableArcade(kept, Date.parse("2026-10-22T09:00:00Z"))).toBe(kept);
+    expect(usableArcade(kept, Date.parse("2026-10-28T09:00:00Z"))).toBeNull();
+    expect(usableArcade(null)).toBeNull();
+  });
+
+  it("keeps the newer start % of each player, saved or just read", () => {
+    const saved = { g1: { a: [9000, 200] as [number, number], b: [1000, 100] as [number, number] } };
+    const read = { g1: { a: [5000, 150] as [number, number], b: [7000, 150] as [number, number] }, g2: { c: [8000, 150] as [number, number] } };
+    expect(newerChances(saved, read)).toEqual({ g1: { a: [9000, 200], b: [7000, 150] }, g2: { c: [8000, 150] } });
   });
 });

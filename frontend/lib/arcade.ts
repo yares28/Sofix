@@ -5,7 +5,7 @@ import type { Outlook, PackOdds, StartSource } from "./arcadePlan";
 
 /**
  * Arcade, step 1 (plans/set.md): your set board, common cards, gems, essence and common missions, read from your signed-in
- * Sorare tab through the extension. Read only, on demand, never polled and never saved: nothing here touches the database.
+ * Sorare tab through the extension. Read only, on demand, never polled; the last read is kept in this browser, never in the database.
  */
 export const ARCADE_EXTENSION_VERSION = "0.4.5";
 const MAX_CARD_PAGES = 40; // 100 cards a page
@@ -527,6 +527,33 @@ export async function readArcade(timeoutMs = 25_000): Promise<ArcadeRead> {
   return { state: "ok", arcade, unread: unread as string[] };
 }
 
+const LAST_KEY = "sofix-arcade-last";
+/** The last full read, kept in this browser so the next visit shows it at once while Sorare is asked again. */
+export type KeptArcade = { at: number; arcade: Arcade; unread: string[] };
+/** The kept read, unless its set has ended (a new set is a new board). */
+export function usableArcade(kept: KeptArcade | null, now = Date.now()): KeptArcade | null {
+  if (!kept?.arcade?.set || !Number.isFinite(kept.at)) return null;
+  const end = Date.parse(kept.arcade.set.end ?? "");
+  return Number.isFinite(end) && end < now ? null : kept;
+}
+export function lastArcade(now = Date.now()): KeptArcade | null {
+  try { return usableArcade(JSON.parse(localStorage.getItem(LAST_KEY) ?? "null") as KeptArcade | null, now); } catch { return null; }
+}
+export function keepArcade(arcade: Arcade, unread: string[], now = Date.now()) {
+  try { localStorage.setItem(LAST_KEY, JSON.stringify({ at: now, arcade, unread } satisfies KeptArcade)); } catch { /* full or blocked: read next time */ }
+}
+
+/** Two sets of start % readings, the newer reading of each player in each game. */
+export function newerChances(a: ArcadeChances | null, b: ArcadeChances): ArcadeChances {
+  const out: ArcadeChances = { ...(a ?? {}) };
+  for (const [game, players] of Object.entries(b)) {
+    const merged = { ...(out[game] ?? {}) };
+    for (const [player, reading] of Object.entries(players)) if (!merged[player] || merged[player]![1] <= reading[1]) merged[player] = reading;
+    out[game] = merged;
+  }
+  return out;
+}
+
 /** Sorare's start % as saved for these games: game id, then player slug, then [basis points, seen at in epoch seconds]. */
 export type ArcadeChances = Record<string, Record<string, [number, number]>>;
 const Saved = z.object({ chances: z.record(s, z.record(s, z.tuple([n, n]))) });
@@ -563,13 +590,13 @@ export async function walkArcade(config: string, stepId: string): Promise<Arcade
 /** Start % without a tab: the extension that replays Sorare's own bench question (21 Oct 2026). */
 export const ARCADE_BENCH_VERSION = "0.4.15";
 const BENCH_PAGES = 2; // 30 cards a page, best first: the cards a plan would pick
-const BENCH_KEEP_MS = 30 * 60_000;
+const BENCH_KEEP_MS = 6 * 3_600_000; // Sorare's numbers are saved too; "Read start % again" asks sooner
 const BenchAnswer = z.object({ ok: z.literal(true), state: s, data: z.object({ cards: n, after: s.nullable(), rows: z.array(z.object({ game: s, player: s, basisPoints: n })) }).optional() });
 export type ArcadeBench = { state: "ok" | "outdated" | "no-extension" | "refused"; chances: ArcadeChances; at: number };
 
 /**
  * Sorare's start % for your best cards in every game to the set's end, asked from your open Sorare tab with the question Sorare's own
- * compose page asks (no page opens). Day by day, each position, the best 60 cards. Kept 30 minutes in this browser; Sorare's readings are
+ * compose page asks (no page opens). Day by day, each position, the best 60 cards. Kept 6 hours in this browser; Sorare's readings are
  * also saved by the extension like any page reading. "refused" means Sorare no longer knows the question: the tab walk still works.
  */
 export async function readArcadeBench(stepId: string, until: string | null, force = false, now = Date.now()): Promise<ArcadeBench> {
@@ -599,7 +626,7 @@ export async function readArcadeBench(stepId: string, until: string | null, forc
           if (answer.success && answer.data.state === "rejected") refused += 1;
           return;
         }
-        for (const row of answer.data.data.rows) (chances[row.game] ??= {})[row.player] = [row.basisPoints, now];
+        for (const row of answer.data.data.rows) (chances[row.game] ??= {})[row.player] = [row.basisPoints, Math.floor(now / 1000)]; // seconds, as saved
         after = answer.data.data.after;
         if (!after) return;
       }
@@ -614,7 +641,7 @@ export async function readArcadeBench(stepId: string, until: string | null, forc
 export const ARCADE_PLAN_VERSION = "0.4.12";
 /** Sorare publishes projections about two days ahead; asking further ahead returns nothing. */
 const PROJECTION_DAYS = 3;
-const EXTRAS_KEEP_MS = 30 * 60_000;
+const EXTRAS_KEEP_MS = 6 * 3_600_000;
 const MAX_PROJECTION_GAMES = 60;
 
 /** What Sofix knows of a LaLiga player's next game (the Lineups numbers), keyed by Sorare slug. */
@@ -660,7 +687,7 @@ export function parseProjections(answer: unknown): Record<string, number> | null
 export async function readArcadeExtras(arcade: Arcade, now = new Date()): Promise<ArcadeExtras | null> {
   const extension = await pingExtension();
   if (!extension || !extensionAtLeast(extension.version, ARCADE_PLAN_VERSION)) return null;
-  // About 100 questions to Sorare: kept 30 minutes in this browser, so reloading the page does not ask them again (Sorare answered
+  // About 100 questions to Sorare: kept 6 hours in this browser, so reloading the page does not ask them again (Sorare answered
   // 429 on 21 Oct after a few reads in a row).
   const key = `sofix-arcade-extras:${arcade.set.slug}`;
   try {

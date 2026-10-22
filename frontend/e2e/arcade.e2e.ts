@@ -84,6 +84,17 @@ test("without the extension Arcade says so instead of showing empty numbers", as
   await expect(page.getByRole("status")).toContainText("can't reach the Sofix extension");
 });
 
+test("the next visit shows the last read board at once, and says when Sorare cannot be read now", async ({ page, context }) => {
+  await withExtension(page);
+  await page.goto("/arcade");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Step 2 of 2 · 300 pts");
+  const later = await context.newPage(); // same browser, no extension this time
+  await later.goto("/arcade");
+  await expect(later.getByRole("heading", { level: 1 })).toHaveText("Step 2 of 2 · 300 pts");
+  await expect(later.locator(".arc-grid .arc-card-name").first()).toHaveText("Defender Three");
+  await expect(later.getByText(/Your board as read .*can't reach the Sofix extension/)).toBeVisible();
+});
+
 test("on a phone Arcade fits the width and keeps text readable", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await withExtension(page);

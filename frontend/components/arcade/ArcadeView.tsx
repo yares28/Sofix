@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ARCADE_BENCH_VERSION, ARCADE_EXTENSION_VERSION, ARCADE_PLAN_VERSION, bonusLabel, chanceOf, gamesOf, loadArcadeChances, outlookOf, readArcade, readArcadeBench, readArcadeExtras, walkArcade,
+  ARCADE_BENCH_VERSION, ARCADE_EXTENSION_VERSION, ARCADE_PLAN_VERSION, bonusLabel, chanceOf, gamesOf, keepArcade, lastArcade, loadArcadeChances, newerChances, outlookOf, readArcade, readArcadeBench, readArcadeExtras, walkArcade,
   type Arcade, type ArcadeBench, type ArcadeCard, type ArcadeChances, type ArcadeExtras, type ArcadeGame, type ArcadeLaLiga, type ArcadeRead, type ArcadeStep, type ArcadeWalk,
 } from "../../lib/arcade";
 import type { Outlook } from "../../lib/arcadePlan";
@@ -181,12 +181,8 @@ function Loaded({ arcade, unread, laliga, fdr }: { arcade: Arcade; unread: strin
     setBench("reading");
     const read = await readArcadeBench(benchStep.id, arcade.set.end, force);
     setBench(read);
-    // Sorare's newest readings over the saved ones, game by game.
-    if (Object.keys(read.chances).length) setChances((now) => {
-      const out: ArcadeChances = { ...(now ?? {}) };
-      for (const [game, players] of Object.entries(read.chances)) out[game] = { ...(out[game] ?? {}), ...players };
-      return out;
-    });
+    // The newer reading of each player, saved or just read.
+    if (Object.keys(read.chances).length) setChances((now) => newerChances(now, read.chances));
   }, [gameIds, benchStep, arcade.set.end]);
   useEffect(() => { void refresh(); }, [refresh]); // once per read; never on a timer
   const [extras, setExtras] = useState<ArcadeExtras | null | "reading">("reading");
@@ -282,27 +278,48 @@ function Loaded({ arcade, unread, laliga, fdr }: { arcade: Arcade; unread: strin
 }
 
 /** Arcade, step 1: everything Sofix can read of your set board, shown as Sorare gives it, so it can be checked against Sorare's screen. */
+const whyNot = (read: Exclude<ArcadeRead, { state: "ok" }>) =>
+  read.state === "outdated" ? `Arcade needs extension ${ARCADE_EXTENSION_VERSION}; this Chrome has ${read.version}. Reload it on chrome://extensions.`
+    : read.state === "failed" ? `Sorare refused part of the read (${read.detail}).`
+    : WHY[read.state];
+
 export default function ArcadeView({ laliga, fdr = [] }: { laliga: ArcadeLaLiga; fdr?: FdrFixture[] }) {
   const [read, setRead] = useState<ArcadeRead | null>(null);
+  // What is shown: the fresh read, or until then (or when Sorare cannot be read) the last one kept in this browser, with its time.
+  const [board, setBoard] = useState<{ arcade: Arcade; unread: string[]; at: number | null } | null>(null);
   const [busy, setBusy] = useState(false);
   const load = useCallback(async () => {
     setBusy(true);
-    setRead(await readArcade());
+    const fresh = await readArcade();
+    setRead(fresh);
+    if (fresh.state === "ok") {
+      setBoard({ arcade: fresh.arcade, unread: fresh.unread, at: null });
+      keepArcade(fresh.arcade, fresh.unread);
+    }
     setBusy(false);
   }, []);
-  useEffect(() => { void load(); }, [load]); // once per visit; never on focus or on a timer
+  useEffect(() => {
+    const last = lastArcade();
+    if (last) setBoard(last);
+    void load();
+  }, [load]); // once per visit; never on focus or on a timer
+  const at = board?.at != null ? madrid(new Date(board.at).toISOString()) : null;
 
   return (
     <main className="arc-main" aria-busy={busy}>
-      {read?.state === "ok" ? <Loaded arcade={read.arcade} unread={read.unread} laliga={laliga} fdr={fdr} /> : (
+      {board ? (
+        <>
+          {at ? (
+            <p className="arc-note" role="status">
+              {read === null || read.state === "ok" ? `Your board as read ${at}; asking Sorare for what changed…` : `Your board as read ${at}. ${whyNot(read)}`}
+            </p>
+          ) : null}
+          <Loaded arcade={board.arcade} unread={board.unread} laliga={laliga} fdr={fdr} />
+        </>
+      ) : (
         <section className="arc-empty" role="status">
           <h1>Arcade</h1>
-          <p>
-            {read === null ? "Reading your board from Sorare…"
-              : read.state === "outdated" ? `Arcade needs extension ${ARCADE_EXTENSION_VERSION}; this Chrome has ${read.version}. Reload it on chrome://extensions.`
-              : read.state === "failed" ? `Sorare refused part of the read (${read.detail}).`
-              : WHY[read.state]}
-          </p>
+          <p>{read === null ? "Reading your board from Sorare…" : read.state === "ok" ? null : whyNot(read)}</p>
         </section>
       )}
       <button type="button" className="arc-again" onClick={() => void load()} disabled={busy}>{busy ? "Reading…" : "Read again"}</button>

@@ -137,7 +137,8 @@ First version:
   card of the same player may still play (seen 21 Oct: he owns two Courtois; one waits in his step-1 lineup).
 - Play or hold: the decided rule, against each later day's best lineup at the same step; a later day with no start % for most of its
   lineup is not compared and the page says so.
-- Projections, past scores and club bonuses are kept 30 minutes in the browser: on 21 Oct a few reads in a row (about 100 questions
+- Projections, past scores and club bonuses are kept 6 hours in the browser (30 minutes until 22 Oct, when the next morning's page
+  started empty and read everything again): on 21 Oct a few reads in a row (about 100 questions
   each) made Sorare answer 429, and the read now stops at the first 429 and says so.
 
 ## Step 5, packs and missions (shipped 21 Oct 2026, extension 0.4.14)
@@ -175,6 +176,7 @@ Each line: built, cut (and why), or not seen yet.
   the extension itself until he reloads 0.4.15.
 - **Cards kept between visits**: built. Each visit reads the first page and Sorare's `totalCount` (1,309 commons, all sets); unchanged =
   the kept pages; a pack opened changes the count and everything is read again. Needs 0.4.15 (older builds send no count: full read).
+  Since 22 Oct the whole last read is kept too: the page opens on it (dated) and swaps in Sorare's fresh read; start % merge newest-wins.
 - **Mission picks**: built. Streak ("Score N+ in the LaLiga Common competition"): best five from that league's games of the next 5 days,
   target from Sorare's words, no captain counted (not confirmed for that competition); seen on his account: 400+ 16%, 360+ 38%. Decisive
   Picker: his cards playing that day by start % × his own share of played games with a counted action (last 10, Sorare's detailed

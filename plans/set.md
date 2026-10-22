@@ -174,6 +174,15 @@ Each line: built, cut (and why), or not seen yet.
   day after. Each step on the likely path keeps its own lineup (tower fan, days). PL, Bundesliga and LaLiga cards are scored with
   Sofix's xScore and start % (`players:PL`, `players:BL1`, the Sorare market) for the same kick-off. 0.8 s on a 1,300-card test board
   (3.6 s when lineups were aimed at each step's target: cut, see the `ponytail:` note). **Not seen** on his board yet.
+  **Correction, same day:** the cause above was a guess. His board had full Thursday teams (22 Brighton, 21 Getafe, 20 Leverkusen
+  commons, all projected); the old plan held Thursday because its best Thursday five rated low at 360 (15%, 281 expected).
+- **Teammates move together** (owner, 22 Oct): measured on 9,341 starts in 449 LaLiga 2025/26 games (`backend/data/raw/sorare_games.jsonl`),
+  each score against the player's own range: teammates 0.09 (95% 0.07–0.11), opponents −0.08. `simulate` now gives each side in a game a
+  shared day (`TEAMMATES`). Fitted on the first 269 games, tested on the other 180: stacks of five teammates cleared their 95th-percentile
+  bar 11.5% of the time; independent said 5.0%, linked 7.4% (Brier 0.1057 → 0.1032); at the 80th: 24.5% real, 20.0% → 22.9%; the
+  median unchanged. On his five real lineups (266, 314, 372, 357, 316, past scores without the game itself) the chances move 0–2
+  points: all five beat the model's expected total (+20 to +74). Bench games in the past do not explain it (starters' past average is
+  off by +4 per five cards on 7,106 starts; Sorare's projection +11). Five lineups are too few to call a bias.
 - **Start % without a tab**: built. Sorare gives start % only to its registered questions: its compose page asks
   `SeriesComposeBenchQuery` by id (`React/30aff…`), no query text. The bridge replays that id with each position and a day's window (30
   cards a page, best first, 2 pages); seen 21 Oct from his tab: 30 of 30 forwards with a number, Yamal 90% for Sunday's Clásico. A newer

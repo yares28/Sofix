@@ -35,6 +35,17 @@ describe("the chance a lineup reaches a target", () => {
     expect(chanceOf(totals, 330)).toBe(1);
     expect(chanceOf(totals, 331)).toBe(0);
   });
+  it("gives five teammates in one game a better chance at a high bar than the same cards from five teams (their scores move together)", () => {
+    const past = [20, 30, 40, 50, 60, 70, 80, 90];
+    const stack = [0, 1, 2, 3, 4].map((i) => ({ outlook: outlook(`p${i}`, ["Forward"], 55, 1, past), captain: false }));
+    const spread = stack.map((p, i) => ({ ...p, outlook: { ...p.outlook, card: { ...p.outlook.card, teamSlug: `club${i}` }, game: { ...GAME, id: `Game:${i}` } } }));
+    const high = (picks: typeof stack) => chanceOf(simulate(picks, 0, 20_000), 350);
+    expect(high(stack)).toBeGreaterThan(high(spread) + 0.01);
+    // The middle stays where it was: linking teammates widens the spread, it does not move the expected total.
+    const middle = (picks: typeof stack) => chanceOf(simulate(picks, 0, 20_000), 275);
+    expect(Math.abs(middle(stack) - middle(spread))).toBeLessThan(0.03);
+  });
+
   it("drops with a card's start %, and is the same every time (fixed seed)", () => {
     const picks = [60, 60, 60, 60, 60].map((s, i) => ({ outlook: outlook(`p${i}`, ["Forward"], s, i === 0 ? 0.5 : 1), captain: false }));
     const chance = chanceOf(simulate(picks, 0), 300);

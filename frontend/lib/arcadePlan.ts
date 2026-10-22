@@ -81,22 +81,49 @@ const PLAN_RUNS = 400; // the climb's look-ahead compares days; 400 games are en
 const PLAN_SHORTLIST = 15; // and the 15 likeliest lineups by expected points, not 60
 
 /**
+ * How much two starters of the same side in one game score together: the correlation of each one's score against his own usual,
+ * measured on 9,341 starts in 449 LaLiga 2025/26 games (Sorare's own scores): 0.09 (95% 0.07 to 0.11). Opponents: −0.08, left out.
+ */
+export const TEAMMATES = 0.09;
+
+/** The standard normal's cumulative chance (Abramowitz and Stegun 7.1.26, error under 1.5e-7). */
+function phi(x: number): number {
+  const t = 1 / (1 + 0.3275911 * Math.abs(x) / Math.SQRT2);
+  const y = 1 - ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-(x * x) / 2);
+  return x >= 0 ? (1 + y) / 2 : (1 - y) / 2;
+}
+
+/**
  * The lineup's total over RUNS simulated games, low to high. Each card starts with his chance (none: he starts), and then scores one of
  * his own past games, scaled so they average his score if he plays; with under 3 past games he scores that number. 0 when he does not start.
+ * Teammates in one game share how their side's day goes (TEAMMATES): a good day lifts each of them up his own range together.
  */
-export function simulate(picks: { outlook: Outlook; captain: boolean }[], captainBonus: number, runs = RUNS, seed = 7): number[] {
+export function simulate(picks: { outlook: Outlook; captain: boolean }[], captainBonus: number, runs = RUNS, seed = 7, link = TEAMMATES): number[] {
   const next = random(seed);
+  const normal = () => Math.sqrt(-2 * Math.log(1 - next())) * Math.cos(2 * Math.PI * next());
+  const sides = new Map<string, number>();
   const cards = picks.map(({ outlook: o, captain }) => {
     const mean = o.past.length ? o.past.reduce((a, b) => a + b, 0) / o.past.length : 0;
     const scale = o.score !== null && mean > 0 ? o.score / mean : 1;
-    return { p: o.start ?? 1, m: multiplier(o, captain, captainBonus), past: o.past.length >= 3 ? o.past.map((s) => s * scale) : null, score: o.score ?? 0 };
+    const side = `${o.game.id}|${o.card.teamSlug ?? o.card.player}`;
+    if (!sides.has(side)) sides.set(side, sides.size);
+    return {
+      p: o.start ?? 1, m: multiplier(o, captain, captainBonus), side: sides.get(side)!,
+      past: o.past.length >= 3 ? o.past.map((s) => s * scale).sort((a, b) => a - b) : null, score: o.score ?? 0,
+    };
   });
+  const day = new Array<number>(sides.size).fill(0);
+  const shared = Math.sqrt(link);
+  const own = Math.sqrt(1 - link);
   const totals: number[] = [];
   for (let r = 0; r < runs; r++) {
+    for (let i = 0; i < day.length; i++) day[i] = normal();
     let total = 0;
     for (const c of cards) {
       if (next() >= c.p) continue;
-      total += (c.past ? c.past[Math.floor(next() * c.past.length)]! : c.score) * c.m;
+      if (!c.past) { total += c.score * c.m; continue; }
+      const u = phi(shared * day[c.side]! + own * normal());
+      total += c.past[Math.min(c.past.length - 1, Math.floor(u * c.past.length))]! * c.m;
     }
     totals.push(total);
   }

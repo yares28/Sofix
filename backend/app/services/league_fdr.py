@@ -36,6 +36,8 @@ LEAGUES = {"PL": ("Premier League", "E0", 20), "BL1": ("Bundesliga", "D1", 18), 
 REFERENCE = DixonColesConfig(xi=0.001, ridge=1.0, promoted_prior=0.0, spread=1.10)
 # The configured feed returns "RC " for Strasbourg. Presentation override only; source ID remains 576.
 CODE_OVERRIDES = {"FL1": {576: "STR"}}
+FL1_ADMIN = (("2025-03-16", "Montpellier", "St Etienne"), ("2026-05-17", "Nantes", "Toulouse"))
+
 HISTORY_ALIASES = {
     "AJ Auxerre": "Auxerre",
     "AS Monaco": "Monaco",
@@ -209,13 +211,10 @@ def build_league_grid(
                 ~((history["date"] == pd.Timestamp(day)) & (history["home"] == home) & (history["away"] == away))
             ]
     if code == "FL1":
-        history = history[
-            ~(
-                (history["date"] == pd.Timestamp("2025-03-16"))
-                & (history["home"] == "Montpellier")
-                & (history["away"] == "St Etienne")
-            )
-        ]
+        for day, home, away in FL1_ADMIN:
+            history = history[
+                ~((history["date"] == pd.Timestamp(day)) & (history["home"] == home) & (history["away"] == away))
+            ]
     from app.backtest.data import promoted_from_fixtures
 
     promoted = promoted_from_fixtures(names.values(), history, start)
@@ -337,7 +336,7 @@ def build_league_grid(
             model_notes=[
                 ModelNote(
                     lens=None,
-                    text=f"{name}: independently fitted reference model. Clean-sheet probabilities are uncalibrated; no live market blend or player xScore. Historical replay does not establish a better replacement.",
+                    text=f"{name}: independently fitted reference model. Clean-sheet probabilities are uncalibrated; no live market blend. Historical replay does not establish a better replacement.",
                 )
             ],
         ),

@@ -228,3 +228,95 @@ def test_only_the_documented_training_gap_with_complete_source_receipts_is_allow
     changed = deepcopy(audit)
     changed["playerChecks"][0]["games"] = [{"id": "found"}]
     assert not v.documented_training_gap(changed)
+
+
+def test_ligue_1_protocol_freezes_its_training_exclusion_without_changing_existing_models():
+    assert v.protocol_for("PL") == v.EVALUATION_PROTOCOL
+    assert v.protocol_for("BL1") == v.EVALUATION_PROTOCOL
+    protocol = v.protocol_for("FL1")
+    assert protocol["version"] == 3 and protocol["competition"] == "FL1"
+    assert protocol["administrativeExclusions"] == [
+        ["2025-03-16", "Montpellier", "St Etienne"],
+        ["2026-05-17", "Nantes", "Toulouse"],
+    ]
+    assert protocol["holdoutSeason"] == 2025 and protocol["bootstrapDraws"] == 2000
+
+
+def test_ligue_1_administrative_training_result_does_not_enter_outcome_or_fdr_fitting():
+    game, history, windows = sample_game()
+    game["raw"].update(
+        date="2025-03-16T12:00:00Z",
+        homeTeam={"slug": "a", "name": "Montpellier"},
+        awayTeam={"slug": "b", "name": "St Etienne"},
+    )
+    history.loc[0, ["season_start", "date", "home", "away"]] = [
+        2024,
+        pd.Timestamp("2025-03-16"),
+        "Montpellier",
+        "St Etienne",
+    ]
+    rows, coverage = v.prepare("FL1", [game], windows, history)
+    assert rows == [] and coverage["rawCalendarGames"] == 1 and coverage["expectedGames"] == 0
+    assert coverage["excludedAdministrative"] == ["g"]
+
+
+def test_owner_approved_abandoned_holdout_is_excluded_before_status_validation():
+    game, history, windows = sample_game()
+    game["raw"].update(
+        date="2026-05-17T19:00:00Z",
+        statusTyped="suspended",
+        homeTeam={"slug": "a", "name": "Nantes"},
+        awayTeam={"slug": "b", "name": "Toulouse"},
+    )
+    history.loc[0, ["season_start", "date", "home", "away"]] = [2025, pd.Timestamp("2026-05-17"), "Nantes", "Toulouse"]
+    rows, coverage = v.prepare("FL1", [game], windows, history)
+    assert rows == [] and coverage["expectedGames"] == 0 and coverage["issues"] == []
+    assert coverage["excludedAdministrative"] == ["g"]
+
+
+def test_spurious_disabled_score_outside_official_elevens_is_not_a_23rd_starter(monkeypatch):
+    from copy import deepcopy
+
+    game, history, windows = sample_game()
+    from types import SimpleNamespace
+
+    model = SimpleNamespace(
+        predict=lambda *args: pd.DataFrame([{"cs_h": 0.4, "cs_a": 0.3, "lam_h": 1.2, "lam_a": 1.0}])
+    )
+    monkeypatch.setattr(v, "fit_before", lambda *args: model)
+    extra = deepcopy(game["players"][0])
+    extra["slug"] = "ali-almusrat-disabled"
+    game["players"].append(extra)
+    rows, coverage = v.prepare("FL1", [game], windows, history)
+    assert coverage["complete"] and len(rows) == 22
+    assert "ali-almusrat-disabled" not in {r["player"] for r in rows}
+
+
+def test_ligue_1_replay_exception_requires_both_keeper_receipts():
+    audit = {
+        "missingAfter": 1,
+        "errors": [],
+        "missingFixtures": [{"date": "2023-11-29", "home": "Montpellier", "away": "Clermont"}],
+        "clubChecks": [
+            {"variables": {"club": "montpellier-montpellier"}, "games": [], "pageInfo": {"hasNextPage": False}}
+        ],
+        "playerChecks": [
+            {"variables": {"player": p}, "games": [], "pageInfo": {"hasNextPage": False}}
+            for p in ("benjamin-lecomte", "mory-diaw")
+        ],
+    }
+    assert v.documented_fl1_gap(audit)
+    audit["playerChecks"].pop()
+    assert not v.documented_fl1_gap(audit)
+
+
+@pytest.mark.parametrize("day,home,away", v.FL1_TRAINING_GAPS)
+def test_ligue_1_only_approved_training_gaps_leave_the_cohort(day, home, away):
+    game, history, windows = sample_game()
+    game["raw"].update(
+        date=day + "T12:00:00Z", homeTeam={"slug": "a", "name": home}, awayTeam={"slug": "b", "name": away}
+    )
+    history.loc[0, ["season_start", "date", "home", "away"]] = [2023, pd.Timestamp(day), home, away]
+    rows, coverage = v.prepare("FL1", [game], windows, history)
+    assert rows == [] and coverage["expectedGames"] == 0 and coverage["issues"] == []
+    assert coverage["excludedSourceGames"] == ["g"]

@@ -277,7 +277,7 @@ def test_ligue_1_source_scope_keeps_the_frozen_existing_protocol():
     assert calls[0]["league"] == "ligue-1-fr"
 
 
-def test_ligue_1_calendar_excludes_only_the_predeclared_interrupted_training_match():
+def test_ligue_1_calendar_excludes_only_the_approved_interrupted_matches():
     import pandas as pd
 
     calendar = pd.DataFrame(
@@ -287,5 +287,5 @@ def test_ligue_1_calendar_excludes_only_the_predeclared_interrupted_training_mat
             {"date": pd.Timestamp("2026-05-17"), "home": "Nantes", "away": "Toulouse"},
         ]
     )
-    assert list(data.eligible_calendar("FL1", calendar).index) == [1, 2]
+    assert list(data.eligible_calendar("FL1", calendar).index) == [1]
     assert len(data.eligible_calendar("PL", calendar)) == 3

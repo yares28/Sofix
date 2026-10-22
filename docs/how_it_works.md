@@ -618,3 +618,7 @@ Audit player comparisons follow the top-bar GW and rank confirmed actuals before
 ## Premier League and Bundesliga player scores
 
 PL and Bundesliga use independently fitted FDR-based goalkeeper and outfield models, with no retrospective Sorare projection as an input. Each passed complete 2025/26 conditional-on-start testing against recent form and a no-FDR ablation; the documented PL training cohort excludes one unavailable replay. See [the validation report](pl-bundesliga-xscore-validation.md) for exact coverage, uncertainty and the pre-test protocol amendment. Playing chances retain their existing source hierarchy; xScore remains heuristic until prospective S4 evidence passes.
+
+## Ligue 1 football and player scores
+
+Ligue 1 uses the same fixed independent football reference and independently fitted player model architecture, with its own coefficients. The frozen v3 model passed all completed 2025/26 holdout fixtures; the owner approved documented administrative and training-only source exceptions before metrics. Full coverage, paired intervals and limitations are in [the Ligue 1 report](ligue-1-validation.md). No LaLiga calibration or retrospective Sorare projection is borrowed.

@@ -6,10 +6,10 @@ import { loadForeignDirectory, loadForeignPlayer } from "./foreignPlayersData";
 import { playerBucket } from "./foreignPlayers";
 const player = { slug: "one-player", name: "One Player", club: "Arsenal", pic: "", league: "PL", pos: "DEF" };
 beforeEach(() => vi.mocked(readModel).mockReset());
-it("resolves a cold bookmark through the directory and one bounded shard only", async () => {
-  vi.mocked(readModel).mockImplementation(async key => ({ payload: key === "player_index" ? { players: [player] } : { market: [player] } }) as never);
+it.each(["PL", "BL1", "FL1"])("resolves a cold %s bookmark through the directory and one bounded shard only", async code => {
+  vi.mocked(readModel).mockImplementation(async key => ({ payload: key === "player_index" ? { players: [{ ...player, league: code }] } : { market: [player] } }) as never);
   await loadForeignPlayer(player.slug);
-  expect(vi.mocked(readModel).mock.calls.map(c => c[0])).toEqual(["player_index", `players:PL:${playerBucket(player.slug)}`]);
+  expect(vi.mocked(readModel).mock.calls.map(c => c[0])).toEqual(["player_index", `players:${code}:${playerBucket(player.slug)}`]);
   vi.mocked(readModel).mockClear();
   expect(await loadForeignPlayer("../bad")).toBeNull();
   expect(readModel).not.toHaveBeenCalled();

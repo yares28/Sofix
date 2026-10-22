@@ -5,6 +5,7 @@ describe("football league navigation", () => {
   it("allowlists leagues without falling back to another source", () => {
     expect(competitionOf("PL")).toBe("PL");
     expect(competitionOf("BL1")).toBe("BL1");
+    expect(competitionOf("FL1")).toBe("FL1");
     expect(competitionOf("bad")).toBe("PD");
   });
   it("carries the date and lens, drops a different league's round and pins", () => {

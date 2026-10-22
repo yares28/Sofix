@@ -801,3 +801,5 @@ Work through "Next up" from the top, one step at a time, following "How the run 
 1. Look at the calendar first: a dated step due today comes before the next step in order.
 2. Ship each step to `main` as AGENTS.md "Shipping" says, write the Results and update "Next up".
 3. Stop only at a **Stop**, or for money, credentials, a destructive action, a migration or a choice that is not settled.
+
+Ligue 1, 22 October 2026: full 18-club FDR board and independently validated FDR-based xScore, with automatic current-squad coverage. Frozen 305 completed-match holdout passed both comparators; owner-approved source exceptions and release proof: [Ligue 1 plan](ligue-1-fdr-xscore.md).

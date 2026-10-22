@@ -22,8 +22,8 @@ export async function POST(request: NextRequest) {
   const parsed = OverlayRequest.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ ok: false, error: "Bad request." }, { status: 400, headers: NO_STORE });
 
-  const [sorare, loaded, pl, bl, plPlayers, blPlayers] = await Promise.all([
-    loadSorare(), loadGrid(), loadGrid("PL"), loadGrid("BL1"), loadLeagueMarket("PL"), loadLeagueMarket("BL1"),
+  const [sorare, loaded, pl, bl, fl, plPlayers, blPlayers, flPlayers] = await Promise.all([
+    loadSorare(), loadGrid(), loadGrid("PL"), loadGrid("BL1"), loadGrid("FL1"), loadLeagueMarket("PL"), loadLeagueMarket("BL1"), loadLeagueMarket("FL1"),
   ]);
   if (!sorare) return NextResponse.json({ ok: false, error: "Sorare has not been synced yet." }, { status: 503, headers: NO_STORE });
 
@@ -39,8 +39,8 @@ export async function POST(request: NextRequest) {
   const missions = parsed.data.missions
     ? dockMissions(await missionsToday(sorare, await loadMissions(), undefined, now, await loadMissionPool()))
     : undefined;
-  // Every LaLiga, Premier League and Bundesliga player Sofix rates, so Arcade commons and players you do not hold get numbers too.
-  const others = { market: [...(sorare.market ?? []), ...plPlayers, ...blPlayers], grids: [loaded.grid, pl.grid, bl.grid] };
+  // Every LaLiga, Premier League, Bundesliga and Ligue 1 player Sofix rates, so Arcade commons and players you do not hold get numbers too.
+  const others = { market: [...(sorare.market ?? []), ...plPlayers, ...blPlayers, ...flPlayers], grids: [loaded.grid, pl.grid, bl.grid, fl.grid] };
   const numbers = overlayNumbers(data, loaded.grid, parsed.data, now, archived, others);
   // The dock, on a page naming no gameweek or the one being played: while that week has Pro lineups before their first kickoff,
   // those come first (they are the only lineups still open); else the week asked for, or the one being planned.

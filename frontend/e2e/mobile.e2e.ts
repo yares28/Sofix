@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { offline, openingMatchday, resetBackend, smallText } from "./helpers";
 
 test("Premier League and Bundesliga FDR fit the phone", async ({ page }) => {
-  for (const [league, size] of [["PL",20],["BL1",18]] as const) {
+  for (const [league, size] of [["PL",20],["BL1",18],["FL1",18]] as const) {
     await page.goto(`/difficulty?league=${league}`);
     await expect(page.getByRole("combobox", { name: "Competition" })).toHaveValue(league);
     await expect(page.locator("#grid table tbody tr")).toHaveCount(size);

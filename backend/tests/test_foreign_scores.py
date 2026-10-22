@@ -207,3 +207,15 @@ def test_foreign_cup_or_national_game_never_borrows_the_laliga_substitute_shape(
     score = f.scores_for({}, {}, lambda *args: Made((), "Spanish shape"))
     player = {"position": "Defender", "activeClub": {"domesticLeague": {"slug": "premier-league-gb-eng"}}}
     assert score(player, [{"kickoff": "2026-10-24T14:00:00Z", "competition": "world-cup"}], None, []).sub is None
+
+
+def test_ligue_1_has_an_independent_complete_validated_artifact():
+    import json
+
+    assert f.load("FL1") is not None
+    raw = json.loads((f.ROOT / "FL1.json").read_text("utf-8"))
+    assert raw["evidence"]["cases"] == 6710
+    assert raw["evidence"]["coverage"]["joinedGames"] == 910
+    assert f.version("FL1").startswith("FL1:xscore-v3+")
+    assert f.version("PL").startswith("PL:xscore-v2+")
+    assert f.version("BL1").startswith("BL1:xscore-v2+")

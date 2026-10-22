@@ -12,7 +12,7 @@ from typing import Any
 
 from app.research.league_xscore_data import LEAGUES, when
 from app.research.league_xscore_identity import club_name
-from app.research.league_xscore_validation import EVALUATION_PROTOCOL, release_reasons
+from app.research.league_xscore_validation import protocol_for, release_reasons
 from app.services.league_fdr import REFERENCE
 from app.services.rating_predictions import model_version
 from app.sorare import keeper, outfield
@@ -34,7 +34,9 @@ def expected_version(code: str) -> str:
 
 
 def version(code: str) -> str:
-    return f"{code}:xscore-v2+{hashlib.sha256((ROOT / f'{code}.json').read_bytes()).hexdigest()[:8]}"
+    raw = (ROOT / f"{code}.json").read_bytes()
+    protocol_version = json.loads(raw)["protocol"]["version"]
+    return f"{code}:xscore-v{protocol_version}+{hashlib.sha256(raw).hexdigest()[:8]}"
 
 
 def load(code: str, root: Path = ROOT) -> Models | None:
@@ -47,8 +49,8 @@ def load(code: str, root: Path = ROOT) -> Models | None:
         if (
             raw.get("validated") is not True
             or evidence.get("passed") is not True
-            or raw.get("protocol") != EVALUATION_PROTOCOL
-            or evidence.get("protocol") != EVALUATION_PROTOCOL
+            or raw.get("protocol") != protocol_for(code)
+            or evidence.get("protocol") != protocol_for(code)
             or evidence.get("competition") != code
             or release_reasons(evidence)
             or evidence.get("footballConfig") != dataclasses.asdict(REFERENCE)

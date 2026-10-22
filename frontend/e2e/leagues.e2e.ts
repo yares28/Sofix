@@ -33,3 +33,23 @@ test("full PL and Bundesliga boards, date navigation and reload", async ({ page,
   await page.goto("/difficulty?league=PL&w=2027-12-01");
   await expect(page.getByRole("status")).toContainText("No Premier League fixtures");
 });
+
+test("Ligue 1 has all 18 clubs, keeps the date through reload and a cold team bookmark", async ({ page, context }) => {
+  await page.goto("/difficulty?league=PL");
+  await page.getByRole("combobox", { name: "Competition" }).selectOption("FL1");
+  await expect(page.locator("#grid table tbody tr")).toHaveCount(18);
+  const date = new URL(page.url()).searchParams.get("w");
+  expect(date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  await page.reload();
+  await expect(page.getByRole("combobox", { name: "Competition" })).toHaveValue("FL1");
+  await page.getByRole("link", { name: "Table", exact: true }).first().click();
+  await expect(page.locator(".lt-table tbody tr")).toHaveCount(18);
+  const href = await page.locator(".club-link").first().getAttribute("href");
+  const separate = await context.newPage();
+  await separate.goto(href!);
+  await expect(separate.locator(".team-hero")).toContainText("Ligue 1");
+  expect(new URL(separate.url()).searchParams.get("w")).toBe(date);
+  await page.close();
+  await separate.reload();
+  await expect(separate.locator(".team-hero")).toContainText("Ligue 1");
+});

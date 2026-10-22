@@ -15,11 +15,11 @@ The screenshots in this manual use the repository's deterministic demo fixture, 
 recorded 24 September review payload. They demonstrate layout and meaning—not live recommendations, balances,
 prices or standings. Live pages always show their own sync/freshness state.
 
-## Premier League and Bundesliga FDR (21 October 2026)
+## Premier League, Bundesliga and Ligue 1 FDR (22 October 2026)
 
-On Season/Fixtures, Difficulty and Table, **Competition** selects LaLiga, Premier League or Bundesliga. Switching leagues keeps the date window; the league's GW number can differ. Team links and reloads retain that league. A week without games stays empty. Refresh runs automatically with the existing job, including when your computer is off.
+On Season/Fixtures, Difficulty and Table, **Competition** selects LaLiga, Premier League, Bundesliga or Ligue 1. Switching leagues keeps the date window; the league's GW number can differ. Team links and reloads retain that league. A week without games stays empty. Refresh runs automatically with the existing job, including when your computer is off.
 
-The new leagues have independent football ratings, expected points/goals and raw clean-sheet chances. Their historical Record uses their own league history. Live Odds/Vs odds, player xScore and a frozen preseason projection are not supplied for these leagues yet; missing numbers stay blank. A finished game shows only the forecast actually saved before kickoff, so the first refresh does not invent historical forecasts. The Bundesliga's 16th place is a relegation play-off place; the bottom two go down directly.
+The new leagues have independent football ratings, expected points/goals and raw clean-sheet chances. Their historical Record uses their own league history. Live Odds/Vs odds and a frozen preseason projection are not supplied for these leagues; missing numbers stay blank. A finished game shows only the forecast actually saved before kickoff, so the first refresh does not invent historical forecasts. The Bundesliga and Ligue 1's 16th place is a relegation play-off place; the bottom two go down directly.
 
 ## 1. First use
 
@@ -1064,3 +1064,5 @@ results, read from Sorare, under a note that Sofix didn't keep its plans. Rebuil
 history, with the cards you own today, is written down in TODO.md.
 
 For the evidence and exact technical debt, continue to [the research report](research_report.md).
+
+Ligue 1 now has its own independently validated FDR-based xScore model and automatic coverage of all 18 squads. It passed every completed 2025/26 holdout match (305 / 6,710 starters), with owner-approved interrupted-match and training-source exclusions. Search, bookmarks and selected GW use the same foreign-player workflow. See [Ligue 1 evidence](ligue-1-validation.md) for coverage, uncertainty and the limits of retrospective conditional-on-start validation.

@@ -328,7 +328,7 @@ const server = createServer((req, res) => {
   if (req.method === "GET" && url.pathname === "/api/health") return send(res, 200, { ok: true });
 
   if (req.method === "GET" && url.pathname === "/api/fixture-grid") {
-    if (["PL", "BL1"].includes(url.searchParams.get("competition"))) return send(res, 200, leagueFixture(url.searchParams.get("competition"), grid.meta));
+    if (["PL", "BL1", "FL1"].includes(url.searchParams.get("competition"))) return send(res, 200, leagueFixture(url.searchParams.get("competition"), grid.meta));
     if (state.mode === "malformed") return send(res, 200, { success: true, data: { season: 2026, teams: "broken" }, meta: null });
     const minutesAgo = (m) => new Date(Date.now() - m * 60_000).toISOString();
     return send(res, 200, {
@@ -338,7 +338,7 @@ const server = createServer((req, res) => {
   }
 
   if (req.method === "GET" && url.pathname === "/api/sorare/player-index") return send(res, 200, { success: true, data: { players: Object.entries(state.foreignBlocks ?? {}).flatMap(([league, block]) => block.market.map(p => ({ ...p, league }))) } });
-  const foreign = url.pathname.match(/^\/api\/sorare\/players\/(PL|BL1)(?:\/([0-9a-f]))?$/);
+  const foreign = url.pathname.match(/^\/api\/sorare\/players\/(PL|BL1|FL1)(?:\/([0-9a-f]))?$/);
   if (req.method === "GET" && foreign) {
     const block = state.foreignBlocks?.[foreign[1]];
     const market = block?.market.filter(p => !foreign[2] || ([...p.slug].reduce((sum, c) => sum + c.charCodeAt(0), 0) % 16).toString(16) === foreign[2]);

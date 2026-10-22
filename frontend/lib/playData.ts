@@ -65,7 +65,7 @@ async function readSorare(includeMarket = true): Promise<Sorare | null> {
  * Sofix's numbers for every Premier League or Bundesliga player (`read_models` key `players:<code>`, about 0.6 MB): start % and xScore for
  * his next game. Downloaded once per write (readModel); empty without a database or before the job has written it.
  */
-export async function loadLeagueMarket(code: "PL" | "BL1"): Promise<MarketPlayer[]> {
+export async function loadLeagueMarket(code: "PL" | "BL1" | "FL1"): Promise<MarketPlayer[]> {
   if (!database()) return [];
   // Cached until the job publishes again (the overlay asks many times a minute while a Sorare page scrolls).
   const read = cache(

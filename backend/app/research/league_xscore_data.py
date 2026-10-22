@@ -19,6 +19,7 @@ import pandas as pd
 
 from app.backtest.data import normalize_season
 from app.research.league_xscore_identity import club_name
+from app.services.league_fdr import FL1_ADMIN
 from app.services.league_fdr import LEAGUES as FOOTBALL_LEAGUES
 from app.sorare.client import SorareClient, SorareError
 from app.sorare.model import SORARE_POSITION
@@ -173,13 +174,11 @@ def eligible_calendar(code: str, calendar: pd.DataFrame) -> pd.DataFrame:
     """Predeclared interrupted Ligue 1 training fixture; official table result is retained elsewhere."""
     if code != "FL1":
         return calendar
-    return calendar[
-        ~(
-            (calendar["date"] == pd.Timestamp("2025-03-16"))
-            & (calendar["home"] == "Montpellier")
-            & (calendar["away"] == "St Etienne")
-        )
-    ].copy()
+    for day, home, away in FL1_ADMIN:
+        calendar = calendar[
+            ~((calendar["date"] == pd.Timestamp(day)) & (calendar["home"] == home) & (calendar["away"] == away))
+        ]
+    return calendar.copy()
 
 
 def reconcile(
@@ -470,15 +469,24 @@ def main() -> int:
         result["sourceCalls"] = client.calls
         if audit["missingAfter"]:
             result["complete"] = False
-        from app.research.league_xscore_validation import documented_training_gap
+        from app.research.league_xscore_validation import documented_fl1_gap, documented_training_gap
 
-        result["eligibleComplete"] = result["complete"] or (
-            args.league == "PL"
-            and documented_training_gap(audit)
-            and result["saved"] == result["expected"] == 1139
-            and not result["failed"]
+        result["eligibleComplete"] = (
+            result["complete"]
+            or (
+                args.league == "PL"
+                and documented_training_gap(audit)
+                and result["saved"] == result["expected"] == 1139
+                and not result["failed"]
+            )
+            or (
+                args.league == "FL1"
+                and documented_fl1_gap(audit)
+                and result["saved"] == result["expected"] in (915, 916)
+                and not result["failed"]
+            )
         )
-        result["eligibilityProtocol"] = 2
+        result["eligibilityProtocol"] = 3 if args.league == "FL1" else 2
         (folder / "coverage.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     print(json.dumps(result))
     return 0 if result["eligibleComplete"] else 1

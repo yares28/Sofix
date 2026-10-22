@@ -1,8 +1,8 @@
 import type { FixtureGrid, GridMatchday } from "./types";
 
-export const COMPETITIONS = { PD: "LaLiga", PL: "Premier League", BL1: "Bundesliga" } as const;
+export const COMPETITIONS = { PD: "LaLiga", PL: "Premier League", BL1: "Bundesliga", FL1: "Ligue 1" } as const;
 export type Competition = keyof typeof COMPETITIONS;
-export const competitionOf = (value: unknown): Competition => value === "PL" || value === "BL1" ? value : "PD";
+export const competitionOf = (value: unknown): Competition => value === "PL" || value === "BL1" || value === "FL1" ? value : "PD";
 export const leagueName = (grid: Pick<FixtureGrid, "competition">) => COMPETITIONS[competitionOf(grid.competition)];
 export function validDay(day: string | null | undefined): day is string {
   if (!day || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return false;

@@ -79,7 +79,7 @@ const CellSchema = z.object({
 const LensScaleSchema = z.object({ cuts: z.array(z.number()).length(4), higher_is_easier: z.boolean() });
 
 export const FixtureGridSchema = z.object({
-  competition: z.enum(["PD", "PL", "BL1"]).default("PD"),
+  competition: z.enum(["PD", "PL", "BL1", "FL1"]).default("PD"),
   season: z.string(),
   current_matchday: z.number().int().nullable(),
   model_version: z.string().nullable(),

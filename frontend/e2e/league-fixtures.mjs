@@ -1,12 +1,13 @@
 // Complete deterministic seasons for navigation/coverage tests, never a production source.
 export function leagueFixture(competition, meta) {
-  const size = competition === "PL" ? 20 : 18;
-  const completed = competition === "PL" ? 6 : 5;
+  const profile = { PL: { size: 20, completed: 6, prefix: "P", base: 1000, label: "English" }, BL1: { size: 18, completed: 5, prefix: "G", base: 2000, label: "German" }, FL1: { size: 18, completed: 4, prefix: "F", base: 3000, label: "French" } }[competition];
+  const size = profile.size;
+  const completed = profile.completed;
   const start = Date.now() - completed * 7 * 86400000;
-  const teams = Array.from({ length: size }, (_, i) => ({ code: `${competition === "PL" ? "P" : "G"}${String(i).padStart(2, "0")}`, source_id: (competition === "PL" ? 1000 : 2000) + i, name: `${competition === "PL" ? "English" : "German"} Club ${String(i + 1).padStart(2, "0")}`, color: "#344567", crest_url: null, opening: null, decisives: null, cells: Array.from({ length: 2 * (size - 1) }, () => []) }));
+  const teams = Array.from({ length: size }, (_, i) => ({ code: `${profile.prefix}${String(i).padStart(2, "0")}`, source_id: profile.base + i, name: `${profile.label} Club ${String(i + 1).padStart(2, "0")}`, color: "#344567", crest_url: null, opening: null, decisives: null, cells: Array.from({ length: 2 * (size - 1) }, () => []) }));
   const matchdays = [];
   const rotation = Array.from({ length: size }, (_, i) => i);
-  let id = competition === "PL" ? 10000 : 20000;
+  let id = profile.base * 10;
   for (let round = 0; round < 2 * (size - 1); round++) {
     const kickoff = new Date(start + round * 7 * 86400000).toISOString();
     const finished = round < completed;

@@ -74,7 +74,7 @@ export function currentTable(grid: FixtureGrid, through = Number.POSITIVE_INFINI
   const competition = competitionOf(grid.competition);
   const byPoints = new Map<string, typeof rows>();
   for (const row of rows) {
-    const key = competition === "PD" ? String(row.points) : `${row.points}:${row.goalDifference}:${row.goalsFor}`;
+    const key = competition === "PD" ? String(row.points) : competition === "FL1" ? `${row.points}:${row.goalDifference}` : `${row.points}:${row.goalDifference}:${row.goalsFor}`;
     byPoints.set(key, [...(byPoints.get(key) ?? []), row]);
   }
   const headToHead = new Map<string, { points: number; goalDifference: number; awayGoals: number } | null>();
@@ -100,6 +100,17 @@ export function currentTable(grid: FixtureGrid, through = Number.POSITIVE_INFINI
 
   const compare = (a: typeof rows[number], b: typeof rows[number]): number => {
       if (b.points !== a.points) return b.points - a.points;
+      if (competition === "FL1") {
+        if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference;
+        const ha = headToHead.get(a.team.code), hb = headToHead.get(b.team.code);
+        if (ha && hb) {
+          const mini = hb.points - ha.points || hb.goalDifference - ha.goalDifference;
+          if (mini) return mini;
+        }
+        const awayWins = (code: string) => games.get(code)!.filter(g => g.venue === "A" && g.outcome === "W").length;
+        // Discipline/drawing cannot be reconstructed from the fixture feed: unresolved places stay shared.
+        return b.goalsFor - a.goalsFor || b.won - a.won || awayWins(b.team.code) - awayWins(a.team.code);
+      }
       if (competition !== "PD") {
         const overall = b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor;
         if (overall) return overall;
@@ -130,8 +141,8 @@ export function currentTable(grid: FixtureGrid, through = Number.POSITIVE_INFINI
 export function zone(position: number, size: number, competition: Competition = "PD"): { className: string; label: string } | null {
   if (competition !== "PD") {
     if (position <= 4) return { className: "zone-ucl", label: "Top four" };
-    if (competition === "BL1" && position === size - 2) return { className: "zone-uecl", label: "Relegation play-off" };
-    if (position > size - (competition === "BL1" ? 2 : 3)) return { className: "zone-rel", label: "Relegation" };
+    if ((competition === "BL1" || competition === "FL1") && position === size - 2) return { className: "zone-uecl", label: "Relegation play-off" };
+    if (position > size - (competition === "BL1" || competition === "FL1" ? 2 : 3)) return { className: "zone-rel", label: "Relegation" };
     return null;
   }
   if (position <= 4) return { className: "zone-ucl", label: "Champions League" };
@@ -185,7 +196,7 @@ export function mulberry32(seed: number): () => number {
  * walks the projection forward one gameweek at a time.
  */
 export function predictedTable(grid: FixtureGrid, options: PredictOptions = {}): PredictedRow[] {
-  const { simulations = 5000, seed = 2026, relegated = grid.competition === "BL1" ? 2 : 3, through } = options;
+  const { simulations = 5000, seed = 2026, relegated = grid.competition === "BL1" || grid.competition === "FL1" ? 2 : 3, through } = options;
   const current = currentTable(grid, through);
   const index = new Map(current.map((row, i) => [row.team.code, i]));
   const expected = current.map(() => 0);

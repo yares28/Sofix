@@ -114,3 +114,5 @@ See [docs/research_report.md](docs/research_report.md).
 Done since the audit: a Sorare week spanning two LaLiga rounds is now one week per round — each with its own
 address and days — sharing the one game week and its single plan, and each page only lists the weeks it can open
 (`lib/weeks.ts`, `pageWeeks`).
+
+Ligue 1, 22 October 2026: full 18-club FDR board and independently validated FDR-based xScore, with automatic current-squad coverage. Frozen 305 completed-match holdout passed both comparators; owner-approved source exceptions and release proof: [Ligue 1 plan](plans/ligue-1-fdr-xscore.md).

@@ -1,0 +1,542 @@
+{
+  "keeper": {
+    "cs": [
+      -0.2069266304650511,
+      0.8960355703653564
+    ],
+    "p_save": 0.038802660753880266,
+    "dec": [
+      74.2408163265306,
+      0.0
+    ],
+    "dec0": 74.2408163265306,
+    "plain": [
+      37.356749068244135,
+      1.0207270656919991,
+      0.0
+    ],
+    "plain0": [
+      37.356749068244135,
+      1.0207270656919991
+    ],
+    "spread_dec": [
+      -13.210816326530606,
+      -11.120816326530603,
+      -9.280816326530605,
+      -8.000816326530604,
+      -6.1408163265306115,
+      -5.040816326530603,
+      -4.1408163265306115,
+      -3.4408163265306086,
+      -2.4408163265306086,
+      -1.2408163265306058,
+      -0.12081632653060666,
+      1.1791836734693977,
+      2.1591836734694,
+      4.3591836734693885,
+      5.509183673469394,
+      7.419183673469396,
+      9.029183673469392,
+      11.459183673469397,
+      18.029183673469383
+    ],
+    "spread_plain": [
+      -20.462387033957,
+      -13.303050726367307,
+      -10.791795186643684,
+      -8.429150507260784,
+      -6.673600934059699,
+      -5.543296968888891,
+      -4.065870047316362,
+      -2.5025552879582493,
+      -1.0332569737338058,
+      0.029636547951277237,
+      1.3495117187426042,
+      2.5160412299977923,
+      4.147110075254217,
+      5.830157507455369,
+      7.193479334702747,
+      8.680782303062768,
+      11.481627059619036,
+      14.199656313117295,
+      18.278672049239375
+    ],
+    "starts": 1210,
+    "through": "2025-06-30",
+    "typical": [
+      0.2759797222615401,
+      1.3763963754884379
+    ]
+  },
+  "outfield": {
+    "DEF": {
+      "pos": "DEF",
+      "bare": [
+        18.87326671694249,
+        9.74794021396499,
+        6.016538353216005,
+        -3.7674419169785045,
+        1.211424153382865,
+        -2.242459701172747,
+        0.5262701244759529
+      ],
+      "proj": [
+        18.87326671694249,
+        9.74794021396499,
+        6.016538353216005,
+        -3.7674419169785045,
+        1.211424153382865,
+        -2.242459701172747,
+        0.5262701244759529,
+        0.0
+      ],
+      "starts": 5116,
+      "through": "2025-06-30",
+      "chance": [
+        -3.625934576921262,
+        -0.2541648759498304,
+        0.27730126826171514,
+        -0.12312172890804245,
+        0.14301277765116105,
+        -0.9116894506428497,
+        0.033625548051764445
+      ],
+      "gap": 32.25887896307131,
+      "sd": [
+        16.235295116178808,
+        20.414087685365576
+      ],
+      "means": [
+        0.2749649262223868,
+        1.3595262636281973,
+        1.3810338904611388,
+        0.5,
+        0.18289835475097146,
+        46.78741656736559
+      ]
+    },
+    "MID": {
+      "pos": "MID",
+      "bare": [
+        0.13344087261436008,
+        -1.4024129052159342,
+        6.3405212696717745,
+        -1.757770346431545,
+        1.0500299763161616,
+        -9.572453024478365,
+        0.9705355916136734
+      ],
+      "proj": [
+        0.13344087261436008,
+        -1.4024129052159342,
+        6.3405212696717745,
+        -1.757770346431545,
+        1.0500299763161616,
+        -9.572453024478365,
+        0.9705355916136734,
+        0.0
+      ],
+      "starts": 3942,
+      "through": "2025-06-30",
+      "chance": [
+        -3.2067214799844486,
+        -0.07267416881528324,
+        0.42242020119383483,
+        -0.17324763467884638,
+        0.0694610791444626,
+        1.0058766151197802,
+        0.022138029365526144
+      ],
+      "gap": 30.13841866852833,
+      "sd": [
+        13.271124364883567,
+        14.421648535180234
+      ],
+      "means": [
+        0.2761746241137849,
+        1.3871065431161185,
+        1.3768089688037697,
+        0.4972095383054287,
+        0.1747669526531997,
+        47.18592781925635
+      ]
+    },
+    "FWD": {
+      "pos": "FWD",
+      "bare": [
+        -22.689562460128407,
+        9.03333547801569,
+        5.528235376369728,
+        0.6393332679484922,
+        0.039299996290546944,
+        -30.87260302387828,
+        1.4531435952761769
+      ],
+      "proj": [
+        -22.689562460128407,
+        9.03333547801569,
+        5.528235376369728,
+        0.6393332679484922,
+        0.039299996290546944,
+        -30.87260302387828,
+        1.4531435952761769,
+        0.0
+      ],
+      "starts": 3042,
+      "through": "2025-06-30",
+      "chance": [
+        -3.2595497482706,
+        0.8426424413662426,
+        0.4949493739121864,
+        0.03529357939237643,
+        -0.03587296119615536,
+        0.5169632333292716,
+        0.031020847575902975
+      ],
+      "gap": 32.94116650342801,
+      "sd": [
+        12.282312687763653,
+        10.23941460316527
+      ],
+      "means": [
+        0.27743382924206766,
+        1.3908894759120596,
+        1.3680623947358432,
+        0.5036160420775806,
+        0.20180746697514848,
+        47.434229253561206
+      ]
+    }
+  },
+  "trainingThrough": "2025-06-30",
+  "validated": true,
+  "clubs": {
+    "nice-nice": "Nice",
+    "lille-villeneuve-d-ascq": "Lille",
+    "olympique-marseille-marseille": "Marseille",
+    "reims-reims": "Reims",
+    "psg-paris": "Paris SG",
+    "lorient-ploemeur": "Lorient",
+    "brest-brest": "Brest",
+    "lens-avion": "Lens",
+    "nantes-la-chapelle-sur-erdre": "Nantes",
+    "toulouse-toulouse": "Toulouse",
+    "clermont-clermont-ferrand": "Clermont",
+    "monaco-monaco": "Monaco",
+    "montpellier-montpellier": "Montpellier",
+    "le-havre-harfleur": "Le Havre",
+    "rennes-rennes": "Rennes",
+    "metz-metz": "Metz",
+    "strasbourg-strasbourg": "Strasbourg",
+    "olympique-lyonnais-lyon": "Lyon",
+    "saint-etienne-saint-etienne": "St Etienne",
+    "auxerre-auxerre": "Auxerre",
+    "angers-sco-angers": "Angers",
+    "paris-paris": "Paris FC"
+  },
+  "protocol": {
+    "version": 3,
+    "trainSeasons": [
+      2023,
+      2024
+    ],
+    "holdoutSeason": 2025,
+    "scoringVersion": 7,
+    "candidate": "existing keeper/outfield architectures, independently fitted, no Sorare projection",
+    "football": "independent fixed reference, xi=.001 ridge=1 promoted=0 spread=1.10, fit strictly before Sorare lock",
+    "baseline": "own last five starts with two starts of prior at 51; league position mean also reported",
+    "ablation": "independently fitted same player-history model with FDR inputs removed; FDR must also improve this comparator",
+    "primary": "RMSE on authentic version-7 starts, same cases; paired whole-Sorare-week bootstrap 95% CI",
+    "releaseGate": "Ligue 1 independently: >=100 holdout starts per position, RMSE difference CI upper <0 against form and no-FDR ablation, no position RMSE loss, no loss in within-7 or pair ordering",
+    "secondary": [
+      "within7",
+      "same-position within-game ranking",
+      "per-position RMSE",
+      "coverage"
+    ],
+    "bootstrapSeed": 20261021,
+    "bootstrapDraws": 2000,
+    "claim": "retrospective held-out validation, never freshly blind or proof of pre-lock historical availability",
+    "noPromotion": "collector/evaluation never enables a production model; separately inspect outcome/coverage gates first",
+    "competition": "FL1",
+    "administrativeExclusions": [
+      [
+        "2025-03-16",
+        "Montpellier",
+        "St Etienne"
+      ],
+      [
+        "2026-05-17",
+        "Nantes",
+        "Toulouse"
+      ]
+    ],
+    "trainingSourceExclusions": [
+      [
+        "2023-09-16",
+        "Lens",
+        "Metz"
+      ],
+      [
+        "2023-10-07",
+        "Metz",
+        "Nice"
+      ],
+      [
+        "2023-10-22",
+        "Monaco",
+        "Metz"
+      ],
+      [
+        "2023-10-29",
+        "Metz",
+        "Le Havre"
+      ],
+      [
+        "2023-11-29",
+        "Montpellier",
+        "Clermont"
+      ],
+      [
+        "2023-12-20",
+        "Paris SG",
+        "Metz"
+      ]
+    ],
+    "sourceIdentityRule": "Ignore disabled score identities outside both official elevens; require all 22 authoritative starters. Training source exceptions approved by owner before metrics; retain their results in FDR history.",
+    "eligibility": "Two documented interrupted fixtures excluded before holdout metrics; owner approved Nantes-Toulouse holdout exclusion. All 305 completed holdout games and every current squad remain required."
+  },
+  "evidence": {
+    "protocol": {
+      "version": 3,
+      "trainSeasons": [
+        2023,
+        2024
+      ],
+      "holdoutSeason": 2025,
+      "scoringVersion": 7,
+      "candidate": "existing keeper/outfield architectures, independently fitted, no Sorare projection",
+      "football": "independent fixed reference, xi=.001 ridge=1 promoted=0 spread=1.10, fit strictly before Sorare lock",
+      "baseline": "own last five starts with two starts of prior at 51; league position mean also reported",
+      "ablation": "independently fitted same player-history model with FDR inputs removed; FDR must also improve this comparator",
+      "primary": "RMSE on authentic version-7 starts, same cases; paired whole-Sorare-week bootstrap 95% CI",
+      "releaseGate": "Ligue 1 independently: >=100 holdout starts per position, RMSE difference CI upper <0 against form and no-FDR ablation, no position RMSE loss, no loss in within-7 or pair ordering",
+      "secondary": [
+        "within7",
+        "same-position within-game ranking",
+        "per-position RMSE",
+        "coverage"
+      ],
+      "bootstrapSeed": 20261021,
+      "bootstrapDraws": 2000,
+      "claim": "retrospective held-out validation, never freshly blind or proof of pre-lock historical availability",
+      "noPromotion": "collector/evaluation never enables a production model; separately inspect outcome/coverage gates first",
+      "competition": "FL1",
+      "administrativeExclusions": [
+        [
+          "2025-03-16",
+          "Montpellier",
+          "St Etienne"
+        ],
+        [
+          "2026-05-17",
+          "Nantes",
+          "Toulouse"
+        ]
+      ],
+      "trainingSourceExclusions": [
+        [
+          "2023-09-16",
+          "Lens",
+          "Metz"
+        ],
+        [
+          "2023-10-07",
+          "Metz",
+          "Nice"
+        ],
+        [
+          "2023-10-22",
+          "Monaco",
+          "Metz"
+        ],
+        [
+          "2023-10-29",
+          "Metz",
+          "Le Havre"
+        ],
+        [
+          "2023-11-29",
+          "Montpellier",
+          "Clermont"
+        ],
+        [
+          "2023-12-20",
+          "Paris SG",
+          "Metz"
+        ]
+      ],
+      "sourceIdentityRule": "Ignore disabled score identities outside both official elevens; require all 22 authoritative starters. Training source exceptions approved by owner before metrics; retain their results in FDR history.",
+      "eligibility": "Two documented interrupted fixtures excluded before holdout metrics; owner approved Nantes-Toulouse holdout exclusion. All 305 completed holdout games and every current squad remain required."
+    },
+    "runnerSha256": "0d03f1ebd34e63ba548785aeb95562d493d7f90a5ff591f46910aa107b810ee0",
+    "caseSha256": "f718157138d119c46cbed93e1827afade15d6436cba9839291ae954d4c40fd94",
+    "footballConfig": {
+      "xi": 0.001,
+      "goals_weight": 0.7,
+      "ridge": 1.0,
+      "promoted_prior": 0.0,
+      "window_days": 730,
+      "max_goals": 10,
+      "spread": 1.1
+    },
+    "coverageComplete": true,
+    "coverage": {
+      "competition": "FL1",
+      "rawCalendarGames": 918,
+      "trainingSourceExclusions": [
+        {
+          "date": "2023-09-16",
+          "home": "Lens",
+          "away": "Metz",
+          "reason": "Owner-approved source gap before metrics; retained official result in FDR history"
+        },
+        {
+          "date": "2023-10-07",
+          "home": "Metz",
+          "away": "Nice",
+          "reason": "Owner-approved source gap before metrics; retained official result in FDR history"
+        },
+        {
+          "date": "2023-10-22",
+          "home": "Monaco",
+          "away": "Metz",
+          "reason": "Owner-approved source gap before metrics; retained official result in FDR history"
+        },
+        {
+          "date": "2023-10-29",
+          "home": "Metz",
+          "away": "Le Havre",
+          "reason": "Owner-approved source gap before metrics; retained official result in FDR history"
+        },
+        {
+          "date": "2023-11-29",
+          "home": "Montpellier",
+          "away": "Clermont",
+          "reason": "Owner-approved source gap before metrics; retained official result in FDR history"
+        },
+        {
+          "date": "2023-12-20",
+          "home": "Paris SG",
+          "away": "Metz",
+          "reason": "Owner-approved source gap before metrics; retained official result in FDR history"
+        }
+      ],
+      "expectedGames": 910,
+      "sourceGames": 916,
+      "joinedGames": 910,
+      "excludedAdministrative": [
+        "Game:5ead856f-c2d8-4fdf-aaf1-0bf49b9ea83c"
+      ],
+      "excludedSourceGames": [
+        "Game:9345289e-d224-4c04-ab53-5301eec038c4",
+        "Game:504f1fab-0ea0-4706-b1fe-6a3f09555bf5",
+        "Game:be91c366-c893-4ea7-a055-140cf777fdd4",
+        "Game:7a3bb005-a289-441c-9654-179f2d553e6e",
+        "Game:2a5a6083-db14-4b47-b311-dc923f893b26"
+      ],
+      "issues": [],
+      "missingCsv": [],
+      "clubs": {
+        "nice-nice": "Nice",
+        "lille-villeneuve-d-ascq": "Lille",
+        "olympique-marseille-marseille": "Marseille",
+        "reims-reims": "Reims",
+        "psg-paris": "Paris SG",
+        "lorient-ploemeur": "Lorient",
+        "brest-brest": "Brest",
+        "lens-avion": "Lens",
+        "nantes-la-chapelle-sur-erdre": "Nantes",
+        "toulouse-toulouse": "Toulouse",
+        "clermont-clermont-ferrand": "Clermont",
+        "monaco-monaco": "Monaco",
+        "montpellier-montpellier": "Montpellier",
+        "le-havre-harfleur": "Le Havre",
+        "rennes-rennes": "Rennes",
+        "metz-metz": "Metz",
+        "strasbourg-strasbourg": "Strasbourg",
+        "olympique-lyonnais-lyon": "Lyon",
+        "saint-etienne-saint-etienne": "St Etienne",
+        "auxerre-auxerre": "Auxerre",
+        "angers-sco-angers": "Angers",
+        "paris-paris": "Paris FC"
+      },
+      "complete": true
+    },
+    "cases": 6710,
+    "model": {
+      "rmse": 17.85696415499391,
+      "mae": 14.44314444080818,
+      "within7": 0.2722801788375559,
+      "pairs": 0.5829109914475769
+    },
+    "form": {
+      "rmse": 18.728329982987646,
+      "mae": 15.084907231566246,
+      "within7": 0.26825633383010433,
+      "pairs": 0.5504170626121846
+    },
+    "ablation": {
+      "rmse": 18.10383224739333,
+      "mae": 14.639317123253722,
+      "within7": 0.26214605067064084,
+      "pairs": 0.566624432478091
+    },
+    "positionMean": {
+      "rmse": 18.401148189561383,
+      "mae": 14.95295280668604,
+      "within7": 0.24977645305514157,
+      "pairs": 0.5
+    },
+    "versusForm": {
+      "difference": -0.8713658279937349,
+      "lo": -1.0954391396408023,
+      "hi": -0.6331081946562283,
+      "weeks": 36
+    },
+    "versusAblation": {
+      "difference": -0.24686809239942065,
+      "lo": -0.416087043337385,
+      "hi": -0.07609148386324133,
+      "weeks": 36
+    },
+    "positions": {
+      "GK": {
+        "cases": 610,
+        "rmse": 19.482620278020978,
+        "formRmse": 20.823314034802706
+      },
+      "DEF": {
+        "cases": 2564,
+        "rmse": 19.143454129008372,
+        "formRmse": 20.22686175859238
+      },
+      "MID": {
+        "cases": 1956,
+        "rmse": 15.920961987746516,
+        "formRmse": 16.44910375957652
+      },
+      "FWD": {
+        "cases": 1580,
+        "rmse": 17.295851972892088,
+        "formRmse": 17.980170892518508
+      }
+    },
+    "rejectedBecause": [],
+    "passed": true,
+    "sourceSha256": "f5e2cb544bb7081263e6603b607fa7d5069a87fb63cde2847c3cf3ab9fe7e139",
+    "historySha256": "f2b9b47b3594c3a4831a56d79041476e599342d381e6f4cbf9731f5f75f05465",
+    "identitySha256": "2b3fea72cf1862da60e78c0aaeed81ab9644e485b7fa81dffdfe29119322b11a",
+    "competition": "FL1"
+  }
+}

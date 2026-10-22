@@ -22,7 +22,7 @@ export async function loadForeignDirectory(): Promise<ForeignDirectory | null> {
   if (!directory) return null;
   // The first publication did not carry positions. Reuse its cached league blocks during that transition;
   // new directories resolve directly without downloading either full league for search or a detail page.
-  const legacy = (["PL", "BL1"] as const).filter(code => directory.players.some(p => p.league === code && p.pos === undefined));
+  const legacy = (["PL", "BL1", "FL1"] as const).filter(code => directory.players.some(p => p.league === code && p.pos === undefined));
   const indexed = await Promise.all(legacy.map(async code => [code, await loadLeaguePlayers(code)] as const));
   const allowed = new Map(indexed.filter(([, value]) => value).map(([code, value]) => [code, new Set(value!.market.filter(p => ["GK", "DEF", "MID", "FWD"].includes(p.pos)).map(p => p.slug))]));
   return { players: directory.players.filter(p => p.pos === undefined ? !allowed.has(p.league) || allowed.get(p.league)!.has(p.slug) : p.pos !== null) };
@@ -34,7 +34,7 @@ export async function loadForeignPlayer(slug: string): Promise<ForeignBlock | nu
   if (!SLUG.test(slug)) return null;
   const directory = await loadForeignDirectory();
   const code = directory?.players.find(p => p.slug === slug)?.league;
-  if (code !== "PL" && code !== "BL1") return null;
+  if (code !== "PL" && code !== "BL1" && code !== "FL1") return null;
   const bucket = playerBucket(slug);
   return block<ForeignBlock>(`players:${code}:${bucket}`, `players/${code}/${bucket}`);
 }

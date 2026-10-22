@@ -16,9 +16,9 @@ import pandas as pd
 
 from app.backtest.data import normalize_season
 from app.modeling.dixon_coles import fit_dixon_coles
-from app.research.league_xscore_data import PROTOCOL, validate_game, when
+from app.research.league_xscore_data import PROTOCOL, eligible_calendar, validate_game, when
 from app.research.league_xscore_identity import club_name
-from app.services.league_fdr import LEAGUES, REFERENCE
+from app.services.league_fdr import FL1_ADMIN, LEAGUES, REFERENCE
 from app.sorare import keeper, outfield
 from app.sources.football_data_co_uk import cached_path, fetch_season_csv
 
@@ -31,6 +31,31 @@ EVALUATION_PROTOCOL = {
     "version": 2,
     "trainingSourceAmendment": "Frozen before PL holdout metrics: exclude only Bournemouth-Luton 2024-03-13 from player-outcome training, after competition, club and both preceding starting goalkeepers' fully paged histories omit it. Retain its real result in football-model history. No holdout or current-squad exclusions; candidate, comparators and accuracy gates unchanged. BL1 cohort unchanged.",
 }
+
+
+FL1_TRAINING_GAPS = (
+    ("2023-09-16", "Lens", "Metz"),
+    ("2023-10-07", "Metz", "Nice"),
+    ("2023-10-22", "Monaco", "Metz"),
+    ("2023-10-29", "Metz", "Le Havre"),
+    ("2023-11-29", "Montpellier", "Clermont"),
+    ("2023-12-20", "Paris SG", "Metz"),
+)
+
+
+def protocol_for(code: str) -> dict[str, Any]:
+    if code != "FL1":
+        return EVALUATION_PROTOCOL
+    return {
+        **PROTOCOL,
+        "version": 3,
+        "competition": "FL1",
+        "releaseGate": "Ligue 1 independently: >=100 holdout starts per position, RMSE difference CI upper <0 against form and no-FDR ablation, no position RMSE loss, no loss in within-7 or pair ordering",
+        "administrativeExclusions": [list(row) for row in FL1_ADMIN],
+        "trainingSourceExclusions": [list(row) for row in FL1_TRAINING_GAPS],
+        "sourceIdentityRule": "Ignore disabled score identities outside both official elevens; require all 22 authoritative starters. Training source exceptions approved by owner before metrics; retain their results in FDR history.",
+        "eligibility": "Two documented interrupted fixtures excluded before holdout metrics; owner approved Nantes-Toulouse holdout exclusion. All 305 completed holdout games and every current squad remain required.",
+    }
 
 
 def documented_training_gap(audit: dict[str, Any]) -> bool:
@@ -56,6 +81,25 @@ def documented_training_gap(audit: dict[str, Any]) -> bool:
     ]
     players = {c["variables"].get("player") for c in audit.get("playerChecks") or [] if empty(c)}
     return bool(clubs) and players == {"norberto-murara-neto", "thomas-kaminski"}
+
+
+def documented_fl1_gap(audit: dict[str, Any]) -> bool:
+    """The single missing training replay, with all four bounded source paths retained."""
+    if audit.get("missingAfter") != 1 or audit.get("errors"):
+        return False
+    missing = audit.get("missingFixtures") or []
+    if len(missing) != 1 or (missing[0]["date"][:10], missing[0]["home"], missing[0]["away"]) != (
+        "2023-11-29",
+        "Montpellier",
+        "Clermont",
+    ):
+        return False
+    checks = (audit.get("clubChecks") or []) + (audit.get("playerChecks") or [])
+    return (
+        len(checks) == 3
+        and all(not c.get("games") and not (c.get("pageInfo") or {}).get("hasNextPage") for c in checks)
+        and {c["variables"].get("player") for c in audit["playerChecks"]} == {"benjamin-lecomte", "mory-diaw"}
+    )
 
 
 def window_for(date: str, windows: list[dict[str, str]]) -> tuple[str, datetime]:
@@ -97,6 +141,12 @@ def load_games(root: Path, code: str) -> tuple[list[dict[str, Any]], list[dict[s
         and coverage.get("saved") == 1139
         and not coverage.get("failed")
     )
+    if code == "FL1":
+        exception = (
+            documented_fl1_gap(audit)
+            and coverage.get("expected") == coverage.get("saved") in (915, 916)
+            and not coverage.get("failed")
+        )
     if (not coverage.get("complete") and not exception) or coverage.get("protocolSha256") != protocol_hash:
         raise ValueError("Incomplete collection or changed frozen collection protocol")
     expected = json.loads((folder / "games.json").read_text("utf-8"))
@@ -135,17 +185,21 @@ def prepare(
     joined: list[dict[str, Any]] = []
     used: set[int] = set()
     excluded = []
+    source_excluded = []
     clubs: dict[str, str] = {}
     for saved in games:
         raw = saved["raw"]
         try:
-            if raw.get("statusTyped") != "played":
-                raise ValueError("Unsettled historical game status")
             home, away = club_name(raw["homeTeam"], known), club_name(raw["awayTeam"], known)
             day = when(raw["date"]).date().isoformat()
-            if code == "BL1" and (day, home, away) in ADMIN:
+            if (code == "BL1" and (day, home, away) in ADMIN) or (code == "FL1" and (day, home, away) in FL1_ADMIN):
                 excluded.append(raw["id"])
                 continue
+            if code == "FL1" and (day, home, away) in FL1_TRAINING_GAPS:
+                source_excluded.append(raw["id"])
+                continue
+            if raw.get("statusTyped") != "played":
+                raise ValueError("Unsettled historical game status")
             possible = history[
                 (history["home"] == home)
                 & (history["away"] == away)
@@ -168,6 +222,8 @@ def prepare(
                 expected_xi |= xi
             for p in saved["players"]:
                 if p.get("started") is not True:
+                    continue
+                if code == "FL1" and p["slug"].endswith("-disabled") and p["slug"] not in expected_xi:
                     continue
                 if p.get("pos") == "GK" and clean_label(p) is None:
                     raise ValueError("Unknown goalkeeper playing-period clean sheet")
@@ -228,15 +284,32 @@ def prepare(
             history = history[
                 ~((history["date"] == pd.Timestamp(day)) & (history["home"] == home) & (history["away"] == away))
             ]
+    if code == "FL1":
+        wanted = eligible_calendar(code, wanted)
+        history = eligible_calendar(code, history)
+        for day, home, away in FL1_TRAINING_GAPS:
+            wanted = wanted[
+                ~((wanted["date"] == pd.Timestamp(day)) & (wanted["home"] == home) & (wanted["away"] == away))
+            ]
+            training_exclusions.append(
+                {
+                    "date": day,
+                    "home": home,
+                    "away": away,
+                    "reason": "Owner-approved source gap before metrics; retained official result in FDR history",
+                }
+            )
     missing = wanted.loc[~wanted.index.isin(used), ["date", "home", "away"]].copy()
     missing["date"] = missing["date"].astype(str)
     coverage = {
+        "competition": code,
         "rawCalendarGames": expected_raw,
         "trainingSourceExclusions": training_exclusions,
         "expectedGames": len(wanted),
         "sourceGames": len(games),
         "joinedGames": len(joined),
         "excludedAdministrative": excluded,
+        "excludedSourceGames": source_excluded,
         "issues": issues,
         "missingCsv": missing.to_dict("records"),
         "clubs": clubs,
@@ -430,7 +503,7 @@ def evaluate(rows: list[dict[str, Any]], coverage: dict[str, Any]) -> tuple[dict
     form = np.array([r["baseline"] for r in testing])
     weeks = [r["week"] for r in testing]
     result = {
-        "protocol": EVALUATION_PROTOCOL,
+        "protocol": protocol_for(coverage.get("competition", "")),
         "runnerSha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "caseSha256": hashlib.sha256(
             json.dumps([(r["game"], r["player"], r["pos"], r["score"]) for r in testing], sort_keys=True).encode()
@@ -462,7 +535,7 @@ def evaluate(rows: list[dict[str, Any]], coverage: dict[str, Any]) -> tuple[dict
         "trainingThrough": "2025-06-30",
         "validated": result["passed"],
         "clubs": coverage["clubs"],
-        "protocol": EVALUATION_PROTOCOL,
+        "protocol": protocol_for(coverage.get("competition", "")),
     }
     return result, artifact
 

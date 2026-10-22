@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { currentTable, mulberry32, predictedTable } from "./table";
+import { currentTable, mulberry32, predictedTable, zone } from "./table";
 import type { FixtureGrid, GridCell, GridTeam } from "./types";
 
 let id = 1;
@@ -35,11 +35,11 @@ const makeGrid = (teams: GridTeam[]): FixtureGrid => ({
 });
 
 describe("currentTable", () => {
-  it.each(["PL", "BL1"] as const)("%s shares unresolved table positions", competition => {
+  it.each(["PL", "BL1", "FL1"] as const)("%s shares unresolved table positions", competition => {
     const grid = { ...makeGrid([team("AAA", []), team("BBB", [])]), competition };
     expect(currentTable(grid).map(row => row.position)).toEqual([1, 1]);
   });
-  it.each(["PL", "BL1"] as const)("%s uses overall goal difference before head-to-head", competition => {
+  it.each(["PL", "BL1", "FL1"] as const)("%s uses overall goal difference before head-to-head", competition => {
     const grid = makeGrid([
       team("AAA", [played("BBB", "H", 1, 0, 1), played("BBB", "A", 1, 0, 2), played("CCC", "H", 0, 1, 3)]),
       team("BBB", [played("AAA", "A", 0, 1, 1), played("AAA", "H", 0, 1, 2), played("CCC", "H", 7, 0, 3), played("CCC", "A", 3, 0, 4)]),
@@ -180,4 +180,31 @@ describe("predictedTable", () => {
     expect(values).toEqual(Array.from({ length: 5 }, () => b()));
     expect(values.every((v) => v >= 0 && v < 1)).toBe(true);
   });
+});
+
+it("Ligue 1 uses completed H2H before season goals, and not the discarded away-goals rule", () => {
+  const grid = { ...makeGrid([
+    team("AAA", [played("BBB", "H", 1, 0, 1), played("BBB", "A", 0, 0, 2)]),
+    team("BBB", [played("AAA", "A", 0, 1, 1), played("AAA", "H", 0, 0, 2), played("CCC", "H", 4, 2, 3)]),
+    team("CCC", [played("BBB", "A", 2, 4, 3)]),
+  ]), competition: "FL1" as const };
+  expect(currentTable(grid).slice(0, 2).map(r => r.team.code)).toEqual(["AAA", "BBB"]);
+  expect(zone(16, 18, "FL1")?.label).toBe("Relegation play-off");
+  expect(zone(17, 18, "FL1")?.label).toBe("Relegation");
+});
+
+it("Ligue 1 does not break a remaining tie using away goals", () => {
+  const grid = { ...makeGrid([
+    team("AAA", [played("BBB", "H", 2, 2, 1), played("BBB", "A", 0, 0, 2)]),
+    team("BBB", [played("AAA", "A", 2, 2, 1), played("AAA", "H", 0, 0, 2)]),
+  ]), competition: "FL1" as const };
+  expect(currentTable(grid).map(r => r.position)).toEqual([1, 1]);
+});
+it("Ligue 1 uses away wins after season goals and wins", () => {
+  const grid = { ...makeGrid([
+    team("ZZZ", [played("AAA", "H", 0, 0, 1), played("AAA", "A", 0, 0, 2), played("CCC", "A", 1, 0, 3)]),
+    team("AAA", [played("ZZZ", "A", 0, 0, 1), played("ZZZ", "H", 0, 0, 2), played("DDD", "H", 1, 0, 3)]),
+    team("CCC", [played("ZZZ", "H", 0, 1, 3)]), team("DDD", [played("AAA", "A", 0, 1, 3)]),
+  ]), competition: "FL1" as const };
+  expect(currentTable(grid).slice(0, 2).map(r => r.team.code)).toEqual(["ZZZ", "AAA"]);
 });

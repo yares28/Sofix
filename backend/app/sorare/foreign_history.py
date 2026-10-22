@@ -95,7 +95,7 @@ def collect(
         ident = game["id"]
         old = known.get(ident)
         # Three days of corrections, as the existing league-history job does.
-        if old and when(game["date"]) < now - timedelta(days=3):
+        if old and old.get("settled") and when(game["date"]) < now - timedelta(days=3):
             state["games"][ident] = old
             continue
         try:
@@ -104,7 +104,13 @@ def collect(
                 raise ValueError("Current source fixture identity changed")
             for slug, rows in history_of(code, raw).items():
                 history[slug].extend(rows)
-            state["games"][ident] = {"date": raw["date"], "at": now.isoformat()}
+            state["games"][ident] = {
+                "date": raw["date"],
+                "at": now.isoformat(),
+                "settled": all(
+                    str(p.get("scoreStatus")).upper() in ("FINAL", "DID_NOT_PLAY") for p in raw["playerGameScores"]
+                ),
+            }
         except (SorareError, ValueError, KeyError, TypeError) as error:
             state["errors"].append({"game": ident, "reason": str(error)[:160]})
             if old:

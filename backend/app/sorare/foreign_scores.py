@@ -115,6 +115,8 @@ def scores_for(models: dict[str, Models], grids: dict[str, dict[str, Any]], fall
     ) -> Made:
         codes = {c for c, slug in LEAGUES.items() if any(g.get("competition") == slug for g in games)}
         if not codes:
+            if ((player.get("activeClub") or {}).get("domesticLeague") or {}).get("slug") in LEAGUES.values():
+                return Made((), None)
             return fallback(player, games, projection, past)
         # A mixed domestic/cup week is not filled in with another league's coefficients.
         if len(codes) != 1:

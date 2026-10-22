@@ -411,6 +411,11 @@ def run(
                 player_games.save(db, current, started)
                 put(db, f"league_games:{code}", state, started)
             db.rollback()
+        active_models = {
+            c: m
+            for c, m in foreign_models.items()
+            if not any("scoring version" in str(e.get("reason", "")) for e in (foreign_states[c].get("errors") or []))
+        }
         foreign_kwargs: dict[str, Any] = (
             {
                 "foreign_codes": tuple(foreign_models),
@@ -429,7 +434,7 @@ def run(
             cached_league=league,
             **foreign_kwargs,
         )
-        snapshot["scoreModels"] = {c: foreign_scores.version(c) for c in foreign_models}
+        snapshot["scoreModels"] = {c: foreign_scores.version(c) for c in active_models}
         if not dry_run:
             for code, index in (snapshot.get("foreign") or {}).items():
                 put(db, f"league_squads:{code}", index, started)
@@ -519,7 +524,7 @@ def run(
         "game scores",
         lambda: (
             foreign_scores.scores_for(
-                foreign_models,
+                active_models,
                 foreign_grids,
                 scores.scores_for(
                     keeper.load(), outfield.load(), keeper.numbers_for(db, fetched), outfield.load_subs()

@@ -51,6 +51,7 @@ def test_current_history_preserves_zero_unknown_and_actual_side():
 
 def test_recent_settled_games_are_read_once_and_late_corrections_expire(monkeypatch):
     game = raw_game()
+    game["playerGameScores"][1]["scoreStatus"] = "DID_NOT_PLAY"
     monkeypatch.setattr(h, "recent_index", lambda *args: ([game], {"missingAfter": 0}))
     calls = []
 
@@ -77,3 +78,13 @@ def test_new_scoring_version_cannot_silently_enter_the_validated_history():
     game["playerGameScores"][0]["scoringVersion"] = 8
     with pytest.raises(ValueError, match="scoring version"):
         h.history_of("PL", game)
+
+
+def test_pending_scores_are_revisited_even_after_the_correction_window(monkeypatch):
+    game = raw_game()
+    monkeypatch.setattr(h, "recent_index", lambda *args: ([game], {"missingAfter": 0}))
+    calls = []
+    client = SimpleNamespace(query=lambda *args: calls.append(1) or {"anyGame": game})
+    _, state = h.collect(client, "PL", NOW, {})
+    h.collect(client, "PL", NOW, state)
+    assert len(calls) == 2

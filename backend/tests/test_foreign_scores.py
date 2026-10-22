@@ -201,3 +201,9 @@ def test_foreign_index_uses_the_same_forecast_as_owned_cards_and_is_published_se
     assert next(p for p in market if p["slug"] == "unowned-pl-player")["start"] == 80
     assert not any(p["slug"] == "unowned-pl-player" for p in result["market"])
     assert "unowned-pl-player" in result["_record"]["players"]
+
+
+def test_foreign_cup_or_national_game_never_borrows_the_laliga_substitute_shape():
+    score = f.scores_for({}, {}, lambda *args: Made((), "Spanish shape"))
+    player = {"position": "Defender", "activeClub": {"domesticLeague": {"slug": "premier-league-gb-eng"}}}
+    assert score(player, [{"kickoff": "2026-10-24T14:00:00Z", "competition": "world-cup"}], None, []).sub is None

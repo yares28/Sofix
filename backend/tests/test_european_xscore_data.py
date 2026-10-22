@@ -105,6 +105,98 @@ def test_game_missing_a_starter_is_retained_as_evidence(tmp_path):
     assert result["sourceComplete"] is True and result["missingStartingXI"] == ["Game:a"]
 
 
+def test_real_sorare_formation_rows_are_flattened_before_counting_eleven(tmp_path):
+    raw = {**game(), "competition": {"slug": "uefa-champions-league"}, "playerGameScores": []}
+    for side in ("home", "away"):
+        raw[f"{side}Formation"] = {
+            "startingLineupAvailable": True,
+            "startingLineup": [
+                [{"slug": f"{side}0"}],
+                [{"slug": f"{side}{i}"} for i in range(1, 5)],
+                [{"slug": f"{side}{i}"} for i in range(5, 9)],
+                [{"slug": f"{side}9"}, {"slug": f"{side}10"}],
+            ],
+        }
+    client = SimpleNamespace(query=lambda *args: {"anyGame": raw})
+    assert data.collect(client, "CL", [game()], tmp_path)["missingStartingXI"] == []
+
+
 def test_expired_current_club_cache_is_not_silently_used_for_current_coverage():
     assert data.current_cache_fresh({"at": "2026-10-21T12:00:00Z"}, datetime(2026, 10, 23, tzinfo=UTC)) is False
     assert data.current_cache_fresh({"at": "2026-10-22T23:00:00Z"}, datetime(2026, 10, 23, tzinfo=UTC)) is True
+
+
+def test_training_edition_keeps_june_preliminary_qualifiers():
+    def query(*args):
+        return {
+            "football": {
+                "competition": {
+                    "slug": "uefa-champions-league",
+                    "pastGames": {
+                        "nodes": [game("preliminary", "2023-06-27T19:00:00Z")],
+                        "pageInfo": {"hasNextPage": False, "endCursor": None},
+                    },
+                }
+            }
+        }
+
+    rows = data.game_index(SimpleNamespace(query=query), "CL")
+    assert rows[0]["id"] == "preliminary"
+
+
+def test_actual_sorare_cutoffs_include_early_qualifying_window():
+    row = {
+        "slug": "june-qualifiers",
+        "startDate": "2023-06-23T14:00:00Z",
+        "endDate": "2023-06-27T14:00:00Z",
+        "cutOffDate": "2023-06-23T13:50:00Z",
+    }
+    client = SimpleNamespace(
+        query=lambda *args: {"so5": {"so5Fixtures": {"nodes": [row], "pageInfo": {"hasNextPage": False}}}}
+    )
+    assert data.european_windows(client) == [row]
+
+
+def test_cloud_collector_cold_start_then_resumes_without_repeating_source_reads(tmp_path, monkeypatch):
+    # Exercise the actual CLI orchestration with bounded public responses, no DB or network.
+
+    calls = []
+
+    def inventory(client, code, season, folder):
+        folder.mkdir(parents=True, exist_ok=True)
+        assert code == "CL" and season in (2023, 2024, 2025, 2026)
+        return {"fixtures": [1], "phases": {"qualifying": 1}}
+
+    class Client:
+        api_key = "fixture-only"
+
+        def __init__(self, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def query(self, text, variables):
+            calls.append(variables)
+            if text == data.GAME_QUERY:
+                return {"anyGame": {**game(), "competition": {"slug": "uefa-champions-league"}, "playerGameScores": []}}
+            raise AssertionError("No unexpected source query")
+
+    monkeypatch.setattr(data, "fetch_inventory", inventory)
+    monkeypatch.setattr(
+        data, "sorare_clubs", lambda query, code: calls.append("clubs") or [{"slug": "h"}, {"slug": "a"}]
+    )
+    monkeypatch.setattr(data, "game_index", lambda client, code: calls.append("index") or [game()])
+    monkeypatch.setattr(data, "european_windows", lambda client: calls.append("windows") or [])
+    monkeypatch.setattr(data, "SorareClient", Client)
+    monkeypatch.setattr(data.time, "sleep", lambda _: None)
+    monkeypatch.setattr("sys.argv", ["collector", "--league", "CL", "--out", str(tmp_path)])
+    assert data.main() == 0 and len(calls) == 4
+    assert data.main() == 0 and len(calls) == 4
+    # Older domestic-period index is re-enumerated, but authentic cached outcomes are kept.
+    (tmp_path / "CL" / "index-period.json").write_text("{}", encoding="utf-8")
+    assert data.main() == 0 and calls[-2:] == ["index", "windows"] and len(calls) == 6
+    assert json.loads((tmp_path / "CL" / "coverage.json").read_text(encoding="utf-8"))["modelEligible"] is False

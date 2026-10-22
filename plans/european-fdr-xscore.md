@@ -23,7 +23,7 @@ venues remain explicit. xScore uses authentic Sorare scoring semantics, includin
 - [ ] Verify free current/historical fixture feeds and Sorare competition identity/coverage for CL, EL, CONF.
 - [x] Test and build a bounded, resumable UEFA source inventory retaining raw evidence and source conflicts.
 - [ ] Reconcile 2023/24–2025/26 authentic outcomes and the current full calendar; explicitly account for qualifiers.
-- [ ] Freeze European FDR and xScore protocols before inspecting accuracy metrics. Never tune on holdout.
+- [x] Freeze European FDR and xScore protocols before inspecting accuracy metrics. Never tune on holdout.
 - [ ] Validate FDR chronology, cold clubs, connected club strength, phases, neutral venues and regulation outcomes.
 - [ ] Independently pass each competition's xScore gates against form and the no-FDR ablation, per position.
 - [ ] Implement bounded automatic calendar/squad/history publication and per-game forecast selection.
@@ -82,3 +82,46 @@ Verified so far: 28 new acceptance tests pass; focused Ruff and mypy pass; offic
 53 queries and six fragments with zero issues. `node scripts/check.mjs` passed Ruff formatting/check,
 mypy, the complete backend pytest suite (76 seconds), and OpenAPI export. No UI or serving behavior changes
 in this source-collection checkpoint. Cloud source collection is next; no accuracy metrics have been opened.
+
+Source checkpoint shipped as `49fb92c`; automatic cloud run `39866649996` is collecting CL/EL, with Conference
+next under the two-reader budget. Post-push `--live` passed deployment and all 15 routes; backend/frontend CI passed.
+Production model behavior remains unchanged. The research source collector uses Actions' existing Sorare key;
+no credential was extracted or requested from the owner.
+
+Further source audit found late-June CL preliminary qualifiers: the European source index and actual Sorare-window
+reader must start 1 June 2023 rather than reuse the domestic 1 July bound. Regression tests first reproduced both
+omissions; a period-stamped cache now re-enumerates that index while retaining downloaded game responses. A source
+index artifact is uploaded before the longer game reads so alignment can proceed without waiting for all outcomes.
+
+The fixed research candidate/protocol is in [european-model-validation.md](european-model-validation.md).
+The research-only fitter models neutral home exposure in both fit and prediction, requires reviewed regulation
+goals/venue/availability, rejects repeated games and excludes results at/after lock. It has no production registration.
+Exact fixture alignment preserves the complete UEFA denominator and exposes missing qualifiers and conflicting totals.
+Names match exact published English labels or an unambiguous oriented opponent at the exact kickoff; no fuzzy bridge.
+
+Offline reuse of the original period-audit function (no network/old-archive writes/model metrics) identified six source
+review cases in 2023/24–2025/26: CL `2041692` PAOK–Malmö and `2041694` Bodø/Glimt–Jagiellonia have reported-period
+conflicts; CONF `2041907` Celje–Pyunik and `2041763` Mornar–Paksi have scorer-total conflicts; CONF `2041175` / `2041126`
+Puskás Akadémia–Dnipro-1 are marked abandoned. Preserve those source fields and obtain independent official match
+or disciplinary evidence before any admission/exclusion. Missing scorer arrays (mostly scoreless games) also remain
+unreviewed; do not call their absence a zero-event proof.
+
+First cloud artifacts downloaded: CL has 771 game responses and 81 paginated club identities; EL has 715 responses
+and 76 club identities. CL's three June 2023 preliminary fixtures explain its index bound shortfall; the revised
+collector re-enumerates from June before deciding coverage. All CL tournament-phase games have authentic 22-player
+XI and 22 FINAL version-7 starts, including all 189 completed holdout tournament games. CL qualifiers include
+REVIEWING scores and several 21-player source gaps, which remain explicit blockers.
+
+EL's 715 source games equal the complete three-edition UEFA entry count. Actual formations have 22 unique players
+in every game; 595 games have 22 FINAL version-7 starts and 120 have REVIEWING scores. Those 120 are qualifying
+games. Three exact-kickoff joins remain flagged: Union SG–Toulouse 21 Sep 2023 (16:45 UEFA / 16:55 Sorare),
+Maccabi Tel Aviv–Dynamo Kyiv 21 Aug 2025 (18:00 / 18:15), Utrecht–Genk 22 Jan 2026 (20:00 / 20:50).
+Keep both timestamps; no fixture or player outcome has been dropped. Conference collection is still running.
+
+The initial collector diagnostic incorrectly counted formation rows as players, marking all XIs incomplete. A real
+nested-formation regression reproduced this; flattening now requires 11 distinct nonempty slugs per team. Raw
+responses were always retained correctly. Re-auditing EL confirms zero genuinely missing XIs. Cold CLI/resume tests
+also verify period migrations keep authentic cached games and do not re-download outcomes unnecessarily.
+
+Latest local checkpoint: 52 new European tests; `node scripts/check.mjs` passed Ruff, mypy, full backend pytest
+(71 seconds) and OpenAPI export after the source/formation fixes. No UI changes or model accuracy claim.

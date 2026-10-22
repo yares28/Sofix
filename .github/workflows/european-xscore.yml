@@ -52,6 +52,15 @@ jobs:
           path: backend/data/raw/european-xscore/${{ matrix.league }}
           key: european-xscore-v1-${{ matrix.league }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: european-xscore-v1-${{ matrix.league }}-
+      - name: Enumerate complete source indexes before outcomes
+        run: python -m app.research.european_xscore_data --league ${{ matrix.league }} --index-only
+      - uses: actions/upload-artifact@v4
+        with:
+          name: european-index-${{ matrix.league }}
+          path: |
+            backend/data/raw/european-xscore/${{ matrix.league }}/*.json
+            backend/data/raw/european-xscore/${{ matrix.league }}/uefa/
+          retention-days: 14
       - name: Collect null-preserving source evidence
         run: python -m app.research.european_xscore_data --league ${{ matrix.league }} --seconds 2400
       - uses: actions/cache/save@v4

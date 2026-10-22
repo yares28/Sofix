@@ -183,6 +183,9 @@ Each line: built, cut (and why), or not seen yet.
   median unchanged. On his five real lineups (266, 314, 372, 357, 316, past scores without the game itself) the chances move 0–2
   points: all five beat the model's expected total (+20 to +74). Bench games in the past do not explain it (starters' past average is
   off by +4 per five cards on 7,106 starts; Sorare's projection +11). Five lineups are too few to call a bias.
+  Rejected: letting a draw pass his best past game (each past score blurred by its own spread). It helps stacks (308 lineups, 95th
+  bar: 11.7% real, 7.2% linked, 9.9% both) but over-predicts lineups from five teams (997 lineups: 80th bar 20.6% real, 21.1% linked,
+  25.5% both; 95th 6.1% real, 5.4% linked, 8.6% both; Brier worse). Only the teammate link ships.
 - **Start % without a tab**: built. Sorare gives start % only to its registered questions: its compose page asks
   `SeriesComposeBenchQuery` by id (`React/30aff…`), no query text. The bridge replays that id with each position and a day's window (30
   cards a page, best first, 2 pages); seen 21 Oct from his tab: 30 of 30 forwards with a number, Yamal 90% for Sunday's Clásico. A newer

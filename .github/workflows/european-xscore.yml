@@ -1,0 +1,67 @@
+name: Collect European FDR and xScore sources
+
+# Source evidence only: no database settings, refresh dispatch or model promotion.
+on:
+  push:
+    branches: [main]
+    paths:
+      - backend/app/research/european_data.py
+      - backend/app/research/european_xscore_data.py
+      - .github/workflows/european-xscore.yml
+  workflow_dispatch:
+    inputs:
+      league:
+        description: Competition source collection
+        type: choice
+        options: [all, CL, EL, CONF]
+        default: all
+
+permissions:
+  contents: read
+
+concurrency:
+  group: league-xscore-validation
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    name: Collect ${{ matrix.league }} authentic outcomes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        league: ${{ fromJSON((inputs.league == 'all' || inputs.league == '') && '["CL","EL","CONF"]' || format('["{0}"]', inputs.league)) }}
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      SORARE_API_KEY: ${{ secrets.SORARE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+          activate-environment: true
+          enable-cache: true
+          cache-dependency-glob: backend/requirements.lock
+      - run: uv pip sync requirements.lock
+      - uses: actions/cache/restore@v4
+        with:
+          path: backend/data/raw/european-xscore/${{ matrix.league }}
+          key: european-xscore-v1-${{ matrix.league }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: european-xscore-v1-${{ matrix.league }}-
+      - name: Collect null-preserving source evidence
+        run: python -m app.research.european_xscore_data --league ${{ matrix.league }} --seconds 2400
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: backend/data/raw/european-xscore/${{ matrix.league }}
+          key: european-xscore-v1-${{ matrix.league }}-${{ github.run_id }}-${{ github.run_attempt }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: european-sources-${{ matrix.league }}
+          path: backend/data/raw/european-xscore/${{ matrix.league }}
+          retention-days: 14

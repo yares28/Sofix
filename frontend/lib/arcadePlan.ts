@@ -266,12 +266,17 @@ export type ClimbStart = { step: number; lives: number; notBefore: number | null
  * path, how many lineups to play, the chance one clears, and those lineups (each step on the path has its own, not only the current one).
  */
 export type ClimbDay = {
-  day: string; to: string; step: number; lives: number; play: number; clear: number;
+  day: string; to: string; step: number; lives: number; /** The highest step cleared before it. */ best: number; play: number; clear: number;
   /** Lineups the leg's free cards can make. */ can: number;
   /** The leg's cards free to play (held ones left out): planDay builds the lineups shown. */ list: Outlook[];
   /** The lineups played, strongest first, aimed at this step (fewer simulated games than a shown lineup). */ lineups: Lineup[];
 };
-export type Climb = { days: ClimbDay[]; /** Chance to clear each step by the set's end, playing as planned: step number → 0 to 1. */ odds: Record<number, number> };
+export type Climb = {
+  days: ClimbDay[];
+  /** Chance to clear each step by the set's end, playing as planned: step number → 0 to 1. */ odds: Record<number, number>;
+  /** The likely path after a played leg if one of its lineups clears (true) or all miss (false): the outcome `days` does not show. */
+  after: (leg: ClimbDay, cleared: boolean) => ClimbDay[];
+};
 
 /** A lineup may take games from up to 3 days in a row (Sorare's set board takes any of its games): a thin day joins the next. */
 export const SPAN = 3;
@@ -363,28 +368,29 @@ export function climb(days: [string, Outlook[]][], steps: StepInfo[], start: Cli
   }
   for (const s of at[pools.length]!.values()) for (let n = 1; n <= s.best; n++) odds[n] = (odds[n] ?? 0) + s.p;
 
-  // The likely path, leg by leg: a leg whose lineups more likely than not clear moves it up.
-  const out: ClimbDay[] = [];
-  let n = start.step;
-  let lives = start.lives;
-  let best = start.best ?? start.step - 1;
-  for (let i = 0; i < pools.length && n <= last;) {
-    if (!pools[i]!.list.length) { i += 1; continue; }
-    const { play, clear, to } = value(i, n, lives, best);
-    const lineups = play ? offer(i, to, n).slice(0, play) : [];
-    out.push({ day: pools[i]!.day, to: pools[to]!.day, step: n, lives, play, clear, can: offer(i, to, n).length, list: legList(i, to), lineups });
-    i = to + 1;
-    if (!play) continue;
-    if (clear >= 0.5) {
-      best = Math.max(best, n);
-      n += 1;
-      lives = fresh(n);
-    } else if ((lives -= play) <= 0) {
-      n = 1;
-      lives = 4;
+  // The likely path from day i, leg by leg: a leg whose lineups more likely than not clear moves it up.
+  const walk = (from: number, n: number, lives: number, best: number): ClimbDay[] => {
+    const out: ClimbDay[] = [];
+    for (let i = from; i < pools.length && n <= last;) {
+      if (!pools[i]!.list.length) { i += 1; continue; }
+      const { play, clear, to } = value(i, n, lives, best);
+      const lineups = play ? offer(i, to, n).slice(0, play) : [];
+      out.push({ day: pools[i]!.day, to: pools[to]!.day, step: n, lives, best, play, clear, can: offer(i, to, n).length, list: legList(i, to), lineups });
+      i = to + 1;
+      if (!play) continue;
+      ({ n, lives, best } = outcome({ step: n, lives, best, play }, clear >= 0.5));
     }
-  }
-  return { days: out, odds };
+    return out;
+  };
+  // A played leg's result: a clear moves up a step with fresh lives; a miss costs its lives, and the last one lost restarts at step 1.
+  const outcome = (leg: Pick<ClimbDay, "step" | "lives" | "best" | "play">, cleared: boolean) =>
+    cleared ? { n: leg.step + 1, lives: fresh(leg.step + 1), best: Math.max(leg.best, leg.step) }
+      : leg.lives - leg.play > 0 ? { n: leg.step, lives: leg.lives - leg.play, best: leg.best } : { n: 1, lives: 4, best: leg.best };
+  const after = (leg: ClimbDay, cleared: boolean) => {
+    const next = outcome(leg, cleared);
+    return walk(pools.findIndex((p) => p.day === leg.to) + 1, next.n, next.lives, next.best);
+  };
+  return { days: walk(0, start.step, start.lives, start.best ?? start.step - 1), odds, after };
 }
 
 export type Advice = { play: boolean; why: string; better: { day: string; chance: number } | null };

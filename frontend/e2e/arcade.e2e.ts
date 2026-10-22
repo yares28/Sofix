@@ -160,6 +160,10 @@ test("Pick a day plans the day's lineups at the step they land on, no card twice
   await expect(page.locator(".arc-departures .arc-advice")).toContainText("Play 1 lineup on step 2");
   await expect(page.locator(".arc-headline")).toContainText("step 2");
   await expect(page.locator(".arc-deck .arc-lineup li")).toHaveCount(5); // on deck: its five cards
+  // Both outcomes of the day are named: step 2 is the board's top, and with one game there is no day after it.
+  const outcomes = page.getByRole("group", { name: "What comes next" });
+  await expect(outcomes.getByRole("button", { name: /If it clears/ })).toContainText("step 2 cleared: the top of the board");
+  await expect(outcomes.getByRole("button", { name: /If it misses/ })).toContainText("2 lives left on step 2");
   expect(await smallText(page, 11)).toEqual([]);
   if (process.env.ARCADE_PLAN_SHOT) {
     await page.emulateMedia({ reducedMotion: "reduce" }); // still pictures, not mid-animation
@@ -185,6 +189,11 @@ test("Packs: on a click, the pack you can afford with the most players you do no
   await expect(page.locator(".arc-open")).toContainText("Silver");
   await expect(page.locator(".arc-open")).toContainText("1.0 players you do not have yet, on Sorare's odds, for 10 gems");
   await expect(page.locator(".arc-packs-list li")).toHaveCount(2);
+  // The Bronze filter keeps Bronze packs only, and Open next follows it.
+  await page.getByRole("group", { name: "Pack type" }).getByRole("button", { name: "Bronze (1)" }).click();
+  await expect(page.locator(".arc-packs-list li")).toHaveCount(1);
+  await expect(page.locator(".arc-open")).toContainText("0.5 players you do not have yet, on Sorare's odds, for 1,000 essence");
+  await expect(page.getByRole("group", { name: "Pack type" }).getByRole("button", { name: "Gold (0)" })).toBeDisabled();
 });
 
 test("a lineup on Sorare that cannot reach its target says it is dead, and cut losses when its cards help the next lineup more", async ({ page }) => {

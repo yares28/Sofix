@@ -3,7 +3,7 @@
 import { useContext, useMemo, useState, type CSSProperties } from "react";
 import type { Arcade, ArcadeGame, ArcadeLineup, ArcadeStep } from "../../lib/arcade";
 import { FdrChip, FdrContext } from "./Fdr";
-import { bestLineup, bigReward, chanceOf, climb, likelyRange, liveLineup, madridDate, planDay, predicted, SETTLES_AFTER_MS, type Lineup, type Outlook, type Planned, type StartSource, type StepInfo } from "../../lib/arcadePlan";
+import { bestLineup, bigReward, chanceOf, climb, likelyRange, liveLineup, madridDate, planDay, predicted, SETTLES_AFTER_MS, type Climb, type ClimbDay, type Lineup, type Outlook, type Planned, type StartSource, type StepInfo } from "../../lib/arcadePlan";
 
 const SOURCE: Record<StartSource, string> = { sorare: "Sorare", futbolfantasy: "Futbol Fantasy", sofix: "Sofix" };
 const SLOT: Record<string, string> = { GK: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward", EXTRA: "Extra" };
@@ -300,10 +300,22 @@ function PickDay({ arcade, outlooks, captainBonus, now, end }: { arcade: Arcade;
     return out;
   }, [clears, path.odds, steps, current]);
   const [day, setDay] = useState<string | null>(null);
+  // The path shown: the likely one, or the one after a leg's other outcome ("If one clears" / "If all miss").
+  const [branch, setBranch] = useState<{ of: Climb; days: ClimbDay[]; label: string } | null>(null);
+  const shown = branch?.of === path ? branch.days : path.days;
   // Opens on the first day you play (a held day says so in the strip above).
-  const chosen = path.days.find((d) => d.day === day) ?? path.days.find((d) => d.play) ?? path.days[0] ?? null;
-  // Only the chosen day's lineups are built: the climb compares days without them.
-  const plan = useMemo(() => (chosen?.play ? planDay(chosen.list, steps.map((s) => (s.number === chosen.step ? { ...s, lives: chosen.play } : s)), chosen.step, captainBonus) : []), [chosen, steps, captainBonus]);
+  const chosen = shown.find((d) => d.day === day) ?? shown.find((d) => d.play) ?? shown[0] ?? null;
+  // Only the chosen day's lineups are built: the climb compares days without them. A held day shows its best lineup, not played.
+  const plan = useMemo(() => (chosen?.play || chosen?.can ? planDay(chosen.list, steps.map((s) => (s.number === chosen.step ? { ...s, lives: chosen.play || 1 } : s)), chosen.step, captainBonus) : []), [chosen, steps, captainBonus]);
+  const held = !!chosen && !chosen.play;
+  // What follows the chosen leg when it clears and when it misses.
+  const outcomes = useMemo(() => (chosen?.play ? ([true, false] as const).map((cleared) => ({ cleared, days: path.after(chosen, cleared) })) : []), [chosen, path]);
+  const follow = (cleared: boolean, days: ClimbDay[]) => {
+    const upTo = shown.slice(0, shown.indexOf(chosen!) + 1);
+    setBranch({ of: path, days: [...upTo, ...days], label: `${cleared ? "if" : "if all miss on"} ${legDays(chosen!)}` });
+    const next = days.find((d) => d.play) ?? days[0];
+    if (next) { setDay(next.day); setDeck(0); }
+  };
   const [deck, setDeck] = useState(0);
   const onDeck: Planned | undefined = plan[Math.min(deck, plan.length - 1)];
   // The headline: the highest step still ahead with a real chance (one in four or better), else the step you are on.
@@ -311,7 +323,7 @@ function PickDay({ arcade, outlooks, captainBonus, now, end }: { arcade: Arcade;
   const headline = [...ahead].reverse().find((s) => (odds[s.number] ?? 0) >= 0.25) ?? ahead[0] ?? null;
   const lives = start.step === current ? start.lives : 0;
   // Each step's own leg on the likely path: its days and the lineup planned for it.
-  const legOf = (n: number) => path.days.find((d) => d.step === n && d.play) ?? null;
+  const legOf = (n: number) => shown.find((d) => d.step === n && d.play) ?? null;
   const dayClear = chosen && plan.length ? 1 - plan.filter((p) => p.step === chosen.step).reduce((m, p) => m * (1 - p.chance), 1) : chosen?.clear ?? 0;
 
   if (!byDay.length) return <p className="arc-note">No game of your cards is left before the set ends.</p>;
@@ -333,8 +345,10 @@ function PickDay({ arcade, outlooks, captainBonus, now, end }: { arcade: Arcade;
         </p>
       ) : waiting.length ? <p className="arc-warn">You already have {waiting.length} lineup{waiting.length > 1 ? "s" : ""} waiting on step {current}: if one clears it, a planned lineup whose first game has started by then is lost; one not started moves on.</p> : null}
       <div className="arc-days" role="group" aria-label="Day">
-        {path.days.map((d) => <button key={d.day} type="button" aria-pressed={d === chosen} onClick={() => { setDay(d.day); setDeck(0); }}>{d.to === d.day ? dayOf(d.day) : legDays(d)} · {d.play ? `step ${d.step}, play ${d.play}` : "hold"}</button>)}
+        {shown.map((d) => <button key={d.day} type="button" aria-pressed={d === chosen} onClick={() => { setDay(d.day); setDeck(0); }}>{d.to === d.day ? dayOf(d.day) : legDays(d)} · {d.play ? `step ${d.step}, play ${d.play}` : "hold"}</button>)}
+        {branch?.of === path ? <button type="button" className="arc-branch-back" onClick={() => { setBranch(null); setDay(null); setDeck(0); }}>Back to the likely plan</button> : null}
       </div>
+      {branch?.of === path ? <p className="arc-sub">Showing the plan {branch.label}.</p> : null}
       <div className="arc-climb-grid">
         <section className="arc-tower" aria-labelledby="arc-tower-title">
           <h3 id="arc-tower-title">The tower</h3>
@@ -366,8 +380,8 @@ function PickDay({ arcade, outlooks, captainBonus, now, end }: { arcade: Arcade;
               <h3 id="arc-dep-title">Departures · {chosen ? (chosen.to === chosen.day ? dayOf(chosen.day) : legDays(chosen)) : ""}</h3>
               <span>each in the order it settles</span>
             </div>
-            {chosen && chosen.play ? (
-              <ol className="arc-dep-rows">
+            {plan.length ? (
+              <ol className={`arc-dep-rows${held ? " is-held" : ""}`}>
                 {plan.map((p, i) => {
                   const games = [...new Map(p.lineup.picks.map((x) => [x.outlook.game.id, x.outlook.game])).values()];
                   return (
@@ -389,17 +403,33 @@ function PickDay({ arcade, outlooks, captainBonus, now, end }: { arcade: Arcade;
                 <b>{chosen.play ? `Play ${chosen.play} lineup${chosen.play > 1 ? "s" : ""} on step ${chosen.step}: ${pct(dayClear)} that one clears it.` : `Hold: keep your ${chosen.lives} ${chosen.lives === 1 ? "life" : "lives"} on step ${chosen.step}.`}</b>
                 {" "}{chosen.play ? (chosen.play < chosen.lives ? `The other ${chosen.lives - chosen.play} wait for a better day.` : "")
                   : !chosen.can ? "That day's games cannot fill a lineup from your free cards."
-                  : chosen === path.days.at(-1) ? "No lineup that day has a real chance; a miss costs a life, and losing the last sends you back to step 1."
+                  : chosen === shown.at(-1) ? "No lineup that day has a real chance; a miss costs a life, and losing the last sends you back to step 1."
                   : "Later days give a better chance with your cards; a miss here costs a life, and losing the last sends you back to step 1."}
-                {" "}{chosen.to === chosen.day ? "This day" : `${legDays(chosen)} (lineups take games from these days)`} starts on step {chosen.step} with {chosen.lives} {chosen.lives === 1 ? "life" : "lives"}{chosen === path.days[0] ? "" : ", if the days before go as planned; a miss there means the plan is rebuilt from where you are"}.
+                {held && plan[0] ? ` Its best lineup has ${pct(plan[0].chance)} at step ${chosen.step} (below, not played).` : ""}
+                {" "}{chosen.to === chosen.day ? "This day" : `${legDays(chosen)} (lineups take games from these days)`} starts on step {chosen.step} with {chosen.lives} {chosen.lives === 1 ? "life" : "lives"}{chosen === shown[0] ? "" : ", if the days before go as shown"}.
               </p>
+            ) : null}
+            {outcomes.length ? (
+              <div className="arc-outcomes" role="group" aria-label="What comes next">
+                {outcomes.map(({ cleared, days }) => {
+                  const next = days.find((d) => d.play) ?? null;
+                  const result = cleared ? `step ${chosen!.step} cleared`
+                    : chosen!.lives - chosen!.play > 0 ? `${chosen!.lives - chosen!.play} ${chosen!.lives - chosen!.play === 1 ? "life" : "lives"} left on step ${chosen!.step}` : "back to step 1";
+                  return (
+                    <button key={String(cleared)} type="button" disabled={!next} onClick={() => follow(cleared, days)}>
+                      <b>{cleared ? (chosen!.play > 1 ? "If one clears" : "If it clears") : (chosen!.play > 1 ? "If all miss" : "If it misses")}</b>
+                      <span>{result}{next ? `: then ${legDays(next)}, step ${next.step}, play ${next.play}, ${pct(next.clear)}` : cleared && chosen!.step >= (boardSteps.at(-1)?.number ?? 0) ? ": the top of the board" : ": no day left to play"}</span>
+                    </button>
+                  );
+                })}
+              </div>
             ) : null}
           </section>
           {onDeck ? (
             <section className="arc-deck" aria-labelledby="arc-deck-title">
               <Ring lineup={onDeck.lineup} target={steps.find((s) => s.number === onDeck.step)?.target ?? 0} />
               <div className="arc-deck-body">
-                <h3 id="arc-deck-title">Lineup {Math.min(deck, plan.length - 1) + 1} boards {weekday(madridDate(onDeck.lineup.first))} {madridTime(onDeck.lineup.first)}</h3>
+                <h3 id="arc-deck-title">{held ? `Not played: the best lineup ${weekday(madridDate(onDeck.lineup.first))}` : `Lineup ${Math.min(deck, plan.length - 1) + 1} boards ${weekday(madridDate(onDeck.lineup.first))}`} {madridTime(onDeck.lineup.first)}</h3>
                 <p className="arc-sub">Step {onDeck.step} · settles about {madridTime(onDeck.settles)}</p>
                 {onDeck.lostIf !== null ? <p className="arc-warn">Its first game starts before Lineup {onDeck.lostIf + 1} settles: if Lineup {onDeck.lostIf + 1} clears step {onDeck.step}, this one is lost.</p> : null}
                 {onDeck.after !== null && onDeck.lostIf === null ? <p className="arc-sub">If Lineup {onDeck.after + 1} misses, this one retries step {onDeck.step}.</p> : null}

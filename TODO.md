@@ -16,6 +16,21 @@ item, what you said and why; the order, the steps and the results live in the ro
 
 ---
 
+## Arcade: the climb shows one path, packs need filters (you, 22 Oct 2026)
+
+Seen on his page at 15:00 (step 3, 4 lives): days "Thu 22 · hold", "Fri–Sat · step 3, play 2" (23% + 29%, 45% together),
+"Sun · step 3, play 2" (54% + 33%, 69%), "Mon · step 4, play 2" (3%, 0%).
+
+1. **"Each pack, by new players": filters Bronze, Silver, Gold, Special.** Fifteen packs in one list (Gold/Silver/Bronze per league,
+   Live Today, Goalkeeper Pack). Built 22 Oct: chips over the list; the Open next card follows the chip.
+2. **"It added 2 teams in step 3 and expects them to pass; what if they don't?"** The climb drew only its likely path: a leg under 50%
+   as a miss (Fri–Sat → Sun retries step 3), one over 50% as a clear (Sun → Mon on step 4). The other outcome (and a miss with the last
+   lives: back to step 1) was in the odds but never shown. Built 22 Oct: every played leg has "If one clears" and "If all miss",
+   each opening that path with its own days and lineups.
+3. **"I can't see next step lineups."** Same cause: if Fri–Sat clears, step 4 starts Sunday, a path the page never drew. Fixed by 2.
+4. **"It skipped today's games."** Thursday is a hold day (the look-ahead finds its European games' lineups weaker than Fri–Sat's and
+   keeps the lives), but a hold day showed no lineup at all. Built 22 Oct: a hold day shows its best lineup and its chance, marked as not played.
+
 ## Arcade is not what was planned (you, 21 Oct 2026, evening)
 
 Your words: "I feel its not how its supposed to be", "I told you that i need to climb fast, i need a good plan, there is only 4 days

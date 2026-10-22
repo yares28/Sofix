@@ -718,8 +718,9 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later; 
   one with its five cards. A lineup may take games from up to 3 days in a row, so a thin day (Thursday's European games, Friday's few
   league games) joins the next instead of being skipped. The strip says, for every day or span left, how many lineups to play on which
   step, or **Hold** to keep lives for a better day (losing a step's last life sends you back to step 1; rewards won stay won). It plans
-  past a step whose lives are all waiting, and past a cleared step you have not claimed. A miss is not planned around in advance: read
-  again once it settles and the plan is rebuilt from where you are.
+  past a step whose lives are all waiting, and past a cleared step you have not claimed. The strip draws the likely path; under a played
+  day, **If one clears** and **If all miss** open the other outcome (the next step's days and lineups, or the retry with the lives left,
+  or step 1 after the last one), and **Back to the likely plan** returns. A **Hold** day still shows its best lineup and chance, not played.
 - **Pick teams**: games as tickets with Sofix's difficulty for both clubs; **Easiest games** picks those where one of your clubs is
   favourite on Sofix's board. The best five stand on a pitch, and **Where it lands** gives the chance at every step.
 - **Your lineups on Sorare**: each lineup you entered, as a race to the target: points so far, what its cards still to play add at
@@ -733,7 +734,7 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later; 
   newest saved reading shows on any visit. Your cards are kept in this browser and read again only when Sorare's count changes (a pack
   opened). The page opens on your last read board, dated, while Sorare is asked what changed; if Sorare cannot be read, it stays and says why.
 - **Packs**: **Work out the best pack** reads Sorare's odds and opens on the pack you can afford that gives the most players you do not
-  have yet, with every pack's count. **Today's missions**: Sorare's General daily missions (its Play missions window, extension
+  have yet, with every pack's count; **Bronze / Silver / Gold / Special** (Live Today, Goalkeeper Pack) filter the list and the pick. **Today's missions**: Sorare's General daily missions (its Play missions window, extension
   0.4.16), each with a progress ring. A streak gets your best five from this week's games and its chance; a Decisive Player Picker ranks
   your cards playing that day by start % × how often each did the counted actions in his last 10 games ("too few games to tell" under 3).
   Once you have picked, it shows your pick's chance and names a better one while Sorare still lets you change it.

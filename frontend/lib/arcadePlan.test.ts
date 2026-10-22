@@ -155,6 +155,18 @@ describe("Pick a day", () => {
     expect(fromOne.odds[3] ?? 0).toBe(0);
   });
 
+  it("shows the other outcome of a played leg: the next step if it clears, a retry with the lives left if it misses", () => {
+    const days: [string, Outlook[]][] = [
+      ["2026-10-24", squad(at("G1", "2026-10-24T12:00:00Z"), "a", 80)],
+      ["2026-10-25", squad(at("G2", "2026-10-25T12:00:00Z"), "b", 80)],
+    ];
+    const path = climb(days, steps, { step: 2, lives: 3, notBefore: null, held: [] }, 0.5);
+    const first = path.days[0]!;
+    expect(first.play).toBeGreaterThan(0);
+    expect(path.after(first, true).map((d) => [d.day, d.step, d.lives])).toEqual([["2026-10-25", 3, 4]]);
+    expect(path.after(first, false).map((d) => [d.day, d.step, d.lives])).toEqual([["2026-10-25", first.lives - first.play > 0 ? 2 : 1, first.lives - first.play > 0 ? first.lives - first.play : 4]]);
+  });
+
   it("builds a lineup across days when no single day fills one, so Thursday's European games and Friday's league games are not skipped", () => {
     const thu = at("UEL", "2026-10-22T19:00:00Z");
     const fri = at("FRI", "2026-10-23T19:00:00Z");

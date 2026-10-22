@@ -67,6 +67,8 @@ export type ArcadeMission = {
   stats: string[];
   start: string | null;
   picked: string[];
+  /** True once a pick's game has started: Sorare no longer lets it be changed. */
+  pickLocked: boolean;
 };
 /** A game the set board can be played on (`CareerBoard.pickableGames`). */
 export type ArcadeGame = {
@@ -188,10 +190,11 @@ const LineupsData = z.object({
   }).nullable(),
 });
 
+/** Sorare's General daily missions (`setPlayTasks`, extension 0.4.16); an older extension sends the dead Common streaks, read as none. */
+export const ARCADE_MISSIONS_VERSION = "0.4.16";
 const MissionsData = z.object({
   currentUser: z.object({
-    taskGroup: z.object({
-      myTasks: z.array(z.object({
+    setPlayTasks: z.array(z.object({
         __typename: s,
         id: opt(s),
         title: opt(s),
@@ -206,7 +209,6 @@ const MissionsData = z.object({
         decisiveStats: opt(z.array(z.object({ name: s }))),
         startDate: opt(s),
       })),
-    }).nullable(),
   }).nullable(),
 });
 
@@ -419,8 +421,8 @@ export function parseArcade(arcade: unknown, lineups: unknown, missions: unknown
   });
 
   const readMissions = MissionsData.safeParse(missions);
-  const missionList: ArcadeMission[] = (readMissions.success ? readMissions.data.currentUser?.taskGroup?.myTasks ?? [] : [])
-    .filter((t) => t.id)
+  const missionList: ArcadeMission[] = (readMissions.success ? readMissions.data.currentUser?.setPlayTasks ?? [] : [])
+    .filter((t) => t.id && (t.__typename === "DecisivePlayerPickerTask" || t.__typename === "ThresholdsStreakTask"))
     .map((t) => ({
       id: t.id as string,
       kind: t.__typename,
@@ -436,6 +438,7 @@ export function parseArcade(arcade: unknown, lineups: unknown, missions: unknown
       stats: (t.decisiveStats ?? []).map((d) => d.name),
       start: t.startDate ?? null,
       picked: (t.taskAppearances ?? []).flatMap((a) => { const p = z.object({ anyPlayer: z.object({ slug: s }) }).safeParse(a); return p.success ? [p.data.anyPlayer.slug] : []; }),
+      pickLocked: (t.taskAppearances ?? []).some((a) => z.object({ locked: z.literal(true) }).safeParse(a).success),
     }));
 
   return {
@@ -524,6 +527,7 @@ export async function readArcade(timeoutMs = 25_000): Promise<ArcadeRead> {
   // A part Sorare refused is said, never shown as "none".
   const unread = [["your lineups", lineups], ["today's missions", missions]].flatMap(([label, part]) => (typeof part === "object" && "failed" in part ? [`${label} (${part.failed})`] : []));
   if (gamesFailed) unread.push(`the board's games (${gamesFailed})`);
+  if (!extensionAtLeast(extension.version, ARCADE_MISSIONS_VERSION)) unread.push(`today's missions (need extension ${ARCADE_MISSIONS_VERSION}: reload it on chrome://extensions)`);
   return { state: "ok", arcade, unread: unread as string[] };
 }
 

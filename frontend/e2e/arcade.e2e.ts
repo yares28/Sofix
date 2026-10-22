@@ -32,7 +32,7 @@ const ANSWERS: Record<string, unknown> = {
     },
   },
   "arcade-lineups": { currentUser: { setBoard: { steps: [] } } },
-  "arcade-missions": { currentUser: { taskGroup: { myTasks: [] } } },
+  "arcade-missions": { currentUser: { setPlayTasks: [] } },
   "arcade-games": { currentUser: { setBoard: { pickableGames: { nodes: [{ game: { id: GAME, date: KICKOFF, statusTyped: "scheduled",
     competition: { slug: "laliga-es", displayName: "LALIGA EA Sports" }, homeTeam: { slug: "club", name: "Club" }, awayTeam: { slug: "rival", name: "Rival" } } }],
     pageInfo: { hasNextPage: false, endCursor: null } } } } },
@@ -225,10 +225,10 @@ test("a LaLiga streak mission gets Sofix's best five for its target, and a Decis
   const g = (mins: number, goals: number) => ({ anyPlayerGameStats: { minsPlayed: mins }, detailedScore: goals ? [{ stat: "goals", statValue: goals }] : [] });
   await withExtension(page, {
     ...ANSWERS,
-    "arcade-missions": { currentUser: { taskGroup: { myTasks: [
+    "arcade-missions": { currentUser: { setPlayTasks: [
       { __typename: "ThresholdsStreakTask", id: "t1", title: "LALIGA EA SPORTS Common", description: "Score 300+ in the LALIGA EA SPORTS Common competition", progress: 2, target: 5, expired: false, rewardConfigs: [] },
       { __typename: "DecisivePlayerPickerTask", id: "t2", title: "Decisive Picker", description: "Pick 2 players to score or assist", maxAppearancesCount: 2, expired: false, startDate: KICKOFF, decisiveStats: [{ name: "goals" }], taskAppearances: [], rewardConfigs: [] },
-    ] } } },
+    ] } },
     // Player One scored in 2 of his 4 games, Forward Six in 1 of 4; the others never, and Keeper Two has played too few games to tell.
     "arcade-decisive": { players: [
       { slug: "p", playerGameScores: [g(90, 1), g(90, 0), g(90, 1), g(80, 0)] },
@@ -246,4 +246,26 @@ test("a LaLiga streak mission gets Sofix's best five for its target, and a Decis
   await expect(picks.first()).toContainText("Player One");
   await expect(picks.first()).toContainText("did it in 50% of his games");
   await expect(missions.locator(".arc-picks")).toContainText("too few games to tell");
+});
+
+test("a Decisive Player Picker already filled shows your pick's chance, and a better pick while it can still be changed", async ({ page }) => {
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
+  const g = (mins: number, goals: number) => ({ anyPlayerGameStats: { minsPlayed: mins }, detailedScore: goals ? [{ stat: "goals", statValue: goals }] : [] });
+  await withExtension(page, {
+    ...ANSWERS,
+    "arcade-missions": { currentUser: { setPlayTasks: [
+      { __typename: "DecisivePlayerPickerTask", id: "t2", title: "Decisive Player Picker", description: "", maxAppearancesCount: 1, expired: false, startDate: KICKOFF,
+        decisiveStats: [{ name: "goals" }], taskAppearances: [{ locked: false, anyPlayer: { slug: "f2" } }], rewardConfigs: [] },
+    ] } },
+    // Player One scored in 2 of his 4 games, Forward Six (your pick) in 1 of 4.
+    "arcade-decisive": { players: [
+      { slug: "p", playerGameScores: [g(90, 1), g(90, 0), g(90, 1), g(80, 0)] },
+      { slug: "f2", playerGameScores: [g(90, 1), g(90, 0), g(90, 0), g(90, 0)] },
+    ] },
+  }, "0.4.16");
+  await page.goto("/arcade");
+  const missions = page.locator(".arc-missions");
+  await expect(missions.getByRole("heading", { name: "Today's missions" })).toBeVisible();
+  await expect(missions).toContainText("Swap Forward Six (25%) for Player One (50%).");
+  await expect(missions.locator(".arc-picks li.is-yours")).toContainText("Your pick");
 });

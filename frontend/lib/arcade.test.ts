@@ -68,15 +68,18 @@ describe("arcade read", () => {
   });
 
   it("reads a streak's progress and a picker's picks, each only for its own kind", () => {
-    const missions = { currentUser: { taskGroup: { myTasks: [
+    // Sorare's General daily missions (setPlayTasks, as its Play missions window read them 22 Oct 2026); a track of steps is not a mission.
+    const missions = { currentUser: { setPlayTasks: [
+      { __typename: "TasksTrack", id: "track", title: "Social" },
       { __typename: "ThresholdsStreakTask", id: "t1", title: "LALIGA EA SPORTS Common", description: "Score 400+", progress: 2, target: 5, expired: false, rewardConfigs: [{ __typename: "CardShardRewardConfig", rarity: "common", quantity: 2000 }] },
-      { __typename: "DecisivePlayerPickerTask", id: "t2", title: "Pick", maxAppearancesCount: 3, taskAppearances: [{}] },
-      { __typename: "SomethingElse" },
-    ] } } };
+      { __typename: "DecisivePlayerPickerTask", id: "t2", title: "Decisive Player Picker", maxAppearancesCount: 1, taskAppearances: [{ locked: false, anyPlayer: { slug: "georginio-rutter" } }] },
+    ] } };
     const read = parseArcade(main, null, missions, [])?.missions;
     expect(read).toHaveLength(2);
     expect(read?.[0]).toMatchObject({ progress: 2, target: 5, picks: null, rewards: ["2,000 essence"] });
-    expect(read?.[1]).toMatchObject({ picks: 1, maxPicks: 3 });
+    expect(read?.[1]).toMatchObject({ picks: 1, maxPicks: 1, picked: ["georginio-rutter"], pickLocked: false });
+    // The older Common panel (an older extension) is read as no missions, never as today's.
+    expect(parseArcade(main, null, { currentUser: { taskGroup: { myTasks: missions.currentUser.setPlayTasks } } }, [])?.missions).toEqual([]);
   });
 
   it("says when the card read stopped early, and refuses a signed-out answer", () => {

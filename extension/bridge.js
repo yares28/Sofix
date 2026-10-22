@@ -246,15 +246,15 @@
           taskAppearances { id index captain positions score locked bonus
             anyCard { slug } player { slug displayName } game { id date } } } } } } } }`,
 
-    // Today's common-card missions (Sorare's Missions > Common panel: the Decisive Picker when there is one, and the streaks), with
-    // their rewards, your picks and your progress.
-    SofixArcadeMissions: `query SofixArcadeMissions { currentUser { taskGroup(slug: "play") {
-      myTasks(sport: FOOTBALL, rarity: common, includingArchived: false) { __typename
+    // Today's General daily missions (Sorare's Play missions window, `setPlayTasks`, seen 22 Oct 2026: the Decisive Player Picker, some
+    // days more), with their rewards, your picks and your progress. The older Common panel's streaks could no longer be played.
+    SofixArcadeMissions: `query SofixArcadeMissions { currentUser {
+      setPlayTasks(sport: FOOTBALL) { __typename
         ... on DecisivePlayerPickerTask { id title description mode maxAppearancesCount periodicity aasmState expired startDate taskConfigSlug
           decisiveStats { name } statThresholds { stat min }
           rewardConfigs { ${REWARDS} }
           taskAppearances { id status locked score target anyCard { slug } anyPlayer { slug } game { id date } } }
-        ... on ThresholdsStreakTask { id title description progress target expired rewardConfigs { ${REWARDS} } } } } } }`,
+        ... on ThresholdsStreakTask { id title description progress target expired rewardConfigs { ${REWARDS} } } } } }`,
 
     // Your common cards, 100 at a time; the app keeps the current set's.
     SofixArcadeCards: (variables) => {

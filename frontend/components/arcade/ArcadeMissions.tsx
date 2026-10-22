@@ -33,13 +33,16 @@ function Streak({ mission, outlooks }: { mission: ArcadeMission; outlooks: Map<s
 function Decisive({ mission, outlooks }: { mission: ArcadeMission; outlooks: Map<string, Outlook[]> }) {
   const [now] = useState(() => Date.now());
   const day = madridDate(new Date(Math.max(now, Date.parse(mission.start ?? "") || now)).toISOString());
+  // The day's players still to kick off, plus your own picks (ranked with them, even once their game has started).
   const candidates = useMemo(() => {
     const byPlayer = new Map<string, Outlook>();
     for (const o of [...outlooks.values()].flat()) {
-      if (madridDate(o.game.kickoff) !== day || Date.parse(o.game.kickoff) <= now || mission.picked.includes(o.card.player)) continue;
+      const mine = mission.picked.includes(o.card.player);
+      if (madridDate(o.game.kickoff) !== day || (!mine && Date.parse(o.game.kickoff) <= now)) continue;
       if (!byPlayer.has(o.card.player)) byPlayer.set(o.card.player, o);
     }
-    return [...byPlayer.values()].sort((a, b) => (b.start ?? 1) * (b.score ?? 0) - (a.start ?? 1) * (a.score ?? 0)).slice(0, 40);
+    const ranked = [...byPlayer.values()].sort((a, b) => (b.start ?? 1) * (b.score ?? 0) - (a.start ?? 1) * (a.score ?? 0));
+    return [...ranked.filter((o) => mission.picked.includes(o.card.player)), ...ranked.filter((o) => !mission.picked.includes(o.card.player)).slice(0, 40)];
   }, [outlooks, day, now, mission.picked]);
   const [picks, setPicks] = useState<DecisivePick[] | "reading" | null>("reading");
   useEffect(() => {
@@ -51,14 +54,28 @@ function Decisive({ mission, outlooks }: { mission: ArcadeMission; outlooks: Map
     return () => { live = false; };
   }, [candidates, mission.stats]);
   const open = Math.max(0, (mission.maxPicks ?? 0) - (mission.picks ?? 0));
-  if (!open) return null;
   if (picks === "reading") return <p className="arc-note" role="status">Reading what your players did in their last games…</p>;
   if (!picks) return <p className="arc-note">Sorare did not give your players&apos; last games; read again in a minute.</p>;
-  if (!picks.length) return <p className="arc-note">None of your cards plays that day.</p>;
+  const yours = picks.filter((p) => mission.picked.includes(p.outlook.card.player));
+  const others = picks.filter((p) => !mission.picked.includes(p.outlook.card.player));
+  if (!yours.length && !others.length) return <p className="arc-note">None of your cards plays that day.</p>;
+  // Your weakest pick against the best one you have not made: worth a swap while Sorare still lets you change it.
+  const weakest = [...yours].sort((a, b) => (a.chance ?? -1) - (b.chance ?? -1))[0];
+  const better = !open && weakest && !mission.pickLocked && others[0] && (others[0].chance ?? -1) > (weakest.chance ?? -1) + 0.05 ? others[0] : null;
+  const shown = [...yours, ...others.slice(0, Math.max(open, better ? 1 : 0, 3 - yours.length))];
   return (
+    <>
+      {yours.length ? (
+        <p className={`arc-advice${better ? "" : " is-play"}`}>
+          <b>{better
+            ? `Swap ${weakest!.outlook.card.name} (${weakest!.chance === null ? "too few games to tell" : pct(weakest!.chance)}) for ${better.outlook.card.name} (${pct(better.chance!)}).`
+            : `Your pick ${yours.map((p) => `${p.outlook.card.name}: ${p.chance === null ? "too few games to tell" : pct(p.chance)}`).join(", ")}.`}</b>
+          {" "}{mission.pickLocked ? "Locked: its game has started." : better ? "You can still change it on Sorare until his game starts." : "No better pick among your cards that day."}
+        </p>
+      ) : null}
     <ol className="arc-picks">
-      {picks.slice(0, Math.max(open, 3)).map((p, i) => (
-        <li key={p.outlook.card.slug} className={i < open ? "is-pick" : undefined}>
+      {shown.map((p) => (
+        <li key={p.outlook.card.slug} className={mission.picked.includes(p.outlook.card.player) ? "is-yours" : others.indexOf(p) < open ? "is-pick" : undefined}>
           {p.outlook.card.picture
             // eslint-disable-next-line @next/next/no-img-element -- Sorare's card art, as on the other pages
             ? <img src={p.outlook.card.picture} alt={p.outlook.card.name} width={120} height={194} loading="lazy" />
@@ -67,9 +84,11 @@ function Decisive({ mission, outlooks }: { mission: ArcadeMission; outlooks: Map
           <span className="arc-card-name">{p.outlook.card.name}</span>
           <span className="arc-meta"><StartLabel outlook={p.outlook} /> · {madridTime(p.outlook.game.kickoff)}</span>
           <span className="arc-meta">{p.rate === null ? "too few games to tell" : `did it in ${pct(p.rate)} of his games`}</span>
+          {mission.picked.includes(p.outlook.card.player) ? <span className="arc-meta"><b>Your pick</b></span> : null}
         </li>
       ))}
     </ol>
+    </>
   );
 }
 
@@ -77,7 +96,7 @@ export default function ArcadeMissions({ arcade, outlooks }: { arcade: Arcade; o
   const missions = arcade.missions.filter((m) => !m.expired);
   return (
     <section aria-labelledby="arc-missions-title" className="arc-missions">
-      <h2 id="arc-missions-title">Today&apos;s common missions</h2>
+      <h2 id="arc-missions-title">Today&apos;s missions</h2>
       {missions.length ? (
         <ul className="arc-ringlist">
           {missions.map((m, i) => {
@@ -102,7 +121,7 @@ export default function ArcadeMissions({ arcade, outlooks }: { arcade: Arcade; o
             );
           })}
         </ul>
-      ) : <p>Sorare has no common mission for you today.</p>}
+      ) : <p>Sorare has no daily mission for you today.</p>}
     </section>
   );
 }

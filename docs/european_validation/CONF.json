@@ -1,0 +1,316 @@
+{
+  "competition": "CONF",
+  "football": {
+    "games": 447,
+    "model": {
+      "rps": 0.23773796229068742,
+      "brier": 0.6426351182546817,
+      "logLoss": 1.0717924297147883
+    },
+    "base": {
+      "rps": 0.23281876521294825,
+      "brier": 0.6313121773102822,
+      "logLoss": 1.0466687467305409
+    },
+    "plainPoisson": {
+      "rps": 0.23192515569190644,
+      "brier": 0.6303352923668287,
+      "logLoss": 1.045636999637879
+    },
+    "versusBase": {
+      "difference": 0.0049191970777391625,
+      "lo": -0.009725605364341633,
+      "hi": 0.018787893175706945,
+      "weeks": 46,
+      "draws": 2000,
+      "seed": 20261023
+    },
+    "cleanSheet": {
+      "h": {
+        "predicted": 0.33559927026701564,
+        "observed": 0.3400447427293065
+      },
+      "a": {
+        "predicted": 0.24915254333834377,
+        "observed": 0.21700223713646533
+      }
+    },
+    "goalsMAE": 1.0235190796140143,
+    "ranking": {
+      "favouredSideWinRate": 0.4720357941834452,
+      "basis": "within-fixture strength ranking; no domestic-style UEFA table simulation"
+    },
+    "subgroups": {
+      "season2023": {
+        "games": 141,
+        "rps": 0.2435329057408363,
+        "brier": 0.6645709135837866,
+        "logLoss": 1.09856732816403
+      },
+      "season2024": {
+        "games": 153,
+        "rps": 0.2337984098878314,
+        "brier": 0.6270958715699941,
+        "logLoss": 1.0519550306568144
+      },
+      "season2025": {
+        "games": 153,
+        "rps": 0.23633707661203374,
+        "brier": 0.6379590241458806,
+        "logLoss": 1.066954922358755
+      },
+      "coldClub": {
+        "games": 187,
+        "rps": 0.23762393051271016,
+        "brier": 0.6337207094637684,
+        "logLoss": 1.0655314925645234
+      },
+      "neutral": {
+        "games": 25,
+        "rps": 0.2668957774632018,
+        "brier": 0.6480109745891501,
+        "logLoss": 1.0934458865562353
+      },
+      "homeVenue": {
+        "games": 422,
+        "rps": 0.2360106035719366,
+        "brier": 0.6423166433533507,
+        "logLoss": 1.0705096419872144
+      },
+      "group": {
+        "games": 96,
+        "rps": 0.21964559824045615,
+        "brier": 0.5873333152751264,
+        "logLoss": 0.989569705350072
+      },
+      "league": {
+        "games": 216,
+        "rps": 0.23276660436041705,
+        "brier": 0.6402730875247079,
+        "logLoss": 1.0714351198229422
+      },
+      "knockout": {
+        "games": 135,
+        "rps": 0.25855781608150674,
+        "brier": 0.6857400939858794,
+        "logLoss": 1.130833618423318
+      },
+      "horizon0to2days": {
+        "games": 13,
+        "rps": 0.22233408172443822,
+        "brier": 0.6944570321936717,
+        "logLoss": 1.1284871667641976
+      },
+      "horizon2to4days": {
+        "games": 434,
+        "rps": 0.23819936885142765,
+        "brier": 0.6410828489431453,
+        "logLoss": 1.0700942002639995
+      },
+      "horizon4to8days": {
+        "games": 0
+      },
+      "leg1": {
+        "games": 66,
+        "rps": 0.24865126660204698,
+        "brier": 0.6607675250078009,
+        "logLoss": 1.0932513027071216
+      },
+      "leg2": {
+        "games": 66,
+        "rps": 0.2726701066519991,
+        "brier": 0.7156857168016648,
+        "logLoss": 1.1754502975229617
+      }
+    },
+    "reliability": [
+      {
+        "from": 0.0,
+        "cases": 74,
+        "predicted": 0.06553651769613532,
+        "observed": 0.17567567567567569
+      },
+      {
+        "from": 0.1,
+        "cases": 248,
+        "predicted": 0.1567330500963058,
+        "observed": 0.2217741935483871
+      },
+      {
+        "from": 0.2,
+        "cases": 421,
+        "predicted": 0.2456585807080764,
+        "observed": 0.25653206650831356
+      },
+      {
+        "from": 0.30000000000000004,
+        "cases": 207,
+        "predicted": 0.34746103631079006,
+        "observed": 0.37681159420289856
+      },
+      {
+        "from": 0.4,
+        "cases": 135,
+        "predicted": 0.4512843588037452,
+        "observed": 0.43703703703703706
+      },
+      {
+        "from": 0.5,
+        "cases": 101,
+        "predicted": 0.5478020694418814,
+        "observed": 0.46534653465346537
+      },
+      {
+        "from": 0.6000000000000001,
+        "cases": 75,
+        "predicted": 0.6444087063747114,
+        "observed": 0.6133333333333333
+      },
+      {
+        "from": 0.7000000000000001,
+        "cases": 49,
+        "predicted": 0.7467478002899101,
+        "observed": 0.4897959183673469
+      },
+      {
+        "from": 0.8,
+        "cases": 23,
+        "predicted": 0.8401728297719622,
+        "observed": 0.5217391304347826
+      },
+      {
+        "from": 0.9,
+        "cases": 8,
+        "predicted": 0.9296420678710904,
+        "observed": 0.625
+      }
+    ],
+    "passed": false,
+    "rejectedBecause": [
+      "RPS improvement over competition base rate is not established",
+      "brier: loss versus competition base rate",
+      "logLoss: loss versus competition base rate"
+    ]
+  },
+  "xscore": {
+    "coverageComplete": true,
+    "cases": 3366,
+    "trainingCases": 6248,
+    "model": {
+      "rmse": 17.795778174185546,
+      "mae": 14.432768874836034,
+      "within7": 0.2611408199643494,
+      "pairs": 0.5518595041322314
+    },
+    "form": {
+      "rmse": 18.490974371731006,
+      "mae": 14.989228376198966,
+      "within7": 0.2611408199643494,
+      "pairs": 0.525103305785124
+    },
+    "ablation": {
+      "rmse": 17.82221983749887,
+      "mae": 14.459505569612908,
+      "within7": 0.2557932263814617,
+      "pairs": 0.5602789256198347
+    },
+    "versusForm": {
+      "difference": -0.6951961975454601,
+      "lo": -1.0062833998344771,
+      "hi": -0.3660970784804729,
+      "weeks": 15,
+      "draws": 2000,
+      "seed": 20261023
+    },
+    "versusAblation": {
+      "difference": -0.026441663313324426,
+      "lo": -0.17358784557899493,
+      "hi": 0.09836349517235242,
+      "weeks": 15,
+      "draws": 2000,
+      "seed": 20261023
+    },
+    "positions": {
+      "GK": {
+        "cases": 306,
+        "rmse": 18.55563775444013,
+        "formRmse": 19.164602653870237
+      },
+      "DEF": {
+        "cases": 1246,
+        "rmse": 19.454863562010665,
+        "formRmse": 20.23301245078833
+      },
+      "MID": {
+        "cases": 1096,
+        "rmse": 16.129693264296996,
+        "formRmse": 16.877880836918756
+      },
+      "FWD": {
+        "cases": 718,
+        "rmse": 16.85075016028749,
+        "formRmse": 17.35307306023735
+      }
+    },
+    "subgroups": {
+      "coldPlayer": {
+        "cases": 930,
+        "rmse": 17.405292110881817,
+        "mae": 14.288932314059988,
+        "within7": 0.24946236559139784,
+        "pairs": 0.5338134001252348
+      },
+      "extraTime": {
+        "cases": 44,
+        "rmse": 20.187376578950122,
+        "mae": 17.520327903022874,
+        "within7": 0.11363636363636363,
+        "pairs": 0.35036496350364965
+      },
+      "knockout": {
+        "cases": 990,
+        "rmse": 17.49178496455165,
+        "mae": 14.374129655814878,
+        "within7": 0.2606060606060606,
+        "pairs": 0.5564029797800638
+      },
+      "neutral": {
+        "cases": 220,
+        "rmse": 18.497600759637027,
+        "mae": 14.610085229329739,
+        "within7": 0.2590909090909091,
+        "pairs": 0.5255813953488372
+      }
+    },
+    "rejectedBecause": [
+      "FDR adds no established RMSE improvement over player history"
+    ],
+    "passed": false
+  },
+  "passed": false,
+  "caseSha256": "3adea4a72109126817583e76af6cabb364d91dd719e8562f0af3c8bc40766d80",
+  "featureSha256": "94aed885219699883d538deab640fb01327b5fe98a72daa71b9ad8adf9ef4cb8",
+  "protocolSha256": "e0ab041a5f3fc8b2e6d73f7d4b87182f127fcecab89739ae70a4c6d73d59add6",
+  "runnerSha256": "90eae8c0a2cb74fd943b81ba6a99dd95229d9c35277a53eae9dbb6e0d0461060",
+  "footballConfig": {
+    "xi": 0.001,
+    "goals_weight": 1.0,
+    "ridge": 1.0,
+    "promoted_prior": 0.0,
+    "window_days": 730,
+    "max_goals": 10,
+    "spread": 1.1
+  },
+  "dependencies": {
+    "research/european_alignment.py": "b4186a229e9d916739f851b43130198f2912d9c432b04a17e168faeade63c695",
+    "research/european_cases.py": "04b6cd23679f0c58c0bd65b87f0696302d85a1bc7e26fbbd3790e66e04f4793d",
+    "research/european_facts.py": "6714395ddfdf31f4e47946dfca91066411e78ebfe56950c50b55c7688d2ea0b2",
+    "research/european_metadata.py": "8a237f33cf165d01ac9f7a9b81caae60e0bd0d660857021032a36550e44f2366",
+    "research/european_model.py": "8cdc4878aa3741c1869838bc5c4708ed59638d52af5c60fbd3d2e522bb6fec26",
+    "research/european_validation.py": "90eae8c0a2cb74fd943b81ba6a99dd95229d9c35277a53eae9dbb6e0d0461060",
+    "research/league_xscore_validation.py": "0d03f1ebd34e63ba548785aeb95562d493d7f90a5ff591f46910aa107b810ee0",
+    "modeling/dixon_coles.py": "bd228c89866be5e3b1f714eebc74dd5b8f6fb74c511d4bd30a6c70ec0df8e2a2",
+    "sorare/keeper.py": "8ce995147c765fed2c479b0ce434cd6714020443dda01c355fb26ec7bfbeb5cd",
+    "sorare/outfield.py": "e2823098de857e9f239965302d4fb9b0e2bb6b55f95d82b69b0ffe9fda298bd0"
+  }
+}

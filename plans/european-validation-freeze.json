@@ -1,0 +1,143 @@
+{
+  "caseSha256": "3adea4a72109126817583e76af6cabb364d91dd719e8562f0af3c8bc40766d80",
+  "featureSha256": "94aed885219699883d538deab640fb01327b5fe98a72daa71b9ad8adf9ef4cb8",
+  "protocolSha256": "e0ab041a5f3fc8b2e6d73f7d4b87182f127fcecab89739ae70a4c6d73d59add6",
+  "dependencies": {
+    "research/european_alignment.py": "b4186a229e9d916739f851b43130198f2912d9c432b04a17e168faeade63c695",
+    "research/european_cases.py": "04b6cd23679f0c58c0bd65b87f0696302d85a1bc7e26fbbd3790e66e04f4793d",
+    "research/european_facts.py": "6714395ddfdf31f4e47946dfca91066411e78ebfe56950c50b55c7688d2ea0b2",
+    "research/european_metadata.py": "8a237f33cf165d01ac9f7a9b81caae60e0bd0d660857021032a36550e44f2366",
+    "research/european_model.py": "8cdc4878aa3741c1869838bc5c4708ed59638d52af5c60fbd3d2e522bb6fec26",
+    "research/european_validation.py": "90eae8c0a2cb74fd943b81ba6a99dd95229d9c35277a53eae9dbb6e0d0461060",
+    "research/league_xscore_validation.py": "0d03f1ebd34e63ba548785aeb95562d493d7f90a5ff591f46910aa107b810ee0",
+    "modeling/dixon_coles.py": "bd228c89866be5e3b1f714eebc74dd5b8f6fb74c511d4bd30a6c70ec0df8e2a2",
+    "sorare/keeper.py": "8ce995147c765fed2c479b0ce434cd6714020443dda01c355fb26ec7bfbeb5cd",
+    "sorare/outfield.py": "e2823098de857e9f239965302d4fb9b0e2bb6b55f95d82b69b0ffe9fda298bd0"
+  },
+  "footballConfig": {
+    "xi": 0.001,
+    "goals_weight": 1.0,
+    "ridge": 1.0,
+    "promoted_prior": 0.0,
+    "window_days": 730,
+    "max_goals": 10,
+    "spread": 1.1
+  },
+  "metricsOpened": false,
+  "sourceStage": "frozen before first new held-out evaluation",
+  "footballGames": 1469,
+  "starters": 32098,
+  "cohorts": {
+    "CL-2023": 125,
+    "CONF-2023": 134,
+    "EL-2023": 141,
+    "CL-2024": 189,
+    "EL-2024": 189,
+    "CONF-2024": 150,
+    "CL-2025": 189,
+    "EL-2025": 189,
+    "CONF-2025": 153
+  },
+  "trainingSourceExclusions": [
+    {
+      "competition": "CONF",
+      "season": 2023,
+      "id": "2039383",
+      "sorareId": "Game:f014d148-c342-4df4-a17c-0cf0d1709e2f",
+      "sourceSha256": "1f8afd909d287ef68e72b466c6761fcb62ce8b305de2187ea3ce0954654cd60d",
+      "reason": "owner-approved training-only incomplete source; result kept in FDR"
+    },
+    {
+      "competition": "CONF",
+      "season": 2023,
+      "id": "2039358",
+      "sorareId": "Game:f025020d-3dd0-44b5-a18f-872b058a24a2",
+      "sourceSha256": "844f6bba999be11aa3c33695c3e4e24c1f68e9170882088542273476976e8f45",
+      "reason": "owner-approved training-only incomplete source; result kept in FDR"
+    },
+    {
+      "competition": "CONF",
+      "season": 2023,
+      "id": "2039335",
+      "sorareId": "Game:d31e0795-ab28-412e-aafc-3c1eea0172ee",
+      "sourceSha256": "7bd9af81e9b8793e1fa6eabe26b04cd5c86dd868399d288510d9b98bae9c52a9",
+      "reason": "owner-approved training-only incomplete source; result kept in FDR"
+    },
+    {
+      "competition": "CONF",
+      "season": 2023,
+      "id": "2039326",
+      "sorareId": "Game:3f6b3f50-db32-4e98-8b01-fdf641d33a3a",
+      "sourceSha256": "1263a759467517917b6cd37ad69b9a1a06760dd8db349e48287e522b80600b58",
+      "reason": "owner-approved training-only incomplete source; result kept in FDR"
+    },
+    {
+      "competition": "CONF",
+      "season": 2023,
+      "id": "2039311",
+      "sorareId": "Game:4b463863-8240-4f9f-8a69-ee7539d74453",
+      "sourceSha256": "f65dc0962d8659f82c5745b55d0c2bad182fa6a956f216515a5b16c721837c3c",
+      "reason": "owner-approved training-only incomplete source; result kept in FDR"
+    },
+    {
+      "competition": "CONF",
+      "season": 2023,
+      "id": "2039302",
+      "sorareId": "Game:496f83bb-d3c1-4fc2-a44f-ef3a56c5240f",
+      "sourceSha256": "f4bdaf1be09e0ff0575f047f3c33ca9185dca13489b0814e06a7c3aec04cc809",
+      "reason": "owner-approved training-only incomplete source; result kept in FDR"
+    },
+    {
+      "competition": "CONF",
+      "season": 2023,
+      "id": "2039295",
+      "sorareId": "Game:6663cfdf-7bed-4d6f-9848-b80b0818e2b8",
+      "sourceSha256": "97387d629416e95d4cbbaaca60cd2ef54e2a6ef1f0579f0d013f4ecd863d1e83",
+      "reason": "owner-approved training-only incomplete source; result kept in FDR"
+    },
+    {
+      "competition": "CONF",
+      "season": 2024,
+      "id": "2042314",
+      "sorareId": "Game:79998c76-26af-4e6c-8b43-a09aa1ea9658",
+      "sourceSha256": "501577f3fcbee04c8be108a2bfac5f2b0cd5f210eeaa0a4bf306f6b8aa27c810",
+      "reason": "owner-approved training-only incomplete source; result kept in FDR"
+    },
+    {
+      "competition": "CONF",
+      "season": 2024,
+      "id": "2042311",
+      "sorareId": "Game:cafc90ff-21b9-4b1f-a5ff-f7624123785b",
+      "sourceSha256": "d9fe1ce6b3a93ffee6e7f2fdb84a7088f8aac1708b72734669d4bc92386f0131",
+      "reason": "owner-approved training-only incomplete source; result kept in FDR"
+    },
+    {
+      "competition": "CONF",
+      "season": 2024,
+      "id": "2042294",
+      "sorareId": "Game:6a8e004e-0367-4084-80b4-ad4585f53fcc",
+      "sourceSha256": "34ac31cf33f487be4da5c138ebc31d66b8e860fcd2776f96f4e1bda4329008c5",
+      "reason": "owner-approved training-only incomplete source; result kept in FDR"
+    }
+  ],
+  "administrativeWarmup": [
+    {
+      "competition": "EL",
+      "season": 2021,
+      "id": "2033408",
+      "status": "CANCELED"
+    },
+    {
+      "competition": "EL",
+      "season": 2021,
+      "id": "2033400",
+      "status": "CANCELED"
+    },
+    {
+      "competition": "CONF",
+      "season": 2021,
+      "id": "2033358",
+      "status": "ABANDONED"
+    }
+  ]
+}

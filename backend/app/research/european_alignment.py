@@ -13,6 +13,47 @@ from typing import Any
 from app.research.european_data import validate_page
 from app.research.league_xscore_data import when
 
+# Exact source packets reviewed before metrics. A link identifies one match only;
+# it cannot override its clubs, UTC date, score or either captured kickoff.
+KICKOFF_LINKS = {
+    ("CONF", 2025, "2046324"): (
+        "Game:65c06d8a-da06-4481-8c75-ceab14c182cc",
+        "52356",
+        "50033",
+        "rijeka-rijeka",
+        "sparta-praha-praha",
+        "2025-10-23T16:45:00Z",
+        "2025-10-24T14:00:00Z",
+    ),
+    ("EL", 2023, "2039194"): (
+        "Game:5d6a8203-b7fe-4714-afb9-5e819b6aebfd",
+        "64125",
+        "52934",
+        "union-saint-gilloise-bruxelles-brussels",
+        "toulouse-toulouse",
+        "2023-09-21T16:45:00Z",
+        "2023-09-21T16:55:00Z",
+    ),
+    ("EL", 2025, "2045825"): (
+        "Game:3d2e9a0f-e388-4380-bf24-547cede80daa",
+        "57477",
+        "52723",
+        "maccabi-tel-aviv-tel-aviv-yafa-tel-aviv",
+        "dynamo-kyiv-kyiv-kiev",
+        "2025-08-21T18:00:00Z",
+        "2025-08-21T18:15:00Z",
+    ),
+    ("EL", 2025, "2046279"): (
+        "Game:9aa4a41a-c735-4f15-8331-34e277c8fdcc",
+        "52323",
+        "61582",
+        "utrecht-utrecht",
+        "genk-genk",
+        "2026-01-22T20:00:00Z",
+        "2026-01-22T20:50:00Z",
+    ),
+}
+
 
 def align(code: str, season: int, uefa: list[dict[str, Any]], sorare: list[dict[str, Any]]) -> dict[str, Any]:
     # The complete edition can exceed a source page. Validate exact population individually.
@@ -104,6 +145,7 @@ def align(code: str, season: int, uefa: list[dict[str, Any]], sorare: list[dict[
         if not changed:
             break
     matches = []
+    kickoff_differences = []
     used: set[str] = set()
     unmatched = []
     for row in sorare:
@@ -117,6 +159,38 @@ def align(code: str, season: int, uefa: list[dict[str, Any]], sorare: list[dict[
             and (u.get("homeTeam") or {}).get("id") == mapped_home
             and (u.get("awayTeam") or {}).get("id") == mapped_away
         ]
+        if not options and mapped_home and mapped_away:
+            for native in uefa:
+                link = KICKOFF_LINKS.get((code, season, native["id"]))
+                if not link:
+                    continue
+                native_time = (native.get("kickOffTime") or {}).get("dateTime")
+                if (
+                    row["id"],
+                    mapped_home,
+                    mapped_away,
+                    (row.get("homeTeam") or {}).get("slug"),
+                    (row.get("awayTeam") or {}).get("slug"),
+                ) != link[:5]:
+                    continue
+                if (
+                    (native.get("homeTeam") or {}).get("id") != mapped_home
+                    or (native.get("awayTeam") or {}).get("id") != mapped_away
+                    or not native_time
+                    or when(native_time) != when(link[5])
+                    or when(row["date"]) != when(link[6])
+                ):
+                    continue
+                options.append(native)
+                kickoff_differences.append(
+                    {
+                        "uefa": native["id"],
+                        "sorare": row["id"],
+                        "uefaKickoff": native_time,
+                        "sorareKickoff": row["date"],
+                        "basis": "reviewed exact source fixture link; both timestamps retained",
+                    }
+                )
         if len(options) != 1:
             unmatched.append(row["id"])
             continue
@@ -142,6 +216,7 @@ def align(code: str, season: int, uefa: list[dict[str, Any]], sorare: list[dict[
         "missingUefa": missing,
         "missingSorare": unmatched,
         "conflicts": conflicts,
+        "kickoffDifferences": kickoff_differences,
         "complete": bool(uefa) and not missing and not unmatched and not conflicts,
         "modelEligible": False,
     }

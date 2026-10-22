@@ -1,6 +1,7 @@
 # Champions League, Europa League and Conference League FDR / xScore
 
-Started 23 October 2026. Status: source verification and acceptance tests; no European model enabled.
+Started 23 October 2026. Status: source-complete retrospective validation finished; CL/EL passed, CONF rejected.
+No European production model enabled yet. Continue automatic CL/EL runtime publication and product proof below.
 
 ## Requested outcome
 
@@ -10,7 +11,10 @@ club and current football player, including unowned players. Preserve the select
 bookmarks, team/player identity and all existing planning, owned-card and overlay consumers. No extra source
 tabs, manual squad maintenance or Sorare-projection replacement for an unvalidated Sofix model.
 
-Coverage includes qualifying, group/league phase and knockout fixtures. Unresolved draws remain unresolved;
+**Owner's first-release decision, 23 October:** release validated league phase and knockouts first, all 36 clubs
+in each competition; qualifying rounds remain pending and do not block this first release. Historic group stages
+remain the corresponding training population before the format change. Keep qualifying source evidence separately.
+Unresolved draws remain unresolved;
 do not invent participants, dates, odds or results. One club/player/game remains one identity across domestic
 and European views. A week containing domestic and European games must use each game's actual competition.
 FDR describes regulation time; extra time, penalties, aggregate state, administrative awards and neutral
@@ -20,12 +24,12 @@ venues remain explicit. xScore uses authentic Sorare scoring semantics, includin
 
 - [x] Read the original expansion contract and existing UEFA audit without copying its unresolved labels into training.
 - [x] Verify production health before implementation (23 Oct: all 15 routes, CI and last scheduled refresh passed).
-- [ ] Verify free current/historical fixture feeds and Sorare competition identity/coverage for CL, EL, CONF.
+- [x] Verify free current/historical fixture feeds and Sorare competition identity/coverage for CL, EL, CONF.
 - [x] Test and build a bounded, resumable UEFA source inventory retaining raw evidence and source conflicts.
-- [ ] Reconcile 2023/24–2025/26 authentic outcomes and the current full calendar; explicitly account for qualifiers.
+- [x] Reconcile 2023/24-2025/26 authentic outcomes and the current full calendar; explicitly account for qualifiers.
 - [x] Freeze European FDR and xScore protocols before inspecting accuracy metrics. Never tune on holdout.
-- [ ] Validate FDR chronology, cold clubs, connected club strength, phases, neutral venues and regulation outcomes.
-- [ ] Independently pass each competition's xScore gates against form and the no-FDR ablation, per position.
+- [x] Validate FDR chronology, cold clubs, connected club strength, phases, neutral venues and regulation outcomes.
+- [ ] Independently pass each competition's xScore gates against form and the no-FDR ablation, per position (CL/EL passed; CONF failed).
 - [ ] Implement bounded automatic calendar/squad/history publication and per-game forecast selection.
 - [ ] Add fixtures/difficulty/team/table behavior appropriate to UEFA phases and tiebreak rules.
 - [ ] Verify cold starts, selected-GW coverage, closed tabs, expiry, missing versus zero and actual source identity.
@@ -125,3 +129,93 @@ also verify period migrations keep authentic cached games and do not re-download
 
 Latest local checkpoint: 52 new European tests; `node scripts/check.mjs` passed Ruff, mypy, full backend pytest
 (71 seconds) and OpenAPI export after the source/formation fixes. No UI changes or model accuracy claim.
+
+Second source/research checkpoint shipped as `e0ae32f`. Owner explicitly approved main stages first after the
+CL/EL source audit exposed non-final/incomplete qualifying outcomes. This changes the release population, not
+the metrics gates. No metrics were opened before that decision. See the protocol amendment below.
+
+### Complete source read and Conference training gaps (before metrics)
+
+First cloud run `39866649996` completed all three collectors successfully. Conference retained 1,251 source
+responses and 165 paginated club identities, including qualifying entries outside the first-release population.
+Every main-stage fixture across all three editions is present. Rijeka–Sparta (`2046324`, Sorare
+`Game:65c06d8a-da06-4481-8c75-ceab14c182cc`) began on 23 Oct 2025 and resumed on 24 Oct, as confirmed by
+[Rijeka's contemporary report](https://nk-rijeka.hr/rijeka-sparta-10-adu-adjei-odlucio-utakmicu-koja-je-trajala-1325-minuta/).
+UEFA retains 23 Oct 16:45; Sorare has 24 Oct 14:00. Sorare's **actual** game fixture remains
+`football-21-24-oct-2025`, cutoff **21 Oct 14:00**, despite the game's later date being outside that window.
+Never assign it the later Friday lock by calendar inference. Keep this completed holdout match and all 153 holdout
+Conference main-stage fixtures; no held-out source exception is proposed.
+
+Conference has ten incomplete **training-only** games:
+
+- HJK–PAOK 21 Sep 2023 (`2039295`) and Frankfurt–HJK 26 Oct 2023 (`2039335`): missing Përparim Hetemaj score.
+- Plzeň–Ballkani 21 Sep (`2039302`), Ballkani–Dinamo 5 Oct (`2039311`), Ballkani–Astana 26 Oct (`2039326`),
+  Ballkani–Plzeň 30 Nov (`2039358`) and Dinamo–Ballkani 14 Dec 2023 (`2039383`): missing Armend Thaqi,
+  whose official Sorare profile identifies slug `armend-qazim-thaqi` (never inferred from spelling).
+- Noah–Víkingur 28 Nov (`2042294`), Víkingur–Djurgården 12 Dec (`2042311`) and LASK–Víkingur 19 Dec 2024
+  (`2042314`): missing Jón Guðni Fjóluson score.
+
+All ten whole-game responses have only 21 authentic starter scores. Five Ballkani formations also omit the missing
+player; official UEFA lineup PDFs independently name Armend Thaqi. A bounded `nodes` batch asked the singular
+`playerGameScore` for the missing identities; every exact game returned null. Each player's fully paged bounded
+`allPlayerGameScores` history returned an empty terminal page. The first large anonymous batch exceeded its
+500-complexity cap and was reduced, not retried unchanged or upgraded. Successful packets are kept under ignored
+`backend/data/raw/european-probe/{training-gaps-and-rijeka,fjoluson-history,thaqi-training-gaps}.json`.
+These reads establish the selected source gaps, not global absence from every possible feed. A documented
+training-only exception is being requested before metrics; no approval inferred yet. Preserve all ten real results
+in football history and every current squad.
+
+**Owner approved the documented training-only exception on 23 October, before metrics.** Exclude exactly those
+ten Conference games from xScore training targets and its own-score history; keep their actual results in football
+history. Training cohorts therefore require CL 314 games / 6,908 starters, EL 330 / 7,260, CONF 284 / 6,248.
+Holdout still requires CL 189 / 4,158, EL 189 / 4,158 and CONF 153 / 3,366. No held-out exception and no current-club
+exception. This approval supersedes the pending wording immediately above.
+
+The Rijeka probe also demonstrated why actual `Game.so5Fixture` must be retained for **every** source game:
+its reported date is outside its assigned window. New metadata-only `nodes` reads are batched (25 games, no nested
+bulk player-score field), joined by ID despite the provider returning a different order, and cached separately from
+raw score responses. No calendar-inferred later lock can replace an actual assignment. Source-schema check now
+reads 54 queries and six fragments with zero issues. Metadata collection is running locally against the public
+read-only API; the five new acceptance tests pass.
+
+The remaining UEFA score/venue review code has test-first proofs for stoppage time versus extra time, own-goal
+actor identity, explicit scoreless results, nonplayed awards and the exact independently corroborated Anderlecht
+training-history correction. Venue context distinguishes ordinary home games, neutral finals, documented displaced
+home policies, four exact foreign relocations and TNS's local English groundshare. Foreign country alone is never
+classified as neutral. Four current 2026/27 main league-phase regular-field conflicts retain their raw fields;
+complete goal-phase inventories reproduce full totals, and league phases cannot have extra time, so the derivation
+is explicit and remains separate from knockout period handling. New validation metrics remain unopened.
+
+
+### Frozen replay result, 23 October 2026
+
+All 531 completed holdout games passed source alignment, all 11,682 authentic starters included. The only
+player-source exclusions are the ten approved Conference training games. Football fit retained their results.
+Metadata collection completed for all 771 CL, 715 EL and 1,251 Conference source games; actual deadlines,
+including the Rijeka resumption, were used. Source cases, features, protocol and implementation hashes were
+frozen in `plans/european-validation-freeze.json` before opening the first new metrics. The replay contains
+2,280 reviewed football-history games, 1,469 evaluated football games and 32,098 admitted player starts.
+
+The full reports are committed in `docs/european_validation/`. These are retrospective held-out results,
+not a new blind sample. No tuning or re-selection is authorized after seeing these results.
+
+- CL passed FDR: RPS 0.195781 versus base 0.236334; paired weekly CI for difference [-0.050397, -0.030876].
+  xScore RMSE 18.653779 versus form 19.823903 and no-FDR 19.124547. Both improvement CIs below zero;
+  every position improves on form, with no within-7 or pair-ordering loss.
+- EL passed FDR: RPS 0.208142 versus base 0.230160; paired weekly CI [-0.033495, -0.010133].
+  xScore RMSE 17.959952 versus form 18.890877 and no-FDR 18.272720. Both improvement CIs below zero;
+  every position improves on form, with no within-7 or pair-ordering loss.
+- CONF failed FDR: RPS 0.237738 versus base 0.232819; difference CI [-0.009726, 0.018788], with Brier and
+  log-loss losses. Its xScore also failed the independent FDR-contribution gate: RMSE 17.795778 versus no-FDR
+  17.822220, difference CI [-0.173588, 0.098363]. Improvement versus form alone does not authorize release.
+
+CL/EL production integration may proceed independently, using the exact validated architecture and history
+population, automatic 36-club squads and per-game mixed-week model selection. Conference forecasts remain
+unavailable. Its factual source history can still inform the validated pooled football model, as in the frozen
+replay. A separately developed candidate would need prospective confirmation; do not tune on this holdout.
+No known feature substitution is accepted as completion. Current all-squad publication, browser workflow and
+production payload proof remain outstanding; neither HTTP 200 nor the replay claims those acceptance criteria.
+
+Local checkpoint: `node scripts/check.mjs` passed Ruff formatting/checks, mypy, full backend pytest (108s) and
+OpenAPI export. Focused European tests passed with temporary-file access; the sandbox alone blocked three
+atomic file-replacement tests, which passed outside that restriction. No UI behavior changed at this checkpoint.

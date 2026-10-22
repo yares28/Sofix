@@ -7,6 +7,7 @@ on:
     paths:
       - backend/app/research/european_data.py
       - backend/app/research/european_xscore_data.py
+      - backend/app/research/european_metadata.py
       - .github/workflows/european-xscore.yml
   workflow_dispatch:
     inputs:
@@ -63,6 +64,8 @@ jobs:
           retention-days: 14
       - name: Collect null-preserving source evidence
         run: python -m app.research.european_xscore_data --league ${{ matrix.league }} --seconds 2400
+      - name: Retain actual per-game Sorare deadline assignments
+        run: python -m app.research.european_metadata --league ${{ matrix.league }}
       - uses: actions/cache/save@v4
         if: always()
         with:

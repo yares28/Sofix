@@ -92,3 +92,28 @@ def test_duplicate_native_or_sorare_fixture_is_a_failure():
         align("CL", 2025, [raw, deepcopy(raw)], [source])
     with pytest.raises(ValueError, match="Repeated"):
         align("CL", 2025, [raw], [source, deepcopy(source)])
+
+
+def test_reviewed_kickoff_link_preserves_both_times_and_cannot_override_clubs_or_date():
+    raw = fixture("2046279", "52323", "61582", "2026-01-22T20:00:00Z")
+    raw["competition"].update(id="14", code="UEL")
+    source = game("Game:9aa4a41a-c735-4f15-8331-34e277c8fdcc", "52323", "61582", "2026-01-22T20:50:00Z")
+    source["homeTeam"]["slug"], source["awayTeam"]["slug"] = "utrecht-utrecht", "genk-genk"
+    result = align("EL", 2025, [raw], [source])
+    assert result["complete"] is True and result["kickoffDifferences"][0]["uefaKickoff"] == "2026-01-22T20:00:00Z"
+    assert result["kickoffDifferences"][0]["sorareKickoff"] == "2026-01-22T20:50:00Z"
+    source["awayTeam"] = {"slug": "unrelated", "name": "Unrelated"}
+    assert align("EL", 2025, [raw], [source])["matches"] == []
+    source = game("Game:9aa4a41a-c735-4f15-8331-34e277c8fdcc", "52323", "61582", "2026-01-23T20:50:00Z")
+    source["homeTeam"]["slug"], source["awayTeam"]["slug"] = "utrecht-utrecht", "genk-genk"
+    assert align("EL", 2025, [raw], [source])["matches"] == []
+
+
+def test_resumed_conference_game_keeps_original_and_resumption_dates():
+    raw = fixture("2046324", "52356", "50033", "2025-10-23T16:45:00Z")
+    raw["competition"].update(id="2019", code="UECL")
+    source = game("Game:65c06d8a-da06-4481-8c75-ceab14c182cc", "52356", "50033", "2025-10-24T14:00:00Z")
+    source["homeTeam"]["slug"], source["awayTeam"]["slug"] = "rijeka-rijeka", "sparta-praha-praha"
+    result = align("CONF", 2025, [raw], [source])
+    assert result["complete"] is True
+    assert result["kickoffDifferences"][0]["sorareKickoff"] == "2025-10-24T14:00:00Z"

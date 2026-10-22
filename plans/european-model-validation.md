@@ -5,6 +5,21 @@ earlier European research has examined historical outcomes, so no claim of a fre
 No accuracy metrics from this new source-complete replay have been opened. Source errors are resolved before
 evaluation, with receipts; domestic exceptions never authorize European exclusions.
 
+**Version 2 scope amendment before metrics, 23 Oct:** owner explicitly selected "Release validated league phase
+and knockouts first" after source collection found non-final qualifying scores. First-release training history and
+evaluation use only the group/league phase and knockouts of CL, EL and CONF. Exclude qualifying from this release
+population and from both football and player-history fit inputs, with separate phase counts preserved. All 36
+current main-stage clubs per competition remain required. Qualifying forecasts are a later separately validated
+release; do not present first-release evidence as proving qualifying accuracy. This paragraph supersedes the
+original all-phases statements below; candidate settings and statistical gates remain unchanged.
+
+**Version 3 training-source amendment before metrics, 23 Oct:** owner approved excluding the ten documented
+Conference training games `2039295`, `2039335`, `2039302`, `2039311`, `2039326`, `2039358`, `2039383`, `2042294`,
+`2042311`, `2042314`, after complete game reads, null direct player-score lookups and empty terminal histories.
+Exclude them from player training targets and own-score history, retain every actual result in FDR history.
+Keep all 153 completed Conference holdout games, including Rijeka–Sparta's resumed match. CL/EL unchanged.
+The actual per-game Sorare fixture/cutoff overrides date-window inference for all cases; no new historical projection.
+
 ## Candidate and population
 
 One fixed football candidate, with no hyperparameter search: pooled European club strength on a common scale,
@@ -26,6 +41,14 @@ including qualifying. The full official calendar remains the denominator. Any mi
 unresolved date/team/venue/outcome is a coverage failure; it is never silently removed to pass an accuracy gate.
 
 ## Football checks and gate
+
+Replay implementation clarification before metrics (23 Oct): primary football cutoffs are the actual per-game
+Sorare deadlines, shared across the three cups. Use kickoff plus two days as a conservative retrospective
+availability bound; for a resumed game use the later original/resumption kickoff plus two days. Preserve the
+native completion field separately because some historical values are implausible. Apply the same availability
+test to player own-history. The base-rate and unweighted Poisson comparators use the same 730-day pre-cutoff
+competition history. Report observed deadline horizons in 0-2, 2-4 and 4-8 day bins; do not claim separately
+validated unobserved horizons. Rank strength within actual fixture pairs, without a domestic table simulation.
 
 Same cases for every method. Primary RPS against a rolling pre-cutoff competition home/draw/away base-rate
 forecast (one pseudo-observation per outcome); also report unweighted goal-rate Poisson, log loss, Brier,

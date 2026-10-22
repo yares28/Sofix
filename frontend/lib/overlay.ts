@@ -67,7 +67,7 @@ export type OverlayEntry = {
   /** What he is expected to score, the chance he plays (a substitute appearance counts), and the average every cap counts. */
   x: number;
   p: number;
-  average: number;
+  average: number | null;
   /** His position, which decides the tile's driver (difficulty for a goalkeeper or defender, expected goals otherwise). */
   pos: PlayingPlayer["pos"];
   /** Whether the game the tile shows is a LaLiga one, the only competition Futbol Fantasy covers: the panel says so when it has no number. */

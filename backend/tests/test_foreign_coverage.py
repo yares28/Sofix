@@ -81,7 +81,8 @@ def test_blocks_keep_player_details_small_and_forecasts_bound_to_their_own_week(
             "competition": "PL",
             "weekId": "22",
             "market": [
-                {"slug": f"player-{i}", "name": str(i), "club": "Arsenal", "pic": "", "x": 0} for i in range(619)
+                {"slug": f"player-{i}", "name": str(i), "club": "Arsenal", "pic": "", "pos": "DEF", "x": 0}
+                for i in range(619)
             ],
         }
     }
@@ -89,7 +90,25 @@ def test_blocks_keep_player_details_small_and_forecasts_bound_to_their_own_week(
     assert blocks["players:PL"]["weekId"] == "22"
     directory = blocks["player_index"]["players"]
     assert len(directory) == 619 and directory[0]["league"] == "PL"
+    assert directory[0]["pos"] == "DEF"
     shard = blocks[f"players:PL:{sum(map(ord, 'player-0')) % 16:x}"]
     assert shard["market"][0]["x"] == 0 and shard["weekId"] == "22"
     assert max(len(b["market"]) for k, b in blocks.items() if k.startswith("players:PL:")) < 60
     assert sum(len(b["market"]) for k, b in blocks.items() if k.startswith("players:PL:")) == 619
+
+
+def test_squad_coaches_are_not_indexed_as_unknown_position_players(monkeypatch):
+    clubs = [{"slug": f"club-{i}"} for i in range(20)]
+    client = SimpleNamespace(query=lambda *args: {"football": {"competition": {"teams": {"nodes": clubs}}}})
+
+    def squad(client, club, fixture, strict=False):
+        return [
+            {"slug": club, "position": "Defender", "activeClub": {"slug": club}},
+            {"slug": club + "-coach", "position": "Coach", "activeClub": {"slug": club}},
+        ]
+
+    monkeypatch.setattr(f.sync, "_squad", squad)
+    index = f.collect_index(client, "PL", "gw", NOW)
+    assert index["complete"]
+    assert len(f.rows(index)) == 20
+    assert all(row["pos"] == "DEF" for row in f.rows(index))

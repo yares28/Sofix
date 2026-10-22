@@ -26,7 +26,7 @@ Full coefficients, position results, protocol and runner/source/history/identity
 
 ## Current workflow proof
 
-Real unattended squad preflight for Sorare week `football-23-27-oct-2026`: PL **20 clubs / 619 players**, BL1 **18 clubs / 541 players**, with no club failures. The source required 22 and 20 calls respectively. Stable player identities are deduplicated on the actual active club. A failed club read retains saved identities and clears its old game/projection fields.
+Real unattended squad preflight for Sorare week `football-23-27-oct-2026`: PL **20 clubs / 599 football players**, BL1 **18 clubs / 523 football players**, with no club failures. Raw squad responses also contained one Coach per club (619/541 total entries); Coach is excluded from the football player index. The source required 22 and 20 calls respectively. Stable player identities are deduplicated on the actual active club. A failed club read retains saved identities and clears its old game/projection fields.
 
 Runtime joins use the actual playing side, opponent, venue, kickoff and a forecast timestamp before the selected Sorare cutoff. Other competitions never receive a foreign domestic model's coefficients. LaLiga retains its existing model. Current histories are collected by whole match, reused after settlement with three days of corrections, and shared with the existing game mirror. Research archives are not copied into production Neon.
 

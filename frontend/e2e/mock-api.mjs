@@ -337,6 +337,14 @@ const server = createServer((req, res) => {
     });
   }
 
+  if (req.method === "GET" && url.pathname === "/api/sorare/player-index") return send(res, 200, { success: true, data: { players: Object.entries(state.foreignBlocks ?? {}).flatMap(([league, block]) => block.market.map(p => ({ ...p, league }))) } });
+  const foreign = url.pathname.match(/^\/api\/sorare\/players\/(PL|BL1)(?:\/([0-9a-f]))?$/);
+  if (req.method === "GET" && foreign) {
+    const block = state.foreignBlocks?.[foreign[1]];
+    const market = block?.market.filter(p => !foreign[2] || ([...p.slug].reduce((sum, c) => sum + c.charCodeAt(0), 0) % 16).toString(16) === foreign[2]);
+    return send(res, 200, { success: !!block, data: block ? { ...block, market } : null });
+  }
+
   if (req.method === "GET" && url.pathname === "/api/sorare") {
     if (state.sorare === "missing") {
       return send(res, 200, { success: false, data: null, error: "Sorare has not been synced yet.", meta: null });
@@ -531,7 +539,7 @@ const server = createServer((req, res) => {
   if (req.method === "POST" && url.pathname === "/__test/my-weeks") {
     let body = "";
     req.on("data", (chunk) => { body += chunk; });
-    req.on("end", () => { const input = JSON.parse(body); state.myWeeks = input.weeks; state.frozenPlans = input.frozenPlans; state.chanceRecord = input.chanceRecord; state.livePlan = input.livePlan; state.playerScores = input.playerScores; state.sorareData = input.sorareData; state.missionSource = input.missionSource; state.missionPool = input.missionPool; state.missionLog = input.missionLog; send(res, 200, { ok: true }); });
+    req.on("end", () => { const input = JSON.parse(body); state.foreignBlocks = input.foreignBlocks; state.myWeeks = input.weeks; state.frozenPlans = input.frozenPlans; state.chanceRecord = input.chanceRecord; state.livePlan = input.livePlan; state.playerScores = input.playerScores; state.sorareData = input.sorareData; state.missionSource = input.missionSource; state.missionPool = input.missionPool; state.missionLog = input.missionLog; send(res, 200, { ok: true }); });
     return;
   }
   if (req.method === "POST" && url.pathname === "/__test/mode") {

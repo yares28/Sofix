@@ -38,3 +38,15 @@ it("gives owned players exactly the saved plan's numbers rather than recomputing
   const plan = { gameweek: info, playing: { players: [player] } } as unknown as GameweekPlan;
   expect(marketForWeek(market, "22", info, plan, record)[0]).toMatchObject({ x: 23.9, start: 51.2, pStart: 0, fixture: { opponent: "France", venue: "A" } });
 });
+
+
+it("restores the actual national or former club side without relabelling it as the current club", () => {
+  const actual = { ...game, competition: "uefa-nations-league", team: "Spain", opponent: "France", venue: "A" as const, teamCrest: null, opponentCrest: null };
+  const row = marketForWeek(market, "22", info, null, { ...record, players: { mine: { ...record.players.mine, games: [actual] } } })[0]!;
+  expect(row.fixture).toMatchObject({ team: "Spain", opponent: "France", venue: "A" });
+});
+
+it("preserves the score source in saved records and owned plans", () => {
+  const source = { ...record, players: { mine: { ...record.players.mine, by: "form" as const } } };
+  expect(marketForWeek(market, "22", info, null, source)[0]!.by).toBe("form");
+});

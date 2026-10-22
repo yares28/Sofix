@@ -19,6 +19,8 @@ frontend/tsconfig.tsbuildinfo
 # Node
 node_modules/
 .next/
+# Isolated Next previews also contain private cached read models.
+.next-*/
 .next-e2e/
 .next-s5/
 .next-design/

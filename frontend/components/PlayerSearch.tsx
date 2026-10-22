@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-import { findPlayers, type SearchPlayer } from "../lib/playerSearch";
+import { findPlayers, searchPlayerHref, type SearchPlayer } from "../lib/playerSearch";
 import SorareImage from "./play/SorareImage";
 
 // Read once per page load, when the search first opens; never refetched (Neon egress, AGENTS.md "Neon projects").
@@ -19,6 +19,7 @@ export default function PlayerSearch() {
   const input = useRef<HTMLInputElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const search = useSearchParams();
   const list = useId();
 
   useEffect(() => {
@@ -35,7 +36,7 @@ export default function PlayerSearch() {
     if (!p) return;
     setOpen(false);
     setQuery("");
-    router.push(`/players/${p.slug}`);
+    router.push(searchPlayerHref(p.slug, search));
   };
   const key = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") { e.preventDefault(); setActive((i) => Math.min(i + 1, found.length - 1)); }
@@ -74,7 +75,7 @@ export default function PlayerSearch() {
               <ul id={list} role="listbox" aria-label="Players">
                 {found.map((p, i) => (
                   <li key={p.slug} id={`${list}-${i}`} role="option" aria-selected={i === active} onPointerEnter={() => setActive(i)}>
-                    <Link href={`/players/${p.slug}`} tabIndex={-1} onClick={() => { setOpen(false); setQuery(""); }}>
+                    <Link href={searchPlayerHref(p.slug, search)} tabIndex={-1} onClick={() => { setOpen(false); setQuery(""); }}>
                       <span className="art"><SorareImage src={p.pic} width={24} height={39} /></span>
                       <span><b>{p.name}</b>{p.club ? <small>{p.club}</small> : null}</span>
                     </Link>

@@ -741,10 +741,14 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later; 
 
 ![LaLiga player search and squad-upgrade comparison](images/players.png)
 
+Use **Competition** on Players to choose LaLiga, Premier League or Bundesliga; the calendar week stays selected. The top-bar search finds players across all three leagues, and a player bookmark opens directly without visiting the league first. All 20 Premier League and 18 Bundesliga squads are collected automatically during refresh, including players you do not own. Their recent history is collected by match and reused between runs. A failed squad read retains identities and expires its forecasts; a forecast older than 24 hours is hidden unless the exact selected GW has a saved record.
+
+Premier League and Bundesliga use separate Sofix models, validated on the complete 2025/26 held-out starter cohorts against recent form and a no-FDR ablation. This validates scores conditional on starting retrospectively; start chances and future blind accuracy remain separate. The [validation report](pl-bundesliga-xscore-validation.md) records the gates and the single missing PL training replay. A missing FDR context, cup or national-team game uses the displayed Form/Sorare source, never LaLiga's learned model or invented match odds. The fixture names the actual playing side. Missing averages and forecasts show a dash; genuine zero remains zero.
+
 Players is a cached index of **every LaLiga player** (priced or not), built from LaLiga club squads during refresh—one competition
 query plus one query per club. Search is local and fast; it does not make a Sorare request per keystroke.
 
-**Every player gets this week's numbers, not only yours** (since 6 Oct 2026). For the gameweek being planned each row shows his
+**In LaLiga, every player gets this week's numbers, not only yours** (since 6 Oct 2026). For the gameweek being planned each row shows his
 **chance to start** (with whose number it is: FF, SO or SF, as on your cards; "Plays" when only a chance of playing is known) and his
 **xScore**, worked out the same way as for your cards: Futbol Fantasy's expected lineup, Sorare's odds and projection, his game and
 its odds. Past-game form counts for everyone: your players are read every refresh, and every LaLiga player plus your players

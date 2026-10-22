@@ -363,3 +363,13 @@ describe("projectionNote", () => {
     expect(projectionNote(null, now)).toBe("A dash: Sorare gives no projection for his next game.");
   });
 });
+
+
+it("keeps a missing player average distinct from zero and never calls it an upgrade", () => {
+  const unknown = { slug: "unknown", name: "Unknown", pos: "DEF", club: null, crest: null, average: null, projection: null, eur: null, pic: "", pStart: 1 } as import("./play").MarketPlayer;
+  const bar = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
+  expect(gain(unknown, bar)).toBeNull();
+  expect(isUpgrade(unknown, bar, new Set())).toBe(false);
+  expect(verdict(unknown, bar, new Set()).value).toBe("-");
+  expect(gain({ ...unknown, average: 0 }, bar)).toBe(0);
+});

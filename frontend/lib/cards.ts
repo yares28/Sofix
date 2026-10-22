@@ -201,7 +201,8 @@ export function squadBar(collection: CollectionCard[]): Record<Position, number>
 }
 
 /** How much a player would add over the bar in his position (negative when the squad is already deeper). */
-export function gain(player: MarketPlayer, bar: Record<Position, number>): number {
+export function gain(player: MarketPlayer, bar: Record<Position, number>): number | null {
+  if (player.average === null) return null;
   return Math.round(player.average - (bar[player.pos] ?? 0));
 }
 
@@ -216,7 +217,7 @@ const starts = (player: MarketPlayer): number | undefined => player.pStart ?? pl
 
 /** Not owned, above the bar in his position, and at least 70% to start. */
 export function isUpgrade(player: MarketPlayer, bar: Record<Position, number>, owned: Set<string>): boolean {
-  return !owned.has(player.slug) && gain(player, bar) > 0 && (starts(player) ?? 0) >= UPGRADE_START;
+  return !owned.has(player.slug) && (gain(player, bar) ?? 0) > 0 && (starts(player) ?? 0) >= UPGRADE_START;
 }
 
 /** The lead signal on a search result: an upgrade, a level/worse card (or a better one unlikely to start), or one already owned. */
@@ -224,6 +225,7 @@ export function verdict(player: MarketPlayer, bar: Record<Position, number>, own
   if (owned.has(player.slug)) return { kind: "own", value: "In your squad", note: "you have him" };
   const g = gain(player, bar);
   if (isUpgrade(player, bar, owned)) return { kind: "up", value: `+${g}`, note: `on your ${player.pos}` };
+  if (g === null) return { kind: "flat", value: "-", note: "Last 10 unknown" };
   if (g > 0) {
     const s = starts(player);
     return { kind: "flat", value: `+${g}`, note: s === undefined ? "start unknown" : `starts ${Math.round(s * 100)}%` };
@@ -242,7 +244,7 @@ export function improvers(
 
 /** What a player is worth for the money: points he adds over your bar for every €10 of his Limited price (0 when he is no upgrade). */
 export function valuePer10(player: MarketPlayer, bar: Record<Position, number>): number {
-  const g = (starts(player) ?? 0) >= UPGRADE_START ? gain(player, bar) : 0;
+  const g = (starts(player) ?? 0) >= UPGRADE_START ? (gain(player, bar) ?? 0) : 0;
   // No price (Sorare quotes none): he cannot be bought, so he is worth nothing for the money.
   return g > 0 && player.eur !== null && player.eur > 0 ? Math.round((g / player.eur) * 100) / 10 : 0;
 }
@@ -271,8 +273,8 @@ export function searchMarket(
       if (own) return own;
       const up = (isUpgrade(b, bar, owned) ? 1 : 0) - (isUpgrade(a, bar, owned) ? 1 : 0);
       if (up) return up;
-      if (filter.order === "value") return valuePer10(b, bar) - valuePer10(a, bar) || gain(b, bar) - gain(a, bar);
-      return gain(b, bar) - gain(a, bar);
+      if (filter.order === "value") return valuePer10(b, bar) - valuePer10(a, bar) || (gain(b, bar) ?? -1e6) - (gain(a, bar) ?? -1e6);
+      return (gain(b, bar) ?? -1e6) - (gain(a, bar) ?? -1e6);
     });
 }
 

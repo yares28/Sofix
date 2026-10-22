@@ -25,6 +25,7 @@ export function seasonSummary(games: SavedGame[], now: Date) {
     ff,
     games: final.filter(g => g.played === true).length, starts: final.filter(g => g.started === true).length,
     average: scores.length ? scores.reduce((n, g) => n + g.score!, 0) / scores.length : null,
+    hasLaLiga: liga.length > 0,
     scored: scores.length, yellows: liga.reduce((n, g) => n + (g.yellow ?? 0), 0), yellowComplete: liga.length > 0 && liga.every(g => g.yellow !== null),
     sofix: miss("sofix_x"), sorare: miss("sorare_x"),
   };

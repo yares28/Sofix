@@ -45,14 +45,15 @@ const sorareWrittenAt = cache(async (): Promise<string | null> => {
  * The Sorare gameweek the job published (`read_models` key `sorare`). Everything on the page — the plans,
  * the chances, the reasons — is computed by the job, so this only reads it, downloaded once per write.
  */
-async function readSorare(): Promise<Sorare | null> {
+async function readSorare(includeMarket = true): Promise<Sorare | null> {
   if (database()) {
     const at = await sorareWrittenAt();
     if (!at) return null;
     const top = (await sorarePart(-2, at)) as { head: Omit<Sorare, "weeks" | "market">; weeks: number } | null;
     if (!top) return null;
-    const [market, ...weeks] = await Promise.all([-1, ...Array.from({ length: top.weeks }, (_, i) => i)].map((part) => sorarePart(part, at)));
-    return { ...top.head, market: market ?? undefined, weeks } as Sorare;
+    const parts = await Promise.all([...(includeMarket ? [-1] : []), ...Array.from({ length: top.weeks }, (_, i) => i)].map((part) => sorarePart(part, at)));
+    const market = includeMarket ? parts.shift() : undefined;
+    return { ...top.head, market: market ?? undefined, weeks: parts } as Sorare;
   }
   const response = await fetch(`${API_BASE}/api/sorare`, { cache: "no-store", signal: AbortSignal.timeout(8000) });
   if (!response.ok) return null;
@@ -75,9 +76,9 @@ export async function loadLeagueMarket(code: "PL" | "BL1"): Promise<MarketPlayer
 }
 
 /** Null while Sorare has never been synced (no key yet, or the first run hasn't happened). */
-export async function loadSorare(): Promise<Sorare | null> {
+export async function loadSorare(options: { market?: boolean } = {}): Promise<Sorare | null> {
   try {
-    return await readSorare();
+    return await readSorare(options.market !== false);
   } catch (error) {
     console.error(`[sorare] could not be read: ${error instanceof Error ? error.message : "unknown"}`);
     return null;
@@ -138,12 +139,12 @@ export const loadAuditStartRecord = (slug: string) => supportingRecord<SavedStar
 /** Restore the selected GW's numbers after it leaves the optimizer. No later week's estimates fill gaps. */
 export async function loadPlayerForecasts(data: Sorare, id: string) {
   const week = data.timeline.find(w => w.id === id);
-  if (!week) return { plan: null, market: marketForWeek(data.market ?? [], data.nextId, { id, slug: "" }, null, null) };
+  if (!week) return { plan: null, record: null, market: marketForWeek(data.market ?? [], data.nextId, { id, slug: "" }, null, null) };
   const [plan, record] = await Promise.all([
     weekPlan(data, id) ?? (week.kept ? loadSorareWeek(week.slug) : loadFrozenPlan(week.slug, data)),
     supportingRecord<ScoreRecord>("record", week.slug),
   ]);
-  return { plan, market: marketForWeek(data.market ?? [], data.nextId, week, plan, record) };
+  return { plan, record, market: marketForWeek(data.market ?? [], data.nextId, week, plan, record) };
 }
 
 /**

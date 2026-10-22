@@ -24,8 +24,8 @@ import useCountUp from "./useCountUp";
 
 const LIMIT = 30;
 
-/** Player search: every LaLiga player with his start chance and xScore this week, led by who would actually improve the squad. */
-export default function PlayersView({ data, now, weekId, forecastWeek }: { data: Sorare; now: string; weekId?: string; forecastWeek?: string }) {
+/** Player search within the selected league, led by who would improve the squad. */
+export default function PlayersView({ data, now, weekId, forecastWeek, leagueLabel = "LaLiga" }: { leagueLabel?: string; data: Sorare; now: string; weekId?: string; forecastWeek?: string }) {
   const market = useMemo(() => data.market ?? [], [data.market]);
   const collection = useMemo(() => data.collection ?? [], [data.collection]);
   const [query, setQuery] = useState("");
@@ -55,7 +55,7 @@ export default function PlayersView({ data, now, weekId, forecastWeek }: { data:
           <i>would improve your team</i>
         </p>
         <p className="s5-bars">
-          <span className="lead">of {market.length} LaLiga players · your bar to beat</span>
+          <span className="lead">of {market.length} {leagueLabel} players · your bar to beat</span>
           {POSITIONS.map((position) => (
             <span className="s5-bar" key={position}>
               {position} <b>{Math.round(bar[position])}</b>
@@ -104,7 +104,7 @@ export default function PlayersView({ data, now, weekId, forecastWeek }: { data:
 
       <div className="s5-results">
         {results.length === 0 ? (
-          <p className="s5-none">No one by that name in the LaLiga squads.</p>
+          <p className="s5-none">No one by that name in the {leagueLabel} squads.</p>
         ) : (
           <>
             {results.slice(0, LIMIT).map((player, index) => (
@@ -147,7 +147,7 @@ function ResultCard({
       className={`s5-res${isOwned ? " owned" : ""}`}
       style={{ animationDelay: `${Math.min(index * 18, 380)}ms` }}
     >
-      <Link className="art" href={playerHref(player.slug)} aria-label={`${player.name}: open his page`}>
+      <Link className="art" href={`${playerHref(player.slug)}${weekId ? `?w=${encodeURIComponent(weekId)}` : ""}`} aria-label={`${player.name}: open his page`}>
         <CardArt src={player.pic} name={player.name} />
       </Link>
       <span className="who">
@@ -166,7 +166,7 @@ function ResultCard({
       </span>
       <span className="s5-stats">
         <span className="s5-stat">
-          <b className="sc-chip" style={{ background: scoreColour(player.average).fill, color: scoreColour(player.average).ink }}>{Math.round(player.average)}</b>
+          <b className="sc-chip" style={{ background: scoreColour(player.average).fill, color: scoreColour(player.average).ink }}>{player.average === null ? "-" : Math.round(player.average)}</b>
           <span>Last 10 avg</span>
         </span>
         <span className="s5-stat" title={start ? start.title : player.x === undefined ? "No forecast saved for this GW" : undefined}>
@@ -187,7 +187,7 @@ function ResultCard({
           <b className={player.x === undefined ? undefined : "sc-chip"} style={player.x === undefined ? undefined : { background: scoreColour(player.x).fill, color: scoreColour(player.x).ink }}>
             {player.x === undefined ? "—" : Math.round(player.x)}
           </b>
-          <span>xScore</span>
+          <span>{player.by === "form" ? "Form xScore" : player.by === "sorare" ? "Sorare xScore" : "xScore"}</span>
         </span>
         <span className="s5-stat" title={player.projection === null ? dash : undefined}>
           <b className={player.projection === null ? undefined : "sc-chip"} style={player.projection === null ? undefined : { background: scoreColour(player.projection).fill, color: scoreColour(player.projection).ink }}>{player.projection === null ? "—" : Math.round(player.projection)}</b>

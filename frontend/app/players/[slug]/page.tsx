@@ -1,3 +1,5 @@
+import { loadForeignPlayer } from "../../../lib/foreignPlayersData";
+import { foreignMarket } from "../../../lib/foreignPlayers";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import PlayerView from "../../../components/players/PlayerView";
@@ -30,12 +32,14 @@ export default async function PlayerPage({ params, searchParams }: { params: Par
   if (!SLUG.test(slug)) notFound();
   const query = await searchParams;
   const single = (key: string) => (typeof query[key] === "string" ? (query[key] as string) : undefined);
-  const [sheets, history, data, { grid, meta }, system] = await Promise.all([loadPlayerSheets(), loadPlayerGames(slug), loadSorare(), loadGrid(), loadSystem()]);
+  const foreignRead = loadForeignPlayer(slug);
+  const [sheets, history, data, { grid, meta }, system, foreign] = await Promise.all([loadPlayerSheets(), loadPlayerGames(slug), foreignRead.then(block => loadSorare({ market: !block })), loadGrid(), loadSystem(), foreignRead]);
   const sheet = sheets.players[slug] ?? null;
   const week = weekContext(grid, data, new Date(), { w: single("w"), gw: single("gw") });
   const forecasts = data && week.current?.gw ? await loadPlayerForecasts(data, week.current.gw) : null;
   const planned = forecasts?.plan?.playing.players.find(p => p.player === slug) ?? (data ? planPlayer(data, slug, week.current?.gw ?? data.nextId) : null);
-  const market = (forecasts?.market ?? data?.market)?.find((p) => p.slug === slug) ?? null;
+  const indexed = foreign && data ? foreignMarket(foreign, data, week.current?.gw ?? data.nextId, forecasts?.plan ?? null, forecasts?.record ?? null) : forecasts?.market ?? data?.market;
+  const market = indexed?.find((p) => p.slug === slug) ?? null;
   const owned = data?.collection?.find(p => p.player === slug) ?? null;
   if (!sheet && !planned && !market && !owned && !history?.games.length && !history?.absences.length) notFound();
 

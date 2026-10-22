@@ -53,3 +53,8 @@ describe("saved player history", () => {
     expect(await loadPlayerGames("a-player")).toBeNull();
   });
 });
+
+it("does not offer a LaLiga disciplinary total for an exclusively foreign history", () => {
+  expect(seasonSummary([game({ competition: "bundesliga-de" })], new Date("2026-10-08")).hasLaLiga).toBe(false);
+  expect(seasonSummary([game()], new Date("2026-10-08")).hasLaLiga).toBe(true);
+});

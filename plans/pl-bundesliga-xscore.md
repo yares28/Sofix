@@ -29,11 +29,11 @@ Owner request, 21 October 2026: after the shipped FDR boards, work on xScore for
 
 ## Delivery checklist
 
-- [ ] Source/coverage and payload contract inspected; relevant real read verified.
-- [ ] Regression tests fail first, then pass.
-- [ ] Automatic collection and consistent player surfaces implemented.
-- [ ] Required local checks, browser proof and model-specific evidence complete.
-- [ ] Ship, verify publication and record exact remaining limits.
+- [x] Source/coverage and payload contract inspected; relevant real read verified.
+- [x] Regression tests fail first, then pass.
+- [x] Automatic collection and consistent player surfaces implemented.
+- [x] Required local checks, browser proof and model-specific evidence complete.
+- [x] Ship, verify publication and record exact remaining limits.
 
 - Run 39672518092 retained all 918 BL1 games and 1,132 PL games. PL date reconciliation was rejected by the source’s 172,800-second range limit; regression reproduced the three-day request and now caps it at 48 hours. Cached whole-game reads are reused on the next unattended run. No partial-cohort metrics were opened.
 
@@ -54,3 +54,12 @@ Owner request, 21 October 2026: after the shipped FDR boards, work on xScore for
 - Verification so far: 1,148 backend tests passed before the final API/shard additions (two existing Starlette/httpx deprecation warnings); focused source, join, coverage and publication regressions pass. UI and real publication verification remain outstanding.
 
 - Resume 22 October: local gate passed after rebasing the owner’s Arcade release. Original UI run: 51/52 passed, with the unrelated Stats-to-player cold navigation exceeding its five-second expectation; isolated Chromium rerun passed on retry (recorded as flaky, not all-green first try). Local real-data Cards and Play screenshots at 1440/390 px had no horizontal overflow. Added failing regressions for pending scores revisited beyond three days and foreign cup/national fixtures not borrowing LaLiga substitute shapes, then fixed both. Runtime suppresses a league model on an observed scoring-version mismatch.
+
+- Frontend regressions cover missing versus zero, saved playing side/source, captured-GW expiry, cross-league search and bounded detail shards. The cold-bookmark/close-tab/reload/league-switch browser test passed, with all 21 Cards/player tests. An offline audit of the retained real squad preflight found one Coach row per club: raw 619/541 entries include 20/18 coaches. A failing regression now excludes Coach explicitly; every football player role in that sample is recognized. Correct eligible counts are 599 PL and 523 BL1 before later squad changes.
+
+- Production refresh 39760411745 completed successfully on 22 October: PL recent history 70 games, BL1 54 games, both complete with zero errors. One compact read-model SELECT confirmed selected GW25, model versions PL:xscore-v2+c20e4f72 / BL1:xscore-v2+da597b16, and Sofix forecasts for all 599/523 football players. Initial blocks include the 20/18 Coach rows described above; the web filters those now, including the old directory through cached league blocks, while new publications carry role-aware directories. No manual refresh or production SQL mutation was used.
+- Published sizes: PL 595,426 bytes, BL1 516,306, current score record 1,451,317; all are below 1.6 MB. Local production-build verification at port 3218 uses the real read models: PL/BL1 lists and Declan Rice/Harry Kane pages at 1440 and 390 px, no horizontal overflow or text below 11/10 px. Real global search contains both leagues and excludes Coach; league switching and player clicks work on the production build. Screenshots are in ignored frontend/output/xscore-final/. Foreign-only history does not show a LaLiga disciplinary total.
+
+- Full browser suite (Chromium, isolated mock ports 3129/8789): 260 passed, 2 flaky Play navigation tests passed on retry, zero final failures. The five-second first-attempt failures were Plan 2 navigation and an early LaLiga round; retained traces distinguish these from the earlier Stats cold-navigation flake. Do not describe this as an all-green first attempt. Focused final reruns cover those timings and global-search GW retention. The new all-club/close-tab/bookmark/zero/national-side workflow passed first try. Local shipping gate (ruff format/check, mypy, full pytest, OpenAPI/type generation, eslint, tsc and vitest) passed; production build passed.
+
+- Final focused browser rerun: all four passed first attempt (complete foreign workflow including selected-GW global search, Plan 2, early LaLiga round and existing global player search). Real production-build keyboard search from Bundesliga to Declan Rice retained GW25 and the exact published start xScore 65. Backend publication is verified above; the final frontend commit is handed over through the required post-push --live check. Remaining scientific limits: retrospective conditional-on-start evidence, one explicitly excluded PL training replay, no new prospective/blind start-chance or reward validation. The original broader multi-competition plan is not present in this worktree; this task follows the owner's narrowed PL/BL1 contract, without enabling other leagues or cups.

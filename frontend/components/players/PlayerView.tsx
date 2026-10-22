@@ -36,7 +36,7 @@ export default function PlayerView({
   slug: string;
   identity: Identity;
   planned: PlayingPlayer | null;
-  /** His row of the LaLiga index: every player's start chance and xScore this week, for one who is not in your plans. */
+  /** His selected-GW index row when he is not in your plans. */
   league?: MarketPlayer | null;
   sheet: Sheet | null;
   asOf: string;
@@ -76,7 +76,7 @@ export default function PlayerView({
             <p className="pd-game">
               <SorareImage src={shown.opponentCrest} alt="" width={22} height={22} />
               <span>
-                {shown.venue === "H" ? "v" : "at"} {shown.opponent} · {when(shown.kickoff)}
+                {shown.team ? `${shown.team} ` : ""}{shown.venue === "H" ? "v" : "at"} {shown.opponent} · {when(shown.kickoff)}
               </span>
             </p>
           ) : (
@@ -90,7 +90,7 @@ export default function PlayerView({
               <>
                 <div>
                   <span className="pd-x sc-chip" style={{ background: scoreColour(score).fill, color: scoreColour(score).ink }}>{score}</span>
-                  <small>{typeof (planned?.start ?? theirs?.start) === "number" ? "xScore if he starts" : "xScore if he plays"}</small>
+                  <small>{(planned?.by ?? theirs?.by) === "form" ? "Form: " : (planned?.by ?? theirs?.by) === "sorare" ? "Sorare: " : ""}{typeof (planned?.start ?? theirs?.start) === "number" ? "xScore if he starts" : "xScore if he plays"}</small>
                 </div>
                 {typeof pStart === "number" ? (
                   <div>

@@ -4,8 +4,8 @@ import type { GameweekPlan, MarketPlayer, StartSource } from "./play";
 export type ScoreRecord = {
   gameweek: { slug: string };
   players: Record<string, {
-    mu?: number | null; pPlay?: number | null; pStart?: number | null; startSource?: StartSource;
-    games: { kickoff: string; competition?: string; home?: string | null; away?: string | null;
+    by?: MarketPlayer["by"]; mu?: number | null; pPlay?: number | null; pStart?: number | null; startSource?: StartSource;
+    games: { team?: string | null; teamCrest?: string | null; opponent?: string | null; opponentCrest?: string | null; venue?: "H" | "A" | null; kickoff: string; competition?: string; home?: string | null; away?: string | null;
       sofix?: number | null; sorare?: number | null; sources?: Partial<Record<StartSource, number>> }[];
   }>;
 };
@@ -29,21 +29,21 @@ export function marketForWeek(
       const national = NATIONAL_COMPETITION.test(first.competition ?? "");
       const home = !national && club && first.home && clubKey(first.home) === club;
       const away = !national && club && first.away && clubKey(first.away) === club;
-      shown = { ...identity, projection: first.sorare ?? null,
+      shown = { ...identity, by: r.by, projection: first.sorare ?? null,
         ...(typeof r.mu === "number" ? { mu: r.mu } : {}),
         ...(typeof r.pPlay === "number" ? { p: r.pPlay } : {}),
         ...(typeof r.mu === "number" && typeof r.pPlay === "number" ? { x: Math.round(r.mu * r.pPlay * 10) / 10 } : {}),
         ...(typeof r.pStart === "number" ? { pStart: r.pStart, startSource: r.startSource } : {}),
         ...(typeof first.sofix === "number" ? { start: first.sofix } : {}),
         sources: first.sources,
-        ...(home || away ? { fixture: { kickoff: first.kickoff, venue: home ? "H" : "A", opponent: home ? first.away ?? null : first.home ?? null, opponentCrest: null } } : {}),
+        ...(first.team && first.opponent ? { fixture: { team: first.team, teamCrest: first.teamCrest, opponent: first.opponent, opponentCrest: first.opponentCrest ?? null, venue: first.venue ?? null, kickoff: first.kickoff, competition: first.competition } } : home || away ? { fixture: { kickoff: first.kickoff, venue: home ? "H" : "A", opponent: home ? first.away ?? null : first.home ?? null, opponentCrest: null } } : {}),
       };
     }
     const p = players.get(row.slug);
     const game = p?.games[0];
-    if (p && game) shown = { ...shown, p: p.p, x: p.x, start: p.start, pStart: p.pStart, startSource: p.startSource,
+    if (p && game) shown = { ...shown, by: p.by, p: p.p, x: p.x, start: p.start, pStart: p.pStart, startSource: p.startSource,
       sources: p.sources, projection: p.sorare ?? null,
-      fixture: { opponent: game.opponent, opponentCrest: game.opponentCrest, venue: game.venue, kickoff: game.kickoff } };
+      fixture: { team: game.team, teamCrest: game.teamCrest, opponent: game.opponent, opponentCrest: game.opponentCrest, venue: game.venue, kickoff: game.kickoff } };
     return shown;
   });
 }

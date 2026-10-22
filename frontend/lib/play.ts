@@ -442,14 +442,15 @@ export type CollectionCard = {
   since?: string | null;
 };
 
-/** One LaLiga player, as the Players page (S5) draws it: every player of the league, not only yours. */
+/** One indexed player, as the Players page draws him, including players you do not own. */
 export type MarketPlayer = {
+  by?: "sofix" | "sorare" | "form";
   slug: string;
   name: string;
   pos: "GK" | "DEF" | "MID" | "FWD";
   club: string | null;
   crest: string | null;
-  average: number;
+  average: number | null;
   projection: number | null;
   /** His Limited in-season price, or null when Sorare quotes none. */
   eur: number | null;
@@ -469,7 +470,7 @@ export type MarketPlayer = {
   mu?: number;
   start?: number;
   x?: number;
-  fixture?: { opponent: string | null; opponentCrest: string | null; venue: "H" | "A" | null; kickoff: string | null };
+  fixture?: { team?: string | null; teamCrest?: string | null; competition?: string; opponent: string | null; opponentCrest: string | null; venue: "H" | "A" | null; kickoff: string | null };
 };
 
 export type Sorare = {

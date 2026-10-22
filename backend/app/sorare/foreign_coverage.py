@@ -28,6 +28,8 @@ def rows(index: dict[str, Any]) -> list[dict[str, Any]]:
     found = {}
     for club, players in index.get("clubs", {}).items():
         for row in players:
+            if (row.get("player") or {}).get("position") == "Coach":
+                continue
             if ((row.get("player") or {}).get("activeClub") or {}).get("slug") == club:
                 found[row["slug"]] = row
     return sorted(found.values(), key=lambda p: p["slug"])
@@ -63,6 +65,10 @@ def collect_index(
                 raise ValueError("Empty squad")
             parsed = []
             for player in players:
+                if player.get("position") == "Coach":
+                    continue
+                if player.get("position") not in SORARE_POSITION:
+                    raise ValueError("Unknown player position")
                 slug = player.get("slug")
                 if not slug:
                     raise ValueError("Missing player identity")
@@ -110,7 +116,9 @@ def blocks(markets: dict[str, dict[str, Any]], previous: dict[str, Any] | None =
                 "market": [p for p in market["market"] if shard(p["slug"]) == bucket],
             }
         for player in market["market"]:
-            directory[player["slug"]] = {k: player.get(k) for k in ("slug", "name", "club", "pic")} | {"league": code}
+            directory[player["slug"]] = {k: player.get(k) for k in ("slug", "name", "club", "pic", "pos")} | {
+                "league": code
+            }
     if markets:
         out["player_index"] = {"players": sorted(directory.values(), key=lambda p: p["slug"])}
     for key, block in out.items():

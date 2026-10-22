@@ -4,7 +4,7 @@ import type { PlayerKind } from "../../lib/lineups";
 import { seasonGames, seasonSummary, type PlayerHistory as History } from "../../lib/playerHistory";
 
 const day = (iso: string) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/Madrid" }).format(new Date(iso));
-const competition = (slug: string) => ({ "laliga-es": "LaLiga", "premier-league-gb": "Premier League", "bundesliga-de": "Bundesliga", "champions-league": "Champions League", "copa-del-rey": "Copa del Rey" }[slug] ?? slug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "));
+const competition = (slug: string) => ({ "laliga-es": "LaLiga", "premier-league-gb": "Premier League", "premier-league-gb-eng": "Premier League", "bundesliga-de": "Bundesliga", "champions-league": "Champions League", "copa-del-rey": "Copa del Rey" }[slug] ?? slug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "));
 function Score({ value, label }: { value: number | null; label: string }) {
   return <div><small>{label}</small><b className="sc-chip" style={value === null ? undefined : { background: scoreColour(value).fill, color: scoreColour(value).ink }}>{value === null ? "—" : Math.round(value)}</b></div>;
 }
@@ -22,7 +22,7 @@ export default function PlayerHistory({ history, now }: { history: History | nul
           <div><dt>Games played</dt><dd>{summary.games}</dd></div>
           <div><dt>Starts</dt><dd>{summary.starts}</dd></div>
           <div><dt>Average score</dt><dd>{summary.average === null ? "—" : summary.average.toFixed(1)} <small>{summary.scored} scored games</small></dd></div>
-          <div><dt>LaLiga yellows</dt><dd>{summary.yellowComplete ? "" : "At least "}{summary.yellows}{summary.yellowComplete && summary.yellows % 5 === 4 ? <small>one away from a ban</small> : !summary.yellowComplete ? <small>Some cards not read</small> : null}</dd></div>
+          {summary.hasLaLiga && <div><dt>LaLiga yellows</dt><dd>{summary.yellowComplete ? "" : "At least "}{summary.yellows}{summary.yellowComplete && summary.yellows % 5 === 4 ? <small>one away from a ban</small> : !summary.yellowComplete ? <small>Some cards not read</small> : null}</dd></div>}
           {([ ["Sofix", summary.sofix], ["Sorare", summary.sorare] ] as const).map(([name, value]) => <div key={name}><dt>{name} mean miss</dt><dd>{value ? value.miss.toFixed(1) : "—"}<small>{value ? `${value.n} checked starts` : "No checked starts yet"}</small></dd></div>)}
           <div title="FF is right when it gave him 50% or more and he started, or under 50% and he did not"><dt>FF start calls</dt><dd>{summary.ff ? `${summary.ff.right}/${summary.ff.n}` : "—"}<small>{summary.ff ? "times FF called his start right" : "No FF number saved yet"}</small></dd></div>
         </dl>

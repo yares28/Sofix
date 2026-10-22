@@ -66,7 +66,7 @@ def sample(code="PL", size=20):
     return {"competition": {"code": code}, "matches": matches}, history
 
 
-@pytest.mark.parametrize(("code", "size"), [("PL", 20), ("BL1", 18)])
+@pytest.mark.parametrize(("code", "size"), [("PL", 20), ("BL1", 18), ("FL1", 18)])
 def test_cold_start_entire_league_has_two_sided_fdr(code, size):
     payload, history = sample(code, size)
     body = build_league_grid(code, payload, history, NOW)
@@ -193,3 +193,32 @@ def test_training_never_receives_future_rows(monkeypatch):
     monkeypatch.setattr(league_fdr, "fit_dixon_coles", fit)
     build_league_grid("PL", payload, pd.concat([history, future]), NOW)
     assert len(seen) == 1 and seen[0]["date"].max() < pd.Timestamp(NOW.date())
+
+
+def test_ligue_1_interrupted_administrative_result_is_not_fitted(monkeypatch):
+    from app.services import league_fdr
+
+    payload, history = sample("FL1", 18)
+    admin = history.iloc[:1].copy()
+    admin.loc[:, "date"] = pd.Timestamp("2025-03-16")
+    admin.loc[:, "home"] = "Montpellier"
+    admin.loc[:, "away"] = "St Etienne"
+    original = league_fdr.fit_dixon_coles
+
+    def fit(frame, *args, **kwargs):
+        assert not ((frame["home"] == "Montpellier") & (frame["away"] == "St Etienne")).any()
+        return original(frame, *args, **kwargs)
+
+    monkeypatch.setattr(league_fdr, "fit_dixon_coles", fit)
+    build_league_grid("FL1", payload, pd.concat([history, admin]), NOW)
+
+
+def test_ligue_1_preserves_strasbourg_source_id_despite_malformed_provider_abbreviation():
+    payload, history = sample("FL1", 18)
+    for match in payload["matches"]:
+        for side in ("homeTeam", "awayTeam"):
+            if match[side]["id"] == 1000:
+                match[side]["id"] = 576
+                match[side]["tla"] = "RC "
+    grid = build_league_grid("FL1", payload, history, NOW).data
+    assert next(t for t in grid.teams if t.source_id == 576).code == "STR"

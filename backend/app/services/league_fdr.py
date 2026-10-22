@@ -30,11 +30,44 @@ from app.services.rating_predictions import merge_recent_results, model_version,
 from app.services.timeutil import as_utc
 from app.sources.football_data_org import MatchPayload
 
-LEAGUES = {"PL": ("Premier League", "E0", 20), "BL1": ("Bundesliga", "D1", 18)}
+LEAGUES = {"PL": ("Premier League", "E0", 20), "BL1": ("Bundesliga", "D1", 18), "FL1": ("Ligue 1", "F1", 18)}
 # Do not borrow Spain's learned calibration or odds blend. This is the exact reference
 # architecture evaluated in the domestic replay, fitted independently per league.
 REFERENCE = DixonColesConfig(xi=0.001, ridge=1.0, promoted_prior=0.0, spread=1.10)
+# The configured feed returns "RC " for Strasbourg. Presentation override only; source ID remains 576.
+CODE_OVERRIDES = {"FL1": {576: "STR"}}
 HISTORY_ALIASES = {
+    "AJ Auxerre": "Auxerre",
+    "AS Monaco": "Monaco",
+    "AS Monaco FC": "Monaco",
+    "AS Saint-Étienne": "St Etienne",
+    "Angers SCO": "Angers",
+    "Clermont Foot 63": "Clermont",
+    "FC Lorient": "Lorient",
+    "FC Metz": "Metz",
+    "FC Nantes": "Nantes",
+    "LOSC Lille": "Lille",
+    "Lille OSC": "Lille",
+    "Le Havre AC": "Le Havre",
+    "Le Mans FC": "Le Mans",
+    "Montpellier Hérault SC": "Montpellier",
+    "OGC Nice": "Nice",
+    "Olympique Lyonnais": "Lyon",
+    "Olympique Lyon": "Lyon",
+    "Olympique de Marseille": "Marseille",
+    "Paris Saint-Germain": "Paris SG",
+    "Paris Saint-Germain FC": "Paris SG",
+    "PSG": "Paris SG",
+    "RC Lens": "Lens",
+    "Racing Club de Lens": "Lens",
+    "RC Strasbourg Alsace": "Strasbourg",
+    "Stade Brestois 29": "Brest",
+    "Stade Rennais F.C.": "Rennes",
+    "Stade Rennais FC 1901": "Rennes",
+    "Stade Rennais": "Rennes",
+    "Stade de Reims": "Reims",
+    "Toulouse FC": "Toulouse",
+    "ES Troyes AC": "Troyes",
     "Arsenal FC": "Arsenal",
     "Aston Villa FC": "Aston Villa",
     "Brentford FC": "Brentford",
@@ -136,7 +169,7 @@ def build_league_grid(
         raise ValueError("Incomplete or ambiguous full-league season; retaining previous board")
     start = next(iter(seasons)).year
     season = f"{start}/{(start + 1) % 100:02}"
-    codes = {ident: (ref.tla or "").upper() for ident, ref in refs.items()}
+    codes = {ident: CODE_OVERRIDES.get(code, {}).get(ident, (ref.tla or "").upper()) for ident, ref in refs.items()}
     if len(set(codes.values())) != size or any(not re.fullmatch(r"[A-Z0-9]{3}", value) for value in codes.values()):
         raise ValueError("Source club abbreviations must be present and unambiguous within the league")
     known = set(history["home"]) | set(history["away"])
@@ -175,6 +208,14 @@ def build_league_grid(
             history = history[
                 ~((history["date"] == pd.Timestamp(day)) & (history["home"] == home) & (history["away"] == away))
             ]
+    if code == "FL1":
+        history = history[
+            ~(
+                (history["date"] == pd.Timestamp("2025-03-16"))
+                & (history["home"] == "Montpellier")
+                & (history["away"] == "St Etienne")
+            )
+        ]
     from app.backtest.data import promoted_from_fixtures
 
     promoted = promoted_from_fixtures(names.values(), history, start)

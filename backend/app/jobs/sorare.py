@@ -375,10 +375,10 @@ def run(
     foreign_kept = {
         r.key: r.payload for r in kept_blocks.rows(db, "grid:", "league_squads:", "league_games:", "player_index")
     }
-    foreign_grids = {c: (foreign_kept.get(f"grid:{c}") or {}).get("data") or {} for c in ("PL", "BL1")}
+    foreign_grids = {c: (foreign_kept.get(f"grid:{c}") or {}).get("data") or {} for c in ("PL", "BL1", "FL1")}
     foreign_models = {
         c: m
-        for c in ("PL", "BL1")
+        for c in ("PL", "BL1", "FL1")
         if (m := foreign_scores.load(c)) is not None
         and foreign_grids[c].get("model_version") == foreign_scores.expected_version(c)
     }

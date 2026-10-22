@@ -68,14 +68,17 @@ def bootstrap() -> int:
 
     db = SessionLocal()
     try:
-        present = {key for (key,) in db.query(ReadModel.key).filter(ReadModel.key.in_(["grid:PL", "grid:BL1"])).all()}
+        present = {
+            key
+            for (key,) in db.query(ReadModel.key).filter(ReadModel.key.in_([f"grid:{code}" for code in LEAGUES])).all()
+        }
     finally:
         db.close()
     missing = [code for code in LEAGUES if f"grid:{code}" not in present]
     if not missing:
-        logging.getLogger(__name__).info("league FDR bootstrap skipped: both blocks already exist")
+        logging.getLogger(__name__).info("league FDR bootstrap skipped: all blocks already exist")
         return 0
-    steps = [("fdr_pl" if code == "PL" else "fdr_bl", partial(run, code)) for code in missing]
+    steps = [({"PL": "fdr_pl", "BL1": "fdr_bl", "FL1": "fdr_fl1"}[code], partial(run, code)) for code in missing]
     steps.append(
         ("revalidate", lambda: notify_app(settings.app_url, settings.revalidate_secret, settings.vercel_bypass_secret))
     )

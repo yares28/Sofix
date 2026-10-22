@@ -169,6 +169,19 @@ def game_list(client: Any, code: str, *, start: datetime = START, end: datetime 
     raise ValueError("Source list exceeded the page budget")
 
 
+def eligible_calendar(code: str, calendar: pd.DataFrame) -> pd.DataFrame:
+    """Predeclared interrupted Ligue 1 training fixture; official table result is retained elsewhere."""
+    if code != "FL1":
+        return calendar
+    return calendar[
+        ~(
+            (calendar["date"] == pd.Timestamp("2025-03-16"))
+            & (calendar["home"] == "Montpellier")
+            & (calendar["away"] == "St Etienne")
+        )
+    ].copy()
+
+
 def reconcile(
     client: Any, code: str, games: list[dict[str, Any]], calendar: pd.DataFrame, *, sources: Path | None = None
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
@@ -440,6 +453,7 @@ def main() -> int:
                 ],
                 ignore_index=True,
             )
+            calendar = eligible_calendar(args.league, calendar)
             games, audit = reconcile(client, args.league, games, calendar, sources=folder)
             spans = windows(client)
             (folder / "windows.json").write_text(json.dumps(spans), encoding="utf-8")

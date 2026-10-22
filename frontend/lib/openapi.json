@@ -128,7 +128,8 @@
               "enum": [
                 "PD",
                 "PL",
-                "BL1"
+                "BL1",
+                "FL1"
               ],
               "type": "string",
               "default": "PD",
@@ -209,7 +210,8 @@
             "schema": {
               "enum": [
                 "PL",
-                "BL1"
+                "BL1",
+                "FL1"
               ],
               "type": "string",
               "title": "Code"
@@ -252,7 +254,8 @@
             "schema": {
               "enum": [
                 "PL",
-                "BL1"
+                "BL1",
+                "FL1"
               ],
               "type": "string",
               "title": "Code"
@@ -1217,7 +1220,8 @@
             "enum": [
               "PD",
               "PL",
-              "BL1"
+              "BL1",
+              "FL1"
             ],
             "title": "Competition",
             "default": "PD"

@@ -21,7 +21,7 @@ class Published:
 
 
 def test_existing_blocks_do_not_start_a_refresh(monkeypatch):
-    monkeypatch.setattr(league_fdr, "SessionLocal", lambda: Published(["grid:PL", "grid:BL1"]))
+    monkeypatch.setattr(league_fdr, "SessionLocal", lambda: Published(["grid:PL", "grid:BL1", "grid:FL1"]))
 
     def forbidden(*args, **kwargs):
         raise AssertionError("must skip completed bootstrap")
@@ -31,7 +31,7 @@ def test_existing_blocks_do_not_start_a_refresh(monkeypatch):
 
 
 def test_only_missing_league_uses_existing_schema_gate_and_lock(monkeypatch):
-    monkeypatch.setattr(league_fdr, "SessionLocal", lambda: Published(["grid:PL"]))
+    monkeypatch.setattr(league_fdr, "SessionLocal", lambda: Published(["grid:PL", "grid:FL1"]))
     calls = []
     monkeypatch.setattr(league_fdr, "run", lambda code: calls.append(code))
 
@@ -43,3 +43,17 @@ def test_only_missing_league_uses_existing_schema_gate_and_lock(monkeypatch):
 
     monkeypatch.setattr(refresh, "main", locked)
     assert league_fdr.bootstrap() == 0 and calls == ["BL1"]
+
+
+def test_existing_pl_and_bundesliga_only_bootstrap_ligue_1(monkeypatch):
+    monkeypatch.setattr(league_fdr, "SessionLocal", lambda: Published(["grid:PL", "grid:BL1"]))
+    calls = []
+    monkeypatch.setattr(league_fdr, "run", lambda code: calls.append(code))
+
+    def locked(argv, **kwargs):
+        assert [name for name, _ in kwargs["steps"]] == ["fdr_fl1", "revalidate"]
+        kwargs["steps"][0][1]()
+        return 0
+
+    monkeypatch.setattr(refresh, "main", locked)
+    assert league_fdr.bootstrap() == 0 and calls == ["FL1"]

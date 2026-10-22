@@ -65,6 +65,7 @@ def default_steps() -> list[Step]:
         ("predict", predict.main),
         ("fdr_pl", lambda: league_fdr.run("PL")),
         ("fdr_bl", lambda: league_fdr.run("BL1")),
+        ("fdr_fl1", lambda: league_fdr.run("FL1")),
     ]
 
 

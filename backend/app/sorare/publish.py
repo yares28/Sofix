@@ -1829,6 +1829,12 @@ def market_out(
         week: dict[str, Any] = {}
         if forecast and game and row.get("pos") != "UNK":
             info = forecast.per_game[0].info if forecast.per_game else {}
+            # This row names the first fixture; a double's better-game xD belongs to its week, not this fixture.
+            xd = forecast.xd if forecast.games <= 1 else None
+            if forecast.games > 1 and forecast.shape is not None and forecast.p_start is not None:
+                xd = forecast.p_start * forecast.shape.p_decisive + (forecast.p_on or 0.0) * (
+                    forecast.on_shape.p_decisive if forecast.on_shape is not None else 0.0
+                )
             week = {
                 "p": round(forecast.p_play, 3),
                 **_start_of(forecast),
@@ -1836,6 +1842,7 @@ def market_out(
                 **{k: info[k] for k in ("ffMatch", "ffPlayer") if info.get(k) is not None},
                 "mu": round(forecast.mu, 1),
                 **({"decisive": round(forecast.shape.p_decisive, 3)} if forecast.shape is not None else {}),
+                **({"xd": round(xd, 3)} if xd is not None else {}),
                 "by": forecast.score_source,
                 **({"start": round(forecast.start, 1)} if forecast.start is not None else {}),
                 "x": round(_expected(forecast), 1),

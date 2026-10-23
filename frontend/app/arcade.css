@@ -1,16 +1,14 @@
 /* Arcade (plans/set.md, step 1): the read, shown plainly. Scoped to .arc-main. */
-.arc-main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; color: var(--ink); }
+.arc-main { max-width: 1600px; margin: 0 auto; padding: 24px 24px 64px; color: var(--ink); }
 .arc-kicker { margin: 0; font-size: var(--text-sm); color: var(--ink-2); }
 .arc-note { font-size: var(--text-sm); color: var(--amber-ink, #8a5a00); background: var(--amber-bg, #fff5e0); border-radius: 12px; padding: 10px 14px; }
-.arc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.arc-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 24px 18px; margin-bottom: 24px; }
 .arc-card { margin: 0; text-align: center; }
 .arc-card img, .arc-card-blank { width: 100%; height: auto; aspect-ratio: 120 / 194; border-radius: 10px; display: block; }
 .arc-card-blank { display: grid; place-items: center; background: var(--hover); font-size: var(--text-xs); padding: 8px; }
 .arc-card figcaption { font-size: 11px; color: var(--ink-2); margin-top: 4px; }
 .arc-missions h2 { font-size: var(--text-md); }
 .arc-empty { background: var(--surface); box-shadow: var(--shadow-card); border-radius: var(--radius); padding: 32px; text-align: center; }
-.arc-again { margin-top: 16px; border: 0; border-radius: 999px; padding: 10px 18px; background: var(--ink); color: var(--on-ink); font: inherit; cursor: pointer; }
-.arc-again:disabled { opacity: 0.6; cursor: default; }
 @media (max-width: 600px) {
   .arc-card figcaption { font-size: 10px; }
 }
@@ -21,22 +19,16 @@
 .arc-count { font-size: var(--text-sm); color: var(--ink-2); margin: 10px 0; }
 .arc-card figcaption { display: flex; flex-direction: column; gap: 1px; }
 .arc-card-name { color: var(--ink); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.arc-bonus { color: var(--accent); }
 .arc-pager { display: flex; align-items: center; justify-content: center; gap: 12px; font-size: var(--text-sm); }
 .arc-pager button { font: inherit; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 8px 16px; min-height: 40px; cursor: pointer; }
 .arc-pager button:disabled { opacity: 0.4; cursor: default; }
 .arc-missions > p { font-size: var(--text-sm); color: var(--ink-2); }
 @media (max-width: 700px) { .arc-main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); } } /* room for the phone tab bar */
-.arc-chance { font-size: 11px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.arc-chance b { color: var(--ink); font-weight: 600; }
-.arc-chance i { font-style: normal; color: var(--ink-3); }
-.arc-nogame { font-size: 11px; color: var(--ink-3); }
 .arc-read, .arc-read-box { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 24px 0 0; padding: 14px 18px; background: var(--surface); box-shadow: var(--shadow-card); border-radius: 16px; font-size: var(--text-sm); }
 .arc-read p, .arc-read-box p { margin: 0; flex: 1 1 260px; }
 .arc-read button, .arc-read-box button { font: inherit; border: 0; border-radius: 999px; padding: 9px 16px; min-height: 40px; background: var(--ink); color: var(--on-ink); cursor: pointer; }
 .arc-read button:disabled, .arc-read-box button:disabled { opacity: 0.6; cursor: default; }
 .arc-read .arc-read-note { flex-basis: 100%; color: var(--ink-2); }
-@media (max-width: 600px) { .arc-chance, .arc-nogame { font-size: 10px; } }
 /* Step 3: predictions and Pick teams */
 .arc-pred { color: var(--ink-2); }
 .arc-pred b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -149,7 +141,6 @@
 .arc-lives span { color: var(--accent); letter-spacing: 1px; }
 @media (max-width: 900px) { .arc-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .arc-hero h1, .arc-empty h1 { font-size: 28px; } .arc-wallet div { min-width: 0; padding: 6px 10px; } .arc-wallet dd { font-size: 17px; } }
-.arc-grid .arc-chance { white-space: normal; }
 /* Focus and hover for every Arcade control (web-design-guidelines audit, 21 Oct) */
 .arc-main :is(button, select, input):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .arc-main button { touch-action: manipulation; }
@@ -165,3 +156,49 @@
 .arc-fdr.f4 b { background: var(--fdr4-bg); color: var(--fdr4-fg); }
 .arc-fdr.f5 b { background: var(--fdr5-bg); color: var(--fdr5-fg); }
 .arc-fdr small { font-size: 11px; }
+
+/* Collection art carries the ratings; the short row beneath is fixture evidence only. */
+.arc-cards { container: arcade-cards / inline-size; }
+.arc-art { position: relative; isolation: isolate; }
+.arc-card-ratings { position: absolute; top: 8px; right: 8px; display: grid; gap: 4px; }
+.arc-card-ratings > span { display: flex; align-items: baseline; justify-content: space-between; gap: 7px; padding: 4px 7px; border-radius: 6px; background: var(--surface); color: var(--ink); box-shadow: 0 1px 5px rgb(0 0 0 / .12); font-variant-numeric: tabular-nums; }
+.arc-card-ratings small { font-size: 11px; font-weight: 500; }
+.arc-card-ratings b { font-size: 14px; line-height: 1.1; }
+.arc-card-fdr.f1 { background: var(--fdr1-bg); color: var(--fdr1-fg); }
+.arc-card-fdr.f2 { background: var(--fdr2-bg); color: var(--fdr2-fg); }
+.arc-card-fdr.f3 { background: var(--fdr3-bg); color: var(--fdr3-fg); }
+.arc-card-fdr.f4 { background: var(--fdr4-bg); color: var(--fdr4-fg); }
+.arc-card-fdr.f5 { background: var(--fdr5-bg); color: var(--fdr5-fg); }
+.arc-card-bonus { position: absolute; right: 8px; bottom: 8px; padding: 4px 7px; background: var(--surface); color: var(--ink); font-size: 12px; font-weight: 650; border-radius: 6px; box-shadow: 0 1px 5px rgb(0 0 0 / .12); }
+.arc-card figcaption { display: flex; flex-direction: row; align-items: flex-start; justify-content: space-between; gap: 8px; margin-top: 10px; min-height: 60px; text-align: left; }
+.arc-card-start { font-size: clamp(25px, 2.6vw, 36px); color: var(--ink); line-height: 1.2; letter-spacing: -.05em; font-weight: 600; font-variant-numeric: tabular-nums; text-decoration: none; }
+.arc-card-start:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.arc-card-evidence { display: grid; justify-items: end; gap: 4px; min-width: 0; }
+.arc-card-games { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 4px; }
+.arc-card-games button { display: flex; align-items: center; gap: 2px; min-height: 32px; padding: 4px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--ink-2); cursor: pointer; transition: background-color 150ms, border-color 150ms; }
+.arc-card-games button[aria-pressed="true"] { background: var(--surface); border-color: var(--line); }
+.arc-card-games button:hover { background: var(--hover); }
+.arc-card-games img { width: 20px; height: 20px; aspect-ratio: 1; object-fit: contain; border-radius: 0; }
+.arc-card-games button span { font-size: 11px; }
+.arc-card-xd { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.arc-no-fixture { display: grid; place-items: center; height: 32px; font-size: 14px; }
+.arc-collection-meta { display: flex; justify-content: space-between; align-items: center; min-height: 46px; gap: 12px; }
+.arc-clear { font: inherit; font-size: var(--text-sm); border: 0; color: var(--ink-2); background: transparent; padding: 8px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.arc-filters { display: grid; grid-template-columns: minmax(180px, 2fr) repeat(3, minmax(0, 1fr)); }
+.arc-filters input, .arc-filters select { width: 100%; min-width: 0; border-radius: 9px; }
+.arc-filters select:last-child { grid-column: span 2; }
+.arc-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 10px; }
+.arc-score-action { display: contents; }
+.arc-action { display: inline-grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink-2); cursor: pointer; transition: background-color 150ms, transform 150ms; }
+.arc-action:not(:disabled):hover { background: var(--hover); color: var(--ink); }
+.arc-action:not(:disabled):active { transform: scale(.96); }
+.arc-action:disabled { opacity: .45; cursor: default; }
+.arc-read-info { font: italic 600 18px Georgia, serif; }
+.arc-read[hidden] { display: none; }
+.arc-action.is-reading svg { animation: arc-reading 1s ease-in-out infinite; }
+@keyframes arc-reading { 50% { opacity: .25; } }
+@container arcade-cards (max-width: 1160px) { .arc-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@container arcade-cards (max-width: 800px) { .arc-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .arc-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } .arc-filters input { grid-column: 1 / -1; } .arc-filters select:last-child { grid-column: auto; } }
+@container arcade-cards (max-width: 520px) { .arc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 14px; } .arc-card-start { font-size: 28px; } }
+@media (max-width: 600px) { .arc-main { padding-inline: 16px; } .arc-action { width: 44px; height: 44px; flex-basis: 44px; } .arc-card-games button { min-height: 44px; min-width: 44px; } }
+@media (prefers-reduced-motion: reduce) { .arc-action.is-reading svg { animation: none; } .arc-action, .arc-card-games button { transition: none; } }

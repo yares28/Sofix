@@ -34,6 +34,6 @@ describe("Arcade and the league boards", () => {
     ] } as unknown as FixtureGrid;
     const out = boardFixtures(grid, "PL", 0, Date.parse("2026-11-01T00:00:00Z"));
     expect(out).toHaveLength(1);
-    expect(out[0]).toMatchObject({ home: { code: "ARS", bucket: 2 }, away: { code: "EVE", bucket: 5 } });
+    expect(out[0]).toMatchObject({ home: { code: "ARS", bucket: 2, difficulty: 2 }, away: { code: "EVE", bucket: 5, difficulty: 5 } });
   });
 });

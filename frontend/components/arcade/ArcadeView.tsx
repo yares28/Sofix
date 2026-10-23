@@ -2,25 +2,22 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ARCADE_BENCH_VERSION, ARCADE_EXTENSION_VERSION, ARCADE_PLAN_VERSION, bonusLabel, chanceOf, gamesOf, keepArcade, lastArcade, loadArcadeChances, newerChances, outlookOf, readArcade, readArcadeBench, readArcadeExtras, walkArcade,
-  type Arcade, type ArcadeBench, type ArcadeCard, type ArcadeChances, type ArcadeExtras, type ArcadeGame, type ArcadeLaLiga, type ArcadeRead, type ArcadeStep, type ArcadeWalk,
+  ARCADE_BENCH_VERSION, ARCADE_EXTENSION_VERSION, ARCADE_PLAN_VERSION, chanceOf, gamesOf, keepArcade, lastArcade, loadArcadeChances, newerChances, outlookOf, readArcade, readArcadeBench, readArcadeExtras, walkArcade,
+  type Arcade, type ArcadeBench, type ArcadeChances, type ArcadeExtras, type ArcadeLaLiga, type ArcadeRead, type ArcadeStep, type ArcadeWalk,
 } from "../../lib/arcade";
 import type { Outlook } from "../../lib/arcadePlan";
 import { matchFixture, type FdrFixture } from "../../lib/arcadeFdr";
 import ArcadeLive from "./ArcadeLive";
-import { FdrChip, FdrContext } from "./Fdr";
+import ArcadeCards from "./ArcadeCards";
+import ArcadeAction from "./ArcadeAction";
+import { FdrContext } from "./Fdr";
 import ArcadeMissions from "./ArcadeMissions";
 import ArcadePacks from "./ArcadePacks";
-import ArcadePlanner, { climbStep, Prediction, StartLabel } from "./ArcadePlanner";
+import ArcadePlanner, { climbStep } from "./ArcadePlanner";
 
-const PAGE_SIZE = 48;
 const madrid = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString("en-GB", { timeZone: "Europe/Madrid", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
 const count = (value: number | null) => (value === null ? "—" : value.toLocaleString("en-GB"));
-const POSITIONS = ["Goalkeeper", "Defender", "Midfielder", "Forward"];
-const kickoff = (iso: string) => new Date(iso).toLocaleString("en-GB", { timeZone: "Europe/Madrid", weekday: "short", hour: "2-digit", minute: "2-digit" });
-const opponent = (game: ArcadeGame, club: string | null) => (game.home?.slug === club ? `v ${game.away?.name ?? "?"}` : `at ${game.home?.name ?? "?"}`);
-
 const WHY: Record<Exclude<ArcadeRead["state"], "ok" | "outdated" | "failed">, string> = {
   "no-extension": "This browser can't reach the Sofix extension. Open Arcade in the Chrome that has it.",
   "no-tab": "Open sorare.com in a tab of this Chrome, signed in, then read again.",
@@ -46,111 +43,6 @@ function StepRow({ step, current }: { step: ArcadeStep; current: boolean }) {
   );
 }
 
-/** A card's next games with Sorare's start % for each, as saved; "no start % yet" where Sorare has shown none. */
-function CardGames({ card, games, outlooks }: { card: ArcadeCard; games: ArcadeGame[] | null; outlooks: Map<string, Outlook[]> }) {
-  if (games === null) return null;
-  const mine = gamesOf(card, games).slice(0, 2);
-  if (!mine.length) return <span className="arc-nogame">No game before the set ends</span>;
-  return (
-    <>
-      {mine.map((game, i) => {
-        const outlook = outlooks.get(game.id)?.find((o) => o.card.slug === card.slug);
-        return (
-          <span key={game.id} className="arc-chance" title={`${game.home?.name ?? "?"} v ${game.away?.name ?? "?"} · ${game.competition.name}`}>
-            {i === 0 && outlook ? <><Prediction outlook={outlook} /><br /></> : null}
-            {outlook ? <StartLabel outlook={outlook} /> : <i>no start % yet</i>} · {kickoff(game.kickoff)} {opponent(game, card.teamSlug)} <FdrChip game={game.id} home={game.home?.slug === card.teamSlug} position={card.positions[0]} />
-          </span>
-        );
-      })}
-    </>
-  );
-}
-
-function Cards({ cards, games, chances, outlooks }: { cards: ArcadeCard[]; games: ArcadeGame[] | null; chances: ArcadeChances | null; outlooks: Map<string, Outlook[]> }) {
-  const [sort, setSort] = useState<"name" | "start">("name");
-  const [query, setQuery] = useState("");
-  const [league, setLeague] = useState("");
-  const [position, setPosition] = useState("");
-  const [edition, setEdition] = useState("");
-  const [page, setPage] = useState(0);
-
-  const leagues = useMemo(() => [...new Map(cards.flatMap((c) => (c.league ? [[c.league.slug, c.league.name] as const] : []))).entries()].sort((a, b) => a[1].localeCompare(b[1])), [cards]);
-  const editions = useMemo(() => [...new Set(cards.map((c) => c.edition ?? "Standard"))].sort(), [cards]);
-  const shown = useMemo(() => {
-    const words = query.trim().toLowerCase();
-    return cards.filter((c) =>
-      (!words || c.name.toLowerCase().includes(words) || (c.team ?? "").toLowerCase().includes(words))
-      && (!league || c.league?.slug === league)
-      && (!position || c.positions.includes(position))
-      && (!edition || (c.edition ?? "Standard") === edition));
-  }, [cards, query, league, position, edition]);
-  const ordered = useMemo(() => {
-    if (sort === "name" || !games) return shown;
-    const start = (c: ArcadeCard) => {
-      const next = gamesOf(c, games)[0];
-      return next ? chanceOf(chances, next.id, c.player)?.percent ?? -1 : -2;
-    };
-    return [...shown].sort((a, b) => start(b) - start(a) || a.name.localeCompare(b.name));
-  }, [shown, sort, games, chances]);
-  const pages = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
-  const at = Math.min(page, pages - 1);
-  const slice = ordered.slice(at * PAGE_SIZE, (at + 1) * PAGE_SIZE);
-  const reset = <T,>(set: (value: T) => void) => (value: T) => { set(value); setPage(0); };
-
-  return (
-    <section className="arc-cards" aria-labelledby="arc-cards-title">
-      <h2 id="arc-cards-title">Your cards</h2>
-      <div className="arc-filters">
-        <input type="search" placeholder="Player or club" aria-label="Search player or club" value={query} onChange={(e) => reset(setQuery)(e.target.value)} />
-        <select aria-label="League" value={league} onChange={(e) => reset(setLeague)(e.target.value)}>
-          <option value="">All leagues</option>
-          {leagues.map(([slug, name]) => <option key={slug} value={slug}>{name}</option>)}
-        </select>
-        <select aria-label="Position" value={position} onChange={(e) => reset(setPosition)(e.target.value)}>
-          <option value="">All positions</option>
-          {POSITIONS.map((p) => <option key={p} value={p}>{p}</option>)}
-        </select>
-        <select aria-label="Edition" value={edition} onChange={(e) => reset(setEdition)(e.target.value)}>
-          <option value="">All editions</option>
-          {editions.map((e) => <option key={e} value={e}>{e}</option>)}
-        </select>
-        <select aria-label="Sort" value={sort} onChange={(e) => reset(setSort)(e.target.value === "start" ? "start" : "name")}>
-          <option value="name">By name</option>
-          <option value="start">By start % (next game)</option>
-        </select>
-      </div>
-      <p className="arc-count" role="status">
-        {shown.length ? `${(at * PAGE_SIZE + 1).toLocaleString("en-GB")}–${(at * PAGE_SIZE + slice.length).toLocaleString("en-GB")} of ${shown.length.toLocaleString("en-GB")}` : "No card matches"}
-      </p>
-      <div className="arc-grid">
-        {slice.map((card) => {
-          const bonus = bonusLabel(card.bonus);
-          return (
-            <figure key={card.slug} className="arc-card">
-              {card.picture
-                // eslint-disable-next-line @next/next/no-img-element -- Sorare's card art, as on the other pages
-                ? <img src={card.picture} alt={card.name} loading="lazy" width={120} height={194} />
-                : <div className="arc-card-blank">{card.name}</div>}
-              <figcaption>
-                <span className="arc-card-name">{card.name}</span>
-                {bonus ? <span className="arc-bonus">{card.edition} {bonus}</span> : null}
-                <CardGames card={card} games={games} outlooks={outlooks} />
-              </figcaption>
-            </figure>
-          );
-        })}
-      </div>
-      {pages > 1 ? (
-        <nav className="arc-pager" aria-label="Card pages">
-          <button type="button" onClick={() => setPage(at - 1)} disabled={at === 0}>Previous</button>
-          <span>Page {at + 1} of {pages}</span>
-          <button type="button" onClick={() => setPage(at + 1)} disabled={at >= pages - 1}>Next</button>
-        </nav>
-      ) : null}
-    </section>
-  );
-}
-
 const WALKED: Record<string, string> = {
   busy: "Sofix is already reading Sorare in another tab; try again in a minute.",
   "signed-out": "Sorare says no one is signed in. Sign in on sorare.com, then read again.",
@@ -161,10 +53,12 @@ const WALKED: Record<string, string> = {
   error: "Reading Sorare's page failed; nothing more was saved.",
 };
 
-function Loaded({ arcade, unread, laliga, fdr }: { arcade: Arcade; unread: string[]; laliga: ArcadeLaLiga; fdr: FdrFixture[] }) {
+function Loaded({ arcade, unread, laliga, fdr, onReload, busy }: { arcade: Arcade; unread: string[]; laliga: ArcadeLaLiga; fdr: FdrFixture[]; onReload: () => void; busy: boolean }) {
   // Each game of a league with a Sofix board, matched to the board's fixture (kick-off and clubs).
   const boards = useMemo(() => new Map((arcade.games ?? []).flatMap((g) => { const f = matchFixture(g, fdr); return f ? [[g.id, f] as const] : []; })), [arcade.games, fdr]);
   const current = arcade.board?.current ?? null;
+  const [actions, setActions] = useState<HTMLDivElement | null>(null);
+  const [showRead, setShowRead] = useState(false);
   const [chances, setChances] = useState<ArcadeChances | null>(null);
   const [walking, setWalking] = useState(false);
   const [walked, setWalked] = useState<ArcadeWalk | null>(null);
@@ -203,6 +97,7 @@ function Loaded({ arcade, unread, laliga, fdr }: { arcade: Arcade; unread: strin
   const captainBonus = arcade.board?.steps.find((s) => s.number === current)?.captain ?? arcade.board?.steps[0]?.captain ?? 0;
   const step = arcade.board?.steps.find((s) => s.number === current) ?? arcade.board?.steps[0] ?? null;
   const read = async () => {
+    setShowRead(true);
     if (!arcade.board?.config || !step) return;
     setWalking(true);
     setWalked(null);
@@ -227,6 +122,12 @@ function Loaded({ arcade, unread, laliga, fdr }: { arcade: Arcade; unread: strin
             <div><dt>{arcade.set.name} commons</dt><dd>{arcade.cards.length.toLocaleString("en-GB")}{arcade.cardsCut ? "+" : ""}</dd></div>
           </dl>
         </div>
+        <div className="arc-actions" role="group" aria-label="Refresh Arcade data">
+          <ArcadeAction label="Refresh board and cards" kind="board" onClick={onReload} busy={busy} />
+          <ArcadeAction label={bench && bench !== "reading" && bench.state === "ok" ? "Refresh start percentages" : "Read Arcade's start % (opens Sorare's page)"} kind="start" busy={walking || bench === "reading"} disabled={!benchStep} onClick={() => { setShowRead(true); if (bench && bench !== "reading" && bench.state === "ok") void refresh(true); else void read(); }} />
+          <div ref={setActions} className="arc-score-action">{!ready ? <ArcadeAction label="Refresh scores" kind="scores" disabled title="Waiting for card projections" /> : null}</div>
+          <button type="button" className="arc-action arc-read-info" aria-label="Start percentage read details" title="Start percentage read details" aria-expanded={showRead} aria-controls="arc-start-details" onClick={() => setShowRead(!showRead)}>i</button>
+        </div>
         {/* The tower in the plan shows the steps once predictions are read; until then, the plain ladder. */}
         {arcade.board ? (ready ? null : 
           <ol className="arc-steps" aria-label="Your board">
@@ -234,15 +135,7 @@ function Loaded({ arcade, unread, laliga, fdr }: { arcade: Arcade; unread: strin
           </ol>
         ) : <p className="arc-note">Sorare has no set board for this account yet.</p>}
       </header>
-      {unread.length ? <p className="arc-note" role="status">Not read this time: {unread.join(", ")}.</p> : null}
-      <p className="arc-read-state" role="status">
-        {extras === "reading" ? "Reading projections, past scores and club bonuses from Sorare…"
-          : extras === null ? `Predictions need extension ${ARCADE_PLAN_VERSION}: reload it on chrome://extensions. Until then cards are scored on nothing.`
-          : extras.unread.length ? `Not read this time: ${extras.unread.join(", ")}.` : null}
-      </p>
-      {ready ? <ArcadeLive arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} /> : null}
-      {ready && planOutlooks ? <ArcadePlanner arcade={arcade} outlooks={planOutlooks} captainBonus={captainBonus} /> : ready ? <p className="arc-read-state" role="status">Planning the climb once Sorare&apos;s start % are in…</p> : null}
-      <section className="arc-read" aria-label="Sorare's start %">
+      <section id="arc-start-details" className="arc-read" aria-label="Sorare's start %" hidden={!showRead}>
         <p>
           {arcade.games === null ? "Sorare did not give the board's games, so start % cannot be matched to cards."
             : chances === null ? "Saved start % could not be read."
@@ -255,14 +148,8 @@ function Loaded({ arcade, unread, laliga, fdr }: { arcade: Arcade; unread: strin
         ) : null}
         {bench === "reading" ? <p className="arc-read-note" role="status">Reading Sorare&apos;s start % from your Sorare tab, every day to the set&apos;s end…</p>
           : bench && bench.state === "ok" ? <p className="arc-read-note">Read from your Sorare tab at {new Date(bench.at).toLocaleTimeString("en-GB", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit" })}; nothing opened.</p>
-          : bench && bench.state === "outdated" ? <p className="arc-read-note">Start % without opening a page needs extension {ARCADE_BENCH_VERSION}: reload it on chrome://extensions.</p> : null}
-        {bench && bench !== "reading" && bench.state === "ok" ? (
-          <button type="button" className="arc-small" onClick={() => void refresh(true)}>Read start % again</button>
-        ) : (
-          <button type="button" onClick={() => void read()} disabled={walking || bench === "reading" || !arcade.board?.config || !step}>
-            {walking ? "Reading Sorare's Arcade page…" : "Read Arcade's start % (opens Sorare's page)"}
-          </button>
-        )}
+          : bench && bench.state === "outdated" ? <p className="arc-read-note">Start % without opening a page needs extension {ARCADE_BENCH_VERSION}: reload it on chrome://extensions.</p>
+          : bench && bench.state === "refused" ? <p className="arc-read-note" role="status">Sorare refused the start-percentage read. The last saved percentages remain visible.</p> : null}
         {walking ? <p className="arc-read-note">Sorare&apos;s Arcade lineup page opens in a tab for about a minute, then closes. Nothing is picked or saved on Sorare.</p> : null}
         {walked ? (
           <p className="arc-read-note" role="status">
@@ -270,9 +157,17 @@ function Loaded({ arcade, unread, laliga, fdr }: { arcade: Arcade; unread: strin
           </p>
         ) : null}
       </section>
+      {unread.length ? <p className="arc-note" role="status">Not read this time: {unread.join(", ")}.</p> : null}
+      <p className="arc-read-state" role="status">
+        {extras === "reading" ? "Reading projections, past scores and club bonuses from Sorare…"
+          : extras === null ? `Predictions need extension ${ARCADE_PLAN_VERSION}: reload it on chrome://extensions. Until then cards are scored on nothing.`
+          : extras.unread.length ? `Not read this time: ${extras.unread.join(", ")}.` : null}
+      </p>
+      {ready ? <ArcadeLive arcade={arcade} outlooks={outlooks} captainBonus={captainBonus} actions={actions} /> : null}
+      {ready && planOutlooks ? <ArcadePlanner arcade={arcade} outlooks={planOutlooks} captainBonus={captainBonus} /> : ready ? <p className="arc-read-state" role="status">Planning the climb once Sorare&apos;s start % are in…</p> : null}
       <ArcadePacks arcade={arcade} />
       <ArcadeMissions arcade={arcade} outlooks={outlooks} />
-      <Cards cards={arcade.cards} games={arcade.games} chances={chances} outlooks={outlooks} />
+      <ArcadeCards cards={arcade.cards} games={arcade.games} outlooks={outlooks} />
     </FdrContext.Provider>
   );
 }
@@ -314,7 +209,8 @@ export default function ArcadeView({ laliga, fdr = [] }: { laliga: ArcadeLaLiga;
               {read === null || read.state === "ok" ? `Your board as read ${at}; asking Sorare for what changed…` : `Your board as read ${at}. ${whyNot(read)}`}
             </p>
           ) : null}
-          <Loaded arcade={board.arcade} unread={board.unread} laliga={laliga} fdr={fdr} />
+          {!at && read && read.state !== "ok" ? <p className="arc-note" role="status">{whyNot(read)} Showing the last successful read.</p> : null}
+          <Loaded arcade={board.arcade} unread={board.unread} laliga={laliga} fdr={fdr} onReload={() => void load()} busy={busy} />
         </>
       ) : (
         <section className="arc-empty" role="status">
@@ -322,7 +218,7 @@ export default function ArcadeView({ laliga, fdr = [] }: { laliga: ArcadeLaLiga;
           <p>{read === null ? "Reading your board from Sorare…" : read.state === "ok" ? null : whyNot(read)}</p>
         </section>
       )}
-      <button type="button" className="arc-again" onClick={() => void load()} disabled={busy}>{busy ? "Reading…" : "Read again"}</button>
+      {!board ? <div className="arc-actions" role="group" aria-label="Refresh Arcade data"><ArcadeAction label="Refresh board and cards" kind="board" onClick={() => void load()} busy={busy} /></div> : null}
     </main>
   );
 }

@@ -16,10 +16,13 @@ export type Outlook = {
   score: number | null;
   /** Decisive probability conditional on starting, for this exact fixture. */
   decisive?: number | null;
+  /** The fixture's expected decisive contribution as published, separately from conditional mission odds. */
+  xd?: number | null;
   scoreSource: "sofix" | "sorare" | "form" | null;
   /** His chance to start, 0 to 1, and whose; null when no source has one yet. */
   start: number | null;
   startSource: StartSource | null;
+  startUrl?: string | null;
   /** His last scores in games he played (minutes > 0), newest first. */
   past: number[];
   /** Edition plus club bonus, added: 0.09 for a +5% edition and a +4% club. Club null when it was not read. */

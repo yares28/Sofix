@@ -751,14 +751,12 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later; 
   with the range he scored in 6 of his last 10 games he played. "No start % yet" cards count as starting. A LaLiga, Premier League, Bundesliga or
   Ligue 1 game shows **Sofix's difficulty** for the card's club (1 easiest), with the clean-sheet chance for keepers and defenders
   and expected goals for the others. It is shown, not added to the card's number.
-- **Start %** come from your open Sorare tab for every day to the set's end, kept 6 hours (**Read start % again**) and saved, so the
+- **Start %** come from your open Sorare tab for every day to the set's end, kept 6 hours (the **Refresh start percentages** icon) and saved, so the
   newest saved reading shows on any visit. Your cards are kept in this browser and read again only when Sorare's count changes (a pack
   opened). The page opens on your last read board, dated, while Sorare is asked what changed; if Sorare cannot be read, it stays and says why.
-- **Packs**: **Work out the best pack** reads Sorare's odds and opens on the pack you can afford that gives the most players you do not
-  have yet, with every pack's count; **Bronze / Silver / Gold / Special** (Live Today, Goalkeeper Pack) filter the list and the pick. **Today's missions**: Sorare's General daily missions (its Play missions window, extension
-  0.4.16), each with a progress ring. A streak gets your best five from this week's games and its chance; a Decisive Player Picker ranks
-  your cards playing that day by start % × how often each did the counted actions in his last 10 games ("too few games to tell" under 3).
-  Once you have picked, it shows your pick's chance and names a better one while Sorare still lets you change it.
+- **Your cards** shows 12 larger cards per page. FDR (0–100, lower is easier) and xScore sit at the upper right; the edition bonus sits at the lower right. Below: start %, fixture crests and xD (expected decisives). Click a fixture's crests to show its ratings. Search, league, position, edition, start % and FDR filters combine; filters and sorting refer to the next fixture and start a new first page. Unknown stays a dash; zero stays zero. xD is the fixture’s expected decisive contribution, including starter and substitute chances; it is a decimal, separate from conditional mission odds. It stays unknown until a fixture forecast is published.
+- The icon toolbar beneath your wallet refreshes the **board and cards**, **start percentages** and **scores**. Hover or focus identifies each action; the information icon opens start-percentage coverage and read details. A failed read keeps the last successful data and explains the failure. Older extensions retain the named start-read fallback that opens Sorare's page.
+- **Packs**: **Work out the best pack** reads Sorare's odds and opens on the pack you can afford that gives the most players you do not have yet. **Bronze / Silver / Gold / Special** filter the list and pick. **Today's missions** keeps your selection beside five alternatives, ranked by the shared L5/L10/L20/L40 history window. Decisive odds use the conditional fixture model where available, otherwise starter history; start % is shown separately and never discounts those odds. Saved pre-game forecasts remain frozen.
 
 ## 10. Players
 

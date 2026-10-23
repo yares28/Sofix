@@ -54,11 +54,11 @@ test.beforeEach(async ({ page, request }) => {
 });
 
 const withExtension = (page: Page, answers: Record<string, unknown> = ANSWERS, version = "0.4.14", holdPast = false) => page.addInitScript(([answers, version, holdPast]) => {
-  Object.defineProperty(window, "chrome", { configurable: true, value: { runtime: { sendMessage(_id: string, message: { type: string; step?: string }, reply: (answer: unknown) => void) {
+  Object.defineProperty(window, "chrome", { configurable: true, value: { runtime: { sendMessage(_id: string, message: { type: string; step?: string; game?: string }, reply: (answer: unknown) => void) {
     if (message.type === "ping") return reply({ ok: true, version, sorareUser: "owner", appReachable: true });
     if (message.type === "read-arcade") return reply({ ok: true, state: "ok", players: 1, games: 1 });
     if (holdPast && message.step === "arcade-past") return;
-    reply({ ok: true, state: "ok", step: message.step, data: answers[message.step ?? ""] });
+    reply({ ok: true, state: "ok", step: message.step, data: answers[`${message.step}:${message.game}`] ?? answers[message.step ?? ""] });
   } } } });
 }, [answers, version, holdPast] as const);
 
@@ -71,7 +71,7 @@ test("Arcade shows the step you are on, its target, reward and lineups left, you
   await expect(step).toContainText("10 gems");
   await expect(page.locator(".arc-headline")).toContainText("3 lives on step 2");
   await expect(page.locator(".arc-wallet")).toContainText("3,200");
-  await expect(page.locator(".arc-grid .arc-card-name").first()).toHaveText("Defender Three");
+  await expect(page.locator(".arc-grid .arc-card").first()).toHaveAttribute("aria-label", "Defender Three");
   expect(await smallText(page, 11)).toEqual([]);
 
   await page.getByRole("searchbox", { name: "Search player or club" }).fill("nobody");
@@ -85,6 +85,90 @@ test("without the extension Arcade says so instead of showing empty numbers", as
   await expect(page.getByRole("status")).toContainText("can't reach the Sofix extension");
 });
 
+test("collection cards keep their evidence compact and all reads in the hero toolbar", async ({ page }) => {
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: { [GAME]: { p: [0, 1792579200], gk: [9000, 1792579200] } } } }));
+  await withExtension(page, ANSWERS, "0.4.17");
+  await page.goto("/arcade");
+  const toolbar = page.getByRole("group", { name: "Refresh Arcade data" });
+  await expect(toolbar.getByRole("button", { name: "Refresh scores", exact: true })).toBeVisible();
+  await expect(toolbar.getByRole("button", { name: "Refresh board and cards" })).toBeVisible();
+  await expect(toolbar.getByRole("button", { name: "Refresh start percentages" })).toBeVisible();
+  await page.getByRole("searchbox", { name: "Search player or club" }).fill("player one");
+  const card = page.locator(".arc-grid .arc-card");
+  await expect(card.locator(".arc-art .arc-card-score")).toContainText("0");
+  await expect(card.locator(".arc-art .arc-card-bonus")).toHaveText("+10%");
+  await expect(card.locator("figcaption .arc-card-start")).toHaveText("0%");
+  await expect(card.locator("figcaption .arc-card-xd")).toHaveText("xD —");
+  await expect(card.locator("figcaption")).not.toContainText(/Player One|if he plays|pts|start|kick-off/);
+  await expect(card.getByRole("button", { name: /Club v Rival/ })).toBeVisible();
+  await page.getByRole("searchbox", { name: "Search player or club" }).fill("");
+  await page.getByRole("combobox", { name: "Start percentage" }).selectOption("80");
+  await expect(page.locator(".arc-grid .arc-card")).toHaveCount(1);
+  await expect(page.locator(".arc-grid .arc-card")).toHaveAttribute("aria-label", "Keeper Two");
+  await page.getByRole("combobox", { name: "FDR rating" }).selectOption("unknown");
+  await expect(page.locator(".arc-grid .arc-card")).toHaveCount(1);
+  await page.getByRole("combobox", { name: "Start percentage" }).selectOption("zero");
+  await expect(page.locator(".arc-grid .arc-card")).toHaveAttribute("aria-label", "Player One");
+  await page.getByRole("combobox", { name: "Start percentage" }).selectOption("unknown");
+  await expect(page.locator(".arc-grid .arc-card")).toHaveCount(4);
+  await page.getByRole("button", { name: "Clear filters" }).click();
+  await expect(page.locator(".arc-grid .arc-card")).toHaveCount(6);
+  await expect(page.locator(".arc-again")).toHaveCount(0);
+});
+
+test("collection fixture buttons align scores and starts, filters reset pagination", async ({ page }) => {
+  const second = "Game:11111111-2222-3333-4444-555555555556";
+  const games = [GAME, second].map((id, i) => ({ id, date: new Date(Date.parse(KICKOFF) + i * 86400000).toISOString(), statusTyped: "scheduled", competition: { slug: "laliga-es", displayName: "LaLiga" }, homeTeam: { slug: "club", name: "Club" }, awayTeam: { slug: `rival-${i}`, name: `Rival ${i}` } }));
+  const cards = Array.from({ length: 25 }, (_, i) => ({ slug: `extra-${i}`, anyPositions: ["Forward"], cardSet: { slug: "glitch" }, anyPlayer: { slug: "p", displayName: `Player ${String(i).padStart(2, "0")}` }, anyTeam: { slug: i === 24 ? "unmatched" : "club", name: i === 24 ? "Unmatched" : "Club" } }));
+  await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: { [GAME]: { p: [5000, 1792579200] }, [second]: { p: [9000, 1792579200] } } } }));
+  await withExtension(page, { ...ANSWERS,
+    "arcade-cards": { currentUser: { cards: { nodes: cards, pageInfo: { hasNextPage: false } } } },
+    "arcade-games": { currentUser: { setBoard: { pickableGames: { nodes: games.map((game) => ({ game })), pageInfo: { hasNextPage: false } } } } },
+    [`arcade-projections:${GAME}`]: { anyGame: { id: GAME, playerGameScores: [{ projection: { score: 60 }, anyPlayer: { slug: "p" } }] } },
+    [`arcade-projections:${second}`]: { anyGame: { id: second, playerGameScores: [{ projection: { score: 80 }, anyPlayer: { slug: "p" } }] } },
+  }, "0.4.17");
+  await page.goto("/arcade");
+  const gallery = page.locator(".arc-cards");
+  await expect(gallery.locator(".arc-card")).toHaveCount(12);
+  const first = gallery.locator(".arc-card").first();
+  await expect(first.locator(".arc-card-start")).toHaveText("50%");
+  await expect(first.locator(".arc-card-score b")).toHaveText("31");
+  const buttons = first.getByRole("button");
+  await expect(buttons).toHaveCount(2);
+  await buttons.nth(1).click();
+  await expect(buttons.nth(1)).toHaveAttribute("aria-pressed", "true");
+  await expect(first.locator(".arc-card-start")).toHaveText("90%");
+  await expect(first.locator(".arc-card-score b")).toHaveText("75");
+  await gallery.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(gallery.getByText("Page 2 of 3", { exact: true })).toBeVisible();
+  await gallery.getByRole("combobox", { name: "Start percentage" }).selectOption("unknown");
+  await expect(gallery.locator(".arc-card")).toHaveCount(1);
+  await expect(gallery.locator(".arc-card")).toHaveAttribute("aria-label", "Player 24");
+  await expect(gallery.getByRole("navigation", { name: "Card pages" })).toHaveCount(0);
+  await gallery.getByRole("button", { name: "Clear filters" }).click();
+  await expect(gallery.getByText("Page 1 of 3", { exact: true })).toBeVisible();
+  await gallery.getByRole("combobox", { name: "FDR rating" }).selectOption("75");
+  await expect(gallery.locator(".arc-count")).toHaveText("No card matches");
+});
+
+test("the hero read icons refresh their own data and report refusal without losing the collection", async ({ page }) => {
+  await withExtension(page, ANSWERS, "0.4.17");
+  await page.goto("/arcade");
+  await expect(page.locator(".arc-grid .arc-card")).toHaveCount(6);
+  await page.evaluate(() => {
+    const runtime = (window as unknown as { chrome: { runtime: { sendMessage: (...args: unknown[]) => void } } }).chrome.runtime;
+    runtime.sendMessage = (_id, message, reply) => {
+      const m = message as { type: string };
+      (reply as (a: unknown) => void)(m.type === "ping" ? { ok: true, version: "0.4.17" } : { ok: false, state: "failed", error: "refused" });
+    };
+  });
+  await page.getByRole("button", { name: "Refresh scores", exact: true }).click();
+  await expect(page.getByText("Sorare did not answer; scores could not be refreshed.")).toBeVisible();
+  await page.getByRole("button", { name: "Refresh board and cards" }).click();
+  await expect(page.getByText(/Showing the last successful read/)).toBeVisible();
+  await expect(page.locator(".arc-grid .arc-card")).toHaveCount(6);
+});
+
 test("the next visit shows the last read board at once, and says when Sorare cannot be read now", async ({ page, context }) => {
   await withExtension(page);
   await page.goto("/arcade");
@@ -92,7 +176,7 @@ test("the next visit shows the last read board at once, and says when Sorare can
   const later = await context.newPage(); // same browser, no extension this time
   await later.goto("/arcade");
   await expect(later.getByRole("heading", { level: 1 })).toHaveText("Step 2 of 2 · 300 pts");
-  await expect(later.locator(".arc-grid .arc-card-name").first()).toHaveText("Defender Three");
+  await expect(later.locator(".arc-grid .arc-card").first()).toHaveAttribute("aria-label", "Defender Three");
   await expect(later.getByText(/Your board as read .*can't reach the Sofix extension/)).toBeVisible();
 });
 
@@ -100,7 +184,7 @@ test("on a phone Arcade fits the width and keeps text readable", async ({ page }
   await page.setViewportSize({ width: 390, height: 844 });
   await withExtension(page);
   await page.goto("/arcade");
-  await expect(page.locator(".arc-grid .arc-card-name").first()).toHaveText("Defender Three");
+  await expect(page.locator(".arc-grid .arc-card").first()).toHaveAttribute("aria-label", "Defender Three");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   expect(await smallText(page, 10)).toEqual([]);
   if (process.env.ARCADE_SHOT) await page.screenshot({ path: process.env.ARCADE_SHOT, fullPage: true });
@@ -112,12 +196,12 @@ test("each card shows Sorare's start % for its next game, and the read button re
   await withExtension(page);
   await page.goto("/arcade");
   await page.getByRole("searchbox", { name: "Search player or club" }).fill("player one");
-  await expect(page.locator(".arc-chance")).toContainText("no start % yet");
-  await expect(page.locator(".arc-chance")).toContainText("v Rival");
+  await expect(page.locator(".arc-grid .arc-card-start")).toHaveText("—");
+  await expect(page.locator(".arc-grid").getByRole("button", { name: /Club v Rival/ })).toBeVisible();
   saved = true; // as if the walk saved Sorare's reading
   await page.getByRole("button", { name: "Read Arcade's start %" }).click();
   await expect(page.locator(".arc-read")).toContainText("Read 1 players in 1 games.");
-  await expect(page.locator(".arc-grid .arc-chance")).toContainText("90% start");
+  await expect(page.locator(".arc-grid .arc-card-start")).toHaveText("90%");
   await expect(page.locator(".arc-read")).toContainText("Sorare's start % for 1 of 6 cards");
 });
 
@@ -127,7 +211,7 @@ test("each card shows its predicted score, and Pick teams builds the best lineup
   await page.goto("/arcade");
   // Player One: no projection, so his played average (60) × 50% start × (1 + 10% Holo + 4% club) = 34.
   await page.getByRole("searchbox", { name: "Search player or club" }).fill("player one");
-  await expect(page.locator(".arc-grid .arc-pred b")).toHaveText("34");
+  await expect(page.locator(".arc-grid .arc-card-score b")).toHaveText("34");
   await page.getByRole("group", { name: "Plan by" }).getByRole("button", { name: "Pick teams" }).click();
   await expect(page.locator(".arc-pitch li")).toHaveCount(5); // the five on the pitch
   await expect(page.locator(".arc-scale-tick.is-aim")).toContainText("Step 2");
@@ -224,10 +308,11 @@ test("with extension 0.4.15 Sorare's start % come from the open Sorare tab, ever
   await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
   await withExtension(page, { ...ANSWERS, "arcade-bench": { cards: 1, after: null, rows: [{ game: GAME, player: "p", basisPoints: 8500 }] } }, "0.4.15");
   await page.goto("/arcade");
+  await page.getByRole("button", { name: "Start percentage read details" }).click();
   await expect(page.locator(".arc-read")).toContainText("Read from your Sorare tab");
-  await expect(page.getByRole("button", { name: "Read start % again" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Refresh start percentages" })).toBeVisible();
   await page.getByRole("searchbox", { name: "Search player or club" }).fill("player one");
-  await expect(page.locator(".arc-grid .arc-chance")).toContainText("85% start");
+  await expect(page.locator(".arc-grid .arc-card-start")).toHaveText("85%");
 });
 
 test("a LaLiga streak mission gets Sofix's best five for its target, and a Decisive Picker your cards by their own record", async ({ page }) => {

@@ -126,3 +126,30 @@ def test_arcade_market_keeps_conditional_probability_for_the_first_fixture():
     f = Forecast(p_play=0.2, mu=50, shape=SimpleNamespace(p_decisive=0.65))
     rows = market_out([{"slug": "a", "name": "A", "pos": "GK"}], {"a": f}, {"a": [{"kickoff": "2026-10-24T12:00:00Z"}]})
     assert rows[0]["decisive"] == 0.65
+
+
+def test_arcade_xd_is_the_first_fixtures_expected_value_not_the_better_game_of_a_double():
+    from types import SimpleNamespace
+
+    from app.sorare.model import Forecast
+    from app.sorare.publish import market_out
+
+    games = {"a": [{"kickoff": "2026-10-24T12:00:00Z"}, {"kickoff": "2026-10-26T12:00:00Z"}]}
+    f = Forecast(
+        p_play=0.9,
+        mu=50,
+        games=2,
+        p_start=0,
+        p_on=0.2,
+        xd=0.8,
+        shape=SimpleNamespace(p_decisive=0.65),
+        on_shape=SimpleNamespace(p_decisive=0.1),
+    )
+    row = market_out([{"slug": "a", "name": "A", "pos": "GK"}], {"a": f}, games)[0]
+    assert row["decisive"] == 0.65
+    assert row["xd"] == 0.02
+    f.games = 1
+    f.xd = 0.0
+    assert market_out([{"slug": "a", "name": "A", "pos": "GK"}], {"a": f}, games)[0]["xd"] == 0.0
+    f.xd = None
+    assert "xd" not in market_out([{"slug": "a", "name": "A", "pos": "GK"}], {"a": f}, games)[0]

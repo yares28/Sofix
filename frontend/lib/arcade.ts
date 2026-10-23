@@ -649,7 +649,7 @@ const EXTRAS_KEEP_MS = 6 * 3_600_000;
 const MAX_PROJECTION_GAMES = 60;
 
 /** What Sofix knows of a LaLiga player's next game (the Lineups numbers), keyed by Sorare slug. */
-export type ArcadeLaLiga = Record<string, { kickoff: string | null; p: number | null; source: StartSource | null; sources: Partial<Record<StartSource, number>>; /** Sofix's xScore if he plays. */ mu?: number | null; decisive?: number | null }>;
+export type ArcadeLaLiga = Record<string, { kickoff: string | null; p: number | null; source: StartSource | null; sources: Partial<Record<StartSource, number>>; ffMatch?: { id: number; url: string }; /** Sofix's xScore if he plays. */ mu?: number | null; decisive?: number | null; xd?: number | null }>;
 export type ArcadeExtras = {
   /** The club bonus Sorare gives a card of each club, by club slug (0.04 for +4%). */
   club: Record<string, number>;
@@ -765,9 +765,11 @@ export function outlookOf(card: ArcadeCard, game: ArcadeGame, extras: ArcadeExtr
     game,
     score: xscore ?? projection ?? form,
     decisive: sameGame ? sofix.decisive ?? null : null,
+    xd: sameGame ? sofix.xd ?? null : null,
     scoreSource: xscore !== null ? "sofix" : projection !== undefined ? "sorare" : form !== null ? "form" : null,
     start,
     startSource,
+    startUrl: sameGame && startSource === "futbolfantasy" ? sofix.ffMatch?.url ?? null : null,
     past,
     bonus: (card.bonus !== null && card.bonus > 1 ? card.bonus - 1 : 0) + (club ?? 0),
     club,

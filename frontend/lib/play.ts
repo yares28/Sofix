@@ -470,6 +470,8 @@ export type MarketPlayer = {
   mu?: number;
   /** Conditional decisive probability for the first fixture. */
   decisive?: number;
+  /** Expected decisive contribution in the first fixture, including starter and substitute chances. */
+  xd?: number;
   start?: number;
   x?: number;
   fixture?: { team?: string | null; teamCrest?: string | null; competition?: string; opponent: string | null; opponentCrest: string | null; venue: "H" | "A" | null; kickoff: string | null };

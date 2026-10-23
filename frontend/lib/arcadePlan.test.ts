@@ -116,10 +116,10 @@ describe("a card's outlook", () => {
 });
 
 it("keeps the exact fixture model when another competition names the same player", () => {
-  const first = { kickoff: GAME.kickoff, p: 0.2, source: "sofix" as const, sources: {}, decisive: 0.6 };
-  const other = { ...first, kickoff: "2026-11-01T12:00:00Z", decisive: 0.1 };
+  const first = { kickoff: GAME.kickoff, p: 0.2, source: "sofix" as const, sources: {}, decisive: 0.6, xd: 0.12 };
+  const other = { ...first, kickoff: "2026-11-01T12:00:00Z", decisive: 0.1, xd: 0.02 };
   const index = { a: other, [`a:${Date.parse(GAME.kickoff)}`]: first };
-  expect(outlookOf(card("a", ["Forward"]), GAME, null, null, index)).toMatchObject({ decisive: 0.6, start: 0.2 });
+  expect(outlookOf(card("a", ["Forward"]), GAME, null, null, index)).toMatchObject({ decisive: 0.6, xd: 0.12, start: 0.2 });
 });
 
 describe("Pick a day", () => {

@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { readArcadeLineups, type Arcade, type ArcadeLineup } from "../../lib/arcade";
 import { bigReward, cutLosses, liveLineup, madridDate, planDay, type Outlook } from "../../lib/arcadePlan";
 import { madridTime, pct, pts } from "./ArcadePlanner";
+import ArcadeAction from "./ArcadeAction";
 
 const LIVE_EVERY_MS = 2 * 60_000; // only while a game of yours is live and the page is in front: Sorare, through your tab, never Neon
 
@@ -12,10 +14,14 @@ const LIVE_EVERY_MS = 2 * 60_000; // only while a game of yours is live and the 
  * "cut losses" (cancel on Sorare, which costs the life a miss would) only when the cards still to play add more to the next planned
  * lineup than this one has left. Shown here only; nothing is entered or cancelled from Sofix.
  */
-export default function ArcadeLive({ arcade, outlooks, captainBonus }: { arcade: Arcade; outlooks: Map<string, Outlook[]>; captainBonus: number }) {
+export default function ArcadeLive({ arcade, outlooks, captainBonus, actions }: { arcade: Arcade; outlooks: Map<string, Outlook[]>; captainBonus: number; actions: HTMLElement | null }) {
   const [entered, setEntered] = useState(() => new Map((arcade.board?.steps ?? []).map((s) => [s.id, s.entered])));
   const [now, setNow] = useState(() => Date.now());
   const [state, setState] = useState<"idle" | "reading" | "failed">("idle");
+  useEffect(() => {
+    setEntered(new Map((arcade.board?.steps ?? []).map((s) => [s.id, s.entered])));
+    setNow(Date.now());
+  }, [arcade]);
   const refresh = useCallback(async () => {
     setState("reading");
     const read = await readArcadeLineups();
@@ -43,12 +49,13 @@ export default function ArcadeLive({ arcade, outlooks, captainBonus }: { arcade:
   const busy = useMemo(() => new Set(open.flatMap(({ lineup }) => lineup.cards.flatMap((c) => (c.slug ? [c.slug] : [])))), [open]);
   const infos = useMemo(() => steps.map((s) => ({ number: s.number, target: s.target, lives: s.lineups?.remaining ?? 4, big: bigReward(s.rewards) })), [steps]);
 
-  if (!open.length) return null;
+  const action = actions ? createPortal(<ArcadeAction label="Refresh scores" kind="scores" onClick={() => void refresh()} busy={state === "reading"} />, actions) : null;
+  if (!open.length) return <>{action}{state === "failed" ? <p className="arc-note" role="status">Sorare did not answer; scores could not be refreshed.</p> : null}</>;
   return (
+    <>{action}
     <section className="arc-live" aria-labelledby="arc-live-title">
       <div className="arc-plan-head">
         <h2 id="arc-live-title">Your lineups on Sorare</h2>
-        <button type="button" className="arc-small" onClick={() => void refresh()} disabled={state === "reading"}>{state === "reading" ? "Reading…" : "Refresh scores"}</button>
       </div>
       {state === "failed" ? <p className="arc-note" role="status">Sorare did not answer; the scores below are from the last read.</p> : null}
       <ul className="arc-races">
@@ -111,6 +118,6 @@ export default function ArcadeLive({ arcade, outlooks, captainBonus }: { arcade:
           );
         })}
       </ul>
-    </section>
+    </section></>
   );
 }

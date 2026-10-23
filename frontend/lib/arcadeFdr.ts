@@ -8,7 +8,7 @@ import type { FixtureGrid } from "./types";
  */
 
 /** One side of a board fixture: the club and how hard the game is for it (1 = easiest), its clean-sheet chance and expected goals. */
-export type FdrSide = { code: string; name: string; bucket: 1 | 2 | 3 | 4 | 5; label: string; cleanSheet: number | null; xgFor: number | null; xgAgainst: number | null };
+export type FdrSide = { code: string; name: string; difficulty?: number; bucket: 1 | 2 | 3 | 4 | 5; label: string; cleanSheet: number | null; xgFor: number | null; xgAgainst: number | null };
 export type FdrFixture = { league: Competition; kickoff: string; home: FdrSide; away: FdrSide };
 
 /** Sorare's competition slug for each board. */
@@ -23,7 +23,7 @@ export function boardFixtures(grid: FixtureGrid, league: Competition, from: numb
         const at = Date.parse(cell.kickoff_utc);
         if (cell.status !== "scheduled" || !cell.prediction || at < from || at > to) continue;
         const p = cell.prediction;
-        const side: FdrSide = { code: team.code, name: team.name, bucket: p.bucket, label: p.label, cleanSheet: p.clean_sheet, xgFor: p.xg_for, xgAgainst: p.xg_against };
+        const side: FdrSide = { code: team.code, name: team.name, difficulty: p.difficulty, bucket: p.bucket, label: p.label, cleanSheet: p.clean_sheet, xgFor: p.xg_for, xgAgainst: p.xg_against };
         const entry = byId.get(cell.fixture_id) ?? { kickoff: cell.kickoff_utc };
         entry[cell.venue === "H" ? "home" : "away"] = side;
         byId.set(cell.fixture_id, entry);

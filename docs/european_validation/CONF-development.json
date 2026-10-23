@@ -1,0 +1,102 @@
+{
+  "competition": "CONF",
+  "purpose": "Development only; neither independent validation nor production promotion",
+  "historyGames": 811,
+  "games": 141,
+  "seasonStart": 2022,
+  "cutoffBasis": "kickoff minus three days; development proxy, not actual Sorare lock",
+  "developmentInputSha256": "39c49b6a07f5e550a4c92568b01f1cdf3b3952d24f2b4538c9c2a240d7d18efe",
+  "forecastSha256": "7617fd4f2c36578201a8129bff5e7cdd2f6135d44ce64c212bd04badba3a6a6b",
+  "dependencies": {
+    "model": "8cdc4878aa3741c1869838bc5c4708ed59638d52af5c60fbd3d2e522bb6fec26",
+    "runner": "4893c4575f348b4ace793046c44c1b33e5807514e8c504fed76566c23b067def",
+    "protocol": "60123c46b43085d486f2d9ec667e4309b7794ea18cb0ad4be467f84b32fb0812"
+  },
+  "weights": [
+    0.25,
+    0.5,
+    0.75,
+    1.0
+  ],
+  "base": {
+    "rps": 0.23569330844076458,
+    "brier": 0.6603985593034387,
+    "logLoss": 1.0893530312039732
+  },
+  "candidates": [
+    {
+      "weight": 0.25,
+      "model": {
+        "rps": 0.22478116875766493,
+        "brier": 0.6362434227296638,
+        "logLoss": 1.0560907521110232
+      },
+      "versusBase": {
+        "difference": -0.010912139683099648,
+        "lo": -0.01640015709992084,
+        "hi": -0.004938714147899412,
+        "weeks": 15,
+        "draws": 2000,
+        "seed": 20261023
+      }
+    },
+    {
+      "weight": 0.5,
+      "model": {
+        "rps": 0.220387017682654,
+        "brier": 0.627913832061474,
+        "logLoss": 1.0453439924676757
+      },
+      "versusBase": {
+        "difference": -0.015306290758110574,
+        "lo": -0.025350569768174132,
+        "hi": -0.00489571891823824,
+        "weeks": 15,
+        "draws": 2000,
+        "seed": 20261023
+      }
+    },
+    {
+      "weight": 0.75,
+      "model": {
+        "rps": 0.22001972261770059,
+        "brier": 0.6282425496285632,
+        "logLoss": 1.0456676892174928
+      },
+      "versusBase": {
+        "difference": -0.015673585823063996,
+        "lo": -0.03027192755117512,
+        "hi": -0.0003932520355725491,
+        "weeks": 15,
+        "draws": 2000,
+        "seed": 20261023
+      }
+    },
+    {
+      "weight": 1.0,
+      "model": {
+        "rps": 0.2236792835628046,
+        "brier": 0.6372295754309317,
+        "logLoss": 1.0593056561918441
+      },
+      "versusBase": {
+        "difference": -0.012014024877959995,
+        "lo": -0.031239464198825312,
+        "hi": 0.00803798128252505,
+        "weeks": 15,
+        "draws": 2000,
+        "seed": 20261023
+      }
+    }
+  ],
+  "selection": {
+    "weight": 0.75,
+    "recommendedForProspectiveCapture": true,
+    "developmentLosses": [],
+    "validated": false,
+    "modelEligible": false,
+    "reason": "Development selection only; new pre-lock forecasts and independent FDR/xScore validation required"
+  },
+  "validated": false,
+  "modelEligible": false
+}

@@ -19,6 +19,12 @@ publication and product rollout completed for all 36 clubs each (1,088/1,144 pla
 [european-fdr-xscore.md](european-fdr-xscore.md). Conference failed the frozen release gates and remains withheld;
 no tuning on the exposed holdout. This later request supersedes the earlier domestic release's European exclusion.
 
+23 Oct Conference recovery resumed: pre-2023 development selects a 75% club / 25%
+average-rate score mixture; research-only xScore models fitted on all 6,248 approved
+training starts. [Recovery contract](conference-recovery.md) keeps the failed holdout
+frozen. Prospective recording/settlement and independent acceptance are still open;
+the new research artifact is disabled and does not itself collect future forecasts.
+
 
 22 Oct owner priority completed: Ligue 1 FDR and independently validated xScore, all 18 clubs/520 players, complete recent history and bounded record caching. See [the delivery plan](ligue-1-fdr-xscore.md) and [validation evidence](../docs/ligue-1-validation.md).
 

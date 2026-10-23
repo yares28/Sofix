@@ -348,3 +348,20 @@ qualifier inclusion. Known unexercised production case: the current Sorare windo
 actual UEFA selected-GW production scores will appear automatically when that week becomes the indexed
 window. Mixed-game routing, all completed historic holdouts and all current next-UEFA model inputs
 were verified separately; no current-week UEFA game or score was fabricated for demonstration.
+
+### Conference recovery resumed
+
+The owner requested Conference work and a blocker explanation. The blocker is failed
+accuracy gates, not missing holdout outcomes: all 153 completed matches were included.
+[Recovery contract](conference-recovery.md) records a separate development experiment,
+its real 141-game replay and training-only 6,248-start candidate. The candidate stays
+research-only. The automatic prospective capture/settlement stage and fresh independent
+football/xScore evidence remain outstanding; no replacement holdout has been evaluated
+and no Conference selector or forecast was enabled.
+
+Recovery-step verification passed: `node scripts/check.mjs` (Ruff format/check,
+mypy, full backend pytest, OpenAPI export), explicit mypy on both new research
+modules, and 15 focused development/candidate/frozen-validation/runtime-loader tests.
+The real cached 141-game development replay is reproducible; the final candidate
+hash and runner hash match after the real 284-game training fit. Production health
+at session start passed all 15 routes; no UI/schema change needs browser proof here.

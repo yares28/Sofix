@@ -16,7 +16,7 @@ This overrides any global habit of branches, pull requests, CI waits or review s
    refresh or broken page is fixed first. What to work on next: "Next up" at the top of [plans/roadmap.md](plans/roadmap.md).
 2. Work on `main` in the main folder (a parallel session: its own worktree, then `git push origin HEAD:main`).
 3. Before the push: `node scripts/check.mjs`. A visible change also gets its page spec and a 1440 px + 390 px look on the
-   local dev server (real data), checked against the design bar below.
+   local dev server (real data) in the owner's open Chrome, checked against the design bar below.
 4. Commit, `git push origin main`, then `node scripts/check.mjs --live /<changed page> ...`. Never wait for CI or the
    refresh, never open a pull request, never drive GitHub through Chrome to merge.
 5. End the reply with the "Test it" links the script prints (localhost:3000 and production) for every page that changed,
@@ -63,6 +63,9 @@ Use [docs/sorare/design/DESIGN.md](docs/sorare/design/DESIGN.md) and the real
 
 - Premium white shell, restrained semantic colour, near-black text, soft border/shadow.
 - One clear hero/question per page; aligned tabular evidence; no wall of generic cards.
+- The owner's standing rules in [AGENTS.md](AGENTS.md) (23 Oct 2026) come first: very premium, creative, original pages;
+  less is more (no filler, taglines, helper text or spreadsheet-like tables); pagination for long lists; ergonomic layout;
+  designed motion for every animation; 1:1 skeletons while loading; shadcn/ui, 21st.dev and the shader-effects library.
 - Motion explains change, preserves contrast and respects reduced motion.
 - **Players are always drawn as their Sorare card, and clubs as their real crest, wherever that is possible** (owner's rule, 2 Oct
   2026). A card is the real card art: yours for a card you own, else a real card of his from Sorare's public listing
@@ -87,8 +90,11 @@ Sofix already has a design system, so the design skills serve it; they never rep
 - **Design-system documentation:** `stitch-design-taste` only to extend `docs/sorare/design/DESIGN.md`, not to replace it.
 - **Before calling UI done:** every visible change gets its page spec and the desktop + phone look (fast path step 3); a new or
   restyled screen also gets `web-design-guidelines` on its files, fixing real findings (accessibility, focus, labels, contrast).
-- **All code:** `ponytail`; read your own diff before the commit instead of a review skill or subagent. Smallest correct change;
-  tests for business rules still required.
+- **All code:** `ponytail` for lean code; read your own diff before the commit instead of a review skill or subagent. Lean code
+  never means a smaller product: the feature is built to its fullest (AGENTS.md "Owner's standing rules"); tests for
+  business rules still required.
+- **Components:** shadcn/ui and 21st.dev (registries, GitHub, skills) first, restyled to the design language above;
+  shader effects from https://github.com/shader-effects-inc/shaders.
 - **Long outputs:** `full-output-enforcement` when a full file or table must be emitted without placeholders.
 - **References:** `awesome-claude-design` (`~/.claude/skills/awesome-claude-design`) for layout/interaction references when
   extending the design; extract principles, never clone.

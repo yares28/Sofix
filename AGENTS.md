@@ -87,7 +87,7 @@ nobody waits for, and the owner is the reviewer. A small task should take minute
    needs its own test first (a bug fix: the failing regression test).
 3. **UI change (any visible change):** run the changed page's spec (`npx playwright test e2e/<page>.e2e.ts`, add
    `e2e/mobile.e2e.ts` when the layout moved), then open the page on the local dev server, which reads the real read
-   models (`npm run dev`, or the browser pane's `web` preview), at 1440 px and 390 px: screenshot both and check them
+   models (`npm run dev`), in the owner's open Chrome, at 1440 px and 390 px: screenshot both and check them
    against the design bar in CLAUDE.md (one hero, real cards and crests, text floor, no horizontal overflow). A new or
    restyled screen also gets the `web-design-guidelines` pass on its files. The full browser suite runs locally only when
    shared code moved (the app shell, nav, `lib/weeks.ts`, the e2e mock); otherwise CI runs it after the push.
@@ -102,7 +102,7 @@ nobody waits for, and the owner is the reviewer. A small task should take minute
    the task is about published data, check the read model with one SELECT after the refresh; otherwise move on.
    (localhost:3000 serves the main folder with hot reload: a session in a worktree runs `git pull --ff-only` there after
    its push, when `git status` is clean, so localhost shows the change too.)
-6. **Session start:** `node scripts/check.mjs --live` once (Claude Code runs it from a session-start hook). A red CI, a
+6. **Session start:** `node scripts/check.mjs --live` once (a session-start hook runs it). A red CI, a
    failed refresh or a broken page on `main` is fixed first. The next work is "Next up" in [plans/roadmap.md](plans/roadmap.md).
 7. **Broken production:** when a push breaks a page (not 200, or the owner says so), `git revert <commit>` and push that
    first, so the app is back in about two minutes; then find the cause and ship the fix as a new commit.
@@ -131,6 +131,40 @@ Not done here: pull requests, waiting for CI or for a refresh, review subagents,
   fixture with the player's club or invent match odds outside LaLiga; show player Play/xScore evidence instead.
 - Page is fluid to 1600 px; below 1200 ranking/table stack; preserve named container queries.
 - Keep semantic controls, focus, reduced motion and text alternatives; lint allows zero warnings.
+
+## Owner's standing rules (23 Oct 2026)
+
+From the owner. They override any older rule in this file, in CLAUDE.md or in a skill that says otherwise.
+
+**Planning**
+- Plan for what ships. A long plan goes depth-first: finish one task until it delivers a result the owner can use, ship
+  it, then start the next one.
+- Build the maximum, never the minimum. Stretch every plan to its fullest: each step looks its best, the layout is
+  designed from the user's side for what makes his job easiest, edge cases are resolved, and the result is ready for real
+  use. Never settle for "each step's narrowest version that passed its tests". Lean code (no bloat, no needless
+  abstractions) is about how it is written, never about how much the product does.
+- Never guess how something works: research it (the repo, the source's docs, a real read-only request) or ask the owner.
+- Choose what improves the user's, the developer's and the agent's experience together, without breaking anything.
+
+**Page design**
+- Every page, section and component is very premium, very creative and very original; never a template look.
+- Less is more: minimalist, polished UI. No filler text, no excess information, no big tables or spreadsheet-like UI.
+- Cut taglines, helper text and secondary labels. If a screen needs them to make sense, fix the layout instead.
+- Ergonomic layout: what the user does most is the easiest to reach.
+- Long lists are paginated.
+- Every animation is designed motion: it explains the change, feels deliberate and respects reduced motion.
+- Loading states are 1:1 skeletons: the same size, shape and place as the content they stand in for, so nothing jumps.
+- Components start from shadcn/ui and 21st.dev (their registries, GitHub repos and skills), restyled to Sofix's design
+  language. Shader effects come from https://github.com/shader-effects-inc/shaders.
+
+**Checking**
+- Web checks run in the owner's open Chrome tabs.
+- A design canvas whose preview uses real pages starts from screenshots of those pages, edited to show the change.
+
+**Invisible help**
+- No AI assistant or tool is ever named or credited anywhere: not in code, comments, docs, UI copy, commit messages (no
+  co-author or "generated with" lines), branch names or PR text. The only exception is a file or folder name a tool
+  needs to work (this repo's instruction files, ignored tool folders).
 
 ## Pages
 

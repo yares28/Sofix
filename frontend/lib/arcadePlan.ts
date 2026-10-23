@@ -1,4 +1,4 @@
-import type { ArcadeCard, ArcadeGame } from "./arcade";
+import type { ArcadeCard, ArcadeGame, DecisiveGame } from "./arcade";
 
 /**
  * Arcade planner (plans/set.md, steps 3 to 6). Pure: the page hands it what Sorare and Sofix said, it never reads anything.
@@ -14,6 +14,8 @@ export type Outlook = {
   game: ArcadeGame;
   /** His score if he plays, and whose number it is; null when Sorare has no projection and he has no game to average. */
   score: number | null;
+  /** Decisive probability conditional on starting, for this exact fixture. */
+  decisive?: number | null;
   scoreSource: "sofix" | "sorare" | "form" | null;
   /** His chance to start, 0 to 1, and whose; null when no source has one yet. */
   start: number | null;
@@ -479,20 +481,26 @@ export const cutLosses = (verdict: Pick<LiveVerdict, "chance">, gain: number, ca
 /** The decisive actions a Decisive Picker counts when Sorare names none (as Sorare's detailed score names them). */
 export const DECISIVE_STATS = ["goals", "goal_assist", "assist_penalty_won", "clearance_off_line", "last_man_tackle", "penalty_save"];
 
+/** Fixed appearance window: unknown actions occupy their place; future and DNP rows never do. */
+export function missionHistory(games: DecisiveGame[], before: number, count: number): DecisiveGame[] {
+  return games.filter((g) => g.date && Date.parse(g.date) < before && g.mins > 0)
+    .sort((a, b) => Date.parse(b.date!) - Date.parse(a.date!)).slice(0, count);
+}
+
 /** His share of games he played (minutes > 0) with one of the counted actions; null under 3 such games (no made-up rate). */
-export function decisiveRate(games: { mins: number; stats: string[] }[], counted: string[]): number | null {
-  const played = games.filter((g) => g.mins > 0);
+export function decisiveRate(games: { mins: number; stats: string[] | null }[], counted: string[]): number | null {
+  const played = games.filter((g) => g.mins > 0 && g.stats !== null);
   if (played.length < 3) return null;
   const want = new Set(counted.length ? counted : DECISIVE_STATS);
-  return played.filter((g) => g.stats.some((s) => want.has(s))).length / played.length;
+  return played.filter((g) => g.stats!.some((s) => want.has(s))).length / played.length;
 }
 
 export type DecisivePick = { outlook: Outlook; rate: number | null; chance: number | null };
-/** A Decisive Picker's candidates, best first: his chance = his start % (none: counted as starting) × his own decisive rate. */
+/** Rank by observed hit rate; conditional odds and start chance remain separate. */
 export function rankDecisive(candidates: { outlook: Outlook; rate: number | null }[]): DecisivePick[] {
   return candidates
-    .map((c) => ({ ...c, chance: c.rate === null ? null : (c.outlook.start ?? 1) * c.rate }))
-    .sort((a, b) => (b.chance ?? -1) - (a.chance ?? -1) || (predicted(b.outlook) ?? 0) - (predicted(a.outlook) ?? 0));
+    .map((c) => ({ ...c, chance: c.outlook.decisive ?? c.rate }))
+    .sort((a, b) => (b.rate ?? -1) - (a.rate ?? -1) || a.outlook.card.name.localeCompare(b.outlook.card.name));
 }
 
 /** A streak mission's points target, from Sorare's own words ("Score 400+ in …"); null when it names none. */

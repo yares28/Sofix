@@ -638,3 +638,8 @@ Both paired weekly bootstrap improvement intervals exclude zero, with each posit
 Conference fails the football and independent FDR-contribution gates. These are retrospective held-out
 results, not a new blind sample. Full evidence is in european_validation/. No European clean-sheet
 calibrator, paid odds, post-kickoff preseason forecast or Conference forecast is supplied.
+
+
+23 October 2026 — decisive mission odds are now conditional on starting. `missions.fit` and scheduled `mission_form.chance` use the matching first fixture's conditional model probability before the history path, with starter form as fallback; neither multiplies by availability. Other count/score mission formulas are unchanged. Arcade receives the same conditional probability on each market row and only matches it to its original kickoff; custom action sets use their observed target rate. Historical rankings use one shared appearance window and do not use start percentage. Frozen captures retain their original meaning. The 40-game source uses one `anyPlayer` connection per queued request: Sorare rejects list nesting and repeated root fields. Each player is paged to forty final appearances or source exhaustion, with a six-hour browser progress cache and cancellation between requests.
+
+New ledger candidates mark decisive forecast keys as `conditional`. Settlement retains `started` beside the outcome; the chance-given comparison excludes non-starts for those keys, while mission outcomes and older forecasts keep their existing counting.

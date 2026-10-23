@@ -285,10 +285,14 @@ def settle_kept(db: Session, now: datetime) -> dict[str, int]:
                         )
                         if outcome is not None:
                             outcomes[key] = outcome
-                    if outcomes == candidate.get("r", {}).get("did", {}):
+                    if (
+                        outcomes == candidate.get("r", {}).get("did", {})
+                        and candidate.get("r", {}).get("started") == row.started
+                    ):
                         continue
                     candidate["r"] = {
                         "played": row.played,
+                        "started": row.started,
                         "did": outcomes,
                     }
                     changed = True
@@ -375,7 +379,9 @@ def record(logs: list[dict[str, Any]]) -> dict[str, Any]:
                     row["counted"] += 1
                     row["success"] += got >= best
                     for slug in picks:
-                        if key in live[slug]["c"]:
+                        if key in live[slug]["c"] and (
+                            key not in live[slug].get("conditional", []) or live[slug]["r"].get("started") is True
+                        ):
                             said.append(float(live[slug]["c"][key]))
                             hits += slug in caught_players
                     mine = (mission.get("override") or {}).get("picks", mission.get("yours") or [])
@@ -752,7 +758,13 @@ def daily_entry(
                 kind = m["rule"]["kind"]
                 form = sheets.get(p["player"], {}).get("form")
                 if form:
-                    value = mission_form.chance(m["rule"], p, g, form, target)
+                    value = mission_form.chance(
+                        m["rule"],
+                        {**p, "shape": p.get("shape") if g == (p.get("games") or [None])[0] else None},
+                        g,
+                        form,
+                        target,
+                    )
                     if value is not None and not late:
                         chances[m["key"]] = value
                         if kind == "score" or g.get("availabilityKnown", p.get("availabilityKnown")) is False:
@@ -762,15 +774,10 @@ def daily_entry(
                     continue
                 rate = sheets.get(p["player"], {}).get("decAll")
                 if kind == "decisive":
-                    conditional = (p.get("shape") or {}).get("p", rate)
+                    conditional = (p.get("shape") or {}).get("p") if g == (p.get("games") or [None])[0] else None
+                    conditional = rate if conditional is None else conditional
                     if conditional is not None and not late:
-                        start, on = g.get("pStart", p.get("pStart")), g.get("pOn", p.get("pOn"))
-                        chance = (
-                            start * conditional + on * p["onShape"]["p"]
-                            if start is not None and on is not None and p.get("onShape")
-                            else p["p"] * conditional
-                        )
-                        chances[m["key"]] = round(chance, 3)
+                        chances[m["key"]] = round(conditional, 3)
                 elif (stat := counted(m["rule"])) and not late:
                     value = sheets.get(p["player"], {}).get("season", {}).get(stat)
                     if value:
@@ -790,6 +797,9 @@ def daily_entry(
                     "g": g.get("id"),
                     "k": g["kickoff"],
                     "c": chances,
+                    "conditional": [
+                        m["key"] for m in missions if m["rule"]["kind"] == "decisive" and m["key"] in chances
+                    ],
                     "sheet": sheets.get(p["player"]),
                     "targets": targets,
                     "historyOnly": history_only,

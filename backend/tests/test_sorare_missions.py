@@ -206,3 +206,14 @@ def test_a_discipline_mission_pays_on_a_yellow_or_a_red_card():
     form = mission_form.build(games, "MID", datetime(2026, 10, 10, tzinfo=UTC))
     assert [g["values"]["booked"] for g in form["recent"]] == [1.0, 0.0, 1.0, 0.0]
     assert mission_form.chance(rule, {}, {"pStart": 1.0, "pOn": 0.0}, form) == 0.5  # booked in two of his four starts
+
+
+def test_conditional_mission_calibration_counts_only_confirmed_starts():
+    a, b = hit("a"), miss("b")
+    for c, started in ((a, True), (b, False)):
+        c["conditional"] = ["Decisive Picker"]
+        c["r"]["started"] = started
+    figures = record([log([a, b], ["a", "b"], picks=2)])
+    assert figures["picks"] == 1
+    assert figures["happened"] == 1
+    assert figures["counted"] == 1

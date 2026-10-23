@@ -32,7 +32,7 @@ export const DAILY_PICKER: MissionRow = {
 };
 
 /** What happened to a candidate in his game, written by the refresh a day after it: `void` when the game was never played or scored. */
-export type LogResult = { void?: true; played?: boolean; did?: Record<string, boolean> };
+export type LogResult = { void?: true; played?: boolean; started?: boolean; did?: Record<string, boolean> };
 export type LogCand = {
   s: string; // player slug
   n: string; // name
@@ -49,6 +49,7 @@ export type LogCand = {
   sheet?: Sheet;
   targets?: Record<string, number>;
   historyOnly?: string[];
+  conditional?: string[];
   match?: PlayingPlayer["games"][number];
   eligible?: string[];
 };
@@ -176,10 +177,13 @@ export function nextDay(
     if (retained) {
       // A newly imported task may use the same card/game; add only its evidence.
       for (const m of missions.filter(m => !locked(m))) {
-        if (c[m.id] !== undefined) retained.c = { ...retained.c, [m.id]: c[m.id]! };
+        if (c[m.id] !== undefined) {
+          retained.c = { ...retained.c, [m.id]: c[m.id]! };
+          if (plans.some((one) => one.mission.id === m.id && one.rule.kind === "decisive")) retained.conditional = [...new Set([...retained.conditional ?? [], m.id])];
+        }
         if (evidence[m.id]) retained.evidence = { ...retained.evidence, [m.id]: evidence[m.id]! };
       }
-    } else fresh.push({ s: p.player!, n: p.name, pic: p.pic, pos: p.pos, card: (p as { card?: string }).card, g: game.id ?? null, k: game.kickoff, c, evidence, match: game, eligible: eligible.filter((m) => m.cards.some((c) => c.p.player === p.player && c.p.card === card && c.game.id === game.id)).map((m) => m.key), historyOnly: Object.entries(evidence).filter(([, p]) => p.historical).map(([key]) => key), targets: Object.fromEntries(missions.flatMap((m) => { const target = m.inventory?.find((x) => x.card === card && x.game.id === game.id)?.target; return target === undefined ? [] : [[m.id, target]]; })), sheet: sheets[p.player!], captured: now.toISOString() });
+    } else fresh.push({ s: p.player!, n: p.name, pic: p.pic, pos: p.pos, card: (p as { card?: string }).card, g: game.id ?? null, k: game.kickoff, c, evidence, match: game, eligible: eligible.filter((m) => m.cards.some((c) => c.p.player === p.player && c.p.card === card && c.game.id === game.id)).map((m) => m.key), conditional: plans.filter((one) => one.rule.kind === "decisive" && c[one.mission.id] !== undefined).map((one) => one.mission.id), historyOnly: Object.entries(evidence).filter(([, p]) => p.historical).map(([key]) => key), targets: Object.fromEntries(missions.flatMap((m) => { const target = m.inventory?.find((x) => x.card === card && x.game.id === game.id)?.target; return target === undefined ? [] : [[m.id, target]]; })), sheet: sheets[p.player!], captured: now.toISOString() });
   }
 
   for (const p of players.filter((p) => p.rarity === rarity && p.player)) for (const game of p.games) {

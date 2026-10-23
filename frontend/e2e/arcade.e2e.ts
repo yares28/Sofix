@@ -53,13 +53,14 @@ test.beforeEach(async ({ page, request }) => {
   await offline(page);
 });
 
-const withExtension = (page: Page, answers: Record<string, unknown> = ANSWERS, version = "0.4.14") => page.addInitScript(([answers, version]) => {
+const withExtension = (page: Page, answers: Record<string, unknown> = ANSWERS, version = "0.4.14", holdPast = false) => page.addInitScript(([answers, version, holdPast]) => {
   Object.defineProperty(window, "chrome", { configurable: true, value: { runtime: { sendMessage(_id: string, message: { type: string; step?: string }, reply: (answer: unknown) => void) {
     if (message.type === "ping") return reply({ ok: true, version, sorareUser: "owner", appReachable: true });
     if (message.type === "read-arcade") return reply({ ok: true, state: "ok", players: 1, games: 1 });
+    if (holdPast && message.step === "arcade-past") return;
     reply({ ok: true, state: "ok", step: message.step, data: answers[message.step ?? ""] });
   } } } });
-}, [answers, version] as const);
+}, [answers, version, holdPast] as const);
 
 test("Arcade shows the step you are on, its target, reward and lineups left, your gems, essence and set cards", async ({ page }) => {
   await withExtension(page);
@@ -229,9 +230,9 @@ test("with extension 0.4.15 Sorare's start % come from the open Sorare tab, ever
   await expect(page.locator(".arc-grid .arc-chance")).toContainText("85% start");
 });
 
-test("a LaLiga streak mission gets Sofix's best five for its target, and a Decisive Picker your cards by start % × their own record", async ({ page }) => {
+test("a LaLiga streak mission gets Sofix's best five for its target, and a Decisive Picker your cards by their own record", async ({ page }) => {
   await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
-  const g = (mins: number, goals: number) => ({ anyPlayerGameStats: { minsPlayed: mins }, detailedScore: goals ? [{ stat: "goals", statValue: goals }] : [] });
+  const g = (mins: number, goals: number) => ({ anyGame: { date: "2026-10-01T12:00:00Z" }, anyPlayerGameStats: { minsPlayed: mins, gameStarted: true }, detailedScore: goals ? [{ stat: "goals", statValue: goals }] : [] });
   await withExtension(page, {
     ...ANSWERS,
     "arcade-missions": { currentUser: { setPlayTasks: [
@@ -243,23 +244,24 @@ test("a LaLiga streak mission gets Sofix's best five for its target, and a Decis
       { slug: "p", playerGameScores: [g(90, 1), g(90, 0), g(90, 1), g(80, 0)] },
       { slug: "f2", playerGameScores: [g(90, 1), g(90, 0), g(90, 0), g(90, 0)] },
       { slug: "gk", playerGameScores: [g(90, 0)] },
+      ...["d", "m", "m2"].map((slug) => ({ slug, playerGameScores: [] })),
     ] },
-  });
+  }, "0.4.17");
   await page.goto("/arcade");
   const missions = page.locator(".arc-missions");
   await expect(missions).toContainText("Your best five for it");
   await expect(missions).toContainText("to reach 300");
   await expect(missions.locator(".arc-mring").first()).toHaveAttribute("aria-label", "2 of 5");
-  const picks = missions.locator(".arc-picks li.is-pick");
-  await expect(picks).toHaveCount(2);
+  const picks = missions.locator(".arc-alternatives > li");
+  await expect(picks).toHaveCount(5);
   await expect(picks.first()).toContainText("Player One");
-  await expect(picks.first()).toContainText("did it in 50% of his games");
-  await expect(missions.locator(".arc-picks")).toContainText("too few games to tell");
+  await expect(picks.first().locator(".arc-pick-chance")).toHaveText("50%");
+  await expect(picks.first().getByRole("img", { name: "Last 4 games: 2 hit" })).toBeVisible();
 });
 
-test("a Decisive Player Picker already filled shows your pick's chance, and a better pick while it can still be changed", async ({ page }) => {
+test("a Decisive Player Picker already filled shows your pick's chance, and five separate alternatives", async ({ page }, testInfo) => {
   await page.route("**/api/arcade/chances", (route) => route.fulfill({ json: { chances: {} } }));
-  const g = (mins: number, goals: number) => ({ anyPlayerGameStats: { minsPlayed: mins }, detailedScore: goals ? [{ stat: "goals", statValue: goals }] : [] });
+  const g = (mins: number, goals: number) => ({ anyGame: { date: "2026-10-01T12:00:00Z" }, anyPlayerGameStats: { minsPlayed: mins, gameStarted: true }, detailedScore: goals ? [{ stat: "goals", statValue: goals }] : [] });
   await withExtension(page, {
     ...ANSWERS,
     "arcade-missions": { currentUser: { setPlayTasks: [
@@ -270,11 +272,44 @@ test("a Decisive Player Picker already filled shows your pick's chance, and a be
     "arcade-decisive": { players: [
       { slug: "p", playerGameScores: [g(90, 1), g(90, 0), g(90, 1), g(80, 0)] },
       { slug: "f2", playerGameScores: [g(90, 1), g(90, 0), g(90, 0), g(90, 0)] },
+      ...["gk", "d", "m", "m2"].map((slug) => ({ slug, playerGameScores: [] })),
     ] },
-  }, "0.4.16");
+  }, "0.4.17");
   await page.goto("/arcade");
   const missions = page.locator(".arc-missions");
   await expect(missions.getByRole("heading", { name: "Today's missions" })).toBeVisible();
-  await expect(missions).toContainText("Swap Forward Six (25%) for Player One (50%).");
+  await expect(missions.locator(".arc-own > li")).toHaveCount(1);
+  await expect(missions.locator(".arc-alternatives > li")).toHaveCount(5);
+  await expect(missions.locator(".arc-own .arc-pick-chance")).toHaveText("25%");
+  await page.getByRole("button", { name: "L40", exact: true }).click();
+  await expect(page.getByRole("button", { name: "L40", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(missions.locator(".arc-alternatives > li")).toHaveCount(5);
   await expect(missions.locator(".arc-picks li.is-yours")).toContainText("Your pick");
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await missions.scrollIntoViewIfNeeded();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await missions.screenshot({ path: testInfo.outputPath(`mission-picker-${width}.png`) });
+  }
+});
+
+
+test("cold mission picks do not wait for projections and one window changes every mission", async ({ page }) => {
+  const missions = ["first", "second"].map((id) => ({ __typename: "DecisivePlayerPickerTask", id, title: `Picker ${id}`, maxAppearancesCount: 1, expired: false, startDate: KICKOFF, decisiveStats: [{ name: "goals" }], taskAppearances: id === "first" ? [{ anyPlayer: { slug: "f2" }, locked: true }] : [], rewardConfigs: [] }));
+  const players = SQUAD.map(([,slug], k) => ({ slug, allPlayerGameScores: { pageInfo: { hasNextPage: false, endCursor: null }, nodes: Array.from({ length: 40 }, (_, i) => ({ scoreStatus: "FINAL", anyGame: { date: new Date(Date.parse(KICKOFF) - (i + 1) * 86400000).toISOString() }, anyPlayerGameStats: { minsPlayed: 90, gameStarted: true }, detailedScore: (i + k) % 3 ? [] : [{ stat: "goals", statValue: 1 }] })) } }));
+  await withExtension(page, { ...ANSWERS, "arcade-missions": { currentUser: { setPlayTasks: missions } }, "arcade-decisive": { players } }, "0.4.17", true);
+  await page.goto("/arcade");
+  const section = page.locator(".arc-missions");
+  await expect(section.locator(".arc-own")).toContainText("Locked");
+  await expect(section.locator(".arc-alternatives > li")).toHaveCount(10);
+  await expect(section.locator(".arc-mission-status")).toHaveText(["", ""]);
+  await page.getByRole("button", { name: "L5", exact: true }).click();
+  await expect(section.locator(".mx-dots i")).toHaveCount(55);
+  await page.getByRole("button", { name: "L40", exact: true }).click();
+  await expect(section.locator(".mx-dots i")).toHaveCount(440);
+  await expect(section.getByRole("group", { name: "Mission history window" })).toHaveCount(1);
+  const reopened = await page.context().newPage();
+  await page.close();
+  await reopened.goto("/arcade");
+  await expect(reopened.locator(".arc-own .arc-pick-chance")).toHaveText("30%");
 });

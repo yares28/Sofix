@@ -468,6 +468,8 @@ export type MarketPlayer = {
   ffMatch?: { id: number; url: string };
   ffPlayer?: string;
   mu?: number;
+  /** Conditional decisive probability for the first fixture. */
+  decisive?: number;
   start?: number;
   x?: number;
   fixture?: { team?: string | null; teamCrest?: string | null; competition?: string; opponent: string | null; opponentCrest: string | null; venue: "H" | "A" | null; kickoff: string | null };

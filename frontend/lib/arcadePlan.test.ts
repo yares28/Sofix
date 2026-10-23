@@ -115,6 +115,13 @@ describe("a card's outlook", () => {
   });
 });
 
+it("keeps the exact fixture model when another competition names the same player", () => {
+  const first = { kickoff: GAME.kickoff, p: 0.2, source: "sofix" as const, sources: {}, decisive: 0.6 };
+  const other = { ...first, kickoff: "2026-11-01T12:00:00Z", decisive: 0.1 };
+  const index = { a: other, [`a:${Date.parse(GAME.kickoff)}`]: first };
+  expect(outlookOf(card("a", ["Forward"]), GAME, null, null, index)).toMatchObject({ decisive: 0.6, start: 0.2 });
+});
+
 describe("Pick a day", () => {
   const at = (id: string, kickoff: string): ArcadeGame => ({ ...GAME, id, kickoff });
   const squad = (game: ArcadeGame, prefix: string, score: number): Outlook[] =>
@@ -277,13 +284,13 @@ describe("a lineup while it plays", () => {
 });
 
 describe("missions", () => {
-  it("rates a player on his own played games, never under 3, and ranks by start % × that rate", () => {
+  it("rates a player on his own played games, never under 3, and ranks by historical rate independent of start %", () => {
     const g = (mins: number, ...stats: string[]) => ({ mins, stats });
     expect(decisiveRate([g(90, "goals"), g(90), g(0, "goals"), g(80, "goal_assist")], [])).toBeCloseTo(2 / 3);
     expect(decisiveRate([g(90, "goals"), g(90)], [])).toBeNull();
     expect(decisiveRate([g(90, "won_tackle"), g(90), g(90, "goals")], ["won_tackle"])).toBeCloseTo(1 / 3);
     const a = outlook("a", ["Forward"], 50, 0.5), b = outlook("b", ["Forward"], 50, 1), c = outlook("c", ["Forward"], 50, 1);
-    expect(rankDecisive([{ outlook: a, rate: 0.6 }, { outlook: b, rate: 0.4 }, { outlook: c, rate: null }]).map((p) => [p.outlook.card.player, p.chance])).toEqual([["b", 0.4], ["a", 0.3], ["c", null]]);
+    expect(rankDecisive([{ outlook: a, rate: 0.6 }, { outlook: b, rate: 0.4 }, { outlook: c, rate: null }]).map((p) => [p.outlook.card.player, p.chance])).toEqual([["a", 0.6], ["b", 0.4], ["c", null]]);
   });
 
   it("reads a streak's target from Sorare's words", () => {

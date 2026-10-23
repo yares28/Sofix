@@ -98,3 +98,31 @@ def test_chance_weights_recent_starter_and_substitute_form_separately():
     chance = mission_form.chance({"kind": "pass", "atLeast": 70}, {"pStart": 0.6, "pOn": 0.3}, {}, form)
     assert chance is not None and 0.50 < chance < 0.55
     assert mission_form.chance({"kind": "score"}, {}, {}, form) is None
+
+
+def test_decisive_odds_do_not_depend_on_start_chance():
+    form = {
+        "recent": [
+            {"started": True, "values": {"decisive": 1}},
+            {"started": True, "values": {"decisive": 0}},
+            {"started": False, "values": {"decisive": 0}},
+        ],
+        "windows": {"starts": {"means": {}}},
+    }
+    for ps in (0, 0.2, 1):
+        assert (
+            mission_form.chance({"kind": "decisive"}, {"pStart": ps, "pOn": 0.1, "shape": {"p": 0.65}}, {}, form)
+            == 0.65
+        )
+        assert mission_form.chance({"kind": "decisive"}, {"pStart": ps}, {}, form) == 0.5
+
+
+def test_arcade_market_keeps_conditional_probability_for_the_first_fixture():
+    from types import SimpleNamespace
+
+    from app.sorare.model import Forecast
+    from app.sorare.publish import market_out
+
+    f = Forecast(p_play=0.2, mu=50, shape=SimpleNamespace(p_decisive=0.65))
+    rows = market_out([{"slug": "a", "name": "A", "pos": "GK"}], {"a": f}, {"a": [{"kickoff": "2026-10-24T12:00:00Z"}]})
+    assert rows[0]["decisive"] == 0.65

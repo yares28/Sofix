@@ -579,6 +579,8 @@ the held-out weeks (P9 "The bar").
 
 ## Results
 
+**23 Oct 2026 — decisive missions, phase 1 ([contract and evidence](mission-picker-phase1.md), extension 0.4.17).** Decisive odds no longer multiply by start chance; the exact fixture model takes precedence over starter history. Arcade keeps your selection apart from five alternatives and shares L5/L10/L20/L40 evidence across missions. All 124 eligible players completed the automatic paged history read on the owner's 1,357-card collection. Real Chrome desktop/mobile and production-build navigation passed. New conditional forecasts retain their basis for later comparisons; earlier frozen forecasts remain intact. The card gallery redesign, refresh toolbar, broader Audit repair and single Play plan remain the next phases.
+
 **21 Oct 2026 · Arcade, steps 3 to 7 ([set.md](set.md); extension 0.4.12 and 0.4.14).** `/arcade` predicts each common card's score
 (projection or form × start % × Sorare's added bonuses, club bonus read per club), plans a day's lineups in settle order at the step each
 lands on with the play-or-hold rule, builds the best lineup from games you pick, follows your entered lineups live (dead, cut losses), works

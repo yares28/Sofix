@@ -649,7 +649,7 @@ const EXTRAS_KEEP_MS = 6 * 3_600_000;
 const MAX_PROJECTION_GAMES = 60;
 
 /** What Sofix knows of a LaLiga player's next game (the Lineups numbers), keyed by Sorare slug. */
-export type ArcadeLaLiga = Record<string, { kickoff: string | null; p: number | null; source: StartSource | null; sources: Partial<Record<StartSource, number>>; /** Sofix's xScore if he plays. */ mu?: number | null }>;
+export type ArcadeLaLiga = Record<string, { kickoff: string | null; p: number | null; source: StartSource | null; sources: Partial<Record<StartSource, number>>; /** Sofix's xScore if he plays. */ mu?: number | null; decisive?: number | null }>;
 export type ArcadeExtras = {
   /** The club bonus Sorare gives a card of each club, by club slug (0.04 for +4%). */
   club: Record<string, number>;
@@ -752,7 +752,7 @@ export function outlookOf(card: ArcadeCard, game: ArcadeGame, extras: ArcadeExtr
   const past = extras?.past[card.player] ?? [];
   const projection = extras?.projections[game.id]?.[card.player];
   const form = past.length ? past.reduce((a, b) => a + b, 0) / past.length : null;
-  const sofix = laliga[card.player];
+  const sofix = laliga[`${card.player}:${Date.parse(game.kickoff)}`] ?? laliga[card.player];
   const sameGame = sofix && sofix.kickoff && Date.parse(sofix.kickoff) === Date.parse(game.kickoff);
   const saved = chanceOf(chances, game.id, card.player);
   const [start, startSource]: [number | null, StartSource | null] = sameGame && sofix.p !== null && sofix.source
@@ -764,6 +764,7 @@ export function outlookOf(card: ArcadeCard, game: ArcadeGame, extras: ArcadeExtr
     card,
     game,
     score: xscore ?? projection ?? form,
+    decisive: sameGame ? sofix.decisive ?? null : null,
     scoreSource: xscore !== null ? "sofix" : projection !== undefined ? "sorare" : form !== null ? "form" : null,
     start,
     startSource,
@@ -820,26 +821,79 @@ export async function readArcadeLineups(): Promise<Map<string, ArcadeLineup[]> |
   return answer.success && answer.data.state === "ok" ? parseLineups(answer.data.data) : null;
 }
 
-const DecisiveAnswer = z.object({ players: z.array(z.object({ slug: s, playerGameScores: z.array(z.object({
-  anyPlayerGameStats: opt(z.object({ minsPlayed: opt(n) })), detailedScore: opt(z.array(z.object({ stat: s, statValue: n }))),
-}).nullable()).nullish() })) });
+export type DecisiveGame = { mins: number; stats: string[] | null; date?: string; started?: boolean | null };
+const DecisiveScore = z.object({
+  scoreStatus: opt(s), anyGame: opt(z.object({ date: s })),
+  anyPlayerGameStats: opt(z.object({ minsPlayed: opt(n), gameStarted: opt(z.union([z.boolean(), n])) })), detailedScore: opt(z.array(z.object({ stat: s, statValue: n }))),
+}).nullable();
+const DecisiveAnswer = z.object({ players: z.array(z.object({ slug: s, playerGameScores: z.array(DecisiveScore).nullish(), allPlayerGameScores: z.object({ nodes: z.array(DecisiveScore), pageInfo: z.object({ hasNextPage: z.boolean(), endCursor: s.nullable() }).optional() }).nullish() })) });
 
-/** A Decisive Picker's candidates' last 10 games: minutes and the actions he made (stat value > 0). Exported for the tests. */
-export function parseDecisive(answer: unknown): Record<string, { mins: number; stats: string[] }[]> {
-  const parsed = DecisiveAnswer.safeParse(answer);
+function decisiveResponse(answer: unknown) {
+  const root = answer && typeof answer === "object" ? answer as Record<string, unknown> : {};
+  return DecisiveAnswer.safeParse(Array.isArray(root.players) ? root : { players: Object.values(root).filter((v) => v && typeof v === "object" && "slug" in v) });
+}
+
+/** Unknown detailed stats stay unknown, rather than becoming a failed target. */
+export function parseDecisive(answer: unknown): Record<string, DecisiveGame[]> {
+  const parsed = decisiveResponse(answer);
   if (!parsed.success) return {};
-  return Object.fromEntries(parsed.data.players.map((p) => [p.slug, (p.playerGameScores ?? []).flatMap((g) => (g ? [{
-    mins: g.anyPlayerGameStats?.minsPlayed ?? 0, stats: (g.detailedScore ?? []).filter((d) => d.statValue > 0).map((d) => d.stat),
+  return Object.fromEntries(parsed.data.players.map((p) => [p.slug, (p.allPlayerGameScores?.nodes ?? p.playerGameScores ?? []).flatMap((g) => (g && (!g.scoreStatus || g.scoreStatus === "FINAL") ? [{
+    mins: g.anyPlayerGameStats?.minsPlayed ?? 0, date: g.anyGame?.date,
+    started: g.anyPlayerGameStats?.gameStarted == null ? null : Boolean(g.anyPlayerGameStats.gameStarted),
+    stats: g.detailedScore == null ? null : g.detailedScore.filter((d) => d.statValue > 0).map((d) => d.stat),
   }] : []))]));
 }
 
-/** Read through your Sorare tab, 20 players a question; null when Sorare did not answer. */
-export async function readDecisive(players: string[]): Promise<Record<string, { mins: number; stats: string[] }[]> | null> {
-  const out: Record<string, { mins: number; stats: string[] }[]> = {};
-  for (let i = 0; i < Math.min(players.length, 40); i += 20) {
-    const answer = Answer.safeParse(await askExtension({ type: "sorare", step: "arcade-decisive", players: players.slice(i, i + 20) }, 25_000));
-    if (!answer.success || answer.data.state !== "ok") return Object.keys(out).length ? out : null;
-    Object.assign(out, parseDecisive(answer.data.data));
+/** Shared, cached history: queued named-player requests, with pagination until forty appearances or source exhaustion. */
+export async function readDecisive(players: string[], before = new Date().toISOString(), signal?: AbortSignal, progress?: (rows: Record<string, DecisiveGame[]>, done: number, total: number) => void): Promise<Record<string, DecisiveGame[]> | null> {
+  const key = `sofix-mission-history-v3:${before}:${[...players].sort().join(",")}`;
+  try {
+    const kept = JSON.parse(localStorage.getItem(key) ?? "null") as { at: number; rows: Record<string, DecisiveGame[]> } | null;
+    if (kept && Date.now() - kept.at < 6 * 3_600_000) return kept.rows;
+  } catch { /* Browser storage is optional. */ }
+  const extension = await pingExtension();
+  if (!extension || !extensionAtLeast(extension.version, "0.4.17")) return null;
+  const out: Record<string, DecisiveGame[]> = {};
+  const after: Record<string, string> = {};
+  const pending: string[] = [];
+  let done = 0;
+  const playerKey = (player: string) => `sofix-mission-player-v1:${before}:${player}`;
+  for (const player of players) {
+    try {
+      const kept = JSON.parse(localStorage.getItem(playerKey(player)) ?? "null") as { at: number; rows: DecisiveGame[]; cursor?: string; complete: boolean } | null;
+      if (kept && Date.now() - kept.at < 6 * 3_600_000) {
+        out[player] = kept.rows;
+        if (kept.complete) { done += 1; continue; }
+        if (kept.cursor) after[player] = kept.cursor;
+      }
+    } catch { /* Optional cache. */ }
+    pending.push(player);
   }
+  progress?.({ ...out }, done, players.length);
+  while (pending.length) {
+    if (signal?.aborted) return null;
+    const batch = pending.splice(0, 1);
+    if (typeof document !== "undefined") await new Promise((done) => setTimeout(done, 350));
+    if (signal?.aborted) return null;
+    const answer = Answer.safeParse(await askExtension({ type: "sorare", step: "arcade-decisive", players: batch, before, after }, 25_000));
+    if (!answer.success || answer.data.state !== "ok") return null;
+    const parsed = decisiveResponse(answer.data.data);
+    if (!parsed.success || batch.some((p) => !parsed.data.players.some((r) => r.slug === p))) return null;
+    const rows = parseDecisive(answer.data.data);
+    for (const p of batch) {
+      out[p] = [...out[p] ?? [], ...rows[p] ?? []];
+      const page = parsed.data.players.find((r) => r.slug === p)?.allPlayerGameScores?.pageInfo;
+      if (out[p].filter((g) => g.mins > 0).length < 40 && page?.hasNextPage) {
+        if (!page.endCursor || after[p] === page.endCursor) return null;
+        after[p] = page.endCursor;
+        pending.push(p);
+      } else { done += 1; }
+      try {
+        localStorage.setItem(playerKey(p), JSON.stringify({ at: Date.now(), rows: out[p], cursor: after[p], complete: !pending.includes(p) }));
+      } catch { /* A full cache never stops the read. */ }
+    }
+    progress?.({ ...out }, done, players.length);
+  }
+  try { localStorage.setItem(key, JSON.stringify({ at: Date.now(), rows: out })); } catch { /* Storage unavailable. */ }
   return out;
 }

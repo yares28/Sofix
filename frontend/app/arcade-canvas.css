@@ -235,3 +235,24 @@
 .arc-main h2 { font-size: 20px; letter-spacing: -0.01em; }
 .arc-main { max-width: 1360px; }
 .arc-lab > :only-child { grid-column: 1 / -1; }
+
+/* Mission evidence: the selected card stays apart from five alternatives. */
+.arc-missions-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.arc-missions-heading [role="group"] { display: flex; gap: 4px; }
+.arc-missions-heading button { border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); padding: 8px 12px; border-radius: 8px; font: inherit; cursor: pointer; }
+.arc-missions-heading button[aria-pressed="true"] { color: var(--on-ink); background: var(--ink); }
+.arc-mission-choices { display: flex; gap: 20px; align-items: stretch; }
+.arc-mission-choices .arc-own { flex: 0 0 150px; border-right: 1px solid var(--line); padding-right: 20px; }
+.arc-mission-choices .arc-alternatives { flex: 1; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.arc-mission-choices .arc-picks li { min-width: 0; padding: 10px; align-content: start; }
+.arc-mission-choices .arc-picks img, .arc-mission-choices .arc-card-blank { width: 100%; max-width: 120px; margin: 8px auto; justify-self: center; transform: none; }
+.arc-pick-start { font-weight: 700; min-height: 16px; }
+.arc-mission-choices .arc-card-name { overflow-wrap: anywhere; }
+.arc-mission-choices .arc-pick-chance { font-size: 24px; margin: 4px 0; }
+.arc-mission-choices .mx-dots { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px 2px; --d: 7px; min-height: 12px; }
+@media (max-width: 1100px) { .arc-mission-choices .arc-alternatives { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .arc-mission-choices { flex-direction: column; } .arc-mission-choices .arc-own { flex-basis: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 0 0 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); } .arc-mission-choices .arc-alternatives { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.arc-mission-status { min-height: 20px; margin: 0 0 8px; font-size: 11px; color: var(--ink-2); }
+
+.arc-mission-choices .mx-dots i.u::before { border-style: dashed; }

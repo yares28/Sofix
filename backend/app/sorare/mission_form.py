@@ -24,6 +24,16 @@ def chance(
     rule: dict[str, Any], p: dict[str, Any], game: dict[str, Any], form: dict[str, Any], target: float | None = None
 ) -> float | None:
     kind = rule["kind"]
+    if kind == "decisive":
+        modeled = (p.get("shape") or {}).get("p")
+        if modeled is not None:
+            return float(modeled)
+        values = [
+            g["values"]["decisive"]
+            for g in form["recent"][:10]
+            if g["started"] is True and g["values"].get("decisive") is not None
+        ]
+        return sum(values) / len(values) if values else form["windows"]["starts"]["means"].get("decisive")
     key = (
         kind if kind in ("decisive", "booked", "score") else rule.get("stat") if kind == "count" else METRICS.get(kind)
     )

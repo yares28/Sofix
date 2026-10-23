@@ -257,6 +257,16 @@ const SMALL_ON = 0.1;
 /** His chance of the rule in his game that day, and what he did per start over 5, 8 and two seasons; null when nothing can be said (no number for him). */
 export function fit(rule: Rule, player: PlayingPlayer, sheet: Sheet | null, target?: number): { chance: number; average?: Window; historical?: boolean } | null {
   if (rule.kind === "unsupported") return null;
+  if (rule.kind === "decisive") {
+    const average = sheet?.form ? undefined : sheet ? { l5: mean(newest(sheet, 5).map((r) => r[2])), l8: mean(newest(sheet, 8).map((r) => r[2])), season: sheet.decAll } : undefined;
+    const modeled = player.shape?.p;
+    if (modeled !== undefined) return { chance: modeled, average };
+    if (sheet?.form) {
+      const rate = formRate(sheet.form, "decisive", true);
+      return rate === undefined ? null : { chance: rate, historical: true };
+    }
+    return sheet?.decAll === undefined ? null : { chance: sheet.decAll, average, historical: true };
+  }
   if (sheet?.form) {
     const form = sheet.form, key = missionMetric(rule)!;
     const values = formValues(form, key);
@@ -267,7 +277,7 @@ export function fit(rule: Rule, player: PlayingPlayer, sheet: Sheet | null, targ
       return { chance: mean(values.map((v) => Number(v >= threshold))), average, historical: true };
     }
     const start = formRate(form, key, true), sub = formRate(form, key, false);
-    const tail = (rate: number) => rule.kind === "decisive" || rule.kind === "booked" ? rate : atLeast("atLeast" in rule ? rule.atLeast : 1, rate);
+    const tail = (rate: number) => rule.kind === "booked" ? rate : atLeast("atLeast" in rule ? rule.atLeast : 1, rate);
     if (player.pStart !== undefined && player.pOn !== undefined) {
       // No recent sub appearance and a small chance of coming on: count his starts only rather than blank the whole chance.
       if (player.pStart > 0 && start === undefined || player.pOn > SMALL_ON && sub === undefined) return null;
@@ -284,15 +294,6 @@ export function fit(rule: Rule, player: PlayingPlayer, sheet: Sheet | null, targ
     return { chance: mean(hits), average: { l5: mean(values.slice(-5)), l8: mean(values.slice(-8)), season: mean(values) }, historical: true };
   }
   const play = Math.min(1, Math.max(0, player.pStart !== undefined && player.pOn !== undefined ? player.pStart + player.pOn : player.p));
-  if (rule.kind === "decisive") {
-    const conditional = player.shape?.p ?? sheet?.decAll;
-    const chance = conditional === undefined ? undefined : player.pStart !== undefined && player.pOn !== undefined && player.onShape
-      ? player.pStart * conditional + player.pOn * player.onShape.p : play * conditional;
-    if (typeof chance !== "number") return null;
-    const l5 = sheet ? mean(newest(sheet, 5).map((r) => r[2])) : chance;
-    const l8 = sheet ? mean(newest(sheet, 8).map((r) => r[2])) : chance;
-    return { chance, average: { l5, l8, season: sheet ? sheet.decAll : chance } };
-  }
   if (!sheet || rule.kind === "booked") return null;
   const key = rule.kind === "count" ? rule.stat : COUNTS[rule.kind].stat;
   const season = sheet.season[key]?.[0];
@@ -348,7 +349,7 @@ export function plan(
         continue;
       }
       const target = one.mission.inventory?.find((c) => c.card === card && c.game.id === game.id)?.target;
-      const found = fit(one.rule, { ...p, availabilityKnown: game.availabilityKnown ?? p.availabilityKnown, pStart: game.pStart ?? p.pStart, pOn: game.pOn ?? p.pOn }, sheets[p.player!] ?? null, target);
+      const found = fit(one.rule, { ...p, shape: game.id === p.games[0]?.id ? p.shape : undefined, availabilityKnown: game.availabilityKnown ?? p.availabilityKnown, pStart: game.pStart ?? p.pStart, pOn: game.pOn ?? p.pOn }, sheets[p.player!] ?? null, target);
       if (!found) one.unrated.push({ slug: p.player!, name: p.name });
       const sheet = sheets[p.player!];
       const values = missionValues(one.rule, sheet);

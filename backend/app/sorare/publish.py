@@ -1835,6 +1835,7 @@ def market_out(
                 "sources": forecast.by_source,
                 **{k: info[k] for k in ("ffMatch", "ffPlayer") if info.get(k) is not None},
                 "mu": round(forecast.mu, 1),
+                **({"decisive": round(forecast.shape.p_decisive, 3)} if forecast.shape is not None else {}),
                 "by": forecast.score_source,
                 **({"start": round(forecast.start, 1)} if forecast.start is not None else {}),
                 "x": round(_expected(forecast), 1),

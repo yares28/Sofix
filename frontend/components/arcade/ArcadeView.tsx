@@ -271,7 +271,7 @@ function Loaded({ arcade, unread, laliga, fdr }: { arcade: Arcade; unread: strin
         ) : null}
       </section>
       <ArcadePacks arcade={arcade} />
-      <ArcadeMissions arcade={arcade} outlooks={ready ? planOutlooks : null} />
+      <ArcadeMissions arcade={arcade} outlooks={outlooks} />
       <Cards cards={arcade.cards} games={arcade.games} chances={chances} outlooks={outlooks} />
     </FdrContext.Provider>
   );

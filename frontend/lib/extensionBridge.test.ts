@@ -148,3 +148,20 @@ describe("mission eligibility queries", () => {
     expect(cards).not.toContain(`"${GAME}"`);
   });
 });
+
+
+describe("Arcade mission history query", () => {
+  it("uses named player aliases, dates and cursors instead of the unsupported player list nesting", async () => {
+    const b = bridge();
+    await b.read(GAME, "SofixArcadeDecisive", { players: ["a"], before: "2026-10-23T08:00:00Z", after: { a: "next-page" } });
+    const query = (b.calls.at(-1) as { query: string }).query;
+    expect(query).toContain('p0: anyPlayer(slug: "a")');
+    expect(query).not.toContain("p1:");
+    expect(query).toContain('after: "next-page"');
+    expect(query).toContain('to: "2026-10-23T08:00:00Z"');
+    expect(query).not.toContain("players(slugs:");
+    const calls = b.calls.length;
+    await b.read(GAME, "SofixArcadeDecisive", { players: ["a"], before: "wrong" });
+    expect(b.calls).toHaveLength(calls);
+  });
+});

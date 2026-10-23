@@ -19,8 +19,8 @@ export default async function ArcadePage() {
     loadGrid(), loadGrid("PL"), loadGrid("BL1"), loadGrid("FL1"), loadSystem(), loadSorare(), loadLeagueMarket("PL"), loadLeagueMarket("BL1"), loadLeagueMarket("FL1"), loadGrid("CL"), loadGrid("EL"), loadLeagueMarket("CL"), loadLeagueMarket("EL"), loadGrid("CONF"), loadLeagueMarket("CONF"),
   ]);
   // Sofix's start % and xScore for each LaLiga, Premier League, Bundesliga and Ligue 1 player's next game (cached per write, like Lineups).
-  const laliga: ArcadeLaLiga = Object.fromEntries([...(sorare?.market ?? []), ...plPlayers, ...blPlayers, ...flPlayers, ...clPlayers, ...elPlayers, ...confPlayers].map((p) => [p.slug, {
-    kickoff: p.fixture?.kickoff ?? null, p: p.pStart ?? null, source: p.startSource ?? null, sources: p.sources ?? {}, mu: p.mu ?? null,
+  const laliga: ArcadeLaLiga = Object.fromEntries([...(sorare?.market ?? []), ...plPlayers, ...blPlayers, ...flPlayers, ...clPlayers, ...elPlayers, ...confPlayers].filter((p) => p.fixture?.kickoff).map((p) => [`${p.slug}:${Date.parse(p.fixture!.kickoff!)}`, {
+    kickoff: p.fixture?.kickoff ?? null, p: p.pStart ?? null, source: p.startSource ?? null, sources: p.sources ?? {}, mu: p.mu ?? null, decisive: p.decisive ?? null,
   }]));
   // The four boards' coming fixtures, both sides rated: a few dozen rows, matched to Arcade's games in the browser.
   const now = Date.now();

@@ -3,7 +3,7 @@ import type { Rule } from "./missions";
 import type { MissionForm } from "./playerSheet";
 
 /** One appearance of his, judged against the mission's target. */
-export type Played = { date: string; started: boolean | null; hit: boolean };
+export type Played = { date: string; started: boolean | null; hit: boolean | null };
 
 /** His last `n` dated appearances with a number for the mission's stat, oldest first, each one a hit or not. Empty when the mission has no target to judge by. */
 export function lastGames(form: MissionForm | undefined, rule: Rule, target?: number, n = 10): Played[] {

@@ -134,11 +134,11 @@ describe("a card's fit to a mission", () => {
   });
   it("is his chance of a decisive action from the game (or his own rate), with what he did over 5, 8 and two seasons", () => {
     const found = fit({ kind: "decisive", label: "" }, player("a", { shape: { p: 0.3, dec: 70, plain: 40, sdDec: 9, sdPlain: 9, low: 30, high: 80 } }), sheet());
-    expect(found?.chance).toBeCloseTo(0.27);
+    expect(found?.chance).toBeCloseTo(0.3);
     expect(found?.average?.l5).toBeCloseTo(0.2); // one of his last five starts was decisive (the one five starts back is out)
     expect(found?.average?.season).toBe(0.15);
     expect(fit({ kind: "decisive", label: "" }, player("a"), null)).toBeNull();
-    expect(fit({ kind: "decisive", label: "" }, player("a"), sheet())?.chance).toBeCloseTo(0.135);
+    expect(fit({ kind: "decisive", label: "" }, player("a"), sheet())?.chance).toBeCloseTo(0.15);
   });
   it("is a count's tail from his season's rate for interceptions and assists, and nothing without a sheet", () => {
     const rule = ruleOf(INTERCEPTION);

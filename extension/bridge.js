@@ -293,12 +293,19 @@
       return `query SofixArcadePast { players(slugs: ${JSON.stringify(players)}) { slug ... on Player {
         playerGameScores(last: 15) { score anyGame { date } anyPlayerGameStats { ... on PlayerGameStats { minsPlayed } } } } } }`;
     },
-    // A Decisive Picker's candidates: what each did in his last 10 games (Sorare's detailed score), up to 20 players a question.
+    // Sorare rejects both list nesting and repeated anyPlayer roots: one named player per history request.
     SofixArcadeDecisive: (variables) => {
       const players = variables?.players;
-      if (!Array.isArray(players) || !players.length || players.length > 20 || players.some((p) => typeof p !== "string" || !/^[a-z0-9-]{1,120}$/.test(p))) return null;
-      return `query SofixArcadeDecisive { players(slugs: ${JSON.stringify(players)}) { slug ... on Player {
-        playerGameScores(last: 10) { anyPlayerGameStats { ... on PlayerGameStats { minsPlayed } } ... on PlayerGameScore { detailedScore { stat statValue } } } } } }`;
+      const after = variables?.after ?? {};
+      const before = variables?.before;
+      if (!Array.isArray(players) || !players.length || players.length > 1 || players.some((p) => typeof p !== "string" || !/^[a-z0-9-]{1,120}$/.test(p))) return null;
+      if (typeof before !== "string" || !/^\d{4}-\d{2}-\d{2}T[0-9:.]+Z$/.test(before) || !Number.isFinite(Date.parse(before))) return null;
+      if (typeof after !== "object" || after === null || players.some((p) => after[p] != null && (typeof after[p] !== "string" || !/^[A-Za-z0-9+/=_-]{1,256}$/.test(after[p])))) return null;
+      return `query SofixArcadeDecisive { ${players.map((p, i) => `p${i}: anyPlayer(slug: ${JSON.stringify(p)}) { slug ... on Player {
+        allPlayerGameScores(first: 40, to: ${JSON.stringify(before)}${after[p] ? `, after: ${JSON.stringify(after[p])}` : ""}) {
+          pageInfo { hasNextPage endCursor }
+          nodes { scoreStatus anyGame { date } anyPlayerGameStats { ... on PlayerGameStats { minsPlayed gameStarted } } ... on PlayerGameScore { detailedScore { stat statValue } } }
+        } } }`).join(" ")} }`;
     },
     // One game's Sorare projections ("if he plays"), which Sorare publishes about two days before kick-off.
     SofixArcadeProjections: (variables) => {

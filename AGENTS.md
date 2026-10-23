@@ -70,7 +70,7 @@ From the root, before and after every push (see Shipping):
 
 ```powershell
 node scripts/check.mjs          # local checks for what changed; fixes formatting and generated files
-node scripts/check.mjs --live   # production after a push: Vercel deploy, every page 200, CI and refresh state
+node scripts/check.mjs --live   # production after a push: Vercel deploy, home + changed pages 200, CI and refresh state
 ```
 
 ## Shipping (one owner, one computer)
@@ -96,8 +96,9 @@ any global habit of branches, pull requests, CI waits or review subagents.
    `git push origin main`. Vercel deploys in one to two minutes. A push that touches `backend/app/**` or
    `backend/artifacts/**` also starts the refresh (`refresh.yml`), which republishes the read models: never dispatch it by
    hand for that.
-5. **Confirm and hand over:** `node scripts/check.mjs --live /<changed page> ...` waits for the deploy, opens every page
-   on production (anything but 200 fails), prints CI's and the refresh's state without waiting for them, makes sure the
+5. **Confirm and hand over:** `node scripts/check.mjs --live /<changed page> ...` waits for the deploy, opens the home page
+   and the changed pages on production (anything but 200 fails; `--all-pages` opens all 15, only after a change to shared
+   code: each page is a server render billed against Vercel's free 4 h of CPU a month), prints CI's and the refresh's state without waiting for them, makes sure the
    main folder's dev server answers on localhost:3000 (it starts it if not), and prints the changed pages' links on
    localhost and production. The reply that reports a change ends with those links, so the owner tests it at once. When
    the task is about published data, check the read model with one SELECT after the refresh; otherwise move on.

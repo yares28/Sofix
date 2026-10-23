@@ -6,10 +6,12 @@
  *     node scripts/check.mjs          backend and/or frontend checks for what changed since origin/main (committed or not)
  *     node scripts/check.mjs --all    both sides, whatever changed
  *     node scripts/check.mjs --live   after a push, or at the start of a session: waits for Vercel to deploy origin/main,
- *                                     opens every page on production, then prints CI's and the last refresh's state
+ *                                     opens the home page on production, then prints CI's and the last refresh's state
  *     node scripts/check.mjs --live /lineups /play
- *                                     the same, then the links to test those pages on localhost and production (the
- *                                     local dev server is started if it is not running)
+ *                                     the same, also opening those pages, then the links to test them on localhost and
+ *                                     production (the local dev server is started if it is not running)
+ *     node scripts/check.mjs --live --all-pages
+ *                                     opens all 15 pages (after a change to shared code); each is billed Vercel CPU
  *
  * It fixes what it can (ruff format, the OpenAPI document, the generated API types) and says so: commit those files too.
  * One line per step; a failing step prints the end of its output. Browser tests are not run here: run the changed page's
@@ -162,15 +164,23 @@ async function live() {
   if (!deployed && !building) failed.push("Vercel");
   }
 
-  // 2. Every page answers on production, through the bypass the refresh job uses.
+  // 4's pages, read here because step 2 opens them.
+  // `/lineups` or `lineups`; Git Bash turns `/lineups` into `C:/Program Files/Git/lineups`, so that prefix is dropped.
+  const changed = args
+    .filter((arg) => !arg.startsWith("--"))
+    .map((arg) => arg.replace(/^[A-Za-z]:\/.*?\/Git(?=\/)/, "").replace(/^(?!\/)/, "/"));
+
+  // 2. Pages answer on production, through the bypass the refresh job uses. Each one is a full server render billed to
+  // Vercel's free 4 h of CPU a month, and this sweep was two thirds of it (23 Oct 2026): so the home page and the changed
+  // pages only; --all-pages opens all 15 (after a change to shared code: the app shell, nav, lib/weeks.ts, lib/db.ts).
   const pages = await Promise.all(
-    PAGES.map(async (page) => {
+    (args.includes("--all-pages") ? PAGES : [...new Set(["/", ...changed])]).map(async (page) => {
       const r = await fetch(new URL(page, APP_URL), { headers: { "x-vercel-protection-bypass": VERCEL_BYPASS_SECRET }, redirect: "manual" });
       return [page, r.status];
     }),
   );
   const broken = pages.filter(([, status]) => status !== 200);
-  console.log(`${broken.length ? "FAIL" : "ok  "}  production pages: ${broken.length ? broken.map(([p, s]) => `${s} ${p}`).join(", ") : `all ${pages.length} answer 200`}`);
+  console.log(`${broken.length ? "FAIL" : "ok  "}  production pages: ${broken.length ? broken.map(([p, s]) => `${s} ${p}`).join(", ") : `${pages.map(([p]) => p).join(" ")} answer 200`}`);
   if (broken.length) failed.push("pages");
 
   // 3. CI and the refresh as they stand: read, never waited for.
@@ -191,10 +201,6 @@ async function live() {
   await neonProjects();
 
   // 4. Where the owner tests it: the main folder's dev server (hot reload, real read models) and production.
-  // `/lineups` or `lineups`; Git Bash turns `/lineups` into `C:/Program Files/Git/lineups`, so that prefix is dropped.
-  const changed = args
-    .filter((arg) => !arg.startsWith("--"))
-    .map((arg) => arg.replace(/^[A-Za-z]:\/.*?\/Git(?=\/)/, "").replace(/^(?!\/)/, "/"));
   if (changed.length) {
     await devServer();
     console.log("\nTest it:");

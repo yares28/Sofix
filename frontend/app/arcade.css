@@ -164,6 +164,7 @@
 .arc-card-ratings > span { display: flex; align-items: baseline; justify-content: space-between; gap: 7px; padding: 4px 7px; border-radius: 6px; background: var(--surface); color: var(--ink); box-shadow: 0 1px 5px rgb(0 0 0 / .12); font-variant-numeric: tabular-nums; }
 .arc-card-ratings small { font-size: 11px; font-weight: 500; }
 .arc-card-ratings b { font-size: 14px; line-height: 1.1; }
+.arc-card-ratings .arc-card-score { justify-self: end; justify-content: center; min-width: 30px; }
 .arc-card-fdr.f1 { background: var(--fdr1-bg); color: var(--fdr1-fg); }
 .arc-card-fdr.f2 { background: var(--fdr2-bg); color: var(--fdr2-fg); }
 .arc-card-fdr.f3 { background: var(--fdr3-bg); color: var(--fdr3-fg); }

@@ -96,6 +96,8 @@ test("collection cards keep their evidence compact and all reads in the hero too
   await page.getByRole("searchbox", { name: "Search player or club" }).fill("player one");
   const card = page.locator(".arc-grid .arc-card");
   await expect(card.locator(".arc-art .arc-card-score")).toContainText("0");
+  await expect(card.locator(".arc-card-score")).toHaveText("0");
+  await expect(card.locator(".arc-card-score")).toHaveCSS("background-color", "rgb(192, 67, 63)");
   await expect(card.locator(".arc-art .arc-card-bonus")).toHaveText("+10%");
   await expect(card.locator("figcaption .arc-card-start")).toHaveText("0%");
   await expect(card.locator("figcaption .arc-card-xd")).toHaveText("xD —");

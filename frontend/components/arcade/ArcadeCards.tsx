@@ -3,6 +3,7 @@
 import { useContext, useMemo, useState } from "react";
 import { bonusLabel, gamesOf, type ArcadeCard, type ArcadeGame } from "../../lib/arcade";
 import { predicted, type Outlook } from "../../lib/arcadePlan";
+import { scoreColour } from "../../lib/cards";
 import { FdrContext, sideOf } from "./Fdr";
 
 const PAGE_SIZE = 12;
@@ -19,6 +20,7 @@ function Card({ card, games, outlooks, crests }: { card: ArcadeCard; games: Arca
   const outlook = game ? outlooks.get(game.id)?.get(card.slug) : undefined;
   const side = game ? sideOf(boards.get(game.id), game.home?.slug === card.teamSlug)?.mine : null;
   const score = outlook ? predicted(outlook) : null;
+  const scoreLook = scoreColour(score);
   const bonus = bonusLabel(card.bonus);
   const detail = game ? fixtureName(game) : games === null ? "Games unavailable" : "No game before the set ends";
   const startProps = { className: "arc-card-start", "aria-label": `Start chance ${percent(outlook?.start)}`, title: `${detail} · ${outlook?.startSource ? SOURCES[outlook.startSource] : "Unknown"} start chance` };
@@ -33,8 +35,8 @@ function Card({ card, games, outlooks, crests }: { card: ArcadeCard; games: Arca
           <span className={`arc-card-fdr${side ? ` f${side.bucket}` : ""}`} title={side ? `${detail} · ${side.label} · difficulty ${side.difficulty ?? "unknown"} of 100 (lower is easier)` : `${detail} · FDR unavailable`}>
             <small>FDR</small><b>{side?.difficulty == null ? "—" : Math.round(side.difficulty)}</b>
           </span>
-          <span className="arc-card-score" title={`${detail} · ${outlook?.scoreSource ? SOURCES[outlook.scoreSource] : "No"} projection × start chance × card bonus${outlook?.start === null ? "; start chance unknown, assumed starting" : ""}`}>
-            <small>xScore</small><b>{score === null ? "—" : Math.round(score)}</b>
+          <span className="arc-card-score" aria-label={score === null ? "xScore unavailable" : `xScore ${Math.round(score)}`} style={{ background: scoreLook.fill, color: scoreLook.ink }} title={`${detail} · xScore · ${outlook?.scoreSource ? SOURCES[outlook.scoreSource] : "No"} projection × start chance × card bonus${outlook?.start === null ? "; start chance unknown, assumed starting" : ""}`}>
+            <b>{score === null ? "—" : Math.round(score)}</b>
           </span>
         </div>
         {bonus ? <span className="arc-card-bonus" title={`${card.edition ?? "Edition"} bonus; club bonus is included separately in xScore`}>{bonus}</span> : null}

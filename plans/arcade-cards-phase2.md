@@ -10,6 +10,10 @@ Acceptance tests before implementation: overlays inside the artwork; only start/
 
 Status: implemented and verified locally; deployment confirmation follows this commit.
 
+Owner follow-up: the xScore overlay shows only the number, with the existing Sorare score-scale colour and readable contrasting ink. Its name and source remain accessible through the label and tooltip. Zero and missing remain distinct. Verify the number has no visible text label and changes colour across score bands, then check Arcade and the real desktop/mobile cards before shipping.
+
+Follow-up verification: the previous label failed the rendering regression before the fix. Local checks and all 16 Arcade browser tests pass. Real Chrome at 1440/390 showed number-only orange 29/32, red 4 and yellow 45/46; unavailable scores stay grey. Both viewports fit. Captures: `arcade-phase2/score-colour-desktop.png` and `score-colour-mobile.png` in the session's visualization folder. This changes presentation only.
+
 ## Verification and limits
 
 - The new collection/toolbar regression failed on the previous page before implementation. The first-fixture xD regression failed with a missing published field before the publisher changed. xD remains the existing expected-value calculation (starter plus substitute contributions); conditional mission odds are untouched. A double's better-game xD is never attached to its first fixture.

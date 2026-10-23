@@ -21,8 +21,11 @@ it("renders published xD as a decimal without recomputing it, while xScore retai
   expect(zero).toContain('class="arc-card-xd"');
   expect(zero).toContain('>xD 0.02</span>');
   expect(full).toContain('>xD 0.02</span>');
-  expect(zero).toContain('<small>xScore</small><b>0</b>');
-  expect(full).toContain('<small>xScore</small><b>66</b>');
+  expect(zero).not.toContain('<small>xScore</small>');
+  expect(zero).toContain('aria-label="xScore 0"');
+  expect(full).toContain('aria-label="xScore 66"');
+  expect(zero).toContain('background:#c0433f;color:#ffffff');
+  expect(full).toContain('background:#46c05a;color:#0c2f16');
   expect(zero).toContain('<small>FDR</small><b>0</b>');
 });
 
@@ -34,5 +37,5 @@ it("shows genuine zero separately from missing evidence and keeps source identit
   expect(zero).toContain('href="https://www.futbolfantasy.com/partidos/22493"');
   expect(missing).toContain('>xD —</span>');
   expect(missing).toContain('aria-label="Start chance —"');
-  expect(missing).toContain('<small>xScore</small><b>—</b>');
+  expect(missing).toContain('aria-label="xScore unavailable"');
 });

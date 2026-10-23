@@ -69,7 +69,7 @@ export default function LeagueTable({ grid, through, mode, onMode, standing, onS
             <span className="lt-split">{SPLIT_WORD[split]}</span>
           </h2>
           <p className="insight-meta">
-            {european ? "League-phase results only. Expected finish adds remaining validated forecasts to points already won. Simulation ties use expected goal difference; discipline and coefficient ties remain shared in the actual table." : standing === "predicted" && !predictedReady
+            {european ? "League-phase results only. Expected finish adds remaining forecasts to points already won. Simulation ties use expected goal difference; discipline and coefficient ties remain shared in the actual table." : standing === "predicted" && !predictedReady
               ? "The pre-season prediction arrives with the next data refresh. Showing the real table until then."
               : SUBTITLES[shown]}
             {!european && !xdReady && " The xD per game arrives with the next data refresh."}

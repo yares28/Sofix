@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { GridResponseSchema } from "./schema";
+import { GridResponseSchema, GridMetaSchema } from "./schema";
+
+it("accepts the complete published Conference explanation without hiding its board", () => {
+  const text = "Provisional Conference estimates. Historical averages improved; the extra benefit of opponent information remains uncertain.  League phase and knockouts; regulation time only. Neutral venues have no home advantage. Clean-sheet chances are uncalibrated. Knockout pairs appear after the draw; qualifiers are outside this release.";
+  expect(GridMetaSchema.safeParse({ last_synced_at: null, last_predicted_at: null, model_notes: [{ lens: null, text }] }).success).toBe(true);
+});
 
 function payload() {
   return {

@@ -53,6 +53,7 @@ export default async function TeamPage({ params, searchParams }: { params: Param
             <h1>{team.name}</h1>
           </div>
         </section>
+        {grid.competition === "CONF" && <p role="note">Conference FDR and xScore are provisional. The extra benefit of opponent information remains uncertain.</p>}
         <TeamSeason grid={grid} team={team} />
       </main>
     </>

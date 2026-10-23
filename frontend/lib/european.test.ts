@@ -25,7 +25,7 @@ function grid(): FixtureGrid {
 }
 
 it("recognizes validated European competitions and preserves phase/neutral fields", () => {
-  expect(competitionOf("CL")).toBe("CL"); expect(competitionOf("EL")).toBe("EL");
+  expect(competitionOf("CL")).toBe("CL"); expect(competitionOf("EL")).toBe("EL"); expect(competitionOf("CONF")).toBe("CONF");
   const parsed = FixtureGridSchema.parse(grid());
   expect(parsed.teams[0]!.cells[0]![0]).toMatchObject({ phase: "league", neutral: false });
 });
@@ -34,7 +34,7 @@ it("keeps knockout results out of the 36-club league-phase table", () => {
   const rows = currentTable(grid());
   expect(rows).toHaveLength(36);
   expect(rows.every(r => r.points === 3 && r.played === 3 && r.position === 1)).toBe(true);
-  expect(zone(8, 36, "CL")?.label).toBe("Round of 16");
+  expect(zone(8, 36, "CONF")?.label).toBe("Round of 16");
   expect(zone(24, 36, "CL")?.label).toBe("Knockout play-off");
   expect(zone(25, 36, "CL")?.label).toBe("Eliminated");
 });

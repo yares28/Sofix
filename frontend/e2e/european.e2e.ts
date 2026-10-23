@@ -51,3 +51,27 @@ test("all European squads survive cold player bookmarks and unknown positions ha
   await detail.getByRole("combobox",{name:"Player name"}).fill("CL Player 0");
   await expect(detail.getByRole("option",{name:/CL Player 0/})).toBeVisible();
 });
+
+
+test("Conference is available provisionally with six rounds and cold player links", async ({page,request,context}) => {
+ await resetBackend(request);
+ await page.goto("/difficulty?league=CONF");
+ await expect(page.getByRole("note")).toContainText("provisional");
+ await expect(page.locator(".footnote:not(.attribution)")).not.toContainText("Validated European model");
+ await expect(page.locator("#grid table tbody tr")).toHaveCount(36);
+ await page.getByRole("link", {name:"Table",exact:true}).first().click();
+ await expect(page.locator(".lt-table tbody tr")).toHaveCount(36);
+ await expect(page.locator("#table-title")).toContainText("Conference League league phase");
+ const data=(await(await request.get(`${MOCK}/api/sorare`)).json()).data as Sorare;
+ const week=data.timeline.find(w=>w.id===data.nextId)!;
+ const selected=seasonWeeks(await servedGrid(request),data,new Date()).find(w=>w.gw===week.id)!;
+ await request.post(`${MOCK}/__test/my-weeks`,{data:{foreignBlocks:{CONF:{competition:"CONF",weekId:week.id,week:week.slug,generatedAt:new Date().toISOString(),complete:true,modelVersion:"CONF:xscore-v3",market:[{slug:"conference-player",name:"Conference Player",pos:"DEF",club:"Conference Club",pic:"",crest:null,average:null,projection:null,eur:null,by:"sofix",p:0,pStart:0,x:0,start:0,mu:0,fixture:{team:"Conference Club",opponent:"Other Club",venue:"H",kickoff:week.start}}]}}}});
+ await page.goto(`/players?league=CONF&w=${selected.id}`);
+ await expect(page.getByRole("note")).toContainText("provisional");
+ await expect(page.getByRole("link",{name:"Conference Player",exact:true})).toBeVisible();
+ const detail=await context.newPage();await detail.goto(`/players/conference-player?w=${selected.id}`);await page.close();
+ await expect(detail.getByRole("heading",{name:"Conference Player",exact:true})).toBeVisible();
+ await expect(detail.locator(".pd-x")).toHaveText("0");
+ await detail.reload();await expect(detail.locator(".pd-x")).toHaveText("0");
+ await expect(detail.getByRole("note")).toContainText("provisional");
+});

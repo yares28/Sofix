@@ -41,7 +41,7 @@ export default async function Players({ searchParams }: { searchParams: SearchPa
         ) : (
           <section className="s5-empty" role="status">
             <h1>Player search</h1>
-            <p>The {COMPETITIONS[competition]} player index is not available yet. Only validated models are published.</p>
+            <p>The {COMPETITIONS[competition]} player index is not available yet. Estimates appear after a complete source refresh.</p>
           </section>
         )}
       </main>

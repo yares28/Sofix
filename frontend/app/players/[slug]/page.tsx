@@ -58,6 +58,7 @@ export default async function PlayerPage({ params, searchParams }: { params: Par
     <>
       <SiteNav meta={meta} system={system} week={week} />
       <main className="s5-main pd">
+        {foreign?.competition === "CONF" && <p role="note">Conference FDR and xScore are provisional. The extra benefit of opponent information remains uncertain.</p>}
         <PlayerView
           slug={slug}
           identity={{ ...identity, pos: identity.pos ?? sheet?.pos ?? null }}

@@ -12,7 +12,7 @@ export type FdrSide = { code: string; name: string; bucket: 1 | 2 | 3 | 4 | 5; l
 export type FdrFixture = { league: Competition; kickoff: string; home: FdrSide; away: FdrSide };
 
 /** Sorare's competition slug for each board. */
-export const BOARD_OF: Record<string, Competition> = { "laliga-es": "PD", "premier-league-gb-eng": "PL", "bundesliga-de": "BL1", "ligue-1-fr": "FL1", "uefa-champions-league":"CL", "uefa-europa-league":"EL" };
+export const BOARD_OF: Record<string, Competition> = { "laliga-es": "PD", "premier-league-gb-eng": "PL", "bundesliga-de": "BL1", "ligue-1-fr": "FL1", "uefa-champions-league":"CL", "uefa-europa-league":"EL", "uefa-europa-conference-league":"CONF" };
 
 /** The board's scheduled fixtures between two times, both sides with their difficulty; a side the model has not rated is left out. */
 export function boardFixtures(grid: FixtureGrid, league: Competition, from: number, to: number): FdrFixture[] {

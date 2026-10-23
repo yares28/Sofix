@@ -1087,3 +1087,5 @@ history, with the cards you own today, is written down in TODO.md.
 For the evidence and exact technical debt, continue to [the research report](research_report.md).
 
 Ligue 1 now has its own independently validated FDR-based xScore model and automatic coverage of all 18 squads. It passed every completed 2025/26 holdout match (305 / 6,710 starters), with owner-approved interrupted-match and training-source exclusions. Search, bookmarks and selected GW use the same foreign-player workflow. See [Ligue 1 evidence](ligue-1-validation.md) for coverage, uncertainty and the limits of retrospective conditional-on-start validation.
+
+Conference League is available in the competition selector for FDR, tables and player search. Its FDR and opponent-based xScore are provisional: historical averages improved, but the extra benefit from opponent information remains uncertain. All 36 main-stage clubs are included; qualifiers remain outside this release. Player scores appear only for an eligible game in the selected Sorare GW.

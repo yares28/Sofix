@@ -1,6 +1,6 @@
 // Complete deterministic seasons for navigation/coverage tests, never a production source.
 export function leagueFixture(competition, meta) {
-  if (competition === "CL" || competition === "EL") return europeanFixture(competition, meta);
+  if (competition === "CL" || competition === "EL" || competition === "CONF") return europeanFixture(competition, meta);
   const profile = { PL: { size: 20, completed: 6, prefix: "P", base: 1000, label: "English" }, BL1: { size: 18, completed: 5, prefix: "G", base: 2000, label: "German" }, FL1: { size: 18, completed: 4, prefix: "F", base: 3000, label: "French" } }[competition];
   const size = profile.size;
   const completed = profile.completed;
@@ -28,12 +28,12 @@ export function leagueFixture(competition, meta) {
 }
 
 function europeanFixture(competition, meta) {
-  const prefix = competition === "CL" ? "C" : "E";
+  const prefix = competition === "CL" ? "C" : competition === "EL" ? "E" : "Q";
   const scale = { cuts:[20,40,60,80], higher_is_easier:false };
   const start = Date.now()-3*7*86400000;
-  const matchdays=Array.from({length:8},(_,i)=>({number:i+1,date_from:new Date(start+i*7*86400000).toISOString(),date_to:new Date(start+i*7*86400000).toISOString(),finished:i<3}));
-  const teams=Array.from({length:36},(_,i)=>({code:`${prefix}${String(i).padStart(2,"0")}`,name:`${competition === "EL" ? "Bournemouth" : "CL Club"} ${String(i+1).padStart(2,"0")}`,color:"#344567",crest_url:`https://img.uefa.com/imgml/TP/teams/logos/70x70/${50000+i}.png`,cells:Array.from({length:8},()=>[])}));
-  for(let i=0;i<36;i++) for(const [k,d] of [1,3,5,7].entries()) {
+  const matchdays=Array.from({length:competition === "CONF" ? 6 : 8},(_,i)=>({number:i+1,date_from:new Date(start+i*7*86400000).toISOString(),date_to:new Date(start+i*7*86400000).toISOString(),finished:i<3}));
+  const teams=Array.from({length:36},(_,i)=>({code:`${prefix}${String(i).padStart(2,"0")}`,name:`${competition === "EL" ? "Bournemouth" : "CL Club"} ${String(i+1).padStart(2,"0")}`,color:"#344567",crest_url:`https://img.uefa.com/imgml/TP/teams/logos/70x70/${50000+i}.png`,cells:Array.from({length:competition === "CONF" ? 6 : 8},()=>[])}));
+  for(let i=0;i<36;i++) for(const [k,d] of (competition === "CONF" ? [1,3,5] : [1,3,5,7]).entries()) {
     const j=(i+d)%36,r=2*k+i%2;
     for(const [me,them,venue] of [[i,j,"H"],[j,i,"A"]]) teams[me].cells[r].push({fixture_id:50000+i*4+k,opponent_code:teams[them].code,venue,phase:"league",neutral:false,kickoff_utc:matchdays[r].date_from,date_confirmed:true,rescheduled:false,status:r<3?"finished":"scheduled",result:r<3?{goals_for:0,goals_against:0,outcome:"D"}:null,prediction:r<3?null:{difficulty:55,label:"Even",bucket:3,expected_points:1.35,probabilities:{win:.35,draw:.3,loss:.35},clean_sheet:.3,xg_for:1.5,xg_against:1.5}});
   }

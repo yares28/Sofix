@@ -1,9 +1,9 @@
 import type { FixtureGrid, GridMatchday } from "./types";
 
-export const COMPETITIONS = { PD: "LaLiga", PL: "Premier League", BL1: "Bundesliga", FL1: "Ligue 1", CL: "Champions League", EL: "Europa League" } as const;
+export const COMPETITIONS = { PD: "LaLiga", PL: "Premier League", BL1: "Bundesliga", FL1: "Ligue 1", CL: "Champions League", EL: "Europa League", CONF: "Conference League" } as const;
 export type Competition = keyof typeof COMPETITIONS;
-export const competitionOf = (value: unknown): Competition => value === "PL" || value === "BL1" || value === "FL1" || value === "CL" || value === "EL" ? value : "PD";
-export const isEuropean = (value: unknown) => value === "CL" || value === "EL";
+export const competitionOf = (value: unknown): Competition => value === "PL" || value === "BL1" || value === "FL1" || value === "CL" || value === "EL" || value === "CONF" ? value : "PD";
+export const isEuropean = (value: unknown) => value === "CL" || value === "EL" || value === "CONF";
 
 /** Knockout games never award league-phase table points or enter its simulations. */
 export function leaguePhaseGrid(grid: FixtureGrid): FixtureGrid {

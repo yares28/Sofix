@@ -14,9 +14,10 @@ and a check, so a session can work through it alone and stop only where you have
 
 ## Next up (the one queue: read this first, update it in the same commit when an item ships)
 
-23 Oct owner priority: Conference is being released as an explicitly provisional FDR/xScore model,
+23 Oct owner priority: Conference is released as an explicitly provisional FDR/xScore model,
 under [the owner-directed release contract](conference-release.md). All 36 clubs / 1,110 current players
-and the full six-round calendar pass the real-source runtime replay. The fixed replacement's historical
+and the full six-round calendar are published (automatic refresh 39967133628); real desktop/mobile
+board, table, team and cold player-link checks passed. The fixed replacement's historical
 averages improve (football RPS 0.22924 vs 0.23282; player RMSE 17.80 vs form 18.49), but independent
 opponent-benefit gates remain unpassed. No retuning or relabelling of those gates. The prospective
 recorder continues as monitoring; finishing the season is no longer a product release requirement.

@@ -24,8 +24,8 @@ export async function POST(request: NextRequest) {
   const parsed = OverlayRequest.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ ok: false, error: "Bad request." }, { status: 400, headers: NO_STORE });
 
-  const [sorare, loaded, pl, bl, fl, plPlayers, blPlayers, flPlayers, cl, el, clPlayers, elPlayers] = await Promise.all([
-    loadSorare(), loadGrid(), loadGrid("PL"), loadGrid("BL1"), loadGrid("FL1"), loadLeagueMarket("PL"), loadLeagueMarket("BL1"), loadLeagueMarket("FL1"), loadGrid("CL"), loadGrid("EL"), loadLeagueMarket("CL"), loadLeagueMarket("EL"),
+  const [sorare, loaded, pl, bl, fl, plPlayers, blPlayers, flPlayers, cl, el, clPlayers, elPlayers, conf, confPlayers] = await Promise.all([
+    loadSorare(), loadGrid(), loadGrid("PL"), loadGrid("BL1"), loadGrid("FL1"), loadLeagueMarket("PL"), loadLeagueMarket("BL1"), loadLeagueMarket("FL1"), loadGrid("CL"), loadGrid("EL"), loadLeagueMarket("CL"), loadLeagueMarket("EL"), loadGrid("CONF"), loadLeagueMarket("CONF"),
   ]);
   if (!sorare) return NextResponse.json({ ok: false, error: "Sorare has not been synced yet." }, { status: 503, headers: NO_STORE });
 
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     ? dockMissions(await missionsToday(sorare, await loadMissions(), undefined, now, await loadMissionPool()))
     : undefined;
   // Every LaLiga, Premier League, Bundesliga and Ligue 1 player Sofix rates, so Arcade commons and players you do not hold get numbers too.
-  const others = { market: [...(sorare.market ?? []), ...plPlayers, ...blPlayers, ...flPlayers, ...clPlayers, ...elPlayers], grids: [loaded.grid, pl.grid, bl.grid, fl.grid, cl.grid, el.grid] };
+  const others = { market: [...(sorare.market ?? []), ...plPlayers, ...blPlayers, ...flPlayers, ...clPlayers, ...elPlayers, ...confPlayers], grids: [loaded.grid, pl.grid, bl.grid, fl.grid, cl.grid, el.grid, conf.grid] };
   const numbers = overlayNumbers(data, loaded.grid, parsed.data, now, archived, others);
   // The dock, on a page naming no gameweek or the one being played: while that week has Pro lineups before their first kickoff,
   // those come first (they are the only lineups still open); else the week asked for, or the one being planned.

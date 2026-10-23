@@ -39,3 +39,25 @@ check; its completion is not required to make Conference available.
 - Report exactly what real source/publication/UI proof passed, what was only simulated,
   and that Conference estimates remain provisional. xScore only appears for a selected
   Sorare week containing an eligible game; never fabricate a Conference game this week.
+
+## Completed evidence (23 October)
+
+- Fixed-candidate diagnostic: all 447 football cases and all 3,366 starters from
+  153 completed holdout games. RPS 0.22924 vs base 0.23282; player RMSE 17.80 vs
+  recent-form 18.49. These are previously examined outcomes, not fresh confirmation.
+  Opponent benefit remains uncertain; within-seven accuracy loses one case to form.
+- Real-source runtime replay: 36 clubs, 108 games, six rounds, all 1,110 current
+  players rated for their next actual Conference game, sharing 90 recent UEFA
+  history games. Source receipts and scope: `docs/european_validation/CONF-runtime-proof.json`.
+- Backend publication: commit `00bbad1`, automatic refresh `39967133628`.
+- Real UI checks exposed a legacy 300-character model-note guard and a hard-coded
+  validated caption. The frontend corrects both and keeps Conference provisional.
+  Final publication/browser results are added with the UI release.
+
+Final acceptance: automatic refresh succeeded; one aggregate read confirms 36 clubs,
+1,110 players/directory entries and complete 90-game shared history. Real UI: four
+cases passed at 1440/390px (board/table/team navigation and cold player bookmarks).
+Screenshots inspected. Local gate/build passed. Full browser run: 268 passed; its
+new Conference case was repaired and passed separately. Affected European/mobile
+rerun: 18 passed plus the repaired Conference case passed separately. No remaining
+known test failure. `docs/european_validation/CONF-release-proof.json` keeps the receipt.

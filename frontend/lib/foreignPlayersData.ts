@@ -34,7 +34,7 @@ export async function loadForeignPlayer(slug: string): Promise<ForeignBlock | nu
   if (!SLUG.test(slug)) return null;
   const directory = await loadForeignDirectory();
   const code = directory?.players.find(p => p.slug === slug)?.league;
-  if (code !== "PL" && code !== "BL1" && code !== "FL1" && code !== "CL" && code !== "EL") return null;
+  if (code !== "PL" && code !== "BL1" && code !== "FL1" && code !== "CL" && code !== "EL" && code !== "CONF") return null;
   const bucket = playerBucket(slug);
   return block<ForeignBlock>(`players:${code}:${bucket}`, `players/${code}/${bucket}`);
 }

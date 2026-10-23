@@ -54,7 +54,7 @@ export async function BoardRoute({ view, searchParams }: { view: View; searchPar
       <SiteNav meta={meta} system={system} week={week} competition={competition} />
       <main>
         <CompetitionPicker competition={competition} week={requested ?? week.current?.id} through={week.current?.to} />
-        <p className="footnote">{COMPETITIONS[competition]} · {grid?.season ?? "Awaiting refresh"}. {isEuropean(competition) ? "Validated European model. League phase and published knockouts; regulation time. Qualifiers excluded." : "Independently fitted reference model."} Clean-sheet chances are uncalibrated.</p>
+        <p className="footnote">{COMPETITIONS[competition]} · {grid?.season ?? "Awaiting refresh"}. {competition === "CONF" ? "Provisional Conference model. League phase and published knockouts; regulation time. Qualifiers excluded." : isEuropean(competition) ? "Validated European model. League phase and published knockouts; regulation time. Qualifiers excluded." : "Independently fitted reference model."} Clean-sheet chances are uncalibrated.</p>
         {!grid ? <section className="card empty-state" role="status"><h1>{TITLES[view]}</h1><p>{error}</p></section> : blank ?
           <section className="card empty-state" role="status"><h1>{TITLES[view]}</h1><p>No {COMPETITIONS[competition]} fixtures in the selected week.</p></section> :
           <FixtureBoard key={competition} grid={grid} notes={meta?.model_notes ?? []} initialView={initial} pinsInUrl={params.has("pins")} away={null} />}

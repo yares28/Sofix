@@ -11,7 +11,7 @@ export default function CompetitionPicker({ competition, week, through }: { comp
   const ready = useSyncExternalStore(subscribe, () => true, () => false);
   const [pending, startTransition] = useTransition();
   const [selected, setSelected] = useState(competition);
-  return <div className="competition-picker">
+  return <><div className="competition-picker">
     <label htmlFor="football-competition">Competition</label>
     <select id="football-competition" disabled={!ready || pending} aria-busy={pending} value={pending ? selected : competition} onChange={e => {
       const next = e.target.value as Competition;
@@ -21,5 +21,5 @@ export default function CompetitionPicker({ competition, week, through }: { comp
       {Object.entries(COMPETITIONS).map(([value, name]) => <option key={value} value={value}>{name}</option>)}
     </select>
     {pending && <span className="visually-hidden" role="status">Loading {COMPETITIONS[selected]}…</span>}
-  </div>;
+  </div>{competition === "CONF" && <p role="note">Conference FDR and xScore are provisional. Historical results are encouraging; the extra benefit of opponent information remains uncertain.</p>}</>;
 }

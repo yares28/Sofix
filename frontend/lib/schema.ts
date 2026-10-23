@@ -82,7 +82,7 @@ const CellSchema = z.object({
 const LensScaleSchema = z.object({ cuts: z.array(z.number()).length(4), higher_is_easier: z.boolean() });
 
 export const FixtureGridSchema = z.object({
-  competition: z.enum(["PD", "PL", "BL1", "FL1", "CL", "EL"]).default("PD"),
+  competition: z.enum(["PD", "PL", "BL1", "FL1", "CL", "EL", "CONF"]).default("PD"),
   season: z.string(),
   current_matchday: z.number().int().nullable(),
   model_version: z.string().nullable(),
@@ -116,7 +116,7 @@ export const GridMetaSchema = z.object({
   last_synced_at: isoDate.nullable(),
   last_predicted_at: isoDate.nullable(),
   model_notes: z
-    .array(z.object({ lens: z.enum(["overall", "attack", "defence"]).nullable(), text: z.string().max(300) }))
+    .array(z.object({ lens: z.enum(["overall", "attack", "defence"]).nullable(), text: z.string().max(600) }))
     .default([]),
 }) satisfies z.ZodType<GridMeta>;
 

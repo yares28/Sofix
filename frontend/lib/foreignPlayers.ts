@@ -1,7 +1,7 @@
 import type { GameweekPlan, MarketPlayer, Sorare } from "./play";
 import { marketForWeek, type ScoreRecord } from "./playerForecasts";
 
-export type ForeignLeague = "PL" | "BL1" | "FL1" | "CL" | "EL";
+export type ForeignLeague = "PL" | "BL1" | "FL1" | "CL" | "EL" | "CONF";
 export type ForeignBlock = { competition: ForeignLeague; weekId: string; week: string; generatedAt: string; complete: boolean; modelVersion: string | null; market: MarketPlayer[] };
 export type ForeignIdentity = { slug: string; name: string; club: string | null; pic: string; league: ForeignLeague; pos?: MarketPlayer["pos"] | null };
 export type ForeignDirectory = { players: ForeignIdentity[] };

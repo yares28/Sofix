@@ -1,0 +1,30 @@
+{
+  "verifiedOn": "2026-10-23",
+  "backendCommit": "00bbad1",
+  "publicationRun": 39967133628,
+  "publication": "success",
+  "coverage": {
+    "clubs": 36,
+    "players": 1110,
+    "rounds": 6,
+    "leagueFixtures": 108,
+    "sharedHistoryGames": 90,
+    "sourceComplete": true,
+    "directoryConferenceEntries": 1110,
+    "modelVersion": "CONF:xscore-v3+aff75a18"
+  },
+  "checks": {
+    "localShippingGate": "passed",
+    "productionBuild": "passed",
+    "fullBrowserRun": "268 passed; new Conference case initially failed due to incomplete fixture, fixed and passed in separate rerun",
+    "affectedEuropeanAndMobile": "18 passed; Conference selector assertion fixed and separately rerun: 1 passed",
+    "realBrowser": "4 passed: board/table/team navigation and cold player bookmarks at 1440 and 390px",
+    "screenshots": "visually inspected desktop/mobile board and player pages; no horizontal overflow"
+  },
+  "limits": [
+    "Provisional model: historical averages improve but independent opponent-benefit gates remain unpassed",
+    "Player xScore follows actual games in the selected Sorare GW; the Conference squad list can also show that player's supported domestic game",
+    "Qualifiers deferred; future knockout pairings appear only after actual draw",
+    "Prospective full-season recording continues as monitoring and does not block product access"
+  ]
+}

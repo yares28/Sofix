@@ -219,3 +219,26 @@ production payload proof remain outstanding; neither HTTP 200 nor the replay cla
 Local checkpoint: `node scripts/check.mjs` passed Ruff formatting/checks, mypy, full backend pytest (108s) and
 OpenAPI export. Focused European tests passed with temporary-file access; the sandbox alone blocked three
 atomic file-replacement tests, which passed outside that restriction. No UI behavior changed at this checkpoint.
+
+
+### Current product foundations (in progress, not enabled)
+
+The complete real 2026/27 fixture packets produced CL and EL boards locally: each has 36 clubs, 144 published
+league-phase games, eight rounds, 36 real UEFA crests and 90 future fixture forecasts at the verification time.
+No knockout pair was invented. Real source abbreviations include AZ (two letters) and LASK (four); a failing
+regression established the need to preserve these instead of requiring domestic three-letter abbreviations.
+A reviewed source registry covers all 72 current clubs. New CL alias Como was established from its exact
+21 October 2026 fixture against the already-known Manchester United identity, retaining both source IDs.
+Other new EL identities follow exact labels or unique oriented fixture evidence; no score-selected mapping.
+
+Current runtime foundations include explicit neutral/phase fields, guarded artifact loading (CL/EL only),
+per-game mixed domestic/European model selection, and a shared 70-day main-stage history collector. The collector
+requires complete final v7 starter evidence per admitted game and uses the same two-day availability bound.
+It retains no qualifying player history. Automatic squad coverage takes the verified 36-club main calendar,
+not Sorare's larger list containing qualifiers, and reuses shared club reads. The fallback identity cache is
+compacted and expired instead of persisting a second archive of old forecasts.
+
+`european-current.yml` is a read-only source/product verification job using the existing Actions key. It records
+all current squads, fixture boards and authentic recent starts without database settings, publication, deployment
+or model promotion. Its full real-data outcome is still pending. Runtime refresh/publishing and visible selectors
+are not connected yet; this checkpoint does not claim the acceptance workflow is complete.

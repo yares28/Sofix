@@ -11,9 +11,10 @@ from typing import Any
 from app.research.league_xscore_data import LEAGUES
 from app.sorare import sync
 from app.sorare.client import SorareClient, SorareError
+from app.sorare.foreign_scores import COMPETITIONS
 from app.sorare.model import SORARE_POSITION
 
-SIZES = {"PL": 20, "BL1": 18, "FL1": 18}
+SIZES = {"PL": 20, "BL1": 18, "FL1": 18, "CL": 36, "EL": 36}
 
 
 def expired(row: dict[str, Any]) -> dict[str, Any]:
@@ -36,17 +37,29 @@ def rows(index: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def collect_index(
-    client: Any, code: str, fixture: str, now: datetime, previous: dict[str, Any] | None = None
+    client: Any,
+    code: str,
+    fixture: str,
+    now: datetime,
+    previous: dict[str, Any] | None = None,
+    *,
+    clubs: list[str] | None = None,
+    squads: dict[str, list[dict[str, Any]]] | None = None,
 ) -> dict[str, Any]:
-    if code not in LEAGUES:
+    if code not in COMPETITIONS:
         raise ValueError("Only the requested leagues are allowed")
     prior = (previous or {}).get("clubs") or {}
     kept = {club: [expired(row) for row in players] for club, players in prior.items()}
     errors = []
     try:
-        clubs = client.query(sync.CLUBS, {"s": LEAGUES[code]})["football"]["competition"]["teams"]["nodes"]
-        slugs = {c["slug"] for c in clubs}
-        if len(clubs) != SIZES[code] or len(slugs) != SIZES[code]:
+        if code in {"CL", "EL"}:
+            if clubs is None:
+                raise ValueError("European index requires the full verified main-stage club list")
+            source_clubs = [{"slug": slug} for slug in clubs]
+        else:
+            source_clubs = client.query(sync.CLUBS, {"s": LEAGUES[code]})["football"]["competition"]["teams"]["nodes"]
+        slugs = {c["slug"] for c in source_clubs}
+        if len(source_clubs) != SIZES[code] or len(slugs) != SIZES[code]:
             raise ValueError("Incomplete current club list")
     except (SorareError, ValueError, KeyError, TypeError) as error:
         return {
@@ -60,7 +73,11 @@ def collect_index(
     kept = {club: players for club, players in kept.items() if club in slugs}
     for club in sorted(slugs):
         try:
-            players = sync._squad(client, club, fixture, strict=True)
+            players = (squads or {}).get(club)
+            if players is None:
+                players = sync._squad(client, club, fixture, strict=True)
+                if squads is not None:
+                    squads[club] = players
             if not players:
                 raise ValueError("Empty squad")
             parsed = []
@@ -99,6 +116,33 @@ def collect_index(
         "clubs": kept,
         "errors": errors,
     }
+
+
+def compact_index(index: dict[str, Any]) -> dict[str, Any]:
+    """Keep failure-recovery identities, not a second raw archive of game forecasts in Neon."""
+    kept = {**index, "clubs": {}}
+    for club, people in index.get("clubs", {}).items():
+        rows = []
+        for row in people:
+            old = expired(row)
+            player = old["player"]
+            old["player"] = {
+                k: player[k]
+                for k in ("slug", "displayName", "position", "activeClub", "pictureUrl", "avatarPictureUrl")
+                if k in player
+            }
+            old["player"].update(
+                plan=[],
+                ahead0=[],
+                ahead1=[],
+                nextClassicFixtureProjectedScore=None,
+                nextClassicFixturePlayingStatusOdds=None,
+            )
+            rows.append(old)
+        kept["clubs"][club] = rows
+    if len(json.dumps(kept, separators=(",", ":")).encode()) >= 1_600_000:
+        raise ValueError("European identity cache exceeds its block budget")
+    return kept
 
 
 def shard(slug: str) -> str:

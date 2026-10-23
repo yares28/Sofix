@@ -605,7 +605,7 @@ export interface components {
              * @default PD
              * @enum {string}
              */
-            competition: "PD" | "PL" | "BL1" | "FL1";
+            competition: "PD" | "PL" | "BL1" | "FL1" | "CL" | "EL";
             /** Season */
             season: string;
             /** Current Matchday */
@@ -620,6 +620,12 @@ export interface components {
         };
         /** GridCell */
         GridCell: {
+            /** Phase */
+            phase?: ("league" | "knockout") | null;
+            /** Neutral */
+            neutral?: boolean | null;
+            /** Round Name */
+            round_name?: string | null;
             /** Forecast At */
             forecast_at?: string | null;
             /** Fixture Id */
@@ -684,6 +690,8 @@ export interface components {
         };
         /** GridTeam */
         GridTeam: {
+            /** Sorare Slug */
+            sorare_slug?: string | null;
             /** Source Id */
             source_id?: number | null;
             /** History Name */

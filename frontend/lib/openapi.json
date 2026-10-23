@@ -1221,7 +1221,9 @@
               "PD",
               "PL",
               "BL1",
-              "FL1"
+              "FL1",
+              "CL",
+              "EL"
             ],
             "title": "Competition",
             "default": "PD"
@@ -1283,6 +1285,43 @@
       },
       "GridCell": {
         "properties": {
+          "phase": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "league",
+                  "knockout"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phase"
+          },
+          "neutral": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Neutral"
+          },
+          "round_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Round Name"
+          },
           "forecast_at": {
             "anyOf": [
               {
@@ -1493,6 +1532,17 @@
       },
       "GridTeam": {
         "properties": {
+          "sorare_slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sorare Slug"
+          },
           "source_id": {
             "anyOf": [
               {

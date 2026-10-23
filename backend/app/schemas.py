@@ -115,6 +115,9 @@ class CellOpening(BaseModel):
 
 
 class GridCell(BaseModel):
+    phase: Literal["league", "knockout"] | None = None
+    neutral: bool | None = None
+    round_name: str | None = None
     forecast_at: datetime | None = None
     fixture_id: int
     opponent_code: str
@@ -143,6 +146,7 @@ class TeamDecisives(BaseModel):
 
 
 class GridTeam(BaseModel):
+    sorare_slug: str | None = None
     source_id: int | None = None  # stable football-data.org club identity; code is its display abbreviation
     history_name: str | None = None  # exact CSV club key used by this league's fitted football model
     code: str
@@ -206,7 +210,7 @@ class RefreshStatus(BaseModel):
 
 
 class FixtureGrid(BaseModel):
-    competition: Literal["PD", "PL", "BL1", "FL1"] = "PD"
+    competition: Literal["PD", "PL", "BL1", "FL1", "CL", "EL"] = "PD"
     season: str
     current_matchday: int | None
     model_version: str | None

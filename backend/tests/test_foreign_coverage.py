@@ -9,6 +9,30 @@ from app.sorare.client import SorareError
 NOW = datetime(2026, 10, 21, tzinfo=UTC)
 
 
+def test_european_cold_start_uses_exact_36_main_stage_clubs_and_reuses_shared_squads(monkeypatch):
+    clubs = [f"main-{i}" for i in range(36)]
+    calls = []
+
+    def squad(client, club, fixture, strict=False):
+        calls.append(club)
+        return [{"slug": club, "position": "Defender", "activeClub": {"slug": club}, "plan": [{"id": "selected"}]}]
+
+    monkeypatch.setattr(f.sync, "_squad", squad)
+    client = SimpleNamespace(query=lambda *args: pytest.fail("European competition teams also include qualifiers"))
+    shared = {}
+    for code in ("CL", "EL"):
+        index = f.collect_index(client, code, "gw", NOW, clubs=clubs, squads=shared)
+        assert index["complete"] and len(index["clubs"]) == 36
+        assert len(f.rows(index)) == 36 and f.rows(index)[0]["player"]["plan"][0]["id"] == "selected"
+    assert len(calls) == 36
+    kept = f.compact_index(index)
+    assert len(f.rows(kept)) == 36 and all(
+        not row["player"]["plan"] and row["projection"] is None for row in f.rows(kept)
+    )
+    bad = f.collect_index(client, "CL", "gw", NOW, clubs=clubs[:-1])
+    assert bad["complete"] is False
+
+
 @pytest.mark.parametrize("code,size", [("PL", 20), ("BL1", 18), ("FL1", 18)])
 def test_cold_start_covers_every_club_and_deduplicates_transfers(monkeypatch, code, size):
     clubs = [{"slug": f"club-{i}"} for i in range(size)]

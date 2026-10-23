@@ -1,0 +1,59 @@
+name: Verify current European player coverage
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - backend/app/research/european_current.py
+      - backend/app/sorare/european_history.py
+      - .github/workflows/european-current.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: league-xscore-validation
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify all 72 current CL and EL squads
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      SORARE_API_KEY: ${{ secrets.SORARE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+          activate-environment: true
+          enable-cache: true
+          cache-dependency-glob: backend/requirements.lock
+      - run: uv pip sync requirements.lock
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            backend/data/raw/football-data-co-uk/uefa
+            backend/data/raw/european-current
+          key: european-current-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: european-current-v1-
+      - name: Verify current calendars, actual starts and complete squads
+        run: python -m app.research.european_current
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: |
+            backend/data/raw/football-data-co-uk/uefa
+            backend/data/raw/european-current
+          key: european-current-v1-${{ github.run_id }}-${{ github.run_attempt }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: european-current
+          path: backend/data/raw/european-current
+          retention-days: 14

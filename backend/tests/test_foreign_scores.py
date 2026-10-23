@@ -55,6 +55,82 @@ def test_fixture_join_requires_both_playing_sides_venue_timestamp_and_matching_m
     assert f.find_numbers("PL", grid, game) is None
 
 
+def test_mixed_domestic_european_week_selects_each_game_model_and_never_partial_totals():
+    domestic, first = fixture()
+    european = deepcopy(domestic)
+    european.update(competition="CL", model_version=f.expected_version("CL"), _fresh=True)
+    european["teams"][0]["cells"][0][0].update(neutral=False, phase="league")
+    european["teams"][0]["sorare_slug"] = "arsenal"
+    european["teams"][1]["sorare_slug"] = "chelsea"
+    second = {
+        **first,
+        "id": "european",
+        "teamSlug": "arsenal",
+        "opponentSlug": "chelsea",
+        "competition": "uefa-champions-league",
+    }
+    seen = []
+
+    def model(label):
+        def outcome(*args):
+            seen.append(label)
+            return SimpleNamespace(start=50)
+
+        return SimpleNamespace(outfield={"DEF": SimpleNamespace(outcome=outcome)}, keeper=None, subs={})
+
+    score = f.scores_for(
+        {"PL": model("PL"), "CL": model("CL")},
+        {"PL": domestic, "CL": european},
+        lambda *args: Made((), None),
+        european_games={},
+    )
+    made = score({"position": "Defender"}, [first, second], 99, [])
+    assert len(made.outcomes) == 2 and seen == ["PL", "CL"]
+    assert score({"position": "Defender"}, [first, {**second, "opponentSlug": "wrong"}], 99, []).outcomes == ()
+    assert (
+        score(
+            {"position": "Defender"}, [first, {**second, "competition": "uefa-europa-conference-league"}], 99, []
+        ).outcomes
+        == ()
+    )
+
+
+def test_european_history_requires_explicit_complete_context_and_filters_qualifiers():
+    grid, game = fixture()
+    grid.update(competition="CL", model_version=f.expected_version("CL"), _fresh=True)
+    grid["teams"][0].update(sorare_slug="arsenal")
+    grid["teams"][1].update(sorare_slug="chelsea")
+    grid["teams"][0]["cells"][0][0].update(phase="league", neutral=False)
+    game.update(competition="uefa-champions-league", teamSlug="arsenal", opponentSlug="chelsea")
+    seen = []
+    bundle = SimpleNamespace(
+        outfield={"DEF": SimpleNamespace(outcome=lambda n, h, d, m, p: seen.append(m) or SimpleNamespace(start=m))},
+        subs={},
+    )
+    fallback = lambda *args: Made((), None)
+    assert (
+        f.scores_for({"CL": bundle}, {"CL": grid}, fallback)(
+            {"position": "Defender", "slug": "p"}, [game], None, []
+        ).outcomes
+        == ()
+    )
+    current = {
+        "date": "2026-10-20T19:00:00Z",
+        "availableAt": "2026-10-22T19:00:00Z",
+        "starts": {"p": 0},
+        "mainStage": True,
+        "competition": "CONF",
+    }
+    context = {
+        "main": current,
+        "qualifier": {**current, "mainStage": False, "starts": {"p": 100}},
+        "late": {**current, "availableAt": "2026-10-24T19:00:00Z", "starts": {"p": 100}},
+    }
+    score = f.scores_for({"CL": bundle}, {"CL": grid}, fallback, european_games=context)
+    assert len(score({"position": "Defender", "slug": "p"}, [game], None, []).outcomes) == 1
+    assert seen == [40.0]
+
+
 def test_foreign_history_is_league_only_before_cutoff_and_never_uses_laliga_sub_shape():
     grid, game = fixture()
     seen = []

@@ -45,7 +45,11 @@ def recent_index(client: Any, code: str, now: datetime) -> tuple[list[dict[str, 
 
 
 def history_of(code: str, raw: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
-    if (raw.get("competition") or {}).get("slug") != LEAGUES[code] or raw.get("statusTyped") != "played":
+    return history_of_slug(LEAGUES[code], raw)
+
+
+def history_of_slug(slug: str, raw: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    if (raw.get("competition") or {}).get("slug") != slug or raw.get("statusTyped") != "played":
         raise ValueError("Wrong source competition or unsettled game")
     out = {}
     formations = [raw.get(f"{side}Formation") or {} for side in ("home", "away")]
@@ -62,7 +66,7 @@ def history_of(code: str, raw: dict[str, Any]) -> dict[str, list[dict[str, Any]]
         game = {
             "gameId": raw["id"],
             "date": raw["date"],
-            "competition": LEAGUES[code],
+            "competition": slug,
             "home": raw["homeTeam"]["name"],
             "away": raw["awayTeam"]["name"],
             "score": p["score"],

@@ -1,0 +1,65 @@
+name: Record prospective Conference evidence
+
+# Research only. No database, refresh dispatch, serving artifact or model promotion.
+on:
+  schedule:
+    - cron: "17 10 * * *"
+  push:
+    branches: [main]
+    paths:
+      - backend/app/research/conference_recorder.py
+      - backend/app/research/conference_recording.py
+      - backend/app/research/conference_acceptance.py
+      - plans/conference-prospective.md
+      - .github/workflows/conference-recording.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: league-xscore-validation
+  cancel-in-progress: false
+
+jobs:
+  record:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      SORARE_API_KEY: ${{ secrets.SORARE_API_KEY }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+          activate-environment: true
+          enable-cache: true
+          cache-dependency-glob: backend/requirements.lock
+      - run: uv pip sync requirements.lock
+      - uses: actions/cache/restore@v4
+        with:
+          path: backend/data/raw/football-data-co-uk/uefa
+          key: conference-calendars-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            conference-calendars-v1-
+            european-current-v1-
+      - name: Capture before actual locks and settle final evidence
+        run: python -m app.research.conference_recorder
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: backend/data/raw/football-data-co-uk/uefa
+          key: conference-calendars-v1-${{ github.run_id }}-${{ github.run_attempt }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: conference-recording-receipt
+          path: backend/data/raw/conference-recording/receipt.json
+          retention-days: 14

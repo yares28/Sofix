@@ -69,11 +69,67 @@ the freeze; subsequent prospective cases must have actual locks after that times
 The training-only fit completed on all 284 approved games / 6,248 starts. Its frozen
 research artifact is docs/european_validation/CONF-candidate-v2.json. There are no
 replacement holdout metrics and no Conference runtime block. Automatic prospective
-recording/settlement is still to be implemented; the artifact alone does not start
-recording and does not make Conference ready to ship. Keep this distinction explicit
-when resuming. The required product acceptance remains open.
+recording/settlement was still outstanding at that development checkpoint; the artifact
+alone does not start recording or make Conference ready to ship. The automatic stage
+below now implements it. The required product acceptance remains open.
 
 Verification for this research step: test-first isolation/checksum/coverage/mixture
 checks and a full replay isolation test; real cached complete development replay and
 real training-only fit. No new source query, UI behavior, schema or production data
 write is introduced. Local gate evidence is recorded in the accompanying delivery plan.
+
+## Automatic recording contract (implemented 23 October)
+
+Use the existing unattended Sorare read-only key and private R2 bucket; no production
+database rows or page blocks. Daily Actions runs capture each known main-stage game's
+full two active squads during the 36 hours before its actual Sorare cutoff. Reuse
+bounded, finalized CL/EL/CONF history with first-observed-final timestamps. Score every
+known role, preserving Unknown identities without a guessed score. Store form and
+independently fitted no-FDR predictions alongside the frozen candidate and football
+base rate. Use only facts collected before capture, never a future lock to admit a
+result not yet observed. Actual game/side/role identity is required at settlement.
+
+R2 stores content-addressed research snapshots before updating a research-only
+manifest; server storage timestamps must also precede the deadline. Preserve all
+revisions and choose the last complete pre-cutoff snapshot deterministically. Do not
+rebuild a missing forecast after a deadline. Retrying after a crash may create an
+orphan immutable object, but never a fabricated pre-lock record. Cache loss must not
+reset this manifest. FINAL v7 authentic 22-starter evidence and reviewed regulation
+goals settle each case; provisional, missing and zero remain distinct.
+
+The prospective population is all remaining 2026/27 main-stage games with actual
+locks after the candidate freeze, including later knockout draws. Every published
+fixture stays in the denominator; missing forecasts/players or administrative cases
+are explicit blockers. No interim accuracy-based stopping or model changes. Do not
+open acceptance metrics until the edition is complete and all eligible cases settle.
+Use the original paired weekly football and xScore/form/no-FDR gates and >=100 starts
+per position. This stage runs automatically but cannot provide future results today.
+
+Acceptance tests cover cold durable state, complete two-squad capture, strict actual
+cutoff and freeze boundaries, missing versus zero, source/role identity, unknown roles,
+pending settlement, immutable replay, storage failure/cache loss and late backfill.
+Real-source workflow evidence is required before calling recording operational.
+
+Implementation: `conference_recorder.py`, `conference_recording.py` and
+`conference_acceptance.py`; `.github/workflows/conference-recording.yml` starts on
+the code push and daily at 10:17 UTC. It uses only existing Sorare/R2 secrets, never
+database credentials or a refresh dispatch. R2's `research/conference-v2/<candidate>/`
+namespace holds authoritative state, immutable capture revisions and raw settlement
+evidence. GitHub cache contains only reusable UEFA pages; losing it cannot reset the
+research record. Each run publishes a repository Actions artifact named
+`conference-recording-receipt`, with counts, source proof, blockers and no metrics
+before closure. This artifact and the durable R2 manifest are the real-source receipt.
+
+The first run verifies every current club and squad even outside a capture window.
+It also retains actual-cutoff source evidence before excluding older native dates.
+The independent protocol is [conference-prospective.md](conference-prospective.md).
+It includes the entire remaining 2026/27 edition, so acceptance metrics wait until
+the season's final matches settle; no claim of immediate release or interim success.
+
+Local verification: 15 dedicated tests pass with 87% coverage of the three new
+modules (including a simulated complete two-squad recording / fresh-process final
+settlement, zero scores, Unknown roles, population boundaries, failed storage,
+late/missing captures and final evaluation without promotion). Direct mypy passes.
+Sorare's live published schema accepts all 56 current queries / six fragments with
+zero deprecated/missing fields. Full local gate and first cloud-source receipt are
+checked before handover. No visible product or schema behavior changes in this step.

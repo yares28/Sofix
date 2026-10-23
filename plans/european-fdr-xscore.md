@@ -365,3 +365,13 @@ modules, and 15 focused development/candidate/frozen-validation/runtime-loader t
 The real cached 141-game development replay is reproducible; the final candidate
 hash and runner hash match after the real 284-game training fit. Production health
 at session start passed all 15 routes; no UI/schema change needs browser proof here.
+
+### Automatic Conference recording
+
+The next stage implements a source-only daily recorder for the frozen candidate,
+complete two-squad forecasts, authentic final settlement, durable R2 research
+evidence and a one-time evaluation gated on the complete remaining edition.
+[The recovery plan](conference-recovery.md) and frozen
+[prospective protocol](conference-prospective.md) describe scope and receipts.
+No historical prediction is backfilled; the old rejected report remains untouched.
+Conference promotion/current product integration remain pending independent evidence.

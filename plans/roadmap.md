@@ -22,8 +22,9 @@ no tuning on the exposed holdout. This later request supersedes the earlier dome
 23 Oct Conference recovery resumed: pre-2023 development selects a 75% club / 25%
 average-rate score mixture; research-only xScore models fitted on all 6,248 approved
 training starts. [Recovery contract](conference-recovery.md) keeps the failed holdout
-frozen. Prospective recording/settlement and independent acceptance are still open;
-the new research artifact is disabled and does not itself collect future forecasts.
+frozen. Automatic pre-lock recording/settlement is implemented with durable R2
+research evidence and a daily Actions job; independent full-population acceptance is
+still open. Conference stays disabled until that evidence and product checks pass.
 
 
 22 Oct owner priority completed: Ligue 1 FDR and independently validated xScore, all 18 clubs/520 players, complete recent history and bounded record caching. See [the delivery plan](ligue-1-fdr-xscore.md) and [validation evidence](../docs/ligue-1-validation.md).

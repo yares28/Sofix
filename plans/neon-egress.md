@@ -62,3 +62,26 @@ stop keeping payloads in Neon; the jobs' own reads of blocks still go to Neon.
 ## Expected result
 Neon: from ~750 MB a day to a few tens of MB (write times, the jobs' changed rows, small state). R2: page blocks, free.
 The four Neon projects stay as spares; no new one is needed.
+
+## Background: what burned Sofix (14 Oct 2026, moved from AGENTS.md)
+
+**What burned Sofix (7.16 GB in 12-14 Oct 2026), measured on 14 Oct:** about 0.3 GB came from the jobs; almost all the
+rest came from localhost.
+1. `npm run dev` skips Next's cache whenever the browser sends `Cache-Control: no-cache`, which every
+   `fetch(..., { cache: "no-store" })` and every hard reload does, and `lib/cache.ts` turns it off in dev on purpose. So each
+   such request downloaded its payloads again: `/api/my-week` pulled the 0.83 MB `sorare` payload plus 0.1 MB of weeks.
+2. `EnteredLineups` asked again on every `visibilitychange`, and the desktop app's browser pane flips visibility about
+   once a second, so one open Home or Play tab called `/api/my-week` every second: about 1 MB a second, ~3 GB an hour.
+3. 28 of the 42 refreshes (~28 MB each) were started by pushes, and league-history read the whole `player_games`
+   table (23 MB) every day.
+
+Fixed the same day: payloads in dev are kept on disk by key and write time (`keptInDev` in `lib/db.ts`, under
+`node_modules/.cache/sofix-neon`), so a no-cache request, a deleted `.next` or a new `NEXT_DIST_DIR` no longer downloads
+them again; saved weeks go through `readModelAt`; `EnteredLineups` re-asks only after a minute away; the two extension
+routes read one field of `sorare` instead of all of it; a push starts a refresh only if none started in the last
+3 hours; league-history reads a light index (`player_games.known`). The dev server logs every Neon read over 50 kB
+(`[neon] ... MB`), so a new leak shows in the terminal at once. Per day now: ~0.15-0.2 GB of jobs plus page views.
+
+History: FDR was production 14 Sep to 12 Oct; Sofix took over 12 Oct from a copy
+(`backend/data/raw/neon-backup-2026-10-12/`, git-ignored); on 14 Oct Sofix ran out, FDR (still answering at 5.23 GB)
+became live, and Sofix B was made and filled from FDR as the next one.

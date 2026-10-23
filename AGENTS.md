@@ -76,7 +76,8 @@ node scripts/check.mjs --live   # production after a push: Vercel deploy, every 
 ## Shipping (one owner, one computer)
 
 Sofix has one user and one developer. Changes go straight to `main`: the local checks are the gate, CI is a safety net
-nobody waits for, and the owner is the reviewer. A small task should take minutes, not three CI cycles.
+nobody waits for, and the owner is the reviewer. A small task should take minutes, not three CI cycles. This overrides
+any global habit of branches, pull requests, CI waits or review subagents.
 
 1. **Where:** work on `main` in the main folder. A second session running at the same time uses its own worktree and
    ships with `git pull --rebase origin main` then `git push origin HEAD:main`. Never change the main folder's branch.
@@ -102,10 +103,11 @@ nobody waits for, and the owner is the reviewer. A small task should take minute
    the task is about published data, check the read model with one SELECT after the refresh; otherwise move on.
    (localhost:3000 serves the main folder with hot reload: a session in a worktree runs `git pull --ff-only` there after
    its push, when `git status` is clean, so localhost shows the change too.)
-6. **Session start:** `node scripts/check.mjs --live` once (a session-start hook runs it). A red CI, a
+6. **Session start:** a session-start hook runs `node scripts/check.mjs --live --no-wait`; read its result. A red CI, a
    failed refresh or a broken page on `main` is fixed first. The next work is "Next up" in [plans/roadmap.md](plans/roadmap.md).
 7. **Broken production:** when a push breaks a page (not 200, or the owner says so), `git revert <commit>` and push that
    first, so the app is back in about two minutes; then find the cause and ship the fix as a new commit.
+8. **Roadmap:** shipping an item from "Next up" moves it to the roadmap's Results and off the list, in the same commit.
 
 Hold the push only when the owner says so; for a schema change until he has migrated production (the migration goes
 first, the code second); and for an extension release until `node extension/scripts/configure.mjs` has rebuilt his
@@ -120,7 +122,11 @@ Not done here: pull requests, waiting for CI or for a refresh, review subagents,
 - UI says GW/Gameweek, not MD/Matchday. Store UTC, display Madrid; missing kickoff is “Date TBC”.
 - Routes: `/`, `/play`, `/lineups`, `/scores`, `/fixtures`, `/difficulty`, `/table`, `/audit`, `/cards`, `/players`, `/control`, `/team/[code]`.
   `/audit` is Sofix checked against what happened (backend/app/sorare/audit.py, read model `audit`): how often Sofix's and Sorare's numbers land within 7 points, and who
-  starts per source; the job decides what is shown and the page says "too few to tell" under 100 cases.
+  starts per source, starters and substitutes apart. It is not tied to the week in the top bar; the job decides what is
+  shown and a figure under 100 cases says "too few to tell" (the Sofix against Sorare rates show from the first game).
+- The home Sorare section and Play put the signed-in owner's actual Sorare lineups at the top of their selected Sorare
+  GW, including weeks with no saved Sofix plan. That private read is fixture-level through the extension; never infer it
+  from the public plan.
 - Six lenses: Overall, Attack, Defence, Record, Vs odds, Odds. Backend owns bucket/label/scales.
 - Labels: Very favourite, Favourite, Even, Underdog, Big underdog. Tiles do not show bucket numbers.
 - Model lenses sum future values; Record/Vs odds/Odds compare per-eligible-game averages.
@@ -151,9 +157,10 @@ From the owner. They override any older rule in this file, in CLAUDE.md or in a 
 - Less is more: minimalist, polished UI. No filler text, no excess information, no big tables or spreadsheet-like UI.
 - Cut taglines, helper text and secondary labels. If a screen needs them to make sense, fix the layout instead.
 - Ergonomic layout: what the user does most is the easiest to reach.
-- Long lists are paginated.
+- A list of more than 12 items is paginated.
 - Every animation is designed motion: it explains the change, feels deliberate and respects reduced motion.
-- Loading states are 1:1 skeletons: the same size, shape and place as the content they stand in for, so nothing jumps.
+- Loading states are 1:1 skeletons: the same size, shape and place as the content they stand in for, so nothing moves
+  when the content arrives (check: no layout shift between skeleton and page).
 - Components start from shadcn/ui and 21st.dev (their registries, GitHub repos and skills), restyled to Sofix's design
   language. Shader effects come from https://github.com/shader-effects-inc/shaders.
 
@@ -193,7 +200,7 @@ they show. So, in every page:
 ## Data/schema/cache
 
 - `models.py` → autogenerate → review → Neon dev migrate/test → manual owner migrate on **every** production project
-  (Sofix, FDR, Sofix B: "Neon projects" below; a project left behind blocks the automatic move). Never `create_all` Neon.
+  (Sofix, FDR, Sofix B, Sofix C: "Neon projects" below; a project left behind blocks the automatic move). Never `create_all` Neon.
 - Unattended jobs use `--skip-migrations` and DML-only app role.
 - Replace current rows/read models; append only intentional run/replay history.
 - One refresh at a time; ten-minute button cooldown.
@@ -235,7 +242,7 @@ URLs of the other Neon projects) and `NEON_API_KEY`. Vercel: `DATABASE_URL`, `DA
 
 Neon production uses `fdr_app` DML-only, verify-full TLS. Destructive SQL/branch actions need explicit approval.
 
-### Neon projects (one account, all on the free plan; state of 14 Oct 2026)
+### Neon projects (one account, all on the free plan)
 
 Free projects take turns as production, automatically (owner's ask, 14 Oct 2026). Each sends 5 GB a month, then Neon
 refuses every query with HTTP 402 "exceeded the quota" until the 1st.
@@ -286,26 +293,8 @@ GitHub also needs `NEON_API_KEY` (an organization key) for the move.
   `neon_status` in the live project; FAIL with a note when `NEON_API_KEY` gave nothing, which means no move can happen),
   or Neon's `describe_project` (`data_transfer_bytes`; it lags by hours).
 
-**What burned Sofix (7.16 GB in 12-14 Oct 2026), measured on 14 Oct:** about 0.3 GB came from the jobs; almost all the
-rest came from localhost.
-1. `npm run dev` skips Next's cache whenever the browser sends `Cache-Control: no-cache`, which every
-   `fetch(..., { cache: "no-store" })` and every hard reload does, and `lib/cache.ts` turns it off in dev on purpose. So each
-   such request downloaded its payloads again: `/api/my-week` pulled the 0.83 MB `sorare` payload plus 0.1 MB of weeks.
-2. `EnteredLineups` asked again on every `visibilitychange`, and the desktop app's browser pane flips visibility about
-   once a second, so one open Home or Play tab called `/api/my-week` every second: about 1 MB a second, ~3 GB an hour.
-3. 28 of the 42 refreshes (~28 MB each) were started by pushes, and league-history read the whole `player_games`
-   table (23 MB) every day.
-
-Fixed the same day: payloads in dev are kept on disk by key and write time (`keptInDev` in `lib/db.ts`, under
-`node_modules/.cache/sofix-neon`), so a no-cache request, a deleted `.next` or a new `NEXT_DIST_DIR` no longer downloads
-them again; saved weeks go through `readModelAt`; `EnteredLineups` re-asks only after a minute away; the two extension
-routes read one field of `sorare` instead of all of it; a push starts a refresh only if none started in the last
-3 hours; league-history reads a light index (`player_games.known`). The dev server logs every Neon read over 50 kB
-(`[neon] ... MB`), so a new leak shows in the terminal at once. Per day now: ~0.15-0.2 GB of jobs plus page views.
-
-History: FDR was production 14 Sep to 12 Oct; Sofix took over 12 Oct from a copy
-(`backend/data/raw/neon-backup-2026-10-12/`, git-ignored); on 14 Oct Sofix ran out, FDR (still answering at 5.23 GB)
-became live, and Sofix B was made and filled from FDR as the next one.
+The 14 Oct drain (localhost re-reading payloads, ~1 MB a second) and its fixes are written up in
+[plans/neon-egress.md](plans/neon-egress.md) "Background".
 
 Dev binds `127.0.0.1`; no Docker; port 5432 belongs elsewhere; run npm only from `frontend/`; Windows reload may miss
 model/schema edits. Preserve unrelated work. Commits: `<type>: <description>`.
@@ -348,7 +337,8 @@ this repo. Precedence: this file, then the global rules.
   run it, delete a project or edit the spare settings by hand without the owner ("Neon projects").
 - **Tests:** test-first for behavior changes (rules, regressions, contracts), no coverage-padding. Bug fix = failing
   regression test first. Report pre-existing failures separately; never claim "all pass" if any fail.
-- **Browser proof for UI:** desktop + mobile screenshots of the affected state on the local dev server (real data),
+- **Browser proof for UI:** desktop + mobile screenshots of the affected state on the local dev server (real data, the
+  owner's open Chrome),
   semantic selectors, no horizontal overflow. Authenticated Sorare flows use the extension test path only; never print
   or commit tokens/cookies.
 - **Paid/side-effecting APIs** (Odds API 500/month, Sorare, any AI inference): fixtures/mocks; one batched real call at most.

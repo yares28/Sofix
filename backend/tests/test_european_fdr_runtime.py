@@ -90,5 +90,20 @@ def test_qualifiers_and_unresolved_draws_never_become_fabricated_main_stage_fore
     }
     grid = build_grid("CL", 2026, [*rows, qualifier, unresolved], FixedModel(), datetime(2026, 10, 23, tzinfo=UTC)).data
     assert len(grid.teams) == 36 and sum(len(c) for t in grid.teams for c in t.cells) == 288
-    with pytest.raises(ValueError, match="validated"):
+    with pytest.raises(ValueError, match="Wrong UEFA competition population"):
         build_grid("CONF", 2026, rows, FixedModel(), datetime(2026, 10, 23, tzinfo=UTC))
+
+
+def test_conference_full_six_round_board_is_explicitly_provisional():
+    rows = [r for r in calendar() if int(r["matchday"]["longName"].split()[-1]) <= 6]
+    for row in rows:
+        row["competition"] = {"id": "2019", "code": "UECL", "sex": "MALE", "teamCategory": "CLUB"}
+    result = build_grid("CONF", 2026, rows, FixedModel(), datetime(2026, 10, 23, tzinfo=UTC))
+    assert result.data.competition == "CONF"
+    assert len(result.data.teams) == 36 and len(result.data.matchdays) == 6
+    assert sum(len(c) for t in result.data.teams for c in t.cells) == 216
+    assert "Provisional" in result.meta.model_notes[0].text
+    assert "Validated" not in result.meta.model_notes[0].text
+    assert "w075" in result.data.model_version
+    with pytest.raises(ValueError, match="Incomplete"):
+        build_grid("CONF", 2026, rows[:-1], FixedModel(), datetime(2026, 10, 23, tzinfo=UTC))

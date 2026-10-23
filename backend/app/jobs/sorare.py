@@ -364,7 +364,7 @@ def foreign_inputs(kept: dict[str, Any], now: datetime) -> tuple[dict[str, Any],
         envelope = kept.get(f"grid:{code}") or {}
         grid = dict(envelope.get("data") or {})
         grids[code] = grid
-        if code in {"CL", "EL"}:
+        if code in {"CL", "EL", "CONF"}:
             stamp = frozen._dt((envelope.get("meta") or {}).get("last_predicted_at"))
             names = [t.get("sorare_slug") for t in grid.get("teams") or []]
             grid["_fresh"] = bool(stamp and timedelta(0) <= now - stamp <= timedelta(hours=6))
@@ -411,7 +411,7 @@ def run(
         laps("score checks")
         foreign_states: dict[str, dict[str, Any]] = {}
         european_state: dict[str, Any] | None = None
-        if any(c in foreign_models for c in ("CL", "EL")):
+        if any(c in foreign_models for c in ("CL", "EL", "CONF")):
             prior_europe = foreign_kept.get("league_games:EUROPE") or {}
             no_europe_games: dict[str, list[dict[str, Any]]] = {}
             no_europe_state: dict[str, Any] = {
@@ -431,7 +431,7 @@ def run(
                 player_games.save(db, current_europe, started)
                 put(db, "league_games:EUROPE", european_state, started)
             db.rollback()
-        for code in (c for c in foreign_models if c not in {"CL", "EL"}):
+        for code in (c for c in foreign_models if c not in {"CL", "EL", "CONF"}):
             prior = foreign_kept.get(f"league_games:{code}") or {}
             empty_history: dict[str, list[dict[str, Any]]] = {}
             current, state = optional(
@@ -451,7 +451,7 @@ def run(
             for c, m in foreign_models.items()
             if (
                 (european_state or {}).get("complete") is True
-                if c in {"CL", "EL"}
+                if c in {"CL", "EL", "CONF"}
                 else not any(
                     "scoring version" in str(e.get("reason", "")) for e in (foreign_states[c].get("errors") or [])
                 )
@@ -482,7 +482,7 @@ def run(
                 put(
                     db,
                     f"league_squads:{code}",
-                    foreign_coverage.compact_index(index) if code in {"CL", "EL"} else index,
+                    foreign_coverage.compact_index(index) if code in {"CL", "EL", "CONF"} else index,
                     started,
                 )
             db.rollback()

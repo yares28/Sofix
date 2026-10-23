@@ -605,7 +605,7 @@ export interface components {
              * @default PD
              * @enum {string}
              */
-            competition: "PD" | "PL" | "BL1" | "FL1" | "CL" | "EL";
+            competition: "PD" | "PL" | "BL1" | "FL1" | "CL" | "EL" | "CONF";
             /** Season */
             season: string;
             /** Current Matchday */
@@ -939,7 +939,7 @@ export interface operations {
     fixture_grid_api_fixture_grid_get: {
         parameters: {
             query?: {
-                competition?: "PD" | "PL" | "BL1" | "FL1" | "CL" | "EL";
+                competition?: "PD" | "PL" | "BL1" | "FL1" | "CL" | "EL" | "CONF";
             };
             header?: never;
             path?: never;
@@ -1012,7 +1012,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                code: "PL" | "BL1" | "FL1" | "CL" | "EL";
+                code: "PL" | "BL1" | "FL1" | "CL" | "EL" | "CONF";
             };
             cookie?: never;
         };
@@ -1043,7 +1043,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                code: "PL" | "BL1" | "FL1" | "CL" | "EL";
+                code: "PL" | "BL1" | "FL1" | "CL" | "EL" | "CONF";
                 bucket: string;
             };
             cookie?: never;

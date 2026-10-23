@@ -1,0 +1,259 @@
+{
+  "competition": "CONF",
+  "candidateSha256": "ff0d528671114fd96b962cc423964fada72a1875ac56637f5b8e18988eec15ea",
+  "football": {
+    "games": 447,
+    "model": {
+      "rps": 0.22923588431997527,
+      "brier": 0.6245869677735296,
+      "logLoss": 1.037513976789957
+    },
+    "base": {
+      "rps": 0.23281876521294825,
+      "brier": 0.6313121773102822,
+      "logLoss": 1.0466687467305409
+    },
+    "plainPoisson": {
+      "rps": 0.23192515569190644,
+      "brier": 0.6303352923668287,
+      "logLoss": 1.045636999637879
+    },
+    "versusBase": {
+      "difference": -0.003582880892972984,
+      "lo": -0.014613006152625866,
+      "hi": 0.0070926239825482235,
+      "weeks": 46,
+      "draws": 2000,
+      "seed": 20261023
+    },
+    "cleanSheet": {
+      "h": {
+        "predicted": 0.327537592900594,
+        "observed": 0.3400447427293065
+      },
+      "a": {
+        "predicted": 0.2375158788281161,
+        "observed": 0.21700223713646533
+      }
+    },
+    "goalsMAE": 0.9900804434516075,
+    "ranking": {
+      "favouredSideWinRate": 0.48769574944071586,
+      "basis": "within-fixture strength ranking; no domestic-style UEFA table simulation"
+    },
+    "subgroups": {
+      "season2023": {
+        "games": 141,
+        "rps": 0.2332917004440442,
+        "brier": 0.641962953678379,
+        "logLoss": 1.0614396658224872
+      },
+      "season2024": {
+        "games": 153,
+        "rps": 0.22597680544774149,
+        "brier": 0.6107646243066686,
+        "logLoss": 1.0199487571827694
+      },
+      "season2025": {
+        "games": 153,
+        "rps": 0.22875725029355715,
+        "brier": 0.6223961477594512,
+        "logLoss": 1.0330300319946166
+      },
+      "coldClub": {
+        "games": 187,
+        "rps": 0.22936520062124247,
+        "brier": 0.6150233451544637,
+        "logLoss": 1.0246528817887923
+      },
+      "neutral": {
+        "games": 25,
+        "rps": 0.25635908751549785,
+        "brier": 0.6286089320889009,
+        "logLoss": 1.0446759109810646
+      },
+      "homeVenue": {
+        "games": 422,
+        "rps": 0.22762905948611725,
+        "brier": 0.6243486997453678,
+        "logLoss": 1.0370896915890622
+      },
+      "group": {
+        "games": 96,
+        "rps": 0.2153115303634339,
+        "brier": 0.5770504101856108,
+        "logLoss": 0.9708131415944145
+      },
+      "league": {
+        "games": 216,
+        "rps": 0.22287160976899056,
+        "brier": 0.6187631379853135,
+        "logLoss": 1.0287759334368058
+      },
+      "knockout": {
+        "games": 135,
+        "rps": 0.24932048641509122,
+        "brier": 0.667708869719418,
+        "logLoss": 1.0989265511829407
+      },
+      "horizon0to2days": {
+        "games": 13,
+        "rps": 0.22060353166160057,
+        "brier": 0.6824354233095163,
+        "logLoss": 1.1148378323476975
+      },
+      "horizon2to4days": {
+        "games": 434,
+        "rps": 0.2294944570954565,
+        "brier": 0.6228541799348941,
+        "logLoss": 1.0351978244345408
+      },
+      "horizon4to8days": {
+        "games": 0
+      },
+      "leg1": {
+        "games": 66,
+        "rps": 0.24324313484776133,
+        "brier": 0.650636477351484,
+        "logLoss": 1.0767735774584506
+      },
+      "leg2": {
+        "games": 66,
+        "rps": 0.25878415735566185,
+        "brier": 0.6883210589213514,
+        "logLoss": 1.125531105508589
+      }
+    },
+    "reliability": [
+      {
+        "from": 0.0,
+        "cases": 10,
+        "predicted": 0.08904036547331828,
+        "observed": 0.2
+      },
+      {
+        "from": 0.1,
+        "cases": 221,
+        "predicted": 0.16132860503679014,
+        "observed": 0.2171945701357466
+      },
+      {
+        "from": 0.2,
+        "cases": 486,
+        "predicted": 0.24450873330391615,
+        "observed": 0.22839506172839505
+      },
+      {
+        "from": 0.30000000000000004,
+        "cases": 242,
+        "predicted": 0.34649369073213976,
+        "observed": 0.3760330578512397
+      },
+      {
+        "from": 0.4,
+        "cases": 156,
+        "predicted": 0.4476060710885311,
+        "observed": 0.4807692307692308
+      },
+      {
+        "from": 0.5,
+        "cases": 120,
+        "predicted": 0.5460975731726864,
+        "observed": 0.475
+      },
+      {
+        "from": 0.6000000000000001,
+        "cases": 68,
+        "predicted": 0.6467255794858623,
+        "observed": 0.6029411764705882
+      },
+      {
+        "from": 0.7000000000000001,
+        "cases": 34,
+        "predicted": 0.739674660829438,
+        "observed": 0.5882352941176471
+      },
+      {
+        "from": 0.8,
+        "cases": 4,
+        "predicted": 0.8221808363705952,
+        "observed": 0.5
+      }
+    ],
+    "passed": false,
+    "rejectedBecause": [
+      "RPS improvement over competition base rate is not established"
+    ]
+  },
+  "xscore": {
+    "coverageComplete": true,
+    "cases": 3366,
+    "model": {
+      "rmse": 17.799021946365595,
+      "mae": 14.434855143667475,
+      "within7": 0.2608437314319667,
+      "pairs": 0.55
+    },
+    "form": {
+      "rmse": 18.490974371731006,
+      "mae": 14.989228376198966,
+      "within7": 0.2611408199643494,
+      "pairs": 0.525103305785124
+    },
+    "ablation": {
+      "rmse": 17.82221983749887,
+      "mae": 14.459505569612908,
+      "within7": 0.2557932263814617,
+      "pairs": 0.5602789256198347
+    },
+    "versusForm": {
+      "difference": -0.691952425365411,
+      "lo": -1.0055085188415938,
+      "hi": -0.35900392761157174,
+      "weeks": 15,
+      "draws": 2000,
+      "seed": 20261023
+    },
+    "versusAblation": {
+      "difference": -0.023197891133275306,
+      "lo": -0.16603192676554998,
+      "hi": 0.09622791718422738,
+      "weeks": 15,
+      "draws": 2000,
+      "seed": 20261023
+    },
+    "positions": {
+      "GK": {
+        "cases": 306,
+        "rmse": 18.533297588057636,
+        "formRmse": 19.164602653870237
+      },
+      "DEF": {
+        "cases": 1246,
+        "rmse": 19.462442665202012,
+        "formRmse": 20.23301245078833
+      },
+      "MID": {
+        "cases": 1096,
+        "rmse": 16.13114842473533,
+        "formRmse": 16.877880836918756
+      },
+      "FWD": {
+        "cases": 718,
+        "rmse": 16.85997236809623,
+        "formRmse": 17.35307306023735
+      }
+    },
+    "rejectedBecause": [
+      "FDR adds no established RMSE improvement over player history",
+      "within7: loss versus form"
+    ],
+    "passed": false
+  },
+  "independentConfirmation": false,
+  "diagnosticOnly": true,
+  "caseSha256": "3adea4a72109126817583e76af6cabb364d91dd719e8562f0af3c8bc40766d80",
+  "featureSha256": "94aed885219699883d538deab640fb01327b5fe98a72daa71b9ad8adf9ef4cb8",
+  "runnerSha256": "904ca2efbe9b5cdfb060bf6c265c1d2e36e6eb164e73e2cba9dc1ad544dc5d33",
+  "note": "Previously examined historical outcomes; fixed candidate, no retuning, no fresh blind claim"
+}

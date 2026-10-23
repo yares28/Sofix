@@ -210,7 +210,7 @@ class RefreshStatus(BaseModel):
 
 
 class FixtureGrid(BaseModel):
-    competition: Literal["PD", "PL", "BL1", "FL1", "CL", "EL"] = "PD"
+    competition: Literal["PD", "PL", "BL1", "FL1", "CL", "EL", "CONF"] = "PD"
     season: str
     current_matchday: int | None
     model_version: str | None

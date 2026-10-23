@@ -1,5 +1,9 @@
 # Champions League, Europa League and Conference League FDR / xScore
 
+23 Oct later owner direction: [Conference provisional release](conference-release.md) supersedes the
+full-season wait as a product gate. Research validation flags and original evidence stay unchanged.
+
+
 Started 23 October 2026. Status: source-complete retrospective validation finished; CL/EL passed, CONF rejected.
 CL/EL main-stage FDR and validated xScore are released with complete automatic squads. Conference remains rejected by the frozen gates; qualifiers are deferred by the owner.
 

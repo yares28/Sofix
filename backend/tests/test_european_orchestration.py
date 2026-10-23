@@ -1,5 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
 from app.jobs import refresh, sorare
 from app.sorare import foreign_scores
 
@@ -19,19 +21,19 @@ def test_full_coverage_job_has_time_to_publish_without_stealing_an_active_lock()
     assert timedelta(minutes=25) < STALE_AFTER
 
 
-def test_european_grids_require_recent_full_main_stage_identity_and_matching_artifact():
+@pytest.mark.parametrize("code", ["CL", "EL", "CONF"])
+def test_european_grids_require_recent_full_main_stage_identity_and_matching_artifact(code):
     now = datetime(2026, 10, 23, tzinfo=UTC)
     grid = {
-        "competition": "CL",
-        "model_version": foreign_scores.expected_version("CL"),
+        "competition": code,
+        "model_version": foreign_scores.expected_version(code),
         "teams": [{"sorare_slug": f"club-{i}"} for i in range(36)],
     }
     envelope = {"data": grid, "meta": {"last_predicted_at": now.isoformat()}}
-    grids, models, clubs = sorare.foreign_inputs({"grid:CL": envelope}, now)
-    assert "CL" in models and grids["CL"]["_fresh"] is True and len(clubs["CL"]) == 36
+    grids, models, clubs = sorare.foreign_inputs({f"grid:{code}": envelope}, now)
+    assert code in models and grids[code]["_fresh"] is True and len(clubs[code]) == 36
     envelope["meta"]["last_predicted_at"] = (now - timedelta(hours=7)).isoformat()
-    assert "CL" not in sorare.foreign_inputs({"grid:CL": envelope}, now)[1]
+    assert code not in sorare.foreign_inputs({f"grid:{code}": envelope}, now)[1]
     envelope["meta"]["last_predicted_at"] = now.isoformat()
     grid["teams"].pop()
-    assert "CL" not in sorare.foreign_inputs({"grid:CL": envelope}, now)[1]
-    assert "CONF" not in models
+    assert code not in sorare.foreign_inputs({f"grid:{code}": envelope}, now)[1]

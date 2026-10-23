@@ -21,7 +21,12 @@ from app.sorare.outfield import SubShape
 from app.sorare.scores import Made
 
 ROOT = Path(__file__).resolve().parents[2] / "artifacts" / "league_xscore"
-COMPETITIONS = {**LEAGUES, "CL": "uefa-champions-league", "EL": "uefa-europa-league"}
+COMPETITIONS = {
+    **LEAGUES,
+    "CL": "uefa-champions-league",
+    "EL": "uefa-europa-league",
+    "CONF": "uefa-europa-conference-league",
+}
 
 
 @dataclasses.dataclass(frozen=True)
@@ -32,7 +37,7 @@ class Models:
 
 
 def expected_version(code: str) -> str:
-    if code in {"CL", "EL"}:
+    if code in {"CL", "EL", "CONF"}:
         from app.services.european_fdr import version as european_version
 
         return european_version(code)
@@ -40,7 +45,7 @@ def expected_version(code: str) -> str:
 
 
 def version(code: str) -> str:
-    if code in {"CL", "EL"}:
+    if code in {"CL", "EL", "CONF"}:
         from app.sorare.european_models import ROOT as EUROPEAN_ROOT
 
         raw = (EUROPEAN_ROOT / f"{code}.json").read_bytes()
@@ -92,13 +97,13 @@ def find_numbers(code: str, grid: dict[str, Any], game: dict[str, Any]) -> keepe
         grid.get("competition") != code
         or grid.get("model_version") != expected_version(code)
         or game.get("competition") != COMPETITIONS.get(code)
-        or (code in {"CL", "EL"} and grid.get("_fresh") is not True)
+        or (code in {"CL", "EL", "CONF"} and grid.get("_fresh") is not True)
     ):
         return None
     try:
         lock, kickoff = when(game["forecastBefore"]), when(game["kickoff"])
         teams = grid["teams"]
-        if code in {"CL", "EL"}:
+        if code in {"CL", "EL", "CONF"}:
             own, other = game.get("teamSlug"), game.get("opponentSlug")
             me = [t for t in teams if t.get("sorare_slug") == own and own]
             opponent = [t for t in teams if t.get("sorare_slug") == other and other]
@@ -121,7 +126,7 @@ def find_numbers(code: str, grid: dict[str, Any], game: dict[str, Any]) -> keepe
         if len(cells) != 1:
             return None
         cell = cells[0]
-        if code in {"CL", "EL"} and (
+        if code in {"CL", "EL", "CONF"} and (
             cell.get("phase") not in {"league", "knockout"} or type(cell.get("neutral")) is not bool
         ):
             return None
@@ -172,7 +177,7 @@ def scores_for(
             if len(codes) == 1 and len(games) == 1:
                 sub = bundle.subs.get(pos)
             lock = when(game["forecastBefore"])
-            if code in {"CL", "EL"}:
+            if code in {"CL", "EL", "CONF"}:
                 from app.research.european_validation import own_before
 
                 if european_games is None:

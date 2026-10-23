@@ -1,0 +1,12 @@
+{
+  "clubs": 36,
+  "leagueGames": 108,
+  "rounds": 6,
+  "players": 1110,
+  "ratedNextActualGame": 1110,
+  "unknownRole": [],
+  "missing": [],
+  "sharedHistoryGames": 90,
+  "sourceEvidence": "39960632545; verified R2 archive; UEFA calendar retrieved 22 October",
+  "scope": "Runtime replay on real archived source snapshots. Next actual eligible Conference match, not invented selected-week availability."
+}

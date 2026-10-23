@@ -131,7 +131,8 @@
                 "BL1",
                 "FL1",
                 "CL",
-                "EL"
+                "EL",
+                "CONF"
               ],
               "type": "string",
               "default": "PD",
@@ -215,7 +216,8 @@
                 "BL1",
                 "FL1",
                 "CL",
-                "EL"
+                "EL",
+                "CONF"
               ],
               "type": "string",
               "title": "Code"
@@ -261,7 +263,8 @@
                 "BL1",
                 "FL1",
                 "CL",
-                "EL"
+                "EL",
+                "CONF"
               ],
               "type": "string",
               "title": "Code"
@@ -1229,7 +1232,8 @@
               "BL1",
               "FL1",
               "CL",
-              "EL"
+              "EL",
+              "CONF"
             ],
             "title": "Competition",
             "default": "PD"

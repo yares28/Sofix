@@ -30,10 +30,11 @@ from app.services.rating_predictions import model_version
 from app.services.scoring import difficulty_label, difficulty_score, label_bucket
 
 VALIDATED = ("CL", "EL")
+SUPPORTED = (*VALIDATED, "CONF")
 
 
 def version(code: str) -> str:
-    return f"{code}:european-{model_version(CONFIG)}"
+    return f"{code}:european-{model_version(CONFIG)}" + ("-recovery-v2-w075" if code == "CONF" else "")
 
 
 def crest(team: dict[str, Any]) -> str | None:
@@ -55,8 +56,8 @@ def build_grid(
     *,
     clubs: dict[str, str] | None = None,
 ) -> ApiResponse[FixtureGrid]:
-    if code not in VALIDATED:
-        raise ValueError("Competition has no validated European model")
+    if code not in SUPPORTED:
+        raise ValueError("Competition has no released European model")
     for row in raw:
         validate_page([row], code, season)
     inventory = [inventory_match(row, code, season) for row in raw]
@@ -198,7 +199,7 @@ def build_grid(
         for ident, ref in refs.items()
     ]
     grid = FixtureGrid(
-        competition=cast(Literal["CL", "EL"], code),
+        competition=cast(Literal["CL", "EL", "CONF"], code),
         season=f"{season}/{(season + 1) % 100:02}",
         current_matchday=next((r.number for r in rounds if not r.finished), None),
         model_version=version(code),
@@ -215,7 +216,12 @@ def build_grid(
             model_notes=[
                 ModelNote(
                     lens=None,
-                    text="Validated European model. League phase and knockouts; regulation time only. Neutral venues have no home advantage. Clean-sheet chances are uncalibrated. Knockout pairs appear after the draw; qualifiers are outside this release.",
+                    text=(
+                        "Provisional Conference estimates. Historical averages improved; the extra benefit of opponent information remains uncertain. "
+                        if code == "CONF"
+                        else "Validated European model. "
+                    )
+                    + " League phase and knockouts; regulation time only. Neutral venues have no home advantage. Clean-sheet chances are uncalibrated. Knockout pairs appear after the draw; qualifiers are outside this release.",
                 )
             ],
         ),

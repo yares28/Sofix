@@ -14,7 +14,7 @@ from app.sorare.client import SorareClient, SorareError
 from app.sorare.foreign_scores import COMPETITIONS
 from app.sorare.model import SORARE_POSITION
 
-SIZES = {"PL": 20, "BL1": 18, "FL1": 18, "CL": 36, "EL": 36}
+SIZES = {"PL": 20, "BL1": 18, "FL1": 18, "CL": 36, "EL": 36, "CONF": 36}
 
 
 def expired(row: dict[str, Any]) -> dict[str, Any]:
@@ -52,7 +52,7 @@ def collect_index(
     kept = {club: [expired(row) for row in players] for club, players in prior.items()}
     errors = []
     try:
-        if code in {"CL", "EL"}:
+        if code in {"CL", "EL", "CONF"}:
             if clubs is None:
                 raise ValueError("European index requires the full verified main-stage club list")
             source_clubs = [{"slug": slug} for slug in clubs]

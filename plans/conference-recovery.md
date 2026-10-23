@@ -1,5 +1,9 @@
 # Conference recovery — development only
 
+23 Oct later owner direction: [Conference provisional release](conference-release.md) supersedes the
+full-season wait as a product gate. Research validation flags and original evidence stay unchanged.
+
+
 23 October 2026, owner: "Resume confrence and explain the blocker".
 
 ## Requested outcome and acceptance

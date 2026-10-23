@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import time
 from collections import defaultdict
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 from app.research.european_alignment import align
@@ -95,7 +97,7 @@ def context_of(code: str, native: dict[str, Any], saved: dict[str, Any]) -> dict
 
 
 def collect(
-    client: Any, now: datetime, previous: dict[str, Any], *, seconds: float = 900
+    client: Any, now: datetime, previous: dict[str, Any], *, seconds: float = 900, capture: Path | None = None
 ) -> tuple[dict[str, list[dict[str, Any]]], dict[str, Any]]:
     started = time.monotonic()
     calendars = european_sources.calendars(now)
@@ -103,7 +105,10 @@ def collect(
     out: dict[str, list[dict[str, Any]]] = defaultdict(list)
     state: dict[str, Any] = {"version": 1, "at": now.isoformat(), "games": {}, "errors": [], "coverage": {}}
     known = previous.get("games") or {}
+    if capture is not None:
+        capture.mkdir(parents=True, exist_ok=True)
     for code, editions in calendars.items():
+        current_id = None
         try:
             source = recent_index(client, code, now)
             source_bindings = dict(bindings)
@@ -130,6 +135,7 @@ def collect(
             for row in native:
                 game = links[row["id"]]
                 ident = game["id"]
+                current_id = ident
                 old = known.get(ident)
                 if (
                     old
@@ -150,6 +156,10 @@ def collect(
                 if time.monotonic() - started >= seconds:
                     raise ValueError("Current European history time budget exhausted; resume next refresh")
                 raw = client.query(foreign_history.QUERY, {"id": ident})["anyGame"]
+                if capture is not None:
+                    (capture / (hashlib.sha256(ident.encode()).hexdigest() + ".json")).write_text(
+                        json.dumps(raw, separators=(",", ":")), encoding="utf-8"
+                    )
                 saved = game_snapshot(code, game, raw)
                 if raw.get("statusTyped") != "played":
                     raise ValueError("Unsettled current European game")
@@ -165,6 +175,6 @@ def collect(
                 for slug, games in foreign_history.history_of_slug(COMPETITIONS[code].sorare, raw).items():
                     out[slug].extend(games)
         except (SorareError, ValueError, KeyError, TypeError) as error:
-            state["errors"].append({"competition": code, "reason": str(error)[:240]})
+            state["errors"].append({"competition": code, "game": current_id, "reason": str(error)[:240]})
     state["complete"] = not state["errors"]
     return dict(out), state

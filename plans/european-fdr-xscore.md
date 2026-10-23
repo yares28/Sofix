@@ -242,3 +242,11 @@ compacted and expired instead of persisting a second archive of old forecasts.
 all current squads, fixture boards and authentic recent starts without database settings, publication, deployment
 or model promotion. Its full real-data outcome is still pending. Runtime refresh/publishing and visible selectors
 are not connected yet; this checkpoint does not claim the acceptance workflow is complete.
+
+
+Current-data run `39875858709` did not pass: CL indexed 36 clubs / 1,086 players, EL indexed 34 clubs /
+1,069 players, with unknown positions in Omonia and Torreense. Current history linked all expected games
+(CL 45, EL 36, CONF 18), but the first admitted CL game failed starter evidence. No new exclusion is approved
+or inferred. The diagnostic collector now retains exact raw game and squad packets and names the failing
+source identity/position; this evidence is needed before deciding whether the failure is a source gap or parser bug.
+The local gate for that diagnostic change passed Ruff, mypy, backend pytest (69s) and OpenAPI export.

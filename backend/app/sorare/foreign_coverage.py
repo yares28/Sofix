@@ -85,7 +85,7 @@ def collect_index(
                 if player.get("position") == "Coach":
                     continue
                 if player.get("position") not in SORARE_POSITION:
-                    raise ValueError("Unknown player position")
+                    raise ValueError(f"Unknown player position: {player.get('slug')} = {player.get('position')!r}")
                 slug = player.get("slug")
                 if not slug:
                     raise ValueError("Missing player identity")

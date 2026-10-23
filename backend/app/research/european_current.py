@@ -33,7 +33,7 @@ def main() -> int:
         window = sync.pick_gameweeks(sync.gameweeks(client, now=now), now)["plan"]
         path = args.out / "history.json"
         prior = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-        actual, state = european_history.collect(client, now, prior)
+        actual, state = european_history.collect(client, now, prior, capture=args.out / "games")
         path.write_text(json.dumps(state, separators=(",", ":")), encoding="utf-8")
         (args.out / "actuals.json").write_text(json.dumps(actual, separators=(",", ":")), encoding="utf-8")
         print(
@@ -67,6 +67,7 @@ def main() -> int:
                 flush=True,
             )
             complete &= index["complete"]
+        (args.out / "raw-squads.json").write_text(json.dumps(squads, separators=(",", ":")), encoding="utf-8")
     return 0 if complete else 1
 
 

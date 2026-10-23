@@ -83,7 +83,7 @@ def context_of(code: str, native: dict[str, Any], saved: dict[str, Any]) -> dict
     date = when(native["kickOffTime"]["dateTime"])
     source_date = when(saved["raw"]["date"])
     return {
-        "version": 1,
+        "version": 2,
         "mainStage": True,
         "competition": code,
         "nativeId": native["id"],
@@ -96,6 +96,18 @@ def context_of(code: str, native: dict[str, Any], saved: dict[str, Any]) -> dict
     }
 
 
+def pending_scores(saved: dict[str, Any]) -> bool:
+    # Verify the complete XI/version/side evidence independently of settlement.
+    # Reviewing values never become history targets or zero-valued starts.
+    checked = {**saved, "players": [{**p, "status": "FINAL"} for p in saved["players"]]}
+    starters = admitted_starters(checked)
+    actual = {p["slug"]: p for p in saved["players"]}
+    statuses = {actual[p["slug"]]["status"] for p in starters}
+    if not statuses <= {"FINAL", "REVIEWING"}:
+        raise ValueError("Unknown current score settlement status")
+    return "REVIEWING" in statuses
+
+
 def collect(
     client: Any, now: datetime, previous: dict[str, Any], *, seconds: float = 900, capture: Path | None = None
 ) -> tuple[dict[str, list[dict[str, Any]]], dict[str, Any]]:
@@ -103,7 +115,14 @@ def collect(
     calendars = european_sources.calendars(now)
     bindings = json.loads(european_sources.REGISTRY.read_text(encoding="utf-8"))["bindings"]
     out: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    state: dict[str, Any] = {"version": 1, "at": now.isoformat(), "games": {}, "errors": [], "coverage": {}}
+    state: dict[str, Any] = {
+        "version": 2,
+        "at": now.isoformat(),
+        "games": {},
+        "pending": [],
+        "errors": [],
+        "coverage": {},
+    }
     known = previous.get("games") or {}
     if capture is not None:
         capture.mkdir(parents=True, exist_ok=True)
@@ -139,7 +158,8 @@ def collect(
                 old = known.get(ident)
                 if (
                     old
-                    and old.get("version") == 1
+                    and old.get("version") == 2
+                    and old.get("firstFinalAt")
                     and old.get("mainStage") is True
                     and old.get("settled")
                     and when(game["date"]) < now - timedelta(days=3)
@@ -166,10 +186,22 @@ def collect(
                 total = (row.get("score") or {}).get("total") or {}
                 if any(raw.get(s + "Goals") != total.get(s) for s in ("home", "away")):
                     raise ValueError("Current official/source result disagreement")
-                context = context_of(code, row, saved)
-                if when(context["availableAt"]) >= now:
-                    # A resumed result has not reached the replay's availability bound.
+                if pending_scores(saved):
+                    state["pending"].append(
+                        {
+                            "competition": code,
+                            "nativeId": row["id"],
+                            "game": ident,
+                            "reason": "Sorare score settlement pending",
+                            "sourceSha256": digest(raw),
+                        }
+                    )
                     continue
+                context = context_of(code, row, saved)
+                context["firstFinalAt"] = (old or {}).get("firstFinalAt") or now.isoformat()
+                context["availableAt"] = max(when(context["availableAt"]), when(context["firstFinalAt"])).isoformat()
+                # Retain the first observed final timestamp even when it is not before
+                # this run's lock. own_before checks availability for each forecast.
                 state["games"][ident] = context
                 # Reuse existing actual-score storage; model history uses the bounded context above.
                 for slug, games in foreign_history.history_of_slug(COMPETITIONS[code].sorare, raw).items():

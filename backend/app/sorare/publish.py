@@ -1827,7 +1827,7 @@ def market_out(
         listed = (games or {}).get(row["slug"]) or []
         game = listed[0] if listed else None
         week: dict[str, Any] = {}
-        if forecast and game:
+        if forecast and game and row.get("pos") != "UNK":
             info = forecast.per_game[0].info if forecast.per_game else {}
             week = {
                 "p": round(forecast.p_play, 3),

@@ -99,6 +99,18 @@ def test_strict_squad_rejects_truncated_pagination():
         f.sync._squad(client, "club", "gw", strict=True)
 
 
+def test_unknown_football_role_keeps_identity_without_inventing_role_or_forecast(monkeypatch):
+    clubs = [f"club-{i}" for i in range(36)]
+    monkeypatch.setattr(
+        f.sync,
+        "_squad",
+        lambda client, club, fixture, strict: [{"slug": club, "position": "Unknown", "activeClub": {"slug": club}}],
+    )
+    result = f.collect_index(None, "EL", "gw", NOW, clubs=clubs)
+    assert result["complete"] and len(f.rows(result)) == 36
+    assert all(p["pos"] == "UNK" and p["projection"] is None for p in f.rows(result))
+
+
 def test_blocks_keep_player_details_small_and_forecasts_bound_to_their_own_week():
     market = {
         "PL": {

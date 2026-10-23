@@ -250,3 +250,24 @@ Current-data run `39875858709` did not pass: CL indexed 36 clubs / 1,086 players
 or inferred. The diagnostic collector now retains exact raw game and squad packets and names the failing
 source identity/position; this evidence is needed before deciding whether the failure is a source gap or parser bug.
 The local gate for that diagnostic change passed Ruff, mypy, backend pytest (69s) and OpenAPI export.
+
+
+### Current settlement and unknown-role evidence (23 October)
+
+Run 39919038497 captured the exact CL source game 861d9f9e-9ebc-4f04-badf-4f7efb69f314
+(Stuttgart–Atlético, 20 October): all 22 authentic v7 starters have numeric scores but REVIEWING status.
+These are pending settlement, not missing players or a new training exception. Runtime collection records
+the pending identity/hash, continues through other complete games, and never admits provisional scores.
+First observed FINAL time is retained and bounds subsequent own-history availability, including cold starts.
+The frozen retrospective replay and coefficients are unchanged.
+
+Omonia’s theos-ignatios-kazakeos and Torreense’s david-liz-castro-morgado are real active football players
+with position/cardPositions Unknown and no game-score role in the bounded plural players query. Exact raw
+squad/game receipts are retained under ignored european-current-receipts and the credential-free role
+probe under european-probe/unknown-current-positions.json. Preserve their search identities as Position TBC;
+no guessed role, upgrade, overlay or xScore. Coaches remain excluded. All 72 squads are still required.
+
+Acceptance remains automatic full current squads, selected-GW main-stage fixtures and validated per-game
+xScore, cold bookmarks/search, expiry without stale numbers, and browser proof at desktop/mobile.
+No user action beyond the existing competition/week controls is introduced. Source validation is being
+rerun before activating runtime publication or selectors. Conference forecasts remain disabled.

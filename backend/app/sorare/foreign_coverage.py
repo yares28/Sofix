@@ -84,7 +84,7 @@ def collect_index(
             for player in players:
                 if player.get("position") == "Coach":
                     continue
-                if player.get("position") not in SORARE_POSITION:
+                if player.get("position") not in SORARE_POSITION and player.get("position") != "Unknown":
                     raise ValueError(f"Unknown player position: {player.get('slug')} = {player.get('position')!r}")
                 slug = player.get("slug")
                 if not slug:
@@ -94,7 +94,7 @@ def collect_index(
                     {
                         "slug": slug,
                         "name": player.get("displayName") or slug,
-                        "pos": SORARE_POSITION.get(player.get("position") or ""),
+                        "pos": SORARE_POSITION.get(player.get("position") or "", "UNK"),
                         "club": active.get("shortName") or active.get("name"),
                         "crest": active.get("pictureUrl"),
                         "average": player.get("average"),

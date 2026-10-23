@@ -14,6 +14,8 @@ Owner follow-up: the xScore overlay shows only the number, with the existing Sor
 
 Follow-up verification: the previous label failed the rendering regression before the fix. Local checks and all 16 Arcade browser tests pass. Real Chrome at 1440/390 showed number-only orange 29/32, red 4 and yellow 45/46; unavailable scores stay grey. Both viewports fit. Captures: `arcade-phase2/score-colour-desktop.png` and `score-colour-mobile.png` in the session's visualization folder. This changes presentation only.
 
+24 October release check: the score-badge commit deployed and CI passed all 1,016 unit tests, then its runtime dependency audit rejected the existing Zod 4.6.5 pin (GHSA-mrhx-c7xc-m3w5, updated 23 October; fixed in 4.6.6). Zod is pinned to 4.6.7 with only its lockfile entry changed. The runtime audit reports zero vulnerabilities; local checks, all 16 Arcade browser tests and the production build pass with the patched dependency. The audit gate is retained.
+
 ## Verification and limits
 
 - The new collection/toolbar regression failed on the previous page before implementation. The first-fixture xD regression failed with a missing published field before the publisher changed. xD remains the existing expected-value calculation (starter plus substitute contributions); conditional mission odds are untouched. A double's better-game xD is never attached to its first fixture.

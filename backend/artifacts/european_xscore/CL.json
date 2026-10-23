@@ -519,5 +519,13 @@
       "sorare/outfield.py": "e2823098de857e9f239965302d4fb9b0e2bb6b55f95d82b69b0ffe9fda298bd0"
     }
   },
-  "trainingThrough": "2025-06-30"
+  "trainingThrough": "2025-06-30",
+  "runtimeEvidence": {
+    "sourceRun": 39921401763,
+    "season": "2026/27",
+    "clubs": 36,
+    "players": 1088,
+    "settledHistoryGames": 90,
+    "pendingHistoryGames": 9
+  }
 }

@@ -40,6 +40,7 @@ from app.sorare import (
     audit,
     card_art,
     early,
+    european_history,
     ff_chances,
     ff_feed,
     ff_lineups,
@@ -357,6 +358,25 @@ def lineups_summary(feed: ff_feed.Feed | None, lineups: ff_use.Lineups | None, w
     return out
 
 
+def foreign_inputs(kept: dict[str, Any], now: datetime) -> tuple[dict[str, Any], dict[str, Any], dict[str, list[str]]]:
+    grids, models, clubs = {}, {}, {}
+    for code in foreign_scores.COMPETITIONS:
+        envelope = kept.get(f"grid:{code}") or {}
+        grid = dict(envelope.get("data") or {})
+        grids[code] = grid
+        if code in {"CL", "EL"}:
+            stamp = frozen._dt((envelope.get("meta") or {}).get("last_predicted_at"))
+            names = [t.get("sorare_slug") for t in grid.get("teams") or []]
+            grid["_fresh"] = bool(stamp and timedelta(0) <= now - stamp <= timedelta(hours=6))
+            if not grid["_fresh"] or len(names) != 36 or len(set(names)) != 36 or not all(names):
+                continue
+            clubs[code] = names
+        model = foreign_scores.load(code)
+        if model is not None and grid.get("model_version") == foreign_scores.expected_version(code):
+            models[code] = model
+    return grids, models, clubs
+
+
 def run(
     db: Session, user: str | None = None, runs: int = 30, dry_run: bool = False, standalone: bool = False
 ) -> dict[str, Any]:
@@ -375,13 +395,7 @@ def run(
     foreign_kept = {
         r.key: r.payload for r in kept_blocks.rows(db, "grid:", "league_squads:", "league_games:", "player_index")
     }
-    foreign_grids = {c: (foreign_kept.get(f"grid:{c}") or {}).get("data") or {} for c in ("PL", "BL1", "FL1")}
-    foreign_models = {
-        c: m
-        for c in ("PL", "BL1", "FL1")
-        if (m := foreign_scores.load(c)) is not None
-        and foreign_grids[c].get("model_version") == foreign_scores.expected_version(c)
-    }
+    foreign_grids, foreign_models, foreign_clubs = foreign_inputs(foreign_kept, started)
     # A finished gameweek's replay never changes once its scores are final: keep it, and fetch nothing for it.
     kept = sorare_publish.settled_replay(previous)
     replayed = kept["gameweek"]["slug"] if kept else None
@@ -395,8 +409,29 @@ def run(
             no_checks: dict[str, int] = {}
             optional(db, failed, "score checks", lambda: score_checks.run(db, client, started), no_checks)
         laps("score checks")
-        foreign_states = {}
-        for code in foreign_models:
+        foreign_states: dict[str, dict[str, Any]] = {}
+        european_state: dict[str, Any] | None = None
+        if any(c in foreign_models for c in ("CL", "EL")):
+            prior_europe = foreign_kept.get("league_games:EUROPE") or {}
+            no_europe_games: dict[str, list[dict[str, Any]]] = {}
+            no_europe_state: dict[str, Any] = {
+                "complete": False,
+                "games": {},
+                "errors": [{"reason": "current history unavailable"}],
+            }
+            current_europe, european_state = optional(
+                db,
+                failed,
+                "European game history",
+                partial(european_history.collect, client, started, prior_europe),
+                (no_europe_games, no_europe_state),
+            )
+            foreign_states["EUROPE"] = european_state
+            if not dry_run:
+                player_games.save(db, current_europe, started)
+                put(db, "league_games:EUROPE", european_state, started)
+            db.rollback()
+        for code in (c for c in foreign_models if c not in {"CL", "EL"}):
             prior = foreign_kept.get(f"league_games:{code}") or {}
             empty_history: dict[str, list[dict[str, Any]]] = {}
             current, state = optional(
@@ -414,12 +449,19 @@ def run(
         active_models = {
             c: m
             for c, m in foreign_models.items()
-            if not any("scoring version" in str(e.get("reason", "")) for e in (foreign_states[c].get("errors") or []))
+            if (
+                (european_state or {}).get("complete") is True
+                if c in {"CL", "EL"}
+                else not any(
+                    "scoring version" in str(e.get("reason", "")) for e in (foreign_states[c].get("errors") or [])
+                )
+            )
         }
         foreign_kwargs: dict[str, Any] = (
             {
                 "foreign_codes": tuple(foreign_models),
                 "foreign_indexes": {c: foreign_kept.get(f"league_squads:{c}") or {} for c in foreign_models},
+                "foreign_clubs": foreign_clubs,
             }
             if foreign_models
             else {}
@@ -437,7 +479,12 @@ def run(
         snapshot["scoreModels"] = {c: foreign_scores.version(c) for c in active_models}
         if not dry_run:
             for code, index in (snapshot.get("foreign") or {}).items():
-                put(db, f"league_squads:{code}", index, started)
+                put(
+                    db,
+                    f"league_squads:{code}",
+                    foreign_coverage.compact_index(index) if code in {"CL", "EL"} else index,
+                    started,
+                )
             db.rollback()
         laps("sorare")
         # A real Sorare card for every LaLiga player, owned or not: the Lineups page draws everyone as his card. Without it a
@@ -529,6 +576,9 @@ def run(
                 scores.scores_for(
                     keeper.load(), outfield.load(), keeper.numbers_for(db, fetched), outfield.load_subs()
                 ),
+                european_games=(european_state or {}).get("games")
+                if (european_state or {}).get("complete") is True
+                else None,
             )
             if foreign_models
             else scores.scores_for(

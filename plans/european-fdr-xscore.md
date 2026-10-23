@@ -271,3 +271,18 @@ Acceptance remains automatic full current squads, selected-GW main-stage fixture
 xScore, cold bookmarks/search, expiry without stale numbers, and browser proof at desktop/mobile.
 No user action beyond the existing competition/week controls is introduced. Source validation is being
 rerun before activating runtime publication or selectors. Conference forecasts remain disabled.
+
+
+### Real current coverage passed
+
+Read-only run 39921401763 passed with CL 36 clubs / 1,088 players and EL 36 / 1,144,
+including both Unknown football roles. All 99 eligible recent main-stage fixtures linked: CL45, EL36, CONF18.
+Ninety games have authentic final 22-starter contexts (CL36, EL36, CONF18); nine CL games remain explicitly
+pending settlement, without errors or provisional targets. Compact identity blocks are 1.19/1.20 MB.
+Current Sorare window is football-23-27-oct-2026 and contains domestic games, no UEFA games: a European
+forecast in that window must never be invented. Current UEFA calendars retain all 36 clubs and 144 games each.
+
+Runtime integration adds one pooled European fit before Sorare, one shared 70-day main-stage history read
+and shared club reads across indexed leagues. It rejects expired (>6h) grids and incomplete current identity.
+The release metadata records the real coverage run without changing any fitted coefficient or replay result.
+The normal backend push performs publication; no manual refresh dispatch or production migration.

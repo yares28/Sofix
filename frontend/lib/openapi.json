@@ -129,7 +129,9 @@
                 "PD",
                 "PL",
                 "BL1",
-                "FL1"
+                "FL1",
+                "CL",
+                "EL"
               ],
               "type": "string",
               "default": "PD",
@@ -211,7 +213,9 @@
               "enum": [
                 "PL",
                 "BL1",
-                "FL1"
+                "FL1",
+                "CL",
+                "EL"
               ],
               "type": "string",
               "title": "Code"
@@ -255,7 +259,9 @@
               "enum": [
                 "PL",
                 "BL1",
-                "FL1"
+                "FL1",
+                "CL",
+                "EL"
               ],
               "type": "string",
               "title": "Code"

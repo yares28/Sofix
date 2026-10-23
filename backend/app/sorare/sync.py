@@ -881,6 +881,7 @@ def snapshot(
     cached_league: dict[str, Any] | None = None,
     foreign_codes: tuple[str, ...] = (),
     foreign_indexes: dict[str, Any] | None = None,
+    foreign_clubs: dict[str, list[str]] | None = None,
 ) -> dict[str, Any]:
     """One run's worth of Sorare: the gameweek to plan, the last one played, and everything about both.
 
@@ -1027,8 +1028,17 @@ def snapshot(
     if foreign_codes:
         from app.sorare import foreign_coverage
 
+        squads: dict[str, list[dict[str, Any]]] = {}
         foreign = {
-            code: foreign_coverage.collect_index(client, code, plan_gw["slug"], now, (foreign_indexes or {}).get(code))
+            code: foreign_coverage.collect_index(
+                client,
+                code,
+                plan_gw["slug"],
+                now,
+                (foreign_indexes or {}).get(code),
+                clubs=(foreign_clubs or {}).get(code),
+                squads=squads,
+            )
             for code in foreign_codes
         }
         lap("foreign indexes")

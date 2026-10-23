@@ -939,7 +939,7 @@ export interface operations {
     fixture_grid_api_fixture_grid_get: {
         parameters: {
             query?: {
-                competition?: "PD" | "PL" | "BL1" | "FL1";
+                competition?: "PD" | "PL" | "BL1" | "FL1" | "CL" | "EL";
             };
             header?: never;
             path?: never;
@@ -1012,7 +1012,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                code: "PL" | "BL1" | "FL1";
+                code: "PL" | "BL1" | "FL1" | "CL" | "EL";
             };
             cookie?: never;
         };
@@ -1043,7 +1043,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                code: "PL" | "BL1" | "FL1";
+                code: "PL" | "BL1" | "FL1" | "CL" | "EL";
                 bucket: string;
             };
             cookie?: never;

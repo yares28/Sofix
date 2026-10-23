@@ -36,7 +36,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import settings
 from app.db import SessionLocal, database_target, neon_bytes
-from app.jobs import league_fdr, predict, seed_and_sync, sorare, sync_odds
+from app.jobs import european_fdr, league_fdr, predict, seed_and_sync, sorare, sync_odds
 from app.logging_config import configure_logging
 from app.migrate import ensure_schema_current, upgrade_to_head
 from app.models import RUNNING, RefreshRun
@@ -66,6 +66,7 @@ def default_steps() -> list[Step]:
         ("fdr_pl", lambda: league_fdr.run("PL")),
         ("fdr_bl", lambda: league_fdr.run("BL1")),
         ("fdr_fl1", lambda: league_fdr.run("FL1")),
+        ("fdr_europe", european_fdr.run),
     ]
 
 

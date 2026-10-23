@@ -95,7 +95,7 @@ def health():
 
 
 @router.get("/fixture-grid", response_model=ApiResponse[FixtureGrid])
-def fixture_grid(competition: Literal["PD", "PL", "BL1", "FL1"] = "PD", db: Session = Depends(get_db)):
+def fixture_grid(competition: Literal["PD", "PL", "BL1", "FL1", "CL", "EL"] = "PD", db: Session = Depends(get_db)):
     if competition != "PD":
         row = db.get(ReadModel, f"grid:{competition}")
         return (
@@ -125,13 +125,13 @@ def sorare_player_index(db: Session = Depends(get_db)):
 
 
 @router.get("/sorare/players/{code}", response_model=ApiResponse[dict[str, Any]])
-def sorare_league_players(code: Literal["PL", "BL1", "FL1"], db: Session = Depends(get_db)):
+def sorare_league_players(code: Literal["PL", "BL1", "FL1", "CL", "EL"], db: Session = Depends(get_db)):
     row = db.get(ReadModel, f"players:{code}")
     return ApiResponse[dict[str, Any]](success=row is not None, data=row.payload if row else None)
 
 
 @router.get("/sorare/players/{code}/{bucket}", response_model=ApiResponse[dict[str, Any]])
-def sorare_player_shard(code: Literal["PL", "BL1", "FL1"], bucket: str, db: Session = Depends(get_db)):
+def sorare_player_shard(code: Literal["PL", "BL1", "FL1", "CL", "EL"], bucket: str, db: Session = Depends(get_db)):
     if len(bucket) != 1 or bucket not in "0123456789abcdef":
         return ApiResponse[dict[str, Any]](success=False, error="Invalid player bucket")
     row = db.get(ReadModel, f"players:{code}:{bucket}")

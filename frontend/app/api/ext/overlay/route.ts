@@ -9,6 +9,8 @@ import { scoringWeek, weekPlan } from "../../../../lib/play";
 import { loadFrozenPlan, loadLeagueMarket, loadPlayerForecasts, loadProRebuild, loadSorare, loadSorareWeek } from "../../../../lib/playData";
 import { planPlayer } from "../../../../lib/playerPage";
 import { weekContext } from "../../../../lib/weeks";
+import { marketForWeek } from "../../../../lib/playerForecasts";
+import { BOARD_OF } from "../../../../lib/arcadeFdr";
 
 // The numbers the Chrome extension draws on sorare.com's cards (extension/overlay.js). Which cards a page shows
 // is only ever sent here, to your own app; nothing goes to a third party. It reads the read models the app
@@ -22,8 +24,8 @@ export async function POST(request: NextRequest) {
   const parsed = OverlayRequest.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ ok: false, error: "Bad request." }, { status: 400, headers: NO_STORE });
 
-  const [sorare, loaded, pl, bl, fl, plPlayers, blPlayers, flPlayers] = await Promise.all([
-    loadSorare(), loadGrid(), loadGrid("PL"), loadGrid("BL1"), loadGrid("FL1"), loadLeagueMarket("PL"), loadLeagueMarket("BL1"), loadLeagueMarket("FL1"),
+  const [sorare, loaded, pl, bl, fl, plPlayers, blPlayers, flPlayers, cl, el, clPlayers, elPlayers] = await Promise.all([
+    loadSorare(), loadGrid(), loadGrid("PL"), loadGrid("BL1"), loadGrid("FL1"), loadLeagueMarket("PL"), loadLeagueMarket("BL1"), loadLeagueMarket("FL1"), loadGrid("CL"), loadGrid("EL"), loadLeagueMarket("CL"), loadLeagueMarket("EL"),
   ]);
   if (!sorare) return NextResponse.json({ ok: false, error: "Sorare has not been synced yet." }, { status: 503, headers: NO_STORE });
 
@@ -40,7 +42,7 @@ export async function POST(request: NextRequest) {
     ? dockMissions(await missionsToday(sorare, await loadMissions(), undefined, now, await loadMissionPool()))
     : undefined;
   // Every LaLiga, Premier League, Bundesliga and Ligue 1 player Sofix rates, so Arcade commons and players you do not hold get numbers too.
-  const others = { market: [...(sorare.market ?? []), ...plPlayers, ...blPlayers, ...flPlayers], grids: [loaded.grid, pl.grid, bl.grid, fl.grid] };
+  const others = { market: [...(sorare.market ?? []), ...plPlayers, ...blPlayers, ...flPlayers, ...clPlayers, ...elPlayers], grids: [loaded.grid, pl.grid, bl.grid, fl.grid, cl.grid, el.grid] };
   const numbers = overlayNumbers(data, loaded.grid, parsed.data, now, archived, others);
   // The dock, on a page naming no gameweek or the one being played: while that week has Pro lineups before their first kickoff,
   // those come first (they are the only lineups still open); else the week asked for, or the one being planned.
@@ -61,8 +63,12 @@ export async function POST(request: NextRequest) {
     const week = weekContext(loaded.grid, sorare, now);
     const forecasts = week.current?.gw ? await loadPlayerForecasts(sorare, week.current.gw) : null;
     const planned = forecasts?.plan?.playing.players.find((p) => p.player === slug) ?? planPlayer(sorare, slug, week.current?.gw ?? sorare.nextId);
-    const market = (forecasts?.market ?? sorare.market)?.find((p) => p.slug === slug) ?? null;
-    profile = overlayProfile(sorare, loaded.grid, slug, { plan: forecasts?.plan ?? weekPlan(sorare, sorare.nextId), planned, market }, now);
+    const selected = week.current?.gw ? sorare.timeline.find(w => w.id === week.current!.gw) : undefined;
+    const foreign = selected ? marketForWeek(others.market, sorare.nextId, selected, forecasts?.plan ?? null, forecasts?.record ?? null) : [];
+    const market = (forecasts?.market ?? sorare.market)?.find((p) => p.slug === slug) ?? foreign.find(p => p.slug === slug) ?? null;
+    const code = BOARD_OF[planned?.games[0]?.competition ?? market?.fixture?.competition ?? ""];
+    const board = code ? others.grids.find(g => (g?.competition ?? "PD") === code) ?? null : loaded.grid;
+    profile = overlayProfile(sorare, board, slug, { plan: forecasts?.plan ?? weekPlan(sorare, sorare.nextId), planned, market }, now);
   }
   return NextResponse.json(
     { ok: true, ...numbers, ...(plan ? { plan } : {}), ...(missions ? { missions } : {}), ...(worth ? { worth } : {}), ...(parsed.data.profile ? { profile } : {}) },

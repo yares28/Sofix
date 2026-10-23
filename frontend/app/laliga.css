@@ -162,7 +162,12 @@ main.ll { max-width: calc(1320px + 56px); padding-bottom: 64px; }
 .cell:has(.cell-crest) .venue { display: inline-flex; align-items: center; opacity: .85; }
 .cell:has(.cell-crest) .venue-long { display: none; }
 .cell:has(.cell-crest) .venue-short { display: inline; }
-@media (max-width: 760px) { .df-big b { font-size: 84px; } }
+@media (max-width: 760px) {
+  .df-big b { font-size: 84px; }
+  /* Keep the real club name readable without widening the mobile layout viewport. */
+  .df-big, .st-big { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 14px 18px; }
+  .df-big > span:last-child, .st-big > span:last-child { grid-column: 1 / -1; max-width: none; min-width: 0; }
+}
 /* On a phone five gameweeks must fit across: the cell keeps only its code and H/A there. */
 @media (max-width: 760px) {
   .cell .cell-crest { display: none; }

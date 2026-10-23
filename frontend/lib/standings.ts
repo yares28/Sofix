@@ -1,5 +1,6 @@
 import { currentTable, mulberry32, type Outcome } from "./table";
 import type { FixtureGrid, GridCell, GridTeam } from "./types";
+import { isEuropean, leaguePhaseGrid } from "./competitions";
 
 /**
  * The Table page's three readings of the season, each with its chances (docs/how_it_works.md §6):
@@ -156,15 +157,17 @@ export const hasPredicted = (grid: FixtureGrid) => grid.teams.some((team) => tea
 
 /** The season's table for one reading and one split, with each club's chances. */
 export function standings(grid: FixtureGrid, options: StandingOptions): StandingRow[] {
+  grid = leaguePhaseGrid(grid);
+  const european = isEuropean(grid.competition);
   const { mode, split = "total", through = null, stop = null, simulations = 5000, seed = 2026 } = options;
   const teams = grid.teams;
   const n = teams.length;
   const index = new Map(teams.map((team, i) => [team.code, i]));
   const all = games(grid, index).filter((game) => stop === null || game.column <= stop);
-  const now = mode === "predicted" ? null : strengthNow(grid); // also prices a postponed game, which has no forecast
+  const now = mode === "predicted" || european ? null : strengthNow(grid); // also prices a postponed game, which has no forecast
 
   // What each game is worth in this reading: a known result, or chances.
-  const played = (game: Game) => mode === "actual" && game.cell.status === "finished" && game.cell.result !== null;
+  const played = (game: Game) => (mode === "actual" || european) && game.cell.status === "finished" && game.cell.result !== null;
   const priced = all.map((game) => {
     if (played(game)) return null;
     if (mode === "predicted") return fromOpening(game.cell);
@@ -224,10 +227,10 @@ export function standings(grid: FixtureGrid, options: StandingOptions): Standing
     order.sort((a, b) => points[b]! - points[a]! || goals[b]! - goals[a]!);
     order.forEach((club, place) => {
       if (place === 0) odds.title[club]! += 1;
-      if (place < 4) odds.ucl[club]! += 1;
-      if (place === 4) odds.uel[club]! += 1;
-      if (place === 5) odds.uecl[club]! += 1;
-      if (place >= n - (grid.competition === "BL1" ? 2 : 3)) odds.rel[club]! += 1;
+      if (place < (european ? 8 : 4)) odds.ucl[club]! += 1;
+      if (european ? place >= 8 && place < 24 : place === 4) odds.uel[club]! += 1;
+      if (european ? place < 24 : place === 5) odds.uecl[club]! += 1;
+      if (place >= (european ? 24 : n - (grid.competition === "BL1" ? 2 : 3))) odds.rel[club]! += 1;
     });
   }
   const share = (count: number) => (simulations ? count / simulations : 0);

@@ -1,5 +1,5 @@
 import type { FixtureGrid, GridCell, GridTeam } from "./types";
-import { competitionOf, type Competition } from "./competitions";
+import { competitionOf, isEuropean, leaguePhaseGrid, type Competition } from "./competitions";
 
 export type Outcome = "W" | "D" | "L";
 
@@ -51,6 +51,7 @@ function playedGames(team: GridTeam, through: number): Played[] {
  * (and after that) overall goal difference, then goals scored.
  */
 export function currentTable(grid: FixtureGrid, through = Number.POSITIVE_INFINITY): StandingRow[] {
+  grid = leaguePhaseGrid(grid);
   const games = new Map(grid.teams.map((team) => [team.code, playedGames(team, through)]));
   const rows = grid.teams.map((team): Omit<StandingRow, "position"> => {
     const played = games.get(team.code)!;
@@ -72,6 +73,12 @@ export function currentTable(grid: FixtureGrid, through = Number.POSITIVE_INFINI
   });
 
   const competition = competitionOf(grid.competition);
+  const european = isEuropean(competition);
+  const completePhase = european && grid.teams.every(t => t.cells.flat().length === 8 && t.cells.flat().every(c => c.status === "finished" && c.result)) && through >= 7;
+  const byCode = new Map(rows.map(r => [r.team.code, r]));
+  const awayGoals = (code: string) => games.get(code)!.filter(g => g.venue === "A").reduce((n, g) => n + g.goalsFor, 0);
+  const awayWins = (code: string) => games.get(code)!.filter(g => g.venue === "A" && g.outcome === "W").length;
+  const opponentTotal = (row: typeof rows[number], key: "points" | "goalDifference" | "goalsFor") => [...new Set(row.team.cells.flat().map(c => c.opponent_code))].reduce((n, code) => n + (byCode.get(code)?.[key] ?? 0), 0);
   const byPoints = new Map<string, typeof rows>();
   for (const row of rows) {
     const key = competition === "PD" ? String(row.points) : competition === "FL1" ? `${row.points}:${row.goalDifference}` : `${row.points}:${row.goalDifference}:${row.goalsFor}`;
@@ -100,6 +107,12 @@ export function currentTable(grid: FixtureGrid, through = Number.POSITIVE_INFINI
 
   const compare = (a: typeof rows[number], b: typeof rows[number]): number => {
       if (b.points !== a.points) return b.points - a.points;
+      if (european) {
+        const first = b.goalDifference-a.goalDifference || b.goalsFor-a.goalsFor || awayGoals(b.team.code)-awayGoals(a.team.code) || b.won-a.won || awayWins(b.team.code)-awayWins(a.team.code);
+        if (first || !completePhase) return first;
+        // Opponent totals apply only after the entire league phase. Unavailable discipline/coefficient ties stay shared.
+        return opponentTotal(b,"points")-opponentTotal(a,"points") || opponentTotal(b,"goalDifference")-opponentTotal(a,"goalDifference") || opponentTotal(b,"goalsFor")-opponentTotal(a,"goalsFor");
+      }
       if (competition === "FL1") {
         if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference;
         const ha = headToHead.get(a.team.code), hb = headToHead.get(b.team.code);
@@ -139,6 +152,7 @@ export function currentTable(grid: FixtureGrid, through = Number.POSITIVE_INFINI
 
 // LaLiga 2026/27 places: 1–4 Champions League, 5 Europa League, 6 Conference League play-off, 18–20 relegation.
 export function zone(position: number, size: number, competition: Competition = "PD"): { className: string; label: string } | null {
+  if (isEuropean(competition)) return position <= 8 ? { className: "zone-ucl", label: "Round of 16" } : position <= 24 ? { className: "zone-uel", label: "Knockout play-off" } : { className: "zone-rel", label: "Eliminated" };
   if (competition !== "PD") {
     if (position <= 4) return { className: "zone-ucl", label: "Top four" };
     if ((competition === "BL1" || competition === "FL1") && position === size - 2) return { className: "zone-uecl", label: "Relegation play-off" };
@@ -196,7 +210,8 @@ export function mulberry32(seed: number): () => number {
  * walks the projection forward one gameweek at a time.
  */
 export function predictedTable(grid: FixtureGrid, options: PredictOptions = {}): PredictedRow[] {
-  const { simulations = 5000, seed = 2026, relegated = grid.competition === "BL1" || grid.competition === "FL1" ? 2 : 3, through } = options;
+  grid = leaguePhaseGrid(grid);
+  const { simulations = 5000, seed = 2026, relegated = isEuropean(grid.competition) ? 12 : grid.competition === "BL1" || grid.competition === "FL1" ? 2 : 3, through } = options;
   const current = currentTable(grid, through);
   const index = new Map(current.map((row, i) => [row.team.code, i]));
   const expected = current.map(() => 0);
@@ -242,7 +257,7 @@ export function predictedTable(grid: FixtureGrid, options: PredictOptions = {}):
     }
     order.sort((a, b) => points[b]! - points[a]! || goalDiff[b]! - goalDiff[a]!);
     firsts[order[0]!]! += 1;
-    for (let k = 0; k < Math.min(4, n); k++) tops[order[k]!]! += 1;
+    for (let k = 0; k < Math.min(isEuropean(grid.competition) ? 8 : 4, n); k++) tops[order[k]!]! += 1;
     for (let k = Math.max(0, n - relegated); k < n; k++) bottoms[order[k]!]! += 1;
   }
 

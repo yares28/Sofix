@@ -1,3 +1,4 @@
+import { leaguePhaseGrid } from "./competitions";
 import { currentTable, mulberry32, predictedTable } from "./table";
 import type { FixtureGrid, GridTeam } from "./types";
 
@@ -147,6 +148,7 @@ function percentile(histogram: number[], quantile: number): number | null {
 }
 
 export function seasonProgression(grid: FixtureGrid, options: ProgressionOptions = {}): Progression {
+  grid = leaguePhaseGrid(grid);
   const { simulations = 400, seed = 2026 } = options;
   const columns = grid.matchdays.length;
   const index = new Map(grid.teams.map((team, i) => [team.code, i]));

@@ -23,7 +23,7 @@ export function badgeText(background: string): string {
 
 export function crestSource(url: string | null | undefined): string | null {
   // The API already allowlists the host; checked again because this ends up in an <img src>.
-  return SHOW_CRESTS && url && url.startsWith(CREST_ORIGIN) ? url : null;
+  return SHOW_CRESTS && url && (url.startsWith(CREST_ORIGIN) || /^https:\/\/img\.uefa\.com\/imgml\/TP\/teams\/logos\/(70x70|240x240|700x700)\/[0-9]+\.png$/.test(url)) ? url : null;
 }
 
 /**

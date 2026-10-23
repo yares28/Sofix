@@ -36,7 +36,7 @@ export default async function TeamPage({ params, searchParams }: { params: Param
       </>
     );
   }
-  const team = /^(?:[A-Za-z0-9]{3}|FD[0-9]{1,6})$/.test(code) ? findTeam(grid, code) : null;
+  const team = /^[A-Za-z0-9]{2,8}$/.test(code) ? findTeam(grid, code) : null;
   if (!team) notFound();
 
   return (

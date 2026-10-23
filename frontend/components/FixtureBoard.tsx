@@ -16,7 +16,7 @@ import LeagueTable from "./LeagueTable";
 import Overview from "./Overview";
 import SeasonHero from "./SeasonHero";
 import DifficultyHero, { DifficultyLegend } from "./DifficultyHero";
-import { leagueName } from "../lib/competitions";
+import { isEuropean, leagueName } from "../lib/competitions";
 
 interface Props {
   grid: FixtureGrid;
@@ -145,12 +145,12 @@ export default function FixtureBoard({ grid, initialView, pinsInUrl, away }: Pro
       {view === "table" && state.table !== "current" && (
         <p className="footnote">
           Predictions use the rating model’s win, draw and loss chances for every remaining fixture; postponed games without
-          a new date aren’t included. Title, top-4 and relegation chances come from 5,000 simulated seasons.
+          a new date aren’t included. {isEuropean(grid.competition) ? "League-phase first, top-eight and elimination chances come from 5,000 simulations." : "Title, top-4 and relegation chances come from 5,000 simulated seasons."}
         </p>
       )}
         </>
       )}
-      {view !== "fdr" && <p className="footnote attribution">
+      {isEuropean(grid.competition) ? <p className="footnote attribution">Fixtures, regulation results and crests: UEFA. Player outcomes: Sorare. Validated model {grid.model_version}. Qualifiers excluded; no live bookmaker odds.</p> : view !== "fdr" && <p className="footnote attribution">
         Model {grid.model_version ?? "not run yet"}. Fixtures, results and crests: football-data.org. Match history and
         the record at each price: football-data.co.uk. Odds: The Odds API.
       </p>}

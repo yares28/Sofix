@@ -21,6 +21,7 @@ export function marketForWeek(
     // Omit every game-dependent value when changing weeks; a missing record must never retain next week's values.
     const identity = { slug: row.slug, name: row.name, pos: row.pos, club: row.club, crest: row.crest,
       average: row.average, eur: row.eur, pic: row.pic };
+    if (row.pos === "UNK") return { ...identity, projection: null };
     let shown: MarketPlayer = week.id === nextId ? { ...row } : { ...identity, projection: null };
     const r = saved[row.slug];
     const first = r?.games[0];

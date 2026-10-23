@@ -133,12 +133,18 @@ describe("overlayNumbers", () => {
       p: 0.88, pStart: 0.8, startSource: "sofix", sources: { sofix: 0.8 }, mu: 61, start: 63, x: 52.4,
       fixture: { team: "Athletic Club", opponent: "Getafe CF", opponentCrest: null, venue: "H", kickoff: "2026-10-10T19:00:00Z", competition: "premier-league-gb-eng" } as MarketPlayer["fixture"],
     };
-    const answer = overlayNumbers(sorare([player()]), null, ask({ players: ["kaoru-mitoma", "nobody"] }), NOW, null, { market: [row], grids: [grid] });
+    const answer = overlayNumbers(sorare([player()]), null, ask({ players: ["kaoru-mitoma", "nobody"] }), NOW, null, { market: [row], grids: [{...grid,competition:"PL"}] });
     expect(answer.players["kaoru-mitoma"]).toMatchObject({ x: 52.4, p: 0.88, average: 48, pos: "FWD", laliga: false });
     expect(answer.players["kaoru-mitoma"]!.game).toMatchObject({ source: "model" });
     expect(answer.players.nobody).toBeUndefined();
     // The plan's own numbers win for a player it holds.
     expect(overlayNumbers(sorare([player()]), null, ask({ players: ["unai-simon"] }), NOW, null, { market: [{ ...row, slug: "unai-simon", x: 1 }], grids: [] }).players["unai-simon"]!.x).toBe(54.5);
+  });
+
+  it("never lends a domestic board to a European fixture between the same sides", () => {
+    const row: MarketPlayer={slug:"european",name:"European",pos:"DEF",club:"Athletic Club",crest:null,average:50,projection:null,eur:null,pic:"",x:50,p:.8,fixture:{team:"Athletic Club",opponent:"Getafe CF",opponentCrest:null,venue:"H",kickoff:"2026-10-10T19:00:00Z",competition:"uefa-champions-league"}};
+    const answer=overlayNumbers(sorare([player()]),null,ask({players:[row.slug]}),NOW,null,{market:[row],grids:[grid]});
+    expect(answer.players[row.slug]?.game).toBeNull();
   });
 
   it("uses Sorare's odds for a national-team game, and never the club's board numbers for it", () => {

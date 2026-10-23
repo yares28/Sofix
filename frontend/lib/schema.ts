@@ -34,6 +34,9 @@ const RecordSchema = z
   .nullish();
 
 const CellSchema = z.object({
+  phase: z.enum(["league", "knockout"]).nullish(),
+  neutral: z.boolean().nullish(),
+  round_name: z.string().nullish(),
   fixture_id: z.number().int(),
   opponent_code: z.string().min(1).max(8),
   venue: z.enum(["H", "A"]),
@@ -79,7 +82,7 @@ const CellSchema = z.object({
 const LensScaleSchema = z.object({ cuts: z.array(z.number()).length(4), higher_is_easier: z.boolean() });
 
 export const FixtureGridSchema = z.object({
-  competition: z.enum(["PD", "PL", "BL1", "FL1"]).default("PD"),
+  competition: z.enum(["PD", "PL", "BL1", "FL1", "CL", "EL"]).default("PD"),
   season: z.string(),
   current_matchday: z.number().int().nullable(),
   model_version: z.string().nullable(),
@@ -94,12 +97,12 @@ export const FixtureGridSchema = z.object({
   matchdays: z.array(z.object({ number: z.number().int(), date_from: isoDate, date_to: isoDate, finished: z.boolean() })),
   teams: z.array(
     z.object({
-      code: z.string().regex(/^(?:[A-Z0-9]{3}|FD[0-9]{1,6})$/),
+      code: z.string().regex(/^[A-Z0-9]{2,8}$/),
       source_id: z.number().int().positive().nullish(),
       history_name: z.string().min(1).nullish(),
       name: z.string().min(1),
       color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
-      crest_url: z.string().startsWith("https://crests.football-data.org/").nullable(),
+      crest_url: z.string().refine(url => url.startsWith("https://crests.football-data.org/") || /^https:\/\/img\.uefa\.com\/imgml\/TP\/teams\/logos\/(70x70|240x240|700x700)\/[0-9]+\.png$/.test(url)).nullable(),
       cells: z.array(z.array(CellSchema)),
       opening: z.array(z.number().int().min(1).max(30)).nullish(), // pre-season projected position per gameweek
       decisives: z // decisive actions per game by kind, from Sorare's game stats

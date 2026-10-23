@@ -1,8 +1,16 @@
 import type { FixtureGrid, GridMatchday } from "./types";
 
-export const COMPETITIONS = { PD: "LaLiga", PL: "Premier League", BL1: "Bundesliga", FL1: "Ligue 1" } as const;
+export const COMPETITIONS = { PD: "LaLiga", PL: "Premier League", BL1: "Bundesliga", FL1: "Ligue 1", CL: "Champions League", EL: "Europa League" } as const;
 export type Competition = keyof typeof COMPETITIONS;
-export const competitionOf = (value: unknown): Competition => value === "PL" || value === "BL1" || value === "FL1" ? value : "PD";
+export const competitionOf = (value: unknown): Competition => value === "PL" || value === "BL1" || value === "FL1" || value === "CL" || value === "EL" ? value : "PD";
+export const isEuropean = (value: unknown) => value === "CL" || value === "EL";
+
+/** Knockout games never award league-phase table points or enter its simulations. */
+export function leaguePhaseGrid(grid: FixtureGrid): FixtureGrid {
+  if (!isEuropean(grid.competition)) return grid;
+  const columns = grid.matchdays.flatMap((_, i) => grid.teams.some(t => t.cells[i]?.some(c => c.phase === "league")) ? [i] : []);
+  return { ...grid, matchdays: columns.map(i => grid.matchdays[i]!), teams: grid.teams.map(t => ({ ...t, cells: columns.map(i => (t.cells[i] ?? []).filter(c => c.phase === "league")) })) };
+}
 export const leagueName = (grid: Pick<FixtureGrid, "competition">) => COMPETITIONS[competitionOf(grid.competition)];
 export function validDay(day: string | null | undefined): day is string {
   if (!day || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return false;

@@ -447,7 +447,7 @@ export type MarketPlayer = {
   by?: "sofix" | "sorare" | "form";
   slug: string;
   name: string;
-  pos: "GK" | "DEF" | "MID" | "FWD";
+  pos: "GK" | "DEF" | "MID" | "FWD" | "UNK";
   club: string | null;
   crest: string | null;
   average: number | null;

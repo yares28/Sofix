@@ -21,6 +21,27 @@ On Season/Fixtures, Difficulty and Table, **Competition** selects LaLiga, Premie
 
 The new leagues have independent football ratings, expected points/goals and raw clean-sheet chances. Their historical Record uses their own league history. Live Odds/Vs odds and a frozen preseason projection are not supplied for these leagues; missing numbers stay blank. A finished game shows only the forecast actually saved before kickoff, so the first refresh does not invent historical forecasts. The Bundesliga and Ligue 1's 16th place is a relegation play-off place; the bottom two go down directly.
 
+## Champions League and Europa League (23 October 2026)
+
+Competition also selects Champions League or Europa League on Fixtures, Difficulty, Table and Players.
+Each covers all 36 current main-stage clubs automatically. Qualifying rounds are outside this release;
+knockout fixtures appear when their actual draw and dates are published. FDR covers regulation time,
+including neutral venues. There are no invented match odds or reconstructed preseason forecasts.
+
+The table counts the league phase only: 1–8 reach the round of 16, 9–24 the knockout play-off,
+25–36 are eliminated. Actual uses results up to the selected GW; Expected adds the remaining validated
+forecasts to points already won. Chances simulate independent results and use expected goal difference
+for simulated ties. Actual unresolved discipline/coefficient ties remain shared.
+
+CL and EL use their own validated FDR-based player models. A mixed week selects the model of each actual
+match. Own-score history uses final, authentic main-stage starts in all three UEFA competitions, available
+before the lock. Reviewing scores remain pending. A player with no source position remains searchable as
+Position TBC, without an invented score. Numbers belong to the selected Sorare GW and expire with the
+existing forecast freshness rules. A week with only domestic games receives no invented European match.
+
+Conference FDR and xScore did not pass the held-out release gates and remain unavailable. Its factual
+results are retained in the validated pooled football history; they do not authorize Conference forecasts.
+
 ## 1. First use
 
 Open Sofix in Chrome or Edge. The app is private and protected by the deployment login. Use the header to move

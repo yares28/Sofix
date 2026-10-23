@@ -29,3 +29,10 @@ it("does not draw Coach rows retained by an earlier source index", () => {
   const legacy = { ...block, market: [...block.market, { ...block.market[0], slug: "coach", pos: null }] } as unknown as ForeignBlock;
   expect(foreignMarket(legacy, data, "25", null, null, now).map(p => p.slug)).toEqual(["foreign-player"]);
 });
+
+it("retains an unknown-role European identity without inventing a forecast from a saved record", () => {
+  const unknown = { ...block, competition: "EL", market: [{...block.market[0]!, pos:"UNK", projection:99}] } as ForeignBlock;
+  const record = { gameweek:{slug:"new-gw"}, players:{"foreign-player":{mu:99,pPlay:1,games:[{kickoff:"2026-10-24T19:00:00Z",sofix:99}]}}};
+  const row=foreignMarket(unknown,data,"25",null,record,now)[0]!;
+  expect(row.pos).toBe("UNK"); expect(row.x).toBeUndefined(); expect(row.projection).toBeNull();
+});

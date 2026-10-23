@@ -157,7 +157,7 @@ function ResultCard({
           </Link>
         </b>
         <span>
-          {player.pos} · {player.club}
+          {player.pos === "UNK" ? "Position TBC" : player.pos} · {player.club}
         </span>
       </span>
       <span className={`s5-gain ${v.kind}`}>

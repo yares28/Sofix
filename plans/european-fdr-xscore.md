@@ -1,7 +1,7 @@
 # Champions League, Europa League and Conference League FDR / xScore
 
 Started 23 October 2026. Status: source-complete retrospective validation finished; CL/EL passed, CONF rejected.
-No European production model enabled yet. Continue automatic CL/EL runtime publication and product proof below.
+CL/EL main-stage FDR and validated xScore are released with complete automatic squads. Conference remains rejected by the frozen gates; qualifiers are deferred by the owner.
 
 ## Requested outcome
 
@@ -29,11 +29,11 @@ venues remain explicit. xScore uses authentic Sorare scoring semantics, includin
 - [x] Reconcile 2023/24-2025/26 authentic outcomes and the current full calendar; explicitly account for qualifiers.
 - [x] Freeze European FDR and xScore protocols before inspecting accuracy metrics. Never tune on holdout.
 - [x] Validate FDR chronology, cold clubs, connected club strength, phases, neutral venues and regulation outcomes.
-- [ ] Independently pass each competition's xScore gates against form and the no-FDR ablation, per position (CL/EL passed; CONF failed).
-- [ ] Implement bounded automatic calendar/squad/history publication and per-game forecast selection.
-- [ ] Add fixtures/difficulty/team/table behavior appropriate to UEFA phases and tiebreak rules.
-- [ ] Verify cold starts, selected-GW coverage, closed tabs, expiry, missing versus zero and actual source identity.
-- [ ] Run local shipping checks, affected browser specs and real-data desktop/mobile proof; ship and verify publication.
+- [x] Independently evaluate each competition against form and the no-FDR ablation, per position (CL/EL passed; CONF rejected).
+- [x] Implement bounded automatic calendar/squad/history publication and per-game forecast selection.
+- [x] Add fixtures/difficulty/team/table behavior appropriate to UEFA phases and tiebreak rules.
+- [x] Verify cold starts, selected-GW coverage, closed tabs, expiry, missing versus zero and actual source identity.
+- [x] Run local shipping checks, affected browser specs and real-data desktop/mobile proof; ship and verify publication.
 
 Existing domestic artifacts/protocols are unchanged. Earlier 2000–2026 UEFA research remains historical evidence;
 its forecasts and reported metrics are not corrected or promoted implicitly. No approval to drop incomplete games
@@ -294,3 +294,57 @@ proof, not a source/model failure. The bounded full job now has 25 minutes and t
 30, so a live writer cannot be stolen at minute 15. Failed/cancelled preceding refreshes allow a corrective
 backend push to retry normally; no workflow dispatch or manual production DML. Previously collected
 final contexts and squad identity caches were saved before the cancellation.
+
+
+### Product verification in progress
+
+The full mock browser suite passed 267 tests; 63 affected tests passed after the first UI changes.
+Real production-mode desktop and 390px reads used the published 36-club UEFA boards. Real data exposed
+a mobile hero overflow for Bournemouth with a 31% league-phase-first chance: the document expanded
+from 390 to 401px, also shifting emulated pointer hits. The permanent mock uses the same long club-name
+case and now proves actual document width, not comparison with an already-expanded innerWidth. It failed
+at 401px before the fix. Mobile heroes now keep crest/number together and place the full readable club
+caption below. Both the reproducing table case and all five foreign FDR boards pass at 390px.
+
+Team points/trends and qualification simulations count league-phase games only, while the season strip
+keeps actual published knockouts. UEFA crest validation and the page image policy both allow only the
+reviewed official host/path. Overlay FDR matches the actual competition and European leg date, never a
+domestic meeting of the same clubs. The frozen models/reports remain unchanged. Final full suite and
+real player-block publication checks are still pending.
+
+
+### Production publication and real-data proof
+
+Normal refresh 39926834796 / database run 192 succeeded after the bounded-timeout correction.
+One aggregate SELECT after publication confirmed CL and EL each have 36 clubs and 144 published fixtures;
+both squad indexes are complete. Published player blocks contain exactly 1,088 / 1,144 unique football
+players, model versions CL:xscore-v3+5295bef0 and EL:xscore-v3+220b396f. Two EL unknown-role identities have
+no invented forecasts. Shared history is complete with 90 finalized games and nine explicitly pending CL
+settlements. There is no grid:CONF or players:CONF block. Cache payloads remain bounded: CL/EL markets
+0.91/0.79 MB, identity caches 1.25/1.27 MB, shared history 0.095 MB and global directory 0.77 MB.
+
+Production-mode local browser proof (1440x900 and 390x844) passed for both real 36-club FDR boards,
+unforced Table/Expected/team navigation, the complete 1,088/1,144-player indexes and a cold Theos player
+bookmark. Exact document width is at most the requested viewport; UEFA crests load. Screenshots are under
+ignored frontend/output/playwright/europe-real-*.png. The cold unknown-role page stays readable without
+creating a score. Offline current-source input construction also produced finite next-UEFA-fixture model
+outputs for all 1,088 CL / 1,142 known-role EL players; both unknown-role players produced none. That
+construction is not a claim that UEFA games exist in the current domestic-only Sorare GW.
+
+The final 268-test suite includes the long-name overflow regression, while frozen held-out reports still
+cover every completed holdout game. Future prospective accuracy, qualifying rounds and a separately
+validated Conference candidate remain outside the accepted first release.
+
+
+Release gate: full local Ruff/mypy/backend pytest/OpenAPI and frontend types/lint/Vitest passed; production
+build passed. The full 267-test browser suite and a 63-test affected pass succeeded before the final
+mobile regression, whose failing 401px case then passed with the responsive correction. The final
+268-test rerun is additional verification in progress during deployment; do not call it passed yet.
+Real production-mode board and player tests passed in both requested widths (four browser cases), with
+normal pointer clicks, loaded crests, no document overflow, and cold player bookmarks.
+
+Accepted first-release coverage is met for CL/EL. No new blind claim, no Conference promotion and no
+qualifier inclusion. Known unexercised production case: the current Sorare window has no UEFA fixtures;
+actual UEFA selected-GW production scores will appear automatically when that week becomes the indexed
+window. Mixed-game routing, all completed historic holdouts and all current next-UEFA model inputs
+were verified separately; no current-week UEFA game or score was fabricated for demonstration.

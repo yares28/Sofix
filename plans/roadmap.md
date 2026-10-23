@@ -14,6 +14,12 @@ and a check, so a session can work through it alone and stop only where you have
 
 ## Next up (the one queue: read this first, update it in the same commit when an item ships)
 
+23 Oct owner priority: European main-stage FDR/xScore validation finished. CL/EL passed and their automatic
+publication and product rollout completed for all 36 clubs each (1,088/1,144 players); evidence is recorded in
+[european-fdr-xscore.md](european-fdr-xscore.md). Conference failed the frozen release gates and remains withheld;
+no tuning on the exposed holdout. This later request supersedes the earlier domestic release's European exclusion.
+
+
 22 Oct owner priority completed: Ligue 1 FDR and independently validated xScore, all 18 clubs/520 players, complete recent history and bounded record caching. See [the delivery plan](ligue-1-fdr-xscore.md) and [validation evidence](../docs/ligue-1-validation.md).
 
 Owner priority, 21 Oct: Premier League and Bundesliga regular-league FDR is implemented in [pl-bundesliga-fdr.md](pl-bundesliga-fdr.md), with independent models, full-season boards and automatic collection. Their independently validated xScore models are now published (22 Oct; see [pl-bundesliga-xscore.md](pl-bundesliga-xscore.md)). The broader multi-competition research remains separate; this release does not enable cups or European FDR.

@@ -622,3 +622,19 @@ PL and Bundesliga use independently fitted FDR-based goalkeeper and outfield mod
 ## Ligue 1 football and player scores
 
 Ligue 1 uses the same fixed independent football reference and independently fitted player model architecture, with its own coefficients. The frozen v3 model passed all completed 2025/26 holdout fixtures; the owner approved documented administrative and training-only source exceptions before metrics. Full coverage, paired intervals and limitations are in [the Ligue 1 report](ligue-1-validation.md). No LaLiga calibration or retrospective Sorare projection is borrowed.
+
+## European models (23 October 2026)
+
+CL/EL use the frozen pooled UEFA Dixon–Coles architecture (goals only, neutral exposure zero, 730-day
+window, xi 0.001, ridge 1, spread 1.10). Their keeper/outfield xScore coefficients are fitted independently
+per competition. Own-score records use authentic final starts across the three main UEFA stages over
+70 days; qualifiers/domestic/national games never enter that European own-history feature. Runtime keeps
+first-observed FINAL time as an additional availability bound, so a later source settlement cannot leak
+into an earlier lock. A cold player uses the validated prior. Historical source and player exceptions are
+limited to those recorded before opening metrics in the [frozen protocol](../plans/european-model-validation.md).
+
+Held-out CL xScore RMSE is 18.6538 (form 19.8239, no-FDR 19.1245); EL 17.9600 (18.8909, 18.2727).
+Both paired weekly bootstrap improvement intervals exclude zero, with each position improving on form.
+Conference fails the football and independent FDR-contribution gates. These are retrospective held-out
+results, not a new blind sample. Full evidence is in european_validation/. No European clean-sheet
+calibrator, paid odds, post-kickoff preseason forecast or Conference forecast is supplied.

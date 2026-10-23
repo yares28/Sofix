@@ -3,7 +3,7 @@
 import { ResponsiveLine, type LineCustomSvgLayerProps, type SliceTooltipProps } from "@nivo/line";
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { seasonProgression, type ClubProgression } from "../lib/progression";
-import { competitionOf, type Competition } from "../lib/competitions";
+import { competitionOf, isEuropean, type Competition } from "../lib/competitions";
 import { zone } from "../lib/table";
 import type { FixtureGrid } from "../lib/types";
 import { Chevron } from "./Chevron";
@@ -54,6 +54,7 @@ const THEME = {
 };
 
 export default function TableProgression({ grid, through }: { grid: FixtureGrid; through: number | null }) {
+  const european = isEuropean(grid.competition);
   const progression = useMemo(() => seasonProgression(grid, { simulations: SIMULATIONS }), [grid]);
   const [group, setGroup] = useState<Group>("europe");
   const [picked, setPicked] = useState<string[]>([]);
@@ -81,9 +82,9 @@ export default function TableProgression({ grid, through }: { grid: FixtureGrid;
   );
   const shown = useMemo(() => {
     if (picking || group === "all") return ordered;
-    if (group === "europe") return ordered.filter((club) => club.end <= 6);
-    return ordered.filter((club) => club.end > size - 5); // the drop and the two clubs above it
-  }, [picking, group, ordered, size]);
+    if (group === "europe") return ordered.filter((club) => club.end <= (european ? 8 : 6));
+    return ordered.filter((club) => european ? club.end >= 21 && club.end <= 28 : club.end > size - 5); // the drop and the two clubs above it
+  }, [picking, group, ordered, size, european]);
 
   const gameweeks = grid.matchdays.map((matchday) => matchday.number);
   const firstGw = gameweeks[0] ?? 1;
@@ -154,8 +155,8 @@ export default function TableProgression({ grid, through }: { grid: FixtureGrid;
             value={group}
             onChange={setPreset}
             options={[
-              { value: "europe", label: "Europe" },
-              { value: "relegation", label: "Relegation" },
+              { value: "europe", label: european ? "Top 8" : "Europe" },
+              { value: "relegation", label: european ? "Top 24 cutoff" : "Relegation" },
               { value: "all", label: "All" },
             ]}
           />
@@ -357,7 +358,7 @@ function ChartOptions({
           <label className="option-row">
             <input type="checkbox" checked={zones} onChange={(event) => onZones(event.target.checked)} />
             <span>
-              {competition === "PD" ? "Champions League, Europe and relegation" : "Top four and relegation places"}
+              {isEuropean(competition) ? "Round of 16, play-off and elimination places" : competition === "PD" ? "Champions League, Europe and relegation" : "Top four and relegation places"}
               <span className="option-swatches" aria-hidden="true">
                 {ZONES.map((band) => <i key={band.label} style={{ background: band.fill }} />)}
                 <i style={{ background: RELEGATION }} />
@@ -406,7 +407,11 @@ function Zones({ yScale, innerWidth, size, competition }: LayerProps & { size: n
     const bottom = yScale((to + 0.5) as never);
     return { y: Math.min(top, bottom), height: Math.abs(bottom - top) };
   };
-  const bands = [
+  const bands = isEuropean(competition) ? [
+    {from:1,to:8,fill:"#0071e3",label:"Round of 16",short:"R16"},
+    {from:9,to:24,fill:"#f29d38",label:"Knockout play-off",short:"PO"},
+    {from:25,to:36,fill:RELEGATION,label:"Eliminated",short:"OUT"},
+  ] : [
     ...(competition === "PD" ? ZONES.map((band) => ({ ...band })) : [{ from: 1, to: 4, fill: "#0071e3", label: "Top four", short: "TOP4" }]),
     ...(competition === "BL1" ? [{ from: size - 2, to: size - 2, fill: "#f29d38", label: "Relegation play-off", short: "PO" }] : []),
     { from: size - (competition === "BL1" ? 1 : 2), to: size, fill: RELEGATION, label: "Relegation", short: "REL" },

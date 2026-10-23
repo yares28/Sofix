@@ -8,7 +8,7 @@ import { scoreColour } from "../lib/cards";
 import { hasPredicted, nextGame, standings, type Split, type StandingMode, type StandingRow } from "../lib/standings";
 import { zone, type Outcome } from "../lib/table";
 import type { FixtureGrid, GridTeam } from "../lib/types";
-import { competitionOf, leagueName, type Competition } from "../lib/competitions";
+import { competitionOf, isEuropean, leaguePhaseGrid, leagueName, type Competition } from "../lib/competitions";
 import Crest from "./Crest";
 import SegmentedControl from "./SegmentedControl";
 // The chart pulls in a charting library: only the Table tab should pay for it, and only in the browser.
@@ -40,6 +40,8 @@ const SUBTITLES: Record<StandingMode, string> = {
 const SPLIT_WORD: Record<Split, string> = { total: "", home: " · home games", away: " · away games" };
 
 export default function LeagueTable({ grid, through, mode, onMode, standing, onStanding, split, onSplit }: Props) {
+  const european = isEuropean(grid.competition);
+  grid = leaguePhaseGrid(grid);
   const last = grid.matchdays.length - 1;
   const round = through ?? openingColumn(grid);
   const predictedReady = useMemo(() => hasPredicted(grid), [grid]);
@@ -63,14 +65,14 @@ export default function LeagueTable({ grid, through, mode, onMode, standing, onS
       <header className="lt-head">
         <div className="lt-title">
           <h2 id="table-title">
-            {shown === "actual" ? tableTitle(gameweek).replace("LaLiga", leagueName(grid)) : TITLES[shown]}
+            {european ? `${leagueName(grid)} league phase${shown === "expected" ? " · expected finish" : ""}` : shown === "actual" ? tableTitle(gameweek).replace("LaLiga", leagueName(grid)) : TITLES[shown]}
             <span className="lt-split">{SPLIT_WORD[split]}</span>
           </h2>
           <p className="insight-meta">
-            {standing === "predicted" && !predictedReady
+            {european ? "League-phase results only. Expected finish adds remaining validated forecasts to points already won. Simulation ties use expected goal difference; discipline and coefficient ties remain shared in the actual table." : standing === "predicted" && !predictedReady
               ? "The pre-season prediction arrives with the next data refresh. Showing the real table until then."
               : SUBTITLES[shown]}
-            {!xdReady && " The xD per game arrives with the next data refresh."}
+            {!european && !xdReady && " The xD per game arrives with the next data refresh."}
           </p>
         </div>
         <div className="lt-controls">
@@ -81,7 +83,7 @@ export default function LeagueTable({ grid, through, mode, onMode, standing, onS
             options={[
               { value: "actual", label: "Actual" },
               { value: "expected", label: "Expected" },
-              { value: "predicted", label: "Predicted" },
+              ...(!european ? [{ value: "predicted" as const, label: "Predicted" }] : []),
             ]}
           />
           <SegmentedControl<Split>
@@ -137,11 +139,11 @@ export default function LeagueTable({ grid, through, mode, onMode, standing, onS
                     <abbr title={`Expected points ${by}${SPLIT_WORD[split] ? `, ${split} games only` : ""}`}>xPts</abbr>
                   </th>
                   <th scope="col" className="num"><abbr title="Expected goal difference">xGD</abbr></th>
-                  <th scope="col" className="num"><abbr title={`Chance of finishing first ${by}`}>Title</abbr></th>
-                  <th scope="col" className="num"><abbr title={`Chance of finishing in the top four ${by}`}>{competitionOf(grid.competition) === "PD" ? "UCL" : "Top 4"}</abbr></th>
-                  <th scope="col" className="num"><abbr title={`Chance of finishing fifth ${by}`}>{competitionOf(grid.competition) === "PD" ? "UEL" : "5th"}</abbr></th>
-                  <th scope="col" className="num"><abbr title={`Chance of finishing sixth ${by}`}>{competitionOf(grid.competition) === "PD" ? "UECLQ" : "6th"}</abbr></th>
-                  <th scope="col" className="num"><abbr title={`Chance of direct relegation (bottom ${grid.competition === "BL1" ? "two" : "three"}) ${by}`}>REL</abbr></th>
+                  <th scope="col" className="num"><abbr title={`Chance of finishing first ${by}`}>{european ? "1st" : "Title"}</abbr></th>
+                  <th scope="col" className="num"><abbr title={`Chance of finishing in the top ${european ? "eight" : "four"} ${by}`}>{european ? "Top 8" : competitionOf(grid.competition) === "PD" ? "UCL" : "Top 4"}</abbr></th>
+                  <th scope="col" className="num"><abbr title={`Chance of finishing ${european ? "9th–24th" : "fifth"} ${by}`}>{european ? "9–24" : competitionOf(grid.competition) === "PD" ? "UEL" : "5th"}</abbr></th>
+                  <th scope="col" className="num"><abbr title={`Chance of finishing ${european ? "in the top 24" : "sixth"} ${by}`}>{european ? "Top 24" : competitionOf(grid.competition) === "PD" ? "UECLQ" : "6th"}</abbr></th>
+                  <th scope="col" className="num"><abbr title={european ? "Chance of finishing 25th–36th and elimination" : `Chance of direct relegation (bottom ${grid.competition === "BL1" ? "two" : "three"}) ${by}`}>{european ? "Out" : "REL"}</abbr></th>
                 </>
               )}
               <th scope="col" className="num lt-start"><abbr title={`${XD_TITLE}. Attack: goals, assists, penalties won`}>Att</abbr></th>
@@ -170,10 +172,11 @@ export default function LeagueTable({ grid, through, mode, onMode, standing, onS
       </div>
 
       <ul className="zone-key" aria-label="Table colours">
-        <li className="zone-ucl">{grid.competition && grid.competition !== "PD" ? "Top four" : "Champions League"}</li>
+        <li className="zone-ucl">{european ? "1–8: Round of 16" : grid.competition && grid.competition !== "PD" ? "Top four" : "Champions League"}</li>
         {(!grid.competition || grid.competition === "PD") && <><li className="zone-uel">Europa League</li><li className="zone-uecl">Conference League play-off</li></>}
         {grid.competition === "BL1" && <li className="zone-uecl">Relegation play-off</li>}
-        <li className="zone-rel">Relegation</li>
+        {european && <li className="zone-uel">9–24: Knockout play-off</li>}
+        <li className="zone-rel">{european ? "25–36: Eliminated" : "Relegation"}</li>
       </ul>
 
       <TableProgression grid={grid} through={through} />

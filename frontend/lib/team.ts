@@ -6,6 +6,9 @@ export interface SeasonEntry {
   cell: GridCell | null; // null = blank week
 }
 
+/** League-phase points and their trend exclude knockout results; the full calendar remains visible. */
+export const leaguePhaseEntries = (entries: SeasonEntry[]) => entries.filter(e => e.cell?.phase === "league");
+
 /** Every matchday of the season for one team, one entry per game (a double week gives two). */
 export function seasonEntries(grid: FixtureGrid, team: GridTeam): SeasonEntry[] {
   return grid.matchdays.flatMap<SeasonEntry>((matchday, column) => {

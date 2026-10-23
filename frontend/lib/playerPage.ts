@@ -19,7 +19,7 @@ export function planPlayer(data: Sorare, slug: string, weekId?: string): Playing
 
 export function identityOf(slug: string, planned: PlayingPlayer | null, market: MarketPlayer | null): Identity {
   if (planned) return { name: planned.name, pos: planned.pos, club: planned.club, crest: planned.crest, pic: planned.pic };
-  if (market) return { name: market.name, pos: market.pos, club: market.club, crest: market.crest, pic: market.pic };
+  if (market) return { name: market.name, pos: market.pos === "UNK" ? null : market.pos, club: market.club, crest: market.crest, pic: market.pic };
   return { name: nameFromSlug(slug), pos: null, club: null, crest: null, pic: null };
 }
 

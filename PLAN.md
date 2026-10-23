@@ -116,3 +116,11 @@ address and days — sharing the one game week and its single plan, and each pag
 (`lib/weeks.ts`, `pageWeeks`).
 
 Ligue 1, 22 October 2026: full 18-club FDR board and independently validated FDR-based xScore, with automatic current-squad coverage. Frozen 305 completed-match holdout passed both comparators; owner-approved source exceptions and release proof: [Ligue 1 plan](plans/ligue-1-fdr-xscore.md).
+
+## European main-stage extension (23 October 2026)
+
+Champions League and Europa League passed their separate held-out FDR and player xScore gates. Automatic
+coverage is 36 clubs each, league phase and published knockouts, with per-game model selection in mixed
+weeks. Conference failed both the football gate and independent player FDR-contribution gate and remains
+disabled. No retuning on the exposed holdout. See [delivery and real-data evidence](plans/european-fdr-xscore.md)
+and [frozen reports](docs/european_validation/CL.json).

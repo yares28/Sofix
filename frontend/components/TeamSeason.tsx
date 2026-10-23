@@ -1,5 +1,6 @@
 import { cellLabel, formatDay } from "../lib/grid";
-import { pointsTrend, seasonEntries, venueSplit, type TrendPoint, type VenueSplit } from "../lib/team";
+import { leaguePhaseEntries, pointsTrend, seasonEntries, venueSplit, type TrendPoint, type VenueSplit } from "../lib/team";
+import { isEuropean } from "../lib/competitions";
 import type { FixtureGrid, GridTeam } from "../lib/types";
 
 interface Props {
@@ -10,16 +11,18 @@ interface Props {
 /** Full-season strip, points trend and home/away split for one team (server-rendered, no client JS). */
 export default function TeamSeason({ grid, team }: Props) {
   const entries = seasonEntries(grid, team);
+  const european = isEuropean(grid.competition);
+  const counted = european ? leaguePhaseEntries(entries) : entries;
   const names = new Map(grid.teams.map((t) => [t.code, t.name]));
-  const trend = pointsTrend(entries);
-  const split = venueSplit(entries);
+  const trend = pointsTrend(counted);
+  const split = venueSplit(counted);
   const nextFive = trend.filter((p) => p.kind === "expected").slice(0, 5);
   const played = trend.filter((p) => p.kind === "actual");
 
   return (
     <>
       <section className="team-stats" aria-label="Summary">
-        <Stat label="Points so far" value={String(played.reduce((s, p) => s + p.value, 0))} detail={`${played.length} played`} />
+        <Stat label={european ? "League-phase points" : "Points so far"} value={String(played.reduce((s, p) => s + p.value, 0))} detail={`${played.length} played`} />
         <Stat
           label="Expected, next 5"
           value={nextFive.length ? nextFive.reduce((s, p) => s + p.value, 0).toFixed(1) : "—"}
@@ -71,12 +74,12 @@ export default function TeamSeason({ grid, team }: Props) {
       </section>
 
       <section className="card team-section">
-        <h2>Points per game</h2>
+        <h2>{european ? "League-phase points per game" : "Points per game"}</h2>
         <TrendChart points={trend} />
       </section>
 
       <section className="card team-section">
-        <h2>Home and away</h2>
+        <h2>{european ? "League phase: home and away" : "Home and away"}</h2>
         <div className="table-scroll">
           <table className="split-table">
             <caption className="visually-hidden">{team.name} record so far and outlook, home and away</caption>
@@ -167,9 +170,7 @@ function TrendChart({ points }: { points: TrendPoint[] }) {
         {path && <path d={path} className="trend-line" />}
         {points.map((p, i) => (
           <circle key={`${p.matchday}-${i}`} cx={x(i)} cy={y(p.value)} r={p.kind === "actual" ? 4.5 : 3} className={`trend-dot ${p.kind}`}>
-            <title>
-              GW{p.matchday} {p.venue === "H" ? "v" : "at"} {p.opponent}: {p.kind === "actual" ? `${p.value} pts won` : `${p.value.toFixed(2)} expected pts`}
-            </title>
+            <title>{`GW${p.matchday} ${p.venue === "H" ? "v" : "at"} ${p.opponent}: ${p.kind === "actual" ? `${p.value} pts won` : `${p.value.toFixed(2)} expected pts`}`}</title>
           </circle>
         ))}
         {points.map((p, i) =>

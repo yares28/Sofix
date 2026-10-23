@@ -7,6 +7,8 @@ import type { MissionPlan } from "./missions";
 import type { MissionsStatus } from "./missionsToday";
 import type { Bucket, FixtureGrid } from "./types";
 import { prices } from "./prices";
+import { BOARD_OF } from "./arcadeFdr";
+import { isEuropean } from "./competitions";
 
 /**
  * What the sorare.com overlay draws on a card (extension/overlay.js): the numbers Sofix already has for the
@@ -366,11 +368,38 @@ function shownGame(games: PlayerGame[], now: Date): PlayerGame | null {
  * venue and the opponent, so it says what /difficulty says. Anything else (or a LaLiga game the board has no
  * forecast for) is Sorare's odds as the job published them, and no odds at all is `null`.
  */
-function gameFor(player: PlayingPlayer, outlook: Map<string, SideOutlook> | null, now: Date): OverlayGame | null {
+function boardFor(
+  game: { team?: string | null; opponent?: string | null; venue?: string | null; kickoff?: string | null; competition?: string | null },
+  club: string | null,
+  grids: (FixtureGrid | null)[],
+): SideOutlook | undefined {
+  const code = BOARD_OF[game.competition ?? ""];
+  const side = game.team ?? club;
+  if (!code || !side || !game.opponent) return undefined;
+  const matches: SideOutlook[] = [];
+  for (const grid of grids) {
+    if (!grid || (grid.competition ?? "PD") !== code) continue;
+    for (const team of grid.teams) {
+      if (clubKey(team.name) !== clubKey(side)) continue;
+      for (const cell of team.cells.flat()) {
+        const opponent = grid.teams.find(t => t.code === cell.opponent_code);
+        const p = cell.prediction;
+        if (!opponent || clubKey(opponent.name) !== clubKey(game.opponent) || cell.venue !== game.venue || !p) continue;
+        // A European pair can meet again in a knockout: the actual date identifies the leg.
+        if (isEuropean(code) && (!game.kickoff || Math.abs(Date.parse(cell.kickoff_utc) - Date.parse(game.kickoff)) > 20 * 60_000)) continue;
+        matches.push({ club: team.name, opponent: opponent.name, win: p.probabilities.win, cleanSheet: p.clean_sheet,
+          xgFor: p.xg_for, difficulty: p.difficulty, bucket: p.bucket, label: p.label });
+      }
+    }
+  }
+  return matches.length === 1 ? matches[0] : undefined;
+}
+
+function gameFor(player: PlayingPlayer, outlook: Map<string, SideOutlook> | null, now: Date, grids: (FixtureGrid | null)[]): OverlayGame | null {
   const game = shownGame(player.games, now);
   if (!game) return null;
   const side = game.team ?? player.club;
-  const board = outlook && side && LALIGA.test(game.competition) ? outlook.get(`${clubKey(side)}|${game.venue}|${clubKey(game.opponent)}`) : undefined;
+  const board = (outlook && side && LALIGA.test(game.competition) ? outlook.get(`${clubKey(side)}|${game.venue}|${clubKey(game.opponent)}`) : undefined) ?? boardFor(game,player.club,grids);
   if (board && board.win !== null && board.difficulty !== null && board.bucket !== null && board.label !== null) {
     return { win: board.win, cleanSheet: board.cleanSheet, goalsFor: board.xgFor, difficulty: board.difficulty, bucket: board.bucket, label: board.label, source: "model" };
   }
@@ -401,8 +430,9 @@ function entryFor(
   now: Date,
   at: string,
   inPlan: OverlayEntry["inPlan"],
+  grids: (FixtureGrid | null)[] = [],
 ): OverlayEntry {
-  const game = gameFor(player, outlook, now);
+  const game = gameFor(player, outlook, now, grids);
   const xg = xgFor(player, game, now);
   const shown = shownGame(player.games, now);
   const over = shown !== null && Date.parse(shown.kickoff) <= now.getTime();
@@ -446,12 +476,10 @@ function entryFor(
 }
 
 /** A player Sofix rates but your plan does not hold: his market row (xScore, chance to play) and his league's board for the game. */
-function marketEntry(row: MarketPlayer, boards: Map<string, SideOutlook>[], now: Date, at: string): OverlayEntry | null {
+function marketEntry(row: MarketPlayer, boards: (FixtureGrid | null)[], now: Date, at: string): OverlayEntry | null {
   const f = row.fixture as (MarketPlayer["fixture"] & { team?: string | null; competition?: string | null }) | undefined;
-  if (row.x === undefined || row.p === undefined || !f?.kickoff) return null;
-  const side = f.team ?? row.club;
-  const key = side && f.opponent && f.venue ? `${clubKey(side)}|${f.venue}|${clubKey(f.opponent)}` : null;
-  const board = key ? boards.map((b) => b.get(key)).find((b) => b && b.win !== null && b.difficulty !== null && b.bucket !== null && b.label !== null) : undefined;
+  if (row.pos === "UNK" || row.x === undefined || row.p === undefined || !f?.kickoff) return null;
+  const board = boardFor(f,row.club,boards);
   return {
     x: row.x,
     p: row.p,
@@ -514,14 +542,14 @@ export function overlayNumbers(
 
   // Anyone else in the three leagues (an Arcade common, a player you do not hold): Sofix's market numbers for the week being planned.
   const market = plan === nextWeek(sorare) ? new Map(others.market.map((row) => [row.slug, row])) : new Map<string, MarketPlayer>();
-  const boards = others.grids.flatMap((g) => (g ? [sideOutlook(g)] : []));
+  const boards = [...new Map([grid, ...others.grids].flatMap(g => g ? [[g.competition ?? "PD", g] as const] : [])).values()];
   const entries = new Map<string, OverlayEntry | null>();
   const forPlayer = (playerSlug: string | undefined): OverlayEntry | null => {
     const player = playerSlug ? playing.get(playerSlug) : undefined;
     if (!playerSlug) return null;
     if (!entries.has(playerSlug)) {
       const row = market.get(playerSlug);
-      entries.set(playerSlug, player ? entryFor(player, outlook, now, madeAt, inPlan.get(playerSlug)) : row ? marketEntry(row, boards, now, sorare.generatedAt) : null);
+      entries.set(playerSlug, player ? entryFor(player, outlook, now, madeAt, inPlan.get(playerSlug), boards) : row ? marketEntry(row, boards, now, sorare.generatedAt) : null);
     }
     return entries.get(playerSlug) ?? null;
   };

@@ -202,7 +202,7 @@ export function squadBar(collection: CollectionCard[]): Record<Position, number>
 
 /** How much a player would add over the bar in his position (negative when the squad is already deeper). */
 export function gain(player: MarketPlayer, bar: Record<Position, number>): number | null {
-  if (player.average === null) return null;
+  if (player.average === null || player.pos === "UNK") return null;
   return Math.round(player.average - (bar[player.pos] ?? 0));
 }
 
@@ -223,6 +223,7 @@ export function isUpgrade(player: MarketPlayer, bar: Record<Position, number>, o
 /** The lead signal on a search result: an upgrade, a level/worse card (or a better one unlikely to start), or one already owned. */
 export function verdict(player: MarketPlayer, bar: Record<Position, number>, owned: Set<string>): Verdict {
   if (owned.has(player.slug)) return { kind: "own", value: "In your squad", note: "you have him" };
+  if (player.pos === "UNK") return { kind: "flat", value: "-", note: "Position TBC" };
   const g = gain(player, bar);
   if (isUpgrade(player, bar, owned)) return { kind: "up", value: `+${g}`, note: `on your ${player.pos}` };
   if (g === null) return { kind: "flat", value: "-", note: "Last 10 unknown" };

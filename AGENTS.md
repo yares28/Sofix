@@ -190,7 +190,9 @@ they show. So, in every page:
 - Every server render, route call and prefetch spends Vercel's free 4 h of Fluid Active CPU a month, shared with the owner's
   other apps ("Limits"). A page render cost 1.2-1.3 s of CPU on 23 Oct 2026. So: nothing automated opens production pages
   (no warm-ups, sweeps, uptime pings or tests against it; `check.mjs --live` opens only the home and the changed pages); a
-  link list longer than the nav bars gets `prefetch={false}`; a timer or extension poll that calls the app runs minutes
+  link list longer than the nav bars gets `prefetch={false}`; a client component gets only the fields it draws (the server
+  renders every byte of its props: /missions sent 10 MB, /audit/missions 8 MB, mostly stat sheets nobody saw; measure a page
+  with `curl -H "rsc: 1"`); a timer or extension poll that calls the app runs minutes
   apart and only while its tab is visible; heavy work (parsing big payloads, ranking, simulation) belongs in the Python
   jobs, which publish the result for the page to show.
 

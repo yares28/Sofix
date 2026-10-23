@@ -293,6 +293,8 @@ export function missionHistory(logs: MonthLog[], rarity: string, names: Map<stri
   for (const [day, rarities] of entries) {
     const entry = rarities[rarity];
     if (!entry) continue;
+    // What the page's editor needs of each card, once per day: the full candidates (stat sheets, evidence) made /missions 10 MB.
+    const candidates = entry.cands.map(({ s, n, pic, pos, g, k, c, card }) => ({ s, n, pic, pos, g, k, c, card }));
     if (!entry.missions.length && entry.loaded) out.push({ day, mission: "No missions — confirmed by Sorare", loaded: true, sofix: [], yours: [], missed: [], score: null, yourPicks: "confirmed-empty", evidence: "confirmed-empty", reason: "Verified empty mission list at the last import." });
     for (const m of entry.missions) {
       const identities = mode === "best" ? m.bestPicks ?? [] : m.sofixPicks ?? [];
@@ -330,8 +332,8 @@ export function missionHistory(logs: MonthLog[], rarity: string, names: Map<stri
         day,
         mission: m.title ?? m.key,
         key: m.key,
-        source: m,
-        candidates: entry.cands,
+        source: { ...m, source: undefined },
+        candidates,
         corrected: Boolean(m.override),
         yourPicks: yours.length ? "recorded" : m.override ? "user-empty" : m.source?.appearances ? "confirmed-empty" : "unknown",
         evidence: sofix.length > 0 && m.source?.eligibilityComplete === false && !entry.reconstructed ? "incomplete" : !forecastRecorded ? "not-recorded" : !cands.size ? "unrated" : settled ? "settled" : "pending",

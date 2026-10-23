@@ -14,10 +14,15 @@ import { loadSorare } from "../../lib/playData";
 import { loadSystem } from "../../lib/system";
 import { weekContext } from "../../lib/weeks";
 import { loadPlayerSheets } from "../../lib/playerGames";
+import type { Sheet } from "../../lib/playerSheet";
 
 export const metadata: Metadata = { title: "Missions · Sofix" };
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+// The page reads at most a player's last ten games (lib/missionForm.ts, lib/missionColumns.ts); the rest of his season stays
+// on the server, because every byte sent is rendered on Vercel's CPU allowance (AGENTS.md "Limits").
+const slimSheet = (sheet: Sheet): Sheet => (sheet.form ? { ...sheet, form: { ...sheet.form, recent: sheet.form.recent.slice(0, 10) } } : sheet);
 
 /**
  * The daily missions Sorare has open and the cards of yours that fit each best. The missions come from the extension (it reads Sorare's Missions page in your
@@ -62,7 +67,7 @@ export default async function Missions({ searchParams }: { searchParams: SearchP
           bestHistory={missionHistory(completeLog, today.rarity, names, 30, "best")}
           allTime={allTime}
           players={players}
-          pool={pool}
+          pool={pool && { ...pool, players: [], sheets: { ...pool.sheets, players: Object.fromEntries(players.flatMap((p) => { const sheet = p.player ? pool.sheets.players[p.player] : undefined; return sheet ? [[p.player!, slimSheet(sheet)]] : []; })) } }}
           collection={data?.collection ?? []}
         />
       </main>

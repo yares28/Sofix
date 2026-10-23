@@ -16,7 +16,7 @@ from app.services.timeutil import as_utc
 
 logger = logging.getLogger(__name__)
 
-STALE_AFTER = timedelta(minutes=15)
+STALE_AFTER = timedelta(minutes=30)  # longer than the bounded 25-minute full-coverage Actions job
 # football-data.org allows 10 requests/min; one refresh uses one. The cooldown also keeps Neon's
 # compute budget safe from a button pressed repeatedly.
 COOLDOWN = timedelta(minutes=10)

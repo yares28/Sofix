@@ -57,6 +57,9 @@ jobs:
           # A validated league-model release must replan owned cards as well as publishing its new player blocks.
           promoted=$(gh api "repos/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.sha }}" --jq '[.files[] | select(.filename | test("^backend/artifacts/(league_xscore/(PL|BL1|FL1)|european_xscore/(CL|EL))[.]json$"))] | length')
           if [ "$promoted" != "0" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          # A failed/cancelled run did not finish publication; a corrective backend push can retry.
+          last=$(gh api "repos/${{ github.repository }}/actions/workflows/refresh.yml/runs?per_page=20" --jq '[.workflow_runs[] | select(.id != ${{ github.run_id }})][0].conclusion // ""')
+          case "$last" in failure|cancelled|timed_out) echo "run=true" >> "$GITHUB_OUTPUT"; exit 0 ;; esac
           since=$(date -u -d '3 hours ago' +%Y-%m-%dT%H:%M:%SZ)
           recent=$(gh api "repos/${{ github.repository }}/actions/workflows/refresh.yml/runs?created=>$since&per_page=20"             --jq "[.workflow_runs[] | select(.id != ${{ github.run_id }})] | length")
           if [ "$recent" = "0" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else
@@ -67,7 +70,7 @@ jobs:
     needs: gate
     if: needs.gate.outputs.run == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15 # runs take ~8 min (14 Oct 2026, after the planner stopped re-simulating the same lineups)
+    timeout-minutes: 25 # full UEFA coverage adds bounded cold history/squad reads; stale lock is 30 minutes
     defaults:
       run:
         working-directory: backend

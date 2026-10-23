@@ -286,3 +286,11 @@ Runtime integration adds one pooled European fit before Sorare, one shared 70-da
 and shared club reads across indexed leagues. It rejects expired (>6h) grids and incomplete current identity.
 The release metadata records the real coverage run without changing any fitted coefficient or replay result.
 The normal backend push performs publication; no manual refresh dispatch or production migration.
+
+
+Publication run 39923142486 built both 36-club boards (26.7 s European fit), then reached the old
+15-minute Actions cap during Sorare. It did not publish player blocks. Keep this as incomplete production
+proof, not a source/model failure. The bounded full job now has 25 minutes and the stale-lock threshold
+30, so a live writer cannot be stolen at minute 15. Failed/cancelled preceding refreshes allow a corrective
+backend push to retry normally; no workflow dispatch or manual production DML. Previously collected
+final contexts and squad identity caches were saved before the cancellation.

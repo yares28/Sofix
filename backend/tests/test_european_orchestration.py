@@ -9,6 +9,16 @@ def test_refresh_builds_one_pooled_european_fit_before_sorare():
     assert names.count("fdr_europe") == 1
 
 
+def test_full_coverage_job_has_time_to_publish_without_stealing_an_active_lock():
+    from pathlib import Path
+
+    from app.services.refresh_runs import STALE_AFTER
+
+    workflow = (Path(__file__).resolve().parents[2] / ".github/workflows/refresh.yml").read_text(encoding="utf-8")
+    assert "timeout-minutes: 25" in workflow
+    assert timedelta(minutes=25) < STALE_AFTER
+
+
 def test_european_grids_require_recent_full_main_stage_identity_and_matching_artifact():
     now = datetime(2026, 10, 23, tzinfo=UTC)
     grid = {

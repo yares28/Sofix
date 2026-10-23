@@ -138,38 +138,41 @@ export default function LineupsAudit({ lineups, saved, updated = null, weeks = [
       {ranks.length ? (
         <section className="au-w au-vs" aria-labelledby="au-lu-all">
           <h2 id="au-lu-all">Every plan, both ways</h2>
-          <table className="au-vs-t">
-            <caption className="visually-hidden">Each plan&apos;s lineups, Sofix&apos;s and Sorare&apos;s: how often the score was hit and what they won</caption>
-            <thead>
-              <tr>
-                <th scope="col" />
-                <th scope="col">Within {lineups.band} <small>SF · SO</small></th>
-                <th scope="col">Essence or better <small>SF · SO</small></th>
-                <th scope="col">XP only <small>SF · SO</small></th>
-                <th scope="col">Nothing <small>SF · SO</small></th>
-              </tr>
-            </thead>
-            <tbody>
-              {ranks.map((rank) => {
-                const [a, b] = [plan("sofix", rank), plan("sorare", rank)];
-                return (
-                  <tr key={rank}>
-                    <th scope="row">
-                      Plan {rank} <small>{plural(a.lineups)} · {b.lineups}</small>
-                    </th>
-                    {pair(hit(a), hit(b))}
-                    {pair(share(real(a.won), a.judged), share(real(b.won), b.judged))}
-                    {pair(share(a.won.xp, a.judged), share(b.won.xp, b.judged))}
-                    <td>
-                      {percent(share(a.won.none, a.judged))}
-                      <span className="au-vs-sep" aria-hidden="true">·</span>
-                      {percent(share(b.won.none, b.judged))}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- keyboard access to the scrollable comparison */}
+          <div className="au-lu-scroll" role="region" aria-label="Plan comparison" tabIndex={0}>
+            <table className="au-vs-t">
+              <caption className="visually-hidden">Each plan&apos;s lineups, Sofix&apos;s and Sorare&apos;s: how often the score was hit and what they won</caption>
+              <thead>
+                <tr>
+                  <th scope="col" />
+                  <th scope="col">Within {lineups.band} <small>SF · SO</small></th>
+                  <th scope="col">Essence or better <small>SF · SO</small></th>
+                  <th scope="col">XP only <small>SF · SO</small></th>
+                  <th scope="col">Nothing <small>SF · SO</small></th>
+                </tr>
+              </thead>
+              <tbody>
+                {ranks.map((rank) => {
+                  const [a, b] = [plan("sofix", rank), plan("sorare", rank)];
+                  return (
+                    <tr key={rank}>
+                      <th scope="row">
+                        Plan {rank} <small>{plural(a.lineups)} · {b.lineups}</small>
+                      </th>
+                      {pair(hit(a), hit(b))}
+                      {pair(share(real(a.won), a.judged), share(real(b.won), b.judged))}
+                      {pair(share(a.won.xp, a.judged), share(b.won.xp, b.judged))}
+                      <td>
+                        {percent(share(a.won.none, a.judged))}
+                        <span className="au-vs-sep" aria-hidden="true">·</span>
+                        {percent(share(b.won.none, b.judged))}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
           <ol className="au-vs-weeks" aria-label="Week by week">
             {lineups.weeks.map((week) => {
               const [a, b] = [week.sofix[0] ?? NO_PLAN, week.sorare[0] ?? NO_PLAN];

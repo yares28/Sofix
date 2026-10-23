@@ -30,6 +30,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import ReadModel
@@ -46,7 +47,7 @@ from app.sorare import (
     strategy_audit,
     versus,
 )
-from app.sorare.publish import ARCHIVE_PREFIX
+from app.sorare.publish import ARCHIVE_PREFIX, SETTLE
 
 AUDIT_KEY = "audit"
 VERSION = 1
@@ -397,6 +398,8 @@ def build(
     return {
         "version": VERSION,
         "generatedAt": now.isoformat(),
+        "settlementVersion": 1,
+        "nextSettlementAt": next_settlement(record, score_records or [], now),
         "floor": FLOOR,
         "replay": ({key: replayed.get(key) for key in ("builtAt", "from", "to", "players")} if replayed else None),
         "xscore": {"replay": replayed.get("xscore") if replayed else None, "live": xscore_record(record)},
@@ -410,6 +413,53 @@ def build(
         # Sorare's projection against Sofix's xScore on the same starts, from the numbers written down before each lock (6 Oct 2026)
         "versus": versus.figures(score_records or []),
     }
+
+
+def next_settlement(record: dict[str, Any], scores: list[dict[str, Any]], now: datetime) -> str | None:
+    """The next clock boundary, computed from inputs already read for this publication."""
+    boundaries = []
+    recorded = set()
+    for score in scores:
+        week = score.get("gameweek") or {}
+        recorded.add(week.get("slug"))
+        end = _lock(week.get("end"))
+        kickoffs = [
+            at
+            for entry in (score.get("players") or {}).values()
+            for game in entry.get("games") or []
+            if (at := _lock(game.get("kickoff"))) is not None
+        ]
+        if end:
+            boundaries.append(end + SETTLE)
+        elif kickoffs:
+            boundaries.append(max(kickoffs) + versus.SETTLE)
+    for slug, week in (record.get("weeks") or {}).items():
+        if slug in recorded:
+            continue
+        kickoffs = [
+            at
+            for entry in (week.get("players") or {}).values()
+            for cell in _cells(entry)
+            if (at := _lock((cell.get("info") or {}).get("kickoff"))) is not None
+        ]
+        if kickoffs:
+            boundaries.append(max(kickoffs) + SETTLE)
+    future = [at for at in boundaries if at > now]
+    return min(future).isoformat() if future else None
+
+
+def settlement_due(db: Session, now: datetime) -> bool:
+    """Idle score jobs read two small fields, never the whole Audit or game history."""
+    row = db.execute(
+        select(
+            ReadModel.payload["settlementVersion"].as_integer(),
+            ReadModel.payload["nextSettlementAt"].as_string(),
+        ).where(ReadModel.key == AUDIT_KEY)
+    ).first()
+    if row is None or row[0] != 1:
+        return True  # first run after this release initializes the clock
+    at = _lock(row[1])
+    return at is not None and now >= at
 
 
 def record_of(db: Session) -> dict[str, Any]:

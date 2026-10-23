@@ -14,6 +14,10 @@ and a check, so a session can work through it alone and stop only where you have
 
 ## Next up (the one queue: read this first, update it in the same commit when an item ships)
 
+24 Oct owner request: after the [Audit settlement repair](audit-settlement-phase3.md), verify Strategies and add weekly
+average points per lineup for the owner, each strategy, Sofix and Sorare; then finish Missions Audit and its automatic
+statistics. The single Play plan, with alternatives in Audit Strategies, follows separately.
+
 23 Oct owner priority: Conference is released as an explicitly provisional FDR/xScore model,
 under [the owner-directed release contract](conference-release.md). All 36 clubs / 1,110 current players
 and the full six-round calendar are published (automatic refresh 39967133628); real desktop/mobile
@@ -578,6 +582,11 @@ the held-out weeks (P9 "The bar").
 ---
 
 ## Results
+
+24 Oct - Audit settlement: explicit Sorare DNPs without a start flag count as non-starts; idle score jobs publish at the
+GW check boundary and daily history publishes its saved results. Lineups uses each source's own game map and retries
+missing results and reward cuts after 14 days, rebuilding the earlier cache once. Competition counts say checked rather
+than treating every unchecked game as future. Phone lineup comparisons stay inside their section. [Evidence](audit-settlement-phase3.md).
 
 23 Oct — Arcade phase 2: larger common cards, compact FDR/xScore/edition overlays, start % and fixture crests beneath, decimal xD, combined start/FDR filters and sorting, 12-card pages and one refresh-icon toolbar beneath the wallet. [Contract and verification](arcade-cards-phase2.md). Existing mission odds remain conditional; xD follows its existing expected-value basis and needs a new published fixture payload.
 

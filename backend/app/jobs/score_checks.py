@@ -13,9 +13,10 @@ from app.sorare.client import SorareClient
 def main() -> int:
     configure_logging()
     with SessionLocal() as db, SorareClient() as client:
-        result = score_checks.run(db, client, datetime.now(UTC))
-        if result["games"] or result["pending"]:
-            audit.publish(db, datetime.now(UTC))
+        now = datetime.now(UTC)
+        result = score_checks.run(db, client, now)
+        if result["games"] or result["pending"] or audit.settlement_due(db, now):
+            audit.publish(db, now)
             notify_app(settings.app_url, settings.revalidate_secret, settings.vercel_bypass_secret)
     print(f"Score checks: {result['games']} games read, {result['failed']} unavailable, {result['pending']} pending.")
     return 0

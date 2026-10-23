@@ -196,3 +196,85 @@ def test_a_prize_cannot_be_said_without_the_scores_that_paid(db):
     tally = lineup_audit.read(db, NOW, write=False)["plans"]["sofix"][0]
     assert (tally["lineups"], tally["judged"]) == (1, 0)
     assert db.get(ReadModel, lineup_audit.KEY) is None
+
+
+def test_missing_results_are_not_permanently_closed_after_fourteen_days(db):
+    from app.sorare import lineup_audit
+
+    keep(db)
+    row = db.get(PlayerGame, ("a", "g2"))
+    row.status, row.score = "PENDING", None
+    db.commit()
+    late = END + timedelta(days=16)
+    assert lineup_audit.read(db, late)["weeks"][0]["final"] is False
+    row.status, row.score = "FINAL", 80
+    db.commit()
+    got = lineup_audit.read(db, late + timedelta(hours=1))
+    assert got["plans"]["sofix"][0]["scored"] == 1
+    assert lineup_audit.read(db, late + timedelta(hours=2))["plans"] == got["plans"]
+
+
+def test_sorare_plan_uses_its_own_saved_game_map_for_an_alternative_only_player(db):
+    from app.sorare import lineup_audit
+
+    keep(db)
+    other = deepcopy(frozen())
+    other["playing"]["players"][0] = {"player": "alternative", "games": [{"id": "other-game"}]}
+    other["plans"][0]["lineups"][0]["starters"][0]["player"] = "alternative"
+    db.add(
+        PlayerGame(
+            player="alternative",
+            game_id="other-game",
+            date=END,
+            competition="laliga-es",
+            status="FINAL",
+            played=True,
+            started=True,
+            score=80,
+        )
+    )
+    put(db, "sorare_alt:gw", other, NOW)
+    got = lineup_audit.read(db, NOW)
+    assert got["plans"]["sorare"][0]["scored"] == 1
+
+
+def test_old_final_cache_is_rebuilt_when_it_has_incorrectly_closed_missing_results(db):
+    from app.sorare import lineup_audit
+
+    keep(db)
+    stale = {
+        "slug": "gw",
+        "number": 20,
+        "end": END.isoformat(),
+        "final": True,
+        "sofix": [
+            {
+                "rank": 1,
+                "lineups": 1,
+                "scored": 0,
+                "hit": 0,
+                "judged": 0,
+                "won": {"card": 0, "cash": 0, "essence": 0, "xp": 0, "none": 0},
+            }
+        ],
+        "sorare": [],
+    }
+    put(db, lineup_audit.KEY, {"weeks": {"gw": stale}}, NOW)
+    assert lineup_audit.read(db, NOW)["plans"]["sofix"][0]["scored"] == 1
+
+
+def test_missing_reward_cut_for_one_board_is_retried_even_when_another_board_has_cuts(db):
+    from app.sorare import lineup_audit
+
+    keep(db)
+    plan = deepcopy(frozen())
+    plan["plans"][0]["lineups"][0]["tiers"] = [{"lo": 1, "hi": 100, "essence": 250}]
+    put(db, "sorare_plan:gw", plan, NOW)
+    put(db, "sorare_references", {"gw": {"other-board": {"cuts": {"100": 100}}}}, NOW)
+    first = lineup_audit.read(db, NOW)
+    assert first["weeks"][0]["final"] is False
+    assert first["plans"]["sofix"][0]["judged"] == 0
+    put(db, "sorare_references", {"gw": {"LaLiga | Limited": {"cuts": {"100": 100}}}}, NOW)
+    second = lineup_audit.read(db, NOW)
+    assert second["plans"]["sofix"][0]["judged"] == 1
+    assert second["plans"]["sofix"][0]["won"]["essence"] == 1

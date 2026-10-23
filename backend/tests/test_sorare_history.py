@@ -47,6 +47,17 @@ def test_history_says_whether_he_started_and_for_how_long() -> None:
     assert "gameStarted" in client.queries[0] and "minsPlayed" in client.queries[0]
 
 
+def test_history_does_not_turn_missing_appearance_flags_into_false():
+    client = FakeClient(
+        [
+            game("2026-09-26T18:00:00Z", 40, {"playedInGame": True, "gameStarted": None}),
+            game("2026-09-20T18:00:00Z", 0, {"playedInGame": None, "gameStarted": None}),
+        ]
+    )
+    rows = sync.history(client, ["a"], datetime(2026, 9, 29, tzinfo=UTC))["a"]
+    assert [(r["played"], r["started"]) for r in rows] == [(True, None), (None, None)]
+
+
 def test_history_keeps_the_games_position_side_and_decisive_level_for_stat_sheets():
     row = game(
         "2026-09-26T18:00:00Z",

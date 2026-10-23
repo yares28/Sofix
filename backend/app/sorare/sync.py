@@ -572,9 +572,13 @@ def history(
                 **({"home": row["anyGame"]["homeTeam"]["name"]} if row["anyGame"].get("homeTeam") else {}),
                 **({"away": row["anyGame"]["awayTeam"]["name"]} if row["anyGame"].get("awayTeam") else {}),
                 "score": row["score"],
-                "played": bool(row["anyPlayerGameStats"]["playedInGame"]) if row.get("anyPlayerGameStats") else None,
-                "started": bool(row["anyPlayerGameStats"].get("gameStarted"))
-                if row.get("anyPlayerGameStats")
+                "played": bool(row["anyPlayerGameStats"]["playedInGame"])
+                if (row.get("anyPlayerGameStats") or {}).get("playedInGame") is not None
+                else None,
+                "started": bool(row["anyPlayerGameStats"]["gameStarted"])
+                if (row.get("anyPlayerGameStats") or {}).get("gameStarted") is not None
+                else False
+                if (row.get("anyPlayerGameStats") or {}).get("playedInGame") is False
                 else None,
                 "mins": (row.get("anyPlayerGameStats") or {}).get("minsPlayed"),
                 "status": row["scoreStatus"],
@@ -684,7 +688,7 @@ def league_history(
                 datetime.fromisoformat(g["date"])
                 for g in previous
                 if isinstance(g, dict)
-                and g.get("status") == "PENDING"
+                and g.get("status") in (None, "PENDING", "REVIEWING")
                 and g.get("date")
                 and datetime.fromisoformat(g["date"]) <= now
             ]

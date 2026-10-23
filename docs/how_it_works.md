@@ -307,7 +307,12 @@ average scores 66.1%, so the formula adds nothing to the order yet. `--summary` 
 **The Audit page** (`/audit`, `app.sorare.audit`, read model `audit`). `player_audit.read` joins frozen week metadata to
 `player_games` for every indexed and owner player, with legacy settled records as a fallback and no duplicate cases.
 New weeks wait until their end plus 24 hours; older records retain their day-after-last-game boundary. Unknown starts,
-scores or mission stats remain pending. The replay file's numbers (the xScore success rate, and Sofix's chance of starting replayed on the past
+scores and missing results are never non-appearances. An explicit Sorare `DID_NOT_PLAY` with `played=false` counts as a
+non-start even when Sorare omits `gameStarted`; contradictory DNP flags remain unknown. The half-hourly score job also
+checks a small published settlement deadline and republishes once the GW boundary passes, including idle source runs.
+The daily history job publishes Audit after saving results and invalidates the app cache. Lineups use each source's
+saved game map and keep retrying missing results or reward cuts after 14 days; the older lineup cache is rebuilt once.
+Missing mission stats remain pending. The replay file's numbers (the xScore success rate, and Sofix's chance of starting replayed on the past
 in bands) beside the live record, which begins empty. `starts_record` scores each source (Sorare, Futbol Fantasy, Sofix) on the games
 it had a number for once they are settled; `xscore_record` counts the same pairs on what the model noted before each lock (the
 chance he plays times his score if he plays) against his best game once the gameweek is settled. The live xScore pair rate is published from the first pair, with its interval and count (11 October owner request). The other source verdicts keep their `FLOOR` (100 cases). The step is optional: if it

@@ -15,7 +15,7 @@ settled (the same reason as `lineup_audit`). A week is picked up by the first re
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from sqlalchemy import select
@@ -27,10 +27,11 @@ from app.services.timeutil import as_utc
 from app.sorare import strategies
 from app.sorare.frozen import PLAN_PREFIX
 from app.sorare.frozen_scores import _score, results
-from app.sorare.lineup_audit import GIVE_UP, KINDS, kept_references, prize
+from app.sorare.lineup_audit import KINDS, kept_references, prize
 from app.sorare.publish import ARCHIVE_PREFIX, SETTLE, STRATEGY_PREFIX
 
 KEY = "strategy_audit"
+GIVE_UP = timedelta(days=14)
 VERSION = 2
 MY_WEEK = "my_week:"
 ENTERED_WEEK = "entered_week:"

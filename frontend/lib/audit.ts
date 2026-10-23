@@ -317,7 +317,7 @@ export const competitionName = (slug: string): string =>
 /** A source in one competition, in the page's words: the share right once enough games are checked, else how far it is. */
 export function competitionStory(line: CompetitionLine, floor: number): string {
   if (line.right !== null) return `${percent(line.right)} right · ${plural(line.settled, "game")}`;
-  if (line.settled === 0) return `${plural(line.recorded, "game")} waiting`;
+  if (line.settled === 0) return `0 of ${line.recorded.toLocaleString("en-GB")} checked`;
   return `${line.settled.toLocaleString("en-GB")} of ${floor} checked`;
 }
 

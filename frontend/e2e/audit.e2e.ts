@@ -379,6 +379,17 @@ test("Lineups judges the saved plans by score and by prize: Sofix and Sorare wit
   expect(scan.violations).toEqual([]);
 });
 
+test("Lineups keeps every plan comparison accessible without widening the phone page", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/audit/lineups");
+  await expect(page.getByRole("heading", { name: "Lineups", exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  const comparison = page.getByRole("region", { name: "Plan comparison", exact: true });
+  await expect(comparison).toHaveAttribute("tabindex", "0");
+  await expect(comparison.getByRole("table")).toBeVisible();
+  expect(await smallText(page, 10)).toEqual([]);
+});
+
 test("Rewards adds up what the plans expected over the season against what they won, and says too few to tell under the floor", async ({ page }) => {
   await page.goto("/audit/rewards");
   await expect(page.getByRole("heading", { level: 1, name: "Rewards" })).toBeVisible();

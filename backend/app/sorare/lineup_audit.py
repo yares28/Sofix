@@ -11,7 +11,7 @@ a week still being settled: the two plans of one week are about a megabyte, and 
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -28,7 +28,7 @@ from app.sorare.publish import ALT_PREFIX, SETTLE
 KEY = "lineup_audit"
 REFERENCES_KEY = "sorare_references"  # the scores that paid each week (app.jobs.sorare writes it)
 BAND = 15  # points either side of the expected score that still count as hitting it
-GIVE_UP = timedelta(days=14)  # a game never read by then stays unknown; the week is closed as it is
+CACHE_VERSION = 2
 KINDS = ("card", "cash", "essence", "xp")  # best first
 SOURCES = {"sofix": PLAN_PREFIX, "sorare": ALT_PREFIX}
 
@@ -75,6 +75,8 @@ def plan_tally(
         if won is not None:
             tally["judged"] += 1
             tally["won"][won] += 1
+        elif raw.get("tiers"):
+            settled = False  # another board having cuts does not settle this board's prize
     return tally, settled
 
 
@@ -87,13 +89,17 @@ def kept_references(db: Session) -> dict[str, Any]:
 def read(db: Session, now: datetime, *, write: bool = True) -> dict[str, Any]:
     kept_row = db.get(ReadModel, KEY)
     kept: dict[str, Any] = dict(kept_row.payload) if kept_row and isinstance(kept_row.payload, dict) else {}
-    weeks: dict[str, Any] = {slug: week for slug, week in (kept.get("weeks") or {}).items() if week.get("final")}
-    have = set(db.scalars(select(ReadModel.key).where(ReadModel.key.like(f"{ALT_PREFIX}%"))))
-    slugs = [
+    plans = {
         key.removeprefix(PLAN_PREFIX)
         for key in db.scalars(select(ReadModel.key).where(ReadModel.key.like(f"{PLAN_PREFIX}%")))
-        if key.removeprefix(PLAN_PREFIX) not in weeks
-    ]
+    }
+    weeks: dict[str, Any] = {
+        slug: week
+        for slug, week in (kept.get("weeks") or {}).items()
+        if week.get("final") and (kept.get("version") == CACHE_VERSION or slug not in plans)
+    }
+    have = set(db.scalars(select(ReadModel.key).where(ReadModel.key.like(f"{ALT_PREFIX}%"))))
+    slugs = sorted(plans - weeks.keys())
     references: dict[str, Any] | None = None
     for slug in slugs:
         plan_row = db.get(ReadModel, f"{PLAN_PREFIX}{slug}")
@@ -107,7 +113,14 @@ def read(db: Session, now: datetime, *, write: bool = True) -> dict[str, Any]:
         if references is None:
             references = kept_references(db)
         games = games_of(plan)
-        actuals = results(db, games)
+        other = db.get(ReadModel, f"{ALT_PREFIX}{slug}") if f"{ALT_PREFIX}{slug}" in have else None
+        payloads = {"sofix": plan, "sorare": other.payload if other else {}}
+        maps = {source: {**games, **games_of(payload)} for source, payload in payloads.items()}
+        every: dict[str, list[str]] = {}
+        for source_games in maps.values():
+            for player, ids in source_games.items():
+                every[player] = sorted(set(every.get(player, [])) | set(ids))
+        actuals = results(db, every)
         reference = references.get(slug) or {}
         week: dict[str, Any] = {
             "slug": slug,
@@ -115,18 +128,16 @@ def read(db: Session, now: datetime, *, write: bool = True) -> dict[str, Any]:
             "end": info["end"],
             "final": bool(reference),
         }
-        for source, prefix in SOURCES.items():
-            other = db.get(ReadModel, f"{prefix}{slug}") if source != "sofix" and f"{prefix}{slug}" in have else None
-            payload = plan if source == "sofix" else (other.payload if other else {})
+        for source, payload in payloads.items():
             week[source] = []
             for i, raw in enumerate(payload.get("plans") or []):
-                tally, settled = plan_tally(raw, games, actuals, reference)
+                tally, settled = plan_tally(raw, maps[source], actuals, reference)
                 week[source].append({"rank": raw.get("rank", i + 1), **tally})
                 week["final"] = week["final"] and settled
-        week["final"] = (week["final"] and now > end + SETTLE) or now > end + GIVE_UP
+        week["final"] = week["final"] and now >= end + SETTLE
         weeks[slug] = week
-    if write and weeks != (kept.get("weeks") or {}):
-        put(db, KEY, {"weeks": weeks}, now)
+    if write and (weeks != (kept.get("weeks") or {}) or kept.get("version") != CACHE_VERSION):
+        put(db, KEY, {"version": CACHE_VERSION, "weeks": weeks}, now)
     return page(list(weeks.values()))
 
 

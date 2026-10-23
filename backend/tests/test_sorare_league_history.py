@@ -173,3 +173,27 @@ def test_club_season_backfill_reuses_the_daily_read_then_resumes_incremental():
     covered.clear()
     sync.league_history(client, ["a"], out, NOW, lambda _: None, since={"a": start}, covered=covered)
     assert covered == {}, "a failed or incomplete source page cannot mark the season as covered"
+
+
+def test_reviewing_results_are_revisited_after_newer_final_games_arrive():
+    class Dates(_Client):
+        def __init__(self):
+            super().__init__()
+            self.windows = []
+
+        def query(self, query, variables):
+            self.windows.append(variables.copy())
+            return super().query(query, variables)
+
+    client = Dates()
+    cached = {
+        "a": {
+            "at": OLD,
+            "games": [
+                {"gameId": "review", "date": "2026-09-20T14:00:00+00:00", "status": "REVIEWING"},
+                {"gameId": "newer", "date": "2026-10-05T14:00:00+00:00", "status": "FINAL"},
+            ],
+        }
+    }
+    sync.league_history(client, ["a"], cached, NOW, lambda _: None)
+    assert client.windows[0]["from"] == "2026-09-17T14:00:00+00:00"

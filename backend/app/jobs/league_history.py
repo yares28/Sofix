@@ -15,13 +15,14 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.db import SessionLocal
 from app.jobs.sorare import LEAGUE_STATUS_KEY, SORARE_KEY
 from app.logging_config import configure_logging
 from app.models import ReadModel
 from app.services import data_health
-from app.services.publish import put
-from app.sorare import player_games, sheets
+from app.services.publish import notify_app, put
+from app.sorare import audit, player_games, score_checks, sheets
 from app.sorare.client import SorareClient
 from app.sorare.sync import league_history
 
@@ -31,13 +32,22 @@ logger = logging.getLogger(__name__)
 def run(db: Session, client: SorareClient, now: datetime) -> dict[str, Any]:
     row = db.get(ReadModel, SORARE_KEY)
     payload = row.payload if row and isinstance(row.payload, dict) else {}
-    slugs = sorted(
-        {entry["slug"] for entry in payload.get("market") or [] if entry.get("slug")}
-        | {entry["player"] for entry in payload.get("collection") or [] if entry.get("player")}
-    )
+    slugs = {entry["slug"] for entry in payload.get("market") or [] if entry.get("slug")} | {
+        entry["player"] for entry in payload.get("collection") or [] if entry.get("player")
+    }
+    kept = player_games.known(db)
+    states = {(slug, g["gameId"]): g.get("status") for slug, entry in kept.items() for g in entry["games"]}
+    # Historical owner identity survives selling a card. Stop these extra reads once its recorded games are final.
+    for record in score_checks.catalog(db):
+        for slug, entry in record["players"].items():
+            if any(
+                states.get((slug, game.get("id"))) not in ("FINAL", "DID_NOT_PLAY")
+                and ((at := score_checks.moment(game.get("kickoff"))) is None or at <= now)
+                for game in entry.get("games") or []
+            ):
+                slugs.add(slug)
     if not slugs:
         return {"players": 0, "read": 0, "at": now.isoformat()}
-    kept = player_games.known(db)
     pool_row = db.get(ReadModel, "missions_pool")
     forms = ((pool_row.payload if pool_row else {}).get("sheets") or {}).get("players", {})
     previous_status = db.get(ReadModel, LEAGUE_STATUS_KEY)
@@ -60,7 +70,7 @@ def run(db: Session, client: SorareClient, now: datetime) -> dict[str, Any]:
     db.rollback()  # do not hold a Neon connection while Sorare is being read
     league = league_history(
         client,
-        slugs,
+        sorted(slugs),
         kept,
         now,
         save_batch,
@@ -74,6 +84,7 @@ def run(db: Session, client: SorareClient, now: datetime) -> dict[str, Any]:
     }
     put(db, LEAGUE_STATUS_KEY, {**status, "covered": covered}, now)
     put(db, sheets.KEY, sheets.from_kept(db), now)
+    audit.publish(db, now)
     data_health.publish(db, now)
     return status
 
@@ -82,6 +93,8 @@ def main(argv: list[str] | None = None) -> int:
     configure_logging()
     with SessionLocal() as db, SorareClient() as client:
         status = run(db, client, datetime.now(UTC))
+        if status["players"]:
+            notify_app(settings.app_url, settings.revalidate_secret, settings.vercel_bypass_secret)
     logger.info("league history: %(read)s of %(players)s players read", status)
     # Nobody read although there were players to read: Sorare refused the run, worth GitHub's failure email.
     return 1 if status["players"] and not status["read"] else 0

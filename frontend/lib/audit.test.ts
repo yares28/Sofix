@@ -85,7 +85,7 @@ describe("what each source says for itself", () => {
     // each competition on its own (13 Oct 2026): a figure only once it has enough games
     expect(competitionStory({ competition: "laliga-es", recorded: 150, settled: 120, right: 0.74, brier: 0.18 }, 100)).toBe("74% right · 120 games");
     expect(competitionStory({ competition: "uefa-europa-league", recorded: 30, settled: 12, right: null, brier: null }, 100)).toBe("12 of 100 checked");
-    expect(competitionStory({ competition: "uefa-champions-league", recorded: 9, settled: 0, right: null, brier: null }, 100)).toBe("9 games waiting");
+    expect(competitionStory({ competition: "uefa-champions-league", recorded: 9, settled: 0, right: null, brier: null }, 100)).toBe("0 of 9 checked");
     expect([competitionName("uefa-champions-league"), competitionName("serie-a-it"), competitionName("eredivisie-nl")]).toEqual(["Champions League", "Serie A", "Eredivisie"]);
   });
 

@@ -30,9 +30,17 @@ def _due(record: dict[str, Any], now: datetime) -> bool:
 
 
 def actual(row: PlayerGame | None, due: bool) -> dict[str, Any] | None:
-    if not due or row is None or row.status in (None, "PENDING") or row.played is None or row.started is None:
+    if not due or row is None or row.status not in ("FINAL", "REVIEWING", "DID_NOT_PLAY") or row.played is None:
         return None
-    return {"started": row.started, "played": row.played, "score": row.score, "mins": row.mins}
+    if row.status == "DID_NOT_PLAY":
+        if row.played or row.started:
+            return None
+        started = False  # Sorare can explicitly report DNP without a gameStarted stat.
+    elif row.started is None:
+        return None
+    else:
+        started = row.started
+    return {"started": started, "played": row.played, "score": row.score, "mins": row.mins}
 
 
 def read(db: Session, now: datetime, floor: int) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any]]:

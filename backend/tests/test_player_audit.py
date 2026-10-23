@@ -84,6 +84,114 @@ def test_local_api_fallback_uses_the_same_stored_results(db):  # noqa: F811
     assert page["starts"]["live"]["sofix"]["settled"] == 2
 
 
+def test_explicit_nonappearance_with_no_start_stat_settles_but_unknown_appearance_does_not(db):  # noqa: F811
+    keep(db)
+    no_show = db.get(PlayerGame, ("p0", "g"))
+    no_show.status, no_show.played, no_show.started = "DID_NOT_PLAY", False, None
+    unknown = db.get(PlayerGame, ("p1", "g"))
+    unknown.started = None
+    db.commit()
+    page = audit.from_kept(db, NOW)
+    assert page["starts"]["live"]["sofix"]["settled"] == 1
+    assert page["starts"]["live"]["sofix"]["started"] is None  # fewer than 100
+    no_show.played = True  # contradictory source data is not a result
+    db.commit()
+    assert audit.from_kept(db, NOW)["starts"]["live"]["sofix"]["settled"] == 0
+
+
+def test_idle_score_job_publishes_at_the_gw_boundary_without_browser_or_new_source_read(db, monkeypatch):  # noqa: F811
+    from contextlib import nullcontext
+
+    from app.jobs import score_checks as job
+
+    keep(db)
+    before = END + timedelta(hours=23)
+    audit.publish(db, before)
+    assert db.get(ReadModel, "audit").payload["starts"]["live"]["sofix"]["settled"] == 0
+
+    class Clock:
+        @staticmethod
+        def now(_):
+            return END + timedelta(hours=24)
+
+    calls = []
+    monkeypatch.setattr(job, "datetime", Clock)
+    monkeypatch.setattr(job, "SessionLocal", lambda: nullcontext(db))
+    monkeypatch.setattr(job, "SorareClient", lambda: nullcontext(object()))
+    monkeypatch.setattr(job.score_checks, "run", lambda *args: {"games": 0, "failed": 0, "pending": 0})
+    monkeypatch.setattr(job, "notify_app", lambda *args: calls.append("revalidate"))
+    job.main()
+    assert db.get(ReadModel, "audit").payload["starts"]["live"]["sofix"]["settled"] == 2
+    job.main()
+    assert calls == ["revalidate"], "repeated idle runs neither duplicate counts nor republish"
+
+
+def test_daily_history_publishes_all_saved_sources_without_an_owner_card_or_page_visit(db, monkeypatch):  # noqa: F811
+    from app.jobs import league_history as job
+
+    keep(db)
+    put(db, "sorare", {"market": [{"slug": "p0"}], "collection": []}, NOW)
+    missing = db.get(PlayerGame, ("p0", "g"))
+    missing.status, missing.score, missing.played, missing.started = "PENDING", None, None, None
+    db.commit()
+
+    def read(client, slugs, kept, at, save, **kwargs):
+        result = {
+            "p0": {
+                "at": at.isoformat(),
+                "games": [
+                    {
+                        "gameId": "g",
+                        "date": (LOCK + timedelta(days=1)).isoformat(),
+                        "competition": "laliga-es",
+                        "status": "FINAL",
+                        "score": 0,
+                        "played": True,
+                        "started": False,
+                    }
+                ],
+            }
+        }
+        save(result)
+        return result
+
+    monkeypatch.setattr(job, "league_history", read)
+    assert db.get(ReadModel, "audit") is None  # cold start
+    job.run(db, object(), NOW)
+    page = deepcopy(db.get(ReadModel, "audit").payload)
+    for source in starts.SOURCES:
+        assert page["starts"]["live"][source]["settled"] == 2
+    assert page["versus"]["subs"]["starts"] == 1
+    assert page["versus"]["subs"]["sofix"]["miss"] == 50
+    job.run(db, object(), NOW + timedelta(minutes=30))
+    assert db.get(ReadModel, "audit").payload["starts"] == page["starts"]
+
+
+def test_daily_history_keeps_checking_a_sold_players_unfinished_record_then_stops(db, monkeypatch):  # noqa: F811
+    from app.jobs import league_history as job
+
+    record = keep(db)
+    record["players"]["p0"]["owned"] = True
+    put(db, "score_record:gw", record, NOW)
+    put(db, "sorare", {"collection": [], "market": []}, NOW)
+    pending = db.get(PlayerGame, ("p0", "g"))
+    pending.status, pending.started = "REVIEWING", None
+    db.commit()
+    asked = []
+
+    def read(client, slugs, kept, at, save, **kwargs):
+        asked.extend(slugs)
+        return {}
+
+    monkeypatch.setattr(job, "league_history", read)
+    job.run(db, object(), NOW)
+    assert asked == ["p0"]
+    pending.status, pending.started = "FINAL", True
+    db.commit()
+    job.run(db, object(), NOW + timedelta(days=1))
+    assert asked == ["p0"], "sold players with final results do not consume further daily reads"
+
+
 def test_table_results_match_legacy_figures_on_the_overlap_without_double_counting(db):  # noqa: F811
     record = keep(db)
     legacy = {

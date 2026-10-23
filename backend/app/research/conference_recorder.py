@@ -72,8 +72,10 @@ def future_games(client: Any) -> list[dict[str, Any]]:
     raise ValueError("Future competition pagination budget exhausted")
 
 
-def squad(client: Any, slug: str) -> list[dict[str, Any]]:
+def squad(client: Any, slug: str, *, evidence: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     players = {}
+    raw_players = []
+    noncurrent = []
     after = None
     seen = set()
     for _ in range(4):
@@ -82,14 +84,20 @@ def squad(client: Any, slug: str) -> list[dict[str, Any]]:
             raise ValueError("Wrong squad identity")
         page = club["activePlayers"]
         for player in page["nodes"]:
+            raw_players.append(player)
             if player["position"] == "Coach":
                 continue
-            if player["slug"] in players or (player.get("activeClub") or {}).get("slug") != slug:
-                raise ValueError("Duplicate or wrong active club player")
+            if (player.get("activeClub") or {}).get("slug") != slug:
+                noncurrent.append(player)
+                continue
+            if player["slug"] in players:
+                raise ValueError(f"Duplicate current player in {slug}: {player['slug']}")
             players[player["slug"]] = player
         if not page["pageInfo"]["hasNextPage"]:
             if len(players) < 11:
                 raise ValueError("Incomplete active squad")
+            if evidence is not None:
+                evidence[slug] = {"rawPlayers": raw_players, "nonCurrent": noncurrent}
             return list(players.values())
         after = page["pageInfo"]["endCursor"]
         if not after or after in seen:
@@ -195,6 +203,8 @@ def record_game(
     history: Any,
     squads: dict[str, list[dict[str, Any]]],
     facts_at: datetime,
+    *,
+    squad_evidence: dict[str, Any] | None = None,
 ) -> None:
     week, lock = actual_window(source)
     if not capture_allowed(datetime.now(UTC), lock, when(candidate["frozenAt"])):
@@ -209,7 +219,7 @@ def record_game(
     for side in ("homeTeam", "awayTeam"):
         slug = source[side]["slug"]
         if slug not in squads:
-            squads[slug] = squad(client, slug)
+            squads[slug] = squad(client, slug, evidence=squad_evidence)
     at = datetime.now(UTC)
     if not capture_allowed(at, lock, when(candidate["frozenAt"])):
         raise ValueError("Collection crossed actual Sorare deadline")
@@ -243,6 +253,7 @@ def record_game(
             "source": source,
             "native": native,
             "squads": sides,
+            "squadEvidence": {slug: (squad_evidence or {}).get(slug) for slug in sides},
             "football": mixed,
             "plain": [float(average[k]) for k in ("p_h", "p_d", "p_a")],
             "base": base,
@@ -388,6 +399,7 @@ def run(client: Any, archive: Archive, folder: Path) -> dict[str, Any]:
             eligible.append((ident, game))
     # A first, real source proof reads every current club, even outside a capture window.
     squads: dict[str, list[dict[str, Any]]] = {}
+    squad_evidence: dict[str, Any] = {}
     if not state.get("squadProof"):
         current_ids = {
             row[side]["id"]
@@ -399,14 +411,17 @@ def run(client: Any, archive: Archive, folder: Path) -> dict[str, Any]:
         if len(current_ids) != 36 or len(reverse) != 36:
             raise ValueError(f"Full 36-club source identity proof incomplete: {sorted(current_ids - set(reverse))}")
         for slug in reverse.values():
-            squads[slug] = squad(client, slug)
+            squads[slug] = squad(client, slug, evidence=squad_evidence)
         proof = {
             "at": datetime.now(UTC).isoformat(),
             "clubs": len(squads),
             "players": sum(len(p) for p in squads.values()),
             "squadsSha256": digest(squads),
+            "nonCurrentSourceRows": sum(len(row["nonCurrent"]) for row in squad_evidence.values()),
         }
-        proof["evidence"] = archive.write_evidence({"squads": squads, "bindings": reverse})
+        proof["evidence"] = archive.write_evidence(
+            {"squads": squads, "sourceRows": squad_evidence, "bindings": reverse}
+        )
         state["squadProof"] = proof
         archive.write_state(state)
     if eligible:
@@ -424,7 +439,19 @@ def run(client: Any, archive: Archive, folder: Path) -> dict[str, Any]:
         )
         for ident, game in eligible:
             try:
-                record_game(client, archive, state, candidate, native[ident], game, model, history, squads, started)
+                record_game(
+                    client,
+                    archive,
+                    state,
+                    candidate,
+                    native[ident],
+                    game,
+                    model,
+                    history,
+                    squads,
+                    started,
+                    squad_evidence=squad_evidence,
+                )
             except (ValueError, KeyError, TypeError, SorareError) as error:
                 state["errors"].append({"game": ident, "stage": "capture", "reason": str(error)[:240]})
     for ident, enrollment in enrolled.items():

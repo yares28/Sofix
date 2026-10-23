@@ -292,6 +292,33 @@ def test_future_and_squad_connections_require_complete_advancing_pagination():
         squad(Client(), "home")
 
 
+def test_current_squad_matches_active_club_and_retains_noncurrent_source_receipts():
+    from app.research.conference_recorder import squad
+
+    current = [
+        {"slug": f"p{i}", "position": "Unknown" if i == 0 else "Defender", "activeClub": {"slug": "home"}}
+        for i in range(11)
+    ]
+    raw = [
+        *current,
+        {"slug": "loan", "position": "Forward", "activeClub": {"slug": "away"}},
+        {"slug": "no-current-club", "position": "Forward", "activeClub": None},
+    ]
+
+    class Client:
+        def query(self, query, variables):
+            return {
+                "football": {
+                    "club": {"slug": "home", "activePlayers": {"nodes": raw, "pageInfo": {"hasNextPage": False}}}
+                }
+            }
+
+    evidence = {}
+    assert squad(Client(), "home", evidence=evidence) == current
+    assert evidence["home"]["rawPlayers"] == raw
+    assert len(evidence["home"]["nonCurrent"]) == 2
+
+
 def test_cli_storage_failure_writes_a_receipt_without_starting_a_source_read(monkeypatch, tmp_path):
     from app.research import conference_recorder as recorder
 

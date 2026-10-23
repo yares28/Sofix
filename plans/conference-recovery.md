@@ -133,3 +133,13 @@ late/missing captures and final evaluation without promotion). Direct mypy passe
 Sorare's live published schema accepts all 56 current queries / six fragments with
 zero deprecated/missing fields. Full local gate and first cloud-source receipt are
 checked before handover. No visible product or schema behavior changes in this step.
+
+First unattended read `39959303119` stopped on the overly strict roster membership
+check; no forecasts were accepted. The recorder now follows the existing
+`foreign_coverage.rows` current-club rule instead of rejecting an entire connection
+when a row's activeClub differs or is null. It retains all raw rows and their
+non-current classification in the durable squad proof and capture evidence; Unknown
+positions belonging to the current club remain included without a guessed score.
+A regression includes current players, an off-club player and a null-club row.
+The dedicated set now has 16 tests. The next normal code push repeats the real full
+36-squad proof; its repository receipt is the authoritative result, not this fix alone.

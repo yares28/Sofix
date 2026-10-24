@@ -542,6 +542,8 @@ by its best prize, a card, cash, essence, XP only or nothing, so XP is never cou
 and every plan has its own row), **Strategies** (`/audit/strategies`, since 13 Oct), **Rewards** (`/audit/rewards`, since 6 Oct) and **Missions**
 (`/audit/missions`, since 6 Oct).
 
+**Overall strategy chart (24 October).** The ranking shows points and rewards beside each strategy. Its hindsight target is the best found by replaying your saved eligible cards and rules after results: the page shows the percentage reached and points left to gain, on the same boards. It is a feasible saved replay, not a guaranteed mathematical maximum. Missing replay evidence stays pending and zero remains zero. Change GW and ranking together; rapid choices keep both filters.
+
 **Strategies opens with the answer (24 October).** The page names the highest-scoring strategy, the strategy returning
 most essence of each rarity, and the one reaching rewards most often. It explains each picking rule, the advantage
 against xScore, and when points and rewards have different winners. Every average has a unit and every reward rate

@@ -156,10 +156,12 @@ export type StrategyDecisionRow = {
   key: string; label: string; note: string; average: number | null; delta: number | null;
   winsVsBaseline: number | null; rewardWins: number; won: Record<PrizeKind, number>; cashAverage: number | null;
   essence: Record<string, { average: number; cases: number }>;
+  hindsight?: { average: number; share: number | null; gap: number } | null;
 };
 export type StrategyDecision = {
   pointsCases: number; rewardCases: number; amountCases: number; weeks: number; active: number;
   pointLeaders: string[]; rewardLeaders: string[]; essenceLeaders: Record<string, string[]>; cashLeaders: string[]; rows: StrategyDecisionRow[];
+  hindsight?: { cases: number; average: number | null };
 };
 /** Each strategy's lineups written down before every lock, scored, with Sofix's best plan and yours beside them: season sums and week by week (newest first). */
 export type StrategiesAudit = {

@@ -581,6 +581,12 @@ the held-out weeks (P9 "The bar").
 
 ## Results
 
+24 Oct - Neon: automatic score and saved-result Audit workflows now share the history cache, and Audit reads versioned
+blocks through R2/cache before Neon. The first automatic refresh succeeded: Audit 3.48 MB, whole refresh 32.9 MB;
+standalone score-check totals remain to measure. Local read-only R2 settings restored; local TLS interception still
+blocks its real read. Strategies adds an overall ranked chart against the best saved eligible hindsight replay,
+point gaps and rewards together, plus rapid-filter preservation. [Contract and evidence](neon-quota-recurrence.md).
+
 24 Oct - Strategies now leads with who performed best on points, essence and reward frequency, each rule’s explanation,
 explicit averages/units and the tradeoff between points and rewards. The fair ranking uses the same competition/GW
 boards for every recorded strategy, preserves ties and unknown outcomes, and separates essence rarities and cash.

@@ -36,7 +36,7 @@ from app.sorare.publish import ALT_PREFIX, ARCHIVE_PREFIX, SETTLE, STRATEGY_PREF
 from app.sorare.strategy_decision import amounts, collect, decision_of, tier_amounts
 
 KEY = "strategy_audit"
-VERSION = 4
+VERSION = 5
 MY_WEEK = "my_week:"
 ENTERED_WEEK = "entered_week:"
 PREFIXES = (STRATEGY_PREFIX, PLAN_PREFIX, ALT_PREFIX, MY_WEEK, ENTERED_WEEK)
@@ -188,6 +188,7 @@ class _Week:
         board = self.boards.setdefault(slug, {"board": slug, "comp": comp, "key": key, "rows": []})
         board["comp"] = board["comp"] or comp
         board["key"] = board["key"] or key
+        board["best"] = self.best.get(board["key"])
         return board
 
     def judge(

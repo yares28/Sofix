@@ -57,10 +57,18 @@ def decision_of(weeks: list[dict[str, Any]]) -> dict[str, Any]:
     boards = [(week["slug"], board) for week in weeks for board in week.get("boards") or []]
     active = [s for s in strategies.STRATEGIES if any(any(r["who"] == s.key for r in b["rows"]) for _, b in boards)]
     matched = []
+    ceilings = []
     for slug, board in boards:
         by_key = {s.key: [r for r in board["rows"] if r["who"] == s.key] for s in active}
         if active and all(len(rows) == 1 and rows[0]["score"] is not None for rows in by_key.values()):
             matched.append((slug, {key: rows[0] for key, rows in by_key.items()}))
+            ceilings.append(board.get("best"))
+    hindsight = [
+        (rows, best)
+        for (_, rows), best in zip(matched, ceilings, strict=True)
+        if isinstance(best, (int, float)) and best >= 0
+    ]
+    best_total = sum(best for _, best in hindsight)
     rewarded = [(slug, rows) for slug, rows in matched if all(row.get("won") is not None for row in rows.values())]
     known = [(slug, rows) for slug, rows in rewarded if all(row.get("returns") is not None for row in rows.values())]
     currencies = {
@@ -95,6 +103,15 @@ def decision_of(weeks: list[dict[str, Any]]) -> dict[str, Any]:
                 "winsVsBaseline": sum(b[key]["score"] > b["xscore"]["score"] for _, b in matched)
                 if baseline is not None
                 else None,
+                "hindsight": {
+                    "average": round(sum(b[key]["score"] for b, _ in hindsight) / len(hindsight), 2),
+                    "share": round(sum(b[key]["score"] for b, _ in hindsight) / best_total, 4)
+                    if best_total > 0
+                    else None,
+                    "gap": round(sum(best - b[key]["score"] for b, best in hindsight) / len(hindsight), 2),
+                }
+                if hindsight
+                else None,
                 "rewardWins": won["card"] + won["cash"] + won["essence"],
                 "won": won,
                 "cashAverage": round(got["cash"] / got["returnCases"], 2) if got["returnCases"] else None,
@@ -120,6 +137,7 @@ def decision_of(weeks: list[dict[str, Any]]) -> dict[str, Any]:
         ]
     return {
         "pointsCases": len(matched),
+        "hindsight": {"cases": len(hindsight), "average": round(best_total / len(hindsight), 2) if hindsight else None},
         "rewardCases": len(rewarded),
         "amountCases": len(known),
         "weeks": len({slug for slug, _ in matched}),

@@ -464,6 +464,19 @@ test("Strategies shows weekly averages and evidence for every source, preserving
   expect((await new AxeBuilder({ page: reopened }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
 });
 
+test("Strategies preserves both filters when the next choice is made before the first render arrives", async ({ page }) => {
+  await page.goto("/audit/strategies");
+  await page.route("**/audit/strategies?**", async route => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await route.continue();
+  });
+  await page.getByRole("combobox", { name: "Gameweek results" }).selectOption("gw-20");
+  await page.getByRole("combobox", { name: "Rank by" }).selectOption("rewards");
+  await expect(page).toHaveURL(/resultsGw=gw-20.*rankBy=rewards/);
+  await expect(page.getByRole("combobox", { name: "Gameweek results" })).toHaveValue("gw-20");
+  await expect(page.getByRole("combobox", { name: "Rank by" })).toHaveValue("rewards");
+});
+
 test("Lineups week rows open to the comparison of your lineups, Sofix's and the strategies'", async ({ page }) => {
   await page.goto("/audit/lineups");
   const week = page.getByRole("list", { name: "Week by week" }).getByRole("listitem").first();

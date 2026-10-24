@@ -39,3 +39,47 @@ configurations. A real R2 read remains unverified: Python rejects the endpoint's
 HTTPS verifies normally. TLS validation stays enabled. Do not claim local R2 savings until a real read succeeds.
 Full backend verification and a scheduled-run byte measurement follow before closing this issue. Monthly counters
 will not fall after this repair; only new data transfer can be reduced.
+
+## Strategies design contract
+
+A calm white editorial ranking with one green result: first the winner and the reason, then a clearly labelled
+hindsight target and the points left to gain. A compact ranked chart replaces repeated metric grids; every bar names
+its unit and endpoint, and rewards stay beside points. Detailed rules, reward counts and real lineup cards remain
+available by disclosure. On phones each row keeps its name, score, bar and rewards together. No decorative motion;
+existing navigation feedback identifies period/ranking changes. Hindsight means the best feasible saved replay found
+from that week's eligible cards and rules, after results, not an assertion of a mathematically exhaustive optimum.
+A representative read-only projection confirms the four shared boards have replay maxima 513, 391, 687 and 506
+(524.25 average); missing archives stay unknown. No new Sorare request or optimization is needed by the page.
+
+
+Strategies implementation: cache version 5 and settlement version 7 republish each board's saved hindsight score.
+The job compares only boards scored by every active strategy; a second matched subset supplies hindsight averages,
+shares of the summed best score and average point gaps. A missing archive is excluded, zero is included without
+inventing a percentage, and a score above the saved replay is shown honestly. The chart leads with the points winner,
+its rule and wins over the baseline, then compares all strategies with labelled point/reward scales. Essence stays
+separate by rarity; weekly context, reward breakdowns and real card evidence remain accessible. Seven rendering
+regressions and 17 strategy backend cases cover these states. Preview uses the previously captured real read models
+and the tiny read-only replay projection above, with database connections disabled; a live published-data check follows.
+
+
+Automatic refresh 40130512929 succeeded with the cache repair: Audit 3.48 MB, full Sorare step 26.8 MB and whole
+refresh 32.9 MB. History-copy logs show unchanged games fetched zero rows. Some extension-written mission/entered
+blocks lack the R2 version and correctly fall back to Neon. A metadata-only read confirms the published Audit
+(version 6, four shared boards, keeper/defender leader). A standalone score-check byte measurement remains due.
+Local R2 TLS fails on a self-signed network interception certificate (core1.netops.test), not an accepted R2 certificate;
+no certificate check was bypassed. Existing local disk caching continues to protect repeated reads.
+
+Chrome also reproduced a filter race: changing ranking while a GW navigation was pending replaced the new GW with
+the old URL. A browser regression first failed with only rankBy=rewards in the URL. The picker now merges pending
+choices until the transition completes, preserving both controls. The 38 Audit/mobile checks passed before this
+isolated addition; the new race and saved-GW tests are rerun after the fix.
+
+
+Pre-shipping checks: node scripts/check.mjs passed (ruff formatting/lint, mypy, full pytest, OpenAPI/types,
+eslint, typecheck and vitest). Final picker/disclosure changes also passed frontend lint, typecheck and all 1,030
+unit tests; both targeted browser cases passed after the fix. The 38 Audit/mobile cases passed. A production build
+served the saved real data; clicking from Audit opened Strategies, and phone/desktop inspection found no horizontal
+overflow or undersized text. The RSC response is 565,206 bytes (previous 558,775; +6,431). Design review checked
+labelled scales/units, genuine zero vs missing, ties, native disclosures, visible keyboard focus, 44px disclosure
+controls and inherited reduced-motion handling. Temporary previews have no Neon connection. Production R2 settings
+were compared read-only and match the restored local values; the temporary settings download was removed.

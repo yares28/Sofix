@@ -356,3 +356,54 @@ def test_unknown_amounts_and_mismatched_essence_identity_never_become_a_reward_r
     board["rows"][1]["returns"] = {"cash": 0, "essence": 2, "rarity": "rare"}
     got = strategy_audit.decision_of([{"slug": "gw", "boards": [board]}])
     assert got["essenceLeaders"] == {} and all(not row["essence"] for row in got["rows"])
+
+
+def test_hindsight_uses_only_the_same_scored_boards_and_keeps_missing_and_zero_distinct():
+    def board(best, a, b):
+        return {"best": best, "rows": [{"who": "xscore", "score": a}, {"who": "ceiling", "score": b}]}
+
+    got = strategy_audit.decision_of(
+        [
+            {
+                "slug": "gw",
+                "boards": [
+                    board(200, 100, 150),
+                    board(None, 1000, 900),
+                    board(0, 0, 0),
+                    board(800, None, 700),
+                ],
+            }
+        ]
+    )
+    assert got["pointsCases"] == 3
+    assert got["hindsight"] == {"cases": 2, "average": 100.0}
+    a, b = got["rows"]
+    assert a["hindsight"] == {"average": 50.0, "share": 0.5, "gap": 50.0}
+    assert b["hindsight"] == {"average": 75.0, "share": 0.75, "gap": 25.0}
+    zero = strategy_audit.decision_of([{"slug": "gw", "boards": [board(0, 0, 0)]}])
+    assert zero["hindsight"] == {"cases": 1, "average": 0.0}
+    assert zero["rows"][0]["hindsight"] == {"average": 0.0, "share": None, "gap": 0.0}
+    missing = strategy_audit.decision_of([{"slug": "gw", "boards": [board(None, 0, 0)]}])
+    assert missing["hindsight"] == {"cases": 0, "average": None}
+    assert missing["rows"][0]["hindsight"] is None
+
+
+def test_scored_board_publishes_its_own_archived_hindsight_score(db):
+    keep(db)
+    put(db, "strategy_plans:gw", lab(), NOW)
+    put(
+        db,
+        "sorare_week:gw",
+        {
+            "hindsight": {
+                "lineups": [
+                    {"key": "LaLiga | Limited", "actual": {"total": 300}},
+                    {"key": "Other | Limited", "actual": {"total": 900}},
+                ]
+            }
+        },
+        NOW,
+    )
+    got = strategy_audit.read(db, NOW)
+    board = next(b for b in got["weeks"][0]["boards"] if b["key"] == "LaLiga | Limited")
+    assert board["best"] == 300

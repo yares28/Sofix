@@ -28,24 +28,9 @@ import PlayerScores from "./PlayerScores";
 import type { PlayerScoreWeek } from "../../lib/audit";
 
 const NAME: Record<StartSource, string> = { futbolfantasy: "Futbol Fantasy", sorare: "Sorare", sofix: "Sofix" };
-function Progress({ settled, floor }: { settled: number; floor: number }) {
-  const share = Math.min(1, settled / floor);
-  return (
-    <span
-      className="au-progress"
-      role="progressbar"
-      aria-label="Games checked"
-      aria-valuemin={0}
-      aria-valuemax={floor}
-      aria-valuenow={Math.min(settled, floor)}
-    >
-      <i style={{ ["--w" as string]: `${share * 100}%` }} />
-    </span>
-  );
-}
-
-function Source({ source, live, floor }: { source: StartSource; live: LiveSource; floor: number }) {
-  const story = sourceStory(source, live, floor);
+function Source({ source, live }: { source: StartSource; live: LiveSource }) {
+  const story = sourceStory(source, live);
+  const hasFigure = live.settled > 0 && live.right !== null;
   const top = live.buckets && live.buckets.length > 0 ? live.buckets[live.buckets.length - 1] : null;
   return (
     <article className="au-src" data-state={live.state} aria-label={NAME[source]}>
@@ -54,15 +39,14 @@ function Source({ source, live, floor }: { source: StartSource; live: LiveSource
         {NAME[source]}
       </h3>
       <p className="au-src-what">{SOURCE_NAME[source]}</p>
-      <p className={live.state === "enough" ? "au-src-main figure" : "au-src-main"}>{story.main}</p>
+      <p className={hasFigure ? "au-src-main figure" : "au-src-main"}>{story.main}</p>
       <p className="au-src-sub">{story.sub}</p>
-      {live.state === "few" || live.state === "waiting" ? <Progress settled={live.settled} floor={floor} /> : null}
-      {live.state === "enough" ? (
+      {hasFigure ? (
         <dl className="au-src-more">
           {top ? (
             <div>
               <dt>{bandLabel(top)}</dt>
-              <dd>{percent(top.was)} started</dd>
+              <dd>{percent(top.was)} started · {top.n.toLocaleString("en-GB")} {top.n === 1 ? "game" : "games"}</dd>
             </div>
           ) : null}
           <div>
@@ -76,7 +60,7 @@ function Source({ source, live, floor }: { source: StartSource; live: LiveSource
           {live.byCompetition.map((line) => (
             <div key={line.competition}>
               <dt>{competitionName(line.competition)}</dt>
-              <dd>{competitionStory(line, floor)}</dd>
+              <dd>{competitionStory(line)}</dd>
             </div>
           ))}
         </dl>
@@ -255,7 +239,7 @@ export default function AuditView({
       <section className="au-w au-starts" aria-label="Who starts?">
         <div className="au-srcs">
           {SOURCES.map((source) => (
-            <Source key={source} source={source} live={data.starts.live[source]} floor={data.floor} />
+            <Source key={source} source={source} live={data.starts.live[source]} />
           ))}
         </div>
       </section>
@@ -265,7 +249,7 @@ export default function AuditView({
         <p className="au-sub">Checked as each game&apos;s result arrives.</p>
         {data.starts.weeks.length ? <Record data={data} /> : <p className="au-sub">Nothing written down yet.</p>}
       </section>
-      <ElevensAudit data={data.elevens} floor={data.floor} />
+      <ElevensAudit data={data.elevens} />
     </>
   );
 }

@@ -290,13 +290,13 @@ const WHY_NOTHING: Record<StartSource, string> = {
   sofix: "It is written down before each lock, from the first one",
 };
 
-/** What a source's column says: its figure once it has enough games, else where it stands and why, never a made-up number. */
-export function sourceStory(source: StartSource, live: LiveSource, floor: number): { main: string; sub: string } {
+/** Show the recorded rate from the first checked game; a missing figure stays missing. */
+export function sourceStory(source: StartSource, live: LiveSource): { main: string; sub: string } {
+  if (live.settled > 0) return {
+    main: percent(live.right),
+    sub: live.right !== null ? `right on ${plural(live.settled, "game")}` : `${plural(live.settled, "game")} checked`,
+  };
   switch (live.state) {
-    case "enough":
-      return { main: percent(live.right), sub: `right on ${plural(live.settled, "game")}` };
-    case "few":
-      return { main: "Too few to tell", sub: `${live.settled.toLocaleString("en-GB")} of ${floor} games checked` };
     case "waiting":
       return { main: "Waiting for results", sub: `${plural(live.recorded, "game")} written down before the lock` };
     default:
@@ -314,11 +314,11 @@ const COMPETITION_NAME: Record<string, string> = {
 export const competitionName = (slug: string): string =>
   COMPETITION_NAME[slug] ?? slug.split("-").filter((word) => word.length > 2 || /\d/.test(word)).map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
 
-/** A source in one competition, in the page's words: the share right once enough games are checked, else how far it is. */
-export function competitionStory(line: CompetitionLine, floor: number): string {
+/** A source's competition rate and its actual case count, without a minimum sample. */
+export function competitionStory(line: CompetitionLine): string {
   if (line.right !== null) return `${percent(line.right)} right · ${plural(line.settled, "game")}`;
   if (line.settled === 0) return `0 of ${line.recorded.toLocaleString("en-GB")} checked`;
-  return `${line.settled.toLocaleString("en-GB")} of ${floor} checked`;
+  return `${line.settled.toLocaleString("en-GB")} of ${line.recorded.toLocaleString("en-GB")} checked`;
 }
 
 /** A gameweek of the record: how many games were written down before its lock and how many have been checked since. */

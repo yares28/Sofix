@@ -271,7 +271,20 @@ function auditPayload(kind) {
       state: "enough", recorded: 140, settled: 120, right: 0.74, brier: 0.17, mean: 0.52, started: 0.5,
       buckets: [band(0, 0.2, 30, 0.1, 0.12), band(0.2, 0.5, 20, 0.35, 0.4), band(0.5, 0.8, 30, 0.65, 0.7), band(0.8, 1, 40, 0.9, 0.88)],
     });
-    Object.assign(data.starts.live.sofix, { state: "few", recorded: 64, settled: 40 });
+    Object.assign(data.starts.live.sofix, {
+      state: "enough", recorded: 64, settled: 1, right: 0, brier: 0.81, mean: 0.9, started: 0,
+      buckets: [band(0.8, 1, 1, 0.9, 0)],
+      byCompetition: [
+        { competition: "uefa-europa-league", recorded: 2, settled: 1, right: 0, brier: 0.81 },
+        { competition: "uefa-champions-league", recorded: 9, settled: 0, right: null, brier: null },
+      ],
+    });
+    const eleven = {
+      futbolfantasy: { picked: 2, checked: 1, started: 0, rate: 0 },
+      sorare: { picked: 2, checked: 0, started: 0, rate: null },
+      sofix: { picked: 2, checked: 1, started: 1, rate: 1 },
+    };
+    data.elevens = { all: eleven, weeks: [{ week: 21, sources: eleven }], clubs: [{ club: "ATL", crest: null, sources: eleven }] };
     data.startFixes = { futbolfantasy: [{ from: 0.5, to: 0.9, said: 0.68, was: 0.73, n: 238, used: true }, { from: 0.95, to: 0.95, said: 0.95, was: 1, n: 12, used: false }] };
     Object.assign(data.xscore.live, { state: "enough", noted: 40, marked: 38, pairs: 130, weeks: 8, rate: 0.64, lo: 0.58, hi: 0.69 });
     // Sorare against Sofix: starts overall, by position and week, and the substitutes apart

@@ -18,7 +18,7 @@ finished gameweek the job kept (`sorare_week:<slug>`), the plan Sofix made for i
 reward times that reward, added up) and what its lineups really won (`rewards_record`). Season totals of the two, essence and cash
 apart, say whether Sofix's chances were right; what the owner really won is added on the page, read from Sorare by the extension.
 
-A figure under `FLOOR` cases is not given: the page says "too few to tell" rather than a number that is mostly luck. The page itself
+Who starts figures show from the first checked case. Other verdicts retain their own sample thresholds. The page itself
 is one read model (`audit`), written by the refresh after the start record and served as it is.
 """
 
@@ -51,10 +51,10 @@ from app.sorare.publish import ARCHIVE_PREFIX, SETTLE
 
 AUDIT_KEY = "audit"
 VERSION = 1
-SETTLEMENT_VERSION = 2
+SETTLEMENT_VERSION = 3
 # Written by `python -m app.jobs.xscore_backtest --summary`; numbers only, so it can sit in the public repository.
 REPLAY_FILE = Path(__file__).resolve().parents[2] / "data" / "audit" / "replay.json"
-FLOOR = 100  # cases (settled games, or pairs of players) a figure needs before it is shown: under it, too few to tell
+FLOOR = 100  # default for other verdicts; Who starts explicitly uses one checked case
 POSITIONS = ("GK", "DEF", "MID", "FWD")
 WITHIN = (10, 15, 20)  # "within this many points", the other way of counting a hit that the explanation compares with
 EDGES = (0.0, 0.2, 0.5, 0.8, 1.01)  # the chances are grouped into these four bands to see whether "80%" means 80%
@@ -194,17 +194,17 @@ def _cells(entry: dict[str, Any]) -> list[dict[str, Any]]:
     return [entry] if any(source in entry for source in SOURCES) else []
 
 
-def _state(recorded: int, settled: int) -> str:
+def _state(recorded: int, settled: int, floor: int = FLOOR) -> str:
     """Nothing written, written but not played yet, played but under the floor, or enough to give a figure."""
     if not recorded:
         return "none"
     if not settled:
         return "waiting"
-    return "few" if settled < FLOOR else "enough"
+    return "few" if settled < floor else "enough"
 
 
 def starts_record(record: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    """How each source did on the games it had a number for, once they were settled; a source under the floor shows its counts only."""
+    """How each source did on its recorded games, from the first checked start fact."""
     recorded = dict.fromkeys(SOURCES, 0)
     said: dict[str, list[tuple[float, bool]]] = {source: [] for source in SOURCES}
     # The same, competition by competition (the owner, 13 Oct 2026): a source right in LaLiga may be blind in Europe. A game says
@@ -228,7 +228,7 @@ def starts_record(record: dict[str, Any]) -> dict[str, dict[str, Any]]:
                             told[source].setdefault(competition, []).append(pair)
     out: dict[str, dict[str, Any]] = {}
     for source in SOURCES:
-        state = _state(recorded[source], len(said[source]))
+        state = _state(recorded[source], len(said[source]), floor=1)
         shown = (
             _scores(said[source])
             if state == "enough"
@@ -237,8 +237,7 @@ def starts_record(record: dict[str, Any]) -> dict[str, dict[str, Any]]:
         competitions = []
         for competition, count in sorted(written[source].items(), key=lambda item: (-item[1], item[0])):
             pairs = told[source].get(competition, [])
-            enough = _state(count, len(pairs)) == "enough"
-            scored = _scores(pairs) if enough else None
+            scored = _scores(pairs) if pairs else None
             competitions.append(
                 {
                     "competition": competition,
@@ -472,7 +471,7 @@ def record_of(db: Session) -> dict[str, Any]:
 
 def from_kept(db: Session, now: datetime, *, write: bool = False) -> dict[str, Any]:
     """Build the Audit from common game rows and pre-lock metadata; also used by the read-only local API fallback."""
-    record, scores, elevens = player_audit.read(db, now, FLOOR)
+    record, scores, elevens = player_audit.read(db, now)
     page = build(record, read_replay(), now, kept_weeks(db), missions.logs_of(db), scores)
     page["elevens"] = elevens
     page["frozenPlans"] = frozen_scores.read(db, now)

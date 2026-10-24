@@ -76,30 +76,33 @@ describe("the figures", () => {
 describe("what each source says for itself", () => {
   it("gives the share it was right on once it has enough games", () => {
     const live: LiveSource = { ...none, state: "enough", recorded: 140, settled: 120, right: 0.74, brier: 0.17, mean: 0.5, started: 0.5, buckets: [] };
-    expect(sourceStory("futbolfantasy", live, 100)).toEqual({ main: "74%", sub: "right on 120 games" });
+    expect(sourceStory("futbolfantasy", live)).toEqual({ main: "74%", sub: "right on 120 games" });
   });
 
-  it("says too few to tell, with how far along it is, instead of a number", () => {
+  it("shows a checked rate from one game and never presents a display target of 100", () => {
     const live: LiveSource = { ...none, state: "few", recorded: 30, settled: 12 };
-    expect(sourceStory("sofix", live, 100)).toEqual({ main: "Too few to tell", sub: "12 of 100 games checked" });
-    // each competition on its own (13 Oct 2026): a figure only once it has enough games
-    expect(competitionStory({ competition: "laliga-es", recorded: 150, settled: 120, right: 0.74, brier: 0.18 }, 100)).toBe("74% right · 120 games");
-    expect(competitionStory({ competition: "uefa-europa-league", recorded: 30, settled: 12, right: null, brier: null }, 100)).toBe("12 of 100 checked");
-    expect(competitionStory({ competition: "uefa-champions-league", recorded: 9, settled: 0, right: null, brier: null }, 100)).toBe("0 of 9 checked");
+    expect(sourceStory("sofix", live)).toEqual({ main: "–", sub: "12 games checked" });
+    for (const right of [0, 1]) {
+      expect(sourceStory("sofix", { ...live, settled: 1, right })).toEqual({ main: `${right * 100}%`, sub: "right on 1 game" });
+      expect(competitionStory({ competition: "uefa-europa-league", recorded: 2, settled: 1, right, brier: 0.01 })).toBe(`${right * 100}% right · 1 game`);
+    }
+    expect(competitionStory({ competition: "laliga-es", recorded: 150, settled: 120, right: 0.74, brier: 0.18 })).toBe("74% right · 120 games");
+    expect(competitionStory({ competition: "uefa-europa-league", recorded: 30, settled: 12, right: null, brier: null })).toBe("12 of 30 checked");
+    expect(competitionStory({ competition: "uefa-champions-league", recorded: 9, settled: 0, right: null, brier: null })).toBe("0 of 9 checked");
     expect([competitionName("uefa-champions-league"), competitionName("serie-a-it"), competitionName("eredivisie-nl")]).toEqual(["Champions League", "Serie A", "Eredivisie"]);
   });
 
   it("says it is waiting for the games when they were written down but not played", () => {
     const live: LiveSource = { ...none, state: "waiting", recorded: 21 };
-    expect(sourceStory("sofix", live, 100)).toEqual({ main: "Waiting for results", sub: "21 games written down before the lock" });
-    expect(sourceStory("sofix", { ...live, recorded: 1 }, 100).sub).toBe("1 game written down before the lock");
+    expect(sourceStory("sofix", live)).toEqual({ main: "Waiting for results", sub: "21 games written down before the lock" });
+    expect(sourceStory("sofix", { ...live, recorded: 1 }).sub).toBe("1 game written down before the lock");
   });
 
   it("says why there is nothing, in that source's own terms", () => {
-    expect(sourceStory("sorare", none, 100).main).toBe("Nothing yet");
-    expect(sourceStory("sorare", none, 100).sub).toMatch(/Sorare has not given a start chance/);
-    expect(sourceStory("futbolfantasy", none, 100).sub).toMatch(/LaLiga/);
-    expect(sourceStory("sofix", none, 100).sub).toMatch(/before each lock/);
+    expect(sourceStory("sorare", none).main).toBe("Nothing yet");
+    expect(sourceStory("sorare", none).sub).toMatch(/Sorare has not given a start chance/);
+    expect(sourceStory("futbolfantasy", none).sub).toMatch(/LaLiga/);
+    expect(sourceStory("sofix", none).sub).toMatch(/before each lock/);
   });
 });
 

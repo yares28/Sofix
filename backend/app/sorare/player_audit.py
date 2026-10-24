@@ -48,7 +48,7 @@ def start_result(row: PlayerGame | None, now: datetime) -> dict[str, Any] | None
     return actual(row, row is not None and as_utc(row.date) <= now)
 
 
-def read(db: Session, now: datetime, floor: int) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any]]:
+def read(db: Session, now: datetime) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any]]:
     saved = db.get(ReadModel, starts.START_KEY)
     record = copy.deepcopy(saved.payload) if saved and isinstance(saved.payload, dict) else {}
     weeks = record.setdefault("weeks", {})
@@ -144,7 +144,7 @@ def read(db: Session, now: datetime, floor: int) -> tuple[dict[str, Any], list[d
             if (result := start_result(row, now)) is not None:
                 cell.update(result)
     ff = db.get(ReadModel, ff_chances.KEY)
-    return record, scores, elevens(scores, rows, ff.payload if ff else {}, now, floor)
+    return record, scores, elevens(scores, rows, ff.payload if ff else {}, now)
 
 
 def _eleven(side: dict[str, Any], chances: dict[str, float]) -> set[str] | None:
@@ -175,7 +175,7 @@ def _eleven(side: dict[str, Any], chances: dict[str, float]) -> set[str] | None:
 
 
 def elevens(
-    scores: list[dict[str, Any]], rows: dict[tuple[str, str], PlayerGame], ff: dict[str, Any], now: datetime, floor: int
+    scores: list[dict[str, Any]], rows: dict[tuple[str, str], PlayerGame], ff: dict[str, Any], now: datetime
 ) -> dict[str, Any]:
     linked: dict[tuple[str, str], tuple[PlayerGame, int]] = {}
     for record in scores:
@@ -242,7 +242,7 @@ def elevens(
                             tally[source]["started"] += bool(row.started)
     for tally in groups.values():
         for cell in tally.values():
-            if cell["checked"] >= floor:
+            if cell["checked"]:
                 cell["rate"] = round(cell["started"] / cell["checked"], 4)
     return {
         "all": groups["all", "all"],

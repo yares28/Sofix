@@ -583,6 +583,9 @@ the held-out weeks (P9 "The bar").
 
 ## Results
 
+24 Oct - Who starts source, competition and predicted-eleven percentages show from the first checked case, with
+their counts. The 100-case forecast-correction threshold stays unchanged. [Contract and evidence](audit-starts-per-game.md).
+
 24 Oct - Who starts checks each game's saved start/non-start immediately, including predicted elevens, with corrections
 and future/missing guards. Full-GW score comparisons and Lineups retain their finalisation gates. No source-frequency
 increase. [Contract and real-data proof](audit-starts-per-game.md).

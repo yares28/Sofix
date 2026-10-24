@@ -321,7 +321,7 @@ saved game map and keep retrying missing results or reward cuts after 14 days; t
 Missing mission stats remain pending. The replay file's numbers (the xScore success rate, and Sofix's chance of starting replayed on the past
 in bands) beside the live record, which begins empty. `starts_record` scores each source (Sorare, Futbol Fantasy, Sofix) on the games
 it had a number for once they are settled; `xscore_record` counts the same pairs on what the model noted before each lock (the
-chance he plays times his score if he plays) against his best game once the gameweek is settled. The live xScore pair rate is published from the first pair, with its interval and count (11 October owner request). The other source verdicts keep their `FLOOR` (100 cases). The step is optional: if it
+chance he plays times his score if he plays) against his best game once the gameweek is settled. The live xScore pair rate is published from the first pair, with its interval and count (11 October owner request). Who starts source/competition figures show from the first checked game; other Audit verdicts keep their existing thresholds. The step is optional: if it
 fails the Play page is still published and the run's summary names `audit` under `failed`.
 
 `/audit` leads with the two saved conditional scores against the real score on starts (12 Oct owner request): each side's success rate
@@ -329,7 +329,7 @@ fails the Play page is still published and the run's summary names `audit` under
 rates above are still computed and published but no longer drawn. `/audit/starts` also counts Futbol Fantasy's predicted eleven and the Sorare/Sofix elevens implied by the same
 position-preserving swaps as `lib/lineups.ts::byChance`: ties keep FF's starter, out/suspended alternatives cannot come in,
 and a historical reading without position data cannot invent an implied eleven. Counts are grouped by week and club;
-rates need 100 checked starters in each group. `ff_chances` retains positions, absence kinds and crests at lock.
+rates show from the first checked starter in each group. Source and competition accuracy/error figures also show from the first checked game; only start-chance corrections retain their 100-case requirement. `ff_chances` retains positions, absence kinds and crests at lock.
 The refresh no longer calls `versus.settle`, `starts.settle`, `record.rows` or `missions.settle`: missions use the stored
 non-zero stats (`missions.settle_kept`). Old records and functions remain for historical compatibility, without new source calls.
 

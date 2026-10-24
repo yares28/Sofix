@@ -93,7 +93,7 @@ def test_explicit_nonappearance_with_no_start_stat_settles_but_unknown_appearanc
     db.commit()
     page = audit.from_kept(db, NOW)
     assert page["starts"]["live"]["sofix"]["settled"] == 1
-    assert page["starts"]["live"]["sofix"]["started"] is None  # fewer than 100
+    assert page["starts"]["live"]["sofix"]["started"] == 0.0
     no_show.played = True  # contradictory source data is not a result
     db.commit()
     assert audit.from_kept(db, NOW)["starts"]["live"]["sofix"]["settled"] == 0
@@ -263,7 +263,7 @@ def test_known_starts_count_before_the_week_ends_but_unknown_results_are_not_gue
     audit.publish(db, NOW)
     page = db.get(ReadModel, "audit").payload
     assert page["starts"]["live"]["sofix"]["settled"] == 1
-    assert page["starts"]["live"]["sofix"]["right"] is None
+    assert page["starts"]["live"]["sofix"]["right"] == 1.0
 
 
 def test_partial_double_counts_known_start_facts_and_elevens_without_finalising_scores(db):  # noqa: F811
@@ -420,7 +420,9 @@ def test_elevens_preserve_formation_ties_and_absences_and_count_by_week_and_club
     assert xi["all"]["futbolfantasy"]["started"] == 0
     assert xi["all"]["sofix"]["started"] == 1
     assert xi["all"]["sorare"]["started"] == 0, "ties keep FF's starter"
-    assert xi["all"]["sofix"]["rate"] is None, "under 100: too few to tell"
+    for group in [xi["all"], xi["weeks"][0]["sources"], xi["clubs"][0]["sources"]]:
+        assert group["sofix"]["checked"] == 1 and group["sofix"]["rate"] == 1.0
+        assert group["futbolfantasy"]["checked"] == 1 and group["futbolfantasy"]["rate"] == 0.0
     assert xi["weeks"][0]["week"] == 18 and xi["clubs"][0]["club"] == "ATL"
     side["players"]["1"]["kind"] = "suspended"
     put(db, ff_chances.KEY, {"matches": {"7": {"gw": "gw", "atLock": {"home": side, "away": {}}}}}, NOW)

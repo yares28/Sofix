@@ -127,13 +127,17 @@ def test_a_source_with_nothing_recorded_says_none_and_one_recorded_but_not_playe
     assert audit.starts_record({})["sofix"]["state"] == "none", "no record at all is not an error"
 
 
-def test_under_the_floor_a_source_shows_its_counts_and_no_figures() -> None:
-    games = {f"g{n}": cell({"futbolfantasy": 0.9}, started=True) for n in range(audit.FLOOR - 1)}
+@pytest.mark.parametrize("started", [True, False])
+@pytest.mark.parametrize("count", [1, 57, 99])
+def test_a_source_shows_figures_from_its_first_checked_case(started: bool, count: int) -> None:
+    games = {f"g{n}": cell({"futbolfantasy": 0.9}, started=started) for n in range(count)}
     live = audit.starts_record(record_of({"gw": {"p": {"games": games}}}))
 
     ff = live["futbolfantasy"]
-    assert ff["state"] == "few" and ff["settled"] == audit.FLOOR - 1 and ff["recorded"] == audit.FLOOR - 1
-    assert ff["right"] is None and ff["brier"] is None and ff["buckets"] is None, "too few to tell"
+    assert ff["state"] == "enough" and ff["settled"] == count and ff["recorded"] == count
+    assert ff["right"] == float(started)
+    assert ff["brier"] == pytest.approx(0.01 if started else 0.81)
+    assert ff["buckets"][-1]["n"] == count
 
 
 def test_at_the_floor_each_figure_is_what_the_arithmetic_says() -> None:
@@ -476,7 +480,7 @@ def test_each_source_is_scored_competition_by_competition():
         "competition": "uefa-europa-league",
         "recorded": 2,
         "settled": 1,
-        "right": None,
-        "brier": None,
-    }, "under the floor a competition shows its counts only"
+        "right": 0.0,
+        "brier": 0.64,
+    }, "the first checked game gives a competition its own rate, including zero"
     assert [line["competition"] for line in live["futbolfantasy"]["byCompetition"]] == ["laliga-es"]

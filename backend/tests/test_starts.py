@@ -480,7 +480,7 @@ def test_the_job_writes_each_sources_chance_for_each_game_and_asks_the_site_only
     from app.sorare import player_audit
 
     assert summary["gameStatements"] >= 3
-    record = player_audit.read(db, LOCK, 100)[0]
+    record = player_audit.read(db, LOCK)[0]
     game = record["weeks"]["gw-plan"]["players"]["mid-one"]["games"]["game-mid-one"]
     assert set(game) >= {"sorare", "sofix", "futbolfantasy"} and game["futbolfantasy"]["chance"] == 0.7
     assert "futbolfantasy" not in record["weeks"]["gw-plan"]["players"]["front-one"]["games"]["game-front-one"], (
@@ -514,7 +514,7 @@ def test_the_job_writes_what_the_model_made_of_each_player_and_what_his_games_we
     from app.sorare import player_audit
 
     assert summary["recorded"] >= 12
-    mid = player_audit.read(db, LOCK, 100)[0]["weeks"]["gw-plan"]["players"]["mid-one"]
+    mid = player_audit.read(db, LOCK)[0]["weeks"]["gw-plan"]["players"]["mid-one"]
     assert (
         mid["model"]["pStart"] == 0.7
         and mid["model"]["startSource"] == "futbolfantasy"
@@ -559,7 +559,7 @@ def test_when_the_site_cannot_be_read_the_page_and_the_other_two_sources_are_sti
     summary = the_job.run(db, "yares", runs=1)  # the test guard answers with nothing, as a failed read does
 
     assert summary["futbolfantasy"]["matches"] == 0 and summary["futbolfantasy"]["games"] == 0
-    game = player_audit.read(db, LOCK, 100)[0]["weeks"]["gw-plan"]["players"]["mid-one"]["games"]["game-mid-one"]
+    game = player_audit.read(db, LOCK)[0]["weeks"]["gw-plan"]["players"]["mid-one"]["games"]["game-mid-one"]
     assert set(game) - {"info"} == {"sorare", "sofix"}  # `info` is what the game was, not a source
     assert "startSource" not in {p["player"]: p for p in page_of(db)["playing"]["players"]}["mid-one"]["games"][0]
 
@@ -576,7 +576,7 @@ def test_a_site_that_breaks_costs_its_numbers_never_the_page(db, monkeypatch, th
 
     assert "RuntimeError" in summary["failed"]["futbol fantasy"]
     assert db.get(ReadModel, the_job.SORARE_KEY) is not None, "the page was published"
-    game = player_audit.read(db, LOCK, 100)[0]["weeks"]["gw-plan"]["players"]["mid-one"]["games"]["game-mid-one"]
+    game = player_audit.read(db, LOCK)[0]["weeks"]["gw-plan"]["players"]["mid-one"]["games"]["game-mid-one"]
     assert set(game) - {"info"} == {"sorare", "sofix"}
 
 

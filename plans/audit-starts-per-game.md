@@ -1,5 +1,34 @@
 # Who starts — check each game when its result is saved
 
+24 October follow-up contract: show Who starts figures from the first checked case, without waiting for 100.
+Cover each source, each competition and predicted elevens overall/by GW/by club. Keep the case count beside rates;
+zero is a result, missing stays missing, and future/unknown results do not count. No owner action or extra source
+request is needed. Keep the 100-case threshold for changing future start predictions, and other Audit sections,
+unchanged. Acceptance: first-case success and failure, unchecked competition, mixed sources, predicted-eleven groups,
+cold publication/version invalidation and retained calibration threshold; verify saved real results read-only and the
+automatic published read model, then desktop/mobile Chrome. This overrides the older display-floor wording.
+
+First-case implementation: source and competition accuracy/error/bands are calculated for any non-empty checked
+sample; predicted elevens publish rates overall, by GW and by club from one checked starter. The page draws those
+figures and keeps denominators (including the top start-chance band); zero remains 0%, missing stays a dash/waiting.
+Settlement version 3 invalidates the old display-floor publication through the existing automatic publisher, including
+the source-refresh cooldown fallback. Forecast calibration still requires 100 cases; no source schedule or other Audit
+threshold changed.
+
+Verification before release: ten backend first-case regressions and the frontend display regression failed before
+the fix. The focused backend suite passed 105 cases, including source identity, unknown/DNP/future facts, corrections,
+predicted-eleven groups, calibration and automatic publication. The complete local gate passed ruff format/check,
+mypy, pytest, OpenAPI/type generation, eslint, TypeScript and Vitest. The production build passed and real Chrome
+navigation Lineups -> Who starts worked. At 1440 and 390 px the real-data page has no horizontal overflow; screenshots
+are kept in the session's audit-first-case folder. Before automatic publication, the page honestly keeps old missing
+competition rates rather than inventing them.
+
+Database-enforced read-only reconstruction (9.84 MB, no source calls) gives FF's Europa League 47/57 correct = 82.46%,
+error 0.1708. FF's LaLiga 1,077 and Champions League 115 checked cases keep their existing results. Small club groups
+also show their actual rates: Alaves FF 30/33 = 90.91%, Sorare 18/22 = 81.82%, Sofix 28/33 = 84.85%. A saved zero
+checked stays unknown. Final full browser suite: 274 passed, including all 22 Audit and 16 mobile cases. No checks
+were unavailable. The published payload is verified after the automatic publisher runs; no manual refresh is dispatched.
+
 Owner approval, 24 October 2026: remove the whole-GW plus 24-hour delay for Who starts, including FF's predicted eleven
 and the Sorare/Sofix comparisons. Use every recorded player's saved start/non-start as soon as it is usable, independent
 of ownership and browser visits. Do not speed up source requests or add manual refreshes. Keep corrections, source

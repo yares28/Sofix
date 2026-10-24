@@ -608,7 +608,7 @@ to 20 Sep).
 These figures are written by hand from the local games export (`python -m app.jobs.audit_league --write`, into `frontend/lib/data/audit_league.json`), not by the refresh; the page says what they
 cover. A figure with fewer than 100 starts behind it says "Too few to tell". Below them, **Who starts?** gives each of Futbol Fantasy, Sorare and Sofix a column of what has been written down
 before real locks. It says how often the source was right (said 50% or more and he started, or less and he did not), how far its chances were from what happened (the error score: 0 is perfect,
-0.25 is saying 50% every time), and how many of the players it put at 80% or more started. A source shows figures from 100 games. Under that it says "Too few to tell" and how far along it is, or
+0.25 is saying 50% every time), and how many of the players it put at 80% or more started. Source and competition figures show from the first checked game, with their case count. It says
 "Waiting for results" while the games are written down but not played, or "Nothing yet" with the reason: Sorare has not given a start chance for any recorded player, and Futbol Fantasy covers
 LaLiga only. **Written down so far** lists each gameweek: the games written down before its lock, how many have been
 checked since, and how many each source gave. (The old headline, 66% on your 84 players, is gone from the page: it measured the old formula on your players only; its method is still in
@@ -627,8 +627,8 @@ A run of chances with 100 settled games is moved to what happened before the pla
 thinner runs are left as they were and say how many games are still to come. The record keeps what each source said, not the corrected number.
 
 **Futbol Fantasy's eleven**, under Who starts, compares how many predicted starters started. Sorare and Sofix reorder the
-same formation using their saved chances; **By gameweek and club** opens the counts for each. Every group needs 100 checked
-starters before showing a percentage. Older readings without positions cannot produce an implied eleven. Until the first
+same formation using their saved chances; **By gameweek and club** opens the counts for each. Every group shows a percentage from the first checked
+starter, alongside its count. Older readings without positions cannot produce an implied eleven. Until the first
 reading is saved, it says "No predicted elevens kept yet". A failed source stops new readings and keeps the saved evidence.
 
 **Match forecasts, checked**, below xScore, compares Sofix with bookmaker prices on the same finished LaLiga matches.
@@ -1066,7 +1066,7 @@ the extension that holds the token.
 | Apply loses the Draft or Enter response | Sorare may have saved the write before the response was lost | Use **Check Sorare status** to read back the lineup before another manual action; Sofix never automatically retries a write |
 | Apply shows Sorare's own words in red (Check or Draft refused) | Sorare's rules refuse that lineup: the cap, a position, an in-season rule | Read what Sorare says and change the lineup; nothing was saved. If Sorare refuses something Sofix's plan said was allowed, that is a bug in Sofix: write down the competition and the words |
 | Control says the extension was "not seen lately", or the overlay's tag says SIGN IN or OFFLINE | Chrome was restarted, or the extension was reloaded while the tabs stayed as they were | Reload Sofix in `chrome://extensions`, reload the sorare.com tab, then open Sofix again |
-| Audit says "Too few to tell" | The source has fewer than 100 checked games, so a figure would be mostly luck | Wait: it fills as gameweeks are played; the counts show how far along it is |
+| Audit says "Too few to tell" | This section has not reached its required sample; Who starts already shows figures from the first checked game | Check the case count; other sections fill as gameweeks are played |
 | Audit says "The audit appears after the next refresh" | No refresh has written the Audit page yet | Run a refresh from Control |
 | Database paused | Every free Neon project (Sofix, FDR, Sofix B) used its monthly 5 GB; normally the app moves to another project at 4 GB on its own (AGENTS.md "Neon projects") | Wait for the 1st; avoid repeated DB monitors |
 | Refresh failed at a step | Source/schema/job error; older payload may still be visible | Inspect Control/GitHub run before trusting freshness |

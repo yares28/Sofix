@@ -60,19 +60,25 @@ it("shows paired match RPS from the first result, with the saved odds date", () 
   expect(missing).not.toContain("0.0000");
 });
 
-it("shows each eleven's evidence by week and club and hides rates below 100", () => {
+it("shows each eleven's evidence by week and club from the first checked starter", () => {
   const sources = { ...NO_ELEVENS.all,
     futbolfantasy: { picked: 130, checked: 120, started: 108, rate: 0.9 },
     sofix: { picked: 50, checked: 40, started: 39, rate: 0.975 } };
   const data: Elevens = { all: sources, weeks: [{ week: 18, sources }], clubs: [{ club: "ATL", crest: null, sources }] };
-  const html = renderToStaticMarkup(React.createElement(ElevensAudit, { data, floor: 100 }));
+  const html = renderToStaticMarkup(React.createElement(ElevensAudit, { data }));
   expect(html).toContain("90%");
   expect(html).toContain("108 of 120 started");
   expect(html).toContain("39 of 40 started");
-  expect(html).not.toContain("98%");
-  expect(html).toContain("Too few to tell");
+  expect(html).toContain("98%");
+  expect(html).not.toContain("Too few to tell");
+  expect(html).toContain("Waiting for results");
   expect(html).toContain("GW18");
   expect(html).toContain("ATL");
+  for (const started of [0, 1]) {
+    const small = { ...sources, sofix: { picked: 2, checked: 1, started, rate: null } };
+    const first = renderToStaticMarkup(React.createElement(ElevensAudit, { data: { ...data, all: small } }));
+    expect(first).toContain(`<span>${started * 100}%</span><small>${started} of 1 started</small>`);
+  }
 });
 
 it("shows a week's comparison whatever its size", () => {

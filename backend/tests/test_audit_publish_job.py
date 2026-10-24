@@ -13,7 +13,7 @@ from tests.test_player_audit import LOCK, keep
 def test_cooldown_publication_updates_source_competitions_without_source_calls(db, monkeypatch):  # noqa: F811
     keep(db)
     early = LOCK + timedelta(days=1, hours=4)
-    put(db, "audit", {"settlementVersion": 1, "nextSettlementAt": (early + timedelta(days=4)).isoformat()}, early)
+    put(db, "audit", {"settlementVersion": 2, "nextSettlementAt": (early + timedelta(days=4)).isoformat()}, early)
 
     class Clock:
         @staticmethod
@@ -33,6 +33,8 @@ def test_cooldown_publication_updates_source_competitions_without_source_calls(d
     ff = page["starts"]["live"]["futbolfantasy"]
     assert page["settlementVersion"] == audit.SETTLEMENT_VERSION
     assert ff["settled"] == 2 and ff["byCompetition"][0]["settled"] == 2
+    assert ff["state"] == "enough" and ff["right"] == 1.0
+    assert ff["byCompetition"][0]["right"] == 1.0
     assert page["xscore"]["live"]["marked"] == 0
     stamp = db.get(ReadModel, "audit").updated_at
     monkeypatch.setattr(audit, "publish", forbidden)

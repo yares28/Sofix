@@ -4,7 +4,7 @@ import Shield from "../lineups/Shield";
 
 const NAMES: Record<StartSource, string> = { futbolfantasy: "Futbol Fantasy", sorare: "Sorare", sofix: "Sofix" };
 
-function Table({ rows, caption, floor }: { rows: { name: string; crest?: string | null; sources: ElevenSources }[]; caption: string; floor: number }) {
+function Table({ rows, caption }: { rows: { name: string; crest?: string | null; sources: ElevenSources }[]; caption: string }) {
   return (
     <table className="au-vs-t au-eleven-t">
       <caption className="visually-hidden">{caption}</caption>
@@ -15,7 +15,7 @@ function Table({ rows, caption, floor }: { rows: { name: string; crest?: string 
           {SOURCES.map((source) => {
             const cell = sources[source];
             return <td key={source}>
-              <span>{cell.checked >= floor && cell.rate !== null ? percent(cell.rate) : cell.checked ? "Too few to tell" : "Waiting for results"}</span>
+              <span>{cell.checked ? percent(cell.rate ?? cell.started / cell.checked) : "Waiting for results"}</span>
               <small>{cell.started.toLocaleString("en-GB")} of {cell.checked.toLocaleString("en-GB")} started</small>
               <small>{cell.picked.toLocaleString("en-GB")} picked</small>
             </td>;
@@ -26,17 +26,17 @@ function Table({ rows, caption, floor }: { rows: { name: string; crest?: string 
   );
 }
 
-export default function ElevensAudit({ data, floor }: { data: Elevens; floor: number }) {
+export default function ElevensAudit({ data }: { data: Elevens }) {
   const any = SOURCES.some((source) => data.all[source].picked > 0);
   return (
     <section className="au-w au-starts" aria-labelledby="au-eleven-h">
       <h2 id="au-eleven-h">Futbol Fantasy&apos;s eleven</h2>
       <p className="au-sub">How many predicted starters started. Sorare and Sofix reorder the same formation by their saved start chances. Readings stay frozen at the lock.</p>
       {any ? <>
-        <Table caption="All games" rows={[{ name: "All", sources: data.all }]} floor={floor} />
+        <Table caption="All games" rows={[{ name: "All", sources: data.all }]} />
         <details className="au-eleven-more"><summary>By gameweek and club</summary>
-          <Table caption="Gameweek" rows={data.weeks.map((week) => ({ name: `GW${week.week}`, sources: week.sources }))} floor={floor} />
-          <Table caption="Club" rows={data.clubs.map((club) => ({ name: club.club, crest: club.crest, sources: club.sources }))} floor={floor} />
+          <Table caption="Gameweek" rows={data.weeks.map((week) => ({ name: `GW${week.week}`, sources: week.sources }))} />
+          <Table caption="Club" rows={data.clubs.map((club) => ({ name: club.club, crest: club.crest, sources: club.sources }))} />
         </details>
       </> : <p className="au-sub">No predicted elevens kept yet. The comparison starts with the next saved reading before a lock.</p>}
     </section>

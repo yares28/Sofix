@@ -258,9 +258,8 @@ test("each source says where it stands: nothing yet, nothing yet, or waiting for
   const sofix = page.getByRole("article", { name: "Sofix" });
   await expect(sofix.getByText("Waiting for results")).toBeVisible();
   await expect(sofix).toContainText("24 games written down before the lock");
-  await expect(sofix.getByRole("progressbar", { name: "Games checked" })).toHaveAttribute("aria-valuenow", "0");
-  await expect(page.getByRole("progressbar")).toHaveCount(1);
-  await expect(page.locator(".au-src-main.figure")).toHaveCount(0); // no figure anywhere under the floor
+  await expect(sofix.getByRole("progressbar")).toHaveCount(0);
+  await expect(page.locator(".au-src-main.figure")).toHaveCount(0); // no checked results
 });
 
 test("the record lists each gameweek written down before its lock", async ({ page }) => {
@@ -290,7 +289,7 @@ test("the top bar has the page, and marks it when it is open", async ({ page }) 
   await expect(page.locator(".nav-links").getByRole("link", { name: "Season" })).not.toHaveAttribute("aria-current", "page");
 });
 
-test("with enough games a source shows its figure, and one under the floor still says too few to tell", async ({ page, request }) => {
+test("Who starts shows figures from the first case, including competitions and predicted elevens", async ({ page, request }) => {
   await resetBackend(request, "audit-enough");
   await page.goto("/audit/starts");
 
@@ -302,9 +301,22 @@ test("with enough games a source shows its figure, and one under the floor still
   await expect(ff).toContainText("80% or more");
   await expect(ff).toContainText("88% started");
   const sofix = page.getByRole("article", { name: "Sofix" });
-  await expect(sofix.getByText("Too few to tell")).toBeVisible();
-  await expect(sofix).toContainText("40 of 100 games checked");
-  await expect(sofix.locator(".au-src-main.figure")).toHaveCount(0);
+  await expect(sofix.locator(".au-src-main.figure")).toHaveText("0%");
+  await expect(sofix).toContainText("right on 1 game");
+  await expect(sofix).toContainText("0.81");
+  await expect(sofix).toContainText("0% started · 1 game");
+  await expect(sofix).toContainText("0% right · 1 game");
+  await expect(sofix).toContainText("0 of 9 checked");
+  const elevens = page.getByRole("region", { name: "Futbol Fantasy's eleven" });
+  const row = elevens.getByRole("table", { name: "All games", exact: true }).getByRole("row").nth(1);
+  await expect(row.getByRole("cell").nth(0)).toContainText("0%0 of 1 started");
+  await expect(row.getByRole("cell").nth(1)).toContainText("Waiting for results");
+  await expect(row.getByRole("cell").nth(2)).toContainText("100%1 of 1 started");
+  await elevens.getByText("By gameweek and club").click();
+  for (const name of ["Gameweek", "Club"]) {
+    await expect(elevens.getByRole("table", { name, exact: true })).toContainText("100%1 of 1 started");
+  }
+  await expect(sofix).not.toContainText("Too few");
 
   // the start chances moved to what happened: a run with 100 games is used, a thinner one says how many are still to come
   const fixes = page.getByRole("region", { name: "Start chances, corrected from the record" });

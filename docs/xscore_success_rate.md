@@ -92,7 +92,7 @@ LaLiga round (round 8, GW21) is settled, from Wed 14 Oct.
 ## Who starts
 
 The second half of the page. Sorare, Futbol Fantasy and Sofix each give a chance that a player starts a game. Each is
-written down before the lock and checked, a day after the gameweek, against whether he started.
+written down before the lock and checked against whether he started as soon as a usable per-game result is saved.
 
 - **Called right:** said 50% or more and he started, or said less and he did not.
 - **Error score:** how far the chances were from what happened, on average. 0 is perfect; 0.25 is what saying 50% every time

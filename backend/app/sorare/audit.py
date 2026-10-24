@@ -10,7 +10,7 @@ only numbers go in the file). The same count then runs on what the app really sa
 and the settled scores), which is the live record: it begins empty and fills as gameweeks are played.
 
 **Who starts.** Sorare, Futbol Fantasy and Sofix each give a chance that a player starts a game. The record keeps what each said before the
-lock and, a day after the gameweek, whether he started (`starts.py`). `starts_record` scores each source on its own games. Only Sofix's
+lock and whether he started as soon as a usable result is saved (`player_audit.py`). `starts_record` scores each source on its own games. Only Sofix's
 can be replayed on the past, since the others are not kept anywhere once the game is over.
 
 **Rewards.** A reward is all or nothing, so Play never shows chance x reward; over a season it is the right yardstick, though. For each
@@ -51,6 +51,7 @@ from app.sorare.publish import ARCHIVE_PREFIX, SETTLE
 
 AUDIT_KEY = "audit"
 VERSION = 1
+SETTLEMENT_VERSION = 2
 # Written by `python -m app.jobs.xscore_backtest --summary`; numbers only, so it can sit in the public repository.
 REPLAY_FILE = Path(__file__).resolve().parents[2] / "data" / "audit" / "replay.json"
 FLOOR = 100  # cases (settled games, or pairs of players) a figure needs before it is shown: under it, too few to tell
@@ -293,6 +294,8 @@ def _marked(record: dict[str, Any]) -> tuple[list[backtest.Row], int]:
             except (KeyError, TypeError, ValueError):
                 continue
             noted += 1
+            if week.get("scoreReady") is False:
+                continue
             results = [cell for cell in games.values() if isinstance(cell, dict) and "started" in cell]
             if len(results) < len(games):
                 continue  # a game still to be scored: he is marked when the gameweek is
@@ -398,7 +401,7 @@ def build(
     return {
         "version": VERSION,
         "generatedAt": now.isoformat(),
-        "settlementVersion": 1,
+        "settlementVersion": SETTLEMENT_VERSION,
         "nextSettlementAt": next_settlement(record, score_records or [], now),
         "floor": FLOOR,
         "replay": ({key: replayed.get(key) for key in ("builtAt", "from", "to", "players")} if replayed else None),
@@ -456,7 +459,7 @@ def settlement_due(db: Session, now: datetime) -> bool:
             ReadModel.payload["nextSettlementAt"].as_string(),
         ).where(ReadModel.key == AUDIT_KEY)
     ).first()
-    if row is None or row[0] != 1:
+    if row is None or row[0] != SETTLEMENT_VERSION:
         return True  # first run after this release initializes the clock
     at = _lock(row[1])
     return at is not None and now >= at

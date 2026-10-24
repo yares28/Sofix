@@ -43,6 +43,11 @@ def actual(row: PlayerGame | None, due: bool) -> dict[str, Any] | None:
     return {"started": started, "played": row.played, "score": row.score, "mins": row.mins}
 
 
+def start_result(row: PlayerGame | None, now: datetime) -> dict[str, Any] | None:
+    """A saved start fact is usable independently of the GW; future/pending rows are not results."""
+    return actual(row, row is not None and as_utc(row.date) <= now)
+
+
 def read(db: Session, now: datetime, floor: int) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any]]:
     saved = db.get(ReadModel, starts.START_KEY)
     record = copy.deepcopy(saved.payload) if saved and isinstance(saved.payload, dict) else {}
@@ -79,6 +84,7 @@ def read(db: Session, now: datetime, floor: int) -> tuple[dict[str, Any], list[d
         due = _due(score_record, now)
         lock = _dt(gameweek["lock"])
         week = weeks.setdefault(gameweek["slug"], {"lock": gameweek["lock"], "players": {}})
+        week["scoreReady"] = due  # full-GW score comparisons retain their existing boundary
         for player, entry in (score_record.get("players") or {}).items():
             kept = week.setdefault("players", {}).setdefault(player, {"games": {}})
             if (
@@ -110,16 +116,12 @@ def read(db: Session, now: datetime, floor: int) -> tuple[dict[str, Any], list[d
                     for key, value in (("sofix", row.sofix_x), ("sorare", row.sorare_x)):
                         if value is not None:
                             game[key] = value
-                result = actual(row, due)
+                result = start_result(row, now)
                 if result is not None:
                     cell.update(result)
                     game["actual"] = result
                 elif game.get("actual"):
                     cell.update(game["actual"])  # an older settled record is still evidence
-                elif (read := actual(row, True)) is not None:
-                    # Sorare against Sofix counts a game as soon as its score is read (the owner, 13 Oct 2026); the start
-                    # record above still waits for the week, so `cell` is left alone.
-                    game["actual"] = read
         all_games = [
             game for entry in (score_record.get("players") or {}).values() for game in entry.get("games") or []
         ]
@@ -137,8 +139,9 @@ def read(db: Session, now: datetime, floor: int) -> tuple[dict[str, Any], list[d
         ]
         dates = [as_utc(row.date) for row, _ in games if row is not None]
         due = bool(dates) and now >= max(dates) + SETTLE
+        week["scoreReady"] = due
         for row, cell in games:
-            if (result := actual(row, due)) is not None:
+            if (result := start_result(row, now)) is not None:
                 cell.update(result)
     ff = db.get(ReadModel, ff_chances.KEY)
     return record, scores, elevens(scores, rows, ff.payload if ff else {}, now, floor)
@@ -174,7 +177,7 @@ def _eleven(side: dict[str, Any], chances: dict[str, float]) -> set[str] | None:
 def elevens(
     scores: list[dict[str, Any]], rows: dict[tuple[str, str], PlayerGame], ff: dict[str, Any], now: datetime, floor: int
 ) -> dict[str, Any]:
-    linked: dict[tuple[str, str], tuple[PlayerGame, int, bool]] = {}
+    linked: dict[tuple[str, str], tuple[PlayerGame, int]] = {}
     for record in scores:
         number = (record.get("gameweek") or {}).get("number")
         if number is None:
@@ -192,7 +195,7 @@ def elevens(
                     and mid is not None
                     and pid is not None
                 ):
-                    linked[str(mid), str(pid)] = row, number, _due(record, now)
+                    linked[str(mid), str(pid)] = row, number
     groups: dict[tuple[str, Any], dict[str, Any]] = {}
     crests: dict[str, str | None] = {}
 
@@ -227,14 +230,14 @@ def elevens(
                     found = linked.get((mid, pid))
                     if found is None:
                         continue
-                    row, number, due = found
+                    row, number = found
                     for tally in (
                         group("all", "all"),
                         group("week", number),
                         *([group("club", club)] if club else []),
                     ):
                         tally[source]["picked"] += 1
-                        if actual(row, due) is not None:
+                        if start_result(row, now) is not None:
                             tally[source]["checked"] += 1
                             tally[source]["started"] += bool(row.started)
     for tally in groups.values():

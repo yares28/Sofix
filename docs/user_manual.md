@@ -615,10 +615,12 @@ checked since, and how many each source gave. (The old headline, 66% on your 84 
 [How it is counted](xscore_success_rate.md).)
 
 The live Audit checks every recorded player, including the LaLiga index and your players outside LaLiga, from saved games.
-A new week's results wait until a day after it ends. Competition counts say how many games have been checked;
-unchecked games include future games, the GW's settling period and unavailable results. An explicit Sorare DNP is a
-non-start even if its start flag is missing. Automatic score checks publish when that settling period ends, and daily
-history reads publish their results too. Lineups keep retrying missing results and paying scores beyond 14 days.
+Who starts checks each game as soon as a usable start/non-start result is saved, including the predicted-eleven
+comparisons. It does not wait for the GW to end or add 24 hours. A score still under review can provide a known start
+fact; later corrections replace that case without counting it twice. Future games and unknown flags remain unchecked.
+An explicit Sorare DNP is a non-start even if its start flag is missing. Source reads keep their existing schedule;
+no extra Sorare requests are needed to count already-saved results. Full-GW score comparisons and Lineups keep their
+existing finalisation requirements. Lineups keeps retrying missing results and paying scores beyond 14 days.
 
 **Start chances, corrected from the record**, under Who starts, lists each source's chances against how often those players really started.
 A run of chances with 100 settled games is moved to what happened before the plans are made (Futbol Fantasy's 70% really started 86% in GW21);

@@ -99,7 +99,7 @@ def test_explicit_nonappearance_with_no_start_stat_settles_but_unknown_appearanc
     assert audit.from_kept(db, NOW)["starts"]["live"]["sofix"]["settled"] == 0
 
 
-def test_idle_score_job_publishes_at_the_gw_boundary_without_browser_or_new_source_read(db, monkeypatch):  # noqa: F811
+def test_idle_score_job_publishes_full_gw_scores_at_the_boundary_without_a_source_read(db, monkeypatch):  # noqa: F811
     from contextlib import nullcontext
 
     from app.jobs import score_checks as job
@@ -107,7 +107,7 @@ def test_idle_score_job_publishes_at_the_gw_boundary_without_browser_or_new_sour
     keep(db)
     before = END + timedelta(hours=23)
     audit.publish(db, before)
-    assert db.get(ReadModel, "audit").payload["starts"]["live"]["sofix"]["settled"] == 0
+    assert db.get(ReadModel, "audit").payload["xscore"]["live"]["marked"] == 0
 
     class Clock:
         @staticmethod
@@ -122,6 +122,7 @@ def test_idle_score_job_publishes_at_the_gw_boundary_without_browser_or_new_sour
     monkeypatch.setattr(job, "notify_app", lambda *args: calls.append("revalidate"))
     job.main()
     assert db.get(ReadModel, "audit").payload["starts"]["live"]["sofix"]["settled"] == 2
+    assert db.get(ReadModel, "audit").payload["xscore"]["live"]["marked"] == 2
     job.main()
     assert calls == ["revalidate"], "repeated idle runs neither duplicate counts nor republish"
 
@@ -248,20 +249,123 @@ def test_a_legacy_start_record_without_score_metadata_can_still_finish(db):  # n
     assert db.get(ReadModel, "audit").payload["starts"]["live"]["sofix"]["settled"] == 1
 
 
-def test_unknown_and_not_yet_final_week_results_are_not_guessed(db):  # noqa: F811
+def test_known_starts_count_before_the_week_ends_but_unknown_results_are_not_guessed(db):  # noqa: F811
     keep(db)
     row = db.get(PlayerGame, ("p1", "g"))
     row.started = None
     db.commit()
     audit.publish(db, END + timedelta(hours=23))
     early = db.get(ReadModel, "audit").payload
-    assert early["starts"]["live"]["sofix"]["settled"] == 0
+    assert early["starts"]["live"]["sofix"]["settled"] == 1
+    assert early["xscore"]["live"]["marked"] == 0
     # Sorare against Sofix does not wait for the week: the one game with a known start counts as soon as it is read
     assert early["versus"]["all"]["starts"] == 1 and early["versus"]["settled"] == 0
     audit.publish(db, NOW)
     page = db.get(ReadModel, "audit").payload
     assert page["starts"]["live"]["sofix"]["settled"] == 1
     assert page["starts"]["live"]["sofix"]["right"] is None
+
+
+def test_partial_double_counts_known_start_facts_and_elevens_without_finalising_scores(db):  # noqa: F811
+    record = keep(db, 3)
+    early = LOCK + timedelta(days=1, hours=4)
+    second = {
+        **deepcopy(record["players"]["p0"]["games"][0]),
+        "id": "later",
+        "kickoff": (END - timedelta(hours=2)).isoformat(),
+        "ffMatch": {"id": 8},
+    }
+    record["players"]["p0"]["games"].append(second)
+    player_games.save_statements(db, record, LOCK - timedelta(hours=1))
+    put(db, "score_record:gw", record, early)
+    first = db.get(PlayerGame, ("p0", "g"))
+    first.status, first.score, first.ff_xi = "REVIEWING", 0, True
+    no_show = db.get(PlayerGame, ("p1", "g"))
+    no_show.status, no_show.played, no_show.started, no_show.score, no_show.ff_xi = (
+        "DID_NOT_PLAY",
+        False,
+        None,
+        None,
+        False,
+    )
+    db.get(PlayerGame, ("p2", "g")).started = None
+    future = db.get(PlayerGame, ("p0", "later"))
+    future.status, future.played, future.started, future.score = "FINAL", True, True, 99
+    db.commit()
+    side = {"club": "ATL", "published": True, "players": {"0": {"xi": True, "line": "MID"}}}
+    put(db, ff_chances.KEY, {"matches": {"7": {"atLock": {"home": side}}}}, early)
+    frozen = deepcopy(db.get(ReadModel, "score_record:gw").payload)
+    audit.publish(db, early)
+    page = deepcopy(db.get(ReadModel, "audit").payload)
+    assert page["starts"]["weeks"][0]["games"] == 4
+    assert page["starts"]["weeks"][0]["settled"] == 2
+    for source in starts.SOURCES:
+        assert page["starts"]["live"][source]["settled"] == 2
+        assert page["elevens"]["all"][source]["checked"] == 1
+    assert page["xscore"]["live"]["marked"] == 0
+    assert page["versus"]["settled"] == 0
+    first.started = False  # a later correction replaces the case; it does not add a second case
+    db.commit()
+    audit.publish(db, early + timedelta(minutes=30))
+    corrected = deepcopy(db.get(ReadModel, "audit").payload)
+    assert corrected["starts"]["weeks"][0]["settled"] == 2
+    assert corrected["elevens"]["all"]["futbolfantasy"]["started"] == 0
+    audit.publish(db, early + timedelta(hours=1))
+    assert db.get(ReadModel, "audit").payload["starts"] == corrected["starts"]
+    assert db.get(ReadModel, "score_record:gw").payload == frozen
+
+
+def test_legacy_start_only_record_checks_each_game_while_a_later_game_is_pending(db):  # noqa: F811
+    keep(db, 2)
+    db.delete(db.get(ReadModel, "score_record:gw"))
+    later = db.get(PlayerGame, ("p1", "g"))
+    later.date, later.status = END - timedelta(hours=1), "PENDING"
+    db.commit()
+    put(
+        db,
+        starts.START_KEY,
+        {
+            "weeks": {
+                "old": {
+                    "lock": LOCK.isoformat(),
+                    "players": {slug: {"games": {"g": {"sofix": {"chance": 0.7}}}} for slug in ("p0", "p1")},
+                }
+            }
+        },
+        NOW,
+    )
+    page = audit.from_kept(db, LOCK + timedelta(days=1, hours=4))
+    assert page["starts"]["live"]["sofix"]["settled"] == 1
+
+
+def test_release_republishes_already_saved_starts_on_an_idle_job_before_gw_end(db, monkeypatch):  # noqa: F811
+    from contextlib import nullcontext
+
+    from app.jobs import score_checks as job
+
+    keep(db)
+    early = LOCK + timedelta(days=1, hours=4)
+    old_page = audit.from_kept(db, early)
+    old_page["settlementVersion"] = 1
+    for source in starts.SOURCES:
+        old_page["starts"]["live"][source]["settled"] = 0
+    put(db, "audit", old_page, early)
+
+    class Clock:
+        @staticmethod
+        def now(_):
+            return early
+
+    calls = []
+    monkeypatch.setattr(job, "datetime", Clock)
+    monkeypatch.setattr(job, "SessionLocal", lambda: nullcontext(db))
+    monkeypatch.setattr(job, "SorareClient", lambda: nullcontext(object()))
+    monkeypatch.setattr(job.score_checks, "run", lambda *args: {"games": 0, "failed": 0, "pending": 0})
+    monkeypatch.setattr(job, "notify_app", lambda *args: calls.append("revalidate"))
+    job.main()
+    assert db.get(ReadModel, "audit").payload["starts"]["live"]["sofix"]["settled"] == 2
+    job.main()
+    assert calls == ["revalidate"]
 
 
 def test_post_lock_week_metadata_is_not_used_as_a_prediction(db):  # noqa: F811

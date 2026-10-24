@@ -109,6 +109,7 @@ def test_missing_pending_or_unscored_results_are_unknown_never_a_dnp(db):
     row = db.get(PlayerGame, ("a", "g2"))
     for status, played, score in [
         ("PENDING", True, 80),
+        ("REVIEWING", True, 80),
         ("FINAL", None, 80),
         ("FINAL", True, None),
         ("DID_NOT_PLAY", True, 80),

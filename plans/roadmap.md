@@ -583,6 +583,10 @@ the held-out weeks (P9 "The bar").
 
 ## Results
 
+24 Oct - Who starts checks each game's saved start/non-start immediately, including predicted elevens, with corrections
+and future/missing guards. Full-GW score comparisons and Lineups retain their finalisation gates. No source-frequency
+increase. [Contract and real-data proof](audit-starts-per-game.md).
+
 24 Oct - Audit settlement: explicit Sorare DNPs without a start flag count as non-starts; idle score jobs publish at the
 GW check boundary and daily history publishes its saved results. Lineups uses each source's own game map and retries
 missing results and reward cuts after 14 days, rebuilding the earlier cache once. Competition counts say checked rather

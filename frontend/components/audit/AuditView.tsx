@@ -262,7 +262,7 @@ export default function AuditView({
       <Fixes fixes={data.startFixes ?? {}} floor={data.floor} />
       <section className="au-w au-starts" id="written" aria-labelledby="au-written-h">
         <h2 id="au-written-h">Written down so far</h2>
-        <p className="au-sub">Before each lock; checked a day after the gameweek ends.</p>
+        <p className="au-sub">Checked as each game&apos;s result arrives.</p>
         {data.starts.weeks.length ? <Record data={data} /> : <p className="au-sub">Nothing written down yet.</p>}
       </section>
       <ElevensAudit data={data.elevens} floor={data.floor} />

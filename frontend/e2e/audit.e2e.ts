@@ -265,6 +265,7 @@ test("each source says where it stands: nothing yet, nothing yet, or waiting for
 
 test("the record lists each gameweek written down before its lock", async ({ page }) => {
   await page.goto("/audit/record");
+  await expect(page.getByText("Checked as each game's result arrives.", { exact: true })).toBeVisible();
 
   const table = page.getByRole("table", { name: /Games written down before each lock/ });
   await expect(table.getByRole("row")).toHaveCount(3); // the head and two gameweeks

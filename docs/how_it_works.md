@@ -306,10 +306,14 @@ average scores 66.1%, so the formula adds nothing to the order yet. `--summary` 
 
 **The Audit page** (`/audit`, `app.sorare.audit`, read model `audit`). `player_audit.read` joins frozen week metadata to
 `player_games` for every indexed and owner player, with legacy settled records as a fallback and no duplicate cases.
-New weeks wait until their end plus 24 hours; older records retain their day-after-last-game boundary. Unknown starts,
+Who starts and predicted elevens use each saved result immediately once its game is no longer in the future; the
+result must have a usable start flag and FINAL, REVIEWING or explicit DID_NOT_PLAY status. Full-GW score comparisons
+retain end plus 24 hours (legacy records retain their day-after-last-game boundary), tracked separately by `scoreReady`.
+Unknown starts,
 scores and missing results are never non-appearances. An explicit Sorare `DID_NOT_PLAY` with `played=false` counts as a
 non-start even when Sorare omits `gameStarted`; contradictory DNP flags remain unknown. The half-hourly score job also
-checks a small published settlement deadline and republishes once the GW boundary passes, including idle source runs.
+checks a small published settlement deadline for full-GW comparisons, including idle source runs. Settlement version 2
+also republishes already-saved starts once after this release, without requiring a new source read or a page visit.
 The daily history job publishes Audit after saving results and invalidates the app cache. Lineups use each source's
 saved game map and keep retrying missing results or reward cuts after 14 days; the older lineup cache is rebuilt once.
 Missing mission stats remain pending. The replay file's numbers (the xScore success rate, and Sofix's chance of starting replayed on the past
@@ -319,7 +323,7 @@ chance he plays times his score if he plays) against his best game once the game
 fails the Play page is still published and the run's summary names `audit` under `failed`.
 
 `/audit` leads with the two saved conditional scores against the real score on starts (12 Oct owner request): each side's success rate
-(the share within 7 points, `versus.CLOSE`), starts and games a player came on in apart (`figures()["subs"]`), by position and week, with the miss and the lean, no floor (13 Oct). A game counts as soon as its row has a result, without the week's wait the start record keeps; a substitute's Sofix side is `sofixOn` (his score if he comes on, in `score_record` from 13 Oct), else the start number; `/audit/versus` redirects to it. The pair
+(the share within 7 points, `versus.CLOSE`), starts and games a player came on in apart (`figures()["subs"]`), by position and week, with the miss and the lean, no floor (13 Oct). A game counts as soon as its row has a result; a substitute's Sofix side is `sofixOn` (his score if he comes on, in `score_record` from 13 Oct), else the start number; `/audit/versus` redirects to it. The pair
 rates above are still computed and published but no longer drawn. `/audit/starts` also counts Futbol Fantasy's predicted eleven and the Sorare/Sofix elevens implied by the same
 position-preserving swaps as `lib/lineups.ts::byChance`: ties keep FF's starter, out/suspended alternatives cannot come in,
 and a historical reading without position data cannot invent an implied eleven. Counts are grouped by week and club;

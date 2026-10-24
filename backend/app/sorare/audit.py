@@ -51,7 +51,7 @@ from app.sorare.publish import ARCHIVE_PREFIX, SETTLE
 
 AUDIT_KEY = "audit"
 VERSION = 1
-SETTLEMENT_VERSION = 3
+SETTLEMENT_VERSION = 4
 # Written by `python -m app.jobs.xscore_backtest --summary`; numbers only, so it can sit in the public repository.
 REPLAY_FILE = Path(__file__).resolve().parents[2] / "data" / "audit" / "replay.json"
 FLOOR = 100  # default for other verdicts; Who starts explicitly uses one checked case
@@ -274,6 +274,48 @@ def weeks_record(record: dict[str, Any]) -> list[dict[str, Any]]:
     return out[:WEEKS_KEPT]
 
 
+def starts_board(record: dict[str, Any]) -> dict[str, Any]:
+    """Publish small, consistent competition scopes; no per-player data reaches the comparison component."""
+
+    def scope(competitions: set[str]) -> dict[str, Any]:
+        weeks = {}
+        cases: list[start_fixes.Case] = []
+        for slug, week in (record.get("weeks") or {}).items():
+            players = {}
+            for player, entry in (week.get("players") or {}).items():
+                games = {}
+                for index, cell in enumerate(_cells(entry)):
+                    competition = cell.get("comp") or (cell.get("info") or {}).get("competition")
+                    if competition not in competitions:
+                        continue
+                    kept = {source: cell[source] for source in SOURCES if source in cell}
+                    if not kept:
+                        continue
+                    if isinstance(cell.get("started"), bool):
+                        kept["started"] = cell["started"]
+                        cases.extend(
+                            (source, float(cell[source]["chance"]), cell["started"])
+                            for source in SOURCES
+                            if source in cell
+                        )
+                    games[str(index)] = {"comp": competition, **kept}
+                if games:
+                    players[player] = {"games": games}
+            if players:
+                weeks[slug] = {"lock": week.get("lock"), "players": players}
+        selected = {"weeks": weeks}
+        sources = starts_record(selected)
+        for source in sources.values():
+            source.pop("byCompetition", None)
+        return {"sources": sources, "bands": start_fixes.StartFixes(cases).table(), "weeks": weeks_record(selected)}
+
+    return {
+        "version": 1,
+        "all": scope(set(player_audit.START_COMPETITIONS)),
+        "competitions": {competition: scope({competition}) for competition in player_audit.START_COMPETITIONS},
+    }
+
+
 # ---------------------------------------------------------------------------------------------------- the xScore, as recorded
 def _marked(record: dict[str, Any]) -> tuple[list[backtest.Row], int]:
     """One row per player and gameweek the model noted and whose games are all settled: what it expected (the chance he plays times his
@@ -410,6 +452,7 @@ def build(
             "live": starts_record(record),
             "weeks": weeks_record(record),
         },
+        "startsBoard": starts_board(record),
         "rewards": rewards_record(weeks or []),
         "missions": missions.record(mission_logs or []),
         # Sorare's projection against Sofix's xScore on the same starts, from the numbers written down before each lock (6 Oct 2026)
@@ -473,13 +516,16 @@ def from_kept(db: Session, now: datetime, *, write: bool = False) -> dict[str, A
     """Build the Audit from common game rows and pre-lock metadata; also used by the read-only local API fallback."""
     record, scores, elevens = player_audit.read(db, now)
     page = build(record, read_replay(), now, kept_weeks(db), missions.logs_of(db), scores)
-    page["elevens"] = elevens
+    page["elevens"] = {key: elevens[key] for key in ("all", "weeks", "clubs")}
+    page["startsBoard"]["all"]["elevens"] = elevens["covered"]
+    for competition, scope in page["startsBoard"]["competitions"].items():
+        scope["elevens"] = elevens["byCompetition"][competition]
     page["frozenPlans"] = frozen_scores.read(db, now)
     page["lineups"] = lineup_audit.read(db, now, write=write)  # only the job keeps a settled week's counts
     page["strategies"] = strategy_audit.read(db, now, write=write)  # the strategy lab's lineups, scored (Phase 2)
     page["playerScores"] = score_checks.comparison(db, now)
     page["startFixes"] = start_fixes.StartFixes(
-        start_fixes.cases(db)
+        start_fixes.cases(db, now=now)
     ).table()  # what each source said against what happened (X8)
     from app.services.kept_matches import match_audit
 

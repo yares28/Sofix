@@ -605,14 +605,12 @@ to 20 Sep).
 - **Goalkeepers** and **Who starts** each plot what Sofix said against how often it happened: a dot on the dashed diagonal is honest.
 - **Against Sorare's own number** sets the share of starts within 7 points of Sorare's projection (33%), of the old number (30%) and of the new one (31%), and the share of goalkeepers' starts inside the range (79%, the aim is 80).
 
-These figures are written by hand from the local games export (`python -m app.jobs.audit_league --write`, into `frontend/lib/data/audit_league.json`), not by the refresh; the page says what they
-cover. A figure with fewer than 100 starts behind it says "Too few to tell". Below them, **Who starts?** gives each of Futbol Fantasy, Sorare and Sofix a column of what has been written down
-before real locks. It says how often the source was right (said 50% or more and he started, or less and he did not), how far its chances were from what happened (the error score: 0 is perfect,
-0.25 is saying 50% every time), and how many of the players it put at 80% or more started. Source and competition figures show from the first checked game, with their case count. It says
-"Waiting for results" while the games are written down but not played, or "Nothing yet" with the reason: Sorare has not given a start chance for any recorded player, and Futbol Fantasy covers
-LaLiga only. **Written down so far** lists each gameweek: the games written down before its lock, how many have been
-checked since, and how many each source gave. (The old headline, 66% on your 84 players, is gone from the page: it measured the old formula on your players only; its method is still in
-[How it is counted](xscore_success_rate.md).)
+These historical figures come from the local replay. **Who starts** now leads with the live accuracy of Futbol Fantasy,
+Sorare and Sofix, each with its checked-game count, probability error and results for picks at 80% or more. The common
+competition filter covers LaLiga, Premier League, Bundesliga, Ligue 1, Champions League, Europa League and Conference
+League only. It changes the header, breakdown, probability charts, saved-GW record and predicted elevens together.
+Missing coverage stays a dash; a checked zero stays 0%. Each source is measured on the games it actually forecast, so
+counts can differ. The historical Sofix-only replay remains under **Historical Sofix replay**.
 
 The live Audit checks every recorded player, including the LaLiga index and your players outside LaLiga, from saved games.
 Who starts checks each game as soon as a usable start/non-start result is saved, including the predicted-eleven
@@ -622,14 +620,22 @@ An explicit Sorare DNP is a non-start even if its start flag is missing. Source 
 no extra Sorare requests are needed to count already-saved results. Full-GW score comparisons and Lineups keep their
 existing finalisation requirements. Lineups keeps retrying missing results and paying scores beyond 14 days.
 
-**Start chances, corrected from the record**, under Who starts, lists each source's chances against how often those players really started.
-A run of chances with 100 settled games is moved to what happened before the plans are made (Futbol Fantasy's 70% really started 86% in GW21);
-thinner runs are left as they were and say how many games are still to come. The record keeps what each source said, not the corrected number.
+**Predicted vs actual** offers all three chart styles: **A · Connected dots**, **B · Calibration**, and **C · Paired bars**.
+Choose FF, Sorare or Sofix. Dots connect the mean predicted chance to the observed starting rate; paired bars show those
+same values. In Calibration, predictions run horizontally and actual starts vertically: the diagonal means agreement.
+Select a point with touch or keyboard, or choose its chance range, to see the exact values and game count. Probability
+ranges are paginated after 12 in A/C. Competition, source, chart style and pagination are kept in the URL.
 
-**Futbol Fantasy's eleven**, under Who starts, compares how many predicted starters started. Sorare and Sofix reorder the
-same formation using their saved chances; **By gameweek and club** opens the counts for each. Every group shows a percentage from the first checked
-starter, alongside its count. Older readings without positions cannot produce an implied eleven. Until the first
-reading is saved, it says "No predicted elevens kept yet". A failed source stops new readings and keeps the saved evidence.
+There is no 100-case rule for Who starts or for automatic start-chance corrections (owner, 24 October). Every existing
+five-point probability band uses its own observed starting rate from its first checked case; adjacent bands no longer
+pool to reach 100. Forecasts shift by the band's observed rate minus its mean prediction, clamped to 0-100%. Raw
+pre-lock predictions remain unchanged in the record. The charts describe the selected competition scope; automatic
+forecast corrections continue to use all saved eligible evidence. Existing plans update on their next scheduled rebuild.
+
+**Written down so far** is a compact gameweek timeline. Open a week to see how many predictions each source saved.
+**Predicted elevens** compares FF's saved eleven with Sorare and Sofix's choices in the same formation. Switch between
+All games, Gameweek and Club; lists beyond 12 groups are paginated. Rates show from the first checked starter, with
+started/checked and picked counts. A missing result is never counted as a non-start.
 
 **Match forecasts, checked**, below xScore, compares Sofix with bookmaker prices on the same finished LaLiga matches.
 Forecasts update until kick-off and then stay fixed. Closing CSV prices come first, then the last available pre-match

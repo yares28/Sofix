@@ -455,3 +455,24 @@ def test_missions_settle_from_kept_stats_and_missing_candidate_does_not_mean_dnp
     found = db.get(ReadModel, "missions_log:2026-10").payload["days"]["2026-10-06"]["limited"]["cands"]
     assert found[0]["r"]["did"]["Decisive Picker"] is True
     assert "r" not in found[1]
+
+
+def test_competition_elevens_do_not_load_each_players_competition_separately(db):  # noqa: F811
+    from sqlalchemy import event
+
+    from app.sorare import player_audit
+
+    keep(db)
+    db.expunge_all()
+    queries = []
+
+    def count(_conn, _cursor, statement, _parameters, _context, _many):
+        if "FROM player_games" in statement:
+            queries.append(statement)
+
+    event.listen(db.bind, "before_cursor_execute", count)
+    try:
+        player_audit.read(db, NOW)
+    finally:
+        event.remove(db.bind, "before_cursor_execute", count)
+    assert len(queries) == 1, "all competition identities must arrive in the one game-row read"

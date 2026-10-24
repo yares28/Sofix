@@ -299,6 +299,32 @@ function auditPayload(kind) {
       settled: 2,
     };
   }
+  const emptySource = () => ({ state: "none", recorded: 0, settled: 0, right: null, brier: null, mean: null, started: null, buckets: null });
+  const emptyScope = () => ({ sources: Object.fromEntries(["futbolfantasy", "sorare", "sofix"].map(s => [s, emptySource()])), bands: {}, weeks: [], elevens: { all: { futbolfantasy: { picked: 0, checked: 0, started: 0, rate: null }, sorare: { picked: 0, checked: 0, started: 0, rate: null }, sofix: { picked: 0, checked: 0, started: 0, rate: null } }, weeks: [], clubs: [] } });
+  const competitions = ["laliga-es", "premier-league-gb-eng", "bundesliga-de", "ligue-1-fr", "uefa-champions-league", "uefa-europa-league", "uefa-europa-conference-league"];
+  data.startsBoard = { version: 1, all: emptyScope(), competitions: Object.fromEntries(competitions.map(c => [c, emptyScope()])) };
+  const board = data.startsBoard;
+  board.all.sources = structuredClone(data.starts.live);
+  board.all.weeks = structuredClone(data.starts.weeks);
+  board.competitions["laliga-es"] = structuredClone(board.all);
+  if (kind === "enough") {
+    const bands = Array.from({ length: 13 }, (_, i) => ({ from: i / 20, to: i / 20, said: i / 20, was: i % 2 === 0 ? 1 : 0, n: 1, used: true }));
+    const ff = { ...emptySource(), state: "enough", recorded: 13, settled: 13, right: 7 / 13, brier: .340384615, mean: .3, started: 7 / 13, buckets: [] };
+    const correct = { ...emptySource(), state: "enough", recorded: 1, settled: 1, right: 1, brier: .01, mean: .9, started: 1, buckets: [] };
+    const wrong = { ...correct, right: 0, brier: .81, started: 0 };
+    const sofix = { ...correct, recorded: 2, settled: 2, right: .5, brier: .41, started: .5, buckets: [{ from: .8, to: 1, n: 2, said: .9, was: .5 }] };
+    const pending = { ...emptySource(), state: "waiting", recorded: 9 };
+    board.all.sources = { futbolfantasy: ff, sorare: pending, sofix };
+    board.all.bands = { futbolfantasy: bands, sofix: [{ from: .9, to: .9, said: .9, was: .5, n: 2, used: true }] };
+    board.all.elevens = structuredClone(data.elevens);
+    board.all.elevens.clubs = ["ALA", "ATH", "ATL", "BAR", "BET", "CEL", "ELC", "ESP", "GET", "GIR", "LEV", "OSA", "OVI", "RAY", "RMA", "RSO", "SEV", "VAL", "VIL", "MLL"].map(club => ({ club, crest: null, sources: structuredClone(data.elevens.all) }));
+    const liga = board.competitions["laliga-es"];
+    liga.sources = { futbolfantasy: ff, sorare: emptySource(), sofix: correct };
+    liga.bands = { futbolfantasy: bands, sofix: [{ from: .9, to: .9, said: .9, was: 1, n: 1, used: true }] };
+    liga.elevens = structuredClone(board.all.elevens);
+    Object.assign(board.competitions["uefa-europa-league"], { sources: { futbolfantasy: emptySource(), sorare: emptySource(), sofix: wrong }, bands: { sofix: [{ from: .9, to: .9, said: .9, was: 0, n: 1, used: true }] } });
+    board.competitions["uefa-champions-league"].sources.sorare = pending;
+  }
   return { success: true, data };
 }
 

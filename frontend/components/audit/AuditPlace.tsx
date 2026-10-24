@@ -22,11 +22,11 @@ export default async function AuditPlace({ show, searchParams }: { show: AuditSh
   await connection(); // "updated 2 h ago" reads the clock
   // Everything the view needs is read at once: one wait, not one after another.
   const [data, { grid, meta }, system, league, sorare, loadedLog, myWeeks] = await Promise.all([
-    loadAudit(),
+    loadAudit(show !== "starts"),
     loadGrid(),
     loadSystem(),
     import("../../lib/data/audit_league.json").then((m) => m.default as unknown as LeagueAudit),
-    loadSorare(), // Rewards reads what you won week by week: the season's finished Sorare gameweeks, newest first
+    show === "starts" ? null : loadSorare(), // Rewards reads what you won week by week: the season's finished Sorare gameweeks, newest first
     show === "missions" ? loadMissionLog() : [],
     show === "rewards" || show === "lineups" || show === "strategies" ? myWeeksQuietly() : null,
   ]);
@@ -43,14 +43,14 @@ export default async function AuditPlace({ show, searchParams }: { show: AuditSh
     if (game.team && game.teamCrest) crests.set(sideKey(game.team), game.teamCrest);
     if (game.opponent && game.opponentCrest) crests.set(sideKey(game.opponent), game.opponentCrest);
   }
-  const playerWeeks = await Promise.all((data?.playerScores?.weeks ?? []).map(async w => {
+  const playerWeeks = show === "xscore" ? await Promise.all((data?.playerScores?.weeks ?? []).map(async w => {
     // Cached records restore source evidence while an older audit payload is still being served.
     const record = show === "xscore" && w.rows.some(r => r.sources === undefined) ? await loadAuditStartRecord(w.slug) : null;
     return { ...w, rows: w.rows.map(row => {
       const saved = row.sources === undefined ? savedStartGame(row, w.slug, record) : null;
       return withGameCrests({ ...row, started: recordedStart(row.started), sources: row.sources ?? saved?.sources ?? {}, ffMatch: row.ffMatch ?? saved?.ffMatch ?? null }, games, crests);
     }) };
-  }));
+  })) : [];
   const playerWeek = playerWeeks.find(w => w.slug === selected?.slug) ?? null;
   const owned = RARITIES.filter((r) => sorare?.collection?.some((c) => c.rarity === r) || loadedLog.some((l) => Object.values(l.days).some((d) => d[r])));
   const logs = show === "missions" ? fillMissionDays(loadedLog, owned, new Date()) : [];
@@ -70,8 +70,8 @@ export default async function AuditPlace({ show, searchParams }: { show: AuditSh
   return (
     <>
       <SiteNav meta={meta} system={system} week={show === "xscore" ? week : undefined} />
-      <main className="au">
-        <AuditView data={data} now={new Date()} league={league} show={show} season={season} saved={saved} pics={pics} playerWeek={playerWeek} playerWeekNumber={week.current?.number ?? null} playerWeeks={playerWeeks} />
+      <main className={show === "starts" ? "au au-starts-page" : "au"}>
+        <AuditView data={data} now={new Date()} league={league} show={show} season={season} saved={saved} pics={pics} playerWeek={playerWeek} playerWeekNumber={week.current?.number ?? null} playerWeeks={playerWeeks} startParams={Object.fromEntries(Object.entries(params).map(([key, value]) => [key, typeof value === "string" ? value : undefined]))} />
         {show === "missions" ? <div className="pd-wrap">{owned.map((rarity) => <MissionHistory key={rarity} title={`${RARITY_NAME[rarity]} history`} days={missionHistory(logs, rarity, names)} rarity={rarity} collection={sorare?.collection ?? []} />)}</div> : null}
       </main>
     </>

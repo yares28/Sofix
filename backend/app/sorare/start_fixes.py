@@ -2,8 +2,8 @@
 
 Every source's chance that a player starts a game is written down before the lock and settled by whether he started
 (`starts.py`, `PlayerGame`). Grouped in bands of five points per source, the record says how often "70%" really started. A
-band with 100 settled cases or more is moved to what happened, the same distance for every chance inside it; a band with
-fewer is left as it was, since a difference under 100 cases is mostly luck. The forecast then makes the expected score from
+band is moved to what happened from its first settled case. Bands keep their own evidence instead of pooling to
+reach a sample threshold. The forecast then makes the expected score from
 the corrected chance, while the record keeps what the source really said, so the next measurement is not of its own work.
 """
 
@@ -11,10 +11,11 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, load_only
 
 from app.models import PlayerGame, ReadModel
 
@@ -22,30 +23,10 @@ logger = logging.getLogger(__name__)
 
 RECORD_KEY = "start_chances"  # `starts.START_KEY`
 BAND = 0.05
-MIN_CASES = 100
+MIN_CASES = 1
 COLUMNS = {"futbolfantasy": "ff_start", "sorare": "sorare_start", "sofix": "sofix_start"}
 
-MAX_GAP = 2  # bands: a sparse band only joins a neighbour within ten points
 Case = tuple[str, float, bool]  # source, the chance it gave, whether he started
-
-
-def _runs(bands: dict[int, list[tuple[float, bool]]]) -> list[list[int]]:
-    """Group a source's bands: one with 100 cases stands alone; thinner neighbours (within ten points) pool until they have 100.
-    What is left over below 100 joins the pooled group just before it (never a band that stands alone), else is listed and not used."""
-    out: list[list[int]] = []
-    run: list[int] = []
-    for key in sorted(bands):
-        if run and (key - run[-1] > MAX_GAP or len(bands[key]) >= MIN_CASES):
-            out.append(run)
-            run = []
-        run.append(key)
-        if sum(len(bands[k]) for k in run) >= MIN_CASES:
-            out.append(run)
-            run = []
-    if run and out and len(out[-1]) > 1 and run[0] - out[-1][-1] <= MAX_GAP:
-        out[-1] += run
-        run = []
-    return [*out, run] if run else out
 
 
 class StartFixes:
@@ -56,8 +37,7 @@ class StartFixes:
         self._shift: dict[tuple[str, int], float] = {}
         self._table: dict[str, list[dict[str, Any]]] = {}
         for source, bands in groups.items():
-            for keys in _runs(bands):
-                made = [case for key in keys for case in bands[key]]
+            for key, made in sorted(bands.items()):
                 said = sum(s for s, _ in made) / len(made)
                 was = sum(started for _, started in made) / len(made)
                 used = len(made) >= MIN_CASES
@@ -72,10 +52,10 @@ class StartFixes:
                     }
                 )
                 if used:
-                    self._shift.update({(source, key): was - said for key in keys})
+                    self._shift[source, key] = was - said
 
     def apply(self, source: str, chance: float) -> float:
-        """The chance as the record says it should be: moved by how far its band was off, once the band has 100 cases."""
+        """The chance as the record says it should be: moved by how far its band was off, from the first checked case."""
         shift = self._shift.get((source, round(chance / BAND)))
         return chance if shift is None else round(min(1.0, max(0.0, chance + shift)), 4)
 
@@ -97,29 +77,52 @@ class StartFixes:
                     )
 
 
-def cases(db: Session) -> list[Case]:
+def cases(db: Session, *, now: datetime | None = None) -> list[Case]:
     """Every settled game with what each source said before the lock: the game rows, and the older record beside them (a game is
     counted once per source, wherever it is found)."""
+    from app.sorare.player_audit import start_result
+
+    now = now or datetime.now(UTC)
     found: dict[tuple[str, str, str], tuple[float, bool]] = {}
     row = db.get(ReadModel, RECORD_KEY)
     record = row.payload if row and isinstance(row.payload, dict) else {}
     for week in (record.get("weeks") or {}).values():
         for player, entry in (week.get("players") or {}).items():
             for game, cell in (entry.get("games") or {}).items():
-                if "started" not in cell:
+                if not isinstance(cell.get("started"), bool):
                     continue
                 for source in COLUMNS:
                     if source in cell:
                         found[player, game, source] = (float(cell[source]["chance"]), bool(cell["started"]))
-    columns = [getattr(PlayerGame, column) for column in COLUMNS.values()]
-    for player, game, started, *said in db.execute(
-        select(PlayerGame.player, PlayerGame.game_id, PlayerGame.started, *columns).where(
-            PlayerGame.said_at.is_not(None), PlayerGame.started.is_not(None), PlayerGame.status != "PENDING"
+    rows = db.scalars(
+        select(PlayerGame)
+        .options(
+            load_only(
+                PlayerGame.player,
+                PlayerGame.game_id,
+                PlayerGame.date,
+                PlayerGame.status,
+                PlayerGame.played,
+                PlayerGame.started,
+                PlayerGame.score,
+                PlayerGame.mins,
+                *(getattr(PlayerGame, col) for col in COLUMNS.values()),
+            )
         )
-    ):
-        for source, chance in zip(COLUMNS, said, strict=True):
+        .where(PlayerGame.said_at.is_not(None))
+    )
+    for row in rows:
+        result = start_result(row, now)
+        if result is None:
+            for source in COLUMNS:
+                found.pop((row.player, row.game_id, source), None)
+            continue
+        for source, column in COLUMNS.items():
+            chance = getattr(row, column)
+            if chance is None and (kept := found.get((row.player, row.game_id, source))):
+                chance = kept[0]
             if chance is not None:
-                found[player, game, source] = (float(chance), bool(started))
+                found[row.player, row.game_id, source] = (float(chance), result["started"])
     return [(source, said, started) for (_, _, source), (said, started) in found.items()]
 
 

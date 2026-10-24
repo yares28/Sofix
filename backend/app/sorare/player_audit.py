@@ -16,6 +16,16 @@ from app.sorare.publish import SETTLE
 
 COLUMNS = {"futbolfantasy": "ff_start", "sorare": "sorare_start", "sofix": "sofix_start"}
 
+START_COMPETITIONS = (
+    "laliga-es",
+    "premier-league-gb-eng",
+    "bundesliga-de",
+    "ligue-1-fr",
+    "uefa-champions-league",
+    "uefa-europa-league",
+    "uefa-europa-conference-league",
+)
+
 
 def _dt(value: str) -> datetime:
     return as_utc(datetime.fromisoformat(value))
@@ -61,6 +71,7 @@ def read(db: Session, now: datetime) -> tuple[dict[str, Any], list[dict[str, Any
                     PlayerGame.player,
                     PlayerGame.game_id,
                     PlayerGame.date,
+                    PlayerGame.competition,
                     PlayerGame.status,
                     PlayerGame.played,
                     PlayerGame.started,
@@ -106,6 +117,8 @@ def read(db: Session, now: datetime) -> tuple[dict[str, Any], list[dict[str, Any
                 cell = kept.setdefault("games", {}).setdefault(game["id"], {})
                 cell["info"] = {key: game.get(key) for key in ("kickoff", "competition", "home", "away")}
                 row = rows.get((player, game["id"]))
+                if row is not None and not cell["info"].get("competition"):
+                    cell["info"]["competition"] = row.competition
                 if score_record.get("writtenAt") and _dt(score_record["writtenAt"]) >= lock:
                     game["sofix"], game["sorare"], game["sofixOn"] = None, None, None
                 if row and row.said_at and as_utc(row.said_at) < lock:
@@ -141,10 +154,19 @@ def read(db: Session, now: datetime) -> tuple[dict[str, Any], list[dict[str, Any
         due = bool(dates) and now >= max(dates) + SETTLE
         week["scoreReady"] = due
         for row, cell in games:
+            if row is not None and not (cell.get("info") or {}).get("competition"):
+                cell.setdefault("info", {})["competition"] = row.competition
             if (result := start_result(row, now)) is not None:
                 cell.update(result)
     ff = db.get(ReadModel, ff_chances.KEY)
-    return record, scores, elevens(scores, rows, ff.payload if ff else {}, now)
+    reading = ff.payload if ff else {}
+    eleven = elevens(scores, rows, reading, now)
+    eleven["covered"] = elevens(scores, rows, reading, now, competitions=set(START_COMPETITIONS))
+    eleven["byCompetition"] = {
+        competition: elevens(scores, rows, reading, now, competitions={competition})
+        for competition in START_COMPETITIONS
+    }
+    return record, scores, eleven
 
 
 def _eleven(side: dict[str, Any], chances: dict[str, float]) -> set[str] | None:
@@ -175,7 +197,12 @@ def _eleven(side: dict[str, Any], chances: dict[str, float]) -> set[str] | None:
 
 
 def elevens(
-    scores: list[dict[str, Any]], rows: dict[tuple[str, str], PlayerGame], ff: dict[str, Any], now: datetime
+    scores: list[dict[str, Any]],
+    rows: dict[tuple[str, str], PlayerGame],
+    ff: dict[str, Any],
+    now: datetime,
+    *,
+    competitions: set[str] | None = None,
 ) -> dict[str, Any]:
     linked: dict[tuple[str, str], tuple[PlayerGame, int]] = {}
     for record in scores:
@@ -189,6 +216,7 @@ def elevens(
                 lock = (record.get("gameweek") or {}).get("lock")
                 if (
                     row is not None
+                    and (competitions is None or row.competition in competitions)
                     and row.said_at
                     and lock
                     and as_utc(row.said_at) < _dt(lock)

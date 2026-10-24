@@ -241,41 +241,37 @@ test("the league figures draw every chart from the committed replay: how close, 
   const vs = page.getByRole("list", { name: "Share of starts within 7 points" }).getByRole("listitem");
   await expect(vs).toHaveText([/^Sorare's projection/, /^Sofix before/, /^Sofix now/]);
 
-  // Sofix's chance that a player starts, against who started, leads Who starts (canvas board 7b).
+  // The historical replay remains available separately from the live three-source header.
   await page.goto("/audit/starts");
+  await page.getByText("Historical Sofix replay", { exact: true }).click();
   await expect(page.getByRole("region", { name: /chance that a player starts, against who started/ }).locator(".lg-plot .pt")).not.toHaveCount(0);
 });
 
 test("each source says where it stands: nothing yet, nothing yet, or waiting for results, never a made-up figure", async ({ page }) => {
   await page.goto("/audit/starts");
 
-  const ff = page.getByRole("article", { name: "Futbol Fantasy" });
-  await expect(ff.getByText("Nothing yet")).toBeVisible();
-  await expect(ff).toContainText("LaLiga");
-  const sorare = page.getByRole("article", { name: "Sorare" });
-  await expect(sorare.getByText("Nothing yet")).toBeVisible();
-  await expect(sorare).toContainText("Sorare has not given a start chance for any recorded player");
-  const sofix = page.getByRole("article", { name: "Sofix" });
-  await expect(sofix.getByText("Waiting for results")).toBeVisible();
-  await expect(sofix).toContainText("24 games written down before the lock");
-  await expect(sofix.getByRole("progressbar")).toHaveCount(0);
-  await expect(page.locator(".au-src-main.figure")).toHaveCount(0); // no checked results
+  for (const source of ["Futbol Fantasy", "Sorare", "Sofix"]) {
+    const summary = page.getByRole("article", { name: source, exact: true });
+    await expect(summary).toContainText("Waiting for results");
+    await expect(summary.locator(".ws-accuracy")).toContainText("–");
+  }
+  await expect(page.getByRole("progressbar")).toHaveCount(0);
 });
 
 test("the record lists each gameweek written down before its lock", async ({ page }) => {
   await page.goto("/audit/record");
   await expect(page.getByText("Checked as each game's result arrives.", { exact: true })).toBeVisible();
 
-  const table = page.getByRole("table", { name: /Games written down before each lock/ });
-  await expect(table.getByRole("row")).toHaveCount(3); // the head and two gameweeks
-  await expect(table.getByRole("row", { name: /Fri 2 Oct/ })).toContainText("21");
-  await expect(table.getByRole("row", { name: /Tue 6 Oct/ })).toContainText("3");
+  const list = page.getByRole("list", { name: "Games written down before each lock" });
+  await expect(list.getByRole("listitem")).toHaveCount(2);
+  await expect(list).toContainText("Fri 2 Oct");
+  await expect(list).toContainText("Tue 6 Oct");
 });
 
 test("predicted elevens wait honestly for stored readings", async ({ page }) => {
   await page.goto("/audit/starts");
-  const elevens = page.getByRole("region", { name: "Futbol Fantasy's eleven" });
-  await expect(elevens).toContainText("No predicted elevens kept yet");
+  const elevens = page.getByRole("region", { name: "Predicted elevens", exact: true });
+  await expect(elevens).toContainText("0 of 0 started");
   await expect(elevens.getByRole("table")).toHaveCount(0);
   expect(await smallText(page, 11)).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -289,40 +285,35 @@ test("the top bar has the page, and marks it when it is open", async ({ page }) 
   await expect(page.locator(".nav-links").getByRole("link", { name: "Season" })).not.toHaveAttribute("aria-current", "page");
 });
 
-test("Who starts shows figures from the first case, including competitions and predicted elevens", async ({ page, request }) => {
+test("Who starts shows first-case figures for all three sources and offers all chart styles", async ({ page, request }) => {
   await resetBackend(request, "audit-enough");
   await page.goto("/audit/starts");
-
-  const ff = page.getByRole("article", { name: "Futbol Fantasy" });
-  await expect(ff.locator(".au-src-main.figure")).toHaveText("74%");
-  await expect(ff).toContainText("right on 120 games");
-  await expect(ff).toContainText("Error score");
-  await expect(ff).toContainText("0.17");
-  await expect(ff).toContainText("80% or more");
-  await expect(ff).toContainText("88% started");
-  const sofix = page.getByRole("article", { name: "Sofix" });
-  await expect(sofix.locator(".au-src-main.figure")).toHaveText("0%");
-  await expect(sofix).toContainText("right on 1 game");
-  await expect(sofix).toContainText("0.81");
-  await expect(sofix).toContainText("0% started · 1 game");
-  await expect(sofix).toContainText("0% right · 1 game");
-  await expect(sofix).toContainText("0 of 9 checked");
-  const elevens = page.getByRole("region", { name: "Futbol Fantasy's eleven" });
-  const row = elevens.getByRole("table", { name: "All games", exact: true }).getByRole("row").nth(1);
-  await expect(row.getByRole("cell").nth(0)).toContainText("0%0 of 1 started");
-  await expect(row.getByRole("cell").nth(1)).toContainText("Waiting for results");
-  await expect(row.getByRole("cell").nth(2)).toContainText("100%1 of 1 started");
-  await elevens.getByText("By gameweek and club").click();
-  for (const name of ["Gameweek", "Club"]) {
-    await expect(elevens.getByRole("table", { name, exact: true })).toContainText("100%1 of 1 started");
-  }
-  await expect(sofix).not.toContainText("Too few");
-
-  // the start chances moved to what happened: a run with 100 games is used, a thinner one says how many are still to come
-  const fixes = page.getByRole("region", { name: "Start chances, corrected from the record" });
-  await expect(fixes.getByRole("row", { name: /50% to 90%/ })).toContainText("73%");
-  await expect(fixes.getByRole("row", { name: /50% to 90%/ })).toContainText("Yes");
-  await expect(fixes.getByRole("row", { name: /95%/ })).toContainText("Not yet (88 to go)");
+  const ff = page.getByRole("article", { name: "Futbol Fantasy", exact: true });
+  await expect(ff.locator(".ws-accuracy")).toContainText("54%");
+  await expect(ff).toContainText("13 games checked");
+  await expect(ff).toContainText("0.34");
+  const sofix = page.getByRole("article", { name: "Sofix", exact: true });
+  await expect(sofix.locator(".ws-accuracy")).toContainText("50%");
+  await expect(sofix).toContainText("2 games checked");
+  await expect(sofix).toContainText("50% started");
+  const styles = page.getByRole("tablist", { name: "Chart style" });
+  await expect(styles.getByRole("tab")).toHaveCount(3);
+  await expect(page.getByRole("list", { name: "Connected probability dots" }).getByRole("listitem")).toHaveCount(12);
+  await page.getByRole("navigation", { name: "Probability ranges" }).getByRole("button", { name: "Next" }).click();
+  await expect(page.getByRole("list", { name: "Connected probability dots" }).getByRole("listitem")).toHaveCount(1);
+  await styles.getByRole("tab", { name: "B · Calibration" }).click();
+  await expect(page.getByLabel("Chance range", { exact: false })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Predicted chance against actual starts" }).getByRole("button")).toHaveCount(13);
+  await page.getByRole("tablist", { name: "Prediction source" }).getByRole("tab", { name: "Sofix", exact: true }).click();
+  await expect(page.locator(".ws-evidence")).toHaveText("90% predicted · 50% started · 2 games");
+  await styles.getByRole("tab", { name: "C · Paired bars" }).click();
+  await expect(page.getByRole("list", { name: "Paired probability bars" })).toContainText("50% started");
+  await page.getByLabel("Competition", { exact: true }).selectOption("uefa-europa-league");
+  await expect(sofix.locator(".ws-accuracy")).toContainText("0%");
+  await expect(sofix).toContainText("1 game checked");
+  await expect(page.getByRole("list", { name: "Paired probability bars" })).toContainText("0% started");
+  await expect(page.locator(".ws-board")).not.toContainText("Not yet");
+  await expect(page.locator(".ws-board")).not.toContainText("Too few");
 });
 
 test("before the first refresh that writes it, the page says so instead of drawing empty figures", async ({ page, request }) => {
@@ -348,7 +339,7 @@ test("the switch under the top bar moves between xScore, Who starts and Lineups"
   await expect(lens.getByRole("link", { name: "xScore" })).toHaveAttribute("aria-current", "page");
   await lens.getByRole("link", { name: "Who starts" }).click();
   await expect(page).toHaveURL(/\/audit\/starts/);
-  await expect(page.getByRole("heading", { level: 1, name: "Who starts, checked" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Who starts" })).toBeVisible();
   await lens.getByRole("link", { name: "Lineups" }).click();
   await expect(page).toHaveURL(/\/audit\/lineups/);
   await expect(page.getByRole("heading", { level: 1, name: "Lineups" })).toBeVisible();

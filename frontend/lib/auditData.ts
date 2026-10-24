@@ -27,13 +27,13 @@ const cachedAudit = cache(
 );
 
 /** Null until the first refresh that writes the page (no key yet). */
-export async function loadAudit(): Promise<Audit | null> {
+export async function loadAudit(includeMissionResults = true): Promise<Audit | null> {
   try {
     // Read again after the cache: Next keeps an entry across deploys, so one written by an older build lacks the fields this build
     // added. The defaults are applied to it here, never only before it is stored.
     const cached = await cachedAudit();
     const data = cached ? readable(structuredClone(cached)) : null;
-    if (data && database()) {
+    if (data && includeMissionResults && database()) {
       const logs = await loadMissionLog();
       const rarities = [...new Set(logs.flatMap((l) => Object.values(l.days).flatMap((d) => Object.keys(d))))];
       const history = rarities.flatMap((r) => missionHistory(logs, r, new Map(), 10000).map((d) => ({ ...d, rarity: r })));

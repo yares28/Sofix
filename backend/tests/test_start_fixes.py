@@ -1,4 +1,4 @@
-"""Start chances corrected from the record (plans/xscore.md X8): said against happened, per source and band, from 100 cases."""
+"""Start chances corrected from the record (plans/xscore.md X8): said against happened, per source and band, from the first checked case."""
 
 from __future__ import annotations
 
@@ -19,32 +19,45 @@ def cases(source: str, said: float, n: int, started: int) -> list[tuple[str, flo
     return [(source, said, i < started) for i in range(n)]
 
 
-def test_a_band_with_100_cases_is_moved_to_what_happened_and_the_rest_is_left_alone():
-    fixes = StartFixes(cases("futbolfantasy", 0.7, 100, 86) + cases("futbolfantasy", 0.8, 99, 90))
-    assert fixes.apply("futbolfantasy", 0.7) == pytest.approx(0.86)
-    assert fixes.apply("futbolfantasy", 0.8) == 0.8, "99 cases is too few to tell"
-    assert fixes.apply("futbolfantasy", 0.3) == 0.3, "a band nobody said is not moved"
-    assert fixes.apply("sorare", 0.7) == 0.7, "each source is judged on its own"
-
-
-def test_thin_neighbouring_bands_pool_until_they_have_100_but_never_across_a_wide_gap():
-    # GW21: Futbol Fantasy's 70% started 86% (56 players), its 80% 90% (49); the 30% (40 cases) is far away and too thin alone.
-    fixes = StartFixes(
-        cases("futbolfantasy", 0.7, 56, 48) + cases("futbolfantasy", 0.8, 49, 44) + cases("futbolfantasy", 0.3, 40, 8)
-    )
-    assert fixes.apply("futbolfantasy", 0.7) == pytest.approx(0.7 + 92 / 105 - (0.7 * 56 + 0.8 * 49) / 105, abs=1e-3)
-    assert fixes.apply("futbolfantasy", 0.8) > 0.9
+@pytest.mark.parametrize("started", [0, 1])
+def test_the_first_case_changes_its_band_without_a_minimum(started):
+    fixes = StartFixes(cases("futbolfantasy", 0.7, 1, started))
+    assert fixes.apply("futbolfantasy", 0.7) == float(started)
+    assert fixes.table()["futbolfantasy"][0]["n"] == 1
+    assert fixes.table()["futbolfantasy"][0]["used"] is True
+    assert fixes.apply("sorare", 0.7) == 0.7
     assert fixes.apply("futbolfantasy", 0.3) == 0.3
 
 
-def test_a_thin_tail_joins_the_pooled_group_before_it_but_never_a_band_that_stands_alone():
-    thin = (
-        cases("futbolfantasy", 0.5, 60, 30) + cases("futbolfantasy", 0.6, 60, 42) + cases("futbolfantasy", 0.7, 30, 27)
-    )
-    pooled = StartFixes(thin)
-    assert pooled.table()["futbolfantasy"][-1]["n"] == 150 and pooled.apply("futbolfantasy", 0.7) > 0.7
-    alone = StartFixes(cases("futbolfantasy", 0.5, 100, 50) + cases("futbolfantasy", 0.6, 30, 27))
-    assert alone.apply("futbolfantasy", 0.5) == 0.5 and alone.apply("futbolfantasy", 0.6) == 0.6
+def test_neighbouring_bands_keep_their_own_observed_rates_without_pooling():
+    fixes = StartFixes(cases("sofix", 0.7, 2, 1) + cases("sofix", 0.8, 1, 1))
+    assert fixes.apply("sofix", 0.7) == 0.5
+    assert fixes.apply("sofix", 0.8) == 1.0
+    assert [r["n"] for r in fixes.table()["sofix"]] == [2, 1]
+
+
+def test_first_case_corrections_ignore_future_cancelled_unknown_and_count_explicit_dnp(db):  # noqa: F811
+    for player, status, played, started, date in [
+        ("future", "FINAL", True, True, NOW + timedelta(days=1)),
+        ("cancelled", "CANCELLED", False, False, NOW),
+        ("unknown", "REVIEWING", True, None, NOW),
+        ("dnp", "DID_NOT_PLAY", False, None, NOW),
+    ]:
+        db.add(
+            PlayerGame(
+                player=player,
+                game_id="g",
+                date=date,
+                competition="laliga-es",
+                status=status,
+                played=played,
+                started=started,
+                sofix_start=0.7,
+                said_at=NOW - timedelta(days=1),
+            )
+        )
+    db.commit()
+    assert start_fixes.cases(db, now=NOW) == [("sofix", 0.7, False)]
 
 
 def test_a_chance_inside_the_band_keeps_its_place_and_stays_between_0_and_1():
@@ -61,7 +74,7 @@ def test_the_table_lists_every_group_with_its_range_and_cases_and_says_which_are
     ]
     assert table == [
         {"from": 0.7, "to": 0.7, "said": 0.7, "was": 0.86, "n": 100, "used": True},
-        {"from": 0.8, "to": 0.8, "said": 0.8, "was": 0.9, "n": 40, "used": False},
+        {"from": 0.8, "to": 0.8, "said": 0.8, "was": 0.9, "n": 40, "used": True},
     ]
 
 
@@ -93,7 +106,7 @@ def test_cases_come_from_the_game_rows_and_the_older_record_without_counting_a_g
                 "weeks": {
                     "gw": {
                         "players": {
-                            "p0": {"games": {"g0": {"futbolfantasy": {"chance": 0.7}, "started": True}}},
+                            "p0": {"games": {"g0": {"futbolfantasy": {"chance": 0.7}, "sorare": {"chance": 0.6}, "started": True}}},
                             "old": {"games": {"g9": {"futbolfantasy": {"chance": 0.5}, "sofix": {"chance": 0.4}, "started": False}}},
                         }
                     }
@@ -105,7 +118,7 @@ def test_cases_come_from_the_game_rows_and_the_older_record_without_counting_a_g
     db.commit()
     got = sorted(start_fixes.cases(db))
     assert got == sorted(
-        [("futbolfantasy", 0.7, True), ("futbolfantasy", 0.7, False), ("futbolfantasy", 0.7, False), ("futbolfantasy", 0.5, False), ("sofix", 0.4, False)]
+        [("futbolfantasy", 0.7, True), ("futbolfantasy", 0.7, False), ("futbolfantasy", 0.7, False), ("futbolfantasy", 0.5, False), ("sofix", 0.4, False), ("sorare", 0.6, True)]
     )  # fmt: skip
 
 
@@ -130,4 +143,4 @@ def test_the_expected_score_is_made_from_the_corrected_chance_but_the_page_lists
     made = forecast(week)
     assert made.p_start == pytest.approx(0.86)
     assert made.by_source["futbolfantasy"] == 0.7
-    assert MIN_CASES == 100
+    assert MIN_CASES == 1

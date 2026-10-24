@@ -218,8 +218,8 @@ test("on a phone every text on Lineups, Cards and Players is 10 px or more", asy
   }
 });
 
-test("the Audit views fit a phone: one source under another, no sideways scrolling, nothing under 10 px", async ({ page }) => {
-  for (const [path, ready] of [["/audit", ".lg-card"], ["/audit/starts", ".au-src"], ["/audit/record", ".au-w"], ["/audit/strategies", ".au-vs"], ["/audit/rewards", ".au-rw-you"], ["/audit/missions", ".au-ms-days"], ["/audit/versus", ".au-vs"]] as const) {
+test("the Audit views fit a phone: all three sources together, no sideways scrolling, nothing under 10 px", async ({ page }) => {
+  for (const [path, ready] of [["/audit", ".lg-card"], ["/audit/starts", ".au-src"], ["/audit/record", ".ws-log"], ["/audit/strategies", ".au-vs"], ["/audit/rewards", ".au-rw-you"], ["/audit/missions", ".au-ms-days"], ["/audit/versus", ".au-vs"]] as const) {
     await page.goto(path);
     await expect(page.locator(ready).first()).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), path).toBe(true);
@@ -228,7 +228,8 @@ test("the Audit views fit a phone: one source under another, no sideways scrolli
   await page.goto("/audit/starts");
   const first = (await page.getByRole("article", { name: "Futbol Fantasy" }).boundingBox())!;
   const second = (await page.getByRole("article", { name: "Sorare" }).boundingBox())!;
-  expect(second.y).toBeGreaterThan(first.y + first.height - 1); // one column
+  expect(Math.abs(second.y - first.y)).toBeLessThan(2); // all three summaries visible together
+  expect(second.x).toBeGreaterThan(first.x);
 
   const tabs = page.getByRole("navigation", { name: "Sections" });
   await expect(tabs.getByRole("link", { name: "Audit" })).toHaveAttribute("aria-current", "page");

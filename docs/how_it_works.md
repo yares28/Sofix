@@ -324,12 +324,22 @@ it had a number for once they are settled; `xscore_record` counts the same pairs
 chance he plays times his score if he plays) against his best game once the gameweek is settled. The live xScore pair rate is published from the first pair, with its interval and count (11 October owner request). Who starts source/competition figures show from the first checked game; other Audit verdicts keep their existing thresholds. The step is optional: if it
 fails the Play page is still published and the run's summary names `audit` under `failed`.
 
+Who starts publishes `startsBoard`: an all-seven-competition scope and one scope per LaLiga/PL/Bundesliga/Ligue 1/CL/EL/Conference.
+Each holds source accuracy/error/bands, frozen-GW counts and predicted-eleven groups; client props contain no player
+stat sheets. The header and all breakdowns switch scope locally and keep choices in the URL. The three selectable
+charts draw the same raw mean prediction/observed share/case count, including zero and one-case bands. The historical
+Sofix-only replay is collapsed. `start_fixes.MIN_CASES` is now 1; bands stay separate, and its eligible rows use the same
+future/status/DNP checks as the live Audit. Global forecast correction still uses all saved evidence, while the page
+can select a competition. Competition identities are included in the one game-row query, not loaded per player.
+Settlement version 4 forces the automatic saved-data publisher to replace the old block once. Who starts skips
+unrelated Sorare planning payloads and mission-history adjustments. No source schedule or schema change.
+
 `/audit` leads with the two saved conditional scores against the real score on starts (12 Oct owner request): each side's success rate
 (the share within 7 points, `versus.CLOSE`), starts and games a player came on in apart (`figures()["subs"]`), by position and week, with the miss and the lean, no floor (13 Oct). A game counts as soon as its row has a result; a substitute's Sofix side is `sofixOn` (his score if he comes on, in `score_record` from 13 Oct), else the start number; `/audit/versus` redirects to it. The pair
 rates above are still computed and published but no longer drawn. `/audit/starts` also counts Futbol Fantasy's predicted eleven and the Sorare/Sofix elevens implied by the same
 position-preserving swaps as `lib/lineups.ts::byChance`: ties keep FF's starter, out/suspended alternatives cannot come in,
 and a historical reading without position data cannot invent an implied eleven. Counts are grouped by week and club;
-rates show from the first checked starter in each group. Source and competition accuracy/error figures also show from the first checked game; only start-chance corrections retain their 100-case requirement. `ff_chances` retains positions, absence kinds and crests at lock.
+rates show from the first checked starter in each group. Source and competition accuracy/error figures also show from the first checked game; automatic start-chance corrections also use the first case in each five-point band (24 October owner instruction), without pooling adjacent bands. `ff_chances` retains positions, absence kinds and crests at lock.
 The refresh no longer calls `versus.settle`, `starts.settle`, `record.rows` or `missions.settle`: missions use the stored
 non-zero stats (`missions.settle_kept`). Old records and functions remain for historical compatibility, without new source calls.
 

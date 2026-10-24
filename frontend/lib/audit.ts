@@ -1,3 +1,4 @@
+import type { StartsBoard } from "./startsBoard";
 /**
  * The Audit page: types for the payload the job publishes (`read_models` key `audit`, built by backend/app/sorare/audit.py) and the
  * small pure helpers the page shares. The numbers, the floors under which a figure is not given and each source's state all come from
@@ -158,7 +159,7 @@ export type StrategiesAudit = {
 export const NO_TALLY: StrategyTally = { lineups: 0, scored: 0, points: 0, best: 0, pointsVs: 0, against: 0, judged: 0, won: { card: 0, cash: 0, essence: 0, xp: 0, none: 0 }, verdicts: { lucky: 0, good: 0, expected: 0, poor: 0 } };
 export const NO_STRATEGIES: StrategiesAudit = { strategies: [], sofix: { ...NO_TALLY, weeks: 0 }, you: { ...NO_TALLY, weeks: 0 }, weeks: [] };
 
-/** What a source said against how often the players started, for a run of its chances; "used" once it holds 100 settled games (start_fixes.py). */
+/** What a source said against how often the players started, for a run of its chances; "used" from the first settled game (start_fixes.py). */
 export type StartFix = { from: number; to: number; said: number; was: number; n: number; used: boolean };
 
 export type Audit = {
@@ -179,6 +180,7 @@ export type Audit = {
   matches?: MatchAudit;
   playerScores?: { weeks: PlayerScoreWeek[] };
   startFixes?: Partial<Record<StartSource, StartFix[]>>;
+  startsBoard?: StartsBoard | null;
 };
 
 export type PlayerScoreRow = {
@@ -239,6 +241,7 @@ export function readable(value: unknown): Audit | null {
     matches: { ...NO_MATCHES, ...(data.matches ?? {}) },
     playerScores: data.playerScores ?? { weeks: [] },
     startFixes: data.startFixes ?? {},
+    startsBoard: data.startsBoard?.version === 1 ? data.startsBoard : null,
   };
 }
 

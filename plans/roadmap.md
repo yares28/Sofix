@@ -583,6 +583,8 @@ the held-out weeks (P9 "The bar").
 
 ## Results
 
+24 Oct - Who starts redesigned for all three sources and seven competitions, with connected dots, calibration and paired bars, shared filters and compact history/elevens. The owner removed the 100-case correction threshold. [Contract and checks](audit-starts-redesign.md).
+
 24 Oct - Who starts source, competition and predicted-eleven percentages show from the first checked case, with
 their counts. The 100-case forecast-correction threshold stays unchanged. [Contract and evidence](audit-starts-per-game.md).
 

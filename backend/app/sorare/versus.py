@@ -19,7 +19,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.models import ReadModel
+from app.services import kept_blocks
 from app.services.publish import put
 from app.sorare.client import SorareClient, SorareError
 
@@ -41,7 +41,7 @@ def _dt(value: str) -> datetime:
 
 
 def records(db: Session) -> list[tuple[str, dict[str, Any]]]:
-    rows = db.query(ReadModel).filter(ReadModel.key.like(f"{PREFIX}%")).all()
+    rows = kept_blocks.rows(db, PREFIX)
     return [(row.key, dict(row.payload)) for row in rows if isinstance(row.payload, dict)]
 
 

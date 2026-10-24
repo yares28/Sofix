@@ -18,6 +18,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import ReadModel
+from app.services import kept_blocks
 from app.services.publish import put
 from app.services.timeutil import as_utc
 from app.sorare.frozen import PLAN_PREFIX
@@ -82,12 +83,12 @@ def plan_tally(
 
 def kept_references(db: Session) -> dict[str, Any]:
     """The scores that paid each week."""
-    row = db.get(ReadModel, REFERENCES_KEY)
+    row = kept_blocks.read(db, REFERENCES_KEY)
     return dict(row.payload) if row and isinstance(row.payload, dict) else {}
 
 
 def read(db: Session, now: datetime, *, write: bool = True) -> dict[str, Any]:
-    kept_row = db.get(ReadModel, KEY)
+    kept_row = kept_blocks.read(db, KEY)
     kept: dict[str, Any] = dict(kept_row.payload) if kept_row and isinstance(kept_row.payload, dict) else {}
     plans = {
         key.removeprefix(PLAN_PREFIX)
@@ -102,7 +103,7 @@ def read(db: Session, now: datetime, *, write: bool = True) -> dict[str, Any]:
     slugs = sorted(plans - weeks.keys())
     references: dict[str, Any] | None = None
     for slug in slugs:
-        plan_row = db.get(ReadModel, f"{PLAN_PREFIX}{slug}")
+        plan_row = kept_blocks.read(db, f"{PLAN_PREFIX}{slug}")
         plan = dict(plan_row.payload) if plan_row and isinstance(plan_row.payload, dict) else {}
         info = plan.get("gameweek") or {}
         if not info.get("end"):
@@ -113,7 +114,7 @@ def read(db: Session, now: datetime, *, write: bool = True) -> dict[str, Any]:
         if references is None:
             references = kept_references(db)
         games = games_of(plan)
-        other = db.get(ReadModel, f"{ALT_PREFIX}{slug}") if f"{ALT_PREFIX}{slug}" in have else None
+        other = kept_blocks.read(db, f"{ALT_PREFIX}{slug}") if f"{ALT_PREFIX}{slug}" in have else None
         payloads = {"sofix": plan, "sorare": other.payload if other else {}}
         maps = {source: {**games, **games_of(payload)} for source, payload in payloads.items()}
         every: dict[str, list[str]] = {}

@@ -10,8 +10,10 @@ import numpy as np
 from sqlalchemy import select
 from sqlalchemy.orm import Session, load_only
 
-from app.models import PlayerGame, ReadModel
+from app.models import PlayerGame
+from app.services import kept_blocks
 from app.services.timeutil import as_utc
+from app.sorare import games_mirror
 from app.sorare.frozen import PLAN_PREFIX
 from app.sorare.model import POSITIONS, Card, Competition
 from app.sorare.planner import SCORE_SD, Lineup, totals
@@ -169,7 +171,7 @@ def results(db: Session, games: dict[str, list[str]]) -> dict[tuple[str, str], P
     ids = {gid for listed in games.values() for gid in listed}
     if not ids:
         return {}
-    rows = db.scalars(
+    rows = games_mirror.view(db).scalars(
         select(PlayerGame)
         .options(
             load_only(PlayerGame.player, PlayerGame.game_id, PlayerGame.status, PlayerGame.played, PlayerGame.score)
@@ -180,7 +182,7 @@ def results(db: Session, games: dict[str, list[str]]) -> dict[tuple[str, str], P
 
 
 def read(db: Session, now: datetime) -> list[dict[str, Any]]:
-    kept = [row.payload for row in db.scalars(select(ReadModel).where(ReadModel.key.like(f"{PLAN_PREFIX}%")))]
+    kept = [row.payload for row in kept_blocks.rows(db, PLAN_PREFIX)]
     settled = [
         (week, games_of(week))
         for week in kept

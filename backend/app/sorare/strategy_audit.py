@@ -25,6 +25,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.models import ReadModel
+from app.services import kept_blocks
 from app.services.publish import put
 from app.services.timeutil import as_utc
 from app.sorare import strategies
@@ -91,7 +92,7 @@ def _add(total: dict[str, Any], part: dict[str, Any]) -> None:
 
 def hindsight_best(db: Session, slug: str) -> dict[str, float]:
     """The score of the best lineup in hindsight for each competition of the week, from the archived replay (empty until it is kept)."""
-    row = db.get(ReadModel, f"{ARCHIVE_PREFIX}{slug}")
+    row = kept_blocks.read(db, f"{ARCHIVE_PREFIX}{slug}")
     hindsight = ((row.payload if row else None) or {}).get("hindsight") or {}
     best: dict[str, float] = {}
     for lineup in hindsight.get("lineups") or []:
@@ -102,7 +103,7 @@ def hindsight_best(db: Session, slug: str) -> dict[str, float]:
 
 
 def _body(db: Session, key: str) -> dict[str, Any]:
-    row = db.get(ReadModel, key)
+    row = kept_blocks.read(db, key)
     return dict(row.payload) if row and isinstance(row.payload, dict) else {}
 
 

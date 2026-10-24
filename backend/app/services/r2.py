@@ -19,9 +19,12 @@ from urllib.parse import quote
 
 import httpx
 
+from app.services.timeutil import as_utc
+
 logger = logging.getLogger(__name__)
 
 SETTINGS = ("R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET")
+_read_offline = False  # a network failure uses Neon for this job instead of delaying every block
 
 
 def configured() -> bool:
@@ -77,3 +80,26 @@ def put_block(key: str, payload: Any, updated_at: datetime) -> bool:
     if response.status_code != 200:
         logger.warning("R2 upload of %s answered HTTP %d", key, response.status_code)
     return response.status_code == 200
+
+
+def get_block(key: str, updated_at: datetime) -> dict[str, Any] | None:
+    """Read only the published version Neon names; an unavailable/stale block leaves Neon as fallback."""
+    global _read_offline
+    if not configured() or _read_offline:
+        return None
+    try:
+        response = request("GET", block_name(key))
+        if response.status_code == 200:
+            block = response.json()
+            if (
+                isinstance(block, dict)
+                and "payload" in block
+                and as_utc(datetime.fromisoformat(block["updatedAt"])) == as_utc(updated_at)
+            ):
+                return block
+    except httpx.HTTPError:
+        _read_offline = True
+    except (ValueError, KeyError, TypeError):
+        pass
+    logger.warning("R2 read of %s unavailable or out of date; using Neon", key)
+    return None

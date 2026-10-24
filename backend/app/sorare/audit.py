@@ -34,6 +34,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import ReadModel
+from app.services import kept_blocks
 from app.services.publish import put
 from app.services.timeutil import as_utc
 from app.sorare import (
@@ -427,7 +428,7 @@ def rewards_record(weeks: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def kept_weeks(db: Session) -> list[dict[str, Any]]:
-    rows = db.query(ReadModel).filter(ReadModel.key.like(f"{ARCHIVE_PREFIX}%")).all()
+    rows = kept_blocks.rows(db, ARCHIVE_PREFIX)
     return [dict(row.payload) for row in rows if isinstance(row.payload, dict)]
 
 
@@ -509,7 +510,7 @@ def settlement_due(db: Session, now: datetime) -> bool:
 
 
 def record_of(db: Session) -> dict[str, Any]:
-    row = db.get(ReadModel, starts.START_KEY)
+    row = kept_blocks.read(db, starts.START_KEY)
     return dict(row.payload) if row and isinstance(row.payload, dict) else {}
 
 

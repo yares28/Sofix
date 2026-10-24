@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
@@ -17,8 +19,10 @@ from typing import Any
 
 from sqlalchemy import or_, select, text
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.elements import ColumnElement
 
 from app.models import ReadModel
+from app.services import r2
 from app.sorare import games_mirror
 
 
@@ -63,6 +67,16 @@ def _save(changed: dict[str, tuple[str, Any]], gone: list[str]) -> None:
 def rows(db: Session, *prefixes: str) -> list[Row]:
     """Every `read_models` row whose key starts with one of `prefixes`, each payload a fresh copy the caller may change."""
     where = or_(*(ReadModel.key.like(f"{prefix}%") for prefix in prefixes))
+    return _rows(db, where, lambda key: key.startswith(prefixes))
+
+
+def read(db: Session, key: str) -> Row | None:
+    """One block, using the same versioned R2/disk path as bulk reads."""
+    found = _rows(db, ReadModel.key == key, lambda candidate: candidate == key)
+    return found[0] if found else None
+
+
+def _rows(db: Session, where: ColumnElement[bool], includes: Callable[[str], bool]) -> list[Row]:
     if db.get_bind().dialect.name != "postgresql":
         rows = db.query(ReadModel).filter(where).populate_existing()  # what was just written, not the session's copy
         return [Row(r.key, r.payload, r.updated_at) for r in rows]
@@ -70,11 +84,18 @@ def rows(db: Session, *prefixes: str) -> list[Row]:
     kept = _load()
     stale = [k for k, at in stamps.items() if (kept.get(k) or ("",))[0] != at.isoformat()]
     changed: dict[str, tuple[str, Any]] = {}
+    if stale and r2.configured():
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            blocks = pool.map(lambda key: r2.get_block(key, stamps[key]), stale)
+            for key, block in zip(stale, blocks, strict=True):
+                if block is not None:
+                    changed[key] = (stamps[key].isoformat(), block["payload"])
+    stale = [key for key in stale if key not in changed]
     for offset in range(0, len(stale), 50):
         chunk = stale[offset : offset + 50]
         for key, payload in db.execute(select(ReadModel.key, ReadModel.payload).where(ReadModel.key.in_(chunk))):
             changed[key] = (stamps[key].isoformat(), payload)
-    gone = [k for k in kept if k.startswith(prefixes) and k not in stamps]
+    gone = [k for k in kept if includes(k) and k not in stamps]
     for key in gone:
         del kept[key]
     kept.update(changed)

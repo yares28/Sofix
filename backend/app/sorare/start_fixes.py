@@ -17,7 +17,9 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session, load_only
 
-from app.models import PlayerGame, ReadModel
+from app.models import PlayerGame
+from app.services import kept_blocks
+from app.sorare import games_mirror
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +86,7 @@ def cases(db: Session, *, now: datetime | None = None) -> list[Case]:
 
     now = now or datetime.now(UTC)
     found: dict[tuple[str, str, str], tuple[float, bool]] = {}
-    row = db.get(ReadModel, RECORD_KEY)
+    row = kept_blocks.read(db, RECORD_KEY)
     record = row.payload if row and isinstance(row.payload, dict) else {}
     for week in (record.get("weeks") or {}).values():
         for player, entry in (week.get("players") or {}).items():
@@ -94,7 +96,7 @@ def cases(db: Session, *, now: datetime | None = None) -> list[Case]:
                 for source in COLUMNS:
                     if source in cell:
                         found[player, game, source] = (float(cell[source]["chance"]), bool(cell["started"]))
-    rows = db.scalars(
+    rows = games_mirror.view(db).scalars(
         select(PlayerGame)
         .options(
             load_only(

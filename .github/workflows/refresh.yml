@@ -172,6 +172,7 @@ jobs:
         working-directory: backend
     env:
       APP_ENV: prod
+      PLAYER_GAMES_MIRROR: .cache/player_games.sqlite
       POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
       POSTGRES_URL_SPARE: ${{ secrets.POSTGRES_URL_SPARE }}
       FOOTBALL_DATA_ORG_TOKEN: ${{ secrets.FOOTBALL_DATA_ORG_TOKEN }}
@@ -194,6 +195,12 @@ jobs:
         run: uv pip sync requirements.lock
       - name: Pick the live Neon project
         run: python -m app.jobs.neon_switch
+      - name: Restore the game history copy
+        uses: actions/cache/restore@v4
+        with:
+          path: backend/.cache/player_games.sqlite
+          key: player-games-${{ github.run_id }}
+          restore-keys: player-games-
       - name: Restore history cache
         uses: actions/cache@v4
         with:
@@ -212,3 +219,9 @@ jobs:
           exit "$code"
       - name: Publish due Audit from saved results
         run: python -m app.jobs.audit
+      - name: Keep the game history copy
+        if: always() && hashFiles('backend/.cache/player_games.sqlite') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: backend/.cache/player_games.sqlite
+          key: player-games-${{ github.run_id }}-${{ github.run_attempt }}

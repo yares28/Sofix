@@ -9,7 +9,8 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session, load_only
 
-from app.models import PlayerGame, ReadModel
+from app.models import PlayerGame
+from app.services import kept_blocks
 from app.services.timeutil import as_utc
 from app.sorare import ff_chances, games_mirror, starts, versus
 from app.sorare.publish import SETTLE
@@ -59,7 +60,7 @@ def start_result(row: PlayerGame | None, now: datetime) -> dict[str, Any] | None
 
 
 def read(db: Session, now: datetime) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any]]:
-    saved = db.get(ReadModel, starts.START_KEY)
+    saved = kept_blocks.read(db, starts.START_KEY)
     record = copy.deepcopy(saved.payload) if saved and isinstance(saved.payload, dict) else {}
     weeks = record.setdefault("weeks", {})
     scores = [copy.deepcopy(r) for _, r in versus.records(db)]
@@ -158,7 +159,7 @@ def read(db: Session, now: datetime) -> tuple[dict[str, Any], list[dict[str, Any
                 cell.setdefault("info", {})["competition"] = row.competition
             if (result := start_result(row, now)) is not None:
                 cell.update(result)
-    ff = db.get(ReadModel, ff_chances.KEY)
+    ff = kept_blocks.read(db, ff_chances.KEY)
     reading = ff.payload if ff else {}
     eleven = elevens(scores, rows, reading, now)
     eleven["covered"] = elevens(scores, rows, reading, now, competitions=set(START_COMPETITIONS))

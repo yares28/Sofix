@@ -585,7 +585,8 @@ the held-out weeks (P9 "The bar").
 blocks through R2/cache before Neon. The first automatic refresh succeeded: Audit 3.48 MB, whole refresh 32.9 MB;
 standalone score-check totals remain to measure. Local read-only R2 settings restored; local TLS interception still
 blocks its real read. Strategies adds an overall ranked chart against the best saved eligible hindsight replay,
-point gaps and rewards together, plus rapid-filter preservation. [Contract and evidence](neon-quota-recurrence.md).
+point gaps and rewards together, plus rapid-filter preservation. Audit reads only collection/calendar where fixtures
+are unused (69.8 kB vs 848.9 kB for its Sorare block); xScore keeps its fixture evidence. [Contract and evidence](neon-quota-recurrence.md).
 
 24 Oct - Strategies now leads with who performed best on points, essence and reward frequency, each rule’s explanation,
 explicit averages/units and the tradeoff between points and rewards. The fair ranking uses the same competition/GW

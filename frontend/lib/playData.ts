@@ -92,6 +92,22 @@ export async function loadSorare(options: { market?: boolean } = {}): Promise<So
   }
 }
 
+/** Collection and calendar only: Audit views do not need the plans, market or full player fixtures. */
+export async function loadSorareSummary(): Promise<Sorare | null> {
+  try {
+    if (!database()) {
+      const page = await readSorare(false);
+      return page ? { ...page, weeks: [], market: undefined } : null;
+    }
+    const at = await sorareWrittenAt();
+    const top = at ? await sorarePart(-2, at) as { head: Omit<Sorare, "weeks" | "market"> } | null : null;
+    return top ? { ...top.head, weeks: [] } : null;
+  } catch (error) {
+    console.error(`[sorare] summary could not be read: ${error instanceof Error ? error.message : "unknown"}`);
+    return null;
+  }
+}
+
 /**
  * The early plan the job made for a LaLiga round Sorare has not opened (`read_models` key `sorare_ahead:<round>`), or null
  * when there is none. It is rewritten every run, so it is cached for as long as the page is and dropped with it.

@@ -83,3 +83,18 @@ overflow or undersized text. The RSC response is 565,206 bytes (previous 558,775
 labelled scales/units, genuine zero vs missing, ties, native disclosures, visible keyboard focus, 44px disclosure
 controls and inherited reduced-motion handling. Temporary previews have no Neon connection. Production R2 settings
 were compared read-only and match the restored local values; the temporary settings download was removed.
+
+
+Final live evidence: Vercel deployed b8280b6; home and Strategies returned 200. The automatic saved-result job
+published Audit settlement version 7, with four hindsight boards averaging 524.25. The main localhost page was
+verified in the owner's Chrome (127.0.0.1:3000): 472.67 / 524.25, 90.16%, 51.58 point gap. Desktop and phone
+screenshots were saved; neither view overflows or breaks the text floor, and the real card disclosure still opens.
+
+A remaining avoidable Audit page read was then fixed: only xScore needs the current player fixtures; the other
+Sorare-using Audit views need collection and timeline. loadSorareSummary reuses the versioned head cache without
+reading market or weeks; xScore keeps fixtures but omits the unused market. Existing full loaders for other app
+pages remain unchanged. Regression first failed on the absent summary reader; both summary/default-path tests now
+pass. A metadata-only measurement gives 848,872 bytes for the whole Sorare block versus 69,758 for its head: 91.8%
+less for this portion on a cold/version-changed Neon fallback, not a claim about total page or account usage. The
+cold-server 6.9 MB log includes home, extension and Audit requests, not Strategies alone. Repeated same-version
+page interactions did not add payload reads; only the newly published Audit version added its 0.76 MB once.

@@ -3,7 +3,7 @@ import AuditView, { type AuditShow } from "./AuditView";
 import SiteNav from "../SiteNav";
 import { loadGrid } from "../../lib/api";
 import { loadAudit } from "../../lib/auditData";
-import { loadAuditStartRecord, loadSorare } from "../../lib/playData";
+import { loadAuditStartRecord, loadSorare, loadSorareSummary } from "../../lib/playData";
 import type { LeagueAudit } from "../../lib/leagueAudit";
 import { loadSystem } from "../../lib/system";
 import MissionHistory from "../missions/MissionHistory";
@@ -26,7 +26,7 @@ export default async function AuditPlace({ show, searchParams }: { show: AuditSh
     loadGrid(),
     loadSystem(),
     import("../../lib/data/audit_league.json").then((m) => m.default as unknown as LeagueAudit),
-    show === "starts" ? null : loadSorare(), // Rewards reads what you won week by week: the season's finished Sorare gameweeks, newest first
+    show === "starts" ? null : show === "xscore" ? loadSorare({ market: false }) : loadSorareSummary(),
     show === "missions" ? loadMissionLog() : [],
     show === "rewards" || show === "lineups" || show === "strategies" ? myWeeksQuietly() : null,
   ]);

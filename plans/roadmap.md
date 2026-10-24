@@ -581,6 +581,11 @@ the held-out weeks (P9 "The bar").
 
 ## Results
 
+24 Oct - Strategies replaces weekly numeric grids with a Best strategies podium and three linked chart types:
+connected scores against the best saved eligible replay, a points/rewards scatter plot and a reward-mix donut.
+All strategies and ties remain selectable; one selection highlights the charts together. Missing/zero/pending
+outcomes and separate currencies remain explicit. [Contract and checks](strategies-podium-charts.md).
+
 24 Oct - Neon: automatic score and saved-result Audit workflows now share the history cache, and Audit reads versioned
 blocks through R2/cache before Neon. The first automatic refresh succeeded: Audit 3.48 MB, whole refresh 32.9 MB;
 standalone score-check totals remain to measure. Local read-only R2 settings restored; local TLS interception still

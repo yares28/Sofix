@@ -431,27 +431,21 @@ test("Missions says too few to tell under the floor, and lists each day's picks 
   await expect(page).toHaveURL(/\/audit\/missions/);
 });
 
-test("Strategies shows weekly averages and evidence for every source, preserving the selected GW", async ({ page, context }) => {
+test("Strategies keeps a chart-first overview and saved card evidence, preserving the selected GW", async ({ page, context }) => {
   await page.goto("/audit/strategies");
   await expect(page.getByRole("heading", { level: 1, name: "Strategies" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "No strategy comparison yet", exact: true })).toBeVisible();
-  await expect(page.locator(".st-bar")).toHaveCount(0);
-  await page.locator(".st-context > summary").click();
-  const season = page.getByRole("region", { name: "Season so far", exact: true });
-  await expect(season.getByRole("article", { name: "You", exact: true })).toContainText("280.0");
-  await expect(season.getByRole("article", { name: "Sorare plan 1", exact: true })).toContainText("200.0");
-  const weekly = page.getByRole("region", { name: "Week by week", exact: true });
-  await expect(weekly.getByRole("article", { name: "You", exact: true })).toContainText("275");
-  await expect(weekly.getByRole("article", { name: "Sofix plan 1", exact: true })).toContainText("300");
-  await expect(weekly.getByRole("article", { name: "Sorare plan 1", exact: true })).toContainText("2 checked lineups · 1 pending");
+  await expect(page.getByRole("heading", { name: "Best strategies", exact: true })).toBeVisible();
+  await expect(page.getByText(/No strategy comparison yet/)).toBeVisible();
+  await expect(page.getByRole("img", { name: /^You: 280 average points from/ })).toBeVisible();
+  await expect(page.getByRole("img", { name: /^Sorare plan 1: 200 average points from/ })).toBeVisible();
+  await expect(page.getByRole("table")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Week by week", exact: true })).toHaveCount(0);
   await page.getByRole("combobox", { name: "Gameweek results" }).selectOption("gw-20");
   await expect(page).toHaveURL(/resultsGw=gw-20/);
   const url = page.url();
   await page.close();
   const reopened = await context.newPage(); await offline(reopened); await reopened.goto(url);
   await expect(reopened.getByRole("combobox", { name: "Gameweek results" })).toHaveValue("gw-20");
-  await reopened.locator(".st-context > summary").click();
-  await expect(reopened.getByRole("region", { name: "Week by week", exact: true }).getByRole("article", { name: "Sorare plan 1", exact: true })).toContainText("0.0");
   await reopened.goto("/audit/strategies?resultsGw=unknown");
   await expect(reopened.getByRole("combobox", { name: "Gameweek results" })).toHaveValue("all");
   await reopened.locator(".st-lineups > summary").click();

@@ -542,28 +542,15 @@ by its best prize, a card, cash, essence, XP only or nothing, so XP is never cou
 and every plan has its own row), **Strategies** (`/audit/strategies`, since 13 Oct), **Rewards** (`/audit/rewards`, since 6 Oct) and **Missions**
 (`/audit/missions`, since 6 Oct).
 
-**Overall strategy chart (24 October).** The ranking shows points and rewards beside each strategy. Its hindsight target is the best found by replaying your saved eligible cards and rules after results: the page shows the percentage reached and points left to gain, on the same boards. It is a feasible saved replay, not a guaranteed mathematical maximum. Missing replay evidence stays pending and zero remains zero. Change GW and ranking together; rapid choices keep both filters.
+**Strategies: podium and three charts (24 October).** The top podium ranks the best recorded strategies by average points, reward frequency, a named essence rarity or cash when known. Ties share a place; a large tied group expands to every name. All saved GWs is the default, and the ranking always uses the same competition/GW lineups for every recorded strategy.
 
-**Strategies opens with the answer (24 October).** The page names the highest-scoring strategy, the strategy returning
-most essence of each rarity, and the one reaching rewards most often. It explains each picking rule, the advantage
-against xScore, and when points and rewards have different winners. Every average has a unit and every reward rate
-has its checked denominator. These conclusions compare the same competition/GW lineups for all strategies with saved
-picks. **Gameweek results** switches the whole comparison between all recorded GWs and one GW; **Rank by** orders the
-comparison by points, reward frequency or a named essence rarity (cash when present). Ties stay ties. **Full recorded
-history** keeps all the older owner/plan results and unequal coverage apart from that fair comparison. Model rewards
-are what the saved picks would have reached against real saved reward cutoffs, not money actually received; known
-cash and essence amounts remain separate, and different essence rarities never combine.
+The connected-dot chart shows each strategy against the best feasible lineup found by replaying your saved eligible cards and rules after results, including bonuses and captaincy. It shows matched coverage and the point gap; a missing replay stays unknown. This is the best saved replay found, not a guaranteed mathematical maximum. Your own entries, Sofix plan 1 and Sorare plan 1 retain their overall average points as unranked reference dots, with their own checked counts because coverage differs. They remain visible in owner-only weeks too. The scatter plot shows average points against rewards: upper right earns more of both. Overlapping strategies are grouped. The donut separates cards, cash, essence, XP only, nothing and pending prize checks; pending checks never count as losses and XP alone is not a reward.
 
-**Strategies** compares ten ways of building a lineup from your cards, with Sofix plan 1, Sorare plan 1 and your own entered lineups beside them. Before
-each lock Sofix writes down, for every competition it can enter, the best lineup of each way: the best xScore in every slot; Sorare's own
-projection instead; the keeper with a defender of his own club ("nothing or win big"); three players of one club; no attacker playing
-against his own keeper; the likely scorers; the highest ceiling; the usual score; only players 90% or more likely to play; and only
-favourites. After a gameweek ends, scheduled checks add each complete score; scores remain provisional through the following day. The page shows figures from the first checked lineup, with dashes for missing scores. It shows each way's points a lineup, how
-much of the best lineup in hindsight it got, how often it won essence or better, how often nothing, and how often its score was lucky.
-Choose **Gameweek results** to see each source’s average points per checked lineup and its checked, pending and unavailable counts. Your older saved weeks also appear when no model plan was recorded. Season averages divide total checked points by checked lineups; sources can cover different weeks and competitions. The selected GW survives reloads and reopened links. **Lineups & cards** opens each competition with your lineup first, then Sofix, Sorare and every saved strategy. **Plan & entry detail** and each season strategy’s disclosure retain prize and hindsight comparisons. An incomplete record stays unavailable; missing results stay pending and are retried, including after 14 days. Saved source changes reopen completed weeks automatically. On **Lineups**, expand a week for the same card comparison. Your lineup says which strategies it happens to fit (yours is a mix: for example a keeper with a defender of his
-club, or three from one club), and each of Sofix's and the strategies' lineups gets a plain verdict from the range written down before
-the lock: lucky (above the top), a good week, as expected, or a poor week, naming the cards that scored above their own range. No bench is
-filled for the strategy lineups, and none is entered for you. `python -m app.jobs.lineup_backtest` replays the ways on past games (how to run and read it: [docs/backtesting.md](backtesting.md)).
+Click a podium name, connected-dot row or scatter point, or choose **Inspect strategy**: all three charts highlight that strategy and show its picking rule. The donut also shows its average cash and essence amounts separately by currency/rarity. These are what the saved model picks would have earned against the saved actual cutoffs, not money received. **Gameweek results** and **Rank by** retain the selected filters, including rapid changes. Every known result shows from the first case.
+
+**Lineups & cards** retains your entries, Sofix plan 1, Sorare plan 1 and every saved strategy with real card art and scores. The weekly numeric tables are removed. Older owner-only weeks remain available as card evidence even when there is no common strategy comparison. Saved source changes reopen completed weeks automatically; missing results stay pending and are retried after 14 days too. On **Lineups**, each week's comparison also keeps the saved score ranges, lucky/good/expected/poor verdicts and strategy matches.
+
+The ten picking rules are best xScore, Sorare projection, keeper with his defender, three from one club, no attacker against the keeper, likely scorers, highest ceiling, usual score, surest starters and favourites only. Each is saved before lock and scored after results with its saved rules. No lineup is entered automatically. The replay command and definitions are in [backtesting](backtesting.md).
 
 **Missions** answers "were Sofix's mission picks the right ones?". Every day Sofix writes down its picks for the **Decisive Picker**,
 which Sorare runs every day, whether or not you loaded the day's missions; on a day you loaded them, the other missions too. It also

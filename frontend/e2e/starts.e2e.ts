@@ -59,6 +59,8 @@ test("all chart styles are readable and accessible at phone width", async ({ pag
     expect(await smallText(page, 10)).toEqual([]);
   }
   await expect(page.getByRole("article")).toHaveCount(3);
+  // Check the readable resting state after the chart's short reveal transition.
+  await expect(page.locator(".ws-chart")).toHaveCSS("opacity", "1");
   const scan = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(scan.violations).toEqual([]);
 });

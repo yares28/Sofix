@@ -542,15 +542,13 @@ by its best prize, a card, cash, essence, XP only or nothing, so XP is never cou
 and every plan has its own row), **Strategies** (`/audit/strategies`, since 13 Oct), **Rewards** (`/audit/rewards`, since 6 Oct) and **Missions**
 (`/audit/missions`, since 6 Oct).
 
-**Strategies** compares ten ways of building a lineup from your cards, with Sofix's best plan and your own lineups beside them. Before
+**Strategies** compares ten ways of building a lineup from your cards, with Sofix plan 1, Sorare plan 1 and your own entered lineups beside them. Before
 each lock Sofix writes down, for every competition it can enter, the best lineup of each way: the best xScore in every slot; Sorare's own
 projection instead; the keeper with a defender of his own club ("nothing or win big"); three players of one club; no attacker playing
 against his own keeper; the likely scorers; the highest ceiling; the usual score; only players 90% or more likely to play; and only
-favourites. A day after a gameweek ends, the first refresh scores them the way a real lineup is scored and adds the week: the page is
-always shown, with dashes until the first week is in, and it never waits for a number of weeks. It shows each way's points a lineup, how
+favourites. After a gameweek ends, scheduled checks add each complete score; scores remain provisional through the following day. The page shows figures from the first checked lineup, with dashes for missing scores. It shows each way's points a lineup, how
 much of the best lineup in hindsight it got, how often it won essence or better, how often nothing, and how often its score was lucky.
-Open a week (here and on **Lineups**) to see each competition with your lineup first, then Sofix's and every strategy's, with the cards
-and what each scored. Your lineup says which strategies it happens to fit (yours is a mix: for example a keeper with a defender of his
+Choose **Gameweek results** to see each source’s average points per checked lineup and its checked, pending and unavailable counts. Your older saved weeks also appear when no model plan was recorded. Season averages divide total checked points by checked lineups; sources can cover different weeks and competitions. The selected GW survives reloads and reopened links. **Lineups & cards** opens each competition with your lineup first, then Sofix, Sorare and every saved strategy. **Plan & entry detail** and each season strategy’s disclosure retain prize and hindsight comparisons. An incomplete record stays unavailable; missing results stay pending and are retried, including after 14 days. Saved source changes reopen completed weeks automatically. On **Lineups**, expand a week for the same card comparison. Your lineup says which strategies it happens to fit (yours is a mix: for example a keeper with a defender of his
 club, or three from one club), and each of Sofix's and the strategies' lineups gets a plain verdict from the range written down before
 the lock: lucky (above the top), a good week, as expected, or a poor week, naming the cards that scored above their own range. No bench is
 filled for the strategy lineups, and none is entered for you. `python -m app.jobs.lineup_backtest` replays the ways on past games (how to run and read it: [docs/backtesting.md](backtesting.md)).

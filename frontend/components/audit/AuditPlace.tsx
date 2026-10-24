@@ -22,7 +22,7 @@ export default async function AuditPlace({ show, searchParams }: { show: AuditSh
   await connection(); // "updated 2 h ago" reads the clock
   // Everything the view needs is read at once: one wait, not one after another.
   const [data, { grid, meta }, system, league, sorare, loadedLog, myWeeks] = await Promise.all([
-    loadAudit(show !== "starts"),
+    loadAudit(show !== "starts" && show !== "strategies"),
     loadGrid(),
     loadSystem(),
     import("../../lib/data/audit_league.json").then((m) => m.default as unknown as LeagueAudit),

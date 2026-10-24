@@ -26,11 +26,11 @@ function Cards({ cards, pics }: { cards: BoardCard[]; pics: Record<string, strin
           card.score === null || !card.played ? { background: "var(--track)", color: "var(--ink-2)" } : { background: scoreColour(card.score).fill, color: scoreColour(card.score).ink };
         return (
           <li key={card.slug} className={card.sub ? "bench" : undefined}>
-            <Link className="au-cd-art" href={playerHref(card.player)} aria-label={`${card.name}: open his page`}>
+            <Link prefetch={false} className="au-cd-art" href={playerHref(card.player)} aria-label={`${card.name}: open his page`}>
               <CardArt src={pics[card.slug] ?? null} name={card.name} />
             </Link>
             {card.captain ? <span className="au-cd-cap" title="Captain">C</span> : null}
-            <span className="au-cd-score" style={tint} title={card.played ? "What he scored" : "Did not play"}>
+            <span className="au-cd-score" style={tint} title={card.played === null ? "Score not checked" : card.played ? "What he scored" : "Did not play"}>
               {card.score === null || !card.played ? "–" : Math.round(card.score)}
             </span>
             <span className="au-cd-name">{card.name}</span>
@@ -47,10 +47,10 @@ function Row({ row, pics }: { row: BoardRow; pics: Record<string, string> }) {
     <li className={`au-cmp-row${row.who === "you" ? " you" : ""}`}>
       <div className="au-cmp-head">
         <b>{row.label}</b>
-        <span className="au-cmp-n">{Math.round(row.score)}</span>
+        <span className="au-cmp-n">{row.score === null ? (row.state === "unavailable" ? "Rules not saved" : "Pending results") : Math.round(row.score)}</span>
         <small>
           {[
-            "points",
+            row.score === null ? null : "points",
             range,
             row.rank ? `rank ${row.rank.toLocaleString("en-GB")}` : null,
             row.won ? PRIZE_NAME[row.won] : null,
@@ -76,11 +76,9 @@ export default function WeekComparison({ boards, pics }: { boards: Board[]; pics
       {boards.map((board) => (
         <section key={board.board} aria-label={board.comp ?? board.board}>
           <h3>{board.comp ?? board.board}</h3>
-          <ul className="au-cmp-list">
-            {board.rows.map((row, i) => (
-              <Row key={`${row.who}-${i}`} row={row} pics={pics} />
-            ))}
-          </ul>
+          {[board.rows.filter(row => ["you", "sofix", "sorare-plan"].includes(row.who)), board.rows.filter(row => !["you", "sofix", "sorare-plan"].includes(row.who))].filter(group => group.length).map((group, index) => <ul key={index} className="au-cmp-list">
+            {group.map((row, i) => <Row key={`${row.who}-${i}`} row={row} pics={pics} />)}
+          </ul>)}
         </section>
       ))}
     </div>

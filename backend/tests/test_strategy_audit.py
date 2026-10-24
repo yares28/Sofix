@@ -154,3 +154,116 @@ def test_a_week_is_scored_when_its_games_are_in_but_final_only_a_day_later_and_w
     got = strategy_audit.read(db, NOW, write=False)
     assert got["weeks"][0]["final"] is False and got["strategies"][0]["best"] == 0.0
     assert db.get(ReadModel, strategy_audit.KEY) is None
+
+
+def test_each_source_uses_its_own_games_and_sorare_plan_is_not_the_projection_strategy(db):
+    keep(db)
+    other = deepcopy(frozen())
+    other["playing"]["players"][0]["games"] = [{"id": "g1"}]
+    put(db, "sorare_alt:gw", other, NOW)
+    value = lab()
+    value["games"]["a"] = ["g1"]
+    put(db, "strategy_plans:gw", value, NOW)
+    got = strategy_audit.read(db, NOW)
+    assert got["sofix"]["points"] == 183
+    assert got["sorare"]["points"] == 119
+    assert got["strategies"][0]["points"] == 119
+    assert {r["who"] for r in got["weeks"][0]["boards"][0]["rows"]} >= {"sofix", "sorare-plan", "xscore"}
+
+
+def test_owner_only_weeks_include_zero_pending_and_unranked_scores_but_never_drafts(db):
+    lines = [
+        {"id": "zero", "board": "b", "result": {"score": 0, "rank": 1}},
+        {"id": "missing", "board": "b", "result": {"score": None, "rank": 2}},
+        {"id": "unranked", "board": "b", "result": {"score": 100, "rank": None}},
+        {"id": "draft", "draft": True, "result": {"score": 999, "rank": 1}},
+    ]
+    put(db, "my_week:old", {"slug": "old", "number": 1, "end": END.isoformat(), "lineups": lines}, NOW)
+    got = strategy_audit.read(db, NOW)
+    assert len(got["weeks"]) == 1
+    assert (got["you"]["lineups"], got["you"]["scored"], got["you"]["points"]) == (3, 2, 100)
+    assert (got["you"]["pending"], got["you"]["rewardPending"]) == (1, 1)
+    assert got["you"]["judged"] == 1
+    assert not got["weeks"][0]["final"]
+
+
+def test_missing_results_and_each_boards_prize_are_retried_after_fourteen_days(db):
+    keep(db)
+    db.get(PlayerGame, ("a", "g2")).status = "REVIEWING"
+    put(db, "strategy_plans:gw", lab(), NOW)
+    put(db, "sorare_references", {"gw": {"Other board": {"cuts": {"1": 100}}}}, NOW)
+    later = END + timedelta(days=30)
+    first = strategy_audit.read(db, later)
+    assert first["weeks"][0]["final"] is False
+    assert first["strategies"][0]["pending"] == 1
+    pending = first["weeks"][0]["boards"][0]["rows"][0]
+    assert pending["cards"][0]["score"] is None and pending["cards"][0]["played"] is None
+    db.get(PlayerGame, ("a", "g2")).status = "FINAL"
+    second = strategy_audit.read(db, later)
+    assert second["strategies"][0]["scored"] == 1
+    assert second["strategies"][0]["rewardPending"] == 1
+    assert second["weeks"][0]["final"] is False
+    put(db, "sorare_references", {"gw": {"LaLiga | Limited": {"cuts": {"10": 300, "100": 200, "500": 100}}}}, later)
+    put(
+        db, "sorare_week:gw", {"hindsight": {"lineups": [{"key": "LaLiga | Limited", "actual": {"total": 300}}]}}, later
+    )
+    third = strategy_audit.read(db, later)
+    assert third["weeks"][0]["final"] is True
+    assert strategy_audit.read(db, later) == third
+
+
+def test_old_cache_rebuilds_available_sources_preserves_orphans_and_accepts_late_owner_results(db):
+    keep(db)
+    put(db, "strategy_plans:gw", lab(), NOW)
+    old = strategy_audit.read(db, NOW, write=False)["weeks"][0]
+    orphan = deepcopy(old) | {"slug": "orphan", "final": True}
+    put(db, strategy_audit.KEY, {"version": 2, "weeks": {"gw": old | {"final": True}, "orphan": orphan}}, NOW)
+    first = strategy_audit.read(db, NOW)
+    assert {w["slug"] for w in first["weeks"]} == {"gw", "orphan"}
+    assert "sorare" in first
+    put(
+        db,
+        "my_week:gw",
+        {
+            "number": 20,
+            "end": END.isoformat(),
+            "lineups": [{"id": "late", "board": "b", "result": {"score": 77, "rank": 1}}],
+        },
+        NOW + timedelta(hours=1),
+    )
+    assert strategy_audit.read(db, NOW + timedelta(hours=1))["you"]["points"] == 77
+
+
+def test_sorare_only_week_and_alternative_only_player_are_scored(db):
+    keep(db)
+    other = deepcopy(frozen())
+    other["plans"][0]["lineups"][0]["starters"][0]["player"] = "alt-only"
+    other["playing"]["players"].append({"player": "alt-only", "games": [{"id": "g3"}]})
+    db.add(
+        PlayerGame(
+            player="alt-only",
+            game_id="g3",
+            date=END,
+            competition="laliga-es",
+            status="FINAL",
+            played=True,
+            score=80,
+            read_at=NOW,
+        )
+    )
+    put(db, "sorare_alt:alt", other | {"gameweek": other["gameweek"] | {"slug": "alt"}}, NOW)
+    got = strategy_audit.read(db, NOW)
+    assert next(w for w in got["weeks"] if w["slug"] == "alt")["sorare"]["scored"] == 1
+
+
+def test_completed_cache_reopens_for_a_later_private_read_without_recounting(db):
+    body = {"number": 1, "end": END.isoformat(), "lineups": [{"id": "one", "result": {"score": 0, "rank": 1}}]}
+    put(db, "my_week:old", body, NOW)
+    first = strategy_audit.read(db, NOW)
+    assert first["weeks"][0]["final"]
+    assert strategy_audit.read(db, NOW) == first
+    body["lineups"].append({"id": "two", "result": {"score": 100, "rank": 2}})
+    put(db, "my_week:old", body, NOW + timedelta(hours=1))
+    later = strategy_audit.read(db, NOW + timedelta(hours=1))
+    assert later["you"]["scored"] == 2 and later["you"]["points"] == 100
+    assert strategy_audit.read(db, NOW + timedelta(hours=1)) == later

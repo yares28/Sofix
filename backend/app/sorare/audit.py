@@ -35,6 +35,7 @@ from sqlalchemy.orm import Session
 
 from app.models import ReadModel
 from app.services.publish import put
+from app.services.timeutil import as_utc
 from app.sorare import (
     backtest,
     frozen_scores,
@@ -51,7 +52,7 @@ from app.sorare.publish import ARCHIVE_PREFIX, SETTLE
 
 AUDIT_KEY = "audit"
 VERSION = 1
-SETTLEMENT_VERSION = 4
+SETTLEMENT_VERSION = 5
 # Written by `python -m app.jobs.xscore_backtest --summary`; numbers only, so it can sit in the public repository.
 REPLAY_FILE = Path(__file__).resolve().parents[2] / "data" / "audit" / "replay.json"
 FLOOR = 100  # default for other verdicts; Who starts explicitly uses one checked case
@@ -523,6 +524,15 @@ def from_kept(db: Session, now: datetime, *, write: bool = False) -> dict[str, A
     page["frozenPlans"] = frozen_scores.read(db, now)
     page["lineups"] = lineup_audit.read(db, now, write=write)  # only the job keeps a settled week's counts
     page["strategies"] = strategy_audit.read(db, now, write=write)  # the strategy lab's lineups, scored (Phase 2)
+    # Owner-only and alternative-only weeks also need a clock-driven final check when no player request is due.
+    boundaries = [
+        as_utc(datetime.fromisoformat(week["end"])) + SETTLE
+        for week in page["strategies"]["weeks"]
+        if not week["final"] and as_utc(datetime.fromisoformat(week["end"])) + SETTLE > now
+    ]
+    if page["nextSettlementAt"]:
+        boundaries.append(as_utc(datetime.fromisoformat(page["nextSettlementAt"])))
+    page["nextSettlementAt"] = min(boundaries).isoformat() if boundaries else None
     page["playerScores"] = score_checks.comparison(db, now)
     page["startFixes"] = start_fixes.StartFixes(
         start_fixes.cases(db, now=now)

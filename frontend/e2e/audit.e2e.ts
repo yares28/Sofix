@@ -354,7 +354,7 @@ test("Lineups judges the saved plans by score and by prize: Sofix and Sorare wit
   const start = `${new Date().getUTCFullYear()}-08-01T14:00:00Z`;
   const line = (id: string, result: Record<string, unknown>) => ({ id, name: id, competition: "LaLiga", board: id, draft: false, confirmable: false, cards: [],
     result: { score: 300, rank: 10, essence: 0, cash: 0, card: false, ...result } });
-  await request.post(`${MOCK}/__test/my-weeks`, { data: { weeks: [{ slug: "gw-18", number: 18, start, end: start, savedAt: start,
+  await request.post(`${MOCK}/__test/my-weeks`, { data: { weeks: [{ slug: "gw-20", number: 18, start, end: start, savedAt: start,
     lineups: [line("a", { essence: 250 }), line("b", { xp: 500 }), line("c", { xp: 500 }), line("d", {})] }] } });
   await page.goto("/audit/lineups");
   const duo = page.locator(".ax-duo > div");
@@ -431,41 +431,34 @@ test("Missions says too few to tell under the floor, and lists each day's picks 
   await expect(page).toHaveURL(/\/audit\/missions/);
 });
 
-test("Strategies shows every strategy beside Sofix and you, and each week opens to the lineups side by side", async ({ page }) => {
+test("Strategies shows weekly averages and evidence for every source, preserving the selected GW", async ({ page, context }) => {
   await page.goto("/audit/strategies");
   await expect(page.getByRole("heading", { level: 1, name: "Strategies" })).toBeVisible();
-  const duo = page.locator(".ax-duo > div");
-  await expect(duo.nth(0)).toContainText("Highest ceiling · most points"); // 2,600 over 8 lineups against xScore's 2,400
-  await expect(duo.nth(0).locator(".ax-duo-n")).toHaveText("325");
-  await expect(duo.nth(1)).toContainText("You · entered");
-  await expect(duo.nth(1).locator(".ax-duo-n")).toHaveText("280");
-  await expect(page.getByText("Each gameweek is added a day after it ends")).toBeVisible();
-  await expect(page.getByText("too few to tell")).toHaveCount(0); // shown whatever the number of weeks
-
-  const table = page.getByRole("group", { name: /Strategies table/ }).locator("tbody tr");
-  await expect(table).toHaveCount(4); // two strategies, Sofix's plan and you
-  await expect(table.nth(0)).toContainText("75%"); // of the best in hindsight: 2,400 of 3,200
-  await expect(table.nth(0)).toContainText("38%"); // essence or better: 3 of 8
-  await expect(table.nth(0)).toContainText("1 of 8"); // lucky
-  await expect(table.nth(3)).toContainText("You");
-  await expect(table.nth(3)).toContainText("70%"); // of the best in hindsight: 1,960 of 2,800
-
-  const weeks = page.getByRole("list", { name: "Week by week" }).getByRole("listitem");
-  await expect(weeks).toHaveCount(2);
-  await expect(weeks.nth(0)).toContainText("You 275 · Sofix 300 · xScore 350 · Highest ceiling 325");
-  await weeks.nth(0).locator("summary").click();
-  const laliga = page.getByRole("region", { name: "LaLiga" });
-  await expect(laliga.getByRole("listitem").filter({ hasText: "Fits: Keeper with his defender · Three from one club" })).toHaveCount(1); // yours is a mix
-  await expect(laliga).toContainText("451points · expected 263 (182–342) · Essence · Lucky");
-  await expect(laliga).toContainText("Chust and Isco scored above their own range");
-  await expect(laliga.locator(".au-cmp-row").first()).toContainText("You"); // yours first
-  await expect(laliga.locator(".au-cmp-row.you")).toContainText("rank 412");
-  await expect(page.getByRole("region", { name: "Champion" }).locator(".au-cmp-row")).toHaveCount(2);
-
-  expect(await smallText(page, 11)).toEqual([]);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  const scan = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
-  expect(scan.violations).toEqual([]);
+  const season = page.getByRole("region", { name: "Season so far", exact: true });
+  await expect(season.getByRole("article", { name: "You", exact: true })).toContainText("280.0");
+  await expect(season.getByRole("article", { name: "Sorare plan 1", exact: true })).toContainText("200.0");
+  const weekly = page.getByRole("region", { name: "Week by week", exact: true });
+  await expect(weekly.getByRole("article", { name: "You", exact: true })).toContainText("275");
+  await expect(weekly.getByRole("article", { name: "Sofix plan 1", exact: true })).toContainText("300");
+  await expect(weekly.getByRole("article", { name: "Sorare plan 1", exact: true })).toContainText("2 checked lineups · 1 pending");
+  await expect(weekly.getByRole("list", { name: "Weekly strategy averages" }).getByRole("listitem").filter({ hasText: "xScore" })).toContainText("350");
+  await weekly.getByRole("combobox", { name: "Gameweek results" }).selectOption("gw-20");
+  await expect(page).toHaveURL(/resultsGw=gw-20/);
+  const url = page.url();
+  await page.close();
+  const reopened = await context.newPage(); await offline(reopened); await reopened.goto(url);
+  await expect(reopened.getByRole("combobox", { name: "Gameweek results" })).toHaveValue("gw-20");
+  await expect(reopened.getByRole("region", { name: "Week by week", exact: true }).getByRole("article", { name: "Sorare plan 1", exact: true })).toContainText("0.0");
+  await reopened.goto("/audit/strategies?resultsGw=unknown");
+  await expect(reopened.getByRole("combobox", { name: "Gameweek results" })).toHaveValue("gw-21");
+  await reopened.locator(".st-lineups > summary").click();
+  await expect(reopened.getByRole("region", { name: "LaLiga", exact: true }).locator(".au-cmp-row.you")).toContainText("rank 412");
+  for (const width of [1440, 390]) {
+    await reopened.setViewportSize({ width, height: 900 });
+    expect(await reopened.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    expect(await smallText(reopened, width === 390 ? 10 : 11)).toEqual([]);
+  }
+  expect((await new AxeBuilder({ page: reopened }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
 });
 
 test("Lineups week rows open to the comparison of your lineups, Sofix's and the strategies'", async ({ page }) => {

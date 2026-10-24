@@ -664,3 +664,19 @@ calibrator, paid odds, post-kickoff preseason forecast or Conference forecast is
 23 October 2026 — decisive mission odds are now conditional on starting. `missions.fit` and scheduled `mission_form.chance` use the matching first fixture's conditional model probability before the history path, with starter form as fallback; neither multiplies by availability. Other count/score mission formulas are unchanged. Arcade receives the same conditional probability on each market row and only matches it to its original kickoff; custom action sets use their observed target rate. Historical rankings use one shared appearance window and do not use start percentage. Frozen captures retain their original meaning. The 40-game source uses one `anyPlayer` connection per queued request: Sorare rejects list nesting and repeated root fields. Each player is paged to forty final appearances or source exhaustion, with a six-hour browser progress cache and cancellation between requests.
 
 New ledger candidates mark decisive forecast keys as `conditional`. Settlement retains `started` beside the outcome; the chance-given comparison excludes non-starts for those keys, while mission outcomes and older forecasts keep their existing counting.
+
+
+## Strategies weekly results (24 October 2026)
+
+`strategy_audit` version 3 discovers strategy, Sofix, Sorare-alternative and owner-only weeks. Each model source uses
+its own frozen game map, scored with the same saved rules as Lineups. Only plan rank 1 enters the primary Sofix/Sorare
+comparison; the per-competition Sorare projection strategy remains separate. Owner actual scores include zero and
+known scores without a rank; rankless prizes remain unjudged. Drafts never count. Average points = checked points /
+checked lineups, including zeros, for both each GW and season (not an average of weekly averages).
+
+Pending actuals, unavailable historical records and pending prize checks have separate counts. No 14-day timeout
+marks an incomplete week final. Completed caches compare saved source/archive write times and that week’s reward
+reference hash; later private reads or missing sources arriving reopen the week without duplicating totals. Old
+orphaned history is preserved on upgrade. The existing scheduled publication also tracks owner-only review-window
+boundaries. No player/API reads are added to the page; the GW selector renders cached published results, and
+Strategies skips unrelated mission-history downloads. See [delivery evidence](../plans/audit-strategies-weekly.md).

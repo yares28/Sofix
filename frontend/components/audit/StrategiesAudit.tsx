@@ -1,136 +1,78 @@
 import type { ReactNode } from "react";
-import { percent, type StrategiesAudit as Strategies, type StrategyTally } from "../../lib/audit";
+import { NO_TALLY, percent, type StrategiesAudit as Strategies, type StrategyTally } from "../../lib/audit";
 import { real, share } from "../../lib/lineupsAudit";
 import WeekComparison from "./WeekComparison";
+import StrategyWeekPicker from "./StrategyWeekPicker";
 
-const average = (t: StrategyTally): number | null => (t.scored ? t.points / t.scored : null);
-const ofBest = (t: StrategyTally): number | null => share(t.pointsVs, t.best);
-const points = (value: number | null): string => (value === null ? "–" : Math.round(value).toLocaleString("en-GB"));
-const count = (n: number, one: string, many: string = `${one}s`) => `${n.toLocaleString("en-GB")} ${n === 1 ? one : many}`;
+const average = (t: StrategyTally): number | null => t.scored ? t.points / t.scored : null;
+const points = (value: number | null) => value === null ? "—" : value.toLocaleString("en-GB", { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+const count = (n: number, name: string) => `${n.toLocaleString("en-GB")} ${name}${n === 1 ? "" : "s"}`;
+const waiting = (t: StrategyTally) => t.pending ?? Math.max(0, t.lineups - t.scored - (t.unavailable ?? 0));
 
-/**
- * Audit · Strategies (the owner, 13 Oct 2026). Each strategy builds its best lineup for every competition from your cards before the lock
- * (backend/app/sorare/strategies.py); after the games each is scored the way a real lineup is, beside Sofix's best plan and the lineups you
- * entered. Always shown: a strategy with no week yet has dashes, and each finished gameweek is added by the first refresh a day after it ends.
- */
-export default function StrategiesAudit({ strategies, pics, updated = null }: { strategies: Strategies; pics: Record<string, string>; updated?: ReactNode }) {
-  const { weeks, you, sofix } = strategies;
-  const rows = strategies.strategies;
-  const all = [
-    ...rows,
-    { key: "sofix", label: "Sofix plan 1", note: "", ...sofix },
-    { key: "you", label: "You", note: "", ...you },
+function Coverage({ tally: t }: { tally: StrategyTally }) {
+  return <span className="st-coverage">{count(t.scored, "checked lineup")}
+    {waiting(t) ? <span> · {waiting(t)} pending</span> : null}
+    {t.unavailable ? <span> · {t.unavailable} unavailable</span> : null}
+  </span>;
+}
+
+function Sources({ you, sofix, sorare }: { you: StrategyTally | null; sofix: StrategyTally | null; sorare?: StrategyTally | null }) {
+  const sources: [string, StrategyTally | null | undefined][] = [["You", you], ["Sofix plan 1", sofix], ["Sorare plan 1", sorare]];
+  return <div className="st-sources">{sources.map(([name, value]) => {
+    const t = value ?? NO_TALLY;
+    return <article key={name} aria-label={name}><h3>{name}</h3><p className="st-number">{points(average(t))}</p><Coverage tally={t} />
+      {!t.lineups ? <span className="st-muted">No saved lineups</span> : null}
+    </article>;
+  })}</div>;
+}
+
+function Ranking({ rows, detail = false }: { rows: (StrategyTally & { key: string; label: string; note?: string })[]; detail?: boolean }) {
+  const ranked = [...rows].sort((a, b) => (average(b) ?? -1) - (average(a) ?? -1));
+  const max = Math.max(1, ...ranked.map(row => average(row) ?? 0));
+  return <ol className="st-ranking" aria-label={detail ? "Season strategies" : "Weekly strategy averages"}>
+    {ranked.map(row => <li key={row.key}>
+      <div className="st-rank-name"><strong>{row.label}</strong><Coverage tally={row} /></div>
+      <span className="st-bar" aria-hidden="true"><i style={{ transform: `scaleX(${(average(row) ?? 0) / max})` }} /></span>
+      <b className="st-rank-points">{points(average(row))}</b>
+      {detail ? <details className="st-detail"><summary>Prize & score detail<span aria-hidden="true">+</span></summary>
+        {row.note ? <p>{row.note}</p> : null}<dl>
+          <div><dt>Of the best in hindsight</dt><dd>{percent(share(row.pointsVs, row.best))} <small>{count(row.against, "comparison")}</small></dd></div>
+          <div><dt>Essence or better</dt><dd>{percent(share(real(row.won), row.judged))} <small>{count(row.judged, "judged lineup")}</small></dd></div>
+          <div><dt>Nothing won</dt><dd>{percent(share(row.won.none, row.judged))}</dd></div>
+          <div><dt>Above its expected range</dt><dd>{row.verdicts.lucky} <small>{count(Object.values(row.verdicts).reduce((n, v) => n + v, 0), "saved range")}</small></dd></div>
+        </dl>{row.rewardPending ? <p>{count(row.rewardPending, "prize check")} pending</p> : null}
+      </details> : null}
+    </li>)}
+  </ol>;
+}
+
+export default function StrategiesAudit({ strategies: data, pics, updated, selected }: { strategies: Strategies; pics: Record<string, string>; updated?: ReactNode; selected?: string }) {
+  const plans = [
+    { key: "you", label: "You", ...data.you }, { key: "sofix-plan", label: "Sofix plan 1", ...data.sofix },
+    { key: "sorare-plan", label: "Sorare plan 1", ...(data.sorare ?? NO_TALLY) },
   ];
-  const ranked = [...all].filter((r) => r.scored).sort((a, b) => (average(b) ?? 0) - (average(a) ?? 0));
-  const top = ranked[0];
-  const most = Math.max(1, ...all.map((r) => average(r) ?? 0));
-  const bars = [...ranked, ...all.filter((r) => !r.scored)];
-  return (
-    <>
-      <section className="ax-hero">
-        <div className="ax-lead">
-          <h1>Strategies</h1>
-          <p className="ax-sub">Each way of building a lineup from your cards, written down before the lock and scored after the games</p>
-          <dl className="ax-duo">
-            <div>
-              <dt>{top ? `${top.label} · most points` : "Most points"}</dt>
-              <dd className="ax-duo-n">{top ? points(average(top)) : "–"}</dd>
-              <dd className="ax-duo-s">{top ? `a lineup, over ${count(top.scored, "lineup")}` : "Nothing scored yet"}</dd>
-            </div>
-            <div>
-              <dt>You · entered</dt>
-              <dd className="ax-duo-n">{points(average(you))}</dd>
-              <dd className="ax-duo-s">{you.scored ? `a lineup, over ${count(you.scored, "lineup")}` : "Nothing scored yet"}</dd>
-            </div>
-          </dl>
-          <ul className="ax-facts">
-            <li><strong>{weeks.length}</strong> {weeks.length === 1 ? "week" : "weeks"} scored</li>
-            <li><strong>{rows.length || 10}</strong> strategies</li>
-          </ul>
-          <p className="au-sub">{weeks.length ? "Each gameweek is added a day after it ends, once its scores are final." : "The first gameweek is scored a day after it ends."}</p>
-          {updated}
-        </div>
-        <section className="au-w lg-card" aria-labelledby="au-st-bars">
-          <h2 id="au-st-bars">Points a lineup</h2>
-          <p className="lg-cap">The average real score of each strategy&apos;s lineups, Sofix&apos;s best plan and the ones you entered.</p>
-          <ul className="lg-vs">
-            {bars.map((row) => (
-              <li key={row.key}>
-                <span>{row.label}</span>
-                <span className="vb" aria-hidden="true"><i className={row.key === "you" ? "sorare" : "now"} style={{ width: `${((average(row) ?? 0) / most) * 100}%` }} /></span>
-                <b>{points(average(row))}</b>
-              </li>
-            ))}
-          </ul>
-        </section>
-      </section>
-
-      <section className="au-w au-vs" aria-labelledby="au-st-all">
-        <h2 id="au-st-all">How each one did</h2>
-        <p className="au-sub">Over the season. A prize counts once per lineup, by its best; XP alone is not a win.</p>
-        {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
-        <div className="au-st-scroll" role="group" aria-label="Strategies table, scrolls sideways on a phone" tabIndex={0}>
-          <table className="au-vs-t">
-            <caption className="visually-hidden">Each strategy, Sofix&apos;s best plan and your own lineups: points, share of the best lineup in hindsight, how often they won essence or better, and how often nothing</caption>
-            <thead>
-              <tr>
-                <th scope="col" />
-                <th scope="col">Points a lineup</th>
-                <th scope="col">Of the best in hindsight</th>
-                <th scope="col">Essence or better</th>
-                <th scope="col">Nothing</th>
-                <th scope="col">Lucky</th>
-              </tr>
-            </thead>
-            <tbody>
-              {all.map((row) => (
-                <tr key={row.key}>
-                  <th scope="row">
-                    {row.label} <small>{count(row.scored, "lineup")} · {count(row.weeks, "week")}</small>
-                  </th>
-                  <td>{points(average(row))}</td>
-                  <td>{percent(ofBest(row))}</td>
-                  <td>{percent(share(real(row.won), row.judged))}</td>
-                  <td>{percent(share(row.won.none, row.judged))}</td>
-                  <td>{row.key === "you" ? "–" : row.scored ? `${row.verdicts.lucky} of ${row.scored}` : "–"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="au-w au-vs" aria-labelledby="au-st-weeks">
-        <h2 id="au-st-weeks">Week by week</h2>
-        <p className="au-sub">Open a week to see each competition: your lineup, Sofix&apos;s and every strategy&apos;s, with the cards and what each scored. Your lineup says which strategies it fits.</p>
-        {weeks.length ? (
-          <ol className="au-st-weeks" aria-label="Week by week">
-            {weeks.map((week) => {
-              const tallies = rows.filter((r) => week.strategies[r.key]?.scored);
-              return (
-                <li key={week.slug}>
-                  <details>
-                    <summary>
-                      <b>GW{week.number}</b>
-                      <span>
-                        {[
-                          week.you ? `You ${points(average(week.you))}` : null,
-                          week.sofix?.scored ? `Sofix ${points(average(week.sofix))}` : null,
-                          ...tallies.map((r) => `${r.label} ${points(average(week.strategies[r.key] as StrategyTally))}`),
-                        ].filter(Boolean).join(" · ") || "Nothing scored yet"}
-                        {week.final ? "" : " · still being checked"}
-                      </span>
-                    </summary>
-                    <WeekComparison boards={week.boards} pics={pics} />
-                  </details>
-                </li>
-              );
-            })}
-          </ol>
-        ) : (
-          <p className="au-sub">No week has been scored yet.</p>
-        )}
-      </section>
-    </>
-  );
+  const week = data.weeks.find(w => w.slug === selected) ?? data.weeks[0];
+  const weekly = data.strategies.map(row => ({ key: row.key, label: row.label, ...(week?.strategies[row.key] ?? NO_TALLY) }));
+  return <div className="st-board">
+    <header className="st-header"><div><p className="ws-eyebrow">AUDIT / STRATEGIES</p><h1>Strategies</h1></div><div className="ws-updated">{updated}</div></header>
+    <section className="st-season" aria-labelledby="st-season-h">
+      <div className="st-section-head"><h2 id="st-season-h">Season so far</h2><span>{count(data.weeks.length, "saved GW")}</span></div>
+      <p className="st-caption">Average points per checked lineup · each source’s saved weeks</p>
+      <Sources you={data.you} sofix={data.sofix} sorare={data.sorare} />
+      <details className="st-plan-detail"><summary>Plan & entry detail<span aria-hidden="true">+</span></summary><Ranking rows={plans} detail /></details>
+    </section>
+    <section className="st-week" aria-labelledby="st-week-h">
+      <div className="st-section-head"><h2 id="st-week-h">Week by week</h2>{week ? <StrategyWeekPicker weeks={data.weeks} selected={week.slug} /> : null}</div>
+      {week ? <><p className="st-caption">GW{week.number} · {week.final ? "Checked" : "Still being checked"} · average points per checked lineup</p>
+        <Sources you={week.you} sofix={week.sofix} sorare={week.sorare} />
+        {Object.keys(week.strategies).length ? <Ranking rows={weekly} /> : <p className="st-empty">No strategy lineups saved for this GW.</p>}
+        <details className="st-lineups"><summary>Lineups & cards<span aria-hidden="true">+</span></summary><WeekComparison boards={week.boards} pics={pics} /></details>
+      </> : <p className="st-empty">No completed gameweeks saved yet.</p>}
+    </section>
+    <section className="st-season-strategies" aria-labelledby="st-strategies-h">
+      <div className="st-section-head"><h2 id="st-strategies-h">Strategies over the season</h2><span>Average points per checked lineup</span></div>
+      <Ranking rows={data.strategies} detail />
+      <details className="st-method"><summary>How the comparison works</summary><p>Points are divided by checked lineups, including genuine zero scores. Pending results and unavailable historical rules stay outside the average. Each source can cover different competitions and weeks; counts are shown alongside every average.</p><p>Sofix plan 1 and Sorare plan 1 are the whole plans saved before the lock. “Sorare’s projection” is a separate strategy, built competition by competition. Each uses its own saved choices, games, bonuses and substitution rules.</p><p>Scheduled checks update saved results automatically. Scores remain provisional through the review window; missing results never become zero or stop being checked because they are old.</p></details>
+    </section>
+  </div>;
 }

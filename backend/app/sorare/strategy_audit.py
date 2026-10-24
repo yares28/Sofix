@@ -1,8 +1,9 @@
 """Audit · Strategies, and the comparison of a week's lineups: what you entered, Sofix's plan and every strategy, scored once the games are played.
 
-Three sources, each scored from the kept games with the lineup's own saved rules (`frozen_scores._score`), as the Lineups view does:
+Four sources, each scored from the kept games with the lineup's own saved rules (`frozen_scores._score`), as the Lineups view does:
 - the strategy lab's lineups, written down before the lock (`strategy_plans:<slug>`, `strategies.py`);
 - Sofix's best plan as it stood at the lock (`sorare_plan:<slug>`);
+- the whole Sorare-projection plan saved before the lock (`sorare_alt:<slug>`);
 - the lineups you entered (`my_week:<slug>`, or `entered_week:<slug>` while the week is being settled).
 
 Each lineup is asked what it won against the scores that really paid that week, how it did against the best lineup in hindsight for the same
@@ -15,10 +16,12 @@ settled (the same reason as `lineup_audit`). A week is picked up by the first re
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+import hashlib
+import json
+from datetime import datetime
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.models import ReadModel
@@ -26,15 +29,15 @@ from app.services.publish import put
 from app.services.timeutil import as_utc
 from app.sorare import strategies
 from app.sorare.frozen import PLAN_PREFIX
-from app.sorare.frozen_scores import _score, results
+from app.sorare.frozen_scores import _score, games_of, results
 from app.sorare.lineup_audit import KINDS, kept_references, prize
-from app.sorare.publish import ARCHIVE_PREFIX, SETTLE, STRATEGY_PREFIX
+from app.sorare.publish import ALT_PREFIX, ARCHIVE_PREFIX, SETTLE, STRATEGY_PREFIX
 
 KEY = "strategy_audit"
-GIVE_UP = timedelta(days=14)
-VERSION = 2
+VERSION = 3
 MY_WEEK = "my_week:"
 ENTERED_WEEK = "entered_week:"
+PREFIXES = (STRATEGY_PREFIX, PLAN_PREFIX, ALT_PREFIX, MY_WEEK, ENTERED_WEEK)
 VERDICTS = ("lucky", "good", "expected", "poor")
 SHORT = {"Goalkeeper": "GK", "Defender": "DEF", "Midfielder": "MID", "Forward": "FWD"}
 
@@ -43,6 +46,9 @@ def _tally() -> dict[str, Any]:
     return {
         "lineups": 0,
         "scored": 0,
+        "pending": 0,
+        "unavailable": 0,
+        "rewardPending": 0,
         "points": 0.0,
         "best": 0.0,  # what the best lineup in hindsight scored in the same competitions, for the lineups that have one
         "pointsVs": 0.0,  # what those lineups scored: the share of the best is this over `best`
@@ -54,8 +60,19 @@ def _tally() -> dict[str, Any]:
 
 
 def _add(total: dict[str, Any], part: dict[str, Any]) -> None:
-    for key in ("lineups", "scored", "points", "best", "pointsVs", "against", "judged"):
-        total[key] += part[key]
+    for key in (
+        "lineups",
+        "scored",
+        "pending",
+        "unavailable",
+        "rewardPending",
+        "points",
+        "best",
+        "pointsVs",
+        "against",
+        "judged",
+    ):
+        total[key] += part.get(key, 0)
     for kind, count in part["won"].items():
         total["won"][kind] += count
     for verdict, count in part["verdicts"].items():
@@ -77,6 +94,27 @@ def hindsight_best(db: Session, slug: str) -> dict[str, float]:
 def _body(db: Session, key: str) -> dict[str, Any]:
     row = db.get(ReadModel, key)
     return dict(row.payload) if row and isinstance(row.payload, dict) else {}
+
+
+def _unknown_cards(raw: dict[str, Any]) -> list[dict[str, Any]]:
+    starters = raw.get("starters") or []
+    cards = [*starters, *(raw.get("subs") or [])] if "starters" in raw else raw.get("cards") or []
+    bench = {i for i, slot in enumerate((raw.get("scoring") or {}).get("slots") or []) if slot.get("sub")}
+    return [
+        {
+            "slug": card["slug"],
+            "player": card.get("player") or card["slug"],
+            "name": card.get("name") or card["slug"],
+            "pos": card.get("pos") or SHORT.get((card.get("positions") or [""])[0], ""),
+            "club": card.get("club"),
+            "score": None,
+            "played": None,
+            "captain": bool(card.get("captain")),
+            "sub": i >= len(starters) if "starters" in raw else card.get("index") in bench,
+        }
+        for i, card in enumerate(cards)
+        if card.get("slug")
+    ]
 
 
 # ------------------------------------------------------------------------------------------------ what a lineup fits
@@ -131,6 +169,7 @@ class _Week:
             "end": info["end"],
             "strategies": {},
             "sofix": None,
+            "sorare": None,
             "you": None,
         }
 
@@ -155,7 +194,25 @@ class _Week:
             tally["lineups"] += 1
             line = _score(raw, games, actuals, with_cards=True)
             if line["score"] is None:
-                self.settled = self.settled and line.get("reason") == "incomplete-plan"
+                unavailable = line.get("reason") == "incomplete-plan"
+                tally["unavailable" if unavailable else "pending"] += 1
+                self.settled = self.settled and unavailable
+                self.board(raw.get("board") or raw.get("key") or "", raw.get("comp"), raw.get("key"))["rows"].append(
+                    {
+                        "who": who,
+                        "label": label,
+                        "score": None,
+                        "state": "unavailable" if unavailable else "pending",
+                        "x": raw.get("x"),
+                        "lo": raw.get("lo"),
+                        "hi": raw.get("hi"),
+                        "verdict": None,
+                        "beat": [],
+                        "won": None,
+                        "fits": [],
+                        "cards": _unknown_cards(raw),
+                    }
+                )
                 continue
             tally["scored"] += 1
             tally["points"] += line["score"]
@@ -168,6 +225,9 @@ class _Week:
             if won is not None:
                 tally["judged"] += 1
                 tally["won"][won] += 1
+            elif raw.get("tiers"):
+                tally["rewardPending"] += 1
+                self.settled = False
             said = line.get("verdict")
             if said:
                 tally["verdicts"][said["label"]] += 1
@@ -189,13 +249,33 @@ class _Week:
             )
         return tally
 
-    def yours(self, db: Session) -> dict[str, Any] | None:
-        """The lineups you entered and were ranked, as read from the saved week; None when none were."""
-        saved = _body(db, f"{MY_WEEK}{self.slug}") or _body(db, f"{ENTERED_WEEK}{self.slug}")
+    def yours(self, saved: dict[str, Any]) -> dict[str, Any] | None:
+        """Your entered lineups from the saved week; a known score counts even while its rank is pending."""
         tally = _tally()
         for line in saved.get("lineups") or []:
             result = line.get("result")
-            if line.get("draft") or not result or result.get("rank") is None:
+            if line.get("draft"):
+                continue
+            tally["lineups"] += 1
+            if not result or result.get("score") is None:
+                tally["pending"] += 1
+                self.settled = False
+                self.board(line.get("board") or line.get("id") or "", line.get("competition"), None)["rows"].append(
+                    {
+                        "who": "you",
+                        "label": "You",
+                        "score": None,
+                        "state": "pending",
+                        "x": None,
+                        "lo": None,
+                        "hi": None,
+                        "verdict": None,
+                        "beat": [],
+                        "won": None,
+                        "fits": [],
+                        "cards": _unknown_cards(line),
+                    }
+                )
                 continue
             kind = (
                 "card"
@@ -208,7 +288,11 @@ class _Week:
                 if (result.get("xp") or 0) > 0
                 else "none"
             )
-            score = float(result.get("score") or 0)
+            if result.get("rank") is None:
+                kind = None
+                tally["rewardPending"] += 1
+                self.settled = False
+            score = float(result["score"])
             board = self.board(line.get("board") or line.get("id") or "", None, None)
             slots = (line.get("scoring") or {}).get("slots") or []
             cards = [
@@ -231,11 +315,11 @@ class _Week:
                 tally["best"] += self.best[board["key"]]
                 tally["pointsVs"] += score
                 tally["against"] += 1
-            tally["lineups"] += 1
             tally["scored"] += 1
             tally["points"] += score
-            tally["judged"] += 1
-            tally["won"][kind] += 1
+            if kind is not None:
+                tally["judged"] += 1
+                tally["won"][kind] += 1
             board["comp"] = board["comp"] or line.get("competition")
             board["rows"].insert(
                 0,
@@ -265,52 +349,79 @@ def week_of(
     now: datetime,
     references: dict[str, Any],
 ) -> dict[str, Any]:
-    info = (lab or frozen).get("gameweek") or {}
+    other = _body(db, f"{ALT_PREFIX}{slug}")
+    saved = _body(db, f"{MY_WEEK}{slug}") or _body(db, f"{ENTERED_WEEK}{slug}")
+    info = (lab or frozen or other).get("gameweek") or saved
     players = (frozen.get("playing") or {}).get("players") or []
-    games: dict[str, list[str]] = {p["player"]: [g["id"] for g in p.get("games") or [] if g.get("id")] for p in players}
-    games = {**(lab.get("games") or {}), **games}
-    actuals = results(db, games)
+    maps = {"lab": lab.get("games") or {}, "sofix": games_of(frozen), "sorare": games_of(other)}
+    # Older alternative payloads omit playing; fall back only for players they do not name themselves.
+    maps["sorare"] = {**maps["sofix"], **maps["sorare"]}
+    every: dict[str, list[str]] = {}
+    for mapping in maps.values():
+        for player, ids in mapping.items():
+            every[player] = sorted(set(every.get(player, [])) | set(ids))
+    actuals = results(db, every)
     fixtures = {p["player"]: {"games": p.get("games") or [], "p": p.get("p")} for p in players} or None
     reference = references.get(slug) or {}
     week = _Week(db, slug, info, fixtures)
     for entry in lab.get("strategies") or []:
         week.out["strategies"][entry["key"]] = week.judge(
-            entry["key"], entry["label"], entry.get("lineups") or [], games, actuals, reference
+            entry["key"], entry["label"], entry.get("lineups") or [], maps["lab"], actuals, reference
         )
-    plan = (frozen.get("plans") or [None])[0]
-    if plan:
-        week.out["sofix"] = week.judge("sofix", "Sofix plan 1", plan.get("lineups") or [], games, actuals, reference)
-    week.out["you"] = week.yours(db)
+    for source, payload, who, label in (
+        ("sofix", frozen, "sofix", "Sofix plan 1"),
+        ("sorare", other, "sorare-plan", "Sorare plan 1"),
+    ):
+        plan = next((p for i, p in enumerate(payload.get("plans") or []) if p.get("rank", i + 1) == 1), None)
+        if plan:
+            week.out[source] = week.judge(who, label, plan.get("lineups") or [], maps[source], actuals, reference)
+    week.out["you"] = week.yours(saved)
     for board in week.boards.values():
-        board["rows"].sort(key=lambda r: (r["who"] != "you", -r["score"], r["who"] != "sofix"))
+        board["rows"].sort(
+            key=lambda r: (r["who"] != "you", r["score"] is None, -(r["score"] or 0), r["who"] != "sofix")
+        )
     week.out["boards"] = [b for b in week.boards.values() if b["rows"]]
     end = as_utc(datetime.fromisoformat(info["end"]))
-    # Scored as soon as the games are in, but only final once Sorare's review window has passed (scores can still move until then).
-    week.out["final"] = now > end + SETTLE and (
-        (bool(reference) and week.settled and bool(week.best)) or now > end + GIVE_UP
+    has_plans = any(
+        t and t["scored"] for t in [*week.out["strategies"].values(), week.out["sofix"], week.out["sorare"]]
     )
+    week.out["final"] = now >= end + SETTLE and week.settled and (not has_plans or bool(week.best))
     return week.out
 
 
 def read(db: Session, now: datetime, *, write: bool = True) -> dict[str, Any]:
     kept = _body(db, KEY)
-    weeks: dict[str, Any] = (
-        {slug: w for slug, w in (kept.get("weeks") or {}).items() if w.get("final")}
-        if kept.get("version") == VERSION
-        else {}
-    )
-    keys = set(db.scalars(select(ReadModel.key).where(ReadModel.key.like(f"{STRATEGY_PREFIX}%"))))
-    keys |= set(db.scalars(select(ReadModel.key).where(ReadModel.key.like(f"{PLAN_PREFIX}%"))))
-    slugs = {k.removeprefix(STRATEGY_PREFIX).removeprefix(PLAN_PREFIX) for k in keys} - set(weeks)
-    references: dict[str, Any] | None = None
+    stamps = {
+        key: as_utc(at).isoformat()
+        for key, at in db.execute(
+            select(ReadModel.key, ReadModel.updated_at).where(
+                or_(*(ReadModel.key.like(f"{prefix}%") for prefix in (*PREFIXES, ARCHIVE_PREFIX)))
+            )
+        )
+    }
+    slugs = {key.removeprefix(prefix) for key in stamps for prefix in PREFIXES if key.startswith(prefix)}
+    references = kept_references(db)
+    weeks: dict[str, Any] = dict(kept.get("weeks") or {})
     for slug in sorted(slugs):
+        inputs = {key: stamps[key] for prefix in (*PREFIXES, ARCHIVE_PREFIX) if (key := f"{prefix}{slug}") in stamps}
+        inputs["reference"] = hashlib.sha256(
+            json.dumps(references.get(slug) or {}, sort_keys=True).encode()
+        ).hexdigest()
+        previous = weeks.get(slug) or {}
+        if kept.get("version") == VERSION and previous.get("final") and previous.get("inputs") == inputs:
+            continue
         lab, frozen = _body(db, f"{STRATEGY_PREFIX}{slug}"), _body(db, f"{PLAN_PREFIX}{slug}")
-        end = ((lab or frozen).get("gameweek") or {}).get("end")
+        other = _body(db, f"{ALT_PREFIX}{slug}") if not lab and not frozen else {}
+        saved = (
+            (_body(db, f"{MY_WEEK}{slug}") or _body(db, f"{ENTERED_WEEK}{slug}"))
+            if not (lab or frozen or other)
+            else {}
+        )
+        end = ((lab or frozen or other).get("gameweek") or saved).get("end")
         if not end or now <= as_utc(datetime.fromisoformat(end)):
             continue
-        references = kept_references(db) if references is None else references
-        weeks[slug] = week_of(db, slug, lab, frozen, now, references)
-    if write and weeks != (kept.get("weeks") or {}):
+        weeks[slug] = {**week_of(db, slug, lab, frozen, now, references), "inputs": inputs}
+    if write and (weeks != (kept.get("weeks") or {}) or kept.get("version") != VERSION):
         put(db, KEY, {"version": VERSION, "weeks": weeks}, now)
     return page(list(weeks.values()))
 
@@ -320,15 +431,21 @@ def page(weeks: list[dict[str, Any]]) -> dict[str, Any]:
     plan and yours beside them, and week by week (newest first)."""
     weeks = sorted(weeks, key=lambda w: w["end"], reverse=True)
     season: dict[str, dict[str, Any]] = {s.key: {**_tally(), "weeks": 0} for s in strategies.STRATEGIES}
-    sofix, mine = {**_tally(), "weeks": 0}, {**_tally(), "weeks": 0}
+    sofix, sorare, mine = ({**_tally(), "weeks": 0} for _ in range(3))
     for week in weeks:
         for key, tally in week["strategies"].items():
             if key in season:
                 _add(season[key], tally)
                 season[key]["weeks"] += 1
-        for total, part in ((sofix, week.get("sofix")), (mine, week.get("you"))):
+        for total, part in ((sofix, week.get("sofix")), (sorare, week.get("sorare")), (mine, week.get("you"))):
             if part:
                 _add(total, part)
                 total["weeks"] += 1
     listed = [{"key": s.key, "label": s.label, "note": s.note, **season[s.key]} for s in strategies.STRATEGIES]
-    return {"strategies": listed, "sofix": sofix, "you": mine, "weeks": weeks}
+    return {
+        "strategies": listed,
+        "sofix": sofix,
+        "sorare": sorare,
+        "you": mine,
+        "weeks": [{k: v for k, v in week.items() if k != "inputs"} for week in weeks],
+    }

@@ -49,3 +49,44 @@ def test_recent_refresh_fallback_also_runs_saved_audit_publication():
     assert "needs.gate.outputs.run != 'true'" in fallback
     assert "python -m app.jobs.neon_switch" in fallback
     assert "python -m app.jobs.audit" in fallback
+
+
+def test_owner_only_week_finalizes_automatically_at_its_boundary_without_a_browser(db, monkeypatch):  # noqa: F811
+    from tests.test_frozen_scores import END
+
+    early = END + timedelta(hours=1)
+    put(
+        db,
+        "my_week:owner-only",
+        {
+            "number": 1,
+            "end": END.isoformat(),
+            "lineups": [
+                {"id": "mine", "result": {"score": 0, "rank": 1}},
+            ],
+        },
+        early,
+    )
+    audit.publish(db, early)
+    first = db.get(ReadModel, "audit").payload
+    assert first["strategies"]["you"]["scored"] == 1
+    assert first["nextSettlementAt"] == (END + timedelta(days=1)).isoformat()
+
+    class Clock:
+        @staticmethod
+        def now(_):
+            return END + timedelta(days=1)
+
+    monkeypatch.setattr(job, "datetime", Clock)
+    monkeypatch.setattr(job, "SessionLocal", lambda: nullcontext(db))
+    monkeypatch.setattr(job, "notify_app", lambda *_: None)
+    monkeypatch.setattr(
+        "app.sorare.client.SorareClient.__init__", lambda *_: (_ for _ in ()).throw(AssertionError("No source calls"))
+    )
+    assert job.main() == 0
+    final = db.get(ReadModel, "audit").payload
+    assert final["strategies"]["weeks"][0]["final"]
+    assert final["strategies"]["you"]["scored"] == 1
+    assert final["strategies"]["you"]["points"] == 0
+    assert job.main() == 0
+    assert db.get(ReadModel, "audit").payload == final

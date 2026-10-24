@@ -623,7 +623,7 @@
           "slug": "gw-21",
           "number": 21,
           "end": "2026-10-12T21:00:00Z",
-          "final": true,
+          "final": false,
           "strategies": {
             "xscore": {
               "lineups": 4,
@@ -932,7 +932,32 @@
                 }
               ]
             }
-          ]
+          ],
+          "sorare": {
+            "lineups": 3,
+            "scored": 2,
+            "points": 600,
+            "best": 600,
+            "pointsVs": 600,
+            "against": 2,
+            "judged": 1,
+            "won": {
+              "card": 0,
+              "cash": 0,
+              "essence": 0,
+              "xp": 0,
+              "none": 1
+            },
+            "verdicts": {
+              "lucky": 0,
+              "good": 0,
+              "expected": 2,
+              "poor": 0
+            },
+            "pending": 1,
+            "unavailable": 0,
+            "rewardPending": 1
+          }
         },
         {
           "slug": "gw-20",
@@ -1029,9 +1054,60 @@
               "poor": 0
             }
           },
-          "boards": []
+          "boards": [],
+          "sorare": {
+            "lineups": 1,
+            "scored": 1,
+            "points": 0,
+            "best": 300,
+            "pointsVs": 0,
+            "against": 1,
+            "judged": 1,
+            "won": {
+              "card": 0,
+              "cash": 0,
+              "essence": 0,
+              "xp": 0,
+              "none": 1
+            },
+            "verdicts": {
+              "lucky": 0,
+              "good": 0,
+              "expected": 0,
+              "poor": 1
+            },
+            "pending": 0,
+            "unavailable": 0,
+            "rewardPending": 0
+          }
         }
-      ]
+      ],
+      "sorare": {
+        "lineups": 4,
+        "scored": 3,
+        "points": 600,
+        "best": 900,
+        "pointsVs": 600,
+        "against": 3,
+        "judged": 2,
+        "won": {
+          "card": 0,
+          "cash": 0,
+          "essence": 0,
+          "xp": 0,
+          "none": 2
+        },
+        "verdicts": {
+          "lucky": 0,
+          "good": 0,
+          "expected": 2,
+          "poor": 1
+        },
+        "weeks": 2,
+        "pending": 1,
+        "rewardPending": 1,
+        "unavailable": 0
+      }
     }
   }
 }

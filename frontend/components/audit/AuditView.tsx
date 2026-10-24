@@ -75,7 +75,7 @@ export default function AuditView({
     );
   }
   if (show === "lineups") return <LineupsAudit lineups={data.lineups} saved={saved} updated={updated} weeks={data.strategies.weeks} pics={pics} />;
-  if (show === "strategies") return <StrategiesAudit strategies={data.strategies} pics={pics} updated={updated} />;
+  if (show === "strategies") return <StrategiesAudit strategies={data.strategies} pics={pics} updated={updated} selected={startParams?.resultsGw} />;
   if (show === "rewards") {
     return (
       <>

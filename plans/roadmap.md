@@ -14,9 +14,7 @@ and a check, so a session can work through it alone and stop only where you have
 
 ## Next up (the one queue: read this first, update it in the same commit when an item ships)
 
-24 Oct owner request: after the [Audit settlement repair](audit-settlement-phase3.md), verify Strategies and add weekly
-average points per lineup for the owner, each strategy, Sofix and Sorare; then finish Missions Audit and its automatic
-statistics. The single Play plan, with alternatives in Audit Strategies, follows separately.
+24 Oct owner request: finish Missions Audit and its automatic statistics, following the [settlement repair](audit-settlement-phase3.md) and [Strategies weekly results](audit-strategies-weekly.md). The single Play plan, with alternatives in Audit Strategies, follows separately.
 
 23 Oct owner priority: Conference is released as an explicitly provisional FDR/xScore model,
 under [the owner-directed release contract](conference-release.md). All 36 clubs / 1,110 current players
@@ -582,6 +580,12 @@ the held-out weeks (P9 "The bar").
 ---
 
 ## Results
+
+24 Oct - Strategies now includes You, Sofix plan 1, Sorare plan 1 and each saved strategy, with weighted season and
+per-GW actual averages, counts and URL-restored week selection. Older owner-only weeks are included, unknown scores
+stay pending, incomplete historical records stay unavailable, and late saved reads reopen the cache. The 14-day
+settlement timeout is removed. Read-only proof reproduces 60 owner lineups / 18,325.03 points; the page response is
+about 70% smaller. [Contract and verification](audit-strategies-weekly.md).
 
 24 Oct - Who starts redesigned for all three sources and seven competitions, with connected dots, calibration and paired bars, shared filters and compact history/elevens. The owner removed the 100-case correction threshold. [Contract and checks](audit-starts-redesign.md).
 

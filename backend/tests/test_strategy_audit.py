@@ -267,3 +267,92 @@ def test_completed_cache_reopens_for_a_later_private_read_without_recounting(db)
     later = strategy_audit.read(db, NOW + timedelta(hours=1))
     assert later["you"]["scored"] == 2 and later["you"]["points"] == 100
     assert strategy_audit.read(db, NOW + timedelta(hours=1)) == later
+
+
+def test_decision_ranks_the_same_boards_and_explains_the_advantage_not_extra_coverage():
+    def row(who, score, won="essence", amount=100, rarity="limited"):
+        return {"who": who, "score": score, "won": won, "returns": {"cash": 0, "essence": amount, "rarity": rarity}}
+
+    weeks = [
+        {
+            "slug": "gw",
+            "boards": [
+                {"rows": [row("xscore", 100), row("ceiling", 120), row("surest", 80)]},
+                {"rows": [row("xscore", 100, "none", 0), row("ceiling", 100), row("surest", 80, "xp", 0)]},
+                {"rows": [row("ceiling", 1000)]},
+            ],
+        }
+    ]
+    got = strategy_audit.decision_of(weeks)
+    assert got["pointsCases"] == 2 and got["rewardCases"] == 2
+    assert got["pointLeaders"] == ["ceiling"] and got["rewardLeaders"] == ["ceiling"]
+    ceiling = next(r for r in got["rows"] if r["key"] == "ceiling")
+    assert ceiling["average"] == 110 and ceiling["delta"] == 10 and ceiling["winsVsBaseline"] == 1
+    assert ceiling["rewardWins"] == 2 and ceiling["cashAverage"] == 0
+    assert ceiling["essence"] == {"limited": {"average": 100, "cases": 2}}
+
+
+def test_decision_keeps_ties_unknown_rewards_zero_and_rarities_separate():
+    def row(who, score, won, amount, rarity):
+        return {
+            "who": who,
+            "score": score,
+            "won": won,
+            "returns": amount and {"cash": 0, "essence": amount, "rarity": rarity},
+        }
+
+    rows = [
+        {"rows": [row("xscore", 100, "essence", 100, "limited"), row("ceiling", 100, "essence", 100, "limited")]},
+        {"rows": [row("xscore", 100, "essence", 2, "rare"), row("ceiling", 100, "essence", 2, "rare")]},
+        {"rows": [row("xscore", 0, None, None, None), row("ceiling", 0, None, None, None)]},
+    ]
+    got = strategy_audit.decision_of([{"slug": "gw", "boards": rows}])
+    assert got["pointsCases"] == 3 and got["rewardCases"] == 2
+    assert got["pointLeaders"] == ["xscore", "ceiling"]
+    assert got["rewardLeaders"] == ["xscore", "ceiling"]
+    assert got["rows"][0]["essence"] == {"limited": {"average": 100, "cases": 1}, "rare": {"average": 2, "cases": 1}}
+    assert strategy_audit.decision_of([])["pointLeaders"] == []
+
+
+def test_reward_amounts_preserve_combined_cash_essence_and_actual_owner_returns(db):
+    keep(db)
+    value = lab()
+    value["strategies"][0]["lineups"][0]["tiers"] = [{"hi": 10, "cash": 5, "essence": 50, "card": True}]
+    put(db, "strategy_plans:gw", value, NOW)
+    put(db, "sorare_references", {"gw": {"LaLiga | Limited": {"cuts": {"10": 100}}}}, NOW)
+    put(
+        db,
+        "my_week:gw",
+        {
+            "lineups": [
+                {
+                    "id": "mine",
+                    "competition": "LaLiga – Rare",
+                    "result": {"score": 120, "rank": 1, "cash": 2, "essence": 3},
+                }
+            ]
+        },
+        NOW,
+    )
+    got = strategy_audit.read(db, NOW)
+    first = got["strategies"][0]
+    assert first["returnCases"] == 1 and first["cash"] == 5
+    assert first["essence"] == {"limited": {"total": 50, "cases": 1}}
+    assert first["won"]["card"] == 1
+    assert got["you"]["cash"] == 2 and got["you"]["essence"] == {"rare": {"total": 3, "cases": 1}}
+
+
+def test_unknown_amounts_and_mismatched_essence_identity_never_become_a_reward_ranking():
+    board = {
+        "rows": [
+            {"who": "xscore", "score": 100, "won": "essence", "returns": None},
+            {"who": "ceiling", "score": 100, "won": "essence", "returns": None},
+        ]
+    }
+    got = strategy_audit.decision_of([{"slug": "gw", "boards": [board]}])
+    assert got["rewardCases"] == 1 and got["amountCases"] == 0
+    assert got["rows"][0]["cashAverage"] is None and got["essenceLeaders"] == {}
+    board["rows"][0]["returns"] = {"cash": 0, "essence": 100, "rarity": "limited"}
+    board["rows"][1]["returns"] = {"cash": 0, "essence": 2, "rarity": "rare"}
+    got = strategy_audit.decision_of([{"slug": "gw", "boards": [board]}])
+    assert got["essenceLeaders"] == {} and all(not row["essence"] for row in got["rows"])

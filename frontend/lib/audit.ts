@@ -134,7 +134,7 @@ export const NO_LINEUPS: LineupsAudit = { band: 15, plans: { sofix: [], sorare: 
 export type Verdict = "lucky" | "good" | "expected" | "poor";
 /** One strategy's lineups (or yours) over a week or the season, scored after the games (backend/app/sorare/strategy_audit.py). */
 export type StrategyTally = {
-  lineups: number; scored: number; points: number; pending?: number; unavailable?: number; rewardPending?: number;
+  lineups: number; scored: number; points: number; pending?: number; unavailable?: number; rewardPending?: number; returnCases?: number; cash?: number; essence?: Record<string, { total: number; cases: number }>;
   /** The best lineup in hindsight for the same competitions, and what those lineups scored: the share of the best is `pointsVs` over `best`. */
   best: number; pointsVs: number; against: number;
   judged: number; won: Record<PrizeKind, number>; verdicts: Record<Verdict, number>;
@@ -150,11 +150,20 @@ export type BoardRow = {
 export type Board = { board: string; comp: string | null; key: string | null; rows: BoardRow[] };
 export type StrategyWeek = {
   slug: string; number: number | null; end: string; final: boolean;
-  strategies: Record<string, StrategyTally>; sofix: StrategyTally | null; sorare?: StrategyTally | null; you: StrategyTally | null; boards: Board[];
+  strategies: Record<string, StrategyTally>; sofix: StrategyTally | null; sorare?: StrategyTally | null; you: StrategyTally | null; boards: Board[]; decision?: StrategyDecision;
+};
+export type StrategyDecisionRow = {
+  key: string; label: string; note: string; average: number | null; delta: number | null;
+  winsVsBaseline: number | null; rewardWins: number; won: Record<PrizeKind, number>; cashAverage: number | null;
+  essence: Record<string, { average: number; cases: number }>;
+};
+export type StrategyDecision = {
+  pointsCases: number; rewardCases: number; amountCases: number; weeks: number; active: number;
+  pointLeaders: string[]; rewardLeaders: string[]; essenceLeaders: Record<string, string[]>; cashLeaders: string[]; rows: StrategyDecisionRow[];
 };
 /** Each strategy's lineups written down before every lock, scored, with Sofix's best plan and yours beside them: season sums and week by week (newest first). */
 export type StrategiesAudit = {
-  strategies: StrategyRow[]; sofix: StrategyTally & { weeks: number }; sorare?: StrategyTally & { weeks: number }; you: StrategyTally & { weeks: number }; weeks: StrategyWeek[];
+  strategies: StrategyRow[]; sofix: StrategyTally & { weeks: number }; sorare?: StrategyTally & { weeks: number }; you: StrategyTally & { weeks: number }; weeks: StrategyWeek[]; decision?: StrategyDecision;
 };
 export const NO_TALLY: StrategyTally = { lineups: 0, scored: 0, points: 0, best: 0, pointsVs: 0, against: 0, judged: 0, won: { card: 0, cash: 0, essence: 0, xp: 0, none: 0 }, verdicts: { lucky: 0, good: 0, expected: 0, poor: 0 } };
 export const NO_STRATEGIES: StrategiesAudit = { strategies: [], sofix: { ...NO_TALLY, weeks: 0 }, you: { ...NO_TALLY, weeks: 0 }, weeks: [] };

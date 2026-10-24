@@ -153,7 +153,7 @@ class Strategy:
 
 
 STRATEGIES = (
-    Strategy("xscore", "xScore", "The best xScore in every slot, captain the best xScore (what Sofix plans on)."),
+    Strategy("xscore", "xScore", "Picks the best xScore in each slot and gives the captaincy to the best xScore."),
     Strategy(
         "sorare",
         "Sorare's projection",
@@ -163,7 +163,7 @@ STRATEGIES = (
     Strategy(
         "keeper-defender",
         "Keeper with his defender",
-        "A defender of the keeper's own club: nothing, or win big.",
+        "Pairs the goalkeeper with a defender from the same club.",
         rule=_keeper_with_defender,
     ),
     Strategy("club-stack", "Three from one club", "Three players of one club in the lineup.", rule=_club_stack),
@@ -181,7 +181,7 @@ STRATEGIES = (
     ),
     Strategy("ceiling", "Highest ceiling", "Each player at the top of his range, not the middle.", numbers=_ceiling),
     Strategy("usual", "Usual score", "Each player at what he usually scores, with no goal or assist.", numbers=_usual),
-    Strategy("surest", "Surest starters", "Only players 90% or more likely to play.", numbers=_surest),
+    Strategy("surest", "Surest starters", "Only picks players with at least a 90% chance of playing.", numbers=_surest),
     Strategy("favourites", "Favourites only", "Only players whose side is the likeliest to win.", numbers=_favourites),
 )
 BY_KEY = {s.key: s for s in STRATEGIES}

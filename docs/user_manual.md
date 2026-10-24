@@ -542,6 +542,16 @@ by its best prize, a card, cash, essence, XP only or nothing, so XP is never cou
 and every plan has its own row), **Strategies** (`/audit/strategies`, since 13 Oct), **Rewards** (`/audit/rewards`, since 6 Oct) and **Missions**
 (`/audit/missions`, since 6 Oct).
 
+**Strategies opens with the answer (24 October).** The page names the highest-scoring strategy, the strategy returning
+most essence of each rarity, and the one reaching rewards most often. It explains each picking rule, the advantage
+against xScore, and when points and rewards have different winners. Every average has a unit and every reward rate
+has its checked denominator. These conclusions compare the same competition/GW lineups for all strategies with saved
+picks. **Gameweek results** switches the whole comparison between all recorded GWs and one GW; **Rank by** orders the
+comparison by points, reward frequency or a named essence rarity (cash when present). Ties stay ties. **Full recorded
+history** keeps all the older owner/plan results and unequal coverage apart from that fair comparison. Model rewards
+are what the saved picks would have reached against real saved reward cutoffs, not money actually received; known
+cash and essence amounts remain separate, and different essence rarities never combine.
+
 **Strategies** compares ten ways of building a lineup from your cards, with Sofix plan 1, Sorare plan 1 and your own entered lineups beside them. Before
 each lock Sofix writes down, for every competition it can enter, the best lineup of each way: the best xScore in every slot; Sorare's own
 projection instead; the keeper with a defender of his own club ("nothing or win big"); three players of one club; no attacker playing

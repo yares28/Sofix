@@ -680,3 +680,14 @@ reference hash; later private reads or missing sources arriving reopen the week 
 orphaned history is preserved on upgrade. The existing scheduled publication also tracks owner-only review-window
 boundaries. No player/API reads are added to the page; the GW selector renders cached published results, and
 Strategies skips unrelated mission-history downloads. See [delivery evidence](../plans/audit-strategies-weekly.md).
+
+
+Strategies decision summaries (24 October): `strategy_decision.decision_of` intersects completed boards (same GW and
+competition) across every strategy with recorded picks. Points and prize checks have separate complete-case subsets;
+unknown outcomes never count as losses. Amount comparisons require recorded cash/essence fields. Essence comparisons
+also require every strategy’s amount to name the same rarity on that board. No threshold suppresses small samples.
+The job publishes leaders, ties, point differences and head-to-head wins against xScore, average USD, and independent
+per-rarity essence averages. It does not fit a new model or claim future superiority. `strategy_audit` cache version 4
+rebuilds available sources with reward amounts; orphaned records retain known scores without invented amounts.
+Multi-part tiers retain both cash and essence even when their best prize is a card. Owner amounts come only from
+ranked saved results. Audit settlement version 6 triggers the normal automatic publication after release.

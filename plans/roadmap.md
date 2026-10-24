@@ -581,6 +581,11 @@ the held-out weeks (P9 "The bar").
 
 ## Results
 
+24 Oct - Strategies now leads with who performed best on points, essence and reward frequency, each rule’s explanation,
+explicit averages/units and the tradeoff between points and rewards. The fair ranking uses the same competition/GW
+boards for every recorded strategy, preserves ties and unknown outcomes, and separates essence rarities and cash.
+Bars are removed; GW/ranking selection, actual cards and full history remain. [Delivery and evidence](strategies-decision-board.md).
+
 24 Oct - Strategies now includes You, Sofix plan 1, Sorare plan 1 and each saved strategy, with weighted season and
 per-GW actual averages, counts and URL-restored week selection. Older owner-only weeks are included, unknown scores
 stay pending, incomplete historical records stay unavailable, and late saved reads reopen the cache. The 14-day

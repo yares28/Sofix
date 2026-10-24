@@ -32,9 +32,10 @@ from app.sorare.frozen import PLAN_PREFIX
 from app.sorare.frozen_scores import _score, games_of, results
 from app.sorare.lineup_audit import KINDS, kept_references, prize
 from app.sorare.publish import ALT_PREFIX, ARCHIVE_PREFIX, SETTLE, STRATEGY_PREFIX
+from app.sorare.strategy_decision import amounts, collect, decision_of, tier_amounts
 
 KEY = "strategy_audit"
-VERSION = 3
+VERSION = 4
 MY_WEEK = "my_week:"
 ENTERED_WEEK = "entered_week:"
 PREFIXES = (STRATEGY_PREFIX, PLAN_PREFIX, ALT_PREFIX, MY_WEEK, ENTERED_WEEK)
@@ -54,6 +55,9 @@ def _tally() -> dict[str, Any]:
         "pointsVs": 0.0,  # what those lineups scored: the share of the best is this over `best`
         "against": 0,  # how many of the scored lineups that is
         "judged": 0,
+        "returnCases": 0,
+        "cash": 0.0,
+        "essence": {},
         "won": {**dict.fromkeys(KINDS, 0), "none": 0},
         "verdicts": dict.fromkeys(VERDICTS, 0),
     }
@@ -71,8 +75,14 @@ def _add(total: dict[str, Any], part: dict[str, Any]) -> None:
         "pointsVs",
         "against",
         "judged",
+        "returnCases",
+        "cash",
     ):
         total[key] += part.get(key, 0)
+    for rarity, value in part.get("essence", {}).items():
+        bucket = total["essence"].setdefault(rarity, {"total": 0.0, "cases": 0})
+        bucket["total"] += value["total"]
+        bucket["cases"] += value["cases"]
     for kind, count in part["won"].items():
         total["won"][kind] += count
     for verdict, count in part["verdicts"].items():
@@ -228,6 +238,8 @@ class _Week:
             elif raw.get("tiers"):
                 tally["rewardPending"] += 1
                 self.settled = False
+            returns = tier_amounts(raw, line["score"], won, cuts)
+            collect(tally, returns)
             said = line.get("verdict")
             if said:
                 tally["verdicts"][said["label"]] += 1
@@ -243,6 +255,7 @@ class _Week:
                     "verdict": said["label"] if said else None,
                     "beat": said["beat"] if said else [],
                     "won": won,
+                    "returns": returns,
                     "fits": fits(starters, self.fixtures),
                     "cards": line["cards"],
                 }
@@ -292,6 +305,8 @@ class _Week:
                 kind = None
                 tally["rewardPending"] += 1
                 self.settled = False
+            returns = amounts(result, line) if kind is not None else None
+            collect(tally, returns)
             score = float(result["score"])
             board = self.board(line.get("board") or line.get("id") or "", None, None)
             slots = (line.get("scoring") or {}).get("slots") or []
@@ -333,6 +348,7 @@ class _Week:
                     "verdict": None,
                     "beat": [],
                     "won": kind,
+                    "returns": returns,
                     "rank": result.get("rank"),
                     "fits": fits([c for c in cards if not c["sub"]], self.fixtures),
                     "cards": cards,
@@ -447,5 +463,8 @@ def page(weeks: list[dict[str, Any]]) -> dict[str, Any]:
         "sofix": sofix,
         "sorare": sorare,
         "you": mine,
-        "weeks": [{k: v for k, v in week.items() if k != "inputs"} for week in weeks],
+        "decision": decision_of(weeks),
+        "weeks": [
+            {**{k: v for k, v in week.items() if k != "inputs"}, "decision": decision_of([week])} for week in weeks
+        ],
     }

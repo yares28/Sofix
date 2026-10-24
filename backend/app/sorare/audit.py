@@ -52,7 +52,7 @@ from app.sorare.publish import ARCHIVE_PREFIX, SETTLE
 
 AUDIT_KEY = "audit"
 VERSION = 1
-SETTLEMENT_VERSION = 5
+SETTLEMENT_VERSION = 6
 # Written by `python -m app.jobs.xscore_backtest --summary`; numbers only, so it can sit in the public repository.
 REPLAY_FILE = Path(__file__).resolve().parents[2] / "data" / "audit" / "replay.json"
 FLOOR = 100  # default for other verdicts; Who starts explicitly uses one checked case

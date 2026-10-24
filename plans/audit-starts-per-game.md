@@ -45,3 +45,17 @@ Final pre-push checks: the complete `node scripts/check.mjs` gate passed (ruff, 
 eslint, TypeScript and Vitest). `next build` passed. Clicking Lineups → Who starts in the built app showed the new rule;
 desktop and phone screenshots were saved. No checks were unavailable. Production counts require the automatic publisher;
 the data-reconstruction proof above did not publish or edit production data.
+
+Publication follow-up, owner asking about the FF statistics: successful run 40093201489 on 67bb3cd skipped Refresh data
+under the three-hour cooldown; only the gate and missing-FDR bootstrap ran. The live Audit stayed settlement version 1
+at 24 October 12:14 UTC. Thus the competition figures and top-band/error statistics still came from the older model.
+Finish the already-approved automatic publication: the existing cooldown fallback also republishes a due Audit from
+saved rows. Reuse its runtime, live-project selection and concurrency; no extra Sorare/football/odds reads, manual
+dispatch, schema change or production shell write. An up-to-date Audit must cost only its two-field due check. Tests
+must cover the real job entry point, the changed competition breakdown, idempotence and the fallback's wiring.
+
+The regression initially failed because the publication job did not exist. The correction adds a source-free due
+publisher to the existing cooldown fallback after live-project selection. An up-to-date run skips its rebuild and cache
+invalidation. The focused publication/history/near-lock suite passed 30 cases; source-client construction is forbidden
+in the publisher acceptance test. No UI, source schedule or manual dispatch change.
+The complete backend gate passed ruff, mypy, pytest and OpenAPI export before shipping the publication correction.

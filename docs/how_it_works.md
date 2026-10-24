@@ -314,6 +314,8 @@ scores and missing results are never non-appearances. An explicit Sorare `DID_NO
 non-start even when Sorare omits `gameStarted`; contradictory DNP flags remain unknown. The half-hourly score job also
 checks a small published settlement deadline for full-GW comparisons, including idle source runs. Settlement version 2
 also republishes already-saved starts once after this release, without requiring a new source read or a page visit.
+When the push workflow skips source refreshes under its three-hour cooldown, its fallback runs `app.jobs.audit` to
+publish a due saved Audit anyway. A current version with no due boundary reads only its two-field marker and stops.
 The daily history job publishes Audit after saving results and invalidates the app cache. Lineups use each source's
 saved game map and keep retrying missing results or reward cuts after 14 days; the older lineup cache is rebuilt once.
 Missing mission stats remain pending. The replay file's numbers (the xScore success rate, and Sofix's chance of starting replayed on the past

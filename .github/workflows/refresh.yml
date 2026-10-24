@@ -63,7 +63,7 @@ jobs:
           since=$(date -u -d '3 hours ago' +%Y-%m-%dT%H:%M:%SZ)
           recent=$(gh api "repos/${{ github.repository }}/actions/workflows/refresh.yml/runs?created=>$since&per_page=20"             --jq "[.workflow_runs[] | select(.id != ${{ github.run_id }})] | length")
           if [ "$recent" = "0" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else
-            echo "::notice::A refresh ran in the last 3 hours; this push waits for the next one."; echo "run=false" >> "$GITHUB_OUTPUT"; fi
+            echo "::notice::Source refresh skipped under the three-hour cooldown; due saved-data calculations still publish."; echo "run=false" >> "$GITHUB_OUTPUT"; fi
 
   refresh:
     name: Refresh data
@@ -158,10 +158,11 @@ jobs:
           key: player-games-${{ github.run_id }}-${{ github.run_attempt }}
 
   # A new league must not stay empty until tonight because another refresh just ran.
-  # This path only initializes missing blocks; subsequent pushes skip without source calls.
+  # This path initializes missing blocks and publishes due Audit calculations from saved rows.
+  # An up-to-date Audit skips without reading history or calling a source.
   # Workflow concurrency and the existing database refresh lock still allow one writer.
   fdr-bootstrap:
-    name: Initialize missing league FDR
+    name: Publish due read models
     needs: gate
     if: github.event_name == 'push' && needs.gate.outputs.run != 'true'
     runs-on: ubuntu-24.04
@@ -209,3 +210,5 @@ jobs:
             exit 0
           fi
           exit "$code"
+      - name: Publish due Audit from saved results
+        run: python -m app.jobs.audit

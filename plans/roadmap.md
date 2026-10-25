@@ -14,8 +14,6 @@ and a check, so a session can work through it alone and stop only where you have
 
 ## Next up (the one queue: read this first, update it in the same commit when an item ships)
 
-24 Oct owner request, next: a single Play plan, with alternatives kept in Audit Strategies. Missions Audit and its automatic statistics are delivered in [the overview release](missions-audit-overview.md).
-
 23 Oct owner priority: Conference is released as an explicitly provisional FDR/xScore model,
 under [the owner-directed release contract](conference-release.md). All 36 clubs / 1,110 current players
 and the full six-round calendar are published (automatic refresh 39967133628); real desktop/mobile
@@ -580,6 +578,8 @@ the held-out weeks (P9 "The bar").
 ---
 
 ## Results
+
+- **25 Oct — One Play recommendation:** the highest-expected-essence Sofix plan, with actual entered lineups above it and projected points/rewards visible. Other optimizer plans, Sorare projections, three strategy lenses and available hindsight live in Audit > Strategies > Plans; Results retains its podium/charts. Exact-GW navigation, old bookmarks, missing sources and readable phone choices are covered. [Contract and verification](single-play-plan.md).
 
 - **25 Oct — Missions Audit:** a directly labelled chart of your picks, Sofix and the per-mission ceiling, reward equivalents in separate units/rarities, lifetime coverage with status filters and pagination, no 100-case gate. Own results survive absent forecasts; reconstructions stay outside accuracy. Automatic publication now settles missions, revisits corrected stats and checks uncopied legacy days. [Contract and verification](missions-audit-overview.md).
 

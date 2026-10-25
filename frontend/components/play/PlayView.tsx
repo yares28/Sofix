@@ -34,6 +34,9 @@ import ProRebuild from "./ProRebuild";
 import type { ProRebuild as Rebuild } from "../../lib/playData";
 import SorareImage from "./SorareImage";
 import SeasonIcon from "../SeasonIcon";
+import LinkPending from "../LinkPending";
+import StrategyViews from "../audit/StrategyViews";
+import { planAddress } from "../../lib/planNavigation";
 
 const madrid = (iso: string, options: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", ...options }).format(new Date(iso));
@@ -62,7 +65,9 @@ export default function PlayView({
   scores,
   rebuild = null,
   rebuildable = false,
+  alternatives = false,
 }: {
+  alternatives?: boolean;
   /** Pro lineups rebuilt on the announced elevens, and whether this view offers "Load from Sorare" (the week being played, Sofix's plans). */
   rebuild?: Rebuild | null;
   rebuildable?: boolean;
@@ -89,33 +94,26 @@ export default function PlayView({
 }) {
   const id = week.gameweek.id;
   const plans = plansOf(week, after);
-  const plan = plans[planIndex];
+  const plan = alternatives ? plans[planIndex] : bestPlan(week.plans) ?? undefined;
   const href = (options: { gw?: string; plan?: number; after?: boolean; by?: PlanBy }) => {
-    const params = new URLSearchParams();
-    const gw = options.gw ?? id;
-    if (weekId) params.set("w", weekId);
-    else if (gw !== data.nextId) params.set("gw", gw);
-    const source = options.by ?? by;
-    if (source !== "sofix") params.set("by", source);
-    const index = options.plan ?? planIndex;
-    if (index > 0) params.set("plan", String(index + 1));
-    const showActual = options.after ?? after;
-    if (showActual) params.set("after", "1");
-    const query = params.toString();
-    return query ? `/play?${query}` : "/play";
+    return planAddress({ w: weekId, gw: options.gw ?? id, by: options.by ?? by, index: options.plan ?? planIndex, after: options.after ?? after, alternatives });
   };
+  const otherPlans = planAddress({ w: weekId, gw: id, alternatives: true });
+  const results = new URLSearchParams({ resultsGw: week.gameweek.slug });
+  if (weekId) results.set("w", weekId); else results.set("gw", id);
 
   const sync = after || week.projected ? null : syncState(data, week, now);
-  const showModes = week.played && week.plans.length > 0;
+  const showModes = alternatives && week.played && Boolean(week.hindsight || week.plans.some(p => p.actual));
   // Sofix's plan or Sorare's: only for the week being planned, where both are made (the owner, 6 Oct 2026)
-  const showSources = !after && !week.projected && !week.played && week.gameweek.id === data.nextId;
+  const showSources = alternatives && !week.projected;
   const main = plan ? plan.lineups.filter((lineup) => after || !isLongShot(lineup)) : [];
   const longShots = plan && !after ? plan.lineups.filter((lineup) => isLongShot(lineup)) : [];
   return (
-    <main className="pl-main">
+    <main className={`pl-main${alternatives ? " pl-alternatives" : ""}`}>
+      {alternatives ? <div className="pl-workspace-bar"><StrategyViews plans plansHref={href({})} resultsHref={`/audit/strategies?${results}`} /><Link className="pl-go" href={planAddress({ w: weekId, gw: id, alternatives: false })} prefetch={false}>Recommended plan<LinkPending /></Link></div> : null}
       <section className="pl-top">
         <div className={`pl-intro${sync?.behind ? " behind" : ""}`}>
-          <Head data={data} week={week} now={now} sync={sync} dates={dates ?? null} title={title ?? null} />
+          <Head data={data} week={week} now={now} sync={sync} dates={dates ?? null} title={title ?? null} alternatives={alternatives} />
           <Big week={week} plan={plan} after={after} now={now} />
           {plan ? <PlanFacts plan={plan} after={after} /> : null}
         </div>
@@ -139,6 +137,7 @@ export default function PlayView({
           ) : null}
         </aside>
       </section>
+      {!alternatives && !week.projected ? <EnteredLineups week={week.gameweek} forecast={forecast ?? week} scores={scores} /> : null}
       {sync?.alert ? (
         <div className={`pl-alert ${sync.state}`} role="status">
           <span aria-hidden="true">{sync.state === "cloudless" ? "!" : "⟳"}</span>
@@ -164,13 +163,13 @@ export default function PlayView({
       {plan ? (
         <section className={`pl-board${sync?.behind ? " behind" : ""}`} aria-labelledby="pl-board-title">
           <div className="pl-board-head">
-            <h2 id="pl-board-title">{planTitle(by)}</h2>
+            <h2 id="pl-board-title">{alternatives ? planTitle(by) : "Recommended plan"}</h2>
             {showSources ? <PlanSources by={by} href={href} /> : null}
-            <PlanSwitch plans={plans} planIndex={planIndex} after={after} href={href} />
+            {alternatives ? <PlanSwitch plans={plans} planIndex={planIndex} after={after} href={href} /> : <Link className="pl-other-plans" href={otherPlans} prefetch={false}>Other plans &amp; strategies<LinkPending /></Link>}
             <span className="pl-board-note">
               {plan.hindsight
                 ? "The best lineups in hindsight, knowing every score, with your cards today"
-                : `Plan ${plan.rank} of ${week.plans.length} · ${plan.lineups.length} lineup${plan.lineups.length === 1 ? "" : "s"}${week.projected ? " · early plan" : ""}`}
+                : `${alternatives ? `Plan ${plan.rank} of ${week.plans.length}` : "Highest expected essence"} · ${plan.lineups.length} lineup${plan.lineups.length === 1 ? "" : "s"}${week.projected ? " · early plan" : ""}`}
             </span>
             {showModes ? (
               <div className="pl-mode" role="group" aria-label="Show">
@@ -206,9 +205,9 @@ export default function PlayView({
               </div>
             </details>
           ) : null}
-          {showSources ? <EssenceOrder saved={data.essenceOrder ?? [...DEFAULT_ESSENCE_ORDER]} kinds={week.playable.map((option) => option.kind)} /> : null}
+          {!alternatives && !week.played && !week.projected ? <EssenceOrder saved={data.essenceOrder ?? [...DEFAULT_ESSENCE_ORDER]} kinds={week.playable.map((option) => option.kind)} /> : null}
         </section>
-      ) : by === "sorare" && sorareWaiting ? (
+      ) : alternatives && sorareWaiting ? (
         <section className="pl-board" aria-labelledby="pl-board-title">
           <div className="pl-board-head">
             <h2 id="pl-board-title">{planTitle(by)}</h2>
@@ -219,9 +218,8 @@ export default function PlayView({
           </p>
         </section>
       ) : (
-        <Waiting week={week} now={now} />
+        <><Waiting week={week} now={now} />{!alternatives ? <Link className="pl-other-plans" href={otherPlans} prefetch={false}>Other plans &amp; strategies<LinkPending /></Link> : null}</>
       )}
-      {!week.projected ? <EnteredLineups week={week.gameweek} forecast={forecast ?? week} scores={scores} /> : null}
       {missions && !after ? <MissionsGlance plans={missions.plans} day={missions.day} current={missions.status === "today"} href="/missions" /> : null}
       <Folds week={week} />
     </main>
@@ -235,6 +233,7 @@ function Head({
   sync,
   dates,
   title,
+  alternatives = false,
 }: {
   data: Sorare;
   week: GameweekPlan;
@@ -242,6 +241,7 @@ function Head({
   sync: ReturnType<typeof syncState>;
   dates: string | null;
   title: string | null;
+  alternatives?: boolean;
 }) {
   const { lock, start, end } = week.gameweek;
   const locked = new Date(lock) <= now;
@@ -256,9 +256,10 @@ function Head({
     <header className="pl-head">
       <p className="pl-eyebrow">
         <Foil rarity="limited" className="sm" />
-        {eyebrow}
+        {alternatives ? "Audit / Strategies" : eyebrow}
       </p>
-      <h1>{title ?? (week.projected ? week.gameweek.name : `Sorare GW${week.gameweek.number}`)}</h1>
+      <h1>{alternatives ? "Plan alternatives" : title ?? (week.projected ? week.gameweek.name : `Sorare GW${week.gameweek.number}`)}</h1>
+      {alternatives ? <p className="pl-plan-week">{title ?? `Sorare GW${week.gameweek.number}`}</p> : null}
       <p className="pl-sub">
         <span>
           {weekday(start)} {dates ?? span(start, end)}
@@ -345,7 +346,7 @@ function PlanSources({ by, href }: { by: PlanBy; href: (options: { plan?: number
     <div className="pl-mode" role="group" aria-label="Plan made from">
       {options.map((option) => (
         <Link key={option.key} href={href({ by: option.key, plan: 0 })} aria-current={by === option.key ? "page" : undefined} scroll={false} prefetch={false} title={option.title}>
-          {option.label}
+          {option.label}<LinkPending />
         </Link>
       ))}
     </div>
@@ -399,6 +400,9 @@ function PlanFacts({ plan, after }: { plan: Plan; after: boolean }) {
           ) : null}
         </>
       )}
+      <span className="pl-fact">
+        <strong>{plan.lineups.length ? Math.round(plan.lineups.reduce((sum, lineup) => sum + lineup.x, 0) / plan.lineups.length) : "—"}</strong> projected pts per lineup
+      </span>
       <span className="pl-fact">
         <strong>{plan.cardsUsed}</strong> of {plan.cardsAvailable} cards used
       </span>
@@ -467,6 +471,7 @@ function PlanSwitch({
           scroll={false}
           prefetch={false}
         >
+          <LinkPending />
           <span className="l1">
             {plan.hindsight ? "In hindsight" : `Plan ${plan.rank}`}
             {plan === bestPlan(plans.filter(p => !p.hindsight)) && !plan.hindsight ? <span className="best">best</span> : null}

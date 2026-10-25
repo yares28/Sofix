@@ -236,3 +236,18 @@ test("the Audit views fit a phone: all three sources together, no sideways scrol
   const boxes = await tabs.getByRole("link").evaluateAll((links) => links.map((link) => link.getBoundingClientRect().toJSON()));
   for (const box of boxes) expect(box.right).toBeLessThanOrEqual(390);
 });
+
+test("alternative plans keep their reward summary readable on a phone", async ({ page }) => {
+  await page.goto("/audit/strategies?view=plans");
+  const plans = page.getByRole("navigation", { name: "Plan", exact: true });
+  await expect(plans.getByRole("link")).toHaveCount(2);
+  const width = (await plans.boundingBox())!.width;
+  expect(width).toBeGreaterThan(250);
+  for (const link of await plans.getByRole("link").all()) {
+    const bounds = await link.boundingBox();
+    expect(bounds!.width).toBeGreaterThan(250);
+    expect(bounds!.height).toBeGreaterThanOrEqual(44);
+  }
+  expect(await plans.locator(".l2").evaluateAll(nodes => nodes.every(node => node.scrollWidth <= node.clientWidth))).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});

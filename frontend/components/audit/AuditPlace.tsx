@@ -14,6 +14,7 @@ import { myWeeksQuietly } from "../../lib/myWeeksData";
 import { seasonWeeks } from "../../lib/myWeeks";
 import { weekContext } from "../../lib/weeks";
 import { recordedStart, savedStartGame, sideKey, withGameCrests } from "../../lib/playerScoreViews";
+import { alternativeAddress } from "../../lib/planNavigation";
 
 export type AuditSearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -31,6 +32,8 @@ export default async function AuditPlace({ show, searchParams }: { show: AuditSh
     show === "rewards" || show === "lineups" || show === "strategies" ? myWeeksQuietly() : null,
   ]);
   const params = await searchParams ?? {};
+  const resultGw = sorare?.timeline.find(w => w.slug === params.resultsGw)?.id;
+  const plansHref = alternativeAddress(resultGw ? { gw: resultGw } : params);
   const now = new Date();
   // Without a selected date, Audit opens the latest locked GW; planning defaults to the next open GW.
   const latestLocked = [...(sorare?.timeline ?? [])].filter((w) => new Date(w.lock) <= now).sort((a, b) => b.lock.localeCompare(a.lock))[0];
@@ -71,7 +74,7 @@ export default async function AuditPlace({ show, searchParams }: { show: AuditSh
     <>
       <SiteNav meta={meta} system={system} week={show === "xscore" ? week : undefined} />
       <main className={show === "starts" ? "au au-starts-page" : "au"}>
-        <AuditView data={data} now={new Date()} league={league} show={show} season={season} saved={saved} pics={pics} playerWeek={playerWeek} playerWeekNumber={week.current?.number ?? null} playerWeeks={playerWeeks} startParams={Object.fromEntries(Object.entries(params).map(([key, value]) => [key, typeof value === "string" ? value : undefined]))} />
+        <AuditView plansHref={plansHref} data={data} now={new Date()} league={league} show={show} season={season} saved={saved} pics={pics} playerWeek={playerWeek} playerWeekNumber={week.current?.number ?? null} playerWeeks={playerWeeks} startParams={Object.fromEntries(Object.entries(params).map(([key, value]) => [key, typeof value === "string" ? value : undefined]))} />
         {show === "missions" ? <div className="pd-wrap">{owned.map((rarity) => <MissionHistory key={rarity} title={`${RARITY_NAME[rarity]} history`} days={missionHistory(logs, rarity, names)} rarity={rarity} collection={sorare?.collection ?? []} />)}</div> : null}
       </main>
     </>

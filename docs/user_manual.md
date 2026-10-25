@@ -249,13 +249,11 @@ definitions apply; the page does not run a separate club model.
 
 ![Sorare Play page with optimized plans](images/play.png)
 
-Play shows the latest published plan for the selected Sorare gameweek. It is built from the synced collection,
-competition rules, pre-lock forecasts and reward cutoffs.
+Play shows one recommended whole-GW plan for the selected Sorare gameweek: the saved Sofix plan with the highest expected essence, with published order breaking ties. It is built from the synced collection, competition rules, pre-lock forecasts and reward cutoffs. Your actual entered lineups appear above the recommendation, including weeks without a saved plan.
 
 The hero counts down to the lock in large type ("2d 22h until the lock, Fri 9 Oct at 16:00"; after the games, the essence
 won), with the plan's facts under it: chance of a reward, the most likely result, the chance of cash, of essence and of XP apart,
-cards used. Beside it sits Apply plan. Below, the plan tile holds the
-**Sofix / Sorare / strategy** switch, the plan switch, where the cards go, and the lineups as the same rows as the Recap (14 Oct
+average projected points per lineup and cards used. Beside it sits Apply plan. **Other plans & strategies** opens **Audit > Strategies > Plans** for the same GW, where the Sofix/Sorare/strategy and plan switches remain available. **Results** keeps the strategy podium and three comparison charts; **Recommended plan** returns to Play for that GW. Existing bookmarked plan/source/hindsight links redirect to their equivalent Plans view. The recommendation shows where the cards go and the lineups as the same rows as the Recap (14 Oct
 2026): competition with its kind and format, its cards with each one's xScore in Sorare's colours (its score after the games),
 xScore, actual and xD, and one reward chance (Paid or No reward after the games); once the week has locked, each card shows
 his score as soon as his game is in and the lineup its **Actual so far**, as your entered lineups do (15 Oct 2026); each row, and its **i**, opens its sheet with the
@@ -265,12 +263,12 @@ Contenders) are planned too, for the players with a game in them. A player's sta
 Sorare's page showed in your browser (the extension saves it), else Sofix's from his form. Lineups under 5% sit under **Long shots**; this opens immediately when they are the only available
 lineups. A locked/live GW retains its recorded pre-lock plan, including on Home, rather than showing the next GW's plan.
 
-**Sofix or Sorare (6 Oct 2026).** For the week being planned there are two sets of plans: **Sofix** builds them on Sofix's
+**Sofix or Sorare (25 Oct 2026).** In Audit > Strategies > Plans there are two sets of plans: **Sofix** builds them on Sofix's
 xScore, **Sorare** on Sorare's own projections (game by game, read for that week's games). Both use the same cards,
 competitions and chances of starting; only the expected score differs, so you can compare them, and the Audit scores both.
 Until Sorare publishes its projections (about two days before the lock) the Sorare view says when they are due.
 
-**Strategies on Play (13 Oct 2026).** Beside Sofix and Sorare, three more buttons plan the same week another way: **Keeper with defender**
+**Strategy alternatives (25 Oct 2026).** In Audit > Strategies > Plans, beside Sofix and Sorare, three more buttons plan the same week another way: **Keeper with defender**
 (each lineup has a defender of the keeper's own club: nothing, or win big), **3 from 1 club**, and **Highest ceiling** (each player at the
 top of his range). The same cards, competitions and chances of starting; the starters are chosen the strategy's way, and every lineup is
 then priced on Sofix's own numbers, so its team score, range and reward chance mean the same as in the Sofix plan. Each has one plan, made
@@ -282,7 +280,7 @@ really happens.
 All Star unless you change it (↑ ↓, then **Save and replan**, which starts a refresh; the plans follow it about six minutes
 later). Sofix prioritizes the expected reward, essence plus cash with $1 counted as 300 essence (20 Oct 2026: $5 beats 1,000
 essence, 2,000 essence beats $5), with your essence preference and reward chance breaking ties.
-**Best** marks the plan with the highest expected reward and opens by default.
+**Best** marks the plan with the highest expected essence in each source, using published order for ties. Play opens that Sofix recommendation. Saved alternatives stay tied to their exact GW; a missing source is labelled rather than replaced by another source. Finished GWs keep their available before-lock/after-games views in Plans.
 
 **Pro in the plan (20 Oct 2026).** Your Pro boards (steps, targets, prizes) are read from Sorare's public API each refresh, no
 extension needed. Every board (each league's, Europe's, Contenders) is the competition its current step is, from that step's own
@@ -305,14 +303,14 @@ still being played, for a Pro lineup none of whose players has kicked off, and f
 played, today's missions sit under the lineups with the cards that fit each (chance, opponent, kick-off and what he
 did over his last 5); the full Missions page is one click away.
 
-Below the Sofix plan, **Your Sorare lineups** shows what the signed-in owner actually put on Sorare for this exact GW. Entered
+Above the recommended Sofix plan, **Your Sorare lineups** shows what the signed-in owner actually put on Sorare for this exact GW. Entered
 lineups and drafts are labelled separately and retain their Sorare competition and card list. Each one is drawn as the Recap's
 row (14 Oct 2026): the cards with their xScore under each (their score once they have points), xScore and actual, the reward
 chance while the week is on, the result. This is not Sofix's
 suggested plan: the extension reads the selected Sorare fixture directly, so the block also works for timeline weeks
 that Sofix no longer retains as an optimized plan. Your Pro lineups sit with them (extension 0.3.18, 15 Oct 2026, every Pro board, LaLiga or not; if none shows, the line above the lineups says why): each one whose
 matchday starts inside the GW, named after its Pro board, with "Step 3 · needs 280" (and "cleared" once Sorare's score reaches it)
-in place of a rank. They are only read here; the plan's own Pro lineup is above ([plans/pro.md](../plans/pro.md)). Every successful read is saved, including live scores and drafts.
+in place of a rank. They are only read here; the plan's own Pro lineup is in the recommendation below ([plans/pro.md](../plans/pro.md)). Every successful read is saved, including live scores and drafts.
 Reopening Recap or Play shows that GW's last saved read immediately and checks Sorare in the background. Saved teams
 also work on a phone or with Sorare closed; an unavailable refresh keeps them visible with a status message. A signed-in
 `sorare.com` tab is needed only for a new read. Live snapshots stay separate from final reward archives. Lineups from

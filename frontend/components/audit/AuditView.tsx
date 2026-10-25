@@ -4,6 +4,7 @@ import VersusAudit from "./VersusAudit";
 import RewardsAudit from "./RewardsAudit";
 import LineupsAudit from "./LineupsAudit";
 import StrategiesAudit from "./StrategiesAudit";
+import StrategyViews from "./StrategyViews";
 import { freshLabel } from "../../lib/fresh";
 import type { Audit } from "../../lib/audit";
 import StartsAudit from "./StartsAudit";
@@ -28,6 +29,7 @@ export default function AuditView({
   playerWeekNumber = null,
   playerWeeks = [],
   startParams = {},
+  plansHref,
 }: {
   data: Audit | null;
   now: Date;
@@ -42,13 +44,17 @@ export default function AuditView({
   playerWeekNumber?: number | null;
   playerWeeks?: PlayerScoreWeek[];
   startParams?: Record<string, string | undefined>;
+  plansHref?: string;
 }) {
   if (!data) {
     return (
-      <section className="au-w au-empty" role="status">
-        <h1>Audit</h1>
-        <p>The audit appears after the next refresh.</p>
-      </section>
+      <>
+        {show === "strategies" ? <StrategyViews plansHref={plansHref ?? "/audit/strategies?view=plans"} /> : null}
+        <section className="au-w au-empty" role="status">
+          <h1>{show === "strategies" ? "Strategies" : "Audit"}</h1>
+          <p>The audit appears after the next refresh.</p>
+        </section>
+      </>
     );
   }
   const updated = data.generatedAt ? <p className="au-fresh">Updated {freshLabel(data.generatedAt, now)}</p> : null;
@@ -74,7 +80,7 @@ export default function AuditView({
     );
   }
   if (show === "lineups") return <LineupsAudit lineups={data.lineups} saved={saved} updated={updated} weeks={data.strategies.weeks} pics={pics} />;
-  if (show === "strategies") return <StrategiesAudit strategies={data.strategies} pics={pics} updated={updated} selected={startParams?.resultsGw} sort={startParams?.rankBy} />;
+  if (show === "strategies") return <StrategiesAudit strategies={data.strategies} pics={pics} updated={updated} selected={startParams?.resultsGw} sort={startParams?.rankBy} plansHref={plansHref} />;
   if (show === "rewards") {
     return (
       <>

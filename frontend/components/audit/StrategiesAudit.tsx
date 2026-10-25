@@ -3,8 +3,9 @@ import type { StrategiesAudit as Strategies } from "../../lib/audit";
 import WeekComparison from "./WeekComparison";
 import StrategyWeekPicker from "./StrategyWeekPicker";
 import StrategyFindings, { rarityName } from "./StrategyFindings";
+import StrategyViews from "./StrategyViews";
 
-export default function StrategiesAudit({ strategies: data, pics, updated, selected, sort = "points" }: { strategies: Strategies; pics: Record<string, string>; updated?: ReactNode; selected?: string; sort?: string }) {
+export default function StrategiesAudit({ strategies: data, pics, updated, selected, sort = "points", plansHref = "/audit/strategies?view=plans" }: { strategies: Strategies; pics: Record<string, string>; updated?: ReactNode; selected?: string; sort?: string; plansHref?: string }) {
  const week = data.weeks.find(w => w.slug === selected) ?? data.weeks[0];
  const period = data.weeks.some(w => w.slug === selected) ? selected! : "all";
  const decision = period === "all" ? data.decision : week?.decision;
@@ -18,6 +19,7 @@ export default function StrategiesAudit({ strategies: data, pics, updated, selec
  const rankedBy = options.some(([key]) => key === sort) ? sort : "points";
  return <div className="st-board sc-page">
    <header className="st-header"><div><p className="ws-eyebrow">AUDIT / STRATEGIES</p><h1>Strategies</h1></div><div className="ws-updated">{updated}</div></header>
+   <StrategyViews plansHref={plansHref} />
    <StrategyWeekPicker weeks={data.weeks} selected={period} sort={rankedBy} options={options}/>
    <StrategyFindings key={`${period}:${rankedBy}`} data={decision} sort={rankedBy} references={references}/>
    {week ? <section className="sd-evidence" aria-labelledby="sd-evidence-h"><h2 id="sd-evidence-h">Lineup evidence</h2><details className="st-lineups"><summary>Lineups & cards · GW{week.number}<span aria-hidden="true">+</span></summary><WeekComparison boards={week.boards} pics={pics}/></details></section> : null}

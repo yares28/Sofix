@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { HistoryDay } from "./missionLog";
-import { missionOutcomes, missionOutcomeSummary, missionRace } from "./missionOutcomes";
+import { missionOutcomes, missionOutcomeSummary, missionRace, missionSegment } from "./missionOutcomes";
 
 const pick = (state: "did" | "didnt" | "waiting" | "void", slug: string = state) => ({ slug, name: slug, pic: "", state });
 const day = (extra: Partial<HistoryDay> = {}): HistoryDay => ({ day: "2026-10-18", key: "goals", mission: "Goal - All Matches", loaded: true,
@@ -8,6 +8,13 @@ const day = (extra: Partial<HistoryDay> = {}): HistoryDay => ({ day: "2026-10-18
 const rows = (days: HistoryDay[]) => missionOutcomes([{ rarity: "limited", days }]);
 
 describe("mission outcomes use the same settled selections as history", () => {
+  it("gives segment details distinct mission counts, full-house amounts and only successful rarities",()=>{
+    const data=missionOutcomes([{rarity:"limited",days:[day({source:{picks:2,description:"Win 50 All-Star Essence per correct choice. Win up to 200 All-Star Essence if all picks are successful.",rule:{kind:"goal"}} as HistoryDay["source"],yours:[pick("did","a"),pick("did","b")]})]},
+      {rarity:"rare",days:[day({yours:[pick("didnt")],source:{picks:1,description:"Win 50 All-Star Essence per correct choice.",rule:{kind:"goal"}} as HistoryDay["source"]})]}]);
+    expect(missionSegment(data,"you","essence")).toMatchObject({picks:2,missions:1,checked:2,rarities:[{rarity:"limited",hits:2,missions:1}],rewards:[{rarity:"limited",unit:"All-Star Essence",amount:200}]});
+    expect(missionSegment(data,"you","miss")).toMatchObject({picks:1,missions:1,rewards:[]});
+    expect(missionSegment(data,"sofix","essence").picks).toBe(0);
+  });
   it("compares reward categories on the same fully checked missions and retains zero hits", () => {
     const data=rows([day(),day({key:"xp",yours:[pick("didnt")],sofix:[pick("did")]}),day({key:"waiting",yours:[pick("waiting")]})]);
     data[0]!.category="essence"; data[1]!.category="xp";

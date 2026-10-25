@@ -2096,3 +2096,32 @@
 .pc-side { display:grid; grid-template-rows:subgrid; grid-row:span 6; }
 .pc-points > span { min-height:32px; }
 @media(max-width:650px) { .pc-points > span { min-height:44px; } }
+
+.detail-tip { position:fixed; z-index:150; width:min(352px,calc(100% - 24px)); padding:20px; border:1px solid var(--line); border-radius:16px; background:var(--surface); color:var(--ink); box-shadow:0 12px 48px #0002; overflow:auto; overscroll-behavior:contain; font-size:13px; animation:tip-in .12s ease-out; }
+.detail-tip-close { position:absolute; top:7px; right:7px; width:28px; height:28px; border:0; border-radius:8px; background:var(--hover); color:var(--ink); cursor:pointer; font-size:20px; }
+.detail-tip button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.pc-prize-trigger,.pc-other-prizes { border:0; padding:0; background:none; color:inherit; font:inherit; cursor:help; touch-action:manipulation; text-decoration:underline; text-decoration-style:dotted; text-decoration-color:var(--ink-2); text-underline-offset:4px; }
+.pc-prize-trigger:focus-visible,.pc-other-prizes:focus-visible { outline:2px solid var(--accent); outline-offset:4px; border-radius:2px; }
+.pc-other-prizes { margin:10px 0 0; font-size:11px; color:var(--ink-2); }
+.pc-no-prize { margin:6px 0; font-size:12px; line-height:1.5; color:var(--ink-2); }
+.pc-rewards { min-height:220px; }
+.pc-prize-details > strong { display:block; padding-right:20px; font-size:15px; }
+.pc-prize-details p { margin:8px 0 14px; color:var(--ink-2); font-size:11px; line-height:1.5; }
+.pc-prize-details ol { list-style:none; margin:0; padding:0; }
+.pc-prize-details li { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:5px 12px; padding:10px 0; border-top:1px solid var(--line); }
+.pc-prize-details li > span { grid-column:1/-1; color:var(--ink-2); font-size:11px; }
+.pc-prize-details small { display:block; font-size:11px; margin-top:3px; }
+.pc-prize-details b { display:block; font-size:14px; font-weight:600; }
+.pc-prize-details b > span { display:block; }
+.pc-prize-details em { font-size:16px; font-style:normal; font-weight:600; font-variant-numeric:tabular-nums; }
+.pc-prize-details nav { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:12px; font-size:12px; }
+.pc-prize-details nav button { padding:7px 10px; border:1px solid var(--line); border-radius:8px; background:var(--hover); color:var(--ink); font:inherit; cursor:pointer; }
+.pc-prize-details nav button:disabled { opacity:.4; cursor:default; }
+@keyframes tip-in { from { opacity:0; transform:translateY(3px); } to { opacity:1; transform:translateY(0); } }
+@media(max-width:650px) { .pc-rewards { min-height:244px; }.detail-tip { padding:18px; } }
+@media(prefers-reduced-motion:reduce) { .detail-tip { animation:none; } }
+
+.pc-prize-line { display:grid; gap:6px; margin-top:12px; font-size:11px; color:var(--ink-2); }
+.pc-prize-line select { width:100%; min-height:36px; background:var(--surface); color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:7px; font:inherit; font-size:12px; }
+.pc-prize-line select:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.pc-prize-details li small { color:var(--ink-2); font-weight:400; }

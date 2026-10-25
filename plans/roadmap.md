@@ -579,6 +579,8 @@ the held-out weeks (P9 "The bar").
 
 ## Results
 
+- **25 Oct — Actual prize projections and compact mission bars:** Play totals the real prize tier at each lineup’s projected score, hides zero winnings and reveals other attainable tiers/chances on hover, focus or tap. Available point/risk cohorts retain explicit denominators rather than blanking the hero. Mission bars move counts, full-house reward totals and successful rarities into accessible detail surfaces. The active database’s older GW25 snapshot remains a separate, approval-gated restoration; its exact complete pre-lock copy is verified locally. [Contract and evidence](play-prizes-and-mission-tooltips.md).
+
 - **25 Oct - Play reward results and mission reward charts:** both portfolios show projected cash, separate essence currencies, cards and XP beside received/counterfactual rewards. Public source checks start an hour after the last relevant observed finish, retry missing results and review corrections. Locked recommendations use the same pre-lock lineup identities as their result check. Removed the comparison verdict and rules disclosure. Mission Audit gains a taller plot and persistent reward/clue-type selector. [Contract and evidence](play-rewards-and-mission-chart.md).
 
 - **25 Oct - Entered versus recommended Play:** a shared header compares your actual entered lineups with Sofix using expected paid lineups, average no-reward risk and average projected points, with real card previews and explicit saved/custom/unknown states. The job's whole-plan chance and expected essence/cash stay separate; drafts do not enter the comparison. The header reuses the existing exact-GW read and score map. [Contract and verification](mission-outcomes-and-play-comparison.md).

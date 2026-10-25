@@ -4,6 +4,36 @@ import { APP, MOCK, offline, resetBackend, smallText, sorare } from "./helpers";
 import { rewardSignature } from "../lib/playRewards";
 import { bestPlan, nextWeek } from "../lib/play";
 
+test("all eight entered forecasts survive a legacy snapshot, and projected rewards use attainable prizes without zero winnings",async({page,request,context})=>{
+  await resetBackend(request);await offline(page);
+  const data=structuredClone(sorare),week=nextWeek(data),base=week.plans[0]!.lineups[0]!;
+  week.gameweek.lock=new Date(Date.now()-3600000).toISOString();
+  for(const plan of week.plans)for(const l of plan.lineups){l.tiers=[{need:0,p:.75,essence:250},{need:10000,p:.25,cash:5}];l.kind="laliga";l.rarity="limited";}
+  const pro={...structuredClone(base),x:200,board:"pro-step",pro:{level:1,target:360,boost:1,ladder:[]},need:360,tiers:[{need:0,p:.9,essence:250},{need:360,p:.1,cash:5}],subs:[],bonuses:{season:.05,grade:.01,scarcity:{}}};
+  week.plans[0]!.lineups.push(pro);
+  const frozen={...structuredClone(week),plans:[{...week.plans[0]!,lineups:[structuredClone(base)]}]};
+  const lineups=Array.from({length:8},(_,i)=>{const l=i<6?base:pro;return{id:`entry-${i}`,name:`Entered ${i+1}`,board:l.board,competition:i<6?l.comp:"Pro",pro:i<6?undefined:{level:1,target:360},draft:false,confirmable:false,result:null,cards:[...l.starters,...l.subs].map((c,index)=>({slug:c.slug,player:c.player,name:c.name,rarity:c.rarity,picture:c.pic,score:null,captain:!!c.captain,index}))};});
+  await request.post(`${MOCK}/__test/my-weeks`,{data:{sorareData:data,livePlan:frozen,playRewards:{slug:week.gameweek.slug,state:"checked",you:lineups.map(l=>({id:l.id,rewards:{}})),sofix:[]}}});
+  await context.route("**/api/my-week",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({weeks:[],snapshots:[{slug:week.gameweek.slug,savedAt:new Date().toISOString(),lineups}],pending:[]})}));
+  await page.goto(`/play?gw=${week.gameweek.id}`);
+  const yours=page.locator('.pc-you');await expect(yours).toContainText("8 entered");
+  await expect(yours.locator('.pc-potential strong')).not.toHaveText("—");await expect(yours.locator('.pc-potential strong small')).toHaveText('/8');
+  await expect(yours.locator('.pc-risk strong')).toContainText('%');await expect(yours.locator('.pc-points strong')).not.toHaveText("—");
+  const rewards=yours.locator('.pc-rewards');
+  await expect(rewards).not.toContainText('≥');await expect(rewards.locator('[data-reward="cash:USD"]')).toHaveCount(0);
+  await expect(rewards.locator('[data-reward="card"]')).toHaveCount(0);
+  await expect(rewards.locator('[data-reward="essence:limited:laliga"] dd').first()).toContainText('2,000');
+  await expect(rewards.locator('dd').filter({hasText:/^0$/})).toHaveCount(0);
+  const options=page.getByRole('button',{name:'You other prize possibilities',exact:true});
+  await options.focus();const tip=page.getByRole('dialog',{name:'You other prize possibilities',exact:true});
+  await expect(tip).toContainText('$5.00');await expect(tip).toContainText('25%');
+  await expect(tip).not.toContainText('$0.21');await page.keyboard.press('Escape');await expect(tip).toHaveCount(0);
+  await page.setViewportSize({width:390,height:844});await options.click();await expect(tip).toBeVisible();
+  await expect(tip.getByRole('combobox',{name:'Lineup',exact:true})).toBeFocused();
+  const box=await tip.boundingBox();expect(box!.x).toBeGreaterThanOrEqual(0);expect(box!.x+box!.width).toBeLessThanOrEqual(await page.evaluate(()=>document.documentElement.clientWidth));
+  await page.keyboard.press('Escape');await expect(options).toBeFocused();await page.reload();await expect(yours.locator('.pc-potential strong small')).toHaveText('/8');
+});
+
 test("Play shows every projected and actual reward type and removes the two unwanted explanations",async({page,request,context})=>{
   await resetBackend(request);await offline(page);
   const week=nextWeek(sorare),plan=bestPlan(week.plans)!,line=plan.lineups[0]!;

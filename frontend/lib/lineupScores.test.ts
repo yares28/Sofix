@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { GameweekLineup } from "./entered";
 import type { GameweekPlan, Lineup, PlayCard } from "./play";
-import { enteredScore, lineupActual, withLineupRules } from "./lineupScores";
+import { enteredScore, lineupActual, withLineupRules, withEnteredEvidence } from "./lineupScores";
 
 const card = (slug: string, extra: Partial<PlayCard> = {}): PlayCard => ({
   slug, player: slug, name: slug, pos: "DEF", rarity: "limited", inSeason: true, level: 0,
@@ -22,6 +22,25 @@ const entered = (cards: PlayCard[], board = "board"): GameweekLineup => ({
 });
 
 describe("entered lineup expected score", () => {
+  it("fills legacy gaps from the same GW without changing recorded players, plans or accepting another GW",()=>{
+    const frozen=week(line({x:123})), live=week(line({x:999}));
+    live.playing.players=[{player:"missing",x:50,p:1} as GameweekPlan["playing"]["players"][number]];
+    live.plans[0]!.lineups.push(line({board:"pro",pro:{level:1,target:100,boost:1,ladder:[]},bonuses:{season:.05,grade:.01,scarcity:{}}}));
+    const merged=withEnteredEvidence(frozen,live);
+    expect(merged.playing.players[0]!.player).toBe("missing");
+    expect(merged.plans.flatMap(p=>p.lineups).some(l=>l.board==="pro")).toBe(true);
+    expect(merged.plans[0]!.lineups[0]!.x).toBe(123);
+    expect(frozen.plans[0]!.lineups).toHaveLength(1);
+    expect(withEnteredEvidence(frozen,{...live,gameweek:{...live.gameweek,slug:"other"}})).toBe(frozen);
+  });
+  it("forecasts a captured Pro step only with its matching target and no borrowing another lineup's card bonus",()=>{
+    const source=line({board:"pro",starters:[card("a",{captain:true,mult:1.05}),card("b",{mult:1.05})],need:100,rarity:"limited",kind:"laliga",bonuses:{season:.05,grade:.01,scarcity:{}},
+      pro:{level:1,target:100,boost:1.05,ladder:[]},tiers:[{need:100,p:.5,cash:5}]});
+    const custom=entered([card("a"),card("b",{captain:true})],"pro");custom.pro={level:1,target:100};
+    expect(enteredScore(custom,week(source),"selected")).toMatchObject({value:104,chance:expect.any(Number),atScore:{"cash:USD":5}});
+    custom.pro.target=200;
+    expect(enteredScore(custom,week(source),"selected").chance).toBeUndefined();
+  });
   it("prices every reward type for a custom captain from the same GW's tier thresholds",()=>{
     const lineup=line({eCash:10,eEss:20,pCard:.2,rarity:"limited",kind:"laliga",tiers:[{need:100,p:.2,cash:10,essence:20,card:true,xp:1000}]});
     const custom=entered([card("a"),card("b",{captain:true})]);

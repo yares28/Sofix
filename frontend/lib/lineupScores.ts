@@ -1,5 +1,5 @@
 import type { GameweekLineup } from "./entered";
-import { projectedRewards, type RewardValues } from "./playRewards";
+import { projectedRewards, projectedPrize, prizeOptions, rewardSignature, type PrizeOption, type RewardValues } from "./playRewards";
 import type { GameweekPlan, Lineup, PlayCard } from "./play";
 
 export type ActualScores = Record<string, { score: number; played: boolean; complete?: boolean }>;
@@ -22,6 +22,17 @@ export function withLineupRules(forecast: GameweekPlan, replay: GameweekPlan | n
     return rule ? { ...l, clubBonus: l.clubBonus === undefined ? rule.clubBonus : l.clubBonus,
       averageBonus: l.averageBonus === undefined ? rule.averageBonus : l.averageBonus } : l;
   }) })) };
+}
+
+/** Legacy records can omit a player or a Pro board. Fill only gaps from this exact GW; the recommendation remains separate. */
+export function withEnteredEvidence(forecast:GameweekPlan, selected:GameweekPlan):GameweekPlan {
+  if(forecast.gameweek.slug!==selected.gameweek.slug) return forecast;
+  const players=new Map(selected.playing.players.map(p=>[p.player,p]));
+  for(const p of forecast.playing.players) players.set(p.player,p);
+  const original=withLineupRules(forecast,selected);
+  const seen=new Set(original.plans.flatMap(p=>p.lineups.map(rewardSignature)));
+  const extra=selected.plans.map(p=>({...p,lineups:p.lineups.filter(l=>{const key=rewardSignature(l);if(seen.has(key))return false;seen.add(key);return true;})})).filter(p=>p.lineups.length);
+  return {...original,playing:{...original.playing,players:[...players.values()]},plans:[...original.plans,...extra]};
 }
 
 /** Same captain, substitution and bonus rules as sorare/planner.py:totals. Unknown starters cannot trigger a swap. */
@@ -66,13 +77,14 @@ export function lineupActual(lineup: Lineup, scores: ActualScores): TeamScore {
 /** Custom teams use independent playing chances and conditional means, enumerated exactly (at most 9 cards).
  * Saved optimizer totals retain their seeded simulation, including its score distribution and correlations.
  */
-function expectation(lineup: ScoringLineup, need?: number | null, template?: Lineup): { value: number; chance?: number; rewards?:RewardValues } {
+function expectation(lineup: ScoringLineup, need?: number | null, template?: Lineup): { value: number; chance?: number; rewards?:RewardValues;atScore?:RewardValues|null;prizes?:PrizeOption[] } {
   const cards = [...lineup.starters, ...lineup.subs];
   let value = 0;
   let chance = 0;
   const tiers=template?.group!=="Room"&&template?.tiers?.length&&template.tiers.every(t=>typeof t.need==="number"&&Number.isFinite(t.need))?[...template.tiers].sort((a,b)=>b.need!-a.need!):null;
   const essence=`essence:${template?.rarity??"unknown"}:${template?.kind??"unknown"}`;
   const rewards:RewardValues={"cash:USD":0,[essence]:0,card:0,"xp:FOOTBALL_XP":0};
+  const probabilities=(tiers??[]).map(()=>0);
   for (let mask = 0; mask < 2 ** cards.length; mask++) {
     const scores: ActualScores = {};
     let probability = 1;
@@ -92,14 +104,16 @@ function expectation(lineup: ScoringLineup, need?: number | null, template?: Lin
     const tail=(n:number)=>sd?1-bell((n-mean)/sd):Number(mean>=n);
     if (need!=null) chance += probability * tail(need);
     let previous=0;
-    for (const tier of tiers??[]) {
+    for (const [i,tier] of (tiers??[]).entries()) {
       const cumulative=tail(tier.need!),p=probability*Math.max(0,cumulative-previous);
       rewards["cash:USD"]!+=p*(tier.cash??0);rewards[essence]!+=p*(tier.essence??0);
       rewards.card!+=p*Number(Boolean(tier.card));rewards["xp:FOOTBALL_XP"]!+=p*(tier.xp??0);
       previous=cumulative;
+      probabilities[i]!+=p;
     }
   }
-  return {value,...(need!=null?{chance}:{}),...(tiers?{rewards}:{})};
+  const projected=template&&tiers?{...template,x:value,tiers:tiers.map((t,i)=>({...t,p:probabilities[i]!}))}:null;
+  return {value,...(need!=null?{chance}:{}),...(tiers?{rewards}:{}),...(projected?{atScore:projectedPrize(projected),prizes:prizeOptions(projected)}:{})};
 }
 
 /** planner.py's SCORE_SD.
@@ -118,10 +132,12 @@ export function enteredScore(entered: GameweekLineup, week: GameweekPlan | null,
   /** The chance of any cash, essence or card: the plan's own for a plan lineup, else against the score the lowest paid level took. Absent when unknown. */
   chance?: number;
   rewards?:RewardValues;
+  atScore?:RewardValues|null;
+  prizes?:PrizeOption[];
 } {
   const missing = { value: null, estimated: false };
   if (!week || week.gameweek.slug !== slug || !entered.cards.length) return missing;
-  const options = week.plans.flatMap(p => p.lineups).filter(l => l.board === entered.board);
+  const options = week.plans.flatMap(p => p.lineups).filter(l => l.board === entered.board && (!entered.pro || l.pro?.level===entered.pro.level&&l.pro.target===entered.pro.target));
   // Legacy saved responses retain Sorare's appearance order (starters, then bench).
   // Explicit indices, when supplied, take precedence over that retained order.
   const legacy = entered.cards.every(c => c.index === undefined);
@@ -130,7 +146,7 @@ export function enteredScore(entered: GameweekLineup, week: GameweekPlan | null,
     const cards = [...l.starters, ...l.subs];
     return cards.length === ordered.length && cards.every((c, i) => c.slug === ordered[i]!.slug && !!c.captain === ordered[i]!.captain);
   });
-  if (saved) {const rewards=projectedRewards(saved);return { value: saved.x, estimated: false, chance: saved.pReturn,...(rewards?{rewards}:{}) };}
+  if (saved) {const rewards=projectedRewards(saved);return { value: saved.x, estimated: false, chance: saved.pReturn,...(rewards?{rewards}:{}),...(saved.tiers?.length?{atScore:projectedPrize(saved),prizes:prizeOptions(saved)}:{}) };}
 
   const template = options[0];
   const rules = entered.scoring;
@@ -138,8 +154,8 @@ export function enteredScore(entered: GameweekLineup, week: GameweekPlan | null,
   if (!rules && template && (!Number.isFinite(template.captainBonus) || !("clubBonus" in template) || !("averageBonus" in template))) return missing;
   // A partially indexed response is ambiguous; only complete indices or the intact legacy order are usable.
   if (ordered.some(c => c.index === undefined) || new Set(ordered.map(c => c.index)).size !== ordered.length) return missing;
-  const published = new Map(week.plans.flatMap(p => p.lineups.flatMap(l => [...l.starters, ...l.subs])).map(c => [c.slug, c]));
-  const boardCards = new Map(options.flatMap(l => [...l.starters, ...l.subs]).map(c => [c.slug, c]));
+  const published = new Map(week.plans.flatMap(p => p.lineups.flatMap(l => [...l.starters, ...l.subs])).reverse().map(c => [c.slug, c]));
+  const boardCards = new Map(options.flatMap(l => [...l.starters, ...l.subs]).reverse().map(c => [c.slug, c]));
   const players = new Map(week.playing.players.map(p => [p.player, p]));
   const cards: ScoringCard[] = [];
   for (const enteredCard of ordered) {
@@ -182,5 +198,9 @@ export function enteredScore(entered: GameweekLineup, week: GameweekPlan | null,
     minInSeason: rules?.minInSeason ?? template!.minInSeason, clubBonus: rules ? rules.clubBonus : template!.clubBonus,
     averageBonus: rules ? rules.averageBonus : template!.averageBonus, starters, subs };
   // A Room's place depends on nine other teams, not on one score to reach.
-  return { ...expectation(custom, template?.group === "Room" ? null : template?.need,template), estimated: true };
+  // A Limited-only Pro entry has no Rare reward bonus. Another roster's boost cannot price it.
+  const bonusComposition=(roster:PlayCard[])=>roster.map(c=>`${c.rarity}:${c.inSeason}:${Boolean(c.captain)}`).sort().join("|");
+  const boost=cards.every(c=>c.rarity==="limited")?1:template&&bonusComposition(cards)===bonusComposition(template.starters)?template.pro?.boost:Number.NaN;
+  const prizeTemplate=template?.pro?{...template,pro:{...template.pro,boost:boost??Number.NaN}}:template;
+  return { ...expectation(custom, template?.group === "Room" ? null : template?.need,prizeTemplate), estimated: true };
 }

@@ -11,9 +11,9 @@ it("uses the same additive reward and average downside measures on both portfoli
   expect(mine.cards.map(c => c.name)).toEqual(["a", "b"]);
   expect(plan.pAny).toBe(.95); // the job's joint forecast stays distinct from the mean lineup chance
 });
-it("keeps a known zero distinct from missing forecasts and never rates a partially known portfolio as complete", () => {
+it("keeps a known zero distinct from missing forecasts and shows a partial cohort with explicit coverage", () => {
   expect(enteredPortfolio([entry("a")], new Map([["a", { value: 0, estimated: true, chance: 0 }]]))).toMatchObject({ expectedPaid: 0, noReward: 1, averagePoints: 0 });
-  expect(enteredPortfolio([entry("a"), entry("b")], new Map([["a", { value: 300, estimated: false, chance: .5 }]]))).toMatchObject({ rated: 1, expectedPaid: null, noReward: null, averagePoints: null });
+  expect(enteredPortfolio([entry("a"), entry("b")], new Map([["a", { value: 300, estimated: false, chance: .5 }]]))).toMatchObject({ rated: 1, pointRated:1, expectedPaid: .5, noReward: .5, averagePoints: 300 });
   expect(enteredPortfolio([], new Map())).toMatchObject({ lineups: 0, expectedPaid: null, noReward: null });
   expect(planPortfolio(null)).toMatchObject({ lineups: 0, expectedPaid: null });
 });
@@ -24,5 +24,5 @@ it("uses only finite valid probabilities and limits card previews without losing
   expect(side.lineups).toBe(8);
   expect(side.rated).toBe(7);
   expect(side.cards).toHaveLength(5);
-  expect(side.expectedPaid).toBeNull();
+  expect(side.expectedPaid).toBeCloseTo(2.8);
 });

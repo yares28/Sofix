@@ -1,6 +1,15 @@
 import { expect, it } from "vitest";
-import { projectedRewards, rewardTotal, rewardSignature, rewardForecast, rewardCoverage, type RewardValues } from "./playRewards";
+import { projectedRewards, rewardTotal, rewardSignature, rewardForecast, rewardCoverage, projectedPrize, prizeOptions, type RewardValues } from "./playRewards";
 import type { Lineup } from "./play";
+
+it("shows the attainable prize at the forecast score instead of a probability-weighted payout",()=>{
+  const line={x:320,rarity:"limited",kind:"laliga",eCash:.21,eEss:29,tiers:[{need:400,p:.02,cash:5},{need:300,p:.14,essence:250},{need:0,p:.84,xp:200}]} as Lineup;
+  expect(projectedPrize(line)).toEqual({"essence:limited:laliga":250});
+  expect(prizeOptions(line)).toEqual(expect.arrayContaining([expect.objectContaining({p:.14,values:{"essence:limited:laliga":250}}),expect.objectContaining({p:.02,values:{"cash:USD":5}})]));
+  expect(projectedPrize({...line,x:280})).toEqual({"xp:FOOTBALL_XP":200});
+  expect(projectedPrize({...line,x:0,tiers:[{need:300,p:.14,essence:250}]})).toEqual({});
+  expect(projectedPrize({...line,tiers:[{p:.14,essence:250}]})).toBeNull();
+});
 
 it("projects cash, essence, cards and XP separately, retaining known zero and absent XP",()=>{
   const line={eCash:0,eEss:50,pCard:.2,rarity:"rare",kind:"laliga",tiers:[{p:.5,xp:1000}]} as Lineup;

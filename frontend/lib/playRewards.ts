@@ -1,4 +1,4 @@
-import type { Lineup } from "./play";
+import { essenceName, type Lineup, type Tier } from "./play";
 
 export type RewardValues = Record<string, number | null>;
 export type PlayRewardBlock = {
@@ -9,6 +9,23 @@ export type PlayRewardBlock = {
 export type EnteredRewardCheck=Pick<PlayRewardBlock,"you"|"checkedAt"|"nextCheckAt">;
 export const REWARD_BASE = ["cash:USD","card","xp:FOOTBALL_XP"];
 const known = (n:unknown):n is number=>typeof n==="number"&&Number.isFinite(n)&&n>=0;
+
+export type PrizeOption={values:RewardValues;p:number;need:number|null;label?:string};
+function tierPrize(line:Pick<Lineup,"rarity"|"kind"|"pro">,tier:Tier):RewardValues {
+  const boost=line.pro?.boost??1;
+  return Object.fromEntries(Object.entries({"cash:USD":(tier.cash??0)*boost,[`essence:${line.rarity??"unknown"}:${line.kind??"unknown"}`]:(tier.essence??0)*boost,
+    card:Number(Boolean(tier.card)),"xp:FOOTBALL_XP":tier.xp??0}).filter(([,n])=>known(n)&&n>0));
+}
+export function prizeOptions(line:Pick<Lineup,"tiers"|"rarity"|"kind"|"pro">):PrizeOption[] {
+  if(line.pro&&!known(line.pro.boost))return [];
+  return (line.tiers??[]).filter(t=>known(t.p)&&t.p>0).map(t=>({values:tierPrize(line,t),p:t.p,need:t.need??null,...(t.label?{label:t.label}:{})})).filter(t=>Object.keys(t.values).length);
+}
+/** A real prize reached by the point forecast; never an expected-value payout or an invented Room ranking. */
+export function projectedPrize(line:Pick<Lineup,"x"|"tiers"|"rarity"|"kind"|"pro"|"group">):RewardValues|null {
+  if (!Number.isFinite(line.x)||line.group==="Room"||!line.tiers?.length||line.tiers.some(t=>!known(t.need))||line.pro&&!known(line.pro.boost)) return null;
+  const tier=[...line.tiers].sort((a,b)=>b.need!-a.need!).find(t=>line.x>=t.need!);
+  return tier?tierPrize(line,tier):{};
+}
 
 export function projectedRewards(line:Lineup):RewardValues|undefined {
   if (![line.eCash,line.eEss,line.pCard].some(known)) return undefined;
@@ -49,3 +66,6 @@ export function actualRewards(rows:(RewardValues|null|undefined)[]) {
 export function rewardSignature(line:Pick<Lineup,"board"|"starters"|"subs">):string {
   return [line.board,...[...line.starters,...line.subs].map(c=>`${c.slug}:${Number(Boolean(c.captain))}`)].join("|");
 }
+
+export const rewardName=(key:string)=>{const [type,rarity,kind]=key.split(":");return type==="cash"?"Cash":type==="card"?"Cards":type==="xp"?"XP":type==="essence"?`${essenceName(kind==="unknown"?undefined:kind)||"Unspecified"} essence · ${rarity?.replaceAll("_"," ")}`:`${rarity??""} coins`;};
+export const rewardNumber=(key:string,n:number)=>key.startsWith("cash:")?new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:2}).format(n):new Intl.NumberFormat("en-GB",{maximumFractionDigits:2}).format(n);

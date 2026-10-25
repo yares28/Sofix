@@ -43,7 +43,8 @@ test("what moved since yesterday shows from and to, with the reason", async ({ p
   await page.goto("/");
   const moved = page.getByRole("region", { name: "Team news" }).locator(".hm-nw-col").nth(1);
 
-  await expect(moved.getByRole("heading", { level: 3, name: "Moved since yesterday" })).toBeVisible();
+  // A long suite can cross Madrid midnight after the mock captured its reading.
+  await expect(moved.getByRole("heading", { level: 3, name: /^Moved since (yesterday|[A-Z][a-z]{2} \d{2}:\d{2})$/ })).toBeVisible();
   const rows = moved.locator(".hm-nw-row");
   await expect(rows).toHaveCount(5);
   await expect(rows.first()).toContainText("80 →");

@@ -25,8 +25,9 @@ it("shows actual selection outcomes immediately, the action chart and exactly tw
   expect(html).toContain('aria-label="Missions won over time on shared missions"');
   expect(html).toContain('aria-label="Goals: you hit 1 of 1 checked missions; Sofix hit 0 of 1 checked missions"');
   expect((html.match(/class="mo-storage-track"/g) ?? [])).toHaveLength(2);
-  expect(words(html)).toContain("100 Essence");
-  expect(words(html)).toContain("not confirmed receipts");
+  expect(words(html)).not.toContain("100 Essence");
+  expect(html).toContain('aria-label="You: essence hits"');
+  expect(html).not.toContain('class="mo-reward-totals"');
   expect(html).not.toMatch(/<table|Too few to tell/);
 });
 

@@ -77,3 +77,14 @@ export function missionOutcomeSummary(rows: MissionOutcome[]) {
   }).sort((a,b) => b.you.missions + b.sofix.missions - a.you.missions - a.sofix.missions);
   return { you, sofix, targets, paired: { missions: paired.length, you: paired.filter(r => r.you.some(p => p.state === "did")).length, sofix: paired.filter(r => r.sofix.some(p => p.state === "did")).length }, reconstructed: rows.filter(r => r.reconstructed).length };
 }
+
+export function missionSegment(rows:MissionOutcome[],who:"you"|"sofix",kind:OutcomeKind) {
+  const relevant=kind==="miss"?rows:rows.filter(r=>r.category===kind);
+  const state=kind==="miss"?"didnt":"did";
+  const hit=relevant.filter(r=>r[who].some(p=>p.state===state));
+  const summary=missionOutcomeSummary(relevant)[who];
+  return {picks:hit.reduce((n,r)=>n+r[who].filter(p=>p.state===state).length,0),missions:hit.length,checked:summary.missions,
+    pending:summary.picks.pending,void:summary.picks.void,unselected:summary.unknown,
+    rarities:kind==="miss"?[]:[...new Set(hit.map(r=>r.rarity))].map(rarity=>({rarity,hits:hit.filter(r=>r.rarity===rarity).reduce((n,r)=>n+r[who].filter(p=>p.state==="did").length,0),missions:hit.filter(r=>r.rarity===rarity).length})),
+    rewards:kind==="miss"?[]:summary.rewards.filter(r=>r.amount>0)};
+}

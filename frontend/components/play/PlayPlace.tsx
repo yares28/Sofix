@@ -14,7 +14,7 @@ import { noPlan, pageWeeks, weekContext, weekDates, weekName } from "../../lib/w
 import StrategyViews from "../audit/StrategyViews";
 import { alternativeAddress } from "../../lib/planNavigation";
 import { planPortfolio } from "../../lib/playPortfolio";
-import { withLineupRules } from "../../lib/lineupScores";
+import { withEnteredEvidence, withLineupRules } from "../../lib/lineupScores";
 import { loadPlanActuals } from "../../lib/planScoresData";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -110,9 +110,10 @@ export default async function PlayPlace({ searchParams, alternatives = false }: 
   ]);
   const by: PlanBy = sorareAsked ? "sorare" : (lens ?? "sofix");
   const recorded=frozen?.gameweek.slug===showing.gameweek.slug?frozen:null;
-  const enteredForecast = recorded ? withLineupRules(recorded, showing) : showing;
+  const recordedRules = recorded ? withLineupRules(recorded, showing) : null;
+  const enteredForecast = recorded ? withEnteredEvidence(recorded, showing) : showing;
   const locked = Date.parse(showing.gameweek.lock) <= Date.now();
-  const baseline=!alternatives&&locked&&recorded?{...showing,plans:enteredForecast.plans,playing:enteredForecast.playing}:showing;
+  const baseline=!alternatives&&locked&&recordedRules?{...showing,plans:recordedRules.plans,playing:recordedRules.playing}:showing;
   const view = sorareAsked || lens ? { ...showing, plans: alt?.gameweek?.slug === showing.gameweek.slug ? alt.plans : [], hindsight: undefined } : baseline;
   const after = Boolean(requestedAfter && (view.hindsight || view.plans.some(p => p.actual)));
   const sorareWaiting = sorareAsked && !view.plans.length ? locked ? "No Sorare plan was saved for this GW." : sorareNote(alt, showing.projectionsAt) : lens && !view.plans.length ? locked ? "No plan from this strategy was saved for this GW." : "This strategy's plan appears with the next refresh before the lock." : null;

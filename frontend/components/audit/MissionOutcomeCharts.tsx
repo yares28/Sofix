@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { missionOutcomeSummary, missionRace, type MissionOutcome, type OutcomeKind } from "../../lib/missionOutcomes";
+import { missionOutcomeSummary, missionRace, missionSegment, type MissionOutcome, type OutcomeKind } from "../../lib/missionOutcomes";
 import { RARITY_NAME } from "../../lib/missions";
 import CardArt from "../cards/CardArt";
+import DetailTip from "../ui/DetailTip";
 
 const num = (n: number) => new Intl.NumberFormat("en-GB", { maximumFractionDigits: 1 }).format(n);
 const date = (d: string) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${d}T12:00:00Z`));
@@ -49,17 +50,24 @@ export default function MissionOutcomeCharts({ rows, target, evidencePage, rewar
       </button>) : <p className="mo-empty">No selections are saved yet.</p>}
       <p className="mo-caption">Hits / checked missions. Select an action to see its picks.</p>
     </figure></div>
-    <section className="mo-distribution" aria-labelledby="mo-outcome-h"><div className="mo-section-heading"><h3 id="mo-outcome-h">{target ? `${target} · pick outcomes` : "Every checked pick"}</h3>{target ? <button type="button" className="mo-clear" onClick={() => choose({ mt: "all", me: "1" })}>All actions</button> : <span>One segment per result</span>}</div>
+    <section className="mo-distribution" aria-labelledby="mo-outcome-h"><div className="mo-section-heading"><h3 id="mo-outcome-h">{target ? `${target} · pick outcomes` : "Every checked pick"}</h3>{target ? <button type="button" className="mo-clear" onClick={() => choose({ mt: "all", me: "1" })}>All actions</button> : null}</div>
       {([ ["you", "You"], ["sofix", "Sofix"] ] as const).map(([who,label]) => {
         const side = s[who], count = side.picks.hit + side.picks.miss;
-        return <div className={`mo-storage mo-${who}`} key={who}><div className="mo-storage-head"><h4>{label}</h4><p><strong>{side.picks.hit}</strong> hits <span>·</span> {side.picks.miss} missed</p></div>
-          <div className="mo-storage-track" role="img" aria-label={`${label} pick outcomes: ${KINDS.map(([kind, name]) => `${side.segments[kind]} ${name.toLowerCase()}`).join(", ")}`}>
-            {count ? KINDS.filter(([kind]) => side.segments[kind]).map(([kind,name]) => <span className={`mo-segment mo-${kind}`} key={kind} style={{ flex: side.segments[kind] }} title={`${side.segments[kind]} ${name.toLowerCase()}`}>{side.segments[kind] / count > .1 ? side.segments[kind] : ""}</span>) : <span className="mo-no-results">No checked picks</span>}
-          </div><ul className="mo-storage-key">{KINDS.filter(([kind]) => kind !== "unknown" || side.segments[kind]).map(([kind,name]) => <li key={kind}><i className={`mo-${kind}`}/>{name}<b>{side.segments[kind]}</b></li>)}</ul>
-          <p className="mo-caption"><b>{side.hits}/{side.missions} missions hit</b> · {side.picks.pending} picks waiting · {side.picks.void} void · {side.unknown} missions without selections</p>
-          {side.rewards.some(r => r.amount > 0) ? <div className="mo-reward-totals">{side.rewards.filter(r => r.amount > 0).map(r => <span key={`${r.rarity}:${r.unit}`}><b>{num(r.amount)}</b> {r.unit}<small>{RARITY_NAME[r.rarity] ?? r.rarity}</small></span>)}</div> : null}
+        return <div className={`mo-storage mo-${who}`} key={who}><div className="mo-storage-head"><h4>{label}</h4></div>
+          <div className="mo-storage-track" role="group" aria-label={`${label} pick outcomes`}>
+            {count ? KINDS.filter(([kind]) => side.segments[kind]).map(([kind,name]) => {
+              const detail=missionSegment(selected,who,kind);
+              return <DetailTip key={kind} className={`mo-segment mo-${kind}`} style={{flex:side.segments[kind]}} label={`${label}: ${name.toLowerCase()}`} content={<div className="mo-segment-detail"><strong>{label} · {name}</strong><div className="mo-tip-figures"><b>{detail.picks}<small>{kind==="miss"?"missed picks":"hits"}</small></b><b>{detail.missions}<small>{kind==="miss"?"missions with misses":"missions hit"}</small></b></div>
+                <p>{detail.checked} checked missions · {detail.pending} waiting picks · {detail.void} void</p>
+                {detail.rarities.length?<dl>{detail.rarities.map(r=><div key={r.rarity}><dt>{RARITY_NAME[r.rarity]??r.rarity}</dt><dd>{r.hits} hits · {r.missions} missions</dd></div>)}</dl>:null}
+                {detail.rewards.length?<dl className="mo-tip-rewards">{detail.rewards.map(r=><div key={`${r.rarity}:${r.unit}`}><dt>{r.unit}<small>{RARITY_NAME[r.rarity]??r.rarity}</small></dt><dd>{num(r.amount)}</dd></div>)}</dl>:null}
+                <p>{kind==="miss"?`${detail.unselected} missions without selections` : "Saved mission terms, including all-picks bonuses; not confirmed receipts."}</p>
+              </div>}>{null}</DetailTip>;
+            }) : <span className="mo-no-results">No checked picks</span>}
+          </div>
         </div>;
-      })}<p className="mo-caption">Reward equivalents follow saved mission terms; they are not confirmed receipts. A hit with unknown terms stays “Other hits”. Pending and void picks are outside the bars.</p>
+      })}
+
     </section>
     <section className="mo-evidence" aria-labelledby="mo-evidence-h"><div className="mo-section-heading"><h3 id="mo-evidence-h">{target ? `The ${target.toLowerCase()} picks` : "Which picks got it right"}</h3><span>{evidence.length} missions with selections</span></div>
       <ol>{evidence.slice((page - 1) * 12, page * 12).map(r => <li key={r.id}><div className="mo-evidence-title"><span>{date(r.day)} · {RARITY_NAME[r.rarity] ?? r.rarity}</span><h4>{r.mission}</h4>{r.reconstructed ? <small>Reconstructed picks</small> : r.corrected ? <small>Corrected by you</small> : null}</div><div className="mo-pick-sides">{([ ["you", "You"], ["sofix", "Sofix"] ] as const).map(([who,label]) => <div key={who}><span className={`mo-pick-label mo-${who}`}>{label}</span>{r[who].length ? <ul aria-label={`${label} · ${r.mission} · ${r.day}`}>{r[who].map((p,i) => <li key={`${p.slug}:${i}`} className={`mo-pick mo-pick-${p.state}`}><div className="mo-pick-art"><CardArt src={p.pic} name={p.name}/><span aria-hidden="true">{p.state === "did" ? "✓" : p.state === "didnt" ? "×" : p.state === "void" ? "—" : "…"}</span></div><span>{p.name}</span><small>{p.state === "did" ? "Hit" : p.state === "didnt" ? "Missed" : p.state === "void" ? "Void" : "Waiting"}</small></li>)}</ul> : <p className="mo-caption">No selections saved</p>}</div>)}</div></li>)}</ol>

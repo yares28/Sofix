@@ -412,23 +412,33 @@ test("Rewards adds up what the plans expected over the season against what they 
   await expect(page.getByRole("region", { name: "You" }).getByRole("status")).toContainText("can't reach the extension");
 });
 
-test("Missions says too few to tell under the floor, and lists each day's picks against the cards that did it", async ({ page }) => {
+test("Missions compares the same checked missions immediately and preserves local filters after closing a tab", async ({ page, context }) => {
   await page.goto("/audit/missions");
   await expect(page.getByRole("heading", { level: 1, name: "Missions" })).toBeVisible();
-  const hero = page.getByRole("region", { name: "Sofix's picks" });
-  await expect(hero.getByRole("heading", { name: "Too few to tell yet" })).toBeVisible();
-  await expect(hero).toContainText("2 of 100");
-  await expect(hero).toContainText("3 of 4"); // achievers caught
-
-  const days = page.getByRole("region", { name: "Day by day" });
-  await expect(days.locator(".au-ms-days > li")).toHaveCount(2);
-  const first = days.locator(".au-ms-days > li").first();
-  await expect(first).toContainText("1 of 3");
-  await expect(first.locator(".au-ms-card.hit")).toHaveCount(1);
-  await expect(first.locator(".au-ms-card.left")).toHaveCount(2); // Güler and Pedri did it and were not picked
-  await expect(days.locator(".au-ms-days > li").nth(1)).toContainText("not loaded");
-  await page.getByRole("link", { name: "Missions", exact: true }).first().click();
-  await expect(page).toHaveURL(/\/audit\/missions/);
+  const chart = page.getByRole("figure", { name: "Successful picks compared with the best available" });
+  await expect(chart).toBeVisible();
+  await expect(chart.getByRole("img", { name: /^Best available: / })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Too few to tell yet" })).toHaveCount(0);
+  await expect(page.locator(".ma-overview table")).toHaveCount(0);
+  const filterRequests: string[] = [];
+  page.on("request", request => { if (request.url().includes("_rsc=")) filterRequests.push(request.url()); });
+  await page.getByRole("button", { name: "All Sofix forecasts", exact: true }).click();
+  await expect(chart.getByRole("img", { name: "Sofix: 2 of 4 possible successful picks across 2 missions", exact: true })).toBeVisible();
+  await expect(chart.getByRole("img", { name: "You: not compared", exact: true })).toBeVisible();
+  await page.getByRole("combobox", { name: "Cards", exact: true }).selectOption("limited");
+  await expect(page).toHaveURL(/mr=limited/);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+  expect(filterRequests).toEqual([]);
+  const url = page.url();
+  await page.close();
+  const reopened = await context.newPage();
+  await offline(reopened);
+  await reopened.goto(url);
+  await expect(reopened.getByRole("combobox", { name: "Cards", exact: true })).toHaveValue("limited");
+  await expect(reopened.getByRole("button", { name: "All Sofix forecasts", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(reopened.getByRole("region", { name: "Every saved mission" })).toBeVisible();
+  await expect(reopened.getByRole("button", { name: "Reconcile Sorare history" }).first()).toBeVisible();
+  expect((await new AxeBuilder({ page: reopened }).analyze()).violations).toEqual([]);
 });
 
 test("Strategies keeps a chart-first overview and saved card evidence, preserving the selected GW", async ({ page, context }) => {

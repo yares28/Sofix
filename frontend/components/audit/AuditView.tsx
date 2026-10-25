@@ -67,10 +67,9 @@ export default function AuditView({
       <>
         <header className="au-top">
           <h1>Missions</h1>
-          <p>How often Sofix&apos;s mission picks were the best your cards could have done.</p>
           {updated}
         </header>
-        <MissionsAudit missions={data.missions} floor={data.floor} />
+        <MissionsAudit missions={data.missions} />
       </>
     );
   }

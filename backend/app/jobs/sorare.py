@@ -757,11 +757,7 @@ def run(
         lambda: ff_news.save(db, ff_news.record(readings, ff_news.chances(planned_week), fetched), fetched),
         False,
     )
-    # All results now come from the shared game store; no separate Sorare settle reads.
-    settled: dict[str, int] = optional(db, failed, "mission picks", lambda: sorare_missions.settle_kept(db, now), {})
-    if settled:
-        summary["missions"] = settled
-    laps("frozen, references, news, settle")
+    laps("frozen, references, news")
 
     audited: dict[str, int] = optional(db, failed, "audit", lambda: audit.publish(db, now), {})
     if audited:

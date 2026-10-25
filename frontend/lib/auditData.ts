@@ -37,6 +37,16 @@ export async function loadAudit(includeMissionResults = true): Promise<Audit | n
       const logs = await loadMissionLog();
       const rarities = [...new Set(logs.flatMap((l) => Object.values(l.days).flatMap((d) => Object.keys(d))))];
       const history = rarities.flatMap((r) => missionHistory(logs, r, new Map(), 10000).map((d) => ({ ...d, rarity: r })));
+      for (const row of data.missions.overview?.rows ?? []) {
+        const current = history.find(d => `${d.day}:${d.rarity}:${d.key}` === row.id);
+        if (!current || (!row.corrected && !current.corrected)) continue;
+        row.yours = (current.yours.length || current.corrected) && current.yours.every(p => p.state === "did" || p.state === "didnt") ? current.yours.filter(p => p.state === "did").length : null;
+        row.corrected = Boolean(current.corrected);
+        if (row.yours != null && row.best != null && row.yours > row.best) {
+          row.state = "incomplete";
+          row.best = row.sofix = null;
+        }
+      }
       for (const row of data.missions.days) {
         const current = history.find((d) => d.day === row.day && d.rarity === row.rarity && d.mission === row.mission);
         if (!current) continue;

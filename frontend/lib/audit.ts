@@ -69,6 +69,7 @@ export type MissionDay = { day: string; rarity: string; mission: string; loaded:
 /** The daily missions log, scored (backend/app/sorare/missions.py `record`): `counted` mission days with at least one achiever, `success` those where
  * Sofix's picks held as many achievers as the best possible. */
 export type Missions = {
+  overview?: import("./missionAudit").MissionOverview;
   counted: number;
   success: number;
   caught: number;

@@ -51,6 +51,37 @@ def test_recent_refresh_fallback_also_runs_saved_audit_publication():
     assert "python -m app.jobs.audit" in fallback
 
 
+def test_scheduled_publication_settles_missions_and_new_imports_wake_an_idle_job(db, monkeypatch):  # noqa: F811
+    from app.sorare import player_games
+    from tests.test_sorare_missions import NOW, cand, log
+
+    payload = log([cand("a")], ["a"])
+    put(db, "missions_day:2026-10-06:limited", payload, NOW)
+    player_games.save(
+        db,
+        {
+            "a": [
+                {
+                    "gameId": "Game:1",
+                    "date": "2026-10-06T19:00:00Z",
+                    "competition": "laliga-es",
+                    "status": "FINAL",
+                    "played": True,
+                    "started": True,
+                    "stats": [{"stat": "goals", "statValue": 1}],
+                }
+            ]
+        },
+        NOW,
+    )
+    audit.publish(db, NOW)
+    page = db.get(ReadModel, "audit").payload
+    assert page["missions"]["overview"]["rows"][0]["sofix"] == 1
+    assert not audit.settlement_due(db, NOW + timedelta(minutes=1))
+    put(db, "missions_edit:new", {"day": "2026-10-06", "rarity": "limited", "edits": {}}, NOW + timedelta(minutes=2))
+    assert audit.settlement_due(db, NOW + timedelta(minutes=3))
+
+
 def test_owner_only_week_finalizes_automatically_at_its_boundary_without_a_browser(db, monkeypatch):  # noqa: F811
     from tests.test_frozen_scores import END
 

@@ -59,6 +59,70 @@ def test_kept_settlement_updates_daily_ledger_and_leaves_copied_legacy_untouched
     assert db.get(ReadModel, "missions_log:2026-10").payload == payload
 
 
+def test_an_uncopied_legacy_day_settles_even_if_another_day_in_its_month_was_copied(db):
+    payload = log([cand("a")], ["a"])
+    put(db, "missions_log:2026-10", payload, NOW)
+    put(
+        db, "missions_day:2026-10-07:limited", {"days": {"2026-10-07": {"limited": {"missions": [], "cands": []}}}}, NOW
+    )
+    player_games.save(
+        db,
+        {
+            "a": [
+                {
+                    "gameId": "Game:1",
+                    "date": "2026-10-06T19:00:00Z",
+                    "competition": "laliga-es",
+                    "status": "FINAL",
+                    "played": True,
+                    "started": True,
+                    "stats": [{"stat": "goals", "statValue": 1}],
+                }
+            ]
+        },
+        NOW,
+    )
+    missions.settle_kept(db, NOW)
+    db.commit()
+    db.expire_all()
+    assert db.get(ReadModel, "missions_log:2026-10").payload["days"]["2026-10-06"]["limited"]["cands"][0]["r"]["did"][
+        "Decisive Picker"
+    ]
+
+
+def test_later_actual_correction_updates_an_already_settled_mission(db):
+    payload = log([cand("a")], ["a"])
+    payload["days"]["2026-10-06"]["limited"]["cands"][0]["r"] = {
+        "played": True,
+        "started": True,
+        "did": {"Decisive Picker": False},
+    }
+    put(db, "missions_day:2026-10-06:limited", payload, NOW)
+    player_games.save(
+        db,
+        {
+            "a": [
+                {
+                    "gameId": "Game:1",
+                    "date": "2026-10-06T19:00:00Z",
+                    "competition": "laliga-es",
+                    "status": "FINAL",
+                    "played": True,
+                    "started": True,
+                    "stats": [{"stat": "goals", "statValue": 1}],
+                }
+            ]
+        },
+        NOW,
+    )
+    missions.settle_kept(db, NOW)
+    db.commit()
+    db.expire_all()
+    assert db.get(ReadModel, "missions_day:2026-10-06:limited").payload["days"]["2026-10-06"]["limited"]["cands"][0][
+        "r"
+    ]["did"]["Decisive Picker"]
+
+
 def test_your_pick_can_settle_without_inventing_a_missing_sofix_forecast(db):
     payload = log([cand("a")], [])
     entry = payload["days"]["2026-10-06"]["limited"]

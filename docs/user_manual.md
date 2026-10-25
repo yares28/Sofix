@@ -552,16 +552,11 @@ Click a podium name, connected-dot row or scatter point, or choose **Inspect str
 
 The ten picking rules are best xScore, Sorare projection, keeper with his defender, three from one club, no attacker against the keeper, likely scorers, highest ceiling, usual score, surest starters and favourites only. Each is saved before lock and scored after results with its saved rules. No lineup is entered automatically. The replay command and definitions are in [backtesting](backtesting.md).
 
-**Missions** answers "were Sofix's mission picks the right ones?". Every day Sofix writes down its picks for the **Decisive Picker**,
-which Sorare runs every day, whether or not you loaded the day's missions; on a day you loaded them, the other missions too. It also
-writes down every card of yours with a game that day, with its chance. A day after the games the refresh reads each game from Sorare
-and marks who did what each mission asks. A mission day is then judged against what your cards could have done: the players who did
-it are the achievers, and the best possible is the mission's picks or the number of achievers, whichever is fewer. The day is a
-success when Sofix's picks hold that many achievers; a day when none of your cards did it is not counted. For example, with ten
-players, picking 1, 2 and 3 when 1, 4 and 5 got a decisive action is a miss. The page leads with the share of mission days that were
-the best possible (from 100 days; until then "Too few to tell yet"), then the achievers caught, your own picks scored the same way by
-Sorare's verdict, the chance given against what happened, and each day with Sofix's picks (did it or not) and the cards that did it
-but were not picked.
+**Missions** compares your successful picks, Sofix's saved plan and the best available result on the same checked missions, from the first case. The chart labels totals, averages per mission and the share of available successes; switch between **You vs Sofix** and **All Sofix forecasts**, or filter rarity. Your independently checked record includes missions without a captured forecast. **Every saved mission** accounts for all history, with status filters and twelve records per page. The card history and corrections remain below.
+
+The best available result is capped at each mission's slots and judged independently: the same card may appear across missions, whereas Sofix's saved plan allocates each card once. Known empty allocations count as zero; missing forecasts do not. No-opportunity missions remain visible but leave the best-possible rate. Incomplete eligibility and reconstructed forecasts stay outside accuracy. Rewards are potential amounts calculated only from explicit saved per-choice/full-house terms, with XP, clue types and essence separate by rarity; they are not confirmed receipts.
+
+Scheduled score checks, daily history and refreshes settle missions from the shared game store without an open browser. Missing results wait and later stat corrections revise outcomes. Old monthly days are checked unless that exact day and rarity was copied to a daily block. Historical forecasts or eligibility never saved cannot be recreated as verified accuracy.
 
 **Rewards** answers "how much essence should I have won, and how much did I?". Play shows a reward as all or nothing; over a
 season the fair yardstick is the expected essence: each lineup's chance of each reward times that reward, added up week by week.

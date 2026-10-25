@@ -14,7 +14,7 @@ and a check, so a session can work through it alone and stop only where you have
 
 ## Next up (the one queue: read this first, update it in the same commit when an item ships)
 
-24 Oct owner request: finish Missions Audit and its automatic statistics, following the [settlement repair](audit-settlement-phase3.md) and [Strategies weekly results](audit-strategies-weekly.md). The single Play plan, with alternatives in Audit Strategies, follows separately.
+24 Oct owner request, next: a single Play plan, with alternatives kept in Audit Strategies. Missions Audit and its automatic statistics are delivered in [the overview release](missions-audit-overview.md).
 
 23 Oct owner priority: Conference is released as an explicitly provisional FDR/xScore model,
 under [the owner-directed release contract](conference-release.md). All 36 clubs / 1,110 current players
@@ -580,6 +580,8 @@ the held-out weeks (P9 "The bar").
 ---
 
 ## Results
+
+- **25 Oct — Missions Audit:** a directly labelled chart of your picks, Sofix and the per-mission ceiling, reward equivalents in separate units/rarities, lifetime coverage with status filters and pagination, no 100-case gate. Own results survive absent forecasts; reconstructions stay outside accuracy. Automatic publication now settles missions, revisits corrected stats and checks uncopied legacy days. [Contract and verification](missions-audit-overview.md).
 
 24 Oct - Strategies replaces weekly numeric grids with a Best strategies podium and three linked chart types:
 connected scores against the best saved eligible replay, a points/rewards scatter plot and a reward-mix donut.

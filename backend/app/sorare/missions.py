@@ -27,7 +27,7 @@ from app.jobs.export_games import fetch_game
 from app.models import PlayerGame, ReadModel
 from app.services import kept_blocks
 from app.services.timeutil import as_utc
-from app.sorare import mission_form, mission_replay, player_games
+from app.sorare import games_mirror, mission_audit, mission_form, mission_replay, player_games
 from app.sorare.publish import GIVE_UP, SETTLE
 
 logger = logging.getLogger(__name__)
@@ -188,7 +188,13 @@ def settle_kept(db: Session, now: datetime) -> dict[str, int]:
     """Settle only candidates whose own result and stats were read; no additional Sorare calls or inferred DNPs."""
     months = marked = 0
     rows = kept_blocks.rows(db, LOG_PREFIX, DAY_PREFIX)
-    copied_months = {row.key.removeprefix(DAY_PREFIX)[:7] for row in rows if row.key.startswith(DAY_PREFIX)}
+    copied = {
+        (day, rarity)
+        for row in rows
+        if row.key.startswith(DAY_PREFIX)
+        for day, rarities in row.payload.get("days", {}).items()
+        for rarity in rarities
+    }
     replay_players = {
         c["s"]
         for row in rows
@@ -199,13 +205,14 @@ def settle_kept(db: Session, now: datetime) -> dict[str, int]:
         for c in entry.get("cands", [])
     }
     history = player_games.load(db, players=replay_players) if replay_players else {}
+    results = games_mirror.view(db)
     for saved in rows:
-        if saved.key.startswith(LOG_PREFIX) and saved.key.removeprefix(LOG_PREFIX) in copied_months:
-            continue
         payload = copy.deepcopy(saved.payload)
         changed = False
         for day, rarities in payload.get("days", {}).items():
             for rarity, original in rarities.items():
+                if saved.key.startswith(LOG_PREFIX) and (day, rarity) in copied:
+                    continue
                 if day >= (now - timedelta(days=RECENT)).date().isoformat() and mission_replay.needed(original, now):
                     replay = mission_replay.reconstruct(original, history, rarity, day, now)
                     # Keep already-settled outcomes when recomputing the pre-day reference.
@@ -225,7 +232,8 @@ def settle_kept(db: Session, now: datetime) -> dict[str, int]:
                         changed = True
             entries = [
                 e
-                for original in rarities.values()
+                for rarity, original in rarities.items()
+                if not (saved.key.startswith(LOG_PREFIX) and (day, rarity) in copied)
                 for e in ([original, original["replay"]] if original.get("replay") else [original])
             ]
             for entry in entries:
@@ -246,10 +254,8 @@ def settle_kept(db: Session, now: datetime) -> dict[str, int]:
                         rule = m["rule"]
                         if rule["kind"] == "unsupported" and m.get("source"):
                             rule = _rule(m["source"])
-                        if (
-                            (key in candidate.get("c", {}) or key in candidate.get("eligible", []) or own)
-                            and key not in candidate.get("r", {}).get("did", {})
-                            and (rule["kind"] in ("decisive", "booked", "score") or counted(rule))
+                        if (key in candidate.get("c", {}) or key in candidate.get("eligible", []) or own) and (
+                            rule["kind"] in ("decisive", "booked", "score") or counted(rule)
                         ):
                             target = (
                                 own.get("target")
@@ -260,7 +266,7 @@ def settle_kept(db: Session, now: datetime) -> dict[str, int]:
                                 targets[key] = (rule, target)
                     if not targets or not candidate.get("g") or now < _when(candidate["k"]) + SETTLE:
                         continue
-                    row = db.get(PlayerGame, (candidate["s"], candidate["g"]))
+                    row = results.get(PlayerGame, (candidate["s"], candidate["g"]))
                     if row is None or row.status in (None, "PENDING") or row.played is None:
                         continue
                     if row.read_at is None or as_utc(row.read_at) < _when(candidate["k"]):
@@ -308,6 +314,8 @@ def settle_kept(db: Session, now: datetime) -> dict[str, int]:
             # preserve concurrent imports; a conflict is retried next refresh
             if (loaded := db.identity_map.get(identity_key(ReadModel, saved.key))) is not None:
                 db.expire(loaded)
+    if results is not db:
+        results.close()
     return {"candidates": marked, "months": months}
 
 
@@ -454,6 +462,7 @@ def record(logs: list[dict[str, Any]]) -> dict[str, Any]:
         "happened": round(hits / len(said), 3) if said else None,
         "picks": len(said),
         "days": days[:RECENT],
+        "overview": mission_audit.overview(logs),
     }
 
 

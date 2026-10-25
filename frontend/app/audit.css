@@ -690,3 +690,41 @@
 .sc-references > .sc-caption { font-size: 11px; margin: 5px 0 12px; }
 .sc-reference { cursor: default; }.sc-reference small { display: block; font-size: 11px; color: var(--ink-2); margin-top: 4px; }
 .sc-reference .sc-score-dot { background: var(--surface); border: 2px solid #7e8790; }
+/* Mission outcomes share one scale; coverage stays separate from forecast accuracy. */
+.ma-overview { --ma-state-0: #257451; --ma-state-1: #b69657; --ma-state-2: #a89985; --ma-state-3: #d2d4d7; --ma-state-4: #988aab; --ma-state-5: #7e9aab; margin: 0 24px 48px; }
+.ma-toolbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 12px 0 24px; }
+.ma-toolbar label { display: grid; gap: 6px; color: var(--ink-2); font-size: 12px; }
+.ma-toolbar select { min-height: 44px; font: inherit; font-size: 14px; padding: 8px 28px 8px 12px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: var(--surface); }
+.ma-comparison { padding: 34px 40px; background: var(--surface); border-radius: 20px; border: 1px solid var(--line); }
+.ma-result h2 { margin: 10px 0; font-size: clamp(26px, 3vw, 42px); font-weight: 550; letter-spacing: -.045em; line-height: 1.15; text-wrap: balance; }
+.ma-result p, .ma-caption { color: var(--ink-2); font-size: 13px; line-height: 1.6; margin: 8px 0; }
+.ma-chart { margin: 36px 0 0; }
+.ma-axis { display: flex; justify-content: space-between; margin: 0 118px 0 158px; font-size: 12px; color: var(--ink-2); }
+.ma-chart-row { display: grid; grid-template-columns: 140px minmax(0, 1fr) 100px; align-items: center; gap: 18px; min-height: 88px; font-variant-numeric: tabular-nums; }
+.ma-side { font-size: 16px; font-weight: 550; }.ma-chart-row small, .ma-reward-row small { display: block; color: var(--ink-2); font-size: 12px; font-weight: 400; margin-top: 6px; }
+.ma-chart-row strong { font-size: 30px; font-weight: 550; letter-spacing: -.04em; text-align: right; }.ma-chart-row strong small { letter-spacing: 0; }
+.ma-track { position: relative; height: 2px; background: var(--line); margin: 0 7px; }
+.ma-distance { position: absolute; height: 2px; inset: 0; background: currentColor; transform-origin: left; transition: transform .35s cubic-bezier(.2,.7,.2,1); }
+.ma-dot { position: absolute; top: 50%; width: 15px; height: 15px; border-radius: 50%; background: currentColor; border: 3px solid var(--surface); box-shadow: 0 0 0 1px currentColor; transform: translate(-50%,-50%); }
+.ma-you .ma-track { color: var(--win); }.ma-sofix .ma-track { color: var(--ink); }.ma-best .ma-dot { background: var(--surface); border: 2px solid var(--ink-2); box-shadow: none; }.ma-best .ma-distance { color: var(--ink-2); }
+.ma-missing { position: absolute; top: -10px; left: 50%; color: var(--ink-2); }
+.ma-chart figcaption { font-size: 12px; color: var(--ink-2); line-height: 1.6; margin: 16px 0 0; max-width: 720px; }
+.ma-takeaway { font-size: 14px; line-height: 1.7; margin: 20px 0 0; }.ma-takeaway b { font-weight: 600; }
+.ma-rewards { border-top: 1px solid var(--line); padding-top: 24px; margin-top: 28px; }.ma-rewards h3 { margin: 0; font-size: 17px; font-weight: 550; }
+.ma-reward-head, .ma-reward-row { display: grid; grid-template-columns: minmax(120px, 1fr) repeat(3, minmax(65px, .4fr)); gap: 16px; align-items: center; }
+.ma-reward-head { font-size: 12px; color: var(--ink-2); margin-top: 24px; }.ma-reward-row { padding: 14px 0; font-size: 20px; font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--line); }.ma-reward-row b { font-size: 14px; font-weight: 550; }.ma-reward-head > :not(:first-child), .ma-reward-row > :not(:first-child) { text-align: right; }
+.ma-own-record { font-size: 13px; line-height: 1.7; color: var(--ink-2); padding: 12px 0; max-width: 900px; }.ma-own-record b { color: var(--ink); font-weight: 500; }
+.ma-coverage { padding: 24px 0; }.ma-section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }.ma-section-head h2 { font-size: 23px; letter-spacing: -.025em; font-weight: 550; margin: 0 0 18px; }.ma-section-head > span { font-size: 13px; color: var(--ink-2); }
+.ma-coverage-strip { display: flex; height: 7px; border-radius: 5px; overflow: hidden; gap: 2px; }.ma-coverage-strip span { flex-basis: 0; }
+.ma-coverage-options { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 16px 0; }.ma-coverage-options button { padding: 8px 0; border: 0; border-bottom: 2px solid transparent; color: var(--ink-2); font-size: 13px; background: none; cursor: pointer; min-height: 44px; }.ma-coverage-options button[aria-pressed=true] { border-color: var(--ink); color: var(--ink); }.ma-coverage-options b { font-weight: 550; margin-left: 5px; }
+.ma-records { margin: 0; padding: 0; list-style: none; }.ma-records > li { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 20px 0; border-top: 1px solid var(--line); }.ma-records h3 { font-size: 16px; font-weight: 550; margin: 6px 0; overflow-wrap: anywhere; }.ma-record-date, .ma-status { font-size: 12px; color: var(--ink-2); }.ma-status-checked { color: var(--win); }.ma-records dl { display: flex; gap: 28px; margin: 0; flex-shrink: 0; text-align: right; }.ma-records dt { font-size: 12px; color: var(--ink-2); }.ma-records dd { font-size: 22px; font-variant-numeric: tabular-nums; margin: 6px 0 0; }
+.ma-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin: 18px 0; font-size: 13px; }.ma-pagination button { min-height: 44px; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; }.ma-pagination button:disabled { cursor: default; color: var(--ink-2); opacity: .6; }
+.ma-method { border-top: 1px solid var(--line); padding: 20px 0; font-size: 13px; line-height: 1.7; max-width: 900px; }.ma-method summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; }.ma-method p { color: var(--ink-2); }
+.ma-overview :is(button, select, summary):focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+@media (max-width: 650px) {
+  .ma-overview { margin: 0 16px 32px; }.ma-toolbar { align-items: stretch; flex-direction: column; gap: 14px; padding-top: 0; }.ma-toolbar label { grid-template-columns: auto 1fr; align-items: center; }.ma-toolbar .mx-seg { align-self: stretch; }.ma-toolbar .mx-seg button { flex: 1; min-height: 44px; }
+  .ma-comparison { padding: 24px 18px; }.ma-result h2 { font-size: 30px; }.ma-chart { margin-top: 28px; }.ma-chart-row { grid-template-columns: 92px minmax(0,1fr) 66px; gap: 10px; min-height: 88px; }.ma-axis { margin-left: 102px; margin-right: 76px; }.ma-side { font-size: 14px; }.ma-chart-row strong { font-size: 26px; }.ma-chart-row small { font-size: 11px; }.ma-chart figcaption { font-size: 12px; }
+  .ma-reward-head, .ma-reward-row { grid-template-columns: minmax(95px, 1fr) repeat(3,minmax(36px,.5fr)); gap: 8px; }.ma-reward-head { font-size: 11px; }.ma-reward-row { font-size: 17px; }.ma-reward-row b { font-size: 13px; }.ma-reward-row small { font-size: 11px; }
+  .ma-records > li { align-items: flex-start; gap: 16px; }.ma-records dl { gap: 12px; }.ma-records dt { font-size: 11px; }.ma-records dd { font-size: 18px; }.ma-records h3 { font-size: 14px; }.ma-pagination { justify-content: space-between; gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .ma-distance { transition: none; } }

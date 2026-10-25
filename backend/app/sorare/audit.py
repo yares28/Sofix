@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models import ReadModel
@@ -53,7 +53,7 @@ from app.sorare.publish import ARCHIVE_PREFIX, SETTLE
 
 AUDIT_KEY = "audit"
 VERSION = 1
-SETTLEMENT_VERSION = 7
+SETTLEMENT_VERSION = 8
 # Written by `python -m app.jobs.xscore_backtest --summary`; numbers only, so it can sit in the public repository.
 REPLAY_FILE = Path(__file__).resolve().parents[2] / "data" / "audit" / "replay.json"
 FLOOR = 100  # default for other verdicts; Who starts explicitly uses one checked case
@@ -496,15 +496,29 @@ def next_settlement(record: dict[str, Any], scores: list[dict[str, Any]], now: d
 
 
 def settlement_due(db: Session, now: datetime) -> bool:
-    """Idle score jobs read two small fields, never the whole Audit or game history."""
+    """Idle jobs read the Audit clock and the latest mission write time, never payloads or game history."""
     row = db.execute(
         select(
             ReadModel.payload["settlementVersion"].as_integer(),
             ReadModel.payload["nextSettlementAt"].as_string(),
+            ReadModel.updated_at,
         ).where(ReadModel.key == AUDIT_KEY)
     ).first()
     if row is None or row[0] != SETTLEMENT_VERSION:
         return True  # first run after this release initializes the clock
+    latest_mission = (
+        db.query(func.max(ReadModel.updated_at))
+        .filter(
+            or_(
+                ReadModel.key.like("missions_day:%"),
+                ReadModel.key.like("missions_log:%"),
+                ReadModel.key.like("missions_edit:%"),
+            )
+        )
+        .scalar()
+    )
+    if latest_mission and as_utc(latest_mission) > as_utc(row[2]):
+        return True
     at = _lock(row[1])
     return at is not None and now >= at
 
@@ -517,7 +531,8 @@ def record_of(db: Session) -> dict[str, Any]:
 def from_kept(db: Session, now: datetime, *, write: bool = False) -> dict[str, Any]:
     """Build the Audit from common game rows and pre-lock metadata; also used by the read-only local API fallback."""
     record, scores, elevens = player_audit.read(db, now)
-    page = build(record, read_replay(), now, kept_weeks(db), missions.logs_of(db), scores)
+    mission_logs = missions.logs_of(db)
+    page = build(record, read_replay(), now, kept_weeks(db), mission_logs, scores)
     page["elevens"] = {key: elevens[key] for key in ("all", "weeks", "clubs")}
     page["startsBoard"]["all"]["elevens"] = elevens["covered"]
     for competition, scope in page["startsBoard"]["competitions"].items():
@@ -531,6 +546,14 @@ def from_kept(db: Session, now: datetime, *, write: bool = False) -> dict[str, A
         for week in page["strategies"]["weeks"]
         if not week["final"] and as_utc(datetime.fromisoformat(week["end"])) + SETTLE > now
     ]
+    boundaries.extend(
+        as_utc(datetime.fromisoformat(c["k"].replace("Z", "+00:00"))) + SETTLE
+        for log in mission_logs
+        for entries in log.get("days", {}).values()
+        for entry in entries.values()
+        for c in entry.get("cands", [])
+        if c.get("k") and as_utc(datetime.fromisoformat(c["k"].replace("Z", "+00:00"))) + SETTLE > now
+    )
     if page["nextSettlementAt"]:
         boundaries.append(as_utc(datetime.fromisoformat(page["nextSettlementAt"])))
     page["nextSettlementAt"] = min(boundaries).isoformat() if boundaries else None
@@ -546,6 +569,7 @@ def from_kept(db: Session, now: datetime, *, write: bool = False) -> dict[str, A
 
 def publish(db: Session, now: datetime) -> dict[str, int]:
     """Publish after this run's actuals and pre-lock statements have been saved."""
+    missions.settle_kept(db, now)
     page = from_kept(db, now, write=True)
     put(db, AUDIT_KEY, page, now)
     return {

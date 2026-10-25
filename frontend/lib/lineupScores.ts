@@ -1,4 +1,5 @@
 import type { GameweekLineup } from "./entered";
+import { projectedRewards, type RewardValues } from "./playRewards";
 import type { GameweekPlan, Lineup, PlayCard } from "./play";
 
 export type ActualScores = Record<string, { score: number; played: boolean; complete?: boolean }>;
@@ -65,10 +66,13 @@ export function lineupActual(lineup: Lineup, scores: ActualScores): TeamScore {
 /** Custom teams use independent playing chances and conditional means, enumerated exactly (at most 9 cards).
  * Saved optimizer totals retain their seeded simulation, including its score distribution and correlations.
  */
-function expectation(lineup: ScoringLineup, need?: number | null): { value: number; chance?: number } {
+function expectation(lineup: ScoringLineup, need?: number | null, template?: Lineup): { value: number; chance?: number; rewards?:RewardValues } {
   const cards = [...lineup.starters, ...lineup.subs];
   let value = 0;
   let chance = 0;
+  const tiers=template?.group!=="Room"&&template?.tiers?.length&&template.tiers.every(t=>typeof t.need==="number"&&Number.isFinite(t.need))?[...template.tiers].sort((a,b)=>b.need!-a.need!):null;
+  const essence=`essence:${template?.rarity??"unknown"}:${template?.kind??"unknown"}`;
+  const rewards:RewardValues={"cash:USD":0,[essence]:0,card:0,"xp:FOOTBALL_XP":0};
   for (let mask = 0; mask < 2 ** cards.length; mask++) {
     const scores: ActualScores = {};
     let probability = 1;
@@ -80,14 +84,22 @@ function expectation(lineup: ScoringLineup, need?: number | null): { value: numb
     if (!probability) continue;
     const mean = total(lineup, scores);
     value += probability * mean;
-    if (!need) continue;
+    if (need==null && !tiers) continue;
     // With who plays fixed the total is a weighted sum of the scores: each card's weight is the total when only he scores 1.
     const weights = cards.filter(c => scores[c.slug]!.played).map(c =>
       total(lineup, Object.fromEntries(cards.map(o => [o.slug, { played: scores[o.slug]!.played, score: o === c ? 1 : 0 }]))));
     const sd = SCORE_SD * Math.hypot(...weights);
-    chance += probability * (sd ? 1 - bell((need - mean) / sd) : Number(mean >= need));
+    const tail=(n:number)=>sd?1-bell((n-mean)/sd):Number(mean>=n);
+    if (need!=null) chance += probability * tail(need);
+    let previous=0;
+    for (const tier of tiers??[]) {
+      const cumulative=tail(tier.need!),p=probability*Math.max(0,cumulative-previous);
+      rewards["cash:USD"]!+=p*(tier.cash??0);rewards[essence]!+=p*(tier.essence??0);
+      rewards.card!+=p*Number(Boolean(tier.card));rewards["xp:FOOTBALL_XP"]!+=p*(tier.xp??0);
+      previous=cumulative;
+    }
   }
-  return need ? { value, chance } : { value };
+  return {value,...(need!=null?{chance}:{}),...(tiers?{rewards}:{})};
 }
 
 /** planner.py's SCORE_SD.
@@ -105,6 +117,7 @@ export function enteredScore(entered: GameweekLineup, week: GameweekPlan | null,
   value: number | null; estimated: boolean;
   /** The chance of any cash, essence or card: the plan's own for a plan lineup, else against the score the lowest paid level took. Absent when unknown. */
   chance?: number;
+  rewards?:RewardValues;
 } {
   const missing = { value: null, estimated: false };
   if (!week || week.gameweek.slug !== slug || !entered.cards.length) return missing;
@@ -117,7 +130,7 @@ export function enteredScore(entered: GameweekLineup, week: GameweekPlan | null,
     const cards = [...l.starters, ...l.subs];
     return cards.length === ordered.length && cards.every((c, i) => c.slug === ordered[i]!.slug && !!c.captain === ordered[i]!.captain);
   });
-  if (saved) return { value: saved.x, estimated: false, chance: saved.pReturn };
+  if (saved) {const rewards=projectedRewards(saved);return { value: saved.x, estimated: false, chance: saved.pReturn,...(rewards?{rewards}:{}) };}
 
   const template = options[0];
   const rules = entered.scoring;
@@ -169,5 +182,5 @@ export function enteredScore(entered: GameweekLineup, week: GameweekPlan | null,
     minInSeason: rules?.minInSeason ?? template!.minInSeason, clubBonus: rules ? rules.clubBonus : template!.clubBonus,
     averageBonus: rules ? rules.averageBonus : template!.averageBonus, starters, subs };
   // A Room's place depends on nine other teams, not on one score to reach.
-  return { ...expectation(custom, template?.group === "Room" ? null : template?.need), estimated: true };
+  return { ...expectation(custom, template?.group === "Room" ? null : template?.need,template), estimated: true };
 }

@@ -38,6 +38,7 @@ import LinkPending from "../LinkPending";
 import StrategyViews from "../audit/StrategyViews";
 import { planAddress } from "../../lib/planNavigation";
 import PlayComparison from "./PlayComparison";
+import type { PlayRewardBlock } from "../../lib/playRewards";
 import { enteredPortfolio, planPortfolio } from "../../lib/playPortfolio";
 
 const madrid = (iso: string, options: Intl.DateTimeFormatOptions) =>
@@ -68,8 +69,10 @@ export default function PlayView({
   rebuild = null,
   rebuildable = false,
   alternatives = false,
+  rewards = null,
 }: {
   alternatives?: boolean;
+  rewards?:PlayRewardBlock|null;
   /** Pro lineups rebuilt on the announced elevens, and whether this view offers "Load from Sorare" (the week being played, Sofix's plans). */
   rebuild?: Rebuild | null;
   rebuildable?: boolean;
@@ -105,7 +108,7 @@ export default function PlayView({
   if (weekId) results.set("w", weekId); else results.set("gw", id);
 
   const sync = after || week.projected ? null : syncState(data, week, now);
-  const comparison = { heading: <Head data={data} week={week} now={now} sync={sync} dates={dates ?? null} title={title ?? null} comparison />, recommendation: planPortfolio(plan), early: Boolean(week.projected), played: week.played, action: plan && !after && !week.projected ? <ApplySheet lineups={enterable(plan.lineups)} week={week} rank={plan.rank} now={now.toISOString()} /> : undefined };
+  const comparison = { heading: <Head data={data} week={week} now={now} sync={sync} dates={dates ?? null} title={title ?? null} comparison />, recommendation: planPortfolio(plan,rewards), rewards:rewards?{you:rewards.you,checkedAt:rewards.checkedAt,nextCheckAt:rewards.nextCheckAt}:null, early: Boolean(week.projected), played: week.played, action: plan && !after && !week.projected ? <ApplySheet lineups={enterable(plan.lineups)} week={week} rank={plan.rank} now={now.toISOString()} /> : undefined };
   const showModes = alternatives && week.played && Boolean(week.hindsight || week.plans.some(p => p.actual));
   // Sofix's plan or Sorare's: only for the week being planned, where both are made (the owner, 6 Oct 2026)
   const showSources = alternatives && !week.projected;
@@ -625,59 +628,11 @@ function Folds({ week }: { week: GameweekPlan }) {
         </details>
       ) : null}
 
-      <details className="pl-fold">
-        <summary>
-          How subs and plans work
-          <Chevron className="" />
-        </summary>
-        <ul className="pl-rules">
-          {RULES.map(([mark, title, text]) => (
-            <li key={title}>
-              <span className="ic">{mark}</span>
-              <span>
-                <b>{title}</b> {text}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </details>
+
     </>
   );
 }
 
-const RULES: [string, string, string][] = [
-  ["2", "Two subs, and only where a competition has them.", "One goalkeeper, one outfield player. Rooms of 10 have none."],
-  [
-    "↺",
-    "A sub only covers a player who doesn't play at all.",
-    "Goalkeeper for goalkeeper; outfield for the same position, or anyone in the Extra slot. A late cameo counts as playing.",
-  ],
-  [
-    "4",
-    "In-season lineups keep four in-season cards.",
-    "A Classic sub can't come in if that would leave three, so Sofix only benches in-season cards there.",
-  ],
-  [
-    "−",
-    "A sub costs the lineup its bonuses.",
-    "When one comes in, the multi-club and cap bonuses go (each lineup's sheet says how much), and a sub never gets the captain's.",
-  ],
-  [
-    "1",
-    "Benches are optional, and filled last.",
-    "Every card that can start does; only what is left over goes on a bench, and only when it is worth more than the bonuses it risks.",
-  ],
-  [
-    "1",
-    "Expected essence first.",
-    "The best plan maximizes expected essence. Your preferred essence order breaks ties between equally rewarding options.",
-  ],
-  [
-    "%",
-    "A reward is all or nothing.",
-    "Best marks the plan with the highest expected essence. XP is shown apart and never counts; a Room is played only when it wins back more than its fee on average.",
-  ],
-];
 
 function short(name: string): string {
   return name.length <= 12 ? name : `${name.slice(0, 11)}…`;

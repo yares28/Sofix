@@ -579,6 +579,8 @@ the held-out weeks (P9 "The bar").
 
 ## Results
 
+- **25 Oct - Play reward results and mission reward charts:** both portfolios show projected cash, separate essence currencies, cards and XP beside received/counterfactual rewards. Public source checks start an hour after the last relevant observed finish, retry missing results and review corrections. Locked recommendations use the same pre-lock lineup identities as their result check. Removed the comparison verdict and rules disclosure. Mission Audit gains a taller plot and persistent reward/clue-type selector. [Contract and evidence](play-rewards-and-mission-chart.md).
+
 - **25 Oct - Entered versus recommended Play:** a shared header compares your actual entered lineups with Sofix using expected paid lineups, average no-reward risk and average projected points, with real card previews and explicit saved/custom/unknown states. The job's whole-plan chance and expected essence/cash stay separate; drafts do not enter the comparison. The header reuses the existing exact-GW read and score map. [Contract and verification](mission-outcomes-and-play-comparison.md).
 
 - **25 Oct — Mission selection outcomes:** current history verdicts drive the matched-mission race, action chart and two segmented pick bars. Known picks count despite incomplete eligible-card ceilings or an older published overview; reward units and rarities remain separate. Original forecast accuracy stays in its own disclosure. [Contract and evidence](mission-outcomes-and-play-comparison.md).

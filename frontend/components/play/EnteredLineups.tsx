@@ -86,7 +86,7 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
 
   return (
     <>
-    {comparison ? <PlayComparison {...comparison} yours={enteredPortfolio(load.lineups, estimates)} state={load.state === "ready" && load.saved ? "saved" : load.state} /> : null}
+    {comparison ? <PlayComparison {...comparison} yours={enteredPortfolio(load.lineups, estimates,comparison.rewards)} state={load.state === "ready" && load.saved ? "saved" : load.state} /> : null}
     <section className={variant === "recap" ? "rc-entered" : "pl-entered"} aria-labelledby="entered-lineups-title">
       <div className="pl-entered-head">
         <div>

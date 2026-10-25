@@ -170,6 +170,25 @@ class Client:
         }
 
 
+def test_reviewing_score_is_retried_after_half_an_hour_instead_of_waiting_for_the_day_later_check(db):  # noqa: F811
+    from app.sorare import score_checks
+
+    seed(db)
+    db.delete(db.get(ReadModel, "audit_game_checks"))
+    db.commit()
+
+    class Reviewing(Client):
+        def query(self, query):
+            result = super().query(query)
+            result["g0"]["playerGameScores"][0]["scoreStatus"] = "REVIEWING"
+            return result
+
+    assert score_checks.run(db, Reviewing(), NOW)["games"] == 1
+    assert score_checks.run(db, Client(), NOW + timedelta(minutes=29))["games"] == 0
+    assert score_checks.run(db, Client(), NOW + timedelta(minutes=30))["games"] == 1
+    assert db.get(ReadModel, "audit_game_checks").payload["games"][GAME]["scores"]["p"]["sourceStatus"] == "FINAL"
+
+
 def test_scheduled_read_checks_at_kickoff_plus_three_then_26_hours_without_tabs(db):  # noqa: F811
     from app.sorare import score_checks
 

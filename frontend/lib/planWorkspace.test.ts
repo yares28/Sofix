@@ -12,7 +12,7 @@ vi.mock("./missionsData", () => ({ loadMissions: vi.fn(async () => null) }));
 vi.mock("./missionsPool", () => ({ loadMissionPool: vi.fn(async () => null) }));
 vi.mock("./missionsToday", () => ({ missionsToday: vi.fn(async () => null) }));
 vi.mock("./planScoresData", () => ({ loadPlanActuals: vi.fn(async () => ({})) }));
-vi.mock("./playData", () => ({ loadSorare: vi.fn(), loadSorareAlt: vi.fn(), loadSorareLens: vi.fn(), loadSorareWeek: vi.fn(), loadFrozenPlan: vi.fn(), loadProjectedWeek: vi.fn(), loadProRebuild: vi.fn() }));
+vi.mock("./playData", () => ({ loadSorare: vi.fn(), loadSorareAlt: vi.fn(), loadSorareLens: vi.fn(), loadSorareWeek: vi.fn(), loadFrozenPlan: vi.fn(), loadProjectedWeek: vi.fn(), loadProRebuild: vi.fn(),loadPlayRewards:vi.fn(async()=>null) }));
 vi.mock("./weeks", () => ({ weekContext: vi.fn(), pageWeeks: (weeks: unknown[]) => weeks, weekDates: () => "25–29 Sep", weekName: () => "Sorare GW17", noPlan: () => ({ heading: "Not recorded", says: "No saved plan", lineups: null }) }));
 
 import { loadSorare, loadSorareAlt, loadSorareLens, loadFrozenPlan } from "./playData";
@@ -61,4 +61,22 @@ it("a saved Sorare forecast is available independently, with no inherited Sofix 
 it("a mismatched source GW never supplies a lineup", async () => {
   vi.mocked(loadSorareAlt).mockResolvedValue({ gameweek: { ...week.gameweek, slug: "another-gw" }, builtAt: "", projected: 1, players: 1, plans: week.plans });
   expect((await view({ by: "sorare" })).week.plans).toEqual([]);
+});
+
+it("a locked recommendation and its reward replay use the same exact pre-lock plan",async()=>{
+  vi.setSystemTime(new Date(Date.parse(week.gameweek.lock)+3600000));
+  const original={...week,plans:[{...week.plans[0]!,lineups:[{...week.plans[0]!.lineups[0]!,x:123}]}]};
+  vi.mocked(loadFrozenPlan).mockResolvedValue(original);
+  const tree=await make({gw:week.gameweek.id},false);
+  const node=React.Children.toArray(tree.props.children).find(n=>React.isValidElement(n)&&n.type===PlayView) as React.ReactElement<{week:GameweekPlan}>;
+  expect(node.props.week.plans).toEqual(original.plans);
+  expect(node.props.week.plans[0]!.lineups[0]!.x).toBe(123);
+});
+
+it("rejects a frozen plan belonging to another selected GW",async()=>{
+  vi.setSystemTime(new Date(Date.parse(week.gameweek.lock)+3600000));
+  vi.mocked(loadFrozenPlan).mockResolvedValue({...week,gameweek:{...week.gameweek,slug:"wrong-gw"},plans:[]});
+  const tree=await make({gw:week.gameweek.id},false);
+  const node=React.Children.toArray(tree.props.children).find(n=>React.isValidElement(n)&&n.type===PlayView) as React.ReactElement<{week:GameweekPlan}>;
+  expect(node.props.week.plans.length).toBe(week.plans.length);
 });

@@ -1,7 +1,33 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
-import { APP, offline, resetBackend, smallText, sorare } from "./helpers";
+import { APP, MOCK, offline, resetBackend, smallText, sorare } from "./helpers";
+import { rewardSignature } from "../lib/playRewards";
 import { bestPlan, nextWeek } from "../lib/play";
+
+test("Play shows every projected and actual reward type and removes the two unwanted explanations",async({page,request,context})=>{
+  await resetBackend(request);await offline(page);
+  const week=nextWeek(sorare),plan=bestPlan(week.plans)!,line=plan.lineups[0]!;
+  const unit=`essence:${line.rarity}:${line.kind??"unknown"}`;
+  await request.post(`${MOCK}/__test/my-weeks`,{data:{playRewards:{slug:week.gameweek.slug,state:"checked",checkedAt:new Date().toISOString(),you:[{id:"actual",rewards:{"cash:USD":2.5,[unit]:100,"card:rare":1,"xp:LIMITED_XP":500}}],sofix:plan.lineups.map((l,i)=>({signature:rewardSignature(l),rewards:i?{}:{"cash:USD":5,[unit]:50,"card:rare":1,"xp:LIMITED_XP":200}}))}}});
+  const saved={slug:week.gameweek.slug,number:week.gameweek.number,start:week.gameweek.start,end:week.gameweek.end,savedAt:new Date().toISOString(),lineups:[{id:"actual",name:"Actual",board:line.board,competition:line.comp,draft:false,confirmable:false,result:null,cards:[...line.starters,...line.subs].map((c,index)=>({slug:c.slug,player:c.player,name:c.name,rarity:c.rarity,picture:c.pic,score:null,captain:!!c.captain,index}))}]};
+  await context.route("**/api/my-week",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({weeks:[],snapshots:[saved],pending:[]})}));
+  await page.goto(`/play?gw=${week.gameweek.id}`);
+  const yours=page.getByRole("region",{name:"You projected and actual rewards",exact:true}),sofix=page.getByRole("region",{name:"Sofix projected and actual rewards",exact:true});
+  await expect(yours.locator('[data-reward="cash:USD"] dd').last()).toHaveText("$2.50");
+  await expect(yours.locator('[data-reward="card"] dd').last()).toHaveText("1");
+  await expect(yours.locator('[data-reward="xp:FOOTBALL_XP"] dd').last()).toHaveText("500");
+  await expect(yours.locator(`[data-reward="${unit}"] dd`).last()).toHaveText("100");
+  await expect(sofix.locator('[data-reward="cash:USD"] dd').last()).toHaveText("$5.00");
+  await expect(sofix.locator('[data-reward="xp:FOOTBALL_XP"] dd').last()).toHaveText("200");
+  await expect(sofix).toContainText("Would have won");
+  await expect(page.locator(".pc-verdict")).toHaveCount(0);
+  await expect(page.getByText("How subs and plans work",{exact:true})).toHaveCount(0);
+  for(const width of [1440,390]) {await page.setViewportSize({width,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);expect(await smallText(page,width===390?10:11)).toEqual([]);}
+  expect((await new AxeBuilder({page}).include(".pc-hero").analyze()).violations).toEqual([]);
+  await page.reload();await expect(yours.locator('[data-reward="cash:USD"] dd').last()).toHaveText("$2.50");
+  const other=sorare.timeline.find(w=>w.id!==week.gameweek.id)!;await page.goto(`/play?gw=${other.id}`);
+  await expect(page.locator(".pc-you .pc-rewards")).not.toContainText("$2.50");
+});
 
 test("the comparison reserves its cold-start geometry until the selected GW's saved entries arrive", async ({ page, request }) => {
   await resetBackend(request); await offline(page);
@@ -42,6 +68,8 @@ test("Play compares the same entered forecasts with Sofix without a second lineu
   expect(reads).toBe(1);
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
+    const yourRewards=await page.locator(".pc-you .pc-rewards").boundingBox(),sofixRewards=await page.locator(".pc-sofix .pc-rewards").boundingBox();
+    expect(Math.abs(yourRewards!.y-sofixRewards!.y)).toBeLessThanOrEqual(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     expect(await smallText(page, width === 390 ? 10 : 11)).toEqual([]);
   }

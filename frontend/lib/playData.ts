@@ -140,13 +140,13 @@ export async function loadProjectedWeek(round: number): Promise<GameweekPlan | n
 const WEEK_SLUG = /^[a-z0-9][a-z0-9-]{0,80}$/;
 
 /** Small supporting records, independently retained when a locked week leaves the optimizer's payload. */
-async function supportingRecord<T>(kind: "plan" | "record", slug: string): Promise<T | null> {
+async function supportingRecord<T>(kind: "plan" | "record" | "rewards", slug: string): Promise<T | null> {
   if (!WEEK_SLUG.test(slug)) return null;
   if (kind === "record" && database()) {
     try { return await loadScoreRecord<T>(slug); } catch { return null; }
   }
   const read = cache(async () => {
-    if (database()) return (await readModel<T>(`${kind === "plan" ? "sorare_plan" : "score_record"}:${slug}`))?.payload ?? null;
+    if (database()) return (await readModel<T>(`${kind === "plan" ? "sorare_plan" : kind === "rewards" ? "play_rewards" : "score_record"}:${slug}`))?.payload ?? null;
     const response = await fetch(`${API_BASE}/api/sorare/${kind}/${slug}`, { cache: "no-store", signal: AbortSignal.timeout(8000) });
     if (!response.ok) return null;
     const body = await response.json() as { success?: boolean; data?: T };
@@ -156,10 +156,14 @@ async function supportingRecord<T>(kind: "plan" | "record", slug: string): Promi
 }
 export async function loadFrozenPlan(slug: string, data: Sorare): Promise<GameweekPlan | null> {
   const week = await supportingRecord<GameweekPlan>("plan", slug);
-  return week?.playing?.players && Array.isArray(week.plans) ? restoreFrozenPlan(week, data) : null;
+  return week?.gameweek?.slug===slug&&week.playing?.players && Array.isArray(week.plans) ? restoreFrozenPlan(week, data) : null;
 }
 export const loadChanceRecord = (slug: string) => supportingRecord<ChanceRecord>("record", slug);
 export const loadSofixRecord = (slug: string) => supportingRecord<SofixRecord>("record", slug);
+export const loadPlayRewards = async (slug:string) => {
+  const row=await supportingRecord<import("./playRewards").PlayRewardBlock>("rewards",slug);
+  return row?.slug===slug?row:null;
+};
 export const loadAuditStartRecord = (slug: string) => supportingRecord<SavedStartRecord>("record", slug);
 
 /** Restore the selected GW's numbers after it leaves the optimizer. No later week's estimates fill gaps. */

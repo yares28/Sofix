@@ -26,7 +26,7 @@ RECHECK = timedelta(hours=26)
 RETRY = timedelta(minutes=30)
 WINDOW = timedelta(days=14)
 BATCH = 1  # federation rejects repeated anyGame roots, even with aliases (also sync.PROJECTION_BATCH)
-QUERY_VERSION = 2
+QUERY_VERSION = 3
 QUERY = (
     '{alias}: anyGame(id: "{id}") {{ ... on Game {{ id date statusTyped '
     "playerGameScores {{ score scoreStatus anyPlayer {{ slug }} "
@@ -166,7 +166,9 @@ def run(db: Session, client: SorareClient, now: datetime) -> dict[str, int]:
         assert kickoff is not None
         target["kickoff"] = kickoff.isoformat()
         scores = check.get("scores") or {}
-        complete = target["players"] <= scores.keys()
+        complete = target["players"] <= scores.keys() and all(
+            scores[p].get("sourceStatus") != "REVIEWING" for p in target["players"]
+        )
         rechecked = complete and all(scores[p].get("recheckedAt", check.get("recheckedAt")) for p in target["players"])
         last = moment(check.get("lastAttemptAt"))
         ready = max(

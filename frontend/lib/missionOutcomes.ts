@@ -34,6 +34,17 @@ export function settledMission(picks: HistoryCard[]): boolean {
   return played.length > 0 && played.every(p => p.state !== "waiting");
 }
 
+export function missionRace(rows: MissionOutcome[], reward = "all") {
+  const paired=rows.filter(r=>!r.reconstructed && settledMission(r.you) && settledMission(r.sofix) && (reward === "all" || r.category === reward || `unit:${r.reward?.unit}` === reward));
+  const dates=[...new Set(paired.map(r=>r.day))].sort();
+  const points=[{day:dates[0]??"",you:0,sofix:0}];
+  for (const day of dates) {
+    const same=paired.filter(r=>r.day===day), previous=points.at(-1)!;
+    points.push({day,you:previous.you+same.filter(r=>r.you.some(p=>p.state==="did")).length,sofix:previous.sofix+same.filter(r=>r.sofix.some(p=>p.state==="did")).length});
+  }
+  return {missions:paired.length,dates,points};
+}
+
 export function missionOutcomeSummary(rows: MissionOutcome[]) {
   const side = (who: "you" | "sofix") => {
     const checked = rows.filter(r => settledMission(r[who]));

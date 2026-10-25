@@ -22,6 +22,15 @@ const entered = (cards: PlayCard[], board = "board"): GameweekLineup => ({
 });
 
 describe("entered lineup expected score", () => {
+  it("prices every reward type for a custom captain from the same GW's tier thresholds",()=>{
+    const lineup=line({eCash:10,eEss:20,pCard:.2,rarity:"limited",kind:"laliga",tiers:[{need:100,p:.2,cash:10,essence:20,card:true,xp:1000}]});
+    const custom=entered([card("a"),card("b",{captain:true})]);
+    const rewards=enteredScore(custom,week(lineup),"selected").rewards!;
+    expect(rewards["cash:USD"]).toBeCloseTo(5);
+    expect(rewards["essence:limited:laliga"]).toBeCloseTo(10);
+    expect(rewards.card).toBeCloseTo(.5);
+    expect(rewards["xp:FOOTBALL_XP"]).toBeCloseTo(500);
+  });
   it("uses the recorded forecast only for the same board, captain, starters and bench", () => {
     const lineup = line();
     expect(enteredScore(entered(lineup.starters), week(lineup), "selected")).toEqual({ value: 110, estimated: false });

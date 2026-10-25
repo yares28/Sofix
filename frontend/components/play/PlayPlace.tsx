@@ -7,7 +7,7 @@ import { loadGrid } from "../../lib/api";
 import { loadMissions } from "../../lib/missionsData";
 import { missionsToday } from "../../lib/missionsToday";
 import { bestPlan, lensKey, plansOf, weekPlan, type PlanBy } from "../../lib/play";
-import { loadFrozenPlan, loadProRebuild, loadProjectedWeek, loadSorare, loadSorareAlt, loadSorareLens, loadSorareWeek } from "../../lib/playData";
+import { loadFrozenPlan, loadPlayRewards, loadProRebuild, loadProjectedWeek, loadSorare, loadSorareAlt, loadSorareLens, loadSorareWeek } from "../../lib/playData";
 import { loadMissionPool } from "../../lib/missionsPool";
 import { loadSystem } from "../../lib/system";
 import { noPlan, pageWeeks, weekContext, weekDates, weekName } from "../../lib/weeks";
@@ -71,6 +71,7 @@ export default async function PlayPlace({ searchParams, alternatives = false }: 
   // than showing another gameweek under that week's name.
   if (!showing) {
     const said = noPlan(asked, item);
+    const rewards=!alternatives&&said.lineups?await loadPlayRewards(said.lineups.slug):null;
     return (
       <>
         <SiteNav meta={meta} system={system} week={navWeek} />
@@ -82,7 +83,7 @@ export default async function PlayPlace({ searchParams, alternatives = false }: 
             <p>{said.says}</p>
           </section> : null}
           {/* What you entered and won is readable from Sorare whenever it has the gameweek, whether or not Sofix holds a plan. */}
-          {!alternatives && said.lineups ? <EnteredLineups key={said.lineups.slug} week={{ ...said.lineups, end: item?.end }} comparison={{ heading: <header className="pl-head"><h1>{said.heading}</h1><p className="pl-sub">{said.says}</p></header>, recommendation: planPortfolio(null) }} /> : null}
+          {!alternatives && said.lineups ? <EnteredLineups key={said.lineups.slug} week={{ ...said.lineups, end: item?.end }} comparison={{ heading: <header className="pl-head"><h1>{said.heading}</h1><p className="pl-sub">{said.says}</p></header>, recommendation: planPortfolio(null),rewards:rewards?{you:rewards.you,checkedAt:rewards.checkedAt,nextCheckAt:rewards.nextCheckAt}:null }} /> : null}
         </main>
       </>
     );
@@ -99,20 +100,23 @@ export default async function PlayPlace({ searchParams, alternatives = false }: 
   const playing = !requestedAfter && !showing.projected && !showing.played && Date.parse(showing.gameweek.lock) <= Date.now();
   // Load from Sorare: the week being planned, and a locked one still being played, whose Pro lineups change until their first kickoff
   const rebuildable = !sorareAsked && !lens && ((!showing.projected && !showing.played && showing.gameweek.id === data.nextId) || playing);
-  const [alt, frozen, missions, scores, rebuild] = await Promise.all([
+  const [alt, frozen, missions, scores, rebuild, rewards] = await Promise.all([
     sorareAsked ? loadSorareAlt(showing.gameweek.slug) : lens ? loadSorareLens(showing.gameweek.slug, lens) : null,
     alternatives || showing.projected ? null : loadFrozenPlan(showing.gameweek.slug, data),
     today ? missionsToday(data, missionsModel, undefined, new Date(), pool) : null,
     playing ? loadPlanActuals(showing) : undefined,
     rebuildable ? loadProRebuild(showing.gameweek.slug) : null,
+    alternatives||showing.projected?null:loadPlayRewards(showing.gameweek.slug),
   ]);
   const by: PlanBy = sorareAsked ? "sorare" : (lens ?? "sofix");
-  const view = sorareAsked || lens ? { ...showing, plans: alt?.gameweek?.slug === showing.gameweek.slug ? alt.plans : [], hindsight: undefined } : showing;
-  const after = Boolean(requestedAfter && (view.hindsight || view.plans.some(p => p.actual)));
+  const recorded=frozen?.gameweek.slug===showing.gameweek.slug?frozen:null;
+  const enteredForecast = recorded ? withLineupRules(recorded, showing) : showing;
   const locked = Date.parse(showing.gameweek.lock) <= Date.now();
+  const baseline=!alternatives&&locked&&recorded?{...showing,plans:enteredForecast.plans,playing:enteredForecast.playing}:showing;
+  const view = sorareAsked || lens ? { ...showing, plans: alt?.gameweek?.slug === showing.gameweek.slug ? alt.plans : [], hindsight: undefined } : baseline;
+  const after = Boolean(requestedAfter && (view.hindsight || view.plans.some(p => p.actual)));
   const sorareWaiting = sorareAsked && !view.plans.length ? locked ? "No Sorare plan was saved for this GW." : sorareNote(alt, showing.projectionsAt) : lens && !view.plans.length ? locked ? "No plan from this strategy was saved for this GW." : "This strategy's plan appears with the next refresh before the lock." : null;
   const defaultPlan = bestPlan(view.plans);
-  const enteredForecast = frozen ? withLineupRules(frozen, showing) : showing;
   const requested = Number((alternatives ? single("plan") : undefined) ?? (defaultPlan ? view.plans.indexOf(defaultPlan) + 1 : 1));
   const offered = Math.max(plansOf(view, after).length, 1);
   const planIndex = Number.isFinite(requested) ? Math.min(Math.max(requested, 1), offered) - 1 : 0;
@@ -126,6 +130,7 @@ export default async function PlayPlace({ searchParams, alternatives = false }: 
         data={data}
         week={view}
         forecast={enteredForecast}
+        rewards={rewards}
         scores={scores}
         rebuild={rebuild}
         rebuildable={rebuildable}

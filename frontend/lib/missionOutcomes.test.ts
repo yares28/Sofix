@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { HistoryDay } from "./missionLog";
-import { missionOutcomes, missionOutcomeSummary } from "./missionOutcomes";
+import { missionOutcomes, missionOutcomeSummary, missionRace } from "./missionOutcomes";
 
 const pick = (state: "did" | "didnt" | "waiting" | "void", slug: string = state) => ({ slug, name: slug, pic: "", state });
 const day = (extra: Partial<HistoryDay> = {}): HistoryDay => ({ day: "2026-10-18", key: "goals", mission: "Goal - All Matches", loaded: true,
@@ -8,6 +8,13 @@ const day = (extra: Partial<HistoryDay> = {}): HistoryDay => ({ day: "2026-10-18
 const rows = (days: HistoryDay[]) => missionOutcomes([{ rarity: "limited", days }]);
 
 describe("mission outcomes use the same settled selections as history", () => {
+  it("compares reward categories on the same fully checked missions and retains zero hits", () => {
+    const data=rows([day(),day({key:"xp",yours:[pick("didnt")],sofix:[pick("did")]}),day({key:"waiting",yours:[pick("waiting")]})]);
+    data[0]!.category="essence"; data[1]!.category="xp";
+    expect(missionRace(data,"xp")).toMatchObject({missions:1,points:[{you:0,sofix:0},{you:0,sofix:1}]});
+    expect(missionRace(data,"essence")).toMatchObject({missions:1,points:[{you:0,sofix:0},{you:1,sofix:0}]});
+    expect(missionRace(data,"clues").missions).toBe(0);
+  });
   it("includes known picks when the eligible-card ceiling is incomplete or other candidates are pending", () => {
     const s = missionOutcomeSummary(rows([day(), day({ key: "passes", mission: "Pass", evidence: "pending" })]));
     expect(s.you).toMatchObject({ missions: 2, hits: 2, picks: { hit: 2, miss: 0, pending: 0 } });

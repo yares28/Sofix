@@ -33,7 +33,7 @@ export default function MissionOverview({ missions, outcomes = [], initialFilter
   };
   return <div className="ma-overview">
     <div className="ma-toolbar"><label>Cards<select autoComplete="off" name="mission-rarity" value={rarity} onChange={e => choose({ mr: e.target.value, mp: "1", me: "1", mt: "all" })}><option value="all">All rarities</option>{[...new Set([...all.map(r => r.rarity), ...outcomes.map(r => r.rarity)])].map(r => <option key={r} value={r}>{RARITY_NAME[r] ?? r}</option>)}</select></label></div>
-    <MissionOutcomeCharts rows={outcomes.filter(r => rarity === "all" || r.rarity === rarity)} target={params.get("mt") ?? ""} evidencePage={Math.max(1, Math.floor(Number(params.get("me"))) || 1)} choose={choose} />
+    <MissionOutcomeCharts rows={outcomes.filter(r => rarity === "all" || r.rarity === rarity)} target={params.get("mt") ?? ""} reward={params.get("mw") ?? "all"} evidencePage={Math.max(1, Math.floor(Number(params.get("me"))) || 1)} choose={choose} />
     <details className="ma-forecast-coverage" open={state !== "all"}><summary>Forecast coverage · {rows.length} saved missions</summary>
     <section className="ma-coverage" aria-labelledby="ma-coverage-title"><div className="ma-section-head"><h2 id="ma-coverage-title">Every saved mission</h2><span>{rows.length} total</span></div>
       <div className="ma-coverage-strip" aria-hidden="true">{Object.keys(MISSION_STATE).map((stateKey, i) => <span key={stateKey} style={{ flexGrow: rows.filter(r => r.state === stateKey).length, background: `var(--ma-state-${i})` }}/>)}</div>

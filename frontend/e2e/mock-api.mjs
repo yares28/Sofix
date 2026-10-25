@@ -508,6 +508,10 @@ const server = createServer((req, res) => {
       ? { success: true, data: { gameweek: { slug, number, lock, end }, builtAt: new Date().toISOString(), label: lens[2], plans: planning.plans.slice(0, 1) } }
       : { success: false, data: null, error: "There is no plan of that strategy for this gameweek." });
   }
+  if (req.method === "GET" && url.pathname.startsWith("/api/sorare/rewards/")) {
+    const slug = url.pathname.split("/").at(-1);
+    return send(res, 200, { success: state.playRewards?.slug === slug, data: state.playRewards?.slug === slug ? state.playRewards : null });
+  }
   const supporting = url.pathname.match(/^\/api\/sorare\/(plan|record)\/([a-z0-9-]+)$/);
   if (req.method === "GET" && supporting) {
     const kept = supporting[1] === "record" ? state.chanceRecord : state.livePlan?.gameweek.slug === supporting[2] ? state.livePlan : null;
@@ -578,7 +582,7 @@ const server = createServer((req, res) => {
   if (req.method === "POST" && url.pathname === "/__test/my-weeks") {
     let body = "";
     req.on("data", (chunk) => { body += chunk; });
-    req.on("end", () => { const input = JSON.parse(body); state.foreignBlocks = input.foreignBlocks; state.myWeeks = input.weeks; state.frozenPlans = input.frozenPlans; state.chanceRecord = input.chanceRecord; state.livePlan = input.livePlan; state.playerScores = input.playerScores; state.sorareData = input.sorareData; state.missionSource = input.missionSource; state.missionPool = input.missionPool; state.missionLog = input.missionLog; send(res, 200, { ok: true }); });
+    req.on("end", () => { const input = JSON.parse(body); state.foreignBlocks = input.foreignBlocks; state.myWeeks = input.weeks; state.frozenPlans = input.frozenPlans; state.playRewards = input.playRewards; state.chanceRecord = input.chanceRecord; state.livePlan = input.livePlan; state.playerScores = input.playerScores; state.sorareData = input.sorareData; state.missionSource = input.missionSource; state.missionPool = input.missionPool; state.missionLog = input.missionLog; send(res, 200, { ok: true }); });
     return;
   }
   if (req.method === "POST" && url.pathname === "/__test/mode") {

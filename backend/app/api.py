@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -197,6 +197,13 @@ def sorare_frozen_plan(slug: str, db: Session = Depends(get_db)):
 def sorare_chance_record(slug: str, db: Session = Depends(get_db)):
     """Captured game-specific source chances, retained across the GW lock."""
     row = db.get(ReadModel, f"{RECORD_PREFIX}{slug}")
+    return ApiResponse[dict[str, Any]](success=row is not None, data=row.payload if row else None)
+
+
+@router.get("/sorare/rewards/{slug}", response_model=ApiResponse[dict[str, Any]])
+def sorare_play_rewards(slug: str = Path(pattern=r"^[a-z0-9][a-z0-9-]{0,80}$"), db: Session = Depends(get_db)):
+    """The compact reward check for one selected GW, read-only local fallback."""
+    row = db.get(ReadModel, f"play_rewards:{slug}")
     return ApiResponse[dict[str, Any]](success=row is not None, data=row.payload if row else None)
 
 

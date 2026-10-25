@@ -77,7 +77,7 @@ export default function AuditView({
         <header className="au-top">
           <h1>Missions</h1>
         </header>
-        <MissionsAudit missions={data.missions} outcomes={missionOutcomes} initialFilters={new URLSearchParams(Object.entries(startParams).flatMap(([key, value]) => ["mr", "ms", "mp", "mt", "me"].includes(key) && value ? [[key, value]] : [])).toString()} />
+        <MissionsAudit missions={data.missions} outcomes={missionOutcomes} initialFilters={new URLSearchParams(Object.entries(startParams).flatMap(([key, value]) => ["mr", "ms", "mp", "mt", "me", "mw"].includes(key) && value ? [[key, value]] : [])).toString()} />
       </>
     );
   }

@@ -427,6 +427,12 @@ test("Missions uses the same settled selections as history, even before its ceil
   await expect(page.getByRole("heading", { level: 1, name: "Missions" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "You won 1 more mission", exact: true })).toBeVisible();
   await expect(page.getByRole("figure", { name: "Missions won over time on shared missions" })).toBeVisible();
+  const race=page.getByRole("figure",{name:"Missions won over time on shared missions"});
+  expect((await race.locator(".mo-race-plot").boundingBox())!.height).toBeGreaterThanOrEqual(300);
+  await page.getByRole("combobox",{name:"Compare mission reward type",exact:true}).selectOption("xp");
+  await expect(race.locator(".mo-line-key")).toContainText("You 0");
+  await expect(race.locator(".mo-line-key")).toContainText("Sofix 1");
+  await expect(page).toHaveURL(/mw=xp/);
   await expect(page.getByRole("figure", { name: "Missions hit by action" })).toBeVisible();
   await expect(page.locator(".mo-storage-track")).toHaveCount(2);
   await expect(page.locator(".mo-storage.mo-you")).toContainText("50 All-Star Essence");
@@ -445,6 +451,7 @@ test("Missions uses the same settled selections as history, even before its ceil
   await offline(reopened);
   await reopened.goto(url);
   await expect(reopened.getByRole("combobox", { name: "Cards", exact: true })).toHaveValue("rare");
+  await expect(reopened.getByRole("combobox",{name:"Compare mission reward type",exact:true})).toHaveValue("xp");
   await expect(reopened.getByRole("button", { name: /^Assists: you hit/ })).toHaveAttribute("aria-pressed", "true");
   await expect(reopened.getByRole("region", { name: "Rare history", exact: true })).toBeVisible();
   for (const width of [1440, 390]) {

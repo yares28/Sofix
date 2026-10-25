@@ -105,10 +105,12 @@ test("Recap and Play keep the current GW, compare all entered and best-plan line
   }
 
   await page.goto("/play");
-  await expect(page.locator(".pl-board-note")).toContainText("Plan 2");
-  await expect(page.getByRole("navigation", { name: "Plan", exact: true }).locator('[aria-current="page"]')).toContainText("best");
+  await expect(page.getByRole("heading", { name: "Recommended plan", exact: true })).toBeVisible();
+  await expect(page.locator(".pl-board-note")).toContainText("Highest expected essence");
+  await expect(page.getByRole("navigation", { name: "Plan", exact: true })).toHaveCount(0);
+  await expect(page.locator(".pl-board .pl-lu")).toHaveCount(best.lineups.length);
   await expect(mine.locator(".pl-entered-expected").last()).toContainText("xScore estimate");
-  expect(await mine.evaluate(node => Boolean(document.querySelector(".pl-board")!.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+  expect(await mine.evaluate(node => Boolean(document.querySelector(".pl-board")!.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(false);
   await page.reload();
   await expect(mine.locator(".pl-entered-lineup")).toHaveCount(2);
   for (const width of [1440, 390]) {
@@ -118,6 +120,8 @@ test("Recap and Play keep the current GW, compare all entered and best-plan line
   }
   await page.goto("/play?plan=1");
   await expect(page.locator(".pl-board-note")).toContainText("Plan 1");
+  await page.getByRole("link", { name: "Recommended plan", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Recommended plan", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Next gameweek", exact: true }).click();
   await expect(mine.locator(".pl-entered-lineup")).toHaveCount(0);
   await expect(mine).not.toContainText("Custom captain");

@@ -14,6 +14,7 @@ import { myWeeksQuietly } from "../../lib/myWeeksData";
 import { seasonWeeks } from "../../lib/myWeeks";
 import { weekContext } from "../../lib/weeks";
 import { recordedStart, savedStartGame, sideKey, withGameCrests } from "../../lib/playerScoreViews";
+import { missionOutcomes } from "../../lib/missionOutcomes";
 import { alternativeAddress } from "../../lib/planNavigation";
 
 export type AuditSearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -23,7 +24,7 @@ export default async function AuditPlace({ show, searchParams }: { show: AuditSh
   await connection(); // "updated 2 h ago" reads the clock
   // Everything the view needs is read at once: one wait, not one after another.
   const [data, { grid, meta }, system, league, sorare, loadedLog, myWeeks] = await Promise.all([
-    loadAudit(show !== "starts" && show !== "strategies"),
+    loadAudit(show !== "starts" && show !== "strategies" && show !== "missions"),
     loadGrid(),
     loadSystem(),
     import("../../lib/data/audit_league.json").then((m) => m.default as unknown as LeagueAudit),
@@ -58,6 +59,12 @@ export default async function AuditPlace({ show, searchParams }: { show: AuditSh
   const owned = RARITIES.filter((r) => sorare?.collection?.some((c) => c.rarity === r) || loadedLog.some((l) => Object.values(l.days).some((d) => d[r])));
   const logs = show === "missions" ? fillMissionDays(loadedLog, owned, new Date()) : [];
   const names = new Map((sorare?.collection ?? []).map((c) => [c.player, { name: c.name, pic: c.pic }]));
+  const missionHistories = owned.map(rarity => {
+    const days = missionHistory(logs, rarity, names, 10000);
+    const recent = new Set([...new Set(days.map(d => d.day))].slice(0, 30));
+    return { rarity, days, recent: days.filter(d => recent.has(d.day)) };
+  });
+  const outcomes = show === "missions" ? missionOutcomes(missionHistories) : undefined;
   const season = (sorare?.timeline ?? [])
     .filter((week) => week.status === "done")
     .map((week) => ({ slug: week.slug, number: week.number }))
@@ -74,8 +81,8 @@ export default async function AuditPlace({ show, searchParams }: { show: AuditSh
     <>
       <SiteNav meta={meta} system={system} week={show === "xscore" ? week : undefined} />
       <main className={show === "starts" ? "au au-starts-page" : "au"}>
-        <AuditView plansHref={plansHref} data={data} now={new Date()} league={league} show={show} season={season} saved={saved} pics={pics} playerWeek={playerWeek} playerWeekNumber={week.current?.number ?? null} playerWeeks={playerWeeks} startParams={Object.fromEntries(Object.entries(params).map(([key, value]) => [key, typeof value === "string" ? value : undefined]))} />
-        {show === "missions" ? <div className="pd-wrap">{owned.map((rarity) => <MissionHistory key={rarity} title={`${RARITY_NAME[rarity]} history`} days={missionHistory(logs, rarity, names)} rarity={rarity} collection={sorare?.collection ?? []} />)}</div> : null}
+        <AuditView missionOutcomes={outcomes} plansHref={plansHref} data={data} now={new Date()} league={league} show={show} season={season} saved={saved} pics={pics} playerWeek={playerWeek} playerWeekNumber={week.current?.number ?? null} playerWeeks={playerWeeks} startParams={Object.fromEntries(Object.entries(params).map(([key, value]) => [key, typeof value === "string" ? value : undefined]))} />
+        {show === "missions" ? <div className="pd-wrap">{owned.map((rarity) => <MissionHistory key={rarity} title={`${RARITY_NAME[rarity]} history`} days={missionHistories.find(h => h.rarity === rarity)!.recent} rarity={rarity} collection={sorare?.collection ?? []} />)}</div> : null}
       </main>
     </>
   );

@@ -1,4 +1,5 @@
 import MissionsAudit from "./MissionsAudit";
+import type { MissionOutcome } from "../../lib/missionOutcomes";
 import MatchAudit from "./MatchAudit";
 import VersusAudit from "./VersusAudit";
 import RewardsAudit from "./RewardsAudit";
@@ -30,6 +31,7 @@ export default function AuditView({
   playerWeeks = [],
   startParams = {},
   plansHref,
+  missionOutcomes,
 }: {
   data: Audit | null;
   now: Date;
@@ -45,6 +47,7 @@ export default function AuditView({
   playerWeeks?: PlayerScoreWeek[];
   startParams?: Record<string, string | undefined>;
   plansHref?: string;
+  missionOutcomes?: MissionOutcome[];
 }) {
   if (!data) {
     return (
@@ -73,9 +76,8 @@ export default function AuditView({
       <>
         <header className="au-top">
           <h1>Missions</h1>
-          {updated}
         </header>
-        <MissionsAudit missions={data.missions} />
+        <MissionsAudit missions={data.missions} outcomes={missionOutcomes} initialFilters={new URLSearchParams(Object.entries(startParams).flatMap(([key, value]) => ["mr", "ms", "mp", "mt", "me"].includes(key) && value ? [[key, value]] : [])).toString()} />
       </>
     );
   }

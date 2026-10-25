@@ -14,6 +14,8 @@ and a check, so a session can work through it alone and stop only where you have
 
 ## Next up (the one queue: read this first, update it in the same commit when an item ships)
 
+25 Oct owner request: redesign Play's header around entered versus recommended lineup risk and reward, after the [mission outcome alignment](mission-outcomes-and-play-comparison.md).
+
 23 Oct owner priority: Conference is released as an explicitly provisional FDR/xScore model,
 under [the owner-directed release contract](conference-release.md). All 36 clubs / 1,110 current players
 and the full six-round calendar are published (automatic refresh 39967133628); real desktop/mobile
@@ -578,6 +580,8 @@ the held-out weeks (P9 "The bar").
 ---
 
 ## Results
+
+- **25 Oct — Mission selection outcomes:** current history verdicts drive the matched-mission race, action chart and two segmented pick bars. Known picks count despite incomplete eligible-card ceilings or an older published overview; reward units and rarities remain separate. Original forecast accuracy stays in its own disclosure. [Contract and evidence](mission-outcomes-and-play-comparison.md).
 
 - **25 Oct — One Play recommendation:** the highest-expected-essence Sofix plan, with actual entered lineups above it and projected points/rewards visible. Other optimizer plans, Sorare projections, three strategy lenses and available hindsight live in Audit > Strategies > Plans; Results retains its podium/charts. Exact-GW navigation, old bookmarks, missing sources and readable phone choices are covered. [Contract and verification](single-play-plan.md).
 

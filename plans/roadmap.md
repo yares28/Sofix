@@ -14,8 +14,6 @@ and a check, so a session can work through it alone and stop only where you have
 
 ## Next up (the one queue: read this first, update it in the same commit when an item ships)
 
-25 Oct owner request: redesign Play's header around entered versus recommended lineup risk and reward, after the [mission outcome alignment](mission-outcomes-and-play-comparison.md).
-
 23 Oct owner priority: Conference is released as an explicitly provisional FDR/xScore model,
 under [the owner-directed release contract](conference-release.md). All 36 clubs / 1,110 current players
 and the full six-round calendar are published (automatic refresh 39967133628); real desktop/mobile
@@ -580,6 +578,8 @@ the held-out weeks (P9 "The bar").
 ---
 
 ## Results
+
+- **25 Oct - Entered versus recommended Play:** a shared header compares your actual entered lineups with Sofix using expected paid lineups, average no-reward risk and average projected points, with real card previews and explicit saved/custom/unknown states. The job's whole-plan chance and expected essence/cash stay separate; drafts do not enter the comparison. The header reuses the existing exact-GW read and score map. [Contract and verification](mission-outcomes-and-play-comparison.md).
 
 - **25 Oct — Mission selection outcomes:** current history verdicts drive the matched-mission race, action chart and two segmented pick bars. Known picks count despite incomplete eligible-card ceilings or an older published overview; reward units and rarities remain separate. Original forecast accuracy stays in its own disclosure. [Contract and evidence](mission-outcomes-and-play-comparison.md).
 

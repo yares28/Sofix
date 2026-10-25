@@ -37,6 +37,8 @@ import SeasonIcon from "../SeasonIcon";
 import LinkPending from "../LinkPending";
 import StrategyViews from "../audit/StrategyViews";
 import { planAddress } from "../../lib/planNavigation";
+import PlayComparison from "./PlayComparison";
+import { enteredPortfolio, planPortfolio } from "../../lib/playPortfolio";
 
 const madrid = (iso: string, options: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", ...options }).format(new Date(iso));
@@ -103,6 +105,7 @@ export default function PlayView({
   if (weekId) results.set("w", weekId); else results.set("gw", id);
 
   const sync = after || week.projected ? null : syncState(data, week, now);
+  const comparison = { heading: <Head data={data} week={week} now={now} sync={sync} dates={dates ?? null} title={title ?? null} comparison />, recommendation: planPortfolio(plan), early: Boolean(week.projected), played: week.played, action: plan && !after && !week.projected ? <ApplySheet lineups={enterable(plan.lineups)} week={week} rank={plan.rank} now={now.toISOString()} /> : undefined };
   const showModes = alternatives && week.played && Boolean(week.hindsight || week.plans.some(p => p.actual));
   // Sofix's plan or Sorare's: only for the week being planned, where both are made (the owner, 6 Oct 2026)
   const showSources = alternatives && !week.projected;
@@ -111,11 +114,12 @@ export default function PlayView({
   return (
     <main className={`pl-main${alternatives ? " pl-alternatives" : ""}`}>
       {alternatives ? <div className="pl-workspace-bar"><StrategyViews plans plansHref={href({})} resultsHref={`/audit/strategies?${results}`} /><Link className="pl-go" href={planAddress({ w: weekId, gw: id, alternatives: false })} prefetch={false}>Recommended plan<LinkPending /></Link></div> : null}
-      <section className="pl-top">
+      {!alternatives && week.projected ? <PlayComparison {...comparison} yours={enteredPortfolio([], new Map())} state="early" /> : null}
+      {alternatives || week.projected ? <section className={`pl-top${!alternatives ? " pc-early-note" : ""}`}>
         <div className={`pl-intro${sync?.behind ? " behind" : ""}`}>
-          <Head data={data} week={week} now={now} sync={sync} dates={dates ?? null} title={title ?? null} alternatives={alternatives} />
+          {alternatives ? <><Head data={data} week={week} now={now} sync={sync} dates={dates ?? null} title={title ?? null} alternatives />
           <Big week={week} plan={plan} after={after} now={now} />
-          {plan ? <PlanFacts plan={plan} after={after} /> : null}
+          {plan ? <PlanFacts plan={plan} after={after} /> : null}</> : null}
         </div>
         <aside className="pl-onsorare" aria-label="On Sorare">
           {week.projected ? (
@@ -136,8 +140,8 @@ export default function PlayView({
             </div>
           ) : null}
         </aside>
-      </section>
-      {!alternatives && !week.projected ? <EnteredLineups week={week.gameweek} forecast={forecast ?? week} scores={scores} /> : null}
+      </section> : null}
+      {!alternatives && !week.projected ? <EnteredLineups key={week.gameweek.slug} week={week.gameweek} forecast={forecast ?? week} scores={scores} comparison={comparison} /> : null}
       {sync?.alert ? (
         <div className={`pl-alert ${sync.state}`} role="status">
           <span aria-hidden="true">{sync.state === "cloudless" ? "!" : "⟳"}</span>
@@ -234,6 +238,7 @@ function Head({
   dates,
   title,
   alternatives = false,
+  comparison = false,
 }: {
   data: Sorare;
   week: GameweekPlan;
@@ -242,6 +247,7 @@ function Head({
   dates: string | null;
   title: string | null;
   alternatives?: boolean;
+  comparison?: boolean;
 }) {
   const { lock, start, end } = week.gameweek;
   const locked = new Date(lock) <= now;
@@ -254,10 +260,10 @@ function Head({
         : "Sorare · your gameweek";
   return (
     <header className="pl-head">
-      <p className="pl-eyebrow">
+      {comparison ? null : <p className="pl-eyebrow">
         <Foil rarity="limited" className="sm" />
         {alternatives ? "Audit / Strategies" : eyebrow}
-      </p>
+      </p>}
       <h1>{alternatives ? "Plan alternatives" : title ?? (week.projected ? week.gameweek.name : `Sorare GW${week.gameweek.number}`)}</h1>
       {alternatives ? <p className="pl-plan-week">{title ?? `Sorare GW${week.gameweek.number}`}</p> : null}
       <p className="pl-sub">
@@ -266,7 +272,7 @@ function Head({
         </span>
         <span className="dot" />
         <span className={`pl-lock${locked ? "" : " live"}`}>{lockText(lock, now)}</span>
-        {sync ? (
+        {comparison && sync?.chip === "locked" ? null : sync ? (
           <span className={`pl-chip ${sync.state}`}>
             <i />
             {sync.chip}

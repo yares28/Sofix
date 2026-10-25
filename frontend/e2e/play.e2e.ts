@@ -195,12 +195,19 @@ test("the gameweek opens on its best plan: the ring, both rewards and every line
   await expect(page.getByRole("group", { name: "Plan made from" })).toHaveCount(0);
   await expect(page.locator(".pl-board-note")).toContainText("Highest expected essence");
 
-  const facts = page.locator(".pl-facts .pl-fact");
+  const sofix = page.getByRole("region", { name: "Sofix lineup forecast", exact: true });
+  const expectedPaid = plan1.lineups.reduce((n,l) => n + l.pReturn, 0);
+  await expect(sofix.locator(".pc-potential strong")).toHaveText(`${new Intl.NumberFormat("en-GB", { maximumFractionDigits: 1 }).format(expectedPaid)}/${plan1.lineups.length}`);
+  await expect(sofix.locator(".pc-risk strong")).toHaveText(`${Math.round((1 - expectedPaid / plan1.lineups.length) * 100)}%`);
+  await expect(sofix.locator(".pc-detail")).toContainText("85% chance of any plan reward");
   await expect(page.locator(".pl-board-note")).toContainText("3 lineups");
+  // Detailed likelihood and allocation remain available in the alternative workspace.
+  await page.getByRole("link", { name: "Other plans & strategies", exact: true }).click();
+  const facts = page.locator(".pl-facts .pl-fact");
   await expect(facts.nth(0)).toHaveText("85% chance of a reward");
-  // A reward is all or nothing: the most likely result is to win nothing; a Room's fee is a cost, never taken off a result (6 Oct 2026).
   await expect(facts.nth(1)).toHaveText("Most likely nothing · 25% chance");
   await expect(facts.last()).toHaveText("19 of 38 cards used");
+  await page.getByRole("link", { name: "Recommended plan", exact: true }).click();
   await expect(page.locator(".pl-board .pl-alloc-key li")).toHaveText([
     "LALIGA EA SPORTS7 cards",
     "All Star7 cards",
@@ -422,7 +429,7 @@ test("the gameweek that was played shows what each lineup really scored and won"
   await page.locator(".wk-strip").getByRole("radio", { name: /GW15\b/ }).click();
   await expect(page).toHaveURL(addressOf(week15)); // the week's own address, which carries a suffix when a day is claimed twice
   await expect(page.getByRole("heading", { level: 1, name: /Sorare GW15$/ })).toBeVisible();
-  await expect(page.locator(".pl-eyebrow").first()).toContainText("Sorare · played");
+  await expect(page.locator(".pc-context")).toContainText("Recorded before kickoff");
 
   await page.getByRole("link", { name: "Other plans & strategies" }).click();
   await page.getByRole("group", { name: "Show" }).getByRole("link", { name: "After the games" }).click();
@@ -478,7 +485,7 @@ test("every gameweek of the season is in Play's picker, and one Sofix didn't kee
   await page.locator(".wk-strip").getByRole("radio", { name: new RegExp(`Sorare GW${old.number}\\b`) }).click();
   await expect(page).toHaveURL(new RegExp(`/play\\?w=${old.id}$`));
   await expect(page.getByRole("heading", { level: 1, name: new RegExp(`Sorare GW${old.number}$`) })).toBeVisible();
-  await expect(page.locator(".empty-state")).toContainText("Sofix didn't keep the plans for this gameweek");
+  await expect(page.locator(".pc-heading")).toContainText("Sofix didn't keep the plans for this gameweek");
 });
 
 test("a gameweek Sofix didn't keep still shows what you entered in it and what it won, read from Sorare", async ({ page, request }) => {
@@ -507,7 +514,7 @@ test("a week the job kept apart opens as the week that was played, with the best
   await page.locator(".wk-strip").getByRole("radio", { name: new RegExp(`Sorare GW${kept.number}\\b`) }).click();
 
   await expect(page.getByRole("heading", { level: 1, name: new RegExp(`Sorare GW${kept.number}$`) })).toBeVisible();
-  await expect(page.locator(".pl-eyebrow").first()).toContainText("Sorare · played");
+  await expect(page.locator(".pc-context")).toContainText("Recorded before kickoff");
   await page.getByRole("link", { name: "Other plans & strategies" }).click();
   await page.getByRole("group", { name: "Show" }).getByRole("link", { name: "After the games" }).click();
   await expect(page).toHaveURL(/after=1/);

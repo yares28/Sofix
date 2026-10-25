@@ -345,6 +345,8 @@ non-zero stats (`missions.settle_kept`). Old records and functions remain for hi
 
 ## 9. Optimizer/rewards
 
+Play's entered/recommended comparison (25 October 2026) reuses each exact-GW lineup's existing `pReturn` or custom `enteredScore` estimate. For N entered lineups, expected paid lineups = sum(pReturn), and average no-reward risk per lineup = 1 - sum(pReturn)/N. Linearity of expectation needs no new independence assumption. Paid means cash, essence or a card, excluding XP; drafts are excluded. If any lineup lacks a valid probability, the portfolio figures remain unknown with rated coverage. Average projected points require every lineup's forecast; zero remains a valid score/chance. The job's whole-plan `pAny` and expected essence/cash remain separate. The header and entered rows share one memoized forecast map and the existing selected-GW read, with no added source read or polling.
+
 Seeded beam search (width 120), 3,000 score draws and repeated temperature-weighted whole-week searches enforce slots,
 position/card/player uniqueness, rarity/in-season/club/cap rules, bonuses, captain and substitutes. A substitute is
 used only when protection exceeds sacrificed value. Rewards are all or nothing (a lineup reaching a tier's score gets that

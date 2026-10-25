@@ -13,6 +13,7 @@ import { loadSystem } from "../../lib/system";
 import { noPlan, pageWeeks, weekContext, weekDates, weekName } from "../../lib/weeks";
 import StrategyViews from "../audit/StrategyViews";
 import { alternativeAddress } from "../../lib/planNavigation";
+import { planPortfolio } from "../../lib/playPortfolio";
 import { withLineupRules } from "../../lib/lineupScores";
 import { loadPlanActuals } from "../../lib/planScoresData";
 
@@ -75,13 +76,13 @@ export default async function PlayPlace({ searchParams, alternatives = false }: 
         <SiteNav meta={meta} system={system} week={navWeek} />
         <main className="pl-main">
           {emptyNavigation}
-          <section className="card empty-state" role="status">
+          {alternatives || !said.lineups ? <section className="card empty-state" role="status">
             <h1>{alternatives ? "Plan alternatives" : said.heading}</h1>
             {alternatives ? <h2>{said.heading}</h2> : null}
             <p>{said.says}</p>
-          </section>
+          </section> : null}
           {/* What you entered and won is readable from Sorare whenever it has the gameweek, whether or not Sofix holds a plan. */}
-          {!alternatives && said.lineups ? <EnteredLineups week={{ ...said.lineups, end: item?.end }} /> : null}
+          {!alternatives && said.lineups ? <EnteredLineups key={said.lineups.slug} week={{ ...said.lineups, end: item?.end }} comparison={{ heading: <header className="pl-head"><h1>{said.heading}</h1><p className="pl-sub">{said.says}</p></header>, recommendation: planPortfolio(null) }} /> : null}
         </main>
       </>
     );

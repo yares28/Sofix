@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import PlayComparison, { type PlayComparisonProps } from "./PlayComparison";
+import { enteredPortfolio } from "../../lib/playPortfolio";
 import { cannot } from "../../lib/apply";
 import { pendingLine, proLine, resultLine, type GameweekLineup, type WeekLineupsAnswer } from "../../lib/entered";
 import { readEnteredWeek, type EnteredRead } from "../../lib/myWeeksClient";
@@ -18,7 +20,7 @@ type LoadState =
 
 /** Lineups the signed-in manager actually put on Sorare, read from this exact Sorare gameweek. */
 /** `scores`: the week's own player scores (lib/planScoresData.ts), so a card shows his score apart from its bonuses. */
-export default function EnteredLineups({ week, forecast = null, variant = "play", scores = {} }: { week: Week; forecast?: GameweekPlan | null; variant?: "play" | "recap"; scores?: ActualScores }) {
+export default function EnteredLineups({ week, forecast = null, variant = "play", scores = {}, comparison }: { week: Week; forecast?: GameweekPlan | null; variant?: "play" | "recap"; scores?: ActualScores; comparison?: PlayComparisonProps }) {
   const [load, setLoad] = useState<LoadState>({ state: "loading", lineups: [] });
   const [asked, setAsked] = useState(0); // a new ask: Check again, or coming back to this tab
   const last = useRef<{ slug: string; lineups: GameweekLineup[] } | null>(null);
@@ -55,6 +57,8 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
     return () => document.removeEventListener("visibilitychange", again);
   }, []);
 
+  const estimates = useMemo(() => new Map(load.lineups.map(lineup => [lineup.id, enteredScore(lineup, forecast, week.slug)])), [load.lineups, forecast, week.slug]);
+
   const now = new Date(); // only read once the lineups are in, which happens in the browser
   const entered = load.lineups.filter((lineup) => !lineup.draft).length;
   const drafts = load.lineups.length - entered;
@@ -81,6 +85,8 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
   const checked = load.state === "ready" ? new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(load.at) : null;
 
   return (
+    <>
+    {comparison ? <PlayComparison {...comparison} yours={enteredPortfolio(load.lineups, estimates)} state={load.state === "ready" && load.saved ? "saved" : load.state} /> : null}
     <section className={variant === "recap" ? "rc-entered" : "pl-entered"} aria-labelledby="entered-lineups-title">
       <div className="pl-entered-head">
         <div>
@@ -134,7 +140,7 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
         <div className="pl-entered-list">
           {load.lineups.map((lineup) => {
             const pending = pendingLine(lineup, week.lock, now);
-            const expected = enteredScore(lineup, forecast, week.slug);
+            const expected = estimates.get(lineup.id)!;
             const options = forecast?.gameweek.slug === week.slug ? forecast.plans.flatMap(p => p.lineups) : [];
             const known = new Map(options.flatMap(l => [...l.starters, ...l.subs]).map(c => [c.slug, c]));
             const players = new Map(forecast?.gameweek.slug === week.slug ? forecast.playing.players.map(p => [p.player, p]) : []);
@@ -182,5 +188,6 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
         </div>
       ) : null}
     </section>
+    </>
   );
 }

@@ -1,6 +1,7 @@
 import { revalidateTag } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
 import { database } from "../../../lib/db";
+import { putBlock } from "../../../lib/r2";
 import { weekWon } from "../../../lib/entered";
 import { ENTERED_WEEK_PREFIX, finished, MY_WEEK_PREFIX, MY_WEEKS_TAG, WeekBody, withScoring, type SavedWeek } from "../../../lib/myWeeks";
 import { loadEnteredSnapshots, loadMyWeeks } from "../../../lib/myWeeksData";
@@ -45,6 +46,7 @@ export async function POST(request: NextRequest) {
       lineups: selected.map((lineup) => ({ ...lineup, cards: lineup.cards.map((card) => ({ ...card, player: players.get(card.slug) ?? card.player ?? null })) })) };
     if (!archived) {
       await sql`INSERT INTO read_models (key, payload, updated_at) VALUES (${`${ENTERED_WEEK_PREFIX}${slug}`}, ${JSON.stringify(payload)}::jsonb, CURRENT_TIMESTAMP) ON CONFLICT (key) DO UPDATE SET payload = EXCLUDED.payload, updated_at = EXCLUDED.updated_at`;
+      await putBlock(`${ENTERED_WEEK_PREFIX}${slug}`, payload, new Date()); // pages read R2 alone
       revalidateTag(MY_WEEKS_TAG);
       return NextResponse.json({ ok: true, archived: false, savedAt: payload.savedAt }, { headers });
     }
@@ -56,11 +58,13 @@ export async function POST(request: NextRequest) {
       if (enriched !== old.lineups) {
         const updated = { ...old, lineups: enriched };
         // Compare-and-swap: concurrent reads cannot overwrite another tab's saved metadata or results.
-        await sql`UPDATE read_models SET payload = ${JSON.stringify(updated)}::jsonb, updated_at = CURRENT_TIMESTAMP WHERE key = ${key} AND payload::jsonb = ${JSON.stringify(old)}::jsonb`;
+        const swapped = await sql`UPDATE read_models SET payload = ${JSON.stringify(updated)}::jsonb, updated_at = CURRENT_TIMESTAMP WHERE key = ${key} AND payload::jsonb = ${JSON.stringify(old)}::jsonb RETURNING key`;
+        if (swapped.length) await putBlock(key, updated, new Date());
       }
     }
     // The first complete post wins atomically, including two browser tabs saving at once.
-    await sql`INSERT INTO read_models (key, payload, updated_at) VALUES (${`${MY_WEEK_PREFIX}${slug}`}, ${JSON.stringify(payload)}::jsonb, CURRENT_TIMESTAMP) ON CONFLICT (key) DO NOTHING`;
+    const first = await sql`INSERT INTO read_models (key, payload, updated_at) VALUES (${key}, ${JSON.stringify(payload)}::jsonb, CURRENT_TIMESTAMP) ON CONFLICT (key) DO NOTHING RETURNING key`;
+    if (first.length) await putBlock(key, payload, new Date());
     revalidateTag(MY_WEEKS_TAG); revalidateTag("audit");
     return NextResponse.json({ ok: true, archived: true, savedAt: payload.savedAt }, { headers });
   } catch { return NextResponse.json({ error: "Could not save this week. Your existing weeks are kept." }, { status: 503, headers }); }

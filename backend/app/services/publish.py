@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from datetime import UTC, datetime
 from typing import Any
 
@@ -18,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.models import ReadModel, RefreshRun
 from app.schemas import ApiResponse, FixtureGrid
-from app.services import data_health, r2
+from app.services import data_health, player_blocks, r2
 from app.services.fixture_grid import build_fixture_grid, grid_meta
 from app.services.kept_matches import match_audit
 
@@ -102,8 +103,34 @@ def publish_all(db: Session) -> dict[str, Any]:
     return {"grid": publish_grid(db, now), "system": publish_system(db, now)}
 
 
+def publish_to_r2() -> dict[str, Any]:
+    """A job's last step, before the app reloads: R2 holds every block's newest version, the players' game histories and
+    the recent runs, so pages never read Neon (plans/neon-write-mostly.md). Never fails the job."""
+    if not r2.configured():
+        return {}
+    from app.db import SessionLocal
+    from app.sorare import games_mirror
+
+    out: dict[str, Any] = {}
+    try:
+        with SessionLocal() as db:
+            out["sync"] = r2.sync(db)
+            out["runs"] = r2.put_block(
+                player_blocks.RUNS_KEY,
+                {"runs": player_blocks.recent_runs(db), "latest": player_blocks.latest_run(db)},
+                datetime.now(UTC),
+            )
+            if os.environ.get("PLAYER_GAMES_MIRROR"):  # without the copy, the histories would come from Neon in full
+                out["players"] = player_blocks.publish(db, games_mirror.view(db))
+    except Exception as error:  # noqa: BLE001 - the pages keep the versions R2 already has
+        logger.warning("R2 publish failed: %s", type(error).__name__)
+    logger.info("R2 publish: %s", out)
+    return out
+
+
 def notify_app(app_url: str, secret: str, bypass: str = "", client: httpx.Client | None = None) -> str:
-    """Ask the web app to drop its cached pages. Never logs the URL's secrets (they travel in headers)."""
+    """Bring R2 up to date, then ask the web app to drop its cached pages. Never logs the URL's secrets (headers)."""
+    publish_to_r2()
     if not app_url or not secret:
         return "skipped: APP_URL or REVALIDATE_SECRET is not set"
     headers = {"Authorization": f"Bearer {secret}"}

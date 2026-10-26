@@ -2,7 +2,9 @@
   "name": "sofix-web",
   "private": true,
   "scripts": {
+    "predev": "node --experimental-strip-types --no-warnings scripts/blocks.mjs --daily",
     "dev": "next dev -H 127.0.0.1",
+    "blocks": "node --experimental-strip-types --no-warnings scripts/blocks.mjs",
     "build": "next build",
     "start": "next start -H 127.0.0.1",
     "test": "vitest run",

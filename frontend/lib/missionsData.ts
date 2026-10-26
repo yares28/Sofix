@@ -1,5 +1,5 @@
 import { cache } from "./cache";
-import { database, readModel } from "./db";
+import { published, readModel } from "./db";
 import { MISSIONS_TAG, type MissionsModel } from "./missions";
 
 // Local development and the browser tests have no Neon: they ask the stand-in API instead.
@@ -8,7 +8,7 @@ const API_BASE = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
 /** The daily missions the extension last read from the Missions page of Sorare, per rarity (`read_models` key `missions`), or null when it never has. */
 const cached = cache(
   async (): Promise<MissionsModel | null> => {
-    if (database()) {
+    if (published()) {
       const row = await readModel<MissionsModel>("missions");
       return row?.payload ?? null;
     }

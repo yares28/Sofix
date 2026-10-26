@@ -1,4 +1,5 @@
-import { database, readModelAt, stamp } from "./db";
+import { database, published, readModelAt } from "./db";
+import { blockVersions } from "./r2";
 import { cache } from "./cache";
 import { isToday, missionCandidates, missionDay, MISSIONS_TAG, plan, ruleOf, type MissionPick, type MissionRow, type MissionsModel, type Rule, type Suggestion, type SuggestionMode } from "./missions";
 import { MISSION_RARITIES as RARITIES } from "./missions";
@@ -356,13 +357,14 @@ export function missionHistory(logs: MonthLog[], rarity: string, names: Map<stri
 // Local development and the browser tests have no Neon: they ask the stand-in API instead.
 const API_BASE = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
 
-/** Which log rows exist and when each was written; five minutes, so a page view does not wake Neon each time. */
+/** Which log rows exist and each one's version (R2 listings); five minutes, so a page view does not ask R2 each time. */
 const logIndex = cache(
   async (): Promise<{ key: string; at: string }[]> => {
-    const rows = (await database()!`SELECT key, updated_at FROM read_models WHERE key LIKE ${`${LOG_PREFIX}%`} OR key LIKE ${`${DAY_PREFIX}%`} OR key LIKE 'missions_edit:%' ORDER BY key DESC LIMIT 500`) as { key: string; updated_at: string | Date }[];
-    return rows.map((r) => ({ key: r.key, at: stamp(r.updated_at) }));
+    const lists = await Promise.all([LOG_PREFIX, DAY_PREFIX, "missions_edit:"].map((prefix) => blockVersions(prefix)));
+    const rows = lists.flatMap((list) => [...list].map(([key, at]) => ({ key, at })));
+    return rows.sort((a, b) => b.key.localeCompare(a.key)).slice(0, 500);
   },
-  ["missions-log-index-v1"],
+  ["missions-log-index-v2"],
   { tags: [MISSIONS_TAG, "sorare"], revalidate: 300 },
 );
 
@@ -371,7 +373,7 @@ const logIndex = cache(
  * which made every view download them all from Neon again; each row is now read once per change (readModelAt in lib/db.ts).
  */
 async function cachedLog(keep: (key: string) => boolean = () => true): Promise<MonthLog[]> {
-  if (database()) {
+  if (published()) {
     const rows = (await Promise.all((await logIndex()).filter(({ key }) => keep(key)).map(async ({ key, at }) => ({ key, payload: (await readModelAt(key, at)) as MonthLog | MissionEdits | null })))).filter((r) => r.payload);
     const logs = rows.filter((r) => !r.key.startsWith("missions_edit:")).sort((a, b) => Number(a.key.startsWith(DAY_PREFIX)) - Number(b.key.startsWith(DAY_PREFIX))).map((r) => r.payload as MonthLog);
     return applyMissionEdits(logs, rows.filter((r) => r.key.startsWith("missions_edit:")).map((r) => r.payload as MissionEdits));

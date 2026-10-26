@@ -1,7 +1,9 @@
 import atexit
 import json
 import logging
+import os
 from collections import defaultdict
+from collections.abc import Mapping
 from typing import Any
 
 import certifi
@@ -96,6 +98,21 @@ def _at_exit() -> None:
 engine = create_engine(settings.postgres_url, pool_pre_ping=True, **_options(settings.postgres_url))
 if not settings.postgres_url.startswith("sqlite"):  # once the engine exists: its exit writes the ledger row
     atexit.register(_at_exit)
+
+
+def production_allowed(env: Mapping[str, str] = os.environ) -> bool:
+    """Only GitHub's jobs reach production Neon on their own. A local run (an agent's script, a job started by hand)
+    must say so with SOFIX_PRODUCTION=1, so nothing local reads production by accident (plans/neon-write-mostly.md)."""
+    return bool(env.get("GITHUB_ACTIONS")) or env.get("SOFIX_PRODUCTION") == "1"
+
+
+@event.listens_for(engine, "do_connect")
+def _refuse_production_locally(dialect: Any, conn_rec: Any, cargs: Any, cparams: Any) -> None:
+    if not settings.postgres_url.startswith("sqlite") and not production_allowed():
+        raise RuntimeError(
+            "Local runs do not reach production Neon: read the local copy (npm run blocks), or set SOFIX_PRODUCTION=1 "
+            "for one deliberate read (plans/neon-write-mostly.md)."
+        )
 
 
 @event.listens_for(engine, "before_cursor_execute")

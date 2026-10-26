@@ -1,7 +1,7 @@
 import { revalidateTag } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
-import { database } from "../../../lib/db";
-import { dispatchRefresh, latestWorkflowRun, toRefreshStatus, type DbRun } from "../../../lib/github";
+import { database, readModel } from "../../../lib/db";
+import { ACTIVE, dispatchRefresh, latestWorkflowRun, toRefreshStatus, type DbRun } from "../../../lib/github";
 import { fetchNextLock, shouldRefreshNearLock } from "../../../lib/nearLock";
 import { GRID_TAG, isSameOriginRequest } from "../../../lib/refresh";
 import { SYSTEM_TAG } from "../../../lib/system";
@@ -24,7 +24,9 @@ function failure(status: number, error: string): NextResponse {
   return reply(status, { success: false, data: null, error });
 }
 
-async function latestDbRun(): Promise<DbRun | null> {
+/** The last run: from the block the jobs publish (R2), or from Neon only while GitHub says a run is going (its live step). */
+async function latestDbRun(running: boolean): Promise<DbRun | null> {
+  if (!running) return (await readModel<{ latest?: DbRun | null }>("refresh_runs").catch(() => null))?.payload.latest ?? null;
   const sql = database();
   if (!sql) return null;
   const rows = (await sql`
@@ -40,7 +42,8 @@ async function latestDbRun(): Promise<DbRun | null> {
 }
 
 async function currentStatus(token: string) {
-  const [workflow, db] = await Promise.all([latestWorkflowRun(token), latestDbRun()]);
+  const workflow = await latestWorkflowRun(token);
+  const db = await latestDbRun(Boolean(workflow && ACTIVE.has(workflow.status)));
   return { workflow, status: toRefreshStatus(workflow, db, Date.now()) };
 }
 

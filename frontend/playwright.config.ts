@@ -44,8 +44,10 @@ export default defineConfig({
         GITHUB_API_URL: `http://127.0.0.1:${MOCK_PORT}/github`,
         GITHUB_REPO: "e2e/sofix",
         REVALIDATE_SECRET: E2E_REVALIDATE_SECRET,
-        // Empty on purpose: overrides any DATABASE_URL in .env.local, so tests never reach Neon.
+        // Empty on purpose: overrides .env.local, so tests never reach Neon, R2 or the local copy of the blocks.
         DATABASE_URL: "",
+        SOFIX_BLOCKS_DIR: "",
+        R2_ACCOUNT_ID: "",
         NEXT_DIST_DIR: production ? ".next" : ".next-e2e", // separate from the dev server's .next
         NEXT_TELEMETRY_DISABLED: "1",
       },

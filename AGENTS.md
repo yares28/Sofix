@@ -19,7 +19,7 @@ signed-in sorare.com <─> allowlisted Chrome extension <─> Next.js extension 
 ```
 
 Production does not run FastAPI continuously. It is the local/typed API fallback. Python publishes `grid`, `system`,
-`sorare`, `sorare_references`; Next.js reads with server-only `DATABASE_URL`.
+`sorare`, `sorare_references`; pages read those blocks from Cloudflare R2 only, and Next.js writes with server-only `DATABASE_URL`.
 
 | Area | Where |
 |---|---|
@@ -87,8 +87,8 @@ any global habit of branches, pull requests, CI waits or review subagents.
    `origin/main`, rewrites formatting and generated files itself, and prints one line per step. A behavior change also
    needs its own test first (a bug fix: the failing regression test).
 3. **UI change (any visible change):** run the changed page's spec (`npx playwright test e2e/<page>.e2e.ts`, add
-   `e2e/mobile.e2e.ts` when the layout moved), then open the page on the local dev server, which reads the real read
-   models (`npm run dev`), in the owner's open Chrome, at 1440 px and 390 px: screenshot both and check them
+   `e2e/mobile.e2e.ts` when the layout moved), then open the page on the local dev server, which reads a local copy of the real read
+   models (`npm run dev`; `npm run blocks` copies today's), in the owner's open Chrome, at 1440 px and 390 px: screenshot both and check them
    against the design bar in CLAUDE.md (one hero, real cards and crests, text floor, no horizontal overflow). A new or
    restyled screen also gets the `web-design-guidelines` pass on its files. The full browser suite runs locally only when
    shared code moved (the app shell, nav, `lib/weeks.ts`, the e2e mock); otherwise CI runs it after the push.
@@ -270,7 +270,7 @@ which are out of quota, and what each has sent this month):
 - Never point anything at one project by hand: code reads through `database()` (`frontend/lib/db.ts`), jobs get
   `POSTGRES_URL` from the "Pick the live Neon project" step. A project answering 402 is normal, not a bug to fix.
 - New page reads go through `readModel`/`readModelAt`, never `SELECT payload` in a loader or a polled route; anything
-  that runs on focus, visibility or a timer must be throttled to minutes. Watch the dev server's `[neon] ... MB` lines.
+  that runs on focus, visibility or a timer must be throttled to minutes. Pages read blocks, never Neon (`readModel`, lib/r2.ts).
 - One real-data dev server at a time. Load scripts, Playwright against real data or perf loops run on mock data.
 - `read_models` keys `neon_live` and `neon_status` belong to the switch: never delete or reuse them.
 - Never delete, reset or upgrade a project, create one, or change the spare settings without the owner.
@@ -294,13 +294,17 @@ GitHub also needs `NEON_API_KEY` (an organization key) for the move.
   from a copy kept in GitHub's cache (`PLAYER_GAMES_MIRROR`, `app/sorare/games_mirror.py`), fetching only changed players;
   each refresh step records `neonMB`, each job logs its total, and Vercel logs `[neon]` reads over 50 kB.
 - **Page blocks on Cloudflare R2 (20 Oct 2026):** `put` also stores each written block as `blocks/<key>.json` =
-  {updatedAt, payload} in the private bucket `sofix-pages` (`backend/app/services/r2.py`); the web app reads it there
-  first (`frontend/lib/r2.ts`) and falls back to Neon when R2 lacks the version Neon names (a failed upload, or a block
-  written another way). Settings `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`: GitHub has the
+  {updatedAt, payload} in the private bucket `sofix-pages` (`backend/app/services/r2.py`). Since 26 Oct pages read R2
+  alone, keyed on each block's ETag (`frontend/lib/r2.ts`): no page view reads Neon. Every job's last step
+  (`publish.publish_to_r2`, run by `notify_app`) copies blocks written another way, deletes gone ones and publishes
+  `player_games:<slug>` and `refresh_runs`; the web app's own writes upload theirs with the optional `R2_WRITE_*` key.
+  Settings `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`: GitHub has the
   read-write token, Vercel the read token; values in the git-ignored `.env.r2`. Neon still keeps every payload.
-- **Local:** `frontend/.env.local` has `DATABASE_URL` (Sofix) and `DATABASE_URL_SPARE` (FDR, Sofix B, Sofix C).
-- **Check usage:** `node scripts/check.mjs --live` prints what the last refresh read from Neon's API (`read_models` key
-  `neon_status` in the live project; FAIL with a note when `NEON_API_KEY` gave nothing, which means no move can happen),
+- **Local (26 Oct 2026):** no local setting holds a production database address. `npm run dev` reads the local copy of
+  the blocks (`SOFIX_BLOCKS_DIR`, filled from R2 by `npm run blocks`, daily before `dev`); a local Python run refuses
+  Neon unless `SOFIX_PRODUCTION=1`. A deliberate read: [plans/neon-write-mostly.md](plans/neon-write-mostly.md) §4.
+- **Check usage:** `node scripts/check.mjs --live` prints what the last refresh read from Neon's API (block
+  `neon_status`, read from R2; FAIL with a note when `NEON_API_KEY` gave nothing, which means no move can happen),
   or Neon's `describe_project` (`data_transfer_bytes`; it lags by hours).
 
 The 14 Oct drain (localhost re-reading payloads, ~1 MB a second) and its fixes are written up in

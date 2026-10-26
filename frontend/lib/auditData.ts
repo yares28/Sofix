@@ -1,6 +1,6 @@
 import { cache } from "./cache";
 import { AUDIT_KEY, readable, type Audit } from "./audit";
-import { database, readModel } from "./db";
+import { published, readModel } from "./db";
 import { SORARE_TAG } from "./play";
 import { loadMissionLog, missionHistory } from "./missionLog";
 
@@ -13,7 +13,7 @@ const API_BASE = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
  */
 const cachedAudit = cache(
   async (): Promise<Audit | null> => {
-    if (database()) {
+    if (published()) {
       const row = await readModel(AUDIT_KEY);
       return readable(row?.payload);
     }
@@ -33,7 +33,7 @@ export async function loadAudit(includeMissionResults = true): Promise<Audit | n
     // added. The defaults are applied to it here, never only before it is stored.
     const cached = await cachedAudit();
     const data = cached ? readable(structuredClone(cached)) : null;
-    if (data && includeMissionResults && database()) {
+    if (data && includeMissionResults && published()) {
       const logs = await loadMissionLog();
       const rarities = [...new Set(logs.flatMap((l) => Object.values(l.days).flatMap((d) => Object.keys(d))))];
       const history = rarities.flatMap((r) => missionHistory(logs, r, new Map(), 10000).map((d) => ({ ...d, rarity: r })));

@@ -2,7 +2,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import fixture from "../e2e/fixtures/audit-response.json";
 
 vi.mock("./cache", () => ({ cache: (fn: unknown) => fn }));
-vi.mock("./db", () => ({ database: () => ({}), readModel: vi.fn() }));
+vi.mock("./db", () => ({ published: () => true, readModel: vi.fn() }));
 vi.mock("./missionLog", () => ({ loadMissionLog: vi.fn(), missionHistory: vi.fn(() => []) }));
 import { readModel } from "./db";
 import { loadMissionLog, missionHistory } from "./missionLog";

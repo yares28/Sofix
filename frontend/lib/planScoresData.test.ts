@@ -1,8 +1,16 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import type { GameweekPlan } from "./play";
 
+// The rows as the players' published histories hold them (lib/playerGames.ts loadPlayerHistories).
+type Row = { player: string; game_id: string; score: number | null; played: boolean | null; status: string };
 const { sql } = vi.hoisted(() => ({ sql: vi.fn() }));
-vi.mock("./db", () => ({ database: () => sql }));
+vi.mock("./db", () => ({ published: () => true }));
+vi.mock("./playerGames", () => ({
+  loadPlayerHistories: async (slugs: string[]) => {
+    const rows = (await sql(slugs)) as Row[];
+    return new Map(slugs.map((slug) => [slug, { absences: [], games: rows.filter((r) => r.player === slug) }]));
+  },
+}));
 vi.mock("./cache", () => ({ cache: (fn: unknown) => fn }));
 import { loadPlanActuals } from "./planScoresData";
 
@@ -27,7 +35,7 @@ it("joins the selected GW's exact player/game identities, takes the best double 
   ]);
   expect(await loadPlanActuals(week())).toEqual(withPlayers({ "card-a": { score: 70, played: true, complete: true }, "card-b": { score: 0, played: true, complete: true } }));
   expect(sql).toHaveBeenCalledTimes(1);
-  expect(sql.mock.calls[0]![1]).toEqual(["g1", "g2", "g3"]);
+  expect(sql.mock.calls[0]![0]).toEqual(["a", "b", "c", "d"]);
 });
 it("keeps partial doubles, distinguishes confirmed DNP from missing, and rejects contradictory DNP", async () => {
   sql.mockResolvedValue([

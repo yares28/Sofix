@@ -1,4 +1,5 @@
 import { database } from "./db";
+import { putBlock } from "./r2";
 
 /** Optimistic per-record merge. A job/import/edit never replaces a concurrent writer's fields. */
 export async function mergeMissionRecord<T>(key: string, merge: (before: T | null) => T): Promise<T> {
@@ -12,7 +13,10 @@ export async function mergeMissionRecord<T>(key: string, merge: (before: T | nul
     const changed = before === null
       ? await sql`INSERT INTO read_models (key, payload, updated_at) VALUES (${key}, ${JSON.stringify(next)}::json, now()) ON CONFLICT (key) DO NOTHING RETURNING key`
       : await sql`UPDATE read_models SET payload = ${JSON.stringify(next)}::json, updated_at = now() WHERE key = ${key} AND payload::jsonb = ${JSON.stringify(before)}::jsonb RETURNING key`;
-    if (changed.length) return next;
+    if (changed.length) {
+      await putBlock(key, next, new Date()); // pages read R2 alone
+      return next;
+    }
   }
   throw new Error("Missions changed while saving; retry");
 }

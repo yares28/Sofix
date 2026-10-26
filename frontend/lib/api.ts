@@ -1,6 +1,6 @@
 import { cache } from "./cache";
 import { isDatabasePaused } from "./control";
-import { database, readModel } from "./db";
+import { published, readModel } from "./db";
 import { GRID_TAG } from "./refresh";
 import { GridResponseSchema } from "./schema";
 import type { FixtureGrid, GridMeta } from "./types";
@@ -46,7 +46,7 @@ function toGrid(json: unknown): { grid: FixtureGrid; meta: GridMeta | null } {
  */
 const cachedGrid = cache(
   async (competition: Competition): Promise<{ grid: FixtureGrid; meta: GridMeta | null }> => {
-    if (database()) {
+    if (published()) {
       const row = await readModel(competition === "PD" ? "grid" : `grid:${competition}`);
       if (!row) throw new GridUnavailable(MESSAGES.empty);
       const result = toGrid(row.payload);

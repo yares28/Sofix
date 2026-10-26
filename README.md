@@ -61,7 +61,8 @@ fallback. The Python job publishes complete page models to Neon and revalidates 
 ## Run locally
 
 Requirements: Python 3.11, Node.js/npm, and Chrome for browser tests. Copy `.env.example` to `.env`; never commit
-real values. Without `DATABASE_URL`, Next.js falls back to local FastAPI.
+real values. `npm run dev` reads the local copy of the published blocks (`npm run blocks`, `SOFIX_BLOCKS_DIR` in
+`frontend/.env.local`); without it, Next.js falls back to local FastAPI.
 
 ```powershell
 cd backend

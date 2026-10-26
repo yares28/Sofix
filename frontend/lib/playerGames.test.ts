@@ -3,8 +3,9 @@ import { loadPlayerGames, loadPlayerSheets } from "./playerGames";
 import { seasonSummary, type SavedGame } from "./playerHistory";
 
 vi.mock("./cache", () => ({ cache: (fn: unknown) => fn }));
-vi.mock("./db", () => ({ database: vi.fn(), readModel: vi.fn() }));
-import { database, readModel } from "./db";
+vi.mock("./db", () => ({ published: vi.fn(), readModel: vi.fn(), readModelAt: vi.fn() }));
+vi.mock("./r2", () => ({ blockVersions: vi.fn() }));
+import { published, readModel } from "./db";
 
 const game = (over: Partial<SavedGame> = {}): SavedGame => ({
   game_id: "g", date: "2026-09-01T19:00:00Z", competition: "laliga-es", home: "Home", away: "Away", status: "FINAL",
@@ -13,14 +14,13 @@ const game = (over: Partial<SavedGame> = {}): SavedGame => ({
 beforeEach(() => { vi.resetAllMocks(); });
 
 describe("saved player history", () => {
-  it("normalizes Neon timestamp objects before player history reaches the page", async () => {
-    const date = new Date("2026-10-01T19:00:00Z");
-    const sql = vi.fn().mockResolvedValueOnce([{ ...game(), date, read_at: date }])
-      .mockResolvedValueOnce([{ id: 1, first_seen: date, last_seen: date, back: null }]);
-    vi.mocked(database).mockReturnValue(sql as unknown as NonNullable<ReturnType<typeof database>>);
+  it("shows a published game once it has started, and every absence", async () => {
+    vi.mocked(published).mockReturnValue(true);
+    const absence = { id: 1, kind: "out", cause: null, first_seen: "2026-10-01T00:00:00Z", last_seen: "2026-10-02T00:00:00Z", back: null };
+    vi.mocked(readModel).mockResolvedValue({ payload: { games: [game({ game_id: "later", date: "2999-01-01T19:00:00Z" }), game()], absences: [absence] }, updatedAt: "x" });
     const history = await loadPlayerGames("abdul-mumin");
-    expect(history?.games[0]).toMatchObject({ date: date.toISOString(), read_at: date.toISOString() });
-    expect(history?.absences[0]).toMatchObject({ first_seen: date.toISOString(), last_seen: date.toISOString(), back: null });
+    expect(history?.games.map((g) => g.game_id)).toEqual(["g"]);
+    expect(history?.absences).toEqual([absence]);
   });
   it("counts this season's appearances, LaLiga yellows and each source's miss on known starts only", () => {
     const summary = seasonSummary([game(), game({ game_id: "2", yellow: 3, score: 70 }), game({ started: false, score: 20, yellow: 0 }), game({ competition: "premier-league-gb", yellow: 2 }), game({ played: false, started: false, score: 0, yellow: 0 }), game({ status: "PENDING", score: 99 }), game({ date: "2026-06-30T19:00:00Z", yellow: 5 })], new Date("2026-10-08"));
@@ -35,22 +35,24 @@ describe("saved player history", () => {
     const summary = seasonSummary([game({ score: null, started: null, played: null, yellow: null }), game({ sofix_x: null, sorare_x: null })], new Date("2026-10-08"));
     expect(summary).toMatchObject({ games: 1, starts: 1, average: 60, yellows: 1, yellowComplete: false, sofix: null, sorare: null });
   });
-  it("reads parameterized games and absences and validates a slug before querying", async () => {
-    const sql = vi.fn().mockResolvedValueOnce([game()]).mockResolvedValueOnce([]);
-    vi.mocked(database).mockReturnValue(sql as unknown as NonNullable<ReturnType<typeof database>>);
+  it("reads the player's own block and validates a slug before reading", async () => {
+    vi.mocked(published).mockReturnValue(true);
+    vi.mocked(readModel).mockResolvedValue({ payload: { games: [game()], absences: [] }, updatedAt: "x" });
     expect((await loadPlayerGames("a-player"))?.games).toEqual([game()]);
-    expect(sql.mock.calls[0]!.slice(1)).toContain("a-player");
+    expect(readModel).toHaveBeenCalledWith("player_games:a-player");
     expect(await loadPlayerGames("../bad")).toBeNull();
-    expect(sql).toHaveBeenCalledTimes(2);
+    expect(readModel).toHaveBeenCalledTimes(1);
   });
   it("uses the daily sheet read model and keeps missing history distinct from an empty history", async () => {
-    vi.mocked(database).mockReturnValue(vi.fn() as unknown as NonNullable<ReturnType<typeof database>>);
+    vi.mocked(published).mockReturnValue(true);
     const sheets = { asOf: "2026-10-07", players: {} };
     vi.mocked(readModel).mockResolvedValue({ payload: sheets, updatedAt: "2026-10-08" });
     expect(await loadPlayerSheets()).toEqual(sheets);
     expect(readModel).toHaveBeenCalledWith("player_sheets");
-    vi.mocked(database).mockReturnValue(vi.fn().mockRejectedValue(new Error("unavailable")) as unknown as NonNullable<ReturnType<typeof database>>);
+    vi.mocked(readModel).mockRejectedValue(new Error("unavailable"));
     expect(await loadPlayerGames("a-player")).toBeNull();
+    vi.mocked(readModel).mockResolvedValue(null);
+    expect(await loadPlayerGames("a-player")).toEqual({ games: [], absences: [] });
   });
 });
 

@@ -18,6 +18,7 @@ import json
 import logging
 import os
 import sys
+from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -26,6 +27,7 @@ import psycopg
 from psycopg import sql
 
 from app.logging_config import configure_logging
+from app.services import r2
 
 logger = logging.getLogger(__name__)
 
@@ -204,6 +206,8 @@ def write_status(
             )
     except psycopg.Error as error:
         logger.warning("could not keep the Neon status: %s", str(error).splitlines()[0][:120])
+    # `node scripts/check.mjs --live` reads it from R2, so no local session asks Neon.
+    r2.put_block(STATUS_KEY, payload, datetime.now(UTC))
 
 
 def main() -> int:

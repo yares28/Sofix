@@ -1,7 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { cache } from "./cache";
-import { database, keptInDev, readModel, stamp } from "./db";
-import { blockFromR2 } from "./r2";
+import { published, readModel } from "./db";
+import { blockAt, blockVersion } from "./r2";
 import { SORARE_TAG, weekPlan, type GameweekPlan, type Lineup as PlayLineup, type MarketPlayer, type Sorare, type SorarePlans } from "./play";
 import { restoreFrozenPlan } from "./frozenPlan";
 import type { ChanceRecord } from "./lineupChances";
@@ -13,41 +13,29 @@ import { loadScoreRecord } from "./scoreRecordData";
 // Local development and the browser tests have no Neon: they ask the FastAPI stand-in instead.
 const API_BASE = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
 
-// The model is over Next's 2 MB cache limit in one piece (2.1 MB on 14 Oct 2026; Vercel has the same limit), which made every
-// view of Home and Play download it from Neon again. Read as the model without weeks and market, the market, and each week,
-// every piece kept under the model's write time (see readModelAt in lib/db.ts).
+// The model is over Next's 2 MB cache limit in one piece (2.1 MB on 14 Oct 2026; Vercel has the same limit). Read as the model
+// without weeks and market, the market, and each week, every piece kept under the model's version (lib/r2.ts): the whole
+// block is downloaded from R2 once per change and per server, and split here.
 const sorarePart = unstable_cache(
-  async (part: number, updatedAt: string): Promise<unknown> => keptInDev(`sorare#${part}@${updatedAt}`, async () => {
-    const whole = (await blockFromR2("sorare", updatedAt)) as (Sorare & { market?: unknown }) | undefined;
-    if (whole) {
-      const { weeks, market, ...head } = whole;
-      return part === -2 ? { head, weeks: weeks.length } : part === -1 ? (market ?? null) : (weeks[part] ?? null);
-    }
-    const sql = database()!;
-    const rows = (part === -2
-      ? await sql`SELECT payload::jsonb - 'weeks' - 'market' AS part, json_array_length(payload->'weeks') AS weeks FROM read_models WHERE key = 'sorare'`
-      : part === -1
-        ? await sql`SELECT payload->'market' AS part FROM read_models WHERE key = 'sorare'`
-        : await sql`SELECT payload->'weeks'->${part}::int AS part FROM read_models WHERE key = 'sorare'`) as { part: unknown; weeks?: number }[];
-    const row = rows[0];
-    return part === -2 ? (row ? { head: row.part, weeks: row.weeks ?? 0 } : null) : (row?.part ?? null);
-  }),
-  ["sorare-part-v1"],
+  async (part: number, version: string): Promise<unknown> => {
+    const whole = (await blockAt("sorare", version))?.payload as (Sorare & { market?: unknown }) | undefined;
+    if (!whole) return null;
+    const { weeks, market, ...head } = whole;
+    return part === -2 ? { head, weeks: weeks.length } : part === -1 ? (market ?? null) : (weeks[part] ?? null);
+  },
+  ["sorare-part-v2"],
   { revalidate: 86400 },
 );
 
-/** When the model was last written; an hour under the `sorare` tag, which a run's end drops (POST /api/revalidate). */
-const sorareWrittenAt = cache(async (): Promise<string | null> => {
-  const rows = (await database()!`SELECT updated_at FROM read_models WHERE key = 'sorare'`) as { updated_at: string | Date }[];
-  return rows[0] ? stamp(rows[0].updated_at) : null;
-}, ["sorare-written-v1"], { tags: [SORARE_TAG], revalidate: 3600 });
+/** The model's current version; an hour under the `sorare` tag, which a run's end drops (POST /api/revalidate). */
+const sorareWrittenAt = cache(async (): Promise<string | null> => blockVersion("sorare"), ["sorare-version-v1"], { tags: [SORARE_TAG], revalidate: 3600 });
 
 /**
  * The Sorare gameweek the job published (`read_models` key `sorare`). Everything on the page — the plans,
  * the chances, the reasons — is computed by the job, so this only reads it, downloaded once per write.
  */
 async function readSorare(includeMarket = true): Promise<Sorare | null> {
-  if (database()) {
+  if (published()) {
     const at = await sorareWrittenAt();
     if (!at) return null;
     const top = (await sorarePart(-2, at)) as { head: Omit<Sorare, "weeks" | "market">; weeks: number } | null;
@@ -67,7 +55,7 @@ async function readSorare(includeMarket = true): Promise<Sorare | null> {
  * his next game. Downloaded once per write (readModel); empty without a database or before the job has written it.
  */
 export async function loadLeagueMarket(code: "PL" | "BL1" | "FL1" | "CL" | "EL" | "CONF"): Promise<MarketPlayer[]> {
-  if (!database()) return [];
+  if (!published()) return [];
   // Cached until the job publishes again (the overlay asks many times a minute while a Sorare page scrolls).
   const read = cache(
     async (): Promise<MarketPlayer[]> => (await readModel<{ market?: MarketPlayer[] }>(`players:${code}`))?.payload.market ?? [],
@@ -95,7 +83,7 @@ export async function loadSorare(options: { market?: boolean } = {}): Promise<So
 /** Collection and calendar only: Audit views do not need the plans, market or full player fixtures. */
 export async function loadSorareSummary(): Promise<Sorare | null> {
   try {
-    if (!database()) {
+    if (!published()) {
       const page = await readSorare(false);
       return page ? { ...page, weeks: [], market: undefined } : null;
     }
@@ -116,7 +104,7 @@ export async function loadProjectedWeek(round: number): Promise<GameweekPlan | n
   if (!Number.isInteger(round) || round < 1 || round > 60) return null;
   const read = cache(
     async (): Promise<GameweekPlan | null> => {
-      if (database()) {
+      if (published()) {
         const row = await readModel<GameweekPlan>(`sorare_ahead:${round}`);
         return row?.payload ?? null;
       }
@@ -142,11 +130,11 @@ const WEEK_SLUG = /^[a-z0-9][a-z0-9-]{0,80}$/;
 /** Small supporting records, independently retained when a locked week leaves the optimizer's payload. */
 async function supportingRecord<T>(kind: "plan" | "record" | "rewards", slug: string): Promise<T | null> {
   if (!WEEK_SLUG.test(slug)) return null;
-  if (kind === "record" && database()) {
+  if (kind === "record" && published()) {
     try { return await loadScoreRecord<T>(slug); } catch { return null; }
   }
   const read = cache(async () => {
-    if (database()) return (await readModel<T>(`${kind === "plan" ? "sorare_plan" : kind === "rewards" ? "play_rewards" : "score_record"}:${slug}`))?.payload ?? null;
+    if (published()) return (await readModel<T>(`${kind === "plan" ? "sorare_plan" : kind === "rewards" ? "play_rewards" : "score_record"}:${slug}`))?.payload ?? null;
     const response = await fetch(`${API_BASE}/api/sorare/${kind}/${slug}`, { cache: "no-store", signal: AbortSignal.timeout(8000) });
     if (!response.ok) return null;
     const body = await response.json() as { success?: boolean; data?: T };
@@ -186,7 +174,7 @@ export async function loadSorareWeek(slug: string): Promise<GameweekPlan | null>
   if (!WEEK_SLUG.test(slug)) return null;
   const read = cache(
     async (): Promise<GameweekPlan | null> => {
-      if (database()) {
+      if (published()) {
         const row = await readModel<GameweekPlan>(`sorare_week:${slug}`);
         return row?.payload ?? null;
       }
@@ -214,7 +202,7 @@ export async function loadSorareAlt(slug: string): Promise<SorarePlans | null> {
   if (!WEEK_SLUG.test(slug)) return null;
   const read = cache(
     async (): Promise<SorarePlans | null> => {
-      if (database()) {
+      if (published()) {
         const row = await readModel<SorarePlans>(`sorare_alt:${slug}`);
         return row?.payload ?? null;
       }
@@ -244,7 +232,7 @@ export async function loadSorareLens(slug: string, key: string): Promise<SorareP
   if (!WEEK_SLUG.test(slug) || !/^[a-z-]+$/.test(key)) return null;
   const read = cache(
     async (): Promise<SorarePlans | null> => {
-      if (database()) {
+      if (published()) {
         const row = await readModel<SorarePlans>(`sorare_lens:${slug}:${key}`);
         return row?.payload ?? null;
       }
@@ -274,7 +262,7 @@ export type ProRebuild = {
   missing: { comp: string; why: string }[];
 };
 export async function loadProRebuild(slug: string): Promise<ProRebuild | null> {
-  if (!database()) return null;
+  if (!published()) return null;
   try {
     const read = cache(async () => (await readModel<ProRebuild>("pro_rebuild"))?.payload ?? null, ["pro-rebuild-v1"], { tags: [SORARE_TAG], revalidate: 3600 });
     const got = await read();

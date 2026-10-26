@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { database } from "../../../lib/db";
+import { putBlock } from "../../../lib/r2";
 import { dispatchRefresh } from "../../../lib/github";
 import { isSameOriginRequest } from "../../../lib/refresh";
 
@@ -28,6 +29,7 @@ export async function POST(request: NextRequest) {
     INSERT INTO read_models (key, payload, updated_at)
     VALUES ('sorare_settings', ${JSON.stringify(parsed.data)}::json, now())
     ON CONFLICT (key) DO UPDATE SET payload = EXCLUDED.payload, updated_at = EXCLUDED.updated_at`;
+  await putBlock("sorare_settings", parsed.data, new Date()); // pages read R2 alone
   const token = process.env.GITHUB_TOKEN;
   const refreshing = token ? await dispatchRefresh(token).catch(() => false) : false;
   return NextResponse.json({ success: true, data: { ...parsed.data, refreshing } }, { headers: { "Cache-Control": "no-store" } });

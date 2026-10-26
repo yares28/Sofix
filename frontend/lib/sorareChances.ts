@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { cache } from "./cache";
-import { database } from "./db";
+import { database, published, readModel } from "./db";
+import { putBlock } from "./r2";
 import type { LineupChances, SorareGameLink } from "./lineupChances";
 import type { LineupMatch } from "./lineups";
 
@@ -31,31 +32,29 @@ export function byGame(rows: ChanceRow[], seenAt: number): SavedChances {
   return out;
 }
 
-/** Add readings to what is kept. The merge runs inside Postgres, so saving never downloads a row. Returns the games written. */
+/** Add readings to what is kept. The merge runs inside Postgres; the merged game goes to R2 for the pages. Returns the games written. */
 export async function saveChances(rows: ChanceRow[], now = new Date()): Promise<number> {
   const sql = database();
   if (!sql) throw new Error("No database configured.");
   const games = Object.entries(byGame(rows, Math.floor(now.getTime() / 1000)));
   for (const [game, players] of games) {
     const text = JSON.stringify({ players });
-    await sql`INSERT INTO read_models (key, payload, updated_at) VALUES (${PREFIX + game}, ${text}::json, ${now.toISOString()})
+    const merged = (await sql`INSERT INTO read_models (key, payload, updated_at) VALUES (${PREFIX + game}, ${text}::json, ${now.toISOString()})
       ON CONFLICT (key) DO UPDATE SET updated_at = EXCLUDED.updated_at,
-        payload = jsonb_build_object('players', COALESCE(read_models.payload::jsonb -> 'players', '{}'::jsonb) || (EXCLUDED.payload::jsonb -> 'players'))::json`;
+        payload = jsonb_build_object('players', COALESCE(read_models.payload::jsonb -> 'players', '{}'::jsonb) || (EXCLUDED.payload::jsonb -> 'players'))::json
+      RETURNING payload`) as { payload: unknown }[];
+    if (merged[0]) await putBlock(PREFIX + game, merged[0].payload, now); // pages read R2 alone
   }
   return games.length;
 }
 
 const kept = cache(
   async (games: string[]): Promise<SavedChances> => {
-    const sql = database();
-    if (!sql || !games.length) return {};
-    const rows = (await sql`SELECT key, payload FROM read_models WHERE key = ANY(${games.map((game) => PREFIX + game)})`) as {
-      key: string;
-      payload: { players?: Record<string, [number, number]> };
-    }[];
-    return Object.fromEntries(rows.map((row) => [row.key.slice(PREFIX.length), row.payload.players ?? {}]));
+    if (!published() || !games.length) return {};
+    const rows = await Promise.all(games.map(async (game) => [game, await readModel<{ players?: Record<string, [number, number]> }>(PREFIX + game)] as const));
+    return Object.fromEntries(rows.flatMap(([game, row]) => (row ? [[game, row.payload.players ?? {}]] : [])));
   },
-  ["sorare-chances-v1"],
+  ["sorare-chances-v2"],
   { tags: [CHANCES_TAG], revalidate: 300 },
 );
 

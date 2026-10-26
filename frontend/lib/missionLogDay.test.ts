@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { MonthLog } from "./missionLog";
 
-// The index and rows as Neon holds them: two days of rows, the October month log and one edit.
+// The index and rows as R2 holds them: two days of rows, the October month log and one edit.
 const rows: Record<string, unknown> = {
   "missions_day:2026-10-14:limited": { days: { "2026-10-14": { limited: { loaded: true, cands: [], missions: [{ key: "a", title: "today" }] } } } },
   "missions_day:2026-10-13:limited": { days: { "2026-10-13": { limited: { loaded: true, cands: [], missions: [{ key: "b", title: "yesterday" }] } } } },
@@ -10,11 +10,8 @@ const rows: Record<string, unknown> = {
 };
 const read: string[] = [];
 vi.mock("next/cache", () => ({ unstable_cache: (fn: unknown) => fn }));
-vi.mock("./db", () => ({
-  database: () => async () => Object.keys(rows).map((key) => ({ key, updated_at: "2026-10-14T00:00:00Z" })),
-  readModelAt: async (key: string) => (read.push(key), rows[key]),
-  stamp: (at: string) => at,
-}));
+vi.mock("./db", () => ({ published: () => true, readModelAt: async (key: string) => (read.push(key), rows[key]) }));
+vi.mock("./r2", () => ({ blockVersions: async (prefix: string) => new Map(Object.keys(rows).filter((key) => key.startsWith(prefix)).map((key) => [key, "v1"])) }));
 
 describe("loadMissionLogDay", () => {
   it("reads only the rows that can hold the day, and gives that day what the whole log gives it", async () => {

@@ -17,7 +17,11 @@ const sql = vi.fn(async (strings: TemplateStringsArray, ...values: unknown[]) =>
   }
   return [...saved.entries()].filter(([key]) => query.includes("LIKE") ? key.startsWith(String(values[0]).replace("%", "")) : key === values[0]).map(([key, payload]) => ({ key, payload, updated_at: "2026-10-14T00:00:00Z" }));
 });
-vi.mock("../../../lib/db", () => ({ database: () => sql, readModelAt: async (key: string) => saved.get(key) ?? null, stamp: String }));
+vi.mock("../../../lib/db", () => ({ database: () => sql, published: () => true, readModelAt: async (key: string) => saved.get(key) ?? null }));
+vi.mock("../../../lib/r2", () => ({
+  blockVersions: async (prefix: string) => new Map([...saved.keys()].filter((key) => key.startsWith(prefix)).map((key) => [key, "v1"])),
+  putBlock: async () => true,
+}));
 vi.mock("../../../lib/playData", () => ({ loadSorare: async () => ({
   timeline: [{ slug: "gw-old", number: 20, start: "2026-10-02T14:00:00Z", end }, { slug: "gw-live", number: 21, start: end, end: "2026-10-10T14:00:00Z" }],
   collection: [{ slug: "card-a", player: "player-a" }],

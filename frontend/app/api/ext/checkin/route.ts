@@ -4,6 +4,7 @@ import { z } from "zod";
 import { database } from "../../../../lib/db";
 import { authorised } from "../../../../lib/extAuth";
 import { recordQuietly } from "../../../../lib/missionLog";
+import { putBlock } from "../../../../lib/r2";
 import { SYSTEM_TAG } from "../../../../lib/system";
 
 // The Chrome extension says it is alive and which Sorare account is signed in (extension/background.js).
@@ -28,6 +29,7 @@ export async function POST(request: NextRequest) {
     INSERT INTO read_models (key, payload, updated_at)
     VALUES ('extension', ${JSON.stringify(payload)}::json, now())
     ON CONFLICT (key) DO UPDATE SET payload = EXCLUDED.payload, updated_at = EXCLUDED.updated_at`;
+  await putBlock("extension", payload, new Date()); // pages read R2 alone
   revalidateTag(SYSTEM_TAG);
   after(() => recordQuietly()); // Neon is awake anyway: today's mission picks into the log
   return NextResponse.json({ ok: true, seen_at: payload.seen_at }, { headers: { "Cache-Control": "no-store" } });

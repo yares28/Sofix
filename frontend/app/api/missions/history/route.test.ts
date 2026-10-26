@@ -8,8 +8,9 @@ const merge = vi.fn(async (key: string, fn: (x: never) => unknown) => key.starts
 vi.mock("../../../../lib/missionStore", () => ({ mergeMissionRecord: (...args: [string, (x: MissionEdits | null) => MissionEdits]) => merge(...args) }));
 vi.mock("../../../../lib/db", () => {
   const row = { key: "missions_day:2026-10-06:limited", payload: { days: { "2026-10-06": { limited: { missions: [{ key: "picker", picks: 1 }] } } } } };
-  return { database: () => async () => [row], stamp: String, readModelAt: async () => row.payload };
+  return { database: () => async () => [row], published: () => true, readModelAt: async () => row.payload };
 });
+vi.mock("../../../../lib/r2", () => ({ blockVersions: async (prefix: string) => new Map(prefix === "missions_day:" ? [["missions_day:2026-10-06:limited", "v1"]] : []) }));
 vi.mock("next/cache", () => ({ revalidateTag: vi.fn(), unstable_cache: (fn: unknown) => fn }));
 const { POST } = await import("./route");
 const body = { day: "2026-10-06", rarity: "limited", mission: "picker", picks: [{ player: "jan-oblak", card: "oblak-1", game: "g", rarity: "limited", status: "SUCCESS" }], revision: 0, restore: false, note: "My selection" };

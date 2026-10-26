@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from "vitest";
 vi.mock("./cache", () => ({ cache: (fn: unknown) => fn }));
-vi.mock("./db", () => ({ database: () => true, readModel: vi.fn() }));
+vi.mock("./db", () => ({ published: () => true, readModel: vi.fn() }));
 import { readModel } from "./db";
 import { loadForeignDirectory, loadForeignPlayer } from "./foreignPlayersData";
 import { playerBucket } from "./foreignPlayers";

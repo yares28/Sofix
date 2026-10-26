@@ -1,5 +1,5 @@
 import { cache } from "./cache";
-import { database, readModel } from "./db";
+import { published, readModel } from "./db";
 import { SORARE_TAG } from "./play";
 import { playerBucket, type ForeignBlock, type ForeignDirectory, type ForeignLeague } from "./foreignPlayers";
 
@@ -8,7 +8,7 @@ const SLUG = /^[a-z0-9][a-z0-9-]{0,80}$/;
 
 async function block<T>(key: string, path: string): Promise<T | null> {
   const read = cache(async () => {
-    if (database()) return (await readModel<T>(key))?.payload ?? null;
+    if (published()) return (await readModel<T>(key))?.payload ?? null;
     const response = await fetch(`${API_BASE}/api/sorare/${path}`, { cache: "no-store", signal: AbortSignal.timeout(8000) });
     if (!response.ok) return null;
     const body = await response.json() as { success?: boolean; data?: T };

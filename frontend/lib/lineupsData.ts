@@ -1,5 +1,6 @@
 import { cache } from "./cache";
-import { database, readModel, readModelAt, stamp } from "./db";
+import { published, readModel, readModelAt } from "./db";
+import { blockVersions } from "./r2";
 import { DAY_PREFIX, LINEUPS_KEY, readable, type KeptLineups, type LineupMatch, type LineupsData } from "./lineups";
 import { SORARE_TAG } from "./play";
 
@@ -12,7 +13,7 @@ const API_BASE = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
  */
 const cachedLineups = cache(
   async (): Promise<LineupsData | null> => {
-    if (database()) {
+    if (published()) {
       const row = await readModel(LINEUPS_KEY);
       return readable(row?.payload);
     }
@@ -25,13 +26,16 @@ const cachedLineups = cache(
   { tags: [SORARE_TAG], revalidate: 3600 },
 );
 
-/** Which of these days were kept and when each was written. The job that writes them clears the `sorare` tag when it ends. */
+/** Which of these days were kept and each one's version (one R2 listing). The job that writes them clears the `sorare` tag when it ends. */
 const keptIndex = cache(
   async (keys: string[]): Promise<{ key: string; at: string }[]> => {
-    const rows = (await database()!`SELECT key, updated_at FROM read_models WHERE key = ANY(${keys})`) as { key: string; updated_at: string | Date }[];
-    return rows.map((row) => ({ key: row.key, at: stamp(row.updated_at) }));
+    const versions = await blockVersions(DAY_PREFIX);
+    return keys.flatMap((key) => {
+      const at = versions.get(key);
+      return at ? [{ key, at }] : [];
+    });
   },
-  ["lineups-kept-index-v1"],
+  ["lineups-kept-index-v2"],
   { tags: [SORARE_TAG], revalidate: 3600 },
 );
 
@@ -43,7 +47,7 @@ const keptIndex = cache(
 export async function loadKeptDays(days: string[]): Promise<KeptLineups> {
   const out: KeptLineups = { matches: [], cards: {}, art: {} };
   const keys = [...new Set(days.filter((day) => /^\d{4}-\d{2}-\d{2}$/.test(day)))].map((day) => DAY_PREFIX + day);
-  if (!database() || !keys.length) return out;
+  if (!published() || !keys.length) return out;
   try {
     const rows = await keptIndex(keys);
     const read = await Promise.all(rows.map((row) => readModelAt(row.key, row.at)));

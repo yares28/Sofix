@@ -1,15 +1,60 @@
-import { describe, expect, it } from "vitest";
-import { sheetGroup } from "./missionsPool";
-import { sameInstant } from "./r2";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { blockAt, blocksAvailable, blockVersion, blockVersions, listR2, signed } from "./r2";
 
-describe("page blocks on R2", () => {
-  it("takes Python's microsecond time and Neon's millisecond time as the same write", () => {
-    expect(sameInstant("2026-10-19T20:38:46.806123+00:00", "2026-10-19T20:38:46.806Z")).toBe(true);
-    expect(sameInstant("2026-10-19T20:38:46.807+00:00", "2026-10-19T20:38:46.806Z")).toBe(false);
+const R2 = { R2_ACCOUNT_ID: "acct", R2_BUCKET: "pages", R2_ACCESS_KEY_ID: "id", R2_SECRET_ACCESS_KEY: "secret" };
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
+
+describe("published blocks", () => {
+  it("has none without R2 or a local copy, so loaders ask the stand-in API", () => {
+    for (const name of [...Object.keys(R2), "SOFIX_BLOCKS_DIR"]) vi.stubEnv(name, "");
+    expect(blocksAvailable()).toBe(false);
   });
 
-  it("splits the missions pool exactly as Neon's SQL does (ascii(md5(key)) % 4), so pieces from both fit", () => {
-    // Values from Postgres on 20 Oct 2026: SELECT k, ascii(md5(k)) % 4.
-    expect(["mbappe-kylian", "lamine-yamal-nasraoui-ebana", "vinicius-jose-paixao-de-oliveira-junior", "x"].map(sheetGroup)).toEqual([1, 3, 3, 1]);
+  it("reads the local copy when SOFIX_BLOCKS_DIR is set, never the network", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "blocks-"));
+    writeFileSync(path.join(dir, "index.json"), JSON.stringify({ sorare: "v1", "my_week:a": "v2", "my_week:b": "v3" }));
+    writeFileSync(path.join(dir, `${encodeURIComponent("my_week:a")}.json`), JSON.stringify({ updatedAt: "2026-10-26T10:00:00Z", payload: { slug: "a" } }));
+    vi.stubEnv("SOFIX_BLOCKS_DIR", dir);
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    expect(blocksAvailable()).toBe(true);
+    expect(await blockVersion("sorare")).toBe("v1");
+    expect(await blockVersion("missing")).toBeNull();
+    expect([...(await blockVersions("my_week:")).keys()]).toEqual(["my_week:a", "my_week:b"]);
+    expect(await blockAt("my_week:a", "v2")).toEqual({ updatedAt: "2026-10-26T10:00:00Z", payload: { slug: "a" } });
+    expect(await blockAt("my_week:b", "v3")).toBeNull(); // listed but not downloaded: nothing, not an error
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("lists every page of an R2 listing, keyed by block name with its ETag", async () => {
+    vi.stubEnv("SOFIX_BLOCKS_DIR", "");
+    for (const [name, value] of Object.entries(R2)) vi.stubEnv(name, value);
+    const pages = [
+      `<ListBucketResult><IsTruncated>true</IsTruncated><NextContinuationToken>t&amp;2</NextContinuationToken>
+        <Contents><Key>blocks/missions_day:2026-10-26:limited.json</Key><ETag>&quot;aa&quot;</ETag></Contents></ListBucketResult>`,
+      `<ListBucketResult><IsTruncated>false</IsTruncated>
+        <Contents><Key>blocks/missions_edit:x&amp;y.json</Key><ETag>"bb"</ETag></Contents><Contents><Key>other.txt</Key><ETag>"cc"</ETag></Contents></ListBucketResult>`,
+    ];
+    const urls: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => (urls.push(url), new Response(pages.shift()))));
+    expect(Object.fromEntries(await listR2("missions_"))).toEqual({ "missions_day:2026-10-26:limited": "aa", "missions_edit:x&y": "bb" });
+    expect(urls[0]).toBe("https://acct.r2.cloudflarestorage.com/pages?list-type=2&prefix=blocks%2Fmissions_");
+    expect(urls[1]).toContain("continuation-token=t%262");
+  });
+
+  it("signs the sorted query and the body, and writes only with the write key", () => {
+    for (const [name, value] of Object.entries(R2)) vi.stubEnv(name, value);
+    vi.stubEnv("R2_WRITE_ACCESS_KEY_ID", "");
+    const now = new Date("2026-10-26T12:00:00Z");
+    expect(signed("PUT", "blocks/a.json", {}, "{}", true, now)).toBeNull();
+    const get = signed("GET", "blocks/a:b.json", {}, "", false, now)!;
+    expect(get.url).toBe("https://acct.r2.cloudflarestorage.com/pages/blocks/a%3Ab.json");
+    expect((get.init.headers as Record<string, string>).authorization).toMatch(/^AWS4-HMAC-SHA256 Credential=id\/20261026\/auto\/s3\/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=[0-9a-f]{64}$/);
   });
 });

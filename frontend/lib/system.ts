@@ -1,5 +1,5 @@
 import { cache } from "./cache";
-import { database, readModel } from "./db";
+import { published, readModel } from "./db";
 import { isDatabasePaused, type ExtensionStatus, type LeagueHistoryStatus, type Limits, type RunSummary, type SystemStatus } from "./control";
 
 /** Cache tag for the Control Center's data; revalidated with the grid when a refresh ends. */
@@ -16,17 +16,16 @@ type ExtensionPayload = { version: string; sorare_user: string | null; seen_at: 
 
 const iso = (value: string | Date | null) => (value instanceof Date ? value.toISOString() : value);
 
-/** Recent runs, the limits the job published and the extension's last check-in. Cached like the grid. */
+/** Recent runs, the limits the job published and the extension's last check-in, all from published blocks. Cached like the grid. */
 const cachedSystem = cache(
   async (): Promise<SystemStatus> => {
-    const sql = database()!;
-    const [result, system, extension, league] = await Promise.all([
-      sql`SELECT id, trigger, status, started_at, finished_at FROM refresh_runs ORDER BY id DESC LIMIT 8`,
+    const [recent, system, extension, league] = await Promise.all([
+      readModel<{ runs: unknown[] }>("refresh_runs"), // the jobs' last step publishes it (backend player_blocks.recent_runs)
       readModel<SystemPayload>("system"),
       readModel<ExtensionPayload>("extension"),
       readModel<LeagueHistoryStatus>("league_history_status"),
     ]);
-    const rows = result as {
+    const rows = (recent?.payload.runs ?? []) as {
       id: number;
       trigger: string;
       status: string;
@@ -65,7 +64,7 @@ const cachedSystem = cache(
 );
 
 export async function loadSystem(): Promise<SystemStatus | null> {
-  if (!database()) return null;
+  if (!published()) return null;
   try {
     return await cachedSystem();
   } catch (error) {

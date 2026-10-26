@@ -58,3 +58,49 @@ Only a free plan that is free for good, keeps the data and has no monthly transf
 Sources: [Cloudflare D1 pricing](https://developers.cloudflare.com/d1/platform/pricing/), [Cloudflare R2 pricing](https://developers.cloudflare.com/r2/pricing/),
 [Turso pricing](https://turso.tech/pricing.md), [OCI free tier breakdown](https://selfhost.it.com/blog/oci-free-tier-breakdown) (third-party),
 [free Postgres comparison](https://github.com/freebase-cloud/free-postgres-hosting) (third-party, Supabase's 5 GB).
+
+## 4 · Pages read R2 only; nothing local reaches production (built 26 Oct)
+
+**Why.** The ledger's first five hours counted 15.5 MB while Neon's own counter grew ~360 MB. The readers it could not see were
+local: three folders kept the production address in `frontend/.env.local`, two dev servers ran on it, and every session's first
+`check.mjs --live` queried all four projects. And every page view asked Neon for each block's write time, so pages broke
+whenever Neon refused.
+
+**The local copy.** `npm run blocks` (`frontend/scripts/blocks.mjs`) lists R2 and downloads every block whose ETag changed
+into `frontend/.blocks/` (git-ignored, ~44 MB, 2,910 blocks; the first copy took 78 s, later ones only the changes). `predev`
+runs it with `--daily`, so `npm run dev` starts on a copy at most a day old; a failure keeps the copy there is. With
+`SOFIX_BLOCKS_DIR` set (it is, in `.env.local`) the dev server reads that folder and nothing else: the UI check on
+"real read models" uses it. Worktrees point `SOFIX_BLOCKS_DIR` at the main folder's copy. A local Python script reads
+`frontend/.blocks/<key>.json` (`{updatedAt, payload}`; the file name is the key URL-encoded) instead of the database.
+
+**R2's certificate (24 Oct).** Local R2 reads failed then because the network presented a self-signed interception certificate
+(`core1.netops.test`). On 26 Oct the endpoint presents Google Trust Services' WE1 certificate, `openssl` verifies it (code 0),
+and both Python (`httpx`, certifi) and Node read and list R2 with validation on. Nothing was bypassed; if the interception comes
+back, the copy command fails and keeps the old copy.
+
+**No production address in local settings.** `DATABASE_URL`/`DATABASE_URL_SPARE` were removed from `frontend/.env.local` and the
+two Claude worktrees' copies; the values still live in GitHub, Vercel and the git-ignored `.env.sofix*-neon`/`.env.neon-spares`.
+`database()` (`frontend/lib/db.ts`) returns nothing under `next dev` unless `SOFIX_PRODUCTION=1`, and `app/db.py` refuses a Neon
+connection outside GitHub Actions unless `SOFIX_PRODUCTION=1`. `check.mjs --live` reads `neon_status` from R2
+(`blocks.mjs --get`), which `neon_switch` now publishes there.
+
+**A deliberate production read** (one SELECT, as AGENTS.md allows), from `backend/`, with the app login and nothing saved:
+
+```bash
+SOFIX_PRODUCTION=1 POSTGRES_URL="$(grep '^APP_URL=' ../.env.sofix-b-neon | cut -d= -f2- | sed 's|^postgres\(ql\)\?://|postgresql+psycopg://|')" .venv/Scripts/python -m app.services.neon_ledger --day 20261027
+```
+
+`APP_URL` in that file is Sofix B's `fdr_app` login (use the live project's file). The address lives only in that one command's
+environment; never in a dev setting, never printed.
+
+**Pages read R2 alone.** A block's version is its R2 ETag: one HEAD for a block, one listing for a family (`missions_day:`,
+`my_week:`, `lineups_day:`, `player_games:`). Each payload is cached in Next's cache under that version (`readModel`,
+`readModelAt`); big ones are split after one download (`sorare`, `missions_pool`, score records). Tables pages used to query
+are published as blocks by every job's last step (`publish.publish_to_r2`, run by `notify_app`): `player_games:<slug>` for each
+player (built from the games copy in GitHub's cache, uploaded only when its md5 changed) and `refresh_runs` (last eight runs and
+the newest one's steps). The same step copies any block written outside `publish.put` (merges in Postgres, the web app's
+writes, a failed upload) and deletes blocks Neon no longer holds. The web app's writes stay on Neon and upload their block
+straight away when Vercel has the `R2_WRITE_*` key; without it they reach R2 at the next job's end.
+
+**What still reads Neon from the web app:** the write routes' own reads before a write (a merge, the owner check), and the
+refresh button's status while a GitHub run is going (its live step). No page view needs Neon.

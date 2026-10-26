@@ -1,6 +1,8 @@
+import { unstable_cache } from "next/cache";
 import { cache } from "./cache";
 import { published, readModel, readModelAt } from "./db";
-import { blockVersions } from "./r2";
+import { blockAt, blockVersion, blockVersions } from "./r2";
+import { scoreRecordBucket } from "./scoreRecordParts";
 import { SORARE_TAG } from "./play";
 import type { Sheets } from "./playerSheet";
 
@@ -44,10 +46,31 @@ export async function loadPlayerHistories(slugs: string[]): Promise<Map<string, 
   return new Map(found.filter((entry): entry is readonly [string, PlayerHistory] => entry[1] !== null));
 }
 
-const savedSheets = cache(async (): Promise<Sheets | null> => {
-  if (published()) return (await readModel<Sheets>("player_sheets"))?.payload ?? null;
-  return local<Sheets>("player-sheets");
-}, ["player-sheets-v1"], { tags: [SORARE_TAG], revalidate: 3600 });
+/** One piece of the sheets: -1 the head, 0-3 a group of players (the md5 group score records use). */
+export function sheetsPart(sheets: Sheets, part: number): unknown {
+  const { players, ...head } = sheets;
+  return part < 0 ? head : Object.fromEntries(Object.entries(players ?? {}).filter(([slug]) => scoreRecordBucket(slug) === part));
+}
+
+// The sheets are over Next's 2 MB cache limit in one piece (2.3 MB on 26 Oct 2026), which made every view of a player page
+// download them again. Each piece is kept under the block's version; the whole block is downloaded once per change and server.
+const sheetsPiece = unstable_cache(
+  async (part: number, version: string): Promise<unknown> => {
+    const whole = (await blockAt("player_sheets", version))?.payload as Sheets | undefined;
+    return whole ? sheetsPart(whole, part) : null;
+  },
+  ["player-sheets-part-v1"],
+  { revalidate: 86400 },
+);
+const sheetsVersion = cache(async (): Promise<string | null> => blockVersion("player_sheets"), ["player-sheets-version-v1"], { tags: [SORARE_TAG], revalidate: 3600 });
+
+async function savedSheets(): Promise<Sheets | null> {
+  if (!published()) return local<Sheets>("player-sheets");
+  const version = await sheetsVersion();
+  if (!version) return null;
+  const [head, ...groups] = await Promise.all([-1, 0, 1, 2, 3].map((part) => sheetsPiece(part, version)));
+  return head ? { ...(head as Omit<Sheets, "players">), players: Object.assign({}, ...(groups as Sheets["players"][])) } : null;
+}
 
 export async function loadPlayerSheets(): Promise<Sheets> {
   try { return await savedSheets() ?? { asOf: "", players: {} }; } catch { return { asOf: "", players: {} }; }

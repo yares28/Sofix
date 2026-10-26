@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { loadPlayerGames, loadPlayerSheets } from "./playerGames";
+import { loadPlayerGames, loadPlayerSheets, sheetsPart } from "./playerGames";
 import { seasonSummary, type SavedGame } from "./playerHistory";
+import type { Sheets } from "./playerSheet";
 
 vi.mock("./cache", () => ({ cache: (fn: unknown) => fn }));
 vi.mock("./db", () => ({ published: vi.fn(), readModel: vi.fn(), readModelAt: vi.fn() }));
-vi.mock("./r2", () => ({ blockVersions: vi.fn() }));
+vi.mock("./r2", () => ({ blockVersions: vi.fn(), blockVersion: vi.fn(), blockAt: vi.fn() }));
+vi.mock("next/cache", () => ({ unstable_cache: (fn: unknown) => fn }));
 import { published, readModel } from "./db";
+import { blockAt, blockVersion } from "./r2";
 
 const game = (over: Partial<SavedGame> = {}): SavedGame => ({
   game_id: "g", date: "2026-09-01T19:00:00Z", competition: "laliga-es", home: "Home", away: "Away", status: "FINAL",
@@ -45,10 +48,15 @@ describe("saved player history", () => {
   });
   it("uses the daily sheet read model and keeps missing history distinct from an empty history", async () => {
     vi.mocked(published).mockReturnValue(true);
-    const sheets = { asOf: "2026-10-07", players: {} };
-    vi.mocked(readModel).mockResolvedValue({ payload: sheets, updatedAt: "2026-10-08" });
+    // Over Next's 2 MB cache limit in one piece (2.3 MB on 26 Oct 2026): read as a head and four groups of players.
+    const players = Object.fromEntries(Array.from({ length: 1600 }, (_, i) => [`player-${i}`, { form: "x".repeat(1400), zero: i === 0 ? 0 : null }]));
+    const sheets = { asOf: "2026-10-07", players } as unknown as Sheets;
+    expect(JSON.stringify(sheets).length).toBeGreaterThan(2_000_000);
+    vi.mocked(blockVersion).mockResolvedValue("v1");
+    vi.mocked(blockAt).mockResolvedValue({ payload: sheets, updatedAt: "2026-10-08" });
     expect(await loadPlayerSheets()).toEqual(sheets);
-    expect(readModel).toHaveBeenCalledWith("player_sheets");
+    expect(vi.mocked(blockVersion).mock.calls).toEqual([["player_sheets"]]);
+    for (const part of [-1, 0, 1, 2, 3]) expect(JSON.stringify(sheetsPart(sheets, part)).length).toBeLessThan(1_600_000);
     vi.mocked(readModel).mockRejectedValue(new Error("unavailable"));
     expect(await loadPlayerGames("a-player")).toBeNull();
     vi.mocked(readModel).mockResolvedValue(null);

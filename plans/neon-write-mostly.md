@@ -104,3 +104,7 @@ straight away when Vercel has the `R2_WRITE_*` key; without it they reach R2 at 
 
 **What still reads Neon from the web app:** the write routes' own reads before a write (a merge, the owner check), and the
 refresh button's status while a GitHub run is going (its live step). No page view needs Neon.
+
+**player_sheets in pieces (26 Oct).** At 2.3 MB the sheets were over Next's 2 MB cache limit, so every player page downloaded
+them again; they are now read as a head and four groups of players, each cached under the block's version (`lib/playerGames.ts`).
+The last production database addresses in local files (`frontend/.env.local.fdr`, `.env.local.sofix`, the Codex worktree) are removed.

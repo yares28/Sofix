@@ -1,0 +1,63 @@
+name: Keep every LaLiga game
+
+# Every LaLiga game since 2023/24 (the first season Sorare keeps per-player stats for), player by player: score, decisive level,
+# all-around points, minutes, every stat, the official elevens (app/jobs/export_games.py). The score engine is built on it
+# (plans/score-engine.md E0). Read only from Sorare's public API, newest games first; nothing is read from or written to Neon.
+# A cold cache fills over a few runs; after that a run reads the last day's games in a minute or two.
+on:
+  schedule:
+    - cron: "47 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: games-export
+  cancel-in-progress: false
+
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      SORARE_API_KEY: ${{ secrets.SORARE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+          activate-environment: true
+          enable-cache: true
+          cache-dependency-glob: backend/requirements.lock
+      - name: Install locked dependencies
+        run: uv pip sync requirements.lock
+
+      - name: Restore the games kept so far
+        uses: actions/cache/restore@v4
+        with:
+          path: backend/.cache/sorare_games*
+          key: sorare-games-${{ github.run_id }}
+          restore-keys: sorare-games-
+
+      # Exit 1 is Sorare still refusing after its waits: what was read is kept and the next run goes on from there.
+      - name: Read the games not kept yet
+        run: |
+          set +e
+          python -m app.jobs.export_games --out .cache/sorare_games.jsonl --since 2023-07-01 --seconds 1500
+          code=$?
+          if [ "$code" -eq 1 ]; then
+            echo "::notice::Sorare refused for now; the next run goes on from here."
+            exit 0
+          fi
+          exit "$code"
+
+      - name: Keep them
+        if: always() && hashFiles('backend/.cache/sorare_games.jsonl') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: backend/.cache/sorare_games*
+          key: sorare-games-${{ github.run_id }}-${{ github.run_attempt }}

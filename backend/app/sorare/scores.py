@@ -5,6 +5,9 @@ each game, in kick-off order, or nothing when any game of the week cannot be tol
 registry does not know, no fitted line for his position): his number is then what it was, a week half known is not guessed at.
 
 A goalkeeper's comes from `keeper.py` (the chance of a clean sheet, his score with and without one), the others' from `outfield.py`.
+
+Sorare's projection is taken and not used: Sofix's number stands on its own data (the owner's rule, 26 Oct 2026; plans/score-engine.md E0).
+Each line has a version without it, which on the weeks held out from 1 Oct missed by 0.0 to 0.1 points more.
 """
 
 from __future__ import annotations
@@ -52,7 +55,7 @@ def scores_for(
         sub = (subs or {}).get(pos or "")
         ordered = sorted(games, key=lambda g: g["kickoff"])
         if pos == "GK":
-            outs = keepers(player, games, projection)
+            outs = keepers(player, games, None)
             return Made(tuple(_named(o, g.get("opponent")) for o, g in zip(outs, ordered, strict=False)), sub)
         model = outfielders.get(pos or "")
         if model is None or not games:
@@ -63,7 +66,7 @@ def scores_for(
             [h["score"] for h in past if h.get("played") and h.get("started") and h.get("score") is not None]
         )
         found: list[Outcome] = []
-        for i, game in enumerate(ordered):
+        for game in ordered:
             if game.get("competition") != keeper_model.LALIGA:
                 return Made((), sub)
             numbers = next((n for name in names if (n := find(name, game["kickoff"])) is not None), None)
@@ -71,9 +74,7 @@ def scores_for(
                 return Made((), sub)
             found.append(
                 _named(
-                    model.outcome(
-                        numbers, game.get("venue") == "H", own_dec, own_score, projection if i == 0 else None
-                    ),
+                    model.outcome(numbers, game.get("venue") == "H", own_dec, own_score, None),
                     game.get("opponent"),
                 )
             )

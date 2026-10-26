@@ -274,7 +274,8 @@ home or away, Sorare's projection when it is out, and his own record (how often 
 past game's own record uses only the starts before it, so a test never sees the future. `scores.scores_for` is the one callback the refresh gives `publish.player_weeks`:
 it sends a goalkeeper to `keeper.py` and the rest to their position's line (`artifacts/outfield_score.json`, from `python -m app.jobs.outfield_fit`), and answers one score
 per game, which `forecast.forecast` makes his score if he starts (and his score if he plays, for a regular starter; for a player who often comes on it moves by his share of
-starts). Anything it cannot tell leaves the number as it was.
+starts). Anything it cannot tell leaves the number as it was. Since 26 Oct 2026 each line runs without Sorare's projection and a rotation player's blend starts from his
+own form, so Sofix's LaLiga number stands on its own data (plans/score-engine.md E0; on 9–21 Oct that cost 0.0 to 0.1 points of typical miss).
 
 **Linked scores and the captain (plans/xscore.md P9 X6, `app.sorare.links`, `planner.simulate`, `planner._captain`).** Players of one game score together, so the planner
 no longer simulates a lineup's players independently: `publish.gameweek_payload` gives each forecast its games as (game id, home or away), `links.matrix` turns them into a correlation matrix by pair of

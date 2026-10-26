@@ -241,8 +241,11 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
     if week.game_scores:  # his score is made by his game, not only his last five games (scores.py)
         made = sum(week.game_scores) / len(week.game_scores)
         share = p_start / (p_start + p_on) if p_start + p_on > 0 else 0.0
-        # a keeper or a regular starter plays as a starter: the number is his score if he plays; a rotation player's moves by his share of starts
-        mu = made if week.pos == "GK" or share >= REGULAR_STARTER else mu + share * (made - start)
+        # a keeper or a regular starter plays as a starter: the number is his score if he plays; a rotation player's moves by his share of starts.
+        # Both stand on Sofix's own numbers: Sorare's projection is left out (the owner's rule, 26 Oct 2026; plans/score-engine.md E0).
+        _, own_mu = _from_form(week.history)
+        own_split = _split(dataclasses.replace(week, projection=None), own_mu, plays)
+        mu = made if week.pos == "GK" or share >= REGULAR_STARTER else own_mu + share * (made - own_split.start)
         start = made
     shape = week.shape if week.game_scores else None
     on_shape = None

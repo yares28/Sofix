@@ -251,3 +251,53 @@ def test_a_half_written_last_line_is_dropped_and_that_game_is_read_again(tmp_pat
     result = export.run(again, export.fetch_game_list(again, START), out, pause=0)
 
     assert result["games"] == 1 and [g["id"] for g in lines(out)] == ["Game:1", "Game:2", "Game:3"]
+
+
+# ------------------------------------------------------------------------------------------------ in the refresh's schedule (score-engine E0)
+
+
+def test_the_list_stops_at_the_first_page_that_holds_a_game_it_already_knows() -> None:
+    sorare = Sorare([listed(n) for n in range(1, 10)], page=2)
+
+    found = export.fetch_game_list(sorare, START, known={"Game:5"})
+
+    assert {"Game:6", "Game:7", "Game:8", "Game:9"} <= {g["id"] for g in found}
+    assert (
+        len([1 for kind, _ in sorare.asked if kind == "list"]) == 3
+    )  # 9 8 / 7 6 / 5 4: the page with game 5 is the last
+
+
+def test_the_kept_list_grows_with_the_new_games_and_a_second_run_asks_one_page(tmp_path: Path) -> None:
+    kept = tmp_path / "games_list.json"
+    first = Sorare([listed(n) for n in range(1, 7)], page=2)
+    assert [g["id"] for g in export.refresh_list(first, kept, START)] == [f"Game:{n}" for n in range(1, 7)]
+
+    second = Sorare([listed(n) for n in range(1, 9)], page=2)
+    games = export.refresh_list(second, kept, START)
+
+    assert [g["id"] for g in games] == [f"Game:{n}" for n in range(1, 9)]
+    assert len([1 for kind, _ in second.asked if kind == "list"]) == 2  # 8 7 / 6 5: game 6 is known
+
+
+def test_a_list_that_does_not_reach_back_to_the_start_day_is_read_again_to_it(tmp_path: Path) -> None:
+    kept = tmp_path / "games_list.json"
+    kept.write_text(json.dumps([{**listed(9), "home": {}, "away": {}}]), "utf-8")
+    sorare = Sorare([listed(n) for n in range(1, 10)], page=2)
+
+    games = export.refresh_list(sorare, kept, START)
+
+    assert [g["id"] for g in games] == [f"Game:{n}" for n in range(1, 10)]
+
+
+def test_a_time_budget_stops_between_games_newest_first_and_the_next_run_goes_on(tmp_path: Path) -> None:
+    out = tmp_path / "games.jsonl"
+    sorare = Sorare([listed(1), listed(2), listed(3)])
+    newest_first = sorted(export.fetch_game_list(sorare, START), key=lambda g: g["date"], reverse=True)
+    ticks = iter([0.0, 10.0, 20.0, 99.0, 99.0])
+
+    first = export.run(sorare, newest_first, out, pause=0, seconds=30, clock=lambda: next(ticks))
+    second = export.run(sorare, newest_first, out, pause=0, seconds=30)
+
+    assert first["games"] == 2 and first["budget"] is True
+    assert [g["id"] for g in lines(out)] == ["Game:3", "Game:2", "Game:1"]
+    assert second["games"] == 1 and second["skipped"] == 2

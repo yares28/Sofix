@@ -14,6 +14,12 @@ and a check, so a session can work through it alone and stop only where you have
 
 ## Next up (the one queue: read this first, update it in the same commit when an item ships)
 
+26 Oct owner priority: **the score engine, LaLiga first** ([score-engine.md](score-engine.md) §7, phases E0 to E7): every stat and
+decisive action of a game simulated and scored with Sorare's own formula, the opponent's style per position, no Sorare projection as
+an input. Then **the difficulty board tuned with the same data** for every league ([fdr-tuning.md](fdr-tuning.md), F0 to F7; two
+calls of yours in its §5). Other leagues' xScore follows LaLiga's. **E0 built 26 Oct:** Sofix's LaLiga number no longer reads
+Sorare's projection, every LaLiga game is kept daily (`games-export.yml`), and `app.jobs.engine_check` prints the rulers. Next: E1.
+
 23 Oct owner priority: Conference is released as an explicitly provisional FDR/xScore model,
 under [the owner-directed release contract](conference-release.md). All 36 clubs / 1,110 current players
 and the full six-round calendar are published (automatic refresh 39967133628); real desktop/mobile

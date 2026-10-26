@@ -23,15 +23,25 @@ export type Portfolio = {
 type PrizeLine=Pick<Lineup,"tiers"|"rarity"|"kind"|"pro"|"group">;
 const mean=(xs:(number|null|undefined)[])=>{const known=xs.filter((n):n is number=>typeof n==="number"&&Number.isFinite(n));return {value:known.length?known.reduce((a,b)=>a+b,0)/known.length:null,rated:known.length};};
 /** Each lineup's checked reward, else (once locked) the prize its score so far reaches. */
+function rowWon(checked:RewardValues|null|undefined,score:number|null,line:PrizeLine|undefined,live:boolean){
+  if(checked||!live||score===null||!line)return {won:checked??null,soFar:false};
+  const won=projectedPrize({...line,x:score});
+  return {won,soFar:won!==null};
+}
 function wonSoFar(rows:{checked:RewardValues|null|undefined;score:number|null;line:PrizeLine|undefined}[],live:boolean){
-  let rewardLive=false;
-  const values=rows.map(r=>{
-    if(r.checked||!live||r.score===null||!r.line)return r.checked;
-    const atScore=projectedPrize({...r.line,x:r.score});
-    if(atScore)rewardLive=true;
-    return atScore;
-  });
-  return {rewardActual:actualRewards(values),rewardLive};
+  const won=rows.map(r=>rowWon(r.checked,r.score,r.line,live));
+  return {rewardActual:actualRewards(won.map(r=>r.won)),rewardLive:won.some(r=>r.soFar)};
+}
+const liveScore=(l:GameweekLineup,live:boolean)=>live?l.result?.score??null:null;
+/** What Sorare paid a ranked lineup, once it has paid anything; null while it pays nothing yet (it pays after the GW). */
+export function paidBySorare(result:GameweekLineup["result"],line?:PrizeLine):RewardValues|null {
+  if(!result||result.rank===null||!(result.cash||result.essence||result.card||result.xp))return null;
+  return Object.fromEntries(Object.entries({"cash:USD":result.cash,[`essence:${line?.rarity??"unknown"}:${line?.kind??"unknown"}`]:result.essence,card:Number(result.card),"xp:FOOTBALL_XP":result.xp??0}).filter(([,n])=>n>0));
+}
+/** Per entered lineup (drafts left out): the prize its projected points reach and, once locked, what it won or reaches so far. */
+export function enteredRewardRows(lineups:GameweekLineup[],forecasts:Map<string,Forecast>,rewards?:EnteredRewardCheck|null,live=false){
+  return lineups.filter(l=>!l.draft).map(l=>({projected:forecasts.get(l.id)?.atScore??null,
+    ...rowWon(rewards?.you?.find(r=>r.id===l.id)?.rewards??paidBySorare(l.result,forecasts.get(l.id)?.prizeLine),liveScore(l,live),forecasts.get(l.id)?.prizeLine,live)}));
 }
 type Forecast = ReturnType<typeof enteredScore>;
 const validChance = (n: number | undefined): n is number => typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 1;
@@ -52,9 +62,8 @@ function summary(forecasts: Forecast[], cards: PortfolioCard[]): Portfolio {
 export function enteredPortfolio(lineups: GameweekLineup[], forecasts: Map<string, Forecast>, rewards?:EnteredRewardCheck|null, live=false): Portfolio {
   const entered = lineups.filter(l => !l.draft);
   const result=summary(entered.map(l => forecasts.get(l.id) ?? { value: null, estimated: false }), entered.flatMap(l => l.cards.map(c => ({ slug: c.slug, name: c.name, pic: c.picture ?? "" }))));
-  const scores=entered.map(l=>live?l.result?.score??null:null),actual=mean(scores);
-  const won=wonSoFar(entered.map((l,i)=>({checked:rewards?.you?.find(r=>r.id===l.id)?.rewards,score:scores[i]!,line:forecasts.get(l.id)?.prizeLine})),live);
-  return {...result,...won,live,actualPoints:actual.value,actualRated:actual.rated,prizeLines:entered.map((l,i)=>({name:`${l.competition} ${i+1}`,score:forecasts.get(l.id)?.value??null,options:forecasts.get(l.id)?.prizes??[]})),checkedAt:rewards?.checkedAt,nextCheckAt:rewards?.nextCheckAt};
+  const actual=mean(entered.map(l=>liveScore(l,live))),rows=enteredRewardRows(entered,forecasts,rewards,live);
+  return {...result,rewardActual:actualRewards(rows.map(r=>r.won)),rewardLive:rows.some(r=>r.soFar),live,actualPoints:actual.value,actualRated:actual.rated,prizeLines:entered.map((l,i)=>({name:`${l.competition} ${i+1}`,score:forecasts.get(l.id)?.value??null,options:forecasts.get(l.id)?.prizes??[]})),checkedAt:rewards?.checkedAt,nextCheckAt:rewards?.nextCheckAt};
 }
 
 /** `scores`: the GW's scores once it locks (lib/planScoresData.ts); absent before the lock. */

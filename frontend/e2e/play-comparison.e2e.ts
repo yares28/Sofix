@@ -21,6 +21,9 @@ test("all eight entered forecasts survive a legacy snapshot, and projected rewar
   await expect(yours.locator('.pc-risk strong')).toContainText('%');
   // locked: the points so far lead (six lineups scored 300), the projection stays beneath
   await expect(yours.locator('.pc-points strong')).toHaveText("300");await expect(yours.locator('.pc-points')).toContainText("pts / lineup so far");
+  // each lineup row: its projected prize, and what the reward check says it won
+  const row=page.locator('.pl-entered-lineup').first().locator('.pl-lu-prizes');
+  await expect(row).toContainText('Projected250 essence');await expect(row).toContainText('WonNo prize');
   await expect(yours.locator('.pc-points')).toContainText("6/8 lineups");await expect(yours.locator('.pc-points small').last()).toHaveText(/^\d+ projected$/);
   const rewards=yours.locator('.pc-rewards');
   await expect(rewards).not.toContainText('≥');await expect(rewards.locator('[data-reward="cash:USD"]')).toHaveCount(0);

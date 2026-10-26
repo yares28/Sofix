@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import PlayComparison, { type PlayComparisonProps } from "./PlayComparison";
-import { enteredPortfolio } from "../../lib/playPortfolio";
+import { enteredPortfolio, enteredRewardRows, paidBySorare } from "../../lib/playPortfolio";
+import { rewardShort } from "../../lib/playRewards";
 import { cannot } from "../../lib/apply";
 import { pendingLine, proLine, resultLine, type GameweekLineup, type WeekLineupsAnswer } from "../../lib/entered";
 import { readEnteredWeek, type EnteredRead } from "../../lib/myWeeksClient";
@@ -61,6 +62,11 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
   const estimates = useMemo(() => new Map(load.lineups.map(lineup => [lineup.id, enteredScore(lineup, forecast, week.slug)])), [load.lineups, forecast, week.slug]);
 
   const now = new Date(); // only read once the lineups are in, which happens in the browser
+  const locked = week.lock ? Date.parse(week.lock) <= now.getTime() : Boolean(week.end && Date.parse(week.end) < now.getTime());
+  // Each entered lineup's projected prize and what it won or reaches so far: the rows the header adds up.
+  const enteredOnly = load.lineups.filter((l) => !l.draft);
+  const prizeRows = enteredRewardRows(enteredOnly, estimates, comparison?.rewards, locked);
+  const prizes = new Map(enteredOnly.map((l, i) => [l.id, prizeRows[i]!]));
   const entered = load.lineups.filter((lineup) => !lineup.draft).length;
   const drafts = load.lineups.length - entered;
   const issue =
@@ -87,7 +93,7 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
 
   return (
     <>
-    {comparison ? <PlayComparison {...comparison} yours={enteredPortfolio(load.lineups, estimates,comparison.rewards,week.lock ? Date.parse(week.lock) <= now.getTime() : Boolean(week.end && Date.parse(week.end) < now.getTime()))} state={load.state === "ready" && load.saved ? "saved" : load.state} /> : null}
+    {comparison ? <PlayComparison {...comparison} yours={enteredPortfolio(load.lineups, estimates,comparison.rewards,locked)} state={load.state === "ready" && load.saved ? "saved" : load.state} /> : null}
     <section className={variant === "recap" ? "rc-entered" : "pl-entered"} aria-labelledby="entered-lineups-title">
       <div className="pl-entered-head">
         <div>
@@ -145,6 +151,7 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
             // The same row as the Recap draws it, on the home page and on Play.
             const live = !week.end || Date.parse(week.end) > now.getTime();
             const result = lineup.draft || pending ? null : lineup.result;
+            const prize = prizes.get(lineup.id);
             return <article className="rc-lu pl-entered-lineup" key={lineup.id}>
                 <div className="rc-lu-c"><b>{lineup.competition}</b><span>{lineup.name ?? "Untitled lineup"}</span><span>{lineup.draft ? "Draft" : "Entered"} · {cards.length} cards</span></div>
                 {/* Sorare gives a card 0 until his game is in, and 0 to one who did not play */}
@@ -168,7 +175,13 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
                       <span>Reward</span>
                     </div>
                   ) : null}
-                  <span className="pl-entered-verdict">{lineup.draft ? "Draft" : lineup.pro ? proLine(lineup.pro, lineup.result?.score ?? null) : pending ?? (lineup.result ? resultLine(lineup.result) : "Entered")}</span>
+                  {variant === "play" && prize ? (
+                    <dl className="pl-lu-prizes">
+                      <div><dt>Projected</dt><dd>{rewardShort(prize.projected)}</dd></div>
+                      {locked ? <div><dt>{prize.won && !prize.soFar ? "Won" : "So far"}</dt><dd>{rewardShort(prize.won)}</dd></div> : null}
+                    </dl>
+                  ) : null}
+                  <span className="pl-entered-verdict">{lineup.draft ? "Draft" : lineup.pro ? proLine(lineup.pro, lineup.result?.score ?? null) : pending ?? (lineup.result ? variant === "play" && prize && lineup.result.rank !== null && !paidBySorare(lineup.result) ? `Rank ${lineup.result.rank.toLocaleString("en-GB")}` : resultLine(lineup.result) : "Entered")}</span>
                 </div>
               </article>;
           })}

@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
-import { enteredPortfolio, planPortfolio } from "./playPortfolio";
+import { enteredPortfolio, enteredRewardRows, paidBySorare, planPortfolio } from "./playPortfolio";
+import { rewardShort } from "./playRewards";
 import type { Plan } from "./play";
 import type { GameweekLineup } from "./entered";
 
@@ -49,4 +50,20 @@ it("keeps the projection and adds the score so far and the prize it reaches once
   expect(mine.rewardActual).toMatchObject({ checked: 2, total: 2 });
   expect(mine.rewardActual?.values["essence:limited:x"]).toBe(30);
   expect(mine.rewardActual?.values["cash:USD"]).toBe(1);
+});
+it("gives each entered lineup its projected prize and, once locked, its checked or so-far prize, as the header adds them", () => {
+  const line = { board: "b", x: 0, rarity: "limited", kind: "x", tiers: [{ need: 300, p: .3, essence: 30 }, { need: 400, p: .1, cash: 5 }] };
+  const scored = { ...entry("a"), result: { score: 410, rank: 11545, cash: 0, essence: 0, card: false } } as GameweekLineup;
+  const forecasts = new Map<string, Parameters<typeof enteredRewardRows>[1] extends Map<string, infer F> ? F : never>([["a", { value: 290, estimated: false, atScore: {}, prizeLine: line as never }], ["b", { value: 350, estimated: false, atScore: { "essence:limited:x": 30 } }]]);
+  expect(enteredRewardRows([scored], forecasts)).toEqual([{ projected: {}, won: null, soFar: false }]);
+  const rows = enteredRewardRows([scored, entry("b"), entry("d", true)], forecasts, { you: [{ id: "b", rewards: { "essence:limited:x": 30 } }] }, true);
+  expect(rows).toEqual([{ projected: {}, won: { "cash:USD": 5 }, soFar: true }, { projected: { "essence:limited:x": 30 }, won: { "essence:limited:x": 30 }, soFar: false }]);
+  expect(rewardShort({ "cash:USD": 5, "essence:limited:x": 30, "xp:FOOTBALL_XP": 2500, card: 1 })).toBe("$5.00 · 30 essence · a card · 2,500 XP");
+  expect(rewardShort({})).toBe("No prize");
+  expect(rewardShort(null)).toBe("—");
+});
+it("counts what Sorare paid a ranked lineup as won when the reward check has not run", () => {
+  const paid = { ...entry("a"), result: { score: 313, rank: 1204, cash: 2.5, essence: 250, card: false } } as GameweekLineup;
+  expect(enteredRewardRows([paid], new Map(), null, true)).toEqual([{ projected: null, won: { "cash:USD": 2.5, "essence:unknown:unknown": 250 }, soFar: false }]);
+  expect(paidBySorare({ score: 300, rank: 9, cash: 0, essence: 0, card: false })).toBeNull();
 });

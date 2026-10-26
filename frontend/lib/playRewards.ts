@@ -67,5 +67,13 @@ export function rewardSignature(line:Pick<Lineup,"board"|"starters"|"subs">):str
   return [line.board,...[...line.starters,...line.subs].map(c=>`${c.slug}:${Number(Boolean(c.captain))}`)].join("|");
 }
 
+/** One lineup's prize in a line: "$5.00 · 30 essence · a card · 2,500 XP", "No prize", or "—" when unknown. */
+export function rewardShort(values:RewardValues|null|undefined):string {
+  if(!values)return "—";
+  const total=(keep:(k:string)=>boolean)=>Object.entries(values).reduce((n,[k,v])=>keep(k)&&known(v)?n+v:n,0);
+  const cash=total(k=>k.startsWith("cash:")),essence=total(k=>k.startsWith("essence:")),cards=total(k=>k==="card"||k.startsWith("card:")),xp=total(k=>k.startsWith("xp:"));
+  const parts=[cash?rewardNumber("cash:USD",cash):null,essence?`${rewardNumber("essence",essence)} essence`:null,cards?cards===1?"a card":`${cards} cards`:null,xp?`${rewardNumber("xp",xp)} XP`:null].filter(Boolean);
+  return parts.length?parts.join(" · "):"No prize";
+}
 export const rewardName=(key:string)=>{const [type,rarity,kind]=key.split(":");return type==="cash"?"Cash":type==="card"?"Cards":type==="xp"?"XP":type==="essence"?`${essenceName(kind==="unknown"?undefined:kind)||"Unspecified"} essence · ${rarity?.replaceAll("_"," ")}`:`${rarity??""} coins`;};
 export const rewardNumber=(key:string,n:number)=>key.startsWith("cash:")?new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:2}).format(n):new Intl.NumberFormat("en-GB",{maximumFractionDigits:2}).format(n);

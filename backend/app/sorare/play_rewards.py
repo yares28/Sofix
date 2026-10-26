@@ -28,7 +28,7 @@ from app.sorare.sync import REWARD_FRAGMENT, cut_offs
 PREFIX = "play_rewards:"
 STATE_PREFIX = "play_reward_state:"
 CLOCK = "play_reward_clock"
-VERSION = 1
+VERSION = 2
 HOUR = timedelta(hours=1)
 RETRY = timedelta(minutes=30)
 CORRECTION = timedelta(hours=24)
@@ -432,6 +432,10 @@ def run(db: Session, client: SorareClient, now: datetime) -> int:
     weeks = index.get("weeks") or {}
     catalog = _catalog(db)
     for slug, info in catalog.items():
+        state = weeks.get(slug)
+        if index.get("version") == 1 and state and not state.get("final") and not state.get("finishedObservedAt"):
+            # Re-evaluate legacy fixture-wide deadlines using both sides' actual games.
+            weeks[slug] = {**state, "at": now.isoformat()}
         end = moment(info.get("end"))
         if end and slug not in weeks:
             weeks[slug] = {"at": (end - timedelta(days=2)).isoformat(), "inputVersion": info.get("inputVersion")}

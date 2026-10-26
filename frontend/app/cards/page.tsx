@@ -7,6 +7,9 @@ import { loadSystem } from "../../lib/system";
 import { weekContext } from "../../lib/weeks";
 import { myWeeksQuietly } from "../../lib/myWeeksData";
 import { cardReturns, seasonWeeks } from "../../lib/myWeeks";
+import { nextGames } from "../../lib/nextGame";
+import { BOARD_OF, boardFixtures } from "../../lib/arcadeFdr";
+import { galleryDifficulty } from "../../lib/galleryNext";
 
 export const metadata: Metadata = { title: "Gallery · Sofix" };
 
@@ -22,16 +25,23 @@ export default async function Cards({ searchParams }: { searchParams: SearchPara
     const value = params[key];
     return typeof value === "string" ? value : undefined;
   };
-  const [data, { grid, meta }, system, saved] = await Promise.all([loadSorare(), loadGrid(), loadSystem(), myWeeksQuietly()]);
+  const [data, { grid, meta }, system, saved] = await Promise.all([loadSorare({ market: false }), loadGrid(), loadSystem(), myWeeksQuietly()]);
   const week = weekContext(grid, data, new Date(), { w: single("w"), gw: single("gw") });
   const ready = data && (data.collection?.length ?? 0) > 0;
+  const now = new Date();
+  const next = nextGames(data?.weeks ?? [], now);
+  const needed = [...new Set([...next.values()].flatMap(n => BOARD_OF[n.game.competition] && BOARD_OF[n.game.competition] !== "PD" ? [BOARD_OF[n.game.competition]!] : []))];
+  const other = await Promise.all(needed.map(async league => ({ league, ...(await loadGrid(league)) })));
+  const to = Math.max(now.getTime(), ...[...next.values()].map(n => Date.parse(n.kickoff)));
+  const fixtures = [{ league: "PD" as const, grid }, ...other].flatMap(({ league, grid }) => grid ? boardFixtures(grid, league, now.getTime(), to) : []);
+  const upcoming = Object.fromEntries([...next].map(([key, value]) => [key, galleryDifficulty(value, fixtures)]));
 
   return (
     <>
       <SiteNav meta={meta} system={system} week={week} />
       <main className="s5-main">
         {ready ? (
-          <CardsView data={data} now={new Date().toISOString()} returns={saved === null ? null : cardReturns(seasonWeeks(saved, new Date()))} />
+          <CardsView data={{ cards: data.cards, collection: data.collection }} upcoming={upcoming} initialPage={Number(single("page") ?? 1) - 1} returns={saved === null ? null : cardReturns(seasonWeeks(saved, now))} />
         ) : (
           <section className="s5-empty" role="status">
             <h1>Gallery</h1>

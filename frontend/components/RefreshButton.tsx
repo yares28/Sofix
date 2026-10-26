@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { REFRESH_HEADER, refreshLabel, viewAfterPoll, viewAfterStart, type RefreshView } from "../lib/refresh";
 import type { ApiResponse, RefreshStatus } from "../lib/types";
+import DataAction from "./ui/DataAction";
 
 const POLL_MS = 2000;
 const DONE_MS = 4000;
@@ -77,28 +78,16 @@ export default function RefreshButton() {
 
   return (
     <span className="refresh">
-      <button
-        type="button"
-        className={`refresh-button${busy ? " busy" : ""}${view.kind === "failed" ? " failed" : ""}`}
+      <DataAction
+        label={refreshLabel(view, now)}
+        busy={busy}
         onClick={start}
         disabled={disabled}
-        title={message}
+        title={message ?? refreshLabel(view, now)}
         aria-describedby={message ? "refresh-message" : undefined}
-      >
-        <svg aria-hidden="true" width="13" height="13" viewBox="0 0 16 16" className="refresh-icon">
-          <path
-            d="M13.5 8a5.5 5.5 0 1 1-1.61-3.89M13.5 2.5v3h-3"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-        {refreshLabel(view, now)}
-      </button>
-      <span className="visually-hidden" role="status" aria-live="polite">
-        {busy || view.kind === "done" ? refreshLabel(view, now) : ""}
+      />
+      <span role="status" aria-live="polite">
+        {view.kind !== "idle" ? message ?? refreshLabel(view, now) : ""}
       </span>
       {message && (
         <span id="refresh-message" className="visually-hidden">

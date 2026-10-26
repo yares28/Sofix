@@ -161,9 +161,6 @@
 .ms-editor button:hover:not(:disabled) { border-color: var(--ink-3); }
 @media (max-width: 1199px) { .ms-edit-workspace { grid-template-columns: 1fr; } }
 .ms-load { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 12px 0 0; }
-.ms-load-btn { border: 0; border-radius: 12px; min-height: 40px; padding: 0 18px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--on-ink); }
-.ms-load-btn:disabled { opacity: .6; cursor: progress; }
-.ms-load-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .ms-load-note { margin: 12px 0 0; font-size: 13px; color: var(--ink-2); }
 .ms-load .ms-load-note { margin: 0; }
 .ms-stale { margin: 12px 0 0; padding: 10px 14px; border-radius: 12px; background: color-mix(in srgb, #ff9f0a 14%, var(--surface)); color: var(--ink); font-size: 14px; }

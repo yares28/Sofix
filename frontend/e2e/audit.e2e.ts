@@ -202,10 +202,11 @@ test("saved weeks survive without Chrome on Recap, Cards and Rewards, beside the
   await season.getByText("GW17", { exact: true }).click();
   await expect(season.getByRole("list", { name: "Essence-winning lineup" })).toContainText(card.name);
   await expect(season).toContainText("$2.50");
-  await page.goto("/cards");
+  await page.goto(`/cards#p-${card.player}`);
   const gallery = page.locator(".s5-pc").filter({ has: page.getByRole("link", { name: `${card.name}: open his page`, exact: true }) }).first();
-  await expect(gallery).toContainText("250 essence");
-  await expect(gallery).toContainText("$2.50");
+  await gallery.locator(".s5-info-btn").click();
+  await expect(page.getByRole("tooltip")).toContainText("250 essence");
+  await expect(page.getByRole("tooltip")).toContainText("$2.50");
   await page.goto("/audit/rewards");
   await expect(page.getByRole("region", { name: "You", exact: true })).toContainText("250 essence");
   const frozen = page.getByRole("region", { name: "Your lineups against the plan at lock" });
@@ -326,6 +327,7 @@ test("before the first refresh that writes it, the page says so instead of drawi
 test("no text is smaller than 11 px, nothing scrolls sideways, and the page has no accessibility violations", async ({ page }) => {
   await page.goto("/audit");
   await expect(page.locator(".lg-card").first()).toBeVisible();
+  await expect.poll(() => page.locator(".au-player-scores").evaluate(el => getComputedStyle(el).opacity)).toBe("1");
 
   expect(await smallText(page, 11)).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

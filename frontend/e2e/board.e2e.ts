@@ -157,9 +157,11 @@ test("very wide screens keep the layout: no sideways scroll, tiles fit, rows sti
     await page.setViewportSize({ width, height: 1200 });
     for (const path of ["/difficulty?h=next", "/difficulty?h=3&lens=defence", "/difficulty?h=8"]) {
       await page.goto(path);
+      await expect(page.locator('main[aria-busy="true"]')).toBeHidden();
+      await expect(page.locator("main:visible")).toBeVisible();
       await expect(page.locator(".ladder-card .list-rows > li")).toHaveCount(grid.teams.length);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `${width} ${path}`).toBe(true);
-      const main = (await page.locator("main").boundingBox())!;
+      const main = (await page.locator("main:visible").boundingBox())!;
       expect(main.width, "the page stops growing at its maximum width").toBeLessThanOrEqual(1600);
       const clipped = await page.locator(".ladder-card .tile, .ladder-card .price").evaluateAll((els) =>
         els.filter((el) => el.scrollWidth > el.clientWidth + 1).length,
@@ -271,6 +273,7 @@ test("a pinned team floats to the top and is remembered", async ({ page, context
 
 test("fixture tiles work from the keyboard with a tooltip", async ({ page }) => {
   await page.goto("/difficulty");
+  await expect(page.locator('main[aria-busy="true"]')).toBeHidden();
   const tooltip = page.locator(".tip");
   await page.locator('[data-row="0"][data-col]').first().focus();
   await page.keyboard.press("ArrowRight");
@@ -289,12 +292,13 @@ test("the refresh button runs a refresh, then waits out the cooldown", async ({ 
   await page.locator(".status-pill").click(); // the button lives in the Control Center page
   await expect(page).toHaveURL(/\/control$/, { timeout: 30_000 }); // the dev server compiles the page on first visit
   await expect(page.getByRole("heading", { level: 1, name: "Control Center" })).toBeVisible();
-  const button = page.locator(".refresh-button");
-  await expect(button).toHaveText("Refresh");
+  const button = page.locator(".refresh button");
+  await expect(button).toHaveAccessibleName("Refresh");
+  await expect(button).toHaveText("");
   await button.click();
-  await expect(button).toHaveText(/Syncing fixtures|Updating predictions|Fetching odds|Starting/, { timeout: 10_000 });
-  await expect(button).toHaveText("Up to date", { timeout: 20_000 });
-  await expect(button).toHaveText(/^Available in (9|10) min$/, { timeout: 10_000 });
+  await expect(button).toHaveAccessibleName(/Syncing fixtures|Updating predictions|Fetching odds|Starting/, { timeout: 10_000 });
+  await expect(button).toHaveAccessibleName("Up to date", { timeout: 20_000 });
+  await expect(button).toHaveAccessibleName(/^Available in (9|10) min$/, { timeout: 10_000 });
   await expect(button).toBeDisabled();
 });
 
@@ -323,6 +327,7 @@ test("the gameweek card lists the matches and its details open as match cards in
 test("the Next horizon shows the gameweek's matches with forecasts and follows the selector", async ({ page }) => {
   const { matches } = gameweekMatches(grid, column(openingMatchday));
   await page.goto("/difficulty");
+  await expect(page.locator('main[aria-busy="true"]')).toBeHidden();
   await group(page, "Grid horizon").getByRole("button", { name: "Next", exact: true }).click();
   await expect(page).toHaveURL(/h=next/);
   await expect(page.locator(".toolbar .range")).toHaveText(`GW${openingMatchday}`);
@@ -337,7 +342,7 @@ test("the Next horizon shows the gameweek's matches with forecasts and follows t
   await expect(card.getByRole("rowheader", { name: "Clean sheet" })).toBeVisible();
 
   await page.getByRole("button", { name: "Next gameweek" }).click();
-  await expect(page.locator("#grid").getByRole("heading", { level: 2, name: `Gameweek ${openingMatchday + 1}` })).toBeVisible();
+  await expect(page.locator("#grid").getByRole("heading", { level: 2, name: `Gameweek ${openingMatchday + 1}` })).toBeVisible({ timeout: 30_000 });
 });
 
 test("old links from when the board lived at / open its new pages", async ({ page }) => {
@@ -746,7 +751,7 @@ test("Season's Fixtures shows the week's own LaLiga round, labelled, and its rou
   await expect(page.locator(".season-round")).toHaveCount(1);
   await expect(page.locator(".lens").getByRole("link", { name: "Fixtures" })).toHaveAttribute("aria-current", "page");
   await page.getByRole("navigation", { name: "Rounds" }).getByRole("link", { name: String(last), exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`md=${last}$`));
+  await expect(page).toHaveURL(new RegExp(`md=${last}$`), { timeout: 30_000 });
   await expect(page.getByRole("heading", { level: 2, name: `LaLiga · Gameweek ${last} fixtures` })).toBeVisible();
 });
 

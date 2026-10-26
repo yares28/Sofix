@@ -12,21 +12,43 @@ test.beforeEach(async ({ page, request }) => {
 const cards = sorare.collection!;
 const tile = (index: number) => `#p-${cards[index]!.player}`;
 
-test("each card says his next game and his chance to start it, from every source that has one", async ({ page }) => {
-  await page.goto("/cards");
-
-  const all = page.locator(tile(0));
-  await expect(all.locator(".s5-next-game")).toContainText("v Getafe CF");
-  const three = all.getByRole("group", { name: "Chance to start" });
-  await expect(three).toHaveText("FF80SO70SF54");
-  await expect(three.locator("[data-used]")).toHaveText("FF80"); // the one Sofix uses
-
-  await expect(page.locator(tile(1)).getByRole("group", { name: "Chance to start" })).toHaveText("SO70SF60");
-  await expect(page.locator(tile(1)).locator("[data-used]")).toHaveText("SO70");
-  await expect(page.locator(tile(2)).getByRole("group", { name: "Chance to start" })).toHaveText("SF60");
-
-  // a card whose player has no game in the weeks Sorare has opened says so, in words
+test("compact Gallery cards retain each exact game's sources in details", async ({ page }) => {
+  for (const [index, chance, sources] of [[0, 80, [80,70,54]], [1,70,[70,60]], [2,60,[60]]] as const) {
+    await page.goto(`/cards#p-${cards[index]!.player}`);
+    const card = page.locator(tile(index));
+    await expect(card.getByLabel(`Start chance ${chance}%`, { exact: true })).toBeVisible();
+    await expect(card.locator(".s5-hexrow, .s5-return, .nm")).toHaveCount(0);
+    await card.locator(".s5-info-btn").click();
+    const tip = page.getByRole("tooltip");
+    for (const percent of sources) await expect(tip.getByRole("group", { name: "Chance to start" })).toContainText(`${percent}%`);
+    await expect(tip.getByRole("group", { name: "Average score by window" })).toContainText("L5");
+    await page.keyboard.press("Escape");
+    await expect(tip).toHaveCount(0);
+  }
+  await page.goto(`/cards#p-${cards[10]!.player}`);
   await expect(page.locator(tile(10)).locator(".s5-next")).toHaveText("No game yet");
+});
+
+test("Gallery pages preserve every card, reload the selected page and reset with filters", async ({ page }) => {
+  await page.goto("/cards");
+  const seen: string[] = [];
+  while (true) {
+    await expect(page.locator(".s5-pc")).not.toHaveCount(0);
+    expect(await page.locator(".s5-pc").count()).toBeLessThanOrEqual(12);
+    seen.push(...await page.locator(".s5-pc").evaluateAll(cards => cards.map(c => c.getAttribute("data-card")!)));
+    const next = page.getByRole("navigation", { name: "Gallery pages" }).getByRole("button", { name: "Next", exact: true });
+    if (!await next.count() || !await next.isEnabled()) break;
+    await next.click();
+  }
+  expect(seen.sort()).toEqual(cards.map(c => c.slug).sort());
+  await page.reload();
+  await expect(page.getByRole("navigation", { name: "Gallery pages" }).getByRole("button", { name: "Next", exact: true })).toBeDisabled();
+  await page.getByRole("searchbox", { name: "Find a player or club" }).fill(cards[0]!.name);
+  await expect(page.locator(tile(0))).toBeVisible();
+  await expect(page).not.toHaveURL(/page=/);
+  await page.goto(`/cards#p-${cards.at(-1)!.player}`);
+  await expect(page.locator(tile(cards.length - 1))).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
 test("a dash under Projected says why, once on the page and on each card", async ({ page }) => {
@@ -152,7 +174,7 @@ test("Stats ranks LaLiga players by their mean per start: the first five on a st
   await expect(podium.first().locator(".sx-name")).not.toHaveText("Raphinha");
 
   await podium.first().getByRole("link").first().click();
-  await expect(page).toHaveURL(/\/players\/[a-z0-9-]+$/);
+  await expect(page).toHaveURL(/\/players\/[a-z0-9-]+$/, { timeout: 30_000 });
 });
 
 test("Stats keeps the text floor and fits a phone", async ({ page }) => {

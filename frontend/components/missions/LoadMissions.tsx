@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { askExtension, extensionAtLeast, MISSIONS_EXTENSION_VERSION, parseMissionsLoad, pingExtension } from "../../lib/extension";
 import { missionsLoadNote } from "../../lib/missions";
+import DataAction from "../ui/DataAction";
 
 type Reach = "asking" | "none" | "old" | "ready";
 
@@ -57,12 +58,10 @@ export default function LoadMissions({ stale, day }: { stale: boolean; day: stri
     }
   };
 
-  if (reach === "asking") return null;
+  if (reach === "asking") return <div className="ms-load"><DataAction label="Checking mission reader" kind="board" disabled /></div>;
   return <>
     <div className="ms-load">
-      <button type="button" className="ms-load-btn" onClick={() => void retry()} disabled={busy} aria-busy={busy}>
-        {busy ? "Loading…" : reach === "old" ? "Check extension and load" : "Load today's missions"}
-      </button>
+      <DataAction label={reach === "old" ? "Check extension and load" : "Load today's missions"} kind="board" onClick={() => void retry()} busy={busy} />
       <p className="ms-load-note" role="status" aria-live="polite">{note ?? (reach === "none" ? "Couldn’t reach the Sofix extension in this browser. Press Load to try again." : null)}</p>
     </div>
     {reach === "old" ? <div className="ms-extension-help">

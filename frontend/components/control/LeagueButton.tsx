@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { REFRESH_HEADER } from "../../lib/refresh";
+import DataAction from "../ui/DataAction";
 
 /** Starts the League history workflow now; the line beside it updates when the run ends (about five minutes). */
 export default function LeagueButton() {
@@ -18,9 +19,7 @@ export default function LeagueButton() {
   };
   return (
     <span className="cc-league">
-      <button type="button" className="cc-btn soft" onClick={start} disabled={said === "Starting…" || said === "Started · about 5 min"}>
-        Read now
-      </button>
+      <DataAction label="Read now" title="Read league game history" kind="board" onClick={start} busy={said === "Starting…"} disabled={said === "Started · about 5 min"} />
       {said ? <span role="status">{said}</span> : null}
     </span>
   );

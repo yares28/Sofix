@@ -116,9 +116,7 @@
 .pl-entered-empty > div { display: flex; flex-direction: column; gap: 2px; }
 .pl-entered-empty b { color: var(--ink); font-size: 13px; font-weight: 650; }
 .pl-entered-empty span { font-size: 12px; }
-.pl-entered-empty a,
-.pl-entered-again { color: var(--ink); font-size: 12px; font-weight: 650; white-space: nowrap; }
-.pl-entered-again { padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-family: inherit; cursor: pointer; }
+.pl-entered-empty a { color: var(--ink); font-size: 12px; font-weight: 650; white-space: nowrap; }
 
 /* ---------- plan switch ---------- */
 .pl-plans {
@@ -2022,26 +2020,6 @@
 }
 .pl-rebuild-bar b {
   color: var(--ink);
-}
-.pl-rebuild-btn {
-  flex: none;
-  padding: 8px 14px;
-  border: 0;
-  border-radius: 10px;
-  background: var(--ink);
-  color: var(--on-ink);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.pl-rebuild-btn:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-.pl-rebuild-btn:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 2px;
 }
 .pl-rebuild-said,
 .pl-rebuild-swaps {

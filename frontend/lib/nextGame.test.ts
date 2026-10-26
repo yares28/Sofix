@@ -29,6 +29,16 @@ describe("the chance to start each source gives", () => {
 });
 
 describe("his next game", () => {
+  it("keeps a genuine zero forecast but never assigns a double's best-game score to one fixture", () => {
+    const single = nextGames([week(21, [player("A", [game("2026-10-10T16:30:00Z")], { x: 0, xd: 0 })])], NOW).get("A")!;
+    expect(single).toMatchObject({ forecast: { x: 0, xd: 0 } });
+    const double = nextGames([week(21, [player("A", [game("2026-10-10T16:30:00Z"), game("2026-10-12T16:30:00Z")], { x: 77, xd: 1.4 })])], NOW).get("A")!;
+    expect(double).toMatchObject({ forecast: null });
+  });
+  it("keeps an explicitly unknown imported forecast missing, even when it carries a placeholder zero", () => {
+    const next = nextGames([week(21, [player("A", [game("2026-10-10T16:30:00Z")], { x: 0, xd: 0, availabilityKnown: false })])], NOW).get("A")!;
+    expect(next.forecast).toBeNull();
+  });
   it("is the earliest game still to come over every week the payload holds, with the chances of that game", () => {
     const weeks = [
       week(19, [player("A", [game("2026-09-30T18:00:00Z")], { pStart: 0.9, startSource: "sofix" })]),

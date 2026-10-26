@@ -259,3 +259,51 @@ def test_failed_source_retries_without_replacing_known_rewards(db):
     assert (
         db.get(ReadModel, play_rewards.CLOCK).payload["weeks"]["gw"]["at"] == (NOW + timedelta(minutes=30)).isoformat()
     )
+
+
+def test_legacy_unfinished_clock_is_rechecked_without_waiting_for_an_unrelated_game(db):
+    keep(db)
+    put(
+        db,
+        play_rewards.CLOCK,
+        {
+            "version": 1,
+            "inputs": play_rewards._inputs(db),
+            "at": (NOW + timedelta(days=2)).isoformat(),
+            "weeks": {
+                "gw": {
+                    "at": (NOW + timedelta(days=2)).isoformat(),
+                    "inputVersion": play_rewards._catalog(db)["gw"]["inputVersion"],
+                    "games": "older-fixture-wide-clock",
+                }
+            },
+        },
+        NOW,
+    )
+    source = Source()
+    assert play_rewards.run(db, source, NOW) == 1
+    clock = db.get(ReadModel, play_rewards.CLOCK).payload["weeks"]["gw"]
+    assert clock["at"] == (NOW + timedelta(hours=1)).isoformat()
+    assert clock["finishedObservedAt"] == NOW.isoformat()
+    assert len(source.questions) == 1
+
+
+def test_legacy_upgrade_preserves_observed_finish_and_correction_deadlines(db):
+    keep(db)
+    due = (NOW + timedelta(hours=12)).isoformat()
+    state = {
+        "at": due,
+        "inputVersion": play_rewards._catalog(db)["gw"]["inputVersion"],
+        "finishedObservedAt": NOW.isoformat(),
+        "correcting": True,
+    }
+    put(
+        db,
+        play_rewards.CLOCK,
+        {"version": 1, "inputs": play_rewards._inputs(db), "at": due, "weeks": {"gw": state}},
+        NOW,
+    )
+    source = Source()
+    assert play_rewards.run(db, source, NOW) == 0
+    assert db.get(ReadModel, play_rewards.CLOCK).payload["weeks"]["gw"] == state
+    assert not source.questions

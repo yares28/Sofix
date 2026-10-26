@@ -6,6 +6,7 @@ import { MISSIONS_TAG } from "../../../lib/missions";
 import { SORARE_TAG } from "../../../lib/play";
 import { GRID_TAG } from "../../../lib/refresh";
 import { SYSTEM_TAG } from "../../../lib/system";
+import { MY_WEEKS_TAG } from "../../../lib/myWeeks";
 
 // Called by the refresh job when it has published new data (backend/app/services/publish.py).
 // The job reaches the protected deployment with the Vercel bypass header and proves itself with REVALIDATE_SECRET.
@@ -31,6 +32,7 @@ export async function POST(request: NextRequest) {
   revalidateTag(GRID_TAG);
   revalidateTag(SYSTEM_TAG);
   revalidateTag(SORARE_TAG);
+  revalidateTag(MY_WEEKS_TAG);
   revalidateTag(MISSIONS_TAG);
   after(() => recordQuietly()); // after each refresh, so a day is logged even with Chrome closed
   return NextResponse.json({ revalidated: true }, { headers: { "Cache-Control": "no-store" } });

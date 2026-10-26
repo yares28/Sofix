@@ -151,8 +151,9 @@ previews, ESLint/tsc/ruff/mypy clean.
 
 ### P1 — Sorare model gate still open
 
-Enough pre-lock/scored gameweeks must accumulate before fitting and blind-comparing a replacement. Shipping an S4
-model merely because data now exists would violate the same evidence standard used by the football model.
+The fitted keeper/outfield score models (plans/xscore.md P9 X3/X4) shipped on 4 Oct on walk-forward evidence, frozen
+through 30 Sep. Their blind check on the held-out weeks from 1 Oct is open: on 26 Oct it held three gameweeks, the
+right direction against the old formula and level with Sorare's projection, too few to decide (docs/sorare_plan.md S4).
 
 ### Resolved 2026-09-28 — accepted football RPS and generated report disagree
 

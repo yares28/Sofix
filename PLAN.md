@@ -72,7 +72,8 @@ Backend owns `prediction.bucket` and `lens_scales`; frontend must not re-derive 
 
 ## Sorare contract
 
-Current xScore is a transparent heuristic, not the planned fitted S4 model:
+A player's score if he starts comes from fitted keeper/outfield models (P9 X3/X4, frozen through 30 Sep 2026; their
+held-out check is open). The xScore is:
 
 ```text
 xScore = P(plays at least once) × expected Sorare score if he plays
@@ -107,7 +108,7 @@ both objectives. Reward chances remain estimates with known spread/correlation a
 
 ## Remaining work
 
-Settle the football baseline, fit/blind-test S4 only after enough recorded weeks, calibrate correlated rewards, and
+Blind-check S4's fitted models on the held-out weeks once they hold about ten (three on 26 Oct 2026), calibrate correlated rewards, and
 complete extension/live Apply acceptance before retiring SorareExt.
 See [docs/research_report.md](docs/research_report.md).
 

@@ -281,8 +281,8 @@ no longer simulates a lineup's players independently: `publish.gameweek_payload`
 positions and side (a keeper and his defenders +0.29, a keeper against the other side's forwards −0.26, ...), and the simulation draws correlated scores. Reward chances, ranges and the plans ranked by them
 follow. The captain is chosen among the three starters with the best expected points by the chance of a reward his captaincy gives, then by the expected score.
 
-Common SD is 17.6. Source is published (“sorare”, “form”, “no game”). This is a transparent heuristic awaiting an S4
-fitted/blind-tested replacement.
+Common SD is 17.6. Source is published (“sorare”, “form”, “no game”). The score if he starts is fitted (keepers and outfield, above); their blind check on the weeks
+held out from 1 Oct runs with `keeper_fit` / `outfield_fit --holdout 2026-10-01` (docs/sorare_plan.md S4).
 
 How it is checked (roadmap 3.1, `app.sorare.backtest`): for every game in the owner's players' exported history
 (`app.jobs.export_history`, a git-ignored file, read only from Sorare's public API), what would the form formula have said

@@ -95,9 +95,10 @@ available; multi-game chance of any appearance plus best-of-two uplift; `xScore=
 
 - [x] Capture pre-lock predictions and post-game actuals.
 - [x] Show player/lineup replay.
-- [ ] Accumulate enough scored weeks and declare train/test split.
-- [ ] Fit availability/score candidates using pre-lock inputs only.
-- [ ] Blind-compare with Sorare projection/current heuristic; ship only with evidence.
+- [x] Declare train/test split: tune to 30 Sep 2026, hold out from 1 Oct (plans/xscore.md §3).
+- [x] Fit score candidates using pre-lock inputs only: keepers and outfield lines (P9 X3/X4, on production 4 Oct, frozen through 30 Sep).
+- [ ] Blind-compare with Sorare projection/current heuristic on the held-out weeks; accumulating.
+  **Held-out check, 26 Oct 2026** (`keeper_fit` / `outfield_fit --holdout 2026-10-01`: the shipped artifacts, fitted through 30 Sep, scored on 9–21 Oct, three gameweeks, football-data.co.uk then ending 21 Oct). Squared miss (RMSE), new / old formula / Sorare's projection: GK 40 starts (too few to tell; new minus old −48.7 [−127.2, +2.4]); DEF 161: 20.03 / 22.64 / 19.84; MID 120: 15.84 / 17.14 / 16.13; FWD 119: 16.73 / 18.58 / 17.49. Same direction as the walk-forward, level with Sorare's projection, but three gameweeks are too few for an interval to mean anything: rerun when the held-out weeks reach about ten. Nothing changed from it.
 
 ## S5 — Cards and Players ✅
 

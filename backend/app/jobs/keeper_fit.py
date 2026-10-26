@@ -182,6 +182,24 @@ def running_average(
     return {(w.player, w.date): float(np.mean([s.score for s in starts if s.date < first[w.week]])) for w in walked}
 
 
+def held_out(starts: Sequence[keeper.Start], model: keeper.KeeperModel | None, since: datetime) -> list[keeper.Walked]:
+    """The starts from `since` on, each predicted by the shipped model, which was fitted before them and never saw them.
+    Kept here, not in `keeper`: the Conference recorder freezes that module's bytes."""
+    if model is None:
+        return []
+    return [
+        keeper.Walked(
+            s.week, s.date, s.player, s.score, s.decisive, s.clean_sheet, s.proj, model.predict(s.numbers, s.proj)
+        )
+        for s in starts
+        if s.date >= since
+    ]
+
+
+def _day(text: str) -> datetime:
+    return datetime.fromisoformat(text).replace(tzinfo=UTC)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--games", type=Path, default=gamedata.DEFAULT_GAMES)
@@ -196,8 +214,15 @@ def main(argv: list[str] | None = None) -> int:
         "--through", default=None, help="fit only on starts up to this day (YYYY-MM-DD); the rest stay unseen"
     )
     parser.add_argument("--write", action="store_true", help=f"write {keeper.ARTIFACT.name}")
+    parser.add_argument(
+        "--holdout",
+        default=None,
+        help="score the shipped artifact on the starts from this day (YYYY-MM-DD) on, the held-out weeks, instead of the walk-forward",
+    )
     parser.add_argument("--json", type=Path, default=None, help="also write the evaluation's numbers here")
     args = parser.parse_args(argv)
+    if args.holdout and args.write:
+        parser.error("--holdout scores the shipped artifact; it does not write one")
 
     fixtures = backtest.read_fixtures(json.loads(args.fixtures_from.read_text("utf-8")))
     joined, unmatched, last_day = gamedata.load_joined(args.games, args.cache)
@@ -205,7 +230,7 @@ def main(argv: list[str] | None = None) -> int:
     print(
         f"{len(starts)} keeper starts; football-data.co.uk holds matches up to {last_day.date()}; unmatched clubs: {sorted(unmatched)}"
     )
-    walked = keeper.walk_forward(starts)
+    walked = held_out(starts, keeper.load(), _day(args.holdout)) if args.holdout else keeper.walk_forward(starts)
     players = gamedata.players_of(joined)
     today = {
         (row.player, row.date): float(row.start)

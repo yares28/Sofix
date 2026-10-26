@@ -274,3 +274,14 @@ def test_the_pictures_are_written_and_read_back(tmp_path: Any) -> None:
     outfield.save_subs(tmp_path / "s.json", {"MID": shape})
     assert outfield.load_subs(tmp_path / "s.json") == {"MID": shape}
     assert outfield.load_subs(tmp_path / "none.json") == {}
+
+
+def test_the_held_out_weeks_are_scored_by_the_shipped_lines_alone() -> None:
+    starts = made_up()
+    since = starts[400].date
+    models = outfield.fit_all([s for s in starts if s.date < since])
+    rows = outfield_fit.held_out(starts, models, since)
+    assert len(rows) == sum(s.date >= since for s in starts) and min(r.date for r in rows) >= since
+    first = next(s for s in starts if s.date >= since)
+    assert rows[0].said == models["FWD"].predict(first.numbers, first.home, first.own_dec, first.own_score, first.proj)
+    assert outfield_fit.held_out(starts, {}, since) == []

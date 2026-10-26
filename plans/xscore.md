@@ -776,6 +776,8 @@ Audit shows every figure of the tracking catalogue with its counts, before and a
 
 ### P9 progress
 
+**Held-out check, 26 Oct 2026** (`keeper_fit` / `outfield_fit --holdout 2026-10-01`: the shipped artifacts, fitted through 30 Sep, scored on 9–21 Oct, three gameweeks, football-data.co.uk then ending 21 Oct). Squared miss (RMSE), new / old formula / Sorare's projection: GK 40 starts (too few to tell; new minus old −48.7 [−127.2, +2.4]); DEF 161: 20.03 / 22.64 / 19.84; MID 120: 15.84 / 17.14 / 16.13; FWD 119: 16.73 / 18.58 / 17.49. Same direction as the walk-forward, level with Sorare's projection, but three gameweeks are too few for an interval to mean anything: rerun when the held-out weeks reach about ten. Nothing changed from it.
+
 **X1 · the data: done 4 Oct 2026 (roadmap 10.1).** `python -m app.jobs.export_games` read every played LaLiga game since 1 August 2025 from
 Sorare's public API without a key, in about an hour (two questions a game, three seconds apart; no refusal stopped it):
 **449 games (380 of 2025/26, 69 of 2026/27 up to 20 Sep), 29,094 player rows, 14,142 appearances, 9,878 starts** (898 by keepers, 3,665

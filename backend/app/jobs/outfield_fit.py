@@ -122,6 +122,25 @@ def render(table: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def held_out(
+    starts: Sequence[outfield.OutfieldStart], models: dict[str, outfield.OutfieldModel], since: datetime
+) -> list[outfield.Walked]:
+    """The starts from `since` on, each predicted by the shipped line of his position, fitted before them and never shown them.
+    Kept here, not in `outfield`: the Conference recorder freezes that module's bytes."""
+    out: list[outfield.Walked] = []
+    for s in starts:
+        model = models.get(s.pos)
+        if s.date < since or model is None:
+            continue
+        shape = model.outcome(s.numbers, s.home, s.own_dec, s.own_score, s.proj)
+        out.append(outfield.Walked(s.week, s.date, s.player, s.pos, s.score, s.proj, shape.start, shape))
+    return out
+
+
+def _day(text: str) -> datetime:
+    return datetime.fromisoformat(text).replace(tzinfo=UTC)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--games", type=Path, default=gamedata.DEFAULT_GAMES)
@@ -129,8 +148,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--fixtures-from", type=Path, required=True)
     parser.add_argument("--through", default=None, help="fit only on starts up to this day (YYYY-MM-DD)")
     parser.add_argument("--write", action="store_true", help=f"write {outfield.ARTIFACT.name}")
+    parser.add_argument(
+        "--holdout",
+        default=None,
+        help="score the shipped artifact on the starts from this day (YYYY-MM-DD) on, the held-out weeks, instead of the walk-forward",
+    )
     parser.add_argument("--json", type=Path, default=None, help="also write the evaluation's numbers here")
     args = parser.parse_args(argv)
+    if args.holdout and args.write:
+        parser.error("--holdout scores the shipped artifact; it does not write one")
 
     fixtures = backtest.read_fixtures(json.loads(args.fixtures_from.read_text("utf-8")))
     joined, unmatched, last_day = gamedata.load_joined(args.games, args.cache)
@@ -138,7 +164,7 @@ def main(argv: list[str] | None = None) -> int:
     print(
         f"{len(starts)} outfield starts; football-data.co.uk holds matches up to {last_day.date()}; unmatched clubs: {sorted(unmatched)}"
     )
-    walked = outfield.walk_forward(starts)
+    walked = held_out(starts, outfield.load(), _day(args.holdout)) if args.holdout else outfield.walk_forward(starts)
     players = gamedata.players_of(joined)
     today = {
         (r.player, r.date): float(r.start)

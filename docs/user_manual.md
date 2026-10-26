@@ -1077,7 +1077,7 @@ the extension that holds the token.
 ## 14. What Sofix cannot promise
 
 - Match probabilities, player availability, scores and rewards remain uncertain.
-- Sorare xScore is currently a documented heuristic awaiting enough blind replay data for a fitted replacement.
+- Sorare xScore's score if he starts is fitted (since 4 Oct 2026); its blind check on the held-out weeks is still collecting gameweeks.
 - Reward simulations use a common measured score spread and simplify cross-player/lineup correlation.
 - A market value is not a tradable quote.
 - Sorare can change rules or its page/API; the Check response is authoritative before any draft/entry.

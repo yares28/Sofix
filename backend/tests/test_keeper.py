@@ -17,6 +17,7 @@ from typing import Any
 
 import pytest
 
+from app.jobs import keeper_fit
 from app.models import Competition, Fixture, MarketOdds, Prediction, Team
 from app.sorare import forecast as sorare_forecast
 from app.sorare import keeper, publish, scores
@@ -177,6 +178,18 @@ def test_a_game_is_predicted_only_from_weeks_before_it() -> None:
     again = keeper.walk_forward(changed)
     earlier = {(r.player, r.date): r.said.start for r in rows if r.week != starts[-1].week}
     assert earlier == {(r.player, r.date): r.said.start for r in again if r.week != starts[-1].week}
+
+
+def test_the_held_out_weeks_are_scored_by_the_shipped_model_alone() -> None:
+    starts = made_up()
+    since = starts[300].date
+    model = keeper.fit([s for s in starts if s.date < since])
+    assert model is not None
+    rows = keeper_fit.held_out(starts, model, since)
+    assert len(rows) == sum(s.date >= since for s in starts) and min(r.date for r in rows) >= since
+    first = next(s for s in starts if s.date >= since)
+    assert rows[0].said == model.predict(first.numbers, first.proj)
+    assert keeper_fit.held_out(starts, None, since) == []
 
 
 def test_walk_forward_rows_carry_what_happened_and_what_was_said() -> None:

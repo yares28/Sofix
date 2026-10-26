@@ -1,5 +1,17 @@
+import { COMPETITIONS } from "../lib/competitions";
 import { expect, test } from "@playwright/test";
 import { offline, openingMatchday, resetBackend, smallText } from "./helpers";
+
+test("All competitions fits the phone, including double games and forty-club pagination", async ({ page }) => {
+  await page.goto("/difficulty?league=ALL");
+  await expect(page.locator(".competition-icons button")).toHaveCount(8);
+  await expect(page.locator(".table-card")).toHaveCount(0);
+  await expect(page.locator(".ladder-card .list-rows > li")).toHaveCount(10);
+  await expect(page.locator(".mixed-week").first().locator(".tile")).toHaveCount(2);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await page.locator(".ladder-card").scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "output/playwright/all-mobile.png", fullPage: true });
+});
 
 test("European league-phase tables fit 390px with a long leading club name",async({page})=>{
   for(const code of ["CL","EL","CONF"]) {
@@ -15,9 +27,9 @@ test("European league-phase tables fit 390px with a long leading club name",asyn
 test("Premier League and Bundesliga FDR fit the phone", async ({ page }) => {
   for (const [league, size] of [["PL",20],["BL1",18],["FL1",18],["CL",36],["EL",36],["CONF",36]] as const) {
     await page.goto(`/difficulty?league=${league}`);
-    await expect(page.getByRole("combobox", { name: "Competition" })).toHaveValue(league);
+    await expect(page.locator(".competition-icons").getByRole("button", { name: COMPETITIONS[league], exact: true })).toHaveAttribute("aria-pressed", "true");
     await expect(page.locator("#grid table tbody tr")).toHaveCount(size);
-    await expect(page.getByRole("combobox", { name: "Competition" })).toBeEnabled();
+    await expect(page.locator(".competition-icons").getByRole("button", { name: COMPETITIONS[league], exact: true })).toBeEnabled();
     const bounds = await page.evaluate(() => {
       const escaped = [...document.querySelectorAll("body *")].filter(e => {
         if (e.getBoundingClientRect().right <= 395) return false;
@@ -54,7 +66,8 @@ test("phone layout shows five gameweeks without scrolling the page sideways", as
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 
   const toolbarRows = await page.locator(".toolbar-nav, .toolbar .search, .toolbar-controls").evaluateAll((els) =>
-    new Set(els.map((el) => Math.round(el.getBoundingClientRect().top / 10))).size,
+    els.map(el => el.getBoundingClientRect().top).sort((a, b) => a - b)
+      .filter((top, i, sorted) => i === 0 || top - sorted[i - 1]! > 10).length,
   );
   expect(toolbarRows).toBeLessThanOrEqual(2);
 });

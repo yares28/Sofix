@@ -13,6 +13,7 @@ interface Props {
   column: number;
   /** The opponent's crest, drawn beside its code (owner's rule: clubs as their real crest wherever possible). */
   crestOf?: (code: string) => string | null;
+  codeOf?: (code: string) => string;
 }
 
 interface TileProps {
@@ -25,10 +26,11 @@ interface TileProps {
   column: number;
   showTbc: boolean;
   crest: string | null;
+  opponentCode: string;
 }
 
 /** A button, so every fixture can be reached and read without a mouse; details open in the tooltip. */
-function Tile({ cell, bucket, compact, dataKey, label, row, column, showTbc, crest }: TileProps) {
+function Tile({ cell, bucket, compact, dataKey, label, row, column, showTbc, crest, opponentCode }: TileProps) {
   const common = {
     type: "button" as const,
     "data-key": dataKey,
@@ -49,7 +51,7 @@ function Tile({ cell, bucket, compact, dataKey, label, row, column, showTbc, cre
             {Math.round(review.outcome_chance * 100)}
           </span>
         )}
-        <span className="opp">{cell.opponent_code}</span>
+        <span className="opp">{opponentCode}</span>
         <span className={`score ${outcome}`}>
           {goals_for}–{goals_against}
         </span>
@@ -59,7 +61,7 @@ function Tile({ cell, bucket, compact, dataKey, label, row, column, showTbc, cre
   if (cell.status === "postponed") {
     return (
       <button {...common} className={`cell muted ${size}`}>
-        <span className="opp">{cell.opponent_code}</span>
+        <span className="opp">{opponentCode}</span>
         <span className="venue">Postponed</span>
       </button>
     );
@@ -69,7 +71,7 @@ function Tile({ cell, bucket, compact, dataKey, label, row, column, showTbc, cre
       {crest && !compact ? (
         <Image className="cell-crest" src={crest} alt="" width={16} height={16} unoptimized loading="lazy" referrerPolicy="no-referrer" />
       ) : null}
-      <span className="opp">{cell.opponent_code}</span>
+      <span className="opp">{opponentCode}</span>
       <span className="venue">
         {cell.status === "live" ? (
           "Live"
@@ -88,7 +90,7 @@ function Tile({ cell, bucket, compact, dataKey, label, row, column, showTbc, cre
   );
 }
 
-export default function FixtureCell({ cells, bucketOf, cellKey, labelOf, row, column, showTbc, crestOf }: Props) {
+export default function FixtureCell({ cells, bucketOf, cellKey, labelOf, row, column, showTbc, crestOf, codeOf }: Props) {
   if (cells.length === 0) {
     return (
       <div className="cell blank">
@@ -116,6 +118,7 @@ export default function FixtureCell({ cells, bucketOf, cellKey, labelOf, row, co
           column={column}
           showTbc={showTbc}
           crest={crestOf?.(cell.opponent_code) ?? null}
+          opponentCode={codeOf?.(cell.opponent_code) ?? cell.opponent_code}
         />
       ))}
     </div>

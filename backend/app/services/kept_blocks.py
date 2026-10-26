@@ -76,6 +76,11 @@ def read(db: Session, key: str) -> Row | None:
     return found[0] if found else None
 
 
+def read_many(db: Session, keys: list[str]) -> list[Row]:
+    """Exact block set, sharing one timestamp query and parallel versioned R2 reads."""
+    return _rows(db, ReadModel.key.in_(keys), lambda key: key in keys)
+
+
 def _rows(db: Session, where: ColumnElement[bool], includes: Callable[[str], bool]) -> list[Row]:
     if db.get_bind().dialect.name != "postgresql":
         rows = db.query(ReadModel).filter(where).populate_existing()  # what was just written, not the session's copy

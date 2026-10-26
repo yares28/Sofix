@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.models import ReadModel, RefreshRun
 from app.schemas import ApiResponse, FixtureGrid
-from app.services import data_health, player_blocks, r2
+from app.services import all_competitions, data_health, player_blocks, r2
 from app.services.fixture_grid import build_fixture_grid, grid_meta
 from app.services.kept_matches import match_audit
 
@@ -100,7 +100,7 @@ def publish_all(db: Session) -> dict[str, Any]:
     if audit is not None:
         put(db, "audit", {**audit.payload, "matches": match_audit(db, now)}, audit.updated_at)
     data_health.publish(db, now)
-    return {"grid": publish_grid(db, now), "system": publish_system(db, now)}
+    return {"grid": publish_grid(db, now), "all": all_competitions.publish(db, now), "system": publish_system(db, now)}
 
 
 def publish_to_r2() -> dict[str, Any]:

@@ -10,8 +10,10 @@ import GameweekCard from "./GameweekCard";
 import PicksCard from "./PicksCard";
 import RunCard, { type RunView } from "./RunCard";
 import TableCard from "./TableCard";
+import { boardStats, topClubs } from "../lib/allDifficulty";
 
 interface Props {
+  baseline?: Record<string, RunStats>;
   grid: FixtureGrid;
   column: number; // the app-wide gameweek every card starts from
   tableThrough: number | null; // a gameweek picked by hand; null = every result so far
@@ -39,7 +41,7 @@ export default function Overview(props: Props) {
 
   const over = useMemo(() => {
     const statsFor = (which: Lens) =>
-      new Map(grid.teams.map((team) => [team.code, runStats(team, start, end, which, grid.lens_scales[which], finished)]));
+      new Map(grid.teams.map((team) => [team.code, boardStats(grid, team, start, end, which)]));
     const byLens: Record<Lens, Map<string, RunStats>> = {
       overall: statsFor("overall"),
       attack: statsFor("attack"),
@@ -49,19 +51,19 @@ export default function Overview(props: Props) {
       market_record: statsFor("market_record"),
     };
     // The swing baseline is the club's own level over everything it has left from the same gameweek.
-    const rest = new Map(
+    const rest = props.baseline ? new Map(Object.entries(props.baseline)) : new Map(
       grid.teams.map((team) => [team.code, runStats(team, start, grid.matchdays.length, "overall", grid.lens_scales.overall, finished)]),
     );
     const rank = (which: Lens) =>
       sortTeams(grid.teams, { key: { kind: "total" }, dir: "asc" }, start, end, which, byLens[which], finished);
     return {
       byLens,
-      ranked: rank(lens),
+      ranked: grid.competition === "ALL" ? topClubs(grid.teams, byLens[lens]) : rank(lens),
       runs: mostPointsComing(grid.teams, byLens.overall),
       swings: scheduleSwing(grid.teams, byLens.overall, rest),
       picks: positionPicks(grid.teams, byLens.attack, byLens.defence, 5),
     };
-  }, [grid, start, end, lens, finished]);
+  }, [grid, start, end, lens, finished, props.baseline]);
 
   const windowLabel = labelFor(grid.matchdays, start, end);
 
@@ -84,7 +86,7 @@ export default function Overview(props: Props) {
   };
 
   return (
-    <div className="bento">
+    <div className={`bento ${grid.competition === "ALL" ? "bento-all" : ""}`}>
       <div className="bento-runs">
         {over.runs ? (
           <>
@@ -112,7 +114,7 @@ export default function Overview(props: Props) {
         onHorizon={props.onHorizon}
         onLens={props.onLens}
       />
-      <TableCard grid={grid} through={props.tableThrough} mode={props.tableMode} onMode={props.onTableMode} onOpenTable={props.onOpenTable} />
+      {grid.competition !== "ALL" && <TableCard grid={grid} through={props.tableThrough} mode={props.tableMode} onMode={props.onTableMode} onOpenTable={props.onOpenTable} />}
     </div>
   );
 }

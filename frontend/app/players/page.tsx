@@ -24,7 +24,8 @@ export default async function Players({ searchParams }: { searchParams: SearchPa
     const value = params[key];
     return typeof value === "string" ? value : undefined;
   };
-  const competition = competitionOf(single("league"));
+  const selected = competitionOf(single("league"));
+  const competition = selected === "ALL" ? "PD" : selected;
   const [data, { grid, meta }, system, foreign] = await Promise.all([loadSorare({ market: competition === "PD" }), loadGrid(), loadSystem(), competition === "PD" ? null : loadLeaguePlayers(competition)]);
   const week = weekContext(grid, data, new Date(), { w: single("w"), gw: single("gw") });
   const forecasts = data && week.current?.gw ? await loadPlayerForecasts(data, week.current.gw) : null;

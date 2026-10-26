@@ -132,7 +132,8 @@
                 "FL1",
                 "CL",
                 "EL",
-                "CONF"
+                "CONF",
+                "ALL"
               ],
               "type": "string",
               "default": "PD",
@@ -1265,6 +1266,13 @@
       },
       "FixtureGrid": {
         "properties": {
+          "missing_competitions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing Competitions"
+          },
           "competition": {
             "type": "string",
             "enum": [
@@ -1274,7 +1282,8 @@
               "FL1",
               "CL",
               "EL",
-              "CONF"
+              "CONF",
+              "ALL"
             ],
             "title": "Competition",
             "default": "PD"
@@ -1336,6 +1345,17 @@
       },
       "GridCell": {
         "properties": {
+          "competition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Competition"
+          },
           "phase": {
             "anyOf": [
               {
@@ -1583,6 +1603,28 @@
       },
       "GridTeam": {
         "properties": {
+          "source_competition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Competition"
+          },
+          "source_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Code"
+          },
           "sorare_slug": {
             "anyOf": [
               {

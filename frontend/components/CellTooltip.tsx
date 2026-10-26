@@ -1,3 +1,4 @@
+import { COMPETITIONS, competitionOf } from "../lib/competitions";
 import { SHOCK, formatDay, formatKickoff, recordCopy } from "../lib/grid";
 import type { CellRecord, GridCell, GridTeam } from "../lib/types";
 import Crest from "./Crest";
@@ -43,7 +44,7 @@ export default function CellTooltip({ team, cell, matchday, teams }: Props) {
         {awayTeam && <Crest team={awayTeam} size={18} />}
       </div>
       <div className="muted">
-        GW{matchday} · {when}
+        {cell.competition ? `${COMPETITIONS[competitionOf(cell.competition)]} · ` : `GW${matchday} · `}{when}
         {cell.rescheduled && " · moved"}
       </div>
       {cell.result && (

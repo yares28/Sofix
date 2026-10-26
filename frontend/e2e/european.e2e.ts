@@ -6,7 +6,7 @@ import type { Sorare } from "../lib/play";
 test("European boards retain all 36 clubs, league-phase places and cold team links", async ({page,context}) => {
   await page.goto("/difficulty?league=CL");
   await expect(page.locator("#grid table tbody tr")).toHaveCount(36);
-  await page.getByLabel("Competition",{exact:true}).selectOption("EL");
+  await page.locator(".competition-icons").getByRole("button", {name:"Europa League",exact:true}).click();
   await expect(page).toHaveURL(/league=EL/);
   await expect(page.locator("#grid table tbody tr")).toHaveCount(36);
   const date=new URL(page.url()).searchParams.get("w");

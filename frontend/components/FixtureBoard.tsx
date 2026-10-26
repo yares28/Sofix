@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useViewState } from "../hooks/useViewState";
 import {
-  horizonSize, openingColumn, selectedColumn, windowRange, type ViewState,
+  horizonSize, openingColumn, selectedColumn, windowRange, type ViewState, type Horizon, type RunStats,
 } from "../lib/grid";
 import type { GameweekPlan } from "../lib/play";
 import { roundBoard, tableAfter } from "../lib/recap";
@@ -19,6 +20,7 @@ import DifficultyHero, { DifficultyLegend } from "./DifficultyHero";
 import { isEuropean, leagueName } from "../lib/competitions";
 
 interface Props {
+  baseline?: Record<string, RunStats>;
   grid: FixtureGrid;
   notes: ModelNote[];
   initialView: ViewState;
@@ -27,7 +29,8 @@ interface Props {
   away: { plan: GameweekPlan | null; dates: string } | null;
 }
 
-export default function FixtureBoard({ grid, initialView, pinsInUrl, away }: Props) {
+export default function FixtureBoard({ grid, initialView, pinsInUrl, away, baseline }: Props) {
+  const router = useRouter();
   const total = grid.matchdays.length;
   const opening = useMemo(() => openingColumn(grid), [grid]);
   const finished = useMemo(() => grid.matchdays.map((md) => md.finished), [grid]);
@@ -35,6 +38,12 @@ export default function FixtureBoard({ grid, initialView, pinsInUrl, away }: Pro
 
   const { state, patch, togglePin } = useViewState(initialView, pinsInUrl, knownCodes, grid.competition);
   const { view, lens, horizon, pins } = state;
+  const changeHorizon = (next: Horizon) => {
+    if (grid.competition !== "ALL") return patch({ horizon: next });
+    const params = new URLSearchParams(window.location.search);
+    params.set("h", next);
+    router.push(`/difficulty?${params}`, { scroll: false });
+  };
 
   // One week drives every tab: the picker in the bar sets it, and the board opens on the round inside it.
   const column = selectedColumn(grid.matchdays, state.gw, opening);
@@ -110,7 +119,7 @@ export default function FixtureBoard({ grid, initialView, pinsInUrl, away }: Pro
               lens={lens}
               horizon={horizon}
               pins={pins}
-              onHorizon={(next) => patch({ horizon: next })}
+              onHorizon={changeHorizon}
               onLens={(next) => patch({ lens: next })}
               onTogglePin={togglePin}
             />
@@ -118,6 +127,7 @@ export default function FixtureBoard({ grid, initialView, pinsInUrl, away }: Pro
           </div>
 
           <Overview
+            baseline={baseline}
             grid={grid}
             column={column}
             tableThrough={tableThrough}
@@ -126,7 +136,7 @@ export default function FixtureBoard({ grid, initialView, pinsInUrl, away }: Pro
             horizon={horizon}
             tableMode={state.table}
             pins={pins}
-            onHorizon={(next) => patch({ horizon: next })}
+            onHorizon={changeHorizon}
             onLens={(next) => patch({ lens: next })}
             onTableMode={(table) => patch({ table })}
             onTogglePin={togglePin}
@@ -154,6 +164,7 @@ export default function FixtureBoard({ grid, initialView, pinsInUrl, away }: Pro
         Model {grid.model_version ?? "not run yet"}. Fixtures, results and crests: football-data.org. Match history and
         the record at each price: football-data.co.uk. Odds: The Odds API.
       </p>}
+      {grid.competition === "ALL" && <p className="footnote" role="note">Conference forecasts are provisional. The other competitions retain their independently fitted models.</p>}
     </>
   );
 }

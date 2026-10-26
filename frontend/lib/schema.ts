@@ -34,6 +34,7 @@ const RecordSchema = z
   .nullish();
 
 const CellSchema = z.object({
+  competition: z.string().nullish(),
   phase: z.enum(["league", "knockout"]).nullish(),
   neutral: z.boolean().nullish(),
   round_name: z.string().nullish(),
@@ -82,7 +83,8 @@ const CellSchema = z.object({
 const LensScaleSchema = z.object({ cuts: z.array(z.number()).length(4), higher_is_easier: z.boolean() });
 
 export const FixtureGridSchema = z.object({
-  competition: z.enum(["PD", "PL", "BL1", "FL1", "CL", "EL", "CONF"]).default("PD"),
+  missing_competitions: z.array(z.string()).optional(),
+  competition: z.enum(["PD", "PL", "BL1", "FL1", "CL", "EL", "CONF", "ALL"]).default("PD"),
   season: z.string(),
   current_matchday: z.number().int().nullable(),
   model_version: z.string().nullable(),
@@ -98,6 +100,9 @@ export const FixtureGridSchema = z.object({
   teams: z.array(
     z.object({
       code: z.string().regex(/^[A-Z0-9]{2,8}$/),
+      source_competition: z.string().nullish(),
+      source_code: z.string().nullish(),
+      sorare_slug: z.string().nullish(),
       source_id: z.number().int().positive().nullish(),
       history_name: z.string().min(1).nullish(),
       name: z.string().min(1),

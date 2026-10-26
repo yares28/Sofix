@@ -46,6 +46,7 @@ export async function resetBackend(
  */
 export async function offline(page: Page) {
   await page.route("https://crests.football-data.org/**", (route) => route.abort());
+  await page.route("https://upload.wikimedia.org/**", (route) => route.abort());
   await page.route("https://assets.sorare.com/**", (route) => route.abort());
   // Futbol Fantasy's crests and player photos, on the Lineups page.
   await page.route("https://static.futbolfantasy.com/**", (route) => route.abort());

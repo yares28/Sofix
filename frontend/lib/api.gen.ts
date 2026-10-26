@@ -620,12 +620,14 @@ export interface components {
         };
         /** FixtureGrid */
         FixtureGrid: {
+            /** Missing Competitions */
+            missing_competitions?: string[];
             /**
              * Competition
              * @default PD
              * @enum {string}
              */
-            competition: "PD" | "PL" | "BL1" | "FL1" | "CL" | "EL" | "CONF";
+            competition: "PD" | "PL" | "BL1" | "FL1" | "CL" | "EL" | "CONF" | "ALL";
             /** Season */
             season: string;
             /** Current Matchday */
@@ -640,6 +642,8 @@ export interface components {
         };
         /** GridCell */
         GridCell: {
+            /** Competition */
+            competition?: string | null;
             /** Phase */
             phase?: ("league" | "knockout") | null;
             /** Neutral */
@@ -710,6 +714,10 @@ export interface components {
         };
         /** GridTeam */
         GridTeam: {
+            /** Source Competition */
+            source_competition?: string | null;
+            /** Source Code */
+            source_code?: string | null;
             /** Sorare Slug */
             sorare_slug?: string | null;
             /** Source Id */
@@ -959,7 +967,7 @@ export interface operations {
     fixture_grid_api_fixture_grid_get: {
         parameters: {
             query?: {
-                competition?: "PD" | "PL" | "BL1" | "FL1" | "CL" | "EL" | "CONF";
+                competition?: "PD" | "PL" | "BL1" | "FL1" | "CL" | "EL" | "CONF" | "ALL";
             };
             header?: never;
             path?: never;

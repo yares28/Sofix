@@ -175,6 +175,7 @@ test("very wide screens keep the layout: no sideways scroll, tiles fit, rows sti
   for (const width of [1100, 1280, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/difficulty?lens=defence");
+    await expect(page.locator(".ladder-card .list-rows > li").first()).toBeVisible();
     const controls = page.locator(".ladder-card .bento-controls");
     expect(await controls.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), `every lens button visible at ${width}px`).toBe(true);
     if (width > 1200) {

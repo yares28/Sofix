@@ -7,7 +7,7 @@ export function FixtureChip({ grid, cell, lens }: { grid: FixtureGrid; cell: Gri
   const bucket = cellBucket(cell, lens, grid.lens_scales[lens]);
   return (
     <span className={`strip-chip ${bucket ? `f${bucket}` : "muted"}`}>
-      {cell.opponent_code}
+      {grid.teams.find(t => t.code === cell.opponent_code)?.source_code ?? cell.opponent_code}
       <small>{cell.venue}</small>
     </span>
   );

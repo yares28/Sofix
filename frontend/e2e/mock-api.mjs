@@ -5,6 +5,7 @@
 import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { leagueFixture } from "./league-fixtures.mjs";
+import { allFixture } from "./all-fixture.mjs";
 
 export const MOCK_PORT = Number(process.env.E2E_MOCK_PORT ?? 8765);
 const TOKEN = process.env.E2E_REFRESH_TOKEN ?? "";
@@ -367,6 +368,7 @@ const server = createServer((req, res) => {
   if (req.method === "GET" && url.pathname === "/api/health") return send(res, 200, { ok: true });
 
   if (req.method === "GET" && url.pathname === "/api/fixture-grid") {
+    if (url.searchParams.get("competition") === "ALL") return send(res, 200, allFixture(grid.meta));
     if (["PL", "BL1", "FL1", "CL", "EL", "CONF"].includes(url.searchParams.get("competition"))) return send(res, 200, leagueFixture(url.searchParams.get("competition"), grid.meta));
     if (state.mode === "malformed") return send(res, 200, { success: true, data: { season: 2026, teams: "broken" }, meta: null });
     const minutesAgo = (m) => new Date(Date.now() - m * 60_000).toISOString();

@@ -1,3 +1,6 @@
+"use client";
+import { useState } from "react";
+import BoardPagination from "./BoardPagination";
 import { formatDay, formatShortKickoff } from "../lib/grid";
 import { gameweekMatches, matchOutlook, type Match } from "../lib/matches";
 import type { FixtureGrid } from "../lib/types";
@@ -14,6 +17,8 @@ const percent = (value: number) => `${Math.round(value * 100)}%`;
 
 /** The next gameweek at a glance: each match's kick-off and win/draw/win odds; games already played get one line. */
 export default function GameweekCard({ grid, column, onDetails }: Props) {
+  const [selection, setSelection] = useState({ column, page: 0 });
+  const page = selection.column === column ? selection.page : 0;
   const gameweek = grid.matchdays[column];
   if (!gameweek) return null;
   const { matches } = gameweekMatches(grid, column);
@@ -34,10 +39,11 @@ export default function GameweekCard({ grid, column, onDetails }: Props) {
       </header>
 
       <ol className="gw-matches">
-        {rows.map((match) => (
+        {(grid.competition === "ALL" ? rows.slice(page * 10, page * 10 + 10) : rows).map((match) => (
           <MatchRow key={match.fixtureId} match={match} />
         ))}
       </ol>
+      {grid.competition === "ALL" && <BoardPagination page={page} total={rows.length} onPage={page => setSelection({ column, page })} label="Gameweek match pages" />}
 
       {!done && played.length > 0 && (
         <p className="gw-played">

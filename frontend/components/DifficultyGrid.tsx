@@ -3,13 +3,15 @@
 import { useCallback, useDeferredValue, useMemo, useState } from "react";
 import { useTileTooltip } from "../hooks/useTileTooltip";
 import {
-  LENS_COPY, formatDay, runStats, sortTeams, withPinsFirst, type Horizon, type SortKey, type SortState,
+  LENS_COPY, formatDay, sortTeams, withPinsFirst, type Horizon, type SortKey, type SortState,
 } from "../lib/grid";
 import type { FixtureGrid, GridCell, GridTeam, Lens } from "../lib/types";
 import BoardToolbar from "./BoardToolbar";
 import NextGameweek from "./NextGameweek";
 import TeamRow from "./TeamRow";
 import Tooltip from "./Tooltip";
+import BoardPagination from "./BoardPagination";
+import { boardStats, topClubs } from "../lib/allDifficulty";
 
 // A gameweek's dates count as "to be confirmed" when most of its remaining games have no fixed kickoff yet.
 const TBC_SHARE = 0.5;
@@ -56,7 +58,7 @@ export default function DifficultyGrid({ grid, start, end, lens, horizon, pins, 
     [grid],
   );
 
-  const [sort, setSort] = useState<SortState>({ key: { kind: "team" }, dir: "asc" });
+  const [sort, setSort] = useState<SortState>({ key: { kind: grid.competition === "ALL" ? "total" : "team" }, dir: "asc" });
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query); // typing stays responsive; rows update right after
   const columns = grid.matchdays.slice(start, end);
@@ -72,15 +74,21 @@ export default function DifficultyGrid({ grid, start, end, lens, horizon, pins, 
     [sort, start, end],
   );
   const stats = useMemo(
-    () => new Map(grid.teams.map((team) => [team.code, runStats(team, start, end, lens, scale, finished)])),
-    [grid, start, end, lens, scale, finished],
+    () => new Map(grid.teams.map((team) => [team.code, boardStats(grid, team, start, end, lens)])),
+    [grid, start, end, lens],
   );
   const sorted = useMemo(
-    () => sortTeams(grid.teams, activeSort, start, end, lens, stats, finished),
+    () => sortTeams(grid.competition === "ALL" ? topClubs(grid.teams, stats) : grid.teams, activeSort, start, end, lens, stats, finished),
     [grid, activeSort, start, end, lens, stats, finished],
   );
   const { pinned, others } = useMemo(() => withPinsFirst(sorted, pins), [sorted, pins]);
-  const { tooltip, tableHandlers } = useTileTooltip(cellIndex, teamsByCode, pinned.length + others.length, start, end);
+  const scope = `${start}-${end}-${lens}-${deferredQuery}-${JSON.stringify(activeSort)}`;
+  const [pagination, setPagination] = useState({ scope, page: 0 });
+  const page = pagination.scope === scope ? pagination.page : 0;
+  const all = grid.competition === "ALL";
+  const filtered = [...pinned, ...others].filter(t => !all || !deferredQuery.trim() || `${t.name} ${t.code}`.toLowerCase().includes(deferredQuery.trim().toLowerCase()));
+  const visible = all ? filtered.slice(page * 10, page * 10 + 10) : [];
+  const { tooltip, tableHandlers } = useTileTooltip(cellIndex, teamsByCode, all ? visible.length : pinned.length + others.length, start, end);
 
   // Total bars are relative to the spread of this window.
   const barPercents = useMemo(() => {
@@ -179,17 +187,18 @@ export default function DifficultyGrid({ grid, start, end, lens, horizon, pins, 
               </tr>
             </thead>
             <tbody>
-              {pinned.map((team, i) => <TeamRow key={team.code} {...rowProps(team, i)} />)}
-              {pinned.length > 0 && others.length > 0 && (
+              {all ? visible.map((team, i) => <TeamRow key={team.code} {...rowProps(team, i)} />) : pinned.map((team, i) => <TeamRow key={team.code} {...rowProps(team, i)} />)}
+              {!all && pinned.length > 0 && others.length > 0 && (
                 <tr className="pin-divider" aria-hidden="true">
                   <td colSpan={columns.length + 2} />
                 </tr>
               )}
-              {others.map((team, i) => <TeamRow key={team.code} {...rowProps(team, pinned.length + i)} />)}
+              {!all && others.map((team, i) => <TeamRow key={team.code} {...rowProps(team, pinned.length + i)} />)}
             </tbody>
           </table>
         </div>
       )}
+      {all && horizon !== "next" && <BoardPagination page={page} total={filtered.length} onPage={page => setPagination({ scope, page })} label="Fixture grid pages" />}
       <Tooltip ref={tooltip} />
     </section>
   );

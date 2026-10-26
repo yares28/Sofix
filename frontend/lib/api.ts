@@ -7,7 +7,7 @@ import type { FixtureGrid, GridMeta } from "./types";
 import type { Competition } from "./competitions";
 
 // Server-only: pages fetch on the server, so the API address never needs to reach the browser.
-// Local development only; production reads Neon (DATABASE_URL).
+// Used by the typed API fallback and deterministic browser tests.
 const API_BASE = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
 
 // What visitors see. Details (status codes, validation issues) go to the server log only.
@@ -38,17 +38,20 @@ function toGrid(json: unknown): { grid: FixtureGrid; meta: GridMeta | null } {
 }
 
 /**
- * The grid only changes when a refresh runs, and every read wakes Neon (free tier: 100 CU-hours/month).
- * Production reads the payload the refresh job published into `read_models` (same envelope as the API);
- * without DATABASE_URL (local development) it asks the FastAPI server instead.
+ * The grid only changes when a refresh runs. Pages read its published R2 blocks (a local copy in development),
+ * with the same envelope as the API; without published blocks the typed API supplies it instead.
  * Cached for an hour under the fixture-grid tag; the job's revalidate call refreshes it when a run ends.
  * Failures throw, so they are never cached. Shared by every page, so browsing between them costs nothing.
  */
-const cachedGrid = cache(
-  async (competition: Competition): Promise<{ grid: FixtureGrid; meta: GridMeta | null }> => {
+const readGrid = async (competition: Competition): Promise<{ grid: FixtureGrid; meta: GridMeta | null }> => {
     if (published()) {
-      const row = await readModel(competition === "PD" ? "grid" : `grid:${competition}`);
+      const row = await readModel<{ data?: object; team_blocks?: string[] }>(competition === "PD" ? "grid" : `grid:${competition}`);
       if (!row) throw new GridUnavailable(MESSAGES.empty);
+      if (competition === "ALL" && row.payload.team_blocks) {
+        const parts = await Promise.all(row.payload.team_blocks.map(key => readModel<{ teams: FixtureGrid["teams"] }>(key)));
+        if (parts.some(p => !p)) throw new GridUnavailable(MESSAGES.unavailable);
+        row.payload = { ...row.payload, data: { ...row.payload.data, teams: parts.flatMap(p => p!.payload.teams) } };
+      }
       const result = toGrid(row.payload);
       if ((result.grid.competition ?? "PD") !== competition) throw new GridUnavailable(MESSAGES.malformed);
       return result;
@@ -61,14 +64,17 @@ const cachedGrid = cache(
     const result = toGrid(await response.json());
     if ((result.grid.competition ?? "PD") !== competition) throw new GridUnavailable(MESSAGES.malformed);
     return result;
-  },
+  };
+const cachedGrid = cache(
+  readGrid,
   ["fixture-grid"],
   { tags: [GRID_TAG], revalidate: 3600 },
 );
 
 export async function loadGrid(competition: Competition = "PD"): Promise<Loaded> {
   try {
-    const { grid, meta } = await cachedGrid(competition);
+    // Each All block is cached by version; its assembled season exceeds the per-item cache ceiling.
+    const { grid, meta } = await (competition === "ALL" ? readGrid(competition) : cachedGrid(competition));
     return { grid, meta, error: null };
   } catch (error) {
     if (!(error instanceof GridUnavailable)) {

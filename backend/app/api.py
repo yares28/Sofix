@@ -96,10 +96,21 @@ def health():
 
 @router.get("/fixture-grid", response_model=ApiResponse[FixtureGrid])
 def fixture_grid(
-    competition: Literal["PD", "PL", "BL1", "FL1", "CL", "EL", "CONF"] = "PD", db: Session = Depends(get_db)
+    competition: Literal["PD", "PL", "BL1", "FL1", "CL", "EL", "CONF", "ALL"] = "PD", db: Session = Depends(get_db)
 ):
     if competition != "PD":
         row = db.get(ReadModel, f"grid:{competition}")
+        if row and competition == "ALL" and row.payload.get("team_blocks"):
+            from app.services import kept_blocks
+
+            parts = kept_blocks.read_many(db, row.payload["team_blocks"])
+            if len(parts) != len(row.payload["team_blocks"]):
+                return ApiResponse[FixtureGrid](success=False, error="Combined fixtures are unavailable.")
+            payload = {
+                **row.payload,
+                "data": {**row.payload["data"], "teams": [t for p in parts for t in p.payload["teams"]]},
+            }
+            return ApiResponse[FixtureGrid].model_validate(payload)
         return (
             ApiResponse[FixtureGrid].model_validate(row.payload)
             if row

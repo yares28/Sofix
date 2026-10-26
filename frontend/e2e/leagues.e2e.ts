@@ -2,11 +2,11 @@ import { expect, test } from "@playwright/test";
 
 test("full PL and Bundesliga boards, date navigation and reload", async ({ page, context }) => {
   await page.goto("/difficulty?league=PL");
-  await expect(page.getByRole("combobox", { name: "Competition" })).toHaveValue("PL");
+  await expect(page.locator(".competition-icons").getByRole("button", { name: "Premier League", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#grid table tbody tr")).toHaveCount(20);
   const premierRound = await page.getByRole("radio", { checked: true }).getAttribute("aria-label");
   await page.screenshot({ path: "output/playwright/pl-desktop.png", fullPage: true });
-  await page.getByRole("combobox", { name: "Competition" }).selectOption("BL1");
+  await page.locator(".competition-icons").getByRole("button", { name: "Bundesliga", exact: true }).click();
   await expect(page).toHaveURL(/league=BL1/);
   await expect(page.locator("#grid table tbody tr")).toHaveCount(18);
   const germanRound = await page.getByRole("radio", { checked: true }).getAttribute("aria-label");
@@ -15,7 +15,7 @@ test("full PL and Bundesliga boards, date navigation and reload", async ({ page,
   expect(selectedDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   await page.screenshot({ path: "output/playwright/bl-desktop.png", fullPage: true });
   await page.reload();
-  await expect(page.getByRole("combobox", { name: "Competition" })).toHaveValue("BL1");
+  await expect(page.locator(".competition-icons").getByRole("button", { name: "Bundesliga", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("link", { name: "Table", exact: true }).first().click();
   await expect(page).toHaveURL(/league=BL1/);
   await expect(page.locator(".lt-table tbody tr")).toHaveCount(18);
@@ -29,19 +29,19 @@ test("full PL and Bundesliga boards, date navigation and reload", async ({ page,
   await expect(page).toHaveURL(/team\/G\d{2}.*league=BL1/, { timeout: 30_000 });
   await expect(page.locator(".team-hero")).toContainText("Bundesliga");
   await page.getByRole("link", { name: /All fixtures/ }).click();
-  await expect(page.getByRole("combobox", { name: "Competition" })).toHaveValue("BL1");
+  await expect(page.locator(".competition-icons").getByRole("button", { name: "Bundesliga", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.goto("/difficulty?league=PL&w=2027-12-01");
   await expect(page.getByRole("status")).toContainText("No Premier League fixtures");
 });
 
 test("Ligue 1 has all 18 clubs, keeps the date through reload and a cold team bookmark", async ({ page, context }) => {
   await page.goto("/difficulty?league=PL");
-  await page.getByRole("combobox", { name: "Competition" }).selectOption("FL1");
+  await page.locator(".competition-icons").getByRole("button", { name: "Ligue 1", exact: true }).click();
   await expect(page.locator("#grid table tbody tr")).toHaveCount(18);
   const date = new URL(page.url()).searchParams.get("w");
   expect(date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   await page.reload();
-  await expect(page.getByRole("combobox", { name: "Competition" })).toHaveValue("FL1");
+  await expect(page.locator(".competition-icons").getByRole("button", { name: "Ligue 1", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("link", { name: "Table", exact: true }).first().click();
   await expect(page.locator(".lt-table tbody tr")).toHaveCount(18);
   const href = await page.locator(".club-link").first().getAttribute("href");

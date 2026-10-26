@@ -1,3 +1,7 @@
+"use client";
+import { useState } from "react";
+import BoardPagination from "./BoardPagination";
+import { teamHref } from "../lib/allDifficulty";
 import Link from "./FootballLink";
 import { decimalOdds, formatDay, formatKickoff } from "../lib/grid";
 import { gameweekMatches, matchOutlook, type Match } from "../lib/matches";
@@ -13,6 +17,8 @@ const percent = (value: number) => `${Math.round(value * 100)}%`;
 
 /** One gameweek, match by match, with the detail the grid only shows in tooltips (the toolbar steps gameweeks). */
 export default function NextGameweek({ grid, column }: Props) {
+  const [selection, setSelection] = useState({ column, page: 0 });
+  const page = selection.column === column ? selection.page : 0;
   const gameweek = grid.matchdays[column];
   if (!gameweek) return null;
   const { matches, notPlaying, doubles } = gameweekMatches(grid, column);
@@ -26,18 +32,19 @@ export default function NextGameweek({ grid, column }: Props) {
         <h2 id="next-gw-title">Gameweek {gameweek.number}</h2>
         <div className="insight-meta">
           {dates} · {matches.length} {matches.length === 1 ? "match" : "matches"}
-          {doubles.length > 0 && ` · plays twice: ${doubles.map((t) => t.name).join(", ")}`}
-          {notPlaying.length > 0 && ` · no game: ${notPlaying.map((t) => t.name).join(", ")}`}
+          {grid.competition !== "ALL" && doubles.length > 0 && ` · plays twice: ${doubles.map((t) => t.name).join(", ")}`}
+          {grid.competition !== "ALL" && notPlaying.length > 0 && ` · no game: ${notPlaying.map((t) => t.name).join(", ")}`}
         </div>
       </header>
 
       <ol className="match-list">
-        {matches.map((match) => (
+        {(grid.competition === "ALL" ? matches.slice(page * 10, page * 10 + 10) : matches).map((match) => (
           <li key={match.fixtureId}>
             <MatchCard match={match} />
           </li>
         ))}
       </ol>
+      {grid.competition === "ALL" && <BoardPagination page={page} total={matches.length} onPage={page => setSelection({ column, page })} label="Match detail pages" />}
     </div>
   );
 }
@@ -123,7 +130,7 @@ function MatchCard({ match }: { match: Match }) {
 
 function TeamSide({ team, align }: { team: GridTeam; align: "home" | "away" }) {
   return (
-    <Link href={`/team/${team.code}`} prefetch={false} className={`match-team ${align}`}>
+    <Link href={teamHref(team)} prefetch={false} className={`match-team ${align}`}>
       <Crest team={team} size={32} />
       <span className="match-team-name">{team.name}</span>
       <span className="match-venue">{align === "home" ? "Home" : "Away"}</span>

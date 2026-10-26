@@ -9,6 +9,9 @@ import type { FixtureGrid, GridCell, GridMatchday, GridTeam, Lens } from "../lib
 import Crest from "./Crest";
 import { FixtureChip } from "./FixtureChips";
 import SegmentedControl from "./SegmentedControl";
+import BoardPagination from "./BoardPagination";
+import { teamHref } from "../lib/allDifficulty";
+import { COMPETITIONS, competitionOf } from "../lib/competitions";
 
 export type OverviewHorizon = Exclude<Horizon, "all">;
 
@@ -65,7 +68,7 @@ export default function ExpectedPointsCard(props: Props) {
   // On the Next horizon the clubs that have already played sit under a line, still showing what the board
   // expected of them, instead of dropping to the bottom with a dash next to every other blank club.
   const gone = (team: GridTeam) =>
-    single && (team.cells[start] ?? []).some((cell) => cell.status === "finished" || cell.status === "live");
+    grid.competition !== "ALL" && single && (team.cells[start] ?? []).some((cell) => cell.status === "finished" || cell.status === "live");
   const valueOf = (team: GridTeam) => {
     const cell = shown(team.cells[start] ?? []);
     return cell ? playedValue(cell, lens) : null;
@@ -73,6 +76,12 @@ export default function ExpectedPointsCard(props: Props) {
   const toPlay = single ? ranked.filter((team) => !gone(team)) : ranked;
   const played = single ? ranked.filter(gone).sort((a, b) => (valueOf(b) ?? -1) - (valueOf(a) ?? -1)) : [];
   const rows = [...toPlay, ...played];
+  const all = grid.competition === "ALL";
+  const scope = `${start}-${end}-${lens}`;
+  const [pagination, setPagination] = useState({ scope, page: 0 });
+  const page = pagination.scope === scope ? Math.min(pagination.page, Math.max(0, Math.ceil(rows.length / 10) - 1)) : 0;
+  const offset = all ? page * 10 : 0;
+  const visible = all ? rows.slice(offset, offset + 10) : rows;
 
   return (
     <section className="card bento-card ladder-card" aria-labelledby="ladder-title">
@@ -88,7 +97,7 @@ export default function ExpectedPointsCard(props: Props) {
         <span className="list-rank" aria-hidden="true">#</span>
         <span aria-hidden="true">Club</span>
         <span className="list-num" aria-hidden="true">{COLUMNS[lens]}</span>
-        {single ? (
+        {single && !all ? (
           <span className="ladder-games next-line" style={{ "--prices": labels.length } as CSSProperties} aria-hidden="true">
             <span>{gameweeks[0] ? `GW${gameweeks[0].number}` : ""}</span>
             {labels.map((label, i) => (
@@ -102,11 +111,11 @@ export default function ExpectedPointsCard(props: Props) {
               {gameweeks.map((md, i) => (
                 <span key={md.number} className={priced(start + i) ? "" : "unpriced"}>
                   GW{md.number}
-                  {gameweeks.length <= 3 && !priced(start + i) && <span className="unpriced-note"> · not priced</span>}
+                  {!all && gameweeks.length <= 3 && !priced(start + i) && <span className="unpriced-note"> · not priced</span>}
                 </span>
               ))}
             </span>
-            <label className="price-menu">
+            {!all && <label className="price-menu">
               <span>Price</span>
               <select
                 value={options.indexOf(option)}
@@ -117,13 +126,14 @@ export default function ExpectedPointsCard(props: Props) {
                   <option key={o.label} value={i}>{o.label}</option>
                 ))}
               </select>
-            </label>
+            </label>}
           </span>
         )}
       </div>
 
       <ol className="list-rows">
-        {rows.map((team, i) => {
+        {visible.map((team, index) => {
+          const i = offset + index;
           const isPlayed = i >= toPlay.length;
           const cells = team.cells.slice(start, end);
           const total = isPlayed ? valueOf(team) : (stats.get(team.code)?.total ?? null);
@@ -136,7 +146,7 @@ export default function ExpectedPointsCard(props: Props) {
               )}
             <li className={`ladder-row ${isPlayed ? "played" : ""} ${pins.includes(team.code) ? "pinned" : ""}`}>
               <span className="list-rank" aria-hidden="true">{isPlayed ? "" : i + 1}</span>
-              <Link href={`/team/${team.code}`} prefetch={false} className="list-club">
+              <Link href={teamHref(team)} prefetch={false} className="list-club">
                 <Crest team={team} size={22} />
                 <span className="list-name">{team.name}</span>
                 {pins.includes(team.code) && <span className="visually-hidden">, pinned</span>}
@@ -145,7 +155,7 @@ export default function ExpectedPointsCard(props: Props) {
                 {total === null ? "—" : formatTotal(total, lens)}
                 <span className="visually-hidden"> {copy.totalLong}</span>
               </span>
-              {single ? (
+              {all ? <MixedTiles grid={grid} columns={cells} lens={lens} /> : single ? (
                 <NextLine grid={grid} cells={cells[0] ?? []} lens={lens} labels={labels} />
               ) : (
                 <Tiles grid={grid} columns={cells} lens={lens} option={option} />
@@ -158,6 +168,8 @@ export default function ExpectedPointsCard(props: Props) {
           );
         })}
       </ol>
+      {rows.length === 0 && <p role="status">No rated games in this window.</p>}
+      {all && <BoardPagination page={page} total={rows.length} onPage={page => setPagination({ scope, page })} label="Expected points pages" />}
     </section>
   );
 }
@@ -244,7 +256,7 @@ function inWords(columns: GridCell[][], gameweeks: GridMatchday[], names: Map<st
   return columns
     .map((cells, i) => {
       const games = cells.map((cell) => {
-        const opponent = `${cell.venue === "H" ? "home to" : "away to"} ${names.get(cell.opponent_code) ?? cell.opponent_code}`;
+        const opponent = `${cell.competition ? `${COMPETITIONS[competitionOf(cell.competition)]}, ` : ""}${cell.venue === "H" ? "home to" : "away to"} ${names.get(cell.opponent_code) ?? cell.opponent_code}`;
         if (!cell.market) {
           const state = { finished: "played", live: "live now", postponed: "postponed", scheduled: "not priced yet" }[cell.status];
           return `${opponent}, ${state}`;
@@ -257,4 +269,21 @@ function inWords(columns: GridCell[][], gameweeks: GridMatchday[], names: Map<st
       return `gameweek ${gameweeks[i]?.number}: ${games.length ? games.join("; ") : "no game"}`;
     })
     .join(". ");
+}
+
+function MixedTiles({ grid, columns, lens }: { grid: FixtureGrid; columns: GridCell[][]; lens: Lens }) {
+  return <span className="ladder-games mixed-tiles" style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}>
+    {columns.map((cells, i) => <span className="mixed-week" key={i}>
+      {cells.length ? cells.map(cell => {
+        const bucket = cellBucket(cell, lens, grid.lens_scales[lens]);
+        const opponent = grid.teams.find(t => t.code === cell.opponent_code);
+        const competition = COMPETITIONS[competitionOf(cell.competition)];
+        return <span key={cell.fixture_id} className={`tile ${bucket ? `f${bucket}` : "muted"}`}
+          title={`${competition}: ${opponent?.name ?? cell.opponent_code} ${cell.venue}`}>
+          <span className="tile-opp">{opponent?.source_code ?? cell.opponent_code}<small>{cell.venue}</small></span>
+          <span className="tile-price">{cell.status === "finished" ? "FT" : cell.competition}</span>
+        </span>;
+      }) : <span className="tile blank" aria-label="No game" />}
+    </span>)}
+  </span>;
 }

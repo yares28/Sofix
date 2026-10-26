@@ -1,4 +1,5 @@
 "use client";
+import { teamHref } from "../lib/allDifficulty";
 
 import Link from "./FootballLink";
 import { useState } from "react";
@@ -56,7 +57,7 @@ export default function RunCard({ grid, views, start, end, windowLabel }: Props)
       <div className="run-team">
         <Crest team={team} size={44} />
         <div>
-          <Link href={`/team/${team.code}`} prefetch={false} className="run-name">{team.name}</Link>
+          <Link href={teamHref(team)} prefetch={false} className="run-name">{team.name}</Link>
           <div className="bento-sub">{summary}</div>
         </div>
       </div>
@@ -73,7 +74,7 @@ export default function RunCard({ grid, views, start, end, windowLabel }: Props)
           const opponent = grid.teams.find((t) => t.code === cell.opponent_code)?.name ?? cell.opponent_code;
           return (
             <li key={cell.fixture_id} className={`run-tile ${bucket ? `f${bucket}` : "muted"}`}>
-              <span className="opp" aria-hidden="true">{cell.opponent_code}</span>
+              <span className="opp" aria-hidden="true">{grid.teams.find(t => t.code === cell.opponent_code)?.source_code ?? cell.opponent_code}</span>
               <span className="venue" aria-hidden="true">{cell.venue}</span>
               <span className="visually-hidden">
                 {cell.venue === "H" ? "Home to" : "Away to"} {opponent}

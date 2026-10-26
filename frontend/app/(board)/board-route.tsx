@@ -1,4 +1,6 @@
+import { allWindow, calendarColumn, calendarDay } from "../../lib/allDifficulty";
 import { connection } from "next/server";
+import { redirect } from "next/navigation";
 import FixtureBoard from "../../components/FixtureBoard";
 import LaLigaView from "../../components/laliga/LaLigaView";
 import SiteNav from "../../components/SiteNav";
@@ -24,6 +26,15 @@ const TITLES: Record<View, string> = { plain: "Fixtures", fdr: "Fixtures & Diffi
  */
 export async function BoardRoute({ view, searchParams }: { view: View; searchParams: SearchParams }) {
   await connection(); // render per request (from the cache), never prerender at build time when the API may be down
+  searchParams = searchParams.then(p => {
+    if (view !== "fdr" && p.league === "ALL") {
+      const query = new URLSearchParams();
+      Object.entries(p).forEach(([key, value]) => { if (typeof value === "string" && key !== "gw") query.set(key, value); });
+      query.set("league", "PD");
+      redirect(`${view === "table" ? "/table" : "/fixtures"}?${query}`);
+    }
+    return p;
+  });
   const [{ grid, meta, error }, rawParams, system, sorare] = await Promise.all([
     searchParams.then(p => loadGrid(competitionOf(p.league))),
     searchParams,
@@ -39,10 +50,15 @@ export async function BoardRoute({ view, searchParams }: { view: View; searchPar
   const competition = competitionOf(rawParams.league);
   if (competition !== "PD") {
     const requested = params.get("w");
-    const column = grid && requested ? leagueColumn(grid.matchdays, requested, params.get("end") ?? undefined) : null;
+    const column = grid && requested ? (competition === "ALL" ? calendarColumn(grid.matchdays, requested) : leagueColumn(grid.matchdays, requested, params.get("end") ?? undefined)) : null;
     const blank = Boolean(grid && requested && column === null);
     const md = column !== null ? grid?.matchdays[column]?.number : null;
     const week = weekContext(grid, null, new Date(), { md: md ?? null });
+    if (competition === "ALL") {
+      week.weeks = week.weeks.map(w => ({ ...w, id: calendarDay(w.from) }));
+      if (week.current) week.current = { ...week.current, id: calendarDay(week.current.from) };
+      if (week.now) week.now = { ...week.now, id: calendarDay(week.now.from) };
+    }
     if (blank && week.current && validDay(requested)) {
       const end = params.get("end");
       week.current = { ...week.current, id: requested, from: `${requested}T00:00:00Z`, to: `${validDay(end) ? end : requested}T23:59:59Z`, md: null, column: null };
@@ -50,14 +66,16 @@ export async function BoardRoute({ view, searchParams }: { view: View; searchPar
     if (md) params.set("gw", String(md));
     else if (week.current?.md) params.set("gw", String(week.current.md));
     const initial = grid ? { ...DEFAULT_VIEW, ...parseViewState(params, new Set(grid.teams.map(t => t.code))), view } : { ...DEFAULT_VIEW, view };
+    const compact = grid && competition === "ALL" ? allWindow(grid, column ?? week.current?.column ?? openingColumn(grid), initial.horizon === "all" ? grid.matchdays.length : Math.max(1, Number(initial.horizon) || 1)) : null;
     return <>
       <SiteNav meta={meta} system={system} week={week} competition={competition} />
       <main>
-        <CompetitionPicker competition={competition} week={requested ?? week.current?.id} through={week.current?.to} />
-        <p className="footnote">{COMPETITIONS[competition]} · {grid?.season ?? "Awaiting refresh"}. {competition === "CONF" ? "Provisional Conference model. League phase and published knockouts; regulation time. Qualifiers excluded." : isEuropean(competition) ? "Validated European model. League phase and published knockouts; regulation time. Qualifiers excluded." : "Independently fitted reference model."} Clean-sheet chances are uncalibrated.</p>
+        {(view !== "fdr" || !grid || blank) && <CompetitionPicker competition={competition} week={requested ?? week.current?.id} through={week.current?.to} />}
+        {competition !== "ALL" && <p className="footnote" role={competition === "CONF" ? "note" : undefined}>{COMPETITIONS[competition]} · {grid?.season ?? "Awaiting refresh"}. {competition === "CONF" ? "Conference model is provisional. League phase and published knockouts; regulation time. Qualifiers excluded." : isEuropean(competition) ? "Validated European model. League phase and published knockouts; regulation time. Qualifiers excluded." : "Independently fitted reference model."} Clean-sheet chances are uncalibrated.</p>}
+        {grid?.missing_competitions?.length ? <p role="status">Unavailable: {grid.missing_competitions.map(c => COMPETITIONS[competitionOf(c)]).join(", ")}. All shows the available competitions.</p> : null}
         {!grid ? <section className="card empty-state" role="status"><h1>{TITLES[view]}</h1><p>{error}</p></section> : blank ?
           <section className="card empty-state" role="status"><h1>{TITLES[view]}</h1><p>No {COMPETITIONS[competition]} fixtures in the selected week.</p></section> :
-          <FixtureBoard key={competition} grid={grid} notes={meta?.model_notes ?? []} initialView={initial} pinsInUrl={params.has("pins")} away={null} />}
+          <FixtureBoard key={`${competition}-${compact ? initial.horizon : ""}`} grid={compact?.grid ?? grid} baseline={compact?.baseline} notes={meta?.model_notes ?? []} initialView={initial} pinsInUrl={params.has("pins")} away={null} />}
       </main>
     </>;
   }
@@ -117,7 +135,7 @@ export async function BoardRoute({ view, searchParams }: { view: View; searchPar
     <>
       <SiteNav meta={meta} system={system} week={week} />
       <main>
-        <CompetitionPicker competition="PD" week={week.current?.id} through={week.current?.to} />
+        {(view !== "fdr" || !grid || away) && <CompetitionPicker competition="PD" week={week.current?.id} through={week.current?.to} />}
         {grid ? (
           <FixtureBoard
             grid={grid}

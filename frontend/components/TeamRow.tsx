@@ -1,4 +1,5 @@
 "use client";
+import { teamHref } from "../lib/allDifficulty";
 
 import Link from "./FootballLink";
 import { memo } from "react";
@@ -33,7 +34,7 @@ function TeamRow({
     <tr className={`${matchesSearch ? "" : "dim"} ${isPinned ? "pinned" : ""}`}>
       <th scope="row" className="team-col">
         <div className="team">
-          <Link href={`/team/${team.code}`} prefetch={false} className="team-link">
+          <Link href={teamHref(team)} prefetch={false} className="team-link">
             <Crest team={team} />
             <span className="team-name">{team.name}</span>
           </Link>
@@ -62,6 +63,7 @@ function TeamRow({
               cellKey={(cell) => `${team.code}-${cell.fixture_id}`}
               bucketOf={(cell) => cellBucket(cell, lens, scale)}
               crestOf={(code) => crestSource(teamsByCode.get(code)?.crest_url)}
+              codeOf={(code) => teamsByCode.get(code)?.source_code ?? code}
               labelOf={(cell) =>
                 cellLabel(cell, team.name, matchday, teamsByCode.get(cell.opponent_code)?.name ?? cell.opponent_code, lens)
               }

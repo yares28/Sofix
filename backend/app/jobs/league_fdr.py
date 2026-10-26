@@ -62,6 +62,13 @@ def run(code: str) -> dict:
         db.close()
 
 
+def publish_combined() -> dict:
+    from app.services.all_competitions import publish
+
+    with SessionLocal() as db:
+        return publish(db, datetime.now(UTC))
+
+
 def bootstrap() -> int:
     """Publish missing blocks once; preserve the full refresh's three-hour push cooldown."""
     from app.jobs import refresh
@@ -70,15 +77,18 @@ def bootstrap() -> int:
     try:
         present = {
             key
-            for (key,) in db.query(ReadModel.key).filter(ReadModel.key.in_([f"grid:{code}" for code in LEAGUES])).all()
+            for (key,) in db.query(ReadModel.key)
+            .filter(ReadModel.key.in_([f"grid:{code}" for code in [*LEAGUES, "ALL"]]))
+            .all()
         }
     finally:
         db.close()
     missing = [code for code in LEAGUES if f"grid:{code}" not in present]
-    if not missing:
+    if not missing and "grid:ALL" in present:
         logging.getLogger(__name__).info("league FDR bootstrap skipped: all blocks already exist")
         return 0
     steps = [({"PL": "fdr_pl", "BL1": "fdr_bl", "FL1": "fdr_fl1"}[code], partial(run, code)) for code in missing]
+    steps.append(("fdr_all", publish_combined))
     steps.append(
         ("revalidate", lambda: notify_app(settings.app_url, settings.revalidate_secret, settings.vercel_bypass_secret))
     )

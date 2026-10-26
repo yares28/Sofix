@@ -353,6 +353,32 @@ function finishedRun(trigger) {
   return { id: state.nextId++, trigger, status: "succeeded", step: null, startedAt: now - COOLDOWN_S * 1000, finishedAt: now, steps: {} };
 }
 
+// The Stats charts' read model (backend app/sorare/stat_charts.py) built from the recorded sheets and market: the sheet's
+// whole window stands for this season and L40, its last ten for L10 and L5. Every recorded player is in LaLiga.
+let chartModel = null;
+function statCharts() {
+  if (chartModel) return chartModel;
+  const sheets = playerSheets.players ?? {};
+  const keys = [...new Set(Object.values(sheets).flatMap((s) => Object.keys(s.season ?? {})))].sort();
+  const market = new Map((sorareFixture.data.market ?? []).map((p) => [p.slug, p]));
+  const onSheet = {};
+  for (const pos of ["GK", "DEF", "MID", "FWD"]) {
+    const ps = Object.values(sheets).filter((s) => s.pos === pos);
+    onSheet[pos] = keys.filter((k) => ps.filter((s) => k in (s.season ?? {})).length >= ps.length * 0.1);
+  }
+  const window = (src, starts, avg, pos) => ({ starts, avg, values: keys.map((k) => (onSheet[pos].includes(k) ? (src[k]?.[0] ?? 0) : null)) });
+  const players = Object.entries(sheets)
+    .filter(([slug, s]) => market.has(slug) && s.seasonStarts >= 5)
+    .map(([slug, s]) => {
+      const p = market.get(slug);
+      const avg = Math.round((s.last ?? []).reduce((a, r) => a + r[0], 0) / Math.max(1, (s.last ?? []).length) * 10) / 10;
+      return { slug, name: p.name, pos: s.pos, league: "LaLiga", club: p.club ?? "", crest: p.crest ?? null, card: p.pic ?? null,
+        windows: { cur: window(s.season, s.seasonStarts, avg, s.pos), l5: window(s.l10 ?? {}, 5, avg, s.pos), l10: window(s.l10 ?? {}, 10, avg, s.pos), l40: window(s.season, Math.min(40, s.seasonStarts), avg, s.pos) } };
+    });
+  chartModel = { asOf: playerSheets.asOf ?? "", keys, onSheet, players };
+  return chartModel;
+}
+
 function send(res, code, body) {
   res.writeHead(code, { "content-type": "application/json", "cache-control": "no-store" });
   res.end(JSON.stringify(body));
@@ -394,6 +420,7 @@ const server = createServer((req, res) => {
   }
 
   if (req.method === "GET" && url.pathname === "/api/player-sheets") return send(res, 200, { success: true, data: playerSheets });
+  if (req.method === "GET" && url.pathname === "/api/stat-charts") return send(res, 200, { success: true, data: statCharts() });
   if (req.method === "GET" && url.pathname === "/api/my-weeks") return send(res, 200, { success: true, data: state.myWeeks ?? [] });
   const playerGames = url.pathname.match(/^\/api\/players\/([a-z0-9-]+)\/games$/);
   if (req.method === "GET" && playerGames) {

@@ -31,6 +31,11 @@ KEY = "player_sheets"
 
 def from_kept(db: Session) -> dict[str, Any]:
     """Reuse the export calculation on saved, final starts with known stats and game context."""
+    return sheets_from_games(kept_games(db))
+
+
+def kept_games(db: Session) -> list[dict[str, Any]]:
+    """Saved, final starts with known stats and game context, in the export's game shape (one player each)."""
     games = []
     for row in db.scalars(
         select(PlayerGame).where(
@@ -83,7 +88,7 @@ def from_kept(db: Session) -> dict[str, Any]:
                 },
             }
         )
-    return sheets_from_games(games)
+    return games
 
 
 # Two names Sorare writes that the registry does not know.
@@ -107,12 +112,10 @@ def _average(starts: Sequence[dict[str, Any]]) -> dict[str, list[float]]:
     return {key: [round(v[0] / n, 2), round(v[1] / n, 2)] for key, v in sorted(total.items()) if abs(v[0]) / n >= KEEP}
 
 
-def sheets_from_games(games: Sequence[dict[str, Any]]) -> dict[str, Any]:
-    """Every player with enough starts, from the export's games (any order)."""
+def starts_by_player(games: Sequence[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    """Each player's starts with a score, oldest first, from the export's games (any order)."""
     by_player: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    newest = ""
     for game in sorted(games, key=lambda g: g["date"]):
-        newest = max(newest, game["date"][:10])
         for slug, row in game["players"].items():
             if row.get("played") and row.get("started") and row.get("score") is not None:
                 home = row["team"] == game["home"]["slug"]
@@ -124,6 +127,13 @@ def sheets_from_games(games: Sequence[dict[str, Any]]) -> dict[str, Any]:
                         "venue": "H" if home else "A",
                     }
                 )
+    return by_player
+
+
+def sheets_from_games(games: Sequence[dict[str, Any]]) -> dict[str, Any]:
+    """Every player with enough starts, from the export's games (any order)."""
+    by_player = starts_by_player(games)
+    newest = max((game["date"][:10] for game in games), default="")
     out: dict[str, Any] = {}
     for slug, starts in by_player.items():
         if len(starts) < MIN_STARTS:

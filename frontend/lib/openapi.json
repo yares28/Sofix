@@ -59,6 +59,25 @@
         }
       }
     },
+    "/api/stat-charts": {
+      "get": {
+        "summary": "Stat Charts Model",
+        "description": "The Stats page's charts (local counterpart of the R2 block).",
+        "operationId": "stat_charts_model_api_stat_charts_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_dict_str__Any__"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/players/{slug}/games": {
       "get": {
         "summary": "Player History",

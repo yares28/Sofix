@@ -1,0 +1,184 @@
+/* The Stats page's charts (components/stats/). White shell, one card per chart, position colours only on the players. */
+.sc { container: stat-charts / inline-size; margin-top: 72px; }
+.sc-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-bottom: 18px; }
+.sc-head h2 { margin: 0 auto 0 0; font-size: 34px; line-height: 1.1; font-weight: 700; letter-spacing: -0.025em; }
+
+.sc-seg { display: inline-flex; padding: 3px; background: var(--track); border-radius: 12px; }
+.sc-seg button {
+  display: inline-flex; align-items: center; gap: 7px; border: 0; background: transparent; cursor: pointer;
+  min-height: 34px; padding: 0 14px; border-radius: 9px; font: inherit; font-size: 13px; font-weight: 500; color: var(--ink-seg);
+  transition: color .2s, background .2s, box-shadow .2s; white-space: nowrap;
+}
+.sc-seg button[aria-pressed="true"], .sc-seg button[aria-selected="true"] { color: var(--ink); background: var(--surface); box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 3px 8px rgba(0,0,0,.06); }
+.sc-seg button:hover { color: var(--ink); }
+.sc-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.sc button, .sc select, .sc a { touch-action: manipulation; }
+.sc-seg button i { width: 8px; height: 8px; border-radius: 50%; }
+
+.sc-panel { transition: opacity .25s; }
+.sc-loading { opacity: .45; pointer-events: none; }
+.sc-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; margin-bottom: 14px; }
+
+.sc-plot {
+  position: relative; height: 640px; background: var(--surface); border-radius: var(--radius);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.04), 0 12px 32px rgba(0,0,0,.05);
+}
+.sc-scatter .sc-plot { padding: 56px 24px 64px 16px; }
+.sc-plot-pack, .sc-plot-net { padding: 12px; }
+.sc-canvas { position: relative; width: 100%; height: 100%; }
+.sc-empty { margin: 0; display: grid; place-items: center; height: 100%; color: var(--ink-2); font-size: 16px; font-weight: 600; text-align: center; padding: 24px; }
+p.sc-plot.sc-empty { display: grid; }
+
+.sc-sk, .sc-plot.sc-sk {
+  display: block; background: linear-gradient(90deg, var(--track) 0%, var(--hover) 50%, var(--track) 100%); background-size: 200% 100%;
+  animation: sc-shimmer 1.2s linear infinite;
+}
+.sc-pop-card .sc-sk, .sc-hit-card .sc-sk, .sc-picked-card .sc-sk { position: absolute; inset: 0; }
+@keyframes sc-shimmer { to { background-position: -200% 0; } }
+
+/* selects: the axis titles are the scatter's stat pickers */
+.sc-select, .sc-axis {
+  appearance: none; border: 1px solid var(--line); background-color: var(--surface); color: var(--ink); font: inherit; font-size: 14px; font-weight: 600;
+  min-height: 38px; padding: 0 34px 0 14px; border-radius: 12px; cursor: pointer; max-width: 100%;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-2) 50%), linear-gradient(135deg, var(--ink-2) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat;
+}
+.sc-select:focus-visible, .sc-axis:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sc-axis { position: absolute; z-index: 4; }
+.sc-axis-y { top: 12px; left: 16px; }
+.sc-axis-x { bottom: 12px; right: 24px; }
+
+/* the league menu */
+.sc-menu { position: relative; }
+.sc-menu-button {
+  display: inline-flex; align-items: center; gap: 10px; min-height: 38px; padding: 0 14px 0 16px; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface); color: var(--ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.sc-menu-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sc-n { font-size: 12px; font-weight: 500; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.sc-menu-list {
+  position: absolute; z-index: 30; top: calc(100% + 6px); left: 0; min-width: 240px; margin: 0; padding: 6px; list-style: none;
+  display: flex; flex-direction: column; background: var(--surface); border-radius: 16px; box-shadow: 0 0 0 1px rgba(0,0,0,.06), 0 16px 40px rgba(0,0,0,.14);
+  animation: sc-drop .18s cubic-bezier(.2,.8,.2,1) both;
+}
+.sc-menu-list button {
+  width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 40px; padding: 0 12px; border: 0; border-radius: 10px;
+  background: transparent; color: var(--ink); font: inherit; font-size: 14px; text-align: left; cursor: pointer;
+}
+.sc-menu-list button:hover, .sc-menu-list button:focus-visible { background: var(--hover); outline: none; }
+.sc-menu-list button[aria-checked="true"] { font-weight: 600; }
+.sc-menu-list .sc-all { border-bottom: 1px solid var(--line); border-radius: 10px 10px 0 0; margin-bottom: 4px; }
+@keyframes sc-drop { from { opacity: 0; transform: translateY(-4px); } }
+
+.sc-back {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 14px; border: 0; border-radius: 12px;
+  background: var(--ink); color: var(--on-ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity .15s;
+}
+.sc-back:hover { opacity: .85; }
+.sc-back:focus-visible, .sc-x:focus-visible, .sc-hit:focus-visible, .sc-menu-list button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* the card that pops out of a dot, a bubble or a node */
+.sc-pop {
+  position: absolute; z-index: 20; width: 400px; display: flex; gap: 16px; padding: 14px; pointer-events: none;
+  background: var(--surface); border-radius: 22px; box-shadow: 0 0 0 1px rgba(0,0,0,.05), 0 24px 48px rgba(0,0,0,.16);
+  animation: sc-pop .22s cubic-bezier(.2,.9,.25,1.15) both;
+}
+.sc-pop.pinned { pointer-events: auto; }
+.sc-pop-card { position: relative; flex: none; overflow: hidden; border-radius: 9px; display: block; animation: sc-flip .4s cubic-bezier(.2,.9,.25,1.1) both; }
+.sc-pop-text { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 4px 28px 0 0; }
+.sc-pop-club { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--ink-2); }
+.sc-pop-name { font-size: 20px; line-height: 1.15; letter-spacing: -0.01em; }
+.sc-pop-pos { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-2); }
+.sc-pop-pos i { width: 8px; height: 8px; border-radius: 50%; }
+.sc-pop-line { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; font-size: 13px; color: var(--ink-2); }
+.sc-pop-line b { font-size: 24px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.sc-pop-line small { font-size: 12px; }
+.sc-bar { height: 4px; border-radius: 4px; background: var(--track); overflow: hidden; }
+.sc-bar span { display: block; height: 100%; border-radius: 4px; }
+.sc-x { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border: 0; border-radius: 50%; background: var(--hover); color: var(--ink-2); font-size: 17px; cursor: pointer; }
+.sc-yours { margin-left: 8px; padding: 2px 8px; border-radius: 999px; background: var(--track); font-size: 11px; font-weight: 600; color: var(--ink-2); vertical-align: middle; }
+.sc-crest { flex: none; object-fit: contain; }
+.sc-shield { display: inline-block; border-radius: 4px 4px 9px 9px; background: var(--track); }
+@keyframes sc-pop { from { opacity: 0; transform: translateY(6px) scale(.95); } }
+@keyframes sc-flip { from { opacity: 0; transform: perspective(800px) rotateY(-24deg) scale(.9); } }
+
+/* face-off */
+.sc-faceoff-grid {
+  display: grid; grid-template-columns: 280px minmax(0, 1fr) 300px; gap: 24px; min-height: 640px; padding: 28px;
+  background: var(--surface); border-radius: var(--radius); box-shadow: 0 0 0 1px rgba(0,0,0,.04), 0 12px 32px rgba(0,0,0,.05);
+}
+.sc-search { position: relative; display: flex; align-items: center; color: var(--ink-2); }
+.sc-search svg { position: absolute; left: 14px; }
+.sc-search input {
+  width: 100%; min-height: 44px; padding: 0 16px 0 40px; border: 0; border-radius: 14px; background: var(--track); color: var(--ink); font: inherit; font-size: 15px;
+}
+.sc-search input:focus { outline: 2px solid var(--accent); outline-offset: 0; background: var(--surface); }
+.sc-hits { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.sc-hit {
+  width: 100%; display: flex; align-items: center; gap: 12px; padding: 6px 8px; border: 0; border-radius: 12px; background: transparent;
+  color: var(--ink); font: inherit; text-align: left; cursor: pointer; transition: background .15s;
+}
+.sc-hit:hover, .sc-hit:focus-visible { background: var(--hover); outline: none; }
+.sc-hit:disabled { opacity: .45; cursor: default; }
+.sc-hit-card { position: relative; flex: none; width: 34px; height: 55px; border-radius: 4px; overflow: hidden; }
+.sc-hit-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.sc-hit-text b, .sc-hit-text small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sc-hit-text b { font-size: 14px; }
+.sc-hit-text small { font-size: 12px; color: var(--ink-2); }
+.sc-hit-avg { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sc-none { padding: 16px 8px; font-size: 14px; color: var(--ink-2); }
+.sc-radar { position: relative; min-height: 560px; }
+.sc-picked { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; justify-content: center; gap: 22px; }
+.sc-picked li { position: relative; display: flex; align-items: center; gap: 14px; animation: sc-in .4s cubic-bezier(.2,.8,.2,1) both; }
+.sc-picked-card { position: relative; flex: none; width: 84px; height: 136px; border-radius: 7px; overflow: hidden; box-shadow: 0 0 0 2.5px var(--pick), 0 8px 20px rgba(0,0,0,.12); }
+.sc-picked-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding-right: 34px; font-size: 13px; }
+.sc-picked-text small { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-2); }
+.sc-picked-text b { font-size: 17px; line-height: 1.15; }
+.sc-picked-text strong { color: var(--pick); }
+.sc-picked .sc-x { top: 0; right: 0; }
+@keyframes sc-in { from { opacity: 0; transform: translateX(10px); } }
+
+/* look-alikes */
+.sc-find-inline { position: relative; width: 280px; }
+.sc-find-inline .sc-search input { min-height: 38px; border-radius: 12px; }
+.sc-hits-pop { width: 100%; }
+.sc-hits-pop li { list-style: none; }
+.sc-hub-name { position: absolute; z-index: 3; top: 18px; left: 24px; margin: 0; display: flex; flex-direction: column; gap: 2px; font-size: 20px; font-weight: 700; }
+.sc-hub-name span { font-size: 13px; font-weight: 500; color: var(--ink-2); }
+.sc-node { cursor: pointer; transition: opacity .25s; outline: none; }
+.sc-node.hub { cursor: default; }
+.sc-plot-net:has(.sc-node:not(.hub):is(:hover, :focus-visible)) .sc-node:not(.hub):not(:hover):not(:focus-visible) { opacity: .4; }
+.sc-node:focus-visible .sc-node-ring { stroke: var(--accent); stroke-width: 3px; }
+.sc-node-ring { filter: drop-shadow(0 6px 10px rgba(0,0,0,.14)); }
+.sc-link { stroke: var(--ink-3); stroke-opacity: .55; stroke-width: 1.5; transition: stroke-opacity .2s, stroke-width .2s; }
+.sc-peer { stroke-opacity: .25; stroke-width: 1; stroke-dasharray: 3 4; }
+.sc-plot-net[data-hot] .sc-link:not(.sc-peer) { stroke-opacity: .2; }
+.sc-node-blank { fill: var(--track); }
+.sc-node-pill { fill: var(--surface); stroke: var(--line); }
+.sc-node-pct { font-size: 12px; font-weight: 700; fill: var(--ink); font-variant-numeric: tabular-nums; }
+
+@container stat-charts (max-width: 860px) {
+  .sc-head h2 { font-size: 26px; flex-basis: 100%; }
+  .sc-tabs { order: 2; }
+  .sc-plot { height: 480px; }
+  .sc-plot-net { height: 600px; }
+  .sc-hub-name { font-size: 17px; top: 14px; left: 16px; }
+  .sc-scatter .sc-plot { padding: 52px 12px 60px 4px; }
+  .sc-faceoff-grid { grid-template-columns: 1fr; padding: 18px; }
+  .sc-radar { min-height: 340px; order: 1; }
+  .sc-picked { order: 2; gap: 14px; }
+  .sc-picked-card { width: 64px; height: 104px; }
+  .sc-find { order: 3; }
+  .sc-pop { left: 8px !important; right: 8px; top: auto !important; bottom: 8px; width: auto; gap: 12px; padding: 10px; border-radius: 18px; }
+  .sc-pop-card { width: 76px !important; height: 123px !important; }
+  .sc-pop-line { margin-top: 0; }
+  .sc-find-inline { width: 100%; }
+}
+@container stat-charts (max-width: 480px) {
+  .sc-seg button { padding: 0 10px; font-size: 12px; }
+  .sc-pop-name { font-size: 17px; }
+  .sc-pop-line b { font-size: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sc *, .sc *::before, .sc *::after { animation: none !important; transition: none !important; }
+}

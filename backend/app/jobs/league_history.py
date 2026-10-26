@@ -22,7 +22,7 @@ from app.logging_config import configure_logging
 from app.models import ReadModel
 from app.services import data_health
 from app.services.publish import notify_app, put
-from app.sorare import audit, player_games, score_checks, sheets
+from app.sorare import audit, player_games, score_checks, sheets, stat_charts
 from app.sorare.client import SorareClient
 from app.sorare.sync import league_history
 
@@ -83,7 +83,13 @@ def run(db: Session, client: SorareClient, now: datetime) -> dict[str, Any]:
         "at": now.isoformat(),
     }
     put(db, LEAGUE_STATUS_KEY, {**status, "covered": covered}, now)
-    put(db, sheets.KEY, sheets.from_kept(db), now)
+    games = sheets.kept_games(db)
+    put(db, sheets.KEY, sheets.sheets_from_games(games), now)
+    try:  # the Stats page's charts; a run that cannot describe the players keeps yesterday's
+        stat_charts.publish(db, client, games, now)
+    except Exception:  # noqa: BLE001 - the history and the sheets above are saved either way
+        db.rollback()
+        logger.exception("league history: stat charts not published")
     audit.publish(db, now)
     data_health.publish(db, now)
     return status

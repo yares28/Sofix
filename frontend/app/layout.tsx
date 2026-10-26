@@ -14,6 +14,7 @@ import "./cards.css";
 import "./lineups.css";
 import "./audit.css";
 import "./missions.css";
+import "./stat-charts.css";
 import "./player.css";
 import "./arcade.css";
 import "./arcade-canvas.css";

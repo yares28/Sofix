@@ -707,6 +707,17 @@ five stand on a staircase, 1st on the left, each step as tall as his number agai
 the average; ranks 6 to 10 follow as big cards ("Close behind") and 11 to 50 as a wall, each card with its number on it. A player you own
 shows your own card and a **Yours** mark. Each stat group has its colour; the choice stays in the address (`?stat=&min=&pos=`).
 
+Below the leaders, four charts show who stands out among every player of LaLiga, the Premier League, Ligue 1, the Bundesliga and Serie A
+with five starts, over **Season / L5 / L10 / L40** (this season's starts, or his last 5, 10 or 40). **Scatter**: any two stats (the axis
+titles are the pickers), one league or all from one menu, one position; hover a dot for his card, his two numbers and his place, click to
+keep it. **Clubs**: each club a bubble of its players, sized by what he does of the stat per start, with his share of the club's printed
+in it; click a club to zoom. **Face-off**: up to three players of one position from any league (search to add) on a twelve-stat radar,
+each against every player of that position. **Look-alikes**: pick any player and his twelve closest look-alikes gather round, closer when
+more alike; click one to see his. A stat a position's sheet does not have (no "possession won" for forwards) leaves those players out
+instead of putting them at 0. The league-history job builds them daily (read model `stat_charts`, backend `app/sorare/stat_charts.py`);
+each player's name, club, league and real Sorare card come from Sorare's public API, asked again once a week. The tab and window stay in
+the address (`?chart=&cw=`).
+
 **Prices** (`/prices`, the Gallery's fourth view) says how far your gallery is up or down on what you paid ("Your gallery is up +€43.50"),
 with what the bought cards cost and are worth now. A tide line stands every bought card on what it cost: a green bar for each gain,
 a red one for each loss, best on the left, with the biggest gain and the biggest loss named on their card (hover a bar for its card).

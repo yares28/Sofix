@@ -55,6 +55,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stat-charts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stat Charts Model
+         * @description The Stats page's charts (local counterpart of the R2 block).
+         */
+        get: operations["stat_charts_model_api_stat_charts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/players/{slug}/games": {
         parameters: {
             query?: never;
@@ -894,6 +914,26 @@ export interface operations {
         };
     };
     player_sheets_api_player_sheets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_dict_str__Any__"];
+                };
+            };
+        };
+    };
+    stat_charts_model_api_stat_charts_get: {
         parameters: {
             query?: never;
             header?: never;

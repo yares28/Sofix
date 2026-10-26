@@ -10,7 +10,7 @@ from app.models import PlayerAbsence, PlayerGame, ReadModel
 from app.schemas import ApiResponse, FixtureGrid
 from app.services.fixture_grid import build_fixture_grid, grid_meta
 from app.services.timeutil import as_utc
-from app.sorare import audit, ff_link, sheets
+from app.sorare import audit, ff_link, sheets, stat_charts
 from app.sorare import missions as mission_logs
 from app.sorare.ff_lineups import LINEUPS_KEY
 from app.sorare.frozen import PLAN_PREFIX
@@ -37,6 +37,15 @@ def my_weeks(db: Session = Depends(get_db)):
 def player_sheets(db: Session = Depends(get_db)):
     row = db.get(ReadModel, sheets.KEY)
     return ApiResponse[dict[str, Any]](success=True, data=row.payload if row else {"asOf": "", "players": {}})
+
+
+@router.get("/stat-charts", response_model=ApiResponse[dict[str, Any]])
+def stat_charts_model(db: Session = Depends(get_db)):
+    """The Stats page's charts (local counterpart of the R2 block)."""
+    row = db.get(ReadModel, stat_charts.KEY)
+    return ApiResponse[dict[str, Any]](
+        success=True, data=row.payload if row else {"asOf": "", "keys": [], "onSheet": {}, "players": []}
+    )
 
 
 @router.get("/players/{slug}/games", response_model=ApiResponse[dict[str, Any]])

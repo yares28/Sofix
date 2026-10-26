@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import StatsView from "../../components/cards/StatsView";
 import SiteNav from "../../components/SiteNav";
+import StatCharts from "../../components/stats/StatCharts";
 import { loadGrid } from "../../lib/api";
 import { loadSorare } from "../../lib/playData";
 import { loadPlayerSheets } from "../../lib/playerGames";
@@ -35,6 +36,7 @@ export default async function Stats({ searchParams }: { searchParams: SearchPara
             <p>The stat sheets appear after the next refresh saves LaLiga starts.</p>
           </section>
         )}
+        <StatCharts initial={{ chart: single("chart"), window: single("cw") }} />
       </main>
     </>
   );

@@ -83,9 +83,9 @@ def put_block(key: str, payload: Any, updated_at: datetime) -> bool:
     return put_body(key, body)
 
 
-def put_body(key: str, body: bytes) -> bool:
+def put_body(key: str, body: bytes, client: httpx.Client | None = None) -> bool:
     try:
-        response = request("PUT", block_name(key), body)
+        response = request("PUT", block_name(key), body, client)
     except httpx.HTTPError as error:
         logger.warning("R2 upload of %s failed: %s", key, type(error).__name__)
         return False

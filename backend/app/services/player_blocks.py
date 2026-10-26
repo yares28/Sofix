@@ -12,9 +12,11 @@ import hashlib
 import json
 import logging
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from typing import Any
 
+import httpx
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -85,13 +87,12 @@ def publish(db: Session, games_db: Session | None = None) -> dict[str, int]:
     """Upload each player's block whose content changed, and delete those of players no longer kept."""
     blocks = build(db, games_db)
     remote = r2.list_blocks(PREFIX)
-    uploaded = deleted = 0
-    for player, payload in blocks.items():
-        data = body(payload)
-        if remote.get(PREFIX + player, ("",))[0] != hashlib.md5(data).hexdigest() and r2.put_body(
-            PREFIX + player, data
-        ):
-            uploaded += 1
+    changed = [(PREFIX + p, data) for p, payload in blocks.items() if (data := body(payload))]
+    changed = [(key, data) for key, data in changed if remote.get(key, ("",))[0] != hashlib.md5(data).hexdigest()]
+    # One connection pool, many at once: the first run uploads every player (~6,000), later runs the few that changed.
+    with httpx.Client(timeout=30) as http, ThreadPoolExecutor(max_workers=16) as pool:
+        uploaded = sum(pool.map(lambda item: r2.put_body(item[0], item[1], http), changed))
+    deleted = 0
     for key in remote:
         if key[len(PREFIX) :] not in blocks and r2.delete_block(key):
             deleted += 1

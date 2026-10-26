@@ -83,7 +83,7 @@ def test_player_history_blocks_upload_only_what_changed(db, monkeypatch):  # noq
     monkeypatch.setattr(r2, "configured", lambda: True)
     monkeypatch.setattr(r2, "list_blocks", lambda prefix="": remote)
     sent, deleted = [], []
-    monkeypatch.setattr(r2, "put_body", lambda key, body: sent.append((key, json.loads(body))) or True)
+    monkeypatch.setattr(r2, "put_body", lambda key, body, client=None: sent.append((key, json.loads(body))) or True)
     monkeypatch.setattr(r2, "delete_block", lambda key: deleted.append(key) or True)
 
     assert player_blocks.publish(db) == {"players": 2, "uploaded": 1, "deleted": 1}

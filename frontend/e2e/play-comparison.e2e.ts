@@ -19,6 +19,7 @@ test("all eight entered forecasts survive a legacy snapshot, and projected rewar
   const yours=page.locator('.pc-you');await expect(yours).toContainText("8 entered");
   await expect(yours.locator('.pc-potential strong')).not.toHaveText("—");await expect(yours.locator('.pc-potential strong small')).toHaveText('/8');
   await expect(yours.locator('.pc-risk strong')).toContainText('%');
+  await expect(yours.locator('.pc-potential')).toContainText('Paid so far');await expect(yours.locator('.pc-risk')).toContainText('Essence or better');
   // locked: the points so far lead (six lineups scored 300), the projection stays beneath
   await expect(yours.locator('.pc-points strong')).toHaveText("300");await expect(yours.locator('.pc-points')).toContainText("pts / lineup so far");
   // each lineup row: its projected prize, and what the reward check says it won
@@ -99,7 +100,7 @@ test("Play compares the same entered forecasts with Sofix without a second lineu
   const yours=hero.getByRole("region",{name:"You lineup forecast",exact:true});
   await expect(yours).toContainText("1 entered");
   await expect(yours.locator(".pc-points strong")).toHaveText(String(Math.round(lineup.x)));
-  await expect(yours.locator(".pc-risk strong")).toHaveText(`${Math.round((1-lineup.pReturn)*100)}%`);
+  await expect(yours.locator(".pc-risk strong")).toHaveText(`${Math.round(lineup.pReturn*100)}%`);
   await expect(page.locator(".pl-entered-lineup")).toHaveCount(2);
   expect(reads).toBe(1);
   for (const width of [1440, 390]) {

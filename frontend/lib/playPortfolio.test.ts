@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { enteredPortfolio, enteredRewardRows, paidBySorare, planPortfolio } from "./playPortfolio";
+import { bestCards, enteredPortfolio, enteredRewardRows, paidBySorare, planPortfolio } from "./playPortfolio";
 import { rewardShort } from "./playRewards";
 import type { Plan } from "./play";
 import type { GameweekLineup } from "./entered";
@@ -7,9 +7,9 @@ import type { GameweekLineup } from "./entered";
 const entry = (id: string, draft = false) => ({ id, draft, cards: [{ slug: id, name: id, picture: `https://assets.sorare.com/${id}.png` }], result: null }) as GameweekLineup;
 it("uses the same additive reward and average downside measures on both portfolios, excluding drafts", () => {
   const mine = enteredPortfolio([entry("a"), entry("b"), entry("draft", true)], new Map([["a", { value: 300, estimated: false, chance: .8 }], ["b", { value: 200, estimated: true, chance: .2 }], ["draft", { value: 999, estimated: false, chance: 1 }]]));
-  const plan = planPortfolio({ essence: 150, cash: 2, pAny: .95, lineups: [{ x: 300, pReturn: .8, starters: [] }, { x: 200, pReturn: .2, starters: [] }] } as unknown as Plan);
+  const plan = planPortfolio({ essence: 150, cash: 2, pAny: .95, lineups: [{ x: 300, pReturn: .8, starters: [], subs: [] }, { x: 200, pReturn: .2, starters: [], subs: [] }] } as unknown as Plan);
   for (const side of [mine, plan]) expect(side).toMatchObject({ lineups: 2, rated: 2, expectedPaid: 1, noReward: .5, averagePoints: 250 });
-  expect(mine.cards.map(c => c.name)).toEqual(["a", "b"]);
+  expect(mine.cards.map(c => c.name)).toEqual(["a"]); // no prize either side: the lineup with more projected points
   expect(plan.pAny).toBe(.95); // the job's joint forecast stays distinct from the mean lineup chance
 });
 it("keeps a known zero distinct from missing forecasts and shows a partial cohort with explicit coverage", () => {
@@ -24,7 +24,7 @@ it("uses only finite valid probabilities and limits card previews without losing
   const side = enteredPortfolio(entries, estimates);
   expect(side.lineups).toBe(8);
   expect(side.rated).toBe(7);
-  expect(side.cards).toHaveLength(5);
+  expect(side.cards).toHaveLength(1); // one lineup's cards, not a mix of five
   expect(side.expectedPaid).toBeCloseTo(2.8);
 });
 it("keeps the projection and adds the score so far and the prize it reaches once the GW locks", () => {
@@ -66,4 +66,18 @@ it("counts what Sorare paid a ranked lineup as won when the reward check has not
   const paid = { ...entry("a"), result: { score: 313, rank: 1204, cash: 2.5, essence: 250, card: false } } as GameweekLineup;
   expect(enteredRewardRows([paid], new Map(), null, true)).toEqual([{ projected: null, won: { "cash:USD": 2.5, "essence:unknown:unknown": 250 }, soFar: false }]);
   expect(paidBySorare({ score: 300, rank: 9, cash: 0, essence: 0, card: false })).toBeNull();
+});
+it("draws the lineup with the biggest prize, more points breaking a tie, and counts paid lineups so far once locked", () => {
+  const card = (slug: string) => ({ slug, name: slug, pic: "" });
+  const seven = Array.from({ length: 7 }, (_, i) => card(`c${i}`));
+  expect(bestCards([{ prize: { "xp:FOOTBALL_XP": 5000 }, points: 500, cards: [card("x")] }, { prize: { "essence:limited:x": 30 }, points: 200, cards: seven }])).toHaveLength(7);
+  expect(bestCards([{ prize: { "essence:limited:x": 30 }, points: 300, cards: [card("low")] }, { prize: { "essence:limited:x": 30 }, points: 310, cards: [card("high")] }])[0]!.slug).toBe("high");
+  expect(bestCards([{ prize: { "essence:limited:x": 900 }, points: 400, cards: [card("ess")] }, { prize: { "cash:USD": 1 }, points: 300, cards: [card("cash")] }])[0]!.slug).toBe("cash");
+  const scored = (id: string, score: number) => ({ ...entry(id), result: { score, rank: null, cash: 0, essence: 0, card: false } }) as GameweekLineup;
+  const line = { rarity: "limited", kind: "x", tiers: [{ need: 0, p: 1, xp: 100 }, { need: 300, p: .3, essence: 30 }] } as never;
+  const forecasts = new Map(["a", "b", "c"].map(id => [id, { value: 250, estimated: false, prizeLine: line }]));
+  const mine = enteredPortfolio([scored("a", 320), scored("b", 280), scored("c", 350)], forecasts, null, true);
+  expect(mine).toMatchObject({ paidSoFar: 2, paidRated: 3 });
+  expect(mine.cards[0]!.slug).toBe("c");
+  expect(enteredPortfolio([scored("a", 320)], forecasts)).toMatchObject({ paidSoFar: null });
 });

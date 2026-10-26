@@ -198,7 +198,7 @@ test("the gameweek opens on its best plan: the ring, both rewards and every line
   const sofix = page.getByRole("region", { name: "Sofix lineup forecast", exact: true });
   const expectedPaid = plan1.lineups.reduce((n,l) => n + l.pReturn, 0);
   await expect(sofix.locator(".pc-potential strong")).toHaveText(`${new Intl.NumberFormat("en-GB", { maximumFractionDigits: 1 }).format(expectedPaid)}/${plan1.lineups.length}`);
-  await expect(sofix.locator(".pc-risk strong")).toHaveText(`${Math.round((1 - expectedPaid / plan1.lineups.length) * 100)}%`);
+  await expect(sofix.locator(".pc-risk strong")).toHaveText(`${Math.round(expectedPaid / plan1.lineups.length * 100)}%`);
   await expect(sofix.locator(".pc-detail")).toContainText("85% chance of any plan reward");
   await expect(page.locator(".pl-board-note")).toContainText("3 lineups");
   // Detailed likelihood and allocation remain available in the alternative workspace.

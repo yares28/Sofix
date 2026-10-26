@@ -68,10 +68,16 @@ export function rewardSignature(line:Pick<Lineup,"board"|"starters"|"subs">):str
 }
 
 /** One lineup's prize in a line: "$5.00 · 30 essence · a card · 2,500 XP", "No prize", or "—" when unknown. */
+/** A prize's totals by kind. */
+export function rewardParts(values:RewardValues){
+  const total=(keep:(k:string)=>boolean)=>Object.entries(values).reduce((n,[k,v])=>keep(k)&&known(v)?n+v:n,0);
+  return {cash:total(k=>k.startsWith("cash:")),cards:total(k=>k==="card"||k.startsWith("card:")),essence:total(k=>k.startsWith("essence:")),xp:total(k=>k.startsWith("xp:"))};
+}
+/** Paid means essence or better: cash, essence or a card (XP alone is not). */
+export const paidPrize=(values:RewardValues)=>{const p=rewardParts(values);return p.cash>0||p.cards>0||p.essence>0;};
 export function rewardShort(values:RewardValues|null|undefined):string {
   if(!values)return "—";
-  const total=(keep:(k:string)=>boolean)=>Object.entries(values).reduce((n,[k,v])=>keep(k)&&known(v)?n+v:n,0);
-  const cash=total(k=>k.startsWith("cash:")),essence=total(k=>k.startsWith("essence:")),cards=total(k=>k==="card"||k.startsWith("card:")),xp=total(k=>k.startsWith("xp:"));
+  const {cash,essence,cards,xp}=rewardParts(values);
   const parts=[cash?rewardNumber("cash:USD",cash):null,essence?`${rewardNumber("essence",essence)} essence`:null,cards?cards===1?"a card":`${cards} cards`:null,xp?`${rewardNumber("xp",xp)} XP`:null].filter(Boolean);
   return parts.length?parts.join(" · "):"No prize";
 }

@@ -17,14 +17,17 @@ import {
   type Season,
 } from "../../lib/cards";
 import { cardAnchor } from "../../lib/links";
-import { gameLine, nextGames, type NextGame } from "../../lib/nextGame";
-import { SOURCE_NAME, SOURCE_SHORT, type CollectionCard, type Sorare } from "../../lib/play";
+import { gameLine, type NextGame } from "../../lib/nextGame";
+import { SOURCE_NAME, type CollectionCard, type Sorare } from "../../lib/play";
 import { Foil } from "../play/bits";
 import CardArt from "./CardArt";
 import useCountUp from "./useCountUp";
 import SeasonIcon from "../SeasonIcon";
 import type { CardReturn } from "../../lib/myWeeks";
 import { cashLabel, essenceLabel } from "../../lib/play";
+import DetailTip from "../ui/DetailTip";
+
+const PAGE_SIZE = 12;
 
 const RARITIES: { key: string; label: string }[] = [
   { key: "all", label: "Both" },
@@ -75,32 +78,23 @@ function Stars({ n }: { n: number }) {
   );
 }
 
-/** The small top-right "i": on hover or focus it reveals the card's level and tier. */
-function InfoButton({ card }: { card: CollectionCard }) {
+/** Card identity, historical windows, source chances and saved rewards, on intent. */
+function InfoButton({ card, next, earned }: { card: CollectionCard; next?: NextGame; earned?: CardReturn | null }) {
   const tier = tierLabel(card);
   return (
-    <span className="s5-info">
-      <button type="button" className="s5-info-btn" aria-label={`Details: level ${card.level}, ${tier}`}>
+    <DetailTip className="s5-info-btn" label={`${card.name} details: level ${card.level}, ${tier}`} content={<div className="s5-card-details">
+      <b>{card.name}</b>
+      <p>Level {card.level} · {tier}{card.stars ? <Stars n={card.stars} /> : null} · {card.inSeason ? "In season" : "Classic"}</p>
+      <span className="s5-hexrow" role="group" aria-label="Average score by window">{cardWindows(card).map(w => <span className="s5-hex" key={w.window}><small className="win">{w.window}</small><Hexagon score={w.score} /><small className="pct">{w.started === null ? "—" : `${Math.round(w.started)}%`}</small></span>)}</span>
+      {next ? <><p>{gameLine(next.game)} · Sorare GW{next.week}</p><div role="group" aria-label="Chance to start">{next.chances.list.map(one => <p key={one.source} data-used={one.source === next.chances.used ? "" : undefined}>{SOURCE_NAME[one.source]} <b>{one.percent}%</b></p>)}</div><p>Score before competition and captain bonuses. Bonuses vary by competition.</p></> : <p>No game yet</p>}
+      <p>{earned ? <><b>{essenceLabel(earned.essence)} essence · {cashLabel(earned.cash)}</b><br />In {earned.lineups} saved lineup{earned.lineups === 1 ? "" : "s"}. Rewards belong to the whole lineup; do not add them across cards.</> : earned === null ? "Saved rewards unavailable" : "No saved lineup yet"}</p>
+    </div>}>
         <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true">
           <circle cx="6" cy="6" r="5.2" fill="none" stroke="currentColor" strokeWidth="1.3" />
           <circle cx="6" cy="3.6" r="0.9" fill="currentColor" />
           <path d="M6 5.4v3.2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
         </svg>
-      </button>
-      <span className="s5-info-pop" role="tooltip">
-        <span className="row">
-          <span>Level</span>
-          <b>Lvl {card.level}</b>
-        </span>
-        <span className="row">
-          <span>Tier</span>
-          <b className="tier">
-            {card.stars ? <Stars n={card.stars} /> : null}
-            {tier}
-          </b>
-        </span>
-      </span>
-    </span>
+    </DetailTip>
   );
 }
 
@@ -130,24 +124,32 @@ function Shape({ byPosition }: { byPosition: Record<string, Record<string, numbe
 }
 
 /** My cards: the collection led by what he can field, then the shape, then the cards by position. */
-export default function CardsView({ data, now, returns = {} }: { data: Sorare; now: string; returns?: Record<string, CardReturn> | null }) {
+export default function CardsView({ data, upcoming, initialPage = 0, returns = {} }: { data: Pick<Sorare, "cards" | "collection">; upcoming: Record<string, NextGame>; initialPage?: number; returns?: Record<string, CardReturn> | null }) {
   const collection = useMemo(() => data.collection ?? [], [data.collection]);
   const [pos, setPos] = useState<Position | "all">("all");
   const [rarity, setRarity] = useState("all");
   const [season, setSeason] = useState<Season>("all");
   const [find, setFind] = useState("");
+  const [page, setPage] = useState(Number.isFinite(initialPage) ? Math.max(0, Math.floor(initialPage)) : 0);
 
   const summary = useMemo(() => collectionSummary(collection), [collection]);
-  const next = useMemo(() => nextGames(data.weeks, new Date(now)), [data.weeks, now]);
   // The tile a link names is marked. The browser does it itself (:target) for a page loaded at its address, but not when the page was
   // reached by a client navigation from another page of the app, so the address is read here as well.
   const [target, setTarget] = useState("");
   useEffect(() => {
-    const read = () => setTarget(window.location.hash.slice(1));
+    const read = () => {
+      const hash = window.location.hash.slice(1);
+      setTarget(hash);
+      if (hash) {
+        const all = shelves(collection, { pos: "all", rarity: "all", season: "all" }).flatMap(g => g.cards);
+        const index = all.findIndex(c => cardAnchor(c.player) === hash);
+        if (index >= 0) { setPos("all"); setRarity("all"); setSeason("all"); setFind(""); setPage(Math.floor(index / PAGE_SIZE)); }
+      }
+    };
     read();
     window.addEventListener("hashchange", read);
     return () => window.removeEventListener("hashchange", read);
-  }, []);
+  }, [collection]);
   const stacks = useMemo(() => stackCounts(collection), [collection]);
   const groups = useMemo(() => {
     const q = find.trim().toLowerCase();
@@ -158,6 +160,21 @@ export default function CardsView({ data, now, returns = {} }: { data: Sorare; n
       .filter((group) => group.cards.length > 0);
   }, [collection, pos, rarity, season, find]);
   const shown = groups.reduce((total, group) => total + group.cards.length, 0);
+  const pages = Math.max(1, Math.ceil(shown / PAGE_SIZE)), at = Math.min(page, pages - 1);
+  let offset = 0;
+  const visibleGroups = groups.flatMap(group => {
+    const cards = group.cards.slice(Math.max(0, at * PAGE_SIZE - offset), Math.max(0, (at + 1) * PAGE_SIZE - offset));
+    offset += group.cards.length;
+    return cards.length ? [{ ...group, cards }] : [];
+  });
+  const go = (value: number) => {
+    setPage(value); setTarget("");
+    const url = new URL(window.location.href);
+    if (value) url.searchParams.set("page", String(value + 1)); else url.searchParams.delete("page");
+    url.hash = "";
+    window.history.replaceState(null, "", url);
+  };
+  useEffect(() => { if (target) document.getElementById(target)?.scrollIntoView({ block: "center" }); }, [target, at]);
   // a link from another page opens one tile per player: the first card of his that is on the page
   const anchored = useMemo(() => {
     const first = new Map<string, string>();
@@ -201,11 +218,11 @@ export default function CardsView({ data, now, returns = {} }: { data: Sorare; n
 
       <div className="s5-tools">
         <div className="s5-seg" role="group" aria-label="Position">
-          <button type="button" aria-pressed={pos === "all"} onClick={() => setPos("all")}>
+          <button type="button" aria-pressed={pos === "all"} onClick={() => { setPos("all"); go(0); }}>
             All
           </button>
           {POSITIONS.map((option) => (
-            <button key={option} type="button" aria-pressed={pos === option} onClick={() => setPos(option)}>
+            <button key={option} type="button" aria-pressed={pos === option} onClick={() => { setPos(option); go(0); }}>
               {option}
             </button>
           ))}
@@ -216,7 +233,7 @@ export default function CardsView({ data, now, returns = {} }: { data: Sorare; n
               key={option.key}
               type="button"
               aria-pressed={rarity === option.key}
-              onClick={() => setRarity(option.key)}
+              onClick={() => { setRarity(option.key); go(0); }}
             >
               {option.label}
             </button>
@@ -228,7 +245,7 @@ export default function CardsView({ data, now, returns = {} }: { data: Sorare; n
               key={option.key}
               type="button"
               aria-pressed={season === option.key}
-              onClick={() => setSeason(option.key)}
+              onClick={() => { setSeason(option.key); go(0); }}
             >
               {option.label}
             </button>
@@ -236,19 +253,13 @@ export default function CardsView({ data, now, returns = {} }: { data: Sorare; n
         </div>
         <label className="gl-find">
           <span>Find</span>
-          <input type="search" value={find} onChange={(e) => setFind(e.target.value)} aria-label="Find a player or club" />
+          <input type="search" name="gallery-search" autoComplete="off" value={find} onChange={(e) => { setFind(e.target.value); go(0); }} aria-label="Find a player or club" />
         </label>
         <span className="s5-count" aria-live="polite">
           {shown} {shown === 1 ? "card" : "cards"}
         </span>
       </div>
-      <p className="s5-return-note">Saved season rewards belong to the whole lineup. Each card shows the rewards of lineups it was in; do not add them across cards.</p>
-      <p className="s5-key">
-        Sorted by average score. The hexagons: last 5, last 10 and last 40 games. Under each card: his next game, then his chance to start it from Futbol Fantasy (FF), Sorare (SO) and Sofix (SF). The darker one is the
-        one Sofix uses.
-      </p>
-
-      {groups.map((group) => {
+      {visibleGroups.map((group) => {
         const width = Math.round((100 * group.cards.length) / summary.maxPosition);
         return (
           <section className="s5-shelf" key={group.pos}>
@@ -261,13 +272,14 @@ export default function CardsView({ data, now, returns = {} }: { data: Sorare; n
             </div>
             <div className="s5-grid">
               {group.cards.map((card, index) => (
-                <CardTile key={card.slug} card={card} index={index} stack={stacks.get(stackKey(card)) ?? 1} anchor={anchored.has(card.slug)} target={target === cardAnchor(card.player)} next={next.get(card.player) ?? next.get(card.name)} earned={returns === null ? null : returns[card.slug]} />
+                <CardTile key={card.slug} card={card} index={index} stack={stacks.get(stackKey(card)) ?? 1} anchor={anchored.has(card.slug)} target={target === cardAnchor(card.player)} next={upcoming[card.player] ?? upcoming[card.name]} earned={returns === null ? null : returns[card.slug]} />
               ))}
             </div>
           </section>
         );
       })}
 
+      {pages > 1 ? <nav className="s5-pager" aria-label="Gallery pages"><button type="button" onClick={() => go(at - 1)} disabled={at === 0}>Previous</button><span>Page {at + 1} of {pages}</span><button type="button" onClick={() => go(at + 1)} disabled={at === pages - 1}>Next</button></nav> : null}
       {data.cards.excluded.length ? (
         <details className="s5-fold">
           <summary>
@@ -291,34 +303,21 @@ export default function CardsView({ data, now, returns = {} }: { data: Sorare; n
 }
 
 function CardTile({ card, index, stack, anchor, target, next, earned }: { card: CollectionCard; index: number; stack: number; anchor: boolean; target: boolean; next: NextGame | undefined; earned?: CardReturn | null }) {
-  const windows = cardWindows(card);
+  const score = next?.forecast?.x ?? null, colour = scoreColour(score);
   return (
-    <article className={`s5-pc${anchor && target ? " is-target" : ""}`} id={anchor ? cardAnchor(card.player) : undefined} style={{ animationDelay: `${Math.min(index * 20, 360)}ms` }}>
+    <article className={`s5-pc${anchor && target ? " is-target" : ""}`} data-card={card.slug} id={anchor ? cardAnchor(card.player) : undefined} style={{ animationDelay: `${Math.min(index * 20, 360)}ms` }}>
       {/* The card and the name open his player page. */}
       <Link className="art" href={`/players/${card.player}`} prefetch={false} aria-label={`${card.name}: open his page`}>
         <CardArt src={card.pic} name={card.name} />
         {stack > 1 ? <span className="dup">×{stack}</span> : null}
         <SeasonMark card={card} />
+        <span className="s5-card-ratings">
+          <span className={`s5-card-fdr${next?.fdr ? ` f${next.fdr.bucket}` : ""}`} title={next?.fdr?.difficulty != null ? `${gameLine(next.game)} · ${next.fdr.label} · FDR ${Math.round(next.fdr.difficulty)} of 100 (lower is easier)` : "FDR unavailable for this fixture"}><small>FDR</small><b>{next?.fdr?.difficulty == null ? "—" : Math.round(next.fdr.difficulty)}</b></span>
+          <span className="s5-card-score" style={{ background: colour.fill, color: colour.ink }} aria-label={score === null ? "xScore unavailable for this fixture" : `xScore ${Math.round(score)}`} title="Published player xScore, before competition and captain bonuses"><b>{score === null ? "—" : Math.round(score)}</b></span>
+        </span>
       </Link>
-      <InfoButton card={card} />
-      <span className="nm">
-        <b>
-          <Link href={`/players/${card.player}`} prefetch={false}>
-            {card.name}
-          </Link>
-        </b>
-      </span>
-      <span className="s5-hexrow" role="group" aria-label="Average score by window">
-        {windows.map((w) => (
-          <span className="s5-hex" key={w.window}>
-            <small className="win">{w.window}</small>
-            <Hexagon score={w.score} />
-            <small className="pct">{w.started === null ? "\u00a0" : `${Math.round(w.started)}%`}</small>
-          </span>
-        ))}
-      </span>
+      <InfoButton card={card} next={next} earned={earned} />
       <Next next={next} />
-      <span className="s5-return">{earned ? <><b>{essenceLabel(earned.essence)} essence · {cashLabel(earned.cash)}</b><small>In {earned.lineups} saved lineup{earned.lineups === 1 ? "" : "s"}</small></> : earned === null ? "Saved rewards unavailable" : "No saved lineup yet"}</span>
     </article>
   );
 }
@@ -327,26 +326,19 @@ function CardTile({ card, index, stack, anchor, target, next, earned }: { card: 
 function Next({ next }: { next: NextGame | undefined }) {
   if (!next) return <span className="s5-next">No game yet</span>;
   const { list, used } = next.chances;
+  const chance = list.find(one => one.source === used)?.percent;
+  const description = `${gameLine(next.game)} · Sorare GW${next.week}`;
   return (
     <span className="s5-next">
-      <span className="s5-next-game" title={`${gameLine(next.game)} · Sorare GW${next.week}`}>
-        {gameLine(next.game)}
+      {used === "futbolfantasy" && next.game.ffMatch ? <a className="s5-card-start" aria-label={`Start chance ${chance === undefined ? "unknown" : `${chance}%`}`} href={next.game.ffMatch.url} target="_blank" rel="noreferrer" title={`${description} · Futbol Fantasy`}>{chance === undefined ? "—" : `${chance}%`}</a> : <DetailTip className="s5-card-start" label={`Start chance ${chance === undefined ? "unknown" : `${chance}%`}`} content={<><b>{description}</b>{list.map(one => <p key={one.source}>{SOURCE_NAME[one.source]} <b>{one.percent}%</b>{one.source === used ? " · used" : ""}</p>)}</>}>{chance === undefined ? "—" : `${chance}%`}</DetailTip>}
+      <span className="s5-card-evidence">
+        <DetailTip className="s5-card-fixture" label={description} content={<><b>{next.game.team ?? "Team TBC"} {next.game.venue === "H" ? "v" : "at"} {next.game.opponent}</b><p>{description}</p>{next.forecast ? null : <p>Individual fixture forecast unavailable. A double’s best-game score is kept separate.</p>}</>}>
+          {[{ name: next.game.team ?? "Team TBC", crest: next.game.teamCrest }, { name: next.game.opponent, crest: next.game.opponentCrest }].map((team, i) => team.crest
+            // eslint-disable-next-line @next/next/no-img-element -- Hot-linked source crests, personal use.
+            ? <img key={i} src={team.crest} alt="" width={22} height={22} loading="lazy" /> : <span key={i} aria-hidden="true">{team.name.slice(0, 2)}</span>)}
+        </DetailTip>
+        <span className="s5-card-xd" title="Expected decisive contribution in this fixture">xD {next.forecast?.xd == null ? "—" : next.forecast.xd.toFixed(2)}</span>
       </span>
-      {list.length ? (
-        <span
-          className="s5-next-chances"
-          role="group"
-          aria-label="Chance to start"
-          title={`Chance to start: ${list.map((one) => `${SOURCE_NAME[one.source]} ${one.percent}%`).join(", ")}${used ? ` · Sofix uses ${SOURCE_NAME[used]}` : ""}`}
-        >
-          {list.map((one) => (
-            <span key={one.source} data-used={one.source === used ? "" : undefined}>
-              <i>{SOURCE_SHORT[one.source]}</i>
-              <b>{one.percent}</b>
-            </span>
-          ))}
-        </span>
-      ) : null}
     </span>
   );
 }

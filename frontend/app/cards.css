@@ -61,7 +61,7 @@
 .s5-shelf-bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #c7c7cc, #9a9aa0); transform-origin: left; animation: s5-grow 0.7s var(--ease) both; }
 @keyframes s5-grow { from { transform: scaleX(0); } }
 
-.s5-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(126px, 1fr)); gap: 16px; }
+.s5-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(184px, 1fr)); gap: 24px; }
 .s5-pc { position: relative; display: flex; flex-direction: column; gap: 8px; animation: s5-rise 0.5s var(--ease) backwards; }
 @keyframes s5-rise { from { opacity: 0; transform: translateY(10px); } } /* visible by default: with reduced motion (no animation) the cards still show */
 .s5-pc .art { position: relative; aspect-ratio: 5 / 8; border-radius: var(--r-md); overflow: hidden; background: var(--track); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18), 0 8px 18px rgba(0, 0, 0, 0.12); transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease); }
@@ -168,7 +168,7 @@
   .s5-kpi:nth-child(2n + 1) { box-shadow: inset 0 -1px 0 var(--line); }
   .s5-kpi:nth-child(2n) { box-shadow: inset 1px 0 0 var(--line), inset 0 -1px 0 var(--line); }
   .s5-kpi:nth-child(5) { box-shadow: none; }
-  .s5-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px; }
+  .s5-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 14px; }
   .s5-shelf-bar { display: none; }
   .s5-find { top: 60px; }
   .s5-results { grid-template-columns: 1fr; }
@@ -427,3 +427,34 @@
   .px-name { font-size: 12px; }
   .px-trade { font-size: 11px; }
 }
+
+/* Compact collection evidence: the art leads; history and rewards open on intent. */
+.s5-card-ratings { position: absolute; top: 8px; right: 8px; display: grid; gap: 5px; }
+.s5-card-fdr, .s5-card-score { min-width: 34px; min-height: 32px; display: grid; place-content: center; text-align: center; padding: 3px 5px; border-radius: 7px; line-height: 1.1; font-variant-numeric: tabular-nums; background: var(--surface); color: var(--ink); }
+.s5-card-fdr small { font-size: 11px; font-weight: 600; }
+.s5-card-fdr b, .s5-card-score b { font-size: 16px; font-weight: 800; }
+.s5-card-fdr.f1 { background: var(--fdr1-bg); color: var(--fdr1-fg); }
+.s5-card-fdr.f2 { background: var(--fdr2-bg); color: var(--fdr2-fg); }
+.s5-card-fdr.f3 { background: var(--fdr3-bg); color: var(--fdr3-fg); }
+.s5-card-fdr.f4 { background: var(--fdr4-bg); color: var(--fdr4-fg); }
+.s5-card-fdr.f5 { background: var(--fdr5-bg); color: var(--fdr5-fg); }
+.s5-pc > .s5-info-btn { position: absolute; z-index: 6; top: 8px; left: 8px; width: 28px; height: 28px; }
+.s5-pc .dup { top: auto; left: auto; right: 8px; bottom: 8px; }
+.s5-pc .s5-next { display: flex; flex-direction: row; align-items: center; justify-content: space-between; border: 0; padding: 0; min-height: 55px; gap: 8px; }
+.s5-card-start, .s5-card-fixture { border: 0; background: none; color: var(--ink); padding: 0; cursor: pointer; border-radius: 6px; }
+.s5-card-start { font-family: inherit; font-size: clamp(26px, 2.5vw, 36px); letter-spacing: -.045em; font-weight: 700; font-variant-numeric: tabular-nums; min-height: 44px; text-decoration: none; display: inline-flex; align-items: center; }
+.s5-card-start:focus-visible, .s5-card-fixture:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.s5-card-evidence { display: grid; justify-items: end; gap: 2px; }
+.s5-card-fixture { display: flex; align-items: center; justify-content: flex-end; gap: 5px; min-height: 32px; min-width: 49px; font-family: inherit; }
+.s5-card-fixture img { object-fit: contain; }
+.s5-card-fixture span { font-size: 11px; color: var(--ink-2); }
+.s5-card-xd { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.s5-card-details { display: grid; gap: 8px; }
+.s5-card-details p { margin: 0; }
+.s5-card-details [data-used] { color: var(--ink); }
+.s5-pager { display: flex; justify-content: center; align-items: center; gap: 20px; margin: 28px 0; font-size: 13px; font-variant-numeric: tabular-nums; }
+.s5-pager button { min-height: 44px; padding: 0 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; }
+.s5-pager button:disabled { opacity: .45; cursor: default; }
+.s5-pager button:not(:disabled):hover { background: var(--hover); }
+.s5-pager button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 600px) { .s5-card-fixture { min-height: 44px; } .s5-pc > .s5-info-btn { width: 44px; height: 44px; } }

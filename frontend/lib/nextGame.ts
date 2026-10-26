@@ -1,4 +1,5 @@
 import { SOURCE_SHORT, type GameweekPlan, type PlayerGame, type PlayingPlayer, type StartSource } from "./play";
+import type { FdrSide } from "./arcadeFdr";
 
 /** The three sources of a chance to start, in the order the app trusts them. */
 const ORDER: StartSource[] = ["futbolfantasy", "sorare", "sofix"];
@@ -21,6 +22,9 @@ export type NextGame = {
   kickoff: string;
   game: PlayerGame;
   chances: SourceChances;
+  /** A single game's published forecast; a double's best-game number cannot describe this fixture. */
+  forecast: { x: number | null; xd: number | null } | null;
+  fdr?: FdrSide;
 };
 
 /**
@@ -45,7 +49,8 @@ export function nextGames(weeks: GameweekPlan[], now: Date): Map<string, NextGam
           : game.pStart !== undefined && game.startSource
             ? { list: [{ source: game.startSource, percent: Math.round(game.pStart * 100) }], used: game.startSource }
             : { list: [], used: null };
-      next.set(key, { week: week.gameweek.number, kickoff: game.kickoff, game, chances });
+      const forecast = games.length === 1 && player.availabilityKnown !== false && game.availabilityKnown !== false ? { x: player.x ?? null, xd: player.xd ?? null } : null;
+      next.set(key, { week: week.gameweek.number, kickoff: game.kickoff, game, chances, forecast });
     }
   }
   return next;

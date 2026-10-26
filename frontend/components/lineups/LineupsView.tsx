@@ -1,5 +1,7 @@
 "use client";
 
+import DataAction from "../ui/DataAction";
+
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
@@ -257,13 +259,15 @@ export default function LineupsView({ scores = false, data, chances, sorareGames
             <input type="checkbox" role="switch" id="lu-only" checked={onlyMine} onChange={(event) => setOnlyMine(event.target.checked)} />
             Only my players
           </label>
+          {!scores && source === "sorare" ? <div className="lu-read-actions" role="group" aria-label="Read Sorare starting chances">
+            {targets.length ? <DataAction label="Read the round on Sorare" kind="board" busy={round?.state === "reading"} onClick={() => void readRound()} /> : null}
+            {link && read ? <DataAction label="Read from Sorare" kind="start" busy={read.state === "reading"} onClick={() => void readSorare()} /> : null}
+          </div> : null}
         </div>
         {!scores && source === "sorare" && (sorareNote || sorareUrl || targets.length) ? <div className="lu-sorare-read">
           {sorareNote ? <p role="status">{sorareNote}</p> : null}
           {round ? <p role="status">{round.note}</p> : sorareKept.at ? <p>Saved from Sorare: {sorareKept.players} players in {sorareKept.games} {sorareKept.games === 1 ? "match" : "matches"}, read {ago(new Date(sorareKept.at), now)} ago.</p> : null}
-          {targets.length ? <button type="button" disabled={round?.state === "reading"} onClick={() => void readRound()}>Read the round on Sorare</button> : null}
           {sorareUrl ? <a href={sorareUrl} target="_blank" rel="noreferrer">Open match on Sorare</a> : null}
-          {link && read && read.state !== "reading" ? <button type="button" onClick={() => void readSorare()}>Read from Sorare</button> : null}
         </div> : null}
         <ChanceContext.Provider value={{ source:real?"futbolfantasy":source, values, url: selected.url, scores: scores ? { show: source as ScoreView, values: official?.scores ?? {} } : undefined }}>
           <fieldset className="lu-switch" aria-label="Team">

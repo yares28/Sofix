@@ -82,7 +82,10 @@ test("reads each selected match once and explains empty, unmatched and partial o
   await expect(page.getByRole("status").filter({ hasText: "Sorare's page returned no starting chances for this match." })).toBeVisible();
   await page.getByRole("navigation", { name: /^Matches of/ }).getByRole("link").nth(1).click();
   await expect.poll(() => page.evaluate(() => (window as unknown as { chanceReads: string[] }).chanceReads.length)).toBe(2);
-  await page.getByRole("button", { name: "Read from Sorare" }).click();
+  const retry = page.getByRole("button", { name: "Read from Sorare" });
+  await expect(retry).toHaveText("");
+  await expect(retry.locator("svg")).toHaveCount(1);
+  await retry.click();
   await expect(page.getByText("Sorare returned odds, but its players could not be matched.")).toBeVisible();
   await page.getByRole("button", { name: "Read from Sorare" }).click();
   await expect(page.getByText("Sorare returned incomplete starting odds. Available values are shown.")).toBeVisible();

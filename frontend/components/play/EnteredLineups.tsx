@@ -10,6 +10,7 @@ import { REQUIRED_EXTENSION_VERSION } from "../../lib/extension";
 import { chanceLabel, type GameweekPlan } from "../../lib/play";
 import { enteredScore, playerKey, type ActualScores } from "../../lib/lineupScores";
 import { ComparisonCards, ComparisonScores } from "../recap/LineupComparison";
+import DataAction from "../ui/DataAction";
 
 type Week = { slug: string; number: number; lock?: string; end?: string };
 type Failure = Exclude<WeekLineupsAnswer, { state: "ok" }>;
@@ -102,11 +103,7 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
             </span>
           ) : null}
           {/* asks your open sorare.com tab again; it never opens one */}
-          {load.state === "ready" ? (
-            <button type="button" className="pl-entered-again" onClick={() => setAsked((n) => n + 1)}>
-              Check again
-            </button>
-          ) : null}
+          <DataAction label="Check again" title="Read this GW's lineups from Sorare again" busy={load.state === "loading"} onClick={() => setAsked((n) => n + 1)} />
         </span>
       </div>
 
@@ -122,9 +119,6 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
             <b>{reason?.title ?? issue?.title ?? "Sorare lineups are unavailable"}</b>
             <span>{reason?.says ?? rejected ?? issue?.says ?? "Try again after opening your signed-in Sorare tab."}</span>
           </div>
-          <button type="button" className="pl-entered-again" onClick={() => setAsked((n) => n + 1)}>
-            Check again
-          </button>
           {!reason && issue?.act ? (
             <a
               href={issue.act === "Set it up" ? "/control" : "https://sorare.com/football/my-lineups"}

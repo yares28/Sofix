@@ -6,6 +6,7 @@ import type { PlayingPlayer } from "../../lib/play";
 import type { ProRebuild as Rebuild } from "../../lib/playData";
 import { REFRESH_HEADER } from "../../lib/refresh";
 import Lineup from "./Lineup";
+import DataAction from "../ui/DataAction";
 
 const clock = (iso: string) =>
   new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(iso));
@@ -41,9 +42,7 @@ export default function ProRebuild({ comp, week, plan, rebuild, players }: { com
         <span>
           {lineup ? <b>{`Rebuilt at ${clock(mine!.at)} on the announced elevens`}</b> : missing ? `Rebuilt at ${clock(mine!.at)}: ${missing.why}.` : "Teams out? Rebuild this lineup on who actually starts."}
         </span>
-        <button type="button" className="pl-rebuild-btn" onClick={load} disabled={state.busy}>
-          {state.busy ? "Loading…" : "Load from Sorare"}
-        </button>
+        <DataAction label="Load from Sorare" title="Rebuild this lineup from Sorare's announced starting elevens" kind="start" onClick={load} busy={state.busy} />
       </div>
       {state.said ? <p className="pl-rebuild-said" role="status">{state.said}</p> : null}
       {lineup ? (

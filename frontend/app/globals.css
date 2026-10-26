@@ -84,17 +84,8 @@ code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-si
   padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600;
   background: color-mix(in srgb, #ff9f0a 14%, var(--surface)); color: color-mix(in srgb, #ff9f0a 45%, var(--ink)); box-shadow: inset 0 0 0 1px rgba(138, 83, 0, .14);
 }
-.refresh { display: inline-flex; }
-.refresh-button {
-  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px;
-  border: 0; border-radius: 999px; cursor: pointer; font-size: 12px; font-weight: 500;
-  background: var(--track); color: var(--ink); transition: background .2s, color .2s; white-space: nowrap;
-}
-.refresh-button:hover:not(:disabled) { background: var(--track); }
-.refresh-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.refresh-button:disabled { cursor: default; color: var(--ink-2); }
-.refresh-button.failed { background: color-mix(in srgb, #e0605b 14%, var(--surface)); color: color-mix(in srgb, #e0605b 45%, var(--ink)); }
-.refresh-button.busy .refresh-icon { animation: refresh-spin 1s linear infinite; }
+.refresh { display: inline-flex; align-items: center; gap: 10px; }
+.refresh > [role="status"] { font-size: 13px; color: var(--ink-2); max-width: 34ch; }
 @keyframes refresh-spin { to { transform: rotate(360deg); } }
 
 @media (prefers-reduced-motion: reduce) {

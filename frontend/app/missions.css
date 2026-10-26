@@ -28,8 +28,6 @@
 .mx-live i { width: 8px; height: 8px; border-radius: 50%; background: var(--win); animation: mx-pulse 2.4s infinite; }
 @keyframes mx-pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--win) 45%, transparent); } 70%, 100% { box-shadow: 0 0 0 7px transparent; } }
 .mx-head .ms-load { margin: 0; flex-wrap: wrap; justify-content: flex-end; }
-.mx-head .ms-load-btn { min-height: 36px; padding: 0 14px; border-radius: 999px; font-size: 13px; background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
-.mx-head .ms-load-btn:hover:not(:disabled) { background: var(--hover); }
 .mx-head .ms-extension-help { flex-basis: 100%; margin: 0; }
 
 /* the small parts */
@@ -200,7 +198,6 @@
   .mx-title h1 { font-size: 27px; }
   .mx-head .mx-seg { order: 3; display: flex; flex-basis: 100%; }
   .mx-head .mx-seg a { flex: 1; min-height: 38px; display: grid; place-items: center; padding-inline: 0; font-size: 12px; }
-  .mx-head .ms-load-btn { min-height: 44px; }
   .mx-tickets { display: flex; margin-inline: -16px; padding: 4px 16px 10px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: 16px; scrollbar-width: none; }
   .mx-tickets::-webkit-scrollbar { display: none; }
   .mx-ticket { flex: none; width: 296px; scroll-snap-align: start; }

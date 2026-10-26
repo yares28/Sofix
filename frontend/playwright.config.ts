@@ -33,7 +33,7 @@ export default defineConfig({
     },
     {
       command: production
-        ? `npx next start -H 127.0.0.1 -p ${E2E_PORT}`
+        ? `node e2e/prepare.mjs && npx next start -H 127.0.0.1 -p ${E2E_PORT}`
         : `node e2e/prepare.mjs && npx next dev -H 127.0.0.1 -p ${E2E_PORT}`,
       url: `http://127.0.0.1:${E2E_PORT}/api/refresh`, // answers 403 quickly once the server is up
       env: {

@@ -32,6 +32,10 @@ test.describe("the daily missions page", () => {
     await page.goto("/missions");
     await expect(page.getByText(/Extension 0.3.8/)).toBeVisible();
     await expect(page.getByRole("button", { name: /Check extension and load/ })).toBeVisible();
+    const reload = page.getByRole("button", { name: /Check extension and load/ });
+    await expect(reload).toHaveText("");
+    await expect(reload.locator("svg")).toHaveCount(1);
+    expect((await reload.boundingBox())!.width).toBeGreaterThanOrEqual(40);
     await page.evaluate(() => window.dispatchEvent(new Event("test-extension-updated")));
     await page.getByRole("button", { name: /Check extension and load/ }).click();
     await expect(page.getByRole("status").filter({ hasText: "Loaded: 3 Limited missions" })).toBeVisible();

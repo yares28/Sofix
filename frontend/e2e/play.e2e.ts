@@ -203,6 +203,7 @@ test("the gameweek opens on its best plan: the ring, both rewards and every line
   await expect(page.locator(".pl-board-note")).toContainText("3 lineups");
   // Detailed likelihood and allocation remain available in the alternative workspace.
   await page.getByRole("link", { name: "Other plans & strategies", exact: true }).click();
+  await expect(page).toHaveURL(/\/audit\/strategies\?.*view=plans/, { timeout: 30_000 });
   const facts = page.locator(".pl-facts .pl-fact");
   await expect(facts.nth(0)).toHaveText("85% chance of a reward");
   await expect(facts.nth(1)).toHaveText("Most likely nothing · 25% chance");

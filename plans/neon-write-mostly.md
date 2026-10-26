@@ -38,7 +38,23 @@ GitHub keeps a job's log behind a sign-in and Vercel keeps its logs an hour, so 
    new feature that adds a reader fails before the push.
 4. **Confirm:** a day's ledger after the fix, against this day's.
 
-## 3 · The fallback: a free host without a transfer cap
+## 3 · The fallback: a free host without a transfer cap (researched 26 Oct)
 
-Researched beside the measurement. Only a host whose free plan is free for good, keeps the data, and has no monthly transfer limit
-the app could reach. Findings and sources go here.
+Only a free plan that is free for good, keeps the data and has no monthly transfer limit. Checked on the vendors' own pricing pages:
+
+| Host | Free plan | Transfer | Fit for Sofix |
+|---|---|---|---|
+| **Cloudflare R2** (already used for page blocks) | 10 GB stored, 1 M writes and 10 M reads a month | free, no charge for egress | **the first choice**: not a database, but every page block and every job input that is "a payload by key" can live there; the jobs already hold its write token and Vercel its read token |
+| **Cloudflare D1** (SQLite) | 5 GB total, 5 M rows read and 100 k rows written a day; over a limit, queries fail until 00:00 UTC | no egress or bandwidth charges | counts rows, not bytes: a 1.5 MB block is one row. The day's 5 M rows bound a full-table job, so the jobs' normalized tables would need indexes on every filter |
+| **Turso** (libSQL, SQLite) | 100 databases, 5 GB, 500 M rows read and 10 M written a month; over a limit, databases are blocked (no overage on Free) | not stated on the pricing page | the same row counting as D1, with a monthly budget instead of a daily one. The backend already runs on SQLite locally, which shortens a move |
+| **Oracle Cloud Always Free** (a VM running Postgres) | 4 Arm cores, 24 GB memory, 200 GB disk; idle instances can be reclaimed | 10 TB out a month (third-party guides; Oracle's page to confirm) | real Postgres with no transfer limit in practice, but a server to look after (updates, backups, TLS), and Arm capacity is often unavailable |
+| Supabase Free | 500 MB database, paused after a week idle | 5 GB a month | the same cap as Neon: no |
+
+**The conclusion.** The fix is architectural before it is a host:
+- R2, already in place, has no transfer charge. Moving the readers there (§2) removes the limit for page data and job inputs.
+- If the measured day shows the jobs' own table reads are too large for that, Turso or D1 is the next step. They count rows instead of bytes, and the backend already speaks SQLite.
+- A self-run Postgres on Oracle is the last resort.
+
+Sources: [Cloudflare D1 pricing](https://developers.cloudflare.com/d1/platform/pricing/), [Cloudflare R2 pricing](https://developers.cloudflare.com/r2/pricing/),
+[Turso pricing](https://turso.tech/pricing.md), [OCI free tier breakdown](https://selfhost.it.com/blog/oci-free-tier-breakdown) (third-party),
+[free Postgres comparison](https://github.com/freebase-cloud/free-postgres-hosting) (third-party, Supabase's 5 GB).

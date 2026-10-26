@@ -85,7 +85,6 @@ def _options(url: str) -> dict[str, Any]:
     options = engine_options(url)
     if not url.startswith("sqlite"):
         options["connect_args"] = {**options["connect_args"], "cursor_factory": CountingCursor}
-        atexit.register(_at_exit)
     return options
 
 
@@ -95,6 +94,8 @@ def _at_exit() -> None:
 
 
 engine = create_engine(settings.postgres_url, pool_pre_ping=True, **_options(settings.postgres_url))
+if not settings.postgres_url.startswith("sqlite"):  # once the engine exists: its exit writes the ledger row
+    atexit.register(_at_exit)
 
 
 @event.listens_for(engine, "before_cursor_execute")

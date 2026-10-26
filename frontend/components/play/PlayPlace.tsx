@@ -83,7 +83,7 @@ export default async function PlayPlace({ searchParams, alternatives = false }: 
             <p>{said.says}</p>
           </section> : null}
           {/* What you entered and won is readable from Sorare whenever it has the gameweek, whether or not Sofix holds a plan. */}
-          {!alternatives && said.lineups ? <EnteredLineups key={said.lineups.slug} week={{ ...said.lineups, end: item?.end }} comparison={{ heading: <header className="pl-head"><h1>{said.heading}</h1><p className="pl-sub">{said.says}</p></header>, recommendation: planPortfolio(null),rewards:rewards?{you:rewards.you,checkedAt:rewards.checkedAt,nextCheckAt:rewards.nextCheckAt}:null }} /> : null}
+          {!alternatives && said.lineups ? <EnteredLineups key={said.lineups.slug} week={{ ...said.lineups, end: item?.end, lock: item?.lock }} comparison={{ heading: <header className="pl-head"><h1>{said.heading}</h1><p className="pl-sub">{said.says}</p></header>, recommendation: planPortfolio(null),rewards:rewards?{you:rewards.you,checkedAt:rewards.checkedAt,nextCheckAt:rewards.nextCheckAt}:null }} /> : null}
         </main>
       </>
     );
@@ -98,13 +98,15 @@ export default async function PlayPlace({ searchParams, alternatives = false }: 
   const today = !alternatives && !showing.projected && showing.gameweek.id === data.nextId; // today's missions belong to the week played now
   // A locked week still being played: each card's score as his game comes in, the same cached read the home page makes.
   const playing = !requestedAfter && !showing.projected && !showing.played && Date.parse(showing.gameweek.lock) <= Date.now();
+  // Any locked week, played or being played: the header puts the points and prizes so far beside the projection.
+  const scored = !requestedAfter && !showing.projected && Date.parse(showing.gameweek.lock) <= Date.now();
   // Load from Sorare: the week being planned, and a locked one still being played, whose Pro lineups change until their first kickoff
   const rebuildable = !sorareAsked && !lens && ((!showing.projected && !showing.played && showing.gameweek.id === data.nextId) || playing);
   const [alt, frozen, missions, scores, rebuild, rewards] = await Promise.all([
     sorareAsked ? loadSorareAlt(showing.gameweek.slug) : lens ? loadSorareLens(showing.gameweek.slug, lens) : null,
     alternatives || showing.projected ? null : loadFrozenPlan(showing.gameweek.slug, data),
     today ? missionsToday(data, missionsModel, undefined, new Date(), pool) : null,
-    playing ? loadPlanActuals(showing) : undefined,
+    scored ? loadPlanActuals(showing) : undefined,
     rebuildable ? loadProRebuild(showing.gameweek.slug) : null,
     alternatives||showing.projected?null:loadPlayRewards(showing.gameweek.slug),
   ]);

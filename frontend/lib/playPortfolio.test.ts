@@ -26,3 +26,27 @@ it("uses only finite valid probabilities and limits card previews without losing
   expect(side.cards).toHaveLength(5);
   expect(side.expectedPaid).toBeCloseTo(2.8);
 });
+it("keeps the projection and adds the score so far and the prize it reaches once the GW locks", () => {
+  const tiers = [{ need: 300, p: .3, essence: 30 }, { need: 400, p: 0, cash: 5 }];
+  const line = { board: "b", x: 320, pReturn: .5, rarity: "limited", kind: "x", tiers, captainBonus: .5, clubBonus: null, averageBonus: null,
+    starters: [{ slug: "c", mult: 1, captain: true, club: null, average: 50 }], subs: [] };
+  const plan = { lineups: [line] } as unknown as Plan;
+  expect(planPortfolio(plan)).toMatchObject({ averagePoints: 320, actualPoints: null, live: false });
+  // 280 × (1 + .5 captain) = 420: past the 400 tier even though its pre-lock chance was 0
+  const live = planPortfolio(plan, null, { c: { score: 280, played: true } });
+  expect(live).toMatchObject({ averagePoints: 320, actualPoints: 420, actualRated: 1, live: true, rewardLive: true });
+  expect(live.rewardActual?.values["cash:USD"]).toBe(5);
+  // a checked reward replaces the one at the score so far
+  const checked = planPortfolio(plan, { slug: "s", state: "checked", sofix: [{ signature: "b|c:1", rewards: { "cash:USD": 2 } }] }, { c: { score: 280, played: true } });
+  expect(checked).toMatchObject({ rewardLive: false });
+  expect(checked.rewardActual?.values["cash:USD"]).toBe(2);
+
+  const scored = { ...entry("a"), result: { score: 310, rank: null, cash: 0, essence: 0, card: false } } as GameweekLineup;
+  const forecasts = new Map([["a", { value: 290, estimated: false, chance: .4, prizeLine: line as never }]]);
+  expect(enteredPortfolio([scored], forecasts)).toMatchObject({ averagePoints: 290, actualPoints: null, live: false });
+  const mine = enteredPortfolio([scored, entry("b")], forecasts, { you: [{ id: "b", rewards: { "cash:USD": 1 } }] }, true);
+  expect(mine).toMatchObject({ averagePoints: 290, actualPoints: 310, actualRated: 1, live: true, rewardLive: true });
+  expect(mine.rewardActual).toMatchObject({ checked: 2, total: 2 });
+  expect(mine.rewardActual?.values["essence:limited:x"]).toBe(30);
+  expect(mine.rewardActual?.values["cash:USD"]).toBe(1);
+});

@@ -21,7 +21,7 @@ import {
 } from "../../lib/play";
 import { freshLabel } from "../../lib/fresh";
 import type { MissionPlan } from "../../lib/missions";
-import type { ActualScores } from "../../lib/lineupScores";
+import { playerKey, type ActualScores } from "../../lib/lineupScores";
 import { lockText } from "../../lib/recap";
 import { MissionsGlance } from "../recap/Recap";
 import { syncState } from "../../lib/sorareStatus";
@@ -108,7 +108,7 @@ export default function PlayView({
   if (weekId) results.set("w", weekId); else results.set("gw", id);
 
   const sync = after || week.projected ? null : syncState(data, week, now);
-  const comparison = { heading: <Head data={data} week={week} now={now} sync={sync} dates={dates ?? null} title={title ?? null} comparison />, recommendation: planPortfolio(plan,rewards), rewards:rewards?{you:rewards.you,checkedAt:rewards.checkedAt,nextCheckAt:rewards.nextCheckAt}:null, early: Boolean(week.projected), played: week.played, action: plan && !after && !week.projected ? <ApplySheet lineups={enterable(plan.lineups)} week={week} rank={plan.rank} now={now.toISOString()} /> : undefined };
+  const comparison = { heading: <Head data={data} week={week} now={now} sync={sync} dates={dates ?? null} title={title ?? null} comparison />, recommendation: planPortfolio(plan,rewards,planScores(plan,scores)), rewards:rewards?{you:rewards.you,checkedAt:rewards.checkedAt,nextCheckAt:rewards.nextCheckAt}:null, early: Boolean(week.projected), played: week.played, action: plan && !after && !week.projected ? <ApplySheet lineups={enterable(plan.lineups)} week={week} rank={plan.rank} now={now.toISOString()} /> : undefined };
   const showModes = alternatives && week.played && Boolean(week.hindsight || week.plans.some(p => p.actual));
   // Sofix's plan or Sorare's: only for the week being planned, where both are made (the owner, 6 Oct 2026)
   const showSources = alternatives && !week.projected;
@@ -636,4 +636,11 @@ function Folds({ week }: { week: GameweekPlan }) {
 
 function short(name: string): string {
   return name.length <= 12 ? name : `${name.slice(0, 11)}…`;
+}
+
+/** The scores of the plan's own cards: a recorded plan can hold a card the week's read has only under its player. */
+function planScores(plan: Plan | undefined, scores: ActualScores | undefined): ActualScores | undefined {
+  if (!plan || !scores) return scores;
+  const cards = plan.lineups.flatMap((l) => [...l.starters, ...l.subs]);
+  return { ...scores, ...Object.fromEntries(cards.flatMap((c) => { const s = scores[c.slug] ?? (c.player ? scores[playerKey(c.player)] : undefined); return s ? [[c.slug, s]] : []; })) };
 }

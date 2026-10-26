@@ -134,6 +134,8 @@ export function enteredScore(entered: GameweekLineup, week: GameweekPlan | null,
   rewards?:RewardValues;
   atScore?:RewardValues|null;
   prizes?:PrizeOption[];
+  /** The board's prize ladder, so the header can name the prize a score so far reaches. */
+  prizeLine?:Pick<Lineup,"tiers"|"rarity"|"kind"|"pro"|"group">;
 } {
   const missing = { value: null, estimated: false };
   if (!week || week.gameweek.slug !== slug || !entered.cards.length) return missing;
@@ -146,7 +148,7 @@ export function enteredScore(entered: GameweekLineup, week: GameweekPlan | null,
     const cards = [...l.starters, ...l.subs];
     return cards.length === ordered.length && cards.every((c, i) => c.slug === ordered[i]!.slug && !!c.captain === ordered[i]!.captain);
   });
-  if (saved) {const rewards=projectedRewards(saved);return { value: saved.x, estimated: false, chance: saved.pReturn,...(rewards?{rewards}:{}),...(saved.tiers?.length?{atScore:projectedPrize(saved),prizes:prizeOptions(saved)}:{}) };}
+  if (saved) {const rewards=projectedRewards(saved);return { value: saved.x, estimated: false, chance: saved.pReturn,...(rewards?{rewards}:{}),...(saved.tiers?.length?{atScore:projectedPrize(saved),prizes:prizeOptions(saved),prizeLine:saved}:{}) };}
 
   const template = options[0];
   const rules = entered.scoring;
@@ -202,5 +204,5 @@ export function enteredScore(entered: GameweekLineup, week: GameweekPlan | null,
   const bonusComposition=(roster:PlayCard[])=>roster.map(c=>`${c.rarity}:${c.inSeason}:${Boolean(c.captain)}`).sort().join("|");
   const boost=cards.every(c=>c.rarity==="limited")?1:template&&bonusComposition(cards)===bonusComposition(template.starters)?template.pro?.boost:Number.NaN;
   const prizeTemplate=template?.pro?{...template,pro:{...template.pro,boost:boost??Number.NaN}}:template;
-  return { ...expectation(custom, template?.group === "Room" ? null : template?.need,prizeTemplate), estimated: true };
+  return { ...expectation(custom, template?.group === "Room" ? null : template?.need,prizeTemplate), estimated: true, ...(prizeTemplate?.tiers?.length?{prizeLine:prizeTemplate}:{}) };
 }

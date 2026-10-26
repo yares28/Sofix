@@ -12,13 +12,16 @@ test("all eight entered forecasts survive a legacy snapshot, and projected rewar
   const pro={...structuredClone(base),x:200,board:"pro-step",pro:{level:1,target:360,boost:1,ladder:[]},need:360,tiers:[{need:0,p:.9,essence:250},{need:360,p:.1,cash:5}],subs:[],bonuses:{season:.05,grade:.01,scarcity:{}}};
   week.plans[0]!.lineups.push(pro);
   const frozen={...structuredClone(week),plans:[{...week.plans[0]!,lineups:[structuredClone(base)]}]};
-  const lineups=Array.from({length:8},(_,i)=>{const l=i<6?base:pro;return{id:`entry-${i}`,name:`Entered ${i+1}`,board:l.board,competition:i<6?l.comp:"Pro",pro:i<6?undefined:{level:1,target:360},draft:false,confirmable:false,result:null,cards:[...l.starters,...l.subs].map((c,index)=>({slug:c.slug,player:c.player,name:c.name,rarity:c.rarity,picture:c.pic,score:null,captain:!!c.captain,index}))};});
+  const lineups=Array.from({length:8},(_,i)=>{const l=i<6?base:pro;return{id:`entry-${i}`,name:`Entered ${i+1}`,board:l.board,competition:i<6?l.comp:"Pro",pro:i<6?undefined:{level:1,target:360},draft:false,confirmable:false,result:i<6?{score:300,rank:null,cash:0,essence:0,card:false}:null,cards:[...l.starters,...l.subs].map((c,index)=>({slug:c.slug,player:c.player,name:c.name,rarity:c.rarity,picture:c.pic,score:null,captain:!!c.captain,index}))};});
   await request.post(`${MOCK}/__test/my-weeks`,{data:{sorareData:data,livePlan:frozen,playRewards:{slug:week.gameweek.slug,state:"checked",you:lineups.map(l=>({id:l.id,rewards:{}})),sofix:[]}}});
   await context.route("**/api/my-week",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({weeks:[],snapshots:[{slug:week.gameweek.slug,savedAt:new Date().toISOString(),lineups}],pending:[]})}));
   await page.goto(`/play?gw=${week.gameweek.id}`);
   const yours=page.locator('.pc-you');await expect(yours).toContainText("8 entered");
   await expect(yours.locator('.pc-potential strong')).not.toHaveText("—");await expect(yours.locator('.pc-potential strong small')).toHaveText('/8');
-  await expect(yours.locator('.pc-risk strong')).toContainText('%');await expect(yours.locator('.pc-points strong')).not.toHaveText("—");
+  await expect(yours.locator('.pc-risk strong')).toContainText('%');
+  // locked: the points so far lead (six lineups scored 300), the projection stays beneath
+  await expect(yours.locator('.pc-points strong')).toHaveText("300");await expect(yours.locator('.pc-points')).toContainText("pts / lineup so far");
+  await expect(yours.locator('.pc-points')).toContainText("6/8 lineups");await expect(yours.locator('.pc-points small').last()).toHaveText(/^\d+ projected$/);
   const rewards=yours.locator('.pc-rewards');
   await expect(rewards).not.toContainText('≥');await expect(rewards.locator('[data-reward="cash:USD"]')).toHaveCount(0);
   await expect(rewards.locator('[data-reward="card"]')).toHaveCount(0);

@@ -1,15 +1,17 @@
 import atexit
 import json
 import logging
+from collections import defaultdict
 from typing import Any
 
 import certifi
 import psycopg
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from app.config import settings
+from app.services import neon_ledger
 
 NEON_HOST_SUFFIX = ".neon.tech"
 logger = logging.getLogger(__name__)
@@ -52,10 +54,14 @@ class CountingCursor(psycopg.Cursor[Any]):
     """Adds up roughly how many bytes Neon sends this process (its free plan sends 5 GB a month): `neon_bytes()`."""
 
     total = 0
+    by_label: dict[str, int] = defaultdict(int)  # the same bytes by reader (`neon_ledger.label_of`)
+    label = "other"
 
     def _count(self, rows: Any) -> Any:
         for row in rows:
-            CountingCursor.total += sum(_size(v) for v in row)
+            size = sum(_size(v) for v in row)
+            CountingCursor.total += size
+            CountingCursor.by_label[CountingCursor.label] += size
         return rows
 
     def fetchone(self) -> Any:
@@ -79,11 +85,23 @@ def _options(url: str) -> dict[str, Any]:
     options = engine_options(url)
     if not url.startswith("sqlite"):
         options["connect_args"] = {**options["connect_args"], "cursor_factory": CountingCursor}
-        atexit.register(lambda: logger.info("Neon sent this job about %.1f MB", neon_bytes() / 1e6))
+        atexit.register(_at_exit)
     return options
 
 
+def _at_exit() -> None:
+    logger.info("Neon sent this job about %.1f MB", neon_bytes() / 1e6)
+    neon_ledger.write(engine, neon_bytes(), CountingCursor.by_label)
+
+
 engine = create_engine(settings.postgres_url, pool_pre_ping=True, **_options(settings.postgres_url))
+
+
+@event.listens_for(engine, "before_cursor_execute")
+def _name_the_read(conn: Any, cursor: Any, statement: str, parameters: Any, context: Any, executemany: bool) -> None:
+    CountingCursor.label = neon_ledger.label_of(statement, parameters)
+
+
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 

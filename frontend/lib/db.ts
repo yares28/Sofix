@@ -1,9 +1,10 @@
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { unstable_cache } from "next/cache";
 import { isDatabasePaused } from "./control";
+import { LEDGER_EVERY_BYTES, LEDGER_EVERY_MS, ledgerLabel, ledgerRow } from "./neonLedger";
 import { blockFromR2 } from "./r2";
 import { GRID_TAG } from "./refresh";
 import { scoreRecordPart } from "./scoreRecordParts";
@@ -80,7 +81,27 @@ const SERVER = process.env.NODE_ENV === "development" ? "dev" : `vercel ${proces
 function countBytes(strings: TemplateStringsArray, values: unknown[], rows: unknown): void {
   const size = JSON.stringify(rows).length;
   servedBytes += size;
+  noteForLedger(ledgerLabel(strings.join("?"), values[0]), size);
   if (size > 50_000) console.warn(`[neon] ${SERVER} ${(size / 1e6).toFixed(2)} MB: ${strings.join("?").replace(/\s+/g, " ").slice(0, 70)} [${String(values[0] ?? "").slice(0, 40)}] (this server: ${(servedBytes / 1e6).toFixed(1)} MB)`);
+}
+
+/** The ledger (lib/neonLedger.ts): this server's reads by reader, written down every ten minutes or every 1 MB. */
+const SERVER_ID = randomUUID().slice(0, 8);
+const readers = new Map<string, number>();
+let pending = 0;
+let lastLedger = Date.now();
+let ledgerSeq = 0;
+function noteForLedger(label: string, size: number): void {
+  if (label === "write") return;
+  readers.set(label, (readers.get(label) ?? 0) + size);
+  pending += size;
+  if (pending < LEDGER_EVERY_BYTES && Date.now() - lastLedger < LEDGER_EVERY_MS) return;
+  const { key, payload } = ledgerRow(readers, SERVER_ID, SERVER, ledgerSeq++, new Date());
+  readers.clear();
+  pending = 0;
+  lastLedger = Date.now();
+  void live`INSERT INTO read_models (key, payload, updated_at) VALUES (${key}, ${JSON.stringify(payload)}::json, to_timestamp(0))
+    ON CONFLICT (key) DO UPDATE SET payload = EXCLUDED.payload`.catch(() => undefined);
 }
 
 export function database(): Sql | null {

@@ -76,9 +76,13 @@ target, home advantage per club, rest and European games.
 
 Each phase ships on its own, with the board's 1440 and 390 px look and the Difficulty page's spec.
 
-## 5 · Your calls
+## 5 · Decided (26 Oct)
 
-1. **Team news's tuning seasons.** Tune it on 2023/24–2024/25 and test on 2025/26–2026/27 (the seasons with player data), which bends
-   the 2019/20–2022/23 rule for this one part. Or leave team news out of the board.
-2. **Understat for past seasons.** A one-off read of about seven seasons per league (one page per season and league, a few seconds
-   apart) for F4. Today's limit is one request per league per refresh.
+1. **Player-based parts start where Sorare has scores** (the owner, 26 Oct): team news, chance quality from Sorare's stats and every
+   other part built on player data are tuned and tested from the first season Sorare has per-player scores for. They serve future
+   decisions, not a replay of old seasons. The owner sees Sorare stats older than 2023 on its pages, while one game per season read
+   through `anyGame` had none before 2023/24: F0 finds the true first season through the player-level history too, and starts there.
+   Parts that need no player data keep the 2019/20–2022/23 tuning rule.
+
+Still open: Understat for past seasons (a one-off read of about seven seasons per league, beyond today's one request per league per
+refresh), only if F4 needs it.

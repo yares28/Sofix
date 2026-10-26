@@ -14,6 +14,10 @@ and a check, so a session can work through it alone and stop only where you have
 
 ## Next up (the one queue: read this first, update it in the same commit when an item ships)
 
+26 Oct, first: **Neon write-mostly, for good** ([neon-write-mostly.md](neon-write-mostly.md)): a day measured by the Neon ledger
+(built 26 Oct), then the readers moved to GitHub's cache and R2 with a byte budget per job; a free host without a transfer cap
+researched as the fallback.
+
 26 Oct owner priority: **the score engine, LaLiga first** ([score-engine.md](score-engine.md) §7, phases E0 to E7): every stat and
 decisive action of a game simulated and scored with Sorare's own formula, the opponent's style per position, no Sorare projection as
 an input. Then **the difficulty board tuned with the same data** for every league ([fdr-tuning.md](fdr-tuning.md), F0 to F7; two

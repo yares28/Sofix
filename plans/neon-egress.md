@@ -31,6 +31,8 @@ and save the merged copy for the next run. A missing or corrupt copy
 falls back to today's full read. Measured on Sofix B: five history reads sent 0.27 MB through the copy instead of 5.9 MB, results identical; filling
 the copy once costs ~23 MB. Done when: a refresh reads under 3 MB from Neon instead of ~28 MB, with the same plans
 (the replay tests and one refresh compared block by block against the previous one).
+27 Oct: the fingerprints and the `player_games:<slug>` blocks see a game's read time (and an absence's last sighting) only
+to the day, so a re-read that found nothing new re-fetches and re-uploads nothing ([multi-competition-review.md](multi-competition-review.md) L1).
 
 ### Step 4 · The jobs' own re-reads (measured 20 Oct, refresh 164)
 The Sorare step sent 57 MB: missions 21.6, audit 15.6, frozen/references/news/settle 6.8, early plans 5.1, games saved 4.9.

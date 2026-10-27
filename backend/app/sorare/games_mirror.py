@@ -20,15 +20,18 @@ from app.models import PlayerGame
 
 logger = logging.getLogger(__name__)
 
-# md5s over the rows exactly as stored (every column), so any change to any game shows: per player, then per game.
-_PLAYER_PRINTS = text(
-    "SELECT player, md5(string_agg(t::text, '|' ORDER BY game_id)) FROM player_games AS t GROUP BY player"
-)
-_GAME_PRINTS = text("SELECT player, game_id, md5(t::text) FROM player_games AS t WHERE player IN :players").bindparams(
-    bindparam("players", expanding=True)
-)
 _TABLE = PlayerGame.metadata.tables["player_games"]
 _COLUMNS = [c.name for c in _TABLE.columns]
+# md5s over the rows as stored (every column), so any change to any game shows: per player, then per game. The read time
+# counts only to the day: every refresh stamps each re-read game with its time, which re-fetched ~1,700 players' rows a
+# run for nothing (plans/multi-competition-review.md L1). Neon keeps the exact time; the copy's is at most a day behind.
+_ROW = "row(" + ", ".join("date_trunc('day', t.read_at)" if c == "read_at" else f"t.{c}" for c in _COLUMNS) + ")::text"
+_PLAYER_PRINTS = text(
+    f"SELECT player, md5(string_agg({_ROW}, '|' ORDER BY game_id)) FROM player_games AS t GROUP BY player"
+)
+_GAME_PRINTS = text(f"SELECT player, game_id, md5({_ROW}) FROM player_games AS t WHERE player IN :players").bindparams(
+    bindparam("players", expanding=True)
+)
 _KEY = tuple_(PlayerGame.player, PlayerGame.game_id)
 
 

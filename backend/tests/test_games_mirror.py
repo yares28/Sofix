@@ -50,3 +50,14 @@ def test_only_changed_games_are_fetched_again_and_removed_ones_go(tmp_path, monk
     rows = {(r.player, r.game_id, r.score) for r in local.query(PlayerGame)}
     assert rows == {("a", "g1", 50), ("a", "g3", 25), ("b", "g4", 60)}
     assert local.get(PlayerGame, ("a", "g1")).stats == [{"a": 1}]
+
+
+def test_fingerprints_see_the_read_time_only_to_the_day():
+    # Every refresh stamps each re-read game with its time (plans/multi-competition-review.md L1): a fingerprint over the
+    # exact time re-fetched ~1,700 players' rows every run. Every other column still counts as stored.
+    for sql in (games_mirror._PLAYER_PRINTS, games_mirror._GAME_PRINTS):
+        spelled = str(sql)
+        assert "date_trunc('day', t.read_at)" in spelled
+        assert "t::text" not in spelled
+        for column in games_mirror._COLUMNS:
+            assert f"t.{column}" in spelled

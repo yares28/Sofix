@@ -15,6 +15,7 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import httpx
 from sqlalchemy import select
@@ -47,11 +48,17 @@ GAME_COLUMNS = (
     "read_at",
 )
 ABSENCE_COLUMNS = ("id", "kind", "cause", "first_seen", "last_seen", "back")
+# Stamped on every re-read whether or not anything changed, and shown by the page as a day: kept to the Madrid day, so a
+# block changes at most once a day unless a game or absence really changed (plans/multi-competition-review.md L1).
+DAY_ONLY = ("read_at", "last_seen")
 _EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
+_MADRID = ZoneInfo("Europe/Madrid")
 
 
-def _value(value: Any) -> Any:
-    return as_utc(value).isoformat() if isinstance(value, datetime) else value
+def _value(value: Any, column: str = "") -> Any:
+    if not isinstance(value, datetime):
+        return value
+    return as_utc(value).astimezone(_MADRID).date().isoformat() if column in DAY_ONLY else as_utc(value).isoformat()
 
 
 def build(db: Session, games_db: Session | None = None) -> dict[str, dict[str, Any]]:
@@ -60,7 +67,7 @@ def build(db: Session, games_db: Session | None = None) -> dict[str, dict[str, A
     columns = [getattr(PlayerGame, c) for c in GAME_COLUMNS]
     query = select(PlayerGame.player, *columns).order_by(PlayerGame.player, PlayerGame.date.desc(), PlayerGame.game_id)
     for player, *values in (games_db or db).execute(query).tuples():
-        games[player].append({c: _value(v) for c, v in zip(GAME_COLUMNS, values, strict=True)})
+        games[player].append({c: _value(v, c) for c, v in zip(GAME_COLUMNS, values, strict=True)})
     links_row = kept_blocks.read(db, "ff_links")
     links = (links_row.payload.get("links") or {}) if links_row and isinstance(links_row.payload, dict) else {}
     absences: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -72,14 +79,14 @@ def build(db: Session, games_db: Session | None = None) -> dict[str, dict[str, A
     for row in rows:
         profile = (links.get(row.player) or {}).get("slug")
         url = f"https://www.futbolfantasy.com/jugadores/{profile}" if profile else None
-        absences[str(row.player)].append({**{c: _value(getattr(row, c)) for c in ABSENCE_COLUMNS}, "url": url})
+        absences[str(row.player)].append({**{c: _value(getattr(row, c), c) for c in ABSENCE_COLUMNS}, "url": url})
     return {p: {"games": games.get(p, []), "absences": absences.get(p, [])} for p in sorted({*games, *absences})}
 
 
 def body(payload: dict[str, Any]) -> bytes:
     """The block as stored, the same bytes for the same content (its write time is the newest time inside it)."""
     times = [g["read_at"] for g in payload["games"] if g["read_at"]] + [a["last_seen"] for a in payload["absences"]]
-    at = max(times, default=_EPOCH.isoformat())
+    at = max((t if "T" in t else f"{t}T00:00:00+00:00" for t in times), default=_EPOCH.isoformat())
     return json.dumps({"updatedAt": at, "payload": payload}, separators=(",", ":"), sort_keys=True).encode()
 
 

@@ -92,6 +92,34 @@ def test_player_history_blocks_upload_only_what_changed(db, monkeypatch):  # noq
     assert deleted == ["player_games:gone"]
 
 
+def test_a_reread_with_nothing_new_keeps_the_block_the_same_until_the_next_day(db):  # noqa: F811
+    db.add_all(
+        [
+            _game("pedri", "g1", NOW - timedelta(days=7), 61.5),
+            PlayerAbsence(ff_id="1", player="pedri", kind="out", cause="knee", first_seen=NOW, last_seen=NOW),
+        ]
+    )
+    db.commit()
+    first = player_blocks.body(player_blocks.build(db)["pedri"])
+    assert json.loads(first)["payload"]["games"][0]["read_at"] == "2026-10-26"  # the day, as the page shows it (Madrid)
+
+    db.get(PlayerGame, ("pedri", "g1")).read_at = NOW + timedelta(hours=3)  # read again at 21:00 UTC, still 26 Oct
+    db.query(PlayerAbsence).one().last_seen = NOW + timedelta(hours=3)
+    db.commit()
+    assert player_blocks.body(player_blocks.build(db)["pedri"]) == first
+
+    db.get(PlayerGame, ("pedri", "g1")).score = 63.0  # a real change uploads at once
+    db.commit()
+    assert player_blocks.body(player_blocks.build(db)["pedri"]) != first
+
+    db.get(PlayerGame, ("pedri", "g1")).score = 61.5
+    db.get(PlayerGame, ("pedri", "g1")).read_at = NOW + timedelta(days=1)  # a new day: changes once
+    db.commit()
+    later = json.loads(player_blocks.body(player_blocks.build(db)["pedri"]))
+    assert later["payload"]["games"][0]["read_at"] == "2026-10-27"
+    assert later["updatedAt"] == "2026-10-27T00:00:00+00:00"
+
+
 def test_recent_runs_newest_first(db):  # noqa: F811
     for i in range(10):
         start = NOW + timedelta(minutes=i)

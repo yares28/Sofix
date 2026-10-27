@@ -1,0 +1,14 @@
+# The outside clock (plans/roadmap.md 9.11): Cloudflare's free plan, one of its 5 timers, no web address.
+# Deploy from the repo root: npx wrangler@4.149.0 deploy --config clock/wrangler.toml
+# Its one secret: npx wrangler@4.149.0 secret put GITHUB_TOKEN --config clock/wrangler.toml
+name = "sofix-clock"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+workers_dev = false
+preview_urls = false
+
+[triggers]
+crons = ["* * * * *"]
+
+[observability]
+enabled = true

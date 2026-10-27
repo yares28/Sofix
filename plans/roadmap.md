@@ -67,7 +67,8 @@ L2. **Audit xScore: a fair yardstick** ([lineups-and-xscore.md](lineups-and-xsco
    split out of the `sorare` read model, N5.
 6. **10.6 rest · choosing the starters for the reward** (Batch 10), then **10.7 rest · the official-eleven check** an hour before kick-off.
 7. **10.9 · The next five gameweeks and points per euro**, then **10.10 · parts 6, 7, 9 and 10 of P9**.
-8. **Later · 9.11 · an outside clock for the refresh** (TODO.md C, "Future feature"): needs a free cron-job.org account from you.
+8. **Now · 9.11 · an outside clock: a Cloudflare Worker starts the jobs on time** (TODO.md C, "The outside clock"; chosen 27 Oct):
+   needs from you one GitHub token and one `wrangler login`.
 
 Waiting for data, not work: the Audit's Sorare vs Sofix figures (about 100 settled starts, from about 11 to 14 Oct) and 10.8, the
 self-correcting numbers (100 cases per band). Paused by you: 0.1 (your Apply result, TODO.md E), batch 4 (Pro). Yours: the live Apply
@@ -500,9 +501,13 @@ waits for your call; 9.6 to 9.10 are the owner's TODO.md items B, A, C, D and F,
   it, before 19 Oct.
 - **9.10 · Your account only, and "reload" for an old extension** (item 9; TODO.md "F"): steps 7.1 and 7.2, moved here so they ship
   in the same version.
-- **9.11 · An outside clock for the refresh** (future feature, added 7 Oct; TODO.md "C"): a free cron-job.org job calls the app's refresh
-  route on the timetable, so the numbers stay fresh even on days nothing is opened. Needs your free account first. *Done when* a week of
-  runs started on time is seen on the Audit's freshness.
+- **9.11 · An outside clock: a Cloudflare Worker starts the jobs** (added 7 Oct; chosen 27 Oct over cron-job.org; TODO.md "C"). GitHub
+  starts runs you ask for at once but its own timer 4 to 7 hours late (20-26 Oct), so a free Worker on the existing Cloudflare account
+  (`clock/`) checks `clock/timetable.json` every minute and starts each due workflow through GitHub's API, unless a run of it already
+  started since that time. GitHub still runs the jobs. Near-lock, score checks and the daily jobs lose their GitHub timer (their late runs
+  would double the Neon reads); the refresh keeps its timer as a backup, and its gate skips a late GitHub run within 3 hours of another.
+  `check.mjs --live` fails when the clock has been silent over 45 minutes. *Done when* a day of runs started within two minutes of their
+  times is seen in GitHub's run list, and a week after.
 
 **Release 2 · the bench score** (one refresh)
 

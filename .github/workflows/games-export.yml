@@ -5,8 +5,7 @@ name: Keep every LaLiga game
 # (plans/score-engine.md E0). Read only from Sorare's public API, newest games first; nothing is read from or written to Neon.
 # A cold cache fills over a few runs; after that a run reads the last day's games in a minute or two.
 on:
-  schedule:
-    - cron: "47 5 * * *"
+  # Timed by the outside clock, not GitHub (whose timer runs hours late): "47 5 * * *" UTC in clock/timetable.json.
   workflow_dispatch:
 
 permissions:

@@ -32,6 +32,7 @@ Production does not run FastAPI continuously. It is the local/typed API fallback
 | DB/migrations | `backend/app/models.py`, `backend/migrations/` |
 | Web | `frontend/app/`, `frontend/components/`, `frontend/lib/` |
 | Extension | `extension/` |
+| Clock (starts timed workflows on time) | `clock/` (Cloudflare Worker, `clock/timetable.json`) |
 
 ## Commands
 

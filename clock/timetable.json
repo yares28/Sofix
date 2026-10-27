@@ -1,0 +1,23 @@
+{
+  "repo": "yares28/Sofix",
+  "ref": "main",
+  "jobs": [
+    { "workflow": "refresh.yml", "cron": "17 7 * * *", "inputs": { "trigger": "schedule" } },
+    { "workflow": "refresh.yml", "cron": "7 12 * * *", "inputs": { "trigger": "schedule" } },
+    { "workflow": "refresh.yml", "cron": "37 13 * * 1", "inputs": { "trigger": "schedule" } },
+    { "workflow": "refresh.yml", "cron": "7 15 * * 1", "inputs": { "trigger": "schedule" } },
+    { "workflow": "refresh.yml", "cron": "7 15 * * 2", "inputs": { "trigger": "schedule" } },
+    { "workflow": "refresh.yml", "cron": "37 13 * * 3", "inputs": { "trigger": "schedule" } },
+    { "workflow": "refresh.yml", "cron": "7 15 * * 3", "inputs": { "trigger": "schedule" } },
+    { "workflow": "refresh.yml", "cron": "37 13 * * 4", "inputs": { "trigger": "schedule" } },
+    { "workflow": "refresh.yml", "cron": "7 15 * * 4", "inputs": { "trigger": "schedule" } },
+    { "workflow": "refresh.yml", "cron": "43 22 * * *", "inputs": { "trigger": "schedule" } },
+    { "workflow": "refresh.yml", "cron": "23 13 * * 2", "inputs": { "trigger": "schedule" } },
+    { "workflow": "refresh.yml", "cron": "23 17 * * 5", "inputs": { "trigger": "schedule" } },
+    { "workflow": "near-lock.yml", "cron": "*/30 * * * *" },
+    { "workflow": "score-checks.yml", "cron": "11,41 * * * *" },
+    { "workflow": "league-history.yml", "cron": "30 3 * * *" },
+    { "workflow": "games-export.yml", "cron": "47 5 * * *" },
+    { "workflow": "conference-recording.yml", "cron": "17 10 * * *" }
+  ]
+}

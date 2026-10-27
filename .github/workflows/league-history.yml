@@ -6,8 +6,7 @@ name: League history
 # Cron is UTC: 03:30 is 05:30 Madrid in summer, 04:30 in winter, after the night's late games are scored and before the
 # morning refresh. GitHub often starts scheduled runs late; a late run only means the games arrive later that day.
 on:
-  schedule:
-    - cron: "30 3 * * *"
+  # Timed by the outside clock, not GitHub (whose timer runs hours late): "30 3 * * *" UTC in clock/timetable.json.
   workflow_dispatch:
 
 permissions:

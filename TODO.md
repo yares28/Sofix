@@ -249,6 +249,23 @@ roadmap's batch 9.
   address once (it carries a secret, so it is never written in the repository or in chat). Needs from me: a route that accepts that
   secret (or reuse of `/api/refresh` with its token), a note in the manual, and checking a week of runs on the Audit's freshness. Roadmap 9.11.
 
+- **The outside clock, chosen 27 Oct: a Cloudflare Worker, not cron-job.org** (roadmap 9.11). Measured 20-26 Oct from GitHub's public
+  run list: every scheduled refresh still started 4 to 7 hours late (26 Oct: the 07:17 UTC run at 14:21, the 12:07 at 18:38) and near-lock
+  ran about 6 times a day instead of 48. Runs started through GitHub's API (the Refresh button, 9.8) start within seconds, so only the
+  clock moves; GitHub keeps running the jobs. Nothing in the repository causes the delay and GitHub cannot be set to keep time.
+  - **How.** `clock/`: one Worker on a one-minute Cloudflare timer (free plan: 5 timers per account, 10 ms of CPU per run; waiting on
+    the network is not counted). `clock/timetable.json` lists each workflow and its times; a time that passed in the last 10 minutes
+    with no run of that workflow created since is started through GitHub's API (`refresh.yml` with trigger `schedule`), so a missed
+    minute catches up and a run you started yourself counts. Near-lock keeps its own rule in `near_lock.py`; the clock starts it every
+    30 minutes.
+  - **No doubled runs.** Near-lock, score checks, league history, the games export and the conference recording lose their GitHub
+    timer (GitHub's late copies would double their Neon reads). The refresh keeps its timer as a backup for a dead clock; its gate skips
+    a GitHub-timed run when another refresh started in the last 3 hours, as it does for pushes. A test keeps the refresh's times in
+    `refresh.yml` and the timetable equal.
+  - **A dead clock is seen.** `node scripts/check.mjs --live` fails when no near-lock run started in the last 45 minutes.
+  - **From you, once:** a fine-grained GitHub token for yares28/Sofix only, with Actions read and write, typed into
+    `npx wrangler secret put GITHUB_TOKEN` (never into chat), and `npx wrangler login` in your browser. I deploy and check it.
+
 ### D · Pin GitHub's machine version before 19 Oct (item 7, approved 3 Oct) — *done 7 Oct*
 - **The issue.** The three workflow files say `ubuntu-latest`, which becomes Ubuntu 26 on 19 Oct, so the refresh could break that day.
 - **The fix.** `ubuntu-24.04` in `ci.yml`, `refresh.yml` and `near-lock.yml`. Free.

@@ -9,6 +9,7 @@ on:
   push:
     branches: [main]
     paths: ["backend/app/**", "backend/artifacts/**"]
+  # The outside clock (clock/timetable.json) starts these on time; GitHub's own copy below is the backup. A test keeps both equal.
   schedule:
     - cron: "17 7 * * *" #   ~09:15 Madrid (summer) / 08:15 (winter): overnight results
     - cron: "7 12 * * *" #   14:07 Madrid (summer) / 13:07 (winter): two hours before Sorare's 14:00 UTC cutoff
@@ -30,7 +31,7 @@ on:
       trigger:
         description: Who started this run
         type: choice
-        options: [cli, button, schedule] # `schedule` is for the near-lock workflow, which starts runs like the cron does
+        options: [cli, button, schedule] # `schedule` is for the outside clock and the near-lock workflow, which start runs like the cron does
         default: cli
 
 permissions:
@@ -43,7 +44,9 @@ concurrency:
 
 jobs:
   # A refresh reads ~28 MB from Neon, whose free plan sends 5 GB a month. 28 of 42 runs on 12-14 Oct 2026 came from pushes,
-  # so a push refreshes only when no run started in the last 3 hours; the schedule and the app's button are unchanged.
+  # so a push refreshes only when no run started in the last 3 hours. GitHub's own timer is the same: it starts runs hours late
+  # and the outside clock (clock/) has already started them on time, so its copy is only a backup for a dead clock. The clock's
+  # runs, the near-lock check's and the app's button come as workflow_dispatch and always run.
   gate:
     runs-on: ubuntu-24.04
     outputs:
@@ -53,10 +56,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [ "${{ github.event_name }}" != "push" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          event="${{ github.event_name }}"
+          if [ "$event" != "push" ] && [ "$event" != "schedule" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
           # A validated league-model release must replan owned cards as well as publishing its new player blocks.
-          promoted=$(gh api "repos/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.sha }}" --jq '[.files[] | select(.filename | test("^backend/artifacts/(league_xscore/(PL|BL1|FL1)|european_xscore/(CL|EL|CONF))[.]json$"))] | length')
-          if [ "$promoted" != "0" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ "$event" = "push" ]; then
+            promoted=$(gh api "repos/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.sha }}" --jq '[.files[] | select(.filename | test("^backend/artifacts/(league_xscore/(PL|BL1|FL1)|european_xscore/(CL|EL|CONF))[.]json$"))] | length')
+            if [ "$promoted" != "0" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          fi
           # A failed/cancelled run did not finish publication; a corrective backend push can retry.
           last=$(gh api "repos/${{ github.repository }}/actions/workflows/refresh.yml/runs?per_page=20" --jq '[.workflow_runs[] | select(.id != ${{ github.run_id }})][0].conclusion // ""')
           case "$last" in failure|cancelled|timed_out) echo "run=true" >> "$GITHUB_OUTPUT"; exit 0 ;; esac

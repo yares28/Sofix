@@ -2,8 +2,7 @@ name: Record prospective Conference evidence
 
 # Research only. No database, refresh dispatch, serving artifact or model promotion.
 on:
-  schedule:
-    - cron: "17 10 * * *"
+  # Timed by the outside clock, not GitHub (whose timer runs hours late): "17 10 * * *" UTC in clock/timetable.json.
   push:
     branches: [main]
     paths:

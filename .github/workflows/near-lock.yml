@@ -6,8 +6,7 @@ name: Refresh near a lock
 # refresh workflow. GitHub lets a workflow_dispatch made with the workflow's own token start another workflow. The repo is
 # public, so the minutes are free; the odds call stays throttled to 6 hours, so it costs no Odds API credits. Cron is UTC.
 on:
-  schedule:
-    - cron: "*/30 * * * *"
+  # Timed by the outside clock, not GitHub (whose timer runs hours late): "*/30 * * * *" UTC in clock/timetable.json.
   workflow_dispatch:
 
 permissions:

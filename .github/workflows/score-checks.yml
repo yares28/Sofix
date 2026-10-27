@@ -4,8 +4,7 @@ name: Check player scores
 # Reads only the owner's due games, batched by match; no football, odds or planner calls. Public repository minutes.
 # Rewards: observe the last relevant finish, wait one hour, read public receipts/cutoffs, then check corrections a day later.
 on:
-  schedule:
-    - cron: "11,41 * * * *"
+  # Timed by the outside clock, not GitHub (whose timer runs hours late): "11,41 * * * *" UTC in clock/timetable.json.
   workflow_dispatch:
 
 permissions:

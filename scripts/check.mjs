@@ -64,7 +64,9 @@ function local() {
   const touches = (dir) => !files || files.some((f) => f.startsWith(dir) && !f.endsWith(".md"));
   const backend = touches("backend/");
   let frontend = touches("frontend/") || touches("extension/"); // the extension's logic is unit-tested in frontend/lib
-  if (!backend && !frontend) return console.log("Nothing to check: no backend, frontend or extension change.");
+  const clock = touches("clock/") || touches(".github/workflows/"); // its tests also read the workflows' timers
+  if (!backend && !frontend && !clock) return console.log("Nothing to check: no backend, frontend, extension or clock change.");
+  if (clock) run("clock tests", 'node --test "clock/test/*.test.js"', ROOT);
 
   if (backend) {
     const py = fromMainFolder("backend/.venv/Scripts/python.exe");
@@ -196,6 +198,13 @@ async function live() {
     const state = refresh.status === "completed" ? refresh.conclusion : refresh.status;
     console.log(`${state === "failure" ? "FAIL" : "    "}  last refresh (${refresh.event}, ${ago(refresh.created_at)}): ${state}`);
     if (state === "failure") failed.push("refresh");
+  }
+  // The outside clock (clock/, Cloudflare) starts the near-lock check every 30 minutes and nothing else does on a timer.
+  const [tickRun] = (await github("actions/workflows/near-lock.yml/runs?per_page=1"))?.workflow_runs ?? [];
+  if (tickRun) {
+    const silent = Date.now() - Date.parse(tickRun.created_at) > 45 * 60_000;
+    console.log(`${silent ? "FAIL" : "ok  "}  clock: last near-lock check started ${ago(tickRun.created_at)}${silent ? " (Cloudflare's sofix-clock is not starting runs)" : ""}`);
+    if (silent) failed.push("clock");
   }
 
   await neonProjects();

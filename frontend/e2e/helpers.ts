@@ -22,7 +22,7 @@ export const sorare = (recordedSorare as unknown as ApiResponse<Sorare>).data!;
 /** Reset the mock API and make the app drop its cached data (the route the refresh job calls in production). */
 export async function resetBackend(
   request: APIRequestContext,
-  mode: "ok" | "malformed" | "no-sorare" | "no-news-laliga" | "no-news-national" | "expected" | "no-audit" | "audit-enough" | "missions-stale" | "conference-finished" = "ok",
+  mode: "ok" | "malformed" | "no-sorare" | "no-news-laliga" | "no-news-national" | "expected" | "no-audit" | "audit-enough" | "missions-stale" | "conference-finished" | "lineups-premier" = "ok",
 ) {
   await request.post(`${MOCK}/__test/reset`);
   if (mode === "malformed") await request.post(`${MOCK}/__test/mode?mode=malformed`);
@@ -39,6 +39,8 @@ export async function resetBackend(
   if (mode === "expected") await request.post(`${MOCK}/__test/mode?news=expected`);
   // The Conference's six league-phase rounds all played, with a tie only the opponents' results break.
   if (mode === "conference-finished") await request.post(`${MOCK}/__test/mode?conference=finished`);
+  // A Premier League game on the Lineups page, from Sorare's schedule only.
+  if (mode === "lineups-premier") await request.post(`${MOCK}/__test/mode?lineups=premier`);
   await request.post(`${APP}/api/revalidate`, { headers: { authorization: `Bearer ${E2E_REVALIDATE_SECRET}` } });
 }
 

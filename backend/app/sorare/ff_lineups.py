@@ -15,6 +15,7 @@ none of these knows has no place, and the page lists him apart.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -330,6 +331,67 @@ def _entries(
     return matches, found_art, mine
 
 
+# Competitions Futbol Fantasy does not cover for Sofix (plans/multi-competition-review.md D5): their games join the page from
+# Sorare's schedule, with no Futbol Fantasy part, so their announced elevens show under "Actual".
+SORARE_ONLY = {
+    "premier-league-gb-eng": "Premier League",
+    "bundesliga-de": "Bundesliga",
+    "ligue-1-fr": "Ligue 1",
+    "uefa-europa-conference-league": "Conference League",
+}
+
+
+def _bare_side(team: Mapping[str, Any]) -> dict[str, Any]:
+    """A side with nothing from Futbol Fantasy: its name and crest, no forecast eleven."""
+    return {
+        "name": team.get("shortName") or team.get("name") or "",
+        "club": None,
+        "ffId": None,
+        "crest": team.get("pictureUrl"),
+        "coach": None,
+        "rotations": None,
+        "predictability": None,
+        "season": None,
+        "changedAt": None,
+        "published": False,
+        "squad": None,
+        "formation": "",
+        "rows": [],
+        "alternatives": [],
+        "absent": [],
+        "unlinked": [],
+    }
+
+
+def sorare_matches(games: Iterable[Mapping[str, Any]], now: datetime) -> list[dict[str, Any]]:
+    """The week's games of `SORARE_ONLY` competitions, once each, as page matches tied to Sorare's game (`sorare.id`). Their
+    id is a number of their own (above any Futbol Fantasy id) so the page addresses them like the others."""
+    out: dict[str, dict[str, Any]] = {}
+    for game in games:
+        slug = (game.get("competition") or {}).get("slug")
+        if slug not in SORARE_ONLY or not game.get("id") or not game.get("date") or game["id"] in out:
+            continue
+        kickoff = datetime.fromisoformat(str(game["date"]).replace("Z", "+00:00"))
+        if kickoff <= now - STAYS:
+            continue
+        number = 1_000_000_000 + int(hashlib.sha256(str(game["id"]).encode()).hexdigest()[:12], 16) % 1_000_000_000
+        out[game["id"]] = {
+            "id": number,
+            "url": "",
+            "ff": False,
+            "competition": slug,
+            "competitionName": SORARE_ONLY[slug],
+            "round": None,
+            "kickoff": kickoff.isoformat(),
+            "score": None,
+            "readAt": now.isoformat(),
+            "home": _bare_side(game.get("homeTeam") or {}),
+            "away": _bare_side(game.get("awayTeam") or {}),
+            "sorare": {"id": game["id"], "players": {}},
+        }
+    return sorted(out.values(), key=lambda m: (m["kickoff"], m["id"]))
+
+
 DAY_PREFIX = (
     "lineups_day:"  # one row per day of kickoffs: what the page shows of a week once the site has dropped its matches
 )
@@ -343,6 +405,7 @@ def kept_days(
     now: datetime,
     art: Art | None = None,
     sorare: SorareLinks | None = None,
+    others: Sequence[Mapping[str, Any]] = (),
 ) -> dict[str, dict[str, Any]]:
     """Every match held, by the day of its kickoff (UTC), so a week can be shown after the site has moved on (the owner, 13 Oct
     2026: "They should be saved"). `matches` are the ones the page still shows, written over what is kept; `old` are played
@@ -362,6 +425,11 @@ def kept_days(
             "art": found_art,
             "cards": mine,
         }
+    for match in others:  # the games from Sorare's schedule (D5), kept like the rest
+        kept = out.setdefault(
+            match["kickoff"][:10], {"version": VERSION, "matches": {}, "old": {}, "art": {}, "cards": {}}
+        )
+        kept["matches"][str(match["id"])] = dict(match)
     return out
 
 

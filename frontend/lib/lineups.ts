@@ -83,6 +83,8 @@ export type LineupMatch = {
   readAt: string;
   home: LineupSide;
   away: LineupSide;
+  /** False for a game Futbol Fantasy does not cover (Premier League, Bundesliga, Ligue 1, Conference, D5): Sorare's game only. */
+  ff?: boolean;
   /** The Sorare game this match is and who is who in it (Sorare slug to his id here), when the job could tie them: what Sorare's own number is shown through. */
   sorare?: { id: string; players: Record<string, string> };
 };
@@ -479,7 +481,7 @@ export function freshness(data: LineupsData, now: Date): Freshness {
 
 /** Teams whose lineup the site has published, of all the teams playing. */
 export function teamsRead(matches: LineupMatch[]): { published: number; teams: number } {
-  const sides = matches.flatMap((match) => [match.home, match.away]);
+  const sides = matches.filter((match) => match.ff !== false).flatMap((match) => [match.home, match.away]);
   return { published: sides.filter((side) => side.published).length, teams: sides.length };
 }
 
@@ -566,7 +568,11 @@ export function statusLine(predictability: Level | null, season: number | null):
 // ------------------------------------------------------------------------------------------------------ the crests
 // Club crests are hot-linked (personal use, no licence stated): the ones the board already shows, and Futbol Fantasy's for the
 // clubs the board does not keep (a Champions League opponent). Both hosts are in the Content-Security-Policy.
-const CREST_ORIGINS = ["https://crests.football-data.org/", "https://static.futbolfantasy.com/uploads/images/equipos/"];
+const CREST_ORIGINS = [
+  "https://crests.football-data.org/",
+  "https://static.futbolfantasy.com/uploads/images/equipos/",
+  "https://assets.sorare.com/team/", // Sorare's own, for the games Futbol Fantasy does not cover
+];
 
 /** The address to draw a crest from, or null when it is not one of the two hosts the page may load from. */
 export function crestSource(url: string | null | undefined): string | null {

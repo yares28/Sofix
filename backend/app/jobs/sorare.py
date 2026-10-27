@@ -291,6 +291,20 @@ def publish_lineups(
         memory = ff_lineups.Memory(ff_lineups.remember(memory.positions, feed, lineups), memory.squads)
         links = remembered_ties(db, sorare_links(snapshot, lineups, league), at, write=write)
         page = ff_lineups.payload(feed, lineups, cards, memory.positions, at, art, links)
+        # The week's PL, Bundesliga, Ligue 1 and Conference games, from the squads read this run (D5): official elevens only.
+        others = ff_lineups.sorare_matches(
+            (
+                game
+                for index in (snapshot.get("foreign") or {}).values()
+                for rows in (index.get("clubs") or {}).values()
+                for row in rows
+                for game in ((row.get("player") or {}).get("plan") or [])
+            ),
+            at,
+        )
+        page["matches"] = sorted(
+            [*page["matches"], *others], key=lambda m: (m["kickoff"] is None, m["kickoff"] or "", m["id"])
+        )
         if write:
             ff_lineups.save_memory(db, memory, at)
             put(db, ff_lineups.LINEUPS_KEY, page, at)
@@ -300,7 +314,7 @@ def publish_lineups(
                 failed,
                 "lineups kept by day",
                 lambda: ff_lineups.save_days(
-                    db, ff_lineups.kept_days(feed, lineups, cards, memory.positions, at, art, links), at
+                    db, ff_lineups.kept_days(feed, lineups, cards, memory.positions, at, art, links, others), at
                 ),
                 0,
             )

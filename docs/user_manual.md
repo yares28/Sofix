@@ -62,6 +62,8 @@ forecasts to points already won. Chances simulate independent results and use ex
 for simulated ties. Once every league-phase game is played (eight rounds, six in the Conference), ties still level go
 to the opponents' points, goal difference and goals. Actual unresolved discipline/coefficient ties remain shared.
 
+The Lineups page also lists the week's Premier League, Bundesliga, Ligue 1 and Conference games, from Sorare's schedule: Futbol Fantasy does not cover them, so they open on Actual, the eleven Sorare announces, with nothing from Futbol Fantasy.
+
 CL and EL use their own validated FDR-based player models. A mixed week selects the model of each actual
 match, and scores each game on its own: a game in a league Sofix does not model (Serie A, Scotland, Belgium…) takes
 Sorare's number when Sorare's projection is for that game, else his recent average, and the other games keep Sofix's.

@@ -555,6 +555,15 @@ P1 and follow its week path and client clock.
 - **Fix:** add `premier-league-gb-eng`, `bundesliga-de`, `ligue-1-fr`, `uefa-europa-conference-league` to the index map.
 - **Cost:** at most one Sorare request per competition per hour, only when Lineups is opened.
 - **Done when:** official elevens show for a game in each, including one with no job tie.
+- **Result (28 Oct, local; owner: "if they don't have FF then put nothing in FF"):** the Lineups page listed only Futbol
+  Fantasy's matches, so the index map alone would have changed nothing. Now each refresh adds the week's Premier League,
+  Bundesliga, Ligue 1 and Conference games from the squads it reads anyway (`ff_lineups.sorare_matches`): one entry per game,
+  tied to Sorare's game (`sorare.id`), `ff: false`, no Futbol Fantasy part, Sorare's crest; they are kept by day like the
+  others, so past weeks on Scores keep them. The page opens such a game on "Actual" (the announced eleven, read on Sorare),
+  offers no Futbol Fantasy source and no Futbol Fantasy link, and leaves it out of the "teams published" count. No new
+  request: the official eleven is the page's existing per-match read. Tests: backend (which games join, once each, a number
+  of their own, kept by day); `lineups.e2e.ts` (a Premier League game opens on Actual with nothing from Futbol Fantasy).
+  The real look waits for a refresh after the push (the local copy's squads hold no such game this midweek).
 
 ### D6 · No season-start prediction for the new leagues
 - **Fix:** freeze one for each league at the start of next season; save today's as "made in October", dated. **(Was A4:)** add the

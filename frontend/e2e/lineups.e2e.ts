@@ -640,3 +640,20 @@ test("Scores draws the eleven that played with each score, the bench as cards an
   await expect(page.locator(".lu-row:not(.lu-others) .lu-pct").first()).toHaveText("55");
   await expect(page.getByRole("navigation", { name: /^Matches of/ }).getByRole("link").first()).toHaveAttribute("href", /^\/scores\?m=/);
 });
+
+test("a game Futbol Fantasy does not cover opens on its announced eleven, with nothing from Futbol Fantasy", async ({ page, request }) => {
+  // plans/multi-competition-review.md D5: Premier League, Bundesliga, Ligue 1 and Conference games come from Sorare's schedule.
+  await resetBackend(request, "lineups-premier");
+  const eleven = { state: "announced", formation: "4-3-3", rows: [{ line: "GK", players: [{ id: "so:raya", name: "David Raya", p: null, actual: "starter" }] }], bench: [] };
+  await page.route("**/api/lineups/actual?match=1234567890*", (route) =>
+    route.fulfill({ json: { state: "ready", data: { game: "Game:e2e-premier", readAt: new Date().toISOString(), home: eleven, away: { state: "unannounced", rows: [], bench: [], formation: "" } } } }),
+  );
+  await page.goto("/lineups?m=1234567890");
+  await expect(page.locator(".lu-match")).toHaveAttribute("aria-label", "Arsenal against Chelsea");
+  await expect(page.getByRole("radio", { name: "Actual", exact: true })).toBeChecked();
+  await expect(page.getByRole("radio", { name: /Futbol Fantasy/ })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Open this match on Futbol Fantasy" })).toHaveCount(0);
+  await expect(page.locator(".lu-card")).toHaveCount(1);
+  await expect(page.getByText("Starting XI not announced on Sorare.")).toBeVisible();
+  await resetBackend(request);
+});

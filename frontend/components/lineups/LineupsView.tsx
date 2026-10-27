@@ -87,9 +87,7 @@ const READ_MESSAGES = {
 };
 
 export default function LineupsView({ scores = false, data, chances, sorareGames, sorareKept, facts, sections, initial, now, clubs, flash, gone }: Props) {
-  const [source, setSource] = useState<StartSource | "actual">(scores ? "actual" : "futbolfantasy");
-  // The announced eleven is drawn: always on the Scores page, and under "Actual" on Lineups.
-  const real = scores || source === "actual";
+  const [chosen, setSource] = useState<StartSource | "actual">(scores ? "actual" : "futbolfantasy");
   const base = usePathname();
   const [actuals, setActuals] = useState<Record<number, ActualRead>>({});
   const actualChecked = useRef(new Map<number, number>());
@@ -103,6 +101,11 @@ export default function LineupsView({ scores = false, data, chances, sorareGames
   const [round, setRound] = useState<{ state: "reading" | "done" | "failed"; note: string } | null>(null);
   const asked = useSearchParams().get("m");
   const selected = matchAsked(data.matches, asked, initial);
+  // A game Futbol Fantasy does not cover has nothing of it: it opens on the announced eleven (D5).
+  const noFF = selected.ff === false;
+  const source = noFF && chosen === "futbolfantasy" ? "actual" : chosen;
+  // The announced eleven is drawn: always on the Scores page, and under "Actual" on Lineups.
+  const real = scores || source === "actual";
   const readActual = useCallback(async () => {
     const id=selected.id;
     if(actualFlight.current.has(id)||Date.now()-(actualChecked.current.get(id)??0)<60_000)return;
@@ -248,7 +251,7 @@ export default function LineupsView({ scores = false, data, chances, sorareGames
         <div className="lu-controls">
           <fieldset className="lu-chance-sources">
             <legend className="visually-hidden">Lineup source</legend>
-            {(Object.entries(scores?SCORE_VIEWS:{...CHANCE_SOURCES,actual:"Actual"}) as [StartSource|"actual", string][]).map(([key, name]) => (
+            {(Object.entries(scores?SCORE_VIEWS:{...CHANCE_SOURCES,actual:"Actual"}) as [StartSource|"actual", string][]).filter(([key]) => !(noFF && key === "futbolfantasy")).map(([key, name]) => (
               <label key={key}>
                 <input type="radio" name="lu-source" value={key} checked={source === key} onChange={() => setSource(key)} />
                 <span>{name}</span>

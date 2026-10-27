@@ -510,7 +510,12 @@ const server = createServer((req, res) => {
   }
   if (req.method === "GET" && url.pathname === "/api/lineups") {
     if (state.sorare === "missing") return send(res, 200, { success: false, data: null, error: "Futbol Fantasy's lineups have not been read yet." });
-    return send(res, 200, lineupsPayload);
+    if (state.lineups !== "premier") return send(res, 200, lineupsPayload);
+    // A Premier League game as the job adds it from Sorare's schedule (D5): no Futbol Fantasy part, tied to Sorare's game.
+    const first = lineupsPayload.data.matches[0];
+    const bare = (name) => ({ name, club: null, ffId: null, crest: "https://assets.sorare.com/team/e2e/picture/low_res.png", coach: null, rotations: null, predictability: null, season: null, changedAt: null, published: false, squad: null, formation: "", rows: [], alternatives: [], absent: [], unlinked: [] });
+    const premier = { id: 1234567890, url: "", ff: false, competition: "premier-league-gb-eng", competitionName: "Premier League", round: null, kickoff: first.kickoff, score: null, readAt: first.readAt, home: bare("Arsenal"), away: bare("Chelsea"), sorare: { id: "Game:e2e-premier", players: {} } };
+    return send(res, 200, { ...lineupsPayload, data: { ...lineupsPayload.data, matches: [...lineupsPayload.data.matches, premier] } });
   }
 
   if (req.method === "GET" && url.pathname === "/api/reward-bars") {
@@ -628,6 +633,7 @@ const server = createServer((req, res) => {
     state.correction = url.searchParams.get("correction");
     state.audit = url.searchParams.get("audit") ?? "ok"; // "missing": the page was never written; "enough": the record has enough games for figures
     state.conference = url.searchParams.get("conference"); // "finished": the Conference league phase all played, with a tie
+    state.lineups = url.searchParams.get("lineups"); // "premier": a Premier League game joins the Lineups page from Sorare (D5)
     state.run = finishedRun("cli");
     return send(res, 200, { ok: true, mode: state.mode, sorare: state.sorare, news: state.news, audit: state.audit });
   }

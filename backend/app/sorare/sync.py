@@ -932,6 +932,7 @@ def snapshot(
     foreign_codes: tuple[str, ...] = (),
     foreign_indexes: dict[str, Any] | None = None,
     foreign_clubs: dict[str, list[str]] | None = None,
+    quick: bool = False,
 ) -> dict[str, Any]:
     """One run's worth of Sorare: the gameweek to plan, the last one played, and everything about both.
 
@@ -1080,18 +1081,22 @@ def snapshot(
         from app.sorare import foreign_coverage
 
         squads: dict[str, list[dict[str, Any]]] = {}
-        foreign = {
-            code: foreign_coverage.collect_index(
+
+        def index_of(code: str) -> dict[str, Any]:
+            kept: dict[str, Any] = (foreign_indexes or {}).get(code) or {}
+            if quick and foreign_coverage.reusable(kept, plan_gw["slug"], now):
+                return kept
+            return foreign_coverage.collect_index(
                 client,
                 code,
                 plan_gw["slug"],
                 now,
-                (foreign_indexes or {}).get(code),
+                kept or None,
                 clubs=(foreign_clubs or {}).get(code),
                 squads=squads,
             )
-            for code in foreign_codes
-        }
+
+        foreign = {code: index_of(code) for code in foreign_codes}
         lap("foreign indexes")
     # Sorare's projection game by game for the planned week, yours and every LaLiga player's (the record keeps both numbers)
     projections = game_projections(

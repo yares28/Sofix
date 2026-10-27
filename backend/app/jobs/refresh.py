@@ -137,6 +137,11 @@ def main(
     parser.add_argument("--trigger", choices=TRIGGERS, default="cli")
     parser.add_argument("--skip-migrations", action="store_true", help="only verify the schema is current")
     parser.add_argument("--run-id", type=int, help="adopt a running refresh_runs row created by the API")
+    parser.add_argument(
+        "--quick",
+        action="store_true",
+        help="near a lock: start chances, the score record and the plans only (plans/multi-competition-review.md C1)",
+    )
     args = parser.parse_args(argv)
 
     configure_logging()
@@ -173,8 +178,10 @@ def main(
             list(steps)
             if steps is not None
             else [
-                *default_steps(),
-                ("sorare", lambda: sorare.run(db)),
+                # A quick run leaves the football steps to the scheduled refreshes: within a lock's last hours its fixtures,
+                # odds (six-hourly anyway) and boards do not move, while start chances and the plans do.
+                *([] if args.quick else default_steps()),
+                ("sorare", lambda: sorare.run(db, quick=args.quick)),
                 ("publish", lambda: publish.publish_all(db)),
             ]
         )

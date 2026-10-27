@@ -140,3 +140,13 @@ def test_the_workflow_files_are_what_the_script_assumes() -> None:
     assert "workflow_dispatch:" in refresh and "python3 .github/scripts/near_lock.py" in near_lock
     assert "actions: write" in near_lock and '"*/30 * * * *"' in near_lock
     assert "WORKFLOW = " in SCRIPT.read_text() and "refresh.yml" in SCRIPT.read_text()
+
+
+def test_the_near_lock_run_is_a_quick_one(near, monkeypatch):
+    # plans/multi-competition-review.md C1: start chances, the score record and the plans only.
+    sent = []
+    monkeypatch.setattr(near, "_call", lambda url, headers, body=None: sent.append(body))
+    near.dispatch("owner/sofix", "t", "main")
+    assert sent == [{"ref": "main", "inputs": {"trigger": "schedule", "quick": "true"}}]
+    workflow = (SCRIPT.parents[1] / "workflows" / "refresh.yml").read_text(encoding="utf-8")
+    assert "quick:" in workflow and "$RUN_QUICK" in workflow

@@ -85,7 +85,7 @@ def dispatch(repo: str, token: str, ref: str) -> None:
     _call(
         f"{GITHUB}/repos/{repo}/actions/workflows/{WORKFLOW}/dispatches",
         {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
-        {"ref": ref, "inputs": {"trigger": "schedule"}},
+        {"ref": ref, "inputs": {"trigger": "schedule", "quick": "true"}},  # a quick run (multi-competition-review C1)
     )
 
 

@@ -216,6 +216,7 @@ async function live() {
     if (silent) failed.push("clock");
   }
 
+  refreshTimes();
   await neonProjects();
   await vercelUsage();
 
@@ -225,6 +226,28 @@ async function live() {
     console.log("\nTest it:");
     for (const page of changed) console.log(`  ${LOCAL}${page}\n  ${new URL(page, APP_URL)}`);
   }
+}
+
+/**
+ * How long the last refreshes took, from `refresh_runs` on R2 (plans/multi-competition-review.md C1): a normal run should stay
+ * under 10 minutes and a quick near-lock run (no football steps) under 4. Read with the same R2 key as the Neon line.
+ */
+function refreshTimes() {
+  const frontend = dirname(fromMainFolder("frontend/package.json"));
+  const read = spawnSync("node --experimental-strip-types --no-warnings scripts/blocks.mjs --get refresh_runs", { cwd: frontend, shell: true, encoding: "utf8" });
+  let block = null;
+  try {
+    block = JSON.parse(read.stdout);
+  } catch {
+    return console.log("      refresh times: not readable from R2");
+  }
+  const minutes = (run) => (run.finished_at ? (Date.parse(run.finished_at) - Date.parse(run.started_at)) / 60_000 : null);
+  const runs = (block?.payload?.runs ?? []).filter((run) => minutes(run) !== null);
+  if (!runs.length) return console.log("      refresh times: no finished run on R2");
+  const details = block.payload.latest?.details ?? {};
+  const kind = details.predict ? "full" : "quick";
+  const slow = Object.entries(details).sort((a, b) => (b[1].seconds ?? 0) - (a[1].seconds ?? 0)).slice(0, 3);
+  console.log(`      refresh times (newest first, min): ${runs.map((run) => minutes(run).toFixed(1)).join(", ")}; latest was ${kind}, slowest steps ${slow.map(([name, step]) => `${name} ${Math.round(step.seconds ?? 0)} s`).join(", ")}`);
 }
 
 // The free Neon projects that take turns (AGENTS.md "Neon projects").

@@ -111,3 +111,28 @@ def test_summarize_makes_results_json_ready():
         "unknown_teams": ["a", "b"],
     }
     assert refresh.summarize(None) is None
+
+
+def test_a_quick_run_near_a_lock_runs_only_the_sorare_step_and_the_publish(session_factory, monkeypatch):
+    # plans/multi-competition-review.md C1: the near-lock dispatch is a quick run.
+    ran = []
+    monkeypatch.setattr(refresh, "default_steps", lambda: [("sync", lambda: ran.append("sync"))])
+    monkeypatch.setattr(refresh.sorare, "run", lambda db, quick=False: ran.append(("sorare", quick)) or {})
+    monkeypatch.setattr(refresh.publish, "publish_all", lambda db: ran.append("publish") or {})
+    monkeypatch.setattr(refresh.publish, "notify_app", lambda *a: "skipped")
+    assert refresh.main(["--quick"], session_factory, None, no_migrations) == 0
+    assert ran == [("sorare", True), "publish"]
+    ran.clear()
+    assert refresh.main([], session_factory, None, no_migrations) == 0
+    assert ran == ["sync", ("sorare", False), "publish"]
+
+
+def test_a_quick_run_keeps_a_same_week_foreign_index_read_in_the_last_six_hours():
+    from app.sorare.foreign_coverage import reusable
+
+    now = datetime(2026, 10, 30, 12, tzinfo=UTC)
+    index = {"week": "gw-1", "complete": True, "at": (now - timedelta(hours=5)).isoformat(), "clubs": {}}
+    assert reusable(index, "gw-1", now)
+    assert not reusable({**index, "at": (now - timedelta(hours=7)).isoformat()}, "gw-1", now)
+    assert not reusable(index, "gw-2", now) and not reusable({**index, "complete": False}, "gw-1", now)
+    assert not reusable({}, "gw-1", now)

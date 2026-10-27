@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -34,6 +34,21 @@ def rows(index: dict[str, Any]) -> list[dict[str, Any]]:
             if ((row.get("player") or {}).get("activeClub") or {}).get("slug") == club:
                 found[row["slug"]] = row
     return sorted(found.values(), key=lambda p: p["slug"])
+
+
+QUICK_REUSE = timedelta(hours=6)
+
+
+def reusable(index: dict[str, Any] | None, fixture: str, now: datetime) -> bool:
+    """A complete index of this same week read in the last six hours: a near-lock quick run keeps it instead of reading every
+    squad again (plans/multi-competition-review.md C1). Start chances and plans are what matter in the last hours."""
+    if not index or index.get("week") != fixture or index.get("complete") is not True:
+        return False
+    try:
+        at = datetime.fromisoformat(str(index.get("at")))
+    except ValueError:
+        return False
+    return timedelta(0) <= now - at <= QUICK_REUSE
 
 
 def collect_index(

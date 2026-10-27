@@ -568,6 +568,15 @@ Qualifying rounds, the Bundesliga relegation play-off and domestic cups are rese
 - **Cost:** saves GitHub minutes, Neon writes and page rebuilds near every lock.
 - **Must not break:** the lock-time freeze; Futbol Fantasy's pre-lock reads; the refresh lock; the clock.
 - **Done when:** `--live` shows durations; a normal refresh under 10 minutes, a near-lock run under 4, over a week.
+- **Result (27 Oct, local; the timing half is open):** `check.mjs --live` prints the last eight runs' minutes and the latest
+  run's kind and three slowest steps from `refresh_runs` on R2 (on 27 Oct: 10.4–14.4 min; sorare 587 s, predict 47 s,
+  publish 23 s). The near-lock dispatch now asks for a quick run (`quick: true` → `refresh --quick`): no sync, odds,
+  predict or board steps (~90 s), and the Sorare step keeps each foreign squad index of the same week read in the last six
+  hours instead of reading ~144 squads again (~96 s). The lock-time freeze, Futbol Fantasy's reads, the refresh lock and the
+  clock are untouched (the same step, the same run row). Boards: B3 already makes an unchanged board free to publish; their
+  fitting is ~26 s a run, so skipping it on unchanged inputs was left out. **Not met yet:** the Sorare step alone is ~8–10
+  minutes (its sync ~5 min, its writes ~3 min, Futbol Fantasy ~1.5 min), so neither target holds until those shrink; the
+  durations line shows it once the change runs. Tests: the quick step list, the reuse rule, the dispatch's input.
 
 ### C2 · The live app depends on research code
 - **Checked:** 8 live files import from `research/` (the European modules and `foreign_*`); the domestic path imports nothing.

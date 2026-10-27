@@ -385,7 +385,12 @@ def foreign_inputs(kept: dict[str, Any], now: datetime) -> tuple[dict[str, Any],
 
 
 def run(
-    db: Session, user: str | None = None, runs: int = 30, dry_run: bool = False, standalone: bool = False
+    db: Session,
+    user: str | None = None,
+    runs: int = 30,
+    dry_run: bool = False,
+    standalone: bool = False,
+    quick: bool = False,
 ) -> dict[str, Any]:
     if not settings.sorare_api_key:
         logger.info("sorare: no API key, step skipped")
@@ -478,6 +483,7 @@ def run(
                 "foreign_codes": tuple(foreign_models),
                 "foreign_indexes": {c: foreign_kept.get(f"league_squads:{c}") or {} for c in foreign_models},
                 "foreign_clubs": foreign_clubs,
+                "quick": quick,  # near a lock: keep a same-week index read in the last six hours (C1)
             }
             if foreign_models
             else {}

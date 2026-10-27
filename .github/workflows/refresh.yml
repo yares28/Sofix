@@ -33,6 +33,10 @@ on:
         type: choice
         options: [cli, button, schedule] # `schedule` is for the outside clock and the near-lock workflow, which start runs like the cron does
         default: cli
+      quick:
+        description: Near a lock, start chances, the score record and the plans only (the near-lock workflow sets it)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -103,6 +107,7 @@ jobs:
       REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
       VERCEL_BYPASS_SECRET: ${{ secrets.VERCEL_BYPASS_SECRET }}
       RUN_TRIGGER: ${{ github.event_name == 'schedule' && 'schedule' || inputs.trigger || 'cli' }}
+      RUN_QUICK: ${{ inputs.quick == true && '--quick' || '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -148,7 +153,7 @@ jobs:
         run: |
           set +e
           case "$RUN_TRIGGER" in schedule|button|cli) ;; *) RUN_TRIGGER=cli ;; esac
-          python -m app.jobs.refresh --trigger "$RUN_TRIGGER" --skip-migrations
+          python -m app.jobs.refresh --trigger "$RUN_TRIGGER" --skip-migrations $RUN_QUICK
           code=$?
           if [ "$code" -eq 2 ]; then
             echo "::notice::Another refresh was already running; skipped."

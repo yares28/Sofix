@@ -74,7 +74,7 @@ def test_mixed_domestic_european_week_selects_each_game_model_and_scores_each_ga
     def model(label):
         def outcome(*args):
             seen.append(label)
-            return SimpleNamespace(start=50)
+            return SimpleNamespace(start=50, why=())
 
         return SimpleNamespace(outfield={"DEF": SimpleNamespace(outcome=outcome)}, keeper=None, subs={})
 
@@ -107,7 +107,9 @@ def test_a_champions_league_game_keeps_sofix_next_to_a_serie_a_game():
     european["teams"][0]["sorare_slug"], european["teams"][1]["sorare_slug"] = "inter", "arsenal"
     cl = {**game, "id": "cl", "teamSlug": "inter", "opponentSlug": "arsenal", "competition": "uefa-champions-league"}
     serie_a = {**game, "id": "sa", "kickoff": "2026-10-27T19:45:00Z", "competition": "serie-a-it"}
-    model = SimpleNamespace(outfield={"DEF": SimpleNamespace(outcome=lambda *a: SimpleNamespace(start=61))}, subs={})
+    model = SimpleNamespace(
+        outfield={"DEF": SimpleNamespace(outcome=lambda *a: SimpleNamespace(start=61, why=()))}, subs={}
+    )
     score = f.scores_for({"CL": model}, {"CL": european}, lambda *args: Made((), None), european_games={})
     inter = {"position": "Defender", "activeClub": {"domesticLeague": {"slug": "serie-a-it"}}}
     made = score(inter, [serie_a, cl], 70, [])
@@ -124,7 +126,9 @@ def test_european_history_requires_explicit_complete_context_and_filters_qualifi
     game.update(competition="uefa-champions-league", teamSlug="arsenal", opponentSlug="chelsea")
     seen = []
     bundle = SimpleNamespace(
-        outfield={"DEF": SimpleNamespace(outcome=lambda n, h, d, m, p: seen.append(m) or SimpleNamespace(start=m))},
+        outfield={
+            "DEF": SimpleNamespace(outcome=lambda n, h, d, m, p: seen.append(m) or SimpleNamespace(start=m, why=()))
+        },
         subs={},
     )
     fallback = lambda *args: Made((), None)
@@ -157,7 +161,7 @@ def test_foreign_history_is_league_only_before_cutoff_and_never_uses_laliga_sub_
 
     def outcome(numbers, home, own_dec, own_score, projection):
         seen.append((home, own_score, projection))
-        return SimpleNamespace(start=own_score)
+        return SimpleNamespace(start=own_score, why=())
 
     bundle = SimpleNamespace(outfield={"DEF": SimpleNamespace(outcome=outcome)}, keeper=None, subs={})
     fallback = lambda *args: Made((), "Spanish shape")

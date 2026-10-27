@@ -218,7 +218,7 @@ async function live() {
 }
 
 // The free Neon projects that take turns (AGENTS.md "Neon projects").
-const NEON_NAMES = { "ep-cold-cloud-b9akf8sh": "Sofix", "ep-jolly-sun-b1a0xc1l": "FDR", "ep-morning-paper-baxx0rh5": "Sofix B", "ep-mute-wind-bao6tz8d": "Sofix C" };
+const NEON_NAMES = { "ep-cold-cloud-b9akf8sh": "Sofix", "ep-jolly-sun-b1a0xc1l": "FDR", "ep-morning-paper-baxx0rh5": "Sofix B", "ep-mute-wind-bao6tz8d": "Sofix C", "ep-withered-bread-baipuaae": "Sofix D" };
 
 /**
  * One line: which project is live and which are out of quota, as the last job saw them (`neon_status`, which

@@ -210,7 +210,7 @@ they show. So, in every page:
 ## Data/schema/cache
 
 - `models.py` → autogenerate → review → Neon dev migrate/test → manual owner migrate on **every** production project
-  (Sofix, FDR, Sofix B, Sofix C: "Neon projects" below; a project left behind blocks the automatic move). Never `create_all` Neon.
+  (Sofix, FDR, Sofix B, Sofix C, Sofix D: "Neon projects" below; a project left behind blocks the automatic move). Never `create_all` Neon.
 - Unattended jobs use `--skip-migrations` and DML-only app role.
 - Replace current rows/read models; append only intentional run/replay history.
 - One refresh at a time; ten-minute button cooldown.
@@ -264,6 +264,7 @@ refuses every query with HTTP 402 "exceeded the quota" until the 1st.
 | **FDR** | `sparkling-bonus-46807220` | `ep-jolly-sun-b1a0xc1l` (`c-5`) | first URL of GitHub `POSTGRES_URL_SPARE` / Vercel `DATABASE_URL_SPARE` |
 | **Sofix B** | `square-poetry-39931505` | `ep-morning-paper-baxx0rh5` (`c-8`) | second URL of the same two spare settings; owner and app login in `.env.sofix-b-neon` |
 | **Sofix C** | `spring-brook-75590503` | `ep-mute-wind-bao6tz8d` (`c-8`) | third URL of the spare settings (19 Oct 2026); owner and app login in `.env.sofix-c-neon` |
+| **Sofix D** | `lingering-lab-90369597` | `ep-withered-bread-baipuaae` (`c-8`) | fourth URL of the spare settings (27 Oct 2026); owner and app login in `.env.sofix-d-neon` |
 | **Trakzi** | `orange-waterfall-16223480` | | Another app of the owner's: never touch it from this repo |
 
 **Rules for every session** (the first look is `node scripts/check.mjs --live`: its "Neon" lines say which project is live,

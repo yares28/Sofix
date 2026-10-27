@@ -38,6 +38,7 @@ export default async function Players({ searchParams }: { searchParams: SearchPa
       <SiteNav meta={meta} system={system} week={week} />
       <main className="s5-main">
         <CompetitionPicker competition={competition} week={week.current?.id} />
+        {foreign?.note && <p className="footnote" role="note">{foreign.note}</p>}
         {ready ? (
           <PlayersView data={{ collection: data.collection, market }} nextId={data.nextId} projectionsAt={nextWeek(data)?.projectionsAt ?? null} leagueLabel={COMPETITIONS[competition]} now={new Date().toISOString()} weekId={week.current?.id} forecastWeek={week.current?.gw ?? undefined} />
         ) : (

@@ -17,6 +17,7 @@ from typing import Any
 
 import numpy as np
 
+from app.services.european_fdr import CONFERENCE_NOTE
 from app.services.scoring import difficulty_label, difficulty_score, label_bucket
 from app.services.timeutil import Laps
 from app.sorare import expected, pro, projection, rules, strategies, xg
@@ -1616,6 +1617,7 @@ def build_payload(
                 "generatedAt": snapshot["fetchedAt"],
                 "complete": (snapshot.get("foreign") or {})[code].get("complete", False),
                 "modelVersion": (snapshot.get("scoreModels") or {}).get(code),
+                "note": CONFERENCE_NOTE if code == "CONF" else None,
                 "market": market_out(rows, league_forecasts, league_games),
             }
             for code, rows in foreign_rows.items()

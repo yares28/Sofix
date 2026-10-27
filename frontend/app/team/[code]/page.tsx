@@ -8,7 +8,7 @@ import TeamSeason from "../../../components/TeamSeason";
 import { loadGrid } from "../../../lib/api";
 import { loadSystem } from "../../../lib/system";
 import { findTeam } from "../../../lib/team";
-import { competitionOf, leagueName } from "../../../lib/competitions";
+import { boardNote, competitionOf, leagueName } from "../../../lib/competitions";
 
 type Params = Promise<{ code: string }>;
 type Search = Promise<Record<string, string | string[] | undefined>>;
@@ -53,7 +53,7 @@ export default async function TeamPage({ params, searchParams }: { params: Param
             <h1>{team.name}</h1>
           </div>
         </section>
-        {grid.competition === "CONF" && <p role="note">Conference FDR and xScore are provisional. The extra benefit of opponent information remains uncertain.</p>}
+        {boardNote(meta) && <p className="footnote" role="note">{boardNote(meta)}</p>}
         <TeamSeason grid={grid} team={team} />
       </main>
     </>

@@ -36,7 +36,7 @@ export default function CompetitionPicker({ competition, week, through, icons = 
       {Object.entries(COMPETITIONS).filter(([value]) => value !== "ALL" || path === "/difficulty").map(([value, name]) => <option key={value} value={value}>{name}</option>)}
     </select>
     {pending && <span className="visually-hidden" role="status">Loading {COMPETITIONS[selected]}…</span>}
-  </div>{competition === "CONF" && <p role="note">Conference FDR and xScore are provisional. Historical results are encouraging; the extra benefit of opponent information remains uncertain.</p>}</>;
+  </div></>;
 }
 
 export function CompetitionIcon({ competition }: { competition: Competition }) {

@@ -102,8 +102,11 @@ def test_conference_full_six_round_board_is_explicitly_provisional():
     assert result.data.competition == "CONF"
     assert len(result.data.teams) == 36 and len(result.data.matchdays) == 6
     assert sum(len(c) for t in result.data.teams for c in t.cells) == 216
-    assert "Provisional" in result.meta.model_notes[0].text
-    assert "Validated" not in result.meta.model_notes[0].text
+    assert [n.text for n in result.meta.model_notes] == [
+        "Early estimates: the Conference has few past games to learn from."
+    ]
+    board = build_grid("CL", 2026, calendar(), FixedModel(), datetime(2026, 10, 23, tzinfo=UTC))
+    assert board.meta.model_notes == []  # no "Validated", no technical caveats (plans/multi-competition-review.md B1)
     assert "w075" in result.data.model_version
     with pytest.raises(ValueError, match="Incomplete"):
         build_grid("CONF", 2026, rows[:-1], FixedModel(), datetime(2026, 10, 23, tzinfo=UTC))

@@ -14,7 +14,7 @@ import { dateRange } from "../../lib/home";
 import { laligaRound } from "../../lib/laliga";
 import { tableAfter } from "../../lib/recap";
 import CompetitionPicker from "../../components/CompetitionPicker";
-import { competitionOf, COMPETITIONS, isEuropean, leagueColumn, validDay } from "../../lib/competitions";
+import { boardNote, competitionOf, COMPETITIONS, leagueColumn, validDay } from "../../lib/competitions";
 
 export type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -71,7 +71,7 @@ export async function BoardRoute({ view, searchParams }: { view: View; searchPar
       <SiteNav meta={meta} system={system} week={week} competition={competition} />
       <main>
         {(view !== "fdr" || !grid || blank) && <CompetitionPicker competition={competition} week={requested ?? week.current?.id} through={week.current?.to} />}
-        {competition !== "ALL" && <p className="footnote" role={competition === "CONF" ? "note" : undefined}>{COMPETITIONS[competition]} · {grid?.season ?? "Awaiting refresh"}. {competition === "CONF" ? "Conference model is provisional. League phase and published knockouts; regulation time. Qualifiers excluded." : isEuropean(competition) ? "Validated European model. League phase and published knockouts; regulation time. Qualifiers excluded." : "Independently fitted reference model."} Clean-sheet chances are uncalibrated.</p>}
+        {boardNote(meta) && <p className="footnote" role="note">{boardNote(meta)}</p>}
         {grid?.missing_competitions?.length ? <p role="status">Unavailable: {grid.missing_competitions.map(c => COMPETITIONS[competitionOf(c)]).join(", ")}. All shows the available competitions.</p> : null}
         {!grid ? <section className="card empty-state" role="status"><h1>{TITLES[view]}</h1><p>{error}</p></section> : blank ?
           <section className="card empty-state" role="status"><h1>{TITLES[view]}</h1><p>No {COMPETITIONS[competition]} fixtures in the selected week.</p></section> :

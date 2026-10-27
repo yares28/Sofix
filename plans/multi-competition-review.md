@@ -224,6 +224,12 @@ Nothing is pushed before 1 Nov ("Pushing").
 - **Cost:** none (each board changes once).
 - **Must not break:** source credits (UEFA, Sorare); the Conference's note.
 - **Done when:** a test on the Conference board finds no "Validated"; CL/EL unchanged; the All board's note unchanged.
+- **Result (27 Oct, local, with D3):** the backend's notes are the page's: `european_fdr.CONFERENCE_NOTE` ("Early estimates: the
+  Conference has few past games to learn from.") is the Conference board's only `model_notes` entry and its player block's
+  `note`; CL, EL and the three leagues publish none. `boardNote(meta)` draws it once on the board and the club page, the
+  player pages draw the block's; the picker's, the board line's and the club and player pages' own texts are gone, and the
+  European credit reads "Fixtures, results and crests: UEFA. Player outcomes: Sorare." The All board's note is unchanged.
+  `european.e2e.ts` checks CONF shows exactly that note and no "Validated", CL shows no note; backend tests check the notes.
 
 ### B2 · Conference ties are ranked wrongly at the end of the league phase
 - **Issue:** UEFA breaks final ties with the opponents' results. The code only does that once every club has played **8**
@@ -489,6 +495,8 @@ P1 and follow its week path and client clock.
   the rest goes. Source credits stay. Ship with B1.
 - **Cost:** none.
 - **Done when:** at most one note per board and club page, no technical words; a test counts them.
+- **Result (27 Oct, local):** shipped with B1 (see its result): one note, the Conference's, on its board, club and player pages;
+  `european.e2e.ts` counts it (exactly one on CONF, none on CL).
 
 ### D4 · The new boards look plain
 - **Checked:** the icon strip is on Difficulty only ([DifficultyHero.tsx:20](../frontend/components/DifficultyHero.tsx)); the

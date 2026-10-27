@@ -6,6 +6,8 @@ import type { Sorare } from "../lib/play";
 test("European boards retain all 36 clubs, league-phase places and cold team links", async ({page,context}) => {
   await page.goto("/difficulty?league=CL");
   await expect(page.locator("#grid table tbody tr")).toHaveCount(36);
+  await expect(page.getByRole("note")).toHaveCount(0); // one note at most, and only where it matters (the Conference)
+  await expect(page.locator("main")).not.toContainText("Validated");
   await page.locator(".competition-icons").getByRole("button", {name:"Europa League",exact:true}).click();
   await expect(page).toHaveURL(/league=EL/);
   await expect(page.locator("#grid table tbody tr")).toHaveCount(36);
@@ -56,8 +58,8 @@ test("all European squads survive cold player bookmarks and unknown positions ha
 test("Conference is available provisionally with six rounds and cold player links", async ({page,request,context}) => {
  await resetBackend(request);
  await page.goto("/difficulty?league=CONF");
- await expect(page.getByRole("note")).toContainText("provisional");
- await expect(page.locator(".footnote:not(.attribution)")).not.toContainText("Validated European model");
+ await expect(page.getByRole("note")).toHaveText("Early estimates: the Conference has few past games to learn from.");
+ await expect(page.locator("main")).not.toContainText("Validated");
  await expect(page.locator("#grid table tbody tr")).toHaveCount(36);
  await page.getByRole("link", {name:"Table",exact:true}).first().click();
  await expect(page.locator(".lt-table tbody tr")).toHaveCount(36);
@@ -65,13 +67,13 @@ test("Conference is available provisionally with six rounds and cold player link
  const data=(await(await request.get(`${MOCK}/api/sorare`)).json()).data as Sorare;
  const week=data.timeline.find(w=>w.id===data.nextId)!;
  const selected=seasonWeeks(await servedGrid(request),data,new Date()).find(w=>w.gw===week.id)!;
- await request.post(`${MOCK}/__test/my-weeks`,{data:{foreignBlocks:{CONF:{competition:"CONF",weekId:week.id,week:week.slug,generatedAt:new Date().toISOString(),complete:true,modelVersion:"CONF:xscore-v3",market:[{slug:"conference-player",name:"Conference Player",pos:"DEF",club:"Conference Club",pic:"",crest:null,average:null,projection:null,eur:null,by:"sofix",p:0,pStart:0,x:0,start:0,mu:0,fixture:{team:"Conference Club",opponent:"Other Club",venue:"H",kickoff:week.start}}]}}}});
+ await request.post(`${MOCK}/__test/my-weeks`,{data:{foreignBlocks:{CONF:{competition:"CONF",weekId:week.id,week:week.slug,generatedAt:new Date().toISOString(),complete:true,modelVersion:"CONF:xscore-v3",note:"Early estimates: the Conference has few past games to learn from.",market:[{slug:"conference-player",name:"Conference Player",pos:"DEF",club:"Conference Club",pic:"",crest:null,average:null,projection:null,eur:null,by:"sofix",p:0,pStart:0,x:0,start:0,mu:0,fixture:{team:"Conference Club",opponent:"Other Club",venue:"H",kickoff:week.start}}]}}}});
  await page.goto(`/players?league=CONF&w=${selected.id}`);
- await expect(page.getByRole("note")).toContainText("provisional");
+ await expect(page.getByRole("note")).toHaveText(/^Early estimates/);
  await expect(page.getByRole("link",{name:"Conference Player",exact:true})).toBeVisible();
  const detail=await context.newPage();await detail.goto(`/players/conference-player?w=${selected.id}`);await page.close();
  await expect(detail.getByRole("heading",{name:"Conference Player",exact:true})).toBeVisible();
  await expect(detail.locator(".pd-x")).toHaveText("0");
  await detail.reload();await expect(detail.locator(".pd-x")).toHaveText("0");
- await expect(detail.getByRole("note")).toContainText("provisional");
+ await expect(detail.getByRole("note")).toHaveText(/^Early estimates/);
 });

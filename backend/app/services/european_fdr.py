@@ -47,6 +47,10 @@ def crest(team: dict[str, Any]) -> str | None:
     )
 
 
+# The one note a European board carries (plans/multi-competition-review.md B1, D3); the page shows it as published.
+CONFERENCE_NOTE = "Early estimates: the Conference has few past games to learn from."
+
+
 def build_grid(
     code: str,
     season: int,
@@ -215,17 +219,7 @@ def build_grid(
             meta=GridMeta(
                 last_synced_at=now,
                 last_predicted_at=now,
-                model_notes=[
-                    ModelNote(
-                        lens=None,
-                        text=(
-                            "Provisional Conference estimates. Historical averages improved; the extra benefit of opponent information remains uncertain. "
-                            if code == "CONF"
-                            else "Validated European model. "
-                        )
-                        + " League phase and knockouts; regulation time only. Neutral venues have no home advantage. Clean-sheet chances are uncalibrated. Knockout pairs appear after the draw; qualifiers are outside this release.",
-                    )
-                ],
+                model_notes=[ModelNote(lens=None, text=CONFERENCE_NOTE)] if code == "CONF" else [],
             ),
         ),
         previous,

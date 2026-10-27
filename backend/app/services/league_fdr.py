@@ -20,7 +20,6 @@ from app.schemas import (
     GridMatchday,
     GridMeta,
     GridTeam,
-    ModelNote,
     Prob,
 )
 from app.services import board_checks
@@ -335,12 +334,7 @@ def build_league_grid(
             meta=GridMeta(
                 last_synced_at=now,
                 last_predicted_at=now,
-                model_notes=[
-                    ModelNote(
-                        lens=None,
-                        text=f"{name}: independently fitted reference model. Clean-sheet probabilities are uncalibrated; no live market blend. Historical replay does not establish a better replacement.",
-                    )
-                ],
+                model_notes=[],
             ),
         ),
         previous,

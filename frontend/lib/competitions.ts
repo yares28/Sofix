@@ -12,6 +12,10 @@ export function leaguePhaseGrid(grid: FixtureGrid): FixtureGrid {
   return { ...grid, matchdays: columns.map(i => grid.matchdays[i]!), teams: grid.teams.map(t => ({ ...t, cells: columns.map(i => (t.cells[i] ?? []).filter(c => c.phase === "league")) })) };
 }
 export const leagueName = (grid: Pick<FixtureGrid, "competition">) => COMPETITIONS[competitionOf(grid.competition)];
+/** The one plain note a board carries, as the backend published it (plans/multi-competition-review.md B1, D3). */
+export const boardNote = (meta: { model_notes?: { lens: string | null; text: string }[] } | null | undefined) =>
+  meta?.model_notes?.find((note) => note.lens === null)?.text ?? null;
+
 export function validDay(day: string | null | undefined): day is string {
   if (!day || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return false;
   const parsed = new Date(day);

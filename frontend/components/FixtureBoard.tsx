@@ -162,7 +162,7 @@ export default function FixtureBoard({ grid, initialView, pinsInUrl, away, basel
       )}
         </>
       )}
-      {isEuropean(grid.competition) ? <p className="footnote attribution">Fixtures, regulation results and crests: UEFA. Player outcomes: Sorare. Validated model {grid.model_version}. Qualifiers excluded; no live bookmaker odds.</p> : view !== "fdr" && <p className="footnote attribution">
+      {isEuropean(grid.competition) ? <p className="footnote attribution">Fixtures, results and crests: UEFA. Player outcomes: Sorare.</p> : view !== "fdr" && <p className="footnote attribution">
         Model {grid.model_version ?? "not run yet"}. Fixtures, results and crests: football-data.org. Match history and
         the record at each price: football-data.co.uk. Odds: The Odds API.
       </p>}

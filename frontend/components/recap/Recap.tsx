@@ -164,16 +164,16 @@ export function RoundBoard({ matches, href }: { matches: BoardMatch[]; href?: st
 }
 
 // ------------------------------------------------------------------------------------------ table after the round
-export function TableAfter({ rows, round, href }: { rows: AfterRow[]; round: number; href?: string }) {
+export function TableAfter({ rows, round, href, showFdr = false }: { rows: AfterRow[]; round: number; href?: string; showFdr?: boolean }) {
   return (
-    <section className="hm-tile rc-table" aria-labelledby="rc-table-h">
+    <section className={`hm-tile rc-table${showFdr ? " has-fdr" : ""}`} aria-labelledby="rc-table-h">
       <div className="rc-th">
         <h2 id="rc-table-h">Table after round {round}</h2>
         {href ? <Link href={href}>Season ›</Link> : null}
       </div>
       <table>
         <thead>
-          <tr><th scope="col"><span className="visually-hidden">Place</span></th><th scope="col">Club</th><th scope="col">Now</th><th scope="col">After</th><th scope="col"><span className="visually-hidden">Moved</span></th></tr>
+          <tr><th scope="col"><span className="visually-hidden">Place</span></th><th scope="col">Club</th><th scope="col">Now</th><th scope="col">After</th><th scope="col"><span className="visually-hidden">Moved</span></th>{showFdr ? <th scope="col">FDR</th> : null}</tr>
         </thead>
         <tbody>
           {rows.map((row) => (
@@ -183,6 +183,7 @@ export function TableAfter({ rows, round, href }: { rows: AfterRow[]; round: num
               <td className="dim">{row.now}</td>
               <td><b>{row.after.toFixed(1)}</b></td>
               <td className={row.moved > 0 ? "up" : row.moved < 0 ? "dn" : "dim"}>{row.moved > 0 ? `▲${row.moved}` : row.moved < 0 ? `▼${-row.moved}` : "·"}</td>
+              {showFdr ? <td className="rc-fdr">{row.fdr.length ? row.fdr.map(game => <span key={game.id} className={`difficulty-chip${game.bucket ? ` f${game.bucket}` : ""}`} title={`${game.label}${game.value === null ? "" : ` · FDR ${Math.round(game.value)} of 100 (lower is easier)`}`} aria-label={`${row.team.name}, ${game.label}, FDR ${game.value === null ? "unavailable" : Math.round(game.value)}`}>{game.value === null ? "—" : Math.round(game.value)}</span>) : "—"}</td> : null}
             </tr>
           ))}
         </tbody>

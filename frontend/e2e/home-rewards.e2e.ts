@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { MOCK, offline, resetBackend, servedGrid, smallText, sorare } from "./helpers";
-import { bestPlan, nextWeek } from "../lib/play";
+import { bestPlan, chanceLabel, nextWeek } from "../lib/play";
 import type { Sorare } from "../lib/play";
 import { seasonWeeks } from "../lib/weeks";
 import { projectedPrize, rewardNumber, rewardSignature } from "../lib/playRewards";
@@ -29,6 +29,9 @@ test("Home compares the selected GW's expected and checked rewards without a sec
   const prize = projectedPrize(line)!;
   await expect(own.locator(`[data-reward="${unit}"] dd`).first()).toHaveText(rewardNumber(unit, prize[unit] ?? 0));
   await expect(card.locator('[data-reward="card"]')).toHaveCount(0);
+  await expect(own.locator('.rc-reward-chance strong')).toHaveText(line.pReturn === 1 ? "100%" : chanceLabel(line.pReturn));
+  const mean = plan.lineups.reduce((sum, l) => sum + l.pReturn, 0) / plan.lineups.length;
+  await expect(sofix.locator('.rc-reward-chance strong')).toHaveText(mean === 1 ? "100%" : chanceLabel(mean));
   await expect.poll(() => reads).toBe(3); // season archive reads before/after, plus one entered-lineup read
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
@@ -79,8 +82,30 @@ test("Home keeps settled rewards attached to the retained plan when replay and p
   const own = page.getByRole("region", { name: "You GW rewards" }), sofix = page.getByRole("region", { name: "Sofix GW rewards" });
   await expect(own).toContainText("1 lineup · 1/1 checked");
   await expect(own.locator('[data-reward="cash:USD"] dd').first()).toHaveText("—");
+  await expect(own.locator('.rc-reward-chance strong')).toHaveText("—");
   await expect(own.locator('[data-reward="cash:USD"] dd').last()).toHaveText("$2.50");
   await expect(sofix.locator('[data-reward="cash:USD"] dd').last()).toHaveText("$5.00");
   await expect(sofix).toContainText(`${original.lineups.length}/${original.lineups.length} checked`);
   await expect(sofix.locator('[data-reward^="essence:"] dd').last()).toHaveText("0");
+});
+
+test("Home's FDR rectangles follow the selected round and Rewards fills the fixtures column", async ({ page, request }) => {
+  await resetBackend(request); await offline(page);
+  const served = (await (await request.get(`${MOCK}/api/sorare`)).json()).data as Sorare;
+  const grid = await servedGrid(request), weeks = seasonWeeks(grid, served, new Date());
+  const selected = weeks.find(w => w.column !== null && grid.teams.some(t => t.cells[w.column!]?.some(c => c.prediction)))!;
+  await page.goto(`/?w=${selected.id}`);
+  const table = page.locator('.rc-table');
+  await expect(table.getByRole('columnheader').last()).toHaveText('FDR');
+  const team = grid.teams.find(t => t.cells[selected.column!]?.some(c => c.prediction))!, games = team.cells[selected.column!]!;
+  const row = table.getByRole('row').filter({ has: page.getByText(team.name, { exact: true }) });
+  await expect(row.locator('.rc-fdr .difficulty-chip')).toHaveCount(games.length);
+  for (const [i, game] of games.entries()) {
+    await expect(row.locator('.rc-fdr .difficulty-chip').nth(i)).toHaveText(game.prediction ? String(Math.round(game.prediction.difficulty)) : '—');
+    if (game.prediction) await expect(row.locator('.rc-fdr .difficulty-chip').nth(i)).toHaveClass(new RegExp(`f${game.prediction.bucket}`));
+  }
+  const round = await page.locator('.rc-round').boundingBox(), rewards = await page.locator('.rc-sidebar .rc-rewards').boundingBox();
+  expect(Math.abs(round!.y + round!.height - rewards!.y - rewards!.height)).toBeLessThanOrEqual(1);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });

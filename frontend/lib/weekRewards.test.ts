@@ -3,6 +3,12 @@ import { checkedWeekRewards, planForRewards, weekRewards } from "./weekRewards";
 import type { Plan } from "./play";
 import { projectedPrize, rewardSignature } from "./playRewards";
 
+it("compares the mean reward chance per rated lineup, keeping unknown and zero separate", () => {
+  expect(weekRewards([{ chance: .8 }, { chance: .2 }, {}])).toMatchObject({ chance: .5, chanceRated: 2, total: 3 });
+  expect(weekRewards([{ chance: 0 }])).toMatchObject({ chance: 0, chanceRated: 1 });
+  expect(weekRewards([{ chance: Number.NaN }, { chance: 2 }, {}])).toMatchObject({ chance: null, chanceRated: 0 });
+});
+
 it("keeps reward units separate and counts unknown forecasts and checked zero results honestly", () => {
   const summary = weekRewards([
     { expected: { "cash:USD": 1.25, "essence:limited:laliga": 12.5, card: .1 }, actual: {} },

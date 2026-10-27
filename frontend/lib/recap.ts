@@ -3,7 +3,7 @@ import { formatShortKickoff } from "./grid";
 import { gameweekMatches } from "./matches";
 import { paidTiers, type FfStatus, type Lineup, type Plan, type PlayerGame, type PlayingPlayer, type StartSource } from "./play";
 import { predictedTable } from "./table";
-import type { FixtureGrid, GridTeam } from "./types";
+import type { Bucket, FixtureGrid, GridTeam } from "./types";
 
 /**
  * The Recap (home) of the restructure (plans/restructure.md, R2): pure reshaping of what the payloads already hold.
@@ -90,7 +90,7 @@ export function roundBoard(grid: FixtureGrid, column: number): BoardMatch[] {
   });
 }
 
-export type AfterRow = { team: GridTeam; position: number; now: number; after: number; moved: number };
+export type AfterRow = { team: GridTeam; position: number; now: number; after: number; moved: number; fdr: { id: number; value: number | null; bucket: Bucket | null; label: string }[] };
 
 /** The table once this round is played as expected: points now, points after, places gained (+) or lost (-). */
 export function tableAfter(grid: FixtureGrid, column: number): AfterRow[] {
@@ -100,6 +100,7 @@ export function tableAfter(grid: FixtureGrid, column: number): AfterRow[] {
     now: row.points,
     after: row.projectedPoints,
     moved: row.currentPosition - row.position,
+    fdr: (row.team.cells[column] ?? []).map(cell => ({ id: cell.fixture_id, value: cell.prediction?.difficulty ?? null, bucket: cell.prediction?.bucket ?? null, label: `${cell.venue === "H" ? "v" : "at"} ${cell.opponent_code}: ${cell.prediction?.label ?? "FDR unavailable"}` })),
   }));
 }
 

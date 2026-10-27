@@ -67,6 +67,7 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
     if (!setRewards) return;
     setRewards({ state: load.state, summary: checkedWeekRewards(load.lineups.filter(l => !l.draft).map(l => ({
       id: l.id,
+      chance: estimates.get(l.id)?.chance,
       expected: estimates.get(l.id)?.atScore,
       actual: paidBySorare(l.result, estimates.get(l.id)?.prizeLine),
     })), rewardCheck?.you) });

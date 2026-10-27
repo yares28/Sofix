@@ -22,6 +22,17 @@ describe("bestCards", () => {
 });
 
 describe("roundBoard and tableAfter", () => {
+  it("keeps each selected-round fixture's backend FDR, including doubles and missing predictions", () => {
+    const changed = structuredClone(grid), column = col(8), team = changed.teams[0]!;
+    const game = team.cells[column]![0]!;
+    team.cells[column] = [game, { ...game, fixture_id: game.fixture_id + 99999, prediction: null }];
+    const row = tableAfter(changed, column).find(r => r.team.code === team.code)!;
+    expect(row.fdr).toHaveLength(2);
+    expect(row.fdr[0]).toMatchObject({ id: game.fixture_id, value: game.prediction?.difficulty ?? null, bucket: game.prediction?.bucket ?? null });
+    expect(row.fdr[1]).toMatchObject({ value: null, bucket: null });
+    team.cells[column] = [];
+    expect(tableAfter(changed, column).find(r => r.team.code === team.code)!.fdr).toEqual([]);
+  });
   it("draws each match from the home side's forecast, the away side's own numbers kept", () => {
     const board = roundBoard(grid, col(8));
     expect(board.length).toBeGreaterThan(0);

@@ -1,5 +1,21 @@
 # Home selected-GW rewards
 
+Reward-chance/FDR verification: test-first unit regressions pass (13 affected tests); the complete local gate passes;
+all seven Home/rewards/mobile browser checks pass, including selected-round FDR values/colours, bottom alignment,
+unknown/zero chances, draft exclusion and cold-read geometry. Production build passes. Real cached GW27 in the owner's
+Chrome at 1440 and 390 px shows Sofix 29% per lineup, owner chance blank with no entries, Barcelona FDR 14 and Malaga
+84 with their backend colours; no overflow. Rewards and fixtures have identical bottom edges on desktop. Mobile stacks
+at natural height. Existing per-lineup chance and backend FDR are only reshaped; no server read or polling was added.
+Clicking This week from Play on the local production build rendered Home with both chance figures and the FDR header.
+
+Next requested change: show reward percentage for You and Sofix using the same mean essence-or-better chance per
+lineup as Play (explicit per-lineup label, unknown distinct from zero, partial forecast coverage). Stretch Rewards to
+fill the right column beside the fixtures on desktop, keeping natural stacking on phones. Append each team's selected
+round FDR number in its backend-coloured rectangle at the far right of Home's table; preserve blanks, missing forecasts
+and every fixture in double rounds. No extra reads, polling or user actions. Acceptance: unit regressions for chances
+and selected-round FDR, Home reward browser spec including column alignment and bottom alignment, affected mobile
+Home specs, desktop/phone real-data screenshots and the local gate before shipping.
+
 Requested outcome: split the tall table surface into two separate cards in the right column: the existing table,
 then your and Sofix's expected and actual rewards for the selected Sorare GW. On small screens they stack after the
 fixtures. No extra user action or Sorare tab is required beyond the existing entered-lineup workflow.

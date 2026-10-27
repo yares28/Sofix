@@ -107,7 +107,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   const rows = best ? planRows(best) : [];
   const [actuals, today, rewards] = await Promise.all([plan ? loadPlanActuals(plan) : {}, missionsToday(sorare, missions, undefined, now, pool), rewardsRead]);
   const rewardPlan = planForRewards(best, frozen?.plans ?? [], rewards);
-  const recommendation = weekRewards((rewardPlan?.lineups ?? []).map(line => ({ expected: projectedPrize(line), actual: rewards?.sofix?.find(r => r.signature === rewardSignature(line))?.rewards })));
+  const recommendation = weekRewards((rewardPlan?.lineups ?? []).map(line => ({ chance: line.pReturn, expected: projectedPrize(line), actual: rewards?.sofix?.find(r => r.signature === rewardSignature(line))?.rewards })));
   const rewardsCard = <RewardsCard recommendation={recommendation} gw={selectedSorare?.number ?? (plan && !plan.projected ? plan.gameweek.number : null)} href={href("/play")} hasEntries={Boolean(selectedSorare)} />;
   const news = plan ? weekNews(plan.playing.players, week.current?.md ?? null, now) : { hurt: [], back: [] };
   const md = grid.matchdays[column]!;
@@ -141,7 +141,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
             <>
               <RoundBoard matches={roundBoard(grid, column)} href={href("/fixtures")} />
               <div className="rc-sidebar">
-                <TableAfter rows={tableAfter(grid, column)} round={md.number} href={href("/table")} />
+                <TableAfter rows={tableAfter(grid, column)} round={md.number} href={href("/table")} showFdr />
                 {rewardsCard}
               </div>
             </>

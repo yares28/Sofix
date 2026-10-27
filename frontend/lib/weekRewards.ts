@@ -1,14 +1,16 @@
 import { actualRewards, rewardKeys, rewardSignature, type PlayRewardBlock, type RewardValues } from "./playRewards";
 import type { Plan } from "./play";
 
-export function weekRewards(rows: { expected?: RewardValues | null; actual?: RewardValues | null }[]) {
+type RewardRow = { expected?: RewardValues | null; actual?: RewardValues | null; chance?: number };
+export function weekRewards(rows: RewardRow[]) {
   const forecasts = rows.map(row => row.expected), projected = actualRewards(forecasts);
-  return { total: rows.length, expected: projected.values, forecastChecked: projected.checked, coverage: Object.fromEntries(rewardKeys(forecasts).map(key => [key, projected.checked])), actual: actualRewards(rows.map(row => row.actual)) };
+  const chances = rows.map(row => row.chance).filter((p): p is number => typeof p === "number" && Number.isFinite(p) && p >= 0 && p <= 1);
+  return { total: rows.length, chance: chances.length ? chances.reduce((sum, p) => sum + p, 0) / chances.length : null, chanceRated: chances.length, expected: projected.values, forecastChecked: projected.checked, coverage: Object.fromEntries(rewardKeys(forecasts).map(key => [key, projected.checked])), actual: actualRewards(rows.map(row => row.actual)) };
 }
 export type WeekRewards = ReturnType<typeof weekRewards>;
 
 /** Checked results remain evidence even if a later private snapshot contains fewer entries. */
-export function checkedWeekRewards(rows: { id: string; expected?: RewardValues | null; actual?: RewardValues | null }[], checks: PlayRewardBlock["you"] = []) {
+export function checkedWeekRewards(rows: (RewardRow & { id: string })[], checks: PlayRewardBlock["you"] = []) {
   const byId = new Map(rows.map(row => [row.id, row]));
   for (const check of checks) {
     const previous = byId.get(check.id);

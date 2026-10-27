@@ -4,6 +4,7 @@ import { createContext, useContext, useState, type ReactNode, type Dispatch, typ
 import Link from "next/link";
 import { rewardKeys, rewardName, rewardNumber } from "../../lib/playRewards";
 import type { WeekRewards } from "../../lib/weekRewards";
+import { chanceLabel } from "../../lib/play";
 
 type Own = { summary: WeekRewards; state: "loading" | "ready" | "unavailable" };
 const RewardsContext = createContext<{ own: Own | null; setOwn: Dispatch<SetStateAction<Own | null>> } | null>(null);
@@ -27,6 +28,11 @@ function Side({ label, summary, state = "ready", fallback }: { label: string; su
   };
   return <section className="rc-reward-side" aria-label={`${label} GW rewards`} aria-busy={loading || undefined}>
     <div className="rc-reward-head"><h3>{label}</h3><span title="Prizes at each lineup's projected score">Expected</span><span>{label === "You" ? "Actual" : "Would win"}</span></div>
+    <div className="rc-reward-chance" aria-label={`${label} reward chance per lineup`}>
+      <span>Reward chance / {summary && summary.chanceRated < summary.total ? "rated " : ""}lineup</span>
+      <strong>{loading ? <i className="rc-reward-skeleton" /> : summary?.chance == null ? "—" : summary.chance === 1 ? "100%" : chanceLabel(summary.chance)}</strong>
+      {summary && summary.chanceRated > 0 && summary.chanceRated < summary.total ? <small>{summary.chanceRated}/{summary.total} rated</small> : null}
+    </div>
     <dl>{keys.map(key => <div key={key} data-reward={key}><dt>{key === "essence:unknown:unknown" ? "Essence" : rewardName(key)}</dt><dd>{value(key, false)}</dd><dd>{value(key, true)}</dd></div>)}</dl>
     <p className="rc-reward-status" aria-live="polite">{loading ? "Checking your lineups…" : state === "unavailable" && !summary?.actual.checked ? "Entries unavailable" : !summary?.total ? label === "You" ? "No entered lineups" : "Plan unavailable" : <>{summary.total} lineup{summary.total === 1 ? "" : "s"} · {summary.actual.checked}/{summary.total} checked</>}</p>
   </section>;

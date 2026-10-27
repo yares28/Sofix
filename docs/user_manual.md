@@ -1,5 +1,10 @@
 # Sofix illustrated user manual
 
+27 October: Home's Rewards shows the same cash/essence/card reward chance per rated lineup for You and Sofix as Play
+(XP alone does not count). Missing chances stay blank; partial coverage is marked. The card fills the remaining height
+beside the fixtures on desktop. The round's table adds each fixture's backend FDR number in a coloured rectangle at the
+far right; two fixtures show two rectangles, and missing forecasts stay blank.
+
 27 October: Home splits the right column into the round's table and **Rewards** for the selected Sorare GW. You and
 Sofix show the attainable prizes at each lineup's projected score beside checked actual rewards (Sofix: **Would win**).
 Cash, each essence competition/rarity and XP remain separate; card prizes are omitted. A dash means unavailable or pending; an actual zero is a checked zero.

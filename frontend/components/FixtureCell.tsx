@@ -75,7 +75,7 @@ function Tile({ cell, bucket, compact, dataKey, label, row, column, showTbc, cre
         <Image className="cell-crest" src={crest} alt="" width={16} height={16} unoptimized loading="lazy" referrerPolicy="no-referrer" />
       ) : null}
       <span className="opp">{opponentCode}</span>
-      <span className="venue">
+      <span className={`venue${!bucket && emptyText && cell.status !== "live" ? " cell-note" : ""}`}>
         {cell.status === "live" ? (
           "Live"
         ) : !bucket && emptyText ? (

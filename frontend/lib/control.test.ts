@@ -10,6 +10,7 @@ import {
   pulseOf,
   resumeLabel,
   setupLeft,
+  syncedAt,
   withLiveExtension,
   type RunSummary,
   type SystemStatus,
@@ -231,5 +232,21 @@ describe("checkInIsNews", () => {
     expect(checkInIsNews(seen, { version: "7.7.0", sorare_user: "other" }, NOW)).toBe(true);
     expect(checkInIsNews(null, { version: "7.7.0", sorare_user: null }, NOW)).toBe(true);
     expect(checkInIsNews({ ...seen, seen_at: "2026-09-21T05:30:00Z" }, { version: "7.7.0", sorare_user: "yares" }, NOW)).toBe(true);
+  });
+});
+
+describe("board freshness", () => {
+  const meta = { last_synced_at: "2026-09-18T08:00:00Z", last_predicted_at: "2026-09-18T08:00:00Z" }; // unchanged for three days
+  it("a checked, unchanged foreign board is fresh", () => {
+    const checked = system([], { boardChecks: { CL: "2026-09-21T11:30:00Z" } });
+    expect(syncedAt(meta, checked, "CL")).toBe("2026-09-21T11:30:00Z");
+    expect(pulseOf(checked, syncedAt(meta, checked, "CL"), NOW).state).not.toBe("stale");
+    expect(pulseOf(checked, meta.last_synced_at, NOW).state).toBe("stale");
+  });
+  it("LaLiga and older blocks keep the board's own time", () => {
+    const checked = system([], { boardChecks: { CL: "2026-09-21T11:30:00Z" } });
+    expect(syncedAt(meta, checked, "PD")).toBe(meta.last_synced_at);
+    expect(syncedAt(meta, system([]), "CL")).toBe(meta.last_synced_at);
+    expect(syncedAt(null, null)).toBeNull();
   });
 });

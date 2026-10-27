@@ -14,7 +14,7 @@ from app.backtest.data import normalize_season
 from app.config import settings
 from app.db import SessionLocal
 from app.models import ReadModel
-from app.schemas import ApiResponse, FixtureGrid
+from app.services import board_checks
 from app.services.league_fdr import LEAGUES, build_league_grid
 from app.services.publish import notify_app, put
 from app.sources.football_data_co_uk import cached_path, fetch_season_csv
@@ -48,11 +48,10 @@ def run(code: str) -> dict:
     history = load_league_history(code, int(next(iter(starts))))
     db = SessionLocal()
     try:
-        key = f"grid:{code}"
-        kept = db.get(ReadModel, key)
-        previous = ApiResponse[FixtureGrid].model_validate(kept.payload) if kept else None
-        body = build_league_grid(code, payload, history, datetime.now(UTC), previous)
-        put(db, key, body.model_dump(mode="json"), datetime.now(UTC))
+        key, now = f"grid:{code}", datetime.now(UTC)
+        body = build_league_grid(code, payload, history, now, board_checks.previous(db, key))
+        put(db, key, body.model_dump(mode="json"), now)
+        board_checks.record(db, [code], now)
         return {
             "teams": len(body.data.teams),
             "fixtures": len(payload["matches"]),

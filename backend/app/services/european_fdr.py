@@ -25,6 +25,7 @@ from app.schemas import (
     Prob,
     Venue,
 )
+from app.services import board_checks
 from app.services.fixture_grid import lens_scales, matchday_window, result_for
 from app.services.rating_predictions import model_version
 from app.services.scoring import difficulty_label, difficulty_score, label_bucket
@@ -207,22 +208,26 @@ def build_grid(
         matchdays=rounds,
         teams=sorted(teams, key=lambda t: t.name),
     )
-    return ApiResponse[FixtureGrid](
-        success=True,
-        data=grid,
-        meta=GridMeta(
-            last_synced_at=now,
-            last_predicted_at=now,
-            model_notes=[
-                ModelNote(
-                    lens=None,
-                    text=(
-                        "Provisional Conference estimates. Historical averages improved; the extra benefit of opponent information remains uncertain. "
-                        if code == "CONF"
-                        else "Validated European model. "
+    return board_checks.settle(
+        ApiResponse[FixtureGrid](
+            success=True,
+            data=grid,
+            meta=GridMeta(
+                last_synced_at=now,
+                last_predicted_at=now,
+                model_notes=[
+                    ModelNote(
+                        lens=None,
+                        text=(
+                            "Provisional Conference estimates. Historical averages improved; the extra benefit of opponent information remains uncertain. "
+                            if code == "CONF"
+                            else "Validated European model. "
+                        )
+                        + " League phase and knockouts; regulation time only. Neutral venues have no home advantage. Clean-sheet chances are uncalibrated. Knockout pairs appear after the draw; qualifiers are outside this release.",
                     )
-                    + " League phase and knockouts; regulation time only. Neutral venues have no home advantage. Clean-sheet chances are uncalibrated. Knockout pairs appear after the draw; qualifiers are outside this release.",
-                )
-            ],
+                ],
+            ),
         ),
+        previous,
+        now,
     )

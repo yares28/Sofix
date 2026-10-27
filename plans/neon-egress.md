@@ -33,6 +33,9 @@ the copy once costs ~23 MB. Done when: a refresh reads under 3 MB from Neon inst
 (the replay tests and one refresh compared block by block against the previous one).
 27 Oct: the fingerprints and the `player_games:<slug>` blocks see a game's read time (and an absence's last sighting) only
 to the day, so a re-read that found nothing new re-fetches and re-uploads nothing ([multi-competition-review.md](multi-competition-review.md) L1).
+27 Oct: the six foreign boards keep each game's forecast and their own times while nothing moved (numbers within 0.0005), so an
+unchanged board is not rewritten; the tiny `board_checks` block says when each was last checked, for the Sorare step's
+six-hour test and the top bar's pill, and the board jobs read their previous board from R2 ([multi-competition-review.md](multi-competition-review.md) B3).
 
 ### Step 4 · The jobs' own re-reads (measured 20 Oct, refresh 164)
 The Sorare step sent 57 MB: missions 21.6, audit 15.6, frozen/references/news/settle 6.8, early plans 5.1, games saved 4.9.

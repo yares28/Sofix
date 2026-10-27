@@ -33,7 +33,7 @@ from app.config import settings
 from app.db import SessionLocal
 from app.logging_config import configure_logging
 from app.models import ReadModel
-from app.services import kept_blocks
+from app.services import board_checks, kept_blocks
 from app.services.publish import notify_app, put
 from app.services.timeutil import Laps
 from app.sorare import (
@@ -369,7 +369,10 @@ def foreign_inputs(kept: dict[str, Any], now: datetime) -> tuple[dict[str, Any],
         grid = dict(envelope.get("data") or {})
         grids[code] = grid
         if code in {"CL", "EL", "CONF"}:
-            stamp = frozen._dt((envelope.get("meta") or {}).get("last_predicted_at"))
+            # When the board was last checked (plans/multi-competition-review.md B3): it is no longer rewritten while
+            # nothing in it changed. A board never checked since keeps its own time.
+            checked = (kept.get(board_checks.KEY) or {}).get(code)
+            stamp = frozen._dt(checked or (envelope.get("meta") or {}).get("last_predicted_at"))
             names = [t.get("sorare_slug") for t in grid.get("teams") or []]
             grid["_fresh"] = bool(stamp and timedelta(0) <= now - stamp <= timedelta(hours=6))
             if not grid["_fresh"] or len(names) != 36 or len(set(names)) != 36 or not all(names):
@@ -405,7 +408,8 @@ def run(
     )
     previous = published(db, started)
     foreign_kept = {
-        r.key: r.payload for r in kept_blocks.rows(db, "grid:", "league_squads:", "league_games:", "player_index")
+        r.key: r.payload
+        for r in kept_blocks.rows(db, "grid:", "league_squads:", "league_games:", "player_index", board_checks.KEY)
     }
     foreign_grids, foreign_models, foreign_clubs = foreign_inputs(foreign_kept, started)
     # A finished gameweek's replay never changes once its scores are final: keep it, and fetch nothing for it.

@@ -23,6 +23,7 @@ from app.schemas import (
     ModelNote,
     Prob,
 )
+from app.services import board_checks
 from app.services.crests import safe_crest_url
 from app.services.fixture_grid import date_confirmed, lens_scales, matchday_window, normalize_status, result_for
 from app.services.odds_record import build_record
@@ -327,17 +328,21 @@ def build_league_grid(
         matchdays=rounds,
         teams=sorted(teams, key=lambda t: t.name),
     )
-    return ApiResponse[FixtureGrid](
-        success=True,
-        data=grid,
-        meta=GridMeta(
-            last_synced_at=now,
-            last_predicted_at=now,
-            model_notes=[
-                ModelNote(
-                    lens=None,
-                    text=f"{name}: independently fitted reference model. Clean-sheet probabilities are uncalibrated; no live market blend. Historical replay does not establish a better replacement.",
-                )
-            ],
+    return board_checks.settle(
+        ApiResponse[FixtureGrid](
+            success=True,
+            data=grid,
+            meta=GridMeta(
+                last_synced_at=now,
+                last_predicted_at=now,
+                model_notes=[
+                    ModelNote(
+                        lens=None,
+                        text=f"{name}: independently fitted reference model. Clean-sheet probabilities are uncalibrated; no live market blend. Historical replay does not establish a better replacement.",
+                    )
+                ],
+            ),
         ),
+        previous,
+        now,
     )

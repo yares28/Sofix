@@ -28,6 +28,8 @@ export type SystemStatus = {
   extension: ExtensionStatus | null;
   leagueHistory?: LeagueHistoryStatus | null;
   paused?: boolean;
+  /** When each foreign board was last checked; a board unchanged since is not rewritten (plans/multi-competition-review.md B3). */
+  boardChecks?: Record<string, string> | null;
 };
 
 export const ODDS_MONTHLY_CREDITS = 500;
@@ -114,6 +116,15 @@ export const PILL_LABEL: Record<PulseState, string> = {
 };
 
 /** The most urgent thing first: a paused database, a failed refresh, old data, then setup left to finish. */
+/** A foreign board is rewritten only when it changed, so its freshness is when it was last checked (board_checks). */
+export function syncedAt(
+  meta: { last_synced_at: string | null; last_predicted_at: string | null } | null,
+  system: SystemStatus | null,
+  competition?: string,
+): string | null {
+  return (competition && system?.boardChecks?.[competition]) || meta?.last_synced_at || meta?.last_predicted_at || null;
+}
+
 export function pulseOf(system: SystemStatus | null, syncedAt: string | null, now: Date): Pulse {
   const last = system?.runs.at(-1);
   const next = nextRunLabel(now);

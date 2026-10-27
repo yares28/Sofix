@@ -19,11 +19,12 @@ const iso = (value: string | Date | null) => (value instanceof Date ? value.toIS
 /** Recent runs, the limits the job published and the extension's last check-in, all from published blocks. Cached like the grid. */
 const cachedSystem = cache(
   async (): Promise<SystemStatus> => {
-    const [recent, system, extension, league] = await Promise.all([
+    const [recent, system, extension, league, checks] = await Promise.all([
       readModel<{ runs: unknown[] }>("refresh_runs"), // the jobs' last step publishes it (backend player_blocks.recent_runs)
       readModel<SystemPayload>("system"),
       readModel<ExtensionPayload>("extension"),
       readModel<LeagueHistoryStatus>("league_history_status"),
+      readModel<Record<string, string>>("board_checks"), // when each foreign board was last checked (backend board_checks.py)
     ]);
     const rows = (recent?.payload.runs ?? []) as {
       id: number;
@@ -57,7 +58,7 @@ const cachedSystem = cache(
     const ext: ExtensionStatus | null = extension
       ? { version: extension.payload.version, sorareUser: extension.payload.sorare_user, seenAt: extension.payload.seen_at }
       : null;
-    return { runs, limits, extension: ext, leagueHistory: league?.payload ?? null };
+    return { runs, limits, extension: ext, leagueHistory: league?.payload ?? null, boardChecks: checks?.payload ?? null };
   },
   ["system-status"],
   { tags: [SYSTEM_TAG], revalidate: 3600 },

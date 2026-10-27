@@ -265,6 +265,16 @@ Nothing is pushed before 1 Nov ("Pushing").
 - **Done when:** two refreshes with no new results leave all six boards' and `grid:ALL*`'s write times unchanged; the boards'
   `neonMB` is near zero; CL/EL xScores still run 7 hours after the last board change when the board was checked an hour ago;
   the pill shows "fresh" for a checked, unchanged board.
+- **Result (27 Oct, local):** `services/board_checks.py`: `settle` runs at the end of both board builders and keeps a game's
+  old forecast and time while every number is within 0.0005 (the European fit weighs games by age to the second, so it drifts
+  ~1e-5 an hour; ridge makes that a real, tiny move), then recomputes the lens scales; `last_predicted_at` stays unless a
+  number moved, `last_synced_at` unless anything else did. Jobs read the previous board with `kept_blocks.read` and call
+  `record` after `put`. `foreign_inputs` takes the check time from `board_checks`, else the board's own; the pill
+  (`lib/control.ts` `syncedAt`) the same, through `loadSystem`, which reads the 200-byte block with the others. The All board
+  needs nothing: it already depends on `now` only by the day. Tests: same inputs two hours later give byte-equal boards with
+  the old times; a 1e-5 wobble keeps the old forecast, a 0.01 move refreshes only that game and `last_predicted_at`; a moved
+  kickoff refreshes `last_synced_at`; CL xScores run with a 7-hour-old board checked an hour ago, not with one checked 7
+  hours ago; the pill is fresh for a checked unchanged board. B7 moved after B5 (its tag lives on B5's per-game source).
 
 ### B4 · Two lenses never show anything on six of seven competitions
 - **Issue:** the new boards have no bookmaker prices, so "Odds" and "Vs odds" stay blank, and the European boards have no

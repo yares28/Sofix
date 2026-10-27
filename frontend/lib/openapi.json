@@ -1368,6 +1368,28 @@
             },
             "type": "array",
             "title": "Teams"
+          },
+          "lenses": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "overall",
+                    "attack",
+                    "defence",
+                    "odds",
+                    "record",
+                    "market_record"
+                  ]
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lenses"
           }
         },
         "type": "object",

@@ -6,7 +6,7 @@ import { useEffect, useMemo } from "react";
 
 import { useViewState } from "../hooks/useViewState";
 import {
-  horizonSize, openingColumn, selectedColumn, windowRange, type ViewState, type Horizon, type RunStats,
+  horizonSize, lensesOf, openingColumn, selectedColumn, windowRange, type ViewState, type Horizon, type RunStats,
 } from "../lib/grid";
 import type { GameweekPlan } from "../lib/play";
 import { roundBoard, tableAfter } from "../lib/recap";
@@ -163,8 +163,8 @@ export default function FixtureBoard({ grid, initialView, pinsInUrl, away, basel
         </>
       )}
       {isEuropean(grid.competition) ? <p className="footnote attribution">Fixtures, results and crests: UEFA. Player outcomes: Sorare.</p> : view !== "fdr" && <p className="footnote attribution">
-        Model {grid.model_version ?? "not run yet"}. Fixtures, results and crests: football-data.org. Match history and
-        the record at each price: football-data.co.uk. Odds: The Odds API.
+        Model {grid.model_version ?? "not run yet"}. Fixtures, results and crests: football-data.org. Match history
+        {lensesOf(grid).includes("market_record") ? " and the record at each price" : ""}: football-data.co.uk.{lensesOf(grid).includes("odds") ? " Odds: The Odds API." : ""}
       </p>}
       {grid.competition === "ALL" && <p className="footnote" role="note">Conference forecasts are provisional. The other competitions retain their independently fitted models.</p>}
     </>

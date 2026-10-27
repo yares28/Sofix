@@ -24,7 +24,7 @@ export function leagueFixture(competition, meta, finished = false) {
     rotation.splice(1, 0, rotation.pop());
   }
   const scale = { cuts: [1, .75, .5, .25], higher_is_easier: true };
-  return { success: true, meta: meta && { ...meta, model_notes: [] }, data: { competition, season: "2026/27", current_matchday: completed + 1, model_version: `test-${competition}`, lens_scales: { overall: { cuts: [20, 40, 60, 80], higher_is_easier: false }, attack: scale, defence: scale, odds: scale, record: scale, market_record: scale }, matchdays, teams } };
+  return { success: true, meta: meta && { ...meta, model_notes: [] }, data: { competition, season: "2026/27", current_matchday: completed + 1, model_version: `test-${competition}`, lens_scales: { overall: { cuts: [20, 40, 60, 80], higher_is_easier: false }, attack: scale, defence: scale, odds: scale, record: scale, market_record: scale }, lenses: ["overall", "attack", "defence", "record"], matchdays, teams } };
 }
 
 // `finished`: the Conference's six-round league phase all played, every game 0-0 but Q10's 1-0 win over Q11, so Q13 (who met
@@ -48,5 +48,5 @@ function europeanFixture(competition, meta, finished = false) {
     cell.prediction = {...cell.prediction, expected_points:favoured?2.75:.2,
       probabilities:{win:favoured?.9:.05,draw:.05,loss:favoured?.05:.9},xg_for:favoured?3:.4,xg_against:favoured?.4:3};
   }
-  return {success:true,meta:{last_synced_at:meta?.last_synced_at??null,last_predicted_at:meta?.last_predicted_at??null,model_notes:competition==="CONF"?[{lens:null,text:"Early estimates: the Conference has few past games to learn from."}]:[]},data:{competition,season:"2026/27",current_matchday:4,model_version:`test-${competition}`,lens_scales:Object.fromEntries(["overall","attack","defence","odds","record","market_record"].map(k=>[k,scale])),matchdays,teams}};
+  return {success:true,meta:{last_synced_at:meta?.last_synced_at??null,last_predicted_at:meta?.last_predicted_at??null,model_notes:competition==="CONF"?[{lens:null,text:"Early estimates: the Conference has few past games to learn from."}]:[]},data:{competition,season:"2026/27",current_matchday:4,model_version:`test-${competition}`,lens_scales:Object.fromEntries(["overall","attack","defence","odds","record","market_record"].map(k=>[k,scale])),lenses:["overall","attack","defence"],matchdays,teams}};
 }

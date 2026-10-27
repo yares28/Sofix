@@ -3,7 +3,7 @@
 import { useCallback, useDeferredValue, useMemo, useState } from "react";
 import { useTileTooltip } from "../hooks/useTileTooltip";
 import {
-  LENS_COPY, formatDay, sortTeams, withPinsFirst, type Horizon, type SortKey, type SortState,
+  LENS_COPY, formatDay, lensesOf, sortTeams, withPinsFirst, type Horizon, type SortKey, type SortState,
 } from "../lib/grid";
 import type { FixtureGrid, GridCell, GridTeam, Lens } from "../lib/types";
 import BoardToolbar from "./BoardToolbar";
@@ -132,6 +132,7 @@ export default function DifficultyGrid({ grid, start, end, lens, horizon, pins, 
     <section id="grid" className="card board" aria-label="Fixture grid">
       <BoardToolbar
         lens={lens}
+        lenses={lensesOf(grid)}
         horizon={horizon}
         first={columns[0]}
         last={columns[columns.length - 1]}

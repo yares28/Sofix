@@ -47,7 +47,7 @@ prices or standings. Live pages always show their own sync/freshness state.
 
 On Season/Fixtures, Difficulty and Table, **Competition** selects LaLiga, Premier League, Bundesliga or Ligue 1. Switching leagues keeps the date window; the league's GW number can differ. Team links and reloads retain that league. A week without games stays empty. Refresh runs automatically with the existing job, including when your computer is off.
 
-The new leagues have independent football ratings, expected points/goals and raw clean-sheet chances. Their historical Record uses their own league history. Live Odds/Vs odds and a frozen preseason projection are not supplied for these leagues; missing numbers stay blank. A finished game shows only the forecast actually saved before kickoff, so the first refresh does not invent historical forecasts. The Bundesliga and Ligue 1's 16th place is a relegation play-off place; the bottom two go down directly.
+The new leagues have independent football ratings, expected points/goals and raw clean-sheet chances. Their historical Record uses their own league history. Live Odds/Vs odds and a frozen preseason projection are not supplied for these leagues, so their boards offer only the lenses that colour something (Overall, Attack, Defence, Record; the European boards the first three), and a link to a lens a board lacks opens Overall. The All board offers Odds for LaLiga's priced games and marks the others "No odds". A finished game shows only the forecast actually saved before kickoff, so the first refresh does not invent historical forecasts. The Bundesliga and Ligue 1's 16th place is a relegation play-off place; the bottom two go down directly.
 
 ## Champions League and Europa League (23 October 2026)
 

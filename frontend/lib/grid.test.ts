@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_VIEW, cellBucket, horizonSize, cellLabel, columnTotal, formatDay, formatEdge, formatKickoff, formatLensValue, formatShortKickoff,
-  PRICE_OPTIONS, VIEW_PATH, decimalOdds, legacyBoardUrl, lensValue, mostPointsComing, playedValue, recordCopy, runValue, scheduleSwing, marketLabels, marketLines, openingColumn, overviewWindow, parseViewState, positionPicks, selectedColumn, windowLabel, relativeTime, runStats, scaleBucket, serializeViewState, sortTeams, windowRange,
+  PRICE_OPTIONS, VIEW_PATH, decimalOdds, legacyBoardUrl, lensValue, lensesOf, mostPointsComing, playedValue, recordCopy, runValue, scheduleSwing, marketLabels, marketLines, openingColumn, overviewWindow, parseViewState, positionPicks, selectedColumn, windowLabel, relativeTime, runStats, scaleBucket, serializeViewState, sortTeams, windowRange,
 } from "./grid";
 import type { Bucket, CellRecord, DifficultyLabel, FixtureGrid, GridCell, GridTeam, LensScale } from "./types";
 
@@ -435,5 +435,14 @@ describe("record lenses", () => {
     expect(recordCopy(rec(0.05, 63), 0.3, false).headline).toBe("Wins 45% of games rated 30%");
     expect(recordCopy(null, 0.3, false)).toEqual({ headline: "No record at this rating yet", evidence: null });
     expect(recordCopy(null, null, true).headline).toBe("No record at these odds yet");
+  });
+});
+
+describe("lenses a board can colour (B4)", () => {
+  it("a bookmarked lens the board cannot colour opens Overall; an older block offers all six", () => {
+    const params = new URLSearchParams("lens=odds");
+    expect(parseViewState(params, new Set(), lensesOf({ lenses: ["overall", "attack", "defence", "record"] })).lens).toBeUndefined();
+    expect(parseViewState(params, new Set(), lensesOf({ lenses: null })).lens).toBe("odds");
+    expect(parseViewState(new URLSearchParams("lens=record"), new Set(), lensesOf({ lenses: ["overall", "attack", "defence", "record"] })).lens).toBe("record");
   });
 });

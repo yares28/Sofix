@@ -62,6 +62,7 @@ function TeamRow({
               showTbc={!columnTbc[column]}
               cellKey={(cell) => `${team.code}-${cell.fixture_id}`}
               bucketOf={(cell) => cellBucket(cell, lens, scale)}
+              emptyText={lens === "odds" ? "No odds" : undefined}
               crestOf={(code) => crestSource(teamsByCode.get(code)?.crest_url)}
               codeOf={(code) => teamsByCode.get(code)?.source_code ?? code}
               labelOf={(cell) =>

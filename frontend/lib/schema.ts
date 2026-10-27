@@ -96,6 +96,7 @@ export const FixtureGridSchema = z.object({
     record: LensScaleSchema,
     market_record: LensScaleSchema,
   }),
+  lenses: z.array(z.enum(["overall", "attack", "defence", "odds", "record", "market_record"])).nullish(),
   matchdays: z.array(z.object({ number: z.number().int(), date_from: isoDate, date_to: isoDate, finished: z.boolean() })),
   teams: z.array(
     z.object({

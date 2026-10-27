@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Generic, Literal, TypeVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 T = TypeVar("T")
 
@@ -10,6 +10,7 @@ Outcome = Literal["W", "D", "L"]
 Venue = Literal["H", "A"]
 CellStatus = Literal["scheduled", "live", "finished", "postponed"]
 LensName = Literal["overall", "attack", "defence"]
+Lens = Literal["overall", "attack", "defence", "odds", "record", "market_record"]
 Bucket = Literal[1, 2, 3, 4, 5]  # 1 = easiest; a literal so the generated TypeScript type is exact
 
 
@@ -221,3 +222,18 @@ class FixtureGrid(BaseModel):
     lens_scales: LensScales
     matchdays: list[GridMatchday]
     teams: list[GridTeam]
+    # The lenses that colour something on this board: the model's three always, the others only where a game still to be
+    # played has a price or a record (plans/multi-competition-review.md B4). Filled from the cells; None in older blocks.
+    lenses: list[Lens] | None = None
+
+    @model_validator(mode="after")
+    def _lenses(self) -> "FixtureGrid":
+        if self.lenses is None and self.teams:
+            cells = [c for t in self.teams for col in t.cells for c in col if c.status != "finished"]
+            found: dict[Lens, bool] = {
+                "odds": any(c.market for c in cells),
+                "record": any(c.record for c in cells),
+                "market_record": any(c.record_price for c in cells),
+            }
+            self.lenses = ["overall", "attack", "defence", *(lens for lens, seen in found.items() if seen)]
+        return self

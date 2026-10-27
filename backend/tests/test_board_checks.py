@@ -82,3 +82,16 @@ def test_european_xscores_follow_the_last_check_not_the_last_change():
     checks[board_checks.KEY]["CL"] = (now - timedelta(hours=7)).isoformat()
     assert "CL" not in sorare.foreign_inputs({"grid:CL": envelope, **checks}, now)[1]
     assert "CL" not in sorare.foreign_inputs({"grid:CL": envelope}, now)[1]  # never checked: its own time
+
+
+def test_each_board_lists_only_the_lenses_that_colour_something():
+    # plans/multi-competition-review.md B4: no bookmaker prices on the foreign boards, so no Odds or Vs odds lens.
+    payload, history = sample()
+    board = build_league_grid("PL", payload, history, NOW)
+    assert board.data.lenses is not None
+    assert {"overall", "attack", "defence"} <= set(board.data.lenses)
+    assert "odds" not in board.data.lenses and "market_record" not in board.data.lenses
+    kept = board.model_dump(mode="json")
+    kept["data"].pop("lenses")  # a block from before the field: filled again from its cells
+    again = type(board).model_validate(kept)
+    assert again.data.lenses == board.data.lenses

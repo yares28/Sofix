@@ -15,9 +15,12 @@ export function allFixture(meta) {
       result: md.finished ? { goals_for: 0, goals_against: 0, outcome: "D" } : null,
       prediction: { difficulty: 20 + i, label: "Favourite", bucket: 2, expected_points: 2.5 - i / 40,
         probabilities: { win: .6, draw: .2, loss: .2 }, clean_sheet: .4, xg_for: 2.5 - i / 40, xg_against: 1 },
+      // Only LaLiga's games are priced: the All board's Odds lens shows, the other games say "No odds" (B4).
+      market: !extra && leagues[i % 7] === "PD" && !md.finished ? { win: .6, draw: .2, loss: .2, scores: .8, scores_2plus: .5, clean_sheet: .4,
+        concedes_2plus: .2, both_score: .5, expected_points: 2, bookmakers: 12, fetched_at: md.date_from } : null,
     }))) }));
   const scale = { cuts: [20, 40, 60, 80], higher_is_easier: false };
   return { success: true, meta, data: { competition: "ALL", season: "2026/27", current_matchday: 4,
-    missing_competitions: [], model_version: "combined", matchdays, teams,
+    missing_competitions: [], model_version: "combined", matchdays, teams, lenses: ["overall", "attack", "defence", "odds"],
     lens_scales: Object.fromEntries(["overall", "attack", "defence", "record", "market_record", "odds"].map(l => [l, scale])) } };
 }

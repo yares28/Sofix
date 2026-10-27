@@ -11,13 +11,11 @@ const HORIZONS: { value: Horizon; label: string }[] = [
   { value: "8", label: "Next 8" },
   { value: "all", label: "All" },
 ];
-const LENSES: { value: Lens; label: string }[] = (Object.keys(LENS_COPY) as Lens[]).map((lens) => ({
-  value: lens,
-  label: LENS_COPY[lens].label,
-}));
 
 interface Props {
   lens: Lens;
+  /** Only the lenses that colour something on this board (B4). */
+  lenses: readonly Lens[];
   horizon: Horizon;
   first: GridMatchday | undefined;
   last: GridMatchday | undefined;
@@ -41,7 +39,7 @@ export default function BoardToolbar(props: Props) {
       </div>
       <div className="toolbar-controls">
         <SegmentedControl<Horizon> label="Grid horizon" value={horizon} onChange={props.onHorizon} options={HORIZONS} />
-        {!single && <SegmentedControl<Lens> label="Grid lens" value={lens} onChange={props.onLens} options={LENSES} />}
+        {!single && <SegmentedControl<Lens> label="Grid lens" value={lens} onChange={props.onLens} options={props.lenses.map((value) => ({ value, label: LENS_COPY[value].label }))} />}
         {!single && (
           <div className="legend">
             <span className="visually-hidden">Colour key, {copy.label} lens:</span>

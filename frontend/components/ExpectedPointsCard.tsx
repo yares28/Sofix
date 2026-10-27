@@ -3,7 +3,7 @@
 import Link from "./FootballLink";
 import { Fragment, useState, type CSSProperties } from "react";
 import {
-  LENS_COPY, PRICE_OPTIONS, cellBucket, decimalOdds, formatTotal, marketLabels, marketLines, playedValue, type Horizon, type PriceOption, type RunStats,
+  LENS_COPY, PRICE_OPTIONS, lensesOf, cellBucket, decimalOdds, formatTotal, marketLabels, marketLines, playedValue, type Horizon, type PriceOption, type RunStats,
 } from "../lib/grid";
 import type { FixtureGrid, GridCell, GridMatchday, GridTeam, Lens } from "../lib/types";
 import Crest from "./Crest";
@@ -34,7 +34,6 @@ const HORIZONS: { value: OverviewHorizon; label: string }[] = [
   { value: "5", label: "Next 5" },
   { value: "8", label: "Next 8" },
 ];
-const LENSES = (Object.keys(LENS_COPY) as Lens[]).map((value) => ({ value, label: LENS_COPY[value].label }));
 const TITLES: Record<Lens, string> = {
   overall: "Expected points", attack: "Expected goals", defence: "Expected clean sheets", odds: "Market odds",
   record: "Wins vs its rating", market_record: "Wins vs its odds",
@@ -89,7 +88,7 @@ export default function ExpectedPointsCard(props: Props) {
         <h2 id="ladder-title" className="bento-title">{TITLES[lens]}</h2>
         <div className="bento-controls">
           <SegmentedControl<OverviewHorizon> label="Horizon" value={props.horizon} onChange={props.onHorizon} options={HORIZONS} />
-          <SegmentedControl<Lens> label="Lens" value={lens} onChange={props.onLens} options={LENSES} />
+          <SegmentedControl<Lens> label="Lens" value={lens} onChange={props.onLens} options={lensesOf(grid).map((value) => ({ value, label: LENS_COPY[value].label }))} />
         </div>
       </header>
 

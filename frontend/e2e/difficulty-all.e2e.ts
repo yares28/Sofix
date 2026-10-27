@@ -60,3 +60,19 @@ test("All never creates a combined domestic and European league table", async ({
   await expect(page).toHaveURL(/league=PD/);
   await expect(page.getByRole("combobox", { name: "Competition" })).toHaveValue("PD");
 });
+
+test("each board offers only the lenses that colour something", async ({ page }) => {
+  // plans/multi-competition-review.md B4: no prices outside LaLiga, no record on the European boards.
+  await page.goto("/difficulty?league=PL&lens=odds&h=5");
+  const lenses = page.getByRole("group", { name: "Grid lens" });
+  await expect(lenses.getByRole("button")).toHaveText(["Overall", "Attack", "Defence", "Record"]);
+  await expect(lenses.getByRole("button", { name: "Overall" })).toHaveAttribute("aria-pressed", "true"); // the cold link's lens opens Overall
+  await expect(page.locator(".footnote.attribution")).toHaveCount(0);
+  await page.goto("/table?league=PL");
+  await expect(page.locator(".footnote.attribution")).not.toContainText("Odds");
+  await page.goto("/difficulty?league=CL&h=5");
+  await expect(page.getByRole("group", { name: "Grid lens" }).getByRole("button")).toHaveText(["Overall", "Attack", "Defence"]);
+  await page.goto("/difficulty?league=ALL&lens=odds&h=5");
+  await expect(page.getByRole("group", { name: "Grid lens" }).getByRole("button", { name: "Odds" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#grid .cell").filter({ hasText: "No odds" }).first()).toBeVisible();
+});

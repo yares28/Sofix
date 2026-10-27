@@ -14,6 +14,8 @@ interface Props {
   /** The opponent's crest, drawn beside its code (owner's rule: clubs as their real crest wherever possible). */
   crestOf?: (code: string) => string | null;
   codeOf?: (code: string) => string;
+  /** Said instead of the venue on a game still to play that the lens cannot colour ("No odds"). */
+  emptyText?: string;
 }
 
 interface TileProps {
@@ -27,10 +29,11 @@ interface TileProps {
   showTbc: boolean;
   crest: string | null;
   opponentCode: string;
+  emptyText?: string;
 }
 
 /** A button, so every fixture can be reached and read without a mouse; details open in the tooltip. */
-function Tile({ cell, bucket, compact, dataKey, label, row, column, showTbc, crest, opponentCode }: TileProps) {
+function Tile({ cell, bucket, compact, dataKey, label, row, column, showTbc, crest, opponentCode, emptyText }: TileProps) {
   const common = {
     type: "button" as const,
     "data-key": dataKey,
@@ -75,6 +78,8 @@ function Tile({ cell, bucket, compact, dataKey, label, row, column, showTbc, cre
       <span className="venue">
         {cell.status === "live" ? (
           "Live"
+        ) : !bucket && emptyText ? (
+          emptyText
         ) : compact ? (
           cell.venue
         ) : (
@@ -90,7 +95,7 @@ function Tile({ cell, bucket, compact, dataKey, label, row, column, showTbc, cre
   );
 }
 
-export default function FixtureCell({ cells, bucketOf, cellKey, labelOf, row, column, showTbc, crestOf, codeOf }: Props) {
+export default function FixtureCell({ cells, bucketOf, cellKey, labelOf, row, column, showTbc, crestOf, codeOf, emptyText }: Props) {
   if (cells.length === 0) {
     return (
       <div className="cell blank">
@@ -119,6 +124,7 @@ export default function FixtureCell({ cells, bucketOf, cellKey, labelOf, row, co
           showTbc={showTbc}
           crest={crestOf?.(cell.opponent_code) ?? null}
           opponentCode={codeOf?.(cell.opponent_code) ?? cell.opponent_code}
+          emptyText={emptyText}
         />
       ))}
     </div>

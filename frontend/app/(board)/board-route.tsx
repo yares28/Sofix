@@ -9,7 +9,7 @@ import { loadFrozenPlan, loadSorare } from "../../lib/playData";
 import { weekPlan } from "../../lib/play";
 import { weekContext, weekDates } from "../../lib/weeks";
 import { loadSystem } from "../../lib/system";
-import { DEFAULT_VIEW, openingColumn, parseViewState, selectedColumn, type View } from "../../lib/grid";
+import { DEFAULT_VIEW, lensesOf, openingColumn, parseViewState, selectedColumn, type View } from "../../lib/grid";
 import { dateRange } from "../../lib/home";
 import { laligaRound } from "../../lib/laliga";
 import { tableAfter } from "../../lib/recap";
@@ -65,7 +65,7 @@ export async function BoardRoute({ view, searchParams }: { view: View; searchPar
     }
     if (md) params.set("gw", String(md));
     else if (week.current?.md) params.set("gw", String(week.current.md));
-    const initial = grid ? { ...DEFAULT_VIEW, ...parseViewState(params, new Set(grid.teams.map(t => t.code))), view } : { ...DEFAULT_VIEW, view };
+    const initial = grid ? { ...DEFAULT_VIEW, ...parseViewState(params, new Set(grid.teams.map(t => t.code)), lensesOf(grid)), view } : { ...DEFAULT_VIEW, view };
     const compact = grid && competition === "ALL" ? allWindow(grid, column ?? week.current?.column ?? openingColumn(grid), initial.horizon === "all" ? grid.matchdays.length : Math.max(1, Number(initial.horizon) || 1)) : null;
     return <>
       <SiteNav meta={meta} system={system} week={week} competition={competition} />
@@ -106,7 +106,7 @@ export async function BoardRoute({ view, searchParams }: { view: View; searchPar
   if ((params.has("w") || (week.current?.state === "live" && week.current.md !== opening)) && week.current?.md) params.set("gw", String(week.current.md));
 
   const initialView = grid
-    ? { ...DEFAULT_VIEW, ...parseViewState(params, new Set(grid.teams.map((team) => team.code))), view }
+    ? { ...DEFAULT_VIEW, ...parseViewState(params, new Set(grid.teams.map((team) => team.code)), lensesOf(grid)), view }
     : { ...DEFAULT_VIEW, view };
 
   // This week · LaLiga is its own page now (canvas board 3); a week with no LaLiga round keeps the board's away view.

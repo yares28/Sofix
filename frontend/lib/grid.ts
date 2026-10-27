@@ -478,8 +478,11 @@ export const DEFAULT_VIEW: ViewState = {
   view: "fdr", lens: "overall", horizon: "5", gw: null, pins: [], table: "current", standing: "actual", split: "total",
 };
 
-/** Read ?view=&lens=&h=&gw=&pins=&t= leniently: anything unknown falls back to the default. */
-export function parseViewState(params: URLSearchParams, knownCodes: ReadonlySet<string>): Partial<ViewState> {
+/** The lenses that colour something on this board (B4); a block from before the field offers all six. */
+export const lensesOf = (grid: { lenses?: Lens[] | null }): readonly Lens[] => grid.lenses ?? LENSES;
+
+/** Read ?view=&lens=&h=&gw=&pins=&t= leniently: anything unknown, or a lens this board cannot colour, falls back to the default. */
+export function parseViewState(params: URLSearchParams, knownCodes: ReadonlySet<string>, lenses: readonly Lens[] = LENSES): Partial<ViewState> {
   const state: Partial<ViewState> = {};
   const view = params.get("view");
   if (view === "fdr" || view === "plain" || view === "table") state.view = view;
@@ -491,7 +494,7 @@ export function parseViewState(params: URLSearchParams, knownCodes: ReadonlySet<
   const split = params.get("v");
   if (split === "home" || split === "away") state.split = split;
   const lens = params.get("lens");
-  if (lens && (LENSES as readonly string[]).includes(lens)) state.lens = lens as Lens;
+  if (lens && (lenses as readonly string[]).includes(lens)) state.lens = lens as Lens;
   const horizon = params.get("h");
   if (horizon && (HORIZON_VALUES as readonly string[]).includes(horizon)) state.horizon = horizon as Horizon;
   const gw = Number(params.get("gw") ?? params.get("from")); // ?from= is the old name

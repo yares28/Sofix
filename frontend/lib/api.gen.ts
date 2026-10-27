@@ -679,6 +679,8 @@ export interface components {
             matchdays: components["schemas"]["GridMatchday"][];
             /** Teams */
             teams: components["schemas"]["GridTeam"][];
+            /** Lenses */
+            lenses?: ("overall" | "attack" | "defence" | "odds" | "record" | "market_record")[] | null;
         };
         /** GridCell */
         GridCell: {

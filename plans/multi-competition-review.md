@@ -301,6 +301,15 @@ Nothing is pushed before 1 Nov ("Pushing").
 - **Must not break:** LaLiga keeps all six lenses; old `?lens=` links; the e2e mock (shared code: full suite).
 - **Done when:** each board shows only lenses that colour something; All shows Odds with "no odds" games; a cold link with a
   hidden lens opens Overall; a block without `lenses` still renders; no false credit.
+- **Result (27 Oct, local):** `FixtureGrid.lenses` is filled from the cells by a validator (the model's three always; Odds,
+  Record and Vs odds only where a game still to play has a price, a record or a record at its price), so every builder and
+  the All board get it without new code; an older block is filled the same way when a job reads it, and the page treats a
+  missing field as all six. Real 26 Oct blocks give LaLiga all six, PL and BL1 four (with Record), CL three. The toolbar, the
+  Expected points card and the URL reader (`parseViewState`'s new `lenses`) use `lensesOf(grid)`; the domestic credit names
+  The Odds API and "the record at each price" only when the board has them; an Odds tile with no price says "No odds".
+  Tests: backend (lenses of a foreign board; a block without the field is refilled), `grid.test.ts` (a bookmarked lens the
+  board lacks falls back, an older block keeps all six), `difficulty-all.e2e.ts` (PL shows four lenses and opens Overall from
+  `?lens=odds`, CL three, the All board's Odds lens with "No odds" games, no false credit).
 
 ### B5 · A European game loses Sofix's xScore when the same week has a game Sofix does not model
 - **Corrected 27 Oct:** this is about the xScore. Cups are not the case: Sorare does not score them, and none of the 39,000

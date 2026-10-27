@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   barsOf,
+  checkInIsNews,
   capsulesOf,
   chainOf,
   dialOf,
@@ -214,5 +215,21 @@ describe("connection chain", () => {
   it("does not call an old but recently seen extension linked", () => {
     const chain = chainOf(system([], { extension: { ...LINKED, version: "0.1.0" } }), NOW);
     expect(chain[1]).toMatchObject({ on: false, sub: "v0.1.0 · reload" });
+  });
+});
+
+describe("checkInIsNews", () => {
+  const seen = { version: "7.7.0", sorare_user: "yares", seen_at: "2026-09-21T11:00:00Z" };
+  it("skips a repeat of the same version and account within the check-in period", () => {
+    expect(checkInIsNews(seen, { version: "7.7.0", sorare_user: "yares" }, NOW)).toBe(false);
+  });
+  it("skips a signed-out flicker while sorare.com loads", () => {
+    expect(checkInIsNews(seen, { version: "7.7.0", sorare_user: null }, NOW)).toBe(false);
+  });
+  it("records a new version, a new account, a first check-in and an old one", () => {
+    expect(checkInIsNews(seen, { version: "7.8.0", sorare_user: "yares" }, NOW)).toBe(true);
+    expect(checkInIsNews(seen, { version: "7.7.0", sorare_user: "other" }, NOW)).toBe(true);
+    expect(checkInIsNews(null, { version: "7.7.0", sorare_user: null }, NOW)).toBe(true);
+    expect(checkInIsNews({ ...seen, seen_at: "2026-09-21T05:30:00Z" }, { version: "7.7.0", sorare_user: "yares" }, NOW)).toBe(true);
   });
 });

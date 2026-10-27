@@ -40,6 +40,19 @@ const SCHEDULE_SLACK_MS = 90 * 60_000;
 export const EXTENSION_CHECKIN_MS = 6 * 3_600_000;
 const EXTENSION_GONE_MS = 2 * EXTENSION_CHECKIN_MS + 3_600_000;
 
+type CheckIn = { version: string; sorare_user: string | null };
+
+/**
+ * Whether a check-in tells the app something new. Each one written costs a Neon write, an R2 upload and a fresh render of
+ * every page (Vercel CPU), and sorare.com reports "signed out" for a moment while it loads, so on 27 Oct 2026 the extension
+ * checked in 18 times an hour. A repeat inside the check-in period, or that momentary signed-out, is not news.
+ */
+export function checkInIsNews(stored: (CheckIn & { seen_at: string }) | null, next: CheckIn, now: Date): boolean {
+  if (!stored || stored.version !== next.version) return true;
+  if (now.getTime() - Date.parse(stored.seen_at) >= EXTENSION_CHECKIN_MS - 10 * 60_000) return true;
+  return next.sorare_user !== null && next.sorare_user !== stored.sorare_user;
+}
+
 const hm = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit" });
 const dayMonth = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", day: "numeric", month: "short" });
 const dayMonthUtc = new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", day: "numeric", month: "short" });

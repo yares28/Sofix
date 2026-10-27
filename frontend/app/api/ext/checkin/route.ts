@@ -1,7 +1,8 @@
 import { revalidateTag } from "next/cache";
 import { after, NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { database } from "../../../../lib/db";
+import { checkInIsNews } from "../../../../lib/control";
+import { database, readModel } from "../../../../lib/db";
 import { authorised } from "../../../../lib/extAuth";
 import { recordQuietly } from "../../../../lib/missionLog";
 import { putBlock } from "../../../../lib/r2";
@@ -21,6 +22,10 @@ export async function POST(request: NextRequest) {
   if (!authorised(request)) return NextResponse.json({ ok: false, error: "Not authorised." }, { status: 401 });
   const parsed = CheckIn.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ ok: false, error: "Bad check-in." }, { status: 400 });
+  const stored = await readModel<{ version: string; sorare_user: string | null; seen_at: string }>("extension");
+  if (!checkInIsNews(stored?.payload ?? null, parsed.data, new Date())) {
+    return NextResponse.json({ ok: true, seen_at: stored?.payload.seen_at }, { headers: { "Cache-Control": "no-store" } });
+  }
   const sql = database();
   if (!sql) return NextResponse.json({ ok: false, error: "No database configured." }, { status: 503 });
 

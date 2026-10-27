@@ -6,7 +6,8 @@ import { REFRESH_HEADER, refreshLabel, viewAfterPoll, viewAfterStart, type Refre
 import type { ApiResponse, RefreshStatus } from "../lib/types";
 import DataAction from "./ui/DataAction";
 
-const POLL_MS = 2000;
+// Each poll is a billed function call and a refresh takes minutes: every 2 s was 84 calls an hour (27 Oct 2026).
+const pollAfter = (elapsedMs: number) => (elapsedMs < 30_000 ? 3_000 : 15_000);
 const DONE_MS = 4000;
 const GIVE_UP_MS = 20 * 60_000; // the API releases a run as abandoned after 15 min
 
@@ -26,7 +27,8 @@ export default function RefreshButton() {
     if (!running) return;
     const startedAt = Date.now();
     let cancelled = false;
-    const timer = window.setInterval(async () => {
+    let timer = 0;
+    const poll = async () => {
       if (Date.now() - startedAt > GIVE_UP_MS) {
         setView({ kind: "failed", message: "The refresh is taking too long.", availableAt: Date.now() });
         return;
@@ -37,10 +39,12 @@ export default function RefreshButton() {
       } catch {
         // a dropped poll is retried on the next tick
       }
-    }, POLL_MS);
+      if (!cancelled) timer = window.setTimeout(poll, pollAfter(Date.now() - startedAt));
+    };
+    timer = window.setTimeout(poll, pollAfter(0));
     return () => {
       cancelled = true;
-      window.clearInterval(timer);
+      window.clearTimeout(timer);
     };
   }, [running]);
 

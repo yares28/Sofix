@@ -36,13 +36,22 @@ class Made(NamedTuple):
     waiting: tuple[int, ...] = ()
 
 
+MATCH = (
+    "Opponent",
+    "Attack",
+)  # what the game's own numbers move: the clean-sheet chance, his side's and the opponent's goals
+
+
 def _named(outcome: Outcome, opponent: str | None) -> Outcome:
-    """The reason called "Opponent" says who he is: "Barcelona"."""
-    if not opponent:
+    """The game's numbers as one reason, named after the opponent ("Barcelona"). The line moves the clean-sheet chance and the
+    goals against under "Opponent" and his side's goals under "Attack" (outfield.py, frozen), so an easier opponent could read
+    as a minus beside a bigger plus; together they are what this opponent does to his number (multi-competition-review X10)."""
+    match = sum(pts for name, pts in outcome.why if name in MATCH)
+    rest = [(name, pts) for name, pts in outcome.why if name not in MATCH]
+    if len(rest) == len(outcome.why):
         return outcome
-    return dataclasses.replace(
-        outcome, why=tuple((opponent if name == "Opponent" else name, pts) for name, pts in outcome.why)
-    )
+    why = sorted([*rest, (opponent or "Opponent", match)], key=lambda item: -abs(item[1]))
+    return dataclasses.replace(outcome, why=tuple(why))
 
 
 def scores_for(

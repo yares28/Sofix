@@ -475,6 +475,10 @@ games says it is better (owner, 27 Oct: no waiting for months). For CL and EL th
   never in `outfield.py`.
 - **Cost:** none.
 - **Done when:** an easier opponent never shows as a minus in a test; reasons still add up.
+- **Result (27 Oct, local):** `scores._named` sums "Opponent" and "Attack" (the clean-sheet chance, goals against and his
+  side's goals) into one reason named after the opponent; the foreign scorer applies it to its games too. `outfield.py` is
+  untouched. Test on the shipped lines, defenders, midfielders and forwards: an easy game's opponent reason is a plus, a hard
+  one's a minus, "Attack" is gone, and the reasons add up to the frozen line's own.
 
 ### X11 · The Conference's opponent difficulty is barely better than averages
 - **Issue:** its match prediction is only 1.5% better than average results; Sofix's favourite wins only 49% of the time.

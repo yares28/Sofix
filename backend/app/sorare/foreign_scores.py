@@ -18,7 +18,7 @@ from app.services.rating_predictions import model_version
 from app.sorare import keeper, outfield
 from app.sorare.model import SORARE_POSITION
 from app.sorare.outfield import SubShape
-from app.sorare.scores import Made
+from app.sorare.scores import Made, _named
 
 ROOT = Path(__file__).resolve().parents[2] / "artifacts" / "league_xscore"
 COMPETITIONS = {
@@ -214,6 +214,8 @@ def scores_for(
             if len(codes) == 1 and len(games) == 1 and code in models:
                 sub = models[code].subs.get(pos)
             outcome = one(code, game, pos, past, player.get("slug"))
+            if outcome is not None:
+                outcome = _named(outcome, game.get("opponent"))
             if outcome is None and code in {"CL", "EL", "CONF"} and grids.get(code, {}).get("_fresh") is False:
                 waiting.append(i)
             found.append(outcome)

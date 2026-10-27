@@ -69,3 +69,21 @@ def test_a_game_sofix_does_not_model_takes_sorares_number_or_his_average_and_say
     first = dataclasses.replace(week, projection=30.0, game_scores=(None, 58.0))
     assert sorare_forecast.forecast(first).game_sources == ("sorare", "sofix")
     assert sorare_forecast.forecast(rotation_week(None)).game_sources == ("sofix",)  # one game: as before
+
+
+@pytest.mark.parametrize("position", ["Defender", "Midfielder", "Forward"])
+def test_an_easier_opponent_never_reads_as_a_minus(position: str) -> None:
+    # plans/multi-competition-review.md X10: the game's numbers are one reason, named after the opponent.
+    card = {"position": position, "activeClub": {"name": "Real Betis", "shortName": "Betis"}}
+    easy = lambda club, kickoff: GameNumbers(cs=0.5, xga=0.7, xgf=2.3, p_over=0.6)  # noqa: E731
+    hard = lambda club, kickoff: GameNumbers(cs=0.12, xga=2.4, xgf=0.6, p_over=0.6)  # noqa: E731
+    for find, sign in ((easy, 1), (hard, -1)):
+        outcome = scores.scores_for(keeper.load(), outfield.load(), find)(card, [GAME], None, PAST).outcomes[0]
+        names = [name for name, _ in outcome.why]
+        assert "Attack" not in names and "Opponent" not in names and names.count("Getafe CF") == 1
+        assert sign * dict(outcome.why)["Getafe CF"] > 0
+        raw = outfield.load()[{"Defender": "DEF", "Midfielder": "MID", "Forward": "FWD"}[position]]
+        x = outfield.features(find("", ""), True, *outfield.own_record([55.0] * 8), None)
+        assert sum(p for _, p in outcome.why) == pytest.approx(
+            sum(p for _, p in raw._why(__import__("numpy").array(x), None))
+        )

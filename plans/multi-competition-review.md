@@ -571,8 +571,9 @@ Qualifying rounds, the Bundesliga relegation play-off and domestic cups are rese
 - **Result (27 Oct, local; the timing half is open):** `check.mjs --live` prints the last eight runs' minutes and the latest
   run's kind and three slowest steps from `refresh_runs` on R2 (on 27 Oct: 10.4–14.4 min; sorare 587 s, predict 47 s,
   publish 23 s). The near-lock dispatch now asks for a quick run (`quick: true` → `refresh --quick`): no sync, odds,
-  predict or board steps (~90 s), and the Sorare step keeps each foreign squad index of the same week read in the last six
-  hours instead of reading ~144 squads again (~96 s). The lock-time freeze, Futbol Fantasy's reads, the refresh lock and the
+  predict or board steps (~90 s), and the Sorare step keeps each domestic foreign squad index (PL, BL1, FL1) of the same week
+  read in the last six hours instead of reading those 56 squads again (the European ones are stored without their games, so
+  they are read as before). The lock-time freeze, Futbol Fantasy's reads, the refresh lock and the
   clock are untouched (the same step, the same run row). Boards: B3 already makes an unchanged board free to publish; their
   fitting is ~26 s a run, so skipping it on unchanged inputs was left out. **Not met yet:** the Sorare step alone is ~8–10
   minutes (its sync ~5 min, its writes ~3 min, Futbol Fantasy ~1.5 min), so neither target holds until those shrink; the

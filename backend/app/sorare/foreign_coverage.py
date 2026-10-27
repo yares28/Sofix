@@ -41,8 +41,11 @@ QUICK_REUSE = timedelta(hours=6)
 
 def reusable(index: dict[str, Any] | None, fixture: str, now: datetime) -> bool:
     """A complete index of this same week read in the last six hours: a near-lock quick run keeps it instead of reading every
-    squad again (plans/multi-competition-review.md C1). Start chances and plans are what matter in the last hours."""
-    if not index or index.get("week") != fixture or index.get("complete") is not True:
+    squad again (plans/multi-competition-review.md C1). Start chances and plans are what matter in the last hours. A European
+    index is stored compacted (no games, no odds, `compact_index`), so only a domestic league's can be kept."""
+    if not index or index.get("competition") in {"CL", "EL", "CONF"}:
+        return False
+    if index.get("week") != fixture or index.get("complete") is not True:
         return False
     try:
         at = datetime.fromisoformat(str(index.get("at")))

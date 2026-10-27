@@ -131,8 +131,15 @@ def test_a_quick_run_keeps_a_same_week_foreign_index_read_in_the_last_six_hours(
     from app.sorare.foreign_coverage import reusable
 
     now = datetime(2026, 10, 30, 12, tzinfo=UTC)
-    index = {"week": "gw-1", "complete": True, "at": (now - timedelta(hours=5)).isoformat(), "clubs": {}}
+    index = {
+        "competition": "PL",
+        "week": "gw-1",
+        "complete": True,
+        "at": (now - timedelta(hours=5)).isoformat(),
+        "clubs": {},
+    }
     assert reusable(index, "gw-1", now)
     assert not reusable({**index, "at": (now - timedelta(hours=7)).isoformat()}, "gw-1", now)
     assert not reusable(index, "gw-2", now) and not reusable({**index, "complete": False}, "gw-1", now)
     assert not reusable({}, "gw-1", now)
+    assert not reusable({**index, "competition": "CL"}, "gw-1", now)  # stored without its games

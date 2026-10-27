@@ -57,6 +57,8 @@ export type PlayCard = {
   on?: number;
   /** His expected decisive actions in his better game of the week (the lineup's xD is its starters' added up). */
   xd?: number;
+  /** A European board unchecked for six hours: his number is Sorare's or his average until it is (B7). */
+  waiting?: "board";
 };
 
 /** Whose expected score a number is: Sofix's game model, Sorare's projection, or his last five games. */
@@ -321,6 +323,7 @@ export type PlayingPlayer = {
   on?: number;
   /** Whose number his expected score stands on, and Sorare's own projection for his first game. */
   by?: ScoreSource;
+  waiting?: "board";
   sorare?: number;
   pStart?: number;
   pOn?: number;
@@ -469,6 +472,7 @@ export type CollectionCard = {
 /** One indexed player, as the Players page draws him, including players you do not own. */
 export type MarketPlayer = {
   by?: "sofix" | "sorare" | "form";
+  waiting?: "board";
   slug: string;
   name: string;
   pos: "GK" | "DEF" | "MID" | "FWD" | "UNK";

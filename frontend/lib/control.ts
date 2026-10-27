@@ -125,6 +125,16 @@ export function syncedAt(
   return (competition && system?.boardChecks?.[competition]) || meta?.last_synced_at || meta?.last_predicted_at || null;
 }
 
+/** A European board unchecked for six hours: its players' xScores wait for it (backend `foreign_inputs`, B7). Oldest first. */
+export const BOARD_FRESH_MS = 6 * 3_600_000;
+export function staleBoards(system: SystemStatus | null, now: Date): { code: "CL" | "EL" | "CONF"; at: string }[] {
+  const checks = system?.boardChecks ?? {};
+  return (["CL", "EL", "CONF"] as const)
+    .filter((code) => checks[code] && now.getTime() - Date.parse(checks[code]!) > BOARD_FRESH_MS)
+    .map((code) => ({ code, at: checks[code]! }))
+    .sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+}
+
 export function pulseOf(system: SystemStatus | null, syncedAt: string | null, now: Date): Pulse {
   const last = system?.runs.at(-1);
   const next = nextRunLabel(now);

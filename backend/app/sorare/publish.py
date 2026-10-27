@@ -639,6 +639,7 @@ def card_payload(
         "mu": round(forecast.mu, 1),
         "x": round(forecast.p_play * forecast.mu, 1),
         "by": forecast.score_source,
+        **({"waiting": "board"} if forecast.waiting else {}),
         **({"xd": round(forecast.xd, 2)} if forecast.xd is not None else {}),
         **({"sorare": round(forecast.sorare, 1)} if forecast.sorare is not None else {}),
         **({"start": forecast.start} if forecast.start is not None else {}),
@@ -1116,6 +1117,7 @@ def gameweek_payload(
             "p": round(forecasts.get(card.player, Forecast(0, 0)).p_play, 3),
             "x": round(_expected(forecasts.get(card.player)), 1),
             "by": forecasts.get(card.player, Forecast(0, 0)).score_source,
+            **({"waiting": "board"} if forecasts.get(card.player, Forecast(0, 0)).waiting else {}),
             **({"xd": round(xd, 2)} if (xd := forecasts.get(card.player, Forecast(0, 0)).xd) is not None else {}),
             **(
                 {"sorare": round(number, 1)}
@@ -2015,6 +2017,7 @@ def market_out(
                 **({"decisive": round(forecast.shape.p_decisive, 3)} if forecast.shape is not None else {}),
                 **({"xd": round(xd, 3)} if xd is not None else {}),
                 "by": forecast.score_source,
+                **({"waiting": "board"} if forecast.waiting else {}),
                 **({"start": round(forecast.start, 1)} if forecast.start is not None else {}),
                 "x": round(_expected(forecast), 1),
                 "fixture": {

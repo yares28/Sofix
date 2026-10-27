@@ -88,3 +88,19 @@ test("a finished six-round Conference league phase breaks a tie by the opponents
  expect(Number.parseInt(await place("Q13"))).toBeLessThan(Number.parseInt(await place("Q12")));
  await resetBackend(request);
 });
+
+test("a player whose European board is not checked says he waits for it, next to the number he shows", async ({page,request}) => {
+ // plans/multi-competition-review.md B7: the board was last checked over six hours ago, so his number is Sorare's.
+ await resetBackend(request);
+ const data=(await(await request.get(`${MOCK}/api/sorare`)).json()).data as Sorare;
+ const week=data.timeline.find(w=>w.id===data.nextId)!;
+ const selected=seasonWeeks(await servedGrid(request),data,new Date()).find(w=>w.gw===week.id)!;
+ const player=(slug:string,waiting:boolean)=>({slug,name:slug,pos:"MID",club:"CL Club",crest:null,average:50,projection:52,eur:null,pic:"",by:"sorare",p:0.9,pStart:0.8,x:47,start:52,mu:52,...(waiting?{waiting:"board"}:{}),fixture:{team:"CL Club",opponent:"Other",opponentCrest:null,venue:"H",kickoff:week.start}});
+ await request.post(`${MOCK}/__test/my-weeks`,{data:{foreignBlocks:{CL:{competition:"CL",weekId:week.id,week:week.slug,generatedAt:new Date().toISOString(),complete:true,modelVersion:"CL:xscore-v3",market:[player("waits",true),player("fresh",false)]}}}});
+ await page.goto(`/players?league=CL&w=${selected.id}`);
+ const card=(name:string)=>page.locator("article").filter({has:page.getByRole("link",{name,exact:true})});
+ await expect(card("waits")).toContainText("Waiting for the board");
+ await expect(card("waits").locator(".s5-stat").filter({hasText:"Waiting for the board"}).locator("b")).toHaveText("47");
+ await expect(card("fresh")).toContainText("Sorare xScore");
+ await expect(card("fresh")).not.toContainText("Waiting for the board");
+});

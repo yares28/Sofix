@@ -126,6 +126,8 @@ class Forecast:
     score_source: str = "form"
     # whose number each game's is, kickoff order, when Sofix worked out at least one: "sofix", "sorare" or "form" (B5)
     game_sources: tuple[str, ...] = ()
+    # a game of his waits for a European board not checked in six hours: his number is Sorare's or his average (B7)
+    waiting: bool = False
     sorare: float | None = None
 
 

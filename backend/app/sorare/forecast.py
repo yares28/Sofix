@@ -320,6 +320,7 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
         on_shape=on_shape,
         score_source="sofix" if week.game_scores else ("sorare" if week.projection is not None else "form"),
         game_sources=game_sources,
+        waiting=bool(week.waiting),
         sorare=week.projection,
     )
 

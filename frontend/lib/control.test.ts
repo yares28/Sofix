@@ -10,6 +10,7 @@ import {
   pulseOf,
   resumeLabel,
   setupLeft,
+  staleBoards,
   syncedAt,
   withLiveExtension,
   type RunSummary,
@@ -248,5 +249,16 @@ describe("board freshness", () => {
     expect(syncedAt(meta, checked, "PD")).toBe(meta.last_synced_at);
     expect(syncedAt(meta, system([]), "CL")).toBe(meta.last_synced_at);
     expect(syncedAt(null, null)).toBeNull();
+  });
+});
+
+describe("stale European boards (B7)", () => {
+  it("lists a board unchecked for six hours, oldest first, and nothing for fresh or domestic ones", () => {
+    const checks = { CL: "2026-09-21T05:00:00Z", EL: "2026-09-21T11:00:00Z", CONF: "2026-09-21T02:00:00Z", PL: "2026-09-19T00:00:00Z" };
+    expect(staleBoards(system([], { boardChecks: checks }), NOW)).toEqual([
+      { code: "CONF", at: "2026-09-21T02:00:00Z" },
+      { code: "CL", at: "2026-09-21T05:00:00Z" },
+    ]);
+    expect(staleBoards(system([]), NOW)).toEqual([]);
   });
 });

@@ -12,6 +12,7 @@ import {
   nextRunLabel,
   pulseOf,
   setupLeft,
+  staleBoards,
   withLiveExtension,
   type ChainNode,
   type DialMark,
@@ -20,6 +21,7 @@ import {
 } from "../lib/control";
 import { extensionIsLatest, pingExtension, type ExtensionPing } from "../lib/extension";
 import { freshLabel } from "../lib/fresh";
+import { COMPETITIONS } from "../lib/competitions";
 import type { QrCode } from "../lib/qr";
 import ExtensionSetup, { type ExtensionStage } from "./control/ExtensionSetup";
 import GetTheApp from "./control/GetTheApp";
@@ -225,6 +227,7 @@ export default function ControlCenter({ serverNow, syncedAt, system: stored, sor
   const failed = bars.filter((bar) => bar.status === "failed").length;
   const missing = chain.filter((node) => !node.on).length;
   const league = system?.leagueHistory ?? null;
+  const stale = staleBoards(system, now);
 
   const extension = system?.extension ?? null;
   // An older build that still works is offered the update too: the newest one reads Futbol Fantasy live.
@@ -251,6 +254,11 @@ export default function ControlCenter({ serverNow, syncedAt, system: stored, sor
             </span>
             <h2 id="cc-pulse-title">{pulse.title}</h2>
             <p>{pulse.detail}</p>
+            {stale.length ? (
+              <p className="cc-stale" role="status">
+                Waiting for the board: {stale.map((board) => `${COMPETITIONS[board.code]}, checked ${freshLabel(board.at, now)}`).join(" · ")}
+              </p>
+            ) : null}
             <svg className="cc-ecg" viewBox="0 0 320 56" preserveAspectRatio="none" aria-hidden="true">
               <path d="M0 30h70l8-16 10 34 9-26 6 8h60l7-12 9 22 8-10h40l6-6 8 12h79" />
             </svg>

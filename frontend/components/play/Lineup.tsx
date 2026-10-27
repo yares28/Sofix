@@ -361,6 +361,7 @@ function SheetCard({ card, lineup, after, position, match, need }: { card: PlayC
                   <b>{card.by === "sofix" ? "SF" : card.by === "sorare" ? "SO" : "L5"}</b>
                 </>
               ) : null}
+              {card.waiting === "board" ? " · Waiting for the board" : null}
             </span>
           )}
         </span>

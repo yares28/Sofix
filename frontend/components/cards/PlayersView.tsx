@@ -187,7 +187,7 @@ function ResultCard({
           <b className={player.x === undefined ? undefined : "sc-chip"} style={player.x === undefined ? undefined : { background: scoreColour(player.x).fill, color: scoreColour(player.x).ink }}>
             {player.x === undefined ? "—" : Math.round(player.x)}
           </b>
-          <span>{player.by === "form" ? "Form xScore" : player.by === "sorare" ? "Sorare xScore" : "xScore"}</span>
+          <span>{player.waiting === "board" ? "Waiting for the board" : player.by === "form" ? "Form xScore" : player.by === "sorare" ? "Sorare xScore" : "xScore"}</span>
         </span>
         <span className="s5-stat" title={player.projection === null ? dash : undefined}>
           <b className={player.projection === null ? undefined : "sc-chip"} style={player.projection === null ? undefined : { background: scoreColour(player.projection).fill, color: scoreColour(player.projection).ink }}>{player.projection === null ? "—" : Math.round(player.projection)}</b>

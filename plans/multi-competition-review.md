@@ -356,6 +356,20 @@ Nothing is pushed before 1 Nov ("Pushing").
 - **Must not break:** fresh weeks look exactly as today; 1:1 skeletons; text floor.
 - **Done when:** a test with a 7-hour-old CL check shows "Waiting for the board" on that player and the board on Control; desktop
   and phone looks checked.
+- **Result (27 Oct, local):** built on B5's per-game scoring: a game whose European board is unchecked for six hours is listed
+  in `Made.waiting`, the forecast carries `waiting`, and the Play row, the owned card, the Players card and the pre-lock
+  record say `waiting: "board"`. The Players card's label reads "Waiting for the board" beside the number it shows, the Play
+  row adds it after its source mark, and Control's status card lists each stale European board with when it was checked
+  (`staleBoards`, from `board_checks`). Fresh weeks look as before. Tests: `european.e2e.ts` (the waiting player's card, the
+  other one unchanged), `control.test.ts` (a 7-hour-old CL check is listed, fresh and domestic ones are not), backend
+  (`Made.waiting` on a stale CL board). Looked at on the local dev server with real blocks and a 7-hour-old CL check: Control
+  at 1440 and 390 px (14 px text, no overflow).
+- **Looks of B1/D3, B2, B4 (27 Oct):** on the local dev server, real 26 Oct blocks rebuilt as this branch publishes them
+  (notes and lenses): Conference board, table and the All board's Odds lens at 1440 and 390 px; one note, three lenses on
+  CONF, LaLiga's priced games coloured and the rest "No odds" (11 px, 4.5:1), no horizontal overflow. Full browser suite:
+  288 of 296 passed; of the 8 failures, 7 pass alone on this branch and on the base commit (order-dependent in a full run;
+  the Audit ones passed in the earlier full run), and `lineups.e2e.ts:316` fails on the base commit too (its date pattern
+  expects a round ending in October; today's ends 1 Nov).
 
 ---
 

@@ -396,7 +396,7 @@ const server = createServer((req, res) => {
 
   if (req.method === "GET" && url.pathname === "/api/fixture-grid") {
     if (url.searchParams.get("competition") === "ALL") return send(res, 200, allFixture(grid.meta));
-    if (["PL", "BL1", "FL1", "CL", "EL", "CONF"].includes(url.searchParams.get("competition"))) return send(res, 200, leagueFixture(url.searchParams.get("competition"), grid.meta));
+    if (["PL", "BL1", "FL1", "CL", "EL", "CONF"].includes(url.searchParams.get("competition"))) return send(res, 200, leagueFixture(url.searchParams.get("competition"), grid.meta, state.conference === "finished"));
     if (state.mode === "malformed") return send(res, 200, { success: true, data: { season: 2026, teams: "broken" }, meta: null });
     const minutesAgo = (m) => new Date(Date.now() - m * 60_000).toISOString();
     return send(res, 200, {
@@ -627,6 +627,7 @@ const server = createServer((req, res) => {
     state.missions = url.searchParams.get("missions") ?? "ok"; // "stale": the last list was loaded two days ago
     state.correction = url.searchParams.get("correction");
     state.audit = url.searchParams.get("audit") ?? "ok"; // "missing": the page was never written; "enough": the record has enough games for figures
+    state.conference = url.searchParams.get("conference"); // "finished": the Conference league phase all played, with a tie
     state.run = finishedRun("cli");
     return send(res, 200, { ok: true, mode: state.mode, sorare: state.sorare, news: state.news, audit: state.audit });
   }

@@ -59,7 +59,8 @@ including neutral venues. There are no invented match odds or reconstructed pres
 The table counts the league phase only: 1–8 reach the round of 16, 9–24 the knockout play-off,
 25–36 are eliminated. Actual uses results up to the selected GW; Expected adds the remaining validated
 forecasts to points already won. Chances simulate independent results and use expected goal difference
-for simulated ties. Actual unresolved discipline/coefficient ties remain shared.
+for simulated ties. Once every league-phase game is played (eight rounds, six in the Conference), ties still level go
+to the opponents' points, goal difference and goals. Actual unresolved discipline/coefficient ties remain shared.
 
 CL and EL use their own validated FDR-based player models. A mixed week selects the model of each actual
 match. Own-score history uses final, authentic main-stage starts in all three UEFA competitions, available

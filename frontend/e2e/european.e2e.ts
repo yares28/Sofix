@@ -77,3 +77,14 @@ test("Conference is available provisionally with six rounds and cold player link
  await detail.reload();await expect(detail.locator(".pd-x")).toHaveText("0");
  await expect(detail.getByRole("note")).toHaveText(/^Early estimates/);
 });
+
+test("a finished six-round Conference league phase breaks a tie by the opponents' results", async ({page,request}) => {
+ await resetBackend(request, "conference-finished");
+ await page.goto("/table?league=CONF");
+ const codes = await page.locator(".lt-table tbody tr[data-code]").evaluateAll(rows => rows.map(r => r.getAttribute("data-code")));
+ expect(codes).toHaveLength(36);
+ expect(codes.indexOf("Q13")).toBeLessThan(codes.indexOf("Q12")); // same own record; Q13 met the winner, Q12 the loser
+ const place = (code: string) => page.locator(`.lt-table tbody tr[data-code="${code}"] td`).first().innerText();
+ expect(Number.parseInt(await place("Q13"))).toBeLessThan(Number.parseInt(await place("Q12")));
+ await resetBackend(request);
+});

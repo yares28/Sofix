@@ -59,3 +59,30 @@ it("allows only the exact UEFA team crest path", () => {
   expect(crestSource("https://img.uefa.com/imgml/TP/teams/logos/70x70/50080.png")).toContain("50080.png");
   for (const url of ["https://img.uefa.com/other.png", "https://img.uefa.com.evil/50080.png", "https://img.uefa.com/imgml/TP/teams/logos/70x70/50080.png?evil=1"]) expect(crestSource(url)).toBeNull();
 });
+
+// The Conference's league phase is six rounds, not eight (plans/multi-competition-review.md B2).
+function conference(finished = 6): FixtureGrid {
+  const board = grid();
+  const teams = board.teams.map(t => ({ ...t, cells: Array.from({ length: 6 }, (): GridCell[] => []) }));
+  for (let i = 0; i < 36; i++) for (const [k, d] of [1, 3, 5].entries()) {
+    const other = (i + d) % 36, round = 2 * k + i % 2, done = round < finished;
+    const won = i === 10 && other === 11; // the one decided game: 10 beats 11
+    for (const [me, them, venue, mine] of [[i, other, "H", won], [other, i, "A", false]] as const) teams[me]!.cells[round]!.push({
+      fixture_id: i * 4 + k, opponent_code: teams[them]!.code, venue, phase: "league", neutral: false,
+      kickoff_utc: `2026-10-${round + 10}T19:00:00Z`, date_confirmed: true, rescheduled: false,
+      status: done ? "finished" : "scheduled",
+      result: !done ? null : won ? (mine ? { goals_for: 1, goals_against: 0, outcome: "W" } : { goals_for: 0, goals_against: 1, outcome: "L" }) : { goals_for: 0, goals_against: 0, outcome: "D" },
+      prediction: null,
+    });
+  }
+  return { ...board, competition: "CONF", teams, matchdays: board.matchdays.slice(0, 6).map((m, i) => ({ ...m, finished: i < finished })) };
+}
+
+it("breaks a finished six-round Conference tie by the opponents' results, and keeps it shared before then", () => {
+  const at = (rows: ReturnType<typeof currentTable>, code: string) => rows.find(r => r.team.code === code)!.position;
+  // C13 met the winner C10, C12 met the loser C11: same own record, stronger opponents for C13.
+  const done = currentTable(conference());
+  expect(at(done, "C13")).toBeLessThan(at(done, "C12"));
+  const early = currentTable(conference(5), 4);
+  expect(at(early, "C13")).toBe(at(early, "C12"));
+});

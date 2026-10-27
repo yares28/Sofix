@@ -74,7 +74,9 @@ export function currentTable(grid: FixtureGrid, through = Number.POSITIVE_INFINI
 
   const competition = competitionOf(grid.competition);
   const european = isEuropean(competition);
-  const completePhase = european && grid.teams.every(t => t.cells.flat().length === 8 && t.cells.flat().every(c => c.status === "finished" && c.result)) && through >= 7;
+  // Each club plays one game a league-phase round: eight in the CL and EL, six in the Conference (leaguePhaseGrid kept only those).
+  const rounds = grid.matchdays.length;
+  const completePhase = european && rounds > 0 && grid.teams.every(t => t.cells.flat().length === rounds && t.cells.flat().every(c => c.status === "finished" && c.result)) && through >= rounds - 1;
   const byCode = new Map(rows.map(r => [r.team.code, r]));
   const awayGoals = (code: string) => games.get(code)!.filter(g => g.venue === "A").reduce((n, g) => n + g.goalsFor, 0);
   const awayWins = (code: string) => games.get(code)!.filter(g => g.venue === "A" && g.outcome === "W").length;

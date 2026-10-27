@@ -242,6 +242,11 @@ Nothing is pushed before 1 Nov ("Pushing").
 - **Must not break:** CL/EL tables; the mock's other boards (shared code: full browser suite).
 - **Done when:** a unit test with a finished six-round tie sorts by the opponents' results, an unfinished one keeps shared
   places, the browser spec shows it, and CL/EL tests are unchanged.
+- **Result (27 Oct, local):** `currentTable` takes the round count from the league-phase grid (`grid.matchdays.length` after
+  `leaguePhaseGrid`) for both the games each club has played and `through`. Unit test (`european.test.ts`): a six-round tie,
+  equal on everything of their own, is broken by the opponents' results when finished and stays shared before. The mock has a
+  `conference-finished` mode (all six rounds past and played, one decided game); `european.e2e.ts` shows the order on
+  /table. CL/EL unit and browser tests unchanged and passing.
 
 ### B3 · Every refresh rewrites all six new boards, even when nothing changed
 - **Issue:** each upcoming game and each board is stamped with the run's time, so the six boards and the All board are written

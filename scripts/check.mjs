@@ -208,6 +208,7 @@ async function live() {
   }
 
   await neonProjects();
+  await vercelUsage();
 
   // 4. Where the owner tests it: the main folder's dev server (hot reload, real read models) and production.
   if (changed.length) {
@@ -245,6 +246,70 @@ async function neonProjects() {
   const sent = status.projects.map((p) => `${name(p.endpoint)} ${gb(p.sentBytes)}`).join(", ");
   console.log(`${status.note ? "FAIL" : "    "}  Neon sent this month (moves at ${gb(status.limitBytes)}): ${sent}${status.note ? ` (${status.note})` : ""}`);
   if (status.note) failed.push("Neon usage");
+}
+
+const VERCEL_TEAM = "team_69ziwTfpgZV2NLM6sgmlIyrm";
+const VERCEL_PROJECT = "prj_fRnZQCA6B3JAMCZ10XxBPenCBKn7"; // sofix
+// The account's 4 h a month is 8 min a day for four apps; one hour of Sofix over a minute of function time means a poll, a
+// sweep or a page rendering far more than it should (27 Oct 2026: 120 s an hour, mostly polls and extension check-ins).
+const SOFIX_HOUR_BUDGET_S = 60;
+
+/**
+ * The account's Vercel Hobby allowances over the last 30 days (shared by Sofix, upv-cal, trakzi, folio2), and Sofix's function
+ * time in the last hour, read with the Vercel CLI's login (never printed). Fluid Active CPU itself (4 h) is only given to paid
+ * Observability Plus, so it is not read: function time is its ceiling (CPU never exceeds the time a function runs).
+ */
+async function vercelUsage() {
+  let token;
+  try {
+    token = JSON.parse(readFileSync(join(process.env.APPDATA ?? "", "com.vercel.cli", "Data", "auth.json"), "utf8")).token;
+  } catch {
+    return console.log("      Vercel usage: no Vercel CLI login on this computer (`vercel login`)");
+  }
+  const get = (url) => fetch(url, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(30_000) }).then((r) => (r.ok ? r.json() : null), () => null);
+  const to = new Date();
+  const from = new Date(to.getTime() - 30 * 86_400_000);
+  const usage = await get(`https://api.vercel.com/v2/usage?teamId=${VERCEL_TEAM}&type=requests&from=${from.toISOString()}&to=${to.toISOString()}`);
+  if (!usage?.data) {
+    console.log("FAIL  Vercel usage: the usage API did not answer");
+    return failed.push("Vercel usage");
+  }
+  const sum = (key) => usage.data.reduce((total, day) => total + (day[key] ?? 0), 0);
+  const limits = [
+    ["function calls", sum("function_invocation_successful_count") + sum("function_invocation_error_count"), 1e6, (n) => `${Math.round(n / 1000)}K`, "1M"],
+    ["memory", sum("function_execution_successful_gb_hours"), 360, (n) => `${n.toFixed(1)}`, "360 GB-h"],
+    ["CDN requests", sum("request_hit_count") + sum("request_miss_count"), 1e6, (n) => `${Math.round(n / 1000)}K`, "1M"],
+    ["data out", sum("bandwidth_outgoing_bytes") / 1e9, 100, (n) => `${n.toFixed(1)}`, "100 GB"],
+  ];
+  const high = limits.filter(([, used, limit]) => used / limit >= 0.75);
+  console.log(`${high.length ? "FAIL" : "ok  "}  Vercel, last 30 days, whole account: ${limits.map(([name, used, , show, limit]) => `${name} ${show(used)} / ${limit}`).join(", ")}`);
+  if (high.length) failed.push("Vercel limits");
+  const yesterday = usage.data.at(-2);
+  const share = yesterday?.breakdown?.function_execution?.find((p) => p.id === VERCEL_PROJECT)?.percent;
+  if (share !== undefined) console.log(`      Vercel yesterday: Sofix ran ${share}% of the account's function time`);
+
+  // The request-logs API keeps the last hour on Hobby.
+  const rows = [];
+  let end = Date.now();
+  const start = end - 3_600_000;
+  for (let page = 0; page < 30; page++) {
+    const body = await get(`https://vercel.com/api/logs/request-logs?projectId=${VERCEL_PROJECT}&ownerId=${VERCEL_TEAM}&startDate=${start}&endDate=${end}`);
+    const list = body?.rows ?? [];
+    rows.push(...list);
+    if (!body?.hasMoreRows || !list.length) break;
+    end = Date.parse(list.at(-1).timestamp) - 1;
+  }
+  const seconds = new Map();
+  for (const row of rows) {
+    const ms = (row.events ?? row.functionEvents ?? []).reduce((total, event) => total + (event.durationMs ?? 0), 0);
+    if (ms) seconds.set(row.route, (seconds.get(row.route) ?? 0) + ms / 1000);
+  }
+  const total = [...seconds.values()].reduce((a, b) => a + b, 0);
+  const top = [...seconds].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([route, s]) => `${route} ${Math.round(s)} s`).join(", ");
+  const over = total > SOFIX_HOUR_BUDGET_S;
+  console.log(`${over ? "FAIL" : "ok  "}  Sofix last hour: ${rows.length} calls, ${Math.round(total)} s of function time (budget ${SOFIX_HOUR_BUDGET_S} s)${top ? `; most: ${top}` : ""}`);
+  console.log("      Fluid Active CPU (4 h a month) is shown only on vercel.com/yares/~/usage: Vercel's API keeps it for paid plans");
+  if (over) failed.push("Sofix CPU");
 }
 
 const answers = (url) => fetch(url, { signal: AbortSignal.timeout(60_000) }).then((r) => r.status < 500, () => false);

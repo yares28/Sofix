@@ -14,6 +14,9 @@ and a check, so a session can work through it alone and stop only where you have
 
 ## Next up (the one queue: read this first, update it in the same commit when an item ships)
 
+27 Oct, first (the account's Vercel CPU stood at 3 h 56 m of 4 h): **cacheable pages** ([cacheable-pages.md](cacheable-pages.md),
+P0 to P5): every page served from Vercel's CDN and built only when its data changes or the week rolls, so a view costs no CPU.
+
 26 Oct, first: **Neon write-mostly, for good** ([neon-write-mostly.md](neon-write-mostly.md)): a day measured by the Neon ledger
 (built 26 Oct), then the readers moved to GitHub's cache and R2 with a byte budget per job; a free host without a transfer cap
 researched as the fallback.

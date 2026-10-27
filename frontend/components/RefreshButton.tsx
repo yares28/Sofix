@@ -33,11 +33,14 @@ export default function RefreshButton() {
         setView({ kind: "failed", message: "The refresh is taking too long.", availableAt: Date.now() });
         return;
       }
-      try {
-        const { status, body } = await callRefresh("GET");
-        if (!cancelled) setView(viewAfterPoll(status, body, Date.now()));
-      } catch {
-        // a dropped poll is retried on the next tick
+      // A hidden tab does not ask (AGENTS.md "Pages"); the next tick after it is shown again does.
+      if (document.visibilityState === "visible") {
+        try {
+          const { status, body } = await callRefresh("GET");
+          if (!cancelled) setView(viewAfterPoll(status, body, Date.now()));
+        } catch {
+          // a dropped poll is retried on the next tick
+        }
       }
       if (!cancelled) timer = window.setTimeout(poll, pollAfter(Date.now() - startedAt));
     };

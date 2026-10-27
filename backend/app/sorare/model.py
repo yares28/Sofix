@@ -124,6 +124,8 @@ class Forecast:
     # Whose number `mu` stands on: "sofix" (the game model, scores.py), "sorare" (its projection) or "form" (his last five), and
     # Sorare's own number for his first game when it has one. The page says which; the Audit compares the two.
     score_source: str = "form"
+    # whose number each game's is, kickoff order, when Sofix worked out at least one: "sofix", "sorare" or "form" (B5)
+    game_sources: tuple[str, ...] = ()
     sorare: float | None = None
 
 

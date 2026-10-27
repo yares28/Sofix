@@ -1,6 +1,7 @@
 """Source statements belong to a player/game and may move only before the gameweek lock."""
 
 from copy import deepcopy
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 from app.models import PlayerGame
@@ -130,6 +131,20 @@ def test_score_record_keeps_each_games_sources_and_actual_sides():
     assert second["sources"] == {"sofix": 0.6, "futbolfantasy": 0.4}, "Sorare's odds cover only his next game"
     assert first["home"] == "Home" and second["home"] == "Away" and second["away"] == "Home"
     assert first["ffPlayer"] == "p" and second["ffMatch"] == {"id": 8}
+    assert (first["sofix"], first["scoreSource"]) == (54, "sofix") and second["scoreSource"] == "sofix"
+
+    # B5: a game Sofix does not model is never stored as Sofix's; its own source says whose number it got.
+    mixed = replace(week, game_scores=(54, None), waiting=(1,))
+    out = publish.score_record(
+        {"slug": "gw", "number": 1, "lock": LOCK.isoformat()},
+        {"p": mixed},
+        {"p": forecast(mixed)},
+        {"p": games},
+        {"fetchedAt": NOW.isoformat()},
+    )
+    first, second = out["players"]["p"]["games"]
+    assert (first["sofix"], first["scoreSource"]) == (54, "sofix") and "waiting" not in first
+    assert (second["sofix"], second["scoreSource"], second["waiting"]) == (None, "form", "board")
 
 
 def test_unknown_statement_and_unpublished_eleven_stay_null(db):  # noqa: F811

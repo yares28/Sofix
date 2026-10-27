@@ -148,67 +148,77 @@ def scores_for(
     *,
     european_games: dict[str, dict[str, Any]] | None = None,
 ) -> Any:
+    def one(code: str, game: dict[str, Any], pos: str, past: list[dict[str, Any]], slug: str | None) -> Any:
+        """Sofix's picture of one covered game, or None when it cannot be told."""
+        bundle = models.get(code)
+        numbers = find_numbers(code, grids.get(code, {}), game)
+        if bundle is None or numbers is None:
+            return None
+        lock = when(game["forecastBefore"])
+        if code in {"CL", "EL", "CONF"}:
+            from app.research.european_validation import own_before
+
+            if european_games is None:
+                return None
+            history = [
+                (when(h["date"]), when(h["availableAt"]), float(h["starts"][slug]))
+                for h in european_games.values()
+                if slug in h.get("starts", {})
+                and h.get("mainStage") is True
+                and h.get("competition") in {"CL", "EL", "CONF"}
+            ]
+            dec, mean, _, _ = own_before(history, lock)
+        else:
+            own = [
+                h["score"]
+                for h in past
+                if h.get("competition") == LEAGUES[code]
+                and h.get("status") == "FINAL"
+                and h.get("played") is True
+                and h.get("started") is True
+                and h.get("score") is not None
+                and lock - timedelta(days=70) <= when(h["date"]) < lock
+            ]
+            dec, mean = outfield.own_record(own)
+        if pos == "GK":
+            return bundle.keeper.predict(numbers, None)
+        if pos in bundle.outfield:
+            return bundle.outfield[pos].outcome(numbers, game.get("venue") == "H", dec, mean, None)
+        return None
+
     def score(
         player: dict[str, Any], games: list[dict[str, Any]], projection: float | None, past: list[dict[str, Any]]
     ) -> Made:
         codes = {c for c, slug in COMPETITIONS.items() if any(g.get("competition") == slug for g in games)}
+        laliga = sum(1 for g in games if g.get("competition") == keeper.LALIGA)
         if not codes:
             if ((player.get("activeClub") or {}).get("domesticLeague") or {}).get("slug") in LEAGUES.values():
                 return Made((), None)
-            return fallback(player, games, projection, past)
+            if laliga in (0, len(games)):  # LaLiga alone, or no game Sofix models: exactly as before
+                return fallback(player, games, projection, past)
         pos = SORARE_POSITION.get(player.get("position") or "", "")
-        found = []
+        found: list[Any] = []
+        waiting: list[int] = []
         sub = None
+        # Each game on its own (B5): a covered game gets Sofix's number, a game in a league Sofix does not model gets None
+        # (Sorare's number or his average, `forecast.forecast`), and the week's other games keep theirs.
         for i, game in enumerate(sorted(games, key=lambda g: g["kickoff"])):
             code = next((c for c, slug in COMPETITIONS.items() if game.get("competition") == slug), None)
             if code is None:
-                # Existing LaLiga models can contribute their own game to a mixed GW.
                 if game.get("competition") != keeper.LALIGA:
-                    return Made((), None)
+                    found.append(None)
+                    continue
                 made = fallback(player, [game], projection if i == 0 else None, past)
-                if len(made.outcomes) != 1:
-                    return Made((), None)
-                found.extend(made.outcomes)
+                found.append(made.outcomes[0] if len(made.outcomes) == 1 else None)
                 continue
-            bundle = models.get(code)
-            numbers = find_numbers(code, grids.get(code, {}), game)
-            if bundle is None or numbers is None:
-                return Made((), None)
-            if len(codes) == 1 and len(games) == 1:
-                sub = bundle.subs.get(pos)
-            lock = when(game["forecastBefore"])
-            if code in {"CL", "EL", "CONF"}:
-                from app.research.european_validation import own_before
-
-                if european_games is None:
-                    return Made((), None)
-                history = [
-                    (when(h["date"]), when(h["availableAt"]), float(h["starts"][player["slug"]]))
-                    for h in (european_games or {}).values()
-                    if player.get("slug") in h.get("starts", {})
-                    and h.get("mainStage") is True
-                    and h.get("competition") in {"CL", "EL", "CONF"}
-                ]
-                dec, mean, _, _ = own_before(history, lock)
-            else:
-                own = [
-                    h["score"]
-                    for h in past
-                    if h.get("competition") == LEAGUES[code]
-                    and h.get("status") == "FINAL"
-                    and h.get("played") is True
-                    and h.get("started") is True
-                    and h.get("score") is not None
-                    and lock - timedelta(days=70) <= when(h["date"]) < lock
-                ]
-                dec, mean = outfield.own_record(own)
-            if pos == "GK":
-                outcome = bundle.keeper.predict(numbers, None)
-            elif pos in bundle.outfield:
-                outcome = bundle.outfield[pos].outcome(numbers, game.get("venue") == "H", dec, mean, None)
-            else:
-                return Made((), sub)
+            if len(codes) == 1 and len(games) == 1 and code in models:
+                sub = models[code].subs.get(pos)
+            outcome = one(code, game, pos, past, player.get("slug"))
+            if outcome is None and code in {"CL", "EL", "CONF"} and grids.get(code, {}).get("_fresh") is False:
+                waiting.append(i)
             found.append(outcome)
-        return Made(tuple(found), sub)
+        if all(o is None for o in found):
+            return Made((), sub, tuple(waiting))
+        return Made(tuple(found), sub, tuple(waiting))
 
     return score

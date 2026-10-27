@@ -25,10 +25,15 @@ Find = Callable[[str, str], GameNumbers | None]
 
 
 class Made(NamedTuple):
-    """A player's games worked out: one picture of each game in kick-off order (none when any game cannot be told), and the position's picture of a substitute."""
+    """A player's games worked out: one picture of each game in kick-off order, and the position's picture of a substitute.
 
-    outcomes: tuple[Outcome, ...]
+    A game Sofix has no model for is None there; the week's other games keep theirs (plans/multi-competition-review.md B5).
+    Empty when no game of the week can be told. `waiting`: the games (kick-off order) whose European board was not checked
+    in the last six hours, so they wait for the board instead of having Sofix's number (B7)."""
+
+    outcomes: tuple[Outcome | None, ...]
     sub: outfield.SubShape | None
+    waiting: tuple[int, ...] = ()
 
 
 def _named(outcome: Outcome, opponent: str | None) -> Outcome:

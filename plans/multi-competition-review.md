@@ -333,6 +333,15 @@ Nothing is pushed before 1 Nov ("Pushing").
   no invented odds; the owner's records (rule 3).
 - **Done when:** a test week with a CL game and a Serie A game gives the CL game Sofix's xScore and the Serie A game Sorare's
   number; a week with only unmodelled games scores as today; the record stores each game's source.
+- **Result (27 Oct, local):** `foreign_scores.scores_for` scores each game on its own (`one`): a covered game gets Sofix's
+  picture, any other None; `Made.outcomes` holds None for those, and is empty only when no game is told (a LaLiga-only week
+  still goes to the LaLiga scorer whole, exactly as before). The refresh now always routes through it, even with no foreign
+  model on, so a LaLiga game next to an unmodelled one keeps Sofix's number. `forecast` fills a None game with Sorare's
+  number when his projection is for it (the first game), else his own-form score, and publishes `game_sources`; the
+  pre-lock record stores `sofix` only for Sofix's games and each game's `scoreSource`. The player's `by` stays "sofix"
+  when Sofix worked out at least one game (its per-game sources say the rest; the pages' types stay unchanged). Tests:
+  CL + Serie A (Sofix, None), only Serie A (as before), a wrong opponent loses only its game, the forecast's sources
+  ("sofix", "form") and ("sorare", "sofix"), and the record's per-game sources. 1,426 backend tests pass.
 
 ### B6 · One test fails on this computer — fixed
 - **Checked 27 Oct:** the full backend suite passes here (1,416 tests). Do **not** renormalize line endings by hand: the frozen

@@ -587,21 +587,15 @@ def run(
         db,
         failed,
         "game scores",
-        lambda: (
-            foreign_scores.scores_for(
-                active_models,
-                foreign_grids,
-                scores.scores_for(
-                    keeper.load(), outfield.load(), keeper.numbers_for(db, fetched), outfield.load_subs()
-                ),
-                european_games=(european_state or {}).get("games")
-                if (european_state or {}).get("complete") is True
-                else None,
-            )
-            if foreign_models
-            else scores.scores_for(
-                keeper.load(), outfield.load(), keeper.numbers_for(db, fetched), outfield.load_subs()
-            )
+        # Always through the foreign scorer, even with no foreign model on: it scores each game on its own, so a LaLiga
+        # game keeps Sofix's number in a week with a game Sofix does not model (plans/multi-competition-review.md B5).
+        lambda: foreign_scores.scores_for(
+            active_models,
+            foreign_grids,
+            scores.scores_for(keeper.load(), outfield.load(), keeper.numbers_for(db, fetched), outfield.load_subs()),
+            european_games=(european_state or {}).get("games")
+            if (european_state or {}).get("complete") is True
+            else None,
         ),
         None,
     )

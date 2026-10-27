@@ -56,3 +56,16 @@ def test_without_a_game_of_sofixs_own_the_sorare_plan_still_scores_on_sorares_pr
         sorare_forecast.forecast(stripped).mu
         != sorare_forecast.forecast(dataclasses.replace(stripped, projection=None)).mu
     )
+
+
+def test_a_game_sofix_does_not_model_takes_sorares_number_or_his_average_and_says_so() -> None:
+    # plans/multi-competition-review.md B5: a CL game Sofix worked out next to a Serie A game it does not model.
+    week = dataclasses.replace(rotation_week(None), games=2, game_scores=(58.0, None), pos="GK")
+    made = sorare_forecast.forecast(week)
+    assert made.game_sources == ("sofix", "form")
+    alone = sorare_forecast.forecast(dataclasses.replace(week, games=1, game_scores=(58.0,)))
+    assert made.start < alone.start  # the Serie A game counts at his average, not at Sofix's 58
+    # Sorare's projection is for his next game only: when that is the unmodelled one, it takes Sorare's number.
+    first = dataclasses.replace(week, projection=30.0, game_scores=(None, 58.0))
+    assert sorare_forecast.forecast(first).game_sources == ("sorare", "sofix")
+    assert sorare_forecast.forecast(rotation_week(None)).game_sources == ("sofix",)  # one game: as before

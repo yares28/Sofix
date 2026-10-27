@@ -75,9 +75,9 @@ class PlayerWeek:
     pos: str | None = None  # "GK", "DEF", "MID" or "FWD"
     game_ids: list[str] = field(default_factory=list)  # his games in kickoff order; needed to use `game_starts`
     game_starts: list[GameStart] = field(default_factory=list)  # Futbol Fantasy's number, for the games it has
-    game_scores: tuple[
-        float, ...
-    ] = ()  # his score if he starts in each game, worked out from the game itself (scores.py), kickoff order
+    # his score if he starts in each game, worked out from the game itself (scores.py), kickoff order; None for a game in a
+    # league Sofix has no model for, which takes Sorare's number or his average (plans/multi-competition-review.md B5)
+    game_scores: tuple[float | None, ...] = ()
     shape: Any = None  # the picture of his first game behind that score (`keeper.Outcome`)
     sub: Any = None  # his position's picture of a substitute (`outfield.SubShape`)
     game_dec: tuple[float, ...] = ()  # the chance of a decisive action if he starts, for each game of `game_scores`
@@ -86,6 +86,7 @@ class PlayerWeek:
     # dates in `history` of games outside LaLiga: Sofix's chance of starting leaves them out
     cups: frozenset[str] = frozenset()
     banned: bool = False  # red card or five-yellow cycle: he misses his first LaLiga game
+    waiting: tuple[int, ...] = ()  # games (kickoff order) whose European board is stale: they wait for it (B7)
 
 
 def cup_dates(past: list[dict[str, Any]], domestic: str | None = None) -> frozenset[str]:
@@ -238,13 +239,24 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
         source = "sorare"
     split = _split(week, mu, plays)
     start, bench, p_start, p_on = split.start, split.bench, split.p_start, split.p_on
+    game_sources: tuple[str, ...] = ()
     if week.game_scores:  # his score is made by his game, not only his last five games (scores.py)
-        made = sum(week.game_scores) / len(week.game_scores)
         share = p_start / (p_start + p_on) if p_start + p_on > 0 else 0.0
         # a keeper or a regular starter plays as a starter: the number is his score if he plays; a rotation player's moves by his share of starts.
         # Both stand on Sofix's own numbers: Sorare's projection is left out (the owner's rule, 26 Oct 2026; plans/score-engine.md E0).
         _, own_mu = _from_form(week.history)
         own_split = _split(dataclasses.replace(week, projection=None), own_mu, plays)
+        # A game Sofix does not model gets what the whole week got before (B5): Sorare's number when his projection is for
+        # that game (his next one only), else his recent average.
+        sorare_game = week.projection is not None
+        filled = [
+            (score, "sofix")
+            if score is not None
+            else ((split.start, "sorare") if i == 0 and sorare_game else (own_split.start, "form"))
+            for i, score in enumerate(week.game_scores)
+        ]
+        game_sources = tuple(source for _, source in filled)
+        made = sum(score for score, _ in filled) / len(filled)
         mu = made if week.pos == "GK" or share >= REGULAR_STARTER else own_mu + share * (made - own_split.start)
         start = made
     shape = week.shape if week.game_scores else None
@@ -307,6 +319,7 @@ def forecast(week: PlayerWeek, sd: float = SCORE_SD) -> Forecast:
         shape=shape,
         on_shape=on_shape,
         score_source="sofix" if week.game_scores else ("sorare" if week.projection is not None else "form"),
+        game_sources=game_sources,
         sorare=week.projection,
     )
 

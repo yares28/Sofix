@@ -55,7 +55,7 @@ def test_fixture_join_requires_both_playing_sides_venue_timestamp_and_matching_m
     assert f.find_numbers("PL", grid, game) is None
 
 
-def test_mixed_domestic_european_week_selects_each_game_model_and_never_partial_totals():
+def test_mixed_domestic_european_week_selects_each_game_model_and_scores_each_game_on_its_own():
     domestic, first = fixture()
     european = deepcopy(domestic)
     european.update(competition="CL", model_version=f.expected_version("CL"), _fresh=True)
@@ -86,13 +86,33 @@ def test_mixed_domestic_european_week_selects_each_game_model_and_never_partial_
     )
     made = score({"position": "Defender"}, [first, second], 99, [])
     assert len(made.outcomes) == 2 and seen == ["PL", "CL"]
-    assert score({"position": "Defender"}, [first, {**second, "opponentSlug": "wrong"}], 99, []).outcomes == ()
-    assert (
-        score(
-            {"position": "Defender"}, [first, {**second, "competition": "uefa-europa-conference-league"}], 99, []
-        ).outcomes
-        == ()
+    # A game that cannot be told loses only its own number (plans/multi-competition-review.md B5).
+    unknown = score({"position": "Defender"}, [first, {**second, "opponentSlug": "wrong"}], 99, []).outcomes
+    assert unknown[0].start == 50 and unknown[1] is None
+    unmodelled = score(
+        {"position": "Defender"}, [first, {**second, "competition": "uefa-europa-conference-league"}], 99, []
     )
+    assert unmodelled.outcomes[0].start == 50 and unmodelled.outcomes[1] is None and unmodelled.waiting == ()
+    # A stale European board: that game waits for the board (B7).
+    european["_fresh"] = False
+    stale = score({"position": "Defender"}, [first, second], 99, [])
+    assert stale.outcomes[0].start == 50 and stale.outcomes[1] is None and stale.waiting == (1,)
+
+
+def test_a_champions_league_game_keeps_sofix_next_to_a_serie_a_game():
+    _, game = fixture()
+    european, _ = fixture()
+    european.update(competition="CL", model_version=f.expected_version("CL"), _fresh=True)
+    european["teams"][0]["cells"][0][0].update(neutral=False, phase="league")
+    european["teams"][0]["sorare_slug"], european["teams"][1]["sorare_slug"] = "inter", "arsenal"
+    cl = {**game, "id": "cl", "teamSlug": "inter", "opponentSlug": "arsenal", "competition": "uefa-champions-league"}
+    serie_a = {**game, "id": "sa", "kickoff": "2026-10-27T19:45:00Z", "competition": "serie-a-it"}
+    model = SimpleNamespace(outfield={"DEF": SimpleNamespace(outcome=lambda *a: SimpleNamespace(start=61))}, subs={})
+    score = f.scores_for({"CL": model}, {"CL": european}, lambda *args: Made((), None), european_games={})
+    inter = {"position": "Defender", "activeClub": {"domesticLeague": {"slug": "serie-a-it"}}}
+    made = score(inter, [serie_a, cl], 70, [])
+    assert [o.start if o else None for o in made.outcomes] == [61, None]  # kickoff order: the CL game, then Serie A
+    assert score(inter, [serie_a], 70, []).outcomes == ()  # only unmodelled games: exactly as before
 
 
 def test_european_history_requires_explicit_complete_context_and_filters_qualifiers():

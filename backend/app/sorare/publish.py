@@ -412,11 +412,12 @@ def player_weeks(
             pos=pos,
             game_ids=[g["id"] for g in ordered] if told else [],
             game_starts=told,
-            game_scores=tuple(o.start for o in made.outcomes),
-            shape=made.outcomes[0] if made.outcomes else None,
+            game_scores=tuple(o.start if o is not None else None for o in made.outcomes),
+            shape=next((o for o in made.outcomes if o is not None), None),
             sub=made.sub,
-            game_dec=tuple(o.p_decisive for o in made.outcomes),
+            game_dec=tuple(o.p_decisive if o is not None else (own_decisive(past, pos) or 0.0) for o in made.outcomes),
             dec=own_decisive(past, pos),
+            waiting=made.waiting,
         )
     return weeks
 
@@ -1895,7 +1896,14 @@ def score_record(
                     **info,
                     "sorare": said.get("score", w.projection if i == 0 else None),
                     "grade": said.get("grade"),
-                    "sofix": round(w.game_scores[i], 1) if i < len(w.game_scores) else None,
+                    # Sofix's number only for a game Sofix worked out; the game's own source says whose it is (B5)
+                    "sofix": round(score, 1)
+                    if i < len(w.game_scores) and (score := w.game_scores[i]) is not None
+                    else None,
+                    "scoreSource": f.game_sources[i]
+                    if f and i < len(f.game_sources)
+                    else (f.score_source if f else None),
+                    **({"waiting": "board"} if i in w.waiting else {}),
                     # his score if he comes on: what a substitute's game is judged against (the owner, 13 Oct 2026)
                     "sofixOn": f.on if f and f.on else None,
                 }

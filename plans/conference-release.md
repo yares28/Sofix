@@ -33,7 +33,8 @@ check; its completion is not required to make Conference available.
 - Require complete real 36-club identity, calendar, squads and shared recent history.
 - Add the 36-club/six-game league-phase board and appropriate eight/top-24 zones,
   knockout calendars and existing UEFA tiebreaks; never invent past forecasts or odds.
-- Keep unknown roles searchable without a guessed score; no partial mixed-week totals.
+- Keep unknown roles searchable without a guessed score. (27 Oct: "no partial mixed-week totals" is replaced by scoring each
+  game on its own, [multi-competition-review.md](multi-competition-review.md) B5.)
 - Verify backend/client types, routing, global player search/bookmarks, mobile/desktop
   real data and the applicable full browser suite. Publish through normal refresh.
 - Report exactly what real source/publication/UI proof passed, what was only simulated,

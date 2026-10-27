@@ -63,7 +63,9 @@ for simulated ties. Once every league-phase game is played (eight rounds, six in
 to the opponents' points, goal difference and goals. Actual unresolved discipline/coefficient ties remain shared.
 
 CL and EL use their own validated FDR-based player models. A mixed week selects the model of each actual
-match. Own-score history uses final, authentic main-stage starts in all three UEFA competitions, available
+match, and scores each game on its own: a game in a league Sofix does not model (Serie A, Scotland, Belgium…) takes
+Sorare's number when Sorare's projection is for that game, else his recent average, and the other games keep Sofix's.
+Each game records whose number it got. Own-score history uses final, authentic main-stage starts in all three UEFA competitions, available
 before the lock. Reviewing scores remain pending. A player with no source position remains searchable as
 Position TBC, without an invented score. Numbers belong to the selected Sorare GW and expire with the
 existing forecast freshness rules. A week with only domestic games receives no invented European match.

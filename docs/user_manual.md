@@ -4,6 +4,7 @@
 Sofix show probability-weighted expected rewards beside checked actual rewards (Sofix: **Would win**). Cash, each
 essence competition/rarity, cards and XP remain separate. A dash means unavailable or pending; an actual zero is a checked zero.
 A `+` marks a partial total, with checked-lineup coverage below. Your existing lineup read updates both sections.
+Settled rewards keep the original checked Sofix recommendation and your saved results even if a later replay or private snapshot differs.
 
 26 October: automatic reward checks also re-evaluate older unfinished deadlines using the games represented in your entered and recommended lineups, including the bench. Checks start one hour after the job first observes all relevant games finished; scheduled-run delays can add time. Completed results keep their correction schedule. New saved rewards become visible after scheduled publication.
 

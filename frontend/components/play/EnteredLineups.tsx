@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import PlayComparison, { type PlayComparisonProps } from "./PlayComparison";
 import { enteredPortfolio, enteredRewardRows, paidBySorare } from "../../lib/playPortfolio";
 import { rewardShort, type EnteredRewardCheck } from "../../lib/playRewards";
-import { weekRewards } from "../../lib/weekRewards";
+import { checkedWeekRewards } from "../../lib/weekRewards";
 import { useWeekRewards } from "../recap/WeekRewards";
 import { cannot } from "../../lib/apply";
 import { pendingLine, proLine, resultLine, type GameweekLineup, type WeekLineupsAnswer } from "../../lib/entered";
@@ -65,10 +65,11 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
   const estimates = useMemo(() => new Map(load.lineups.map(lineup => [lineup.id, enteredScore(lineup, forecast, week.slug)])), [load.lineups, forecast, week.slug]);
   useEffect(() => {
     if (!setRewards) return;
-    setRewards({ state: load.state, summary: weekRewards(load.lineups.filter(l => !l.draft).map(l => ({
+    setRewards({ state: load.state, summary: checkedWeekRewards(load.lineups.filter(l => !l.draft).map(l => ({
+      id: l.id,
       expected: estimates.get(l.id)?.rewards,
-      actual: rewardCheck?.you?.find(r => r.id === l.id)?.rewards ?? paidBySorare(l.result, estimates.get(l.id)?.prizeLine),
-    }))) });
+      actual: paidBySorare(l.result, estimates.get(l.id)?.prizeLine),
+    })), rewardCheck?.you) });
   }, [setRewards, load, estimates, rewardCheck]);
 
   const now = new Date(); // only read once the lineups are in, which happens in the browser

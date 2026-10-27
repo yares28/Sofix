@@ -1,5 +1,7 @@
 import { expect, it } from "vitest";
-import { weekRewards } from "./weekRewards";
+import { checkedWeekRewards, planForRewards, weekRewards } from "./weekRewards";
+import type { Plan } from "./play";
+import { rewardSignature } from "./playRewards";
 
 it("keeps reward units separate and counts unknown forecasts and checked zero results honestly", () => {
   const summary = weekRewards([
@@ -14,4 +16,20 @@ it("keeps reward units separate and counts unknown forecasts and checked zero re
   expect(summary.actual).toMatchObject({ checked: 2, total: 3, values: { "cash:USD": 5, card: 0 } });
   expect(weekRewards([{ actual: null }]).actual.values["cash:USD"]).toBeNull();
   expect(weekRewards([]).expected["cash:USD"]).toBeNull();
+});
+
+it("retains checked owner rewards when a newer private read is empty, without inventing a forecast", () => {
+  expect(checkedWeekRewards([], [{ id: "saved", rewards: { "cash:USD": 5 } }, { id: "zero", rewards: {} }])).toMatchObject({
+    total: 2, expected: { "cash:USD": null }, actual: { checked: 2, total: 2, values: { "cash:USD": 5 } },
+  });
+  const summary = checkedWeekRewards([{ id: "saved", expected: { "cash:USD": 1 }, actual: { "cash:USD": 4 } }], [{ id: "saved", rewards: {} }]);
+  expect(summary.total).toBe(1);
+  expect(summary.actual.values["cash:USD"]).toBe(0);
+});
+
+it("matches settled prizes to the retained recommendation rather than a changed replay", () => {
+  const original = { rank: 1, lineups: [{ board: "original", starters: [], subs: [] }] } as unknown as Plan;
+  const replay = { rank: 1, lineups: [{ board: "replay", starters: [], subs: [] }] } as unknown as Plan;
+  expect(planForRewards(replay, [original], { slug: "s", state: "checked", sofix: [{ signature: rewardSignature(original.lineups[0]!), rewards: {} }] })).toBe(original);
+  expect(planForRewards(replay, [original], null)).toBe(replay);
 });

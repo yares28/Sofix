@@ -9,7 +9,7 @@ import TeamNewsTile from "../components/home/TeamNewsTile";
 import EnteredLineups from "../components/play/EnteredLineups";
 import YourSeason from "../components/recap/YourSeason";
 import RewardsCard, { WeekRewardsProvider } from "../components/recap/WeekRewards";
-import { weekRewards } from "../lib/weekRewards";
+import { planForRewards, weekRewards } from "../lib/weekRewards";
 import { projectedRewards, rewardSignature } from "../lib/playRewards";
 import { myWeeksQuietly } from "../lib/myWeeksData";
 import SiteNav from "../components/SiteNav";
@@ -106,7 +106,8 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   const enteredForecast = frozen ? withLineupRules(frozen, plan) : plan;
   const rows = best ? planRows(best) : [];
   const [actuals, today, rewards] = await Promise.all([plan ? loadPlanActuals(plan) : {}, missionsToday(sorare, missions, undefined, now, pool), rewardsRead]);
-  const recommendation = weekRewards((best?.lineups ?? []).map(line => ({ expected: projectedRewards(line), actual: rewards?.sofix?.find(r => r.signature === rewardSignature(line))?.rewards })));
+  const rewardPlan = planForRewards(best, frozen?.plans ?? [], rewards);
+  const recommendation = weekRewards((rewardPlan?.lineups ?? []).map(line => ({ expected: projectedRewards(line), actual: rewards?.sofix?.find(r => r.signature === rewardSignature(line))?.rewards })));
   const rewardsCard = <RewardsCard recommendation={recommendation} gw={selectedSorare?.number ?? (plan && !plan.projected ? plan.gameweek.number : null)} href={href("/play")} hasEntries={Boolean(selectedSorare)} />;
   const news = plan ? weekNews(plan.playing.players, week.current?.md ?? null, now) : { hurt: [], back: [] };
   const md = grid.matchdays[column]!;

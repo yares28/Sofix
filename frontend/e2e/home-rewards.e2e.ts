@@ -61,3 +61,26 @@ test("Home reserves the reward rows while a cold saved-lineup read is pending", 
   expect(Math.abs(before!.height - after!.height)).toBeLessThanOrEqual(1);
   await expect(own.locator('[data-reward="cash:USD"] dd').last()).toHaveText("—");
 });
+
+test("Home keeps settled rewards attached to the retained plan when replay and private snapshots change", async ({ page, request, context }) => {
+  await resetBackend(request); await offline(page);
+  const data = structuredClone(sorare), week = nextWeek(data), frozen = structuredClone(week), original = bestPlan(frozen.plans)!;
+  for (const plan of week.plans) for (const line of plan.lineups) line.board = `replay-${line.board}`;
+  await request.post(`${MOCK}/__test/my-weeks`, { data: { sorareData: data, livePlan: frozen, playRewards: {
+    slug: week.gameweek.slug, state: "checked", planRank: original.rank,
+    you: [{ id: "historical", rewards: { "cash:USD": 2.5 } }],
+    sofix: original.lineups.map((line, i) => ({ signature: rewardSignature(line), rewards: i ? {} : { "cash:USD": 5 } })),
+  } } });
+  await context.route("**/api/my-week", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ weeks: [], snapshots: [], pending: [] }) }));
+  const served = (await (await request.get(`${MOCK}/api/sorare`)).json()).data as Sorare;
+  const selected = seasonWeeks(await servedGrid(request), served, new Date()).find(w => w.gw === week.gameweek.id)!;
+  await page.goto(`/?w=${selected.id}`);
+  const own = page.getByRole("region", { name: "You GW rewards" }), sofix = page.getByRole("region", { name: "Sofix GW rewards" });
+  await expect(own).toContainText("1 lineup · 1/1 checked");
+  await expect(own.locator('[data-reward="cash:USD"] dd').first()).toHaveText("—");
+  await expect(own.locator('[data-reward="cash:USD"] dd').last()).toHaveText("$2.50");
+  await expect(sofix.locator('[data-reward="cash:USD"] dd').last()).toHaveText("$5.00");
+  await expect(sofix).toContainText(`${original.lineups.length}/${original.lineups.length} checked`);
+  const line = original.lineups[0]!;
+  await expect(sofix.locator(`[data-reward="essence:${line.rarity}:${line.kind ?? "unknown"}"] dd`).last()).toHaveText("0");
+});

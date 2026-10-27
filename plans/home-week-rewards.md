@@ -26,12 +26,17 @@ checks; existing board, Play and mobile specs; desktop/mobile local real-data sc
   original, byte-identical `EnteredLineups.tsx` from the base commit; this is pre-existing and outside the Home change.
 - Final rewards spec: 2/2 passed, including exclusion of drafts, expected essence from the saved probability-weighted
   forecast, owner zero rewards, the checked recommendation, mobile text/overflow, reload, different GW and cold start.
+- After the real settled-week correction: 3/3 rewards browser tests and the complete local gate pass. The additional
+  browser regression covers changed replay, no private snapshot, saved owner payouts and checked zero essence.
 - Real cached GW27 in the owner's Chrome: all seven recommended lineups, separate Champion/LaLiga Limited essence,
   cash, cards and XP; no entered lineups and no checked rewards, correctly blank. Inspected 1440 and 390 px screenshots:
   separate natural-height table/reward cards, no horizontal overflow, readable labels. The local production build also
   navigated from Play to Home by clicking This week.
-- Settled actual figures were checked with deterministic saved-result fixtures; a real settled-GW browser view was not
-  inspected. The real cached reward blocks for GW22, GW23 and GW24 contain checked owner and recommendation rows.
+- A later real GW24 check found that its five-lineup replay differed from the six-lineup recommendation with checked
+  rewards. The rewards card now selects the retained recommendation by exact lineup signatures and retains checked
+  owner results even when a newer private snapshot is empty. Test-first regression covers both. Real GW24 now shows
+  all six Sofix lineups checked, 100 European Champions Limited essence, and your 102 essence from two checked lineups
+  (partial against the six entries). Unknown expectations for historical entries remain blank. Checked zero units stay zero.
 - Web interface guidelines pass: semantic sections/headings and definition lists, tabular figures, existing link focus
   treatment, live loading status, stable cold-read rows, no added animation or polling.
 - Initial missing Neon status was worktree configuration: after restoring its ignored local settings, the R2 status

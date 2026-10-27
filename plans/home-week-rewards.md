@@ -5,8 +5,8 @@ then your and Sofix's expected and actual rewards for the selected Sorare GW. On
 fixtures. No extra user action or Sorare tab is required beyond the existing entered-lineup workflow.
 
 Coverage: all entered lineups (excluding drafts) and every lineup in the best Sofix plan; cash, essence by competition
-and rarity, cards and XP stay separate. Expected means probability-weighted rewards, not the prize at an average
-score. Actual means checked results, never a prize inferred from a partial score. Missing stays distinct from zero;
+and rarity and XP stay separate; no card-prize row. Expected means the attainable prize at each lineup's projected
+score, summed across the GW, matching Play. Actual means checked results, never a prize inferred from a partial score. Missing stays distinct from zero;
 partial totals show coverage. Changing week must clear the previous week's figures. Reuse the existing private read
 and its saved fallback, refresh and visibility rules without adding polling or a second private request.
 
@@ -17,6 +17,14 @@ Interaction: existing week navigation updates both; existing lineup refresh upda
 Acceptance: regression tests first for aggregation and selected-week UI, delayed cold read, known zero and missing
 checks; existing board, Play and mobile specs; desktop/mobile local real-data screenshots; local checks before shipping.
 ## Evidence, 27 October
+
+Owner correction: remove the Cards row from both sides, replace probability-weighted averages with attainable prizes
+for both owner and recommendation, preserve checked results, missing/zero distinctions and cold-read geometry. No new user actions.
+
+Correction verified: regression fails first for known no-prize forecasts, then passes with sparse prize totals; local
+gate passes; all three rewards specs and the two affected mobile Home specs pass. Real cached GW27 in Chrome at
+1440 and 390 px shows $0 cash, 250 LaLiga Limited essence and 2,000 XP, with no Cards row and no overflow. Screenshots
+saved for both widths. Checked historical payouts and their retained-plan matching remain covered by the rewards spec.
 
 - The local gate passed (generated API types, ESLint, TypeScript and the complete unit suite); the production build passed.
 - The broad board/Play/mobile run passed 60 of 63 checks. The new test initially undercounted the existing season archive's

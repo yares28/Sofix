@@ -15,18 +15,18 @@ export function WeekRewardsProvider({ children }: { children: ReactNode }) {
 export const useWeekRewards = () => useContext(RewardsContext);
 
 function Side({ label, summary, state = "ready", fallback }: { label: string; summary?: WeekRewards; state?: Own["state"]; fallback?: WeekRewards }) {
-  const keys = rewardKeys([summary?.expected, summary?.actual.values, fallback?.expected, fallback?.actual.values]).filter((key, _, all) => key !== "essence:unknown:unknown" || !all.some(k => k.startsWith("essence:") && k !== key) || (summary?.actual.values[key] ?? 0) > 0 || (summary?.expected[key] ?? 0) > 0);
+  const keys = rewardKeys([summary?.expected, summary?.actual.values, fallback?.expected, fallback?.actual.values]).filter((key, _, all) => key !== "card" && !key.startsWith("card:") && (key !== "essence:unknown:unknown" || !all.some(k => k.startsWith("essence:") && k !== key) || (summary?.actual.values[key] ?? 0) > 0 || (summary?.expected[key] ?? 0) > 0));
   const loading = state === "loading";
   const value = (key: string, actual: boolean) => {
     if (loading) return <i className="rc-reward-skeleton" />;
     if (!summary || !summary.total) return "—";
-    const n = actual ? summary.actual.values[key] ?? (summary.actual.checked ? 0 : null) : summary.expected[key];
+    const n = actual ? summary.actual.values[key] ?? (summary.actual.checked ? 0 : null) : summary.expected[key] ?? (summary.forecastChecked ? 0 : null);
     if (n == null) return "—";
-    const partial = actual ? summary.actual.checked < summary.total : (summary.coverage[key] ?? 0) < summary.total;
-    return <>{rewardNumber(key, n)}{partial ? <small title={`${actual ? summary.actual.checked : summary.coverage[key] ?? 0}/${summary.total} lineups ${actual ? "checked" : "with forecasts"}`}>+</small> : null}</>;
+    const partial = actual ? summary.actual.checked < summary.total : summary.forecastChecked < summary.total;
+    return <>{rewardNumber(key, n)}{partial ? <small title={`${actual ? summary.actual.checked : summary.forecastChecked}/${summary.total} lineups ${actual ? "checked" : "with forecasts"}`}>+</small> : null}</>;
   };
   return <section className="rc-reward-side" aria-label={`${label} GW rewards`} aria-busy={loading || undefined}>
-    <div className="rc-reward-head"><h3>{label}</h3><span title="Probability-weighted rewards">Expected</span><span>{label === "You" ? "Actual" : "Would win"}</span></div>
+    <div className="rc-reward-head"><h3>{label}</h3><span title="Prizes at each lineup's projected score">Expected</span><span>{label === "You" ? "Actual" : "Would win"}</span></div>
     <dl>{keys.map(key => <div key={key} data-reward={key}><dt>{key === "essence:unknown:unknown" ? "Essence" : rewardName(key)}</dt><dd>{value(key, false)}</dd><dd>{value(key, true)}</dd></div>)}</dl>
     <p className="rc-reward-status" aria-live="polite">{loading ? "Checking your lineups…" : state === "unavailable" && !summary?.actual.checked ? "Entries unavailable" : !summary?.total ? label === "You" ? "No entered lineups" : "Plan unavailable" : <>{summary.total} lineup{summary.total === 1 ? "" : "s"} · {summary.actual.checked}/{summary.total} checked</>}</p>
   </section>;

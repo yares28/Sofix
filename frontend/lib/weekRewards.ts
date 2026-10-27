@@ -1,9 +1,9 @@
-import { actualRewards, rewardCoverage, rewardForecast, rewardSignature, type PlayRewardBlock, type RewardValues } from "./playRewards";
+import { actualRewards, rewardKeys, rewardSignature, type PlayRewardBlock, type RewardValues } from "./playRewards";
 import type { Plan } from "./play";
 
 export function weekRewards(rows: { expected?: RewardValues | null; actual?: RewardValues | null }[]) {
-  const forecasts = rows.map(row => row.expected);
-  return { total: rows.length, expected: rewardForecast(forecasts), coverage: rewardCoverage(forecasts), actual: actualRewards(rows.map(row => row.actual)) };
+  const forecasts = rows.map(row => row.expected), projected = actualRewards(forecasts);
+  return { total: rows.length, expected: projected.values, forecastChecked: projected.checked, coverage: Object.fromEntries(rewardKeys(forecasts).map(key => [key, projected.checked])), actual: actualRewards(rows.map(row => row.actual)) };
 }
 export type WeekRewards = ReturnType<typeof weekRewards>;
 

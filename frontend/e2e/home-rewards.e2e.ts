@@ -3,7 +3,7 @@ import { MOCK, offline, resetBackend, servedGrid, smallText, sorare } from "./he
 import { bestPlan, nextWeek } from "../lib/play";
 import type { Sorare } from "../lib/play";
 import { seasonWeeks } from "../lib/weeks";
-import { rewardNumber, rewardSignature } from "../lib/playRewards";
+import { projectedPrize, rewardNumber, rewardSignature } from "../lib/playRewards";
 
 test("Home compares the selected GW's expected and checked rewards without a second private read", async ({ page, request, context }) => {
   await resetBackend(request); await offline(page);
@@ -26,8 +26,9 @@ test("Home compares the selected GW's expected and checked rewards without a sec
   await expect(sofix.locator('[data-reward="cash:USD"] dd').last()).toHaveText("$5.00");
   await expect(sofix.locator(`[data-reward="${unit}"] dd`).last()).toHaveText("50");
   await expect(own).toContainText("Expected");
-  expect(typeof line.eEss).toBe("number");
-  await expect(own.locator(`[data-reward="${unit}"] dd`).first()).toHaveText(rewardNumber(unit, line.eEss!));
+  const prize = projectedPrize(line)!;
+  await expect(own.locator(`[data-reward="${unit}"] dd`).first()).toHaveText(rewardNumber(unit, prize[unit] ?? 0));
+  await expect(card.locator('[data-reward="card"]')).toHaveCount(0);
   await expect.poll(() => reads).toBe(3); // season archive reads before/after, plus one entered-lineup read
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
@@ -81,6 +82,5 @@ test("Home keeps settled rewards attached to the retained plan when replay and p
   await expect(own.locator('[data-reward="cash:USD"] dd').last()).toHaveText("$2.50");
   await expect(sofix.locator('[data-reward="cash:USD"] dd').last()).toHaveText("$5.00");
   await expect(sofix).toContainText(`${original.lineups.length}/${original.lineups.length} checked`);
-  const line = original.lineups[0]!;
-  await expect(sofix.locator(`[data-reward="essence:${line.rarity}:${line.kind ?? "unknown"}"] dd`).last()).toHaveText("0");
+  await expect(sofix.locator('[data-reward^="essence:"] dd').last()).toHaveText("0");
 });

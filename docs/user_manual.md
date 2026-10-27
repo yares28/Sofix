@@ -1,8 +1,8 @@
 # Sofix illustrated user manual
 
 27 October: Home splits the right column into the round's table and **Rewards** for the selected Sorare GW. You and
-Sofix show probability-weighted expected rewards beside checked actual rewards (Sofix: **Would win**). Cash, each
-essence competition/rarity, cards and XP remain separate. A dash means unavailable or pending; an actual zero is a checked zero.
+Sofix show the attainable prizes at each lineup's projected score beside checked actual rewards (Sofix: **Would win**).
+Cash, each essence competition/rarity and XP remain separate; card prizes are omitted. A dash means unavailable or pending; an actual zero is a checked zero.
 A `+` marks a partial total, with checked-lineup coverage below. Your existing lineup read updates both sections.
 Settled rewards keep the original checked Sofix recommendation and your saved results even if a later replay or private snapshot differs.
 

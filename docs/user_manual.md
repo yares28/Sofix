@@ -1,5 +1,10 @@
 # Sofix illustrated user manual
 
+27 October: Home splits the right column into the round's table and **Rewards** for the selected Sorare GW. You and
+Sofix show probability-weighted expected rewards beside checked actual rewards (Sofix: **Would win**). Cash, each
+essence competition/rarity, cards and XP remain separate. A dash means unavailable or pending; an actual zero is a checked zero.
+A `+` marks a partial total, with checked-lineup coverage below. Your existing lineup read updates both sections.
+
 26 October: automatic reward checks also re-evaluate older unfinished deadlines using the games represented in your entered and recommended lineups, including the bench. Checks start one hour after the job first observes all relevant games finished; scheduled-run delays can add time. Completed results keep their correction schedule. New saved rewards become visible after scheduled publication.
 
 26 October: Gallery uses larger cards with a coloured score and FDR on the art, then start chance, fixture crests and xD. Its information icon reveals L5/L10/L40, all saved start sources and lineup rewards. Pages hold twelve cards; filtering resets the page and player links reveal the right card. Read/refresh actions across Home, Play, Missions, Lineups, Arcade and Control use named icons; hover shows their purpose, with loading, failure and cooldown messages retained.

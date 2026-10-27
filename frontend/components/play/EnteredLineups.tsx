@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import PlayComparison, { type PlayComparisonProps } from "./PlayComparison";
 import { enteredPortfolio, enteredRewardRows, paidBySorare } from "../../lib/playPortfolio";
-import { rewardShort } from "../../lib/playRewards";
+import { rewardShort, type EnteredRewardCheck } from "../../lib/playRewards";
+import { weekRewards } from "../../lib/weekRewards";
+import { useWeekRewards } from "../recap/WeekRewards";
 import { cannot } from "../../lib/apply";
 import { pendingLine, proLine, resultLine, type GameweekLineup, type WeekLineupsAnswer } from "../../lib/entered";
 import { readEnteredWeek, type EnteredRead } from "../../lib/myWeeksClient";
@@ -22,7 +24,8 @@ type LoadState =
 
 /** Lineups the signed-in manager actually put on Sorare, read from this exact Sorare gameweek. */
 /** `scores`: the week's own player scores (lib/planScoresData.ts), so a card shows his score apart from its bonuses. */
-export default function EnteredLineups({ week, forecast = null, variant = "play", scores = {}, comparison }: { week: Week; forecast?: GameweekPlan | null; variant?: "play" | "recap"; scores?: ActualScores; comparison?: PlayComparisonProps }) {
+export default function EnteredLineups({ week, forecast = null, variant = "play", scores = {}, comparison, rewardCheck }: { week: Week; forecast?: GameweekPlan | null; variant?: "play" | "recap"; scores?: ActualScores; comparison?: PlayComparisonProps; rewardCheck?: EnteredRewardCheck | null }) {
+  const setRewards = useWeekRewards()?.setOwn;
   const [load, setLoad] = useState<LoadState>({ state: "loading", lineups: [] });
   const [asked, setAsked] = useState(0); // a new ask: Check again, or coming back to this tab
   const last = useRef<{ slug: string; lineups: GameweekLineup[] } | null>(null);
@@ -60,6 +63,13 @@ export default function EnteredLineups({ week, forecast = null, variant = "play"
   }, []);
 
   const estimates = useMemo(() => new Map(load.lineups.map(lineup => [lineup.id, enteredScore(lineup, forecast, week.slug)])), [load.lineups, forecast, week.slug]);
+  useEffect(() => {
+    if (!setRewards) return;
+    setRewards({ state: load.state, summary: weekRewards(load.lineups.filter(l => !l.draft).map(l => ({
+      expected: estimates.get(l.id)?.rewards,
+      actual: rewardCheck?.you?.find(r => r.id === l.id)?.rewards ?? paidBySorare(l.result, estimates.get(l.id)?.prizeLine),
+    }))) });
+  }, [setRewards, load, estimates, rewardCheck]);
 
   const now = new Date(); // only read once the lineups are in, which happens in the browser
   const locked = week.lock ? Date.parse(week.lock) <= now.getTime() : Boolean(week.end && Date.parse(week.end) < now.getTime());

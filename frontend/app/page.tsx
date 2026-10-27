@@ -8,6 +8,9 @@ import { WaitingTile } from "../components/home/SorareTiles";
 import TeamNewsTile from "../components/home/TeamNewsTile";
 import EnteredLineups from "../components/play/EnteredLineups";
 import YourSeason from "../components/recap/YourSeason";
+import RewardsCard, { WeekRewardsProvider } from "../components/recap/WeekRewards";
+import { weekRewards } from "../lib/weekRewards";
+import { projectedRewards, rewardSignature } from "../lib/playRewards";
 import { myWeeksQuietly } from "../lib/myWeeksData";
 import SiteNav from "../components/SiteNav";
 import { loadGrid } from "../lib/api";
@@ -21,7 +24,7 @@ import { lineupsGlance, readLabel } from "../lib/lineups";
 import { loadLineups } from "../lib/lineupsData";
 import { freshLabel } from "../lib/fresh";
 import { bestPlan, weekPlan } from "../lib/play";
-import { loadFrozenPlan, loadProjectedWeek, loadSorare, loadSorareWeek } from "../lib/playData";
+import { loadFrozenPlan, loadPlayRewards, loadProjectedWeek, loadSorare, loadSorareWeek } from "../lib/playData";
 import { weekContext, weekDates } from "../lib/weeks";
 import { loadSystem } from "../lib/system";
 import { loadPlanActuals } from "../lib/planScoresData";
@@ -90,6 +93,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
       : null;
   const now = new Date();
   const frozenRead = sorare && selectedSorare ? loadFrozenPlan(selectedSorare.slug, sorare) : null;
+  const rewardsRead = selectedSorare ? loadPlayRewards(selectedSorare.slug) : null;
   // Only the selected week's frozen or early plan supplies Recap's forecasts.
   const plan = sorare ? week.current?.gw
     ? weekPlan(sorare, week.current.gw) ?? (selectedSorare
@@ -101,7 +105,9 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   const frozen = await frozenRead;
   const enteredForecast = frozen ? withLineupRules(frozen, plan) : plan;
   const rows = best ? planRows(best) : [];
-  const [actuals, today] = await Promise.all([plan ? loadPlanActuals(plan) : {}, missionsToday(sorare, missions, undefined, now, pool)]);
+  const [actuals, today, rewards] = await Promise.all([plan ? loadPlanActuals(plan) : {}, missionsToday(sorare, missions, undefined, now, pool), rewardsRead]);
+  const recommendation = weekRewards((best?.lineups ?? []).map(line => ({ expected: projectedRewards(line), actual: rewards?.sofix?.find(r => r.signature === rewardSignature(line))?.rewards })));
+  const rewardsCard = <RewardsCard recommendation={recommendation} gw={selectedSorare?.number ?? (plan && !plan.projected ? plan.gameweek.number : null)} href={href("/play")} hasEntries={Boolean(selectedSorare)} />;
   const news = plan ? weekNews(plan.playing.players, week.current?.md ?? null, now) : { hurt: [], back: [] };
   const md = grid.matchdays[column]!;
   const lineupsHref = href("/lineups");
@@ -128,14 +134,18 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
         </header>
         {away ? <AwayWeek plan={plan} variant="recap" dates={weekDates(away)} href={href("/fixtures")} /> : null}
         {plan ? <BestCards cards={bestCards(plan.playing.players)} gw={plan.gameweek.number} /> : null}
-        <div className="rc-grid">
+        <WeekRewardsProvider key={selectedSorare?.slug ?? week.current?.id ?? "none"}><div className="rc-grid">
           <YourSeason saved={savedWeeks} now={now.toISOString()} />
           {!away ? (
             <>
               <RoundBoard matches={roundBoard(grid, column)} href={href("/fixtures")} />
-              <TableAfter rows={tableAfter(grid, column)} round={md.number} href={href("/table")} />
+              <div className="rc-sidebar">
+                <TableAfter rows={tableAfter(grid, column)} round={md.number} href={href("/table")} />
+                {rewardsCard}
+              </div>
             </>
           ) : null}
+          {away ? rewardsCard : null}
           {sorare && (plan || selectedSorare) ? (
             <>
               <section className="hm-tile rc-lineups" aria-labelledby="rc-lu-h">
@@ -145,7 +155,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                   <Link href={href("/play")}>{rows.length ? `See all ${rows.length}` : "Plan"} ›</Link>
                 </div>
                 {/* What you entered on Sorare comes first (read through the extension), then the plan's best. */}
-                {selectedSorare ? <EnteredLineups week={selectedSorare} forecast={enteredForecast} variant="recap" scores={actuals} /> : null}
+                {selectedSorare ? <EnteredLineups week={selectedSorare} forecast={enteredForecast} variant="recap" scores={actuals} rewardCheck={rewards ? { you: rewards.you } : null} /> : null}
                 {rows.length ? (
                   <div className="rc-plan" role="region" aria-label="Best Sofix plan">
                     <div className="rc-th rc-plan-head"><h3>Best Sofix plan</h3><span>{Math.round(best!.essence)} expected essence · {rows.length} lineup{rows.length === 1 ? "" : "s"}</span></div>
@@ -161,7 +171,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
               {plan ? <TeamNewsTile week={plan} now={now} glance={lineupsGlance(lineups, now)} /> : null}
             </>
           ) : null}
-        </div>
+        </div></WeekRewardsProvider>
       </main>
     </>
   );

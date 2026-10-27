@@ -1,0 +1,42 @@
+"use client";
+
+import { createContext, useContext, useState, type ReactNode, type Dispatch, type SetStateAction } from "react";
+import Link from "next/link";
+import { rewardKeys, rewardName, rewardNumber } from "../../lib/playRewards";
+import type { WeekRewards } from "../../lib/weekRewards";
+
+type Own = { summary: WeekRewards; state: "loading" | "ready" | "unavailable" };
+const RewardsContext = createContext<{ own: Own | null; setOwn: Dispatch<SetStateAction<Own | null>> } | null>(null);
+
+export function WeekRewardsProvider({ children }: { children: ReactNode }) {
+  const [own, setOwn] = useState<Own | null>(null);
+  return <RewardsContext.Provider value={{ own, setOwn }}>{children}</RewardsContext.Provider>;
+}
+export const useWeekRewards = () => useContext(RewardsContext);
+
+function Side({ label, summary, state = "ready", fallback }: { label: string; summary?: WeekRewards; state?: Own["state"]; fallback?: WeekRewards }) {
+  const keys = rewardKeys([summary?.expected, summary?.actual.values, fallback?.expected, fallback?.actual.values]);
+  const loading = state === "loading";
+  const value = (key: string, actual: boolean) => {
+    if (loading) return <i className="rc-reward-skeleton" />;
+    if (!summary || !summary.total || state === "unavailable") return "—";
+    const n = actual ? summary.actual.values[key] : summary.expected[key];
+    if (n == null) return "—";
+    const partial = actual ? summary.actual.checked < summary.total : (summary.coverage[key] ?? 0) < summary.total;
+    return <>{rewardNumber(key, n)}{partial ? <small title={`${actual ? summary.actual.checked : summary.coverage[key] ?? 0}/${summary.total} lineups ${actual ? "checked" : "with forecasts"}`}>+</small> : null}</>;
+  };
+  return <section className="rc-reward-side" aria-label={`${label} GW rewards`} aria-busy={loading || undefined}>
+    <div className="rc-reward-head"><h3>{label}</h3><span title="Probability-weighted rewards">Expected</span><span>{label === "You" ? "Actual" : "Would win"}</span></div>
+    <dl>{keys.map(key => <div key={key} data-reward={key}><dt>{key === "essence:unknown:unknown" ? "Essence" : rewardName(key)}</dt><dd>{value(key, false)}</dd><dd>{value(key, true)}</dd></div>)}</dl>
+    <p className="rc-reward-status" aria-live="polite">{loading ? "Checking your lineups…" : state === "unavailable" ? "Entries unavailable" : !summary?.total ? label === "You" ? "No entered lineups" : "Plan unavailable" : <>{summary.total} lineup{summary.total === 1 ? "" : "s"} · {summary.actual.checked}/{summary.total} checked</>}</p>
+  </section>;
+}
+
+export default function RewardsCard({ recommendation, gw, href, hasEntries }: { recommendation: WeekRewards; gw: number | null; href: string; hasEntries: boolean }) {
+  const context = useWeekRewards();
+  return <section className="hm-tile rc-rewards" aria-labelledby="rc-rewards-h">
+    <div className="rc-th"><h2 id="rc-rewards-h">Rewards</h2>{gw ? <span>GW{gw}</span> : null}<Link href={href}>Play ›</Link></div>
+    <Side label="You" summary={context?.own?.summary} fallback={recommendation} state={context?.own?.state ?? (hasEntries ? "loading" : "ready")} />
+    <Side label="Sofix" summary={recommendation} />
+  </section>;
+}

@@ -34,7 +34,7 @@ from app.db import SessionLocal
 from app.logging_config import configure_logging
 from app.models import ReadModel
 from app.services import board_checks, kept_blocks
-from app.services.publish import notify_app, put
+from app.services.publish import notify_app, put, put_times
 from app.services.timeutil import Laps
 from app.sorare import (
     audit,
@@ -764,6 +764,7 @@ def run(
     if watch:
         put(db, sorare_publish.WATCH_KEY, watch, now)
     laps("writes")
+    summary["parts"]["puts"] = put_times()  # by key family: asked, written, seconds (C1)
     pool = optional(
         db,
         failed,

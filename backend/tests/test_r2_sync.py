@@ -137,3 +137,16 @@ def test_only_github_jobs_or_a_deliberate_run_reach_production():
     assert production_allowed({"SOFIX_PRODUCTION": "1"})
     assert not production_allowed({})
     assert not production_allowed({"SOFIX_PRODUCTION": "yes"})
+
+
+def test_each_write_is_counted_by_its_key_family(db, monkeypatch):  # noqa: F811
+    from app.services import publish
+
+    monkeypatch.setattr(r2, "put_block", lambda *a: True)
+    publish.put_times()
+    publish.put(db, "players:PL:a", {"a": 1}, NOW)
+    publish.put(db, "players:PL:a", {"a": 1}, NOW)  # unchanged: asked, not written
+    publish.put(db, "score_record:gw", {"b": 2}, NOW)
+    times = publish.put_times()
+    assert times["players"][:2] == [2, 1] and times["score_record"][:2] == [1, 1]
+    assert publish.put_times() == {}

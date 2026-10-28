@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
 from datetime import UTC, datetime
 from typing import Any
 
@@ -31,7 +32,28 @@ SYSTEM_KEY = "system"
 NEON_FREE_BYTES = 512 * 1024 * 1024
 
 
+# Where a run's write time goes, by key family ("players", "score_record", ...): {family: [writes asked, written, seconds]}.
+# The refresh's summary keeps it (multi-competition-review C1), so the first real runs say which writes to cut.
+PUT_TIMES: dict[str, list[float]] = {}
+
+
+def put_times() -> dict[str, list[float]]:
+    """This run's write times so far, and start counting afresh."""
+    out = {k: [int(v[0]), int(v[1]), round(v[2], 1)] for k, v in sorted(PUT_TIMES.items(), key=lambda kv: -kv[1][2])}
+    PUT_TIMES.clear()
+    return out  # type: ignore[return-value]
+
+
 def put(db: Session, key: str, payload: dict[str, Any], now: datetime) -> None:
+    started = time.perf_counter()
+    written = _put(db, key, payload, now)
+    tally = PUT_TIMES.setdefault(key.split(":", 1)[0], [0, 0, 0.0])
+    tally[0] += 1
+    tally[1] += int(written)
+    tally[2] += time.perf_counter() - started
+
+
+def _put(db: Session, key: str, payload: dict[str, Any], now: datetime) -> bool:
     """Replace one payload without reading the old one first: Neon counts every byte it sends (5 GB a month).
 
     An unchanged payload keeps its row and write time, compared inside the database: the web app keys its cache on the
@@ -49,6 +71,7 @@ def put(db: Session, key: str, payload: dict[str, Any], now: datetime) -> None:
     db.commit()
     if written:  # the web app reads it from R2 (free to send), Neon being the fallback
         r2.put_block(key, payload, now)
+    return written
 
 
 def publish_grid(db: Session, now: datetime | None = None) -> dict[str, int]:

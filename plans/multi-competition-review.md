@@ -605,6 +605,13 @@ Qualifying rounds, the Bundesliga relegation play-off and domestic cups are rese
   fitting is ~26 s a run, so skipping it on unchanged inputs was left out. **Not met yet:** the Sorare step alone is ~8–10
   minutes (its sync ~5 min, its writes ~3 min, Futbol Fantasy ~1.5 min), so neither target holds until those shrink; the
   durations line shows it once the change runs. Tests: the quick step list, the reuse rule, the dispatch's input.
+- **28 Oct, toward the targets:** the Sorare step's calls are already paced at Sorare's limit (0.35 s apart, ~170 a minute;
+  about 400 calls a run, ~4 minutes of the ~8-10), so the cut has to come from the writes (~3 min) and from what a near-lock
+  run need not redo. Two obvious cuts were not taken: skipping the European squads near a lock would drop their players
+  from the pre-lock record X1 reads, and the foreign player blocks change every run (their forecasts and `generatedAt`), so
+  a "skip unchanged" saves little until measured. Each refresh now records its write time by key family (`publish.put_times`,
+  in the run's summary: asked, written, seconds) and `check.mjs --live` prints the three slowest families, so the first
+  runs after the push show which writes to cut. **The targets are not met or proven yet**: that needs those runs.
 
 ### C2 · The live app depends on research code
 - **Checked:** 8 live files import from `research/` (the European modules and `foreign_*`); the domestic path imports nothing.

@@ -248,6 +248,8 @@ function refreshTimes() {
   const kind = details.predict ? "full" : "quick";
   const slow = Object.entries(details).sort((a, b) => (b[1].seconds ?? 0) - (a[1].seconds ?? 0)).slice(0, 3);
   console.log(`      refresh times (newest first, min): ${runs.map((run) => minutes(run).toFixed(1)).join(", ")}; latest was ${kind}, slowest steps ${slow.map(([name, step]) => `${name} ${Math.round(step.seconds ?? 0)} s`).join(", ")}`);
+  const puts = Object.entries(details.sorare?.result?.parts?.puts ?? {}).slice(0, 3);
+  if (puts.length) console.log(`      slowest writes: ${puts.map(([family, [asked, written, seconds]]) => `${family} ${seconds} s (${written} of ${asked} written)`).join(", ")}`);
 }
 
 // The free Neon projects that take turns (AGENTS.md "Neon projects").

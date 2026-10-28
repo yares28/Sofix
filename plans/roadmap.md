@@ -14,6 +14,10 @@ and a check, so a session can work through it alone and stop only where you have
 
 ## Next up (the one queue: read this first, update it in the same commit when an item ships)
 
+**1 Nov, first thing (date-bound):** **all Neon projects into one** (TODO.md "All Neon projects into one"): quotas reset that
+day, so every project answers; list what each holds that the live one lacks (GW25's records are on Sofix C), copy on your yes, then
+rerun the strategy audit.
+
 27 Oct, first (the account's Vercel CPU stood at 3 h 56 m of 4 h): **cacheable pages** ([cacheable-pages.md](cacheable-pages.md),
 P0 to P5): every page served from Vercel's CDN and built only when its data changes or the week rolls, so a view costs no CPU.
 

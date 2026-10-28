@@ -16,6 +16,21 @@ item, what you said and why; the order, the steps and the results live in the ro
 
 ---
 
+## All Neon projects into one, on 1 Nov 2026 (you, 28 Oct 2026)
+
+"On Nov 1, have all the Neon databases converge to one so everything is in the same place." The five free projects (Sofix,
+FDR, Sofix B, Sofix C, Sofix D) take turns as production, and rows written while one was live stay there when production moves
+without a copy: every refresh from 19 Oct 23:26 to 25 Oct 16:04 UTC (GW25's strategy lineups, Sorare-numbers plan, score record,
+refresh runs 165 on) sits on Sofix C only (plans/plan-algorithm-v2.md). On 1 Nov every project's monthly quota resets, so all
+five answer again.
+
+- Read every project (SELECT only) and list the `read_models` keys and table rows each holds that the live one lacks, or holds
+  newer.
+- Show you that list; on your yes, copy them into one project (the live one, or the one you pick), newest write wins per key,
+  `neon_live`/`neon_status` untouched.
+- Then the fix so it cannot split again (the separate task "Neon fallback dropped 5 days of rows"), and the strategy audit
+  rerun so GW25 gets its lineups, hindsight and rewards.
+
 ## Arcade: the climb shows one path, packs need filters (you, 22 Oct 2026)
 
 Seen on his page at 15:00 (step 3, 4 lives): days "Thu 22 · hold", "Fri–Sat · step 3, play 2" (23% + 29%, 45% together),

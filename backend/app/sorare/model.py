@@ -187,6 +187,9 @@ class Competition:
     expected_from: str = ""  # "GW15"
     # Pro (Sorare's Hot Streaks, `pro.py`): the step this lineup plays for and those after it, (level, target, cash, essence), and the
     # Rare Reward Bonus by card rarity: (in-season, in-season captain, classic, classic captain), added to the prize
+    # What one essence of this competition is worth to the owner against one of a league he plays: the share of its leagues he
+    # plays (planner.with_essence_weights; the owner, 28 Oct 2026: Champion is five leagues diluted, All Star every league).
+    essence_weight: float = 1.0
     pro_steps: tuple[tuple[int, int, float, int], ...] = ()
     reward_boosts: dict[str, tuple[float, float, float, float]] = field(default_factory=dict)
 

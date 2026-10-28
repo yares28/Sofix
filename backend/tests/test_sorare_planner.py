@@ -547,3 +547,92 @@ def test_a_score_that_is_already_known_is_given_no_spread():
     rng = np.random.default_rng(3)
     assert np.ptp(simulate(lineup, known, rng, 200)) == 0.0, "the same total every draw"
     assert np.ptp(simulate(lineup, guessed, rng, 200)) > 0.0, "a forecast still has its spread"
+
+
+# --------------------------------------------------------------------------- captain, polish, essence weights (28 Oct 2026)
+def test_captain_is_tried_on_every_starter_not_only_the_top_three():
+    """A steady four and one boom-or-bust player ranked last on expected points: when only a big total pays, his captaincy is what
+    reaches it, so the captain is chosen among all five, not the three best on paper."""
+    from app.sorare.planner import _captain
+
+    comp = in_season_comp(tiers=[rules.Tier(1, 50, essence=1000)], reference={1: 450.0, 50: 380.0})
+    starters = [card(f"s{i}", p) for i, p in enumerate(["GK", "DEF", "MID", "FWD"])] + [card("boom", "DEF")]
+    forecasts = {c.player: Forecast(p_play=1.0, mu=60.0, games=1, sd=1.0) for c in starters[:4]}
+    forecasts["boom"] = Forecast(p_play=1.0, mu=40.0, games=1, sd=45.0)
+    assert starters[_captain(comp, starters, forecasts, np.random.default_rng(0))].player == "boom"
+
+
+def test_essence_counts_by_the_share_of_its_leagues_you_play():
+    """The owner, 28 Oct 2026: league essence is worth most, Champion (five leagues) is diluted, All Star (every league) the most."""
+    from app.sorare.planner import with_essence_weights
+
+    laliga = in_season_comp()
+    bundes = in_season_comp(key="Bundesliga | Limited", slug="gw-bl", leagues=frozenset({"bundesliga-de"}))
+    champion = in_season_comp(
+        key="Champion | Limited",
+        slug="gw-champion",
+        min_in_season=0,
+        leagues=frozenset({"laliga-es", "bundesliga-de", "premier-league-gb-eng", "serie-a-it", "ligue-1-fr"}),
+    )
+    others = [
+        in_season_comp(key=f"L{i} | Limited", slug=f"gw-{i}", leagues=frozenset({f"league-{i}"})) for i in range(5)
+    ]
+    all_star = in_season_comp(key="All Star | Limited", slug="gw-as", min_in_season=0, leagues=None)
+    cards = squad(12)  # all LaLiga: only the LaLiga competition can be played
+    w = {c.key: c.essence_weight for c in with_essence_weights([laliga, bundes, champion, all_star, *others], cards)}
+    assert w["LALIGA EA SPORTS | Limited"] == 1.0
+    assert w["Champion | Limited"] == 0.2
+    assert 0 < w["All Star | Limited"] < w["Champion | Limited"]
+    # play the Bundesliga too and its essence counts in full, and Champion's share doubles
+    both = cards + [card(f"b{i}", POS[i % 7], league="bundesliga-de") for i in range(8)]
+    w = {c.key: c.essence_weight for c in with_essence_weights([laliga, bundes, champion, all_star, *others], both)}
+    assert w["Bundesliga | Limited"] == 1.0 and w["Champion | Limited"] == 0.4
+
+
+def test_polish_moves_cards_the_greedy_order_put_in_the_wrong_lineup():
+    """The plan takes lineups one at a time, best first: the big prize took the x cards (a point better each) although the y cards on the
+    bench would do almost as well there, and the small prize, which only takes x cards, was left with weak ones. Moving the x cards to the
+    small prize and refilling the big one from the bench wins more."""
+    from app.sorare.planner import Plan, polish, weighted_worth
+
+    big = in_season_comp(
+        key="Big | Limited", slug="gw-big", min_in_season=0, leagues=None,
+        tiers=[rules.Tier(1, 50, essence=1000)], reference={1: 400.0, 50: 250.0},
+    )  # fmt: skip
+    small = in_season_comp(
+        key="Small | Limited", slug="gw-small", min_in_season=0, leagues=frozenset({"x-league"}),
+        tiers=[rules.Tier(1, 50, essence=600)], reference={1: 400.0, 50: 250.0},
+    )  # fmt: skip
+    slots = ["GK", "DEF", "MID", "FWD", "DEF"]
+    xs = [card(f"x{i}", p, league="x-league") for i, p in enumerate(slots)]
+    zs = [card(f"z{i}", p, league="x-league") for i, p in enumerate(slots)]
+    ys = [card(f"y{i}", p) for i, p in enumerate(slots)]
+    forecasts = {c.player: Forecast(p_play=1.0, mu=56.0, games=1) for c in xs}
+    forecasts.update({c.player: Forecast(p_play=1.0, mu=55.0, games=1) for c in ys})
+    forecasts.update({c.player: Forecast(p_play=1.0, mu=30.0, games=1) for c in zs})
+    greedy = Plan(
+        [
+            evaluate(Lineup(big, list(xs), [None, None], 0), forecasts),
+            evaluate(Lineup(small, list(zs), [None, None], 0), forecasts),
+        ]
+    )
+    before = sum(weighted_worth(lu) for lu in greedy.lineups)
+    better = polish(greedy, xs + zs + ys, forecasts)
+    by_key = {lu.comp.key: {c.player for c in lu.starters} for lu in better.lineups}
+    assert by_key == {"Big | Limited": {c.player for c in ys}, "Small | Limited": {c.player for c in xs}}
+    assert sum(weighted_worth(lu) for lu in better.lineups) > before
+
+
+def test_polish_never_makes_a_plan_worse():
+    comp = in_season_comp()
+    cards = squad(14)
+    forecasts = forecasts_for(cards)
+    rng = np.random.default_rng(3)
+    plan = make_plan([comp], cards, forecasts, rng, 1.0, 1.0)
+    from app.sorare.planner import polish, weighted_worth
+
+    before = sum(weighted_worth(lu) for lu in plan.lineups)
+    after = polish(plan, cards, forecasts)
+    assert sum(weighted_worth(lu) for lu in after.lineups) >= before - 1e-6
+    used = [c.slug for lu in after.lineups for c in lu.cards]
+    assert len(used) == len(set(used))  # a card plays in one lineup only

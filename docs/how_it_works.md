@@ -280,7 +280,7 @@ own form, so Sofix's LaLiga number stands on its own data (plans/score-engine.md
 **Linked scores and the captain (plans/xscore.md P9 X6, `app.sorare.links`, `planner.simulate`, `planner._captain`).** Players of one game score together, so the planner
 no longer simulates a lineup's players independently: `publish.gameweek_payload` gives each forecast its games as (game id, home or away), `links.matrix` turns them into a correlation matrix by pair of
 positions and side (a keeper and his defenders +0.29, a keeper against the other side's forwards −0.26, ...), and the simulation draws correlated scores. Reward chances, ranges and the plans ranked by them
-follow. The captain is chosen among the three starters with the best expected points by the chance of a reward his captaincy gives, then by the expected score.
+follow. The captain is chosen among all the starters by what his captaincy wins on average (then the chance of a reward, then the expected score), on 3,000 simulated weeks each (28 Oct 2026: the top-three rule picked the week's best starter 9 times in 32).
 
 Common SD is 17.6. Source is published (“sorare”, “form”, “no game”). The score if he starts is fitted (keepers and outfield, above); their blind check on the weeks
 held out from 1 Oct runs with `keeper_fit` / `outfield_fit --holdout 2026-10-01` (docs/sorare_plan.md S4).
@@ -356,7 +356,7 @@ Seeded beam search (width 120), 3,000 score draws and repeated temperature-weigh
 position/card/player uniqueness, rarity/in-season/club/cap rules, bonuses, captain and substitutes. A substitute is
 used only when protection exceeds sacrificed value. Rewards are all or nothing (a lineup reaching a tier's score gets that
 tier whole). Each step prioritizes expected essence and whole-plan candidates are ranked by total expected essence
-(11 Oct 2026); preferred essence type and reward chance break ties. They are filtered until card-set signatures differ by at least 20%;
+(11 Oct 2026), each essence counted at the share of its leagues the owner plays (`planner.with_essence_weights`, 28 Oct 2026: a league he plays 1, Champion its five leagues' share, All Star every league's); preferred essence type and reward chance break ties. The three best plans are then polished (`planner.polish`): cards move between lineups, and in from the spares, while the plan wins more on shared simulated weeks. They are filtered until card-set signatures differ by at least 20%;
 at most five are published. Each published tier carries the score that reached it in the reference week (`need`). The two
 reward units remain separate and are never converted by an exchange rate. The page shows no chance-weighted average: a
 lineup shows its first tier's reward and score, a plan its most likely result (`likelyResult` in `frontend/lib/play.ts`,

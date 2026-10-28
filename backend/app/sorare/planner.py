@@ -25,7 +25,7 @@ import math
 import zlib
 from collections.abc import Callable, Mapping
 from contextvars import ContextVar
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 
@@ -34,7 +34,7 @@ from app.sorare.model import CASH_IN_ESSENCE, ESSENCE_ORDER, Card, Competition, 
 
 SCORE_SD = 17.6
 """How far a player's real score lands from his forecast, in points (measured on the owner's players,
-1–18 Sep 2026, against the same forecast the planner uses)."""
+1–18 Sep 2026, against the same forecast the planner uses; 17.7 on the 461 LaLiga starts of GW21-24, 28 Oct 2026)."""
 
 DRAWS = 3000
 BEAM = 120
@@ -46,8 +46,7 @@ MIN_PLAY = (
     0.30  # a starter who will probably not play is a zero in the lineup (GW21: keepers at 5 to 20%): he is never picked
 )
 CANDIDATES_PER_SLOT = 18
-CAPTAIN_CANDIDATES = 3  # starters with the best expected points that are tried as captain
-CAPTAIN_DRAWS = 600  # simulated gameweeks for each try
+CAPTAIN_DRAWS = DRAWS  # simulated gameweeks for each try: big prizes are rare, 600 weeks picked noise (28 Oct 2026)
 
 
 @dataclass
@@ -265,6 +264,35 @@ def worth(lineup: Lineup) -> float:
     return lineup.e_essence + CASH_IN_ESSENCE * lineup.e_cash
 
 
+def weighted_worth(lineup: Lineup) -> float:
+    """`worth` with each essence counted at its weight to the owner (`with_essence_weights`): what the plans are ranked on."""
+    return lineup.e_essence * lineup.comp.essence_weight + CASH_IN_ESSENCE * lineup.e_cash
+
+
+def with_essence_weights(comps: list[Competition], cards: list[Card]) -> list[Competition]:
+    """Each competition with its essence weight: the share of the leagues its essence comes from that the owner plays (the owner, 28 Oct
+    2026: "the main idea is getting players from the leagues I play, with the least dilution"). A league's own essence is 1 when he plays
+    that league; Champion (five leagues) is his share of the five; a competition open to every league counts every league of the week.
+
+    He plays a league when his cards fill a lineup of that league's own competition; with none, the leagues of his cards. No weight is 0:
+    a lineup of a pool he does not play still beats none (the free competitions are always entered)."""
+    every: set[str] = set().union(*(c.leagues for c in comps if c.leagues))
+    mine = {
+        league
+        for c in comps
+        if c.leagues and len(c.leagues) == 1 and sum(1 for card in cards if c.allows(card)) >= c.size
+        for league in c.leagues
+    } or {card.league for card in cards if card.league}
+    # ponytail: every league counts the same, not by its number of players; weigh by players if the owner asks
+    floor = 1 / max(len(every), 1)
+
+    def weight(comp: Competition) -> float:
+        pool = set(comp.leagues) if comp.leagues else every
+        return 1.0 if not pool else round(max(len(pool & mine) / len(pool), floor), 3)
+
+    return [replace(c, essence_weight=weight(c)) for c in comps]
+
+
 def _rewards(lineup: Lineup, scores: np.ndarray, rng: np.random.Generator) -> None:
     tiers = lineup.comp.rewarding_tiers
     where = landed(lineup, scores, rng)
@@ -412,19 +440,19 @@ def best_starters(
 
 
 def _captain(comp: Competition, starters: list[Card], forecasts: dict[str, Forecast], rng: np.random.Generator) -> int:
-    """The captain: of the three starters with the best expected points, the one whose captaincy gives the lineup the best chance of a
-    reward (then the best expected score), the same simulated gameweeks for each. The captain's bonus multiplies a score, so a player with a
-    big ceiling can earn more of it than a steady one with a higher average."""
+    """The captain: of all the starters, the one whose captaincy wins the lineup the most on average, as the plans are ranked (then the
+    best chance of a reward, then the best expected score), the same simulated gameweeks for each. The captain's bonus multiplies a score, so a player with a big ceiling can earn more of
+    it than a steady one with a higher average (GW21-25: the top-three rule picked the week's best starter 9 times in 32)."""
     ranked = sorted(
         range(len(starters)), key=lambda i: -(forecasts[starters[i].player].p_play * forecasts[starters[i].player].mu)
-    )[:CAPTAIN_CANDIDATES]
+    )
     if len(ranked) == 1:
         return ranked[0]
-    best, best_key = ranked[0], (-1.0, -1.0)
+    best, best_key = ranked[0], (-1.0, -1.0, -1.0)
     for i in ranked:  # the same simulated weeks for every try (`_seed` leaves the captain out)
         trial = Lineup(comp=comp, starters=list(starters), subs=[None] * len(comp.subs), captain=i)
         evaluate(trial, forecasts, draws=CAPTAIN_DRAWS)
-        key = (round(trial.p_return, 3), trial.expected)
+        key = (round(weighted_worth(trial), 1), round(trial.p_return, 3), trial.expected)
         if key > best_key:
             best, best_key = i, key
     return best
@@ -639,6 +667,137 @@ def plan_outcomes(
     )
 
 
+POLISH_PLANS = 3  # the best plans of a search that are polished (`polish`)
+POLISH_ROUNDS = 3
+MIN_GAIN = 0.5  # essence: a move that adds less is not worth making
+
+
+def _fits(
+    comp: Competition,
+    starters: list[Card],
+    forecasts: Mapping[str, Forecast],
+    rule: Callable[[list[Card | None]], bool] | None,
+) -> bool:
+    """Do these starters obey every rule `best_starters` obeys?"""
+    if len({c.player for c in starters}) < len(starters):
+        return False
+    for slot, card in zip(comp.starters, starters, strict=True):
+        f = forecasts.get(card.player)
+        if card.positions[0] not in slot or not comp.allows(card) or f is None or f.p_play < MIN_PLAY:
+            return False
+    if comp.cap is not None and sum(c.average for c in starters) > comp.cap:
+        return False
+    if comp.min_in_season and sum(1 for c in starters if c.in_season) < comp.min_in_season:
+        return False
+    return rule is None or rule(list(starters))
+
+
+def polish(
+    plan: Plan,
+    cards: list[Card],
+    forecasts: dict[str, Forecast],
+    draws: int = DRAWS,
+    rule_for: Callable[[Competition], Callable[[list[Card | None]], bool] | None] | None = None,
+    rounds: int = POLISH_ROUNDS,
+) -> Plan:
+    """Move cards between a plan's lineups, and in from the cards it left out, while that wins more.
+
+    The plan is built one lineup at a time, best first, so the first lineup can take a card a later one needed more. Each move puts one
+    card in a starting slot; when it came from another lineup, that lineup refills its slot with the card it gave up or a spare. Every
+    lineup is priced on the same simulated weeks (each player plays and scores once a week), so a gain is the move's and not the dice's.
+    Benches are made again afterwards, and the plan is kept as it was unless the polished one is worth more."""
+    if not plan.lineups:
+        return plan
+    people: dict[str, Card] = {}
+    for c in [*cards, *(c for lu in plan.lineups for c in lu.cards)]:
+        if forecasts.get(c.player) is not None:
+            people.setdefault(c.player, c)
+    column = {player: i for i, player in enumerate(people)}
+    plays, scores = _draw(list(people.values()), forecasts, np.random.default_rng(zlib.crc32(b"polish")), draws)
+    pool = [c for c in cards if c.player in column]
+    value = {c.slug: forecasts[c.player].p_play * forecasts[c.player].mu for c in pool}
+
+    def priced(lu: Lineup) -> float:
+        cols = [column[c.player] for c in lu.cards]
+        where = landed(
+            lu, totals(lu, plays[:, cols], scores[:, cols]), np.random.default_rng(_seed(lu.comp, lu.starters))
+        )
+        won = [(float((where == k).mean()), tier) for k, tier in enumerate(lu.comp.rewarding_tiers)]
+        essence = sum(p * t.essence for p, t in won) * lu.comp.essence_weight
+        return boost(lu) * (essence + CASH_IN_ESSENCE * sum(p * t.cash for p, t in won))
+
+    lineups = [Lineup(lu.comp, list(lu.starters), [None] * len(lu.comp.subs), lu.captain) for lu in plan.lineups]
+    rules = [rule_for(lu.comp) if rule_for else None for lu in lineups]
+    now = [priced(lu) for lu in lineups]
+    changed: set[int] = set()
+    for _ in range(rounds):
+        moved = False
+        for i in range(len(lineups)):
+            comp = lineups[i].comp
+            for s in range(comp.size):
+                owner = {c.slug: j for j, lu in enumerate(lineups) for c in lu.starters}
+                fits = sorted(
+                    (c for c in pool if c.positions[0] in comp.starters[s] and comp.allows(c)),
+                    key=lambda c: -value[c.slug],
+                )
+                for cand in fits[:CANDIDATES_PER_SLOT]:
+                    here = lineups[i]
+                    out, j = here.starters[s], owner.get(cand.slug)
+                    if j == i:
+                        continue
+                    new_i = list(here.starters)
+                    new_i[s] = cand
+                    if not _fits(comp, new_i, forecasts, rules[i]):
+                        continue
+                    trials = {i: Lineup(comp, new_i, [None] * len(comp.subs), here.captain)}
+                    if j is not None:
+                        there = lineups[j]
+                        t = next(k for k, c in enumerate(there.starters) if c.slug == cand.slug)
+                        taken = {c.slug for k, lu in enumerate(lineups) if k not in (i, j) for c in lu.starters}
+                        taken |= {c.slug for c in new_i} | {c.slug for k, c in enumerate(there.starters) if k != t}
+                        refill = sorted(
+                            (
+                                c
+                                for c in [out, *pool]
+                                if c.slug not in taken
+                                and c.positions[0] in there.comp.starters[t]
+                                and there.comp.allows(c)
+                            ),
+                            key=lambda c: -value.get(c.slug, 0.0),
+                        )
+                        for r in refill[:CANDIDATES_PER_SLOT]:
+                            new_j = list(there.starters)
+                            new_j[t] = r
+                            if _fits(there.comp, new_j, forecasts, rules[j]):
+                                trials[j] = Lineup(there.comp, new_j, [None] * len(there.comp.subs), there.captain)
+                                break
+                        else:
+                            continue
+                    prices = {k: priced(lu) for k, lu in trials.items()}
+                    if sum(prices[k] - now[k] for k in trials) > MIN_GAIN:
+                        for k, lu in trials.items():
+                            lineups[k], now[k] = lu, prices[k]
+                        changed |= set(trials)
+                        moved = True
+                        owner = {c.slug: j for j, lu in enumerate(lineups) for c in lu.starters}
+        if not moved:
+            break
+    if not changed:
+        return plan
+    rng = np.random.default_rng(zlib.crc32(b"polish captain"))
+    for k in changed:
+        lu = lineups[k]
+        lu.captain = _captain(lu.comp, lu.starters, forecasts, rng)
+    for lu in lineups:
+        evaluate(lu, forecasts, draws=draws)
+    starting = {c.slug for lu in lineups for c in lu.starters}
+    fill_bench(lineups, [c for c in cards if c.slug not in starting], forecasts, rng, draws=draws)
+    polished = Plan(lineups)
+    if sum(weighted_worth(lu) for lu in polished.lineups) <= sum(weighted_worth(lu) for lu in plan.lineups):
+        return plan
+    return polished
+
+
 def value(lineup: Lineup, cash_norm: float, essence_norm: float) -> float:
     """Cash and essence count at once, each against the best any single lineup reaches this gameweek (a Room's fee taken off)."""
     return lineup.e_cash / cash_norm + lineup.net_essence / essence_norm
@@ -695,8 +854,9 @@ def make_plan(
                 )
             for lineup in cache[comp.key]:
                 if worth_entering(lineup, floor):
-                    # The most expected reward first, cash counted in essence (20 Oct); essence-kind priority breaks ties.
-                    options.append((priority(lineup, order), worth(lineup), lineup))
+                    # The most expected reward first, cash counted in essence (20 Oct), essence by its weight (28 Oct); essence-kind
+                    # priority breaks ties.
+                    options.append((priority(lineup, order), weighted_worth(lineup), lineup))
         if not options:
             if long_from is not None:
                 break
@@ -763,7 +923,7 @@ def _plans(
     view: Mapping[str, Forecast] | None,
     rule_for: Callable[[Competition], Callable[[list[Card | None]], bool] | None] | None,
 ) -> list[Plan]:
-    comps = [comp for comp in comps if enterable(comp)]
+    comps = with_essence_weights([comp for comp in comps if enterable(comp)], cards)
     rng = np.random.default_rng(seed)
     firsts = [
         lu
@@ -779,6 +939,9 @@ def _plans(
         found.append(
             make_plan(comps, cards, forecasts, rng, cash_norm, essence_norm, 0.35, draws, order, view, rule_for)
         )
+    if view is None:  # a strategy's plan keeps its own picks: polishing on Sofix's numbers would undo them
+        found.sort(key=lambda plan: -sum(weighted_worth(lu) for lu in plan.lineups))
+        found[:POLISH_PLANS] = [polish(plan, cards, forecasts, draws, rule_for) for plan in found[:POLISH_PLANS]]
     for plan in found:
         plan.outcomes = plan_outcomes(plan, forecasts, order, draws)
     best_cash = max((p.cash for p in found), default=0.0) or 0.01
@@ -787,7 +950,7 @@ def _plans(
     def key(plan: Plan) -> tuple[float, ...]:
         kinds = (plan.outcomes.by_kind if plan.outcomes else {}) or {}
         return (
-            -(plan.essence + CASH_IN_ESSENCE * plan.cash),
+            -sum(weighted_worth(lu) for lu in plan.lineups),
             *(-round(kinds.get(kind, 0.0), 2) for kind in order),
             -round(plan.chance_of_any(), 3),
             -(plan.cash / best_cash + (plan.essence - plan.fees) / best_essence),

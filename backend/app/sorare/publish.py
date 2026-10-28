@@ -1568,6 +1568,25 @@ def build_payload(
     }
 
 
+WATCH_KEY = "plan_watch"
+
+
+def plan_watch(payload: dict[str, Any]) -> dict[str, Any] | None:
+    """What a refresh started by news looks at (plans/plan-algorithm-v2.md step 7): the week's recommended plan, its lock, and each
+    starter's chance of starting as Sorare gave it when the plan was built (the plan's own when Sorare had none). The extension's readings
+    are compared with it as they arrive (`frontend/lib/planNews.ts`). None while there is nothing to enter."""
+    week = next((w for w in payload.get("weeks") or [] if w["gameweek"]["id"] == payload.get("nextId")), None)
+    if not week or not week.get("plans") or week.get("projected"):
+        return None
+    told = {p["player"]: (p.get("sources") or {}).get("sorare") for p in week["playing"]["players"]}
+    players: dict[str, float] = {}
+    for lineup in week["plans"][0]["lineups"]:
+        for c in lineup["starters"]:
+            sorare = told.get(c["player"])
+            players[c["player"]] = round(float(sorare if sorare is not None else c.get("pStart") or 0.0), 3)
+    return {"lock": week["gameweek"]["lock"], "builtAt": payload.get("generatedAt"), "players": players}
+
+
 RECORD_PREFIX = "score_record:"
 """Both numbers for every LaLiga player of a week, written each run until its lock and so frozen there (`score_record:<slug>`)."""
 

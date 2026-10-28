@@ -731,6 +731,10 @@ def run(
     for key, block in foreign_coverage.blocks(foreign_markets, foreign_kept.get("player_index")).items():
         put(db, key, block, now)
     put(db, SORARE_KEY, payload, now)
+    # the recommended plan's starters with the chance Sorare gave each: a reading that moves one starts a refresh (frontend/lib/planNews.ts)
+    watch = sorare_publish.plan_watch(payload)
+    if watch:
+        put(db, sorare_publish.WATCH_KEY, watch, now)
     laps("writes")
     pool = optional(
         db,

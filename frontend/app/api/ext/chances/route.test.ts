@@ -14,7 +14,14 @@ const sql = async (strings: TemplateStringsArray, ...values: unknown[]) => {
   calls.push({ text: strings.join("?"), values });
   return [];
 };
-vi.mock("../../../../lib/db", () => ({ database: () => (configured ? sql : null) }));
+let watch: unknown = null;
+vi.mock("../../../../lib/db", () => ({ database: () => (configured ? sql : null), readModel: async () => (watch ? { payload: watch } : null) }));
+const dispatched = vi.fn(async () => true);
+vi.mock("../../../../lib/github", () => ({
+  ACTIVE: new Set(["in_progress"]),
+  latestWorkflowRun: async () => ({ status: "completed", created_at: new Date(Date.now() - 3_600_000).toISOString() }),
+  dispatchRefresh: () => dispatched(),
+}));
 const revalidateTag = vi.fn();
 vi.mock("next/cache", () => ({ revalidateTag: (tag: string) => revalidateTag(tag), unstable_cache: (fn: unknown) => fn }));
 
@@ -32,6 +39,15 @@ beforeEach(() => {
 });
 
 describe("POST /api/ext/chances", () => {
+  it("starts a refresh when a planned starter's chance moved by a quarter, and not for anyone else", async () => {
+    process.env.GITHUB_TOKEN = "token";
+    watch = { lock: new Date(Date.now() + 86_400_000).toISOString(), builtAt: new Date().toISOString(), players: { a: 0.9 } };
+    expect(await (await post({ version: 1, rows: [row("b", 0)] })).json()).toMatchObject({ news: 0, started: false });
+    expect(dispatched).not.toHaveBeenCalled();
+    expect(await (await post({ version: 1, rows: [row("a", 4000)] })).json()).toMatchObject({ news: 1, started: true });
+    expect(dispatched).toHaveBeenCalledTimes(1);
+  });
+
   it("saves one row per game, keeps a true zero, and never reads the row it adds to", async () => {
     const response = await post({ version: 1, rows: [row("a", 8000), row("b", 0), row("a", 2500, OTHER)] });
     expect(response.status).toBe(200);

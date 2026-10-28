@@ -44,5 +44,5 @@ from each gameweek. His own lineups stay a comparison only (no "plan around what
 | 2: reward bar from the season | shipped 28 Oct: mean of the season's comparable weeks (24.3 off against 29.2). At a season's start the list holds only this season's weeks: Sorare's fixture list stops at Game Week 1 (`sync.gameweeks`) |
 | 6: strategy contest | shipped 28 Oct. On the frozen weeks the winner changes: Sofix's numbers GW22, 24, 25; keeper with defender GW21 (it really won 2,020 weighted essence against 540); three from one club GW23 |
 | 8: track record | shipped 28 Oct: "Expected 7 · paid 8 GW21–25" under Sofix's expected paid lineups, from the strategy audit (version 6 adds each week's `said`) |
-| 7: rebuild on news | |
+| 7: rebuild on news | shipped 28 Oct: a reading from the extension that moves a planned starter's Sorare start chance by 25 points or more starts a refresh (25-minute gap). News reaches Sofix only while a sorare.com tab is open; the half-hourly near-lock refreshes still cover the last three hours |
 | 9 and 1: learning loop (score stretch, spread, cut-off bias, captain) | |

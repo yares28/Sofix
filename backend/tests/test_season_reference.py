@@ -115,3 +115,30 @@ def test_sofix_keeps_the_lead_when_its_plan_wins():
     week = {"plans": [{"rank": 1, "value": 900, "lineups": []}]}
     contest(week, {"ceiling": {"label": "Highest ceiling", "plans": [{"rank": 1, "value": 800, "lineups": []}]}})
     assert week["plans"][0]["strategy"] == "Sofix's numbers" and week["plans"][0]["value"] == 900
+
+
+# ------------------------------------------------------------------ rebuild on news (plans/plan-algorithm-v2.md step 7)
+def test_the_watch_holds_each_planned_starters_chance_as_sorare_gave_it():
+    from app.sorare.publish import plan_watch
+
+    payload = {
+        "nextId": "27",
+        "generatedAt": "2026-10-29T07:30:00Z",
+        "weeks": [
+            {
+                "gameweek": {"id": "27", "lock": "2026-10-30T15:00:00Z"},
+                "playing": {
+                    "players": [{"player": "isco", "sources": {"sorare": 0.8}}, {"player": "arda", "sources": {}}]
+                },
+                "plans": [
+                    {"lineups": [{"starters": [{"player": "isco", "pStart": 0.95}, {"player": "arda", "pStart": 0.7}]}]}
+                ],
+            }
+        ],
+    }
+    assert plan_watch(payload) == {
+        "lock": "2026-10-30T15:00:00Z",
+        "builtAt": "2026-10-29T07:30:00Z",
+        "players": {"isco": 0.8, "arda": 0.7},  # Sorare's when it gave one, else the plan's own
+    }
+    assert plan_watch({**payload, "nextId": "28"}) is None

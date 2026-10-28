@@ -39,6 +39,7 @@ from app.sorare.planner import (
     weighted_worth,
     worth,
 )
+from app.sorare.score_fixes import ScoreFix
 from app.sorare.scores import Made
 
 logger = logging.getLogger(__name__)
@@ -1249,6 +1250,7 @@ def build_payload(
     order: tuple[str, ...] = ESSENCE_ORDER,
     league_ff: Callable[[str, list[dict[str, Any]]], list[GameStart]] | None = None,
     contenders: tuple[str, ...] | None = None,
+    score_fix: ScoreFix | None = None,
 ) -> dict[str, Any]:
     """The whole `sorare` read model, from one snapshot.
 
@@ -1335,6 +1337,20 @@ def build_payload(
     )
     league_forecasts.update(plan_forecasts)
     league_games.update(plan_games)
+    # What the record says Sofix's number should be (`score_fixes`), for planning only: the record and the Lineups page keep the
+    # number as Sofix gave it, so the next measurement is of Sofix's own number again.
+    planning = (
+        {
+            k: replace(
+                f,
+                mu=score_fix.apply(f.mu),
+                sd=f.sd if f.sd is not None or score_fix.spread is None else score_fix.spread,
+            )
+            for k, f in plan_forecasts.items()
+        }
+        if score_fix is not None
+        else plan_forecasts
+    )
     laps("forecasts")
 
     next_gw = gameweek_payload(
@@ -1342,7 +1358,7 @@ def build_payload(
         plan_week,
         plan_comps,
         cards,
-        plan_forecasts,
+        planning,
         plan_games,
         played=False,
         xg_rates=xg_rates,
@@ -1362,7 +1378,7 @@ def build_payload(
             snapshot,
             plan_comps,
             cards,
-            plan_forecasts,
+            planning,
             plan_games,
             stripped_forecasts(plan_weeks) if projected_enough else None,
         )
@@ -1376,7 +1392,7 @@ def build_payload(
             snapshot,
             plan_comps,
             cards,
-            plan_forecasts,
+            planning,
             plan_games,
             order=order,
             runs=runs,

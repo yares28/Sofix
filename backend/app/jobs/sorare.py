@@ -57,6 +57,7 @@ from app.sorare import (
     player_games,
     projection,
     score_checks,
+    score_fixes,
     scores,
     start_fixes,
     starts,
@@ -544,6 +545,8 @@ def run(
     # the expected scores, the plans and the captain are built on. Only the gameweek being planned uses it.
     # Each source's start chances moved to what the record says happened, band by band, from 100 settled cases (plans/xscore.md X8).
     fixes = optional(db, failed, "start chance corrections", lambda: start_fixes.load(db), None)
+    # Sofix's score the same way: stretched and its spread measured from the settled starts, when the record clearly says so
+    score_fix = optional(db, failed, "score corrections", lambda: score_fixes.load(db), None)
     feed, lineups = read_lineups(db, failed, snapshot, fetched, write=not dry_run, fixes=fixes)
     laps("futbol fantasy")
     # Every LaLiga player linked to Futbol Fantasy's pages too, apart from the owner's cards (whose links the Lineups page marks as his):
@@ -630,6 +633,7 @@ def run(
         order=order,
         league_ff=league_lineups.starts if league_lineups else None,
         contenders=contenders,
+        score_fix=score_fix,
     )
     # Sofix's plan against what happened, beside its forecast on Play (plans/plan-algorithm-v2.md step 8)
     payload["trackRecord"] = sorare_strategy_audit.track_record(
@@ -684,6 +688,8 @@ def run(
         # Sorare did not answer everything the week just played was built from: it is not made final, and is rebuilt next run.
         summary["pastGaps"] = snapshot["pastGaps"]
     summary["parts"] = {"sync": snapshot.get("parts"), "plans": payload_laps}
+    if score_fix is not None:
+        summary["scoreFix"] = score_fix.summary()  # what the record says of Sofix's score, and whether it is used
     if dry_run:
         summary["parts"]["step"] = laps
         would: list[str] = optional(

@@ -109,7 +109,7 @@ export default function PlayView({
   if (weekId) results.set("w", weekId); else results.set("gw", id);
 
   const sync = after || week.projected ? null : syncState(data, week, now);
-  const comparison = { heading: <Head data={data} week={week} now={now} sync={sync} dates={dates ?? null} title={title ?? null} comparison />, recommendation: planPortfolio(plan,rewards,planScores(plan,scores)), rewards:rewards?{you:rewards.you,checkedAt:rewards.checkedAt,nextCheckAt:rewards.nextCheckAt}:null, early: Boolean(week.projected), played: week.played, action: plan && !after && !week.projected ? <ApplySheet lineups={enterable(plan.lineups)} week={week} rank={plan.rank} now={now.toISOString()} /> : undefined };
+  const comparison = { heading: <Head data={data} week={week} now={now} sync={sync} dates={dates ?? null} title={title ?? null} comparison />, recommendation: planPortfolio(plan,rewards,planScores(plan,scores)), rewards:rewards?{you:rewards.you,checkedAt:rewards.checkedAt,nextCheckAt:rewards.nextCheckAt}:null, early: Boolean(week.projected), played: week.played, record: data.trackRecord ?? null, action: plan && !after && !week.projected ? <ApplySheet lineups={enterable(plan.lineups)} week={week} rank={plan.rank} now={now.toISOString()} /> : undefined };
   const showModes = alternatives && week.played && Boolean(week.hindsight || week.plans.some(p => p.actual));
   // Sofix's plan or Sorare's: only for the week being planned, where both are made (the owner, 6 Oct 2026)
   const showSources = alternatives && !week.projected;

@@ -407,3 +407,20 @@ def test_scored_board_publishes_its_own_archived_hindsight_score(db):
     got = strategy_audit.read(db, NOW)
     board = next(b for b in got["weeks"][0]["boards"] if b["key"] == "LaLiga | Limited")
     assert board["best"] == 300
+
+
+def test_the_track_record_says_what_sofix_expected_paid_and_what_was():
+    from app.sorare.strategy_audit import track_record
+
+    assert track_record(None) is None
+    audit = {
+        "weeks": {
+            "a": {
+                "number": 21,
+                "sofix": {"judged": 8, "said": 1.94, "won": {"cash": 1, "essence": 2, "xp": 2, "none": 3}},
+            },
+            "b": {"number": 22, "sofix": {"judged": 0, "said": 0.0, "won": {}}},
+            "c": {"number": 23, "sofix": {"judged": 8, "said": 2.83, "won": {"essence": 3, "xp": 2, "none": 3}}},
+        }
+    }
+    assert track_record(audit) == {"said": 4.8, "paid": 6, "judged": 16, "weeks": 2, "from": 21, "to": 23}

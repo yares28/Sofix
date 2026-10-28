@@ -4,8 +4,9 @@ import CardArt from "../cards/CardArt";
 import DetailTip from "../ui/DetailTip";
 import PrizeDetails from "./PrizeDetails";
 import { rewardKeys, rewardName, rewardNumber, type EnteredRewardCheck } from "../../lib/playRewards";
+import type { TrackRecord } from "../../lib/play";
 
-export type PlayComparisonProps = { heading: ReactNode; recommendation: Portfolio; action?: ReactNode; early?: boolean; played?: boolean; rewards?:EnteredRewardCheck|null };
+export type PlayComparisonProps = { heading: ReactNode; recommendation: Portfolio; action?: ReactNode; early?: boolean; played?: boolean; rewards?:EnteredRewardCheck|null; record?: TrackRecord | null };
 const number = (n: number, digits = 1) => new Intl.NumberFormat("en-GB", { maximumFractionDigits: digits }).format(n);
 const chance = (n: number) => n > 0 && n < .005 ? "<1%" : n < 1 && n > .995 ? ">99%" : `${Math.round(n * 100)}%`;
 const paid = (n: number) => n > 0 && n < .05 ? "<0.1" : number(n);
@@ -32,11 +33,17 @@ function Points({ portfolio: p, loading, played }: { portfolio: Portfolio; loadi
   return <div className="pc-points"><strong>{loading ? <i className="pc-skeleton"/> : p.actualPoints === null ? "—" : number(p.actualPoints, 0)}</strong><span>{played ? "pts / lineup" : "pts / lineup so far"}{p.actualPoints!==null&&p.actualRated<p.lineups?<small>{p.actualRated}/{p.lineups} lineups</small>:null}<small>{projected} projected</small></span></div>;
 }
 
-function Side({ label, portfolio: p, loading, own, state, action, played }: { label: string; portfolio: Portfolio; loading?: boolean; own?: boolean; state?: string; action?: ReactNode; played?: boolean }) {
+/** Sofix's record beside its forecast: over the audited weeks, the paid lineups it expected and those there were (plans/plan-algorithm-v2.md 8). */
+function Record({ record: r }: { record: TrackRecord }) {
+  const weeks = r.from === r.to ? `GW${r.from}` : `GW${r.from}–${r.to}`;
+  return <small className="pc-record" title={`${r.judged} lineups judged over ${r.weeks} week${r.weeks === 1 ? "" : "s"}`}>Expected {number(r.said)} · paid {r.paid} <span>{weeks}</span></small>;
+}
+
+function Side({ label, portfolio: p, loading, own, state, action, played, record }: { label: string; portfolio: Portfolio; loading?: boolean; own?: boolean; state?: string; action?: ReactNode; played?: boolean; record?: TrackRecord | null }) {
   const unknown = !loading && p.noReward === null;
   return <section className={`pc-side ${own ? "pc-you" : "pc-sofix"}${loading ? " pc-loading" : ""}`} aria-label={`${label} lineup forecast`} aria-busy={loading || undefined}>
     <div className="pc-side-head"><div><h2>{label}</h2><span>{loading ? "Checking your lineups…" : own ? p.lineups ? `${p.lineups} entered · ${state === "saved" ? "saved read" : "on Sorare"}` : state === "early" ? "Sorare has not opened this GW" : state === "unavailable" ? "Entries unavailable" : "No entered lineups" : p.lineups ? `${p.lineups} recommended lineups` : "Plan unavailable"}</span></div>{action ? <div className="pc-action">{action}</div> : null}</div>
-    <div className="pc-figures" aria-live="polite">{p.live ? <div className="pc-potential"><span>{played ? "Paid" : "Paid so far"}</span><strong>{loading ? <i className="pc-skeleton"/> : p.paidSoFar === null ? "—" : p.paidSoFar}{!loading && p.paidSoFar !== null ? <small>/{p.lineups}</small> : null}</strong></div> : <div className="pc-potential"><span>Expected paid lineups</span><strong>{loading ? <i className="pc-skeleton"/> : p.expectedPaid === null ? "—" : paid(p.expectedPaid)}{!loading && p.expectedPaid !== null ? <small>/{p.rated}</small> : null}</strong></div>}<div className="pc-risk"><span>Essence or better <small>/ {p.rated<p.lineups?"rated ":""}lineup</small></span><strong>{loading ? <i className="pc-skeleton"/> : p.noReward === null ? "—" : chance(1 - p.noReward)}</strong></div></div>
+    <div className="pc-figures" aria-live="polite">{p.live ? <div className="pc-potential"><span>{played ? "Paid" : "Paid so far"}</span><strong>{loading ? <i className="pc-skeleton"/> : p.paidSoFar === null ? "—" : p.paidSoFar}{!loading && p.paidSoFar !== null ? <small>/{p.lineups}</small> : null}</strong>{record ? <Record record={record}/> : null}</div> : <div className="pc-potential"><span>Expected paid lineups</span><strong>{loading ? <i className="pc-skeleton"/> : p.expectedPaid === null ? "—" : paid(p.expectedPaid)}{!loading && p.expectedPaid !== null ? <small>/{p.rated}</small> : null}</strong>{record ? <Record record={record}/> : null}</div>}<div className="pc-risk"><span>Essence or better <small>/ {p.rated<p.lineups?"rated ":""}lineup</small></span><strong>{loading ? <i className="pc-skeleton"/> : p.noReward === null ? "—" : chance(1 - p.noReward)}</strong></div></div>
     <div className={`pc-risk-track${unknown ? " pc-unknown" : ""}`} role="img" aria-label={loading ? `${label}: forecast loading` : p.noReward === null ? `${label}: reward chance unavailable` : `${label}: ${chance(1 - p.noReward)} chance of essence or better per lineup`}><i style={{ transform: `scaleX(${p.noReward === null ? 0 : 1 - p.noReward})` }}/></div>
     <div className="pc-side-foot"><div className="pc-fan" role="group" aria-label={`${label}: best lineup's cards`} data-many={p.cards.length > 5 || undefined}>{loading ? Array.from({ length: 5 }, (_,i) => <span className="pc-fan-skeleton" key={i}/>) : p.cards.map((c, i, all) => <span className="pc-preview-card" key={c.slug} title={c.name} style={{ "--r": `${all.length > 1 ? -8 + 16 * i / (all.length - 1) : 0}deg` } as CSSProperties}><CardArt src={c.pic} name={c.name}/></span>)}</div><Points portfolio={p} loading={loading} played={played}/></div>
     <div className="pc-detail">{p.rated<p.lineups&&p.lineups?<span>{p.rated}/{p.lineups} lineups have reward forecasts</span>:null}{!own&&p.pAny!==undefined?<span><b>{chance(p.pAny)}</b> chance of any plan reward</span>:null}{p.fees?<span>{number(p.fees,0)} essence in entry fees</span>:null}</div>
@@ -44,9 +51,9 @@ function Side({ label, portfolio: p, loading, own, state, action, played }: { la
   </section>;
 }
 
-export default function PlayComparison({ heading, recommendation, action, early, played, yours, state = "loading" }: PlayComparisonProps & { yours: Portfolio; state?: "loading" | "ready" | "saved" | "unavailable" | "early" }) {
+export default function PlayComparison({ heading, recommendation, action, early, played, yours, record, state = "loading" }: PlayComparisonProps & { yours: Portfolio; state?: "loading" | "ready" | "saved" | "unavailable" | "early" }) {
   return <section className="pc-hero" aria-label="Your lineups compared with Sofix">
     <div className="pc-heading">{heading}<span className="pc-context">{early ? "Early projections" : played ? "Recorded before kickoff" : "Before-kickoff forecast"}</span></div>
-    <div className="pc-matchup"><Side label="You" portfolio={yours} own loading={state === "loading"} state={state} played={played} action={early ? undefined : <a className="pc-entered-link" href="#entered-lineups-title">Your lineups<span aria-hidden="true">↓</span></a>}/><Side label="Sofix" portfolio={recommendation} action={action} played={played}/></div>
+    <div className="pc-matchup"><Side label="You" portfolio={yours} own loading={state === "loading"} state={state} played={played} action={early ? undefined : <a className="pc-entered-link" href="#entered-lineups-title">Your lineups<span aria-hidden="true">↓</span></a>}/><Side label="Sofix" portfolio={recommendation} action={action} played={played} record={record}/></div>
   </section>;
 }

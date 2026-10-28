@@ -129,3 +129,12 @@ test("Play compares the same entered forecasts with Sofix without a second lineu
   await expect(reopened.locator(".pl-entered-lineup")).toHaveCount(0);
   await expect(reopened.locator(".pc-you")).not.toContainText("1 entered");
 });
+
+test("Sofix's track record sits under its expected paid lineups", async ({ page, request }) => {
+  await resetBackend(request); await offline(page);
+  const data = { ...structuredClone(sorare), trackRecord: { said: 7.0, paid: 8, judged: 32, weeks: 5, from: 21, to: 25 } };
+  await request.post(`${MOCK}/__test/my-weeks`, { data: { sorareData: data } });
+  await page.goto(`/play?gw=${nextWeek(data).gameweek.id}`);
+  await expect(page.locator(".pc-sofix .pc-record")).toHaveText("Expected 7 · paid 8 GW21–25");
+  await expect(page.locator(".pc-you .pc-record")).toHaveCount(0);
+});

@@ -64,6 +64,7 @@ from app.sorare import (
 from app.sorare import missions as sorare_missions
 from app.sorare import publish as sorare_publish
 from app.sorare import strategies as sorare_strategies
+from app.sorare import strategy_audit as sorare_strategy_audit
 from app.sorare import sync as sorare_sync
 from app.sorare.client import SorareClient
 from app.sorare.model import ESSENCE_ORDER
@@ -629,6 +630,10 @@ def run(
         order=order,
         league_ff=league_lineups.starts if league_lineups else None,
         contenders=contenders,
+    )
+    # Sofix's plan against what happened, beside its forecast on Play (plans/plan-algorithm-v2.md step 8)
+    payload["trackRecord"] = sorare_strategy_audit.track_record(
+        strategy_record.payload if strategy_record and isinstance(strategy_record.payload, dict) else None
     )
     foreign_markets = payload.pop("_foreignMarkets", {})
     alt, record = payload.pop("_alt", None), payload.pop("_record", None)

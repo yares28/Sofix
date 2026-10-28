@@ -509,7 +509,11 @@ export type Sorare = {
   market?: MarketPlayer[];
   /** The essence kinds the plans fill first, as the owner saved them (the default when absent). */
   essenceOrder?: string[];
+  /** Sofix's plan against what happened over the audited weeks: paid lineups it expected (chances added up) and paid lineups there were. */
+  trackRecord?: TrackRecord;
 };
+
+export type TrackRecord = { said: number; paid: number; judged: number; weeks: number; from: number; to: number };
 
 /** Whose way of picking the plan shown follows: Sofix's own xScore, Sorare's projections, or one of the strategies (backend/app/sorare/strategies.py). */
 export const LENSES = [

@@ -36,7 +36,7 @@ from app.sorare.publish import ALT_PREFIX, ARCHIVE_PREFIX, SETTLE, STRATEGY_PREF
 from app.sorare.strategy_decision import amounts, collect, decision_of, tier_amounts
 
 KEY = "strategy_audit"
-VERSION = 5
+VERSION = 6  # 6: each tally adds up the chances of a reward its judged lineups were given (`said`, the track record)
 MY_WEEK = "my_week:"
 ENTERED_WEEK = "entered_week:"
 PREFIXES = (STRATEGY_PREFIX, PLAN_PREFIX, ALT_PREFIX, MY_WEEK, ENTERED_WEEK)
@@ -56,6 +56,7 @@ def _tally() -> dict[str, Any]:
         "pointsVs": 0.0,  # what those lineups scored: the share of the best is this over `best`
         "against": 0,  # how many of the scored lineups that is
         "judged": 0,
+        "said": 0.0,  # the chances of a reward the judged lineups were given before the lock, added up: how many it expected paid
         "returnCases": 0,
         "cash": 0.0,
         "essence": {},
@@ -76,6 +77,7 @@ def _add(total: dict[str, Any], part: dict[str, Any]) -> None:
         "pointsVs",
         "against",
         "judged",
+        "said",
         "returnCases",
         "cash",
     ):
@@ -236,6 +238,7 @@ class _Week:
             won = prize(raw, line["score"], cuts)
             if won is not None:
                 tally["judged"] += 1
+                tally["said"] += float(raw.get("pReturn") or 0.0)
                 tally["won"][won] += 1
             elif raw.get("tiers"):
                 tally["rewardPending"] += 1
@@ -469,4 +472,29 @@ def page(weeks: list[dict[str, Any]]) -> dict[str, Any]:
         "weeks": [
             {**{k: v for k, v in week.items() if k != "inputs"}, "decision": decision_of([week])} for week in weeks
         ],
+    }
+
+
+def track_record(audit: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Sofix's plan against what happened, over the audited weeks (plans/plan-algorithm-v2.md step 8): how many of its judged lineups it
+    expected to be paid (their chances added up) and how many were. None until a lineup has been judged."""
+    said, paid, judged, weeks = 0.0, 0, 0, []
+    for week in sorted(((audit or {}).get("weeks") or {}).values(), key=lambda w: w.get("number") or 0):
+        sofix = week.get("sofix") or {}
+        if not sofix.get("judged"):
+            continue
+        said += float(sofix.get("said") or 0.0)
+        won = sofix.get("won") or {}
+        paid += sum(int(won.get(k) or 0) for k in ("card", "cash", "essence"))  # XP is never paid
+        judged += int(sofix["judged"])
+        weeks.append(week.get("number"))
+    if not judged:
+        return None
+    return {
+        "said": round(said, 1),
+        "paid": paid,
+        "judged": judged,
+        "weeks": len(weeks),
+        "from": weeks[0],
+        "to": weeks[-1],
     }

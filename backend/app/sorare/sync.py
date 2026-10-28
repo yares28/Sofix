@@ -823,6 +823,52 @@ def pick_reference(done: list[dict[str, Any]], target: dict[str, Any], spread: f
 
 
 REFERENCE_LOOK_BACK = 10  # finished gameweeks searched for a competition the reference week did not hold
+SEASON_FILL = (
+    1  # comparable finished weeks a run fetches the cut-offs of, when the record lacks them (the season fills in a day)
+)
+COUNT_FILL = 6  # finished weeks a run counts the games of, when the record lacks them
+GAMES_KEY = "_games"  # in the references record: {week slug: its number of games}, so a week is counted once
+
+
+def season_weeks(
+    client: SorareClient,
+    weeks: list[dict[str, Any]],
+    done: list[dict[str, Any]],
+    target: dict[str, Any],
+    planned: list[dict[str, Any]],
+    references: dict[str, Any],
+) -> list[str]:
+    """The season's finished weeks comparable to the one being planned whose cut-offs are known (plans/plan-algorithm-v2.md step 2): the
+    score a reward needs is their mean at each rank (`publish.season_reference`), which missed the real one by 24.3 points on GW13-25
+    against 29.2 for the latest comparable week alone.
+
+    Each week's games are counted once and kept in `references` (`GAMES_KEY`); the cut-offs of a comparable week the record lacks are
+    fetched `SEASON_FILL` weeks per run, newest first, for the competitions without rooms (sampling rooms costs many calls)."""
+    counts: dict[str, int] = dict(references.get(GAMES_KEY) or {})
+    counts.update({w["slug"]: w["games"] for w in weeks if w.get("games")})
+    for w in [g for g in done if g["slug"] not in counts][-COUNT_FILL:]:
+        if found := games_summary(client, w["slug"])[0]:
+            counts[w["slug"]] = found
+    references[GAMES_KEY] = counts
+    similar = comparable_weeks([{**g, "games": counts.get(g["slug"], 0)} for g in done], target)
+    plain = [
+        c
+        for c in planned
+        if not c.get("skipped") and not c.get("roomsConfig") and not (c.get("format") or {}).get("entryItem")
+    ]
+    keys = {f"{c['league']} | {c['track']}" for c in plain}
+    missing = [g for g in similar if not keys <= set(references.get(g["slug"]) or {})]
+    for w in reversed(missing[-SEASON_FILL:]):
+        references[w["slug"]] = reference_scores(client, w["slug"], w["number"], plain, references.get(w["slug"]))
+    return [g["slug"] for g in similar if references.get(g["slug"])]
+
+
+def comparable_weeks(done: list[dict[str, Any]], target: dict[str, Any], spread: float = 0.45) -> list[dict[str, Any]]:
+    """The finished gameweeks with about as much football as this one (`pick_reference`'s rule), oldest first."""
+    target_games = target.get("games") or 0
+    if not target_games:
+        return []
+    return [g for g in done if g.get("games") and abs(g["games"] - target_games) / target_games <= spread]
 
 
 def reference_scores(
@@ -971,7 +1017,7 @@ def snapshot(
     # against its own results.
     done = [g for g in weeks if datetime.fromisoformat(g["end"]) < now]
     references: dict[str, Any] = dict(cached_references or {})
-    reference_for: dict[str, str] = {}
+    reference_for: dict[str, Any] = {}
     latest = pick_reference(done, plan_gw)
     if latest:
         reference_for["plan"] = latest["slug"]
@@ -999,6 +1045,7 @@ def snapshot(
                 if key in found:
                     have[key] = found[key]
                     lacking.remove(comp)
+    reference_for["planWeeks"] = season_weeks(client, weeks, done, plan_gw, planned, references)
     lap("references")
     if past_gw and past_comps:
         mark = client.errors

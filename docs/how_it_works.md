@@ -362,7 +362,7 @@ reward units remain separate and are never converted by an exchange rate. The pa
 lineup shows its first tier's reward and score, a plan its most likely result (`likelyResult` in `frontend/lib/play.ts`,
 lineups independent, a Room's fee always paid).
 
-Cutoffs use current tables or comparable past gameweek/room samples. Probabilities use common spread and simplify
+Cutoffs are the mean, rank by rank, of every comparable finished week of the season (about as much football, `sync.season_weeks`, `publish.season_reference`; 28 Oct 2026: 24.3 points off the real cut-off on GW13-25 against 29.2 for the latest comparable week), filled a week per refresh; rooms pool their samples. Probabilities use common spread and simplify
 teammate/opponent/shared-lineup correlation; combined “any reward” treats plan misses as independent. They are aids,
 not guarantees. `runs` controls repeated randomized searches; the fixed seed keeps identical input reproducible.
 

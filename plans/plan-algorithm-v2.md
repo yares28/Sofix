@@ -41,7 +41,7 @@ from each gameweek. His own lineups stay a comparison only (no "plan around what
 | Step | State |
 |---|---|
 | 3, 4, 5: polish, captain, essence weights | shipped 28 Oct. Replan of GW21-25: expected (weighted) essence higher in 4 of 5 weeks (+4% to +35%), GW21 550 against 574 |
-| 2: reward bar from the season | next |
+| 2: reward bar from the season | shipped 28 Oct: mean of the season's comparable weeks (24.3 off against 29.2). At a season's start the list holds only this season's weeks: Sorare's fixture list stops at Game Week 1 (`sync.gameweeks`) |
 | 6: strategy contest | |
 | 8: track record | |
 | 7: rebuild on news | |

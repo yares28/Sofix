@@ -419,6 +419,39 @@ def player_weeks(
 
 
 # --------------------------------------------------------------------------- competitions
+def season_reference(references: dict[str, Any], slugs: list[str]) -> dict[str, Any]:
+    """Each competition's reward bar from several finished weeks: at every rank, the mean score that was paid there; the rooms of 10 of
+    all of them pooled. A week whose whole field fits under a rank (anyone was paid there) says nothing about that rank."""
+    by_key: dict[str, list[dict[str, Any]]] = {}
+    for slug in slugs:
+        for key, kept in (references.get(slug) or {}).items():
+            if isinstance(kept, dict):
+                by_key.setdefault(key, []).append(kept)
+    out: dict[str, Any] = {}
+    for key, entries in by_key.items():
+        weeks = [
+            ({int(r): float(v) for r, v in e["cuts"].items()}, int(e.get("entries") or 0))
+            for e in entries
+            if e.get("cuts")
+        ]
+        entry: dict[str, Any] = {
+            "label": f"{len(entries)} weeks" if len(entries) > 1 else f"GW{entries[0].get('gameweek')}",
+        }
+        cuts: dict[int, float] = {}
+        for rank in sorted({r for week, _ in weeks for r in week}):
+            said = [score_at_rank(week, rank) for week, field in weeks if not field or rank < field]
+            paid = [s for s in said if s is not None]
+            if paid:
+                cuts[rank] = round(sum(paid) / len(paid), 2)
+        if cuts:
+            entry["cuts"] = cuts
+        rooms = [float(v) for e in entries for v in e.get("rooms") or []]
+        if rooms:
+            entry["rooms"] = rooms
+        out[key] = entry
+    return out
+
+
 def read_competitions(
     raw: list[dict[str, Any]], references: dict[str, Any], expected_from: str | None = None
 ) -> list[Competition]:
@@ -438,7 +471,9 @@ def read_competitions(
         reference = references.get(comp.key) or {}
         comp.reference = {int(k): float(v) for k, v in (reference.get("cuts") or {}).items()}
         comp.reference_rooms = [float(v) for v in (reference.get("rooms") or [])]
-        comp.reference_from = f"GW{reference['gameweek']}" if reference.get("gameweek") else ""
+        comp.reference_from = reference.get("label") or (
+            f"GW{reference['gameweek']}" if reference.get("gameweek") else ""
+        )
         if expected_from:
             comp.expected, comp.expected_from = True, expected_from
         comps.append(comp)
@@ -1236,7 +1271,11 @@ def build_payload(
     xg_rates = xg.build(snapshot["cards"], snapshot["history"], snapshot.get("understat") or {})
     reference_for = snapshot.get("referenceFor") or {}
     references = snapshot.get("references") or {}
-    plan_reference = references.get(reference_for.get("plan", ""), {})
+    # the season's comparable weeks (`season_reference`); a competition they never held (a European week's own) keeps the latest week's
+    plan_reference = {
+        **references.get(reference_for.get("plan", ""), {}),
+        **season_reference(references, reference_for.get("planWeeks") or []),
+    }
     plan_comps = with_expected(
         snapshot, read_competitions(snapshot["competitions"].get(plan_week["slug"], []), plan_reference), plan_week
     )

@@ -12,6 +12,7 @@ export const PLACES: Place[] = [
     views: [
       { href: "/", label: "Recap" },
       { href: "/play", label: "Sorare" },
+      { href: "/targets", label: "Targets" }, // what each competition took to pay anything (28 Oct 2026)
       { href: "/fixtures", label: "LaLiga" },
       { href: "/lineups", label: "Lineups" },
       { href: "/scores", label: "Scores" },

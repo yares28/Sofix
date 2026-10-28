@@ -687,6 +687,25 @@
         }
       }
     },
+    "/api/reward-bars": {
+      "get": {
+        "summary": "Reward Bars Page",
+        "description": "The Targets page's bars the refresh published. Local development only, like /sorare.",
+        "operationId": "reward_bars_page_api_reward_bars_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_dict_str__Any__"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/lineups": {
       "get": {
         "summary": "Lineups",

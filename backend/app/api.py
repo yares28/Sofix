@@ -10,7 +10,7 @@ from app.models import PlayerAbsence, PlayerGame, ReadModel
 from app.schemas import ApiResponse, FixtureGrid
 from app.services.fixture_grid import build_fixture_grid, grid_meta
 from app.services.timeutil import as_utc
-from app.sorare import audit, ff_link, sheets, stat_charts
+from app.sorare import audit, ff_link, reward_bars, sheets, stat_charts
 from app.sorare import missions as mission_logs
 from app.sorare.ff_lineups import LINEUPS_KEY
 from app.sorare.frozen import PLAN_PREFIX
@@ -244,6 +244,15 @@ def audit_page(db: Session = Depends(get_db)):
         return ApiResponse[dict[str, Any]](success=True, data=row.payload)
     page = audit.from_kept(db, datetime.now(UTC))
     return ApiResponse[dict[str, Any]](success=True, data=page)
+
+
+@router.get("/reward-bars", response_model=ApiResponse[dict[str, Any]])
+def reward_bars_page(db: Session = Depends(get_db)):
+    """The Targets page's bars the refresh published. Local development only, like /sorare."""
+    row = db.get(ReadModel, reward_bars.KEY)
+    if row is None:
+        return ApiResponse[dict[str, Any]](success=False, error="The reward bars have not been written yet.")
+    return ApiResponse[dict[str, Any]](success=True, data=row.payload)
 
 
 @router.get("/lineups", response_model=ApiResponse[dict[str, Any]])

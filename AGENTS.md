@@ -122,10 +122,12 @@ Not done here: pull requests, waiting for CI or for a refresh, review subagents,
 
 - One date-selected week drives all pages; LaLiga and Sorare GW numbers are separate.
 - UI says GW/Gameweek, not MD/Matchday. Store UTC, display Madrid; missing kickoff is “Date TBC”.
-- Routes: `/`, `/play`, `/lineups`, `/scores`, `/fixtures`, `/difficulty`, `/table`, `/audit`, `/cards`, `/players`, `/control`, `/team/[code]`.
+- Routes: `/`, `/play`, `/targets`, `/lineups`, `/scores`, `/fixtures`, `/difficulty`, `/table`, `/audit`, `/cards`, `/players`, `/control`, `/team/[code]`.
   `/audit` is Sofix checked against what happened (backend/app/sorare/audit.py, read model `audit`): how often Sofix's and Sorare's numbers land within 7 points, and who
   starts per source, starters and substitutes apart. It is not tied to the week in the top bar; the job decides what is
   shown and a figure under 100 cases says "too few to tell" (the Sofix against Sorare rates show from the first game).
+  `/targets` is each competition's score to be paid anything, averaged over the recorded finished gameweeks (read model
+  `reward_bars`, written by the refresh's Sorare step from `sorare_references`; pins and hidden ones live in the browser).
 - The home Sorare section and Play put the signed-in owner's actual Sorare lineups at the top of their selected Sorare
   GW, including weeks with no saved Sofix plan. That private read is fixture-level through the extension; never infer it
   from the public plan.

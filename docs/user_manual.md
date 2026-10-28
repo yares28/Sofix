@@ -443,6 +443,19 @@ keeping them says **not recorded** on its page; it still opens, to the lineups y
 A week Sofix holds no plan for says why, and still shows your lineups for it: one being played is locked, so there is
 nothing left to plan; one further off than the next three Sorare gameweeks gets its plan once it is one of them.
 
+## 7.1 Targets: what wins something (28 October 2026)
+
+**This week → Targets** (`/targets`) shows the score each Sorare competition needed to pay anything (cash, essence or a
+card; XP-only levels do not count), averaged over every finished gameweek Sofix has recorded. A competition is measured at
+its last paid rank (LaLiga Limited: the score that finished 1,500th), a room of ten at its last paid place (3rd of 10, from
+real rooms) and a Pro board at its current step's target. The ruler puts every competition on one scale; tap a dot, or the
+pin in the list, to pin one: it gets a flag on the ruler and a tile with the average, where it pays, each week's figure and
+every reward level. Hide what you never play; "Hidden" brings it back. Pins and hidden ones stay in this browser.
+**Not read** lists competitions whose reward table Sofix has not read yet, and leagues you hold no card in (Sofix does not
+read their cut-offs). The refresh's Sorare step rewrites the figures when a finished gameweek's cut-offs arrive
+(`reward_bars`, backend/app/sorare/reward_bars.py); weekend and midweek rounds are averaged together, so the range under
+each tile shows how much the bar moves.
+
 ## 7a. Lineups — who starts
 
 Futbol Fantasy's probable elevens for every match it has published (FF covers each team's next game only, so the page is not

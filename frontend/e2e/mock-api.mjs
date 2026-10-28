@@ -262,6 +262,7 @@ for (const player of planning.playing.players.slice(0, 3)) {
 // The Audit page (`read_models` key `audit`): the page the job would publish on 2 Oct as it is (Sofix's chance written down for GW19's games, none
 // played yet; the replay of the past from the committed file), and the same page once the record has enough games to give figures, so the figures,
 // their wording and the bands have something to draw.
+const rewardBarsFixture = JSON.parse(readFileSync(new URL("./fixtures/reward-bars-response.json", import.meta.url), "utf8"));
 const auditFixture = JSON.parse(readFileSync(new URL("./fixtures/audit-response.json", import.meta.url), "utf8"));
 function auditPayload(kind) {
   const data = structuredClone(auditFixture.data);
@@ -510,6 +511,11 @@ const server = createServer((req, res) => {
   if (req.method === "GET" && url.pathname === "/api/lineups") {
     if (state.sorare === "missing") return send(res, 200, { success: false, data: null, error: "Futbol Fantasy's lineups have not been read yet." });
     return send(res, 200, lineupsPayload);
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/reward-bars") {
+    if (state.sorare === "missing") return send(res, 200, { success: false, data: null, error: "The reward bars have not been written yet." });
+    return send(res, 200, rewardBarsFixture);
   }
 
   if (req.method === "GET" && url.pathname === "/api/audit") {

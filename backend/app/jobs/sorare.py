@@ -56,6 +56,7 @@ from app.sorare import (
     outfield,
     player_games,
     projection,
+    reward_bars,
     score_checks,
     score_fixes,
     scores,
@@ -768,6 +769,25 @@ def run(
     if kept_plans:
         summary["frozenPlans"] = kept_plans
     put(db, REFERENCES_KEY, snapshot["references"], now)
+    # The Targets page: each competition's score to be paid anything, averaged over the finished weeks just saved. Unchanged
+    # payloads are not rewritten (`put`), so it moves when a finished gameweek's cut-offs arrive.
+    optional(
+        db,
+        failed,
+        "reward bars",
+        lambda: put(
+            db,
+            reward_bars.KEY,
+            reward_bars.build(
+                snapshot["references"],
+                snapshot.get("competitions") or {},
+                snapshot.get("pro"),
+                (row.payload if (row := kept_blocks.read(db, reward_bars.KEY)) else None),
+            ),
+            now,
+        ),
+        None,
+    )
     if (
         snapshot.get("expected") or {}
     ) != templates:  # a finished week never changes: write only when a new one became the template

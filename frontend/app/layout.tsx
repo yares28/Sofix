@@ -18,6 +18,7 @@ import "./stat-charts.css";
 import "./player.css";
 import "./arcade.css";
 import "./arcade-canvas.css";
+import "./targets.css";
 
 // Self-hosted at build time by next/font (no request to Google from the browser, so the CSP stays 'self').
 // Geist on every device (owner's pick, 5 Oct 2026).

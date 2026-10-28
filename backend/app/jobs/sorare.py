@@ -63,6 +63,7 @@ from app.sorare import (
 )
 from app.sorare import missions as sorare_missions
 from app.sorare import publish as sorare_publish
+from app.sorare import strategies as sorare_strategies
 from app.sorare import sync as sorare_sync
 from app.sorare.client import SorareClient
 from app.sorare.model import ESSENCE_ORDER
@@ -391,6 +392,11 @@ def run(
     # A dry run saves nothing, so it plans on the full history from here.
     league = cached_league(db) if dry_run else player_games.read_times(db, days=70)
     order = essence_order(db)
+    # the three strategies that won most over the audited weeks build a plan each to compete with Sofix's (plans/plan-algorithm-v2.md 6)
+    strategy_record = kept_blocks.read(db, "strategy_audit")
+    contenders = sorare_strategies.contenders(
+        strategy_record.payload if strategy_record and isinstance(strategy_record.payload, dict) else None
+    )
     previous = published(db, started)
     foreign_kept = {
         r.key: r.payload for r in kept_blocks.rows(db, "grid:", "league_squads:", "league_games:", "player_index")
@@ -622,6 +628,7 @@ def run(
         scores=scores_of,
         order=order,
         league_ff=league_lineups.starts if league_lineups else None,
+        contenders=contenders,
     )
     foreign_markets = payload.pop("_foreignMarkets", {})
     alt, record = payload.pop("_alt", None), payload.pop("_record", None)

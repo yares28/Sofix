@@ -166,6 +166,10 @@ export type Plan = {
   rank: number;
   essence: number;
   cash: number;
+  /** What it wins on average, each essence at the share of its leagues the owner plays and $1 as 300: what plans are ranked on. */
+  value?: number;
+  /** The strategy that built it, when it won the week's contest. */
+  strategy?: string;
   /** Essence spent entering Rooms: a cost, never taken off a result. */
   fees?: number;
   pAny: number;
@@ -352,6 +356,8 @@ export type GameweekPlan = {
   blocked: Blocked[];
   notWorth: AlsoOpen[];
   plans: Plan[];
+  /** The week's strategy contest: Sofix's best plan and each contender's, priced on Sofix's numbers, best first. The first leads `plans`. */
+  contest?: { key: string; label: string; value: number }[];
   /** A finished week only: the best lineups in hindsight, priced by what really paid (Rooms left out). */
   hindsight?: Plan;
   /** The gameweek being planned only, and only once Futbol Fantasy has told the job something about a player of the owner's. */
@@ -510,7 +516,17 @@ export const LENSES = [
   { key: "keeper-defender", label: "Keeper with defender", title: "A defender of the keeper's own club: nothing, or win big" },
   { key: "club-stack", label: "3 from 1 club", title: "Three players of one club in each lineup" },
   { key: "ceiling", label: "Highest ceiling", title: "Each player at the top of his range, not the middle" },
+  { key: "no-clash", label: "No clash", title: "No midfielder or forward plays against his own keeper" },
+  { key: "scorers", label: "Likely scorers", title: "Players with the best chance of a goal or an assist count for more" },
+  { key: "usual", label: "Usual score", title: "Each player at what he usually scores, with no goal or assist" },
+  { key: "surest", label: "Surest starters", title: "Only players with at least a 90% chance of playing" },
+  { key: "favourites", label: "Favourites only", title: "Only players whose side is the likeliest to win" },
 ] as const;
+/** The three strategies that built a plan this week (the week's contest), or the first three before any contest was run. */
+export const weekLenses = (contest: { key: string }[] | undefined) => {
+  const keys = (contest ?? []).map((entry) => entry.key);
+  return keys.length ? LENSES.filter((lens) => keys.includes(lens.key)) : LENSES.slice(0, 3);
+};
 export type PlanBy = "sofix" | "sorare" | (typeof LENSES)[number]["key"];
 export const lensKey = (value: string | undefined): (typeof LENSES)[number]["key"] | null => LENSES.find((lens) => lens.key === value)?.key ?? null;
 

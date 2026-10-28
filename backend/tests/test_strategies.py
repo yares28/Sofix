@@ -162,3 +162,24 @@ def test_a_lineups_xd_counts_each_starters_chance_of_a_decisive_action_or_is_mis
     assert lineup_xd(starters, fc) == 0.7  # 0.25 + 0.4 is 0.65, shown to one decimal
     fc[starters[1].player] = Forecast(p_play=1.0, mu=46.0)
     assert lineup_xd(starters, fc) is None
+
+
+def test_the_strategies_that_won_most_compete_with_sofix():
+    from app.sorare.strategies import DEFAULT_CONTENDERS, contenders
+
+    assert contenders(None) == DEFAULT_CONTENDERS
+    audit = {
+        "weeks": {
+            "w1": {
+                "strategies": {
+                    "xscore": {"essence": {"limited": {"total": 9000}}, "cash": 0, "won": {"essence": 3}},
+                    "favourites": {"essence": {"limited": {"total": 750}}, "cash": 0, "won": {"essence": 2}},
+                    "ceiling": {"essence": {"limited": {"total": 350}}, "cash": 0, "won": {"essence": 2}},
+                    "usual": {"essence": {"limited": {"total": 200}}, "cash": 0, "won": {"essence": 2}},
+                    "scorers": {"essence": {"limited": {"total": 0}}, "cash": 1.0, "won": {"cash": 1}},
+                }
+            }
+        }
+    }
+    # xScore is Sofix's own and always competes; $1 counts as 300 essence
+    assert contenders(audit) == ("favourites", "ceiling", "scorers")

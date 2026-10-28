@@ -12,6 +12,7 @@ import {
   insideRange,
   isLongShot,
   LENSES,
+  weekLenses,
   likelyResult,
   plansOf,
   proOpen,
@@ -171,12 +172,12 @@ export default function PlayView({
         <section className={`pl-board${sync?.behind ? " behind" : ""}`} aria-labelledby="pl-board-title">
           <div className="pl-board-head">
             <h2 id="pl-board-title">{alternatives ? planTitle(by) : "Recommended plan"}</h2>
-            {showSources ? <PlanSources by={by} href={href} /> : null}
+            {showSources ? <PlanSources by={by} href={href} contest={week.contest} /> : null}
             {alternatives ? <PlanSwitch plans={plans} planIndex={planIndex} after={after} href={href} /> : <Link className="pl-other-plans" href={otherPlans} prefetch={false}>Other plans &amp; strategies<LinkPending /></Link>}
             <span className="pl-board-note">
               {plan.hindsight
                 ? "The best lineups in hindsight, knowing every score, with your cards today"
-                : `${alternatives ? `Plan ${plan.rank} of ${week.plans.length}` : "Highest expected essence"} · ${plan.lineups.length} lineup${plan.lineups.length === 1 ? "" : "s"}${week.projected ? " · early plan" : ""}`}
+                : `${alternatives ? `Plan ${plan.rank} of ${week.plans.length}${plan.strategy ? ` · ${plan.strategy}` : ""}` : plan.strategy ? `${plan.strategy} won this week's simulation` : "Highest expected essence"} · ${plan.lineups.length} lineup${plan.lineups.length === 1 ? "" : "s"}${week.projected ? " · early plan" : ""}`}
             </span>
             {showModes ? (
               <div className="pl-mode" role="group" aria-label="Show">
@@ -218,7 +219,7 @@ export default function PlayView({
         <section className="pl-board" aria-labelledby="pl-board-title">
           <div className="pl-board-head">
             <h2 id="pl-board-title">{planTitle(by)}</h2>
-            <PlanSources by={by} href={href} />
+            <PlanSources by={by} href={href} contest={week.contest} />
           </div>
           <p className="pl-board-note" role="status">
             {sorareWaiting}
@@ -345,11 +346,11 @@ const planTitle = (by: PlanBy): string =>
   by === "sorare" ? "Sorare plan" : by === "sofix" ? "Sofix plan" : `${LENSES.find((lens) => lens.key === by)?.label ?? "Strategy"} plan`;
 
 /** Whose way of picking the plan follows: Sofix's xScore, Sorare's projections, or one of the strategies (the owner, 13 Oct 2026). */
-function PlanSources({ by, href }: { by: PlanBy; href: (options: { plan?: number; by?: PlanBy }) => string }) {
+function PlanSources({ by, href, contest }: { by: PlanBy; href: (options: { plan?: number; by?: PlanBy }) => string; contest?: GameweekPlan["contest"] }) {
   const options: { key: PlanBy; label: string; title: string }[] = [
     { key: "sofix", label: "Sofix", title: "Built on Sofix's xScore" },
     { key: "sorare", label: "Sorare", title: "Built on Sorare's projections; the same start chances" },
-    ...LENSES.map((lens) => ({ key: lens.key as PlanBy, label: lens.label, title: lens.title })),
+    ...weekLenses(contest).map((lens) => ({ key: lens.key as PlanBy, label: lens.label, title: lens.title })),
   ];
   return (
     <div className="pl-mode" role="group" aria-label="Plan made from">

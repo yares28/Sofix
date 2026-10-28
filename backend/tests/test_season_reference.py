@@ -91,3 +91,27 @@ def test_a_run_counts_games_once_and_fills_one_missing_week(monkeypatch):
     counted.clear()
     second = sync.season_weeks(None, [], done, target, planned, references)  # type: ignore[arg-type]
     assert counted == [] and fetched == ["w3", "w1"] and second == ["w1", "w3", "w4"]
+
+
+# ------------------------------------------------------------------ the week's strategy contest (plans/plan-algorithm-v2.md step 6)
+def test_the_contender_whose_plan_wins_most_leads_the_week():
+    from app.sorare.publish import contest
+
+    week = {"plans": [{"rank": 1, "value": 900, "lineups": []}, {"rank": 2, "value": 850, "lineups": []}]}
+    lenses = {
+        "ceiling": {"label": "Highest ceiling", "plans": [{"rank": 1, "value": 1000, "lineups": ["c"]}]},
+        "club-stack": {"label": "Three from one club", "plans": [{"rank": 1, "value": 700, "lineups": []}]},
+        "favourites": {"label": "Favourites only", "plans": []},
+    }
+    contest(week, lenses)
+    assert [e["key"] for e in week["contest"]] == ["ceiling", "xscore", "club-stack"]
+    assert week["plans"][0]["strategy"] == "Highest ceiling" and week["plans"][0]["lineups"] == ["c"]
+    assert [p["rank"] for p in week["plans"]] == [1, 2] and week["plans"][1]["value"] == 900  # Sofix's best is plan 2
+
+
+def test_sofix_keeps_the_lead_when_its_plan_wins():
+    from app.sorare.publish import contest
+
+    week = {"plans": [{"rank": 1, "value": 900, "lineups": []}]}
+    contest(week, {"ceiling": {"label": "Highest ceiling", "plans": [{"rank": 1, "value": 800, "lineups": []}]}})
+    assert week["plans"][0]["strategy"] == "Sofix's numbers" and week["plans"][0]["value"] == 900

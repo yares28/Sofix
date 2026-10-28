@@ -36,6 +36,7 @@ from app.sorare.planner import (
     replay_rewards,
     score_at_rank,
     simulate,
+    weighted_worth,
     worth,
 )
 from app.sorare.scores import Made
@@ -864,6 +865,7 @@ def plan_payload(
     payload = {
         "rank": rank,
         "essence": round(plan.essence),
+        "value": round(sum(weighted_worth(lu) for lu in plan.lineups)),
         "cash": round(plan.cash, 2),
         "fees": plan.fees,
         "pAny": round(plan.chance_of_any(), 4),
@@ -1246,8 +1248,12 @@ def build_payload(
     scores: ScoresOf | None = None,
     order: tuple[str, ...] = ESSENCE_ORDER,
     league_ff: Callable[[str, list[dict[str, Any]]], list[GameStart]] | None = None,
+    contenders: tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
     """The whole `sorare` read model, from one snapshot.
+
+    `contenders` are the strategies that each build a whole plan beside Sofix's own (`strategies.contenders`); the one whose plan wins
+    most on average, every plan priced on Sofix's numbers, is the recommended plan (`contest`).
 
     `league_ff` is Futbol Fantasy's chance game by game for every LaLiga player (linked apart from the owner's cards, so the Lineups
     page still marks only his); without it the other players' start chance stands on Sorare's odds or their form.
@@ -1366,11 +1372,22 @@ def build_payload(
     laps("strategy lab")
     try:
         lenses: dict[str, dict[str, Any]] | None = lens_plans(
-            plan_week, snapshot, plan_comps, cards, plan_forecasts, plan_games, order=order, runs=runs, draws=draws
+            plan_week,
+            snapshot,
+            plan_comps,
+            cards,
+            plan_forecasts,
+            plan_games,
+            order=order,
+            runs=runs,
+            draws=draws,
+            keys=contenders or LENSES,
         )
     except Exception:  # the same: a strategy plan is a second look and may not cost the page its own
         logger.exception("strategy plans failed")
         lenses = None
+    if lenses and not next_gw.get("projected"):
+        contest(next_gw, lenses)
     laps("strategy plans")
 
     last_gw = kept_replay(previous, past_week)
@@ -1563,10 +1580,29 @@ def stripped_forecasts(weeks: Mapping[str, PlayerWeek]) -> dict[str, Forecast]:
 LENS_PREFIX = "sorare_lens:"
 """The week planned again with a strategy's way of picking (`sorare_lens:<slug>:<strategy>`): the Play page's strategy plans, read on demand."""
 LENSES = (
-    "keeper-defender",
-    "club-stack",
-    "ceiling",
-)  # the strategies the Play page offers beside Sofix's own and Sorare's
+    strategies.DEFAULT_CONTENDERS
+)  # the strategies that build a plan beside Sofix's own until the audit has measured any
+
+
+def contest(gameweek: dict[str, Any], lenses: Mapping[str, dict[str, Any]]) -> None:
+    """The week's strategy contest (plans/plan-algorithm-v2.md step 6): Sofix's best plan and each contender's, all priced on Sofix's
+    numbers; the one that wins most on average leads the week's plans, marked with its strategy. The best strategy can change from one
+    week to the next, so the contest is run every week rather than waiting for the audit to settle on one."""
+    plans_now = gameweek.get("plans") or []
+    if not plans_now:
+        return
+    entries = [{"key": "xscore", "label": "Sofix's numbers", "value": plans_now[0].get("value", 0)}]
+    for key, lens in lenses.items():
+        if lens.get("plans"):
+            entries.append({"key": key, "label": lens["label"], "value": lens["plans"][0].get("value", 0)})
+    entries.sort(key=lambda e: -e["value"])
+    winner = entries[0]
+    gameweek["contest"] = entries
+    if winner["key"] == "xscore":
+        gameweek["plans"] = [{**plans_now[0], "strategy": winner["label"]}, *plans_now[1:]]
+        return
+    best = {**lenses[winner["key"]]["plans"][0], "rank": 1, "strategy": winner["label"]}
+    gameweek["plans"] = [best, *({**plan, "rank": i + 2} for i, plan in enumerate(plans_now))][: max(len(plans_now), 1)]
 
 
 def lens_plans(
@@ -1580,6 +1616,7 @@ def lens_plans(
     order: tuple[str, ...],
     runs: int,
     draws: int,
+    keys: tuple[str, ...] | None = None,
 ) -> dict[str, dict[str, Any]]:
     """For each Play strategy, the week's best whole plan when its lineups are picked that strategy's way (starters chosen under its numbers
     and rule, every lineup priced on Sofix's own). One plan each and few searches: they are a second look, not the plan."""
@@ -1590,9 +1627,10 @@ def lens_plans(
     cards = in_week(cards, games)
     ready = [c for c in comps if (c.reference or c.reference_rooms) and lineups_possible(c, cards, forecasts)]
     out: dict[str, dict[str, Any]] = {}
-    for key in LENSES:
+    for key in keys or LENSES:
         strategy = strategies.BY_KEY[key]
         view = strategy.numbers(forecasts, games)
+        rule_for = pro.rules_for(games, strategy.rule_for(view))
         found = (
             plans(
                 ready,
@@ -1603,7 +1641,7 @@ def lens_plans(
                 draws=draws,
                 order=order,
                 view=view,
-                rule_for=pro.rules_for(games, strategy.rule_for(view)),
+                rule_for=rule_for,
             )
             if ready
             else []
@@ -1612,7 +1650,12 @@ def lens_plans(
             "gameweek": {"slug": week["slug"], "number": week["number"], "lock": week["lock"], "end": week.get("end")},
             "builtAt": snapshot["fetchedAt"],
             "label": strategy.label,
-            "plans": [plan_payload(plan, i + 1, forecasts, games, len(cards)) for i, plan in enumerate(found)],
+            "plans": [
+                plan_payload(
+                    plan, i + 1, forecasts, games, len(cards), twins=pro.twins(ready), cards=cards, rule_for=rule_for
+                )
+                for i, plan in enumerate(found)
+            ],
         }
     return out
 

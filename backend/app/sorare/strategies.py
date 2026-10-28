@@ -231,3 +231,33 @@ def week(
                 lineups.append(planner.evaluate(lineup, dict(forecasts)))
         out.append((strategy, lineups))
     return out
+
+
+DEFAULT_CONTENDERS = ("keeper-defender", "club-stack", "ceiling")
+"""The strategies that build a plan beside Sofix's own until the audit has measured any (the Play page's three since 13 Oct)."""
+
+
+def contenders(audit: Mapping[str, Any] | None, count: int = 3) -> tuple[str, ...]:
+    """The strategies that build a whole plan each week to compete with Sofix's own (plans/plan-algorithm-v2.md step 6): the `count`
+    that won the most over the season's audited weeks (essence plus cash at `CASH_IN_ESSENCE`), then paid most often. Sofix's own numbers
+    (xScore) always compete, and Sorare's projection has its own plan, so neither is a contender. Without any audited week, the defaults.
+    """
+    from app.sorare.model import CASH_IN_ESSENCE
+
+    pool = [s.key for s in STRATEGIES if s.key not in ("xscore", "sorare")]
+    won = {key: 0.0 for key in pool}
+    paid = {key: 0 for key in pool}
+    seen = False
+    for week in ((audit or {}).get("weeks") or {}).values():
+        for key, tally in (week.get("strategies") or {}).items():
+            if key not in won:
+                continue
+            seen = True
+            essence = sum(float(e.get("total") or 0.0) for e in (tally.get("essence") or {}).values())
+            won[key] += essence + CASH_IN_ESSENCE * float(tally.get("cash") or 0.0)
+            results = tally.get("won") or {}
+            paid[key] += sum(int(results.get(k) or 0) for k in ("cash", "essence", "card"))
+    if not seen:
+        return DEFAULT_CONTENDERS[:count]
+    default = {key: i for i, key in enumerate((*DEFAULT_CONTENDERS, *pool))}
+    return tuple(sorted(pool, key=lambda k: (-won[k], -paid[k], default[k]))[:count])

@@ -59,7 +59,8 @@ const withExtension = (page: Page, answers: Record<string, unknown> = ANSWERS, v
     if (message.type === "ping") return reply({ ok: true, version, sorareUser: "owner", appReachable: true });
     if (message.type === "read-arcade") return reply({ ok: true, state: "ok", players: 1, games: 1 });
     if (holdPast && message.step === "arcade-past") return;
-    reply({ ok: true, state: "ok", step: message.step, data: answers[`${message.step}:${message.game}`] ?? answers[message.step ?? ""] });
+    const over = (window as unknown as { __answers?: Record<string, unknown> }).__answers ?? {}; // a later answer (a pack opened)
+    reply({ ok: true, state: "ok", step: message.step, data: over[message.step ?? ""] ?? answers[`${message.step}:${message.game}`] ?? answers[message.step ?? ""] });
   } } } });
 }, [answers, version, holdPast] as const);
 
@@ -424,4 +425,29 @@ test("cold mission picks do not wait for projections and one window changes ever
   await page.close();
   await reopened.goto("/arcade");
   await expect(reopened.locator(".arc-own .arc-pick-chance")).toHaveText("30%");
+});
+
+test("coming back to the tab after opening packs reads your cards again, at most every 3 minutes; a Limited or another set's card never counts", async ({ page }) => {
+  await page.clock.install();
+  await withExtension(page);
+  await page.goto("/arcade");
+  await expect(page.locator(".arc-wallet")).toContainText("6");
+  const cards = (ANSWERS["arcade-cards"] as { currentUser: { cards: { nodes: Record<string, unknown>[] } } }).currentUser.cards;
+  const pack = { ...cards, nodes: [
+    { ...cards.nodes[0], slug: "new-card", anyPlayer: { slug: "n", displayName: "Packed Player" } }, // a card from today's pack
+    { ...cards.nodes[0], slug: "old-set", cardSet: { slug: "older" }, anyPlayer: { slug: "o", displayName: "Old Set Player" } },
+    ...cards.nodes,
+  ], totalCount: 8 };
+  await page.evaluate((c) => { (window as unknown as { __answers: unknown }).__answers = { "arcade-cards": { currentUser: { cards: c } } }; }, pack);
+  const back = () => page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+  await back(); // under 3 minutes: no new read
+  await page.waitForTimeout(300);
+  await expect(page.locator(".arc-wallet")).not.toContainText("7");
+  await page.clock.fastForward("03:01");
+  await back();
+  await expect(page.locator(".arc-wallet")).toContainText("7"); // the packed card counts; the other set's does not
+  await page.getByRole("searchbox", { name: "Search player or club" }).fill("packed");
+  await expect(page.locator(".arc-count")).toHaveText("1–1 of 1");
+  await page.getByRole("searchbox", { name: "Search player or club" }).fill("old set");
+  await expect(page.locator(".arc-count")).toHaveText("No card matches");
 });

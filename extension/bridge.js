@@ -260,7 +260,7 @@
     SofixArcadeCards: (variables) => {
       const after = variables?.after ?? null;
       if (after !== null && (typeof after !== "string" || after.length > 500)) return null;
-      return `query SofixArcadeCards { currentUser { cards(rarities: [common], sport: FOOTBALL, first: 100, after: ${JSON.stringify(after)}) {
+      return `query SofixArcadeCards { currentUser { cards(rarities: [common], sport: FOOTBALL, sorts: [RECENTLY_OWNED_FIRST], first: 100, after: ${JSON.stringify(after)}) {
         totalCount
         nodes { slug pictureUrl cardEditionName anyPositions cardSet { slug }
           skinEdition { bonus skinName variantName }

@@ -1159,11 +1159,11 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-10-29",
-        "note": "Source-inspected boundaries; referenced suites are evidence locations, not a claim of live verification.",
+        "note": "29 Oct, 0.4.19: SofixArcadeCards asks Sorare for RECENTLY_OWNED_FIRST (schema enum CardSort, checked in the published SDL) so a new set's cards come before older sets under the 40-page cap; no operation added, allowlists unchanged; not yet run on a signed-in session.",
         "files": {
           "extension/background.js": "042f4f6de642633a9dea3760b265753a2ae0a21b665345ed0f79370842b3bfc3",
-          "extension/bridge.js": "7c9df0d57d06b4a705c04ba68af35b92e6b928474292a8c1accd631158842642",
-          "extension/manifest.template.json": "c7f54bc4343c77d94ba93aaa6834727367ae2839bd9d9b778fa3dd46d5ba6c4e",
+          "extension/bridge.js": "155dc44418686780f07f3e87afc4efdefc19751b23093ad9ce3e1ce2704d3c81",
+          "extension/manifest.template.json": "5206e3270cd2bac42fa9ba7c128088a54e43e5066aabf8b1e27cfaad0879198e",
           "frontend/lib/apply.ts": "2ead4a7d1eb2110a8d747af2ac5b2016761e96d70aadf092c410c7810e9b035d",
           "frontend/lib/apply.test.ts": "4c16ba9e8d5c575f719801523a211f25f751e2d36f33d6a211f7adb974675579",
           "frontend/lib/extensionBridge.test.ts": "186d7ae03119f8294abf259ac869b22ce36fc446f089373457353e0087a15473",

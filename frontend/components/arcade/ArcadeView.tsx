@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ARCADE_BENCH_VERSION, ARCADE_EXTENSION_VERSION, ARCADE_PLAN_VERSION, chanceOf, gamesOf, keepArcade, lastArcade, loadArcadeChances, newerChances, outlookOf, readArcade, setEnded, readArcadeBench, readArcadeExtras, walkArcade,
   type Arcade, type ArcadeBench, type ArcadeChances, type ArcadeExtras, type ArcadeLaLiga, type ArcadeRead, type ArcadeStep, type ArcadeWalk,
@@ -14,6 +14,9 @@ import { FdrContext } from "./Fdr";
 import ArcadeMissions from "./ArcadeMissions";
 import ArcadePacks from "./ArcadePacks";
 import ArcadePlanner, { climbStep } from "./ArcadePlanner";
+
+/** The least time between two reads when you come back to the tab. */
+const REREAD_MS = 3 * 60_000;
 
 const madrid = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString("en-GB", { timeZone: "Europe/Madrid", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
@@ -183,7 +186,9 @@ export default function ArcadeView({ laliga, fdr = [] }: { laliga: ArcadeLaLiga;
   // What is shown: the fresh read, or until then (or when Sorare cannot be read) the last one kept in this browser, with its time.
   const [board, setBoard] = useState<{ arcade: Arcade; unread: string[]; at: number | null } | null>(null);
   const [busy, setBusy] = useState(false);
+  const lastRead = useRef(0);
   const load = useCallback(async () => {
+    lastRead.current = Date.now();
     setBusy(true);
     const fresh = await readArcade();
     setRead(fresh);
@@ -197,7 +202,14 @@ export default function ArcadeView({ laliga, fdr = [] }: { laliga: ArcadeLaLiga;
     const last = lastArcade();
     if (last) setBoard(last);
     void load();
-  }, [load]); // once per visit; never on focus or on a timer
+  }, [load]); // once per visit
+  // Back on this tab after opening packs on Sorare (owner, 29 Oct: lineups follow the players you get): read again, at most every
+  // REREAD_MS and only while the tab is visible. The read goes to Sorare through the extension; the page itself asks Sofix once.
+  useEffect(() => {
+    const back = () => { if (document.visibilityState === "visible" && Date.now() - lastRead.current > REREAD_MS) void load(); };
+    document.addEventListener("visibilitychange", back);
+    return () => document.removeEventListener("visibilitychange", back);
+  }, [load]);
   const at = board?.at != null ? madrid(new Date(board.at).toISOString()) : null;
   const ended = board ? setEnded(board.arcade) : false;
 

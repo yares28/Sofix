@@ -98,12 +98,13 @@ export function packRow(pack: { slug: string; title: string; league: string | nu
 export type GemPlan = { buys: { slug: string; title: string; league: string | null; count: number; price: number }[]; spent: number; atLeastOne: number; expected: number };
 
 /**
- * What to buy with your gems for the best chance of at least one hit: each pack's worth per gem is −ln(1 − its chance)/price (the
- * chances of independent packs multiply), so the best pack is bought while you can afford it, then the next best with what is left.
+ * What to buy with a budget of one currency (gems or essence) for the best chance of at least one hit: each pack's worth is
+ * −ln(1 − its chance)/price (the chances of independent packs multiply), so the best pack is bought while the budget lasts, then the
+ * next best with what is left.
  */
-export function spendGems(rows: PackRow[], gems: number): GemPlan {
+export function spendGems(rows: PackRow[], gems: number, currency = "COMMON_GEM"): GemPlan {
   const worth = (r: PackRow) => (r.atLeastOne >= 1 ? Infinity : -Math.log(1 - r.atLeastOne) / r.price);
-  const options = rows.filter((r) => r.currency === "COMMON_GEM" && r.price > 0 && r.atLeastOne > 0).sort((a, b) => worth(b) - worth(a) || a.price - b.price);
+  const options = rows.filter((r) => r.currency === currency && r.price > 0 && r.atLeastOne > 0).sort((a, b) => worth(b) - worth(a) || a.price - b.price);
   const buys = new Map<string, GemPlan["buys"][number]>();
   let left = gems, miss = 1, expected = 0;
   for (const r of options) {
@@ -116,6 +117,25 @@ export function spendGems(rows: PackRow[], gems: number): GemPlan {
     }
   }
   return { buys: [...buys.values()], spent: gems - left, atLeastOne: 1 - miss, expected };
+}
+
+/**
+ * n packs of one kind opened (owner, 29 Oct: "his odds after opening 50 bronze packs with 50k essence, or 10 gold"): the chance of at
+ * least one hit, 1 − Π(1 − h)ⁿ over the slots, and the hits on average. A goal counting each player once counts a player drawn twice
+ * once: Σ over players of 1 − (1 − q)ⁿ, q his chance in one pack.
+ */
+export function openMany(slots: SlotOdds[], goal: Goal, n: number): { atLeastOne: number; expected: number } {
+  const one = packRow({ slug: "", title: "", league: null, price: 0, currency: "" }, slots, goal);
+  const atLeastOne = 1 - (1 - one.atLeastOne) ** n;
+  if (!goal.distinct) return { atLeastOne, expected: one.expected * n };
+  let expected = 0;
+  for (const slug of new Set(slots.flatMap((s) => Object.keys(s.players)))) {
+    const info = slots.map((s) => s.players[slug]).find(Boolean)!;
+    if (!hits(goal, slug, info) || goal.owned.has(slug)) continue;
+    const q = 1 - slots.reduce((m, s) => m * (1 - (s.players[slug]?.p ?? 0)), 1);
+    expected += 1 - (1 - q) ** n;
+  }
+  return { atLeastOne, expected };
 }
 
 function random(seed: number) {

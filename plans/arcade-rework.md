@@ -40,6 +40,10 @@ the real flow; keep the game selection and its ticket styling as is. Audit befor
 - "Duplicated cards don't count in missions, even special cards (if you have the base card)": a mission goal counts each player you do not
   have once (`missionGoal`, `arcadePacks.test.ts`).
 - Between sets the page shows the last board, marked ended, instead of an empty page.
+- Canvas comments (29 Oct): "do not use probability-weighted averages instead of attainable prizes": the plan now compares each
+  prize's chance, biggest first (`comparePrizes`), and says it as "41% to reach step 6 (€1,000)". Close kick-offs first (`LEG_TIE`),
+  and no card under 50% to start while a likely starter fills the slot (`likely`). Packs: a gems and an essence budget, editable, the
+  tier filter always shown, each pack's odds for as many as the budget buys (`openMany`). Cards drawn in Sorare's own shape.
 
 ## Not confirmed (check when Divination opens, Fri 30 Oct 14:00 Madrid)
 

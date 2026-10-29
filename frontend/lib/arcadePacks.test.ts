@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ArcadeGame } from "./arcade";
-import { ICON, missionGoal, packRow, packsToFinish, parseTierOdds, spendGems, STAR_OR_BETTER, type Goal, type SlotOdds } from "./arcadePacks";
+import { ICON, missionGoal, openMany, packRow, packsToFinish, parseTierOdds, spendGems, STAR_OR_BETTER, type Goal, type SlotOdds } from "./arcadePacks";
 import type { Outlook } from "./arcadePlan";
 import { clubsToBuildAround, signalOf } from "./arcadeTeams";
 
@@ -52,6 +52,14 @@ describe("pack maths", () => {
     expect(packRow(gold, [slot], byPack).expected).toBeCloseTo(0.1); // only the Icon and the Star are new
     const byClub = missionGoal({ ...m, leagues: [], teams: [{ slug: "lens" }] }, null, owned, new Map());
     expect(packRow(gold, [slot], byClub).expected).toBe(0);
+  });
+
+  it("gives the odds of opening many packs: 50 Bronze for 50k essence, 10 Gold for 500 gems", () => {
+    expect(openMany([slot], icon, 10).atLeastOne).toBeCloseTo(1 - 0.98 ** 10);
+    expect(openMany([slot], icon, 10).expected).toBeCloseTo(0.2);
+    const fresh: Goal = { label: "new", need: 1, distinct: true, owned: new Set(["x", "y", "s"]) }; // only the Icon "i" is new
+    expect(openMany([slot], fresh, 50).expected).toBeCloseTo(1 - 0.98 ** 50); // drawn twice, he still counts once
+    expect(openMany([slot], icon, 0)).toEqual({ atLeastOne: 0, expected: 0 });
   });
 
   it("works out how many packs a mission needs, the same every time", () => {

@@ -2,7 +2,7 @@
 
 import { useContext, useMemo, useState, type CSSProperties } from "react";
 import type { Arcade, ArcadeGame, ArcadeLineup, ArcadeStep } from "../../lib/arcade";
-import { climbWindows, type Climb, type Move } from "../../lib/arcadeClimb";
+import { climbWindows, prizeAt, type Climb, type Move } from "../../lib/arcadeClimb";
 import type { PlayerStatus } from "../../lib/arcadeTeams";
 import { FdrChip, FdrContext } from "./Fdr";
 import ArcadeTeams from "./ArcadeTeams";
@@ -18,8 +18,6 @@ const iso = (ms: number) => new Date(ms).toISOString();
 const weekday = (ms: number) => new Date(ms).toLocaleDateString("en-GB", { timeZone: "Europe/Madrid", weekday: "short" });
 /** "Sat 16:15", or "16:15" when it is today. */
 const when = (ms: number, now: number) => (madridDate(iso(ms)) === madridDate(iso(now)) ? madridTime(iso(ms)) : `${weekday(ms)} ${madridTime(iso(ms))}`);
-/** Expected money won by the set's end, to the euro. */
-const eur = (x: number) => `€${Math.round(x).toLocaleString("en-GB")}`;
 /** A settle time beside a kick-off: the time, with the day when it is another day. */
 const settleLabel = (settles: number, at: number) => (madridDate(iso(settles)) === madridDate(iso(at)) ? madridTime(iso(settles)) : `${weekday(settles)} ${madridTime(iso(settles))}`);
 
@@ -289,11 +287,15 @@ function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, 
   const playsNow = move && move.from === 0 && v.kind !== "wait";
   const clear = lineups.length ? 1 - lineups.reduce((m, l) => m * (1 - chanceOf(l.totals, target(move!.step))), 1) : move?.clear ?? 0;
   const title = v.kind === "wait" && v.waitFor ? `Wait for ${when(v.waitFor.at, now)}` : v.kind === "spend" && move ? (move.play === 1 ? "Spend your last life now" : `Spend all ${move.play} lives now`) : VERB[v.kind];
-  const why = v.kind === "play" ? (v.now - v.wait < 0.01
-      ? `Holding gains nothing (${eur(v.now)} won by the end on average either way), and every window you skip is a try lost.`
-      : `Playing now wins ${eur(v.now)} by the end on average; holding the next window, ${eur(v.wait)}. Every window you skip is a try lost.`)
-    : v.kind === "wait" && v.waitFor ? `${when(v.waitFor.at, now)}'s games give ${pct(v.waitFor.chance)} against ${v.chanceNow === null ? "nothing" : pct(v.chanceNow)} now. Worth the ${v.skipped} window${v.skipped === 1 ? "" : "s"} it costs: ${eur(v.wait)} won by the end on average, against ${eur(v.now)} if you play now.`
-    : v.kind === "spend" && move ? `${pct(clear)} to clear step ${move.step}; if not, you are back on step 1 about ${when(move.settles, now)} and the steps below come back fast: ${eur(v.now)} won by the end on average, against ${eur(v.wait)} if you hold your lives.`
+  // The prize the advice is about: the biggest one whose chance the choice changes, else the biggest in reach (never an average).
+  const k = prizeAt(v, current);
+  const prize = `step ${k}${boardSteps.find((s) => s.number === k)?.rewards.length ? ` (${boardSteps.find((s) => s.number === k)!.rewards[0]})` : ""}`;
+  const at = (r: number[]) => pct(r[k] ?? 0);
+  const why = v.kind === "play" ? (Math.abs((v.now[k] ?? 0) - (v.wait[k] ?? 0)) < 0.005
+      ? `${at(v.now)} to reach ${prize} by the set's end either way, so play: every window you skip is a try lost.`
+      : `${at(v.now)} to reach ${prize} by the set's end playing now; ${at(v.wait)} holding the next window. Every window you skip is a try lost.`)
+    : v.kind === "wait" && v.waitFor ? `${when(v.waitFor.at, now)}'s games give ${pct(v.waitFor.chance)} against ${v.chanceNow === null ? "nothing" : pct(v.chanceNow)} now. Worth the ${v.skipped} window${v.skipped === 1 ? "" : "s"} it costs: ${at(v.wait)} to reach ${prize} by the set's end, against ${at(v.now)} if you play now.`
+    : v.kind === "spend" && move ? `${pct(clear)} to clear step ${move.step}; if not, you are back on step 1 about ${when(move.settles, now)} and the steps below come back fast: ${at(v.now)} to reach ${prize} by the set's end, against ${at(v.wait)} if you hold your lives.`
     : "Your free cards cannot fill a lineup from any game Sorare lists yet (cards in a lineup still running are held until it settles).";
   return (
     <section className={`arc-move is-${v.kind}`} aria-labelledby="arc-move-title">
@@ -306,10 +308,10 @@ function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, 
         <h2 id="arc-move-title" className="arc-move-verdict">{title}</h2>
         <p className="arc-move-why">{why}</p>
         {waitingNote ? <p className="arc-warn">{waitingNote}</p> : null}
-        <div className="arc-move-compare" role="img" aria-label={`Won by the end on average: ${eur(v.now)} playing now, ${eur(v.wait)} holding a window`}>
+        <div className="arc-move-compare" role="img" aria-label={`Chance to reach ${prize} by the set's end: ${at(v.now)} playing now, ${at(v.wait)} holding a window`}>
           {[["Play now", v.now], ["Hold a window", v.wait]].map(([label, value]) => (
             <span key={label as string} className={(v.kind === "wait") === (label === "Hold a window") ? "is-pick" : undefined}>
-              <small>{label}</small><span className="arc-move-bar"><span style={{ width: `${Math.min(100, ((value as number) / Math.max(v.now, v.wait, 1)) * 100)}%` }} /></span><b>{eur(value as number)}</b>
+              <small>{label}</small><span className="arc-move-bar"><span style={{ width: `${Math.min(100, ((value as number[])[k] ?? 0) * 100)}%` }} /></span><b>{at(value as number[])}</b>
             </span>
           ))}
         </div>
@@ -341,7 +343,7 @@ function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, 
           return (
             <li key={s.id} className={`${s.number === current ? "is-current" : ""}${done ? " is-done" : ""}`} aria-current={s.number === current ? "step" : undefined}>
               <span className="arc-ladder-n">{done ? "✓" : s.number}</span>
-              <span className="arc-ladder-t"><b>{s.target}</b><small>{s.rewards.join(" + ") || "no reward"}{s.number === boardSteps.at(-1)?.number && plan.tops > 0.05 ? ` · ${plan.tops.toFixed(1)}× by the end` : ""}</small></span>
+              <span className="arc-ladder-t"><b>{s.target}</b><small>{s.rewards.join(" + ") || "no reward"}{s.number === boardSteps.at(-1)?.number ? " · each time" : ""}</small></span>
               <span className="arc-ladder-odds" style={{ "--p": done ? 1 : odds } as CSSProperties}><b>{done ? "✓" : pct(odds)}</b></span>
             </li>
           );

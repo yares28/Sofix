@@ -165,7 +165,12 @@ export function bestLineup(outlooks: Outlook[], target: number, captainBonus: nu
     if (!held || value > (predicted(held) ?? -1)) byPlayer.set(o.card.player, o);
   }
   const usable = [...byPlayer.values()].sort((a, b) => predicted(b)! - predicted(a)!);
-  const pool = (slot: Slot) => usable.filter((o) => fits(o.card, slot)).slice(0, slot === "EXTRA" ? POOL + 4 : POOL);
+  // A slot takes only likely starters while it has one (owner, 29 Oct: "dumb to play a player that is unlikely to even play").
+  const pool = (slot: Slot) => {
+    const fit = usable.filter((o) => fits(o.card, slot));
+    const sure = fit.filter(likely);
+    return (sure.length ? sure : fit).slice(0, slot === "EXTRA" ? POOL + 4 : POOL);
+  };
   const pools = SLOTS.map(pool);
   if (pools.some((p) => !p.length)) return null;
 
@@ -200,6 +205,14 @@ export function bestLineup(outlooks: Outlook[], target: number, captainBonus: nu
   const kickoffs = best.picks.map((p) => p.outlook.game.kickoff).sort();
   return { picks: best.picks, expected: best.expected, totals: best.totals, first: kickoffs[0]!, last: kickoffs.at(-1)! };
 }
+
+/**
+ * A card worth a slot: one whose start % is unknown yet (it counts as starting until read) or at least MIN_START. Below it he is likely
+ * on the bench or out, so a slot takes him only when no likely starter can fill it; a card read at 0% (benched in the announced lineup)
+ * drops out the same way and the next one of his position takes his place.
+ */
+export const MIN_START = 0.5;
+export const likely = (o: Pick<Outlook, "start">) => o.start === null || o.start >= MIN_START;
 
 /** A game ends about 115 minutes after kick-off, and Sorare counts the score 5 minutes later. */
 export const SETTLES_AFTER_MS = 120 * 60_000;

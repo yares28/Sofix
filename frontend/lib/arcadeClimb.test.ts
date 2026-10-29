@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ArcadeGame } from "./arcade";
-import { climbWindows, moments, quickChance, quickLineup, windowsOf } from "./arcadeClimb";
+import { climbWindows, comparePrizes, moments, quickChance, quickLineup, windowsOf } from "./arcadeClimb";
 import type { Outlook } from "./arcadePlan";
 
 const game = (id: string, kickoff: string): ArcadeGame => ({ id, kickoff, status: "scheduled", competition: { slug: "laliga-es", name: "LaLiga" }, home: { slug: `${id}-h`, name: "H", crest: null }, away: { slug: `${id}-a`, name: "A", crest: null } });
@@ -39,7 +39,7 @@ describe("the window planner", () => {
     expect(plan.verdict.kind).toBe("wait");
     expect(plan.verdict.waitFor?.at).toBe(Date.parse("2026-11-01T17:30:00Z"));
     expect(plan.verdict.waitFor!.chance).toBeGreaterThan(plan.verdict.chanceNow!);
-    expect(plan.verdict.wait).toBeGreaterThan(plan.verdict.now);
+    expect(comparePrizes(plan.verdict.wait, plan.verdict.now, 0.005)).toBeGreaterThan(0);
   });
 
   it("plays now when a later window is only a little better: a skipped window is a try lost", () => {
@@ -100,7 +100,28 @@ describe("the window planner", () => {
     const list = ["2026-10-31", "2026-11-01"].flatMap((d, i) => hours.map((h) => squad(game(`G${i}${h}`, `${d}T${h}:00:00Z`), `g${i}${h}`, 80)).flat());
     const plan = climbWindows(list, easy, from(1), 0.5, NOW);
     expect(plan.path.map((m) => m.step)).toEqual([1, 2, 3, 4, 5, 1, 2, 3, 4, 5]);
-    expect(plan.tops).toBeGreaterThan(1.5);
-    expect(plan.expected).toBeGreaterThan(2000); // two climbs: €1,100 each
+    expect(plan.odds[5]).toBeGreaterThan(0.9);
+  });
+
+  it("judges by the chance at the biggest prize, never an average: a small gain at the top beats a big one lower down", () => {
+    expect(comparePrizes([0, 1, 0.9, 0.2], [0, 1, 0.5, 0.19], 0.005)).toBeGreaterThan(0); // top 20% v 19%
+    expect(comparePrizes([0, 1, 0.9, 0.2], [0, 1, 0.5, 0.2], 0.005)).toBeGreaterThan(0); // top tied: step 2 decides
+    expect(comparePrizes([0, 1, 0.5, 0.2], [0, 1, 0.5, 0.203], 0.005)).toBe(0); // within half a point everywhere: a tie
+  });
+
+  it("builds from the window's own kick-offs first, not from games hours later, when that is as good", () => {
+    const list = [...squad(game("A", "2026-10-31T11:00:00Z"), "a", 80), ...squad(game("B", "2026-10-31T13:00:00Z"), "b", 82)];
+    const easy = [1, 2].map((number) => ({ number, target: 200, lives: 4, big: false }));
+    const plan = climbWindows(list, easy, from(1), 0.5, NOW);
+    expect(plan.path[0]).toMatchObject({ from: 0, to: 0, play: 1 });
+  });
+
+  it("never plays a card unlikely to start while a likely starter can take his slot; a benched card (0%) drops out", () => {
+    const g = game("A", "2026-10-31T11:00:00Z");
+    const list = squad(g, "a", 60);
+    list.push({ ...list[3]!, card: { ...list[3]!.card, slug: "star-card", player: "star" }, score: 120, start: 0.3 });
+    expect(quickLineup(list, 0.5)!.picks.map((p) => p.outlook.card.player)).not.toContain("star");
+    list[3] = { ...list[3]!, start: 0 }; // the only other forward is on the bench: the doubtful star is all that is left
+    expect(quickLineup(list, 0.5)!.picks.map((p) => p.outlook.card.player)).toContain("star");
   });
 });

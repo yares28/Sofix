@@ -241,7 +241,7 @@ test("Your move says to play now, why, and the lineup to enter, beside the board
   await page.goto("/arcade");
   const move = page.locator(".arc-move");
   await expect(move.getByRole("heading", { level: 2 })).toHaveText("Play now");
-  await expect(move.locator(".arc-move-why")).toContainText("won by the end on average");
+  await expect(move.locator(".arc-move-why")).toContainText("by the set's end");
   await expect(move.locator(".arc-lineup li")).toHaveCount(5); // the five to enter
   await expect(move).toContainText("Enter before");
   await expect(move).toContainText("Settles about");
@@ -278,10 +278,21 @@ test("Gems and packs: what your gems buy for an Icon, new players or a collectio
   const gems = page.locator(".arc-gems");
   await gems.getByRole("button", { name: "Read the odds" }).click();
   // Silver's one slot is always the Icon "new" (10 gems); 40 gems buy four.
-  await expect(gems.locator(".arc-gems-buy")).toHaveText("4 × Silver");
-  await expect(gems.locator(".arc-gems-big")).toContainText("100% at least one");
+  const forGems = gems.locator(".arc-gems-answer.is-gems");
+  await expect(forGems.locator(".arc-gems-buy")).toHaveText("4 × Silver");
+  await expect(forGems.locator(".arc-gems-big")).toContainText("100% at least one");
+  await expect(gems.locator(".arc-gems-answer.is-essence")).toContainText("No essence pack can give an Icon"); // Bronze holds no Icon
   await expect(gems.locator(".arc-gems-maths")).toContainText("1 − Π(1 − h)");
   await expect(gems.locator(".arc-packs-list li")).toHaveCount(2);
+  // A budget to look ahead: 100 gems buy ten Silver; 0 gems buy none, and the row says so.
+  await gems.getByLabel("Gems to spend").fill("100");
+  await expect(forGems.locator(".arc-gems-buy")).toHaveText("10 × Silver");
+  await expect(gems.locator(".arc-packs-list li").filter({ hasText: "Silver" })).toContainText("10 packs");
+  await gems.getByLabel("Gems to spend").fill("0");
+  await expect(forGems).toContainText("Not enough for a pack that can give it. One Silver (10 gems): 100%.");
+  await expect(gems.locator(".arc-packs-list li").filter({ hasText: "Silver" })).toContainText("budget buys none");
+  await gems.getByRole("button", { name: "Back to my wallet" }).click();
+  await expect(forGems.locator(".arc-gems-buy")).toHaveText("4 × Silver");
   await gems.getByRole("group", { name: "Pack type" }).getByRole("button", { name: "Bronze (1)" }).click();
   await expect(gems.locator(".arc-packs-list li")).toHaveCount(1);
   // New players: Bronze draws "new" half the time; Silver always.
@@ -291,8 +302,8 @@ test("Gems and packs: what your gems buy for an Icon, new players or a collectio
   // The collection mission: two Club cards. The packs hold one Club player you do not have ("new"); a second "new" is a duplicate and
   // counts for nothing, so no number of packs finishes it.
   await gems.getByRole("group", { name: "What to buy for" }).getByRole("button", { name: /Club collector/ }).click();
-  await expect(gems.locator(".arc-gems-answer")).toContainText("half the time in 200+ packs");
-  await expect(gems.locator(".arc-gems-answer")).toContainText("duplicates and special editions of a player you own count for nothing");
+  await expect(gems.locator(".arc-gems-mission")).toContainText("half the time in 200+ packs");
+  await expect(gems.locator(".arc-gems-mission")).toContainText("duplicates and special editions of a player you own count for nothing");
 });
 
 test("a lineup on Sorare that cannot reach its target says it is dead, and cut losses when its cards help the next lineup more", async ({ page }) => {

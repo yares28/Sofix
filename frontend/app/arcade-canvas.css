@@ -112,6 +112,12 @@
 .arc-gems-table { grid-column: 1 / -1; display: grid; gap: 10px; }
 .arc-gems-table .arc-packs-list li { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.6fr) 56px 120px; }
 .arc-pack-per { justify-self: end; font-size: var(--text-xs); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.arc-budget { display: flex; flex-wrap: wrap; align-items: end; gap: 10px 16px; }
+.arc-budget label { display: grid; gap: 4px; font-size: var(--text-xs); color: var(--ink-2); font-weight: 600; }
+.arc-budget input { width: 150px; min-height: 42px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); padding: 8px 12px; font: inherit; font-size: 16px; font-variant-numeric: tabular-nums; }
+.arc-budget input:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.arc-gems-mission { grid-column: 1 / -1; display: grid; gap: 6px; }
+.arc-gems-maths summary { cursor: pointer; font-size: var(--text-sm); font-weight: 600; min-height: 32px; display: flex; align-items: center; }
 
 @media (max-width: 1000px) {
   .arc-move { grid-template-columns: 1fr; padding: 22px; }
@@ -318,3 +324,9 @@
 .arc-mission-status { min-height: 20px; margin: 0 0 8px; font-size: 11px; color: var(--ink-2); }
 
 .arc-mission-choices .mx-dots i.u::before { border-style: dashed; }
+
+/* Every card drawn as Sorare draws it (owner, 29 Oct): the art's own rounded shape with a shadow that follows it, never a clipped box.
+   Until the picture loads, or when Sorare has none, a dark card of the same shape with the player's name stands in. */
+.arc-main :is(.arc-card, .arc-lineup, .arc-club-cards, .arc-pitch li, .arc-picks, .arc-fan) img { border-radius: 0; box-shadow: none; object-fit: contain; filter: drop-shadow(0 8px 10px rgba(0, 0, 0, .24)); }
+.arc-main .arc-pitch li.is-captain img { filter: drop-shadow(0 0 1.5px var(--accent)) drop-shadow(0 0 1.5px var(--accent)) drop-shadow(0 12px 14px rgba(0, 0, 0, .24)); }
+.arc-main .arc-card-blank { border-radius: 9% / 5.6%; background: linear-gradient(165deg, #3b3e46, #16171b 72%); color: #fff; align-content: end; justify-items: center; text-align: center; font-weight: 600; line-height: 1.2; padding: 10% 8% 14%; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14), 0 8px 14px -6px rgba(0, 0, 0, .35); }

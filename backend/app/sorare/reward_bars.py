@@ -8,7 +8,9 @@ Built from what the refresh already keeps, with no Sorare call of its own:
   once keeps counting after its week has gone;
 - your Pro boards, whose step is a fixed score to reach.
 
-"Paid" is cash, essence or a card; a level that gives XP only never counts (the owner, 6 Oct 2026). The block is written with
+"Paid" is cash, essence or a card; a level that gives XP only never counts (the owner, 6 Oct 2026), though each ladder lists
+it below the paid ones with its own average. `played` names the competitions of the lineups you saved in your last six
+gameweeks (`my_week:` / `entered_week:`), which the page pins. The block is written with
 `put`, which skips an unchanged payload: it moves when a finished gameweek's cut-offs arrive, and only then.
 """
 
@@ -48,16 +50,26 @@ def week_of(slug: str) -> tuple[date, str] | None:
     return None
 
 
+TIER = ("lo", "hi", "cash", "essence", "card", "xp")
+
+
 def _table(comp: Competition) -> dict[str, Any]:
-    paying = [t for t in comp.tiers if t.pays]
+    """Every level that gives anything, XP-only ones included (the Targets ladder shows them; they never count as paid)."""
     return {
         "name": comp.name,
         "rarity": comp.rarity,
         "group": comp.group,
         "kind": "room" if comp.is_room else "rank",
         "size": comp.room_size or None,
-        "tiers": [{"lo": t.lo, "hi": t.hi, "cash": t.cash, "essence": t.essence, "card": t.card} for t in paying],
+        "tiers": [
+            {"lo": t.lo, "hi": t.hi, "cash": t.cash, "essence": t.essence, "card": t.card, "xp": t.xp}
+            for t in comp.rewarding_tiers
+        ],
     }
+
+
+def _pays(tier: dict[str, Any]) -> bool:
+    return bool(tier["cash"] or tier["essence"] or tier["card"])
 
 
 def _tables(by_week: dict[str, list[dict[str, Any]]], previous: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
@@ -71,7 +83,7 @@ def _tables(by_week: dict[str, list[dict[str, Any]]], previous: dict[str, Any] |
                 "group": c["group"],
                 "kind": c["kind"],
                 "size": c.get("size"),
-                "tiers": [{k: t[k] for k in ("lo", "hi", "cash", "essence", "card")} for t in c["ladder"]],
+                "tiers": [{k: t.get(k, 0) for k in TIER} for t in c["ladder"]],
             }
     for raws in by_week.values():
         for raw in raws:
@@ -147,7 +159,7 @@ def _measured(key: str, table: dict[str, Any] | None, weeks: list[tuple[str, dic
     if table is None:
         return {**base, **_summary([], []), "reward": None, "ladder": []}
     tiers = table["tiers"]
-    last = tiers[-1]
+    last = [t for t in tiers if _pays(t)][-1]  # the bar is the last paid level's, never an XP one
     base = {**base, **{k: table[k] for k in ("name", "rarity", "group", "kind", "size")}, "paidTo": last["hi"]}
     if table["kind"] == "room":
         size = int(table.get("size") or 10)
@@ -203,7 +215,15 @@ def _pro(boards: list[dict[str, Any]] | None, previous: dict[str, Any] | None) -
                 "byWeek": [],
                 "reward": {"cash": tier.cash, "essence": tier.essence, "card": False},
                 "ladder": [
-                    {"lo": level, "hi": level, "cash": cash, "essence": essence, "card": False, "bar": float(goal)}
+                    {
+                        "lo": level,
+                        "hi": level,
+                        "cash": cash,
+                        "essence": essence,
+                        "card": False,
+                        "xp": 0,
+                        "bar": float(goal),
+                    }
                     for level, goal, cash, essence in comp.pro_steps
                 ],
             }
@@ -211,11 +231,60 @@ def _pro(boards: list[dict[str, Any]] | None, previous: dict[str, Any] | None) -
     return out
 
 
+PLAYED_WEEKS = 6
+SAVED = ("my_week:", "entered_week:")  # your settled lineups first, then the ones of a week still being settled
+
+
+def entered(rows: list[tuple[str, Any]]) -> list[dict[str, Any]]:
+    """The lineups you saved in your last six gameweeks, as (week, board, competition): what the Targets page pins.
+
+    `rows` are (key, payload) of `my_week:<slug>` and `entered_week:<slug>`; a week with both reads `my_week`."""
+    bodies: dict[str, dict[str, Any]] = {}
+    for prefix in reversed(SAVED):
+        for key, payload in rows:
+            if key.startswith(prefix) and isinstance(payload, dict):
+                bodies[key.removeprefix(prefix)] = payload
+    dated = sorted((when[0], slug) for slug in bodies if (when := week_of(slug)))
+    return [
+        {"week": slug, "board": line.get("board") or "", "competition": line.get("competition") or ""}
+        for _, slug in dated[-PLAYED_WEEKS:]
+        for line in bodies[slug].get("lineups") or []
+        if isinstance(line, dict)
+    ]
+
+
+def _boards(by_week: dict[str, list[dict[str, Any]]], previous: dict[str, Any] | None) -> dict[str, str]:
+    """Each leaderboard's competition key, by its slug without the gameweek ("seasonal-spain-in_season_spain_limited"),
+    which stays the same from week to week. Remembered in the block, so a week no longer read still maps."""
+    out = dict((previous or {}).get("boards") or {})
+    for week, raws in by_week.items():
+        for raw in raws:
+            if raw.get("slug") and raw.get("league") and raw.get("track"):
+                out[str(raw["slug"]).removeprefix(f"{week}-")] = f"{raw['league']} | {raw['track']}"
+    return out
+
+
+def _played(lines: list[dict[str, Any]], boards: dict[str, str], known: set[str]) -> list[str]:
+    """The competitions those lineups were in, most entered first. A Pro lineup names its league ("Pro · LALIGA EA SPORTS")."""
+    count: dict[str, int] = {}
+    for line in lines:
+        name = line["competition"]
+        key = (
+            f"{name.removeprefix('Pro · ')} | {PRO}"
+            if name.startswith("Pro · ")
+            else boards.get(line["board"].removeprefix(f"{line['week']}-"))
+        )
+        if key in known:
+            count[key] = count.get(key, 0) + 1
+    return sorted(count, key=lambda k: (-count[k], k))
+
+
 def build(
     references: dict[str, Any],
     by_week: dict[str, list[dict[str, Any]]],
     boards: list[dict[str, Any]] | None,
     previous: dict[str, Any] | None,
+    lines: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """The Targets page: every competition's bar to be paid anything, from the finished gameweeks the refresh has recorded."""
     dated = sorted(
@@ -241,10 +310,13 @@ def build(
             key = f"{raw.get('league')} | {raw.get('track')}"
             if raw.get("skipped") and key not in measured:
                 unread[key] = {"key": key, "name": _name(key), "rarity": raw.get("rarity"), "why": raw["skipped"]}
+    board_keys = _boards(by_week, previous)
     return {
         "version": VERSION,
         "latest": weeks[-1][0] if weeks else None,
         "weeks": [label for label, _ in weeks],
         "competitions": comps,
         "unread": sorted(unread.values(), key=lambda u: (u["name"], u["rarity"] or "")),
+        "played": _played(lines or [], board_keys, {c["key"] for c in comps}),
+        "boards": board_keys,
     }

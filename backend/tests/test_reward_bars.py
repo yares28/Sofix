@@ -71,8 +71,64 @@ def test_the_bar_is_the_mean_score_at_the_last_paid_rank_never_an_xp_rank():
         {"week": "11–15 Sep", "score": 330.0},
         {"week": "28 Sep–2 Oct", "score": 310.0},
     ]
-    assert [t["hi"] for t in comp["ladder"]] == [10, 1500]  # paying levels only, best first
+    # Every level, best first, the XP one last: shown on the ladder, never counted as paid.
+    assert [(t["hi"], t["xp"]) for t in comp["ladder"]] == [(10, 0), (1500, 0), (3500, 500)]
     assert comp["ladder"][0]["bar"] == 490.0
+    assert comp["ladder"][2]["bar"] == 245.0
+    assert comp["reward"] == {"cash": 0, "essence": 50, "card": False}
+
+
+def test_a_room_ladder_keeps_its_xp_places_below_the_paid_ones():
+    room_a = [300.0, 280.0, 260.0, 250.0, 240.0, 230.0, 220.0, 210.0, 200.0, 190.0]
+    references = {SLUGS[1]: {ROOM: {"from": SLUGS[1], "gameweek": 1, "rooms": room_a}}}
+    comp = one(reward_bars.build(references, {"w2": [ROOM_RAW]}, None, None), ROOM)
+    assert comp["paidTo"] == 3 and comp["bar"] == 260.0
+    assert [(t["hi"], t["xp"], t["bar"]) for t in comp["ladder"]][-1] == (5, 500, 240.0)
+
+
+def test_the_competitions_you_entered_lately_are_the_ones_played_most_first():
+    week = "football-23-27-oct-2026"
+    raws = [
+        {**IN_SEASON, "slug": f"{week}-seasonal-spain-in_season_spain_limited"},
+        {**ROOM_RAW, "slug": f"{week}-seasonal-spain-all_seasons_spain_arena_limited"},
+    ]
+    entered = [
+        {
+            "week": week,
+            "board": f"{week}-seasonal-spain-in_season_spain_limited",
+            "competition": "LALIGA EA SPORTS – Limited",
+        },
+        {
+            "week": week,
+            "board": f"{week}-seasonal-spain-in_season_spain_limited",
+            "competition": "LALIGA EA SPORTS – Limited",
+        },
+        {"week": week, "board": "football-pro-27-spain", "competition": "Pro · LALIGA EA SPORTS"},
+        {"week": week, "board": f"{week}-a-board-never-read", "competition": "Limited"},
+    ]
+    rules = [
+        {"key": "Scarcity", "rarities": ["limited"]},
+        {"key": "Competitions", "competitions": [{"slug": "laliga-es"}]},
+        {"key": "Appearances", "appearances": [{"name": "goalkeeper", "sub": False}]},
+    ]
+    step = {"level": 2, "target": 380, "state": "OPEN", "rewardConfigs": [CASH], "displayedTypedRules": rules}
+    pro = [{"title": "LALIGA EA SPORTS", "configSlug": "laliga-pro", "steps": [step]}]
+    payload = reward_bars.build({}, {week: raws}, pro, None, entered)
+    assert payload["played"] == [LALIGA, "LALIGA EA SPORTS | Pro"]
+    # The boards read are remembered, so a week that is no longer read still maps its lineups.
+    later = reward_bars.build({}, {}, pro, payload, entered[:1])
+    assert later["played"] == [LALIGA]
+
+
+def test_entered_keeps_the_last_six_weeks_you_saved():
+    def row(slug: str, boards: list[str]) -> tuple[str, dict]:
+        return slug, {"lineups": [{"board": b, "competition": "x"} for b in boards]}
+
+    weeks = [f"football-{d}-{d + 2}-oct-2026" for d in range(1, 22, 3)]  # seven weeks
+    rows = [row(f"entered_week:{w}", [f"{w}-b"]) for w in weeks] + [row(f"my_week:{weeks[0]}", [f"{weeks[0]}-mine"])]
+    got = reward_bars.entered(rows)
+    assert {e["week"] for e in got} == set(weeks[1:])
+    assert all(e["board"].endswith("-b") for e in got)
 
 
 def test_a_week_the_whole_field_was_paid_or_a_rank_it_never_read_says_nothing():

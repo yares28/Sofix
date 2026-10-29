@@ -816,13 +816,13 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-10-29",
-        "note": "Reviewed formatter-only change in the referenced publisher tests.",
+        "note": "29 Oct 2026: jobs/sorare.py only passes your saved lineups (my_week/entered_week) to reward_bars.build for the Targets pins; the recommendation pipeline is unchanged",
         "files": {
           "backend/app/sorare/publish.py": "81c89563f1c6011e1fea41a076a095d773e59925a4eea706bad7d0f9634c1be5",
           "backend/app/sorare/planner.py": "3054ad20bbb294ec039c9b1524b073af20bd4b925be1f5e233be12db2d0e4b8f",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
           "backend/app/sorare/pro.py": "b3eb1a47f833708478ce9bfe93aac2ebf36a660a93124e032f111692975b7e08",
-          "backend/app/jobs/sorare.py": "d0ef04a379309b0a72804b84bf100a413030ca76259de733e7a16ccb19b387c2",
+          "backend/app/jobs/sorare.py": "5369e238cbd25e3713c329f53226f01e4694420266931de4cf87f7b11b239f46",
           "backend/tests/test_sorare_planner.py": "9325965014b78a25aecff95b398567648ff34a378e08bc7e3bcc30bac95f7d33",
           "backend/tests/test_sorare_publish.py": "87d508ff04619fad551329672be902ae93445556c4bd845ee3e5e5bd59024827"
         }

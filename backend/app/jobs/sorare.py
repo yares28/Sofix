@@ -783,6 +783,7 @@ def run(
                 snapshot.get("competitions") or {},
                 snapshot.get("pro"),
                 (row.payload if (row := kept_blocks.read(db, reward_bars.KEY)) else None),
+                reward_bars.entered([(r.key, r.payload) for r in kept_blocks.rows(db, *reward_bars.SAVED)]),
             ),
             now,
         ),

@@ -48,6 +48,7 @@ export async function offline(page: Page) {
   await page.route("https://crests.football-data.org/**", (route) => route.abort());
   await page.route("https://upload.wikimedia.org/**", (route) => route.abort());
   await page.route("https://assets.sorare.com/**", (route) => route.abort());
+  await page.route("https://frontend-assets.sorare.com/**", (route) => route.abort()); // league icons and wordmarks (Targets)
   // Futbol Fantasy's crests and player photos, on the Lineups page.
   await page.route("https://static.futbolfantasy.com/**", (route) => route.abort());
   await page.route("https://media.futbolfantasy.com/**", (route) => route.abort());

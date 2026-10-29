@@ -442,18 +442,21 @@ keeping them says **not recorded** on its page; it still opens, to the lineups y
 A week Sofix holds no plan for says why, and still shows your lineups for it: one being played is locked, so there is
 nothing left to plan; one further off than the next three Sorare gameweeks gets its plan once it is one of them.
 
-## 7.1 Targets: what wins something (28 October 2026)
+## 7.1 Targets: what each reward takes (28 October 2026, ladders 29 October)
 
-**This week → Targets** (`/targets`) shows the score each Sorare competition needed to pay anything (cash, essence or a
-card; XP-only levels do not count), averaged over every finished gameweek Sofix has recorded. A competition is measured at
-its last paid rank (LaLiga Limited: the score that finished 1,500th), a room of ten at its last paid place (3rd of 10, from
-real rooms) and a Pro board at its current step's target. The ruler puts every competition on one scale; tap a dot, or the
-pin in the list, to pin one: it gets a flag on the ruler and a tile with the average, where it pays, each week's figure and
-every reward level. Hide what you never play; "Hidden" brings it back. Pins and hidden ones stay in this browser.
+**This week → Targets** (`/targets`) shows every reward level of each Sorare competition and the score it took, averaged
+over every finished gameweek Sofix has recorded: a ranked level at its last rank (LaLiga Limited's 250 essence: the score
+that finished 1,500th), a room of ten at its place (from real rooms) and a Pro board's steps at their targets. The
+competitions of the lineups you saved in your last six gameweeks are pinned at the top as ladders, each in its own look with
+Sorare's logo: the best level on top, the prize coloured by kind (cash, essence, card, XP), the lowest paid level outlined
+("Paid from"), and the XP-only levels under an "XP only" line (shown, never counted as paid; only where Sorare's table lists
+them). Unpin one you play and it stays off; pin any other from the list and it joins after them. In the list, each row's
+arrow opens its whole staircase, lowest level first. Hide what you never play; "Hidden" brings it back. Pins and hidden ones
+stay in this browser.
 **Not read** lists competitions whose reward table Sofix has not read yet, and leagues you hold no card in (Sofix does not
 read their cut-offs). The refresh's Sorare step rewrites the figures when a finished gameweek's cut-offs arrive
-(`reward_bars`, backend/app/sorare/reward_bars.py); weekend and midweek rounds are averaged together, so the range under
-each tile shows how much the bar moves.
+(`reward_bars`, backend/app/sorare/reward_bars.py); weekend and midweek rounds are averaged together, and the foot of
+each ladder says how many weeks it averages.
 
 ## 7a. Lineups — who starts
 

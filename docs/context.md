@@ -1259,9 +1259,9 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-10-29",
-        "note": "Read arcadeClimb.ts, arcadePlan.ts, the climb tests and arcade-rework.md after the 29 Oct prize-chance, close-kickoff and likely-starter changes; objective text updated; real-board behaviour not yet observed (no live set until 30 Oct).",
+        "note": "Re-read arcadeClimb.ts after removing the unused prizeAt helper (29 Oct); objective unchanged; real-board behaviour not yet observed.",
         "files": {
-          "frontend/lib/arcadeClimb.ts": "652a1b45f2fcadc44831a278f621695ed4481255f9d848794478265ef690ad4d",
+          "frontend/lib/arcadeClimb.ts": "f5df4e7433bbd495d2afeccea7f20aca0b9d21c4c34cc2aee2ffd648c5dfd7c7",
           "frontend/lib/arcadePlan.ts": "9d77ca0d6571b63a11e8a98cc35787d216ed88dd96d05411351bc4ce7d1ec7d1",
           "plans/arcade-rework.md": "ae45e982616f72addba27474a1dcfc7286b9f1a112b78c47aa05c593076ccdcd",
           "frontend/lib/arcadeClimb.test.ts": "bc51f48042d4cce8a43b1fac1f0bfac73b25027757cfe561e08a89e345d4389f",

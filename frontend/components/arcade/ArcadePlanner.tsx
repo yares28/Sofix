@@ -2,7 +2,7 @@
 
 import { useContext, useMemo, useState, type CSSProperties } from "react";
 import type { Arcade, ArcadeGame, ArcadeLineup, ArcadeStep } from "../../lib/arcade";
-import { climbWindows, prizeAt, WINDOW_MS, type Climb, type Move } from "../../lib/arcadeClimb";
+import { climbWindows, WINDOW_MS, type Climb, type Move } from "../../lib/arcadeClimb";
 import type { PlayerStatus } from "../../lib/arcadeTeams";
 import { FdrChip, FdrContext } from "./Fdr";
 import ArcadeTeams from "./ArcadeTeams";
@@ -274,8 +274,8 @@ function exactLineups(move: Move, target: number, captainBonus: number): Lineup[
 const VERB: Record<Climb["verdict"]["kind"], string> = { play: "Play now", wait: "Wait", spend: "Spend them now", none: "Nothing to play yet" };
 
 /** Your move: play, wait or spend your lives, why, and the lineup to enter. */
-function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, onBuild, waitingNote }: {
-  plan: Climb; steps: StepInfo[]; boardSteps: ArcadeStep[]; current: number; lives: number; captainBonus: number; now: number; onBuild: (games: string[], step: number) => void; waitingNote: string | null;
+function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, onBuild, waitingNote, busy }: {
+  plan: Climb; steps: StepInfo[]; boardSteps: ArcadeStep[]; current: number; lives: number; captainBonus: number; now: number; onBuild: (games: string[], step: number) => void; waitingNote: string | null; busy: Set<string>;
 }) {
   const move = plan.path[0] ?? null;
   const target = (n: number) => steps.find((s) => s.number === n)?.target ?? 0;
@@ -287,19 +287,24 @@ function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, 
   const playsNow = move && move.from === 0 && v.kind !== "wait";
   const clear = lineups.length ? 1 - lineups.reduce((m, l) => m * (1 - chanceOf(l.totals, target(move!.step))), 1) : move?.clear ?? 0;
   const title = v.kind === "wait" && v.waitFor ? `Wait for ${when(v.waitFor.at, now)}` : v.kind === "spend" && move ? (move.play === 1 ? "Spend your last life now" : `Spend all ${move.play} lives now`) : VERB[v.kind];
-  // The prize the advice is about: the biggest one whose chance the choice changes, else the biggest in reach (never an average).
-  const k = prizeAt(v, current);
-  const prize = `step ${k}${boardSteps.find((s) => s.number === k)?.rewards.length ? ` (${boardSteps.find((s) => s.number === k)!.rewards[0]})` : ""}`;
-  const at = (r: number[]) => pct(r[k] ?? 0);
+  // The bar (owner, 29 Oct): the step you are on, the lineup you would enter now against the best one from the games you would wait for.
+  const holdAt = v.kind === "wait" && v.waitFor ? plan.windows.findIndex((w) => w.at === v.waitFor!.at) : 1;
+  const holdWindow = plan.windows[holdAt] ?? null;
+  const playLineup = useMemo(() => (lineup && move?.from === 0 ? lineup : plan.windows[0] ? bestLineup(plan.windows[0].list.filter((o) => !busy.has(o.card.slug)), target(current), captainBonus) : null), [lineup, move, plan.windows, busy, current, captainBonus]); // eslint-disable-line react-hooks/exhaustive-deps
+  const holdLineup = useMemo(() => (holdWindow ? bestLineup(holdWindow.list.filter((o) => !busy.has(o.card.slug)), target(current), captainBonus) : null), [holdWindow, busy, current, captainBonus]); // eslint-disable-line react-hooks/exhaustive-deps
+  const playChance = playLineup ? chanceOf(playLineup.totals, target(current)) : 0;
+  const holdChance = holdLineup ? chanceOf(holdLineup.totals, target(current)) : null;
+  const holdWins = v.kind === "wait";
   // The reason in one line; the numbers are in the bar below it.
-  const why = v.kind === "play" ? "Every window you skip is a try lost."
-    : v.kind === "wait" && v.waitFor ? `${when(v.waitFor.at, now)}'s games give ${pct(v.waitFor.chance)} to clear step ${current}, against ${v.chanceNow === null ? "nothing" : pct(v.chanceNow)} now.`
-    : v.kind === "spend" && move ? `${pct(clear)} to clear step ${move.step}; if not, you are back on step 1 about ${when(move.settles, now)} and the steps below come back fast.`
+  const why = v.kind === "play" ? (holdChance !== null && holdChance > playChance + 0.005 && lives > 1
+      ? `${when(holdWindow!.at, now)} is a little better, but playing now keeps that try: miss and you still have ${lives - 1} ${lives - 1 === 1 ? "life" : "lives"} for it.`
+      : holdChance === null ? "No later game before the set ends." : "Every window you skip is a try lost.")
+    : v.kind === "wait" && v.waitFor ? `Worth the ${v.skipped} window${v.skipped === 1 ? "" : "s"} it costs: those games are clearly better for this step.`
+    : v.kind === "spend" && move ? `If it misses you are back on step 1 about ${when(move.settles, now)}, and the steps below come back fast.`
     : "Your free cards cannot fill a lineup from any game Sorare lists yet (cards in a lineup still running are held until it settles).";
   // Whether the lineup's start % will all be known before it is entered: its games kick off together (within the 75-minute window).
   const together = lineup ? Date.parse(lineup.last) - Date.parse(lineup.first) <= WINDOW_MS : true;
-  const holdWins = v.kind === "wait";
-  const share = (r: number[]) => Math.max(0.18, r[k] ?? 0); // each side keeps room for its label
+  const share = (p: number | null) => Math.max(0.18, p ?? 0); // each side keeps room for its label
   return (
     <section className={`arc-move is-${v.kind}`} aria-labelledby="arc-move-title">
       <div className="arc-move-main">
@@ -313,17 +318,17 @@ function YourMove({ plan, steps, boardSteps, current, lives, captainBonus, now, 
         {waitingNote ? <p className="arc-warn">{waitingNote}</p> : null}
         {v.kind !== "none" ? (
           <figure className="arc-split">
-            <figcaption>Chance to reach {prize} before the set ends</figcaption>
-            <div role="img" aria-label={`${holdWins ? "Hold" : "Play"}: ${at(v.now)} if you play now, ${at(v.wait)} if you hold a window`}>
-              <span className={holdWins ? undefined : "is-pick"} style={{ flexGrow: share(v.now) }}><small>Play</small><b>{at(v.now)}</b></span>
-              <span className={holdWins ? "is-pick" : undefined} style={{ flexGrow: share(v.wait) }}><small>Hold</small><b>{at(v.wait)}</b></span>
+            <figcaption>Chance to clear step {current} ({target(current)} pts)</figcaption>
+            <div role="img" aria-label={`${holdWins ? "Hold" : "Play"}: ${pct(playChance)} with the lineup now, ${holdChance === null ? "no later game" : `${pct(holdChance)} with ${when(holdWindow!.at, now)}'s games`}`}>
+              <span className={holdWins ? undefined : "is-pick"} style={{ flexGrow: share(playChance) }}><small>Play{plan.windows[0] ? ` · ${madridTime(iso(plan.windows[0].at))}` : ""}</small><b>{pct(playChance)}</b></span>
+              <span className={holdWins ? "is-pick" : undefined} style={{ flexGrow: share(holdChance) }}><small>Hold{holdWindow ? ` · ${madridTime(iso(holdWindow.at))}` : ""}</small><b>{holdChance === null ? "—" : pct(holdChance)}</b></span>
             </div>
           </figure>
         ) : null}
         {move ? (
           <div className="arc-move-entry">
             <div className="arc-move-entry-head">
-              <span className="arc-move-chance"><b>{pct(lineup ? chanceOf(lineup.totals, target(move.step)) : move.clear)}</b><small>{playsNow ? "this lineup clears it" : `ready for ${when(move.at, now)}`}</small></span>
+              {playsNow && move.play === 1 ? null : <span className="arc-move-chance"><b>{pct(lineup ? chanceOf(lineup.totals, target(move.step)) : move.clear)}</b><small>{playsNow ? "this lineup clears it" : `ready for ${when(move.at, now)}`}</small></span>}
               <span className="arc-move-times">
                 {lineup ? <span>{together ? `All five play at ${madridTime(lineup.first)}: you see the official lineups before you enter.` : `Its games run ${madridTime(lineup.first)} to ${madridTime(lineup.last)}: the later cards' start % can still change after you enter.`}</span> : null}
                 <span>Enter before <b>{when(lineup ? Date.parse(lineup.first) : move.at, now)}</b></span>
@@ -451,7 +456,7 @@ export default function ArcadePlanner({ arcade, outlooks, captainBonus, status }
   if (!games.length) return <p className="arc-note">No game of your cards is left before the set ends.</p>;
   return (
     <>
-      <YourMove plan={plan} steps={steps} boardSteps={arcade.board?.steps ?? []} current={current} lives={lives} captainBonus={captainBonus} now={now} onBuild={build} waitingNote={waitingNote} />
+      <YourMove plan={plan} steps={steps} boardSteps={arcade.board?.steps ?? []} current={current} lives={lives} captainBonus={captainBonus} now={now} onBuild={build} waitingNote={waitingNote} busy={busy} />
       <Chain plan={plan} steps={steps} captainBonus={captainBonus} now={now} />
       <ArcadeTeams arcade={arcade} outlooks={outlooks} status={status} chosen={chosen} onToggle={(id) => { const next = new Set(chosen); if (next.has(id)) next.delete(id); else next.add(id); setChosen(next); }} now={now} />
       <section className="arc-plan" aria-labelledby="arc-teams-title">

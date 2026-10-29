@@ -791,8 +791,9 @@ read in your browser from your signed-in Sorare tab (extension 0.4.15 or later, 
   would have cleared step 3 was cancelled after a 313.93 cleared step 2). A miss costs a life; the last one sends you back to step 1.
   Every clear pays its reward again, and the last step pays €1,000 each time it is reached, then the climb starts again from step 1.
 - **Your move**: **Play now**, **Wait for** a named window, or **Spend** a hard step's last lives so the climb restarts sooner, and why:
-  a **Play | Hold** bar, the advised side filled, each side with your chance to reach the biggest prize the choice changes (the top's
-  €1,000 first, then the next one down), never an average (a near tie is played: speed first). Lineups come from the window's own kick-offs first, so
+  a **Play | Hold** bar for the step you are on: the lineup you would enter now against the best lineup from the games you would wait
+  for, each with its chance to clear the step, the advised side filled. The advice itself weighs every prize to the set's end (the top's
+  €1,000 first), never an average, so it can say play even when the next games are a little better: a miss still leaves lives for them (a near tie is played: speed first). Lineups come from the window's own kick-offs first, so
   every card's start % is known before you enter; a wider span of games is used only when it is clearly better. A card under 50%
   to start (a benched one reads 0%) is left out while a likely starter can take his slot. Below, the
   lineup to enter (more than one when insurance pays), its chance, when to enter and when it settles, and **Edit in Pick teams**.

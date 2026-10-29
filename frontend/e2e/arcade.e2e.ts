@@ -241,8 +241,8 @@ test("Your move says to play now, why, and the lineup to enter, beside the board
   await page.goto("/arcade");
   const move = page.locator(".arc-move");
   await expect(move.getByRole("heading", { level: 2 })).toHaveText("Play now");
-  await expect(move.locator(".arc-move-why")).toContainText("Every window you skip is a try lost.");
-  await expect(move.locator(".arc-split")).toContainText("Chance to reach step");
+  await expect(move.locator(".arc-move-why")).toContainText("No later game before the set ends.");
+  await expect(move.locator(".arc-split")).toContainText("Chance to clear step 2 (300 pts)");
   await expect(move.locator(".arc-split .is-pick")).toContainText("Play");
   await expect(move.locator(".arc-lineup li")).toHaveCount(5); // the five to enter
   await expect(move).toContainText("Enter before");

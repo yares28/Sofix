@@ -285,13 +285,3 @@ export function climbWindows(outlooks: Outlook[], steps: StepInfo[], start: Clim
     after: (move, cleared) => { const next = outcome(move, cleared); return walk(firstAfter(move.settles, move.from + 1), next.n, next.lives, next.best); },
   };
 }
-
-/**
- * The prize a verdict is about: the biggest step whose chance differs between playing now and holding, else the biggest still in reach
- * (1% or more), else the step you are on.
- */
-export function prizeAt(v: Pick<Verdict, "now" | "wait">, from: number): number {
-  for (let k = v.now.length - 1; k > from; k--) if (Math.abs((v.now[k] ?? 0) - (v.wait[k] ?? 0)) > PLAY_TIE) return k;
-  for (let k = v.now.length - 1; k > from; k--) if ((v.now[k] ?? 0) >= 0.01) return k;
-  return from;
-}

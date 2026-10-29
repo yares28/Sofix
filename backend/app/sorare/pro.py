@@ -14,12 +14,17 @@ Limits, said where they are shown: only the current step is valued, and one try 
 from __future__ import annotations
 
 import logging
+import zlib
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import Any
 
+import numpy as np
+
 from app.sorare.client import SorareClient, SorareError
-from app.sorare.model import CLASSIC, IN_SEASON, SLOT_POSITIONS, Card, Competition, Tier
+from app.sorare.model import CLASSIC, IN_SEASON, SLOT_POSITIONS, Card, Competition, Forecast, Tier
+from app.sorare.planner import Lineup, best_starters, simulate
 from app.sorare.rules import LEAGUE_NAMES
 
 logger = logging.getLogger(__name__)
@@ -178,3 +183,100 @@ def rules_for(
         return rule
 
     return for_comp
+
+
+TEAMSHEETS = 200
+"""Teamsheets drawn for each group of games: who of yours starts, each with his chance."""
+STEP_DRAWS = 1000
+WINDOWS_SHOWN = 4
+
+
+@dataclass
+class Window:
+    """One group of this board's games that all start within `WINDOW`, and what waiting for its teamsheets can win."""
+
+    start: datetime
+    end: datetime
+    lineup: Lineup  # the best five there if they all start
+    expected: float  # their expected score if they do
+    all_start: float  # the chance they do
+    if_start: list[float]  # each step's chance if they all start
+    wait: list[float]  # each step's chance entering the best five who do start, once the teamsheets are out
+
+
+def starts(forecast: Forecast) -> float:
+    """His chance of starting, what a Pro lineup is entered on; his chance of playing where no source gives one."""
+    return forecast.p_play if forecast.p_start is None else forecast.p_start
+
+
+def starting(forecast: Forecast) -> Forecast:
+    """His forecast once the teamsheet says he starts: he plays, and scores what he does when he starts."""
+    return replace(forecast, p_play=1.0, mu=forecast.mu if forecast.start is None else forecast.start)
+
+
+def _five(comp: Competition, pool: list[Card], started: Mapping[str, Forecast]) -> Lineup | None:
+    found = best_starters(comp, pool, started, keep=1)
+    if not found:
+        return None
+    starters = found[0]
+    # ponytail: the captain is the best score if he plays, not the planner's simulated pick; that one costs 5 x 3,000 draws a try
+    captain = max(range(len(starters)), key=lambda i: started[starters[i].player].mu * comp.multiplier(starters[i]))
+    return Lineup(comp=comp, starters=starters, subs=[], captain=captain)
+
+
+def _reach(lineup: Lineup, started: dict[str, Forecast], rng: np.random.Generator) -> tuple[np.ndarray, float]:
+    scores = simulate(lineup, started, rng, STEP_DRAWS)
+    return np.array([float((scores >= target).mean()) for _, target, _, _ in lineup.comp.pro_steps]), float(
+        scores.mean()
+    )
+
+
+def windows(
+    comp: Competition, cards: list[Card], forecasts: Mapping[str, Forecast], games: Mapping[str, list[dict[str, Any]]]
+) -> list[Window]:
+    """The board's steps played on each group of its games that start within `WINDOW`, the best first (the owner, 29 Oct 2026: "if
+    I know who starts and input them in Pro, can I get the next step?"). A group inside a bigger one is left out: the bigger one has
+    every card it has."""
+    timed = [
+        (t, c)
+        for c in cards
+        if comp.allows(c) and (f := forecasts.get(c.player)) and starts(f) > 0 and (t := kickoff(c, comp, games))
+    ]
+    groups: list[list[Card]] = []
+    for start in sorted({t for t, _ in timed}):
+        pool = [c for t, c in timed if start <= t <= start + WINDOW]
+        if not any({c.slug for c in pool} <= {c.slug for c in g} for g in groups):
+            groups.append(pool)
+    out = []
+    for pool in groups:
+        started = {c.player: starting(forecasts[c.player]) for c in pool}
+        best = _five(comp, pool, started)
+        if best is None:
+            continue
+        rng = np.random.default_rng(zlib.crc32("|".join([comp.key, *sorted(c.slug for c in pool)]).encode()))
+        players = sorted(started)
+        chance = np.array([starts(forecasts[p]) for p in players])
+        seen: dict[bytes, np.ndarray] = {}
+        wait = np.zeros(len(comp.pro_steps))
+        for sheet in rng.random((TEAMSHEETS, len(players))) < chance:
+            key = sheet.tobytes()
+            if key not in seen:
+                on = {p for p, s in zip(players, sheet, strict=True) if s}
+                five = _five(comp, [c for c in pool if c.player in on], started)
+                seen[key] = np.zeros(len(comp.pro_steps)) if five is None else _reach(five, started, rng)[0]
+            wait += seen[key]
+        times = [t for t, c in timed if c in best.starters]
+        if_start, expected = _reach(best, started, rng)
+        out.append(
+            Window(
+                start=min(times),
+                end=max(times),
+                lineup=best,
+                expected=expected,
+                all_start=float(np.prod([starts(forecasts[c.player]) for c in best.starters])),
+                if_start=[round(float(p), 4) for p in if_start],
+                wait=[round(float(p), 4) for p in wait / TEAMSHEETS],
+            )
+        )
+    out.sort(key=lambda w: (-w.wait[0], w.start))
+    return out[:WINDOWS_SHOWN]

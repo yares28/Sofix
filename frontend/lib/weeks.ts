@@ -95,8 +95,10 @@ export function seasonWeeks(grid: FixtureGrid | null, sorare: Sorare | null, now
     if (!week) {
       // Not on the page: a week the job kept apart still has its headline in the timeline. Only such a week: the
       // numbers an older timeline carries for any other belong to a replay nobody kept.
+      // A week in progress is not on the page either: its plan was kept at its lock, and `playing` still says how many of yours play.
       const item = timeline.find((entry) => entry.id === id);
-      if (item?.kept !== true) return { cards: 0, plans: 0, chance: null, replay: null, source: null, kept: false, early: false, expected: false, national: false };
+      const live = item?.status === "live" ? (item.playing ?? 0) : 0;
+      if (item?.kept !== true) return { cards: live, plans: 0, chance: null, replay: null, source: null, kept: false, early: false, expected: false, national: false };
       return { cards: item.playing ?? 0, plans: 0, chance: null, replay: item.won ?? null, source: null, kept: true, early: false, expected: false, national: false };
     }
     const best = bestPlan(week.plans);
@@ -207,9 +209,13 @@ function madridMidnight(iso: string, days: number): number {
   return [utc - 7_200_000, utc - 3_600_000].find((t) => madridHour.format(t) === "00") ?? utc - 3_600_000;
 }
 
-/** Stay on the week in progress until its games are over, then advance to the next week. */
+/**
+ * Stay on the week in progress until its games are over, then advance to the next week. A Sorare week in progress with no
+ * LaLiga round and none of your cards playing in it is skipped: Sofix planned nothing for it, so it has nothing to show.
+ */
 export function currentWeek(weeks: Week[]): Week | null {
-  const open = weeks.filter((week) => !week.over);
+  const empty = (week: Week) => week.state === "live" && week.gw !== null && week.md === null && !week.kept && !week.plans && !week.cards;
+  const open = weeks.filter((week) => !week.over && !empty(week));
   return open.find((week) => week.state === "live") ?? open.find((week) => week.state !== "done") ?? weeks.at(-1) ?? null;
 }
 

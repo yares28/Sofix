@@ -761,14 +761,14 @@ def lineup_payload(
     if comp.pro_steps:
         # how far up the board this lineup's score reaches: its chance of each target still ahead (only the first is played for)
         # It is entered once the teamsheets are out, and only if all five start: the chance they do, then each target's chance if so.
-        starting = {c.player: replace(forecasts[c.player], p_play=1.0) for c in lineup.starters}
+        starting = {c.player: pro.starting(forecasts[c.player]) for c in lineup.starters}
         scores = simulate(lineup, {**forecasts, **starting}, np.random.default_rng(zlib.crc32(comp.key.encode())))
         times = sorted(t for c in lineup.starters if (t := pro.kickoff(c, comp, games)) is not None)
         payload["pro"] = {
             "level": comp.pro_steps[0][0],
             "target": comp.pro_steps[0][1],
             "boost": round(boost(lineup), 2),
-            "allStart": round(math.prod(forecasts[c.player].p_play for c in lineup.starters), 4),
+            "allStart": round(math.prod(pro.starts(forecasts[c.player]) for c in lineup.starters), 4),
             "from": times[0].isoformat() if times else None,
             "to": times[-1].isoformat() if times else None,
             "ladder": [
@@ -799,6 +799,41 @@ def lineup_payload(
             "cameIn": [{"sub": sub, "for": starter} for sub, starter in lineup.came_in],
         }
     return payload
+
+
+def pro_board_payload(
+    comp: Competition, found: list[pro.Window], forecasts: dict[str, Forecast], games: dict[str, list[dict[str, Any]]]
+) -> dict[str, Any]:
+    return {
+        "comp": comp.name,
+        "key": comp.key,
+        "steps": [{"level": lv, "target": t, "cash": c, "essence": e} for lv, t, c, e in comp.pro_steps],
+        "windows": [
+            {
+                "from": w.start.isoformat(),
+                "to": w.end.isoformat(),
+                "x": round(w.expected),
+                "boost": round(boost(w.lineup), 2),
+                "allStart": round(w.all_start, 4),
+                "ifStart": w.if_start,
+                "wait": w.wait,
+                "starters": [
+                    card_payload(
+                        card,
+                        comp,
+                        forecasts[card.player],
+                        games,
+                        {
+                            "slot": "EXT" if len(comp.starters[i]) > 1 else comp.starters[i][0],
+                            "captain": i == w.lineup.captain,
+                        },
+                    )
+                    for i, card in enumerate(w.lineup.starters)
+                ],
+            }
+            for w in found
+        ],
+    }
 
 
 def _place(place: int) -> str:
@@ -1053,6 +1088,12 @@ def gameweek_payload(
                     "x": round(lineup.expected),
                 }
             )
+    # Each Pro board played on the teamsheets: its best groups of games, and what waiting for their teams can win (Play's Pro)
+    pro_boards = [
+        pro_board_payload(comp, found_windows, forecasts, games)
+        for comp in ([] if played else ready)
+        if comp.pro_steps and (found_windows := pro.windows(comp, cards, forecasts, games))
+    ]
 
     # Every player of yours with a game this week. In a week LaLiga is away, this is the whole board: the
     # app has nothing else to show, so the card, the chance he plays and what he is expected to score go with it.
@@ -1125,6 +1166,7 @@ def gameweek_payload(
             )
             for i, plan in enumerate(found)
         ],
+        **({"pro": pro_boards} if pro_boards else {}),
     }
     if played and hindsight_comps is not None:
         hindsight = hindsight_plan(
@@ -1499,11 +1541,12 @@ def build_payload(
         *[w["slug"] for w in (snapshot.get("aheadGameweeks") or [])],
     }
     # What the page before said about the weeks it kept apart: the picker still needs their headline once they are
-    # no longer the week just played, and reading them back from the archive would be a whole page each.
+    # no longer the week just played, and reading them back from the archive would be a whole page each. The week planned
+    # before its lock keeps its `playing` while it is played: off the page, it says the week is yours to follow.
     carried = {
         entry["slug"]: entry
         for entry in (previous or {}).get("timeline") or []
-        if entry.get("kept") and "slug" in entry
+        if "slug" in entry and (entry.get("kept") or entry.get("status") in ("next", "live"))
     }
     for week in snapshot["gameweeks"]:
         # Every week of the season so far stays: a finished week is still a week you can open. Only the far future

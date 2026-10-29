@@ -129,8 +129,6 @@ a.rc-tm:hover > span:last-child { text-decoration: underline; }
 .rc-lu-c span { font-size: 12px; color: var(--ink-2); }
 .rc-tag { padding: 2px 8px; border-radius: 999px; background: var(--hover); }
 .rc-tag.pro-step { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); color: var(--ink); font-weight: 600; }
-.rc-tag.pro-vs.here { background: color-mix(in srgb, #46c05a 14%, var(--surface)); color: var(--ink); }
-.rc-tag.pro-vs.there { background: color-mix(in srgb, #c86a1e 14%, var(--surface)); color: var(--ink); }
 .rc-team { grid-area: team; list-style: none; margin: 0; padding: 8px 0 0; display: flex; flex-wrap: wrap; gap: 14px 8px; }
 .rc-team li { position: relative; flex: 1 1 0; min-width: 48px; max-width: 80px; display: flex; flex-direction: column; align-items: center; }
 .rc-team li:not(.bench) + li.bench { margin-left: 17px; }

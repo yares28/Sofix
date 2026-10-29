@@ -842,14 +842,14 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-10-29",
-        "note": "29 Oct 2026: jobs/sorare.py only passes your saved lineups (my_week/entered_week) to reward_bars.build for the Targets pins; the recommendation pipeline is unchanged",
+        "note": "Checked 29 Oct 2026: in-season benches take in-season cards only; Pro teamsheet windows (pro.windows) simulate each Pro lineup on start chances and do not change plan selection, raw forecasts or joint plan rewards; the timeline keeps a live week playing count; currentWeek skips a live Sorare-only week with none of your cards.",
         "files": {
-          "backend/app/sorare/publish.py": "81c89563f1c6011e1fea41a076a095d773e59925a4eea706bad7d0f9634c1be5",
-          "backend/app/sorare/planner.py": "3054ad20bbb294ec039c9b1524b073af20bd4b925be1f5e233be12db2d0e4b8f",
+          "backend/app/sorare/publish.py": "6dc754874b994c37298002221197d7b4d437cb85a3ccda1e0466817e6415a96e",
+          "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
           "backend/app/sorare/rules.py": "a7da802c305a4ba3ade8fe7ccaf8720a9f7c5f4708eeb12752a74a7be670d0a2",
-          "backend/app/sorare/pro.py": "b3eb1a47f833708478ce9bfe93aac2ebf36a660a93124e032f111692975b7e08",
+          "backend/app/sorare/pro.py": "971b949d411512c1da3d6ee7e51ce44196c21df0bae5da141a35a544eb9d8526",
           "backend/app/jobs/sorare.py": "5369e238cbd25e3713c329f53226f01e4694420266931de4cf87f7b11b239f46",
-          "backend/tests/test_sorare_planner.py": "9325965014b78a25aecff95b398567648ff34a378e08bc7e3bcc30bac95f7d33",
+          "backend/tests/test_sorare_planner.py": "fce9fe3388edbf3c9c43b538ca501d832123964960b67dea1d0bb59101d0e398",
           "backend/tests/test_sorare_publish.py": "87d508ff04619fad551329672be902ae93445556c4bd845ee3e5e5bd59024827"
         }
       }
@@ -964,9 +964,9 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-10-29",
-        "note": "Reviewed formatter-only change to the executed publisher boundary regression.",
+        "note": "Checked 29 Oct 2026: in-season benches take in-season cards only; Pro teamsheet windows (pro.windows) simulate each Pro lineup on start chances and do not change plan selection, raw forecasts or joint plan rewards; the timeline keeps a live week playing count; currentWeek skips a live Sorare-only week with none of your cards.",
         "files": {
-          "backend/app/sorare/publish.py": "81c89563f1c6011e1fea41a076a095d773e59925a4eea706bad7d0f9634c1be5",
+          "backend/app/sorare/publish.py": "6dc754874b994c37298002221197d7b4d437cb85a3ccda1e0466817e6415a96e",
           "backend/app/sorare/score_fixes.py": "9f972313b65f87a9363d87048463a709b55c74f0c2f127fbf7a63fde5b5c7c20",
           "backend/tests/test_score_fixes.py": "b7e0568bb38fead0bf658ec685af5fd34561f24940fab150fc351b9b60fb06ac",
           "backend/tests/test_sorare_publish.py": "87d508ff04619fad551329672be902ae93445556c4bd845ee3e5e5bd59024827"
@@ -1019,11 +1019,11 @@ This block is the single machine-readable index for the sections above. Test ref
         }
       ],
       "review": {
-        "date": "2026-10-28",
-        "note": "Compared source and existing assertions; execution results are recorded separately in the audit. Live workflow not reverified.",
+        "date": "2026-10-29",
+        "note": "Checked 29 Oct 2026: in-season benches take in-season cards only; Pro teamsheet windows (pro.windows) simulate each Pro lineup on start chances and do not change plan selection, raw forecasts or joint plan rewards; the timeline keeps a live week playing count; currentWeek skips a live Sorare-only week with none of your cards.",
         "files": {
-          "backend/app/sorare/planner.py": "3054ad20bbb294ec039c9b1524b073af20bd4b925be1f5e233be12db2d0e4b8f",
-          "frontend/lib/play.ts": "b41db476b2bf90c83d4aa9cb23b8ab151714a665ef949b7572ea0c51b1fb78cd",
+          "backend/app/sorare/planner.py": "2cb5fb021639ee3dcad33a8d80010a9daaeb2a93911c5feeedeae02a604325e3",
+          "frontend/lib/play.ts": "42011487a8f57bedf4eedc509d0e4999f0197be25ab1bd858dc06c3962d48516",
           "backend/tests/test_sorare_plan_math.py": "dc78d964879a3c7dcb4d6c74b33f187abba484f6c4e711323caeb79bfec0e38a",
           "frontend/lib/play.test.ts": "d48d4572e64cdde7be66f51d5ad99b3af02f07a465b366ef360209e9c8929931"
         }
@@ -1709,11 +1709,11 @@ This block is the single machine-readable index for the sections above. Test ref
       ],
       "review": {
         "date": "2026-10-29",
-        "note": "Source-inspected boundaries; referenced suites are evidence locations, not a claim of live verification.",
+        "note": "Checked 29 Oct 2026: in-season benches take in-season cards only; Pro teamsheet windows (pro.windows) simulate each Pro lineup on start chances and do not change plan selection, raw forecasts or joint plan rewards; the timeline keeps a live week playing count; currentWeek skips a live Sorare-only week with none of your cards.",
         "files": {
-          "frontend/lib/weeks.ts": "76ec702e350db3bfee529ca16970d64586fff1b450580cb9465f472c714e7dfa",
+          "frontend/lib/weeks.ts": "be34a90c23ae5a353947547f9e6b69bc2b035b6a439c785704d8b49b71a48c54",
           "CLAUDE.md": "3e8ad3b87f0ac3840e2cac11dad10e8d7089719bcf455a88b3c653f522c9d06b",
-          "frontend/lib/weeks.test.ts": "0c5e98e78f94024e723773d85f54ab97910658535e273b90856cb32bf2e48f1e"
+          "frontend/lib/weeks.test.ts": "12731b19b2f9cf68723009db4ec878b69539e016cfe1f28412c55217eb042516"
         }
       }
     },

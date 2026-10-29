@@ -220,10 +220,12 @@ test("the gameweek opens on its best plan: the ring, both rewards and every line
   const lineups = page.locator(".pl-lu");
   await expect(lineups).toHaveCount(plan1.lineups.length);
   await expect(lineups.first()).toContainText("LALIGA EA SPORTS");
-  await expect(lineups.first()).toContainText("5 + 2 subs · 4 in-season");
+  await expect(lineups.first().getByRole("img", { name: "In-season", exact: true })).toBeVisible(); // the mark, not the word
+  await expect(lineups.first()).not.toContainText("In-season");
+  await expect(lineups.first()).not.toContainText("subs");
   await expect(lineups.first().locator(".rc-score-pair b").first()).toHaveText(String(Math.round(laliga.x)));
   await expect(lineups.first().locator(".rc-any b")).toHaveText("48%");
-  await expect(lineups.nth(2)).toContainText("Room of 10 · cap 260");
+  await expect(lineups.nth(1).getByRole("img", { name: "Classic", exact: true })).toBeVisible();
 
   await expect(page.getByRole("group", { name: "Show" })).toHaveCount(0); // nothing has been played yet
   const scan = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
@@ -296,7 +298,8 @@ test("a lineup opens a sheet with its cards, its subs and the rules it keeps", a
   await expect(sheet.locator(".pl-pc .pl-cap")).toHaveCount(1); // one captain
   await expect(sheet.locator(".pl-bench .pl-sub")).toHaveCount(laliga.subs.length);
   await expect(sheet.locator(".pl-bench")).toContainText("Álex Remiro");
-  await expect(sheet.locator(".pl-bench")).toContainText("goalkeeper · IN-SEASON · plays 81%");
+  await expect(sheet.locator(".pl-bench")).toContainText("plays 81%");
+  await expect(sheet.locator(".pl-bench").getByRole("img", { name: "In-season", exact: true }).first()).toBeVisible();
   await expect(sheet.locator(".pl-checks")).toContainText("5 of 5 in-season (4 needed)");
   await expect(sheet.locator(".pl-checks")).toContainText("Max 2 per club · +2%");
   await expect(sheet.locator(".pl-checks")).toContainText("Average total 244 ≤ 260 · +4%");
@@ -354,10 +357,9 @@ test("a lineup card says his chance of starting with whose number it is, as a ma
   await expect(cards.nth(3)).toContainText("plays"); // a card the payload says nothing about keeps what it had
 });
 
-test("a Pro lineup shows its step, the board ahead and where the cards are worth more, and Apply leaves it out", async ({ page }) => {
+test("a Pro lineup shows its step and the board ahead, and Apply leaves it out", async ({ page }) => {
   await page.goto("/play");
-  // the Arena lineup of the best plan says its five would be worth more in Pro
-  await expect(page.locator(".pl-lu").first()).toContainText("Worth more in LaLiga Pro");
+  await expect(page.locator(".pl-lu").first()).not.toContainText("Worth more");
   await page.getByRole("link", { name: "Other plans & strategies" }).click();
   await page.getByRole("navigation", { name: "Plan" }).getByRole("link").nth(1).click(); // the plan holding the Pro lineup
   const row = page.locator(".pl-lu", { hasText: "LaLiga Pro" }).filter({ hasText: "Step 0" });
@@ -365,14 +367,12 @@ test("a Pro lineup shows its step, the board ahead and where the cards are worth
   await expect(row).toContainText("Step 0 · needs 320 · 500 essence");
   // its games start within the hour: it is entered once the teamsheets are out
   await expect(row).toContainText(/Games \w{3} \d\d:\d\d–\d\d:\d\d · enter once the teams are out/);
-  await expect(row).toContainText("Worth more here than in LaLiga Arena");
 
   await row.click();
   const sheet = page.getByRole("dialog", { name: "LaLiga Pro lineup" });
   await expect(sheet.locator(".pl-pro-vs").first()).toContainText("only if all five start (62% chance they do)");
   await expect(sheet.locator(".pl-pro-vs").first()).toContainText("sends the board back to step 0");
-  await expect(sheet.locator(".pl-pro-vs").last()).toContainText("Here: 30% chance of a reward. The same five in LaLiga Arena: 12%.");
-  await expect(sheet.locator(".pl-pro-vs").last()).toContainText("150 here and 30 there");
+  await expect(sheet).not.toContainText("The same five in");
   const steps = sheet.locator(".pl-ladder tbody tr");
   await expect(steps).toHaveCount(3);
   await expect(steps.first()).toContainText("Step 0 · 320+ · this week");
@@ -386,6 +386,27 @@ test("a Pro lineup shows its step, the board ahead and where the cards are worth
   await page.getByRole("button", { name: "Apply plan" }).click();
   await expect(page.locator(".ap")).toBeVisible();
   await expect(page.locator(".ap")).not.toContainText("LaLiga Pro");
+});
+
+test("Pro says, for each group of games, the next step's chance once the teams are out, if the five start, and that they all do", async ({ page }) => {
+  await page.goto("/play");
+  const section = page.getByRole("region", { name: "Pro · once the teams are out" });
+  const board = section.getByRole("region", { name: "LaLiga Pro" });
+  await expect(board.getByRole("heading", { level: 3 })).toContainText("Step 0 · 320+");
+  await expect(board.getByRole("heading", { level: 3 })).toContainText("500");
+  const rows = board.locator(".pl-pro-win");
+  await expect(rows).toHaveCount(2);
+  const best = rows.first();
+  await expect(best.locator(".rc-lu-c b")).toHaveText(/^\w{3} \d\d:\d\d–\d\d:\d\d$/);
+  await expect(best.locator(".rc-team li")).toHaveCount(5);
+  await expect(best.getByRole("link", { name: "Pedri: open his page" })).toBeVisible(); // his real card, linked to him
+  await expect(best.locator(".rc-cap")).toHaveCount(1);
+  await expect(best).toContainText("Once the teams are out58%");
+  await expect(best).toContainText("If these five start71%");
+  await expect(best).toContainText("62%All five start");
+  await expect(rows.nth(1).locator(".rc-lu-c b")).toHaveText(/^\w{3} \d\d:\d\d$/); // one kickoff: no range
+  await expect(rows.nth(1)).toContainText("Once the teams are out24%");
+  expect((await new AxeBuilder({ page }).include(".pl-pro-boards").analyze()).violations).toEqual([]);
 });
 
 test("a lineup with no bench says why, and a room shows its entry fee", async ({ page }) => {

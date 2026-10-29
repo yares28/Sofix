@@ -2054,6 +2054,51 @@
             "x": 251
           }
         ],
+        "pro": [
+          {
+            "comp": "LaLiga Pro",
+            "key": "LALIGA EA SPORTS | Pro",
+            "steps": [
+              { "level": 0, "target": 320, "cash": 0, "essence": 500 },
+              { "level": 1, "target": 360, "cash": 5, "essence": 0 },
+              { "level": 2, "target": 380, "cash": 10, "essence": 0 }
+            ],
+            "windows": [
+              {
+                "from": "2026-09-26T16:30:00+00:00",
+                "to": "2026-09-26T17:00:00+00:00",
+                "x": 331,
+                "boost": 1,
+                "allStart": 0.62,
+                "ifStart": [0.71, 0.42, 0.29],
+                "wait": [0.58, 0.33, 0.22],
+                "starters": [
+                  { "slug": "unai-simon-2026", "player": "unai-simon", "name": "Unai Simón", "pos": "GK", "rarity": "limited", "inSeason": true, "pic": "https://assets.sorare.com/card/football/unai-simon-2026/picture.png", "x": 54.5, "slot": "GK", "captain": false },
+                  { "slug": "pau-cubarsi-2026", "player": "pau-cubarsi", "name": "Pau Cubarsí", "pos": "DEF", "rarity": "limited", "inSeason": true, "pic": "https://assets.sorare.com/card/football/pau-cubarsi-2026/picture.png", "x": 53.7, "slot": "DEF", "captain": false },
+                  { "slug": "pedri-2026", "player": "pedri", "name": "Pedri", "pos": "MID", "rarity": "limited", "inSeason": true, "pic": "https://assets.sorare.com/card/football/pedri-2026/picture.png", "x": 61.2, "slot": "MID", "captain": true },
+                  { "slug": "julian-alvarez-2026", "player": "julian-alvarez", "name": "Julián Álvarez", "pos": "FWD", "rarity": "limited", "inSeason": true, "pic": "https://assets.sorare.com/card/football/julian-alvarez-2026/picture.png", "x": 61.4, "slot": "FWD", "captain": false },
+                  { "slug": "takefusa-kubo-2026", "player": "takefusa-kubo", "name": "Takefusa Kubo", "pos": "MID", "rarity": "limited", "inSeason": true, "pic": "https://assets.sorare.com/card/football/takefusa-kubo-2026/picture.png", "x": 50.2, "slot": "EXT", "captain": false }
+                ]
+              },
+              {
+                "from": "2026-09-27T19:00:00+00:00",
+                "to": "2026-09-27T19:00:00+00:00",
+                "x": 289,
+                "boost": 1,
+                "allStart": 0.41,
+                "ifStart": [0.38, 0.17, 0.09],
+                "wait": [0.24, 0.1, 0.05],
+                "starters": [
+                  { "slug": "inaki-pena-2026", "player": "inaki-pena", "name": "Iñaki Peña", "pos": "GK", "rarity": "limited", "inSeason": true, "pic": "https://assets.sorare.com/card/football/inaki-pena-2026/picture.png", "x": 43.7, "slot": "GK", "captain": false },
+                  { "slug": "robin-le-normand-2026", "player": "robin-le-normand", "name": "Robin Le Normand", "pos": "DEF", "rarity": "limited", "inSeason": true, "pic": "https://assets.sorare.com/card/football/robin-le-normand-2026/picture.png", "x": 49.1, "slot": "DEF", "captain": false },
+                  { "slug": "fermin-lopez-2026", "player": "fermin-lopez", "name": "Fermín López", "pos": "MID", "rarity": "limited", "inSeason": true, "pic": "https://assets.sorare.com/card/football/fermin-lopez-2026/picture.png", "x": 52.3, "slot": "MID", "captain": false },
+                  { "slug": "ayoze-perez-2026", "player": "ayoze-perez", "name": "Ayoze Pérez", "pos": "FWD", "rarity": "limited", "inSeason": true, "pic": "https://assets.sorare.com/card/football/ayoze-perez-2026/picture.png", "x": 50.8, "slot": "FWD", "captain": true },
+                  { "slug": "gerard-moreno-2026", "player": "gerard-moreno", "name": "Gerard Moreno", "pos": "FWD", "rarity": "limited", "inSeason": false, "pic": "https://assets.sorare.com/card/football/gerard-moreno-2026/picture.png", "x": 47.6, "slot": "EXT", "captain": false }
+                ]
+              }
+            ]
+          }
+        ],
         "plans": [
           {
             "rank": 1,

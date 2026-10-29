@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { matchHref, matchOfCard, playerHref } from "../../lib/links";
 import type { Lineup as LineupData, PlayCard, PlayingPlayer } from "../../lib/play";
-import { SCORE_SOURCE_NAME, cardScore, cashLabel, chanceLabel, essenceLabel, essenceName, formatOf, paysNote, startChance } from "../../lib/play";
+import { SCORE_SOURCE_NAME, cardScore, cashLabel, chanceLabel, essenceLabel, essenceName, paysNote, startChance } from "../../lib/play";
 import { KindIcon } from "../lineups/Icons";
 import Silhouette from "../Silhouette";
 import SourceMark from "../SourceMark";
@@ -18,6 +18,25 @@ const time = (iso: string) =>
   new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(
     new Date(iso),
   );
+
+/** In-season or Classic as its mark alone, named for screen readers and on hover; a Room keeps its word. */
+function GroupMark({ group }: { group: LineupData["group"] }) {
+  if (group === "Room") return <span className={`pl-group ${GROUP_CLASS[group]}`}>{group}</span>;
+  return (
+    <span className={`pl-group ${GROUP_CLASS[group]}`} role="img" aria-label={group} title={group}>
+      <SeasonIcon inSeason={group === "In-season"} size={14} />
+    </span>
+  );
+}
+
+function SeasonTag({ inSeason }: { inSeason: boolean }) {
+  const name = inSeason ? "In-season" : "Classic";
+  return (
+    <span className={`pl-tag${inSeason ? "" : " classic"}`} role="img" aria-label={name} title={name}>
+      <SeasonIcon inSeason={inSeason} size={11} />
+    </span>
+  );
+}
 
 /** One lineup of a plan: what it is expected to score, what that is worth, and the cards in it. */
 export default function Lineup({
@@ -38,7 +57,6 @@ export default function Lineup({
   /** The scores in so far of a week being played, by card (lib/planScoresData.ts). */
   scores?: ActualScores;
 }) {
-  const group = GROUP_CLASS[lineup.group];
   const chance = lineup.pReturn;
   const won = after && lineup.actual ? lineup.actual.essence > 0 || lineup.actual.cash > 0 || lineup.actual.card : false;
 
@@ -51,11 +69,7 @@ export default function Lineup({
     <div className="rc-lu">
       <div className="rc-lu-c">
         <b>{lineup.comp}</b>
-        <span className={`pl-group ${group}`}>
-          {lineup.group !== "Room" ? <SeasonIcon inSeason={lineup.group === "In-season"} /> : null}
-          {lineup.group}
-        </span>
-        <span>{formatOf(lineup)}</span>
+        <GroupMark group={lineup.group} />
         {lineup.expected ? <span className="rc-tag">Expected · Sorare has not opened it yet</span> : null}
         <ProTags lineup={lineup} />
       </div>
@@ -95,10 +109,7 @@ export default function Lineup({
     <>
       <Foil rarity={lineup.rarity} />
       <h2>{lineup.comp}</h2>
-      <span className={`pl-group ${group}`}>
-          {lineup.group !== "Room" ? <SeasonIcon inSeason={lineup.group === "In-season"} /> : null}
-          {lineup.group}
-        </span>
+      <GroupMark group={lineup.group} />
       <span className="pl-fmt">{paysNote(lineup)}</span>
       {lineup.expected ? (
         <span className="pl-exp" title={`Copied from ${lineup.expectedFrom}`}>
@@ -171,10 +182,7 @@ function Sheet({ lineup, after, index, hindsight, players }: { lineup: LineupDat
                   <b>{sub.name}</b>
                   <span>
                     {sub.slot === "GK" ? "goalkeeper" : "outfield"} ·{" "}
-                    <span className={`pl-tag${sub.inSeason ? "" : " classic"}`}>
-                      <SeasonIcon inSeason={sub.inSeason} size={9} />
-                      {sub.inSeason ? "IN-SEASON" : "CLASSIC"}
-                    </span>
+                    <SeasonTag inSeason={sub.inSeason} />
                     {after
                       ? joined
                         ? ` · came in for ${replaced?.name ?? "a starter"}`
@@ -325,10 +333,7 @@ function SheetCard({ card, lineup, after, position, match }: { card: PlayCard; l
         </span>
       </div>
       <div className="pl-row">
-        <span className={`pl-tag${card.inSeason ? "" : " classic"}`}>
-          <SeasonIcon inSeason={card.inSeason} size={9} />
-          {card.inSeason ? "IN-SEASON" : "CLASSIC"}
-        </span>
+        <SeasonTag inSeason={card.inSeason} />
         <span>
           {after ? (
             swap && sub ? `↺ ${sub.name}` : ""

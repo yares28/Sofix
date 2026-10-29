@@ -15,6 +15,8 @@ test("Recap and Play keep the current GW, compare all entered and best-plan line
   const info = data.timeline.filter(w => w.start < next.start).at(-1)!;
   info.start = new Date(Date.now() - 24 * 3600_000).toISOString();
   info.end = next.start;
+  info.status = "live";
+  info.playing = next.playing; // off the page while it is played: the timeline says yours play in it
   const current = currentWeek(seasonWeeks(await servedGrid(request), data, new Date()))!;
   expect(current.state).toBe("live");
   expect(current.gw).toBe(info.id);

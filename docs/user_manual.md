@@ -71,7 +71,8 @@ Click a number to go there; swipe or scroll the strip for the rest of the season
 
 The app opens on the week being played until its games are over: at 00:00 Madrid the day after its last game it moves to the next
 one, even though Sorare keeps the week open to the next lock (a round ending Monday hands over on Tuesday at 00:00, not at the
-Tuesday 16:00 lock). A Sorare-only week (Europe, national teams) hands over at 00:00 on the day its window closes.
+Tuesday 16:00 lock). A Sorare-only week (Europe, national teams) hands over at 00:00 on the day its window closes; one where none of your cards
+play is skipped while it runs, so the app opens on the next week's plan.
 
 The sun/moon button at the top right of the bar switches between the light and the dark theme. The choice is kept in
 this browser; until one is made, Sofix follows the system's light or dark setting. The magnifier beside it searches players by
@@ -149,7 +150,8 @@ nothing yet. The old Sorare row is gone from the home: the plan and the week jus
 collection (with its "No Rare goalkeeper" warning) is in the Gallery.
 
 Every player card grows a little when you point at it (a spring, a shadow and a light sweep). In-season cards and
-competitions carry a star, Classic ones a clock.
+competitions carry Sorare's own badges, its "27" In-season tag and its "C" Classic tag (read from sorare.com's app); Play's
+lineups show the badge in place of the word (29 Oct 2026).
 
 Each colour of a number is Sorare's own score band for it: up to 20 red, 21 to 35 orange, 36 to 50 yellow, 51 to 60 lime, 61 to 75
 green, 76 and above cyan.
@@ -315,10 +317,13 @@ Sorare's Rare Reward Bonus. A board with a rule Sofix cannot check (the Inferno 
 misses its target sends the board back to step 0 (20 Oct 2026), so a Pro lineup is built from games that all start within an hour
 (20 Oct 2026): every teamsheet is out before its first kickoff, and it is entered only if all five start. The planner gives each
 lineup's cards to Pro or elsewhere, whichever is worth more. A Pro lineup reads "Step 0 · needs 320 · 500 essence" and "Games
-Thu 18:30–19:00 · enter once the teams are out"; Pro and Arena lineups say where the same five are worth more ("Worth more here
-than in LaLiga Arena", or "Worth more in LaLiga Pro"); the sheet gives the chance all five start, both chances, and the **Pro
+Thu 18:30–19:00 · enter once the teams are out"; the sheet gives the chance all five start and the **Pro
 board**, the steps ahead with this lineup's chance of each target if all five start. Limits: only this week's step is valued (the
-next ones only shown), one try a week. Apply leaves Pro out: enter it on Sorare. **Load from Sorare** (20 Oct 2026), under each Pro
+next ones only shown), one try a week. **Pro · once the teams are out** (29 Oct 2026), under the plan of a week not yet played, takes
+each board Sofix can fill and each group of its games starting within the hour (up to four, best first): the best five if they all
+start, with real cards, the chance of the step if these five start, the chance all five do, and the chance **once the teams are
+out**: 200 teamsheets drawn from each player's start chance, the best five who start entered on each, the step reached on average
+(`pro.windows`). Apply leaves Pro out: enter it on Sorare. **Load from Sorare** (20 Oct 2026), under each Pro
 lineup, reads the announced elevens of the games in the next three hours (no extension, works from a phone) and rebuilds the plan's
 Pro lineups on them in about a minute: an announced starter starts, a benched player only fills a slot no starter of yours fits or if
 his chance of coming on times his score if he does is at least the best starter's; anyone else does not play. The rebuild sits under

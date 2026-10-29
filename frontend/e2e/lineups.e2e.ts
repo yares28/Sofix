@@ -316,7 +316,7 @@ async function weeksOf(request: APIRequestContext) {
 test("the header names the LaLiga round and its days without a speculative Sorare status", async ({ page }) => {
   await page.goto("/lineups");
 
-  await expect(header(page).locator(".lu-eyebrow")).toHaveText(/^LaLiga round 8 .*\w{3} \d+ . \w{3} \d+ Oct$/);
+  await expect(header(page).locator(".lu-eyebrow")).toHaveText(/^LaLiga round 8 .*\w{3} \d+( \w{3})? . \w{3} \d+ \w{3}$/);
   await expect(header(page).getByRole("link", { name: /^Sorare/ })).toHaveCount(0);
   await expect(page.getByText(/Futbol Fantasy .* kickoffs in Madrid time/)).toBeVisible();
 });

@@ -294,6 +294,22 @@ def test_a_classic_substitute_stays_out_when_the_lineup_would_drop_under_four_in
     assert not _can_replace(lineup, 1, 2)
 
 
+def test_an_in_season_bench_takes_in_season_cards_only():
+    """Sorare: "Only In-Season cards can be used as subs in In-Season Arenas" (help.sorare.com, What is Arena), even for the
+    lineup's one Classic starter."""
+    lineup, fc = lineup_with_bench(sub_in_season=False, classic_starters=1)
+    assert not _can_replace(lineup, 1, 4), "the Classic Extra cannot be covered by a Classic substitute"
+    starters = lineup.starters
+    spare = card("spare", "MID", in_season=False)
+    fc = {c.player: Forecast(p_play=1.0, mu=50.0, games=1) for c in [*starters, spare]}
+    fc["extra"] = Forecast(p_play=0.5, mu=50.0, games=1)  # the Classic starter may miss his game
+    bare = evaluate(
+        Lineup(comp=lineup.comp, starters=starters, subs=[None, None], captain=0), fc, np.random.default_rng(11)
+    )
+    left = fill_bench([bare], [spare], fc, np.random.default_rng(11), draws=800)
+    assert bare.bench == [] and left == [spare]
+
+
 def test_a_substitute_costs_the_lineup_bonuses_and_never_the_captain_bonus():
     lineup, fc = lineup_with_bench()
     lineup.captain = 4  # the Extra slot, the one any outfield substitute can cover

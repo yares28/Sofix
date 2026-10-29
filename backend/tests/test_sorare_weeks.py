@@ -163,6 +163,31 @@ def test_a_week_far_ahead_is_still_left_out_of_the_timeline() -> None:
     assert 30 not in {item["number"] for item in timeline}
 
 
+def test_a_week_being_played_still_says_how_many_of_yours_play_in_it() -> None:
+    # Off the page once it locks (its plan is kept apart), so the app has only the timeline to tell it from a week of none of yours
+    snap = snapshot()
+    live = {
+        **PAST_GW,
+        "slug": "gw-live",
+        "number": 20,
+        "start": "2026-10-06T14:00:00+00:00",
+        "end": "2026-10-09T13:59:00+00:00",
+        "lock": "2026-10-06T14:00:00+00:00",
+    }
+    snap["gameweeks"] = [PAST_GW, live, PLAN_GW, AHEAD_GW]
+    previous = {
+        "timeline": [
+            {"slug": "gw-live", "status": "next", "playing": 9},
+            {"slug": "gw-past", "status": "done", "playing": 4},
+        ]
+    }
+    by_number = {
+        item["number"]: item for item in publish.build_payload(snap, runs=2, draws=200, previous=previous)["timeline"]
+    }
+    assert by_number[20]["status"] == "live" and by_number[20]["playing"] == 9
+    assert "kept" not in by_number[20]
+
+
 def test_form_is_read_for_every_laliga_player_because_an_early_plan_needs_it() -> None:
     def row(slug: str, league: str | None, games: bool) -> dict[str, Any]:
         club = {"domesticLeague": {"slug": league}} if league else None

@@ -124,6 +124,29 @@ def test_a_pro_lineups_games_all_start_within_an_hour_so_every_teamsheet_is_out_
     assert len({games[c.player][0]["kickoff"] for c in lineup.starters}) == 1
 
 
+def test_waiting_for_the_teamsheets_is_worth_what_the_best_five_who_do_start_can_reach():
+    comp = pro.competitions([LALIGA])[0]
+    cards = squad(15)
+    early, late = cards[:5], cards[5:]  # five at 16:00, ten (two per place) from 18:30
+    games = kickoffs(cards, *["16:00"] * 5, *["18:30"] * 8, "18:45", "18:45")
+    # the late ten play nine games in ten but start six: a Pro lineup is entered on who starts
+    late_fc = {k: replace(f, p_start=0.6) for k, f in forecasts_for(late, p=0.9, mu=80.0).items()}
+    fc = {**forecasts_for(early, p=1.0, mu=80.0), **late_fc}
+    found = pro.windows(comp, cards, fc, games)
+    assert len(found) == 2  # 18:45 is inside the 18:30 group, so it is not a group of its own
+    sure, unsure = found  # the best chance of the next step first
+    assert sure.start.hour == 16 and sure.all_start == 1.0 and set(sure.lineup.starters) == set(early)
+    assert (
+        len(sure.if_start) == 3 and abs(sure.wait[0] - sure.if_start[0]) < 0.05
+    )  # they start anyway: waiting changes nothing
+    assert unsure.start.hour == 18 and round(unsure.all_start, 4) == round(0.6**5, 4)
+    assert unsure.if_start[0] > 0.9
+    # the bench covers who is left out, so waiting beats entering five who all have to start, and stays below "if they all start"
+    assert unsure.all_start * unsure.if_start[0] < unsure.wait[0] < unsure.if_start[0]
+    assert sure.if_start[0] >= sure.if_start[1] >= sure.if_start[2]  # each step's score is higher
+    assert pro.windows(comp, cards[:3], fc, games) == []  # three cards make no lineup
+
+
 def test_the_cards_go_where_they_are_worth_more_cash_counted_in_essence():
     cards = squad(5)  # one lineup's worth: Pro or the Arena
     fc = forecasts_for(cards, p=1.0, mu=60.0)

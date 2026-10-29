@@ -32,6 +32,7 @@ import EssenceOrder from "./EssenceOrder";
 import EnteredLineups from "./EnteredLineups";
 import Lineup from "./Lineup";
 import ProRebuild from "./ProRebuild";
+import { ProBoards } from "./Pro";
 import type { ProRebuild as Rebuild } from "../../lib/playData";
 import SorareImage from "./SorareImage";
 import SeasonIcon from "../SeasonIcon";
@@ -228,6 +229,7 @@ export default function PlayView({
       ) : (
         <><Waiting week={week} now={now} />{!alternatives ? <Link className="pl-other-plans" href={otherPlans} prefetch={false}>Other plans &amp; strategies<LinkPending /></Link> : null}</>
       )}
+      {!after && !week.played && !week.projected && week.pro?.length ? <ProBoards boards={week.pro} /> : null}
       {missions && !after ? <MissionsGlance plans={missions.plans} day={missions.day} current={missions.status === "today"} href="/missions" /> : null}
       <Folds week={week} />
     </main>

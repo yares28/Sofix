@@ -1757,8 +1757,9 @@
 .pl-more > .pl-lus { padding: 0 14px 14px; }
 .pl-main > .rc-missions { margin-top: 28px; }
 
-/* ---------- season icons (star: in season, clock: Classic) next to the words they stand for ---------- */
+/* ---------- season icons (Sorare's "27" In-season and "C" Classic badges) next to the words they stand for ---------- */
 .season-ic { flex: none; vertical-align: -1px; }
+.pl-group[role="img"], .pl-tag[role="img"] { padding: 0; background: none; color: var(--ink); }
 .pl-group, .pl-tag, .rc-mode, .pl-opts small { display: inline-flex; align-items: center; gap: 4px; }
 .pl-mc .is, .pl-face .is { display: grid; place-items: center; color: #fff; }
 .s5-season { display: inline-flex; gap: 3px; }
@@ -1816,6 +1817,13 @@
 .pl-board .pl-alloc-key b { font-weight: 600; }
 
 .pl-board .pl-lus { display: block; }
+/* Pro on the teamsheets: a board's heading, then each group of its games as a plan row (the five, the next step's chances) */
+.pl-pro-boards { margin-top: 20px; }
+.pl-pro-board { padding-top: 18px; }
+.pl-pro-board h3 { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 4px; font-size: 15px; font-weight: 650; }
+.pl-pro-board h3 .rc-tag { font-size: 12px; }
+.pl-pro-prize { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pl-pro-win .rc-score-pair span { white-space: nowrap; }
 /* a plan row is the Recap's lineup row (recap.css .rc-lu); the button around it only opens the sheet */
 .pl-board .pl-lu { display: block; width: 100%; padding: 0; border-radius: 0; background: none; box-shadow: none; overflow: visible; transition: background 0.2s; }
 .pl-board .pl-lu:hover { transform: none; box-shadow: none; background: var(--hover); }

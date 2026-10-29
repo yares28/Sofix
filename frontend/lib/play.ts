@@ -367,7 +367,24 @@ export type GameweekPlan = {
    * competitions of the gameweek named in `basedOn`. Nothing in it can be entered.
    */
   projected?: { round: number; basedOn: string; expected?: boolean };
+  /** A week not yet played, one per Pro board Sofix can fill: its groups of games starting within an hour, the best first (`pro.windows`). */
+  pro?: ProBoard[];
 };
+
+export type ProStep = { level: number; target: number; cash: number; essence: number };
+export type ProWindow = {
+  from: string;
+  to: string;
+  /** The best five's expected score if they all start, and the Rare prize boost. */
+  x: number;
+  boost: number;
+  /** The chance all five start; each step's chance if they do, and if he enters the best five who do start once the teamsheets are out. */
+  allStart: number;
+  ifStart: number[];
+  wait: number[];
+  starters: PlayCard[];
+};
+export type ProBoard = { comp: string; key: string; steps: ProStep[]; windows: ProWindow[] };
 
 /** The game a team-news row is about, as the plan has it. */
 export type NewsGame = { id: string; kickoff: string; team: string | null; opponent: string; venue: "H" | "A" | null };
@@ -735,14 +752,6 @@ export function proStep(pro: NonNullable<Lineup["pro"]>): string {
   const prize = pro.ladder[0];
   const pays = prize ? [prize.cash ? cashLabel(prize.cash * pro.boost) : "", prize.essence ? `${essenceLabel(prize.essence * pro.boost)} essence` : ""].filter(Boolean).join(" + ") : "";
   return `Step ${pro.level} · needs ${pro.target}${pays ? ` · ${pays}` : ""}`;
-}
-
-/** Where the same cards are worth more, Pro or the Arena, cash counted as essence; null without both numbers. */
-export function proVerdict(lineup: Lineup): { here: boolean; line: string } | null {
-  const other = lineup.versus;
-  if (!other || lineup.worth === undefined) return null;
-  const here = lineup.worth >= other.worth;
-  return { here, line: here ? `Worth more here than in ${other.comp}` : `Worth more in ${other.comp}` };
 }
 
 /** The gameweek being played right now: its games are on, so it is not yet the last one and its scores are still coming in. */

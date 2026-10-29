@@ -134,10 +134,7 @@ export function PlayTile({ week, now }: { week: GameweekPlan; now: Date }) {
               return (
                 <li key={`${lineup.key}-${index}`}>
                   <Foil rarity={lineup.rarity} className="sm" />
-                  <span className="nm">
-                    {lineup.comp}
-                    <small>{formatOf(lineup)}</small>
-                  </span>
+                  <span className="nm">{lineup.comp}</span>
                   <span className="xs">{lineup.x}</span>
                   <span className="pc">{chanceLabel(lineup.pReturn)}</span>
                   <span className={`pl-meter ${tone}`.trim()}>

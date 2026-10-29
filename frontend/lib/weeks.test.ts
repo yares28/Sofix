@@ -16,7 +16,7 @@ const TIMELINE: TimelineWeek[] = [
   { id: "13", slug: "a", number: 13, start: "2026-09-11T17:00:00Z", end: "2026-09-15T17:00:00Z", lock: "", status: "done" },
   { id: "14", slug: "b", number: 14, start: "2026-09-15T17:00:00Z", end: "2026-09-18T17:00:00Z", lock: "", status: "done" },
   { id: "15", slug: "c", number: 15, start: "2026-09-18T17:00:00Z", end: "2026-09-22T17:00:00Z", lock: "", status: "done" },
-  { id: "16", slug: "d", number: 16, start: "2026-09-22T17:00:00Z", end: "2026-09-25T17:00:00Z", lock: "", status: "live" },
+  { id: "16", slug: "d", number: 16, start: "2026-09-22T17:00:00Z", end: "2026-09-25T17:00:00Z", lock: "", status: "live", playing: 12 },
   { id: "17", slug: "e", number: 17, start: "2026-09-25T17:00:00Z", end: "2026-09-29T21:00:00Z", lock: "", status: "next" },
   { id: "19", slug: "f", number: 19, start: "2026-10-02T17:00:00Z", end: "2026-10-06T21:00:00Z", lock: "", status: "later" },
 ];
@@ -170,6 +170,19 @@ describe("the weeks of a season", () => {
     expect(currentWeek(weeks)!.number).toBe(16);
     expect(weekById(weeks, "2026-09-25")!.number).toBe(17);
     expect(weekById(weeks, "nope")).toBeNull();
+  });
+
+  it("opens on the next week while the live one is a Sorare week Sofix had nothing of yours to plan in", () => {
+    // GW26 (27-30 Oct 2026): no LaLiga round and none of your cards played, so the timeline has no `playing` for it
+    const empty = seasonWeeks(grid, { ...sorare, timeline: TIMELINE.map((t) => (t.id === "16" ? { ...t, playing: undefined } : t)) } as Sorare, NOW);
+    expect(empty.find((w) => w.number === 16)!.state).toBe("live");
+    expect(currentWeek(empty)!.number).toBe(17);
+    // a live week whose plan was kept at its lock stays: it is off the page, but the timeline says your cards play in it
+    const kept = seasonWeeks(grid, sorare, NOW);
+    expect(kept.find((w) => w.number === 16)!.cards).toBe(12);
+    expect(currentWeek(kept)!.number).toBe(16);
+    // a live LaLiga round stays, even with no Sorare data behind it
+    expect(currentWeek(seasonWeeks(grid, null, new Date("2026-10-10T10:00:00Z")))!.md).toBe(8);
   });
 });
 

@@ -135,7 +135,7 @@ def _lineup_bonus(lineup: Lineup) -> float:
 
 
 def _can_replace(lineup: Lineup, slot: int, starter_index: int) -> bool:
-    """May this substitute slot cover that starter? (position, and the in-season rule after the swap)"""
+    """May this substitute slot cover that starter? (position, and an in-season competition's bench is in-season only)"""
     comp = lineup.comp
     sub = lineup.subs[slot]
     if sub is None:
@@ -146,11 +146,8 @@ def _can_replace(lineup: Lineup, slot: int, starter_index: int) -> bool:
         return False
     if not gk_slot and len(comp.starters[starter_index]) == 1 and starter.positions[0] not in sub.positions:
         return False  # same position, unless the slot is the Extra one
-    if comp.min_in_season and starter.in_season and not sub.in_season:
-        left = sum(1 for c in lineup.starters if c.in_season) - 1
-        if left < comp.min_in_season:
-            return False  # the lineup would drop under four in-season cards, so he stays out
-    return True
+    # Sorare: "Only In-Season cards can be used as subs in In-Season Arenas" (help.sorare.com, What is Arena)
+    return not (comp.min_in_season and not sub.in_season)
 
 
 def totals(lineup: Lineup, plays: np.ndarray, scores: np.ndarray, record: bool = False) -> np.ndarray:
